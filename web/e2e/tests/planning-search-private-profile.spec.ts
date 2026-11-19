@@ -1,22 +1,23 @@
-import fixtures from '../fixtures/locales/de';
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { expect, type Page, test } from '@playwright/test';
+import de from '../../src/i18n/locales/de';
+import copy from '../../src/i18n/locales/m5s3';
+import navigation from '../../src/i18n/locales/navigation';
+import privateArea from '../../src/i18n/locales/privateArea';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import wishSelection from '../../src/i18n/locales/wishSelection';
+import fixtures from '../fixtures/locales/de';
+import AxeBuilder from '../support/axe';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
-  ME,
-  SPACE_ID,
   captureScreenshot,
   installMocks,
+  ME,
+  SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
-import copy from '../../src/i18n/locales/m5s3';
-import de from '../../src/i18n/locales/de';
-import privateArea from '../../src/i18n/locales/privateArea';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
-import wishSelection from '../../src/i18n/locales/wishSelection';
 
 const base = `/api/v1/spaces/${SPACE_ID}`;
 const planId = '44444444-4444-4444-8444-444444444444';
@@ -153,6 +154,14 @@ async function fixture(page: Page, failLater = false) {
     }
     if (path === `${base}/wishes/${wishId}`)
       return route.fulfill({ json: targetWish });
+    if (
+      route.request().method() === 'GET' &&
+      path === `${base}/wishes/${wishId}/reminder`
+    )
+      return route.fulfill({
+        json: { dueAt: null },
+        headers: { 'Cache-Control': 'private, no-store' },
+      });
     if (path === `${base}/places`)
       return route.fulfill({
         json: {
@@ -161,6 +170,8 @@ async function fixture(page: Page, failLater = false) {
               id: placeId,
               name: 'Starnberger See',
               address: 'Am See',
+              latitude: 47.9,
+              longitude: 11.3,
               creator: ME,
               capabilities: CAPABILITIES,
               createdAt: target.createdAt,
@@ -219,18 +230,27 @@ for (const view of [
       view.theme,
     );
     const state = await fixture(page);
+    // The private area opens on its notes.
+    await page.route(`**${base}/private/notes**`, (route) =>
+      route.fulfill({ json: { hasMore: false, items: [], nextCursor: null } }),
+    );
     await signIn(page);
     await page.goto('/plan');
     if (view.large)
       await page.addStyleTag({
         content: 'html { font-size: 200% !important; }',
       });
+    // The search rests as an icon and opens on demand (#1861).
+    await page
+      .getByRole('button', { name: copy.overview.searchPlans, exact: true })
+      .click();
     const planSearch = page.getByRole('searchbox', {
       name: copy.overview.searchPlans,
     });
+    // One question for every search; the accessible name stays specific.
     await expect(planSearch).toHaveAttribute(
       'placeholder',
-      copy.overview.searchPlans,
+      navigation.searchPrompt,
     );
     await expect(planSearch).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     if (!view.large) {
@@ -241,11 +261,12 @@ for (const view of [
     }
     await expect(
       page.getByRole('link', {
-        name: wishSelection.compactEntryAction,
+        name: wishSelection.entryStart,
         exact: true,
       }),
     ).toHaveCount(0);
-    await expect(planSearch).not.toBeFocused();
+    // Opening the search on demand moves the focus into its field.
+    await expect(planSearch).toBeFocused();
     await planSearch.fill('osterreich');
     await expect(page.locator('.planen-next-link')).toContainText(
       fixtures.planningFollowup.plan,
@@ -265,6 +286,9 @@ for (const view of [
     await expect(
       facts.getByRole('link', { name: /Starnberger See/ }),
     ).toBeVisible();
+    await expect(
+      facts.getByRole('link', { name: /Starnberger See/ }),
+    ).toHaveAttribute('href', '/story/map?place=47.9%3A11.3');
     await expect(facts.locator('.planen-detail-schedule')).toBeVisible();
     await captureScreenshot(
       page,
@@ -308,12 +332,15 @@ for (const view of [
     await page
       .getByRole('tab', { name: copy.overview.segmentWishes, exact: true })
       .click();
+    await page
+      .getByRole('button', { name: copy.overview.searchWishes, exact: true })
+      .click();
     const wishSearch = page.getByRole('searchbox', {
       name: copy.overview.searchWishes,
     });
     await expect(wishSearch).toHaveAttribute(
       'placeholder',
-      copy.overview.searchWishes,
+      navigation.searchPrompt,
     );
     await expect(wishSearch).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     await expect(page.locator('.planen-wish-copy > strong')).toHaveText([
@@ -327,14 +354,13 @@ for (const view of [
       'Z',
     ]);
     await expect(page.locator('.planen-wish-chevron')).toHaveCount(0);
+    // One slim entry row with one filled action (#1907 J1).
     const selection = page.getByRole('link', {
-      name: wishSelection.compactEntryAction,
+      name: wishSelection.entryStart,
       exact: true,
     });
-    await expect(selection.locator('.eimir-icon')).toHaveCSS(
-      'width',
-      view.large ? '40px' : '20px',
-    );
+    await expect(selection).toBeVisible();
+    expect((await selection.boundingBox())?.height).toBeGreaterThanOrEqual(44);
     await captureScreenshot(
       page,
       info,
@@ -393,7 +419,7 @@ for (const view of [
       .click();
     await expect(
       page.getByRole('link', {
-        name: privateArea.partnerNotes.title,
+        name: privateArea.partnerNotes.shortTitle,
         exact: true,
       }),
     ).toBeVisible();
@@ -414,6 +440,9 @@ test('a failed later Plan page never becomes an empty search and can be retried'
   const state = await fixture(page, true);
   await signIn(page);
   await page.goto('/plan');
+  await page
+    .getByRole('button', { name: copy.overview.searchPlans, exact: true })
+    .click();
   await page
     .getByRole('searchbox', { name: copy.overview.searchPlans })
     .fill('osterreich');
@@ -449,6 +478,8 @@ test('a linked archived Place remains visible next to the Plan schedule', async 
         spaceId: SPACE_ID,
         name: 'Starnberger See',
         address: 'Am See',
+        latitude: 47.9,
+        longitude: 11.3,
         archivedAt: '2026-11-01T00:00:00Z',
         creator: ME,
         capabilities: CAPABILITIES,
@@ -464,6 +495,9 @@ test('a linked archived Place remains visible next to the Plan schedule', async 
   await expect(
     facts.getByRole('link', { name: /Starnberger See/ }),
   ).toBeVisible();
+  await expect(
+    facts.getByRole('link', { name: /Starnberger See/ }),
+  ).toHaveAttribute('href', '/story/map?place=47.9%3A11.3');
   await expect(facts.locator('.planen-detail-schedule')).toBeVisible();
   expect(placeReads).toBe(1);
   expect(state.unexpected).toEqual([]);

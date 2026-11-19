@@ -8,9 +8,8 @@ import {
   MEDIA_CACHE_MAX_BYTES,
   MEDIA_CACHE_MAX_ENTRIES,
   mediaCacheScopeForOwner,
+  readStoredMediaBlob,
   registerMediaClient,
-  rememberAuthorizedMediaPreviews,
-  consumeAuthorizedMediaPreview,
 } from './authorizedMediaCache';
 
 function deferred<T>() {
@@ -37,78 +36,40 @@ function authorizedClient(base = 'https://api.example', account = 'viewer') {
 }
 const preview = ['attachment', 'MEMORY', 'parent', 'photo', 'thumbnail'];
 
-it('uses a fresh parent proof once for the exact thumbnail, never for another variant or parent', () => {
-  const lease = captureMediaCacheLease(authorizedClient(), 'space');
-  rememberAuthorizedMediaPreviews(lease, [preview]);
-  expect(
-    consumeAuthorizedMediaPreview(lease, [...preview.slice(0, -1), 'original']),
-  ).toBe(false);
-  expect(
-    consumeAuthorizedMediaPreview(lease, [
-      'attachment',
-      'MEMORY',
-      'other-parent',
-      'photo',
-      'thumbnail',
-    ]),
-  ).toBe(false);
-  expect(consumeAuthorizedMediaPreview(lease, preview)).toBe(true);
-  expect(consumeAuthorizedMediaPreview(lease, preview)).toBe(false);
-});
-
-it('cannot share a fresh parent proof across accounts, API origins or Spaces', () => {
+it('shows stored bytes only to the exact login, origin, Space, parent and variant', async () => {
   const client = authorizedClient();
-  const lease = captureMediaCacheLease(client, 'space');
-  rememberAuthorizedMediaPreviews(lease, [preview]);
-  for (const other of [
-    captureMediaCacheLease(authorizedClient('https://other.example'), 'space'),
-    captureMediaCacheLease(
-      authorizedClient('https://api.example', 'other-viewer'),
-      'space',
-    ),
-    captureMediaCacheLease(client, 'other-space'),
-  ])
-    expect(consumeAuthorizedMediaPreview(other, preview)).toBe(false);
-  expect(consumeAuthorizedMediaPreview(lease, preview)).toBe(true);
-});
-
-it('expires unused parent proofs and cannot use one after logout', () => {
-  const client = authorizedClient();
-  const lease = captureMediaCacheLease(client, 'space');
-  rememberAuthorizedMediaPreviews(lease, [preview]);
-  const now = Date.now();
-  const clock = vi.spyOn(Date, 'now').mockReturnValue(now + 60_001);
-  expect(consumeAuthorizedMediaPreview(lease, preview)).toBe(false);
-  clock.mockRestore();
-  rememberAuthorizedMediaPreviews(lease, [preview]);
+  const lease = captureMediaCacheLease(client, 'space', [
+    'attachment',
+    'MEMORY',
+    'parent',
+  ]);
+  const blob = new Blob(['photo'], { type: 'image/jpeg' });
+  await loadCachedMediaBlob(lease, preview, async () => blob);
+  expect(await readStoredMediaBlob(lease, preview)).toBe(blob);
+  for (const [other, identity] of [
+    [
+      captureMediaCacheLease(
+        authorizedClient('https://other.example'),
+        'space',
+      ),
+      preview,
+    ],
+    [
+      captureMediaCacheLease(
+        authorizedClient('https://api.example', 'other-viewer'),
+        'space',
+      ),
+      preview,
+    ],
+    [captureMediaCacheLease(client, 'other-space'), preview],
+    [lease, ['attachment', 'MEMORY', 'other-parent', 'photo', 'thumbnail']],
+    [lease, [...preview.slice(0, -1), 'original']],
+  ] as const)
+    expect(await readStoredMediaBlob(other, identity)).toBeUndefined();
   clearAuthorizedMediaCache();
   expect(
-    consumeAuthorizedMediaPreview(
-      captureMediaCacheLease(client, 'space'),
-      preview,
-    ),
-  ).toBe(false);
-});
-
-it('fences both existing proofs and late parent responses when a parent is revoked', () => {
-  const client = authorizedClient();
-  const responseLease = captureMediaCacheLease(client, 'space');
-  rememberAuthorizedMediaPreviews(responseLease, [preview]);
-  const parent = ['attachment', 'MEMORY', 'parent'];
-  evictAuthorizedMedia(captureMediaCacheLease(client, 'space', parent), parent);
-  expect(
-    consumeAuthorizedMediaPreview(
-      captureMediaCacheLease(client, 'space'),
-      preview,
-    ),
-  ).toBe(false);
-  rememberAuthorizedMediaPreviews(responseLease, [preview]);
-  expect(
-    consumeAuthorizedMediaPreview(
-      captureMediaCacheLease(client, 'space'),
-      preview,
-    ),
-  ).toBe(false);
+    await readStoredMediaBlob(captureMediaCacheLease(client, 'space'), preview),
+  ).toBeUndefined();
 });
 
 it('shares simultaneous downloads while retaining bytes after all views leave', async () => {
@@ -328,4 +289,29 @@ it('also bounds the number of tiny preview entries', async () => {
   expect(load).toHaveBeenCalledTimes(MEDIA_CACHE_MAX_ENTRIES + 1);
   await loadCachedMediaBlob(lease, ['0'], load);
   expect(load).toHaveBeenCalledTimes(MEDIA_CACHE_MAX_ENTRIES + 2);
+});
+
+it('returns stored bytes without a network read, and none after revocation or for another login', async () => {
+  const client = authorizedClient();
+  const lease = () =>
+    captureMediaCacheLease(client, 'space', ['attachment', 'MEMORY', 'parent']);
+  expect(await readStoredMediaBlob(lease(), preview)).toBeUndefined();
+  const blob = new Blob(['photo'], { type: 'image/jpeg' });
+  await loadCachedMediaBlob(lease(), preview, async () => blob);
+  expect(await readStoredMediaBlob(lease(), preview)).toBe(blob);
+  expect(
+    await readStoredMediaBlob(
+      captureMediaCacheLease(
+        authorizedClient('https://api.example', 'other'),
+        'space',
+      ),
+      preview,
+    ),
+  ).toBeUndefined();
+  const held = lease();
+  evictAuthorizedMedia(held, ['attachment', 'MEMORY', 'parent']);
+  await expect(readStoredMediaBlob(held, preview)).rejects.toMatchObject({
+    name: 'AbortError',
+  });
+  expect(await readStoredMediaBlob(lease(), preview)).toBeUndefined();
 });

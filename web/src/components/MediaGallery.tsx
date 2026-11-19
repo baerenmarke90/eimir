@@ -1,4 +1,3 @@
-import { MediaProcessingState } from './MediaProcessingState';
 import {
   type ReactNode,
   useCallback,
@@ -17,6 +16,7 @@ import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useObjectUrlResources } from '../client/useObjectUrlResources';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
+import { MediaProcessingState } from './MediaProcessingState';
 import {
   SensitiveMediaControl,
   SensitiveMediaCover,
@@ -24,7 +24,95 @@ import {
 } from './SensitiveMedia';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 import { VideoPlayer, type VideoSourceLoader } from './VideoPlayer';
+import { VideoTransferFeedback } from './VideoTransferFeedback';
+import { VoiceNotePlayer, VoiceNotePreview } from './VoiceNotePlayer';
+import { ZoomablePhoto } from './ZoomablePhoto';
 import './MediaGallery.css';
+
+function cancelScrollFeedback(
+  frame: { current: number | null },
+  timer: { current: number | null },
+) {
+  if (frame.current !== null) {
+    window.cancelAnimationFrame(frame.current);
+    frame.current = null;
+  }
+  if (timer.current !== null) {
+    window.clearTimeout(timer.current);
+    timer.current = null;
+  }
+}
+
+function observeTrackResize(track: HTMLDivElement, onResize: () => void) {
+  let width = track.clientWidth;
+  let height = track.clientHeight;
+  const observer = new ResizeObserver(() => {
+    const nextWidth = track.clientWidth;
+    const nextHeight = track.clientHeight;
+    // Initial delivery and re-observation are not geometry changes. In
+    // particular, they must not interrupt an in-flight native animation.
+    if (width === nextWidth && height === nextHeight) return;
+    width = nextWidth;
+    height = nextHeight;
+    onResize();
+  });
+  observer.observe(track);
+  return () => observer.disconnect();
+}
+
+function nearestSnapSlide(
+  track: HTMLDivElement,
+  attribute: 'data-carousel-index' | 'data-lightbox-index',
+): HTMLElement | null {
+  const slides = Array.from(
+    track.querySelectorAll<HTMLElement>(`[${attribute}]`),
+  );
+  if (slides.length === 0) return null;
+  return slides.reduce((nearest, slide) =>
+    Math.abs(slide.offsetLeft - track.scrollLeft) <
+    Math.abs(nearest.offsetLeft - track.scrollLeft)
+      ? slide
+      : nearest,
+  );
+}
+
+function updatePositionIndicator(
+  position: HTMLElement | null,
+  track: HTMLDivElement,
+  slide: HTMLElement,
+) {
+  if (!position) return;
+  const current = position.children[Number(slide.dataset.carouselIndex)];
+  if (!(current instanceof HTMLButtonElement) || !current.offsetWidth) return;
+  const [marker, wrapMarker] = position.querySelectorAll<HTMLElement>(
+    '.media-gallery-position-marker',
+  );
+  if (!marker || !wrapMarker) return;
+
+  const offset = track.scrollLeft - slide.offsetLeft;
+  const adjacent =
+    offset < 0 ? slide.previousElementSibling : slide.nextElementSibling;
+  const neighbor = adjacent instanceof HTMLElement ? adjacent : null;
+  const next = position.children[Number(neighbor?.dataset.carouselIndex)];
+  const distance = neighbor ? neighbor.offsetLeft - slide.offsetLeft : 0;
+  const progress = distance ? Math.max(0, Math.min(1, offset / distance)) : 0;
+  const target = next instanceof HTMLButtonElement ? next : current;
+  const x = current.offsetLeft + current.offsetWidth / 2;
+  const y = current.offsetTop + current.offsetHeight / 2;
+  const targetX = target.offsetLeft + target.offsetWidth / 2;
+  const targetY = target.offsetTop + target.offsetHeight / 2;
+  // Fade between the endpoints of a circular swipe or a wrapped row.
+  const crossesEdge =
+    y !== targetY ||
+    slide.dataset.carouselClone ||
+    neighbor?.dataset.carouselClone;
+
+  marker.style.transform = `translate(${crossesEdge ? x : x + (targetX - x) * progress}px, ${y}px) translate(-50%, -50%)`;
+  marker.style.opacity = String(crossesEdge ? 1 - progress : 1);
+  wrapMarker.style.transform = `translate(${targetX}px, ${targetY}px) translate(-50%, -50%)`;
+  wrapMarker.style.opacity = String(crossesEdge ? progress : 0);
+  if (!position.dataset.tracking) position.dataset.tracking = 'true';
+}
 
 export function GalleryExpandAction({
   onOpen,
@@ -46,6 +134,10 @@ export function GalleryExpandAction({
   );
 }
 
+/** How long the carousel's controls stay hidden after the last swipe. */
+const CONTROLS_REST_MS = 1500;
+const CONTROLS_HIDDEN_CLASS = 'is-browsing';
+
 export interface GalleryMediaItem {
   status?: string;
   id: string;
@@ -66,9 +158,14 @@ export function MediaGallery({
   renderCaption,
   dismissWithHistory = true,
   directSensitiveToggle = false,
+  showInlineSensitiveControl = true,
+  readingFrame = false,
+  presentation = 'default',
+  countStyle = presentation === 'composer' ? 'fraction' : 'label',
   onPhotoLongPress,
   renderPhotoActions,
   renderPhotoReactions,
+  onSettledMediaChange,
 }: {
   items: GalleryMediaItem[];
   initialMediaId?: string;
@@ -90,13 +187,21 @@ export function MediaGallery({
   ) => ReactNode;
   dismissWithHistory?: boolean;
   directSensitiveToggle?: boolean;
+  /** Fullscreen reveal/hide remains available independently of the gallery control. */
+  showInlineSensitiveControl?: boolean;
+  readingFrame?: boolean;
+  presentation?: 'default' | 'composer';
+  countStyle?: 'fraction' | 'label';
   onPhotoLongPress?: (id: string) => void;
   renderPhotoActions?: (
     item: GalleryMediaItem,
     openFullScreen: () => void,
     revealed: boolean,
   ) => ReactNode;
+  /** Overlay the active slide without adding height to the reader. */
   renderPhotoReactions?: (item: GalleryMediaItem) => ReactNode;
+  /** Editor thumbnails follow completed native swipes without taking gesture ownership. */
+  onSettledMediaChange?: (id: string) => void;
 }) {
   const { t } = useTranslation();
   const itemIdentity = JSON.stringify(
@@ -113,6 +218,8 @@ export function MediaGallery({
     items.findIndex((item) => item.id === initialMediaId),
   );
   const [carouselIndex, setCarouselIndex] = useState(startingIndex);
+  const showCarouselPosition =
+    !renderPreviews && presentation === 'composer' && items.length > 1;
   const photoPress = useRef<{
     timer?: ReturnType<typeof setTimeout>;
     x: number;
@@ -131,51 +238,56 @@ export function MediaGallery({
     () => () => cancelPhotoPress(),
     [resourceScopeKey, itemIdentity, cancelPhotoPress],
   );
+  // Scroll frames preview a swipe; only a selection or completed swipe owns
+  // resize alignment. A layout change must not commit an intermediate slide.
   const carouselIndexRef = useRef(startingIndex);
-  useLayoutEffect(() => {
-    carouselIndexRef.current = carouselIndex;
-  }, [carouselIndex]);
+  const carouselScrollTarget = useRef<number | null>(startingIndex);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const imageFocusIndex =
+  const resourceFocusIndex =
     activeIndex ?? (renderPreviews ? null : carouselIndex);
-  const imageResourceIds = items
+  const mediaResourceIds = items
     .filter((item, index) => {
       if (
         item.mediaType === MediaType.VIDEO ||
         (item.status && item.status !== 'READY')
       )
         return false;
-      if (imageFocusIndex === null) return false;
+      if (item.mediaType === MediaType.AUDIO)
+        return (
+          index === activeIndex &&
+          (item.isSensitive === false || reveals.isRevealed(item.id))
+        );
+      if (resourceFocusIndex === null) return false;
       return [
-        imageFocusIndex,
-        (imageFocusIndex + 1) % items.length,
-        (imageFocusIndex - 1 + items.length) % items.length,
+        resourceFocusIndex,
+        (resourceFocusIndex + 1) % items.length,
+        (resourceFocusIndex - 1 + items.length) % items.length,
       ].includes(index);
     })
     .map((item) => item.id);
   const mediaResources = useObjectUrlResources(
     resourceScopeKey,
-    imageResourceIds,
+    mediaResourceIds,
     (attachmentId, signal) => loadMedia(attachmentId, signal),
   );
   const urls = mediaResources.urls;
-  const posterFocus = activeIndex ?? carouselIndex;
-  const posterIds = loadPoster
-    ? items
-        .filter(
-          (item, index) =>
-            item.mediaType === MediaType.VIDEO &&
-            (!item.status || item.status === 'READY') &&
-            (!item.isSensitive || reveals.isRevealed(item.id)) &&
-            item.hasThumbnail !== false &&
-            [
-              posterFocus,
-              (posterFocus + 1) % items.length,
-              (posterFocus - 1 + items.length) % items.length,
-            ].includes(index),
-        )
-        .map((item) => item.id)
-    : [];
+  const posterIds =
+    loadPoster && resourceFocusIndex !== null
+      ? items
+          .filter(
+            (item, index) =>
+              item.mediaType === MediaType.VIDEO &&
+              (!item.status || item.status === 'READY') &&
+              (!item.isSensitive || reveals.isRevealed(item.id)) &&
+              item.hasThumbnail !== false &&
+              [
+                resourceFocusIndex,
+                (resourceFocusIndex + 1) % items.length,
+                (resourceFocusIndex - 1 + items.length) % items.length,
+              ].includes(index),
+          )
+          .map((item) => item.id)
+      : [];
   const posters = useObjectUrlResources(
     `video-posters:${resourceScopeKey}`,
     posterIds,
@@ -185,29 +297,63 @@ export function MediaGallery({
   const closeButton = useRef<HTMLButtonElement | null>(null);
   const lightboxDialog = useRef<HTMLDivElement | null>(null);
   const carouselTrack = useRef<HTMLDivElement | null>(null);
+  const carouselPosition = useRef<HTMLElement | null>(null);
   const carouselSlides = useRef<Array<HTMLButtonElement | null>>([]);
   const carouselScrollFrame = useRef<number | null>(null);
   const carouselScrollEndTimer = useRef<number | null>(null);
+  const carouselViewport = useRef<HTMLDivElement | null>(null);
+  const controlsRestTimer = useRef<number | null>(null);
+  const userBrowsing = useRef(false);
   const lightboxTrack = useRef<HTMLDivElement | null>(null);
   const lightboxSlides = useRef<Array<HTMLDivElement | null>>([]);
   const lightboxScrollFrame = useRef<number | null>(null);
   const lightboxScrollEndTimer = useRef<number | null>(null);
   const lightboxInitialIndex = useRef(0);
+  const lightboxScrollTarget = useRef<number | null>(null);
   const activeIndexRef = useRef<number | null>(null);
-  const carouselItemsIdentityRef = useRef<string | null>(null);
+  const carouselItemsIdentityRef = useRef<{
+    items: string;
+    mediaId?: string;
+  } | null>(null);
   const activeItemIdRef = useRef<string | null>(null);
+  const cancelCarouselFeedback = useCallback(() => {
+    cancelScrollFeedback(carouselScrollFrame, carouselScrollEndTimer);
+  }, []);
+  const cancelLightboxFeedback = useCallback(() => {
+    cancelScrollFeedback(lightboxScrollFrame, lightboxScrollEndTimer);
+  }, []);
+  /**
+   * Overlaid controls get out of the way while the viewer swipes through the
+   * photos and return once the gesture has rested. Only the viewer's own
+   * gestures count, not layout or programmatic scrolling.
+   */
+  const holdBrowsing = useCallback((hideControls: boolean) => {
+    userBrowsing.current = true;
+    // The draft stage's edit controls stay put; reading galleries step aside.
+    const viewport = carouselViewport.current;
+    if (hideControls && viewport && !viewport.closest('.photo-draft-stage'))
+      viewport.classList.add(CONTROLS_HIDDEN_CLASS);
+    if (controlsRestTimer.current !== null)
+      window.clearTimeout(controlsRestTimer.current);
+    controlsRestTimer.current = window.setTimeout(() => {
+      controlsRestTimer.current = null;
+      userBrowsing.current = false;
+      carouselViewport.current?.classList.remove(CONTROLS_HIDDEN_CLASS);
+    }, CONTROLS_REST_MS);
+  }, []);
+  useEffect(
+    () => () => {
+      if (controlsRestTimer.current !== null)
+        window.clearTimeout(controlsRestTimer.current);
+    },
+    [],
+  );
   const dismiss = useCallback(() => {
-    if (lightboxScrollFrame.current !== null) {
-      window.cancelAnimationFrame(lightboxScrollFrame.current);
-      lightboxScrollFrame.current = null;
-    }
-    if (lightboxScrollEndTimer.current !== null) {
-      window.clearTimeout(lightboxScrollEndTimer.current);
-      lightboxScrollEndTimer.current = null;
-    }
+    cancelLightboxFeedback();
+    lightboxScrollTarget.current = null;
     activeIndexRef.current = null;
     setActiveIndex(null);
-  }, []);
+  }, [cancelLightboxFeedback]);
   const closeHistoryEntry = useEditorHistoryEntry({
     isActive: dismissWithHistory && activeIndex !== null,
     isDirty: false,
@@ -241,45 +387,76 @@ export function MediaGallery({
   }, [carouselIndex, items.length]);
 
   useLayoutEffect(() => {
-    const identity = JSON.stringify([itemIdentity, initialMediaId]);
-    if (carouselItemsIdentityRef.current === identity) return;
-    carouselItemsIdentityRef.current = identity;
+    const previous = carouselItemsIdentityRef.current;
+    if (previous?.items === itemIdentity && previous.mediaId === initialMediaId)
+      return;
+    carouselItemsIdentityRef.current = {
+      items: itemIdentity,
+      mediaId: initialMediaId,
+    };
+    // A parent acknowledging a native swipe is not a new scroll command.
+    if (
+      previous?.items === itemIdentity &&
+      carouselScrollTarget.current === null &&
+      carouselIndexRef.current === startingIndex
+    )
+      return;
+    // A new explicit selection owns subsequent feedback and resize alignment.
+    cancelCarouselFeedback();
+    carouselIndexRef.current = startingIndex;
+    carouselScrollTarget.current = startingIndex;
     setCarouselIndex(startingIndex);
 
     const track = carouselTrack.current;
     const firstSlide = carouselSlides.current[startingIndex];
     if (!track || !firstSlide || items.length < 2) return;
     track.scrollLeft = firstSlide.offsetLeft;
-  }, [itemIdentity, items.length, initialMediaId, startingIndex]);
+    updatePositionIndicator(carouselPosition.current, track, firstSlide);
+  }, [
+    itemIdentity,
+    items.length,
+    initialMediaId,
+    startingIndex,
+    cancelCarouselFeedback,
+  ]);
 
   useLayoutEffect(() => {
     const track = carouselTrack.current;
     if (!track || items.length < 2 || typeof ResizeObserver === 'undefined')
       return;
-    const observer = new ResizeObserver(() => {
+    return observeTrackResize(track, () => {
       const slide = carouselSlides.current[carouselIndexRef.current];
-      if (slide) track.scrollLeft = slide.offsetLeft;
+      if (!slide) return;
+      cancelCarouselFeedback();
+      carouselScrollTarget.current = carouselIndexRef.current;
+      setCarouselIndex(carouselIndexRef.current);
+      track.scrollLeft = slide.offsetLeft;
+      updatePositionIndicator(carouselPosition.current, track, slide);
     });
-    observer.observe(track);
+  }, [items.length, cancelCarouselFeedback]);
+
+  useLayoutEffect(() => {
+    const position = carouselPosition.current;
+    const track = carouselTrack.current;
+    if (!showCarouselPosition || !position || !track) return;
+
+    const syncPosition = () => {
+      const slide = nearestSnapSlide(track, 'data-carousel-index');
+      if (slide) updatePositionIndicator(position, track, slide);
+    };
+    syncPosition();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(syncPosition);
+    observer.observe(position);
     return () => observer.disconnect();
-  }, [items.length]);
+  }, [showCarouselPosition]);
 
   useEffect(
     () => () => {
-      if (carouselScrollFrame.current !== null) {
-        window.cancelAnimationFrame(carouselScrollFrame.current);
-      }
-      if (carouselScrollEndTimer.current !== null) {
-        window.clearTimeout(carouselScrollEndTimer.current);
-      }
-      if (lightboxScrollFrame.current !== null) {
-        window.cancelAnimationFrame(lightboxScrollFrame.current);
-      }
-      if (lightboxScrollEndTimer.current !== null) {
-        window.clearTimeout(lightboxScrollEndTimer.current);
-      }
+      cancelCarouselFeedback();
+      cancelLightboxFeedback();
     },
-    [],
+    [cancelCarouselFeedback, cancelLightboxFeedback],
   );
 
   const lightboxOpen = activeIndex !== null;
@@ -296,18 +473,23 @@ export function MediaGallery({
     const track = lightboxTrack.current;
     if (!lightboxOpen || !track || typeof ResizeObserver === 'undefined')
       return;
-    const observer = new ResizeObserver(() => {
-      const current = activeIndexRef.current;
+    return observeTrackResize(track, () => {
+      // Resize owns geometry, not selection. An in-flight keyboard/button
+      // advance retains its destination until native scrolling reaches it.
+      const current = lightboxScrollTarget.current ?? activeIndexRef.current;
       const slide = current === null ? null : lightboxSlides.current[current];
-      if (slide) track.scrollLeft = slide.offsetLeft;
+      if (current === null || !slide) return;
+      cancelLightboxFeedback();
+      track.scrollLeft = slide.offsetLeft;
+      activeIndexRef.current = current;
+      activeItemIdRef.current = items[current]?.id ?? null;
+      setActiveIndex(current);
     });
-    observer.observe(track);
-    return () => observer.disconnect();
-  }, [lightboxOpen]);
+  }, [lightboxOpen, items, cancelLightboxFeedback]);
 
   const changeActive = useCallback(
     (delta: number) => {
-      const current = activeIndexRef.current;
+      const current = lightboxScrollTarget.current ?? activeIndexRef.current;
       if (current === null || items.length < 2) return;
 
       const direction = delta < 0 ? -1 : 1;
@@ -342,6 +524,8 @@ export function MediaGallery({
       }
 
       if (!target) return;
+      cancelLightboxFeedback();
+      lightboxScrollTarget.current = nextIndex;
 
       if (reducedMotion) {
         track.scrollLeft = target.offsetLeft;
@@ -353,7 +537,7 @@ export function MediaGallery({
 
       track.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
     },
-    [items],
+    [items, cancelLightboxFeedback],
   );
 
   useModalLifecycle({
@@ -365,10 +549,16 @@ export function MediaGallery({
     if (!lightboxOpen) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
       if (event.key === 'Escape') {
         closeLightbox();
       }
-      if (event.target instanceof HTMLVideoElement) return;
+      if (
+        event.target instanceof HTMLVideoElement ||
+        (event.target instanceof HTMLInputElement &&
+          event.target.type === 'range')
+      )
+        return;
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
         changeActive(-1);
@@ -384,28 +574,24 @@ export function MediaGallery({
 
   if (items.length === 0) return null;
 
-  function nearestCarouselSlide(track: HTMLDivElement): HTMLElement | null {
-    const slides = Array.from(
-      track.querySelectorAll<HTMLElement>('[data-carousel-index]'),
-    );
-    if (slides.length === 0) return null;
-
-    return slides.reduce((nearest, slide) =>
-      Math.abs(slide.offsetLeft - track.scrollLeft) <
-      Math.abs(nearest.offsetLeft - track.scrollLeft)
-        ? slide
-        : nearest,
-    );
-  }
-
   function finishCarouselScroll(track: HTMLDivElement) {
-    const nearest = nearestCarouselSlide(track);
+    const nearest = nearestSnapSlide(track, 'data-carousel-index');
     if (!nearest) return;
 
     const index = Number(nearest.dataset.carouselIndex);
     if (!Number.isInteger(index) || index < 0 || index >= items.length) return;
 
+    // Passive native resnapping after layout changes cannot replace an explicit
+    // selection. A horizontal input hands selection back to the native swipe.
+    const requested = carouselScrollTarget.current;
+    if (requested !== null && index !== requested) {
+      const slide = carouselSlides.current[requested];
+      if (slide) track.scrollLeft = slide.offsetLeft;
+      return;
+    }
+    carouselIndexRef.current = index;
     setCarouselIndex(index);
+    if (items[index]) onSettledMediaChange?.(items[index].id);
 
     if (nearest.dataset.carouselClone) {
       const realSlide = carouselSlides.current[index];
@@ -417,13 +603,20 @@ export function MediaGallery({
 
   function handleCarouselScroll(track: HTMLDivElement) {
     cancelPhotoPress(true);
+    if (userBrowsing.current) holdBrowsing(true);
     if (carouselScrollFrame.current === null) {
       carouselScrollFrame.current = window.requestAnimationFrame(() => {
         carouselScrollFrame.current = null;
-        const nearest = nearestCarouselSlide(track);
+        const nearest = nearestSnapSlide(track, 'data-carousel-index');
         if (!nearest) return;
+        updatePositionIndicator(carouselPosition.current, track, nearest);
         const index = Number(nearest.dataset.carouselIndex);
         if (Number.isInteger(index) && index >= 0 && index < items.length) {
+          if (
+            carouselScrollTarget.current !== null &&
+            carouselScrollTarget.current !== index
+          )
+            return;
           setCarouselIndex(index);
         }
       });
@@ -439,13 +632,16 @@ export function MediaGallery({
   }
 
   function changeCarousel(delta: number) {
-    if (items.length < 2) return;
+    if (items.length < 2 || delta === 0) return;
 
     const direction = delta < 0 ? -1 : 1;
-    const nextIndex = (carouselIndex + direction + items.length) % items.length;
+    const nextIndex = (carouselIndex + delta + items.length) % items.length;
+    carouselIndexRef.current = nextIndex;
+    carouselScrollTarget.current = nextIndex;
     const track = carouselTrack.current;
     if (!track) {
       setCarouselIndex(nextIndex);
+      if (items[nextIndex]) onSettledMediaChange?.(items[nextIndex].id);
       return;
     }
 
@@ -460,6 +656,7 @@ export function MediaGallery({
         track.scrollLeft = realSlide.offsetLeft;
       }
       setCarouselIndex(nextIndex);
+      if (items[nextIndex]) onSettledMediaChange?.(items[nextIndex].id);
       return;
     }
 
@@ -476,31 +673,21 @@ export function MediaGallery({
     track.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
   }
 
-  function nearestLightboxSlide(track: HTMLDivElement): HTMLElement | null {
-    const slides = Array.from(
-      track.querySelectorAll<HTMLElement>('[data-lightbox-index]'),
-    );
-    if (slides.length === 0) return null;
-
-    return slides.reduce((nearest, slide) =>
-      Math.abs(slide.offsetLeft - track.scrollLeft) <
-      Math.abs(nearest.offsetLeft - track.scrollLeft)
-        ? slide
-        : nearest,
-    );
-  }
-
   function finishLightboxScroll(track: HTMLDivElement) {
     if (activeIndexRef.current === null) return;
-    const nearest = nearestLightboxSlide(track);
+    const nearest = nearestSnapSlide(track, 'data-lightbox-index');
     if (!nearest) return;
 
     const index = Number(nearest.dataset.lightboxIndex);
     if (!Number.isInteger(index) || index < 0 || index >= items.length) return;
 
+    const requested = lightboxScrollTarget.current;
+    if (requested !== null && requested !== index) return;
+    lightboxScrollTarget.current = null;
     activeIndexRef.current = index;
     activeItemIdRef.current = items[index]?.id ?? null;
     setActiveIndex(index);
+    if (items[index]) onSettledMediaChange?.(items[index].id);
 
     if (nearest.dataset.lightboxClone) {
       const realSlide = lightboxSlides.current[index];
@@ -516,10 +703,15 @@ export function MediaGallery({
       lightboxScrollFrame.current = window.requestAnimationFrame(() => {
         lightboxScrollFrame.current = null;
         if (activeIndexRef.current === null) return;
-        const nearest = nearestLightboxSlide(track);
+        const nearest = nearestSnapSlide(track, 'data-lightbox-index');
         if (!nearest) return;
         const index = Number(nearest.dataset.lightboxIndex);
         if (Number.isInteger(index) && index >= 0 && index < items.length) {
+          if (
+            lightboxScrollTarget.current !== null &&
+            lightboxScrollTarget.current !== index
+          )
+            return;
           activeIndexRef.current = index;
           activeItemIdRef.current = items[index]?.id ?? null;
           setActiveIndex(index);
@@ -538,6 +730,7 @@ export function MediaGallery({
 
   function openLightbox(index: number) {
     lightboxInitialIndex.current = index;
+    lightboxScrollTarget.current = null;
     activeIndexRef.current = index;
     activeItemIdRef.current = items[index]?.id ?? null;
     setActiveIndex(index);
@@ -576,14 +769,16 @@ export function MediaGallery({
   function renderMedia(
     item: GalleryMediaItem,
     className: string,
-    activeVideo = false,
+    active = false,
   ) {
     if (item.status && item.status !== 'READY')
-      return <MediaProcessingState status={item.status} />;
+      return (
+        <MediaProcessingState status={item.status} attachmentId={item.id} />
+      );
     if (item.mediaType === MediaType.VIDEO) {
       const revealed =
         item.isSensitive === false || reveals.isRevealed(item.id);
-      return activeVideo && revealed && loadPlayback ? (
+      return active && revealed && loadPlayback ? (
         <VideoPlayer
           key={`${resourceScopeKey}:${item.id}`}
           id={item.id}
@@ -594,6 +789,11 @@ export function MediaGallery({
       ) : (
         videoPoster(item)
       );
+    }
+    if (item.mediaType === MediaType.AUDIO) {
+      if (item.isSensitive !== false && !reveals.isRevealed(item.id))
+        return <SensitiveMediaCover />;
+      if (!active) return <VoiceNotePreview duration={item.durationSeconds} />;
     }
     if (failed.has(item.id)) {
       return (
@@ -612,19 +812,42 @@ export function MediaGallery({
         />
       );
     }
+    if (item.mediaType === MediaType.AUDIO) {
+      return (
+        <div className="media-lightbox-voice">
+          <VoiceNotePlayer
+            key={item.id}
+            src={url}
+            duration={item.durationSeconds}
+          />
+        </div>
+      );
+    }
     if (item.isSensitive !== false && !reveals.isRevealed(item.id))
       return (
         <SensitiveMediaCover>
           {item.isSensitive === true ? <img src={url} alt="" /> : null}
         </SensitiveMediaCover>
       );
-    return <img className={className} src={url} alt={t('gallery.imageAlt')} />;
+    return active ? (
+      <ZoomablePhoto
+        key={`${resourceScopeKey}:${item.id}`}
+        src={url}
+        alt={t('gallery.imageAlt')}
+      />
+    ) : (
+      <img className={className} src={url} alt={t('gallery.imageAlt')} />
+    );
   }
 
   function renderCarouselMedia(item: GalleryMediaItem) {
     if (item.status && item.status !== 'READY')
-      return <MediaProcessingState status={item.status} />;
+      return (
+        <MediaProcessingState status={item.status} attachmentId={item.id} />
+      );
     if (item.mediaType === MediaType.VIDEO) return videoPoster(item);
+    if (item.mediaType === MediaType.AUDIO)
+      return renderMedia(item, 'media-gallery-image');
     if (failed.has(item.id)) {
       return (
         <div className="media-gallery-unavailable">
@@ -666,6 +889,10 @@ export function MediaGallery({
   }
 
   const activeItem = activeIndex === null ? null : items[activeIndex];
+  const carouselItem = items[carouselIndex];
+  const carouselRevealed = carouselItem
+    ? reveals.isRevealed(carouselItem.id)
+    : false;
 
   return (
     <>
@@ -673,14 +900,27 @@ export function MediaGallery({
         renderPreviews(openLightbox)
       ) : (
         <section
-          className="media-gallery-carousel"
+          className={`media-gallery-carousel${readingFrame ? ' media-gallery-reader' : ''}`}
           aria-label={t('gallery.aria')}
         >
-          <div className="media-gallery-carousel-viewport">
+          <div
+            ref={carouselViewport}
+            className="media-gallery-carousel-viewport"
+          >
             <div
               ref={carouselTrack}
               className="eimir-media-snap-track media-gallery-carousel-track"
               onScroll={(event) => handleCarouselScroll(event.currentTarget)}
+              onPointerDown={() => {
+                carouselScrollTarget.current = null;
+                holdBrowsing(false);
+              }}
+              onWheel={(event) => {
+                if (event.deltaX !== 0 || event.shiftKey) {
+                  carouselScrollTarget.current = null;
+                  holdBrowsing(false);
+                }
+              }}
             >
               {items.length > 1 ? (
                 <div
@@ -709,6 +949,13 @@ export function MediaGallery({
                     data-carousel-index={index}
                     aria-hidden={!isActive}
                     tabIndex={isActive ? 0 : -1}
+                    onKeyDown={(event) => {
+                      if (
+                        event.key === 'ArrowLeft' ||
+                        event.key === 'ArrowRight'
+                      )
+                        carouselScrollTarget.current = null;
+                    }}
                     onPointerDown={(event) => {
                       photoPress.current.suppressClick = false;
                       if (
@@ -764,30 +1011,39 @@ export function MediaGallery({
                         photoPress.current.suppressClick = false;
                         return;
                       }
-                      if (directSensitiveToggle && item.isSensitive === true)
+                      if (
+                        directSensitiveToggle &&
+                        item.isSensitive === true &&
+                        !reveals.isRevealed(item.id)
+                      )
                         reveals.toggle(item.id);
                       else openLightbox(index);
                     }}
-                    aria-pressed={
-                      directSensitiveToggle && item.isSensitive === true
-                        ? reveals.isRevealed(item.id)
-                        : undefined
-                    }
                     aria-label={
-                      directSensitiveToggle && item.isSensitive === true
-                        ? t(
-                            reveals.isRevealed(item.id)
-                              ? 'sensitiveMedia.hide'
-                              : 'sensitiveMedia.show',
-                          )
+                      directSensitiveToggle &&
+                      item.isSensitive === true &&
+                      !reveals.isRevealed(item.id)
+                        ? t('sensitiveMedia.show')
                         : (item.isSensitive !== false &&
                           !reveals.isRevealed(item.id)
                             ? t('sensitiveMedia.label') + '. '
                             : '') +
-                          t('gallery.openItem', {
+                          (loadPlayback &&
+                          item.mediaType === MediaType.VIDEO &&
+                          (!item.status || item.status === 'READY')
+                            ? t('video.play')
+                            : t('gallery.openItem', {
+                                index: index + 1,
+                                count: items.length,
+                              }))
+                    }
+                    aria-description={
+                      item.mediaType === MediaType.VIDEO
+                        ? t('gallery.openItem', {
                             index: index + 1,
                             count: items.length,
                           })
+                        : undefined
                     }
                   >
                     {renderCarouselMedia(item)}
@@ -807,16 +1063,31 @@ export function MediaGallery({
               ) : null}
             </div>
 
+            {presentation === 'composer' && items.length === 1 ? (
+              <span className="media-gallery-carousel-counter media-overlay">
+                {t(
+                  countStyle === 'label'
+                    ? 'gallery.counter'
+                    : 'gallery.fraction',
+                  { index: 1, count: 1 },
+                )}
+              </span>
+            ) : null}
             {items.length > 1 ? (
               <>
                 <span
                   className="media-gallery-carousel-counter media-overlay"
                   aria-live="polite"
                 >
-                  {t('gallery.counter', {
-                    index: carouselIndex + 1,
-                    count: items.length,
-                  })}
+                  {t(
+                    countStyle === 'label'
+                      ? 'gallery.counter'
+                      : 'gallery.fraction',
+                    {
+                      index: carouselIndex + 1,
+                      count: items.length,
+                    },
+                  )}
                 </span>
                 <button
                   type="button"
@@ -838,39 +1109,84 @@ export function MediaGallery({
                 </button>
               </>
             ) : null}
-            {directSensitiveToggle &&
-            items[carouselIndex]?.isSensitive === true &&
-            reveals.isRevealed(items[carouselIndex]!.id) ? (
-              <div
-                className="media-gallery-privacy-indicator"
-                aria-hidden="true"
-              >
-                <SensitiveMediaCover />
-              </div>
+            {carouselItem?.isSensitive === true &&
+            carouselItem.mediaType === MediaType.IMAGE &&
+            ((showInlineSensitiveControl && !directSensitiveToggle) ||
+              carouselRevealed) ? (
+              <SensitiveMediaControl
+                overlay
+                iconOnly
+                className="media-gallery-sensitive-control"
+                revealed={carouselRevealed}
+                onToggle={() => {
+                  if (directSensitiveToggle || !showInlineSensitiveControl)
+                    carouselSlides.current[carouselIndex]?.focus({
+                      preventScroll: true,
+                    });
+                  reveals.toggle(carouselItem.id);
+                }}
+              />
             ) : null}
-            {items[carouselIndex]
+            {carouselItem
               ? renderPhotoActions?.(
-                  items[carouselIndex]!,
+                  carouselItem,
                   () => openLightbox(carouselIndex),
-                  items[carouselIndex]?.isSensitive === false ||
-                    reveals.isRevealed(items[carouselIndex]!.id),
+                  carouselItem.isSensitive === false || carouselRevealed,
                 )
               : null}
+            {carouselItem ? renderPhotoReactions?.(carouselItem) : null}
           </div>
-          {!directSensitiveToggle &&
-          items[carouselIndex]?.isSensitive === true ? (
+          {showInlineSensitiveControl &&
+          carouselItem?.isSensitive === true &&
+          carouselItem.mediaType === MediaType.VIDEO &&
+          (!directSensitiveToggle || carouselRevealed) ? (
             <SensitiveMediaControl
-              video={items[carouselIndex]?.mediaType === MediaType.VIDEO}
-              revealed={reveals.isRevealed(items[carouselIndex]!.id)}
-              onToggle={() => reveals.toggle(items[carouselIndex]!.id)}
+              mediaType={MediaType.VIDEO}
+              revealed={carouselRevealed}
+              onToggle={() => reveals.toggle(carouselItem.id)}
             />
           ) : null}
-          {items[carouselIndex]
-            ? renderPhotoReactions?.(items[carouselIndex]!)
-            : null}
+          {showCarouselPosition ? (
+            <nav
+              ref={carouselPosition}
+              className="media-gallery-position"
+              aria-label={t('gallery.aria')}
+            >
+              {items.map((item, index) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-label={t('gallery.selectItem', {
+                    index: index + 1,
+                    count: items.length,
+                  })}
+                  aria-current={index === carouselIndex ? 'true' : undefined}
+                  onClick={() => {
+                    carouselScrollTarget.current = null;
+                    changeCarousel(index - carouselIndex);
+                  }}
+                >
+                  <span />
+                </button>
+              ))}
+              <span
+                className="media-gallery-position-marker"
+                aria-hidden="true"
+              />
+              <span
+                className="media-gallery-position-marker"
+                aria-hidden="true"
+              />
+            </nav>
+          ) : null}
         </section>
       )}
 
+      {items
+        .filter((item) => item.status === 'PENDING')
+        .map((item) => (
+          <VideoTransferFeedback key={item.id} attachmentId={item.id} />
+        ))}
       {activeItem && activeIndex !== null && typeof document !== 'undefined'
         ? createPortal(
             <div
@@ -893,6 +1209,13 @@ export function MediaGallery({
                     <div
                       ref={lightboxTrack}
                       className="eimir-media-snap-track media-lightbox-track"
+                      onPointerDown={() => {
+                        lightboxScrollTarget.current = null;
+                      }}
+                      onWheel={(event) => {
+                        if (event.deltaX !== 0 || event.shiftKey)
+                          lightboxScrollTarget.current = null;
+                      }}
                       onScroll={(event) =>
                         handleLightboxScroll(event.currentTarget)
                       }
@@ -959,13 +1282,15 @@ export function MediaGallery({
                       className="media-lightbox-close media-overlay"
                       onClick={closeLightbox}
                       aria-label={t('gallery.close')}
+                      title={t('gallery.close')}
                     >
-                      <span>{t('gallery.done')}</span>
+                      <EimirIcon name="close" />
                     </button>
                     {activeItem.isSensitive === true ? (
                       <SensitiveMediaControl
                         overlay
-                        video={activeItem.mediaType === MediaType.VIDEO}
+                        iconOnly={activeItem.mediaType === MediaType.IMAGE}
+                        mediaType={activeItem.mediaType}
                         revealed={reveals.isRevealed(activeItem.id)}
                         onToggle={() => reveals.toggle(activeItem.id)}
                       />

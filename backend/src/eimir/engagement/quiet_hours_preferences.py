@@ -7,7 +7,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from eimir.engagement.models import NotificationKind
+from eimir.engagement.models import WISH_DATE_NOTICE_KINDS, NotificationKind
 from eimir.engagement.quiet_hours import QuietHoursWindow
 from eimir.identity import effects as account_effects
 from eimir.identity.models import Account
@@ -17,19 +17,37 @@ from eimir.identity.models import Account
 # opted-in comment Email digests follow the same recipient window.
 DEFERABLE_KINDS = frozenset(
     {
+        NotificationKind.ONCE_MESSAGE_RECEIVED,
         NotificationKind.REMINDER_CREATED,
         NotificationKind.TRANSFER_READY,
         NotificationKind.TRANSFER_COMPLETED,
         NotificationKind.TRANSFER_FAILED,
         NotificationKind.PLAN_CHANGED,
+        NotificationKind.PLAN_CREATED,
         NotificationKind.PLAN_CANCELLED,
+        NotificationKind.PARTNER_JOINED,
         NotificationKind.WISH_SELECTION_SHARED,
         NotificationKind.WISH_SELECTION_READY,
+        NotificationKind.WISH_SELECTION_RANDOM_REQUESTED,
+        NotificationKind.WISH_SELECTION_RANDOM_ACCEPTED,
+        NotificationKind.HEART_HUNT_HIDDEN,
+        NotificationKind.HEART_HUNT_FOUND,
+        NotificationKind.PICTURE_PING_PONG_TURN,
+        NotificationKind.PICTURE_PING_PONG_FINISHED,
+        NotificationKind.COUPLE_GAME_TURN,
         NotificationKind.THINKING_OF_YOU,
         NotificationKind.COUPLE_EXPERIENCE_SHARED,
         NotificationKind.PARTNER_KISS,
         NotificationKind.PARTNER_CHECK_IN,
         NotificationKind.COMMENT_CREATED,
+        NotificationKind.PHOTO_REACTION,
+        NotificationKind.COLLECTION_SENT,
+        NotificationKind.SHARED_NOTE_CREATED,
+        NotificationKind.SHARED_NOTE_CHANGED,
+        NotificationKind.GARDEN_SEED_ARRIVED,
+        NotificationKind.RECAP_READY,
+        NotificationKind.RECAP_GREW,
+        *WISH_DATE_NOTICE_KINDS,
     }
 )
 

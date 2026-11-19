@@ -1,5 +1,11 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as identityFlow from '../client/identityFlow';
 import * as instanceStatus from '../client/instanceStatus';
@@ -33,6 +39,9 @@ expect.extend({
 });
 
 const ACCEPTANCE_LABEL = legal.accept.replace(/<\/?termsLink>/g, '');
+const PRIVACY_NOTICE = legal.privacyNotice.replace(/<\/?privacyLink>/g, '');
+const PRIVACY_NOTICE_LINK =
+  /<privacyLink>(.*)<\/privacyLink>/.exec(legal.privacyNotice)?.[1] ?? '';
 
 describe('IdentityEntry', () => {
   const apiBaseUrl = 'https://eimir.invalid';
@@ -472,6 +481,55 @@ describe('IdentityEntry', () => {
       });
     });
 
+    it('informs about the privacy policy without asking for consent', async () => {
+      vi.spyOn(instanceStatus, 'loadInstanceAccessStatus').mockResolvedValue(
+        cloudWithTerms,
+      );
+      render(
+        <IdentityEntry
+          apiBaseUrl={apiBaseUrl}
+          entryToken={null}
+          onEntryTokenCleared={vi.fn()}
+          onSession={vi.fn()}
+        />,
+      );
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: de.identity.startTogether }),
+      );
+
+      // The terms remain the only required choice; the notice is not part of it.
+      const [acceptance, ...others] = screen.getAllByRole('checkbox');
+      expect(others).toEqual([]);
+      expect(acceptance).toHaveProperty(
+        'labels.0.textContent',
+        ACCEPTANCE_LABEL,
+      );
+      const notice = screen.getByText((_, element) =>
+        Boolean(
+          element?.classList.contains('privacy-notice') &&
+            element.textContent === PRIVACY_NOTICE,
+        ),
+      );
+      expect(notice.closest('label')).toBeNull();
+      expect(
+        within(notice).getByRole('link', { name: PRIVACY_NOTICE_LINK }),
+      ).toHaveProperty('pathname', '/legal/privacy');
+
+      const footer = screen.getByRole('navigation', { name: legal.eyebrow });
+      expect(
+        within(footer)
+          .getAllByRole('link')
+          .map((link) => [
+            link.textContent,
+            (link as HTMLAnchorElement).pathname,
+          ]),
+      ).toEqual([
+        [legal.termsLink, '/legal/terms'],
+        [legal.privacyLink, '/legal/privacy'],
+      ]);
+    });
+
     it('sends the acceptance with a Cloud invitation request', async () => {
       vi.spyOn(instanceStatus, 'loadInstanceAccessStatus').mockResolvedValue(
         cloudWithTerms,
@@ -608,6 +666,10 @@ describe('IdentityEntry', () => {
       await screen.findByRole('heading', { name: de.identity.magicLinkTitle });
       expect(screen.queryByRole('checkbox')).toBeNull();
       expect(screen.queryByRole('link', { name: legal.termsLink })).toBeNull();
+      expect(
+        screen.queryByRole('link', { name: legal.privacyLink }),
+      ).toBeNull();
+      expect(screen.queryByText(PRIVACY_NOTICE)).toBeNull();
     });
   });
 });

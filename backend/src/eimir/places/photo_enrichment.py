@@ -113,7 +113,7 @@ def ensure_scheduled(session: Session) -> None:
             .join(Account, Account.id == Place.owner_id)
             .where(
                 Place.version == 1,
-                Place.latitude.is_not(None),
+                Place.located(),
                 _automatic_relation(),
                 ~prior_job,
                 Account.disabled_at.is_(None),

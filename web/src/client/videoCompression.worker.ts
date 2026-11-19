@@ -11,9 +11,9 @@ scope.onmessage = async ({ data: file }) => {
       scope.postMessage({ type: 'progress', progress }),
     );
     if (buffer) scope.postMessage({ type: 'done', buffer }, [buffer]);
-    else scope.postMessage({ type: 'fallback' });
+    else scope.postMessage({ type: 'original' });
   } catch {
     // No file names, metadata, codec diagnostics or private bytes enter logs.
-    scope.postMessage({ type: 'fallback' });
+    scope.postMessage({ type: 'failed' });
   }
 };

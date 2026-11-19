@@ -8,9 +8,11 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
+from anyio import CancelScope
 from fastapi import APIRouter, Path, Request, Response, status
 from fastapi.responses import StreamingResponse
 from pydantic import ConfigDict
+from starlette.concurrency import run_in_threadpool
 
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
@@ -237,18 +239,20 @@ async def create_transfer_import(
                     "Transfer archive exceeds the supported resource limits.",
                     ErrorCode.TRANSFER_TOO_LARGE,
                 )
-            temporary.write(chunk)
-        temporary.seek(0)
-        transfer = service.create_import(
-            session,
-            authorization,
-            temporary,
-            size=size,
-        )
+            await run_in_threadpool(temporary.write, chunk)
+
+        # The request is the sole owner of this session. The worker finishes
+        # before either the spool or the request transaction is released.
+        def stage() -> TransferImportDetail:
+            transfer = service.create_import(session, authorization, temporary, size=size)
+            return _import_detail(transfer)
+
+        detail = await run_in_threadpool(stage)
     finally:
-        temporary.close()
+        with CancelScope(shield=True):
+            await run_in_threadpool(temporary.close)
     _no_store(response)
-    return _import_detail(transfer)
+    return detail
 
 
 @router.get(

@@ -8,6 +8,13 @@ export interface SnackbarEventDetail {
   id: number;
   messageKey: string;
   messageOptions?: Record<string, unknown>;
+  /** The contract's single optional action, e.g. de-DE „Rückgängig“. */
+  action?: SnackbarAction;
+}
+
+export interface SnackbarAction {
+  labelKey: string;
+  run: () => void;
 }
 
 export const SNACKBAR_EVENT = 'eimir:snackbar';
@@ -26,12 +33,13 @@ let nextSnackbarId = 1;
 export function postSnackbar(
   messageKey: string,
   messageOptions?: Record<string, unknown>,
+  action?: SnackbarAction,
 ): void {
   if (typeof window === 'undefined' || typeof CustomEvent === 'undefined')
     return;
   window.dispatchEvent(
     new CustomEvent<SnackbarEventDetail>(SNACKBAR_EVENT, {
-      detail: { id: nextSnackbarId++, messageKey, messageOptions },
+      detail: { id: nextSnackbarId++, messageKey, messageOptions, action },
     }),
   );
 }

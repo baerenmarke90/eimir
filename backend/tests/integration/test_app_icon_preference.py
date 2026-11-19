@@ -211,7 +211,7 @@ def test_personal_export_includes_only_callers_choice_and_deletion_purges_it(
             if scope is TransferScope.PERSONAL:
                 assert account_document["personalAppearance"] == {
                     "appIconId": "sage",
-                    "wirDesign": "warm",
+                    "wirDesign": "connected",
                 }
             else:
                 assert "personalAppearance" not in account_document

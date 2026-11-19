@@ -9,6 +9,7 @@ Name | Type
 `itemLimit` | number
 `moduleKey` | string
 `selectedCollectionId` | string
+`selectedCollectionIds` | Array&lt;string&gt;
 `visible` | boolean
 
 ## Example
@@ -21,6 +22,7 @@ const example = {
   "itemLimit": null,
   "moduleKey": null,
   "selectedCollectionId": null,
+  "selectedCollectionIds": null,
   "visible": null,
 } satisfies DashboardModulePreferenceView
 

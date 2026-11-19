@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PYTHON_VERSION: "3.14.8"
+  PYTHON_VERSION: "3.15.2"
   UV_VERSION: "0.12.15"
 
 jobs:
@@ -44,6 +44,9 @@ jobs:
 
       - name: Test cloud Google Photos Picker OAuth callback
         run: python3 tools/ci/test_google_photos_picker_web_probe.py
+
+      - name: Test static eimir.de main site
+        run: python3 tools/ci/test_main_site.py
 
       - name: Audit migrated engineering-language surfaces
         run: |
@@ -119,7 +122,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -174,7 +177,7 @@ jobs:
         run: uv run --frozen pytest -m "not integration" -q
 
   backend_integration_shards:
-    name: Backend Integration Shard ${{ matrix.shard }}/4
+    name: Backend Integration Shard ${{ matrix.shard }}/${{ strategy.job-total }}
     needs: changes
     if: needs.changes.outputs.backend_integration == 'true'
     runs-on: ubuntu-latest
@@ -182,12 +185,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
 
     # Each shard gets its own runner and PostgreSQL service. The deterministic
     # selector partitions the collected integration node IDs exactly once, so
-    # the gate keeps full coverage without forcing all database tests through a
-    # single ~23-minute runner.
+    # the gate keeps full coverage while lowering the time spent waiting for
+    # the slowest shard.
     services:
       postgres:
         image: postgres:17-alpine
@@ -215,7 +218,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -253,15 +256,15 @@ jobs:
           uv run --frozen pytest -m integration --collect-only -q > "$collection"
           python ../tools/ci/pytest_shard.py \
             --shard "${{ matrix.shard }}" \
-            --shard-count 4 \
+            --shard-count "${{ strategy.job-total }}" \
             < "$collection" > "$selected_file"
           mapfile -t selected < "$selected_file"
           expected="${#selected[@]}"
           if [ "$expected" -eq 0 ]; then
-            echo "Integration shard ${{ matrix.shard }}/4 selected no tests."
+            echo "Integration shard ${{ matrix.shard }}/${{ strategy.job-total }} selected no tests."
             exit 1
           fi
-          echo "Integration shard ${{ matrix.shard }}/4 selected $expected tests."
+          echo "Integration shard ${{ matrix.shard }}/${{ strategy.job-total }} selected $expected tests."
           uv run --frozen pytest -m integration -q --durations=20 \
             --junitxml="$report" "${selected[@]}"
           uv run --frozen python - "$report" "$expected" <<'PY'
@@ -360,7 +363,7 @@ jobs:
             -e EIMIR_WEB_CSP_CONNECT_ORIGINS="https://api.example.test https://s3.example.test:9443" \
             web nginx -T 2>&1)
           printf '%s\n' "$rendered" \
-            | grep -Fq "connect-src 'self' https://api.example.test https://s3.example.test:9443;"
+            | grep -Fq "connect-src 'self' https://tiles.openfreemap.org https://api.example.test https://s3.example.test:9443;"
 
           set +e
           docker compose run --rm --no-deps \
@@ -493,7 +496,7 @@ jobs:
           echo "Backend Supply Chain required: $BACKEND_REQUIRED"
           echo "Web Supply Chain required: $WEB_REQUIRED"
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         if: needs.changes.outputs.supply_chain_backend == 'true'
         with:
           python-version: ${{ env.PYTHON_VERSION }}

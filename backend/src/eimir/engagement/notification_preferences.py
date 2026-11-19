@@ -10,13 +10,19 @@ from sqlalchemy.orm import Session
 
 from eimir.core.ids import new_id
 from eimir.engagement import notification_policy
-from eimir.engagement.models import NotificationChannel, NotificationKind, NotificationPreference
+from eimir.engagement.models import (
+    WISH_DATE_NOTICE_KINDS,
+    NotificationChannel,
+    NotificationKind,
+    NotificationPreference,
+)
 from eimir.identity import effects as account_effects
 
 # Extend existing recipient choices without adding another settings surface.
 INHERITED_KINDS = {
     NotificationKind.ONCE_MESSAGE_RECEIVED: NotificationKind.THINKING_OF_YOU,
     NotificationKind.REMINDER_CREATED: NotificationKind.REMINDER_DUE,
+    NotificationKind.WISH_REMINDER_DUE: NotificationKind.REMINDER_DUE,
     NotificationKind.TRANSFER_READY: NotificationKind.REMINDER_DUE,
     NotificationKind.TRANSFER_COMPLETED: NotificationKind.REMINDER_DUE,
     NotificationKind.TRANSFER_FAILED: NotificationKind.REMINDER_DUE,
@@ -24,11 +30,25 @@ INHERITED_KINDS = {
     NotificationKind.COUPLE_EXPERIENCE_SHARED: NotificationKind.THINKING_OF_YOU,
     NotificationKind.WISH_SELECTION_SHARED: NotificationKind.THINKING_OF_YOU,
     NotificationKind.WISH_SELECTION_READY: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.WISH_SELECTION_RANDOM_REQUESTED: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.WISH_SELECTION_RANDOM_ACCEPTED: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.WISH_SELECTION_RANDOM_DECLINED: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.HEART_HUNT_HIDDEN: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.HEART_HUNT_FOUND: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.PICTURE_PING_PONG_TURN: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.PICTURE_PING_PONG_FINISHED: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.COUPLE_GAME_TURN: NotificationKind.THINKING_OF_YOU,
     NotificationKind.PARTNER_JOINED: NotificationKind.THINKING_OF_YOU,
     NotificationKind.PLAN_CREATED: NotificationKind.REMINDER_DUE,
     NotificationKind.PLAN_CHANGED: NotificationKind.REMINDER_DUE,
     NotificationKind.PLAN_CANCELLED: NotificationKind.REMINDER_DUE,
     NotificationKind.PHOTO_REACTION: NotificationKind.COMMENT_CREATED,
+    # #1969: shared notes are collaborative writing, like comments.
+    NotificationKind.SHARED_NOTE_CREATED: NotificationKind.COMMENT_CREATED,
+    NotificationKind.SHARED_NOTE_CHANGED: NotificationKind.COMMENT_CREATED,
+    # #1744: a newer version of a recap follows the recap switch.
+    NotificationKind.RECAP_GREW: NotificationKind.RECAP_READY,
+    **{kind: NotificationKind.REMINDER_DUE for kind in WISH_DATE_NOTICE_KINDS},
 }
 
 
@@ -72,7 +92,7 @@ def in_app_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
 
 def email_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
     """Require an explicit recipient opt-in and an immediate reviewed kind."""
-    if kind == NotificationKind.ONCE_MESSAGE_RECEIVED.value:
+    if not notification_policy.email_choice_allowed(kind):
         return False
     policy = notification_policy.for_kind(kind)
     if policy is None or policy.delivery_class is not notification_policy.DeliveryClass.IMMEDIATE:

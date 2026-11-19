@@ -1,18 +1,9 @@
-import { DiaryChapterPeriods } from './DiaryChapterPeriods';
 import {
   useInfiniteQuery,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import type { TFunction } from 'i18next';
-import {
-  type MouseEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Link,
   useLocation,
@@ -21,13 +12,13 @@ import {
 } from 'react-router-dom';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
+import type { RecapsApi } from '../api/generated/apis/RecapsApi';
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
 import {
   DiscoverSelectionFromJSON,
   DiscoverSelectionToJSON,
 } from '../api/generated/models/DiscoverSelection';
-import type { MemoryAttachmentSummary } from '../api/generated/models/MemoryAttachmentSummary';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import {
   StoryKind,
@@ -41,9 +32,12 @@ import {
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
 import { dashboardQueryKey } from '../client/dashboardQueries';
+import { storyEntryTone } from '../client/entryTone';
+import { useFirstContentSettle } from '../client/firstContentSettle';
 import { galleryCover } from '../client/galleryCover';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { usePartnerNickname } from '../client/partnerNickname';
+import { photoShape } from '../client/photoShape';
 import {
   type ClientProblemError,
   clientProblemKind,
@@ -54,13 +48,18 @@ import {
   type ProductReadResult,
   saveProductReadCacheEntry,
 } from '../client/productReadCache';
+import { useHideProFeatureMarks } from '../client/proPresentation';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
+import { newNoteOpen, useQuietHint } from '../client/quietHints';
 import type { ReferenceApis } from '../client/referenceFlow';
+import { useRootTabIntro } from '../client/rootTabIntro';
 import {
   heartMomentDetailPath,
+  MEMORY_CREATE_ROUTE,
   MEMORY_MAP_ROUTE,
   memoryDetailPath,
   milestoneDetailPath,
+  STORY_OURS_ROUTE,
 } from '../client/routes';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
@@ -72,25 +71,41 @@ import {
   storyFiltersToSearch,
   storyRequest,
 } from '../client/storyProduct';
-import { useTaskOrigin } from '../client/taskOrigin';
+import type { StoryStartupReads } from '../client/storyStartup';
+import { useOpenTaskLink, useTaskOrigin } from '../client/taskOrigin';
+import { useDiaryLayout } from '../client/useDiaryLayout';
 import { useTaskListReturn } from '../client/useTaskListReturn';
-import { useDiscoverLayout } from '../client/useDiscoverLayout';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CoupleExperienceLinks } from './CoupleExperienceLinks';
-import { EimirIcon } from './EimirIcon';
-import { ExperienceAnswers } from './ExperienceAnswers';
+import { FirstStepAction } from './FirstStepAction';
+import './FirstContentSettle.css';
+import { DiaryChapterPeriods } from './DiaryChapterPeriods';
+import { DiscoverStory } from './DiscoverStory';
 import { MemoryPreview } from './MemoryPreview';
+import { MomentCreateMenu } from './MomentCreateMenu';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
+import { QuietHint } from './QuietHint';
+import { RecapDiscoverLead } from './RecapDiscoverLead';
+import {
+  RediscoverySecondaryLine,
+  useRediscoveryWording,
+} from './RediscoveryWording';
+import {
+  calendarDayOf,
+  storyRediscoverySource,
+  viewerToday,
+} from './rediscoverySelection';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
-import { StoryRetrospective } from './StoryRetrospective';
 import { type StoryView, StoryViewTabs } from './StoryViewTabs';
 import './StoryUnifiedPage.css';
+import './StoryHandmade.css';
+import './StoryHandmadeChapters.css';
+import './StoryHandmadeDiscover.css';
 import './PlanningReference.css';
-import { DiaryList } from './DiaryList';
 import { groupDiaryEntries } from '../client/diaryEntries';
-import './StoryDiscoverReveal.css';
+import { DiaryList } from './DiaryList';
 import './StoryTaskFilters.css';
 import './StoryYearsPage.css';
 import {
@@ -98,12 +113,10 @@ import {
   resolveStoryKindLabel,
   storyItemKey,
   storyItemPresentation,
-  tapestryItemRole,
 } from './storyPresentation';
 import { UiState } from './UiState';
 import { usePullToRefresh } from './usePullToRefresh';
 import {
-  useDiscoverReveal,
   useTimelineAutoPagination,
   useTimelineReveal,
 } from './useTimelineProgressiveLoading';
@@ -125,100 +138,6 @@ function isStoryKind(value: string | null): value is StoryKindValue {
   );
 }
 
-interface TapestryEntry {
-  key: string;
-  role: ReturnType<typeof tapestryItemRole>;
-  presentation: ReturnType<typeof storyItemPresentation>;
-  firstAttachment: MemoryAttachmentSummary | undefined;
-  path: string;
-  memoryId: string;
-  author: AuthorSummary;
-  dateTime: string;
-  dateLabel: string;
-  experience?: Extract<StoryItem, { kind: 'MEMORY' }>['memory'];
-  wide?: boolean;
-  mediaShape?: 'landscape' | 'portrait' | 'square';
-}
-
-function buildTapestryEntry(
-  item: StoryItem,
-  t: TFunction,
-  locale: string,
-  nicknameFor?: (accountId: string) => string | null,
-): TapestryEntry {
-  const role = tapestryItemRole(item);
-  const original = storyItemPresentation(item, t, nicknameFor);
-  const presentation =
-    item.kind === 'HEART_MOMENT' && item.heartMoment.text.trim()
-      ? { ...original, title: item.heartMoment.text.trim() }
-      : original;
-  const firstAttachment =
-    item.kind === 'MEMORY' ? galleryCover(item.memory) : undefined;
-  const path =
-    item.kind === 'MEMORY'
-      ? memoryDetailPath(item.memory.id)
-      : item.kind === 'HEART_MOMENT'
-        ? heartMomentDetailPath(item.heartMoment.id)
-        : milestoneDetailPath(item.milestone.id);
-  const memoryId = item.kind === 'MEMORY' ? item.memory.id : '';
-  const author = storyItemAuthor(item);
-  const dateTime = item.effectiveDate.toISOString().slice(0, 10);
-  const dateLabel = formatStoryDate(item.effectiveDate, locale);
-  return {
-    key: storyItemKey(item),
-    role,
-    presentation,
-    firstAttachment,
-    experience:
-      item.kind === 'MEMORY' && item.memory.experienceKind
-        ? item.memory
-        : undefined,
-    path,
-    memoryId,
-    author,
-    dateTime,
-    dateLabel,
-  };
-}
-
-interface TapestryBand {
-  key: string;
-  label: string;
-  entries: TapestryEntry[];
-}
-
-function buildTapestryBands(
-  items: StoryItem[],
-  t: TFunction,
-  locale: string,
-  nicknameFor?: (accountId: string) => string | null,
-): TapestryBand[] {
-  if (items.length === 0) return [];
-  let mediaIndex = 0;
-  return [
-    {
-      key: 'discover',
-      label: '',
-      entries: items.map((item) => {
-        const entry = buildTapestryEntry(item, t, locale, nicknameFor);
-        if (entry.role === 'media') {
-          // Composition is stable within a curated selection; no timer or
-          // random render can move a photograph while someone is browsing.
-          const index = mediaIndex++;
-          entry.wide =
-            index % 3 === 1 ||
-            (item.kind === 'MEMORY' &&
-              (Boolean(item.memory.happenedUntil) ||
-                item.memory.attachments.length >= 3));
-          entry.mediaShape =
-            !entry.wide && index % 3 === 2 ? 'portrait' : 'landscape';
-        }
-        return entry;
-      }),
-    },
-  ];
-}
-
 export function StoryProductPage({
   apis,
   accountId,
@@ -226,6 +145,8 @@ export function StoryProductPage({
   loadMemoryImage,
   profilesApi,
   dashboardApi,
+  recapsApi,
+  startupReads,
 }: {
   apis: ReferenceApis;
   accountId: string;
@@ -237,7 +158,10 @@ export function StoryProductPage({
   ) => Promise<ObjectUrlSource>;
   profilesApi?: ProfilesApi;
   dashboardApi?: DashboardApi;
+  recapsApi?: RecapsApi;
+  startupReads?: Extract<StoryStartupReads, { kind: 'diary' }>;
 }) {
+  const rootIntro = useRootTabIntro('story');
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [renewing, setRenewing] = useState(false);
@@ -261,9 +185,21 @@ export function StoryProductPage({
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { captureOrigin } = useTaskOrigin();
+  /**
+   * Discover's featured highlight and tapestry links have no per-item
+   * loaded-range/scroll metadata to preserve (Discover is a single bounded
+   * fetch, not a paginated scope), but opening an item must still capture
+   * the exact tab+filter URL active at that moment. Without this, the
+   * TaskOrigin fallback for an uncaptured origin resets to bare `/story`
+   * on Back, which would silently discard a Timeline filter still parked
+   * in the URL while the user was merely looking at Discover.
+   */
+  const openDiscoverItem = useOpenTaskLink();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const filterSheetRef = useRef<ShortTaskSheetHandle>(null);
   const filterTriggerRef = useRef<HTMLButtonElement>(null);
+  // Chosen in Mehr > Einstellungen > Darstellung; read-only here.
+  const [diaryLayout] = useDiaryLayout();
   const [draftFilters, setDraftFilters] = useState<StoryFilters>(
     DEFAULT_STORY_FILTERS,
   );
@@ -293,6 +229,7 @@ export function StoryProductPage({
       attachmentId: string,
       signal?: AbortSignal,
       variant?: 'original' | 'thumbnail',
+      persist?: boolean,
     ) =>
       loadAuthorizedStoryImageResource(
         apis,
@@ -300,7 +237,7 @@ export function StoryProductPage({
         AttachmentReadRequestParentTypeEnum.HEART_MOMENT,
         heartMomentId,
         attachmentId,
-        { signal, variant },
+        { signal, variant, persist },
       ),
     [apis, spaceId],
   );
@@ -318,6 +255,7 @@ export function StoryProductPage({
           kind: 'story',
           resourceId: cacheResourceId,
           load: () =>
+            startupReads?.takeTimeline() ??
             apis.story.getStoryTimeline(
               storyRequest(spaceId, effectiveFilters, null),
             ),
@@ -352,7 +290,9 @@ export function StoryProductPage({
         spaceId,
         kind: 'story-discover',
         resourceId: 'discover',
-        load: () => apis.story.getStoryDiscover({ spaceId }),
+        load: () =>
+          startupReads?.takeDiscover() ??
+          apis.story.getStoryDiscover({ spaceId }),
         serialize: DiscoverSelectionToJSON,
         deserialize: (payload) => DiscoverSelectionFromJSON(payload),
       });
@@ -365,9 +305,8 @@ export function StoryProductPage({
       activeView === 'discover' && !renewing ? 15 * 60_000 : false,
     retry: false,
   });
-  // Reuse Today's authorized #452 candidate and its canonical Query key.
-  // Never manufacture a nostalgic Memory from the viewer's Story items.
-  const retrospectiveQuery = useQuery({
+  // Use the server's viewer day for the featured lead and recap invitation.
+  const dashboardQuery = useQuery({
     queryKey: dashboardQueryKey(spaceId),
     queryFn: async () => {
       if (!dashboardApi) throw new Error('Dashboard API unavailable.');
@@ -392,7 +331,7 @@ export function StoryProductPage({
       const [result] = await Promise.all([
         storyQuery.refetch(),
         renewSelection(),
-        ...(dashboardApi ? [retrospectiveQuery.refetch()] : []),
+        ...(dashboardApi ? [dashboardQuery.refetch()] : []),
       ]);
       if (!result.isError)
         setPaginationGeneration((generation) => generation + 1);
@@ -508,15 +447,6 @@ export function StoryProductPage({
     () => discoverQuery.data?.value.items ?? [],
     [discoverQuery.data],
   );
-  // The authoritative selection can be replaced in place by a different,
-  // same-length set (e.g. after a refresh). A plain count would then never
-  // change, so the reveal observer would silently skip the newly mounted
-  // keyed nodes. The joined item keys change whenever composition or order
-  // does, while staying stable (no replay) for an unchanged selection.
-  const discoverContentKey = useMemo(
-    () => discoverItems.map((item) => storyItemKey(item)).join('|'),
-    [discoverItems],
-  );
   const discoverDenied = ['unauthorized', 'permission', 'notFound'].includes(
     clientProblemKind(discoverQuery.error ?? renewProblem),
   );
@@ -525,35 +455,25 @@ export function StoryProductPage({
   const featuredItem = discoverQuery.data?.value.lead ?? null;
   const leadContext = discoverQuery.data?.value.leadContext ?? null;
   const locale = resolvedLocale();
-  // A cached Discover selection from another account-day must never be
-  // paired with a new Dashboard day or presented as today's retrospective.
+  // Only show the anniversary label when the selection matches the viewer day.
   const discoverDay = discoverQuery.data?.value.selectionDate;
-  const dashboardDay = retrospectiveQuery.data?.viewerLocalDate;
+  const dashboardDay = dashboardQuery.data?.viewerLocalDate;
+  // #1907 F4: a new monthly recap leads the experiences only until opened,
+  // on the same viewer day and receipt as the Wir invitation.
+  const recapLead = recapsApi ? (
+    <RecapDiscoverLead
+      api={recapsApi}
+      today={dashboardDay ?? new Date()}
+      mediaApis={apis}
+      account={{ id: accountId }}
+      spaceId={spaceId}
+      onOpen={openDiscoverItem}
+    />
+  ) : null;
   const sameSelectionDay =
     discoverDay != null &&
     dashboardDay != null &&
     discoverDay.getTime() === dashboardDay.getTime();
-  const retrospective = sameSelectionDay
-    ? (retrospectiveQuery.data?.retrospective ?? null)
-    : null;
-  const featuredId = featuredItem
-    ? featuredItem.kind === 'MEMORY'
-      ? featuredItem.memory.id
-      : featuredItem.kind === 'HEART_MOMENT'
-        ? featuredItem.heartMoment.id
-        : featuredItem.milestone.id
-    : null;
-  const visibleRetrospective =
-    retrospective &&
-    (retrospective.type === 'MEMORY' ||
-      retrospective.type === 'HEART_MOMENT' ||
-      retrospective.type === 'MILESTONE') &&
-    !(
-      featuredItem?.kind === retrospective.type &&
-      featuredId === retrospective.id
-    )
-      ? retrospective
-      : null;
 
   const timelineChapterMarkers = useMemo(
     () => (filters.kind ? [] : (combinedStory?.chapterMarkers ?? [])),
@@ -584,19 +504,6 @@ export function StoryProductPage({
     enabled: activeView === 'timeline' && timelineEntryCount > 0,
     scopeKey: `${spaceId}:${cacheResourceId}`,
     revision: timelineEntryCount,
-  });
-
-  const discoverTapestryRef = useRef<HTMLDivElement>(null);
-  useDiscoverLayout(
-    discoverTapestryRef,
-    `${discoverContentKey}|${visibleRetrospective?.id ?? ''}`,
-    activeView === 'discover',
-  );
-  useDiscoverReveal({
-    rootRef: discoverTapestryRef,
-    enabled: activeView === 'discover' && discoverItems.length > 0,
-    scopeKey: `discover:${accountId}:${spaceId}`,
-    revision: `${discoverContentKey}|${visibleRetrospective?.type ?? ''}|${visibleRetrospective?.id ?? ''}`,
   });
 
   const nextStoryCursor = storyQuery.hasNextPage
@@ -633,32 +540,12 @@ export function StoryProductPage({
     loadNextPage: loadNextStoryPage,
   });
 
-  const tapestryBands = useMemo(
-    () =>
-      buildTapestryBands(
-        discoverItems.filter(
-          (item) =>
-            (!featuredItem ||
-              storyItemKey(item) !== storyItemKey(featuredItem)) &&
-            (!visibleRetrospective ||
-              item.kind !== visibleRetrospective.type ||
-              (item.kind === 'MEMORY'
-                ? item.memory.id
-                : item.kind === 'HEART_MOMENT'
-                  ? item.heartMoment.id
-                  : item.milestone.id) !== visibleRetrospective.id),
-        ),
-        t,
-        locale,
-        nicknameFor,
-      ),
-    [discoverItems, featuredItem, visibleRetrospective, t, locale, nicknameFor],
-  );
+  const curatedItems = useMemo(() => {
+    if (!featuredItem) return discoverItems;
+    const featuredKey = storyItemKey(featuredItem);
+    return discoverItems.filter((item) => storyItemKey(item) !== featuredKey);
+  }, [discoverItems, featuredItem]);
 
-  const curatedBands =
-    visibleRetrospective && tapestryBands.length === 0
-      ? [{ key: 'discover', label: '', entries: [] }]
-      : tapestryBands;
   const featuredMedia =
     featuredItem?.kind === 'MEMORY'
       ? galleryCover(featuredItem.memory)
@@ -667,6 +554,30 @@ export function StoryProductPage({
     ? storyItemPresentation(featuredItem, t, nicknameFor)
     : null;
   const _featuredAuthor = featuredItem ? storyItemAuthor(featuredItem) : null;
+  const onThisDayKicker =
+    leadContext?.type === 'ON_THIS_DAY' && sameSelectionDay;
+  // #1790 C2: varying wording instead of a bare date as the title. A heart
+  // moment keeps its own (compacted) words as the quote headline.
+  const featuredWording = useRediscoveryWording(
+    featuredItem && featuredPresentation
+      ? {
+          ...storyRediscoverySource(
+            featuredItem,
+            discoverQuery.data?.value.leadRediscovery,
+          ),
+          ...(featuredItem.kind === 'HEART_MOMENT'
+            ? { authoredHeadline: featuredPresentation.title }
+            : {}),
+        }
+      : null,
+    {
+      today: discoverDay ? calendarDayOf(discoverDay) : viewerToday(),
+      // The kicker already says "Heute vor N Jahren".
+      exclude: onThisDayKicker ? ['relativeTime'] : [],
+    },
+  );
+  const featuredHeadline =
+    featuredWording?.headline ?? featuredPresentation?.title ?? '';
   const featuredPath = featuredItem
     ? featuredItem.kind === 'MEMORY'
       ? memoryDetailPath(featuredItem.memory.id)
@@ -674,30 +585,6 @@ export function StoryProductPage({
         ? heartMomentDetailPath(featuredItem.heartMoment.id)
         : milestoneDetailPath(featuredItem.milestone.id)
     : '';
-
-  /**
-   * Discover's featured highlight and tapestry links have no per-item
-   * loaded-range/scroll metadata to preserve (Discover is a single bounded
-   * fetch, not a paginated scope), but opening an item must still capture
-   * the exact tab+filter URL active at that moment. Without this, the
-   * TaskOrigin fallback for an uncaptured origin resets to bare `/story`
-   * on Back, which would silently discard a Timeline filter still parked
-   * in the URL while the user was merely looking at Discover.
-   */
-  function openDiscoverItem(event: MouseEvent<HTMLAnchorElement>, to: string) {
-    if (
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey
-    )
-      return;
-    const taskOriginKey = captureOrigin();
-    if (!taskOriginKey) return;
-    event.preventDefault();
-    void navigate(to, { state: { taskOriginKey } });
-  }
 
   async function renewSelection() {
     if (renewal.current) return;
@@ -755,12 +642,12 @@ export function StoryProductPage({
       }}
     >
       <svg
+        className="inline-icon"
         viewBox="0 0 24 24"
         width="20"
         height="20"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
         aria-hidden="true"
@@ -779,6 +666,7 @@ export function StoryProductPage({
     <div className="new-space-experience">
       <div className="new-space-mark" aria-hidden="true">
         <svg
+          className="inline-icon"
           viewBox="0 0 24 24"
           width="36"
           height="36"
@@ -790,19 +678,38 @@ export function StoryProductPage({
       </div>
       <h2 className="new-space-title">{t('story.emptyTitle')}</h2>
       <p className="new-space-body">{t('story.emptyBody')}</p>
-      <div className="new-space-actions">
-        <Link
-          to="/story/memories/new"
-          className="button-link primary new-space-cta"
-        >
-          {t('story.emptyAction')}
-        </Link>
-      </div>
+      <FirstStepAction
+        to={MEMORY_CREATE_ROUTE}
+        label={t('story.emptyAction')}
+        icon="foto"
+        selectedKey="story-first-moment"
+      />
     </div>
   );
 
+  // #1907 I1: the first moment settles in where the empty state stood.
+  const discoverHasContent = Boolean(featuredItem || discoverItems.length > 0);
+  const discoverSettle = useFirstContentSettle(
+    discoverQuery.data && !discoverDenied ? !discoverHasContent : undefined,
+  );
+  // "New in eimir." for a Pro feature is shown only where it is usable.
+  const proActive = useHideProFeatureMarks();
+  const newsHint = useQuietHint(accountId, spaceId, [
+    {
+      id: 'new:waymarks',
+      eligible:
+        activeView === 'discover' &&
+        discoverHasContent &&
+        proActive &&
+        newNoteOpen('waymarks'),
+    },
+  ]);
+
   return (
-    <div className="page story-page story-page-unified">
+    <div
+      className="page story-page story-page-unified"
+      data-root-intro={rootIntro ? 'true' : undefined}
+    >
       {saved ? (
         <div className="inline-message inline-message-success" role="status">
           <strong>{t('story.savedTitle')}</strong>
@@ -817,7 +724,12 @@ export function StoryProductPage({
 
       <PullToRefreshIndicator state={pullRefresh} />
 
-      <PageHeader variant="root" title={t('story.timelineTitle')} />
+      <PageHeader
+        variant="root"
+        className="content-overview-heading"
+        title={t('story.timelineTitle')}
+        action={<MomentCreateMenu floating />}
+      />
       <StoryViewTabs activeView={activeView} onSelect={setView} />
 
       <div
@@ -851,19 +763,31 @@ export function StoryProductPage({
         !discoverDenied &&
         (featuredItem || discoverItems.length > 0) ? (
           <section
-            className="momente-discover-page"
+            className={
+              discoverSettle
+                ? 'momente-discover-page first-content-settle'
+                : 'momente-discover-page'
+            }
             aria-busy={
               renewing || storyQuery.isFetching || discoverQuery.isFetching
             }
             aria-labelledby="momente-tab-discover"
+            data-diary-layout={diaryLayout}
           >
             {/* 1. Featured Editorial Highlight */}
             {featuredItem && featuredPresentation ? (
-              <article className="momente-hero-highlight">
+              <article
+                className="momente-hero-highlight"
+                data-tone={storyEntryTone(featuredItem, Boolean(featuredMedia))}
+                data-photo-shape={
+                  featuredMedia ? photoShape(featuredMedia) : undefined
+                }
+                data-color-world={featuredMedia ? undefined : 'warm'}
+              >
                 <Link
                   to={featuredPath}
                   className={`momente-hero-link ${featuredMedia ? 'has-media' : ''}`}
-                  aria-label={`${t('story.featuredHighlight')}: ${featuredPresentation.title}`}
+                  aria-label={`${t('story.featuredHighlight')}: ${featuredHeadline}`}
                   onClick={(event) => openDiscoverItem(event, featuredPath)}
                 >
                   {featuredMedia ? (
@@ -890,12 +814,12 @@ export function StoryProductPage({
                         height="14"
                         fill="currentColor"
                         aria-hidden="true"
-                        className="kicker-icon"
+                        className="kicker-icon inline-icon"
                       >
                         <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
                       </svg>
                       <span>
-                        {leadContext?.type === 'ON_THIS_DAY' && sameSelectionDay
+                        {onThisDayKicker
                           ? t('story.onThisDay', {
                               count: leadContext.yearsAgo,
                             })
@@ -904,192 +828,65 @@ export function StoryProductPage({
                     </span>
                     {featuredItem.kind === 'HEART_MOMENT' ? (
                       <blockquote className="momente-hero-quote">
-                        "{featuredPresentation.title}"
+                        "{featuredHeadline}"
                       </blockquote>
                     ) : (
-                      <h3 className="momente-hero-title">
-                        {featuredPresentation.title}
-                      </h3>
+                      <h3 className="momente-hero-title">{featuredHeadline}</h3>
                     )}
                     <div className="momente-hero-meta">
-                      {!featuredPresentation.titleIsDate ? (
-                        <time
-                          dateTime={featuredItem.effectiveDate
-                            .toISOString()
-                            .slice(0, 10)}
-                        >
-                          {formatStoryDate(featuredItem.effectiveDate, locale)}
-                        </time>
-                      ) : null}
+                      <RediscoverySecondaryLine
+                        variantLine={featuredWording?.variantLine ?? null}
+                        date={formatStoryDate(
+                          featuredItem.effectiveDate,
+                          locale,
+                        )}
+                        dateTime={featuredItem.effectiveDate
+                          .toISOString()
+                          .slice(0, 10)}
+                      />
                     </div>
                   </div>
                 </Link>
               </article>
             ) : null}
 
-            <CoupleExperienceLinks onOpen={openDiscoverItem} />
+            {newsHint.activeId ? (
+              <QuietHint
+                tone="new"
+                onDismiss={newsHint.dismiss}
+                action={{
+                  to: STORY_OURS_ROUTE,
+                  label: t('quietHints.news.waymarksAction'),
+                }}
+              >
+                {t('quietHints.news.waymarks')}
+              </QuietHint>
+            ) : null}
 
-            {/* 2. Keepsake / Editorial Tapestry — an asymmetric mixed archive,
-              not a fixed-width carousel of equal cards. Column height is the
-              item's real content height, so a photo memory naturally takes
-              more visual area than a short note or a milestone marker. */}
-            <section
-              className="momente-tapestry-section"
-              aria-labelledby="momente-tapestry-heading"
-            >
-              <div className="momente-tapestry-bands" ref={discoverTapestryRef}>
-                {curatedBands.map((band, bandIndex) => (
-                  <section
-                    className="momente-tapestry-band"
-                    key={band.key}
-                    aria-labelledby={`momente-band-${band.key}`}
-                  >
-                    {band.label ? (
-                      <h4
-                        id={`momente-band-${band.key}`}
-                        className="momente-band-heading"
-                      >
-                        {band.label}
-                      </h4>
-                    ) : null}
-                    <div className="momente-tapestry">
-                      {visibleRetrospective && bandIndex === 0 ? (
-                        <StoryRetrospective
-                          compact
-                          item={visibleRetrospective}
-                          loadMemoryImage={loadMemoryImage}
-                          onOpen={openDiscoverItem}
-                        />
-                      ) : null}
-                      {band.entries.map((entry) => {
-                        const {
-                          role,
-                          presentation,
-                          path,
-                          dateTime,
-                          dateLabel,
-                        } = entry;
+            <CoupleExperienceLinks onOpen={openDiscoverItem} lead={recapLead} />
 
-                        if (role === 'milestone') {
-                          return (
-                            <Link
-                              key={entry.key}
-                              data-discover-wide={
-                                entry.wide ||
-                                Boolean(entry.experience) ||
-                                presentation.title.length > 90 ||
-                                undefined
-                              }
-                              to={path}
-                              className="momente-tapestry-item momente-tapestry-milestone momente-tapestry-reveal"
-                              data-discover-reveal-key={`item:${entry.key}`}
-                              aria-label={`${t(`storyItem.${role}`)}: ${presentation.title}`}
-                              onClick={(event) => openDiscoverItem(event, path)}
-                            >
-                              <span
-                                className="momente-tapestry-milestone-icon"
-                                aria-hidden="true"
-                              >
-                                <svg
-                                  viewBox="0 0 24 24"
-                                  width="16"
-                                  height="16"
-                                  fill="currentColor"
-                                  aria-hidden="true"
-                                >
-                                  <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
-                                </svg>
-                              </span>
-                              <span className="momente-tapestry-milestone-copy">
-                                <span className="momente-tapestry-milestone-title">
-                                  {presentation.title}
-                                </span>
-                                <time
-                                  className="momente-tapestry-milestone-date"
-                                  dateTime={dateTime}
-                                >
-                                  {dateLabel}
-                                </time>
-                              </span>
-                            </Link>
-                          );
-                        }
-
-                        return (
-                          <Link
-                            key={entry.key}
-                            data-discover-wide={
-                              entry.wide ||
-                              Boolean(entry.experience) ||
-                              presentation.title.length > 90 ||
-                              undefined
-                            }
-                            to={path}
-                            data-media-shape={entry.mediaShape}
-                            className={`momente-tapestry-item momente-tapestry-${role} momente-tapestry-reveal`}
-                            data-discover-reveal-key={`item:${entry.key}`}
-                            aria-label={`${t(`storyItem.${role}`)}: ${presentation.title}`}
-                            onClick={(event) => openDiscoverItem(event, path)}
-                          >
-                            {role === 'media' && entry.firstAttachment ? (
-                              <div className="momente-tapestry-media-frame">
-                                <MemoryPreview
-                                  memoryId={entry.memoryId}
-                                  attachmentId={entry.firstAttachment.id}
-                                  hasThumbnail={
-                                    entry.firstAttachment.hasThumbnail
-                                  }
-                                  isSensitive={
-                                    entry.firstAttachment.isSensitive
-                                  }
-                                  loadImage={loadMemoryImage}
-                                  loadingMode="near-viewport"
-                                />
-                              </div>
-                            ) : null}
-                            <div className="momente-tapestry-body">
-                              <span
-                                className="momente-tapestry-kind"
-                                aria-hidden="true"
-                              >
-                                <EimirIcon
-                                  name={
-                                    role === 'note' ? 'momente' : 'erinnerungen'
-                                  }
-                                />
-                              </span>
-                              {role === 'note' ? (
-                                <blockquote className="momente-tapestry-quote">
-                                  "{presentation.title}"
-                                </blockquote>
-                              ) : (
-                                <h4 className="momente-tapestry-title">
-                                  {presentation.title}
-                                </h4>
-                              )}
-                              {entry.experience?.experienceKind ? (
-                                <ExperienceAnswers
-                                  answers={
-                                    entry.experience.experienceAnswers ?? []
-                                  }
-                                  kind={entry.experience.experienceKind}
-                                  compact
-                                />
-                              ) : null}
-                              <div className="momente-tapestry-meta">
-                                {!presentation.titleIsDate ? (
-                                  <time dateTime={dateTime}>{dateLabel}</time>
-                                ) : null}
-                              </div>
-                            </div>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            </section>
+            {/* 2. Curated Fotostory (direction C): theme bubbles above one
+              story viewer, deliberately unlike the Tagebuch cards. The
+              Expanded renew action replaces the touch-only pull gesture. */}
+            <div className="momente-discover-renew">
+              <button
+                type="button"
+                className="secondary"
+                disabled={renewing}
+                aria-busy={renewing}
+                onClick={() => void renewSelection()}
+              >
+                {renewing
+                  ? t('story.discoverRenewing')
+                  : t('story.discoverRenew')}
+              </button>
+            </div>
+            <DiscoverStory
+              items={curatedItems}
+              loadMemoryImage={loadMemoryImage}
+              onOpen={openDiscoverItem}
+              nicknameFor={nicknameFor}
+            />
             {renewed ? (
               <p className="sr-only" role="status">
                 {t('story.discoverRenewed')}
@@ -1111,7 +908,7 @@ export function StoryProductPage({
         {activeView === 'discover' &&
         !featuredItem &&
         discoverItems.length === 0 ? (
-          <CoupleExperienceLinks onOpen={openDiscoverItem} />
+          <CoupleExperienceLinks onOpen={openDiscoverItem} lead={recapLead} />
         ) : null}
       </div>
       <div
@@ -1140,6 +937,7 @@ export function StoryProductPage({
           id="momente-diary"
           aria-labelledby="momente-tab-timeline"
           className="momente-diary-section"
+          data-diary-layout={diaryLayout}
         >
           {timelineMonthGroups.length === 0 ? (
             <header className="momente-section-header">{filterTrigger}</header>

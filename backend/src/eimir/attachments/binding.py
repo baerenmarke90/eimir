@@ -90,6 +90,24 @@ class PlanAttachment(IdMixin, Base):
     )
 
 
+class PlanFileAttachment(IdMixin, Base):
+    """One exclusively bound document in the shared Plan's file list."""
+
+    __tablename__ = "plan_file_attachments"
+
+    plan_id: Mapped[UUID] = mapped_column(
+        ForeignKey("plans.id", ondelete="CASCADE"), nullable=False
+    )
+    attachment_id: Mapped[UUID] = mapped_column(
+        ForeignKey("attachments.id", ondelete="CASCADE"), nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint("attachment_id", name="uq_plan_file_attachments_attachment"),
+        Index("ix_plan_file_attachments_plan_id", "plan_id"),
+    )
+
+
 class HeartMomentAttachment(IdMixin, Base):
     """Supplemental media; the legacy HeartMoment FK retains position zero."""
 
@@ -178,6 +196,7 @@ def ensure_bindable(
     already_bound: bool = False,
     allow_submitted_video: bool = False,
     allow_audio: bool = False,
+    allow_documents: bool = False,
 ) -> Attachment:
     """Validate whether this attachment may be bound now.
 
@@ -192,16 +211,29 @@ def ensure_bindable(
         raise Attachment.privacy_absence.error()
     if attachment.media_type == MediaType.AUDIO and not allow_audio:
         raise ValidationError("Audio requires a HeartMoment.", "AUDIO_PARENT_INVALID")
+    if attachment.media_type == MediaType.DOCUMENT and not allow_documents:
+        raise ValidationError("Documents require a Plan.", ErrorCode.ATTACHMENT_TYPE_NOT_ALLOWED)
+    pending_video = (
+        allow_submitted_video
+        and attachment.media_type == MediaType.VIDEO.value
+        and attachment.status in {AttachmentStatus.PENDING.value, AttachmentStatus.UPLOADING.value}
+    )
     submitted_video = (
         allow_submitted_video
         and attachment.media_type == MediaType.VIDEO.value
         and attachment.status in {AttachmentStatus.VALIDATING.value, AttachmentStatus.FAILED.value}
-        and attachment.uploaded_at is not None
+        and (attachment.uploaded_at is not None or already_bound)
         and (already_bound or attachment.failed_media_purged_at is None)
     )
-    if attachment.status != AttachmentStatus.READY.value and not submitted_video:
+    if attachment.status != AttachmentStatus.READY.value and not (submitted_video or pending_video):
         raise _conflict("The attachment is not ready.", ErrorCode.ATTACHMENT_NOT_READY)
-    if submitted_video and not already_bound:
+    if pending_video:
+        from eimir.attachments.cleanup import UPLOAD_RETENTION
+        from eimir.attachments.service import expired
+
+        if not already_bound and expired(attachment.created_at, UPLOAD_RETENTION):
+            raise _conflict("The attachment is not ready.", ErrorCode.ATTACHMENT_NOT_READY)
+    elif submitted_video and not already_bound:
         from eimir.attachments.service import BINDING_WINDOW, expired
 
         if expired(attachment.uploaded_at, BINDING_WINDOW):
@@ -260,6 +292,12 @@ def parent_of(session: Session, attachment_id: UUID) -> tuple[str, UUID] | None:
     if plan_id is not None:
         return "PLAN", plan_id
 
+    plan_id = session.scalar(
+        select(PlanFileAttachment.plan_id).where(PlanFileAttachment.attachment_id == attachment_id)
+    )
+    if plan_id is not None:
+        return "PLAN", plan_id
+
     account_id = session.execute(
         select(AccountProfileAttachment.account_id).where(
             AccountProfileAttachment.attachment_id == attachment_id
@@ -267,6 +305,14 @@ def parent_of(session: Session, attachment_id: UUID) -> tuple[str, UUID] | None:
     ).scalar_one_or_none()
     if account_id is not None:
         return "ACCOUNT_PROFILE", account_id
+
+    from eimir.heart_hunt.models import HeartHuntRound
+
+    round_id = session.scalar(
+        select(HeartHuntRound.id).where(HeartHuntRound.attachment_id == attachment_id)
+    )
+    if round_id is not None:
+        return "HEART_HUNT_ROUND", round_id
     return None
 
 
@@ -305,6 +351,34 @@ def ensure_within_limits(attachments: list[Attachment]) -> None:
             "The parent exceeds its attachment limit.",
             ErrorCode.ATTACHMENT_LIMIT_EXCEEDED,
         )
+
+
+def check_replacements(
+    replacements: dict[UUID, UUID] | None,
+    *,
+    previous: set[UUID],
+    selected: list[UUID],
+) -> dict[UUID, UUID]:
+    """Validate edited-photo replacements as new id -> replaced bound id (#1907 G1).
+
+    An edited photo is a new attachment that takes the place of one the parent
+    already holds. The replaced photo must leave the gallery in the same write,
+    and the new one must not have been bound before; each photo is replaced at
+    most once. Removal authorization stays with the ordinary gallery rules.
+    """
+    if not replacements:
+        return {}
+    chosen = set(selected)
+    replaced = list(replacements.values())
+    if len(set(replaced)) != len(replaced) or any(
+        new_id not in chosen or new_id in previous or old_id not in previous or old_id in chosen
+        for new_id, old_id in replacements.items()
+    ):
+        raise ValidationError(
+            "An edited photo must replace a photo that leaves this gallery.",
+            "ATTACHMENT_REPLACEMENT_INVALID",
+        )
+    return dict(replacements)
 
 
 def reserved_size(attachment: Attachment) -> int:

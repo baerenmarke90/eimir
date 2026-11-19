@@ -43,6 +43,8 @@
   font-weight: 700;
   box-shadow: 0 0 0 2px var(--color-surface);
   overflow: hidden;
+  /* Keeps the photo layer below from stacking over neighbouring badges. */
+  isolation: isolate;
   user-select: none;
   flex-shrink: 0;
 }
@@ -78,11 +80,29 @@
   opacity: 0.8;
 }
 
+/* The photo fades in over the initials once it has decoded; the initials are
+   hidden only after the fade so no empty circle shows in between. */
 .partner-avatar-img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: inherit;
+  opacity: 0;
+  transition: opacity calc(var(--duration-sequence-beat) * 2.4)
+    var(--easing-standard);
+}
+
+.partner-avatar-img.is-loaded {
+  opacity: 1;
+}
+
+.partner-avatar-img.is-loaded + .partner-avatar-initials {
+  visibility: hidden;
+  transition-property: visibility;
+  transition-delay: calc(var(--duration-sequence-beat) * 2.4);
 }
 
 /* Sizes */
@@ -219,5 +239,53 @@
 
   .partner-avatar-pair-action:active {
     transform: none;
+  }
+}
+
+/*
+ * Split pair (#1790 slice A): each avatar is its own tap target. The partner
+ * avatar keeps its existing negative margin inside its slot, so the overlap
+ * is unchanged; the own avatar stays on top of the shared lens, as before.
+ */
+.partner-avatar-slot {
+  position: relative;
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: scale var(--duration-feedback) var(--easing-standard);
+}
+
+span.partner-avatar-slot {
+  cursor: default;
+}
+
+.partner-avatar-slot-primary {
+  z-index: 2;
+}
+
+.partner-avatar-slot-secondary {
+  z-index: 1;
+}
+
+.partner-avatar-slot:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 4px;
+}
+
+button.partner-avatar-slot:is(:active, [data-control-pressed]) {
+  scale: var(--control-pressed-scale-emphasis);
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.partner-avatar-slot:is(:active, [data-control-pressed]) {
+    scale: none;
   }
 }

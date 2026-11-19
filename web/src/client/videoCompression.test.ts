@@ -53,22 +53,24 @@ describe('private on-device video preparation', () => {
     expect(worker.terminate).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the original on unsupported, failed or uneconomical conversion', async () => {
+  it('rejects failed or invalid conversion without uploading the original', async () => {
     const { compressVideoForUpload } = await import('./videoCompression');
     for (const response of [
-      { type: 'fallback' },
-      { type: 'done', buffer: new ArrayBuffer(8 * 1024 * 1024) },
+      { type: 'failed' },
       { type: 'done', buffer: new ArrayBuffer(0) },
     ]) {
       const original = recording();
       const result = compressVideoForUpload(original);
+      const rejected = expect(result).rejects.toThrow(
+        'Video preparation failed',
+      );
       await vi.waitFor(() =>
         expect(WorkerStub.instances.at(-1)?.postMessage).toHaveBeenCalled(),
       );
       // Wait for this call's queued worker rather than a previously completed one.
       await Promise.resolve();
       WorkerStub.instances.at(-1)?.reply(response);
-      expect(await result).toBe(original);
+      await rejected;
     }
   });
 
@@ -94,24 +96,28 @@ describe('private on-device video preparation', () => {
     expect(WorkerStub.instances[0].terminate).toHaveBeenCalledTimes(1);
   });
 
-  it('falls back after the bounded preparation time and removes its timer', async () => {
+  it('fails after the bounded preparation time and removes its timer', async () => {
     vi.useFakeTimers();
     const { compressVideoForUpload } = await import('./videoCompression');
     const original = recording();
     const result = compressVideoForUpload(original);
+    const rejected = expect(result).rejects.toThrow(
+      'Video preparation timed out',
+    );
     await vi.advanceTimersByTimeAsync(120_000);
-    expect(await result).toBe(original);
+    await rejected;
     expect(WorkerStub.instances[0].terminate).toHaveBeenCalledTimes(1);
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  it('does not start workers for small files or unavailable browser codecs', async () => {
+  it('preserves only originals explicitly verified by the worker, including small files', async () => {
     const { compressVideoForUpload } = await import('./videoCompression');
-    const small = new File(['clip'], 'small.mp4', { type: 'video/mp4' });
-    expect(await compressVideoForUpload(small)).toBe(small);
     vi.stubGlobal('VideoEncoder', undefined);
-    const original = recording();
-    expect(await compressVideoForUpload(original)).toBe(original);
-    expect(WorkerStub.instances).toHaveLength(0);
+    const original = new File(['clip'], 'small.mp4', { type: 'video/mp4' });
+    const result = compressVideoForUpload(original);
+    await vi.waitFor(() => expect(WorkerStub.instances).toHaveLength(1));
+    WorkerStub.instances[0].reply({ type: 'original' });
+    expect(await result).toBe(original);
+    expect(WorkerStub.instances[0].terminate).toHaveBeenCalledTimes(1);
   });
 });

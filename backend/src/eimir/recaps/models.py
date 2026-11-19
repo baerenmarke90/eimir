@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import ClassVar
 from uuid import UUID
 
+from pydantic import Field
 from sqlalchemy import (
     CheckConstraint,
     Date,
@@ -43,9 +44,66 @@ class RecapSourceKind(StrEnum):
     PLAN = "PLAN"
 
 
+class MoodBucket(ProtectedPayload):
+    """Mutual check-in days of one week (month edition) or one month (year edition)."""
+
+    index: int = Field(ge=1, le=12)
+    mutual_days: int = Field(ge=0, le=31)
+    good_days: int = Field(ge=0, le=31)
+
+
+class MoodRhythm(ProtectedPayload):
+    """Frozen aggregate; never an individual value, ranking or relationship claim."""
+
+    buckets: list[MoodBucket] = Field(max_length=12)
+    leading: int | None = None
+
+
+class FilmMedia(ProtectedPayload):
+    """A curated picture of a moment; a video carries the short muted clip it plays."""
+
+    attachment_id: UUID
+    parent_id: UUID
+    video: bool = False
+    clip_start: float | None = None
+    clip_seconds: float | None = None
+    # Presentation hints measured on the thumbnail: format and crop centre.
+    shape: str | None = Field(default=None, max_length=16)
+    focus_x: float | None = Field(default=None, ge=0, le=1)
+    focus_y: float | None = Field(default=None, ge=0, le=1)
+
+
+class FilmLook(ProtectedPayload):
+    """Design variants chosen once per edition from a fixed catalogue (``recaps.film``)."""
+
+    mood: str = Field(max_length=16)
+    transitions: list[str] = Field(min_length=2, max_length=2)
+    cover: str = Field(max_length=16)
+    motions: list[str] = Field(max_length=5)
+    layouts: dict[str, list[str]] = Field(default_factory=dict)
+    # Additive since the variety catalogue; older editions read with defaults.
+    accents: list[str] = Field(default_factory=list, max_length=3)
+    pace: str | None = Field(default=None, max_length=16)
+
+
+class RecapFilm(ProtectedPayload):
+    """A recap film: frozen look, guaranteed highlight and curated media per source.
+
+    A year film also names the highlight of every month chapter, keyed by the
+    month number. Scores and selection reasons are never stored or served.
+    """
+
+    look: FilmLook
+    highlight_key: str | None = None
+    months: dict[str, str] = Field(default_factory=dict, max_length=12)
+    media: dict[str, list[FilmMedia]] = Field(default_factory=dict)
+
+
 class RecapPayload(ProtectedPayload):
     headline: str | None = None
     introduction: str | None = None
+    mood: MoodRhythm | None = None
+    film: RecapFilm | None = None
 
 
 class RecapEdition(IdMixin, TimestampMixin, VersionMixin, Base):
@@ -79,9 +137,33 @@ class RecapEdition(IdMixin, TimestampMixin, VersionMixin, Base):
     payload: Mapped[RecapPayload] = mapped_column(
         ProtectedPayloadJSON(RecapPayload), nullable=False, default=RecapPayload
     )
+    # Late-entry tracking (#1744): the material fingerprint this composition
+    # accounted for, the database time it was taken, and a change the scan has
+    # seen but not yet acted on because the period was not quiet yet.
+    material_digest: Mapped[str | None] = mapped_column(String(32))
+    material_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    observed_digest: Mapped[str | None] = mapped_column(String(32))
+    observed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # The one readiness notice a retained edition earns, and when it was handled.
+    announcement: Mapped[str | None] = mapped_column(String(8))
+    announced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # A newer version of a retained edition points back to the edition it extends.
+    supersedes_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True), ForeignKey("recap_editions.id", ondelete="SET NULL")
+    )
 
     __table_args__ = (
         UniqueConstraint("id", "space_id", name="uq_recap_editions_id_space"),
+        CheckConstraint(
+            "announcement IS NULL OR announcement IN ('READY', 'GREW', 'EARLIER')",
+            name="announcement_is_known",
+        ),
+        Index(
+            "ix_recap_editions_unannounced",
+            "space_id",
+            postgresql_where=text("announcement IS NOT NULL AND announced_at IS NULL"),
+        ),
+        Index("ix_recap_editions_supersedes", "supersedes_id"),
         CheckConstraint("kind IN ('MONTH', 'YEAR')", name="kind_is_known"),
         CheckConstraint(
             "(kind = 'MONTH' AND month BETWEEN 1 AND 12) OR (kind = 'YEAR' AND month = 0)",

@@ -99,6 +99,8 @@ PREFLIGHT_TOOLING_TESTS = {
     "tools/ci/engineering_language_audit.py": "tools/ci/test_engineering_language_audit.py",
     "tools/ci/documentation_language_audit.py": "tools/ci/test_engineering_language_audit.py",
     "tools/ci/test_engineering_language_audit.py": "tools/ci/test_engineering_language_audit.py",
+    "tools/ci/test_main_site.py": "tools/ci/test_main_site.py",
+    "tools/site/build_main_site.py": "tools/ci/test_main_site.py",
 }
 
 # Account-deletion recovery authority is intentionally classified by semantic
@@ -200,6 +202,16 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
         # which a Backend unit test compares with the document front matter.
         # Web S8 regenerates and checks its bundled copy through its own filter.
         if path.startswith("legal/"):
+            result["backend"] = True
+            known = True
+
+        # Canonical design tokens feed the Backend's service-mail palette, which
+        # a Backend unit test compares with design/tokens.json. The Web image
+        # builds from the checked-in generated adapter and Web S8 checks token
+        # drift itself, so design changes need neither PostgreSQL integration
+        # nor container gates. The whole design/ tree keeps the fast Backend
+        # gate so a future Backend consumer of design data stays covered.
+        if path.startswith("design/"):
             result["backend"] = True
             known = True
 
@@ -326,6 +338,11 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
         # container gates. Web has its own product gates; wrapper integration is
         # handled by mobile packaging work.
         if path.startswith(("web/", "android/", "ios/")):
+            known = True
+
+        # The public site ships in its own container. The unconditional
+        # main-site preflight covers this tree and its assembly script.
+        if path.startswith("site/"):
             known = True
 
         if _is_explicitly_safe_documentation(path):

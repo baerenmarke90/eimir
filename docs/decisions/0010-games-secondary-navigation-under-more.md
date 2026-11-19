@@ -8,6 +8,8 @@
 
 **Current product-design authority:** [Product Reference v1](../product/design/product-reference-v1.md) now defines the Mobile Web Product Reference mentioned below. These decisions retain their compatible route, Games capability, and navigation-placement boundaries (Decision 0010 supersedes Decision 0009 placement); their dated screen descriptions are not independent pixel locks.
 
+**Amendment (November 18, 2026, PR #2044):** the persistent primary Web navigation is now `Wir · Momente · Planen · Listen · Mehr`. `Listen` (route ID `shared`) holds shared lists and notes; Games placement under `Mehr` and its `/games` route are unchanged. The `Wir · Momente · + · Planen · Mehr` slot sketch below is historical: the compact bar has five destination columns, and creation floats above it (#1740).
+
 ## Context
 
 Real-device Product Owner review of the accepted Games shell showed that five product destinations plus Quick Create make the compact bottom navigation too crowded. The additional `Spielen` slot reduces spacing and makes the shell feel compressed at the 390-class reference width, with 320 px reflow even more constrained.

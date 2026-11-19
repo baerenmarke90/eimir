@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `key` | string
+`neutralReference` | boolean
 `version` | number
 
 ## Example
@@ -17,6 +18,7 @@ import type { FcmPreviewRegistration } from ''
 // TODO: Update the object below with actual values
 const example = {
   "key": null,
+  "neutralReference": null,
   "version": null,
 } satisfies FcmPreviewRegistration
 

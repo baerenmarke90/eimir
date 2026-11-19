@@ -1,12 +1,23 @@
-import { fulfillEmptyPlanComments } from '../support/planComments';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import AxeBuilder from '../support/axe';
+import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import importantDates from '../../src/i18n/locales/importantDates';
+import m5s3 from '../../src/i18n/locales/m5s3';
 import people from '../../src/i18n/locales/people';
+import profiles from '../../src/i18n/locales/profiles';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import {
+  expectFloatingAddAction,
+  expectLabeledAddAction,
+  expectOverviewActionPlacement,
+} from '../support/addAction';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { editViaMenu } from '../support/itemMenu';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { fulfillEmptyPlanComments } from '../support/planComments';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const PARTNER_ID = '44444444-4444-4444-8444-444444444444';
@@ -54,7 +65,10 @@ async function expectHorizontalReflow(page: Page): Promise<void> {
           style.display !== 'none' &&
           style.visibility !== 'hidden' &&
           rect.width > 0 &&
-          rect.height > 0
+          rect.height > 0 &&
+          // The month band is a strip that scrolls inside itself; its months
+          // are reached by scrolling or focus. The strip is checked below.
+          !element.closest('.occasions-band')
         );
       })
       .map((element) => {
@@ -70,21 +84,126 @@ async function expectHorizontalReflow(page: Page): Promise<void> {
         };
       });
 
+    const strips = Array.from(
+      document.querySelectorAll<HTMLElement>('.occasions-band'),
+    ).map((strip) => {
+      const rect = strip.getBoundingClientRect();
+      return {
+        left: rect.left,
+        right: rect.right,
+        scrolls: getComputedStyle(strip).overflowX === 'auto',
+      };
+    });
     return {
       clientWidth: root.clientWidth,
       scrollWidth: root.scrollWidth,
       clippedControls: controls.filter(
         (control) => control.left < -1 || control.right > root.clientWidth + 1,
       ),
+      clippedStrips: strips.filter(
+        (strip) =>
+          !strip.scrolls ||
+          strip.left < -1 ||
+          strip.right > root.clientWidth + 1,
+      ),
     };
   });
 
   expect(result.scrollWidth).toBeLessThanOrEqual(result.clientWidth);
   expect(result.clippedControls).toEqual([]);
+  expect(result.clippedStrips).toEqual([]);
 }
 
-async function installPeopleApiMocks(page: Page): Promise<string[]> {
+async function installPeopleApiMocks(
+  page: Page,
+  {
+    now = new Date(),
+    relationshipStartedOn = '2023-06-17',
+    oneTimeDates = [],
+    listedPlans = [],
+  }: {
+    now?: Date;
+    relationshipStartedOn?: string;
+    oneTimeDates?: { id: string; label: string; date: string }[];
+    /** Plans of the open overview, which the occasions calendar reads. */
+    listedPlans?: Record<string, unknown>[];
+  } = {},
+): Promise<string[]> {
   const unexpectedRequests: string[] = [];
+  let relationshipProfile = {
+    spaceId: SPACE_ID,
+    version: 1,
+    relationshipStartedOn,
+    showRelationshipDuration: true,
+  };
+  let createdPlan: Record<string, unknown> | undefined;
+  const avatar = readFileSync(
+    new URL('../fixtures/recap-lake.webp', import.meta.url),
+  );
+  let personRows = [
+    {
+      id: 'person-1',
+      displayName: LONG_PERSON_NAME,
+      relationship: 'FRIEND',
+      birthday: '1995-05-12',
+      birthdayYearKnown: true,
+      visibility: 'SHARED',
+      showBirthdayOnDashboard: true,
+      avatarAttachmentId: 'people-avatar',
+      version: 3,
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+    },
+    {
+      id: 'person-2',
+      displayName: 'Mara',
+      relationship: 'SIBLING',
+      birthday: null,
+      birthdayYearKnown: false,
+      visibility: 'SHARED',
+      showBirthdayOnDashboard: false,
+      avatarAttachmentId: null,
+      version: 1,
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+    },
+  ];
+  let dateRows = [
+    {
+      id: 'date-1',
+      label: LONG_DATE_LABEL,
+      date: '2026-09-21',
+      relatedPersonId: 'person-1',
+      repeats: 'ANNUALLY',
+      type: 'ANNIVERSARY',
+      visibility: 'SHARED',
+      version: 2,
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+    },
+    {
+      id: 'date-2',
+      label: 'Mara birthday',
+      date: '2026-11-03',
+      relatedPersonId: 'person-2',
+      repeats: 'ANNUALLY',
+      type: 'BIRTHDAY',
+      visibility: 'PRIVATE',
+      version: 1,
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+    },
+    ...oneTimeDates.map((date) => ({
+      ...date,
+      relatedPersonId: null,
+      repeats: 'NONE',
+      type: 'CUSTOM',
+      visibility: 'SHARED',
+      version: 1,
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+    })),
+  ];
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
@@ -129,9 +248,9 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
       await fulfillJson({
         account: { id: ACCOUNT_ID, displayName: 'Lea Summer' },
         tokens: {
-          accessExpiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+          accessExpiresAt: new Date(now.getTime() + 3_600_000).toISOString(),
           accessToken: 'people-e2e-access-token',
-          refreshExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+          refreshExpiresAt: new Date(now.getTime() + 86_400_000).toISOString(),
           refreshToken: 'people-e2e-refresh-token',
         },
       });
@@ -140,9 +259,9 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
 
     if (method === 'POST' && pathname === '/api/v1/auth/refresh') {
       await fulfillJson({
-        accessExpiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+        accessExpiresAt: new Date(now.getTime() + 3_600_000).toISOString(),
         accessToken: 'people-e2e-refreshed-token',
-        refreshExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        refreshExpiresAt: new Date(now.getTime() + 86_400_000).toISOString(),
         refreshToken: 'people-e2e-refresh-token-2',
       });
       return;
@@ -169,6 +288,7 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
       await fulfillJson({
         id: SPACE_ID,
         createdAt: '2023-06-17T00:00:00Z',
+        relationshipStartedOn: relationshipProfile.relationshipStartedOn,
         partners: [
           { id: ACCOUNT_ID, displayName: 'Lea Summer' },
           { id: PARTNER_ID, displayName: 'Alex Winter' },
@@ -203,14 +323,16 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
       return;
     }
 
-    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/profile`) {
-      await fulfillJson({
-        spaceId: SPACE_ID,
-        version: 1,
-        relationshipStartedOn: '2023-06-17',
-        showRelationshipDuration: true,
-      });
-      return;
+    if (pathname === `/api/v1/spaces/${SPACE_ID}/profile`) {
+      if (method === 'GET') return fulfillJson(relationshipProfile);
+      if (method === 'PUT') {
+        relationshipProfile = {
+          ...relationshipProfile,
+          ...request.postDataJSON(),
+          version: relationshipProfile.version + 1,
+        };
+        return fulfillJson(relationshipProfile);
+      }
     }
 
     if (
@@ -229,6 +351,7 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
         accountId: ACCOUNT_ID,
         createdAt: TEST_NOW,
         displayName: 'Lea Summer',
+        birthday: '1991-04-13',
         id: PROFILE_ID,
         preferences: [],
         profileAttachmentId: null,
@@ -246,6 +369,7 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
         accountId: PARTNER_ID,
         createdAt: TEST_NOW,
         displayName: 'Alex Winter',
+        birthday: '1990-05-14',
         id: PARTNER_PROFILE_ID,
         preferences: [],
         profileAttachmentId: null,
@@ -292,72 +416,129 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
       return;
     }
 
-    if (
-      method === 'GET' &&
-      pathname === `/api/v1/spaces/${SPACE_ID}/related-persons`
-    ) {
-      await fulfillJson([
-        {
-          id: 'person-1',
-          displayName: LONG_PERSON_NAME,
-          relationship: 'FRIEND',
-          birthday: '1995-05-12',
-          birthdayYearKnown: true,
-          visibility: 'SHARED',
-          showBirthdayOnDashboard: true,
-          avatarAttachmentId: null,
-          version: 3,
-          createdAt: TEST_NOW,
-          updatedAt: TEST_NOW,
-        },
-        {
-          id: 'person-2',
-          displayName: 'Mara',
-          relationship: 'SIBLING',
-          birthday: null,
-          birthdayYearKnown: false,
-          visibility: 'PRIVATE',
-          showBirthdayOnDashboard: false,
-          avatarAttachmentId: null,
+    const personPath = `/api/v1/spaces/${SPACE_ID}/related-persons`;
+    const datePath = `/api/v1/spaces/${SPACE_ID}/important-dates`;
+    if (pathname === `${personPath}`) {
+      if (method === 'GET') return fulfillJson(personRows);
+      if (method === 'POST') {
+        const row = {
+          ...personRows[1],
+          ...request.postDataJSON(),
+          id: 'new-person',
           version: 1,
-          createdAt: TEST_NOW,
-          updatedAt: TEST_NOW,
-        },
-      ]);
-      return;
+        };
+        personRows = [...personRows, row];
+        return fulfillJson(row, 201);
+      }
     }
+    if (pathname.startsWith(`${personPath}/`)) {
+      const id = pathname.slice(personPath.length + 1);
+      const row = personRows.find((p) => p.id === id);
+      if (!row)
+        return fulfillJson(
+          { code: 'RELATED_PERSON_NOT_FOUND', status: 404 },
+          404,
+        );
+      if (method === 'GET') return fulfillJson(row);
+      if (method === 'PUT') {
+        const updated = {
+          ...row,
+          ...request.postDataJSON(),
+          version: row.version + 1,
+        };
+        personRows = personRows.map((p) => (p.id === id ? updated : p));
+        return fulfillJson(updated);
+      }
+      if (method === 'DELETE') {
+        personRows = personRows.filter((p) => p.id !== id);
+        dateRows = dateRows.map((d) =>
+          d.relatedPersonId === id ? { ...d, relatedPersonId: '' } : d,
+        );
+        return route.fulfill({ status: 204 });
+      }
+    }
+    if (pathname === datePath) {
+      if (method === 'GET') return fulfillJson(dateRows);
+      if (method === 'POST') {
+        const row = {
+          ...dateRows[0],
+          ...request.postDataJSON(),
+          id: 'new-date',
+          version: 1,
+        };
+        dateRows = [...dateRows, row];
+        return fulfillJson(row, 201);
+      }
+    }
+    if (pathname.startsWith(`${datePath}/`)) {
+      const id = pathname.slice(datePath.length + 1);
+      const row = dateRows.find((d) => d.id === id);
+      if (!row)
+        return fulfillJson(
+          { code: 'IMPORTANT_DATE_NOT_FOUND', status: 404 },
+          404,
+        );
+      if (method === 'GET') return fulfillJson(row);
+      if (method === 'PUT') {
+        const updated = {
+          ...row,
+          ...request.postDataJSON(),
+          version: row.version + 1,
+        };
+        dateRows = dateRows.map((d) => (d.id === id ? updated : d));
+        return fulfillJson(updated);
+      }
+      if (method === 'DELETE') {
+        dateRows = dateRows.filter((d) => d.id !== id);
+        return route.fulfill({ status: 204 });
+      }
+    }
+    if (pathname.endsWith('/attachments/people-avatar/content'))
+      return route.fulfill({ contentType: 'image/webp', body: avatar });
+    if (pathname.endsWith('/attachments/people-avatar/read-access'))
+      return fulfillJson({
+        method: 'STREAM',
+        url: `/api/v1/spaces/${SPACE_ID}/attachments/people-avatar/content`,
+        mediaType: 'IMAGE',
+      });
 
+    const plansPath = `/api/v1/spaces/${SPACE_ID}/plans`;
+    if (method === 'POST' && pathname === plansPath) {
+      const body = request.postDataJSON() as {
+        title: string;
+        schedule?: { plannedOn?: string };
+      };
+      createdPlan = {
+        id: 'occasion-plan',
+        spaceId: SPACE_ID,
+        title: body.title,
+        plannedOn: body.schedule?.plannedOn ?? null,
+        status: 'PLANNED',
+        capabilities: { canDelete: true, canEdit: true },
+        createdAt: TEST_NOW,
+        createdBy: ACCOUNT_ID,
+        updatedAt: TEST_NOW,
+        version: 1,
+      };
+      return fulfillJson(createdPlan, 201);
+    }
     if (
       method === 'GET' &&
-      pathname === `/api/v1/spaces/${SPACE_ID}/important-dates`
+      pathname === `${plansPath}/occasion-plan` &&
+      createdPlan
     ) {
-      await fulfillJson([
-        {
-          id: 'date-1',
-          label: LONG_DATE_LABEL,
-          date: '2026-09-21',
-          relatedPersonId: 'person-1',
-          repeats: 'ANNUALLY',
-          type: 'ANNIVERSARY',
-          visibility: 'SHARED',
-          version: 2,
-          createdAt: TEST_NOW,
-          updatedAt: TEST_NOW,
-        },
-        {
-          id: 'date-2',
-          label: 'Mara birthday',
-          date: '2026-11-03',
-          relatedPersonId: 'person-2',
-          repeats: 'ANNUALLY',
-          type: 'BIRTHDAY',
-          visibility: 'PRIVATE',
-          version: 1,
-          createdAt: TEST_NOW,
-          updatedAt: TEST_NOW,
-        },
-      ]);
-      return;
+      return fulfillJson(createdPlan);
+    }
+    const listedPlan = listedPlans.find(
+      (plan) => pathname === `${plansPath}/${plan.id}`,
+    );
+    if (method === 'GET' && listedPlan) return fulfillJson(listedPlan);
+    if (method === 'GET' && pathname === plansPath && listedPlans.length) {
+      return fulfillJson({
+        hasMore: false,
+        items: listedPlans,
+        nextCursor: null,
+      });
     }
 
     if (
@@ -419,6 +600,25 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
       return;
     }
 
+    // Partner distance (#1792): the Relationship settings read the owner's
+    // own sharing state; a Free Space shares nothing.
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/partner-location/settings`
+    ) {
+      await fulfillJson({
+        available: false,
+        level: 'OFF',
+        state: 'OFF',
+        indefinite: false,
+        expiresAt: null,
+        generation: 0,
+        lastPublishedAt: null,
+      });
+      return;
+    }
+
+    if (await fulfillNoOccasionSources(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
@@ -435,16 +635,22 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
   return unexpectedRequests;
 }
 
-async function signInAndOpenPeople(page: Page): Promise<void> {
+async function signIn(page: Page): Promise<void> {
   await page.goto('/today');
   await page.getByLabel(de.login.email).fill('lea@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
   await expect(page).toHaveURL(/\/today$/);
+}
+
+async function signInAndOpenPeople(page: Page): Promise<void> {
+  await signIn(page);
   await page.goto('/more/people');
   await expect(page.getByRole('heading', { name: people.title })).toBeVisible();
-  await expect(page.getByText(LONG_DATE_LABEL)).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: new RegExp(LONG_PERSON_NAME) }),
+  ).toBeVisible();
 }
 
 async function capture(
@@ -458,299 +664,761 @@ async function capture(
   });
 }
 
-test('W50-W55 compact composition is relationship-led, keyboard-safe and axe-clean', async ({
-  page,
-}, testInfo) => {
-  test.setTimeout(120_000);
-  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
-  await page.setViewportSize({ width: 390, height: 844 });
-  const unexpectedRequests = await installPeopleApiMocks(page);
-  await signInAndOpenPeople(page);
-
-  const dateCard = page.getByRole('button', {
-    name: new RegExp(LONG_DATE_LABEL.slice(0, 32), 'i'),
-  });
-  await expect(dateCard).toBeVisible();
-  await expect(dateCard.locator('.important-date-marker')).toBeVisible();
+async function openPerson(page: Page) {
+  await page.getByRole('link', { name: new RegExp(LONG_PERSON_NAME) }).click();
   await expect(
-    dateCard.getByText(importantDates.visibility.SHARED),
+    page.getByRole('heading', { name: LONG_PERSON_NAME, exact: true }),
   ).toBeVisible();
-  await expect(dateCard).toHaveAccessibleName(
-    new RegExp(
-      `${LONG_DATE_LABEL}.*${LONG_PERSON_NAME}.*${importantDates.visibility.SHARED}`,
-    ),
+  await expect(page.getByLabel(people.nameLabel, { exact: true })).toHaveCount(
+    0,
   );
-  await expectHorizontalReflow(page);
-  await expectNoWcagViolations(page);
-  await capture(page, testInfo, 'w50-important-dates-390-light');
+}
+async function openEditor(page: Page) {
+  // The menu button is named after the person, who may have been renamed.
+  await editViaMenu(page, people.edit);
+  await expect(
+    page.getByLabel(people.nameLabel, { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel(people.visibilityLabel)).toHaveCount(0);
+  await expect(page.locator('.mobile-bottom-nav')).toBeHidden();
+}
+/**
+ * Only the chosen month is listed on the occasions calendar. Shows the month
+ * that holds the occasion and returns its row.
+ */
+async function occasionRow(page: Page, text: string | RegExp) {
+  const row = page
+    .locator('.occasions-sheet .important-date-card')
+    .filter({ hasText: text });
+  const months = page.locator('.occasions-band-month');
+  await expect(months.first()).toBeVisible();
+  const count = await months.count();
+  for (let index = 0; index < count && !(await row.count()); index += 1)
+    await months.nth(index).click();
+  await expect(row).toBeVisible();
+  return row;
+}
 
-  const dateCreate = page.getByRole('button', {
+async function openDates(page: Page) {
+  await page.goto('/plan#dates');
+  await expect(
+    page.getByRole('tab', { name: importantDates.heading }),
+  ).toHaveAttribute('aria-selected', 'true');
+  await occasionRow(page, LONG_DATE_LABEL);
+  const addDay = page.getByRole('button', {
     name: importantDates.create,
+    exact: true,
   });
-  await dateCreate.focus();
-  await dateCreate.click();
-  let dialog = page.getByRole('dialog');
-  await expect(dialog).toHaveClass(/important-date-editor/);
-  await expect(page.getByLabel(importantDates.dateLabel)).toBeFocused();
-  await expect(page.getByLabel(importantDates.labelLabel)).toHaveAttribute(
-    'maxlength',
-    '120',
-  );
-  await dialog.getByRole('button', { name: importantDates.create }).click();
-  await expect(page.locator('#important-date-date:invalid')).toHaveCount(1);
-  await expect(page.locator('#important-date-label:invalid')).toHaveCount(1);
-  await expectHorizontalReflow(page);
-  await expectNoWcagViolations(page);
-  await capture(page, testInfo, 'w51-date-create-390-light');
-  await page.keyboard.press('Escape');
-  await expect(dialog).toHaveCount(0);
-  await expect(dateCreate).toBeFocused();
+  const dock = page.locator('.mobile-bottom-shell');
+  if (await dock.isVisible()) await expectFloatingAddAction(addDay, dock);
+  else await expectLabeledAddAction(addDay);
+}
 
-  await dateCard.click();
-  dialog = page.getByRole('dialog');
-  await expect(dialog).toHaveClass(/important-date-editor/);
-  await expect(dialog.getByLabel(importantDates.labelLabel)).toHaveValue(
-    LONG_DATE_LABEL,
-  );
+test('People opens profiles and whole photos, saves the actual result and hands birthdays to Planning', async ({
+  page,
+}, info) => {
+  test.setTimeout(120_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const unknown = await installPeopleApiMocks(page);
+  await signInAndOpenPeople(page);
   await expect(
-    dialog.locator('.focused-editor-danger-zone').getByRole('button', {
-      name: importantDates.delete,
-    }),
-  ).toBeVisible();
-  await expectHorizontalReflow(page);
-  await expectNoWcagViolations(page);
-  await capture(page, testInfo, 'w52-date-edit-390-light');
-  await page.keyboard.press('Escape');
-  await expect(dialog).toHaveCount(0);
-  await expect(dateCard).toBeFocused();
-
-  const personCreate = page.getByRole('button', {
+    page.getByText(people.visibility.SHARED, { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText(people.visibility.PRIVATE, { exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByText(LONG_DATE_LABEL)).toHaveCount(0);
+  const addPerson = page.getByRole('link', {
     name: people.addPersonAction,
+    exact: true,
   });
-  await personCreate.focus();
-  await personCreate.click();
-  dialog = page.getByRole('dialog');
-  await expect(dialog).toHaveClass(/related-person-editor/);
+  await expectFloatingAddAction(
+    addPerson,
+    page.locator('.mobile-bottom-shell'),
+  );
+  await expectHorizontalReflow(page);
+  await expectNoWcagViolations(page);
+  await capture(page, info, 'people-overview-390-light');
+  await page
+    .getByRole('button', {
+      name: people.viewPhoto.replace('{{name}}', LONG_PERSON_NAME),
+      exact: true,
+    })
+    .click();
+  const gallery = page.getByRole('dialog');
+  await expect(gallery).toBeVisible();
+  await expect(addPerson).toBeHidden();
+  await expect(gallery.locator('img')).toBeVisible();
+  await expectNoWcagViolations(page);
+  await capture(page, info, 'people-photo-390-light');
+  await page.keyboard.press('Escape');
+  await expect(gallery).toHaveCount(0);
+  await expect(addPerson).toBeVisible();
+  await openPerson(page);
+  await capture(page, info, 'person-profile-390-light');
+  await openEditor(page);
   await expect(
-    dialog.getByRole('textbox', { name: people.nameLabel, exact: true }),
+    page.getByLabel(people.nameLabel, { exact: true }),
+  ).not.toBeFocused();
+  await expect(page.getByLabel(people.optionalYear)).toHaveValue('1995');
+  await capture(page, info, 'person-edit-390-light');
+  await page.getByLabel(people.nameLabel, { exact: true }).fill('Lea Sommer');
+  await page
+    .getByRole('combobox', { name: people.relationshipLabel, exact: true })
+    .selectOption('DAUGHTER');
+  const note = 'Likes the sea.\nRemember the strawberry cake.';
+  await page
+    .getByRole('textbox', { name: people.noteLabel, exact: true })
+    .fill(note);
+  const noteBounds = await page
+    .getByRole('textbox', { name: people.noteLabel, exact: true })
+    .boundingBox();
+  const footerBounds = await page
+    .locator('.people-editor-footer')
+    .boundingBox();
+  if (!noteBounds || !footerBounds)
+    throw new Error('Person note and completion are missing');
+  expect(noteBounds.y + noteBounds.height).toBeLessThanOrEqual(footerBounds.y);
+  await page
+    .getByRole('button', { name: people.saveChanges, exact: true })
+    .click();
+  await expect(page).toHaveURL(/more\/people\/person-1$/);
+  await expect(
+    page.getByRole('heading', { name: 'Lea Sommer', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole('status')).toContainText(people.updated);
+  await expect(page.locator('.people-profile-note')).toContainText(note);
+  await expect(page.locator('.people-profile-hero')).toContainText(
+    people.relationship.DAUGHTER,
+  );
+  await openEditor(page);
+  await expect(
+    page.getByRole('textbox', { name: people.noteLabel, exact: true }),
+  ).toHaveValue(note);
+  await expect(
+    page.getByRole('combobox', { name: people.relationshipLabel, exact: true }),
+  ).toHaveValue('DAUGHTER');
+  await capture(page, info, 'person-note-edit-390-light');
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .click();
+  await capture(page, info, 'person-saved-390-light');
+  await page.locator('.people-birthday-link').click();
+  await expect(
+    page.getByRole('tab', { name: importantDates.heading }),
+  ).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('dialog')).toContainText('Lea Sommer');
+  await expect(page.getByRole('dialog').getByRole('textbox')).toHaveCount(0);
+  await page
+    .getByRole('dialog')
+    .getByRole('button', {
+      name: importantDates.openBirthdayProfile.replace(
+        '{{name}}',
+        'Lea Sommer',
+      ),
+      exact: true,
+    })
+    .click();
+  await expect(page).toHaveURL(/more\/people\/person-1$/);
+  await page.locator('.task-back-control[data-page-back]').click();
+  await expect(
+    page.getByRole('tab', { name: importantDates.heading }),
+  ).toHaveAttribute('aria-selected', 'true');
+  // The sheet still shows the month of the birthday the task started from.
+  await expect(
+    page.locator('.occasions-sheet .important-date-card').filter({
+      hasText: importantDates.partnerBirthdayLabel.replace(
+        '{{name}}',
+        'Lea Sommer',
+      ),
+    }),
   ).toBeFocused();
-  await expect(
-    dialog.locator('.focused-editor-disclosure'),
-  ).not.toHaveAttribute('open');
-  await expect(
-    dialog.getByRole('combobox', { name: people.visibilityLabel }),
-  ).toBeVisible();
+  await (await occasionRow(page, LONG_DATE_LABEL)).click();
+  const reader = page.getByRole('dialog');
+  await expect(reader.getByRole('textbox')).toHaveCount(0);
+  await reader
+    .getByRole('button', { name: importantDates.edit, exact: true })
+    .click();
+  let editor = page.locator('.important-date-editor');
+  await expect(editor).toBeVisible();
+  await editor.getByLabel(importantDates.labelLabel).fill('Our anniversary');
+  await editor
+    .getByRole('button', { name: importantDates.saveChanges, exact: true })
+    .click();
+  await expect(editor).toHaveCount(0);
+  await expect(page.getByRole('dialog')).toContainText('Our anniversary');
+  await page.keyboard.press('Escape');
+  const addDay = page.getByRole('button', {
+    name: importantDates.create,
+    exact: true,
+  });
+  const addDayStyle = await addDay.evaluate((node) => {
+    const style = getComputedStyle(node);
+    const bounds = node.getBoundingClientRect();
+    return {
+      background: style.backgroundColor,
+      color: style.color,
+      width: bounds.width,
+      height: bounds.height,
+    };
+  });
+  await expectFloatingAddAction(addDay, page.locator('.mobile-bottom-shell'));
+  expect(addDayStyle.background).not.toBe('rgba(0, 0, 0, 0)');
+  expect(addDayStyle.background).not.toBe(addDayStyle.color);
+  expect(addDayStyle.width).toBeGreaterThanOrEqual(44);
+  expect(addDayStyle.height).toBeGreaterThanOrEqual(44);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.evaluate(() => {
+    document.addEventListener('animationstart', ({ target, animationName }) => {
+      if (
+        target instanceof HTMLElement &&
+        target.matches('.important-date-editor')
+      )
+        target.dataset.e2eEntryAnimation = animationName;
+    });
+  });
+  await addDay.click();
+  editor = page.locator('.important-date-editor');
+  await expect(editor).toHaveAttribute(
+    'data-e2e-entry-animation',
+    'eimir-create-entry-rise',
+  );
+  await editor.getByLabel(importantDates.dateLabel).fill('2026-12-10');
+  await editor.getByLabel(importantDates.labelLabel).fill('Winter evening');
+  await expect(editor.getByLabel(importantDates.personLabel)).toHaveValue('');
+  await editor
+    .getByRole('button', { name: importantDates.create, exact: true })
+    .click();
+  await expect(editor).toHaveCount(0);
+  await expect(page.getByRole('dialog')).toContainText('Winter evening');
+  await page.keyboard.press('Escape');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await expectHorizontalReflow(page);
   await expectNoWcagViolations(page);
-  await capture(page, testInfo, 'w54-person-create-390-light');
+  await capture(page, info, 'occasions-390-light');
+  for (const name of ['Lea Summer', 'Alex Winter'])
+    await occasionRow(
+      page,
+      importantDates.partnerBirthdayLabel.replace('{{name}}', name),
+    );
+  const anniversary = await occasionRow(
+    page,
+    importantDates.relationshipAnniversary,
+  );
+  const outline = 'svg.eimir-icon-wir.eimir-icon-outline';
+  const wirTab = page.locator(`.mobile-bottom-nav a[href="/today"] ${outline}`);
+  await expect(anniversary.locator(outline)).toBeVisible();
+  expect(await anniversary.locator(outline).innerHTML()).toBe(
+    await wirTab.innerHTML(),
+  );
+  await anniversary.screenshot({
+    path: info.outputPath('anniversary-wir-outline.png'),
+  });
+  await anniversary.click();
+  await expect(page.getByRole('dialog').locator(outline)).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(dialog).toHaveCount(0);
-  await expect(personCreate).toBeFocused();
+  await expect(anniversary).toBeFocused();
+  expect(unknown).toEqual([]);
+});
 
-  const personCard = page
-    .locator('.people-card')
-    .filter({ hasText: LONG_PERSON_NAME });
-  await personCard.click();
-  dialog = page.getByRole('dialog');
-  await expect(dialog).toHaveClass(/related-person-editor/);
-  await expect(dialog.getByLabel(people.nameLabel)).toHaveValue(
-    LONG_PERSON_NAME,
+test.describe('Occasions in a timezone west of UTC', () => {
+  test.use({ timezoneId: 'America/Los_Angeles' });
+
+  test('uses the observed date for the agenda, reader, Plan, and source return', async ({
+    page,
+  }, info) => {
+    test.setTimeout(120_000);
+    const now = new Date('2027-03-01T03:30:00Z');
+    const unknown = await installPeopleApiMocks(page, {
+      now,
+      relationshipStartedOn: '2020-02-29',
+      oneTimeDates: [
+        { id: 'past-date', label: 'Winter evening', date: '2026-12-10' },
+        { id: 'tomorrow-date', label: 'Spring walk', date: '2027-03-01' },
+      ],
+    });
+    await page.clock.setFixedTime(now);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+    await signIn(page);
+    await page.locator('.mobile-bottom-nav a[href="/plan"]').click();
+    await page.getByRole('tab', { name: importantDates.heading }).click();
+
+    // The observed day is 28 February, so the sheet opens on February and
+    // the occasion of the following day belongs to the March sheet.
+    const anniversary = page
+      .locator('.occasions-sheet .important-date-card')
+      .filter({ hasText: importantDates.relationshipAnniversary });
+    await expect(page.locator('.occasions-next')).toContainText(
+      importantDates.relationshipAnniversary,
+    );
+    await expect(anniversary).toContainText('Heute');
+    await expect(anniversary.locator('time')).toHaveAttribute(
+      'datetime',
+      '2027-02-28',
+    );
+    await expect(anniversary.locator('.important-date-marker-day')).toHaveText(
+      '28',
+    );
+    const tomorrow = await occasionRow(page, 'Spring walk');
+    await expect(tomorrow).toContainText('Morgen');
+    await expect(tomorrow.locator('.important-date-marker-day')).toHaveText(
+      '1',
+    );
+    await expect(
+      page.locator('.occasions-past .important-date-card').last(),
+    ).toContainText('Winter evening');
+    await expect(page.locator('.occasions-past')).toContainText(
+      importantDates.past,
+    );
+    await expect(page.locator('.occasions-past')).toContainText(
+      'Dezember 2026',
+    );
+    await page.screenshot({
+      path: info.outputPath('planning-occasions-390-dark.png'),
+    });
+
+    const reader = page.getByRole('dialog');
+    await (await occasionRow(page, 'Mara birthday')).click();
+    await expect(
+      reader.getByRole('button', { name: importantDates.createPlan }),
+    ).toHaveCount(0);
+    await expect(
+      reader.getByRole('button', { name: importantDates.edit, exact: true }),
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
+
+    await (await occasionRow(page, 'Geburtstag von Alex Winter')).click();
+    await expect(reader).toContainText(
+      importantDates.partnerBirthdayProfileSource.replace(
+        '{{name}}',
+        'Alex Winter',
+      ),
+    );
+    await page.keyboard.press('Escape');
+
+    await (
+      await occasionRow(page, importantDates.relationshipAnniversary)
+    ).click();
+    await expect(reader.locator('time')).toHaveAttribute(
+      'datetime',
+      '2027-02-28',
+    );
+    await expect(reader.locator('time')).toHaveText('So., 28. Februar 2027');
+    await expect(reader).toContainText(importantDates.repeats.ANNUALLY);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: info.outputPath('planning-occasion-reader-390-dark.png'),
+    });
+
+    const createPlan = reader.getByRole('button', {
+      name: importantDates.createPlan,
+    });
+    await createPlan.click();
+    await expect(page).toHaveURL(/\/plan\/plans\/new$/);
+    const planDay = page.locator('input[name="plannedDate"]');
+    await expect(planDay).toHaveValue('2027-02-28');
+    expect(
+      await page.evaluate(() => JSON.stringify(history.state)),
+    ).not.toContain('2027-02-28');
+    await page.screenshot({
+      path: info.outputPath('planning-occasion-create-390-dark.png'),
+    });
+    const back = page.getByRole('button', {
+      name: taskBoundary.back,
+      exact: true,
+    });
+    await back.click();
+    await expect(anniversary).toBeFocused();
+
+    await anniversary.click();
+    await createPlan.click();
+    const planTitle = 'Dinner together';
+    await page.getByLabel(m5s3.plan.intentionLabel).fill(planTitle);
+    const savedRequest = page.waitForRequest(
+      (request) =>
+        request.method() === 'POST' &&
+        request.url().endsWith(`/spaces/${SPACE_ID}/plans`),
+    );
+    await page
+      .getByRole('button', { name: m5s3.common.save, exact: true })
+      .click();
+    expect((await savedRequest).postDataJSON().schedule).toEqual({
+      plannedOn: '2027-02-28',
+    });
+    await expect(page).toHaveURL(/\/plan\/plans\/occasion-plan$/);
+    await expect(
+      page.getByRole('heading', { name: planTitle, exact: true }),
+    ).toBeVisible();
+    await back.click();
+    await expect(anniversary).toBeFocused();
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.emulateMedia({ colorScheme: 'light' });
+    await anniversary.click();
+    await page.screenshot({
+      path: info.outputPath('planning-occasion-reader-1280-light.png'),
+    });
+    await reader
+      .getByRole('button', { name: importantDates.editRelationshipStart })
+      .click();
+    await expect(page).toHaveURL(/\/more\/settings\/relationship$/);
+    const relationshipDate = page.getByLabel(profiles.relationshipStartLabel, {
+      exact: true,
+    });
+    await expect(relationshipDate).toHaveValue('2020-02-29');
+    await relationshipDate.fill('2020-03-08');
+    await page
+      .getByRole('button', { name: profiles.relationshipSave, exact: true })
+      .click();
+    await expect(
+      page.getByText(profiles.relationshipSavedSubtle),
+    ).toBeVisible();
+    await back.click();
+    await expect(anniversary.locator('time')).toHaveAttribute(
+      'datetime',
+      '2027-03-08',
+    );
+    await expect(anniversary).toBeFocused();
+    expect(unknown).toEqual([]);
+  });
+});
+
+test('the occasions calendar shows dated Plans with the Planen symbol and returns from them (#1907 F3)', async ({
+  page,
+}, info) => {
+  test.setTimeout(120_000);
+  const now = new Date('2026-11-15T11:00:00Z');
+  const listedPlan = (
+    id: string,
+    title: string,
+    schedule: Record<string, unknown>,
+  ) => ({
+    id,
+    spaceId: SPACE_ID,
+    title,
+    status: 'PLANNED',
+    plannedOn: null,
+    plannedUntil: null,
+    plannedStart: null,
+    plannedEnd: null,
+    capabilities: { canDelete: true, canEdit: true },
+    createdAt: TEST_NOW,
+    createdBy: ACCOUNT_ID,
+    updatedAt: TEST_NOW,
+    version: 1,
+    ...schedule,
+  });
+  const unknown = await installPeopleApiMocks(page, {
+    now,
+    listedPlans: [
+      listedPlan('plan-cinema', 'Cinema night', {
+        plannedStart: '2026-11-21T19:00:00Z',
+      }),
+      listedPlan('plan-market', 'Christmas market', {
+        plannedOn: '2026-12-05',
+      }),
+      listedPlan('plan-secret', 'Surprise in the woods', {
+        plannedOn: '2026-12-18',
+        discreet: true,
+        discreetTitleMode: 'PREVIEW',
+        previewTitle: 'Evening for two',
+      }),
+      listedPlan('plan-cabin', 'Cabin weekend', {
+        plannedOn: '2026-12-30',
+        plannedUntil: '2027-01-02',
+      }),
+    ],
+  });
+  await page.clock.setFixedTime(now);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await signIn(page);
+  await page.goto('/plan#dates');
+  const sheet = page.locator('.occasions-sheet');
+  await expect(sheet.locator('.occasions-sheet-title')).toHaveText(
+    'November 2026',
+  );
+
+  // A Plan is a link row with the Planen symbol; its day carries a bar.
+  const cinema = sheet.locator('a.occasion-plan-card', {
+    hasText: 'Cinema night',
+  });
+  await expect(cinema).toHaveAttribute('href', '/plan/plans/plan-cinema');
+  await expect(
+    cinema.getByRole('img', { name: importantDates.planKind }),
+  ).toBeVisible();
+  await expect(cinema.locator('.important-date-meta')).toContainText('Plan');
+  const day = sheet.locator('button.occasions-grid-day.has-plan');
+  await expect(day).toHaveText('21');
+  await expect(day).toHaveAttribute('aria-label', /Plan: Cinema night$/);
+  await expect(
+    page
+      .locator('.occasions-band-month.is-active')
+      .locator('.occasions-band-dots i.is-plan'),
+  ).toHaveCount(1);
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: info.outputPath('planning-occasions-plans-november-390-light.png'),
+  });
+
+  await page.locator('.occasions-band-month').nth(1).click();
+  await expect(sheet.locator('.occasions-sheet-title')).toHaveText(
+    'Dezember 2026',
+  );
+  // Discreet Plans show their list title and the lock only.
+  const secret = sheet.locator('a.occasion-plan-card', {
+    hasText: 'Evening for two',
+  });
+  await expect(secret.locator('.discreet-lock')).toBeVisible();
+  await expect(page.locator('#main-content')).not.toContainText(
+    'Surprise in the woods',
+  );
+  // A multi-day Plan marks each of its December days.
+  for (const cabinDay of ['30', '31'])
+    await expect(
+      sheet.locator('button.occasions-grid-day.has-plan', {
+        hasText: new RegExp(`^${cabinDay}$`),
+      }),
+    ).toBeVisible();
+  await page.screenshot({
+    path: info.outputPath('planning-occasions-plans-december-390-light.png'),
+    fullPage: true,
+  });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await page.screenshot({
+    path: info.outputPath('planning-occasions-plans-december-390-dark.png'),
+    fullPage: true,
+  });
+  // Expanded keeps the same calendar in the centered Planen column.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(
+    sheet.locator('a.occasion-plan-card', { hasText: 'Christmas market' }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: info.outputPath('planning-occasions-plans-december-1280-dark.png'),
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  // Opening a Plan shows its detail; Back returns to the same month.
+  await sheet
+    .locator('a.occasion-plan-card', { hasText: 'Christmas market' })
+    .click();
+  await expect(page).toHaveURL(/\/plan\/plans\/plan-market$/);
+  await expect(
+    page.getByRole('heading', { name: 'Christmas market' }),
+  ).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/plan#dates$/);
+  await expect(sheet.locator('.occasions-sheet-title')).toHaveText(
+    'Dezember 2026',
   );
   await expect(
-    dialog.locator('.focused-editor-danger-zone').getByRole('button', {
-      name: people.delete,
-    }),
+    sheet.locator('a.occasion-plan-card', { hasText: 'Christmas market' }),
   ).toBeVisible();
-  await expectHorizontalReflow(page);
-  await expectNoWcagViolations(page);
-  await capture(page, testInfo, 'w55-person-edit-390-light');
-
-  expect(unexpectedRequests).toEqual([]);
+  expect(unknown).toEqual([]);
 });
 
-test('editor Browser Back keeps dirty drafts and closes clean editors without a loop', async ({
+test('People creation and dirty edit return to the originating control', async ({
   page,
-}) => {
+}, info) => {
   test.setTimeout(120_000);
-  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
-  await page.setViewportSize({ width: 390, height: 844 });
-  const unexpectedRequests = await installPeopleApiMocks(page);
+  const unknown = await installPeopleApiMocks(page);
+  await page.setViewportSize({ width: 360, height: 800 });
   await signInAndOpenPeople(page);
-
-  const dateCreate = page.getByRole('button', {
-    name: importantDates.create,
-  });
-  await dateCreate.focus();
-  await dateCreate.click();
-  let dialog = page.getByRole('dialog');
-  const labelInput = dialog.getByLabel(importantDates.labelLabel);
-  await labelInput.fill('A Back-safe date draft');
-
-  await page.goBack();
-  await expect(dialog.getByText(importantDates.discardTitle)).toBeVisible();
-  await dialog
-    .getByRole('button', { name: importantDates.keepEditing })
-    .click();
-  await expect(labelInput).toHaveValue('A Back-safe date draft');
-
-  await page.goBack();
-  await expect(dialog.getByText(importantDates.discardTitle)).toBeVisible();
-  await dialog
-    .getByRole('button', { name: importantDates.discardConfirm })
-    .click();
-  await expect(dialog).toHaveCount(0);
-  await expect(page).toHaveURL(/\/more\/people$/);
-  await expect(dateCreate).toBeFocused();
-
-  const personCreate = page.getByRole('button', {
+  const addPerson = page.getByRole('link', {
     name: people.addPersonAction,
+    exact: true,
   });
-  await personCreate.focus();
-  await personCreate.click();
-  dialog = page.getByRole('dialog');
-  await expect(dialog).toHaveClass(/related-person-editor/);
-
+  await expectFloatingAddAction(
+    addPerson,
+    page.locator('.mobile-bottom-shell'),
+  );
+  await addPerson.press('Enter');
+  await expect(
+    page.getByLabel(people.nameLabel, { exact: true }),
+  ).toBeVisible();
   await page.goBack();
-  await expect(dialog).toHaveCount(0);
-  await expect(page).toHaveURL(/\/more\/people$/);
-  await expect(personCreate).toBeFocused();
-  expect(unexpectedRequests).toEqual([]);
+  await expect(page).toHaveURL(/more\/people$/);
+  await addPerson.click();
+  await page.getByRole('button', { name: taskBoundary.back }).click();
+  await expect(addPerson).toBeFocused();
+  const historyIndex = () => page.evaluate(() => window.history.state?.idx);
+  const listIndex = await historyIndex();
+  await openPerson(page);
+  await openEditor(page);
+  await page
+    .getByLabel(people.nameLabel, { exact: true })
+    .fill('Keep this draft');
+  await page.goBack();
+  await expect(page.getByText(people.discardTitle)).toBeVisible();
+  await page
+    .getByRole('button', { name: people.keepEditing, exact: true })
+    .click();
+  await expect(page.getByLabel(people.nameLabel, { exact: true })).toHaveValue(
+    'Keep this draft',
+  );
+  await page.getByLabel(people.optionalYear).fill('');
+  await page.goBack();
+  await page
+    .getByRole('button', { name: people.discardConfirm, exact: true })
+    .click();
+  await expect(page).toHaveURL(/more\/people\/person-1$/);
+  await expect(
+    page.getByRole('heading', { name: LONG_PERSON_NAME, exact: true }),
+  ).toBeVisible();
+  // Discarding the editor reuses the profile entry instead of stacking a copy.
+  expect(await historyIndex()).toBe(listIndex + 1);
+  await expectHorizontalReflow(page);
+  await capture(page, info, 'person-return-360-light');
+  await page.locator('.task-back-control[data-page-back]').click();
+  await expect(page).toHaveURL(/more\/people$/);
+  await expect(
+    page.getByRole('link', { name: new RegExp(LONG_PERSON_NAME) }),
+  ).toBeFocused();
+  // Back returns to the list entry, so system Back cannot reopen the profile (#1907).
+  expect(await historyIndex()).toBe(listIndex);
+  await addPerson.click();
+  await page.getByLabel(people.nameLabel, { exact: true }).fill('Nora Winter');
+  await page
+    .getByRole('button', { name: people.saveChanges, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/more\/people\/new-person$/);
+  await expect(
+    page.getByRole('heading', { name: 'Nora Winter', exact: true }),
+  ).toBeVisible();
+  await page.locator('.task-back-control[data-page-back]').click();
+  await expect(page).toHaveURL(/more\/people$/);
+  await expect(page.getByRole('link', { name: /Nora Winter/ })).toBeVisible();
+  await expect(addPerson).toBeFocused();
+  expect(unknown).toEqual([]);
 });
 
-test('W50-W55 reflow at the accepted 1280 at 400 percent method without clipped controls', async ({
+test('People and occasions reflow at 1280 with 400 percent zoom', async ({
   page,
-}, testInfo) => {
+}, info) => {
   test.setTimeout(120_000);
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await page.addInitScript(() => localStorage.setItem('eimir.theme', 'system'));
   await page.setViewportSize({ width: 1280, height: 1024 });
-  const unexpectedRequests = await installPeopleApiMocks(page);
+  const unknown = await installPeopleApiMocks(page);
   await signInAndOpenPeople(page);
-  await page.locator('html').evaluate((element) => {
-    element.style.zoom = '4';
-  });
-  await page.evaluate(
-    () =>
-      new Promise<void>((resolve) =>
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-      ),
-  );
-
-  await expect(page.locator('.product-topbar .shell-nav')).toBeHidden();
-  await expect(page.locator('.mobile-bottom-nav')).toBeVisible();
-  await expect(page.locator('.mobile-quick-create')).toBeVisible();
-  await expectHorizontalReflow(page);
-  await capture(page, testInfo, 'w50-400-percent-dark');
-
-  const dateCreate = page.getByRole('button', { name: importantDates.create });
-  await dateCreate.click();
-  let dialog = page.getByRole('dialog');
-  await expectHorizontalReflow(page);
-  await capture(page, testInfo, 'w51-400-percent-dark');
-  await page.keyboard.press('Escape');
-  await expect(dialog).toHaveCount(0);
-
-  const dateCard = page.getByRole('button', {
-    name: new RegExp(LONG_DATE_LABEL.slice(0, 32), 'i'),
-  });
-  await dateCard.click();
-  dialog = page.getByRole('dialog');
-  await expectHorizontalReflow(page);
-  await capture(page, testInfo, 'w52-400-percent-dark');
-  await page.keyboard.press('Escape');
-  await expect(dialog).toHaveCount(0);
-
-  const personCreate = page.getByRole('button', {
+  const addPerson = page.getByRole('link', {
     name: people.addPersonAction,
+    exact: true,
   });
-  await personCreate.click();
-  dialog = page.getByRole('dialog');
+  await expectLabeledAddAction(addPerson);
+  await expectOverviewActionPlacement(addPerson);
+  await capture(page, info, 'people-overview-1280-dark');
+  await page.locator('html').evaluate((el) => {
+    el.style.zoom = '4';
+  });
+  await expect(page.locator('.mobile-bottom-nav')).toBeVisible();
   await expectHorizontalReflow(page);
-  await capture(page, testInfo, 'w54-400-percent-dark');
+  await capture(page, info, 'people-400-dark');
+  await openPerson(page);
+  await expectHorizontalReflow(page);
+  await openEditor(page);
+  await expectHorizontalReflow(page);
+  await page
+    .getByRole('button', { name: people.saveChanges, exact: true })
+    .scrollIntoViewIfNeeded();
+  await expectNoWcagViolations(page);
+  await capture(page, info, 'person-edit-400-dark');
   await page.keyboard.press('Escape');
-  await expect(dialog).toHaveCount(0);
-
-  const personCard = page
-    .locator('.people-card')
-    .filter({ hasText: LONG_PERSON_NAME });
-  await personCard.click();
-  dialog = page.getByRole('dialog');
+  await openDates(page);
+  await page.locator('html').evaluate((el) => {
+    el.style.zoom = '4';
+  });
   await expectHorizontalReflow(page);
-  await capture(page, testInfo, 'w55-400-percent-dark');
-
-  expect(unexpectedRequests).toEqual([]);
+  await page
+    .getByRole('button', { name: importantDates.create, exact: true })
+    .click();
+  await expectHorizontalReflow(page);
+  await expectNoWcagViolations(page);
+  await capture(page, info, 'occasion-create-400-dark');
+  expect(unknown).toEqual([]);
 });
 
-test('People and Important Dates remain usable at 200 percent zoom', async ({
+test('People and occasions stay operable at 200 percent zoom and large text', async ({
   page,
-}, testInfo) => {
+}, info) => {
   test.setTimeout(120_000);
-  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 780, height: 844 });
-  const unexpectedRequests = await installPeopleApiMocks(page);
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const unknown = await installPeopleApiMocks(page);
   await signInAndOpenPeople(page);
-  await page.locator('html').evaluate((element) => {
-    element.style.zoom = '2';
+  await page.locator('html').evaluate((el) => {
+    el.style.zoom = '2';
   });
-  await page.evaluate(
-    () =>
-      new Promise<void>((resolve) =>
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-      ),
-  );
-
   await expectHorizontalReflow(page);
-  const dateCreate = page.getByRole('button', { name: importantDates.create });
-  await dateCreate.click();
-  const dialog = page.getByRole('dialog');
+  await openPerson(page);
+  await openEditor(page);
+  await expectHorizontalReflow(page);
+  await page
+    .getByRole('button', { name: people.saveChanges, exact: true })
+    .scrollIntoViewIfNeeded();
   await expect(
-    dialog.getByRole('button', { name: importantDates.create }),
+    page.getByRole('button', { name: people.saveChanges, exact: true }),
   ).toBeVisible();
+  await capture(page, info, 'person-edit-200-light');
+  await page.keyboard.press('Escape');
+  await openDates(page);
+  await page.locator('html').evaluate((el) => {
+    el.style.zoom = '2';
+  });
+  await page
+    .getByRole('button', { name: importantDates.create, exact: true })
+    .click();
   await expect(
-    dialog.getByRole('button', { name: de.common.cancel }),
+    page
+      .locator('.important-date-editor')
+      .getByRole('button', { name: importantDates.create, exact: true }),
   ).toBeVisible();
   await expectHorizontalReflow(page);
   await expectNoWcagViolations(page);
-  await capture(page, testInfo, 'w51-200-percent-light');
-
-  expect(unexpectedRequests).toEqual([]);
+  await capture(page, info, 'occasion-create-200-light');
+  expect(unknown).toEqual([]);
 });
 
-test('focused editors keep completion reachable at small height and adapt without desktop density at 1440', async ({
+test('focused completion stays reachable at small height and Expanded preserves the same task', async ({
   page,
-}, testInfo) => {
+}, info) => {
   test.setTimeout(120_000);
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
-  await page.setViewportSize({ width: 390, height: 520 });
-  const unexpectedRequests = await installPeopleApiMocks(page);
+  await page.addInitScript(() => localStorage.setItem('eimir.theme', 'system'));
+  await page.setViewportSize({ width: 430, height: 420 });
+  const unknown = await installPeopleApiMocks(page);
   await signInAndOpenPeople(page);
-
-  await page.getByRole('button', { name: people.addPersonAction }).click();
-  let dialog = page.getByRole('dialog');
-  await expect(
-    dialog.getByRole('button', { name: people.create }),
-  ).toBeVisible();
-  await expect(
-    dialog.getByRole('button', { name: de.common.cancel }),
-  ).toBeVisible();
+  await expectFloatingAddAction(
+    page.getByRole('link', { name: people.addPersonAction, exact: true }),
+    page.locator('.mobile-bottom-shell'),
+  );
+  await capture(page, info, 'people-overview-430-dark');
+  await openPerson(page);
+  await openEditor(page);
+  const save = page.getByRole('button', {
+    name: people.saveChanges,
+    exact: true,
+  });
+  await save.scrollIntoViewIfNeeded();
+  await expect(save).toBeVisible();
   await expectHorizontalReflow(page);
-  await capture(page, testInfo, 'w54-small-height-dark');
+  await capture(page, info, 'person-edit-small-height-dark');
   await page.keyboard.press('Escape');
-
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page
-    .getByRole('button', {
-      name: new RegExp(LONG_DATE_LABEL.slice(0, 32), 'i'),
-    })
-    .click();
-  dialog = page.getByRole('dialog');
-  await expect(dialog).toHaveClass(/focused-editor-sheet/);
-  await expect(dialog.locator('.focused-editor-actions')).toBeVisible();
-  await expect(page.locator('.layout-split')).toHaveCount(0);
   await expect(page.locator('.layout-rail')).toHaveCount(0);
+  await capture(page, info, 'person-profile-1440-dark');
+  await openEditor(page);
   await expectHorizontalReflow(page);
   await expectNoWcagViolations(page);
-  await capture(page, testInfo, 'w52-expanded-1440-dark');
-
-  expect(unexpectedRequests).toEqual([]);
+  await capture(page, info, 'person-edit-1440-dark');
+  await page.keyboard.press('Escape');
+  await openDates(page);
+  await (await occasionRow(page, LONG_DATE_LABEL)).click();
+  await expect(page.getByRole('dialog').getByRole('textbox')).toHaveCount(0);
+  await expectNoWcagViolations(page);
+  await capture(page, info, 'occasion-reader-1440-dark');
+  expect(unknown).toEqual([]);
 });

@@ -51,6 +51,14 @@ FCM_PROVIDER_NOTICE_PRODUCT_COPY = (
 )
 
 ALLOWED_DOCUMENTATION_TEXTS_BY_PATH = {
+    # Exact existing de-DE UI literals in the recorded #1679 generation input.
+    # Surrounding engineering prose remains audited.
+    Path("docs/product/design/references/contextual-create/reference-prompts.md"): (
+        "Für Ben",
+        "Wie geht’s dir?",
+        "Ohne Vibe oder Status offenzulegen.",
+        "Nur für dich",
+    ),
     # Exact localized UI literals in the original #1672 image-generation prompt.
     # Keep the recorded prompt intact; surrounding engineering prose is audited.
     Path("docs/product/design/references/once-messages/prompt.md"): (

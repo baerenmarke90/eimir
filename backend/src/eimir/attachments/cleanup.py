@@ -126,11 +126,21 @@ def _expire_stale_uploads(session: Session) -> int:
         if (
             attachment.media_type == MediaType.VIDEO.value
             and attachment.status
-            in {AttachmentStatus.FAILED.value, AttachmentStatus.VALIDATING.value}
+            in {
+                AttachmentStatus.PENDING.value,
+                AttachmentStatus.UPLOADING.value,
+                AttachmentStatus.FAILED.value,
+                AttachmentStatus.VALIDATING.value,
+            }
             and binding.parent_of(session, attachment.id) is not None
         ):
-            if attachment.status == AttachmentStatus.VALIDATING.value:
-                service._fail(attachment, "VIDEO_PROCESSING_TIMEOUT")
+            if attachment.status != AttachmentStatus.FAILED.value:
+                service._fail(
+                    attachment,
+                    "VIDEO_PROCESSING_TIMEOUT"
+                    if attachment.status == AttachmentStatus.VALIDATING.value
+                    else "VIDEO_UPLOAD_TIMEOUT",
+                )
                 binding.notify_video_failure(session, attachment)
             # Keep the explicit failed placeholder, but discard unvalidated bytes
             # on the same bounded schedule as an abandoned upload.

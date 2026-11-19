@@ -13,6 +13,27 @@
  */
 
 import { mapValues } from '../runtime';
+import type { RecapQuoteView } from './RecapQuoteView';
+import {
+    RecapQuoteViewFromJSON,
+    RecapQuoteViewFromJSONTyped,
+    RecapQuoteViewToJSON,
+    RecapQuoteViewToJSONTyped,
+} from './RecapQuoteView';
+import type { RecapAnswerView } from './RecapAnswerView';
+import {
+    RecapAnswerViewFromJSON,
+    RecapAnswerViewFromJSONTyped,
+    RecapAnswerViewToJSON,
+    RecapAnswerViewToJSONTyped,
+} from './RecapAnswerView';
+import type { RecapFilmMediaView } from './RecapFilmMediaView';
+import {
+    RecapFilmMediaViewFromJSON,
+    RecapFilmMediaViewFromJSONTyped,
+    RecapFilmMediaViewToJSON,
+    RecapFilmMediaViewToJSONTyped,
+} from './RecapFilmMediaView';
 import type { RecapSourceKind } from './RecapSourceKind';
 import {
     RecapSourceKindFromJSON,
@@ -27,6 +48,12 @@ import {
  * @interface RecapSourceView
  */
 export interface RecapSourceView {
+    /**
+     * 
+     * @type {Array<RecapAnswerView>}
+     * @memberof RecapSourceView
+     */
+    answers?: Array<RecapAnswerView>;
     /**
      * 
      * @type {boolean}
@@ -59,10 +86,28 @@ export interface RecapSourceView {
     kind: RecapSourceKind;
     /**
      * 
+     * @type {Array<RecapFilmMediaView>}
+     * @memberof RecapSourceView
+     */
+    media?: Array<RecapFilmMediaView>;
+    /**
+     * 
+     * @type {RecapSourceViewMutualReactionEnum}
+     * @memberof RecapSourceView
+     */
+    mutualReaction?: RecapSourceViewMutualReactionEnum | null;
+    /**
+     * 
      * @type {Date}
      * @memberof RecapSourceView
      */
     occurredOn: Date | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof RecapSourceView
+     */
+    placeName?: string | null;
     /**
      * 
      * @type {string}
@@ -77,6 +122,12 @@ export interface RecapSourceView {
     previewIsSensitive: boolean;
     /**
      * 
+     * @type {RecapQuoteView}
+     * @memberof RecapSourceView
+     */
+    quote?: RecapQuoteView | null;
+    /**
+     * 
      * @type {string}
      * @memberof RecapSourceView
      */
@@ -89,6 +140,16 @@ export interface RecapSourceView {
     version: number | null;
 }
 
+
+/**
+ * @export
+ */
+export const RecapSourceViewMutualReactionEnum = {
+    LOVE: 'LOVE',
+    LAUGH: 'LAUGH',
+    CELEBRATE: 'CELEBRATE'
+} as const;
+export type RecapSourceViewMutualReactionEnum = typeof RecapSourceViewMutualReactionEnum[keyof typeof RecapSourceViewMutualReactionEnum];
 
 
 /**
@@ -118,14 +179,19 @@ export function RecapSourceViewFromJSONTyped(json: any, ignoreDiscriminator: boo
     }
     return {
         
+        'answers': json['answers'] == null ? undefined : ((json['answers'] as Array<any>).map(RecapAnswerViewFromJSON)),
         'available': json['available'],
         'excerpt': json['excerpt'],
         'id': json['id'],
         'key': json['key'],
         'kind': RecapSourceKindFromJSON(json['kind']),
+        'media': json['media'] == null ? undefined : ((json['media'] as Array<any>).map(RecapFilmMediaViewFromJSON)),
+        'mutualReaction': json['mutualReaction'] === undefined ? undefined : json['mutualReaction'] === null ? null : json['mutualReaction'],
         'occurredOn': (json['occurredOn'] == null ? null : new Date(json['occurredOn'])),
+        'placeName': json['placeName'] === undefined ? undefined : json['placeName'] === null ? null : json['placeName'],
         'previewAttachmentId': json['previewAttachmentId'],
         'previewIsSensitive': json['previewIsSensitive'],
+        'quote': json['quote'] === undefined ? undefined : json['quote'] === null ? null : RecapQuoteViewFromJSON(json['quote']),
         'title': json['title'],
         'version': json['version'],
     };
@@ -142,14 +208,19 @@ export function RecapSourceViewToJSONTyped(value?: RecapSourceView | null, ignor
 
     return {
         
+        'answers': value['answers'] == null ? undefined : ((value['answers'] as Array<any>).map(RecapAnswerViewToJSON)),
         'available': value['available'],
         'excerpt': value['excerpt'],
         'id': value['id'],
         'key': value['key'],
         'kind': RecapSourceKindToJSON(value['kind']),
+        'media': value['media'] == null ? undefined : ((value['media'] as Array<any>).map(RecapFilmMediaViewToJSON)),
+        'mutualReaction': value['mutualReaction'],
         'occurredOn': value['occurredOn'] == null ? value['occurredOn'] : value['occurredOn'].toISOString().substring(0,10),
+        'placeName': value['placeName'],
         'previewAttachmentId': value['previewAttachmentId'],
         'previewIsSensitive': value['previewIsSensitive'],
+        'quote': RecapQuoteViewToJSON(value['quote']),
         'title': value['title'],
         'version': value['version'],
     };

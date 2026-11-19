@@ -9,6 +9,7 @@ DETAIL = "/api/v1/spaces/{spaceId}/plans/{planId}"
 WISH_COLLECTION = "/api/v1/spaces/{spaceId}/wishes"
 WISH_DETAIL = f"{WISH_COLLECTION}/{{wishId}}"
 WISH_COMPLETE = f"{WISH_DETAIL}/complete"
+WISH_DATE_PROPOSAL = f"{WISH_DETAIL}/date-proposal"
 CONVERT = f"{WISH_DETAIL}/plan"
 LIFECYCLE = (
     f"{DETAIL}/schedule",
@@ -53,6 +54,16 @@ def test_plan_routes_have_frozen_operation_ids() -> None:
     assert paths[CONVERT]["post"]["operationId"] == "convertWishToPlan"
     assert paths[f"{DETAIL}/wish"]["post"]["operationId"] == "linkWishToPlan"
     assert paths[WISH_COMPLETE]["post"]["operationId"] == "completeWish"
+    assert paths[f"{DETAIL}/collections"]["get"]["operationId"] == "listPlanCollections"
+    assert paths[f"{DETAIL}/story"]["get"]["operationId"] == "listPlanStory"
+    assert (
+        paths[f"{DETAIL}/collections/{{collectionId}}"]["put"]["operationId"]
+        == "linkPlanCollection"
+    )
+    assert (
+        paths[f"{DETAIL}/collections/{{collectionId}}"]["delete"]["operationId"]
+        == "unlinkPlanCollection"
+    )
 
 
 def test_the_decided_wish_and_plan_surface_is_now_complete() -> None:
@@ -63,14 +74,34 @@ def test_the_decided_wish_and_plan_surface_is_now_complete() -> None:
         WISH_DETAIL,
         WISH_COMPLETE,
         CONVERT,
+        f"{WISH_DETAIL}/repeat",
+        f"{WISH_DETAIL}/reminder",
+        WISH_DATE_PROPOSAL,
+        *(
+            f"{WISH_DATE_PROPOSAL}/{{proposalId}}/{command}"
+            for command in ("accept", "counter", "decline", "withdraw")
+        ),
     }
     assert plan_paths == {
         COLLECTION,
         DETAIL,
         *LIFECYCLE,
+        f"{DETAIL}/collections",
+        f"{DETAIL}/collections/{{collectionId}}",
+        # Shared notes linked to a Plan by the Planning system (#1969).
+        f"{DETAIL}/notes",
+        f"{DETAIL}/notes/{{sharedNoteId}}",
         f"{DETAIL}/comments",
+        f"{DETAIL}/story",
         "/api/v1/spaces/{spaceId}/memories/{memoryId}/plans",
         "/api/v1/spaces/{spaceId}/memories/{memoryId}/plans/{targetId}",
+        "/api/v1/spaces/{spaceId}/heart-moments/{heartMomentId}/plans",
+        "/api/v1/spaces/{spaceId}/heart-moments/{heartMomentId}/plans/{targetId}",
+        "/api/v1/spaces/{spaceId}/milestones/{milestoneId}/plans",
+        "/api/v1/spaces/{spaceId}/milestones/{milestoneId}/plans/{targetId}",
+        # Calendar sync state of one Plan (#1895); read-only plus conflict choice.
+        "/api/v1/spaces/{spaceId}/calendar-sync/plans/{planId}",
+        "/api/v1/spaces/{spaceId}/calendar-sync/plans/{planId}/resolve",
     }
 
 
@@ -113,9 +144,16 @@ def test_no_request_body_accepts_server_owned_fields() -> None:
 
 def test_schedule_contract_distinguishes_calendar_date_from_instant() -> None:
     schedule = _components()["PlanSchedule"]
-    assert set(schedule["properties"]) == {"plannedOn", "plannedStart", "plannedEnd"}
+    assert set(schedule["properties"]) == {
+        "plannedOn",
+        "plannedStart",
+        "plannedEnd",
+        "plannedUntil",
+    }
     assert "required" not in schedule
     assert schedule["properties"]["plannedOn"]["format"] == "date"
+    # The inclusive last day of a date-only period is a calendar date too (#1895).
+    assert schedule["properties"]["plannedUntil"]["format"] == "date"
     assert schedule["properties"]["plannedStart"]["format"] == "date-time"
     assert schedule["properties"]["plannedEnd"]["format"] == "date-time"
 
@@ -149,6 +187,7 @@ def test_direct_create_needs_only_a_title() -> None:
         "coverIsSensitive",
         "selectedCoverAttachmentId",
         "attachments",
+        "fileAttachmentIds",
     }
     assert schema["required"] == ["title"]
 

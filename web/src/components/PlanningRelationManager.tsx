@@ -1,41 +1,46 @@
-import { AutoLoadMore } from './AutoLoadMore';
-import { type MouseEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import {
   useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { type MouseEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import type { ChapterContentItem } from '../api/generated/models/ChapterContentItem';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import { useApiRuntime } from '../client/apiRuntimeContext';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
 import { galleryCover } from '../client/galleryCover';
+import { normalizeClientError } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { createReferenceApis } from '../client/referenceFlow';
-import { postSnackbar } from '../client/snackbar';
-import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import { normalizeClientError } from '../client/problemDetails';
 import {
   heartMomentDetailPath,
   memoryDetailPath,
   milestoneDetailPath,
 } from '../client/routes';
-import { useTaskOrigin } from '../client/taskOrigin';
 import {
-  storyRelationTarget,
   type PlanningRelationKind,
   type PlanningRelationTarget,
   type SharedPlanningApis,
+  storyRelationTarget,
 } from '../client/sharedPlanning';
+import { postSnackbar } from '../client/snackbar';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
+import { useTaskOrigin } from '../client/taskOrigin';
+import { useDiaryLayout } from '../client/useDiaryLayout';
+import { useTaskListReturn } from '../client/useTaskListReturn';
 import { i18n, useTranslation } from '../i18n';
+import { AddActionButton } from './AddAction';
+import { AutoLoadMore } from './AutoLoadMore';
+import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
 import { RelationMomentActions } from './RelationMomentActions';
-import { UiState } from './UiState';
-import { EimirIcon } from './EimirIcon';
-import { ShortTaskSheet } from './ShortTaskSheet';
 import { RelationMomentPreview } from './RelationMomentPreview';
+import { ShortTaskSheet } from './ShortTaskSheet';
+import { StoryList } from './StoryList';
+import { UiState } from './UiState';
 import './PlanningRelationManager.css';
 
 const STORY_PAGE_SIZE = 50;
@@ -44,6 +49,8 @@ type RelationTargetPage = {
   items: StoryItem[];
   nextCursor: string | null;
 };
+
+type LinkedRelationTarget = PlanningRelationTarget & { storyItem: StoryItem };
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
   try {
@@ -96,9 +103,9 @@ async function loadLinkedRelationTargets(
   apis: SharedPlanningApis,
   spaceId: string,
   relations: ChapterContentItem[],
-): Promise<PlanningRelationTarget[]> {
+): Promise<LinkedRelationTarget[]> {
   const targets = await Promise.all(
-    relations.map(async (relation): Promise<PlanningRelationTarget | null> => {
+    relations.map(async (relation): Promise<LinkedRelationTarget | null> => {
       try {
         switch (relation.targetType) {
           case 'MEMORY': {
@@ -106,11 +113,13 @@ async function loadLinkedRelationTargets(
               spaceId,
               memoryId: relation.targetId,
             });
+            const effectiveDate = memory.happenedOn ?? memory.createdAt;
             return {
               id: memory.id,
               kind: 'MEMORY',
               label: memory.title,
-              effectiveDate: memory.happenedOn ?? memory.createdAt,
+              effectiveDate,
+              storyItem: { kind: 'MEMORY', effectiveDate, memory },
               attachment: (() => {
                 const cover = galleryCover(memory);
                 return cover?.mediaType === 'IMAGE' && cover.status === 'READY'
@@ -125,11 +134,35 @@ async function loadLinkedRelationTargets(
               heartMomentId: relation.targetId,
             });
             if (heartMoment.visibility !== 'SHARED') return null;
+            const gallery =
+              heartMoment.attachments ??
+              (heartMoment.attachment
+                ? [{ ...heartMoment.attachment, position: 0 }]
+                : []);
+            const cover =
+              galleryCover({
+                attachments: gallery.filter(
+                  ({ status, mediaType }) =>
+                    status === 'READY' && mediaType !== 'AUDIO',
+                ),
+                selectedCoverAttachmentId:
+                  heartMoment.selectedCoverAttachmentId,
+              }) ?? null;
             return {
               id: heartMoment.id,
               kind: 'HEART_MOMENT',
               label: heartMoment.text || i18n.t('heartMomentProduct.untitled'),
               effectiveDate: heartMoment.happenedOn,
+              storyItem: {
+                kind: 'HEART_MOMENT',
+                effectiveDate: heartMoment.happenedOn,
+                heartMoment: {
+                  ...heartMoment,
+                  text: heartMoment.text || heartMoment.audioTitle || '',
+                  attachment: cover,
+                  attachmentCount: gallery.length,
+                },
+              },
               attachment:
                 heartMoment.attachment?.mediaType === 'IMAGE' &&
                 heartMoment.attachment.status === 'READY'
@@ -147,6 +180,11 @@ async function loadLinkedRelationTargets(
               kind: 'MILESTONE',
               label: milestone.title,
               effectiveDate: milestone.happenedOn,
+              storyItem: {
+                kind: 'MILESTONE',
+                effectiveDate: milestone.happenedOn,
+                milestone,
+              },
             };
           }
         }
@@ -158,7 +196,7 @@ async function loadLinkedRelationTargets(
     }),
   );
   return targets.filter(
-    (target): target is PlanningRelationTarget => target !== null,
+    (target): target is LinkedRelationTarget => target !== null,
   );
 }
 
@@ -231,6 +269,7 @@ function ScopedPlanningRelationManager({
   ownerName,
 }: PlanningRelationManagerProps) {
   const { t } = useTranslation();
+  const [diaryLayout] = useDiaryLayout();
   const navigate = useNavigate();
   const { captureOrigin } = useTaskOrigin();
   const queryClient = useQueryClient();
@@ -344,6 +383,16 @@ function ScopedPlanningRelationManager({
     enabled: relationsQuery.isSuccess && linkedTargetSignature.length > 0,
     staleTime: 60_000,
     retry: false,
+  });
+  useTaskListReturn({
+    ready:
+      ownerKind === 'chapter' &&
+      relationsQuery.isSuccess &&
+      (!linkedTargetSignature || linkedTargetsQuery.isSuccess),
+    busy: relationsQuery.isFetching || linkedTargetsQuery.isFetching,
+    loadedPageCount: 1,
+    canLoadMore: false,
+    loadMore: linkedTargetsQuery.refetch,
   });
 
   const linkMutation = useMutation({
@@ -530,6 +579,23 @@ function ScopedPlanningRelationManager({
       : [...recentlyLinked.values()]
     ).map((target) => [targetKey(target.kind, target.id), target]),
   );
+  const chapterStoryItems = new Map(
+    ownerKind === 'chapter'
+      ? linkedTargetsQuery.data?.map(
+          (target) =>
+            [targetKey(target.kind, target.id), target.storyItem] as const,
+        )
+      : [],
+  );
+  const linkedStoryItems: StoryItem[] = [];
+  const previewRelations: ChapterContentItem[] = [];
+  for (const relation of relationsQuery.data ?? []) {
+    const item = chapterStoryItems.get(
+      targetKey(relation.targetType, relation.targetId),
+    );
+    if (item) linkedStoryItems.push(item);
+    else previewRelations.push(relation);
+  }
   const linkedKeys = new Set(
     (relationsQuery.data ?? []).map((relation) =>
       targetKey(relation.targetType, relation.targetId),
@@ -634,28 +700,74 @@ function ScopedPlanningRelationManager({
       event.altKey
     )
       return;
-    const taskOriginKey = captureOrigin();
+    const selectedKey =
+      ownerKind === 'chapter'
+        ? event.currentTarget.dataset.taskItemKey
+        : undefined;
+    const taskOriginKey = captureOrigin(
+      selectedKey
+        ? {
+            selectedKey,
+            selectedOffset: event.currentTarget.getBoundingClientRect().top,
+          }
+        : undefined,
+    );
     if (!taskOriginKey) return;
     event.preventDefault();
     void navigate(path, { state: { taskOriginKey } });
   }
 
+  function renderMomentActions({
+    kind,
+    id,
+    label,
+  }: Pick<PlanningRelationTarget, 'kind' | 'id' | 'label'>) {
+    return (
+      <RelationMomentActions
+        ownerKind={ownerKind}
+        name={label}
+        pending={unlinkMutation.isPending}
+        error={
+          unlinkMutation.variables?.targetId === id
+            ? unlinkMutation.error
+            : null
+        }
+        onRemove={() => unlinkMutation.mutateAsync({ kind, targetId: id })}
+      />
+    );
+  }
+
+  function loadChapterImage(
+    parent: 'MEMORY' | 'HEART_MOMENT',
+    parentId: string,
+    attachmentId: string,
+    signal?: AbortSignal,
+    variant?: 'original' | 'thumbnail',
+  ) {
+    if (!mediaApis) return Promise.reject(new Error('Media is unavailable.'));
+    return loadAuthorizedStoryImageResource(
+      mediaApis,
+      spaceId,
+      parent,
+      parentId,
+      attachmentId,
+      { signal, variant },
+    );
+  }
+
   const addButton =
     canManage && relationsQuery.isSuccess ? (
-      <button
+      <AddActionButton
+        label={t('m5s3.relations.addLabel')}
+        className="relation-moment-add"
         ref={trigger}
-        type="button"
-        className="secondary relation-moment-add"
         aria-haspopup="dialog"
         aria-expanded={pickerOpen}
         onClick={() => {
           linkMutation.reset();
           setPickerOpen(true);
         }}
-      >
-        <EimirIcon name="hinzufuegen" />
-        {t('m5s3.relations.addLabel')}
-      </button>
+      />
     ) : null;
 
   return (
@@ -687,9 +799,45 @@ function ScopedPlanningRelationManager({
         />
       ) : null}
 
-      {relationsQuery.data && relationsQuery.data.length > 0 ? (
+      {linkedStoryItems.length ? (
+        <div className="story-page-unified">
+          <div
+            className="momente-diary-section"
+            data-diary-layout={diaryLayout}
+          >
+            <div className="story-timeline-months">
+              <div className="story-year-month">
+                <StoryList
+                  items={linkedStoryItems}
+                  spaceId={spaceId}
+                  loadMemoryImage={(...args) =>
+                    loadChapterImage('MEMORY', ...args)
+                  }
+                  loadHeartMomentImage={(id, attachmentId, signal, variant) =>
+                    loadChapterImage(
+                      'HEART_MOMENT',
+                      id,
+                      attachmentId,
+                      signal,
+                      variant,
+                    )
+                  }
+                  imageLoadingMode="near-viewport"
+                  onOpenItem={(event, _item, to) => openTarget(event, to)}
+                  renderItemActions={
+                    canManage
+                      ? (item) => renderMomentActions(storyRelationTarget(item))
+                      : undefined
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {previewRelations.length ? (
         <ul className="planning-relation-list">
-          {relationsQuery.data.map((relation) => {
+          {previewRelations.map((relation) => {
             const target = targetMap.get(
               targetKey(relation.targetType, relation.targetId),
             );
@@ -717,29 +865,19 @@ function ScopedPlanningRelationManager({
                     </span>
                   </div>
                 )}
-                {canManage ? (
-                  <RelationMomentActions
-                    ownerKind={ownerKind}
-                    name={target?.label ?? t('m5s3.relations.contentFallback')}
-                    pending={unlinkMutation.isPending}
-                    error={
-                      unlinkMutation.variables?.targetId === relation.targetId
-                        ? unlinkMutation.error
-                        : null
-                    }
-                    onRemove={() =>
-                      unlinkMutation.mutateAsync({
-                        kind: relation.targetType,
-                        targetId: relation.targetId,
-                      })
-                    }
-                  />
-                ) : null}
+                {canManage
+                  ? renderMomentActions({
+                      kind: relation.targetType,
+                      id: relation.targetId,
+                      label:
+                        target?.label ?? t('m5s3.relations.contentFallback'),
+                    })
+                  : null}
               </li>
             );
           })}
         </ul>
-      ) : relationsQuery.data ? (
+      ) : relationsQuery.data?.length === 0 ? (
         <p className="planning-empty">{t('m5s3.relations.empty')}</p>
       ) : null}
 

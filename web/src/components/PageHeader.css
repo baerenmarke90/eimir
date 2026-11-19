@@ -1,0 +1,135 @@
+/* Secondary-page header row (COMPONENT-CONTRACTS 5.4, #1907 C4). */
+.page-back-host {
+  display: flex;
+  flex: none;
+}
+
+.page-back-host:empty {
+  display: none;
+}
+
+.page-heading.page-heading-secondary .page-heading-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  column-gap: var(--space-3);
+  row-gap: var(--space-2);
+  margin-block-end: var(--space-2);
+}
+
+/* The title takes the rest of the row and moves below Back only when it cannot
+   keep a readable measure beside it (320 px, 200 % text, one long word). */
+.page-heading.page-heading-secondary
+  .page-heading-title-row
+  > :not(.page-back-host) {
+  flex: 1 1 12rem;
+  min-inline-size: 0;
+  margin: 0;
+}
+
+.page-heading.page-heading-secondary .page-heading-title-container {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  margin-block-end: 0;
+}
+
+.page-heading.page-heading-secondary .page-heading-title-container > h1 {
+  flex: 0 1 auto;
+  min-inline-size: 0;
+}
+
+.page-heading.page-heading-secondary .page-heading-title-container > :not(h1) {
+  flex: none;
+  align-self: center;
+}
+
+/* Page-scoped title fonts predate one secondary title role; the class keeps
+   this role ahead of them. */
+.page-heading.page-heading-secondary h1.page-heading-secondary-title {
+  margin: 0;
+  font: var(--font-subpage-title);
+  letter-spacing: var(--tracking-subpage-title);
+  /* Hyphenate where the language allows; never widen the page (320 px, 200 %). */
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+/* Align the first title line with the centre of the Back control. */
+.page-heading.page-heading-secondary .page-heading-title-row h1 {
+  padding-block-start: max(0px, calc((var(--touch-target-web) - 1lh) / 2));
+}
+
+/* The type row spans the header; the name and any page action follow below. */
+.page-heading.page-heading-item {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+.page-heading-item-row {
+  display: grid;
+  flex: none;
+  grid-template-columns:
+    var(--touch-target-web) minmax(0, 1fr)
+    var(--touch-target-web);
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-end: var(--space-3);
+}
+
+.page-heading-item-row:has(.task-back-label) {
+  grid-template-columns:
+    minmax(var(--touch-target-web), max-content) minmax(0, 1fr)
+    var(--touch-target-web);
+}
+
+.page-heading-item-row > .page-back-host:empty {
+  display: block;
+}
+
+.page-heading-item-label {
+  min-inline-size: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.page-heading-item-action {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.page-heading-item-action > :is(button, a) {
+  display: inline-grid;
+  place-items: center;
+  inline-size: var(--touch-target-web);
+  min-inline-size: var(--touch-target-web);
+  block-size: var(--touch-target-web);
+  min-block-size: var(--touch-target-web);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+}
+
+/* Overview headers shrink their title column to its content; the title row
+   needs the full width so the title can sit beside Back. */
+.page-heading.page-heading-secondary
+> div:first-child:not(.page-heading-item-row) {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+.page-heading-item-label .private-item-lock-icon {
+  display: inline-block;
+  inline-size: 1em;
+  block-size: 1em;
+  margin-inline-end: var(--space-1);
+  vertical-align: -0.125em;
+}

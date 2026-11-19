@@ -312,7 +312,9 @@ def test_video_failure_notifies_only_uploader_once_and_retains_safe_recovery(
     )
 
 
-def test_pending_images_and_unfinished_videos_still_cannot_bind(client, session, owner):  # type: ignore[no-untyped-def]
+def test_pending_images_still_cannot_bind_but_video_reservations_keep_a_placeholder(
+    client, session, owner
+):  # type: ignore[no-untyped-def]
     grant(session, owner)
     video = create(client, owner).json()["attachment"]["id"]
     base = f"/api/v1/spaces/{owner[1].id}"
@@ -331,13 +333,14 @@ def test_pending_images_and_unfinished_videos_still_cannot_bind(client, session,
         base + f"/attachments/{image}/content", content=b"0123456789", headers=auth(owner[2])
     )
     client.post(base + f"/attachments/{image}/finalize", json={}, headers=auth(owner[2]))
-    for identifier in (video, image):
-        denied = client.put(
+    for identifier, expected_status in ((image, 409), (video, 200)):
+        result = client.put(
             base + f"/memories/{memory['id']}/attachments",
             headers={**auth(owner[2]), "If-Match": str(memory["version"])},
             json={"attachments": [{"attachmentId": identifier, "position": 0}]},
         )
-        assert denied.status_code == 409, denied.text
+        assert result.status_code == expected_status, result.text
+    assert result.json()["attachments"][0]["status"] == "PENDING"
 
 
 @pytest.mark.parametrize("legacy", [False, True])
@@ -415,3 +418,153 @@ def test_heart_moment_accepts_submitted_video_without_exposing_unvalidated_media
     assert client.get(center, headers=auth(owner[2])).json()["items"] == []
     assert client.get(center + "/unread-count", headers=auth(owner[2])).json()["unreadCount"] == 0
     assert client.post(target, headers=auth(owner[2])).status_code == 404
+
+
+@pytest.mark.parametrize("parent", ["memories", "heart-moments"])
+def test_parent_is_saved_before_video_bytes_and_the_same_reservation_finishes(
+    client, session, owner, parent
+):  # type: ignore[no-untyped-def]
+    grant(session, owner)
+    identifier = create(client, owner).json()["attachment"]["id"]
+    base = f"/api/v1/spaces/{owner[1].id}"
+    body = (
+        {"title": "Our day"}
+        if parent == "memories"
+        else {
+            "text": "A moving moment",
+            "happenedOn": "2026-10-01",
+            "emotion": "HAPPY",
+            "visibility": "PRIVATE",
+        }
+    )
+    response = client.post(
+        base + "/" + parent,
+        headers=auth(owner[2]),
+        json={
+            **body,
+            "attachments": [{"attachmentId": identifier, "position": 0, "isSensitive": True}],
+        },
+    )
+    assert response.status_code == 201, response.text
+    saved = response.json()
+    assert saved["attachments"][0]["status"] == "PENDING"
+    assert saved["attachments"][0]["hasThumbnail"] is False
+    assert saved["attachments"][0]["isSensitive"] is True
+    access = client.post(
+        base + f"/attachments/{identifier}/read-access",
+        headers=auth(owner[2]),
+        json={
+            "parentType": "MEMORY" if parent == "memories" else "HEART_MOMENT",
+            "parentId": saved["id"],
+        },
+    )
+    assert access.status_code in {404, 409}
+    assert (
+        client.put(
+            base + f"/attachments/{identifier}/content",
+            content=b"0123456789",
+            headers=auth(owner[2]),
+        ).status_code
+        == 204
+    )
+    assert (
+        client.post(
+            base + f"/attachments/{identifier}/finalize", json={}, headers=auth(owner[2])
+        ).status_code
+        == 202
+    )
+    current = client.get(base + "/" + parent + "/" + saved["id"], headers=auth(owner[2])).json()
+    assert current["attachments"][0]["id"] == identifier
+    assert current["attachments"][0]["status"] == "PROCESSING"
+    assert current["attachments"][0]["isSensitive"] is True
+
+
+def test_atomic_memory_gallery_replay_checks_identity_and_rolls_back_invalid_binding(
+    production_client, monkeypatch, request
+):  # type: ignore[no-untyped-def]
+    from uuid import uuid4
+
+    from eimir.memories.models import Memory
+    from eimir.outbox.models import OutboxEvent
+    from tests.conftest import make_account, make_space, sign_in
+
+    # Rollback assertions require the real request unit of work, not the shared
+    # uncommitted-session client used by ordinary lifecycle tests.
+    monkeypatch.setenv("EIMIR_VIDEO_UPLOAD_ENABLED", "true")
+    get_settings.cache_clear()
+    request.addfinalizer(get_settings.cache_clear)
+    client, maker = production_client
+    with maker.begin() as session:
+        account = make_account(session, "Video author")
+        space = make_space(session, account)
+        owner = account, space, sign_in(session, account)
+        grant(session, owner)
+    identifier = create(client, owner).json()["attachment"]["id"]
+    base = f"/api/v1/spaces/{owner[1].id}/memories"
+    body = {"title": "Our day", "attachments": [{"attachmentId": identifier, "position": 0}]}
+    headers = {**auth(owner[2]), "Idempotency-Key": str(uuid4())}
+    first = client.post(base, headers=headers, json=body)
+    assert first.status_code == 201, first.text
+    replay = client.post(base, headers=headers, json=body)
+    assert replay.status_code == 200, replay.text
+    assert replay.json()["id"] == first.json()["id"]
+    assert len(replay.json()["attachments"]) == 1
+    changed = {
+        **body,
+        "attachments": [{"attachmentId": identifier, "position": 0, "isSensitive": True}],
+    }
+    assert client.post(base, headers=headers, json=changed).status_code == 409
+    # Already-bound and missing media reject the whole parent transaction.
+    assert client.post(base, headers=auth(owner[2]), json=body).status_code == 409
+    missing = {**body, "attachments": [{"attachmentId": str(uuid4()), "position": 0}]}
+    assert client.post(base, headers=auth(owner[2]), json=missing).status_code == 404
+    with maker() as session:
+        assert len(list(session.scalars(select(Memory).where(Memory.space_id == owner[1].id)))) == 1
+        events = list(
+            session.scalars(
+                select(OutboxEvent).where(
+                    OutboxEvent.event_type.in_(["MEMORY_CREATED", "MEMORY_UPDATED"])
+                )
+            )
+        )
+        assert [event.event_type for event in events] == ["MEMORY_CREATED"]
+
+
+@pytest.mark.parametrize("uploaded", [False, True])
+def test_abandoned_bound_video_keeps_an_editable_failed_placeholder(
+    client, session, owner, uploaded
+):  # type: ignore[no-untyped-def]
+    grant(session, owner)
+    identifier = UUID(create(client, owner).json()["attachment"]["id"])
+    memory = bind_memory(client, owner, identifier)
+    base = f"/api/v1/spaces/{owner[1].id}"
+    if uploaded:
+        assert (
+            client.put(
+                base + f"/attachments/{identifier}/content",
+                content=b"0123456789",
+                headers=auth(owner[2]),
+            ).status_code
+            == 204
+        )
+    attachment = session.get(Attachment, identifier)
+    attachment.created_at = now() - timedelta(hours=25)
+    if uploaded:
+        attachment.uploaded_at = attachment.created_at
+    session.flush()
+    cleanup._expire_stale_uploads(session)
+    session.flush()
+    assert attachment.status == "FAILED"
+    assert attachment.failure_code == "VIDEO_UPLOAD_TIMEOUT"
+    assert attachment.failed_media_purged_at is not None
+    retained = client.get(base + f"/memories/{memory['id']}", headers=auth(owner[2])).json()
+    assert retained["attachments"][0]["status"] == "FAILED"
+    edited = client.put(
+        base + f"/memories/{memory['id']}/attachments",
+        headers={**auth(owner[2]), "If-Match": str(retained["version"])},
+        json={
+            "attachments": [{"attachmentId": str(identifier), "position": 0, "isSensitive": True}]
+        },
+    )
+    assert edited.status_code == 200, edited.text
+    assert edited.json()["attachments"][0]["isSensitive"] is True

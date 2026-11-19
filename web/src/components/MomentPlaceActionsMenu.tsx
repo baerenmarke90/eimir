@@ -4,6 +4,7 @@ import { photoPlaceMapUrl } from '../client/photoPlaces';
 import { placeDetailPath } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
+import { MomentMapLink } from './MomentMapLink';
 import type { MomentPlaceSelection } from './MomentPlaceField';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
@@ -22,7 +23,7 @@ export function MomentPlaceActionsMenu({
   offline?: boolean;
   restoreFocusRef?: RefObject<HTMLElement | null>;
   onNavigate?: (proceed: () => void) => void;
-  onRemove: () => unknown | Promise<unknown>;
+  onRemove?: () => unknown | Promise<unknown>;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -74,7 +75,8 @@ export function MomentPlaceActionsMenu({
                 className="destructive"
                 disabled={disabled || pending || offline}
                 onClick={async () => {
-                  if (disabled || offline || inFlight.current) return;
+                  if (disabled || offline || inFlight.current || !onRemove)
+                    return;
                   inFlight.current = true;
                   setPending(true);
                   try {
@@ -121,24 +123,28 @@ export function MomentPlaceActionsMenu({
                 {t('photoPlaces.edit')}
               </Link>
               {mapUrl ? (
-                <a
+                <MomentMapLink
                   className="button-link secondary-link"
-                  href={mapUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  referrerPolicy="no-referrer"
+                  to={mapUrl}
+                  onNavigate={(proceed) =>
+                    sheet.current?.closeForNavigation(() =>
+                      onNavigate ? onNavigate(proceed) : proceed(),
+                    )
+                  }
                 >
                   {t('photoPlaces.maps')}
-                </a>
+                </MomentMapLink>
               ) : null}
-              <button
-                type="button"
-                className="tertiary"
-                disabled={disabled || offline}
-                onClick={() => setConfirm(true)}
-              >
-                {t('photoPlaces.remove')}
-              </button>
+              {onRemove ? (
+                <button
+                  type="button"
+                  className="tertiary"
+                  disabled={disabled || offline}
+                  onClick={() => setConfirm(true)}
+                >
+                  {t('photoPlaces.remove')}
+                </button>
+              ) : null}
             </>
           )}
           {offline ? <p role="status">{t('photoPlaces.offline')}</p> : null}

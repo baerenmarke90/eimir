@@ -41,16 +41,42 @@
                 <data android:scheme="de.eimir.app" android:host="notifications" />
             </intent-filter>
 
+            <!-- Google Calendar consent return (#1895): carries a fixed outcome only. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="de.eimir.app"
+                    android:host="calendar"
+                    android:path="/google" />
+            </intent-filter>
+
+            <!-- Google Photos sign-in return: state plus Google's one-use code, finished by the signed-in app. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="de.eimir.app"
+                    android:host="photos"
+                    android:path="/google" />
+            </intent-filter>
+
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="app.eimir.de" />
+                <!-- Transition host (#1835): remove once installed builds use app.eimir.de. -->
                 <data android:scheme="https" android:host="demo.eimir.ur-cloud.de" />
                 <data android:path="/auth/signup" />
                 <data android:path="/auth/magic-link" />
                 <data android:path="/auth/invitation" />
                 <data android:path="/auth/verify-email" />
                 <data android:path="/auth/recovery" />
+                <!-- Return from an external sign-in provider (Google); the app finishes the sign-in. -->
+                <data android:pathPrefix="/auth/oidc/" />
             </intent-filter>
 
         </activity>
@@ -60,6 +86,17 @@
 
         <meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false" />
         <meta-data android:name="firebase_messaging_installation_id_enabled" android:value="true" />
+
+        <service android:name=".BackgroundMediaUploadJob" android:exported="false" android:permission="android.permission.BIND_JOB_SERVICE" />
+        <!-- Background partner location (#1792): passive fixes, network-bound uploads, re-registration after reboot/update. -->
+        <service android:name=".PresenceUploadJob" android:exported="false" android:permission="android.permission.BIND_JOB_SERVICE" />
+        <receiver android:name=".PresenceLocationReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+        <service android:name=".BackgroundMediaUploadService" android:exported="false" android:foregroundServiceType="dataSync" />
 
         <service android:name=".EimirFirebaseMessagingService" android:exported="false">
             <intent-filter>
@@ -242,5 +279,21 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
+    <!-- Approximate by default (#1792). Fine location is declared only for the opt-in precise sharing choice
+         (PO 2026-11-17): it is requested together with coarse so Android 12+ shows its Precise/Approximate
+         choice, and only after the person chose "precise". Background is requested separately, only after opt-in. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-feature android:name="android.hardware.location" android:required="false" />
+    <uses-feature android:name="android.hardware.location.network" android:required="false" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RUN_USER_INITIATED_JOBS" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- Normal permission, no prompt: the shared garden's optional light vibration on taps uses the Web
+         Vibration API inside the WebView (#1907 H3 follow-up); it is off until the person turns it on. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 </manifest>

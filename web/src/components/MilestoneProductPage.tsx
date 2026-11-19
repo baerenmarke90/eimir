@@ -1,11 +1,10 @@
-import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import {
   useIsMutating,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { type FormEvent, useRef } from 'react';
+import { type FormEvent, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { MilestoneDetail } from '../api/generated/models/MilestoneDetail';
 import {
@@ -13,6 +12,7 @@ import {
   MilestoneDetailToJSON,
 } from '../api/generated/models/MilestoneDetail';
 import type { MilestoneUpdate } from '../api/generated/models/MilestoneUpdate';
+import { useApiRuntime } from '../client/apiRuntimeContext';
 import {
   authorSummaryQueryKeys,
   invalidateStoryProjections,
@@ -23,10 +23,17 @@ import {
 } from '../client/createRequestIdentity';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { localDateInputValue } from '../client/dateInput';
+import {
+  previousEntryIs,
+  useLeaveDeletedEntries,
+  useReturnTo,
+} from '../client/historyEntries';
+import { occasionsOn } from '../client/occasionMatches';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { normalizeClientError } from '../client/problemDetails';
 import { loadProductWithReadCache } from '../client/productReadCache';
 import type { ReferenceApis } from '../client/referenceFlow';
+import { formatRelativeElapsed } from '../client/relativeElapsed';
 import {
   appRoutePath,
   milestoneDetailPath,
@@ -34,21 +41,40 @@ import {
 } from '../client/routes';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { useItemSheets } from '../client/useItemSheets';
+import { usePlanCaptureSource } from '../client/usePlanCaptureSource';
+import { useSpaceOccasions } from '../client/useSpaceOccasions';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
+import {
+  ComposerDateContext,
+  type ComposerDateContextHandle,
+} from './ComposerDateContext';
 import { ExpandableDescription } from './ExpandableDescription';
+import {
+  ItemDeleteSheet,
+  ItemMenuOption,
+  ItemMenuSheet,
+  ItemMenuTrigger,
+  leaveItemMenu,
+} from './ItemActions';
 import { NativeDateField } from './NativeDateField';
+import { OccasionMark } from './OccasionMark';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
-import { StoryDetailEditLink } from './StoryDetailEditLink';
+import type { ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryDetailPageShell } from './StoryDetailPageShell';
 import {
+  ComposerHeader,
   StoryCreatePageShell,
   StoryEditorPageShell,
 } from './StoryFormPageShell';
+import { StoryPlanningLinks } from './StoryPlanningLinks';
 import { storyAuthorLabel } from './storyPresentation';
+import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import { UiState } from './UiState';
+import './MilestoneProductPage.css';
 
 export type MilestoneProductMode = 'create' | 'detail' | 'edit';
 
@@ -85,21 +111,39 @@ export function MilestoneProductPage({
   apis,
   spaceId,
   currentAccountId,
+  startupRead,
 }: {
   mode: MilestoneProductMode;
   apis: ReferenceApis;
   spaceId: string;
   currentAccountId: string;
+  startupRead?: () => Promise<MilestoneDetail> | undefined;
 }) {
   const { t } = useTranslation();
   const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
   const location = useLocation();
   const { requestReturn } = useTaskOrigin();
+  const returnTo = useReturnTo();
+  const leaveDeleted = useLeaveDeletedEntries();
   const originKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
   const params = useParams();
   const queryClient = useQueryClient();
+  const occasions = useSpaceOccasions(spaceId, currentAccountId);
+  const runtime = useApiRuntime();
+  const {
+    eligibleSourcePlanId,
+    loading: sourceLoading,
+    sourcePlan,
+  } = usePlanCaptureSource({
+    apiBaseUrl: runtime?.apiBaseUrl ?? '',
+    accessToken: runtime?.accessToken ?? '',
+    spaceId,
+    accountId: currentAccountId,
+    enabled: mode === 'create',
+    loadPlace: false,
+  });
   const milestoneId = params.milestoneId;
   const queryKey = authorSummaryQueryKeys.milestone(spaceId, milestoneId);
   const deleteKey = [
@@ -117,6 +161,13 @@ export function MilestoneProductPage({
   const updating = useIsMutating({ mutationKey: updateKey, exact: true }) > 0;
   const createAttemptRef =
     useRef<CreateRequestAttempt<MilestoneCreateSnapshot> | null>(null);
+  const dateContextRef = useRef<ComposerDateContextHandle>(null);
+  const [createDate, setCreateDate] = useState(localDateInputValue);
+  const [createTitle, setCreateTitle] = useState('');
+  const sheets = useItemSheets(milestoneId);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  const deleteSheet = useRef<ShortTaskSheetHandle>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
 
   const milestoneQuery = useQuery({
     queryKey,
@@ -127,7 +178,9 @@ export function MilestoneProductPage({
         spaceId,
         kind: 'milestone',
         resourceId: milestoneId,
-        load: () => apis.milestones.getMilestone({ spaceId, milestoneId }),
+        load: () =>
+          startupRead?.() ??
+          apis.milestones.getMilestone({ spaceId, milestoneId }),
         serialize: MilestoneDetailToJSON,
         deserialize: (payload) => MilestoneDetailFromJSON(payload),
       });
@@ -135,6 +188,13 @@ export function MilestoneProductPage({
     enabled: mode !== 'create' && Boolean(milestoneId),
     retry: false,
   });
+
+  // A confirmed delete evicts the read before the confirmation sheet has left;
+  // the page keeps showing the deleted Milestone until that hand-off navigates.
+  const [leaving, setLeaving] = useState(false);
+  const lastRead = useRef(milestoneQuery.data);
+  if (milestoneQuery.data) lastRead.current = milestoneQuery.data;
+  const holdForLeave = leaving && Boolean(lastRead.current);
 
   useStoryViewReceipt({
     apis,
@@ -170,7 +230,21 @@ export function MilestoneProductPage({
       ]);
       navigate(milestoneDetailPath(milestone.id), {
         replace: true,
-        state: { saved: true, taskOriginKey: originKey },
+        state: {
+          saved: true,
+          taskOriginKey: originKey,
+          sourcePlanToLink:
+            eligibleSourcePlanId && runtime
+              ? {
+                  id: eligibleSourcePlanId,
+                  contentKind: 'MILESTONE',
+                  contentId: milestone.id,
+                  accountId: currentAccountId,
+                  spaceId,
+                  instance: runtime.apiBaseUrl,
+                }
+              : undefined,
+        },
       });
     },
   });
@@ -224,15 +298,14 @@ export function MilestoneProductPage({
         queryClient.invalidateQueries({ queryKey }),
         invalidateDashboard(queryClient, spaceId),
       ]);
-      navigate(milestoneDetailPath(milestone.id), {
-        replace: true,
+      returnTo(milestoneDetailPath(milestone.id), {
         state: { taskOriginKey: originKey },
       });
     },
   });
 
   const deleteMutation = useStoryDeletion<MilestoneDetail>({
-    active: mode === 'edit',
+    active: mode === 'detail',
     accountId: currentAccountId,
     spaceId,
     resourceId: milestoneId,
@@ -247,15 +320,25 @@ export function MilestoneProductPage({
         milestoneId: milestone.id,
         ifMatch: String(milestone.version),
       }),
-    onDeleted: () => navigate(appRoutePath('story'), { replace: true }),
+    onDeleted: () => {
+      const leave = () =>
+        leaveDeleted(
+          milestoneDetailPath(milestoneId ?? ''),
+          appRoutePath('story'),
+        );
+      setLeaving(true);
+      // The confirmation sheet releases its history entry before leaving.
+      if (deleteSheet.current) deleteSheet.current.closeForNavigation(leave);
+      else leave();
+    },
   });
   const deleting = deleteMutation.isPending;
-  const { confirming: confirmDelete, setConfirming: setConfirmDelete } =
-    deleteMutation;
 
   if (mode === 'create') {
     function submitCreate(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
+      if (sourceLoading || createMutation.isPending) return;
+      if (!dateContextRef.current?.reportValidity()) return;
       const data = new FormData(event.currentTarget);
       const happenedOn = String(data.get('happenedOn') || '');
       if (!happenedOn) return;
@@ -270,73 +353,107 @@ export function MilestoneProductPage({
     return (
       <StoryCreatePageShell
         header={
-          <PageHeader
-            before={<TaskBackButton onClick={() => requestReturn(originKey)} />}
+          <ComposerHeader
+            before={
+              <TaskBackButton
+                inline
+                type="button"
+                onClick={() => requestReturn(originKey)}
+              />
+            }
             title={t('milestoneProduct.createHeading')}
             className="create-heading"
+            action={
+              <button
+                type="submit"
+                form="milestone-create-form"
+                className="composer-save-action"
+                data-saveable={createTitle.trim().length > 0}
+                aria-label={
+                  createMutation.isPending
+                    ? t('milestoneProduct.saving')
+                    : t('milestoneProduct.save')
+                }
+                disabled={createMutation.isPending || sourceLoading}
+              >
+                {createMutation.isPending
+                  ? t('milestoneProduct.saving')
+                  : t('m5s3.common.save')}
+              </button>
+            }
           />
         }
+        pageClassName="milestone-create-page quiet-composer page-composer"
         labelledBy="milestone-form-heading"
       >
         <>
           <h2 id="milestone-form-heading" className="sr-only">
             {t('milestoneProduct.createHeading')}
           </h2>
-          <form onSubmit={submitCreate} className="immersive-create-form">
-            <div className="immersive-create-hero">
-              <label htmlFor="milestone-title" className="sr-only">
-                {t('milestoneProduct.titleLabel')}
-              </label>
-              <input
-                id="milestone-title"
-                name="title"
-                required
-                maxLength={200}
-                placeholder={t('milestoneProduct.titlePlaceholder')}
-                className="immersive-create-title"
-              />
-            </div>
-
-            <NativeDateField
-              id="milestone-date"
-              name="happenedOn"
-              label={t('milestoneProduct.happenedOnLabel')}
-              required
-              defaultValue={localDateInputValue()}
-              openPickerOnClick
+          {sourceLoading ? (
+            <p role="status">{t('m5s3.planStory.loadingSource')}</p>
+          ) : null}
+          {sourcePlan.error ? (
+            <ProblemState
+              error={sourcePlan.error}
+              onRetry={() => void sourcePlan.refetch()}
             />
-
-            <details className="immersive-create-details">
-              <summary>{t('milestoneProduct.addMoreDetails')}</summary>
-              <div className="immersive-create-details-content">
-                <div className="field-group">
-                  <label htmlFor="milestone-body">
-                    {t('milestoneProduct.bodyLabel')}
-                  </label>
-                  <textarea
-                    id="milestone-body"
-                    name="body"
-                    rows={4}
-                    placeholder={t('milestoneProduct.bodyPlaceholder')}
-                  />
+          ) : null}
+          <form
+            id="milestone-create-form"
+            onSubmit={submitCreate}
+            className="immersive-create-form"
+          >
+            <fieldset
+              className="memory-task-fields"
+              disabled={createMutation.isPending}
+            >
+              <legend className="sr-only">
+                {t('milestoneProduct.createHeading')}
+              </legend>
+              <div className="composer-context">
+                <ComposerDateContext
+                  ref={dateContextRef}
+                  idPrefix="milestone-date"
+                  name="happenedOn"
+                  formId="milestone-create-form"
+                  label={t('milestoneProduct.happenedOnLabel')}
+                  required
+                  value={createDate}
+                  onChange={setCreateDate}
+                />
+              </div>
+              <div className="composer-content">
+                <div className="composer-writing-surface composer-authored-surface">
+                  <div className="field-group immersive-create-title-field">
+                    <label htmlFor="milestone-title">
+                      {t('milestoneProduct.titleLabel')}
+                    </label>
+                    <input
+                      id="milestone-title"
+                      name="title"
+                      required
+                      maxLength={200}
+                      value={createTitle}
+                      onChange={(event) => setCreateTitle(event.target.value)}
+                      placeholder={t('milestoneProduct.titlePlaceholder')}
+                      className="immersive-create-title-input"
+                    />
+                  </div>
+                  <div className="field-group immersive-create-narrative">
+                    <label htmlFor="milestone-body">
+                      {t('milestoneProduct.bodyLabel')}
+                    </label>
+                    <textarea
+                      id="milestone-body"
+                      name="body"
+                      rows={4}
+                      placeholder={t('milestoneProduct.bodyPlaceholder')}
+                    />
+                  </div>
                 </div>
               </div>
-            </details>
-
-            <div className="form-actions">
-              <button
-                type="button"
-                className="button-link secondary-link"
-                onClick={() => requestReturn(originKey)}
-              >
-                {t('common.cancel')}
-              </button>
-              <button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending
-                  ? t('milestoneProduct.saving')
-                  : t('milestoneProduct.save')}
-              </button>
-            </div>
+            </fieldset>
           </form>
           {createMutation.error ? (
             <ProblemState error={createMutation.error} />
@@ -355,10 +472,10 @@ export function MilestoneProductPage({
       />
     );
   }
-  if (milestoneQuery.isLoading) {
+  if (milestoneQuery.isLoading && !holdForLeave) {
     return <UiState kind="loading" title={t('milestoneProduct.loading')} />;
   }
-  if (milestoneQuery.error) {
+  if (milestoneQuery.error && !holdForLeave) {
     return (
       <ProblemState
         error={milestoneQuery.error}
@@ -366,7 +483,8 @@ export function MilestoneProductPage({
       />
     );
   }
-  const result = milestoneQuery.data;
+  const result =
+    milestoneQuery.data ?? (holdForLeave ? lastRead.current : undefined);
   if (!result) return null;
   const milestone = result.value;
   const offline = result.source === 'cache';
@@ -445,7 +563,19 @@ export function MilestoneProductPage({
                 className="button-link secondary-link"
                 to={milestoneDetailPath(milestone.id)}
                 state={{ taskOriginKey: originKey }}
-                onClick={() => setConfirmDelete(false)}
+                onClick={(event) => {
+                  if (
+                    event.button !== 0 ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey ||
+                    !previousEntryIs(milestoneDetailPath(milestone.id))
+                  )
+                    return;
+                  event.preventDefault();
+                  void navigate(-1);
+                }}
               >
                 {t('common.cancel')}
               </Link>
@@ -456,90 +586,115 @@ export function MilestoneProductPage({
               </button>
             </div>
           </form>
+          {runtime ? (
+            <StoryPlanningLinks
+              apiBaseUrl={runtime.apiBaseUrl}
+              accessToken={runtime.accessToken}
+              accountId={currentAccountId}
+              spaceId={spaceId}
+              contentId={milestone.id}
+              sourceKind="MILESTONE"
+              canManage={milestone.capabilities.canEdit && !updating}
+              editing
+              offline={offline}
+            />
+          ) : null}
           {updateMutation.error ? (
             <ProblemState error={updateMutation.error} />
-          ) : null}
-
-          {milestone.capabilities.canDelete && !offline ? (
-            <div style={{ marginTop: 'var(--space-8)' }}>
-              {!confirmDelete && !deleting ? (
-                <button
-                  type="button"
-                  className="button-link danger-link"
-                  onClick={() => setConfirmDelete(true)}
-                  disabled={updating}
-                >
-                  {t('milestoneProduct.delete')}
-                </button>
-              ) : (
-                <section
-                  className="memory-danger-zone memory-delete-confirmation"
-                  aria-label={t('milestoneProduct.delete')}
-                  role="alert"
-                >
-                  <div>
-                    <h2>{t('milestoneProduct.deleteConfirmTitle')}</h2>
-                    <p>{t('milestoneProduct.deleteConfirmBody')}</p>
-                  </div>
-                  <div className="memory-actions">
-                    <button
-                      type="button"
-                      className="tertiary"
-                      onClick={() => setConfirmDelete(false)}
-                      disabled={deleting}
-                    >
-                      {t('milestoneProduct.deleteCancel')}
-                    </button>
-                    <button
-                      type="button"
-                      className="danger"
-                      onClick={() => deleteMutation.mutate(milestone)}
-                      disabled={deleteMutation.isBlocked}
-                    >
-                      {deleting
-                        ? t('milestoneProduct.deleting')
-                        : t('milestoneProduct.deleteConfirm')}
-                    </button>
-                  </div>
-                </section>
-              )}
-              {deleteMutation.error ? (
-                <ProblemState error={deleteMutation.error} />
-              ) : null}
-            </div>
           ) : null}
         </>
       </StoryEditorPageShell>
     );
   }
 
-  const milestoneEyebrow = milestone.happenedOn
-    ? `${t('milestoneProduct.detailEyebrow').toUpperCase()} · ${formatDateOnly(milestone.happenedOn)}`
-    : t('milestoneProduct.detailEyebrow').toUpperCase();
+  const mayEdit = milestone.capabilities.canEdit && !offline;
+  const mayDelete = milestone.capabilities.canDelete && !offline;
+  const happenedOn = milestone.happenedOn;
+  const dateLine = happenedOn
+    ? `${formatDateOnly(happenedOn)} · ${formatRelativeElapsed(happenedOn, resolvedLocale())}`
+    : undefined;
 
   return (
     <StoryDetailPageShell
-      eyebrow={milestoneEyebrow}
-      title={milestone.title}
+      before={
+        <TaskBackButton inline onClick={() => requestReturn(originKey)} />
+      }
+      title={t('milestoneProduct.detailEyebrow')}
       titleAction={
-        milestone.capabilities.canEdit && !offline ? (
-          <StoryDetailEditLink
-            to={milestoneEditPath(milestone.id)}
-            label={t('milestoneProduct.edit')}
-            state={{ taskOriginKey: originKey }}
+        mayEdit || mayDelete ? (
+          <ItemMenuTrigger
+            triggerRef={menuTrigger}
+            label={t('milestoneProduct.menu')}
+            open={sheets.menuOpen}
+            onOpen={() => sheets.show('menu')}
           />
         ) : undefined
       }
+      metadata={
+        <div className="detail-headline">
+          <h2 className="milestone-hero-title">{milestone.title}</h2>
+          <div className="milestone-hero">
+            <span className="milestone-hero-icon" aria-hidden="true">
+              <svg
+                className="inline-icon"
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
+              </svg>
+            </span>
+            {dateLine ? (
+              <p className="milestone-hero-date">{dateLine}</p>
+            ) : null}
+          </div>
+          <OccasionMark
+            matches={occasionsOn(
+              milestone.happenedOn,
+              null,
+              occasions,
+              resolvedLocale(),
+            )}
+            revealKey={`milestone:${milestone.id}`}
+          />
+        </div>
+      }
       offline={offline}
+      pageClassName="milestone-product-page page-composer-detail"
       containerClassName="milestone-detail-container"
     >
-      <ExpandableDescription
-        text={milestone.body || t('milestoneProduct.noBody')}
-        scope={milestone.id}
-        className="memory-detail-body"
-      />
+      {milestone.body ? (
+        <div className="milestone-keepsake">
+          <ExpandableDescription
+            text={milestone.body}
+            scope={milestone.id}
+            className="memory-detail-body"
+          />
+        </div>
+      ) : (
+        <ExpandableDescription
+          text={t('milestoneProduct.noBody')}
+          scope={milestone.id}
+          className="memory-detail-body"
+        />
+      )}
 
+      {runtime ? (
+        <StoryPlanningLinks
+          apiBaseUrl={runtime.apiBaseUrl}
+          accessToken={runtime.accessToken}
+          accountId={currentAccountId}
+          spaceId={spaceId}
+          contentId={milestone.id}
+          sourceKind="MILESTONE"
+          canManage={milestone.capabilities.canEdit}
+          offline={offline}
+        />
+      ) : null}
       <CommentsPanel
+        inlineComposer
         commentsApi={apis.comments}
         spaceId={spaceId}
         parentKind="milestone"
@@ -561,6 +716,57 @@ export function MilestoneProductPage({
           })}
         </p>
       </footer>
+
+      <ItemMenuSheet
+        open={sheets.menuOpen}
+        title={t('milestoneProduct.detailEyebrow')}
+        restoreFocusRef={menuTrigger}
+        sheetRef={menuSheet}
+        onClose={() => sheets.close('menu')}
+      >
+        {mayEdit ? (
+          <ItemMenuOption
+            icon="pen"
+            title={t('milestoneProduct.edit')}
+            onClick={() =>
+              leaveItemMenu(
+                menuSheet,
+                () =>
+                  void navigate(milestoneEditPath(milestone.id), {
+                    state: { taskOriginKey: originKey },
+                  }),
+                sheets.closeAll,
+              )
+            }
+          />
+        ) : null}
+        {mayDelete ? (
+          <ItemMenuOption
+            icon="trash"
+            danger
+            title={t('milestoneProduct.delete')}
+            disabled={deleteMutation.isBlocked}
+            onClick={() => {
+              deleteMutation.reset();
+              sheets.show('delete');
+            }}
+          />
+        ) : null}
+      </ItemMenuSheet>
+
+      <ItemDeleteSheet
+        sheetRef={deleteSheet}
+        open={sheets.deleteOpen}
+        title={t('milestoneProduct.deleteConfirmTitle')}
+        body={t('milestoneProduct.deleteConfirmBody')}
+        confirmLabel={t('milestoneProduct.deleteConfirm')}
+        pendingLabel={t('milestoneProduct.deleting')}
+        pending={deleteMutation.isPending}
+        error={deleteMutation.error}
+        restoreFocusRef={menuTrigger}
+        onClose={() => sheets.close('delete')}
+        onConfirm={() => deleteMutation.mutate(milestone)}
+      />
     </StoryDetailPageShell>
   );
 }

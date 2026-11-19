@@ -1,8 +1,12 @@
 const notificationSettings = {
   title: 'Welche Nachrichten du bekommst',
-  sharedActivityDescription: 'Kommentare, neue und fällige Erinnerungen.',
-  closenessDescription: 'Gedanken aneinander, Küsse und Check-ins.',
+  sharedActivityDescription:
+    'Kommentare, Fotoreaktionen, gemeinsame Notizen, neue und fällige Erinnerungen.',
+  closenessDescription:
+    'Gedanken aneinander, Küsse, Check-ins, geschickte Listen und Samen aus eurem Garten.',
   individual: 'Einzeln anpassen',
+  pendingLegend:
+    'Gestrichelt: gewählt, wirkt aber erst, sobald der Kanal eingerichtet ist.',
   dates: 'Wichtige Tage',
   mixed:
     'Unterschiedlich eingestellt. Unter „Einzeln anpassen“ siehst du die Auswahl.',
@@ -10,17 +14,22 @@ const notificationSettings = {
   groupSaved: 'Auswahl gespeichert.',
   groupFailed:
     'Nicht alles wurde gespeichert. Bestätigte Änderungen bleiben erhalten. Prüfe die Auswahl und versuche es erneut.',
-  intro: 'Nur für dich. Dein Partner wählt selbst, was ihn erreicht.',
   sharedActivity: 'Gemeinsame Aktivität',
   closeness: 'Nähe',
+  recaps: 'Rückblicke',
+  recapsDescription:
+    'Wenn euer Monats- oder Jahresrückblick fertig ist oder Zuwachs bekommt.',
+  recapReady: 'Fertige Rückblicke',
   comment: 'Kommentare',
   commentDescription: 'Neue Kommentare werden im Posteingang gesammelt.',
   commentPushDescription:
-    'Neue Kommentare deines Partners direkt als Push. Ruhezeiten werden berücksichtigt.',
+    'Push für neue Kommentare, Fotoreaktionen und gemeinsame Notizen deines Partners. Ruhezeiten gelten für beide.',
   commentEmailDescription: 'Höchstens eine neutrale E-Mail pro Stunde.',
   reminder: 'Fällige Erinnerungen',
   reminderCreated: 'Neue Erinnerungen',
   experience: 'Geteilte Momente',
+  collectionSent: 'Geschickte Listen',
+  gardenSeed: 'Samen aus eurem Garten',
   thinking: 'Ich denke an dich',
   kiss: 'Ein Kuss',
   checkIn: 'Check-in',
@@ -34,7 +43,18 @@ const notificationSettings = {
     'E-Mail-Versand ist auf dieser Installation nicht verfügbar.',
   endpointMissing: 'Auf diesem Gerät ist noch kein Push-Empfang eingerichtet.',
   pushUnavailable: 'Push ist derzeit nicht verfügbar.',
-  deviceTitle: 'Auf diesem Gerät',
+  deviceToggle: 'Push auf diesem Gerät',
+  deviceHintOff:
+    'Gewählte Push-Kanäle starten, sobald du Push eingerichtet hast.',
+  browserToggle: 'Push in diesem Browser',
+  browserPermissionDenied:
+    'Erlaube Benachrichtigungen für eimir. in den Einstellungen dieses Browsers.',
+  browserOtherAccount:
+    'Push ist hier mit einem anderen Konto verbunden. Schalte ihn in diesem Konto aus, um ihn hier zu aktivieren.',
+  browserUpdatePending:
+    'Öffne eimir. neu, sobald das Browser-Update bereit ist.',
+  browserOffline:
+    'Du bist offline. Versuche es erneut, sobald du verbunden bist.',
   onboardingTitle: 'Benachrichtigungen aktivieren?',
   onboardingIntro:
     'Erfahre, wenn dein Partner etwas mit dir teilt oder eine Erinnerung fällig ist. Kleine Impulse erinnern euch gelegentlich an eure gemeinsame Zeit. Du kannst sie jederzeit einzeln ausschalten.',
@@ -46,6 +66,8 @@ const notificationSettings = {
     'Du bist gerade offline. Benachrichtigungen wurden noch nicht aktiviert.',
   deviceIntro:
     'Hinweise können Namen und Titel zeigen. Auf dem Sperrbildschirm gilt deine Android-Auswahl für sensible Inhalte. Konkrete Vorschauen werden für den Versand verschlüsselt. Google oder dein Push-Dienst erhält eine Installationskennung und Verbindungsdaten.',
+  iosDeviceIntro:
+    'Auf deinem Gerät erscheint ein neutraler Hinweis. Wenn du darauf tippst, öffnet eimir. den Inhalt nach der Anmeldung.',
   deviceLoading: 'Push-Einrichtung wird geprüft …',
   deviceUnavailable: 'Push ist auf dieser Installation nicht verfügbar.',
   deviceOff: 'Push ist auf diesem Gerät aus.',
@@ -54,6 +76,7 @@ const notificationSettings = {
   deviceOn: 'Push ist auf diesem Gerät aktiv.',
   deviceError:
     'Die Verbindung konnte nicht eingerichtet werden. Versuche es erneut.',
+  deviceDisableFailed: 'Ausschalten fehlgeschlagen. Versuche es erneut.',
   deviceNoDistributor:
     'Es ist noch kein Push-Dienst auf diesem Gerät installiert oder ausgewählt.',
   devicePermissionDenied:
@@ -65,8 +88,6 @@ const notificationSettings = {
     'Der Push-Status konnte gerade nicht geprüft werden. Versuche es gleich noch einmal.',
   deviceCleanupPending:
     'Auf diesem Gerät ist Push aus. Die alte Verbindung wird beim nächsten Start entfernt.',
-  deviceEnable: 'Auf diesem Gerät aktivieren',
-  deviceDisable: 'Auf diesem Gerät deaktivieren',
   policyUnavailable: 'Für diesen Ereignistyp derzeit nicht verfügbar.',
   unavailable: 'Dieser Kanal ist derzeit nicht verfügbar.',
   loading: 'Deine Benachrichtigungen werden geladen …',

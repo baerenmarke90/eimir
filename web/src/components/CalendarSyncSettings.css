@@ -1,0 +1,194 @@
+.calendar-sync {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.calendar-sync-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--touch-target-web);
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-large);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font: inherit;
+  text-align: start;
+}
+
+.calendar-sync-choice > span:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.calendar-sync-choice > span:first-child > span {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.calendar-sync-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  overflow-wrap: anywhere;
+}
+
+.calendar-sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-self: start;
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  background: var(--color-brand-surface);
+  transition: background-color var(--duration-feedback) var(--easing-standard);
+}
+
+.calendar-sync-dot {
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.calendar-sync-status-attention,
+.calendar-sync-status-broken {
+  background: var(--color-surface-panel-tint);
+}
+
+.calendar-sync-conflicts {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.calendar-sync-conflicts > li,
+.calendar-sync-confirm {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-panel-tint);
+}
+
+.calendar-sync-conflicts p,
+.calendar-sync-confirm p {
+  margin: 0 0 var(--space-2);
+}
+
+.calendar-sync-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+}
+
+.calendar-sync-calendars {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calendar-sync-status {
+    transition: none;
+  }
+}
+
+/* Connected state (#1895 correction): one bounded card, quiet options. */
+.calendar-sync-confirmation {
+  min-height: 1.5em;
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.calendar-sync-card {
+  display: grid;
+  gap: var(--space-3);
+  max-width: var(--reading-max, 40rem);
+  padding: var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-raised);
+}
+
+.calendar-sync-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.calendar-sync-mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--touch-target-web);
+  height: var(--touch-target-web);
+  border-radius: var(--radius-medium);
+  background: var(--color-brand-surface);
+  color: var(--color-brand);
+}
+
+.calendar-sync-card-title {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.calendar-sync-card .calendar-sync-name {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.calendar-sync-meta {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.calendar-sync-card .calendar-sync-status {
+  padding: 0;
+  background: none;
+}
+
+.calendar-sync-status-ready .calendar-sync-dot,
+.calendar-sync-status-synced .calendar-sync-dot {
+  color: var(--color-success, var(--color-brand));
+}
+
+.calendar-sync-options {
+  max-width: var(--reading-max, 40rem);
+}
+
+.calendar-sync-options > summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--touch-target-web);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.calendar-sync-options-body {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+  padding-block: var(--space-2);
+}
+
+.calendar-sync-other {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
+}
+
+.calendar-sync-other-title {
+  margin: 0;
+  font-weight: 600;
+}

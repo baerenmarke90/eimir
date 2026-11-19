@@ -1,11 +1,13 @@
-import type { MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { ActivityItem } from '../api/generated/models/ActivityItem';
 import { authorDisplayName } from '../client/authorPresentation';
+import { concealedTitle } from '../client/discreetPlans';
 import { engagementTargetPath } from '../client/m4Product';
 import { usePartnerNickname } from '../client/partnerNickname';
+import { useOpenTaskLink } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { DiscreetLock } from './DiscreetPlan';
 import { AuthorAvatar } from './PersonIdentity';
 import './M4ProductPages.css';
 
@@ -21,7 +23,6 @@ export function ActivityCard({
   profilesApi,
   spaceId,
   currentAccountId,
-  onOpen,
   compact = false,
 }: {
   item: ActivityItem;
@@ -29,9 +30,9 @@ export function ActivityCard({
   spaceId: string;
   currentAccountId?: string;
   compact?: boolean;
-  onOpen?: (event: MouseEvent<HTMLAnchorElement>, path: string) => void;
 }) {
   const { t } = useTranslation();
+  const openWithOrigin = useOpenTaskLink();
   const { relationshipLabel } = usePartnerNickname();
   const path = engagementTargetPath(item.targetType, item.targetId);
 
@@ -91,13 +92,16 @@ export function ActivityCard({
           </time>
         </div>
       </div>
-      {item.target?.title ? (
+      {item.target?.title || item.target?.concealed ? (
         <div className="activity-card-target">
           <span
             className={`activity-card-target-title${compact ? ' today-recent-tile-title' : ''}`}
           >
-            {item.target.title}
+            {item.target.concealed
+              ? concealedTitle(item.target.title, t)
+              : item.target.title}
           </span>
+          {item.target.concealed ? <DiscreetLock /> : null}
         </div>
       ) : null}
     </div>
@@ -109,7 +113,7 @@ export function ActivityCard({
         <Link
           className={`activity-result-link${compact ? ' today-recent-tile' : ''}`}
           to={path}
-          onClick={(event) => onOpen?.(event, path)}
+          onClick={(event) => openWithOrigin(event, path)}
         >
           {inner}
         </Link>

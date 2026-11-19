@@ -57,9 +57,13 @@ describe('MediaGallery lightbox focus contract', () => {
     expect(document.activeElement).toBe(closeButton);
 
     fireEvent.click(closeButton);
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(document.activeElement).toBe(opener);
-    expect(document.body.style.overflow).toBe('');
+    // History-driven dismissal removes the dialog before passive modal cleanup.
+    // Observe the complete focus/scroll contract, not DOM removal as its proxy.
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect(document.activeElement).toBe(opener);
+      expect(document.body.style.overflow).toBe('');
+    });
     expect(loadMedia).not.toHaveBeenCalled();
   });
 });

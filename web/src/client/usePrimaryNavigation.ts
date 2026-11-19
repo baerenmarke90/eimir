@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { isCapacitorNative } from '../pwa';
+import { requestSmoothRouteEntry } from './routeEntryHandoff';
 import { PRIMARY_APP_ROUTES } from './routes';
 import { useTaskOrigin } from './taskOrigin';
 
@@ -10,7 +11,10 @@ export function usePrimaryNavigation() {
   const navigate = useNavigate();
   const { captureOrigin, primaryDestination } = useTaskOrigin();
   const isRoot = PRIMARY_APP_ROUTES.some(
-    (route) => route.path === location.pathname,
+    (route) =>
+      route.path === location.pathname ||
+      ('peerPaths' in route &&
+        route.peerPaths.some((path) => path === location.pathname)),
   );
 
   const destinationFor = useCallback(
@@ -18,22 +22,21 @@ export function usePrimaryNavigation() {
       const destination = primaryDestination(root);
       return {
         to: destination.to,
-        state: destination.returnKey
-          ? { taskReturnKey: destination.returnKey }
-          : undefined,
-        replace: isCapacitorNative() && isRoot,
+        state: { primaryRootEntry: true },
+        replace: isRoot && (isCapacitorNative() || root === location.pathname),
       };
     },
-    [primaryDestination, isRoot],
+    [primaryDestination, isRoot, location.pathname],
   );
   const captureCurrent = useCallback(() => {
     if (isRoot) captureOrigin();
   }, [captureOrigin, isRoot]);
   const navigatePrimary = useCallback(
     (root: string) => {
-      if (root === location.pathname) return;
       const { to, ...options } = destinationFor(root);
       captureCurrent();
+      // Tapping the item of the page already shown glides back to its start.
+      if (root === location.pathname) requestSmoothRouteEntry();
       // Main-content motion is owned by the shell; navigation remains
       // immediately interactive even during rapid consecutive tab switches.
       void navigate(to, options);

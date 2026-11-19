@@ -1,46 +1,50 @@
+import './FreeComposer.css';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import type { OnceSealedMessage } from '../api/generated/models/OnceSealedMessage';
 import type { OnceMessageCreate } from '../api/generated/models/OnceMessageCreate';
+import type { OnceSealedMessage } from '../api/generated/models/OnceSealedMessage';
 import { authorDisplayName } from '../client/authorPresentation';
+import { isCapacitorNativePlatform } from '../client/config';
 import {
-  deviceKey,
-  removeDeviceKey,
-  encryptOnce,
-  decryptOnce,
+  notificationsListQueryKey,
+  notificationUnreadCountQueryKey,
+} from '../client/notificationQueries';
+import {
   base64Bytes,
-  onceMediaBlob,
-  prepareOnceAudio,
-  prepareOncePhoto,
+  decryptOnce,
+  deviceKey,
+  encryptOnce,
   ONCE_TEXT_MAX_LENGTH,
   type OnceContent,
   type OnceDeviceKey,
+  onceMediaBlob,
+  prepareOnceAudio,
+  prepareOncePhoto,
+  removeDeviceKey,
 } from '../client/onceMessageCrypto';
 import {
   ONCE_CREATE_ROUTE,
   ONCE_ROUTE,
+  type OnceEnvironment,
   onceMessagePath,
   useOnceEnvironment,
   useOnceInbox,
   useOnceStatus,
-  type OnceEnvironment,
 } from '../client/onceMessages';
 import {
-  normalizeClientError,
   clientProblemKind,
+  normalizeClientError,
 } from '../client/problemDetails';
-import {
-  notificationUnreadCountQueryKey,
-  notificationsListQueryKey,
-} from '../client/notificationQueries';
-import { PRO_INFORMATION_ROUTE } from '../client/routes';
+import { proPaywallPath } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useVoiceRecorder } from '../client/useVoiceRecorder';
 import { VOICE_ACCEPT, voiceFile, voiceTime } from '../client/voiceNotes';
 import { useTranslation } from '../i18n';
+import { AddActionContent } from './AddAction';
 import { DraftExitPrompt } from './DraftExitPrompt';
+import { MediaActionGroup } from './MediaActionGroup';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { ProMark } from './ProMark';
@@ -184,6 +188,17 @@ function OnceTask({
   const viewUrlRef = useRef<string | undefined>(undefined);
   const viewTimer = useRef<number | undefined>(undefined);
   const photoPicker = useRef<HTMLInputElement>(null);
+  // #2048: take the photo with the camera. Only where a camera answers the
+  // `capture` hint (phones and the Android app); a desktop browser would only
+  // open the same file dialog a second time.
+  const cameraPicker = useRef<HTMLInputElement>(null);
+  const [canCapture] = useState(
+    () =>
+      isCapacitorNativePlatform() ||
+      (typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(pointer: coarse)').matches),
+  );
   const audioPicker = useRef<HTMLInputElement>(null);
   const returnToOrigin = () => requestReturn(originKey, '/today');
   const lifecycle = useTaskEditorLifecycle({
@@ -766,10 +781,7 @@ function OnceTask({
                 <section>
                   <ProMark label="Pro" />
                   <p>{t('onceMessages.pro')}</p>
-                  <Link
-                    className="button-link secondary"
-                    to={PRO_INFORMATION_ROUTE}
-                  >
+                  <Link className="button-link secondary" to={proPaywallPath()}>
                     {t('onceMessages.discoverPro')}
                   </Link>
                 </section>
@@ -780,7 +792,7 @@ function OnceTask({
                 <p>{t('onceMessages.partnerConsent')}</p>
               ) : status.data.ownEnabled ? (
                 <form
-                  className="once-composer"
+                  className="once-composer free-composer"
                   onSubmit={(event) => {
                     event.preventDefault();
                     void send();
@@ -800,77 +812,97 @@ function OnceTask({
                     onChange={(event) => setText(event.currentTarget.value)}
                     autoComplete="off"
                   />
-                  {media ? (
-                    <div className="once-media-draft">
-                      {media.kind === 'IMAGE' ? (
-                        <>
-                          <img
-                            className="once-photo"
+                  <MediaActionGroup>
+                    {media ? (
+                      <div className="once-media-draft">
+                        {media.kind === 'IMAGE' ? (
+                          <>
+                            <img
+                              className="once-photo"
+                              src={media.url}
+                              alt={media.description || t('onceMessages.photo')}
+                            />
+                            <label htmlFor="once-description">
+                              {t('onceMessages.description')}
+                            </label>
+                            <input
+                              id="once-description"
+                              value={media.description}
+                              maxLength={300}
+                              disabled={editingDisabled}
+                              onChange={(event) =>
+                                setMedia({
+                                  ...media,
+                                  description: event.currentTarget.value,
+                                })
+                              }
+                            />
+                          </>
+                        ) : (
+                          <VoiceNotePlayer
                             src={media.url}
-                            alt={media.description || t('onceMessages.photo')}
+                            duration={media.duration}
+                            title={t('onceMessages.voice')}
                           />
-                          <label htmlFor="once-description">
-                            {t('onceMessages.description')}
-                          </label>
-                          <input
-                            id="once-description"
-                            value={media.description}
-                            maxLength={300}
-                            disabled={editingDisabled}
-                            onChange={(event) =>
-                              setMedia({
-                                ...media,
-                                description: event.currentTarget.value,
-                              })
-                            }
+                        )}
+                        <button
+                          className="tertiary"
+                          type="button"
+                          disabled={editingDisabled}
+                          onClick={() => setMedia(undefined)}
+                        >
+                          {t('onceMessages.removeMedia')}
+                        </button>
+                      </div>
+                    ) : null}
+                    <div className="once-attachments">
+                      {canCapture ? (
+                        <button
+                          type="button"
+                          className="add-action"
+                          disabled={editingDisabled}
+                          onClick={() => cameraPicker.current?.click()}
+                        >
+                          <AddActionContent
+                            icon="foto"
+                            label={t('onceMessages.takePhoto')}
                           />
-                        </>
-                      ) : (
-                        <VoiceNotePlayer
-                          src={media.url}
-                          duration={media.duration}
-                          title={t('onceMessages.voice')}
-                        />
-                      )}
+                        </button>
+                      ) : null}
                       <button
-                        className="tertiary"
                         type="button"
+                        className="add-action"
                         disabled={editingDisabled}
-                        onClick={() => setMedia(undefined)}
+                        onClick={() => photoPicker.current?.click()}
                       >
-                        {t('onceMessages.removeMedia')}
+                        <AddActionContent
+                          icon="photo-library"
+                          label={t('onceMessages.photo')}
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        className="add-action"
+                        disabled={editingDisabled}
+                        onClick={() => {
+                          setRecording(true);
+                          void recorder.start();
+                        }}
+                      >
+                        <AddActionContent label={t('onceMessages.record')} />
+                      </button>
+                      <button
+                        type="button"
+                        className="add-action"
+                        disabled={editingDisabled}
+                        onClick={() => audioPicker.current?.click()}
+                      >
+                        <AddActionContent
+                          label={t('onceMessages.importVoice')}
+                        />
                       </button>
                     </div>
-                  ) : null}
-                  <div className="once-attachments">
-                    <button
-                      className="secondary"
-                      type="button"
-                      disabled={editingDisabled}
-                      onClick={() => photoPicker.current?.click()}
-                    >
-                      {t('onceMessages.photo')}
-                    </button>
-                    <button
-                      className="secondary"
-                      type="button"
-                      disabled={editingDisabled}
-                      onClick={() => {
-                        setRecording(true);
-                        void recorder.start();
-                      }}
-                    >
-                      {t('onceMessages.record')}
-                    </button>
-                    <button
-                      className="secondary"
-                      type="button"
-                      disabled={editingDisabled}
-                      onClick={() => audioPicker.current?.click()}
-                    >
-                      {t('onceMessages.importVoice')}
-                    </button>
-                  </div>
+                  </MediaActionGroup>
                   <input
                     type="file"
                     ref={photoPicker}
@@ -884,6 +916,22 @@ function OnceTask({
                       if (file) void selectMedia(file, 'IMAGE');
                     }}
                   />
+                  {canCapture ? (
+                    <input
+                      type="file"
+                      ref={cameraPicker}
+                      className="visually-hidden-input"
+                      tabIndex={-1}
+                      aria-label={t('onceMessages.takePhoto')}
+                      accept="image/jpeg"
+                      capture="environment"
+                      onChange={(event) => {
+                        const file = event.currentTarget.files?.[0];
+                        event.currentTarget.value = '';
+                        if (file) void selectMedia(file, 'IMAGE');
+                      }}
+                    />
+                  ) : null}
                   <input
                     type="file"
                     ref={audioPicker}

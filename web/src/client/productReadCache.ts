@@ -1,9 +1,16 @@
+import { clearAuthorizedMediaCache } from './authorizedMediaCache';
+import {
+  deviceMediaKey,
+  openJson,
+  type SealedJson,
+  sealJson,
+  sealsDeviceMedia,
+} from './deviceMediaSeal';
 import {
   type ClientProblemError,
   type ClientProblemKind,
   normalizeClientError,
 } from './problemDetails';
-import { clearAuthorizedMediaCache } from './authorizedMediaCache';
 
 export type ProductCacheKind =
   | 'memory'
@@ -13,7 +20,12 @@ export type ProductCacheKind =
   | 'story-discover'
   | 'dashboard-overview'
   | 'plans-overview'
-  | 'shared-list';
+  | 'shared-list'
+  // A shared Collection detail (#1808), so a shopping list opens without a
+  // connection from its last saved copy.
+  | 'collection'
+  // Changes to one shopping list that are waiting to be sent (#1808).
+  | 'collection-outbox';
 export type ProductReadSource = 'network' | 'cache';
 export type ProductCachePrivacyScope = 'SPACE_SHARED';
 
@@ -75,7 +87,8 @@ export const PRODUCT_READ_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 // IndexedDB names are persistent browser identity. Keep the established
 // database so an upgrade does not strand cached rows in an unreachable store.
 const DATABASE_NAME = 'sidebyside-web-read-cache';
-const DATABASE_VERSION = 3;
+// Version 4 drops the plaintext rows a sealing device must not keep.
+const DATABASE_VERSION = 4;
 const STORE_NAME = 'product-details';
 const CONTEXT_STORAGE_KEY = 'eimir-web-read-cache-context-v3';
 const LEGACY_CONTEXT_STORAGE_KEYS = [
@@ -541,6 +554,46 @@ const indexedDbStorage: ProductReadCacheStorage = {
 
 let cacheStorage: ProductReadCacheStorage = indexedDbStorage;
 
+// A stored row that must be discarded: truthy, and never an expected record.
+const UNREADABLE_ROW: Readonly<Record<string, never>> = Object.freeze({});
+
+/**
+ * The Android app keeps cached content sealed under the per-login device key
+ * (`deviceMediaSeal.ts`): routing fields stay readable so rows can be found
+ * and purged, the payload does not. A sealing device never writes plaintext;
+ * without a key it writes nothing.
+ */
+async function persistRecord(record: ProductCacheRecord): Promise<void> {
+  if (!sealsDeviceMedia()) {
+    await cacheStorage.write(record);
+    return;
+  }
+  const cryptoKey = await deviceMediaKey();
+  if (!cryptoKey) throw new Error('The device key is unavailable.');
+  const { payload, ...routing } = record;
+  await cacheStorage.write({
+    ...routing,
+    sealed: await sealJson(cryptoKey, record.key, payload),
+  });
+}
+
+/** Read one stored row, opened on a sealing device. */
+async function loadStoredRecord(key: string): Promise<unknown> {
+  const row = await cacheStorage.read(key);
+  if (!sealsDeviceMedia() || !row || typeof row !== 'object') return row;
+  const { sealed, ...routing } = row as { sealed?: SealedJson };
+  // A plaintext row predates sealing and is not kept.
+  if (!sealed || 'payload' in routing) return UNREADABLE_ROW;
+  const cryptoKey = await deviceMediaKey();
+  if (!cryptoKey) return null;
+  try {
+    return { ...routing, payload: await openJson(cryptoKey, key, sealed) };
+  } catch {
+    // Sealed under an earlier login's key, or damaged.
+    return UNREADABLE_ROW;
+  }
+}
+
 /** Destroy every persisted row, escalating past a store that cannot clear.
  *
  * The original failure is what surfaces if the escalation fails too: the
@@ -679,6 +732,20 @@ export function canPersistProductReadPayload(
       return false;
     }
   }
+  if (kind === 'collection' || kind === 'collection-outbox') {
+    if (!payload || typeof payload !== 'object') return false;
+    try {
+      // Bounded like the other shared snapshots; a Collection is always
+      // space-shared, and a snapshot that says otherwise is refused.
+      const encoded = JSON.stringify(payload);
+      return (
+        encoded.length <= 256 * 1024 &&
+        !/"(?:visibility|privacyClass)":"(?:PRIVATE|OWNER_ONLY)"/.test(encoded)
+      );
+    } catch {
+      return false;
+    }
+  }
   if (kind === 'dashboard-overview' || kind === 'plans-overview') {
     try {
       // Overview snapshots are an optimization, never an unbounded archive.
@@ -783,7 +850,7 @@ async function readRecord(
 ): Promise<ProductCacheRecord | null> {
   let record: unknown;
   try {
-    record = await cacheStorage.read(expected.key);
+    record = await loadStoredRecord(expected.key);
   } catch {
     return null;
   }
@@ -815,7 +882,7 @@ async function writeRecord(
     )
       return;
     try {
-      await cacheStorage.write(record);
+      await persistRecord(record);
     } catch {
       // Ordinary cache writes remain best effort.
     }
@@ -1127,6 +1194,84 @@ export function revokeSharedListCache(spaceId: string): void {
  */
 export function clearProductReadCacheInBackground(): void {
   void clearProductReadCache().catch(() => undefined);
+}
+
+/** Read the changes of one shopping list that are waiting to be sent (#1808).
+ *
+ * They live in the same store and generation as the cached reads, so every
+ * lifecycle that wipes the cache (sign-out, leaving the Space, Account
+ * deletion, an import) wipes them too and a new generation cannot reach them.
+ */
+export async function readCollectionOutbox(
+  accountId: string,
+  spaceId: string,
+  collectionId: string,
+): Promise<unknown | null> {
+  const lease = captureCacheLease(accountId, spaceId);
+  const record = await readRecord(
+    {
+      key: cacheKey(lease, SHARED_SCOPE, 'collection-outbox', collectionId),
+      accountId,
+      spaceId,
+      generation: lease.generation,
+      kind: 'collection-outbox',
+      resourceId: collectionId,
+    },
+    lease,
+  );
+  return record ? record.payload : null;
+}
+
+/** Store the waiting changes of one shopping list and say whether it worked.
+ *
+ * Unlike a cache write this reports failure: a change that was only kept in
+ * memory must not look as if it survived a restart. Returns `false` when the
+ * payload is not allowed, the cache context is no longer current, or the
+ * storage refused it.
+ */
+export async function writeCollectionOutbox(
+  accountId: string,
+  spaceId: string,
+  collectionId: string,
+  payload: unknown,
+): Promise<boolean> {
+  const lease = captureCacheLease(accountId, spaceId);
+  if (!canPersistProductReadPayload('collection-outbox', payload)) return false;
+  const key = cacheKey(lease, SHARED_SCOPE, 'collection-outbox', collectionId);
+  try {
+    await enqueueCacheMutation(async () => {
+      if (!isLeaseCurrent(lease)) throw new Error('The cache context changed.');
+      await persistRecord({
+        schemaVersion: 3,
+        key,
+        accountId,
+        spaceId,
+        generation: lease.generation,
+        privacyScope: SHARED_SCOPE,
+        kind: 'collection-outbox',
+        resourceId: collectionId,
+        payload,
+        refreshedAt: new Date().toISOString(),
+      });
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Remove the waiting changes of one shopping list once nothing is left to send. */
+export async function deleteCollectionOutbox(
+  accountId: string,
+  spaceId: string,
+  collectionId: string,
+): Promise<void> {
+  const lease = currentCacheLease(accountId, spaceId);
+  if (!lease) return;
+  await deleteRecordByKey(
+    cacheKey(lease, SHARED_SCOPE, 'collection-outbox', collectionId),
+    lease,
+  );
 }
 
 export function __setProductReadCacheStorageForTests(

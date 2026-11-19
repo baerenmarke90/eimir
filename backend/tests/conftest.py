@@ -42,7 +42,9 @@ INTEGRATION_DATABASE_URL = os.environ.get("EIMIR_TEST_DATABASE_URL", "")
 
 
 @pytest.fixture
-def encryption(monkeypatch: pytest.MonkeyPatch) -> Iterator[EncryptionConfigurator]:
+def encryption(
+    monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> Iterator[EncryptionConfigurator]:
     """Configure application-controlled encryption for one test.
 
     Restores the settings caches afterwards so no test inherits another test's
@@ -50,8 +52,40 @@ def encryption(monkeypatch: pytest.MonkeyPatch) -> Iterator[EncryptionConfigurat
     """
     from tests.support.encryption import reset_encryption_caches
 
+    def carry_accounts(previous, current, first_switch: bool) -> None:  # type: ignore[no-untyped-def]
+        # Accounts exist before most tests choose a mode; see EncryptionConfigurator
+        # for why only the first switch may open them into plaintext.
+        if "session" not in request.fixturenames:
+            return
+        if not first_switch and not current.mode.encrypts_writes:
+            return
+        import json
+
+        from sqlalchemy import text
+
+        from eimir.identity.models import AccountPayload
+
+        session = request.getfixturevalue("session")
+        context = AccountPayload.crypto_context()
+        rows = session.execute(
+            text("SELECT id, payload FROM accounts WHERE payload IS NOT NULL")
+        ).all()
+        for account_id, stored in rows:
+            carried = current.protect(previous.reveal(stored, context=context), context=context)
+            session.execute(
+                text(
+                    "UPDATE accounts SET payload = CAST(:payload AS jsonb), "
+                    "crypto_version = :version WHERE id = :id"
+                ),
+                {
+                    "id": account_id,
+                    "payload": json.dumps(carried),
+                    "version": current.write_crypto_version,
+                },
+            )
+
     reset_encryption_caches()
-    yield EncryptionConfigurator(monkeypatch)
+    yield EncryptionConfigurator(monkeypatch, carry_accounts)
     monkeypatch.undo()
     reset_encryption_caches()
 
@@ -91,51 +125,10 @@ def engine() -> Iterator[Engine]:
     if not DATABASE_AVAILABLE:
         pytest.skip("No database is reachable.")
 
-    # The same list as in alembic/env.py, for the same reason: anything missing
-    # here does not exist during create_all. A later import by the app would
-    # register the model, but only after the tables have been created, making
-    # tests pass or fail accidentally depending on prior imports.
-    from eimir.administration import models as _administration  # noqa: F401
-    from eimir.appearance import models as _appearance  # noqa: F401
-    from eimir.attachments import binding as _binding  # noqa: F401
-    from eimir.attachments import models as _attachments  # noqa: F401
-    from eimir.auth import recent_auth_models as _recent_auth  # noqa: F401
-    from eimir.chapters import models as _chapters  # noqa: F401
-    from eimir.collections import models as _collections  # noqa: F401
-    from eimir.comments import models as _comments  # noqa: F401
-    from eimir.context_tags import models as _context_tags  # noqa: F401
-    from eimir.daily_checkins import models as _daily_checkins  # noqa: F401
-    from eimir.dashboard import models as _dashboard  # noqa: F401
     from eimir.db.base import Base
-    from eimir.demo import models as _demo  # noqa: F401
-    from eimir.engagement import models as _engagement  # noqa: F401
-    from eimir.entitlements import models as _entitlements  # noqa: F401
-    from eimir.gift_ideas import models as _gift_ideas  # noqa: F401
-    from eimir.heart_moments import models as _heart_moments  # noqa: F401
-    from eimir.identity import models as _identity  # noqa: F401
-    from eimir.jobs import models as _jobs  # noqa: F401
-    from eimir.legal import models as _legal  # noqa: F401
-    from eimir.memories import models as _memories  # noqa: F401
-    from eimir.milestones import models as _milestones  # noqa: F401
-    from eimir.once_messages import models as _once_messages  # noqa: F401
-    from eimir.outbox import models as _outbox  # noqa: F401
-    from eimir.people import models as _people  # noqa: F401
-    from eimir.photo_sources import models as _photo_sources  # noqa: F401
-    from eimir.places import models as _places  # noqa: F401
-    from eimir.plans import models as _plans  # noqa: F401
-    from eimir.private_collections import models as _private_collections  # noqa: F401
-    from eimir.private_notes import models as _private_notes  # noqa: F401
-    from eimir.profiles import models as _profiles  # noqa: F401
-    from eimir.quotes import models as _quotes  # noqa: F401
-    from eimir.recaps import models as _recaps  # noqa: F401
-    from eimir.relations import models as _relations  # noqa: F401
-    from eimir.relationship import models as _relationship  # noqa: F401
-    from eimir.reminders import models as _reminders  # noqa: F401
-    from eimir.reminders import runtime_models as _reminder_runtime  # noqa: F401
-    from eimir.story import view_models as _story_views  # noqa: F401
-    from eimir.transfer import models as _transfer  # noqa: F401
-    from eimir.wish_selections import models as _wish_selections  # noqa: F401
-    from eimir.wishes import models as _wishes  # noqa: F401
+    from eimir.db.registry import load_all_models
+
+    load_all_models()
 
     # Test probe for owner/privacy authorization. It deliberately exists only
     # here: alembic/env.py does not know it, so it appears in no migration and
@@ -229,6 +222,33 @@ def make_space(session: Session, founder):  # type: ignore[no-untyped-def]
     from eimir.relationship.service import create_space
 
     return create_space(session, founder)
+
+
+def make_space_without_daily_context(session: Session, founder):  # type: ignore[no-untyped-def]
+    """Create a Space in the state existing Spaces keep after #1790.
+
+    New Spaces start with both daily check-in dimensions on and the founder's time zone.
+    Spaces created before that keep the stored v1 state: daily check-in dimensions off
+    and no shared daily time zone. A bulk UPDATE leaves the row version at its
+    initial value, exactly like a row read from that earlier state.
+    """
+    from sqlalchemy import update
+
+    from eimir.relationship.models import SpaceConfiguration
+
+    space = make_space(session, founder)
+    session.execute(
+        update(SpaceConfiguration)
+        .where(SpaceConfiguration.space_id == space.id)
+        .values(
+            vibe_check_enabled=False,
+            energy_check_in_enabled=False,
+            daily_context_timezone=None,
+        )
+        .execution_options(synchronize_session="fetch")
+    )
+    session.flush()
+    return space
 
 
 def sign_in(session: Session, account) -> str:  # type: ignore[no-untyped-def]

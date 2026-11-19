@@ -155,6 +155,28 @@ def _ensure_partner_profile(session: Session, space_id: UUID, account_id: UUID) 
     ensure_profile(session, space_id, account_id)
 
 
+def _initial_configuration(space_id: UUID, founder: Account) -> SpaceConfiguration:
+    """Start a new Space with both daily check-in dimensions on (#1790).
+
+    The daily check-in dimensions need a shared daily context time zone, so a new Space
+    adopts the founder's validated personal zone; the manager's device keeps it
+    current afterwards. Without a usable zone the check-in dimensions start off.
+    """
+    from eimir.identity.preferences import validate_timezone
+
+    try:
+        timezone: str | None = validate_timezone(founder.timezone)
+    except ValidationError:
+        timezone = None
+    enabled = timezone is not None
+    return SpaceConfiguration(
+        space_id=space_id,
+        daily_context_timezone=timezone,
+        vibe_check_enabled=enabled,
+        energy_check_in_enabled=enabled,
+    )
+
+
 def create_space(session: Session, founder: Account) -> Space:
     """Create a Space and add the founder as a partner."""
     space = Space(configuration_manager_account_id=founder.id)
@@ -162,7 +184,7 @@ def create_space(session: Session, founder: Account) -> Space:
     session.flush()
 
     session.add(SpaceProfile(space_id=space.id))
-    session.add(SpaceConfiguration(space_id=space.id))
+    session.add(_initial_configuration(space.id, founder))
     session.add(
         Membership(
             space_id=space.id,
@@ -343,9 +365,15 @@ def add_member(session: Session, space_id: UUID, account: Account) -> Membership
     session.add(membership)
     session.flush()
     _ensure_partner_profile(session, space_id, account.id)
+    from eimir.couple_games import service as couple_games
+    from eimir.garden import service as garden
+    from eimir.picture_ping_pong import service as picture_ping_pong
     from eimir.wish_selections.service import purge_space
 
     purge_space(session, space_id)
+    picture_ping_pong.purge_space(session, space_id)
+    couple_games.purge_space(session, space_id)
+    garden.purge_space(session, space_id)
     return membership
 
 
@@ -360,13 +388,21 @@ def end_membership(
     Deleting it would make it impossible to determine later who created
     content.
     """
+    from eimir.couple_games import service as couple_games
     from eimir.create_receipts import service as shared_create_receipts
     from eimir.engagement import gentle
+    from eimir.garden import service as garden_service
     from eimir.memories import create_receipts
+    from eimir.picture_ping_pong import service as picture_ping_pong
     from eimir.story import view_service
     from eimir.wish_selections.service import purge_space
+    from eimir.wishes import date_proposals as wish_date_proposals
+    from eimir.wishes import reminders as wish_reminders
 
     gentle.purge_space_member(session, membership.account_id, membership.space_id)
+    wish_reminders.purge_member(
+        session, account_id=membership.account_id, space_id=membership.space_id
+    )
     view_service.purge_viewer_for_space(
         session,
         space_id=membership.space_id,
@@ -385,7 +421,14 @@ def end_membership(
     from eimir.once_messages import service as once_messages
 
     once_messages.purge_space(session, membership.space_id)
+    from eimir.heart_hunt import service as heart_hunt
+
+    heart_hunt.purge_space(session, membership.space_id)
     purge_space(session, membership.space_id)
+    picture_ping_pong.purge_space(session, membership.space_id)
+    couple_games.purge_space(session, membership.space_id)
+    garden_service.purge_space(session, membership.space_id)
+    wish_date_proposals.purge_space(session, membership.space_id)
     membership.status = MembershipStatus.REMOVED.value if removed else MembershipStatus.LEFT.value
     membership.ended_at = now()
 

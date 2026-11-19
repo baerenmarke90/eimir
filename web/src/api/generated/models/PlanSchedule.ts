@@ -19,6 +19,8 @@ import { mapValues } from '../runtime';
  * ``plannedOn`` is a calendar day. ``plannedStart`` is a timezone-aware
  * instant. Exactly one of those semantic starts must be supplied; clients may
  * never synthesize a wall-clock time merely to encode ``plannedOn``.
+ * ``plannedUntil`` is the optional inclusive last calendar day of a
+ * multi-day date-only Plan; a timed Plan uses ``plannedEnd`` instead.
  * @export
  * @interface PlanSchedule
  */
@@ -41,6 +43,12 @@ export interface PlanSchedule {
      * @memberof PlanSchedule
      */
     plannedStart?: Date;
+    /**
+     * 
+     * @type {Date}
+     * @memberof PlanSchedule
+     */
+    plannedUntil?: Date;
 }
 
 /**
@@ -63,6 +71,7 @@ export function PlanScheduleFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'plannedEnd': json['plannedEnd'] == null ? undefined : (new Date(json['plannedEnd'])),
         'plannedOn': json['plannedOn'] == null ? undefined : (new Date(json['plannedOn'])),
         'plannedStart': json['plannedStart'] == null ? undefined : (new Date(json['plannedStart'])),
+        'plannedUntil': json['plannedUntil'] == null ? undefined : (new Date(json['plannedUntil'])),
     };
 }
 
@@ -80,6 +89,7 @@ export function PlanScheduleToJSONTyped(value?: PlanSchedule | null, ignoreDiscr
         'plannedEnd': value['plannedEnd'] == null ? value['plannedEnd'] : value['plannedEnd'].toISOString(),
         'plannedOn': value['plannedOn'] == null ? value['plannedOn'] : value['plannedOn'].toISOString().substring(0,10),
         'plannedStart': value['plannedStart'] == null ? value['plannedStart'] : value['plannedStart'].toISOString(),
+        'plannedUntil': value['plannedUntil'] == null ? value['plannedUntil'] : value['plannedUntil'].toISOString().substring(0,10),
     };
 }
 

@@ -17,20 +17,40 @@ const de = {
   more: {
     yearsTitle: 'Jahre',
     destinations: {
-      photos: 'Fotos',
+      media: 'Medien',
       chapters: 'Kapitel',
       years: 'Jahre',
       recaps: 'Rückblicke',
+      yearsAndRecaps: 'Jahre & Rückblicke',
       insights: 'Einblicke',
       lists: 'Listen',
+    },
+    subtitles: {
+      private: 'Notizen, Geschenkideen und Listen · {{visibility}}',
+      media: 'Alle Fotos und Videos',
+      chapters: 'Reisen, Umzüge, große Abschnitte',
+      yearsAndRecaps: 'Eure Monate und Jahre im Überblick',
+      insights: 'Wie es euch zuletzt ging',
+      lists: 'Packlisten, Einkauf, Checklisten',
+      places: 'Eure Lieblingsorte',
+      people: 'Familie, Freunde und ihre wichtigen Tage',
+      games: 'Fragen und Spiele für euch zwei',
+    },
+    visibility: {
+      onlyYou: 'Nur du siehst das',
+    },
+    accountId: {
+      copy: 'Konto-ID kopieren',
+      copied: 'Konto-ID kopiert',
+      failed: 'Kopieren hat nicht geklappt. Deine Konto-ID:',
     },
     eyebrow: 'Mehr',
     title: 'Alles Weitere',
     intro: 'Persönliches, gemeinsame Listen und Einstellungen.',
     groups: {
       personal: 'Für dich',
-      shared: 'Gemeinsam',
-      moments: 'Momente',
+      shared: 'Euer Alltag',
+      moments: 'Eure Geschichte',
       utility: 'App und Konto',
     },
     people: {
@@ -48,8 +68,7 @@ const de = {
     },
     private: {
       title: 'Nur für mich',
-      description:
-        'Notizen, Geschenkideen und Gedanken, die ausschließlich für dich bestimmt sind.',
+      description: 'Notizen, Geschenkideen und Listen, die nur du siehst.',
     },
     notifications: {
       title: 'Benachrichtigungen',
@@ -96,7 +115,7 @@ const de = {
       title: 'Du bist gerade offline.',
       body: 'Stelle die Verbindung wieder her und versuche es erneut.',
       banner:
-        'Offline – Änderungen und neue Inhalte benötigen eine Verbindung.',
+        'Offline – du siehst den zuletzt geladenen Stand. Einkaufslisten merken sich Änderungen, alles andere braucht eine Verbindung.',
     },
     server: {
       title: 'eimir. ist gerade nicht erreichbar.',
@@ -141,6 +160,34 @@ const de = {
     createFirstSpacePending: 'Gemeinsamer Ort wird erstellt …',
   },
   identity: {
+    dividerEmailLink: 'oder mit E-Mail-Link',
+    dividerOr: 'oder',
+    passkeyNoneOnDevice:
+      'Auf diesem Gerät ist kein Passkey für eimir. gespeichert.',
+    googleContinue: 'Weiter mit Google',
+    googleSignUp: 'Mit Google registrieren',
+    providerContinue: 'Weiter mit {{name}}',
+    providerContinueDefault: 'Mit einem anderen Konto anmelden',
+    passkeySignIn: 'Weiter mit Passkey',
+    passkeyLaterHint:
+      'Einen Passkey richtest du nach der Anmeldung in den Einstellungen ein.',
+    providerTermsFirst: 'Setze zuerst das Häkchen, dann geht es weiter.',
+    magicLinkHint: 'Wir schicken dir einen Link, mit dem du dich anmeldest.',
+    oidcOpening: 'Du wirst angemeldet …',
+    oidcNoAccountTitle: 'Zu dieser Anmeldung gibt es noch kein Konto.',
+    oidcNoAccountBody:
+      'Melde dich auf einem anderen Weg an und verknüpfe Google danach in den Einstellungen. Ein neues Konto startest du mit „Gemeinsam starten“ oder mit einer Einladung.',
+    oidcAddressTakenTitle: 'Für diese Adresse gibt es schon ein Konto.',
+    oidcAddressTakenBody:
+      'Melde dich mit dem E-Mail-Link an. In den Einstellungen kannst du Google danach mit deinem Konto verknüpfen.',
+    oidcEmailUnverifiedTitle: 'Deine E-Mail-Adresse ist nicht bestätigt.',
+    oidcEmailUnverifiedBody:
+      'Bestätige die Adresse bei deinem Anbieter oder starte mit dem E-Mail-Link.',
+    oidcExpiredTitle: 'Der Anmeldeversuch ist abgelaufen.',
+    oidcExpiredBody: 'Bitte starte die Anmeldung noch einmal.',
+    oidcFailedTitle: 'Die Anmeldung hat nicht geklappt.',
+    oidcFailedBody:
+      'Bitte versuche es noch einmal oder wähle einen anderen Weg.',
     entryAria: 'Zugang zu eimir.',
     invitationEyebrow: 'Einladung zu eimir.',
     invitationTitle:
@@ -254,6 +301,7 @@ const de = {
     timelineTitle: 'Momente',
     timelineIntro: 'Eure gemeinsame Geschichte.',
     addMemory: 'Erinnerung',
+    addMoment: 'Moment hinzufügen',
     timelineKicker: 'Tagebuch',
     timelineHeading: 'Gemeinsame Geschichte',
     discoverKicker: 'Entdecken',
@@ -285,7 +333,6 @@ const de = {
     featuredKicker: 'Wisst ihr noch?',
     onThisDay_one: 'Heute vor einem Jahr',
     onThisDay_other: 'Heute vor {{count}} Jahren',
-    retrospectiveHeading: 'Rückblicke',
     retrospectiveSubhead: 'Ein Moment aus eurer gemeinsamen Geschichte.',
     retrospectiveOpen: 'Erinnerung öffnen',
     milestonesTitle: 'Meilensteine',
@@ -330,6 +377,8 @@ const de = {
     title: 'Unsere Jahre',
     intro: 'Eure gemeinsame Geschichte, Jahr für Jahr.',
     listAria: 'Gemeinsame Jahre',
+    recapsEntryTitle: 'Eure Rückblicke',
+    recapsEntryHint: 'Monate und Jahre, für euch zusammengestellt',
     currentYearLabel: 'Unser Jahr bisher',
     currentYearHint: 'Die Momente, die ihr dieses Jahr festgehalten habt.',
     pastYearLabel: 'Unser Jahr {{year}}',
@@ -381,7 +430,7 @@ const de = {
       keepDraft: 'Entwurf behalten und schließen',
       draft: {
         memoryOnlyUnavailable:
-          'Dein Entwurf bleibt hier geöffnet. Die Sicherung des Speicherstatus ist auf diesem Gerät gerade nicht verfügbar. Versuche es erneut, bevor du diesen Eintrag speicherst.',
+          'Dein Entwurf bleibt hier geöffnet. Die Sicherung auf diesem Gerät ist gerade nicht verfügbar.',
         memoryOnly:
           'Deine Worte und dein Speicherstatus sind auf diesem Gerät gesichert. Ausgewählte externe oder ältere Fotos bleiben nur im geöffneten Entwurf. Nach einem Neustart können verfügbare Serverfotos erneut geladen werden.',
         loading: 'Entwurfssicherung wird vorbereitet …',
@@ -456,6 +505,12 @@ const de = {
   header: {
     sharedArea: 'Gemeinsamer Bereich',
     logout: 'Abmelden',
+    logoutDeviceTitle: 'Abmelden?',
+    logoutDeviceBody:
+      'Beim Abmelden wird alles von diesem Handy gelöscht: Fotos, offline gespeicherte Inhalte und Entwürfe, die du noch nicht gespeichert hast. Laufende Uploads werden abgebrochen.',
+    logoutDeviceKept:
+      'In eimir. bleibt alles erhalten. Nach dem nächsten Anmelden lädt die App deine Fotos wieder.',
+    logoutDeviceCancel: 'Abbrechen',
   },
   media: {
     unavailable: 'Foto derzeit nicht verfügbar',

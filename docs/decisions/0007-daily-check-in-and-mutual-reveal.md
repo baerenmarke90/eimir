@@ -1,6 +1,6 @@
 # 7. Use one Space-day DailyCheckIn boundary and server-side Mutual Reveal
 
-- **Status:** accepted
+- **Status:** accepted; sections 6 and 7 amended on 2026-11-13 (#1790)
 - **Date:** 2026-09-02
 - **Issue:** #598
 - **Related:** #429, #431, #432, #493, #455, #433
@@ -153,6 +153,10 @@ paid capability.
 
 ### 6. Mutual Reveal eligibility is dimension-scoped
 
+> **Amended on 2026-11-13 (#1790):** eligibility is now shared across the
+> daily dimensions. See [Amendment 2026-11-13](#amendment-2026-11-13-one-own-entry-reveals-both-dimensions-1790).
+> The original rule below is kept as history.
+
 Participation in one dimension cannot unlock another dimension.
 
 Examples:
@@ -283,6 +287,36 @@ Before #429, #431, or #493 runtime is merged, M7-S0 must provide:
 6. Web and Android generated clients from that same contract;
 7. cleanup/retention behavior and tests;
 8. tenant, Privacy, day-boundary, concurrency, cache, and negative reveal tests.
+
+## Amendment 2026-11-13: one own entry reveals both dimensions (#1790)
+
+**Decision owner:** Product Owner, recorded in #1790 slice A.
+
+The daily check-in moves onto the couple avatars on Wir as a quiet, secondary
+signal. In that composition a separate reveal per dimension reads as a puzzle:
+a partner who shared only their energy would still see a locked vibe badge next
+to an unlocked energy badge. The Product Owner therefore decided:
+
+- When a dimension uses `MUTUAL_REVEAL`, the caller becomes eligible for **every**
+  Mutual Reveal dimension of the current Space day as soon as they have **any**
+  own current-day entry in an enabled dimension (Vibe or Energy). A Vibe note
+  always belongs to a Vibe, so it is covered by the Vibe.
+- Section 6 is replaced by this shared eligibility. Its concern that a
+  low-friction dimension could bypass a more personal one is accepted as a
+  deliberate product trade-off, because couples choose Mutual Reveal for the
+  ritual of sharing first, not for the order of dimensions.
+- In section 7, `HIDDEN_UNTIL_SELF_CHECK_IN` now means: Mutual Reveal is active
+  and the caller has **no** own current-day entry yet. Every other guarantee is
+  unchanged: the response contains no partner value and no signal of partner
+  participation, and the server does not query partner participation before
+  the caller is eligible.
+- The same rule applies to the per-day projections of Pro insights.
+
+Related #1790 decisions:
+- New Spaces start with both daily dimensions enabled and immediately visible.
+  Their shared day uses the founder's own time zone.
+- Existing Spaces keep their stored configuration.
+- Removing the Vibe also removes its note.
 
 ## Consequences
 

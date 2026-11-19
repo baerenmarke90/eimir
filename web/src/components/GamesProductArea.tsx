@@ -1,14 +1,21 @@
-import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlementView';
 import { Configuration } from '../client/apiConfiguration';
-import { normalizeClientError } from '../client/problemDetails';
 import {
+  GAMES_GARDEN_ROUTE,
+  GAMES_HEART_HUNT_ROUTE,
   GAMES_MOMENTS_ROUTE,
+  GAMES_PICTURE_PING_PONG_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
+  proPaywallPath,
 } from '../client/routes';
+import {
+  entitlementLoader,
+  useSpaceEntitlement,
+} from '../client/spaceEntitlement';
+import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import type { WhoOfUsParticipant } from '../client/whoOfUsSession';
 import { useTranslation } from '../i18n';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
@@ -19,25 +26,47 @@ import { WhoOfUsGamePanel } from './WhoOfUsGamePanel';
 
 export const GAMES_COUPLE_CAPABILITY = 'games.couple' as const;
 
-const GAME_ENTRIES = ['moments', 'wishes', 'perspective'] as const;
+const GAME_ENTRIES = [
+  'garden',
+  'moments',
+  'wishes',
+  'perspective',
+  'heartHunt',
+  'pingPong',
+] as const;
 
 type GameEntry = (typeof GAME_ENTRIES)[number];
+
+/** Each game keeps its own symbol, whatever its place in the list. */
+const GAME_ICONS = {
+  garden: 'spiele',
+  moments: 'foto',
+  wishes: 'wuensche',
+  perspective: 'gemeinsam',
+  heartHunt: 'momente',
+  pingPong: 'spiele',
+} as const satisfies Record<GameEntry, EimirIconName>;
 
 function gameRoute(entry: GameEntry): string | null {
   if (entry === 'moments') return GAMES_MOMENTS_ROUTE;
   if (entry === 'wishes') return GAMES_WISH_DETECTIVE_ROUTE;
+  if (entry === 'heartHunt') return GAMES_HEART_HUNT_ROUTE;
+  if (entry === 'pingPong') return GAMES_PICTURE_PING_PONG_ROUTE;
+  if (entry === 'garden') return GAMES_GARDEN_ROUTE;
   return null;
 }
 
 export function GamesProductArea({
   apiBaseUrl,
   accessToken,
+  accountId,
   spaceId,
   loadEntitlement,
   loadPerspectiveParticipants,
 }: {
   apiBaseUrl: string;
   accessToken: string;
+  accountId: string;
   spaceId: string;
   loadEntitlement?: () => Promise<SpaceEntitlementView>;
   loadPerspectiveParticipants?: () => Promise<
@@ -59,26 +88,28 @@ export function GamesProductArea({
     [apiBaseUrl, accessToken],
   );
 
-  const entitlementQuery = useQuery({
-    queryKey: ['games-entitlement', spaceId],
-    queryFn: async () => {
-      try {
-        if (loadEntitlement) return await loadEntitlement();
-        return await entitlementApi.getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet(
-          {
-            spaceId,
-          },
-        );
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
-    retry: false,
-  });
+  const load = useMemo(
+    () =>
+      loadEntitlement
+        ? () => loadEntitlement()
+        : entitlementLoader(entitlementApi, spaceId),
+    [entitlementApi, loadEntitlement, spaceId],
+  );
+  // Reuses the session's single entitlement read from app start.
+  const entitlementQuery = useSpaceEntitlement({ accountId, spaceId, load });
 
   const gamesUnlocked = Boolean(
     entitlementQuery.data?.capabilities.includes(GAMES_COUPLE_CAPABILITY),
   );
+
+  // The local game replaces the overview in place; system Back ends it like
+  // its own back control instead of leaving Games.
+  const exitLocalGame = useEditorHistoryEntry({
+    isActive: gamesUnlocked && activeLocalGame === 'perspective',
+    isDirty: false,
+    onClose: () => setActiveLocalGame(null),
+    onDiscardRequested: () => setActiveLocalGame(null),
+  });
 
   if (gamesUnlocked && activeLocalGame === 'perspective') {
     return (
@@ -87,7 +118,8 @@ export function GamesProductArea({
           apiBaseUrl={apiBaseUrl}
           accessToken={accessToken}
           spaceId={spaceId}
-          onExit={() => setActiveLocalGame(null)}
+          currentAccountId={accountId}
+          onExit={() => exitLocalGame()}
           loadParticipants={loadPerspectiveParticipants}
         />
       </div>
@@ -102,6 +134,16 @@ export function GamesProductArea({
         className="games-heading"
       />
 
+      {entitlementQuery.data && !gamesUnlocked ? (
+        <p className="games-pro-hint">
+          <Link
+            className="button-link secondary-link"
+            to={proPaywallPath('games')}
+          >
+            {t('proPaywall.contextAction')}
+          </Link>
+        </p>
+      ) : null}
       {entitlementQuery.isPending ? (
         <UiState kind="loading" title={t('states.loading.title')} />
       ) : entitlementQuery.error ? (
@@ -111,24 +153,14 @@ export function GamesProductArea({
         />
       ) : (
         <section className="games-shelf" aria-label={t('games.title')}>
-          {GAME_ENTRIES.map((entry, index) => {
+          {GAME_ENTRIES.map((entry) => {
             const route = gamesUnlocked ? gameRoute(entry) : null;
             const localGameAvailable = gamesUnlocked && entry === 'perspective';
             const playable = Boolean(route || localGameAvailable);
             const content = (
               <>
                 <div className="games-entry-index" aria-hidden="true">
-                  <EimirIcon
-                    name={
-                      (
-                        [
-                          'foto',
-                          'wuensche',
-                          'gemeinsam',
-                        ] satisfies EimirIconName[]
-                      )[index]
-                    }
-                  />
+                  <EimirIcon name={GAME_ICONS[entry]} />
                 </div>
                 <div className="games-entry-copy">
                   <p className="games-entry-role">

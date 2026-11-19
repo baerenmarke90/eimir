@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { proPaywallPath } from '../client/routes';
 import { usePhotoSources } from '../client/usePhotoSources';
 import { useTranslation } from '../i18n';
 import { normalizeClientError } from '../client/problemDetails';
@@ -185,6 +187,14 @@ export function PhotoSourceSettingsPanel(props: {
               ? 'photoSources.proRequired'
               : 'photoSources.unavailable',
           )}
+          {availability?.enabled ? (
+            <>
+              {' '}
+              <Link to={proPaywallPath('photoSources')}>
+                {t('proPaywall.contextAction')}
+              </Link>
+            </>
+          ) : null}
         </p>
       )}
       <ShortTaskSheet

@@ -101,7 +101,8 @@ def unit_of_work() -> Iterator[Session]:
     try:
         yield session
         session.commit()
-    except Exception:
+    except BaseException:
+        # Cancellation can arrive after an external object was staged.
         actions = _take_after_rollback_actions(session)
         session.rollback()
         _run_after_rollback_actions(actions)

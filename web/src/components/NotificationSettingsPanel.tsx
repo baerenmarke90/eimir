@@ -16,6 +16,7 @@ import { normalizeClientError } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { settingsCategoryPath } from '../client/routes';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';
 import { QuietHoursSettings } from './QuietHoursSettings';
@@ -41,9 +42,15 @@ const GROUPS = [
     kinds: [
       NotificationKind.THINKING_OF_YOU,
       NotificationKind.COUPLE_EXPERIENCE_SHARED,
+      NotificationKind.COLLECTION_SENT,
+      NotificationKind.GARDEN_SEED_ARRIVED,
       NotificationKind.PARTNER_KISS,
       NotificationKind.PARTNER_CHECK_IN,
     ],
+  },
+  {
+    key: 'recaps',
+    kinds: [NotificationKind.RECAP_READY],
   },
 ] as const;
 
@@ -53,6 +60,9 @@ const KIND_KEYS = {
   [NotificationKind.REMINDER_CREATED]: 'reminderCreated',
   [NotificationKind.THINKING_OF_YOU]: 'thinking',
   [NotificationKind.COUPLE_EXPERIENCE_SHARED]: 'experience',
+  [NotificationKind.COLLECTION_SENT]: 'collectionSent',
+  [NotificationKind.GARDEN_SEED_ARRIVED]: 'gardenSeed',
+  [NotificationKind.RECAP_READY]: 'recapReady',
   [NotificationKind.PARTNER_KISS]: 'kiss',
   [NotificationKind.PARTNER_CHECK_IN]: 'checkIn',
 } as const;
@@ -68,6 +78,137 @@ type Choice = {
   channel: NotificationChannel;
   enabled: boolean;
 };
+
+/**
+ * One delivery channel of a category as a chip. It keeps the switch role and
+ * its "<Category>: <Channel>" name; the state is also readable without colour:
+ * a check for on, a dash for mixed, a dashed outline for a channel that is
+ * chosen but cannot deliver yet.
+ */
+function ChannelChip({
+  label,
+  accessibleLabel,
+  checked,
+  mixed,
+  pending,
+  disabled,
+  onCheckedChange,
+}: {
+  label: string;
+  accessibleLabel: string;
+  checked: boolean;
+  mixed: boolean;
+  pending: boolean;
+  disabled: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  const on = checked || mixed;
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={accessibleLabel}
+      className={`channel-chip${checked ? ' is-on' : ''}${mixed ? ' is-mixed' : ''}${on && pending ? ' is-pending' : ''}`}
+      disabled={disabled}
+      onClick={() => onCheckedChange(!checked)}
+    >
+      <span className="channel-chip-mark" aria-hidden="true">
+        {checked ? (
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="m5 12.5 4.5 4.5L19 7.5" />
+          </svg>
+        ) : mixed ? (
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6 12h12" />
+          </svg>
+        ) : null}
+      </span>
+      {label}
+    </button>
+  );
+}
+
+function DevicePushSetting({
+  devicePush,
+}: {
+  devicePush: DevicePushController;
+}) {
+  const { t } = useTranslation();
+  const { state, error, registered } = devicePush;
+  const action = devicePushAction(devicePush);
+  const connecting = state === 'connecting';
+  const disableFailed = error === 'PUSH_DEVICE_DISABLE_FAILED';
+  const checked =
+    state === 'on' ||
+    (!connecting && state !== 'loading' && (registered || disableFailed));
+  const disabled =
+    state === 'loading' ||
+    connecting ||
+    state === 'disconnecting' ||
+    (!checked && action !== 'enable');
+  const status =
+    error || (state !== 'on' && state !== 'off')
+      ? t(devicePushStatusKey(devicePush))
+      : null;
+  let secondaryAction: { label: string; run: () => Promise<void> } | undefined;
+  if (connecting) {
+    secondaryAction = { label: t('common.cancel'), run: devicePush.disable };
+  } else if (action === 'openSettings') {
+    secondaryAction = {
+      label: t('notificationSettings.deviceOpenSettings'),
+      run: devicePush.openSettings,
+    };
+  } else if (checked && action === 'enable' && !disableFailed) {
+    secondaryAction = { label: t('common.retry'), run: devicePush.enable };
+  }
+
+  return (
+    <div className="notification-device-push">
+      <div className="notification-device-push-head">
+        <span className="notification-device-push-icon" aria-hidden="true">
+          <EimirIcon name="benachrichtigungen" />
+        </span>
+        <PreferenceSwitch
+          label={t(
+            devicePush.browser
+              ? 'notificationSettings.browserToggle'
+              : 'notificationSettings.deviceToggle',
+          )}
+          description={
+            !checked && action === 'enable'
+              ? t('notificationSettings.deviceHintOff')
+              : undefined
+          }
+          checked={checked}
+          disabled={disabled}
+          onCheckedChange={(enabled) => {
+            if (enabled) void devicePush.enable();
+            else void devicePush.disable();
+          }}
+        />
+      </div>
+      <p
+        className={status ? undefined : 'sr-only'}
+        role="status"
+        aria-live="polite"
+      >
+        {status}
+      </p>
+      {secondaryAction ? (
+        <div className="form-actions">
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => void secondaryAction.run()}
+          >
+            {secondaryAction.label}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function NotificationSettingsPanel({
   notificationsApi,
@@ -209,51 +350,9 @@ export function NotificationSettingsPanel({
         <h2 id="notification-settings-title">
           {t('notificationSettings.title')}
         </h2>
-        <p className="settings-section-intro">
-          {t('notificationSettings.intro')}
-        </p>
       </div>
 
-      {devicePush?.available && (
-        <div className="notification-device-push">
-          <h3>{t('notificationSettings.deviceTitle')}</h3>
-          <p>{t('notificationSettings.deviceIntro')}</p>
-          <p role="status" aria-live="polite">
-            {t(devicePushStatusKey(devicePush))}
-          </p>
-          <div className="form-actions">
-            {devicePushAction(devicePush) === 'openSettings' && (
-              <button
-                type="button"
-                className="button-link"
-                onClick={() => void devicePush.openSettings()}
-              >
-                {t('notificationSettings.deviceOpenSettings')}
-              </button>
-            )}
-            {devicePushAction(devicePush) === 'enable' && (
-              <button
-                type="button"
-                className="button-link"
-                onClick={() => void devicePush.enable()}
-              >
-                {t('notificationSettings.deviceEnable')}
-              </button>
-            )}
-            {(devicePush.registered ||
-              devicePush.state === 'on' ||
-              devicePush.state === 'connecting') && (
-              <button
-                type="button"
-                className="button-link secondary-link"
-                onClick={() => void devicePush.disable()}
-              >
-                {t('notificationSettings.deviceDisable')}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      {devicePush?.available && <DevicePushSetting devicePush={devicePush} />}
 
       {preferences.isPending ? (
         <p role="status">{t('notificationSettings.loading')}</p>
@@ -328,7 +427,10 @@ export function NotificationSettingsPanel({
                   <p className="muted">
                     {t(`notificationSettings.${group.key}Description`)}
                   </p>
-                  <div className="notification-group-channels">
+                  <fieldset className="notification-group-channels">
+                    <legend className="sr-only">
+                      {t(`notificationSettings.${group.key}`)}
+                    </legend>
                     {CHANNELS.map((channel) => {
                       const capability = capabilities.get(channel);
                       const choices = items.flatMap((item) => {
@@ -349,18 +451,13 @@ export function NotificationSettingsPanel({
                         `notificationSettings.${CHANNEL_KEYS[channel]}`,
                       );
                       return (
-                        <PreferenceSwitch
+                        <ChannelChip
                           key={channel}
                           label={label}
                           accessibleLabel={`${t(`notificationSettings.${group.key}`)}: ${label}`}
-                          description={
-                            mixed
-                              ? t('notificationSettings.mixed')
-                              : !capability?.available
-                                ? reason(channel, capability)
-                                : undefined
-                          }
                           checked={enabled === choices.length}
+                          mixed={mixed}
+                          pending={!capability?.available}
                           disabled={!editable.length || mutation.isPending}
                           onCheckedChange={(value) =>
                             saveChoices(
@@ -376,7 +473,39 @@ export function NotificationSettingsPanel({
                         />
                       );
                     })}
-                  </div>
+                  </fieldset>
+                  {CHANNELS.map((channel) => {
+                    const capability = capabilities.get(channel);
+                    const hasChoice = items.some((item) =>
+                      item.channels.some(
+                        (candidate) => candidate.channel === channel,
+                      ),
+                    );
+                    if (!hasChoice || capability?.available) return null;
+                    return (
+                      <p className="notification-group-note" key={channel}>
+                        <strong>
+                          {t(`notificationSettings.${CHANNEL_KEYS[channel]}`)}:
+                        </strong>{' '}
+                        <span>{reason(channel, capability)}</span>
+                      </p>
+                    );
+                  })}
+                  {CHANNELS.some((channel) => {
+                    const choices = items.flatMap((item) =>
+                      item.channels.filter(
+                        (candidate) => candidate.channel === channel,
+                      ),
+                    );
+                    const enabled = choices.filter(
+                      (choice) => choice.enabled,
+                    ).length;
+                    return enabled > 0 && enabled < choices.length;
+                  }) ? (
+                    <p className="notification-group-note">
+                      {t('notificationSettings.mixed')}
+                    </p>
+                  ) : null}
                   <details className="notification-event-details">
                     <summary>{t('notificationSettings.individual')}</summary>
                     {items.map((item) => {
@@ -458,6 +587,16 @@ export function NotificationSettingsPanel({
               );
             })
           )}
+          {data.items.some((item) =>
+            item.channels.some(
+              (choice) =>
+                choice.enabled && !capabilities.get(choice.channel)?.available,
+            ),
+          ) ? (
+            <p className="notification-pending-legend">
+              {t('notificationSettings.pendingLegend')}
+            </p>
+          ) : null}
           <details className="notification-quiet-hours notification-event-details">
             <summary>
               {t('notificationSettings.quietHoursTitle')}

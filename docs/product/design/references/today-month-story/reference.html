@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Today month and story reference</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Literata:opsz,wght@7..72,500;7..72,600;7..72,700&display=block" rel="stylesheet">
+<style>
+  /* Values mirror design/tokens.json semantic roles; story category colors are proposed tokens. */
+  .phone {
+    --bg: #E6EBFA; --surface: #F3F5FC; --subtle: #D6E1F7; --raised: #FFFFFF;
+    --text: #19233E; --text-2: #58627B; --accent: #3055B8; --partner: #9B2F6A; --partner-bg: #F9EAF4; --hairline: #BBC9E5;
+    --story-memory: #3055B8; --story-heart: #9B2F6A; --story-milestone: #2E8B7E;
+  }
+  .phone.dark {
+    --bg: #171B2F; --surface: #252B43; --subtle: #303F62; --raised: #303751;
+    --text: #F6F7FF; --text-2: #C4CEE8; --accent: #B7C8FF; --partner: #F6C9E1; --partner-bg: #46394F; --hairline: #46506F;
+    --story-memory: #B7C8FF; --story-heart: #F6C9E1; --story-milestone: #72D8C4;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #CDD5EA; font-family: 'Instrument Sans', Arial, sans-serif; padding: 16px; }
+  .board { display: flex; gap: 40px; align-items: flex-start; padding: 32px; width: max-content; }
+  .board + .board { margin-top: 24px; }
+  .cap { font-size: 18px; font-weight: 600; color: #19233E; margin-bottom: 6px; }
+  .sub { font-size: 14px; color: #3F4963; margin-bottom: 16px; width: 390px; min-height: 40px; line-height: 1.4; }
+  .phone { width: 390px; border-radius: 44px; background: var(--bg); color: var(--text); overflow: hidden; box-shadow: 0 0 0 10px #19233E; margin-left: 10px; }
+  .phone.tall { height: 844px; display: flex; flex-direction: column; }
+  .phone.panel { border-radius: 28px; padding-bottom: 20px; }
+  .status { height: 46px; display: flex; justify-content: space-between; align-items: center; padding: 8px 32px 0; font-size: 15px; font-weight: 600; flex: none; }
+  .content { flex: 1; overflow: hidden; padding: 4px 20px 0; }
+  .panel .content { padding-top: 20px; }
+  .nav { flex: none; height: 82px; border-top: 1px solid var(--hairline); display: flex; justify-content: space-around; align-items: flex-start; padding-top: 10px; font-size: 12px; font-weight: 600; color: var(--text-2); }
+  .nav span { width: 64px; text-align: center; }
+  .nav .on { color: var(--text); }
+  .nav .plus { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); margin-top: -2px; }
+
+  .sec { margin-top: 28px; } .sec.first { margin-top: 0; }
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+  .sec-head h2 { font-family: 'Literata', Georgia, serif; font-size: 21px; font-weight: 600; }
+  .more { color: var(--accent); font-weight: 600; font-size: 14px; }
+
+  /* Monthly mosaic */
+  .mosaic { display: grid; gap: 6px; border-radius: 24px; overflow: hidden; }
+  .mosaic.n3 { grid-template-columns: 1.35fr 1fr; grid-template-rows: 130px 130px; }
+  .mosaic.n3 .tile:first-child { grid-row: 1 / span 2; }
+  .mosaic.n2 { grid-template-columns: 1fr 1fr; grid-template-rows: 200px; }
+  .mosaic.n1 { grid-template-columns: 1fr; grid-template-rows: 220px; }
+  .tile { position: relative; overflow: hidden; background: #222; }
+  .tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tile::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgb(0 0 0 / 0%) 55%, rgb(12 14 28 / 55%) 100%); }
+  .tile span { position: absolute; left: 10px; right: 10px; bottom: 8px; z-index: 1; color: #fff; font-size: 13px; font-weight: 600; text-shadow: 0 1px 8px rgb(0 0 0 / 60%); }
+  .tile.sensitive img { filter: blur(18px) saturate(.6); transform: scale(1.15); }
+  .tile .veil { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 600; background: rgb(25 35 62 / 28%); }
+
+  /* Neues bei euch (context only) */
+  .news { border-radius: 20px; background: var(--surface); }
+  .dark .news { background: var(--raised); }
+  .news div { display: flex; gap: 10px; align-items: center; min-height: 58px; padding: 8px 14px; position: relative; }
+  .news div + div::before { content: ''; position: absolute; top: 0; left: 52px; right: 0; height: 1px; background: var(--hairline); opacity: .7; }
+  .av { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 10px; font-weight: 700; flex: none; }
+  .av.me { background: #D6E1F7; color: #3055B8; } .av.pa { background: #F9EAF4; color: #9B2F6A; }
+  .news strong { display: block; font-size: 15px; font-weight: 600; }
+  .news small { display: block; font-size: 13px; color: var(--text-2); line-height: 1.35; }
+  .news small b { color: var(--text); font-weight: 600; }
+
+  /* Story summary */
+  .story { border-radius: 24px; padding: 18px; background: var(--surface); }
+  .dark .story { background: var(--raised); }
+  .story-line { margin: 0 0 12px; font-family: 'Literata', Georgia, serif; font-size: 21px; font-weight: 600; }
+  .story-line b { color: var(--accent); font-size: 30px; }
+  .bar { display: flex; gap: 3px; height: 10px; border-radius: 999px; overflow: hidden; margin-bottom: 10px; }
+  .bar i { display: block; min-width: 6%; }
+  .m { background: var(--story-memory); } .h { background: var(--story-heart); } .s { background: var(--story-milestone); }
+  .rows div { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 15px; }
+  .rows i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .rows b { font-weight: 700; margin-right: -4px; }
+  .rows .go { margin-left: auto; color: var(--text-2); font-size: 18px; }
+</style>
+</head>
+<body>
+<div class="board" id="board-context">
+  <section><div class="cap">1 · Wir · in context</div><div class="sub">Lower part of Wir, starting at the monthly mosaic.</div><div class="phone tall" data-ctx></div></section>
+  <section><div class="cap">2 · Wir · scrolled</div><div class="sub">Further down: the three recent rows and the story summary.</div><div class="phone tall" data-ctx data-offset="330"></div></section>
+  <section><div class="cap">3 · Wir · scrolled · Dark</div><div class="sub">Same composition with dark roles; photographs stay natural.</div><div class="phone tall dark" data-ctx data-offset="330"></div></section>
+</div>
+<div class="board" id="board-states">
+  <section><div class="cap">4 · Month · one photo</div><div class="sub">A single photo is one wide tile.</div><div class="phone panel"><div class="content" data-month="1"></div></div></section>
+  <section><div class="cap">5 · Month · two photos</div><div class="sub">Two photos share the row equally.</div><div class="phone panel"><div class="content" data-month="2"></div></div></section>
+  <section><div class="cap">6 · Month · three photos, one sensitive</div><div class="sub">Sensitive previews stay concealed; the caption remains.</div><div class="phone panel"><div class="content" data-month="3s"></div></div></section>
+  <section><div class="cap">7 · Story · two categories</div><div class="sub">Minimum eligible summary (two categories, five items); only present categories render.</div><div class="phone panel"><div class="content" data-story="2"></div></div></section>
+  <section><div class="cap">8 · Story · no duration</div><div class="sub">Without a relationship start date the line drops the period.</div><div class="phone panel dark"><div class="content" data-story="nodur"></div></div></section>
+</div>
+<script>
+  const I = (f) => `../../../../../backend/demo_assets/images/${f}.jpg`;
+  const tiles = {
+    dog: ['dog-outdoors', 'Mit Bruno im Wald'], lake: ['lake-sunrise', 'Sonnenaufgang am See'], field: ['sunset-field', 'Abend auf dem Feld'],
+  };
+  const tile = (k, sens) => `<div class="tile${sens ? ' sensitive' : ''}"><img src="${I(tiles[k][0])}" alt="">${sens ? '<div class="veil">Sensibler Inhalt</div>' : ''}<span>${tiles[k][1]}</span></div>`;
+  const month = (n, sens) => `<section class="sec first"><div class="sec-head"><h2>Euer November</h2><span class="more">Alle Momente</span></div>
+    <div class="mosaic n${n}">${['dog', 'lake', 'field'].slice(0, n).map((k, i) => tile(k, sens && i === 2)).join('')}</div></section>`;
+  const story = (cats, dur) => {
+    const all = [['m', 28, 'Momente'], ['h', 9, 'Herzmomente'], ['s', 5, 'Meilensteine']];
+    const use = cats === 2 ? [['m', 3, 'Momente'], ['h', 2, 'Herzmomente']] : all;
+    const total = use.reduce((a, c) => a + c[1], 0);
+    return `<section class="sec first"><div class="sec-head"><h2>Eure Geschichte</h2></div><div class="story">
+      <p class="story-line"><b>${total}</b> ${dur ? `Erinnerungen in ${cats === 2 ? '4 Monaten' : '3 Jahren'}` : 'gemeinsame Erinnerungen'}</p>
+      <div class="bar">${use.map(([c, v]) => `<i class="${c}" style="flex:${v}"></i>`).join('')}</div>
+      <div class="rows">${use.map(([c, v, l]) => `<div><i class="${c}"></i><b>${v}</b> ${l}<span class="go">›</span></div>`).join('')}</div></div></section>`;
+  };
+  const news = `<section class="sec"><div class="sec-head"><h2>Neues bei euch</h2><span class="more">Alle Aktivitäten</span></div><div class="news">
+    <div><span class="av me">LS</span><span><strong>Konzert im Stadtpark</strong><small><b>Du</b> hast eine Erinnerung festgehalten · 8. Nov., 17:44</small></span></div>
+    <div><span class="av pa">AL</span><span><strong>Konzert im Stadtpark</strong><small><b>Alex</b> hat einen Plan abgeschlossen · 8. Nov., 17:42</small></span></div>
+    <div><span class="av pa">AL</span><span><strong>Erste Nachricht</strong><small><b>Alex</b> hat einen Meilenstein hinzugefügt · 6. Nov., 11:48</small></span></div></div></section>`;
+  const status = '<div class="status"><span>9:41</span><span>●●● ▭</span></div>';
+  const nav = '<div class="nav"><span class="on">Wir</span><span>Momente</span><span class="plus"></span><span>Planen</span><span>Mehr</span></div>';
+  document.querySelectorAll('[data-ctx]').forEach((el) => { el.innerHTML = status + `<div class="content"><div style="margin-top:-${el.dataset.offset || 0}px">${month(3)}${news}${story(3, true).replace('sec first', 'sec')}</div></div>` + nav; });
+  document.querySelectorAll('[data-month]').forEach((el) => { const v = el.dataset.month; el.innerHTML = month(parseInt(v, 10), v.endsWith('s')); });
+  document.querySelectorAll('[data-story]').forEach((el) => { el.innerHTML = el.dataset.story === '2' ? story(2, true) : story(3, false); });
+</script>
+</body>
+</html>

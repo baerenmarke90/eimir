@@ -156,4 +156,46 @@ describe('PlanStoryContinuation', () => {
       '/plan/plans/plan-1',
     );
   });
+
+  it('closes a plan from a wish with the fulfilled wish and its path (#1790 F2)', () => {
+    render(
+      <MemoryRouter initialEntries={['/plan/plans/plan-1']}>
+        <PlanStoryContinuation
+          apis={{} as SharedPlanningApis}
+          spaceId="space-1"
+          plan={{ ...plan, sourceWishId: 'wish-1' }}
+          sharedAchievementEnabled
+        />
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByRole('heading', {
+        name: i18n.t('wishJourney.fulfilledTitle'),
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        i18n.t('wishJourney.fulfilledBody', { title: plan.title }),
+      ),
+    ).toBeTruthy();
+    const path = screen.getByRole('list', {
+      name: i18n.t('wishJourney.pathLabel'),
+    });
+    expect(path.hasAttribute('data-advancing')).toBe(true);
+    expect(path.querySelector('[aria-current="step"]')?.textContent).toBe(
+      i18n.t('wishJourney.stages.experienced'),
+    );
+    // The existing continuation stays: capture a memory, or later.
+    expect(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.planStory.memoryAction'),
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: i18n.t('m5s3.planStory.later') }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByText(i18n.t('m5s3.plan.sharedAchievementTitle')),
+    ).toBeNull();
+  });
 });

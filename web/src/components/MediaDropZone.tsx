@@ -1,10 +1,4 @@
-import {
-  type DragEvent,
-  type ReactNode,
-  useContext,
-  useRef,
-  useState,
-} from 'react';
+import { type ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { VideoProcessingContext } from '../client/video';
 import { useTranslation } from '../i18n';
 import {
@@ -26,6 +20,7 @@ type Props = {
   disabled?: boolean;
   multiple?: boolean;
   videos?: boolean;
+  pageWide?: boolean;
   onFiles: (files: readonly File[]) => void;
 };
 
@@ -35,66 +30,92 @@ export function MediaDropZone({
   disabled = false,
   multiple = true,
   videos = false,
+  pageWide = false,
   onFiles,
 }: Props) {
   const { t } = useTranslation();
   const depth = useRef(0);
   const [dragging, setDragging] = useState(false);
   const [problem, setProblem] = useState('');
-  const hasFiles = (event: DragEvent) =>
-    event.dataTransfer.types.includes('Files');
+  const element = useRef<HTMLFieldSetElement>(null);
+  type FileDrag = Pick<
+    globalThis.DragEvent,
+    'dataTransfer' | 'preventDefault' | 'stopPropagation'
+  >;
+  const hasFiles = (event: FileDrag) =>
+    event.dataTransfer?.types.includes('Files');
   const reset = () => {
     depth.current = 0;
     setDragging(false);
   };
+  const enter = (event: FileDrag) => {
+    if (!hasFiles(event)) return;
+    event.preventDefault();
+    depth.current += 1;
+    if (!disabled) setDragging(true);
+  };
+  const leave = (event: FileDrag) => {
+    if (!hasFiles(event)) return;
+    depth.current = Math.max(0, depth.current - 1);
+    if (!depth.current) setDragging(false);
+  };
+  const over = (event: FileDrag) => {
+    if (!hasFiles(event)) return;
+    event.preventDefault();
+    if (event.dataTransfer)
+      event.dataTransfer.dropEffect = disabled ? 'none' : 'copy';
+  };
+  const drop = (event: FileDrag) => {
+    if (!hasFiles(event) && !event.dataTransfer?.files.length) return;
+    event.preventDefault();
+    event.stopPropagation();
+    reset();
+    if (disabled) return;
+    const files = Array.from(event.dataTransfer?.files ?? []);
+    if (!multiple && files.length > 1) {
+      setProblem(t('mediaDrop.single'));
+      return;
+    }
+    const accepted = files.filter(
+      (file) =>
+        IMAGE_TYPES.has(file.type) ||
+        (videos && ['video/mp4', 'video/quicktime'].includes(file.type)),
+    );
+    setProblem(
+      accepted.length !== files.length
+        ? t(videos ? 'mediaDrop.supportedMedia' : 'mediaDrop.supportedPhotos')
+        : '',
+    );
+    if (accepted.length) onFiles(accepted);
+  };
+  useEffect(() => {
+    if (!pageWide) return;
+    const page = element.current?.closest<HTMLElement>('.page-composer');
+    if (!page) return;
+    const handlers = {
+      dragenter: enter,
+      dragleave: leave,
+      dragover: over,
+      drop,
+    };
+    for (const [name, handler] of Object.entries(handlers))
+      page.addEventListener(name, handler as unknown as EventListener);
+    return () => {
+      for (const [name, handler] of Object.entries(handlers))
+        page.removeEventListener(name, handler as unknown as EventListener);
+    };
+  });
   return (
     <fieldset
+      ref={element}
       aria-label={t('mediaDrop.area')}
       className={`media-drop-zone${dragging && !disabled ? ' is-dragging' : ''}`}
       data-file-dropzone
-      onDragEnter={(event) => {
-        if (!hasFiles(event)) return;
-        event.preventDefault();
-        depth.current += 1;
-        if (!disabled) setDragging(true);
-      }}
-      onDragLeave={(event) => {
-        if (!hasFiles(event)) return;
-        depth.current = Math.max(0, depth.current - 1);
-        if (!depth.current) setDragging(false);
-      }}
-      onDragOver={(event) => {
-        if (!hasFiles(event)) return;
-        event.preventDefault();
-        event.dataTransfer.dropEffect = disabled ? 'none' : 'copy';
-      }}
-      onDrop={(event) => {
-        if (!hasFiles(event) && !event.dataTransfer.files.length) return;
-        event.preventDefault();
-        event.stopPropagation();
-        reset();
-        if (disabled) return;
-        const files = Array.from(event.dataTransfer.files);
-        if (!multiple && files.length > 1) {
-          setProblem(t('mediaDrop.single'));
-          return;
-        }
-        const accepted = files.filter(
-          (file) =>
-            IMAGE_TYPES.has(file.type) ||
-            (videos && ['video/mp4', 'video/quicktime'].includes(file.type)),
-        );
-        setProblem(
-          accepted.length !== files.length
-            ? t(
-                videos
-                  ? 'mediaDrop.supportedMedia'
-                  : 'mediaDrop.supportedPhotos',
-              )
-            : '',
-        );
-        if (accepted.length) onFiles(accepted);
-      }}
+      data-drop-label={t('composer.dropPhotos')}
+      onDragEnter={pageWide ? undefined : enter}
+      onDragLeave={pageWide ? undefined : leave}
+      onDragOver={pageWide ? undefined : over}
+      onDrop={pageWide ? undefined : drop}
     >
       {children}
       {!disabled ? (

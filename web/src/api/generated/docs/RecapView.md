@@ -6,6 +6,8 @@
 
 Name | Type
 ------------ | -------------
+`facts` | [RecapFactsView](RecapFactsView.md)
+`film` | [RecapFilmView](RecapFilmView.md)
 `generatedAt` | Date
 `headline` | string
 `id` | string
@@ -14,12 +16,15 @@ Name | Type
 `kind` | [RecapKind](RecapKind.md)
 `locale` | string
 `month` | number
+`mood` | [RecapMoodView](RecapMoodView.md)
 `ownDraft` | [RecapDraftView](RecapDraftView.md)
 `reflections` | [Array&lt;RecapReflectionView&gt;](RecapReflectionView.md)
 `savedAt` | Date
 `sources` | [Array&lt;RecapSourceView&gt;](RecapSourceView.md)
 `startsOn` | Date
 `status` | string
+`supersededById` | string
+`supersedesId` | string
 `theme` | string
 `throughOn` | Date
 `variant` | number
@@ -33,6 +38,8 @@ import type { RecapView } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "facts": null,
+  "film": null,
   "generatedAt": null,
   "headline": null,
   "id": null,
@@ -41,12 +48,15 @@ const example = {
   "kind": null,
   "locale": null,
   "month": null,
+  "mood": null,
   "ownDraft": null,
   "reflections": null,
   "savedAt": null,
   "sources": null,
   "startsOn": null,
   "status": null,
+  "supersededById": null,
+  "supersedesId": null,
   "theme": null,
   "throughOn": null,
   "variant": null,

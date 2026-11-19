@@ -1,3 +1,5 @@
+import { advanceUploadProgress } from './uploadProgress';
+
 export type AttachmentDraftStatus =
   | 'preparing'
   | 'uploading'
@@ -47,6 +49,7 @@ export type AttachmentDraftAction =
       keepAttachmentId?: boolean;
     }
   | { type: 'recovered'; id: string; file: File; previewUrl: string }
+  | { type: 'replaced'; id: string; file: File; previewUrl: string }
   | { type: 'sensitive'; id: string; value: boolean }
   | { type: 'remove'; id: string }
   | { type: 'move'; id: string; offset: -1 | 1 }
@@ -91,7 +94,7 @@ export function attachmentDraftReducer(
         action.attempt,
         (draft) => ({
           ...draft,
-          progress: Math.max(0, Math.min(100, action.progress)),
+          progress: advanceUploadProgress(draft.progress, action.progress),
         }),
       );
     case 'phase':
@@ -102,7 +105,12 @@ export function attachmentDraftReducer(
         (draft) => ({
           ...draft,
           status: action.status,
-          progress: action.status === 'validating' ? 100 : 0,
+          progress:
+            action.status === 'validating'
+              ? 100
+              : action.status === draft.status
+                ? draft.progress
+                : 0,
           error: undefined,
         }),
       );
@@ -145,6 +153,23 @@ export function attachmentDraftReducer(
               previewUrl: action.previewUrl,
               status: 'ready',
               progress: 100,
+              error: undefined,
+            }
+          : draft,
+      );
+    case 'replaced':
+      // An edited photo (#1907 G1) takes the draft's place and position; the
+      // previous upload is abandoned and the new file uploads in its stead.
+      return drafts.map((draft) =>
+        draft.id === action.id
+          ? {
+              ...draft,
+              file: action.file,
+              previewUrl: action.previewUrl,
+              status: 'uploading',
+              progress: 0,
+              attachmentId: undefined,
+              hasThumbnail: undefined,
               error: undefined,
             }
           : draft,

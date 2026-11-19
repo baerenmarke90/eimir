@@ -1,13 +1,14 @@
-import { fulfillEmptyPlanComments } from '../support/planComments';
-import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
 import path from 'node:path';
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import AxeBuilder from '../support/axe';
+import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { itemMenuTrigger } from '../support/itemMenu';
+import { fulfillEmptyPlanComments } from '../support/planComments';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -509,10 +510,27 @@ test('completed Plan continuation opens canonical Memory capture and cancellatio
     .getByRole('button', { name: taskBoundary.discard, exact: true })
     .click();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
-  await expect(page.getByText(m5s3.plan.completedBody)).toBeVisible();
+  await expect(page.locator('.planen-detail-status')).toHaveText(
+    m5s3.plan.completedTitle,
+  );
+  await expect(page.locator('.planen-detail-subfacts')).toContainText(
+    '11.09.2026',
+  );
   await expect(
-    page.getByRole('button', { name: m5s3.planStory.memoryAction }),
-  ).toBeVisible();
+    page.getByRole('heading', { name: m5s3.planStory.readHeading }),
+  ).toHaveCount(0);
+  await expect(page.getByText(m5s3.plan.completedBody)).toHaveCount(0);
+  await expect(
+    page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
+  ).toHaveCount(0);
+  for (const action of [
+    m5s3.planStory.memoryAction,
+    m5s3.planStory.heartMomentAction,
+    m5s3.planStory.milestoneAction,
+  ])
+    await expect(
+      page.getByRole('button', { name: action, exact: true }),
+    ).toHaveCount(0);
 });
 
 test('Later dismisses the continuation and restores focus to stable Plan navigation', async ({
@@ -625,13 +643,13 @@ async function assertCompetingWritesLocked(page: Page): Promise<void> {
     'readonly',
     '',
   );
+  // Editing starts from the item menu behind the modal completion sheet. It
+  // cannot be opened while the write is pending, so no menu row (Edit or
+  // Delete) can start a competing write.
   await expect(
-    page.getByRole('button', {
-      name: de.common.edit,
-      exact: true,
-      includeHidden: true,
-    }),
-  ).toBeDisabled();
+    page.getByRole('button', { name: m5s3.plan.menu, includeHidden: true }),
+  ).toHaveCount(1);
+  await expect(page.locator('.item-menu-option')).toHaveCount(0);
   // The completion date and planned date deliberately share the concise label
   // "Datum". Only the schedule editor must be absent during completion.
   await expect(page.locator('#plan-schedule-date')).toHaveCount(0);
@@ -850,13 +868,7 @@ test('Plan completion failure remains actionable after leaving and returning to 
   await expect(page).toHaveURL(/\/more$/);
   await page.goBack();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
-  await expect(
-    page.getByRole('button', {
-      name: de.common.edit,
-      exact: true,
-      includeHidden: true,
-    }),
-  ).toBeVisible();
+  await expect(itemMenuTrigger(page)).toBeVisible();
   await page.locator('.planen-complete-cta').click();
   await page.getByLabel(m5s3.plan.experiencedOn).fill(EXPERIENCED_ON);
   await expect(
@@ -902,14 +914,28 @@ test('a completion conflict is recovered from a fresh read without celebration o
   const readsBeforeConflict = state.planReads;
 
   state.releaseCompletion();
-  await expect(page.getByText(m5s3.plan.completedBody)).toBeVisible();
+  await expect(page.locator('.planen-detail-status')).toHaveText(
+    m5s3.plan.completedTitle,
+  );
+  await expect(page.locator('.planen-detail-subfacts')).toContainText(
+    '11.09.2026',
+  );
+  await expect(
+    page.getByRole('heading', { name: m5s3.planStory.readHeading }),
+  ).toHaveCount(0);
+  await expect(page.getByText(m5s3.plan.completedBody)).toHaveCount(0);
   await expect(pendingStatus(page)).toHaveCount(0);
   await expect(
     page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
   ).toHaveCount(0);
-  await expect(
-    page.getByRole('button', { name: m5s3.planStory.memoryAction }),
-  ).toBeVisible();
+  for (const action of [
+    m5s3.planStory.memoryAction,
+    m5s3.planStory.heartMomentAction,
+    m5s3.planStory.milestoneAction,
+  ])
+    await expect(
+      page.getByRole('button', { name: action, exact: true }),
+    ).toHaveCount(0);
   expect(state.planReads).toBeGreaterThan(readsBeforeConflict);
   expect(state.completionCalls).toBe(1);
   await savePlanCompletionEvidence(

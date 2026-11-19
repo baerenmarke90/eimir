@@ -2,12 +2,47 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { StrictMode } from 'react';
-import { vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 import { i18n } from '../i18n';
 import games from '../i18n/locales/games';
 import type { OurMomentsGameSetup } from './OurMomentsGamePage';
 import { OurMomentsGamePage } from './OurMomentsGamePage';
+
+// #2048: the play-mode choice comes first; these tests play on one phone.
+vi.mock('../client/useRemoteCoupleGames', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('../client/useRemoteCoupleGames')>();
+  const ok = async () => ({ ok: true as const });
+  const stub = () => ({
+    state: undefined,
+    isLoading: false,
+    loadError: null,
+    problem: null,
+    busy: false,
+    refetch: () => undefined,
+    view: { phase: 'notStarted' as const, readiness: null },
+    missingWishes: null,
+    start: ok,
+    end: ok,
+    continue: () => undefined,
+  });
+  return {
+    ...actual,
+    useRemoteWhoOfUsGame: stub,
+    useRemoteWishDetectiveGame: stub,
+    useRemoteOurMomentsGame: stub,
+  };
+});
+
+async function chooseTogether() {
+  fireEvent.click(
+    await screen.findByRole('radio', {
+      name: new RegExp(games.playMode.together),
+    }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: games.playMode.start }));
+}
 
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 
@@ -54,6 +89,7 @@ function renderPage(
 describe('OurMomentsGamePage', () => {
   it('starts immediately with a six-card sofa board from three prepared shared moments', async () => {
     renderPage(setup(3));
+    await chooseTogether();
 
     await screen.findByRole('heading', {
       name: games.entries.moments.title,
@@ -115,6 +151,7 @@ describe('OurMomentsGamePage', () => {
         })),
       };
       const view = renderPage(blobSetup, { strictMode: true });
+      await chooseTogether();
 
       await screen.findByRole('region', {
         name: games.momentsGame.boardAria,
@@ -135,6 +172,7 @@ describe('OurMomentsGamePage', () => {
 
   it('keeps the session interactive under React StrictMode', async () => {
     renderPage(setup(3), { strictMode: true });
+    await chooseTogether();
 
     await screen.findByRole('heading', {
       name: games.entries.moments.title,

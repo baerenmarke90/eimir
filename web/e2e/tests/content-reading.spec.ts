@@ -2,8 +2,8 @@ import { fulfillDefaultProductContext } from '../support/productContext';
 import { expect, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/storyProducts';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import wishJourney from '../../src/i18n/locales/wishJourney';
 import memoryCopy from '../../src/i18n/locales/memoryProduct';
-import { placeDetailPath } from '../../src/client/routes';
 import {
   ACCOUNT_ID,
   PARTNER_ID,
@@ -12,6 +12,7 @@ import {
   installMocks,
   signIn,
 } from '../support/storyTimelineFixture';
+import { itemMenuRow, openItemMenu } from '../support/itemMenu';
 
 for (const [width, theme, large] of [
   [360, 'light', false],
@@ -66,6 +67,8 @@ for (const [width, theme, large] of [
               {
                 id: 'lake-place',
                 name: 'Lake shore',
+                latitude: 49.1,
+                longitude: 7.2,
                 version: 1,
                 createdAt: plan.createdAt,
                 updatedAt: plan.updatedAt,
@@ -75,6 +78,20 @@ for (const [width, theme, large] of [
             ],
             hasMore: false,
             nextCursor: null,
+          },
+        });
+      if (path.endsWith('/wishes/source-wish'))
+        return route.fulfill({
+          json: {
+            id: 'source-wish',
+            spaceId: SPACE_ID,
+            title: 'A wish to walk by the lake',
+            description: '',
+            status: 'OPEN',
+            version: 1,
+            createdAt: plan.createdAt,
+            updatedAt: plan.updatedAt,
+            capabilities: plan.capabilities,
           },
         });
       if (path.endsWith('/link-preview')) {
@@ -92,16 +109,18 @@ for (const [width, theme, large] of [
     const more = page.locator('.description-disclosure');
     await expect(more).toHaveText(copy.descriptionDisclosure.more);
     await expect(more).toHaveAttribute('aria-expanded', 'false');
+    const place = page.locator('.planen-detail-when-where').getByRole('link', {
+      name: 'Lake shore',
+      exact: true,
+    });
+    await expect(place).toHaveCount(1);
+    await expect(place).toHaveAttribute('href', '/story/map?place=49.1%3A7.2');
+    // #1790 F2: the source wish is the origin line above the Plan title.
     await expect(
-      page
-        .locator('.planen-detail-context, .planen-detail-when-where')
-        .getByRole('link'),
-    ).toHaveCount(2);
+      page.locator('.planen-detail-context .plan-wish-source'),
+    ).toHaveCount(0);
     await expect(
-      page.getByRole('link', { name: 'Lake shore' }),
-    ).toHaveAttribute('href', placeDetailPath('lake-place'));
-    await expect(
-      page.getByRole('link', { name: m5s3.plan.openWish }),
+      page.getByRole('link', { name: wishJourney.fromWish }),
     ).toHaveAttribute('href', '/plan/wishes/source-wish');
     await captureScreenshot(
       page,
@@ -174,7 +193,12 @@ test('partner edits shared words while author identity and destructive controls 
   );
   await signIn(page);
   await page.goto('/story/memories/mem-canal');
-  await page.getByRole('link', { name: memoryCopy.edit, exact: true }).click();
+  // The partner may edit the shared words, but the menu offers no deletion.
+  await openItemMenu(page);
+  await expect(
+    page.locator('.item-menu-option').filter({ hasText: memoryCopy.delete }),
+  ).toHaveCount(0);
+  await itemMenuRow(page, memoryCopy.edit).click();
   await page
     .locator('textarea[name="body"]')
     .fill('The original words, with a thought from the partner.');

@@ -247,6 +247,19 @@ type WriteAvailability = "AVAILABLE" | "OFFLINE_BLOCKED" | "SESSION_BLOCKED";
 - `STALE_CACHE` shows the last successful state and its age/time reference.
 - Offline writes, a local Outbox, and automatic later synchronization are
   **not** part of the MVP.
+- **Exception: shopping lists (#1808).** On a Collection of kind `SHOPPING`
+  (Product Owner decision of 2026-11-13, recorded in #1808), adding an item,
+  checking or unchecking it and changing its quantity are kept on the device
+  while there is no connection and sent later, in order. The queue lives in the
+  same on-device store and cache generation as the read cache, so sign-out,
+  leaving the Space, Account deletion and imports wipe it and a new generation
+  cannot reach it. It holds only the list content already on screen and is
+  bounded. A queued add carries its own `Idempotency-Key` (decision 0015), so
+  repeating it cannot create a second item; the other changes set a value and
+  are skipped when the item already has it. A queued add that waited longer
+  than 12 hours is not sent; the person is told and adds it again. Unsent
+  changes are shown as waiting and are never presented as saved or `synced`.
+  Every other write stays online-only.
 - A form draft may be retained locally but is not represented as a domain
   object or marked `synced`.
 - Account sign-out, session revocation, and Space changes handle cache and
@@ -344,7 +357,7 @@ An API feature is UI-ready only when:
 - Web and Android expose the same domain validation,
 - analytics and logs receive no sensitive content,
 - tenant, owner-only, and upload tests exist,
-- offline writes are not falsely implied in the MVP.
+- offline writes are not falsely implied in the MVP (the shopping-list queue above is the one documented exception).
 
 ## Related documents
 

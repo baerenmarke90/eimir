@@ -1,9 +1,10 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
-import copy from '../../src/i18n/locales/wishSelection';
 import planning from '../../src/i18n/locales/m5s3';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import copy from '../../src/i18n/locales/wishSelection';
 import localizedFixtures from '../fixtures/locales/de';
+import AxeBuilder from '../support/axe';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -18,7 +19,12 @@ const demo = localizedFixtures.wishSelection;
 const ROOT = `/api/v1/spaces/${SPACE_ID}`;
 const WISH_IDS = ['wish-pasta', 'wish-lake', 'wish-spa'];
 const ROUND_ID = 'round-choice';
-type Own = { favoriteWishIds: string[]; published: boolean; version: number };
+type Own = {
+  favoriteWishIds: string[];
+  favoriteDateIdeaIds: string[];
+  published: boolean;
+  version: number;
+};
 type Round = {
   id: string | null;
   version: number;
@@ -29,6 +35,15 @@ type Round = {
   selectionToken: string | null;
   resultState: string;
   commonWishIds: string[];
+  dateIdeaCandidates: unknown[];
+  commonDateIdeaIds: string[];
+  decision?: {
+    wishId: string | null;
+    dateIdeaId: string | null;
+    method: 'RANDOM' | 'MANUAL';
+  } | null;
+  randomRequest?: { mine: boolean; declined: boolean } | null;
+  randomPool?: 'COMMON' | 'FAVORITES' | 'ALL' | null;
 };
 type Candidate = {
   wishId: string;
@@ -45,13 +60,20 @@ function emptyRound(): Round {
     roundToken: 'absent',
     title: null,
     candidates: [],
-    own: { favoriteWishIds: [], published: false, version: 0 },
+    own: {
+      favoriteWishIds: [],
+      favoriteDateIdeaIds: [],
+      published: false,
+      version: 0,
+    },
     selectionToken: null,
     resultState: 'NO_ROUND',
     commonWishIds: [],
+    dateIdeaCandidates: [],
+    commonDateIdeaIds: [],
   };
 }
-function readyRound(common = true): Round {
+function readyRound(common: boolean | number = true): Round {
   return {
     id: ROUND_ID,
     version: 1,
@@ -64,10 +86,31 @@ function readyRound(common = true): Round {
       status: 'OPEN',
       planId: null,
     })),
-    own: { favoriteWishIds: WISH_IDS.slice(0, 2), published: true, version: 1 },
+    own: {
+      favoriteWishIds: WISH_IDS.slice(0, 2),
+      favoriteDateIdeaIds: [],
+      published: true,
+      version: 1,
+    },
     selectionToken: `${ROUND_ID}:1:1`,
     resultState: 'READY',
-    commonWishIds: common ? [WISH_IDS[0]] : [],
+    commonWishIds:
+      typeof common === 'number'
+        ? WISH_IDS.slice(0, common)
+        : common
+          ? [WISH_IDS[0]]
+          : [],
+    dateIdeaCandidates: [],
+    commonDateIdeaIds: [],
+    decision: null,
+    randomRequest: null,
+    // Chance is offered with several or no common favourites (#1907 J1).
+    randomPool:
+      typeof common === 'number' && common >= 2
+        ? 'COMMON'
+        : common === false
+          ? 'FAVORITES'
+          : null,
   };
 }
 
@@ -157,12 +200,51 @@ async function install(page: Page, initial = emptyRound()) {
           status: 'OPEN',
           planId: null,
         })),
-        own: { favoriteWishIds: [], published: false, version: 0 },
+        own: {
+          favoriteWishIds: [],
+          favoriteDateIdeaIds: [],
+          published: false,
+          version: 0,
+        },
         commonWishIds: [],
         resultState: 'CHOOSING',
       };
       round.roundToken = `${ROUND_ID}:${round.version}`;
       round.selectionToken = `${ROUND_ID}:${round.version}:0`;
+      await json(round);
+      return;
+    }
+    if (path === `${ROOT}/wish-selection/decision` && method === 'PUT') {
+      const body = request.postDataJSON();
+      requests.push({
+        kind: 'decision',
+        body,
+        ifMatch: request.headers()['if-match'],
+      });
+      if (body.action === 'CHOOSE')
+        round.decision = {
+          wishId: body.wishId ?? null,
+          dateIdeaId: body.dateIdeaId ?? null,
+          method: 'MANUAL',
+        };
+      if (body.action === 'CLEAR') round.decision = null;
+      if (body.action === 'REQUEST_RANDOM')
+        round.randomRequest = { mine: true, declined: false };
+      if (body.action === 'WITHDRAW_RANDOM') round.randomRequest = null;
+      if (body.action === 'ACCEPT_RANDOM') {
+        // The server draws once; the mock stands in with a fixed result.
+        round.decision = {
+          wishId: WISH_IDS[1],
+          dateIdeaId: null,
+          method: 'RANDOM',
+        };
+        round.randomRequest = null;
+      }
+      if (body.action === 'DECLINE_RANDOM')
+        round.randomRequest = { mine: false, declined: true };
+      round.version += 1;
+      round.roundToken = `${ROUND_ID}:${round.version}`;
+      round.selectionToken = `${ROUND_ID}:${round.version}:${round.own.version}`;
       await json(round);
       return;
     }
@@ -202,6 +284,10 @@ async function install(page: Page, initial = emptyRound()) {
         hasMore: false,
         nextCursor: null,
       });
+      return;
+    }
+    if (path === `${ROOT}/wishes/${WISH_IDS[0]}` && method === 'GET') {
+      await json({ ...wish(0), version: selectedPlan ? 2 : 1 });
       return;
     }
     if (path === `${ROOT}/plans` && method === 'GET') {
@@ -284,6 +370,17 @@ async function enter(page: Page) {
 }
 async function capture(page: Page, info: TestInfo, name: string) {
   await page.evaluate(() => window.scrollTo(0, 0));
+  // Let finite entry motion settle, bounded so a paused animation cannot hang.
+  await page.evaluate(() =>
+    Promise.race([
+      Promise.all(
+        document
+          .getAnimations()
+          .map((animation) => animation.finished.catch(() => undefined)),
+      ),
+      new Promise((resolve) => setTimeout(resolve, 1500)),
+    ]),
+  );
   await captureScreenshot(page, info, `wish-selection-${name}.png`, {
     fullPage: true,
   });
@@ -300,28 +397,54 @@ test('mobile round -> private selection -> shared favorite -> canonical dated Pl
   await page
     .getByRole('tab', { name: planning.overview.segmentWishes, exact: true })
     .click();
+  // One slim entry replaces the selection link and the catalog card (#1907 J1).
+  const entry = page.locator('.wish-selection-entry');
+  await expect(entry).toContainText(copy.entryTitle);
+  await expect(
+    page.getByText(demo.wishes[0], { exact: true }).first(),
+  ).toBeVisible();
+  await expect(page.locator('a[href="/plan/ideas"]')).toHaveCount(0);
   await capture(page, info, 'hub-390-light');
-  await page
-    .getByRole('link', { name: copy.compactEntryAction, exact: true })
-    .click();
+  await entry.getByRole('link', { name: copy.entryStart, exact: true }).click();
   await expect(page.locator('.product-shell')).toHaveAttribute(
     'data-focused-task',
     'true',
   );
+  await expect(
+    page.getByRole('heading', { level: 1, name: copy.setupTitle }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('list', { name: copy.stepsLabel }).locator('li'),
+  ).toHaveCount(3);
+  await capture(page, info, 'compose-390-light');
+  await page
+    .getByRole('button', { name: new RegExp(copy.sourceWishesTitle) })
+    .click();
   await page.getByRole('checkbox', { name: demo.wishes[0] }).check();
   await page.getByRole('checkbox', { name: demo.wishes[1] }).check();
+  await expect(
+    page.locator('.wish-selection-pick-bar').getByRole('status'),
+  ).toHaveText(copy.selected.replace('{{count}}', '2'));
+  await capture(page, info, 'pick-wishes-390-light');
+  await page.getByRole('button', { name: copy.pickDone, exact: true }).click();
+  await expect(
+    page.getByText(copy.sourceCount.replace('{{count}}', '2'), {
+      exact: true,
+    }),
+  ).toBeVisible();
   await page.getByLabel(copy.occasion, { exact: true }).fill(demo.occasion);
   await capture(page, info, 'setup-390-light');
   await page.getByRole('button', { name: copy.start, exact: true }).click();
-  // Setup already has a checked input with this label; wait for the new task.
-  const favorites = page.getByRole('group', {
-    name: copy.favorites,
+  await expect(
+    page.getByRole('heading', { level: 1, name: copy.chooseTitle }),
+  ).toBeVisible();
+  const favorite = page.getByRole('button', {
+    name: demo.wishes[0],
     exact: true,
   });
-  await expect(favorites).toBeVisible();
-  const favorite = favorites.getByRole('checkbox', { name: demo.wishes[0] });
-  await favorite.check();
-  await expect(favorite).toBeChecked();
+  await expect(favorite).toHaveAttribute('aria-pressed', 'false');
+  await favorite.click();
+  await expect(favorite).toHaveAttribute('aria-pressed', 'true');
   expect(fixture.requests.filter((item) => item.kind === 'own')).toHaveLength(
     0,
   );
@@ -350,7 +473,10 @@ test('mobile round -> private selection -> shared favorite -> canonical dated Pl
   expect(
     fixture.requests.find((item) => item.kind === 'plan')?.body.schedule,
   ).toEqual({ plannedOn: '2026-11-01' });
-  await page.locator('.subpage-back-slot .task-back-control').click();
+  await page
+    .locator('.composer-header')
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .click();
   await expect(page).toHaveURL(/\/plan\/choose$/);
   await expect(
     page.getByRole('link', {
@@ -360,7 +486,7 @@ test('mobile round -> private selection -> shared favorite -> canonical dated Pl
   expect(fixture.requests.filter((item) => item.kind === 'plan')).toHaveLength(
     1,
   );
-  await page.locator('.subpage-back-slot .task-back-control').click();
+  await page.locator('.wish-selection-heading .task-back-control').click();
   await expect(page).toHaveURL(/\/plan(?:#wishes)?$/);
   await expect(
     page.getByRole('tab', {
@@ -375,19 +501,26 @@ test('publication failure/offline retain private input and never replay a write'
   page,
 }) => {
   const initial = readyRound();
-  initial.own = { favoriteWishIds: [], published: false, version: 0 };
+  initial.own = {
+    favoriteWishIds: [],
+    favoriteDateIdeaIds: [],
+    published: false,
+    version: 0,
+  };
   initial.selectionToken = `${ROUND_ID}:1:0`;
   initial.resultState = 'CHOOSING';
   initial.commonWishIds = [];
   const fixture = await install(page, initial);
   await enter(page);
   await page.goto('/plan/choose');
-  await page.getByRole('checkbox', { name: demo.wishes[0] }).check();
+  const favorite = page.getByRole('button', {
+    name: demo.wishes[0],
+    exact: true,
+  });
+  await favorite.click();
   fixture.failNextShare();
   await page.getByRole('button', { name: copy.share, exact: true }).click();
-  await expect(
-    page.getByRole('checkbox', { name: demo.wishes[0] }),
-  ).toBeChecked();
+  await expect(favorite).toHaveAttribute('aria-pressed', 'true');
   await expect(
     page.getByRole('heading', { name: copy.waitingTitle }),
   ).toHaveCount(0);
@@ -403,9 +536,7 @@ test('publication failure/offline retain private input and never replay a write'
   expect(fixture.requests.filter((item) => item.kind === 'own')).toHaveLength(
     1,
   );
-  await expect(
-    page.getByRole('checkbox', { name: demo.wishes[0] }),
-  ).toBeChecked();
+  await expect(favorite).toHaveAttribute('aria-pressed', 'true');
   expect(fixture.unexpected).toEqual([]);
 });
 
@@ -441,6 +572,93 @@ test('zero common favorites allows a clearly labeled individual proposal and saf
   expect(fixture.requests.filter((item) => item.kind === 'plan')).toHaveLength(
     0,
   );
+});
+
+test('several common favourites: tap one, decide differently, then plan it', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const fixture = await install(page, readyRound(2));
+  await enter(page);
+  await page.goto('/plan/choose');
+  await expect(
+    page.getByRole('heading', {
+      level: 1,
+      name: copy.sharedManyTitle.replace('{{amount}}', '2'),
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: copy.prepare, exact: true }),
+  ).toHaveCount(0);
+  await capture(page, info, 'several-390-light');
+  await page.getByRole('button', { name: demo.wishes[1], exact: true }).click();
+  await expect(
+    page.getByRole('heading', { level: 1, name: copy.chosenTitle }),
+  ).toBeVisible();
+  await expect(page.getByText(copy.chosenLabel, { exact: true })).toBeVisible();
+  await capture(page, info, 'chosen-390-light');
+  await page.getByRole('button', { name: copy.unchoose, exact: true }).click();
+  await page.getByRole('button', { name: demo.wishes[0], exact: true }).click();
+  await page.getByRole('button', { name: copy.prepare, exact: true }).click();
+  await expect(page.getByLabel(copy.planTitle, { exact: true })).toHaveValue(
+    demo.wishes[0],
+  );
+  expect(fixture.unexpected).toEqual([]);
+});
+
+test('chance decides only after the partner agrees', async ({ page }, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const initial = readyRound(false);
+  const fixture = await install(page, initial);
+  await enter(page);
+  await page.goto('/plan/choose');
+  await expect(
+    page.getByRole('heading', { level: 1, name: copy.noMatchTitle }),
+  ).toBeVisible();
+  await capture(page, info, 'random-offer-390-light');
+  await page
+    .getByRole('button', { name: copy.randomPropose, exact: true })
+    .click();
+  await expect(
+    page.getByRole('button', { name: copy.randomWithdraw, exact: true }),
+  ).toBeVisible();
+  await capture(page, info, 'random-asked-390-light');
+  expect(
+    fixture.requests.filter((item) => item.kind === 'decision'),
+  ).toHaveLength(1);
+  expect(fixture.unexpected).toEqual([]);
+});
+
+test('the partner agrees to chance and both see the stored pick', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const initial = readyRound(false);
+  initial.randomRequest = { mine: false, declined: false };
+  const fixture = await install(page, initial);
+  await enter(page);
+  await page.goto('/plan/choose');
+  await expect(
+    page.getByRole('button', { name: copy.randomAccept, exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(copy.randomOnlyOne)).toBeVisible();
+  await capture(page, info, 'random-consent-390-light');
+  await page
+    .getByRole('button', { name: copy.randomAccept, exact: true })
+    .click();
+  // Reduced motion settles the reveal at once.
+  await expect(
+    page.getByText(copy.chosenRandomLabel, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 2, name: demo.wishes[1] }),
+  ).toBeVisible();
+  await capture(page, info, 'random-decided-390-light');
+  expect(
+    fixture.requests.find((item) => item.kind === 'decision')?.body,
+  ).toEqual({ action: 'ACCEPT_RANDOM' });
+  expect(fixture.unexpected).toEqual([]);
 });
 
 for (const scenario of [
@@ -483,6 +701,67 @@ for (const scenario of [
       info,
       `result-${scenario.width}-${scenario.theme}${scenario.large ? '-large-reduced' : ''}`,
     );
+    expect(fixture.unexpected).toEqual([]);
+  });
+
+  test(`composing and choosing at ${scenario.width} ${scenario.theme}${scenario.large ? ' large text and reduced motion' : ''}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: scenario.width, height: 844 });
+    await page.emulateMedia({
+      colorScheme: scenario.theme as 'light' | 'dark',
+      reducedMotion: scenario.large ? 'reduce' : 'no-preference',
+    });
+    const fixture = await install(page);
+    await enter(page);
+    await page.goto('/plan#wishes');
+    await expect(page.locator('.wish-selection-entry')).toBeVisible();
+    await expect(
+      page.getByText(demo.wishes[0], { exact: true }).first(),
+    ).toBeVisible();
+    if (scenario.large)
+      await page.evaluate(
+        () => (document.documentElement.style.fontSize = '200%'),
+      );
+    const suffix = `${scenario.width}-${scenario.theme}${scenario.large ? '-large-reduced' : ''}`;
+    await capture(page, info, `entry-${suffix}`);
+    await page.goto('/plan/choose');
+    await expect(
+      page.getByRole('heading', { level: 1, name: copy.setupTitle }),
+    ).toBeVisible();
+    if (scenario.large)
+      await page.evaluate(
+        () => (document.documentElement.style.fontSize = '200%'),
+      );
+    for (const view of ['compose', 'favorites']) {
+      if (view === 'favorites') {
+        await page
+          .getByRole('button', { name: new RegExp(copy.sourceWishesTitle) })
+          .click();
+        await page.getByRole('checkbox', { name: demo.wishes[0] }).check();
+        await page.getByRole('checkbox', { name: demo.wishes[1] }).check();
+        await page
+          .getByRole('button', { name: copy.pickDone, exact: true })
+          .click();
+        await page
+          .getByRole('button', { name: copy.start, exact: true })
+          .click();
+        await page
+          .getByRole('button', { name: demo.wishes[0], exact: true })
+          .click();
+      }
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth - window.innerWidth,
+        ),
+      ).toBeLessThanOrEqual(1);
+      const findings = await new AxeBuilder({ page })
+        .include('.wish-selection-task')
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+        .analyze();
+      expect(findings.violations).toEqual([]);
+      await capture(page, info, `${view}-${suffix}`);
+    }
     expect(fixture.unexpected).toEqual([]);
   });
 }

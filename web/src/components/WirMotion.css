@@ -1,0 +1,395 @@
+/*
+ * Wir comes alive, calmly: the arrival of the two of you and of what you share.
+ *
+ * Presentation only. Everything is visible, focusable and correct from the
+ * first frame; nothing here waits on data, delays navigation or replays when a
+ * query refetches. All durations and curves are the shared motion tokens, and
+ * reduced motion shows the final composition at once (every block is scoped to
+ * `no-preference`, and the tokens resolve to 0 ms in `reduce` anyway).
+ *
+ * Three layers, each with one job:
+ * 1. The stage (hero): the portraits fade in together and the line between
+ *    them is drawn (WirHeroStage.css). No beat, no ripple.
+ * 2. The modules: each arrives with a short rise and fade, once, as it is
+ *    reached (useWirReveal). The ones already in view arrive together, in
+ *    reading order.
+ * 3. The rest: the rings around the portraits breathe very slowly, one after
+ *    the other, and nothing else moves until you do.
+ *
+ * Only `translate`, `scale` and `opacity` are animated, never on an element
+ * that has its own `animation` (the hover lift), and never with a sideways move
+ * on the children of a horizontal strip: that would widen the strip for a
+ * moment and nudge it. The breathing sits on the decorative ring, not on the
+ * portrait, so tap targets and flights never move.
+ */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* One beat for the whole opening, a little longer than the shared beat so
+     the arrival can be seen without becoming slow. Everything in the stage
+     below, and the heart line in WirHeroStage.css, counts in this beat. */
+  .wir-stage-intro {
+    --wir-intro-beat: calc(var(--duration-sequence-beat) * 1.4);
+  }
+
+  /* ---- 1. The stage ---------------------------------------------------- */
+
+  /* Each person fades in place, the partner a beat later. */
+  .wir-stage-intro .today-hero .partner-avatar-stack > * {
+    animation: wir-intro-person calc(var(--wir-intro-beat) * 2.4)
+      var(--easing-enter) both;
+  }
+
+  .wir-stage-intro .today-hero .partner-avatar-stack > :nth-child(2) {
+    animation-delay: calc(var(--wir-intro-beat) * 0.4);
+  }
+
+  /* The ring opens around the portrait a little after the portrait arrives. */
+  .wir-stage-intro .today-hero .partner-avatar-stack > *::before {
+    animation: wir-intro-ring calc(var(--wir-intro-beat) * 2.4)
+      var(--easing-enter) calc(var(--wir-intro-beat) * 0.6) both;
+  }
+
+  .wir-stage-intro .today-hero .partner-avatar-stack > :nth-child(2)::before {
+    animation-delay: var(--wir-intro-beat);
+  }
+
+  /* Names and today's state follow the portrait, like a caption. */
+  .wir-stage-intro .wir-stage-name,
+  .wir-stage-intro .today-hero .wir-checkin-badge {
+    animation: wir-intro-caption calc(var(--wir-intro-beat) * 2)
+      var(--easing-enter) calc(var(--wir-intro-beat) * 1.4) both;
+  }
+
+  /* What joins you: the ampersand and the time settle in last. */
+  .wir-stage-intro .wir-stage-amp,
+  .wir-stage-intro .wir-bridge-lead,
+  .wir-stage-intro .wir-bridge-rest {
+    animation: wir-intro-caption calc(var(--wir-intro-beat) * 2)
+      var(--easing-enter) calc(var(--wir-intro-beat) * 2.2) both;
+  }
+
+  /* The distance does not rise as a block: its pin settles on its own and
+     the value follows, so the slot itself only fades. The `wir-intro-` names
+     keep a late-arriving value on the same clock as the rest of the stage. */
+  .wir-stage-intro .wir-stage-distance {
+    animation: wir-intro-fade calc(var(--wir-intro-beat) * 2)
+      var(--easing-enter) calc(var(--wir-intro-beat) * 2.2) both;
+  }
+
+  .wir-stage-intro .wir-hero-distance .partner-distance-glyph {
+    animation: wir-intro-pin-land calc(var(--wir-intro-beat) * 3)
+      var(--easing-standard) calc(var(--wir-intro-beat) * 2.2) both;
+  }
+
+  .wir-stage-intro .wir-hero-distance-value {
+    animation: wir-intro-fade calc(var(--wir-intro-beat) * 2)
+      var(--easing-enter) calc(var(--wir-intro-beat) * 4.2) both;
+  }
+
+  /* A current position makes the pin wiggle once, after it has settled, and
+     then it stays still. A position that is not current never moves. The
+     opening repeats the wiggle in its own list so both run together. */
+  .wir-hero-distance.is-fresh .partner-distance-glyph {
+    animation: wir-distance-wiggle var(--duration-gesture-moment)
+      var(--easing-standard) calc(var(--duration-sequence-beat) * 4.4) both;
+  }
+
+  .wir-stage-intro .wir-hero-distance.is-fresh .partner-distance-glyph {
+    animation:
+      wir-intro-pin-land calc(var(--wir-intro-beat) * 3) var(--easing-standard)
+      calc(var(--wir-intro-beat) * 2.2) both,
+      wir-distance-wiggle var(--duration-gesture-moment) var(--easing-standard)
+      calc(var(--wir-intro-beat) * 4.4) both;
+  }
+
+  /* A changed value fades over instead of jumping. */
+  .wir-hero-distance-leaving {
+    display: block;
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    white-space: nowrap;
+    pointer-events: none;
+    animation: wir-distance-leave var(--duration-feedback)
+      var(--easing-standard) both;
+  }
+
+  .wir-hero-distance-value > .is-arriving {
+    display: inline-block;
+    animation: wir-distance-arrive calc(var(--duration-transition) * 1.3)
+      var(--easing-enter) both;
+  }
+
+  /* ---- 2. The modules --------------------------------------------------- */
+
+  /* Pending modules wait invisibly in their own place; the hook flips them
+     once, when they are reached. They are never display:none, so find-in-page,
+     focus order and layout do not change. */
+  .today-section[data-wir-reveal="pending"] .today-section-header {
+    opacity: 0;
+  }
+
+  .today-section[data-wir-reveal="pending"] .today-section-body {
+    opacity: 0;
+    translate: 0 0.5rem;
+  }
+
+  .today-section[data-wir-reveal="shown"] .today-section-header {
+    animation: wir-reveal-fade var(--duration-context) var(--easing-enter)
+      var(--wir-reveal-delay) both;
+  }
+
+  .today-section[data-wir-reveal="shown"] .today-section-body {
+    animation: wir-reveal-body calc(var(--duration-context) * 1.4)
+      var(--easing-enter)
+      calc(var(--wir-reveal-delay) + var(--duration-sequence-beat) * 0.3) both;
+  }
+
+  /* The upcoming plans fade in one after another, so the row reads as a
+     sequence rather than a block. They never move sideways: that would widen
+     the scrolling strip for a moment and nudge it. */
+  .today-section[data-wir-reveal="pending"] .today-agenda-list > * {
+    opacity: 0;
+  }
+
+  .today-section[data-wir-reveal="shown"] .today-agenda-list > * {
+    animation: wir-reveal-fade var(--duration-context) var(--easing-enter)
+      calc(
+        var(--wir-reveal-delay) +
+        var(--duration-sequence-beat) *
+        0.6 +
+        var(--wir-reveal-step, 0) *
+        var(--duration-sequence-beat) *
+        0.35
+      )
+      both;
+  }
+
+  .today-agenda-list > :nth-child(2) {
+    --wir-reveal-step: 1;
+  }
+
+  .today-agenda-list > :nth-child(3) {
+    --wir-reveal-step: 2;
+  }
+
+  .today-agenda-list > :nth-child(n + 4) {
+    --wir-reveal-step: 3;
+  }
+
+  /* The shared moment's caption follows its photograph. */
+  .today-section-moment[data-wir-reveal="pending"] .today-moment-caption {
+    opacity: 0;
+  }
+
+  .today-section-moment[data-wir-reveal="shown"] .today-moment-caption {
+    animation: wir-reveal-fade var(--duration-gesture-moment)
+      var(--easing-enter)
+      calc(var(--wir-reveal-delay) + var(--duration-sequence-beat) * 1.6) both;
+  }
+
+  /* A rediscovered memory rises a little, like the other modules. */
+  .today-section-retrospective[data-wir-reveal="pending"] .today-section-body {
+    opacity: 0;
+    translate: 0 0.5rem;
+  }
+
+  /* The daily quote arrives with a soft fade once it is known, instead of
+     replacing the loading line in a single frame. */
+  .today-page .daily-quote-block {
+    animation: wir-reveal-fade calc(var(--duration-sequence-beat) * 2.4)
+      var(--easing-enter) both;
+  }
+
+  /* ---- 3. The rest: a slow breath --------------------------------------- */
+
+  /* Once the arrival has landed, the rings around the two portraits swell and
+     settle very slowly, one after the other. Opacity and scale on a decorative
+     pseudo-element only: it never changes a portrait's box, so tapping and the
+     flights keep their exact targets. */
+  .today-page
+    .wir-stage:not(.wir-stage-intro)
+    .today-hero
+    .partner-avatar-stack
+    > *::before {
+    animation: wir-breathe var(--duration-connection-travel-far)
+      var(--easing-travel) var(--duration-connection-beat) infinite;
+  }
+
+  .today-page
+    .wir-stage:not(.wir-stage-intro)
+    .today-hero
+    .partner-avatar-stack
+    > :nth-child(2)::before {
+    animation-delay: calc(
+      var(--duration-connection-beat) +
+      var(--duration-connection-travel-far) /
+      2
+    );
+  }
+}
+
+/* ---- Touch: every tappable surface gives a little under the finger ------- */
+
+/* The tiles below already own a transition list (TodayPage.css), which now
+   includes `scale`; only the partner note card has none of its own. */
+.today-living {
+  transition: scale var(--duration-feedback) var(--easing-standard);
+}
+
+.today-moment-link:active .today-moment-figure,
+.today-living:has(a:active),
+.today-agenda-row-link:active,
+.today-recent-tile:active {
+  scale: var(--control-pressed-scale);
+}
+
+@keyframes wir-intro-person {
+  from {
+    opacity: 0;
+    scale: 0.97;
+  }
+
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes wir-intro-ring {
+  from {
+    opacity: 0;
+    scale: 0.84;
+  }
+
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes wir-intro-caption {
+  from {
+    opacity: 0;
+    translate: 0 0.5rem;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes wir-intro-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* The pin comes down a little, dips past its place and rests. */
+@keyframes wir-intro-pin-land {
+  0% {
+    opacity: 0;
+    translate: 0 -0.5rem;
+    scale: 1.2;
+  }
+
+  60% {
+    opacity: 1;
+    translate: 0 0.08rem;
+    scale: 0.92;
+  }
+
+  100% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+/* A short tip to one side and the other, settling back to upright. */
+@keyframes wir-distance-wiggle {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+
+  20% {
+    rotate: -12deg;
+  }
+
+  45% {
+    rotate: 9deg;
+  }
+
+  70% {
+    rotate: -5deg;
+  }
+
+  88% {
+    rotate: 2deg;
+  }
+}
+
+@keyframes wir-distance-leave {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  to {
+    opacity: 0;
+    translate: 0 -0.2rem;
+  }
+}
+
+@keyframes wir-distance-arrive {
+  from {
+    opacity: 0;
+    translate: 0 0.2rem;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes wir-reveal-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes wir-reveal-body {
+  from {
+    opacity: 0;
+    translate: 0 0.5rem;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes wir-breathe {
+  0%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+
+  50% {
+    opacity: 0.72;
+    scale: 1.035;
+  }
+}

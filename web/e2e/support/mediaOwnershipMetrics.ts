@@ -28,7 +28,7 @@ export async function installMediaOwnershipMetrics(page: Page): Promise<void> {
       if (owned.delete(url)) revoked += 1;
       revoke(url);
     };
-    (window as MetricsWindow).mediaOwnershipMetrics = () => ({
+    (window as unknown as MetricsWindow).mediaOwnershipMetrics = () => ({
       created,
       revoked,
       active: owned.size,
@@ -38,5 +38,7 @@ export async function installMediaOwnershipMetrics(page: Page): Promise<void> {
 }
 
 export async function mediaOwnershipMetrics(page: Page): Promise<Metrics> {
-  return page.evaluate(() => (window as MetricsWindow).mediaOwnershipMetrics());
+  return page.evaluate(() =>
+    (window as unknown as MetricsWindow).mediaOwnershipMetrics(),
+  );
 }

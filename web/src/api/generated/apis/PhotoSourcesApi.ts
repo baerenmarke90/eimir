@@ -14,6 +14,21 @@
 
 import * as runtime from '../runtime';
 import {
+    type AttachmentDetail,
+    AttachmentDetailFromJSON,
+    AttachmentDetailToJSON,
+} from '../models/AttachmentDetail';
+import {
+    type GoogleAccountSave,
+    GoogleAccountSaveFromJSON,
+    GoogleAccountSaveToJSON,
+} from '../models/GoogleAccountSave';
+import {
+    type PhotoSelectionAuthorize,
+    PhotoSelectionAuthorizeFromJSON,
+    PhotoSelectionAuthorizeToJSON,
+} from '../models/PhotoSelectionAuthorize';
+import {
     type PhotoSelectionCreate,
     PhotoSelectionCreateFromJSON,
     PhotoSelectionCreateToJSON,
@@ -39,6 +54,12 @@ import {
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
 
+export interface AuthorizePhotoSelectionRequest {
+    selectionId: string;
+    spaceId: string;
+    photoSelectionAuthorize: PhotoSelectionAuthorize;
+}
+
 export interface CancelPhotoSelectionRequest {
     selectionId: string;
     spaceId: string;
@@ -59,6 +80,12 @@ export interface GetPhotoSourcesRequest {
     spaceId: string;
 }
 
+export interface ImportSelectedVideoRequest {
+    selectionId: string;
+    itemId: string;
+    spaceId: string;
+}
+
 export interface PollPhotoSelectionRequest {
     selectionId: string;
     spaceId: string;
@@ -72,6 +99,17 @@ export interface ReadSelectedPhotoRequest {
     thumbnail?: boolean;
 }
 
+export interface RemoveGooglePhotoAccountRequest {
+    spaceId: string;
+    ifMatch: string;
+}
+
+export interface SaveGooglePhotoAccountRequest {
+    spaceId: string;
+    ifMatch: string;
+    googleAccountSave: GoogleAccountSave;
+}
+
 export interface StartPhotoSelectionRequest {
     spaceId: string;
     photoSelectionCreate: PhotoSelectionCreate;
@@ -81,6 +119,71 @@ export interface StartPhotoSelectionRequest {
  * 
  */
 export class PhotoSourcesApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for authorizePhotoSelection without sending the request
+     */
+    async authorizePhotoSelectionRequestOpts(requestParameters: AuthorizePhotoSelectionRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['selectionId'] == null) {
+            throw new runtime.RequiredError(
+                'selectionId',
+                'Required parameter "selectionId" was null or undefined when calling authorizePhotoSelection().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling authorizePhotoSelection().'
+            );
+        }
+
+        if (requestParameters['photoSelectionAuthorize'] == null) {
+            throw new runtime.RequiredError(
+                'photoSelectionAuthorize',
+                'Required parameter "photoSelectionAuthorize" was null or undefined when calling authorizePhotoSelection().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/authorize`;
+        urlPath = urlPath.replace('{selectionId}', encodeURIComponent(String(requestParameters['selectionId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PhotoSelectionAuthorizeToJSON(requestParameters['photoSelectionAuthorize']),
+        };
+    }
+
+    /**
+     * Finish an app-flow Google sign-in with the state and code from the app\'s return link.
+     * Authorize
+     */
+    async authorizePhotoSelectionRaw(requestParameters: AuthorizePhotoSelectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PhotoSelectionView>> {
+        const requestOptions = await this.authorizePhotoSelectionRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PhotoSelectionViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Finish an app-flow Google sign-in with the state and code from the app\'s return link.
+     * Authorize
+     */
+    async authorizePhotoSelection(requestParameters: AuthorizePhotoSelectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PhotoSelectionView> {
+        const response = await this.authorizePhotoSelectionRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for cancelPhotoSelection without sending the request
@@ -300,6 +403,69 @@ export class PhotoSourcesApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for importSelectedVideo without sending the request
+     */
+    async importSelectedVideoRequestOpts(requestParameters: ImportSelectedVideoRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['selectionId'] == null) {
+            throw new runtime.RequiredError(
+                'selectionId',
+                'Required parameter "selectionId" was null or undefined when calling importSelectedVideo().'
+            );
+        }
+
+        if (requestParameters['itemId'] == null) {
+            throw new runtime.RequiredError(
+                'itemId',
+                'Required parameter "itemId" was null or undefined when calling importSelectedVideo().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling importSelectedVideo().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}/import`;
+        urlPath = urlPath.replace('{selectionId}', encodeURIComponent(String(requestParameters['selectionId'])));
+        urlPath = urlPath.replace('{itemId}', encodeURIComponent(String(requestParameters['itemId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Move one selected, provider-ready video into the protected attachment pipeline.  Repeating the call for the same item returns the same staged Attachment.
+     * Import Video
+     */
+    async importSelectedVideoRaw(requestParameters: ImportSelectedVideoRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AttachmentDetail>> {
+        const requestOptions = await this.importSelectedVideoRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AttachmentDetailFromJSON(jsonValue));
+    }
+
+    /**
+     * Move one selected, provider-ready video into the protected attachment pipeline.  Repeating the call for the same item returns the same staged Attachment.
+     * Import Video
+     */
+    async importSelectedVideo(requestParameters: ImportSelectedVideoRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AttachmentDetail> {
+        const response = await this.importSelectedVideoRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for pollPhotoSelection without sending the request
      */
     async pollPhotoSelectionRequestOpts(requestParameters: PollPhotoSelectionRequest): Promise<runtime.RequestOpts> {
@@ -419,6 +585,126 @@ export class PhotoSourcesApi extends runtime.BaseAPI {
     async readSelectedPhoto(requestParameters: ReadSelectedPhotoRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Blob> {
         const response = await this.readSelectedPhotoRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Creates request options for removeGooglePhotoAccount without sending the request
+     */
+    async removeGooglePhotoAccountRequestOpts(requestParameters: RemoveGooglePhotoAccountRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling removeGooglePhotoAccount().'
+            );
+        }
+
+        if (requestParameters['ifMatch'] == null) {
+            throw new runtime.RequiredError(
+                'ifMatch',
+                'Required parameter "ifMatch" was null or undefined when calling removeGooglePhotoAccount().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['ifMatch'] != null) {
+            headerParameters['If-Match'] = String(requestParameters['ifMatch']);
+        }
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/photo-sources/google/account`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Remove Google Account
+     */
+    async removeGooglePhotoAccountRaw(requestParameters: RemoveGooglePhotoAccountRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.removeGooglePhotoAccountRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Remove Google Account
+     */
+    async removeGooglePhotoAccount(requestParameters: RemoveGooglePhotoAccountRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.removeGooglePhotoAccountRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for saveGooglePhotoAccount without sending the request
+     */
+    async saveGooglePhotoAccountRequestOpts(requestParameters: SaveGooglePhotoAccountRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling saveGooglePhotoAccount().'
+            );
+        }
+
+        if (requestParameters['ifMatch'] == null) {
+            throw new runtime.RequiredError(
+                'ifMatch',
+                'Required parameter "ifMatch" was null or undefined when calling saveGooglePhotoAccount().'
+            );
+        }
+
+        if (requestParameters['googleAccountSave'] == null) {
+            throw new runtime.RequiredError(
+                'googleAccountSave',
+                'Required parameter "googleAccountSave" was null or undefined when calling saveGooglePhotoAccount().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['ifMatch'] != null) {
+            headerParameters['If-Match'] = String(requestParameters['ifMatch']);
+        }
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/photo-sources/google/account`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: GoogleAccountSaveToJSON(requestParameters['googleAccountSave']),
+        };
+    }
+
+    /**
+     * Save Google Account
+     */
+    async saveGooglePhotoAccountRaw(requestParameters: SaveGooglePhotoAccountRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.saveGooglePhotoAccountRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Save Google Account
+     */
+    async saveGooglePhotoAccount(requestParameters: SaveGooglePhotoAccountRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.saveGooglePhotoAccountRaw(requestParameters, initOverrides);
     }
 
     /**

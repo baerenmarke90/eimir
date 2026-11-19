@@ -79,4 +79,28 @@ describe('Plan calendar handoff', () => {
   it('does not offer an undated idea as a made-up calendar appointment', () => {
     expect(planCalendar({ ...plan, plannedOn: null })).toBeNull();
   });
+  it('hands off a multi-day date-only Plan with an exclusive end after its last day', () => {
+    const weekend = {
+      ...plan,
+      plannedOn: new Date('2026-12-31'),
+      plannedUntil: new Date('2027-01-02'),
+    };
+    expect(planCalendarEvent(weekend)).toMatchObject({
+      allDay: true,
+      startTime: Date.parse('2026-12-31T00:00:00Z'),
+      endTime: Date.parse('2027-01-03T00:00:00Z'),
+    });
+    const result = planCalendar(weekend);
+    expect(result).toContain('DTSTART;VALUE=DATE:20261231\r\n');
+    expect(result).toContain('DTEND;VALUE=DATE:20270103\r\n');
+  });
+  it('ignores a stale last day on a timed Plan', () => {
+    const timed = {
+      ...plan,
+      plannedOn: null,
+      plannedUntil: new Date('2026-10-27'),
+      plannedStart: new Date('2026-10-25T00:30:00Z'),
+    };
+    expect(planCalendarEvent(timed)?.endTime).toBeUndefined();
+  });
 });

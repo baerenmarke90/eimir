@@ -15,6 +15,11 @@ function waitForPendingEntryRemoval(): Promise<void> {
   return pendingEntryRemoval ?? Promise.resolve();
 }
 
+/** Resolves once a layer's history entry removal that is in flight has settled. */
+export function settleEditorHistory(): Promise<void> {
+  return waitForPendingEntryRemoval();
+}
+
 /** Hand the next navigation to the document without a competing cleanup Back. */
 export function releaseEditorHistoryForDocumentNavigation(): Promise<void> {
   const state = window.history.state;

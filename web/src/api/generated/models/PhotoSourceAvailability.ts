@@ -33,6 +33,18 @@ export interface PhotoSourceAvailability {
     enabled: boolean;
     /**
      * 
+     * @type {string}
+     * @memberof PhotoSourceAvailability
+     */
+    googleAccountEmail?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PhotoSourceAvailability
+     */
+    googleAccountToken: string;
+    /**
+     * 
      * @type {boolean}
      * @memberof PhotoSourceAvailability
      */
@@ -63,6 +75,7 @@ export interface PhotoSourceAvailability {
 export function instanceOfPhotoSourceAvailability(value: object): value is PhotoSourceAvailability {
     if (!('canImport' in value) || value['canImport'] === undefined) return false;
     if (!('enabled' in value) || value['enabled'] === undefined) return false;
+    if (!('googleAccountToken' in value) || value['googleAccountToken'] === undefined) return false;
     if (!('googleAvailable' in value) || value['googleAvailable'] === undefined) return false;
     if (!('immichConnected' in value) || value['immichConnected'] === undefined) return false;
     if (!('immichConnectionToken' in value) || value['immichConnectionToken'] === undefined) return false;
@@ -81,6 +94,8 @@ export function PhotoSourceAvailabilityFromJSONTyped(json: any, ignoreDiscrimina
         
         'canImport': json['canImport'],
         'enabled': json['enabled'],
+        'googleAccountEmail': json['googleAccountEmail'] === undefined ? undefined : json['googleAccountEmail'] === null ? null : json['googleAccountEmail'],
+        'googleAccountToken': json['googleAccountToken'],
         'googleAvailable': json['googleAvailable'],
         'immichConnected': json['immichConnected'],
         'immichConnectionToken': json['immichConnectionToken'],
@@ -101,6 +116,8 @@ export function PhotoSourceAvailabilityToJSONTyped(value?: PhotoSourceAvailabili
         
         'canImport': value['canImport'],
         'enabled': value['enabled'],
+        'googleAccountEmail': value['googleAccountEmail'],
+        'googleAccountToken': value['googleAccountToken'],
         'googleAvailable': value['googleAvailable'],
         'immichConnected': value['immichConnected'],
         'immichConnectionToken': value['immichConnectionToken'],

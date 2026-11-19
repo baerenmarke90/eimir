@@ -1,7 +1,6 @@
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
-import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { DailyCheckInInsightsView } from '../api/generated/models/DailyCheckInInsightsView';
-import { isoToDate, type IsoDate } from './dailyInsightsModel';
+import { type IsoDate, isoToDate } from './dailyInsightsModel';
 import { ClientProblemError, normalizeClientError } from './problemDetails';
 
 /** Stable Pro capability owned by the server entitlement model (#1163). */
@@ -9,13 +8,6 @@ export const DAILY_INSIGHTS_CAPABILITY = 'daily.insights' as const;
 export const PREMIUM_ENTITLEMENT_REQUIRED = 'PREMIUM_ENTITLEMENT_REQUIRED';
 export const DAILY_CHECK_IN_CONTEXT_UNAVAILABLE =
   'DAILY_CHECK_IN_CONTEXT_UNAVAILABLE';
-
-export function dailyInsightsEntitlementQueryKey(
-  accountId: string,
-  spaceId: string,
-): readonly ['daily-insights', 'entitlement', string, string] {
-  return ['daily-insights', 'entitlement', accountId, spaceId] as const;
-}
 
 /**
  * The insights response carries the caller's own values plus a
@@ -35,24 +27,6 @@ export function dailyInsightsQueryKey(
     range?.start ?? 'current',
     range?.end ?? 'current',
   ] as const;
-}
-
-/** True when the server-published capability set includes `daily.insights`. */
-export async function loadDailyInsightsCapability(
-  api: EntitlementsApi,
-  spaceId: string,
-  signal?: AbortSignal,
-): Promise<boolean> {
-  try {
-    const entitlement =
-      await api.getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet(
-        { spaceId },
-        signal ? { signal } : undefined,
-      );
-    return entitlement.capabilities.includes(DAILY_INSIGHTS_CAPABILITY);
-  } catch (error) {
-    throw await normalizeClientError(error);
-  }
 }
 
 export async function loadDailyInsights(

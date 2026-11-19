@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   dailyQuoteCatalogQueryKey,
-  dailyQuoteEntitlementQueryKey,
   dailyQuotePreferencesQueryKey,
   dailyQuoteQueryKey,
   isDailyQuoteConflict,
@@ -16,7 +15,6 @@ describe('dailyQuote client ownership', () => {
     const spaceA = 'space-a';
     const spaceB = 'space-b';
     const keyFactories = [
-      dailyQuoteEntitlementQueryKey,
       dailyQuoteQueryKey,
       dailyQuoteCatalogQueryKey,
       dailyQuotePreferencesQueryKey,

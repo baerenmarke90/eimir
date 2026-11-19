@@ -1,3 +1,4 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type KeyboardEvent,
   type RefObject,
@@ -7,22 +8,19 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { AttachmentsApi } from '../api/generated/apis/AttachmentsApi';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
-import { ProfilesApi } from '../client/mediaApis';
-import { SpacesApi } from '../api/generated/apis/SpacesApi';
-import { Configuration } from '../client/apiConfiguration';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { RelatedPersonDeletePolicy } from '../api/generated/models/RelatedPersonDeletePolicy';
 import type { RelatedPersonFields } from '../api/generated/models/RelatedPersonFields';
 import type { RelatedPersonView } from '../api/generated/models/RelatedPersonView';
-import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import {
-  deleteFocusTarget,
   type DeleteFocusTarget,
+  deleteFocusTarget,
 } from '../client/deleteFocusTarget';
+import { useLeaveDeletedEntries, useReturnTo } from '../client/historyEntries';
 import { normalizeClientError } from '../client/problemDetails';
 import {
   canConfirmRelatedPersonDelete,
@@ -31,49 +29,55 @@ import {
   type RelatedPersonDeletePolicyValue,
   relatedPersonDeleteReducer,
 } from '../client/relatedPersonDelete';
+import {
+  settleEditorHistory,
+  useEditorHistoryEntry,
+} from '../client/useEditorHistoryEntry';
 import { useRelatedPersonAvatarUrl } from '../client/useRelatedPersonAvatarUrl';
 import { useTranslation } from '../i18n';
-import { AddIcon, DestinationIcon } from './DestinationIcon';
-import { ImportantDatesPanel } from './ImportantDatesPanel';
+import { AddActionLink } from './AddAction';
+import { AvatarPhoto } from './AvatarPhoto';
+import { DestinationIcon } from './DestinationIcon';
+import {
+  ItemMenuOption,
+  ItemMenuSheet,
+  ItemMenuTrigger,
+  leaveItemMenu,
+} from './ItemActions';
+import type { ShortTaskSheetHandle } from './ShortTaskSheet';
 import { PageHeader } from './PageHeader';
-import { personInitials } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
 import { RelatedPersonEditorSheet } from './RelatedPersonEditorSheet';
+import { BackSlotHost, TaskBackLink } from './TaskBackButton';
 import { UiState } from './UiState';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 import './RelatedPeoplePage.css';
+import './PeopleProfiles.css';
 
-function PersonCardAvatar({
+function PersonPhoto({
   person,
   attachmentsApi,
   spaceId,
+  large = false,
 }: {
   person: RelatedPersonView;
-  attachmentsApi: AttachmentsApi | undefined | null;
+  attachmentsApi?: AttachmentsApi;
   spaceId: string;
+  large?: boolean;
 }) {
-  const { t } = useTranslation();
   const { avatarUrl } = useRelatedPersonAvatarUrl(
     attachmentsApi,
     spaceId,
     person.avatarAttachmentId,
+    person.visibility === ContentVisibility.SHARED,
   );
-  const initials = useMemo(
-    () => personInitials(person.displayName),
-    [person.displayName],
-  );
-
   return (
-    <div className="people-avatar-circle" aria-hidden="true">
-      {avatarUrl ? (
-        <img
-          src={avatarUrl}
-          alt={t('people.avatarAlt', { name: person.displayName })}
-        />
-      ) : (
-        <span>{initials}</span>
-      )}
-    </div>
+    <AvatarPhoto
+      name={person.displayName}
+      url={avatarUrl}
+      identity={`${spaceId}:person:${person.id}:${person.avatarAttachmentId}`}
+      large={large}
+    />
   );
 }
 
@@ -225,6 +229,13 @@ function DeleteRelatedPersonDialog({
     active: true,
     initialFocusRef: cancelButtonRef,
   });
+  // System Back cancels like the Cancel button; a running delete keeps it open.
+  useEditorHistoryEntry({
+    isDirty: false,
+    isCloseBlocked: pending,
+    onClose: onCancel,
+    onDiscardRequested: onCancel,
+  });
 
   function handleDialogKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key === 'Escape' && !pending) {
@@ -272,106 +283,46 @@ export function RelatedPeoplePage({
   currentAccountId?: string;
 }) {
   const { t, i18n } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const returnToParent = useReturnTo();
+  const leaveDeleted = useLeaveDeletedEntries();
   const queryClient = useQueryClient();
-  const [editingPerson, setEditingPerson] = useState<RelatedPersonView | null>(
-    null,
-  );
-  const [isCreating, setIsCreating] = useState(false);
+  const parts = location.pathname
+    .slice('/more/people'.length)
+    .split('/')
+    .filter(Boolean);
+  const creating = parts[0] === 'new';
+  const personId = creating ? null : (parts[0] ?? null);
+  const editing = creating || parts[1] === 'edit';
   const [deleteTarget, setDeleteTarget] = useState<RelatedPersonView | null>(
     null,
   );
-  const [savedMessage, setSavedMessage] = useState<string | null>(null);
-  const [pendingDeleteFocus, setPendingDeleteFocus] =
-    useState<DeleteFocusTarget | null>(null);
-  const createActionRef = useRef<HTMLButtonElement>(null);
-  const personCardRefs = useRef(new Map<string, HTMLButtonElement>());
-
-  const profileConfiguration = useMemo(
-    () =>
-      apiBaseUrl && accessToken
-        ? new Configuration({
-            basePath: apiBaseUrl,
-            headers: { Authorization: `Bearer ${accessToken}` },
-          })
-        : null,
-    [accessToken, apiBaseUrl],
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
+  const [pendingFocus, setPendingFocus] = useState<DeleteFocusTarget | null>(
+    null,
   );
-  const spacesApi = useMemo(
-    () => (profileConfiguration ? new SpacesApi(profileConfiguration) : null),
-    [profileConfiguration],
-  );
-  const profilesApi = useMemo(
-    () => (profileConfiguration ? new ProfilesApi(profileConfiguration) : null),
-    [profileConfiguration],
-  );
-  const spaceQuery = useQuery({
-    queryKey: authorSummaryQueryKeys.space(spaceId),
-    queryFn: async () => {
-      if (!spacesApi) throw new Error('Space API unavailable');
-      try {
-        return await spacesApi.getSpaceApiV1SpacesSpaceIdGet({ spaceId });
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
-    enabled: Boolean(spacesApi && currentAccountId),
-    retry: false,
-  });
-  const activePartner =
-    spaceQuery.data?.partners.find(
-      (candidate) => candidate.id !== currentAccountId,
-    ) ?? null;
-  const activePartnerId = activePartner?.id ?? '';
-  const partnerProfileQuery = useQuery({
-    queryKey: authorSummaryQueryKeys.partnerProfile(spaceId, activePartnerId),
-    queryFn: async () => {
-      if (!profilesApi) throw new Error('Profiles API unavailable');
-      try {
-        return await profilesApi.getPartnerProfileApiV1SpacesSpaceIdProfilesAccountIdGet(
-          {
-            accountId: activePartnerId,
-            spaceId,
-          },
-        );
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
-    enabled: Boolean(profilesApi && activePartnerId),
-    retry: false,
-  });
-  const partnerBirthday =
-    activePartner && partnerProfileQuery.data?.birthday
-      ? {
-          accountId: activePartner.id,
-          birthday: partnerProfileQuery.data.birthday,
-          displayName:
-            partnerProfileQuery.data.displayName || activePartner.displayName,
-        }
-      : null;
-
-  const birthdayFormatter = useMemo(
-    () =>
-      new Intl.DateTimeFormat(i18n.language, {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric',
-        timeZone: 'UTC',
-      }),
-    [i18n.language],
-  );
-  const birthdayWithoutYearFormatter = useMemo(
-    () =>
-      new Intl.DateTimeFormat(i18n.language, {
-        day: '2-digit',
-        month: 'long',
-        timeZone: 'UTC',
-      }),
-    [i18n.language],
-  );
-
+  const listKey = ['related-people', spaceId];
+  const origin = (
+    location.state as {
+      peopleOrigin?: {
+        to?: string;
+        scrollY?: number;
+        selectedId?: string;
+        focusCreate?: boolean;
+      };
+    } | null
+  )?.peopleOrigin;
+  const returnTo =
+    origin?.to === '/plan#dates' ? '/plan#dates' : '/more/people';
+  const personPath = (id: string) => `/more/people/${encodeURIComponent(id)}`;
+  const originState = {
+    peopleOrigin: origin ?? { to: '/more/people', scrollY: window.scrollY },
+  };
   const peopleQuery = useQuery({
-    queryKey: ['related-people', spaceId],
+    queryKey: listKey,
     queryFn: async () => {
       try {
         return await peopleApi.listRelatedPersonsApiV1SpacesSpaceIdRelatedPersonsGet(
@@ -383,55 +334,82 @@ export function RelatedPeoplePage({
     },
     retry: false,
   });
-
-  const saveMutation = useMutation({
-    mutationFn: async (fields: RelatedPersonFields) => {
+  const detailQuery = useQuery({
+    queryKey: ['related-person', spaceId, personId],
+    enabled: Boolean(personId),
+    initialData: () => peopleQuery.data?.find((p) => p.id === personId),
+    queryFn: async () => {
+      if (!personId) throw new Error('Missing person');
       try {
-        if (editingPerson) {
-          return await peopleApi.updateRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPersonIdPut(
-            {
-              personId: editingPerson.id,
-              spaceId,
-              ifMatch: String(editingPerson.version),
-              relatedPersonFields: fields,
-            },
-          );
-        }
-        return await peopleApi.createRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPost(
-          {
-            spaceId,
-            relatedPersonFields: fields,
-          },
+        return await peopleApi.getRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPersonIdGet(
+          { spaceId, personId },
         );
       } catch (error) {
         throw await normalizeClientError(error);
       }
     },
-    onSuccess: async () => {
-      setSavedMessage(
-        editingPerson ? t('people.updated') : t('people.created'),
-      );
-      setEditingPerson(null);
-      setIsCreating(false);
+    retry: false,
+  });
+  const person = detailQuery.data;
+  const birthdays = useMemo(
+    () => ({
+      full: new Intl.DateTimeFormat(i18n.language, {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }),
+      short: new Intl.DateTimeFormat(i18n.language, {
+        day: 'numeric',
+        month: 'long',
+        timeZone: 'UTC',
+      }),
+    }),
+    [i18n.language],
+  );
+  const birthday = (p: RelatedPersonView, year = true) =>
+    p.birthday
+      ? (year && p.birthdayYearKnown ? birthdays.full : birthdays.short).format(
+          p.birthday,
+        )
+      : '';
+  const save = useMutation({
+    mutationFn: async (fields: RelatedPersonFields) => {
+      try {
+        if (person && !creating)
+          return await peopleApi.updateRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPersonIdPut(
+            {
+              personId: person.id,
+              spaceId,
+              ifMatch: String(person.version),
+              relatedPersonFields: fields,
+            },
+          );
+        return await peopleApi.createRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPost(
+          { spaceId, relatedPersonFields: fields },
+        );
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    onSuccess: async (saved) => {
+      queryClient.setQueryData(['related-person', spaceId, saved.id], saved);
       await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ['related-people', spaceId],
-        }),
+        queryClient.invalidateQueries({ queryKey: listKey }),
         invalidateDashboard(queryClient, spaceId),
       ]);
     },
   });
-
-  const deleteMutation = useMutation({
+  const remove = useMutation({
     mutationFn: async (policy: RelatedPersonDeletePolicyValue) => {
       if (!deleteTarget) return;
       try {
         await peopleApi.deleteRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPersonIdDelete(
           {
-            personId: deleteTarget.id,
             spaceId,
-            deletePolicy: policy,
+            personId: deleteTarget.id,
             ifMatch: String(deleteTarget.version),
+            deletePolicy: policy,
           },
         );
       } catch (error) {
@@ -439,205 +417,343 @@ export function RelatedPeoplePage({
       }
     },
     onSuccess: async () => {
-      if (deleteTarget) {
-        setPendingDeleteFocus(
-          deleteFocusTarget(peopleQuery.data ?? [], deleteTarget.id),
+      const deletedId = deleteTarget?.id;
+      if (deleteTarget)
+        setPendingFocus(
+          deleteFocusTarget(
+            (peopleQuery.data ?? []).slice().sort((a, b) =>
+              a.displayName.localeCompare(b.displayName, i18n.language, {
+                numeric: true,
+              }),
+            ),
+            deleteTarget.id,
+          ),
         );
-      }
       setDeleteTarget(null);
-      setSavedMessage(t('people.deleted'));
       await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ['related-people', spaceId],
-        }),
+        queryClient.invalidateQueries({ queryKey: listKey }),
         queryClient.invalidateQueries({
           queryKey: ['important-dates', spaceId],
         }),
         invalidateDashboard(queryClient, spaceId),
       ]);
+      // The closed dialog removes its history entry; leave only after that.
+      await settleEditorHistory();
+      if (deletedId) leaveDeleted(personPath(deletedId), '/more/people');
+      else navigate('/more/people', { replace: true });
     },
   });
-
   useEffect(() => {
-    if (!pendingDeleteFocus || deleteTarget) return;
-    const target =
-      pendingDeleteFocus.kind === 'item'
-        ? personCardRefs.current.get(pendingDeleteFocus.id)
-        : createActionRef.current;
-    target?.focus();
-    setPendingDeleteFocus(null);
-  }, [deleteTarget, pendingDeleteFocus]);
+    if (personId || editing || peopleQuery.isFetching) return;
+    const frame = requestAnimationFrame(() => {
+      if (
+        typeof origin?.scrollY === 'number' &&
+        Number.isFinite(origin.scrollY)
+      )
+        window.scrollTo({
+          top: Math.max(0, origin.scrollY),
+          behavior: 'instant',
+        });
+      const selectedId =
+        pendingFocus?.kind === 'item' ? pendingFocus.id : origin?.selectedId;
+      const selector =
+        pendingFocus?.kind === 'create' || (!selectedId && origin?.focusCreate)
+          ? '#people-add-person'
+          : selectedId
+            ? `[data-person-link="${CSS.escape(selectedId)}"]`
+            : null;
+      if (selector)
+        document
+          .querySelector<HTMLElement>(selector)
+          ?.focus({ preventScroll: true });
+      setPendingFocus(null);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [
+    personId,
+    editing,
+    peopleQuery.isFetching,
+    origin?.scrollY,
+    origin?.selectedId,
+    origin?.focusCreate,
+    pendingFocus,
+  ]);
 
-  return (
-    <div className="page">
-      <PageHeader
-        title={t('people.title')}
-        description={t('people.intro')}
-        action={
-          <button
-            ref={createActionRef}
-            type="button"
-            className="primary compact-action"
-            onClick={() => {
-              setIsCreating(true);
-              setEditingPerson(null);
-              saveMutation.reset();
-              setSavedMessage(null);
-            }}
-          >
-            <AddIcon />
-            <span>{t('people.addPersonAction')}</span>
-          </button>
+  if (editing && (creating || person))
+    return (
+      <RelatedPersonEditorSheet
+        key={personId ?? 'new'}
+        person={creating ? null : (person ?? null)}
+        pending={save.isPending}
+        error={save.error}
+        spaceId={spaceId}
+        apiBaseUrl={apiBaseUrl}
+        accessToken={accessToken}
+        accountId={currentAccountId}
+        attachmentsApi={attachmentsApi}
+        onCancel={() =>
+          returnToParent(
+            creating
+              ? '/more/people'
+              : personPath(personId ?? person?.id ?? ''),
+            // The list restores focus and scroll from this origin state.
+            { restoredState: originState },
+          )
+        }
+        onSubmit={(fields) => save.mutateAsync(fields)}
+        onSaved={(saved) =>
+          creating
+            ? navigate(personPath(saved.id), {
+                replace: true,
+                state: { ...originState, personSaved: true },
+              })
+            : returnToParent(personPath(saved.id), {
+                restoredState: { ...originState, personSaved: true },
+              })
         }
       />
-
-      {savedMessage ? (
-        <div className="inline-message inline-message-success" role="status">
-          <span>{savedMessage}</span>
-        </div>
-      ) : null}
-
-      <section
-        className="story-surface"
-        aria-labelledby="related-people-list-title"
-      >
-        <div className="section-head">
-          <div>
-            <p className="section-kicker">{t('people.listKicker')}</p>
-            <h2 id="related-people-list-title">{t('people.listTitle')}</h2>
-          </div>
-        </div>
-
-        {peopleQuery.isLoading ? (
+    );
+  if (personId)
+    return (
+      <div className="page page-reading people-profile">
+        <TaskBackLink to={returnTo} state={originState} />
+        {detailQuery.isLoading ? (
           <UiState kind="loading" title={t('people.loading')} />
         ) : null}
-        {peopleQuery.error ? (
+        {detailQuery.error ? (
           <ProblemState
-            error={peopleQuery.error}
-            onRetry={() => void peopleQuery.refetch()}
+            error={detailQuery.error}
+            onRetry={() => void detailQuery.refetch()}
           />
         ) : null}
-        {peopleQuery.data?.length === 0 ? (
-          <UiState
-            kind="empty"
-            title={t('people.emptyTitle')}
-            body={t('people.emptyBody')}
-          />
-        ) : null}
-        {peopleQuery.data?.length ? (
-          <ul className="people-grid" aria-label={t('people.listAria')}>
-            {peopleQuery.data.map((person) => (
-              <li key={person.id} className="people-card-item">
-                <button
-                  ref={(element) => {
-                    if (element) personCardRefs.current.set(person.id, element);
-                    else personCardRefs.current.delete(person.id);
-                  }}
-                  type="button"
-                  className="people-card"
-                  onClick={() => {
-                    setEditingPerson(person);
-                    setIsCreating(false);
-                    saveMutation.reset();
-                    setSavedMessage(null);
+        {person ? (
+          <>
+            {/* One named item: Back, type label and actions share the row (#1907 C4). */}
+            <div className="page-heading-item-row people-profile-item-row">
+              <BackSlotHost />
+              <p className="page-heading-item-label">{t('people.itemLabel')}</p>
+              <div className="page-heading-item-action people-profile-actions">
+                <ItemMenuTrigger
+                  triggerRef={menuTrigger}
+                  label={t('people.menuLabel', { name: person.displayName })}
+                  open={menuOpen}
+                  onOpen={() => setMenuOpen(true)}
+                />
+              </div>
+            </div>
+            <div className="people-profile-hero">
+              <PersonPhoto
+                person={person}
+                attachmentsApi={attachmentsApi}
+                spaceId={spaceId}
+                large
+              />
+              <div>
+                <h1>{person.displayName}</h1>
+                <p>{t(`people.relationship.${person.relationship}`)}</p>
+              </div>
+            </div>
+            {(location.state as { personSaved?: boolean } | null)
+              ?.personSaved ? (
+              <p className="people-saved" role="status">
+                {t('people.updated')}
+              </p>
+            ) : null}
+            {person.birthday ? (
+              <section className="people-profile-birthday">
+                <h2>{t('people.birthdayLabel')}</h2>
+                <Link
+                  className="people-birthday-link"
+                  to={`/plan#dates`}
+                  state={{
+                    birthdayPersonId: person.id,
+                    dateOrigin: personPath(person.id),
                   }}
                 >
-                  <PersonCardAvatar
-                    person={person}
-                    attachmentsApi={attachmentsApi}
-                    spaceId={spaceId}
-                  />
-                  <div className="people-card-body">
-                    <h3 className="people-card-name">{person.displayName}</h3>
-                    <p className="people-card-relationship">
-                      {t(`people.relationship.${person.relationship}`)}
-                    </p>
-                    {person.birthday ? (
-                      <p className="people-card-birthday">
-                        <span
-                          className="people-card-birthday-icon"
-                          aria-hidden="true"
-                        >
-                          <DestinationIcon icon="birthday" />
-                        </span>
-                        <span>
-                          {person.birthdayYearKnown
-                            ? birthdayFormatter.format(person.birthday)
-                            : birthdayWithoutYearFormatter.format(
-                                person.birthday,
-                              )}
-                        </span>
-                      </p>
-                    ) : null}
-                    <span
-                      className={`people-card-badge ${
-                        person.visibility === ContentVisibility.PRIVATE
-                          ? 'people-card-badge-private'
-                          : ''
-                      }`.trim()}
-                    >
-                      {t(`people.visibility.${person.visibility}`)}
-                    </span>
-                  </div>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </section>
-
-      <ImportantDatesPanel
-        peopleApi={peopleApi}
-        spaceId={spaceId}
-        people={peopleQuery.data ?? []}
-        partnerBirthday={partnerBirthday}
-      />
-
-      {isCreating || editingPerson ? (
-        <RelatedPersonEditorSheet
-          key={editingPerson?.id ?? 'create'}
-          person={editingPerson}
-          pending={saveMutation.isPending}
-          error={saveMutation.error}
-          spaceId={spaceId}
-          apiBaseUrl={apiBaseUrl}
-          accessToken={accessToken}
-          accountId={currentAccountId}
-          attachmentsApi={attachmentsApi}
-          onCancel={() => {
-            setIsCreating(false);
-            setEditingPerson(null);
-            saveMutation.reset();
-          }}
-          onSubmit={(fields) => {
-            setSavedMessage(null);
-            saveMutation.mutate(fields);
-          }}
-          onDeleteRequest={
-            editingPerson
-              ? () => {
-                  const target = editingPerson;
-                  setIsCreating(false);
-                  setEditingPerson(null);
-                  setDeleteTarget(target);
+                  <strong>{birthday(person)}</strong>
+                  <span className="people-chevron" aria-hidden="true">
+                    ›
+                  </span>
+                </Link>
+              </section>
+            ) : null}
+            {person.note ? (
+              <section className="people-profile-note">
+                <h2>{t('people.noteTitle')}</h2>
+                <p>{person.note}</p>
+              </section>
+            ) : null}
+            <ItemMenuSheet
+              open={menuOpen}
+              title={person.displayName}
+              restoreFocusRef={menuTrigger}
+              sheetRef={menuSheet}
+              onClose={() => setMenuOpen(false)}
+            >
+              <ItemMenuOption
+                icon="pen"
+                title={t('people.edit')}
+                onClick={() =>
+                  leaveItemMenu(
+                    menuSheet,
+                    () =>
+                      void navigate(`${personPath(person.id)}/edit`, {
+                        state: originState,
+                      }),
+                    () => setMenuOpen(false),
+                  )
                 }
-              : undefined
-          }
+              />
+              {person.birthday ? null : (
+                <ItemMenuOption
+                  icon="geburtstag"
+                  title={t('people.addBirthday')}
+                  onClick={() =>
+                    leaveItemMenu(
+                      menuSheet,
+                      () =>
+                        void navigate(`${personPath(person.id)}/edit`, {
+                          state: originState,
+                        }),
+                      () => setMenuOpen(false),
+                    )
+                  }
+                />
+              )}
+              <ItemMenuOption
+                icon="trash"
+                danger
+                title={t('people.lifecycleTitle')}
+                onClick={() => {
+                  setMenuOpen(false);
+                  setDeleteTarget(person);
+                  remove.reset();
+                }}
+              />
+            </ItemMenuSheet>
+          </>
+        ) : null}
+        {deleteTarget ? (
+          <DeleteRelatedPersonDialog
+            person={deleteTarget}
+            pending={remove.isPending}
+            error={remove.error}
+            onCancel={() => setDeleteTarget(null)}
+            onDelete={(policy) => remove.mutate(policy)}
+          />
+        ) : null}
+      </div>
+    );
+  return (
+    <div className="page people-overview">
+      <PageHeader
+        className="content-overview-heading"
+        title={t('people.title')}
+        action={
+          <AddActionLink
+            floating
+            label={t('people.addPersonAction')}
+            id="people-add-person"
+            to="/more/people/new"
+            onClick={(event) => {
+              if (
+                event.button !== 0 ||
+                event.metaKey ||
+                event.ctrlKey ||
+                event.shiftKey ||
+                event.altKey
+              )
+                return;
+              event.preventDefault();
+              void navigate('/more/people/new', {
+                state: {
+                  peopleOrigin: {
+                    to: '/more/people',
+                    scrollY: window.scrollY,
+                    focusCreate: true,
+                  },
+                },
+              });
+            }}
+          />
+        }
+      />
+      {peopleQuery.isLoading ? (
+        <UiState kind="loading" title={t('people.loading')} />
+      ) : null}
+      {peopleQuery.error ? (
+        <ProblemState
+          error={peopleQuery.error}
+          onRetry={() => void peopleQuery.refetch()}
         />
       ) : null}
-
-      {deleteTarget ? (
-        <DeleteRelatedPersonDialog
-          key={deleteTarget.id}
-          person={deleteTarget}
-          pending={deleteMutation.isPending}
-          error={deleteMutation.error}
-          onCancel={() => {
-            setDeleteTarget(null);
-            deleteMutation.reset();
-          }}
-          onDelete={(policy) => deleteMutation.mutate(policy)}
-        />
+      {peopleQuery.data?.length === 0 ? (
+        <UiState kind="empty" title={t('people.emptyTitle')} />
+      ) : null}
+      {peopleQuery.data?.length ? (
+        <ul className="people-portrait-list" aria-label={t('people.listAria')}>
+          {peopleQuery.data
+            .slice()
+            .sort((a, b) =>
+              a.displayName.localeCompare(b.displayName, i18n.language, {
+                numeric: true,
+              }),
+            )
+            .map((p) => (
+              <li key={p.id}>
+                <PersonPhoto
+                  person={p}
+                  attachmentsApi={attachmentsApi}
+                  spaceId={spaceId}
+                />
+                <Link
+                  className="people-profile-link"
+                  data-person-link={p.id}
+                  onClick={(event) => {
+                    if (
+                      event.button !== 0 ||
+                      event.metaKey ||
+                      event.ctrlKey ||
+                      event.shiftKey ||
+                      event.altKey
+                    )
+                      return;
+                    event.preventDefault();
+                    navigate(personPath(p.id), {
+                      state: {
+                        peopleOrigin: {
+                          to: '/more/people',
+                          scrollY: window.scrollY,
+                          selectedId: p.id,
+                        },
+                      },
+                    });
+                  }}
+                  to={personPath(p.id)}
+                  state={{
+                    peopleOrigin: {
+                      to: '/more/people',
+                      scrollY: window.scrollY,
+                    },
+                  }}
+                >
+                  <span>
+                    <strong>{p.displayName}</strong>
+                    <span>{t(`people.relationship.${p.relationship}`)}</span>
+                    {p.birthday ? (
+                      <small>
+                        <DestinationIcon icon="birthday" />
+                        {birthday(p, false)}
+                      </small>
+                    ) : null}
+                  </span>
+                  <span className="people-chevron" aria-hidden="true">
+                    ›
+                  </span>
+                </Link>
+              </li>
+            ))}
+        </ul>
       ) : null}
     </div>
   );

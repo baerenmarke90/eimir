@@ -12,9 +12,7 @@ it('does not create map destinations for missing or invalid coordinates', () => 
   ]) {
     expect(photoPlaceMapUrl(lat, lon)).toBeNull();
   }
-  expect(photoPlaceMapUrl(-90, 180)).toBe(
-    'https://www.google.com/maps/search/?api=1&query=-90%2C180',
-  );
+  expect(photoPlaceMapUrl(-90, 180)).toBe('/story/map?place=-90%3A180');
 });
 
 it('returns from canonical Place detail to the owning moment or shared Memory editor without sensitive queries', () => {

@@ -8,11 +8,16 @@ import type { DevicePushConfiguration } from '../api/generated/models/DevicePush
 import { ResponseError } from '../api/generated/runtime';
 import { isCapacitorNative } from '../pwa';
 import { dashboardQueryKey } from './dashboardQueries';
+import { reportNotificationWake } from './foregroundNotifications';
 import { notificationPath } from './m4Product';
 import {
   notificationsListQueryKey,
   notificationUnreadCountQueryKey,
 } from './notificationQueries';
+import {
+  receiptScope,
+  requestPartnerGestureReceipt,
+} from './partnerGestureReceipt';
 import { MORE_NOTIFICATIONS_ROUTE } from './routes';
 import { postSnackbar } from './snackbar';
 import {
@@ -20,7 +25,7 @@ import {
   useDocumentLeaveBlocked,
 } from './useDocumentLeaveGuard';
 
-type ProviderKey = 'unifiedpush' | 'fcm';
+type ProviderKey = 'unifiedpush' | 'fcm' | 'apns';
 
 type ActivationEvent = {
   accountId: string;
@@ -44,6 +49,8 @@ type NativePushStatus = {
   fcmAvailable: boolean;
   firebaseProjectId: string | null;
   androidPackage: string;
+  iosBundleId?: string;
+  apnsEnvironment?: 'development' | 'production';
 };
 
 type SelectedConfiguration =
@@ -51,6 +58,7 @@ type SelectedConfiguration =
       providerKey: 'unifiedpush';
       vapidPublicKey: string;
       notificationReferenceVersion?: 1;
+      wishDatePreviewVersion?: 1;
       localeVersion?: 1;
     }
   | {
@@ -58,7 +66,13 @@ type SelectedConfiguration =
       firebaseProjectId: string;
       androidPackage: string;
       encryptedPreviewVersion?: 1 | 2;
+      neutralReferenceVersion?: 1;
       localeVersion?: 1;
+    }
+  | {
+      providerKey: 'apns';
+      bundleId: string;
+      environment: 'development' | 'production';
     };
 
 type RegistrationOptions = SelectedConfiguration & {
@@ -106,6 +120,8 @@ export interface DevicePushController {
   error: string | null;
   /** True only while this device is registered for this Account and API instance. */
   registered: boolean;
+  browser?: boolean;
+  neutralPreview?: boolean;
   enable(): Promise<void>;
   disable(): Promise<void>;
   openSettings(): Promise<void>;
@@ -242,7 +258,12 @@ function registeredFor(
   accountId: string,
   apiBaseUrl: string,
 ): boolean {
-  return state.enabled && ownsActivation(state, accountId, apiBaseUrl);
+  return (
+    state.enabled &&
+    ownsActivation(state, accountId, apiBaseUrl) &&
+    (state.providerKey !== 'apns' ||
+      readEndpointId(endpointIdKey(apiBaseUrl, accountId)) !== null)
+  );
 }
 
 function ownsActivation(
@@ -278,6 +299,18 @@ function selectConfiguration(
   nativeState: NativePushStatus,
   activeProvider: ProviderKey | null,
 ): SelectedConfiguration | null {
+  if (nativeState.iosBundleId !== undefined) {
+    const apns = available.apns;
+    return apns &&
+      apns.bundleId === nativeState.iosBundleId &&
+      apns.environment === nativeState.apnsEnvironment
+      ? {
+          providerKey: 'apns',
+          bundleId: apns.bundleId,
+          environment: apns.environment,
+        }
+      : null;
+  }
   const fcm =
     available.fcm &&
     nativeState.fcmAvailable &&
@@ -287,6 +320,9 @@ function selectConfiguration(
           providerKey: 'fcm' as const,
           firebaseProjectId: available.fcm.projectId,
           androidPackage: available.fcm.androidPackage,
+          ...(available.fcm.neutralReferenceVersion === 1
+            ? { neutralReferenceVersion: 1 as const }
+            : {}),
           ...(available.fcm.localeVersion === 1
             ? { localeVersion: 1 as const }
             : {}),
@@ -310,6 +346,9 @@ function selectConfiguration(
         ...(available.unifiedPush.notificationReferenceVersion === 1
           ? { notificationReferenceVersion: 1 as const }
           : {}),
+        ...(available.unifiedPush.wishDatePreviewVersion === 1
+          ? { wishDatePreviewVersion: 1 as const }
+          : {}),
       }
     : null;
   // An active transport keeps its ownership. A failure must not silently
@@ -331,7 +370,9 @@ export function useDevicePush({
   notificationsApi: NotificationsApi;
   queryClient: QueryClient;
   spaceId: string;
-}): DevicePushController {
+}): DevicePushController & {
+  openNotification(id?: string, sourceEventId?: string): void;
+} {
   const native = isCapacitorNative();
   const navigate = useNavigate();
   const navigateRef = useRef(navigate);
@@ -340,13 +381,20 @@ export function useDevicePush({
   }, [navigate]);
   const blocked = useDocumentLeaveBlocked();
   const [pendingInbox, setPendingInbox] = useState<string | null>(null);
-  const pendingNotification = useRef<string | undefined>(undefined);
+  const pendingNotification = useRef<
+    | {
+        id?: string;
+        sourceEventId?: string;
+      }
+    | undefined
+  >(undefined);
   const openedHints = useRef(new Set<string>());
   const [state, setState] = useState<DevicePushState>(
     native ? 'loading' : 'unavailable',
   );
   const [error, setError] = useState<string | null>(null);
   const [registered, setRegistered] = useState(false);
+  const [ios, setIos] = useState(false);
   const configuration = useRef<SelectedConfiguration | null>(null);
   const errorRef = useRef<string | null>(null);
   const key = endpointIdKey(apiBaseUrl, accountId);
@@ -372,9 +420,9 @@ export function useDevicePush({
   errorRef.current = error;
 
   const openInbox = useCallback(
-    (notificationId?: string) => {
+    (notificationId?: string, sourceEventId?: string) => {
       if (isDocumentLeaveBlocked()) {
-        pendingNotification.current = notificationId;
+        pendingNotification.current = { id: notificationId, sourceEventId };
         setPendingInbox(`${key}:${currentSpaceId.current}`);
         postSnackbar('snackbar.notificationWaiting');
         return;
@@ -387,7 +435,7 @@ export function useDevicePush({
         navigateRef.current(MORE_NOTIFICATIONS_ROUTE);
         return;
       }
-      const hintKey = `${key}:${notificationId}`;
+      const hintKey = `${key}:${notificationId}:${sourceEventId ?? ''}`;
       if (openedHints.current.has(hintKey)) return;
       openedHints.current.add(hintKey);
       if (openedHints.current.size > 64)
@@ -417,7 +465,7 @@ export function useDevicePush({
           });
           if (isDocumentLeaveBlocked()) {
             openedHints.current.delete(hintKey);
-            pendingNotification.current = notificationId;
+            pendingNotification.current = { id: notificationId, sourceEventId };
             setPendingInbox(`${key}:${currentSpaceId.current}`);
             postSnackbar('snackbar.notificationWaiting');
             return;
@@ -425,6 +473,11 @@ export function useDevicePush({
           navigateRef.current(
             notificationPath(item) ?? MORE_NOTIFICATIONS_ROUTE,
           );
+          // A deliberately opened gesture may show its calm receipt once.
+          requestPartnerGestureReceipt({
+            scope: receiptScope(accountId, requestedSpace),
+            item,
+          });
         })
         .catch(() => {
           if (
@@ -440,7 +493,7 @@ export function useDevicePush({
           }
         });
     },
-    [key, notificationsApi, queryClient],
+    [accountId, key, notificationsApi, queryClient],
   );
 
   useEffect(() => {
@@ -452,9 +505,9 @@ export function useDevicePush({
     }
     if (blocked) return;
     setPendingInbox(null);
-    const notificationId = pendingNotification.current;
+    const notification = pendingNotification.current;
     pendingNotification.current = undefined;
-    openInbox(notificationId);
+    openInbox(notification?.id, notification?.sourceEventId);
   }, [blocked, key, spaceId, pendingInbox, openInbox]);
 
   const syncRegistered = useCallback(async () => {
@@ -547,6 +600,10 @@ export function useDevicePush({
                         ? (2 as const)
                         : (1 as const),
                     key: fcmSubscription.previewKey as string,
+                    ...(configuration.current.neutralReferenceVersion === 1 &&
+                    fcmSubscription.neutralReferenceVersion === 1
+                      ? { neutralReference: true }
+                      : {}),
                   }
                 : undefined;
             const registration = await notificationsApi.registerOwnPushEndpoint(
@@ -568,20 +625,34 @@ export function useDevicePush({
                             subscription.notificationReferenceVersion = 1;
                           else delete subscription.notificationReferenceVersion;
                           if (
-                            configuration.current?.localeVersion !== 1 ||
+                            configuration.current?.providerKey !==
+                              'unifiedpush' ||
+                            configuration.current.wishDatePreviewVersion !==
+                              1 ||
+                            subscription.notificationReferenceVersion !== 1 ||
+                            subscription.wishDatePreviewVersion !== 1
+                          )
+                            delete subscription.wishDatePreviewVersion;
+                          if (
+                            configuration.current?.providerKey !==
+                              'unifiedpush' ||
+                            configuration.current.localeVersion !== 1 ||
                             subscription.localeVersion !== 1
                           )
                             delete subscription.localeVersion;
                           return JSON.stringify(subscription);
                         })()
-                      : JSON.stringify({
-                          fid: fcmSubscription.fid,
-                          activationId: fcmSubscription.activationId,
-                          ...(configuration.current?.localeVersion === 1 &&
-                          fcmSubscription.localeVersion === 1
-                            ? { localeVersion: 1 }
-                            : {}),
-                        }),
+                      : event.providerKey === 'apns'
+                        ? event.endpointValue
+                        : JSON.stringify({
+                            fid: fcmSubscription.fid,
+                            activationId: fcmSubscription.activationId,
+                            ...(configuration.current?.providerKey === 'fcm' &&
+                            configuration.current.localeVersion === 1 &&
+                            fcmSubscription.localeVersion === 1
+                              ? { localeVersion: 1 }
+                              : {}),
+                          }),
                 },
               },
             );
@@ -673,6 +744,11 @@ export function useDevicePush({
         void (async () => {
           if (!(await currentEvent(event, generation))) return;
           const activeSpaceId = currentSpaceId.current;
+          reportNotificationWake({
+            accountId,
+            apiBaseUrl,
+            spaceId: activeSpaceId,
+          });
           void queryClient.invalidateQueries({
             queryKey: notificationUnreadCountQueryKey(activeSpaceId),
           });
@@ -747,6 +823,7 @@ export function useDevicePush({
         await pendingSignOutDisable;
         const nativeState = await nativePush.status();
         if (!live) return;
+        setIos(nativeState.iosBundleId !== undefined);
         const otherOwner =
           nativeState.accountId !== null &&
           (nativeState.accountId !== accountId ||
@@ -1001,12 +1078,14 @@ export function useDevicePush({
 
   return {
     available: native,
+    neutralPreview: ios,
     state,
     error,
     registered,
     enable,
     disable,
     openSettings,
+    openNotification: openInbox,
   };
 }
 

@@ -20,24 +20,29 @@ import { mapValues } from '../runtime';
  */
 export interface WishSelectionRoundUpdate {
     /**
+     * Curated catalog ideas; requires `planning.date_inspiration`.
+     * @type {Array<string>}
+     * @memberof WishSelectionRoundUpdate
+     */
+    dateIdeaIds?: Array<string>;
+    /**
      * 
      * @type {string}
      * @memberof WishSelectionRoundUpdate
      */
     title?: string | null;
     /**
-     * 
+     * Space Wishes. Together with `dateIdeaIds`: two to five candidates.
      * @type {Array<string>}
      * @memberof WishSelectionRoundUpdate
      */
-    wishIds: Array<string>;
+    wishIds?: Array<string>;
 }
 
 /**
  * Check if a given object implements the WishSelectionRoundUpdate interface.
  */
 export function instanceOfWishSelectionRoundUpdate(value: object): value is WishSelectionRoundUpdate {
-    if (!('wishIds' in value) || value['wishIds'] === undefined) return false;
     return true;
 }
 
@@ -51,8 +56,9 @@ export function WishSelectionRoundUpdateFromJSONTyped(json: any, ignoreDiscrimin
     }
     return {
         
+        'dateIdeaIds': json['dateIdeaIds'] == null ? undefined : json['dateIdeaIds'],
         'title': json['title'] === undefined ? undefined : json['title'] === null ? null : json['title'],
-        'wishIds': json['wishIds'],
+        'wishIds': json['wishIds'] == null ? undefined : json['wishIds'],
     };
 }
 
@@ -67,6 +73,7 @@ export function WishSelectionRoundUpdateToJSONTyped(value?: WishSelectionRoundUp
 
     return {
         
+        'dateIdeaIds': value['dateIdeaIds'],
         'title': value['title'],
         'wishIds': value['wishIds'],
     };

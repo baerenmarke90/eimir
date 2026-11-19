@@ -16,8 +16,12 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             "android/app/src/main/assets/capacitor.config.json",
             "android/capacitor-cordova-android-plugins/build.gradle",
             "web/e2e/fixtures/locales/de.ts",
+            "web/dist-preview/index.html",
+            "web/preview/data/api.json",
+            "web/preview/locales/preview.json",
             "web/src/api/generated/models/index.ts",
             "web/public/offline-language.js",
+            "web/public/webview-unsupported.js",
             "backend/src/eimir/i18n/locales/de.json",
         ):
             self.assertTrue(_is_excluded_platform_path(Path(generated)), generated)
@@ -27,6 +31,11 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             "android/app/src/main/java/de/eimir/app/MainActivity.java",
             "android/app/src/main/res/values/strings.xml",
             "web/e2e/fixtures/product-reference-foundations.tsx",
+            "web/preview/index.html",
+            "web/preview/launcher.ts",
+            "web/preview/app.tsx",
+            "web/preview/replay.ts",
+            "web/preview/data/session.json",
             "web/e2e/tests/product-reference-foundations.spec.ts",
             "backend/src/eimir/i18n/__init__.py",
             "backend/src/eimir/i18n/locales/runtime.py",
@@ -95,6 +104,18 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
                 '<string name="push_video_processing_failed">Dein Video konnte nicht verarbeitet werden.</string>',
             ),
             (
+                ".xml",
+                '<string name="media_transfer_title">Video wird hochgeladen</string>',
+            ),
+            (
+                ".xml",
+                '<string name="media_transfer_processing">Übertragung abgeschlossen. Video wird vorbereitet.</string>',
+            ),
+            (
+                ".xml",
+                '<string name="media_transfer_failed">Upload unterbrochen. Öffne eimir. zum Fortsetzen.</string>',
+            ),
+            (
                 ".json",
                 '"de": "Alex hat „Unser Spaziergang“ kommentiert."',
             ),
@@ -105,6 +126,14 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             (
                 ".xml",
                 '<string name="push_kiss">%1$s hat dir einen Kuss geschickt.</string>',
+            ),
+            (
+                ".xml",
+                '<string name="push_wish_date_proposed">%1$s schlägt einen Termin vor</string>',
+            ),
+            (
+                ".xml",
+                '<string name="push_wish_date_countered">%1$s schlägt einen anderen Termin vor</string>',
             ),
             (
                 ".java",

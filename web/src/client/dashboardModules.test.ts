@@ -2,23 +2,35 @@ import contract from './dashboardModuleCatalog.contract.json';
 import {
   DASHBOARD_MODULE_CATALOG,
   DASHBOARD_MODULE_KEYS,
+  dashboardModuleDefaultVisible,
 } from './dashboardModules';
 
 describe('dashboardModules', () => {
   it('keeps the accepted #1189 Today defaults for accounts without a #1194 personal order', () => {
     expect(DASHBOARD_MODULE_KEYS).toEqual([
       'relationship_presence',
+      'partner_distance',
       'shared_experience',
       'daily_quote',
       'keepsake',
       'upcoming',
       'pinned_collection',
+      'pinned_note',
       'retrospective',
       'relationship_signal',
       'monthly_highlights',
       'recent_shared',
       'shared_story_summary',
+      'shared_garden',
     ]);
+  });
+
+  it('keeps only the opt-in shared garden hidden without a saved choice', () => {
+    expect(
+      DASHBOARD_MODULE_KEYS.filter(
+        (key) => !dashboardModuleDefaultVisible(key),
+      ),
+    ).toEqual(['shared_garden']);
   });
 
   it('registers every module key exactly once', () => {

@@ -3,34 +3,41 @@ import { useTranslation } from '../i18n';
 import {
   applyResolvedTheme,
   DARK_MODE_QUERY,
+  readSystemPrefersDark,
   readThemePreference,
   resolveTheme,
   storeThemePreference,
+  SYSTEM_THEME_EVENT,
   THEME_PREFERENCE_EVENT,
   THEME_STORAGE_KEY,
   type ThemePreference,
 } from '../theme';
 
-function applyCurrentTheme(systemPrefersDark: boolean): ThemePreference {
+function applyCurrentTheme(): ThemePreference {
   const preference = readThemePreference();
-  applyResolvedTheme(resolveTheme(preference, systemPrefersDark), preference);
+  applyResolvedTheme(
+    resolveTheme(preference, readSystemPrefersDark()),
+    preference,
+  );
   return preference;
 }
 
 function ThemeRuntime() {
   useEffect(() => {
     const media = window.matchMedia(DARK_MODE_QUERY);
-    const syncTheme = () => applyCurrentTheme(media.matches);
+    const syncTheme = () => applyCurrentTheme();
     const syncStoredTheme = (event: StorageEvent) => {
       if (event.key === null || event.key === THEME_STORAGE_KEY) syncTheme();
     };
 
     syncTheme();
     media.addEventListener('change', syncTheme);
+    window.addEventListener(SYSTEM_THEME_EVENT, syncTheme);
     window.addEventListener(THEME_PREFERENCE_EVENT, syncTheme);
     window.addEventListener('storage', syncStoredTheme);
     return () => {
       media.removeEventListener('change', syncTheme);
+      window.removeEventListener(SYSTEM_THEME_EVENT, syncTheme);
       window.removeEventListener(THEME_PREFERENCE_EVENT, syncTheme);
       window.removeEventListener('storage', syncStoredTheme);
     };
@@ -47,11 +54,19 @@ function ThemePreferenceSelector() {
   useEffect(() => {
     const media = window.matchMedia(DARK_MODE_QUERY);
     const syncTheme = () =>
-      applyResolvedTheme(resolveTheme(preference, media.matches), preference);
+      applyResolvedTheme(
+        resolveTheme(preference, readSystemPrefersDark()),
+        preference,
+      );
 
     syncTheme();
-    if (preference === 'system') media.addEventListener('change', syncTheme);
-    return () => media.removeEventListener('change', syncTheme);
+    if (preference !== 'system') return;
+    media.addEventListener('change', syncTheme);
+    window.addEventListener(SYSTEM_THEME_EVENT, syncTheme);
+    return () => {
+      media.removeEventListener('change', syncTheme);
+      window.removeEventListener(SYSTEM_THEME_EVENT, syncTheme);
+    };
   }, [preference]);
 
   useEffect(() => {

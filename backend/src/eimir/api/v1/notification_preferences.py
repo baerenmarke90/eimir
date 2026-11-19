@@ -117,9 +117,7 @@ def get_own_notification_preferences(
     email_transport_ready = email_delivery.transport_available()
     active_endpoint_providers = (
         session.execute(
-            select(PushEndpoint.provider_key).where(
-                PushEndpoint.account_id == account.id, PushEndpoint.disabled_at.is_(None)
-            )
+            select(PushEndpoint.provider_key).where(push.active_endpoint_predicate(account.id))
         )
         .scalars()
         .all()

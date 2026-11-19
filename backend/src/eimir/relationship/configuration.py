@@ -154,7 +154,13 @@ def _locked_configuration(
         # Migration 0063 backfills every existing Space and create_space() adds
         # the row for new Spaces. Keep this recovery path so an incomplete
         # legacy/restored row cannot force callers into a second config model.
-        configuration = SpaceConfiguration(space_id=space_id)
+        # A recovered row belongs to an existing Space without a shared daily
+        # time zone, so the daily check-in dimensions stay off as they always were (#1790).
+        configuration = SpaceConfiguration(
+            space_id=space_id,
+            vibe_check_enabled=False,
+            energy_check_in_enabled=False,
+        )
         session.add(configuration)
         session.flush()
 

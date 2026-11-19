@@ -48,6 +48,8 @@ class CreateReceiptResourceType(StrEnum):
     PLAN = "PLAN"
     MILESTONE = "MILESTONE"
     HEART_MOMENT = "HEART_MOMENT"
+    COLLECTION_ITEM = "COLLECTION_ITEM"
+    WISH_DATE_PROPOSAL = "WISH_DATE_PROPOSAL"
 
 
 _RESOURCE_TYPE_VALUES = ", ".join(f"'{value.value}'" for value in CreateReceiptResourceType)

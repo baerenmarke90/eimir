@@ -1,34 +1,73 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createContext,
+  type ReactNode,
   useContext,
   useEffect,
+  useLayoutEffect,
+  useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AppearanceApi } from '../api/generated/apis/AppearanceApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { WirDesignId } from '../api/generated/models/WirDesignId';
 import {
-  WirDesignPreferenceViewFromJSON,
   type WirDesignPreferenceView,
+  WirDesignPreferenceViewFromJSON,
 } from '../api/generated/models/WirDesignPreferenceView';
+import {
+  APP_DESIGNS,
+  type AppDesignLayout,
+} from '../design/appDesigns.generated';
+import { syncDocumentThemeColor } from '../theme';
 import { APP_ICON_CAPABILITY, appIconQueryKey } from './appIcon';
+import {
+  ClientProblemError,
+  clientProblemKind,
+  normalizeClientError,
+} from './problemDetails';
 import { captureAuthorizedQuery } from './queryIdentity';
+import {
+  entitlementLoader,
+  useSpaceCapability,
+  withdrawSpaceCapability,
+} from './spaceEntitlement';
 import {
   forgetWirDesign,
   readWirDesign,
   rememberWirDesign,
   wirDesignStorageKey,
 } from './wirDesignPreferenceStore';
-import {
-  ClientProblemError,
-  clientProblemKind,
-  normalizeClientError,
-} from './problemDetails';
 
-export const WIR_DESIGNS = Object.values(WirDesignId);
+export const WIR_DESIGNS: readonly WirDesignId[] = [
+  WirDesignId.connected,
+  WirDesignId.shared_album,
+  WirDesignId.warm,
+  WirDesignId.modern,
+  WirDesignId.classic,
+  WirDesignId.quiet_together,
+  WirDesignId.handwriting,
+];
+/** The design every account starts with; it needs no entitlement. */
+export const DEFAULT_WIR_DESIGN: WirDesignId = WirDesignId.connected;
+/** Designs that never require Pro: the default and the earlier default. */
+export const FREE_WIR_DESIGNS: readonly WirDesignId[] = [
+  WirDesignId.connected,
+  WirDesignId.warm,
+];
+export function isFreeWirDesign(design: WirDesignId): boolean {
+  return FREE_WIR_DESIGNS.includes(design);
+}
+/**
+ * The layout mode of a design with a token file in design/designs/ (#1907
+ * C1). Undefined for designs that still style Wir through their own CSS.
+ */
+export function wirDesignLayout(
+  design: WirDesignId,
+): AppDesignLayout | undefined {
+  return APP_DESIGNS[design]?.layout;
+}
 export interface WirDesignSnapshot {
   preference: WirDesignPreferenceView;
   etag: string;
@@ -78,7 +117,6 @@ function useWirDesignState({
   }));
   const initialDesign =
     remembered.key === storageKey ? remembered.design : undefined;
-  const capabilityKey = [...key, 'capability'] as const;
   const active = useRef(true);
   const writing = useRef(false);
   const pendingController = useRef<AbortController | null>(null);
@@ -107,23 +145,17 @@ function useWirDesignState({
       }
     },
   });
-  const capability = useQuery({
-    queryKey: capabilityKey,
-    gcTime: 0,
-    retry: false,
+  const loadEntitlement = useMemo(
+    () => entitlementLoader(entitlementsApi, spaceId),
+    [entitlementsApi, spaceId],
+  );
+  // Reuses the session's single entitlement read from app start.
+  const capability = useSpaceCapability({
+    accountId,
+    spaceId,
+    load: loadEntitlement,
     enabled: inspect,
-    queryFn: async ({ signal }) => {
-      try {
-        const state =
-          await entitlementsApi.getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet(
-            { spaceId },
-            { signal },
-          );
-        return state.capabilities.includes(APP_ICON_CAPABILITY);
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
+    capability: APP_ICON_CAPABILITY,
   });
   const mutation = useMutation({
     retry: false,
@@ -179,7 +211,12 @@ function useWirDesignState({
         error instanceof ClientProblemError &&
         error.code === 'PREMIUM_ENTITLEMENT_REQUIRED'
       )
-        client.setQueryData(capabilityKey, false);
+        withdrawSpaceCapability(
+          client,
+          accountId,
+          spaceId,
+          APP_ICON_CAPABILITY,
+        );
     },
   });
   const readDenied = ['unauthorized', 'permission', 'notFound'].includes(
@@ -207,13 +244,14 @@ function useWirDesignState({
     mutation,
     presentationReady: initialDesign !== undefined || preference.isFetched,
     current: readDenied
-      ? WirDesignId.warm
+      ? DEFAULT_WIR_DESIGN
       : (preference.data?.preference.designId ??
         initialDesign ??
-        WirDesignId.warm),
+        DEFAULT_WIR_DESIGN),
     inspectCapability: () => {
-      if (inspect) void capability.refetch();
-      else setInspect(true);
+      // Opening the settings never re-reads a completed startup read.
+      if (!inspect) setInspect(true);
+      else if (capability.isError) void capability.refetch();
     },
     save: async (designId: WirDesignId) => {
       if (
@@ -245,6 +283,20 @@ export function WirDesignProvider(
   props: Parameters<typeof useWirDesignState>[0] & { children: ReactNode },
 ) {
   const state = useWirDesignState(props);
+  const applied = state.presentationReady ? state.current : undefined;
+  // The design's semantic tokens hang off the root, so every tab, sheet and
+  // the browser theme colour follow it. A layout effect applies them in the
+  // same frame as the Wir composition.
+  useLayoutEffect(() => {
+    if (!applied) return;
+    const root = document.documentElement;
+    root.setAttribute('data-app-design', applied);
+    syncDocumentThemeColor();
+    return () => {
+      root.removeAttribute('data-app-design');
+      syncDocumentThemeColor();
+    };
+  }, [applied]);
   return <Context.Provider value={state}>{props.children}</Context.Provider>;
 }
 export function useWirDesign() {

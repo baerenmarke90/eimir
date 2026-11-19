@@ -30,7 +30,13 @@ public final class EimirFirebaseMessagingService extends FirebaseMessagingServic
             if (!message.getData().containsKey("preview")) NativePushNotifications.present(localized, active);
             else {
                 PushPreview preview = PushPreview.decrypt(this, active, message.getData().get("preview"));
-                if (preview != null) NativePushNotifications.presentPreview(localized, active, preview);
+                if (preview != null) {
+                    if (preview.isNeutralReference()) {
+                        NativePushNotifications.presentReference(localized, active, preview.notificationId);
+                    } else if (!"ONCE_MESSAGE_RECEIVED".equals(preview.kind)) {
+                        NativePushNotifications.presentPreview(localized, active, preview);
+                    }
+                }
             }
         }
     }

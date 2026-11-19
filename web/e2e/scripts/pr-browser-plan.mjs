@@ -12,6 +12,17 @@ import { readTestInventory } from './test-inventory.mjs';
 const script = fileURLToPath(import.meta.url);
 const root = resolve(dirname(script), '../../..');
 
+// The additional group can be the longest single PR job. Native Playwright
+// sharding (fullyParallel) splits it across isolated one-worker runners. Never
+// plan more shards than spec files: each file holds at least one test, so no
+// shard can be empty, and a small selection does not pay for idle runner setup.
+const MAX_ADDITIONAL_SHARDS = 6;
+
+export function additionalShards(additional) {
+  const total = Math.min(MAX_ADDITIONAL_SHARDS, Math.max(additional.length, 1));
+  return Array.from({ length: total }, (_, index) => index + 1);
+}
+
 export function planBrowserTests(files, repositoryRoot = root) {
   const inventory = readTestInventory(resolve(repositoryRoot, 'web/e2e'));
   const entries = readBrowserImpact(repositoryRoot, inventory);
@@ -37,6 +48,7 @@ if (process.argv[1] && resolve(process.argv[1]) === script) {
       ? JSON.parse(readFileSync(process.argv[3], 'utf8'))
       : await readPullRequestFiles();
     const plan = planBrowserTests(files);
+    const shards = additionalShards(plan.additional);
     if (process.env.GITHUB_OUTPUT) {
       appendFileSync(
         process.env.GITHUB_OUTPUT,
@@ -44,6 +56,8 @@ if (process.argv[1] && resolve(process.argv[1]) === script) {
           `critical-specs=${JSON.stringify(plan.critical)}`,
           `additional-specs=${JSON.stringify(plan.additional)}`,
           `has-specs=${plan.additional.length > 0}`,
+          `additional-shards=${JSON.stringify(shards)}`,
+          `additional-shard-total=${shards.length}`,
           '',
         ].join('\n'),
       );
@@ -55,7 +69,7 @@ if (process.argv[1] && resolve(process.argv[1]) === script) {
           '### Browser test selection',
           '',
           `Mode: ${plan.full ? 'full regression (conservative fallback)' : 'always-run core + affected dependencies'}.`,
-          `PR shard files: **${plan.critical.length}**; additional files: **${plan.additional.length}**.`,
+          `PR shard files: **${plan.critical.length}**; additional files: **${plan.additional.length}** across **${plan.additional.length > 0 ? shards.length : 0}** shard(s).`,
           '',
           '```json',
           JSON.stringify(plan, null, 2),

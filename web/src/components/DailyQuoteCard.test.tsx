@@ -26,9 +26,9 @@ const catalog: DailyQuoteCatalogView = {
       description: 'Relationship thoughts.',
     },
     {
-      id: 'mindfulness',
-      name: 'Mindfulness',
-      description: 'Present-moment thoughts.',
+      id: 'together',
+      name: 'Shared moments',
+      description: 'Everyday moments together.',
     },
   ],
   sources: [
@@ -53,7 +53,7 @@ const quote: DailyQuoteResponse = {
   quote: {
     attributionRequired: true,
     authorDisplay: 'Example Author',
-    categoryIds: ['love', 'mindfulness'],
+    categoryIds: ['love', 'together'],
     id: 'quote-de-love-002',
     locale: 'de',
     rightsClassification: 'PUBLIC_DOMAIN',
@@ -219,7 +219,7 @@ describe('DailyQuoteCard', () => {
     ).not.toBeTruthy();
   });
 
-  it('keeps the quotation and accessible heading without a decorative symbol', async () => {
+  it('shows the saying and its visible section heading without a decorative symbol', async () => {
     renderCard();
 
     expect(await screen.findByText('„A server-resolved quote.“')).toBeTruthy();
@@ -239,7 +239,7 @@ describe('DailyQuoteCard', () => {
     ).toBe(true);
     expect(screen.queryByText('Love')).toBeNull();
     expect(
-      screen.queryByText(dailyQuote.catalog.categories.mindfulness),
+      screen.queryByText(dailyQuote.catalog.categories.together),
     ).toBeNull();
     expect(screen.queryByText(dailyQuote.kicker)).toBeNull();
     expect(document.querySelector('.daily-quote-card .pro-mark')).toBeNull();
@@ -260,6 +260,29 @@ describe('DailyQuoteCard', () => {
 
     expect(await screen.findByText(dailyQuote.discovery)).toBeTruthy();
     expect(screen.queryByText(dailyQuote.empty)).toBeNull();
+  });
+
+  it('shows an anonymous proverb without an attribution footer', async () => {
+    const text = 'Good things take time.';
+    renderCard({
+      quoteResult: {
+        ...quote,
+        quote: {
+          attributionRequired: false,
+          authorDisplay: '',
+          categoryIds: ['motivation'],
+          id: 'saying-de-simrock-001',
+          locale: 'de',
+          rightsClassification: 'PUBLIC_DOMAIN',
+          sourceDisplay: null,
+          sourceId: 'poetic_wisdom',
+          text,
+        },
+      },
+    });
+
+    const saying = await screen.findByText(`„${text}“`);
+    expect(saying.closest('blockquote')?.querySelector('footer')).toBeNull();
   });
 
   it('renders the neutral no-quote state without error styling or retry', async () => {
@@ -313,7 +336,7 @@ describe('DailyQuoteCard', () => {
     );
     await user.click(
       screen.getByRole('checkbox', {
-        name: dailyQuote.catalog.categories.mindfulness,
+        name: dailyQuote.catalog.categories.together,
       }),
     );
     await user.click(screen.getByRole('button', { name: dailyQuote.done }));
@@ -336,7 +359,7 @@ describe('DailyQuoteCard', () => {
     ).toBeNull();
     await user.click(
       screen.getByRole('checkbox', {
-        name: dailyQuote.catalog.categories.mindfulness,
+        name: dailyQuote.catalog.categories.together,
       }),
     );
     await user.click(screen.getByRole('button', { name: dailyQuote.done }));
@@ -349,8 +372,7 @@ describe('DailyQuoteCard', () => {
         spaceId: SPACE_ID,
         ifMatch: '"quote-pref:2"',
         dailyQuotePreferencePatch: {
-          selectedCategoryIds: ['love', 'mindfulness'],
-          selectedSourceIds: ['classic_literature'],
+          selectedCategoryIds: ['love', 'together'],
         },
       }),
       undefined,
@@ -373,7 +395,7 @@ describe('DailyQuoteCard', () => {
     );
     await user.click(
       screen.getByRole('checkbox', {
-        name: dailyQuote.catalog.categories.mindfulness,
+        name: dailyQuote.catalog.categories.together,
       }),
     );
     await user.click(screen.getByRole('button', { name: dailyQuote.done }));
@@ -381,7 +403,7 @@ describe('DailyQuoteCard', () => {
     expect(await screen.findByText(dailyQuote.conflict)).toBeTruthy();
     expect(
       screen.getByRole('checkbox', {
-        name: dailyQuote.catalog.categories.mindfulness,
+        name: dailyQuote.catalog.categories.together,
       }),
     ).toBeTruthy();
     expect(api.updateDailyQuotePreferencesRaw).toHaveBeenCalledTimes(1);
@@ -400,10 +422,10 @@ describe('DailyQuoteCard', () => {
       await screen.findByText(i18n.t('dailyQuote.privacy', { name: 'Ben' })),
     ).toBeTruthy();
 
-    const mindfulness = screen.getByRole('checkbox', {
-      name: dailyQuote.catalog.categories.mindfulness,
+    const together = screen.getByRole('checkbox', {
+      name: dailyQuote.catalog.categories.together,
     });
-    await user.click(mindfulness);
+    await user.click(together);
     await user.click(screen.getByRole('button', { name: dailyQuote.done }));
 
     await waitFor(() =>
@@ -413,10 +435,9 @@ describe('DailyQuoteCard', () => {
       expect.objectContaining({
         spaceId: SPACE_ID,
         ifMatch: '"quote-pref:2"',
-        dailyQuotePreferencePatch: expect.objectContaining({
-          selectedCategoryIds: ['love', 'mindfulness'],
-          selectedSourceIds: ['classic_literature'],
-        }),
+        dailyQuotePreferencePatch: {
+          selectedCategoryIds: ['love', 'together'],
+        },
       }),
       undefined,
     );

@@ -63,6 +63,10 @@ const allowedContinuousLoops = new Map<string, string>([
     'animation: gallery-pulse 1.4s ease-in-out infinite;',
   ],
   ['./shell.css', 'animation: app-pull-refresh-spin 0.8s linear infinite;'],
+  [
+    './components/PlanCover.css',
+    'animation: plan-cover-shimmer 1400ms linear infinite;',
+  ],
 ]);
 
 function normalizeWhitespace(value: string): string {

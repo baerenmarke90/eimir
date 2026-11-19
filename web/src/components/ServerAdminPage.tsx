@@ -1,3 +1,4 @@
+import { formatBytes } from '../client/formatBytes';
 import { TaskBackLink } from './TaskBackButton';
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -144,18 +145,6 @@ function formatDate(value: Date | null): string | null {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(value);
-}
-
-function formatBytes(value: number): string {
-  if (value < 1024) return `${formatNumber(value)} B`;
-  const units = ['KB', 'MB', 'GB', 'TB'];
-  let amount = value / 1024;
-  let unit = units[0];
-  for (let index = 1; index < units.length && amount >= 1024; index += 1) {
-    amount /= 1024;
-    unit = units[index];
-  }
-  return `${new Intl.NumberFormat(resolvedLocale(), { maximumFractionDigits: 1 }).format(amount)} ${unit}`;
 }
 
 function healthLabel(status: string, t: (key: string) => string): string {

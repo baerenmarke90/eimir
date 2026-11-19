@@ -1,10 +1,10 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { loadStoredSession } from './sessionPersistence';
 import { loadReferenceClientConfig } from './config';
 import {
   clearProductReadCacheInBackground,
   deleteProductReadCacheEntry,
 } from './productReadCache';
+import { loadStoredSession } from './sessionPersistence';
 
 /**
  * Canonical React Query key for the authoritative derived space Dashboard.
@@ -13,6 +13,27 @@ export function dashboardQueryKey(
   spaceId: string,
 ): readonly ['m5-s5', 'dashboard', string] {
   return ['m5-s5', 'dashboard', spaceId] as const;
+}
+
+/** The Pro Wir lifeline (#1770), owned by one Account in one Space. */
+export function storyLifelineQueryKey(
+  accountId: string,
+  spaceId: string,
+): readonly ['story-lifeline', string, string] {
+  return ['story-lifeline', accountId, spaceId] as const;
+}
+
+/**
+ * The entries of one lifeline period, read when its column is selected. The
+ * key extends the lifeline key, so invalidating the lifeline drops them too.
+ */
+export function storyLifelineEntriesQueryKey(
+  accountId: string,
+  spaceId: string,
+  from: string,
+  to: string,
+): readonly ['story-lifeline', string, string, 'entries', string, string] {
+  return ['story-lifeline', accountId, spaceId, 'entries', from, to] as const;
 }
 
 /**
@@ -55,6 +76,10 @@ export async function invalidateDashboard(
     queryClient.invalidateQueries({
       queryKey: ['relationship-passport'],
       predicate: (query) => query.queryKey[3] === spaceId,
+    }),
+    queryClient.invalidateQueries({
+      queryKey: ['story-lifeline'],
+      predicate: (query) => query.queryKey[2] === spaceId,
     }),
   ]);
 }

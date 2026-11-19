@@ -1,8 +1,9 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s5 from '../../src/i18n/locales/m5s5';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
+import { waitForSettledMotion } from '../support/settledMotion';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -88,7 +89,7 @@ const RECENT_SHARED_ITEMS = [
 ];
 
 // Activity chronology is independent of content occurrence dates and featured modules.
-const TRACE_TILE_COUNT = 4;
+const TRACE_TILE_COUNT = 3;
 const ACTIVITY_ITEMS = RECENT_SHARED_ITEMS.map((item, index) => ({
   id: `activity-${index}`,
   sourceEventId: `source-${index}`,
@@ -269,6 +270,20 @@ test('Today event trace keeps compact borderless composition and authoritative o
     expect(Number.parseFloat(style.radius)).toBeGreaterThan(0);
   }
 
+  // Modules arrive when they are reached and the plans grow in place: reach
+  // both, then measure the settled geometry.
+  await page.locator('.today-agenda-row').first().scrollIntoViewIfNeeded();
+  await expect(page.locator('.today-section-upcoming')).not.toHaveAttribute(
+    'data-wir-reveal',
+    'pending',
+  );
+  await tiles.last().scrollIntoViewIfNeeded();
+  await expect(page.locator('.today-section-recent')).not.toHaveAttribute(
+    'data-wir-reveal',
+    'pending',
+  );
+  await waitForSettledMotion(page);
+
   // Compact and bounded, not full-width rows: none should come close to the
   // 1920px viewport, and several must share the same line (2-4 per row is
   // the requested rhythm) so the section actually uses the available width
@@ -308,7 +323,9 @@ test('Today event trace keeps compact borderless composition and authoritative o
   expect(truncatedTitles).toHaveLength(0);
 
   await expect(tiles).toHaveText(
-    ACTIVITY_ITEMS.slice(0, 4).map((item) => new RegExp(item.target.title)),
+    ACTIVITY_ITEMS.slice(0, TRACE_TILE_COUNT).map(
+      (item) => new RegExp(item.target.title),
+    ),
   );
   await expect(tiles.first()).toContainText(
     m5s5.activityAction.COMMENT_CREATED,
@@ -433,16 +450,14 @@ test('Today and Activities show the same event titles and order in dark mode', a
   const traceTitles = await page
     .locator('.today-activity-trace .activity-card-target-title')
     .allTextContents();
+  expect(traceTitles).toHaveLength(TRACE_TILE_COUNT);
   await page.getByRole('link', { name: /Alle Aktivitäten ansehen/ }).click();
   await expect(page).toHaveURL(/\/today\/activity$/);
-  await expect(page.locator('.activity-card-target-title')).toHaveCount(
-    ACTIVITY_ITEMS.length,
-  );
+  // The kept Today tab is hidden, not discarded.
+  const activityTitles = page.locator('.activity-card-target-title:visible');
+  await expect(activityTitles).toHaveCount(ACTIVITY_ITEMS.length);
   expect(
-    (await page.locator('.activity-card-target-title').allTextContents()).slice(
-      0,
-      4,
-    ),
+    (await activityTitles.allTextContents()).slice(0, TRACE_TILE_COUNT),
   ).toEqual(traceTitles);
   const result = await new AxeBuilder({ page }).analyze();
   expect(result.violations).toEqual([]);

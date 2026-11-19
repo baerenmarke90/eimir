@@ -40,11 +40,19 @@ export function PlanPhotoGallery({
     },
     [apis, spaceId, plan.id, apiBaseUrl, accessToken],
   );
-  const photos = planPhotos(plan);
+  const orderedPhotos = planPhotos(plan);
+  const cover = orderedPhotos.find(
+    (photo) => photo.id === plan.selectedCoverAttachmentId,
+  );
+  const photos = cover
+    ? [cover, ...orderedPhotos.filter((photo) => photo.id !== cover.id)]
+    : orderedPhotos;
   if (!photos.length) return null;
   return (
     <div className="plan-photo-gallery photo-gallery">
       <MediaGallery
+        readingFrame
+        presentation="composer"
         initialMediaId={plan.selectedCoverAttachmentId ?? undefined}
         items={photos.map(({ id, mediaType, isSensitive }) => ({
           id,

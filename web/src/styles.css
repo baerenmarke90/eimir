@@ -67,6 +67,9 @@
   --content-max: 1200px;
   --reading-max: 720px;
   --rail-width: 21rem;
+  /* Width of the hanging Polaroid on the rediscovery cards (Wir and Momente).
+     On a phone it fills the card like a diary entry does. */
+  --polaroid-width: 22rem;
   --topbar-height: 72px;
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
@@ -165,7 +168,8 @@ button,
   text-decoration: none;
 }
 
-/* Canonical blue actions retain their meaning inside contextual color worlds. */
+/* Primary actions use the design's action colour (Verbunden: the canonical blue)
+   and keep it inside contextual colour worlds. */
 .button-link.button-link-primary {
   background: var(--color-action-primary);
   color: var(--color-on-action-primary);
@@ -175,7 +179,6 @@ button,
   button:hover:not(:disabled),
   .button-link:hover {
     filter: brightness(0.96);
-    transform: translateY(-1px);
   }
 }
 
@@ -223,6 +226,14 @@ summary:focus-visible,
 .file-picker:focus-within {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
+}
+
+:is(
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]),
+  textarea
+):focus-visible {
+  outline-width: 2px;
+  outline-offset: var(--border-divider-width);
 }
 
 /*
@@ -584,7 +595,7 @@ code {
   position: relative;
   z-index: 40;
   width: 100%;
-  min-height: calc(72px + var(--shell-header-safe-top, 0px));
+  min-height: var(--shell-topbar-min-height);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -666,7 +677,6 @@ code {
   height: 1.25rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.2;
   stroke-linecap: round;
   stroke-linejoin: round;
   flex-shrink: 0;
@@ -1174,6 +1184,18 @@ code {
     var(--easing-standard) forwards;
 }
 
+@keyframes eimir-create-entry-fade {
+  from {
+    opacity: 0.72;
+  }
+}
+
+@keyframes eimir-create-entry-rise {
+  from {
+    translate: 0 var(--space-2);
+  }
+}
+
 /* Immersive Creation Canvas (Direction B Sanctuary) */
 .immersive-create-card {
   max-width: 680px;
@@ -1296,6 +1318,51 @@ code {
   }
 }
 /* A saved read remains understandable while authoritative data refreshes. */
+/* The notice eases closed when live data replaces the saved read. */
+.overview-cache-notice-slot {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows var(--duration-context) var(--easing-standard),
+    opacity var(--duration-context) var(--easing-standard);
+}
+
+.overview-cache-notice-slot[data-open="true"] {
+  animation: overview-cache-notice-in var(--duration-context)
+    var(--easing-standard) both;
+}
+
+.overview-cache-notice-slot[data-open="false"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+@keyframes overview-cache-notice-in {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+
+  to {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+}
+
+.overview-cache-notice-clip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overview-cache-notice-slot,
+  .overview-cache-notice-slot[data-open="true"] {
+    animation: none;
+    transition: none;
+  }
+}
+
 .overview-cache-notice {
   margin-block: var(--space-3);
   padding: var(--space-3) var(--space-4);

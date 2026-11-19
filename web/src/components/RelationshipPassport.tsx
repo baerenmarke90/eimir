@@ -1,42 +1,69 @@
-import { dashboardItemTitle } from '../client/dashboardPresentation';
-import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardApi } from '../api/generated/apis/DashboardApi';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
-import { ProfilesApi } from '../client/mediaApis';
-import type { ProfilePageProps } from './ProfilePage';
-import type { RelationshipPassportView } from '../api/generated/models/RelationshipPassportView';
 import type { DashboardRelationshipDuration } from '../api/generated/models/DashboardRelationshipDuration';
-import { dashboardItemPath } from '../client/m4Product';
-import {
-  passportHighlights,
-  passportLandmarks,
-} from '../client/relationshipPassport';
-import { textExcerpt } from '../client/textExcerpt';
-import { OVERVIEW_GC_TIME } from '../client/useWarmOverviewQuery';
+import type { RelationshipPassportView } from '../api/generated/models/RelationshipPassportView';
 import { Configuration } from '../client/apiConfiguration';
+import { ProfilesApi } from '../client/mediaApis';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   ClientProblemError,
   normalizeClientError,
 } from '../client/problemDetails';
-import { usePartnerNickname } from '../client/partnerNickname';
+import { passportLandmarks } from '../client/relationshipPassport';
+import { MORE_PLACES_ROUTE, proPaywallPath } from '../client/routes';
+import {
+  entitlementLoader,
+  useSpaceCapability,
+} from '../client/spaceEntitlement';
+import type { LifelineKind } from '../client/storyLifeline';
+import {
+  type MilestoneRef,
+  nextMilestoneAnniversary,
+  waymarkToday,
+} from '../client/storyWaymarks';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
-import { MORE_PLACES_ROUTE, PRO_INFORMATION_ROUTE } from '../client/routes';
+import { OVERVIEW_GC_TIME } from '../client/useWarmOverviewQuery';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { PartnerAvatarPair } from './PartnerAvatarPair';
-import { ProMark } from './ProMark';
-import { PreferenceSwitch } from './PreferenceSwitch';
-import {
-  passportStatisticsKey,
-  readPassportStatisticsPreference,
-  savePassportStatisticsPreference,
-} from '../client/passportPreferences';
 import { ProblemState } from './ProblemState';
+import type { ProfilePageProps } from './ProfilePage';
+import { ProMark } from './ProMark';
+import {
+  StoryChapters,
+  type StoryOccasion,
+  StoryPlaces,
+  useFulfilledWishes,
+  useStoryMilestones,
+  useStoryOccasions,
+} from './RelationshipStoryExtras';
+import {
+  PassportWaymarks,
+  passportDate,
+  useWaymarkLabel,
+} from './RelationshipWaymarks';
+import { SharedStorySummary } from './SharedStorySummary';
+import { StoryKindGlyph } from './StoryKindGlyph';
 import './RelationshipReflections.css';
 
 const CAPABILITY = 'relationship.passport';
-export function RelationshipPassport(props: ProfilePageProps) {
+
+/** Loads a Memory's photo through the authorized story media path. */
+export type PassportImageLoader = (
+  memoryId: string,
+  attachmentId: string,
+  signal?: AbortSignal,
+  variant?: 'original' | 'thumbnail',
+) => Promise<ObjectUrlSource>;
+
+type PassportProps = ProfilePageProps & {
+  loadMemoryImage?: PassportImageLoader;
+};
+
+export function RelationshipPassport(props: PassportProps) {
   const { t } = useTranslation();
   const apis = useMemo(() => {
     const configuration = new Configuration({
@@ -49,28 +76,16 @@ export function RelationshipPassport(props: ProfilePageProps) {
       profiles: new ProfilesApi(configuration),
     };
   }, [props.apiBaseUrl, props.accessToken]);
-  const capability = useQuery({
-    queryKey: [
-      'relationship-passport',
-      'entitlement',
-      props.account.id,
-      props.spaceId,
-    ],
-    queryFn: async ({ signal }) => {
-      try {
-        const view =
-          await apis.entitlements.getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet(
-            { spaceId: props.spaceId },
-            { signal },
-          );
-        return view.capabilities.includes(CAPABILITY);
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
-    retry: false,
-    gcTime: OVERVIEW_GC_TIME,
-    refetchOnMount: 'always',
+  const loadEntitlement = useMemo(
+    () => entitlementLoader(apis.entitlements, props.spaceId),
+    [apis.entitlements, props.spaceId],
+  );
+  // Reuses the session's single entitlement read from app start.
+  const capability = useSpaceCapability({
+    accountId: props.account.id,
+    spaceId: props.spaceId,
+    load: loadEntitlement,
+    capability: CAPABILITY,
   });
   return (
     <section
@@ -111,7 +126,7 @@ function PassportProEntry() {
       <p className="passport-support">
         {t('relationshipReflections.passport.dataRights')}
       </p>
-      <Link to={PRO_INFORMATION_ROUTE}>
+      <Link to={proPaywallPath('recaps')}>
         {t('relationshipReflections.passport.learnMore')}
       </Link>
     </div>
@@ -120,8 +135,9 @@ function PassportProEntry() {
 
 function PassportRead({
   apis,
+  loadMemoryImage,
   ...props
-}: ProfilePageProps & {
+}: PassportProps & {
   apis: { dashboard: DashboardApi; profiles: ProfilesApi };
 }) {
   const { t } = useTranslation();
@@ -167,10 +183,36 @@ function PassportRead({
         <ProblemState error={read.error} onRetry={() => void read.refetch()} />
       ) : null}
       <PassportContent {...props} profiles={apis.profiles} value={read.data} />
-      <PassportStory
-        dashboard={apis.dashboard}
-        spaceId={props.spaceId}
+      <div className="passport-timeline">
+        <h3 id="passport-lifeline-title">
+          {t('m5s5.dashboard.storyLifelineAria')}
+        </h3>
+        <SharedStorySummary
+          labelledBy="passport-lifeline-title"
+          summary={{
+            memories: read.data.memories,
+            heartMoments: read.data.heartMoments,
+            milestones: read.data.milestones,
+          }}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+          dashboardApi={apis.dashboard}
+          loadMemoryImage={loadMemoryImage}
+          variant="full"
+        />
+        <StoryChapters
+          apiBaseUrl={props.apiBaseUrl}
+          accessToken={props.accessToken}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+          startedOn={read.data.relationshipDuration?.startedOn}
+        />
+      </div>
+      <StoryPlaces
+        apiBaseUrl={props.apiBaseUrl}
+        accessToken={props.accessToken}
         accountId={props.account.id}
+        spaceId={props.spaceId}
       />
     </>
   );
@@ -186,17 +228,6 @@ function PassportContent({
 }) {
   const { t } = useTranslation();
   const { relationshipLabel } = usePartnerNickname();
-  const statisticsKey = passportStatisticsKey(
-    props.apiBaseUrl,
-    props.account.id,
-    props.spaceId,
-  );
-  const [statisticsPreference, setStatisticsPreference] = useState(() => ({
-    key: statisticsKey,
-    enabled: readPassportStatisticsPreference(statisticsKey),
-  }));
-  const showStatistics =
-    statisticsPreference.key === statisticsKey && statisticsPreference.enabled;
   const partner = value.partner;
   const ownProfile = useQuery({
     queryKey: ['profile-identity', props.spaceId, props.account.id],
@@ -232,26 +263,70 @@ function PassportContent({
     partnerProfile.data?.profileAttachmentId,
   );
   const numbers = new Intl.NumberFormat(resolvedLocale());
-  const metrics = [
+  const storyScope = {
+    apiBaseUrl: props.apiBaseUrl,
+    accessToken: props.accessToken,
+    accountId: props.account.id,
+    spaceId: props.spaceId,
+  };
+  const fulfilledWishes = useFulfilledWishes(storyScope);
+  const milestones = useStoryMilestones(storyScope);
+  const occasions = useStoryOccasions(
+    storyScope,
+    partner
+      ? {
+          name: relationshipLabel(
+            partner.id,
+            partner.displayName,
+            t('couplePresencePartnerFallback'),
+          ),
+          date: partnerProfile.data?.birthday,
+        }
+      : null,
+  );
+  const metricLabel = (key: string, count: number) =>
+    key === 'fulfilledWishes'
+      ? t('relationshipReflections.passport.fulfilledWishes', { count })
+      : t(`relationshipReflections.passport.${key}`, { count });
+  const metrics: {
+    key: string;
+    count: number;
+    to: string;
+    /** The three shared Story kinds keep their shape and colour here too. */
+    kind?: LifelineKind;
+  }[] = [
     {
       key: 'memories',
       count: value.memories,
       to: '/story?tab=timeline&type=MEMORY',
+      kind: 'memories',
     },
     {
       key: 'heartMoments',
       count: value.heartMoments,
       to: '/story?tab=timeline&type=HEART_MOMENT',
+      kind: 'heartMoments',
     },
     {
       key: 'milestones',
       count: value.milestones,
       to: '/story?tab=timeline&type=MILESTONE',
+      kind: 'milestones',
     },
     { key: 'completedPlans', count: value.completedPlans, to: '/plan#plans' },
     { key: 'places', count: value.places, to: MORE_PLACES_ROUTE },
+    ...(fulfilledWishes
+      ? [
+          {
+            key: 'fulfilledWishes',
+            count: fulfilledWishes.count,
+            to: '/plan#fulfilled-wishes',
+          },
+        ]
+      : []),
   ];
   const empty = metrics.every((metric) => metric.count === 0);
+  const largestMetric = Math.max(1, ...metrics.map((metric) => metric.count));
   return (
     <>
       <div className="passport-identity">
@@ -307,200 +382,176 @@ function PassportContent({
           ) : null}
         </div>
       </div>
-      <PassportLandmarks duration={value.relationshipDuration} />
-      <PreferenceSwitch
-        label={t('relationshipReflections.passport.statisticsToggle')}
-        description={t('relationshipReflections.passport.statisticsHelp')}
-        checked={showStatistics}
-        onCheckedChange={(enabled) => {
-          setStatisticsPreference({ key: statisticsKey, enabled });
-          savePassportStatisticsPreference(statisticsKey, enabled);
-        }}
+      <PassportLandmarks
+        duration={value.relationshipDuration}
+        occasions={occasions}
+        milestones={milestones}
+      />
+      <PassportWaymarks
+        duration={value.relationshipDuration}
+        milestones={milestones}
       />
       {empty ? (
         <div>
           <p>{t('relationshipReflections.passport.empty')}</p>
           <Link to="/story">{t('relationshipReflections.passport.start')}</Link>
         </div>
-      ) : showStatistics ? (
+      ) : (
         <div className="passport-history">
           <h3>{t('relationshipReflections.passport.history')}</h3>
           <ul className="passport-metrics">
             {metrics.map((metric) => (
-              <li key={metric.key}>
+              <li
+                key={metric.key}
+                className={
+                  metric.kind
+                    ? `passport-metric-story story-kind-${metric.kind}`
+                    : undefined
+                }
+              >
                 <Link
                   to={metric.to}
-                  aria-label={`${numbers.format(metric.count)} ${t(`relationshipReflections.passport.${metric.key}`, { count: metric.count })}`}
+                  aria-label={`${numbers.format(metric.count)} ${metricLabel(metric.key, metric.count)}`}
                 >
+                  {metric.kind ? (
+                    <StoryKindGlyph
+                      kind={metric.kind}
+                      className="passport-metric-glyph"
+                    />
+                  ) : (
+                    <span
+                      className="passport-metric-glyph"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span className="passport-metric-label">
+                    {metricLabel(metric.key, metric.count)}
+                  </span>
                   <span className="passport-number">
                     {numbers.format(metric.count)}
                   </span>
-                  <span className="passport-metric-label">
-                    {t(`relationshipReflections.passport.${metric.key}`, {
-                      count: metric.count,
-                    })}
-                  </span>
+                  <span
+                    className="passport-metric-bar"
+                    aria-hidden="true"
+                    style={{
+                      ['--passport-share' as string]: String(
+                        metric.count / largestMetric,
+                      ),
+                    }}
+                  />
                 </Link>
               </li>
             ))}
           </ul>
         </div>
-      ) : null}
+      )}
     </>
   );
 }
 
-function passportDate(value: Date): string {
-  return new Intl.DateTimeFormat(resolvedLocale(), {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(value);
-}
-
 function PassportLandmarks({
   duration,
+  occasions,
+  milestones,
 }: {
   duration: DashboardRelationshipDuration | null;
+  occasions: readonly StoryOccasion[];
+  milestones: readonly MilestoneRef[];
 }) {
   const { t } = useTranslation();
+  const waymarkLabel = useWaymarkLabel();
   const landmarks = passportLandmarks(duration);
   if (!landmarks) return null;
+  const upcomingMilestone = nextMilestoneAnniversary(
+    milestones,
+    waymarkToday(duration),
+  );
   const remaining = (count: number) =>
     count === 0
       ? t('relationshipReflections.passport.landmarkToday')
       : t('relationshipReflections.passport.remaining', { count });
+  // One list, nearest first: the two relationship landmarks and the couple's
+  // own occasions are the same kind of thing to look forward to.
+  const rows = [
+    {
+      key: 'anniversary',
+      label: t('relationshipReflections.passport.anniversary', {
+        count: landmarks.anniversary.years,
+      }),
+      date: landmarks.anniversary.date,
+      daysRemaining: landmarks.anniversary.daysRemaining,
+      progress: 1 - landmarks.anniversary.daysRemaining / 365,
+    },
+    ...(landmarks.roundDay
+      ? [
+          {
+            key: 'roundDay',
+            label: waymarkLabel({
+              kind: 'roundDay',
+              key: 'next-round-day',
+              date: landmarks.roundDay.date,
+              days: landmarks.roundDay.days,
+            }),
+            date: landmarks.roundDay.date,
+            daysRemaining: landmarks.roundDay.daysRemaining,
+            progress:
+              1 - landmarks.roundDay.daysRemaining / landmarks.roundDay.days,
+          },
+        ]
+      : []),
+    ...(upcomingMilestone
+      ? [
+          {
+            key: `milestone-anniversary:${upcomingMilestone.milestoneId}`,
+            label: waymarkLabel({
+              kind: 'milestoneAnniversary',
+              key: 'next-milestone-anniversary',
+              date: upcomingMilestone.date,
+              years: upcomingMilestone.years,
+              milestoneId: upcomingMilestone.milestoneId,
+              title: upcomingMilestone.title,
+            }),
+            date: upcomingMilestone.date,
+            daysRemaining: upcomingMilestone.daysRemaining,
+            progress: 1 - upcomingMilestone.daysRemaining / 365,
+          },
+        ]
+      : []),
+    ...occasions.map((occasion) => ({
+      key: occasion.key,
+      label: occasion.label,
+      date: occasion.date,
+      daysRemaining: occasion.daysRemaining,
+      progress: 1 - occasion.daysRemaining / 365,
+    })),
+  ].sort((a, b) => a.daysRemaining - b.daysRemaining);
   return (
     <div className="passport-landmarks">
       <h3>{t('relationshipReflections.passport.nextChapter')}</h3>
       <dl>
-        <div>
-          <dt>
-            {t('relationshipReflections.passport.anniversary', {
-              count: landmarks.anniversary.years,
-            })}
-          </dt>
-          <dd>
-            <time
-              dateTime={landmarks.anniversary.date.toISOString().slice(0, 10)}
-            >
-              {passportDate(landmarks.anniversary.date)}
-            </time>
-          </dd>
-          <dd className="passport-remaining">
-            {remaining(landmarks.anniversary.daysRemaining)}
-          </dd>
-        </div>
-        <div>
-          <dt>
-            {t('relationshipReflections.passport.roundDay', {
-              count: landmarks.roundDay.days,
-              days: new Intl.NumberFormat(resolvedLocale()).format(
-                landmarks.roundDay.days,
-              ),
-            })}
-          </dt>
-          <dd>
-            <time dateTime={landmarks.roundDay.date.toISOString().slice(0, 10)}>
-              {passportDate(landmarks.roundDay.date)}
-            </time>
-          </dd>
-          <dd className="passport-remaining">
-            {remaining(landmarks.roundDay.daysRemaining)}
-          </dd>
-        </div>
+        {rows.map((row) => (
+          <div key={row.key}>
+            <dt>{row.label}</dt>
+            <dd>
+              <time dateTime={row.date.toISOString().slice(0, 10)}>
+                {passportDate(row.date)}
+              </time>
+            </dd>
+            <dd className="passport-remaining">
+              {remaining(row.daysRemaining)}
+            </dd>
+            <dd
+              className="passport-progress"
+              aria-hidden="true"
+              style={{
+                ['--passport-progress' as string]: String(
+                  Math.min(1, Math.max(0, row.progress)),
+                ),
+              }}
+            />
+          </div>
+        ))}
       </dl>
-    </div>
-  );
-}
-
-function PassportStory({
-  dashboard,
-  spaceId,
-  accountId,
-}: {
-  dashboard: DashboardApi;
-  spaceId: string;
-  accountId: string;
-}) {
-  const { t } = useTranslation();
-  const read = useQuery({
-    queryKey: ['relationship-passport', 'highlights', accountId, spaceId],
-    queryFn: async ({ signal }) => {
-      try {
-        return await dashboard.getDashboard({ spaceId }, { signal });
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
-    staleTime: 60_000,
-    gcTime: OVERVIEW_GC_TIME,
-    retry: false,
-  });
-  // An authoritative failure must never keep an older shared preview visible.
-  const denied =
-    read.error instanceof ClientProblemError &&
-    ['unauthorized', 'permission', 'notFound'].includes(read.error.kind);
-  const highlights = denied ? [] : passportHighlights(read.data);
-  const nextPlan = denied
-    ? undefined
-    : read.data?.upcoming.find((item) => item.type === 'PLAN');
-  const nextPath = nextPlan
-    ? dashboardItemPath(nextPlan.type, nextPlan.id)
-    : null;
-  return (
-    <div className="passport-story">
-      {read.isPending ? (
-        <p role="status">
-          {t('relationshipReflections.passport.highlightsLoading')}
-        </p>
-      ) : null}
-      {read.error ? (
-        <ProblemState error={read.error} onRetry={() => void read.refetch()} />
-      ) : null}
-      {highlights.length ? (
-        <div className="passport-rediscover">
-          <h3>{t('relationshipReflections.passport.rediscover')}</h3>
-          <ul>
-            {highlights.map((item) => (
-              <li key={`${item.type}:${item.id}`}>
-                <Link to={dashboardItemPath(item.type, item.id) ?? '/story'}>
-                  <span>
-                    <strong>
-                      {textExcerpt(dashboardItemTitle(item, t).title, 100)}
-                    </strong>
-                    {item.occurredOn &&
-                    !dashboardItemTitle(item, t).titleIsDate ? (
-                      <time
-                        dateTime={item.occurredOn.toISOString().slice(0, 10)}
-                      >
-                        {passportDate(item.occurredOn)}
-                      </time>
-                    ) : null}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      {nextPlan && nextPath ? (
-        <div className="passport-next-experience">
-          <h3>{t('relationshipReflections.passport.nextExperience')}</h3>
-          <Link to={nextPath}>
-            <strong>
-              {textExcerpt(
-                nextPlan.titleOrText || t('m5s5.dashboard.itemFallback'),
-                100,
-              )}
-            </strong>
-          </Link>
-        </div>
-      ) : null}
-      <Link className="passport-story-action" to="/story?tab=timeline">
-        {t('relationshipReflections.passport.explore')}{' '}
-      </Link>
     </div>
   );
 }

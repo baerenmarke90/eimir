@@ -2,12 +2,20 @@ import type { AccountView } from '../api/generated/models/AccountView';
 import type { TokenView } from '../api/generated/models/TokenView';
 import { SESSION_LANGUAGE_EVENT, SESSION_LANGUAGE_KEY } from '../i18n/locale';
 import { clearAuthorizedMediaCache } from './authorizedMediaCache';
+import {
+  clearBackgroundVideoTransfers,
+  hasNativeVideoTransfers,
+  observeNativeVideoTransfers,
+} from './backgroundVideoUploads';
+import { loadReferenceClientConfig } from './config';
 import { clearMemoryDiaryDrafts } from './memoryDiaryDraft';
 import {
   isNativeSessionStorageAvailable,
   readNativeSessionSnapshot,
   writeNativeSessionSnapshot,
 } from './nativeSessionStorage';
+import { clearPersonalSettingsSyncState } from './personalSettingsBus';
+import { clearPersonColourPreferences } from './personColoursStore';
 import { normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
 import { clearRetrospectiveDismissal } from './todayRetrospectiveDismissal';
@@ -225,6 +233,7 @@ function persistSession(
     ) {
       clearAuthorizedMediaCache();
       clearMemoryDiaryDrafts();
+      clearBackgroundVideoTransfers();
     }
     const serialized = JSON.stringify({
       account: session.account,
@@ -257,7 +266,20 @@ function persistSession(
     } else {
       sessionOwner = { accountId: session.account.id, tokens: session.tokens };
     }
-    return persistNativeSnapshot(serialized);
+    return persistNativeSnapshot(serialized).then(() => {
+      const current = loadStoredSession();
+      if (
+        hasNativeVideoTransfers() &&
+        current?.account.id === session.account.id &&
+        current.spaceId === session.spaceId &&
+        session.spaceId
+      )
+        observeNativeVideoTransfers({
+          instance: loadReferenceClientConfig().apiBaseUrl,
+          accountId: session.account.id,
+          spaceId: session.spaceId,
+        });
+    });
   } catch {
     // Storage might be disabled or quota exceeded in restrictive environments.
     return Promise.resolve();
@@ -298,8 +320,11 @@ export function loadStoredSession(): StoredSession | null {
 }
 
 export function clearStoredSession(): Promise<void> {
+  clearBackgroundVideoTransfers();
   clearAuthorizedMediaCache();
   clearWirDesignPreferences();
+  clearPersonColourPreferences();
+  clearPersonalSettingsSyncState();
   clearMemoryDiaryDrafts();
   clearRetrospectiveDismissal();
   sessionOwner = null;

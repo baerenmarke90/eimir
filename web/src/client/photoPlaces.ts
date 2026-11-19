@@ -1,4 +1,5 @@
 import { normalizeClientError } from './problemDetails';
+import { MEMORY_MAP_ROUTE } from './routes';
 
 export async function photoPlacesRequest<T>(
   request: () => Promise<T>,
@@ -24,8 +25,17 @@ export function photoPlaceMapUrl(
     Math.abs(longitude) > 180
   )
     return null;
-  const url = new URL('https://www.google.com/maps/search/');
-  url.searchParams.set('api', '1');
-  url.searchParams.set('query', `${latitude},${longitude}`);
-  return url.href;
+  return `${MEMORY_MAP_ROUTE}?${new URLSearchParams({ place: `${latitude}:${longitude}` })}`;
+}
+
+export function parseMapPlace(
+  value: string | null,
+): { latitude: number; longitude: number } | undefined {
+  if (
+    !value ||
+    !/^-?\d{1,3}(?:\.\d{1,16})?:-?\d{1,3}(?:\.\d{1,16})?$/.test(value)
+  )
+    return;
+  const [latitude, longitude] = value.split(':').map(Number);
+  if (photoPlaceMapUrl(latitude, longitude)) return { latitude, longitude };
 }

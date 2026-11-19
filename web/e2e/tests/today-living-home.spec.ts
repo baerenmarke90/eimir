@@ -1,14 +1,22 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
-import recaps from '../../src/i18n/locales/recaps';
 import m5s5 from '../../src/i18n/locales/m5s5';
+import recaps from '../../src/i18n/locales/recaps';
 import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
+import localeFixtures from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
+
+const fillCopy = (template: string, values: Record<string, string | number>) =>
+  template.replace(/{{(\w+)}}/g, (_, key: string) => String(values[key]));
+const lifelinePosition = (position: number, total: number) =>
+  fillCopy(m5s5.dashboard.storyLifelinePosition, { position, total });
+const lifelineEntry = (position: number, total: number) =>
+  fillCopy(m5s5.dashboard.storyLifelineEntryLabel, { position, total });
 
 /*
  * Product Reference v1 R4 calibrates `/today` as the living home of a
@@ -37,10 +45,16 @@ const PHOTO_FOR_ATTACHMENT: Record<string, string> = {
   'att-strip-1': 'dog-outdoors.jpg',
   'att-strip-2': 'lake-sunrise.jpg',
   'att-strip-3': 'cabin-lake.jpg',
+  'att-month-reference-3': 'sunset-field.jpg',
   'att-nostalgia': 'lake-sunrise.jpg',
 };
 
-const NOW = new Date();
+// Keep layout fixtures inside the three-day monthly attention window.
+// Fixed time preserves real timers and motion; only the calendar is anchored.
+const NOW = new Date('2026-10-06T12:00:00.000Z');
+test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(NOW);
+});
 /*
  * `occurredOn` is an OpenAPI `format: date` field, so the server sends a bare
  * `YYYY-MM-DD` string. The mock sends the same shape: a full timestamp here
@@ -200,7 +214,7 @@ const ALL_MODULES_SPACE = {
   },
 };
 
-/** `Diesen Monat` with a single photo: the plain, non-carousel wide band. */
+/** `Diesen Monat` with a single photo: one full-width mosaic tile. */
 const ONE_MONTHLY_PHOTO_SPACE = {
   upcoming: [],
   keepsake: MOMENT,
@@ -209,7 +223,7 @@ const ONE_MONTHLY_PHOTO_SPACE = {
   activity: [] as unknown[],
 };
 
-/** `Diesen Monat` with two photos: the compact swipe carousel's minimum. */
+/** `Diesen Monat` with two photos: two equal mosaic tiles. */
 const TWO_MONTHLY_PHOTOS_SPACE = {
   upcoming: [],
   keepsake: MOMENT,
@@ -261,9 +275,15 @@ async function settleMotion(page: Page): Promise<void> {
   await page.evaluate(async () => {
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    // Scroll-driven animations (the stage drift, the photograph parallax) are
+    // finite but never finish while the page stands still; they follow the
+    // finger, not the clock, so only the document timeline is awaited.
     const finite = document.getAnimations().filter((animation) => {
       const timing = animation.effect?.getTiming();
-      return timing?.iterations !== Number.POSITIVE_INFINITY;
+      return (
+        animation.timeline === document.timeline &&
+        timing?.iterations !== Number.POSITIVE_INFINITY
+      );
     });
     await Promise.all(
       finite.map((animation) => animation.finished.catch(() => undefined)),
@@ -334,7 +354,122 @@ type Scenario = {
   recentShared: unknown[];
   activity: unknown[];
   viewerLocalDate?: string | null;
+  summary?: { memories: number; heartMoments: number; milestones: number };
+  relationshipDuration?: {
+    daysTogether: number;
+    startedOn: string;
+    displayMode: string;
+  } | null;
 };
+
+/** The lifeline slider value text, composed from the locale templates. */
+function lifelineValue(
+  date: string,
+  count: number,
+  title: string,
+  kind: string = m5s5.dashboard.storyLifelineKindMemory,
+  position?: [number, number],
+): string {
+  return (
+    position
+      ? m5s5.dashboard.storyLifelineValuePosition
+      : m5s5.dashboard.storyLifelineValue
+  )
+    .replace(
+      '{{period}}',
+      m5s5.dashboard.storyLifelineWeekOf.replace('{{date}}', date),
+    )
+    .replace(
+      '{{entries}}',
+      m5s5.dashboard.storyLifelineEntries_other.replace(
+        '{{count}}',
+        String(count),
+      ),
+    )
+    .replace('{{kind}}', kind)
+    .replace('{{title}}', title)
+    .replace('{{position}}', String(position?.[0]))
+    .replace('{{total}}', String(position?.[1]));
+}
+
+/** The single entries of one lifeline week, read when its column opens. */
+function lifelineEntriesFor(scenario: Scenario, from: string) {
+  const lifeline = lifelineFor(scenario);
+  const week = lifeline.weeks.find((candidate) => candidate.weekStart === from);
+  if (!week) return { total: 0, items: [] };
+  const entry = (
+    type: string,
+    id: string,
+    titleOrText: string,
+    previewAttachmentId: string | null = null,
+  ) => ({
+    type,
+    id,
+    titleOrText,
+    occurredOn: week.weekStart,
+    scheduledAt: null,
+    createdAt: null,
+    previewAttachmentId,
+    previewIsSensitive: false,
+    previewHasThumbnail: false,
+  });
+  const items = [
+    entry('MILESTONE', `${week.highlight.id}-milestone`, 'Moved in together'),
+    week.highlight,
+    entry(
+      'HEART_MOMENT',
+      `${week.highlight.id}-heart`,
+      'Thank you for the day',
+    ),
+  ];
+  return { total: items.length, items };
+}
+
+/** A lifeline whose weekly parts add up exactly to the scenario totals. */
+function lifelineFor(scenario: Scenario) {
+  const summary = scenario.summary ?? {
+    memories: 0,
+    heartMoments: 0,
+    milestones: 0,
+  };
+  const split = (value: number) => {
+    const third = Math.floor(value / 3);
+    return [third, third, value - 2 * third];
+  };
+  const [memories, heartMoments, milestones] = [
+    split(summary.memories),
+    split(summary.heartMoments),
+    split(summary.milestones),
+  ];
+  const titles = [
+    'Our first walk',
+    'Picnic at the lake',
+    'An ordinary Tuesday',
+  ];
+  return {
+    startsOn: scenario.relationshipDuration?.startedOn ?? null,
+    today: scenario.viewerLocalDate ?? '2026-11-10',
+    weeks: ['2026-05-11', '2026-07-13', '2026-11-09'].map(
+      (weekStart, index) => ({
+        weekStart,
+        memories: memories[index],
+        heartMoments: heartMoments[index],
+        milestones: milestones[index],
+        highlight: {
+          type: 'MEMORY',
+          id: `lifeline-${index}`,
+          titleOrText: titles[index],
+          occurredOn: weekStart,
+          scheduledAt: null,
+          createdAt: null,
+          previewAttachmentId: index === 1 ? 'att-strip-2' : null,
+          previewIsSensitive: false,
+          previewHasThumbnail: false,
+        },
+      }),
+    ),
+  };
+}
 
 async function installMocks(
   page: Page,
@@ -432,7 +567,10 @@ async function installMocks(
         spaceId: SPACE_ID,
         status: 'ACTIVE',
         tier: 'PREMIUM',
-        capabilities: ['daily.quote'],
+        capabilities: [
+          'daily.quote',
+          ...(scenario.summary ? ['relationship.passport'] : []),
+        ],
         isInGracePeriod: false,
       });
       return;
@@ -548,6 +686,21 @@ async function installMocks(
     }
     if (
       method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/story-lifeline`
+    ) {
+      await fulfillJson(lifelineFor(scenario));
+      return;
+    }
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/story-lifeline/entries`
+    ) {
+      const from = new URL(request.url()).searchParams.get('from') ?? '';
+      await fulfillJson(lifelineEntriesFor(scenario, from));
+      return;
+    }
+    if (
+      method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/dashboard/preferences`
     ) {
       await fulfillJson({ items: [{ moduleKey: 'upcoming', itemLimit }] });
@@ -562,11 +715,15 @@ async function installMocks(
           spaceId: SPACE_ID,
           partner: withPartner ? partner : null,
         },
-        relationshipDuration: {
-          daysTogether: 1164,
-          startedOn: '2023-07-04',
-          displayMode: 'YEARS_MONTHS',
-        },
+        relationshipDuration:
+          scenario.relationshipDuration === undefined
+            ? {
+                daysTogether: 1164,
+                startedOn: '2023-07-04',
+                displayMode: 'YEARS_MONTHS',
+              }
+            : scenario.relationshipDuration,
+        sharedStorySummary: scenario.summary,
         thinkingOfYouAvailableAt: null,
         upcoming: scenario.upcoming,
         keepsake: scenario.keepsake,
@@ -918,6 +1075,97 @@ test.describe('Today R4: the living home of a relationship', () => {
     expect(metrics.momentImage as number).toBeLessThan(700);
   });
 
+  test('Verbunden joins the two portraits with the heart line, in Light and Dark', async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(120_000);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installMocks(page, RICH_SPACE);
+    // #1861: the default design for accounts without an earlier choice.
+    await page.route('**/appearance/wir-design', (route) =>
+      route.fulfill({
+        json: { designId: 'connected', version: 1 },
+        headers: { ETag: '"connected:1"' },
+      }),
+    );
+    await page.emulateMedia({ colorScheme: 'light' });
+    await signInAndOpenToday(page);
+    await settleMotion(page);
+
+    await expect(page.locator('.today-page')).toHaveAttribute(
+      'data-wir-design',
+      'connected',
+    );
+    const stage = page.locator('.wir-stage');
+    await expect(stage).toBeVisible();
+    // One name under each portrait, and the page heading stays for assistive
+    // technology without being painted.
+    await expect(stage.locator('.wir-stage-name')).toHaveCount(2);
+    await expect(page.locator('.today-content h1')).toHaveCount(1);
+
+    // The heart line carries the time together and opens the story overview.
+    const bridge = stage.locator('.wir-bridge');
+    await expect(bridge).toBeVisible();
+    await expect(bridge).toHaveAttribute('href', '/story/our-story');
+    await expect(bridge.locator('svg path')).toHaveCount(2);
+
+    const geometry = await page.evaluate(() => {
+      const box = (selector: string) =>
+        document.querySelector(selector)?.getBoundingClientRect() ?? null;
+      const portraits = [
+        ...document.querySelectorAll('.wir-stage .partner-avatar'),
+      ].map((node) => node.getBoundingClientRect());
+      const line = box('.wir-bridge-line');
+      return {
+        portraits: portraits.map((rect) => ({
+          left: rect.left,
+          right: rect.right,
+          width: rect.width,
+          height: rect.height,
+        })),
+        line: line ? { left: line.left, right: line.right } : null,
+      };
+    });
+    expect(geometry.portraits).toHaveLength(2);
+    for (const portrait of geometry.portraits) {
+      expect(Math.abs(portrait.width - portrait.height)).toBeLessThan(1);
+    }
+    // The line spans the space between the portraits without entering them.
+    expect(geometry.line).not.toBeNull();
+    expect(geometry.line?.left ?? 0).toBeGreaterThanOrEqual(
+      geometry.portraits[0].right,
+    );
+    expect(geometry.line?.right ?? 0).toBeLessThanOrEqual(
+      geometry.portraits[1].left,
+    );
+
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await capture(page, testInfo, 'connected-390-light');
+
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await settleMotion(page);
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await capture(page, testInfo, 'connected-390-dark');
+
+    // The bridge keeps its place between the portraits at the narrowest
+    // supported width and in the Expanded column.
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.setViewportSize({ width: 320, height: 720 });
+    await settleMotion(page);
+    await expect(bridge).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await capture(page, testInfo, 'connected-320-light');
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await settleMotion(page);
+    await expect(bridge).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await capture(page, testInfo, 'connected-1280-light');
+  });
+
   test('consumes the shared upcoming preference: default 1, explicit 1/2/3', async ({
     page,
   }) => {
@@ -1052,7 +1300,7 @@ test.describe('Today R4: the living home of a relationship', () => {
     await expectNoHorizontalOverflow(page);
   });
 
-  test('renders a `Diesen Monat` swipe carousel with two photos on Compact, second image discoverable (#858)', async ({
+  test('renders two equal monthly mosaic tiles with direct links and no horizontal scrolling', async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -1067,54 +1315,25 @@ test.describe('Today R4: the living home of a relationship', () => {
       );
     expect(rects).toHaveLength(2);
 
-    // One horizontal row, not stacked, with the second tile already
-    // partially visible at the edge as the swipe invitation.
     expect(Math.round(rects[0].top)).toBe(Math.round(rects[1].top));
-    expect(rects[1].left).toBeGreaterThan(rects[0].left);
-    expect(rects[1].left).toBeLessThan(390);
-
-    // The section stays a compact strip, not a near-full-screen square.
-    expect(rects[0].height).toBeLessThan(300);
-
-    // The overflow that makes swiping possible is contained in the strip
-    // itself, never leaking out to the page.
-    const monthlyInteraction = await page
-      .locator('.today-monthly-strip')
-      .evaluate((node) => {
-        const style = getComputedStyle(node);
-        const items = Array.from(
-          node.querySelectorAll<HTMLElement>('.today-monthly-item'),
-        );
-        return {
-          usesSharedTrack: node.classList.contains('eimir-media-snap-track'),
-          allItemsUseSharedSnap: items.every(
-            (item) =>
-              item.classList.contains('eimir-media-snap-item') &&
-              item.classList.contains('eimir-media-snap-item-start'),
-          ),
-          scrollSnapType: style.scrollSnapType,
-          overscrollBehaviorX: style.overscrollBehaviorX,
-          touchAction: style.touchAction,
-          overflow: node.scrollWidth > node.clientWidth + 1,
-          snapStops: items.map((item) => getComputedStyle(item).scrollSnapStop),
-        };
-      });
-    expect(monthlyInteraction.usesSharedTrack).toBe(true);
-    expect(monthlyInteraction.allItemsUseSharedSnap).toBe(true);
-    expect(monthlyInteraction.scrollSnapType).toContain('x');
-    expect(monthlyInteraction.scrollSnapType).toContain('mandatory');
-    expect(monthlyInteraction.overscrollBehaviorX).toBe('contain');
-    expect(monthlyInteraction.touchAction).toBe('manipulation');
-    expect(monthlyInteraction.overflow).toBe(true);
-    expect(monthlyInteraction.snapStops).toEqual(['always', 'always']);
+    expect(rects[0].width).toBeCloseTo(rects[1].width, 0);
+    expect(rects[0].height).toBe(200);
+    expect(rects[1].right).toBeLessThanOrEqual(390);
+    expect(
+      await page.locator('.today-monthly-strip').evaluate((node) => ({
+        display: getComputedStyle(node).display,
+        overflow: node.scrollWidth > node.clientWidth + 1,
+        scrollSnapType: getComputedStyle(node).scrollSnapType,
+      })),
+    ).toEqual({ display: 'grid', overflow: false, scrollSnapType: 'none' });
 
     await expectNoHorizontalOverflow(page);
     await expectNoWcagViolations(page);
-    await capture(page, testInfo, 'monthly-carousel-two-390');
+    await capture(page, testInfo, 'monthly-mosaic-two-390');
   });
 
   for (const width of [320, 390]) {
-    test(`renders a three-photo \`Diesen Monat\` scroll-snap carousel with no vertical stacking or page overflow at ${width}px (#858)`, async ({
+    test(`renders a three-photo monthly mosaic with a spanning lead and no page overflow at ${width}px`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height: 844 });
@@ -1129,15 +1348,18 @@ test.describe('Today R4: the living home of a relationship', () => {
         );
       expect(rects).toHaveLength(3);
 
-      const tops = new Set(rects.map((rect) => Math.round(rect.top)));
-      expect(tops.size).toBe(1);
-      const lefts = rects.map((rect) => Math.round(rect.left));
-      expect(new Set(lefts).size).toBe(lefts.length);
-
-      const stripOverflow = await page
-        .locator('.today-monthly-strip')
-        .evaluate((node) => node.scrollWidth > node.clientWidth + 1);
-      expect(stripOverflow).toBe(true);
+      expect(Math.round(rects[0].top)).toBe(Math.round(rects[1].top));
+      expect(rects[0].height).toBe(266);
+      expect(rects[1].height).toBe(130);
+      expect(rects[2].height).toBe(130);
+      expect(rects[0].width / rects[1].width).toBeCloseTo(1.35, 1);
+      expect(rects[1].left).toBeCloseTo(rects[2].left, 0);
+      expect(rects[2].top - rects[1].bottom).toBe(6);
+      expect(
+        await page
+          .locator('.today-monthly-strip')
+          .evaluate((node) => node.scrollWidth > node.clientWidth + 1),
+      ).toBe(false);
 
       await expectNoHorizontalOverflow(page);
     });
@@ -1641,7 +1863,7 @@ for (const [width, theme] of [
   [390, 'light'],
   [1280, 'dark'],
 ] as const) {
-  test(`monthly captions use the page surface and one date at ${width} ${theme}`, async ({
+  test(`monthly captions overlay photos and keep one accessible date at ${width} ${theme}`, async ({
     page,
   }, info) => {
     const date = new Date(`${thisMonthDate(4)}T00:00:00Z`);
@@ -1671,7 +1893,10 @@ for (const [width, theme] of [
     await expect(tile.locator('time')).toHaveCount(0);
     const authored = page.locator('.today-monthly-tile').nth(1);
     await expect(authored).toContainText(STRIP_PHOTOS[1].titleOrText);
-    await expect(authored.locator('time')).toHaveCount(1);
+    await expect(authored.locator('time')).toHaveCount(0);
+    await expect(authored).toHaveAccessibleName(
+      `${STRIP_PHOTOS[1].titleOrText} · 05.10.2026`,
+    );
     const style = await tile.evaluate((node) => ({
       underline: getComputedStyle(node).textDecorationLine,
       caption: getComputedStyle(
@@ -1696,3 +1921,524 @@ for (const [width, theme] of [
     });
   });
 }
+
+for (const [width, theme, largeText] of [
+  [360, 'light', false],
+  [360, 'dark', false],
+  [390, 'light', false],
+  [390, 'dark', false],
+  [430, 'light', false],
+  [430, 'dark', false],
+  [320, 'light', true],
+  [1280, 'dark', false],
+] as const) {
+  test(`monthly mosaic and story reference states at ${width} ${theme}${largeText ? ' 200% text' : ''}`, async ({
+    page,
+  }, info) => {
+    test.setTimeout(120_000);
+    await page.clock.setFixedTime(new Date('2026-11-10T12:00:00Z'));
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.addInitScript(
+      ({ accountId, spaceId }) => {
+        localStorage.setItem(
+          `${JSON.stringify(['eimir-passport-statistics-v1', location.origin, accountId, spaceId])}:wir`,
+          'true',
+        );
+      },
+      { accountId: ACCOUNT_ID, spaceId: SPACE_ID },
+    );
+    const names = localeFixtures.monthStory.photoTitles;
+    const photos = STRIP_PHOTOS.map((photo, index) => ({
+      ...photo,
+      titleOrText: names[index],
+      occurredOn: `2026-11-${String(8 + index).padStart(2, '0')}`,
+      createdAt: '2026-11-10T08:00:00Z',
+      previewAttachmentId:
+        index === 2 ? 'att-month-reference-3' : photo.previewAttachmentId,
+      previewIsSensitive: index === 2,
+    }));
+    const scenario: Scenario = {
+      ...RICH_SPACE,
+      recentShared: [MOMENT, photos[0]],
+      summary: { memories: 29, heartMoments: 9, milestones: 5 },
+      relationshipDuration: {
+        startedOn: '2026-05-13',
+        daysTogether: 181,
+        displayMode: 'DAYS',
+      },
+      viewerLocalDate: '2026-11-10',
+    };
+    await installMocks(page, scenario);
+    await signInAndOpenToday(page);
+    const duration = page.locator('.today-hero-duration-link');
+    await expect(duration).toHaveText('181 Tage zusammen');
+    for (const count of [1, 2, 3]) {
+      if (count > 1) {
+        scenario.recentShared = [MOMENT, ...photos.slice(0, count)];
+        await page.reload();
+      }
+      if (largeText)
+        await page.addStyleTag({
+          content: 'html { font-size: 200% !important; }',
+        });
+      await expect(page.locator('.today-monthly-tile')).toHaveCount(count);
+      await expect(page.locator('.today-section-monthly h2')).toHaveText(
+        'Euer November',
+      );
+      await expect(
+        page.locator('.today-section-monthly .today-section-link'),
+      ).toHaveText('Alle Momente');
+      const story = page.locator('.shared-story-summary');
+      // The caption total is exactly the sum of the three parts below it.
+      await expect(story.locator('.shared-story-summary-caption')).toHaveText(
+        '43 festgehaltene Momente seit Mai',
+      );
+      await expect(story).not.toContainText('181 Tage');
+      const lifeline = story.getByRole('slider', {
+        name: m5s5.dashboard.storyLifelineAria,
+      });
+      await expect(lifeline).toBeVisible();
+      await expect(lifeline).toHaveAttribute(
+        'aria-valuetext',
+        lifelineValue('9. November', 17, 'An ordinary Tuesday'),
+      );
+      await expect(story.locator('.shared-story-summary-row')).toHaveCount(3);
+      for (const row of await story
+        .locator('.shared-story-summary-row')
+        .all()) {
+        const box = await row.boundingBox();
+        expect(box?.height).toBeGreaterThanOrEqual(44);
+      }
+      await expect(
+        story.getByRole('link', { name: '29 Erinnerungen', exact: true }),
+      ).toHaveAttribute('href', '/story?tab=timeline&type=MEMORY');
+      await expect(
+        story.getByRole('link', { name: '9 Herzmomente', exact: true }),
+      ).toHaveAttribute('href', '/story?tab=timeline&type=HEART_MOMENT');
+      await expect(
+        story.getByRole('link', { name: '5 Meilensteine', exact: true }),
+      ).toHaveAttribute('href', '/story?tab=timeline&type=MILESTONE');
+      const month = page.locator('.today-section-monthly');
+      await expect
+        .poll(() =>
+          month
+            .locator('img')
+            .first()
+            .evaluate((img: HTMLImageElement) => img.naturalWidth),
+        )
+        .toBeGreaterThan(0);
+      if (count === 3) {
+        const sensitive = month.locator('.today-monthly-tile').last();
+        await expect(sensitive.locator('.sensitive-media-cover')).toBeVisible();
+        await expect(
+          sensitive.locator('.today-monthly-sensitive-label'),
+        ).toHaveText('Sensibler Inhalt');
+        await expect(sensitive.locator('.sensitive-media-blurred')).toHaveCSS(
+          'filter',
+          'blur(12px)',
+        );
+        await expect(sensitive).toHaveAccessibleName(
+          `${names[2]} · 10.11.2026 · Sensibler Inhalt`,
+        );
+        await expect(sensitive.getByRole('button')).toHaveCount(0);
+        const labelLayout = await sensitive.evaluate((node) => {
+          const label = node.querySelector('.today-monthly-sensitive-label');
+          const caption = node.querySelector('.today-monthly-caption');
+          if (!label || !caption)
+            throw new Error('Missing sensitive tile copy');
+          const text = document.createRange();
+          text.selectNodeContents(label);
+          return {
+            labelBottom: text.getBoundingClientRect().bottom,
+            captionTop: caption.getBoundingClientRect().top,
+          };
+        });
+        expect(labelLayout.labelBottom).toBeLessThanOrEqual(
+          labelLayout.captionTop,
+        );
+      }
+      const overflow = await month
+        .locator('.today-monthly-strip')
+        .evaluate((node) => node.scrollWidth > node.clientWidth + 1);
+      expect(overflow).toBe(false);
+      const first = month.locator('.today-monthly-tile').first();
+      await page.keyboard.press('Tab');
+      await first.focus();
+      await expect(first).toBeFocused();
+      await expect(first).toHaveCSS('outline-style', 'solid');
+      await expect(first.locator('.today-monthly-tile-media')).toHaveCSS(
+        'transition-duration',
+        '0s',
+      );
+      await expectNoHorizontalOverflow(page);
+      await expectNoWcagViolations(page);
+      await page.evaluate(() => {
+        if (document.activeElement instanceof HTMLElement)
+          document.activeElement.blur();
+      });
+      await capture(
+        page,
+        info,
+        `month-story-${width}-${theme}-${count}${largeText ? '-large-text' : ''}`,
+      );
+      await month.screenshot({
+        path: info.outputPath(
+          `today-month-reference-${count}-${width}-${theme}.png`,
+        ),
+      });
+      await story.evaluate((node) => node.scrollIntoView({ block: 'center' }));
+      await story.screenshot({
+        path: info.outputPath(
+          `today-story-reference-${count}-${width}-${theme}.png`,
+        ),
+      });
+      if (count === 1) {
+        // Stepping back through the lifeline previews earlier weeks on demand.
+        await lifeline.focus();
+        await page.keyboard.press('ArrowLeft');
+        await page.keyboard.press('ArrowLeft');
+        const preview = story.getByRole('link', {
+          name: /Picnic at the lake/,
+        });
+        await expect(preview).toBeVisible();
+        await expect(preview).toHaveAttribute(
+          'href',
+          '/story/memories/lifeline-1',
+        );
+        await expect
+          .poll(() =>
+            preview
+              .locator('img')
+              .first()
+              .evaluate((img: HTMLImageElement) => img.naturalWidth),
+          )
+          .toBeGreaterThan(0);
+        await expectNoHorizontalOverflow(page);
+        await story.screenshot({
+          path: info.outputPath(
+            `today-story-lifeline-preview-${width}-${theme}.png`,
+          ),
+        });
+        // Up and down choose single entries of the week, read on demand.
+        await page.keyboard.press('ArrowUp');
+        const heart = story.getByRole('link', {
+          name: /Thank you for the day/,
+        });
+        await expect(heart).toBeVisible();
+        await expect(heart).toContainText(
+          m5s5.dashboard.storyLifelineKindHeartMoment,
+        );
+        await expect(lifeline).toHaveAttribute(
+          'aria-valuetext',
+          lifelineValue(
+            '13. Juli',
+            13,
+            'Thank you for the day',
+            m5s5.dashboard.storyLifelineKindHeartMoment,
+            [3, 3],
+          ),
+        );
+        await expect(
+          story.locator(
+            '[data-lifeline-column="1"] .shared-story-lifeline-dot.is-selected.story-kind-heartMoments',
+          ),
+        ).toHaveCount(1);
+        // Pagination dots are the non-gesture way through the week.
+        const pager = story.locator('.shared-story-lifeline-pager');
+        await expect(pager).toHaveAccessibleName(lifelinePosition(3, 3));
+        const dots = pager.getByRole('button');
+        await expect(dots).toHaveCount(3);
+        await expect(
+          pager.getByRole('button', { name: lifelineEntry(3, 3) }),
+        ).toHaveAttribute('aria-current', 'true');
+        for (const dot of await dots.all()) {
+          const box = await dot.boundingBox();
+          expect(box?.width).toBeGreaterThanOrEqual(24);
+          expect(box?.height).toBeGreaterThanOrEqual(24);
+        }
+        await pager.getByRole('button', { name: lifelineEntry(1, 3) }).click();
+        const milestone = story.getByRole('link', {
+          name: /Moved in together/,
+        });
+        await expect(milestone).toBeVisible();
+        await expect(pager).toHaveAccessibleName(lifelinePosition(1, 3));
+        await expect(
+          pager.getByRole('button', { name: lifelineEntry(1, 3) }),
+        ).toHaveAttribute('aria-current', 'true');
+        // A left swipe on the card brings the next entry without opening
+        // the one under the pointer.
+        // Keep the card clear of the floating create action.
+        await milestone.evaluate((node) =>
+          node.scrollIntoView({ block: 'center' }),
+        );
+        const card = await milestone.boundingBox();
+        if (!card) throw new Error('Missing lifeline preview');
+        const swipeX = card.x + card.width / 2 + 30;
+        const swipeY = card.y + card.height / 2;
+        await page.mouse.move(swipeX, swipeY);
+        await page.mouse.down();
+        await page.mouse.move(swipeX - 30, swipeY, { steps: 4 });
+        await page.mouse.move(swipeX - 70, swipeY, { steps: 4 });
+        await page.mouse.up();
+        await expect(page).toHaveURL(/\/today$/);
+        await expect(
+          story.getByRole('link', { name: /Picnic at the lake/ }),
+        ).toBeVisible();
+        await pager.getByRole('button', { name: lifelineEntry(1, 3) }).click();
+        await expect(milestone).toBeVisible();
+        // Compact on Wir: the preview floats inside the graphic, no list.
+        await expect(story.locator('.shared-story-lifeline-fan')).toHaveCount(
+          0,
+        );
+        await expectNoHorizontalOverflow(page);
+        await story.screenshot({
+          path: info.outputPath(
+            `today-story-lifeline-entry-${width}-${theme}.png`,
+          ),
+        });
+        await lifeline.focus();
+        await page.keyboard.press('Escape');
+        await expect(preview).toHaveCount(0);
+        await expect(milestone).toHaveCount(0);
+      }
+    }
+    scenario.summary = { memories: 3, heartMoments: 2, milestones: 0 };
+    scenario.relationshipDuration = {
+      startedOn: '2026-05-13',
+      daysTogether: 182,
+      displayMode: 'DAYS',
+    };
+    scenario.viewerLocalDate = '2026-11-11';
+    await page.clock.setFixedTime(new Date('2026-11-11T12:00:00Z'));
+    await page.reload();
+    if (largeText)
+      await page.addStyleTag({
+        content: 'html { font-size: 200% !important; }',
+      });
+    const story = page.locator('.shared-story-summary');
+    await expect(duration).toHaveText('182 Tage zusammen');
+    await expect(story.locator('.shared-story-summary-caption')).toHaveText(
+      '5 festgehaltene Momente seit Mai',
+    );
+    await expect(story.locator('.shared-story-summary-row')).toHaveCount(2);
+    await expect(story.getByRole('slider')).toBeVisible();
+    await story.evaluate((node) => node.scrollIntoView({ block: 'center' }));
+    await story.screenshot({
+      path: info.outputPath(`today-story-two-categories-${width}-${theme}.png`),
+    });
+    scenario.relationshipDuration = null;
+    await page.reload();
+    if (largeText)
+      await page.addStyleTag({
+        content: 'html { font-size: 200% !important; }',
+      });
+    await expect(duration).toHaveCount(0);
+    await expect(story.locator('.shared-story-summary-caption')).toHaveText(
+      '5 festgehaltene Momente seit Mai',
+    );
+    await expectNoHorizontalOverflow(page);
+    await story.evaluate((node) => node.scrollIntoView({ block: 'center' }));
+    await story.screenshot({
+      path: info.outputPath(`today-story-no-duration-${width}-${theme}.png`),
+    });
+    await story
+      .getByRole('link', { name: '3 Erinnerungen', exact: true })
+      .focus();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/\/story\?tab=timeline&type=MEMORY$/);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/today$/);
+    await expect(story.locator('.shared-story-summary-caption')).toHaveText(
+      '5 festgehaltene Momente seit Mai',
+    );
+  });
+}
+
+for (const width of [390, 1280] as const) {
+  // #1861: the bottom bar names the place, so no root tab repeats it as a
+  // visible title. The heading stays for assistive technology.
+  test(`Wir, Momente, Planen and Mehr keep their heading without a visible title at ${width}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await installMocks(page, { ...RICH_SPACE });
+    await signInAndOpenToday(page);
+    for (const [tab, label, path] of [
+      ['Wir', 'Wir', '/today'],
+      ['Momente', 'Momente', '/story'],
+      ['Planen', 'Planen', '/plan'],
+      ['Mehr', 'Alles Weitere', '/more'],
+    ] as const) {
+      await page
+        .locator('a.shell-nav-link:visible')
+        .filter({ hasText: new RegExp(`^${tab}$`) })
+        .first()
+        .click();
+      await expect(page).toHaveURL(new RegExp(`${path}$`));
+      const title = page.getByRole('heading', {
+        level: 1,
+        name: label,
+        exact: true,
+      });
+      await expect(title).toHaveCount(1);
+      const clip = await title.evaluate((heading) => {
+        const box = heading.parentElement?.getBoundingClientRect();
+        return { width: box?.width, height: box?.height };
+      });
+      expect(clip).toEqual({ width: 1, height: 1 });
+      await expectNoHorizontalOverflow(page);
+    }
+  });
+}
+
+test('the add action stays put while a tab slides in', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await installMocks(page, { ...RICH_SPACE });
+  await signInAndOpenToday(page);
+  await expect(page.locator('[data-floating-create]:visible')).toHaveCount(1);
+  // Keep the real slide observable even when Chromium misses a frame on CI.
+  await page.addStyleTag({
+    content: '.product-main { --duration-transition: 600ms; }',
+  });
+  for (const [label, destination] of [
+    ['Momente', '/story'],
+    ['Planen', '/plan'],
+    ['Wir', '/today'],
+  ]) {
+    const tab = page
+      .locator('a.shell-nav-link:visible')
+      .filter({ hasText: new RegExp(`^${label}$`) })
+      .first();
+    const samples = await tab.evaluate((anchor, nextPath) => {
+      if (!(anchor instanceof HTMLAnchorElement)) {
+        throw new Error('Primary tab is missing its navigation link.');
+      }
+      const positions = new Set<string>();
+      let slidePositions = 0;
+      const sample = () => {
+        const sliding = document.querySelector('main[data-navigation-slide]');
+        for (const node of document.querySelectorAll(
+          '[data-floating-create]',
+        )) {
+          const box = node.getBoundingClientRect();
+          if (box.width > 0 && getComputedStyle(node).visibility !== 'hidden') {
+            positions.add(`${Math.round(box.x)},${Math.round(box.y)}`);
+            if (sliding) slidePositions++;
+          }
+        }
+        return sliding;
+      };
+      sample();
+      anchor.click();
+      return new Promise<{ positions: string[]; slidePositions: number }>(
+        (resolve, reject) => {
+          let frame: number;
+          // The address changes before the destination commits and sets the
+          // slide marker. On a slow runner a loop that only waited for the
+          // address ended before the slide began and measured nothing, so the
+          // slide must have been seen before it can count as finished.
+          let sawSlide = false;
+          const timeout = window.setTimeout(() => {
+            cancelAnimationFrame(frame);
+            reject(
+              new Error(
+                sawSlide
+                  ? 'The tab slide did not complete.'
+                  : 'The tab slide did not start.',
+              ),
+            );
+          }, 5000);
+          const tick = () => {
+            const sliding = sample();
+            if (sliding) sawSlide = true;
+            if (sawSlide && !sliding && window.location.pathname === nextPath) {
+              clearTimeout(timeout);
+              resolve({ positions: [...positions], slidePositions });
+            } else {
+              frame = requestAnimationFrame(tick);
+            }
+          };
+          frame = requestAnimationFrame(tick);
+        },
+      );
+    }, destination);
+    await expect(page).toHaveURL(new RegExp(`${destination}$`));
+    await expect(page.locator('main[data-navigation-slide]')).toHaveCount(0);
+    await expect(page.locator('[data-floating-create]:visible')).toHaveCount(1);
+    expect(samples.slidePositions).toBeGreaterThan(0);
+    expect(samples.positions).toHaveLength(1);
+  }
+});
+
+/*
+ * The shared moment rotates through its memory's pictures (Wir). The server
+ * lists only ready, non-sensitive ones; the page rotates only while it can be
+ * seen, never inside the moment's link, and not at all with reduced motion.
+ */
+const GALLERY_SPACE = {
+  ...RICH_SPACE,
+  keepsake: {
+    ...MOMENT,
+    gallery: ['att-moment', 'att-strip-1', 'att-strip-2'].map((id) => ({
+      attachmentId: id,
+      mediaType: 'IMAGE',
+      hasThumbnail: false,
+    })),
+  },
+};
+
+test.describe('Wir: the shared moment rotates through its pictures', () => {
+  test('changes the picture on its own, keeps the link intact and shows nothing over the photograph', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installMocks(page, GALLERY_SPACE);
+    await signInAndOpenToday(page);
+
+    const frame = page.locator('.wir-moment-frame');
+    await expect(frame).toBeVisible();
+    const current = () =>
+      page.evaluate(() =>
+        Number(
+          document
+            .querySelector('.wir-moment-slide[data-state="active"]')
+            ?.getAttribute('data-index'),
+        ),
+      );
+    expect(await current()).toBe(0);
+    // Only the picture on show is exposed; the others are warm but hidden.
+    await expect(
+      frame.locator('.wir-moment-slide:not([aria-hidden="true"])'),
+    ).toHaveCount(1);
+    // Nothing sits over the photograph: no progress marks and no control.
+    await expect(frame.locator('button')).toHaveCount(0);
+    await expect(frame.locator('.wir-moment-marks')).toHaveCount(0);
+    await expect(frame.locator('a.today-moment')).toHaveCount(1);
+
+    // A resting mouse holds the picture, so the pointer leaves the frame first.
+    await page.mouse.move(1, 1);
+    await expect.poll(current, { timeout: 12_000 }).toBe(1);
+  });
+
+  test('shows one still picture and no controls with reduced motion', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installMocks(page, GALLERY_SPACE);
+    await signInAndOpenToday(page);
+
+    await expect(page.locator('.wir-moment-gallery')).toBeVisible();
+    await expect(page.locator('.wir-moment-frame button')).toHaveCount(0);
+    await page.waitForTimeout(7000);
+    await expect(
+      page.locator('.wir-moment-slide[data-state="active"]'),
+    ).toHaveCount(1);
+    await expect(page.locator('.wir-moment-slide[data-entering]')).toHaveCount(
+      0,
+    );
+  });
+});

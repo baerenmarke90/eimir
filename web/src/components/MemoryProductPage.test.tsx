@@ -1,3 +1,4 @@
+import { i18n } from '../i18n';
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -22,6 +23,12 @@ import { MemoryProductPage } from './MemoryProductPage';
 
 vi.mock('./CommentsPanel', () => ({ CommentsPanel: () => null }));
 beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
   window.matchMedia = (query: string) => ({
     matches: false,
     media: query,
@@ -138,17 +145,16 @@ function setup(canEdit: boolean) {
 
 describe('Memory editor return context', () => {
   it.each([
-    { canEdit: true, exit: 'cancel' },
     { canEdit: true, exit: 'back' },
     { canEdit: false, exit: 'back' },
   ])(
     'preserves scoped Timeline origin for edit=$canEdit via $exit',
-    async ({ canEdit, exit }) => {
+    async ({ canEdit }) => {
       setup(canEdit);
       fireEvent.click(screen.getByText('Edit selected Memory'));
       fireEvent.click(
         screen.getByRole('link', {
-          name: exit === 'cancel' ? de.common.cancel : taskBoundary.back,
+          name: taskBoundary.back,
         }),
       );
       fireEvent.click(
@@ -171,6 +177,7 @@ describe('Memory detail edit action (#1014)', () => {
   function renderDetail(
     memoryTitle = 'A shared evening',
     viewer = 'account-1',
+    capabilities = { canEdit: true, canDelete: false },
   ) {
     const memory: MemoryDetail = {
       id: 'memory-1',
@@ -185,7 +192,7 @@ describe('Memory detail edit action (#1014)', () => {
       createdAt: new Date('2025-09-15'),
       updatedAt: new Date('2025-09-15'),
       version: 1,
-      capabilities: { canEdit: true, canDelete: false, canComment: false },
+      capabilities: { ...capabilities, canComment: false },
     };
     const client = new QueryClient({
       defaultOptions: { queries: { retry: false, staleTime: Infinity } },
@@ -221,6 +228,10 @@ describe('Memory detail edit action (#1014)', () => {
             >
               <Routes>
                 <Route
+                  path="/story/memories/:memoryId/edit"
+                  element={<output data-testid="edit-route">Edit page</output>}
+                />
+                <Route
                   path="/story/memories/:memoryId"
                   element={
                     <MemoryProductPage
@@ -248,7 +259,12 @@ describe('Memory detail edit action (#1014)', () => {
       .mockResolvedValue({ items: [], hasMore: false, nextCursor: null });
     try {
       renderDetail('Partner-authored memory', 'account-2');
-      await screen.findByRole('link', { name: memoryProduct.edit });
+      fireEvent.click(
+        await screen.findByRole('button', { name: memoryProduct.menu }),
+      );
+      expect(
+        await screen.findByRole('button', { name: memoryProduct.edit }),
+      ).toBeTruthy();
       expect(
         screen.queryByRole('button', { name: photoPlaces.add }),
       ).toBeNull();
@@ -264,45 +280,69 @@ describe('Memory detail edit action (#1014)', () => {
     }
   });
 
-  it('replaces the oversized text button with a compact icon-only edit link', async () => {
-    renderDetail();
-    const editLink = await screen.findByRole('link', {
-      name: memoryProduct.edit,
+  it('offers Edit first and Delete last through one header menu', async () => {
+    renderDetail('A shared evening', 'account-1', {
+      canEdit: true,
+      canDelete: true,
     });
-    expect(editLink.getAttribute('href')).toBe('/story/memories/memory-1/edit');
-    // Icon-only: the accessible name comes from aria-label, not visible text.
-    expect(editLink.textContent?.trim()).toBe('');
-    expect(editLink.className).not.toContain('button-link');
-    expect(editLink.className).not.toContain('secondary-link');
+    const trigger = await screen.findByRole('button', {
+      name: memoryProduct.menu,
+    });
+    // No separate Edit control outside the menu.
+    expect(screen.queryByRole('link', { name: memoryProduct.edit })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: memoryProduct.edit }),
+    ).toBeNull();
+    fireEvent.click(trigger);
+    await screen.findByRole('button', { name: memoryProduct.edit });
+    const rows = [...document.querySelectorAll('.item-menu-option')];
+    expect(rows.map((row) => row.textContent)).toEqual([
+      memoryProduct.edit,
+      memoryProduct.delete,
+    ]);
+    expect(rows[1]?.getAttribute('data-danger')).toBe('true');
+    fireEvent.click(rows[0] as HTMLElement);
+    expect(await screen.findByTestId('edit-route')).toBeTruthy();
   });
 
-  it('keeps the localized date directly below an authored title', async () => {
+  it('shows no menu when the viewer can neither edit nor delete', async () => {
+    renderDetail('A shared evening', 'account-1', {
+      canEdit: false,
+      canDelete: false,
+    });
+    await screen.findByRole('heading', { name: 'A shared evening', level: 2 });
+    expect(
+      screen.queryByRole('button', { name: memoryProduct.menu }),
+    ).toBeNull();
+  });
+
+  it('keeps the short date above content and an authored display title after media', async () => {
     renderDetail('Our afternoon outside');
-    const title = await screen.findByRole('heading', {
+    await screen.findByRole('heading', {
       name: 'Our afternoon outside',
+      level: 2,
+    });
+    const type = screen.getByRole('heading', {
+      name: i18n.t('composer.diaryEntry'),
       level: 1,
     });
-    const header = title.closest('header');
-    expect(header?.querySelector('time')?.textContent).toBe(
-      '15. September 2025',
-    );
-    expect(header?.querySelector('time')?.getAttribute('datetime')).toBe(
-      '2025-09-15',
-    );
-    expect(header?.querySelector('.eyebrow')).toBeNull();
+    const date = document.querySelector('time');
+    expect(date?.textContent).toBe('15. September 2025');
+    expect(date?.getAttribute('datetime')).toBe('2025-09-15');
+    expect(type.closest('header')?.querySelector('.eyebrow')).toBeNull();
   });
 
-  it('shows the date once as the heading for the generated fallback title', async () => {
+  it('shows a generated title date once in the context row', async () => {
     renderDetail('Erinnerung vom 15.09.2025');
-    const title = await screen.findByRole('heading', {
-      name: '15. September 2025',
+    await screen.findByRole('heading', {
+      name: i18n.t('composer.diaryEntry'),
       level: 1,
     });
-    expect(title.querySelector('time')?.getAttribute('datetime')).toBe(
+    expect(document.querySelectorAll('time')).toHaveLength(1);
+    expect(document.querySelector('time')?.getAttribute('datetime')).toBe(
       '2025-09-15',
     );
-    expect(title.querySelector('.moment-date svg')).not.toBeNull();
-    expect(title.closest('header')?.querySelectorAll('time')).toHaveLength(1);
+    expect(document.querySelector('.moment-date svg')).not.toBeNull();
     expect(screen.queryByText('Erinnerung vom 15.09.2025')).toBeNull();
   });
 });

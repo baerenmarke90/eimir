@@ -1,37 +1,53 @@
-import { useQuery } from '@tanstack/react-query';
 import {
   type ReactNode,
   type RefObject,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
 } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
-import {
-  loadPartnerQuickActionsCapability,
-  PARTNER_QUICK_ACTIONS_ENTITLEMENT_REQUIRED,
-  partnerQuickActionsEntitlementQueryKey,
-} from '../client/partnerQuickActions';
-import { ClientProblemError } from '../client/problemDetails';
-import { PRO_INFORMATION_ROUTE } from '../client/routes';
-import { useDismissiblePopover } from '../client/useDismissiblePopover';
-import { useMediaQuery } from '../client/useMediaQuery';
 import type { M4ProductApis } from '../client/m4Product';
+import { ONCE_CREATE_ROUTE } from '../client/onceMessages';
+import {
+  PARTNER_QUICK_ACTIONS_CAPABILITY,
+  PARTNER_QUICK_ACTIONS_ENTITLEMENT_REQUIRED,
+} from '../client/partnerQuickActions';
+import { proPaywallPath } from '../client/routes';
+import {
+  entitlementLoader,
+  useSpaceCapability,
+} from '../client/spaceEntitlement';
+import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
+import { useDismissiblePopover } from '../client/useDismissiblePopover';
+import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
+import { useMediaQuery } from '../client/useMediaQuery';
 import { useTranslation } from '../i18n';
+import { AvatarPhoto, type AvatarPhotoHandle } from './AvatarPhoto';
 import type { CouplePresenceAvatarAction } from './CouplePresence';
+import { postSnackbar } from '../client/snackbar';
+import { DestinationIcon } from './DestinationIcon';
+import { EimirIcon } from './EimirIcon';
+import { type GestureFlight, startGestureFlight } from './gestureFlight';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { usePresentationPresence } from './useOverlayPresence';
 import {
   isGestureCooldown,
-  usePartnerGesture,
   type PartnerAction,
+  usePartnerGesture,
 } from './usePartnerGesture';
 import './PartnerQuickActions.css';
 
 const EXPANDED_QUERY = '(min-width: 840px)';
+
+const SENT_SNACKBAR: Record<PartnerAction, string> = {
+  THINKING: 'snackbar.partnerQuickActionThinkingSent',
+  KISS: 'snackbar.partnerQuickActionKissSent',
+  CHECK_IN: 'snackbar.partnerQuickActionCheckInSent',
+};
 
 interface FeedbackState {
   tone: 'success' | 'error';
@@ -44,7 +60,14 @@ export interface PartnerQuickActionsProps {
   accountId: string;
   spaceId: string;
   partnerName: string;
+  partnerPhotoUrl?: string | null;
+  partnerPhotoIdentity?: string;
   thinkingOfYouAvailableAt: Date | null;
+  /**
+   * Partner context shown above the unchanged quick actions, e.g. today's
+   * shared vibe and energy (#1790 slice A). Rendered only while open.
+   */
+  header?: ReactNode;
   children: (
     avatarAction: CouplePresenceAvatarAction,
     avatarOverlay: ReactNode,
@@ -65,12 +88,18 @@ export function PartnerQuickActions({
   spaceId,
   partnerName,
   thinkingOfYouAvailableAt,
+  partnerPhotoUrl,
+  partnerPhotoIdentity,
+  header,
   children,
 }: PartnerQuickActionsProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { captureOrigin, resolveOrigin } = useTaskOrigin();
   const isExpanded = useMediaQuery(EXPANDED_QUERY);
   const firstActionRef = useRef<HTMLButtonElement>(null);
+  const photoRef = useRef<AvatarPhotoHandle>(null);
   const sheetRef = useRef<ShortTaskSheetHandle>(null);
   const titleId = useId();
   const [compactPresent, setCompactPresent] = useState(false);
@@ -83,6 +112,40 @@ export function PartnerQuickActions({
     },
   );
   const desiredExpandedOpen = isOpen && isExpanded && !compactPresent;
+  // The Expanded popover owns a history entry like the Compact sheet, so
+  // system Back closes it. Handoffs release that entry before navigating.
+  const releaseExpanded = useEditorHistoryEntry({
+    isActive: desiredExpandedOpen,
+    isDirty: false,
+    onClose: close,
+    onDiscardRequested: close,
+  });
+  const closeExpandedThen = (next: () => void) =>
+    releaseExpanded(() => {
+      close();
+      next();
+    });
+  useEffect(() => {
+    const key = (location.state as { taskReturnKey?: unknown } | null)
+      ?.taskReturnKey;
+    const origin = resolveOrigin(key);
+    if (
+      origin?.selectedKey !== 'partner-quick-actions' ||
+      origin.to !== taskOriginPath(location.pathname, location.search)
+    )
+      return;
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: origin.scrollY, behavior: 'instant' });
+      triggerRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [
+    location.state,
+    location.pathname,
+    location.search,
+    resolveOrigin,
+    triggerRef,
+  ]);
   const {
     present: expandedPresent,
     presenceState: expandedPresenceState,
@@ -90,21 +153,19 @@ export function PartnerQuickActions({
   } = usePresentationPresence(desiredExpandedOpen);
   const compactOpen = isOpen && !isExpanded && !expandedPresent;
 
-  const capabilityQuery = useQuery({
-    queryKey: partnerQuickActionsEntitlementQueryKey(accountId, spaceId),
-    queryFn: ({ signal }) => {
-      if (!entitlementApi) {
-        throw new ClientProblemError(
-          'server',
-          undefined,
-          'ENTITLEMENT_API_UNAVAILABLE',
-        );
-      }
-      return loadPartnerQuickActionsCapability(entitlementApi, spaceId, signal);
-    },
+  const loadEntitlement = useMemo(
+    () =>
+      entitlementApi ? entitlementLoader(entitlementApi, spaceId) : undefined,
+    [entitlementApi, spaceId],
+  );
+  // Reuses the session's single entitlement read from app start; opening the
+  // sheet only reads it when that startup read has not completed.
+  const capabilityQuery = useSpaceCapability({
+    accountId,
+    spaceId,
+    load: loadEntitlement,
     enabled: isOpen,
-    retry: false,
-    staleTime: 60_000,
+    capability: PARTNER_QUICK_ACTIONS_CAPABILITY,
   });
 
   const gesture = usePartnerGesture({
@@ -187,17 +248,73 @@ export function PartnerQuickActions({
       extendedCooldowns.CHECK_IN.getTime() > cooldownNow,
   );
 
-  const submit = (action: PartnerAction) => gesture.send(action);
+  // A sent gesture lifts out of the sheet, waits for the server, then the sheet
+  // closes and it flies to the partner avatar. Without a flight (reduced
+  // motion, no top-layer support) everything stays as it was.
+  const flightRef = useRef<GestureFlight | null>(null);
+  useEffect(
+    () => () => {
+      flightRef.current?.cancel();
+      flightRef.current = null;
+    },
+    [],
+  );
+  const submit = (action: PartnerAction, button?: HTMLElement) => {
+    const holder: { flight: GestureFlight | null } = { flight: null };
+    const accepted = gesture.send(action, (succeeded) => {
+      const flight = holder.flight;
+      if (!flight) return;
+      if (flightRef.current === flight) flightRef.current = null;
+      if (succeeded) {
+        close();
+        postSnackbar(SENT_SNACKBAR[action]);
+      }
+      void flight.settle(succeeded);
+    });
+    const icon = button?.querySelector('.partner-quick-action-icon');
+    const avatar = triggerRef.current;
+    if (!accepted || !icon || !avatar) return;
+    // The partner portrait is the target; with a split trigger the own portrait
+    // sits in the neighbouring button of the same stack.
+    const partnerPortrait =
+      avatar.querySelector('.partner-avatar-secondary') ?? avatar;
+    const own =
+      avatar.querySelector('.partner-avatar-primary') ??
+      avatar
+        .closest('.partner-avatar-stack')
+        ?.querySelector('.partner-avatar-primary') ??
+      null;
+    holder.flight = startGestureFlight({
+      kind: action,
+      source: icon,
+      target: partnerPortrait,
+      own,
+    });
+    flightRef.current = holder.flight;
+  };
 
   const navigateToPro = () => {
     if (gesture.isInFlight()) return;
-    const destination = PRO_INFORMATION_ROUTE;
+    const destination = proPaywallPath();
     if (!isExpanded && sheetRef.current) {
       sheetRef.current.closeForNavigation(() => navigate(destination));
       return;
     }
-    close();
-    navigate(destination);
+    closeExpandedThen(() => navigate(destination));
+  };
+
+  const openOnceComposer = () => {
+    if (gesture.isInFlight()) return;
+    const handoff = () => {
+      const taskOriginKey = captureOrigin({
+        selectedKey: 'partner-quick-actions',
+      });
+      void navigate(ONCE_CREATE_ROUTE, {
+        state: taskOriginKey ? { taskOriginKey } : undefined,
+      });
+    };
+    if (compactPresent) sheetRef.current?.closeForNavigation(handoff);
+    else closeExpandedThen(handoff);
   };
 
   const hasExtendedCapability = capabilityQuery.data === true;
@@ -205,9 +322,7 @@ export function PartnerQuickActions({
 
   const actionList = (
     <div className="partner-quick-actions-content">
-      <p className="partner-quick-actions-intro">
-        {t('partnerQuickActions.intro')}
-      </p>
+      {header}
       {gesture.pendingAction ? (
         <p
           className="partner-quick-actions-pending"
@@ -224,26 +339,49 @@ export function PartnerQuickActions({
         </p>
       ) : null}
       <div className="partner-quick-actions-list">
+        {partnerPhotoUrl ? (
+          <button
+            type="button"
+            className="partner-quick-action"
+            disabled={gesture.isPending}
+            onClick={() => {
+              if (gesture.isInFlight()) return;
+              const showPhoto = () => {
+                triggerRef.current?.focus({ preventScroll: true });
+                photoRef.current?.open();
+              };
+              if (compactPresent)
+                sheetRef.current?.closeForNavigation(showPhoto);
+              else closeExpandedThen(showPhoto);
+            }}
+          >
+            <span className="partner-quick-action-icon" aria-hidden="true">
+              <EimirIcon name="expand" />
+            </span>
+            <span className="partner-quick-action-copy">
+              <strong>{t('people.photoAction')}</strong>
+            </span>
+          </button>
+        ) : null}
+
         <button
           ref={firstActionRef}
           type="button"
           className="partner-quick-action"
           disabled={thinkingCoolingDown}
           aria-disabled={gesture.isPending || undefined}
-          onClick={() => void submit('THINKING')}
+          onClick={(event) => submit('THINKING', event.currentTarget)}
         >
           <span className="partner-quick-action-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
+            <svg className="inline-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 20.3 4.7 13A4.8 4.8 0 0 1 11.5 6.2l.5.6.5-.6A4.8 4.8 0 0 1 19.3 13Z" />
             </svg>
           </span>
           <span className="partner-quick-action-copy">
             <strong>{t('partnerQuickActions.thinking')}</strong>
-            <span>
-              {thinkingCoolingDown
-                ? t('partnerQuickActions.cooldown')
-                : t('partnerQuickActions.thinkingHint')}
-            </span>
+            {thinkingCoolingDown ? (
+              <span>{t('partnerQuickActions.cooldown')}</span>
+            ) : null}
           </span>
         </button>
 
@@ -269,23 +407,27 @@ export function PartnerQuickActions({
               className="partner-quick-action"
               disabled={hasExtendedCapability && kissCoolingDown}
               aria-disabled={gesture.isPending || undefined}
-              onClick={() =>
-                hasExtendedCapability ? void submit('KISS') : navigateToPro()
+              onClick={(event) =>
+                hasExtendedCapability
+                  ? submit('KISS', event.currentTarget)
+                  : navigateToPro()
               }
             >
               <span className="partner-quick-action-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
+                <svg
+                  className="inline-icon"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
                   <path d="M12 20.3 4.7 13A4.8 4.8 0 0 1 11.5 6.2l.5.6.5-.6A4.8 4.8 0 0 1 19.3 13Z" />
                   <path d="m18.2 3 .5 1.3L20 4.8l-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5Z" />
                 </svg>
               </span>
               <span className="partner-quick-action-copy">
                 <strong>{t('partnerQuickActions.kiss')}</strong>
-                <span>
-                  {hasExtendedCapability && kissCoolingDown
-                    ? t('partnerQuickActions.cooldown')
-                    : t('partnerQuickActions.kissHint')}
-                </span>
+                {hasExtendedCapability && kissCoolingDown ? (
+                  <span>{t('partnerQuickActions.cooldown')}</span>
+                ) : null}
               </span>
               {!hasExtendedCapability ? (
                 <ProMark label={t('partnerQuickActions.pro')} />
@@ -297,9 +439,9 @@ export function PartnerQuickActions({
               className="partner-quick-action"
               disabled={hasExtendedCapability && checkInCoolingDown}
               aria-disabled={gesture.isPending || undefined}
-              onClick={() =>
+              onClick={(event) =>
                 hasExtendedCapability
-                  ? void submit('CHECK_IN')
+                  ? submit('CHECK_IN', event.currentTarget)
                   : navigateToPro()
               }
             >
@@ -311,11 +453,9 @@ export function PartnerQuickActions({
               </span>
               <span className="partner-quick-action-copy">
                 <strong>{t('partnerQuickActions.checkIn')}</strong>
-                <span>
-                  {hasExtendedCapability && checkInCoolingDown
-                    ? t('partnerQuickActions.cooldown')
-                    : t('partnerQuickActions.checkInHint')}
-                </span>
+                {hasExtendedCapability && checkInCoolingDown ? (
+                  <span>{t('partnerQuickActions.cooldown')}</span>
+                ) : null}
               </span>
               {!hasExtendedCapability ? (
                 <ProMark label={t('partnerQuickActions.pro')} />
@@ -323,6 +463,32 @@ export function PartnerQuickActions({
             </button>
           </>
         )}
+        <Link
+          className="partner-quick-action"
+          to={ONCE_CREATE_ROUTE}
+          aria-disabled={gesture.isPending || undefined}
+          onClick={(event) => {
+            if (
+              event.button !== 0 ||
+              event.metaKey ||
+              event.ctrlKey ||
+              event.shiftKey ||
+              event.altKey
+            )
+              return;
+            event.preventDefault();
+            openOnceComposer();
+          }}
+        >
+          <span className="partner-quick-action-icon" aria-hidden="true">
+            <DestinationIcon icon="private" />
+          </span>
+          <span className="partner-quick-action-copy">
+            <strong>{t('onceMessages.title')}</strong>
+            <span>{t('onceMessages.singleView')}</span>
+          </span>
+          <ProMark label={t('partnerQuickActions.pro')} />
+        </Link>
       </div>
 
       {feedback ? (
@@ -396,6 +562,15 @@ export function PartnerQuickActions({
 
   return (
     <>
+      {partnerPhotoUrl ? (
+        <AvatarPhoto
+          ref={photoRef}
+          name={partnerName}
+          url={partnerPhotoUrl}
+          identity={partnerPhotoIdentity ?? `${spaceId}:partner-photo`}
+          renderTrigger={() => null}
+        />
+      ) : null}
       {children(avatarAction, expandedPopover)}
       <ShortTaskSheet
         ref={sheetRef}

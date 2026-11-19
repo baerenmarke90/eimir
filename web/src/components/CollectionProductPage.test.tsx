@@ -11,6 +11,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -20,7 +21,10 @@ import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { ClientProblemError } from '../client/problemDetails';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
-import { EDITOR_HISTORY_STATE_KEY } from '../client/useEditorHistoryEntry';
+import {
+  EDITOR_HISTORY_STATE_KEY,
+  settleEditorHistory,
+} from '../client/useEditorHistoryEntry';
 import { i18n } from '../i18n';
 import { CollectionProductPage } from './CollectionProductPage';
 import { CollectionsOverviewPage } from './CollectionsOverviewPage';
@@ -111,6 +115,37 @@ beforeEach(() => {
   window.history.replaceState(null, '', '/');
 });
 
+/** Sorting starts from the list menu (#1808). */
+function startSorting() {
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.collection.menu.open') }),
+  );
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.collection.sort') }),
+  );
+}
+
+/** The list's one actions menu: Edit, Sort, Send, Pin to Wir, Delete (last). */
+function openListMenu() {
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.collection.menu.open') }),
+  );
+}
+
+/**
+ * Edit is the menu's first row and enters the inline title edit. The menu
+ * sheet gives its history entry back first; the editor then takes its own.
+ */
+async function startTitleEdit() {
+  openListMenu();
+  fireEvent.click(
+    await screen.findByRole('button', { name: i18n.t('common.edit') }),
+  );
+  await act(async () => {
+    await settleEditorHistory();
+  });
+}
+
 describe('CollectionProductPage', () => {
   function renderReorderCollection(
     reorderCollectionItems: ReturnType<typeof vi.fn>,
@@ -144,9 +179,7 @@ describe('CollectionProductPage', () => {
         client.setQueryData(key, initial);
       },
     );
-    fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('m5s3.collection.sort') }),
-    );
+    startSorting();
     const order = () =>
       Array.from(document.querySelectorAll('[data-sortable-item-id]')).map(
         (element) => element.getAttribute('data-sortable-item-id'),
@@ -1019,9 +1052,7 @@ describe('CollectionProductPage', () => {
             }),
         );
       const fixture = renderToggleCollection(vi.fn(), true, reorder);
-      fireEvent.click(
-        screen.getByRole('button', { name: i18n.t('m5s3.collection.sort') }),
-      );
+      startSorting();
       fireEvent.keyDown(
         screen.getByRole('button', {
           name: i18n.t('m5s3.collection.reorderItem', { title: 'Tickets' }),
@@ -1054,9 +1085,7 @@ describe('CollectionProductPage', () => {
         .click(screen.getByRole('link', { name: 'Switch collection' }));
       await screen.findByRole('heading', { name: nextCollection.title });
       expect(screen.queryByRole('status')).toBeNull();
-      fireEvent.click(
-        screen.getByRole('button', { name: i18n.t('m5s3.collection.sort') }),
-      );
+      startSorting();
       const nextHandle = screen.getByRole('button', {
         name: i18n.t('m5s3.collection.reorderItem', { title: 'Coffee' }),
       });
@@ -1168,8 +1197,12 @@ describe('CollectionProductPage', () => {
     expect(screen.getByRole('status').textContent).toContain(
       i18n.t('m5s3.common.saving'),
     );
-    expect(toggle.hasAttribute('disabled')).toBe(true);
-    fireEvent.click(toggle);
+    // The checked entry moves into the tray, so its button is a new element.
+    const checked = screen.getByRole('button', {
+      name: i18n.t('m5s3.collection.markOpen', { title: 'Passport' }),
+    });
+    expect(checked.hasAttribute('disabled')).toBe(true);
+    fireEvent.click(checked);
     expect(updateCollectionItem).toHaveBeenCalledTimes(1);
     expect(updateCollectionItem).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1411,7 +1444,7 @@ describe('CollectionProductPage', () => {
     expect(html).not.toContain('planning-item-title-form button');
   });
 
-  it('resets isEditing and confirmDelete on successful title update', async () => {
+  it('leaves the title edit on a successful update and keeps Delete out of it', async () => {
     const updateCollectionMock = vi
       .fn()
       .mockImplementation(async ({ collectionUpdate }) => ({
@@ -1453,25 +1486,18 @@ describe('CollectionProductPage', () => {
       </QueryClientProvider>,
     );
 
-    // Click edit button to enter edit mode
-    const editBtn = screen.getByRole('button', {
-      name: /common\.edit|bearbeiten/i,
-    });
-    fireEvent.click(editBtn);
+    // Edit lives in the menu and enters the inline title edit
+    await startTitleEdit();
 
-    // isEditing is true: input and delete trigger are visible
+    // The edit mode keeps only Save and Cancel: no Delete, no menu
     const input = screen.getByRole('textbox', { name: /titel/i });
     expect(input).toBeDefined();
-
-    const deleteTrigger = screen.getByRole('button', { name: /^löschen$/i });
-    fireEvent.click(deleteTrigger);
-
-    // confirmDelete is true: danger confirmation zone is visible
+    expect(screen.queryByRole('button', { name: /^löschen$/i })).toBeNull();
     expect(
-      screen.getByRole('button', {
-        name: i18n.t('m5s3.common.confirmDelete'),
+      screen.queryByRole('button', {
+        name: i18n.t('m5s3.collection.menu.open'),
       }),
-    ).toBeDefined();
+    ).toBeNull();
 
     // Update title
     fireEvent.change(input, { target: { value: 'New Packing list' } });
@@ -1487,28 +1513,22 @@ describe('CollectionProductPage', () => {
       expect(updateCollectionMock).toHaveBeenCalled();
     });
 
-    // Verify isEditing is reset to false: input is gone, edit button is back
+    // Verify the edit mode ended: input is gone, the menu button is back
     await waitFor(() => {
       expect(screen.queryByRole('textbox', { name: /titel/i })).toBeNull();
     });
     expect(
-      screen.getByRole('button', { name: /common\.edit|bearbeiten/i }),
-    ).toBeDefined();
-
-    // Verify confirmDelete is reset to false: danger zone with confirm delete button is gone
-    expect(
-      screen.queryByRole('button', {
-        name: i18n.t('m5s3.common.confirmDelete'),
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.collection.menu.open'),
       }),
-    ).toBeNull();
+    ).toBeDefined();
   });
 
   it('focuses the editor and protects a dirty draft through Escape', async () => {
     const user = userEvent.setup();
     renderInteractiveCollection();
-    const edit = screen.getByRole('button', { name: i18n.t('common.edit') });
 
-    await user.click(edit);
+    await startTitleEdit();
     const title = screen.getByRole('textbox', {
       name: i18n.t('m5s3.common.title'),
     });
@@ -1536,7 +1556,9 @@ describe('CollectionProductPage', () => {
     );
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     expect(document.activeElement).toBe(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.collection.menu.open'),
+      }),
     );
     expect(window.history.state?.[EDITOR_HISTORY_STATE_KEY]).toBeUndefined();
   });
@@ -1544,9 +1566,7 @@ describe('CollectionProductPage', () => {
   it('closes a clean editor through Browser Back', async () => {
     const user = userEvent.setup();
     renderInteractiveCollection();
-    await user.click(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
-    );
+    await startTitleEdit();
     expect(window.history.state?.[EDITOR_HISTORY_STATE_KEY]).toBeTruthy();
 
     window.history.back();
@@ -1557,12 +1577,12 @@ describe('CollectionProductPage', () => {
       ).toBeNull(),
     );
     expect(document.activeElement).toBe(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.collection.menu.open'),
+      }),
     );
 
-    await user.click(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
-    );
+    await startTitleEdit();
     await user.keyboard('{Escape}');
     await waitFor(() =>
       expect(
@@ -1571,37 +1591,38 @@ describe('CollectionProductPage', () => {
     );
   });
 
-  it('restores delete-trigger focus and blocks dismissal while delete is pending', async () => {
+  it('asks in its own sheet, restores focus on Cancel and blocks dismissal while delete is pending', async () => {
     const user = userEvent.setup();
     const never = new Promise<void>(() => undefined);
     renderInteractiveCollection({
       deleteCollection: vi.fn().mockReturnValue(never),
     });
 
-    await user.click(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
-    );
-    const deleteTrigger = screen.getByRole('button', {
-      name: i18n.t('m5s3.common.delete'),
+    const menuTrigger = screen.getByRole('button', {
+      name: i18n.t('m5s3.collection.menu.open'),
     });
-    await user.click(deleteTrigger);
-    expect(document.activeElement?.id).toBe(
-      'collection-delete-confirmation-heading',
+    await user.click(menuTrigger);
+    await user.click(
+      await screen.findByRole('button', { name: i18n.t('m5s3.common.delete') }),
+    );
+    const confirmation = await screen.findByRole('alertdialog');
+    expect(confirmation.textContent).toContain(
+      i18n.t('m5s3.collection.deleteConsequence'),
     );
 
-    const deleteCancel = screen
-      .getAllByRole('button', { name: i18n.t('common.cancel') })
-      .at(-1);
-    expect(deleteCancel).toBeDefined();
-    await user.click(deleteCancel as HTMLButtonElement);
-    const restoredDeleteTrigger = screen.getByRole('button', {
-      name: i18n.t('m5s3.common.delete'),
-    });
-    expect(document.activeElement).toBe(restoredDeleteTrigger);
-
-    await user.click(restoredDeleteTrigger);
     await user.click(
-      screen.getByRole('button', {
+      within(confirmation).getByRole('button', {
+        name: i18n.t('common.cancel'),
+      }),
+    );
+    await waitFor(() => expect(document.activeElement).toBe(menuTrigger));
+
+    await user.click(menuTrigger);
+    await user.click(
+      await screen.findByRole('button', { name: i18n.t('m5s3.common.delete') }),
+    );
+    await user.click(
+      await screen.findByRole('button', {
         name: i18n.t('m5s3.common.confirmDelete'),
       }),
     );
@@ -1662,6 +1683,8 @@ describe('CollectionProductPage', () => {
       </QueryClientProvider>,
     );
 
+    await screen.findByRole('heading', { name: sampleCollection.title });
+    openListMenu();
     const pin = await screen.findByRole('button', {
       name: i18n.t('m5s3.collection.pinToToday'),
     });
@@ -1672,7 +1695,7 @@ describe('CollectionProductPage', () => {
         moduleKey: 'pinned_collection',
         spaceId: 'space-1',
         dashboardModulePreferenceUpdate: {
-          selectedCollectionId: 'collection-1',
+          selectedCollectionIds: ['collection-1'],
           visible: true,
         },
       }),
@@ -1732,6 +1755,8 @@ describe('CollectionProductPage', () => {
     );
 
     const user = userEvent.setup();
+    await screen.findByRole('heading', { name: sampleCollection.title });
+    openListMenu();
     await user.click(
       await screen.findByRole('button', {
         name: i18n.t('m5s3.collection.pinToToday'),
@@ -1765,7 +1790,7 @@ describe('CollectionProductPage', () => {
       moduleKey: 'pinned_collection',
       spaceId: 'space-1',
       dashboardModulePreferenceUpdate: {
-        selectedCollectionId: 'collection-1',
+        selectedCollectionIds: ['collection-1'],
         visible: true,
       },
     });
@@ -1778,7 +1803,7 @@ describe('CollectionProductPage', () => {
       true,
       (queryClient) => {
         queryClient.setQueryData(
-          authorSummaryQueryKeys.collections('space-1'),
+          authorSummaryQueryKeys.collectionOverview('space-1', 'OPEN'),
           {
             pages: [
               {
@@ -1792,14 +1817,12 @@ describe('CollectionProductPage', () => {
         );
       },
     );
+    openListMenu();
     await user.click(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
+      await screen.findByRole('button', { name: i18n.t('m5s3.common.delete') }),
     );
     await user.click(
-      screen.getByRole('button', { name: i18n.t('m5s3.common.delete') }),
-    );
-    await user.click(
-      screen.getByRole('button', {
+      await screen.findByRole('button', {
         name: i18n.t('m5s3.common.confirmDelete'),
       }),
     );

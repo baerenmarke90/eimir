@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { PlanFileChanges } from './PlanFileChanges';
+import {
+    PlanFileChangesFromJSON,
+    PlanFileChangesFromJSONTyped,
+    PlanFileChangesToJSON,
+    PlanFileChangesToJSONTyped,
+} from './PlanFileChanges';
 import type { AttachmentEntry } from './AttachmentEntry';
 import {
     AttachmentEntryFromJSON,
@@ -27,6 +34,13 @@ import {
     PlanScheduleToJSON,
     PlanScheduleToJSONTyped,
 } from './PlanSchedule';
+import type { DiscreetTitleMode } from './DiscreetTitleMode';
+import {
+    DiscreetTitleModeFromJSON,
+    DiscreetTitleModeFromJSONTyped,
+    DiscreetTitleModeToJSON,
+    DiscreetTitleModeToJSONTyped,
+} from './DiscreetTitleMode';
 
 /**
  * Atomic content, image and optional schedule correction.
@@ -70,16 +84,40 @@ export interface PlanUpdate {
     description?: string | null;
     /**
      * 
+     * @type {boolean}
+     * @memberof PlanUpdate
+     */
+    discreet?: boolean;
+    /**
+     * 
+     * @type {DiscreetTitleMode}
+     * @memberof PlanUpdate
+     */
+    discreetTitleMode?: DiscreetTitleMode;
+    /**
+     * 
      * @type {Date}
      * @memberof PlanUpdate
      */
     experiencedOn?: Date;
     /**
      * 
+     * @type {PlanFileChanges}
+     * @memberof PlanUpdate
+     */
+    fileAttachmentChanges?: PlanFileChanges;
+    /**
+     * 
      * @type {string}
      * @memberof PlanUpdate
      */
     placeId?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PlanUpdate
+     */
+    previewTitle?: string | null;
     /**
      * 
      * @type {PlanSchedule}
@@ -106,6 +144,8 @@ export interface PlanUpdate {
     title?: string;
 }
 
+
+
 /**
  * Check if a given object implements the PlanUpdate interface.
  */
@@ -128,8 +168,12 @@ export function PlanUpdateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'coverAttachmentId': json['coverAttachmentId'] === undefined ? undefined : json['coverAttachmentId'] === null ? null : json['coverAttachmentId'],
         'coverIsSensitive': json['coverIsSensitive'] == null ? undefined : json['coverIsSensitive'],
         'description': json['description'] === undefined ? undefined : json['description'] === null ? null : json['description'],
+        'discreet': json['discreet'] == null ? undefined : json['discreet'],
+        'discreetTitleMode': json['discreetTitleMode'] == null ? undefined : DiscreetTitleModeFromJSON(json['discreetTitleMode']),
         'experiencedOn': json['experiencedOn'] == null ? undefined : (new Date(json['experiencedOn'])),
+        'fileAttachmentChanges': json['fileAttachmentChanges'] == null ? undefined : PlanFileChangesFromJSON(json['fileAttachmentChanges']),
         'placeId': json['placeId'] === undefined ? undefined : json['placeId'] === null ? null : json['placeId'],
+        'previewTitle': json['previewTitle'] === undefined ? undefined : json['previewTitle'] === null ? null : json['previewTitle'],
         'schedule': json['schedule'] === undefined ? undefined : json['schedule'] === null ? null : PlanScheduleFromJSON(json['schedule']),
         'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'tags': json['tags'] == null ? undefined : json['tags'],
@@ -153,8 +197,12 @@ export function PlanUpdateToJSONTyped(value?: PlanUpdate | null, ignoreDiscrimin
         'coverAttachmentId': value['coverAttachmentId'],
         'coverIsSensitive': value['coverIsSensitive'],
         'description': value['description'],
+        'discreet': value['discreet'],
+        'discreetTitleMode': DiscreetTitleModeToJSON(value['discreetTitleMode']),
         'experiencedOn': value['experiencedOn'] == null ? value['experiencedOn'] : value['experiencedOn'].toISOString().substring(0,10),
+        'fileAttachmentChanges': PlanFileChangesToJSON(value['fileAttachmentChanges']),
         'placeId': value['placeId'],
+        'previewTitle': value['previewTitle'],
         'schedule': PlanScheduleToJSON(value['schedule']),
         'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'tags': value['tags'],

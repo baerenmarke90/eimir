@@ -6,7 +6,13 @@
 
 Name | Type
 ------------ | -------------
+`attachmentId` | string
+`availability` | string
+`code` | string
 `id` | string
+`kind` | string
+`mimeType` | string
+`ordinal` | number
 
 ## Example
 
@@ -15,7 +21,13 @@ import type { PhotoSelectionItemView } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "attachmentId": null,
+  "availability": null,
+  "code": null,
   "id": null,
+  "kind": null,
+  "mimeType": null,
+  "ordinal": null,
 } satisfies PhotoSelectionItemView
 
 console.log(example)

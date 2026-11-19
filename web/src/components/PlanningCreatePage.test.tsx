@@ -1,14 +1,23 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
-import de from '../i18n/locales/de';
-import m5s3 from '../i18n/locales/m5s3';
-import taskBoundary from '../i18n/locales/taskBoundary';
 import { i18n } from '../i18n';
+import dateIdeas from '../i18n/locales/dateIdeas';
+import m5s3 from '../i18n/locales/m5s3';
+import sharedNotes from '../i18n/locales/sharedNotes';
+import taskBoundary from '../i18n/locales/taskBoundary';
 import { PlanningCreatePage } from './PlanningCreatePage';
+import { sharedNote } from './sharedNoteFixtures';
 
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = function () {
@@ -70,6 +79,7 @@ function renderCreate(
           <Route path="/plan/plans/:planId" element={<p>Plan result</p>} />
           <Route path="/plan/wishes/:wishId" element={<p>Wish result</p>} />
           <Route path="/plan" element={<p>Planning overview</p>} />
+          <Route path="/plan/ideas" element={<p>Date ideas catalog</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -78,7 +88,168 @@ function renderCreate(
   return { createPlan, createWish, locations, unmount };
 }
 
+const noteText = sharedNotes.sharedNotes;
+
+/** A Plan draft that already has a title, with one shared note on offer. */
+function renderCreateWithNotes(linkPlanNote: ReturnType<typeof vi.fn>) {
+  const notes = [
+    sharedNote({ id: 'note-a', title: 'Packing list' }),
+    sharedNote({ id: 'note-b', title: 'Door codes' }),
+  ];
+  const createPlan = vi.fn().mockResolvedValue({ id: 'saved-plan' });
+  const rendered = renderCreate('plan', {
+    plans: {
+      createPlan,
+      linkPlanNote,
+    } as unknown as SharedPlanningApis['plans'],
+    sharedNotes: {
+      listSharedNotes: vi
+        .fn()
+        .mockResolvedValue({ items: notes, nextCursor: null, hasMore: false }),
+    } as unknown as SharedPlanningApis['sharedNotes'],
+  });
+  fireEvent.change(
+    screen.getByRole('textbox', { name: m5s3.plan.intentionLabel }),
+    { target: { value: 'A picnic together' } },
+  );
+  return { ...rendered, createPlan };
+}
+
+async function chooseNotes(...titles: string[]) {
+  fireEvent.click(screen.getByRole('button', { name: noteText.plan.tool }));
+  const dialog = await screen.findByRole('dialog');
+  for (const title of titles)
+    fireEvent.click(
+      await within(dialog).findByRole('checkbox', { name: new RegExp(title) }),
+    );
+  fireEvent.click(
+    within(dialog).getByRole('button', { name: noteText.plan.link }),
+  );
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+}
+
 describe('PlanningCreatePage', () => {
+  it('offers the Notiz tool, keeps the chosen notes locally and links them only after the Plan is saved', async () => {
+    const linkPlanNote = vi.fn().mockResolvedValue(undefined);
+    const { createPlan } = renderCreateWithNotes(linkPlanNote);
+    await chooseNotes('Packing list', 'Door codes');
+    // Nothing is sent before the Plan exists; the choice is visible as chips.
+    expect(linkPlanNote).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Packing list' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Door codes' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    await screen.findByText('Plan result');
+    expect(createPlan).toHaveBeenCalledTimes(1);
+    expect(
+      linkPlanNote.mock.calls.map(([request]) => request.sharedNoteId).sort(),
+    ).toEqual(['note-a', 'note-b']);
+    expect(linkPlanNote.mock.calls[0][0]).toMatchObject({
+      spaceId: 'space-1',
+      planId: 'saved-plan',
+    });
+  });
+
+  it('lets a chosen note be removed again before saving and never offers to leave the draft', async () => {
+    const linkPlanNote = vi.fn().mockResolvedValue(undefined);
+    renderCreateWithNotes(linkPlanNote);
+    fireEvent.click(screen.getByRole('button', { name: noteText.plan.tool }));
+    const dialog = await screen.findByRole('dialog');
+    await within(dialog).findByRole('checkbox', { name: /Packing list/ });
+    // Starting a new note would discard the unsaved Plan, so it is not offered.
+    expect(
+      within(dialog).queryByRole('button', {
+        name: noteText.plan.createNew,
+      }),
+    ).toBeNull();
+    fireEvent.click(
+      within(dialog).getByRole('checkbox', { name: /Packing list/ }),
+    );
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: noteText.plan.link }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('sharedNotes.plan.unlink', { title: 'Packing list' }),
+      }),
+    );
+    expect(screen.queryByRole('button', { name: 'Packing list' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    await screen.findByText('Plan result');
+    expect(linkPlanNote).not.toHaveBeenCalled();
+  });
+
+  it('reports a failed note link honestly and retries without creating a second Plan', async () => {
+    const linkPlanNote = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Network unavailable'))
+      .mockResolvedValue(undefined);
+    const { createPlan } = renderCreateWithNotes(linkPlanNote);
+    await chooseNotes('Packing list');
+    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    await waitFor(() => expect(createPlan).toHaveBeenCalledTimes(1));
+    // The Plan is saved, the link is not: the page says exactly that and stays.
+    await screen.findByText(i18n.t('composer.planSavedLinkFailed'));
+    expect(screen.queryByText('Plan result')).toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('common.retry') }),
+    );
+    await screen.findByText('Plan result');
+    expect(linkPlanNote).toHaveBeenCalledTimes(2);
+    expect(createPlan).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the confirmed Plan after list-link failure and retries without creating a second Plan', async () => {
+    const link = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Network unavailable'))
+      .mockResolvedValue(undefined);
+    const collection = { id: 'list-a', title: 'Lake picnic', items: [] };
+    const createPlan = vi.fn().mockResolvedValue({ id: 'saved-plan' });
+    renderCreate('plan', {
+      plans: {
+        createPlan,
+        linkPlanCollection: link,
+      } as unknown as SharedPlanningApis['plans'],
+      collections: {
+        listCollections: vi
+          .fn()
+          .mockResolvedValue({ items: [collection], nextCursor: null }),
+      } as unknown as SharedPlanningApis['collections'],
+    });
+    fireEvent.change(
+      screen.getByRole('textbox', { name: m5s3.plan.intentionLabel }),
+      { target: { value: 'A picnic together' } },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('composer.list') }),
+    );
+    fireEvent.click(
+      await within(await screen.findByRole('dialog')).findByRole('checkbox'),
+    );
+    fireEvent.click(screen.getByRole('button', { name: m5s3.collection.link }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() =>
+      expect(
+        (
+          screen.getByRole('button', {
+            name: m5s3.common.save,
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(false),
+    );
+    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    await waitFor(() => expect(createPlan).toHaveBeenCalledTimes(1));
+    await screen.findByText(m5s3.collection.planSavedLinkFailed);
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('common.retry') }),
+    );
+    await screen.findByText('Plan result');
+    expect(link).toHaveBeenCalledTimes(2);
+    expect(createPlan).toHaveBeenCalledTimes(1);
+  });
   it('omits redundant fixed-audience banners from Plan and Wish creation', () => {
     const { unmount } = renderCreate('wish');
 
@@ -117,15 +288,20 @@ describe('PlanningCreatePage', () => {
     );
   });
 
-  it('preserves date-only schedule semantics inside optional enrichment', async () => {
+  it('preserves date-only schedule semantics in compact context', async () => {
     const { createPlan } = renderCreate('plan');
     fireEvent.change(screen.getByLabelText(m5s3.plan.intentionLabel), {
       target: { value: 'Day trip' },
     });
-    fireEvent.click(screen.getByText(m5s3.plan.addDetails));
+    fireEvent.click(
+      screen.getByRole('button', { name: new RegExp(m5s3.plan.schedule) }),
+    );
     fireEvent.change(screen.getByLabelText(m5s3.plan.plannedDate), {
       target: { value: '2026-10-03' },
     });
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+    );
     fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
 
     await waitFor(() => expect(createPlan).toHaveBeenCalledTimes(1));
@@ -133,6 +309,196 @@ describe('PlanningCreatePage', () => {
     expect(request.planCreate.schedule).toEqual({
       plannedOn: new Date('2026-10-03T00:00:00Z'),
     });
+  });
+
+  it('keeps the chosen end time when compact scheduling is closed before Save', async () => {
+    const { createPlan } = renderCreate('plan');
+    fireEvent.change(screen.getByLabelText(m5s3.plan.intentionLabel), {
+      target: { value: 'Evening walk' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: new RegExp(m5s3.plan.schedule) }),
+    );
+    fireEvent.change(screen.getByLabelText(m5s3.plan.plannedDate), {
+      target: { value: '2026-10-03' },
+    });
+    fireEvent.change(screen.getByLabelText(m5s3.plan.plannedStartTime), {
+      target: { value: '18:00' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: m5s3.plan.addEndTime }));
+    fireEvent.change(screen.getByLabelText(m5s3.plan.endTime), {
+      target: { value: '19:30' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    await waitFor(() => expect(createPlan).toHaveBeenCalledOnce());
+    const schedule = createPlan.mock.calls[0][0].planCreate.schedule;
+    expect(schedule.plannedStart.getHours()).toBe(18);
+    expect(schedule.plannedEnd.getHours()).toBe(19);
+    expect(schedule.plannedEnd.getMinutes()).toBe(30);
+  });
+
+  it('stages a Wish before creation and retries its association without creating another Plan', async () => {
+    const wish = { id: 'wish-source', title: 'A lakeside picnic', version: 2 };
+    const parent = { id: 'saved-plan', sourceWishId: null, version: 3 };
+    const createPlan = vi.fn().mockResolvedValue(parent);
+    const getPlan = vi.fn().mockResolvedValue({ ...parent, version: 4 });
+    const linkWishToPlan = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Network unavailable'))
+      .mockResolvedValue({
+        plan: { ...parent, sourceWishId: wish.id, version: 5 },
+        wish,
+      });
+    renderCreate('plan', {
+      plans: {
+        createPlan,
+        getPlan,
+        linkWishToPlan,
+      } as unknown as SharedPlanningApis['plans'],
+      wishes: {
+        listWishes: vi
+          .fn()
+          .mockResolvedValue({ items: [wish], nextCursor: null }),
+      } as unknown as SharedPlanningApis['wishes'],
+    });
+    fireEvent.change(screen.getByLabelText(m5s3.plan.intentionLabel), {
+      target: { value: 'Our picnic' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.plan.linkWish'),
+      }),
+    );
+    fireEvent.click(await screen.findByRole('radio', { name: wish.title }));
+    fireEvent.click(
+      screen.getByRole('button', { name: m5s3.plan.confirmWishLink }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(linkWishToPlan).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    await screen.findByText(i18n.t('composer.planSavedLinkFailed'));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('common.retry') }),
+    );
+    await screen.findByText('Plan result');
+    expect(createPlan).toHaveBeenCalledTimes(1);
+    expect(getPlan).toHaveBeenCalledTimes(1);
+    expect(linkWishToPlan).toHaveBeenNthCalledWith(2, {
+      spaceId: 'space-1',
+      planId: parent.id,
+      ifMatch: '4',
+      planWishLink: { wishId: wish.id, wishVersion: wish.version },
+    });
+  });
+
+  it('closes the Place task after an awaited create and saves the canonical Place id', async () => {
+    const canonicalPlace = {
+      id: 'place-created',
+      name: 'Rose garden (saved)',
+      address: '42 Garden Street',
+    };
+    let resolveCreate!: (place: typeof canonicalPlace) => void;
+    const response = new Promise<typeof canonicalPlace>((resolve) => {
+      resolveCreate = resolve;
+    });
+    const createPlace = vi.fn(() => response);
+    const { createPlan, locations } = renderCreate('plan', {
+      places: {
+        listPlaces: vi.fn().mockResolvedValue({
+          items: [],
+          nextCursor: null,
+          hasMore: false,
+        }),
+        createPlace,
+      } as unknown as SharedPlanningApis['places'],
+    });
+    const title = screen.getByLabelText(m5s3.plan.intentionLabel);
+    fireEvent.change(title, { target: { value: 'Garden picnic' } });
+    const placeTool = screen.getByRole('button', {
+      name: i18n.t('composer.place'),
+    });
+    fireEvent.click(placeTool);
+    const choice = await screen.findByRole('dialog', {
+      name: m5s3.common.place,
+    });
+    fireEvent.click(
+      within(choice).getByRole('button', {
+        name: i18n.t('composer.createPlace'),
+      }),
+    );
+    const creation = await screen.findByRole('dialog', {
+      name: i18n.t('composer.newPlace'),
+    });
+    fireEvent.change(within(creation).getByLabelText(m5s3.place.name), {
+      target: { value: 'Rose garden' },
+    });
+    fireEvent.change(within(creation).getByLabelText(m5s3.place.address), {
+      target: { value: canonicalPlace.address },
+    });
+    fireEvent.click(
+      within(creation).getByRole('button', {
+        name: i18n.t('photoPlaces.saveSharedPlace'),
+      }),
+    );
+    await waitFor(() => expect(createPlace).toHaveBeenCalledTimes(1));
+    expect(
+      (
+        screen.getByRole('button', {
+          name: m5s3.common.save,
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(
+      (
+        within(creation).getByRole('button', {
+          name: m5s3.common.saving,
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(screen.getByRole('dialog', { name: m5s3.common.place })).toBe(
+      choice,
+    );
+    expect(
+      screen.getByRole('dialog', { name: i18n.t('composer.newPlace') }),
+    ).toBe(creation);
+    expect(createPlan).not.toHaveBeenCalled();
+
+    await act(async () => resolveCreate(canonicalPlace));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(
+      screen.queryByRole('alertdialog', { name: taskBoundary.discardTitle }),
+    ).toBeNull();
+    expect((title as HTMLInputElement).value).toBe('Garden picnic');
+    expect(
+      screen.getByRole('button', { name: canonicalPlace.name }),
+    ).toBeDefined();
+    await waitFor(() => expect(document.activeElement).toBe(placeTool));
+    expect(createPlace).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      placeCreate: {
+        name: 'Rose garden',
+        address: canonicalPlace.address,
+        latitude: undefined,
+        longitude: undefined,
+      },
+    });
+    const save = screen.getByRole('button', {
+      name: m5s3.common.save,
+    });
+    expect((save as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(save);
+    await waitFor(() => expect(createPlan).toHaveBeenCalledTimes(1));
+    expect(createPlan.mock.calls[0][0].planCreate.placeId).toBe(
+      canonicalPlace.id,
+    );
+    await waitFor(() =>
+      expect(locations.at(-1)).toBe('/plan/plans/plan-created'),
+    );
+    expect(createPlace).toHaveBeenCalledTimes(1);
   });
 
   it('selects a searchable saved Place without creating another one', async () => {
@@ -150,7 +516,9 @@ describe('PlanningCreatePage', () => {
     fireEvent.change(screen.getByLabelText(m5s3.plan.intentionLabel), {
       target: { value: 'Picnic' },
     });
-    fireEvent.click(screen.getByRole('button', { name: m5s3.common.place }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('composer.place') }),
+    );
     fireEvent.change(screen.getByLabelText(i18n.t('photoPlaces.savedSearch')), {
       target: { value: 'Rose' },
     });
@@ -180,11 +548,37 @@ describe('PlanningCreatePage', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toBeDefined());
     expect((title as HTMLInputElement).value).toBe('See the northern lights');
 
-    fireEvent.click(screen.getByRole('button', { name: de.common.cancel }));
+    fireEvent.click(screen.getByRole('button', { name: taskBoundary.close }));
     expect(
       screen.getByRole('alertdialog', {
         name: taskBoundary.discardTitle,
       }),
     ).toBeDefined();
+  });
+
+  it('keeps solo date-idea browsing reachable from the Wish composer (#1907 J1)', async () => {
+    renderCreate('wish');
+    const hint = screen.getByRole('link', {
+      name: new RegExp(dateIdeas.composerHintAction),
+    });
+    expect(hint.getAttribute('href')).toBe('/plan/ideas');
+    fireEvent.change(screen.getByLabelText(m5s3.wish.intentionLabel), {
+      target: { value: 'Sunrise swim' },
+    });
+    fireEvent.click(hint);
+    // A written draft is never dropped silently on the way to the catalog.
+    expect(
+      screen.getByRole('alertdialog', { name: taskBoundary.discardTitle }),
+    ).toBeDefined();
+  });
+
+  it('opens the catalog directly from a clean Wish composer', async () => {
+    renderCreate('wish');
+    fireEvent.click(
+      screen.getByRole('link', {
+        name: new RegExp(dateIdeas.composerHintAction),
+      }),
+    );
+    expect(await screen.findByText('Date ideas catalog')).toBeDefined();
   });
 });

@@ -1,0 +1,130 @@
+# Public main site (`eimir.de`)
+
+Owner: [#1835](https://github.com/baerenmarke90/eimir/issues/1835).
+
+`eimir.de` is the public front page of the product: a short introduction, a login link
+to the application at `https://app.eimir.de`, and the legal pages. The application itself
+runs on `app.eimir.de` (web app and API on one origin). The two are separate deployments.
+
+## What is in the repository
+
+- `site/index.html` (German), `site/en/index.html` (English), `site/impressum/index.html`
+  (legal notice, German), `site/assets/site.css` and `site/assets/iphone-frame.css` (an excerpt of the iPhone 18 Pro frame
+  from react-mockframe, MIT, with its license text).
+- `tools/site/build_main_site.py` assembles `site/dist/` and adds the Web app's self-hosted
+  fonts (Literata, Instrument Sans), favicon, brand mark and touch icon from `web/public/`, plus
+  the product screens from `docs/assets/site/` (see its `SOURCES.md`). Screen file names are
+  fingerprinted at build time so a changed capture is never served from a stale cache.
+- `tools/ci/test_main_site.py` guards the site (see below).
+
+The site is plain HTML and CSS without JavaScript, cookies, tracking, third-party fonts or
+remote resources. Only the framed product preview (see below) runs JavaScript, and only on request. Each page carries a restrictive Content-Security-Policy meta tag
+(`default-src 'none'` plus same-origin images, fonts, styles and, for the preview frame, `frame-src 'self'`).
+
+## Design
+
+Smartphone/Compact is the reference composition; the Expanded layout adapts the same
+hierarchy. The page order is: intro with two device frames, the three app areas (Wir, Momente,
+Planen), four feature highlights (diary, garden, recaps, our story), how to use eimir. (browser,
+PWA, self-hosted), security, FAQ and a closing call to action.
+
+Tokens: colors use the same variable names and values as the Web design-system adapter
+(`web/src/styles.css`, `web/src/theme.css`); the test fails when a value drifts. Radius, spacing,
+touch sizes, content width, breakpoints, motion durations, the navigation glass and the shadow come
+from `design/tokens.json`. Literata is used for display headings and Instrument Sans for text.
+The two overlapping circles use the app's person colors (own blue, partner rose). Favicon, brand
+mark and touch icon are the app's own assets and switch with `prefers-color-scheme`.
+
+Screens: real captures of the Web app inside an iPhone 18 Pro frame. The diary and Eure Geschichte
+captures scroll slowly down and back in an endless CSS loop; on Eure Geschichte, four frames of the
+timeline cross-fade as if swiping across the months. The garden shows the app's own animated garden
+scene as a standalone SVG: six states over a year cross-fade with a clock chip ("Day 1" to
+"9 months"), and the leaves, plants, clouds and animals keep moving. There is no video; nginx
+compresses the 750 KB SVG. All motion stops with `prefers-reduced-motion`. The intro phones fade in
+once; the primary button only changes color and scale.
+
+The primary action is one filled pill that opens the application (localized per page). Privacy and terms are the
+application's public pages (`/legal/privacy`, `/legal/terms`) and are linked, not copied, so
+there is a single source of truth. Security copy follows `docs/ENCRYPTION-AT-REST.md` section 11:
+encryption at rest and TLS may be claimed, end-to-end encryption may not, and the FAQ says so.
+
+## Product preview
+
+Below the highlights, the page embeds the real Web app in the phone frame (`web/preview/`, see its
+README). Visitors can open Wir, Momente (Erinnerungen, Tagebuch) and Eure Geschichte, scroll, open
+entries and swipe the timeline. It runs on a recording of the public demo Space (fictional data), so
+there is no server, no sign-in and nothing is stored; writing is refused and the controls are hidden.
+The app loads only after a tap on "Vorschau starten". The page's own policy only gains
+`frame-src 'self'`; the preview itself needs scripts and has its own policy in
+`site/security-headers-preview.conf` (same-origin scripts and connections, framing by the main site
+only). The container build gains a Node stage that builds it (`npm run build:preview`).
+
+## Legal notice (Impressum)
+
+`site/impressum/index.html` uses the details supplied by the operator. The page is marked
+`noindex`, and `build_main_site.py --production` refuses to build if a `[[PLACEHOLDER]]`
+marker remains.
+
+## Build and preview
+
+```bash
+python3 tools/site/build_main_site.py
+python3 -m http.server 8765 --directory site/dist
+```
+
+The development build allows imprint placeholders and omits the preview when `web/dist-preview/`
+is absent. Run `npm ci` and `npm run build:preview` in `web/` before assembling the site to include
+the interactive preview. `python3 tools/site/build_main_site.py --production` requires the built
+preview and a completed imprint. The container assembles and validates both together.
+
+## Deploying
+
+The site ships as a small container: `site/Dockerfile` builds the production bundle (and fails while the
+imprint still has placeholders) and serves it with the same pinned unprivileged nginx image as the Web
+app, using `site/nginx.conf` and `site/security-headers.conf`. The image answers on port 8080, sends the
+security headers on every response (including redirects and 404), and exposes `/healthz`. It was checked
+locally with a read-only filesystem, dropped capabilities and `no-new-privileges`.
+
+Compose project for the Docker host, next to other projects behind Nginx Proxy Manager. It joins the
+same external proxy network as the other sites (`npm_default` in the current setup) under a unique alias:
+
+```yaml
+services:
+  eimir-site:
+    build:
+      context: https://github.com/baerenmarke90/eimir.git#main
+      dockerfile: site/Dockerfile
+    image: eimir-site:local
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    expose:
+      - "8080"
+    networks:
+      npm_proxy:
+        aliases:
+          - eimir-site-internal
+
+networks:
+  npm_proxy:
+    external: true
+    name: npm_default
+```
+
+Replace `#main` with a commit SHA or tag to pin a reviewed revision. The repository is public, so no
+credentials are needed. If the deployment tool does not build images, run
+`docker compose up -d --build` on the host once and again after every site change.
+
+In Nginx Proxy Manager add a proxy host for `eimir.de` (and `www.eimir.de`, redirecting to `eimir.de`)
+forwarding `http://eimir-site-internal:8080`, with a Let's Encrypt certificate and "Force SSL". Enable
+HSTS only after the HTTPS setup has been verified.
+
+Review any changes to operator details in `site/impressum/index.html` before publication.
+
+Before relying on the site for Google OAuth verification, the privacy page
+`https://app.eimir.de/legal/privacy` must be live and the final imprint must be published.

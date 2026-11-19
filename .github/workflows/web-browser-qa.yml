@@ -23,13 +23,13 @@ jobs:
   pr-critical:
     if: github.event_name == 'pull_request'
     needs: changed-spec-plan
-    name: PR-critical ${{ matrix.shard }}/4
+    name: PR-critical ${{ matrix.shard }}/${{ strategy.job-total }}
     runs-on: ubuntu-latest
-    container: node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
+    container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -63,7 +63,7 @@ jobs:
           EIMIR_BROWSER_SPECS: ${{ needs.changed-spec-plan.outputs.critical-specs }}
         run: >-
           npm run test:pr --
-          --shard=${{ matrix.shard }}/4
+          --shard=${{ matrix.shard }}/${{ strategy.job-total }}
           --output=test-results-pr-${{ matrix.shard }}
 
       - name: Upload PR failure diagnostics
@@ -105,11 +105,13 @@ jobs:
     if: github.event_name == 'pull_request'
     name: Changed browser spec plan
     runs-on: ubuntu-latest
-    container: node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
+    container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
     outputs:
       has-specs: ${{ steps.plan.outputs.has-specs }}
       critical-specs: ${{ steps.plan.outputs.critical-specs }}
       additional-specs: ${{ steps.plan.outputs.additional-specs }}
+      additional-shards: ${{ steps.plan.outputs.additional-shards }}
+      additional-shard-total: ${{ steps.plan.outputs.additional-shard-total }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -131,9 +133,15 @@ jobs:
   changed-specs:
     if: needs.changed-spec-plan.outputs.has-specs == 'true'
     needs: changed-spec-plan
-    name: Changed browser specs
+    name: Changed browser specs ${{ matrix.shard }}/${{ needs.changed-spec-plan.outputs.additional-shard-total }}
     runs-on: ubuntu-latest
-    container: node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
+    container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
+    # The plan bounds the shard count by the selected spec files, so no shard
+    # is empty; the aggregate fails if any shard fails, is cancelled or skips.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.changed-spec-plan.outputs.additional-shards) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -165,18 +173,21 @@ jobs:
         working-directory: web/e2e
         env:
           EIMIR_BROWSER_SPECS: ${{ needs.changed-spec-plan.outputs.additional-specs }}
-        run: npm run test:full -- --output=test-results-changed-specs
+        run: >-
+          npm run test:full --
+          --shard=${{ matrix.shard }}/${{ needs.changed-spec-plan.outputs.additional-shard-total }}
+          --output=test-results-changed-specs-${{ matrix.shard }}
 
       - name: Upload changed-spec failure diagnostics
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: web-browser-failure-changed-${{ github.sha }}-attempt-${{ github.run_attempt }}
+          name: web-browser-failure-changed-${{ matrix.shard }}-${{ github.sha }}-attempt-${{ github.run_attempt }}
           path: |
-            ${{ job.status != 'success' && 'web/e2e/test-results-changed-specs/' || '' }}
-            web/e2e/test-results-changed-specs/**/trace.zip
-            web/e2e/test-results-changed-specs/**/error-context.md
-            web/e2e/test-results-changed-specs/**/test-failed-*.png
+            ${{ job.status != 'success' && format('web/e2e/test-results-changed-specs-{0}/', matrix.shard) || '' }}
+            web/e2e/test-results-changed-specs-${{ matrix.shard }}/**/trace.zip
+            web/e2e/test-results-changed-specs-${{ matrix.shard }}/**/error-context.md
+            web/e2e/test-results-changed-specs-${{ matrix.shard }}/**/test-failed-*.png
           if-no-files-found: ignore
           retention-days: 3
 
@@ -184,21 +195,21 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: web-product-visual-evidence-changed-${{ github.sha }}-attempt-${{ github.run_attempt }}
+          name: web-product-visual-evidence-changed-${{ matrix.shard }}-${{ github.sha }}-attempt-${{ github.run_attempt }}
           path: |
-            web/e2e/test-results-changed-specs/**/planning-*.png
-            web/e2e/test-results-changed-specs/**/shell-*.png
-            web/e2e/test-results-changed-specs/**/today-*.png
-            web/e2e/test-results-changed-specs/**/partner-quick-actions-*.png
-            web/e2e/test-results-changed-specs/**/private-area-*.png
-            web/e2e/test-results-changed-specs/**/*story-*.png
-            web/e2e/test-results-changed-specs/**/wish-detective-*.png
-            web/e2e/test-results-changed-specs/**/f1-*.png
-            web/e2e/test-results-changed-specs/**/f1-*.json
-            web/e2e/test-results-changed-specs/**/f2-*.png
-            web/e2e/test-results-changed-specs/**/notification-settings-*.png
-            web/e2e/test-results-changed-specs/**/push-consent-*.png
-            web/e2e/test-results-changed-specs/**/f2-*.json
+            web/e2e/test-results-changed-specs-${{ matrix.shard }}/**/planning-*.png
+            web/e2e/test-results-changed-specs-${{ matrix.shard }}/**/shell-*.png
+            web/e2e/test-results-changed-specs-${{ matrix.shard }}/**/today-*.png
+            web/e2e/test-results-changed-specs-${{ matrix.shard }}/**/partner-quick-actions-*.png
+            web/e2e/test-results-changed-specs-${{ matrix.shard }}/**/private-area-*.png
+            web/e2e/test-results-changed-specs-${{ matrix.shard }}/**/*story-*.png
+            web/e2e/test-results-changed-specs-${{ matrix.shard }}/**/wish-detective-*.png
+            web/e2e/test-results-changed-specs-${{ matrix.shard }}/**/f1-*.png
+            web/e2e/test-results-changed-specs-${{ matrix.shard }}/**/f1-*.json
+            web/e2e/test-results-changed-specs-${{ matrix.shard }}/**/f2-*.png
+            web/e2e/test-results-changed-specs-${{ matrix.shard }}/**/notification-settings-*.png
+            web/e2e/test-results-changed-specs-${{ matrix.shard }}/**/push-consent-*.png
+            web/e2e/test-results-changed-specs-${{ matrix.shard }}/**/f2-*.json
           if-no-files-found: ignore
           retention-days: ${{ job.status == 'success' && 1 || 3 }}
 
@@ -206,7 +217,7 @@ jobs:
     if: github.event_name != 'pull_request'
     name: Full regression ${{ matrix.shard }}/4
     runs-on: ubuntu-latest
-    container: node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
+    container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
     strategy:
       fail-fast: false
       matrix:

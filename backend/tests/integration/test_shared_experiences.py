@@ -609,3 +609,77 @@ def test_concurrent_partner_answers_form_one_shared_projection(production_client
     page = client.get(url, headers=auth(tokens[0])).json()
     assert len(page["items"]) == 1
     assert len(page["items"][0]["experienceAnswers"]) == 2
+
+
+def test_daily_question_state_links_partner_answers_to_todays_question(
+    client, session: Session, actors
+):  # type: ignore[no-untyped-def]
+    grant(session, actors["space"].id, actors["a"].id)
+    url = path(actors, "experiences/HAPPINESS/questions")
+    today = client.get(url, headers=auth(actors["token_a"])).json()
+    first, second, third = today["questionIds"]
+    assert [state["questionId"] for state in today["questionStates"]] == [first, second, third]
+    assert not any(
+        state["answeredByMe"] or state["answeredByPartner"] or state["memoryId"]
+        for state in today["questionStates"]
+    )
+    started = client.post(
+        path(actors),
+        headers=auth(actors["token_a"]),
+        json={**body(), "title": "Today's first question?", "experienceQuestionId": first},
+    )
+    assert started.status_code == 201, started.text
+    root = started.json()["id"]
+
+    partner_view = client.get(url, headers=auth(actors["token_b"])).json()["questionStates"]
+    assert partner_view[0] == {
+        "questionId": first,
+        "memoryId": root,
+        "answeredByMe": False,
+        "answeredByPartner": True,
+    }
+    assert not partner_view[1]["answeredByPartner"] and partner_view[1]["memoryId"] is None
+    author_view = client.get(url, headers=auth(actors["token_a"])).json()["questionStates"]
+    assert author_view[0]["answeredByMe"] and not author_view[0]["answeredByPartner"]
+
+    reply = client.post(
+        path(actors),
+        headers=auth(actors["token_b"]),
+        json={**body(), "experienceReplyTo": root, "body": "Mine too."},
+    )
+    assert reply.status_code == 201, reply.text
+    stored = session.get(Memory, UUID(reply.json()["id"]))
+    session.refresh(stored)
+    assert stored.payload.experience_question_id == first
+    both = client.get(url, headers=auth(actors["token_b"])).json()["questionStates"][0]
+    assert both == {
+        "questionId": first,
+        "memoryId": root,
+        "answeredByMe": True,
+        "answeredByPartner": True,
+    }
+    assert client.get(url, headers=auth(actors["token_outsider"])).status_code == 404
+
+
+def test_daily_question_id_is_validated_against_the_experience(client, session: Session, actors):  # type: ignore[no-untyped-def]
+    grant(session, actors["space"].id, actors["a"].id)
+    before = session.scalar(select(func.count()).select_from(Memory))
+    for payload in (
+        {**body(), "experienceQuestionId": "notAQuestion"},
+        {**body(), "experienceQuestionId": "firstTrip"},
+        {"title": "Plain memory", "experienceQuestionId": "music"},
+    ):
+        rejected = client.post(path(actors), headers=auth(actors["token_a"]), json=payload)
+        assert rejected.status_code == 422, rejected.text
+    root = client.post(
+        path(actors),
+        headers=auth(actors["token_a"]),
+        json={**body(), "experienceQuestionId": "music"},
+    ).json()["id"]
+    combined = client.post(
+        path(actors),
+        headers=auth(actors["token_b"]),
+        json={**body(), "experienceReplyTo": root, "experienceQuestionId": "music"},
+    )
+    assert combined.status_code == 422, combined.text
+    assert session.scalar(select(func.count()).select_from(Memory)) == before + 1

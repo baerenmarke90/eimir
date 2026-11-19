@@ -1,14 +1,15 @@
-import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { type ReactNode, useContext, useEffect } from 'react';
-import { usePreviewLoadGate } from '../client/usePreviewLoadGate';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
+import { useMediaReveal } from '../client/useMediaReveal';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
+import { usePreviewLoadGate } from '../client/usePreviewLoadGate';
+import { useTranslation } from '../i18n';
+import { PreviewCardLocationContext } from './PreviewCardLink';
 import {
   SensitiveMediaControl,
   SensitiveMediaCover,
   useSensitiveMediaReveals,
 } from './SensitiveMedia';
-import { PreviewCardLocationContext } from './PreviewCardLink';
-import { useTranslation } from '../i18n';
 
 export function MemoryPreview({
   memoryId,
@@ -62,6 +63,7 @@ export function MemoryPreview({
   );
   const url = mediaResource.url;
   const failed = mediaResource.error !== null;
+  const reveal = useMediaReveal(url);
 
   useEffect(() => {
     if (url || failed || typeof isSensitive !== 'boolean') onSettled?.();
@@ -131,6 +133,7 @@ export function MemoryPreview({
       alt={t('media.alt')}
       loading="lazy"
       decoding="async"
+      {...reveal}
     />
   );
 }

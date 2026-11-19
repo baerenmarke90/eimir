@@ -35,3 +35,4 @@ generate h264-high10-pcm.mov libx264 yuv420p10le sdr pcm_s16le
 generate h264-mp3.mp4 libx264 yuv420p sdr libmp3lame
 ffmpeg -hide_banner -loglevel error -nostdin -y -display_rotation 90 \
   -i "$destination/hevc-main10.mov" -map 0:v -c copy "$destination/hevc-rotated.mov"
+python3 "$(dirname "$0")/generate-video-quality-fixtures.py" "$destination"

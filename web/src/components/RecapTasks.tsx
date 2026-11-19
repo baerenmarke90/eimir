@@ -7,7 +7,7 @@ import {
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
-import { recapDate } from '../client/recaps';
+import { RECAP_SELECTION_LIMIT, recapDate } from '../client/recaps';
 import { recapDetailPath } from '../client/routes';
 import { postSnackbar } from '../client/snackbar';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -24,7 +24,7 @@ export function RecapTasks({
   onUpdated,
   ...props
 }: ProfilePageProps & {
-  task: 'selection' | 'reflection' | 'save' | null;
+  task: 'selection' | 'reflection' | null;
   onClose: () => void;
   api: RecapsApi;
   value: RecapView;
@@ -112,32 +112,14 @@ export function RecapTasks({
   }
   const conflict = error && clientProblemKind(error) === 'conflict';
   const footer =
-    task === 'save' ? (
-      <button
-        type="button"
-        disabled={pending}
-        onClick={() =>
-          void perform(
-            () =>
-              api.saveRecapEdition({
-                spaceId: props.spaceId,
-                recapId: base.id,
-                ifMatch: `"${base.version}"`,
-              }),
-            'recaps.saveSuccess',
-          )
-        }
-      >
-        {t('recaps.saveConfirm')}
-      </button>
-    ) : task === 'selection' ? (
+    task === 'selection' ? (
       <button
         type="button"
         disabled={
           pending ||
           !selection.data ||
           base.savedAt !== null ||
-          keys.length > 12
+          keys.length > RECAP_SELECTION_LIMIT
         }
         onClick={() =>
           void perform(() =>
@@ -157,12 +139,7 @@ export function RecapTasks({
         <button
           type="button"
           className="secondary"
-          disabled={
-            pending ||
-            !text.trim() ||
-            base.savedAt !== null ||
-            (!canCompose && !base.ownDraft)
-          }
+          disabled={pending || !text.trim() || (!canCompose && !base.ownDraft)}
           onClick={() =>
             void perform(
               () =>
@@ -183,12 +160,7 @@ export function RecapTasks({
         </button>
         <button
           type="button"
-          disabled={
-            pending ||
-            !text.trim() ||
-            base.savedAt !== null ||
-            (!canCompose && !ownShared)
-          }
+          disabled={pending || !text.trim() || (!canCompose && !ownShared)}
           onClick={() =>
             void perform(
               () =>
@@ -217,9 +189,7 @@ export function RecapTasks({
         title={t(
           task === 'selection'
             ? 'recaps.selectionTitle'
-            : task === 'save'
-              ? 'recaps.saveTitle'
-              : 'recaps.reflectionTitle',
+            : 'recaps.reflectionTitle',
         )}
         isDirty={dirty}
         isCloseBlocked={pending}
@@ -266,7 +236,9 @@ export function RecapTasks({
                     type="checkbox"
                     checked={keys.includes(item.key)}
                     disabled={
-                      pending || (!keys.includes(item.key) && keys.length >= 12)
+                      pending ||
+                      (!keys.includes(item.key) &&
+                        keys.length >= RECAP_SELECTION_LIMIT)
                     }
                     onChange={(event) =>
                       setKeys((current) =>
@@ -316,8 +288,6 @@ export function RecapTasks({
               </button>
             ) : null}
           </>
-        ) : task === 'save' ? (
-          <p>{t('recaps.saveBody')}</p>
         ) : (
           <>
             <p id="recap-reflection-help">{t('recaps.reflectionHelp')}</p>
@@ -328,7 +298,7 @@ export function RecapTasks({
                 maxLength={2000}
                 value={text}
                 aria-describedby="recap-reflection-help"
-                disabled={pending || base.savedAt !== null}
+                disabled={pending}
                 onChange={(event) => setText(event.target.value)}
               />
             </label>

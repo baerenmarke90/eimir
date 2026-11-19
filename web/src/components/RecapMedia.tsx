@@ -17,7 +17,13 @@ export function RecapMedia({
   spaceId,
   account,
   onSettled,
-}: RecapMediaProps & { source: RecapSourceView; onSettled?: () => void }) {
+  quality = 'thumbnail',
+}: RecapMediaProps & {
+  source: RecapSourceView;
+  onSettled?: () => void;
+  /** Full-bleed reader scenes read the original; small covers stay light. */
+  quality?: 'thumbnail' | 'original';
+}) {
   const parentType =
     source.kind === 'MEMORY' ||
     source.kind === 'HEART_MOMENT' ||
@@ -34,10 +40,10 @@ export function RecapMedia({
         parentType,
         parentId,
         attachmentId,
-        { signal, variant: 'thumbnail' },
+        { signal, variant: quality },
       );
     },
-    [mediaApis, spaceId, parentType],
+    [mediaApis, spaceId, parentType, quality],
   );
   if (!source.available || !source.previewAttachmentId || !parentType)
     return null;
@@ -55,6 +61,7 @@ export function RecapMedia({
         account.id,
         spaceId,
         source.key,
+        quality,
       ])}
     />
   );

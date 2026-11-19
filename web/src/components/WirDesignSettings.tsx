@@ -1,12 +1,18 @@
-import { PRO_INFORMATION_ROUTE } from '../client/routes';
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { WirDesignId } from '../api/generated/models/WirDesignId';
-import { useWirDesign, WIR_DESIGNS } from '../client/wirDesign';
+import type { WirDesignId } from '../api/generated/models/WirDesignId';
 import {
-  clientProblemKind,
   ClientProblemError,
+  clientProblemKind,
 } from '../client/problemDetails';
+import { proPaywallPath } from '../client/routes';
+import {
+  DEFAULT_WIR_DESIGN,
+  isFreeWirDesign,
+  useWirDesign,
+  WIR_DESIGNS,
+  wirDesignLayout,
+} from '../client/wirDesign';
 import { useTranslation } from '../i18n';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
@@ -16,16 +22,31 @@ import './WirDesign.css';
 function DesignPreview({ design }: { design: WirDesignId }) {
   return (
     <span
-      className={`wir-design-preview wir-design-preview-${design}`}
-      data-color-world={design === WirDesignId.warm ? 'warm' : undefined}
+      className={`wir-design-preview wir-design-preview-${wirDesignLayout(design) ?? design}`}
+      data-design-preview={design}
       aria-hidden="true"
     >
       <span className="wir-design-preview-hero">
-        <span className="wir-design-preview-portraits">
-          <i />
-          <i />
-        </span>
-        <span className="wir-design-preview-names" />
+        {wirDesignLayout(design) === 'rows' ? (
+          <>
+            <span className="wir-design-preview-person">
+              <i />
+              <b />
+            </span>
+            <span className="wir-design-preview-person">
+              <i />
+              <b />
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="wir-design-preview-portraits">
+              <i />
+              <i />
+            </span>
+            <span className="wir-design-preview-names" />
+          </>
+        )}
       </span>
       <span className="wir-design-preview-vibes">
         <i />
@@ -61,7 +82,7 @@ function Settings({
   const denied =
     mutation.error instanceof ClientProblemError &&
     mutation.error.code === 'PREMIUM_ENTITLEMENT_REQUIRED';
-  const paid = draft !== WirDesignId.warm;
+  const paid = !isFreeWirDesign(draft);
   const free =
     capability.isSuccess && capability.data === false && !capability.isFetching;
   const canSave =
@@ -91,8 +112,10 @@ function Settings({
         <div>
           <strong>{t(`wirDesign.names.${current}`)}</strong>
           <span>
-            {current === WirDesignId.warm ? (
+            {current === DEFAULT_WIR_DESIGN ? (
               t('wirDesign.standard')
+            ) : isFreeWirDesign(current) ? (
+              t('wirDesign.free')
             ) : (
               <ProMark label={t('wirDesign.pro')} />
             )}
@@ -204,7 +227,7 @@ function Settings({
                 type="button"
                 onClick={() =>
                   sheet.current?.closeForNavigation(() =>
-                    navigate(PRO_INFORMATION_ROUTE),
+                    navigate(proPaywallPath()),
                   )
                 }
               >
@@ -261,9 +284,11 @@ function Settings({
               <span className="wir-design-copy">
                 <strong>
                   {t(`wirDesign.names.${design}`)}{' '}
-                  {design === WirDesignId.warm ? (
+                  {isFreeWirDesign(design) ? (
                     <span className="wir-design-tier">
-                      {t('wirDesign.standard')}
+                      {design === DEFAULT_WIR_DESIGN
+                        ? t('wirDesign.standard')
+                        : t('wirDesign.free')}
                     </span>
                   ) : (
                     <ProMark label={t('wirDesign.pro')} />

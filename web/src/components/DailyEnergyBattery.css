@@ -1,0 +1,48 @@
+.daily-energy-battery-icon {
+  width: 20px;
+  height: 12px;
+  flex: 0 0 auto;
+}
+
+.daily-energy-battery-shell,
+.daily-energy-battery-tip {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.daily-energy-battery-question {
+  fill: currentColor;
+  font-family: var(--font-ui);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+/* The fill width carries the level; a change eases to the new width. */
+.daily-energy-battery-fill {
+  fill: var(--color-shared);
+  transform-box: fill-box;
+  transform-origin: left center;
+  transform: scaleX(var(--daily-energy-fill-scale, 1));
+  transition:
+    transform var(--duration-transition) var(--easing-standard),
+    fill var(--duration-transition) var(--easing-standard);
+}
+
+.daily-energy-battery-icon[data-level="low"] .daily-energy-battery-fill {
+  fill: var(--color-brand);
+}
+
+.daily-energy-battery-icon[data-level="medium"] .daily-energy-battery-fill {
+  fill: var(--color-discovery);
+}
+
+.daily-energy-battery-icon[data-level="high"] .daily-energy-battery-fill {
+  fill: var(--color-shared);
+}
+
+@media (forced-colors: active) {
+  .daily-energy-battery-fill {
+    fill: Highlight;
+  }
+}

@@ -35,6 +35,10 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
     static final String FALLBACK_REQUEST_LOCATION_METADATA =
         "androidx.activity.result.contract.extra.PICK_IMAGES_REQUEST_LOCATION_METADATA_ACCESS";
     private final ActivityResultLauncher<Intent> mediaPicker;
+    // #2048: a Web `capture` request for a photo goes straight to the camera,
+    // into a private cache file (PhotoCapture), never into the gallery.
+    private final ActivityResultLauncher<Uri> cameraCapture;
+    private Uri captureTarget;
     private final SelectedMediaProvider.Owner selectedVideos = new SelectedMediaProvider.Owner();
     private Selection pending;
     private boolean askedLocationPermission;
@@ -88,6 +92,15 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
                     bridge.getActivity().runOnUiThread(() -> complete(selection, originals));
                 });
             });
+        cameraCapture = bridge.registerForActivityResult(
+            new ActivityResultContracts.TakePicture(), saved -> {
+                Selection selection = pending;
+                Uri target = captureTarget;
+                captureTarget = null;
+                if (selection == null || disposed) return;
+                complete(selection, Boolean.TRUE.equals(saved) && target != null
+                    ? new Uri[] { target } : null);
+            });
     }
 
     @Override
@@ -108,7 +121,19 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
             callback.onReceiveValue(null);
             return true;
         }
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
+        if (isPhotoCapture(params)) {
+            Selection selection = new Selection(view, callback, params, false);
+            pending = selection;
+            try {
+                captureTarget = PhotoCapture.newTarget(bridge.getContext());
+                cameraCapture.launch(captureTarget);
+            } catch (IOException | IllegalArgumentException | android.content.ActivityNotFoundException unavailable) {
+                captureTarget = null;
+                complete(selection, null);
+            }
+            return true;
+        }
+        if ((Build.VERSION.SDK_INT < Build.VERSION_CODES.Q && isPhotoSelection(params))
                 || (!isPhotoSelection(params) && !isVideoSelection(params) && !isMixedSelection(params))) {
             return super.onShowFileChooser(view, callback, params);
         }
@@ -117,7 +142,7 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
         pending = selection;
         if (video || selection.pickerMetadata || hasLocationPermission(bridge.getContext())) {
             openMediaPicker(selection);
-        } else if (!askedLocationPermission) {
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !askedLocationPermission) {
             askedLocationPermission = true;
             locationPermission.launch(Manifest.permission.ACCESS_MEDIA_LOCATION);
         } else {
@@ -164,6 +189,16 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
         if (params.isCaptureEnabled()
                 || (params.getMode() != FileChooserParams.MODE_OPEN
                     && params.getMode() != FileChooserParams.MODE_OPEN_MULTIPLE)) return false;
+        String[] types = params.getAcceptTypes();
+        if (types.length == 0) return false;
+        for (String type : types) {
+            if (type == null || !type.toLowerCase(Locale.ROOT).startsWith("image/")) return false;
+        }
+        return true;
+    }
+
+    static boolean isPhotoCapture(FileChooserParams params) {
+        if (!params.isCaptureEnabled()) return false;
         String[] types = params.getAcceptTypes();
         if (types.length == 0) return false;
         for (String type : types) {

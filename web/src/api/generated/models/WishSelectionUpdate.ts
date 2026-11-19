@@ -20,6 +20,12 @@ import { mapValues } from '../runtime';
  */
 export interface WishSelectionUpdate {
     /**
+     * Required when the round has date-idea candidates.
+     * @type {Array<string>}
+     * @memberof WishSelectionUpdate
+     */
+    favoriteDateIdeaIds?: Array<string> | null;
+    /**
      * 
      * @type {Array<string>}
      * @memberof WishSelectionUpdate
@@ -52,6 +58,7 @@ export function WishSelectionUpdateFromJSONTyped(json: any, ignoreDiscriminator:
     }
     return {
         
+        'favoriteDateIdeaIds': json['favoriteDateIdeaIds'] === undefined ? undefined : json['favoriteDateIdeaIds'] === null ? null : json['favoriteDateIdeaIds'],
         'favoriteWishIds': json['favoriteWishIds'],
         'published': json['published'],
     };
@@ -68,6 +75,7 @@ export function WishSelectionUpdateToJSONTyped(value?: WishSelectionUpdate | nul
 
     return {
         
+        'favoriteDateIdeaIds': value['favoriteDateIdeaIds'],
         'favoriteWishIds': value['favoriteWishIds'],
         'published': value['published'],
     };

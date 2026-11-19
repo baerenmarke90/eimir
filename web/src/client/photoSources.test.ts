@@ -3,6 +3,7 @@ import type { PhotoSourcesApi } from '../api/generated/apis/PhotoSourcesApi';
 import {
   photoFile,
   readPhotoThumbnail,
+  selectionReady,
   waitForPhotoPoll,
 } from './photoSources';
 
@@ -17,6 +18,46 @@ describe('private photo source tasks', () => {
     await expect(poll).rejects.toThrow('closed');
     expect(vi.getTimerCount()).toBe(0);
   });
+
+  it('honors an interval longer than sixty seconds without an early request', async () => {
+    vi.useFakeTimers();
+    const completed = vi.fn();
+    const poll = waitForPhotoPoll(90.5, new AbortController().signal).then(
+      completed,
+    );
+    await vi.advanceTimersByTimeAsync(90_499);
+    expect(completed).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    await poll;
+    expect(completed).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, 2_147_483_648])(
+    'rejects invalid interval %s without creating a busy-loop timer',
+    async (seconds) => {
+      vi.useFakeTimers();
+      await expect(
+        waitForPhotoPoll(seconds, new AbortController().signal),
+      ).rejects.toThrow('interval is invalid');
+      expect(vi.getTimerCount()).toBe(0);
+    },
+  );
+
+  it.each(['FAILED', 'EXPIRED', 'CANCELLED'])(
+    'stops a terminal %s task',
+    (status) => {
+      expect(() =>
+        selectionReady({
+          id: 'selection',
+          source: 'google',
+          status,
+          items: [],
+          hasMore: false,
+        }),
+      ).toThrow('authorization ended');
+    },
+  );
 
   it('rejects unsupported or empty bytes before handing a File to staging', () => {
     expect(() => photoFile(new Blob([], { type: 'image/jpeg' }), 0)).toThrow();

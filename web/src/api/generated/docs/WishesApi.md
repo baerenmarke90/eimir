@@ -4,13 +4,169 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**acceptWishDateProposal**](WishesApi.md#acceptwishdateproposal) | **POST** /api/v1/spaces/{spaceId}/wishes/{wishId}/date-proposal/{proposalId}/accept | Accept Wish Date Proposal |
+| [**clearPersonalWishReminder**](WishesApi.md#clearpersonalwishreminder) | **DELETE** /api/v1/spaces/{spaceId}/wishes/{wishId}/reminder | Clear Personal Wish Reminder |
 | [**completeWish**](WishesApi.md#completewish) | **POST** /api/v1/spaces/{spaceId}/wishes/{wishId}/complete | Complete Wish |
+| [**counterWishDateProposal**](WishesApi.md#counterwishdateproposal) | **POST** /api/v1/spaces/{spaceId}/wishes/{wishId}/date-proposal/{proposalId}/counter | Counter Wish Date Proposal |
 | [**createWish**](WishesApi.md#createwish) | **POST** /api/v1/spaces/{spaceId}/wishes | Create Wish |
+| [**createWishDateProposal**](WishesApi.md#createwishdateproposal) | **POST** /api/v1/spaces/{spaceId}/wishes/{wishId}/date-proposal | Create Wish Date Proposal |
+| [**declineWishDateProposal**](WishesApi.md#declinewishdateproposal) | **POST** /api/v1/spaces/{spaceId}/wishes/{wishId}/date-proposal/{proposalId}/decline | Decline Wish Date Proposal |
 | [**deleteWish**](WishesApi.md#deletewish) | **DELETE** /api/v1/spaces/{spaceId}/wishes/{wishId} | Delete Wish |
+| [**getPersonalWishReminder**](WishesApi.md#getpersonalwishreminder) | **GET** /api/v1/spaces/{spaceId}/wishes/{wishId}/reminder | Get Personal Wish Reminder |
 | [**getWish**](WishesApi.md#getwish) | **GET** /api/v1/spaces/{spaceId}/wishes/{wishId} | Get Wish |
+| [**getWishDateProposal**](WishesApi.md#getwishdateproposal) | **GET** /api/v1/spaces/{spaceId}/wishes/{wishId}/date-proposal | Get Wish Date Proposal |
 | [**listWishes**](WishesApi.md#listwishes) | **GET** /api/v1/spaces/{spaceId}/wishes | List Wishes |
+| [**repeatWish**](WishesApi.md#repeatwish) | **POST** /api/v1/spaces/{spaceId}/wishes/{wishId}/repeat | Repeat Wish |
+| [**setPersonalWishReminder**](WishesApi.md#setpersonalwishreminder) | **PUT** /api/v1/spaces/{spaceId}/wishes/{wishId}/reminder | Set Personal Wish Reminder |
 | [**updateWish**](WishesApi.md#updatewish) | **PATCH** /api/v1/spaces/{spaceId}/wishes/{wishId} | Update Wish |
+| [**withdrawWishDateProposal**](WishesApi.md#withdrawwishdateproposal) | **POST** /api/v1/spaces/{spaceId}/wishes/{wishId}/date-proposal/{proposalId}/withdraw | Withdraw Wish Date Proposal |
 
+
+
+## acceptWishDateProposal
+
+> WishDateProposalAcceptance acceptWishDateProposal(wishId, proposalId, spaceId)
+
+Accept Wish Date Proposal
+
+### Example
+
+```ts
+import {
+  Configuration,
+  WishesApi,
+} from '';
+import type { AcceptWishDateProposalRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new WishesApi();
+
+  const body = {
+    // string
+    wishId: wishId_example,
+    // string
+    proposalId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
+    // string
+    spaceId: spaceId_example,
+  } satisfies AcceptWishDateProposalRequest;
+
+  try {
+    const data = await api.acceptWishDateProposal(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **wishId** | `string` |  | [Defaults to `undefined`] |
+| **proposalId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**WishDateProposalAcceptance**](WishDateProposalAcceptance.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## clearPersonalWishReminder
+
+> clearPersonalWishReminder(wishId, spaceId)
+
+Clear Personal Wish Reminder
+
+### Example
+
+```ts
+import {
+  Configuration,
+  WishesApi,
+} from '';
+import type { ClearPersonalWishReminderRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new WishesApi();
+
+  const body = {
+    // string
+    wishId: wishId_example,
+    // string
+    spaceId: spaceId_example,
+  } satisfies ClearPersonalWishReminderRequest;
+
+  try {
+    const data = await api.clearPersonalWishReminder(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **wishId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## completeWish
@@ -80,6 +236,84 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## counterWishDateProposal
+
+> WishDateProposalState counterWishDateProposal(wishId, proposalId, spaceId, wishDateProposalWrite)
+
+Counter Wish Date Proposal
+
+### Example
+
+```ts
+import {
+  Configuration,
+  WishesApi,
+} from '';
+import type { CounterWishDateProposalRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new WishesApi();
+
+  const body = {
+    // string
+    wishId: wishId_example,
+    // string
+    proposalId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
+    // string
+    spaceId: spaceId_example,
+    // WishDateProposalWrite
+    wishDateProposalWrite: ...,
+  } satisfies CounterWishDateProposalRequest;
+
+  try {
+    const data = await api.counterWishDateProposal(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **wishId** | `string` |  | [Defaults to `undefined`] |
+| **proposalId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **wishDateProposalWrite** | [WishDateProposalWrite](WishDateProposalWrite.md) |  | |
+
+### Return type
+
+[**WishDateProposalState**](WishDateProposalState.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
@@ -164,6 +398,156 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## createWishDateProposal
+
+> WishDateProposalState createWishDateProposal(wishId, spaceId, wishDateProposalWrite)
+
+Create Wish Date Proposal
+
+### Example
+
+```ts
+import {
+  Configuration,
+  WishesApi,
+} from '';
+import type { CreateWishDateProposalRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new WishesApi();
+
+  const body = {
+    // string
+    wishId: wishId_example,
+    // string
+    spaceId: spaceId_example,
+    // WishDateProposalWrite
+    wishDateProposalWrite: ...,
+  } satisfies CreateWishDateProposalRequest;
+
+  try {
+    const data = await api.createWishDateProposal(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **wishId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **wishDateProposalWrite** | [WishDateProposalWrite](WishDateProposalWrite.md) |  | |
+
+### Return type
+
+[**WishDateProposalState**](WishDateProposalState.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## declineWishDateProposal
+
+> declineWishDateProposal(wishId, proposalId, spaceId)
+
+Decline Wish Date Proposal
+
+### Example
+
+```ts
+import {
+  Configuration,
+  WishesApi,
+} from '';
+import type { DeclineWishDateProposalRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new WishesApi();
+
+  const body = {
+    // string
+    wishId: wishId_example,
+    // string
+    proposalId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
+    // string
+    spaceId: spaceId_example,
+  } satisfies DeclineWishDateProposalRequest;
+
+  try {
+    const data = await api.declineWishDateProposal(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **wishId** | `string` |  | [Defaults to `undefined`] |
+| **proposalId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## deleteWish
 
 > deleteWish(wishId, spaceId, ifMatch)
@@ -239,6 +623,77 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## getPersonalWishReminder
+
+> PersonalWishReminder getPersonalWishReminder(wishId, spaceId)
+
+Get Personal Wish Reminder
+
+### Example
+
+```ts
+import {
+  Configuration,
+  WishesApi,
+} from '';
+import type { GetPersonalWishReminderRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new WishesApi();
+
+  const body = {
+    // string
+    wishId: wishId_example,
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetPersonalWishReminderRequest;
+
+  try {
+    const data = await api.getPersonalWishReminder(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **wishId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**PersonalWishReminder**](PersonalWishReminder.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## getWish
 
 > WishDetail getWish(wishId, spaceId)
@@ -305,6 +760,77 @@ No authorization required
 | **200** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getWishDateProposal
+
+> WishDateProposalState getWishDateProposal(wishId, spaceId)
+
+Get Wish Date Proposal
+
+### Example
+
+```ts
+import {
+  Configuration,
+  WishesApi,
+} from '';
+import type { GetWishDateProposalRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new WishesApi();
+
+  const body = {
+    // string
+    wishId: wishId_example,
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetWishDateProposalRequest;
+
+  try {
+    const data = await api.getWishDateProposal(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **wishId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**WishDateProposalState**](WishDateProposalState.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -387,6 +913,160 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## repeatWish
+
+> WishDetail repeatWish(wishId, spaceId, idempotencyKey, wishRepeat)
+
+Repeat Wish
+
+### Example
+
+```ts
+import {
+  Configuration,
+  WishesApi,
+} from '';
+import type { RepeatWishRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new WishesApi();
+
+  const body = {
+    // string
+    wishId: wishId_example,
+    // string
+    spaceId: spaceId_example,
+    // string | Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time. (optional)
+    idempotencyKey: idempotencyKey_example,
+    // WishRepeat (optional)
+    wishRepeat: ...,
+  } satisfies RepeatWishRequest;
+
+  try {
+    const data = await api.repeatWish(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **wishId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **idempotencyKey** | `string` | Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time. | [Optional] [Defaults to `undefined`] |
+| **wishRepeat** | [WishRepeat](WishRepeat.md) |  | [Optional] |
+
+### Return type
+
+[**WishDetail**](WishDetail.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | The request identity (&#x60;Idempotency-Key&#x60;) was already used for an equivalent request. The response returns the Wish the first request created; no second Wish is created. |  * ETag - Resource version to use for the next If-Match write request. <br>  |
+| **201** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## setPersonalWishReminder
+
+> PersonalWishReminder setPersonalWishReminder(wishId, spaceId, personalWishReminderUpdate)
+
+Set Personal Wish Reminder
+
+### Example
+
+```ts
+import {
+  Configuration,
+  WishesApi,
+} from '';
+import type { SetPersonalWishReminderRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new WishesApi();
+
+  const body = {
+    // string
+    wishId: wishId_example,
+    // string
+    spaceId: spaceId_example,
+    // PersonalWishReminderUpdate
+    personalWishReminderUpdate: ...,
+  } satisfies SetPersonalWishReminderRequest;
+
+  try {
+    const data = await api.setPersonalWishReminder(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **wishId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **personalWishReminderUpdate** | [PersonalWishReminderUpdate](PersonalWishReminderUpdate.md) |  | |
+
+### Return type
+
+[**PersonalWishReminder**](PersonalWishReminder.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## updateWish
 
 > WishDetail updateWish(wishId, spaceId, ifMatch, wishUpdate)
@@ -457,6 +1137,81 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## withdrawWishDateProposal
+
+> withdrawWishDateProposal(wishId, proposalId, spaceId)
+
+Withdraw Wish Date Proposal
+
+### Example
+
+```ts
+import {
+  Configuration,
+  WishesApi,
+} from '';
+import type { WithdrawWishDateProposalRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new WishesApi();
+
+  const body = {
+    // string
+    wishId: wishId_example,
+    // string
+    proposalId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
+    // string
+    spaceId: spaceId_example,
+  } satisfies WithdrawWishDateProposalRequest;
+
+  try {
+    const data = await api.withdrawWishDateProposal(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **wishId** | `string` |  | [Defaults to `undefined`] |
+| **proposalId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |

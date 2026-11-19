@@ -1,16 +1,17 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi, afterEach } from 'vitest';
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
+  cleanup,
+  fireEvent,
   render,
   screen,
-  fireEvent,
   waitFor,
-  cleanup,
 } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
-import { RelationshipSettingsSection } from './ProfilePageBase';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
+import { RelationshipSettingsSection } from './ProfilePageBase';
 
 afterEach(() => {
   cleanup();
@@ -138,7 +139,7 @@ describe('RelationshipSettingsSection', () => {
     expect(screen.queryByText('✓ Gespeichert')).toBeNull();
   });
 
-  it('renders preview card and notification link', async () => {
+  it('renders the preview card without a reminder shortcut', async () => {
     const spacesApi = createMockSpacesApi();
     renderSection(spacesApi);
 
@@ -155,9 +156,9 @@ describe('RelationshipSettingsSection', () => {
     expect(screen.getByText(/Aktuell/i)).toBeDefined();
     expect(screen.getByText(/Nächster Jahrestag/i)).toBeDefined();
 
-    const notifLink = screen.getByRole('link', {
-      name: /Jahrestag-Erinnerungen/,
-    });
-    expect(notifLink.getAttribute('href')).toBe('/more/settings/notifications');
+    // Reminders live in the notification settings, not on this page.
+    expect(
+      screen.queryByRole('link', { name: /Jahrestag-Erinnerungen/ }),
+    ).toBeNull();
   });
 });

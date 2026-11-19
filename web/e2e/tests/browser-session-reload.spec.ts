@@ -16,6 +16,8 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel(de.login.email).fill('anna@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
+  await expect(page).toHaveURL(/\/today$/);
+  await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 }
 
 test.describe('Browser Session Reload and Deep Route Restoration', () => {
@@ -39,6 +41,8 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
         });
 
       if (method === 'POST' && pathname === '/api/v1/auth/sign-in') {
+        // Exercise navigation only after a genuinely pending sign-in commits.
+        await new Promise((resolve) => setTimeout(resolve, 100));
         await fulfillJson({
           account: { displayName: 'Anna', id: ACCOUNT_ID },
           tokens: {

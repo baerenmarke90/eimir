@@ -705,7 +705,7 @@ No authorization required
 
 Grant Server Admin Space Entitlement
 
-Record a manual Premium grant for a Space (V1 launch entitlement source).  This is the only entitlement source implemented for the first launch; Google Play/Stripe/Self-Hosted-license adapters are deliberately out of scope until a real launch channel requires them (docs/m6/ ENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized &#x60;record_grant&#x60; source-update interface unchanged rather than adding a second grant-mutation path.  Granting unlimited Premium is as consequential as the other high-risk ServerAdmin actions in this router (account deletion, email verification, recovery issuance), so it requires the same step-up re-authentication.
+Record a manual Premium grant for a Space (V1 launch entitlement source).  The operator path for beta testers, support and promotions. Paid Google Play purchases arrive through the store adapter in &#x60;eimir.billing&#x60; instead (docs/m6/ENTITLEMENT-BOUNDARY.md §7.1). It reuses the existing normalized &#x60;record_grant&#x60; source-update interface unchanged rather than adding a second grant-mutation path.  Granting unlimited Premium is as consequential as the other high-risk ServerAdmin actions in this router (account deletion, email verification, recovery issuance), so it requires the same step-up re-authentication.
 
 ### Example
 

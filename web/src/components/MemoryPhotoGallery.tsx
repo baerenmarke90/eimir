@@ -6,6 +6,7 @@ import type { PhotoReaction } from '../api/generated/models/PhotoReaction';
 import type { PhotoReactionSummary } from '../api/generated/models/PhotoReactionSummary';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
+import { isGalleryAttachment } from '../client/galleryMedia';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { normalizeClientError } from '../client/problemDetails';
 import { saveProductReadCacheEntry } from '../client/productReadCache';
@@ -126,6 +127,78 @@ function PhotoActions({
   );
 }
 
+interface ReactionPulse {
+  attachmentId: string;
+  reaction: PhotoReaction;
+  sequence: number;
+}
+
+function PhotoReactionChips({
+  reactions,
+  disabled,
+  onReact,
+  pulse,
+}: {
+  reactions?: PhotoReactionSummary[];
+  disabled: boolean;
+  onReact: (reaction: PhotoReaction | null) => void;
+  pulse?: ReactionPulse;
+}) {
+  const { t } = useTranslation();
+  // A chip revisited by swiping starts with its saved reaction at rest.
+  const [playedSequence, setPlayedSequence] = useState(pulse?.sequence);
+
+  if (!reactions?.length) return null;
+  const formatCount = new Intl.NumberFormat(resolvedLocale());
+
+  return (
+    <fieldset
+      className="memory-photo-reactions"
+      aria-label={t('photoReactions.summary')}
+    >
+      {reactions.map(({ reaction, count, own }) => {
+        const pulseSequence =
+          pulse?.reaction === reaction && pulse.sequence !== playedSequence
+            ? pulse.sequence
+            : 0;
+        return (
+          <button
+            type="button"
+            key={reaction}
+            className="media-overlay"
+            aria-pressed={own}
+            disabled={disabled}
+            aria-label={t(
+              own ? 'photoReactions.ownChip' : 'photoReactions.chip',
+              { name: t(`photoReactions.names.${reaction}`), count },
+            )}
+            onClick={() => onReact(own ? null : reaction)}
+          >
+            <span
+              key={pulseSequence}
+              className={pulseSequence ? 'eimir-motion-pulse' : undefined}
+              aria-hidden="true"
+              onAnimationEnd={
+                pulseSequence
+                  ? () => setPlayedSequence(pulseSequence)
+                  : undefined
+              }
+            >
+              {
+                PHOTO_REACTIONS.find((choice) => choice.value === reaction)
+                  ?.emoji
+              }
+            </span>
+            {count > 1 ? (
+              <span aria-hidden="true">{formatCount.format(count)}</span>
+            ) : null}
+          </button>
+        );
+      })}
+    </fieldset>
+  );
+}
+
 export function MemoryPhotoGallery({
   memory,
   apis,
@@ -158,13 +231,20 @@ export function MemoryPhotoGallery({
     [],
   );
   const [announcement, setAnnouncement] = useState('');
+  const [pulse, setPulse] = useState<ReactionPulse>();
   const queryKey = authorSummaryQueryKeys.memory(
     memory.spaceId,
     projectionMemoryId ?? memory.id,
   );
   const photos = [...memory.attachments]
-    .filter((item) => ['READY', 'PROCESSING', 'FAILED'].includes(item.status))
-    .sort((a, b) => a.position - b.position);
+    .filter(isGalleryAttachment)
+    .sort((a, b) =>
+      !memory.experienceKind && a.id === memory.selectedCoverAttachmentId
+        ? -1
+        : !memory.experienceKind && b.id === memory.selectedCoverAttachmentId
+          ? 1
+          : a.position - b.position,
+    );
   const mutation = useMutation({
     retry: false,
     networkMode: 'always',
@@ -221,6 +301,14 @@ export function MemoryPhotoGallery({
       }).catch(() => {
         // The server-confirmed result remains valid if the optional read cache is unavailable.
       });
+      const { attachmentId, reaction } = variables;
+      if (reaction) {
+        setPulse((current) => ({
+          attachmentId,
+          reaction,
+          sequence: (current?.sequence ?? 0) + 1,
+        }));
+      }
       setAnnouncement(
         t(
           variables.reaction
@@ -256,6 +344,8 @@ export function MemoryPhotoGallery({
   return (
     <div className="memory-photo-gallery photo-gallery">
       <MediaGallery
+        readingFrame
+        presentation={memory.experienceKind ? 'default' : 'composer'}
         initialMediaId={memory.selectedCoverAttachmentId ?? undefined}
         items={photos.map(
           ({
@@ -301,71 +391,37 @@ export function MemoryPhotoGallery({
                 }))
         }
         renderPhotoActions={(item, openFullScreen, revealed) =>
-          item.status && item.status !== 'READY' ? null : item.mediaType ===
-            'IMAGE' ? (
+          item.status && item.status !== 'READY' ? null : (
             <>
               <span className="media-comment-action" ref={commentTriggerRef} />
-              <PhotoActions
-                key={`${scope}:${item.id}`}
-                request={request.id === item.id ? request.sequence : 0}
-                onRequestHandled={clearRequest}
-                reactions={
-                  photos.find((photo) => photo.id === item.id)?.reactions ?? []
-                }
-                disabled={offline}
-                saving={mutation.isPending}
-                onReact={(reaction) => react(item.id, reaction)}
-                openFullScreen={openFullScreen}
-                revealed={revealed}
-              />
+              {item.mediaType === 'IMAGE' ? (
+                <PhotoActions
+                  key={`${scope}:${item.id}`}
+                  request={request.id === item.id ? request.sequence : 0}
+                  onRequestHandled={clearRequest}
+                  reactions={
+                    photos.find((photo) => photo.id === item.id)?.reactions ??
+                    []
+                  }
+                  disabled={offline}
+                  saving={mutation.isPending}
+                  onReact={(reaction) => react(item.id, reaction)}
+                  openFullScreen={openFullScreen}
+                  revealed={revealed}
+                />
+              ) : null}
             </>
-          ) : revealed ? (
-            <button
-              type="button"
-              className="media-gallery-expand media-overlay"
-              aria-label={t('video.play')}
-              onClick={openFullScreen}
-            >
-              <span aria-hidden="true">▶</span>
-            </button>
-          ) : null
+          )
         }
-        renderPhotoReactions={(item) => {
-          const reactions =
-            photos.find((photo) => photo.id === item.id)?.reactions ?? [];
-          if (!reactions.length) return null;
-          return (
-            <fieldset
-              className="memory-photo-reactions"
-              aria-label={t('photoReactions.summary')}
-            >
-              {reactions.map(({ reaction, count, own }) => (
-                <button
-                  type="button"
-                  key={reaction}
-                  aria-pressed={own}
-                  disabled={offline || mutation.isPending}
-                  aria-label={t(
-                    own ? 'photoReactions.ownChip' : 'photoReactions.chip',
-                    { name: t(`photoReactions.names.${reaction}`), count },
-                  )}
-                  onClick={() => {
-                    void react(item.id, own ? null : reaction);
-                  }}
-                >
-                  <span aria-hidden="true">
-                    {
-                      PHOTO_REACTIONS.find(
-                        (choice) => choice.value === reaction,
-                      )?.emoji
-                    }{' '}
-                    {new Intl.NumberFormat(resolvedLocale()).format(count)}
-                  </span>
-                </button>
-              ))}
-            </fieldset>
-          );
-        }}
+        renderPhotoReactions={(item) => (
+          <PhotoReactionChips
+            key={`${scope}:${item.id}`}
+            reactions={photos.find((photo) => photo.id === item.id)?.reactions}
+            disabled={offline || mutation.isPending}
+            onReact={(reaction) => void react(item.id, reaction)}
+            pulse={pulse?.attachmentId === item.id ? pulse : undefined}
+          />
+        )}
       />
       {mutation.error ? (
         <ProblemState

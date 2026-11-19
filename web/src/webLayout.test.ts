@@ -31,12 +31,10 @@ function ruleBlock(css: string, selector: string): string {
 const layoutCss = readSource('./layout.css');
 const shellCss = readSource('./shell.css');
 const stylesCss = readSource('./styles.css');
-const memoryPolishCss = readSource('./memory-create-polish.css');
 const commentsCss = readSource('./components/CommentsPanel.css');
 const timelineProgressiveCss = readSource(
   './components/StoryTimelineProgressive.css',
 );
-const discoverRevealCss = readSource('./components/StoryDiscoverReveal.css');
 const productRolesCss = readSource('./design/product-roles.css');
 const sharedPlanningSanctuaryCss = readSource(
   './components/SharedPlanningSanctuary.css',
@@ -154,7 +152,7 @@ describe('module boundary rhythm', () => {
       ],
       [
         './components/ProfileIdentityPanel.css',
-        '.profile-name-inline-form,\n.profile-birthday-inline-form',
+        '.profile-identity-edit-form',
         'border-top',
       ],
       [
@@ -168,8 +166,8 @@ describe('module boundary rhythm', () => {
         'border-bottom',
       ],
       [
-        './components/HeartMomentCreateReference.css',
-        '.heart-moment-create-actions.form-actions',
+        './components/FreeComposer.css',
+        '.free-composer .form-actions',
         'border-top',
       ],
       [
@@ -241,11 +239,13 @@ describe('web layout tokens', () => {
       layoutCss,
       readSource('./theme.css'),
       productRolesCss,
+      readSource('./design/app-designs.css'),
       readSource('./story-media.css'),
       readSource('./attachment-drafts.css'),
       readSource('./demo.css'),
       readSource('./product-reflow.css'),
-      readSource('./memory-create-polish.css'),
+      readSource('./components/FreeComposer.css'),
+      readSource('./components/HeartEmotionVisual.css'),
       readSource('./components/CommentsPanel.css'),
       readSource('./components/LoginExperience.css'),
       readSource('./components/M4ProductPages.css'),
@@ -254,7 +254,6 @@ describe('web layout tokens', () => {
       readSource('./components/MoreOverviewPage.css'),
       readSource('./components/PrivateAreaProductPage.css'),
       readSource('./components/ProfilePage.css'),
-      readSource('./components/QuickCreateMenu.css'),
       readSource('./components/RelatedPeopleAccessibility.css'),
       readSource('./components/RelatedPeoplePage.css'),
       readSource('./components/PlanningReference.css'),
@@ -263,7 +262,6 @@ describe('web layout tokens', () => {
       readSource('./components/StoryMomentMetadata.css'),
       readSource('./components/StoryProductPages.css'),
       timelineProgressiveCss,
-      discoverRevealCss,
       readSource('./components/TodayPage.css'),
     ].join('\n');
 
@@ -282,9 +280,8 @@ describe('web layout tokens', () => {
 });
 
 describe('mobile feed compositor budget (#1028)', () => {
-  it('does not pin every unrevealed Timeline or Discover item into a compositor layer', () => {
+  it('does not pin every unrevealed Timeline item into a compositor layer', () => {
     expect(timelineProgressiveCss).not.toContain('will-change:');
-    expect(discoverRevealCss).not.toContain('will-change:');
   });
 });
 
@@ -307,9 +304,9 @@ describe('Story detail comment density (#1024)', () => {
 
 describe('compact navigation', () => {
   it('owns the bottom navigation grid in one stylesheet', () => {
-    expect(ruleBlock(shellCss, '.mobile-bottom-shell')).toContain(
-      'grid-template-columns: repeat(5, minmax(0, 1fr))',
-    );
+    expect(
+      ruleBlock(shellCss, '.mobile-bottom-shell .mobile-bottom-nav'),
+    ).toContain('grid-template-columns: repeat(5, minmax(0, 1fr))');
 
     const pageStylesheets = [
       readSource('./components/M4ProductPages.css'),
@@ -345,29 +342,6 @@ describe('shared form controls', () => {
   it('does not turn a choice row into a field label', () => {
     expect(stylesCss).toContain(
       '.form-grid > label:not(.choice-row),\n.field-group > label:first-child:not(.choice-row)',
-    );
-  });
-});
-
-describe('Memory Create R1 composition regressions (#964)', () => {
-  it('removes the retired generic optional-details disclosure surface', () => {
-    // #964 moves narrative and date out of a generic "more details" disclosure;
-    // the disclosure and its chevron/summary polish are retired, not reused.
-    expect(memoryPolishCss).not.toMatch(/\.immersive-create-details\b/s);
-    expect(memoryPolishCss).not.toMatch(/\.summary-chevron\b/s);
-  });
-
-  it('scopes date-summary hover feedback to fine-pointer and hover-capable devices to prevent sticky hover on touch', () => {
-    const withoutHoverMedia = memoryPolishCss.replace(
-      /@media\s*\(\s*hover:\s*hover\s*\)\s*and\s*\(\s*pointer:\s*fine\s*\)\s*\{[\s\S]*?\n\}/g,
-      '',
-    );
-    expect(withoutHoverMedia).not.toMatch(
-      /\.immersive-create-date-summary:hover/s,
-    );
-
-    expect(memoryPolishCss).toMatch(
-      /@media\s*\(\s*hover:\s*hover\s*\)\s*and\s*\(\s*pointer:\s*fine\s*\)\s*\{[\s\S]*?\.immersive-create-date-summary:hover\s*\{[\s\S]*?background:\s*var\(--color-surface\);/s,
     );
   });
 });

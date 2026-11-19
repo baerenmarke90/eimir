@@ -6,7 +6,8 @@ const AUTO_DISMISS_MS = 6000;
 
 /**
  * The `docs/COMPONENT-CONTRACTS.md` §9.2 Snackbar — a brief, non-critical
- * confirmation, at most one action (dismiss).
+ * confirmation, at most one action: an optional reversible action such as
+ * „Rückgängig“, otherwise dismiss.
  *
  * Rendered once from `AppShell`, listening for `postSnackbar()` calls from
  * anywhere in the tree (`client/snackbar.ts`), the same decoupled
@@ -53,14 +54,28 @@ export function Snackbar() {
       <span className="snackbar-message">
         {t(current.messageKey, current.messageOptions)}
       </span>
-      <button
-        type="button"
-        className="snackbar-dismiss"
-        onClick={() => setCurrent(null)}
-        aria-label={t('snackbar.dismiss')}
-      >
-        ×
-      </button>
+      {current.action ? (
+        <button
+          type="button"
+          className="snackbar-action"
+          onClick={() => {
+            const action = current.action;
+            setCurrent(null);
+            action?.run();
+          }}
+        >
+          {t(current.action.labelKey)}
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="snackbar-dismiss"
+          onClick={() => setCurrent(null)}
+          aria-label={t('snackbar.dismiss')}
+        >
+          ×
+        </button>
+      )}
     </div>
   );
 }

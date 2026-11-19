@@ -39,11 +39,14 @@ export function DevicePushOnboarding({
   accountId,
   apiBaseUrl,
   onEnablePrompts,
+  onSettled,
 }: {
   devicePush: DevicePushController;
   accountId: string;
   apiBaseUrl: string;
   onEnablePrompts?: () => Promise<void>;
+  /** Called once the push start prompt is answered or not needed. */
+  onSettled?: () => void;
 }) {
   const { t } = useTranslation();
   const decisionKey = `eimir-device-push-onboarding-v1:${apiBaseUrl}:${accountId}`;
@@ -113,6 +116,10 @@ export function DevicePushOnboarding({
     onEnablePrompts,
     promptError,
   ]);
+
+  useEffect(() => {
+    if (answered && !open) onSettled?.();
+  }, [answered, open, onSettled]);
 
   function answer() {
     rememberAnswer(decisionKey);
@@ -196,7 +203,13 @@ export function DevicePushOnboarding({
       }
     >
       <p>{t('notificationSettings.onboardingIntro')}</p>
-      <p className="muted">{t('notificationSettings.deviceIntro')}</p>
+      <p className="muted">
+        {t(
+          devicePush.neutralPreview
+            ? 'notificationSettings.iosDeviceIntro'
+            : 'notificationSettings.deviceIntro',
+        )}
+      </p>
       {promptError ? (
         <p role="alert">{t('notificationSettings.onboardingPromptsFailed')}</p>
       ) : null}

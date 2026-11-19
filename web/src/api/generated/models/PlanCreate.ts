@@ -64,6 +64,12 @@ export interface PlanCreate {
     description?: string;
     /**
      * 
+     * @type {Array<string>}
+     * @memberof PlanCreate
+     */
+    fileAttachmentIds?: Array<string>;
+    /**
+     * 
      * @type {string}
      * @memberof PlanCreate
      */
@@ -116,6 +122,7 @@ export function PlanCreateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'coverAttachmentId': json['coverAttachmentId'] == null ? undefined : json['coverAttachmentId'],
         'coverIsSensitive': json['coverIsSensitive'] == null ? undefined : json['coverIsSensitive'],
         'description': json['description'] == null ? undefined : json['description'],
+        'fileAttachmentIds': json['fileAttachmentIds'] == null ? undefined : json['fileAttachmentIds'],
         'placeId': json['placeId'] == null ? undefined : json['placeId'],
         'schedule': json['schedule'] == null ? undefined : PlanScheduleFromJSON(json['schedule']),
         'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
@@ -139,6 +146,7 @@ export function PlanCreateToJSONTyped(value?: PlanCreate | null, ignoreDiscrimin
         'coverAttachmentId': value['coverAttachmentId'],
         'coverIsSensitive': value['coverIsSensitive'],
         'description': value['description'],
+        'fileAttachmentIds': value['fileAttachmentIds'],
         'placeId': value['placeId'],
         'schedule': PlanScheduleToJSON(value['schedule']),
         'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],

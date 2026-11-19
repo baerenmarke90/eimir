@@ -1,0 +1,16 @@
+{
+  "de": {
+    "title": "eimir. – Vorschau",
+    "start": "Vorschau starten",
+    "loading": "Wird geladen …",
+    "hint": "Wir, Momente und Eure Geschichte mit Beispieldaten. Nichts wird gespeichert.",
+    "unavailable": "Dieser Bereich ist in der Vorschau nicht enthalten."
+  },
+  "en": {
+    "title": "eimir. – Preview",
+    "start": "Start preview",
+    "loading": "Loading …",
+    "hint": "Us, Moments and Our story with sample data. Nothing is saved.",
+    "unavailable": "This area is unavailable in the preview."
+  }
+}

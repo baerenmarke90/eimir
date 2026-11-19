@@ -39,11 +39,55 @@ Cache fallback is deliberately limited to transport/offline failures and tempora
 Cached detail views are read-only. Cached Story snapshots do not expose network pagination while offline. The client does not queue or synchronize offline writes. Comments are not loaded from the product cache. The cache is cleared on logout.
 
 Authorized image bytes use the existing Account/API/Space and parent-bound media
-cache: 48 MiB in memory and a disposable IndexedDB store capped at 128 MiB,
-512 entries and seven days. Every display reentry still authorizes its parent;
-an authoritative denial revokes all affected variants immediately. Credentials,
-signed URLs, playback grants, video originals and non-image payloads do not enter
-the durable image store. Logout and Account/Space changes invalidate it.
+cache: 48 MiB in memory and a disposable IndexedDB store bounded by 2000 media
+items (thumbnail and original of one item share a slot), without a byte cap
+beyond the browser quota, and without a maximum age (Product Owner exception
+to M2-D18 in `docs/m5/S6-CACHE-PORTABILITY-DECISIONS.md`).
+Product Owner decision (2026-11-16): attachment bytes are immutable, and the
+parent data a view renders decides whether they are shown. Bytes already stored
+for the exact login, Account, API origin, Space, parent, attachment and variant
+are therefore shown without a new read grant, and an image this runtime already
+decoded renders in a returning view's first frame without a skeleton or a second
+fade. A read grant is requested only for bytes not stored yet. The parent lists
+revalidate in the background: a denied list evicts the Space's stored media, a
+denied read evicts all variants of its parent, and Media overview removes items
+the refreshed list no longer contains with motion and deletes their stored bytes.
+Until that list response arrives, an item deleted or withdrawn while the app was
+closed can stay visible (online usually under a second, offline until the next
+successful response). Credentials, signed URLs, playback grants, video originals
+and non-image payloads do not enter the durable image store. Logout and
+Account/Space changes invalidate it.
+Images of `OWNER_ONLY` parents never enter the durable store either
+(M2-D18 #3): the private Media overview filter, the viewer's private Heart
+Moments (detail, editor and Timeline) and private People pass
+`persist: false`, and uploads not yet bound to a parent are never persisted.
+Such bytes stay in the session-memory caches only. Once a parent is known to
+be private, it stays session-only for the rest of the login even for a view
+that does not know its visibility, and any copy stored while it was still
+shared is removed.
+The Android app is the exception (M2-D18 #4, Product Owner decision of
+2026-11-16): `deviceMediaSeal.ts` seals every durable image row, shared and
+private, with AES-GCM under a per-login key from `NativeSessionStorage`, so
+`persist: false` has no effect there. The app keeps no plaintext rows (the v3
+store upgrade drops earlier ones), writes nothing without the key, and drops a
+row it cannot open. Logout deletes the key natively; before that, a
+confirmation sheet on the More page names what signing out deletes from the
+phone. Browsers and iOS keep the behavior above.
+
+The same key seals the text the Android app caches (requested by the Product
+Owner on 2026-11-16): every read-cache row, including the list outbox, stores
+its payload as AES-GCM ciphertext bound to the row key (`sealJson` in
+`deviceMediaSeal.ts`). Routing fields (account, Space, kind, resource, refresh
+time) stay readable so rows can be found, expired and purged. The app writes
+no cache row without the key, discards a plaintext row or a row sealed under an
+earlier login, and the store upgrade to version 4 drops earlier plaintext rows
+once on every platform. Memory diary drafts are sealed the same way
+(`memoryDiaryDraft.ts`): text and structure as one sealed value, in which
+dates and photo names are tagged, and the bytes of each attached photo as
+their own sealed blob. A draft written before sealing is kept and sealed in
+place on its next load; a draft sealed under an earlier login is discarded.
+Browsers and iOS keep plaintext rows, because they have no device-bound key
+store.
 
 The size/LRU index is stored separately from Blob payloads in one IndexedDB
 transaction, so eviction and access-time updates never scan or rewrite all
@@ -54,7 +98,7 @@ compressed byte size; downloaded bytes remain cached after a decoded URL is
 released. Thumbnail URLs retain the existing bounded preview lifecycle.
 
 The saved-memory map uses server-declared thumbnail availability, mounts one
-Leaflet map at a time, and fits its authorized locations after measurable layout
+MapLibre map at a time, and fits its authorized locations after measurable layout
 and subsequent resizes until the user pans/zooms. Its initial overview is capped
 at zoom 12; deliberate zoom remains available. Short returns reuse its scoped
 query for one minute, with thirty-minute garbage collection and existing

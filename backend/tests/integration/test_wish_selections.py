@@ -101,7 +101,12 @@ def test_private_lists_and_versions_are_not_partner_projections(client, actors):
     assert first.json()["resultState"] == "WAITING"
     assert first.headers["cache-control"] == "private, no-store"
     second = client.get(path(actors), headers=headers(actors, "b")).json()
-    assert second["own"] == {"favoriteWishIds": [], "published": False, "version": 0}
+    assert second["own"] == {
+        "favoriteWishIds": [],
+        "favoriteDateIdeaIds": [],
+        "published": False,
+        "version": 0,
+    }
     assert second["resultState"] == "CHOOSING"
     assert second["commonWishIds"] == []
     assert not {"partner", "selections", "partnerVersion", "participantCount"} & set(second)
@@ -219,7 +224,12 @@ def test_source_rename_or_deletion_requires_review_instead_of_reusing_consent(
     current = start(client, actors)
     source = actors["sources"][0]
     wishes.update_wish(
-        session, actors["a"], source.id, expected_version=source.version, title="Changed idea"
+        session,
+        actors["a"],
+        source.id,
+        expected_version=source.version,
+        changed_fields=frozenset({"title"}),
+        title="Changed idea",
     )
     read = client.get(path(actors), headers=headers(actors)).json()
     assert read["resultState"] == "NEEDS_IDEAS" and read["commonWishIds"] == []

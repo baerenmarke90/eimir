@@ -22,7 +22,25 @@ export const PersonRelationship = {
     PARENT: 'PARENT',
     SIBLING: 'SIBLING',
     FRIEND: 'FRIEND',
-    OTHER: 'OTHER'
+    OTHER: 'OTHER',
+    DAUGHTER: 'DAUGHTER',
+    SON: 'SON',
+    MOTHER: 'MOTHER',
+    FATHER: 'FATHER',
+    SISTER: 'SISTER',
+    BROTHER: 'BROTHER',
+    GRANDMOTHER: 'GRANDMOTHER',
+    GRANDFATHER: 'GRANDFATHER',
+    GRANDDAUGHTER: 'GRANDDAUGHTER',
+    GRANDSON: 'GRANDSON',
+    MOTHER_IN_LAW: 'MOTHER_IN_LAW',
+    FATHER_IN_LAW: 'FATHER_IN_LAW',
+    AUNT: 'AUNT',
+    UNCLE: 'UNCLE',
+    COUSIN: 'COUSIN',
+    RELATIVE: 'RELATIVE',
+    ACQUAINTANCE: 'ACQUAINTANCE',
+    COLLEAGUE: 'COLLEAGUE'
 } as const;
 export type PersonRelationship = typeof PersonRelationship[keyof typeof PersonRelationship];
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from datetime import date, timedelta
 from typing import Any
 from uuid import UUID
@@ -29,11 +30,14 @@ from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
+from eimir.plans import discreet
 from eimir.plans.media import photos_of_plans
 from eimir.plans.models import Plan, PlanStatus
-from eimir.recaps.composition import Candidate, period_bounds
+from eimir.recaps import freshness, montage, mood, notices, words
+from eimir.recaps.composition import MANUAL_SELECTION_LIMIT, Candidate, period_bounds
 from eimir.recaps.models import (
     RecapEdition,
+    RecapFilm,
     RecapKind,
     RecapPayload,
     RecapReflection,
@@ -46,6 +50,16 @@ from eimir.relationship.models import Membership, Space, SpaceConfiguration
 
 CAPABILITY = "relationship.passport"
 GENERATE_JOB = "recap.generate.v1"
+BACKFILL_JOB = "recap.backfill.v1"
+# A follow-up scan of one Space once a changed period has had time to settle.
+REFRESH_JOB = "recap.refresh.v1"
+# Earlier periods are prepared in small delayed batches so a long shared history
+# never monopolizes the worker or the single local inference slot.
+BACKFILL_BATCH = 6
+BACKFILL_DELAY = timedelta(minutes=2)
+# A completed period stays open for late entries and curation for one week (#1744).
+FINALISE_AFTER = timedelta(days=7)
+FINALISE_BATCH = 50
 MODELS: dict[RecapSourceKind, Any] = {
     RecapSourceKind.MEMORY: Memory,
     RecapSourceKind.HEART_MOMENT: HeartMoment,
@@ -117,6 +131,11 @@ def _metadata(context: AuthorizationContext) -> Any:
             statement = statement.where(
                 model.status == PlanStatus.COMPLETED.value, model.experienced_on.is_not(None)
             )
+        if kind == RecapSourceKind.MEMORY:
+            from eimir.memories.experiences import roots_only
+
+            # Both answers to one guided question are one moment, not two.
+            statement = statement.where(roots_only())
         legs.append(
             statement.with_only_columns(
                 literal(kind.value).label("kind"),
@@ -134,9 +153,20 @@ def _metadata(context: AuthorizationContext) -> Any:
 
 
 def candidates(
-    session: Session, context: AuthorizationContext, starts: date, through: date, variant: int = 0
+    session: Session,
+    context: AuthorizationContext,
+    starts: date,
+    through: date,
+    variant: int = 0,
+    *,
+    per_month: int = 4,
+    starting_only: bool = False,
 ) -> list[Candidate]:
-    """A bounded pool drawn across the full period, before any content is read."""
+    """A bounded pool drawn across the full period, before any content is read.
+
+    The monthly film reads a wider pool, limited to moments that start in the
+    month, because its selection depends on content rather than on chance.
+    """
     source = _metadata(context)
     ranked = (
         select(
@@ -148,12 +178,15 @@ def candidates(
             )
             .label("rank"),
         )
-        .where(source.c.day <= through, source.c.through >= starts)
+        .where(
+            source.c.day <= through,
+            source.c.day >= starts if starting_only else source.c.through >= starts,
+        )
         .subquery()
     )
     values = (
         session.execute(
-            select(ranked).where(ranked.c.rank <= 4).order_by(ranked.c.day, ranked.c.id)
+            select(ranked).where(ranked.c.rank <= per_month).order_by(ranked.c.day, ranked.c.id)
         )
         .mappings()
         .all()
@@ -183,6 +216,9 @@ def candidates(
             )
             for source_id, chapter_id in links:
                 groups.setdefault((kind, source_id), str(chapter_id))
+    loved = words.loved_memories(
+        session, context, [item.id for item in result if item.kind == RecapSourceKind.MEMORY]
+    )
     return [
         Candidate(
             i.kind,
@@ -190,9 +226,50 @@ def candidates(
             i.occurred_on,
             i.version,
             str(i.id) if i.kind == RecapSourceKind.CHAPTER else groups.get((i.kind, i.id)),
+            i.id in loved,
         )
         for i in result
     ]
+
+
+def facts(
+    session: Session, context: AuthorizationContext, value: RecapEdition
+) -> dict[str, Any] | None:
+    """Counted shared entries of the frozen period; never an inferred relationship claim."""
+    source = _metadata(context)
+    active_day = func.greatest(source.c.day, value.starts_on)
+    # Keep all facts on the same snapshot when sources change during the read.
+    entries = session.execute(
+        select(active_day, source.c.kind, func.count())
+        .where(source.c.day <= value.through_on, source.c.through >= value.starts_on)
+        .group_by(active_day, source.c.kind)
+    ).all()
+    if not entries:
+        return None
+
+    counts: Counter[str] = Counter()
+    days: set[date] = set()
+    monthly_counts: Counter[int] = Counter()
+    for day, kind, count in entries:
+        counts[kind] += count
+        days.add(day)
+        monthly_counts[day.month] += count
+
+    busiest = None
+    if value.kind == RecapKind.YEAR.value:
+        leading = monthly_counts.most_common(2)
+        # A tie or a single entry is not a meaningful "most active month".
+        if leading[0][1] > 1 and (len(leading) == 1 or leading[0][1] > leading[1][1]):
+            busiest = leading[0][0]
+    return {
+        "memories": counts[RecapSourceKind.MEMORY.value],
+        "heart_moments": counts[RecapSourceKind.HEART_MOMENT.value],
+        "milestones": counts[RecapSourceKind.MILESTONE.value],
+        "chapters": counts[RecapSourceKind.CHAPTER.value],
+        "plans": counts[RecapSourceKind.PLAN.value],
+        "active_days": len(days),
+        "busiest_month": busiest,
+    }
 
 
 def periods(session: Session, context: AuthorizationContext, today: date) -> list[dict[str, Any]]:
@@ -304,16 +381,7 @@ def request_period(
     pending = (
         existing is not None
         and existing.status == "PENDING"
-        and session.scalar(
-            select(Job.id)
-            .where(
-                Job.kind == GENERATE_JOB,
-                Job.status.in_((JobStatus.PENDING.value, JobStatus.RUNNING.value)),
-                Job.payload["request_token"].astext == str(existing.request_token),
-            )
-            .limit(1)
-        )
-        is not None
+        and _generation_waiting(session, existing)
     )
     if existing and (
         pending
@@ -358,40 +426,405 @@ def request_period(
         existing.status = "PENDING"
         existing.request_token = new_id()
     session.flush()
+    _enqueue_generation(session, context, existing)
+    return existing
+
+
+def _enqueue_generation(
+    session: Session, context: AuthorizationContext, value: RecapEdition
+) -> None:
     queue.enqueue(
         session,
         GENERATE_JOB,
         {
             "space_id": str(context.space_id),
             "account_id": str(context.account_id),
-            "edition_id": str(existing.id),
-            "request_token": str(existing.request_token),
+            "edition_id": str(value.id),
+            "request_token": str(value.request_token),
         },
         max_attempts=3,
     )
-    return existing
 
 
-def prepare_current(session: Session, context: AuthorizationContext) -> None:
+def _generation_waiting(session: Session, value: RecapEdition) -> bool:
+    return (
+        session.scalar(
+            select(Job.id)
+            .where(
+                Job.kind == GENERATE_JOB,
+                Job.status.in_((JobStatus.PENDING.value, JobStatus.RUNNING.value)),
+                Job.payload["request_token"].astext == str(value.request_token),
+            )
+            .limit(1)
+        )
+        is not None
+    )
+
+
+def unprepared(
+    session: Session, context: AuthorizationContext, today: date
+) -> list[dict[str, Any]]:
+    """Periods with shared material that have no edition yet, newest first."""
+    existing = {
+        (kind, year, month)
+        for kind, year, month in session.execute(
+            select(RecapEdition.kind, RecapEdition.year, RecapEdition.month)
+            .where(RecapEdition.space_id == context.space_id)
+            .distinct()
+        )
+    }
+    return [
+        item
+        for item in periods(session, context, today)
+        if (item["kind"].value, item["year"], item["month"]) not in existing
+    ]
+
+
+def prepare_current(session: Session, context: AuthorizationContext) -> int:
+    """Request the current periods and one batch of earlier ones; return what is left."""
     zone, _ = calendar_context(session, context)
     today = clock.today_in(zone)
     previous = date(today.year, today.month, 1) - timedelta(days=1)
-    for kind, year, month in [
+    current = [
         (RecapKind.MONTH, today.year, today.month),
         (RecapKind.YEAR, today.year, 0),
         (RecapKind.MONTH, previous.year, previous.month),
         (RecapKind.YEAR, today.year - 1, 0),
-    ]:
+    ]
+    for kind, year, month in current:
         # Completed empty historical periods do not create decorative editions.
         if year != today.year or (kind == RecapKind.MONTH and month != today.month):
             starts, through, _ = period_bounds(kind, year, month, today)
             if not candidates(session, context, starts, through):
                 continue
         request_period(session, context, kind, year, month)
+    session.flush()
+    earlier = unprepared(session, context, today)
+    for item in earlier[:BACKFILL_BATCH]:
+        request_period(session, context, item["kind"], item["year"], item["month"])
+    unsettled = track_late_entries(session, context, today)
+    finalise_completed(session, context, today, unsettled=unsettled)
+    remaining = max(len(earlier) - BACKFILL_BATCH, 0)
+    if remaining:
+        schedule_backfill(session, context)
+    return remaining
+
+
+def finalise_completed(
+    session: Session,
+    context: AuthorizationContext,
+    today: date,
+    *,
+    unsettled: set[UUID] | frozenset[UUID] = frozenset(),
+) -> int:
+    """Retain completed periods once their grace week has passed; no manual step.
+
+    Only the default variant of a period without a retained edition is finalised.
+    A stale automatic proposal is first recomposed over the whole period, while a
+    curated selection is kept exactly as the couple left it. A proposal whose
+    material is still settling (``unsettled``) waits for its recomposition. A
+    retained edition records the readiness notice it earns (#1744).
+    """
+    session.execute(select(func.pg_advisory_xact_lock(context.space_id.int & ((1 << 63) - 1))))
+    live = session.scalars(
+        select(RecapEdition)
+        .where(
+            RecapEdition.space_id == context.space_id,
+            RecapEdition.saved_at.is_(None),
+            RecapEdition.variant == 0,
+            RecapEdition.status == "READY",
+            RecapEdition.starts_on <= today - FINALISE_AFTER,
+            RecapEdition.supersedes_id.is_(None),
+        )
+        .order_by(RecapEdition.year, RecapEdition.month, RecapEdition.id)
+        .limit(FINALISE_BATCH)
+        .with_for_update()
+    ).all()
+    taken = {
+        (kind, year, month)
+        for kind, year, month in session.execute(
+            select(RecapEdition.kind, RecapEdition.year, RecapEdition.month).where(
+                RecapEdition.space_id == context.space_id,
+                RecapEdition.saved_at.is_not(None),
+                RecapEdition.variant == 0,
+            )
+        )
+    }
+    finalised = 0
+    for value in live:
+        kind = RecapKind(value.kind)
+        _, through, partial = period_bounds(kind, value.year, value.month, today)
+        if (
+            partial
+            or through > today - FINALISE_AFTER
+            or (value.kind, value.year, value.month) in taken
+            or value.id in unsettled
+        ):
+            continue
+        if value.is_partial or value.through_on != through:
+            if not value.customized:
+                request_period(session, context, kind, value.year, value.month)
+                continue
+            # The couple's own selection stands; only the frozen period is completed.
+            value.through_on, value.is_partial = through, False
+            value.payload = value.payload.model_copy(
+                update={
+                    "mood": mood.refreshed(
+                        session,
+                        context.space_id,
+                        kind,
+                        value.starts_on,
+                        through,
+                        value.payload.mood,
+                    )
+                }
+            )
+        value.saved_at = clock.now()
+        notices.announce_retained(session, context, value, today)
+        finalised += 1
+    return finalised
+
+
+def track_late_entries(session: Session, context: AuthorizationContext, today: date) -> set[UUID]:
+    """Notice late entries in composed periods and act once a period is quiet (#1744).
+
+    An automatic proposal is recomposed over its period. A retained edition gets
+    a candidate version with the same frozen look; ``settle_version`` keeps it
+    only when the late material is significant. Curated selections and manual
+    variants are left alone. A year waits while one of its months is settling,
+    so it picks up the month's final highlight. Returns the proposals that must
+    not be retained in this run.
+    """
+    session.execute(select(func.pg_advisory_xact_lock(context.space_id.int & ((1 << 63) - 1))))
+    now = clock.now()
+    current = freshness.fingerprints(session, context)
+    groups: dict[freshness.Period, list[RecapEdition]] = {}
+    for row in session.scalars(
+        select(RecapEdition)
+        .where(RecapEdition.space_id == context.space_id, RecapEdition.variant == 0)
+        .order_by(RecapEdition.id)
+        .with_for_update()
+    ):
+        groups.setdefault((row.kind, row.year, row.month), []).append(row)
+    unsettled: set[UUID] = set()
+    busy_years: set[int] = set()
+    follow_up = False
+    for period in sorted(groups, key=lambda key: (key[0] != RecapKind.MONTH.value, key[1], key[2])):
+        kind, year, _ = period
+        if kind == RecapKind.YEAR.value and year in busy_years:
+            continue
+        rows = groups[period]
+        live = next((row for row in rows if row.saved_at is None), None)
+        kept = [row for row in rows if row.saved_at is not None]
+        retained = max(kept, key=lambda row: row.saved_at or row.created_at) if kept else None
+        if live is not None and live.supersedes_id is not None:
+            if live.status == "PENDING" and _generation_waiting(session, live):
+                busy_years.add(year)
+            else:
+                # A candidate version that can no longer finish is discarded;
+                # the next run weighs the period again.
+                session.execute(delete(RecapEdition).where(RecapEdition.id == live.id))
+                session.expunge(live)
+            continue
+        if live is not None:
+            if live.status == "PENDING":
+                busy_years.add(year)
+                continue
+            if live.customized or live.status not in {"READY", "EMPTY"}:
+                continue
+            target, is_retained = live, False
+        elif retained is not None and not retained.customized:
+            target, is_retained = retained, True
+        else:
+            continue
+        material = current.get(period, freshness.EMPTY)
+        seen = freshness.observe(
+            target.material_digest,
+            target.observed_digest,
+            target.observed_at,
+            material,
+            now,
+            retained=is_retained,
+        )
+        if (target.observed_digest, target.observed_at) != (seen.observed_digest, seen.observed_at):
+            target.observed_digest, target.observed_at = seen.observed_digest, seen.observed_at
+        if seen.step is freshness.Step.BASELINE:
+            target.material_digest = material
+            target.material_at = func.now()
+        elif seen.step is freshness.Step.WAIT:
+            busy_years.add(year)
+            follow_up = True
+            if not is_retained:
+                unsettled.add(target.id)
+        elif seen.step is freshness.Step.ACT:
+            busy_years.add(year)
+            if is_retained:
+                start_version(session, context, target, today)
+            else:
+                unsettled.add(target.id)
+                _requeue(session, context, target, today)
+    if follow_up:
+        schedule_refresh(session, context)
+    return unsettled
+
+
+def _requeue(
+    session: Session, context: AuthorizationContext, value: RecapEdition, today: date
+) -> None:
+    _, through, partial = period_bounds(RecapKind(value.kind), value.year, value.month, today)
+    value.through_on, value.is_partial = through, partial
+    value.status = "PENDING"
+    value.request_token = new_id()
+    session.flush()
+    _enqueue_generation(session, context, value)
+
+
+def start_version(
+    session: Session, context: AuthorizationContext, retained: RecapEdition, today: date
+) -> RecapEdition:
+    """Compose a candidate newer version of a retained edition with its frozen look."""
+    starts, through, _ = period_bounds(
+        RecapKind(retained.kind), retained.year, retained.month, today
+    )
+    film = retained.payload.film
+    draft = RecapEdition(
+        id=new_id(),
+        space_id=retained.space_id,
+        kind=retained.kind,
+        year=retained.year,
+        month=retained.month,
+        variant=0,
+        timezone=retained.timezone,
+        locale=retained.locale,
+        starts_on=starts,
+        through_on=through,
+        is_partial=False,
+        status="PENDING",
+        request_token=new_id(),
+        payload=RecapPayload(
+            mood=retained.payload.mood, film=RecapFilm(look=film.look) if film else None
+        ),
+        supersedes_id=retained.id,
+    )
+    session.add(draft)
+    session.flush()
+    _enqueue_generation(session, context, draft)
+    return draft
+
+
+def settle_version(
+    session: Session, context: AuthorizationContext, draft: RecapEdition, today: date
+) -> bool:
+    """Keep a composed candidate version only when its late material is significant.
+
+    Late moments are selected moments the retained film did not show and that
+    were created or changed after it was composed. The version is kept when one
+    of them becomes the highlight or at least ``LATE_MOMENTS`` join the film;
+    then the retained edition stays readable and the new one is announced once.
+    Otherwise the candidate is discarded and the retained edition records that
+    it has weighed this material, so the same material is not weighed again.
+    """
+    retained = (
+        session.scalar(
+            select(RecapEdition)
+            .where(
+                RecapEdition.id == draft.supersedes_id,
+                RecapEdition.space_id == context.space_id,
+            )
+            .with_for_update()
+        )
+        if draft.supersedes_id
+        else None
+    )
+    session.flush()
+    selected = [
+        f"{kind}:{source_id}"
+        for kind, source_id in session.execute(
+            select(RecapSource.kind, RecapSource.source_id)
+            .where(RecapSource.edition_id == draft.id)
+            .order_by(RecapSource.position)
+        )
+    ]
+    keep = False
+    if retained is not None and retained.saved_at is not None and draft.status == "READY":
+        previous = {
+            f"{kind}:{source_id}"
+            for kind, source_id in session.execute(
+                select(RecapSource.kind, RecapSource.source_id).where(
+                    RecapSource.edition_id == retained.id
+                )
+            )
+        }
+        since = retained.material_at or retained.generated_at or retained.saved_at
+        changed = freshness.changed_since(
+            session, context, [key for key in selected if key not in previous], since
+        )
+        late = freshness.late_moments(previous, selected, changed)
+        film = draft.payload.film
+        keep = freshness.significant(late, film.highlight_key if film else None)
+    if retained is not None:
+        retained.material_digest = draft.material_digest
+        retained.observed_digest = retained.observed_at = None
+    if keep:
+        draft.saved_at = clock.now()
+        notices.announce_retained(session, context, draft, today, grew=True)
+    else:
+        session.execute(delete(RecapEdition).where(RecapEdition.id == draft.id))
+        session.expunge(draft)
+    return keep
+
+
+def schedule_refresh(session: Session, context: AuthorizationContext) -> None:
+    """One follow-up scan of the Space after the quiet period, at most one waiting."""
+    waiting = session.scalar(
+        select(Job.id)
+        .where(
+            Job.kind == REFRESH_JOB,
+            Job.status == JobStatus.PENDING.value,
+            Job.payload["space_id"].astext == str(context.space_id),
+        )
+        .limit(1)
+    )
+    if waiting is None:
+        queue.enqueue(
+            session,
+            REFRESH_JOB,
+            {"space_id": str(context.space_id), "account_id": str(context.account_id)},
+            delay=freshness.QUIET + timedelta(minutes=5),
+            max_attempts=3,
+        )
+
+
+def schedule_backfill(session: Session, context: AuthorizationContext) -> None:
+    """Keep at most one waiting continuation per Space."""
+    session.execute(select(func.pg_advisory_xact_lock(context.space_id.int & ((1 << 63) - 1))))
+    waiting = session.scalar(
+        select(Job.id)
+        .where(
+            Job.kind == BACKFILL_JOB,
+            Job.status == JobStatus.PENDING.value,
+            Job.payload["space_id"].astext == str(context.space_id),
+        )
+        .limit(1)
+    )
+    if waiting is None:
+        queue.enqueue(
+            session,
+            BACKFILL_JOB,
+            {"space_id": str(context.space_id), "account_id": str(context.account_id)},
+            delay=BACKFILL_DELAY,
+            max_attempts=3,
+        )
 
 
 def source_material(
-    session: Session, context: AuthorizationContext, item: Candidate, *, lock: bool = False
+    session: Session,
+    context: AuthorizationContext,
+    item: Candidate,
+    *,
+    lock: bool = False,
+    own_words: bool = False,
+    film: RecapFilm | None = None,
 ) -> dict[str, Any] | None:
     model = MODELS[item.kind]
     statement = readable(model, context).where(
@@ -413,6 +846,10 @@ def source_material(
         if item.kind == RecapSourceKind.HEART_MOMENT
         else getattr(payload, "body", None) or getattr(payload, "description", None)
     )
+    # A discreet Plan presents only its list title; photos stay concealed (#1790 F3).
+    concealed = isinstance(value, Plan) and value.discreet
+    if concealed:
+        title, excerpt = discreet.list_title(value), None
     attachment = None
     sensitive = False
     from eimir.attachments.binding import cover_of
@@ -431,8 +868,8 @@ def source_material(
         gallery.get(item.id, []), getattr(payload, "selected_cover_attachment_id", None)
     )
     if photo and photo.status == AttachmentStatus.READY:
-        attachment, sensitive = photo.id, photo.payload.is_sensitive
-    return {
+        attachment, sensitive = photo.id, photo.payload.is_sensitive or concealed
+    result = {
         "key": item.key,
         "kind": item.kind,
         "id": item.id,
@@ -444,6 +881,18 @@ def source_material(
         "preview_is_sensitive": sensitive,
         "available": True,
     }
+    if own_words:
+        result["quote"] = words.quote(session, context, item.kind, item.id, value.owner_id)
+        result["mutual_reaction"] = (
+            words.mutual_reaction(words.partners(session, context.space_id), payload, attachment)
+            if item.kind == RecapSourceKind.MEMORY
+            else None
+        )
+    if film is not None:
+        result.update(
+            montage.source_extras(session, context, item.kind, value, film.media.get(item.key))
+        )
+    return result
 
 
 def materials(
@@ -454,6 +903,7 @@ def materials(
     refs = session.scalars(
         select(RecapSource).where(RecapSource.edition_id == value.id).order_by(RecapSource.position)
     ).all()
+    film = value.payload.film
     for ref in refs:
         metadata = _metadata(context)
         interval = session.execute(
@@ -472,6 +922,8 @@ def materials(
                     day or value.starts_on,
                     ref.source_version,
                 ),
+                own_words=True,
+                film=film,
             )
             if day
             and interval
@@ -494,8 +946,18 @@ def materials(
                 "preview_attachment_id": None,
                 "preview_is_sensitive": False,
                 "available": False,
+                "media": [],
+                "answers": [],
+                "place_name": None,
             }
         )
+    # The reaction line stays rare: only the first few in reading order keep it.
+    shown = 0
+    for item in result:
+        if item.get("mutual_reaction"):
+            shown += 1
+            if shown > words.REACTION_LINES_PER_EDITION:
+                item["mutual_reaction"] = None
     return result, unchanged
 
 
@@ -547,6 +1009,11 @@ def project(session: Session, context: AuthorizationContext, value: RecapEdition
             "headline": value.payload.headline if unchanged else None,
             "introduction": value.payload.introduction if unchanged else None,
             "sources": sources,
+            "facts": facts(session, context, value) if value.status == "READY" else None,
+            "mood": mood.visible(session, context.space_id, value.payload)
+            if value.status == "READY"
+            else None,
+            "film": film_view(session, context, value) if value.status == "READY" else None,
             "reflections": [
                 {
                     "id": n.id,
@@ -558,9 +1025,46 @@ def project(session: Session, context: AuthorizationContext, value: RecapEdition
                 for n in shared
             ],
             "own_draft": {"text": draft.payload.text, "version": draft.version} if draft else None,
+            "supersedes_id": value.supersedes_id,
+            "superseded_by_id": successors(session, [value]).get(value.id),
         }
     )
     return result
+
+
+def successors(session: Session, values: list[RecapEdition]) -> dict[UUID, UUID]:
+    """The newest kept version that extends each retained edition, if any."""
+    if not values:
+        return {}
+    result: dict[UUID, UUID] = {}
+    for supersedes_id, edition_id in session.execute(
+        select(RecapEdition.supersedes_id, RecapEdition.id)
+        .where(
+            RecapEdition.supersedes_id.in_([value.id for value in values]),
+            RecapEdition.saved_at.is_not(None),
+        )
+        .order_by(RecapEdition.saved_at)
+    ):
+        result[supersedes_id] = edition_id
+    return result
+
+
+def film_view(
+    session: Session, context: AuthorizationContext, value: RecapEdition
+) -> dict[str, Any] | None:
+    """The frozen look and the guaranteed highlights; never scores or reasons."""
+    film = value.payload.film
+    if film is None:
+        return None
+    return {
+        **film.look.model_dump(),
+        "highlight_key": film.highlight_key,
+        "month_highlights": [
+            {"month": int(month), "key": key}
+            for month, key in sorted(film.months.items(), key=lambda pair: int(pair[0]))
+        ],
+        "tags": montage.month_tags(session, context, value),
+    }
 
 
 def summaries(
@@ -585,6 +1089,7 @@ def summaries(
         else {}
     )
     result = []
+    later = successors(session, values)
     for value in values:
         owned = [ref for ref in refs if ref.edition_id == value.id]
         unchanged = all(
@@ -629,6 +1134,8 @@ def summaries(
             sources=[cover] if cover else [],
             reflections=[],
             own_draft=None,
+            supersedes_id=value.supersedes_id,
+            superseded_by_id=later.get(value.id),
         )
         result.append(item)
     return result
@@ -654,7 +1161,11 @@ def replace_sources(
                         item["version"],
                     )
             break
-    if len(keys) > 12 or len(set(keys)) != len(keys) or any(key not in existing for key in keys):
+    if (
+        len(keys) > MANUAL_SELECTION_LIMIT
+        or len(set(keys)) != len(keys)
+        or any(key not in existing for key in keys)
+    ):
         raise ValidationError(
             "Only eligible shared period sources can be selected.", ErrorCode.VALIDATION_FAILED
         )
@@ -670,7 +1181,16 @@ def replace_sources(
                 position=position,
             )
         )
-    value.payload = RecapPayload()
+    film = value.payload.film
+    if film is not None:
+        # A curated selection keeps its look; picks of removed sources are dropped.
+        film = film.model_copy(
+            update={
+                "highlight_key": film.highlight_key if film.highlight_key in keys else None,
+                "media": {key: media for key, media in film.media.items() if key in keys},
+            }
+        )
+    value.payload = RecapPayload(mood=value.payload.mood, film=film)
     value.generated_by = "RULES"
     value.customized = True
     value.status = "READY" if keys else "EMPTY"
@@ -698,10 +1218,6 @@ def write_reflection(
         )
         .with_for_update()
     )
-    if value.saved_at:
-        raise ConflictError(
-            "Saved reflections may be withdrawn but not rewritten.", ErrorCode.VERSION_CONFLICT
-        )
     if existing is None:
         ensure_capability(session, context.space_id, CAPABILITY)
         if expected_version != 0:

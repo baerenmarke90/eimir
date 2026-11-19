@@ -86,10 +86,11 @@ preflight. This reconciliation adds no new screen composition or operator fields
 to the couple-facing UI. #1575's independently reviewed product changes remain
 the new baseline.
 
-The focal point is the person's notification preference. The dominant action is
-enable, disable, retry, or open Android Settings according to state. Native
-permission and Settings screens retain OS behavior. Loading, connecting,
-disconnecting, unavailable, denied, on/off and error states use localized text.
+The focal point is the person's notification preference. The device uses the
+shared preference switch for confirmed on and off states. Pending operations,
+unavailability and errors use localized status text. The pending activation can
+be cancelled, and a permission denial leads to Android Settings. The provider
+and lock-screen notice appears in the post-sign-in consent sheet.
 Existing nonblocking feedback, reduced motion, draft guard, Compact reflow and
 Expanded adaptation remain. Provider notice presentation evidence and its limits
 are recorded in `docs/design/eimir/565-fcm/evidence/README.md`; it is not live

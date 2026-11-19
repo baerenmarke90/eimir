@@ -1,0 +1,20 @@
+# #1467 Google selection task: visual evidence
+
+Captured by `web/e2e/tests/polish-people-photo-sources.spec.ts` (`google task waits for the choice and
+retries a failed photo`) against the built Web bundle with a mocked API, in the person-avatar editor, which uses the
+shared `PhotoSourcePicker` sheet.
+
+| File | State |
+| --- | --- |
+| `google-task-chooser-360-light.png` | Compact 360 px, Light: source chooser with the short Google contract |
+| `google-task-chooser-390-dark.png` | Compact 390 px, Dark: same state |
+| `google-task-chooser-1440-light.png` | Expanded 1440 px, Light: same state |
+| `google-task-waiting-360-light.png` | Compact 360 px, Light: one plain instruction while Google is open |
+| `google-task-waiting-390-dark.png` | Compact 390 px, Dark: same state |
+| `google-task-waiting-1440-light.png` | Expanded 1440 px, Light: same state |
+| `google-task-retry-360-light.png` | Compact 360 px, Light: a photo that failed twice, with the plain retry |
+| `google-task-retry-390-dark.png` | Compact 390 px, Dark: same state |
+| `google-task-retry-1440-light.png` | Expanded 1440 px, Light: same state |
+
+All states ran with reduced motion, an Axe check of the sheet and a horizontal-reflow check. They are not a real-device
+or live-Google check.

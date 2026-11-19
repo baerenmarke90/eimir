@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`dateIdeaIds` | Array&lt;string&gt;
 `title` | string
 `wishIds` | Array&lt;string&gt;
 
@@ -16,6 +17,7 @@ import type { WishSelectionRoundUpdate } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "dateIdeaIds": null,
   "title": null,
   "wishIds": null,
 } satisfies WishSelectionRoundUpdate

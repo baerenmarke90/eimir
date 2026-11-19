@@ -6,13 +6,16 @@
 
 Name | Type
 ------------ | -------------
+`attachments` | [Array&lt;AttachmentEntry&gt;](AttachmentEntry.md)
 `body` | string
 `experienceKind` | [ExperienceKind](ExperienceKind.md)
+`experienceQuestionId` | string
 `experienceReplyTo` | string
 `happenedOn` | Date
 `happenedUntil` | Date
 `placeId` | string
 `placeIds` | Array&lt;string&gt;
+`selectedCoverAttachmentId` | string
 `tags` | Array&lt;string&gt;
 `title` | string
 
@@ -23,13 +26,16 @@ import type { MemoryCreate } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "attachments": null,
   "body": null,
   "experienceKind": null,
+  "experienceQuestionId": null,
   "experienceReplyTo": null,
   "happenedOn": null,
   "happenedUntil": null,
   "placeId": null,
   "placeIds": null,
+  "selectedCoverAttachmentId": null,
   "tags": null,
   "title": null,
 } satisfies MemoryCreate

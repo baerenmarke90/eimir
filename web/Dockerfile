@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:26.11.1-bookworm-slim@sha256:86f07bc9c5dce4578cf37e5a418b7bfc7f817cda25cde66e2b66e95ed86c4567 AS build
+FROM node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1 AS build
 
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -33,7 +33,7 @@ RUN mkdir -p dist/.well-known \
     && printf '%s\n' "$revision" > dist/.well-known/eimir-revision \
     && cp dist/.well-known/eimir-revision dist/.well-known/sidebyside-revision
 
-FROM ghcr.io/nginx/nginx-unprivileged:1.31.7@sha256:94193d5c4c5df716f412bb08eb97956d98fe6b59886f0bc57d6d3a3402a88a02
+FROM ghcr.io/nginx/nginx-unprivileged:1.31.8@sha256:1d2d62ccb876da984beaef0084b895e8ce490acee185ccdef0c55e6263afd3b8
 
 ENV NGINX_ENVSUBST_FILTER="^EIMIR_WEB_CSP_CONNECT_ORIGINS$"
 

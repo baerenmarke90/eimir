@@ -103,7 +103,7 @@ These remain Account-scoped and cannot be changed by the Space manager for the p
 | Locale and Account timezone | Account preferences | Personal presentation/context. `dailyContextTimezone` is separately shared Space state. |
 | Appearance/theme selection where personal | appearance settings | Personal presentation must not become creator authority. |
 | Participation in Vibe/Energy/Daily Questions | owning M7 domain | Enabling a module permits participation; it never forces a person to submit personal relationship information. |
-| Daily Quote preferences (#1151) | `eimir.quotes.service` | Personal content/source/category selection (subject to Space Pro Entitlement); not Space-wide manager state. |
+| Daily Quote preferences (#1151) | `eimir.quotes.service` | Personal category selection, subject to the Space Pro entitlement. Each Account manages its own preferences. |
 
 ### 5.2 Always available / not Space-disableable
 
@@ -151,7 +151,8 @@ Some optional product capabilities are **not** added to the V1 Space-module cata
 | Annual video montage | Entitlement/action controlled, not a Space module | Same reason as printable artifacts. |
 | Surprise Mode (#514) | Entitlement/owning interaction controlled, not in v1 catalog | Specialized reveal action; underlying Privacy remains non-paywallable. |
 | Premium themes/covers | PERSONAL_CONFIGURABLE subject to Entitlement | Presentation choice should not let the creator style/control the partner's client. |
-| Daily Quote (#1151) | PERSONAL_CONFIGURABLE subject to Entitlement (`daily.quote`) | A personalized daily inspiration moment. Space manager cannot control or inspect partner's content sources/categories. Not a Space module switch in v1. |
+| Daily Quote (#1151) | PERSONAL_CONFIGURABLE subject to Entitlement (`daily.quote`) | A personalized daily inspiration moment. Category preferences are private to each partner. |
+| Shared garden on Wir (Product Owner 2026-11-17) | PERSONAL_CONFIGURABLE Dashboard module `shared_garden` subject to Entitlement (`games.couple`) | The only Wir module that is off by default: each person opts in through the #817 Account+Space Dashboard preference (a missing row, including preferences saved before the module existed, means hidden). It shows the shared garden read-only and leads into the game; without the capability nothing renders or is read, and the saved choice returns with Pro. It is not a Space module and does not change who may play. |
 | External integrations (M8) | Deferred to owning integration decision | Provider authorization, data flow and operator/user ownership need integration-specific semantics rather than a speculative generic Space switch. |
 
 ## 7. Disable / re-enable semantics
@@ -251,12 +252,12 @@ supportGesturesEnabled = true
 sharedAchievementsEnabled = true
 dailyQuestionsEnabled = true
 dailyContextTimezone = Europe/Berlin
-vibeVisibilityMode = MUTUAL_REVEAL
-energyVisibilityMode = MUTUAL_REVEAL
+vibeVisibilityMode = IMMEDIATE
+energyVisibilityMode = IMMEDIATE
 ```
 
-The generic product default remains `IMMEDIATE`; the canonical Demo deliberately opts into
-`MUTUAL_REVEAL` for both dimensions so the current privacy interaction is directly demonstrable.
+The canonical Demo shows the generic product default `IMMEDIATE` for both dimensions (Product
+Owner decision in #1790, 2026-11-13). Mutual Reveal stays available in the Space settings.
 
 The canonical Demo also seeds bounded recent DailyCheckIn history and a shared Collection pinned to
 Today for both personas through their owning domain contracts. Those examples make the implemented

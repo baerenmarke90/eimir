@@ -24,14 +24,32 @@ export function ownSelectionIds(view: WishSelectionView): string[] {
   return view.own.favoriteWishIds.filter((id) => candidates.has(id));
 }
 
-/** Detect source edits, deletion and conversion without exposing partner choices. */
+/** Own favorites among the date ideas that are still current and visible. */
+export function ownIdeaSelectionIds(view: WishSelectionView): string[] {
+  const candidates = new Set(
+    view.dateIdeaCandidates
+      .filter((candidate) => candidate.current && candidate.idea)
+      .map((candidate) => candidate.dateIdeaId),
+  );
+  return view.own.favoriteDateIdeaIds.filter((id) => candidates.has(id));
+}
+
+/**
+ * Detect source edits, deletion and conversion without exposing partner
+ * choices. Catalog changes and a lost Pro capability count as source changes.
+ */
 export function wishSelectionSourceToken(view: WishSelectionView): string {
-  return JSON.stringify(
+  return JSON.stringify([
     view.candidates.map(({ wishId, version, status, planId }) => [
       wishId,
       version,
       status,
       planId,
     ]),
-  );
+    view.dateIdeaCandidates.map(({ dateIdeaId, current, idea }) => [
+      dateIdeaId,
+      current,
+      Boolean(idea),
+    ]),
+  ]);
 }

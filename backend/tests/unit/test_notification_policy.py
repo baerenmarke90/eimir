@@ -6,7 +6,7 @@ from types import MappingProxyType
 from uuid import uuid4
 
 from eimir.engagement import notification_policy
-from eimir.engagement.models import NotificationKind
+from eimir.engagement.models import WISH_DATE_NOTICE_KINDS, NotificationKind
 from eimir.engagement.notification_policy import (
     GENERIC_PREVIEW,
     POLICIES,
@@ -72,7 +72,15 @@ def test_preview_contract_fails_closed_for_unreviewed_fields_and_classes(
     monkeypatch,
 ) -> None:  # type: ignore[no-untyped-def]
     notification_id = uuid4()
-    for policy in POLICIES.values():
+    for kind, policy in POLICIES.items():
+        if kind in WISH_DATE_NOTICE_KINDS:
+            assert notification_policy.allows_wish_date_preview(kind.value)
+            assert not policy.preview.neutral_lockscreen
+            reference = presentation_for(kind.value, notification_id)
+            assert reference is not None
+            assert reference.reference == {"id": str(notification_id), "kind": kind.value}
+            assert not notification_policy.email_choice_allowed(kind.value)
+            continue
         assert not policy.preview.allow_sender_name
         assert not policy.preview.allow_event_category
         assert not policy.preview.allow_title

@@ -20,6 +20,7 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { StoryPlanningRelationsApi } from '../api/generated/apis/StoryPlanningRelationsApi';
 import type { MilestoneDetail } from '../api/generated/models/MilestoneDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { ClientProblemError } from '../client/problemDetails';
@@ -86,11 +87,11 @@ function setup() {
   let scope = { accountId: 'account-1', spaceId: 'space-1', apis };
   const tree = () => (
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/story/milestones/milestone-1/edit']}>
+      <MemoryRouter initialEntries={['/story/milestones/milestone-1']}>
         <Position />
         <Link to="/other">Other task</Link>
-        <Link to="/story/milestones/milestone-1/edit">Return to edit</Link>
-        <Link to="/story/milestones/milestone-2/edit">Another milestone</Link>
+        <Link to="/story/milestones/milestone-1">Return to milestone</Link>
+        <Link to="/story/milestones/milestone-2">Another milestone</Link>
         <Routes>
           <Route
             path="/story/milestones/:milestoneId/edit"
@@ -121,13 +122,26 @@ function setup() {
     </QueryClientProvider>
   );
   const view = render(tree());
+  const openMenu = () =>
+    userEvent.setup().click(screen.getByRole('button', { name: copy.menu }));
   const confirm = async () => {
+    await openMenu();
     await userEvent
       .setup()
       .click(screen.getByRole('button', { name: copy.delete }));
     return screen.getByRole('button', {
       name: copy.deleteConfirm,
     });
+  };
+  /** Starts an edit save elsewhere, as another open task would. */
+  const startCompetingSave = () => {
+    void client
+      .getMutationCache()
+      .build(client, {
+        mutationKey: ['milestone-update', 'account-1', 'space-1', milestone.id],
+        mutationFn: () => new Promise<void>(() => {}),
+      })
+      .execute(undefined);
   };
   const submit = async () => {
     await userEvent.setup().click(await confirm());
@@ -143,6 +157,8 @@ function setup() {
     deleteMilestone,
     updateMilestone,
     apis,
+    openMenu,
+    startCompetingSave,
     confirm,
     submit,
     settle,
@@ -154,6 +170,27 @@ function setup() {
 }
 
 beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+  window.matchMedia = (query: string) => ({
+    matches: query === '(prefers-reduced-motion: reduce)',
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
+  // Keep unrelated linked-Plan reads deterministic and off the network.
+  vi.spyOn(
+    StoryPlanningRelationsApi.prototype,
+    'listMilestonePlans',
+  ).mockResolvedValue({ items: [] });
   revoke.mockReset().mockResolvedValue(undefined);
   onlineManager.setOnline(true);
 });
@@ -179,7 +216,7 @@ describe('Milestone delete response ownership', () => {
       milestone.id,
     );
     expect(h.client.getQueryData(key)).toBeUndefined();
-    expect(screen.getByText('Timeline result')).toBeTruthy();
+    expect(await screen.findByText('Timeline result')).toBeTruthy();
   });
 
   it('does not navigate after actual departure or after returning to a new activation', async () => {
@@ -190,10 +227,10 @@ describe('Milestone delete response ownership', () => {
       .click(screen.getByRole('link', { name: 'Other task' }));
     await userEvent
       .setup()
-      .click(screen.getByRole('link', { name: 'Return to edit' }));
+      .click(screen.getByRole('link', { name: 'Return to milestone' }));
     await h.settle();
     expect(screen.getByLabelText('Current route').textContent).toBe(
-      '/story/milestones/milestone-1/edit',
+      '/story/milestones/milestone-1',
     );
     expect(h.client.getQueryData(key)).toBeUndefined();
   });
@@ -224,7 +261,7 @@ describe('Milestone delete response ownership', () => {
       read({ ...milestone, title: 'Replacement read' }),
     );
     expect(screen.getByLabelText('Current route').textContent).toContain(
-      '/edit',
+      '/story/milestones/milestone-1',
     );
   });
 
@@ -247,7 +284,7 @@ describe('Milestone delete response ownership', () => {
       await h.settle();
       expect(h.client.getQueryState(key)?.error).toBe(denied);
       expect(screen.getByLabelText('Current route').textContent).toContain(
-        '/edit',
+        '/story/milestones/milestone-1',
       );
     },
   );
@@ -267,7 +304,7 @@ describe('Milestone delete response ownership', () => {
     await waitFor(() => expect(h.client.isMutating()).toBe(0));
     expect(h.client.getQueryData(key)).toEqual(read());
     expect(screen.getByLabelText('Current route').textContent).toContain(
-      '/edit',
+      '/story/milestones/milestone-1',
     );
   });
 
@@ -288,7 +325,7 @@ describe('Milestone delete response ownership', () => {
     await waitFor(() => expect(h.client.isMutating()).toBe(0));
     expect(h.client.getQueryData(key)).toEqual(read());
     expect(screen.getByLabelText('Current route').textContent).toContain(
-      '/edit',
+      '/story/milestones/milestone-1',
     );
   });
 
@@ -309,7 +346,7 @@ describe('Milestone delete response ownership', () => {
     expect(h.client.getQueryData(otherKey)).toBeTruthy();
     expect(h.client.getQueryData(key)).toBeUndefined();
     expect(screen.getByLabelText('Current route').textContent).toContain(
-      'milestone-2/edit',
+      'milestone-2',
     );
   });
 
@@ -333,7 +370,7 @@ describe('Milestone delete response ownership', () => {
     );
     expect(h.client.getQueryData(otherKey)).toBeTruthy();
     expect(screen.getByLabelText('Current route').textContent).toContain(
-      '/edit',
+      '/story/milestones/milestone-1',
     );
   });
 
@@ -356,10 +393,10 @@ describe('Milestone delete response ownership', () => {
     const button = await h.confirm();
     onlineManager.setOnline(false);
     fireEvent.click(button);
-    await waitFor(() =>
-      expect(screen.getByText(de.states.offline.title)).toBeTruthy(),
-    );
-    expect(h.client.isMutating()).toBe(0);
+    await waitFor(() => {
+      expect(h.client.isMutating()).toBe(0);
+      expect(screen.getByText(de.states.offline.title)).toBeTruthy();
+    });
     await act(async () => onlineManager.setOnline(true));
     expect(h.deleteMilestone).not.toHaveBeenCalled();
     await userEvent
@@ -377,38 +414,30 @@ describe('Milestone delete response ownership', () => {
       .click(screen.getByRole('link', { name: 'Other task' }));
     await userEvent
       .setup()
-      .click(screen.getByRole('link', { name: 'Return to edit' }));
+      .click(screen.getByRole('link', { name: 'Return to milestone' }));
+    await h.openMenu();
     expect(
-      (screen.getByRole('button', { name: copy.deleting }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
-    expect(
-      (screen.getByRole('button', { name: copy.save }) as HTMLButtonElement)
+      (screen.getByRole('button', { name: copy.delete }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
     await h.settle();
   });
 
-  it('admits only one synchronous confirmation and prevents a competing save', async () => {
+  it('admits only one synchronous confirmation', async () => {
     const h = setup();
     const button = await h.confirm();
     act(() => {
       button.click();
       button.click();
-      screen.getByRole('button', { name: copy.save }).click();
     });
     await waitFor(() => expect(h.deleteMilestone).toHaveBeenCalledTimes(1));
-    expect(h.updateMilestone).not.toHaveBeenCalled();
     await h.settle();
   });
 
   it('prevents deletion while an edit is pending', async () => {
     const h = setup();
     const button = await h.confirm();
-    await userEvent
-      .setup()
-      .click(screen.getByRole('button', { name: copy.save }));
-    await waitFor(() => expect(h.updateMilestone).toHaveBeenCalledTimes(1));
+    act(() => h.startCompetingSave());
     await act(async () => fireEvent.click(button));
     expect(h.deleteMilestone).not.toHaveBeenCalled();
   });
@@ -462,7 +491,7 @@ describe('Milestone delete response ownership', () => {
     );
     expect(h.client.getQueryData(key)).toBeUndefined();
     expect(screen.getByLabelText('Current route').textContent).toContain(
-      '/edit',
+      '/story/milestones/milestone-1',
     );
   });
 
@@ -476,7 +505,7 @@ describe('Milestone delete response ownership', () => {
     expect(h.client.getQueryData(key)).toEqual(read());
     expect(revoke).not.toHaveBeenCalled();
     expect(screen.getByLabelText('Current route').textContent).toContain(
-      '/edit',
+      '/story/milestones/milestone-1',
     );
     const retry = deferred();
     h.deleteMilestone.mockReturnValue(retry.promise);
@@ -486,6 +515,6 @@ describe('Milestone delete response ownership', () => {
     await waitFor(() => expect(h.deleteMilestone).toHaveBeenCalledTimes(2));
     await act(async () => retry.resolve());
     await waitFor(() => expect(h.client.isMutating()).toBe(0));
-    expect(screen.getByText('Timeline result')).toBeTruthy();
+    expect(await screen.findByText('Timeline result')).toBeTruthy();
   });
 });

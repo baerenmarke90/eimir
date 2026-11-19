@@ -1,5 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseLegalMarkdown } from './legal-markdown.mjs';
 
@@ -15,6 +17,14 @@ const documents = [
     ),
     exportName: 'termsOfUseDe',
   },
+  {
+    source: new URL('../../legal/de/privacy-policy.md', import.meta.url),
+    output: new URL(
+      '../src/i18n/locales/legalDocuments/privacyPolicy.de.generated.ts',
+      import.meta.url,
+    ),
+    exportName: 'privacyPolicyDe',
+  },
 ];
 
 const args = process.argv.slice(2);
@@ -22,13 +32,16 @@ if (args.length > 1 || (args.length === 1 && args[0] !== '--check')) {
   throw new Error('Usage: node scripts/generate-legal-documents.mjs [--check]');
 }
 const check = args[0] === '--check';
-const biome = fileURLToPath(
-  new URL('../node_modules/.bin/biome', import.meta.url),
-);
+const require = createRequire(import.meta.url);
+const biome = require.resolve('@biomejs/biome/bin/biome');
+const relativeTo = (root, file) =>
+  relative(fileURLToPath(new URL(root, import.meta.url)), fileURLToPath(file))
+    .split(sep)
+    .join('/');
 
 for (const { source, output, exportName } of documents) {
   const parsed = parseLegalMarkdown(readFileSync(source, 'utf8'));
-  const sourceName = fileURLToPath(source).split('/legal/').at(-1);
+  const sourceName = relativeTo('../../legal/', source);
   const raw = [
     `// Generated from legal/${sourceName} by scripts/generate-legal-documents.mjs. Do not edit.`,
     "import type { LegalDocument } from '../../../legal/legalDocument';",
@@ -37,11 +50,12 @@ for (const { source, output, exportName } of documents) {
     '',
   ].join('\n');
   const formatted = execFileSync(
-    biome,
+    process.execPath,
     [
+      biome,
       'format',
       '--vcs-enabled=false',
-      `--stdin-file-path=${fileURLToPath(output).split('/web/').at(-1)}`,
+      `--stdin-file-path=${relativeTo('../', output)}`,
     ],
     { input: raw, encoding: 'utf8' },
   );

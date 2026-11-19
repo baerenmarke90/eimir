@@ -2,6 +2,9 @@ package de.eimir.app;
 
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -14,15 +17,19 @@ public class VoiceSharePlugin extends Plugin {
     private SelectedMediaProvider.Owner owner = new SelectedMediaProvider.Owner();
     private Uri pending;
     private String error;
-    private long receivedAt;
-    private long generation;
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private final VoiceShareDeadline lease = new VoiceShareDeadline(
+        this, SystemClock::elapsedRealtime, new VoiceShareDeadline.Timer() {
+            public void post(Runnable task, long delay) { handler.postDelayed(task, delay); }
+            public void cancel(Runnable task) { handler.removeCallbacks(task); }
+        }, this::releaseSelection);
 
     @Override public void load() { accept(getActivity().getIntent()); }
     @Override protected void handleOnNewIntent(Intent intent) { accept(intent); }
 
-    private synchronized void clear() {
+    private void releaseSelection() {
         owner.close(); owner = new SelectedMediaProvider.Owner();
-        pending = null; error = null; generation++;
+        pending = null; error = null;
     }
 
     private void accept(Intent intent) {
@@ -35,13 +42,12 @@ public class VoiceSharePlugin extends Plugin {
         } catch (RuntimeException invalid) { return; }
         final long ticket;
         final SelectedMediaProvider.Owner selection;
-        synchronized (this) { clear(); ticket = generation; selection = owner;
-            receivedAt = android.os.SystemClock.elapsedRealtime(); }
+        synchronized (this) { ticket = lease.start(); selection = owner; }
         // Provider IPC never runs on the UI thread. Never persist the URI grant.
         bridge.execute(() -> {
             final Uri adopted = selection.adoptAudio(getContext(), selected);
             synchronized (this) {
-                if (ticket != generation) { selection.close(); return; }
+                if (!lease.current(ticket)) { selection.close(); return; }
                 if ((getContext().getPackageName() + ".selectedmedia").equals(adopted.getAuthority())) pending = adopted;
                 else error = "AUDIO_SHARE_UNAVAILABLE";
             }
@@ -52,14 +58,15 @@ public class VoiceSharePlugin extends Plugin {
     }
 
     @PluginMethod public synchronized void peek(PluginCall call) {
-        if (android.os.SystemClock.elapsedRealtime() - receivedAt > 10 * 60 * 1000) clear();
+        long current = lease.generation();
         JSObject result = new JSObject();
         result.put("available", pending != null); result.put("failed", error != null);
-        result.put("generation", Long.toString(generation)); call.resolve(result);
+        result.put("generation", Long.toString(current)); call.resolve(result);
     }
 
     @PluginMethod public synchronized void read(PluginCall call) {
-        if (pending == null || !Long.toString(generation).equals(call.getString("generation"))) {
+        long current = lease.generation();
+        if (pending == null || !Long.toString(current).equals(call.getString("generation"))) {
             call.reject("Voice selection expired", "AUDIO_SHARE_UNAVAILABLE"); return;
         }
         JSObject result = new JSObject(); result.put("uri", pending.toString());
@@ -67,9 +74,14 @@ public class VoiceSharePlugin extends Plugin {
     }
 
     @PluginMethod public synchronized void discard(PluginCall call) {
-        if (call.getString("generation") == null || Long.toString(generation).equals(call.getString("generation"))) clear();
+        if (call.getString("generation") == null || Long.toString(lease.generation()).equals(call.getString("generation"))) lease.clear();
         call.resolve();
     }
 
-    @Override protected void handleOnDestroy() { clear(); }
+    @Override protected synchronized void handleOnResume() {
+        // Handler delays use uptime. Release an elapsed lease as soon as the device resumes.
+        lease.expireIfDue();
+    }
+
+    @Override protected synchronized void handleOnDestroy() { lease.clear(); }
 }

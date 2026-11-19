@@ -5,9 +5,9 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
+import type { DashboardView } from '../api/generated/models/DashboardView';
 import { SupportGestureKind } from '../api/generated/models/SupportGestureKind';
 import { assertOnlineWrite } from '../client/connectivity';
-import type { DashboardView } from '../api/generated/models/DashboardView';
 import {
   type CreateRequestAttempt,
   isCreateOutcomeUnknown,
@@ -16,8 +16,8 @@ import {
 import { dashboardQueryKey } from '../client/dashboardQueries';
 import type { M4ProductApis } from '../client/m4Product';
 import {
+  PARTNER_QUICK_ACTIONS_CAPABILITY,
   PARTNER_QUICK_ACTIONS_ENTITLEMENT_REQUIRED,
-  partnerQuickActionsEntitlementQueryKey,
 } from '../client/partnerQuickActions';
 import {
   ClientProblemError,
@@ -26,6 +26,10 @@ import {
 import { captureQueryIdentity } from '../client/queryIdentity';
 import { postSnackbar } from '../client/snackbar';
 import { refreshSpaceConfiguration } from '../client/spaceConfiguration';
+import {
+  spaceEntitlementQueryKey,
+  withdrawSpaceCapability,
+} from '../client/spaceEntitlement';
 
 export type PartnerAction = 'THINKING' | 'KISS' | 'CHECK_IN';
 type Snapshot = { accountId: string; spaceId: string; action: PartnerAction };
@@ -140,12 +144,12 @@ export function usePartnerGesture({
           onModuleDisabled();
         }
       } else if (error.code === PARTNER_QUICK_ACTIONS_ENTITLEMENT_REQUIRED) {
-        void client.invalidateQueries({
-          queryKey: partnerQuickActionsEntitlementQueryKey(
-            snapshot.accountId,
-            snapshot.spaceId,
-          ),
-        });
+        withdrawSpaceCapability(
+          client,
+          snapshot.accountId,
+          snapshot.spaceId,
+          PARTNER_QUICK_ACTIONS_CAPABILITY,
+        );
       } else if (isGestureCooldown(error) && request.canNotify()) {
         postSnackbar('snackbar.partnerQuickActionCooldown');
       }
@@ -164,14 +168,22 @@ export function usePartnerGesture({
       cooldowns[action] = deadline;
   }
 
-  function send(action: PartnerAction) {
-    if (client.isMutating({ mutationKey, exact: true }) > 0) return;
+  /**
+   * Start one deliberate send. Returns false when nothing was started (a send
+   * is already running, the scope changed or the cooldown is active);
+   * `onSettled` is told once whether the started send succeeded.
+   */
+  function send(
+    action: PartnerAction,
+    onSettled?: (succeeded: boolean) => void,
+  ): boolean {
+    if (client.isMutating({ mutationKey, exact: true }) > 0) return false;
     const isCurrentQuery = captureQueryIdentity(
       client,
-      partnerQuickActionsEntitlementQueryKey(accountId, spaceId),
+      spaceEntitlementQueryKey(accountId, spaceId),
     );
     const isCurrent = () => activeScope.current === scope && isCurrentQuery();
-    if (!isCurrent()) return;
+    if (!isCurrent()) return false;
     // Event handlers can run before observer delivery after a response. Read
     // the cache synchronously for both pacing and uncertain retry identity.
     const previous = client
@@ -192,7 +204,7 @@ export function usePartnerGesture({
       .at(-1);
     const deadline =
       previous?.data?.availableAt ?? previous?.context?.cooldownUntil;
-    if (deadline && deadline.getTime() > Date.now()) return;
+    if (deadline && deadline.getTime() > Date.now()) return false;
     const retryAttempt =
       previous?.status === 'error' &&
       previous.error &&
@@ -204,35 +216,39 @@ export function usePartnerGesture({
       spaceId,
       action,
     });
-    mutation.mutate({
-      attempt,
-      isCurrent,
-      canNotify: () => isCurrent() && mounted.current,
-      dashboardIsCurrent: captureQueryIdentity(
-        client,
-        dashboardQueryKey(spaceId),
-      ),
-      send: async () => {
-        if (action === 'THINKING') {
-          const accepted = await apis.notifications.sendThinkingOfYou({
+    mutation.mutate(
+      {
+        attempt,
+        isCurrent,
+        canNotify: () => isCurrent() && mounted.current,
+        dashboardIsCurrent: captureQueryIdentity(
+          client,
+          dashboardQueryKey(spaceId),
+        ),
+        send: async () => {
+          if (action === 'THINKING') {
+            const accepted = await apis.notifications.sendThinkingOfYou({
+              spaceId,
+              thinkingOfYouCreate: { clientRequestId: attempt.idempotencyKey },
+            });
+            return { action, availableAt: accepted.thinkingOfYouAvailableAt };
+          }
+          const accepted = await apis.notifications.sendPartnerQuickAction({
             spaceId,
-            thinkingOfYouCreate: { clientRequestId: attempt.idempotencyKey },
+            partnerQuickActionCreate: {
+              kind:
+                action === 'KISS'
+                  ? SupportGestureKind.KISS
+                  : SupportGestureKind.CHECK_IN,
+              clientRequestId: attempt.idempotencyKey,
+            },
           });
-          return { action, availableAt: accepted.thinkingOfYouAvailableAt };
-        }
-        const accepted = await apis.notifications.sendPartnerQuickAction({
-          spaceId,
-          partnerQuickActionCreate: {
-            kind:
-              action === 'KISS'
-                ? SupportGestureKind.KISS
-                : SupportGestureKind.CHECK_IN,
-            clientRequestId: attempt.idempotencyKey,
-          },
-        });
-        return { action, availableAt: accepted.availableAt };
+          return { action, availableAt: accepted.availableAt };
+        },
       },
-    });
+      { onSettled: (_data, error) => onSettled?.(!error) },
+    );
+    return true;
   }
 
   return {

@@ -1,4 +1,5 @@
 import type { AppIconId } from './api/generated/models/AppIconId';
+import { announcePersonalSettingChange } from './client/personalSettingsBus';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
@@ -19,16 +20,38 @@ function applyDocumentFavicon(theme: ResolvedTheme): void {
   if (favicon?.tagName !== 'LINK') return;
   (favicon as HTMLLinkElement).href =
     documentAppIcon === 'original'
-      ? `/identity/app-icon-${theme}.png`
-      : `/identity/app-icons/v1/${documentAppIcon}.png`;
+      ? `/identity/favicon/${theme}.png`
+      : `/identity/favicon/${documentAppIcon}.png`;
 }
 
 export const THEME_STORAGE_KEY = 'eimir.theme';
 export const LEGACY_THEME_STORAGE_KEY = 'sidebyside.theme';
 export const THEME_PREFERENCE_EVENT = 'eimir:theme-preference';
 export const DARK_MODE_QUERY = '(prefers-color-scheme: dark)';
+export const SYSTEM_THEME_EVENT = 'eimir:system-theme';
 
 let activeThemePreference: ThemePreference | null = null;
+// The Android shell handles uiMode changes itself, so its WebView keeps the
+// launch-time prefers-color-scheme. The shell then reports the device
+// appearance, which takes precedence over the stale media query.
+let reportedSystemPrefersDark: boolean | null = null;
+
+export function readSystemPrefersDark(): boolean {
+  if (reportedSystemPrefersDark !== null) return reportedSystemPrefersDark;
+  return window.matchMedia(DARK_MODE_QUERY).matches;
+}
+
+export function reportSystemPrefersDark(prefersDark: boolean): void {
+  if (reportedSystemPrefersDark === prefersDark) return;
+  reportedSystemPrefersDark = prefersDark;
+  if (typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new Event(SYSTEM_THEME_EVENT));
+  }
+}
+
+export function resetReportedSystemThemeForTests(): void {
+  reportedSystemPrefersDark = null;
+}
 
 export function parseThemePreference(
   value: string | null | undefined,
@@ -62,7 +85,18 @@ export function readThemePreference(): ThemePreference {
   }
 }
 
+/** A person's own choice on this device; it follows the Account to other devices. */
 export function storeThemePreference(preference: ThemePreference): void {
+  writeThemePreference(preference);
+  announcePersonalSettingChange(THEME_STORAGE_KEY);
+}
+
+/** Applies the Account's saved choice from another device without echoing it back. */
+export function applySyncedThemePreference(preference: ThemePreference): void {
+  writeThemePreference(preference);
+}
+
+function writeThemePreference(preference: ThemePreference): void {
   activeThemePreference = preference;
   try {
     window.localStorage.setItem(THEME_STORAGE_KEY, preference);
@@ -91,23 +125,32 @@ export function applyResolvedTheme(
   root.dataset.theme = theme;
   if (preference) root.dataset.themePreference = preference;
   root.style.colorScheme = theme;
+  syncDocumentThemeColor();
+  applyDocumentFavicon(theme);
+}
 
+/**
+ * Browser chrome follows the resolved page role. Call after anything that
+ * changes it on the root: the theme or the personal app design.
+ */
+export function syncDocumentThemeColor(): void {
   const themeColor = document.querySelector<HTMLMetaElement>(
     'meta[name="theme-color"]',
   );
   // Resolve the semantic CSS role after switching data-theme so the React
   // runtime does not own a duplicate raw browser-chrome palette.
   const resolvedBackground = window
-    .getComputedStyle(root)
+    .getComputedStyle(document.documentElement)
     .getPropertyValue('--color-background')
     .trim();
   if (themeColor && resolvedBackground) themeColor.content = resolvedBackground;
-  applyDocumentFavicon(theme);
 }
 
 export function initializeTheme(): ThemePreference {
   const preference = readThemePreference();
-  const systemPrefersDark = window.matchMedia(DARK_MODE_QUERY).matches;
-  applyResolvedTheme(resolveTheme(preference, systemPrefersDark), preference);
+  applyResolvedTheme(
+    resolveTheme(preference, readSystemPrefersDark()),
+    preference,
+  );
   return preference;
 }

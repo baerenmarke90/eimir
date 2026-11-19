@@ -1,36 +1,43 @@
-import { TaskBackButton } from './TaskBackButton';
-import { AutoLoadMore } from './AutoLoadMore';
-import { StoryDetailEditLink } from './StoryDetailEditLink';
-import { type FormEvent, useState } from 'react';
+import './FreeComposer.css';
 import {
   useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { type FormEvent, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { PrivateNoteDetail } from '../api/generated/models/PrivateNoteDetail';
+import { useReturnTo } from '../client/historyEntries';
 import {
-  PRIVATE_NOTES_PATH,
   capturePrivateCreate,
   capturePrivateDelete,
   capturePrivateEdit,
+  PRIVATE_NOTES_PATH,
   privateApiCall,
   privateAreaQueryKeys,
   privateNoteEditPath,
   privateNotePath,
 } from '../client/privateArea';
+import { useTaskActivation } from '../client/useTaskActivation';
 import { useTranslation } from '../i18n';
+import { AddActionLink } from './AddAction';
+import { AutoLoadMore } from './AutoLoadMore';
 import { PageHeader } from './PageHeader';
-import { ProblemState } from './ProblemState';
 import {
-  DeleteConfirmation,
   PrivateAreaDetailBack,
   PrivateEditorDiscardSheet,
+  PrivateItemLabel,
+  PrivateItemMenuSheets,
+  PrivateItemMenuTrigger,
+  PrivateItemPrivacy,
   usePrivateAreaTaskContext,
+  usePrivateItemMenu,
   usePrivateTaskEditorLifecycle,
 } from './PrivateAreaLayout';
+import { ProblemState } from './ProblemState';
+import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import { useRequiredTitleValidation } from './useRequiredTitleValidation';
 
@@ -147,9 +154,11 @@ export function PrivateNotesListPage({ api, accountId, spaceId }: Props) {
         title={t('privateArea.notes.title')}
         description={t('privateArea.notes.intro')}
         action={
-          <Link className="button-link" to={`${PRIVATE_NOTES_PATH}/new`}>
-            {t('privateArea.notes.add')}
-          </Link>
+          <AddActionLink
+            floating
+            label={t('privateArea.notes.add')}
+            to={`${PRIVATE_NOTES_PATH}/new`}
+          />
         }
       />
       {query.isLoading ? (
@@ -238,6 +247,7 @@ export function PrivateNoteCreatePage({ api, accountId, spaceId }: Props) {
   );
   const {
     captureOwnership,
+    fromOverview,
     navigationState,
     showDiscardConfirm,
     keepEditing,
@@ -272,13 +282,17 @@ export function PrivateNoteCreatePage({ api, accountId, spaceId }: Props) {
             onClick={requestClose}
             aria-disabled={mutation.isPending}
           >
-            {t('privateArea.notes.detailBack')}
+            {t(
+              fromOverview
+                ? 'privateArea.backToHub'
+                : 'privateArea.notes.detailBack',
+            )}
           </TaskBackButton>
         }
         title={t('privateArea.notes.createTitle')}
         description={t('privateArea.notes.intro')}
       />
-      <section className="form-card private-area-editor">
+      <section className="form-card private-area-editor free-composer">
         <form
           className="form-grid"
           onSubmit={submit}
@@ -316,8 +330,43 @@ export function PrivateNoteCreatePage({ api, accountId, spaceId }: Props) {
 
 export function PrivateNoteDetailPage({ api, accountId, spaceId }: Props) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { query } = usePrivateNote(api, accountId, spaceId);
   const { navigationState } = usePrivateAreaTaskContext(PRIVATE_NOTES_PATH);
+  const menu = usePrivateItemMenu();
+  const captureOwnership = useTaskActivation(true);
+  const deleteMutation = useMutation({
+    mutationFn: (targetNote: PrivateNoteDetail) =>
+      privateApiCall(() =>
+        api.deletePrivateNote({
+          spaceId: targetNote.spaceId,
+          noteId: targetNote.id,
+          ifMatch: String(targetNote.version),
+        }),
+      ),
+    onMutate: (target) =>
+      capturePrivateDelete(
+        queryClient,
+        privateAreaQueryKeys.note(target.ownerId, target.spaceId, target.id),
+        privateAreaQueryKeys.notes(target.ownerId, target.spaceId),
+        captureOwnership(),
+      ),
+    onSuccess: async (_result, _target, context) => {
+      if (!context) return;
+      await context.refreshList();
+      if (!context.isCurrentTask()) {
+        context.remove();
+        return;
+      }
+      menu.deleteSheet.current?.closeForNavigation(() => {
+        const shouldNavigate = context.isCurrentTask();
+        if (context.remove() && shouldNavigate) {
+          navigate(PRIVATE_NOTES_PATH, { replace: true });
+        }
+      });
+    },
+  });
 
   if (query.isLoading)
     return <UiState kind="loading" title={t('privateArea.notes.loading')} />;
@@ -337,15 +386,16 @@ export function PrivateNoteDetailPage({ api, accountId, spaceId }: Props) {
             fallbackLabel={t('privateArea.notes.detailBack')}
           />
         }
-        eyebrow={t('privateArea.privacyLabel')}
+        itemLabel={
+          <PrivateItemLabel>
+            {t('privateArea.notes.itemLabel')}
+          </PrivateItemLabel>
+        }
+        metadata={<PrivateItemPrivacy />}
         title={note.title}
         titleAction={
-          note.capabilities.canEdit ? (
-            <StoryDetailEditLink
-              to={privateNoteEditPath(note.id)}
-              state={navigationState}
-              label={t('privateArea.edit')}
-            />
+          note.capabilities.canEdit || note.capabilities.canDelete ? (
+            <PrivateItemMenuTrigger menu={menu} name={note.title} />
           ) : undefined
         }
       />
@@ -359,48 +409,31 @@ export function PrivateNoteDetailPage({ api, accountId, spaceId }: Props) {
           {note.body || t('privateArea.notes.noBody')}
         </p>
       </article>
+      <PrivateItemMenuSheets
+        menu={menu}
+        title={note.title}
+        canEdit={note.capabilities.canEdit}
+        canDelete={note.capabilities.canDelete}
+        onEdit={() =>
+          void navigate(privateNoteEditPath(note.id), {
+            state: navigationState,
+          })
+        }
+        deletePending={deleteMutation.isPending}
+        deleteError={deleteMutation.error}
+        onDeleteRequested={() => deleteMutation.reset()}
+        onConfirmDelete={() => deleteMutation.mutate(note)}
+      />
     </>
   );
 }
 
 export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const returnTo = useReturnTo();
   const queryClient = useQueryClient();
   const [dirty, setDirty] = useState(false);
   const { noteId, query } = usePrivateNote(api, accountId, spaceId);
-
-  const deleteMutation = useMutation({
-    mutationFn: (targetNote: PrivateNoteDetail) =>
-      privateApiCall(() =>
-        api.deletePrivateNote({
-          spaceId: targetNote.spaceId,
-          noteId: targetNote.id,
-          ifMatch: String(targetNote.version),
-        }),
-      ),
-    onMutate: (target) =>
-      capturePrivateDelete(
-        queryClient,
-        privateAreaQueryKeys.note(target.ownerId, target.spaceId, target.id),
-        privateAreaQueryKeys.notes(target.ownerId, target.spaceId),
-        captureDeleteOwnership(),
-      ),
-    onSuccess: async (_result, _target, context) => {
-      if (!context) return;
-      await context.refreshList();
-      if (!context.isCurrentTask()) {
-        context.remove();
-        return;
-      }
-      closeTask(() => {
-        const shouldNavigate = context.isCurrentTask();
-        if (context.remove() && shouldNavigate) {
-          navigate(PRIVATE_NOTES_PATH, { replace: true });
-        }
-      });
-    },
-  });
 
   const mutation = useMutation({
     mutationFn: ({
@@ -430,10 +463,7 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
       if (!context.isCurrent()) return;
       closeTask(() => {
         if (!context.isCurrent()) return;
-        navigate(privateNotePath(note.id), {
-          replace: true,
-          state: navigationState,
-        });
+        returnTo(privateNotePath(note.id), { state: navigationState });
       });
     },
   });
@@ -444,7 +474,6 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
   );
   const detailFallback = noteId ? privateNotePath(noteId) : PRIVATE_NOTES_PATH;
   const {
-    captureOwnership: captureDeleteOwnership,
     navigationState,
     showDiscardConfirm,
     keepEditing,
@@ -453,7 +482,7 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
   } = usePrivateTaskEditorLifecycle({
     fallbackPath: detailFallback,
     isDirty: dirty,
-    isCloseBlocked: mutation.isPending || deleteMutation.isPending,
+    isCloseBlocked: mutation.isPending,
     closeToFallback: true,
   });
 
@@ -478,7 +507,7 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (mutation.isPending || deleteMutation.isPending) return;
+    if (mutation.isPending) return;
     const data = new FormData(event.currentTarget);
     const title = titleValidation.validate(String(data.get('title') || ''));
     if (title === null) return;
@@ -500,7 +529,7 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
             type="button"
             className="back-link tertiary"
             onClick={requestClose}
-            aria-disabled={mutation.isPending || deleteMutation.isPending}
+            aria-disabled={mutation.isPending}
           >
             {t('privateArea.notes.detailBack')}
           </TaskBackButton>
@@ -508,7 +537,7 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
         title={t('privateArea.notes.editTitle')}
         description={t('privateArea.notes.intro')}
       />
-      <section className="form-card private-area-editor">
+      <section className="form-card private-area-editor free-composer">
         <form
           className="form-grid"
           onSubmit={submit}
@@ -520,14 +549,11 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
               type="button"
               className="button-link secondary-link"
               onClick={requestClose}
-              disabled={mutation.isPending || deleteMutation.isPending}
+              disabled={mutation.isPending}
             >
               {t('common.cancel')}
             </button>
-            <button
-              type="submit"
-              disabled={mutation.isPending || deleteMutation.isPending}
-            >
+            <button type="submit" disabled={mutation.isPending}>
               {mutation.isPending
                 ? t('privateArea.saving')
                 : t('privateArea.save')}
@@ -538,20 +564,6 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
           <ProblemState error={mutation.error} />
         ) : null}
       </section>
-
-      {note.capabilities.canDelete ? (
-        <article
-          className="private-area-detail-card"
-          style={{ marginTop: 'var(--space-8)' }}
-        >
-          <DeleteConfirmation
-            onDelete={() => deleteMutation.mutate(note)}
-            pending={deleteMutation.isPending}
-            disabled={mutation.isPending}
-            error={deleteMutation.error}
-          />
-        </article>
-      ) : null}
       <PrivateEditorDiscardSheet
         open={showDiscardConfirm}
         onKeep={keepEditing}

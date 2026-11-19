@@ -1,13 +1,14 @@
-import { useId, type ReactNode, type Ref } from 'react';
+import { type ReactNode, type Ref, useId } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { firstNameFromDisplayName } from '../client/personalName';
 import {
+  type PartnerAvatarAction,
   PartnerAvatarPair,
   type PartnerAvatarPerson,
   type PartnerAvatarSize,
   type PartnerPresenceStatus,
 } from './PartnerAvatarPair';
-import { firstNameFromDisplayName } from '../client/personalName';
-import { useTranslation } from 'react-i18next';
 import './CouplePresence.css';
 
 export interface CouplePresenceAvatarAction {
@@ -35,10 +36,24 @@ export interface CouplePresenceProps {
   avatarOverlay?: ReactNode;
   avatarSize?: PartnerAvatarSize;
   avatarAction?: CouplePresenceAvatarAction;
+  /** Own-avatar task; splits the pair into two tap targets (#1790 A). */
+  primaryAvatarAction?: PartnerAvatarAction;
+  primaryAvatarAdornment?: ReactNode;
+  secondaryAvatarAdornment?: ReactNode;
+  /** Shown under the empty partner place while nobody has joined. */
+  waitingAvatarAdornment?: ReactNode;
   actions?: ReactNode;
+  /** A quiet relationship signal directly under the duration line (#1792). */
+  signal?: ReactNode;
   context?: ReactNode;
   headingLevel?: 'h1' | 'h2';
   eyebrow?: string;
+  detailsFirst?: boolean;
+  titleAction?: ReactNode;
+  /** Content between the people and the details (the note layout). */
+  feature?: ReactNode;
+  /** Set the two first names on their own lines (the names layout). */
+  stackNames?: boolean;
   className?: string;
 }
 
@@ -58,10 +73,19 @@ export function CouplePresence({
   avatarOverlay,
   avatarSize = 'large',
   avatarAction,
+  primaryAvatarAction,
+  primaryAvatarAdornment,
+  secondaryAvatarAdornment,
+  waitingAvatarAdornment,
   actions,
+  signal,
   context,
   headingLevel = 'h2',
   eyebrow,
+  detailsFirst = false,
+  titleAction,
+  feature,
+  stackNames = false,
   className = '',
 }: CouplePresenceProps) {
   const { t } = useTranslation();
@@ -110,113 +134,136 @@ export function CouplePresence({
 
   const HeadingTag = headingLevel;
 
+  const avatars = (
+    <div
+      className={`couple-presence-avatar-anchor${avatarAdornment ? ' has-adornment' : ''}`}
+    >
+      <PartnerAvatarPair
+        primaryPerson={heroPrimaryPerson}
+        secondaryPerson={heroSecondaryPerson}
+        status={status}
+        statusLabel={
+          secondaryPerson ? (resolvedStatusText ?? undefined) : undefined
+        }
+        size={avatarSize}
+        onInviteClick={onInviteClick}
+        onActivate={avatarAction?.onActivate}
+        actionLabel={avatarAction?.label}
+        actionRef={avatarAction?.ref}
+        actionExpanded={avatarAction?.expanded}
+        actionControls={avatarAction?.controls}
+        actionHasPopup={avatarAction?.hasPopup}
+        primaryAction={primaryAvatarAction}
+        primaryAdornment={primaryAvatarAdornment}
+        secondaryAdornment={secondaryAvatarAdornment}
+        waitingAdornment={waitingAvatarAdornment}
+      />
+      {avatarAdornment ? (
+        <div className="couple-presence-avatar-adornment">
+          {avatarAdornment}
+        </div>
+      ) : null}
+      {avatarOverlay}
+    </div>
+  );
+  const details = (
+    <div className="couple-presence-details">
+      {eyebrow ? <p className="couple-presence-eyebrow">{eyebrow}</p> : null}
+      <HeadingTag id={titleId} className="couple-presence-title">
+        {stackNames && secondaryFirstName ? (
+          <>
+            <span>{primaryFirstName}</span>{' '}
+            <span>
+              <span className="couple-presence-joiner">
+                {t('wirDesign.nameJoiner')}
+              </span>{' '}
+              {secondaryFirstName}
+            </span>
+          </>
+        ) : (
+          presenceTitle
+        )}
+      </HeadingTag>
+
+      {titleAction}
+
+      <div className="couple-presence-meta">
+        {showStatusInMeta ? (
+          <span className={`couple-presence-indicator status-${status}`}>
+            {(status === 'active' || status === 'waiting') && (
+              <span className="couple-presence-dot" aria-hidden="true" />
+            )}
+            <span className="couple-presence-status-text">
+              {resolvedStatusText}
+            </span>
+          </span>
+        ) : null}
+
+        {relationshipDuration && (
+          <>
+            {showStatusInMeta ? (
+              <span className="couple-presence-separator" aria-hidden="true">
+                ·
+              </span>
+            ) : null}
+            {durationLinkTo ? (
+              <Link
+                to={durationLinkTo}
+                className="couple-presence-duration-btn today-hero-duration-link"
+                title={durationTitle || t('couplePresenceDurationAction')}
+              >
+                <span className="today-hero-pill-icon" aria-hidden="true">
+                  <svg
+                    className="inline-icon"
+                    viewBox="0 0 24 24"
+                    width="12"
+                    height="12"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
+                  </svg>
+                </span>
+                <span>{relationshipDuration}</span>
+              </Link>
+            ) : onDurationClick ? (
+              <button
+                type="button"
+                className="couple-presence-duration-btn"
+                onClick={onDurationClick}
+                title={durationTitle || t('couplePresenceDurationAction')}
+              >
+                {relationshipDuration}
+              </button>
+            ) : (
+              <span className="couple-presence-duration-text">
+                {relationshipDuration}
+              </span>
+            )}
+          </>
+        )}
+      </div>
+
+      {signal}
+
+      {context ? (
+        <div className="couple-presence-context">{context}</div>
+      ) : null}
+      {actions ? (
+        <div className="couple-presence-actions">{actions}</div>
+      ) : null}
+    </div>
+  );
+
   return (
     <section
       className={`couple-presence-card ${className}`}
       aria-labelledby={titleId}
     >
       <div className="couple-presence-main">
-        <div
-          className={`couple-presence-avatar-anchor${avatarAdornment ? ' has-adornment' : ''}`}
-        >
-          <PartnerAvatarPair
-            primaryPerson={heroPrimaryPerson}
-            secondaryPerson={heroSecondaryPerson}
-            status={status}
-            statusLabel={
-              secondaryPerson ? (resolvedStatusText ?? undefined) : undefined
-            }
-            size={avatarSize}
-            onInviteClick={onInviteClick}
-            onActivate={avatarAction?.onActivate}
-            actionLabel={avatarAction?.label}
-            actionRef={avatarAction?.ref}
-            actionExpanded={avatarAction?.expanded}
-            actionControls={avatarAction?.controls}
-            actionHasPopup={avatarAction?.hasPopup}
-          />
-          {avatarAdornment ? (
-            <div className="couple-presence-avatar-adornment">
-              {avatarAdornment}
-            </div>
-          ) : null}
-          {avatarOverlay}
-        </div>
-
-        <div className="couple-presence-details">
-          {eyebrow ? (
-            <p className="couple-presence-eyebrow">{eyebrow}</p>
-          ) : null}
-          <HeadingTag id={titleId} className="couple-presence-title">
-            {presenceTitle}
-          </HeadingTag>
-
-          <div className="couple-presence-meta">
-            {showStatusInMeta ? (
-              <span className={`couple-presence-indicator status-${status}`}>
-                {(status === 'active' || status === 'waiting') && (
-                  <span className="couple-presence-dot" aria-hidden="true" />
-                )}
-                <span className="couple-presence-status-text">
-                  {resolvedStatusText}
-                </span>
-              </span>
-            ) : null}
-
-            {relationshipDuration && (
-              <>
-                {showStatusInMeta ? (
-                  <span
-                    className="couple-presence-separator"
-                    aria-hidden="true"
-                  >
-                    ·
-                  </span>
-                ) : null}
-                {durationLinkTo ? (
-                  <Link
-                    to={durationLinkTo}
-                    className="couple-presence-duration-btn today-hero-duration-link"
-                    title={durationTitle || t('couplePresenceDurationAction')}
-                  >
-                    <span className="today-hero-pill-icon" aria-hidden="true">
-                      <svg
-                        viewBox="0 0 24 24"
-                        width="12"
-                        height="12"
-                        fill="currentColor"
-                        aria-hidden="true"
-                      >
-                        <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
-                      </svg>
-                    </span>
-                    <span>{relationshipDuration}</span>
-                  </Link>
-                ) : onDurationClick ? (
-                  <button
-                    type="button"
-                    className="couple-presence-duration-btn"
-                    onClick={onDurationClick}
-                    title={durationTitle || t('couplePresenceDurationAction')}
-                  >
-                    {relationshipDuration}
-                  </button>
-                ) : (
-                  <span className="couple-presence-duration-text">
-                    {relationshipDuration}
-                  </span>
-                )}
-              </>
-            )}
-          </div>
-
-          {context ? (
-            <div className="couple-presence-context">{context}</div>
-          ) : null}
-          {actions ? (
-            <div className="couple-presence-actions">{actions}</div>
-          ) : null}
-        </div>
+        {detailsFirst ? details : avatars}
+        {feature}
+        {detailsFirst ? avatars : details}
       </div>
     </section>
   );

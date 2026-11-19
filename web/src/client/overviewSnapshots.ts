@@ -71,6 +71,7 @@ export function decodePlansOverview(payload: unknown, spaceId: string) {
         ) &&
         [
           plan.plannedOn,
+          plan.plannedUntil,
           plan.plannedStart,
           plan.plannedEnd,
           plan.experiencedOn,

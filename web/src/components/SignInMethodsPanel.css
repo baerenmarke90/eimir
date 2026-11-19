@@ -1,0 +1,95 @@
+.sign-in-methods {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.sign-in-methods > h3,
+.sign-in-methods-intro,
+.sign-in-methods-note,
+.sign-in-methods-notice {
+  margin: 0;
+}
+
+.sign-in-methods-intro,
+.sign-in-methods-note {
+  color: var(--color-text-secondary);
+}
+
+.sign-in-methods-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sign-in-method {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-3);
+}
+
+.sign-in-method + .sign-in-method {
+  border-block-start: 1px solid
+    color-mix(in srgb, var(--color-border) 55%, transparent);
+}
+
+.sign-in-method-nested {
+  padding-inline-start: calc(40px + var(--space-3));
+}
+
+.sign-in-method-icon {
+  display: grid;
+  place-items: center;
+  inline-size: 40px;
+  block-size: 40px;
+  flex: none;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+}
+
+.sign-in-method-icon .provider-mark {
+  inline-size: 20px;
+  block-size: 20px;
+}
+
+.sign-in-method-copy {
+  display: grid;
+  flex: 1;
+  min-inline-size: 0;
+  gap: var(--space-1);
+}
+
+.sign-in-method-copy > span {
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+}
+
+.sign-in-method-chip {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-shared-surface);
+  color: var(--color-shared);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.sign-in-method-action {
+  flex: none;
+  border: 0;
+  min-block-size: 40px;
+  background: var(--color-surface-subtle);
+}
+
+.sign-in-methods-add {
+  justify-self: start;
+}
+
+.sign-in-methods-notice-error {
+  color: var(--color-error);
+}
+
+.sign-in-methods-notice-status {
+  color: var(--color-success);
+}

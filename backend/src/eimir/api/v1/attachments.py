@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from tempfile import TemporaryFile
 from typing import Annotated, Literal, Self
@@ -16,7 +17,7 @@ from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
-from eimir.attachments import service, upload_ownership
+from eimir.attachments import documents, service, upload_ownership
 from eimir.attachments.content import content_response
 from eimir.attachments.models import Attachment, AttachmentStatus, MediaType
 from eimir.core.clock import now
@@ -41,6 +42,11 @@ _PUBLIC_STATUS: dict[str, str] = {
 ``DELETING`` and ``DELETE_FAILED`` are intentionally absent: a deleted
 attachment no longer exists at the domain level and is not returned at all.
 """
+
+
+def public_attachment_status(value: str) -> str:
+    """One lifecycle projection for attachment and parent-resource consumers."""
+    return _PUBLIC_STATUS.get(value, "PROCESSING")
 
 
 class AttachmentUploadCreate(ApiModel):
@@ -71,7 +77,9 @@ class AttachmentFinalize(ApiModel):
 class AttachmentReadRequest(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
-    parent_type: Literal["MEMORY", "HEART_MOMENT", "RELATED_PERSON", "PLAN", "NONE"] = "NONE"
+    parent_type: Literal[
+        "MEMORY", "HEART_MOMENT", "RELATED_PERSON", "PLAN", "HEART_HUNT_ROUND", "NONE"
+    ] = "NONE"
     parent_id: UUID | None = None
     variant: ReadVariant = Field(
         default="original",
@@ -143,6 +151,27 @@ class AttachmentEntry(ApiModel):
     attachment_id: UUID
     position: int = Field(ge=0)
     is_sensitive: bool | None = Field(default=None, strict=True)
+    replaces_attachment_id: UUID | None = None
+
+
+def replacements_of(entries: Sequence[AttachmentEntry] | None) -> dict[UUID, UUID]:
+    """Edited photos as new id -> replaced id; only gallery updates accept them."""
+    return {
+        entry.attachment_id: entry.replaces_attachment_id
+        for entry in entries or []
+        if entry.replaces_attachment_id is not None
+    }
+
+
+def reject_replacements(entries: Sequence[AttachmentEntry] | None) -> None:
+    """A new parent has no photo to replace."""
+    if replacements_of(entries):
+        from eimir.core.errors import ValidationError
+
+        raise ValidationError(
+            "An edited photo must replace a photo that leaves this gallery.",
+            "ATTACHMENT_REPLACEMENT_INVALID",
+        )
 
 
 class OrderedAttachmentSummary(AttachmentSummary):
@@ -176,7 +205,7 @@ class ReadDescriptor(ApiModel):
 def _detail(attachment: Attachment) -> AttachmentDetail:
     return AttachmentDetail(
         id=attachment.id,
-        status=_PUBLIC_STATUS.get(attachment.status, "PROCESSING"),
+        status=public_attachment_status(attachment.status),
         failure_code=attachment.failure_code if attachment.status == "FAILED" else None,
         media_type=MediaType(attachment.media_type),
         mime_type=attachment.mime_type,
@@ -251,12 +280,17 @@ def create_attachment_upload(
     )
     _no_store(response)
 
-    store = get_media_store()
-    signed = create_signed_upload(
-        store,
-        service.storage_key_for(attachment),
-        attachment.declared_mime_type,
-        SIGNED_UPLOAD_TTL,
+    # A PDF's original is kept byte for byte. A replayable signed PUT must
+    # never be able to replace that object after validation has completed.
+    signed = (
+        None
+        if attachment.media_type == MediaType.DOCUMENT
+        else create_signed_upload(
+            get_media_store(),
+            service.storage_key_for(attachment),
+            attachment.declared_mime_type,
+            SIGNED_UPLOAD_TTL,
+        )
     )
     if signed is not None:
         return UploadDescriptor(
@@ -387,9 +421,12 @@ def create_attachment_read_access(
     _require_available_variant(attachment, body.variant)
     _no_store(response)
 
-    store = get_media_store()
-    signed_url = store.create_read_url(
-        service.storage_key_for(attachment, _storage_variant(body.variant)), SIGNED_READ_TTL
+    signed_url = (
+        None
+        if attachment.media_type == MediaType.DOCUMENT
+        else get_media_store().create_read_url(
+            service.storage_key_for(attachment, _storage_variant(body.variant)), SIGNED_READ_TTL
+        )
     )
     if signed_url is not None:
         return ReadDescriptor(
@@ -439,11 +476,17 @@ def get_attachment_content(
         if variant == "thumbnail"
         else (attachment.mime_type or "application/octet-stream")
     )
+    document_name = (
+        documents.display_name(attachment.payload.original_name)
+        if attachment.media_type == MediaType.DOCUMENT
+        else None
+    )
 
     return content_response(
         source,
         media_type=media_type,
-        filename=str(attachment.id),
+        filename="document.pdf" if document_name is not None else str(attachment.id),
+        download_name=document_name,
         range_header=request.headers.get("range"),
     )
 

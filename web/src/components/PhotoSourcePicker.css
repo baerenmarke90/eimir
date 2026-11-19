@@ -13,13 +13,6 @@
   width: 100%;
 }
 
-.photo-source-trigger .eimir-icon,
-.media-device-choice .eimir-icon {
-  inline-size: var(--space-6);
-  block-size: var(--space-6);
-  flex: 0 0 auto;
-}
-
 .photo-source-options {
   border: 0;
   padding: 0;
@@ -176,4 +169,59 @@
 }
 .photo-source-sheet .photo-source-trigger {
   margin-block-start: var(--space-3);
+}
+
+/* Typed Google selection (#1467): one calm row per chosen photo or video. */
+.photo-source-results {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.photo-source-result {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "icon name"
+    "icon state";
+  column-gap: var(--space-3);
+  align-items: center;
+  min-inline-size: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+}
+
+.photo-source-result-icon {
+  grid-area: icon;
+  display: grid;
+  place-content: center;
+  inline-size: var(--touch-target-web);
+  block-size: var(--touch-target-web);
+  color: var(--color-text-secondary);
+}
+
+.photo-source-result-name {
+  grid-area: name;
+  font: var(--font-ui);
+  overflow-wrap: anywhere;
+}
+
+.photo-source-result-state {
+  grid-area: state;
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.photo-source-result[data-state="done"] .photo-source-result-state,
+.photo-source-result[data-state="failed"] .photo-source-result-state {
+  color: var(--color-text-primary);
+}
+
+.photo-source-result-icon .eimir-icon {
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
 }

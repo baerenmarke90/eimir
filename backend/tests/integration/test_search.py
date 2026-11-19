@@ -464,3 +464,107 @@ class TestSearchPersistenceAndIndex:
         seeded = _seed_all_targets(session, couple)
         response = _search(client, couple, q="not-indexed", type=["GIFT_IDEA"])
         assert str(seeded["gift"].id) not in {item["id"] for item in _items(response)}
+
+
+class TestExactTagNavigation:
+    def test_tag_collects_only_matching_authored_content_and_preserves_privacy(
+        self, client, session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        shared = _shared(couple, couple["anna"].id)
+        private = _private(couple, couple["anna"].id)
+        tagged = [
+            Memory(
+                **shared,
+                happened_on=date(2026, 2, 1),
+                payload=MemoryPayload(
+                    title="Unrelated title",
+                    body="Remembered together",
+                    tags=["Our trip"],
+                ),
+            ),
+            HeartMoment(
+                **shared,
+                happened_on=date(2026, 2, 2),
+                payload=HeartMomentPayload(
+                    text="A warm moment", emotion=HeartEmotion.LOVED, tags=["our trip"]
+                ),
+            ),
+            Plan(
+                **shared,
+                payload=PlanPayload(title="A shared plan", tags=["Our trip"]),
+            ),
+            Wish(
+                **shared,
+                payload=WishPayload(title="A wish", tags=["Our trip"]),
+            ),
+            HeartMoment(
+                **private,
+                happened_on=date(2026, 2, 3),
+                payload=HeartMomentPayload(
+                    text="Only for me", emotion=HeartEmotion.GRATEFUL, tags=["Our trip"]
+                ),
+            ),
+        ]
+        not_tagged = Memory(
+            **shared,
+            happened_on=date(2026, 2, 4),
+            payload=MemoryPayload(
+                title="Our trip",
+                body="A memory with another tag",
+                tags=["Other trip"],
+            ),
+        )
+        outsider = Memory(
+            space_id=couple["foreign_space"].id,
+            owner_id=couple["outsider"].id,
+            privacy_class=PrivacyClass.SPACE_SHARED.value,
+            happened_on=date(2026, 2, 5),
+            payload=MemoryPayload(
+                title="Foreign",
+                body="Belongs to another Space",
+                tags=["Our trip"],
+            ),
+        )
+        session.add_all([*tagged, not_tagged, outsider])
+        session.flush()
+
+        first = _search(client, couple, q="tag:Our trip", limit=2)
+        assert first.status_code == 200, first.text
+        cursor = first.json()["nextCursor"]
+        assert cursor is not None
+        found = first.json()["items"]
+        while cursor:
+            next_page = _search(client, couple, q="tag:Our trip", cursor=cursor, limit=2)
+            assert next_page.status_code == 200, next_page.text
+            found += next_page.json()["items"]
+            cursor = next_page.json()["nextCursor"]
+
+        assert {entry["id"] for entry in found} == {str(row.id) for row in tagged}
+        assert {entry["type"] for entry in found} == {"MEMORY", "HEART_MOMENT", "PLAN", "WISH"}
+        partner = _search(client, couple, token=couple["token_b"], q="tag:Our trip")
+        assert {entry["id"] for entry in _items(partner)} == {str(row.id) for row in tagged[:-1]}
+        unrelated = _search(client, couple, q="tag:Other trip")
+        assert str(not_tagged.id) in {entry["id"] for entry in _items(unrelated)}
+        assert str(outsider.id) not in {entry["id"] for entry in found}
+        assert (
+            _search(
+                client, couple, q="tag:Different", cursor=first.json()["nextCursor"]
+            ).status_code
+            == 400
+        )
+
+    def test_tag_search_respects_type_filter(self, client, session, couple) -> None:  # type: ignore[no-untyped-def]
+        session.add(
+            Memory(
+                **_shared(couple, couple["anna"].id),
+                happened_on=date(2026, 1, 1),
+                payload=MemoryPayload(
+                    title="Example",
+                    body="A memorable cafe",
+                    tags=["Café"],
+                ),
+            )
+        )
+        session.flush()
+        assert len(_items(_search(client, couple, q="tag:Café", type=["MEMORY"]))) == 1
+        assert _items(_search(client, couple, q="tag:Café", type=["PLAN"])) == []

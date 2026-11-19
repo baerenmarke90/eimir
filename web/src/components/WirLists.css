@@ -1,0 +1,79 @@
+/* "Unsere Listen" on Wir (#1808): one wide tile, or tiles next to each other. */
+.wir-lists-single,
+.wir-lists-row {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.wir-lists-single {
+  display: grid;
+}
+.wir-lists-row {
+  display: flex;
+  gap: var(--space-3);
+  overflow-x: auto;
+  padding-block-end: var(--space-2);
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--page-gutter);
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.wir-lists-row::-webkit-scrollbar {
+  display: none;
+}
+.wir-list-tile {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+.wir-lists-row > .wir-list-tile {
+  flex: 0 0 min(78%, 18rem);
+  scroll-snap-align: start;
+}
+.wir-list-tile-main {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--color-text);
+  text-decoration: none;
+}
+.wir-list-tile-main:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 4px;
+  border-radius: var(--radius-medium);
+}
+.wir-list-tile-title {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.wir-list-tile-count {
+  margin: 0;
+  font: var(--font-personal-heading);
+  overflow-wrap: anywhere;
+}
+.wir-list-tile-number {
+  font-size: 1.75em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.wir-list-tile-peek,
+.wir-list-tile-last {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  overflow-wrap: anywhere;
+}
+.wir-list-tile-add {
+  justify-self: start;
+}
+.wir-lists-error {
+  margin: 0;
+  color: var(--color-text-secondary);
+}

@@ -14,12 +14,17 @@ Name | Type
 `createdBy` | string
 `creator` | [AuthorSummary](AuthorSummary.md)
 `description` | string
+`discreet` | boolean
+`discreetTitleMode` | [DiscreetTitleMode](DiscreetTitleMode.md)
 `experiencedOn` | Date
+`fileAttachments` | [Array&lt;PlanFileSummary&gt;](PlanFileSummary.md)
 `id` | string
 `placeId` | string
 `plannedEnd` | Date
 `plannedOn` | Date
 `plannedStart` | Date
+`plannedUntil` | Date
+`previewTitle` | string
 `selectedCoverAttachmentId` | string
 `sourceWishId` | string
 `spaceId` | string
@@ -44,12 +49,17 @@ const example = {
   "createdBy": null,
   "creator": null,
   "description": null,
+  "discreet": null,
+  "discreetTitleMode": null,
   "experiencedOn": null,
+  "fileAttachments": null,
   "id": null,
   "placeId": null,
   "plannedEnd": null,
   "plannedOn": null,
   "plannedStart": null,
+  "plannedUntil": null,
+  "previewTitle": null,
   "selectedCoverAttachmentId": null,
   "sourceWishId": null,
   "spaceId": null,

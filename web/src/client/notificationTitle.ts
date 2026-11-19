@@ -1,6 +1,7 @@
-import { authorDisplayName } from './authorPresentation';
-import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import type { TFunction } from 'i18next';
+import type { NotificationItem } from '../api/generated/models/NotificationItem';
+import { authorDisplayName } from './authorPresentation';
+import { recapNoticeTitle } from './recaps';
 
 export function getNotificationItemTitle(
   item: NotificationItem,
@@ -9,6 +10,10 @@ export function getNotificationItemTitle(
 ): string {
   if (item.kind === 'ONCE_MESSAGE_RECEIVED')
     return t('onceMessages.notification');
+  if (item.kind === 'WISH_REMINDER_DUE')
+    return t('m5s3.wish.reminder.notification');
+  if (item.kind === 'RECAP_READY' || item.kind === 'RECAP_GREW')
+    return recapNoticeTitle(item, t);
   const isOwn = Boolean(
     currentAccountId && item.actor?.id === currentAccountId,
   );
@@ -18,6 +23,44 @@ export function getNotificationItemTitle(
       ? authorDisplayName(item.actor)
       : undefined;
   const targetTitle = item.target?.title;
+  // One notice kind for the remote couple games; the target names the game.
+  // It never carries answers, clues, guesses, wishes or moments.
+  if (item.kind === 'COUPLE_GAME_TURN') {
+    const game =
+      item.targetType === 'WHO_OF_US_GAME'
+        ? 'WHO_OF_US'
+        : item.targetType === 'WISH_DETECTIVE_GAME'
+          ? 'WISH_DETECTIVE'
+          : item.targetType === 'OUR_MOMENTS_GAME'
+            ? 'OUR_MOMENTS'
+            : null;
+    return t(
+      game
+        ? `coupleExperiences.notifications.COUPLE_GAME_TURN_${game}`
+        : 'coupleExperiences.notifications.COUPLE_GAME_TURN',
+      {
+        name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+      },
+    );
+  }
+  // A garden bouquet reuses the seed notice with its own text (#1907 H3).
+  if (
+    item.kind === 'GARDEN_SEED_ARRIVED' &&
+    item.targetType === 'GARDEN_BOUQUET'
+  ) {
+    return t('coupleExperiences.notifications.GARDEN_BOUQUET', {
+      name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+    });
+  }
+  if (
+    item.kind === 'WISH_DATE_PROPOSED' ||
+    item.kind === 'WISH_DATE_COUNTERED' ||
+    item.kind === 'WISH_DATE_ACCEPTED'
+  ) {
+    return t(`m5s5.notificationAction.${item.kind}`, {
+      name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+    });
+  }
   if (item.kind === 'REMINDER_CREATED') {
     return t(
       targetTitle
@@ -36,8 +79,17 @@ export function getNotificationItemTitle(
       'PLAN_CANCELLED',
       'WISH_SELECTION_SHARED',
       'WISH_SELECTION_READY',
+      'WISH_SELECTION_RANDOM_REQUESTED',
+      'WISH_SELECTION_RANDOM_ACCEPTED',
+      'WISH_SELECTION_RANDOM_DECLINED',
+      'HEART_HUNT_HIDDEN',
+      'HEART_HUNT_FOUND',
+      'PICTURE_PING_PONG_TURN',
+      'PICTURE_PING_PONG_FINISHED',
       'PHOTO_REACTION',
       'PARTNER_JOINED',
+      'COLLECTION_SENT',
+      'GARDEN_SEED_ARRIVED',
       'TRANSFER_READY',
       'TRANSFER_COMPLETED',
       'TRANSFER_FAILED',
@@ -45,6 +97,16 @@ export function getNotificationItemTitle(
     ].includes(item.kind)
   ) {
     return t(`coupleExperiences.notifications.${item.kind}`, {
+      name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+    });
+  }
+
+  // The notice never carries the note's words: it only says who did what.
+  if (
+    item.kind === 'SHARED_NOTE_CREATED' ||
+    item.kind === 'SHARED_NOTE_CHANGED'
+  ) {
+    return t(`sharedNotes.notification.${item.kind}`, {
       name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
     });
   }

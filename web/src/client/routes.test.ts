@@ -10,6 +10,7 @@ import {
   collectionDetailPath,
   DEFAULT_APP_ROUTE,
   GAMES_MOMENTS_ROUTE,
+  GAMES_PICTURE_PING_PONG_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
   HEART_MOMENT_CREATE_ROUTE,
   HEART_MOMENT_DETAIL_ROUTE_PATTERN,
@@ -23,6 +24,7 @@ import {
   MILESTONE_DETAIL_ROUTE_PATTERN,
   MILESTONE_EDIT_ROUTE_PATTERN,
   MORE_NOTIFICATIONS_ROUTE,
+  MORE_PASSPORT_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PRIVATE_ROUTE,
   MORE_PROFILE_ROUTE,
@@ -38,30 +40,37 @@ import {
   PRIMARY_APP_ROUTES,
   placeDetailPath,
   planDetailPath,
+  planPathFromCalendarLink,
+  recapDetailPath,
   rewriteLegacyPath,
   SEARCH_ROUTE,
   SETTINGS_CATEGORY_ROUTES,
+  STORY_OURS_ROUTE,
+  STORY_RECAPS_ROUTE,
   settingsCategoryIdFromHash,
   settingsCategoryPath,
+  subpageParentPath,
   WISH_CREATE_ROUTE,
   WISH_DETAIL_ROUTE_PATTERN,
   wishDetailPath,
 } from './routes';
 
 describe('primary navigation', () => {
-  it('keeps four primary destinations while preserving the stable Games route', () => {
+  it('keeps five primary destinations while preserving the stable Games route', () => {
     expect(PRIMARY_APP_ROUTES.map((route) => route.id)).toEqual([
       'today',
       'story',
       'plan',
+      'shared',
       'more',
     ]);
-    expect(PRIMARY_APP_ROUTES).toHaveLength(4);
+    expect(PRIMARY_APP_ROUTES).toHaveLength(5);
     expect(APP_ROUTES.map((route) => route.id)).toEqual([
       'today',
       'story',
       'plan',
       'games',
+      'shared',
       'more',
     ]);
     expect(DEFAULT_APP_ROUTE).toBe('/today');
@@ -72,8 +81,11 @@ describe('primary navigation', () => {
     expect(appRoutePath('story')).toBe('/story');
     expect(appRoutePath('plan')).toBe('/plan');
     expect(appRoutePath('games')).toBe('/games');
+    // Lists are the home of Gemeinsam; Notes are its peer view.
+    expect(appRoutePath('shared')).toBe('/more/collections');
     expect(GAMES_MOMENTS_ROUTE).toBe('/games/our-moments');
     expect(GAMES_WISH_DETECTIVE_ROUTE).toBe('/games/wish-detective');
+    expect(GAMES_PICTURE_PING_PONG_ROUTE).toBe('/games/picture-ping-pong');
     expect(appRoutePath('more')).toBe('/more');
   });
 
@@ -81,7 +93,14 @@ describe('primary navigation', () => {
     const withSubRoutes = APP_ROUTES.filter((route) => !route.end).map(
       (route) => route.id,
     );
-    expect(withSubRoutes).toEqual(['today', 'story', 'plan', 'games', 'more']);
+    expect(withSubRoutes).toEqual([
+      'today',
+      'story',
+      'plan',
+      'games',
+      'shared',
+      'more',
+    ]);
   });
 
   it('keeps Games out of the primary shell while preserving its canonical route', () => {
@@ -121,11 +140,13 @@ describe('settings category routes', () => {
     );
     expect(SETTINGS_CATEGORY_ROUTES).toEqual({
       relationship: '/more/settings/relationship',
+      shared: '/more/settings/shared',
       notifications: '/more/settings/notifications',
       today: '/more/settings/today',
       memories: '/more/settings/memories',
       appearance: '/more/settings/appearance',
       media: '/more/settings/media',
+      calendar: '/more/settings/calendar',
       data: '/more/settings/data',
       account: '/more/settings/account',
     });
@@ -210,9 +231,32 @@ describe('content deep links', () => {
     );
   });
 
+  it('expands a calendar short link into the existing Plan detail path', () => {
+    const shortPath = '/p/_-7dzLuqSZiId2ZVRDMiEQ';
+    const target = '/plan/plans/ffeeddcc-bbaa-4998-8877-665544332211';
+    expect(planPathFromCalendarLink(shortPath)).toBe(target);
+    expect(planPathFromCalendarLink(`${shortPath}/`)).toBe(target);
+    expect(planPathFromCalendarLink(`${shortPath}/edit`)).toBeNull();
+    expect(planPathFromCalendarLink('/p/new')).toBeNull();
+    expect(planPathFromCalendarLink(`/other${shortPath}`)).toBeNull();
+    expect(planPathFromCalendarLink(target)).toBeNull();
+  });
+
+  it('treats Activity as a More destination for its shell Back fallback', () => {
+    expect(subpageParentPath('/more/notes/new')).toBe('/more/notes');
+    expect(subpageParentPath('/more/notes/note-1')).toBe('/more/notes');
+    expect(subpageParentPath('/more/notes/note-1/edit')).toBe(
+      '/more/notes/note-1',
+    );
+    expect(subpageParentPath('/more/notes')).toBe('/more');
+    expect(subpageParentPath(ACTIVITY_ROUTE)).toBe('/more');
+    expect(subpageParentPath(`${ACTIVITY_ROUTE}/`)).toBe('/more');
+    expect(subpageParentPath('/today/only-you/x')).toBe('/today');
+  });
+
   it('resolves active navigation area with corrected domain semantics', () => {
     expect(activeNavigationArea('/today')).toBe('today');
-    expect(activeNavigationArea('/today/activity')).toBe('today');
+    expect(activeNavigationArea('/today/activity')).toBe('more');
     expect(activeNavigationArea('/story')).toBe('story');
     expect(activeNavigationArea('/story/chapters')).toBe('story');
     expect(activeNavigationArea('/plan/chapters/c1')).toBe('story');
@@ -222,8 +266,11 @@ describe('content deep links', () => {
     expect(activeNavigationArea('/more')).toBe('more');
     expect(activeNavigationArea('/more/places')).toBe('more');
     expect(activeNavigationArea('/plan/places/p1')).toBe('more');
-    expect(activeNavigationArea('/more/collections')).toBe('more');
-    expect(activeNavigationArea('/plan/collections/k1')).toBe('more');
+    expect(activeNavigationArea('/more/collections')).toBe('shared');
+    expect(activeNavigationArea('/more/collections/new')).toBe('shared');
+    expect(activeNavigationArea('/plan/collections/k1')).toBe('shared');
+    expect(activeNavigationArea('/more/notes')).toBe('shared');
+    expect(activeNavigationArea('/more/notes/n1/edit')).toBe('shared');
     expect(activeNavigationArea('/more/people')).toBe('more');
     expect(activeNavigationArea('/more/private/notes')).toBe('more');
     expect(activeNavigationArea('/plan')).toBe('plan');
@@ -240,6 +287,26 @@ describe('legacy paths', () => {
     expect(rewriteLegacyPath('/people')).toBe('/more/people');
     expect(rewriteLegacyPath('/notifications')).toBe('/more/notifications');
     expect(rewriteLegacyPath('/profile')).toBe('/more/profile');
+  });
+
+  it('sends the former More passport address to the couple story page', () => {
+    expect(STORY_OURS_ROUTE).toBe('/story/our-story');
+    expect(rewriteLegacyPath(MORE_PASSPORT_ROUTE)).toBe(STORY_OURS_ROUTE);
+    expect(rewriteLegacyPath('/more/passport')).toBe('/story/our-story');
+    expect(rewriteLegacyPath('/more/passport-notes')).toBeNull();
+    // The destination is current: it is not rewritten again and keeps the
+    // Momente tab active like the recap library next to it.
+    expect(rewriteLegacyPath(STORY_OURS_ROUTE)).toBeNull();
+    expect(rewriteLegacyPath(STORY_RECAPS_ROUTE)).toBeNull();
+    expect(activeNavigationArea(STORY_OURS_ROUTE)).toBe('story');
+    expect(activeNavigationArea(STORY_RECAPS_ROUTE)).toBe('story');
+  });
+
+  it('keeps shared recap reader links from More opening the reader', () => {
+    expect(rewriteLegacyPath('/more/passport/edition-1')).toBe(
+      recapDetailPath('edition-1'),
+    );
+    expect(recapDetailPath('edition-1')).toBe('/story/recaps/edition-1');
   });
 
   it('keeps shared content deep links working', () => {

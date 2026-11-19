@@ -14,6 +14,7 @@ import {
   hasPendingAttachments,
   readyAttachmentIds,
 } from './attachmentDraftState';
+import { cancelVideoTransfer } from './backgroundVideoUploads';
 import {
   type DraftUploadPhase,
   uploadMemoryDraftAttachment,
@@ -22,6 +23,7 @@ import { createOwnedObjectUrl, type OwnedObjectUrl } from './objectUrlResource';
 import { recoverSelectedPhoto } from './recoverSelectedPhoto';
 import type { ReferenceApis } from './referenceFlow';
 import {
+  missingSelectedPhoto,
   retainPhotoInMemory,
   selectedPhotoUnavailable,
 } from './selectedMediaRetention';
@@ -47,6 +49,7 @@ export interface AttachmentDraftOptions {
   uploadAttachmentFn?: typeof uploadMemoryDraftAttachment;
   /** Avatars do not participate in selected-photo place enrichment. */
   preserveMetadata?: boolean;
+  createPreviews?: boolean;
   /**
    * Caller-computed remaining capacity (`MAX_MEMORY_ATTACHMENTS -
    * alreadyBoundAttachmentCount`). Files beyond this never start a server
@@ -56,11 +59,24 @@ export interface AttachmentDraftOptions {
   maxAttachments?: number;
 }
 
+/**
+ * A video the server already staged from a provider (#1467). It carries only the
+ * authorized attachment reference and display facts, never bytes or provider data.
+ */
+export interface StagedVideo {
+  attachmentId: string;
+  name: string;
+  mimeType: string;
+  processing: boolean;
+  hasThumbnail: boolean;
+  durationSeconds?: number | null;
+}
+
 /** Volatile handoff for one asynchronous picker result, never provider state. */
 export interface AttachmentDraftSelection {
   readonly signal: AbortSignal;
   /** True means delivered to the existing capacity/upload flow, not saved. */
-  commit: (files: readonly File[]) => boolean;
+  commit: (files: readonly File[], staged?: readonly StagedVideo[]) => boolean;
   cancel: () => void;
 }
 
@@ -149,6 +165,7 @@ export function useAttachmentDrafts({
   fetchApi = fetch,
   uploadAttachmentFn = uploadMemoryDraftAttachment,
   preserveMetadata = true,
+  createPreviews = true,
   maxAttachments = Number.POSITIVE_INFINITY,
 }: AttachmentDraftOptions) {
   const accountSpace = formatAttachmentDraftContextKey(accountId, spaceId);
@@ -218,6 +235,8 @@ export function useAttachmentDrafts({
     store.generation === currentGeneration.current &&
     committedContextKey.current === contextKey;
   const items = isCurrentContext ? store.items : [];
+  const currentItems = useRef(items);
+  currentItems.current = items;
 
   // `pump` and `runUpload` are mutually recursive (pump starts queued
   // uploads; each upload's completion calls pump again to start the next
@@ -289,6 +308,7 @@ export function useAttachmentDrafts({
           signal: controller.signal,
           onProgress: updateProgress,
           preserveMetadata,
+          accountId,
         },
       )
         .then(({ attachmentId, hasThumbnail, durationSeconds, processing }) => {
@@ -346,6 +366,7 @@ export function useAttachmentDrafts({
       spaceId,
       uploadAttachmentFn,
       preserveMetadata,
+      accountId,
     ],
   );
   useLayoutEffect(() => {
@@ -366,6 +387,9 @@ export function useAttachmentDrafts({
         file: File;
         attachmentId?: string;
         isSensitive?: boolean;
+        processing?: boolean;
+        hasThumbnail?: boolean;
+        durationSeconds?: number | null;
       }[],
     ) => {
       const currentContext = committedContextKey.current;
@@ -378,16 +402,24 @@ export function useAttachmentDrafts({
       setRejectedCount(selected.length - accepted.length);
 
       const restoredIds: string[] = [];
-      for (const { file, attachmentId, isSensitive } of accepted) {
+      for (const {
+        file,
+        attachmentId,
+        isSensitive,
+        processing,
+        hasThumbnail,
+        durationSeconds,
+      } of accepted) {
         if (file.type.startsWith('video/')) retainPhotoInMemory(file);
         const id = globalThis.crypto.randomUUID();
         restoredIds.push(id);
         const unavailable =
           selectedPhotoUnavailable(file) &&
           !(file.type.startsWith('video/') && attachmentId);
-        const previewResource = unavailable
-          ? undefined
-          : createOwnedObjectUrl(file);
+        const previewResource =
+          unavailable || !createPreviews
+            ? undefined
+            : createOwnedObjectUrl(file);
         const previewUrl = previewResource?.url ?? '';
         if (previewResource) previewUrls.current.set(id, previewResource);
         draftCount.current += 1;
@@ -409,6 +441,9 @@ export function useAttachmentDrafts({
               attempt: 0,
               progress: attachmentId ? 100 : 0,
               attachmentId,
+              hasThumbnail,
+              durationSeconds,
+              processing,
               isSensitive: isSensitive ?? false,
               error: unavailable
                 ? i18n.t('memory.diary.photoUnavailable')
@@ -420,7 +455,7 @@ export function useAttachmentDrafts({
       }
       return restoredIds;
     },
-    [enqueue, maxAttachments],
+    [createPreviews, enqueue, maxAttachments],
   );
 
   const addFiles = useCallback(
@@ -433,9 +468,11 @@ export function useAttachmentDrafts({
   // A picker can finish after capacity or transport props changed. Use the
   // latest committed ingress only after validating its launch ownership.
   const addSelectedFiles = useRef(addFiles);
+  const restoreSelected = useRef(restore);
   useLayoutEffect(() => {
     addSelectedFiles.current = addFiles;
-  }, [addFiles]);
+    restoreSelected.current = restore;
+  }, [addFiles, restore]);
 
   const beginSelection = useCallback((): AttachmentDraftSelection => {
     const selectionContext = committedContextKey.current;
@@ -454,7 +491,7 @@ export function useAttachmentDrafts({
     return {
       signal: controller.signal,
       cancel: cancelSelection,
-      commit(files) {
+      commit(files, staged = []) {
         if (
           settled ||
           controller.signal.aborted ||
@@ -468,7 +505,24 @@ export function useAttachmentDrafts({
         }
         settled = true;
         selections.current.delete(controller);
-        addSelectedFiles.current(files);
+        // Staged references join in the picker's own order, after the Files.
+        if (staged.length) {
+          restoreSelected.current([
+            ...files.map((file) => ({ file })),
+            ...staged.map((video) => ({
+              file: missingSelectedPhoto({
+                name: video.name,
+                type: video.mimeType,
+                lastModified: Date.now(),
+                size: 0,
+              }),
+              attachmentId: video.attachmentId,
+              processing: video.processing,
+              hasThumbnail: video.hasThumbnail,
+              durationSeconds: video.durationSeconds,
+            })),
+          ]);
+        } else addSelectedFiles.current(files);
         return true;
       },
     };
@@ -482,6 +536,10 @@ export function useAttachmentDrafts({
 
   const remove = useCallback(
     (id: string) => {
+      const attachmentId = currentItems.current.find(
+        (item) => item.id === id,
+      )?.attachmentId;
+      if (attachmentId) cancelVideoTransfer(attachmentId);
       cancel(id);
       draftCount.current = Math.max(0, draftCount.current - 1);
       previewUrls.current.get(id)?.dispose();
@@ -561,6 +619,30 @@ export function useAttachmentDrafts({
     [apis, spaceId, enqueue],
   );
 
+  const replaceFile = useCallback(
+    (id: string, file: File) => {
+      if (!currentItems.current.some((item) => item.id === id)) return;
+      cancel(id);
+      const preview = createPreviews ? createOwnedObjectUrl(file) : undefined;
+      previewUrls.current.get(id)?.dispose();
+      if (preview) previewUrls.current.set(id, preview);
+      else previewUrls.current.delete(id);
+      dispatch({
+        type: 'draft_action',
+        contextKey: committedContextKey.current,
+        generation: currentGeneration.current,
+        action: {
+          type: 'replaced',
+          id,
+          file,
+          previewUrl: preview?.url ?? '',
+        },
+      });
+      enqueue(id, file);
+    },
+    [cancel, createPreviews, enqueue],
+  );
+
   const clear = useCallback(() => {
     currentGeneration.current += 1;
     abortSelections(selections.current);
@@ -609,6 +691,7 @@ export function useAttachmentDrafts({
     beginSelection,
     restore,
     replaceReadyId,
+    replaceFile,
     move,
     cancel,
     remove,

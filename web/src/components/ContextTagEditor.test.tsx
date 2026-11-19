@@ -15,11 +15,13 @@ function Editor({
   submit = vi.fn(),
   dirty = vi.fn(),
   submitOwned = false,
+  discloseEmpty = false,
 }: {
   initial?: string[];
   submit?: (tags: FormDataEntryValue[]) => void;
   dirty?: (value: boolean) => void;
   submitOwned?: boolean;
+  discloseEmpty?: boolean;
 }) {
   const [tags, setTags] = useState(initial);
   const editorRef = useRef<ContextTagEditorHandle>(null);
@@ -40,6 +42,7 @@ function Editor({
         suggestions={['home']}
         labelForTag={(tag) => tag}
         onDraftChange={dirty}
+        discloseEmpty={discloseEmpty}
       />
       <button type="submit">Save moment</button>
     </form>
@@ -64,6 +67,45 @@ it('Enter adds a normalized authored tag without submitting, and removal returns
   );
   expect(screen.queryByText('Unser Urlaub')).toBeNull();
   expect(document.activeElement).toBe(input);
+});
+
+it('discloses an empty entry on intent while retaining submission ownership and chip-removal focus', async () => {
+  const user = userEvent.setup();
+  const submit = vi.fn();
+  render(<Editor discloseEmpty submitOwned submit={submit} />);
+  expect(screen.queryByRole('textbox')).toBeNull();
+  await user.click(screen.getByRole('button', { name: copy.add }));
+  const input = screen.getByRole('textbox');
+  expect(document.activeElement).toBe(input);
+  await user.type(input, 'Our day{Enter}');
+  await user.click(
+    screen.getByRole('button', {
+      name: copy.remove.replace('{{tag}}', 'Our day'),
+    }),
+  );
+  expect(screen.getByRole('textbox')).toBe(input);
+  expect(document.activeElement).toBe(input);
+  await user.type(input, 'A new tradition');
+  await user.click(screen.getByText('Save moment'));
+  expect(submit).toHaveBeenCalledExactlyOnceWith(['A new tradition']);
+});
+
+it('reveals a restored pending draft without resetting the mounted draft owner', () => {
+  const change = vi.fn();
+  const props = {
+    selected: [],
+    onChange: change,
+    suggestions: ['home'],
+    labelForTag: (tag: string) => tag,
+    discloseEmpty: true,
+  };
+  const { rerender } = render(<ContextTagEditor {...props} draftValue="" />);
+  expect(screen.queryByRole('textbox')).toBeNull();
+  rerender(<ContextTagEditor {...props} draftValue="Unfinished label" />);
+  expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe(
+    'Unfinished label',
+  );
+  expect(change).not.toHaveBeenCalled();
 });
 
 it('direct Save commits a valid pending label into submitted form data', async () => {

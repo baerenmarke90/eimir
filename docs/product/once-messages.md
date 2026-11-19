@@ -106,8 +106,12 @@ existing PushDelivery/provider pipeline, inherited partner-message channel choic
 Quiet Hours and active-device consent. Current recipient/source/expiry are checked
 at projection, delivery and tap. No email, reminder, digest, foreground banner,
 content excerpt, title, photo, audio, filename or decrypted rich native preview.
-Legacy apps receive the existing neutral wake and open the Center safely. A tap
-opens the sealed page and does not consume it. Retries cannot duplicate unread work.
+Legacy Android registrations receive the existing neutral wake and open the
+Center. Current FCM clients negotiate an encrypted reference containing no
+sender, source title, content or media. UnifiedPush, Web Push and APNs use their
+existing opaque-reference contracts where negotiated. After authentication the
+tap opens the sealed page while the message is available. The reader's separate
+explicit action consumes the message. Retries cannot duplicate unread work.
 
 ## Business / Freemium Model Consistency
 

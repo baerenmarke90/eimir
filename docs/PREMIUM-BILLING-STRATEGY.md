@@ -1,9 +1,9 @@
 # eimir. - Premium Billing Strategy
 
 **Status:** authoritative commercial packaging baseline  
-**Version:** 1.0  
-**Decision date:** 2026-09-10  
-**Owning product decision:** #876  
+**Version:** 1.2  
+**Decision date:** 2026-09-10; price revised 2026-11-14; channels revised 2026-11-15  
+**Owning product decision:** #876; price superseded by the Product Owner decision recorded with #1892; purchase channels superseded by the Product Owner decision recorded with #1525  
 **Freemium strategy:** [FREEMIUM-FEATURE-MATRIX.md](./FREEMIUM-FEATURE-MATRIX.md)  
 **Business model:** [BUSINESS-MODEL.md](./BUSINESS-MODEL.md)  
 **Entitlement architecture:** [ADR 0006](m6/ADR-0006-ENTITLEMENT-ARCHITECTURE.md)
@@ -62,14 +62,17 @@ Do not pre-build Family billing, family-specific entitlement types, or a tier la
 
 ## Reference pricing
 
-Initial EUR reference pricing is defined **per relationship/Space**:
+EUR target pricing is defined **per relationship/Space**. The Product Owner decision of 2026-11-14 (#1892) supersedes the #876 reference price of EUR 5.99 monthly / EUR 49.99 annual:
 
-| Billing period | Reference price |
+| Billing period | Target price |
 | --- | ---: |
-| Monthly | **EUR 5.99** |
-| Annual | **EUR 49.99** |
+| Monthly | **EUR 7.99** |
+| Annual | **EUR 59.99** |
+| eimir. Free | **free, permanently** |
 
-Twelve monthly payments equal EUR 71.88. The annual plan therefore saves EUR 21.89, approximately **30.5%** relative to twelve monthly payments.
+Twelve monthly payments equal EUR 95.88. The annual plan therefore saves EUR 35.89, approximately **37%** relative to twelve monthly payments.
+
+Production purchase prices must come from the valid offer of the connected store (Google Play Billing in the Android app; Apple In-App Purchase at the iOS launch). The store catalog is configured with these target prices; the paywall shows the store's live offer and uses the target prices only as product information where no store channel exists (browser, iOS before launch, Self-Hosted), without a purchase action, simulated confirmation or local unlock (see [docs/product/design/pro-paywall.md](product/design/pro-paywall.md)).
 
 ### Space-level purchase semantics
 
@@ -81,7 +84,7 @@ The purchaser remains the billing owner/sponsor for provider renewal, invoice, c
 
 ### Currency and tax presentation
 
-EUR is the initial reference price frozen by #876.
+EUR is the reference currency; the current target price is the 2026-11-14 decision above.
 
 This document does not freeze independent USD or other regional price points. Provider/store catalogs may localize currency, tax display, and regional pricing where legally or commercially required, but those values belong to the commercial adapter/catalog boundary rather than the domain entitlement model.
 
@@ -89,9 +92,9 @@ This document does not freeze independent USD or other regional price points. Pr
 
 ## Cloud and Self-Hosted pricing
 
-The initial consumer product direction uses the same EUR Pro reference price for both operating models:
+The consumer product direction uses the same EUR Pro target price for both operating models:
 
-> **eimir. Pro: EUR 5.99/month or EUR 49.99/year per Space, whether the Space is Cloud/Managed or Self-Hosted.**
+> **eimir. Pro: EUR 7.99/month or EUR 59.99/year per Space, whether the Space is Cloud/Managed or Self-Hosted.**
 
 This does not make the operating models technically identical.
 
@@ -247,33 +250,32 @@ Provider catalogs map commercial products to normalized grants/capabilities; the
 
 ---
 
-## Initial provider direction
+## Purchase channels
 
-### Direct Cloud/Web billing: Stripe first
+Product Owner decision of 2026-11-15 (#1525), superseding the 2026-09-10 "Stripe first, stores later" direction:
 
-Stripe is the initial provider direction for direct hosted/web billing because it can handle subscription checkout, recurring billing, invoices, webhooks, refunds, and customer billing management without requiring a custom payment processor.
+| Channel | Status | Covers |
+| --- | --- | --- |
+| **Google Play Billing** (Android app) | implemented; awaits Play Console setup | eimir. Cloud Spaces |
+| **Apple In-App Purchase / StoreKit 2** (iOS app) | prepared (source type, plugin); connected at the iOS launch | eimir. Cloud Spaces |
+| Stripe / browser checkout | **not offered** | — |
+| Signed offline license | existing verifier; delivery defined later | Self-Hosted |
 
-The Stripe adapter must remain replaceable. Stripe-specific events are translated into normalized entitlement lifecycle changes.
-
-Conceptually:
+- Purchases are **in-app only**. The browser paywall shows plans and the "not available here" note; it never links to an external checkout.
+- Store purchases unlock **eimir. Cloud** Spaces. Only the publisher's backend holds store credentials, so a Self-Hosted instance cannot verify store purchases; it keeps the signed offline license (details defined later).
+- A **free trial** is approved in principle; it is configured as a Play (later App Store) offer and maps to the existing `TRIAL` state. Its duration is not decided.
+- Both stores feed the same Space entitlement; Pro bought on Android is also active in the iOS app and the browser, for both partners.
 
 ```text
-Stripe Checkout / Billing Portal / Webhook
-                 |
-                 v
-          Stripe billing adapter
-                 |
-                 v
-        normalized EntitlementGrant
+Play purchase sheet (app) ─ purchase token ─┐
+RTDN (Pub/Sub push, Google-signed) ─────────┤
+                                            v
+              Google Play adapter: subscriptionsv2 = current truth
+                                            v
+         normalized EntitlementGrant (GOOGLE_PLAY, one per purchase)
 ```
 
-Before runtime implementation, perform the repository's normal reuse/provider review, including current API/SDK choice, licensing/terms, privacy/data flow, webhook verification, failure handling, cost, Self-Hosted impact, and operational fallback.
-
-### App stores later
-
-Google Play Billing and Apple App Store billing are added only when the corresponding distribution path requires them. They must map to the same normalized entitlement model and restore/reconciliation semantics.
-
-Do not make app-store billing a prerequisite for the initial direct billing architecture.
+The adapter is store-neutral at its boundary (`billing/store.py`); the App Store adapter adds App Store Server API verification and App Store Server Notifications V2 behind the same interface. Operations and owner setup: [operations/google-play-billing.md](operations/google-play-billing.md).
 
 ---
 
@@ -351,9 +353,9 @@ Default grandfathering is **commercial-price grandfathering**, not a frozen hist
 Example:
 
 ```text
-Customer subscribed at EUR 5.99/month
+Customer subscribed at EUR 7.99/month
 Public price later changes
-=> billing policy may preserve EUR 5.99/month for that existing subscription
+=> billing policy may preserve EUR 7.99/month for that existing subscription
 ```
 
 An active normal Premium customer receives the current normalized Premium capability set unless an explicit product/migration decision defines a legacy exception.
@@ -435,40 +437,26 @@ Do not implement billing as one cross-provider mega-PR.
 
 Recommended order after #876 documentation is accepted:
 
-### Slice 1 - direct hosted Stripe adapter
+### Slice 1 - Google Play adapter (#1525, implemented)
 
-- provider-specific customer/subscription mapping;
-- checkout/session creation through provider-supported primitives;
-- webhook verification and idempotent event handling;
-- normalized `EntitlementGrant` reconciliation;
-- cancellation/renewal/failure mapping;
-- provider-neutral API projection to clients;
-- tests for replay, out-of-order events, refund/chargeback, and cross-Space isolation.
+- purchase reference binding sponsor Account and Space before the store sheet;
+- server-side `subscriptionsv2` verification and acknowledgement;
+- RTDN endpoint with Google-signed Pub/Sub authentication;
+- idempotent `EntitlementGrant` reconciliation, renewal/grace/expiry/refund/revocation mapping;
+- restore for the sponsor; cross-Space isolation tests;
+- live store prices, restore and store subscription management on the shared paywall.
 
-### Slice 2 - Self-Hosted signed-license adapter
+### Slice 2 - App Store adapter (at the iOS launch)
 
-- signed-license verification;
-- safe installation/import flow;
-- normalized grant creation/update;
-- expiry/legacy behavior;
-- offline operation and clock/tamper boundary according to ADR 0006;
-- no phone-home dependency.
+- StoreKit 2 through the same Capacitor plugin, `appAccountToken` = purchase reference;
+- App Store Server API verification and signed App Store Server Notifications V2;
+- same normalized grant model; no Apple identifiers in feature checks.
 
-### Slice 3 - restore and account subscription management
+### Slice 3 - Self-Hosted signed-license delivery (defined later)
 
-- restore/re-bind contract;
-- current billing owner/provider state presentation;
-- secure link into provider billing management where applicable;
-- non-destructive downgrade UX;
-- entitlement refresh/reconciliation behavior.
-
-### Slice 4 - app-store adapters when distribution requires them
-
-- Google Play and/or App Store provider evidence;
-- server-side verification where required;
-- same normalized grant model;
-- store-compliant restore/cancellation semantics;
-- no app-store identifiers in feature/domain checks.
+- signed-license issuance and safe import;
+- normalized grant creation/update, expiry/legacy behavior;
+- offline operation and clock/tamper boundary according to ADR 0006; no phone-home.
 
 ---
 
@@ -486,7 +474,7 @@ This strategy does not:
 - replace ADR 0006;
 - replace the authoritative feature matrix;
 - introduce a parallel entitlement registry;
-- make Stripe mandatory for Self-Hosted;
+- offer a browser/Stripe checkout;
 - require license-server phone-home;
 - permit billing state to override content authorization or privacy.
 
@@ -498,8 +486,8 @@ As of 2026-09-10 / #876:
 
 1. Consumer packaging is **Free + eimir. Pro**.
 2. `eimir. Pro` maps to the internal `PREMIUM` entitlement tier/capability set.
-3. Price is **EUR 5.99/month** or **EUR 49.99/year** per Space.
-4. Annual pricing represents approximately **30.5%** savings versus twelve monthly payments.
+3. Price is **EUR 7.99/month** or **EUR 59.99/year** per Space (Product Owner decision 2026-11-14, #1892; supersedes the #876 values EUR 5.99/EUR 49.99). eimir. Free stays free permanently.
+4. Annual pricing represents approximately **37%** savings versus twelve monthly payments.
 5. One current relationship Space requires one consumer Premium entitlement, not one subscription per partner.
 6. No Family tier is introduced for v1.
 7. No artificial count limit is introduced for Memories or other core relationship entities.
@@ -508,7 +496,8 @@ As of 2026-09-10 / #876:
 10. Existing Search remains Core; future materially different AI/semantic discovery requires separate classification.
 11. Initial EUR Pro pricing is the same for Cloud and Self-Hosted while operating-model responsibilities remain distinct.
 12. Third-party commercial-use licensing remains a separate axis from consumer Premium.
-13. Stripe is the initial direct hosted billing provider direction, implemented only behind a provider adapter.
+13. ~~Stripe is the initial direct hosted billing provider direction.~~ Superseded 2026-11-15 (#1525): purchases are in-app only — Google Play Billing now, Apple In-App Purchase at the iOS launch, no Stripe — each behind a store adapter feeding the same Space entitlement.
 14. Self-Hosted Premium uses offline-verifiable signed license material without mandatory phone-home.
 15. Default grandfathering preserves commercial price where applicable; it does not freeze the historical Premium feature set for every customer.
-16. Trial duration and non-EUR regional price points remain separate pre-launch decisions.
+16. Non-EUR regional price points remain a separate pre-launch decision. A free trial is approved in principle (2026-11-15, #1525) as a store offer; its duration remains open.
+17. Store purchases unlock eimir. Cloud Spaces; Self-Hosted keeps the signed offline license (2026-11-15, #1525; details defined later).

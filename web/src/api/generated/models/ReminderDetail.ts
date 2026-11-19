@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { ReminderWishOrigin } from './ReminderWishOrigin';
+import {
+    ReminderWishOriginFromJSON,
+    ReminderWishOriginFromJSONTyped,
+    ReminderWishOriginToJSON,
+    ReminderWishOriginToJSONTyped,
+} from './ReminderWishOrigin';
 import type { ResourceCapabilities } from './ResourceCapabilities';
 import {
     ResourceCapabilitiesFromJSON,
@@ -97,6 +104,12 @@ export interface ReminderDetail {
      */
     offsets: Array<number>;
     /**
+     * The readable Wish behind a Plan reminder whose Plan was created from a Wish; null for manual reminders, other sources, direct Plans, or an unreadable Wish.
+     * @type {ReminderWishOrigin}
+     * @memberof ReminderDetail
+     */
+    originWish: ReminderWishOrigin | null;
+    /**
      * 
      * @type {string}
      * @memberof ReminderDetail
@@ -166,6 +179,7 @@ export function instanceOfReminderDetail(value: object): value is ReminderDetail
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('muted' in value) || value['muted'] === undefined) return false;
     if (!('offsets' in value) || value['offsets'] === undefined) return false;
+    if (!('originWish' in value) || value['originWish'] === undefined) return false;
     if (!('ruleKey' in value) || value['ruleKey'] === undefined) return false;
     if (!('schedule' in value) || value['schedule'] === undefined) return false;
     if (!('source' in value) || value['source'] === undefined) return false;
@@ -196,6 +210,7 @@ export function ReminderDetailFromJSONTyped(json: any, ignoreDiscriminator: bool
         'id': json['id'],
         'muted': json['muted'],
         'offsets': json['offsets'],
+        'originWish': ReminderWishOriginFromJSON(json['originWish']),
         'ruleKey': json['ruleKey'],
         'schedule': ScheduleFromJSON(json['schedule']),
         'source': ReminderSourceFromJSON(json['source']),
@@ -227,6 +242,7 @@ export function ReminderDetailToJSONTyped(value?: ReminderDetail | null, ignoreD
         'id': value['id'],
         'muted': value['muted'],
         'offsets': value['offsets'],
+        'originWish': ReminderWishOriginToJSON(value['originWish']),
         'ruleKey': value['ruleKey'],
         'schedule': ScheduleToJSON(value['schedule']),
         'source': ReminderSourceToJSON(value['source']),

@@ -699,3 +699,163 @@ class TestEventsLeakNothing:
             ).scalars()
         ]
         assert event_types == ["HEART_MOMENT_CREATED"]
+
+
+LOCATION = {
+    "name": "A private lake",
+    "address": "A private address",
+    "latitude": 49.1,
+    "longitude": 7.2,
+}
+
+
+class TestPrivateLocation:
+    def test_location_is_owner_content_without_any_shared_place_or_relation(
+        self, client, couple, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        from sqlalchemy import func
+
+        from eimir.places.models import Place
+        from eimir.relations.models import PlaceHeartMoment
+
+        response = client.post(
+            path(couple["space"].id),
+            json={**body(visibility="PRIVATE"), "location": LOCATION},
+            headers=auth(couple["token_a"]),
+        )
+        assert response.status_code == 201
+        record = response.json()
+        url = f"{path(couple['space'].id)}/{record['id']}"
+        assert record["location"] == LOCATION
+        assert client.get(url, headers=auth(couple["token_a"])).json()["location"] == LOCATION
+        for token in ("token_b", "token_outsider"):
+            assert client.get(url, headers=auth(couple[token])).status_code == 404
+            listing = client.get(path(couple["space"].id), headers=auth(couple[token]))
+            assert LOCATION["name"] not in listing.text
+            assert record["id"] not in listing.text
+        assert session.scalar(select(func.count()).select_from(Place)) == 0
+        assert session.scalar(select(func.count()).select_from(PlaceHeartMoment)) == 0
+        events = session.scalars(
+            select(OutboxEvent).where(OutboxEvent.subject_id == UUID(record["id"]))
+        ).all()
+        assert events
+        assert LOCATION["name"] not in str([event.payload for event in events])
+
+    def test_location_update_omit_clear_and_stale_version(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        created = client.post(
+            path(couple["space"].id),
+            json={**body(visibility="PRIVATE"), "location": LOCATION},
+            headers=auth(couple["token_a"]),
+        ).json()
+        url = f"{path(couple['space'].id)}/{created['id']}"
+        updated = client.patch(
+            url, json={"location": {"name": "Another lake"}}, headers=if_match(couple["token_a"], 1)
+        )
+        assert updated.status_code == 200
+        assert updated.json()["location"]["name"] == "Another lake"
+        assert (
+            client.patch(
+                url, json={"location": None}, headers=if_match(couple["token_a"], 1)
+            ).status_code
+            == 409
+        )
+        unchanged = client.patch(
+            url, json={"text": "A changed thought"}, headers=if_match(couple["token_a"], 2)
+        )
+        assert unchanged.status_code == 200
+        assert unchanged.json()["location"]["name"] == "Another lake"
+        assert (
+            client.patch(
+                url, json={"location": None}, headers=if_match(couple["token_b"], 3)
+            ).status_code
+            == 404
+        )
+        cleared = client.patch(url, json={"location": None}, headers=if_match(couple["token_a"], 3))
+        assert cleared.status_code == 200
+        assert cleared.json()["location"] is None
+
+    def test_location_belongs_to_the_moment_across_explicit_visibility_changes(
+        self, client, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        created = client.post(
+            path(couple["space"].id),
+            json={**body(visibility="PRIVATE"), "location": LOCATION},
+            headers=auth(couple["token_a"]),
+        ).json()
+        url = f"{path(couple['space'].id)}/{created['id']}"
+        shared = client.patch(
+            f"{url}/visibility",
+            json={"visibility": "SHARED"},
+            headers=if_match(couple["token_a"], 1),
+        )
+        assert shared.status_code == 200
+        assert client.get(url, headers=auth(couple["token_b"])).json()["location"] == LOCATION
+        private = client.patch(
+            f"{url}/visibility",
+            json={"visibility": "PRIVATE"},
+            headers=if_match(couple["token_a"], 2),
+        )
+        assert private.status_code == 200
+        assert private.json()["location"] == LOCATION
+        assert client.get(url, headers=auth(couple["token_b"])).status_code == 404
+
+    def test_idempotency_includes_location_content(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        headers = {**auth(couple["token_a"]), "Idempotency-Key": str(uuid4())}
+        request = {**body(visibility="PRIVATE"), "location": LOCATION}
+        created = client.post(path(couple["space"].id), json=request, headers=headers)
+        repeated = client.post(path(couple["space"].id), json=request, headers=headers)
+        assert created.status_code == 201
+        assert repeated.status_code == 200
+        assert repeated.json()["id"] == created.json()["id"]
+        changed = client.post(
+            path(couple["space"].id),
+            json={**request, "location": {"name": "Different lake"}},
+            headers=headers,
+        )
+        assert changed.status_code == 409
+
+    def test_private_location_is_encrypted_and_only_in_owner_personal_export(
+        self, client, couple, session, encryption
+    ) -> None:  # type: ignore[no-untyped-def]
+        from sqlalchemy import text
+
+        from eimir.authorization import AuthorizationContext
+        from eimir.transfer.models import TransferScope
+        from eimir.transfer.service import build_export_archive
+
+        encryption.apply("required")
+        response = client.post(
+            path(couple["space"].id),
+            json={**body(visibility="PRIVATE"), "location": LOCATION},
+            headers=auth(couple["token_a"]),
+        )
+        assert response.status_code == 201
+        record = response.json()
+        raw = session.execute(
+            text("SELECT payload::text, crypto_version FROM heart_moments WHERE id=:id"),
+            {"id": UUID(record["id"])},
+        ).one()
+        assert LOCATION["name"] not in raw[0]
+        assert LOCATION["address"] not in raw[0]
+        assert raw[1] == 2
+        from zipfile import ZipFile
+
+        for account, scope, expected in (
+            ("anna", TransferScope.PERSONAL, True),
+            ("ben", TransferScope.PERSONAL, False),
+            ("anna", TransferScope.SHARED, False),
+            ("ben", TransferScope.SHARED, False),
+        ):
+            context = AuthorizationContext(
+                account_id=couple[account].id, space_id=couple["space"].id
+            )
+            with (
+                build_export_archive(session, context, scope) as bundle,
+                ZipFile(bundle) as archive,
+            ):
+                data = "\n".join(
+                    archive.read(name).decode()
+                    for name in archive.namelist()
+                    if name.endswith(".json")
+                )
+                assert (LOCATION["name"] in data) is expected

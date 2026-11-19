@@ -14,10 +14,20 @@
 
 import * as runtime from '../runtime';
 import {
+    type ContentVisibility,
+    ContentVisibilityFromJSON,
+    ContentVisibilityToJSON,
+} from '../models/ContentVisibility';
+import {
     type DiscoverSelection,
     DiscoverSelectionFromJSON,
     DiscoverSelectionToJSON,
 } from '../models/DiscoverSelection';
+import {
+    type MediaGalleryPage,
+    MediaGalleryPageFromJSON,
+    MediaGalleryPageToJSON,
+} from '../models/MediaGalleryPage';
 import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
@@ -48,6 +58,13 @@ import {
     StoryViewReceiptFromJSON,
     StoryViewReceiptToJSON,
 } from '../models/StoryViewReceipt';
+
+export interface GetMediaGalleryRequest {
+    spaceId: string;
+    visibility?: ContentVisibility;
+    cursor?: string | null;
+    limit?: number;
+}
 
 export interface GetSharedPhotosRequest {
     spaceId: string;
@@ -82,6 +99,65 @@ export interface RenewStoryDiscoverRequest {
  * 
  */
 export class StoryApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for getMediaGallery without sending the request
+     */
+    async getMediaGalleryRequestOpts(requestParameters: GetMediaGalleryRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getMediaGallery().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['visibility'] != null) {
+            queryParameters['visibility'] = requestParameters['visibility'];
+        }
+
+        if (requestParameters['cursor'] != null) {
+            queryParameters['cursor'] = requestParameters['cursor'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/media`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Browse ready media bound to shared entries or to the caller\'s private entries.
+     * Get Media Gallery
+     */
+    async getMediaGalleryRaw(requestParameters: GetMediaGalleryRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MediaGalleryPage>> {
+        const requestOptions = await this.getMediaGalleryRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MediaGalleryPageFromJSON(jsonValue));
+    }
+
+    /**
+     * Browse ready media bound to shared entries or to the caller\'s private entries.
+     * Get Media Gallery
+     */
+    async getMediaGallery(requestParameters: GetMediaGalleryRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MediaGalleryPage> {
+        const response = await this.getMediaGalleryRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for getSharedPhotos without sending the request

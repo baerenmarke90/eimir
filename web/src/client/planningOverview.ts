@@ -81,7 +81,9 @@ export function selectUpcomingPlans(
   return plans
     .filter((plan) => {
       if (plan.status !== PlanStatus.PLANNED) return false;
-      if (plan.plannedOn) return dateOnlyInput(plan.plannedOn) >= today;
+      // A running multi-day Plan stays upcoming through its last day.
+      if (plan.plannedOn)
+        return dateOnlyInput(plan.plannedUntil ?? plan.plannedOn) >= today;
       return plan.plannedStart !== null && plan.plannedStart.getTime() >= nowMs;
     })
     .sort((left, right) => {

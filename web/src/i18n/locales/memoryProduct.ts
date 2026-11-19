@@ -1,6 +1,9 @@
 const memoryProduct = {
   planning: {
-    heading: 'Dazu gehört',
+    heading: 'Verknüpfte Wünsche und Pläne',
+    detailHeading: 'Verknüpft mit',
+    linkedPlan: 'Verknüpfter Plan',
+    linkedWish: 'Verknüpfter Wunsch',
     add: 'Wunsch oder Plan verknüpfen',
     plans: 'Pläne',
     wishes: 'Wünsche',
@@ -23,13 +26,13 @@ const memoryProduct = {
   photosHeading: 'Fotos',
   galleryAria: 'Fotos dieser Erinnerung',
   noPhotos: 'Zu dieser Erinnerung sind keine Fotos gespeichert.',
+  menu: 'Menü der Erinnerung',
   edit: 'Bearbeiten',
   delete: 'Löschen',
   deleteConfirmTitle: 'Erinnerung wirklich löschen?',
   deleteConfirmBody:
     'Die Erinnerung wird dauerhaft aus eurem gemeinsamen Bereich entfernt.',
   deleteConfirm: 'Endgültig löschen',
-  deleteCancel: 'Nicht löschen',
   deleting: 'Wird gelöscht …',
   editEyebrow: 'Erinnerung bearbeiten',
   editHeading: 'Erinnerung bearbeiten',

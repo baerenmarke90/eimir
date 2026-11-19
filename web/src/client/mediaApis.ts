@@ -1,20 +1,19 @@
 import { AttachmentsApi as GeneratedAttachmentsApi } from '../api/generated/apis/AttachmentsApi';
+import { DashboardApi as GeneratedDashboardApi } from '../api/generated/apis/DashboardApi';
+import { PlacesApi as GeneratedPlacesApi } from '../api/generated/apis/PlacesApi';
 import { ProfilesApi as GeneratedProfilesApi } from '../api/generated/apis/ProfilesApi';
 import { StoryApi as GeneratedStoryApi } from '../api/generated/apis/StoryApi';
-import { DashboardApi as GeneratedDashboardApi } from '../api/generated/apis/DashboardApi';
-import type { StoryItem } from '../api/generated/models/StoryItem';
 import {
   DefaultConfig,
   type Configuration as GeneratedConfiguration,
 } from '../api/generated/runtime';
 import { Configuration } from './apiConfiguration';
 import {
+  assertMediaCacheLease,
+  captureMediaCacheLease,
+  evictAuthorizedMedia,
   mediaCacheScopeForOwner,
   registerMediaClient,
-  captureMediaCacheLease,
-  rememberAuthorizedMediaPreviews,
-  assertMediaCacheLease,
-  evictAuthorizedMedia,
 } from './authorizedMediaCache';
 import { clientProblemKind, normalizeClientError } from './problemDetails';
 
@@ -50,42 +49,11 @@ export class ProfilesApi extends GeneratedProfilesApi {
   }
 }
 
-function rememberStoryPreviews(
-  lease: ReturnType<typeof captureMediaCacheLease>,
-  items: readonly StoryItem[],
-): void {
-  rememberAuthorizedMediaPreviews(
-    lease,
-    items.flatMap((item) => {
-      const parent =
-        item.kind === 'MEMORY'
-          ? item.memory
-          : item.kind === 'HEART_MOMENT'
-            ? item.heartMoment
-            : null;
-      if (!parent) return [];
-      const attachments =
-        'attachments' in parent
-          ? parent.attachments
-          : parent.attachment
-            ? [parent.attachment]
-            : [];
-      return attachments
-        .filter(
-          (attachment) =>
-            attachment.status === 'READY' && attachment.hasThumbnail,
-        )
-        .map((attachment) => [
-          'attachment',
-          item.kind,
-          parent.id,
-          attachment.id,
-          'thumbnail',
-        ]);
-    }),
-  );
-}
-
+/**
+ * Parent lists are the background truth for stored media: a denied list
+ * evicts every stored byte of that Space, so revoked access cannot keep
+ * showing images that the parent data no longer lists.
+ */
 async function readMediaProjection<T>(
   lease: ReturnType<typeof captureMediaCacheLease>,
   read: () => Promise<T>,
@@ -110,7 +78,20 @@ async function readMediaProjection<T>(
   }
 }
 
-/** Only completed authenticated network projections can shortcut cached previews. */
+export class PlacesApi extends GeneratedPlacesApi {
+  constructor(configuration: GeneratedConfiguration = DefaultConfig) {
+    super(configuration);
+    register(this, configuration);
+  }
+
+  override async listMemoryMap(
+    ...args: Parameters<GeneratedPlacesApi['listMemoryMap']>
+  ) {
+    const lease = captureMediaCacheLease(this, args[0].spaceId);
+    return readMediaProjection(lease, () => super.listMemoryMap(...args));
+  }
+}
+
 export class StoryApi extends GeneratedStoryApi {
   constructor(configuration: GeneratedConfiguration = DefaultConfig) {
     super(configuration);
@@ -121,39 +102,28 @@ export class StoryApi extends GeneratedStoryApi {
     ...args: Parameters<GeneratedStoryApi['getStoryTimeline']>
   ) {
     const lease = captureMediaCacheLease(this, args[0].spaceId);
-    const result = await readMediaProjection(lease, () =>
-      super.getStoryTimeline(...args),
-    );
-    rememberStoryPreviews(lease, result.items);
-    return result;
+    return readMediaProjection(lease, () => super.getStoryTimeline(...args));
   }
 
   override async getStoryDiscover(
     ...args: Parameters<GeneratedStoryApi['getStoryDiscover']>
   ) {
     const lease = captureMediaCacheLease(this, args[0].spaceId);
-    const result = await readMediaProjection(lease, () =>
-      super.getStoryDiscover(...args),
-    );
-    rememberStoryPreviews(lease, [
-      ...result.items,
-      ...(result.lead ? [result.lead] : []),
-    ]);
-    return result;
+    return readMediaProjection(lease, () => super.getStoryDiscover(...args));
   }
 
   override async renewStoryDiscover(
     ...args: Parameters<GeneratedStoryApi['renewStoryDiscover']>
   ) {
     const lease = captureMediaCacheLease(this, args[0].spaceId);
-    const result = await readMediaProjection(lease, () =>
-      super.renewStoryDiscover(...args),
-    );
-    rememberStoryPreviews(lease, [
-      ...result.items,
-      ...(result.lead ? [result.lead] : []),
-    ]);
-    return result;
+    return readMediaProjection(lease, () => super.renewStoryDiscover(...args));
+  }
+
+  override async getMediaGallery(
+    ...args: Parameters<GeneratedStoryApi['getMediaGallery']>
+  ) {
+    const lease = captureMediaCacheLease(this, args[0].spaceId);
+    return readMediaProjection(lease, () => super.getMediaGallery(...args));
   }
 }
 
@@ -167,28 +137,6 @@ export class DashboardApi extends GeneratedDashboardApi {
     ...args: Parameters<GeneratedDashboardApi['getDashboard']>
   ) {
     const lease = captureMediaCacheLease(this, args[0].spaceId);
-    const result = await readMediaProjection(lease, () =>
-      super.getDashboard(...args),
-    );
-    rememberAuthorizedMediaPreviews(
-      lease,
-      [...result.recentShared, result.keepsake, result.retrospective].flatMap(
-        (item) =>
-          item?.type === 'MEMORY' &&
-          item.previewAttachmentId &&
-          item.previewHasThumbnail
-            ? [
-                [
-                  'attachment',
-                  'MEMORY',
-                  item.id,
-                  item.previewAttachmentId,
-                  'thumbnail',
-                ],
-              ]
-            : [],
-      ),
-    );
-    return result;
+    return readMediaProjection(lease, () => super.getDashboard(...args));
   }
 }

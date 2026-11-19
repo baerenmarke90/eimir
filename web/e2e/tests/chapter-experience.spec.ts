@@ -1,9 +1,15 @@
 import content from '../fixtures/locales/de';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, test, type Page, type Route } from '@playwright/test';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import de from '../../src/i18n/locales/de';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import storyProducts from '../../src/i18n/locales/storyProducts';
+import {
+  expectFloatingAddAction,
+  expectLabeledAddAction,
+} from '../support/addAction';
+import { deleteViaMenu, editViaMenu } from '../support/itemMenu';
 import {
   ACCOUNT_ID,
   SPACE_ID,
@@ -219,8 +225,7 @@ const seed = () =>
   );
 const back = (page: Page) =>
   page.getByRole('button', { name: taskBoundary.back, exact: true });
-const edit = (page: Page) =>
-  page.getByRole('button', { name: de.common.edit, exact: true });
+const startEdit = (page: Page) => editViaMenu(page, de.common.edit);
 const titleField = (page: Page) =>
   page.getByRole('textbox', { name: m5s3.common.title, exact: true });
 async function expectNoHorizontalOverflow(page: Page) {
@@ -251,7 +256,16 @@ test('complete Chapter create, linked-moment read/unlink, edit, diary return and
   const { state, unexpected } = await installChapters(page, []);
   await signIn(page);
   await page.goto('/story/chapters');
-  await page.getByRole('link', { name: m5s3.chapter.create }).click();
+  const addChapter = page.getByRole('link', {
+    name: m5s3.chapter.create,
+    exact: true,
+  });
+  await expectFloatingAddAction(
+    addChapter,
+    page.locator('.mobile-bottom-shell'),
+  );
+  await addChapter.press('Enter');
+  await expect(page).toHaveURL(/\/plan\/chapters\/new$/);
   await titleField(page).fill(content.chapterExperience.createdTitle);
   await page
     .getByLabel(m5s3.common.description, { exact: true })
@@ -271,12 +285,23 @@ test('complete Chapter create, linked-moment read/unlink, edit, diary return and
     }),
   ).toBeVisible();
   expect(state.createCalls).toBe(1);
+  await back(page).click();
+  await expect(page).toHaveURL(/\/story\/chapters$/);
+  await page
+    .getByRole('link', {
+      name: new RegExp(content.chapterExperience.createdTitle),
+    })
+    .click();
   await addMemory(page);
-  await page.getByRole('link', { name: /Breakfast by the canal/ }).click();
+  const linkedMemory = page.getByRole('link', {
+    name: /Breakfast by the canal/,
+  });
+  await linkedMemory.click();
   await expect(
     page.getByRole('heading', { name: 'Breakfast by the canal', exact: true }),
   ).toBeVisible();
   await back(page).click();
+  await expect(linkedMemory).toBeFocused();
   await page
     .getByRole('button', {
       name: m5s3.relations.actions.replace(
@@ -308,7 +333,7 @@ test('complete Chapter create, linked-moment read/unlink, edit, diary return and
   await expect(page).toHaveURL(/year=2026/);
   await expect(marker).toBeFocused();
   await marker.click();
-  await edit(page).click();
+  await startEdit(page);
   await page
     .getByLabel(m5s3.chapter.startOn, { exact: true })
     .fill('2025-09-01');
@@ -322,15 +347,54 @@ test('complete Chapter create, linked-moment read/unlink, edit, diary return and
   await expect(page.locator('.chapter-diary-marker')).toHaveCount(0);
   await page.goto('/story?tab=timeline&year=2025');
   await marker.click();
-  await edit(page).click();
-  await page
-    .getByRole('button', { name: m5s3.common.delete, exact: true })
-    .click();
+  // Delete is no longer offered inside the editor; it starts from the menu.
+  await startEdit(page);
+  await expect(
+    page.getByRole('button', { name: m5s3.common.delete, exact: true }),
+  ).toHaveCount(0);
+  await back(page).click();
+  await expect(titleField(page)).toHaveCount(0);
+  await deleteViaMenu(page, m5s3.common.delete);
   await page
     .getByRole('button', { name: m5s3.common.confirmDelete, exact: true })
     .click();
   await expect(page).toHaveURL(/year=2025/);
   await expect(page.locator('.chapter-diary-marker')).toHaveCount(0);
+  expect(unexpected).toEqual([]);
+});
+
+test('Chapter cards use the same Moments design preference as the Diary', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const entry = seed();
+  const { state, unexpected } = await installChapters(page, [entry]);
+  state.links.set(entry.id, ['mem-canal']);
+  await signIn(page);
+
+  await page.goto(`/plan/chapters/${entry.id}`);
+  await expect(
+    page.locator('[data-diary-layout="album"] .story-card-memory.has-image'),
+  ).toBeVisible();
+
+  await page.goto('/more/settings/appearance');
+  await page
+    .getByRole('radio', {
+      name: new RegExp(storyProducts.momentsLayout.compact.name),
+    })
+    .check();
+
+  await page.goto(`/plan/chapters/${entry.id}`);
+  await expect(
+    page.locator('[data-diary-layout="compact"] .story-card-memory.has-image'),
+  ).toBeVisible();
+
+  await page.goto('/story?tab=timeline');
+  await expect(
+    page
+      .locator('[data-diary-layout="compact"] .story-card-memory.has-image')
+      .first(),
+  ).toBeVisible();
   expect(unexpected).toEqual([]);
 });
 
@@ -404,7 +468,7 @@ test('dirty Back, retained failed creation and If-Match conflict preserve author
     }),
   ).toBeVisible();
   state.conflictUpdate = true;
-  await edit(page).click();
+  await startEdit(page);
   await page
     .getByLabel(m5s3.common.description, { exact: true })
     .fill(content.chapterExperience.correction);
@@ -464,6 +528,13 @@ for (const viewport of [
         name: new RegExp(content.chapterExperience.summerTitle),
       }),
     ).toBeVisible();
+    const addChapter = page.getByRole('link', {
+      name: m5s3.chapter.create,
+      exact: true,
+    });
+    const dock = page.locator('.mobile-bottom-shell');
+    if (await dock.isVisible()) await expectFloatingAddAction(addChapter, dock);
+    else await expectLabeledAddAction(addChapter);
     const prefix = `story-chapter-${viewport.width}-${viewport.theme}${viewport.large ? '-large-reduced' : ''}`;
     await expectNoHorizontalOverflow(page);
     await captureScreenshot(page, testInfo, `${prefix}-overview.png`, {
@@ -477,6 +548,7 @@ for (const viewport of [
     await expect(
       page.getByRole('link', { name: /Breakfast by the canal/ }),
     ).toBeVisible();
+    await expect(page.locator('[data-floating-create]')).toHaveCount(0);
     await expect(
       page.getByText(m5s3.chapter.noPlace, { exact: true }),
     ).toHaveCount(0);
@@ -485,7 +557,7 @@ for (const viewport of [
     ).toHaveCount(0);
     const add = page.getByRole('button', { name: m5s3.relations.addLabel });
     const first = page.getByRole('link', { name: /Breakfast by the canal/ });
-    await expect(first.locator('.relation-moment-art')).toHaveCount(1);
+    await expect(first.locator('.story-card-memory.has-image')).toHaveCount(1);
     if (!viewport.large) await expect(first.locator('img')).toBeVisible();
     expect((await add.boundingBox())?.y).toBeLessThan(
       (await first.boundingBox())?.y ?? 0,

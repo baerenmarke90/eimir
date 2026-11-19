@@ -6,11 +6,12 @@ import hashlib
 import json
 import re
 import stat
+import zlib
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 from typing import IO, Any
-from zipfile import ZIP_DEFLATED, BadZipFile, ZipFile, ZipInfo
+from zipfile import ZIP_DEFLATED, ZIP_STORED, BadZipFile, ZipFile, ZipInfo
 
 from eimir.core.errors import BadRequestError, ErrorCode, PayloadTooLargeError
 
@@ -46,6 +47,7 @@ _ALLOWED_ROOT_FILES = {
     "places.json",
     "chapters.json",
     "collections.json",
+    "shared-notes.json",
     "reminders.json",
     "rules.json",
     "recaps.json",
@@ -108,9 +110,15 @@ def _object_no_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 
 def json_bytes(value: object) -> bytes:
-    return (
-        json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
-    ).encode("utf-8")
+    encoder = json.JSONEncoder(ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    output = bytearray()
+    for token in encoder.iterencode(value):
+        piece = token.encode("utf-8")
+        if len(output) + len(piece) + 1 > MAX_JSON_BYTES:
+            raise _too_large()
+        output.extend(piece)
+    output.extend(b"\n")
+    return bytes(output)
 
 
 def parse_json_bytes(data: bytes, *, manifest: bool = False) -> Any:
@@ -136,7 +144,7 @@ class ValidatedBundle:
 
 
 def _validate_entry_shape(info: ZipInfo, seen: set[str]) -> str:
-    name = canonical_name(info.filename)
+    name = canonical_name(info.orig_filename)
     if name in seen:
         raise _archive_error(ErrorCode.TRANSFER_ARCHIVE_UNSAFE)
     seen.add(name)
@@ -235,32 +243,54 @@ def read_json_entry(fileobj: IO[bytes], entry: ZipInfo) -> Any:
         return parse_json_bytes(archive.read(entry))
 
 
-def add_bytes(archive: ZipFile, name: str, data: bytes, checksums: dict[str, str]) -> None:
-    canonical_name(name)
-    if name == "manifest.json":
-        raise ValueError("manifest is written after checksums are complete")
-    archive.writestr(name, data, compress_type=ZIP_DEFLATED)
-    checksums[name] = hashlib.sha256(data).hexdigest()
+class ExportWriter:
+    """Apply the v1 reader's budgets while producing each entry."""
 
+    def __init__(self, archive: ZipFile, output: IO[bytes]) -> None:
+        self.archive = archive
+        self.output = output
+        self.total = 0
 
-def add_stream(
-    archive: ZipFile,
-    name: str,
-    source: IO[bytes],
-    checksums: dict[str, str],
-) -> int:
-    canonical_name(name)
-    digest = hashlib.sha256()
-    size = 0
-    with archive.open(name, mode="w", force_zip64=True) as target:
-        while chunk := source.read(STREAM_CHUNK):
-            size += len(chunk)
-            if size > MAX_ENTRY_BYTES:
-                raise _too_large()
-            digest.update(chunk)
-            target.write(chunk)
-    checksums[name] = digest.hexdigest()
-    return size
+    def _begin(self, name: str) -> None:
+        canonical_name(name)
+        if len(self.archive.filelist) >= MAX_ENTRIES:
+            raise _too_large()
+
+    def _reserve(self, count: int, entry_size: int) -> None:
+        self.total += count
+        if entry_size > MAX_ENTRY_BYTES or self.total > MAX_UNCOMPRESSED_BYTES:
+            raise _too_large()
+        if self.output.tell() > MAX_COMPRESSED_BYTES:
+            raise _too_large()
+
+    def add_json(self, name: str, data: bytes, checksums: dict[str, str]) -> None:
+        self._begin(name)
+        if len(data) > MAX_JSON_BYTES:
+            raise _too_large()
+        self._reserve(len(data), len(data))
+        # Legitimately repetitive documents must remain importable. ZIP deflate
+        # uses raw DEFLATE without the zlib header or checksum.
+        compressed = len(zlib.compress(data, wbits=-15))
+        method = (
+            ZIP_STORED if len(data) > max(1, compressed) * MAX_COMPRESSION_RATIO else ZIP_DEFLATED
+        )
+        self.archive.writestr(name, data, compress_type=method)
+        if name != "manifest.json":
+            checksums[name] = hashlib.sha256(data).hexdigest()
+
+    def add_media(self, name: str, source: IO[bytes], checksums: dict[str, str]) -> None:
+        self._begin(name)
+        digest = hashlib.sha256()
+        size = 0
+        # Media objects are already encoded. Storing them also bounds the
+        # compression ratio independently of their contents.
+        with self.archive.open(ZipInfo(name), mode="w", force_zip64=True) as target:
+            while chunk := source.read(STREAM_CHUNK):
+                size += len(chunk)
+                self._reserve(len(chunk), size)
+                digest.update(chunk)
+                target.write(chunk)
+        checksums[name] = digest.hexdigest()
 
 
 def manifest_bytes(

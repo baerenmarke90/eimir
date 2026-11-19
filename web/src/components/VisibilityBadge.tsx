@@ -54,12 +54,12 @@ export function VisibilityGlyph({
         // Two people (shared with partner) - an established "shared" glyph,
         // not a link/share-action icon, so it reads as status, not a control.
         <svg
+          className="inline-icon"
           viewBox="0 0 24 24"
           width="16"
           height="16"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden="true"
@@ -72,12 +72,12 @@ export function VisibilityGlyph({
       ) : normalized === 'private' ? (
         // Subtle lock icon
         <svg
+          className="inline-icon"
           viewBox="0 0 24 24"
           width="16"
           height="16"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden="true"
@@ -88,12 +88,12 @@ export function VisibilityGlyph({
       ) : (
         // Hourglass / clock icon
         <svg
+          className="inline-icon"
           viewBox="0 0 24 24"
           width="16"
           height="16"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden="true"

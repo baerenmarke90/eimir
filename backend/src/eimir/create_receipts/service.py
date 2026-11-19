@@ -13,14 +13,14 @@ rolled back, both vanish. Two simultaneous equivalent requests serialize on
 the unique index: the loser waits for the winner's commit and then replays,
 or proceeds if the winner rolled back.
 
-Only a fingerprint of the normalized request is retained, never its content,
-and only for ``RECEIPT_RETENTION``.
+Only a keyed fingerprint of the normalized request is retained, never its
+content, and only for ``RECEIPT_RETENTION``. Without the installation secret the
+stored value cannot be tested against a guessed request
+(``eimir.core.request_fingerprint``).
 """
 
 from __future__ import annotations
 
-import hashlib
-import hmac
 import json
 from collections.abc import Mapping
 from datetime import datetime, timedelta
@@ -38,6 +38,7 @@ from eimir.authorization import (
     readable,
 )
 from eimir.core import clock
+from eimir.core import request_fingerprint as request_fingerprints
 from eimir.core.errors import ConflictError, DomainError, ErrorCode
 from eimir.create_receipts.models import CreateReceipt
 
@@ -66,7 +67,7 @@ def fingerprint(resource_type: str, payload: Mapping[str, Any]) -> str:
         ensure_ascii=False,
         separators=(",", ":"),
     )
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return request_fingerprints.digest(canonical)
 
 
 def claim(
@@ -91,7 +92,8 @@ def claim(
             account_id=context.account_id,
             resource_type=resource_type,
             idempotency_key=key,
-            request_fingerprint=request_fingerprint,
+            # A plain string: only the keyed digest is stored.
+            request_fingerprint=str(request_fingerprint),
             # Assigned once the resource exists, within the same transaction.
             resource_id=None,
         )
@@ -110,6 +112,39 @@ def attach(session: Session, receipt_id: UUID, resource_id: UUID) -> None:
     )
 
 
+def resolve(
+    session: Session,
+    context: AuthorizationContext,
+    *,
+    resource_type: str,
+    key: UUID,
+    request_fingerprint: str,
+) -> UUID | None:
+    """Return the resource ID recorded for an already committed request identity.
+
+    The lookup is bound to the caller's own Space and Account by
+    construction; another Account's identity is indistinguishable from an
+    unknown one. Raises ``IDEMPOTENCY_KEY_REUSED`` when the identity was used
+    for a different request. ``None`` means the receipt no longer points at a
+    resource. The caller must still check that the resource exists and is
+    readable, and must never recreate it.
+    """
+    receipt = session.execute(
+        select(CreateReceipt).where(
+            CreateReceipt.space_id == context.space_id,
+            CreateReceipt.account_id == context.account_id,
+            CreateReceipt.resource_type == resource_type,
+            CreateReceipt.idempotency_key == key,
+        )
+    ).scalar_one()
+    if not request_fingerprints.matches(receipt.request_fingerprint, request_fingerprint):
+        raise ConflictError(
+            "The Idempotency-Key was already used for a different request.",
+            ErrorCode.IDEMPOTENCY_KEY_REUSED,
+        )
+    return receipt.resource_id
+
+
 def replay[ResourceT: PrivateResourceMixin](
     session: Session,
     context: AuthorizationContext,
@@ -122,33 +157,24 @@ def replay[ResourceT: PrivateResourceMixin](
 ) -> ResourceT:
     """Return the original resource for an already committed request identity.
 
-    The lookup is bound to the caller's own Space and Account by
-    construction; another Account's identity is indistinguishable from an
-    unknown one. Raises ``deleted_error`` rather than recreating the
-    resource when the committed row no longer exists or is no longer
-    readable by the caller.
+    Raises ``deleted_error`` rather than recreating the resource when the
+    committed row no longer exists or is no longer readable by the caller.
     """
-    receipt = session.execute(
-        select(CreateReceipt).where(
-            CreateReceipt.space_id == context.space_id,
-            CreateReceipt.account_id == context.account_id,
-            CreateReceipt.resource_type == resource_type,
-            CreateReceipt.idempotency_key == key,
-        )
-    ).scalar_one()
-    if not hmac.compare_digest(receipt.request_fingerprint, request_fingerprint):
-        raise ConflictError(
-            "The Idempotency-Key was already used for a different request.",
-            ErrorCode.IDEMPOTENCY_KEY_REUSED,
-        )
+    resource_id = resolve(
+        session,
+        context,
+        resource_type=resource_type,
+        key=key,
+        request_fingerprint=request_fingerprint,
+    )
     resource = None
-    if receipt.resource_id is not None:
+    if resource_id is not None:
         # Structural cast for `.id`, mirroring `authorization.guard._rule_model`:
         # SQLAlchemy exposes it at runtime, but the generic bound stays
         # `PrivateResourceMixin` so callers pass ordinary domain models.
         rule_model = cast("type[PrivateResource]", model)
         resource = session.execute(
-            readable(model, context).where(rule_model.id == receipt.resource_id)
+            readable(model, context).where(rule_model.id == resource_id)
         ).scalar_one_or_none()
     if resource is None:
         # Never recreate: the original was committed and has since been removed.

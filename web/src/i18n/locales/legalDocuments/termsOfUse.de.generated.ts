@@ -4,7 +4,7 @@ import type { LegalDocument } from '../../../legal/legalDocument';
 export const termsOfUseDe: LegalDocument = {
   document: 'terms-of-use',
   locale: 'de-DE',
-  version: '2026-11-05.draft-1',
+  version: '2026-11-06.draft-2',
   status: 'draft',
   title: 'Nutzungsbedingungen für eimir.',
   placeholders: [
@@ -15,7 +15,6 @@ export const termsOfUseDe: LegalDocument = {
     'CONTACT_EMAIL',
     'WEBSITE_URL',
     'TERMS_URL',
-    'PRIVACY_URL',
     'SECURITY_CONTACT',
     'NOTICE_IN_APP_PATH',
     'NOTICE_EMAIL',
@@ -483,9 +482,9 @@ export const termsOfUseDe: LegalDocument = {
       content: [
         {
           kind: 'text',
-          text: 'Wie wir personenbezogene Daten verarbeiten, erklären wir in unseren Datenschutzhinweisen unter ',
+          text: 'Wie wir personenbezogene Daten verarbeiten, erklären wir in unseren ',
         },
-        { kind: 'placeholder', name: 'PRIVACY_URL' },
+        { kind: 'link', text: 'Datenschutzhinweisen', href: '/legal/privacy' },
         {
           kind: 'text',
           text: '. Die Datenschutzhinweise informieren dich; sie sind nicht Teil dieser Nutzungsbedingungen und müssen nicht akzeptiert werden.',

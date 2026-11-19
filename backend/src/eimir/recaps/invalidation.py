@@ -1,4 +1,4 @@
-"""Scrub derived prose when one of its canonical sources changes or disappears."""
+"""Scrub legacy generated prose when its canonical sources change."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from sqlalchemy import event, inspect, select
 from sqlalchemy.orm import Session
 
 from eimir.authorization import PrivacyClass
-from eimir.recaps.models import RecapEdition, RecapPayload, RecapSource
+from eimir.recaps.models import RecapEdition, RecapSource
 
 
 def _before_flush(session: Session, flush_context: Any, instances: Any) -> None:
@@ -38,7 +38,10 @@ def _before_flush(session: Session, flush_context: Any, instances: Any) -> None:
     if affected:
         for edition in session.scalars(select(RecapEdition).where(RecapEdition.id.in_(affected))):
             if edition.payload.headline or edition.payload.introduction:
-                edition.payload = RecapPayload()
+                # Only derived prose is scrubbed; the frozen film look stays.
+                edition.payload = edition.payload.model_copy(
+                    update={"headline": None, "introduction": None}
+                )
                 edition.generated_by = "RULES"
 
 

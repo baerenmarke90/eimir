@@ -1,4 +1,4 @@
-"""Automatic recaps on the existing PostgreSQL queue, with local-only wording."""
+"""Automatic relationship recap films on the existing PostgreSQL queue."""
 
 from __future__ import annotations
 
@@ -10,15 +10,14 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext
-from eimir.config import get_settings
 from eimir.core import clock
 from eimir.core.errors import NotFoundError
 from eimir.identity.models import Account
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import registry
-from eimir.recaps import local_ai, service
-from eimir.recaps.composition import select_candidates, theme_for
+from eimir.recaps import freshness, montage, mood, notices, service
+from eimir.recaps.composition import theme_for
 from eimir.recaps.models import RecapKind, RecapPayload
 from eimir.relationship.models import Membership, MembershipStatus
 from eimir.relationship.service import require_membership
@@ -26,6 +25,8 @@ from eimir.relationship.service import require_membership
 SCAN_JOB = "recap.scan.v1"
 SCAN_INTERVAL = timedelta(hours=6)
 SCAN_LOCK = 8_150_228
+# Moments per kind and month a film may weigh; a month rarely has more.
+FILM_POOL = 60
 
 
 def authorized_context(
@@ -41,10 +42,32 @@ def authorized_context(
     return AuthorizationContext(account_id=account_id, space_id=space_id)
 
 
-def generate(session: Session, payload: dict[str, Any]) -> None:
-    account_id, space_id, edition_id, token = (
-        UUID(payload[key]) for key in ("account_id", "space_id", "edition_id", "request_token")
+def first_member(session: Session, space_id: UUID) -> UUID | None:
+    return session.scalar(
+        select(Membership.account_id)
+        .join(Account, Account.id == Membership.account_id)
+        .where(
+            Membership.space_id == space_id,
+            Membership.status == MembershipStatus.ACTIVE.value,
+            Account.disabled_at.is_(None),
+        )
+        .order_by(Membership.created_at, Membership.id)
+        .limit(1)
     )
+
+
+def generate(session: Session, payload: dict[str, Any]) -> None:
+    space_id, edition_id, token = (
+        UUID(payload[key]) for key in ("space_id", "edition_id", "request_token")
+    )
+    # Older queued jobs may lack a requesting member.
+    account_id = (
+        UUID(payload["account_id"])
+        if payload.get("account_id")
+        else first_member(session, space_id)
+    )
+    if account_id is None:
+        return
     context = authorized_context(session, account_id, space_id)
     if context is None:
         return
@@ -55,57 +78,23 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
         value.status = "PAUSED"
         return
     kind = RecapKind(value.kind)
-    pool = service.candidates(session, context, value.starts_on, value.through_on, value.variant)
-    selected = select_candidates(
-        pool, kind, f"{space_id}:{kind}:{value.year}:{value.month}", value.variant
+    pool = service.candidates(
+        session,
+        context,
+        value.starts_on,
+        value.through_on,
+        value.variant,
+        per_month=FILM_POOL,
+        starting_only=True,
     )
-    material = [
-        current
-        for item in selected
-        if (current := service.source_material(session, context, item)) is not None
-    ]
-    evidence = [
-        {
-            "key": item["key"],
-            "kind": str(item["kind"]),
-            "occurred_on": item["occurred_on"].isoformat(),
-            "title": item["title"] or "",
-            "excerpt": "" if item["excerpt"] == item["title"] else item["excerpt"] or "",
-        }
-        for item in material
-        if (item["title"] or "").strip() or (item["excerpt"] or "").strip()
-    ]
-    versions = {item["key"]: item["version"] for item in material}
-    locale, period = value.locale, f"{value.starts_on.isoformat()}/{value.through_on.isoformat()}"
+    compose_film = montage.compose_year if kind == RecapKind.YEAR else montage.compose
+    selected, film = compose_film(session, context, value, pool, {})
 
-    narration = None
-    if get_settings().recap_ai_url and evidence:
-        # No membership/grant/content locks or open read transaction during inference.
-        # The job was claimed in a separately committed transaction by the worker.
-        session.rollback()
-        narration = local_ai.compose(evidence, locale, period)
-
-    # Revocation, manual edits and source changes win over an in-flight model call.
-    context = authorized_context(session, account_id, space_id)
-    if context is None:
-        return
-    value = service.edition(session, context, edition_id)
-    if value.request_token != token or value.saved_at or value.customized:
-        return
-    if not service.can_compose(session, context):
-        value.status = "PAUSED"
-        return
-    fresh_pool = service.candidates(
-        session, context, value.starts_on, value.through_on, value.variant
-    )
-    fresh_selected = select_candidates(
-        fresh_pool, kind, f"{space_id}:{kind}:{value.year}:{value.month}", value.variant
-    )
     # Match source mutation/invalidation lock order: canonical content, then edition.
     # This prevents an in-flight privacy change from missing newly inserted references.
-    fresh = [
+    live_sources = [
         item
-        for source in sorted(fresh_selected, key=lambda item: (item.kind, str(item.id)))
+        for source in sorted(selected, key=lambda item: (item.kind, str(item.id)))
         if (item := service.source_material(session, context, source, lock=True)) is not None
     ]
     value = service.edition(session, context, edition_id, write=True)
@@ -114,18 +103,24 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
     if not service.can_compose(session, context, lock_grants=True):
         value.status = "PAUSED"
         return
-    if {item["key"]: item["version"] for item in fresh} != versions:
-        narration = None
-    service.store_selection(session, value, fresh_selected)
-    value.payload = (
-        RecapPayload(headline=narration.title, introduction=narration.introduction)
-        if narration
-        else RecapPayload()
+    service.store_selection(session, value, selected)
+    rhythm = mood.refreshed(
+        session, space_id, kind, value.starts_on, value.through_on, value.payload.mood
     )
-    value.generated_by = "LOCAL_AI" if narration else "RULES"
-    value.theme = theme_for(fresh_selected)
-    value.status = "READY" if fresh else "EMPTY"
+    value.payload = RecapPayload(mood=rhythm, film=film)
+    value.generated_by = "RULES"
+    value.theme = theme_for(selected)
+    value.status = "READY" if live_sources else "EMPTY"
     value.generated_at = clock.now()
+    # The material this composition accounts for; late entries change it (#1744).
+    value.material_digest = freshness.period_digest(
+        session, context, value.kind, value.year, value.month
+    )
+    value.material_at = func.now()
+    value.observed_digest = value.observed_at = None
+    if value.supersedes_id is not None:
+        zone, _ = service.calendar_context(session, context)
+        service.settle_version(session, context, value, clock.today_in(zone))
 
 
 def ensure_scheduled(
@@ -151,17 +146,7 @@ def scan(session: Session, payload: dict[str, Any]) -> None:
         query = query.where(Membership.space_id > UUID(after))
     spaces = list(session.scalars(query.distinct().order_by(Membership.space_id).limit(100)))
     for space_id in spaces:
-        account_id = session.scalar(
-            select(Membership.account_id)
-            .join(Account, Account.id == Membership.account_id)
-            .where(
-                Membership.space_id == space_id,
-                Membership.status == MembershipStatus.ACTIVE.value,
-                Account.disabled_at.is_(None),
-            )
-            .order_by(Membership.created_at, Membership.id)
-            .limit(1)
-        )
+        account_id = first_member(session, space_id)
         if account_id is None:
             continue
         context = authorized_context(session, account_id, space_id)
@@ -173,6 +158,16 @@ def scan(session: Session, payload: dict[str, Any]) -> None:
         ensure_scheduled(session, delay=SCAN_INTERVAL, running=True)
 
 
+def backfill(session: Session, payload: dict[str, Any]) -> None:
+    """Continue preparing earlier periods; stops by itself once none are left."""
+    context = authorized_context(session, UUID(payload["account_id"]), UUID(payload["space_id"]))
+    if context and service.can_compose(session, context):
+        service.prepare_current(session, context)
+
+
 def register_handlers() -> None:
     registry.register(service.GENERATE_JOB, generate)
+    registry.register(service.BACKFILL_JOB, backfill)
+    registry.register(service.REFRESH_JOB, backfill)
+    registry.register(notices.ANNOUNCE_JOB, notices.announce)
     registry.register(SCAN_JOB, scan)

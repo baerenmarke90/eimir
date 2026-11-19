@@ -88,10 +88,23 @@ repository currently contains project-specific product-preview, roadmap and
 M2 handoff graphics. Their paths and provenance classification are recorded
 in [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md).
 
-The product-preview files under `docs/assets/playstore/` are mockups for
-eimir., not screenshots or assets copied from a predecessor. The
+The product-preview images under `docs/assets/readme/` are real screenshots
+of the current eimir. Web client (smartphone width, Light theme), captured with
+a Playwright-driven browser against a locally running eimir. backend seeded with
+the canonical demo Space (`docs/DEMO-SPACE.md`). They contain only the fictional
+demo identities and content and the CC0 demo photographs recorded in
+`backend/demo_assets/manifest.json`; no real couple data, account data or
+third-party artwork. The earlier AI-generated mockups under
+`docs/assets/playstore/` no longer represented the product and were removed.
+They were never screenshots or assets copied from a predecessor. The
 roadmap graphics under `docs/assets/roadmap/` and the M2 SVG diagrams were
 created specifically for this repository's documentation and handoff.
+
+The tag and photo-library outline motifs added to `EimirIcon.tsx` for #1724
+were drawn specifically for eimir. with AI assistance on the existing 24 px
+icon grid. They reuse the project's stroke grammar, have no third-party source
+and follow the project's source-code license. Companion browser evidence uses
+synthetic test identities and the existing approved product fixtures.
 
 Unless an individual entry states otherwise, these project assets have no
 separate public license grant. No font or audio assets are currently part of
@@ -103,6 +116,41 @@ image-generation tool on 2026-10-28 from an actual eimir. browser render at
 `5e19e8b8f522be6b59737b15a40e6c8bbbceb806`. It is design guidance, not runtime
 evidence. Companion browser screenshots use synthetic test identities and the
 repository's existing authorized assets. No predecessor assets were consulted.
+
+## Date-idea catalog and images
+
+`backend/src/eimir/date_ideas/data/catalog.json` is the eimir. editorial
+date-idea catalog (#1892): 200 original ideas in German and English, written
+for eimir. and delivered as a versioned handoff with its JSON Schema.
+
+`backend/src/eimir/date_ideas/data/images/` holds 25 editorial images for that
+catalog (15 per idea, 10 per category). They were generated with OpenAI's
+built-in image-generation tool without reference images; `images.json`
+records each file, size, German and English alt text and the exact prompt.
+They depict no real persons and contain no third-party photographs, brands or
+artwork. They are project assets with no separate public license grant and
+are served only through the Pro-gated API.
+
+## Daily Saying catalog
+
+`backend/src/eimir/quotes/daily_sayings.json` contains 1,000 sayings in ten
+categories (100 each), in German and English. All of them are AI-generated
+text without an individual author. The Product Owner supplied and selected the
+German originals for eimir. on 2026-11-18, and they are used under the
+repository license. The English versions are AI-assisted translations of the
+German originals, contributed under
+[CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/). The
+card shows the sayings without author credit or citation. They carry the rights
+classification `EDITORIAL_CURATED`, and each entry records its collection, work
+and rights basis in the same file.
+
+The previous catalog is archived, not served. It held German and English
+public-domain quotations, traditional sayings, public remarks and the earlier
+`eimir.` editorial sayings. The archived file is
+`backend/archive/quotes/daily_sayings.before-ai-sayings-2026-11-18.json`.
+Its source editions, credits and licensing terms (including the TextGrid
+CC BY 3.0 DE credit and the CC0 1.0 translations) remain recorded in that file
+and in the git history. Restoring any of it requires the credits recorded there.
 
 ## Contributors
 

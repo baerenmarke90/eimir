@@ -8,6 +8,7 @@ cd "$source_dir"
 patch -p1 --forward < "$patch_dir/reject-encrypted-mov.patch"
 patch -p1 --forward < "$patch_dir/guard-h264-context.patch"
 patch -p1 --forward < "$patch_dir/initialize-hdr-payload.patch"
+patch -p1 --forward < "$patch_dir/clear-sei-message-slot.patch"
 export PKG_CONFIG_PATH="$install_dir/lib/pkgconfig"
 ./configure \
   --prefix="$install_dir" \
@@ -23,7 +24,7 @@ export PKG_CONFIG_PATH="$install_dir/lib/pkgconfig"
   --enable-parser=h264,hevc,aac,mpegaudio,opus,vorbis \
   --enable-encoder=libopenh264,aac,mjpeg,wrapped_avframe,pcm_s16le \
   --enable-bsf=filter_units,h264_metadata,h264_mp4toannexb,aac_adtstoasc \
-  --enable-filter=scale,format,null,anull,aresample,aformat,transpose,hflip,vflip,zscale,tonemap,fps,sidedata
+  --enable-filter=scale,format,null,anull,aresample,aformat,transpose,hflip,vflip,zscale,tonemap,fps,sidedata,setparams
 make -j2
 cc -I . -c "$patch_dir/test-h264-context.c" -o "$source_dir/test-h264-context.o"
 g++ "$source_dir/test-h264-context.o" libavcodec/libavcodec.a libswresample/libswresample.a libavutil/libavutil.a \

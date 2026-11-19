@@ -6,14 +6,19 @@
 
 Name | Type
 ------------ | -------------
+`answers` | [Array&lt;RecapAnswerView&gt;](RecapAnswerView.md)
 `available` | boolean
 `excerpt` | string
 `id` | string
 `key` | string
 `kind` | [RecapSourceKind](RecapSourceKind.md)
+`media` | [Array&lt;RecapFilmMediaView&gt;](RecapFilmMediaView.md)
+`mutualReaction` | string
 `occurredOn` | Date
+`placeName` | string
 `previewAttachmentId` | string
 `previewIsSensitive` | boolean
+`quote` | [RecapQuoteView](RecapQuoteView.md)
 `title` | string
 `version` | number
 
@@ -24,14 +29,19 @@ import type { RecapSourceView } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "answers": null,
   "available": null,
   "excerpt": null,
   "id": null,
   "key": null,
   "kind": null,
+  "media": null,
+  "mutualReaction": null,
   "occurredOn": null,
+  "placeName": null,
   "previewAttachmentId": null,
   "previewIsSensitive": null,
+  "quote": null,
   "title": null,
   "version": null,
 } satisfies RecapSourceView

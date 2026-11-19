@@ -6,13 +6,15 @@ from datetime import date, datetime
 from typing import Annotated, Self
 from uuid import UUID
 
-from fastapi import APIRouter, Path, Response
+from fastapi import APIRouter, Path, Query, Response
 from pydantic import ConfigDict, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
 from eimir.api.deps import Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
+from eimir.api.v1.rediscovery import RediscoveryContext, project_rediscovery
+from eimir.attachments.models import MediaType
 from eimir.dashboard import preferences, service
 from eimir.dashboard.service import DashboardItemType
 from eimir.domain.experiences import ExperienceKind
@@ -39,17 +41,29 @@ class DashboardRelationshipDuration(ApiModel):
     display_mode: DurationDisplayMode
 
 
+class DashboardMedia(ApiModel):
+    attachment_id: UUID
+    media_type: MediaType
+    has_thumbnail: bool = False
+
+
 class DashboardItem(ApiModel):
     type: DashboardItemType
     id: UUID
     title_or_text: str | None
     occurred_on: date | None
     scheduled_on: date | None = None
+    scheduled_until: date | None = None
+    """Inclusive last day of a multi-day date-only Plan (#1895)."""
     scheduled_at: datetime | None
     created_at: datetime | None
     preview_attachment_id: UUID | None = None
     preview_is_sensitive: bool = False
     preview_has_thumbnail: bool = False
+    gallery: list[DashboardMedia] = Field(default_factory=list)
+    """Keepsake only: ready, non-sensitive photos and clips to rotate through (at least two)."""
+    concealed: bool = False
+    """Show only the list title with neutral lines: a discreet Plan (#1790 F3)."""
 
 
 class DashboardSharedStorySummary(ApiModel):
@@ -58,12 +72,34 @@ class DashboardSharedStorySummary(ApiModel):
     milestones: int
 
 
+class StoryLifelineWeek(ApiModel):
+    week_start: date
+    memories: int
+    heart_moments: int
+    milestones: int
+    highlight: DashboardItem
+
+
+class StoryLifelineView(ApiModel):
+    starts_on: date | None
+    today: date
+    weeks: list[StoryLifelineWeek]
+
+
+class StoryLifelineEntriesView(ApiModel):
+    total: int
+    """How many shared entries the range holds; ``items`` holds at most a bounded part."""
+    items: list[DashboardItem]
+
+
 class DashboardAnticipation(ApiModel):
     plan_id: UUID
     title: str
     event_on: date
     days_remaining: int
     event_at: datetime | None = None
+    concealed: bool = False
+    """``title`` is the list title; an empty one uses the neutral fallback."""
 
 
 class RelationshipPassportView(ApiModel):
@@ -99,6 +135,8 @@ class DashboardView(ApiModel):
     viewer_local_date: date | None = None
     anticipation: DashboardAnticipation | None = None
     incoming_experience: DashboardExperience | None = None
+    # Additive (#1790 C2): wording facts for the rediscovery card above.
+    retrospective_rediscovery: RediscoveryContext | None = None
 
 
 class DashboardModulePreferenceUpdate(ApiModel):
@@ -107,14 +145,37 @@ class DashboardModulePreferenceUpdate(ApiModel):
     visible: bool | SkipJsonSchema[None] = None
     item_limit: preferences.DashboardItemLimit | SkipJsonSchema[None] = None
     selected_collection_id: UUID | None = None
+    # Replaces the whole selection (order matters); an empty list clears it.
+    selected_collection_ids: (
+        Annotated[list[UUID], Field(max_length=preferences.MAX_SELECTED_COLLECTIONS)]
+        | SkipJsonSchema[None]
+    ) = None
 
     @model_validator(mode="after")
     def _require_at_least_one_facet(self) -> Self:
         if not self.model_fields_set:
             raise ValueError(
-                "at least one of visible, itemLimit or selectedCollectionId must be supplied"
+                "at least one of visible, itemLimit, selectedCollectionId or "
+                "selectedCollectionIds must be supplied"
             )
+        if "selected_collection_id" in self.model_fields_set and (
+            "selected_collection_ids" in self.model_fields_set
+        ):
+            raise ValueError("send either selectedCollectionId or selectedCollectionIds, not both")
+        if (
+            "selected_collection_ids" in self.model_fields_set
+            and self.selected_collection_ids is None
+        ):
+            raise ValueError("selectedCollectionIds must not be null; send an empty list to clear")
         return self
+
+    def selection_changed(self) -> bool:
+        return bool(self.model_fields_set & {"selected_collection_id", "selected_collection_ids"})
+
+    def selection(self) -> list[UUID]:
+        if "selected_collection_ids" in self.model_fields_set:
+            return list(self.selected_collection_ids or [])
+        return [self.selected_collection_id] if self.selected_collection_id is not None else []
 
 
 class DashboardModulePreferenceView(ApiModel):
@@ -125,6 +186,12 @@ class DashboardModulePreferenceView(ApiModel):
         exclude_if=lambda value: value is None,
     )
     selected_collection_id: UUID | SkipJsonSchema[None] = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+    )
+    # Additive (#1808): every selected list in the person's order. The single
+    # field above is its first entry, kept for clients that predate this one.
+    selected_collection_ids: list[UUID] | SkipJsonSchema[None] = Field(
         default=None,
         exclude_if=lambda value: value is None,
     )
@@ -140,6 +207,13 @@ class DashboardModuleOrderUpdate(ApiModel):
     module_keys: list[str]
 
 
+def _selection_ids(state: preferences.DashboardModuleState) -> list[UUID] | None:
+    """The selection in order, omitted while nothing is selected (like the single field)."""
+    if not preferences.module_definition(state.key.value).selects_collection:
+        return None
+    return list(state.selected_collection_ids) or None
+
+
 def _preference_list(
     states: list[preferences.DashboardModuleState],
 ) -> DashboardModulePreferenceList:
@@ -150,6 +224,7 @@ def _preference_list(
                 visible=state.visible,
                 item_limit=state.item_limit,
                 selected_collection_id=state.selected_collection_id,
+                selected_collection_ids=_selection_ids(state),
             )
             for state in states
         ]
@@ -192,6 +267,16 @@ def get_dashboard(
             else None
         ),
         retrospective=_project_item(view.retrospective) if view.retrospective is not None else None,
+        retrospective_rediscovery=(
+            project_rediscovery(
+                session,
+                authorization,
+                view.retrospective.type.value,
+                view.retrospective.id,
+            )
+            if view.retrospective is not None
+            else None
+        ),
         keepsake=_project_item(view.keepsake) if view.keepsake is not None else None,
         upcoming=[_project_item(item) for item in view.upcoming],
         recent_shared=[_project_item(item) for item in view.recent_shared],
@@ -220,6 +305,7 @@ def get_dashboard(
                 event_on=anticipation.event_on,
                 days_remaining=anticipation.days_remaining,
                 event_at=anticipation.event_at,
+                concealed=anticipation.concealed,
             )
             if anticipation is not None
             else None
@@ -332,8 +418,8 @@ def update_dashboard_module_preference(
         module_key=module_key,
         visible=body.visible,
         item_limit=body.item_limit,
-        selected_collection_id=body.selected_collection_id,
-        selected_collection_id_changed="selected_collection_id" in body.model_fields_set,
+        selected_collection_ids=body.selection(),
+        selected_collection_ids_changed=body.selection_changed(),
     )
     response.headers["Cache-Control"] = "private, no-store"
     return DashboardModulePreferenceView(
@@ -341,6 +427,74 @@ def update_dashboard_module_preference(
         visible=state.visible,
         item_limit=state.item_limit,
         selected_collection_id=state.selected_collection_id,
+        selected_collection_ids=_selection_ids(state),
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/story-lifeline",
+    response_model=StoryLifelineView,
+    operation_id="getStoryLifeline",
+    responses=problem_responses(401, 403, 404),
+)
+def get_story_lifeline(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+) -> StoryLifelineView:
+    """Return the shared Story bucketed by week for the Pro Wir lifeline."""
+    ensure_capability(
+        session, authorization.space_id, Capability.RELATIONSHIP_PASSPORT, lock_grants=False
+    )
+    lifeline = service.read_story_lifeline(session, authorization)
+    response.headers["Cache-Control"] = "private, no-store"
+    return StoryLifelineView(
+        starts_on=lifeline.starts_on,
+        today=lifeline.today,
+        weeks=[
+            StoryLifelineWeek(
+                week_start=week.week_start,
+                memories=week.memories,
+                heart_moments=week.heart_moments,
+                milestones=week.milestones,
+                highlight=_project_item(week.highlight),
+            )
+            for week in lifeline.weeks
+        ],
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/story-lifeline/entries",
+    response_model=StoryLifelineEntriesView,
+    operation_id="getStoryLifelineEntries",
+    responses=problem_responses(401, 403, 404, 422),
+)
+def get_story_lifeline_entries(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    starts_on: Annotated[
+        date, Query(alias="from", description="First day of the range (inclusive).")
+    ],
+    ends_before: Annotated[date, Query(alias="to", description="Day after the range (exclusive).")],
+) -> StoryLifelineEntriesView:
+    """Return the shared entries of one lifeline period, oldest first.
+
+    Read lazily when a lifeline column is selected. The entries are exactly
+    those the lifeline counts for the range; at most a bounded number is
+    returned together with the range total.
+    """
+    ensure_capability(
+        session, authorization.space_id, Capability.RELATIONSHIP_PASSPORT, lock_grants=False
+    )
+    entries = service.read_story_lifeline_entries(
+        session, authorization, starts_on=starts_on, ends_before=ends_before
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return StoryLifelineEntriesView(
+        total=entries.total,
+        items=[_project_item(item) for item in entries.items],
     )
 
 
@@ -351,9 +505,19 @@ def _project_item(item: service.DashboardItem) -> DashboardItem:
         title_or_text=item.title_or_text,
         occurred_on=item.occurred_on,
         scheduled_on=item.scheduled_on,
+        scheduled_until=item.scheduled_until,
         scheduled_at=item.scheduled_at,
         created_at=item.created_at,
         preview_attachment_id=item.preview_attachment_id,
         preview_is_sensitive=item.preview_is_sensitive,
         preview_has_thumbnail=item.preview_has_thumbnail,
+        gallery=[
+            DashboardMedia(
+                attachment_id=media.attachment_id,
+                media_type=media.media_type,
+                has_thumbnail=media.has_thumbnail,
+            )
+            for media in item.gallery
+        ],
+        concealed=item.concealed,
     )

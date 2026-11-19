@@ -29,6 +29,15 @@ function acquireBodyScrollLock(): () => void {
   };
 }
 
+/**
+ * Whether any modal layer currently owns the screen. Transient, non-modal
+ * surfaces (for example a partner gesture receipt) use it to stay out of an
+ * active modal task instead of competing with it.
+ */
+export function isModalLayerActive(): boolean {
+  return bodyScrollLocks > 0;
+}
+
 export interface ModalLifecycleOptions {
   active: boolean;
   initialFocusRef?: RefObject<HTMLElement | null>;

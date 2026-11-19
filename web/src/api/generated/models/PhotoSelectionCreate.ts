@@ -20,6 +20,12 @@ import { mapValues } from '../runtime';
  */
 export interface PhotoSelectionCreate {
     /**
+     * True only for destinations that accept videos. Image-only destinations keep the default; the server then marks every video as not allowed.
+     * @type {boolean}
+     * @memberof PhotoSelectionCreate
+     */
+    allowVideo?: boolean;
+    /**
      * 
      * @type {PhotoSelectionCreateConsentEnum}
      * @memberof PhotoSelectionCreate
@@ -37,6 +43,12 @@ export interface PhotoSelectionCreate {
      * @memberof PhotoSelectionCreate
      */
     mediaRecoveryPolicy?: PhotoSelectionCreateMediaRecoveryPolicyEnum | null;
+    /**
+     * web: Google returns to the browser that started the selection (cookie proof). app: Google returns to the installed eimir. app's own link and the app finishes the sign-in through the authorize call.
+     * @type {PhotoSelectionCreateReturnToEnum}
+     * @memberof PhotoSelectionCreate
+     */
+    returnTo?: PhotoSelectionCreateReturnToEnum;
     /**
      * 
      * @type {PhotoSelectionCreateSourceEnum}
@@ -61,6 +73,15 @@ export const PhotoSelectionCreateMediaRecoveryPolicyEnum = {
     memory_only_v1: 'memory-only-v1'
 } as const;
 export type PhotoSelectionCreateMediaRecoveryPolicyEnum = typeof PhotoSelectionCreateMediaRecoveryPolicyEnum[keyof typeof PhotoSelectionCreateMediaRecoveryPolicyEnum];
+
+/**
+ * @export
+ */
+export const PhotoSelectionCreateReturnToEnum = {
+    web: 'web',
+    app: 'app'
+} as const;
+export type PhotoSelectionCreateReturnToEnum = typeof PhotoSelectionCreateReturnToEnum[keyof typeof PhotoSelectionCreateReturnToEnum];
 
 /**
  * @export
@@ -94,9 +115,11 @@ export function PhotoSelectionCreateFromJSONTyped(json: any, ignoreDiscriminator
     }
     return {
         
+        'allowVideo': json['allowVideo'] == null ? undefined : json['allowVideo'],
         'consent': json['consent'],
         'maxItems': json['maxItems'],
         'mediaRecoveryPolicy': json['mediaRecoveryPolicy'] === undefined ? undefined : json['mediaRecoveryPolicy'] === null ? null : json['mediaRecoveryPolicy'],
+        'returnTo': json['returnTo'] == null ? undefined : json['returnTo'],
         'source': json['source'],
     };
 }
@@ -112,9 +135,11 @@ export function PhotoSelectionCreateToJSONTyped(value?: PhotoSelectionCreate | n
 
     return {
         
+        'allowVideo': value['allowVideo'],
         'consent': value['consent'],
         'maxItems': value['maxItems'],
         'mediaRecoveryPolicy': value['mediaRecoveryPolicy'],
+        'returnTo': value['returnTo'],
         'source': value['source'],
     };
 }

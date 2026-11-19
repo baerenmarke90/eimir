@@ -1,0 +1,40 @@
+.contextual-create-choices {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.contextual-create-choice {
+  display: flex;
+  min-height: var(--touch-target-web);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.contextual-create-choice > .eimir-icon {
+  width: var(--space-6);
+  height: var(--space-6);
+  flex: 0 0 var(--space-6);
+  color: var(--color-shared);
+}
+
+.contextual-create-choice:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .contextual-create-choice:hover {
+    background: var(--color-surface-subtle);
+  }
+}
+
+.contextual-create-choice:is(:active, [data-control-pressed]) {
+  background: var(--color-surface-subtle);
+}

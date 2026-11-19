@@ -1,44 +1,52 @@
-import { TaskBackButton } from './TaskBackButton';
-import { AutoLoadMore } from './AutoLoadMore';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { captureCollectionOrder } from '../client/collectionOrder';
-import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
-import { captureQueryIdentity } from '../client/queryIdentity';
-import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { PrivateCollectionDetail } from '../api/generated/models/PrivateCollectionDetail';
 import type { PrivateCollectionItemDetail } from '../api/generated/models/PrivateCollectionItemDetail';
+import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
+import { captureCollectionOrder } from '../client/collectionOrder';
+import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
+import { useReturnTo } from '../client/historyEntries';
 import {
-  PRIVATE_COLLECTIONS_PATH,
   capturePrivateCreate,
   capturePrivateDelete,
   capturePrivateEdit,
+  PRIVATE_COLLECTIONS_PATH,
   privateApiCall,
   privateAreaQueryKeys,
   privateCollectionPath,
 } from '../client/privateArea';
-import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { clientProblemKind } from '../client/problemDetails';
+import { captureQueryIdentity } from '../client/queryIdentity';
+import { useTaskActivation } from '../client/useTaskActivation';
+import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
+import { AddActionButton, AddActionLink } from './AddAction';
+import { AutoLoadMore } from './AutoLoadMore';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import { TaskBackButton } from './TaskBackButton';
 import './SharedPlanningPages.css';
 import {
   PrivateAreaDetailBack,
   PrivateEditorDiscardSheet,
+  PrivateItemLabel,
+  PrivateItemMenuSheets,
+  PrivateItemMenuTrigger,
+  PrivateItemPrivacy,
+  usePrivateItemMenu,
   usePrivateTaskEditorLifecycle,
 } from './PrivateAreaLayout';
 import { UiState } from './UiState';
-import { useTransientFlag } from './useTransientFlag';
 import { useRequiredTitleValidation } from './useRequiredTitleValidation';
+import { useTransientFlag } from './useTransientFlag';
 
 const PAGE_SIZE = 20;
 
@@ -139,9 +147,12 @@ export function PrivateCollectionsListPage({ api, accountId, spaceId }: Props) {
         title={t('privateArea.collections.title')}
         description={t('privateArea.collections.intro')}
         action={
-          <Link className="button-link" to={`${PRIVATE_COLLECTIONS_PATH}/new`}>
-            {t('privateArea.collections.add')}
-          </Link>
+          <AddActionLink
+            floating
+            label={t('privateArea.collections.add')}
+            icon="listen"
+            to={`${PRIVATE_COLLECTIONS_PATH}/new`}
+          />
         }
       />
       {query.isLoading ? (
@@ -227,6 +238,7 @@ export function PrivateCollectionCreatePage({
   );
   const {
     captureOwnership,
+    fromOverview,
     navigationState,
     showDiscardConfirm,
     keepEditing,
@@ -257,7 +269,11 @@ export function PrivateCollectionCreatePage({
             onClick={requestClose}
             aria-disabled={mutation.isPending}
           >
-            {t('privateArea.collections.detailBack')}
+            {t(
+              fromOverview
+                ? 'privateArea.backToHub'
+                : 'privateArea.collections.detailBack',
+            )}
           </TaskBackButton>
         }
         title={t('privateArea.collections.createTitle')}
@@ -780,15 +796,11 @@ function CollectionItems({
             placeholder={t('privateArea.collections.itemTitleLabel')}
             disabled={pending || readBlocked}
           />
-          <ListEntryIconButton
+          <AddActionButton
             type="submit"
-            icon="add"
-            className="list-entry-add-button is-private"
-            label={
-              createMutation.isPending
-                ? t('common.saving')
-                : t('privateArea.collections.addItem')
-            }
+            label={t('privateArea.collections.addItem')}
+            pending={createMutation.isPending}
+            pendingLabel={t('common.saving')}
             disabled={pending || readBlocked}
           />
         </form>
@@ -853,7 +865,8 @@ export function PrivateCollectionDetailPage({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { query } = usePrivateCollection(api, accountId, spaceId);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const menu = usePrivateItemMenu();
+  const captureDeleteOwnership = useTaskActivation(true);
   const [isEditing, setIsEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [showTitleSaved, showTitleSavedForFeedbackWindow] =
@@ -910,7 +923,6 @@ export function PrivateCollectionDetailPage({
         );
         if (!current) return;
         setIsEditing(false);
-        setConfirmDelete(false);
         setTitleDraft(current.title);
         showTitleSavedForFeedbackWindow();
       });
@@ -944,7 +956,7 @@ export function PrivateCollectionDetailPage({
         context.remove();
         return;
       }
-      closeCollectionEdit(() => {
+      menu.deleteSheet.current?.closeForNavigation(() => {
         const shouldNavigate = context.isCurrentTask();
         if (context.remove() && shouldNavigate) {
           navigate(PRIVATE_COLLECTIONS_PATH, { replace: true });
@@ -958,7 +970,6 @@ export function PrivateCollectionDetailPage({
     ? titleDraft.trim().length > 0 && titleDraft.trim() !== collection.title
     : false;
   const {
-    captureOwnership: captureDeleteOwnership,
     showDiscardConfirm: showEditDiscard,
     keepEditing: keepCollectionEditing,
     closeConfirmed: closeCollectionEdit,
@@ -972,7 +983,6 @@ export function PrivateCollectionDetailPage({
       itemOperationPending,
     onClose: () => {
       setIsEditing(false);
-      setConfirmDelete(false);
       if (collection) setTitleDraft(collection.title);
     },
   });
@@ -1036,7 +1046,12 @@ export function PrivateCollectionDetailPage({
             />
           )
         }
-        eyebrow={t('privateArea.privacyLabel')}
+        itemLabel={
+          <PrivateItemLabel>
+            {t('privateArea.collections.itemLabel')}
+          </PrivateItemLabel>
+        }
+        metadata={<PrivateItemPrivacy />}
         title={
           <span
             style={{
@@ -1058,14 +1073,10 @@ export function PrivateCollectionDetailPage({
           </span>
         }
         titleAction={
-          collection.capabilities.canEdit && !isEditing ? (
-            <ListEntryIconButton
-              icon="edit"
-              className="tertiary"
-              label={t('common.edit')}
-              onClick={() => setIsEditing(true)}
-              disabled={itemOperationPending || Boolean(query.error)}
-            />
+          (collection.capabilities.canEdit ||
+            collection.capabilities.canDelete) &&
+          !isEditing ? (
+            <PrivateItemMenuTrigger menu={menu} name={collection.title} />
           ) : undefined
         }
         titleEditor={
@@ -1156,59 +1167,18 @@ export function PrivateCollectionDetailPage({
         onPendingChange={setItemOperationPending}
       />
 
-      {isEditing && collection.capabilities.canDelete ? (
-        <section
-          className="planning-danger-zone"
-          aria-labelledby="private-collection-delete-heading"
-        >
-          <h2 id="private-collection-delete-heading">
-            {t('m5s3.common.deleteHeading')}
-          </h2>
-          <p>{t('privateArea.deleteConfirmBody')}</p>
-          {!confirmDelete ? (
-            <button
-              type="button"
-              className="danger"
-              onClick={() => setConfirmDelete(true)}
-              disabled={
-                collectionOperationBlocked || updateCollectionMutation.isPending
-              }
-            >
-              {t('m5s3.common.delete')}
-            </button>
-          ) : (
-            <div className="planning-confirm-row">
-              <button
-                type="button"
-                className="danger"
-                onClick={() => deleteMutation.mutate(collection)}
-                disabled={
-                  deleteMutation.isPending ||
-                  updateCollectionMutation.isPending ||
-                  collectionOperationBlocked
-                }
-              >
-                {deleteMutation.isPending
-                  ? t('m5s3.common.deleting')
-                  : t('m5s3.common.confirmDelete')}
-              </button>
-              <button
-                type="button"
-                className="tertiary"
-                onClick={() => setConfirmDelete(false)}
-              >
-                {t('common.cancel')}
-              </button>
-            </div>
-          )}
-          {deleteMutation.error ? (
-            <ProblemState
-              error={deleteMutation.error}
-              onRetry={() => void query.refetch()}
-            />
-          ) : null}
-        </section>
-      ) : null}
+      <PrivateItemMenuSheets
+        menu={menu}
+        title={collection.title}
+        canEdit={collection.capabilities.canEdit}
+        canDelete={collection.capabilities.canDelete}
+        onEdit={() => setIsEditing(true)}
+        disabled={collectionOperationBlocked}
+        deletePending={deleteMutation.isPending}
+        deleteError={deleteMutation.error}
+        onDeleteRequested={() => deleteMutation.reset()}
+        onConfirmDelete={() => deleteMutation.mutate(collection)}
+      />
       <PrivateEditorDiscardSheet
         open={showEditDiscard}
         onKeep={keepCollectionEditing}
@@ -1221,6 +1191,7 @@ export function PrivateCollectionDetailPage({
 export function PrivateCollectionEditPage({ api, accountId, spaceId }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const returnTo = useReturnTo();
   const queryClient = useQueryClient();
   const [dirty, setDirty] = useState(false);
   const { collectionId, query } = usePrivateCollection(api, accountId, spaceId);
@@ -1259,8 +1230,7 @@ export function PrivateCollectionEditPage({ api, accountId, spaceId }: Props) {
       if (!context.isCurrent()) return;
       closeTask(() => {
         if (!context.isCurrent()) return;
-        navigate(privateCollectionPath(collection.id), {
-          replace: true,
+        returnTo(privateCollectionPath(collection.id), {
           state: navigationState,
         });
       });

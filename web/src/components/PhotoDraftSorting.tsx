@@ -3,7 +3,11 @@ import {
   Feedback,
   PointerActivationConstraints,
 } from '@dnd-kit/dom';
-import { DragDropProvider, PointerSensor } from '@dnd-kit/react';
+import {
+  DragDropProvider,
+  KeyboardSensor,
+  PointerSensor,
+} from '@dnd-kit/react';
 import { isSortableOperation, useSortable } from '@dnd-kit/react/sortable';
 import { OptimisticSortingPlugin } from '@dnd-kit/dom/sortable';
 import { type ReactNode, useCallback } from 'react';
@@ -119,6 +123,12 @@ function ReorderablePhotoDraftItem({
                 }),
               ]
             : [new PointerActivationConstraints.Distance({ value: 5 })],
+      }),
+      KeyboardSensor.configure({
+        keyboardCodes: {
+          ...KeyboardSensor.defaults.keyboardCodes,
+          start: ['Space'],
+        },
       }),
     ],
   });

@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { revokeSharedListCache } from './productReadCache';
+import { isClientOnline } from './connectivity';
 
 const placeRootKey = (spaceId: string) => ['m5-s3', 'places', spaceId] as const;
 
@@ -59,6 +60,30 @@ export const authorSummaryQueryKeys = {
     [...placeRootKey(spaceId), 'options'] as const,
   chapters: (spaceId: string) => ['m5-s3', 'chapters', spaceId] as const,
   collections: (spaceId: string) => ['m5-s3', 'collections', spaceId] as const,
+  collectionOverview: (spaceId: string, scope: 'OPEN' | 'COMPLETED' | 'ALL') =>
+    ['m5-s3', 'collections', spaceId, scope] as const,
+  /** Shared Notes (#1969): overview pages, the pinned Wir set and single notes. */
+  sharedNotes: (spaceId: string) => ['m5-s3', 'shared-notes', spaceId] as const,
+  sharedNoteOverview: (spaceId: string) =>
+    ['m5-s3', 'shared-notes', spaceId, 'overview'] as const,
+  sharedNoteWir: (spaceId: string) =>
+    ['m5-s3', 'shared-notes', spaceId, 'wir'] as const,
+  sharedNoteDetail: (spaceId: string, noteId?: string) =>
+    noteId
+      ? (['m5-s3', 'shared-note', spaceId, noteId] as const)
+      : (['m5-s3', 'shared-note', spaceId] as const),
+  planNotes: (spaceId: string, planId?: string) =>
+    planId
+      ? (['m5-s3', 'plan-notes', spaceId, planId] as const)
+      : (['m5-s3', 'plan-notes', spaceId] as const),
+  planCollections: (spaceId: string, planId?: string) =>
+    planId
+      ? (['m5-s3', 'plan-collections', spaceId, planId] as const)
+      : (['m5-s3', 'plan-collections', spaceId] as const),
+  planStory: (spaceId: string, planId?: string) =>
+    planId
+      ? (['m5-s3', 'plan-story', spaceId, planId] as const)
+      : (['m5-s3', 'plan-story', spaceId] as const),
   relationTargets: (spaceId: string) =>
     ['m5-s3', 'relation-targets', spaceId] as const,
   wishDetail: (spaceId: string, wishId?: string) =>
@@ -83,6 +108,41 @@ export const authorSummaryQueryKeys = {
       : (['m5-s3', 'collection', spaceId] as const),
 };
 
+/** Item progress and titles appear both in list browsing and linked Plans. */
+export async function invalidateCollectionConsumers(
+  client: QueryClient,
+  spaceId: string,
+): Promise<void> {
+  await Promise.all([
+    client.invalidateQueries({
+      queryKey: authorSummaryQueryKeys.collections(spaceId),
+      refetchType: isClientOnline() ? 'active' : 'none',
+    }),
+    client.invalidateQueries({
+      queryKey: authorSummaryQueryKeys.planCollections(spaceId),
+      refetchType: isClientOnline() ? 'active' : 'none',
+    }),
+  ]);
+}
+
+/** A note shows in the overview, the pinned Wir set and every linked Plan. */
+export async function invalidateSharedNoteConsumers(
+  client: QueryClient,
+  spaceId: string,
+): Promise<void> {
+  await Promise.all(
+    [
+      authorSummaryQueryKeys.sharedNotes(spaceId),
+      authorSummaryQueryKeys.planNotes(spaceId),
+    ].map((queryKey) =>
+      client.invalidateQueries({
+        queryKey,
+        refetchType: isClientOnline() ? 'active' : 'none',
+      }),
+    ),
+  );
+}
+
 /** Invalidate every Place view and selector in one Space without touching another Space. */
 export async function invalidatePlaceConsumers(
   queryClient: QueryClient,
@@ -105,6 +165,9 @@ export async function invalidateStoryProjections(
 ): Promise<void> {
   revokeSharedListCache(spaceId);
   await Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: authorSummaryQueryKeys.planStory(spaceId),
+    }),
     queryClient.invalidateQueries({ queryKey: ['context-tags', spaceId] }),
     queryClient.invalidateQueries({
       queryKey: authorSummaryQueryKeys.story(spaceId),
@@ -134,6 +197,9 @@ export async function invalidateAuthorSummaryConsumers(
   accountId?: string,
 ): Promise<void> {
   const invalidations = [
+    queryClient.invalidateQueries({
+      queryKey: authorSummaryQueryKeys.planStory(spaceId),
+    }),
     queryClient.invalidateQueries({
       queryKey: authorSummaryQueryKeys.discover(spaceId),
     }),
@@ -196,6 +262,9 @@ export async function invalidateAuthorSummaryConsumers(
     }),
     queryClient.invalidateQueries({
       queryKey: authorSummaryQueryKeys.collections(spaceId),
+    }),
+    queryClient.invalidateQueries({
+      queryKey: authorSummaryQueryKeys.planCollections(spaceId),
     }),
     queryClient.invalidateQueries({
       queryKey: authorSummaryQueryKeys.relationTargets(spaceId),

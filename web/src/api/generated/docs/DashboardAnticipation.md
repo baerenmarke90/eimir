@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`concealed` | boolean
 `daysRemaining` | number
 `eventAt` | Date
 `eventOn` | Date
@@ -19,6 +20,7 @@ import type { DashboardAnticipation } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "concealed": null,
   "daysRemaining": null,
   "eventAt": null,
   "eventOn": null,

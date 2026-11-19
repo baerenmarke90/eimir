@@ -27,6 +27,13 @@ import {
     UnifiedPushConfigurationToJSON,
     UnifiedPushConfigurationToJSONTyped,
 } from './UnifiedPushConfiguration';
+import type { ApnsConfiguration } from './ApnsConfiguration';
+import {
+    ApnsConfigurationFromJSON,
+    ApnsConfigurationFromJSONTyped,
+    ApnsConfigurationToJSON,
+    ApnsConfigurationToJSONTyped,
+} from './ApnsConfiguration';
 
 /**
  * 
@@ -34,6 +41,12 @@ import {
  * @interface DevicePushConfiguration
  */
 export interface DevicePushConfiguration {
+    /**
+     * 
+     * @type {ApnsConfiguration}
+     * @memberof DevicePushConfiguration
+     */
+    apns?: ApnsConfiguration | null;
     /**
      * 
      * @type {FcmConfiguration}
@@ -46,6 +59,12 @@ export interface DevicePushConfiguration {
      * @memberof DevicePushConfiguration
      */
     unifiedPush: UnifiedPushConfiguration | null;
+    /**
+     * 
+     * @type {UnifiedPushConfiguration}
+     * @memberof DevicePushConfiguration
+     */
+    webPush?: UnifiedPushConfiguration | null;
 }
 
 /**
@@ -67,8 +86,10 @@ export function DevicePushConfigurationFromJSONTyped(json: any, ignoreDiscrimina
     }
     return {
         
+        'apns': json['apns'] === undefined ? undefined : json['apns'] === null ? null : ApnsConfigurationFromJSON(json['apns']),
         'fcm': FcmConfigurationFromJSON(json['fcm']),
         'unifiedPush': UnifiedPushConfigurationFromJSON(json['unifiedPush']),
+        'webPush': json['webPush'] === undefined ? undefined : json['webPush'] === null ? null : UnifiedPushConfigurationFromJSON(json['webPush']),
     };
 }
 
@@ -83,8 +104,10 @@ export function DevicePushConfigurationToJSONTyped(value?: DevicePushConfigurati
 
     return {
         
+        'apns': ApnsConfigurationToJSON(value['apns']),
         'fcm': FcmConfigurationToJSON(value['fcm']),
         'unifiedPush': UnifiedPushConfigurationToJSON(value['unifiedPush']),
+        'webPush': UnifiedPushConfigurationToJSON(value['webPush']),
     };
 }
 

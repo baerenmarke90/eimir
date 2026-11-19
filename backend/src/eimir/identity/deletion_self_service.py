@@ -23,6 +23,7 @@ from eimir.core.clock import now
 from eimir.core.errors import ForbiddenError, ServiceUnavailableError
 from eimir.db.session import unit_of_work
 from eimir.demo import canonical
+from eimir.i18n import account_locale
 from eimir.identity.deletion import apply_accepted_tombstone
 from eimir.identity.deletion_jobs import enqueue_convergence
 from eimir.identity.deletion_journal import DeletionJournal, DeletionJournalError
@@ -32,8 +33,9 @@ from eimir.identity.deletion_models import (
     DeletionConfirmationMailStatus,
 )
 from eimir.identity.models import Account, AccountEmail
-from eimir.mail import MailMessage, MailSender, MailTransportError, MailUnavailableError
+from eimir.mail import MailSender, MailTransportError, MailUnavailableError
 from eimir.mail import sender as configured_mail_sender
+from eimir.mail.account_mail import deletion_confirmation_mail
 
 log = logging.getLogger(__name__)
 
@@ -158,8 +160,8 @@ def reconcile_configured_deletions_on_startup() -> None:
             session.flush()
 
 
-def _preflight(account_id: UUID) -> str | None:
-    """Reject Demo self-delete and snapshot only a verified primary address."""
+def _preflight(account_id: UUID) -> tuple[str | None, str]:
+    """Reject Demo self-delete; snapshot a verified primary address and the language."""
     # Shared demo-deployment predicate; see eimir.demo.canonical. This
     # guard remains broader than the reserved-identity one on purpose: no
     # Account in a demo deployment may delete itself, canonical or not.
@@ -177,13 +179,15 @@ def _preflight(account_id: UUID) -> str | None:
                 "This Account cannot start a new self-service deletion request.",
                 SelfDeletionErrorCode.ACCOUNT_UNAVAILABLE,
             )
-        return session.execute(
+        address = session.execute(
             select(AccountEmail.email).where(
                 AccountEmail.account_id == account_id,
                 AccountEmail.is_primary.is_(True),
                 AccountEmail.verified_at.is_not(None),
             )
         ).scalar_one_or_none()
+        # Read before the tombstone is applied; the confirmation follows it.
+        return address, account_locale(account)
 
 
 def _claim_confirmation_mail(
@@ -228,22 +232,13 @@ def _deliver_confirmation(
     account_id: UUID,
     *,
     primary_email: str,
+    locale: str,
     mail: MailSender | None,
 ) -> None:
     result = DeletionConfirmationMailStatus.FAILED
     try:
         active_mail = mail if mail is not None else configured_mail_sender()
-        active_mail.send(
-            MailMessage(
-                to=primary_email,
-                subject="Deine Kontolöschung wurde gestartet",
-                body=(
-                    "Deine Kontolöschung wurde gestartet. Du musst nichts weiter tun.\n\n"
-                    "Der Zugriff auf dein eimir.-Konto wurde beendet. Die weitere "
-                    "Löschung läuft automatisch nach den geltenden Aufbewahrungsregeln."
-                ),
-            )
-        )
+        active_mail.send(deletion_confirmation_mail(to=primary_email, locale=locale))
     except MailUnavailableError:
         result = DeletionConfirmationMailStatus.UNAVAILABLE
     except MailTransportError:
@@ -282,7 +277,7 @@ def accept_self_deletion(
     The existing worker then drives Core -> Media -> Async -> COMPLETED. Client
     connectivity is no longer required after step 3 commits.
     """
-    primary_email = _preflight(account_id)
+    primary_email, locale = _preflight(account_id)
     active_journal = journal if journal is not None else _configured_journal()
     tombstone = active_journal.accept(account_id, accepted_at=now())
 
@@ -312,6 +307,6 @@ def accept_self_deletion(
         session.flush()
 
     if should_send and primary_email is not None:
-        _deliver_confirmation(account_id, primary_email=primary_email, mail=mail)
+        _deliver_confirmation(account_id, primary_email=primary_email, locale=locale, mail=mail)
 
     return AcceptedSelfDeletion(accepted_at=tombstone.accepted_at, status=status)

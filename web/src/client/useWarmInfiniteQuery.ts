@@ -48,7 +48,7 @@ export function decodeReadValue(value: unknown): unknown {
   return value;
 }
 
-/** Explicitly shared browse queries only: preserve loaded pages, not a whole QueryClient. */
+/** Only shared browse queries may restore loaded pages from durable storage. */
 export function useWarmInfiniteQuery<TPage, TPageParam>(
   options: UseInfiniteQueryOptions<
     TPage,
@@ -57,12 +57,15 @@ export function useWarmInfiniteQuery<TPage, TPageParam>(
     QueryKey,
     TPageParam
   >,
-  { revalidateOnRestore = false }: { revalidateOnRestore?: boolean } = {},
+  {
+    revalidateOnRestore = false,
+    persist = true,
+  }: { revalidateOnRestore?: boolean; persist?: boolean } = {},
 ) {
   const runtime = useApiRuntime();
   const client = useQueryClient();
-  const accountId = runtime?.accountId;
-  const spaceId = runtime?.spaceId;
+  const accountId = persist ? runtime?.accountId : undefined;
+  const spaceId = persist ? runtime?.spaceId : undefined;
   const resourceId = JSON.stringify([runtime?.apiBaseUrl, options.queryKey]);
   const identity = JSON.stringify([accountId, spaceId, resourceId]);
   const keyRef = useRef(options.queryKey);

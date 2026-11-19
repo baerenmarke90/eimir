@@ -1,4 +1,3 @@
-import { AutoLoadMore } from './AutoLoadMore';
 import {
   type QueryClient,
   type QueryKey,
@@ -8,12 +7,13 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import type { FormEvent } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type {
   CommentsApi,
   DeleteCommentRequest,
 } from '../api/generated/apis/CommentsApi';
+import type { LinkPreviewsApi } from '../api/generated/apis/LinkPreviewsApi';
 import type { CommentDetail } from '../api/generated/models/CommentDetail';
 import { authorFirstName } from '../client/authorPresentation';
 import {
@@ -36,11 +36,12 @@ import {
   captureAuthorizedQuery,
   captureQueryIdentity,
 } from '../client/queryIdentity';
+import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { CommentEditor } from './CommentEditor';
 import { AuthoredText } from './AuthoredText';
-import type { LinkPreviewsApi } from '../api/generated/apis/LinkPreviewsApi';
+import { AutoLoadMore } from './AutoLoadMore';
+import { CommentEditor } from './CommentEditor';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 
@@ -147,6 +148,7 @@ interface CommentsPanelProps {
   offline: boolean;
   triggerContainer?: HTMLElement | null;
   labelledComposer?: boolean;
+  inlineComposer?: boolean;
   linkPreviewsApi?: LinkPreviewsApi;
 }
 
@@ -174,28 +176,55 @@ function CommentsPanelContent({
   offline,
   triggerContainer,
   labelledComposer = false,
+  inlineComposer = false,
   linkPreviewsApi,
 }: CommentsPanelProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
   const commentActionRefs = useRef(new Map<string, HTMLElement>());
+  // An open comment menu owns a history entry so system Back closes it
+  // instead of leaving the page.
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const openMenuIdRef = useRef(openMenuId);
+  openMenuIdRef.current = openMenuId;
+  const closeOpenMenu = useCallback(() => {
+    const current = openMenuIdRef.current;
+    const menu = current
+      ? commentActionRefs.current.get(current)?.closest('details')
+      : null;
+    if (menu) menu.open = false;
+    setOpenMenuId(null);
+  }, []);
+  useEditorHistoryEntry({
+    isActive: openMenuId !== null,
+    isDirty: false,
+    onClose: closeOpenMenu,
+    onDiscardRequested: closeOpenMenu,
+  });
+  // A menu that unmounts while open (editing, a deleted comment, going
+  // offline) gets no toggle event; release its history entry with it.
+  useEffect(() => {
+    if (openMenuId && !commentActionRefs.current.get(openMenuId)?.isConnected)
+      setOpenMenuId(null);
+  });
   const previousEditingId = useRef<string | null>(null);
   useEffect(() => {
     if (previousEditingId.current && !editingId)
       commentActionRefs.current.get(previousEditingId.current)?.focus();
     previousEditingId.current = editingId;
   }, [editingId]);
-  const [composerOpen, setComposerOpen] = useState(false);
+  const [requestedComposerOpen, setComposerOpen] = useState(false);
+  const composerOpen = inlineComposer || requestedComposerOpen;
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const wasComposerOpen = useRef(false);
   useEffect(() => {
-    if (composerOpen) inputRef.current?.focus();
+    if (composerOpen && !inlineComposer) inputRef.current?.focus();
     else if (wasComposerOpen.current)
       triggerRef.current?.focus({ preventScroll: true });
     wasComposerOpen.current = composerOpen;
-  }, [composerOpen]);
+  }, [composerOpen, inlineComposer]);
   const [commentDraft, setCommentDraft] = useState('');
   const commentDraftRef = useRef('');
   const commentDraftRevisionRef = useRef(0);
@@ -267,6 +296,16 @@ function CommentsPanelContent({
         commentDraftRef.current = '';
         setCommentDraft('');
         setComposerOpen(false);
+        const input = inputRef.current;
+        const activeElement = document.activeElement;
+        if (
+          inlineComposer &&
+          input?.isConnected &&
+          (activeElement === document.body ||
+            activeElement === document.documentElement ||
+            input.form?.contains(activeElement))
+        )
+          input.focus({ preventScroll: true });
       }
     },
   });
@@ -346,22 +385,35 @@ function CommentsPanelContent({
   const headingId = `${parentKind}-comments-heading`;
   const formId = `${parentKind}-${parentId}-comment-form`;
   const trigger =
-    canComment && !offline && !composerOpen ? (
+    canComment &&
+    !offline &&
+    (!composerOpen || (inlineComposer && triggerContainer)) ? (
       <button
         ref={triggerRef}
         type="button"
         className={`comment-compose-trigger ${triggerContainer ? 'media-overlay' : 'tertiary'}${labelledComposer ? ' comment-compose-trigger-labelled' : ''}`}
         aria-controls={formId}
-        aria-expanded="false"
-        aria-label={t(labelledComposer ? 'comments.write' : 'comments.send')}
-        title={t(labelledComposer ? 'comments.write' : 'comments.send')}
-        onClick={() => setComposerOpen(true)}
+        aria-expanded={composerOpen}
+        aria-label={t(
+          labelledComposer || inlineComposer
+            ? 'comments.write'
+            : 'comments.send',
+        )}
+        title={t(
+          labelledComposer || inlineComposer
+            ? 'comments.write'
+            : 'comments.send',
+        )}
+        onClick={() => {
+          if (inlineComposer) inputRef.current?.focus();
+          else setComposerOpen(true);
+        }}
       >
         <svg
+          className="inline-icon"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden="true"
@@ -426,6 +478,16 @@ function CommentsPanelContent({
                   {own && !offline && editingId !== comment.id ? (
                     <details
                       className="comment-menu"
+                      onToggle={(event) => {
+                        const open = event.currentTarget.open;
+                        setOpenMenuId((current) =>
+                          open
+                            ? comment.id
+                            : current === comment.id
+                              ? null
+                              : current,
+                        );
+                      }}
                       onKeyDown={(event) => {
                         if (event.key === 'Escape') {
                           event.preventDefault();
@@ -453,12 +515,12 @@ function CommentsPanelContent({
                         title={t('comments.moreActions')}
                       >
                         <svg
+                          className="inline-icon"
                           width="16"
                           height="16"
                           viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"
-                          strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           aria-hidden="true"
@@ -476,6 +538,9 @@ function CommentsPanelContent({
                             event.currentTarget
                               .closest('details')
                               ?.removeAttribute('open');
+                            // The menu unmounts while editing, before its
+                            // toggle event, so release its entry here.
+                            setOpenMenuId(null);
                             setEditingId(comment.id);
                           }}
                         >
@@ -489,6 +554,7 @@ function CommentsPanelContent({
                               'details',
                             );
                             if (details) details.open = false;
+                            setOpenMenuId(null);
                             removeComment(comment);
                           }}
                           disabled={deleting}
@@ -560,7 +626,7 @@ function CommentsPanelContent({
           onSubmit={submit}
         >
           <label
-            className="sr-only"
+            className={inlineComposer ? undefined : 'sr-only'}
             htmlFor={`${parentKind}-${parentId}-comment`}
           >
             {t('comments.inputLabel')}
@@ -569,7 +635,7 @@ function CommentsPanelContent({
             ref={inputRef}
             id={`${parentKind}-${parentId}-comment`}
             name="comment"
-            rows={3}
+            rows={2}
             maxLength={2000}
             required
             placeholder={t('comments.placeholder')}
@@ -586,6 +652,7 @@ function CommentsPanelContent({
             </button>
             <button
               type="button"
+              hidden={inlineComposer}
               className="tertiary"
               onClick={() => {
                 createMutation.reset();

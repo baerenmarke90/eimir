@@ -1,8 +1,10 @@
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { readFileSync } from 'node:fs';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
+import { chooseItemMenuRow } from '../support/itemMenu';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -178,6 +180,7 @@ async function installPlanningMocks(
   let converted = false;
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillFreeEntitlements(route, SPACE_ID)) return;
     if (await fulfillUnconfiguredPhotoSources(route)) return;
     if (await fulfillEmptyPlanComments(route)) return;
     const request = route.request();
@@ -659,13 +662,18 @@ test('Wish conversion opens the authoritative Plan result and preserves return c
   await page.getByRole('link', { name: new RegExp(EARLY_TITLE) }).click();
   await expect(page).toHaveURL(new RegExp(`/plan/wishes/${WISH_ID}$`));
 
-  await page.getByText(m5s3.wish.actionsHeading).click();
+  // Continuing the wish (complete it or make a plan) is a row of its actions menu.
+  await chooseItemMenuRow(page, m5s3.wish.actionsHeading);
   await page.getByLabel(m5s3.wish.planTitle).fill('Requested autumn Plan');
   await page.getByRole('button', { name: m5s3.wish.convert }).click();
 
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${CONVERTED_PLAN_ID}$`));
   await expect(
-    page.getByRole('heading', { name: CONVERTED_PLAN_TITLE, level: 1 }),
+    page.getByRole('heading', {
+      name: CONVERTED_PLAN_TITLE,
+      level: 2,
+      exact: true,
+    }),
   ).toBeVisible();
   expect(calls.conversionIfMatch).toBe('2');
   expect(calls.conversionBody).toMatchObject({
@@ -984,7 +992,11 @@ for (const [width, theme] of [
     );
     await completed.click();
     await expect(
-      page.getByRole('heading', { name: COMPLETED_TITLE, level: 1 }),
+      page.getByRole('heading', {
+        name: COMPLETED_TITLE,
+        level: 2,
+        exact: true,
+      }),
     ).toBeVisible();
     await page
       .getByRole('button', { name: taskBoundary.back, exact: true })

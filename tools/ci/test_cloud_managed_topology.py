@@ -5,8 +5,8 @@ Cloud/Managed, Self-Hosted, Arcane and the development database now share the
 repository-root compose.yaml. These tests prove that the ``cloud`` profile keeps
 its intentionally different topology and immutable-image contract without a
 second deployment manifest.
-The optional FCM fragment may only add its reviewed environment and secret mount
-to the existing API/worker processes; it cannot define independent topology.
+Optional push fragments may only add their reviewed environment and secret mount
+to the existing API/worker processes. They cannot define independent topology.
 """
 
 from __future__ import annotations
@@ -23,6 +23,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 COMPOSE = ROOT / "compose.yaml"
 FCM_FRAGMENT = ROOT / "deploy/push-fcm.compose.yaml"
+APNS_FRAGMENT = ROOT / "deploy/push-apns.compose.yaml"
 FCM_FRAGMENT_CONTRACT = """\
 x-fcm-runtime: &fcm-runtime
   environment:
@@ -46,6 +47,63 @@ services:
   cloud-worker:
     <<: *fcm-runtime
 """
+APNS_FRAGMENT_CONTRACT = """\
+x-apns-runtime: &apns-runtime
+  environment:
+    EIMIR_PUSH_APNS_BUNDLE_ID: "${EIMIR_PUSH_APNS_BUNDLE_ID:?Set the iOS bundle ID}"
+    EIMIR_PUSH_APNS_TEAM_ID: "${EIMIR_PUSH_APNS_TEAM_ID:?Set the Apple Team ID}"
+    EIMIR_PUSH_APNS_KEY_ID: "${EIMIR_PUSH_APNS_KEY_ID:?Set the APNs key ID}"
+    EIMIR_PUSH_APNS_ENVIRONMENT: "${EIMIR_PUSH_APNS_ENVIRONMENT:-production}"
+    EIMIR_PUSH_APNS_KEY_FILE: /run/secrets/eimir-apns-sender.p8
+  volumes:
+    - type: bind
+      source: "${EIMIR_PUSH_APNS_KEY_HOST_FILE:?Set the absolute APNs private key path}"
+      target: /run/secrets/eimir-apns-sender.p8
+      read_only: true
+      bind:
+        create_host_path: false
+services:
+  api:
+    <<: *apns-runtime
+  worker:
+    <<: *apns-runtime
+  cloud-api:
+    <<: *apns-runtime
+  cloud-worker:
+    <<: *apns-runtime
+"""
+ENCRYPTION_KEYS_FRAGMENT = ROOT / "deploy/encryption-keys.compose.yaml"
+ENCRYPTION_KEYS_FRAGMENT_CONTRACT = """x-encryption-keys-runtime: &encryption-keys-runtime
+  environment:
+    EIMIR_ENCRYPTION_KEYS_FILE: /run/secrets/eimir-encryption-keys.json
+  volumes:
+    - type: bind
+      source: "${EIMIR_ENCRYPTION_KEYS_HOST_FILE:?Set the absolute private key-set file on the Docker host}"
+      target: /run/secrets/eimir-encryption-keys.json
+      read_only: true
+      bind:
+        create_host_path: false
+services:
+  api:
+    <<: *encryption-keys-runtime
+  worker:
+    <<: *encryption-keys-runtime
+  cloud-api:
+    <<: *encryption-keys-runtime
+  cloud-worker:
+    <<: *encryption-keys-runtime
+  video-worker:
+    <<: *encryption-keys-runtime
+  cloud-video-worker:
+    <<: *encryption-keys-runtime
+  demo-init:
+    <<: *encryption-keys-runtime
+"""
+PUSH_FRAGMENT_CONTRACTS = {
+    FCM_FRAGMENT: FCM_FRAGMENT_CONTRACT,
+    APNS_FRAGMENT: APNS_FRAGMENT_CONTRACT,
+    ENCRYPTION_KEYS_FRAGMENT: ENCRYPTION_KEYS_FRAGMENT_CONTRACT,
+}
 CLOUD_ENV_EXAMPLE = ROOT / "deploy/cloud-managed.env.example"
 DEV_ENV_EXAMPLE = ROOT / "deploy/persistent-development.env.example"
 LEGACY_COMPOSE_REFERENCES = (
@@ -63,7 +121,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def _is_fcm_runtime_fragment(text: str) -> bool:
+def _matches_runtime_fragment(text: str, contract: str) -> bool:
     """Fail closed on any statement change without needing a YAML dependency.
 
     This intentionally freezes the small reviewed fragment's statements rather
@@ -76,7 +134,7 @@ def _is_fcm_runtime_fragment(text: str) -> bool:
             if line.strip() and not line.lstrip().startswith("#")
         ]
 
-    return statements(text) == statements(FCM_FRAGMENT_CONTRACT)
+    return statements(text) == statements(contract)
 
 
 def _service_block(compose: str, name: str) -> str:
@@ -141,7 +199,7 @@ class CanonicalComposeRepositoryContractTest(unittest.TestCase):
         the checks above. This looks at content instead: a top-level
         ``services:`` mapping is what makes a YAML file a Compose manifest, so
         no tracked file except the canonical one may define one (#746 review),
-        apart from the exact reviewed API/worker credential-mount fragment.
+        apart from the exact reviewed API/worker credential-mount fragments.
         """
         offenders: list[str] = []
         for path in _tracked_files():
@@ -155,16 +213,16 @@ class CanonicalComposeRepositoryContractTest(unittest.TestCase):
             except (OSError, UnicodeDecodeError):
                 continue
             if re.search(r"(?m)^services:\s*$", text):
-                if path == FCM_FRAGMENT and _is_fcm_runtime_fragment(text):
+                contract = PUSH_FRAGMENT_CONTRACTS.get(path)
+                if contract is not None and _matches_runtime_fragment(text, contract):
                     continue
                 offenders.append(relative.as_posix())
         self.assertEqual(offenders, [])
 
-    def test_fcm_fragment_only_adds_the_reviewed_runtime_environment_and_mount(self) -> None:
-        self.assertTrue(
-            _is_fcm_runtime_fragment(_read(FCM_FRAGMENT)),
-            "FCM opt-in must not introduce another maintained runtime topology",
-        )
+    def test_push_fragments_only_add_reviewed_environment_and_mounts(self) -> None:
+        for path, contract in PUSH_FRAGMENT_CONTRACTS.items():
+            with self.subTest(fragment=path.name):
+                self.assertTrue(_matches_runtime_fragment(_read(path), contract))
 
     def test_fcm_fragment_contract_rejects_process_topology_and_credential_changes(self) -> None:
         mutations = (
@@ -193,8 +251,8 @@ class CanonicalComposeRepositoryContractTest(unittest.TestCase):
         for before, after in mutations:
             with self.subTest(change=after):
                 self.assertIn(before, FCM_FRAGMENT_CONTRACT)
-                self.assertFalse(_is_fcm_runtime_fragment(
-                    FCM_FRAGMENT_CONTRACT.replace(before, after)
+                self.assertFalse(_matches_runtime_fragment(
+                    FCM_FRAGMENT_CONTRACT.replace(before, after), FCM_FRAGMENT_CONTRACT
                 ))
         for addition in (
             "networks:\n  other:\n",
@@ -202,7 +260,56 @@ class CanonicalComposeRepositoryContractTest(unittest.TestCase):
             "  web:\n    <<: *fcm-runtime\n",
         ):
             with self.subTest(addition=addition):
-                self.assertFalse(_is_fcm_runtime_fragment(FCM_FRAGMENT_CONTRACT + addition))
+                self.assertFalse(_matches_runtime_fragment(
+                    FCM_FRAGMENT_CONTRACT + addition, FCM_FRAGMENT_CONTRACT
+                ))
+
+    def test_apns_fragment_rejects_process_and_credential_mount_changes(self) -> None:
+        for original, mutation in (
+            ("  worker:\n", "  worker:\n    command: other-worker\n"),
+            ("read_only: true", "read_only: false"),
+            ("  api:\n", "  migrate:\n    <<: *apns-runtime\n  api:\n"),
+        ):
+            with self.subTest(change=mutation):
+                self.assertIn(original, APNS_FRAGMENT_CONTRACT)
+                self.assertFalse(_matches_runtime_fragment(
+                    APNS_FRAGMENT_CONTRACT.replace(original, mutation), APNS_FRAGMENT_CONTRACT
+                ))
+
+    def test_encryption_keys_fragment_rejects_process_and_mount_changes(self) -> None:
+        contract = ENCRYPTION_KEYS_FRAGMENT_CONTRACT
+        for original, mutation in (
+            ("  worker:\n", "  worker:\n    command: other-worker\n"),
+            ("read_only: true", "read_only: false"),
+            ("  api:\n", "  migrate:\n    <<: *encryption-keys-runtime\n  api:\n"),
+            ("create_host_path: false", "create_host_path: true"),
+        ):
+            with self.subTest(change=mutation):
+                self.assertIn(original, contract)
+                self.assertFalse(
+                    _matches_runtime_fragment(contract.replace(original, mutation), contract)
+                )
+
+    def test_encryption_keys_fragment_covers_every_role_that_receives_the_keys(self) -> None:
+        # A role that gets the runtime environment gets EIMIR_ENCRYPTION_KEYS today.
+        # If the fragment misses one, that role starts without keys once the
+        # operator moves them into the file.
+        compose = _read(COMPOSE)
+        services = re.findall(r"(?m)^  ([a-z0-9-]+):$", compose.split("\nservices:\n", 1)[1])
+        with_keys = {
+            name
+            for name in services
+            if re.search(
+                r"\*(?:self-hosted|cloud)-runtime-environment", _service_block(compose, name)
+            )
+        }
+        covered = set(
+            re.findall(
+                r"(?m)^  ([a-z0-9-]+):$",
+                ENCRYPTION_KEYS_FRAGMENT_CONTRACT.split("services:\n", 1)[1],
+            )
+        )
+        self.assertEqual(covered, with_keys)
 
 
 class CloudComposeTextContractTest(unittest.TestCase):

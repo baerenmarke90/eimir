@@ -5,7 +5,16 @@
 remains authoritative: relationship content leads; notification meaning comes
 before read management.
 
-## Decision
+> **Scoped Product Owner approvals.** The three partner gestures use the
+> [Partner gesture receipt](partner-gesture-receipt.md) from #455. Deliberate
+> [Wish date proposals](../notification-workflow.md#complete-module-inventory)
+> from [#1910](https://github.com/baerenmarke90/eimir/issues/1910) use the same
+> surface and the same arrival safeguards. The receipt shows the sender, Wish
+> title and proposed time and opens the actionable Wish or confirmed Plan.
+> It derives its content from the authorized app state and respects the
+> recipient's in-app settings and active tasks.
+
+## Original decision before the scoped approvals
 
 **Narrow the present experience to the existing unread indicator, preview and
 Notification Center. No transient foreground banner is approved for runtime

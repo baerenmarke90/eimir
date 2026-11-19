@@ -1,0 +1,10 @@
+.plan-story-links {
+  min-inline-size: 0;
+  inline-size: 100%;
+  overflow-wrap: anywhere;
+}
+
+.plan-story-links .relation-moment-link {
+  min-inline-size: 0;
+  inline-size: 100%;
+}

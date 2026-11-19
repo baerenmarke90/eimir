@@ -27,6 +27,12 @@ export interface FcmPreviewRegistration {
     key: string;
     /**
      * 
+     * @type {boolean}
+     * @memberof FcmPreviewRegistration
+     */
+    neutralReference?: boolean;
+    /**
+     * 
      * @type {FcmPreviewRegistrationVersionEnum}
      * @memberof FcmPreviewRegistration
      */
@@ -64,6 +70,7 @@ export function FcmPreviewRegistrationFromJSONTyped(json: any, ignoreDiscriminat
     return {
         
         'key': json['key'],
+        'neutralReference': json['neutralReference'] == null ? undefined : json['neutralReference'],
         'version': json['version'],
     };
 }
@@ -80,6 +87,7 @@ export function FcmPreviewRegistrationToJSONTyped(value?: FcmPreviewRegistration
     return {
         
         'key': value['key'],
+        'neutralReference': value['neutralReference'],
         'version': value['version'],
     };
 }

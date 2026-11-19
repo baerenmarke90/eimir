@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`favoriteDateIdeaIds` | Array&lt;string&gt;
 `favoriteWishIds` | Array&lt;string&gt;
 `published` | boolean
 `version` | number
@@ -17,6 +18,7 @@ import type { WishSelectionOwnView } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "favoriteDateIdeaIds": null,
   "favoriteWishIds": null,
   "published": null,
   "version": null,

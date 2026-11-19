@@ -27,20 +27,27 @@ import {
 import { settingsCategoryDefinition } from '../client/settingsNavigation';
 import { useTranslation } from '../i18n';
 import { AccountSettingsPanel } from './AccountSettingsPanel';
+import { SignInMethodsPanel } from './SignInMethodsPanel';
 import {
   AnniversaryReminderSettings,
   PartnerBirthdayReminderSettings,
 } from './AnniversaryReminderSettings';
+import { CalendarSyncSettings } from './CalendarSyncSettings';
 import { DailyQuoteSettingsPanel } from './DailyQuoteSettingsPanel';
 import { DashboardSettingsPanel } from './DashboardSettingsPanel';
+import { GoogleAccountSettings } from './GoogleAccountSettings';
 import { NotificationSettingsPanel } from './NotificationSettingsPanel';
+import { OccasionHolidaySettings } from './OccasionHolidaySettings';
 import { PageHeader } from './PageHeader';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
+import { WirDashboardSettingsPanel } from './PartnerDistanceWirSetting';
+import { PartnerLocationSettingsEntry } from './PartnerLocationSettingsEntry';
 import { PhotoSourceSettingsPanel } from './PhotoSourceSettingsPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
 import { RelationshipSettingsSection } from './ProfilePageBase';
-import { ProInformationPanel } from './ProInformationPanel';
-import { SettingsIndex } from './SettingsIndex';
+import { ProSettingsRow } from './ProSettingsRow';
+import { SettingsIndexLive } from './SettingsIndexLive';
+import { SettingsScopeNote } from './SettingsScopeNote';
 import { SpaceConfigurationPanel } from './SpaceConfigurationPanel';
 import { SpaceOffboardingPanel } from './SpaceOffboardingPanel';
 import { TransferPanel } from './TransferPanel';
@@ -130,12 +137,29 @@ export function SettingsPage(props: SettingsPageProps) {
           spacesApi={spacesApi}
           spaceId={props.spaceId}
         />
+        <PartnerLocationSettingsEntry
+          apiBaseUrl={props.apiBaseUrl}
+          accessToken={props.accessToken}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+        />
+        <OccasionHolidaySettings
+          instance={props.apiBaseUrl}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+        />
+        <PartnerConnectionPanel {...props} />
+      </div>
+    );
+  } else if (categoryId === 'shared') {
+    categoryContent = (
+      <div className="settings-category-content settings-shared-features">
+        <SettingsScopeNote scope="shared" />
         <SpaceConfigurationPanel
           spacesApi={spacesApi}
           accountId={props.account.id}
           spaceId={props.spaceId}
         />
-        <PartnerConnectionPanel {...props} />
       </div>
     );
   } else if (categoryId === 'notifications') {
@@ -145,22 +169,35 @@ export function SettingsPage(props: SettingsPageProps) {
         className="settings-category-content settings-functional-panel"
         aria-label={t('profileIdentity.settingsNotifications')}
       >
+        <SettingsScopeNote scope="personal" />
         <NotificationSettingsPanel
           notificationsApi={notificationsApi}
           accountId={props.account.id}
           devicePush={props.devicePush}
         />
-        <details className="notification-event-details">
-          <summary>{t('notificationSettings.dates')}</summary>
-          <AnniversaryReminderSettings
-            rulesApi={rulesApi}
-            spaceId={props.spaceId}
-          />
-          <PartnerBirthdayReminderSettings
-            rulesApi={rulesApi}
-            spaceId={props.spaceId}
-          />
-        </details>
+        <section
+          className="important-dates-settings"
+          aria-labelledby="important-dates-heading"
+        >
+          <div className="settings-section-head">
+            <h2 id="important-dates-heading">
+              {t('notificationSettings.dates')}
+            </h2>
+            <p className="settings-section-intro">
+              {t('profileIdentity.importantDatesIntro')}
+            </p>
+          </div>
+          <div className="important-date-reminder-list">
+            <AnniversaryReminderSettings
+              rulesApi={rulesApi}
+              spaceId={props.spaceId}
+            />
+            <PartnerBirthdayReminderSettings
+              rulesApi={rulesApi}
+              spaceId={props.spaceId}
+            />
+          </div>
+        </section>
         <div className="form-actions settings-notification-inbox-action">
           <Link
             className="button-link secondary-link"
@@ -174,7 +211,10 @@ export function SettingsPage(props: SettingsPageProps) {
   } else if (categoryId === 'today') {
     categoryContent = (
       <div className="settings-category-content">
-        <DashboardSettingsPanel
+        <SettingsScopeNote scope="personal" />
+        <WirDashboardSettingsPanel
+          apiBaseUrl={props.apiBaseUrl}
+          accessToken={props.accessToken}
           dashboardApi={dashboardApi}
           accountId={props.account.id}
           spaceId={props.spaceId}
@@ -199,7 +239,7 @@ export function SettingsPage(props: SettingsPageProps) {
           }}
         />
         <DailyQuoteSettingsPanel
-          variant="sources"
+          variant="categories"
           quoteApi={dailyQuoteApi}
           entitlementsApi={entitlementsApi}
           accountId={props.account.id}
@@ -223,15 +263,34 @@ export function SettingsPage(props: SettingsPageProps) {
         />
       </div>
     );
-  } else if (categoryId === 'media') {
+  } else if (categoryId === 'calendar') {
     categoryContent = (
-      <PhotoSourceSettingsPanel
-        key={`${props.apiBaseUrl}:${props.account.id}:${props.spaceId}`}
+      <CalendarSyncSettings
+        key={`calendar:${props.apiBaseUrl}:${props.account.id}:${props.spaceId}`}
         apiBaseUrl={props.apiBaseUrl}
         accessToken={props.accessToken}
         accountId={props.account.id}
         spaceId={props.spaceId}
       />
+    );
+  } else if (categoryId === 'media') {
+    categoryContent = (
+      <>
+        <PhotoSourceSettingsPanel
+          key={`${props.apiBaseUrl}:${props.account.id}:${props.spaceId}`}
+          apiBaseUrl={props.apiBaseUrl}
+          accessToken={props.accessToken}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+        />
+        <GoogleAccountSettings
+          key={`google:${props.apiBaseUrl}:${props.account.id}:${props.spaceId}`}
+          apiBaseUrl={props.apiBaseUrl}
+          accessToken={props.accessToken}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+        />
+      </>
     );
   } else if (categoryId === 'data') {
     categoryContent = (
@@ -252,16 +311,21 @@ export function SettingsPage(props: SettingsPageProps) {
   } else if (categoryId === 'account') {
     categoryContent = (
       <div className="settings-category-content">
-        <ProInformationPanel />
+        <ProSettingsRow />
+        {demoMode ? null : (
+          <SignInMethodsPanel
+            apiBaseUrl={props.apiBaseUrl}
+            accessToken={props.accessToken}
+            accountId={props.account.id}
+            spaceId={props.spaceId}
+          />
+        )}
         <section
           id="settings-account"
           className="settings-sensitive-zone"
           aria-labelledby="settings-sensitive-heading"
         >
           <div className="settings-sensitive-head">
-            <p className="eyebrow">
-              {t('profileIdentity.settingsSensitiveEyebrow')}
-            </p>
             <h2 id="settings-sensitive-heading">
               {t('profileIdentity.settingsSensitiveTitle')}
             </h2>
@@ -298,7 +362,9 @@ export function SettingsPage(props: SettingsPageProps) {
         eyebrow={category ? t('navigation.settings') : undefined}
         title={category ? t(category.titleKey) : t('navigation.settings')}
         description={
-          categoryId === 'today'
+          categoryId === 'today' ||
+          categoryId === 'notifications' ||
+          categoryId === 'shared'
             ? undefined
             : category
               ? t(category.descriptionKey)
@@ -306,7 +372,17 @@ export function SettingsPage(props: SettingsPageProps) {
         }
       />
 
-      {category ? categoryContent : <SettingsIndex />}
+      {category ? (
+        categoryContent
+      ) : (
+        <SettingsIndexLive
+          apiBaseUrl={props.apiBaseUrl}
+          accessToken={props.accessToken}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+          demoMode={demoMode}
+        />
+      )}
     </div>
   );
 }

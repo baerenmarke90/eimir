@@ -147,15 +147,17 @@ def get_daily_insights(
         if has_own:
             own_checkin_days += 1
 
+        # One own entry of any kind reveals every Mutual Reveal dimension of the
+        # day together (#1790, ADR 0007 amendment).
         vibe_hidden_until_self = (
             vibe_enabled
             and configuration.vibe_visibility_mode == DailyCheckInVisibilityMode.MUTUAL_REVEAL
-            and own_vibe is None
+            and not has_own
         )
         energy_hidden_until_self = (
             energy_enabled
             and configuration.energy_visibility_mode == DailyCheckInVisibilityMode.MUTUAL_REVEAL
-            and own_energy is None
+            and not has_own
         )
 
         # Do not inspect partner participation when every enabled dimension is still

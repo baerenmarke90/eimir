@@ -1,4 +1,3 @@
-const MIN_COMPRESSION_BYTES = 8 * 1024 * 1024;
 const MAX_COMPRESSION_MS = 120_000;
 let compressionTail: Promise<unknown> = Promise.resolve();
 
@@ -18,21 +17,24 @@ function run(
         { type: 'module' },
       );
     } catch {
-      resolve(file);
+      reject(new Error('Video preparation unavailable.'));
       return;
     }
     let settled = false;
-    const finish = (result?: File) => {
+    const finish = (result?: File, error?: Error) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
       signal?.removeEventListener('abort', cancel);
       worker.terminate();
       if (result) resolve(result);
-      else reject(aborted());
+      else reject(error ?? aborted());
     };
     const cancel = () => finish();
-    const timer = setTimeout(() => finish(file), MAX_COMPRESSION_MS);
+    const timer = setTimeout(
+      () => finish(undefined, new Error('Video preparation timed out.')),
+      MAX_COMPRESSION_MS,
+    );
     signal?.addEventListener('abort', cancel, { once: true });
     worker.onmessage = ({ data }) => {
       if (data?.type === 'progress' && Number.isFinite(data.progress))
@@ -41,8 +43,7 @@ function run(
         data?.type === 'done' &&
         data.buffer instanceof ArrayBuffer &&
         data.buffer.byteLength > 0 &&
-        data.buffer.byteLength < file.size * 0.9 &&
-        data.buffer.byteLength <= 100 * 1024 * 1024
+        data.buffer.byteLength <= 250 * 1024 * 1024
       ) {
         finish(
           new File([data.buffer], file.name.replace(/\.[^.]+$/, '') + '.mp4', {
@@ -50,19 +51,22 @@ function run(
             lastModified: file.lastModified,
           }),
         );
-      } else if (data?.type !== 'progress') finish(file);
+      } else if (data?.type === 'original') finish(file);
+      else if (data?.type !== 'progress')
+        finish(undefined, new Error('Video preparation failed.'));
     };
     worker.onerror = (event) => {
       event.preventDefault();
-      finish(file);
+      finish(undefined, new Error('Video preparation failed.'));
     };
-    worker.onmessageerror = () => finish(file);
+    worker.onmessageerror = () =>
+      finish(undefined, new Error('Video preparation failed.'));
     if (signal?.aborted) cancel();
     else {
       try {
         worker.postMessage(file);
       } catch {
-        finish(file);
+        finish(undefined, new Error('Video preparation failed.'));
       }
     }
   });
@@ -75,12 +79,8 @@ export function compressVideoForUpload(
   onProgress?: (progress: number) => void,
 ): Promise<File> {
   if (signal?.aborted) return Promise.reject(aborted());
-  if (
-    file.size < MIN_COMPRESSION_BYTES ||
-    typeof Worker === 'undefined' ||
-    typeof globalThis.VideoEncoder === 'undefined'
-  )
-    return Promise.resolve(file);
+  if (typeof Worker === 'undefined')
+    return Promise.reject(new Error('Video preparation unavailable.'));
   const task = compressionTail.then(() => run(file, signal, onProgress));
   compressionTail = task.catch(() => undefined);
   if (!signal) return task;

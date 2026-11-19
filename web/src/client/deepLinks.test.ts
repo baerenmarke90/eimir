@@ -49,6 +49,10 @@ describe('M5 Web S6 canonical Deep Links', () => {
     expect(validateAppRelativeReturnTarget('/plan/reminders/reminder-1')).toBe(
       '/plan/reminders/reminder-1',
     );
+    // A shared note opened from a push survives a sign-in in between (#1969).
+    expect(validateAppRelativeReturnTarget('/more/notes/note-1')).toBe(
+      '/more/notes/note-1',
+    );
   });
 
   it('binds a reminder return to the Account and Space that admitted it', () => {
@@ -71,7 +75,16 @@ describe('M5 Web S6 canonical Deep Links', () => {
     },
   );
 
-  it('rejects hashes outside the explicit Settings allowlist', () => {
+  it.each([
+    '/more/people/new',
+    '/more/people/person-1',
+    '/more/people/person-1/edit',
+    '/plan#dates',
+  ])('retains the canonical People and occasions return %s', (path) => {
+    expect(validateAppRelativeReturnTarget(path)).toBe(path);
+  });
+
+  it('rejects hashes outside the explicit surface allowlists', () => {
     expect(
       validateAppRelativeReturnTarget('/more/settings#settings-unknown'),
     ).toBeNull();

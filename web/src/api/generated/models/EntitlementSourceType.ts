@@ -19,6 +19,7 @@
  */
 export const EntitlementSourceType = {
     GOOGLE_PLAY: 'GOOGLE_PLAY',
+    APP_STORE: 'APP_STORE',
     CLOUD_STRIPE: 'CLOUD_STRIPE',
     SELF_HOSTED_KEY: 'SELF_HOSTED_KEY',
     ADMIN_GRANT: 'ADMIN_GRANT',

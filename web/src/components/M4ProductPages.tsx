@@ -1,4 +1,3 @@
-import { AutoLoadMore } from './AutoLoadMore';
 import {
   useInfiniteQuery,
   useIsMutating,
@@ -23,12 +22,15 @@ import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import type { SearchKind } from '../api/generated/models/SearchKind';
 import type { SearchResult } from '../api/generated/models/SearchResult';
-import { authorDisplayName } from '../client/authorPresentation';
-import { assertOnlineWrite } from '../client/connectivity';
 import {
-  engagementTargetPath,
-  notificationPath,
+  readableActivityItems,
+  useActivityQuery,
+} from '../client/activityQueries';
+import { assertOnlineWrite } from '../client/connectivity';
+import { concealedTitle } from '../client/discreetPlans';
+import {
   type M4ProductApis,
+  notificationPath,
   opaqueNextCursor,
   searchResultPath,
 } from '../client/m4Product';
@@ -47,15 +49,16 @@ import {
   normalizeClientError,
 } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
+import { SEARCH_ROUTE } from '../client/routes';
 import { handleTabKeyDown } from '../client/tabKeyboard';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { ActivityCard } from './ActivityCard';
-import {
-  useActivityQuery,
-  readableActivityItems,
-} from '../client/activityQueries';
+import { AutoLoadMore } from './AutoLoadMore';
 import { DestinationIcon } from './DestinationIcon';
+import { DiscreetLock, DiscreetPlaceholderLines } from './DiscreetPlan';
+import { HEART_MOMENT_TAGS } from './HeartMomentTagChoices';
+import { MEMORY_TAGS } from './MemoryTagChoices';
 import { PageHeader } from './PageHeader';
 import { AuthorAvatar } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
@@ -74,6 +77,7 @@ const SEARCH_KINDS: readonly SearchKind[] = [
   'CHAPTER',
   'COLLECTION',
   'COLLECTION_ITEM',
+  'SHARED_NOTE',
   'PRIVATE_NOTE',
   'GIFT_IDEA',
   'PRIVATE_COLLECTION',
@@ -126,7 +130,9 @@ function SearchResultCard({
     item.type === 'MEMORY'
       ? memoryPreviewTitle(item.title, item.occurredOn, t)
       : {
-          title: item.title || t('m5s5.search.resultFallback'),
+          title: item.concealed
+            ? concealedTitle(item.title, t)
+            : item.title || t('m5s5.search.resultFallback'),
           titleIsDate: false,
         };
 
@@ -139,9 +145,20 @@ function SearchResultCard({
           {t(`m5s5.kind.${item.type}`)}
           {item.scope !== 'SHARED' && ` · ${t(`m5s5.scope.${item.scope}`)}`}
         </span>
-        <h3 className="search-result-title">{presentation.title}</h3>
-        {item.excerpt && (
-          <p className="search-result-excerpt">{item.excerpt}</p>
+        {item.concealed ? (
+          <div className="discreet-title-row">
+            <h3 className="search-result-title">{presentation.title}</h3>
+            <DiscreetLock />
+          </div>
+        ) : (
+          <h3 className="search-result-title">{presentation.title}</h3>
+        )}
+        {item.concealed ? (
+          <DiscreetPlaceholderLines />
+        ) : (
+          item.excerpt && (
+            <p className="search-result-excerpt">{item.excerpt}</p>
+          )
         )}
         {date && !presentation.titleIsDate && (
           <span className="search-result-date">{date}</span>
@@ -182,49 +199,85 @@ export function SearchProductPage({
   const [draftQuery, setDraftQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [kind, setKind] = useState<SearchKind | ''>('');
+  const locationTag = (location.state as { selectedTag?: unknown } | null)
+    ?.selectedTag;
+  const directTag =
+    typeof locationTag === 'string' && locationTag.trim().length <= 40
+      ? locationTag.trim()
+      : '';
+  const [selectedTag, setSelectedTag] = useState(directTag);
+  const tagLabel = (MEMORY_TAGS as readonly string[]).includes(selectedTag)
+    ? t(`memory.tagLabels.${selectedTag}`)
+    : (HEART_MOMENT_TAGS as readonly string[]).includes(selectedTag)
+      ? t(`heartMomentProduct.tagLabels.${selectedTag}`)
+      : selectedTag;
+  const effectiveQuery = selectedTag ? `tag:${selectedTag}` : submittedQuery;
+  const effectiveKind = selectedTag ? '' : kind;
 
   const returnKey = (location.state as { taskReturnKey?: unknown } | null)
     ?.taskReturnKey;
-  const restoredKeyRef = useRef<unknown>(undefined);
+  const restoredKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (restoredKeyRef.current === returnKey) return;
-    restoredKeyRef.current = returnKey;
+    if (restoredKeyRef.current === location.key) return;
+    restoredKeyRef.current = location.key;
     const candidateOrigin = resolveOrigin(returnKey);
     const returnOrigin =
       candidateOrigin?.to === taskOriginPath(location.pathname, location.search)
         ? candidateOrigin
         : null;
+    if (directTag) {
+      setSelectedTag(directTag);
+      setKind('');
+      return;
+    }
+    if (returnOrigin?.searchQuery?.startsWith('tag:')) {
+      setSelectedTag(returnOrigin.searchQuery.slice(4));
+      setKind('');
+      return;
+    }
+    setSelectedTag('');
     if (returnOrigin?.searchQuery) {
       setDraftQuery(returnOrigin.searchQuery);
       setSubmittedQuery(returnOrigin.searchQuery);
       setKind((returnOrigin.searchKind as SearchKind | undefined) ?? '');
+    } else {
+      setDraftQuery('');
+      setSubmittedQuery('');
+      setKind('');
     }
-  }, [returnKey, resolveOrigin, location.pathname, location.search]);
+  }, [
+    directTag,
+    location.key,
+    location.pathname,
+    location.search,
+    resolveOrigin,
+    returnKey,
+  ]);
 
   useEffect(
     () =>
       registerOriginMetadata({
-        searchQuery: submittedQuery || undefined,
-        searchKind: kind || undefined,
+        searchQuery: effectiveQuery || undefined,
+        searchKind: effectiveKind || undefined,
       }),
-    [submittedQuery, kind, registerOriginMetadata],
+    [effectiveQuery, effectiveKind, registerOriginMetadata],
   );
 
   const searchQuery = useInfiniteQuery({
-    queryKey: ['m5-s5', 'search', spaceId, submittedQuery, kind],
+    queryKey: ['m5-s5', 'search', spaceId, effectiveQuery, effectiveKind],
     queryFn: ({ pageParam }) =>
       apiCall(() =>
         apis.search.searchSpaceContent({
           spaceId,
-          q: submittedQuery,
-          type: kind ? [kind] : undefined,
+          q: effectiveQuery,
+          type: effectiveKind ? [effectiveKind] : undefined,
           cursor: pageParam,
           limit: PAGE_SIZE,
         }),
       ),
     initialPageParam: null as string | null,
     getNextPageParam: opaqueNextCursor,
-    enabled: submittedQuery.length > 0,
+    enabled: effectiveQuery.length > 0,
     retry: false,
   });
 
@@ -238,59 +291,78 @@ export function SearchProductPage({
   return (
     <div className="page m4-product-page">
       <PageHeader
-        title={t('m5s5.search.title')}
-        description={t('m5s5.search.intro')}
+        title={
+          selectedTag
+            ? t('contextTags.resultsTitle', { tag: tagLabel })
+            : t('m5s5.search.title')
+        }
+        description={
+          selectedTag
+            ? t('contextTags.resultsDescription')
+            : t('m5s5.search.intro')
+        }
       />
 
-      <form className="layout-panel m4-toolbar" onSubmit={submit}>
-        <div className="m4-toolbar-row">
-          <div className="field-group m4-search-field">
-            <label htmlFor="m4-search-query">{t('m5s5.search.label')}</label>
-            <div className="m4-search-input-shell">
-              <span className="m4-search-input-icon" aria-hidden="true">
-                <DestinationIcon icon="search" />
-              </span>
-              <input
-                id="m4-search-query"
-                type="search"
-                value={draftQuery}
-                onChange={(event) => setDraftQuery(event.currentTarget.value)}
-                placeholder={t('m5s5.search.placeholder')}
-                autoComplete="off"
-              />
+      {selectedTag ? (
+        <div className="m4-tag-navigation">
+          <span className="m4-tag-label">{tagLabel}</span>
+          <Link to={SEARCH_ROUTE} state={null} className="m4-tag-back">
+            {t('contextTags.searchAll')}
+          </Link>
+        </div>
+      ) : (
+        <form className="layout-panel m4-toolbar" onSubmit={submit}>
+          <div className="m4-toolbar-row">
+            <div className="field-group m4-search-field">
+              <label htmlFor="m4-search-query">{t('m5s5.search.label')}</label>
+              <div className="m4-search-input-shell">
+                <span className="m4-search-input-icon" aria-hidden="true">
+                  <DestinationIcon icon="search" />
+                </span>
+                <input
+                  id="m4-search-query"
+                  type="search"
+                  value={draftQuery}
+                  onChange={(event) => setDraftQuery(event.currentTarget.value)}
+                  placeholder={t('m5s5.search.placeholder')}
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+            <div className="field-group">
+              <label htmlFor="m4-search-kind">
+                {t('m5s5.search.typeLabel')}
+              </label>
+              <select
+                id="m4-search-kind"
+                value={kind}
+                onChange={(event) =>
+                  setKind(event.currentTarget.value as SearchKind | '')
+                }
+              >
+                <option value="">{t('m5s5.search.allTypes')}</option>
+                {SEARCH_KINDS.map((candidate) => (
+                  <option key={candidate} value={candidate}>
+                    {t(`m5s5.kind.${candidate}`)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="m4-toolbar-submit">
+              <button
+                type="submit"
+                disabled={!draftQuery.trim() || searchQuery.isFetching}
+              >
+                {searchQuery.isFetching && !searchQuery.isFetchingNextPage
+                  ? t('m5s5.search.searching')
+                  : t('m5s5.search.submit')}
+              </button>
             </div>
           </div>
-          <div className="field-group">
-            <label htmlFor="m4-search-kind">{t('m5s5.search.typeLabel')}</label>
-            <select
-              id="m4-search-kind"
-              value={kind}
-              onChange={(event) =>
-                setKind(event.currentTarget.value as SearchKind | '')
-              }
-            >
-              <option value="">{t('m5s5.search.allTypes')}</option>
-              {SEARCH_KINDS.map((candidate) => (
-                <option key={candidate} value={candidate}>
-                  {t(`m5s5.kind.${candidate}`)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="m4-toolbar-submit">
-            <button
-              type="submit"
-              disabled={!draftQuery.trim() || searchQuery.isFetching}
-            >
-              {searchQuery.isFetching && !searchQuery.isFetchingNextPage
-                ? t('m5s5.search.searching')
-                : t('m5s5.search.submit')}
-            </button>
-          </div>
-        </div>
-      </form>
+        </form>
+      )}
 
-      {!submittedQuery ? (
+      {!effectiveQuery ? (
         <UiState
           kind="empty"
           title={t('m5s5.search.startTitle')}
@@ -306,11 +378,15 @@ export function SearchProductPage({
           onRetry={() => void searchQuery.refetch()}
         />
       ) : null}
-      {submittedQuery && searchQuery.data && items.length === 0 ? (
+      {effectiveQuery && searchQuery.data && items.length === 0 ? (
         <UiState
           kind="empty"
           title={t('m5s5.search.emptyTitle')}
-          body={t('m5s5.search.emptyBody')}
+          body={
+            selectedTag
+              ? t('contextTags.noMatches')
+              : t('m5s5.search.emptyBody')
+          }
         />
       ) : null}
       {items.length > 0 ? (
@@ -362,16 +438,17 @@ export function ActivityProductPage({
   currentAccountId?: string;
 }) {
   const { t } = useTranslation();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const scope = searchParams.get('scope') === 'own' ? 'own' : 'shared';
   function setScope(next: 'own' | 'shared') {
     const search = new URLSearchParams(searchParams);
     if (next === 'own') search.set('scope', next);
     else search.delete('scope');
-    setSearchParams(search);
+    // A scope switch is not a Back step, and the entry keeps its task origin
+    // so the shell Back still returns to where Activity was opened (#1907 A2).
+    setSearchParams(search, { replace: true, state: location.state });
   }
-  const navigate = useNavigate();
-  const { captureOrigin } = useTaskOrigin();
   const activityQuery = useActivityQuery(
     apis.activity,
     spaceId,
@@ -381,22 +458,8 @@ export function ActivityProductPage({
   const items = readableActivityItems(activityQuery);
 
   return (
-    <div className="page m4-product-page">
-      <PageHeader
-        title={t('m5s5.activity.title')}
-        action={
-          <button
-            type="button"
-            className="secondary compact-action"
-            onClick={() => void activityQuery.refetch()}
-            disabled={activityQuery.isFetching}
-          >
-            {activityQuery.isFetching && !activityQuery.isFetchingNextPage
-              ? t('m5s5.common.refreshing')
-              : t('m5s5.common.refresh')}
-          </button>
-        }
-      />
+    <div className="page m4-product-page m4-feed-page">
+      <PageHeader title={t('m5s5.activity.title')} />
       <div
         className="planen-segmented"
         role="tablist"
@@ -462,13 +525,6 @@ export function ActivityProductPage({
                   profilesApi={profilesApi}
                   spaceId={spaceId}
                   currentAccountId={currentAccountId}
-                  onOpen={(event, path) => {
-                    if (!isPlainPrimaryClick(event)) return;
-                    const taskOriginKey = captureOrigin();
-                    if (!taskOriginKey) return;
-                    event.preventDefault();
-                    void navigate(path, { state: { taskOriginKey } });
-                  }}
                 />
               ))}
             </ul>
@@ -723,60 +779,31 @@ export function NotificationsProductPage({
   const unreadCount = unreadQuery.data?.unreadCount;
 
   return (
-    <div className="page m4-product-page">
-      <PageHeader
-        title={t('m5s5.notifications.title')}
-        action={
-          <button
-            type="button"
-            className="secondary compact-action"
-            onClick={() => {
-              void notificationsQuery.refetch();
-              void unreadQuery.refetch();
-            }}
-            disabled={notificationsQuery.isFetching || unreadQuery.isFetching}
-          >
-            {notificationsQuery.isFetching || unreadQuery.isFetching
-              ? t('m5s5.common.refreshing')
-              : t('m5s5.common.refresh')}
-          </button>
-        }
-      />
+    <div className="page m4-product-page m4-feed-page">
+      <PageHeader title={t('m5s5.notifications.title')} />
 
       {unreadQuery.isLoading ? (
-        <section
-          className="layout-panel layout-panel-quiet m4-notification-summary-panel"
-          aria-live="polite"
-        >
-          <p className="planning-meta">
-            {t('m5s5.notifications.unreadLoading')}
-          </p>
-        </section>
+        <p className="m4-unread-line" aria-live="polite">
+          {t('m5s5.notifications.unreadLoading')}
+        </p>
       ) : unreadQuery.isSuccess && unreadCount !== undefined ? (
-        <section
-          className="layout-panel layout-panel-quiet m4-notification-summary-panel"
-          aria-labelledby="m4-notification-summary"
-        >
-          <div className="m4-notification-summary">
-            <h2
-              id="m4-notification-summary"
-              className="m4-unread-badge"
-              aria-live="polite"
-            >
-              {t('m5s5.notifications.unreadCount', { count: unreadCount })}
-            </h2>
+        <div className="m4-notification-bar">
+          <p className="m4-unread-line" aria-live="polite">
+            {t('m5s5.notifications.unreadCount', { count: unreadCount })}
+          </p>
+          {unreadCount > 0 || isMarkAllPending ? (
             <button
               type="button"
-              className="secondary"
+              className="tertiary compact-action"
               onClick={markAllNotificationsRead}
-              disabled={isMarkAllPending || unreadCount === 0}
+              disabled={isMarkAllPending}
             >
               {isMarkAllPending
                 ? t('m5s5.notifications.markingAllRead')
                 : t('m5s5.notifications.markAllRead')}
             </button>
-          </div>
-        </section>
+          ) : null}
+        </div>
       ) : null}
 
       {notificationsQuery.isLoading ? (
@@ -812,7 +839,7 @@ export function NotificationsProductPage({
       ) : null}
 
       {items.length > 0 ? (
-        <section className="layout-panel" aria-live="polite">
+        <section aria-live="polite">
           <ul className="m4-list m4-list-rows">
             {items.map((item) => (
               <NotificationCard

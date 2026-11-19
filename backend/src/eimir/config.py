@@ -13,7 +13,7 @@ from datetime import timedelta
 from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated, Self
+from typing import Annotated, Literal, Self
 from urllib.parse import urlsplit
 
 from pydantic import (
@@ -21,6 +21,7 @@ from pydantic import (
     BaseModel,
     BeforeValidator,
     Field,
+    PrivateAttr,
     SecretStr,
     field_validator,
     model_validator,
@@ -102,6 +103,11 @@ class OidcConnection(BaseModel):
     # select only this preconfigured URI; it can never supply an arbitrary redirect.
     android_redirect_uri: str | None = Field(default=None, min_length=1, max_length=512)
     scopes: str = "openid email profile"
+    # Presentation hint for the public sign-in screen. ``google`` lets clients
+    # show the provider's own button; ``generic`` uses ``label`` instead. It has
+    # no protocol meaning, and Google is otherwise an ordinary OIDC connection.
+    provider: Literal["google", "generic"] = "generic"
+    label: str = Field(default="", max_length=64)
 
     @field_validator("issuer")
     @classmethod
@@ -133,6 +139,8 @@ def _database_url_is_usable(value: str) -> str:
 _DatabaseUrl = Annotated[str, AfterValidator(_database_url_is_usable)]
 
 _DEMO_RESET_INTERVAL_PATTERN = re.compile(r"^(?P<value>[1-9][0-9]*)(?P<unit>[mhd])$")
+# A key set is a few short entries; anything larger is not a key file.
+_ENCRYPTION_KEYS_FILE_MAX_BYTES = 64 * 1024
 
 
 def _demo_reset_interval(value: object) -> timedelta:
@@ -234,8 +242,10 @@ class Settings(IdentityCompatibleSettings):
     # Only canonical saved photo coordinates and language reach this service.
     photo_place_geocoding_url: str = "https://photon.komoot.io"
     place_search_url: str = "https://photon.komoot.io"
+    # Operator switch for M9 partner location (#1792). OFF writes stay accepted.
+    partner_location_enabled: bool = True
 
-    # Optional local-only recap wording. Selection and complete fallback stay in Core.
+    # Optional local AI for weekly reviews and tag proposals. Keep the deployed setting names.
     recap_ai_url: str = ""
     recap_ai_model: str = "qwen3:1.7b-q4_K_M"
     recap_ai_timeout_seconds: float = Field(default=45, ge=1, le=120)
@@ -243,7 +253,7 @@ class Settings(IdentityCompatibleSettings):
     @field_validator("recap_ai_url")
     @classmethod
     def _recap_ai_origin(cls, value: str) -> str:
-        from eimir.recaps.local_ai import validate_local_url
+        from eimir.local_ai import validate_local_url
 
         return validate_local_url(value)
 
@@ -273,6 +283,13 @@ class Settings(IdentityCompatibleSettings):
     # ``{key_id: base64 32-byte key}``. Key material comes from the operator's
     # secret store; nothing in the repository or image supplies it.
     encryption_keys: Annotated[dict[str, SecretStr], NoDecode] = Field(default_factory=dict)
+    # Alternative to ``encryption_keys``: an absolute path to a private file that
+    # holds the same JSON object. It keeps the key material out of the process
+    # environment, where container managers and ``docker inspect`` display it.
+    encryption_keys_file: str = ""
+    # Validation can visit one instance twice; the second visit must not mistake
+    # the key set it loaded from the file for an inline one.
+    _encryption_keys_from_file: bool = PrivateAttr(default=False)
     encryption_active_key_id: str | None = None
 
     # Keyset cursors leave the server as opaque HMAC-protected tokens. An
@@ -308,6 +325,21 @@ class Settings(IdentityCompatibleSettings):
     photo_sources_enabled: bool = True
     google_photos_client_id: str = ""
     google_photos_client_secret: SecretStr | None = None
+    google_photos_web_client_file: str = ""
+    # Test-only eligibility for the Google import (#1467). The production gate stays closed;
+    # an Account is eligible only when one of its verified addresses is listed here.
+    google_photos_test_account_emails: list[str] = Field(default_factory=list)
+
+    # Automatic Plan calendar sync (#1895). Credentials are encrypted at rest,
+    # so the feature is only offered with EIMIR_ENCRYPTION_AT_REST=required.
+    calendar_sync_enabled: bool = True
+    # Self-Hosted only: exact host names of private CalDAV servers (LAN, VPN)
+    # that may resolve to non-public addresses. Loopback stays blocked.
+    calendar_caldav_private_hosts: list[str] = Field(default_factory=list)
+    # Operator-owned Google OAuth Web client for Google Calendar sync. The same
+    # client as for Google Photos may be used when both redirect URIs are listed.
+    google_calendar_client_id: str = ""
+    google_calendar_client_secret: SecretStr | None = None
 
     # The relying party is the application for which a passkey is valid. When
     # unset it is derived from the public address; a passkey for "app.example"
@@ -324,17 +356,50 @@ class Settings(IdentityCompatibleSettings):
     smtp_password: SecretStr | None = None
     smtp_starttls: bool = True
 
-    # UnifiedPush uses Web Push for the server-to-distributor hop. No provider
-    # is active until an operator configures a VAPID key and explicit origins.
+    # Operator identity shown in the footer of every authentication mail. The
+    # legal texts name the provider and an imprint; the mail must carry the same
+    # facts so a recipient can identify who sent it without opening the app.
+    # Empty values are omitted instead of printing a placeholder.
+    legal_provider_name: str = ""
+    legal_provider_address: str = ""
+    legal_imprint_url: str = ""
+    legal_privacy_url: str = ""
+    legal_terms_url: str = ""
+    support_email: str = ""
+
+    # Both Web Push adapters require VAPID and their own explicit origin list.
     push_vapid_private_key: SecretStr | None = None
     push_vapid_subject: str = ""
     push_webpush_allowed_origins: list[str] = Field(default_factory=list)
+    push_browser_allowed_origins: list[str] = Field(default_factory=list)
 
     # Both processes share the operator-managed sender configuration. Credentials
     # stay in a mounted file; Settings validation never reads it or calls Google.
     push_fcm_project_id: str = ""
     push_fcm_android_package: str = ""
     push_fcm_credentials_file: str = ""
+    push_apns_bundle_id: str = ""
+    push_apns_team_id: str = ""
+    push_apns_key_id: str = ""
+    push_apns_key_file: str = ""
+    push_apns_environment: Literal["development", "production"] = "production"
+
+    # Google Play Billing (#1525). eimir. Cloud only: store purchases are
+    # verified by the publisher's backend, so a Self-Hosted instance never
+    # holds these credentials and keeps the signed offline license instead.
+    # The service-account file stays in the operator's secret mount; it never
+    # reaches the app, the browser or ordinary user configuration.
+    billing_google_play_package: str = ""
+    billing_google_play_credentials_file: str = ""
+    # One subscription product with one auto-renewing base plan per period.
+    billing_google_play_product_id: str = "eimir_pro"
+    billing_google_play_monthly_base_plan: str = "monthly"
+    billing_google_play_yearly_base_plan: str = "yearly"
+    # Real-time developer notifications arrive as authenticated Pub/Sub push
+    # requests. The audience and the push service account are both required;
+    # without them the notification endpoint rejects every request.
+    billing_google_play_rtdn_audience: str = ""
+    billing_google_play_rtdn_service_account: str = ""
 
     # Observability and logging configuration.
     log_format: LogFormat | None = None
@@ -349,6 +414,8 @@ class Settings(IdentityCompatibleSettings):
         "encryption_at_rest",
         "encryption_active_key_id",
         "push_vapid_private_key",
+        "google_photos_client_secret",
+        "google_calendar_client_secret",
         mode="before",
     )
     @classmethod
@@ -373,6 +440,38 @@ class Settings(IdentityCompatibleSettings):
                     "EIMIR_ENCRYPTION_KEYS must be a JSON object of key id to base64 key."
                 ) from None
         return value
+
+    @field_validator("legal_provider_name", "legal_provider_address")
+    @classmethod
+    def legal_identity_is_single_line(cls, value: str) -> str:
+        """Keep the identity a plain line so it renders the same in text and HTML."""
+        return " ".join(value.split())
+
+    @field_validator("legal_imprint_url", "legal_privacy_url", "legal_terms_url")
+    @classmethod
+    def legal_links_are_absolute_http(cls, value: str) -> str:
+        link = value.strip()
+        if not link:
+            return ""
+        parsed = urlsplit(link)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("EIMIR_LEGAL_*_URL must be an absolute http(s) address.")
+        return link
+
+    @field_validator("support_email")
+    @classmethod
+    def support_email_is_plausible(cls, value: str) -> str:
+        address = value.strip()
+        local_part, separator, domain = address.partition("@")
+        if address and (
+            not separator
+            or not local_part
+            or "." not in domain
+            or any(character.isspace() for character in address)
+            or len(address) > 320
+        ):
+            raise ValueError("EIMIR_SUPPORT_EMAIL must be an email address.")
+        return address
 
     @field_validator("server_admin_emails")
     @classmethod
@@ -403,17 +502,36 @@ class Settings(IdentityCompatibleSettings):
             return self.encryption_at_rest
         return EncryptionMode.DISABLED
 
+    @field_validator("google_photos_test_account_emails")
+    @classmethod
+    def google_test_account_emails_are_bounded(cls, value: list[str]) -> list[str]:
+        normalized = [item.strip().lower() for item in value]
+        if len(normalized) > 10 or len(set(normalized)) != len(normalized):
+            raise ValueError(
+                "EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS allows at most 10 distinct addresses."
+            )
+        if any(not item or "@" not in item or len(item) > 320 for item in normalized):
+            raise ValueError(
+                "EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS must contain email addresses."
+            )
+        return normalized
+
     @model_validator(mode="after")
     def photo_sources_require_encryption(self) -> Self:
+        google_configured = bool(self.google_photos_client_id or self.google_photos_web_client_file)
+        if self.google_photos_web_client_file and (
+            self.google_photos_client_id or self.google_photos_client_secret
+        ):
+            raise ValueError("Choose one Google Photos operator OAuth configuration source.")
         if (
             self.photo_sources_enabled
-            and self.google_photos_client_id
+            and google_configured
             and self.encryption_mode is not EncryptionMode.REQUIRED
         ):
             raise ValueError("Photo sources require EIMIR_ENCRYPTION_AT_REST=required.")
         if (
             self.photo_sources_enabled
-            and self.google_photos_client_id
+            and google_configured
             and not self.public_base_url.startswith("https://")
         ):
             raise ValueError("Photo sources require an HTTPS public base URL.")
@@ -464,6 +582,18 @@ class Settings(IdentityCompatibleSettings):
         return None
 
     @model_validator(mode="after")
+    def calendar_private_hosts_are_self_hosted(self) -> Self:
+        if self.calendar_caldav_private_hosts and self.deployment is Deployment.CLOUD:
+            raise ValueError(
+                "EIMIR_CALENDAR_CALDAV_PRIVATE_HOSTS is a Self-Hosted option; the Cloud "
+                "never admits private network targets."
+            )
+        self.calendar_caldav_private_hosts = sorted(
+            {host.strip().lower().rstrip(".") for host in self.calendar_caldav_private_hosts} - {""}
+        )
+        return self
+
+    @model_validator(mode="after")
     def demo_mode_matches_environment(self) -> Self:
         if self.environment is Environment.DEMO and not self.demo_mode:
             raise ValueError("EIMIR_ENVIRONMENT=demo requires EIMIR_DEMO_MODE=true.")
@@ -508,6 +638,43 @@ class Settings(IdentityCompatibleSettings):
             raise ValueError("Production and Demo require an https EIMIR_S3_ENDPOINT.")
         if "/" in self.s3_bucket:
             raise ValueError("EIMIR_S3_BUCKET must be a bucket name, not a path.")
+        return self
+
+    @model_validator(mode="after")
+    def encryption_keys_file_is_loaded(self) -> Self:
+        """Read the key set from ``EIMIR_ENCRYPTION_KEYS_FILE`` when it is configured.
+
+        Runs before the consistency check below, so a file-provided key set is
+        validated exactly like an inline one. No message quotes the file content.
+        """
+        configured = self.encryption_keys_file.strip()
+        if not configured:
+            return self
+        if self._encryption_keys_from_file:
+            return self
+        if self.encryption_keys:
+            raise ValueError(
+                "Set either EIMIR_ENCRYPTION_KEYS or EIMIR_ENCRYPTION_KEYS_FILE, not both."
+            )
+        path = Path(configured)
+        if not path.is_absolute():
+            raise ValueError("EIMIR_ENCRYPTION_KEYS_FILE must be an absolute file path.")
+        try:
+            if not path.is_file() or path.stat().st_size > _ENCRYPTION_KEYS_FILE_MAX_BYTES:
+                raise OSError
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            raise ValueError(
+                "EIMIR_ENCRYPTION_KEYS_FILE must be a readable JSON file of key id to base64 key."
+            ) from None
+        if not isinstance(loaded, dict) or not all(
+            isinstance(key_id, str) and isinstance(value, str) for key_id, value in loaded.items()
+        ):
+            raise ValueError(
+                "EIMIR_ENCRYPTION_KEYS_FILE must be a readable JSON file of key id to base64 key."
+            )
+        self.encryption_keys = {key_id: SecretStr(value) for key_id, value in loaded.items()}
+        self._encryption_keys_from_file = True
         return self
 
     @model_validator(mode="after")
@@ -600,21 +767,14 @@ class Settings(IdentityCompatibleSettings):
 
     @model_validator(mode="after")
     def web_push_configuration_is_complete(self) -> Self:
-        configured = bool(
-            self.push_vapid_private_key
-            or self.push_vapid_subject
-            or self.push_webpush_allowed_origins
-        )
+        origins = self.push_webpush_allowed_origins + self.push_browser_allowed_origins
+        configured = bool(self.push_vapid_private_key or self.push_vapid_subject or origins)
         if not configured:
             return self
-        if not (
-            self.push_vapid_private_key
-            and self.push_vapid_subject
-            and self.push_webpush_allowed_origins
-        ):
+        if not (self.push_vapid_private_key and self.push_vapid_subject and origins):
             raise ValueError(
                 "Web Push requires EIMIR_PUSH_VAPID_PRIVATE_KEY, "
-                "EIMIR_PUSH_VAPID_SUBJECT and EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS."
+                "EIMIR_PUSH_VAPID_SUBJECT and an explicit push origin list."
             )
         subject = urlsplit(self.push_vapid_subject)
         if not (
@@ -628,14 +788,12 @@ class Settings(IdentityCompatibleSettings):
             Vapid.from_string(self.push_vapid_private_key.get_secret_value())
         except Exception:
             raise ValueError("EIMIR_PUSH_VAPID_PRIVATE_KEY is invalid.") from None
-        for raw_origin in self.push_webpush_allowed_origins:
+        for raw_origin in origins:
             try:
                 origin = urlsplit(raw_origin)
                 _ = origin.port
             except ValueError:
-                raise ValueError(
-                    "EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS must contain HTTPS origins only."
-                ) from None
+                raise ValueError("Push origin lists must contain HTTPS origins only.") from None
             if (
                 origin.scheme != "https"
                 or not origin.hostname
@@ -646,9 +804,7 @@ class Settings(IdentityCompatibleSettings):
                 or origin.fragment
                 or any(ord(character) < 33 or ord(character) == 127 for character in raw_origin)
             ):
-                raise ValueError(
-                    "EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS must contain HTTPS origins only."
-                )
+                raise ValueError("Push origin lists must contain HTTPS origins only.")
         return self
 
     @model_validator(mode="after")
@@ -680,6 +836,89 @@ class Settings(IdentityCompatibleSettings):
             ord(character) < 33 or ord(character) == 127 for character in path
         ):
             raise ValueError("EIMIR_PUSH_FCM_CREDENTIALS_FILE must be an absolute file path.")
+        return self
+
+    @model_validator(mode="after")
+    def google_play_billing_is_complete(self) -> Self:
+        required = (self.billing_google_play_package, self.billing_google_play_credentials_file)
+        rtdn = (
+            self.billing_google_play_rtdn_audience,
+            self.billing_google_play_rtdn_service_account,
+        )
+        if not any(required) and not any(rtdn):
+            return self
+        if self.deployment is not Deployment.CLOUD:
+            raise ValueError(
+                "Google Play Billing is an eimir. Cloud channel; Self-Hosted keeps the "
+                "signed offline license."
+            )
+        if not all(required):
+            raise ValueError(
+                "Google Play Billing requires EIMIR_BILLING_GOOGLE_PLAY_PACKAGE and "
+                "EIMIR_BILLING_GOOGLE_PLAY_CREDENTIALS_FILE."
+            )
+        if any(rtdn) and not all(rtdn):
+            raise ValueError(
+                "Play notifications require EIMIR_BILLING_GOOGLE_PLAY_RTDN_AUDIENCE and "
+                "EIMIR_BILLING_GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT."
+            )
+        if (
+            re.fullmatch(
+                r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+",
+                self.billing_google_play_package,
+            )
+            is None
+        ):
+            raise ValueError("EIMIR_BILLING_GOOGLE_PLAY_PACKAGE is invalid.")
+        for value in (
+            self.billing_google_play_product_id,
+            self.billing_google_play_monthly_base_plan,
+            self.billing_google_play_yearly_base_plan,
+        ):
+            # Play product and base-plan IDs: lowercase letters, digits, "_", "." and "-".
+            if re.fullmatch(r"[a-z0-9][a-z0-9._-]{0,62}", value) is None:
+                raise ValueError("Google Play product and base-plan IDs are invalid.")
+        if self.billing_google_play_monthly_base_plan == self.billing_google_play_yearly_base_plan:
+            raise ValueError("The monthly and yearly Google Play base plans must differ.")
+        path = self.billing_google_play_credentials_file
+        if not Path(path).is_absolute() or any(
+            ord(character) < 33 or ord(character) == 127 for character in path
+        ):
+            raise ValueError(
+                "EIMIR_BILLING_GOOGLE_PLAY_CREDENTIALS_FILE must be an absolute file path."
+            )
+        audience = self.billing_google_play_rtdn_audience
+        if audience and (not audience.startswith("https://") or len(audience) > 512):
+            raise ValueError("EIMIR_BILLING_GOOGLE_PLAY_RTDN_AUDIENCE must be an HTTPS URL.")
+        account = self.billing_google_play_rtdn_service_account
+        if account and re.fullmatch(r"[^@\s]{1,128}@[A-Za-z0-9.-]{1,253}", account) is None:
+            raise ValueError("EIMIR_BILLING_GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT is invalid.")
+        return self
+
+    @property
+    def google_play_billing_configured(self) -> bool:
+        """The Cloud Play channel is offered only with complete operator config."""
+        return self.deployment is Deployment.CLOUD and bool(
+            self.billing_google_play_package and self.billing_google_play_credentials_file
+        )
+
+    @model_validator(mode="after")
+    def apns_configuration_is_complete(self) -> Self:
+        identifiers = (self.push_apns_team_id, self.push_apns_key_id)
+        values = (*identifiers, self.push_apns_bundle_id, self.push_apns_key_file)
+        if not any(values):
+            return self
+        if not all(values):
+            raise ValueError("APNs requires bundle ID, Team ID, key ID and a private key file.")
+        if any(re.fullmatch(r"[A-Z0-9]{10}", value) is None for value in identifiers):
+            raise ValueError("APNs Team ID and key ID must be valid Apple identifiers.")
+        if re.fullmatch(r"[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+", self.push_apns_bundle_id) is None:
+            raise ValueError("EIMIR_PUSH_APNS_BUNDLE_ID must be a valid bundle ID.")
+        path = self.push_apns_key_file
+        if not Path(path).is_absolute() or any(
+            ord(character) < 33 or ord(character) == 127 for character in path
+        ):
+            raise ValueError("EIMIR_PUSH_APNS_KEY_FILE must be an absolute file path.")
         return self
 
 

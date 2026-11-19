@@ -1,5 +1,7 @@
 /* #1010 — one semantic visual language for the six existing HeartEmotion values. */
 :root {
+  --active-heart-emotion-surface: var(--color-background);
+  --active-heart-emotion-accent: var(--color-link-text);
   --emotion-loved-accent: #be3653;
   --emotion-loved-surface: #fff0f3;
   --emotion-seen-accent: #5d5aa6;
@@ -47,37 +49,49 @@
 }
 
 [data-emotion="LOVED"],
-[data-heart-emotion="LOVED"] {
+[data-heart-emotion="LOVED"],
+.heart-emotion-compose:has(.heart-emotion-choice-input[value="LOVED"]:checked) {
   --heart-emotion-accent: var(--emotion-loved-accent);
   --heart-emotion-surface: var(--emotion-loved-surface);
 }
 
 [data-emotion="SEEN"],
-[data-heart-emotion="SEEN"] {
+[data-heart-emotion="SEEN"],
+.heart-emotion-compose:has(.heart-emotion-choice-input[value="SEEN"]:checked) {
   --heart-emotion-accent: var(--emotion-seen-accent);
   --heart-emotion-surface: var(--emotion-seen-surface);
 }
 
 [data-emotion="APPRECIATED"],
-[data-heart-emotion="APPRECIATED"] {
+[data-heart-emotion="APPRECIATED"],
+.heart-emotion-compose:has(
+  .heart-emotion-choice-input[value="APPRECIATED"]:checked
+) {
   --heart-emotion-accent: var(--emotion-appreciated-accent);
   --heart-emotion-surface: var(--emotion-appreciated-surface);
 }
 
 [data-emotion="SUPPORTED"],
-[data-heart-emotion="SUPPORTED"] {
+[data-heart-emotion="SUPPORTED"],
+.heart-emotion-compose:has(
+  .heart-emotion-choice-input[value="SUPPORTED"]:checked
+) {
   --heart-emotion-accent: var(--emotion-supported-accent);
   --heart-emotion-surface: var(--emotion-supported-surface);
 }
 
 [data-emotion="GRATEFUL"],
-[data-heart-emotion="GRATEFUL"] {
+[data-heart-emotion="GRATEFUL"],
+.heart-emotion-compose:has(
+  .heart-emotion-choice-input[value="GRATEFUL"]:checked
+) {
   --heart-emotion-accent: var(--emotion-grateful-accent);
   --heart-emotion-surface: var(--emotion-grateful-surface);
 }
 
 [data-emotion="HAPPY"],
-[data-heart-emotion="HAPPY"] {
+[data-heart-emotion="HAPPY"],
+.heart-emotion-compose:has(.heart-emotion-choice-input[value="HAPPY"]:checked) {
   --heart-emotion-accent: var(--emotion-happy-accent);
   --heart-emotion-surface: var(--emotion-happy-surface);
 }
@@ -151,15 +165,30 @@
   text-align: left;
 }
 
-/* Timeline cards keep their accepted hierarchy; the emotion is atmosphere, not taxonomy chrome. */
-.story-card-link .story-card-heart-moment[data-heart-emotion] {
-  background:
-    radial-gradient(
-      circle at 88% 12%,
-      color-mix(in srgb, var(--heart-emotion-surface) 88%, transparent) 0,
-      transparent 45%
-    ),
-    var(--color-surface);
+/* Native checked radios and saved values share one complete feeling surface. */
+.quiet-composer .heart-emotion-compose .composer-content,
+.story-card-link .story-card-heart-moment[data-heart-emotion],
+.heart-moment-detail-container[data-heart-emotion] .product-detail-card {
+  background: var(--heart-emotion-surface);
+  border-color: color-mix(
+    in srgb,
+    var(--heart-emotion-accent) 35%,
+    var(--heart-emotion-surface)
+  );
+  color: var(--color-text);
+}
+
+.quiet-composer .heart-emotion-compose .composer-content {
+  transition:
+    background-color var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard);
+}
+
+.quiet-composer
+  .heart-emotion-compose
+  .composer-writing-surface
+  :is(input, textarea) {
+  background: transparent;
 }
 
 .story-card-heart-moment .heart-emotion-badge {
@@ -182,7 +211,7 @@
 
 .heart-emotion-picker-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
   gap: var(--space-2);
 }
 
@@ -290,23 +319,9 @@
 }
 
 .heart-moment-detail-container[data-heart-emotion] .product-detail-card {
-  position: relative;
-  isolation: isolate;
+  padding: var(--space-5);
+  border-radius: var(--radius-content);
   overflow: hidden;
-}
-
-.heart-moment-detail-container[data-heart-emotion]
-  .product-detail-card::before {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: radial-gradient(
-    circle at 88% 0%,
-    color-mix(in srgb, var(--heart-emotion-surface) 70%, transparent) 0,
-    transparent 42%
-  );
-  content: "";
 }
 
 .heart-emotion-badge--detail .heart-emotion-icon {
@@ -328,7 +343,8 @@
 @media (prefers-reduced-motion: reduce) {
   .heart-emotion-choice-visual,
   .heart-emotion-choice-check,
-  .heart-emotion-badge--detail .heart-emotion-icon {
+  .heart-emotion-badge--detail .heart-emotion-icon,
+  .quiet-composer .heart-emotion-compose .composer-content {
     animation: none;
     transition: none;
   }
@@ -337,4 +353,375 @@
 .heart-emotion-choice-visual > .heart-emotion-icon {
   width: var(--space-5);
   height: var(--space-5);
+}
+
+/* #1730: one feeling canvas across capture, editing, chrome and reading. */
+.heart-emotion-page.heart-emotion-compose,
+.product-shell:has(.heart-moment-read-page)
+  :is(.mobile-bottom-shell, .shell-nav) {
+  --heart-emotion-action: color-mix(
+    in srgb,
+    var(--heart-emotion-accent) 80%,
+    var(--color-text)
+  );
+  --color-surface-subtle: color-mix(
+    in srgb,
+    var(--heart-emotion-accent) 12%,
+    var(--heart-emotion-surface)
+  );
+  --color-focus: var(--heart-emotion-action);
+}
+.heart-emotion-page.heart-emotion-compose {
+  --composer-accent: var(--heart-emotion-action);
+  --composer-ground: var(--heart-emotion-surface);
+  --heart-emotion-on-accent: var(--color-on-accent);
+  --color-border-subtle: color-mix(
+    in srgb,
+    var(--heart-emotion-accent) 20%,
+    var(--heart-emotion-surface)
+  );
+  --color-shimmer-base: var(--color-surface-subtle);
+  --color-shimmer-highlight: var(--heart-emotion-surface);
+  --color-link-text: var(--heart-emotion-action);
+  background: var(--heart-emotion-surface);
+  transition: background-color var(--duration-feedback) var(--easing-standard);
+}
+:root[data-theme="dark"] .heart-emotion-page {
+  --heart-emotion-on-accent: var(--color-background);
+}
+:root:has(.heart-emotion-page),
+body:has(.heart-emotion-page),
+.product-shell:has(.heart-emotion-page) {
+  background: var(--active-heart-emotion-surface, var(--color-background));
+}
+.product-shell:has(.heart-moment-read-page)
+  :is(.mobile-bottom-shell, .shell-nav) {
+  --heart-emotion-accent: var(--active-heart-emotion-accent);
+  --heart-emotion-surface: var(--active-heart-emotion-surface);
+  --color-surface-overlay: var(--heart-emotion-surface);
+  --color-brand-surface: var(--color-surface-subtle);
+  --color-brand-text: var(--heart-emotion-action);
+}
+.product-shell:has(.heart-moment-read-page)
+  .shell-nav
+  .shell-nav-link-active::before {
+  background: var(--heart-emotion-action);
+}
+.heart-emotion-page .composer-header,
+.heart-emotion-page .composer-tool-row {
+  background: var(--heart-emotion-surface);
+  border-color: var(--color-border-subtle);
+  transition: background-color var(--duration-feedback) var(--easing-standard);
+}
+.heart-emotion-page .composer-tool-row > span {
+  display: flex;
+  flex: 1 1 0;
+  min-inline-size: 0;
+  justify-content: center;
+}
+.heart-emotion-page .composer-header button[data-saveable="true"] {
+  background: var(--heart-emotion-action);
+  color: var(--heart-emotion-on-accent);
+}
+.heart-emotion-page
+  .comment-edit-actions
+  > button[type="submit"]:not(:disabled) {
+  background: var(--heart-emotion-action);
+  color: var(--heart-emotion-on-accent);
+}
+.heart-emotion-page
+  :is(.media-processing-state, .photo-draft-inspector)
+  progress {
+  accent-color: var(--heart-emotion-action);
+}
+.heart-emotion-page
+  :is(.media-processing-state, .memory-tag-summary)
+  .eimir-icon {
+  --identity-icon-accent: var(--heart-emotion-action);
+  color: var(--heart-emotion-action);
+}
+.heart-emotion-page .page,
+.heart-emotion-page .composer-content,
+.heart-emotion-page .composer-writing-surface {
+  background: transparent;
+}
+.heart-emotion-page.page-composer
+  .composer-writing-surface
+  textarea.composer-lead {
+  min-block-size: var(--touch-target-comfortable);
+  font: var(--font-composer-lead);
+  resize: none;
+  overflow: hidden;
+}
+.heart-emotion-page .composer-audience {
+  margin-inline-start: 0;
+  justify-self: start;
+}
+button.heart-visibility-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--touch-target-web);
+  max-inline-size: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+  color: var(--heart-emotion-action);
+  font: var(--font-action-label);
+  text-align: start;
+}
+.heart-visibility-pill > svg {
+  flex: none;
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+}
+.heart-visibility-pill > .eimir-icon:last-child {
+  transform: rotate(90deg);
+}
+.heart-emotion-page .heart-emotion-picker-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.heart-emotion-page.page-composer .heart-emotion-choice {
+  flex-basis: auto;
+  max-inline-size: 100%;
+}
+.heart-emotion-page.page-composer .heart-emotion-choice-visual {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--touch-target-web);
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-2);
+  gap: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: color-mix(
+    in srgb,
+    var(--color-surface-raised) 65%,
+    var(--heart-emotion-surface)
+  );
+  box-shadow: none;
+}
+.heart-emotion-page.page-composer .heart-emotion-choice-label {
+  font: var(--font-action-label);
+}
+.heart-emotion-page.page-composer .heart-emotion-choice-check {
+  position: static;
+  display: none;
+  background: transparent;
+  color: inherit;
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+}
+.heart-emotion-page
+  .heart-emotion-choice:has(:checked)
+  .heart-emotion-choice-visual {
+  background: var(--heart-emotion-action);
+  color: var(--heart-emotion-on-accent);
+}
+.heart-emotion-page .heart-emotion-choice:has(:checked) .heart-emotion-icon {
+  color: inherit;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+}
+.heart-emotion-page.page-composer
+  .heart-emotion-choice:has(:checked)
+  .heart-emotion-choice-check {
+  display: inline-grid;
+}
+.heart-emotion-page .composer-chip,
+.heart-emotion-page .photo-draft-add {
+  background: var(--color-surface-subtle);
+  color: var(--heart-emotion-action);
+}
+.heart-emotion-page .voice-player {
+  padding: var(--space-2);
+  background: color-mix(
+    in srgb,
+    var(--color-surface-raised) 70%,
+    var(--heart-emotion-surface)
+  );
+}
+.heart-emotion-page .voice-player-controls {
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.heart-emotion-page .voice-seek {
+  flex-basis: 0;
+  min-inline-size: var(--space-12);
+}
+.heart-emotion-page .voice-play {
+  background: var(--heart-emotion-action);
+  color: var(--heart-emotion-on-accent);
+}
+.heart-emotion-page .voice-waveform {
+  color: var(--heart-emotion-action);
+}
+.heart-emotion-page
+  .heart-moment-detail-container[data-heart-emotion]
+  .product-detail-card {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+  gap: var(--space-4);
+}
+.heart-emotion-page .story-reading .heart-moment-detail-text {
+  font: var(--font-composer-lead);
+}
+.heart-emotion-page .heart-emotion-badge--detail {
+  color: var(--heart-emotion-action);
+  font: var(--font-action-label);
+}
+.heart-emotion-page .heart-emotion-badge--detail .heart-emotion-icon {
+  inline-size: var(--space-8);
+  block-size: var(--space-8);
+}
+.heart-emotion-page .heart-moment-provenance-footer p {
+  white-space: normal;
+}
+.heart-emotion-page .composer-saved-status {
+  color: var(--heart-emotion-action);
+  background: var(--color-surface-subtle);
+}
+@media (prefers-reduced-motion: reduce) {
+  .heart-emotion-page,
+  .heart-emotion-page .composer-header,
+  .heart-emotion-page .composer-tool-row {
+    transition: none;
+  }
+}
+.heart-emotion-page.page-composer .heart-composer-fields {
+  display: contents;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.heart-emotion-page.page-composer
+  :is(.composer-content, .composer-writing-surface) {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.heart-emotion-page:has(.composer-place-context)
+  .composer-tool:has(.eimir-icon-orte) {
+  color: var(--heart-emotion-action);
+}
+.heart-emotion-page.page-composer .composer-lead::placeholder {
+  font-family: var(--font-display);
+}
+body:has(.heart-emotion-page) .photo-source-sheet {
+  background: color-mix(
+    in srgb,
+    var(--color-surface-raised) 95%,
+    var(--active-heart-emotion-surface)
+  );
+}
+body:has(.heart-emotion-page) .photo-source-sheet .media-intake-button {
+  background: color-mix(
+    in srgb,
+    var(--active-heart-emotion-accent) 8%,
+    var(--active-heart-emotion-surface)
+  );
+}
+body:has(.heart-emotion-page) .photo-source-sheet .media-intake-icon,
+body:has(.heart-emotion-page)
+  .photo-source-sheet
+  .photo-source-trigger
+  .media-intake-label {
+  color: color-mix(
+    in srgb,
+    var(--active-heart-emotion-accent) 80%,
+    var(--color-text)
+  );
+}
+
+.product-main > .heart-emotion-page {
+  container-name: product-content;
+  container-type: inline-size;
+  min-inline-size: 0;
+}
+.heart-emotion-page .page-composer-detail {
+  --composer-accent: var(--heart-emotion-action);
+  background: transparent;
+}
+.heart-emotion-page .composer-saved-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  justify-self: start;
+  inline-size: fit-content;
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  font: var(--font-supporting-copy);
+}
+.heart-emotion-page .composer-saved-status .eimir-icon {
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+}
+.heart-emotion-page .plan-photos-editor[data-has-media="false"],
+.heart-emotion-page
+  .plan-photos-editor[data-has-media="false"]
+  :is(.media-drop-zone, .attachment-draft-picker, .media-action-group),
+.heart-emotion-page .voice-editor[data-empty="true"],
+.heart-emotion-page .composer-enrichment:empty {
+  display: contents;
+}
+
+.composer-audience-sheet .heart-moment-create-visibility-option > span {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.heart-emotion-page.page-composer .immersive-create-form,
+.heart-emotion-page.page-composer .form-card.product-sheet {
+  gap: var(--space-1);
+}
+.heart-emotion-page.page-composer .heart-emotion-picker > legend {
+  margin-block-end: var(--space-1);
+  font: var(--font-supporting-copy);
+}
+.heart-emotion-page .voice-player-title[data-default-title] {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.heart-emotion-page.page-composer .composer-content {
+  gap: var(--space-3);
+}
+
+.heart-emotion-page.page-composer .heart-emotion-picker-grid {
+  row-gap: var(--space-1);
+}
+
+@container product-content (max-width: 18rem) {
+  .heart-emotion-page.page-composer .heart-emotion-choice-visual {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: var(--space-1);
+    border-radius: var(--radius-medium);
+  }
+  .heart-emotion-page.page-composer .heart-emotion-choice-label {
+    display: block;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    overflow-wrap: normal;
+    hyphens: none;
+  }
+  .heart-emotion-page.page-composer .heart-emotion-choice-check {
+    position: static;
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    margin: 0;
+  }
 }

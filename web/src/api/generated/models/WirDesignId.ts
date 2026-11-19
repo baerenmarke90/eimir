@@ -18,9 +18,13 @@
  * @export
  */
 export const WirDesignId = {
+    connected: 'connected',
     warm: 'warm',
+    shared_album: 'shared_album',
     modern: 'modern',
-    classic: 'classic'
+    classic: 'classic',
+    quiet_together: 'quiet_together',
+    handwriting: 'handwriting'
 } as const;
 export type WirDesignId = typeof WirDesignId[keyof typeof WirDesignId];
 

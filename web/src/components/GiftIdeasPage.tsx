@@ -1,38 +1,46 @@
-import { TaskBackButton } from './TaskBackButton';
-import { AutoLoadMore } from './AutoLoadMore';
-import { StoryDetailEditLink } from './StoryDetailEditLink';
-import { type FormEvent, useState } from 'react';
+import './FreeComposer.css';
 import {
   useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { type FormEvent, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { GiftIdeaDetail } from '../api/generated/models/GiftIdeaDetail';
 import { GiftIdeaStatus } from '../api/generated/models/GiftIdeaStatus';
+import { useReturnTo } from '../client/historyEntries';
 import {
-  PRIVATE_GIFT_IDEAS_PATH,
   capturePrivateCreate,
   capturePrivateDelete,
   capturePrivateEdit,
+  PRIVATE_GIFT_IDEAS_PATH,
   privateApiCall,
   privateAreaQueryKeys,
   privateGiftIdeaEditPath,
   privateGiftIdeaPath,
 } from '../client/privateArea';
+import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { AddActionLink } from './AddAction';
+import { AutoLoadMore } from './AutoLoadMore';
+import { EimirIcon } from './EimirIcon';
 import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
-import { ProblemState } from './ProblemState';
 import {
-  DeleteConfirmation,
   PrivateAreaDetailBack,
   PrivateEditorDiscardSheet,
+  PrivateItemLabel,
+  PrivateItemMenuSheets,
+  PrivateItemMenuTrigger,
+  PrivateItemPrivacy,
   usePrivateAreaTaskContext,
+  usePrivateItemMenu,
   usePrivateTaskEditorLifecycle,
 } from './PrivateAreaLayout';
+import { ProblemState } from './ProblemState';
+import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import { useRequiredTitleValidation } from './useRequiredTitleValidation';
 
@@ -82,49 +90,55 @@ function useGiftIdea(api: PrivateAreaApi, accountId: string, spaceId: string) {
 
 function GiftIdeaFields({
   giftIdea,
-  includeStatus = false,
   titleValidation,
 }: {
   giftIdea?: GiftIdeaDetail;
-  includeStatus?: boolean;
   titleValidation: ReturnType<typeof useRequiredTitleValidation>;
 }) {
   const { t } = useTranslation();
   return (
     <>
-      <div className="field-group">
-        <label htmlFor="gift-title">{t('privateArea.gifts.titleLabel')}</label>
-        <input
-          ref={titleValidation.inputRef}
-          id="gift-title"
-          name="title"
-          required
-          maxLength={200}
-          defaultValue={giftIdea?.title ?? ''}
-          aria-invalid={titleValidation.invalid || undefined}
-          aria-describedby={
-            titleValidation.invalid ? 'gift-title-error' : undefined
-          }
-          onChange={(event) =>
-            titleValidation.handleChange(event.currentTarget.value)
-          }
-        />
-        {titleValidation.invalid ? (
-          <p id="gift-title-error" className="status status-error" role="alert">
-            {t('privateArea.titleRequired')}
-          </p>
-        ) : null}
-      </div>
-      <div className="field-group">
-        <label htmlFor="gift-description">
-          {t('privateArea.gifts.descriptionLabel')}
-        </label>
-        <textarea
-          id="gift-description"
-          name="description"
-          rows={5}
-          defaultValue={giftIdea?.description ?? ''}
-        />
+      <div className="page-composer-writing">
+        <div className="field-group">
+          <label htmlFor="gift-title">
+            {t('privateArea.gifts.titleLabel')}
+          </label>
+          <input
+            ref={titleValidation.inputRef}
+            id="gift-title"
+            name="title"
+            required
+            maxLength={200}
+            defaultValue={giftIdea?.title ?? ''}
+            aria-invalid={titleValidation.invalid || undefined}
+            aria-describedby={
+              titleValidation.invalid ? 'gift-title-error' : undefined
+            }
+            onChange={(event) =>
+              titleValidation.handleChange(event.currentTarget.value)
+            }
+          />
+          {titleValidation.invalid ? (
+            <p
+              id="gift-title-error"
+              className="status status-error"
+              role="alert"
+            >
+              {t('privateArea.titleRequired')}
+            </p>
+          ) : null}
+        </div>
+        <div className="field-group">
+          <label htmlFor="gift-description">
+            {t('privateArea.gifts.descriptionLabel')}
+          </label>
+          <textarea
+            id="gift-description"
+            name="description"
+            rows={3}
+            defaultValue={giftIdea?.description ?? ''}
+          />
+        </div>
       </div>
       <div className="private-area-field-grid">
         <div className="field-group">
@@ -178,16 +192,12 @@ function GiftIdeaFields({
         />
         <p className="field-help">{t('privateArea.gifts.urlHelp')}</p>
       </div>
-      {includeStatus ? (
+      {giftIdea ? (
         <div className="field-group">
           <label htmlFor="gift-status">
             {t('privateArea.gifts.statusLabel')}
           </label>
-          <select
-            id="gift-status"
-            name="status"
-            defaultValue={giftIdea?.status}
-          >
+          <select id="gift-status" name="status" defaultValue={giftIdea.status}>
             {GIFT_STATUSES.map((status) => (
               <option key={status} value={status}>
                 {t(`privateArea.gifts.status.${status}`)}
@@ -206,6 +216,77 @@ function GiftIdeaFields({
         <span>{t('privateArea.gifts.pinnedLabel')}</span>
       </label>
     </>
+  );
+}
+
+function GiftIdeaEditor({
+  giftIdea,
+  backLabel,
+  saving,
+  error,
+  titleValidation,
+  onClose,
+  onSubmit,
+  onChange,
+}: {
+  giftIdea?: GiftIdeaDetail;
+  backLabel: string;
+  saving: boolean;
+  error: unknown;
+  titleValidation: ReturnType<typeof useRequiredTitleValidation>;
+  onClose: () => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onChange: () => void;
+}) {
+  const { t } = useTranslation();
+  const blocked = saving;
+
+  return (
+    <div className="private-gift-composer quiet-composer">
+      <PageHeader
+        variant="composer"
+        before={
+          <TaskBackButton inline onClick={onClose} aria-disabled={blocked}>
+            {backLabel}
+          </TaskBackButton>
+        }
+        title={t(
+          giftIdea
+            ? 'privateArea.gifts.editTitle'
+            : 'privateArea.gifts.createTitle',
+        )}
+        action={
+          <button type="submit" form="gift-idea-form" disabled={blocked}>
+            {saving ? t('privateArea.saving') : t('privateArea.save')}
+          </button>
+        }
+      />
+      <p className="private-gift-audience">
+        <EimirIcon name="nurfuer" />
+        {t('privateArea.privacyLabel')}
+      </p>
+      {error && !titleValidation.serverInvalid ? (
+        <ProblemState error={error} />
+      ) : null}
+      <form
+        id="gift-idea-form"
+        className="form-grid private-gift-form"
+        onSubmit={onSubmit}
+        onChange={onChange}
+      >
+        <GiftIdeaFields giftIdea={giftIdea} titleValidation={titleValidation} />
+        <div className="form-actions">
+          <button
+            type="button"
+            className="secondary"
+            onClick={onClose}
+            disabled={blocked}
+          >
+            {t('common.cancel')}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
 
@@ -243,9 +324,11 @@ export function GiftIdeasListPage({ api, accountId, spaceId }: Props) {
         title={t('privateArea.gifts.title')}
         description={t('privateArea.gifts.intro')}
         action={
-          <Link className="button-link" to={`${PRIVATE_GIFT_IDEAS_PATH}/new`}>
-            {t('privateArea.gifts.add')}
-          </Link>
+          <AddActionLink
+            floating
+            label={t('privateArea.gifts.add')}
+            to={`${PRIVATE_GIFT_IDEAS_PATH}/new`}
+          />
         }
       />
       {query.isLoading ? (
@@ -335,6 +418,7 @@ export function GiftIdeaCreatePage({ api, accountId, spaceId }: Props) {
   );
   const {
     captureOwnership,
+    fromOverview,
     navigationState,
     showDiscardConfirm,
     keepEditing,
@@ -357,47 +441,19 @@ export function GiftIdeaCreatePage({ api, accountId, spaceId }: Props) {
 
   return (
     <>
-      <PageHeader
-        before={
-          <TaskBackButton
-            type="button"
-            className="back-link tertiary"
-            onClick={requestClose}
-            aria-disabled={mutation.isPending}
-          >
-            {t('privateArea.gifts.detailBack')}
-          </TaskBackButton>
-        }
-        title={t('privateArea.gifts.createTitle')}
-        description={t('privateArea.gifts.intro')}
+      <GiftIdeaEditor
+        backLabel={t(
+          fromOverview
+            ? 'privateArea.backToHub'
+            : 'privateArea.gifts.detailBack',
+        )}
+        saving={mutation.isPending}
+        error={mutation.error}
+        titleValidation={titleValidation}
+        onClose={requestClose}
+        onSubmit={submit}
+        onChange={() => setDirty(true)}
       />
-      <section className="form-card private-area-editor">
-        <form
-          className="form-grid"
-          onSubmit={submit}
-          onChange={() => setDirty(true)}
-        >
-          <GiftIdeaFields titleValidation={titleValidation} />
-          <div className="form-actions">
-            <button
-              type="button"
-              className="button-link secondary-link"
-              onClick={requestClose}
-              disabled={mutation.isPending}
-            >
-              {t('common.cancel')}
-            </button>
-            <button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending
-                ? t('privateArea.saving')
-                : t('privateArea.save')}
-            </button>
-          </div>
-        </form>
-        {mutation.error && !titleValidation.serverInvalid ? (
-          <ProblemState error={mutation.error} />
-        ) : null}
-      </section>
       <PrivateEditorDiscardSheet
         open={showDiscardConfirm}
         onKeep={keepEditing}
@@ -409,10 +465,49 @@ export function GiftIdeaCreatePage({ api, accountId, spaceId }: Props) {
 
 export function GiftIdeaDetailPage({ api, accountId, spaceId }: Props) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { query } = useGiftIdea(api, accountId, spaceId);
   const { navigationState } = usePrivateAreaTaskContext(
     PRIVATE_GIFT_IDEAS_PATH,
   );
+  const menu = usePrivateItemMenu();
+  const captureOwnership = useTaskActivation(true);
+  const deleteMutation = useMutation({
+    mutationFn: (targetGift: GiftIdeaDetail) =>
+      privateApiCall(() =>
+        api.deleteGiftIdea({
+          spaceId: targetGift.spaceId,
+          giftIdeaId: targetGift.id,
+          ifMatch: String(targetGift.version),
+        }),
+      ),
+    onMutate: (target) =>
+      capturePrivateDelete(
+        queryClient,
+        privateAreaQueryKeys.giftIdea(
+          target.ownerId,
+          target.spaceId,
+          target.id,
+        ),
+        privateAreaQueryKeys.giftIdeas(target.ownerId, target.spaceId),
+        captureOwnership(),
+      ),
+    onSuccess: async (_result, _target, context) => {
+      if (!context) return;
+      await context.refreshList();
+      if (!context.isCurrentTask()) {
+        context.remove();
+        return;
+      }
+      menu.deleteSheet.current?.closeForNavigation(() => {
+        const shouldNavigate = context.isCurrentTask();
+        if (context.remove() && shouldNavigate) {
+          navigate(PRIVATE_GIFT_IDEAS_PATH, { replace: true });
+        }
+      });
+    },
+  });
 
   if (query.isLoading)
     return <UiState kind="loading" title={t('privateArea.gifts.loading')} />;
@@ -433,16 +528,17 @@ export function GiftIdeaDetailPage({ api, accountId, spaceId }: Props) {
             fallbackLabel={t('privateArea.gifts.detailBack')}
           />
         }
-        eyebrow={t('privateArea.privacyLabel')}
+        itemLabel={
+          <PrivateItemLabel>
+            {t('privateArea.gifts.itemLabel')}
+          </PrivateItemLabel>
+        }
+        metadata={<PrivateItemPrivacy />}
         title={gift.title}
         description={t(`privateArea.gifts.status.${gift.status}`)}
         titleAction={
-          gift.capabilities.canEdit ? (
-            <StoryDetailEditLink
-              to={privateGiftIdeaEditPath(gift.id)}
-              state={navigationState}
-              label={t('privateArea.edit')}
-            />
+          gift.capabilities.canEdit || gift.capabilities.canDelete ? (
+            <PrivateItemMenuTrigger menu={menu} name={gift.title} />
           ) : undefined
         }
       />
@@ -483,51 +579,31 @@ export function GiftIdeaDetailPage({ api, accountId, spaceId }: Props) {
           {gift.description || t('privateArea.gifts.noDetails')}
         </p>
       </article>
+      <PrivateItemMenuSheets
+        menu={menu}
+        title={gift.title}
+        canEdit={gift.capabilities.canEdit}
+        canDelete={gift.capabilities.canDelete}
+        onEdit={() =>
+          void navigate(privateGiftIdeaEditPath(gift.id), {
+            state: navigationState,
+          })
+        }
+        deletePending={deleteMutation.isPending}
+        deleteError={deleteMutation.error}
+        onDeleteRequested={() => deleteMutation.reset()}
+        onConfirmDelete={() => deleteMutation.mutate(gift)}
+      />
     </>
   );
 }
 
 export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const returnTo = useReturnTo();
   const queryClient = useQueryClient();
   const [dirty, setDirty] = useState(false);
   const { giftIdeaId, query } = useGiftIdea(api, accountId, spaceId);
-  const deleteMutation = useMutation({
-    mutationFn: (targetGift: GiftIdeaDetail) =>
-      privateApiCall(() =>
-        api.deleteGiftIdea({
-          spaceId: targetGift.spaceId,
-          giftIdeaId: targetGift.id,
-          ifMatch: String(targetGift.version),
-        }),
-      ),
-    onMutate: (target) =>
-      capturePrivateDelete(
-        queryClient,
-        privateAreaQueryKeys.giftIdea(
-          target.ownerId,
-          target.spaceId,
-          target.id,
-        ),
-        privateAreaQueryKeys.giftIdeas(target.ownerId, target.spaceId),
-        captureDeleteOwnership(),
-      ),
-    onSuccess: async (_result, _target, context) => {
-      if (!context) return;
-      await context.refreshList();
-      if (!context.isCurrentTask()) {
-        context.remove();
-        return;
-      }
-      closeTask(() => {
-        const shouldNavigate = context.isCurrentTask();
-        if (context.remove() && shouldNavigate) {
-          navigate(PRIVATE_GIFT_IDEAS_PATH, { replace: true });
-        }
-      });
-    },
-  });
 
   const mutation = useMutation({
     mutationFn: ({ gift, data }: { gift: GiftIdeaDetail; data: FormData }) => {
@@ -558,10 +634,7 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
       if (!context.isCurrent()) return;
       closeTask(() => {
         if (!context.isCurrent()) return;
-        navigate(privateGiftIdeaPath(gift.id), {
-          replace: true,
-          state: navigationState,
-        });
+        returnTo(privateGiftIdeaPath(gift.id), { state: navigationState });
       });
     },
   });
@@ -574,7 +647,6 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
     ? privateGiftIdeaPath(giftIdeaId)
     : PRIVATE_GIFT_IDEAS_PATH;
   const {
-    captureOwnership: captureDeleteOwnership,
     navigationState,
     showDiscardConfirm,
     keepEditing,
@@ -583,7 +655,7 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
   } = usePrivateTaskEditorLifecycle({
     fallbackPath: detailFallback,
     isDirty: dirty,
-    isCloseBlocked: mutation.isPending || deleteMutation.isPending,
+    isCloseBlocked: mutation.isPending,
     closeToFallback: true,
   });
 
@@ -608,7 +680,7 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (mutation.isPending || deleteMutation.isPending) return;
+    if (mutation.isPending) return;
     const data = new FormData(event.currentTarget);
     const title = titleValidation.validate(String(data.get('title') || ''));
     if (title === null) return;
@@ -621,68 +693,16 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
 
   return (
     <>
-      <PageHeader
-        before={
-          <TaskBackButton
-            type="button"
-            className="back-link tertiary"
-            onClick={requestClose}
-            aria-disabled={mutation.isPending || deleteMutation.isPending}
-          >
-            {t('privateArea.gifts.detailBack')}
-          </TaskBackButton>
-        }
-        title={t('privateArea.gifts.editTitle')}
-        description={t('privateArea.gifts.intro')}
+      <GiftIdeaEditor
+        giftIdea={gift}
+        backLabel={t('privateArea.gifts.detailBack')}
+        saving={mutation.isPending}
+        error={mutation.error}
+        titleValidation={titleValidation}
+        onClose={requestClose}
+        onSubmit={submit}
+        onChange={() => setDirty(true)}
       />
-      <section className="form-card private-area-editor">
-        <form
-          className="form-grid"
-          onSubmit={submit}
-          onChange={() => setDirty(true)}
-        >
-          <GiftIdeaFields
-            giftIdea={gift}
-            includeStatus
-            titleValidation={titleValidation}
-          />
-          <div className="form-actions">
-            <button
-              type="button"
-              className="button-link secondary-link"
-              onClick={requestClose}
-              disabled={mutation.isPending || deleteMutation.isPending}
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={mutation.isPending || deleteMutation.isPending}
-            >
-              {mutation.isPending
-                ? t('privateArea.saving')
-                : t('privateArea.save')}
-            </button>
-          </div>
-        </form>
-        {mutation.error && !titleValidation.serverInvalid ? (
-          <ProblemState error={mutation.error} />
-        ) : null}
-      </section>
-
-      {gift.capabilities.canDelete ? (
-        <article
-          className="private-area-detail-card"
-          style={{ marginTop: 'var(--space-8)' }}
-        >
-          <DeleteConfirmation
-            onDelete={() => deleteMutation.mutate(gift)}
-            pending={deleteMutation.isPending}
-            disabled={mutation.isPending}
-            error={deleteMutation.error}
-          />
-        </article>
-      ) : null}
       <PrivateEditorDiscardSheet
         open={showDiscardConfirm}
         onKeep={keepEditing}

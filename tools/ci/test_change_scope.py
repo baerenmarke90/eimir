@@ -83,11 +83,53 @@ class ChangeScopeTest(unittest.TestCase):
         )
         self.assert_scope(["ios/App/App/Info.plist"], enabled=set())
 
+    def test_public_site_only_uses_its_own_preflight(self) -> None:
+        site_paths = [
+            "site/index.html",
+            "site/Dockerfile",
+            "site/security-headers.conf",
+            "docs/assets/site/preview.webp",
+            "tools/site/build_main_site.py",
+            "tools/ci/test_main_site.py",
+        ]
+        self.assert_scope(site_paths, enabled=set())
+        self.assert_scope(
+            [*site_paths, "backend/src/eimir/main.py"],
+            enabled={
+                "backend",
+                "backend_integration",
+                "self_hosted",
+                "deployment_guard",
+                "recovery",
+            },
+        )
+
     def test_backend_unit_test_only_enables_fast_backend_gate(self) -> None:
         self.assert_scope(["backend/tests/test_config.py"], enabled={"backend"})
 
     def test_legal_document_change_enables_only_the_fast_backend_gate(self) -> None:
         self.assert_scope(["legal/de/terms-of-use.md"], enabled={"backend"})
+
+    def test_design_token_change_enables_only_the_fast_backend_gate(self) -> None:
+        self.assert_scope(["design/tokens.json"], enabled={"backend"})
+        self.assert_scope(["design/designs/classic.json"], enabled={"backend"})
+
+    def test_web_and_design_change_skips_integration_and_container_gates(self) -> None:
+        self.assert_scope(
+            [
+                "design/tokens.json",
+                "design/designs/warm.json",
+                "web/src/design/appDesigns.generated.ts",
+                "docs/product/design/README.md",
+            ],
+            enabled={"backend"},
+        )
+
+    def test_design_change_cannot_hide_unknown_change(self) -> None:
+        self.assertEqual(
+            classify_paths(["design/tokens.json", "unknown/runtime.cfg"]),
+            {scope: True for scope in SCOPES},
+        )
 
     def test_backend_runtime_change_enables_postgres_integration(self) -> None:
         self.assert_scope(

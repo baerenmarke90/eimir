@@ -1,0 +1,707 @@
+/*
+ * Ambience of the shared garden (#1907 H3 extensions). Like the base palette
+ * in `GardenGamePage.css`, these illustration roles only mean something
+ * inside the garden scene, so they live here as local `--garden-*` values
+ * with Light and Dark variants (docs/DESIGN-TOKEN-POLICY.md, local literals).
+ * The time of day comes from the device clock (`data-daytime` on the frame)
+ * and is independent of the theme.
+ */
+.garden-game-page {
+  --garden-sky-morning-top: #f6cfc0;
+  --garden-sky-morning-bottom: #fcefe5;
+  --garden-sky-day-top: #eaf0ff;
+  --garden-sky-day-bottom: #fbeff6;
+  --garden-sky-evening-top: #e39a78;
+  --garden-sky-evening-bottom: #f6d0b2;
+  --garden-sky-night-top: #191c3b;
+  --garden-sky-night-bottom: #363057;
+  --garden-star-night: #f6f2d6;
+  --garden-cloud-night: #ffffff2e;
+  --garden-moon: #f4efd8;
+  --garden-sun-evening: #f08a4b;
+  --garden-night-tint: rgb(14 16 44 / 38%);
+  --garden-petal: #f7c6d6;
+  --garden-flake: #ffffff;
+  --garden-flake-edge: #c3d0ea;
+  --garden-crown-autumn: #d9822b;
+  --garden-crown-autumn-2: #e8a33a;
+  --garden-heart: #e5607a;
+  --garden-fish: #f08a4b;
+  --garden-light-glow: #ffd76a80;
+  --garden-rainbow-1: #ef8b86;
+  --garden-rainbow-2: #f4b16a;
+  --garden-rainbow-3: #f6dc72;
+  --garden-rainbow-4: #8fcf86;
+  --garden-rainbow-5: #7fb8ea;
+  --garden-rainbow-6: #b39ddb;
+  /* #2048: the moonbow, pale and silvery with only a hint of colour. */
+  --garden-moonbow-1: #e9dbe4;
+  --garden-moonbow-2: #ece3d6;
+  --garden-moonbow-3: #eeeacf;
+  --garden-moonbow-4: #dde9de;
+  --garden-moonbow-5: #d9e4f1;
+  --garden-moonbow-6: #e2dcef;
+  --garden-reveal-ink: var(--color-text);
+  /* The theme's crown colour, resolved here so autumn can tint it below. */
+  --garden-base-tree: var(--garden-tree);
+}
+
+:root[data-theme="dark"] .garden-game-page {
+  --garden-sky-morning-top: #2c2645;
+  --garden-sky-morning-bottom: #4a3a52;
+  --garden-sky-day-top: #141a35;
+  --garden-sky-day-bottom: #2a2a4d;
+  --garden-sky-evening-top: #2f2040;
+  --garden-sky-evening-bottom: #4d3044;
+  --garden-sky-night-top: #090c22;
+  --garden-sky-night-bottom: #1b1c3a;
+  --garden-star-night: #f6f2d6;
+  --garden-cloud-night: #ffffff10;
+  --garden-moon: #f6e7a8;
+  --garden-sun-evening: #d9824f;
+  --garden-night-tint: rgb(4 6 20 / 34%);
+  --garden-petal: #dba3ba;
+  --garden-flake: #dfe6fa;
+  --garden-flake-edge: transparent;
+  --garden-crown-autumn: #b86d2a;
+  --garden-crown-autumn-2: #c48a36;
+  --garden-heart: #d65a72;
+  --garden-fish: #d07a45;
+  --garden-light-glow: #f6e7a866;
+  --garden-rainbow-1: #c96b68;
+  --garden-rainbow-2: #c98d52;
+  --garden-rainbow-3: #cbb45a;
+  --garden-rainbow-4: #6fa86a;
+  --garden-rainbow-5: #6597c4;
+  --garden-rainbow-6: #8f7cb8;
+  /* #2048: the moonbow, pale and silvery with only a hint of colour. */
+  --garden-moonbow-1: #e9dbe4;
+  --garden-moonbow-2: #ece3d6;
+  --garden-moonbow-3: #eeeacf;
+  --garden-moonbow-4: #dde9de;
+  --garden-moonbow-5: #d9e4f1;
+  --garden-moonbow-6: #e2dcef;
+}
+
+/* Time of day ---------------------------------------------------------------- */
+
+.garden-frame[data-daytime="morning"] {
+  --garden-sky-top: var(--garden-sky-morning-top);
+  --garden-sky-bottom: var(--garden-sky-morning-bottom);
+}
+
+.garden-frame[data-daytime="day"] {
+  --garden-sky-top: var(--garden-sky-day-top);
+  --garden-sky-bottom: var(--garden-sky-day-bottom);
+}
+
+.garden-frame[data-daytime="evening"] {
+  --garden-sky-top: var(--garden-sky-evening-top);
+  --garden-sky-bottom: var(--garden-sky-evening-bottom);
+  --garden-night-tint-opacity: 0.3;
+}
+
+.garden-frame[data-daytime="morning"],
+.garden-frame[data-daytime="day"],
+.garden-frame[data-daytime="evening"] {
+  --garden-sun-opacity: 1;
+  --garden-moon-opacity: 0;
+  --garden-star: transparent;
+  --garden-firefly-opacity: 0;
+}
+
+/* Night: the moon, stars, fireflies and the moonflower's glow, in either
+   theme; a soft tint keeps the scene calm without hiding it. */
+.garden-frame[data-daytime="night"] {
+  --garden-sky-top: var(--garden-sky-night-top);
+  --garden-sky-bottom: var(--garden-sky-night-bottom);
+  --garden-sun-opacity: 0;
+  --garden-moon-opacity: 1;
+  --garden-star: var(--garden-star-night);
+  --garden-firefly-opacity: 1;
+  --garden-cloud: var(--garden-cloud-night);
+  --garden-cloud-highlight: transparent;
+  --garden-night-tint-opacity: 1;
+}
+
+.garden-night-tint {
+  opacity: var(--garden-night-tint-opacity, 0);
+  pointer-events: none;
+  transition: opacity var(--duration-connection-draw) var(--easing-standard);
+}
+
+.garden-sun-place {
+  transition: transform var(--duration-connection-travel) var(--easing-standard);
+}
+
+.garden-sun,
+.garden-moon {
+  transition: opacity var(--duration-connection-draw) var(--easing-standard);
+}
+
+.garden-frame[data-daytime="evening"] .garden-sun-disc {
+  fill: var(--garden-sun-evening);
+}
+
+.garden-moon > path:last-child {
+  fill: var(--garden-moon);
+}
+
+/* Seasons on top of the season art --------------------------------------------- */
+
+.garden-frame[data-season="autumn"] {
+  --garden-tree: color-mix(
+    in srgb,
+    var(--garden-base-tree) 50%,
+    var(--garden-crown-autumn)
+  );
+}
+
+.garden-frame[data-season="autumn"]
+  .garden-tree-crown
+  > g:nth-child(odd)
+  > path:first-child {
+  fill: var(--garden-crown-autumn);
+}
+
+.garden-frame[data-season="autumn"]
+  .garden-tree-crown
+  > g:nth-child(even)
+  > path:first-child {
+  fill: var(--garden-crown-autumn-2);
+}
+
+.garden-particle {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.garden-scene.is-lively .garden-particle.is-falling {
+  animation: garden-particle-fall var(--garden-particle-duration)
+    var(--easing-playback) infinite;
+  animation-delay: var(--garden-delay);
+}
+
+.garden-scene.is-lively .garden-particle.is-rising {
+  animation: garden-particle-rise var(--garden-particle-duration)
+    var(--easing-travel) infinite;
+  animation-delay: var(--garden-delay);
+}
+
+.garden-scene .garden-ambience.is-paused .garden-particle,
+.garden-scene .garden-ambience.is-paused * {
+  animation-play-state: paused;
+}
+
+/* Taps ----------------------------------------------------------------------- */
+
+.garden-ambient-target {
+  cursor: pointer;
+  outline: none;
+}
+
+.garden-ambient-target:focus-visible rect {
+  stroke: var(--color-focus);
+  stroke-width: 2;
+}
+
+.garden-plant-art {
+  transform-box: view-box;
+  transform-origin: var(--garden-plant-origin);
+}
+
+.garden-scene.is-lively .garden-plant-art.is-boing {
+  animation: garden-boing calc(var(--duration-gesture-moment) * 0.8)
+    var(--garden-spring);
+}
+
+.garden-scene.is-lively .garden-plant-art.is-perking {
+  animation: garden-perk calc(var(--duration-gesture-sequence) * 0.7)
+    var(--garden-spring);
+}
+
+.garden-tap-leaf,
+.garden-tap-petal,
+.garden-tap-drop,
+.garden-tap-ring,
+.garden-tap-fish,
+.garden-tap-bird,
+.garden-tap-butterfly {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.garden-tap-leaf {
+  opacity: 0;
+  animation: garden-tap-leaf calc(var(--duration-gesture-sequence) * 0.9)
+    var(--easing-enter) both;
+  animation-delay: var(--garden-delay);
+}
+
+.garden-tap-bird {
+  animation: garden-tap-bird calc(var(--duration-gesture-sequence) * 1.1)
+    var(--easing-exit) both;
+}
+
+.garden-tap-ring {
+  opacity: 0;
+  animation: garden-tap-ring calc(var(--duration-gesture-moment) * 1.2)
+    var(--easing-enter) both;
+  animation-delay: var(--garden-delay);
+}
+
+.garden-tap-fish {
+  opacity: 0;
+  transform-origin: 50% 50%;
+  animation: garden-tap-fish calc(var(--duration-gesture-moment) * 1.25)
+    var(--easing-travel) both;
+}
+
+.garden-tap-petal {
+  animation: garden-tap-petal var(--duration-gesture-moment) var(--easing-enter)
+    both;
+}
+
+.garden-tap-butterfly {
+  opacity: 0;
+  animation: garden-tap-butterfly calc(var(--duration-gesture-sequence) * 1.3)
+    var(--easing-travel) var(--duration-connection-beat) both;
+}
+
+.garden-tap-drop {
+  opacity: 0;
+  animation: garden-tap-drop var(--duration-connection-draw) var(--easing-exit)
+    both;
+  animation-delay: var(--garden-delay);
+}
+
+/* The watering can: in, tilted with its spout down, drops, back and out.
+   Without motion it stands tilted for a moment. */
+.garden-can-tilt {
+  transform-box: view-box;
+  transform-origin: 0 0;
+  transform: rotate(52deg);
+}
+
+.garden-scene.is-lively .garden-can-tilt {
+  animation: garden-can calc(var(--duration-gesture-sequence) * 1.45)
+    var(--easing-standard) both;
+}
+
+.garden-can-drop {
+  opacity: 0;
+}
+
+.garden-scene.is-lively .garden-can-drop {
+  animation: garden-can-drop var(--duration-connection-draw) var(--easing-exit)
+    both;
+  animation-delay: var(--garden-delay);
+}
+
+/* Rainbows fade in; a single one fades out again after a while. */
+.garden-rainbow {
+  --garden-bow-opacity: 0.62;
+  opacity: var(--garden-bow-opacity);
+}
+
+.garden-rainbow.is-moon {
+  --garden-bow-opacity: 0.42;
+}
+
+.garden-scene.is-lively .garden-rainbow.is-stay {
+  animation: garden-rainbow-in calc(var(--duration-gesture-sequence) * 0.9)
+    var(--easing-enter) both;
+  animation-delay: var(--garden-delay);
+}
+
+.garden-scene.is-lively .garden-rainbow.is-moment {
+  animation: garden-rainbow-moment calc(var(--duration-gesture-sequence) * 2.6)
+    var(--easing-standard) both;
+}
+
+/* Together moments and celebrations ------------------------------------------- */
+
+.garden-together-heart {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.garden-scene.is-lively .garden-together-heart {
+  animation: garden-heart-float var(--duration-connection-travel)
+    var(--easing-travel) infinite alternate;
+}
+
+.garden-note-paper {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.garden-scene.is-lively .garden-note-paper:not(.garden-pop) {
+  animation: garden-note-wiggle var(--duration-connection-travel)
+    var(--easing-travel) infinite alternate;
+}
+
+.garden-words-reveal {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  /* It unfolds, stays a moment to be read and folds away again. */
+  animation:
+    garden-unfold var(--duration-context) var(--easing-standard) both,
+    garden-reveal-out var(--duration-context) var(--easing-exit)
+    calc(var(--duration-gesture-sequence) * 3) forwards;
+}
+
+.garden-reveal-text {
+  fill: var(--garden-reveal-ink);
+  font-family: var(--font-display, inherit);
+  font-size: 7.6px;
+  font-weight: 700;
+}
+
+.garden-greet-heart {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: garden-greet-heart calc(var(--duration-gesture-sequence) * 0.95)
+    var(--easing-enter) both;
+  animation-delay: var(--garden-delay);
+}
+
+.garden-animal[data-pose="hello"] > g {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.garden-scene.is-lively .garden-animal[data-pose="hello"] > g {
+  animation: garden-hello calc(var(--duration-sequence-beat) * 2.5)
+    var(--easing-travel) 3;
+}
+
+.garden-celebration-note,
+.garden-snow-note {
+  text-align: center;
+}
+
+/* "Rufen" sits next to the rename action of a named visitor. */
+.garden-visitor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 11rem;
+}
+
+@keyframes garden-particle-fall {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  8% {
+    opacity: 0.9;
+  }
+  25% {
+    transform: translate(calc(var(--garden-dx) * 0.4), 56px)
+      rotate(calc(var(--garden-rotate) * 0.25));
+  }
+  50% {
+    transform: translate(calc(var(--garden-dx) * -0.2), 112px)
+      rotate(calc(var(--garden-rotate) * 0.5));
+  }
+  75% {
+    transform: translate(calc(var(--garden-dx) * 0.6), 168px)
+      rotate(calc(var(--garden-rotate) * 0.75));
+  }
+  92% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--garden-dx), 224px) rotate(var(--garden-rotate));
+  }
+}
+
+@keyframes garden-particle-rise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  15% {
+    opacity: 0.75;
+  }
+  50% {
+    transform: translate(calc(var(--garden-dx) * 0.3), -60px);
+  }
+  85% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--garden-dx) * -0.2), -130px);
+  }
+}
+
+@keyframes garden-boing {
+  0% {
+    transform: none;
+  }
+  30% {
+    transform: scale(1.14, 0.84);
+  }
+  60% {
+    transform: scale(0.94, 1.1);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes garden-perk {
+  0% {
+    transform: scaleY(0.9);
+  }
+  55% {
+    transform: scaleY(1.12);
+  }
+  80% {
+    transform: scaleY(0.98);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes garden-tap-leaf {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--garden-dx), 74px) rotate(var(--garden-rotate));
+  }
+}
+
+@keyframes garden-tap-bird {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.7);
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-130px, -86px) scale(1);
+  }
+}
+
+@keyframes garden-tap-ring {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(3.2);
+  }
+}
+
+@keyframes garden-tap-fish {
+  0% {
+    opacity: 1;
+    transform: translate(0, 4px) rotate(-60deg);
+  }
+  50% {
+    transform: translate(9px, -18px) rotate(0deg);
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(18px, 4px) rotate(60deg);
+  }
+}
+
+@keyframes garden-tap-petal {
+  0% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--garden-dx), var(--garden-dy)) scale(0.4);
+  }
+}
+
+@keyframes garden-tap-butterfly {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  12% {
+    opacity: 1;
+  }
+  35% {
+    transform: translate(14px, -24px);
+  }
+  65% {
+    transform: translate(-8px, -48px);
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(30px, -96px);
+  }
+}
+
+@keyframes garden-tap-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  20% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(64px);
+  }
+}
+
+@keyframes garden-can {
+  0% {
+    opacity: 0;
+    transform: translate(-14px, -8px) rotate(0deg);
+  }
+  14% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  30%,
+  72% {
+    opacity: 1;
+    transform: rotate(52deg);
+  }
+  88% {
+    opacity: 1;
+    transform: rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-14px, -8px) rotate(0deg);
+  }
+}
+
+@keyframes garden-can-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(13px);
+  }
+}
+
+@keyframes garden-rainbow-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: var(--garden-bow-opacity);
+  }
+}
+
+@keyframes garden-rainbow-moment {
+  0% {
+    opacity: 0;
+  }
+  25%,
+  70% {
+    opacity: var(--garden-bow-opacity);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes garden-reveal-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes garden-heart-float {
+  from {
+    transform: translateY(0) scale(0.9);
+  }
+  to {
+    transform: translateY(-3px) scale(1.05);
+  }
+}
+
+@keyframes garden-note-wiggle {
+  from {
+    transform: rotate(-4deg);
+  }
+  to {
+    transform: rotate(4deg);
+  }
+}
+
+@keyframes garden-greet-heart {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.4);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.9);
+  }
+}
+
+@keyframes garden-hello {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: translateY(-6px) scaleY(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Moving one-shot particles are left out; the state stays visible and
+     every tap keeps its text in the status line. */
+  .garden-particles,
+  .garden-tap-leaf,
+  .garden-tap-bird,
+  .garden-tap-ring,
+  .garden-tap-fish,
+  .garden-tap-petal,
+  .garden-tap-butterfly,
+  .garden-tap-drop,
+  .garden-can-drop {
+    display: none;
+  }
+}

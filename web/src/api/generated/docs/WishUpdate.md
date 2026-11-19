@@ -1,12 +1,13 @@
 
 # WishUpdate
 
-Wish title correction.  There is deliberately no ``status`` field. Wish status is controlled only by explicit lifecycle commands; an arbitrary status PATCH would provide a way around those transitions.
+Wish content correction. Explicit null clears the description.  There is deliberately no ``status`` field. Wish status is controlled only by explicit lifecycle commands; an arbitrary status PATCH would provide a way around those transitions.
 
 ## Properties
 
 Name | Type
 ------------ | -------------
+`description` | string
 `tags` | Array&lt;string&gt;
 `title` | string
 
@@ -17,6 +18,7 @@ import type { WishUpdate } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "description": null,
   "tags": null,
   "title": null,
 } satisfies WishUpdate

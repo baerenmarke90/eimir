@@ -6,6 +6,8 @@ All URIs are relative to *http://localhost*
 |------------- | ------------- | -------------|
 | [**getDashboard**](DashboardApi.md#getdashboard) | **GET** /api/v1/spaces/{spaceId}/dashboard | Get Dashboard |
 | [**getRelationshipPassport**](DashboardApi.md#getrelationshippassport) | **GET** /api/v1/spaces/{spaceId}/relationship-passport | Get Relationship Passport |
+| [**getStoryLifeline**](DashboardApi.md#getstorylifeline) | **GET** /api/v1/spaces/{spaceId}/story-lifeline | Get Story Lifeline |
+| [**getStoryLifelineEntries**](DashboardApi.md#getstorylifelineentries) | **GET** /api/v1/spaces/{spaceId}/story-lifeline/entries | Get Story Lifeline Entries |
 | [**listDashboardModulePreferences**](DashboardApi.md#listdashboardmodulepreferences) | **GET** /api/v1/spaces/{spaceId}/dashboard/preferences | List Dashboard Module Preferences |
 | [**updateDashboardModuleOrder**](DashboardApi.md#updatedashboardmoduleorder) | **PUT** /api/v1/spaces/{spaceId}/dashboard/preferences/order | Update Dashboard Module Order |
 | [**updateDashboardModulePreference**](DashboardApi.md#updatedashboardmodulepreference) | **PATCH** /api/v1/spaces/{spaceId}/dashboard/preferences/{moduleKey} | Update Dashboard Module Preference |
@@ -148,6 +150,153 @@ No authorization required
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getStoryLifeline
+
+> StoryLifelineView getStoryLifeline(spaceId)
+
+Get Story Lifeline
+
+Return the shared Story bucketed by week for the Pro Wir lifeline.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DashboardApi,
+} from '';
+import type { GetStoryLifelineRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DashboardApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetStoryLifelineRequest;
+
+  try {
+    const data = await api.getStoryLifeline(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**StoryLifelineView**](StoryLifelineView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getStoryLifelineEntries
+
+> StoryLifelineEntriesView getStoryLifelineEntries(spaceId, from, to)
+
+Get Story Lifeline Entries
+
+Return the shared entries of one lifeline period, oldest first.  Read lazily when a lifeline column is selected. The entries are exactly those the lifeline counts for the range; at most a bounded number is returned together with the range total.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DashboardApi,
+} from '';
+import type { GetStoryLifelineEntriesRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DashboardApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // Date | First day of the range (inclusive).
+    from: 2013-10-20,
+    // Date | Day after the range (exclusive).
+    to: 2013-10-20,
+  } satisfies GetStoryLifelineEntriesRequest;
+
+  try {
+    const data = await api.getStoryLifelineEntries(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **from** | `Date` | First day of the range (inclusive). | [Defaults to `undefined`] |
+| **to** | `Date` | Day after the range (exclusive). | [Defaults to `undefined`] |
+
+### Return type
+
+[**StoryLifelineEntriesView**](StoryLifelineEntriesView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

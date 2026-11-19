@@ -80,6 +80,8 @@ class WishPayload(ProtectedPayload):
     title: str
     description: str | None = Field(default=None, exclude_if=lambda value: value is None)
     tags: ContextTags = Field(default_factory=list)
+    link_url: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    """Optional web address, normalized by ``eimir.wishes.links``. Never fetched."""
 
 
 class Wish(
@@ -127,6 +129,14 @@ class Wish(
     when the source is deleted; ``series_id`` and ``series_position`` keep the
     history readable without it.
     """
+    photo_attachment_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True), ForeignKey("attachments.id", ondelete="SET NULL")
+    )
+    """The Wish's single optional photo; an exclusive attachment binding.
+
+    A Plan created from the Wish reaches it through ``Plan.source_wish_id``; the
+    photo is never copied to the Plan.
+    """
     series_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), nullable=False)
     """Groups a Wish with its repeats. The first Wish uses its own ``id``; a
     repeat inherits the source's value. Deliberately not a foreign key, so it
@@ -159,6 +169,7 @@ class Wish(
         # allow a plan to reference a wish from another space. The service
         # prevents that, and the database enforces it as well (M3-D02).
         UniqueConstraint("id", "space_id", name="uq_wishes_id_space_id"),
+        UniqueConstraint("photo_attachment_id", name="uq_wishes_photo_attachment"),
         Index("ix_wishes_owner_id", "owner_id"),
         Index("ix_wishes_space_id_created_at_id", "space_id", "created_at", "id"),
         Index("ix_wishes_space_id_status", "space_id", "status"),

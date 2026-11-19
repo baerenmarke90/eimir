@@ -97,6 +97,18 @@ export interface WishDetail {
      */
     id: string;
     /**
+     * Optional http(s) web address; the server never fetches it.
+     * @type {string}
+     * @memberof WishDetail
+     */
+    linkUrl: string | null;
+    /**
+     * The Wish's single optional photo. Readable by both partners through attachment read access with parentType WISH and parentId equal to this Wish.
+     * @type {string}
+     * @memberof WishDetail
+     */
+    photoAttachmentId: string | null;
+    /**
      * Originating Plan of a PLANNED or COMPLETED Wish; null for OPEN, directly completed, or returned Wishes.
      * @type {WishPlanReference}
      * @memberof WishDetail
@@ -165,6 +177,8 @@ export function instanceOfWishDetail(value: object): value is WishDetail {
     if (!('followedFromWishId' in value) || value['followedFromWishId'] === undefined) return false;
     if (!('hasMemory' in value) || value['hasMemory'] === undefined) return false;
     if (!('id' in value) || value['id'] === undefined) return false;
+    if (!('linkUrl' in value) || value['linkUrl'] === undefined) return false;
+    if (!('photoAttachmentId' in value) || value['photoAttachmentId'] === undefined) return false;
     if (!('plan' in value) || value['plan'] === undefined) return false;
     if (!('seriesId' in value) || value['seriesId'] === undefined) return false;
     if (!('seriesPosition' in value) || value['seriesPosition'] === undefined) return false;
@@ -194,6 +208,8 @@ export function WishDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'followedFromWishId': json['followedFromWishId'],
         'hasMemory': json['hasMemory'],
         'id': json['id'],
+        'linkUrl': json['linkUrl'],
+        'photoAttachmentId': json['photoAttachmentId'],
         'plan': WishPlanReferenceFromJSON(json['plan']),
         'seriesId': json['seriesId'],
         'seriesPosition': json['seriesPosition'],
@@ -225,6 +241,8 @@ export function WishDetailToJSONTyped(value?: WishDetail | null, ignoreDiscrimin
         'followedFromWishId': value['followedFromWishId'],
         'hasMemory': value['hasMemory'],
         'id': value['id'],
+        'linkUrl': value['linkUrl'],
+        'photoAttachmentId': value['photoAttachmentId'],
         'plan': WishPlanReferenceToJSON(value['plan']),
         'seriesId': value['seriesId'],
         'seriesPosition': value['seriesPosition'],

@@ -26,6 +26,8 @@ function wish(overrides: Partial<WishDetail>): WishDetail {
     plan: null,
     hasMemory: false,
     followedFromWishId: null,
+    linkUrl: null,
+    photoAttachmentId: null,
     seriesId: 'wish',
     seriesPosition: 1,
     ...overrides,

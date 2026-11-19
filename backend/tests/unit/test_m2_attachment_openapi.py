@@ -81,6 +81,7 @@ def test_read_request_accepts_unbound_parent_and_content_variants() -> None:
         "NONE",
         "RELATED_PERSON",
         "PLAN",
+        "WISH",
         "HEART_HUNT_ROUND",
     }
     content_variant = request["properties"]["variant"]

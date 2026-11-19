@@ -8,6 +8,8 @@ A wish is created from authored title and optional shared context labels.  ``ext
 Name | Type
 ------------ | -------------
 `description` | string
+`linkUrl` | string
+`photoAttachmentId` | string
 `tags` | Array&lt;string&gt;
 `title` | string
 
@@ -19,6 +21,8 @@ import type { WishCreate } from ''
 // TODO: Update the object below with actual values
 const example = {
   "description": null,
+  "linkUrl": null,
+  "photoAttachmentId": null,
   "tags": null,
   "title": null,
 } satisfies WishCreate

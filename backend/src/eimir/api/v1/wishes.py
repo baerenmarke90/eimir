@@ -21,6 +21,7 @@ from eimir.core.context_tags import ContextTags, unique_tags
 from eimir.plans.models import PlanStatus
 from eimir.wishes import date_proposals, reminders, service
 from eimir.wishes.journey import NO_JOURNEY, WishJourney, journey_for, journeys_for
+from eimir.wishes.links import normalize_link
 from eimir.wishes.models import Wish, WishStatus
 
 router = APIRouter(tags=["wishes"])
@@ -31,6 +32,11 @@ ETAG_HEADERS = {
         "schema": {"type": "string"},
     }
 }
+
+
+def _validated_link(value: str | None) -> str | None:
+    """Normalize the optional link; blank becomes ``None`` and a bad link is a 422."""
+    return normalize_link(value)
 
 
 class WishCreate(ApiModel):
@@ -47,8 +53,22 @@ class WishCreate(ApiModel):
     title: str
     description: str | SkipJsonSchema[None] = None
     tags: ContextTags = Field(default_factory=list)
+    link_url: str | SkipJsonSchema[None] = Field(
+        default=None,
+        description=(
+            "Optional http(s) web address. The server never fetches it. Blank means no link."
+        ),
+    )
+    photo_attachment_id: UUID | SkipJsonSchema[None] = Field(
+        default=None,
+        description=(
+            "Optional READY image attachment uploaded by the caller; it becomes the "
+            "Wish's single photo."
+        ),
+    )
 
     _unique_tags = field_validator("tags")(unique_tags)
+    _link_valid = field_validator("link_url")(_validated_link)
 
     @field_validator("title")
     @classmethod
@@ -110,6 +130,19 @@ class WishUpdate(ApiModel):
     title: str | SkipJsonSchema[None] = None
     description: str | None = None
     tags: ContextTags | SkipJsonSchema[None] = None
+    link_url: str | None = Field(
+        default=None,
+        description="http(s) web address. Explicit null (or blank) removes the link.",
+    )
+    photo_attachment_id: UUID | None = Field(
+        default=None,
+        description=(
+            "READY image attachment uploaded by the caller to set or replace the Wish's "
+            "photo. Explicit null removes the photo; omitted leaves it untouched."
+        ),
+    )
+
+    _link_valid = field_validator("link_url")(_validated_link)
 
     @field_validator("tags")
     @classmethod
@@ -156,6 +189,15 @@ class WishDetail(ApiModel):
     title: str
     description: str | None = None
     tags: ContextTags = Field(default_factory=list)
+    link_url: str | None = Field(
+        description="Optional http(s) web address; the server never fetches it.",
+    )
+    photo_attachment_id: UUID | None = Field(
+        description=(
+            "The Wish's single optional photo. Readable by both partners through "
+            "attachment read access with parentType WISH and parentId equal to this Wish."
+        ),
+    )
     status: WishStatus
     version: int
     created_at: datetime
@@ -439,6 +481,8 @@ def wish_detail(
         title=wish.payload.title,
         description=wish.payload.description,
         tags=wish.payload.tags,
+        link_url=wish.payload.link_url,
+        photo_attachment_id=wish.photo_attachment_id,
         status=WishStatus(wish.status),
         version=wish.version,
         created_at=wish.created_at,
@@ -506,6 +550,8 @@ def create_wish(
         title=body.title,
         description=body.description,
         tags=body.tags,
+        link_url=body.link_url,
+        photo_attachment_id=body.photo_attachment_id,
     )
     if not result.created:
         response.status_code = http_status.HTTP_200_OK
@@ -660,6 +706,8 @@ def update_wish(
         title=body.title,
         description=body.description,
         tags=body.tags,
+        link_url=body.link_url,
+        photo_attachment_id=body.photo_attachment_id,
     )
     response.headers["ETag"] = etag_for(wish.version)
     return wish_detail(session, authorization, wish)

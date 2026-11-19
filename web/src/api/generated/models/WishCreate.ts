@@ -31,6 +31,18 @@ export interface WishCreate {
      */
     description?: string;
     /**
+     * Optional http(s) web address. The server never fetches it. Blank means no link.
+     * @type {string}
+     * @memberof WishCreate
+     */
+    linkUrl?: string;
+    /**
+     * Optional READY image attachment uploaded by the caller; it becomes the Wish's single photo.
+     * @type {string}
+     * @memberof WishCreate
+     */
+    photoAttachmentId?: string;
+    /**
      * 
      * @type {Array<string>}
      * @memberof WishCreate
@@ -63,6 +75,8 @@ export function WishCreateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     return {
         
         'description': json['description'] == null ? undefined : json['description'],
+        'linkUrl': json['linkUrl'] == null ? undefined : json['linkUrl'],
+        'photoAttachmentId': json['photoAttachmentId'] == null ? undefined : json['photoAttachmentId'],
         'tags': json['tags'] == null ? undefined : json['tags'],
         'title': json['title'],
     };
@@ -80,6 +94,8 @@ export function WishCreateToJSONTyped(value?: WishCreate | null, ignoreDiscrimin
     return {
         
         'description': value['description'],
+        'linkUrl': value['linkUrl'],
+        'photoAttachmentId': value['photoAttachmentId'],
         'tags': value['tags'],
         'title': value['title'],
     };

@@ -48,6 +48,7 @@ export const AttachmentReadRequestParentTypeEnum = {
     HEART_MOMENT: 'HEART_MOMENT',
     RELATED_PERSON: 'RELATED_PERSON',
     PLAN: 'PLAN',
+    WISH: 'WISH',
     HEART_HUNT_ROUND: 'HEART_HUNT_ROUND',
     NONE: 'NONE'
 } as const;

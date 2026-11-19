@@ -141,3 +141,8 @@ continuous garden motion decision and the three-PR delivery.
 [Live partner sync for the apart games (#1907 H3)](references/1907-h3-live-sync/README.md)
 records how Herzversteck, picture ping-pong and the garden show the partner's
 moves while both are in the game, and the picture ping-pong starting choice.
+
+[Wish link, photo and share handoff (draft)](wish-link-photo-share.md)
+records the Mobile Interaction Contract, reuse review, freemium result, open
+visual reference and device-validation status for sharing between WhatsApp and
+Wishes.

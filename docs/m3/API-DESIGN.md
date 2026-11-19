@@ -82,6 +82,26 @@ WishResponse
 
 `capabilities` may later reduce UI round trips (`canEdit`, `canDelete`, `canConvertToPlan`) but never replaces server Authorization.
 
+### Optional link and single photo
+
+A Wish may carry one web link and one photo (for example a mountain-hut page shared from a messenger together with its picture). Both are optional, editable separately, and independent of `title`, `description`, and `tags`.
+
+```text
+WishCreateRequest / WishUpdateRequest
+- linkUrl?             # http(s) only, host required, no credentials, max 2048 characters;
+                       # on update an explicit null or blank string removes it
+- photoAttachmentId?   # READY image uploaded by the caller; on update an explicit null removes it
+
+WishResponse
+- linkUrl              # string | null (never fetched by the server)
+- photoAttachmentId    # string | null
+```
+
+- The link lives in the protected Wish payload (no column). Invalid links are rejected with `422` (`WISH_LINK_INVALID` at service level); the server never fetches the address, so there is no preview and no server-side request surface.
+- The photo is an exclusive attachment binding in `wishes.photo_attachment_id`. Binding follows the shared attachment rules (same Space, uploaded by the acting account, `READY`, inside the binding window, not bound elsewhere). A non-image is `422 WISH_PHOTO_IMAGE_REQUIRED`. Replacing or clearing the photo, or deleting the Wish, marks the previous attachment for deletion.
+- The photo is readable exactly when the Wish is: both partners of the Space and nobody else, through `POST .../attachments/{attachmentId}/read-access` with `parentType: WISH` and `parentId` set to the Wish ID.
+- "Nochmal erleben" copies `linkUrl` but never the photo. A Plan created from a Wish reaches link and photo through `Plan.sourceWishId`; nothing is copied to the Plan.
+
 ## 4. Wish -> Plan as a dedicated Domain operation
 
 Conversion is not a normal `PATCH status=PLANNED`, because at least two Domain objects and a relation are affected atomically.
@@ -488,6 +508,8 @@ Wish:
 ```text
 WISH_NOT_FOUND
 WISH_TITLE_REQUIRED
+WISH_LINK_INVALID
+WISH_PHOTO_IMAGE_REQUIRED
 WISH_ALREADY_PLANNED
 WISH_STATUS_TRANSITION_INVALID
 ```

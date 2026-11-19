@@ -113,6 +113,7 @@ import { UiState } from './UiState';
 import { usePlanCompletion } from './usePlanCompletion';
 import { useTransientFlag } from './useTransientFlag';
 import { WishOriginMark } from './WishJourney';
+import { WishOriginMedia } from './WishOriginMedia';
 import './SharedPlanningPages.css';
 import './PlanningReference.css';
 
@@ -789,6 +790,15 @@ export function PlanProductPage({
                 {t('wishJourney.fromWish')}
               </WishOriginMark>
             </Link>
+          ) : null}
+          {plan.sourceWishId && !concealed ? (
+            <WishOriginMedia
+              wishId={plan.sourceWishId}
+              spaceId={spaceId}
+              apis={apis}
+              apiBaseUrl={apiBaseUrl}
+              accessToken={accessToken}
+            />
           ) : null}
           {concealed ? (
             <section className="discreet-panel">

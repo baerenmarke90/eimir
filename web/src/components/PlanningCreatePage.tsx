@@ -54,11 +54,18 @@ import {
   planScheduleFromInputs,
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
+import type { SharedWishNavigationState } from '../client/sharedWishDraft';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { usePlanFileDrafts } from '../client/usePlanFileDrafts';
 import { usePlanPhotoDrafts } from '../client/usePlanPhotoDrafts';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
+import { useWishMediaDraft } from '../client/useWishMediaDraft';
+import {
+  normalizeWishLink,
+  releaseTakenSharedWishDraft,
+  takeSharedWishDraftOnce,
+} from '../client/wishLinkPhoto';
 import { useTranslation } from '../i18n';
 import { CollectionChoicePicker } from './CollectionChoicePicker';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
@@ -92,6 +99,8 @@ interface PlanningCreateValues {
   readonly schedule?: PlanSchedule;
   readonly attachments?: AttachmentEntry[];
   readonly fileAttachmentIds?: string[];
+  readonly linkUrl?: string | null;
+  readonly photoAttachmentId?: string | null;
 }
 
 interface PlanningCreateSnapshot {
@@ -163,8 +172,58 @@ export function PlanningCreatePage({
     isClientOnline,
     () => true,
   );
-  const [title, setTitle] = useState(draft?.title ?? '');
-  const [description, setDescription] = useState(draft?.description ?? '');
+  // Content shared into eimir. from another app only prefills the editor;
+  // nothing is saved before the couple taps Save.
+  const shareState =
+    location.state as Partial<SharedWishNavigationState> | null;
+  const shareKey =
+    kind === 'wish' &&
+    shareState?.wishShareMode === 'create' &&
+    typeof shareState.wishShareKey === 'string'
+      ? shareState.wishShareKey
+      : undefined;
+  const [shared] = useState(() =>
+    shareKey
+      ? takeSharedWishDraftOnce(
+          JSON.stringify([apiBaseUrl, accountId, spaceId]),
+          shareKey,
+        )
+      : null,
+  );
+  const [title, setTitle] = useState(
+    draft?.title ?? shared?.title?.trim().slice(0, 200) ?? '',
+  );
+  const [description, setDescription] = useState(
+    draft?.description ?? shared?.description?.trim() ?? '',
+  );
+  const wishMedia = useWishMediaDraft({
+    apis: referenceApis,
+    apiBaseUrl,
+    accessToken,
+    accountId,
+    spaceId,
+    resourceKey: 'wish-create',
+  });
+  const setWishLink = wishMedia.setLinkUrl;
+  const addWishPhoto = useRef(wishMedia.replacePhoto);
+  addWishPhoto.current = wishMedia.replacePhoto;
+  const clearWishMedia = wishMedia.clear;
+  const sharedLink = shared?.linkUrl;
+  const sharedPhoto = shared?.photo;
+  useEffect(() => {
+    if (!sharedLink) return;
+    const link = normalizeWishLink(sharedLink);
+    if (link.kind === 'valid') setWishLink(link.url);
+  }, [sharedLink, setWishLink]);
+  useEffect(() => {
+    // The upload starts after the mount settles, so the draft pipeline's own
+    // mount lifecycle cannot cancel it.
+    const timer = window.setTimeout(() => {
+      if (sharedPhoto) addWishPhoto.current(sharedPhoto);
+      releaseTakenSharedWishDraft();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [sharedPhoto]);
   const [placeId, setPlaceId] = useState('');
   const [wish, setWish] = useState<WishDetail | null>(null);
   const placeTrigger = useRef<HTMLButtonElement>(null);
@@ -221,11 +280,13 @@ export function PlanningCreatePage({
       enrichmentDirty ||
       photos.items.length ||
       files.items.length ||
+      wishMedia.dirty ||
       wish,
   );
   const onClose = useCallback(() => {
     clearPhotos();
     clearFiles();
+    clearWishMedia();
     if (confirmedParent.current) {
       navigate(
         kind === 'plan'
@@ -236,7 +297,15 @@ export function PlanningCreatePage({
       return;
     }
     requestReturn(originKey, '/plan');
-  }, [originKey, requestReturn, clearPhotos, clearFiles, kind, navigate]);
+  }, [
+    originKey,
+    requestReturn,
+    clearPhotos,
+    clearFiles,
+    clearWishMedia,
+    kind,
+    navigate,
+  ]);
   const {
     showDiscardConfirm: showDiscard,
     keepEditing,
@@ -272,6 +341,10 @@ export function PlanningCreatePage({
         title: values.title,
         description: values.description,
         tags: values.tags,
+        ...(values.linkUrl ? { linkUrl: values.linkUrl } : {}),
+        ...(values.photoAttachmentId
+          ? { photoAttachmentId: values.photoAttachmentId }
+          : {}),
       };
       let requestValues: PlanningCreateValues =
         kind === 'wish' ? wishCreate : values;
@@ -438,7 +511,8 @@ export function PlanningCreatePage({
       photos.hasFailed ||
       files.hasPending ||
       files.hasFailed ||
-      photos.entries.length !== photos.items.length
+      photos.entries.length !== photos.items.length ||
+      (kind === 'wish' && wishMedia.blocked)
     )
       return;
     if (!navigator.onLine) {
@@ -467,6 +541,7 @@ export function PlanningCreatePage({
         description: description.trim() || undefined,
         placeId: kind === 'plan' && placeId ? placeId : undefined,
         schedule,
+        ...(kind === 'wish' ? wishMedia.createMedia() : {}),
       },
       collectionIds: lists.map((list) => list.id),
       noteIds: notes.map((note) => note.id),
@@ -809,6 +884,7 @@ export function PlanningCreatePage({
       description={description}
       tags={tags}
       tagEditorRef={tagEditor}
+      media={{ draft: wishMedia, spaceId, apiBaseUrl, accessToken, accountId }}
       focusRef={headingRef}
       disabled={pending || parentSaved}
       saving={pending}

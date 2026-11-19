@@ -14,6 +14,8 @@ function wish(
     createdBy: 'a',
     creator: { id: 'a', displayName: 'Anna' },
     followedFromWishId: null,
+    linkUrl: null,
+    photoAttachmentId: null,
     hasMemory: false,
     id,
     plan: null,

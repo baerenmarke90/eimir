@@ -34,6 +34,9 @@ public class VoiceSharePlugin extends Plugin {
 
     private void accept(Intent intent) {
         if (intent == null || !Intent.ACTION_SEND.equals(intent.getAction())) return;
+        // Photos and text belong to WishSharePlugin; only audio may raise a voice outcome.
+        final String type = intent.getType();
+        if (type == null || !type.toLowerCase(java.util.Locale.ROOT).startsWith("audio/")) return;
         final Uri selected;
         try {
             selected = intent.getParcelableExtra(Intent.EXTRA_STREAM);

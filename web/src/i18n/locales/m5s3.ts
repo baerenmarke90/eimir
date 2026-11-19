@@ -128,6 +128,42 @@ const m5s3 = {
     deleteConsequence:
       'Der Wunsch wird gelöscht. Bereits separat vorhandene Inhalte werden dadurch nicht verändert.',
     completedBody: 'Aus diesem Wunsch wurde Wirklichkeit.',
+    link: {
+      tool: 'Link',
+      sheetTitle: 'Link zum Wunsch',
+      label: 'Webadresse',
+      placeholder: 'Link einfügen, zum Beispiel von einer Hütte',
+      help: 'Der Link wird nur gespeichert und nicht geöffnet. Ihr könnt ihn jederzeit ändern oder entfernen.',
+      done: 'Übernehmen',
+      remove: 'Link entfernen',
+      editNamed: 'Link zu {{host}} ändern',
+      open: 'Link öffnen',
+      openNamed: 'Link zu {{host}} öffnen',
+      invalid: {
+        format: 'Das ist keine gültige Webadresse.',
+        scheme: 'Es sind nur Links mit http oder https möglich.',
+        length: 'Der Link ist zu lang. Er darf höchstens 2048 Zeichen haben.',
+      },
+    },
+    photo: {
+      failedHint:
+        'Das Foto konnte nicht hochgeladen werden. Versuche es erneut oder entferne es, um zu speichern.',
+    },
+    origin: {
+      label: 'Aus dem ursprünglichen Wunsch',
+    },
+    merge: {
+      title: 'Schon ausgefüllt',
+      intro:
+        'Dieser Wunsch hat schon einen Link oder ein Foto. Was soll bleiben?',
+      linkLegend: 'Link',
+      photoLegend: 'Foto',
+      linkCompare: 'Bisher: {{existing}}. Neu: {{shared}}.',
+      keep: 'Bestehendes behalten',
+      replace: 'Durch das Geteilte ersetzen',
+      continue: 'Weiter',
+      cancel: 'Abbrechen',
+    },
     status: {
       OPEN: 'Offen',
       PLANNED: 'Als Plan weitergeführt',

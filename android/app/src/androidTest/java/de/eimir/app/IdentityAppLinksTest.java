@@ -33,6 +33,14 @@ public final class IdentityAppLinksTest {
         }
     }
 
+    @Test public void sharedWishLinksReachTheRegularLauncher() {
+        for (String host : CLAIMED_HOSTS) {
+            ResolveInfo activity = resolve("https://" + host + "/plan/wishes/7aa71de7-2da2-438a-bce2-d315c48d05ae");
+            assertNotNull(host, activity);
+            assertEquals(host, "de.eimir.app.LauncherActivity", activity.activityInfo.name);
+        }
+    }
+
     @Test public void calendarPlanLinksReachTheRegularLauncher() {
         for (String host : CLAIMED_HOSTS) {
             ResolveInfo activity = resolve("https://" + host + "/p/AAAAAAAAAAAAAAAAAAAAAA");
@@ -43,6 +51,12 @@ public final class IdentityAppLinksTest {
 
     @Test public void unrelatedAndForeignUrlsAreNotClaimed() {
         for (String url : new String[] {
+            "http://app.eimir.de/plan/wishes/7aa71de7-2da2-438a-bce2-d315c48d05ae",
+            "https://app.eimir.de.evil.example/plan/wishes/7aa71de7-2da2-438a-bce2-d315c48d05ae",
+            "https://other.example/plan/wishes/7aa71de7-2da2-438a-bce2-d315c48d05ae",
+            "https://app.eimir.de/plan/wishlist",
+            "https://app.eimir.de/plan/wishes",
+            "https://app.eimir.de/api/v1/plan/wishes/7aa71de7-2da2-438a-bce2-d315c48d05ae",
             "http://demo.eimir.ur-cloud.de/auth/magic-link?token=synthetic-proof",
             "http://app.eimir.de/auth/magic-link?token=synthetic-proof",
             "https://demo.eimir.ur-cloud.de.evil.example/auth/magic-link?token=synthetic-proof",

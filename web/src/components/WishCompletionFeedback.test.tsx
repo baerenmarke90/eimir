@@ -45,6 +45,8 @@ const wish = (overrides: Partial<WishDetail> = {}): WishDetail => ({
   plan: null,
   hasMemory: false,
   followedFromWishId: null,
+  linkUrl: null,
+  photoAttachmentId: null,
   seriesId: ID,
   seriesPosition: 1,
   id: ID,

@@ -49,6 +49,8 @@ from eimir.create_receipts.models import CreateReceiptResourceType
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.outbox import service as outbox_service
 from eimir.plans.models import Plan
+from eimir.wishes import links as wish_links
+from eimir.wishes import media as wish_media
 from eimir.wishes import reminders as wish_reminders
 from eimir.wishes.models import Wish, WishDateProposal, WishPayload, WishStatus, shared_privacy
 
@@ -63,6 +65,7 @@ WISH_ALREADY_COMPLETED = "WISH_ALREADY_COMPLETED"
 WISH_PLAN_STATE_CONFLICT = "WISH_PLAN_STATE_CONFLICT"
 WISH_STATUS_TRANSITION_INVALID = "WISH_STATUS_TRANSITION_INVALID"
 WISH_REPEAT_REQUIRES_COMPLETED = "WISH_REPEAT_REQUIRES_COMPLETED"
+WISH_LINK_INVALID = "WISH_LINK_INVALID"
 
 
 @dataclass(frozen=True)
@@ -89,6 +92,14 @@ def _normalize_title(value: str) -> str:
 
 def _normalize_description(value: str | None) -> str | None:
     return (value or "").strip() or None
+
+
+def _normalize_link(value: str | None) -> str | None:
+    """Canonical link or ``None``; the API validates first, this guards other callers."""
+    try:
+        return wish_links.normalize_link(value)
+    except ValueError as error:
+        raise ValidationError(f"Wish link is invalid: {error}.", WISH_LINK_INVALID) from error
 
 
 def _flush(session: Session) -> None:
@@ -136,6 +147,8 @@ def create_wish(
     title: str,
     description: str | None = None,
     tags: list[str] | None = None,
+    link_url: str | None = None,
+    photo_attachment_id: UUID | None = None,
     repeat_of: Wish | None = None,
 ) -> Wish:
     """Create a wish in the ``OPEN`` state.
@@ -147,7 +160,13 @@ def create_wish(
     ``repeat_of`` is only passed by ``repeat_wish_once``, which has already
     verified that the source is a completed Wish of this Space. The follow-up
     link and series fields are therefore never client-settable.
+
+    A photo is validated and locked before the insert so the new Wish starts at
+    version 1 already bound to it. A repeat never receives its source's photo:
+    attachments belong to exactly one parent.
     """
+    if photo_attachment_id is not None:
+        wish_media.claim_photo(session, context, photo_attachment_id)
     wish = Wish(
         space_id=context.space_id,
         owner_id=context.account_id,
@@ -156,10 +175,12 @@ def create_wish(
         followed_from_wish_id=repeat_of.id if repeat_of is not None else None,
         series_id=repeat_of.series_id if repeat_of is not None else None,
         series_position=repeat_of.series_position + 1 if repeat_of is not None else 1,
+        photo_attachment_id=photo_attachment_id,
         payload=WishPayload(
             title=_normalize_title(title),
             description=_normalize_description(description),
             tags=tags or [],
+            link_url=_normalize_link(link_url),
         ),
     )
     session.add(wish)
@@ -177,6 +198,8 @@ def create_wish_once(
     title: str,
     description: str | None = None,
     tags: list[str] | None = None,
+    link_url: str | None = None,
+    photo_attachment_id: UUID | None = None,
 ) -> WishCreateResult:
     """Create a Wish, or return the one an earlier request with this identity created.
 
@@ -186,17 +209,28 @@ def create_wish_once(
     retry from adding the same wish to the shared list twice.
     """
     if idempotency_key is None:
-        wish = create_wish(session, context, title=title, description=description, tags=tags)
+        wish = create_wish(
+            session,
+            context,
+            title=title,
+            description=description,
+            tags=tags,
+            link_url=link_url,
+            photo_attachment_id=photo_attachment_id,
+        )
         return WishCreateResult(wish, created=True)
 
     normalized_title = _normalize_title(title)
     normalized_description = _normalize_description(description)
+    normalized_link = _normalize_link(link_url)
     request_fingerprint = create_receipts.fingerprint(
         _RECEIPT_RESOURCE_TYPE,
         {
             "title": normalized_title,
             **({"description": normalized_description} if normalized_description else {}),
             **({"tags": tags} if tags else {}),
+            **({"linkUrl": normalized_link} if normalized_link else {}),
+            **({"photoAttachmentId": str(photo_attachment_id)} if photo_attachment_id else {}),
         },
     )
     receipt_id = create_receipts.claim(
@@ -222,7 +256,13 @@ def create_wish_once(
         return WishCreateResult(wish, created=False)
 
     wish = create_wish(
-        session, context, title=normalized_title, description=normalized_description, tags=tags
+        session,
+        context,
+        title=normalized_title,
+        description=normalized_description,
+        tags=tags,
+        link_url=normalized_link,
+        photo_attachment_id=photo_attachment_id,
     )
     create_receipts.attach(session, receipt_id, wish.id)
     return WishCreateResult(wish, created=True)
@@ -263,6 +303,8 @@ def repeat_wish_once(
         else source.payload.description
     )
     proposal_tags = list(tags) if tags is not None else list(source.payload.tags)
+    # The link is copied; the photo deliberately is not (one parent per attachment).
+    proposal_link = source.payload.link_url
 
     if idempotency_key is None:
         wish = create_wish(
@@ -271,6 +313,7 @@ def repeat_wish_once(
             title=proposal_title,
             description=proposal_description,
             tags=proposal_tags,
+            link_url=proposal_link,
             repeat_of=source,
         )
         return WishCreateResult(wish, created=True)
@@ -282,6 +325,7 @@ def repeat_wish_once(
             "title": proposal_title,
             **({"description": proposal_description} if proposal_description else {}),
             **({"tags": proposal_tags} if proposal_tags else {}),
+            **({"linkUrl": proposal_link} if proposal_link else {}),
         },
     )
     receipt_id = create_receipts.claim(
@@ -312,6 +356,7 @@ def repeat_wish_once(
         title=proposal_title,
         description=proposal_description,
         tags=proposal_tags,
+        link_url=proposal_link,
         repeat_of=source,
     )
     create_receipts.attach(session, receipt_id, wish.id)
@@ -336,12 +381,18 @@ def update_wish(
     title: str | None = None,
     description: str | None = None,
     tags: list[str] | None = None,
+    link_url: str | None = None,
+    photo_attachment_id: UUID | None = None,
 ) -> Wish:
     """Correct authored Wish content.
 
     This is a versioned content update and does not change status (M3-D02).
     ``createdBy``, ``spaceId``, and ``status`` are not function parameters, so
     a request has no path to rewrite them.
+
+    ``link_url`` and ``photo_attachment_id`` are independent of each other and
+    of the other fields: a field absent from ``changed_fields`` is untouched,
+    and an explicit ``None`` clears it.
     """
     wish = require_writable(session, Wish, context, wish_id)
     _ensure_expected_version(wish, expected_version)
@@ -353,8 +404,13 @@ def update_wish(
             if "description" in changed_fields
             else wish.payload.description,
             "tags": tags if tags is not None else wish.payload.tags,
+            "link_url": _normalize_link(link_url)
+            if "link_url" in changed_fields
+            else wish.payload.link_url,
         }
     )
+    if "photo_attachment_id" in changed_fields:
+        wish_media.replace_photo(session, context, wish, photo_attachment_id)
 
     _flush(session)
     record_event(session, wish, context.account_id, EventType.WISH_UPDATED)
@@ -540,6 +596,7 @@ def delete_wish(
     _ensure_expected_version(wish, expected_version)
     _ensure_deletable(session, wish)
     actor_id = context.account_id
+    wish_media.release_photo(session, wish)
     session.delete(wish)
     _flush(session)
     record_event(session, wish, actor_id, EventType.WISH_DELETED)

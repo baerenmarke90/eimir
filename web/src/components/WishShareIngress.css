@@ -1,0 +1,64 @@
+/* Shared-content sheet: a calm preview, one primary action, small choices. */
+.wish-share-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0 0 var(--space-4);
+  list-style: none;
+}
+.wish-share-chip {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--space-8);
+  max-inline-size: 100%;
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+.wish-share-snippet {
+  flex-basis: 100%;
+  padding: var(--space-3);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
+}
+.wish-share-actions {
+  display: grid;
+  gap: var(--space-2);
+}
+.wish-share-actions > * {
+  inline-size: 100%;
+  justify-content: center;
+}
+.wish-share-choices {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0 0 var(--space-4);
+  list-style: none;
+}
+.wish-share-choice {
+  display: grid;
+  gap: var(--space-1);
+  inline-size: 100%;
+  min-block-size: var(--touch-target-comfortable);
+  padding: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-large);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+.wish-share-choice small {
+  color: var(--color-text-secondary);
+}

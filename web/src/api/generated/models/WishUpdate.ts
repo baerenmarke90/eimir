@@ -30,6 +30,18 @@ export interface WishUpdate {
      */
     description?: string | null;
     /**
+     * http(s) web address. Explicit null (or blank) removes the link.
+     * @type {string}
+     * @memberof WishUpdate
+     */
+    linkUrl?: string | null;
+    /**
+     * READY image attachment uploaded by the caller to set or replace the Wish's photo. Explicit null removes the photo; omitted leaves it untouched.
+     * @type {string}
+     * @memberof WishUpdate
+     */
+    photoAttachmentId?: string | null;
+    /**
      * 
      * @type {Array<string>}
      * @memberof WishUpdate
@@ -61,6 +73,8 @@ export function WishUpdateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     return {
         
         'description': json['description'] === undefined ? undefined : json['description'] === null ? null : json['description'],
+        'linkUrl': json['linkUrl'] === undefined ? undefined : json['linkUrl'] === null ? null : json['linkUrl'],
+        'photoAttachmentId': json['photoAttachmentId'] === undefined ? undefined : json['photoAttachmentId'] === null ? null : json['photoAttachmentId'],
         'tags': json['tags'] == null ? undefined : json['tags'],
         'title': json['title'] == null ? undefined : json['title'],
     };
@@ -78,6 +92,8 @@ export function WishUpdateToJSONTyped(value?: WishUpdate | null, ignoreDiscrimin
     return {
         
         'description': value['description'],
+        'linkUrl': value['linkUrl'],
+        'photoAttachmentId': value['photoAttachmentId'],
         'tags': value['tags'],
         'title': value['title'],
     };

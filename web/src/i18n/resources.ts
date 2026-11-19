@@ -69,6 +69,7 @@ import wishDateProposal from './locales/wishDateProposal';
 import wishJourney from './locales/wishJourney';
 import wishRepeat from './locales/wishRepeat';
 import wishSelection from './locales/wishSelection';
+import wishShare from './locales/wishShare';
 
 export const germanResources = {
   ...de,
@@ -92,6 +93,7 @@ export const germanResources = {
   wishJourney,
   wishDateProposal,
   wishRepeat,
+  wishShare,
   navigation: { ...de.navigation, ...navigation },
   notificationSettings,
   demo,

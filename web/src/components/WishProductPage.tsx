@@ -11,6 +11,7 @@ import {
   type FormEvent,
   type RefObject,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -26,6 +27,7 @@ import {
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
+import { createReferenceApis } from '../client/referenceFlow';
 import {
   appRoutePath,
   MEMORY_CREATE_ROUTE,
@@ -38,8 +40,19 @@ import {
   planScheduleFromInputs,
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
+import type { SharedWishNavigationState } from '../client/sharedWishDraft';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { useWishMediaDraft } from '../client/useWishMediaDraft';
+import { useWishShare } from '../client/useWishShare';
 import { wishJourneyStage, wishPlanDateLabel } from '../client/wishJourney';
+import {
+  mergeSharedWishDraft,
+  type SharedWishMerge,
+  sharedWishConflicts,
+  takeSharedWishDraftOnce,
+  releaseTakenSharedWishDraft,
+  wishMediaOf,
+} from '../client/wishLinkPhoto';
 import { useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
@@ -66,8 +79,11 @@ import { useWishCompletion } from './useWishCompletion';
 import { WishComposer } from './WishComposer';
 import { WishDateProposalAction } from './WishDateProposalAction';
 import { WishJourneyPath } from './WishJourney';
+import { WishLinkRow } from './WishLinkRow';
+import { WishPhotoGallery } from './WishPhotoGallery';
 import { WishReminderAction } from './WishReminderAction';
 import { WishRepeatSheet } from './WishRepeatSheet';
+import { WishShareMergeSheet } from './WishShareMergeSheet';
 import './SharedPlanningPages.css';
 import './PlanningReference.css';
 
@@ -81,11 +97,13 @@ async function apiCall<T>(request: () => Promise<T>): Promise<T> {
 
 export function WishProductPage({
   accountId,
+  accessToken,
   apiBaseUrl,
   apis,
   spaceId,
 }: {
   accountId?: string;
+  accessToken?: string;
   apiBaseUrl?: string;
   apis: SharedPlanningApis;
   spaceId: string;
@@ -121,6 +139,43 @@ export function WishProductPage({
   const [editTags, setEditTags] = useState<string[]>([]);
   const [tagDraftDirty, setTagDraftDirty] = useState(false);
   const tagEditor = useRef<ContextTagEditorHandle>(null);
+  const referenceApis = useMemo(
+    () => createReferenceApis(apiBaseUrl ?? '', accessToken ?? ''),
+    [apiBaseUrl, accessToken],
+  );
+  const wishMedia = useWishMediaDraft({
+    apis: referenceApis,
+    apiBaseUrl,
+    accessToken,
+    accountId,
+    spaceId,
+    resourceKey: 'wish-edit',
+  });
+  const clearWishMedia = wishMedia.clear;
+  const wishShare = useWishShare(apiBaseUrl ?? '');
+  const replaceWishPhoto = useRef(wishMedia.replacePhoto);
+  replaceWishPhoto.current = wishMedia.replacePhoto;
+  const [pendingSharedPhoto, setPendingSharedPhoto] = useState<File | null>(
+    null,
+  );
+  // Content shared into eimir. from another app: it waits for the couple's
+  // choice and only ever fills the editor; Save is what writes it.
+  const shareState =
+    location.state as Partial<SharedWishNavigationState> | null;
+  const shareKey =
+    shareState?.wishShareMode === 'add' &&
+    typeof shareState.wishShareKey === 'string'
+      ? shareState.wishShareKey
+      : undefined;
+  const [shared, setShared] = useState(() =>
+    shareKey
+      ? takeSharedWishDraftOnce(
+          JSON.stringify([apiBaseUrl, accountId, spaceId]),
+          shareKey,
+        )
+      : null,
+  );
+  const [mergeOpen, setMergeOpen] = useState(false);
   const editFocus = useRef<HTMLDivElement>(null);
   const menuTrigger = useRef<HTMLButtonElement>(null);
   const [dismissedCompletion, setDismissedCompletion] =
@@ -158,6 +213,7 @@ export function WishProductPage({
       (editTitle !== editingWish.title ||
         editDescription !== (editingWish.description ?? '') ||
         tagDraftDirty ||
+        wishMedia.dirty ||
         editTags.length !== (editingWish.tags?.length ?? 0) ||
         editTags.some((tag, index) => tag !== editingWish.tags?.[index])),
   );
@@ -168,7 +224,10 @@ export function WishProductPage({
     initialFocusRef: editFocus,
     restoreFocusRef: menuTrigger,
     onEscape: () => Boolean(document.querySelector('dialog[open]')),
-    onClose: () => setEditingWish(null),
+    onClose: () => {
+      setEditingWish(null);
+      clearWishMedia();
+    },
   });
 
   useEffect(() => {
@@ -345,6 +404,59 @@ export function WishProductPage({
     return () => cancelAnimationFrame(frame);
   }, [showCompletionContinuation, continueOpen, wishStatus]);
 
+  /** Opens the editor on a Wish, optionally with shared content merged in. */
+  function beginEditing(target: WishDetail, merge?: SharedWishMerge): boolean {
+    if (isWishWritePending()) return false;
+    updateMutation.reset();
+    setEditTitle(target.title);
+    setEditDescription(merge ? merge.description : (target.description ?? ''));
+    setEditTags(target.tags ?? []);
+    setTagDraftDirty(false);
+    wishMedia.reset(wishMediaOf(target));
+    if (merge?.linkUrl) wishMedia.setLinkUrl(merge.linkUrl);
+    setPendingSharedPhoto(merge?.photo ?? null);
+    setEditingWish(target);
+    return true;
+  }
+  const beginEditingRef = useRef(beginEditing);
+  beginEditingRef.current = beginEditing;
+
+  const sharedTarget = wishQuery.data;
+  useEffect(() => {
+    if (!shared || !sharedTarget || isEditing) return;
+    if (!sharedTarget.capabilities.canEdit) {
+      releaseTakenSharedWishDraft();
+      setShared(null);
+      return;
+    }
+    const existing = wishMediaOf(sharedTarget);
+    const conflicts = sharedWishConflicts(existing, shared);
+    if (conflicts.link || conflicts.photo) {
+      setMergeOpen(true);
+      return;
+    }
+    const merge = mergeSharedWishDraft(
+      { description: sharedTarget.description ?? '', media: existing },
+      shared,
+      conflicts,
+    );
+    if (beginEditingRef.current(sharedTarget, merge)) {
+      releaseTakenSharedWishDraft();
+      setShared(null);
+    }
+  }, [shared, sharedTarget, isEditing]);
+
+  useEffect(() => {
+    if (!isEditing || !pendingSharedPhoto) return;
+    const file = pendingSharedPhoto;
+    // Upload after the editor state settled, so the reset above cannot drop it.
+    const timer = window.setTimeout(() => {
+      replaceWishPhoto.current(file);
+      setPendingSharedPhoto(null);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [isEditing, pendingSharedPhoto]);
+
   if (!wishId) {
     return (
       <UiState
@@ -372,6 +484,7 @@ export function WishProductPage({
     event.preventDefault();
     const title = editTitle.trim();
     if (!editingWish || !title || isWishWritePending()) return;
+    if (wishMedia.blocked) return;
     const tags = tagEditor.current?.commitDraft();
     if (!tags) return;
     const description = editDescription.trim() || null;
@@ -383,6 +496,7 @@ export function WishProductPage({
         ...(description !== (editingWish.description ?? null)
           ? { description }
           : {}),
+        ...wishMedia.patch(),
       },
     });
   }
@@ -408,13 +522,7 @@ export function WishProductPage({
   }
 
   function startEdit() {
-    if (!wish || isWishWritePending()) return;
-    updateMutation.reset();
-    setEditTitle(wish.title);
-    setEditDescription(wish.description ?? '');
-    setEditTags(wish.tags ?? []);
-    setTagDraftDirty(false);
-    setEditingWish(wish);
+    if (wish) beginEditing(wish);
   }
 
   function openMemoryComposer() {
@@ -444,6 +552,13 @@ export function WishProductPage({
         description={editDescription}
         tags={editTags}
         tagEditorRef={tagEditor}
+        media={{
+          draft: wishMedia,
+          spaceId,
+          apiBaseUrl,
+          accessToken,
+          accountId,
+        }}
         focusRef={editFocus}
         disabled={writesPending}
         saving={updateMutation.isPending}
@@ -517,6 +632,16 @@ export function WishProductPage({
         }
       />
       <h2 className="detail-content-title">{wish.title}</h2>
+      <WishLinkRow className="wish-detail-link" url={wish.linkUrl} />
+      {wish.photoAttachmentId ? (
+        <WishPhotoGallery
+          wishId={wish.id}
+          photoAttachmentId={wish.photoAttachmentId}
+          spaceId={spaceId}
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+        />
+      ) : null}
 
       <WishJourneyPath
         className="wish-detail-journey"
@@ -763,6 +888,16 @@ export function WishProductPage({
             }
           />
         ) : null}
+        {apiBaseUrl ? (
+          <ItemMenuOption
+            icon="external-link"
+            title={t(wishShare.labelKey)}
+            onClick={() => {
+              setMenuOpen(false);
+              void wishShare.share(wish.id);
+            }}
+          />
+        ) : null}
         {wish.status === 'OPEN' && accountId && apiBaseUrl ? (
           <ItemMenuOption
             icon="benachrichtigungen"
@@ -813,6 +948,35 @@ export function WishProductPage({
           />
         ) : null}
       </ItemMenuSheet>
+
+      {shared && wish.capabilities.canEdit ? (
+        <WishShareMergeSheet
+          open={mergeOpen}
+          conflicts={sharedWishConflicts(wishMediaOf(wish), shared)}
+          existingLink={wish.linkUrl ?? null}
+          sharedLink={shared.linkUrl ?? null}
+          onConfirm={(replace) => {
+            const merge = mergeSharedWishDraft(
+              {
+                description: wish.description ?? '',
+                media: wishMediaOf(wish),
+              },
+              shared,
+              replace,
+            );
+            setMergeOpen(false);
+            if (beginEditing(wish, merge)) {
+              releaseTakenSharedWishDraft();
+              setShared(null);
+            }
+          }}
+          onCancel={() => {
+            setMergeOpen(false);
+            releaseTakenSharedWishDraft();
+            setShared(null);
+          }}
+        />
+      ) : null}
 
       <ItemDeleteSheet
         sheetRef={deleteSheet}

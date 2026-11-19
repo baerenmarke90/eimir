@@ -745,6 +745,7 @@
               "HEART_MOMENT",
               "RELATED_PERSON",
               "PLAN",
+              "WISH",
               "HEART_HUNT_ROUND",
               "NONE"
             ],
@@ -18575,6 +18576,17 @@
             "title": "Description",
             "type": "string"
           },
+          "linkUrl": {
+            "description": "Optional http(s) web address. The server never fetches it. Blank means no link.",
+            "title": "Linkurl",
+            "type": "string"
+          },
+          "photoAttachmentId": {
+            "description": "Optional READY image attachment uploaded by the caller; it becomes the Wish's single photo.",
+            "format": "uuid",
+            "title": "Photoattachmentid",
+            "type": "string"
+          },
           "tags": {
             "items": {
               "maxLength": 40,
@@ -18745,6 +18757,31 @@
             "title": "Id",
             "type": "string"
           },
+          "linkUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional http(s) web address; the server never fetches it.",
+            "title": "Linkurl"
+          },
+          "photoAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The Wish's single optional photo. Readable by both partners through attachment read access with parentType WISH and parentId equal to this Wish.",
+            "title": "Photoattachmentid"
+          },
           "plan": {
             "anyOf": [
               {
@@ -18805,6 +18842,8 @@
           "spaceId",
           "createdBy",
           "title",
+          "linkUrl",
+          "photoAttachmentId",
           "status",
           "version",
           "createdAt",
@@ -19862,6 +19901,31 @@
               }
             ],
             "title": "Description"
+          },
+          "linkUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "http(s) web address. Explicit null (or blank) removes the link.",
+            "title": "Linkurl"
+          },
+          "photoAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "READY image attachment uploaded by the caller to set or replace the Wish's photo. Explicit null removes the photo; omitted leaves it untouched.",
+            "title": "Photoattachmentid"
           },
           "tags": {
             "items": {

@@ -19,6 +19,34 @@ import { AppErrorBoundary } from './AppErrorBoundary';
 const RESTORE_FRAMES = 30;
 const USER_SCROLL_INTENTS = ['wheel', 'touchstart', 'keydown'] as const;
 
+/**
+ * A kept tab that is shown again is the same view, not a new arrival. Un-hiding
+ * a `display: none` subtree restarts every CSS animation in it, so entrances
+ * (the Wir opening, the quote's fade, a badge's arrival) would replay each
+ * time and could be cut off half-way by the next render. Finish the single
+ * runs at once, before paint. Repeating ambient motion (the rings' breath,
+ * garden life) restarts softly from its resting frame and is left running;
+ * script-driven animations (flights) are not CSS animations and are kept.
+ */
+export function settleRestartedEntrances(panel: Element | null) {
+  if (
+    !panel ||
+    typeof panel.getAnimations !== 'function' ||
+    typeof CSSAnimation === 'undefined'
+  )
+    return;
+  for (const animation of panel.getAnimations({ subtree: true })) {
+    if (
+      !(animation instanceof CSSAnimation) ||
+      animation.timeline !== document.timeline
+    )
+      continue;
+    const timing = animation.effect?.getComputedTiming();
+    if (timing?.iterations !== 1 || !Number.isFinite(timing.endTime)) continue;
+    animation.finish();
+  }
+}
+
 export interface PrimaryTabPanel {
   path: string;
   element: ReactNode;
@@ -82,6 +110,27 @@ export function PrimaryTabPanels({
       scrollPositions.current.set(renderedTab.current, window.scrollY);
     renderedTab.current = active;
   }
+
+  // A kept tab that is shown again (made active or peeked) settles the
+  // entrances its un-hiding restarted; its first showing plays them.
+  const shownTabs = useRef(new Set<string>());
+  const everShownTabs = useRef(new Set<string>());
+  const shownNow = [active, peek].filter(
+    (path): path is string => typeof path === 'string',
+  );
+  const shownKey = shownNow.join('\u0000');
+  useLayoutEffect(() => {
+    const now = new Set(shownKey ? shownKey.split('\u0000') : []);
+    for (const path of now) {
+      if (!shownTabs.current.has(path) && everShownTabs.current.has(path))
+        settleRestartedEntrances(
+          document.querySelector(`[data-primary-tab="${path}"]`),
+        );
+      // A peeked tab that was never opened is not kept and may unmount.
+      if (locations.current.has(path)) everShownTabs.current.add(path);
+    }
+    shownTabs.current = now;
+  }, [shownKey]);
 
   useLayoutEffect(() => {
     const previous = activeRef.current;

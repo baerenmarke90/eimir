@@ -2,10 +2,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   act,
+  cleanup,
   fireEvent,
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -42,9 +44,9 @@ function renderPlan(overrides: Partial<PlanDetail> = {}) {
     experiencedOn: null,
     id: 'plan-1',
     placeId: 'place-1',
-    plannedEnd: new Date(2026, 10, 22, 11),
+    plannedEnd: new Date(2099, 10, 22, 11),
     plannedOn: null,
-    plannedStart: new Date(2026, 10, 21, 19),
+    plannedStart: new Date(2099, 10, 21, 19),
     sourceWishId: null,
     spaceId: 'space-1',
     status: 'PLANNED',
@@ -70,6 +72,10 @@ function renderPlan(overrides: Partial<PlanDetail> = {}) {
     },
   );
   const listPlanNotes = vi.fn(async () => []);
+  const returnPlanToWish = vi.fn(async () => ({
+    wish: {},
+    removedPlanId: plan.id,
+  }));
   const apis = {
     plans: {
       getPlan: vi.fn(async () => plan),
@@ -81,6 +87,7 @@ function renderPlan(overrides: Partial<PlanDetail> = {}) {
         hasMore: false,
       })),
       updatePlan,
+      returnPlanToWish,
     },
     places: {
       listPlaces: vi.fn(async () => ({ items: [], nextCursor: null })),
@@ -108,7 +115,7 @@ function renderPlan(overrides: Partial<PlanDetail> = {}) {
       </MemoryRouter>
     </QueryClientProvider>,
   );
-  return { plan, requestBodies, updatePlan, listPlanNotes };
+  return { plan, requestBodies, updatePlan, listPlanNotes, returnPlanToWish };
 }
 
 async function openEditor() {
@@ -143,7 +150,9 @@ describe('PlanProductPage discreet plans (#1790 F3)', () => {
     expect(
       screen.queryByRole('heading', { name: t('comments.heading') }),
     ).toBeNull();
-    // Schedule actions stay available while concealed.
+    // Schedule actions stay available while concealed; the plan is still
+    // ahead, so the completion waits in its menu.
+    fireEvent.click(screen.getByRole('button', { name: t('m5s3.plan.menu') }));
     expect(
       screen.getByRole('button', { name: t('m5s3.plan.complete') }),
     ).toBeTruthy();
@@ -257,5 +266,41 @@ describe('PlanProductPage discreet plans (#1790 F3)', () => {
       discreetTitleMode: 'ORIGINAL',
       previewTitle: 'Weekend for two',
     });
+  });
+});
+
+describe('PlanProductPage back to wish', () => {
+  it('offers it in the item menu behind a confirmation, not in the editor', async () => {
+    const { returnPlanToWish } = renderPlan({ sourceWishId: 'wish-1' });
+    fireEvent.click(screen.getByRole('button', { name: t('m5s3.plan.menu') }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: t('m5s3.plan.returnToWish') }),
+    );
+    const dialog = await screen.findByRole('alertdialog', {
+      name: t('m5s3.plan.returnToWishConfirmTitle'),
+    });
+    expect(returnPlanToWish).not.toHaveBeenCalled();
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: t('m5s3.plan.returnToWish') }),
+    );
+    await waitFor(() =>
+      expect(returnPlanToWish).toHaveBeenCalledWith(
+        expect.objectContaining({ spaceId: 'space-1', planId: 'plan-1' }),
+      ),
+    );
+  });
+
+  it('is not offered without a source wish or in the editor', async () => {
+    renderPlan({ sourceWishId: 'wish-1' });
+    await openEditor();
+    expect(
+      screen.queryByRole('button', { name: t('m5s3.plan.returnToWish') }),
+    ).toBeNull();
+    cleanup();
+    renderPlan();
+    fireEvent.click(screen.getByRole('button', { name: t('m5s3.plan.menu') }));
+    expect(
+      screen.queryByRole('button', { name: t('m5s3.plan.returnToWish') }),
+    ).toBeNull();
   });
 });

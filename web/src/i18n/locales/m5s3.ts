@@ -223,6 +223,10 @@ const m5s3 = {
     completeDateTitle: 'Wann habt ihr das erlebt?',
     completePending: 'Abschluss für den {{date}} wird gespeichert …',
     returnToWish: 'Zurück zum Wunsch',
+    returnToWishConfirmTitle: 'Zurück zum Wunsch?',
+    returnToWishConfirmBody:
+      'Der Plan wird aufgelöst und der Wunsch ist wieder offen.',
+    returning: 'Wird zurückgeführt …',
     completedTitle: 'Gemeinsam erlebt',
     completedBody: 'Aus einem Plan wurde etwas, das ihr erlebt habt.',
     sharedAchievementTitle: 'Gemeinsam geschafft',

@@ -1,4 +1,3 @@
-import { i18n } from '../i18n';
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -14,6 +13,7 @@ import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
+import { i18n } from '../i18n';
 import de from '../i18n/locales/de';
 import memoryProduct from '../i18n/locales/memoryProduct';
 import photoPlaces from '../i18n/locales/photoPlaces';
@@ -305,15 +305,19 @@ describe('Memory detail edit action (#1014)', () => {
     expect(await screen.findByTestId('edit-route')).toBeTruthy();
   });
 
-  it('shows no menu when the viewer can neither edit nor delete', async () => {
+  it('keeps only who recorded it in the menu when the viewer can neither edit nor delete', async () => {
     renderDetail('A shared evening', 'account-1', {
       canEdit: false,
       canDelete: false,
     });
     await screen.findByRole('heading', { name: 'A shared evening', level: 2 });
+    // Who recorded the entry is background, not part of the page.
+    expect(document.querySelector('.memory-provenance-footer')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: memoryProduct.menu }));
+    expect(document.querySelectorAll('.item-menu-option')).toHaveLength(0);
     expect(
-      screen.queryByRole('button', { name: memoryProduct.menu }),
-    ).toBeNull();
+      document.querySelector('.item-menu-footnote')?.textContent,
+    ).toContain(memoryProduct.authorLabel);
   });
 
   it('keeps the short date above content and an authored display title after media', async () => {

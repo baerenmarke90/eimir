@@ -98,6 +98,8 @@
                 <data android:pathPrefix="/auth/oidc/" />
                 <!-- A shared Wish link opens the app on that Wish. -->
                 <data android:pathPrefix="/plan/wishes/" />
+                <!-- Plan links in synced calendar events (#1895) open the plan in the app. -->
+                <data android:pathPrefix="/p/" />
             </intent-filter>
 
         </activity>

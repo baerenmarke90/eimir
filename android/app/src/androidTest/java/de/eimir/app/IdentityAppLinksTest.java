@@ -41,6 +41,14 @@ public final class IdentityAppLinksTest {
         }
     }
 
+    @Test public void calendarPlanLinksReachTheRegularLauncher() {
+        for (String host : CLAIMED_HOSTS) {
+            ResolveInfo activity = resolve("https://" + host + "/p/AAAAAAAAAAAAAAAAAAAAAA");
+            assertNotNull(host, activity);
+            assertEquals(host, "de.eimir.app.LauncherActivity", activity.activityInfo.name);
+        }
+    }
+
     @Test public void unrelatedAndForeignUrlsAreNotClaimed() {
         for (String url : new String[] {
             "http://app.eimir.de/plan/wishes/7aa71de7-2da2-438a-bce2-d315c48d05ae",

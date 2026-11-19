@@ -5,6 +5,8 @@
 **Baseline:** Product Reference v1 and `design-system-direction.md` section 8  
 **Issue:** #1204
 
+The [Motion Contract](motion-contract.md) (#2067) defines how these roles are built: a closed catalogue of motion primitives, lifecycle invariants and the shared motion layer. New or changed motion follows both documents.
+
 This document operationalizes the existing motion direction. It does not create a second visual language and it does not authorize animation for its own sake. Product Reference v1, the Partner-App Experience Standard, component contracts, accessibility, privacy and security remain higher-order constraints.
 
 ## 1. Principle
@@ -195,7 +197,7 @@ These are not universal components. A lightbox is not a Bottom Sheet; a popover 
 
 Before shipping:
 
-- identify the semantic role from section 3;
+- identify the semantic role from section 3 and its primitive in the [Motion Contract](motion-contract.md#4-primitive-catalogue), and complete that contract's checklist (section 9 there);
 - reuse canonical duration/easing tokens;
 - confirm that no existing primitive already owns the lifecycle;
 - verify Enter and, where meaningful, Exit including rapid open/close;

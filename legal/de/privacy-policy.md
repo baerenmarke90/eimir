@@ -1,7 +1,7 @@
 ---
 document: privacy-policy
 locale: de-DE
-version: 2026-11-17.draft-4
+version: 2026-11-18.draft-6
 status: draft
 effective: null
 legal_review: pending
@@ -112,7 +112,7 @@ Diese Übersicht soll dir den Einstieg erleichtern. Die Einzelheiten stehen in d
 
 ## 11. Automatische Vorschläge und lokale KI
 
-1. Einige Funktionen formulieren Texte oder machen Vorschläge, zum Beispiel Titel und Einleitung eurer Rückblicke, Beobachtungen und Anregungen in „Eure Woche“ oder Schlagwörter für gemeinsame Erinnerungen. Soweit wir dafür ein KI-Sprachmodell einsetzen, läuft es in unserer eigenen Serverumgebung. Eure Inhalte gehen dafür nicht an externe KI-Anbieter.
+1. In „Eure Woche“ wählen wir Beobachtungen und Anregungen aus. Für gemeinsame Erinnerungen und Herzmomente machen wir Schlagwortvorschläge. Wenn dabei ein KI-Sprachmodell zum Einsatz kommt, läuft es in unserer eigenen Serverumgebung. Eure Inhalte gehen dafür nicht an externe KI-Anbieter.
 2. Das Modell erhält nur gemeinsame Inhalte und nur die Ausschnitte, die für den jeweiligen Vorschlag nötig sind, niemals „Nur für mich“-Inhalte. Für „Eure Woche“ berechnen wir aus euren Einträgen für „Gefühl für heute“ und Akku einfache Beobachtungen, zum Beispiel ob sich eure Energie verändert hat. Das Modell erhält dafür keine Texte, Fotos, Namen oder Orte, sondern nur diese Beobachtungen, und wählt dazu passende Anregungen aus.
 3. Wir trainieren keine KI-Modelle mit euren Inhalten und speichern Eingaben und Ergebnisse des Modells nicht in Protokollen. Vorschläge können trotzdem unzutreffend sein. Prüfe sie, bevor du sie übernimmst oder teilst.
 4. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO. Wir treffen keine Entscheidungen, die ausschließlich automatisiert zustande kommen und dir gegenüber rechtliche Wirkung entfalten oder dich in ähnlicher Weise erheblich beeinträchtigen (Art. 22 DSGVO).

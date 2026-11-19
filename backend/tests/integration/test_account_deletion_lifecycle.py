@@ -5,7 +5,7 @@ from __future__ import annotations
 from uuid import UUID
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from eimir.administration.models import (
@@ -13,6 +13,7 @@ from eimir.administration.models import (
     InstanceAdministrationActionEvent,
 )
 from eimir.core.clock import now
+from eimir.db.base import Base
 from eimir.identity import deletion_lifecycle
 from eimir.identity.deletion import mark_deletion_failed
 from eimir.identity.deletion_lifecycle import (
@@ -26,6 +27,7 @@ from eimir.identity.deletion_media import (
 from eimir.identity.deletion_models import AccountDeletion, AccountDeletionStatus
 from eimir.identity.models import Account
 from tests.conftest import make_account, make_space, requires_database
+from tests.support.account_table_lifecycle import RETAINED_ACCOUNT_TABLES
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -93,6 +95,14 @@ def test_full_deletion_convergence_marks_completed_once(production_client) -> No
         assert deletion is not None
         assert deletion.status == AccountDeletionStatus.COMPLETED.value
         assert deletion.completed_at == first_completed_at
+        # Inspect the actual committed database after every phase and its retry.
+        # This also covers new registered tables before an explicit policy is added.
+        for table in Base.metadata.sorted_tables:
+            if "account_id" in table.c and table.name not in RETAINED_ACCOUNT_TABLES:
+                rows = verify.scalar(
+                    select(func.count()).select_from(table).where(table.c.account_id == account_id)
+                )
+                assert rows == 0, table.name
         events = _deletion_audit_events(verify, account_id)
         assert [event.action for event in events].count(
             AdministrationAction.ACCOUNT_DELETION_COMPLETED.value

@@ -31,7 +31,7 @@ from eimir.attachments.models import Attachment, AttachmentStatus
 from eimir.auth import cloud, recent_auth
 from eimir.config import MailTransport
 from eimir.config import get_settings as get_runtime_settings
-from eimir.core.clock import now
+from eimir.core.clock import ensure_utc, now
 from eimir.core.errors import NotFoundError, ValidationError
 from eimir.core.ids import parse_id
 from eimir.entitlements import service as entitlements
@@ -430,7 +430,7 @@ def _account_detail(
     local_password_available = AuthProvider.LOCAL_PASSWORD.value in summary.auth_methods
     return ServerAdminAccountDetail(
         **summary.model_dump(),
-        deletion_accepted_at=deletion_accepted_at,
+        deletion_accepted_at=ensure_utc(deletion_accepted_at) if deletion_accepted_at else None,
         emails=[
             ServerAdminAccountEmail(
                 id=email.id,
@@ -1334,7 +1334,7 @@ def delete_server_admin_account(
     )
     return ServerAdminAccountDeletionResult(
         account_id=parsed_id,
-        accepted_at=deletion.accepted_at,
+        accepted_at=ensure_utc(deletion.accepted_at),
         status=AccountDeletionStatus(deletion.status),
     )
 

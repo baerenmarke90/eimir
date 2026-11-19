@@ -20,9 +20,9 @@ from eimir.identity.models import Account
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import registry
+from eimir.local_ai import query_structured
 from eimir.memories.models import Memory
 from eimir.recaps.jobs import authorized_context
-from eimir.recaps.local_ai import query_structured
 from eimir.relationship.models import Membership, MembershipStatus
 
 SCAN_JOB = "context-tags.scan.v1"

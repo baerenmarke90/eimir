@@ -531,6 +531,7 @@ test('personal module reorder persists across reload and separates the visibilit
   );
 
   await page.goto(settingsCategoryPath('today'));
+  await expect(page.locator('#settings-dashboard')).toBeVisible();
   await page.screenshot({
     path: testInfo.outputPath('1194-reorder-compact-dark.png'),
     fullPage: true,

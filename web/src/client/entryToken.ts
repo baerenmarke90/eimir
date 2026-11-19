@@ -61,11 +61,15 @@ export function readSensitiveEntryToken(
   const kind = ENTRY_PATHS[pathname.replace(/\/$/, '')];
   if (!kind) return null;
 
-  const token = new URLSearchParams(search).get('token')?.trim();
+  const fragment = new URLSearchParams(hash.replace(/^#/, ''));
+  const tokens = [
+    ...fragment.getAll('token'),
+    ...new URLSearchParams(search).getAll('token'),
+  ];
+  if (tokens.length !== 1) return null;
+  const token = tokens[0]?.trim();
   if (token && kind === 'signup') {
-    const invitationToken = new URLSearchParams(hash.replace(/^#/, ''))
-      .get('invitationToken')
-      ?.trim();
+    const invitationToken = fragment.get('invitationToken')?.trim();
     return invitationToken ? { kind, token, invitationToken } : { kind, token };
   }
   return token ? { kind, token } : null;

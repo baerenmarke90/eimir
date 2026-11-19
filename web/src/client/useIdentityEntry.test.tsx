@@ -51,6 +51,18 @@ function setup() {
 }
 
 describe('trusted external identity URLs', () => {
+  it.each(['recovery', 'magic-link', 'verify-email', 'invitation', 'signup'])(
+    'accepts a fragment-only proof for %s and rejects ambiguous proofs',
+    (path) => {
+      const url = `${ORIGIN}/auth/${path}`;
+      expect(
+        readIdentityEntryUrl(`${url}#token=proof`, ORIGIN, true)?.token,
+      ).toBe('proof');
+      expect(
+        readIdentityEntryUrl(`${url}?token=old#token=new`, ORIGIN, true),
+      ).toBeNull();
+    },
+  );
   it('uses the canonical parser including pre-upgrade invitation fragments', () => {
     expect(
       readIdentityEntryUrl(

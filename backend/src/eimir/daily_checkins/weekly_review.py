@@ -28,12 +28,13 @@ from eimir.daily_checkins.models import (
 from eimir.daily_checkins.service import _active_partner_account_id
 from eimir.daily_checkins.weekly_patterns import (
     Observation,
+    ObservationKind,
     observations,
     paired_energy,
     paired_vibes,
     recommendation_order,
 )
-from eimir.recaps.local_ai import query_structured
+from eimir.local_ai import query_structured
 
 
 @dataclass(frozen=True)
@@ -127,9 +128,11 @@ def preview(session: Session, context: AuthorizationContext, week_start: date) -
     eligible_days = [
         day for day in data.days if paired_energy(day) is not None or paired_vibes(day) is not None
     ]
-    general = len(eligible_days) < 3 or not facts
-    if general:
-        facts = []
+    if len(eligible_days) < 3:
+        # The ordinary retention job keeps today and yesterday. Their joint
+        # count is meaningful, even though neither a trend nor a comparison is.
+        facts = [fact for fact in facts if fact.kind is ObservationKind.JOINT_DAYS]
+    general = not facts
     votes = feedback(session, context)
     ratings = {vote.recommendation_key: vote.rating for vote in votes}
     keys = [
@@ -169,7 +172,7 @@ def choose(prepared: Preview) -> tuple[Selection, bool]:
     settings = get_settings()
     if (
         prepared.general
-        or not prepared.observations
+        or all(fact.kind is ObservationKind.JOINT_DAYS for fact in prepared.observations)
         or not prepared.recommendations
         or not settings.recap_ai_url
     ):

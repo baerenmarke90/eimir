@@ -1,3 +1,14 @@
 android/gradlew text eol=lf
 android/gradlew.bat text eol=crlf
 web/src/api/generated/** whitespace=-trailing-space
+
+# Source snapshots, generated text and legal-document checks use canonical LF.
+legal/**/*.md text eol=lf
+web/**/*.tsx text eol=lf
+web/**/*.ts text eol=lf
+web/**/*.mjs text eol=lf
+web/**/*.js text eol=lf
+web/**/*.css text eol=lf
+web/**/*.html text eol=lf
+web/**/*.json text eol=lf
+web/nginx.conf text eol=lf

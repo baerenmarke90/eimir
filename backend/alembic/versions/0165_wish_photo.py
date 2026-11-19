@@ -7,8 +7,8 @@ exclusive attachment binding: the unique constraint keeps one attachment from
 serving two Wishes, and ``SET NULL`` leaves the Wish intact if the attachment
 row is purged.
 
-Revision ID: 0163
-Revises: 0162
+Revision ID: 0165
+Revises: 0164
 Create Date: 2026-11-18
 """
 
@@ -16,8 +16,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0163"
-down_revision = "0162"
+revision = "0165"
+down_revision = "0164"
 branch_labels = None
 depends_on = None
 

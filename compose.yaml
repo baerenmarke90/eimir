@@ -331,6 +331,8 @@ services:
       <<: [*self-hosted-runtime-environment, *push-runtime-environment]
       EIMIR_BOOTSTRAP_TOKEN: "${EIMIR_BOOTSTRAP_TOKEN:-${SBS_BOOTSTRAP_TOKEN:-}}"
       FORWARDED_ALLOW_IPS: "${TRUSTED_PROXY_IPS:-127.0.0.1}"
+    tmpfs:
+      - /tmp:size=${EIMIR_API_TMPFS_SIZE:-1g},mode=0700,uid=10001,gid=10001
     volumes:
       - media_data:/var/lib/eimir/media
       - deletion_journal_data:/var/lib/eimir/deletion-journal
@@ -396,6 +398,8 @@ services:
     environment:
       <<: [*cloud-runtime-environment, *push-runtime-environment]
       FORWARDED_ALLOW_IPS: "${TRUSTED_PROXY_IPS:-}"
+    tmpfs:
+      - /tmp:size=${EIMIR_API_TMPFS_SIZE:-1g},mode=0700,uid=10001,gid=10001
     volumes:
       - cloud_media_data:/var/lib/eimir/media
       - cloud_deletion_journal_data:/var/lib/eimir/deletion-journal

@@ -385,6 +385,11 @@ ALLOWED_LOCALIZED_TEXTS = (
     "Alex hat dir eine Liste geschickt.",
     "%1$s hat am Bild weitergemalt. Du bist dran.",
     "Alex hat am Bild weitergemalt. Du bist dran.",
+    # Exact #1969 native push copy for shared notes and its encrypted fixtures.
+    "%1$s hat eine gemeinsame Notiz angelegt.",
+    "%1$s hat eine gemeinsame Notiz geändert.",
+    "Alex hat eine gemeinsame Notiz angelegt.",
+    "Alex hat eine gemeinsame Notiz geändert.",
     # Exact #1907 H3 native push copy for a garden seed and its encrypted fixtures.
     "%1$s hat dir einen Samen geschickt.",
     "Alex hat dir einen Samen geschickt.",

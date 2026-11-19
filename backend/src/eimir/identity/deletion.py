@@ -23,10 +23,23 @@ from eimir.administration import service as administration
 from eimir.administration.models import AdministrationAction
 from eimir.appearance.models import AppIconPreference
 from eimir.auth import sessions
+from eimir.auth.recent_auth_models import (
+    RecentAuthenticationGrant,
+    RecentAuthenticationOidcRequest,
+    RecentAuthenticationWebAuthnChallenge,
+)
 from eimir.authorization.retention import hard_delete_owner_only
 from eimir.calendar_sync.models import CalendarConnection, CalendarOAuthTransaction
 from eimir.core.clock import now
-from eimir.engagement.models import Notification, PushEndpoint, ThinkingOfYouRequest
+from eimir.daily_checkins.models import DailyCheckIn, DailyInsightFeedback
+from eimir.dashboard.models import DashboardModulePreference
+from eimir.engagement.models import (
+    Notification,
+    NotificationPreference,
+    PushEndpoint,
+    ThinkingOfYouRequest,
+)
+from eimir.garden.models import GardenReader, GardenWatering
 from eimir.identity.deletion_models import AccountDeletion, AccountDeletionStatus
 from eimir.identity.models import (
     Account,
@@ -39,21 +52,52 @@ from eimir.identity.models import (
     WebAuthnCredential,
 )
 from eimir.legal.models import TermsAcceptance
+from eimir.once_messages.models import OnceDevice, OnceReception
 from eimir.personal_settings.models import PersonalSettings
 from eimir.photo_sources.models import GoogleAccountHint, PhotoConnection, PhotoSelection
+from eimir.presence.models import (
+    PartnerLocationConsent,
+    PresenceDeviceCredential,
+    PresenceSnapshot,
+    SharingLevel,
+)
 from eimir.profiles.models import PartnerProfile
-from eimir.relationship.models import Invitation, Membership, MembershipStatus
+from eimir.quotes.models import DailyQuotePreference
+from eimir.relationship.models import Invitation, Membership, MembershipStatus, SpacePresence
 from eimir.relationship.service import (
     end_membership,
     freeze_offboarding_purge_deadline_if_orphaned,
     lock_space,
 )
+from eimir.wishes.models import WishReminder
 
 DELETED_ACCOUNT_DISPLAY_NAME = "Deleted account"
 DELETED_ACCOUNT_LOCALE = "de-DE"
 DELETED_ACCOUNT_TIMEZONE = "Europe/Berlin"
 
 _FAILURE_CODE = re.compile(r"[A-Z0-9_-]{1,64}\Z")
+
+# These tables have no shared-history or external-storage lifecycle. Pseudonymizing
+# the Account does not trigger their foreign-key cascades.
+PERSONAL_ACCOUNT_ROWS = (
+    DailyCheckIn,
+    DailyInsightFeedback,
+    DailyQuotePreference,
+    DashboardModulePreference,
+    GardenReader,
+    GardenWatering,
+    NotificationPreference,
+    OnceDevice,
+    OnceReception,
+    PresenceDeviceCredential,
+    PresenceSnapshot,
+    PartnerLocationConsent,
+    RecentAuthenticationGrant,
+    RecentAuthenticationOidcRequest,
+    RecentAuthenticationWebAuthnChallenge,
+    SpacePresence,
+    WishReminder,
+)
 
 
 class DeletionNotAcceptedError(RuntimeError):
@@ -258,6 +302,25 @@ def apply_core_cleanup(session: Session, account_id: UUID) -> AccountDeletion | 
     shared_create_receipts.purge_account(session, account_id=account_id)
     _delete_account_rows(session, AppIconPreference, account_id, AppIconPreference.account_id)
     _delete_account_rows(session, PersonalSettings, account_id, PersonalSettings.account_id)
+    for model in PERSONAL_ACCOUNT_ROWS:
+        _delete_account_rows(session, model, account_id, model.account_id)
+    # A remaining partner keeps their preferences, but their old grant cannot
+    # authorize this recipient or be silently transferred to another partner.
+    from eimir.presence.service import delete_owner_presence
+
+    received = session.scalars(
+        select(PartnerLocationConsent)
+        .where(PartnerLocationConsent.recipient_account_id == account_id)
+        .with_for_update()
+    )
+    for consent in received:
+        delete_owner_presence(session, consent.space_id, consent.account_id)
+        consent.recipient_account_id = None
+        consent.level = SharingLevel.OFF.value
+        consent.indefinite = False
+        consent.expires_at = None
+        consent.suspended_at = None
+        consent.generation += 1
     _delete_account_rows(session, PhotoSelection, account_id, PhotoSelection.account_id)
     _delete_account_rows(session, PhotoConnection, account_id, PhotoConnection.account_id)
     _delete_account_rows(session, GoogleAccountHint, account_id, GoogleAccountHint.account_id)

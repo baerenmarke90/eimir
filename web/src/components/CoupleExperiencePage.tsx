@@ -335,9 +335,14 @@ export function CoupleExperiencePage({
               : undefined)
         }
         onSaved={async () => {
-          await client.invalidateQueries({
-            queryKey: ['couple-experience-history', ...scope],
-          });
+          await Promise.all([
+            client.invalidateQueries({
+              queryKey: ['couple-experience-history', ...scope],
+            }),
+            client.invalidateQueries({
+              queryKey: ['couple-experience-questions', ...scope, origin],
+            }),
+          ]);
           await onSaved?.();
         }}
       />

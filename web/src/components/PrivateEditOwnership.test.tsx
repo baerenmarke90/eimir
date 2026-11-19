@@ -216,7 +216,7 @@ for (const definition of definitions) {
             await screen.findByRole('button', { name: privateArea.edit }),
           );
         }
-        fireEvent.change(screen.getByLabelText(definition.label), {
+        fireEvent.change(await screen.findByLabelText(definition.label), {
           target: { value: 'Submitted private title' },
         });
         fireEvent.click(

@@ -2433,7 +2433,7 @@
   },
   "notificationSettings": {
     "title": "Which messages you receive",
-    "sharedActivityDescription": "Comments, photo reactions, new reminders and due reminders.",
+    "sharedActivityDescription": "Comments, photo reactions, shared notes, new reminders and due reminders.",
     "closenessDescription": "Thoughts of each other, kisses, check-ins, sent lists and seeds from your garden.",
     "individual": "Adjust individually",
     "dates": "Important days",
@@ -2449,7 +2449,7 @@
     "recapReady": "Finished recaps",
     "comment": "Comments",
     "commentDescription": "New comments are collected in your inbox.",
-    "commentPushDescription": "Push notifications for new comments and photo reactions from your partner. Quiet hours apply to both.",
+    "commentPushDescription": "Push notifications for new comments, photo reactions and shared notes from your partner. Quiet hours apply to both.",
     "commentEmailDescription": "At most one neutral email per hour.",
     "reminder": "Due reminders",
     "reminderCreated": "New reminders",
@@ -3215,7 +3215,7 @@
     "reload": "Load latest version",
     "details": "Your beginning & upcoming occasions",
     "about": "How are your recaps made?",
-    "aboutBody": "We select from mutually visible content across the whole period. Different months, kinds of moments and linked chapters add variety. A local AI can write a title and introduction. Selection also works without it. Private content and drafts are not used for this.",
+    "aboutBody": "We select from mutually visible content across the whole period. Different months, kinds of moments and linked chapters add variety. Private content and drafts are not used for this.",
     "originalLanguage": "Original language: {{language}}"
   },
   "relationshipReflections": {

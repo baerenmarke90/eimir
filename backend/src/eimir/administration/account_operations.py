@@ -256,7 +256,7 @@ def issue_operator_recovery(
     )
 
     base = get_settings().public_base_url.rstrip("/")
-    recovery_url = f"{base}/auth/recovery?token={quote(issued.token)}"
+    recovery_url = f"{base}/auth/recovery#token={quote(issued.token)}"
     session.flush()
     return OperatorRecoveryProof(recovery_url=recovery_url, expires_at=model.expires_at)
 

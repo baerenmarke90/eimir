@@ -882,6 +882,9 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     expect(gamesAxe.violations).toEqual([]);
 
     await page.goto('/story/memories/new');
+    await expect(
+      page.getByRole('button', { name: de.memory.save, exact: true }),
+    ).toBeVisible();
     const memoryAxe = await new AxeBuilder({ page })
       .disableRules(['color-contrast'])
       .analyze();

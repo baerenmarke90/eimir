@@ -155,6 +155,19 @@ describe('Product Reference v1 visual roles', () => {
         tokens.motion.duration.instant.$value,
       );
     }
+    // Stagger steps (Motion Contract 5.3, #2073) also resolve to 0ms.
+    for (const [role, token] of [
+      ['duration-stagger-item', 'item'],
+      ['duration-stagger-module', 'module'],
+    ]) {
+      expect(property(role)).toBe(tokens.motion.stagger[token].$value);
+      expect(property(role, reduced)).toBe(
+        tokens.motion.duration.instant.$value,
+      );
+    }
+    expect(property('motion-stagger-max-items')).toBe(
+      String(tokens.motion.stagger.maxItems.$value),
+    );
     expect(
       readSource('./main.tsx').indexOf("import './design/product-roles.css';"),
     ).toBeGreaterThan(

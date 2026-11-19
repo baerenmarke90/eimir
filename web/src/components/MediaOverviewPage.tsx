@@ -31,7 +31,7 @@ import { ProblemState } from './ProblemState';
 import { SecureSurface } from './SecureSurface';
 import { SensitiveMediaCover } from './SensitiveMedia';
 import { UiState } from './UiState';
-import { useDepartingItems } from './useDepartingItems';
+import { useDepartingItems } from '../motion/departing';
 import { VoiceNotePreview } from './VoiceNotePlayer';
 import './MediaOverviewPage.css';
 

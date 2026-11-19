@@ -1,21 +1,20 @@
+/**
+ * Replace / Exit departures with `collapse-gap` (Motion Contract 4.2; moved
+ * from `components/useDepartingItems.ts` in #2073, now reading roles through
+ * the token adapter).
+ */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { MAX_ANIMATED_ELEMENTS } from './budget';
+import { run } from './run';
+import { durationMs, easing } from './tokens';
 
 /** A bulk change (filter swap, wipe) is replaced, not animated item by item. */
-const MAX_ANIMATED_DEPARTURES = 12;
+const MAX_ANIMATED_DEPARTURES = MAX_ANIMATED_ELEMENTS;
 
 export interface DepartingEntry<T> {
   item: T;
   key: string;
   departing: boolean;
-}
-
-function contextDurationMs(): number {
-  if (typeof window === 'undefined') return 0;
-  const raw = getComputedStyle(document.documentElement)
-    .getPropertyValue('--duration-context')
-    .trim();
-  const value = raw.endsWith('ms') ? parseFloat(raw) : parseFloat(raw) * 1000;
-  return Number.isFinite(value) ? value : 0;
 }
 
 /**
@@ -60,7 +59,7 @@ export function useDepartingItems<T>(
       .filter(({ key }) => !present.has(key));
     if (removed.length === 0) return;
     const removedItems = removed.map(({ item }) => item);
-    const duration = contextDurationMs();
+    const duration = durationMs('context');
     if (
       removed.length > MAX_ANIMATED_DEPARTURES ||
       removed.length === before.items.length ||
@@ -99,27 +98,26 @@ export function useDepartingItems<T>(
     const from = flipFrom.current;
     if (!from) return;
     flipFrom.current = null;
-    const duration = contextDurationMs();
+    const duration = durationMs('context');
     if (duration <= 0) return;
-    const easing =
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--easing-standard')
-        .trim() || 'ease-out';
+    const settle = easing('standard');
+    if (!settle) return;
     for (const node of containerRef.current?.querySelectorAll<HTMLElement>(
       '[data-motion-key]',
     ) ?? []) {
       const old = from.get(node.dataset.motionKey ?? '');
-      if (!old || typeof node.animate !== 'function') continue;
+      if (!old) continue;
       const now = node.getBoundingClientRect();
       const dx = old.left - now.left;
       const dy = old.top - now.top;
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
-      node.animate(
+      run(
+        node,
         [
           { transform: `translate(${dx}px, ${dy}px)` },
           { transform: 'translate(0, 0)' },
         ],
-        { duration, easing },
+        { duration, easing: settle, channel: 'position' },
       );
     }
   });

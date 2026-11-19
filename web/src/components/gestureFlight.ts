@@ -20,7 +20,7 @@ import {
   type Point,
   pulseRing,
   scatterDots,
-} from './flightKit';
+} from '../motion/flight';
 import './GestureFlight.css';
 
 export type GestureKind = 'THINKING' | 'KISS' | 'CHECK_IN';

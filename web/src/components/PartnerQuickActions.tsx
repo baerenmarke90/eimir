@@ -33,7 +33,7 @@ import { EimirIcon } from './EimirIcon';
 import { type GestureFlight, startGestureFlight } from './gestureFlight';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
-import { usePresentationPresence } from './useOverlayPresence';
+import { usePresentationPresence } from '../motion/presence';
 import {
   isGestureCooldown,
   type PartnerAction,

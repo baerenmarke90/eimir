@@ -1,4 +1,8 @@
 /**
+ * Flight primitive (Motion Contract 4.4; moved from `components/flightKit.ts`
+ * in #2073, now reading roles through the token adapter and the shared
+ * reduced-motion source).
+ *
  * Shared pieces of the decorative flights (own send flight, partner arrival,
  * gesture send): arc geometry, the generated motion roles and the top-layer
  * layer the flying elements live in.
@@ -10,6 +14,8 @@
  */
 
 import './FlightLayer.css';
+import { prefersReducedMotion } from './reducedMotion';
+import { durationMs, easing } from './tokens';
 
 export interface Point {
   x: number;
@@ -88,27 +94,14 @@ export interface MotionRoles {
   standard: string;
 }
 
-function readRole(name: string): string {
-  return getComputedStyle(document.documentElement)
-    .getPropertyValue(name)
-    .trim();
-}
-
-function readDuration(name: string): number {
-  const raw = readRole(name);
-  const value = Number.parseFloat(raw);
-  if (!Number.isFinite(value)) return 0;
-  return raw.endsWith('ms') ? value : value * 1000;
-}
-
 /** Null when any role is missing or zero (reduced motion resolves to zero). */
 export function readMotionRoles(): MotionRoles | null {
-  const context = readDuration('--duration-context');
-  const flight = readDuration('--duration-send-flight');
-  const moment = readDuration('--duration-gesture-moment');
-  const feedback = readDuration('--duration-feedback');
-  const enter = readRole('--easing-enter');
-  const standard = readRole('--easing-standard');
+  const context = durationMs('context');
+  const flight = durationMs('send-flight');
+  const moment = durationMs('gesture-moment');
+  const feedback = durationMs('feedback');
+  const enter = easing('enter');
+  const standard = easing('standard');
   if (context <= 0 || flight <= 0 || !enter || !standard) return null;
   return { context, flight, moment, stagger: feedback / 2, enter, standard };
 }
@@ -128,8 +121,7 @@ export interface FlightLayer {
  */
 export function openFlightLayer(): FlightLayer | null {
   if (typeof document === 'undefined') return null;
-  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
-    return null;
+  if (prefersReducedMotion()) return null;
   const roles = readMotionRoles();
   if (!roles) return null;
   const probe = document.createElement('div');

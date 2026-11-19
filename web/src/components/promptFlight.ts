@@ -12,7 +12,7 @@ import {
   landingScale,
   openFlightLayer,
   pulseRing,
-} from './flightKit';
+} from '../motion/flight';
 
 /** The arc leans a little towards the corner it lands in. */
 const LEAN = -20;

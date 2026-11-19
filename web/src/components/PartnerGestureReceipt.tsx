@@ -58,7 +58,7 @@ import { NotificationMotion } from './NotificationMotion';
 import { AuthorAvatar } from './PersonIdentity';
 import { ProMark } from './ProMark';
 import { isModalLayerActive } from './useModalLifecycle';
-import { usePresentationPresence } from './useOverlayPresence';
+import { usePresentationPresence } from '../motion/presence';
 import { isGestureCooldown, usePartnerGesture } from './usePartnerGesture';
 import './PartnerGestureReceipt.css';
 

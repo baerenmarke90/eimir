@@ -1,15 +1,12 @@
+/**
+ * Replace / Exit `surface-exit` presence (Motion Contract 4.2; moved from
+ * `components/useOverlayPresence.ts` in #2073 without behavior change).
+ */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useReducedMotion } from './reducedMotion';
 
 export type PresentationPresenceState = 'open' | 'exiting';
 export type OverlayPresenceState = PresentationPresenceState;
-
-const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
-
-function motionEnabledByPreference(): boolean {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function')
-    return false;
-  return !window.matchMedia(REDUCED_MOTION_QUERY).matches;
-}
 
 /**
  * Presentation-only presence for short-lived UI that needs a real exit phase.
@@ -25,29 +22,9 @@ export function usePresentationPresence(open: boolean): {
   completeExit: () => void;
 } {
   const [retained, setRetained] = useState(open);
-  const [motionEnabled, setMotionEnabled] = useState(motionEnabledByPreference);
+  const motionEnabled = !useReducedMotion();
   const openRef = useRef(open);
   openRef.current = open;
-
-  useEffect(() => {
-    if (
-      typeof window === 'undefined' ||
-      typeof window.matchMedia !== 'function'
-    )
-      return;
-
-    const mediaQuery = window.matchMedia(REDUCED_MOTION_QUERY);
-    const handleChange = () => setMotionEnabled(!mediaQuery.matches);
-    handleChange();
-
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
-    }
-
-    mediaQuery.addListener?.(handleChange);
-    return () => mediaQuery.removeListener?.(handleChange);
-  }, []);
 
   useEffect(() => {
     if (open) {

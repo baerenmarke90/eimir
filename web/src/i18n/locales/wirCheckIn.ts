@@ -26,6 +26,7 @@ const wirCheckIn = {
   energyScaleHigh: 'Voll dabei',
   noteLabel: 'Notiz zu deinem Gefühl',
   notePlaceholder: 'Was möchtest du teilen?',
+  notePlaceholderLocked: 'Erst ein Gefühl wählen, dann kannst du schreiben.',
   noteRequiresVibe: 'Wähle zuerst ein Gefühl – die Notiz gehört dazu.',
   noteCount: '{{count}}/200',
   noteDelete: 'Notiz löschen',

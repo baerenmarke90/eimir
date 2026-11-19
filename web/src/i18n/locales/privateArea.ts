@@ -1,5 +1,5 @@
 const privateArea = {
-  eyebrow: 'Für mich',
+  eyebrow: 'Nur für mich',
   intro: 'In eimir. nicht mit deinem Partner geteilt.',
   privacyLabel: 'Nur für mich',
   secureScreenUnavailable:

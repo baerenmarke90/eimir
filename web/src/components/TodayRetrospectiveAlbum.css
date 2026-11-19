@@ -60,6 +60,8 @@
     var(--easing-standard) backwards;
 }
 
+/* The sway settles after a few cycles and holds its last pose (#2063): with
+   the drop-shadow filter above, an endless sway repainted every frame. */
 @media (prefers-reduced-motion: no-preference) {
   .today-living-retrospective[data-diary-layout="album"]
     .today-retrospective-photo {
@@ -67,7 +69,8 @@
       today-retrospective-swing-in var(--duration-gesture-sequence)
       var(--easing-standard) backwards,
       today-retrospective-sway var(--duration-connection-travel-far)
-      var(--duration-gesture-sequence) var(--easing-travel) infinite alternate;
+      var(--duration-gesture-sequence) var(--easing-travel)
+      var(--motion-ambient-repeat) alternate forwards;
   }
 }
 

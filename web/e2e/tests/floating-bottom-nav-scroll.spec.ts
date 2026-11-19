@@ -1086,10 +1086,12 @@ test('native primary tab switching replaces root history but keeps nested task r
   await nav.locator('a[href="/today"]').click();
   await expect(page).toHaveURL(/\/today$/);
   expect(await page.evaluate(() => history.length)).toBe(historyLength);
-  const moment = page.getByRole('button', { name: de.story.addMoment });
+  const moment = page.getByRole('button', {
+    name: navigationCopy.quickCreateTitle,
+  });
   await moment.click();
   await page
-    .getByRole('dialog', { name: de.story.addMoment })
+    .getByRole('dialog', { name: navigationCopy.quickCreateTitle })
     .locator('a[href="/story/memories/new"]')
     .click();
   await expect(page).toHaveURL(/\/story\/memories\/new$/);

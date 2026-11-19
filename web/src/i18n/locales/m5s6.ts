@@ -14,7 +14,7 @@ const m5s6 = {
       heading: 'Export',
       scopeLabel: 'Umfang',
       shared: 'Gemeinsame Daten',
-      sharedHelp: 'Enthält nur Daten, die im Space geteilt sind.',
+      sharedHelp: 'Enthält nur, was ihr beide miteinander teilt.',
       personal: 'Meine Daten',
       personalHelp:
         'Enthält die gemeinsamen Daten und zusätzlich nur deine eigenen privaten Inhalte.',

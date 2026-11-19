@@ -97,49 +97,6 @@
   justify-content: center;
   margin-top: var(--space-6);
 }
-.media-lightbox-captioned {
-  display: flex;
-  flex-direction: column;
-  max-height: calc(100dvh - 2 * var(--space-4));
-  overflow-y: auto;
-  background: var(--color-surface-overlay);
-  border-radius: var(--radius-large);
-}
-.media-lightbox-captioned .media-lightbox-stage {
-  flex: 1 1 auto;
-  height: 68dvh;
-  min-height: 30dvh;
-  max-height: 68dvh;
-}
-.media-lightbox-captioned .media-lightbox-content,
-.media-lightbox-captioned .media-gallery-loading,
-.media-lightbox-captioned .media-gallery-unavailable {
-  height: 100%;
-  max-height: 100%;
-}
-.media-lightbox-captioned .media-lightbox-close {
-  min-width: 48px;
-  min-height: 48px;
-}
-.media-lightbox-footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-3);
-}
-.media-lightbox-context {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-  color: var(--color-text);
-  min-width: 0;
-}
-.media-lightbox-context button {
-  min-height: 48px;
-}
 @media (min-width: 768px) {
   .media-overview-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));

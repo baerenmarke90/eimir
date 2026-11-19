@@ -1443,8 +1443,18 @@ export function TodayPage({
     livingModule?.kind === 'partner_signal'
       ? livingModule.activityItem.id
       : null;
+  // Content shown above (the moment, the month, the signal) is not repeated
+  // in the trace (#2063: one memory appeared three times on Wir).
+  const shownContentIds = new Set([
+    ...featuredIds,
+    ...monthlyItems.map((item) => item.id),
+  ]);
   const recentActivities = activityItems
-    .filter((item) => item.id !== currentSignalId)
+    .filter(
+      (item) =>
+        item.id !== currentSignalId &&
+        !(item.targetId && shownContentIds.has(item.targetId)),
+    )
     .slice(0, 3);
 
   /*
@@ -2475,7 +2485,7 @@ export function TodayPage({
               (namesLayout &&
                 showMomentSection &&
                 keepsakeVisible) ? undefined : (
-                <MomentCreateMenu floating={!sharedAlbum} />
+                <MomentCreateMenu floating={!sharedAlbum} everything />
               )
             }
           />

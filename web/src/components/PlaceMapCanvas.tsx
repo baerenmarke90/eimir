@@ -12,12 +12,13 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cssDurationMilliseconds } from '../client/cssDuration';
+import { framingPoints } from '../client/mapFraming';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useTranslation } from '../i18n';
 import { isCapacitorNative } from '../pwa';
 import './PlaceMapPicker.css';
 import { ConnectionOverlay, type MapConnection } from './placeMapConnection';
-import { googleLikeStyle } from './placeMapStyle';
+import { googleLikeStyle, withLocalizedAttribution } from './placeMapStyle';
 
 export type { MapConnection } from './placeMapConnection';
 
@@ -278,7 +279,11 @@ export default function PlaceMapCanvas({
       attributionControl: { compact: false },
     });
     map.touchZoomRotate.disableRotation();
-    map.setStyle(MAP_STYLE_URL, { transformStyle: googleLikeStyle });
+    const dataFrom = t('m5s3.map.attributionDataFrom');
+    map.setStyle(MAP_STYLE_URL, {
+      transformStyle: (previous, next) =>
+        withLocalizedAttribution(googleLikeStyle(previous, next), dataFrom),
+    });
     mapRef.current = map;
     map.addControl(
       new ZoomControl({
@@ -548,8 +553,11 @@ export default function PlaceMapCanvas({
     );
     if (fittedGeometry.current !== geometry) {
       if (locations?.length) {
+        // The overview frames the densest region; one distant trip no longer
+        // zooms the map out to the whole world (#2063).
         const fitted = new LngLatBounds();
-        for (const point of locations) fitted.extend(lngLat(point));
+        for (const point of framingPoints(locations))
+          fitted.extend(lngLat(point));
         bounds.current = fitted;
       } else bounds.current = null;
       if (

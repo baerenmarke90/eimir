@@ -161,25 +161,34 @@ export function PrivateEditorDiscardSheet({
 }) {
   const { t } = useTranslation();
   const sheetRef = useRef<ShortTaskSheetHandle>(null);
+  const keepRef = useRef<HTMLButtonElement>(null);
   return (
     <ShortTaskSheet
       ref={sheetRef}
       open={open}
       role="alertdialog"
       title={t('taskBoundary.discardTitle')}
+      initialFocusRef={keepRef}
       onClose={onKeep}
     >
       <p>{t('taskBoundary.discardBody')}</p>
+      {/* Discard first in source order: the phone layout reverses the column,
+          so the destructive action ends up last. */}
       <div className="form-actions">
-        <button type="button" className="secondary" onClick={onKeep}>
-          {t('taskBoundary.keepEditing')}
-        </button>
         <button
           type="button"
           className="danger"
           onClick={() => sheetRef.current?.closeForNavigation(onDiscard)}
         >
-          {t('taskBoundary.discard')}
+          {t('taskBoundary.discardConfirm')}
+        </button>
+        <button
+          ref={keepRef}
+          type="button"
+          className="secondary"
+          onClick={onKeep}
+        >
+          {t('taskBoundary.keepEditing')}
         </button>
       </div>
     </ShortTaskSheet>

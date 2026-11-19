@@ -16,6 +16,7 @@ import type { GardenView } from '../api/generated/models/GardenView';
 import type { GardenVisitor } from '../api/generated/models/GardenVisitor';
 import type { GardenWords } from '../api/generated/models/GardenWords';
 import { Configuration } from '../client/apiConfiguration';
+import { cssDurationMilliseconds } from '../client/cssDuration';
 import {
   GARDEN_WORDS,
   type GardenFlight,
@@ -551,10 +552,19 @@ export function GardenGamePage({
     onSelectMemory: () => setSelected(null),
     onStatus: setStatus,
   });
-  // A gentle gust when the garden opens.
+  // A gentle gust when the garden opens. It waits until the route transition
+  // has landed (#2063): starting every tuft and plant together with the page
+  // entry made opening the garden visibly stutter on phones.
   const opened = garden !== undefined;
   useEffect(() => {
-    if (opened) setGustKey((key) => key + 1);
+    if (!opened) return;
+    const delay = cssDurationMilliseconds(
+      getComputedStyle(document.documentElement).getPropertyValue(
+        '--duration-gesture-moment',
+      ),
+    );
+    const timer = window.setTimeout(() => setGustKey((key) => key + 1), delay);
+    return () => window.clearTimeout(timer);
   }, [opened]);
   // A waiting seed flies in once from the partner's side.
   const incomingId = garden?.incoming?.id ?? null;

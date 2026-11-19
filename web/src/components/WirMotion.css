@@ -206,14 +206,16 @@
   /* Once the arrival has landed, the rings around the two portraits swell and
      settle very slowly, one after the other. Opacity and scale on a decorative
      pseudo-element only: it never changes a portrait's box, so tapping and the
-     flights keep their exact targets. */
+     flights keep their exact targets. The breath settles after a few cycles
+     (#2063): an endless loop kept an idle Wir page rendering every frame. */
   .today-page
     .wir-stage:not(.wir-stage-intro)
     .today-hero
     .partner-avatar-stack
     > *::before {
     animation: wir-breathe var(--duration-connection-travel-far)
-      var(--easing-travel) var(--duration-connection-beat) infinite;
+      var(--easing-travel) var(--duration-connection-beat)
+      var(--motion-ambient-repeat);
   }
 
   .today-page

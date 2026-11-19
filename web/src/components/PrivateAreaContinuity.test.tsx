@@ -237,7 +237,7 @@ describe('P1 private task continuity', () => {
       screen.getByRole('button', { name: privateArea.notes.detailBack }),
     );
     fireEvent.click(
-      await screen.findByRole('button', { name: taskBoundary.discard }),
+      await screen.findByRole('button', { name: taskBoundary.discardConfirm }),
     );
 
     expect(await screen.findByText('Private notes list')).toBeDefined();

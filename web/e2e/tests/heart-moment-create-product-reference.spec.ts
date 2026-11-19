@@ -580,7 +580,7 @@ for (const exit of ['button', 'browser'] as const) {
     await page.goto('/today');
     await signIn(page);
     await page
-      .getByRole('button', { name: de.story.addMoment, exact: true })
+      .getByRole('button', { name: navigation.quickCreateTitle, exact: true })
       .click();
     await page
       .getByRole('link', {
@@ -613,12 +613,15 @@ for (const exit of ['button', 'browser'] as const) {
       animations: 'disabled',
     });
     await confirmation
-      .getByRole('button', { name: taskBoundary.discard, exact: true })
+      .getByRole('button', { name: taskBoundary.discardConfirm, exact: true })
       .click();
     await expect(page).toHaveURL(/\/today$/);
     await expect(page.locator('dialog[open]')).toHaveCount(0);
     await expect(
-      page.getByRole('button', { name: de.story.addMoment, exact: true }),
+      page.getByRole('button', {
+        name: navigation.quickCreateTitle,
+        exact: true,
+      }),
     ).toBeFocused();
     await page.screenshot({
       path: info.outputPath(`shell-heart-origin-${exit}.png`),
@@ -1390,10 +1393,10 @@ test('A contextual Heart Moment returns from a saved tag-only result to Today (#
     await expect(page.locator('.today-page .ui-state-error')).toHaveCount(0);
 
     await page
-      .getByRole('button', { name: de.story.addMoment, exact: true })
+      .getByRole('button', { name: navigation.quickCreateTitle, exact: true })
       .click();
     await expect(
-      page.getByRole('dialog', { name: de.story.addMoment }),
+      page.getByRole('dialog', { name: navigation.quickCreateTitle }),
     ).toBeVisible();
     await page.screenshot({
       path: testInfo.outputPath('shell-heart-quick-create-sheet-390.png'),
@@ -1415,7 +1418,7 @@ test('A contextual Heart Moment returns from a saved tag-only result to Today (#
       .click();
     await expect(page).toHaveURL(/\/today$/);
     await page
-      .getByRole('button', { name: de.story.addMoment, exact: true })
+      .getByRole('button', { name: navigation.quickCreateTitle, exact: true })
       .click();
     await page
       .getByRole('link', {
@@ -1463,7 +1466,10 @@ test('A contextual Heart Moment returns from a saved tag-only result to Today (#
       .click();
     await expect(page).toHaveURL(/\/today$/);
     await expect(
-      page.getByRole('button', { name: de.story.addMoment, exact: true }),
+      page.getByRole('button', {
+        name: navigation.quickCreateTitle,
+        exact: true,
+      }),
     ).toBeFocused();
   } finally {
     await context.close();

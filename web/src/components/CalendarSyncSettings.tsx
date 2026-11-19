@@ -283,7 +283,6 @@ export function CalendarSyncSettings(props: Props) {
           view={view}
           busy={busy || offline}
           ifMatch={ifMatch}
-          accountLabel={sponsorConnection?.label ?? null}
           run={run}
           onChooseCalendar={() =>
             sponsorConnection
@@ -428,7 +427,6 @@ function TargetState(
     view: CalendarSyncView;
     busy: boolean;
     ifMatch: string;
-    accountLabel: string | null;
     run: (action: () => Promise<CalendarSyncView | void>) => Promise<void>;
     onChooseCalendar: () => void;
     onReconnect: () => void;
@@ -477,10 +475,10 @@ function TargetState(
     : status === 'synced' && lastSuccess
       ? t('calendarSync.status.syncedAt', { time: lastSuccess })
       : t(`calendarSync.status.${status}`);
+  // The card names who connected it, never the account address or server
+  // (#2063: couples should not see technical connection details here).
   const meta = target.sponsoredByMe
-    ? props.accountLabel
-      ? `${provider} · ${props.accountLabel}`
-      : t('calendarSync.target.viaYou', { provider })
+    ? t('calendarSync.target.viaYou', { provider })
     : t('calendarSync.target.via', {
         provider,
         name: target.sponsor.displayName,

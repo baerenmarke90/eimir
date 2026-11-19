@@ -347,8 +347,8 @@ async function openContextualCreate(page: Page, action: string): Promise<void> {
       .click();
     return;
   }
-  await page.getByRole('button', { name: de.story.addMoment }).click();
-  const sheet = page.getByRole('dialog', { name: de.story.addMoment });
+  await page.getByRole('button', { name: navigation.quickCreateTitle }).click();
+  const sheet = page.getByRole('dialog', { name: navigation.quickCreateTitle });
   await sheet
     .getByRole('link', {
       name:
@@ -720,8 +720,12 @@ for (const viewport of [
     await expect(page.locator('.daily-quote-card')).toHaveCount(0);
 
     // Both layouts open the same Moment choices from the page's own add action.
-    const trigger = page.getByRole('button', { name: de.story.addMoment });
-    const choices = page.getByRole('dialog', { name: de.story.addMoment });
+    const trigger = page.getByRole('button', {
+      name: navigation.quickCreateTitle,
+    });
+    const choices = page.getByRole('dialog', {
+      name: navigation.quickCreateTitle,
+    });
     const milestone = choices.getByRole('link', {
       name: de.story.kind.milestone,
     });

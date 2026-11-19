@@ -18,6 +18,7 @@ import type { M4ProductApis } from '../client/m4Product';
 import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
 import { i18n } from '../i18n';
 import de from '../i18n/locales/de';
+import navigationCopy from '../i18n/locales/navigation';
 import m5s5 from '../i18n/locales/m5s5';
 import {
   formatRelationshipDuration,
@@ -447,7 +448,7 @@ describe('TodayPage', () => {
     expect(html).not.toContain('new-space-mark');
     expect(html).toContain('Marie');
     expect(html).toContain('data-floating-create="true"');
-    expect(html).toContain(`aria-label="${de.story.addMoment}"`);
+    expect(html).toContain(`aria-label="${navigationCopy.quickCreateTitle}"`);
   });
 
   it('renders secondary upcoming items as calm agenda rows with title and date, not a card carousel', () => {

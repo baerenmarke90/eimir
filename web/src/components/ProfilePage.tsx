@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
+import { usePartnerName } from '../client/partnerLocation';
+import { usePartnerNickname } from '../client/partnerNickname';
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProfileIdentityPanel } from './ProfileIdentityPanel';
@@ -24,6 +26,17 @@ export function ProfilePage(props: ProfilePageProps) {
   const { t } = useTranslation();
   const location = useLocation();
   const [displayName, setDisplayName] = useState(props.account.displayName);
+  // Names the partner (nickname, else name) instead of "your partner" (#2063).
+  const partner = usePartnerName({
+    apiBaseUrl: props.apiBaseUrl,
+    accessToken: props.accessToken,
+    accountId: props.account.id,
+    spaceId: props.spaceId,
+  });
+  const { relationshipLabel } = usePartnerNickname();
+  const partnerLabel = partner.name
+    ? relationshipLabel(partner.id, partner.name, '')
+    : '';
   const currentAccount = useMemo(
     () => ({ ...props.account, displayName }),
     [props.account, displayName],
@@ -51,7 +64,13 @@ export function ProfilePage(props: ProfilePageProps) {
 
   return (
     <div className="page profile-page">
-      <PageHeader title={t('profiles.title')} />
+      <PageHeader
+        title={
+          partnerLabel
+            ? t('profiles.titleWithPartner', { name: partnerLabel })
+            : t('profiles.title')
+        }
+      />
 
       {/* 1. Identity panel for current user */}
       <ProfileIdentityPanel

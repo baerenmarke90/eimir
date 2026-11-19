@@ -1213,12 +1213,16 @@ test('compact Wir keeps the contextual moment action reachable and accessible', 
     }),
   ).toBeVisible();
 
-  const quickCreate = page.getByRole('button', { name: de.story.addMoment });
+  const quickCreate = page.getByRole('button', {
+    name: navigation.quickCreateTitle,
+  });
   await expect(quickCreate).toBeVisible();
   await quickCreate.focus();
   await page.keyboard.press('Enter');
 
-  const sheetDialog = page.getByRole('dialog', { name: de.story.addMoment });
+  const sheetDialog = page.getByRole('dialog', {
+    name: navigation.quickCreateTitle,
+  });
   await expect(sheetDialog).toBeVisible();
   const diaryTarget = sheetDialog.getByRole('link', {
     name: composer.diaryEntry,
@@ -1231,7 +1235,8 @@ test('compact Wir keeps the contextual moment action reachable and accessible', 
   await expect(
     sheetDialog.getByRole('link', { name: de.story.kind.milestone }),
   ).toBeVisible();
-  await expect(sheetDialog.getByRole('link')).toHaveCount(3);
+  // Moments plus Plan, Wish and List on the Wir overview (#2063).
+  await expect(sheetDialog.getByRole('link')).toHaveCount(6);
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
@@ -1257,7 +1262,9 @@ test('authenticated shell removes decorative motion when reduced motion is prefe
     .evaluate((element) => getComputedStyle(element).animationName);
   expect(mainAnimation).toBe('none');
 
-  const quickCreate = page.getByRole('button', { name: de.story.addMoment });
+  const quickCreate = page.getByRole('button', {
+    name: navigation.quickCreateTitle,
+  });
   const quickCreateTransition = await quickCreate.evaluate(
     (element) => getComputedStyle(element).transitionDuration,
   );
@@ -2240,7 +2247,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         expect(box.height).toBeGreaterThanOrEqual(44);
       }
       await expect(
-        page.getByRole('button', { name: de.story.addMoment }),
+        page.getByRole('button', { name: navigation.quickCreateTitle }),
       ).toBeVisible();
       await expect(
         page.getByRole('button', { name: navigation.newContent }),

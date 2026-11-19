@@ -385,12 +385,28 @@ ALLOWED_LOCALIZED_TEXTS = (
     "Alex hat dir eine Liste geschickt.",
     "%1$s hat am Bild weitergemalt. Du bist dran.",
     "Alex hat am Bild weitergemalt. Du bist dran.",
+    # Exact #1969 native push copy for shared notes and its encrypted fixtures.
+    "%1$s hat eine gemeinsame Notiz angelegt.",
+    "%1$s hat eine gemeinsame Notiz geändert.",
+    "Alex hat eine gemeinsame Notiz angelegt.",
+    "Alex hat eine gemeinsame Notiz geändert.",
     # Exact #1907 H3 native push copy for a garden seed and its encrypted fixtures.
     "%1$s hat dir einen Samen geschickt.",
     "Alex hat dir einen Samen geschickt.",
     # Exact #1907 H3 native push copy for a garden bouquet and its encrypted fixtures.
     "%1$s hat dir einen Strauß geschenkt.",
     "Alex hat dir einen Strauß geschenkt.",
+    # Exact native push copy for a finished shared picture and its encrypted fixtures.
+    "%1$s hat euer Bild fertig gemalt.",
+    "Alex hat euer Bild fertig gemalt.",
+    # Exact native push copy for the remote couple games and their encrypted fixtures.
+    "%1$s hat bei „Wer von euch?“ gespielt. Schau mal rein.",
+    "Alex hat bei „Wer von euch?“ gespielt. Schau mal rein.",
+    "%1$s hat beim Wunschdetektiv gespielt. Schau mal rein.",
+    "Alex hat beim Wunschdetektiv gespielt. Schau mal rein.",
+    "%1$s hat bei „Unsere Momente“ gespielt. Schau mal rein.",
+    "Alex hat bei „Unsere Momente“ gespielt. Schau mal rein.",
+    "Zum Spiel",
     # Exact #1744 native push copy for a ready recap and its encrypted fixtures.
     "Euer Rückblick ist fertig.",
     "Euer Rückblick auf %2$s ist fertig.",

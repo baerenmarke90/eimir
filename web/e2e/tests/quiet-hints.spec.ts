@@ -1,8 +1,10 @@
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
+import dailyQuote from '../../src/i18n/locales/dailyQuote';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import quietHints from '../../src/i18n/locales/quietHints';
+import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
@@ -253,6 +255,54 @@ test('Wir: move-in with one action, invitation link and the connected moment', a
   await page.reload();
   await expect(moment).toBeVisible();
   await expect(moment).not.toHaveAttribute('data-playing', 'true');
+});
+
+test('Wir: with the default design the empty partner place invites on the first sign-in (#2048)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await installMocks(page, { partner: null, wishes: [] });
+  // The default Wir design for a new Account (the shared fixture answers the
+  // earlier one).
+  await page.route('**/api/v1/spaces/*/appearance/wir-design', (route) =>
+    route.fulfill({
+      json: { designId: 'connected', version: 0 },
+      headers: {
+        ETag: '"fixture-connected"',
+        'Cache-Control': 'private, no-store',
+      },
+    }),
+  );
+  await signIn(page);
+
+  await expect(
+    page.getByRole('heading', {
+      name: m5s5.dashboard.newSpaceSolo.replace('{{name}}', 'Lea'),
+    }),
+  ).toBeVisible();
+  const invite = page.getByRole('button', {
+    name: relationshipComponents.partnerAvatarInvite,
+  });
+  await expect(invite).toBeEnabled();
+  await expect(
+    page.getByText(m5s5.dashboard.partnerPlace, { exact: true }),
+  ).toBeVisible();
+  // A brand-new, empty Space starts without the daily-quote Pro teaser.
+  await expect(page.getByText(dailyQuote.discoveryMeta)).toHaveCount(0);
+  await expectAccessible(page);
+
+  // Two portraits still fit at 320 CSS px with doubled text.
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  await invite.click();
+  await expect(page).toHaveURL(/\/more\/settings\/relationship/);
 });
 
 test('Momente and Planen: one action in each empty area', async ({

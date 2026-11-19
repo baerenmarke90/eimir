@@ -4,7 +4,7 @@ import type { LegalDocument } from '../../../legal/legalDocument';
 export const privacyPolicyDe: LegalDocument = {
   document: 'privacy-policy',
   locale: 'de-DE',
-  version: '2026-11-17.draft-4',
+  version: '2026-11-18.draft-6',
   status: 'draft',
   title: 'Datenschutzhinweise für eimir.',
   placeholders: [
@@ -736,7 +736,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Einige Funktionen formulieren Texte oder machen Vorschläge, zum Beispiel Titel und Einleitung eurer Rückblicke, Beobachtungen und Anregungen in „Eure Woche“ oder Schlagwörter für gemeinsame Erinnerungen. Soweit wir dafür ein KI-Sprachmodell einsetzen, läuft es in unserer eigenen Serverumgebung. Eure Inhalte gehen dafür nicht an externe KI-Anbieter.',
+              text: 'In „Eure Woche“ wählen wir Beobachtungen und Anregungen aus. Für gemeinsame Erinnerungen und Herzmomente machen wir Schlagwortvorschläge. Wenn dabei ein KI-Sprachmodell zum Einsatz kommt, läuft es in unserer eigenen Serverumgebung. Eure Inhalte gehen dafür nicht an externe KI-Anbieter.',
             },
           ],
           children: [],

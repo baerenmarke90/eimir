@@ -132,6 +132,14 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.PICTURE_PING_PONG_TURN: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
+        NotificationKind.PICTURE_PING_PONG_FINISHED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        # The same quiet turn signal for the remote couple games; answers,
+        # clues, guesses, wishes and Memories never appear in a preview.
+        NotificationKind.COUPLE_GAME_TURN: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
         NotificationKind.PHOTO_REACTION: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
@@ -144,14 +152,14 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.COMMENT_CREATED: NotificationPolicy(
             DeliveryClass.DIGESTIBLE, GENERIC_PREVIEW, immediate_push=True
         ),
-        # #1969: a shared note appears in the Notification Center only. Push needs
-        # a native presentation per platform and is a separate, later decision;
-        # later edits of one note update a single coalesced entry.
+        # #1969: a shared note notifies the partner by push (Product Owner decision
+        # 2026-11-17). The lock screen only says who did what: never the note's
+        # title or text. Later edits of one note update a single coalesced entry.
         NotificationKind.SHARED_NOTE_CREATED: NotificationPolicy(
-            DeliveryClass.IN_APP_ONLY, GENERIC_PREVIEW
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
         NotificationKind.SHARED_NOTE_CHANGED: NotificationPolicy(
-            DeliveryClass.IN_APP_ONLY, GENERIC_PREVIEW
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
         NotificationKind.THINKING_OF_YOU: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
@@ -258,6 +266,9 @@ def email_choice_allowed(kind: str) -> bool:
         NotificationKind.PARTNER_JOINED.value,
         NotificationKind.WISH_REMINDER_DUE.value,
         NotificationKind.COLLECTION_SENT.value,
+        # A shared note is a push-only signal; it never becomes an email (#1969).
+        NotificationKind.SHARED_NOTE_CREATED.value,
+        NotificationKind.SHARED_NOTE_CHANGED.value,
         NotificationKind.GARDEN_SEED_ARRIVED.value,
         NotificationKind.RECAP_READY.value,
         NotificationKind.RECAP_GREW.value,

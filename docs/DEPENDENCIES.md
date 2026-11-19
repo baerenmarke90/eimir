@@ -619,7 +619,7 @@ couple data. The Plan cover fixture is Darkmoon_Art/Pixabay 3374201 under CC0,
 as recorded in `backend/demo_assets/manifest.json`. The synthetic map tiles in
 browser evidence are a test fixture, not a third-party cartographic screenshot.
 
-## Optional local recap inference and reference assets (#1528)
+## Optional server-local inference and recap reference assets
 
 | Component / asset | Version / origin | License / use |
 | --- | --- | --- |
@@ -631,7 +631,7 @@ browser evidence are a test fixture, not a third-party cartographic screenshot.
 
 The optional model is not assumed immutable from its tag alone. Operators can
 record `ollama list`'s model identifier after download, and should review model
-updates deliberately. See [local recap operations](LOCAL-RECAP-AI.md) for resource,
+updates deliberately. See [local AI operations](LOCAL-RECAP-AI.md) for resource,
 privacy, fallback and deployment behavior. No paid remote model provider is used.
 
 `joserfc` and Nimbus JOSE+JWT implement RFC 7516 compact JWE for bounded

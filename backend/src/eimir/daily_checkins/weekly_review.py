@@ -33,7 +33,7 @@ from eimir.daily_checkins.weekly_patterns import (
     paired_vibes,
     recommendation_order,
 )
-from eimir.recaps.local_ai import query_structured
+from eimir.local_ai import query_structured
 
 
 @dataclass(frozen=True)

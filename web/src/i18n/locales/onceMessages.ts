@@ -5,6 +5,7 @@ const onceMessages = {
   singleView: 'Einmal ansehen',
   message: 'Deine Nachricht',
   photo: 'Foto',
+  takePhoto: 'Foto aufnehmen',
   voice: 'Sprachnachricht',
   record: 'Aufnehmen',
   importVoice: 'Audio importieren',

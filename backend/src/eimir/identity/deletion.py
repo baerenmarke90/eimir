@@ -39,6 +39,7 @@ from eimir.identity.models import (
     WebAuthnCredential,
 )
 from eimir.legal.models import TermsAcceptance
+from eimir.personal_settings.models import PersonalSettings
 from eimir.photo_sources.models import GoogleAccountHint, PhotoConnection, PhotoSelection
 from eimir.profiles.models import PartnerProfile
 from eimir.relationship.models import Invitation, Membership, MembershipStatus
@@ -256,6 +257,7 @@ def apply_core_cleanup(session: Session, account_id: UUID) -> AccountDeletion | 
     create_receipts.purge_account(session, account_id=account_id)
     shared_create_receipts.purge_account(session, account_id=account_id)
     _delete_account_rows(session, AppIconPreference, account_id, AppIconPreference.account_id)
+    _delete_account_rows(session, PersonalSettings, account_id, PersonalSettings.account_id)
     _delete_account_rows(session, PhotoSelection, account_id, PhotoSelection.account_id)
     _delete_account_rows(session, PhotoConnection, account_id, PhotoConnection.account_id)
     _delete_account_rows(session, GoogleAccountHint, account_id, GoogleAccountHint.account_id)

@@ -69,15 +69,15 @@ contract, not a claim that imports prove all possible browser interactions.
 Shared shell and cross-surface core coverage remain important, and a feature PR
 still needs relevant Product Acceptance beyond a green automated selection.
 
-The existing job/context names, four one-worker PR shards, four full-regression
-shards, independent retries, `fail-fast: false`, diagnostic paths and artifact
-names remain. The stable `Playwright + axe` aggregate additionally rejects a
-skipped additional job when the plan required it. Since 2026-11-16 the
-additional group runs as up to three native Playwright shards, bounded by the
-number of selected additional files, because a single additional job had
-become the longest PR browser job (27-32 minutes measured on 2026-11-16).
-Selection, assertions and the aggregate contract are unchanged; shard
-artifacts carry the shard number.
+The PR-critical group runs on six isolated one-worker runners. The additional
+group uses up to six native Playwright shards, capped by the number of selected
+additional spec files. The full regression runs on four runners. Failed shards
+can be retried independently with `fail-fast: false`, and diagnostic artifacts
+carry the shard number. The stable `Playwright + axe` aggregate rejects a skipped
+additional job when the plan required it.
+
+The additional group moved to native sharding on 2026-11-16 after single-runner
+jobs took 27-32 minutes.
 
 ## Measured collection, 2026-11-04
 

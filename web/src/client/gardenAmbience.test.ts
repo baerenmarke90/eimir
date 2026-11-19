@@ -6,9 +6,9 @@ import {
   gardenDaytime,
   isFirstSnowDay,
   localCalendarDay,
+  moonbowWeather,
   PARTICLES_MAX,
   PARTICLES_MIN,
-  rainbowWeather,
   sunPlace,
   togetherArrivals,
   togetherMoments,
@@ -63,11 +63,11 @@ describe('garden time of day', () => {
     expect(gardenDaytime(at(0))).toBe('night');
   });
 
-  it('only shows a rainbow while the sun is up', () => {
-    expect(rainbowWeather('morning')).toBe(true);
-    expect(rainbowWeather('day')).toBe(true);
-    expect(rainbowWeather('evening')).toBe(false);
-    expect(rainbowWeather('night')).toBe(false);
+  it('turns the bow into a moonbow at night', () => {
+    expect(moonbowWeather('morning')).toBe(false);
+    expect(moonbowWeather('day')).toBe(false);
+    expect(moonbowWeather('evening')).toBe(false);
+    expect(moonbowWeather('night')).toBe(true);
   });
 
   it('rises on the left and sets low on the right', () => {

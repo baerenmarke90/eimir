@@ -2,6 +2,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  applySyncedGardenFeedback,
   GARDEN_VOLUME,
   gardenFeedbackKey,
   playTones,
@@ -60,6 +61,21 @@ afterEach(() => {
 });
 
 describe('garden feedback preferences', () => {
+  it('an open garden picks up a choice synced from another device', () => {
+    const { result } = renderHook(() =>
+      useGardenFeedback('synced', { native: true }),
+    );
+    expect(result.current.sound).toBe(false);
+    act(() => {
+      applySyncedGardenFeedback(gardenFeedbackKey('synced', 'sound'), true);
+      applySyncedGardenFeedback(gardenFeedbackKey('synced', 'vibration'), true);
+      applySyncedGardenFeedback(gardenFeedbackKey('other', 'sound'), false);
+    });
+    expect(result.current.sound).toBe(true);
+    expect(result.current.vibration).toBe(true);
+    expect(readGardenFeedback(gardenFeedbackKey('synced', 'sound'))).toBe(true);
+  });
+
   it('are off by default and remembered per device', () => {
     const key = gardenFeedbackKey('me', 'sound');
     expect(readGardenFeedback(key)).toBe(false);

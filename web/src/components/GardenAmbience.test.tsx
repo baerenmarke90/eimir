@@ -250,6 +250,22 @@ describe('garden ambience', () => {
     );
   });
 
+  it('shows a double moonbow, not a rainbow, when both watered at night', async () => {
+    clock(23);
+    renderPage(
+      services(view({ wateredToday: 'p1', partnerWateredToday: 'p2' })),
+    );
+    const bow = await screen.findByTestId('garden-double-rainbow');
+    expect(bow.getAttribute('data-bow')).toBe('moon');
+    expect(bow.getAttribute('class')).toContain('is-moon');
+    expect(
+      screen.getByTestId('garden-frame').getAttribute('data-daytime'),
+    ).toBe('night');
+    const label = screen.getByTestId('garden-scene').getAttribute('aria-label');
+    expect(label).toContain(ambience.doubleMoonbow);
+    expect(label).not.toContain(ambience.doubleRainbow);
+  });
+
   it('has no birdhouse note or figures without today’s seeds', async () => {
     clock(11);
     renderPage(services(view()));

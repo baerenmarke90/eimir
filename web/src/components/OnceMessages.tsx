@@ -2,47 +2,48 @@ import './FreeComposer.css';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import type { OnceSealedMessage } from '../api/generated/models/OnceSealedMessage';
 import type { OnceMessageCreate } from '../api/generated/models/OnceMessageCreate';
+import type { OnceSealedMessage } from '../api/generated/models/OnceSealedMessage';
 import { authorDisplayName } from '../client/authorPresentation';
+import { isCapacitorNativePlatform } from '../client/config';
 import {
-  deviceKey,
-  removeDeviceKey,
-  encryptOnce,
-  decryptOnce,
+  notificationsListQueryKey,
+  notificationUnreadCountQueryKey,
+} from '../client/notificationQueries';
+import {
   base64Bytes,
-  onceMediaBlob,
-  prepareOnceAudio,
-  prepareOncePhoto,
+  decryptOnce,
+  deviceKey,
+  encryptOnce,
   ONCE_TEXT_MAX_LENGTH,
   type OnceContent,
   type OnceDeviceKey,
+  onceMediaBlob,
+  prepareOnceAudio,
+  prepareOncePhoto,
+  removeDeviceKey,
 } from '../client/onceMessageCrypto';
 import {
   ONCE_CREATE_ROUTE,
   ONCE_ROUTE,
+  type OnceEnvironment,
   onceMessagePath,
   useOnceEnvironment,
   useOnceInbox,
   useOnceStatus,
-  type OnceEnvironment,
 } from '../client/onceMessages';
 import {
-  normalizeClientError,
   clientProblemKind,
+  normalizeClientError,
 } from '../client/problemDetails';
-import {
-  notificationUnreadCountQueryKey,
-  notificationsListQueryKey,
-} from '../client/notificationQueries';
 import { proPaywallPath } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useVoiceRecorder } from '../client/useVoiceRecorder';
 import { VOICE_ACCEPT, voiceFile, voiceTime } from '../client/voiceNotes';
 import { useTranslation } from '../i18n';
-import { DraftExitPrompt } from './DraftExitPrompt';
 import { AddActionContent } from './AddAction';
+import { DraftExitPrompt } from './DraftExitPrompt';
 import { MediaActionGroup } from './MediaActionGroup';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -187,6 +188,17 @@ function OnceTask({
   const viewUrlRef = useRef<string | undefined>(undefined);
   const viewTimer = useRef<number | undefined>(undefined);
   const photoPicker = useRef<HTMLInputElement>(null);
+  // #2048: take the photo with the camera. Only where a camera answers the
+  // `capture` hint (phones and the Android app); a desktop browser would only
+  // open the same file dialog a second time.
+  const cameraPicker = useRef<HTMLInputElement>(null);
+  const [canCapture] = useState(
+    () =>
+      isCapacitorNativePlatform() ||
+      (typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(pointer: coarse)').matches),
+  );
   const audioPicker = useRef<HTMLInputElement>(null);
   const returnToOrigin = () => requestReturn(originKey, '/today');
   const lifecycle = useTaskEditorLifecycle({
@@ -844,13 +856,29 @@ function OnceTask({
                       </div>
                     ) : null}
                     <div className="once-attachments">
+                      {canCapture ? (
+                        <button
+                          type="button"
+                          className="add-action"
+                          disabled={editingDisabled}
+                          onClick={() => cameraPicker.current?.click()}
+                        >
+                          <AddActionContent
+                            icon="foto"
+                            label={t('onceMessages.takePhoto')}
+                          />
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         className="add-action"
                         disabled={editingDisabled}
                         onClick={() => photoPicker.current?.click()}
                       >
-                        <AddActionContent label={t('onceMessages.photo')} />
+                        <AddActionContent
+                          icon="photo-library"
+                          label={t('onceMessages.photo')}
+                        />
                       </button>
                       <button
                         type="button"
@@ -888,6 +916,22 @@ function OnceTask({
                       if (file) void selectMedia(file, 'IMAGE');
                     }}
                   />
+                  {canCapture ? (
+                    <input
+                      type="file"
+                      ref={cameraPicker}
+                      className="visually-hidden-input"
+                      tabIndex={-1}
+                      aria-label={t('onceMessages.takePhoto')}
+                      accept="image/jpeg"
+                      capture="environment"
+                      onChange={(event) => {
+                        const file = event.currentTarget.files?.[0];
+                        event.currentTarget.value = '';
+                        if (file) void selectMedia(file, 'IMAGE');
+                      }}
+                    />
+                  ) : null}
                   <input
                     type="file"
                     ref={audioPicker}

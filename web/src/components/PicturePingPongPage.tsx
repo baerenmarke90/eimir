@@ -73,6 +73,9 @@ const STARTERS = [
   'SQUIGGLE',
   'BLANK',
 ] as const satisfies readonly PictureStarter[];
+/** Same bound as other short authored titles in the composer. */
+const PICTURE_NAME_MAX_LENGTH = 120;
+
 const TITLE_KEYS = [
   'games.pingPong.titles.one',
   'games.pingPong.titles.two',
@@ -571,7 +574,10 @@ export function PicturePingPongPage({
   const [choosingStarter, setChoosingStarter] = useState(false);
   const [problem, setProblem] = useState<unknown>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [titleIndex, setTitleIndex] = useState(0);
+  // The picture's own name, asked when saving (#2048). `null` keeps the first
+  // suggestion, so the field is never empty before the person types.
+  const [pictureName, setPictureName] = useState<string | null>(null);
+  const [nameMissing, setNameMissing] = useState(false);
   const [saving, setSaving] = useState(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const flightTimer = useRef<number | null>(null);
@@ -586,6 +592,12 @@ export function PicturePingPongPage({
 
   const pictureId = picture?.id ?? null;
   const pictureTurns = picture?.turnsDone ?? null;
+  // A new picture starts from its own first suggestion.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset per picture
+  useEffect(() => {
+    setPictureName(null);
+    setNameMissing(false);
+  }, [pictureId]);
   // Restore a local draft for exactly this picture and turn.
   // biome-ignore lint/correctness/useExhaustiveDependencies: restore only when the picture id or turn changes, never on every refetch
   useEffect(() => {
@@ -758,6 +770,15 @@ export function PicturePingPongPage({
 
   const save = async () => {
     if (!picture) return;
+    const title = (
+      pictureName ?? t(TITLE_KEYS[titleSuggestionIndexes(picture.id)[0] ?? 0])
+    ).trim();
+    if (!title) {
+      setNameMissing(true);
+      document.getElementById('pingpong-name')?.focus();
+      return;
+    }
+    setNameMissing(false);
     setSaving(true);
     setProblem(null);
     try {
@@ -767,8 +788,6 @@ export function PicturePingPongPage({
         points: stroke.points,
       }));
       const image = await renderPictureBlob(strokes, inks());
-      const suggestions = titleSuggestionIndexes(picture.id);
-      const title = t(TITLE_KEYS[suggestions[titleIndex] ?? 0]);
       const { memoryId } = await api.saveToMoments({
         title,
         body: t('games.pingPong.memoryBody', { name: partnerName }),
@@ -966,23 +985,64 @@ export function PicturePingPongPage({
               </p>
             ) : (
               <>
-                <fieldset className="pingpong-titles">
-                  <legend>{t('games.pingPong.titleLegend')}</legend>
-                  {suggestions.map((value, index) => (
-                    <label
-                      key={value}
-                      className={`pingpong-title-chip${titleIndex === index ? ' is-selected' : ''}`}
+                <div className="pingpong-name">
+                  <label htmlFor="pingpong-name">
+                    {t('games.pingPong.titleLegend')}
+                  </label>
+                  <input
+                    id="pingpong-name"
+                    type="text"
+                    maxLength={PICTURE_NAME_MAX_LENGTH}
+                    autoComplete="off"
+                    enterKeyHint="done"
+                    required
+                    aria-invalid={nameMissing || undefined}
+                    aria-describedby={
+                      nameMissing ? 'pingpong-name-missing' : undefined
+                    }
+                    value={pictureName ?? t(TITLE_KEYS[suggestions[0] ?? 0])}
+                    onChange={(event) => {
+                      setPictureName(event.target.value);
+                      if (event.target.value.trim()) setNameMissing(false);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && !saving) void save();
+                    }}
+                  />
+                  {nameMissing ? (
+                    <p
+                      id="pingpong-name-missing"
+                      className="pingpong-name-missing"
                     >
-                      <input
-                        type="radio"
-                        name="pingpong-title"
-                        checked={titleIndex === index}
-                        onChange={() => setTitleIndex(index)}
-                      />
-                      <span>{t(TITLE_KEYS[value])}</span>
-                    </label>
-                  ))}
-                </fieldset>
+                      {t('games.pingPong.nameMissing')}
+                    </p>
+                  ) : null}
+                  <fieldset className="pingpong-titles">
+                    <legend className="sr-only">
+                      {t('games.pingPong.nameSuggestions')}
+                    </legend>
+                    {suggestions.map((value) => {
+                      const suggestion = t(TITLE_KEYS[value]);
+                      const chosen =
+                        (pictureName ?? t(TITLE_KEYS[suggestions[0] ?? 0])) ===
+                        suggestion;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          className={`pingpong-title-chip${chosen ? ' is-selected' : ''}`}
+                          aria-pressed={chosen}
+                          onClick={() => {
+                            setPictureName(suggestion);
+                            setNameMissing(false);
+                          }}
+                        >
+                          {suggestion}
+                        </button>
+                      );
+                    })}
+                  </fieldset>
+                </div>
                 <button
                   type="button"
                   className="pingpong-primary"

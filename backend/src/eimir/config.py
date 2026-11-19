@@ -245,7 +245,7 @@ class Settings(IdentityCompatibleSettings):
     # Operator switch for M9 partner location (#1792). OFF writes stay accepted.
     partner_location_enabled: bool = True
 
-    # Optional local-only recap wording. Selection and complete fallback stay in Core.
+    # Optional local AI for weekly reviews and tag proposals. Keep the deployed setting names.
     recap_ai_url: str = ""
     recap_ai_model: str = "qwen3:1.7b-q4_K_M"
     recap_ai_timeout_seconds: float = Field(default=45, ge=1, le=120)
@@ -253,7 +253,7 @@ class Settings(IdentityCompatibleSettings):
     @field_validator("recap_ai_url")
     @classmethod
     def _recap_ai_origin(cls, value: str) -> str:
-        from eimir.recaps.local_ai import validate_local_url
+        from eimir.local_ai import validate_local_url
 
         return validate_local_url(value)
 

@@ -1067,6 +1067,9 @@
       "newSpaceEmpty": "Welcome to your shared home.",
       "newSpaceIntro": "Everything is ready for your story together.",
       "newSpaceAction": "Capture your first moment",
+      "newSpaceSolo": "Welcome, {{name}}.",
+      "newSpaceSoloIntro": "This is where your shared place begins. As soon as your person joins, you are here together.",
+      "partnerPlace": "Your person",
       "eyebrow": "Overview",
       "title": "Your shared home",
       "intro": "What matters in your shared space, at a glance.",
@@ -2013,7 +2016,7 @@
       "intro": "You can include recurring celebrations alongside your personal dates.",
       "toggle": "Show common occasions",
       "description": "For example Easter, Christmas, New Year, Pentecost and Valentine's Day.",
-      "deviceNote": "This choice applies on this device only. Your saved dates do not change.",
+      "deviceNote": "This choice is just for you and applies on all your devices. Your saved dates do not change.",
       "manage": "Common occasion settings"
     },
     "holidays": {
@@ -2380,19 +2383,23 @@
     "originalLanguage": "Original in {{language}}",
     "catalog": {
       "categories": {
-        "love": "Love & relationships",
-        "life": "Life & wisdom",
-        "philosophy": "Philosophy",
-        "mindfulness": "Mindfulness",
-        "serenity": "Serenity",
-        "motivation": "Courage & motivation"
+        "love": "Love & partnership",
+        "friendship": "Friendship",
+        "motivation": "Motivation & success",
+        "humor": "Humor & fun",
+        "life": "Life wisdom",
+        "nature": "Nature & calm",
+        "travel": "Travel & adventure",
+        "courage": "Courage & fresh starts",
+        "selfcare": "Self-care & serenity",
+        "together": "Shared experiences & everyday life"
       }
     },
     "quoteText": "“{{text}}”"
   },
   "notificationSettings": {
     "title": "Which messages you receive",
-    "sharedActivityDescription": "Comments, photo reactions, new reminders and due reminders.",
+    "sharedActivityDescription": "Comments, photo reactions, shared notes, new reminders and due reminders.",
     "closenessDescription": "Thoughts of each other, kisses, check-ins, sent lists and seeds from your garden.",
     "individual": "Adjust individually",
     "dates": "Important days",
@@ -2408,7 +2415,7 @@
     "recapReady": "Finished recaps",
     "comment": "Comments",
     "commentDescription": "New comments are collected in your inbox.",
-    "commentPushDescription": "Push notifications for new comments and photo reactions from your partner. Quiet hours apply to both.",
+    "commentPushDescription": "Push notifications for new comments, photo reactions and shared notes from your partner. Quiet hours apply to both.",
     "commentEmailDescription": "At most one neutral email per hour.",
     "reminder": "Due reminders",
     "reminderCreated": "New reminders",
@@ -3174,7 +3181,7 @@
     "reload": "Load latest version",
     "details": "Your beginning & upcoming occasions",
     "about": "How are your recaps made?",
-    "aboutBody": "We select from mutually visible content across the whole period. Different months, kinds of moments and linked chapters add variety. A local AI can write a title and introduction. Selection also works without it. Private content and drafts are not used for this.",
+    "aboutBody": "We select from mutually visible content across the whole period. Different months, kinds of moments and linked chapters add variety. Private content and drafts are not used for this.",
     "originalLanguage": "Original language: {{language}}"
   },
   "relationshipReflections": {
@@ -3202,10 +3209,10 @@
       "history": "What you have captured together",
       "wirStatisticsTitle": "Your story in numbers",
       "wirStatisticsToggle": "Show statistics on Us",
-      "wirStatisticsHelp": "Optional for you on this device. Also show your shared counts on Us here. The setting in your recaps is independent.",
+      "wirStatisticsHelp": "Optional and just for you, on all your devices. Also show your shared counts on Us here. The setting in your recaps is independent.",
       "wirStatisticsPro": "Available with your recaps in Pro.",
       "statisticsToggle": "Show shared statistics",
-      "statisticsHelp": "Optional for you on this device. Your shared counts appear here with your recaps.",
+      "statisticsHelp": "Optional and just for you, on all your devices. Your shared counts appear here with your recaps.",
       "nextChapter": "The next chapter",
       "anniversary": "Your anniversary: {{count}} years",
       "roundDay": "{{days}} days together",
@@ -3373,6 +3380,9 @@
         "photoLabel": "The photo with the found heart",
         "swap": "Hide one yourself",
         "keep": "Keep photo as a moment",
+        "nameLabel": "What should the moment be called?",
+        "nameMissing": "Give the moment a name, then we keep the photo.",
+        "keepConfirm": "Save as a moment",
         "keeping": "Saving …",
         "kept": "Saved in Moments",
         "keepFailed": "The photo could not be saved as a moment. Please try again.",
@@ -3434,7 +3444,9 @@
       "finishKeep": "Keep drawing",
       "doneTitle": "Your picture is finished",
       "doneBody": "Give it a name and keep it, if you like.",
-      "titleLegend": "What should it be called?",
+      "titleLegend": "What is your picture called?",
+      "nameSuggestions": "Name suggestions",
+      "nameMissing": "Give your picture a name, then we put it into Moments.",
       "saveToMoments": "Put into Moments",
       "saving": "Saving …",
       "saved": "Put into Moments.",
@@ -3484,10 +3496,13 @@
       "loadingBody": "We only load open wishes from your shared space.",
       "coupleRequiredTitle": "This game belongs to both of you",
       "coupleRequiredBody": "Wish detective is designed for a shared space with exactly two partners.",
-      "sparseEyebrow": "A few more wishes to collect",
-      "sparseTitle": "A few more shared wishes are needed for a fair round.",
-      "sparseBody": "Your first round can start once you have each captured at least two open wishes. Private gift ideas are never used for this.",
-      "sparseAction": "Add wishes",
+      "sparseEyebrow": "Almost ready",
+      "sparseTitleBoth": "You each still need a wish.",
+      "sparseTitleYou": "You still need a wish.",
+      "sparseTitlePartner": "{{name}} still needs a wish.",
+      "sparseBody": "Each of you needs at least one open wish. Private gift ideas are never used for this.",
+      "sparseBodyPartner": "Your wishes are enough. As soon as {{name}} captures a wish, your first round can start.",
+      "sparseAction": "Capture a wish",
       "interruptedEyebrow": "Round interrupted",
       "interruptedTitle": "The wish stays hidden.",
       "interruptedBody": "You left the round during handoff or guessing. Hand the device back and start a new round from Play together.",
@@ -3525,6 +3540,67 @@
         "duplicate": "Use a different word for each clue.",
         "wishWord": "This word is already in the wish. Use another clue."
       }
+    },
+    "remote": {
+      "end": "End the game",
+      "endConfirm": "End it for real? The open game then ends for both of you.",
+      "endConfirmAction": "Yes, end it",
+      "keepPlaying": "Keep playing",
+      "newGame": "New game",
+      "ended": "This game has ended.",
+      "endedByPartner": "{{name}} ended the game.",
+      "waitingBody": "You will be told as soon as it continues.",
+      "whoOfUs": {
+        "me": "Me",
+        "you": "You",
+        "partnerProgress": "{{name}} has answered {{count}} of {{total}} questions.",
+        "hidden": "You see {{name}}'s answer as soon as you have answered yourself.",
+        "partnerAnswered": "{{name}} has already answered. You will see in a moment whether you agree.",
+        "doneTitle": "You are done.",
+        "doneBody": "{{name}} is still playing. You will be told as soon as your result is ready.",
+        "answers": "You: {{you}} · {{name}}: {{partner}}"
+      },
+      "wishDetective": {
+        "giveTitle": "Your wish for {{name}}",
+        "giveBody": "Give three clues of one word each.",
+        "clueLabel": "Clue {{number}}",
+        "sendClues": "Send to {{name}}",
+        "skip": "Take another wish ({{count}} left)",
+        "skipGone": "Take another wish",
+        "wishGone": "This wish is no longer there. Take another one.",
+        "guessTitle": "{{name}} sent you three clues.",
+        "guessLabel": "Which wish is it?",
+        "guess": "Guess",
+        "pass": "I can't think of it",
+        "waitingClues": "{{name}} is thinking of clues.",
+        "waitingGuess": "{{name}} is guessing.",
+        "itWas": "It was: {{title}}",
+        "yourGuess": "Your guess: {{guess}}",
+        "lastRound": "Last round: {{title}} –",
+        "finishEyebrow": "All rounds played",
+        "finishTitle": "How well you know your wishes",
+        "result": {
+          "correct": "Guessed right!",
+          "incorrect": "Close, but no.",
+          "passed": "Not this time.",
+          "void": "The wish has been deleted in the meantime."
+        }
+      },
+      "ourMoments": {
+        "yourTurn": "Your turn",
+        "partnerTurn": "{{name}}'s turn",
+        "partnerMatched": "{{name}} just found a pair.",
+        "partnerMissed": "{{name}} turned two cards but found no pair."
+      }
+    },
+    "playMode": {
+      "legend": "How do you want to play?",
+      "apart": "Each on your own phone",
+      "apartBody": "You don't need to be together. {{name}} is told as soon as it continues.",
+      "together": "Together on one phone",
+      "togetherBody": "You sit together and pass the phone back and forth.",
+      "start": "Start the game",
+      "starting": "Starting …"
     },
     "whoOfUs": {
       "back": "Back to Games",
@@ -3599,6 +3675,11 @@
       "sceneLabel_one": "Your garden with {{count}} plant",
       "sceneLabel_other": "Your garden with {{count}} plants",
       "panHint": "Swipe to see the whole garden",
+      "fullscreen": {
+        "open": "Garden in full screen",
+        "close": "Close full screen",
+        "rotate": "Turn your phone to see the whole garden."
+      },
       "close": "Close",
       "storySent": "Sent by {{name}}, {{date}}",
       "youDative": "you",
@@ -3670,6 +3751,7 @@
           "seed": "A seed is sleeping in the soil here."
         },
         "doubleRainbow": "A double rainbow: you both watered today",
+        "doubleMoonbow": "A double moonbow: you both watered today",
         "together": {
           "swing": "The two of you sit together on the swing, you both sent a seed today",
           "tree": "The two of you sit together on a bench under your tree, you both sent a seed today",
@@ -4012,7 +4094,7 @@
           "close": "Close"
         },
         "feedback": {
-          "title": "On this device",
+          "title": "Just for you",
           "sound": "Sounds in the garden",
           "soundHint": "Soft sounds when planting, watering and with the animals.",
           "vibration": "Gentle vibration",
@@ -4040,6 +4122,11 @@
       "WISH_SELECTION_RANDOM_ACCEPTED": "What shall we do next? Chance has decided.",
       "WISH_SELECTION_RANDOM_DECLINED": "{{name}} would rather decide together.",
       "PICTURE_PING_PONG_TURN": "{{name}} added to your picture. It is your turn.",
+      "PICTURE_PING_PONG_FINISHED": "{{name}} finished your picture.",
+      "COUPLE_GAME_TURN": "{{name}} played one of your games. Take a look.",
+      "COUPLE_GAME_TURN_WHO_OF_US": "{{name}} played “Which of you?”. Take a look.",
+      "COUPLE_GAME_TURN_WISH_DETECTIVE": "{{name}} played Wish detective. Take a look.",
+      "COUPLE_GAME_TURN_OUR_MOMENTS": "{{name}} played “Our moments”. Take a look.",
       "HEART_HUNT_HIDDEN": "{{name}} hid a heart.",
       "HEART_HUNT_FOUND": "{{name}} found your heart.",
       "COLLECTION_SENT": "{{name}} sent you a list.",
@@ -5152,7 +5239,7 @@
   },
   "momentsLayout": {
     "title": "Moments design",
-    "intro": "This layout applies to Memories, the Diary, Chapters, and Us. This device only.",
+    "intro": "This layout applies to Memories, the Diary, Chapters, and Us – on all your devices.",
     "album": {
       "name": "Album",
       "hint": "Like a photo album: large photos as Polaroids, with little notes."
@@ -5570,6 +5657,7 @@
     "singleView": "View once",
     "message": "Your message",
     "photo": "Photo",
+    "takePhoto": "Take a photo",
     "voice": "Voice message",
     "record": "Record",
     "importVoice": "Import audio",

@@ -6,10 +6,12 @@ from uuid import UUID
 import pytest
 from sqlalchemy import func, select
 
+from eimir import local_ai
 from eimir.attachments import binding
 from eimir.attachments.models import Attachment, AttachmentPayload, AttachmentStatus, MediaType
 from eimir.authorization import PrivacyClass
 from eimir.comments.models import Comment, CommentPayload
+from eimir.config import get_settings
 from eimir.core import clock
 from eimir.daily_checkins.models import DailyCheckIn
 from eimir.entitlements import service as entitlements
@@ -23,7 +25,7 @@ from eimir.memories.models import (
     PhotoReaction,
 )
 from eimir.recaps import jobs, mood, service
-from eimir.recaps.models import RecapEdition, RecapPayload
+from eimir.recaps.models import RecapEdition
 from eimir.relationship import configuration as configuration_service
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
@@ -233,13 +235,23 @@ def test_changed_or_withdrawn_source_scrubs_derived_prose(client, session, conte
     proposed = request(client, context).json()
     generate(session, context, proposed)
     stored = session.get(RecapEdition, UUID(proposed["id"]))
-    stored.payload = RecapPayload(
-        headline="Derived shared words", introduction="A generated introduction"
+    film = stored.payload.film
+    assert film is not None
+    stored.payload = stored.payload.model_copy(
+        update={"headline": "Derived shared words", "introduction": "A generated introduction"}
     )
+    stored.generated_by = "LOCAL_AI"
+    stored.saved_at = NOW
     session.flush()
+    previous = read(client, context, proposed, partner=True).json()
+    assert previous["headline"] == "Derived shared words"
+    assert previous["introduction"] == "A generated introduction"
+
     heart.privacy_class = PrivacyClass.OWNER_ONLY.value
     session.flush()
     assert stored.payload.headline is None
+    assert stored.payload.film == film
+    assert stored.generated_by == "RULES"
     result = read(client, context, proposed, partner=True).json()
     assert result["headline"] is None and result["introduction"] is None
     assert result["facts"] is None
@@ -248,63 +260,38 @@ def test_changed_or_withdrawn_source_scrubs_derived_prose(client, session, conte
     assert "Formerly shared words" not in str(result)
 
 
-def test_a_changed_source_queues_one_delayed_rewrite_of_an_automatic_proposal(
-    client, session, context, monkeypatch
+@pytest.mark.parametrize(("kind", "month"), [("MONTH", 10), ("YEAR", 0)])
+def test_recaps_with_local_ai_configured_use_standard_wording(
+    client, session, context, monkeypatch, kind, month
 ):  # type: ignore[no-untyped-def]
-    from types import SimpleNamespace
-
-    from eimir.recaps import invalidation, local_ai
-
-    enabled = SimpleNamespace(recap_ai_url="http://recap-ai:11434")
-    monkeypatch.setattr(invalidation, "get_settings", lambda: enabled)
     item = memory(session, context)
-    proposed = request(client, context).json()
+    proposed = request(client, context, kind=kind, month=month).json()
+    monkeypatch.setattr(get_settings(), "recap_ai_url", "http://recap-ai:11434")
+
+    def reject_inference(**kwargs: object) -> None:
+        pytest.fail("Recap creation must not open an Ollama connection")
+
+    monkeypatch.setattr(local_ai.httpx, "Client", reject_inference)
     generate(session, context, proposed)
     stored = session.get(RecapEdition, UUID(proposed["id"]))
-    stored.payload = RecapPayload(headline="Derived words", introduction="An introduction")
+    assert stored.generated_by == "RULES"
+    result = read(client, context, proposed, partner=True).json()
+    assert result["status"] == "READY"
+    assert result["film"] is not None
+    assert result["headline"] is None and result["introduction"] is None
+
+    # Existing open editions can also carry prose written by an older worker.
+    stored.payload = stored.payload.model_copy(
+        update={"headline": "Derived words", "introduction": "An introduction"}
+    )
+    stored.generated_by = "LOCAL_AI"
     session.flush()
-
-    def rewrites():  # type: ignore[no-untyped-def]
-        queued = session.scalars(select(Job).where(Job.kind == service.GENERATE_JOB)).all()
-        return [job for job in queued if "account_id" not in job.payload]
-
     item.payload = MemoryPayload(title="A corrected title", body="Corrected shared words")
     session.flush()
-    assert stored.payload.headline is None and stored.status == "READY"
-    (job,) = rewrites()
-    requested = session.scalars(select(Job).where(Job.id != job.id)).first()
-    assert job.run_after - requested.run_after >= invalidation.REWRITE_DELAY
-    assert job.payload["request_token"] == str(stored.request_token)
-    # Further edits before the rewrite do not queue more inference.
-    item.payload = MemoryPayload(title="A second correction", body="Corrected shared words")
-    session.flush()
-    assert len(rewrites()) == 1
-
-    monkeypatch.setattr(jobs, "get_settings", lambda: enabled)
-    seen: list[str] = []
-
-    def compose(evidence, locale, period):  # type: ignore[no-untyped-def]
-        seen.extend(entry["title"] for entry in evidence)
-        return local_ai.Narration(
-            title="Rewritten", introduction="From the corrected words.", source_keys=["x"]
-        )
-
-    monkeypatch.setattr(local_ai, "compose", compose)
-    # The job releases its read transaction before inference; the fixture's must survive.
-    monkeypatch.setattr(session, "rollback", lambda: None)
-    jobs.generate(session, dict(job.payload))
-    session.flush()
-    assert seen == ["A second correction"]
-    result = read(client, context, proposed, partner=True).json()
-    assert result["headline"] == "Rewritten"
-    assert result["sources"][0]["title"] == "A second correction"
-
-    # A retained edition keeps the factual template; its wording stays frozen.
-    stored.saved_at = NOW
-    session.flush()
-    item.payload = MemoryPayload(title="A third correction", body="Corrected shared words")
-    session.flush()
-    assert stored.payload.headline is None and len(rewrites()) == 1
+    assert stored.payload.headline is None
+    assert stored.generated_by == "RULES"
+    queued = session.scalars(select(Job).where(Job.kind == service.GENERATE_JOB)).all()
+    assert all("account_id" in job.payload for job in queued)
 
 
 def test_optimistic_selection_and_foreign_recap_protection(client, session, context):  # type: ignore[no-untyped-def]

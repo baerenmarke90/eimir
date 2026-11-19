@@ -78,6 +78,10 @@ class NotificationKind(StrEnum):
     WISH_DATE_ACCEPTED = "WISH_DATE_ACCEPTED"
     COLLECTION_SENT = "COLLECTION_SENT"
     PICTURE_PING_PONG_TURN = "PICTURE_PING_PONG_TURN"
+    # The partner completed the shared picture; the notice never shows it.
+    PICTURE_PING_PONG_FINISHED = "PICTURE_PING_PONG_FINISHED"
+    # One notice kind for every remote couple game; the target names the game.
+    COUPLE_GAME_TURN = "COUPLE_GAME_TURN"
     # #1969: a partner wrote or changed a shared note. Content-free references only.
     SHARED_NOTE_CREATED = "SHARED_NOTE_CREATED"
     SHARED_NOTE_CHANGED = "SHARED_NOTE_CHANGED"
@@ -115,6 +119,8 @@ COALESCED_NOTIFICATION_KINDS = (
     "WISH_SELECTION_RANDOM_DECLINED",
     "COLLECTION_SENT",
     "PICTURE_PING_PONG_TURN",
+    "PICTURE_PING_PONG_FINISHED",
+    "COUPLE_GAME_TURN",
     # Several edits of one note leave one current notice, not a stack of them.
     "SHARED_NOTE_CHANGED",
     "GARDEN_SEED_ARRIVED",
@@ -147,6 +153,9 @@ class EngagementTarget(StrEnum):
     CHAPTER = "CHAPTER"
     COLLECTION = "COLLECTION"
     PICTURE_GAME = "PICTURE_GAME"
+    WHO_OF_US_GAME = "WHO_OF_US_GAME"
+    WISH_DETECTIVE_GAME = "WISH_DETECTIVE_GAME"
+    OUR_MOMENTS_GAME = "OUR_MOMENTS_GAME"
     SHARED_NOTE = "SHARED_NOTE"
     GARDEN_SEED = "GARDEN_SEED"
     GARDEN_BOUQUET = "GARDEN_BOUQUET"

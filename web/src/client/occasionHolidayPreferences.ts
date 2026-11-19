@@ -1,10 +1,14 @@
 import { useSyncExternalStore } from 'react';
+import { announcePersonalSettingChange } from './personalSettingsBus';
 
 const PREFERENCE_EVENT = 'eimir:occasion-holidays-changed';
 const PREFERENCE_VERSION = 'eimir-occasion-holidays-v1';
 const sessionFallback = new Map<string, boolean>();
 
-/** Display-only preference, isolated by instance, Account and Space. */
+/**
+ * Display-only preference, isolated by instance, Account and Space. The
+ * personal settings sync carries it to the person's other devices.
+ */
 export function occasionHolidayPreferenceKey(
   instance: string,
   accountId: string,
@@ -29,11 +33,26 @@ export function readOccasionHolidayPreference(key: string): boolean {
   }
 }
 
+/** A person's own choice on this device; it follows the Account to other devices. */
 export function saveOccasionHolidayPreference(
   key: string,
   enabled: boolean,
 ): void {
   if (!key) return;
+  writeOccasionHolidayPreference(key, enabled);
+  announcePersonalSettingChange(key);
+}
+
+/** Applies the Account's saved choice from another device without echoing it back. */
+export function applySyncedOccasionHolidayPreference(
+  key: string,
+  enabled: boolean,
+): void {
+  if (!key) return;
+  writeOccasionHolidayPreference(key, enabled);
+}
+
+function writeOccasionHolidayPreference(key: string, enabled: boolean): void {
   sessionFallback.set(key, enabled);
   try {
     window.localStorage.setItem(key, String(enabled));

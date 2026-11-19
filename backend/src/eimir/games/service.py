@@ -171,6 +171,7 @@ def read_wish_candidates(
         statement = (
             readable(Wish, context)
             .where(
+                # Only open wishes; a wish already planned is no riddle (PO 2026-11-18).
                 Wish.status == WishStatus.OPEN.value,
                 Wish.owner_id == participant_id,
             )

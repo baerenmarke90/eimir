@@ -50,6 +50,8 @@ export interface PartnerAvatarPairProps {
   /** Decorations anchored to the outer edge of each avatar. */
   primaryAdornment?: ReactNode;
   secondaryAdornment?: ReactNode;
+  /** Shown under the empty partner place while nobody has joined (#2048). */
+  waitingAdornment?: ReactNode;
 }
 
 export function SingleAvatar({
@@ -122,6 +124,7 @@ export function PartnerAvatarPair({
   primaryAction,
   primaryAdornment,
   secondaryAdornment,
+  waitingAdornment,
 }: PartnerAvatarPairProps) {
   const { t } = useTranslation();
   const groupLabel = useMemo(() => {
@@ -135,6 +138,37 @@ export function PartnerAvatarPair({
       primaryPerson.displayName,
     );
   }, [primaryPerson.displayName, secondaryPerson, t]);
+
+  const waitingButton = (
+    <button
+      type="button"
+      className={`partner-avatar partner-avatar-${size} partner-avatar-waiting`}
+      onClick={onInviteClick}
+      aria-label={t('partnerAvatarInvite')}
+      title={t('partnerAvatarInvite')}
+      disabled={!onInviteClick}
+    >
+      <span className="partner-avatar-waiting-icon" aria-hidden="true">
+        {waitingAdornment ? (
+          <svg
+            className="partner-avatar-waiting-glyph"
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            focusable="false"
+          >
+            <circle cx="10" cy="8" r="3.5" />
+            <path d="M3.5 19c.8-3.4 3.4-5.5 6.5-5.5 1.6 0 3 .5 4.1 1.4M18 14v6M15 17h6" />
+          </svg>
+        ) : (
+          '+'
+        )}
+      </span>
+    </button>
+  );
   const accessibleGroupLabel = statusLabel
     ? `${groupLabel}. ${statusLabel}`
     : groupLabel;
@@ -178,19 +212,13 @@ export function PartnerAvatarPair({
               className="partner-avatar-secondary"
             />
           )
+        ) : waitingAdornment ? (
+          <span className="partner-avatar-slot partner-avatar-slot-secondary">
+            {waitingButton}
+            {waitingAdornment}
+          </span>
         ) : (
-          <button
-            type="button"
-            className={`partner-avatar partner-avatar-${size} partner-avatar-waiting`}
-            onClick={onInviteClick}
-            aria-label={t('partnerAvatarInvite')}
-            title={t('partnerAvatarInvite')}
-            disabled={!onInviteClick}
-          >
-            <span className="partner-avatar-waiting-icon" aria-hidden="true">
-              +
-            </span>
-          </button>
+          waitingButton
         )}
       </span>
 

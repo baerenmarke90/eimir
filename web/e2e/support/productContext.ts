@@ -1,4 +1,5 @@
 import type { Route } from '@playwright/test';
+import { fulfillDefaultPersonalSettings } from './personalSettings';
 import { fulfillNoSharedNotes } from './sharedNotes';
 import { NO_WISH_SELECTION_ROUND } from './storyTimelineFixture';
 
@@ -46,6 +47,7 @@ export async function fulfillDefaultProductContext(
   route: Route,
 ): Promise<boolean> {
   if (await fulfillNoSharedNotes(route)) return true;
+  if (await fulfillDefaultPersonalSettings(route)) return true;
   const request = route.request();
   const pathname = new URL(request.url()).pathname;
   // An unrelated journey starts without pending one-time messages. Feature

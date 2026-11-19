@@ -104,6 +104,9 @@ const games = {
       photoLabel: 'Das Foto mit dem gefundenen Herz',
       swap: 'Selbst eins verstecken',
       keep: 'Foto als Moment behalten',
+      nameLabel: 'Wie soll der Moment heißen?',
+      nameMissing: 'Gib dem Moment einen Namen, dann behalten wir das Foto.',
+      keepConfirm: 'Als Moment speichern',
       keeping: 'Wird gespeichert …',
       kept: 'Liegt in Momente',
       keepFailed:
@@ -173,7 +176,9 @@ const games = {
     finishKeep: 'Weitermalen',
     doneTitle: 'Euer Bild ist fertig',
     doneBody: 'Gebt ihm einen Namen und hebt es auf, wenn ihr mögt.',
-    titleLegend: 'Wie soll es heißen?',
+    titleLegend: 'Wie heißt euer Bild?',
+    nameSuggestions: 'Namensvorschläge',
+    nameMissing: 'Gebt eurem Bild einen Namen, dann legen wir es in Momente.',
     saveToMoments: 'In Momente legen',
     saving: 'Wird gelegt …',
     saved: 'In Momente gelegt.',
@@ -228,11 +233,15 @@ const games = {
     coupleRequiredTitle: 'Dieses Spiel gehört euch beiden',
     coupleRequiredBody:
       'Wunschdetektiv ist für einen gemeinsamen Bereich mit genau zwei Partnern gedacht.',
-    sparseEyebrow: 'Noch ein paar Wünsche sammeln',
-    sparseTitle: 'Für eine faire Runde fehlen noch gemeinsame Wünsche.',
+    sparseEyebrow: 'Fast startklar',
+    sparseTitleBoth: 'Euch fehlt noch je ein Wunsch.',
+    sparseTitleYou: 'Dir fehlt noch ein Wunsch.',
+    sparseTitlePartner: '{{name}} braucht noch einen Wunsch.',
     sparseBody:
-      'Sobald ihr beide mindestens zwei offene Wünsche festgehalten habt, kann eure erste Runde starten. Private Geschenkideen werden dafür niemals verwendet.',
-    sparseAction: 'Wünsche ergänzen',
+      'Jeder von euch braucht mindestens einen offenen Wunsch. Private Geschenkideen werden dafür niemals verwendet.',
+    sparseBodyPartner:
+      'Deine Wünsche reichen schon. Sobald {{name}} einen Wunsch festhält, kann eure erste Runde starten.',
+    sparseAction: 'Wunsch festhalten',
     interruptedEyebrow: 'Runde unterbrochen',
     interruptedTitle: 'Der Wunsch bleibt verborgen.',
     interruptedBody:
@@ -272,6 +281,74 @@ const games = {
       wishWord:
         'Dieses Wort steckt bereits im Wunsch. Nimm einen anderen Hinweis.',
     },
+  },
+  // #2048: the couple games at a distance.
+  remote: {
+    end: 'Spiel beenden',
+    endConfirm: 'Wirklich beenden? Das offene Spiel endet dann für euch beide.',
+    endConfirmAction: 'Ja, beenden',
+    keepPlaying: 'Weiterspielen',
+    newGame: 'Neues Spiel',
+    ended: 'Dieses Spiel ist beendet.',
+    endedByPartner: '{{name}} hat das Spiel beendet.',
+    waitingBody: 'Du bekommst Bescheid, sobald es weitergeht.',
+    whoOfUs: {
+      me: 'Ich',
+      you: 'Du',
+      partnerProgress:
+        '{{name}} hat {{count}} von {{total}} Fragen beantwortet.',
+      hidden:
+        'Die Antwort von {{name}} siehst du, sobald du selbst geantwortet hast.',
+      partnerAnswered:
+        '{{name}} hat schon geantwortet. Gleich siehst du, ob ihr euch einig seid.',
+      doneTitle: 'Du bist fertig.',
+      doneBody:
+        '{{name}} ist noch dran. Du bekommst Bescheid, sobald eure Auflösung da ist.',
+      answers: 'Du: {{you}} · {{name}}: {{partner}}',
+    },
+    wishDetective: {
+      giveTitle: 'Dein Wunsch für {{name}}',
+      giveBody: 'Gib drei Hinweise mit je einem Wort.',
+      clueLabel: 'Hinweis {{number}}',
+      sendClues: 'An {{name}} schicken',
+      skip: 'Anderen Wunsch nehmen ({{count}} übrig)',
+      skipGone: 'Anderen Wunsch nehmen',
+      wishGone: 'Dieser Wunsch ist nicht mehr da. Nimm einen anderen.',
+      guessTitle: '{{name}} hat dir drei Hinweise geschickt.',
+      guessLabel: 'Welcher Wunsch ist es?',
+      guess: 'Raten',
+      pass: 'Ich komme nicht drauf',
+      waitingClues: '{{name}} denkt sich gerade Hinweise aus.',
+      waitingGuess: '{{name}} rät gerade.',
+      itWas: 'Es war: {{title}}',
+      yourGuess: 'Dein Tipp: {{guess}}',
+      lastRound: 'Letzte Runde: {{title}} –',
+      finishEyebrow: 'Alle Runden gespielt',
+      finishTitle: 'So gut kennt ihr eure Wünsche',
+      result: {
+        correct: 'Richtig geraten!',
+        incorrect: 'Knapp daneben.',
+        passed: 'Diesmal nicht.',
+        void: 'Der Wunsch wurde inzwischen gelöscht.',
+      },
+    },
+    ourMoments: {
+      yourTurn: 'Du bist dran',
+      partnerTurn: '{{name}} ist dran',
+      partnerMatched: '{{name}} hat gerade ein Paar gefunden.',
+      partnerMissed: '{{name}} hat zwei Karten aufgedeckt, aber kein Paar.',
+    },
+  },
+  // #2048: how a couple game is played.
+  playMode: {
+    legend: 'Wie wollt ihr spielen?',
+    apart: 'Jeder an seinem Handy',
+    apartBody:
+      'Ihr müsst nicht zusammen sein. {{name}} bekommt Bescheid, sobald es weitergeht.',
+    together: 'Zusammen an einem Handy',
+    togetherBody: 'Ihr sitzt beieinander und reicht das Handy hin und her.',
+    start: 'Spiel starten',
+    starting: 'Wird gestartet …',
   },
   whoOfUs: {
     back: 'Zurück zu Spielen',
@@ -354,6 +431,11 @@ const games = {
     sceneLabel_one: 'Euer Garten mit {{count}} Pflanze',
     sceneLabel_other: 'Euer Garten mit {{count}} Pflanzen',
     panHint: 'Wischen, um den ganzen Garten zu sehen',
+    fullscreen: {
+      open: 'Garten im Vollbild',
+      close: 'Vollbild schließen',
+      rotate: 'Dreh dein Handy, dann siehst du den ganzen Garten.',
+    },
     close: 'Schließen',
     storySent: 'Geschickt von {{name}}, {{date}}',
     youDative: 'dir',
@@ -432,6 +514,8 @@ const games = {
         seed: 'Hier schläft ein Samen in der Erde.',
       },
       doubleRainbow: 'Ein doppelter Regenbogen: ihr habt heute beide gegossen',
+      doubleMoonbow:
+        'Ein doppelter Mondregenbogen: ihr habt heute beide gegossen',
       together: {
         swing:
           'Ihr zwei sitzt zusammen auf der Schaukel, ihr habt heute beide einen Samen geschickt',
@@ -788,7 +872,7 @@ const games = {
         close: 'Schließen',
       },
       feedback: {
-        title: 'Auf diesem Gerät',
+        title: 'Nur für dich',
         sound: 'Geräusche im Garten',
         soundHint: 'Leise Töne beim Pflanzen, Gießen und bei den Tieren.',
         vibration: 'Sanftes Vibrieren',

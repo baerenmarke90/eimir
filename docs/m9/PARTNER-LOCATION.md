@@ -194,6 +194,17 @@ Indefinite sharing must stay energy-efficient for unlimited duration.
 - No external provider is needed; distance is computed in the API process.
 - Map tiles reuse the existing MapLibre/OpenStreetMap configuration.
 
+The worker checks at most 200 due grants per transaction, oldest deadline first.
+It advances each examined grant by 15 minutes. A remaining backlog schedules
+another job after one second. For a burst of N due grants, the last batch
+starts after at most ceil(N / 200) − 1 such delays, plus queue wait and the
+actual batch runtimes. With an available worker and at most 400 active grants,
+the scheduling budget is therefore 15 minutes and one second plus those
+runtimes. A stalled worker can exceed that budget. The
+`oldest_due_seconds` metric in the retention completion log measures overdue
+work without identifying a person or place. Reads still enforce consent,
+membership, expiry and entitlement on every request.
+
 ## 9. Sources and destinations
 
 This slice ships **this device** as the only source. Dawarich is **optional**

@@ -13,20 +13,21 @@ import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import './PlanCalendarAction.css';
 
-/**
- * One quiet line under the calendar handoff when the Space syncs to a shared
- * calendar (#1895). It distinguishes the saved Plan from a confirmed external
- * event and never appears for Spaces without a shared calendar.
- */
-export function PlanCalendarSyncLine(props: {
+export type PlanCalendarSyncSource = {
   apiBaseUrl: string;
   accessToken: string;
   accountId: string;
   spaceId: string;
   planId: string;
   planVersion: number;
-}) {
-  const { t } = useTranslation();
+};
+
+/**
+ * The Plan's state in the Space's shared calendar (#1895), or null when the
+ * Space has no shared calendar. It distinguishes the saved Plan from a
+ * confirmed external event.
+ */
+export function usePlanCalendarSync(props: PlanCalendarSyncSource) {
   const api = useMemo(
     () => calendarSyncApi(props.apiBaseUrl, props.accessToken),
     [props.apiBaseUrl, props.accessToken],
@@ -74,15 +75,36 @@ export function PlanCalendarSyncLine(props: {
   if (!view?.targetStatus) return null;
   const paused = view.targetStatus !== 'ACTIVE';
   if (view.state === 'NOT_SYNCED' && !paused) return null;
-  const needsReview = view.state === 'CONFLICT' || view.state === 'FAILED';
+  return {
+    state: view.state,
+    paused,
+    synced: view.state === 'SYNCED' && !paused,
+    needsReview: view.state === 'CONFLICT' || view.state === 'FAILED',
+  };
+}
+
+export type PlanCalendarSync = NonNullable<
+  ReturnType<typeof usePlanCalendarSync>
+>;
+
+/**
+ * The shared calendar's state as the first line of the calendar sheet: a
+ * success check once the event exists there, otherwise the state with a way
+ * to review it in the calendar settings.
+ */
+export function PlanCalendarSyncLine({ sync }: { sync: PlanCalendarSync }) {
+  const { t } = useTranslation();
+  const { paused, needsReview, synced } = sync;
   const label = paused
     ? t('calendarSync.plan.paused')
-    : t(`calendarSync.plan.${view.state}`);
+    : t(`calendarSync.plan.${sync.state}`);
   return (
-    <p className="plan-calendar-sync-line" role="status">
-      <EimirIcon
-        name={view.state === 'SYNCED' && !paused ? 'check' : 'kalender'}
-      />
+    <p
+      className="plan-calendar-sync-line"
+      data-synced={synced || undefined}
+      role="status"
+    >
+      <EimirIcon name={synced ? 'check' : 'kalender'} />
       <span>{label}</span>
       {needsReview || paused ? (
         <Link to={SETTINGS_CATEGORY_ROUTES.calendar}>

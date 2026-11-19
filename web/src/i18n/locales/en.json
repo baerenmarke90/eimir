@@ -5490,6 +5490,7 @@
     "sheetTitle": "Calendar",
     "sheetClose": "Close calendar",
     "add": "Add to my calendar",
+    "addAlso": "Also add to my calendar",
     "download": "Download calendar file",
     "copyHint": "A one-time copy as a calendar event. Later changes to the plan are not automatically synchronized.",
     "unavailable": "The calendar file could not be created.",
@@ -6468,7 +6469,7 @@
       "fallback": "That didn’t work. Please try again."
     },
     "plan": {
-      "SYNCED": "Added to the shared calendar",
+      "SYNCED": "In your shared calendar",
       "PENDING": "Being transferred to your calendar",
       "FAILED": "Could not be transferred",
       "CONFLICT": "Changed in the calendar",

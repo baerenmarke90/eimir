@@ -136,7 +136,10 @@ export function GalleryExpandAction({
 
 /** How long the carousel's controls stay hidden after the last swipe. */
 const CONTROLS_REST_MS = 1500;
+/** How long resting controls stay before they leave the photo to itself. */
+const CONTROLS_QUIET_MS = 3000;
 const CONTROLS_HIDDEN_CLASS = 'is-browsing';
+const CONTROLS_QUIET_CLASS = 'is-quiet';
 
 export interface GalleryMediaItem {
   status?: string;
@@ -303,6 +306,7 @@ export function MediaGallery({
   const carouselScrollEndTimer = useRef<number | null>(null);
   const carouselViewport = useRef<HTMLDivElement | null>(null);
   const controlsRestTimer = useRef<number | null>(null);
+  const controlsQuietTimer = useRef<number | null>(null);
   const userBrowsing = useRef(false);
   const lightboxTrack = useRef<HTMLDivElement | null>(null);
   const lightboxSlides = useRef<Array<HTMLDivElement | null>>([]);
@@ -323,28 +327,63 @@ export function MediaGallery({
     cancelScrollFeedback(lightboxScrollFrame, lightboxScrollEndTimer);
   }, []);
   /**
-   * Overlaid controls get out of the way while the viewer swipes through the
-   * photos and return once the gesture has rested. Only the viewer's own
-   * gestures count, not layout or programmatic scrolling.
+   * Reading galleries show their overlaid controls for a moment and then fade
+   * them out, so the photo stands on its own. Any touch, pointer movement or
+   * focus in the gallery brings them back at once; faded controls still take
+   * a tap, and focus keeps them visible (see MediaGallery.css). The draft
+   * stage's edit controls always stay put.
    */
-  const holdBrowsing = useCallback((hideControls: boolean) => {
-    userBrowsing.current = true;
-    // The draft stage's edit controls stay put; reading galleries step aside.
+  const quietControlsLater = useCallback(() => {
+    if (controlsQuietTimer.current !== null)
+      window.clearTimeout(controlsQuietTimer.current);
+    controlsQuietTimer.current = null;
     const viewport = carouselViewport.current;
-    if (hideControls && viewport && !viewport.closest('.photo-draft-stage'))
-      viewport.classList.add(CONTROLS_HIDDEN_CLASS);
-    if (controlsRestTimer.current !== null)
-      window.clearTimeout(controlsRestTimer.current);
-    controlsRestTimer.current = window.setTimeout(() => {
-      controlsRestTimer.current = null;
-      userBrowsing.current = false;
-      carouselViewport.current?.classList.remove(CONTROLS_HIDDEN_CLASS);
-    }, CONTROLS_REST_MS);
+    if (!viewport || viewport.closest('.photo-draft-stage')) return;
+    viewport.classList.remove(CONTROLS_QUIET_CLASS);
+    controlsQuietTimer.current = window.setTimeout(() => {
+      controlsQuietTimer.current = null;
+      if (!userBrowsing.current)
+        carouselViewport.current?.classList.add(CONTROLS_QUIET_CLASS);
+    }, CONTROLS_QUIET_MS);
   }, []);
+  /**
+   * Overlaid controls get out of the way while the viewer swipes through the
+   * photos and return once the gesture has rested, before they step aside
+   * again. Only the viewer's own gestures count, not layout or programmatic
+   * scrolling.
+   */
+  const holdBrowsing = useCallback(
+    (hideControls: boolean) => {
+      userBrowsing.current = true;
+      if (controlsQuietTimer.current !== null)
+        window.clearTimeout(controlsQuietTimer.current);
+      controlsQuietTimer.current = null;
+      // The draft stage's edit controls stay put; reading galleries step aside.
+      const viewport = carouselViewport.current;
+      viewport?.classList.remove(CONTROLS_QUIET_CLASS);
+      if (hideControls && viewport && !viewport.closest('.photo-draft-stage'))
+        viewport.classList.add(CONTROLS_HIDDEN_CLASS);
+      if (controlsRestTimer.current !== null)
+        window.clearTimeout(controlsRestTimer.current);
+      controlsRestTimer.current = window.setTimeout(() => {
+        controlsRestTimer.current = null;
+        userBrowsing.current = false;
+        carouselViewport.current?.classList.remove(CONTROLS_HIDDEN_CLASS);
+        quietControlsLater();
+      }, CONTROLS_REST_MS);
+    },
+    [quietControlsLater],
+  );
+  const hasCarousel = !renderPreviews && items.length > 0;
+  useEffect(() => {
+    if (hasCarousel) quietControlsLater();
+  }, [hasCarousel, quietControlsLater]);
   useEffect(
     () => () => {
       if (controlsRestTimer.current !== null)
         window.clearTimeout(controlsRestTimer.current);
+      if (controlsQuietTimer.current !== null)
+        window.clearTimeout(controlsQuietTimer.current);
     },
     [],
   );
@@ -906,6 +945,11 @@ export function MediaGallery({
           <div
             ref={carouselViewport}
             className="media-gallery-carousel-viewport"
+            onPointerDownCapture={quietControlsLater}
+            onPointerMove={(event) => {
+              if (event.pointerType === 'mouse') quietControlsLater();
+            }}
+            onFocusCapture={quietControlsLater}
           >
             <div
               ref={carouselTrack}

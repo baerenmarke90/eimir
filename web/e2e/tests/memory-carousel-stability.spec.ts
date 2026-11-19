@@ -2114,12 +2114,13 @@ test('Memory carousel controls step aside while swiping and return after a rest'
 
   const viewport = page.locator('.media-gallery-carousel-viewport');
   const counter = page.locator('.media-gallery-carousel-counter');
-  await expect(counter).toHaveCSS('opacity', '1');
   const box = await viewport.boundingBox();
   if (!box) throw new Error('The carousel must be measurable');
+  // Pointer movement wakes controls that may already have faded out.
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(counter).toHaveCSS('opacity', '1');
   // A horizontal gesture on the photos, then the track scrolls. The scroll is
   // dispatched directly so the check does not depend on real layout widths.
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.wheel(160, 0);
   await page
     .locator('.media-gallery-carousel-track')
@@ -2127,5 +2128,31 @@ test('Memory carousel controls step aside while swiping and return after a rest'
   await expect(viewport).toHaveClass(/is-browsing/);
   await expect(counter).toHaveCSS('opacity', '0');
   await expect(viewport).not.toHaveClass(/is-browsing/, { timeout: 5_000 });
+  await expect(counter).toHaveCSS('opacity', '1');
+});
+
+test('Memory carousel controls fade out after a quiet moment and return on pointer movement', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await installApiMocks(page);
+  await page.goto('/today');
+  await signIn(page);
+  await openMemory(page);
+  await positionGalleryForReading(page);
+
+  const viewport = page.locator('.media-gallery-carousel-viewport');
+  const counter = page.locator('.media-gallery-carousel-counter');
+  const box = await viewport.boundingBox();
+  if (!box) throw new Error('The carousel must be measurable');
+  // Keep the pointer away from the photo so only time passes.
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height + 120);
+  await expect(viewport).toHaveClass(/is-quiet/, { timeout: 6_000 });
+  await expect(counter).toHaveCSS('opacity', '0');
+  // Faded controls still take a tap; they are not removed from the page.
+  await expect(counter).toHaveCSS('pointer-events', 'auto');
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(viewport).not.toHaveClass(/is-quiet/);
   await expect(counter).toHaveCSS('opacity', '1');
 });

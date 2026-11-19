@@ -547,3 +547,50 @@ it('hides the overlaid controls while the viewer swipes and restores them after 
     vi.useRealTimers();
   }
 });
+
+it('fades reading controls after a quiet moment and wakes them on a touch', async () => {
+  vi.useFakeTimers();
+  const view = render(
+    <MediaGallery items={images} loadMedia={() => new Promise(() => {})} />,
+  );
+  const viewport = view.container.querySelector<HTMLDivElement>(
+    '.media-gallery-carousel-viewport',
+  );
+  try {
+    if (!viewport) throw new Error('The carousel viewport must be rendered.');
+    expect(viewport.classList.contains('is-quiet')).toBe(false);
+    await act(async () => vi.advanceTimersByTime(2_900));
+    expect(viewport.classList.contains('is-quiet')).toBe(false);
+    await act(async () => vi.advanceTimersByTime(200));
+    expect(viewport.classList.contains('is-quiet')).toBe(true);
+
+    fireEvent.pointerDown(viewport);
+    expect(viewport.classList.contains('is-quiet')).toBe(false);
+    await act(async () => vi.advanceTimersByTime(3_100));
+    expect(viewport.classList.contains('is-quiet')).toBe(true);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('keeps the draft stage controls in place', async () => {
+  vi.useFakeTimers();
+  const stage = document.createElement('div');
+  stage.className = 'photo-draft-stage';
+  document.body.append(stage);
+  const view = render(
+    <MediaGallery items={images} loadMedia={() => new Promise(() => {})} />,
+    { container: stage },
+  );
+  try {
+    await act(async () => vi.advanceTimersByTime(5_000));
+    expect(
+      view.container
+        .querySelector('.media-gallery-carousel-viewport')
+        ?.classList.contains('is-quiet'),
+    ).toBe(false);
+  } finally {
+    vi.useRealTimers();
+    stage.remove();
+  }
+});

@@ -1,4 +1,4 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Page, type Route, test } from '@playwright/test';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
@@ -116,11 +116,23 @@ test('Activity scope switches add no Back steps and keep the More origin', async
   await own.click();
   await expect(own).toHaveAttribute('aria-selected', 'true');
 
-  // An opened item returns to the selected scope, then to More.
-  await activityRow(page).click();
-  await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
-  await shellBack(page).click();
-  await expect(page).toHaveURL(/\/today\/activity\?scope=own$/);
+  // Back must use the opened item's origin even while its route code is in flight.
+  const scripts = '**/assets/*.js';
+  const gate = Promise.withResolvers<void>();
+  const holdScript = async (route: Route) => {
+    await gate.promise;
+    await route.fallback();
+  };
+  await page.route(scripts, holdScript);
+  try {
+    await activityRow(page).click();
+    await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
+    await shellBack(page).click();
+    await expect(page).toHaveURL(/\/today\/activity\?scope=own$/);
+  } finally {
+    gate.resolve();
+    await page.unroute(scripts, holdScript);
+  }
   await expect(own).toHaveAttribute('aria-selected', 'true');
   await shellBack(page).click();
   await expect(page).toHaveURL(/\/more$/);

@@ -394,8 +394,11 @@ const WishSelectionPage = lazy(() =>
 
 function DeferredRoutes({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
+  const { pathname } = useLocation();
+  // Retire the previous page's Back control while its destination loads.
   return (
     <Suspense
+      key={pathname}
       fallback={<UiState kind="loading" title={t('states.loading.title')} />}
     >
       <Routes>{children}</Routes>

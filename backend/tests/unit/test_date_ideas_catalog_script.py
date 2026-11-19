@@ -31,7 +31,7 @@ def _write(path: Path, data: dict[str, Any]) -> Path:
 
 def test_validate_accepts_copy_edits_and_reordering(tmp_path: Path, bundled_target: Path) -> None:
     edited = _bundled()
-    edited["catalogVersion"] = "1.0.1"
+    edited["catalogVersion"] = "1.1.1"
     edited["ideas"][0]["copy"]["de"]["title"] = "Edited title"
     edited["ideas"].reverse()
     assert date_ideas_catalog.main(["validate", str(_write(tmp_path / "e.json", edited))]) == 0
@@ -45,7 +45,7 @@ def test_validate_rejects_invalid_files(tmp_path: Path, bundled_target: Path) ->
 
 def test_import_copies_the_validated_file_verbatim(tmp_path: Path, bundled_target: Path) -> None:
     edited = _bundled()
-    edited["catalogVersion"] = "1.1.0"
+    edited["catalogVersion"] = "1.2.0"
     source = _write(tmp_path / "next.json", edited)
     assert date_ideas_catalog.main(["import", str(source)]) == 0
     assert bundled_target.read_bytes() == source.read_bytes()
@@ -55,3 +55,27 @@ def test_import_copies_the_validated_file_verbatim(tmp_path: Path, bundled_targe
     before = bundled_target.read_bytes()
     assert date_ideas_catalog.main(["import", str(_write(tmp_path / "x.json", invalid))]) == 1
     assert bundled_target.read_bytes() == before
+
+
+def test_import_retires_an_id_without_forgetting_previous_retirements(
+    tmp_path: Path, bundled_target: Path
+) -> None:
+    edited = _bundled()
+    before = bundled_target.read_bytes()
+    replaced = edited["ideas"][0]["id"]
+    edited["ideas"][0]["id"] = "eimir-date-998"
+    source = tmp_path / "next.json"
+
+    assert date_ideas_catalog.main(["import", str(_write(source, edited))]) == 1
+    assert bundled_target.read_bytes() == before
+
+    edited["retiredIdeaIds"].append(replaced)
+    previously_retired = edited["retiredIdeaIds"].pop(0)
+    edited["ideas"][0]["id"] = previously_retired
+    assert date_ideas_catalog.main(["import", str(_write(source, edited))]) == 1
+    assert bundled_target.read_bytes() == before
+
+    edited["ideas"][0]["id"] = "eimir-date-998"
+    edited["retiredIdeaIds"].append(previously_retired)
+    assert date_ideas_catalog.main(["import", str(_write(source, edited))]) == 0
+    assert bundled_target.read_bytes() == source.read_bytes()

@@ -10,10 +10,9 @@ the file without code changes.
 
 Rules from the handoff:
 
-- Idea IDs (``eimir-date-001`` ... ``eimir-date-200``) are persistent editorial
-  identifiers, stable across locales, copy edits and reordering. They are never
-  Wish or Plan IDs; adopting an idea copies its text into an ordinary Wish or
-  Plan through the existing composers.
+- Idea IDs are stable across locales, copy edits and reordering. Retired IDs
+  never return to the active catalog. Adoption uses the ordinary Wish and Plan
+  composers and their own identifiers.
 - A missing locale uses the whole default-locale entry, never a field mix.
 - Filters use structured metadata only. Upper bounds are inclusive; a budget
   of 0 means no new spending; no place filter ("anywhere") covers both places.
@@ -35,7 +34,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_vali
 
 SCHEMA_VERSION = 1
 IDEA_COUNT = 200
-IDEA_ID_PATTERN = r"^eimir-date-(00[1-9]|0[1-9][0-9]|1[0-9]{2}|200)$"
+IDEA_ID_PATTERN = r"^eimir-date-(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$"
 CATALOG_VERSION_PATTERN = r"^1\.[0-9]+\.[0-9]+$"
 MINUTES_MAX = 60
 BUDGET_MAX = 20
@@ -45,6 +44,7 @@ Label = Annotated[str, StringConstraints(min_length=1, max_length=48, pattern=r"
 Title = Annotated[str, StringConstraints(min_length=1, max_length=70, pattern=r"\S")]
 Description = Annotated[str, StringConstraints(min_length=1, max_length=200, pattern=r"\S")]
 Prerequisite = Annotated[str, StringConstraints(min_length=1, max_length=145, pattern=r"\S")]
+IdeaId = Annotated[str, Field(pattern=IDEA_ID_PATTERN)]
 
 
 class DateIdeaPlaceType(StrEnum):
@@ -118,7 +118,7 @@ class IdeaCopies(_FileModel):
 
 
 class CatalogIdea(_FileModel):
-    id: Annotated[str, Field(pattern=IDEA_ID_PATTERN)]
+    id: IdeaId
     minutes: Annotated[int, Field(ge=1, le=MINUTES_MAX, strict=True)]
     budget_eur_for_two: Annotated[int, Field(ge=0, le=BUDGET_MAX, strict=True)] = Field(
         alias="budgetEurForTwo"
@@ -140,6 +140,7 @@ class CatalogFile(_FileModel):
     currency: Literal["EUR"]
     place_type_labels: PlaceTypeLabels = Field(alias="placeTypeLabels")
     category_labels: CategoryLabels = Field(alias="categoryLabels")
+    retired_idea_ids: tuple[IdeaId, ...] = Field(default=(), alias="retiredIdeaIds")
     ideas: Annotated[list[CatalogIdea], Field(min_length=IDEA_COUNT, max_length=IDEA_COUNT)]
 
     @model_validator(mode="after")
@@ -151,15 +152,20 @@ class CatalogFile(_FileModel):
 
 
 def _consistency_problems(catalog: CatalogFile) -> Iterable[str]:
+    retired = set(catalog.retired_idea_ids)
+    if len(retired) != len(catalog.retired_idea_ids):
+        yield "retired idea IDs must be unique"
     seen: set[str] = set()
     for idea in catalog.ideas:
+        if idea.id in retired:
+            yield f"retired idea id {idea.id!r} cannot be active"
         if idea.id in seen:
             yield f"duplicate idea id {idea.id!r}"
         seen.add(idea.id)
 
 
 def removed_idea_ids(previous: CatalogFile, candidate: CatalogFile) -> list[str]:
-    """IDs that ``candidate`` would drop. Persistent IDs must stay available."""
+    """Formerly active IDs that are absent from the candidate catalog."""
     kept = {idea.id for idea in candidate.ideas}
     return sorted(idea.id for idea in previous.ideas if idea.id not in kept)
 

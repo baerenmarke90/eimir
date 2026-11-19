@@ -94,6 +94,29 @@ npm ci
 npm run measure        # REPEAT=5 by default; results/summary.md and results/results.json
 ```
 
+## On-device build (local only)
+
+The branch adds an Android build type `gesturetest`. It produces a separate app with the package `de.eimir.app.gesturetest` and the label "eimir Gestentest", installed beside the real app.
+
+- **Its own manifest** replaces the launcher activity without intent filters. The test app never claims eimir. links, the custom URL scheme or the audio share target.
+- **Its web content** is this harness, not the eimir. web app. It runs in the real Capacitor WebView with no account and no server.
+- **It opens on a German overview page** (`index.html`) for the three variants. On every variant page you can:
+  - reset the sheet;
+  - switch "Mit Last" (24 ms of main-thread work per frame for 800 ms from release);
+  - see the last gesture's values.
+- **The values are also logged** as one JSON line per gesture: `adb logcat -s Capacitor/Console | findstr gesture-test`.
+
+It is never published: no release, tag or workflow. Build and install it with:
+
+```sh
+cd tools/gesture-test && npm ci && npx vite build
+cd ../../web && npm ci --ignore-scripts && rm -rf dist && cp -r ../tools/gesture-test/dist dist && npx cap sync android
+cd ../android && ./gradlew --no-daemon assembleGesturetest   # JAVA_HOME = JDK 21, local.properties sdk.dir
+adb -s <serial> install app/build/outputs/apk/gesturetest/app-gesturetest.apk
+```
+
+Remove it on the phone (long-press "eimir Gestentest", then Uninstall), or with `adb -s <serial> uninstall de.eimir.app.gesturetest`.
+
 ## Limits
 
 - Headless desktop Chromium with CPU throttling approximates a mid-range Android phone; it is not one. GPU raster, the Android WebView compositor, touch input latency and thermal throttling are not covered. **An on-device check needs an Android test build**, which this test did not start.

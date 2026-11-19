@@ -98,3 +98,58 @@ body {
   transform: translateY(100%);
   transition: transform var(--duration-context) var(--easing-exit);
 }
+
+/* On-device controls (gesture-test build). */
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 8px;
+  background: rgb(246 241 238 / 96%);
+  border-bottom: 1px solid #e4d9d4;
+}
+
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.toolbar-title {
+  flex: 1;
+  font-size: 15px;
+}
+
+.toolbar-button,
+.toolbar-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #cfc4c0;
+  border-radius: 20px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.toolbar-button.primary {
+  border-color: #2f6fdb;
+  background: #2f6fdb;
+  color: #fff;
+}
+
+.toolbar-chip.active {
+  border-color: #2b2226;
+  background: #2b2226;
+  color: #fff;
+}
+
+.toolbar-stats {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}

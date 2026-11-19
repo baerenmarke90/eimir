@@ -86,6 +86,15 @@ android {
             applicationIdSuffix ".debug"
             versionNameSuffix "-debug"
         }
+        // Gesture test (#2067, branch claude/gesture-test-2067 only, never main):
+        // a separate app beside eimir. whose web content is the comparison page
+        // from tools/gesture-test. Installed locally with adb, never published.
+        gesturetest {
+            initWith debug
+            applicationIdSuffix ".gesturetest"
+            versionNameSuffix "-gesturetest"
+            matchingFallbacks = ['debug']
+        }
         release {
             signingConfig signingConfigs.findByName("release")
             minifyEnabled false

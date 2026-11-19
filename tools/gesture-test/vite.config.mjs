@@ -10,6 +10,7 @@ export default defineConfig({
     manifest: true,
     rolldownOptions: {
       input: {
+        index: resolve(here, 'index.html'),
         baseline: resolve(here, 'baseline.html'),
         current: resolve(here, 'current.html'),
         waapi: resolve(here, 'waapi.html'),

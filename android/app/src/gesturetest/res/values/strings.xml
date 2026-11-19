@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Gesture-test build only (#2067): a distinct launcher label. -->
+<resources>
+    <string name="app_name">eimir Gestentest</string>
+    <string name="title_activity_main">eimir Gestentest</string>
+    <string name="custom_url_scheme">de.eimir.app.gesturetest</string>
+</resources>

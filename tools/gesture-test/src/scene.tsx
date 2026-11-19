@@ -7,6 +7,7 @@
 import { type ReactNode, StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './scene.css';
+import { Toolbar } from './toolbar';
 
 export const SHEET_HEIGHT_RATIO = 0.6;
 
@@ -89,6 +90,8 @@ function startLoad(loadMs: number) {
 function startSampling() {
   const sample = () => {
     probe.samples.push({ t: performance.now(), y: sheetOffset() });
+    // Keep about a minute of frames on a device that stays open.
+    if (probe.samples.length > 4000) probe.samples.splice(0, 1000);
     requestAnimationFrame(sample);
   };
   requestAnimationFrame(sample);
@@ -130,7 +133,7 @@ export function SheetContent() {
   );
 }
 
-export function mountScene(sheet: ReactNode) {
+export function mountScene(sheet: ReactNode, variant?: string) {
   const params = new URLSearchParams(location.search);
   startLoad(Number(params.get('load') ?? 0));
   startSampling();
@@ -138,6 +141,7 @@ export function mountScene(sheet: ReactNode) {
   if (!root) throw new Error('missing root');
   createRoot(root).render(
     <StrictMode>
+      {variant ? <Toolbar variant={variant} /> : null}
       <Feed />
       {sheet}
     </StrictMode>,

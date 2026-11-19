@@ -135,6 +135,7 @@ export async function expectComposerDate(
 /** Audience radios retain their native keyboard behavior in their choice task. */
 export async function showHeartAudience(page: Page) {
   const disclosure = page.locator('.composer-audience');
+  await expect(disclosure).toBeVisible();
   const button = disclosure.getByRole('button');
   if (await button.count()) {
     const sheet = page.locator('dialog.composer-audience-sheet');

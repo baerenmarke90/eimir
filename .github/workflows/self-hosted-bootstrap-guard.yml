@@ -133,7 +133,7 @@ jobs:
           import sys
 
           text = sys.stdin.read()
-          matches = re.findall(r"/auth/verify-email\?token=([A-Za-z0-9._~-]+)", text)
+          matches = re.findall(r"/auth/verify-email#token=([A-Za-z0-9._~-]+)", text)
           print(matches[-1] if matches else "")
           ')
             if [ -n "$verification_token" ]; then

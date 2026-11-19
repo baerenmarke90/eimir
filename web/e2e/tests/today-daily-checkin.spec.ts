@@ -782,6 +782,12 @@ test('once the check-in prompt line is gone and nobody has a mark, the row it ke
   page,
 }) => {
   await installMocks(page);
+  // The row belongs to the Verbunden stage; this spec otherwise renders the
+  // Offen hero, which has no row that stays behind. Registered after the
+  // mocks so it answers first.
+  await page.route('**/api/v1/**/appearance/wir-design', (route) =>
+    route.fulfill({ json: { designId: 'connected', version: 1 } }),
+  );
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   // The hint was seen on this device already, so its line never shows.

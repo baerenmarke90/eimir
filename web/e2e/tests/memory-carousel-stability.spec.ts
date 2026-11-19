@@ -2149,7 +2149,11 @@ test('Memory carousel controls fade out after a quiet moment and return on point
   await expect(viewport).toHaveClass(/is-quiet/, { timeout: 6_000 });
   await expect(counter).toHaveCSS('opacity', '0');
   // Faded controls still take a tap; they are not removed from the page.
-  await expect(counter).toHaveCSS('pointer-events', 'auto');
+  // (The counter itself is never interactive, so the arrow is checked.)
+  await expect(page.locator('.media-gallery-carousel-next')).toHaveCSS(
+    'pointer-events',
+    'auto',
+  );
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await expect(viewport).not.toHaveClass(/is-quiet/);
   await expect(counter).toHaveCSS('opacity', '1');

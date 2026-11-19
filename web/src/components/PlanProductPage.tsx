@@ -534,6 +534,15 @@ export function PlanProductPage({
   const hasSubfacts = Boolean(plan.experiencedOn);
   const showsLifecycle =
     plan.capabilities.canEdit && plan.status !== 'COMPLETED';
+  // Ticking a plan off is the next step once its day has come or when it has
+  // no day. Before that the action waits in the item menu, so a plan for next
+  // month does not ask to be marked as experienced.
+  const plannedDay = plan.plannedStart
+    ? localCalendarDateInput(plan.plannedStart)
+    : plan.plannedOn
+      ? plan.plannedOn.toISOString().slice(0, 10)
+      : null;
+  const completionDue = !plannedDay || plannedDay <= localCalendarDateInput();
   const completionScope = `${spaceId}:${plan.id}`;
   const completionOpen =
     completionTarget === completionScope &&
@@ -1209,7 +1218,7 @@ export function PlanProductPage({
             </button>
           </section>
         ) : null}
-        {!isEditing && showsLifecycle ? (
+        {!isEditing && showsLifecycle && completionDue ? (
           <section className="planen-completion-action">
             {lifecycleError && !completionOpen ? (
               <ProblemState
@@ -1237,7 +1246,7 @@ export function PlanProductPage({
           onPresenceChange={setCompletionSheetPresent}
           title={t('m5s3.plan.completeDateTitle')}
           className="planen-completion-sheet"
-          restoreFocusRef={completionTrigger}
+          restoreFocusRef={completionDue ? completionTrigger : menuTrigger}
           onClose={() => setCompletionTarget(null)}
           isCloseBlocked={writesPending}
           footer={
@@ -1362,6 +1371,18 @@ export function PlanProductPage({
             onClick={() =>
               leaveItemMenu(menuSheet, startEdit, () => setMenuOpen(false))
             }
+          />
+        ) : null}
+        {showsLifecycle && !completionDue ? (
+          <ItemMenuOption
+            icon="check"
+            title={t('m5s3.plan.complete')}
+            disabled={writesPending}
+            onClick={() => {
+              if (isPlanWritePending()) return;
+              setMenuOpen(false);
+              setCompletionTarget(completionScope);
+            }}
           />
         ) : null}
         {plan.capabilities.canDelete ? (

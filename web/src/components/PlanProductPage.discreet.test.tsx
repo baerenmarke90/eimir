@@ -42,9 +42,9 @@ function renderPlan(overrides: Partial<PlanDetail> = {}) {
     experiencedOn: null,
     id: 'plan-1',
     placeId: 'place-1',
-    plannedEnd: new Date(2026, 10, 22, 11),
+    plannedEnd: new Date(2099, 10, 22, 11),
     plannedOn: null,
-    plannedStart: new Date(2026, 10, 21, 19),
+    plannedStart: new Date(2099, 10, 21, 19),
     sourceWishId: null,
     spaceId: 'space-1',
     status: 'PLANNED',
@@ -143,7 +143,9 @@ describe('PlanProductPage discreet plans (#1790 F3)', () => {
     expect(
       screen.queryByRole('heading', { name: t('comments.heading') }),
     ).toBeNull();
-    // Schedule actions stay available while concealed.
+    // Schedule actions stay available while concealed; the plan is still
+    // ahead, so the completion waits in its menu.
+    fireEvent.click(screen.getByRole('button', { name: t('m5s3.plan.menu') }));
     expect(
       screen.getByRole('button', { name: t('m5s3.plan.complete') }),
     ).toBeTruthy();

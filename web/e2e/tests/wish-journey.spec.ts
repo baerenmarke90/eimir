@@ -497,7 +497,13 @@ async function expectCurrentStep(page: Page, label: string) {
 }
 
 async function completeMarketPlan(page: Page): Promise<void> {
-  await page.locator('.planen-complete-cta').click();
+  // The market is still ahead, so the completion waits in the plan menu.
+  await expect(page.locator('.planen-complete-cta')).toHaveCount(0);
+  await page.getByRole('button', { name: m5s3.plan.menu }).click();
+  await page
+    .locator('.item-menu')
+    .getByRole('button', { name: m5s3.plan.complete })
+    .click();
   await page.getByLabel(m5s3.plan.experiencedOn).fill(TODAY);
   await page
     .locator('.planen-completion-sheet')

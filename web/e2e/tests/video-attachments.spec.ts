@@ -378,7 +378,7 @@ for (const [width, colorScheme] of [
     await expect(progress).toHaveAttribute('value', '17');
     expect((await progress.boundingBox())?.width).toBeGreaterThan(100);
     await page
-      .locator('.memory-provenance-footer')
+      .locator('.comments-panel')
       .evaluate((element) =>
         element.scrollIntoView({ block: 'center', inline: 'nearest' }),
       );

@@ -1195,18 +1195,18 @@ async function geometry(page: Page) {
     const frame = document.querySelector<HTMLElement>(
       '.media-gallery-carousel-viewport',
     );
-    const provenance = document.querySelector<HTMLElement>(
-      '.memory-provenance-footer',
+    const belowGallery = document.querySelector<HTMLElement>(
+      '.comments-panel',
     );
-    if (!frame || !provenance) {
+    if (!frame || !belowGallery) {
       throw new Error('Memory carousel geometry did not render.');
     }
     const frameRect = frame.getBoundingClientRect();
-    const provenanceRect = provenance.getBoundingClientRect();
+    const belowGalleryRect = belowGallery.getBoundingClientRect();
     return {
       scrollY: window.scrollY,
       frameHeight: frameRect.height,
-      provenanceDocumentY: provenanceRect.top + window.scrollY,
+      belowGalleryDocumentY: belowGalleryRect.top + window.scrollY,
     };
   });
 }
@@ -1220,7 +1220,7 @@ function expectStableGeometry(
     1,
   );
   expect(
-    Math.abs(after.provenanceDocumentY - before.provenanceDocumentY),
+    Math.abs(after.belowGalleryDocumentY - before.belowGalleryDocumentY),
   ).toBeLessThanOrEqual(1);
 }
 

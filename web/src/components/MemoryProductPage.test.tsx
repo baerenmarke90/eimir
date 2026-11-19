@@ -305,15 +305,19 @@ describe('Memory detail edit action (#1014)', () => {
     expect(await screen.findByTestId('edit-route')).toBeTruthy();
   });
 
-  it('shows no menu when the viewer can neither edit nor delete', async () => {
+  it('keeps only who recorded it in the menu when the viewer can neither edit nor delete', async () => {
     renderDetail('A shared evening', 'account-1', {
       canEdit: false,
       canDelete: false,
     });
     await screen.findByRole('heading', { name: 'A shared evening', level: 2 });
+    // Who recorded the entry is background, not part of the page.
+    expect(document.querySelector('.memory-provenance-footer')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: memoryProduct.menu }));
+    expect(document.querySelectorAll('.item-menu-option')).toHaveLength(0);
     expect(
-      screen.queryByRole('button', { name: memoryProduct.menu }),
-    ).toBeNull();
+      document.querySelector('.item-menu-footnote')?.textContent,
+    ).toContain(memoryProduct.authorLabel);
   });
 
   it('keeps the short date above content and an authored display title after media', async () => {

@@ -54,6 +54,13 @@
   color: var(--color-text-secondary);
   font: var(--font-supporting-copy);
 }
+/* Background facts below the rows, such as who recorded the item. */
+.item-menu-footnote {
+  margin: var(--space-3) 0 0;
+  padding-inline: var(--space-2);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
 .item-menu-option[data-danger] strong,
 .item-menu-option[data-danger] .eimir-icon {
   color: var(--color-error);

@@ -78,14 +78,6 @@ body:has(.memory-product-page:not(.page-composer-detail)) {
   padding-inline: var(--space-1);
   font-weight: 400;
 }
-.memory-product-page .memory-provenance-footer {
-  margin-block-start: 0;
-  padding-block-start: 0;
-  border-top: 0;
-}
-.memory-product-page .memory-provenance-footer p {
-  font: var(--font-supporting-copy);
-}
 .memory-product-page .page-heading p:not(.eyebrow) {
   margin-block: var(--space-2) 0;
   color: var(--color-text-secondary);
@@ -230,21 +222,6 @@ body:has(.memory-product-page:not(.page-composer-detail)) {
   width: 100%;
 }
 
-.memory-provenance-footer {
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border-subtle);
-  text-align: center;
-}
-
-.memory-provenance-footer p {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: 0.85rem;
-  font-weight: 550;
-  letter-spacing: 0.01em;
-}
-
 .memory-danger-zone {
   margin-top: var(--space-4);
   padding-top: var(--space-4);
@@ -338,14 +315,6 @@ body:has(.memory-product-page:not(.page-composer-detail)) {
   background: transparent;
   box-shadow: none;
   overflow: visible;
-}
-
-.memory-product-page .memory-provenance-footer {
-  text-align: start;
-}
-
-.memory-product-page .memory-provenance-footer p {
-  color: var(--color-text-secondary);
 }
 
 .memory-product-page.page-composer-detail .composer-header h1 {

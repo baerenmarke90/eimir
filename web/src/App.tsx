@@ -1,5 +1,3 @@
-import { CollectionProductPage } from './components/CollectionProductPage';
-import { OnceMessagesPage } from './components/OnceMessages';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   lazy,
@@ -65,6 +63,7 @@ import { createPartnerLocationApi } from './client/partnerLocation';
 import { PartnerNicknameProvider } from './client/partnerNickname';
 import { createPeopleApi } from './client/peopleApi';
 import { PersonColoursProvider } from './client/personColoursContext';
+import { PLAN_SHORT_LINK_ROUTE_PATTERN } from './client/planShortLink';
 import { createPrivateAreaApi } from './client/privateArea';
 import {
   clientProblemKind,
@@ -157,6 +156,7 @@ import { type StoryStartupReads, startStoryReads } from './client/storyStartup';
 import { useAccountLanguage } from './client/useAccountLanguage';
 import { useCalendarGoogleAppReturn } from './client/useCalendarGoogleAppReturn';
 import { useIdentityEntry } from './client/useIdentityEntry';
+import { usePlanShortLinkAppOpen } from './client/usePlanShortLinkAppOpen';
 import { useSessionRefresh } from './client/useSessionRefresh';
 import { useSystemTimeZone } from './client/useSystemTimeZone';
 import { useVideoTransferNavigation } from './client/useVideoTransferNavigation';
@@ -167,6 +167,7 @@ import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AppShell } from './components/AppShell';
 import { Brand } from './components/Brand';
 import { BrandedStartup } from './components/BrandedStartup';
+import { CollectionProductPage } from './components/CollectionProductPage';
 import { DemoEntry } from './components/DemoEntry';
 import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
@@ -179,10 +180,12 @@ import {
   SearchProductPage,
 } from './components/M4ProductPages';
 import { MoreOverviewPage } from './components/MoreOverviewPage';
+import { OnceMessagesPage } from './components/OnceMessages';
 import { PartnerLocationOnboarding } from './components/PartnerLocationOnboarding';
 import { PartnerLocationSync } from './components/PartnerLocationSync';
 import { PersonalSettingsSyncRuntime } from './components/PersonalSettingsSyncRuntime';
 import type { MapViewport } from './components/PlaceMapCanvas';
+import { PlanShortLinkRedirect } from './components/PlanShortLinkRedirect';
 import {
   type PrimaryTabPanel,
   PrimaryTabPanels,
@@ -927,6 +930,10 @@ function AuthenticatedApp({
               element={<PlanProductPage {...planningProductProps} />}
             />
             <Route
+              path={PLAN_SHORT_LINK_ROUTE_PATTERN}
+              element={<PlanShortLinkRedirect />}
+            />
+            <Route
               path={REMINDER_DETAIL_ROUTE_PATTERN}
               element={
                 <ReminderReadPage
@@ -1490,6 +1497,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const { t } = useTranslation();
   const { entryToken, clearEntryToken } = useIdentityEntry(config.apiBaseUrl);
   useCalendarGoogleAppReturn();
+  usePlanShortLinkAppOpen(config.apiBaseUrl);
   const [initialStoredSession] = useState(loadStoredSession);
   const [startupLocation] = useState(() => ({
     pathname: location.pathname,

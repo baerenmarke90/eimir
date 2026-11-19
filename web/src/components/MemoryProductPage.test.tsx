@@ -1,4 +1,3 @@
-import { i18n } from '../i18n';
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -14,6 +13,7 @@ import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
+import { i18n } from '../i18n';
 import de from '../i18n/locales/de';
 import memoryProduct from '../i18n/locales/memoryProduct';
 import photoPlaces from '../i18n/locales/photoPlaces';

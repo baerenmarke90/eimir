@@ -88,9 +88,9 @@ import {
 import { PlaceChoicePicker } from './PlaceChoicePicker';
 import { PlanCalendarSheet } from './PlanCalendarSheet';
 import { PlanCollectionLinks } from './PlanCollectionLinks';
-import { PlanNoteLinks } from './PlanNoteLinks';
 import { PlanCover } from './PlanCover';
 import { PlanFilesEditor, PlanFilesList } from './PlanFiles';
+import { PlanNoteLinks } from './PlanNoteLinks';
 import {
   PlanningDiscardConfirmation,
   usePlanningEditorLifecycle,

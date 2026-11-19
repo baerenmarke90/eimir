@@ -8,9 +8,9 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import storyProducts from '../i18n/locales/storyProducts';
 import sensitiveMedia from '../i18n/locales/sensitiveMedia';
-import { MediaGallery, type GalleryMediaItem } from './MediaGallery';
+import storyProducts from '../i18n/locales/storyProducts';
+import { type GalleryMediaItem, MediaGallery } from './MediaGallery';
 
 const labels = storyProducts.gallery;
 const images: GalleryMediaItem[] = Array.from({ length: 6 }, (_, index) => ({

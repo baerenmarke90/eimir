@@ -706,11 +706,11 @@
    Unlike swiping they still take a tap, and any touch, pointer movement or
    focus brings them back at once (MediaGallery.tsx). */
 .media-gallery-carousel-viewport.is-quiet
-  > :not(
-    .media-gallery-carousel-track,
-    .media-gallery-sensitive-control,
-    :focus-within
-  ) {
+> :not(
+  .media-gallery-carousel-track,
+  .media-gallery-sensitive-control,
+  :focus-within
+) {
   opacity: 0;
   transition: opacity var(--duration-context) var(--easing-standard);
 }

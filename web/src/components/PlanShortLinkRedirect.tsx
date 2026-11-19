@@ -10,6 +10,9 @@ export function PlanShortLinkRedirect() {
   const { shortId = '' } = useParams();
   const planId = planIdFromShortId(shortId);
   return (
-    <Navigate replace to={planId ? planDetailPath(planId) : DEFAULT_APP_ROUTE} />
+    <Navigate
+      replace
+      to={planId ? planDetailPath(planId) : DEFAULT_APP_ROUTE}
+    />
   );
 }

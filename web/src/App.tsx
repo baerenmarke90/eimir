@@ -1,5 +1,3 @@
-import { CollectionProductPage } from './components/CollectionProductPage';
-import { OnceMessagesPage } from './components/OnceMessages';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   lazy,
@@ -65,6 +63,7 @@ import { createPartnerLocationApi } from './client/partnerLocation';
 import { PartnerNicknameProvider } from './client/partnerNickname';
 import { createPeopleApi } from './client/peopleApi';
 import { PersonColoursProvider } from './client/personColoursContext';
+import { PLAN_SHORT_LINK_ROUTE_PATTERN } from './client/planShortLink';
 import { createPrivateAreaApi } from './client/privateArea';
 import {
   clientProblemKind,
@@ -155,10 +154,9 @@ import {
 import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
 import { type StoryStartupReads, startStoryReads } from './client/storyStartup';
 import { useAccountLanguage } from './client/useAccountLanguage';
-import { PLAN_SHORT_LINK_ROUTE_PATTERN } from './client/planShortLink';
 import { useCalendarGoogleAppReturn } from './client/useCalendarGoogleAppReturn';
-import { usePlanShortLinkAppOpen } from './client/usePlanShortLinkAppOpen';
 import { useIdentityEntry } from './client/useIdentityEntry';
+import { usePlanShortLinkAppOpen } from './client/usePlanShortLinkAppOpen';
 import { useSessionRefresh } from './client/useSessionRefresh';
 import { useSystemTimeZone } from './client/useSystemTimeZone';
 import { useVideoTransferNavigation } from './client/useVideoTransferNavigation';
@@ -169,12 +167,12 @@ import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AppShell } from './components/AppShell';
 import { Brand } from './components/Brand';
 import { BrandedStartup } from './components/BrandedStartup';
+import { CollectionProductPage } from './components/CollectionProductPage';
 import { DemoEntry } from './components/DemoEntry';
 import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
 import { IdentityEntry } from './components/IdentityEntry';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
-import { PlanShortLinkRedirect } from './components/PlanShortLinkRedirect';
 import { LegalDocumentPage } from './components/LegalDocumentPage';
 import {
   ActivityProductPage,
@@ -182,10 +180,12 @@ import {
   SearchProductPage,
 } from './components/M4ProductPages';
 import { MoreOverviewPage } from './components/MoreOverviewPage';
+import { OnceMessagesPage } from './components/OnceMessages';
 import { PartnerLocationOnboarding } from './components/PartnerLocationOnboarding';
 import { PartnerLocationSync } from './components/PartnerLocationSync';
 import { PersonalSettingsSyncRuntime } from './components/PersonalSettingsSyncRuntime';
 import type { MapViewport } from './components/PlaceMapCanvas';
+import { PlanShortLinkRedirect } from './components/PlanShortLinkRedirect';
 import {
   type PrimaryTabPanel,
   PrimaryTabPanels,

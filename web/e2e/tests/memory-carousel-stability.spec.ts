@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs';
-import AxeBuilder from '../support/axe';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
@@ -9,6 +8,7 @@ import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import fixtureCopy from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
 import {
   expectInlineDraftActions,
@@ -22,9 +22,9 @@ import {
   installNativeAppLifecycle,
   nativeAppState,
 } from '../support/nativeAppLifecycle';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 import { captureScreenshot } from '../support/storyTimelineFixture';
-import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -1195,9 +1195,7 @@ async function geometry(page: Page) {
     const frame = document.querySelector<HTMLElement>(
       '.media-gallery-carousel-viewport',
     );
-    const belowGallery = document.querySelector<HTMLElement>(
-      '.comments-panel',
-    );
+    const belowGallery = document.querySelector<HTMLElement>('.comments-panel');
     if (!frame || !belowGallery) {
       throw new Error('Memory carousel geometry did not render.');
     }

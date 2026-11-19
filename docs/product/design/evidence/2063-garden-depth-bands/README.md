@@ -66,3 +66,23 @@ Notes:
 - Then it holds every part where it is (`animation-play-state: paused`).
 - Offscreen it rests at once.
 - Reduced motion keeps it still, as before.
+
+## Momente › Karte opening
+
+There are no map screenshots here: the map shows the account's personal places and photos. The behaviour was checked frame by frame on the device:
+
+- **First open after an app start:** the page shows its calm loading surface. The map, its photo stacks and the basemap then fade in together, in one piece.
+- **Returning to the map:** it is still mounted and shows completely at once.
+
+Cold open measurements, from the tap on Karte:
+
+| | Before (this PR's first push) | After |
+| --- | --- | --- |
+| Main-thread blocking by `URL.createObjectURL` | 416–665 ms | 0 ms (worker) |
+| Long tasks in total | 770–974 ms | 190–420 ms |
+| Map complete (basemap, photos) | built up piece by piece until about 2 s | 1.7 s, in one piece |
+| Return to the map | rebuilt each time | 14 ms, already complete |
+
+The single largest remaining block is starting the map's GPU surface (WebGL), about 190 ms. It happens once per app start.
+
+The first open also waited on four provider round trips (style, TileJSON, sprites, glyphs) before any tile. The style with its TileJSON is now kept on the device, and sprites and glyphs come from the native HTTP cache, so tiles load at once. A stored style older than a day is not used, and repeated missing tiles drop it.

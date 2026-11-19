@@ -1,7 +1,7 @@
 # Privacy policy draft: review notes
 
 Status: drafting baseline for the legal review of
-[`de/privacy-policy.md`](de/privacy-policy.md) (version `2026-11-06.draft-2`).
+[`de/privacy-policy.md`](de/privacy-policy.md) (version `2026-11-18.draft-6`).
 This file is not legal advice and is not shown to users. It records where each
 statement comes from, which facts the operator must supply and which decisions
 are open, so that the reviewer can check the draft against the product instead
@@ -49,7 +49,7 @@ Where a feature is not yet available, the draft says so explicitly.
 | 9 | „In Google Maps öffnen“ passes coordinates only | `web/src/client/photoPlaces.ts` |
 | 10 | Immich: personal HTTPS origin and API key, encrypted, account-scoped; selected-item copy; 10-min selection | `docs/product/integrations/1444-photo-source-delivery.md`, `backend/src/eimir/photo_sources/service.py` |
 | 10, 15 | Google Photos is gated off (#1467); its OAuth browser binding is the only cookie (`__Host-`, 10 min) | `docs/product/integrations/1444-google-security-gate.md`, `backend/src/eimir/photo_sources/browser_binding.py` |
-| 11 | Local Ollama in the deployment; shared content only; no prompts/outputs in logs | `docs/LOCAL-RECAP-AI.md`, `backend/src/eimir/context_tags/jobs.py` |
+| 11 | Local Ollama for weekly review selection and shared tag proposals. Only their bounded inputs are sent, and prompts and responses stay out of logs. | `docs/LOCAL-RECAP-AI.md`, `backend/src/eimir/daily_checkins/weekly_review.py`, `backend/src/eimir/context_tags/jobs.py` |
 | 11 | Eure Woche: the backend computes descriptive observations from visible Vibe/Energy values (selected week plus seven preceding weeks, bounded by retention); the model only selects observation and catalog IDs; no score, diagnosis or personality label | `docs/product/design/references/1546/weekly-ai.md`, `backend/src/eimir/daily_checkins/weekly_review.py` |
 | 12 | Mails: magic link, signup, verification; notification mail opt-in and content-free | `backend/src/eimir/i18n/locales/de.json`, `backend/src/eimir/engagement/email_delivery.py` |
 | 12 | Push on Android only (no browser Web Push): FCM wake payload `type`+`activationId`, or UnifiedPush; auto-init off; FID cleanup; Google's 180-day deletion statement | `docs/PRIVACY-MODEL.md` (#565), `android/app/build.gradle`, `AndroidManifest.xml` |

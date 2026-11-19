@@ -174,5 +174,5 @@ export default {
   details: 'Euer Anfang & nächste Anlässe',
   about: 'Wie entstehen eure Rückblicke?',
   aboutBody:
-    'Wir wählen aus gemeinsam sichtbaren Inhalten des gesamten Zeitraums. Unterschiedliche Monate, Arten von Momenten und verknüpfte Kapitel sorgen für Abwechslung. Eine lokale KI kann Titel und Einleitung formulieren. Die Auswahl funktioniert auch ohne sie. Private Inhalte und Entwürfe werden dafür nicht verwendet.',
+    'Wir wählen aus gemeinsam sichtbaren Inhalten des gesamten Zeitraums. Unterschiedliche Monate, Arten von Momenten und verknüpfte Kapitel sorgen für Abwechslung. Private Inhalte und Entwürfe werden dafür nicht verwendet.',
 };

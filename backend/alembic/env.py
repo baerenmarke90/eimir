@@ -114,6 +114,11 @@ def run_migrations_online() -> None:
         )
         with context.begin_transaction():
             context.run_migrations()
+    # After the migration, read-only and never fatal: data of plugins that are
+    # not loaded (Decision 0017).
+    from eimir.plugins.dormant import warn_dormant_plugin_data_once
+
+    warn_dormant_plugin_data_once(connectable)
 
 
 if context.is_offline_mode():

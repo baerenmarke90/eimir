@@ -3,9 +3,10 @@ name: Self-Hosted Deployment Guard
 on:
   push:
     branches: [main]
+  # Pull requests run the heavy job only in the full tier (tools/ci/change_scope.py, #2096).
   pull_request:
-  schedule:
-    - cron: '29 5 * * 1'
+    types: [opened, synchronize, reopened, ready_for_review]
+  # Nightly and manual runs come from the nightly regression dispatcher.
   workflow_dispatch:
 
 concurrency:
@@ -16,6 +17,11 @@ jobs:
   changes:
     name: Change Detection
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      # Labels and draft state are read live so a re-run after adding ci:full applies it.
+      pull-requests: read
     outputs:
       deployment_guard: ${{ steps.scope.outputs.deployment_guard }}
     steps:
@@ -33,6 +39,8 @@ jobs:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PUSH_BASE_SHA: ${{ github.event.before }}
           PUSH_HEAD_SHA: ${{ github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
@@ -64,7 +72,20 @@ jobs:
           git diff --name-only --no-renames "$base_sha" "$head_sha" > /tmp/changed-files.txt
           echo "Changed files:"
           cat /tmp/changed-files.txt
-          python3 tools/ci/change_scope.py /tmp/changed-files.txt >> "$GITHUB_OUTPUT"
+
+          tier_args=()
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            pr_state=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" \
+              --jq '{draft: .draft, labels: [.labels[].name] | join(",")}')
+            tier_args=(--pull-request
+              --draft "$(jq -r '.draft' <<< "$pr_state")"
+              --labels "$(jq -r '.labels' <<< "$pr_state")")
+          fi
+          python3 tools/ci/change_scope.py /tmp/changed-files.txt "${tier_args[@]}" > /tmp/scope-outputs.txt
+          cat /tmp/scope-outputs.txt >> "$GITHUB_OUTPUT"
+          cat /tmp/scope-outputs.txt
+          grep -E '^(tier|tier_reason)=' /tmp/scope-outputs.txt \
+            | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
 
   upgrade-rehearsal:
     name: Install, upgrade, rollback and Demo rehearsal

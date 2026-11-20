@@ -18,8 +18,32 @@ A Pull Request submission does not guarantee inclusion in the project.
 The [Browser impact selection contract](docs/m5/BROWSER-IMPACT-SELECTION.md) and
 the corresponding mandatory rule in `AGENTS.md` apply to every contributor and
 coding agent. Ordinary Web PRs use the shared always-run core plus affected
-product dependencies. Full regression remains automatic on `main` and for
-manual execution; unknown or ambiguous dependencies remain conservative.
+product dependencies when the pull request runs the full CI tier (see below).
+Full regression remains automatic on `main` through the nightly regression and
+for manual execution; unknown or ambiguous dependencies remain conservative.
+
+## CI tiers and the nightly regression
+
+GitHub Actions minutes are budgeted ([#2096](https://github.com/baerenmarke90/eimir/issues/2096)).
+Every pull request runs the cheap tier: lint, formatting, typing, unit and
+contract tests, Web Reference Flow, Secret Scan, Provenance and the review gates.
+The heavy suites run only on a pull request that is ready for review and either
+carries the `ci:full` label or touches a risk path listed in
+`tools/ci/change_scope.py`. They are browser E2E, Backend Integration, Backend
+Encrypted Mode, Android emulator, Self-Hosted rehearsals, Supply Chain container
+builds, Media Video, Release Evidence and CodeQL.
+
+- Add `ci:full` to risky changes. CI fails when a pull request changes a
+  label-gated workflow or its tooling without the label; add it and re-run the
+  failed Change Detection job.
+- Open one pull request per issue and keep follow-up fixes in it. Push complete,
+  locally checked states instead of intermediate snapshots.
+- Keep a pull request in draft until it is complete, then mark it ready for
+  review once. Draft pull requests always use the cheap tier.
+- The nightly regression (`.github/workflows/nightly-regression.yml`) dispatches
+  the complete suites on `main` when its revision is untested. It can also be
+  started manually. A failed run opens or updates the issue "Nightly regression
+  failed"; repair `main` before merging further features.
 
 When adding or changing a browser journey, update both inventories and review
 all relevant production roots, including navigation into another feature. Keep

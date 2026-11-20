@@ -1,6 +1,9 @@
 name: Release Evidence
 
 on:
+  # Pull requests run this heavy workflow only when ready for review and labelled
+  # ci:full (#2096); otherwise every job is skipped at no runner cost and the
+  # nightly regression on main covers it.
   pull_request:
     paths:
       - ".github/workflows/release-evidence.yml"
@@ -14,6 +17,7 @@ on:
       - "scripts/android_firebase_configuration.py"
       - "tools/ci/test_android_firebase_configuration.py"
       - "docs/m6/SBOM-ATTESTATIONS.md"
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
   workflow_dispatch:
     inputs:
       include_android:
@@ -74,7 +78,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-evidence-${{ github.workflow }}-${{ github.ref }}
+  group: release-evidence-${{ github.workflow }}-${{ github.ref }}${{ github.event.action == 'labeled' && github.event.label.name != 'ci:full' && format('-ignored-label-{0}', github.run_id) || '' }}
   # A newer pull-request push supersedes its evidence build; release runs are never cancelled.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
@@ -90,6 +94,7 @@ env:
 
 jobs:
   build-evidence:
+    if: github.event_name != 'pull_request' || (github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ci:full') && (github.event.action != 'labeled' || github.event.label.name == 'ci:full'))
     name: Build artifacts and SPDX SBOMs
     runs-on: ubuntu-latest
     permissions:

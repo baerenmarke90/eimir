@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom';
 import { planningIfMatch } from '../client/sharedPlanning';
+import { useInlineFieldError } from '../client/useInlineFieldError';
 import {
   ComposerChip,
   ComposerDescriptionField,
@@ -124,6 +125,9 @@ export function PlanningCreatePage({
   accountId?: string;
 }) {
   const { t } = useTranslation();
+  const titleError = useInlineFieldError({
+    missing: t('m5s3.plan.titleMissing'),
+  });
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -587,7 +591,13 @@ export function PlanningCreatePage({
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder={t('m5s3.plan.titleHint')}
+                {...titleError.fieldProps}
               />
+              {titleError.error ? (
+                <p id={titleError.errorId} className="field-error" role="alert">
+                  {titleError.error}
+                </p>
+              ) : null}
               <ComposerDescriptionField
                 id="planning-create-description"
                 hint={t('m5s3.plan.descriptionPlaceholder')}

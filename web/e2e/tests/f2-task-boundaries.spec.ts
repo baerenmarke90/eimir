@@ -5,6 +5,7 @@ import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
+import navigation from '../../src/i18n/locales/navigation';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
@@ -363,8 +364,15 @@ async function signIn(page: Page, destination = ORIGIN) {
 }
 
 async function openMemory(page: Page) {
+  // Momente offers moments; the Wir overview offers every create task (#2063).
   await page
     .getByRole('button', { name: de.story.addMoment, exact: true })
+    .or(
+      page.getByRole('button', {
+        name: navigation.quickCreateTitle,
+        exact: true,
+      }),
+    )
     .click();
   const target = page.getByRole('link', {
     name: composer.diaryEntry,
@@ -722,7 +730,7 @@ test('dirty Browser Back asks before discarding and nested Escape keeps the task
   ).toHaveValue(TITLE);
   await page.goBack();
   await confirmation
-    .getByRole('button', { name: taskBoundary.discard })
+    .getByRole('button', { name: taskBoundary.discardConfirm })
     .click();
   await expect(page).toHaveURL(/\/story\?.*year=2025/);
 });
@@ -755,7 +763,7 @@ test('an older Memory returns to the same loaded Timeline range and position', a
   // The root tab's opening rise (#1861) moves the rows for a moment. A click on
   // a moving row is retried with a different scroll alignment, which would
   // change the position this test compares against.
-  await expect(page.locator('.page[data-root-intro]')).toHaveCount(0);
+  await expect(page.locator('.page[data-motion-stage]')).toHaveCount(0);
   await source.scrollIntoViewIfNeeded();
   const before = await source.boundingBox();
   expect(before).not.toBeNull();

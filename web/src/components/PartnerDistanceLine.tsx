@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { type AnimationEvent, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { PartnerLocationApi } from '../api/generated/apis/PartnerLocationApi';
@@ -29,6 +29,10 @@ import {
 } from '../client/spaceEntitlement';
 import { resolvedLocale, useTranslation } from '../i18n';
 import './PartnerDistanceLine.css';
+import '../motion/motion.css';
+import { hasPlayed, markPlayed } from '../motion/playRegistry';
+
+const DISTANCE_WIGGLE = 'wir.distance.wiggle';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -188,6 +192,16 @@ export function PartnerDistanceLine({
   const { t } = useTranslation();
   const asOfLabel = useDistanceAsOfLabel();
   const distanceText = useDistanceText();
+  // The pin's one quiet wiggle plays once per session (Motion Contract M3,
+  // M4): the attribute that applies it goes when it ended or was cancelled.
+  const [wiggle, setWiggle] = useState(
+    () => !hasPlayed(DISTANCE_WIGGLE, 'session'),
+  );
+  const wiggled = (event: AnimationEvent<HTMLElement>) => {
+    if (!event.animationName?.includes('wiggle')) return;
+    markPlayed(DISTANCE_WIGGLE, 'session');
+    setWiggle(false);
+  };
 
   if (line.kind === 'hidden') return null;
 
@@ -241,8 +255,14 @@ export function PartnerDistanceLine({
     // A current position is marked (pin colour, one quiet wiggle); an earlier
     // one stays grey and still.
     const heroClass = `wir-hero-distance ${compactFresh ? 'is-fresh' : 'is-earlier'}`;
+    const wiggleProps = {
+      'data-motion-wiggle': (compactFresh && wiggle) || undefined,
+      onAnimationEnd: wiggled,
+      onAnimationCancel: wiggled,
+    };
     return line.mapAvailable ? (
       <Link
+        {...wiggleProps}
         className={heroClass}
         to={PARTNER_LOCATION_MAP_ROUTE}
         aria-label={`${compactDescription}. ${t('partnerLocation.distanceOpenMap')}`}
@@ -250,7 +270,7 @@ export function PartnerDistanceLine({
         {compactContent}
       </Link>
     ) : (
-      <p className={heroClass}>
+      <p {...wiggleProps} className={heroClass}>
         {compactContent}
         <span className="sr-only">{compactDescription}</span>
       </p>

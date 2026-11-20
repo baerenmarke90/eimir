@@ -507,7 +507,7 @@ test('completed Plan continuation opens canonical Memory capture and cancellatio
     .getByRole('button', { name: taskBoundary.close, exact: true })
     .click();
   await page
-    .getByRole('button', { name: taskBoundary.discard, exact: true })
+    .getByRole('button', { name: taskBoundary.discardConfirm, exact: true })
     .click();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
   await expect(page.locator('.planen-detail-status')).toHaveText(

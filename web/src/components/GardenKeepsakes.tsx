@@ -12,6 +12,7 @@ import { blob } from '../client/garden';
 import type { Keepsake } from '../client/gardenStory';
 import { useTranslation } from '../i18n';
 import './GardenKeepsakes.css';
+import '../motion/garden.css';
 
 type Style = CSSProperties & Record<`--${string}`, string>;
 

@@ -4,6 +4,7 @@ import type { ObjectUrlSource } from '../client/objectUrlResource';
 import type { VideoSource } from '../client/video';
 import { MemoryPreview } from './MemoryPreview';
 import './WirMomentGallery.css';
+import '../motion/motion.css';
 
 export type MomentImageLoader = (
   memoryId: string,

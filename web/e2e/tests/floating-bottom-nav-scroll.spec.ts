@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import AxeBuilder from '../support/axe';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -6,7 +8,10 @@ import m5s3 from '../../src/i18n/locales/m5s3';
 import navigationCopy from '../../src/i18n/locales/navigation';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { nextFrame } from '../support/mediaCarouselGesture';
-import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
+import {
+  installNativeAppLifecycle,
+  nativeHapticCalls,
+} from '../support/nativeAppLifecycle';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -1063,7 +1068,7 @@ test('native primary tab switching replaces root history but keeps nested task r
   await page.addInitScript(() => {
     document.addEventListener('animationstart', ({ target, animationName }) => {
       if (
-        animationName === 'short-task-sheet-exit' &&
+        animationName === 'eimir-motion-surface-out' &&
         target instanceof HTMLDialogElement &&
         target.matches('.contextual-create-sheet')
       ) {
@@ -1086,10 +1091,12 @@ test('native primary tab switching replaces root history but keeps nested task r
   await nav.locator('a[href="/today"]').click();
   await expect(page).toHaveURL(/\/today$/);
   expect(await page.evaluate(() => history.length)).toBe(historyLength);
-  const moment = page.getByRole('button', { name: de.story.addMoment });
+  const moment = page.getByRole('button', {
+    name: navigationCopy.quickCreateTitle,
+  });
   await moment.click();
   await page
-    .getByRole('dialog', { name: de.story.addMoment })
+    .getByRole('dialog', { name: navigationCopy.quickCreateTitle })
     .locator('a[href="/story/memories/new"]')
     .click();
   await expect(page).toHaveURL(/\/story\/memories\/new$/);
@@ -1823,4 +1830,608 @@ test.describe('floating create action while scrolling (#1790)', () => {
       await expectNoHorizontalOverflow(page);
     });
   }
+});
+
+/**
+ * Motion migration step 4 (#2075): shell, overlays and navigation on the
+ * motion layer. Run with VISUAL_EVIDENCE_DIR to export the evidence images
+ * (docs/product/design/evidence/2075).
+ */
+test.describe('shell, overlays and navigation on the motion layer (#2075)', () => {
+  type MotionLog = { css: string[]; tabs: string[]; offsets: string[] };
+
+  async function saveEvidence(page: Page, name: string) {
+    const output = test.info().outputPath(`${name}.png`);
+    await page.screenshot({ path: output });
+    const exportDir = process.env.VISUAL_EVIDENCE_DIR;
+    if (exportDir) {
+      fs.mkdirSync(exportDir, { recursive: true });
+      fs.copyFileSync(output, path.join(exportDir, `${name}.png`));
+    }
+  }
+
+  /**
+   * Records every CSS animation start (also with the primary tab it runs in)
+   * and every `left` route offset.
+   */
+  async function recordMotion(page: Page) {
+    await page.addInitScript(() => {
+      const log = {
+        css: [] as string[],
+        tabs: [] as string[],
+        offsets: [] as string[],
+      };
+      (window as unknown as { motionLog: typeof log }).motionLog = log;
+      document.addEventListener('animationstart', (event) => {
+        log.css.push(event.animationName);
+        const panel =
+          event.target instanceof Element
+            ? event.target.closest<HTMLElement>('[data-primary-tab]')
+            : null;
+        log.tabs.push(
+          `${event.animationName}@${panel?.dataset.primaryTab ?? ''}`,
+        );
+      });
+      const animate = Element.prototype.animate;
+      Element.prototype.animate = function (keyframes, options) {
+        const frames = Array.isArray(keyframes) ? keyframes : [];
+        const first = frames[0] as Keyframe | undefined;
+        if (first && 'left' in first && this.matches('.page'))
+          log.offsets.push(String(first.left));
+        return animate.call(this, keyframes, options);
+      };
+    });
+  }
+
+  const motionLog = (page: Page) =>
+    page.evaluate(
+      () => (window as unknown as { motionLog: MotionLog }).motionLog,
+    );
+
+  const clearMotionLog = (page: Page) =>
+    page.evaluate(() => {
+      const log = (window as unknown as { motionLog: MotionLog }).motionLog;
+      log.css.length = 0;
+      log.tabs.length = 0;
+      log.offsets.length = 0;
+    });
+
+  async function openQuickCreate(page: Page) {
+    const trigger = page.getByRole('button', {
+      name: navigationCopy.quickCreateTitle,
+    });
+    await trigger.click();
+    const sheet = page.getByRole('dialog', {
+      name: navigationCopy.quickCreateTitle,
+    });
+    await expect(sheet).toBeVisible();
+    return { trigger, sheet };
+  }
+
+  const runningLayerAnimations = (page: Page) =>
+    page.evaluate(() =>
+      document
+        .getAnimations()
+        .filter(
+          (animation) =>
+            animation.playState === 'running' &&
+            ((animation as CSSAnimation).animationName ?? '').startsWith(
+              'eimir-motion-',
+            ),
+        )
+        .map((animation) => (animation as CSSAnimation).animationName),
+    );
+
+  test('a sheet enters and exits on the catalogue for Close, Escape and the backdrop, and focus returns', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 740 });
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await recordMotion(page);
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await expect(page).toHaveURL(/\/today$/);
+
+    // Frame-sampled entrance: Compact slides the whole sheet up, so its
+    // translate falls to 0 while its opacity stays 1.
+    await clearMotionLog(page);
+    const { trigger, sheet } = await openQuickCreate(page);
+    const samples = await page.evaluate(async () => {
+      const dialog = document.querySelector('dialog.short-task-sheet');
+      const out: Array<{ translate: string; opacity: string }> = [];
+      for (let frame = 0; frame < 30 && dialog; frame += 1) {
+        const style = getComputedStyle(dialog);
+        out.push({ translate: style.translate, opacity: style.opacity });
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      return out;
+    });
+    test.info().annotations.push({
+      type: 'sheet-entrance-samples',
+      description: JSON.stringify(samples),
+    });
+    expect(samples.every((sample) => sample.opacity === '1')).toBe(true);
+    expect(samples.at(-1)?.translate).toMatch(/^(none|0px)$/);
+    const log = await motionLog(page);
+    expect(log.css).toContain('eimir-motion-surface-in');
+    expect(log.css).toContain('eimir-motion-backdrop-in');
+
+    // Escape: the shared exit, then the trigger has focus again.
+    await clearMotionLog(page);
+    await page.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
+    expect((await motionLog(page)).css).toContain('eimir-motion-surface-out');
+    await expect(trigger).toBeFocused();
+
+    // The close control.
+    await openQuickCreate(page);
+    await clearMotionLog(page);
+    await page
+      .locator('dialog.short-task-sheet .short-task-sheet-close')
+      .click();
+    await expect(sheet).toHaveCount(0);
+    expect((await motionLog(page)).css).toContain('eimir-motion-surface-out');
+    await expect(trigger).toBeFocused();
+
+    // The backdrop: a press above the sheet.
+    await openQuickCreate(page);
+    await clearMotionLog(page);
+    await page.mouse.click(195, 20);
+    await expect(sheet).toHaveCount(0);
+    expect((await motionLog(page)).css).toContain('eimir-motion-surface-out');
+    await expect(trigger).toBeFocused();
+
+    // Rapid open and close converge on closed, with nothing left running.
+    await trigger.click();
+    await page.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
+    await expect.poll(() => runningLayerAnimations(page)).toEqual([]);
+  });
+
+  test('navigation moves by direction, and a kept tab never replays its entrance', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 740 });
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await recordMotion(page);
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    const nav = page.locator('.mobile-bottom-nav');
+
+    // The first visit to Planen plays the root-tab entrance once. A later
+    // tab comes in from the inline end.
+    await clearMotionLog(page);
+    await primaryTabLink(nav, '/plan').click();
+    await expect(page).toHaveURL(/\/plan$/);
+    await expect
+      .poll(async () => (await motionLog(page)).css)
+      .toContain('eimir-motion-root-rise');
+    expect((await motionLog(page)).offsets).toContain('32px');
+    await expect(page.locator('.page[data-motion-stage]')).toHaveCount(0);
+
+    // Mehr, then Planen again: the kept tab shows its final state at once,
+    // and an earlier tab comes in from the inline start.
+    await primaryTabLink(nav, '/more').click();
+    await expect(page).toHaveURL(/\/more$/);
+    await expect(page.locator('.page[data-motion-stage]')).toHaveCount(0);
+    await clearMotionLog(page);
+    await primaryTabLink(nav, '/plan').click();
+    await expect(page).toHaveURL(/\/plan$/);
+    await expect(page.locator('.page[data-motion-stage]')).toHaveCount(0);
+    expect((await motionLog(page)).offsets).toContain('-32px');
+    expect((await motionLog(page)).tabs).not.toContain(
+      'eimir-motion-root-rise@/plan',
+    );
+
+    // Forward into a deeper page, then Back.
+    await primaryTabLink(nav, '/more').click();
+    await expect(page).toHaveURL(/\/more$/);
+    await clearMotionLog(page);
+    await page.locator('main a[href="/more/people"]').first().click();
+    await expect(page).toHaveURL(/\/more\/people$/);
+    await expect
+      .poll(async () => (await motionLog(page)).offsets)
+      .toEqual(['32px']);
+    await clearMotionLog(page);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/more$/);
+    await expect
+      .poll(async () => (await motionLog(page)).offsets)
+      .toEqual(['-32px']);
+    expect((await motionLog(page)).tabs).not.toContain(
+      'eimir-motion-root-rise@/more',
+    );
+  });
+
+  test('reduced motion shows sheets and destinations at once with the same focus', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 740 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await recordMotion(page);
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await expect(page).toHaveURL(/\/today$/);
+    await clearMotionLog(page);
+    const { trigger, sheet } = await openQuickCreate(page);
+    await expect(sheet.locator(':focus')).toHaveCount(1);
+    expect(await runningLayerAnimations(page)).toEqual([]);
+    await page.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await primaryTabLink(page.locator('.mobile-bottom-nav'), '/plan').click();
+    await expect(page).toHaveURL(/\/plan$/);
+    await expect(page.locator('.page[data-motion-stage]')).toHaveCount(0);
+    const log = await motionLog(page);
+    expect(log.offsets).toEqual([]);
+    expect(log.css.filter((name) => name.startsWith('eimir-motion-'))).toEqual(
+      [],
+    );
+    await saveEvidence(page, '2075-390-light-reduced-motion-plan');
+  });
+
+  for (const variant of [
+    { width: 360, theme: 'light', text: '' },
+    { width: 360, theme: 'dark', text: '' },
+    { width: 390, theme: 'light', text: '' },
+    { width: 390, theme: 'dark', text: '' },
+    { width: 430, theme: 'light', text: '' },
+    { width: 430, theme: 'dark', text: '' },
+    { width: 390, theme: 'light', text: '200%' },
+    { width: 1280, theme: 'light', text: '' },
+    { width: 1280, theme: 'dark', text: '' },
+  ] as const) {
+    const label = `${variant.width}-${variant.theme}${variant.text ? '-200-text' : ''}`;
+    test(`visual evidence 2075 ${label}`, async ({ page }) => {
+      await page.setViewportSize({ width: variant.width, height: 800 });
+      await page.emulateMedia({
+        colorScheme: variant.theme,
+        reducedMotion: 'no-preference',
+      });
+      await installApiMocks(page);
+      await page.goto('/login');
+      await signIn(page);
+      await expect(page).toHaveURL(/\/today$/);
+      const applyAppearance = () =>
+        page.evaluate(
+          ({ theme, text }) => {
+            document.documentElement.dataset.theme = theme;
+            if (text) document.documentElement.style.fontSize = text;
+          },
+          { theme: variant.theme, text: variant.text },
+        );
+      await applyAppearance();
+
+      // The sheet mid-entrance (paused at half its duration), then at rest.
+      await page.evaluate(() => {
+        document.addEventListener(
+          'animationstart',
+          (event) => {
+            if (event.animationName !== 'eimir-motion-surface-in') return;
+            for (const animation of document.getAnimations()) {
+              const name = (animation as CSSAnimation).animationName ?? '';
+              if (!name.startsWith('eimir-motion-')) continue;
+              const duration = Number(
+                animation.effect?.getComputedTiming().duration ?? 0,
+              );
+              animation.pause();
+              animation.currentTime = duration / 2;
+            }
+          },
+          { once: true },
+        );
+      });
+      const { sheet } = await openQuickCreate(page);
+      await saveEvidence(page, `2075-${label}-1-sheet-entering`);
+      await page.evaluate(() => {
+        for (const animation of document.getAnimations()) animation.finish();
+      });
+      await saveEvidence(page, `2075-${label}-2-sheet-open`);
+      await page.keyboard.press('Escape');
+      await expect(sheet).toHaveCount(0);
+
+      // A deeper page mid-arrival (paused at half), then settled.
+      const nav = page.locator(
+        variant.width >= 840 ? '.shell-nav' : '.mobile-bottom-nav',
+      );
+      await primaryTabLink(nav, '/more').click();
+      await expect(page).toHaveURL(/\/more$/);
+      await page.evaluate(() => {
+        for (const animation of document.getAnimations()) animation.finish();
+        const animate = Element.prototype.animate;
+        Element.prototype.animate = function (keyframes, options) {
+          const animation = animate.call(this, keyframes, options);
+          if (this.matches('.page, main.product-main')) {
+            const duration = Number(
+              animation.effect?.getComputedTiming().duration ?? 0,
+            );
+            animation.pause();
+            animation.currentTime = duration / 2;
+          }
+          return animation;
+        };
+      });
+      await page.locator('main a[href="/more/people"]').first().click();
+      await expect(page).toHaveURL(/\/more\/people$/);
+      await expect(page.locator('main .ui-state-loading')).toHaveCount(0);
+      await saveEvidence(page, `2075-${label}-3-forward-arriving`);
+      await page.evaluate(() => {
+        for (const animation of document.getAnimations()) animation.finish();
+      });
+      await saveEvidence(page, `2075-${label}-4-forward-settled`);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+    });
+  }
+});
+
+/**
+ * Motion migration step 5 (#2076): gestures and haptics on the motion layer.
+ * The tab pager settle is sampled frame by frame under 4x CPU throttling,
+ * grabbed again mid-settle, and checked with the native haptics stub. Run
+ * with VISUAL_EVIDENCE_DIR to export the measurements
+ * (docs/product/design/evidence/2076).
+ */
+test.describe('gestures and haptics on the motion layer (#2076)', () => {
+  test.use({ hasTouch: true });
+
+  type Sample = { t: number; left: number; dragging: boolean };
+  type Session = Awaited<
+    ReturnType<ReturnType<Page['context']>['newCDPSession']>
+  >;
+
+  const CURRENT_PAGE =
+    'main.product-main > .primary-tab-panel:not([hidden]):not([data-primary-tab-peek]) > .page';
+
+  function exportMeasurement(name: string, value: unknown) {
+    const exportDir = process.env.VISUAL_EVIDENCE_DIR;
+    const text = `${JSON.stringify(value, null, 2)}\n`;
+    fs.writeFileSync(test.info().outputPath(name), text);
+    if (exportDir) {
+      fs.mkdirSync(exportDir, { recursive: true });
+      fs.writeFileSync(path.join(exportDir, name), text);
+    }
+  }
+
+  /** Records the current page's `left` offset once per animation frame. */
+  async function startSampling(page: Page) {
+    await page.evaluate((selector) => {
+      const recorded: Sample[] = [];
+      const surface = document.querySelector('main.product-main');
+      const current = document.querySelector<HTMLElement>(selector);
+      (window as unknown as { settleSamples: Sample[] }).settleSamples =
+        recorded;
+      const start = performance.now();
+      const tick = () => {
+        recorded.push({
+          t: Math.round(performance.now() - start),
+          left: current?.isConnected
+            ? Number.parseFloat(getComputedStyle(current).left) || 0
+            : Number.NaN,
+          dragging: surface?.hasAttribute('data-primary-tab-dragging') ?? false,
+        });
+        if (recorded.length < 90 && recorded.at(-1)?.dragging)
+          requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }, CURRENT_PAGE);
+  }
+
+  const samples = (page: Page) =>
+    page.evaluate(
+      () => (window as unknown as { settleSamples: Sample[] }).settleSamples,
+    );
+
+  const pageOffset = (page: Page) =>
+    page.evaluate(
+      (selector) =>
+        Number.parseFloat(
+          getComputedStyle(document.querySelector(selector) as Element).left,
+        ),
+      CURRENT_PAGE,
+    );
+
+  async function openToday(page: Page, { native = true } = {}) {
+    await page.setViewportSize({ width: 390, height: 800 });
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    if (native) await installNativeAppLifecycle(page);
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await expect(page).toHaveURL(/\/today$/);
+    await expectPrimaryReadingSurface(page);
+  }
+
+  async function touch(
+    session: Session,
+    type: 'touchStart' | 'touchMove' | 'touchEnd',
+    x?: number,
+    y?: number,
+  ) {
+    await session.send('Input.dispatchTouchEvent', {
+      type,
+      touchPoints: x === undefined ? [] : [{ x, y: y ?? 0, id: 1 }],
+    });
+  }
+
+  /** A swipe toward the next tab, released at 40 % of the width. */
+  async function swipeAndRelease(page: Page, steps = 6) {
+    const { width, startX, y } = await primarySwipeStart(page, 'next');
+    const session = await page.context().newCDPSession(page);
+    const releaseX = width * 0.4;
+    await touch(session, 'touchStart', startX, y);
+    await nextFrame(page);
+    for (let step = 1; step <= steps; step++) {
+      await touch(
+        session,
+        'touchMove',
+        startX + ((releaseX - startX) * step) / steps,
+        y,
+      );
+      await nextFrame(page);
+    }
+    const released = await page.evaluate(
+      () =>
+        Number.parseFloat(
+          getComputedStyle(
+            document.querySelector('main.product-main') as Element,
+          ).getPropertyValue('--primary-tab-offset'),
+        ) || 0,
+    );
+    await startSampling(page);
+    await touch(session, 'touchEnd');
+    return { session, released, width, y };
+  }
+
+  test('the pager settle continues from the release, frame by frame, under 4x CPU throttling', async ({
+    page,
+  }) => {
+    await openToday(page);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    try {
+      const { session, released, width } = await swipeAndRelease(page);
+      await expect(page).toHaveURL(/\/story$/);
+      const frames = (await samples(page)).filter(
+        (sample) => sample.dragging && Number.isFinite(sample.left),
+      );
+      await session.detach();
+      exportMeasurement('2076-pager-settle-cpu4.json', {
+        viewport: 390,
+        cpuThrottling: 4,
+        releasedOffset: released,
+        target: -width,
+        frames,
+      });
+      // The settle starts where the finger let go (no jump), travels toward
+      // the next tab without reversing, and ends on it.
+      expect(frames.length).toBeGreaterThan(3);
+      expect(Math.abs(frames[0].left - released)).toBeLessThan(width * 0.25);
+      for (let index = 1; index < frames.length; index++)
+        expect(frames[index].left).toBeLessThanOrEqual(
+          frames[index - 1].left + 0.5,
+        );
+      expect(frames.at(-1)?.left ?? 0).toBeLessThan(released);
+      // Haptics: one threshold tick on the way (its three calls in order),
+      // one commit at release.
+      await expect
+        .poll(() => nativeHapticCalls(page))
+        .toEqual(expect.arrayContaining(['selectionEnd', 'impact:LIGHT']));
+      const calls = await nativeHapticCalls(page);
+      expect(calls.filter((call) => call.startsWith('selection'))).toEqual([
+        'selectionStart',
+        'selectionChanged',
+        'selectionEnd',
+      ]);
+      expect(calls.filter((call) => !call.startsWith('selection'))).toEqual([
+        'impact:LIGHT',
+      ]);
+    } finally {
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+      await cdp.detach();
+    }
+  });
+
+  test('grabbing the settling pages stops them where they are, without a jump', async ({
+    page,
+  }) => {
+    await openToday(page);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    try {
+      const { session, width, y } = await swipeAndRelease(page);
+      await nextFrame(page);
+      await nextFrame(page);
+      // Read the drawn offset in the same task as the grab: just before the
+      // app's own touch handler runs (capture phase) and right after it.
+      await page.evaluate((selector) => {
+        const record = window as unknown as { grab: number[] };
+        record.grab = [];
+        const read = () =>
+          Number.parseFloat(
+            getComputedStyle(document.querySelector(selector) as Element).left,
+          );
+        window.addEventListener('touchstart', () => record.grab.push(read()), {
+          capture: true,
+          once: true,
+        });
+        window.addEventListener('touchstart', () => record.grab.push(read()), {
+          once: true,
+        });
+      }, CURRENT_PAGE);
+      await touch(session, 'touchStart', width * 0.5, y);
+      const [before, after] = await page.evaluate(
+        () => (window as unknown as { grab: number[] }).grab,
+      );
+      expect(after).toBeCloseTo(await pageOffset(page), 0);
+      exportMeasurement('2076-pager-grab-cpu4.json', {
+        viewport: 390,
+        cpuThrottling: 4,
+        offsetBeforeGrab: before,
+        offsetAfterGrab: after,
+      });
+      // No jump: the pages stop where they were drawn, not at either end.
+      expect(Math.abs(after - before)).toBeLessThan(1);
+      expect(after).toBeGreaterThan(-width + 2);
+      expect(after).toBeLessThan(-2);
+      await expect(page).toHaveURL(/\/today$/);
+      // Dragging back toward Wir and releasing returns to rest on Wir.
+      for (let step = 1; step <= 6; step++) {
+        await touch(session, 'touchMove', width * 0.5 + step * 30, y);
+        await nextFrame(page);
+      }
+      await touch(session, 'touchEnd');
+      await session.detach();
+      await expect(
+        page.locator('main.product-main[data-primary-tab-dragging]'),
+      ).toHaveCount(0);
+      await expect(page).toHaveURL(/\/today$/);
+    } finally {
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+      await cdp.detach();
+    }
+  });
+
+  test('the in-app switch silences haptics in the native app', async ({
+    page,
+  }) => {
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.motion.haptics', 'off'),
+    );
+    await openToday(page);
+    const { session } = await swipeAndRelease(page);
+    await session.detach();
+    await expect(page).toHaveURL(/\/story$/);
+    expect(await nativeHapticCalls(page)).toEqual([]);
+  });
+
+  test('with reduced motion the swipe still commits, at once', async ({
+    page,
+  }) => {
+    await openToday(page, { native: false });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const { session } = await swipeAndRelease(page);
+    await session.detach();
+    await expect(page).toHaveURL(/\/story$/);
+    await expect(
+      page.locator('main.product-main[data-primary-tab-dragging]'),
+    ).toHaveCount(0);
+    expect(
+      await page.evaluate(() =>
+        document
+          .getAnimations()
+          .some((animation) =>
+            (animation.effect as KeyframeEffect | null)
+              ?.getKeyframes()
+              .some((frame) => 'left' in frame),
+          ),
+      ),
+    ).toBe(false);
+  });
 });

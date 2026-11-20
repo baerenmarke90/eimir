@@ -7,6 +7,7 @@ import {
   type PartnerNoticeKind,
 } from '../client/partnerGestureReceipt';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
+import '../motion/moments.css';
 import './NotificationMotion.css';
 
 type NotificationMotionSpec = {
@@ -49,7 +50,7 @@ export function NotificationMotion({ kind }: { kind: NotificationKind }) {
         style={
           motion
             ? ({
-                '--notification-animation': `notification-${motion}`,
+                '--notification-animation': `eimir-motion-notice-${motion}`,
               } as MotionStyle)
             : undefined
         }

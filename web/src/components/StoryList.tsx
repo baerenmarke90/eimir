@@ -42,6 +42,7 @@ import { HeartEmotionBadge } from './HeartEmotionVisual';
 import { MemoryPreview } from './MemoryPreview';
 import { MomentDate } from './MomentDate';
 import { OccasionMark } from './OccasionMark';
+import { UNPAINTED, useSecureScreen } from './SecureSurface';
 import {
   formatTimelineDate,
   storyItemKey,
@@ -236,6 +237,13 @@ function StoryTimelineMarker({ item }: { item: StoryItem }) {
   return <span className="story-timeline-marker" aria-hidden="true" />;
 }
 
+function isPrivateHeartMoment(item: StoryItem): boolean {
+  return (
+    item.kind === 'HEART_MOMENT' &&
+    item.heartMoment.visibility !== ContentVisibility.SHARED
+  );
+}
+
 export function StoryList({
   items,
   loadMemoryImage,
@@ -297,6 +305,9 @@ export function StoryList({
         : undefined,
     [apiRuntime],
   );
+  // The account's own private Heart Moments stay out of screenshots, screen
+  // recordings and the Recents preview in the app (#683).
+  const secureScreen = useSecureScreen(items.some(isPrivateHeartMoment));
 
   if (items.length === 0) {
     return (
@@ -415,6 +426,11 @@ export function StoryList({
               }
               data-author-role={authorRole}
               data-has-answers={hasAnswers || undefined}
+              style={
+                isPrivateHeartMoment(item) && !secureScreen.shown
+                  ? UNPAINTED
+                  : undefined
+              }
             >
               <StoryTimelineMarker item={item} />
               <Link

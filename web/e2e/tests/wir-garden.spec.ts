@@ -282,6 +282,51 @@ test('without Pro: the row is locked, Wir shows nothing and reads no garden', as
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
+test('the Wir garden pauses in its hidden kept view and continues on return (#2079)', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light' });
+  const server = await gardenMocks(page);
+  server.modulePreferences = [{ moduleKey: 'shared_garden', visible: true }];
+  await openWir(page);
+  const card = gardenCard(page);
+  await expect(card).toBeVisible();
+  await card.scrollIntoViewIfNeeded();
+  const scene = page.locator('.wir-garden-frame .garden-scene-stack');
+  // Seen on Wir: the decorative preview plays (within its ambient rest).
+  await expect(scene).toHaveAttribute('data-motion-scene', 'playing');
+  await captureScreenshot(page, info, '2079-wir-garden-390-light-shown.png');
+
+  // Momente hides the kept Wir view: the preview holds and renders nothing.
+  await page.getByRole('link', { name: 'Momente', exact: true }).click();
+  await expect(scene).toHaveAttribute('data-motion-scene', 'paused');
+  const running = await page.evaluate(() => {
+    const stack = document.querySelector(
+      '.wir-garden-frame .garden-scene-stack',
+    );
+    return document.getAnimations().filter((animation) => {
+      const target = (animation.effect as KeyframeEffect | null)?.target;
+      return (
+        target instanceof Element &&
+        stack?.contains(target) === true &&
+        animation.playState === 'running'
+      );
+    }).length;
+  });
+  expect(running).toBe(0);
+
+  // Back on Wir: the same preview continues, and the module does not enter
+  // again (one play per app start, M4).
+  await page.getByRole('link', { name: 'Wir', exact: true }).click();
+  await expect(card).toBeVisible();
+  await expect(scene).toHaveAttribute('data-motion-scene', 'playing');
+  await expect(
+    page.locator('.today-section-garden [data-motion-enter]'),
+  ).toHaveCount(0);
+  await captureScreenshot(page, info, '2079-wir-garden-390-light-returned.png');
+});
+
 for (const theme of ['light', 'dark'] as const) {
   test(`evidence: Wir garden module 1280 ${theme}`, async ({ page }, info) => {
     await page.setViewportSize({ width: 1280, height: 900 });

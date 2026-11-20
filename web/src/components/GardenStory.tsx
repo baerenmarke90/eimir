@@ -24,6 +24,7 @@ import type {
 import { milestoneDetailPath } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
 import './GardenStory.css';
+import '../motion/garden.css';
 
 type Style = CSSProperties & Record<`--${string}`, string>;
 

@@ -6,6 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from eimir.plugins.manifest import PLUGIN_TABLE_NAMES
+
 BACKEND = Path(__file__).resolve().parents[2]
 REGISTRY = """
 from eimir.db.registry import load_all_models
@@ -66,4 +68,6 @@ def test_registry_migrations_and_test_engine_agree_in_fresh_processes() -> None:
     assert "accounts" in production
     assert "privacy_probes" not in production
     assert _tables(ALEMBIC) == production
-    assert _tables(FIXTURE) == production | {"privacy_probes"}
+    # The test engine also creates the plugin tables, as the migrations do,
+    # so the Core-only configuration has them too.
+    assert _tables(FIXTURE) == production | {"privacy_probes"} | PLUGIN_TABLE_NAMES

@@ -13,6 +13,7 @@ export function DraftExitPrompt({
 }) {
   const { t } = useTranslation();
   const sheet = useRef<ShortTaskSheetHandle>(null);
+  const keepRef = useRef<HTMLButtonElement>(null);
   const discarding = useRef(false);
   const [closingForDiscard, setClosingForDiscard] = useState(false);
   useEffect(() => {
@@ -26,6 +27,7 @@ export function DraftExitPrompt({
       ref={sheet}
       open={open && !closingForDiscard}
       title={t('taskBoundary.discardTitle')}
+      initialFocusRef={keepRef}
       onClose={() => {
         // A deliberate discard must retain the editor's requested destination
         // until this sheet releases history, modality and focus ownership.
@@ -34,10 +36,9 @@ export function DraftExitPrompt({
       }}
     >
       <p>{t('taskBoundary.discardBody')}</p>
+      {/* The discarding action comes first in source order, so the phone
+          layout (reversed column) shows it last, below the safe choice. */}
       <div className="form-actions">
-        <button type="button" className="primary" onClick={onKeep}>
-          {t('taskBoundary.keepEditing')}
-        </button>
         <button
           type="button"
           className="secondary"
@@ -46,7 +47,15 @@ export function DraftExitPrompt({
             sheet.current?.closeForNavigation(onDiscard);
           }}
         >
-          {t('taskBoundary.discard')}
+          {t('taskBoundary.discardConfirm')}
+        </button>
+        <button
+          ref={keepRef}
+          type="button"
+          className="primary"
+          onClick={onKeep}
+        >
+          {t('taskBoundary.keepEditing')}
         </button>
       </div>
     </ShortTaskSheet>

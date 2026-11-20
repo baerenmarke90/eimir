@@ -1,10 +1,11 @@
-import type { InitOverrideFunction } from '../api/generated/runtime';
-import { resolvedLocale } from '../i18n';
 import { InvitationsApi } from '../api/generated/apis/InvitationsApi';
 import type { MembershipView } from '../api/generated/models/MembershipView';
 import type { SessionView } from '../api/generated/models/SessionView';
 import type { SignupSessionView } from '../api/generated/models/SignupSessionView';
+import type { InitOverrideFunction } from '../api/generated/runtime';
+import { resolvedLocale } from '../i18n';
 import { Configuration } from './apiConfiguration';
+import { isAndroidApp } from './config';
 import { markInvitationAccepted } from './connectedMoment';
 import { normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
@@ -14,8 +15,12 @@ import {
   type StoredSession,
 } from './sessionPersistence';
 
-const WEB_DEVICE_NAME = 'eimir. Web';
-const WEB_PLATFORM = 'web';
+// The session records where it was created. Once messages are received only
+// in the app (#683), so the app must say so for every sign-in path.
+const sessionDevice = () =>
+  isAndroidApp()
+    ? { deviceName: 'eimir. Android', platform: 'android' }
+    : { deviceName: 'eimir. Web', platform: 'web' };
 
 // Native HTTP adapters cannot rely on a browser-added Accept-Language header.
 const mailRequestLocale: InitOverrideFunction = async ({ init }) => {
@@ -73,8 +78,7 @@ export async function signInAndJoinInvitation(
       signInRequest: {
         email,
         password,
-        deviceName: WEB_DEVICE_NAME,
-        platform: WEB_PLATFORM,
+        ...sessionDevice(),
       },
     });
 
@@ -133,8 +137,7 @@ export async function registerFromInvitation(
         email,
         password,
         invitationToken,
-        deviceName: WEB_DEVICE_NAME,
-        platform: WEB_PLATFORM,
+        ...sessionDevice(),
       },
     });
   } catch (error) {
@@ -169,8 +172,7 @@ export async function completePasswordRecovery(
       recoveryConsumeRequest: {
         token: recoveryToken,
         newPassword,
-        deviceName: WEB_DEVICE_NAME,
-        platform: WEB_PLATFORM,
+        ...sessionDevice(),
       },
     });
   } catch (error) {
@@ -206,8 +208,7 @@ export async function consumeMagicLink(
     ).auth.consumeMagicLinkApiV1AuthMagicLinkConsumePost({
       magicLinkConsumeRequest: {
         token,
-        deviceName: WEB_DEVICE_NAME,
-        platform: WEB_PLATFORM,
+        ...sessionDevice(),
       },
     });
   } catch (error) {
@@ -266,8 +267,7 @@ export async function consumeSignup(
     ).auth.consumeSignupApiV1AuthSignupConsumePost({
       signupConsumeRequest: {
         token,
-        deviceName: WEB_DEVICE_NAME,
-        platform: WEB_PLATFORM,
+        ...sessionDevice(),
         ...(acceptedTermsVersion ? { acceptedTermsVersion } : {}),
       },
     });

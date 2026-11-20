@@ -11,7 +11,7 @@ from eimir.db.locks import lock_subject
 from eimir.identity.models import DeviceSession
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
-from eimir.jobs.worker import registry
+from eimir.jobs.worker import JobRegistry, registry
 from eimir.photo_sources.models import PhotoSelection
 from eimir.photo_sources.service import EXPIRE_JOB, expire, remove
 
@@ -59,7 +59,8 @@ def cleanup(session: Session, payload: dict[str, Any]) -> None:
         queue.enqueue(session, KIND, delay=INTERVAL)
 
 
-def register_handlers() -> None:
+def register_handlers(target: JobRegistry | None = None) -> None:
+    destination = target if target is not None else registry
     for kind, handler in [(KIND, cleanup), (EXPIRE_JOB, expire)]:
-        if registry.get(kind) is None:
-            registry.register(kind, handler)
+        if destination.get(kind) is None:
+            destination.register(kind, handler)

@@ -1237,49 +1237,30 @@
 
 /* Motion ------------------------------------------------------------------ */
 
+/* Enter `draw` and `shift` from the motion catalogue (src/motion/motion.css).
+   The lines draw in once from a 400-unit dash; the partner's dashed line
+   draws as one stroke and ends on its own dash. Cards settle with a
+   transform only: animating opacity would make contrast measurements (and
+   low-vision users) see intermediate colors. */
 @media (prefers-reduced-motion: no-preference) {
   .insight-line {
-    stroke-dasharray: 400;
-    stroke-dashoffset: 400;
-    animation: insight-draw var(--duration-context) var(--easing-enter) forwards;
+    --motion-dash-from-array: 400;
+    --motion-dash-to-array: 400;
+    --motion-dash-from: 400;
+    animation: eimir-motion-enter-dash var(--duration-context)
+      var(--easing-enter) backwards;
   }
 
   .insight-series-partner .insight-line {
-    animation-name: insight-draw-partner;
+    --motion-dash-to-array: 6 4;
   }
 
   .insight-card,
   .insight-closing,
   .insight-hero {
-    animation: insight-fade var(--duration-transition) var(--easing-enter) both;
-  }
-}
-
-@keyframes insight-draw {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes insight-draw-partner {
-  from {
-    stroke-dasharray: 400;
-    stroke-dashoffset: 400;
-  }
-  to {
-    stroke-dasharray: 6 4;
-    stroke-dashoffset: 0;
-  }
-}
-
-/* Transform only: animating opacity would make contrast measurements (and
- * low-vision users) see intermediate colors. */
-@keyframes insight-fade {
-  from {
-    transform: translateY(6px);
-  }
-  to {
-    transform: none;
+    --motion-enter-rise: 6px;
+    animation: eimir-motion-enter-shift var(--duration-transition)
+      var(--easing-enter) both;
   }
 }
 

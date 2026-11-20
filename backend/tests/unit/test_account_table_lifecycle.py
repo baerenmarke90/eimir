@@ -3,13 +3,14 @@
 from eimir.db.base import Base
 from eimir.db.registry import load_all_models
 from eimir.identity.deletion import PERSONAL_ACCOUNT_ROWS
+from eimir.pro_plugin import personal_account_models
 from tests.support.account_table_lifecycle import RETAINED_ACCOUNT_TABLES
 
 
 def test_account_id_tables_have_an_explicit_lifecycle() -> None:
     load_all_models()
     actual = {t.name for t in Base.metadata.tables.values() if "account_id" in t.c}
-    direct = {model.__tablename__ for model in PERSONAL_ACCOUNT_ROWS}
+    direct = {model.__tablename__ for model in (*PERSONAL_ACCOUNT_ROWS, *personal_account_models())}
     existing_cleanup = {
         "identity and credentials removed by apply_core_cleanup": {
             "account_emails",

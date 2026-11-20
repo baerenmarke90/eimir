@@ -543,3 +543,31 @@ their vendor's WebView updates.
   `webview-update-notice.png`. If the
   configured floor were missing, the API 28 lane would have to show the bundled
   interface and fail, so the classification cannot pass silently.
+
+## Screen protection for private surfaces (#683)
+
+The retired Compose client protected owner-only routes with `FLAG_SECURE` (#683). The Capacitor app restores that policy: while a private surface is open, Android blocks screenshots and screen recordings and shows a blank Recents preview. Browsers have no such control, and a second camera can always photograph the screen, so product copy never claims that copies are impossible.
+
+**Mechanism.** `SecureScreenPlugin.java` sets or clears `FLAG_SECURE` on the Activity window on the UI thread and reports the window's actual state. `web/src/client/secureScreen.ts` counts holds, orders requests and keeps the flag across a navigation from one private surface to the next. `useSecureScreen` and `SecureSurface` (`web/src/components/SecureSurface.tsx`) hold the flag while mounted and keep private content unpainted (`visibility: hidden`) until the window confirms it, so no frame of private content can be captured. When protection is not confirmed the content stays unpainted and a whole surface says so (fail closed). Opening a once message waits for confirmation before it uses the message up and never opens it without protection. Once messages are received and opened only in the app; the server refuses device-key registration and opening from sessions that did not sign in as `android` (see [once messages](product/once-messages.md#app-only-reception-683-po-2026-11-19)). A recreated Activity starts without the flag; the reloaded Web layer asks again before private content renders. Visibility is decided by the runtime platform, never by the viewport.
+
+**Protected surfaces.** Each surface that can render `OWNER_ONLY` content (`ContentVisibility.PRIVATE`, `ProfileVisibility.PRIVATE_PARTNER_NOTE`, Private Area records, once messages, private search results):
+
+| Surface | Scope |
+| --- | --- |
+| Once messages (`/today/only-you`, compose, read) | whole route |
+| Search | whole route |
+| Private Area (`/more/private/*`), including private partner notes | whole route |
+| Profile (private partner notes) | whole route |
+| Heart Moment create and edit | whole route |
+| Heart Moment detail | while the moment is not shared |
+| Story timeline (`StoryList`) | while it contains an own private Heart Moment; only those cards wait for confirmation |
+| Photos overview | while the private filter is selected |
+| Important dates (`ImportantDatesPanel`) | while it contains a private date or its editor is open |
+| Our Story landmarks (`RelationshipPassport`) | while an own private date is listed |
+| Recap private draft and reflection editor | while shown |
+
+Shared-only surfaces (Today, Discover, recaps, map, activity, notifications, People) stay capturable; their APIs return `SPACE_SHARED` content only, and related people are shared by database constraint (`people_are_shared`). A new surface that renders owner-only content must use `SecureSurface` or `useSecureScreen` in its first implementation.
+
+**Reuse review.** `@capacitor-community/privacy-screen` 8.0.0 (MIT, maintained, Capacitor 8) offers a global enable/disable switch. It was not selected: it adds a Gradle module with new dependency-verification entries, enables protection globally by default, and has no hold count or confirmed state, so the fail-closed ordering would still need the same Web layer. The in-house plugin is 50 lines on platform API only, follows the other in-house plugins in `MainActivity`, and needs no new dependency. Fallback: without the plugin a hold rejects and private content stays unpainted.
+
+**Verification.** `SecureWindowFlagsTest` (JVM) and `SecureScreenTest` (instrumentation through the real Capacitor bridge, including Activity recreation) run in CI; Web unit tests cover hold ordering, the unpainted gate and the once-message order. A device check on a Pixel (screenshot blocked, blank Recents preview) is still open.

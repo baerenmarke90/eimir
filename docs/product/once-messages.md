@@ -32,13 +32,13 @@ navigation. A dedicated reading/composing page is necessary for sensitive media.
   keepsake, without displacing existing Vibe, gestures, quote, upcoming, recaps or
   other configured modules. It disappears on claim, expiry, discard or withdrawal.
 - Consent: both partners explicitly enable reception. Device keys are created
-  only by that action. Declining has no partner notification or reminder. Turning
+  only by that action, and only in the eimir. app (see "App-only reception"). Declining has no partner notification or reminder. Turning
   reception off removes pending temporary messages; explain that consequence.
 - Composer: recipient, optional text, optional photo or voice attachment, explicit
   one-time/24-hour lifetime and Senden. No title/date/emotion, auto-keyboard, durable
   save/conversion or automatic sending. The single primary action is send.
 - Before opening: sender and a sealed envelope; explain single-view loss on close
-  and that copies cannot be prevented. Only explicit Einmal öffnen claims content;
+  and that copies cannot be fully prevented. Only explicit Einmal öffnen claims content;
   routing, notification taps, polling and previews never do. Discard is deliberate.
 - Content stays only in the active viewer's memory, never React Query, offline
   cache, browser storage, URL, activity, search, recaps or portable archives. Clear
@@ -83,8 +83,33 @@ This scoped encrypted transport does not implement the general MX migration,
 recovery, device verification or forward secrecy. Do not market an independently
 audited E2EE guarantee. Authentication/TLS and the server's public-key directory
 remain trust assumptions; existing key changes invalidate stale sends. No recovery
-or migration of pending messages to a new device. Screenshots/external copies are
-not preventable. Deleted browser keys can make pending envelopes unreadable.
+or migration of pending messages to a new device. The app blocks screenshots, but
+external copies (a second camera) are not preventable. Deleted device keys can make
+pending envelopes unreadable.
+
+## App-only reception (#683, PO 2026-11-19)
+
+Once messages are received and opened only in the eimir. app, where the window
+carries `FLAG_SECURE` (no screenshots, screen recording or Recents preview; see
+`docs/CAPACITOR-ANDROID-FOUNDATION.md`). The server enforces it: enabling reception
+(registering a device key) and opening a message need a device session whose
+declared sign-in platform is `android` (`ONCE_APP_REQUIRED`, 403). Opening checks
+absence first, so a browser learns nothing the inbox does not show, and refuses
+before any claim, so the message is not used up. This is a policy boundary, not a
+device attestation: a person who forges the platform through the API gains what a
+second camera already gives. Every app sign-in path declares `android`; an app
+session from before this rule is asked to sign in once more.
+
+A browser keeps the sealed inbox and incoming signal (sender and expiry only),
+discard, withdrawal, turning reception off and sending once its person consented in
+the app; it shows that opening happens in the app instead of the open action. Push
+and in-app notices stay neutral, so a browser notice leads to that state. The
+24-hour lifetime is unchanged: a recipient who opens nothing in the app lets the
+message expire. Revision 0165 reset every receiving registration once, because
+browser and app registrations could not be told apart; each person turns reception
+on again in the app, and pending ciphertext for the removed keys was deleted.
+Cloud and Self-Hosted behave identically; a Self-Hosted operator needs an eimir.
+app build for their server.
 
 Use current Membership identities, active accounts, bilateral consent and atomic
 Space/message locks for send/claim/withdrawal. A reception version prevents stale

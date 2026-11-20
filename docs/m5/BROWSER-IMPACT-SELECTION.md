@@ -5,8 +5,16 @@
 The Product Owner authorized narrowing the per-PR browser selection on
 2026-11-04. Four independent runners remain. No browser case, assertion,
 timeout, retry, accessibility contract or branch-protection context is removed.
-The full retained suite still runs on every `main` push and manual execution.
+The full retained suite ran on every `main` push and manual execution; since
+#2096 it runs in the nightly regression and on manual execution.
 This continues #1042 and the path-scoped CI work in #490.
+
+**Update 2026-11-20 (#2096):** to fit the GitHub Actions budget, pull requests
+run this selection only in the full CI tier: ready for review, labelled
+`ci:full`. Without the label every browser job is skipped, including the
+`Playwright + axe` aggregate, which is not a required check. The full retained
+regression runs nightly on `main` through `nightly-regression.yml` and on manual
+dispatch. The selection contract below is unchanged for labelled pull requests.
 
 The problem was selection growth: almost all retained feature coverage became
 mandatory for every unrelated Web change. In run

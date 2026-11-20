@@ -1,5 +1,6 @@
 import { type RefObject, useId, useRef, useState } from 'react';
 import { useTranslation } from '../i18n';
+import { prefersReducedMotion } from '../motion/reducedMotion';
 import { EimirIcon } from './EimirIcon';
 import './PlanningReference.css';
 
@@ -79,7 +80,8 @@ export function CollapsibleSearch({
           onFocus={() => setClosing(false)}
           onBlur={() => {
             if (value) return;
-            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            // Reduced motion has no fold-away to wait for (M9).
+            if (prefersReducedMotion()) {
               setOpen(false);
             } else {
               setClosing(true);

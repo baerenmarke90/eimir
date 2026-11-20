@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import {
+  onlineManager,
   QueryClient,
   QueryClientProvider,
-  onlineManager,
 } from '@tanstack/react-query';
 import {
   act,
@@ -13,10 +13,10 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  OnceMessagesContext,
   type OnceEnvironment,
+  OnceMessagesContext,
 } from '../client/onceMessages';
 import { ClientProblemError } from '../client/problemDetails';
 import { i18n } from '../i18n';
@@ -38,6 +38,17 @@ vi.mock('../client/onceMessageCrypto', () => ({
   onceMediaBlob: vi.fn(),
   prepareOnceAudio: vi.fn(),
   prepareOncePhoto: vi.fn(),
+}));
+
+const runtime = vi.hoisted(() => ({ app: true }));
+vi.mock('../client/config', async (original) => ({
+  ...(await original<typeof import('../client/config')>()),
+  isAndroidApp: () => runtime.app,
+}));
+
+const secureMocks = vi.hoisted(() => ({ hold: vi.fn(), release: vi.fn() }));
+vi.mock('../client/secureScreen', () => ({
+  holdSecureScreen: secureMocks.hold,
 }));
 
 const key = { id: 'device', publicJwk: {}, privateKey: {} };
@@ -128,6 +139,11 @@ beforeEach(() => {
   cryptoMocks.encrypt.mockResolvedValue({ ciphertext: 'opaque' });
   cryptoMocks.decrypt.mockResolvedValue({ text: 'A private thought', v: 1 });
   cryptoMocks.remove.mockResolvedValue(undefined);
+  runtime.app = true;
+  secureMocks.hold.mockImplementation(() => ({
+    ready: Promise.resolve(),
+    release: secureMocks.release,
+  }));
 });
 afterEach(() => {
   cleanup();
@@ -184,6 +200,90 @@ describe('one-time partner interaction', () => {
       resolve({ envelope: {}, viewUntil: new Date(Date.now() + 300_000) });
     });
     expect(api.acknowledgeOnceMessage).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('A private thought')).toBeNull();
+  });
+
+  it('offers neither opening nor reception in a browser and points to the app', async () => {
+    runtime.app = false;
+    const { api } = setup('read');
+    await screen.findByText(i18n.t('onceMessages.appOnly'));
+    expect(
+      screen.queryByRole('button', { name: i18n.t('onceMessages.open') }),
+    ).toBeNull();
+    expect(
+      screen.getByRole('button', { name: i18n.t('onceMessages.discard') }),
+    ).toBeTruthy();
+    expect(api.openOnceMessage).not.toHaveBeenCalled();
+    expect(secureMocks.hold).not.toHaveBeenCalled();
+  });
+
+  it('lets a browser turn reception off but never on', async () => {
+    runtime.app = false;
+    setup('inbox');
+    await screen.findByText(i18n.t('onceMessages.enabled'));
+    expect(screen.getByText(i18n.t('onceMessages.appOnly'))).toBeTruthy();
+    expect(
+      screen.queryByRole('button', { name: i18n.t('onceMessages.enable') }),
+    ).toBeNull();
+    expect(
+      screen.getByRole('button', { name: i18n.t('onceMessages.disable') }),
+    ).toBeTruthy();
+  });
+
+  it('asks an app session from before the app-only rule to sign in again', async () => {
+    const { api } = setup('read', {
+      openOnceMessage: vi
+        .fn()
+        .mockRejectedValue(
+          new ClientProblemError('permission', 403, 'ONCE_APP_REQUIRED'),
+        ),
+    });
+    const button = await screen.findByRole('button', {
+      name: i18n.t('onceMessages.open'),
+    });
+    await waitFor(() => expect(button.hasAttribute('disabled')).toBe(false));
+    fireEvent.click(button);
+    await screen.findByText(i18n.t('onceMessages.errors.ONCE_APP_SIGN_IN'));
+    expect(api.openOnceMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it('confirms screen protection before the message is used up', async () => {
+    let confirm!: () => void;
+    secureMocks.hold.mockImplementation(() => ({
+      ready: new Promise<void>((done) => {
+        confirm = done;
+      }),
+      release: secureMocks.release,
+    }));
+    const { api } = setup('read');
+    const button = await screen.findByRole('button', {
+      name: i18n.t('onceMessages.open'),
+    });
+    await waitFor(() => expect(button.hasAttribute('disabled')).toBe(false));
+    fireEvent.click(button);
+    await waitFor(() => expect(secureMocks.hold).toHaveBeenCalledTimes(1));
+    expect(api.openOnceMessage).not.toHaveBeenCalled();
+    await act(async () => confirm());
+    await screen.findByText('A private thought');
+    expect(api.openOnceMessage).toHaveBeenCalledTimes(1);
+    expect(secureMocks.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('never opens the message when screen protection is not confirmed', async () => {
+    secureMocks.hold.mockImplementation(() => ({
+      ready: Promise.reject(new Error('unavailable')),
+      release: secureMocks.release,
+    }));
+    const { api } = setup('read');
+    const button = await screen.findByRole('button', {
+      name: i18n.t('onceMessages.open'),
+    });
+    await waitFor(() => expect(button.hasAttribute('disabled')).toBe(false));
+    fireEvent.click(button);
+    await screen.findByText(i18n.t('onceMessages.errors.failed'));
+    expect(api.openOnceMessage).not.toHaveBeenCalled();
+    expect(api.acknowledgeOnceMessage).not.toHaveBeenCalled();
+    expect(secureMocks.release).toHaveBeenCalledTimes(1);
     expect(screen.queryByText('A private thought')).toBeNull();
   });
 

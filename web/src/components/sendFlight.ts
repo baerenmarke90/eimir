@@ -13,19 +13,21 @@
  */
 
 import {
+  animateFlight,
   centre,
+  flightEnded,
   flightKeyframes,
   landingScale,
   openFlightLayer,
   type Point,
-} from './flightKit';
+} from '../motion/flight';
 
 export {
   arcPoint,
   flightKeyframes,
   landingScale,
   type Point,
-} from './flightKit';
+} from '../motion/flight';
 
 export type FlightKind = 'vibe' | 'energy' | 'note';
 
@@ -133,7 +135,8 @@ export function startSendFlight(items: FlightItem[]): SendFlight | null {
   }
   for (const ghost of ghosts) {
     ghost.source.setAttribute('data-flight-source', 'true');
-    ghost.lift = ghost.element.animate(
+    ghost.lift = animateFlight(
+      ghost.element,
       [{ transform: 'scale(1)' }, { transform: `scale(${LIFT_SCALE})` }],
       {
         duration: roles.context,
@@ -145,9 +148,7 @@ export function startSendFlight(items: FlightItem[]): SendFlight | null {
   }
 
   let cancelled = false;
-  const lifted = Promise.all(
-    ghosts.map((ghost) => ghost.lift?.finished.catch(() => undefined)),
-  );
+  const lifted = Promise.all(ghosts.map((ghost) => flightEnded(ghost.lift)));
 
   const dispose = (ghost: Ghost) => {
     ghost.source.removeAttribute('data-flight-source');
@@ -167,16 +168,17 @@ export function startSendFlight(items: FlightItem[]): SendFlight | null {
     const slot = targetElement?.getBoundingClientRect();
     if (!ok || !slot || (slot.width === 0 && slot.height === 0)) {
       // Back to its place, then the control shows its own state again.
-      await ghost.element
-        .animate(
+      await flightEnded(
+        animateFlight(
+          ghost.element,
           [{ transform: `scale(${LIFT_SCALE})` }, { transform: 'scale(1)' }],
           {
             duration: roles.context,
             easing: roles.standard,
             fill: 'forwards',
           },
-        )
-        .finished.catch(() => undefined);
+        ),
+      );
       if (!cancelled) {
         dispose(ghost);
         if (ok) hooks.onLand(ghost.kind);
@@ -186,14 +188,18 @@ export function startSendFlight(items: FlightItem[]): SendFlight | null {
     const end = centre(slot);
     const scale = landingScale(ghost.element.offsetWidth, slot.width);
     const lean = ghost.kind === 'note' ? -ARC_LEAN : ARC_LEAN / 2;
-    await ghost.element
-      .animate(flightKeyframes(ghost.origin, end, LIFT_SCALE, scale, lean), {
-        duration: roles.flight,
-        delay: ghost.index * roles.stagger,
-        easing: roles.standard,
-        fill: 'forwards',
-      })
-      .finished.catch(() => undefined);
+    await flightEnded(
+      animateFlight(
+        ghost.element,
+        flightKeyframes(ghost.origin, end, LIFT_SCALE, scale, lean),
+        {
+          duration: roles.flight,
+          delay: ghost.index * roles.stagger,
+          easing: roles.standard,
+          fill: 'forwards',
+        },
+      ),
+    );
     if (cancelled) return;
     dispose(ghost);
     hooks.onLand(ghost.kind);

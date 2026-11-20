@@ -98,7 +98,8 @@ concurrency:
   # Late completions must not evict a queued candidate from another source or
   # origin. Product releases retain their single protected publication queue.
   group: publish-release-${{ github.event_name == 'workflow_dispatch' && 'protected' || github.event.workflow_run.head_sha && format('{0}-{1}-{2}', github.event.workflow_run.head_repository.full_name, github.event.workflow_run.event, github.event.workflow_run.head_sha) || github.ref }}
-  cancel-in-progress: false
+  # A newer merge supersedes an unfinished test-channel build of an older one.
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 env:
   SYFT_VERSION: "1.42.3"
@@ -108,7 +109,11 @@ env:
 jobs:
   contract:
     name: Release publication contract
-    if: github.event_name != 'workflow_run'
+    # main skips it on push (#2096); the Android test release jobs on this branch need it.
+    if: >-
+      github.event_name != 'workflow_run' &&
+      (github.event_name != 'push' ||
+       github.ref == 'refs/heads/release/android-test.14-20261026')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -148,6 +153,8 @@ jobs:
     permissions:
       contents: read
       checks: read
+      # Reads the full-regression runs and may start the Nightly Regression (#2096).
+      actions: write
     steps:
       - name: Checkout exact release source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -231,6 +238,16 @@ jobs:
             echo "Release source $GITHUB_SHA is not reachable from origin/main." >&2
             exit 1
           fi
+
+      - name: Require a green full regression of the release source
+        # Pull requests run a cheap tier (#2096); a product release needs the
+        # complete dispatched regression of its exact main revision. A missing
+        # regression is started here instead of waiting on a paid runner.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 scripts/test_deployment_channel.py full-regression
+          --revision "$GITHUB_SHA" --dispatch
 
       - name: Require existing repository checks to be green
         env:
@@ -1848,10 +1865,11 @@ jobs:
     if: >-
       github.repository == 'baerenmarke90/eimir' &&
       ((github.event_name == 'workflow_run' &&
-        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.event == 'workflow_dispatch' &&
         github.event.workflow_run.conclusion == 'success' &&
         github.event.workflow_run.head_repository.full_name == github.repository) ||
-       (github.event_name == 'workflow_dispatch' && inputs.private_test_channel == true)) &&
+       (github.event_name == 'workflow_dispatch' && inputs.private_test_channel == true) ||
+       github.event_name == 'push') &&
       github.event_name != 'pull_request' && github.ref == 'refs/heads/main' &&
       vars.EIMIR_TEST_CHANNEL_ENABLED == 'true'
     runs-on: ubuntu-latest

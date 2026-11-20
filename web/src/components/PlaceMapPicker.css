@@ -301,19 +301,24 @@
 
 .place-map-connection.is-entering:not(.is-earlier)
   .place-map-connection-reveal {
-  animation: place-map-connection-draw var(--duration-connection-draw)
+  /* Enter `draw` from the motion catalogue (src/motion/motion.css). */
+  animation: eimir-motion-enter-draw var(--duration-connection-draw)
     var(--easing-enter) both;
 }
 
 .place-map-connection.is-entering:not(.is-earlier) .place-map-connection-heart {
-  animation: place-map-connection-appear var(--duration-connection-draw)
+  /* Enter `grow` from the motion catalogue (src/motion/motion.css). */
+  --motion-enter-from-scale: 0.6;
+  animation: eimir-motion-enter-grow var(--duration-connection-draw)
     var(--easing-enter) both;
 }
 
 .place-map-connection.is-playing:not(.is-earlier) .place-map-connection-glow {
-  /* Three round trips after the arc has drawn in, then the glow rests. */
-  animation: place-map-connection-travel var(--duration-connection-travel)
-    var(--easing-travel) var(--duration-connection-draw) 3;
+  /* Three round trips after the arc has drawn in, then the glow rests
+     (the Map domain catalogue, src/motion/map.css). */
+  animation: eimir-motion-map-connection-travel
+    var(--duration-connection-travel) var(--easing-travel)
+    var(--duration-connection-draw) 3;
 }
 
 .place-map-connection.is-playing:not(.is-earlier)
@@ -341,9 +346,9 @@
 .place-map-connection.is-entering.is-playing:not(.is-earlier)
   .place-map-connection-heart {
   animation:
-    place-map-connection-appear var(--duration-connection-draw)
-    var(--easing-enter) both,
-    place-map-connection-beat var(--duration-connection-beat)
+    eimir-motion-enter-grow var(--duration-connection-draw) var(--easing-enter)
+    both,
+    eimir-motion-map-connection-beat var(--duration-connection-beat)
     var(--easing-standard) var(--duration-connection-draw) 2;
 }
 
@@ -351,44 +356,38 @@
   animation-play-state: paused;
 }
 
-@keyframes place-map-connection-draw {
-  from {
-    stroke-dashoffset: 1;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
+/* A map shown in one piece (#2063): the calm map surface waits, then the
+   basemap and its marker photos fade in together. */
+.place-map-canvas[data-reveal] {
+  position: relative;
 }
 
-/* Turns just outside both avatars (set per arc), so it never hides. */
-@keyframes place-map-connection-travel {
-  0% {
-    offset-distance: var(--place-map-connection-start, 0%);
-    opacity: var(--place-map-connection-glow-opacity);
-  }
-  50% {
-    offset-distance: var(--place-map-connection-end, 100%);
-    opacity: var(--place-map-connection-glow-opacity);
-  }
-  100% {
-    offset-distance: var(--place-map-connection-start, 0%);
-    opacity: var(--place-map-connection-glow-opacity);
-  }
+.place-map-canvas[data-reveal="waiting"] {
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
 }
 
-@keyframes place-map-connection-appear {
-  from {
-    opacity: 0;
-    scale: 0.6;
-  }
-  to {
-    opacity: 1;
-    scale: 1;
-  }
+/* The same calm loading surface the page showed while the map code loaded. */
+.place-map-waiting {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--color-text-secondary);
+  pointer-events: none;
 }
 
-@keyframes place-map-connection-beat {
-  50% {
-    scale: 1.14;
+.place-map-canvas[data-reveal] .place-map-viewport {
+  transition: opacity var(--duration-context) var(--easing-standard);
+}
+
+.place-map-canvas[data-reveal="waiting"] .place-map-viewport {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .place-map-canvas[data-reveal] .place-map-viewport {
+    transition: none;
   }
 }

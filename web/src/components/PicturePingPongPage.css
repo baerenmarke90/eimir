@@ -85,13 +85,19 @@
   inset-inline-start: 0;
   width: 100%;
   height: 0;
-  animation: pingpong-fly-x var(--pingpong-flight-duration)
+  /* The flyer spans the court, so one flyer width is the court (M6). */
+  --pingpong-court: 100%;
+  animation: eimir-motion-pingpong-fly-x var(--pingpong-flight-duration)
     var(--easing-playback) both;
   pointer-events: none;
 }
 
 .pingpong-flyer.is-to-me {
   animation-direction: reverse;
+}
+
+.pingpong-flyer:dir(rtl) {
+  --pingpong-court: -100%;
 }
 
 .pingpong-flyer-chip {
@@ -104,34 +110,13 @@
   border-radius: var(--radius-small);
   background: var(--color-brand-surface);
   border: 2px solid var(--color-brand);
-  animation: pingpong-fly-y var(--pingpong-flight-duration) var(--easing-travel)
-    both;
+  animation: eimir-motion-pingpong-fly-y var(--pingpong-flight-duration)
+    var(--easing-travel) both;
   animation-direction: inherit;
 }
 
 .pingpong-flyer.is-to-me .pingpong-flyer-chip {
   animation-direction: reverse;
-}
-
-@keyframes pingpong-fly-x {
-  from {
-    inset-inline-start: 0;
-  }
-
-  to {
-    inset-inline-start: 100%;
-  }
-}
-
-@keyframes pingpong-fly-y {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(calc(var(--pingpong-arc, 0.3) * -3rem));
-  }
 }
 
 /* Drawing surface */

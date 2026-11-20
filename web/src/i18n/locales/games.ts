@@ -1,6 +1,6 @@
 const games = {
   eyebrow: 'Spielen',
-  title: 'Gemeinsam spielen',
+  title: 'Spielen',
   intro: 'Erinnerungen erraten und Neues übereinander erfahren.',
   status: {
     premium: 'Pro',
@@ -183,7 +183,7 @@ const games = {
     saving: 'Wird gelegt …',
     saved: 'In Momente gelegt.',
     openMoment: 'Moment ansehen',
-    memoryBody: 'Gemeinsam gemalt mit {{name}}.',
+    memoryBody: 'Gemeinsam gemalt von {{own}} und {{partner}}.',
     backToGames: 'Zurück zu Spielen',
     titles: {
       one: 'Unser Kunstwerk',

@@ -88,8 +88,14 @@ const RECENT_SHARED_ITEMS = [
   },
 ];
 
-// Activity chronology is independent of content occurrence dates and featured modules.
+// Activity chronology is independent of content occurrence dates. Content
+// Wir already features above (the moment, the promoted Milestone) is not
+// repeated in the trace (#2063, Product Owner 2026-11-19).
 const TRACE_TILE_COUNT = 3;
+const FEATURED_TITLES = [
+  RECENT_SHARED_ITEMS[0].titleOrText,
+  RECENT_SHARED_ITEMS[2].titleOrText,
+];
 const ACTIVITY_ITEMS = RECENT_SHARED_ITEMS.map((item, index) => ({
   id: `activity-${index}`,
   sourceEventId: `source-${index}`,
@@ -245,14 +251,15 @@ test('Today event trace keeps compact borderless composition and authoritative o
   const tiles = page.locator('.today-recent-tile');
   await expect(tiles).toHaveCount(TRACE_TILE_COUNT);
 
-  // The featured story and the authoritative activity trace retain their
-  // distinct purposes, even when an activity refers to the featured target.
+  // The featured story and the promoted Milestone stay in their modules and
+  // are not repeated in the trace, which keeps the remaining authoritative
+  // activity order (#2063).
   await expect(page.locator('.today-moment-text')).toHaveCount(1);
-  await expect(tiles.first()).toContainText(ACTIVITY_ITEMS[0].target.title);
-
-  // A promoted Milestone also remains present at its actual activity position.
   await expect(page.locator('.today-living-milestone')).toHaveCount(1);
-  await expect(tiles.nth(2)).toContainText(ACTIVITY_ITEMS[2].target.title);
+  for (const title of FEATURED_TITLES)
+    await expect(tiles.filter({ hasText: title })).toHaveCount(0);
+  await expect(tiles.first()).toContainText(ACTIVITY_ITEMS[1].target.title);
+  await expect(tiles.nth(2)).toContainText(ACTIVITY_ITEMS[4].target.title);
 
   // Tinted backgrounds and rounded corners retain each compact unit while
   // respecting the Product Owner's borderless surface decision.
@@ -323,13 +330,13 @@ test('Today event trace keeps compact borderless composition and authoritative o
   expect(truncatedTitles).toHaveLength(0);
 
   await expect(tiles).toHaveText(
-    ACTIVITY_ITEMS.slice(0, TRACE_TILE_COUNT).map(
-      (item) => new RegExp(item.target.title),
-    ),
+    ACTIVITY_ITEMS.filter(
+      (item) => !FEATURED_TITLES.includes(item.target.title),
+    )
+      .slice(0, TRACE_TILE_COUNT)
+      .map((item) => new RegExp(item.target.title)),
   );
-  await expect(tiles.first()).toContainText(
-    m5s5.activityAction.COMMENT_CREATED,
-  );
+  await expect(tiles.first()).toContainText(m5s5.activityAction.MEMORY_CREATED);
 
   // Data, order, and navigation are unchanged.
   await expect(
@@ -456,8 +463,11 @@ test('Today and Activities show the same event titles and order in dark mode', a
   // The kept Today tab is hidden, not discarded.
   const activityTitles = page.locator('.activity-card-target-title:visible');
   await expect(activityTitles).toHaveCount(ACTIVITY_ITEMS.length);
+  // Activities lists everything; Wir leaves out what it already features.
   expect(
-    (await activityTitles.allTextContents()).slice(0, TRACE_TILE_COUNT),
+    (await activityTitles.allTextContents())
+      .filter((title) => !FEATURED_TITLES.includes(title))
+      .slice(0, TRACE_TILE_COUNT),
   ).toEqual(traceTitles);
   const result = await new AxeBuilder({ page }).analyze();
   expect(result.violations).toEqual([]);

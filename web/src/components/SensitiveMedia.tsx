@@ -48,10 +48,13 @@ export function SensitiveMediaCover({
   children,
   className = '',
   showLabel = true,
+  revealHint = false,
 }: {
   children?: ReactNode;
   className?: string;
   showLabel?: boolean;
+  /** Visible "tap to show" line where tapping the cover reveals it (#2063). */
+  revealHint?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -59,6 +62,15 @@ export function SensitiveMediaCover({
       {children ? (
         <span className="sensitive-media-blurred" aria-hidden="true">
           {children}
+        </span>
+      ) : null}
+      {revealHint ? (
+        <span className="sensitive-media-hint" aria-hidden="true">
+          <EimirIcon name="eye-off" />
+          <span>{t('sensitiveMedia.label')}</span>
+          <span className="sensitive-media-hint-action">
+            {t('sensitiveMedia.tapToReveal')}
+          </span>
         </span>
       ) : null}
       {showLabel ? (

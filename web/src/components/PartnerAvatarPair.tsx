@@ -8,6 +8,16 @@ import {
 import { useTranslation } from 'react-i18next';
 import { personInitials } from './PersonIdentity';
 import './PartnerAvatarPair.css';
+import { isMediaShown, markMediaShown } from '../motion/mediaReveal';
+import { prefersReducedMotion } from '../motion/reducedMotion';
+
+/*
+ * Avatar photos are Enter `media` (Motion Contract 4.1, M5): the layer's
+ * media registry remembers, in memory only, which URLs were already shown.
+ * A shown or cached photo appears at once; only the first decode of a URL in
+ * this session fades in over the initials. A stale entry for a revoked object
+ * URL only means one avatar skips its fade, it never shows a wrong photo.
+ */
 
 export interface PartnerAvatarPerson {
   displayName: string;
@@ -64,7 +74,16 @@ export function SingleAvatar({
   className?: string;
 }) {
   const [failed, setFailed] = useState(false);
-  const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
+  // A photo this page already showed is in memory: an avatar that remounts
+  // (its slot becomes a button once its action is known) shows it at once
+  // instead of dropping back to the initials and fading the photo in again.
+  const [loadedUrl, setLoadedUrl] = useState<string | null>(() =>
+    person.imageUrl && isMediaShown(person.imageUrl) ? person.imageUrl : null,
+  );
+  // Shown at once (already shown, or decoded from the cache): no fade.
+  const [instantUrl, setInstantUrl] = useState<string | null>(() =>
+    person.imageUrl && isMediaShown(person.imageUrl) ? person.imageUrl : null,
+  );
   const initials = useMemo(
     () => personInitials(person.displayName),
     [person.displayName],
@@ -76,6 +95,8 @@ export function SingleAvatar({
   const detectCachedImage = useCallback(
     (image: HTMLImageElement | null) => {
       if (image?.complete && image.naturalWidth > 0 && imageUrl) {
+        markMediaShown(imageUrl);
+        setInstantUrl(imageUrl);
         setLoadedUrl(imageUrl);
       }
     },
@@ -96,7 +117,16 @@ export function SingleAvatar({
           src={imageUrl}
           alt={person.displayName}
           className={`partner-avatar-img${loaded ? ' is-loaded' : ''}`}
-          onLoad={() => setLoadedUrl(imageUrl)}
+          data-motion-media={
+            instantUrl === imageUrl || prefersReducedMotion()
+              ? 'instant'
+              : undefined
+          }
+          onLoad={() => {
+            if (isMediaShown(imageUrl)) setInstantUrl(imageUrl);
+            markMediaShown(imageUrl);
+            setLoadedUrl(imageUrl);
+          }}
           onError={() => setFailed(true)}
         />
       ) : null}

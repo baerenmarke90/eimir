@@ -293,8 +293,13 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  /* The card settles into place without a fade, so its text stays legible
+     throughout: the catalogue's translate-only Enter `shift`. */
   .daily-quote-card {
-    animation: daily-quote-reveal var(--duration-transition) var(--easing-enter);
+    --motion-enter-rise: var(--space-1);
+
+    animation: eimir-motion-enter-shift var(--duration-transition)
+      var(--easing-enter);
   }
 
   .daily-quote-category {
@@ -302,15 +307,6 @@
       background var(--duration-feedback) var(--easing-standard),
       border-color var(--duration-feedback) var(--easing-standard),
       color var(--duration-feedback) var(--easing-standard);
-  }
-}
-
-@keyframes daily-quote-reveal {
-  from {
-    transform: translateY(var(--space-1));
-  }
-  to {
-    transform: translateY(0);
   }
 }
 

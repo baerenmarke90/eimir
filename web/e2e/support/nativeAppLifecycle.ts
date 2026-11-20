@@ -21,6 +21,8 @@ export async function installNativeAppLifecycle(
         | 'getAllResponseHeaders'
       >;
       openedPlanPdf?: string;
+      secureScreen?: boolean;
+      hapticCalls?: string[];
     };
     const callbacks = new Map<
       string,
@@ -47,6 +49,24 @@ export async function installNativeAppLifecycle(
             { name: 'removeListener', rtype: 'promise' },
             { name: 'getLaunchUrl', rtype: 'promise' },
           ],
+        },
+        {
+          // @capacitor/haptics (#2076): calls are recorded, never vibrated.
+          name: 'Haptics',
+          methods: [
+            'impact',
+            'notification',
+            'vibrate',
+            'selectionStart',
+            'selectionChanged',
+            'selectionEnd',
+          ].map((name) => ({ name, rtype: 'promise' })),
+        },
+        {
+          // FLAG_SECURE for private surfaces (#683): private content stays
+          // unpainted until the window reports the flag.
+          name: 'SecureScreen',
+          methods: [{ name: 'setSecure', rtype: 'promise' }],
         },
         {
           name: 'NativeSessionStorage',
@@ -90,8 +110,23 @@ export async function installNativeAppLifecycle(
           authorization?: string;
           name?: string;
           fileId?: string;
+          secure?: boolean;
+          style?: string;
+          type?: string;
         },
       ) => {
+        if (plugin === 'Haptics') {
+          nativeWindow.hapticCalls ??= [];
+          const detail = options?.style ?? options?.type;
+          nativeWindow.hapticCalls.push(
+            detail ? `${method}:${detail}` : method,
+          );
+          return {};
+        }
+        if (plugin === 'SecureScreen' && method === 'setSecure') {
+          nativeWindow.secureScreen = options?.secure === true;
+          return { secure: nativeWindow.secureScreen };
+        }
         if (plugin === 'App' && method === 'getLaunchUrl') return {};
         if (plugin === 'App' && method === 'removeListener') {
           callbacks.delete(options?.callbackId ?? '');
@@ -144,6 +179,23 @@ export async function installNativeAppLifecycle(
     });
   };
   await page.addInitScript(install, planFiles);
+}
+
+/** The `@capacitor/haptics` calls the synthetic app received (#2076). */
+export async function nativeHapticCalls(page: Page): Promise<string[]> {
+  return page.evaluate(
+    () =>
+      (window as unknown as { hapticCalls?: string[] }).hapticCalls?.slice() ??
+      [],
+  );
+}
+
+/** Whether the synthetic app window currently holds FLAG_SECURE (#683). */
+export async function nativeSecureScreen(page: Page): Promise<boolean> {
+  return page.evaluate(
+    () =>
+      (window as unknown as { secureScreen?: boolean }).secureScreen === true,
+  );
 }
 
 export async function nativeAppState(

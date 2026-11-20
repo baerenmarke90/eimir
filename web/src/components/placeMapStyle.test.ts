@@ -1,6 +1,13 @@
 import type { StyleSpecification } from 'maplibre-gl';
 import { expect, it } from 'vitest';
-import { googleLikeStyle } from './placeMapStyle';
+import {
+  googleLikeStyle,
+  openFreeMapAttribution,
+  withLocalizedAttribution,
+} from './placeMapStyle';
+import m5s3 from '../i18n/locales/m5s3';
+
+const DATA_FROM = m5s3.map.attributionDataFrom;
 
 const style = {
   version: 8,
@@ -62,4 +69,46 @@ it('leaves layers it does not know, and its input, untouched', () => {
     'line-color': '#fc8',
     'line-width': 3,
   });
+});
+
+it('gives an OpenFreeMap TileJSON source the localized attribution (#2063)', () => {
+  const remote = {
+    version: 8,
+    sources: {
+      openmaptiles: {
+        type: 'vector',
+        url: 'https://tiles.openfreemap.org/planet',
+      },
+      ne2_shaded: { type: 'raster', tiles: ['https://example.org/{z}.png'] },
+    },
+    layers: [],
+  } as unknown as StyleSpecification;
+
+  const localized = withLocalizedAttribution(remote, DATA_FROM);
+
+  const source = localized.sources.openmaptiles as { attribution?: string };
+  expect(source.attribution).toBe(openFreeMapAttribution(DATA_FROM));
+  expect(source.attribution).toContain(`${DATA_FROM} <a`);
+  expect(source.attribution).not.toContain('Data from');
+  for (const name of ['OpenFreeMap', 'OpenMapTiles', 'OpenStreetMap'])
+    expect(source.attribution).toContain(name);
+  // A source of another origin is left alone, and so is the input.
+  expect(localized.sources.ne2_shaded).toBe(remote.sources.ne2_shaded);
+  expect(
+    (remote.sources.openmaptiles as { attribution?: string }).attribution,
+  ).toBeUndefined();
+});
+
+it('localizes the connector of an attribution the style already carries', () => {
+  const remote = {
+    version: 8,
+    sources: {
+      own: { type: 'vector', attribution: 'X Data from <a>OSM</a>' },
+    },
+    layers: [],
+  } as unknown as StyleSpecification;
+  const source = withLocalizedAttribution(remote, DATA_FROM).sources.own as {
+    attribution?: string;
+  };
+  expect(source.attribution).toBe(`X ${DATA_FROM} <a>OSM</a>`);
 });

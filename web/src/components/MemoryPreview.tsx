@@ -120,7 +120,10 @@ export function MemoryPreview({
 
   if (!url) {
     return (
-      <div className="story-media-skeleton" role="status">
+      <div
+        className="story-media-skeleton eimir-motion-loading-skeleton"
+        role="status"
+      >
         <span className="sr-only">{t('media.loading')}</span>
       </div>
     );

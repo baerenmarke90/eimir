@@ -14,6 +14,10 @@
   border-radius: var(--radius-media);
 }
 
+.memory-map-page .place-map-canvas[data-reveal="waiting"] {
+  border-radius: var(--radius-media);
+}
+
 .memory-map-surface {
   position: relative;
   container-type: inline-size;

@@ -57,33 +57,13 @@
 @media (prefers-reduced-motion: no-preference) {
   /* The next picture fades in slowly over the last one. No zoom, no movement. */
   .wir-moment-slide[data-state="active"][data-entering] {
-    animation: wir-moment-in var(--duration-gesture-sequence)
+    animation: eimir-motion-replace-in var(--duration-gesture-sequence)
       var(--easing-standard) both;
   }
 
   .wir-moment-slide[data-state="leaving"] {
     opacity: 1;
-    animation: wir-moment-out var(--duration-gesture-sequence)
+    animation: eimir-motion-replace-out var(--duration-gesture-sequence)
       var(--easing-standard) both;
-  }
-}
-
-@keyframes wir-moment-in {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes wir-moment-out {
-  from {
-    opacity: 1;
-  }
-
-  to {
-    opacity: 0;
   }
 }

@@ -8,6 +8,11 @@ updates:
       time: "04:00"
       timezone: "Europe/Berlin"
     open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "docker"
     directory: "/backend"
@@ -17,6 +22,11 @@ updates:
       time: "04:15"
       timezone: "Europe/Berlin"
     open-pull-requests-limit: 3
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "docker"
     directory: "/"
@@ -26,6 +36,11 @@ updates:
       time: "04:20"
       timezone: "Europe/Berlin"
     open-pull-requests-limit: 3
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "docker"
     directory: "/web"
@@ -35,6 +50,11 @@ updates:
       time: "04:22"
       timezone: "Europe/Berlin"
     open-pull-requests-limit: 3
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "docker"
     directory: "/site"
@@ -44,6 +64,11 @@ updates:
       time: "04:24"
       timezone: "Europe/Berlin"
     open-pull-requests-limit: 3
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "npm"
     directory: "/web"
@@ -63,6 +88,10 @@ updates:
           - "react-dom"
           - "@types/react"
           - "@types/react-dom"
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "gradle"
     directory: "/android"
@@ -72,6 +101,11 @@ updates:
       time: "04:27"
       timezone: "Europe/Berlin"
     open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -85,3 +119,7 @@ updates:
       codeql:
         patterns:
           - "github/codeql-action/*"
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"

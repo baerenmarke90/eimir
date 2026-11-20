@@ -1,0 +1,607 @@
+/*
+ * The motion layer's CSS catalogue (Motion Contract 5.1, M14).
+ *
+ * One stylesheet for the shared keyframes per primitive variant, applied by
+ * data attributes that the layer sets and removes (`useEnter`). Durations and
+ * easings are token roles only (M1), so reduced motion (all roles 0ms) shows
+ * the final state at once. Every animation uses `fill: backwards`: it holds
+ * its first keyframe during a delay and leaves no style behind when the
+ * attribute is removed after it ended (M4).
+ *
+ * Besides the data attributes, a few shell rules and shared utility classes
+ * name these keyframes directly (sheets, dialogs, popovers, the root-tab
+ * entrance, `.eimir-motion-*`), always with token roles.
+ *
+ * The feature keyframes moved here, section by section, in the migration
+ * steps 3 to 8. The bounded domains keep their own catalogues next to this
+ * one (map.css, playback.css, story-playback.css, garden.css, games.css and
+ * game-scenes.css), each loaded with its owners.
+ */
+
+/* Enter (4.1) */
+[data-motion-enter] {
+  animation-delay: var(--motion-enter-delay);
+  animation-fill-mode: backwards;
+  animation-timing-function: var(--easing-enter);
+  animation-duration: var(--duration-context);
+}
+
+[data-motion-enter="fade"],
+[data-motion-enter="surface"] {
+  animation-name: eimir-motion-enter-fade;
+}
+
+[data-motion-enter="rise"],
+[data-motion-enter="stagger"] {
+  animation-name: eimir-motion-enter-rise;
+}
+
+[data-motion-enter="stage"] {
+  animation-name: eimir-motion-enter-rise;
+  animation-duration: var(--duration-sequence-beat);
+}
+
+[data-motion-enter="draw"] {
+  animation-name: eimir-motion-enter-draw;
+  animation-duration: var(--duration-connection-draw);
+}
+
+[data-motion-enter="media"] {
+  animation-name: eimir-motion-enter-fade;
+  animation-duration: var(--duration-transition);
+  animation-timing-function: var(--easing-standard);
+}
+
+/* First reach: hold the first frame until the element is on screen. */
+[data-motion-enter][data-motion-state="pending"] {
+  animation-play-state: paused;
+}
+
+@keyframes eimir-motion-enter-fade {
+  from {
+    opacity: var(--motion-enter-from-opacity, 0);
+  }
+}
+
+@keyframes eimir-motion-enter-rise {
+  from {
+    opacity: 0;
+    translate: 0 var(--motion-enter-rise, 12px);
+  }
+}
+
+/* A path drawn in; the owner sets pathLength="1" on the SVG path. */
+@keyframes eimir-motion-enter-draw {
+  from {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+
+  to {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Enter `shift`: a short settle into place without a fade (the content is
+   already readable), from `--motion-enter-rise`. */
+@keyframes eimir-motion-enter-shift {
+  from {
+    translate: 0 var(--motion-enter-rise, 4px);
+  }
+}
+
+/* Enter `pop`: a small filled mark (a dot, a badge glyph) appears with one
+   soft overshoot. Never on a thin stroke (M7). */
+@keyframes eimir-motion-enter-pop {
+  0% {
+    opacity: 0;
+    scale: 0.6;
+  }
+
+  70% {
+    opacity: 1;
+    scale: 1.1;
+  }
+}
+
+/*
+ * Content-area entrances (#2077). A feature names one of these on a known
+ * state (an open panel, an added chip, a revealed row) with token roles. Each
+ * animates only from its first keyframe to the element's own style, using
+ * the individual `translate`, `scale` and `rotate` properties so that it
+ * composes with the element's own `transform` (M6). None of them is used on
+ * a thin stroke (M7).
+ *
+ * - `travel`: opacity and a translate from `--motion-enter-from`
+ *   (default a short rise), for sideways arrivals and rows;
+ * - `grow`: opacity and a scale from `--motion-enter-from-scale`, for a
+ *   filled mark, a dot, a chip or a card (`--motion-enter-from-opacity`
+ *   keeps a mark visible while it settles);
+ * - `arrive`: opacity, translate and scale together;
+ * - `reach`: a straight connector grows along its length from
+ *   `--motion-reach-from` (`0 1` along the inline axis, `1 0` down); only
+ *   the length scales, never the stroke's width (M7);
+ * - `swing`: a hung keepsake swings in on its top edge and settles on
+ *   `--motion-swing-rest`;
+ * - `stamp`: a keepsake stamp presses on with one dip.
+ */
+@keyframes eimir-motion-enter-travel {
+  from {
+    opacity: var(--motion-enter-from-opacity, 0);
+    translate: var(--motion-enter-from, 0 var(--space-2));
+  }
+}
+
+@keyframes eimir-motion-enter-grow {
+  from {
+    opacity: var(--motion-enter-from-opacity, 0);
+    scale: var(--motion-enter-from-scale, 0.9);
+  }
+}
+
+@keyframes eimir-motion-enter-arrive {
+  from {
+    opacity: var(--motion-enter-from-opacity, 0);
+    translate: var(--motion-enter-from, 0 var(--space-2));
+    scale: var(--motion-enter-from-scale, 0.96);
+  }
+}
+
+/* A shared note unfolds toward the reader: a short rise from a slight tilt
+   back around its horizontal axis (the couple experience reveal). */
+@keyframes eimir-motion-enter-unfold {
+  from {
+    translate: 0 var(--space-3);
+    rotate: x 8deg;
+  }
+}
+
+@keyframes eimir-motion-enter-reach {
+  from {
+    scale: var(--motion-reach-from, 0 1);
+  }
+}
+
+@keyframes eimir-motion-enter-swing {
+  0% {
+    opacity: 0;
+    rotate: 16deg;
+  }
+
+  15% {
+    opacity: 1;
+  }
+
+  28% {
+    rotate: -9deg;
+  }
+
+  46% {
+    rotate: 5deg;
+  }
+
+  62% {
+    rotate: -2.4deg;
+  }
+
+  80% {
+    rotate: 1deg;
+  }
+
+  100% {
+    rotate: var(--motion-swing-rest, 0deg);
+  }
+}
+
+@keyframes eimir-motion-enter-stamp {
+  0% {
+    opacity: 0;
+    scale: 1.5;
+    rotate: -14deg;
+  }
+
+  60% {
+    opacity: 1;
+    scale: 0.94;
+  }
+
+  100% {
+    opacity: 1;
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+
+/* Exit `leave` (4.2): the reverse of `arrive`, towards `--motion-exit-to`
+   and `--motion-exit-to-scale`, for an item that leaves in place before it
+   unmounts. The owner releases it on its own `animationend`. */
+@keyframes eimir-motion-exit-leave {
+  to {
+    opacity: 0;
+    translate: var(--motion-exit-to, 0 0);
+    scale: var(--motion-exit-to-scale, 0.92);
+  }
+}
+
+/* Ambient `sway` (4.5): a hung keepsake sways between two small angles. The
+   owner runs it for `--motion-ambient-repeat` alternate cycles after its
+   entrance and lets it rest on the last pose (M8). */
+@keyframes eimir-motion-ambient-sway {
+  from {
+    rotate: var(--motion-sway-from, -1deg);
+  }
+
+  to {
+    rotate: var(--motion-sway-to, 1deg);
+  }
+}
+
+/* Enter `draw` for a path with a measured dash (insight lines): the dash
+   offset runs from `--motion-dash-from` to 0, and a dashed partner line
+   draws as one stroke first and ends on its own `--motion-dash-to`. */
+@keyframes eimir-motion-enter-dash {
+  from {
+    stroke-dasharray: var(--motion-dash-from-array, none);
+    stroke-dashoffset: var(--motion-dash-from, 0);
+  }
+
+  to {
+    stroke-dasharray: var(--motion-dash-to-array, none);
+    stroke-dashoffset: 0;
+  }
+}
+
+/*
+ * Enter `stage` (4.1): the members of a staged opening (`useStage`). The
+ * stage root carries `data-motion-stage="playing"`; the feature's descendant
+ * rules name these keyframes with its beats as token-derived delays and
+ * durations. Every name starts with `eimir-motion-stage-`, so the layer pins
+ * replacement members to the stage's clock (`alignCssAnimations`). The
+ * feature uses `animation-fill-mode: both` only inside the stage: the
+ * attribute is removed when the stage ends, which leaves no fill behind.
+ */
+@keyframes eimir-motion-stage-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-stage-rise {
+  from {
+    opacity: 0;
+    translate: 0 var(--motion-stage-rise, 0.5rem);
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* A filled shape (a portrait) settles in place. Not for thin strokes (M7). */
+@keyframes eimir-motion-stage-settle {
+  from {
+    opacity: 0;
+    scale: var(--motion-stage-scale, 0.97);
+  }
+
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+/* A straight connecting line reaches out along its length (a `draw` for a
+   box element): only the length scales, never the stroke's width (M7). */
+@keyframes eimir-motion-stage-reach {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* An SVG path with `pathLength` is traced from `--motion-trace-from` to its
+   full `--motion-trace-length` (Enter `draw`). */
+@keyframes eimir-motion-stage-trace {
+  0% {
+    opacity: 0;
+    stroke-dasharray: 0 var(--motion-trace-gap, 200);
+    stroke-dashoffset: var(--motion-trace-from, 0);
+  }
+
+  1% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+    stroke-dasharray: var(--motion-trace-length, 100)
+      var(--motion-trace-gap, 200);
+    stroke-dashoffset: 0;
+  }
+}
+
+/* A small glyph comes down, dips past its place and rests. */
+@keyframes eimir-motion-stage-land {
+  0% {
+    opacity: 0;
+    translate: 0 -0.5rem;
+    scale: 1.2;
+  }
+
+  60% {
+    opacity: 1;
+    translate: 0 0.08rem;
+    scale: 0.92;
+  }
+
+  100% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+@keyframes eimir-motion-stage-wiggle {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+
+  20% {
+    rotate: -12deg;
+  }
+
+  45% {
+    rotate: 9deg;
+  }
+
+  70% {
+    rotate: -5deg;
+  }
+
+  88% {
+    rotate: 2deg;
+  }
+}
+
+/* Replace `crossfade` (4.2): the incoming and the leaving layer. */
+@keyframes eimir-motion-replace-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-replace-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+/* Replace `value` (4.2): a short label leaves upward, the new one arrives. */
+@keyframes eimir-motion-value-leave {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  to {
+    opacity: 0;
+    translate: 0 -0.2rem;
+  }
+}
+
+@keyframes eimir-motion-value-arrive {
+  from {
+    opacity: 0;
+    translate: 0 0.2rem;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* Feedback (4.3) */
+
+/* A selected control settles with one small overshoot. */
+@keyframes eimir-motion-feedback-pop {
+  0% {
+    scale: 0.9;
+  }
+
+  60% {
+    scale: 1.06;
+  }
+}
+
+/* The landing beat of a Flight on its target slot. */
+@keyframes eimir-motion-feedback-land {
+  0% {
+    scale: 0.6;
+  }
+
+  55% {
+    scale: 1.2;
+  }
+}
+
+/* Feedback `toggle` beside a shared sliding indicator: the newly selected
+   control keeps a clear fill while the indicator slides under it, and takes
+   its own fill when the indicator arrived (`step-end`). A colour on a single
+   small element (M6). */
+@keyframes eimir-motion-feedback-fill-hold {
+  from {
+    background-color: transparent;
+  }
+}
+
+/* The first item of an area that was empty settles with one soft glow that
+   widens and fades (#1907 I1, `first-content-settle`). It plays once per
+   arrival on one element, after its Enter `arrive`; a recorded exception to
+   the small-element rule for `box-shadow` in M6 (4.3 as built). */
+@keyframes eimir-motion-feedback-glow {
+  0% {
+    box-shadow: 0 0 0 0 var(--color-brand-glow);
+  }
+
+  40% {
+    box-shadow: 0 0 0 0.6rem var(--color-brand-glow);
+  }
+
+  100% {
+    box-shadow: 0 0 0 1.1rem transparent;
+  }
+}
+
+/* A small glyph tips to one side and the other, then rests upright. */
+@keyframes eimir-motion-feedback-wiggle {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+
+  20% {
+    rotate: -12deg;
+  }
+
+  45% {
+    rotate: 9deg;
+  }
+
+  70% {
+    rotate: -5deg;
+  }
+
+  88% {
+    rotate: 2deg;
+  }
+}
+
+/*
+ * Enter `stage` for the root tabs (`useRootTabIntro`): the page's sections
+ * rise once per tab and app start. Its own prefix keeps it apart from an
+ * inner stage such as the Wir opening.
+ */
+@keyframes eimir-motion-root-rise {
+  from {
+    opacity: 0;
+    translate: 0 var(--motion-stage-rise, 0.5rem);
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/*
+ * Enter `surface` and Exit `surface-exit` (4.1, 4.2): sheets, dialogs and
+ * popovers with their backdrop, one lifecycle. The owner names these
+ * keyframes on its open and `data-presence="exiting"` states with token
+ * roles (`--duration-context` in, `--duration-transition` out;
+ * `--easing-enter` and `--easing-exit`) and releases the presentation on
+ * the exit's own `animationend` (`usePresentationPresence`). The surface
+ * moves with the individual `translate` property, so it composes with the
+ * owner's own `transform` (a centring offset, a drag offset). Its travel
+ * and starting opacity are options:
+ *
+ * - `--motion-surface-from` / `--motion-surface-to`: the translate it
+ *   enters from and leaves to (default a short rise, `0 var(--space-3)` in,
+ *   `0 var(--space-2)` out);
+ * - `--motion-surface-from-opacity` / `--motion-surface-to-opacity`:
+ *   default `0`; a bottom sheet that slides fully in keeps `1`.
+ *
+ * The backdrop only changes its opacity (M6). With reduced motion every
+ * duration is `0ms`: the surface is there at once, with the same focus and
+ * modality, and its exit ends at once.
+ */
+@keyframes eimir-motion-surface-in {
+  from {
+    opacity: var(--motion-surface-from-opacity, 0);
+    translate: var(--motion-surface-from, 0 var(--space-3));
+  }
+}
+
+@keyframes eimir-motion-surface-out {
+  to {
+    opacity: var(--motion-surface-to-opacity, 0);
+    translate: var(--motion-surface-to, 0 var(--space-2));
+  }
+}
+
+@keyframes eimir-motion-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-backdrop-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/*
+ * Loading domain (4.8): one turn of a pending-status spinner. It loops only
+ * while the owner shows the pending state (pull to refresh while the refresh
+ * runs) and stops as soon as the status is known. With reduced motion the
+ * cycle is `0ms` and the owner drops the animation: the icon and the polite
+ * status text stay.
+ */
+@keyframes eimir-motion-loading-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* Loading domain: a highlight sweeps across a placeholder with a translate
+   of its own layer, never `background-position` (M6). */
+@keyframes eimir-motion-loading-sweep {
+  from {
+    translate: -100% 0;
+  }
+
+  to {
+    translate: 100% 0;
+  }
+}
+
+/* Loading domain: a placeholder breathes between a calm and a full fill
+   until its media is known (the media gallery and video placeholders). */
+@keyframes eimir-motion-loading-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Loading domain: a small mark rocks while a draw is pending (the wish
+   selection roll), until the result is known. */
+@keyframes eimir-motion-loading-roll {
+  50% {
+    rotate: 14deg;
+    scale: 1.08;
+  }
+}

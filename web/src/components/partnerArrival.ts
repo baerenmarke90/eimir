@@ -13,13 +13,16 @@
  */
 
 import {
+  animateFlight,
   centre,
+  flightEnded,
   landingScale,
   openFlightLayer,
   type Point,
   pulseRing,
   scatterDots,
-} from './flightKit';
+} from '../motion/flight';
+import { run } from '../motion/run';
 import type { FlightKind } from './sendFlight';
 
 export interface ArrivalItem {
@@ -67,6 +70,13 @@ export function holdPositions(
 
 const SCALE_AT_START = 0.2;
 
+/**
+ * Elements that stay in the layout (the avatar, the badge, a badge slot) take
+ * their landing beat on this channel of the motion runner; the ghosts in the
+ * flight layer animate through `animateFlight`.
+ */
+const LANDING_CHANNEL = 'flight-landing';
+
 /** The glyph of the slot itself, never the one of a farewelling old value. */
 function cloneGlyph(slot: Element): Node | null {
   const own =
@@ -99,14 +109,19 @@ export function startPartnerArrival(
   const avatarRect = avatar.getBoundingClientRect();
   const avatarCentre = centre(avatarRect);
   const pulseBadge = (strength: number) => {
-    badge.animate(
+    run(
+      badge,
       [
         { transform: 'scale(0.85)' },
         { transform: `scale(${strength})`, offset: 0.45 },
         { transform: 'scale(0.96)', offset: 0.75 },
         { transform: 'scale(1)' },
       ],
-      { duration: roles.context * 2, easing: roles.standard },
+      {
+        duration: roles.context * 2,
+        easing: roles.standard,
+        channel: LANDING_CHANNEL,
+      },
     );
   };
   const celebrate = () => {
@@ -130,28 +145,38 @@ export function startPartnerArrival(
     pulseBadge(1.14);
     const motion =
       item.kind === 'energy'
-        ? slot.animate(
+        ? run(
+            slot,
             [
               { clipPath: 'inset(0 100% 0 0)', opacity: 0 },
               { clipPath: 'inset(0 0 0 0)', opacity: 1 },
             ],
-            { duration: roles.context * 1.5, easing: roles.standard },
+            {
+              duration: roles.context * 1.5,
+              easing: roles.standard,
+              channel: LANDING_CHANNEL,
+            },
           )
-        : slot.animate(
+        : run(
+            slot,
             [
               { transform: 'scale(0) rotate(-20deg)' },
               { transform: 'scale(1.35) rotate(10deg)', offset: 0.5 },
               { transform: 'scale(0.95) rotate(-6deg)', offset: 0.75 },
               { transform: 'scale(1) rotate(0)' },
             ],
-            { duration: roles.context * 2, easing: roles.standard },
+            {
+              duration: roles.context * 2,
+              easing: roles.standard,
+              channel: LANDING_CHANNEL,
+            },
           );
     pulseRing(layer, slot.getBoundingClientRect(), roles, 2.2);
     return {
-      done: motion.finished.then(finish, finish),
+      done: (motion?.finished ?? Promise.resolve()).then(finish, finish),
       cancel() {
         cancelled = true;
-        motion.cancel();
+        motion?.cancel();
         disposeLayer();
       },
     };
@@ -164,25 +189,28 @@ export function startPartnerArrival(
   halo.style.width = `${avatarRect.width}px`;
   halo.style.height = `${avatarRect.height}px`;
   layer.append(halo);
-  halo
-    .animate(
+  flightEnded(
+    animateFlight(
+      halo,
       [
         { opacity: 0.35, transform: 'scale(0.9)' },
         { opacity: 0, transform: 'scale(1.55)' },
       ],
       { duration: roles.moment || roles.context * 3, easing: roles.enter },
-    )
-    .finished.then(
-      () => halo.remove(),
-      () => halo.remove(),
-    );
-  avatar.animate(
+    ),
+  ).then(() => halo.remove());
+  run(
+    avatar,
     [
       { transform: 'scale(1)' },
       { transform: 'scale(1.07)', offset: 0.35 },
       { transform: 'scale(1)' },
     ],
-    { duration: roles.context * 2, easing: roles.standard },
+    {
+      duration: roles.context * 2,
+      easing: roles.standard,
+      channel: LANDING_CHANNEL,
+    },
   );
 
   const hold = holdPositions(kinds);
@@ -210,7 +238,8 @@ export function startPartnerArrival(
     const landing = landingScale(element.offsetWidth, slotRect.width);
     const dx = end.x - avatarCentre.x;
     const dy = end.y - avatarCentre.y;
-    const animation = element.animate(
+    const animation = animateFlight(
+      element,
       [
         {
           transform: `translate(0px, 0px) scale(${SCALE_AT_START})`,
@@ -232,7 +261,7 @@ export function startPartnerArrival(
       { duration: total, delay: index * roles.stagger, fill: 'forwards' },
     );
     return [
-      animation.finished.then(
+      (animation?.finished ?? Promise.resolve()).then(
         () => {
           if (cancelled) return;
           element.remove();
@@ -256,7 +285,11 @@ export function startPartnerArrival(
     if (cancelled) return;
     const slot = items.find((item) => item.kind === 'vibe')?.slot();
     const farewell = slot?.querySelector('[data-flight-farewell]');
-    farewell?.animate(
+    // The old face is decoration the caller removes once the new one landed,
+    // so it may hold its last frame until then.
+    if (!farewell) return;
+    animateFlight(
+      farewell,
       [
         { transform: 'scale(1)', opacity: 1 },
         { transform: 'scale(0)', opacity: 0 },

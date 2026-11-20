@@ -21,6 +21,7 @@ import {
 import { spaceEntitlementQueryKey } from '../client/spaceEntitlement';
 import { useBillingChannel } from '../client/storeBilling';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { haptic } from '../motion/haptics';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { ProFeatureCatalogue } from './ProFeatureCatalogue';
 import { TaskBackButton } from './TaskBackButton';
@@ -99,6 +100,9 @@ export function ProPaywallPage({
 
   const settle = async (result: ProPurchaseOutcome) => {
     setOutcome(result);
+    // Feedback `success` only after the store confirmed it (Motion Contract
+    // 4.10, 4.12): one haptic in the native app, no celebration.
+    if (result === 'confirmed' || result === 'restored') haptic('success');
     window.requestAnimationFrame(() => outcomeRef.current?.focus());
     if (unlocksFeature(result) && accountId && spaceId) {
       // The backend reconciled the grant; renew the session read once.

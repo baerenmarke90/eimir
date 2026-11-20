@@ -25,7 +25,6 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from enum import StrEnum
 from functools import cache, cached_property
 from hashlib import sha256
 from importlib.resources import files
@@ -33,9 +32,19 @@ from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
+# The shared vocabulary is Core contract (Decision 0017); re-exported for the catalog's users.
+from eimir.wish_selections.date_idea_contract import (
+    IDEA_ID_PATTERN as IDEA_ID_PATTERN,
+)
+from eimir.wish_selections.date_idea_contract import (
+    DateIdeaCategory as DateIdeaCategory,
+)
+from eimir.wish_selections.date_idea_contract import (
+    DateIdeaPlaceType as DateIdeaPlaceType,
+)
+
 SCHEMA_VERSION = 1
 IDEA_COUNT = 200
-IDEA_ID_PATTERN = r"^eimir-date-(00[1-9]|0[1-9][0-9]|1[0-9]{2}|200)$"
 CATALOG_VERSION_PATTERN = r"^1\.[0-9]+\.[0-9]+$"
 MINUTES_MAX = 60
 BUDGET_MAX = 20
@@ -45,24 +54,6 @@ Label = Annotated[str, StringConstraints(min_length=1, max_length=48, pattern=r"
 Title = Annotated[str, StringConstraints(min_length=1, max_length=70, pattern=r"\S")]
 Description = Annotated[str, StringConstraints(min_length=1, max_length=200, pattern=r"\S")]
 Prerequisite = Annotated[str, StringConstraints(min_length=1, max_length=145, pattern=r"\S")]
-
-
-class DateIdeaPlaceType(StrEnum):
-    HOME = "home"
-    OUT = "out"
-
-
-class DateIdeaCategory(StrEnum):
-    FOOD_DRINK = "food_drink"
-    CREATIVE = "creative"
-    PLAY = "play"
-    NATURE = "nature"
-    CULTURE = "culture"
-    MOVEMENT = "movement"
-    RELAXATION = "relaxation"
-    CONNECTION = "connection"
-    MEMORIES = "memories"
-    DISCOVERY = "discovery"
 
 
 class _FileModel(BaseModel):

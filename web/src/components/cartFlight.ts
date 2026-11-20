@@ -1,21 +1,13 @@
 import type { PersonRole } from '../client/personColours';
+import { animateFlight, flightEnded } from '../motion/flight';
+import { prefersReducedMotion } from '../motion/reducedMotion';
+import { durationMs, easing } from '../motion/tokens';
 
 /** Marks the place where checked entries end up: the cart bar or the cart section. */
 export const CART_TARGET_ATTRIBUTE = 'data-cart-target';
 
-const FALLBACK_DURATION_MS = 280;
 /** The flight is a little longer than a context change, but still short. */
 const DURATION_FACTOR = 1.5;
-
-function tokenMilliseconds(name: string): number {
-  const raw = getComputedStyle(document.documentElement)
-    .getPropertyValue(name)
-    .trim();
-  if (!raw) return FALLBACK_DURATION_MS;
-  const value = Number.parseFloat(raw);
-  if (!Number.isFinite(value)) return FALLBACK_DURATION_MS;
-  return raw.endsWith('ms') ? value : value * 1000;
-}
 
 function visibleTarget(): DOMRect | null {
   for (const element of document.querySelectorAll(
@@ -37,17 +29,19 @@ export interface CartFlight {
 /**
  * Let a checked entry fly from its row into the cart (#1808).
  *
+ * A Flight `send` on the motion layer (Motion Contract 4.4): the token
+ * adapter and the layer's reduced-motion source decide whether it plays, and
+ * `animateFlight` runs the ghost.
+ *
  * Returns `true` when the flight started or is not wanted (reduced motion, no
  * animation support), so the caller can drop it, and `false` while the cart is
  * not on screen yet, so the caller can try again after the next render. The
  * flying copy is decoration: hidden from assistive technology, never takes
- * pointer events, and removes itself when it ends. The motion token is 0 ms
- * under reduced motion, which is how the app switches motion off.
+ * pointer events, and removes itself when it ends or is cancelled.
  */
 export function flyIntoCart({ from, label, role }: CartFlight): boolean {
-  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)');
-  const duration = tokenMilliseconds('--duration-context') * DURATION_FACTOR;
-  if (reduced?.matches || duration <= 0) return true;
+  const duration = durationMs('context') * DURATION_FACTOR;
+  if (prefersReducedMotion() || duration <= 0) return true;
   if (typeof document.body.animate !== 'function') return true;
   const target = visibleTarget();
   if (!target) return false;
@@ -72,22 +66,14 @@ export function flyIntoCart({ from, label, role }: CartFlight): boolean {
   );
   const dx = targetX - (from.left + from.width / 2);
   const dy = targetY - (from.top + from.height / 2);
-  const flight = ghost.animate(
+  const flight = animateFlight(
+    ghost,
     [
       { transform: 'translate(0, 0) scale(1)', opacity: 1 },
       { transform: `translate(${dx}px, ${dy}px) scale(0.35)`, opacity: 0.15 },
     ],
-    {
-      duration,
-      easing:
-        getComputedStyle(document.documentElement)
-          .getPropertyValue('--easing-enter')
-          .trim() || 'ease-out',
-      fill: 'forwards',
-    },
+    { duration, easing: easing('enter') || 'ease-out', fill: 'forwards' },
   );
-  const remove = () => ghost.remove();
-  flight.addEventListener('finish', remove);
-  flight.addEventListener('cancel', remove);
+  void flightEnded(flight).then(() => ghost.remove());
   return true;
 }

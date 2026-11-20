@@ -305,7 +305,7 @@ for (const [width, theme] of [
     expect(thumbnailReads).toBe(readyThumbnailReads);
     await expect(page.locator('.memory-map-selection ul')).toHaveCSS(
       'animation-name',
-      width === 430 ? 'eimir-disclosure-reveal' : 'none',
+      width === 430 ? 'eimir-motion-enter-shift' : 'none',
     );
     expect(
       await page.evaluate(
@@ -944,7 +944,7 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
         });
         await expect(reveal).toHaveCSS(
           'animation-name',
-          width === 430 ? 'experience-note-enter' : 'none',
+          width === 430 ? 'eimir-motion-enter-unfold' : 'none',
         );
         if (width === 430) {
           // Assert contrast while the entrance is in progress, not after it.
@@ -954,7 +954,7 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
               .find(
                 (animation) =>
                   animation instanceof CSSAnimation &&
-                  animation.animationName === 'experience-note-enter',
+                  animation.animationName === 'eimir-motion-enter-unfold',
               );
             if (!entrance?.effect)
               throw new Error('Experience entrance animation is unavailable.');

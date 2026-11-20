@@ -148,6 +148,8 @@ export interface GalleryMediaItem {
   isSensitive?: boolean;
   durationSeconds?: number | null;
   hasThumbnail?: boolean;
+  /** Localized description when the generic entry-photo text is wrong. */
+  alt?: string;
 }
 
 export function MediaGallery({
@@ -845,7 +847,7 @@ export function MediaGallery({
     if (!url) {
       return (
         <div
-          className="media-gallery-loading"
+          className="media-gallery-loading eimir-motion-loading-pulse"
           role="status"
           aria-label={t('media.loading')}
         />
@@ -872,10 +874,14 @@ export function MediaGallery({
       <ZoomablePhoto
         key={`${resourceScopeKey}:${item.id}`}
         src={url}
-        alt={t('gallery.imageAlt')}
+        alt={item.alt ?? t('gallery.imageAlt')}
       />
     ) : (
-      <img className={className} src={url} alt={t('gallery.imageAlt')} />
+      <img
+        className={className}
+        src={url}
+        alt={item.alt ?? t('gallery.imageAlt')}
+      />
     );
   }
 
@@ -898,7 +904,7 @@ export function MediaGallery({
     if (!url) {
       return (
         <div
-          className="media-gallery-loading"
+          className="media-gallery-loading eimir-motion-loading-pulse"
           role="status"
           aria-label={t('media.loading')}
         />
@@ -906,7 +912,7 @@ export function MediaGallery({
     }
     if (item.isSensitive !== false && !reveals.isRevealed(item.id))
       return (
-        <SensitiveMediaCover>
+        <SensitiveMediaCover revealHint>
           {item.isSensitive === true ? <img src={url} alt="" /> : null}
         </SensitiveMediaCover>
       );
@@ -921,7 +927,7 @@ export function MediaGallery({
         <img
           className="media-gallery-carousel-content media-gallery-thumb-content"
           src={url}
-          alt={t('gallery.imageAlt')}
+          alt={item.alt ?? t('gallery.imageAlt')}
         />
       </span>
     );

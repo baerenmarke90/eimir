@@ -49,7 +49,7 @@
     "plan": "Planning",
     "games": "Games",
     "shared": "Lists",
-    "sharedHeading": "Together",
+    "sharedHeading": "Lists",
     "sharedLists": "Lists",
     "sharedNotes": "Notes",
     "sharedViewsAria": "Shared lists and notes",
@@ -71,6 +71,8 @@
     "quickCreateMilestone": "Milestone",
     "quickCreateWish": "Wish",
     "quickCreatePlan": "Plan",
+    "quickCreateList": "List",
+    "quickCreateTitle": "Add something new",
     "quickCreatePrivateNote": "Note",
     "quickCreateGiftIdea": "Gift idea",
     "logout": "Sign out",
@@ -304,6 +306,8 @@
     "heading": "Sign in",
     "body": "Sign in and return to your shared home.",
     "email": "Email",
+    "emailMissing": "Enter your email address.",
+    "emailInvalid": "This email address is not complete yet.",
     "password": "Password",
     "submit": "Sign in",
     "pending": "Signing in …",
@@ -397,9 +401,9 @@
   },
   "storyYears": {
     "backToMoments": "Back",
-    "backToYears": "← Our years",
+    "backToYears": "← Years & recaps",
     "eyebrow": "Year archive",
-    "title": "Our years",
+    "title": "Years & recaps",
     "intro": "Your shared story, year by year.",
     "listAria": "Shared years",
     "recapsEntryTitle": "Your recaps",
@@ -445,6 +449,7 @@
       "resume": "Continue draft",
       "startNew": "Discard draft and start again",
       "keepDraft": "Keep draft and close",
+      "discardDraftBody": "Your draft is saved on this device. Keep it for later or discard it.",
       "draft": {
         "memoryOnlyUnavailable": "Your draft stays open here. Saving a copy on this device is currently unavailable.",
         "memoryOnly": "Your words and save status are secured on this device. Selected external or older photos remain only in the open draft. Available server photos can be loaded again after a restart.",
@@ -690,6 +695,7 @@
       "intentionLabel": "What are you planning together?",
       "intentionPlaceholder": "For example: A picnic in the park",
       "titleHint": "What are you planning?",
+      "titleMissing": "Give your plan a name first.",
       "descriptionPlaceholder": "How do you picture it?",
       "addDetails": "Add date, place and description",
       "loading": "Loading plan …",
@@ -699,7 +705,9 @@
       "plannedDate": "Date",
       "plannedTime": "Time",
       "plannedStartTime": "Start time",
-      "plannedTimeHint": "Without a time, the selected calendar day stays exactly as it is.",
+      "plannedTimeHint": "Without a time, the plan is for the whole day.",
+      "calendarPrevious": "Previous month",
+      "calendarNext": "Next month",
       "plannedStart": "When does it start?",
       "plannedEnd": "Until when?",
       "addEndTime": "Add end time",
@@ -795,6 +803,7 @@
       "loadMap": "Load map",
       "privacy": "Place search uses Photon. When loading the map, the map service OpenFreeMap receives your IP address and the map area. Your other content is not sent.",
       "attribution": "Map data © OpenStreetMap contributors · Search by Photon",
+      "attributionDataFrom": "Data from",
       "zoomIn": "Zoom in",
       "zoomOut": "Zoom out",
       "keyboardHelp": "Interactive map. Use the arrow keys to pan and plus and minus to zoom. Choose “Select map centre” to use the position.",
@@ -1737,6 +1746,7 @@
     "partnerSection": "About {{name}}",
     "eyebrow": "Profile",
     "title": "You and your partner",
+    "titleWithPartner": "You and {{name}}",
     "intro": "Your identity, shared preferences and your partner's profile – clearly separate from private notes.",
     "settingsRailAria": "Account and relationship",
     "accountTitle": "My account",
@@ -2038,9 +2048,10 @@
     }
   },
   "privateArea": {
-    "eyebrow": "For me",
+    "eyebrow": "Only for me",
     "intro": "Not shared with your partner in eimir.",
     "privacyLabel": "Only for me",
+    "secureScreenUnavailable": "Private content can't be shown protected right now. Restart the app.",
     "backToMore": "← Back to More",
     "backToHub": "← Back to Only for me",
     "backToSearch": "← Back to search",
@@ -2184,7 +2195,7 @@
       "heading": "Export",
       "scopeLabel": "Scope",
       "shared": "Shared data",
-      "sharedHelp": "Contains only data shared in the space.",
+      "sharedHelp": "Contains only what the two of you share.",
       "personal": "My data",
       "personalHelp": "Contains shared data and only your own private content in addition.",
       "start": "Create export",
@@ -2459,6 +2470,7 @@
     "deviceDisconnecting": "Turning push off on this device …",
     "deviceOn": "Push is active on this device.",
     "deviceError": "The connection could not be set up. Try again.",
+    "deviceDiagnostic": "Test version: {{code}}",
     "deviceDisableFailed": "Turning off push failed. Try again.",
     "deviceNoDistributor": "No push service is installed or selected on this device yet.",
     "devicePermissionDenied": "Notifications for eimir. are not allowed on this device.",
@@ -3191,7 +3203,8 @@
     "anticipation": {
       "now": "The moment is here",
       "timerLabel": "Countdown to {{title}}",
-      "timerDays": "Days",
+      "timerDays_one": "Day",
+      "timerDays_other": "Days",
       "timerHours": "Hrs",
       "timerMinutes": "Min",
       "timerSeconds": "Sec",
@@ -3288,7 +3301,7 @@
   },
   "games": {
     "eyebrow": "Games",
-    "title": "Play together",
+    "title": "Games",
     "intro": "Recognize memories and discover more about each other.",
     "status": {
       "premium": "Pro",
@@ -3454,7 +3467,7 @@
       "saving": "Saving …",
       "saved": "Put into Moments.",
       "openMoment": "View moment",
-      "memoryBody": "Drawn together with {{name}}.",
+      "memoryBody": "Drawn together by {{own}} and {{partner}}.",
       "backToGames": "Back to Games",
       "titles": {
         "one": "Our artwork",
@@ -4681,13 +4694,14 @@
     "saved": "Your moment is saved.",
     "photosUnconfirmed": "The moment is saved. Its photo links were not confirmed. Check the photos here before adding them.",
     "discardTitle": "Discard entries?",
-    "discardBody": "Your unsaved entries will be lost when you leave.",
+    "discardBody": "Anything you have not saved will be lost.",
     "partialDiscardTitle": "Leave saved moment?",
     "partialDiscardBody": "The text already saved is retained. Photo links are not confirmed yet. You can check them on the moment later.",
     "uncertainDiscardTitle": "Leave without confirmation?",
     "uncertainDiscardBody": "Your entries here will be discarded. The moment may already be saved. Check your moments before trying again.",
     "keepEditing": "Stay here",
-    "discard": "Leave"
+    "discard": "Leave",
+    "discardConfirm": "Discard"
   },
   "serverAdmin": {
     "title": "Server administration",
@@ -5240,6 +5254,11 @@
       "dayMany": "days"
     }
   },
+  "hapticsSettings": {
+    "title": "Touch",
+    "label": "Haptic feedback",
+    "hint": "A light vibration when you swipe, drop and send. Applies to this device only."
+  },
   "momentsLayout": {
     "title": "Moments design",
     "intro": "This layout applies to Memories, the Diary, Chapters, and Us – on all your devices.",
@@ -5517,6 +5536,7 @@
     "hide": "Hide again",
     "reveal": "Show",
     "conceal": "Hide",
+    "tapToReveal": "Tap to show",
     "shortLabel": "Sensitive"
   },
   "heartEmotion": {
@@ -5680,7 +5700,8 @@
     "open": "Open once",
     "opening": "Opening …",
     "openConsequence": "Unavailable after closing or leaving the app. The view ends after five minutes at the latest.",
-    "copyLimit": "Copies cannot be prevented.",
+    "copyLimit": "Screenshots are blocked here. Copies cannot be fully prevented.",
+    "appOnly": "You receive and open one-time messages only in the eimir. app, where screenshots are blocked.",
     "originalDevice": "Open this message on a device where reception was enabled before it was sent.",
     "ended": "This message is no longer available.",
     "unavailable": "This message has expired, been withdrawn or already opened.",
@@ -5697,8 +5718,8 @@
     "pro": "Send one-time messages with eimir. Pro. One subscription covers both of you.",
     "discoverPro": "Discover Pro",
     "noPartner": "Connect with your partner first.",
-    "partnerConsent": "Your partner needs to enable reception on their own device.",
-    "sendConsequence": "Only for your partner. Open once; available for 24 hours if unopened. Copies cannot be prevented.",
+    "partnerConsent": "Your partner needs to turn on reception in the eimir. app.",
+    "sendConsequence": "Only for your partner: open once in the eimir. app, available for 24 hours if unopened. Screenshots are blocked there. Copies cannot be fully prevented.",
     "errors": {
       "failed": "That did not work. Please try again.",
       "offline": "No connection. Nothing was sent.",
@@ -5712,6 +5733,8 @@
       "ONCE_RECEPTION_CHANGED": "Your reception choice changed. Reload it and choose again.",
       "ONCE_RECEPTION_REQUIRED": "Both of you need to enable reception first.",
       "ONCE_KEY_CHANGED": "The receiving devices changed. Please try sending again.",
+      "ONCE_APP_REQUIRED": "One-time messages open only in the eimir. app.",
+      "ONCE_APP_SIGN_IN": "Sign in to the app once more to receive one-time messages.",
       "ONCE_DEVICE_UNAVAILABLE": "This message cannot be opened on this device.",
       "ONCE_MESSAGE_UNAVAILABLE": "This message is no longer available.",
       "ONCE_CAPACITY_REACHED": "Please try again later.",
@@ -5938,6 +5961,7 @@
     "energyScaleHigh": "Fully charged",
     "noteLabel": "Note on your feeling",
     "notePlaceholder": "What would you like to share?",
+    "notePlaceholderLocked": "Choose a feeling first, then you can write.",
     "noteRequiresVibe": "Choose a feeling first – the note belongs to it.",
     "noteCount": "{{count}}/200",
     "noteDelete": "Delete note",
@@ -6526,7 +6550,12 @@
     "ownBirthday": "On your birthday",
     "partnerBirthday": "On {{name}}'s birthday",
     "more_one": "and one more occasion",
-    "more_other": "and {{count}} more occasions"
+    "more_other": "and {{count}} more occasions",
+    "todayAnniversary_one": "{{count}} year ago today",
+    "todayAnniversary_other": "{{count}} years ago today",
+    "todayRelationshipStart": "Your story begins today",
+    "todayOwnBirthday": "Happy birthday to you",
+    "todayPartnerBirthday": "Happy birthday, {{name}}"
   },
   "sharedNotes": {
     "title": "Notes",

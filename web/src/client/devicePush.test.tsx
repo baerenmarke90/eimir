@@ -484,6 +484,36 @@ it('stops native receipt after a rejected endpoint without retrying registration
   expect(api.registerOwnPushEndpoint).toHaveBeenCalledOnce();
 });
 
+it('keeps the native failure type next to its stable code', async () => {
+  const { result } = setup();
+  await waitFor(() => expect(result.current.state).toBe('off'));
+  native.enable.mockRejectedValueOnce(
+    new Error(
+      'PUSH_REGISTRATION_FAILED FirebaseException: SERVICE_NOT_AVAILABLE',
+    ),
+  );
+  await act(async () => result.current.enable());
+  expect(result.current.state).toBe('error');
+  expect(result.current.error).toBe('PUSH_REGISTRATION_FAILED');
+  expect(result.current.errorDetail).toBe(
+    'FirebaseException: SERVICE_NOT_AVAILABLE',
+  );
+  await act(async () => result.current.enable());
+  expect(result.current.errorDetail).toBeNull();
+});
+
+it('reports the server status when registering the endpoint fails', async () => {
+  const { result } = setup('space-a', (api) => {
+    api.registerOwnPushEndpoint.mockRejectedValue(httpError(500));
+  });
+  await waitFor(() => expect(result.current.state).toBe('off'));
+  await act(async () => result.current.enable());
+  emitEndpoint();
+  await waitFor(() => expect(result.current.state).toBe('error'));
+  expect(result.current.error).toBe('PUSH_DEVICE_REGISTRATION_FAILED');
+  expect(result.current.errorDetail).toBe('HTTP 500');
+});
+
 it('retains a failed revoke for later cleanup while stopping native receipt', async () => {
   const { api, result } = setup('space-a', (api) => {
     api.revokeOwnPushEndpoint.mockRejectedValue(new Error('offline'));

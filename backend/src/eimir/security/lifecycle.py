@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 from typing import Any, cast
 from uuid import UUID
 
-from sqlalchemy import CursorResult, Engine, Table, text
+from sqlalchemy import CursorResult, Engine, text
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.elements import TextClause
 
@@ -35,6 +35,7 @@ from eimir.db.registry import load_all_models
 from eimir.domain.payload import CRYPTO_VERSION_PLAINTEXT, CRYPTO_VERSION_SERVER_AEAD
 from eimir.media.base import MediaStore
 from eimir.media.encrypted import FORMAT_VERSION, MAGIC, EncryptingMediaStore
+from eimir.plugins.manifest import protected_payload_tables
 from eimir.security.errors import EncryptionError
 from eimir.security.keyring import EncryptionMode, KeyWrapper
 from eimir.security.payload_envelope import ENVELOPE_KEYS, MARKER, PayloadProtector
@@ -44,29 +45,36 @@ DEFAULT_BATCH_SIZE = 200
 
 @dataclass(frozen=True)
 class PayloadTable:
-    table: Table
-    payload_type: type[Any]
-
-    @property
-    def name(self) -> str:
-        return self.table.name
-
-    @property
-    def context(self) -> str:
-        return str(self.payload_type.crypto_context())
+    name: str
+    context: str
+    payload_type: type[Any] | None
+    """The payload model, or ``None`` for a plugin table whose plugin is not loaded."""
 
 
 def payload_tables() -> list[PayloadTable]:
-    """Every table with a ``ProtectedPayloadJSON`` column, discovered from the metadata."""
+    """Every table with a ``ProtectedPayloadJSON`` column.
+
+    Discovered from the metadata, plus every encrypted plugin table of the Core
+    manifest (Decision 0017): migration, rotation and verification must not
+    skip a plugin table only because its plugin is not loaded.
+    """
     load_all_models()
-    found: list[PayloadTable] = []
-    for table in sorted(Base.metadata.tables.values(), key=lambda item: item.name):
+    found: dict[str, PayloadTable] = {}
+    for table in Base.metadata.tables.values():
         column = table.columns.get("payload")
         if column is None or "crypto_version" not in table.columns:
             continue
         if isinstance(column.type, ProtectedPayloadJSON):
-            found.append(PayloadTable(table, column.type.payload_type))
-    return found
+            payload_type = column.type.payload_type
+            found[table.name] = PayloadTable(
+                table.name, str(payload_type.crypto_context()), payload_type
+            )
+    for row in protected_payload_tables():
+        if row.protected_payload_context is not None:
+            found.setdefault(
+                row.table, PayloadTable(row.table, row.protected_payload_context, None)
+            )
+    return [found[name] for name in sorted(found)]
 
 
 @dataclass
@@ -252,9 +260,10 @@ def verify_payloads(
                 if MARKER not in stored:
                     report.plaintext[entry.name] += 1
                 try:
-                    entry.payload_type.model_validate(
-                        protector.reveal(stored, context=entry.context)
-                    )
+                    revealed = protector.reveal(stored, context=entry.context)
+                    # Without its plugin a table is authenticated, not schema-validated.
+                    if entry.payload_type is not None:
+                        entry.payload_type.model_validate(revealed)
                 except Exception:
                     report.unreadable[entry.name] += 1
         if statuses[entry.name].inconsistent:

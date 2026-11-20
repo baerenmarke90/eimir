@@ -1,6 +1,9 @@
 name: Release Evidence
 
 on:
+  # Pull requests run this heavy workflow only when ready for review and labelled
+  # ci:full, or from a release/ branch (#2096); otherwise every job is skipped at
+  # no runner cost and the nightly regression on main covers it.
   pull_request:
     paths:
       - ".github/workflows/release-evidence.yml"
@@ -14,6 +17,7 @@ on:
       - "scripts/android_firebase_configuration.py"
       - "tools/ci/test_android_firebase_configuration.py"
       - "docs/m6/SBOM-ATTESTATIONS.md"
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
   workflow_dispatch:
     inputs:
       include_android:
@@ -74,8 +78,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-evidence-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  group: release-evidence-${{ github.workflow }}-${{ github.ref }}${{ github.event.action == 'labeled' && github.event.label.name != 'ci:full' && format('-ignored-label-{0}', github.run_id) || '' }}
+  # A newer pull-request push supersedes its evidence build; release runs are never cancelled.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   SYFT_VERSION: "1.42.3"
@@ -89,6 +94,7 @@ env:
 
 jobs:
   build-evidence:
+    if: github.event_name != 'pull_request' || ((startsWith(github.head_ref, 'release/') || (github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ci:full'))) && (github.event.action != 'labeled' || github.event.label.name == 'ci:full'))
     name: Build artifacts and SPDX SBOMs
     runs-on: ubuntu-latest
     permissions:
@@ -531,7 +537,9 @@ jobs:
           name: release-evidence-${{ github.sha }}
           path: release-evidence/
           if-no-files-found: error
-          retention-days: 7
+          # Pull-request evidence is never attested or published; release callers
+          # consume it within days (#2096).
+          retention-days: ${{ (github.event_name == 'pull_request' || github.event_name == 'push') && 1 || 7 }}
           compression-level: 6
 
   attest:

@@ -284,6 +284,8 @@ const de = {
     heading: 'Anmelden',
     body: 'Melde dich an und geh zurück zu eurem gemeinsamen Ort.',
     email: 'E-Mail',
+    emailMissing: 'Gib deine E-Mail-Adresse ein.',
+    emailInvalid: 'Diese E-Mail-Adresse ist noch nicht vollständig.',
     password: 'Passwort',
     submit: 'Anmelden',
     pending: 'Anmeldung läuft …',
@@ -372,9 +374,9 @@ const de = {
   },
   storyYears: {
     backToMoments: 'Zurück',
-    backToYears: '← Unsere Jahre',
+    backToYears: '← Jahre & Rückblicke',
     eyebrow: 'Jahresarchiv',
-    title: 'Unsere Jahre',
+    title: 'Jahre & Rückblicke',
     intro: 'Eure gemeinsame Geschichte, Jahr für Jahr.',
     listAria: 'Gemeinsame Jahre',
     recapsEntryTitle: 'Eure Rückblicke',
@@ -428,6 +430,8 @@ const de = {
       resume: 'Entwurf fortsetzen',
       startNew: 'Entwurf verwerfen und neu beginnen',
       keepDraft: 'Entwurf behalten und schließen',
+      discardDraftBody:
+        'Dein Entwurf ist auf diesem Gerät gesichert. Behalte ihn für später oder verwirf ihn.',
       draft: {
         memoryOnlyUnavailable:
           'Dein Entwurf bleibt hier geöffnet. Die Sicherung auf diesem Gerät ist gerade nicht verfügbar.',

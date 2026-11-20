@@ -4,8 +4,20 @@
 Pull requests should only pay for checks that can be affected by their diff.
 The classifier stays fail-closed for unknown paths and CI infrastructure so a
 new repository surface cannot silently bypass an expensive safety gate.
-Pushes to ``main`` are handled separately by the workflows and still run the
-full integration suite.
+Pushes to ``main`` start no workflows; the nightly regression dispatches the
+full suites on ``main`` instead (#2096).
+
+On top of the path scopes, pull requests run in one of two tiers (#2096):
+
+* ``cheap``: lint, typing, unit tests, contracts and secret scanning only. The
+  heavy scopes below are switched off; the nightly regression on ``main``
+  covers them.
+* ``full``: the heavy scopes selected by the paths. A pull request is ``full``
+  when it is ready for review and either carries the ``ci:full`` label or
+  touches a risk path (migrations, authentication/authorization, deployment,
+  Compose, Self-Hosted and release tooling, CI/workflow files, or an unknown
+  path). Draft pull requests stay ``cheap``, except from ``release/`` branches,
+  which publish from their own checks and always run ``full``.
 """
 
 from __future__ import annotations
@@ -46,6 +58,8 @@ CANONICAL_COMPOSE_FILE = "compose.yaml"
 # this list exact is intentional: new workflows stay fail-closed until their
 # safety boundary has been reviewed explicitly.
 SELF_VALIDATING_LEAF_WORKFLOW_EXACT = (
+    # Manual, dry-run-by-default maintenance workflow without pull-request runs.
+    ".github/workflows/artifact-cleanup.yml",
     ".github/workflows/backend-encrypted.yml",
     ".github/workflows/codeql.yml",
     ".github/workflows/g2-e2e.yml",
@@ -53,7 +67,6 @@ SELF_VALIDATING_LEAF_WORKFLOW_EXACT = (
     ".github/workflows/product-design-review.yml",
     ".github/workflows/reuse-review.yml",
     ".github/workflows/web-browser-qa.yml",
-    ".github/workflows/web-s8.yml",
 )
 
 # Tooling that a dedicated leaf workflow validates itself. Each path maps to the
@@ -354,14 +367,181 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
     return result
 
 
+# The cheap Web gate (lint, format, typecheck, unit tests, Capacitor check and
+# production build) runs in CI's "Web Reference Flow" job for these inputs. As
+# a CI job it reports "skipped" for unrelated pull requests, which keeps it safe
+# as a required check (#2096).
+WEB_GATE_PREFIXES = ("web/", "android/", "design/designs/", "legal/")
+WEB_GATE_EXACT = ("design/tokens.json",)
+
+FULL_CI_LABEL = "ci:full"
+RELEASE_BRANCH_PREFIX = "release/"
+
+# Scopes that need containers, PostgreSQL shards or full stack rehearsals. In
+# the cheap pull-request tier they move to the nightly regression (#2096).
+HEAVY_SCOPES = (
+    "backend_integration",
+    "self_hosted",
+    "deployment_guard",
+    "recovery",
+)
+
+# Risk paths put a ready pull request into the full tier automatically. They
+# cover migrations, authentication/authorization, deployment and Compose,
+# Self-Hosted/release tooling, and the CI definitions themselves.
+RISK_PREFIXES = (
+    "backend/alembic/",
+    "backend/src/eimir/auth/",
+    "backend/src/eimir/authorization/",
+    "backend/src/eimir/identity/",
+    "deploy/",
+    ".github/",
+    "tools/ci/",
+    "scripts/self_hosted",
+    "scripts/release",
+)
+RISK_EXACT = (
+    CANONICAL_COMPOSE_FILE,
+    ".env.example",
+    "backend/alembic.ini",
+    "backend/Dockerfile",
+    "web/Dockerfile",
+    "web/nginx.conf",
+    "self-hosted-image-identity.json",
+    "scripts/_identity_environment.py",
+    "scripts/build_self_hosted_source.py",
+    "scripts/check_environment_isolation.py",
+    "scripts/check_runtime_environment.py",
+    "scripts/compose_checked.py",
+    "scripts/deployment_smoke.py",
+    "scripts/verify_release_asset_set.py",
+)
+
+# Heavy workflows outside this classifier gate themselves on the ``ci:full``
+# label because GitHub only exposes labels, not paths, to job conditions. A
+# ready pull request that changes one of their definitions must carry the label
+# so the changed workflow actually runs before merge.
+LABEL_GATED_WORKFLOW_PREFIXES = (".github/actions/",)
+LABEL_GATED_WORKFLOW_EXACT = (
+    ".github/workflows/android-launcher-icons.yml",
+    ".github/workflows/backend-encrypted.yml",
+    ".github/workflows/codeql.yml",
+    ".github/workflows/media-video.yml",
+    RELEASE_EVIDENCE_WORKFLOW,
+    ".github/workflows/web-browser-qa.yml",
+)
+
+
+def _normalized(paths: Iterable[str]) -> list[str]:
+    return [path.strip().replace("\\", "/") for path in paths if path.strip()]
+
+
+def risk_paths(paths: Iterable[str]) -> list[str]:
+    """Return the changed paths that put a ready pull request into the full tier."""
+    risky = []
+    for path in _normalized(paths):
+        if _matches(path, prefixes=RISK_PREFIXES, exact=RISK_EXACT):
+            risky.append(path)
+        elif classify_paths([path]) == _all_enabled():
+            # Unknown surfaces fail closed into the full tier as well.
+            risky.append(path)
+    return risky
+
+
+def label_gated_paths(paths: Iterable[str]) -> list[str]:
+    """Paths that only a label-gated workflow validates before merge."""
+    return [
+        path
+        for path in _normalized(paths)
+        if _matches(path, prefixes=LABEL_GATED_WORKFLOW_PREFIXES, exact=LABEL_GATED_WORKFLOW_EXACT)
+        or SELF_VALIDATING_TOOLING_OWNERS.get(path) in LABEL_GATED_WORKFLOW_EXACT
+    ]
+
+
+def tiered_outputs(
+    paths: Iterable[str],
+    *,
+    pull_request: bool,
+    draft: bool = False,
+    labels: Iterable[str] = (),
+    head_ref: str = "",
+) -> dict[str, str]:
+    """Combine the path scopes with the pull-request tier into workflow outputs."""
+    changed = _normalized(paths)
+    scopes = classify_paths(changed)
+    labelled = FULL_CI_LABEL in {label.strip() for label in labels}
+    risky = risk_paths(changed)
+
+    release_branch = head_ref.startswith(RELEASE_BRANCH_PREFIX)
+
+    if not pull_request:
+        full, reason = True, "not a pull request"
+    elif release_branch:
+        # Release branches (for example the standing Android test release draft)
+        # publish from their own checks, so they always verify completely.
+        full, reason = True, f"release branch {head_ref}"
+    elif draft:
+        full, reason = False, "draft pull request"
+    elif labelled:
+        full, reason = True, f"label {FULL_CI_LABEL}"
+    elif risky:
+        full, reason = True, "risk paths: " + ", ".join(sorted(risky)[:5])
+    else:
+        full, reason = False, "no risk path and no ci:full label"
+
+    if not full:
+        for scope in HEAVY_SCOPES:
+            scopes[scope] = False
+
+    label_required = (
+        pull_request
+        and not release_branch
+        and not draft
+        and not labelled
+        and bool(label_gated_paths(changed))
+    )
+
+    outputs = {scope: "true" if enabled else "false" for scope, enabled in scopes.items()}
+    # Supply Chain stays a cheap required check; only its container and wheel
+    # builds belong to the heavy tier.
+    outputs["supply_chain_backend_build"] = "true" if full and scopes["supply_chain_backend"] else "false"
+    outputs["supply_chain_web_build"] = "true" if full and scopes["supply_chain_web"] else "false"
+    outputs["web"] = (
+        "true"
+        if any(_matches(path, prefixes=WEB_GATE_PREFIXES, exact=WEB_GATE_EXACT) for path in changed)
+        or classify_paths(changed) == _all_enabled()
+        else "false"
+    )
+    outputs["tier"] = "full" if full else "cheap"
+    outputs["tier_reason"] = reason
+    outputs["label_required"] = "true" if label_required else "false"
+    return outputs
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("changed_files", type=Path, help="File with one changed path per line")
+    parser.add_argument(
+        "--pull-request",
+        action="store_true",
+        help="Classify a pull request; without it the full tier applies (push, schedule, dispatch).",
+    )
+    parser.add_argument("--draft", choices=("true", "false"), default="false")
+    parser.add_argument("--labels", default="", help="Newline- or comma-separated pull-request labels")
+    parser.add_argument("--head-ref", default="", help="Pull-request head branch")
     args = parser.parse_args()
 
     paths = args.changed_files.read_text(encoding="utf-8").splitlines()
-    for scope, enabled in classify_paths(paths).items():
-        print(f"{scope}={'true' if enabled else 'false'}")
+    labels = [label for chunk in args.labels.splitlines() for label in chunk.split(",") if label.strip()]
+    outputs = tiered_outputs(
+        paths,
+        pull_request=args.pull_request,
+        draft=args.draft == "true",
+        labels=labels,
+        head_ref=args.head_ref,
+    )
+    for key, value in outputs.items():
+        print(f"{key}={value}")
     return 0
 
 

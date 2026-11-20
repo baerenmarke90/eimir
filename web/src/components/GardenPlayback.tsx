@@ -32,6 +32,7 @@ import { GardenScene, type ScenePlant } from './GardenScene';
 import { SpringBlossoms, WinterSnow } from './GardenSeasonArt';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 import './GardenPlayback.css';
+import '../motion/playback.css';
 
 export interface PlaybackPlant extends ScenePlant {
   sentOn: Date;

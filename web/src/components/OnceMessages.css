@@ -111,7 +111,9 @@
 
 .once-reading,
 .once-result {
-  animation: eimir-disclosure-reveal var(--duration-transition)
+  /* Enter `shift` from the motion catalogue (src/motion/motion.css). */
+  --motion-enter-rise: 8px;
+  animation: eimir-motion-enter-shift var(--duration-transition)
     var(--easing-enter) both;
 }
 @media (prefers-reduced-motion: reduce) {

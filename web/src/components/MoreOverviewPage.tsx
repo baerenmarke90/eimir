@@ -294,7 +294,7 @@ export function MoreOverviewPage({
   account: AccountView;
   spaceId: string;
 }) {
-  const rootIntro = useRootTabIntro('more');
+  const rootIntro = useRootTabIntro<HTMLDivElement>('more');
   const { t } = useTranslation();
   const { unreadCount, serverAdmin, onLogout } = useShellUtilities();
   // Shares App's cached public instance status; Self-Hosted publishes no terms.
@@ -317,10 +317,7 @@ export function MoreOverviewPage({
   };
 
   return (
-    <div
-      className="page more-page"
-      data-root-intro={rootIntro ? 'true' : undefined}
-    >
+    <div className="page more-page" ref={rootIntro}>
       <PageHeader
         variant="root"
         className="content-overview-heading"

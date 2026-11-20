@@ -1,23 +1,24 @@
 name: CodeQL SAST
 
 on:
-  push:
-    branches: [main]
+  # Pull requests run this workflow only when ready for review and labelled
+  # ci:full, or from a release/ branch (#2096); otherwise every job is skipped at
+  # no runner cost and the nightly regression on main covers it.
+  # Nightly and manual runs come from the nightly regression dispatcher.
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-  schedule:
-    - cron: '23 4 * * 1'
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: codeql-${{ github.workflow }}-${{ github.ref }}
+  group: codeql-${{ github.workflow }}-${{ github.ref }}${{ github.event.action == 'labeled' && github.event.label.name != 'ci:full' && format('-ignored-label-{0}', github.run_id) || '' }}
   cancel-in-progress: true
 
 jobs:
   changes:
+    if: github.event_name != 'pull_request' || ((startsWith(github.head_ref, 'release/') || (github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ci:full'))) && (github.event.action != 'labeled' || github.event.label.name == 'ci:full'))
     name: CodeQL Change Detection
     runs-on: ubuntu-latest
     outputs:

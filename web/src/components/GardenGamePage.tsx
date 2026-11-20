@@ -98,6 +98,9 @@ import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import { useGardenStory } from './useGardenStory';
 import './GardenGamePage.css';
+import '../motion/garden.css';
+import { prefersReducedMotion } from '../motion/reducedMotion';
+import { durationMs } from '../motion/tokens';
 import './GardenGrowth.css';
 
 const FLIGHT_BASE_MS = 1400;
@@ -255,13 +258,6 @@ function useGardenFlight({
     enabled: allowed,
   });
   return gardenFlight(allowed && !line.isError ? line.data : undefined);
-}
-
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
-  );
 }
 
 /** The two partners and the arc the messenger flies along. */
@@ -551,10 +547,15 @@ export function GardenGamePage({
     onSelectMemory: () => setSelected(null),
     onStatus: setStatus,
   });
-  // A gentle gust when the garden opens.
+  // A gentle gust when the garden opens. It waits until the route transition
+  // has landed (#2063): starting every tuft and plant together with the page
+  // entry made opening the garden visibly stutter on phones.
   const opened = garden !== undefined;
   useEffect(() => {
-    if (opened) setGustKey((key) => key + 1);
+    if (!opened) return;
+    const delay = durationMs('gesture-moment');
+    const timer = window.setTimeout(() => setGustKey((key) => key + 1), delay);
+    return () => window.clearTimeout(timer);
   }, [opened]);
   // A waiting seed flies in once from the partner's side.
   const incomingId = garden?.incoming?.id ?? null;

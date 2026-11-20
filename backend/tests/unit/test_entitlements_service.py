@@ -21,6 +21,8 @@ from eimir.entitlements.service import (
     record_grant,
     revoke_grant,
 )
+from eimir.plugins.manifest import PLUGIN_CAPABILITIES
+from tests.support.plugins import plugins_loaded
 
 
 class FakeSession:
@@ -94,7 +96,9 @@ def test_active_premium_grant_provides_all_cloud_premium_capabilities() -> None:
     assert effective.tier == EntitlementTier.PREMIUM
     assert effective.status == EntitlementStatus.ACTIVE
     assert effective.is_in_grace_period is False
-    assert set(effective.capabilities) == set(ALL_PREMIUM_CAPABILITIES)
+    # Core-only, the plugin-owned capabilities are not effective (Decision 0017).
+    unserved = set() if plugins_loaded() else PLUGIN_CAPABILITIES
+    assert set(effective.capabilities) == set(ALL_PREMIUM_CAPABILITIES) - unserved
     assert has_capability(
         session,
         space_id,

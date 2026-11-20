@@ -1,6 +1,11 @@
 // @vitest-environment jsdom
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  configureHapticsForTests,
+  type HapticsBackend,
+  registerHapticsBackend,
+} from '../motion/haptics';
 import { usePullToRefresh } from './usePullToRefresh';
 
 function setScrollTop(value: number) {
@@ -241,5 +246,44 @@ describe('usePullToRefresh', () => {
     });
     expect(refresh).not.toHaveBeenCalled();
     wrapper.remove();
+  });
+
+  it('cancels a pull that reverses before release, and ticks at the threshold (#2076)', async () => {
+    const backend: HapticsBackend = {
+      selectionChanged: vi.fn(),
+      impact: vi.fn(),
+      notification: vi.fn(),
+    };
+    let now = 0;
+    configureHapticsForTests({ native: true, now: () => (now += 1000) });
+    registerHapticsBackend(backend);
+    try {
+      const onRefresh = vi.fn().mockResolvedValue(undefined);
+      renderHook(() =>
+        usePullToRefresh({ enabled: true, blocked: false, onRefresh }),
+      );
+      act(() => {
+        dispatchTouch('touchstart', 100);
+        dispatchTouch('touchmove', 200);
+        // Back by more than the reversal slop, though still past 72 px.
+        dispatchTouch('touchmove', 175);
+        dispatchTouch('touchend');
+      });
+      expect(onRefresh).not.toHaveBeenCalled();
+      expect(backend.selectionChanged).toHaveBeenCalledTimes(1);
+      expect(backend.impact).not.toHaveBeenCalled();
+
+      await act(async () => {
+        dispatchTouch('touchstart', 100);
+        dispatchTouch('touchmove', 190);
+        dispatchTouch('touchend');
+        await Promise.resolve();
+      });
+      expect(onRefresh).toHaveBeenCalledTimes(1);
+      expect(backend.impact).toHaveBeenCalledWith('light');
+    } finally {
+      registerHapticsBackend(null);
+      configureHapticsForTests({});
+    }
   });
 });

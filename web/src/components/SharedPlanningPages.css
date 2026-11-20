@@ -37,7 +37,9 @@
   gap: var(--space-3);
   padding-left: var(--space-4);
   border-left: 2px solid var(--color-brand-glow);
-  animation: planning-schedule-reveal var(--duration-transition)
+  /* Enter `travel` from just above (src/motion/motion.css). */
+  --motion-enter-from: 0 -4px;
+  animation: eimir-motion-enter-travel var(--duration-transition)
     var(--easing-enter);
 }
 
@@ -54,18 +56,6 @@
 
 .planning-schedule-cross-day {
   min-height: 44px;
-}
-
-@keyframes planning-schedule-reveal {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

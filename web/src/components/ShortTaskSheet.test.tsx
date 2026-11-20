@@ -70,6 +70,7 @@ beforeEach(() => {
 });
 afterEach(async () => {
   cleanup();
+  vi.restoreAllMocks();
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 30));
   });
@@ -131,6 +132,17 @@ function Task({
   );
 }
 
+/**
+ * Spaces synthetic events 250 ms apart, so a test pull moves slower than the
+ * fling velocity (Motion Contract 4.6) and only its distance decides.
+ */
+function slowPointerEvents() {
+  let time = 0;
+  vi.spyOn(Event.prototype, 'timeStamp', 'get').mockImplementation(
+    () => (time += 250),
+  );
+}
+
 describe('ShortTaskSheet history ownership', () => {
   for (const reducedMotion of [true, false]) {
     it(`hands a discard destination off after child and parent teardown (reduced motion: ${reducedMotion})`, async () => {
@@ -173,7 +185,7 @@ describe('ShortTaskSheet history ownership', () => {
         expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).not.toBe(parent),
       );
       fireEvent.click(
-        screen.getByRole('button', { name: taskBoundary.discard }),
+        screen.getByRole('button', { name: taskBoundary.discardConfirm }),
       );
       if (!reducedMotion) {
         const dialog = screen.getByRole('dialog');
@@ -218,7 +230,9 @@ describe('ShortTaskSheet history ownership', () => {
     expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).toBe(parent);
     expect(onExit).not.toHaveBeenCalled();
     await back();
-    fireEvent.click(screen.getByRole('button', { name: taskBoundary.discard }));
+    fireEvent.click(
+      screen.getByRole('button', { name: taskBoundary.discardConfirm }),
+    );
     await waitFor(() => expect(onExit).toHaveBeenCalledTimes(1));
   });
 
@@ -674,6 +688,8 @@ describe('ShortTaskSheet history ownership', () => {
 
   it('requires a deliberate downward drag and lets reversal cancel dismissal', async () => {
     mockMatchMedia(false);
+    // A slow, deliberate pull: no fling, so only the distance decides.
+    slowPointerEvents();
     render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);
     const trigger = screen.getByText('Task choices');
     trigger.focus();
@@ -742,8 +758,64 @@ describe('ShortTaskSheet history ownership', () => {
     await waitFor(() => expect(document.activeElement).toBe(trigger));
   });
 
+  it('dismisses a short fast fling and settles a slow one back with its velocity', async () => {
+    mockMatchMedia(false);
+    let time = 0;
+    let step = 250;
+    vi.spyOn(Event.prototype, 'timeStamp', 'get').mockImplementation(
+      () => (time += step),
+    );
+    render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);
+    fireEvent.click(screen.getByText('Task choices'));
+    const dialog = screen.getByRole('dialog') as HTMLDialogElement;
+    const surface = screen.getByTestId('sheet-surface');
+    const animate = vi.fn().mockReturnValue({
+      cancel: vi.fn(),
+      finished: new Promise(() => {}),
+    });
+    Object.defineProperty(dialog, 'animate', {
+      configurable: true,
+      value: animate,
+    });
+
+    // Slow: 60px over 500ms stays below the commit distance and the fling
+    // velocity, so the sheet returns through the settle spring.
+    fireEvent.pointerDown(surface, {
+      pointerId: 31,
+      button: 0,
+      isPrimary: true,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(surface, { pointerId: 31, clientY: 160 });
+    fireEvent.pointerUp(surface, { pointerId: 31, clientY: 160 });
+    expect(screen.getByRole('dialog')).toBe(dialog);
+    expect(
+      dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
+    ).toBe('0px');
+    const [frames, options] = animate.mock.calls[0];
+    expect(frames[0]).toEqual({ transform: 'translateY(60px)' });
+    expect(frames.at(-1)).toEqual({ transform: 'translateY(0px)' });
+    expect(options).toEqual(expect.objectContaining({ easing: 'linear' }));
+
+    // Fast: 60px in 40ms passes the fling velocity, so the sheet closes.
+    step = 20;
+    fireEvent.pointerDown(surface, {
+      pointerId: 32,
+      button: 0,
+      isPrimary: true,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(surface, { pointerId: 32, clientY: 160 });
+    fireEvent.pointerUp(surface, { pointerId: 32, clientY: 160 });
+    await waitFor(() =>
+      expect(dialog.getAttribute('data-presence')).toBe('exiting'),
+    );
+  });
+
   it('lets direct manipulation start on plain sheet content, not only the handle', async () => {
     mockMatchMedia(false);
+    // A slow, deliberate pull: no fling, so only the distance decides.
+    slowPointerEvents();
     render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);
     fireEvent.click(screen.getByText('Task choices'));
 
@@ -804,6 +876,8 @@ describe('ShortTaskSheet history ownership', () => {
 
   it('lets a pull start on buttons and rows without activating them', () => {
     mockMatchMedia(false);
+    // A slow, deliberate pull: no fling, so only the distance decides.
+    slowPointerEvents();
     const onChoose = vi.fn();
     render(
       <ShortTaskSheet open title="Places" onClose={vi.fn()}>

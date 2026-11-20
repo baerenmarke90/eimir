@@ -62,6 +62,7 @@ import { ProblemState } from './ProblemState';
 import { TaskBackLink } from './TaskBackButton';
 import { UiState } from './UiState';
 import './PicturePingPongPage.css';
+import '../motion/game-scenes.css';
 
 const FLIGHT_BASE_MS = 900;
 const COLOURS = [
@@ -790,7 +791,12 @@ export function PicturePingPongPage({
       const image = await renderPictureBlob(strokes, inks());
       const { memoryId } = await api.saveToMoments({
         title,
-        body: t('games.pingPong.memoryBody', { name: partnerName }),
+        // Both names, so the text reads right for whichever partner opens
+        // the moment later (#2063: it named the reader as the co-painter).
+        body: t('games.pingPong.memoryBody', {
+          own: ownName,
+          partner: partnerName,
+        }),
         image,
       });
       apply(await api.markSaved(memoryId));

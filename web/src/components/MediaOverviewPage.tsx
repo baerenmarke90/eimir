@@ -28,9 +28,10 @@ import { MediaGallery } from './MediaGallery';
 import { MemoryPreview } from './MemoryPreview';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import { SecureSurface } from './SecureSurface';
 import { SensitiveMediaCover } from './SensitiveMedia';
 import { UiState } from './UiState';
-import { useDepartingItems } from './useDepartingItems';
+import { useDepartingItems } from '../motion/departing';
 import { VoiceNotePreview } from './VoiceNotePlayer';
 import './MediaOverviewPage.css';
 
@@ -361,7 +362,8 @@ export function MediaOverviewPage({
         />
       ) : null}
       {items.length > 0 ? (
-        <>
+        // Private media stays out of screenshots in the app (#683).
+        <SecureSurface active={isPrivate} announceFailure>
           <p className="media-overview-count">
             {t('mediaOverview.count', {
               count: mediaQuery.data?.pages[0].totalCount ?? items.length,
@@ -532,7 +534,7 @@ export function MediaOverviewPage({
               </AutoLoadMore>
             </div>
           ) : null}
-        </>
+        </SecureSurface>
       ) : null}
     </div>
   );

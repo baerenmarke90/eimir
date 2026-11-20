@@ -54,6 +54,7 @@ import {
 import { loadInstanceAccessStatus } from './client/instanceStatus';
 import { createM4ProductApis } from './client/m4Product';
 import { ProfilesApi } from './client/mediaApis';
+import type { MemoryMapSession } from './client/memoryMapSession';
 import {
   ONCE_CREATE_ROUTE,
   ONCE_ROUTE,
@@ -184,7 +185,6 @@ import { OnceMessagesPage } from './components/OnceMessages';
 import { PartnerLocationOnboarding } from './components/PartnerLocationOnboarding';
 import { PartnerLocationSync } from './components/PartnerLocationSync';
 import { PersonalSettingsSyncRuntime } from './components/PersonalSettingsSyncRuntime';
-import type { MapViewport } from './components/PlaceMapCanvas';
 import { PlanShortLinkRedirect } from './components/PlanShortLinkRedirect';
 import {
   type PrimaryTabPanel,
@@ -192,6 +192,7 @@ import {
 } from './components/PrimaryTabPanels';
 import { ProblemState } from './components/ProblemState';
 import { RelationshipStoryPage } from './components/RelationshipStoryPage';
+import { SecureSurface } from './components/SecureSurface';
 import {
   ServerAdminAccessGate,
   ServerAdminPage,
@@ -208,6 +209,7 @@ import { UiState } from './components/UiState';
 import { VoiceShareIngress } from './components/VoiceShareIngress';
 import { useTranslation } from './i18n';
 import { legalDocumentIdForRoute } from './legal/legalDocuments';
+import { isCapacitorNative } from './pwa';
 
 const ChapterCreatePage = lazy(() =>
   import('./components/ChapterCreatePage').then((module) => ({
@@ -409,6 +411,27 @@ function DeferredRoutes({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Panels built in the background once the app is quiet (#2063). Only the
+ * phone app, where starting a map needs the GPU and its first data from the
+ * network; on the Web the map is built when it is opened.
+ */
+const PREWARMED_PANELS: readonly string[] = isCapacitorNative()
+  ? [MEMORY_MAP_ROUTE]
+  : [];
+
+/** A kept panel whose page code loads on first visit. */
+function DeferredPanel({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
+  return (
+    <Suspense
+      fallback={<UiState kind="loading" title={t('states.loading.title')} />}
+    >
+      {children}
+    </Suspense>
+  );
+}
+
 function SpaceContextGate({
   loading,
   error,
@@ -508,12 +531,14 @@ function AuthenticatedApp({
   const location = useLocation();
   const queryClient = useQueryClient();
   const previousSpaceId = useRef(spaceId);
-  const memoryMapViewport = useRef<{ scope: string; current?: MapViewport }>({
+  // The Momente map's session memory: its last camera and its selected
+  // Place, kept in memory only and per account and space.
+  const memoryMapSession = useRef<MemoryMapSession & { scope: string }>({
     scope: '',
   });
   const mapScope = JSON.stringify([apiBaseUrl, account.id, spaceId]);
-  if (memoryMapViewport.current.scope !== mapScope)
-    memoryMapViewport.current = { scope: mapScope };
+  if (memoryMapSession.current.scope !== mapScope)
+    memoryMapSession.current = { scope: mapScope };
   const apis = useMemo(
     () => createReferenceApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
@@ -773,6 +798,7 @@ function AuthenticatedApp({
       element: (
         <StoryProductPage
           apis={apis}
+          mapSession={memoryMapSession.current}
           accountId={account.id}
           spaceId={spaceId}
           loadMemoryImage={loadMemoryImage}
@@ -783,6 +809,21 @@ function AuthenticatedApp({
             storyStartupReads?.kind === 'diary' ? storyStartupReads : undefined
           }
         />
+      ),
+    },
+    {
+      // The Momente map stays mounted once visited (#2063): starting a map
+      // needs the GPU and its places' photos, so returning to it reuses the
+      // live map instead of building it again.
+      path: MEMORY_MAP_ROUTE,
+      element: (
+        <DeferredPanel>
+          <MemoryMapPage
+            {...planningProductProps}
+            loadMemoryImage={loadMemoryImage}
+            sessionViewport={memoryMapSession.current}
+          />
+        </DeferredPanel>
       ),
     },
     {
@@ -829,6 +870,7 @@ function AuthenticatedApp({
           <PrimaryTabPanels
             panels={primaryTabPanels}
             fallback={routeErrorFallback}
+            prewarm={PREWARMED_PANELS}
           />
         }
       >
@@ -839,15 +881,27 @@ function AuthenticatedApp({
           <DeferredRoutes>
             <Route
               path={ONCE_ROUTE}
-              element={<OnceMessagesPage mode="inbox" />}
+              element={
+                <SecureSurface announceFailure>
+                  <OnceMessagesPage mode="inbox" />
+                </SecureSurface>
+              }
             />
             <Route
               path={ONCE_CREATE_ROUTE}
-              element={<OnceMessagesPage mode="compose" />}
+              element={
+                <SecureSurface announceFailure>
+                  <OnceMessagesPage mode="compose" />
+                </SecureSurface>
+              }
             />
             <Route
               path={`${ONCE_ROUTE}/:messageId`}
-              element={<OnceMessagesPage mode="read" />}
+              element={
+                <SecureSurface announceFailure>
+                  <OnceMessagesPage mode="read" />
+                </SecureSurface>
+              }
             />
             <Route
               path="/"
@@ -960,16 +1014,8 @@ function AuthenticatedApp({
               path={CHAPTER_DETAIL_ROUTE_PATTERN}
               element={<ChapterProductPage {...planningProductProps} />}
             />
-            <Route
-              path={MEMORY_MAP_ROUTE}
-              element={
-                <MemoryMapPage
-                  {...planningProductProps}
-                  loadMemoryImage={loadMemoryImage}
-                  sessionViewport={memoryMapViewport.current}
-                />
-              }
-            />
+            {/* Kept like a primary tab (#2063); see primaryTabPanels. */}
+            <Route path={MEMORY_MAP_ROUTE} element={null} />
             <Route
               path={MORE_PLACES_ROUTE}
               element={<PlacesOverviewPage {...planningProductProps} />}
@@ -1044,7 +1090,11 @@ function AuthenticatedApp({
             />
             <Route
               path={SEARCH_ROUTE}
-              element={<SearchProductPage apis={m4Apis} spaceId={spaceId} />}
+              element={
+                <SecureSurface announceFailure>
+                  <SearchProductPage apis={m4Apis} spaceId={spaceId} />
+                </SecureSurface>
+              }
             />
             {(['happiness', 'timeTravel'] as const).flatMap((kind) =>
               ['', '/new'].map((suffix) => (
@@ -1225,12 +1275,14 @@ function AuthenticatedApp({
             <Route
               path={MORE_PROFILE_ROUTE}
               element={
-                <ProfilePage
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={tokens.accessToken}
-                  account={account}
-                  spaceId={spaceId}
-                />
+                <SecureSurface announceFailure>
+                  <ProfilePage
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    account={account}
+                    spaceId={spaceId}
+                  />
+                </SecureSurface>
               }
             />
             <Route
@@ -1283,13 +1335,15 @@ function AuthenticatedApp({
             <Route
               path="/more/private/*"
               element={
-                <PrivateAreaProductPage
-                  api={privateAreaApi}
-                  profilesApi={profilesApi}
-                  spacesApi={spacesApi}
-                  accountId={account.id}
-                  spaceId={spaceId}
-                />
+                <SecureSurface announceFailure>
+                  <PrivateAreaProductPage
+                    api={privateAreaApi}
+                    profilesApi={profilesApi}
+                    spacesApi={spacesApi}
+                    accountId={account.id}
+                    spaceId={spaceId}
+                  />
+                </SecureSurface>
               }
             />
             <Route
@@ -1328,19 +1382,23 @@ function AuthenticatedApp({
             <Route
               path={HEART_MOMENT_CREATE_ROUTE}
               element={
-                <HeartMomentProductPage
-                  mode="create"
-                  {...heartMomentProductProps}
-                />
+                <SecureSurface announceFailure>
+                  <HeartMomentProductPage
+                    mode="create"
+                    {...heartMomentProductProps}
+                  />
+                </SecureSurface>
               }
             />
             <Route
               path={HEART_MOMENT_EDIT_ROUTE_PATTERN}
               element={
-                <HeartMomentProductPage
-                  mode="edit"
-                  {...heartMomentProductProps}
-                />
+                <SecureSurface announceFailure>
+                  <HeartMomentProductPage
+                    mode="edit"
+                    {...heartMomentProductProps}
+                  />
+                </SecureSurface>
               }
             />
             <Route

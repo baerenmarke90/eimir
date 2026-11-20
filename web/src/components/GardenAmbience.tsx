@@ -57,6 +57,9 @@ import {
 } from '../client/gardenGrowth';
 import type { GardenSeason } from '../client/gardenPresentation';
 import { useTranslation } from '../i18n';
+import '../motion/garden.css';
+import { sceneElement } from '../client/gardenSceneLayers';
+import { usePageVisible } from '../motion/scene';
 import { Butterfly, cloudDriftStyle, WateringCan } from './GardenArt';
 import { SmallBird } from './GardenFeatures';
 import type { ScenePlant } from './GardenScene';
@@ -112,18 +115,12 @@ export function useGardenClock(): { daytime: GardenDaytime; day: Date } {
   return { daytime: now.daytime, day };
 }
 
-/** False while the document is hidden; ambient loops pause meanwhile. */
-export function useDocumentVisible(): boolean {
-  const [visible, setVisible] = useState(
-    () => typeof document === 'undefined' || !document.hidden,
-  );
-  useEffect(() => {
-    const update = () => setVisible(!document.hidden);
-    document.addEventListener('visibilitychange', update);
-    return () => document.removeEventListener('visibilitychange', update);
-  }, []);
-  return visible;
-}
+/**
+ * False while the document is hidden; ambient loops and the timers that
+ * spawn ambient effects pause meanwhile (the motion layer's page
+ * visibility, Motion Contract M8).
+ */
+export const useDocumentVisible = usePageVisible;
 
 /* Geometry ------------------------------------------------------------------- */
 
@@ -660,7 +657,7 @@ export function useGardenAmbience({
     later(
       () =>
         replay(
-          svg.current?.querySelector(`[data-plant-art="${plant.id}"]`),
+          sceneElement(svg.current, `[data-plant-art="${plant.id}"]`),
           'is-perking',
         ),
       latest.current.reduced ? 0 : PERK_AT_MS,
@@ -696,7 +693,7 @@ export function useGardenAmbience({
     if (!plant) return;
     if (plant.stage > 0)
       replay(
-        svg.current?.querySelector(`[data-plant-art="${plant.id}"]`),
+        sceneElement(svg.current, `[data-plant-art="${plant.id}"]`),
         'is-boing',
       );
     const blooming = plant.stage === 3 && plant.species !== 'SURPRISE';
@@ -728,7 +725,7 @@ export function useGardenAmbience({
   }, [bounceKey, add, nextKey, svg, t]);
 
   const tapTree = () => {
-    replay(svg.current?.querySelector('.garden-tree-crown'), 'is-rustling');
+    replay(sceneElement(svg.current, '.garden-tree-crown'), 'is-rustling');
     const s = treeScale(unlocks);
     const base = treeBase();
     const crown = { x: base.x + 4 * s, y: base.y - 54 * s };

@@ -699,3 +699,38 @@ def test_stored_row_keeps_content_in_the_protected_payload(
         "created_at",
         "updated_at",
     }
+
+
+def test_without_the_plugin_turn_notices_are_hidden_and_games_go_with_the_couple(  # type: ignore[no-untyped-def]
+    client, session: Session, premium
+) -> None:
+    from eimir.plugins import lifecycle
+    from tests.support.plugins import without_plugins
+
+    game = _start_who(client, premium)
+    for question in [question["questionId"] for question in game["questions"]]:
+        _answer(client, premium, "a", game["id"], question, _id(premium, "a"))
+    _project(session)
+    assert (KIND, "WHO_OF_US_GAME") in _listed_kinds(client, premium, "b")
+    with without_plugins():
+        assert (KIND, "WHO_OF_US_GAME") not in _listed_kinds(client, premium, "b")
+        lifecycle.partner_joined(session, premium["space"].id)
+    session.flush()
+    assert session.scalar(select(CoupleGame.id)) is None
+    notices = select(Notification.id).where(Notification.target_type == "WHO_OF_US_GAME")
+    assert session.scalar(notices) is None
+
+
+def test_without_the_plugin_games_are_dropped_when_the_couple_changes(  # type: ignore[no-untyped-def]
+    client, session: Session, premium
+) -> None:
+    from tests.support.plugins import without_plugins
+
+    _start_who(client, premium)
+    membership = relationship_service.require_membership(
+        session, premium["ben"], premium["space"].id
+    )
+    with without_plugins():
+        relationship_service.end_membership(session, membership)
+    session.flush()
+    assert session.scalar(select(CoupleGame.id)) is None

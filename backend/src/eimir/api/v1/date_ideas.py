@@ -29,6 +29,7 @@ from eimir.date_ideas.catalog import (
 )
 from eimir.date_ideas.images import IMAGE_ID_PATTERN, DateIdeaImages, get_images
 from eimir.entitlements.models import Capability
+from eimir.wish_selections.date_idea_contract import DateIdea, DateIdeaImage
 
 router = APIRouter(tags=["date-ideas"])
 
@@ -36,34 +37,6 @@ router = APIRouter(tags=["date-ideas"])
 class DateIdeaLabel(ApiModel):
     id: str
     label: str = Field(description="Label in the response `locale`.")
-
-
-class DateIdeaImage(ApiModel):
-    """Editorial image; fetch the bytes from `getDateIdeaImage` with `id`."""
-
-    id: str
-    width: int
-    height: int
-    alt: str = Field(description="Alternative text in the idea's `contentLocale`.")
-
-
-class DateIdea(ApiModel):
-    """One curated idea; all texts come from one locale entry."""
-
-    id: str = Field(description="Persistent editorial ID. Never a Wish or Plan ID.")
-    category: DateIdeaCategory
-    place_type: DateIdeaPlaceType
-    minutes: int = Field(description="Editorial time budget in minutes.")
-    budget_eur_for_two: int = Field(
-        description="Spending cap in whole EUR for two; 0 means no new spending."
-    )
-    title: str
-    description: str
-    wish_title: str = Field(description="Editable prefill for the Wish composer.")
-    plan_title: str = Field(description="Editable prefill for the Plan composer.")
-    prerequisites: list[str]
-    content_locale: str = Field(description="Locale of all texts of this idea.")
-    image: DateIdeaImage = Field(description="The idea's own image, otherwise its category image.")
 
 
 class DateIdeaCatalog(ApiModel):

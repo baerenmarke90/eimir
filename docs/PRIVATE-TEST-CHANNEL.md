@@ -8,26 +8,40 @@ Android APK publication remains the separate #1331/#1332 channel.
 
 ## Automatic publication
 
-After a push to `main`, the private-channel jobs in `.github/workflows/release-publish.yml`
-are triggered by successful completions of the required main workflows:
+Every merge to `main` publishes the private test channel right away (#2096,
+Product Owner decision 2026-11-20). The `push` to `main` starts the private-channel
+jobs in `.github/workflows/release-publish.yml`; the merged pull request's checks
+are the only verification. The full regression does **not** gate this test
+instance. A newer merge cancels an unfinished build of an older one, so the
+channel converges on the newest `main`. Product releases keep requiring the full
+regression (see `docs/m6/IMMUTABLE-RELEASES.md` and #2100).
+
+After a green full regression (nightly or manual), Nightly Regression Report also
+starts the publisher with `private_test_channel=true`; it is a no-op when that
+revision is already selected or `main` has moved on. A manual retry uses the same
+dispatch, described under one-time setup below.
+
+The publication jobs:
 
 1. Publication requires the repository
    Actions variable `EIMIR_TEST_CHANNEL_ENABLED=true`, the owning repository and
    its `main` ref. Pull requests never receive publishing permissions.
-2. Checks once for the exact revision's newest push runs of CI, Web
+2. For a merge (`push`), admits only the current `main` commit and skips the full
+   regression. For a manual or report dispatch, checks once for the exact
+   revision's newest dispatched full-regression runs of CI, Web
    Browser QA, CodeQL SAST, Self-Hosted Deployment Guard, Self-Hosted Recovery and Media Video.
    Missing, pending, skipped, failed or cancelled workflows cannot admit a build.
    An unfinished candidate exits without building; the next required workflow
    completion retries it. No runner waits for other workflows. Completion events
-   must originate from an owning-repository main push and match the exact checkout;
+   must originate from an owning-repository dispatched main run and match the exact checkout;
    PRs, forks, other branches and superseded revisions cannot admit publication.
    A revision already selected on the channel is not rebuilt on duplicate events.
    Completion queues are separated by source revision and event origin, so a late
    older or fork completion cannot evict the current candidate. Final publication
    retains pending candidates, remains globally serialized, and rechecks current
    main and all required checks before it can advance the channel.
-   Browser QA therefore runs for every main push, including backend-only and
-   operator changes; pull-request browser path filters remain unchanged.
+   The full regression runs Browser QA for every tested main revision, including
+   backend-only and operator changes.
 3. Runs the channel contracts, then reuses Release Evidence with Android excluded:
    build-once runtime archives, hashes, SPDX SBOMs and verified attestations.
    The private test channel additionally includes the restricted `media-runtime`
@@ -75,11 +89,11 @@ Merge the implementation PR through ordinary required checks. Then:
 
 1. Under repository **Settings → Secrets and variables → Actions → Variables**,
    add `EIMIR_TEST_CHANNEL_ENABLED` with value `true`. It is not a secret.
-2. Set the variable before merging to let the first main push publish the channel.
+2. Set the variable before merging to let the first full regression publish the channel.
    To retry after checks finish, run **Actions → Publish Immutable Release → Run workflow**,
    branch **main**, with **private_test_channel=true**, release version `0.0.0`,
    and **confirm_publish=false**. The private selector excludes all product-release
-   jobs; the placeholder version is unused. Subsequent main pushes are automatic.
+   jobs; the placeholder version is unused. Subsequent nightly regressions are automatic.
 3. If package access is not inherited, grant this repository **Write** under the
    existing `eimir-backend` and `eimir-web` packages' Actions access settings.
    Only the publisher job requests package and channel-branch write permissions.

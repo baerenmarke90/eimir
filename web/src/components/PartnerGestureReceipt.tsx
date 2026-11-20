@@ -53,19 +53,72 @@ import { useSpaceCapability } from '../client/spaceEntitlement';
 import { isDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import { wishDateProposalQueryKey } from '../client/wishDateProposal';
 import { useTranslation } from '../i18n';
+import { haptic } from '../motion/haptics';
+import { type MomentTicket, startMoment } from '../motion/moment';
+import { usePresentationPresence } from '../motion/presence';
+import { durationMs } from '../motion/tokens';
 import { EimirIcon } from './EimirIcon';
 import { NotificationMotion } from './NotificationMotion';
 import { AuthorAvatar } from './PersonIdentity';
 import { ProMark } from './ProMark';
 import { isModalLayerActive } from './useModalLifecycle';
-import { usePresentationPresence } from './useOverlayPresence';
 import { isGestureCooldown, usePartnerGesture } from './usePartnerGesture';
+import '../motion/moments.css';
 import './PartnerGestureReceipt.css';
 
 /** Long enough to read the sentence and reach the reply comfortably. */
 export const FOREGROUND_NOTIFICATION_VISIBLE_MS = 8_000;
 const HANDLED_LIMIT = 64;
 const ARRIVAL_PAGE_SIZE = 5;
+
+/** The Moment identity of a received notification's choreography. */
+export const RECEIPT_MOMENT = 'notification.receipt';
+/** Receipts whose beats were granted and have not ended yet, by arrival key. */
+const playingReceipts = new Map<string, MomentTicket>();
+
+/** The receipt's beats end when the badge has landed (receipt CSS). */
+function receiptMomentDuration(): number {
+  return (
+    2 * durationMs('sequence-beat') +
+    durationMs('gesture-sequence') +
+    durationMs('context')
+  );
+}
+
+/**
+ * Whether a receipt's choreography plays (Motion Contract 4.7). It plays at
+ * most once per received item, as the screen's one emphasized motion, only
+ * while the page is visible and never with reduced motion; otherwise the
+ * receipt shows its settled badge at once (`final`). A received gesture the
+ * person is looking at gets the Moment's one haptic on its first beat (4.10);
+ * calm notices get none. The same item rendering again while its beats run
+ * (a re-render, StrictMode) keeps playing instead of settling early.
+ */
+export function receiptMoment(
+  key: string,
+  gesture: boolean,
+): 'playing' | 'final' {
+  if (playingReceipts.has(key)) return 'playing';
+  const duration = receiptMomentDuration();
+  const ticket = startMoment(RECEIPT_MOMENT, key, {
+    visible:
+      typeof document === 'undefined' || document.visibilityState !== 'hidden',
+    duration,
+  });
+  if (!ticket) return 'final';
+  if (ticket.delay > 0) {
+    // Another emphasized motion is running: settle instead of waiting.
+    ticket.end();
+    return 'final';
+  }
+  if (gesture) haptic('moment');
+  playingReceipts.set(key, ticket);
+  setTimeout(() => {
+    playingReceipts.delete(key);
+    ticket.end();
+  }, duration);
+  return 'playing';
+}
 
 const HEART_PATH =
   'M12 20.3 4.7 13A4.8 4.8 0 0 1 11.5 6.2l.5.6.5-.6A4.8 4.8 0 0 1 19.3 13Z';
@@ -275,6 +328,9 @@ function NotificationReceipt({
   // Gestures draw their own glyph; the other calm notices badge an icon.
   const icons = variant && 'icons' in variant ? variant.icons : undefined;
   const calm = variant?.motion === 'calm-ring';
+  const [moment] = useState(() =>
+    variant ? receiptMoment(notificationArrivalKey(item), !calm) : undefined,
+  );
   // A badge on an avatar-less circle would only repeat the icon inside it.
   const showBadge =
     icons !== undefined && (item.actor || icons.badge !== icons.center);
@@ -389,6 +445,7 @@ function NotificationReceipt({
     <aside
       className="partner-gesture-receipt"
       data-variant={variant?.motion}
+      data-moment={moment === 'final' ? 'final' : undefined}
       data-presence={presenceState}
       data-testid={
         isPartnerGestureKind(item.kind) || isWishDateReceiptKind(item.kind)

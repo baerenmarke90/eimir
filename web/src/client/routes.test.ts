@@ -2,6 +2,7 @@ import {
   ACTIVITY_ROUTE,
   APP_ROUTES,
   activeNavigationArea,
+  stickyNavigationArea,
   appRoutePath,
   CHAPTER_CREATE_ROUTE,
   CHAPTER_DETAIL_ROUTE_PATTERN,
@@ -253,6 +254,17 @@ describe('content deep links', () => {
     expect(subpageParentPath(ACTIVITY_ROUTE)).toBe('/more');
     expect(subpageParentPath(`${ACTIVITY_ROUTE}/`)).toBe('/more');
     expect(subpageParentPath('/today/only-you/x')).toBe('/today');
+  });
+
+  it('keeps Mehr highlighted on Momente pages opened from Mehr (#2063)', () => {
+    expect(stickyNavigationArea('more', '/story/chapters')).toBe('more');
+    expect(stickyNavigationArea('more', '/story/years/2026')).toBe('more');
+    expect(stickyNavigationArea('more', '/plan/chapters/c1')).toBe('more');
+    expect(stickyNavigationArea('more', '/story')).toBe('story');
+    expect(stickyNavigationArea('story', '/story/chapters')).toBe('story');
+    expect(stickyNavigationArea('today', '/story/photos')).toBe('story');
+    expect(stickyNavigationArea(null, '/story/photos')).toBe('story');
+    expect(stickyNavigationArea('more', '/plan')).toBe('plan');
   });
 
   it('resolves active navigation area with corrected domain semantics', () => {

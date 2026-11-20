@@ -5,6 +5,8 @@
 **Baseline:** Product Reference v1 and `design-system-direction.md` section 8  
 **Issue:** #1204
 
+The [Motion Contract](motion-contract.md) (#2067) defines how these roles are built: a closed catalogue of motion primitives, lifecycle invariants and the shared motion layer. New or changed motion follows both documents.
+
 This document operationalizes the existing motion direction. It does not create a second visual language and it does not authorize animation for its own sake. Product Reference v1, the Partner-App Experience Standard, component contracts, accessibility, privacy and security remain higher-order constraints.
 
 ## 1. Principle
@@ -51,6 +53,7 @@ Compact/smartphone is the normative interaction reference. Expanded may adapt ge
 | one heartbeat of the nearby map connection (#1907 H1) | `motion.duration.connectionBeat` | 450 ms | `--duration-connection-beat` |
 | one round trip of the glow on a regional map connection (#1907 H1) | `motion.duration.connectionTravel` | 3200 ms | `--duration-connection-travel` |
 | one round trip of the glow on a far map connection (#1907 H1) | `motion.duration.connectionTravelFar` | 6000 ms | `--duration-connection-travel-far` |
+| total visible time a decorative scene's ambient motion plays before it rests in place; offscreen it rests at once (#2063) | `motion.duration.ambientRest` | 12000 ms | `--duration-ambient-rest` |
 | state / settled movement | `motion.easing.standard` | 0.2, 0, 0, 1 | `--easing-standard` |
 | entering / spatial arrival | `motion.easing.enter` | 0, 0, 0.2, 1 | `--easing-enter` |
 | exit / dismissal | `motion.easing.exit` | 0.4, 0, 1, 1 | `--easing-exit` |
@@ -71,7 +74,15 @@ distance. It never delays interaction and is absent with reduced motion.
 
 The Product Owner approved the flights of the own check-in and its siblings (Dein Tag send, the partner's shared day arriving on Wir, a gesture flying to the partner avatar; 2026-11-16/17). The own check-in send flight (Dein Tag): after "Fertig", the chosen feeling, the battery and the note fly together to the own avatar badge while the sheet closes. 560 ms is a deliberate departure from the 320 ms guardrail because the items cross the screen from the sheet to the badge; the flight is presentation only (it never delays saving, closing or the next action, and a failed save returns the item instead), and it is absent with reduced motion.
 
-The Product Owner approved a living arrival of the Wir page (2026-11-18) and, the same day, chose its calm strength after comparing a calm, a balanced and a vivid version, including how each keeps living after the arrival (the balanced strength was chosen first and replaced by the calm one). It is a deliberate exception to "no movement merely to make a quiet surface look more active" and uses existing tokens only. The stage: the two portraits fade in together in place (the partner a beat later), their rings open, names and daily marks follow and the heart line is drawn; there is no heartbeat and no ripple (once per app start, only at the top of Wir). After that the rings around the two portraits breathe very slowly, one after the other (a swell of the ring's scale and opacity over `--duration-connection-travel-far` with the travel curve). This is the only looping motion on Wir; it sits on the decorative ring, never on a portrait, so tap targets and flights never move, and it stops with reduced motion and while Wir is off screen. The modules: each arrives once per session the first time it is reached with a short rise and fade; modules already in view arrive together in reading order after the stage. The plans in the horizontal strip fade in one after another and never move sideways because that would widen the scrolling strip for a moment and nudge it. There is no photograph zoom, no scroll-driven drift and no tilt. Returning to Wir, refetching, and items added to or removed from a module already seen never replay it and never animate: the content is simply there. All of it is presentation only (it never delays content, focus, navigation or publication), it uses `translate`, `scale` and opacity, and it is absent with reduced motion, which shows the same content and focus at once. The implementation is `WirMotion.css` and `useWirReveal.ts`.
+The Product Owner approved a living arrival of the Wir page (2026-11-18) and, the same day, chose its calm strength after comparing a calm, a balanced and a vivid version, including how each keeps living after the arrival (the balanced strength was chosen first and replaced by the calm one). It is a deliberate exception to "no movement merely to make a quiet surface look more active" and uses existing tokens only. The stage: the two portraits fade in together in place (the partner a beat later), their rings open, names and daily marks follow and the heart line is drawn; there is no heartbeat and no ripple (once per app start, only at the top of Wir). After that the rings around the two portraits breathe very slowly, one after the other (a swell of the ring's opacity only over `--duration-connection-travel-far` with the travel curve). Since #2069 the breath no longer scales the ring: scaling a 2 px ring stepped one device pixel at a time on phones (Motion Contract M7, no scale on thin strokes). This is the only looping motion on Wir; it sits on the decorative ring, never on a portrait, so tap targets and flights never move, and it stops with reduced motion and while Wir is off screen. The modules: each arrives once per session the first time it is reached with a short rise and fade; modules already in view arrive together in reading order after the stage. The plans in the horizontal strip fade in one after another and never move sideways because that would widen the scrolling strip for a moment and nudge it. There is no photograph zoom, no scroll-driven drift and no tilt. Returning to Wir, refetching, and items added to or removed from a module already seen never replay it and never animate: the content is simply there. All of it is presentation only (it never delays content, focus, navigation or publication), it uses `translate`, `scale` and opacity, and it is absent with reduced motion, which shows the same content and focus at once. The implementation is `WirMotion.css` and `useWirReveal.ts` on the motion layer (#2074): the stage is Enter `stage` with identity `wir.stage` (once per app start, `useStage`, ending on its own clock), the modules are `session`-scoped plays on one choreography clock, and the breath is Ambient `breath` (`wirStageMotion.ts`). Since #2074 the ring opens with opacity only instead of growing from 84 %, for the same reason as the breath (M7).
+
+**Important-day Moment on Wir (Product Owner, 2026-11-20, #2072).** On the couple's anniversary, either partner's birthday or a shared important date visible to the viewer, the Wir stage plays one Moment after its opening, once per local day per device:
+- the heart fills;
+- about six small hearts rise from it and fade within about 1.5 s;
+- one haptic tick accompanies the first beat (native app only, through the layer's haptics adapter);
+- the middle line cross-fades to the occasion copy.
+
+On a birthday that person's ring takes a warm accent, a soft halo appears behind it (opacity only) and a cake mark sits on the rim. The ring breath starts only after the Moment. The filled heart, the copy and the accent stay for the rest of the day without motion. A return, refetch, remount or resume never replays it. Reduced motion shows the final state at once with no rising hearts and no haptic. Private dates and surprise or discreet plans never surface, and there is no "Gratulieren" action. The implementation is `wirImportantDay.ts` (Motion Contract 4.7).
 
 The same decision (2026-11-18) lets the shared moment on Wir rotate through its memory's pictures on its own: a photograph stays for 8 seconds, a clip plays silently for at most 10 seconds, and the next picture takes over with a slow cross-fade and no zoom (`--duration-gesture-sequence`, the standard curve; the calm strength of the Wir arrival also applies here, chosen by the Product Owner on 2026-11-18 after the first 5.5 and 6 second version). Sensitive media never rotates (the server lists only ready, non-sensitive pictures, and a sensitive preview shows its cover as before). It runs only while it can be seen: it pauses while the page is hidden, while Wir is off screen, while a mouse rests on it or focus is inside it, and when the person pauses it with the control beside the moment's link; with reduced motion it never starts and the first picture stays. Data Saver shows clips as their still. Only the next picture is kept warm. The implementation is `useMomentRotation.ts` and `WirMomentGallery.tsx`. The 8 s and 10 s dwell times are timers of a slideshow, not animation durations, and need no token.
 
@@ -171,7 +182,7 @@ attention motion.
 | Toast / Snackbar | non-critical acknowledgement | optional fast-standard / standard | `Snackbar` | immediate appearance/removal is acceptable |
 | Overlay / backdrop | modal layer cue | standard / standard-exit | owning sheet/dialog/lightbox lifecycle | immediate/opacity-only |
 | Navigation content | bounded continuity, stable shell | optional standard / standard | route-owned content surface | instant content handoff with position preserved |
-| Wir arrival (PO 2026-11-18, calm) | one-shot stage fade, once-per-session module rise, slow ring breath | sequence beat, context, gesture moment and connection travel (far) / enter and travel | `WirMotion.css`, `useWirReveal` | final composition at once; nothing replays or loops |
+| Wir arrival (PO 2026-11-18, calm) | one-shot stage fade, once-per-session module rise, slow ring breath | sequence beat, context, gesture moment and connection travel (far) / enter and travel | `WirMotion.css`, `useWirReveal`, `wirStageMotion.ts` on the motion layer | final composition at once; nothing replays or loops |
 
 ## 9. Existing shared responsibilities
 
@@ -183,6 +194,12 @@ The audit found useful primitives that new work should reuse rather than duplica
 - `useDismissiblePopover`: outside-pointer, Escape, route-change and trigger-focus behavior for non-modal anchored popovers.
 - `.eimir-motion-disclosure`: transform-only local reveal for content opened by a known control or local state transition; never a route/page/section/query-result mount effect.
 - `.eimir-motion-success`: concise one-shot feedback for confirmed successful results; never pending, failed or neutral states.
+- Motion layer (`web/src/motion/`, Motion Contract 5.4): sheets, dialogs and popovers name its `eimir-motion-surface-*` and `eimir-motion-backdrop-*` keyframes (#2075); the shared utility classes above live in `motion/utilities.css`.
+  - Content areas (#2077) name its Enter, Exit, Ambient and Feedback keyframes with token roles.
+  - Placeholders use `.eimir-motion-loading-shimmer`.
+  - The approved receipt choreography and the notification glyph beats live in `motion/moments.css`. The received gesture and the connected moment play through `startMoment()`, once per item.
+  - The hung Polaroids (Wir rediscovery, Momente) swing in once and then sway a few times on the layer's Ambient `sway` (`useKeepsakeSway`); the sway pauses while hidden. Their photo "develops" as an opacity fade from a faint print.
+- `useNavigationMotion`: the shell's route entrance on the motion layer (Replace `navigate`, Motion Contract 4.2). Primary tabs move in tab order, Back comes in from the inline start, a deeper page from the inline end, and anything else only fades. Only the routed page's `left` offset moves (at most 32 CSS px), so fixed controls stay fixed and restored scroll positions keep their coordinates. Root tabs rise once per tab and app start (`useRootTabIntro`) and never replay on return.
 - `ChecklistToggle`: tokenized local completion feedback.
 - `SharedAchievementCelebration`: existing shared-completion presentation.
 - `Snackbar`: decoupled non-critical acknowledgement independent of mutation ownership.
@@ -195,7 +212,7 @@ These are not universal components. A lightbox is not a Bottom Sheet; a popover 
 
 Before shipping:
 
-- identify the semantic role from section 3;
+- identify the semantic role from section 3 and its primitive in the [Motion Contract](motion-contract.md#4-primitive-catalogue), and complete that contract's checklist (section 9 there);
 - reuse canonical duration/easing tokens;
 - confirm that no existing primitive already owns the lifecycle;
 - verify Enter and, where meaningful, Exit including rapid open/close;

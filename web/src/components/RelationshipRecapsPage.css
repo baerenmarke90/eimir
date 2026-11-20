@@ -286,7 +286,8 @@ a.recap-status-row:hover strong {
   background: var(--color-brand-strong);
 }
 .recap-progress [data-current="true"] .recap-step-fill {
-  animation: recap-step-progress var(--recap-dwell) var(--easing-playback) both;
+  animation: eimir-motion-recap-step-progress var(--recap-dwell)
+    var(--easing-playback) both;
   animation-play-state: paused;
 }
 .recap-reader[data-playing="true"] .recap-step-fill {
@@ -319,11 +320,6 @@ a.recap-status-row:hover strong {
 .recap-ai-note {
   font: var(--font-supporting-copy);
   color: var(--color-text-secondary);
-}
-@keyframes recap-step-progress {
-  to {
-    transform: scaleX(1);
-  }
 }
 .recap-spread {
   position: relative;
@@ -529,29 +525,16 @@ a.recap-status-row:hover strong {
 }
 @media (prefers-reduced-motion: no-preference) {
   .recap-spread {
-    animation: recap-page-enter var(--duration-context) var(--easing-enter);
+    animation: eimir-motion-recap-page-enter var(--duration-context)
+      var(--easing-enter);
   }
   .recap-scene-media img {
-    animation: recap-photo-drift var(--recap-dwell) var(--easing-playback) both;
+    animation: eimir-motion-recap-photo-drift var(--recap-dwell)
+      var(--easing-playback) both;
     animation-play-state: paused;
   }
   .recap-reader[data-playing="true"] .recap-scene-media img {
     animation-play-state: running;
-  }
-  @keyframes recap-photo-drift {
-    to {
-      transform: scale(1.08);
-    }
-  }
-  @keyframes recap-page-enter {
-    from {
-      opacity: 0.5;
-      transform: translateY(var(--space-2));
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -783,7 +766,8 @@ a.recap-status-row:hover strong {
 }
 @media (prefers-reduced-motion: no-preference) {
   .recap-facts li {
-    animation: recap-page-enter var(--duration-context) var(--easing-enter) both;
+    animation: eimir-motion-recap-page-enter var(--duration-context)
+      var(--easing-enter) both;
     animation-delay: calc(var(--recap-index) * var(--duration-feedback));
   }
 }

@@ -37,6 +37,16 @@ REQUIRED_WORKFLOWS = frozenset(
         ".github/workflows/media-video.yml",
     }
 )
+# Pushes to main start no workflows (#2096). The full regression of a main
+# revision is the set of dispatched runs from the Nightly Regression dispatcher
+# or a manual dispatch.
+FULL_REGRESSION_EVENT = "workflow_dispatch"
+FULL_REGRESSION_DISPATCHER = "nightly-regression.yml"
+# Every merge to main publishes the private test channel right away (#2096,
+# Product Owner decision 2026-11-20): a push admits the current main commit
+# after its pull-request checks, without waiting for the full regression.
+# Product releases keep requiring the full regression.
+FAST_LANE_EVENT = "push"
 CLOUD_SERVICES = ("cloud-migrate", "cloud-api", "cloud-worker", "cloud-web")
 FCM_CREDENTIAL_TARGET = "/run/secrets/eimir-fcm-sender.json"
 _FCM_SOURCE_PLACEHOLDER = "/__eimir_source_only_fcm_mount__"
@@ -110,13 +120,13 @@ def latest_main() -> str:
 
 
 def workflow_state(runs: list[dict], source: str) -> bool:
-    """Require the newest push run/attempt of every exact main workflow."""
+    """Require the newest full-regression run/attempt of every exact main workflow."""
     selected: dict[str, dict] = {}
     for item in runs:
         path = item.get("path")
         if (
             path not in REQUIRED_WORKFLOWS
-            or item.get("event") != "push"
+            or item.get("event") != FULL_REGRESSION_EVENT
             or item.get("head_branch") != "main"
             or item.get("head_sha") != source
             or item.get("head_repository", {}).get("full_name") != REPOSITORY
@@ -137,7 +147,7 @@ def workflow_state(runs: list[dict], source: str) -> bool:
 
 def candidate_ready(source: str) -> bool:
     pages = gh_api(
-        f"repos/{REPOSITORY}/actions/runs?head_sha={source}&event=push&per_page=100",
+        f"repos/{REPOSITORY}/actions/runs?head_sha={source}&event={FULL_REGRESSION_EVENT}&per_page=100",
         paginate=True,
     )
     return workflow_state(
@@ -146,7 +156,7 @@ def candidate_ready(source: str) -> bool:
 
 
 def completion_matches_source(event: dict, source: str) -> bool:
-    """Admit only an owning-repository main push completion for this checkout."""
+    """Admit only an owning-repository main full-regression completion for this checkout."""
     if not isinstance(event, dict):
         return False
     completed = event.get("workflow_run")
@@ -158,7 +168,7 @@ def completion_matches_source(event: dict, source: str) -> bool:
     return (
         event.get("action") == "completed"
         and completed.get("path") in REQUIRED_WORKFLOWS
-        and completed.get("event") == "push"
+        and completed.get("event") == FULL_REGRESSION_EVENT
         and completed.get("head_branch") == "main"
         and completed.get("head_sha") == source
         and origin.get("full_name") == REPOSITORY
@@ -188,6 +198,14 @@ def channel_already_selected(source: str) -> bool:
 
 def check_for_publication(source: str, event_name: str, event: dict) -> bool:
     """Check once; later main workflow completions retry unfinished candidates."""
+    if event_name == FAST_LANE_EVENT:
+        if latest_main() != source:
+            print("Candidate was superseded on main; keeping the current channel")
+            return False
+        if channel_already_selected(source):
+            print("This source is already selected; preserving its exact image pair")
+            return False
+        return True
     if event_name == "workflow_run":
         if not completion_matches_source(event, source):
             print("Completion does not admit this exact main checkout")
@@ -217,6 +235,28 @@ def wait_for_checks(source: str, timeout: int) -> bool:
         if time.monotonic() >= deadline:
             raise ChannelError("Timed out waiting for required main workflows")
         time.sleep(15)
+
+
+def require_full_regression(source: str, *, dispatch: bool) -> None:
+    """Refuse a product release unless its revision passed the full regression.
+
+    When the revision is current main and its regression is missing or still
+    running, optionally start the Nightly Regression dispatcher so a later
+    release attempt can pass without paying for a waiting runner.
+    """
+    if candidate_ready(source):
+        print("Full regression passed for this revision")
+        return
+    if dispatch and latest_main() == source:
+        run(["gh", "workflow", "run", FULL_REGRESSION_DISPATCHER, "--repo", REPOSITORY, "--ref", "main"])
+        raise ChannelError(
+            "Full regression is missing or unfinished; started Nightly Regression. "
+            "Re-run this release after it is green"
+        )
+    raise ChannelError(
+        "Full regression is missing or unfinished for this revision; dispatch the "
+        "required workflows on main and re-run this release after they are green"
+    )
 
 
 def sha256(path: Path) -> str:
@@ -572,10 +612,17 @@ def export_compose(
     return result
 
 
-def advance_channel(files: dict[str, str], source: str) -> bool:
+def source_admitted(source: str, *, full_regression: bool) -> bool:
+    """The fast lane needs the current main commit; otherwise its full regression too."""
+    return latest_main() == source and (not full_regression or candidate_ready(source))
+
+
+def advance_channel(
+    files: dict[str, str], source: str, *, full_regression: bool = True
+) -> bool:
     if set(files) != {"compose.yaml", "channel.json", "README.md"}:
         raise ChannelError("Only generated deployment files may enter the channel")
-    if latest_main() != source or not candidate_ready(source):
+    if not source_admitted(source, full_regression=full_regression):
         raise ChannelError(
             "Candidate is stale or required main checks are no longer successful"
         )
@@ -616,7 +663,7 @@ def advance_channel(files: dict[str, str], source: str) -> bool:
             "parents": [parent] if parent else [],
         },
     )
-    if latest_main() != source or not candidate_ready(source):
+    if not source_admitted(source, full_regression=full_regression):
         raise ChannelError(
             "Main advanced during publication; keeping the current channel"
         )
@@ -642,8 +689,10 @@ def advance_channel(files: dict[str, str], source: str) -> bool:
     return True
 
 
-def publish(source: str, artifact_root: Path, output: Path) -> None:
-    if latest_main() != source or not candidate_ready(source):
+def publish(
+    source: str, artifact_root: Path, output: Path, *, full_regression: bool = True
+) -> None:
+    if not source_admitted(source, full_regression=full_regression):
         raise ChannelError("Only the current, checked main commit may be published")
     run_id, attempt = os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"]
     if not all(re.fullmatch(r"[1-9][0-9]*", value) for value in (run_id, attempt)):
@@ -692,7 +741,7 @@ def publish(source: str, artifact_root: Path, output: Path) -> None:
     output.mkdir(parents=True, exist_ok=True)
     for name, content in files.items():
         (output / name).write_text(content)
-    advance_channel(files, source)
+    advance_channel(files, source, full_regression=full_regression)
 
 
 def main() -> int:
@@ -705,6 +754,9 @@ def main() -> int:
     wait.add_argument("--revision", required=True)
     wait.add_argument("--timeout", type=int, default=3600)
     wait.add_argument("--github-output", type=Path, required=True)
+    regression = subparsers.add_parser("full-regression")
+    regression.add_argument("--revision", required=True)
+    regression.add_argument("--dispatch", action="store_true")
     publication = subparsers.add_parser("publish")
     publication.add_argument("--revision", required=True)
     publication.add_argument("--artifact-root", type=Path, required=True)
@@ -718,7 +770,9 @@ def main() -> int:
             )
         if os.environ.get("GITHUB_REF") != "refs/heads/main":
             raise ChannelError("Test publication is restricted to main")
-        if args.command in {"check", "wait"}:
+        if args.command == "full-regression":
+            require_full_regression(source, dispatch=args.dispatch)
+        elif args.command in {"check", "wait"}:
             if args.command == "check":
                 event_name = os.environ.get("GITHUB_EVENT_NAME", "")
                 event = (
@@ -736,7 +790,12 @@ def main() -> int:
             with args.github_output.open("a") as stream:
                 stream.write(f"ready={str(ready).lower()}\n")
         else:
-            publish(source, args.artifact_root, args.output)
+            publish(
+                source,
+                args.artifact_root,
+                args.output,
+                full_regression=os.environ.get("GITHUB_EVENT_NAME") != FAST_LANE_EVENT,
+            )
     except (
         ChannelError,
         KeyError,

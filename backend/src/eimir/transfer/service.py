@@ -34,7 +34,6 @@ from eimir.identity.models import Account, AccountEmail
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.queue import enqueue
 from eimir.media import build_storage_key, get_media_store
-from eimir.photo_sources.models import GoogleAccountHint, PhotoConnection
 from eimir.relationship.models import Membership, MembershipStatus, SpaceProfile
 from eimir.transfer.archive import (
     MAX_COMPRESSED_BYTES,
@@ -641,23 +640,11 @@ def _write_export_archive(
             account_document["personalSettings"] = personal_settings.portable_snapshot(
                 session, authorization.account_id, authorization.space_id
             )
-            connections = session.scalars(
-                select(PhotoConnection).where(
-                    PhotoConnection.account_id == authorization.account_id
-                )
-            ).all()
-            account_document["personalPhotoSources"] = [
-                {"source": row.provider, "origin": row.payload.origin}
-                for row in connections
-                if row.payload.account_id == authorization.account_id
-            ]
-            google_account = session.scalar(
-                select(GoogleAccountHint).where(
-                    GoogleAccountHint.account_id == authorization.account_id
-                )
+            from eimir.plugins import lifecycle as plugin_lifecycle
+
+            account_document.update(
+                plugin_lifecycle.export_account_document(session, authorization, scope)
             )
-            if google_account and google_account.payload.account_id == authorization.account_id:
-                account_document["personalGoogleAccountHint"] = google_account.payload.email
             from eimir.engagement.models import GentleMemoryExclusion, GentleProfile
 
             profile = session.get(GentleProfile, authorization.account_id)

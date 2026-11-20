@@ -41,10 +41,12 @@ import {
   storyItemPresentation,
 } from './storyPresentation';
 import './DiscoverStory.css';
+import '../motion/story-playback.css';
+import { useReducedMotion } from '../motion/reducedMotion';
+import { usePageVisible } from '../motion/scene';
 
 /** A press longer than this pauses the story and does not count as a tap. */
 const HOLD_THRESHOLD_MS = 350;
-const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 type LoadMemoryImage = (
   memoryId: string,
@@ -118,23 +120,6 @@ function buildSlide(
   }
 }
 
-function useMediaQueryMatch(query: string): boolean {
-  const [matches, setMatches] = useState(
-    () =>
-      typeof window !== 'undefined' &&
-      window.matchMedia?.(query).matches === true,
-  );
-  useEffect(() => {
-    const media = window.matchMedia?.(query);
-    if (!media) return;
-    const update = () => setMatches(media.matches);
-    update();
-    media.addEventListener?.('change', update);
-    return () => media.removeEventListener?.('change', update);
-  }, [query]);
-  return matches;
-}
-
 /** True while at least half of the element is inside the viewport. */
 function useHalfVisible(
   ref: RefObject<HTMLElement | null>,
@@ -157,19 +142,6 @@ function useHalfVisible(
     observer.observe(node);
     return () => observer.disconnect();
   }, [ref, mounted]);
-  return visible;
-}
-
-function useDocumentVisible(): boolean {
-  const [visible, setVisible] = useState(
-    () =>
-      typeof document === 'undefined' || document.visibilityState !== 'hidden',
-  );
-  useEffect(() => {
-    const update = () => setVisible(document.visibilityState !== 'hidden');
-    document.addEventListener('visibilitychange', update);
-    return () => document.removeEventListener('visibilitychange', update);
-  }, []);
   return visible;
 }
 
@@ -384,9 +356,9 @@ export function DiscoverStory({
   }
 
   const viewerRef = useRef<HTMLDivElement>(null);
-  const reducedMotion = useMediaQueryMatch(REDUCED_MOTION_QUERY);
+  const reducedMotion = useReducedMotion();
   const halfVisible = useHalfVisible(viewerRef, themes.length > 0);
-  const documentVisible = useDocumentVisible();
+  const documentVisible = usePageVisible();
   const autoplay = !reducedMotion;
   const playing =
     autoplay &&

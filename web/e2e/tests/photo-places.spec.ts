@@ -251,7 +251,7 @@ test('leaving the Memory editor for a Place requires a deliberate decision about
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
   await openPlace();
   await page
-    .getByRole('button', { name: taskBoundary.discard, exact: true })
+    .getByRole('button', { name: taskBoundary.discardConfirm, exact: true })
     .click();
   await expect(
     page.getByRole('heading', {

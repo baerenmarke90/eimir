@@ -12,6 +12,11 @@ import { isSortableOperation, useSortable } from '@dnd-kit/react/sortable';
 import { OptimisticSortingPlugin } from '@dnd-kit/dom/sortable';
 import { type ReactNode, useCallback } from 'react';
 import { useTranslation } from '../i18n';
+import {
+  dragCommitted,
+  dragFeedbackMotion,
+  sortableTransition,
+} from '../motion/gesture/dragAndDrop';
 
 /** Insert by identity so uploads and the chosen cover keep their owners. */
 export function insertMedia(
@@ -42,18 +47,12 @@ export function PhotoDraftSorting({
   onMove: (key: string, target: number) => void;
 }) {
   const { t } = useTranslation();
-  const reduced = globalThis.matchMedia?.(
-    '(prefers-reduced-motion: reduce)',
-  ).matches;
   return (
     <DragDropProvider
       plugins={(defaults) => [
         // Native selection semantics must not be overwritten by drag pressed state.
         ...defaults.filter((plugin) => plugin !== Accessibility),
-        Feedback.configure({
-          dropAnimation: reduced ? null : undefined,
-          keyboardTransition: reduced ? null : undefined,
-        }),
+        Feedback.configure(dragFeedbackMotion()),
       ]}
       onDragStart={() => onAnnounce(t('experiences.dragStarted'))}
       onDragEnd={(event) => {
@@ -66,7 +65,9 @@ export function PhotoDraftSorting({
         );
         if (event.canceled || !isSortableOperation(event.operation)) return;
         const { source, target } = event.operation;
-        if (source && target) onMove(String(source.id), target.index);
+        if (!source || !target) return;
+        dragCommitted(source.initialIndex !== target.index);
+        onMove(String(source.id), target.index);
       }}
     >
       {children}
@@ -97,14 +98,11 @@ function ReorderablePhotoDraftItem({
   reorderable,
   children,
 }: PhotoDraftItemProps) {
-  const reduced = globalThis.matchMedia?.(
-    '(prefers-reduced-motion: reduce)',
-  ).matches;
   const { ref, handleRef, isDragging, isDropTarget } = useSortable({
     id,
     index,
     disabled: disabled || !reorderable,
-    transition: reduced ? null : undefined,
+    transition: sortableTransition(),
     // Keep large-photo drop targets stable; commit insertion only on release.
     plugins: (defaults) =>
       defaults.filter((plugin) => plugin !== OptimisticSortingPlugin),

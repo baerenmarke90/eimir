@@ -211,6 +211,10 @@ declare('duration-controls-return', value('motion.duration.controlsReturn'));
 declare('duration-sequence-beat', value('motion.duration.sequenceBeat'));
 declare('duration-send-flight', value('motion.duration.sendFlight'));
 declare('duration-gesture-moment', value('motion.duration.gestureMoment'));
+// Motion Contract 5.3: Enter stagger steps and their cap (#2073).
+declare('duration-stagger-item', value('motion.stagger.item'));
+declare('duration-stagger-module', value('motion.stagger.module'));
+declare('motion-stagger-max-items', value('motion.stagger.maxItems'));
 declare('duration-gesture-sequence', value('motion.duration.gestureSequence'));
 declare('duration-connection-draw', value('motion.duration.connectionDraw'));
 declare('duration-connection-beat', value('motion.duration.connectionBeat'));
@@ -225,6 +229,14 @@ declare(
 // Momente > Erinnerungen Fotostory: dwell per slide and slow photo zoom.
 declare('duration-story-slide', value('motion.duration.storySlide'));
 declare('duration-story-ken-burns', value('motion.duration.storyKenBurns'));
+// Loading domain: one turn of a pending-status spinner (pull to refresh).
+declare('duration-loading-cycle', value('motion.duration.loadingCycle'));
+// Ambient idle motion (ring breath, hanging sway) settles after this many
+// cycles instead of looping forever, so an idle page stops rendering frames.
+declare('motion-ambient-repeat', value('motion.repeat.ambient'));
+// A decorative scene (the Wir garden) plays its ambient motion only while on
+// screen and only this long in total, then rests in place (#2063).
+declare('duration-ambient-rest', value('motion.duration.ambientRest'));
 for (const role of [
   'standard',
   'enter',
@@ -332,12 +344,15 @@ ${storyColorDeclarations('dark', '    ')}
     --duration-sequence-beat: ${value('motion.duration.instant')};
     --duration-send-flight: ${value('motion.duration.instant')};
     --duration-gesture-moment: ${value('motion.duration.instant')};
+    --duration-stagger-item: ${value('motion.duration.instant')};
+    --duration-stagger-module: ${value('motion.duration.instant')};
     --duration-gesture-sequence: ${value('motion.duration.instant')};
     --duration-connection-draw: ${value('motion.duration.instant')};
     --duration-connection-beat: ${value('motion.duration.instant')};
     --duration-connection-travel: ${value('motion.duration.instant')};
     --duration-connection-travel-far: ${value('motion.duration.instant')};
     --duration-story-ken-burns: ${value('motion.duration.instant')};
+    --duration-loading-cycle: ${value('motion.duration.instant')};
   }
 }
 

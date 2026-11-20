@@ -154,6 +154,7 @@ const m5s3 = {
     intentionLabel: 'Was habt ihr gemeinsam vor?',
     intentionPlaceholder: 'Zum Beispiel: Picknick im Park',
     titleHint: 'Was habt ihr vor?',
+    titleMissing: 'Gebt eurem Plan noch einen Namen.',
     descriptionPlaceholder: 'Wie stellt ihr euch das vor?',
     addDetails: 'Termin, Ort und Beschreibung hinzufügen',
     loading: 'Plan wird geladen …',
@@ -163,8 +164,9 @@ const m5s3 = {
     plannedDate: 'Datum',
     plannedTime: 'Uhrzeit',
     plannedStartTime: 'Startzeit',
-    plannedTimeHint:
-      'Ohne Uhrzeit bleibt der ausgewählte Tag genau so bestehen.',
+    plannedTimeHint: 'Ohne Uhrzeit gilt der Plan für den ganzen Tag.',
+    calendarPrevious: 'Vorheriger Monat',
+    calendarNext: 'Nächster Monat',
     plannedStart: "Wann geht's los?",
     plannedEnd: 'Bis wann?',
     addEndTime: 'Endzeit hinzufügen',
@@ -268,6 +270,7 @@ const m5s3 = {
     privacy:
       'Die Ortssuche nutzt Photon. Beim Laden der Karte erhält der Kartendienst OpenFreeMap deine IP-Adresse und den Kartenausschnitt. Eure übrigen Inhalte werden nicht übermittelt.',
     attribution: 'Kartendaten © OpenStreetMap-Mitwirkende · Suche mit Photon',
+    attributionDataFrom: 'Daten von',
     zoomIn: 'Karte vergrößern',
     zoomOut: 'Karte verkleinern',
     keyboardHelp:

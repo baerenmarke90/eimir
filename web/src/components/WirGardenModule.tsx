@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useId, useMemo, useSyncExternalStore } from 'react';
+import { useEffect, useId, useMemo, useRef } from 'react';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { GamesApi } from '../api/generated/apis/GamesApi';
 import type { GardenView } from '../api/generated/models/GardenView';
@@ -25,25 +25,11 @@ import { TodayDestinationLink } from './TodayDestinationLink';
 import './GardenGamePage.css';
 import './GardenGrowth.css';
 import './WirGardenModule.css';
+import { useAmbientRest } from '../motion/ambientRest';
+import '../motion/garden.css';
+import { useReducedMotion } from '../motion/reducedMotion';
 
 type Translate = ReturnType<typeof useTranslation>['t'];
-
-const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
-
-function subscribeReducedMotion(listener: () => void) {
-  const query = window.matchMedia?.(REDUCED_MOTION);
-  query?.addEventListener?.('change', listener);
-  return () => query?.removeEventListener?.('change', listener);
-}
-
-/** Follows the system setting live, so the idle scene stops at once. */
-function useReducedMotion(): boolean {
-  return useSyncExternalStore(
-    subscribeReducedMotion,
-    () => window.matchMedia?.(REDUCED_MOTION).matches === true,
-    () => true,
-  );
-}
 
 /**
  * One gentle sentence about the garden today, from existing garden wording
@@ -165,6 +151,13 @@ export function WirGardenModule({
   const presentation = useGardenPresentation(gardenQuery.data, true);
   // #2048: sun or moon follow the device clock here too, not the theme.
   const clock = useGardenClock();
+  // The preview is decoration on a page people leave open: its motion plays
+  // only while seen and only briefly, then rests in place (#2063).
+  const frameRef = useRef<HTMLDivElement>(null);
+  const resting = useAmbientRest(
+    frameRef,
+    allowed && Boolean(gardenQuery.data) && !reduced,
+  );
 
   if (!allowed) return null;
   const garden = gardenQuery.data;
@@ -214,10 +207,12 @@ export function WirGardenModule({
       >
         <div className="garden-game-page wir-garden-stage">
           <div
+            ref={frameRef}
             className="garden-frame wir-garden-frame"
             data-season={presentation.season}
             data-sleep={presentation.sleep}
             data-daytime={clock.daytime}
+            data-resting={resting ? 'true' : undefined}
           >
             <GardenScene
               variant="preview"

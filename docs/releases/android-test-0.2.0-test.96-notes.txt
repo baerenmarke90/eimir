@@ -1,0 +1,14 @@
+eimir. Android 0.2.0-test.96
+
+- Motion is now consistent across the whole app: sheets, dialogs, pages, Wir, Momente, Planen, the map, the recap film, stories, the garden and the games share one calm set of movements, and nothing replays when you return to a tab.
+- Wir opens more calmly, the "Wie geht's?" line shows again each app session until you have checked in, avatar photos no longer flicker, and the rings breathe smoothly.
+- On your anniversary, a birthday or another shared important day, Wir greets you once that day with a small celebration around the heart.
+- Swiping between tabs, dragging a sheet away, pull to refresh, reordering lists and zooming photos follow your finger more naturally and can be caught mid-movement.
+- New haptic feedback for gestures, the check-in and gestures sent to your partner, with an on/off switch in Settings > Appearance.
+- The garden runs more smoothly, the Momente map opens in one piece and remembers the place you last selected during the session, and idle pages stop animating.
+- "Reduce motion" is respected everywhere, including the map's zoom buttons and panning.
+- Detail pages slide in from the side, and the fixes from the test.95 device check are included (idle motion, scrolling, layout, dialogs and copy).
+- Private surfaces are protected against screenshots, once messages open in the app only, and a failed push setup now shows its cause.
+
+The product changes come from main at 00d5e50057c09a82cfe8c535f55b67b6a0c7b349.
+Install over test.95 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 96.

@@ -13,6 +13,7 @@ import { planScheduleFromInputs } from '../client/sharedPlanning';
 import { useTranslation } from '../i18n';
 import { AddActionContent } from './AddAction';
 import { EimirIcon } from './EimirIcon';
+import { PlanDateCalendar } from './PlanDateCalendar';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 
 export interface PlanScheduleFieldsHandle {
@@ -138,6 +139,15 @@ export function PlanScheduleFields({
     input.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
+  /** A calendar day follows the same native change path as `unschedule`. */
+  function pickDate(next: string) {
+    const input = dateRef.current;
+    const [year, month, day] = next.split('-').map(Number);
+    if (!input || !year || !month || !day) return;
+    input.valueAsDate = new Date(Date.UTC(year, month - 1, day));
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
   useEffect(() => {
     restoreDefaults();
   }, [restoreDefaults]);
@@ -208,18 +218,8 @@ export function PlanScheduleFields({
     invalidFocusRef.current = null;
   }, [compact, open]);
 
-  const fields = (
+  const dateInput = (
     <>
-      {compact ? (
-        <button
-          type="button"
-          className="tertiary planning-schedule-unschedule"
-          disabled={disabled}
-          onClick={unschedule}
-        >
-          {t('m5s3.plan.unschedule')}
-        </button>
-      ) : null}
       <label htmlFor={`${idPrefix}-date`}>{t('m5s3.plan.plannedDate')}</label>
       <NativeDateInput
         form={formId}
@@ -238,6 +238,38 @@ export function PlanScheduleFields({
           }
         }}
       />
+    </>
+  );
+
+  const unscheduleButton = compact ? (
+    <button
+      type="button"
+      className="tertiary planning-schedule-unschedule"
+      disabled={disabled || !date}
+      onClick={unschedule}
+    >
+      {t('m5s3.plan.unschedule')}
+    </button>
+  ) : null;
+
+  const fields = (
+    <>
+      {compact ? (
+        <>
+          {/* Phones choose the day in an app-styled calendar instead of the
+              platform dialog (#2063, Product Owner 2026-11-19). The native
+              field stays as the single value owner: a picked day goes through
+              its change path, so dirty guards and form resets keep working. */}
+          <PlanDateCalendar
+            value={date}
+            disabled={disabled}
+            onChange={pickDate}
+          />
+          <div hidden>{dateInput}</div>
+        </>
+      ) : (
+        dateInput
+      )}
 
       <label htmlFor={`${idPrefix}-time`}>
         {includeEnd
@@ -264,6 +296,7 @@ export function PlanScheduleFields({
           ? t('m5s3.plan.multiDayHint')
           : t('m5s3.plan.plannedTimeHint')}
       </small>
+      {unscheduleButton}
 
       {includeEnd && date && !time ? (
         <>

@@ -17,7 +17,10 @@ import {
 } from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
-import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
+import {
+  installNativeAppLifecycle,
+  nativeSecureScreen,
+} from '../support/nativeAppLifecycle';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultProductContext } from '../support/productContext';
@@ -652,6 +655,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
       colorScheme,
     );
     await expectPrivateReferenceStructure(page);
+    // In the app the private area keeps screenshots and Recents out (#683).
+    if (colorScheme === 'dark')
+      await expect.poll(() => nativeSecureScreen(page)).toBe(true);
 
     await page.screenshot({
       path: testInfo.outputPath(`private-area-390-${colorScheme}.png`),
@@ -682,7 +688,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
         .click();
       await expect(title).toHaveValue('Unsaved private note');
       await back.click();
-      await discard.getByRole('button', { name: taskBoundary.discard }).click();
+      await discard
+        .getByRole('button', { name: taskBoundary.discardConfirm })
+        .click();
       await expect(page).toHaveURL(/\/more\/private\/notes$/);
       await expect(create).toBeVisible();
     }
@@ -703,10 +711,14 @@ test('private area reflows at 320 CSS px and removes decorative motion', async (
   await expectPrivateReferenceStructure(page);
 
   const firstCard = page.locator('.private-area-nav a').first();
-  const transitionDuration = await firstCard.evaluate(
-    (element) => getComputedStyle(element).transitionDuration,
+  // Every listed transition (colours, border, shadow; #2080) is instant.
+  const transitionDurations = await firstCard.evaluate((element) =>
+    getComputedStyle(element)
+      .transitionDuration.split(',')
+      .map((duration) => duration.trim()),
   );
-  expect(transitionDuration).toBe('0s');
+  expect(transitionDurations.length).toBeGreaterThan(0);
+  expect(new Set(transitionDurations)).toEqual(new Set(['0s']));
 
   const box = await firstCard.boundingBox();
   expect(box).not.toBeNull();

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { ScrollState } from '../motion/replace';
 
 /** Root attribute that tucks the floating create action away (see AddAction.css). */
 export const FLOATING_CREATE_TUCKED_ATTRIBUTE = 'data-floating-create-tucked';
@@ -28,13 +29,20 @@ const SCROLL_KEYS = new Set([
  * every page that shows it. Only the viewer's own gestures count:
  * programmatic scrolling such as route changes or restored return positions
  * shows the action again, so it is never missing on arrival.
+ *
+ * Replace `scroll-state` on the motion layer (Motion Contract 4.2): the scroll
+ * sets a state with hysteresis (`ScrollState`), and AddAction.css transitions
+ * the state change with `--duration-transition`. There is no per-pixel
+ * scroll-linked transform.
  */
 export function useFloatingCreateScrollTuck(): void {
   useEffect(() => {
     const root = document.documentElement;
-    let lastY = Math.max(0, window.scrollY);
-    let anchorY = lastY;
-    let direction: 'down' | 'up' | null = null;
+    const tuck = new ScrollState(
+      FLOATING_CREATE_HIDE_DISTANCE,
+      FLOATING_CREATE_SHOW_DISTANCE,
+    );
+    tuck.reset(Math.max(0, window.scrollY));
     let lastInputAt = Number.NEGATIVE_INFINITY;
     let frame = 0;
 
@@ -58,22 +66,10 @@ export function useFloatingCreateScrollTuck(): void {
       // Momentum after a fling keeps the viewer's own gesture alive.
       if (ownGesture) lastInputAt = now;
       if (y <= FLOATING_CREATE_TOP_ZONE || !ownGesture) {
-        setTucked(false);
-        direction = null;
-        anchorY = y;
-        lastY = y;
+        setTucked(tuck.reset(y));
         return;
       }
-      const next = y > lastY ? 'down' : y < lastY ? 'up' : direction;
-      if (next !== direction) {
-        direction = next;
-        anchorY = lastY;
-      }
-      if (direction === 'down' && y - anchorY >= FLOATING_CREATE_HIDE_DISTANCE)
-        setTucked(true);
-      if (direction === 'up' && anchorY - y >= FLOATING_CREATE_SHOW_DISTANCE)
-        setTucked(false);
-      lastY = y;
+      setTucked(tuck.update(y));
     };
 
     const onScroll = () => {

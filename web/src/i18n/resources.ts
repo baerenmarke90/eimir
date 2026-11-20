@@ -58,6 +58,7 @@ import sharedNotes from './locales/sharedNotes';
 import snackbar from './locales/snackbar';
 import spaceOffboarding from './locales/spaceOffboarding';
 import storyProducts from './locales/storyProducts';
+import motionSettings from './locales/motionSettings';
 import taskBoundary from './locales/taskBoundary';
 import taskSheets from './locales/taskSheets';
 import video from './locales/video';
@@ -132,6 +133,7 @@ export const germanResources = {
   rediscovery,
   ...snackbar,
   ...storyProducts,
+  ...motionSettings,
   contextTags,
   composer,
   mediaOverview,

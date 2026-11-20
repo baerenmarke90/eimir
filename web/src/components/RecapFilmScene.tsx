@@ -23,6 +23,7 @@ import { contextTagLabel } from './ContextTagList';
 import { EimirIcon } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
 import './RecapFilmScene.css';
+import '../motion/playback.css';
 
 type MediaProps = {
   mediaApis: ReferenceApis;

@@ -10,7 +10,9 @@ import { assertOnlineWrite } from '../client/connectivity';
 import type { DevicePushController } from '../client/devicePush';
 import {
   devicePushAction,
+  devicePushDiagnostic,
   devicePushStatusKey,
+  useTestBuild,
 } from '../client/devicePushPresentation';
 import { normalizeClientError } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
@@ -136,6 +138,7 @@ function DevicePushSetting({
 }) {
   const { t } = useTranslation();
   const { state, error, registered } = devicePush;
+  const testBuild = useTestBuild();
   const action = devicePushAction(devicePush);
   const connecting = state === 'connecting';
   const disableFailed = error === 'PUSH_DEVICE_DISABLE_FAILED';
@@ -151,6 +154,7 @@ function DevicePushSetting({
     error || (state !== 'on' && state !== 'off')
       ? t(devicePushStatusKey(devicePush))
       : null;
+  const diagnostic = devicePushDiagnostic(devicePush, testBuild);
   let secondaryAction: { label: string; run: () => Promise<void> } | undefined;
   if (connecting) {
     secondaryAction = { label: t('common.cancel'), run: devicePush.disable };
@@ -195,6 +199,11 @@ function DevicePushSetting({
       >
         {status}
       </p>
+      {diagnostic ? (
+        <p className="muted">
+          {t('notificationSettings.deviceDiagnostic', { code: diagnostic })}
+        </p>
+      ) : null}
       {secondaryAction ? (
         <div className="form-actions">
           <button

@@ -38,7 +38,9 @@ systemctl stop eimir-actions-dispatch.service
 trap 'systemctl start eimir-actions-dispatch.service; rm -rf -- "$work"' EXIT
 echo "Building the runner image (several minutes)..."
 start=$(date +%s)
-/usr/local/sbin/eimir-actions-guest-probe image /var/lib/eimir-actions-vm/noble-amd64.qcow2
+# The guest console reads stdin. Under `curl | bash` that is this script itself,
+# so detach it; otherwise QEMU consumes the remaining installer lines.
+/usr/local/sbin/eimir-actions-guest-probe image /var/lib/eimir-actions-vm/noble-amd64.qcow2 </dev/null
 echo "Image build took $(( ($(date +%s) - start) / 60 )) min $(( ($(date +%s) - start) % 60 )) s."
 ls -l /var/lib/eimir-actions-vm/noble-eimir-runner.qcow2
 

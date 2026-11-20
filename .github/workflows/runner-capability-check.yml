@@ -42,12 +42,14 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           docker version
+          docker buildx version
           docker compose version
           work=$(mktemp -d)
           cd "$work"
           trap 'docker compose --project-name eimir-runner-capability --profile probe down --volumes --rmi local; rm -rf -- "$work"' EXIT
           cat > Dockerfile <<'EOF'
           FROM node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
+          COPY --chmod=0444 probe.txt /probe.txt
           CMD ["node", "-e", "require('node:http').createServer((req, res) => res.end('ok')).listen(8080, '0.0.0.0')"]
           EOF
           cat > compose.yml <<'EOF'
@@ -69,6 +71,7 @@ jobs:
           volumes:
             probe:
           EOF
+          printf 'ok\n' > probe.txt
           docker build -t eimir-runner-capability-web .
           test "$(docker run --rm eimir-runner-capability-web node --version)" = v26.13.1
           docker compose --project-name eimir-runner-capability --profile probe up -d --wait --wait-timeout 30

@@ -56,6 +56,10 @@ builds, Media Video, Release Evidence and CodeQL.
   away, verified only by the pull-request checks. Product releases publish only
   a `main` revision with a green full regression; a product release starts a
   missing regression itself and asks to be re-run once it is green.
+- Test-channel pushes on `main` use `eimir-dev` for the source check, contract,
+  evidence build and attestation, and image publication. Set
+  `EIMIR_TEST_CHANNEL_RUNNER` to `github-hosted` to route new test-channel push
+  jobs to `ubuntu-latest`. Other release runs use GitHub-hosted runners.
 - Branches named `release/...` always run the full tier, also as drafts.
 
 When adding or changing a browser journey, update both inventories and review

@@ -11,7 +11,7 @@ Nightly guests register with `eimir-kvm-nightly` and a second label derived
 from the GitHub run ID and attempt. The dispatcher must match both labels and
 verify the run identity before jobs start. The PR pilot keeps `eimir-kvm-pr`.
 
-The script installs Docker and Compose, the CLI and media build dependencies,
+The script installs Docker with Buildx and Compose, the CLI and media build dependencies,
 and Chromium libraries from the Ubuntu package repositories. It verifies the
 pinned upstream GitHub CLI archive before installing the attestation command.
 Playwright jobs in the pinned Node container install their own Chromium libraries.

@@ -10,7 +10,7 @@ fi
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y --no-install-recommends \
-    ca-certificates curl docker.io docker-compose-v2 git iproute2 jq libicu74 \
+    ca-certificates curl docker.io docker-buildx docker-compose-v2 git iproute2 jq libicu74 \
     python3 sudo unzip build-essential nasm autoconf automake libtool pkg-config ffmpeg \
     fonts-liberation fonts-noto-color-emoji libasound2t64 libatk-bridge2.0-0t64 libatk1.0-0t64 \
     libatspi2.0-0t64 libcairo2 libcups2t64 libdbus-1-3 libdrm2 libgbm1 libglib2.0-0t64 \

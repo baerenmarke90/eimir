@@ -1,4 +1,8 @@
-"""Explicit weekly selection over fresh authorized evidence; no generated prose storage."""
+"""Explicit weekly selection over fresh authorized evidence; no generated prose storage.
+
+Plugin code (``daily.insights``, Decision 0017). The caller's retained ratings and
+their Free clearing path are Core (``eimir.daily_checkins.feedback``).
+"""
 
 from __future__ import annotations
 
@@ -9,24 +13,18 @@ from datetime import date, timedelta
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
-from sqlalchemy import delete, select
-from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from eimir.auth import rate_limit
 from eimir.authorization import AuthorizationContext
 from eimir.config import get_settings
-from eimir.core.clock import now
 from eimir.core.errors import ConflictError
 from eimir.core.errors import ValidationError as DomainValidationError
-from eimir.daily_checkins import insights
-from eimir.daily_checkins.models import (
-    DailyInsightFeedback,
-    RecommendationKey,
-    RecommendationRating,
-)
-from eimir.daily_checkins.service import _active_partner_account_id
-from eimir.daily_checkins.weekly_patterns import (
+from eimir.daily_checkins.feedback import Feedback, feedback
+from eimir.daily_checkins.models import RecommendationKey, RecommendationRating
+from eimir.daily_checkins.service import active_partner_account_id
+from eimir.daily_insights import insights
+from eimir.daily_insights.weekly_patterns import (
     Observation,
     ObservationKind,
     observations,
@@ -35,12 +33,6 @@ from eimir.daily_checkins.weekly_patterns import (
     recommendation_order,
 )
 from eimir.local_ai import query_structured
-
-
-@dataclass(frozen=True)
-class Feedback:
-    recommendation_key: RecommendationKey
-    rating: RecommendationRating
 
 
 @dataclass(frozen=True)
@@ -60,52 +52,6 @@ class Selection(BaseModel):
     model_config = ConfigDict(extra="forbid")
     observation_keys: list[str] = Field(min_length=1, max_length=3)
     recommendation_keys: list[str] = Field(min_length=1, max_length=2)
-
-
-def feedback(session: Session, context: AuthorizationContext) -> list[Feedback]:
-    rows = session.scalars(
-        select(DailyInsightFeedback)
-        .where(
-            DailyInsightFeedback.space_id == context.space_id,
-            DailyInsightFeedback.account_id == context.account_id,
-        )
-        .order_by(DailyInsightFeedback.recommendation_key)
-    ).all()
-    return [
-        Feedback(RecommendationKey(row.recommendation_key), RecommendationRating(row.rating))
-        for row in rows
-    ]
-
-
-def set_feedback(
-    session: Session,
-    context: AuthorizationContext,
-    key: RecommendationKey,
-    rating: RecommendationRating | None,
-) -> Feedback | None:
-    if rating is None:
-        session.execute(
-            delete(DailyInsightFeedback).where(
-                DailyInsightFeedback.space_id == context.space_id,
-                DailyInsightFeedback.account_id == context.account_id,
-                DailyInsightFeedback.recommendation_key == key.value,
-            )
-        )
-        return None
-    session.execute(
-        insert(DailyInsightFeedback)
-        .values(
-            space_id=context.space_id,
-            account_id=context.account_id,
-            recommendation_key=key.value,
-            rating=rating.value,
-        )
-        .on_conflict_do_update(
-            index_elements=["space_id", "account_id", "recommendation_key"],
-            set_={"rating": rating.value, "updated_at": now()},
-        )
-    )
-    return Feedback(key, rating)
 
 
 def preview(session: Session, context: AuthorizationContext, week_start: date) -> Preview:
@@ -146,7 +92,7 @@ def preview(session: Session, context: AuthorizationContext, week_start: date) -
         "version": 1,
         "space": str(context.space_id),
         "account": str(context.account_id),
-        "partner": str(_active_partner_account_id(session, context)),
+        "partner": str(active_partner_account_id(session, context)),
         "start": history_start.isoformat(),
         "end": history_end.isoformat(),
         "timezone": data.daily_context_timezone,

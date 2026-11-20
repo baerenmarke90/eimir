@@ -7,13 +7,14 @@ import pytest
 from sqlalchemy import select
 
 from eimir.authorization import AuthorizationContext
-from eimir.daily_checkins import context, weekly_review
+from eimir.daily_checkins import context, feedback
 from eimir.daily_checkins.models import (
     DailyCheckIn,
     DailyInsightFeedback,
     RecommendationKey,
     RecommendationRating,
 )
+from eimir.daily_insights import weekly_review
 from eimir.relationship.models import DailyCheckInVisibilityMode
 from eimir.transfer import jobs
 from eimir.transfer import service as transfer
@@ -167,6 +168,13 @@ def test_free_cannot_generate_or_rate_but_can_clear_retained_feedback(client, se
         ).status_code
         == 403
     )
+    generated = client.post(
+        f"{base}/weekly-review",
+        headers=auth(couple["token_a"]),
+        json={"weekStart": "2026-10-26", "evidenceToken": "0" * 64},
+    )
+    assert generated.status_code == 403
+    assert generated.json()["code"] == "PREMIUM_ENTITLEMENT_REQUIRED"
     assert (
         client.put(
             f"{base}/weekly-feedback/quiet_time",
@@ -252,9 +260,7 @@ def test_personal_feedback_archive_restores_additively_without_overwriting_curre
 ):
     setup(session, couple)
     ctx = AuthorizationContext(account_id=couple["anna"].id, space_id=couple["space"].id)
-    weekly_review.set_feedback(
-        session, ctx, RecommendationKey.QUIET_TIME, RecommendationRating.HELPFUL
-    )
+    feedback.set_feedback(session, ctx, RecommendationKey.QUIET_TIME, RecommendationRating.HELPFUL)
     with transfer.build_export_archive(session, ctx, TransferScope.PERSONAL) as bundle:
         bundle.seek(0, 2)
         size = bundle.tell()
@@ -265,7 +271,7 @@ def test_personal_feedback_archive_restores_additively_without_overwriting_curre
         )
         bundle.seek(0)
         operation = transfer.create_import(session, ctx, bundle, size=size)
-    weekly_review.set_feedback(
+    feedback.set_feedback(
         session, ctx, RecommendationKey.QUIET_TIME, RecommendationRating.NOT_FITTING
     )
     jobs.handle_validate_import(session, {"importId": str(operation.id)})
@@ -273,8 +279,8 @@ def test_personal_feedback_archive_restores_additively_without_overwriting_curre
     transfer.request_apply(session, ctx, str(operation.id))
     jobs.handle_apply_import(session, {"importId": str(operation.id)})
     assert operation.status == ImportStatus.COMPLETED.value
-    assert weekly_review.feedback(session, ctx) == [
-        weekly_review.Feedback(RecommendationKey.QUIET_TIME, RecommendationRating.NOT_FITTING)
+    assert feedback.feedback(session, ctx) == [
+        feedback.Feedback(RecommendationKey.QUIET_TIME, RecommendationRating.NOT_FITTING)
     ]
     with transfer.build_export_archive(session, ctx, TransferScope.SHARED) as bundle:
         assert "private/weekly-insight-feedback.json" not in validate_zip(bundle).entries

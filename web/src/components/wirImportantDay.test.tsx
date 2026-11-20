@@ -105,13 +105,13 @@ describe('wirOccasionFor', () => {
       {
         type: DashboardItemType.IMPORTANT_DATE,
         id: 'today',
-        titleOrText: 'Unser Umzugstag',
+        titleOrText: 'Our moving day',
         occurredOn: new Date('2026-01-09T00:00:00Z'),
       },
       {
         type: DashboardItemType.IMPORTANT_DATE,
         id: 'later',
-        titleOrText: 'Später',
+        titleOrText: 'Later',
         occurredOn: new Date('2026-01-12T00:00:00Z'),
       },
       {
@@ -126,7 +126,7 @@ describe('wirOccasionFor', () => {
     expect(
       wirOccasionFor([...occasions, ...dates], '2026-01-09', t, noNickname)
         ?.primary,
-    ).toBe('Unser Umzugstag');
+    ).toBe('Our moving day');
   });
 
   it('leaves an ordinary day unchanged', () => {

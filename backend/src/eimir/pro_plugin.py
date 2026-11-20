@@ -362,6 +362,7 @@ class InTreeProPlugin:
             partner_quick_actions,
             photo_sources,
             picture_ping_pong,
+            relationship_passport,
         )
 
         return (
@@ -378,6 +379,7 @@ class InTreeProPlugin:
             couple_games.router,
             memory_map.router,
             partner_quick_actions.router,
+            relationship_passport.router,
         )
 
     def register_jobs(self, registry: JobRegistry) -> None:

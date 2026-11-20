@@ -6,11 +6,11 @@ from datetime import date, datetime
 from typing import Annotated, Self
 from uuid import UUID
 
-from fastapi import APIRouter, Path, Query, Response
+from fastapi import APIRouter, Path, Response
 from pydantic import ConfigDict, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
-from eimir.api.deps import Authorization, DbSession, ensure_capability
+from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.api.v1.rediscovery import RediscoveryContext, project_rediscovery
@@ -18,7 +18,6 @@ from eimir.attachments.models import MediaType
 from eimir.dashboard import preferences, service
 from eimir.dashboard.service import DashboardItemType
 from eimir.domain.experiences import ExperienceKind
-from eimir.entitlements.models import Capability
 from eimir.relationship.models import DurationDisplayMode
 from eimir.story import service as story_service
 
@@ -72,26 +71,6 @@ class DashboardSharedStorySummary(ApiModel):
     milestones: int
 
 
-class StoryLifelineWeek(ApiModel):
-    week_start: date
-    memories: int
-    heart_moments: int
-    milestones: int
-    highlight: DashboardItem
-
-
-class StoryLifelineView(ApiModel):
-    starts_on: date | None
-    today: date
-    weeks: list[StoryLifelineWeek]
-
-
-class StoryLifelineEntriesView(ApiModel):
-    total: int
-    """How many shared entries the range holds; ``items`` holds at most a bounded part."""
-    items: list[DashboardItem]
-
-
 class DashboardAnticipation(ApiModel):
     plan_id: UUID
     title: str
@@ -100,16 +79,6 @@ class DashboardAnticipation(ApiModel):
     event_at: datetime | None = None
     concealed: bool = False
     """``title`` is the list title; an empty one uses the neutral fallback."""
-
-
-class RelationshipPassportView(ApiModel):
-    partner: DashboardPartner | None
-    relationship_duration: DashboardRelationshipDuration | None
-    memories: int
-    heart_moments: int
-    milestones: int
-    completed_plans: int
-    places: int
 
 
 class DashboardExperience(ApiModel):
@@ -266,7 +235,7 @@ def get_dashboard(
             if view.relationship_duration is not None
             else None
         ),
-        retrospective=_project_item(view.retrospective) if view.retrospective is not None else None,
+        retrospective=project_item(view.retrospective) if view.retrospective is not None else None,
         retrospective_rediscovery=(
             project_rediscovery(
                 session,
@@ -277,9 +246,9 @@ def get_dashboard(
             if view.retrospective is not None
             else None
         ),
-        keepsake=_project_item(view.keepsake) if view.keepsake is not None else None,
-        upcoming=[_project_item(item) for item in view.upcoming],
-        recent_shared=[_project_item(item) for item in view.recent_shared],
+        keepsake=project_item(view.keepsake) if view.keepsake is not None else None,
+        upcoming=[project_item(item) for item in view.upcoming],
+        recent_shared=[project_item(item) for item in view.recent_shared],
         shared_story_summary=DashboardSharedStorySummary(
             memories=shared_story_counts.memories,
             heart_moments=shared_story_counts.heart_moments,
@@ -310,46 +279,6 @@ def get_dashboard(
             if anticipation is not None
             else None
         ),
-    )
-
-
-@router.get(
-    "/spaces/{spaceId}/relationship-passport",
-    response_model=RelationshipPassportView,
-    operation_id="getRelationshipPassport",
-    responses=problem_responses(401, 403, 404),
-)
-def get_relationship_passport(
-    authorization: Authorization,
-    session: DbSession,
-    response: Response,
-) -> RelationshipPassportView:
-    """Return the Pro presentation without gating any underlying Core data."""
-    ensure_capability(
-        session, authorization.space_id, Capability.RELATIONSHIP_PASSPORT, lock_grants=False
-    )
-    view = service.read_relationship_passport(session, authorization)
-    response.headers["Cache-Control"] = "private, no-store"
-    return RelationshipPassportView(
-        partner=(
-            DashboardPartner(id=view.partner.id, display_name=view.partner.display_name)
-            if view.partner is not None
-            else None
-        ),
-        relationship_duration=(
-            DashboardRelationshipDuration(
-                started_on=view.relationship_duration.started_on,
-                days_together=view.relationship_duration.days_together,
-                display_mode=view.relationship_duration.display_mode,
-            )
-            if view.relationship_duration is not None
-            else None
-        ),
-        memories=view.memories,
-        heart_moments=view.heart_moments,
-        milestones=view.milestones,
-        completed_plans=view.completed_plans,
-        places=view.places,
     )
 
 
@@ -431,74 +360,7 @@ def update_dashboard_module_preference(
     )
 
 
-@router.get(
-    "/spaces/{spaceId}/story-lifeline",
-    response_model=StoryLifelineView,
-    operation_id="getStoryLifeline",
-    responses=problem_responses(401, 403, 404),
-)
-def get_story_lifeline(
-    authorization: Authorization,
-    session: DbSession,
-    response: Response,
-) -> StoryLifelineView:
-    """Return the shared Story bucketed by week for the Pro Wir lifeline."""
-    ensure_capability(
-        session, authorization.space_id, Capability.RELATIONSHIP_PASSPORT, lock_grants=False
-    )
-    lifeline = service.read_story_lifeline(session, authorization)
-    response.headers["Cache-Control"] = "private, no-store"
-    return StoryLifelineView(
-        starts_on=lifeline.starts_on,
-        today=lifeline.today,
-        weeks=[
-            StoryLifelineWeek(
-                week_start=week.week_start,
-                memories=week.memories,
-                heart_moments=week.heart_moments,
-                milestones=week.milestones,
-                highlight=_project_item(week.highlight),
-            )
-            for week in lifeline.weeks
-        ],
-    )
-
-
-@router.get(
-    "/spaces/{spaceId}/story-lifeline/entries",
-    response_model=StoryLifelineEntriesView,
-    operation_id="getStoryLifelineEntries",
-    responses=problem_responses(401, 403, 404, 422),
-)
-def get_story_lifeline_entries(
-    authorization: Authorization,
-    session: DbSession,
-    response: Response,
-    starts_on: Annotated[
-        date, Query(alias="from", description="First day of the range (inclusive).")
-    ],
-    ends_before: Annotated[date, Query(alias="to", description="Day after the range (exclusive).")],
-) -> StoryLifelineEntriesView:
-    """Return the shared entries of one lifeline period, oldest first.
-
-    Read lazily when a lifeline column is selected. The entries are exactly
-    those the lifeline counts for the range; at most a bounded number is
-    returned together with the range total.
-    """
-    ensure_capability(
-        session, authorization.space_id, Capability.RELATIONSHIP_PASSPORT, lock_grants=False
-    )
-    entries = service.read_story_lifeline_entries(
-        session, authorization, starts_on=starts_on, ends_before=ends_before
-    )
-    response.headers["Cache-Control"] = "private, no-store"
-    return StoryLifelineEntriesView(
-        total=entries.total,
-        items=[_project_item(item) for item in entries.items],
-    )
-
-
-def _project_item(item: service.DashboardItem) -> DashboardItem:
+def project_item(item: service.DashboardItem) -> DashboardItem:
     return DashboardItem(
         type=item.type,
         id=item.id,

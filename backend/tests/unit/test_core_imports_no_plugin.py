@@ -32,6 +32,7 @@ PLUGIN_PACKAGES = (
 PLUGIN_MODULES = (
     "eimir.pro_plugin",
     "eimir.games.service",
+    "eimir.places.memory_map",
     "eimir.providers.caldav",
     *(
         f"eimir.api.v1.{name}"
@@ -43,6 +44,7 @@ PLUGIN_MODULES = (
             "games",
             "garden",
             "heart_hunt",
+            "memory_map",
             "once_messages",
             "partner_location",
             "photo_sources",

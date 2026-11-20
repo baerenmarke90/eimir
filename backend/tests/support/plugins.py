@@ -36,6 +36,7 @@ PRO_TEST_MODULES = frozenset(
         "integration/test_garden_growth.py",
         "integration/test_garden_visitors.py",
         "integration/test_heart_hunt.py",
+        "integration/test_memory_map.py",
         "integration/test_once_messages.py",
         "integration/test_partner_location.py",
         "integration/test_partner_location_device.py",

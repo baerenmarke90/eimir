@@ -344,6 +344,7 @@ class InTreeProPlugin:
             games,
             garden,
             heart_hunt,
+            memory_map,
             once_messages,
             partner_location,
             photo_sources,
@@ -362,6 +363,7 @@ class InTreeProPlugin:
             heart_hunt.router,
             picture_ping_pong.router,
             couple_games.router,
+            memory_map.router,
         )
 
     def register_jobs(self, registry: JobRegistry) -> None:

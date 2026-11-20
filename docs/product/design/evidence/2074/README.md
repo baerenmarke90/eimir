@@ -14,7 +14,7 @@ Captured with Playwright Chromium from `web/e2e/tests/today-daily-checkin.spec.t
 
 `2074-<width>-<theme>[-200-text|-reduced-motion]-<n>-<state>.png`. The partner's birthday is mocked as today.
 
-- `1-moment`: during the Moment. The heart is filled and the hearts rise in the flight layer. The middle line has cross-faded to "Alles Gute, Alex" with "Am Geburtstag von Alex" below it. Alex's ring is warm, with a soft halo and the cake mark.
+- `1-moment`: during the Moment. The heart is filled and the hearts rise in the flight layer. The middle line has cross-faded to the occasion copy (`occasionMarks.todayPartnerBirthday`), with `occasionMarks.partnerBirthday` below it. Alex's ring is warm, with a soft halo and the cake mark.
 - `2-rest`: the static state for the rest of the day.
 - Widths 360, 390 and 430 in Light and Dark, and 360 with 200 % text. At 200 % text the heart line is only a few characters wide, so only the main occasion line shows, slightly smaller, and the line below steps back. 390 with reduced motion shows the final state at once, with no rising hearts.
 
@@ -26,7 +26,7 @@ Captured with Playwright Chromium from `web/e2e/tests/today-daily-checkin.spec.t
   - after Planen → Wir, the first frame has no running one-shot CSS animation.
 - **Open → Moment → return → new app start** (`the important-day Moment plays once after the opening and rests for the day`, anniversary 3 years ago today):
   - exactly 6 rising hearts;
-  - "Heute vor 3 Jahren" with "An eurem 3. Jahrestag" below;
+  - `occasionMarks.todayAnniversary` (count 3) with `occasionMarks.anniversary` below;
   - the heart link's accessible name starts with the occasion;
   - Planen → Wir shows `final` at once and adds no hearts;
   - a reload the same day shows `final` and adds no hearts.

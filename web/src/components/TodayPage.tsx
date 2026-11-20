@@ -1687,6 +1687,7 @@ export function TodayPage({
   const wirOccasion = useWirOccasion(
     partner && connectedDesign ? spaceId : undefined,
     account?.id,
+    dashboardQuery.data?.upcoming,
   );
   // One stroke from person to person: each side draws its half of the heart.
   const heroBridgeLine = (

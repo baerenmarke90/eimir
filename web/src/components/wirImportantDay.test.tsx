@@ -3,6 +3,7 @@ import { act, render } from '@testing-library/react';
 import type { TFunction } from 'i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
+import { DashboardItemType } from '../api/generated/models/DashboardItemType';
 import { DateRepeat } from '../api/generated/models/DateRepeat';
 import { ImportantDateType } from '../api/generated/models/ImportantDateType';
 import { collectSpaceOccasions } from '../client/occasionMatches';
@@ -25,7 +26,7 @@ import {
   useImportantDayMoment,
   type WirOccasion,
 } from './wirImportantDay';
-import { occasionTag, wirOccasionFor } from './wirOccasion';
+import { occasionTag, sharedDatesToday, wirOccasionFor } from './wirOccasion';
 import { WIR_STAGE } from './wirStageMotion';
 
 const t = ((key: string, options?: Record<string, unknown>) =>
@@ -97,6 +98,35 @@ describe('wirOccasionFor', () => {
     expect(
       wirOccasionFor(occasions, '2026-05-06', t, noNickname)?.primary,
     ).toBe('Our flat');
+  });
+
+  it("takes today's shared dates from the dashboard, never other days", () => {
+    const upcoming = [
+      {
+        type: DashboardItemType.IMPORTANT_DATE,
+        id: 'today',
+        titleOrText: 'Unser Umzugstag',
+        occurredOn: new Date('2026-01-09T00:00:00Z'),
+      },
+      {
+        type: DashboardItemType.IMPORTANT_DATE,
+        id: 'later',
+        titleOrText: 'Später',
+        occurredOn: new Date('2026-01-12T00:00:00Z'),
+      },
+      {
+        type: DashboardItemType.PLAN,
+        id: 'plan',
+        titleOrText: 'A plan today',
+        occurredOn: new Date('2026-01-09T00:00:00Z'),
+      },
+    ];
+    const dates = sharedDatesToday(upcoming, '2026-01-09');
+    expect(dates.map((date) => date.key)).toEqual(['date:today']);
+    expect(
+      wirOccasionFor([...occasions, ...dates], '2026-01-09', t, noNickname)
+        ?.primary,
+    ).toBe('Unser Umzugstag');
   });
 
   it('leaves an ordinary day unchanged', () => {

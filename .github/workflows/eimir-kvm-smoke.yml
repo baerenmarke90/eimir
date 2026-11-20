@@ -1,0 +1,42 @@
+name: eimir-dev isolated runner smoke test
+
+on:
+  push:
+    branches: ["ci/eimir-kvm-smoke-20261120"]
+    paths: [".github/workflows/eimir-kvm-smoke.yml"]
+
+permissions: {}
+
+jobs:
+  containers:
+    name: Node job and PostgreSQL service
+    runs-on: [self-hosted, Linux, X64, eimir-kvm-smoke]
+    timeout-minutes: 5
+    container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: eimir
+          POSTGRES_PASSWORD: smoke-test-only
+          POSTGRES_DB: eimir_test
+        options: >-
+          --health-cmd "pg_isready -U eimir -d eimir_test"
+          --health-interval 2s
+          --health-timeout 4s
+          --health-retries 20
+    steps:
+      - name: Verify Node container and PostgreSQL service
+        shell: sh
+        run: |
+          node --version
+          node --input-type=module <<'JS'
+          import { createConnection } from 'node:net';
+          const connection = createConnection({ host: 'postgres', port: 5432 });
+          connection.setTimeout(5000);
+          connection.on('timeout', () => connection.destroy(new Error('PostgreSQL connection timed out')));
+          connection.on('connect', () => {
+            console.log('PostgreSQL service is reachable from the job container');
+            connection.end();
+          });
+          JS

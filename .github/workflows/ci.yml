@@ -13,7 +13,7 @@ defaults:
 jobs:
   host:
     name: Guest host and toolchain
-    runs-on: eimir-kvm-pr
+    runs-on: [eimir-kvm-nightly, "eimir-run-${{ github.run_id }}-${{ github.run_attempt }}"]
     timeout-minutes: 25
     steps:
       - name: Check CLI and fresh guest state
@@ -166,7 +166,7 @@ jobs:
     name: Node job container and Playwright
     needs: host
     if: ${{ !cancelled() }}
-    runs-on: eimir-kvm-pr
+    runs-on: [eimir-kvm-nightly, "eimir-run-${{ github.run_id }}-${{ github.run_attempt }}"]
     timeout-minutes: 15
     container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
     steps:
@@ -196,7 +196,7 @@ jobs:
     name: PostgreSQL service container
     needs: job-container
     if: ${{ !cancelled() }}
-    runs-on: eimir-kvm-pr
+    runs-on: [eimir-kvm-nightly, "eimir-run-${{ github.run_id }}-${{ github.run_attempt }}"]
     timeout-minutes: 10
     services:
       postgres:

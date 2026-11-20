@@ -1,0 +1,10 @@
+[Unit]
+Description=Weekly rebuild of the eimir Actions runner image with current security updates
+
+[Timer]
+# Sunday midday UTC, after the nightly regression has finished.
+OnCalendar=Sun *-*-* 12:23:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

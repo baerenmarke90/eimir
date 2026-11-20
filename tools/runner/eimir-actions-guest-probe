@@ -1,0 +1,472 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Host launcher for isolated GitHub Actions guests on eimir-dev (#2115).
+# Install as /usr/local/sbin/eimir-actions-guest-probe (root:root, 0755).
+#   image        bake the reusable runner image from the verified Ubuntu Noble image
+#   jit-nightly  run one dispatched nightly or test-channel job, from the runner image when present
+if [[ $EUID != 0 || $(hostname -s) != eimir-dev || $# != 2 || ! $1 =~ ^(network|containers|runner|jit|jit-nightly|image)$ ]]; then
+    printf 'Run as root on eimir-dev: %s network|containers|runner|jit|jit-nightly|image <verified Ubuntu Noble image>\n' "$0" >&2
+    exit 1
+fi
+
+mode=$1
+memory_mib=2048
+cpus=2
+disk_size=16G
+runtime_seconds=420
+registration_wait=360
+tasks_max=64
+guest_disk_cache=writeback
+account=eimir-actions-vm
+state=/var/lib/eimir-actions-vm
+base=$state/noble-amd64.qcow2
+runner_image=$state/noble-eimir-runner.qcow2
+firmware=/usr/share/OVMF
+table=eimir_actions_probe
+unit=eimir-actions-network-probe.service
+
+test -c /dev/kvm
+test -r "$firmware/OVMF_CODE_4M.fd"
+test -r "$firmware/OVMF_VARS_4M.fd"
+if [[ $mode == runner || $mode == jit* ]]; then
+    memory_mib=3072
+    disk_size=24G
+    runtime_seconds=1200
+fi
+if [[ $mode == jit-nightly ]]; then
+    cpus=4
+    disk_size=48G
+    runtime_seconds=3900
+    registration_wait=900
+    tasks_max=256
+fi
+if [[ $mode == image ]]; then
+    memory_mib=3072
+    cpus=4
+    disk_size=24G
+    runtime_seconds=1800
+    tasks_max=256
+fi
+awk -v min_kib="$(( (memory_mib + 1024) * 1024 ))" '/^MemAvailable:/ {exit ($2 < min_kib)}' /proc/meminfo
+if ! id "$account" >/dev/null 2>&1; then
+    useradd --system --user-group --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin "$account"
+fi
+[[ $(id -Gn "$account") == "$account" ]]
+install -d -m 0755 "$state"
+exec 9>"$state/probe.lock"
+flock -n 9
+[[ $(systemctl show "$unit" -p ActiveState --value) == inactive ]]
+if [[ ! -f $base ]]; then
+    install -m 0444 -- "$2" "$state/.noble-amd64.qcow2"
+    mv -T -- "$state/.noble-amd64.qcow2" "$base"
+fi
+# Nightly and test-channel guests start from the prepared runner image. Without
+# it they fall back to provisioning the plain Noble image during boot.
+backing=$base
+if [[ $mode == jit-nightly && -f $runner_image ]]; then
+    backing=$runner_image
+fi
+
+job=$(mktemp -d "$state/probe.XXXXXX")
+firewall_loaded=false
+cleanup() {
+    if "$firewall_loaded"; then
+        systemctl stop "$unit" 2>/dev/null || true
+        if [[ $(systemctl show "$unit" -p ActiveState --value) != inactive ]]; then
+            printf 'Guest shutdown could not be confirmed. The network filter remains active.\n' >&2
+            return 1
+        fi
+        /usr/sbin/nft delete table inet "$table"
+    fi
+    rm -rf -- "$job"
+}
+trap cleanup EXIT
+chmod 0755 "$job"
+umask 077
+
+if [[ $mode == runner ]]; then
+    IFS= read -r -s -t 180 -p 'GitHub runner registration token (hidden): ' runner_token </dev/tty
+    printf '\n'
+    if [[ ! $runner_token =~ ^[A-Za-z0-9_-]{12,256}$ ]]; then
+        printf 'Unexpected GitHub runner token format.\n' >&2
+        exit 1
+    fi
+elif [[ $mode == jit* ]]; then
+    IFS= read -r runner_token
+    [[ ${#runner_token} -le 32768 && $runner_token =~ ^[A-Za-z0-9_+/=-]{20,}$ ]]
+    IFS= read -r expected_job
+    [[ ${#expected_job} -le 1024 ]]
+    printf '%s\n' "$expected_job" | python3 -c 'import json, sys; assert isinstance(json.load(sys.stdin), dict)'
+fi
+
+home_ips=$(getent ahostsv4 dev.eimir.de | awk '$2 == "STREAM" { print $1 }' | sort -u | paste -sd,)
+test -n "$home_ips"
+cat >"$job/firewall.nft" <<EOF
+destroy table inet $table
+table inet $table {
+    chain output {
+        type filter hook output priority -15; policy accept;
+        meta skuid "$account" jump guest_egress
+    }
+    chain guest_egress {
+        ip daddr 127.0.0.53 udp dport 53 accept
+        ip daddr 127.0.0.53 tcp dport 53 accept
+        ip daddr { $home_ips } counter reject
+        ip daddr { 0.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 127.0.0.0/8, 169.254.0.0/16,
+            172.16.0.0/12, 192.0.0.0/24, 192.168.0.0/16, 198.18.0.0/15, 224.0.0.0/3 } counter reject
+        meta nfproto ipv6 counter reject
+        fib daddr type local counter reject
+        tcp dport { 80, 443 } accept
+        counter reject
+    }
+}
+EOF
+/usr/sbin/nft -c -f "$job/firewall.nft"
+/usr/sbin/nft -f "$job/firewall.nft"
+firewall_loaded=true
+
+cat >"$job/cloud-config.yml" <<'EOF'
+#cloud-config
+hostname: eimir-actions-probe
+ssh_pwauth: false
+disable_root: true
+write_files:
+  - path: /usr/local/bin/check-runner-network.py
+    permissions: '0755'
+    content: |
+      #!/usr/bin/env python3
+      import socket
+      import urllib.request
+
+      with urllib.request.urlopen('https://github.com/', timeout=15) as response:
+          if response.status != 200:
+              raise SystemExit(f'Unexpected GitHub HTTP status: {response.status}')
+      print('EIMIR_ACTIONS_PROBE public_https_ok', flush=True)
+
+      try:
+          with socket.create_connection(('172.17.2.223', 81), timeout=4):
+              raise SystemExit('Homelab administration interface was reachable')
+      except OSError:
+          print('EIMIR_ACTIONS_PROBE private_lan_blocked', flush=True)
+
+      try:
+          with socket.create_connection(('dev.eimir.de', 443), timeout=4):
+              raise SystemExit('Homelab public ingress from guest was reachable')
+      except OSError:
+          print('EIMIR_ACTIONS_PROBE homelab_ingress_blocked', flush=True)
+  - path: /usr/local/bin/check-runner-containers
+    permissions: '0755'
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get update -qq
+      apt-get install -y -qq --no-install-recommends docker.io docker-compose-v2
+      systemctl start docker
+      docker compose version --short
+      docker run --rm --pull=always \
+        node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1 \
+        node --version
+      echo 'EIMIR_ACTIONS_PROBE job_container_ok'
+      docker run -d --rm --name postgres-probe -e POSTGRES_HOST_AUTH_METHOD=trust \
+        -e POSTGRES_USER=eimir -e POSTGRES_DB=eimir_test postgres:17-alpine
+      timeout 60 bash -c 'until docker exec postgres-probe pg_isready -h 127.0.0.1 -U eimir -d eimir_test; do sleep 2; done'
+      test "$(docker exec postgres-probe psql -h 127.0.0.1 -U eimir -d eimir_test -Atc 'SELECT 1')" = 1
+      echo 'EIMIR_ACTIONS_PROBE postgresql_ok'
+  - path: /usr/local/bin/run-eimir-actions
+    permissions: '0755'
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      export DEBIAN_FRONTEND=noninteractive
+      if [[ ${1:-} == image ]]; then
+          if ! /usr/local/sbin/provision-eimir-runner image; then
+              echo 'EIMIR_ACTIONS_PROBE provisioning_failed'
+              exit 1
+          fi
+      elif [[ ${1:-} == jit-nightly ]]; then
+          install -d -m 0755 /srv/eimir-runner-toolcache
+          timeout 20s bash -c 'until test -b /dev/disk/by-id/virtio-eimir-toolcache; do sleep 1; done'
+          mount -o nodev,nosuid /dev/disk/by-id/virtio-eimir-toolcache /srv/eimir-runner-toolcache
+          phase=
+          if [[ -f /etc/eimir-runner-image ]]; then
+              phase=job
+              echo 'EIMIR_ACTIONS_PROBE runner_image'
+          fi
+          if ! /usr/local/sbin/provision-eimir-runner $phase; then
+              echo 'EIMIR_ACTIONS_PROBE provisioning_failed'
+              exit 1
+          fi
+          export RUNNER_TOOL_CACHE=/srv/eimir-runner-toolcache/tools
+          echo 'EIMIR_ACTIONS_PROBE provisioned'
+      else
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends docker.io docker-compose-v2 curl git jq libicu74 unzip
+          systemctl start docker
+          useradd --create-home --shell /bin/bash --groups docker actions-runner
+      fi
+
+      runner_version=2.338.2
+      archive="actions-runner-linux-x64-$runner_version.tar.gz"
+      cd /home/actions-runner
+      if [[ $(cat .eimir-runner-version 2>/dev/null) != "$runner_version" ]]; then
+          curl -fsSL --proto '=https' --retry 2 --max-time 180 \
+            "https://github.com/actions/runner/releases/download/v$runner_version/$archive" -o "$archive"
+          printf 'baebf204307bac6193480852732f0aba2ae97b6c5597c244f4d5558390147c40  %s\n' "$archive" | sha256sum -c -
+          tar -xzf "$archive" --no-same-owner
+          rm -- "$archive"
+          printf '%s\n' "$runner_version" > .eimir-runner-version
+          chown -R actions-runner:actions-runner /home/actions-runner
+      fi
+
+      if [[ ${1:-} == image ]]; then
+          # Each guest seed carries a unique cloud-init instance ID, so a guest
+          # started from this image still applies its own job configuration.
+          touch /etc/eimir-runner-image
+          apt-get clean
+          truncate -s 0 /etc/machine-id
+          sync
+          echo 'EIMIR_ACTIONS_PROBE image_ready'
+          exit 0
+      fi
+
+      exec 8<>/dev/virtio-ports/eimir.actions.registration
+      printf 'ready\n' >&8
+      IFS= read -r -t 60 token <&8
+      exec 8>&-
+      if [[ ${1:-} == jit* ]]; then
+          export ACTIONS_RUNNER_HOOK_JOB_STARTED=/usr/local/libexec/eimir-check-assignment.sh
+          if [[ $1 == jit-nightly ]]; then
+              runuser -u actions-runner -- ./run.sh --jitconfig "$token" &
+              runner_pid=$!
+              python3 -u - "$runner_pid" <<'PY' &
+      import os
+      from pathlib import Path
+      import sys
+      import time
+
+      runner = Path('/proc') / sys.argv[1]
+      peak_ram = peak_disk = 0
+      disk = os.statvfs('/')
+      total_disk = disk.f_blocks * disk.f_frsize
+      while runner.exists():
+          memory = dict(line.split(':', 1) for line in Path('/proc/meminfo').read_text().splitlines())
+          memory_used = int(memory['MemTotal'].split()[0]) - int(memory['MemAvailable'].split()[0])
+          peak_ram = max(peak_ram, memory_used * 1024)
+          disk = os.statvfs('/')
+          peak_disk = max(peak_disk, (disk.f_blocks - disk.f_bfree) * disk.f_frsize)
+          time.sleep(2)
+      print(f'EIMIR_ACTIONS_PROBE job_resources guest_peak_ram_bytes={peak_ram} '
+            f'guest_peak_disk_bytes={peak_disk} guest_disk_capacity_bytes={total_disk}', flush=True)
+      PY
+              meter_pid=$!
+              result=0
+              wait "$runner_pid" || result=$?
+              wait "$meter_pid"
+              if (( result != 0 )); then exit "$result"; fi
+          else
+              runuser -u actions-runner -- ./run.sh --jitconfig "$token"
+          fi
+      else
+          ACTIONS_RUNNER_INPUT_TOKEN="$token" runuser -u actions-runner -- ./config.sh --unattended --ephemeral \
+            --url https://github.com/baerenmarke90/eimir \
+            --name "eimir-dev-kvm-$(date -u +%Y%m%d-%H%M%S)" --labels eimir-kvm-smoke
+          unset token
+          echo 'EIMIR_ACTIONS_PROBE runner_registered'
+          runuser -u actions-runner -- ./run.sh
+      fi
+      echo 'EIMIR_ACTIONS_PROBE runner_exited'
+EOF
+if [[ $mode == jit* ]]; then
+    cat >>"$job/cloud-config.yml" <<'EOF'
+  - path: /usr/local/libexec/eimir-check-assignment.sh
+    permissions: '0755'
+    content: |
+      #!/usr/bin/env bash
+      exec /usr/bin/python3 -I - <<'PY'
+      import json
+      import os
+      from pathlib import Path
+      import signal
+
+      with open('/etc/eimir-actions-job.json', encoding='utf-8') as stream:
+          expected = json.load(stream)
+      admitted = expected and all(os.environ.get(key) == value for key, value in expected.items())
+      if admitted and expected['GITHUB_EVENT_NAME'] == 'pull_request':
+          repository = expected['GITHUB_REPOSITORY']
+          try:
+              with open(os.environ['GITHUB_EVENT_PATH'], encoding='utf-8') as stream:
+                  event = json.load(stream)
+              admitted = (event['pull_request']['head']['repo']['full_name'] == repository
+                          and os.environ['GITHUB_WORKFLOW_REF'].split('@', 1)[0] == f'{repository}/.github/workflows/ci.yml')
+          except (KeyError, TypeError, OSError, ValueError):
+              admitted = False
+      if admitted:
+          print('Verified assignment from the repository runner dispatcher.')
+          raise SystemExit(0)
+
+      # Abort the worker before container setup and before any workflow step.
+      # A job that did not pass admission must not run any cleanup steps either.
+      print('Assignment rejected by the repository runner dispatcher.', flush=True)
+      proc_id = os.getppid()
+      while proc_id > 1:
+          directory = Path(f'/proc/{proc_id}')
+          if (directory / 'comm').read_text().strip() == 'Runner.Worker':
+              os.kill(proc_id, signal.SIGKILL)
+              break
+          proc_id = int(next(line.split()[1] for line in (directory / 'status').read_text().splitlines()
+                             if line.startswith('PPid:')))
+      raise SystemExit(1)
+      PY
+  - path: /etc/eimir-actions-job.json
+    permissions: '0644'
+    content: |
+EOF
+    printf '      %s\n' "$expected_job" >>"$job/cloud-config.yml"
+fi
+toolcache_drive=()
+toolcache_mount=()
+if [[ $mode == jit-nightly ]]; then
+    toolcache=$state/nightly-toolcache.ext4
+    if [[ ! -f $toolcache ]]; then
+        truncate -s 20G "$job/toolcache.ext4"
+        /usr/sbin/mkfs.ext4 -q -F -m 0 "$job/toolcache.ext4"
+        chown "$account:$account" "$job/toolcache.ext4"
+        mv -T -- "$job/toolcache.ext4" "$toolcache"
+    fi
+    toolcache_drive=(-drive "if=none,id=toolcache,format=raw,cache=writethrough,file=$toolcache" -device virtio-blk-pci,drive=toolcache,serial=eimir-toolcache)
+    toolcache_mount=(-p "ReadWritePaths=$toolcache")
+fi
+if [[ $mode == jit-nightly || $mode == image ]]; then
+    cat >>"$job/cloud-config.yml" <<'EOF'
+  - path: /usr/local/sbin/provision-eimir-runner
+    permissions: '0755'
+    encoding: b64
+EOF
+    printf '    content: %s\n' "$(base64 -w0 /etc/eimir-actions/provision-eimir-runner.sh)" >>"$job/cloud-config.yml"
+fi
+expected=(public_https_ok private_lan_blocked homelab_ingress_blocked)
+guest_check='/usr/bin/python3 /usr/local/bin/check-runner-network.py'
+case $mode in
+    containers)
+        guest_check+=' && /usr/local/bin/check-runner-containers'
+        expected+=(job_container_ok postgresql_ok)
+        ;;
+    runner)
+        guest_check+=' && /usr/local/bin/run-eimir-actions'
+        expected+=(runner_registered runner_exited)
+        ;;
+    jit*)
+        guest_check+=" && /usr/local/bin/run-eimir-actions $mode"
+        expected+=(runner_exited)
+        ;;
+    image)
+        guest_check+=' && /usr/local/bin/run-eimir-actions image'
+        expected+=(image_ready)
+        ;;
+esac
+printf 'runcmd:\n  - [bash, -c, "%s"]\n' "$guest_check" >>"$job/cloud-config.yml"
+cat >>"$job/cloud-config.yml" <<'EOF'
+power_state:
+  mode: poweroff
+  timeout: 120
+EOF
+
+# A unique instance ID makes cloud-init treat every guest as a new instance,
+# including guests started from the prepared runner image.
+printf 'instance-id: eimir-actions-%s\nlocal-hostname: eimir-actions-probe\n' \
+    "$(cat /proc/sys/kernel/random/uuid)" >"$job/meta-data"
+cloud-localds "$job/seed.img" "$job/cloud-config.yml" "$job/meta-data"
+rm -- "$job/cloud-config.yml" "$job/meta-data"
+qemu-img create -q -f qcow2 -F qcow2 -b "$backing" "$job/guest.qcow2"
+qemu-img resize -q "$job/guest.qcow2" "$disk_size"
+cp -- "$firmware/OVMF_VARS_4M.fd" "$job/uefi-vars.fd"
+chown "$account:$account" "$job/guest.qcow2" "$job/uefi-vars.fd"
+chmod 0600 "$job/guest.qcow2" "$job/uefi-vars.fd"
+chown "$account:$account" "$job/seed.img"
+chmod 0400 "$job/seed.img"
+
+qemu_channel=()
+channel_mount=()
+if [[ $mode == runner || $mode == jit* ]]; then
+    install -d -o "$account" -g "$account" -m 0700 "$job/channel"
+    registration_socket=$job/channel/registration.sock
+    qemu_channel=(
+        -chardev "socket,id=registration,path=$registration_socket,server=on,wait=off"
+        -device virtio-serial
+        -device virtserialport,chardev=registration,name=eimir.actions.registration
+    )
+    channel_mount=(-p "ReadWritePaths=$job/channel")
+    printf '%s\n' "$runner_token" | python3 -c 'import socket, sys, time
+secret = sys.stdin.buffer.readline(32769)
+deadline = time.monotonic() + int(sys.argv[2])
+with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as channel:
+    while True:
+        try:
+            channel.connect(sys.argv[1])
+            break
+        except (FileNotFoundError, ConnectionRefusedError):
+            if time.monotonic() >= deadline:
+                raise SystemExit("Registration channel did not open")
+            time.sleep(1)
+    channel.settimeout(max(1, deadline - time.monotonic()))
+    with channel.makefile("rb") as guest:
+        if guest.readline(32) != b"ready\n":
+            raise SystemExit("Guest did not request a registration token")
+        channel.sendall(secret)
+' "$registration_socket" "$registration_wait" &
+    unset runner_token
+fi
+
+systemd-run --quiet --wait --pipe --collect --unit="$unit" \
+    -p "User=$account" -p SupplementaryGroups=kvm \
+    -p DevicePolicy=closed -p 'DeviceAllow=/dev/kvm rw' \
+    -p NoNewPrivileges=yes -p CapabilityBoundingSet= -p ProtectSystem=strict -p ProtectHome=yes \
+    -p PrivateTmp=yes -p ProtectProc=invisible -p ProtectKernelModules=yes -p ProtectControlGroups=yes \
+    -p 'InaccessiblePaths=-/run/docker.sock -/run/containerd -/run/dbus -/run/user -/run/credentials -/var/lib/eimir-claude-code -/etc/eimir-mcp -/etc/eimir-actions' \
+    -p "ReadWritePaths=$job/guest.qcow2 $job/uefi-vars.fd" \
+    -p "RuntimeMaxSec=$runtime_seconds" -p "MemoryMax=$((memory_mib + 1024))M" -p "CPUQuota=$((cpus * 100))%" -p "TasksMax=$tasks_max" \
+    "${channel_mount[@]}" "${toolcache_mount[@]}" \
+    /usr/bin/qemu-system-x86_64 -accel kvm -cpu host -machine q35 -m "$memory_mib" -smp "$cpus" \
+        -nodefaults -display none -serial stdio -monitor none -no-reboot \
+        -sandbox on,obsolete=deny,elevateprivileges=deny,spawn=deny,resourcecontrol=deny \
+        -drive "if=pflash,format=raw,readonly=on,file=$firmware/OVMF_CODE_4M.fd" \
+        -drive "if=pflash,format=raw,file=$job/uefi-vars.fd" \
+        -drive "if=virtio,format=qcow2,cache=$guest_disk_cache,file=$job/guest.qcow2" \
+        -drive "if=virtio,format=raw,readonly=on,file=$job/seed.img" \
+        "${qemu_channel[@]}" "${toolcache_drive[@]}" \
+        -nic user,model=virtio-net-pci,ipv6=off >"$job/boot.log" 2>"$job/qemu-errors.log" || {
+    tail -18 "$job/qemu-errors.log" >&2
+    if [[ $mode == jit* || $mode == image ]]; then
+        grep -Ei 'EIMIR_ACTIONS_PROBE |qemu-system-x86_64:|qemu: fatal:|assertion.*failed|failed to allocate|failed to create thread' "$job/boot.log" >&2 || true
+        if [[ $mode == jit-nightly || $mode == image ]] && ! grep -Eq 'EIMIR_ACTIONS_PROBE (provisioned|image_ready)' "$job/boot.log"; then
+            tail -18 "$job/boot.log" | grep -Eiv 'token|jitconfig|gh[pousr]_' >&2 || true
+        fi
+    else
+        tail -35 "$job/boot.log" >&2
+    fi
+    exit 1
+}
+
+for result in "${expected[@]}"; do
+    if ! grep -F "EIMIR_ACTIONS_PROBE $result" "$job/boot.log"; then
+        if [[ $mode != jit* ]]; then
+            tail -35 "$job/boot.log" >&2
+        else
+            grep -F 'EIMIR_ACTIONS_PROBE ' "$job/boot.log" >&2 || true
+        fi
+        exit 1
+    fi
+done
+if [[ $mode == jit-nightly ]]; then
+    grep -F 'EIMIR_ACTIONS_PROBE job_resources ' "$job/boot.log" || true
+fi
+if [[ $mode == image ]]; then
+    # Flatten the prepared guest into a standalone, read-only runner image and
+    # replace the previous one atomically; running guests keep their own copy.
+    qemu-img convert -q -O qcow2 "$job/guest.qcow2" "$state/.noble-eimir-runner.qcow2"
+    chmod 0444 "$state/.noble-eimir-runner.qcow2"
+    mv -T -- "$state/.noble-eimir-runner.qcow2" "$runner_image"
+    printf 'Runner image ready: %s\n' "$runner_image"
+fi

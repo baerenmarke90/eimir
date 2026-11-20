@@ -59,6 +59,7 @@ jobs:
         run: |
           python3 tools/ci/test_nightly_regression.py
           python3 tools/ci/test_nightly_runner_routing.py
+          python3 tools/ci/test_runner_host_scripts.py
 
       - name: Test encryption test-key generator
         run: python3 tools/ci/test_encryption_test_keys.py

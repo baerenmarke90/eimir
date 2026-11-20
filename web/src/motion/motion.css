@@ -104,6 +104,144 @@
 }
 
 /*
+ * Content-area entrances (#2077). A feature names one of these on a known
+ * state (an open panel, an added chip, a revealed row) with token roles. Each
+ * animates only from its first keyframe to the element's own style, using
+ * the individual `translate`, `scale` and `rotate` properties so that it
+ * composes with the element's own `transform` (M6). None of them is used on
+ * a thin stroke (M7).
+ *
+ * - `travel`: opacity and a translate from `--motion-enter-from`
+ *   (default a short rise), for sideways arrivals and rows;
+ * - `grow`: opacity and a scale from `--motion-enter-from-scale`, for a
+ *   filled mark, a dot, a chip or a card (`--motion-enter-from-opacity`
+ *   keeps a mark visible while it settles);
+ * - `arrive`: opacity, translate and scale together;
+ * - `reach`: a straight connector grows along its length from
+ *   `--motion-reach-from` (`0 1` along the inline axis, `1 0` down); only
+ *   the length scales, never the stroke's width (M7);
+ * - `swing`: a hung keepsake swings in on its top edge and settles on
+ *   `--motion-swing-rest`;
+ * - `stamp`: a keepsake stamp presses on with one dip.
+ */
+@keyframes eimir-motion-enter-travel {
+  from {
+    opacity: var(--motion-enter-from-opacity, 0);
+    translate: var(--motion-enter-from, 0 var(--space-2));
+  }
+}
+
+@keyframes eimir-motion-enter-grow {
+  from {
+    opacity: var(--motion-enter-from-opacity, 0);
+    scale: var(--motion-enter-from-scale, 0.9);
+  }
+}
+
+@keyframes eimir-motion-enter-arrive {
+  from {
+    opacity: var(--motion-enter-from-opacity, 0);
+    translate: var(--motion-enter-from, 0 var(--space-2));
+    scale: var(--motion-enter-from-scale, 0.96);
+  }
+}
+
+@keyframes eimir-motion-enter-reach {
+  from {
+    scale: var(--motion-reach-from, 0 1);
+  }
+}
+
+@keyframes eimir-motion-enter-swing {
+  0% {
+    opacity: 0;
+    rotate: 16deg;
+  }
+
+  15% {
+    opacity: 1;
+  }
+
+  28% {
+    rotate: -9deg;
+  }
+
+  46% {
+    rotate: 5deg;
+  }
+
+  62% {
+    rotate: -2.4deg;
+  }
+
+  80% {
+    rotate: 1deg;
+  }
+
+  100% {
+    rotate: var(--motion-swing-rest, 0deg);
+  }
+}
+
+@keyframes eimir-motion-enter-stamp {
+  0% {
+    opacity: 0;
+    scale: 1.5;
+    rotate: -14deg;
+  }
+
+  60% {
+    opacity: 1;
+    scale: 0.94;
+  }
+
+  100% {
+    opacity: 1;
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+
+/* Exit `leave` (4.2): the reverse of `arrive`, towards `--motion-exit-to`
+   and `--motion-exit-to-scale`, for an item that leaves in place before it
+   unmounts. The owner releases it on its own `animationend`. */
+@keyframes eimir-motion-exit-leave {
+  to {
+    opacity: 0;
+    translate: var(--motion-exit-to, 0 0);
+    scale: var(--motion-exit-to-scale, 0.92);
+  }
+}
+
+/* Ambient `sway` (4.5): a hung keepsake sways between two small angles. The
+   owner runs it for `--motion-ambient-repeat` alternate cycles after its
+   entrance and lets it rest on the last pose (M8). */
+@keyframes eimir-motion-ambient-sway {
+  from {
+    rotate: var(--motion-sway-from, -1deg);
+  }
+
+  to {
+    rotate: var(--motion-sway-to, 1deg);
+  }
+}
+
+/* Enter `draw` for a path with a measured dash (insight lines): the dash
+   offset runs from `--motion-dash-from` to 0, and a dashed partner line
+   draws as one stroke first and ends on its own `--motion-dash-to`. */
+@keyframes eimir-motion-enter-dash {
+  from {
+    stroke-dasharray: var(--motion-dash-from-array, none);
+    stroke-dashoffset: var(--motion-dash-from, 0);
+  }
+
+  to {
+    stroke-dasharray: var(--motion-dash-to-array, none);
+    stroke-dashoffset: 0;
+  }
+}
+
+/*
  * Enter `stage` (4.1): the members of a staged opening (`useStage`). The
  * stage root carries `data-motion-stage="playing"`; the feature's descendant
  * rules name these keyframes with its beats as token-derived delays and
@@ -294,6 +432,16 @@
   }
 }
 
+/* Feedback `toggle` beside a shared sliding indicator: the newly selected
+   control keeps a clear fill while the indicator slides under it, and takes
+   its own fill when the indicator arrived (`step-end`). A colour on a single
+   small element (M6). */
+@keyframes eimir-motion-feedback-fill-hold {
+  from {
+    background-color: transparent;
+  }
+}
+
 /* A small glyph tips to one side and the other, then rests upright. */
 @keyframes eimir-motion-feedback-wiggle {
   0%,
@@ -392,5 +540,42 @@
 @keyframes eimir-motion-loading-spin {
   to {
     rotate: 360deg;
+  }
+}
+
+/* Loading domain: a highlight sweeps across a placeholder with a translate
+   of its own layer, never `background-position` (M6). */
+@keyframes eimir-motion-loading-sweep {
+  from {
+    translate: -100% 0;
+  }
+
+  to {
+    translate: 100% 0;
+  }
+}
+
+/* Loading domain: the shared media skeleton (`story-media.css`) pans its
+   gradient fill. It is the one Loading use of `background-position` left,
+   because the skeleton sits in more than thirty media frames whose
+   positioning a separate highlight layer would change; it moves to the
+   sweep with the bounded domains (migration step 8). Deferred skeletons do
+   not pan (#2070), and it is absent with reduced motion. */
+@keyframes eimir-motion-loading-pan {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: -100% 0;
+  }
+}
+
+/* Loading domain: a small mark rocks while a draw is pending (the wish
+   selection roll), until the result is known. */
+@keyframes eimir-motion-loading-roll {
+  50% {
+    rotate: 14deg;
+    scale: 1.08;
   }
 }

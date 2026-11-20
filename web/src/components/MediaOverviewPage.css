@@ -64,14 +64,9 @@
 /* A tile the refreshed list no longer contains leaves instead of vanishing. */
 .media-overview-tile[data-departing="true"] {
   pointer-events: none;
-  animation: media-overview-tile-depart var(--duration-context)
-    var(--easing-exit) forwards;
-}
-@keyframes media-overview-tile-depart {
-  to {
-    opacity: 0;
-    transform: scale(0.92);
-  }
+  /* Exit `leave` from the motion catalogue (src/motion/motion.css). */
+  animation: eimir-motion-exit-leave var(--duration-context) var(--easing-exit)
+    forwards;
 }
 .media-overview-tile .story-media-preview,
 .media-overview-tile .story-media-skeleton,

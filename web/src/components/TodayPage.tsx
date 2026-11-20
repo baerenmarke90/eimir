@@ -143,6 +143,7 @@ import { SharedExperienceReveal } from './SharedExperienceReveal';
 import { SharedStorySummary } from './SharedStorySummary';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import { UiState } from './UiState';
+import { useKeepsakeSway } from './useKeepsakeSway';
 import { prefersReducedData, useMomentRotation } from './useMomentRotation';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
 import { WirGardenModule } from './WirGardenModule';
@@ -727,6 +728,10 @@ function TodayRetrospectiveCard({
   const meta = rawDate ? formatDate(rawDate) : null;
   const previewAttachmentId = item.previewAttachmentId;
   const hasMedia = Boolean(previewAttachmentId && loadMemoryImage);
+  const tone = hasMedia ? retrospectiveTone(item) : 'calm';
+  const swayRef = useKeepsakeSway<HTMLElement>(
+    diaryLayout === 'album' && tone !== 'calm',
+  );
   const action = t('m5s5.today.living.retrospectiveAction');
   // OpenAPI date-only values are UTC-midnight carriers, not local instants.
   // Read their encoded calendar components without shifting historic days.
@@ -745,9 +750,9 @@ function TodayRetrospectiveCard({
       className="today-living today-living-retrospective eimir-motion-lift"
       data-color-world={diaryLayout === 'album' ? 'warm' : undefined}
       data-diary-layout={diaryLayout}
-      data-tone={hasMedia ? retrospectiveTone(item) : 'calm'}
+      data-tone={tone}
     >
-      <figure className="today-retrospective-photo">
+      <figure ref={swayRef} className="today-retrospective-photo">
         {hasMedia && previewAttachmentId && loadMemoryImage ? (
           <div className="today-retrospective-media">
             <MemoryPreview

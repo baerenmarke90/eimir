@@ -50,14 +50,9 @@
   .product-main[data-navigation-slide]
     > .primary-tab-panel
     > .today-page::before {
-    animation: today-backdrop-enter var(--duration-transition)
+    /* Enter `fade` from the motion catalogue (src/motion/motion.css). */
+    animation: eimir-motion-enter-fade var(--duration-transition)
       var(--easing-standard);
-  }
-}
-
-@keyframes today-backdrop-enter {
-  from {
-    opacity: 0;
   }
 }
 
@@ -192,22 +187,6 @@
   }
 }
 
-@keyframes heart-sparkle {
-  0% {
-    transform: scale(0.9) rotate(-4deg);
-    opacity: 0.8;
-  }
-  50% {
-    transform: scale(1.12) rotate(4deg);
-    opacity: 1;
-    box-shadow: 0 0 24px var(--color-brand);
-  }
-  100% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-  }
-}
-
 .today-hero-action {
   display: inline-flex;
   align-items: center;
@@ -243,7 +222,6 @@
   );
   color: var(--color-on-accent);
   border-color: transparent;
-  animation: heart-sparkle var(--duration-context) var(--easing-enter);
 }
 
 .today-section {
@@ -1367,20 +1345,11 @@
   min-height: 7rem;
 }
 
-@keyframes today-module-reveal {
-  from {
-    opacity: 0;
-    transform: translateY(var(--space-2));
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
+/* A module that only exists for live data eases in once when it replaces its
+   cached placeholder: Enter `rise` from the motion catalogue. */
 .today-module-reveal {
-  animation: today-module-reveal var(--duration-context) var(--easing-enter)
+  --motion-enter-rise: var(--space-2);
+  animation: eimir-motion-enter-rise var(--duration-context) var(--easing-enter)
     both;
 }
 
@@ -1393,10 +1362,6 @@
  */
 @media (prefers-reduced-motion: reduce) {
   .today-module-reveal {
-    animation: none;
-  }
-
-  .today-hero-action.active {
     animation: none;
   }
 

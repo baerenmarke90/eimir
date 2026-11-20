@@ -54,7 +54,9 @@
     var(--color-shimmer-base, #f0ebe4) 65%
   );
   background-size: 200% 100%;
-  animation: story-shimmer 1.6s linear infinite;
+  /* The Loading pan from the motion catalogue (src/motion/motion.css). */
+  animation: eimir-motion-loading-pan calc(var(--duration-loading-cycle) * 2)
+    var(--easing-playback) infinite;
 }
 
 /* A deferred preview is not loading yet: it waits outside the viewport until

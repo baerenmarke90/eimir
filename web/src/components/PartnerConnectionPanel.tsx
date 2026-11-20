@@ -10,6 +10,7 @@ import { isCapacitorNativePlatform } from '../client/config';
 import { buildInvitationLink } from '../client/invitationLink';
 import { normalizeClientError } from '../client/problemDetails';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { haptic } from '../motion/haptics';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 
@@ -162,6 +163,9 @@ function PartnerConnectionPanelForContext({
         spaceId,
         invitation,
       });
+      // Sending an invitation is Feedback `success` after the server issued
+      // it (Motion Contract 4.10, 4.12).
+      haptic('success');
       setCopyState('idle');
       await queryClient.invalidateQueries({
         queryKey: ['space-invitations', spaceId],

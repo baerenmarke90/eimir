@@ -1,30 +1,15 @@
 {
   "$comment": "Ratchet allowlist for scripts/check-motion-layer.mjs (Motion Contract M14, #2073). Baseline: main at 5528a2dbe. Counts may only fall; remove a file when it reaches zero (npm run motion:check -- --shrink). Never add files or raise counts.",
   "files": {
-    "src/components/BrandedStartup.css": {
-      "keyframes": 1
-    },
-    "src/components/ConnectedMoment.css": {
-      "keyframes": 3
-    },
     "src/components/CoupleExperiences.css": {
       "keyframes": 4,
       "layout-keyframes": 8
     },
-    "src/components/DailyInsights.css": {
-      "keyframes": 3
-    },
     "src/components/DateIdeas.css": {
       "keyframes": 2
     },
-    "src/components/DiscoverKeepsakes.css": {
-      "keyframes": 1
-    },
     "src/components/DiscoverStory.css": {
       "keyframes": 3
-    },
-    "src/components/DiscreetPlan.css": {
-      "keyframes": 1
     },
     "src/components/FirstContentSettle.css": {
       "keyframes": 2
@@ -73,36 +58,15 @@
     "src/components/HeartHuntGamePage.tsx": {
       "animate": 1
     },
-    "src/components/LoginExperience.css": {
-      "keyframes": 2
-    },
     "src/components/MediaGallery.css": {
       "keyframes": 1,
       "infinite": 1,
       "animation-literal": 1
     },
-    "src/components/MediaOverviewPage.css": {
-      "keyframes": 1
-    },
     "src/components/MemoryPhotoGallery.css": {
       "keyframes": 1
     },
-    "src/components/NotificationMotion.css": {
-      "keyframes": 9
-    },
     "src/components/OccasionMark.css": {
-      "keyframes": 1
-    },
-    "src/components/PageComposer.css": {
-      "keyframes": 2
-    },
-    "src/components/PartnerDistanceLine.css": {
-      "keyframes": 1
-    },
-    "src/components/PartnerGestureReceipt.css": {
-      "keyframes": 10
-    },
-    "src/components/PartnerLocation.css": {
       "keyframes": 1
     },
     "src/components/PicturePingPongPage.css": {
@@ -111,17 +75,6 @@
     },
     "src/components/PlaceMapPicker.css": {
       "keyframes": 4
-    },
-    "src/components/PlanCover.css": {
-      "keyframes": 1,
-      "infinite": 1,
-      "animation-literal": 1
-    },
-    "src/components/PlanningReference.css": {
-      "keyframes": 5
-    },
-    "src/components/ProPaywall.css": {
-      "keyframes": 1
     },
     "src/components/RecapFilmScene.css": {
       "keyframes": 32
@@ -139,52 +92,8 @@
       "keyframes": 1,
       "infinite": 1
     },
-    "src/components/SettingsPage.css": {
-      "keyframes": 1
-    },
-    "src/components/SharedAchievementCelebration.css": {
-      "keyframes": 2
-    },
-    "src/components/SharedContentPages.css": {
-      "keyframes": 1
-    },
-    "src/components/SharedPlanningPages.css": {
-      "keyframes": 1
-    },
-    "src/components/SharedStorySummary.css": {
-      "keyframes": 5
-    },
-    "src/components/StoryHandmadeDiscover.css": {
-      "keyframes": 3
-    },
-    "src/components/TodayPage.css": {
-      "keyframes": 3
-    },
-    "src/components/TodayRetrospectiveAlbum.css": {
-      "keyframes": 3
-    },
-    "src/components/WeeklyInsightCard.css": {
-      "keyframes": 1
-    },
-    "src/components/WishJourney.css": {
-      "keyframes": 4
-    },
-    "src/components/WishSelection.css": {
-      "keyframes": 2,
-      "infinite": 1
-    },
-    "src/components/cartFlight.ts": {
-      "animate": 1
-    },
     "src/story-media.css": {
-      "infinite": 1,
-      "animation-literal": 1
-    },
-    "src/styles.css": {
-      "keyframes": 2,
-      "infinite": 1,
-      "layout-keyframes": 2,
-      "animation-literal": 1
+      "infinite": 1
     }
   }
 }

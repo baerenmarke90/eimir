@@ -8,13 +8,16 @@
   border-radius: var(--radius-large);
   padding: var(--space-3);
   background: var(--color-shared-surface);
-  animation: shared-achievement-arrive var(--duration-context)
-    var(--easing-enter);
+  /* Enter `surface` and Exit `surface-exit` from the motion catalogue
+     (src/motion/motion.css): a short rise in, and the same way out. */
+  --motion-surface-from: 0 var(--space-1);
+  --motion-surface-to: 0 var(--space-1);
+  animation: eimir-motion-surface-in var(--duration-context) var(--easing-enter);
 }
 
 .shared-achievement-confirmation[data-presence="exiting"] {
   pointer-events: none;
-  animation: shared-achievement-leave var(--duration-transition)
+  animation: eimir-motion-surface-out var(--duration-transition)
     var(--easing-exit) forwards;
 }
 
@@ -165,25 +168,6 @@
 .shared-achievement-cta-arrow {
   font-size: 1.25em;
   line-height: 1;
-}
-
-@keyframes shared-achievement-arrive {
-  from {
-    opacity: 0;
-    transform: translateY(var(--space-1)) scale(0.99);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes shared-achievement-leave {
-  to {
-    opacity: 0;
-    transform: translateY(var(--space-1)) scale(0.99);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

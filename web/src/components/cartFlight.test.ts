@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { invalidateMotionTokens } from '../motion/tokens';
 import { CART_TARGET_ATTRIBUTE, flyIntoCart } from './cartFlight';
 
 const rect = (left: number, top: number, width: number, height: number) =>
@@ -29,10 +30,17 @@ describe('flyIntoCart (#1808)', () => {
 
   beforeEach(() => {
     animate = vi.fn(() => ({
-      addEventListener: (type: string, listener: () => void) => {
-        if (type === 'finish') finish = listener;
-      },
+      finished: new Promise<void>((resolve) => {
+        finish = resolve;
+      }),
     }));
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    document.documentElement.style.setProperty('--duration-context', '280ms');
+    document.documentElement.style.setProperty(
+      '--easing-enter',
+      'cubic-bezier(0, 0, 0.2, 1)',
+    );
+    invalidateMotionTokens();
     (HTMLElement.prototype as unknown as { animate: unknown }).animate =
       animate;
     (document.body as unknown as { animate: unknown }).animate = animate;
@@ -45,21 +53,23 @@ describe('flyIntoCart (#1808)', () => {
     document.body.innerHTML = '';
     document.documentElement.removeAttribute('style');
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    invalidateMotionTokens();
   });
 
   const flight = {
     from: rect(20, 100, 300, 48),
-    label: 'Milch',
+    label: 'Milk',
     role: 'partner' as const,
   };
 
-  it('flies a copy of the entry toward the middle of the cart and removes it afterwards', () => {
+  it('flies a copy of the entry toward the middle of the cart and removes it afterwards', async () => {
     addTarget(rect(16, 700, 358, 56));
 
     expect(flyIntoCart(flight)).toBe(true);
 
     const ghost = document.querySelector('.shared-list-flight');
-    expect(ghost?.textContent).toBe('Milch');
+    expect(ghost?.textContent).toBe('Milk');
     expect(ghost?.getAttribute('aria-hidden')).toBe('true');
     expect(ghost?.className).toContain('person-role-partner');
     const [keyframes, options] = animate.mock.calls[0] as [
@@ -69,7 +79,10 @@ describe('flyIntoCart (#1808)', () => {
     // Cart middle (195, 728) minus the entry middle (170, 124).
     expect(keyframes[1].transform).toBe('translate(25px, 604px) scale(0.35)');
     expect(options.duration).toBe(420);
+    expect(options.easing).toBe('cubic-bezier(0, 0, 0.2, 1)');
     finish();
+    await Promise.resolve();
+    await Promise.resolve();
     expect(document.querySelector('.shared-list-flight')).toBeNull();
   });
 
@@ -101,7 +114,6 @@ describe('flyIntoCart (#1808)', () => {
 
     expect(flyIntoCart(flight)).toBe(true);
     expect(animate).not.toHaveBeenCalled();
-    vi.unstubAllGlobals();
   });
 
   it('keeps the flight inside the screen when the cart is below the fold', () => {

@@ -63,12 +63,50 @@
     var(--easing-playback) infinite;
 }
 
+/*
+ * Loading domain shimmer (4.8): a placeholder shows a quiet highlight that
+ * sweeps across it while its content loads (plan covers, the story list).
+ * The highlight is its own layer and moves with `translate` only (M6). The
+ * owner removes the class when the status is known. With reduced motion the
+ * placeholder stays still; its text and `role="status"` stay.
+ */
+.eimir-motion-loading-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-shimmer-base);
+}
+
+.eimir-motion-loading-shimmer::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    var(--color-shimmer-highlight) 50%,
+    transparent 70%
+  );
+  content: "";
+  pointer-events: none;
+  translate: -100% 0;
+  animation: eimir-motion-loading-sweep calc(var(--duration-loading-cycle) * 2)
+    var(--easing-playback) infinite;
+}
+
+/* Loading domain: the mark of a pending draw rocks until the result is
+   known (the wish selection roll). */
+.eimir-motion-loading-roll {
+  animation: eimir-motion-loading-roll var(--duration-context)
+    var(--easing-standard) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .eimir-motion-disclosure,
   .eimir-motion-lift,
   .eimir-motion-success,
   .eimir-motion-pulse,
-  .eimir-motion-loading-spin {
+  .eimir-motion-loading-spin,
+  .eimir-motion-loading-shimmer::after,
+  .eimir-motion-loading-roll {
     animation: none;
     transition: none;
   }

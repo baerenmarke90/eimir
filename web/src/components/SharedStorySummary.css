@@ -157,7 +157,8 @@
   );
   inline-size: var(--lifeline-preview-width);
   container-type: inline-size;
-  animation: shared-story-lifeline-preview-in var(--duration-context)
+  /* Enter `arrive` from the motion catalogue (src/motion/motion.css). */
+  animation: eimir-motion-enter-arrive var(--duration-context)
     var(--easing-enter);
 }
 .shared-story-lifeline-preview-tail {
@@ -171,7 +172,7 @@
   background: var(--color-surface-raised);
   transform: translateX(-50%) rotate(45deg);
   pointer-events: none;
-  animation: shared-story-lifeline-preview-in var(--duration-context)
+  animation: eimir-motion-enter-arrive var(--duration-context)
     var(--easing-enter);
 }
 .shared-story-lifeline-preview-card {
@@ -220,12 +221,16 @@
 .shared-story-lifeline-preview-main:is(:hover, :active) {
   background: var(--color-surface-subtle);
 }
+/* The next or previous entry travels in from the side it came from (Enter
+   `travel`). */
 .shared-story-lifeline-preview-main.is-from-right {
-  animation: shared-story-lifeline-from-right var(--duration-context)
+  --motion-enter-from: var(--space-6) 0;
+  animation: eimir-motion-enter-travel var(--duration-context)
     var(--easing-enter);
 }
 .shared-story-lifeline-preview-main.is-from-left {
-  animation: shared-story-lifeline-from-left var(--duration-context)
+  --motion-enter-from: calc(var(--space-6) * -1) 0;
+  animation: eimir-motion-enter-travel var(--duration-context)
     var(--easing-enter);
 }
 .shared-story-lifeline-preview-media,
@@ -337,25 +342,6 @@
   outline: 2px solid var(--color-focus);
   outline-offset: -2px;
 }
-@keyframes shared-story-lifeline-preview-in {
-  from {
-    opacity: 0;
-    translate: 0 var(--space-2);
-    scale: 0.96;
-  }
-}
-@keyframes shared-story-lifeline-from-right {
-  from {
-    opacity: 0;
-    transform: translateX(var(--space-6));
-  }
-}
-@keyframes shared-story-lifeline-from-left {
-  from {
-    opacity: 0;
-    transform: translateX(calc(var(--space-6) * -1));
-  }
-}
 
 /* Full variant: the chosen period's entries in date order. */
 .shared-story-lifeline-fan {
@@ -367,7 +353,8 @@
   background: var(--color-surface-raised);
   box-shadow: var(--shadow-soft);
   transform-origin: calc(var(--lifeline-x) * 100%) 0;
-  animation: shared-story-lifeline-fan-in var(--duration-context)
+  --motion-enter-from: 0 calc(var(--space-2) * -1);
+  animation: eimir-motion-enter-arrive var(--duration-context)
     var(--easing-enter);
 }
 .shared-story-lifeline-fan-head {
@@ -391,10 +378,14 @@
   padding: 0;
   list-style: none;
 }
+/* Enter `stagger`: rows after the cap arrive with the last staggered one. */
 .shared-story-lifeline-rows > li {
-  animation: shared-story-lifeline-row-in var(--duration-context)
+  animation: eimir-motion-enter-travel var(--duration-context)
     var(--easing-enter) backwards;
-  animation-delay: calc(var(--lifeline-row) * var(--duration-feedback) / 3);
+  animation-delay: calc(
+    min(var(--lifeline-row), var(--motion-stagger-max-items) - 1) *
+    var(--duration-stagger-item)
+  );
 }
 .shared-story-lifeline-row {
   display: grid;
@@ -471,18 +462,6 @@
 .shared-story-lifeline-all:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
-}
-@keyframes shared-story-lifeline-fan-in {
-  from {
-    opacity: 0;
-    transform: translateY(calc(var(--space-2) * -1)) scale(0.96);
-  }
-}
-@keyframes shared-story-lifeline-row-in {
-  from {
-    opacity: 0;
-    transform: translateY(var(--space-2));
-  }
 }
 
 /* Legend: the three counts as chips with their kinds' shapes, each an entry

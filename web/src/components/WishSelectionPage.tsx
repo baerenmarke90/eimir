@@ -1,6 +1,3 @@
-import { WishSelectionWishPicker } from './WishSelectionWishPicker';
-import { WishSelectionVote, type ResultItem } from './WishSelectionVote';
-import { WishSelectionRandomDecision } from './WishSelectionRandomDecision';
 import {
   useInfiniteQuery,
   useMutation,
@@ -81,6 +78,9 @@ import { ShortTaskSheet } from './ShortTaskSheet';
 import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import { WishSelectionIdeaPicker } from './WishSelectionIdeaPicker';
+import { WishSelectionRandomDecision } from './WishSelectionRandomDecision';
+import { type ResultItem, WishSelectionVote } from './WishSelectionVote';
+import { WishSelectionWishPicker } from './WishSelectionWishPicker';
 import './DateIdeas.css';
 import './WishSelection.css';
 
@@ -1546,7 +1546,7 @@ function WishSelectionTask({
                 <div className="wish-selection-rolling" role="status">
                   <EimirIcon
                     name="sparkle"
-                    className="wish-selection-rolling-icon"
+                    className="wish-selection-rolling-icon eimir-motion-loading-roll"
                   />
                   <strong>{t('wishSelection.randomRolling')}</strong>
                 </div>

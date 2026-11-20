@@ -846,8 +846,11 @@ test.describe('wish journey (#1790 F2)', () => {
       const animation = await arriving.evaluate(
         (node) => getComputedStyle(node).animationName,
       );
+      // The catalogue keyframes of the motion layer (#2077).
       expect(animation).toBe(
-        scenario.reducedMotion ? 'wish-journey-fade' : 'wish-journey-arrive',
+        scenario.reducedMotion
+          ? 'eimir-motion-enter-fade'
+          : 'eimir-motion-enter-grow',
       );
       await page.locator('.plan-wish-fulfilled').evaluate(async (node) => {
         await Promise.all(

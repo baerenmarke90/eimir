@@ -1,0 +1,318 @@
+/*
+ * The motion layer's Moment catalogue (Motion Contract 4.7, 5.1, M14; #2077).
+ *
+ * The approved multi-beat choreographies keep their keyframes here instead of
+ * in the feature stylesheets. The owner names them on its own states with
+ * token roles only (M1) and decides with `startMoment()` (moment.ts) whether
+ * a Moment plays: once per item, as the screen's one emphasized motion, and
+ * never with reduced motion, which shows the static composition with the same
+ * content.
+ *
+ * Imported by the owners (PartnerGestureReceipt.tsx, NotificationMotion.tsx),
+ * so it loads only with them.
+ */
+
+/*
+ * The received partner gesture (Product Owner, 2026-11-15, "variant B"): the
+ * surface enters, the gesture plays once on the partner's avatar over about
+ * two seconds, then settles into a calm badge. Nothing loops. The ripple and
+ * the bloom scale a soft, filled halo, never a thin ring (M7).
+ */
+@keyframes eimir-motion-moment-gesture-receipt-enter {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--space-3))) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-moment-gesture-receipt-exit {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--space-2))) scale(0.98);
+  }
+}
+
+@keyframes eimir-motion-moment-gesture-wash {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  45% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0.55;
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-moment-gesture-glyph-arrive {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-moment-gesture-heart {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  16% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  24% {
+    transform: scale(1);
+  }
+  36% {
+    transform: scale(1.28);
+  }
+  44% {
+    transform: scale(1);
+  }
+  54% {
+    transform: scale(1.18);
+  }
+  64% {
+    transform: scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(18px, 18px) scale(0.4);
+  }
+}
+
+@keyframes eimir-motion-moment-gesture-kiss-left {
+  0% {
+    opacity: 0;
+    transform: translate(-22px, 26px) rotate(-50deg) scale(0.5);
+  }
+  15% {
+    opacity: 1;
+  }
+  55% {
+    transform: translate(-7px, -3px) rotate(-16deg);
+  }
+  62% {
+    transform: translate(-5px, -3px) rotate(-12deg) scale(1.22);
+  }
+  70%,
+  85% {
+    opacity: 1;
+    transform: translate(-7px, -3px) rotate(-14deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(14px, 16px) rotate(-14deg) scale(0.4);
+  }
+}
+
+@keyframes eimir-motion-moment-gesture-kiss-right {
+  0% {
+    opacity: 0;
+    transform: translate(128px, -13px) rotate(50deg) scale(0.5);
+  }
+  15% {
+    opacity: 1;
+  }
+  55% {
+    transform: translate(7px, -3px) rotate(16deg);
+  }
+  62% {
+    transform: translate(5px, -3px) rotate(12deg) scale(1.22);
+  }
+  70%,
+  85% {
+    opacity: 1;
+    transform: translate(7px, -3px) rotate(14deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(26px, 16px) rotate(14deg) scale(0.4);
+  }
+}
+
+@keyframes eimir-motion-moment-gesture-bloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  35% {
+    opacity: 0.22;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+@keyframes eimir-motion-moment-gesture-ripple {
+  from {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+}
+
+@keyframes eimir-motion-moment-gesture-breathe {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: scale(1.07);
+  }
+}
+
+/*
+ * Notification glyphs: one Feedback beat of the icon on the plain
+ * notification surface (system and owner-only kinds), under the attention
+ * rules (4.9). Transform and opacity only.
+ */
+@keyframes eimir-motion-notice-prompt-bloom {
+  from {
+    opacity: 0;
+    transform: scale(0.35) rotate(-30deg);
+  }
+  65% {
+    transform: scale(1.2) rotate(7deg);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-notice-download-ready {
+  from {
+    opacity: 0;
+    transform: translateY(-40%);
+  }
+  65% {
+    transform: translateY(9%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* Opacity instead of a `clip-path` wipe (M6). */
+@keyframes eimir-motion-notice-transfer-done {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-notice-transfer-retry {
+  0%,
+  100% {
+    transform: none;
+  }
+  35% {
+    transform: translateX(-17%);
+  }
+  60% {
+    transform: translateX(10%);
+  }
+}
+
+@keyframes eimir-motion-notice-video-stop {
+  from {
+    transform: translateX(-28%) rotate(-12deg);
+  }
+  52% {
+    transform: translateX(5%) rotate(7deg);
+  }
+  76% {
+    transform: translateX(5%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-notice-reminder-ring {
+  0%,
+  100% {
+    transform: none;
+  }
+  24% {
+    transform: rotate(-20deg);
+  }
+  49% {
+    transform: rotate(16deg);
+  }
+  72% {
+    transform: rotate(-6deg);
+  }
+}
+
+@keyframes eimir-motion-notice-wish-reminder {
+  from {
+    transform: scale(0.72);
+  }
+  42% {
+    transform: translateY(-23%) rotate(12deg);
+  }
+  72% {
+    transform: translateY(4%) rotate(-5deg);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-notice-recap-ready {
+  from {
+    opacity: 0;
+    transform: translateY(28%) scale(0.7);
+  }
+  70% {
+    transform: translateY(-6%) scale(1.06);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-notice-recap-grew {
+  from {
+    opacity: 0;
+    transform: translateX(-22%) rotate(-8deg);
+  }
+  65% {
+    transform: translateX(5%) rotate(3deg);
+  }
+  to {
+    transform: none;
+  }
+}

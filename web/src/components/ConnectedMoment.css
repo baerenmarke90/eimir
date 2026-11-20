@@ -60,53 +60,32 @@
   font: var(--font-supporting-copy);
 }
 
+/* The Moment's beats (Motion Contract 4.7) use the catalogue keyframes in
+   src/motion/motion.css: the partner's circle travels in, the heart line
+   draws (Enter `draw`, `pathLength="1"`), then the words rise. */
 @media (prefers-reduced-motion: no-preference) {
-  .connected-moment[data-playing] .connected-moment-partner {
-    animation: connected-moment-join var(--duration-gesture-moment)
+  .connected-moment[data-playing]:not([data-moment="final"])
+    .connected-moment-partner {
+    --motion-enter-from: 2.5rem 0;
+    animation: eimir-motion-enter-travel var(--duration-gesture-moment)
       var(--easing-enter) both;
   }
 
-  .connected-moment[data-playing] .connected-moment-mark svg {
-    animation: connected-moment-draw var(--duration-gesture-moment)
+  .connected-moment[data-playing]:not([data-moment="final"])
+    .connected-moment-partner:dir(rtl) {
+    --motion-enter-from: -2.5rem 0;
+  }
+
+  .connected-moment[data-playing]:not([data-moment="final"])
+    .connected-moment-mark
+    svg {
+    animation: eimir-motion-enter-draw var(--duration-gesture-moment)
       var(--easing-standard) var(--duration-context) both;
   }
 
-  .connected-moment[data-playing] :is(h2, p) {
-    animation: connected-moment-rise var(--duration-context) var(--easing-enter)
-      var(--duration-gesture-moment) both;
-  }
-}
-
-@keyframes connected-moment-join {
-  from {
-    opacity: 0;
-    transform: translateX(2.5rem);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes connected-moment-draw {
-  from {
-    stroke-dashoffset: 1;
-  }
-
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes connected-moment-rise {
-  from {
-    opacity: 0;
-    transform: translateY(0.5rem);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
+  .connected-moment[data-playing]:not([data-moment="final"]) :is(h2, p) {
+    --motion-enter-rise: 0.5rem;
+    animation: eimir-motion-enter-rise var(--duration-context)
+      var(--easing-enter) var(--duration-gesture-moment) both;
   }
 }

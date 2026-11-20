@@ -7,181 +7,12 @@
  * loops. Every element's resting style IS that settled state, so reduced
  * motion (durations zeroed by the token adapter, and the block at the end)
  * shows the same information without movement.
+ *
+ * It is a Moment on the motion layer (Motion Contract 4.7): the keyframes
+ * live in src/motion/moments.css, and `startMoment()` decides whether the
+ * beats play. `data-moment="final"` (another emphasized motion is running,
+ * the page is hidden) shows the settled badge at once, like reduced motion.
  */
-
-@keyframes partner-gesture-receipt-enter {
-  from {
-    opacity: 0;
-    transform: translateY(calc(-1 * var(--space-3))) scale(0.94);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes partner-gesture-receipt-exit {
-  from {
-    opacity: 1;
-    transform: none;
-  }
-  to {
-    opacity: 0;
-    transform: translateY(calc(-1 * var(--space-2))) scale(0.98);
-  }
-}
-
-/* A warm wash blooms out of the partner's avatar and stays softly. */
-@keyframes partner-gesture-wash {
-  0% {
-    opacity: 0;
-    transform: scale(0.6);
-  }
-  45% {
-    opacity: 1;
-    transform: none;
-  }
-  100% {
-    opacity: 0.55;
-    transform: none;
-  }
-}
-
-/* The settled badge arrives on the avatar. */
-@keyframes partner-gesture-glyph-arrive {
-  from {
-    opacity: 0;
-    transform: scale(0.3);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* Thinking of you: a big heart, lub-dub, then it settles into the badge. */
-@keyframes partner-gesture-heart {
-  0% {
-    opacity: 0;
-    transform: scale(0.2);
-  }
-  16% {
-    opacity: 1;
-    transform: scale(1.08);
-  }
-  24% {
-    transform: scale(1);
-  }
-  36% {
-    transform: scale(1.28);
-  }
-  44% {
-    transform: scale(1);
-  }
-  54% {
-    transform: scale(1.18);
-  }
-  64% {
-    transform: scale(1);
-  }
-  80% {
-    opacity: 1;
-    transform: none;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(18px, 18px) scale(0.4);
-  }
-}
-
-/* Kiss: two hearts float in on arcs, meet, kiss and settle. */
-@keyframes partner-gesture-kiss-left {
-  0% {
-    opacity: 0;
-    transform: translate(-22px, 26px) rotate(-50deg) scale(0.5);
-  }
-  15% {
-    opacity: 1;
-  }
-  55% {
-    transform: translate(-7px, -3px) rotate(-16deg);
-  }
-  62% {
-    transform: translate(-5px, -3px) rotate(-12deg) scale(1.22);
-  }
-  70%,
-  85% {
-    opacity: 1;
-    transform: translate(-7px, -3px) rotate(-14deg);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(14px, 16px) rotate(-14deg) scale(0.4);
-  }
-}
-
-@keyframes partner-gesture-kiss-right {
-  0% {
-    opacity: 0;
-    transform: translate(128px, -13px) rotate(50deg) scale(0.5);
-  }
-  15% {
-    opacity: 1;
-  }
-  55% {
-    transform: translate(7px, -3px) rotate(16deg);
-  }
-  62% {
-    transform: translate(5px, -3px) rotate(12deg) scale(1.22);
-  }
-  70%,
-  85% {
-    opacity: 1;
-    transform: translate(7px, -3px) rotate(14deg);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(26px, 16px) rotate(14deg) scale(0.4);
-  }
-}
-
-/* Kiss: the meeting point blooms softly once. */
-@keyframes partner-gesture-bloom {
-  0% {
-    opacity: 0;
-    transform: scale(0.4);
-  }
-  35% {
-    opacity: 0.22;
-  }
-  100% {
-    opacity: 0;
-    transform: scale(2.6);
-  }
-}
-
-/* Waves: one ripple per heartbeat or calm breath. */
-@keyframes partner-gesture-ripple {
-  from {
-    opacity: 0.6;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(2.1);
-  }
-}
-
-/* Check-in: the avatar takes one slow, calm breath. */
-@keyframes partner-gesture-breathe {
-  0%,
-  100% {
-    transform: none;
-  }
-  50% {
-    transform: scale(1.07);
-  }
-}
 
 .partner-gesture-receipt {
   --partner-gesture-tint: var(--color-brand-surface);
@@ -232,7 +63,7 @@
   opacity: 0.55;
   pointer-events: none;
   transform-origin: 40px 40px;
-  animation: partner-gesture-wash var(--duration-gesture-sequence)
+  animation: eimir-motion-moment-gesture-wash var(--duration-gesture-sequence)
     var(--easing-standard) var(--duration-sequence-beat) both;
 }
 
@@ -241,13 +72,13 @@
 }
 
 .partner-gesture-receipt[data-presence="open"] {
-  animation: partner-gesture-receipt-enter var(--duration-context)
+  animation: eimir-motion-moment-gesture-receipt-enter var(--duration-context)
     var(--easing-enter) both;
 }
 
 .partner-gesture-receipt[data-presence="exiting"] {
   pointer-events: none;
-  animation: partner-gesture-receipt-exit var(--duration-transition)
+  animation: eimir-motion-moment-gesture-receipt-exit var(--duration-transition)
     var(--easing-exit) both;
 }
 
@@ -300,11 +131,18 @@
 }
 
 /* Decorative waves around the avatar; invisible at rest. */
+/* The ripple is a soft, filled halo that grows, not a 2 px ring: a scaled
+   thin stroke steps from pixel to pixel on phones (Motion Contract M7). */
 .partner-gesture-receipt-wave {
   position: absolute;
   inset: 2px;
-  border: 2px solid var(--partner-gesture-on-tint);
   border-radius: 50%;
+  background: radial-gradient(
+    circle closest-side,
+    transparent 58%,
+    var(--partner-gesture-on-tint) 78%,
+    transparent 100%
+  );
   opacity: 0;
 }
 
@@ -402,7 +240,7 @@
 }
 
 .partner-gesture-receipt[data-variant] .partner-gesture-receipt-glyph {
-  animation: partner-gesture-glyph-arrive var(--duration-context)
+  animation: eimir-motion-moment-gesture-glyph-arrive var(--duration-context)
     var(--easing-enter)
     calc(var(--duration-sequence-beat) + var(--duration-gesture-sequence)) both;
 }
@@ -411,14 +249,14 @@
 .partner-gesture-receipt[data-variant="heart-pulse"]
   .partner-gesture-receipt-hero
   svg {
-  animation: partner-gesture-heart
+  animation: eimir-motion-moment-gesture-heart
     calc(var(--duration-gesture-sequence) + var(--duration-context))
     var(--easing-standard) var(--duration-sequence-beat) both;
 }
 
 .partner-gesture-receipt[data-variant="heart-pulse"]
   .partner-gesture-receipt-wave[data-wave="1"] {
-  animation: partner-gesture-ripple var(--duration-gesture-moment)
+  animation: eimir-motion-moment-gesture-ripple var(--duration-gesture-moment)
     var(--easing-standard) var(--duration-gesture-moment) both;
 }
 
@@ -439,20 +277,20 @@
 .partner-gesture-receipt[data-variant="kiss"]
   .partner-gesture-receipt-hero
   svg:first-child {
-  animation-name: partner-gesture-kiss-left;
+  animation-name: eimir-motion-moment-gesture-kiss-left;
 }
 
 .partner-gesture-receipt[data-variant="kiss"]
   .partner-gesture-receipt-hero
   svg:last-child {
-  animation-name: partner-gesture-kiss-right;
+  animation-name: eimir-motion-moment-gesture-kiss-right;
 }
 
 .partner-gesture-receipt[data-variant="kiss"]
   .partner-gesture-receipt-wave[data-wave="1"] {
   border: 0;
   background: var(--partner-gesture-on-tint);
-  animation: partner-gesture-bloom var(--duration-gesture-moment)
+  animation: eimir-motion-moment-gesture-bloom var(--duration-gesture-moment)
     var(--easing-standard)
     calc(2 * var(--duration-sequence-beat) + var(--duration-gesture-moment))
     both;
@@ -472,8 +310,9 @@
   .person-identity,
 .partner-gesture-receipt[data-variant="calm-ring"]
   .partner-gesture-receipt-placeholder {
-  animation: partner-gesture-breathe var(--duration-gesture-sequence)
-    var(--easing-standard) var(--duration-sequence-beat) both;
+  animation: eimir-motion-moment-gesture-breathe
+    var(--duration-gesture-sequence) var(--easing-standard)
+    var(--duration-sequence-beat) both;
 }
 
 /* No waves: the badge lands soon after the soft breath begins (Product Owner
@@ -647,6 +486,16 @@
   .partner-gesture-receipt-hero {
     display: none;
   }
+}
+
+.partner-gesture-receipt[data-moment="final"]::before,
+.partner-gesture-receipt[data-moment="final"] .partner-gesture-receipt-body * {
+  animation: none !important;
+}
+
+.partner-gesture-receipt[data-moment="final"] .partner-gesture-receipt-wave,
+.partner-gesture-receipt[data-moment="final"] .partner-gesture-receipt-hero {
+  display: none;
 }
 
 @media (forced-colors: active) {

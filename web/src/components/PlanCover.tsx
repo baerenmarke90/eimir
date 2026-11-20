@@ -90,7 +90,9 @@ export function PlanCover({
     />
   ) : (
     <span
-      className={`plan-cover-placeholder${image.error ? '' : ' is-loading'}`}
+      className={`plan-cover-placeholder${
+        image.error ? '' : ' is-loading eimir-motion-loading-shimmer'
+      }`}
       role={shouldLoad ? 'status' : undefined}
       aria-hidden={!shouldLoad || undefined}
     >

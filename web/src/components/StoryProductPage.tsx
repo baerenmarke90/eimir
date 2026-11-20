@@ -78,6 +78,7 @@ import { useTaskListReturn } from '../client/useTaskListReturn';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CoupleExperienceLinks } from './CoupleExperienceLinks';
 import { FirstStepAction } from './FirstStepAction';
+import { useKeepsakeSway } from './useKeepsakeSway';
 import './FirstContentSettle.css';
 import { DiaryChapterPeriods } from './DiaryChapterPeriods';
 import { DiscoverStory } from './DiscoverStory';
@@ -554,6 +555,12 @@ export function StoryProductPage({
     ? storyItemPresentation(featuredItem, t, nicknameFor)
     : null;
   const _featuredAuthor = featuredItem ? storyItemAuthor(featuredItem) : null;
+  const featuredTone = featuredItem
+    ? storyEntryTone(featuredItem, Boolean(featuredMedia))
+    : undefined;
+  const featuredSwayRef = useKeepsakeSway<HTMLAnchorElement>(
+    diaryLayout === 'album' && featuredTone === 'playful',
+  );
   const onThisDayKicker =
     leadContext?.type === 'ON_THIS_DAY' && sameSelectionDay;
   // #1790 C2: varying wording instead of a bare date as the title. A heart
@@ -775,13 +782,14 @@ export function StoryProductPage({
             {featuredItem && featuredPresentation ? (
               <article
                 className="momente-hero-highlight"
-                data-tone={storyEntryTone(featuredItem, Boolean(featuredMedia))}
+                data-tone={featuredTone}
                 data-photo-shape={
                   featuredMedia ? photoShape(featuredMedia) : undefined
                 }
                 data-color-world={featuredMedia ? undefined : 'warm'}
               >
                 <Link
+                  ref={featuredSwayRef}
                   to={featuredPath}
                   className={`momente-hero-link ${featuredMedia ? 'has-media' : ''}`}
                   aria-label={`${t('story.featuredHighlight')}: ${featuredHeadline}`}

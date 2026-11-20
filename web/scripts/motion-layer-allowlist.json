@@ -73,9 +73,6 @@
       "keyframes": 2,
       "layout-keyframes": 2
     },
-    "src/components/PlaceMapPicker.css": {
-      "keyframes": 4
-    },
     "src/components/RecapFilmScene.css": {
       "keyframes": 32
     },

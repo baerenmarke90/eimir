@@ -120,6 +120,7 @@ export class ConnectionOverlay {
   private readonly glows: HTMLElement[];
   private readonly heart: HTMLElement;
   private started = false;
+  private paused = false;
 
   constructor(container: HTMLElement, after: Element | null) {
     const maskId = `place-map-connection-mask-${++maskCount}`;
@@ -225,19 +226,27 @@ export class ConnectionOverlay {
     this.play();
   }
 
-  /** Restarts the travelling glow or the heartbeat. */
+  /** Restarts the travelling glow or the heartbeat (an explicit request). */
   play() {
     const { element } = this;
     if (!this.started) return;
-    element.classList.remove('is-paused', 'is-playing');
+    element.classList.remove('is-playing');
     // Reading layout restarts the CSS animations bound to the class.
     void element.offsetWidth;
     element.classList.add('is-playing');
+    element.classList.toggle('is-paused', this.paused);
   }
 
-  /** Holds the motion while the page is hidden. */
+  /** Holds the motion while the drawing is not visible (M8). */
   pause() {
+    this.paused = true;
     this.element.classList.add('is-paused');
+  }
+
+  /** Continues where it paused; a return never replays it (M4). */
+  resume() {
+    this.paused = false;
+    this.element.classList.remove('is-paused');
   }
 
   remove() {

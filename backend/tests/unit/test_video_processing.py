@@ -12,8 +12,8 @@ from typing import Any
 import pytest
 from PIL import Image, ImageChops
 
-from eimir.attachments import videos
 from eimir.config import get_settings
+from eimir.video_processing import videos
 from tests.support.video import processor as processor
 
 SAMPLE = Path(__file__).parents[1] / "fixtures/media/video-with-metadata.mp4"

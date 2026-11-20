@@ -29,6 +29,7 @@ PLUGIN_PACKAGES = (
     "eimir.presence",
     "eimir.quotes",
     "eimir.relationship_passport",
+    "eimir.video_processing",
 )
 """The in-tree Pro modules; Phase 2 moves them into their own distribution."""
 

@@ -1,4 +1,9 @@
-"""Optional single-job video role; the general worker never claims these jobs."""
+"""Optional single-job media role; the general worker never claims these jobs.
+
+It loads the plugins like the ``api`` and ``worker`` roles (Decision 0017). Voice
+notes are Core; video validation is registered by the Pro plugin, so without it
+this role claims only voice notes and queued videos wait for a role that has it.
+"""
 
 from __future__ import annotations
 
@@ -14,8 +19,9 @@ from eimir.attachments import video_jobs
 from eimir.attachments.service import ATTACHMENT_AUDIO_VALIDATION, ATTACHMENT_VIDEO_VALIDATION
 from eimir.config import get_settings
 from eimir.db.session import unit_of_work
-from eimir.jobs.worker import run_once
+from eimir.jobs.worker import JobRegistry, registry, run_once
 from eimir.observability import configure_logging
+from eimir.plugins.loader import loaded_plugins
 
 _shutdown = False
 log = logging.getLogger(__name__)
@@ -26,11 +32,22 @@ def _stop(signum: int, frame: FrameType | None) -> None:
     _shutdown = True
 
 
+def claimed_kinds(jobs: JobRegistry) -> list[str]:
+    """Voice notes always; video only when a loaded plugin registered its processor."""
+    kinds = [ATTACHMENT_AUDIO_VALIDATION]
+    if jobs.get(ATTACHMENT_VIDEO_VALIDATION) is not None:
+        kinds.insert(0, ATTACHMENT_VIDEO_VALIDATION)
+    return kinds
+
+
 def main() -> None:
     configure_logging(get_settings())
     signal.signal(signal.SIGTERM, _stop)
     signal.signal(signal.SIGINT, _stop)
+    # A named plugin that cannot be loaded stops the role here.
+    loaded_plugins().register_jobs(registry)
     video_jobs.register()
+    kinds = claimed_kinds(registry)
     while not _shutdown:
         with unit_of_work() as session:
             recovered = video_jobs.recover_stranded_validations(session)
@@ -44,7 +61,7 @@ def main() -> None:
             completed = run_once(
                 name,
                 limit=1,
-                kinds=[ATTACHMENT_VIDEO_VALIDATION, ATTACHMENT_AUDIO_VALIDATION],
+                kinds=kinds,
                 lease=timedelta(minutes=30),
             )
         except Exception:

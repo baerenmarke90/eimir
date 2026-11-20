@@ -334,6 +334,7 @@ PLUGIN_CAPABILITIES = frozenset(
         Capability.DAILY_INSIGHTS.value,
         Capability.GAMES_COUPLE.value,
         Capability.INTEGRATION_EXTERNAL_SYNC.value,
+        Capability.MEDIA_VIDEO_UPLOAD.value,
         Capability.MEMORIES_MAP.value,
         Capability.PARTNER_ONCE_MESSAGES.value,
         Capability.PARTNER_QUICK_ACTIONS_EXTENDED.value,
@@ -354,6 +355,7 @@ PLUGIN_JOB_KINDS = frozenset(
     {
         "calendar_sync.plan",
         "calendar_sync.space",
+        "attachment_video_validation",
         "heart_hunt_retention",
         "once_message_expiry",
         "photo_selection_cleanup",

@@ -1146,28 +1146,14 @@
   color: var(--color-brand-strong);
 }
 
-.app-pull-refresh-indicator.is-refreshing .app-pull-refresh-icon {
-  animation: app-pull-refresh-spin 0.8s linear infinite;
-}
-
 html.app-pull-refresh-enabled,
 html.app-pull-refresh-enabled body {
   overscroll-behavior-y: none;
 }
 
-@keyframes app-pull-refresh-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .app-pull-refresh-indicator {
     transition: none;
-  }
-
-  .app-pull-refresh-indicator.is-refreshing .app-pull-refresh-icon {
-    animation: none;
   }
 }
 

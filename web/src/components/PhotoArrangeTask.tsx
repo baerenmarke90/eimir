@@ -12,6 +12,11 @@ import {
 import { isSortableOperation, useSortable } from '@dnd-kit/react/sortable';
 import { useRef, useState } from 'react';
 import { useTranslation } from '../i18n';
+import {
+  dragCommitted,
+  dragFeedbackMotion,
+  sortableTransition,
+} from '../motion/gesture/dragAndDrop';
 import type { PhotoDraftGalleryItem } from './PhotoDraftGallery';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './PhotoArrangeTask.css';
@@ -43,13 +48,10 @@ function SortableMedia({
   onSelect: () => void;
 }) {
   const { t } = useTranslation();
-  const reduced = globalThis.matchMedia?.(
-    '(prefers-reduced-motion: reduce)',
-  ).matches;
   const { ref, handleRef, isDragging } = useSortable({
     id: item.key,
     index,
-    transition: reduced ? null : undefined,
+    transition: sortableTransition(),
     sensors: [
       PointerSensor.configure({
         activationConstraints: [
@@ -101,9 +103,6 @@ export function PhotoArrangeTask({
 }) {
   const { t } = useTranslation();
   const sheet = useRef<ShortTaskSheetHandle>(null);
-  const reduced = globalThis.matchMedia?.(
-    '(prefers-reduced-motion: reduce)',
-  ).matches;
   const [keys, setKeys] = useState(() => items.map((item) => item.key));
   const [selected, setSelected] = useState(items[0]?.key ?? '');
   const [announcement, setAnnouncement] = useState('');
@@ -181,10 +180,7 @@ export function PhotoArrangeTask({
       <DragDropProvider
         plugins={(defaults) => [
           ...defaults,
-          Feedback.configure({
-            dropAnimation: reduced ? null : undefined,
-            keyboardTransition: reduced ? null : undefined,
-          }),
+          Feedback.configure(dragFeedbackMotion()),
           Accessibility.configure({
             screenReaderInstructions: {
               draggable: t('experiences.keyboardHelp'),
@@ -201,7 +197,9 @@ export function PhotoArrangeTask({
         onDragEnd={(event) => {
           if (event.canceled || !isSortableOperation(event.operation)) return;
           const { source } = event.operation;
-          if (source) move(String(source.id), source.index);
+          if (!source) return;
+          dragCommitted(source.initialIndex !== source.index);
+          move(String(source.id), source.index);
         }}
       >
         <ol

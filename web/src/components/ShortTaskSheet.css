@@ -16,9 +16,10 @@
   overflow: hidden;
   opacity: 1;
   transform: translateY(var(--short-task-sheet-drag-offset, 0px));
-  transition:
-    transform var(--duration-transition) var(--easing-standard),
-    opacity var(--duration-transition) var(--easing-standard);
+  /* The drag settle is the Gesture follow spring (motion layer), not a
+     transform transition, so it continues with the release velocity and can
+     be grabbed again without a jump (Motion Contract 4.6). */
+  transition: opacity var(--duration-transition) var(--easing-standard);
 }
 
 /*
@@ -48,7 +49,10 @@
 
 .short-task-sheet[open][data-presence="exiting"] {
   pointer-events: none;
-  animation: eimir-motion-surface-out var(--duration-transition)
+  /* A drag dismissal continues at its release speed: the owner sets the
+     exit duration from the remaining travel, within the token roles. */
+  animation: eimir-motion-surface-out
+    var(--short-task-sheet-exit-duration, var(--duration-transition))
     var(--easing-exit) forwards;
   transition: none;
 }

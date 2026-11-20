@@ -10,8 +10,10 @@
  * stops the settle where it is (commit, then cancel) and continues tracking
  * without a jump.
  *
- * The step that migrates the tab pager, sheet dismissal, pull to refresh and
- * list reorder (#2077) adopts this block; it is not wired to a surface here.
+ * The tab pager, sheet dismissal, pull to refresh and list reorder use this
+ * block's ownership, rubber-band, commit and velocity rules (#2076);
+ * `settleFrom()` is the shared release handoff for owners that keep their
+ * own event plumbing (touch events, CSS offsets).
  */
 import { haptic } from '../haptics';
 import { prefersReducedMotion } from '../reducedMotion';

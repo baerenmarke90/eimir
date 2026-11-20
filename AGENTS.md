@@ -327,6 +327,16 @@ This policy applies to human contributors and coding agents handling any pull re
 - Diagnostic artifacts from retries must distinguish attempts or use an explicit safe replacement contract. Preserve stable artifact names consumed by release workflows.
 - Record the relevant root causes, correction batch, validation, and any retry reason briefly in the existing PR validation section. This adds no separate approval process or arbitrary limit on the number of justified pushes.
 
+### Pull-request CI tiers and the nightly regression
+
+The Product Owner decision in [#2096](https://github.com/baerenmarke90/eimir/issues/2096) (2026-11-20) limits GitHub Actions usage so the repository can become private. It deliberately moves heavy verification from every pull request to a nightly regression on `main`; some regressions and CodeQL findings therefore surface after merge.
+
+- **Cheap tier (default):** lint, formatting, typing, unit tests, contract checks, Web Reference Flow, Secret Scan, Provenance and the review gates run on every pull request.
+- **Full tier:** browser E2E, Backend Integration, Backend Encrypted Mode, Android emulator (API 36), Self-Hosted start/deployment/recovery, Supply Chain container builds, Media Video, Release Evidence and CodeQL. They run only on pull requests that are ready for review and either carry the `ci:full` label or touch a risk path. `tools/ci/change_scope.py` defines the risk paths: migrations, authentication/authorization, deployment and Compose, Self-Hosted/release tooling, CI definitions and unknown paths.
+- **Label the PR with `ci:full`** for risky changes beyond the automatic risk paths, and whenever CI requires it: it fails when a PR changes a label-gated workflow or its tooling without the label. After adding the label, re-run the failed Change Detection job; labelled heavy workflows start by themselves.
+- **Nightly regression:** `nightly-regression.yml` dispatches the complete regression on `main` once per night when the revision is untested, and on manual dispatch. A failure opens or updates the issue "Nightly regression failed"; fixing `main` then takes precedence over feature merges.
+- **Push sparingly:** use one PR per issue and keep follow-up fixes in that PR. Push completed, locally checked states rather than intermediate snapshots. Keep the PR in draft until it is complete, then mark it ready for review once; this is the intended trigger, not an artificial draft/ready transition.
+
 ### Mandatory Web browser test selection
 
 For Web product, browser-test and browser-CI work, the [Browser impact selection contract](docs/m5/BROWSER-IMPACT-SELECTION.md) is binding for human contributors and coding agents.
@@ -336,7 +346,7 @@ For Web product, browser-test and browser-CI work, the [Browser impact selection
 - Feature-specific acceptance evidence and broad viewport/theme variants must not automatically become global always-run work. An addition to, or material expansion of, the always-run core needs a concrete cross-surface contract and a traceable rationale in the PR, including overlap with existing coverage and the collected selection impact.
 - Prefer equivalent deterministic lower-level coverage for pure invariants. Delete browser cases only after proving redundancy, obsolescence or an equivalent committed replacement; retain real-browser layout, focus, navigation, privacy and accessibility protection where required.
 - Shared foundations, unknown/unmapped changes and incomplete dependency analysis must remain conservative. Preserve validation of complete PR-file responses, revision binding, changed surviving specs, disjoint execution groups and rejection of malformed/empty plans or unexpectedly skipped required work.
-- Preserve full automatic regression on `main` and manual execution, stable required contexts, independent retry boundaries and useful diagnostics. Impact-based scheduling is not permission to reduce required product contracts or weaken protection rules.
+- Preserve the full automatic regression on `main` (nightly, see [Pull-request CI tiers](#pull-request-ci-tiers-and-the-nightly-regression)) and manual execution, stable required contexts, independent retry boundaries and useful diagnostics. Impact-based scheduling is not permission to reduce required product contracts or weaken protection rules.
 - Before pushing browser-selection changes, run the planning regressions and inventory checks and document actual Playwright collection counts and relevant measured runtime when available. Historical baselines and target durations do not establish current coverage or justify weaker assertions.
 
 The recorded test counts are measurements, not permanent quotas. Change the core deliberately as product contracts evolve; do not allow unrelated feature additions to silently recreate a large unconditional PR suite. Follow the [contributor procedure](CONTRIBUTING.md#web-browser-test-selection).
@@ -352,3 +362,17 @@ Every pull request must also record whether it has user-facing UI/UX impact. A P
 Larger runtime slices, client features, and production user flows must document their relevant cross-cutting consequences in the pull request. The pull-request template is the minimum review surface; deeper decisions belong in the owning issue, decision document, or ADR.
 
 A pull request that introduces non-English engineering content without an allowed exception from `docs/ENGINEERING-LANGUAGE.md` is not merge-ready.
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues for `baerenmarke90/eimir` (the `gh` CLI, or the GitHub MCP tools in cloud sessions). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default triage roles use their default label names (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` at the repository root (created when needed) and decision records in `docs/decisions/`. See `docs/agents/domain.md`.

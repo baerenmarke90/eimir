@@ -352,3 +352,17 @@ Every pull request must also record whether it has user-facing UI/UX impact. A P
 Larger runtime slices, client features, and production user flows must document their relevant cross-cutting consequences in the pull request. The pull-request template is the minimum review surface; deeper decisions belong in the owning issue, decision document, or ADR.
 
 A pull request that introduces non-English engineering content without an allowed exception from `docs/ENGINEERING-LANGUAGE.md` is not merge-ready.
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues for `baerenmarke90/eimir` (the `gh` CLI, or the GitHub MCP tools in cloud sessions). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default triage roles use their default label names (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` at the repository root (created when needed) and decision records in `docs/decisions/`. See `docs/agents/domain.md`.

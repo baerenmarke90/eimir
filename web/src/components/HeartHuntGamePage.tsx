@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  type CSSProperties,
   type KeyboardEvent,
   type PointerEvent,
   useCallback,
@@ -577,7 +578,13 @@ function SeekPanel({
               : (word ?? t('games.heartHunt.seek.tapHint'))}
           </span>
           <span className="heart-hunt-meter" aria-hidden="true">
-            <b style={{ width: `${found ? 100 : meter}%` }} />
+            <b
+              style={
+                {
+                  '--heart-hunt-meter-fill': (found ? 100 : meter) / 100,
+                } as CSSProperties
+              }
+            />
           </span>
           <meter
             className="sr-only"

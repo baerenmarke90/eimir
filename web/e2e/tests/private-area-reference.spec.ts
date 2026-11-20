@@ -711,10 +711,14 @@ test('private area reflows at 320 CSS px and removes decorative motion', async (
   await expectPrivateReferenceStructure(page);
 
   const firstCard = page.locator('.private-area-nav a').first();
-  const transitionDuration = await firstCard.evaluate(
-    (element) => getComputedStyle(element).transitionDuration,
+  // Every listed transition (colours, border, shadow; #2080) is instant.
+  const transitionDurations = await firstCard.evaluate((element) =>
+    getComputedStyle(element)
+      .transitionDuration.split(',')
+      .map((duration) => duration.trim()),
   );
-  expect(transitionDuration).toBe('0s');
+  expect(transitionDurations.length).toBeGreaterThan(0);
+  expect(new Set(transitionDurations)).toEqual(new Set(['0s']));
 
   const box = await firstCard.boundingBox();
   expect(box).not.toBeNull();

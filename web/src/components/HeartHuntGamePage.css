@@ -195,11 +195,19 @@
   background: var(--color-surface-subtle);
 }
 
+/* The fill is full width and scales along its track (Motion Contract M6),
+   like the story progress segments; the track clips its ends. */
 .heart-hunt-meter b {
   display: block;
   height: 100%;
   background: var(--color-action-primary);
-  transition: width var(--duration-transition) var(--easing-standard);
+  scale: var(--heart-hunt-meter-fill, 0) 1;
+  transform-origin: left center;
+  transition: scale var(--duration-transition) var(--easing-standard);
+}
+
+.heart-hunt-meter b:dir(rtl) {
+  transform-origin: right center;
 }
 
 .heart-hunt-primary,

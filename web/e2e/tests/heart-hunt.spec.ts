@@ -320,6 +320,21 @@ for (const scenario of [
     await expect(
       page.getByText(copy.warmth.warm, { exact: true }),
     ).toBeVisible();
+    // The warmth fill scales along its track to the meter (Motion Contract
+    // M6, #2080): 65 % of the track, never a width change.
+    await expect
+      .poll(() =>
+        page.locator('.heart-hunt-meter b').evaluate((fill) => {
+          const track = fill.parentElement?.getBoundingClientRect();
+          const box = fill.getBoundingClientRect();
+          return {
+            ratio: track ? Math.round((box.width / track.width) * 100) : 0,
+            starts: track ? Math.abs(box.left - track.left) < 1 : false,
+            width: fill.offsetWidth === fill.parentElement?.clientWidth,
+          };
+        }),
+      )
+      .toEqual({ ratio: 65, starts: true, width: true });
     await capture(
       page,
       info,

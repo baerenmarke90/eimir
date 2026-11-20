@@ -187,6 +187,18 @@ Read the [design authority index](docs/product/design/README.md) and [Product Re
 
 Before implementing a new or materially changed user-facing feature, the owning issue must also contain the generated visual product reference required by Partner-App Experience Standard section 9A. Generate it against the current repository/product state, showing the actual destination composition with existing functions that remain in scope and the new feature integrated into that whole. #1151 is a non-binding example only, not a reusable design template.
 
+### Motion layer guard
+
+All motion is built with the motion layer in `web/src/motion/` ([Motion Contract](docs/product/design/motion-contract.md) M14). `npm run motion:check` runs in `npm test` and `npm run build`, and outside the layer it fails on:
+
+- `@keyframes` and `Element.animate()`;
+- `infinite`, `cubic-bezier(` and literal durations in animation declarations;
+- layout properties in keyframes and in transitions;
+- `pointermove`, `touchmove` and `mousemove` tracking;
+- the animation libraries `motion`, `framer-motion`, `motion-plus*`, `gsap` and `animejs` in `web/package.json`, the lockfile or imports.
+
+Use a primitive from the layer or a CSS `transition` of compositor properties with token roles instead. The Scenes loops, the sanctioned `disclose` layout transitions and the gesture and pointer-input owners are registered in `web/scripts/check-motion-layer.mjs` with exact counts (Motion Contract 5.4). Change a registration only with a reviewed reason in the pull request; there is no allowlist for other files.
+
 ## Security issues
 
 Do not report security vulnerabilities through public issues or pull requests.

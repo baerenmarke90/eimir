@@ -1,7 +1,35 @@
 name: Android launcher icons
 
+# Despite its historical name this is the native Android verification: it builds
+# the adapter and runs the emulator instrumentation journeys on three API levels.
+#
+# Cost policy: an ordinary pull request verifies API 36 only. The complete
+# matrix (API 28, 36 and 37.1) runs on every main push that touches the paths
+# below, on manual dispatch, and on release pull requests (head branch
+# release/*), so the Android test-release source-check gate still sees all
+# three "Android launcher API" checks on the exact release revision.
 on:
   pull_request:
+    paths:
+      - '.github/workflows/android-launcher-icons.yml'
+      - 'android/**'
+      - 'scripts/prepare_android_video_fixtures.sh'
+      - 'backend/tests/fixtures/media/**'
+      - 'web/src/client/selectedPhotoLocation.e2e.test.ts'
+      - 'web/capacitor.config.ts'
+      - 'web/public/offline.css'
+      - 'web/public/webview-unsupported.*'
+      - 'scripts/test_android_photo_pipeline.sh'
+      - 'web/src/client/nativeAppIcon.ts'
+      - 'web/src/client/useNativeAppIcon.ts'
+      - 'scripts/android_launcher_identity.py'
+      - 'scripts/android_adaptive_icon_resources.py'
+      - 'scripts/test_android_adaptive_icon_resources.py'
+      - 'scripts/test_android_launcher_identity.py'
+      - 'docs/design/eimir/1307-premium-app-icons/build-android-icons.py'
+      - 'docs/design/eimir/1307-premium-app-icons/source-crops.json'
+  push:
+    branches: [main]
     paths:
       - '.github/workflows/android-launcher-icons.yml'
       - 'android/**'
@@ -32,6 +60,13 @@ concurrency:
 jobs:
   launcher:
     name: Android launcher API ${{ matrix.api }}
+    # Skipped matrix entries report as skipped, never as failed. Ordinary pull
+    # requests keep API 36, the level with the extra diagnostics and the Web
+    # pipeline step; every other trigger runs all levels.
+    if: >-
+      github.event_name != 'pull_request'
+      || matrix.api == 36
+      || startsWith(github.head_ref, 'release/')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:

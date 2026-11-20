@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useId, useMemo, useRef, useSyncExternalStore } from 'react';
+import { useEffect, useId, useMemo, useRef } from 'react';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { GamesApi } from '../api/generated/apis/GamesApi';
 import type { GardenView } from '../api/generated/models/GardenView';
@@ -15,7 +15,6 @@ import {
   useSpaceCapability,
   withdrawSpaceCapability,
 } from '../client/spaceEntitlement';
-import { useAmbientRest } from '../client/useAmbientRest';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import { GAMES_COUPLE_CAPABILITY } from './GamesProductArea';
@@ -26,25 +25,11 @@ import { TodayDestinationLink } from './TodayDestinationLink';
 import './GardenGamePage.css';
 import './GardenGrowth.css';
 import './WirGardenModule.css';
+import { useAmbientRest } from '../motion/ambientRest';
+import '../motion/garden.css';
+import { useReducedMotion } from '../motion/reducedMotion';
 
 type Translate = ReturnType<typeof useTranslation>['t'];
-
-const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
-
-function subscribeReducedMotion(listener: () => void) {
-  const query = window.matchMedia?.(REDUCED_MOTION);
-  query?.addEventListener?.('change', listener);
-  return () => query?.removeEventListener?.('change', listener);
-}
-
-/** Follows the system setting live, so the idle scene stops at once. */
-function useReducedMotion(): boolean {
-  return useSyncExternalStore(
-    subscribeReducedMotion,
-    () => window.matchMedia?.(REDUCED_MOTION).matches === true,
-    () => true,
-  );
-}
 
 /**
  * One gentle sentence about the garden today, from existing garden wording

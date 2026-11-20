@@ -847,7 +847,7 @@ export function MediaGallery({
     if (!url) {
       return (
         <div
-          className="media-gallery-loading"
+          className="media-gallery-loading eimir-motion-loading-pulse"
           role="status"
           aria-label={t('media.loading')}
         />
@@ -904,7 +904,7 @@ export function MediaGallery({
     if (!url) {
       return (
         <div
-          className="media-gallery-loading"
+          className="media-gallery-loading eimir-motion-loading-pulse"
           role="status"
           aria-label={t('media.loading')}
         />

@@ -62,6 +62,7 @@ import { ProblemState } from './ProblemState';
 import { TaskBackLink } from './TaskBackButton';
 import { UiState } from './UiState';
 import './PicturePingPongPage.css';
+import '../motion/game-scenes.css';
 
 const FLIGHT_BASE_MS = 900;
 const COLOURS = [

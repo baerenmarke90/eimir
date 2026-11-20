@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useMediaQuery } from './useMediaQuery';
+import { useReducedMotion } from '../motion/reducedMotion';
 
 /** Finite, deliberate page playback; media loading never consumes reading time. */
 export function useStoryPlayback({
@@ -23,7 +23,9 @@ export function useStoryPlayback({
   autoStart: boolean;
   onAdvance: () => void;
 }) {
-  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)', true);
+  // The one reduced-motion source (Motion Contract M9): playback never starts
+  // on its own with reduced motion, and pauses when the preference turns on.
+  const reducedMotion = useReducedMotion();
   const [playing, setPlaying] = useState(
     () => autoStart && !reducedMotion && document.visibilityState !== 'hidden',
   );

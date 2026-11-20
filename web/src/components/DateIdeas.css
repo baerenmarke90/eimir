@@ -315,25 +315,12 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .date-idea-media img {
-    animation: date-idea-image-fade var(--duration-transition)
+    animation: eimir-motion-enter-fade var(--duration-transition)
       var(--easing-standard);
   }
 
   .date-idea {
-    animation: date-idea-arrive var(--duration-transition) var(--easing-enter)
-      backwards;
-  }
-}
-
-@keyframes date-idea-image-fade {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes date-idea-arrive {
-  from {
-    opacity: 0;
-    transform: translateY(var(--space-2));
+    animation: eimir-motion-enter-travel var(--duration-transition)
+      var(--easing-enter) backwards;
   }
 }

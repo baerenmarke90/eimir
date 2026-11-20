@@ -124,7 +124,8 @@
 }
 
 .garden-news .garden-find-new {
-  animation: garden-pop var(--duration-context) var(--easing-enter) both;
+  animation: eimir-motion-garden-pop var(--duration-context) var(--easing-enter)
+    both;
 }
 
 .garden-herbarium {
@@ -259,7 +260,8 @@
 }
 
 .garden-visitor-name.is-named {
-  animation: garden-pop var(--duration-context) var(--garden-spring) both;
+  animation: eimir-motion-garden-pop var(--duration-context)
+    var(--garden-spring) both;
 }
 
 .garden-visitor-sub {
@@ -285,7 +287,8 @@ button.garden-visitor-action {
 
 .garden-visitor-editor {
   padding-bottom: var(--space-2);
-  animation: garden-unfold var(--duration-context) var(--easing-standard) both;
+  animation: eimir-motion-garden-unfold var(--duration-context)
+    var(--easing-standard) both;
   transform-origin: 50% 0;
 }
 
@@ -375,7 +378,8 @@ button.garden-visitor-action {
 }
 
 .garden-quack {
-  animation: garden-pop var(--duration-feedback) var(--easing-enter) both;
+  animation: eimir-motion-garden-pop var(--duration-feedback)
+    var(--easing-enter) both;
   transform-box: fill-box;
   transform-origin: 50% 100%;
 }
@@ -390,8 +394,9 @@ button.garden-visitor-action {
 }
 
 .garden-scene.is-lively .garden-firefly {
-  animation: garden-firefly calc(var(--duration-connection-travel) * 0.8)
-    var(--easing-travel) infinite alternate;
+  animation: eimir-motion-garden-firefly
+    calc(var(--duration-connection-travel) * 0.8) var(--easing-travel) infinite
+    alternate;
   animation-delay: var(--garden-delay);
 }
 
@@ -401,42 +406,14 @@ button.garden-visitor-action {
 }
 
 .garden-scene.is-lively .garden-ripple {
-  animation: garden-ripple var(--duration-connection-travel)
+  animation: eimir-motion-garden-ripple var(--duration-connection-travel)
     var(--easing-travel) infinite;
 }
 
 .garden-scene.is-lively .garden-stream-flow {
-  animation: garden-stream calc(var(--duration-connection-travel) * 0.7)
-    var(--easing-playback) infinite;
-}
-
-@keyframes garden-firefly {
-  from {
-    opacity: calc(var(--garden-firefly-opacity) * 0.1);
-    transform: none;
-  }
-  to {
-    opacity: var(--garden-firefly-opacity);
-    transform: translate(5px, -8px);
-  }
-}
-
-@keyframes garden-ripple {
-  0%,
-  100% {
-    opacity: 0.4;
-    transform: scaleX(0.8);
-  }
-  50% {
-    opacity: 1;
-    transform: scaleX(1.1);
-  }
-}
-
-@keyframes garden-stream {
-  to {
-    stroke-dashoffset: -28;
-  }
+  animation: eimir-motion-garden-stream
+    calc(var(--duration-connection-travel) * 0.7) var(--easing-playback)
+    infinite;
 }
 
 /* Visitors (#1907 H3 follow-up) ---------------------------------------------
@@ -447,7 +424,7 @@ button.garden-visitor-action {
 
 .garden-animal
 :is(
-  .garden-blink,
+  .eimir-motion-garden-blink,
   .garden-snail-body,
   .garden-snail-foot,
   .garden-snail-stalks,
@@ -472,8 +449,9 @@ button.garden-visitor-action {
 }
 
 .garden-scene.is-lively .garden-blink {
-  animation: garden-blink calc(var(--duration-connection-travel) * 1.5)
-    var(--easing-playback) infinite;
+  animation: eimir-motion-garden-blink
+    calc(var(--duration-connection-travel) * 1.5) var(--easing-playback)
+    infinite;
 }
 
 /* Snail: stalks first, then the body slides into the shell; it comes out
@@ -523,13 +501,13 @@ button.garden-visitor-action {
 }
 
 .garden-animal[data-pose="hide"] .garden-snail-shell {
-  animation: garden-wobble var(--duration-connection-draw)
+  animation: eimir-motion-garden-wobble var(--duration-connection-draw)
     var(--easing-standard) var(--duration-connection-beat);
 }
 
 .garden-scene.is-lively .garden-animal[data-pose="rest"] .garden-snail-foot {
-  animation: garden-inch var(--duration-gesture-sequence) var(--easing-travel)
-    infinite;
+  animation: eimir-motion-garden-inch var(--duration-gesture-sequence)
+    var(--easing-travel) infinite;
 }
 
 /* Rabbit: nibbling and an ear twitch; on a tap the ears perk up. */
@@ -542,13 +520,13 @@ button.garden-visitor-action {
 }
 
 .garden-scene.is-lively .garden-animal[data-pose="rest"] .garden-rabbit-head {
-  animation: garden-nibble calc(var(--duration-connection-travel) * 0.9)
-    var(--easing-travel) infinite;
+  animation: eimir-motion-garden-nibble
+    calc(var(--duration-connection-travel) * 0.9) var(--easing-travel) infinite;
 }
 
 .garden-scene.is-lively .garden-animal[data-pose="rest"] .garden-rabbit-ears {
-  animation: garden-ear-twitch var(--duration-connection-travel-far)
-    var(--easing-travel) infinite;
+  animation: eimir-motion-garden-ear-twitch
+    var(--duration-connection-travel-far) var(--easing-travel) infinite;
 }
 
 .garden-animal[data-pose="perk"] .garden-rabbit-ears {
@@ -575,8 +553,8 @@ button.garden-visitor-action {
 }
 
 .garden-scene.is-lively .garden-animal[data-pose="rest"] .garden-hedgehog-face {
-  animation: garden-sniff calc(var(--duration-gesture-moment) * 1.45)
-    var(--easing-travel) infinite;
+  animation: eimir-motion-garden-sniff
+    calc(var(--duration-gesture-moment) * 1.45) var(--easing-travel) infinite;
 }
 
 .garden-animal[data-pose="curl"] .garden-hedgehog-face {
@@ -589,8 +567,8 @@ button.garden-visitor-action {
 }
 
 .garden-animal[data-pose="curl"] .garden-hedgehog-roll {
-  animation: garden-roll calc(var(--duration-connection-travel) * 0.94)
-    var(--easing-standard) both;
+  animation: eimir-motion-garden-roll
+    calc(var(--duration-connection-travel) * 0.94) var(--easing-standard) both;
 }
 
 /* Ducks: bobbing; on a tap the heads dip and the water ripples. */
@@ -604,7 +582,7 @@ button.garden-visitor-action {
 
 .garden-animal[data-pose="quack"] .garden-duck {
   transform-origin: 80% 100%;
-  animation: garden-dip calc(var(--duration-connection-beat) * 1.1)
+  animation: eimir-motion-garden-dip calc(var(--duration-connection-beat) * 1.1)
     var(--easing-travel) 2;
 }
 
@@ -613,8 +591,8 @@ button.garden-visitor-action {
 }
 
 .garden-scene.is-lively .garden-animal[data-pose="rest"] .garden-duck {
-  animation: garden-bob var(--duration-connection-travel) var(--easing-travel)
-    infinite;
+  animation: eimir-motion-garden-bob var(--duration-connection-travel)
+    var(--easing-travel) infinite;
 }
 
 .garden-scene.is-lively
@@ -624,8 +602,8 @@ button.garden-visitor-action {
 }
 
 .garden-animal[data-pose="quack"] .garden-duck-ripple {
-  animation: garden-water-ring calc(var(--duration-gesture-moment) * 1.45)
-    var(--easing-enter) 2;
+  animation: eimir-motion-garden-water-ring
+    calc(var(--duration-gesture-moment) * 1.45) var(--easing-enter) 2;
 }
 
 /* Squirrel: a tail flick; it peeks out of the crown after it climbed in. */
@@ -634,8 +612,8 @@ button.garden-visitor-action {
 }
 
 .garden-scene.is-lively .garden-animal[data-pose="rest"] .garden-squirrel-tail {
-  animation: garden-tail-flick calc(var(--duration-connection-travel) * 1.06)
-    var(--easing-travel) infinite;
+  animation: eimir-motion-garden-tail-flick
+    calc(var(--duration-connection-travel) * 1.06) var(--easing-travel) infinite;
 }
 
 .garden-squirrel-peek {
@@ -643,8 +621,8 @@ button.garden-visitor-action {
 }
 
 .garden-scene.is-lively .garden-squirrel-peek {
-  animation: garden-peek var(--duration-gesture-sequence) var(--easing-standard)
-    both;
+  animation: eimir-motion-garden-peek var(--duration-gesture-sequence)
+    var(--easing-standard) both;
 }
 
 .garden-tree-crown {
@@ -652,8 +630,8 @@ button.garden-visitor-action {
 }
 
 .garden-scene.is-lively .garden-tree-crown.is-rustling {
-  animation: garden-rustle calc(var(--duration-connection-beat) * 1.4)
-    var(--easing-travel) 3;
+  animation: eimir-motion-garden-rustle
+    calc(var(--duration-connection-beat) * 1.4) var(--easing-travel) 3;
 }
 
 /* Deer: grazing; on a tap the head snaps up and the ears twitch. */
@@ -675,8 +653,9 @@ button.garden-visitor-action {
 }
 
 .garden-scene.is-lively .garden-animal[data-pose="graze"] .garden-deer-head {
-  animation: garden-graze calc(var(--duration-connection-travel-far) * 1.5)
-    var(--easing-travel) infinite;
+  animation: eimir-motion-garden-graze
+    calc(var(--duration-connection-travel-far) * 1.5) var(--easing-travel)
+    infinite;
 }
 
 .garden-animal[data-pose="alert"] .garden-deer-head {
@@ -685,7 +664,7 @@ button.garden-visitor-action {
 }
 
 .garden-animal[data-pose="alert"] .garden-deer-ears {
-  animation: garden-ear-twitch var(--duration-gesture-moment)
+  animation: eimir-motion-garden-ear-twitch var(--duration-gesture-moment)
     var(--easing-travel) 2;
 }
 
@@ -702,221 +681,6 @@ button.garden-visitor-action {
 }
 
 .garden-scene.is-lively .garden-name-tag-float {
-  animation: garden-name-float var(--duration-gesture-sequence)
+  animation: eimir-motion-garden-name-float var(--duration-gesture-sequence)
     var(--easing-standard) both;
-}
-
-@keyframes garden-blink {
-  0%,
-  94%,
-  100% {
-    transform: scaleY(1);
-  }
-  96% {
-    transform: scaleY(0.1);
-  }
-}
-
-@keyframes garden-wobble {
-  0%,
-  100% {
-    transform: rotate(0deg);
-  }
-  20% {
-    transform: rotate(-8deg) translateY(1px);
-  }
-  45% {
-    transform: rotate(6deg);
-  }
-  70% {
-    transform: rotate(-3deg);
-  }
-}
-
-@keyframes garden-inch {
-  0%,
-  100% {
-    transform: scaleX(1);
-  }
-  50% {
-    transform: scaleX(1.06);
-  }
-}
-
-@keyframes garden-nibble {
-  0%,
-  40%,
-  100% {
-    transform: rotate(0deg);
-  }
-  8%,
-  24% {
-    transform: rotate(7deg);
-  }
-  16%,
-  32% {
-    transform: rotate(1deg);
-  }
-}
-
-@keyframes garden-ear-twitch {
-  0%,
-  88%,
-  100% {
-    transform: rotate(0deg);
-  }
-  91% {
-    transform: rotate(-9deg);
-  }
-  94% {
-    transform: rotate(4deg);
-  }
-}
-
-@keyframes garden-sniff {
-  0%,
-  100% {
-    transform: rotate(-4deg);
-  }
-  50% {
-    transform: rotate(3deg);
-  }
-}
-
-@keyframes garden-roll {
-  0% {
-    transform: none;
-  }
-  12% {
-    transform: translateY(-2px) rotate(-14deg) scale(0.95);
-  }
-  42%,
-  82% {
-    transform: translateX(16px) rotate(360deg) scale(0.95);
-  }
-  52% {
-    transform: translateX(15px) rotate(352deg) scale(0.95);
-  }
-  100% {
-    transform: translateX(0) rotate(0deg) scale(1);
-  }
-}
-
-@keyframes garden-bob {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  50% {
-    transform: translateY(1.2px) rotate(-2deg);
-  }
-}
-
-@keyframes garden-dip {
-  0%,
-  100% {
-    transform: rotate(0deg);
-  }
-  40% {
-    transform: rotate(18deg);
-  }
-}
-
-@keyframes garden-water-ring {
-  from {
-    opacity: 0.9;
-    transform: scale(0.4);
-  }
-  to {
-    opacity: 0;
-    transform: scale(1.9);
-  }
-}
-
-@keyframes garden-tail-flick {
-  0%,
-  30%,
-  100% {
-    transform: rotate(0deg);
-  }
-  8% {
-    transform: rotate(-16deg);
-  }
-  14% {
-    transform: rotate(7deg);
-  }
-  20% {
-    transform: rotate(-4deg);
-  }
-}
-
-@keyframes garden-peek {
-  0% {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  20%,
-  80% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  40% {
-    transform: translateY(0) rotate(-10deg);
-  }
-  60% {
-    transform: translateY(0) rotate(8deg);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-}
-
-@keyframes garden-rustle {
-  0%,
-  100% {
-    transform: rotate(0deg);
-  }
-  30% {
-    transform: rotate(-2.5deg);
-  }
-  70% {
-    transform: rotate(2.5deg);
-  }
-}
-
-@keyframes garden-graze {
-  0%,
-  30%,
-  84%,
-  100% {
-    transform: rotate(64deg);
-  }
-  40%,
-  74% {
-    transform: rotate(0deg);
-  }
-  46%,
-  58% {
-    transform: rotate(6deg);
-  }
-}
-
-@keyframes garden-name-float {
-  0% {
-    opacity: 0;
-    transform: translateY(4px) scale(0.6);
-  }
-  15% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  80% {
-    opacity: 1;
-    transform: translateY(-4px);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
 }

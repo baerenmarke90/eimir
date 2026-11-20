@@ -82,7 +82,7 @@ function ActiveVideoPlayer({ id, scope, poster, load }: VideoPlayerProps) {
   if (!source)
     return (
       <div
-        className="media-gallery-loading"
+        className="media-gallery-loading eimir-motion-loading-pulse"
         role="status"
         aria-label={t('media.loading')}
       />

@@ -17,6 +17,7 @@ import {
 } from '../client/garden';
 import { fallingLeaves } from '../client/gardenPresentation';
 import './GardenSeasonArt.css';
+import '../motion/garden.css';
 
 type Style = CSSProperties & Record<`--${string}`, string>;
 

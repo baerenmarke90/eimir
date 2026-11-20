@@ -161,20 +161,8 @@
 }
 
 .heart-hunt-heart.is-found {
-  animation: heart-hunt-pop var(--duration-gesture-moment) var(--easing-enter) 1
-    both;
-}
-
-@keyframes heart-hunt-pop {
-  0% {
-    transform: translate(-50%, -50%) scale(0.4);
-  }
-  60% {
-    transform: translate(-50%, -50%) scale(1.7);
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(1.3);
-  }
+  animation: eimir-motion-heart-hunt-pop var(--duration-gesture-moment)
+    var(--easing-enter) 1 both;
 }
 
 .heart-hunt-reticle {

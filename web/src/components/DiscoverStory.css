@@ -520,17 +520,19 @@
 .momente-story[data-autoplay="true"]
   .momente-story-segment[data-state="current"]
   .momente-story-segment-fill {
-  animation: momente-story-progress var(--duration-story-slide)
+  animation: eimir-motion-momente-story-progress var(--duration-story-slide)
     var(--easing-playback) forwards var(--story-play-state);
 }
 
 .momente-story-slide[data-state="current"] {
-  animation: momente-story-slide-in var(--duration-context) var(--easing-enter);
+  animation: eimir-motion-momente-story-slide-in var(--duration-context)
+    var(--easing-enter);
 }
 
 .momente-story-slide[data-state="current"] .momente-story-photo > * {
-  animation: momente-story-ken-burns var(--duration-story-ken-burns)
-    var(--easing-playback) forwards var(--story-play-state);
+  animation: eimir-motion-momente-story-ken-burns
+    var(--duration-story-ken-burns) var(--easing-playback) forwards
+    var(--story-play-state);
 }
 
 .momente-story[data-playing="false"] {
@@ -540,33 +542,6 @@
 .momente-story-bubble:active .momente-story-bubble-ring,
 .momente-story-open:active {
   scale: var(--control-pressed-scale);
-}
-
-@keyframes momente-story-progress {
-  from {
-    scale: 0 1;
-  }
-  to {
-    scale: 1 1;
-  }
-}
-
-@keyframes momente-story-slide-in {
-  from {
-    opacity: 0;
-    scale: 1.02;
-  }
-}
-
-@keyframes momente-story-ken-burns {
-  from {
-    scale: 1;
-    translate: 0 0;
-  }
-  to {
-    scale: 1.12;
-    translate: -3% -2%;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

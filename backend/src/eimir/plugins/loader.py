@@ -27,11 +27,21 @@ from fastapi.routing import iter_route_contexts
 from eimir.config import PluginSettings
 from eimir.deployment.revision import UNVERIFIED_REVISION, build_revision
 from eimir.entitlements.models import Capability
-from eimir.plugins.contract import PLUGIN_ENTRY_POINT_GROUP, PLUGIN_SEAM_VERSION, ProPlugin
+from eimir.plugins.contract import (
+    PLUGIN_ENTRY_POINT_GROUP,
+    PLUGIN_SEAM_VERSION,
+    AttachmentReadRule,
+    ProPlugin,
+    TargetRule,
+)
+from eimir.plugins.manifest import PLUGIN_ENGAGEMENT_TARGETS, PLUGIN_JOB_KINDS, attachment_rules
 
 if TYPE_CHECKING:
     from fastapi import APIRouter
     from starlette.routing import BaseRoute
+
+    from eimir.engagement.models import EngagementTarget
+    from eimir.jobs.worker import JobRegistry
 
 log = logging.getLogger(__name__)
 
@@ -74,6 +84,37 @@ class LoadedPlugins:
 
     def model_modules(self) -> tuple[str, ...]:
         return tuple(module for plugin in self.plugins for module in plugin.model_modules())
+
+    def engagement_targets(self) -> dict[EngagementTarget, TargetRule]:
+        return {
+            target: rule
+            for plugin in self.plugins
+            for target, rule in plugin.engagement_targets().items()
+        }
+
+    def attachment_read_rules(self) -> dict[str, AttachmentReadRule]:
+        return {
+            parent_type: rule
+            for plugin in self.plugins
+            for parent_type, rule in plugin.attachment_read_rules().items()
+        }
+
+    def register_jobs(self, registry: JobRegistry) -> None:
+        """Register every plugin's job handlers; a kind the manifest does not declare refuses."""
+        for plugin in self.plugins:
+            before = registry.kinds()
+            plugin.register_jobs(registry)
+            undeclared = sorted(registry.kinds() - before - PLUGIN_JOB_KINDS)
+            if undeclared:
+                raise PluginLoadError(
+                    f"Plugin {plugin.name!r} registers job kinds the Core manifest does not "
+                    f"declare: {', '.join(undeclared)}."
+                )
+
+    @staticmethod
+    def unclaimed_job_kinds(registry: JobRegistry) -> frozenset[str]:
+        """Plugin job kinds without a handler here; a worker leaves them for a plugin worker."""
+        return PLUGIN_JOB_KINDS - registry.kinds()
 
 
 def parse_plugin_names(raw: str) -> tuple[str, ...]:
@@ -152,6 +193,21 @@ def _load_one(name: str, candidates: Sequence[PluginCandidate], core_revision: s
     if unknown:
         raise PluginLoadError(
             f"Plugin {name!r} declares unknown capabilities: {', '.join(unknown)}."
+        )
+    undeclared_targets = sorted(
+        target.value for target in set(plugin.engagement_targets()) - PLUGIN_ENGAGEMENT_TARGETS
+    )
+    if undeclared_targets:
+        raise PluginLoadError(
+            f"Plugin {name!r} decides notification targets the Core manifest does not declare: "
+            f"{', '.join(undeclared_targets)}."
+        )
+    parent_types = {rule.parent_type for _, rule in attachment_rules()}
+    undeclared_parents = sorted(set(plugin.attachment_read_rules()) - parent_types)
+    if undeclared_parents:
+        raise PluginLoadError(
+            f"Plugin {name!r} reads attachment parents the Core manifest does not declare: "
+            f"{', '.join(undeclared_parents)}."
         )
     for module in plugin.model_modules():
         try:

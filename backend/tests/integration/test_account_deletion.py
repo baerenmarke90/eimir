@@ -373,10 +373,17 @@ def test_core_cleanup_deletes_private_identity_state_but_retains_shared_history(
     assert _count(session, Memory, Memory.id == shared_memory.id) == 1
 
 
-@pytest.mark.parametrize("completed_backup", [False, True])
+@pytest.mark.parametrize(
+    ("completed_backup", "plugin_loaded"), [(False, True), (True, True), (False, False)]
+)
 def test_private_account_rows_are_removed_without_erasing_partner_data(
-    session: Session, completed_backup: bool
+    session: Session, completed_backup: bool, plugin_loaded: bool
 ) -> None:
+    from contextlib import nullcontext
+
+    from eimir.pro_plugin import personal_account_models
+    from tests.support.plugins import without_plugins
+
     owner, partner = make_account(session, "Anna"), make_account(session, "Ben")
     space = make_space(session, owner)
     add_member(session, space.id, partner)
@@ -491,10 +498,12 @@ def test_private_account_rows_are_removed_without_erasing_partner_data(
                 run_path(str(script))["upgrade"]()
     else:
         assert apply_accepted_tombstone(session, owner.id, accepted_at=at) is not None
-        for _ in range(2):
-            apply_core_cleanup(session, owner.id)
+        # Without the plugin, Core's manifest rules remove the plugin rows.
+        with nullcontext() if plugin_loaded else without_plugins():
+            for _ in range(2):
+                apply_core_cleanup(session, owner.id)
     session.expire_all()
-    for table in PERSONAL_ACCOUNT_ROWS:
+    for table in (*PERSONAL_ACCOUNT_ROWS, *personal_account_models()):
         assert _count(session, table, table.account_id == owner.id) == 0, table.__tablename__
         # Revoking the surviving owner's grant also removes its location and publish credential.
         pair_runtime = (GardenReader, GardenWatering, OnceDevice, OnceReception)
@@ -502,6 +511,8 @@ def test_private_account_rows_are_removed_without_erasing_partner_data(
             0
             if table in (PresenceSnapshot, PresenceDeviceCredential)
             or (not completed_backup and table in pair_runtime)
+            # Core-only deletes the consents the deleted Account had received.
+            or (not plugin_loaded and table is PartnerLocationConsent)
             else 1
         )
         assert _count(session, table, table.account_id == partner.id) == expected, (
@@ -510,6 +521,9 @@ def test_private_account_rows_are_removed_without_erasing_partner_data(
     # Pair-bound game state ends on membership exit. The shared Wish survives.
     assert (session.get(GardenPlant, plant_id) is not None) == completed_backup
     assert session.get(type(wish), wish.id) is not None
+    if not plugin_loaded:
+        assert session.scalars(select(PartnerLocationConsent)).first() is None
+        return
     other = session.scalars(select(PartnerLocationConsent)).one()
     assert (other.level, other.recipient_account_id, other.precision, other.generation) == (
         "OFF",

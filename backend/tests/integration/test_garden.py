@@ -356,3 +356,24 @@ def test_a_timed_reunion_uses_the_couple_calendar_day(client, premium, session) 
     body = client.get(_url(premium), headers=_h(premium)).json()
     assert body["reunionOn"] == "2026-11-16"
     assert body["reunionToday"] is True
+
+
+def test_without_the_plugin_the_garden_leaves_with_the_couple(client, premium, session) -> None:  # type: ignore[no-untyped-def]
+    from eimir.garden.models import Garden
+    from tests.support.plugins import without_plugins
+
+    _send(client, premium)
+    _project(session)
+    seed_notices = select(Notification.id).where(Notification.target_type == "GARDEN_SEED")
+    assert session.scalar(seed_notices) is not None
+    membership = next(
+        member
+        for member in relationship_service.active_memberships(session, premium["space"].id)
+        if member.account_id == premium["ben"].id
+    )
+    with without_plugins():
+        relationship_service.end_membership(session, membership)
+    session.flush()
+    assert session.scalars(select(GardenPlant)).first() is None
+    assert session.scalars(select(Garden)).first() is None
+    assert session.scalar(seed_notices) is None

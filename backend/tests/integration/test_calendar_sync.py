@@ -476,3 +476,21 @@ def test_wrong_credentials_and_unwritable_calendars_are_explained(  # type: igno
         headers={**couple["a"], "If-Match": f'"{view["targetToken"]}"'},
     )
     assert invented.json()["code"] == "CALENDAR_NOT_FOUND"
+
+
+def test_without_the_plugin_a_leaving_sponsor_takes_the_target_along(  # type: ignore[no-untyped-def]
+    client, session, couple, server
+) -> None:
+    from sqlalchemy import func, select
+
+    from eimir.calendar_sync.models import SpaceCalendarTarget
+    from tests.support.plugins import without_plugins
+
+    grant(session, couple)
+    activate(client, session, couple)
+    targets = select(func.count()).select_from(SpaceCalendarTarget)
+    assert session.scalar(targets) == 1
+    with without_plugins():
+        leave_space(session, couple["anna"], couple["space"].id)
+    session.flush()
+    assert session.scalar(targets) == 0

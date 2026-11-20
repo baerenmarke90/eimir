@@ -25,8 +25,6 @@ from eimir.core import clock
 from eimir.core import cursor as cursor_codec
 from eimir.core.errors import ErrorCode, NotFoundError
 from eimir.core.ids import parse_id
-from eimir.couple_games import service as couple_games
-from eimir.couple_games.models import CoupleGameKind
 from eimir.domain.events import EventType
 from eimir.engagement import (
     email_delivery,
@@ -46,19 +44,17 @@ from eimir.engagement.models import (
     PushDelivery,
     PushDeliveryStatus,
 )
-from eimir.garden import service as garden
 from eimir.heart_moments.models import HeartMoment
 from eimir.identity import effects as account_effects
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 from eimir.observability import safe_exception_summary
-from eimir.once_messages import service as once_messages
-from eimir.once_messages.models import OnceMessage
 from eimir.outbox import service as outbox_service
 from eimir.outbox.models import OutboxEvent
-from eimir.picture_ping_pong.models import PicturePingPong, PictureStatus
 from eimir.places.models import Place
 from eimir.plans.models import Plan
+from eimir.plugins.loader import loaded_plugins
+from eimir.plugins.manifest import PLUGIN_ENGAGEMENT_TARGETS
 from eimir.relationship.models import Membership, MembershipStatus
 from eimir.reminders import delivery as reminder_delivery
 from eimir.reminders.models import Reminder, ReminderSource
@@ -92,7 +88,6 @@ _OWN_NOISE_KINDS = {
 }
 
 _TARGET_MODELS: dict[EngagementTarget, Any] = {
-    EngagementTarget.ONCE_MESSAGE: OnceMessage,
     EngagementTarget.REMINDER: Reminder,
     EngagementTarget.TRANSFER_EXPORT: TransferExport,
     EngagementTarget.TRANSFER_IMPORT: TransferImport,
@@ -106,16 +101,6 @@ _TARGET_MODELS: dict[EngagementTarget, Any] = {
     EngagementTarget.CHAPTER: Chapter,
     EngagementTarget.COLLECTION: Collection,
     EngagementTarget.SHARED_NOTE: SharedNote,
-}
-
-# Remote couple games share one notice kind; the target names the game.
-_COUPLE_GAME_TARGETS: dict[EngagementTarget, CoupleGameKind] = {
-    EngagementTarget.WHO_OF_US_GAME: CoupleGameKind.WHO_OF_US,
-    EngagementTarget.WISH_DETECTIVE_GAME: CoupleGameKind.WISH_DETECTIVE,
-    EngagementTarget.OUR_MOMENTS_GAME: CoupleGameKind.OUR_MOMENTS,
-}
-_COUPLE_GAME_SUBJECTS: dict[str, EngagementTarget] = {
-    couple_games.SUBJECT_TYPES[kind]: target for target, kind in _COUPLE_GAME_TARGETS.items()
 }
 
 _ACTIVITY_EVENTS: dict[EventType, tuple[ActivityKind, EngagementTarget]] = {
@@ -237,11 +222,11 @@ def project_event(session: Session, event: OutboxEvent) -> None:
     except ValueError:
         return
 
-    # Calendar sync (#1895) reads the current Plan later in its own job, so it
-    # only schedules work here and never depends on notification eligibility.
-    from eimir.calendar_sync import service as calendar_sync
-
-    calendar_sync.on_outbox_event(session, event, event_type)
+    # Plugins (for example calendar sync, #1895) may only schedule work here; it
+    # never depends on notification eligibility.
+    plugins = loaded_plugins().plugins
+    for plugin in plugins:
+        plugin.on_outbox_event(session, event, event_type)
 
     # Lock all actor/recipient Accounts in deterministic order before any
     # projection. This serializes stale Outbox work with deletion acceptance
@@ -249,6 +234,12 @@ def project_event(session: Session, event: OutboxEvent) -> None:
     # Notification and PushDelivery state.
     if not _event_effects_allowed(session, event):
         return
+
+    # Plugin event types are disjoint from the Core ones below; a handled event
+    # has its notifications and deliveries complete.
+    for plugin in plugins:
+        if plugin.project_notification(session, event, event_type, CORE_NOTIFICATIONS):
+            return
 
     if event_type.value in WISH_DATE_NOTICE_KINDS:
         if wish_date_notice.event_is_current(session, event):
@@ -263,25 +254,6 @@ def project_event(session: Session, event: OutboxEvent) -> None:
                 expires_at=event.payload.due_at,
             )
             push.ensure_deliveries_for_source_event(session, event.id)
-        return
-
-    if event_type is EventType.ONCE_MESSAGE_SENT:
-        _project_target_notification(
-            session,
-            event,
-            EngagementTarget.ONCE_MESSAGE,
-            event.subject_id,
-            NotificationKind.ONCE_MESSAGE_RECEIVED,
-            expires_at=event.payload.due_at,
-        )
-        push.ensure_deliveries_for_source_event(session, event.id)
-        return
-
-    if event_type in {EventType.HEART_HUNT_HIDDEN, EventType.HEART_HUNT_FOUND}:
-        # No target row: the notice only names the partner and opens the game, so
-        # it never carries or exposes the photo or the round state.
-        _project_target_notification(session, event, None, None, NotificationKind(event_type.value))
-        push.ensure_deliveries_for_source_event(session, event.id)
         return
 
     if event_type is EventType.GENTLE_PROMPT_READY:
@@ -343,27 +315,6 @@ def project_event(session: Session, event: OutboxEvent) -> None:
         _project_target_notification(
             session, event, target_type, target_id, NotificationKind.COMMENT_CREATED
         )
-
-    if event_type in {EventType.GARDEN_SEED_ARRIVED, EventType.GARDEN_BOUQUET_GIVEN}:
-        recipient = event.payload.recipient_id
-        # A bouquet reuses the seed notice with its own target and text; the
-        # couple gets at most one garden notice per person and local day.
-        if recipient is None or not garden.notice_taken_today(
-            session,
-            event.space_id,
-            recipient,
-            event.created_at,
-            NotificationKind.GARDEN_SEED_ARRIVED.value,
-        ):
-            _project_target_notification(
-                session,
-                event,
-                EngagementTarget.GARDEN_SEED
-                if event_type is EventType.GARDEN_SEED_ARRIVED
-                else EngagementTarget.GARDEN_BOUQUET,
-                event.subject_id,
-                NotificationKind.GARDEN_SEED_ARRIVED,
-            )
 
     if event_type is EventType.COLLECTION_SENT:
         _project_target_notification(
@@ -435,32 +386,6 @@ def project_event(session: Session, event: OutboxEvent) -> None:
             event.subject_id,
             NotificationKind(event_type.value),
         )
-    if event_type is EventType.PICTURE_PING_PONG_TURN:
-        _project_target_notification(
-            session,
-            event,
-            EngagementTarget.PICTURE_GAME,
-            event.subject_id,
-            NotificationKind.PICTURE_PING_PONG_TURN,
-        )
-    if event_type is EventType.PICTURE_PING_PONG_FINISHED:
-        _project_target_notification(
-            session,
-            event,
-            EngagementTarget.PICTURE_GAME,
-            event.subject_id,
-            NotificationKind.PICTURE_PING_PONG_FINISHED,
-        )
-    if event_type is EventType.COUPLE_GAME_TURN:
-        game_target = _COUPLE_GAME_SUBJECTS.get(event.subject_type)
-        if game_target is not None:
-            _project_target_notification(
-                session,
-                event,
-                game_target,
-                event.subject_id,
-                NotificationKind.COUPLE_GAME_TURN,
-            )
     if event_type is EventType.PHOTO_REACTION_CHANGED:
         if _has_photo_reaction(session, event.subject_id, event.actor_id):
             _project_target_notification(
@@ -681,7 +606,7 @@ def _project_target_notification(
             target_type,
             target_id,
             allow_private_heart=notification_kind is NotificationKind.VIDEO_PROCESSING_FAILED,
-            picture_finished=notification_kind is NotificationKind.PICTURE_PING_PONG_FINISHED,
+            notification_kind=notification_kind,
         )
     ):
         return
@@ -779,6 +704,33 @@ def _reopen_read_note_push(
     )
 
 
+class _CoreNotifications:
+    """The Core notification services a plugin projection uses (``CoreNotifications``)."""
+
+    def project_target_notification(
+        self,
+        session: Session,
+        event: OutboxEvent,
+        target_type: EngagementTarget | None,
+        target_id: UUID | None,
+        kind: NotificationKind,
+        *,
+        expires_at: datetime | None = None,
+    ) -> None:
+        _project_target_notification(
+            session, event, target_type, target_id, kind, expires_at=expires_at
+        )
+
+    def ensure_push_deliveries(self, session: Session, event: OutboxEvent) -> None:
+        push.ensure_deliveries_for_source_event(session, event.id)
+
+    def ensure_email_deliveries(self, session: Session, event: OutboxEvent) -> None:
+        email_delivery.ensure_deliveries_for_source_event(session, event.id)
+
+
+CORE_NOTIFICATIONS = _CoreNotifications()
+
+
 def _target_is_projectable(
     session: Session,
     context: AuthorizationContext,
@@ -786,17 +738,14 @@ def _target_is_projectable(
     target_id: UUID,
     *,
     allow_private_heart: bool = False,
-    picture_finished: bool = False,
+    notification_kind: NotificationKind | None = None,
 ) -> bool:
-    if target_type is EngagementTarget.ONCE_MESSAGE:
-        return (
-            session.scalar(
-                select(OnceMessage.id).where(
-                    OnceMessage.id == target_id, once_messages.available_predicate(context)
-                )
-            )
-            is not None
-        )
+    if target_type in PLUGIN_ENGAGEMENT_TARGETS:
+        # Without the plugin that decides it, a plugin target is never current.
+        rule = loaded_plugins().engagement_targets().get(target_type)
+        if rule is None:
+            return False
+        return bool(session.scalar(select(rule(session, context, target_id, notification_kind))))
     if target_type in {EngagementTarget.TRANSFER_EXPORT, EngagementTarget.TRANSFER_IMPORT}:
         model = _TARGET_MODELS[target_type]
         return (
@@ -810,31 +759,9 @@ def _target_is_projectable(
             )
             is not None
         )
-    if target_type is EngagementTarget.GARDEN_SEED:
-        # A seed notice is current only while the seed waits for the reader.
-        return session.scalar(garden.seed_is_waiting(session, context, target_id)) is not None
-    if target_type is EngagementTarget.GARDEN_BOUQUET:
-        # A bouquet notice is current only while its card waits for the reader.
-        return session.scalar(garden.bouquet_is_open(session, context, target_id)) is not None
     if target_type is EngagementTarget.WISH_SELECTION:
         current = wish_selections.get_selection(session, context)
         return current.round is not None and current.round.id == target_id
-    if target_type is EngagementTarget.PICTURE_GAME:
-        statement = (
-            _picture_finished_exists(context, target_id)
-            if picture_finished
-            else _picture_turn_exists(context, target_id)
-        )
-        return session.scalar(statement) is not None
-    if target_type in _COUPLE_GAME_TARGETS:
-        return (
-            session.scalar(
-                couple_games.notice_is_current(
-                    context, target_id, _COUPLE_GAME_TARGETS[target_type]
-                )
-            )
-            is not None
-        )
     if target_type is EngagementTarget.RECAP:
         return session.scalar(_recap_is_readable(context, target_id)) is not None
     model = _TARGET_MODELS[target_type]
@@ -858,23 +785,6 @@ def _recap_is_readable(context: AuthorizationContext, target_id: Any) -> Any:
     )
 
 
-def _picture_turn_exists(context: AuthorizationContext, target_id: Any) -> Any:
-    return select(PicturePingPong.id).where(
-        PicturePingPong.id == target_id,
-        PicturePingPong.space_id == context.space_id,
-        PicturePingPong.status == PictureStatus.DRAWING.value,
-        PicturePingPong.drawer_id == context.account_id,
-    )
-
-
-def _picture_finished_exists(context: AuthorizationContext, target_id: Any) -> Any:
-    return select(PicturePingPong.id).where(
-        PicturePingPong.id == target_id,
-        PicturePingPong.space_id == context.space_id,
-        PicturePingPong.status == PictureStatus.FINISHED.value,
-    )
-
-
 def _projectable_predicate(
     target_type_column: Any,
     target_id_column: Any,
@@ -885,32 +795,13 @@ def _projectable_predicate(
     notification_kind_column: Any = None,
 ) -> Any:
     clauses: list[Any] = [target_type_column.is_(None)]
-    # A turn notice is current only while it is still the recipient's turn; a
-    # finished notice only while that picture is finished (not restarted).
-    picture_turn = _picture_turn_exists(context, target_id_column).exists()
-    clauses.append(
-        and_(
-            target_type_column == EngagementTarget.PICTURE_GAME.value,
-            picture_turn
-            if notification_kind_column is None
-            else or_(
-                and_(
-                    notification_kind_column != NotificationKind.PICTURE_PING_PONG_FINISHED.value,
-                    picture_turn,
-                ),
-                and_(
-                    notification_kind_column == NotificationKind.PICTURE_PING_PONG_FINISHED.value,
-                    _picture_finished_exists(context, target_id_column).exists(),
-                ),
-            ),
-        )
-    )
-    # A game notice is current only while the game still waits on the reader.
-    for game_target, game_kind in _COUPLE_GAME_TARGETS.items():
+    # Plugin targets are current only by their plugin's rule; without the
+    # plugin they get no clause and stay hidden (fail closed).
+    for plugin_target, rule in loaded_plugins().engagement_targets().items():
         clauses.append(
             and_(
-                target_type_column == game_target.value,
-                couple_games.notice_is_current(context, target_id_column, game_kind).exists(),
+                target_type_column == plugin_target.value,
+                rule(session, context, target_id_column, notification_kind_column),
             )
         )
     clauses.append(
@@ -919,30 +810,7 @@ def _projectable_predicate(
             _recap_is_readable(context, target_id_column).exists(),
         )
     )
-    clauses.append(
-        and_(
-            target_type_column == EngagementTarget.GARDEN_SEED.value,
-            garden.seed_is_waiting(session, context, target_id_column).exists(),
-        )
-    )
-    clauses.append(
-        and_(
-            target_type_column == EngagementTarget.GARDEN_BOUQUET.value,
-            garden.bouquet_is_open(session, context, target_id_column).exists(),
-        )
-    )
     for target_type, model in _TARGET_MODELS.items():
-        if target_type is EngagementTarget.ONCE_MESSAGE:
-            exists = (
-                select(OnceMessage.id)
-                .where(
-                    OnceMessage.id == target_id_column,
-                    once_messages.available_predicate(context),
-                )
-                .exists()
-            )
-            clauses.append(and_(target_type_column == target_type.value, exists))
-            continue
         if target_type in {EngagementTarget.TRANSFER_EXPORT, EngagementTarget.TRANSFER_IMPORT}:
             if selection is None:
                 continue

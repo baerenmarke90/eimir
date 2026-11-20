@@ -179,3 +179,32 @@ def test_migrate_names_its_plugins_at_startup() -> None:
 
     assert process.returncode == 0, process.stderr
     assert "Plugins loaded: pro (seam version" in process.stderr
+
+
+@pytest.mark.parametrize("row", PLUGIN_TABLES, ids=lambda row: row.table)
+def test_every_lifecycle_rule_names_existing_columns(row) -> None:  # type: ignore[no-untyped-def]
+    from eimir.plugins.manifest import PLUGIN_ENGAGEMENT_TARGETS, LifecycleEvent
+
+    table = _table(row.table)
+    for rule in row.purge_on:
+        if rule.event is LifecycleEvent.ACCOUNT_DELETED:
+            assert rule.account_column in row.account_columns
+        else:
+            assert row.space_column is not None
+            assert rule.account_column is None or rule.account_column in row.account_columns
+        for name in rule.dependents:
+            dependent = _table(name)
+            assert {"space_id", "account_id"} <= set(dependent.columns.keys()), name
+            assert name in PLUGIN_TABLE_NAMES
+    for name in row.expires_columns:
+        assert name in table.columns, name
+    if row.notification_targets or row.attachment:
+        assert "id" in table.columns
+    assert set(row.notification_targets) <= PLUGIN_ENGAGEMENT_TARGETS
+    if row.export is not None:
+        assert row.protected_payload_context is not None
+        for field in row.export.fields:
+            assert field.column is None or field.column in table.columns
+    if row.attachment is not None:
+        assert row.attachment.column in table.columns
+        assert row.attachment.owner_column in row.account_columns

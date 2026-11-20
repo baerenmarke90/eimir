@@ -7,7 +7,7 @@ import hashlib
 import json
 import secrets
 from datetime import timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicNumbers
@@ -33,6 +33,9 @@ from eimir.once_messages.models import OnceDevice, OnceEnvelope, OnceMessage, On
 from eimir.outbox import service as outbox
 from eimir.relationship import service as relationship
 from eimir.relationship.models import Membership, MembershipStatus
+
+if TYPE_CHECKING:
+    from eimir.jobs.worker import JobRegistry
 
 LIFETIME = timedelta(hours=24)
 CLAIM_LIFETIME = timedelta(minutes=5)
@@ -597,8 +600,9 @@ def prune_expired(session: Session) -> None:
         cleanup(session, {"message_id": str(message_id)})
 
 
-def register_handlers() -> None:
+def register_handlers(target: JobRegistry | None = None) -> None:
     from eimir.jobs.worker import registry
 
-    if registry.get(CLEANUP_JOB) is None:
-        registry.register(CLEANUP_JOB, cleanup)
+    destination = target if target is not None else registry
+    if destination.get(CLEANUP_JOB) is None:
+        destination.register(CLEANUP_JOB, cleanup)

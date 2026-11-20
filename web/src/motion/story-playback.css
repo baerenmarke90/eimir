@@ -1,0 +1,43 @@
+/*
+ * The motion layer's Playback catalogue for story playback on Momente
+ * (Motion Contract 4.8, M6, M9, M14; #2079): the progress fill, the slide
+ * entrance and the slow picture drift of `DiscoverStory`.
+ *
+ * Its scene clock is `useStoryPlayback`: the story pauses with the page,
+ * when it is less than half on screen, with the explicit pause control and
+ * while the person holds a slide (`--story-play-state`). With reduced motion
+ * it never starts on its own and the slides change without movement. Token
+ * roles only (M1).
+ *
+ * Moved unchanged from `DiscoverStory.css`. Imported by `DiscoverStory.tsx`
+ * (Momente), kept apart from the lazily loaded recap film.
+ */
+
+/* DiscoverStory */
+
+@keyframes eimir-motion-momente-story-progress {
+  from {
+    scale: 0 1;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+
+@keyframes eimir-motion-momente-story-slide-in {
+  from {
+    opacity: 0;
+    scale: 1.02;
+  }
+}
+
+@keyframes eimir-motion-momente-story-ken-burns {
+  from {
+    scale: 1;
+    translate: 0 0;
+  }
+  to {
+    scale: 1.12;
+    translate: -3% -2%;
+  }
+}

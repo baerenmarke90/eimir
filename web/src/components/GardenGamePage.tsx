@@ -16,7 +16,6 @@ import type { GardenView } from '../api/generated/models/GardenView';
 import type { GardenVisitor } from '../api/generated/models/GardenVisitor';
 import type { GardenWords } from '../api/generated/models/GardenWords';
 import { Configuration } from '../client/apiConfiguration';
-import { cssDurationMilliseconds } from '../client/cssDuration';
 import {
   GARDEN_WORDS,
   type GardenFlight,
@@ -99,6 +98,9 @@ import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import { useGardenStory } from './useGardenStory';
 import './GardenGamePage.css';
+import '../motion/garden.css';
+import { prefersReducedMotion } from '../motion/reducedMotion';
+import { durationMs } from '../motion/tokens';
 import './GardenGrowth.css';
 
 const FLIGHT_BASE_MS = 1400;
@@ -256,13 +258,6 @@ function useGardenFlight({
     enabled: allowed,
   });
   return gardenFlight(allowed && !line.isError ? line.data : undefined);
-}
-
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
-  );
 }
 
 /** The two partners and the arc the messenger flies along. */
@@ -558,11 +553,7 @@ export function GardenGamePage({
   const opened = garden !== undefined;
   useEffect(() => {
     if (!opened) return;
-    const delay = cssDurationMilliseconds(
-      getComputedStyle(document.documentElement).getPropertyValue(
-        '--duration-gesture-moment',
-      ),
-    );
+    const delay = durationMs('gesture-moment');
     const timer = window.setTimeout(() => setGustKey((key) => key + 1), delay);
     return () => window.clearTimeout(timer);
   }, [opened]);

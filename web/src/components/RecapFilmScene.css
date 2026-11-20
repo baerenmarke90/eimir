@@ -599,32 +599,33 @@
 /* Scene entrances, picture motion and staggering. */
 @media (prefers-reduced-motion: no-preference) {
   .recap-film.recap-spread {
-    animation: recap-film-fade var(--film-enter) var(--easing-enter) both;
+    animation: eimir-motion-recap-film-fade var(--film-enter)
+      var(--easing-enter) both;
   }
   .recap-film[data-transition="slide"].recap-spread {
-    animation-name: recap-film-slide;
+    animation-name: eimir-motion-recap-film-slide;
   }
   .recap-film[data-transition="rise"].recap-spread {
-    animation-name: recap-film-rise;
+    animation-name: eimir-motion-recap-film-rise;
   }
   .recap-film[data-transition="zoom"].recap-spread {
-    animation-name: recap-film-zoom;
+    animation-name: eimir-motion-recap-film-zoom;
   }
   .recap-film[data-transition="iris"].recap-spread {
-    animation-name: recap-film-iris;
+    animation-name: eimir-motion-recap-film-iris;
   }
   .recap-film[data-transition="wipe"].recap-spread {
-    animation-name: recap-film-wipe;
+    animation-name: eimir-motion-recap-film-wipe;
   }
   .recap-film[data-transition="shift"].recap-spread {
-    animation-name: recap-film-shift;
+    animation-name: eimir-motion-recap-film-shift;
   }
   .recap-film[data-transition="blur"].recap-spread {
-    animation-name: recap-film-blur;
+    animation-name: eimir-motion-recap-film-blur;
   }
   .recap-film .recap-film-picture .story-media-preview,
   .recap-film .recap-film-media[data-count] .recap-film-clip {
-    animation: recap-film-zoom-in
+    animation: eimir-motion-recap-film-zoom-in
       calc(var(--recap-dwell) + var(--film-motion-tail)) var(--easing-playback)
       both;
     animation-play-state: paused;
@@ -632,21 +633,21 @@
   .recap-film[data-motion="drift-left"]
     .recap-film-picture
     .story-media-preview {
-    animation-name: recap-film-drift-left;
+    animation-name: eimir-motion-recap-film-drift-left;
   }
   .recap-film[data-motion="drift-right"]
     .recap-film-picture
     .story-media-preview {
-    animation-name: recap-film-drift-right;
+    animation-name: eimir-motion-recap-film-drift-right;
   }
   .recap-film[data-motion="zoom-out"] .recap-film-picture .story-media-preview {
-    animation-name: recap-film-zoom-out;
+    animation-name: eimir-motion-recap-film-zoom-out;
   }
   .recap-film[data-motion="parallax"] .recap-film-picture .story-media-preview {
-    animation-name: recap-film-parallax;
+    animation-name: eimir-motion-recap-film-parallax;
   }
   .recap-film-frame[data-layout="strip"] .recap-film-media {
-    animation: recap-film-strip
+    animation: eimir-motion-recap-film-strip
       calc(var(--recap-dwell) + var(--film-motion-tail)) var(--easing-playback)
       both;
     animation-play-state: paused;
@@ -664,22 +665,25 @@
   .recap-film-answers li,
   .recap-film-places li,
   .recap-film-caption > .recap-film-words {
-    animation: recap-film-stagger var(--film-enter) var(--easing-enter) both;
+    animation: eimir-motion-recap-film-stagger var(--film-enter)
+      var(--easing-enter) both;
     animation-delay: calc(
       var(--duration-sequence-beat) *
       (1 + var(--film-i, 0) * 1.3)
     );
   }
   .recap-film-tags li {
-    animation: recap-film-fly calc(var(--film-enter) * 1.4) var(--easing-travel)
-      both;
+    animation: eimir-motion-recap-film-fly calc(var(--film-enter) * 1.4)
+      var(--easing-travel) both;
     animation-delay: calc(var(--film-i, 0) * var(--duration-sequence-beat) / 2);
   }
   .recap-film-month {
-    animation: recap-film-zoom var(--film-enter) var(--easing-enter) both;
+    animation: eimir-motion-recap-film-zoom var(--film-enter)
+      var(--easing-enter) both;
   }
   .recap-film-firsts li {
-    animation: recap-film-stagger var(--film-enter) var(--easing-enter) both;
+    animation: eimir-motion-recap-film-stagger var(--film-enter)
+      var(--easing-enter) both;
     animation-delay: calc(
       var(--duration-sequence-beat) *
       (1.5 + var(--film-i, 0) * 5.5)
@@ -687,7 +691,8 @@
   }
   /* The month covers arrive one after another, like the year passing. */
   .recap-film-covers > .recap-film-cover-tile {
-    animation: recap-film-stagger var(--film-enter) var(--easing-enter) both;
+    animation: eimir-motion-recap-film-stagger var(--film-enter)
+      var(--easing-enter) both;
     animation-delay: calc(
       var(--duration-sequence-beat) *
       (1 + var(--film-i, 0) * 1.9)
@@ -696,120 +701,10 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .recap-film.recap-spread {
-    animation: recap-film-fade var(--film-calm-fade) var(--easing-playback) both;
+    animation: eimir-motion-recap-film-fade var(--film-calm-fade)
+      var(--easing-playback) both;
   }
 }
-@keyframes recap-film-fade {
-  from {
-    opacity: 0;
-  }
-}
-@keyframes recap-film-slide {
-  from {
-    transform: translateX(100%);
-  }
-}
-@keyframes recap-film-rise {
-  from {
-    opacity: 0;
-    transform: translateY(14%);
-  }
-}
-@keyframes recap-film-zoom {
-  from {
-    opacity: 0;
-    transform: scale(1.18);
-  }
-}
-@keyframes recap-film-iris {
-  from {
-    clip-path: circle(0% at 50% 45%);
-  }
-  to {
-    clip-path: circle(80% at 50% 45%);
-  }
-}
-@keyframes recap-film-wipe {
-  from {
-    clip-path: inset(0 100% 0 0);
-  }
-  to {
-    clip-path: inset(0);
-  }
-}
-@keyframes recap-film-shift {
-  from {
-    clip-path: inset(0 0 100% 0);
-    transform: translateY(-6%);
-  }
-  to {
-    clip-path: inset(0);
-  }
-}
-@keyframes recap-film-blur {
-  from {
-    opacity: 0;
-    filter: blur(18px);
-  }
-}
-@keyframes recap-film-zoom-in {
-  to {
-    transform: scale(1.09);
-  }
-}
-@keyframes recap-film-zoom-out {
-  from {
-    transform: scale(1.1);
-  }
-  to {
-    transform: scale(1);
-  }
-}
-@keyframes recap-film-drift-left {
-  from {
-    transform: translateX(2%) scale(1.05);
-  }
-  to {
-    transform: translateX(-2%) scale(1.05);
-  }
-}
-@keyframes recap-film-drift-right {
-  from {
-    transform: translateX(-2%) scale(1.05);
-  }
-  to {
-    transform: translateX(2%) scale(1.05);
-  }
-}
-@keyframes recap-film-parallax {
-  from {
-    transform: translateY(2%) scale(1.07);
-  }
-  to {
-    transform: translateY(-2%) scale(1.07);
-  }
-}
-@keyframes recap-film-strip {
-  from {
-    transform: translateX(4%);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-@keyframes recap-film-stagger {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-}
-@keyframes recap-film-fly {
-  from {
-    opacity: 0;
-    transform: translate(var(--film-x, 0), var(--film-y, 0)) scale(0.6);
-  }
-}
-
 /* Film variety (#1744, Product Owner 2026-11-17): more transitions, accents,
  * format-aware camera motion and layouts, chosen and frozen per edition.
  * Every timing derives from motion tokens, so reduced motion stays still. */
@@ -1164,7 +1059,7 @@
 /* Variety motion: entrances, accents, camera, beats and the climax. */
 @media (prefers-reduced-motion: no-preference) {
   .recap-film[data-transition="blinds"].recap-spread {
-    animation-name: recap-film-blinds;
+    animation-name: eimir-motion-recap-film-blinds;
     -webkit-mask-image: repeating-linear-gradient(
       to bottom,
       black 0 var(--film-blind),
@@ -1177,16 +1072,16 @@
     );
   }
   .recap-film[data-transition="split"].recap-spread {
-    animation-name: recap-film-split;
+    animation-name: eimir-motion-recap-film-split;
   }
   .recap-film[data-transition="flip"].recap-spread {
-    animation-name: recap-film-flip;
+    animation-name: eimir-motion-recap-film-flip;
   }
   .recap-film[data-transition="focus"].recap-spread {
-    animation-name: recap-film-focus;
+    animation-name: eimir-motion-recap-film-focus;
   }
   .recap-film[data-transition="match"].recap-spread {
-    animation-name: recap-film-match;
+    animation-name: eimir-motion-recap-film-match;
   }
   /* A warm light leak sweeps over the scene as it fades in. */
   .recap-film[data-transition="light"].recap-spread::after {
@@ -1200,7 +1095,7 @@
       var(--film-light),
       transparent 70%
     );
-    animation: recap-film-light calc(var(--film-enter) * 1.6)
+    animation: eimir-motion-recap-film-light calc(var(--film-enter) * 1.6)
       var(--easing-playback) both;
   }
   /* A breath before the highlight: the mood colour holds, then opens. */
@@ -1211,51 +1106,54 @@
     z-index: 3;
     pointer-events: none;
     background: var(--film-bg);
-    animation: recap-film-breath calc(var(--film-enter) * 1.5)
+    animation: eimir-motion-recap-film-breath calc(var(--film-enter) * 1.5)
       var(--easing-playback) both;
   }
   .recap-film[data-motion="pan-up"] .recap-film-picture .story-media-preview {
-    animation-name: recap-film-pan-up;
+    animation-name: eimir-motion-recap-film-pan-up;
   }
   .recap-film[data-motion="pan-down"] .recap-film-picture .story-media-preview {
-    animation-name: recap-film-pan-down;
+    animation-name: eimir-motion-recap-film-pan-down;
   }
   .recap-film[data-motion="diagonal"] .recap-film-picture .story-media-preview {
-    animation-name: recap-film-diagonal;
+    animation-name: eimir-motion-recap-film-diagonal;
   }
   .recap-film[data-motion="breathe"] .recap-film-picture .story-media-preview {
-    animation-name: recap-film-breathe;
+    animation-name: eimir-motion-recap-film-breathe;
   }
   /* The highlight's camera moves slower and deeper. */
   .recap-film[data-climax="true"] .recap-film-picture .story-media-preview {
-    animation-name: recap-film-climax;
+    animation-name: eimir-motion-recap-film-climax;
   }
   .recap-film
     .recap-film-frame[data-layout="crossfade"]
     .recap-film-media[data-count]
     > .recap-film-picture:nth-child(2) {
-    animation: recap-film-fade var(--film-enter) var(--easing-playback) both;
+    animation: eimir-motion-recap-film-fade var(--film-enter)
+      var(--easing-playback) both;
     animation-delay: calc(var(--recap-dwell) / 2);
   }
   .recap-film-caption > .recap-film-reveal {
     animation: none;
   }
   .recap-film-reveal > span {
-    animation: recap-film-word var(--film-enter) var(--easing-enter) both;
+    animation: eimir-motion-recap-film-word var(--film-enter)
+      var(--easing-enter) both;
     animation-delay: calc(
       var(--duration-sequence-beat) *
       (1 + var(--film-i, 0) * 0.45)
     );
   }
   .recap-film-count {
-    animation: recap-film-count calc(var(--film-enter) * 1.6)
+    animation: eimir-motion-recap-film-count calc(var(--film-enter) * 1.6)
       var(--easing-enter) both;
   }
   .recap-film-numeral {
-    animation: recap-film-rise var(--film-enter) var(--easing-enter) both;
+    animation: eimir-motion-recap-film-rise var(--film-enter)
+      var(--easing-enter) both;
   }
   .recap-film-frame[data-variant="strip"] .recap-film-covers {
-    animation: recap-film-covers-travel
+    animation: eimir-motion-recap-film-covers-travel
       calc(var(--recap-dwell) + var(--film-motion-tail)) var(--easing-playback)
       both;
     animation-play-state: paused;
@@ -1269,7 +1167,8 @@
     .recap-film-frame[data-variant="fade"]
     .recap-film-media[data-count]
     > .recap-film-picture {
-    animation: recap-film-let-go var(--recap-dwell) var(--easing-playback) both;
+    animation: eimir-motion-recap-film-let-go var(--recap-dwell)
+      var(--easing-playback) both;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1292,128 +1191,4 @@
   syntax: "<percentage>";
   inherits: false;
   initial-value: 12.5%;
-}
-@keyframes recap-film-blinds {
-  from {
-    --film-blind: 0%;
-  }
-}
-@keyframes recap-film-split {
-  from {
-    clip-path: inset(0 50%);
-  }
-  to {
-    clip-path: inset(0);
-  }
-}
-@keyframes recap-film-flip {
-  from {
-    opacity: 0;
-    transform: perspective(var(--film-depth)) rotateY(-70deg);
-  }
-}
-@keyframes recap-film-focus {
-  from {
-    filter: blur(12px);
-    transform: scale(1.04);
-  }
-}
-@keyframes recap-film-match {
-  from {
-    clip-path: inset(18% 14% round var(--radius-media));
-    transform: scale(0.96);
-  }
-  to {
-    clip-path: inset(0 round 0);
-  }
-}
-@keyframes recap-film-light {
-  from {
-    opacity: 0;
-    transform: translateX(-40%);
-  }
-  40% {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-    transform: translateX(45%);
-  }
-}
-@keyframes recap-film-breath {
-  from,
-  35% {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-@keyframes recap-film-pan-up {
-  from {
-    transform: translateY(3%) scale(1.08);
-  }
-  to {
-    transform: translateY(-3%) scale(1.08);
-  }
-}
-@keyframes recap-film-pan-down {
-  from {
-    transform: translateY(-3%) scale(1.08);
-  }
-  to {
-    transform: translateY(3%) scale(1.08);
-  }
-}
-@keyframes recap-film-diagonal {
-  from {
-    transform: translate(-2%, 2%) scale(1.06);
-  }
-  to {
-    transform: translate(2%, -2%) scale(1.1);
-  }
-}
-@keyframes recap-film-breathe {
-  50% {
-    transform: scale(1.05);
-  }
-  to {
-    transform: scale(1.025);
-  }
-}
-@keyframes recap-film-climax {
-  from {
-    transform: scale(1.01);
-  }
-  to {
-    transform: scale(1.14);
-  }
-}
-@keyframes recap-film-word {
-  from {
-    opacity: 0;
-    filter: blur(4px);
-  }
-}
-@keyframes recap-film-count {
-  from {
-    --film-count: 0;
-  }
-}
-@keyframes recap-film-covers-travel {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(min(0px, calc(100cqi - 100%)));
-  }
-}
-@keyframes recap-film-let-go {
-  from,
-  40% {
-    opacity: 1;
-  }
-  to {
-    opacity: 0.2;
-  }
 }

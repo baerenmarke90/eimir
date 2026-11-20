@@ -49,15 +49,9 @@
 }
 @media (prefers-reduced-motion: no-preference) {
   .anticipation-digit {
-    animation: anticipation-tick var(--duration-feedback) var(--easing-standard);
-  }
-}
-@keyframes anticipation-tick {
-  from {
-    opacity: 0.65;
-  }
-  to {
-    opacity: 1;
+    --motion-enter-from-opacity: 0.65;
+    animation: eimir-motion-enter-fade var(--duration-feedback)
+      var(--easing-standard);
   }
 }
 .anticipation-date {

@@ -63,6 +63,10 @@ import { PartnerMarker } from './PartnerMarker';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import './HeartHuntGamePage.css';
+import '../motion/game-scenes.css';
+import { prefersReducedMotion } from '../motion/reducedMotion';
+import { run } from '../motion/run';
+import { durationMs, easing } from '../motion/tokens';
 
 export interface HeartHuntApi {
   getHeartHunt(request: { spaceId: string }): Promise<HeartHuntState>;
@@ -112,24 +116,6 @@ interface FlightHandle {
   run(): Promise<void>;
 }
 
-function reducedMotion(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  );
-}
-
-function tokenMilliseconds(name: string): number {
-  if (typeof document === 'undefined') return 0;
-  const raw = getComputedStyle(document.documentElement)
-    .getPropertyValue(name)
-    .trim();
-  const value = Number.parseFloat(raw);
-  if (!Number.isFinite(value)) return 0;
-  return raw.endsWith('ms') ? value : value * 1000;
-}
-
 const OWN: PersonRole = 'own';
 const PARTNER: PersonRole = 'partner';
 const BAND_WIDTH = 340;
@@ -162,12 +148,10 @@ function FlightBand({
       run: () =>
         new Promise<void>((resolve) => {
           const node = traveler.current;
-          const base = tokenMilliseconds(
-            plan.far
-              ? '--duration-connection-travel-far'
-              : '--duration-connection-travel',
+          const base = durationMs(
+            plan.far ? 'connection-travel-far' : 'connection-travel',
           );
-          if (!node || reducedMotion() || base === 0) {
+          if (!node || prefersReducedMotion() || base === 0) {
             // Instant variant: the heart simply arrives.
             if (node) {
               node.setAttribute(
@@ -189,19 +173,30 @@ function FlightBand({
             })`,
             opacity: 1,
           }));
+          // The heart rests at its landing pose under the animation, so the
+          // runner needs no forwards fill (Motion Contract M11).
+          node.setAttribute(
+            'transform',
+            `translate(${RIGHT.x} ${RIGHT.y - 26})`,
+          );
           node.setAttribute('opacity', '1');
-          const animation = node.animate(frames, {
+          const animation = run(node, frames, {
             duration: base * plan.durationShare,
-            easing: 'ease-in-out',
-            fill: 'forwards',
+            easing: easing('travel'),
+            channel: 'flight',
           });
-          const done = () => {
+          if (!animation) {
             node.setAttribute('opacity', '0');
-            animation.cancel();
             resolve();
-          };
-          animation.onfinish = done;
-          animation.oncancel = () => resolve();
+            return;
+          }
+          animation.finished.then(
+            () => {
+              node.setAttribute('opacity', '0');
+              resolve();
+            },
+            () => resolve(),
+          );
         }),
     }),
     [plan, lift],
@@ -553,7 +548,7 @@ function SeekPanel({
             // The fog lifts first; the found view follows once it is gone.
             foundTimer.current = window.setTimeout(
               onFound,
-              reducedMotion() ? 0 : 700,
+              prefersReducedMotion() ? 0 : 700,
             );
           }
         })

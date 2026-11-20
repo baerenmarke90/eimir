@@ -146,6 +146,15 @@
   }
 }
 
+/* A shared note unfolds toward the reader: a short rise from a slight tilt
+   back around its horizontal axis (the couple experience reveal). */
+@keyframes eimir-motion-enter-unfold {
+  from {
+    translate: 0 var(--space-3);
+    rotate: x 8deg;
+  }
+}
+
 @keyframes eimir-motion-enter-reach {
   from {
     scale: var(--motion-reach-from, 0 1);
@@ -442,6 +451,24 @@
   }
 }
 
+/* The first item of an area that was empty settles with one soft glow that
+   widens and fades (#1907 I1, `first-content-settle`). It plays once per
+   arrival on one element, after its Enter `arrive`; a recorded exception to
+   the small-element rule for `box-shadow` in M6 (4.3 as built). */
+@keyframes eimir-motion-feedback-glow {
+  0% {
+    box-shadow: 0 0 0 0 var(--color-brand-glow);
+  }
+
+  40% {
+    box-shadow: 0 0 0 0.6rem var(--color-brand-glow);
+  }
+
+  100% {
+    box-shadow: 0 0 0 1.1rem transparent;
+  }
+}
+
 /* A small glyph tips to one side and the other, then rests upright. */
 @keyframes eimir-motion-feedback-wiggle {
   0%,
@@ -555,19 +582,16 @@
   }
 }
 
-/* Loading domain: the shared media skeleton (`story-media.css`) pans its
-   gradient fill. It is the one Loading use of `background-position` left,
-   because the skeleton sits in more than thirty media frames whose
-   positioning a separate highlight layer would change; it moves to the
-   sweep with the bounded domains (migration step 8). Deferred skeletons do
-   not pan (#2070), and it is absent with reduced motion. */
-@keyframes eimir-motion-loading-pan {
-  from {
-    background-position: 100% 0;
+/* Loading domain: a placeholder breathes between a calm and a full fill
+   until its media is known (the media gallery and video placeholders). */
+@keyframes eimir-motion-loading-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
   }
 
-  to {
-    background-position: -100% 0;
+  50% {
+    opacity: 1;
   }
 }
 

@@ -178,13 +178,13 @@
 }
 
 .garden-scene.is-lively .garden-particle.is-falling {
-  animation: garden-particle-fall var(--garden-particle-duration)
+  animation: eimir-motion-garden-particle-fall var(--garden-particle-duration)
     var(--easing-playback) infinite;
   animation-delay: var(--garden-delay);
 }
 
 .garden-scene.is-lively .garden-particle.is-rising {
-  animation: garden-particle-rise var(--garden-particle-duration)
+  animation: eimir-motion-garden-particle-rise var(--garden-particle-duration)
     var(--easing-travel) infinite;
   animation-delay: var(--garden-delay);
 }
@@ -212,13 +212,13 @@
 }
 
 .garden-scene.is-lively .garden-plant-art.is-boing {
-  animation: garden-boing calc(var(--duration-gesture-moment) * 0.8)
-    var(--garden-spring);
+  animation: eimir-motion-garden-boing
+    calc(var(--duration-gesture-moment) * 0.8) var(--garden-spring);
 }
 
 .garden-scene.is-lively .garden-plant-art.is-perking {
-  animation: garden-perk calc(var(--duration-gesture-sequence) * 0.7)
-    var(--garden-spring);
+  animation: eimir-motion-garden-perk
+    calc(var(--duration-gesture-sequence) * 0.7) var(--garden-spring);
 }
 
 .garden-tap-leaf,
@@ -234,45 +234,46 @@
 
 .garden-tap-leaf {
   opacity: 0;
-  animation: garden-tap-leaf calc(var(--duration-gesture-sequence) * 0.9)
-    var(--easing-enter) both;
+  animation: eimir-motion-garden-tap-leaf
+    calc(var(--duration-gesture-sequence) * 0.9) var(--easing-enter) both;
   animation-delay: var(--garden-delay);
 }
 
 .garden-tap-bird {
-  animation: garden-tap-bird calc(var(--duration-gesture-sequence) * 1.1)
-    var(--easing-exit) both;
+  animation: eimir-motion-garden-tap-bird
+    calc(var(--duration-gesture-sequence) * 1.1) var(--easing-exit) both;
 }
 
 .garden-tap-ring {
   opacity: 0;
-  animation: garden-tap-ring calc(var(--duration-gesture-moment) * 1.2)
-    var(--easing-enter) both;
+  animation: eimir-motion-garden-tap-ring
+    calc(var(--duration-gesture-moment) * 1.2) var(--easing-enter) both;
   animation-delay: var(--garden-delay);
 }
 
 .garden-tap-fish {
   opacity: 0;
   transform-origin: 50% 50%;
-  animation: garden-tap-fish calc(var(--duration-gesture-moment) * 1.25)
-    var(--easing-travel) both;
+  animation: eimir-motion-garden-tap-fish
+    calc(var(--duration-gesture-moment) * 1.25) var(--easing-travel) both;
 }
 
 .garden-tap-petal {
-  animation: garden-tap-petal var(--duration-gesture-moment) var(--easing-enter)
-    both;
+  animation: eimir-motion-garden-tap-petal var(--duration-gesture-moment)
+    var(--easing-enter) both;
 }
 
 .garden-tap-butterfly {
   opacity: 0;
-  animation: garden-tap-butterfly calc(var(--duration-gesture-sequence) * 1.3)
-    var(--easing-travel) var(--duration-connection-beat) both;
+  animation: eimir-motion-garden-tap-butterfly
+    calc(var(--duration-gesture-sequence) * 1.3) var(--easing-travel)
+    var(--duration-connection-beat) both;
 }
 
 .garden-tap-drop {
   opacity: 0;
-  animation: garden-tap-drop var(--duration-connection-draw) var(--easing-exit)
-    both;
+  animation: eimir-motion-garden-tap-drop var(--duration-connection-draw)
+    var(--easing-exit) both;
   animation-delay: var(--garden-delay);
 }
 
@@ -285,8 +286,8 @@
 }
 
 .garden-scene.is-lively .garden-can-tilt {
-  animation: garden-can calc(var(--duration-gesture-sequence) * 1.45)
-    var(--easing-standard) both;
+  animation: eimir-motion-garden-can
+    calc(var(--duration-gesture-sequence) * 1.45) var(--easing-standard) both;
 }
 
 .garden-can-drop {
@@ -294,8 +295,8 @@
 }
 
 .garden-scene.is-lively .garden-can-drop {
-  animation: garden-can-drop var(--duration-connection-draw) var(--easing-exit)
-    both;
+  animation: eimir-motion-garden-can-drop var(--duration-connection-draw)
+    var(--easing-exit) both;
   animation-delay: var(--garden-delay);
 }
 
@@ -310,14 +311,14 @@
 }
 
 .garden-scene.is-lively .garden-rainbow.is-stay {
-  animation: garden-rainbow-in calc(var(--duration-gesture-sequence) * 0.9)
-    var(--easing-enter) both;
+  animation: eimir-motion-garden-rainbow-in
+    calc(var(--duration-gesture-sequence) * 0.9) var(--easing-enter) both;
   animation-delay: var(--garden-delay);
 }
 
 .garden-scene.is-lively .garden-rainbow.is-moment {
-  animation: garden-rainbow-moment calc(var(--duration-gesture-sequence) * 2.6)
-    var(--easing-standard) both;
+  animation: eimir-motion-garden-rainbow-moment
+    calc(var(--duration-gesture-sequence) * 2.6) var(--easing-standard) both;
 }
 
 /* Together moments and celebrations ------------------------------------------- */
@@ -328,7 +329,7 @@
 }
 
 .garden-scene.is-lively .garden-together-heart {
-  animation: garden-heart-float var(--duration-connection-travel)
+  animation: eimir-motion-garden-heart-float var(--duration-connection-travel)
     var(--easing-travel) infinite alternate;
 }
 
@@ -338,7 +339,7 @@
 }
 
 .garden-scene.is-lively .garden-note-paper:not(.garden-pop) {
-  animation: garden-note-wiggle var(--duration-connection-travel)
+  animation: eimir-motion-garden-note-wiggle var(--duration-connection-travel)
     var(--easing-travel) infinite alternate;
 }
 
@@ -347,8 +348,9 @@
   transform-origin: 50% 100%;
   /* It unfolds, stays a moment to be read and folds away again. */
   animation:
-    garden-unfold var(--duration-context) var(--easing-standard) both,
-    garden-reveal-out var(--duration-context) var(--easing-exit)
+    eimir-motion-garden-unfold var(--duration-context) var(--easing-standard)
+    both,
+    eimir-motion-garden-reveal-out var(--duration-context) var(--easing-exit)
     calc(var(--duration-gesture-sequence) * 3) forwards;
 }
 
@@ -362,8 +364,8 @@
 .garden-greet-heart {
   transform-box: fill-box;
   transform-origin: 50% 100%;
-  animation: garden-greet-heart calc(var(--duration-gesture-sequence) * 0.95)
-    var(--easing-enter) both;
+  animation: eimir-motion-garden-greet-heart
+    calc(var(--duration-gesture-sequence) * 0.95) var(--easing-enter) both;
   animation-delay: var(--garden-delay);
 }
 
@@ -373,7 +375,7 @@
 }
 
 .garden-scene.is-lively .garden-animal[data-pose="hello"] > g {
-  animation: garden-hello calc(var(--duration-sequence-beat) * 2.5)
+  animation: eimir-motion-garden-hello calc(var(--duration-sequence-beat) * 2.5)
     var(--easing-travel) 3;
 }
 
@@ -390,304 +392,6 @@
   align-items: center;
   gap: var(--space-1);
   max-width: 11rem;
-}
-
-@keyframes garden-particle-fall {
-  0% {
-    opacity: 0;
-    transform: translate(0, 0) rotate(0deg);
-  }
-  8% {
-    opacity: 0.9;
-  }
-  25% {
-    transform: translate(calc(var(--garden-dx) * 0.4), 56px)
-      rotate(calc(var(--garden-rotate) * 0.25));
-  }
-  50% {
-    transform: translate(calc(var(--garden-dx) * -0.2), 112px)
-      rotate(calc(var(--garden-rotate) * 0.5));
-  }
-  75% {
-    transform: translate(calc(var(--garden-dx) * 0.6), 168px)
-      rotate(calc(var(--garden-rotate) * 0.75));
-  }
-  92% {
-    opacity: 0.9;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(var(--garden-dx), 224px) rotate(var(--garden-rotate));
-  }
-}
-
-@keyframes garden-particle-rise {
-  0% {
-    opacity: 0;
-    transform: translate(0, 0);
-  }
-  15% {
-    opacity: 0.75;
-  }
-  50% {
-    transform: translate(calc(var(--garden-dx) * 0.3), -60px);
-  }
-  85% {
-    opacity: 0.6;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(calc(var(--garden-dx) * -0.2), -130px);
-  }
-}
-
-@keyframes garden-boing {
-  0% {
-    transform: none;
-  }
-  30% {
-    transform: scale(1.14, 0.84);
-  }
-  60% {
-    transform: scale(0.94, 1.1);
-  }
-  100% {
-    transform: none;
-  }
-}
-
-@keyframes garden-perk {
-  0% {
-    transform: scaleY(0.9);
-  }
-  55% {
-    transform: scaleY(1.12);
-  }
-  80% {
-    transform: scaleY(0.98);
-  }
-  100% {
-    transform: none;
-  }
-}
-
-@keyframes garden-tap-leaf {
-  0% {
-    opacity: 0;
-    transform: translate(0, 0) rotate(0deg);
-  }
-  15% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(var(--garden-dx), 74px) rotate(var(--garden-rotate));
-  }
-}
-
-@keyframes garden-tap-bird {
-  0% {
-    opacity: 0;
-    transform: translate(0, 0) scale(0.7);
-  }
-  15% {
-    opacity: 1;
-  }
-  85% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-130px, -86px) scale(1);
-  }
-}
-
-@keyframes garden-tap-ring {
-  0% {
-    opacity: 0.9;
-    transform: scale(0.4);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(3.2);
-  }
-}
-
-@keyframes garden-tap-fish {
-  0% {
-    opacity: 1;
-    transform: translate(0, 4px) rotate(-60deg);
-  }
-  50% {
-    transform: translate(9px, -18px) rotate(0deg);
-  }
-  95% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(18px, 4px) rotate(60deg);
-  }
-}
-
-@keyframes garden-tap-petal {
-  0% {
-    opacity: 1;
-    transform: none;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(var(--garden-dx), var(--garden-dy)) scale(0.4);
-  }
-}
-
-@keyframes garden-tap-butterfly {
-  0% {
-    opacity: 0;
-    transform: translate(0, 0);
-  }
-  12% {
-    opacity: 1;
-  }
-  35% {
-    transform: translate(14px, -24px);
-  }
-  65% {
-    transform: translate(-8px, -48px);
-  }
-  88% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(30px, -96px);
-  }
-}
-
-@keyframes garden-tap-drop {
-  0% {
-    opacity: 0;
-    transform: translateY(0);
-  }
-  20% {
-    opacity: 0.9;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(64px);
-  }
-}
-
-@keyframes garden-can {
-  0% {
-    opacity: 0;
-    transform: translate(-14px, -8px) rotate(0deg);
-  }
-  14% {
-    opacity: 1;
-    transform: translate(0, 0) rotate(0deg);
-  }
-  30%,
-  72% {
-    opacity: 1;
-    transform: rotate(52deg);
-  }
-  88% {
-    opacity: 1;
-    transform: rotate(0deg);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-14px, -8px) rotate(0deg);
-  }
-}
-
-@keyframes garden-can-drop {
-  0% {
-    opacity: 0;
-    transform: translateY(0);
-  }
-  25% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(13px);
-  }
-}
-
-@keyframes garden-rainbow-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: var(--garden-bow-opacity);
-  }
-}
-
-@keyframes garden-rainbow-moment {
-  0% {
-    opacity: 0;
-  }
-  25%,
-  70% {
-    opacity: var(--garden-bow-opacity);
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-@keyframes garden-reveal-out {
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes garden-heart-float {
-  from {
-    transform: translateY(0) scale(0.9);
-  }
-  to {
-    transform: translateY(-3px) scale(1.05);
-  }
-}
-
-@keyframes garden-note-wiggle {
-  from {
-    transform: rotate(-4deg);
-  }
-  to {
-    transform: rotate(4deg);
-  }
-}
-
-@keyframes garden-greet-heart {
-  0% {
-    opacity: 0;
-    transform: translateY(4px) scale(0.4);
-  }
-  25% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  80% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-14px) scale(0.9);
-  }
-}
-
-@keyframes garden-hello {
-  0%,
-  100% {
-    transform: none;
-  }
-  50% {
-    transform: translateY(-6px) scaleY(1.05);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

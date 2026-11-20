@@ -36,7 +36,9 @@
 
 /* One soft greeting when the line first comes into view; never a loop. */
 .occasion-mark-revealing {
-  animation: occasion-mark-reveal var(--duration-context) var(--easing-enter);
+  --motion-enter-from: 0 2px;
+  animation: eimir-motion-enter-travel var(--duration-context)
+    var(--easing-enter);
 }
 
 .occasion-mark-revealing > svg .accent {
@@ -45,17 +47,6 @@
   /* Feedback `affection` from the motion catalogue (src/motion/utilities.css). */
   animation: eimir-motion-feedback-affection var(--duration-context)
     var(--easing-standard);
-}
-
-@keyframes occasion-mark-reveal {
-  from {
-    opacity: 0;
-    transform: translateY(2px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

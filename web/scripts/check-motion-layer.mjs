@@ -11,6 +11,9 @@
  * - `animation-literal`: `cubic-bezier(` or a non-zero literal duration in an
  *   animation declaration (CSS), or `cubic-bezier(` in TypeScript.
  *
+ * `infinite` is also allowed in the registered loops of the bounded domains
+ * (`REGISTERED_LOOPS`, #2079), with an exact count per file.
+ *
  * Files that had such motion when the layer landed are listed in
  * `motion-layer-allowlist.json` with their counts. That allowlist is a ratchet:
  * a count may fall but never rise, a file that reaches zero must leave the
@@ -41,6 +44,25 @@ export const BASELINE_FILE_LIMIT = Object.freeze({ css: 66, ts: 8 });
 
 /** The motion layer itself, relative to `web/`. */
 export const LAYER_DIR = 'src/motion/';
+
+/**
+ * The registered loops of the bounded domains (Motion Contract 4.8, M8;
+ * #2079). Outside the layer, `infinite` is allowed only here: the Scenes
+ * domain's playfields, whose loops run only while the scene controller
+ * (`src/motion/scene.ts`, `data-motion-scene`) reports the scene seen and in
+ * use, and are absent with reduced motion. Each file names its domain and
+ * its exact number of loops, so a new loop needs a reviewed registration and
+ * a removed one must be unregistered. The Loading domain loops inside the
+ * layer (`src/motion/utilities.css`) and needs no entry.
+ */
+export const REGISTERED_LOOPS = Object.freeze({
+  'src/components/GardenAmbience.css': { domain: 'scenes', infinite: 4 },
+  'src/components/GardenGamePage.css': { domain: 'scenes', infinite: 7 },
+  'src/components/GardenGrowth.css': { domain: 'scenes', infinite: 11 },
+  'src/components/GardenRareVisitors.css': { domain: 'scenes', infinite: 2 },
+  'src/components/GardenSeasonArt.css': { domain: 'scenes', infinite: 1 },
+  'src/components/RemoteCoupleGames.css': { domain: 'scenes', infinite: 1 },
+});
 
 const LAYOUT_PROPERTIES = new Set([
   'width',
@@ -212,8 +234,15 @@ function kind(path) {
  * @param {Record<string, Record<string, number>>} allowlist
  * @returns {string[]} violations
  */
-export function compare(observed, allowlist) {
+export function compare(observed, allowlist, loops = REGISTERED_LOOPS) {
   const errors = [];
+  for (const [path, loop] of Object.entries(loops)) {
+    const have = observed.get(path)?.infinite ?? 0;
+    if (have !== loop.infinite)
+      errors.push(
+        `${path}: ${have} infinite loops, but ${loop.infinite} are registered for the ${loop.domain} domain. Update REGISTERED_LOOPS only with a reviewed domain loop (Motion Contract 4.8).`,
+      );
+  }
   const listed = Object.keys(allowlist);
   for (const type of ['css', 'ts']) {
     const count = listed.filter((path) => kind(path) === type).length;
@@ -225,7 +254,11 @@ export function compare(observed, allowlist) {
   for (const [path, counts] of observed) {
     const allowed = allowlist[path] ?? {};
     for (const rule of RULES) {
-      const have = counts[rule] ?? 0;
+      // Registered domain loops are checked exactly above.
+      const have =
+        rule === 'infinite' && loops[path]
+          ? Math.max(0, (counts[rule] ?? 0) - loops[path].infinite)
+          : (counts[rule] ?? 0);
       const limit = allowed[rule] ?? 0;
       if (have > limit)
         errors.push(
@@ -238,7 +271,10 @@ export function compare(observed, allowlist) {
   for (const path of listed) {
     const counts = observed.get(path) ?? emptyCounts();
     for (const rule of RULES) {
-      const have = counts[rule] ?? 0;
+      const have =
+        rule === 'infinite' && loops[path]
+          ? Math.max(0, (counts[rule] ?? 0) - loops[path].infinite)
+          : (counts[rule] ?? 0);
       const limit = allowlist[path][rule] ?? 0;
       if (have < limit)
         errors.push(
@@ -250,13 +286,17 @@ export function compare(observed, allowlist) {
 }
 
 /** The allowlist lowered to the observed counts; it never raises a count. */
-export function shrink(observed, allowlist) {
+export function shrink(observed, allowlist, loops = REGISTERED_LOOPS) {
   const next = {};
   for (const path of Object.keys(allowlist).sort()) {
     const counts = observed.get(path) ?? emptyCounts();
     const entry = {};
     for (const rule of RULES) {
-      const value = Math.min(counts[rule] ?? 0, allowlist[path][rule] ?? 0);
+      const seen =
+        rule === 'infinite' && loops[path]
+          ? Math.max(0, (counts[rule] ?? 0) - loops[path].infinite)
+          : (counts[rule] ?? 0);
+      const value = Math.min(seen, allowlist[path][rule] ?? 0);
       if (value > 0) entry[rule] = value;
     }
     if (Object.keys(entry).length > 0) next[path] = entry;

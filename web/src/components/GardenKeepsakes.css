@@ -30,7 +30,7 @@
 .garden-scene .garden-keepsake-land {
   transform-box: fill-box;
   transform-origin: 50% 100%;
-  animation: garden-keepsake-land var(--duration-gesture-moment)
+  animation: eimir-motion-garden-keepsake-land var(--duration-gesture-moment)
     var(--garden-spring) both;
 }
 
@@ -38,35 +38,9 @@
   transform-box: fill-box;
   transform-origin: 50% 50%;
   opacity: 0;
-  animation: garden-keepsake-glint var(--duration-gesture-sequence)
+  animation: eimir-motion-garden-keepsake-glint var(--duration-gesture-sequence)
     var(--easing-standard) both;
   animation-delay: var(--garden-delay);
-}
-
-@keyframes garden-keepsake-land {
-  from {
-    transform: translateY(-10px) scale(0.4);
-    opacity: 0;
-  }
-  to {
-    transform: none;
-    opacity: 1;
-  }
-}
-
-@keyframes garden-keepsake-glint {
-  0% {
-    opacity: 0;
-    scale: 0.2;
-  }
-  40% {
-    opacity: 1;
-    scale: 1;
-  }
-  100% {
-    opacity: 0;
-    scale: 0.6;
-  }
 }
 
 /* With reduced motion the page stops every animation; the glints stay hidden. */

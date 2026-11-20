@@ -7,6 +7,7 @@ import { normalizeClientError } from '../client/problemDetails';
 import { monthlyRecapInvitation, recapPeriodLabel } from '../client/recaps';
 import { recapDetailPath } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { prefersReducedMotion } from '../motion/reducedMotion';
 import { useRecapInvitationReceipt } from './MonthlyRecapInvitation';
 import { RecapMedia, type RecapMediaProps } from './RecapMedia';
 
@@ -49,13 +50,6 @@ export function useDiscoverRecapEdition({
 const announcedEditions = new Set<string>();
 let leavingEdition: string | null = null;
 
-function reducedMotion() {
-  return (
-    typeof window !== 'undefined' &&
-    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
-  );
-}
-
 /**
  * A temporary photo lead above the Discover experiences (#1907 F4). It shows
  * only while the monthly edition Wir would invite to is still unopened, so
@@ -93,18 +87,27 @@ export function RecapDiscoverLead({
     !receipt.visible &&
     !left &&
     leavingEdition === edition.id;
-  // The collapse normally ends with animationend; never leave a stale card
-  // behind if that event is skipped (hidden tab, interrupted animation).
+  // The collapse is a transition (Replace `disclose`, Motion Contract 4.2):
+  // the card first renders open, and one frame later it collapses. It
+  // normally ends with transitionend; never leave a stale card behind if
+  // that event is skipped (hidden tab, interrupted transition).
+  const [collapsing, setCollapsing] = useState(false);
   useEffect(() => {
     if (!leavingNow) return;
+    let frame = window.requestAnimationFrame(() => {
+      frame = window.requestAnimationFrame(() => setCollapsing(true));
+    });
     const timer = window.setTimeout(() => {
       leavingEdition = null;
       setLeft(true);
     }, 1_000);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
   }, [leavingNow]);
   if (!edition) return null;
-  const leaving = leavingNow && !reducedMotion();
+  const leaving = leavingNow && !prefersReducedMotion();
   if (!receipt.visible && !leaving) return null;
   const entering = receipt.visible && firstShown.current === edition.id;
   const cover = edition.sources.find(
@@ -116,9 +119,14 @@ export function RecapDiscoverLead({
   );
   return (
     <div
-      className={`recap-lead${entering ? ' is-entering' : ''}${leaving ? ' is-leaving' : ''}`}
-      onAnimationEnd={(event) => {
-        if (!leaving || event.target !== event.currentTarget) return;
+      className={`recap-lead${entering ? ' is-entering' : ''}${leaving ? ' is-leaving' : ''}${leaving && collapsing ? ' is-collapsing' : ''}`}
+      onTransitionEnd={(event) => {
+        if (
+          !leaving ||
+          event.target !== event.currentTarget ||
+          event.propertyName !== 'grid-template-rows'
+        )
+          return;
         leavingEdition = null;
         setLeft(true);
       }}

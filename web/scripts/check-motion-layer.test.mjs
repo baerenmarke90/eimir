@@ -6,6 +6,7 @@ import {
   BASELINE_FILE_LIMIT,
   compare,
   isScanned,
+  REGISTERED_LOOPS,
   scanCss,
   scanTree,
   scanTs,
@@ -54,20 +55,25 @@ describe('motion layer guard', () => {
     ]);
   });
 
+  it('has an empty allowlist once the bounded domains moved (#2079)', () => {
+    expect(allowlist).toEqual({});
+  });
+
   it('rejects one more animation in an allowlisted file', () => {
-    const [path, entry] = Object.entries(allowlist).find(([file]) =>
-      file.endsWith('.css'),
-    );
-    const counts = { ...entry, keyframes: (entry.keyframes ?? 0) + 1 };
-    const errors = compare(observed([[path, counts]]), { [path]: entry });
+    const path = 'src/components/Listed.css';
+    const entry = { keyframes: 2 };
+    const counts = { ...entry, keyframes: entry.keyframes + 1 };
+    const errors = compare(observed([[path, counts]]), { [path]: entry }, {});
     expect(errors[0]).toMatch(/> allowlisted/);
   });
 
   it('requires the allowlist to shrink when a file loses motion', () => {
     const path = 'src/components/Shrinking.css';
-    const errors = compare(observed([[path, { keyframes: 1 }]]), {
-      [path]: { keyframes: 2 },
-    });
+    const errors = compare(
+      observed([[path, { keyframes: 1 }]]),
+      { [path]: { keyframes: 2 } },
+      {},
+    );
     expect(errors[0]).toMatch(/fell to 1 .*--shrink/);
     expect(shrink(observed([]), { [path]: { keyframes: 2 } })).toEqual({});
     expect(
@@ -99,6 +105,45 @@ describe('motion layer guard', () => {
       'layout-keyframes': 2,
       'animation-literal': 2,
     });
+  });
+
+  it('allows infinite loops only as registered domain loops, counted exactly', () => {
+    const [path, loop] = Object.entries(REGISTERED_LOOPS)[0];
+    expect(loop.domain).toBe('scenes');
+    expect(
+      compare(
+        observed([[path, { infinite: loop.infinite }]]),
+        {},
+        {
+          [path]: loop,
+        },
+      ),
+    ).toEqual([]);
+    expect(
+      compare(
+        observed([[path, { infinite: loop.infinite + 1 }]]),
+        {},
+        {
+          [path]: loop,
+        },
+      ).join(' | '),
+    ).toMatch(/infinite loops, but .* registered for the scenes domain/);
+    expect(
+      compare(
+        observed([[path, { infinite: loop.infinite - 1 }]]),
+        {},
+        {
+          [path]: loop,
+        },
+      ).join(' | '),
+    ).toMatch(/registered for the scenes domain/);
+    expect(
+      compare(
+        observed([['src/components/NewLoop.css', { infinite: 1 }]]),
+        {},
+        { [path]: loop },
+      ).join(' | '),
+    ).toMatch(/NewLoop\.css: infinite 1\. Ad-hoc motion is not allowed/);
   });
 
   it('exempts the motion layer and tests', () => {

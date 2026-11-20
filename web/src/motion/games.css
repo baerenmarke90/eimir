@@ -1,0 +1,78 @@
+/*
+ * The motion layer's Scenes catalogue for the games area (Motion Contract
+ * 4.8, M6, M8, M9, M14; #2079): the Who of us reveal and the remote games,
+ * which the games area shows inline. The connector and the two people arrive
+ * and leave as Feedback on the result. The one loop, the "the other one is
+ * playing" dot, runs only while its card is seen (`useScene`) and is absent
+ * with reduced motion. Token roles only (M1); every role is `0ms` with
+ * reduced motion.
+ *
+ * Moved unchanged from `GamesProductArea.css` and `RemoteCoupleGames.css`. Imported by `main.tsx` next
+ * to that stylesheet, so it stays in the entry stylesheet instead of adding
+ * a chunk; the game playfields are in `game-scenes.css`.
+ */
+
+/* GamesProductArea */
+
+@keyframes eimir-motion-who-of-us-connector-same {
+  from {
+    transform: translate(-50%, -50%) scale(0);
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes eimir-motion-who-of-us-connector-different {
+  from {
+    transform: translate(-50%, -50%) scaleY(0);
+  }
+  to {
+    transform: translate(-50%, -50%) scaleY(1);
+  }
+}
+
+@keyframes eimir-motion-who-of-us-person-in-left {
+  from {
+    transform: translateX(-10px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes eimir-motion-who-of-us-person-in-right {
+  from {
+    transform: translateX(10px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes eimir-motion-who-of-us-person-out-left {
+  from {
+    transform: translateX(6px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes eimir-motion-who-of-us-person-out-right {
+  from {
+    transform: translateX(-6px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* RemoteCoupleGames */
+
+@keyframes eimir-motion-remote-game-pulse {
+  50% {
+    opacity: 0.35;
+    scale: 0.8;
+  }
+}

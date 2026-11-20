@@ -427,29 +427,39 @@ jobs:
           rm alembic/versions/drift_check_*.py
 
       - name: Core-only tests actually ran
+        # Unit and integration tests run in separate pytest processes, as in
+        # the Backend and Backend Integration jobs; mixing them in one process
+        # leaks process-wide state between the two layers. Integration skips are
+        # accepted only with the Core-only reason, so a missing database still
+        # fails the shard.
         run: |
-          collection=$(mktemp)
-          selected_file=$(mktemp)
-          report=$(mktemp)
-          uv run --frozen pytest --collect-only -q > "$collection"
-          python ../tools/ci/pytest_shard.py \
-            --shard "${{ matrix.shard }}" \
-            --shard-count "${{ strategy.job-total }}" \
-            < "$collection" > "$selected_file"
-          mapfile -t selected < "$selected_file"
-          expected="${#selected[@]}"
-          if [ "$expected" -eq 0 ]; then
-            echo "Core-only shard ${{ matrix.shard }}/${{ strategy.job-total }} selected no tests."
-            exit 1
-          fi
-          echo "Core-only shard ${{ matrix.shard }}/${{ strategy.job-total }} selected $expected tests."
-          uv run --frozen pytest -q --durations=20 --junitxml="$report" "${selected[@]}"
-          uv run --frozen python - "$report" "$expected" <<'PY'
+          status=0
+          for layer in unit integration; do
+            if [ "$layer" = unit ]; then marker="not integration"; else marker="integration"; fi
+            collection=$(mktemp)
+            selected_file=$(mktemp)
+            report=$(mktemp)
+            uv run --frozen pytest -m "$marker" --collect-only -q > "$collection"
+            python ../tools/ci/pytest_shard.py \
+              --shard "${{ matrix.shard }}" \
+              --shard-count "${{ strategy.job-total }}" \
+              < "$collection" > "$selected_file"
+            mapfile -t selected < "$selected_file"
+            expected="${#selected[@]}"
+            if [ "$expected" -eq 0 ]; then
+              echo "Core-only $layer shard ${{ matrix.shard }}/${{ strategy.job-total }} selected no tests."
+              exit 1
+            fi
+            echo "Core-only $layer shard ${{ matrix.shard }}/${{ strategy.job-total }} selected $expected tests."
+            uv run --frozen pytest -m "$marker" -q --durations=20 \
+              --junitxml="$report" "${selected[@]}" || status=1
+            uv run --frozen python - "$report" "$expected" "$layer" <<'PY' || status=1
           import sys
           import xml.etree.ElementTree as ET
 
           root = ET.parse(sys.argv[1]).getroot()
           expected = int(sys.argv[2])
+          layer = sys.argv[3]
           testcases = root.findall(".//testcase")
           unexpected = [
               case.get("name")
@@ -459,14 +469,16 @@ jobs:
           ]
           if len(testcases) != expected:
               raise SystemExit(
-                  f"Expected {expected} Core-only tests, but JUnit contains {len(testcases)}."
+                  f"Expected {expected} Core-only {layer} tests, but JUnit contains {len(testcases)}."
               )
-          if unexpected:
+          if layer == "integration" and unexpected:
               raise SystemExit(
-                  f"{len(unexpected)} Core-only test(s) were skipped for another reason - "
-                  "is the database unavailable?"
+                  f"{len(unexpected)} Core-only integration test(s) were skipped for another "
+                  "reason - is the database unavailable?"
               )
           PY
+          done
+          exit "$status"
 
   backend-core-only:
     name: Backend Core-only

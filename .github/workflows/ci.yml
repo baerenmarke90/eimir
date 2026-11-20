@@ -1,8 +1,7 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
+  # Pushes to main start no run; the nightly regression dispatches main (#2096).
   # Pull requests run the cheap tier unless they are ready for review and carry
   # ci:full or touch a risk path (tools/ci/change_scope.py, #2096). A re-run reads
   # labels live, so adding ci:full and re-running the failed or skipped jobs applies it.

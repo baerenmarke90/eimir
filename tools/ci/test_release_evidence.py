@@ -157,7 +157,8 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
         workflow_dir = WORKFLOW.parent
         media_ci = (workflow_dir / "media-video.yml").read_text(encoding="utf-8")
         monitor = (workflow_dir / "codec-advisories.yml").read_text(encoding="utf-8")
-        self.assertIn("push:\n    branches: [main]", media_ci)
+        # The nightly regression dispatches the complete media suite on main (#2096).
+        self.assertIn("  workflow_dispatch:", media_ci)
         self.assertNotIn(check, media_ci)
         self.assertIn("  schedule:", monitor)
         self.assertIn("  workflow_dispatch:", monitor)

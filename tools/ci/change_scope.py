@@ -4,8 +4,8 @@
 Pull requests should only pay for checks that can be affected by their diff.
 The classifier stays fail-closed for unknown paths and CI infrastructure so a
 new repository surface cannot silently bypass an expensive safety gate.
-Pushes to ``main`` are handled separately by the workflows and still run the
-full integration suite.
+Pushes to ``main`` start no workflows; the nightly regression dispatches the
+full suites on ``main`` instead (#2096).
 
 On top of the path scopes, pull requests run in one of two tiers (#2096):
 

@@ -33,6 +33,10 @@ How each column is measured:
 - **Same frame:** the map size and the markers' screen positions are identical before leaving and after returning.
 - **Idle:** `requestAnimationFrame` calls in 3 s of rest (MapLibre schedules every map frame through it), counted by an init script, and running animations in `document.getAnimations()`. An idle map renders nothing.
 
+## Where the map opens
+
+**Product Owner decision (2026-11-20): where the map opens.** A Moment with a Place opens the map at that Place (`photoPlaceMapUrl`, `/story/map?place=…`, as built). The Momente Karte segment opens the map with all Places (`StoryProductPage.tsx`). A return through the segment while a Place is selected therefore shows all Places, and the camera frames the overview as an explicit journey. The camera code follows the route and does not restore a selection on its own. The journey above closes the selection first.
+
 ## Checked elsewhere
 
 - **Unit tests** (`PlaceMapCanvas.test.tsx`):
@@ -47,4 +51,3 @@ How each column is measured:
 ## Open
 
 - **Pixel 10 Pro Fold acceptance:** opening, the return, a Place and "show us" flying in 1100 ms, a finger stopping a flight, reduced motion, light/dark and fold/unfold.
-- **Returning to the selection:** the Karte segment opens `/story/map` without the selected Place (route behaviour in `StoryProductPage.tsx`). Returning through Momente › Karte while a Place is selected therefore clears the selection, and the camera flies to the overview. The journey above closes the selection first.

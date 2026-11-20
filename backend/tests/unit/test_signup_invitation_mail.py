@@ -48,8 +48,8 @@ def test_signup_mail_binds_only_the_invitation_hash_to_the_proof(
     assert parsed.scheme == "https"
     assert parsed.netloc == "eimir.invalid"
     assert parsed.path == "/auth/signup"
-    assert parse_qs(parsed.query) == {"token": ["mailbox-proof"]}
-    assert parsed.fragment == ""
+    assert parsed.query == ""
+    assert parse_qs(parsed.fragment, strict_parsing=True) == {"token": ["mailbox-proof"]}
     if invitation is not None:
         assert invitation not in message.body
     assert message.to == "partner@example.invalid"

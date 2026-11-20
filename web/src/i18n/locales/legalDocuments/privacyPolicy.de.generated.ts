@@ -4,7 +4,7 @@ import type { LegalDocument } from '../../../legal/legalDocument';
 export const privacyPolicyDe: LegalDocument = {
   document: 'privacy-policy',
   locale: 'de-DE',
-  version: '2026-11-14.draft-3',
+  version: '2026-11-18.draft-6',
   status: 'draft',
   title: 'Datenschutzhinweise für eimir.',
   placeholders: [
@@ -61,6 +61,15 @@ export const privacyPolicyDe: LegalDocument = {
             {
               kind: 'text',
               text: 'Eure Inhalte speichern wir verschlüsselt. Das ist keine Ende-zu-Ende-Verschlüsselung: Damit eimir. funktioniert, kann unser System sie entschlüsseln. Wir sehen sie uns nicht an, außer in den wenigen Fällen, die wir in Abschnitt 5 nennen.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Deinen Standort teilen wir mit deinem Partner nur, wenn du das in eimir. Pro selbst einschaltest. Standardmäßig ist er ungefähr; auf Wunsch kannst du ihn genauer teilen. Wir speichern nur deine aktuelle Position und keinen Verlauf (Abschnitt 9).',
             },
           ],
           children: [],
@@ -206,7 +215,7 @@ export const privacyPolicyDe: LegalDocument = {
             [
               {
                 kind: 'text',
-                text: 'deine Einstellungen, zum Beispiel Sprache, Zeitzone, Ruhezeiten und Benachrichtigungen,',
+                text: 'deine Einstellungen, zum Beispiel Sprache, Zeitzone, Ruhezeiten, Benachrichtigungen und die Farben, in denen du dich und deine Partnerperson siehst (diese Auswahl sieht nur du),',
               },
             ],
             [
@@ -586,12 +595,12 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: "Öffnest du eine Karte, lädt eimir. die Kartenbilder direkt von den Servern der OpenStreetMap Foundation, St John's Innovation Centre, Cowley Road, Cambridge, CB4 0WS, Vereinigtes Königreich. Sie erhält dabei deine IP-Adresse, technische Angaben zu deinem Browser oder Gerät, eimir. als aufrufende Seite und die Kartenausschnitte, die du ansiehst. Daraus lässt sich ungefähr ablesen, wo eure Orte liegen. Namen, Texte oder Fotos aus eimir. erhält sie nicht. Die OpenStreetMap Foundation verarbeitet diese Daten in eigener Verantwortung nach ihren ",
+              text: 'Öffnest du eine Karte, lädt dein Gerät Kartenstil und Kartenbilder von tiles.openfreemap.org. Diesen öffentlichen Dienst betreibt Hyperknot Software Kft. in Ungarn unter dem Namen OpenFreeMap mit Kartendaten von OpenStreetMap. Dabei erhält der Dienst deine IP-Adresse, technische Verbindungsdaten und den angeforderten Kartenausschnitt. Daraus kann sich ungefähr ergeben, wo eure Orte liegen. Namen, Texte und Fotos aus eimir. werden dabei nicht übertragen. Der Betreiber beschreibt auch den möglichen Einsatz von Cloudflare zur Auslieferung, die regulären Zugriffsprotokolle sowie gesonderte Fehler- und Sicherheitsprotokolle in seinen ',
             },
             {
               kind: 'link',
               text: 'Datenschutzhinweisen',
-              href: 'https://osmfoundation.org/wiki/Privacy_Policy',
+              href: 'https://openfreemap.org/privacy/',
             },
             {
               kind: 'text',
@@ -613,7 +622,52 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'eimir. fragt deinen aktuellen Standort nicht ab, verfolgt ihn nicht und erstellt keinen Bewegungsverlauf.',
+              text: 'Mit eimir. Pro kannst du deinem Partner zeigen, wie weit du entfernt bist, und auf Wunsch zusätzlich einen ungefähren Kartenbereich. Das ist freiwillig und nie voreingestellt. Du entscheidest, was dein Partner sieht und wie lange, und kannst es jederzeit beenden. Dein Partner entscheidet für sich allein.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Du wählst auch, wie genau deine Position ist. Voreingestellt ist „ungefähr“: Dein Gerät rundet sie auf etwa einen Kilometer, bevor sie an uns geht. Wählst du „genau“, rundet dein Gerät auf etwa 100 Meter. Das stellst du beim ersten Start oder später in den Einstellungen ein. Genau teilen kannst du nur, wenn dein Gerät eine genaue Position hat; erlaubt Android nur den ungefähren Standort, bleibt es bei „ungefähr“ und wir sagen es dir in den Einstellungen. Deine genauen Koordinaten verlassen dein Gerät nicht. Dein Partner sieht eine Entfernungsstufe, bei „genau“ auf beiden Seiten auch eine feinere unter zwei Kilometern, und nie Koordinaten, eine Richtung oder einen Verlauf. Er erfährt nicht, welche Genauigkeit du gewählt hast.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Wir speichern pro Person nur die aktuelle gerundete Position, verschlüsselt (Abschnitt 5). Jede neue Position ersetzt die alte, spätestens 24 Stunden nach der Messung löschen wir sie, und wenn du das Teilen beendest, löschen wir sie sofort. Endet Pro für euren Space, beenden wir das Teilen und löschen die Positionen; es beginnt nicht von selbst wieder. Wir erstellen keinen Bewegungsverlauf, nehmen die Positionen nicht in Exporte auf und nutzen sie nur für Entfernung und Kartenbereich. Deine eigene Position schickst du nur, damit wir die Entfernung zu deinem Partner berechnen können. Wir speichern sie dafür nicht.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Die Android-App misst deinen Standort einmal, wenn du sie öffnest oder zu ihr zurückkehrst, und nur solange das Teilen eingeschaltet ist oder du die Entfernung ansiehst. Für „genau“ bittet sie Android zusätzlich um die genaue Standortberechtigung; dort wählst du „Genau“ oder „Ungefähr“. Im Browser fragt dein Browser. Willst du, dass deine Position auch aktuell bleibt, wenn die App geschlossen ist, kannst du das zusätzlich einschalten und „Immer zulassen“ erlauben. Dann nutzt eimir. nur Positionen, die Android ohnehin schon ermittelt hat, und startet selbst keine Messung. Die Berechtigung kannst du jederzeit in den Android-Einstellungen entziehen.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), für den Zugriff auf den Standort deines Geräts außerdem § 25 Abs. 1 TDDDG. Du kannst sie jederzeit widerrufen, indem du das Teilen beendest oder die Berechtigung entziehst. Das berührt nicht, was bis dahin geschah. Ohne Einwilligung funktioniert eimir. unverändert, nur ohne Entfernung.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Über diese Funktion hinaus fragt eimir. deinen Standort nicht ab, verfolgt ihn nicht und erstellt keinen Bewegungsverlauf.',
             },
           ],
           children: [],
@@ -682,7 +736,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Einige Funktionen formulieren Texte oder machen Vorschläge, zum Beispiel Titel und Einleitung eurer Rückblicke, Beobachtungen und Anregungen in „Eure Woche“ oder Schlagwörter für gemeinsame Erinnerungen. Soweit wir dafür ein KI-Sprachmodell einsetzen, läuft es in unserer eigenen Serverumgebung. Eure Inhalte gehen dafür nicht an externe KI-Anbieter.',
+              text: 'In „Eure Woche“ wählen wir Beobachtungen und Anregungen aus. Für gemeinsame Erinnerungen und Herzmomente machen wir Schlagwortvorschläge. Wenn dabei ein KI-Sprachmodell zum Einsatz kommt, läuft es in unserer eigenen Serverumgebung. Eure Inhalte gehen dafür nicht an externe KI-Anbieter.',
             },
           ],
           children: [],
@@ -865,7 +919,7 @@ export const privacyPolicyDe: LegalDocument = {
             [
               {
                 kind: 'text',
-                text: 'Fotos und Videos, die du zuletzt angesehen hast, höchstens sieben Tage lang,',
+                text: 'bereits geladene Bilddateien ohne feste Altersgrenze, bis zu 2.000 Medieneinträge. Bei knappem Speicher entfernt die App die am längsten ungenutzten Bilder. Im Browser und auf iOS werden dafür nur gemeinsame Bilder dauerhaft gespeichert. Private Bilder bleiben dort im Arbeitsspeicher. Android speichert gemeinsame und private Bilder verschlüsselt mit einem Schlüssel für deine aktuelle Anmeldung. Ob du ein Bild offline noch sehen kannst, hängt vom zugehörigen, höchstens sieben Tage gültigen Inhalt ab. Videos und Audiodateien werden nicht in diesem Bildspeicher abgelegt,',
               },
             ],
             [
@@ -898,7 +952,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Diese Daten liegen im Browser nicht zusätzlich verschlüsselt. Meldest du dich ab, löscht eimir. deine Anmeldung, zwischengespeicherte Inhalte, Fotos und Entwürfe. Du kannst sie außerdem jederzeit in den Einstellungen deines Browsers oder Geräts löschen. Die Android-App nimmt ihre Daten von den automatischen Sicherungen deines Geräts aus.',
+              text: 'Im Browser liegen dauerhaft gespeicherte Bilder ohne zusätzliche Verschlüsselung durch eimir. vor. Beim Abmelden, bei ungültiger Sitzung und beim Wechsel von Konto oder Space verwirft die App den bisherigen Bildspeicher und räumt die Einträge auf. Auf Android löscht sie beim Abmelden zusätzlich den Bildschlüssel. Damit sind verschlüsselte Bilddaten bereits vor ihrer Entfernung unlesbar. Du kannst die lokalen Daten jederzeit in den Einstellungen deines Browsers oder Geräts löschen. Die Android-App nimmt ihre Daten von den automatischen Gerätesicherungen aus.',
             },
           ],
           children: [],
@@ -1063,7 +1117,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'dein Partner, soweit ihr Inhalte teilt (Abschnitt 4),',
+              text: 'dein Partner, soweit ihr Inhalte teilt (Abschnitt 4) und soweit du deine Entfernung oder einen ungefähren Kartenbereich teilst (Abschnitt 9),',
             },
           ],
           children: [],
@@ -1090,7 +1144,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'die OpenStreetMap Foundation, wenn du eine Karte öffnest (Abschnitt 9),',
+              text: 'Hyperknot Software Kft. (OpenFreeMap, Ungarn), wenn du eine Karte öffnest (Abschnitt 9),',
             },
           ],
           children: [],
@@ -1157,8 +1211,14 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Die OpenStreetMap Foundation hat ihren Sitz im Vereinigten Königreich. Auch für das Vereinigte Königreich hat die EU-Kommission ein angemessenes Datenschutzniveau festgestellt (Art. 45 DSGVO).',
+              text: 'OpenFreeMap wird in Ungarn betrieben. Angaben zu den für die weltweite Auslieferung der Karten eingesetzten Diensten findest du in den ',
             },
+            {
+              kind: 'link',
+              text: 'Datenschutzhinweisen von OpenFreeMap',
+              href: 'https://openfreemap.org/privacy/',
+            },
+            { kind: 'text', text: '.' },
           ],
           children: [],
         },
@@ -1233,6 +1293,16 @@ export const privacyPolicyDe: LegalDocument = {
         },
         {
           content: [
+            { kind: 'strong', text: 'Entfernung zum Partner:' },
+            {
+              kind: 'text',
+              text: ' deine aktuelle gerundete Position höchstens 24 Stunden und beim Beenden des Teilens sofort; deine Einstellung zum Teilen bis zum Löschen deines Kontos.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
             { kind: 'strong', text: '„Gefühl für heute“ und Akku:' },
             { kind: 'text', text: ' bis zum Ende des folgenden Tages.' },
           ],
@@ -1283,11 +1353,13 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'strong',
-              text: 'Zwischengespeicherte Inhalte, Fotos und Entwürfe auf deinem Gerät:',
+              text: 'Lokale Kopien gemeinsamer Ansichten und Entwürfe:',
             },
+            { kind: 'text', text: ' höchstens sieben Tage. ' },
+            { kind: 'strong', text: 'Bilddateien:' },
             {
               kind: 'text',
-              text: ' höchstens sieben Tage, beim Abmelden sofort. Einstellungen und Merker bleiben, bis du sie im Browser oder in der App löschst.',
+              text: ' bis zu 2.000 Medieneinträge ohne feste Altersgrenze. Die Bereinigung bei Abmeldung, Konto- und Space-Wechsel ist in Abschnitt 15 beschrieben. Einstellungen und Merker bleiben, bis du sie im Browser oder in der App löschst.',
             },
           ],
           children: [],

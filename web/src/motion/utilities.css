@@ -1,0 +1,151 @@
+/*
+ * The motion layer's shared utility classes (Motion Contract 5.1; moved from
+ * styles.css in #2075). Feature code applies them to a known element for one
+ * interaction; they never apply to route, page or query-result mounts.
+ *
+ * Imported by the entry (main.tsx) at the place where styles.css defined
+ * them, so they keep their cascade position after the component styles.
+ * Durations and easings are token roles only (M1).
+ */
+
+/* Enter `shift` for content revealed from a known control: transform only,
+   so descendant text contrast never dips (#790/#791). */
+.eimir-motion-disclosure {
+  --motion-enter-rise: 8px;
+  animation: eimir-motion-enter-shift var(--duration-transition)
+    var(--easing-enter);
+}
+
+/* Hover lift of a card: a state transition, not an animation (M14). */
+.eimir-motion-lift {
+  transition:
+    translate var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
+}
+
+.eimir-motion-lift:hover {
+  translate: 0 -4px;
+  box-shadow: 0 12px 24px var(--color-shadow-card);
+}
+
+/* Feedback `success` on the control that completed (4.3). */
+@keyframes eimir-motion-feedback-success {
+  50% {
+    scale: 1.05;
+  }
+}
+
+.eimir-motion-success {
+  animation: eimir-motion-feedback-success var(--duration-context)
+    var(--easing-enter);
+}
+
+/* Feedback `affection`: one soft beat on the item a partner reacted to. */
+@keyframes eimir-motion-feedback-affection {
+  50% {
+    opacity: 0.8;
+    scale: 1.1;
+  }
+}
+
+.eimir-motion-pulse {
+  animation: eimir-motion-feedback-affection var(--duration-context)
+    var(--easing-standard);
+}
+
+/*
+ * Loading domain spinner (4.8): turns while the owner keeps the class on its
+ * pending icon, and stops as soon as the status is known. The constant-rate
+ * playback easing keeps every turn at the same speed.
+ */
+.eimir-motion-loading-spin {
+  animation: eimir-motion-loading-spin var(--duration-loading-cycle)
+    var(--easing-playback) infinite;
+}
+
+/*
+ * Loading domain shimmer (4.8): a placeholder shows a quiet highlight that
+ * sweeps across it while its content loads (plan covers, the story list).
+ * The highlight is its own layer and moves with `translate` only (M6). The
+ * owner removes the class when the status is known. With reduced motion the
+ * placeholder stays still; its text and `role="status"` stay.
+ */
+.eimir-motion-loading-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-shimmer-base);
+}
+
+.eimir-motion-loading-shimmer::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    var(--color-shimmer-highlight) 50%,
+    transparent 70%
+  );
+  content: "";
+  pointer-events: none;
+  translate: -100% 0;
+  animation: eimir-motion-loading-sweep calc(var(--duration-loading-cycle) * 2)
+    var(--easing-playback) infinite;
+}
+
+/* Loading domain: the shared media skeleton (`.story-media-skeleton` while
+   it loads). A highlight layer sweeps across the calm fill with `translate`
+   (M6) instead of panning the gradient with `background-position` (#2079).
+   Paint containment makes the skeleton the containing block of its layer and
+   clips it, without changing the skeleton's own positioning in the more than
+   thirty media frames that place it. */
+.eimir-motion-loading-skeleton {
+  contain: paint;
+}
+
+.eimir-motion-loading-skeleton::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 25%,
+    var(--color-shimmer-highlight) 45%,
+    transparent 65%
+  );
+  content: "";
+  pointer-events: none;
+  translate: -100% 0;
+  animation: eimir-motion-loading-sweep calc(var(--duration-loading-cycle) * 2)
+    var(--easing-playback) infinite;
+}
+
+/* Loading domain: a placeholder pulses until its media is known. */
+.eimir-motion-loading-pulse {
+  animation: eimir-motion-loading-pulse
+    calc(var(--duration-loading-cycle) * 1.75) var(--easing-travel) infinite;
+}
+
+/* Loading domain: the mark of a pending draw rocks until the result is
+   known (the wish selection roll). */
+.eimir-motion-loading-roll {
+  animation: eimir-motion-loading-roll var(--duration-context)
+    var(--easing-standard) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eimir-motion-disclosure,
+  .eimir-motion-lift,
+  .eimir-motion-success,
+  .eimir-motion-pulse,
+  .eimir-motion-loading-spin,
+  .eimir-motion-loading-shimmer::after,
+  .eimir-motion-loading-skeleton::after,
+  .eimir-motion-loading-pulse,
+  .eimir-motion-loading-roll {
+    animation: none;
+    transition: none;
+  }
+
+  .eimir-motion-lift:hover {
+    translate: none;
+  }
+}

@@ -27,7 +27,10 @@
   text-align: center;
   max-width: 36rem;
   margin-bottom: var(--space-6);
-  animation: login-content-in var(--duration-context) var(--easing-enter) both;
+  /* Enter `rise` once (src/motion/motion.css). */
+  --motion-enter-rise: 8px;
+  animation: eimir-motion-enter-rise var(--duration-context) var(--easing-enter)
+    both;
 }
 
 .login-intro .brand {
@@ -43,7 +46,8 @@
 .login-intro h1 {
   margin: 0 0 var(--space-3);
   font-family: var(--font-display);
-  font-size: clamp(2.2rem, 4.5vw, 3.2rem);
+  /* Compact: the form, not the headline, owns the first screen. */
+  font-size: clamp(1.7rem, 7vw, 3.2rem);
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: -0.025em;
@@ -80,7 +84,9 @@
     0 12px 36px var(--color-shadow-soft),
     0 2px 10px var(--color-shadow-brand);
   text-align: center;
-  animation: login-card-in var(--duration-context) var(--easing-enter) both;
+  --motion-enter-rise: 12px;
+  animation: eimir-motion-enter-rise var(--duration-context) var(--easing-enter)
+    both;
 }
 
 .login-card .eyebrow {
@@ -108,6 +114,10 @@
   line-height: 1.45;
 }
 
+.login-card .field-group > label {
+  text-align: start;
+}
+
 .login-card .form-grid {
   display: flex;
   flex-direction: column;
@@ -128,7 +138,7 @@
     border-color var(--duration-feedback) var(--easing-standard);
 }
 
-.login-card button:not(.secondary) {
+.login-card button:not(.secondary, .tertiary, .provider-button) {
   background: linear-gradient(
     135deg,
     var(--color-brand),
@@ -139,9 +149,24 @@
   box-shadow: 0 4px 16px var(--color-shadow-brand);
 }
 
-.login-card button:not(.secondary):hover {
+.login-card
+  button:not(.secondary, .tertiary, .provider-button):hover:not(:disabled) {
   transform: translateY(-1.5px);
   box-shadow: 0 6px 20px var(--color-shadow-brand);
+}
+
+/* Forgot-password style actions are text, not a second primary button. */
+.login-card button.tertiary {
+  min-height: 44px;
+  background: transparent;
+  color: var(--color-brand-text);
+  border: 0;
+  box-shadow: none;
+  font-weight: 700;
+}
+
+.login-card button.tertiary:hover {
+  background: var(--color-surface-subtle);
 }
 
 .login-card button.secondary {
@@ -224,6 +249,44 @@
   }
 }
 
+/* Cloud tabs: the toggle names the mode, so Compact drops the repeated heading. */
+.entry-heading-quiet h2 {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.entry-heading-quiet .eyebrow,
+.entry-heading-quiet .muted {
+  display: none;
+}
+
+@media (min-width: 601px) {
+  .entry-heading-quiet h2 {
+    position: static;
+    inline-size: auto;
+    block-size: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+  }
+
+  .entry-heading-quiet .eyebrow {
+    display: block;
+  }
+
+  .entry-heading-quiet .muted {
+    display: block;
+  }
+
+  .login-hint-compact {
+    display: none;
+  }
+}
+
 .login-assurance {
   margin-top: var(--space-4);
   color: var(--color-text-secondary);
@@ -301,28 +364,6 @@
     background: var(--color-surface-raised);
     color: var(--color-brand-text);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  }
-}
-
-@keyframes login-content-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes login-card-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 

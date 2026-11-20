@@ -1,0 +1,159 @@
+/*!
+ * MockFrame device styles
+ * Adapted from Marvel devices.css (https://github.com/marvelapp/devices.css)
+ * Original work Copyright (c) 2014 Marvelapp — MIT License
+ * Modifications Copyright (c) 2026 Mohammed Banani — MIT License
+ */
+.mockframe {
+  display: inline-block;
+  position: relative;
+  box-sizing: content-box !important;
+}
+
+.mockframe .screen {
+  z-index: 3;
+  background: #fff;
+  border-radius: 1px;
+  width: 100%;
+  height: 100%;
+  display: block;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 0 3px #111;
+}
+
+.mockframe .top-bar, .mockframe .bottom-bar {
+  background: #000;
+  width: 100%;
+  height: 3px;
+  display: block;
+}
+
+.mockframe .middle-bar {
+  background: #000;
+  width: 3px;
+  height: 4px;
+  position: absolute;
+  top: 0;
+  left: 90px;
+}
+
+.mockframe.iphone18pro {
+  width: 402px;
+  height: 874px;
+  box-shadow: inset 0 0 0 .667px var(--mf-b1), inset 0 0 0 1.333px var(--mf-b2), inset 0 0 0 2px var(--mf-b3), inset 0 0 0 2.667px var(--mf-b4), inset 0 0 0 3.333px var(--mf-b5), inset 0 0 0 4px var(--mf-b6), inset 0 0 0 4.333px var(--mf-b7), inset 0 0 0 4.667px var(--mf-b8), inset 0 0 0 5px var(--mf-b9), inset 0 0 0 5.333px var(--mf-b10), inset 0 0 0 5.667px var(--mf-b11), inset 0 0 0 6.333px var(--mf-b12), inset 0 0 3px 9.3px var(--mf-glass);
+  --mf-b1: #141314;
+  --mf-b2: #161516;
+  --mf-b3: #1b191b;
+  --mf-b4: #222022;
+  --mf-b5: #2e2c2e;
+  --mf-b6: #444144;
+  --mf-b7: #605d60;
+  --mf-b8: #747173;
+  --mf-b9: #747174;
+  --mf-b10: #4f4c4f;
+  --mf-b11: #272527;
+  --mf-b12: #232223;
+  --mf-glass: #3d3d3d;
+  background: #000;
+  border-radius: 80.5px;
+  padding: 15.67px 15.83px;
+}
+
+.mockframe.iphone18pro .screen {
+  box-shadow: none;
+  border-radius: 63.6px;
+}
+
+.mockframe.iphone18pro .dynamic-island {
+  z-index: 10;
+  background: #000;
+  border-radius: 18px;
+  width: 94px;
+  height: 36px;
+  margin-left: -47px;
+  position: absolute;
+  top: 30px;
+  left: 50%;
+}
+
+.mockframe.iphone18pro .dynamic-island .camera {
+  top: 13px;
+  right: 13px;
+  box-shadow: 0 0 0 5.5px #080a0c;
+}
+
+.mockframe.iphone18pro:before {
+  background: #020202;
+  width: 162px;
+  height: 2.33px;
+  margin-left: -81px;
+  top: 6.33px;
+}
+
+.mockframe.iphone18pro .action {
+  height: 41.67px;
+  top: 186px;
+}
+
+.mockframe.iphone18pro .volume {
+  height: 67.67px;
+  top: 258.33px;
+}
+
+.mockframe.iphone18pro .sleep {
+  height: 107px;
+  top: 281.67px;
+}
+
+:is(.mockframe.iphone17, .mockframe.iphone18pro):before {
+  content: "";
+  border-radius: 0 0 2px 2px;
+  position: absolute;
+  left: 50%;
+}
+
+:is(.mockframe.iphone17, .mockframe.iphone18pro) .dynamic-island .camera {
+  background: radial-gradient(circle at 50% 40%, #3b3a8f 0%, #1f1c63 25%, #0d0b30 50%, #12394a 66%, #0a1118 80%, #05070a 100%);
+  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+  position: absolute;
+}
+
+:is(.mockframe.iphone17, .mockframe.iphone18pro) .action, :is(.mockframe.iphone17, .mockframe.iphone18pro) .volume, :is(.mockframe.iphone17, .mockframe.iphone18pro) .sleep {
+  z-index: 0;
+  position: absolute;
+}
+
+:is(.mockframe.iphone17, .mockframe.iphone18pro) .action, :is(.mockframe.iphone17, .mockframe.iphone18pro) .volume {
+  background: linear-gradient(to left, var(--mf-b1) 0%, var(--mf-b3) 25%, var(--mf-b4) 50%, var(--mf-b6) 68%, var(--mf-b8) 80%, var(--mf-b10) 100%);
+  border-radius: 1.5px 0 0 1.5px;
+  width: 3px;
+  left: -3px;
+  box-shadow: inset 0 1px .5px #ffffff4d, inset 0 -1px .5px #ffffff4d;
+}
+
+:is(.mockframe.iphone17, .mockframe.iphone18pro) .volume:before {
+  content: "";
+  border-radius: inherit;
+  background: inherit;
+  width: 100%;
+  height: 100%;
+  box-shadow: inherit;
+  position: absolute;
+  top: 85.67px;
+  left: 0;
+}
+
+:is(.mockframe.iphone17, .mockframe.iphone18pro) .sleep {
+  background: linear-gradient(to right, var(--mf-b1) 0%, var(--mf-b3) 25%, var(--mf-b4) 50%, var(--mf-b6) 68%, var(--mf-b8) 80%, var(--mf-b10) 100%);
+  border-radius: 0 1.5px 1.5px 0;
+  width: 2.67px;
+  right: -2.67px;
+  box-shadow: inset 0 1px .5px #ffffff4d, inset 0 -1px .5px #ffffff4d;
+}
+
+:is(.mockframe.iphone17, .mockframe.iphone18pro) > .camera, :is(.mockframe.iphone17, .mockframe.iphone18pro) .top-bar, :is(.mockframe.iphone17, .mockframe.iphone18pro) .bottom-bar, :is(.mockframe.iphone17, .mockframe.iphone18pro) .home, :is(.mockframe.iphone17, .mockframe.iphone18pro) .sensor, :is(.mockframe.iphone17, .mockframe.iphone18pro) .speaker, :is(.mockframe.iphone17, .mockframe.iphone18pro) .sensors, :is(.mockframe.iphone17, .mockframe.iphone18pro) .more-sensors, :is(.mockframe.iphone17, .mockframe.iphone18pro) .inner, :is(.mockframe.iphone17, .mockframe.iphone18pro) .inner-shadow {
+  display: none;
+}

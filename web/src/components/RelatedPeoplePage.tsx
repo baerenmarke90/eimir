@@ -11,6 +11,7 @@ import {
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { AttachmentsApi } from '../api/generated/apis/AttachmentsApi';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
+import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { RelatedPersonDeletePolicy } from '../api/generated/models/RelatedPersonDeletePolicy';
 import type { RelatedPersonFields } from '../api/generated/models/RelatedPersonFields';
 import type { RelatedPersonView } from '../api/generated/models/RelatedPersonView';
@@ -22,26 +23,32 @@ import {
 import { useLeaveDeletedEntries, useReturnTo } from '../client/historyEntries';
 import { normalizeClientError } from '../client/problemDetails';
 import {
-  settleEditorHistory,
-  useEditorHistoryEntry,
-} from '../client/useEditorHistoryEntry';
-import {
   canConfirmRelatedPersonDelete,
   INITIAL_RELATED_PERSON_DELETE_CHOICE,
   type RelatedPersonDeleteChoice,
   type RelatedPersonDeletePolicyValue,
   relatedPersonDeleteReducer,
 } from '../client/relatedPersonDelete';
+import {
+  settleEditorHistory,
+  useEditorHistoryEntry,
+} from '../client/useEditorHistoryEntry';
 import { useRelatedPersonAvatarUrl } from '../client/useRelatedPersonAvatarUrl';
 import { useTranslation } from '../i18n';
 import { AddActionLink } from './AddAction';
 import { AvatarPhoto } from './AvatarPhoto';
 import { DestinationIcon } from './DestinationIcon';
+import {
+  ItemMenuOption,
+  ItemMenuSheet,
+  ItemMenuTrigger,
+  leaveItemMenu,
+} from './ItemActions';
+import type { ShortTaskSheetHandle } from './ShortTaskSheet';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { RelatedPersonEditorSheet } from './RelatedPersonEditorSheet';
-import { ShortTaskSheet } from './ShortTaskSheet';
-import { TaskBackLink } from './TaskBackButton';
+import { BackSlotHost, TaskBackLink } from './TaskBackButton';
 import { UiState } from './UiState';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 import './RelatedPeoplePage.css';
@@ -62,6 +69,7 @@ function PersonPhoto({
     attachmentsApi,
     spaceId,
     person.avatarAttachmentId,
+    person.visibility === ContentVisibility.SHARED,
   );
   return (
     <AvatarPhoto
@@ -291,6 +299,8 @@ export function RelatedPeoplePage({
     null,
   );
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
   const [pendingFocus, setPendingFocus] = useState<DeleteFocusTarget | null>(
     null,
   );
@@ -518,22 +528,18 @@ export function RelatedPeoplePage({
         ) : null}
         {person ? (
           <>
-            <div className="people-profile-actions">
-              <Link
-                className="button-link tertiary compact-action"
-                to={`${personPath(person.id)}/edit`}
-                state={originState}
-              >
-                {t('people.edit')}
-              </Link>
-              <button
-                type="button"
-                className="tertiary icon-only"
-                aria-label={t('people.moreActions')}
-                onClick={() => setMenuOpen(true)}
-              >
-                <span aria-hidden="true">⋯</span>
-              </button>
+            {/* One named item: Back, type label and actions share the row (#1907 C4). */}
+            <div className="page-heading-item-row people-profile-item-row">
+              <BackSlotHost />
+              <p className="page-heading-item-label">{t('people.itemLabel')}</p>
+              <div className="page-heading-item-action people-profile-actions">
+                <ItemMenuTrigger
+                  triggerRef={menuTrigger}
+                  label={t('people.menuLabel', { name: person.displayName })}
+                  open={menuOpen}
+                  onOpen={() => setMenuOpen(true)}
+                />
+              </div>
             </div>
             <div className="people-profile-hero">
               <PersonPhoto
@@ -553,9 +559,9 @@ export function RelatedPeoplePage({
                 {t('people.updated')}
               </p>
             ) : null}
-            <section className="people-profile-birthday">
-              <h2>{t('people.birthdayLabel')}</h2>
-              {person.birthday ? (
+            {person.birthday ? (
+              <section className="people-profile-birthday">
+                <h2>{t('people.birthdayLabel')}</h2>
                 <Link
                   className="people-birthday-link"
                   to={`/plan#dates`}
@@ -569,37 +575,62 @@ export function RelatedPeoplePage({
                     ›
                   </span>
                 </Link>
-              ) : (
-                <AddActionLink
-                  label={t('people.addBirthday')}
-                  to={`${personPath(person.id)}/edit`}
-                  state={originState}
-                />
-              )}
-            </section>
+              </section>
+            ) : null}
             {person.note ? (
               <section className="people-profile-note">
                 <h2>{t('people.noteTitle')}</h2>
                 <p>{person.note}</p>
               </section>
             ) : null}
-            <ShortTaskSheet
+            <ItemMenuSheet
               open={menuOpen}
               title={person.displayName}
+              restoreFocusRef={menuTrigger}
+              sheetRef={menuSheet}
               onClose={() => setMenuOpen(false)}
             >
-              <button
-                type="button"
-                className="tertiary danger"
+              <ItemMenuOption
+                icon="pen"
+                title={t('people.edit')}
+                onClick={() =>
+                  leaveItemMenu(
+                    menuSheet,
+                    () =>
+                      void navigate(`${personPath(person.id)}/edit`, {
+                        state: originState,
+                      }),
+                    () => setMenuOpen(false),
+                  )
+                }
+              />
+              {person.birthday ? null : (
+                <ItemMenuOption
+                  icon="geburtstag"
+                  title={t('people.addBirthday')}
+                  onClick={() =>
+                    leaveItemMenu(
+                      menuSheet,
+                      () =>
+                        void navigate(`${personPath(person.id)}/edit`, {
+                          state: originState,
+                        }),
+                      () => setMenuOpen(false),
+                    )
+                  }
+                />
+              )}
+              <ItemMenuOption
+                icon="trash"
+                danger
+                title={t('people.lifecycleTitle')}
                 onClick={() => {
                   setMenuOpen(false);
                   setDeleteTarget(person);
                   remove.reset();
                 }}
-              >
-                {t('people.lifecycleTitle')}
-              </button>
-            </ShortTaskSheet>
+              />
+            </ItemMenuSheet>
           </>
         ) : null}
         {deleteTarget ? (

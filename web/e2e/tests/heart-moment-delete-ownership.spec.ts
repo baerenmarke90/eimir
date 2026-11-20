@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import {
   expect,
   type Page,
@@ -7,9 +7,8 @@ import {
   test,
 } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
-import navigation from '../../src/i18n/locales/navigation';
 import storyProducts from '../../src/i18n/locales/storyProducts';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { deleteViaMenu, itemMenuTrigger } from '../support/itemMenu';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -114,10 +113,8 @@ async function openJourney(
       .getByRole('link', { name: /Thinking of you/ })
       .click();
   }
-  await page.getByRole('link', { name: copy.edit, exact: true }).click();
-  await expect(
-    page.getByRole('textbox', { name: copy.textLabel, exact: true }),
-  ).toHaveValue(resource.text);
+  // Deletion starts from the item menu of the detail page, not from the editor.
+  await expect(itemMenuTrigger(page)).toBeVisible();
   return {
     deletes,
     unknown,
@@ -143,50 +140,50 @@ async function openJourney(
   };
 }
 
+function deleteSheetButton(page: Page, name: string) {
+  return page
+    .getByRole('alertdialog')
+    .getByRole('button', { name, exact: true });
+}
+
+/** Opens the confirmation twice: the first time it is cancelled without effect. */
+async function startDelete(page: Page) {
+  await deleteViaMenu(page, copy.delete);
+  await expect(page.getByRole('alertdialog')).toBeVisible();
+  await deleteSheetButton(page, de.common.cancel).click();
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  await deleteViaMenu(page, copy.delete);
+  await expect(page.getByRole('alertdialog')).toBeVisible();
+}
+
 async function confirm(page: Page) {
-  await page.getByRole('button', { name: copy.delete, exact: true }).click();
-  await page
-    .getByRole('button', { name: copy.deleteCancel, exact: true })
-    .click();
-  await page.getByRole('button', { name: copy.delete, exact: true }).click();
-  await page
-    .getByRole('button', { name: copy.deleteConfirm, exact: true })
-    .focus();
+  await deleteSheetButton(page, copy.deleteConfirm).focus();
   await page.keyboard.press('Enter');
 }
 
 async function inspect(page: Page, info: TestInfo, name: string) {
-  const geometry = await page
-    .locator('.product-editor-page')
-    .evaluate((root) => {
-      const bounds = root.getBoundingClientRect();
-      return {
-        overflow: document.documentElement.scrollWidth - innerWidth,
-        controls: [
-          ...root.querySelectorAll(
-            '.composer-header button, .composer-header a, .form-grid textarea, .form-grid input:not([type="file"]):not([type="checkbox"]):not([type="radio"]):not([aria-hidden="true"]), .file-picker, .file-picker strong, .form-actions > *, .memory-delete-confirmation, .memory-delete-confirmation button',
-          ),
-        ]
-          // Empty tag inputs stay mounted while their disclosure is closed.
-          .filter((element) => element.getClientRects().length > 0)
-          .map((element) => {
-            const box = element.getBoundingClientRect();
-            return {
-              left: box.left - bounds.left,
-              right: bounds.right - box.right,
-              height: box.height,
-              interactive: element.matches(
-                'button,a,input,textarea,.button-link,.file-picker',
-              ),
-            };
-          }),
-      };
-    });
+  const geometry = await page.getByRole('alertdialog').evaluate((dialog) => {
+    const viewportWidth = document.documentElement.clientWidth;
+    return {
+      overflow: document.documentElement.scrollWidth - innerWidth,
+      controls: [...dialog.querySelectorAll('.form-actions > *')].map(
+        (element) => {
+          const box = element.getBoundingClientRect();
+          return {
+            left: box.left,
+            right: viewportWidth - box.right,
+            height: box.height,
+          };
+        },
+      ),
+    };
+  });
   expect(geometry.overflow).toBeLessThanOrEqual(1);
+  expect(geometry.controls.length).toBeGreaterThan(0);
   for (const control of geometry.controls) {
     expect(control.left).toBeGreaterThanOrEqual(0);
     expect(control.right).toBeGreaterThanOrEqual(0);
-    if (control.interactive) expect(control.height).toBeGreaterThanOrEqual(44);
+    expect(control.height).toBeGreaterThanOrEqual(44);
   }
   expect(
     (
@@ -219,87 +216,53 @@ for (const profile of [
       await page.locator('html').evaluate((element) => {
         element.style.fontSize = '200%';
       });
-    await page
-      .getByRole('textbox', { name: copy.textLabel, exact: true })
-      .fill('A later draft belongs to this editor.');
+    await startDelete(page);
     await confirm(page);
-    await expect(
-      page.getByRole('button', { name: copy.deleting, exact: true }),
-    ).toBeDisabled();
-    await expect(
-      page.getByRole('button', { name: copy.save, exact: true }),
-    ).toBeDisabled();
+    await expect(deleteSheetButton(page, copy.deleting)).toBeDisabled();
     await state.respond(503);
     await expect(
       page.getByText(de.states.server.title, { exact: true }),
     ).toBeVisible();
-    await expect(
-      page.getByRole('textbox', { name: copy.textLabel, exact: true }),
-    ).toHaveValue('A later draft belongs to this editor.');
+    // The failed request keeps the confirmation open for a deliberate retry.
+    await expect(deleteSheetButton(page, copy.deleteConfirm)).toBeEnabled();
     await inspect(
       page,
       info,
       `heart-delete-failure-${profile.width}-${profile.theme}-${profile.visibility}`,
     );
-    await page
-      .getByRole('button', { name: copy.deleteConfirm, exact: true })
-      .click();
-    await expect(
-      page.getByRole('button', { name: copy.deleting, exact: true }),
-    ).toBeDisabled();
+    await deleteSheetButton(page, copy.deleteConfirm).click();
+    await expect(deleteSheetButton(page, copy.deleting)).toBeDisabled();
     await inspect(
       page,
       info,
       `heart-delete-pending-${profile.width}-${profile.theme}-${profile.visibility}`,
     );
     if ('returnPending' in profile) {
-      await page
-        .getByRole('link', { name: taskBoundary.back, exact: true })
-        .click();
-      await expect(page.locator('.visibility-shared')).toBeVisible();
-      await expect(
-        page.getByRole('button', { name: copy.makePrivate, exact: true }),
-      ).toHaveCount(0);
-      await page.getByRole('link', { name: copy.edit, exact: true }).click();
-      await expect(page.locator('.composer-audience > button')).toBeDisabled();
-      await expect(
-        page.getByRole('button', { name: copy.deleting, exact: true }),
-      ).toBeDisabled();
-      await expect(
-        page.getByRole('button', { name: copy.save, exact: true }),
-      ).toBeDisabled();
+      // While the request is pending the confirmation cannot be left through
+      // the browser's Back: the task stays open and the delete stays pending.
+      await page.goBack();
+      await expect(page).toHaveURL(new RegExp(`${detailPath}$`));
+      await expect(page.getByRole('alertdialog')).toBeVisible();
+      await expect(deleteSheetButton(page, copy.deleting)).toBeDisabled();
       await inspect(page, info, 'heart-delete-return-pending-390-light');
     }
-    await page
-      .getByRole('link', { name: taskBoundary.back, exact: true })
-      .click();
-    await expect(page).toHaveURL(new RegExp(`${detailPath}$`));
-    await page
-      .getByRole('link', { name: navigation.more, exact: true })
-      .click();
-    await expect(
-      page.getByRole('heading', { name: de.more.title }),
-    ).toBeVisible();
     const response = page.waitForResponse(
       (r) => r.request().method() === 'DELETE' && r.status() === 204,
     );
     await state.respond(204);
     await response;
+    // The confirmed delete leaves the deleted entry for the Timeline.
+    await expect(page).toHaveURL(/\/story(\?tab=timeline)?$/);
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
     await expect(
-      page.getByRole('heading', { name: de.more.title }),
+      page.getByRole('heading', { name: de.story.timelineTitle, exact: true }),
     ).toBeVisible();
     await captureScreenshot(
       page,
       info,
-      `heart-delete-other-task-${profile.width}-${profile.theme}-${profile.visibility}.png`,
+      `heart-delete-settled-${profile.width}-${profile.theme}-${profile.visibility}.png`,
       { fullPage: true },
     );
-    await page
-      .getByRole('link', { name: navigation.story, exact: true })
-      .click();
-    await expect(
-      page.getByRole('heading', { name: de.story.timelineTitle, exact: true }),
-    ).toBeVisible();
     await expect(page.locator(`a[href="${detailPath}"]`)).toHaveCount(0);
     expect(state.deletes).toEqual(['1', '1']);
     expect(state.unknown).toEqual([]);
@@ -314,32 +277,20 @@ for (const theme of ['light', 'dark'] as const) {
     await page.setViewportSize({ width: 360, height: 900 });
     await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
     const state = await openJourney(page);
-    await page
-      .getByRole('textbox', { name: copy.textLabel, exact: true })
-      .fill('Keep this offline thought.');
+    // The menu is offered online only, so the confirmation opens first.
+    await startDelete(page);
     await context.setOffline(true);
     await confirm(page);
     await expect(
       page.getByText(de.states.offline.title, { exact: true }),
     ).toBeVisible();
-    await expect(
-      page.getByRole('textbox', { name: copy.textLabel, exact: true }),
-    ).toHaveValue('Keep this offline thought.');
-    await expect(
-      page.getByRole('button', { name: copy.deleteConfirm, exact: true }),
-    ).toBeEnabled();
+    await expect(deleteSheetButton(page, copy.deleteConfirm)).toBeEnabled();
     await inspect(page, info, `heart-delete-offline-360-${theme}`);
     await context.setOffline(false);
-    await expect(
-      page.getByRole('button', { name: copy.deleteConfirm, exact: true }),
-    ).toBeEnabled();
+    await expect(deleteSheetButton(page, copy.deleteConfirm)).toBeEnabled();
     expect(state.deletes).toEqual([]);
-    await page
-      .getByRole('button', { name: copy.deleteConfirm, exact: true })
-      .click();
-    await expect(
-      page.getByRole('button', { name: copy.deleting, exact: true }),
-    ).toBeDisabled();
+    await deleteSheetButton(page, copy.deleteConfirm).click();
+    await expect(deleteSheetButton(page, copy.deleting)).toBeDisabled();
     await state.respond(204);
     // Deleting returns to the Timeline scope the item was opened from (#1907).
     await expect(page).toHaveURL(/\/story\?tab=timeline$/);

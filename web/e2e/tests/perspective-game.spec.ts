@@ -1,11 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import { WHO_OF_US_QUESTION_IDS } from '../../src/client/whoOfUsSession';
 import de from '../../src/i18n/locales/de';
 import games from '../../src/i18n/locales/games';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 import { renderedContrast } from '../support/renderedContrast';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -64,6 +65,8 @@ async function installMocks(page: Page) {
       version: 0,
     },
     [`${SPACE_PATH}/notifications/unread-count`]: { unreadCount: 0 },
+    // #2048: no game at a distance is open.
+    [`${SPACE_PATH}/games/who-of-us`]: { game: null },
   };
   for (const [id, displayName] of [
     [ACCOUNT_ID, 'Lea'],
@@ -109,6 +112,7 @@ async function installMocks(page: Page) {
       await route.fulfill({ json: responses[pathname] });
       return;
     }
+    if (await fulfillNoOccasionSources(route)) return;
     unexpected.push(`${request.method()} ${pathname}`);
     await route.fulfill({
       status: 500,
@@ -116,6 +120,16 @@ async function installMocks(page: Page) {
     });
   });
   return { unexpected, writes };
+}
+
+/** #2048: the play-mode choice comes first; this journey plays on one phone. */
+async function playTogether(page: Page) {
+  // The card is the tap target; the radio itself is visually hidden.
+  await page.getByText(games.playMode.together, { exact: true }).click();
+  await expect(
+    page.getByRole('radio', { name: new RegExp(games.playMode.together) }),
+  ).toBeChecked();
+  await page.getByRole('button', { name: games.playMode.start }).click();
 }
 
 async function openGames(page: Page) {
@@ -240,6 +254,7 @@ for (const scenario of cases) {
       });
     }
     await start.click();
+    await playTogether(page);
     const total = WHO_OF_US_QUESTION_IDS.length;
     for (let round = 0; round < total; round += 1) {
       const first = round % 2 === 0 ? 'Lea' : 'Alex';
@@ -384,6 +399,7 @@ for (const scenario of cases) {
     await page.getByRole('button', { name: copy.back, exact: true }).click();
     await expect(start).toBeVisible();
     await start.click();
+    await playTogether(page);
     await expect(
       page.getByText(localized(copy.round, { current: 1, total })),
     ).toBeVisible();
@@ -420,6 +436,7 @@ for (const theme of ['light', 'dark'] as const) {
         `${width}px game entry stays anchored on hover`,
       ).toBe('none');
       await start.click();
+      await playTogether(page);
       await expect(page.locator('#who-of-us-question-title')).toBeVisible();
       const back = page.getByRole('button', { name: copy.back, exact: true });
       await expect(back).toBeVisible();
@@ -474,6 +491,7 @@ for (const theme of ['light', 'dark'] as const) {
       await back.press('Enter');
       await expect(start).toBeVisible();
       await start.click();
+      await playTogether(page);
       await expect(
         page.getByText(
           localized(copy.round, {

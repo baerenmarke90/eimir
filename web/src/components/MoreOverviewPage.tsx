@@ -1,17 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
-import { type ReactNode, useId } from 'react';
+import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { loadInstanceAccessStatus } from '../client/instanceStatus';
 import { PRIVATE_AREA_ROOT_PATH } from '../client/privateArea';
-import { useProductTour } from '../client/productTour';
 import { useHideProFeatureMarks } from '../client/proPresentation';
 import { useRootTabIntro } from '../client/rootTabIntro';
 import {
   ACTIVITY_ROUTE,
   type AppRouteIcon,
   appRoutePath,
-  MORE_COLLECTIONS_ROUTE,
   MORE_INSIGHTS_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PEOPLE_ROUTE,
@@ -94,12 +92,6 @@ const STORY_DESTINATIONS: readonly MoreDestination[] = [
 ];
 
 const EVERYDAY_DESTINATIONS: readonly MoreDestination[] = [
-  {
-    path: MORE_COLLECTIONS_ROUTE,
-    icon: 'collections',
-    titleKey: 'more.destinations.lists',
-    subtitleKey: 'more.subtitles.lists',
-  },
   {
     path: MORE_PLACES_ROUTE,
     icon: 'places',
@@ -235,6 +227,62 @@ function MoreDestinationGroup({
   );
 }
 
+/** How long the confirmation replaces the action label. */
+const ACCOUNT_ID_FEEDBACK_MS = 2400;
+
+/**
+ * A quiet way to hand one's account ID to support. Operators find an account
+ * by this ID, not by a person's name, so the name can stay protected content
+ * (#797). The ID itself is not shown; it only appears, selectable, when the
+ * device cannot copy.
+ */
+function AccountIdCopy({ accountId }: { accountId: string }) {
+  const { t } = useTranslation();
+  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const reset = useRef<number | undefined>(undefined);
+
+  useEffect(() => () => window.clearTimeout(reset.current), []);
+
+  async function copy() {
+    window.clearTimeout(reset.current);
+    try {
+      if (!navigator.clipboard?.writeText)
+        throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(accountId);
+      setState('copied');
+      reset.current = window.setTimeout(
+        () => setState('idle'),
+        ACCOUNT_ID_FEEDBACK_MS,
+      );
+    } catch {
+      setState('failed');
+    }
+  }
+
+  return (
+    <div className="more-account-id">
+      <button
+        type="button"
+        className="more-account-id-action"
+        onClick={() => void copy()}
+      >
+        {t(
+          state === 'copied' ? 'more.accountId.copied' : 'more.accountId.copy',
+        )}
+      </button>
+      <span className="sr-only" role="status">
+        {state === 'copied' ? t('more.accountId.copied') : ''}
+      </span>
+      {state === 'failed' ? (
+        <p className="more-account-id-fallback" role="alert">
+          <span>{t('more.accountId.failed')}</span>
+          <code>{accountId}</code>
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function MoreOverviewPage({
   apiBaseUrl,
   accessToken,
@@ -246,9 +294,8 @@ export function MoreOverviewPage({
   account: AccountView;
   spaceId: string;
 }) {
-  const rootIntro = useRootTabIntro('more');
+  const rootIntro = useRootTabIntro<HTMLDivElement>('more');
   const { t } = useTranslation();
-  const { replay } = useProductTour();
   const { unreadCount, serverAdmin, onLogout } = useShellUtilities();
   // Shares App's cached public instance status; Self-Hosted publishes no terms.
   const instanceStatus = useQuery({
@@ -270,10 +317,7 @@ export function MoreOverviewPage({
   };
 
   return (
-    <div
-      className="page more-page"
-      data-root-intro={rootIntro ? 'true' : undefined}
-    >
+    <div className="page more-page" ref={rootIntro}>
       <PageHeader
         variant="root"
         className="content-overview-heading"
@@ -347,20 +391,6 @@ export function MoreOverviewPage({
               destination={destination}
             />
           ))}
-          <li>
-            <button
-              type="button"
-              className="more-destination more-destination-button"
-              onClick={replay}
-            >
-              <span className="more-destination-icon" aria-hidden="true">
-                <DestinationIcon icon="story" />
-              </span>
-              <span className="more-destination-copy">
-                <strong>{t('productTour.replay')}</strong>
-              </span>
-            </button>
-          </li>
         </MoreDestinationGroup>
         {serverAdmin ? (
           <MoreDestinationGroup title={t('navigation.operatorArea')}>
@@ -375,12 +405,15 @@ export function MoreOverviewPage({
         ) : null}
       </div>
       <footer className="more-footer">
-        {onLogout ? (
-          <button type="button" className="more-logout" onClick={onLogout}>
-            <EimirIcon name="logout" />
-            <span>{t('header.logout')}</span>
-          </button>
-        ) : null}
+        <div className="more-account-actions">
+          {onLogout ? (
+            <button type="button" className="more-logout" onClick={onLogout}>
+              <EimirIcon name="logout" />
+              <span>{t('header.logout')}</span>
+            </button>
+          ) : null}
+          <AccountIdCopy accountId={account.id} />
+        </div>
         {cloudLegalDocumentsApply(instanceStatus.data?.termsOfUseVersion) ? (
           <LegalFooterLinks className="more-legal" />
         ) : null}

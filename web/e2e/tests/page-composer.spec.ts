@@ -1,6 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import AxeBuilder from '@axe-core/playwright';
 import {
   expect,
   type Locator,
@@ -9,7 +8,6 @@ import {
   test,
 } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
-import planFiles from '../../src/i18n/locales/planFiles';
 import contextTags from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
@@ -19,10 +17,18 @@ import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoPlaces from '../../src/i18n/locales/photoPlaces';
 import photoReactions from '../../src/i18n/locales/photoReactions';
 import photoSources from '../../src/i18n/locales/photoSources';
+import planFiles from '../../src/i18n/locales/planFiles';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
+import sharedNotes from '../../src/i18n/locales/sharedNotes';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import voiceNotes from '../../src/i18n/locales/voiceNotes';
+import AxeBuilder from '../support/axe';
+import {
+  chooseItemMenuRow,
+  editViaMenu,
+  itemMenuTrigger,
+} from '../support/itemMenu';
 import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
 import { expectQuietComposerMedia } from '../support/mediaDraft';
 import { openComposerMediaSources } from '../support/mediaIntake';
@@ -652,11 +658,14 @@ for (const view of [
       {
         name: 'plan-empty-frame-9',
         path: '/plan/plans/new',
+        // #1969: the Notiz tool collects notes in the draft and links them
+        // after the Plan is saved, so the create frame offers it as well.
         tools: [
           composer.photo,
           planFiles.add,
           composer.place,
           composer.list,
+          sharedNotes.sharedNotes.plan.tool,
           composer.tag,
         ],
       },
@@ -678,6 +687,7 @@ for (const view of [
           planFiles.add,
           composer.place,
           composer.list,
+          sharedNotes.sharedNotes.plan.tool,
           composer.tag,
         ],
         edit: true,
@@ -685,9 +695,7 @@ for (const view of [
     ]) {
       await page.goto(screen.path);
       if ('edit' in screen && screen.edit)
-        await page
-          .getByRole('button', { name: m5s3.common.edit, exact: true })
-          .click();
+        await editViaMenu(page, m5s3.common.edit);
       if (view.large)
         await page.addStyleTag({ content: 'html { font-size: 200%; }' });
       await expect(page.locator('.page-composer').last()).toBeVisible();
@@ -1670,6 +1678,8 @@ test('HeartMoment keeps every feeling visible, tints page and system bar, and re
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const state = await installPageComposerFixture(page);
   await signIn(page);
+  // The browser bar follows the saved app design once it has resolved.
+  await expect(page.locator('html')).toHaveAttribute('data-app-design', /.+/);
   const initialBar = await page
     .locator('meta[name="theme-color"]')
     .getAttribute('content');
@@ -1753,9 +1763,7 @@ test('Plan schedule and linked checklist remain bounded tasks with updated progr
   const state = await installPageComposerFixture(page);
   await signIn(page);
   await page.goto('/plan/plans/composer-plan');
-  await page
-    .getByRole('button', { name: m5s3.common.edit, exact: true })
-    .click();
+  await editViaMenu(page, m5s3.common.edit);
   const editedTitle = 'Evening walk';
   const titleInput = page.locator('#plan-edit-title');
   await titleInput.fill(editedTitle);
@@ -1926,12 +1934,11 @@ test('detail Places restore their map invoker without consuming a later clean ed
       const editorOrigin = await page.evaluate(() => window.scrollY);
       expect(editorOrigin).toBe(0);
       expect(editorOrigin).not.toBe(before);
-      const editLabel = m5s3.common.edit;
-      const edit = page
-        .getByRole('button', { name: editLabel, exact: true })
-        .or(page.getByRole('link', { name: editLabel, exact: true }));
+      // Editing starts from the item menu; closing the editor returns focus
+      // to the menu button that started it.
+      const edit = itemMenuTrigger(page);
       await expect(edit).toBeInViewport();
-      await edit.click();
+      await chooseItemMenuRow(page, m5s3.common.edit);
       await expect(page.locator('.page-composer').last()).toBeVisible();
       const close = page.locator('.composer-header .task-back-control:visible');
       await expect(close).toHaveCount(1);

@@ -48,7 +48,9 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  animation: wir-checkin-badge-in var(--duration-transition)
+  --motion-enter-rise: 6px;
+
+  animation: eimir-motion-enter-rise var(--duration-transition)
     var(--easing-standard) both;
 }
 
@@ -78,6 +80,22 @@
   color: var(--color-brand-text);
 }
 
+/* The pill that lifted off keeps its place, unseen, while its line flies. */
+.wir-checkin-badge[data-flight-source],
+.wir-checkin-prompt[data-flight-source] {
+  visibility: hidden;
+}
+
+/* Once the line has explained the plus, the row stays but shows nothing. */
+.wir-checkin-badge[data-empty] {
+  opacity: 0;
+  visibility: hidden;
+  /* Visibility stays visible for the whole fade and flips at its end. */
+  transition:
+    opacity var(--duration-context) var(--easing-standard),
+    visibility var(--duration-context) var(--easing-standard);
+}
+
 .wir-checkin-lock {
   width: 1rem;
   height: 1rem;
@@ -99,8 +117,8 @@
   box-shadow: 0 0 0 2px var(--color-surface);
   color: var(--color-on-action-primary);
   pointer-events: none;
-  animation: wir-checkin-dot-in var(--duration-context) var(--easing-standard)
-    both;
+  animation: eimir-motion-enter-pop var(--duration-context)
+    var(--easing-standard) both;
 }
 
 .wir-checkin-note-dot .eimir-icon {
@@ -207,7 +225,8 @@
 .wir-checkin-vibe.is-selected .wir-checkin-vibe-circle {
   background: var(--color-action-primary);
   color: var(--color-on-action-primary);
-  animation: wir-checkin-vibe-pop var(--duration-context) var(--easing-standard);
+  animation: eimir-motion-feedback-pop var(--duration-context)
+    var(--easing-standard);
 }
 
 /* The selected face keeps its warm/cool accents legible on the fill. */
@@ -318,6 +337,20 @@
   background: var(--color-surface-subtle);
 }
 
+/* No value yet: no thumb either. A thumb resting at the middle read as a
+   chosen 50 % next to "not set" (#2063); tapping the scale sets the value. */
+.wir-checkin-energy-slider[data-unset="true"]::-webkit-slider-thumb {
+  opacity: 0;
+}
+
+.wir-checkin-energy-slider[data-unset="true"]::-moz-range-thumb {
+  opacity: 0;
+}
+
+.wir-checkin-energy-slider[data-unset="true"]::-moz-range-progress {
+  background: transparent;
+}
+
 .wir-checkin-energy-slider::-moz-range-track {
   height: 6px;
   border-radius: var(--radius-pill);
@@ -389,6 +422,8 @@
 
 .wir-checkin-note-field textarea:disabled {
   opacity: 0.64;
+  cursor: not-allowed;
+  resize: none;
 }
 
 .wir-checkin-note-delete {
@@ -521,35 +556,141 @@
 
 /* ---------- Motion ---------- */
 
-@keyframes wir-checkin-badge-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
+/*
+ * Send flight (Fertig): the chosen values lift out of the sheet and fly to the
+ * own badge. The layer lives in the top layer, above the modal sheet; it is
+ * decoration only. Durations and easings come from the motion roles in the
+ * script, so reduced motion (zero durations) never creates it.
+ */
+.wir-checkin-flight-ghost.is-vibe {
+  --identity-icon-accent: var(--color-on-action-primary);
+
+  width: 3rem;
+  height: 3rem;
+  background: var(--color-action-primary);
+  color: var(--color-on-action-primary);
 }
 
-@keyframes wir-checkin-dot-in {
-  0% {
-    opacity: 0;
-    transform: scale(0.6);
-  }
-  70% {
-    opacity: 1;
-    transform: scale(1.1);
-  }
+.wir-checkin-flight-ghost.is-vibe svg {
+  width: 1.6rem;
+  height: 1.6rem;
 }
 
-@keyframes wir-checkin-vibe-pop {
-  0% {
-    transform: scale(0.9);
-  }
-  60% {
-    transform: scale(1.06);
-  }
+.wir-checkin-flight-ghost.is-energy {
+  padding: 0.4rem 0.8rem;
+  background: var(--color-surface-raised);
+  color: var(--color-brand-text);
+}
+
+.wir-checkin-flight-ghost.is-energy svg {
+  width: 2rem;
+  height: 1.05rem;
+}
+
+.wir-checkin-flight-ghost.is-note {
+  max-width: 12rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: var(--radius-large);
+  background: var(--color-brand-surface);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+/* The control a value lifted from keeps its place, faintly. */
+.wir-checkin-panel-inner [data-flight-source] {
+  opacity: 0.18;
+  transition: opacity var(--duration-transition) var(--easing-standard);
+}
+
+.wir-checkin-slot {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* The old feeling stays visible in its slot while the new one rises, then
+ * shrinks away; the slot itself is invisible until the new one lands. */
+.wir-checkin-farewell {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  visibility: visible;
+  pointer-events: none;
+}
+
+/* Own note on the badge: a small bubble on its corner. */
+.wir-checkin-badge-note {
+  position: absolute;
+  top: -0.45rem;
+  right: -0.45rem;
+  display: grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  box-shadow: 0 0 0 2px var(--color-surface);
+  color: var(--color-on-action-primary);
+}
+
+.wir-checkin-badge-note .eimir-icon {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.wir-checkin-badge [data-flight-hidden="true"] {
+  visibility: hidden;
+}
+
+.wir-checkin-badge [data-flight-landing="true"] {
+  animation: eimir-motion-feedback-land var(--duration-context)
+    var(--easing-standard);
+}
+
+/* Partner arrival: the values rise out of the partner avatar and settle in. */
+.wir-checkin-flight-ghost.is-arrival {
+  background: var(--color-surface-raised);
+  color: var(--color-brand-text);
+}
+
+.wir-checkin-flight-ghost.is-arrival.is-vibe {
+  --identity-icon-accent: var(--color-brand-text);
+
+  background: var(--color-surface-raised);
+  color: var(--color-brand-text);
+}
+
+.wir-checkin-flight-ghost.is-arrival.is-note {
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+  max-width: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  color: var(--color-on-action-primary);
+}
+
+.wir-checkin-flight-ghost.is-arrival.is-note svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.wir-checkin-note-dot[data-flight-hidden="true"] {
+  visibility: hidden;
+}
+
+.wir-checkin-note-dot[data-flight-landing="true"] {
+  animation: eimir-motion-feedback-land var(--duration-context)
+    var(--easing-standard);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .wir-checkin-badge .wir-checkin-badge-content,
+  .wir-checkin-badge [data-flight-landing="true"],
+  .wir-checkin-note-dot[data-flight-landing="true"],
   .wir-checkin-note-dot,
   .wir-checkin-vibe.is-selected .wir-checkin-vibe-circle {
     animation: none;
@@ -557,6 +698,7 @@
 }
 
 @media (forced-colors: active) {
+  .wir-checkin-flight-ghost,
   .wir-checkin-badge,
   .wir-checkin-partner-block {
     border: 1px solid CanvasText;

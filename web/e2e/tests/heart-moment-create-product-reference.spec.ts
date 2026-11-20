@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'node:fs/promises';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import contextTags from '../../src/i18n/locales/contextTags';
@@ -36,6 +36,8 @@ import {
 } from '../support/photoSources';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import { captureScreenshot } from '../support/storyTimelineFixture';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
+import { editViaMenu, itemMenuTrigger } from '../support/itemMenu';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -84,12 +86,7 @@ async function expectHeartDetailContainment(page: Page): Promise<void> {
   }
   const action = await page
     .locator('.composer-audience > button')
-    .or(
-      page.getByRole('link', {
-        name: storyProducts.heartMomentProduct.edit,
-        exact: true,
-      }),
-    )
+    .or(itemMenuTrigger(page))
     .boundingBox();
   expect(action?.width).toBeGreaterThanOrEqual(44);
   expect(action?.height).toBeGreaterThanOrEqual(44);
@@ -417,6 +414,7 @@ async function installApiMocks(page: Page): Promise<string[]> {
       return;
     }
 
+    if (await fulfillNoOccasionSources(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
@@ -539,12 +537,7 @@ async function openVisibilityJourney(page: Page, failSecond = true) {
 }
 
 async function openHeartEditor(page: Page) {
-  await page
-    .getByRole('link', {
-      name: storyProducts.heartMomentProduct.edit,
-      exact: true,
-    })
-    .click();
+  await editViaMenu(page, storyProducts.heartMomentProduct.edit);
   await expect(page).toHaveURL(/\/heart-moments\/[^/]+\/edit$/);
   await expect(
     page.getByLabel(storyProducts.heartMomentProduct.textLabel, {
@@ -587,7 +580,7 @@ for (const exit of ['button', 'browser'] as const) {
     await page.goto('/today');
     await signIn(page);
     await page
-      .getByRole('button', { name: de.story.addMoment, exact: true })
+      .getByRole('button', { name: navigation.quickCreateTitle, exact: true })
       .click();
     await page
       .getByRole('link', {
@@ -620,12 +613,15 @@ for (const exit of ['button', 'browser'] as const) {
       animations: 'disabled',
     });
     await confirmation
-      .getByRole('button', { name: taskBoundary.discard, exact: true })
+      .getByRole('button', { name: taskBoundary.discardConfirm, exact: true })
       .click();
     await expect(page).toHaveURL(/\/today$/);
     await expect(page.locator('dialog[open]')).toHaveCount(0);
     await expect(
-      page.getByRole('button', { name: de.story.addMoment, exact: true }),
+      page.getByRole('button', {
+        name: navigation.quickCreateTitle,
+        exact: true,
+      }),
     ).toBeFocused();
     await page.screenshot({
       path: info.outputPath(`shell-heart-origin-${exit}.png`),
@@ -1287,12 +1283,7 @@ test('custom tag-only Heart Moment survives create, reload, edit and removal (#1
   });
   await page.reload();
   await expect(page.getByText('Ostsee', { exact: true })).toBeVisible();
-  await page
-    .getByRole('link', {
-      name: storyProducts.heartMomentProduct.edit,
-      exact: true,
-    })
-    .click();
+  await editViaMenu(page, storyProducts.heartMomentProduct.edit);
   await showContextTags(page);
   await page
     .getByRole('checkbox', {
@@ -1402,10 +1393,10 @@ test('A contextual Heart Moment returns from a saved tag-only result to Today (#
     await expect(page.locator('.today-page .ui-state-error')).toHaveCount(0);
 
     await page
-      .getByRole('button', { name: de.story.addMoment, exact: true })
+      .getByRole('button', { name: navigation.quickCreateTitle, exact: true })
       .click();
     await expect(
-      page.getByRole('dialog', { name: de.story.addMoment }),
+      page.getByRole('dialog', { name: navigation.quickCreateTitle }),
     ).toBeVisible();
     await page.screenshot({
       path: testInfo.outputPath('shell-heart-quick-create-sheet-390.png'),
@@ -1427,7 +1418,7 @@ test('A contextual Heart Moment returns from a saved tag-only result to Today (#
       .click();
     await expect(page).toHaveURL(/\/today$/);
     await page
-      .getByRole('button', { name: de.story.addMoment, exact: true })
+      .getByRole('button', { name: navigation.quickCreateTitle, exact: true })
       .click();
     await page
       .getByRole('link', {
@@ -1475,7 +1466,10 @@ test('A contextual Heart Moment returns from a saved tag-only result to Today (#
       .click();
     await expect(page).toHaveURL(/\/today$/);
     await expect(
-      page.getByRole('button', { name: de.story.addMoment, exact: true }),
+      page.getByRole('button', {
+        name: navigation.quickCreateTitle,
+        exact: true,
+      }),
     ).toBeFocused();
   } finally {
     await context.close();

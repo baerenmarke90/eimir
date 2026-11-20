@@ -28,6 +28,7 @@ import {
   useLeaveDeletedEntries,
   useReturnTo,
 } from '../client/historyEntries';
+import { occasionsOn } from '../client/occasionMatches';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { normalizeClientError } from '../client/problemDetails';
 import { loadProductWithReadCache } from '../client/productReadCache';
@@ -40,7 +41,9 @@ import {
 } from '../client/routes';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { useItemSheets } from '../client/useItemSheets';
 import { usePlanCaptureSource } from '../client/usePlanCaptureSource';
+import { useSpaceOccasions } from '../client/useSpaceOccasions';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
@@ -49,10 +52,18 @@ import {
   type ComposerDateContextHandle,
 } from './ComposerDateContext';
 import { ExpandableDescription } from './ExpandableDescription';
+import {
+  ItemDeleteSheet,
+  ItemMenuOption,
+  ItemMenuSheet,
+  ItemMenuTrigger,
+  leaveItemMenu,
+} from './ItemActions';
 import { NativeDateField } from './NativeDateField';
+import { OccasionMark } from './OccasionMark';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
-import { StoryDetailEditLink } from './StoryDetailEditLink';
+import type { ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryDetailPageShell } from './StoryDetailPageShell';
 import {
   ComposerHeader,
@@ -119,6 +130,7 @@ export function MilestoneProductPage({
     ?.taskOriginKey;
   const params = useParams();
   const queryClient = useQueryClient();
+  const occasions = useSpaceOccasions(spaceId, currentAccountId);
   const runtime = useApiRuntime();
   const {
     eligibleSourcePlanId,
@@ -152,6 +164,10 @@ export function MilestoneProductPage({
   const dateContextRef = useRef<ComposerDateContextHandle>(null);
   const [createDate, setCreateDate] = useState(localDateInputValue);
   const [createTitle, setCreateTitle] = useState('');
+  const sheets = useItemSheets(milestoneId);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  const deleteSheet = useRef<ShortTaskSheetHandle>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
 
   const milestoneQuery = useQuery({
     queryKey,
@@ -172,6 +188,13 @@ export function MilestoneProductPage({
     enabled: mode !== 'create' && Boolean(milestoneId),
     retry: false,
   });
+
+  // A confirmed delete evicts the read before the confirmation sheet has left;
+  // the page keeps showing the deleted Milestone until that hand-off navigates.
+  const [leaving, setLeaving] = useState(false);
+  const lastRead = useRef(milestoneQuery.data);
+  if (milestoneQuery.data) lastRead.current = milestoneQuery.data;
+  const holdForLeave = leaving && Boolean(lastRead.current);
 
   useStoryViewReceipt({
     apis,
@@ -282,7 +305,7 @@ export function MilestoneProductPage({
   });
 
   const deleteMutation = useStoryDeletion<MilestoneDetail>({
-    active: mode === 'edit',
+    active: mode === 'detail',
     accountId: currentAccountId,
     spaceId,
     resourceId: milestoneId,
@@ -297,15 +320,19 @@ export function MilestoneProductPage({
         milestoneId: milestone.id,
         ifMatch: String(milestone.version),
       }),
-    onDeleted: () =>
-      leaveDeleted(
-        milestoneDetailPath(milestoneId ?? ''),
-        appRoutePath('story'),
-      ),
+    onDeleted: () => {
+      const leave = () =>
+        leaveDeleted(
+          milestoneDetailPath(milestoneId ?? ''),
+          appRoutePath('story'),
+        );
+      setLeaving(true);
+      // The confirmation sheet releases its history entry before leaving.
+      if (deleteSheet.current) deleteSheet.current.closeForNavigation(leave);
+      else leave();
+    },
   });
   const deleting = deleteMutation.isPending;
-  const { confirming: confirmDelete, setConfirming: setConfirmDelete } =
-    deleteMutation;
 
   if (mode === 'create') {
     function submitCreate(event: FormEvent<HTMLFormElement>) {
@@ -445,10 +472,10 @@ export function MilestoneProductPage({
       />
     );
   }
-  if (milestoneQuery.isLoading) {
+  if (milestoneQuery.isLoading && !holdForLeave) {
     return <UiState kind="loading" title={t('milestoneProduct.loading')} />;
   }
-  if (milestoneQuery.error) {
+  if (milestoneQuery.error && !holdForLeave) {
     return (
       <ProblemState
         error={milestoneQuery.error}
@@ -456,7 +483,8 @@ export function MilestoneProductPage({
       />
     );
   }
-  const result = milestoneQuery.data;
+  const result =
+    milestoneQuery.data ?? (holdForLeave ? lastRead.current : undefined);
   if (!result) return null;
   const milestone = result.value;
   const offline = result.source === 'cache';
@@ -536,7 +564,6 @@ export function MilestoneProductPage({
                 to={milestoneDetailPath(milestone.id)}
                 state={{ taskOriginKey: originKey }}
                 onClick={(event) => {
-                  setConfirmDelete(false);
                   if (
                     event.button !== 0 ||
                     event.metaKey ||
@@ -575,64 +602,22 @@ export function MilestoneProductPage({
           {updateMutation.error ? (
             <ProblemState error={updateMutation.error} />
           ) : null}
-
-          {milestone.capabilities.canDelete && !offline ? (
-            <div style={{ marginTop: 'var(--space-8)' }}>
-              {!confirmDelete && !deleting ? (
-                <button
-                  type="button"
-                  className="button-link danger-link"
-                  onClick={() => setConfirmDelete(true)}
-                  disabled={updating}
-                >
-                  {t('milestoneProduct.delete')}
-                </button>
-              ) : (
-                <section
-                  className="memory-danger-zone memory-delete-confirmation"
-                  aria-label={t('milestoneProduct.delete')}
-                  role="alert"
-                >
-                  <div>
-                    <h2>{t('milestoneProduct.deleteConfirmTitle')}</h2>
-                    <p>{t('milestoneProduct.deleteConfirmBody')}</p>
-                  </div>
-                  <div className="memory-actions">
-                    <button
-                      type="button"
-                      className="tertiary"
-                      onClick={() => setConfirmDelete(false)}
-                      disabled={deleting}
-                    >
-                      {t('milestoneProduct.deleteCancel')}
-                    </button>
-                    <button
-                      type="button"
-                      className="danger"
-                      onClick={() => deleteMutation.mutate(milestone)}
-                      disabled={deleteMutation.isBlocked}
-                    >
-                      {deleting
-                        ? t('milestoneProduct.deleting')
-                        : t('milestoneProduct.deleteConfirm')}
-                    </button>
-                  </div>
-                </section>
-              )}
-              {deleteMutation.error ? (
-                <ProblemState error={deleteMutation.error} />
-              ) : null}
-            </div>
-          ) : null}
         </>
       </StoryEditorPageShell>
     );
   }
 
+  const mayEdit = milestone.capabilities.canEdit && !offline;
+  const mayDelete = milestone.capabilities.canDelete && !offline;
   const happenedOn = milestone.happenedOn;
   const dateLine = happenedOn
     ? `${formatDateOnly(happenedOn)} · ${formatRelativeElapsed(happenedOn, resolvedLocale())}`
     : undefined;
+  // Who recorded it is background; it sits in the item menu, not the page.
+  const provenance = t('milestoneProduct.provenance', {
+    author: storyAuthorLabel(milestone.author, currentAccountId, nicknameFor),
+    createdAt: formatCreatedAt(milestone.createdAt),
+  });
 
   return (
     <StoryDetailPageShell
@@ -641,14 +626,12 @@ export function MilestoneProductPage({
       }
       title={t('milestoneProduct.detailEyebrow')}
       titleAction={
-        milestone.capabilities.canEdit && !offline ? (
-          <StoryDetailEditLink
-            text
-            to={milestoneEditPath(milestone.id)}
-            label={t('milestoneProduct.edit')}
-            state={{ taskOriginKey: originKey }}
-          />
-        ) : undefined
+        <ItemMenuTrigger
+          triggerRef={menuTrigger}
+          label={t('milestoneProduct.menu')}
+          open={sheets.menuOpen}
+          onOpen={() => sheets.show('menu')}
+        />
       }
       metadata={
         <div className="detail-headline">
@@ -656,6 +639,7 @@ export function MilestoneProductPage({
           <div className="milestone-hero">
             <span className="milestone-hero-icon" aria-hidden="true">
               <svg
+                className="inline-icon"
                 viewBox="0 0 24 24"
                 width="20"
                 height="20"
@@ -669,6 +653,15 @@ export function MilestoneProductPage({
               <p className="milestone-hero-date">{dateLine}</p>
             ) : null}
           </div>
+          <OccasionMark
+            matches={occasionsOn(
+              milestone.happenedOn,
+              null,
+              occasions,
+              resolvedLocale(),
+            )}
+            revealKey={`milestone:${milestone.id}`}
+          />
         </div>
       }
       offline={offline}
@@ -714,18 +707,57 @@ export function MilestoneProductPage({
         offline={offline}
       />
 
-      <footer className="milestone-provenance-footer">
-        <p>
-          {t('milestoneProduct.provenance', {
-            author: storyAuthorLabel(
-              milestone.author,
-              currentAccountId,
-              nicknameFor,
-            ),
-            createdAt: formatCreatedAt(milestone.createdAt),
-          })}
-        </p>
-      </footer>
+      <ItemMenuSheet
+        open={sheets.menuOpen}
+        title={t('milestoneProduct.detailEyebrow')}
+        restoreFocusRef={menuTrigger}
+        sheetRef={menuSheet}
+        onClose={() => sheets.close('menu')}
+        footnote={provenance}
+      >
+        {mayEdit ? (
+          <ItemMenuOption
+            icon="pen"
+            title={t('milestoneProduct.edit')}
+            onClick={() =>
+              leaveItemMenu(
+                menuSheet,
+                () =>
+                  void navigate(milestoneEditPath(milestone.id), {
+                    state: { taskOriginKey: originKey },
+                  }),
+                sheets.closeAll,
+              )
+            }
+          />
+        ) : null}
+        {mayDelete ? (
+          <ItemMenuOption
+            icon="trash"
+            danger
+            title={t('milestoneProduct.delete')}
+            disabled={deleteMutation.isBlocked}
+            onClick={() => {
+              deleteMutation.reset();
+              sheets.show('delete');
+            }}
+          />
+        ) : null}
+      </ItemMenuSheet>
+
+      <ItemDeleteSheet
+        sheetRef={deleteSheet}
+        open={sheets.deleteOpen}
+        title={t('milestoneProduct.deleteConfirmTitle')}
+        body={t('milestoneProduct.deleteConfirmBody')}
+        confirmLabel={t('milestoneProduct.deleteConfirm')}
+        pendingLabel={t('milestoneProduct.deleting')}
+        pending={deleteMutation.isPending}
+        error={deleteMutation.error}
+        restoreFocusRef={menuTrigger}
+        onClose={() => sheets.close('delete')}
+        onConfirm={() => deleteMutation.mutate(milestone)}
+      />
     </StoryDetailPageShell>
   );
 }

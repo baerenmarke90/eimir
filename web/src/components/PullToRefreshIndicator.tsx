@@ -21,13 +21,12 @@ export function PullToRefreshIndicator({
       >
         <span className="app-pull-refresh-disc">
           <svg
-            className="app-pull-refresh-icon"
+            className={`app-pull-refresh-icon inline-icon${state.refreshing ? ' eimir-motion-loading-spin' : ''}`}
             viewBox="0 0 24 24"
             width="18"
             height="18"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
             aria-hidden="true"

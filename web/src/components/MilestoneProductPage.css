@@ -74,15 +74,3 @@
   font-size: 1.1rem;
   line-height: 1.55;
 }
-
-.milestone-product-page .milestone-provenance-footer {
-  margin-block-start: 0;
-  padding-block-start: 0;
-  border-top: 0;
-  text-align: start;
-}
-
-.milestone-product-page .milestone-provenance-footer p {
-  color: var(--color-text-secondary);
-  font: var(--font-supporting-copy);
-}

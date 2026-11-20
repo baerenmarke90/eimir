@@ -365,9 +365,11 @@ def add_member(session: Session, space_id: UUID, account: Account) -> Membership
     session.add(membership)
     session.flush()
     _ensure_partner_profile(session, space_id, account.id)
+    from eimir.plugins import lifecycle as plugin_lifecycle
     from eimir.wish_selections.service import purge_space
 
     purge_space(session, space_id)
+    plugin_lifecycle.partner_joined(session, space_id)
     return membership
 
 
@@ -385,8 +387,10 @@ def end_membership(
     from eimir.create_receipts import service as shared_create_receipts
     from eimir.engagement import gentle
     from eimir.memories import create_receipts
+    from eimir.plugins import lifecycle as plugin_lifecycle
     from eimir.story import view_service
     from eimir.wish_selections.service import purge_space
+    from eimir.wishes import date_proposals as wish_date_proposals
     from eimir.wishes import reminders as wish_reminders
 
     gentle.purge_space_member(session, membership.account_id, membership.space_id)
@@ -408,10 +412,9 @@ def end_membership(
         space_id=membership.space_id,
         account_id=membership.account_id,
     )
-    from eimir.once_messages import service as once_messages
-
-    once_messages.purge_space(session, membership.space_id)
+    plugin_lifecycle.membership_ended(session, membership.space_id, membership.account_id)
     purge_space(session, membership.space_id)
+    wish_date_proposals.purge_space(session, membership.space_id)
     membership.status = MembershipStatus.REMOVED.value if removed else MembershipStatus.LEFT.value
     membership.ended_at = now()
 

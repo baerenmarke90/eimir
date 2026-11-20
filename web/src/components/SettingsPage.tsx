@@ -15,8 +15,8 @@ import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
 import {
-  appUpdatesAvailable,
   type AppUpdatesAdapter,
+  appUpdatesAvailable,
 } from '../client/appUpdates';
 import { isDemoModeConfigured } from '../client/demoMode';
 import type { DevicePushController } from '../client/devicePush';
@@ -36,21 +36,23 @@ import {
   PartnerBirthdayReminderSettings,
 } from './AnniversaryReminderSettings';
 import { AppUpdatesPanel } from './AppUpdatesPanel';
+import { CalendarSyncSettings } from './CalendarSyncSettings';
 import { DailyQuoteSettingsPanel } from './DailyQuoteSettingsPanel';
 import { DashboardSettingsPanel } from './DashboardSettingsPanel';
+import { GoogleAccountSettings } from './GoogleAccountSettings';
 import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 import { OccasionHolidaySettings } from './OccasionHolidaySettings';
 import { PageHeader } from './PageHeader';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
 import { WirDashboardSettingsPanel } from './PartnerDistanceWirSetting';
 import { PartnerLocationSettingsEntry } from './PartnerLocationSettingsEntry';
-import { GoogleAccountSettings } from './GoogleAccountSettings';
-import { CalendarSyncSettings } from './CalendarSyncSettings';
 import { PhotoSourceSettingsPanel } from './PhotoSourceSettingsPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
 import { RelationshipSettingsSection } from './ProfilePageBase';
-import { ProInformationPanel } from './ProInformationPanel';
-import { SettingsIndex } from './SettingsIndex';
+import { ProSettingsRow } from './ProSettingsRow';
+import { SettingsIndexLive } from './SettingsIndexLive';
+import { SettingsScopeNote } from './SettingsScopeNote';
+import { SignInMethodsPanel } from './SignInMethodsPanel';
 import { SpaceConfigurationPanel } from './SpaceConfigurationPanel';
 import { SpaceOffboardingPanel } from './SpaceOffboardingPanel';
 import { TransferPanel } from './TransferPanel';
@@ -162,12 +164,18 @@ export function SettingsPage(props: SettingsPageProps) {
           accountId={props.account.id}
           spaceId={props.spaceId}
         />
+        <PartnerConnectionPanel {...props} />
+      </div>
+    );
+  } else if (categoryId === 'shared') {
+    categoryContent = (
+      <div className="settings-category-content settings-shared-features">
+        <SettingsScopeNote scope="shared" />
         <SpaceConfigurationPanel
           spacesApi={spacesApi}
           accountId={props.account.id}
           spaceId={props.spaceId}
         />
-        <PartnerConnectionPanel {...props} />
       </div>
     );
   } else if (categoryId === 'notifications') {
@@ -177,6 +185,7 @@ export function SettingsPage(props: SettingsPageProps) {
         className="settings-category-content settings-functional-panel"
         aria-label={t('profileIdentity.settingsNotifications')}
       >
+        <SettingsScopeNote scope="personal" />
         <NotificationSettingsPanel
           notificationsApi={notificationsApi}
           accountId={props.account.id}
@@ -218,6 +227,7 @@ export function SettingsPage(props: SettingsPageProps) {
   } else if (categoryId === 'today') {
     categoryContent = (
       <div className="settings-category-content">
+        <SettingsScopeNote scope="personal" />
         <WirDashboardSettingsPanel
           apiBaseUrl={props.apiBaseUrl}
           accessToken={props.accessToken}
@@ -317,16 +327,21 @@ export function SettingsPage(props: SettingsPageProps) {
   } else if (categoryId === 'account') {
     categoryContent = (
       <div className="settings-category-content">
-        <ProInformationPanel />
+        <ProSettingsRow />
+        {demoMode ? null : (
+          <SignInMethodsPanel
+            apiBaseUrl={props.apiBaseUrl}
+            accessToken={props.accessToken}
+            accountId={props.account.id}
+            spaceId={props.spaceId}
+          />
+        )}
         <section
           id="settings-account"
           className="settings-sensitive-zone"
           aria-labelledby="settings-sensitive-heading"
         >
           <div className="settings-sensitive-head">
-            <p className="eyebrow">
-              {t('profileIdentity.settingsSensitiveEyebrow')}
-            </p>
             <h2 id="settings-sensitive-heading">
               {t('profileIdentity.settingsSensitiveTitle')}
             </h2>
@@ -363,7 +378,9 @@ export function SettingsPage(props: SettingsPageProps) {
         eyebrow={category ? t('navigation.settings') : undefined}
         title={category ? t(category.titleKey) : t('navigation.settings')}
         description={
-          categoryId === 'today' || categoryId === 'notifications'
+          categoryId === 'today' ||
+          categoryId === 'notifications' ||
+          categoryId === 'shared'
             ? undefined
             : category
               ? t(category.descriptionKey)
@@ -374,7 +391,14 @@ export function SettingsPage(props: SettingsPageProps) {
       {category ? (
         categoryContent
       ) : (
-        <SettingsIndex updatesAdapter={props.updatesAdapter} />
+        <SettingsIndexLive
+          apiBaseUrl={props.apiBaseUrl}
+          accessToken={props.accessToken}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+          demoMode={demoMode}
+          updatesAdapter={props.updatesAdapter}
+        />
       )}
     </div>
   );

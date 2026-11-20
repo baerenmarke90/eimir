@@ -1,0 +1,15 @@
+eimir. Android 0.2.0-test.89
+
+- Sign in and sign up with Google or a passkey, in the app and in the browser, and manage your sign-in methods in Account.
+- Choose for yourself whether your partner sees your precise or only your approximate location.
+- Vibes and gestures now fly across the screen to your partner. The Dark map strip is darker, and a Plan shows its date and place on one line.
+- Shared notes: link a note to a Plan, find notes as tiles on Wir, and your partner receives a notice.
+- Unser Garten, a shared garden for partners who are apart, plus picture ping-pong and Herzversteck, hide a heart in a photo.
+- Pick a personal design (Verbunden, Geborgen, Klar & modern, Klassisch, Seite an Seite) and have it applied across the whole app. Icons are easier to read in the Album design.
+- Quiet hints, empty-state actions and a connected moment guide you through the app.
+- Insights, chapter cards and recap browsing are refined. The daily quote collection now has 1,000 bilingual sayings.
+- Cached text and Memory drafts are sealed on your Android device. Personal details such as names, birthdays, check-ins, locations and relationships are stored in protected form on the server.
+- Copy your account ID from a quiet line on More.
+
+The product changes come from main at 961d04bbe9ce2e6770117d903e97fce65c1098c9.
+Install over test.88 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 89.

@@ -67,8 +67,19 @@
   --content-max: 1200px;
   --reading-max: 720px;
   --rail-width: 21rem;
+  /* Width of the hanging Polaroid on the rediscovery cards (Wir and Momente).
+     On a phone it fills the card like a diary entry does. */
+  --polaroid-width: 22rem;
   --topbar-height: 72px;
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  /* Full-screen photo viewer: near-opaque, so nothing shows through. */
+  --color-media-viewer-backdrop: color-mix(in srgb, #000000 94%, transparent);
+  /* Backdrop behind the system status bar once the page scrolls (#2063). */
+  --color-status-bar-scrim: color-mix(
+    in srgb,
+    var(--color-background) 94%,
+    transparent
+  );
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -121,6 +132,27 @@ body {
   background: var(--color-background);
 }
 
+/* The native app draws edge to edge under the status bar (Capacitor
+   `insetsHandling: 'css'`). Without a backdrop, scrolled headings ran under the
+   clock and status icons (#2063). The strip is as tall as the top inset, so it
+   is absent in browsers, and only appears once the page has scrolled, leaving
+   the hero gradients untouched at the top. Sheets and dialogs stack above. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 52;
+  height: var(--safe-area-inset-top);
+  background: var(--color-status-bar-scrim);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-transition) var(--easing-standard);
+}
+
+:root[data-page-scrolled] body::after {
+  opacity: 1;
+}
+
 button,
 input,
 select,
@@ -165,7 +197,8 @@ button,
   text-decoration: none;
 }
 
-/* Canonical blue actions retain their meaning inside contextual color worlds. */
+/* Primary actions use the design's action colour (Verbunden: the canonical blue)
+   and keep it inside contextual colour worlds. */
 .button-link.button-link-primary {
   background: var(--color-action-primary);
   color: var(--color-on-action-primary);
@@ -591,7 +624,7 @@ code {
   position: relative;
   z-index: 40;
   width: 100%;
-  min-height: calc(72px + var(--shell-header-safe-top, 0px));
+  min-height: var(--shell-topbar-min-height);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -673,7 +706,6 @@ code {
   height: 1.25rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.2;
   stroke-linecap: round;
   stroke-linejoin: round;
   flex-shrink: 0;
@@ -716,24 +748,6 @@ code {
 .inline-message .secondary {
   width: max-content;
   margin-top: 0.65rem;
-}
-
-.story-loading {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.story-loading span {
-  height: 7rem;
-  border-radius: var(--radius-large);
-  background: linear-gradient(
-    100deg,
-    var(--color-shimmer-base) 25%,
-    var(--color-shimmer-highlight) 45%,
-    var(--color-shimmer-base) 65%
-  );
-  background-size: 200% 100%;
-  animation: story-shimmer 1.6s linear infinite;
 }
 
 .story-timeline {
@@ -840,6 +854,14 @@ code {
 .memory-form {
   display: grid;
   gap: 1.25rem;
+}
+
+/* Inline field problem in the app's own voice (#2063), shared by forms that
+   intercept the browser's native validation bubble. */
+.field-error {
+  margin: var(--space-1) 0 0;
+  color: var(--color-error);
+  font-weight: 700;
 }
 
 .login-card .form-grid {
@@ -955,15 +977,6 @@ code {
 
 .status-error {
   color: var(--color-error);
-}
-
-@keyframes story-shimmer {
-  from {
-    background-position: 100% 0;
-  }
-  to {
-    background-position: -100% 0;
-  }
 }
 
 @media (max-width: 599px) {
@@ -1088,110 +1101,12 @@ code {
   ) {
     scale: none;
   }
-
-  .story-loading span {
-    animation: none;
-  }
 }
 
-/* Shared bounded disclosure motion.
-   This transform-only primitive belongs to content revealed from a known
-   control or local state transition. Route, page, section, query-result and
-   create-surface mounts must not opt in. Keeping the primitive transform-only
-   also avoids transient descendant text-contrast changes from opacity
-   compositing (#790/#791). */
-@keyframes eimir-disclosure-reveal {
-  from {
-    transform: translateY(8px);
-  }
-  to {
-    transform: none;
-  }
-}
-
-.eimir-motion-disclosure {
-  animation: eimir-disclosure-reveal var(--duration-transition)
-    var(--easing-enter) forwards;
-}
-
-@keyframes eimir-lift {
-  from {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px var(--color-shadow-card);
-  }
-  to {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px var(--color-shadow-card);
-  }
-}
-
-.eimir-motion-lift:hover {
-  animation: eimir-lift var(--duration-feedback) var(--easing-standard) forwards;
-}
-
-@keyframes eimir-success {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.eimir-motion-success {
-  animation: eimir-success var(--duration-context) var(--easing-enter) forwards;
-}
-
-@keyframes eimir-affectionate-pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.1);
-    opacity: 0.8;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.eimir-motion-pulse {
-  animation: eimir-affectionate-pulse var(--duration-context)
-    var(--easing-standard);
-}
-
-@keyframes eimir-context-change {
-  from {
-    opacity: 0;
-    filter: blur(4px);
-  }
-  to {
-    opacity: 1;
-    filter: blur(0);
-  }
-}
-
-.eimir-motion-context-change {
-  animation: eimir-context-change var(--duration-transition)
-    var(--easing-standard) forwards;
-}
-
-@keyframes eimir-create-entry-fade {
-  from {
-    opacity: 0.72;
-  }
-}
-
-@keyframes eimir-create-entry-rise {
-  from {
-    translate: 0 var(--space-2);
-  }
-}
+/* The shared motion utilities (`.eimir-motion-disclosure`, `-lift`,
+   `-success`, `-pulse`) live in src/motion/utilities.css, and the create
+   entry uses the catalogue's Enter keyframes in src/motion/motion.css
+   (#2075). */
 
 /* Immersive Creation Canvas (Direction B Sanctuary) */
 .immersive-create-card {
@@ -1301,21 +1216,11 @@ code {
   gap: var(--space-4);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .eimir-motion-disclosure,
-  .eimir-motion-lift,
-  .eimir-motion-lift:hover,
-  .eimir-motion-success,
-  .eimir-motion-pulse,
-  .eimir-motion-context-change {
-    animation: none;
-    transition: none;
-    transform: none;
-    opacity: 1;
-  }
-}
-/* A saved read remains understandable while authoritative data refreshes. */
-/* The notice eases closed when live data replaces the saved read. */
+/* A saved read remains understandable while authoritative data refreshes.
+   The notice appears with an Enter `fade` at its full height (Replace
+   `disclose` option 1), and eases closed with the one bounded row
+   transition (option 3, Motion Contract 4.2) when live data replaces the
+   saved read, so the list below follows instead of jumping. */
 .overview-cache-notice-slot {
   display: grid;
   grid-template-rows: 1fr;
@@ -1326,25 +1231,13 @@ code {
 }
 
 .overview-cache-notice-slot[data-open="true"] {
-  animation: overview-cache-notice-in var(--duration-context)
-    var(--easing-standard) both;
+  animation: eimir-motion-enter-fade var(--duration-context)
+    var(--easing-standard) backwards;
 }
 
 .overview-cache-notice-slot[data-open="false"] {
   grid-template-rows: 0fr;
   opacity: 0;
-}
-
-@keyframes overview-cache-notice-in {
-  from {
-    grid-template-rows: 0fr;
-    opacity: 0;
-  }
-
-  to {
-    grid-template-rows: 1fr;
-    opacity: 1;
-  }
 }
 
 .overview-cache-notice-clip {

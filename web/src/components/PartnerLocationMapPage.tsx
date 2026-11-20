@@ -6,12 +6,16 @@ import type { AccountView } from '../api/generated/models/AccountView';
 import {
   type ApproximatePosition,
   currentApproximatePosition,
+  type LocationPrecision,
   locationPermission,
 } from '../client/approximateLocation';
+import { partnerConnectionStyle } from '../client/partnerConnection';
 import {
   DISTANCE_RESUME_MIN_INTERVAL_MS,
   deviceLanguages,
+  distanceBandWords,
   distanceUnitFor,
+  formatDistanceBand,
   isDistanceFresh,
   type PartnerDistanceLine,
   partnerDistanceQueryKey,
@@ -35,7 +39,7 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { SingleAvatar } from './PartnerAvatarPair';
 import { useDistanceAsOfLabel, useDistanceText } from './PartnerDistanceLine';
-import type { MapArea } from './PlaceMapCanvas';
+import type { MapArea, MapConnection } from './PlaceMapCanvas';
 import { ProblemState } from './ProblemState';
 import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
@@ -48,7 +52,10 @@ const MapCanvas = lazy(() => import('./PlaceMapCanvas'));
  * map is shown. Held in component state only and never sent anywhere: the
  * map read needs no own position. Never opens the OS permission dialog.
  */
-function useOwnPositionWhileOpen(enabled: boolean) {
+function useOwnPositionWhileOpen(
+  enabled: boolean,
+  precision: LocationPrecision,
+) {
   const [position, setPosition] = useState<ApproximatePosition | null>(null);
   useEffect(() => {
     if (!enabled) return;
@@ -63,7 +70,7 @@ function useOwnPositionWhileOpen(enabled: boolean) {
           if (!disposed) setPosition(null);
           return;
         }
-        const next = await currentApproximatePosition();
+        const next = await currentApproximatePosition(undefined, precision);
         if (!disposed) setPosition(next);
       } catch {
         if (!disposed) setPosition(null);
@@ -77,7 +84,7 @@ function useOwnPositionWhileOpen(enabled: boolean) {
       disposed = true;
       unsubscribe();
     };
-  }, [enabled]);
+  }, [enabled, precision]);
   return position;
 }
 
@@ -154,7 +161,10 @@ export function PartnerLocationMapPage({
     spaceId,
     enabled: entitled,
   });
-  const ownPosition = useOwnPositionWhileOpen(entitled);
+  const ownPosition = useOwnPositionWhileOpen(
+    entitled,
+    settings?.precision ?? 'APPROXIMATE',
+  );
   // The Wir line's band, if it was read; no additional distance request.
   const distanceLine = useQuery<PartnerDistanceLine>({
     queryKey: partnerDistanceQueryKey(account.id, spaceId),
@@ -170,7 +180,7 @@ export function PartnerLocationMapPage({
   const distanceText = useDistanceText();
   const [showUs, setShowUs] = useState(0);
 
-  const shared = map.data?.available ? map.data : null;
+  const shared = map.isSuccess && map.data.available ? map.data : null;
   // The partner's area only counts when it has a position and a radius; the
   // map itself works without it (own position, or the default view).
   const area =
@@ -219,6 +229,36 @@ export function PartnerLocationMapPage({
     return result;
   }, [area, ownAvatar, ownFirstName, ownPosition, partnerAvatar, partnerName]);
 
+  // Only while both currently share (#1907 H1); otherwise no line, no hint.
+  const connectionStyle = partnerConnectionStyle({
+    partnerArea:
+      area?.latitude != null && area.longitude != null
+        ? {
+            latitude: area.latitude,
+            longitude: area.longitude,
+            capturedAt: area.capturedAt,
+          }
+        : null,
+    ownPosition,
+    ownSharingActive: settings?.state === 'ACTIVE',
+    band: distanceLine?.kind === 'distance' ? distanceLine.band : null,
+  });
+  const connectionTier = connectionStyle?.tier;
+  const connectionEarlier = connectionStyle?.earlier ?? false;
+  const connection = useMemo<MapConnection | undefined>(
+    () =>
+      connectionTier
+        ? {
+            from: 'own',
+            to: 'partner',
+            tier: connectionTier,
+            earlier: connectionEarlier,
+            playRequest: showUs,
+          }
+        : undefined,
+    [connectionEarlier, connectionTier, showUs],
+  );
+
   const header = (
     <PageHeader
       title={t('partnerLocation.mapTitle')}
@@ -238,19 +278,11 @@ export function PartnerLocationMapPage({
     </Link>
   );
 
-  if (capability.isPending || (entitled && map.isPending)) {
+  if (capability.isPending) {
     return (
       <div className="page partner-map-page">
         {header}
         <UiState kind="loading" title={t('partnerLocation.mapLoading')} />
-      </div>
-    );
-  }
-  if (entitled && map.isError) {
-    return (
-      <div className="page partner-map-page">
-        {header}
-        <ProblemState error={map.error} onRetry={() => void map.refetch()} />
       </div>
     );
   }
@@ -281,7 +313,15 @@ export function PartnerLocationMapPage({
   const asOf = capturedAt ? asOfLabel(capturedAt) : null;
   const fresh = capturedAt ? isDistanceFresh(capturedAt) : false;
   const between =
-    distanceLine?.kind === 'distance' ? distanceText(distanceLine.band) : null;
+    map.isSuccess && distanceLine?.kind === 'distance'
+      ? distanceText(distanceLine.band)
+      : null;
+  // The map is the detailed view: a range band shown in words also keeps its
+  // kilometres here, as on Wir only the words are shown (#1907 H4).
+  const betweenKm =
+    distanceLine?.kind === 'distance' && distanceBandWords(distanceLine.band)
+      ? formatDistanceBand(distanceLine.band, locale, unit)
+      : null;
   const ownShare =
     settings?.state === 'ACTIVE'
       ? settings.level === 'DISTANCE_AND_MAP'
@@ -308,6 +348,7 @@ export function PartnerLocationMapPage({
           <MapCanvas
             areas={areas}
             showAreasRequest={showUs}
+            connection={connection}
             ariaLabel={t('partnerLocation.mapPeopleLabel')}
           />
         </Suspense>
@@ -327,10 +368,20 @@ export function PartnerLocationMapPage({
                 radius,
                 time: asOf ?? '',
               })
-            : t('partnerLocation.mapPartnerNotSharing', {
-                partner: partnerFirstName,
-              })}{' '}
+            : map.isSuccess
+              ? t('partnerLocation.mapPartnerNotSharing', {
+                  partner: partnerFirstName,
+                })
+              : null}{' '}
           {ownPosition ? t('partnerLocation.mapOwnDescription') : null}
+          {connection ? ' ' : null}
+          {connection
+            ? connection.tier === 'near'
+              ? t('partnerLocation.mapConnectionNear')
+              : t('partnerLocation.mapConnectionLine', {
+                  partner: partnerFirstName,
+                })
+            : null}
         </p>
       </section>
 
@@ -341,38 +392,55 @@ export function PartnerLocationMapPage({
         <h2 id="partner-map-sheet-title" className="sr-only">
           {t('partnerLocation.mapPeopleLabel')}
         </h2>
-        {between ? <p className="partner-map-between">{between}</p> : null}
+        {between ? (
+          <p className="partner-map-between">
+            {between}
+            {betweenKm ? (
+              <span className="partner-map-between-km">{betweenKm}</span>
+            ) : null}
+          </p>
+        ) : null}
         <ul className="partner-map-people">
-          <li
-            className={`partner-map-person${fresh || !area ? '' : ' is-earlier'}`}
-          >
-            <span aria-hidden="true">
-              <SingleAvatar
-                person={{ displayName: partnerName, imageUrl: partnerAvatar }}
-                size="small"
+          {map.isError ? (
+            <li>
+              <ProblemState
+                error={map.error}
+                onRetry={() => void map.refetch()}
               />
-            </span>
-            <span className="partner-map-person-copy">
-              <strong>
-                {area
-                  ? t('partnerLocation.mapPartnerArea', {
-                      partner: partnerFirstName,
-                    })
-                  : t('partnerLocation.mapPartnerNotSharing', {
-                      partner: partnerFirstName,
-                    })}
-              </strong>
-              {area ? (
-                asOf ? (
+            </li>
+          ) : (
+            <li
+              className={`partner-map-person${fresh || !area ? '' : ' is-earlier'}`}
+            >
+              <span aria-hidden="true">
+                <SingleAvatar
+                  person={{ displayName: partnerName, imageUrl: partnerAvatar }}
+                  size="small"
+                />
+              </span>
+              <span className="partner-map-person-copy">
+                <strong role={map.isPending ? 'status' : undefined}>
+                  {map.isPending
+                    ? t('states.loading.title')
+                    : area
+                      ? t('partnerLocation.mapPartnerArea', {
+                          partner: partnerFirstName,
+                        })
+                      : t('partnerLocation.mapPartnerNotSharing', {
+                          partner: partnerFirstName,
+                        })}
+                </strong>
+                {map.isSuccess && !area ? (
+                  <span>{t('partnerLocation.mapUnavailableBody')}</span>
+                ) : null}
+                {area && asOf ? (
                   <span>
                     {t('partnerLocation.mapPartnerAsOf', { time: asOf })}
                   </span>
-                ) : null
-              ) : (
-                <span>{t('partnerLocation.mapUnavailableBody')}</span>
-              )}
-            </span>
-          </li>
+                ) : null}
+              </span>
+            </li>
+          )}
           <li className="partner-map-person">
             <span aria-hidden="true">
               <SingleAvatar

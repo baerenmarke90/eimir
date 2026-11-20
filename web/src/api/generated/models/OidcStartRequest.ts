@@ -20,12 +20,41 @@ import { mapValues } from '../runtime';
  */
 export interface OidcStartRequest {
     /**
+     * Terms-of-use version the person accepted before leaving for the provider.
+     * @type {string}
+     * @memberof OidcStartRequest
+     */
+    acceptedTermsVersion?: string | null;
+    /**
+     * Which registered callback to use: the web page or the native Android app.
+     * @type {OidcStartRequestClientEnum}
+     * @memberof OidcStartRequest
+     */
+    client?: OidcStartRequestClientEnum;
+    /**
      * 
      * @type {string}
      * @memberof OidcStartRequest
      */
     invitationToken?: string | null;
+    /**
+     * Create a new Account if this identity has none and no invitation applies. Only Cloud offers this, and it requires `acceptedTermsVersion`.
+     * @type {boolean}
+     * @memberof OidcStartRequest
+     */
+    signup?: boolean;
 }
+
+
+/**
+ * @export
+ */
+export const OidcStartRequestClientEnum = {
+    web: 'web',
+    android: 'android'
+} as const;
+export type OidcStartRequestClientEnum = typeof OidcStartRequestClientEnum[keyof typeof OidcStartRequestClientEnum];
+
 
 /**
  * Check if a given object implements the OidcStartRequest interface.
@@ -44,7 +73,10 @@ export function OidcStartRequestFromJSONTyped(json: any, ignoreDiscriminator: bo
     }
     return {
         
+        'acceptedTermsVersion': json['acceptedTermsVersion'] === undefined ? undefined : json['acceptedTermsVersion'] === null ? null : json['acceptedTermsVersion'],
+        'client': json['client'] == null ? undefined : json['client'],
         'invitationToken': json['invitationToken'] === undefined ? undefined : json['invitationToken'] === null ? null : json['invitationToken'],
+        'signup': json['signup'] == null ? undefined : json['signup'],
     };
 }
 
@@ -59,7 +91,10 @@ export function OidcStartRequestToJSONTyped(value?: OidcStartRequest | null, ign
 
     return {
         
+        'acceptedTermsVersion': value['acceptedTermsVersion'],
+        'client': value['client'],
         'invitationToken': value['invitationToken'],
+        'signup': value['signup'],
     };
 }
 

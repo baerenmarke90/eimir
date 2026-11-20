@@ -1,12 +1,13 @@
 import { readFileSync } from 'node:fs';
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import copy from '../../src/i18n/locales/m5s3';
+import navigation from '../../src/i18n/locales/navigation';
 import privateArea from '../../src/i18n/locales/privateArea';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import wishSelection from '../../src/i18n/locales/wishSelection';
 import fixtures from '../fixtures/locales/de';
+import AxeBuilder from '../support/axe';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
@@ -229,6 +230,10 @@ for (const view of [
       view.theme,
     );
     const state = await fixture(page);
+    // The private area opens on its notes.
+    await page.route(`**${base}/private/notes**`, (route) =>
+      route.fulfill({ json: { hasMore: false, items: [], nextCursor: null } }),
+    );
     await signIn(page);
     await page.goto('/plan');
     if (view.large)
@@ -242,9 +247,10 @@ for (const view of [
     const planSearch = page.getByRole('searchbox', {
       name: copy.overview.searchPlans,
     });
+    // One question for every search; the accessible name stays specific.
     await expect(planSearch).toHaveAttribute(
       'placeholder',
-      copy.overview.searchPlans,
+      navigation.searchPrompt,
     );
     await expect(planSearch).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     if (!view.large) {
@@ -255,7 +261,7 @@ for (const view of [
     }
     await expect(
       page.getByRole('link', {
-        name: wishSelection.compactEntryAction,
+        name: wishSelection.entryStart,
         exact: true,
       }),
     ).toHaveCount(0);
@@ -334,7 +340,7 @@ for (const view of [
     });
     await expect(wishSearch).toHaveAttribute(
       'placeholder',
-      copy.overview.searchWishes,
+      navigation.searchPrompt,
     );
     await expect(wishSearch).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     await expect(page.locator('.planen-wish-copy > strong')).toHaveText([
@@ -348,14 +354,13 @@ for (const view of [
       'Z',
     ]);
     await expect(page.locator('.planen-wish-chevron')).toHaveCount(0);
+    // One slim entry row with one filled action (#1907 J1).
     const selection = page.getByRole('link', {
-      name: wishSelection.compactEntryAction,
+      name: wishSelection.entryStart,
       exact: true,
     });
-    await expect(selection.locator('.eimir-icon')).toHaveCSS(
-      'width',
-      view.large ? '40px' : '20px',
-    );
+    await expect(selection).toBeVisible();
+    expect((await selection.boundingBox())?.height).toBeGreaterThanOrEqual(44);
     await captureScreenshot(
       page,
       info,
@@ -414,7 +419,7 @@ for (const view of [
       .click();
     await expect(
       page.getByRole('link', {
-        name: privateArea.partnerNotes.title,
+        name: privateArea.partnerNotes.shortTitle,
         exact: true,
       }),
     ).toBeVisible();

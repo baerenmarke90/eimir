@@ -74,3 +74,55 @@ describe('sensitive identity entry tokens', () => {
     );
   });
 });
+
+describe('external sign-in provider return', () => {
+  it('reads the return of a provider from its callback path', () => {
+    expect(
+      readSensitiveEntryToken(
+        '/auth/oidc/google',
+        '?code=abc&state=xyz&scope=openid&authuser=0&prompt=none',
+      ),
+    ).toEqual({
+      kind: 'oidc',
+      token: 'xyz',
+      connectionId: 'google',
+      code: 'abc',
+      providerError: false,
+    });
+  });
+
+  it('reports a declined sign-in without a code', () => {
+    expect(
+      readSensitiveEntryToken(
+        '/auth/oidc/google',
+        '?error=access_denied&state=xyz',
+      ),
+    ).toMatchObject({ kind: 'oidc', code: null, providerError: true });
+  });
+
+  it('ignores a return without a state or without code and error', () => {
+    expect(readSensitiveEntryToken('/auth/oidc/google', '?code=abc')).toBe(
+      null,
+    );
+    expect(readSensitiveEntryToken('/auth/oidc/google', '?state=xyz')).toBe(
+      null,
+    );
+  });
+
+  it('rejects an unsafe connection segment', () => {
+    expect(
+      readSensitiveEntryToken('/auth/oidc/a%2Fb', '?code=abc&state=xyz'),
+    ).toBe(null);
+    expect(
+      readSensitiveEntryToken('/auth/oidc/a/b', '?code=abc&state=xyz'),
+    ).toBe(null);
+  });
+
+  it('removes every provider return parameter from the address', () => {
+    expect(
+      stripSensitiveEntryToken(
+        '?code=abc&state=xyz&scope=openid&authuser=0&prompt=none&keep=1',
+      ),
+    ).toBe('/?keep=1');
+  });
+});

@@ -26,6 +26,11 @@ Every component documents:
 New visual variants are added only when they express a new meaning or
 interaction.
 
+The motion of a component (item 5, Behavior) uses a primitive from the
+[Motion Contract](product/design/motion-contract.md#4-primitive-catalogue)
+and keeps its invariants; a component does not define its own animation
+mechanics.
+
 ## 2. Shared state models
 
 ```text
@@ -80,8 +85,11 @@ ActionState     = idle | submitting | success | error
   inline insertion controls retain their distinct roles. Keep at most one
   visually dominant primary action in the current view/state.
 - All create/add entry points, including authored tags, media and inline list
-  insertion, use `AddActionLink` or `AddActionButton`: the same filled
-  canonical-blue pill, shared icon and **visible localized action label**,
+  insertion, use `AddActionLink` or `AddActionButton`: the same filled pill
+  in the active design's action colour (`--color-action-primary` with
+  `--color-on-action-primary`; Verbunden keeps the canonical blue, Product
+  Owner decision 2026-11-17, #1907 C1), shared icon and **visible localized
+  action label**,
   with a comfortable 48 px target. The optional typed `icon` prop selects an
   `EimirIcon` motif; the plus remains the default for generic creation.
   Product Owner correction #1724 uses photo for device media, photo-library for
@@ -210,21 +218,62 @@ App-icon selection uses this contract for its explicit Save and recovery state.
 - Web only and only from at least three understandable hierarchy levels.
 - Supplement primary navigation and never replace the page title.
 
-### 5.4 Secondary-page Back
+### 5.4 Secondary-page header
 
-Every authenticated secondary destination, including future routes, receives one
-upper-left, rounded, icon-only chevron from `SubpageNavigation` in the AppShell.
-Primary roots are derived from the shared route registry and do not receive Back.
-Registry-owned peer views, including the Memory map, keep the same root boundary
-and tab geometry; they are not separate secondary pages.
+Every authenticated secondary destination, including future routes, opens with
+one header row at the top of its content column, led by one upper-left, round,
+icon-only Back chevron. Primary roots are derived from the shared route registry
+and do not receive Back. Registry-owned peer views, including the Memory map, keep
+the same root boundary and tab geometry; they are not separate secondary pages.
+
+Choose the row by what the page shows (Product Owner decisions of 2026-11-15, #1907 C4):
+
+1. **One named item** (a Memory, HeartMoment, Milestone, Plan, Wish, Chapter,
+   shared List, Place, Reminder, Person, private note, private List, gift idea,
+   experience answer or recap): Back, the centered localized type label and the
+   item's edit action share the row; the item's own name follows as the page
+   heading. Without an edit capability the trailing cell stays empty so the label
+   stays centered.
+2. **Every other secondary page** (overviews, settings, games, task and composer
+   pages): Back and the page title share the row, start-aligned, followed by at most
+   one header action at the inline end, such as Save.
+
+For both variants:
+
+- Back never sits alone in a row above a visible page title. A page without a
+  visible title (map views, loading and error states) keeps Back alone and does not
+  invent one; its accessible page name remains. A media-led page whose hero precedes
+  its title (the Pro paywall) keeps Back alone above the hero; a page that heads its
+  own composition (recaps, insights, a Person) hosts Back with `BackSlotHost` in
+  that row.
+- Secondary pages show no eyebrow or area label above the title; the active
+  navigation item carries the area.
+- Titles and names wrap and are never truncated; Back aligns with the first line.
+  When a title cannot fit beside Back (320 px, 200 % text, one long word), it moves
+  below Back within the same header.
+- Descriptions, metadata, tabs and filters follow below the row at full width.
+- The row belongs to the content column on Compact and Expanded; Back is never
+  detached at the window edge. A header that is sticky keeps Back, title and action
+  sticky together.
+- Private-area list pages place Back beside the area card. Private-area detail and
+  editor pages put the row at the very top, with the area lock icon in the type
+  label and the existing privacy sentence below the name; the area card and section
+  tabs are omitted there and Back returns to the list.
+
+Back and the trailing icon action are the same control: a round button of at least
+44 CSS px on the raised surface without a border. Every secondary title and
+named-item heading uses the `--font-subpage-title` role, including More and the
+private area; the type label uses the supporting-copy role in uppercase.
+
 Use `TaskBackButton` for a guarded task exit or `TaskBackLink` for an existing
-navigation link. The shell places these page-owned controls in the same slot and
-removes its default; page implementations must not add textual Back chrome.
-The accessible name remains localized, the target is at least 44 CSS px, and
-keyboard/focus, modified links, pending/dirty guards and task-origin return remain
-owned by the existing task. A direct entry falls back to its canonical parent.
-The separate administration shell uses the same control at its upper left.
-See [the composition and evidence](product/design/subpage-navigation-context/README.md).
+navigation link. `PageHeader` provides the leading cell; the shell places its
+default and page-owned controls there and uses its own row only when a page has no
+heading. Page implementations must not add textual Back chrome.
+The accessible name remains localized, and keyboard/focus, modified links,
+pending/dirty guards and task-origin return remain owned by the existing task. A
+direct entry falls back to its canonical parent. The separate administration shell
+keeps its top bar with Back and the brand. See [the composition and evidence](product/design/subpage-navigation-context/README.md)
+and [the header decisions](product/design/references/1907-secondary-page-header/README.md).
 
 ### 5.5 Moment date and Place context
 
@@ -481,7 +530,9 @@ retains visible feeling radios and its separate visibility task.
 
 - An avatar-shaped upload passes through the shared `PhotoCropTask` before it
   is sent: the photo moves and zooms inside the round frame avatars use, and
-  the frame is always fully covered.
+  the frame is always fully covered. This includes related People avatars from
+  the device or a connected photo source (#1907 G1).
+- `Drehen` turns the photo a quarter counter-clockwise before cropping.
 - The step is a short sheet with one filled completion action and Cancel.
   Cancel, Escape, Back and the sheet dismissal upload nothing and keep the
   current photo.
@@ -491,8 +542,46 @@ retains visible feeling radios and its separate visibility task.
 - The crop is rendered on the device; the upload is the chosen square without
   metadata. The photo on the device is never modified. A photo the device
   cannot decode is uploaded unchanged instead of blocking the user.
-- Memory, HeartMoment and Plan photos do not use this step: their full image is
-  kept and previews use cover selection.
+- Memory, HeartMoment and Plan photos do not use this step; they use the
+  photo edit step (10.1b) only when the user asks for it.
+
+### 10.1b Photo edit step (#1907 G1)
+
+- A selected, not yet saved Memory, HeartMoment or Plan photo shows an
+  `Bearbeiten` overlay action on the composer stage. Nothing is edited unless
+  the user opens it; previews keep using cover selection.
+- `PhotoEditTask` is a short sheet with three tools as icon-over-label radios:
+  Zuschneiden, Malen and Text. Cancel, Escape, Back and dismissal keep the
+  selected photo unchanged.
+- Cropping works as in phone photo apps: the frame stays, the photo moves under
+  it with one finger and zooms with two (mouse: drag and wheel). Corner and edge
+  handles change the frame; releasing re-centres the new section. `Drehen`
+  turns a quarter counter-clockwise and `Zurücksetzen` restores the photo.
+  The frame shows thirds while moving and dims the area outside it.
+- Malen draws with a finger in one of five `photoMark` colours. Text is placed
+  by tapping, moved by dragging, resized from a corner grip and set in one of
+  six free typefaces. Both have `Rückgängig`.
+- Keyboard: the frame moves the photo with the arrow keys and zooms with plus
+  and minus; each handle moves its edges with the arrow keys; the text grip
+  resizes with the arrow keys. Every control has an accessible name.
+- The edit is rendered on the device once, from the same renderer as the
+  preview, and replaces the selection before saving. A JPEG keeps its EXIF
+  metadata (capture date, place, camera) with the orientation set upright, so
+  date and place enrichment still work. The photo on the device is never
+  modified, and no second copy is stored. A photo the device cannot decode
+  stays as selected.
+- Motion: the frame re-centres with `--duration-transition`; reduced motion
+  moves it at once.
+- Saved photos (Product Owner, 2026-11-16): only inside the entry's own edit
+  mode (`Bearbeiten` on the Memory, Plan or HeartMoment), never from reading
+  it, a saved image the viewer may remove shows the same overlay action. The
+  sheet says that the edited photo replaces the saved one when the entry is
+  saved. Nothing changes before that save; cancelling the entry edit keeps the
+  saved photo. On save the edited photo takes the original's position, cover
+  and sensitivity, the gallery write names the replaced photo
+  (`replacesAttachmentId`), the original is deleted like any removed photo,
+  photo reactions move to the edited photo, and its location creates no second
+  Place. There is no server copy of the unedited original.
 
 ### 10.2 Avatar Pair
 

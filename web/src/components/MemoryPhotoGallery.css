@@ -36,7 +36,8 @@
   border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
   box-shadow: var(--elevation-overlay);
-  animation: memory-photo-picker-arrive var(--duration-feedback)
+  --motion-enter-from: 0 var(--space-1);
+  animation: eimir-motion-enter-travel var(--duration-feedback)
     var(--easing-enter);
 }
 .memory-photo-picker button {
@@ -93,16 +94,6 @@
   bottom: auto;
   top: var(--space-3);
   right: var(--space-3);
-}
-@keyframes memory-photo-picker-arrive {
-  from {
-    opacity: 0;
-    transform: translateY(var(--space-1));
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   .memory-photo-picker {

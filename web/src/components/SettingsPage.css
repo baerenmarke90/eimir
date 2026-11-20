@@ -205,7 +205,7 @@
 }
 
 .space-visibility-option.is-selected {
-  border-color: var(--color-brand-strong);
+  border-color: var(--color-brand-text);
   background: var(--color-brand-surface);
 }
 
@@ -219,7 +219,7 @@
 }
 
 .space-visibility-option.is-selected .space-visibility-label {
-  color: var(--color-brand-strong);
+  color: var(--color-brand-text);
 }
 
 .space-visibility-hint,
@@ -309,14 +309,17 @@
     background var(--duration-feedback) var(--easing-standard);
 }
 
+/* On state: a filled accent track with a light thumb. The thumb sits on the
+   accent, so it uses the on-accent token and never a brand tone (the dark
+   brand-strong thumb on a brand-surface track was unreadable). */
 .space-module-switch[aria-checked="true"] .space-module-switch-track {
   border-color: var(--color-brand-strong);
-  background: var(--color-brand-surface);
+  background: var(--color-brand-strong);
 }
 
 .space-module-switch[aria-checked="true"] .space-module-switch-thumb {
   transform: translateX(18px);
-  background: var(--color-brand-strong);
+  background: var(--color-on-accent);
 }
 
 .space-module-switch:focus-visible {
@@ -464,7 +467,9 @@
   display: grid;
   gap: var(--space-4);
   padding: var(--space-4) var(--space-1) var(--space-1);
-  animation: important-date-reveal var(--duration-feedback)
+  /* Enter `travel` from just above (src/motion/motion.css). */
+  --motion-enter-from: 0 -4px;
+  animation: eimir-motion-enter-travel var(--duration-feedback)
     var(--easing-standard);
 }
 
@@ -511,7 +516,7 @@
 }
 
 .important-date-day-chip.is-selected {
-  border-color: var(--color-brand-strong);
+  border-color: var(--color-brand-text);
   background: var(--color-brand-surface);
   color: var(--color-brand-text);
 }
@@ -577,17 +582,6 @@
   margin: 0;
   color: var(--color-text-secondary);
   font-size: 0.8rem;
-}
-
-@keyframes important-date-reveal {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 @media (min-width: 680px) {
@@ -772,10 +766,62 @@
   white-space: nowrap;
 }
 
-.dashboard-module-option input {
-  width: 20px;
-  height: 20px;
+/* The visibility checkbox keeps its native semantics and reads as the same
+   switch used on every other settings page. */
+.dashboard-module-option input[type="checkbox"] {
+  appearance: none;
+  position: relative;
+  box-sizing: border-box;
+  width: 44px;
+  height: 26px;
   margin: 0;
+  border: var(--border-surface-width) solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard);
+}
+
+.dashboard-module-option input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-text-secondary);
+  transform: translateY(-50%);
+  transition: transform var(--duration-feedback) var(--easing-standard);
+}
+
+.dashboard-module-option input[type="checkbox"]:checked {
+  border-color: var(--color-brand-strong);
+  background: var(--color-brand-strong);
+}
+
+.dashboard-module-option input[type="checkbox"]:checked::after {
+  background: var(--color-on-accent);
+  transform: translate(18px, -50%);
+}
+
+.dashboard-module-option input[type="checkbox"]:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.dashboard-module-option input[type="checkbox"]:disabled {
+  cursor: wait;
+  opacity: var(--opacity-disabled);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-module-option input[type="checkbox"],
+  .dashboard-module-option input[type="checkbox"]::after {
+    transition: none;
+  }
 }
 
 .dashboard-module-option .list-entry-drag-handle {
@@ -891,9 +937,9 @@
 }
 
 .dashboard-upcoming-option.is-selected {
-  border-color: var(--color-brand-strong);
+  border-color: var(--color-brand-text);
   background: var(--color-brand-surface);
-  color: var(--color-brand-strong);
+  color: var(--color-brand-text);
 }
 
 .dashboard-upcoming-option:focus-within,
@@ -1100,76 +1146,16 @@
   }
 }
 
-/* Pro uses the same heading-outside-surface anatomy as other settings sections. */
-.settings-pro-information > h2 {
-  margin: 0 0 var(--space-3);
-  font: var(--font-section-heading);
-}
-.settings-pro-surface {
-  min-width: 0;
-  padding: var(--space-5);
-  border-radius: var(--radius-content);
-  background: linear-gradient(
-    135deg,
-    var(--color-page-tint-brand),
-    var(--color-page-tint-shared)
-  );
-}
-.settings-pro-lead {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-4);
-}
-.settings-pro-lead > div {
-  flex: 1 1 12rem;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.settings-pro-lead > .eimir-icon {
-  flex-shrink: 0;
-  width: var(--space-10);
-  height: var(--space-10);
-  color: var(--color-brand-text);
-}
-.settings-pro-lead h3 {
-  margin: 0;
-  font: var(--font-section-heading);
-}
-.settings-pro-lead p {
-  margin-block: var(--space-2) 0;
-  color: var(--color-text-secondary);
-}
-.settings-pro-information ul {
-  display: grid;
-  gap: var(--space-5);
-  margin-block: var(--space-6);
-  padding: 0;
-  list-style: none;
-}
-.settings-pro-information li {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  overflow-wrap: anywhere;
-}
-.settings-pro-information li > div {
-  flex: 1 1 12rem;
-  min-width: 0;
-}
-.settings-pro-information li > .eimir-icon {
-  flex-shrink: 0;
-  width: var(--space-6);
-  height: var(--space-6);
-  color: var(--color-brand-text);
-}
-.settings-pro-information li p,
-.settings-pro-assurance {
-  margin-block: var(--space-1) 0;
-  color: var(--color-text-secondary);
-}
-@media (min-width: 840px) {
-  .settings-pro-information ul {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+/* The page title already names the panel; keep its heading for assistive
+   technology only so the page does not say "Gemeinsame Funktionen" twice. */
+.settings-shared-features
+  .space-configuration-panel
+  > .settings-section-head
+  h2 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

@@ -4,7 +4,10 @@ import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlementView';
 import { Configuration } from '../client/apiConfiguration';
 import {
+  GAMES_GARDEN_ROUTE,
+  GAMES_HEART_HUNT_ROUTE,
   GAMES_MOMENTS_ROUTE,
+  GAMES_PICTURE_PING_PONG_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
   proPaywallPath,
 } from '../client/routes';
@@ -12,24 +15,45 @@ import {
   entitlementLoader,
   useSpaceEntitlement,
 } from '../client/spaceEntitlement';
-import type { WhoOfUsParticipant } from '../client/whoOfUsSession';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
+import type { WhoOfUsParticipant } from '../client/whoOfUsSession';
 import { useTranslation } from '../i18n';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import { WhoOfUsGamePanel } from './WhoOfUsGamePanel';
+import '../motion/games.css';
 
 export const GAMES_COUPLE_CAPABILITY = 'games.couple' as const;
 
-const GAME_ENTRIES = ['moments', 'wishes', 'perspective'] as const;
+const GAME_ENTRIES = [
+  'garden',
+  'moments',
+  'wishes',
+  'perspective',
+  'heartHunt',
+  'pingPong',
+] as const;
 
 type GameEntry = (typeof GAME_ENTRIES)[number];
+
+/** Each game keeps its own symbol, whatever its place in the list. */
+const GAME_ICONS = {
+  garden: 'spiele',
+  moments: 'foto',
+  wishes: 'wuensche',
+  perspective: 'gemeinsam',
+  heartHunt: 'momente',
+  pingPong: 'spiele',
+} as const satisfies Record<GameEntry, EimirIconName>;
 
 function gameRoute(entry: GameEntry): string | null {
   if (entry === 'moments') return GAMES_MOMENTS_ROUTE;
   if (entry === 'wishes') return GAMES_WISH_DETECTIVE_ROUTE;
+  if (entry === 'heartHunt') return GAMES_HEART_HUNT_ROUTE;
+  if (entry === 'pingPong') return GAMES_PICTURE_PING_PONG_ROUTE;
+  if (entry === 'garden') return GAMES_GARDEN_ROUTE;
   return null;
 }
 
@@ -95,6 +119,7 @@ export function GamesProductArea({
           apiBaseUrl={apiBaseUrl}
           accessToken={accessToken}
           spaceId={spaceId}
+          currentAccountId={accountId}
           onExit={() => exitLocalGame()}
           loadParticipants={loadPerspectiveParticipants}
         />
@@ -129,24 +154,14 @@ export function GamesProductArea({
         />
       ) : (
         <section className="games-shelf" aria-label={t('games.title')}>
-          {GAME_ENTRIES.map((entry, index) => {
+          {GAME_ENTRIES.map((entry) => {
             const route = gamesUnlocked ? gameRoute(entry) : null;
             const localGameAvailable = gamesUnlocked && entry === 'perspective';
             const playable = Boolean(route || localGameAvailable);
             const content = (
               <>
                 <div className="games-entry-index" aria-hidden="true">
-                  <EimirIcon
-                    name={
-                      (
-                        [
-                          'foto',
-                          'wuensche',
-                          'gemeinsam',
-                        ] satisfies EimirIconName[]
-                      )[index]
-                    }
-                  />
+                  <EimirIcon name={GAME_ICONS[entry]} />
                 </div>
                 <div className="games-entry-copy">
                   <p className="games-entry-role">

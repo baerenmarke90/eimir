@@ -58,6 +58,7 @@ type SelectedConfiguration =
       providerKey: 'unifiedpush';
       vapidPublicKey: string;
       notificationReferenceVersion?: 1;
+      wishDatePreviewVersion?: 1;
       localeVersion?: 1;
     }
   | {
@@ -117,6 +118,8 @@ export interface DevicePushController {
   available: boolean;
   state: DevicePushState;
   error: string | null;
+  /** Short failure type for Test builds; never shown to normal users. */
+  errorDetail?: string | null;
   /** True only while this device is registered for this Account and API instance. */
   registered: boolean;
   browser?: boolean;
@@ -124,6 +127,18 @@ export interface DevicePushController {
   enable(): Promise<void>;
   disable(): Promise<void>;
   openSettings(): Promise<void>;
+}
+
+/** Splits a native `CODE detail` rejection; any other message stays whole. */
+function splitFailure(cause: unknown): {
+  code: string | null;
+  detail: string | null;
+} {
+  if (!(cause instanceof Error)) return { code: null, detail: null };
+  const match = /^([A-Z][A-Z0-9_]+) (.+)$/.exec(cause.message);
+  return match
+    ? { code: match[1], detail: match[2] }
+    : { code: cause.message, detail: null };
 }
 
 function responseStatus(error: unknown): number | null {
@@ -345,6 +360,9 @@ function selectConfiguration(
         ...(available.unifiedPush.notificationReferenceVersion === 1
           ? { notificationReferenceVersion: 1 as const }
           : {}),
+        ...(available.unifiedPush.wishDatePreviewVersion === 1
+          ? { wishDatePreviewVersion: 1 as const }
+          : {}),
       }
     : null;
   // An active transport keeps its ownership. A failure must not silently
@@ -389,6 +407,7 @@ export function useDevicePush({
     native ? 'loading' : 'unavailable',
   );
   const [error, setError] = useState<string | null>(null);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [registered, setRegistered] = useState(false);
   const [ios, setIos] = useState(false);
   const configuration = useRef<SelectedConfiguration | null>(null);
@@ -623,6 +642,15 @@ export function useDevicePush({
                           if (
                             configuration.current?.providerKey !==
                               'unifiedpush' ||
+                            configuration.current.wishDatePreviewVersion !==
+                              1 ||
+                            subscription.notificationReferenceVersion !== 1 ||
+                            subscription.wishDatePreviewVersion !== 1
+                          )
+                            delete subscription.wishDatePreviewVersion;
+                          if (
+                            configuration.current?.providerKey !==
+                              'unifiedpush' ||
                             configuration.current.localeVersion !== 1 ||
                             subscription.localeVersion !== 1
                           )
@@ -721,6 +749,14 @@ export function useDevicePush({
               return;
             }
             if (current) {
+              const status = responseStatus(cause);
+              setErrorDetail(
+                status
+                  ? `HTTP ${status}`
+                  : cause instanceof Error
+                    ? cause.name
+                    : null,
+              );
               setError('PUSH_DEVICE_REGISTRATION_FAILED');
               setState('error');
             }
@@ -936,6 +972,7 @@ export function useDevicePush({
       generation === registrationGeneration &&
       ownerGeneration === lifecycle.current;
     setError(null);
+    setErrorDetail(null);
     setState('connecting');
     try {
       await pendingSignOutDisable;
@@ -999,11 +1036,9 @@ export function useDevicePush({
     } catch (cause) {
       if (!current()) return;
       registrationAllowed.current = false;
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : 'PUSH_DEVICE_REGISTRATION_FAILED',
-      );
+      const failure = splitFailure(cause);
+      setErrorDetail(failure.detail);
+      setError(failure.code ?? 'PUSH_DEVICE_REGISTRATION_FAILED');
       setState('error');
     } finally {
       if (current()) await syncRegistered();
@@ -1068,6 +1103,7 @@ export function useDevicePush({
     neutralPreview: ios,
     state,
     error,
+    errorDetail,
     registered,
     enable,
     disable,

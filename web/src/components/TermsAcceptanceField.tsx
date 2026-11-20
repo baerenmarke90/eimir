@@ -1,10 +1,10 @@
 import { Trans } from '../i18n';
-import { termsOfUseDe } from '../i18n/locales/legalDocuments/termsOfUse.de.generated';
+import { legalDocumentVersions } from '../i18n/locales/legalDocuments/versions.generated';
 import { LegalDocumentLink } from './LegalDocumentLink';
 import './TermsAcceptanceField.css';
 
 /** The bundled text a person reads is the text whose version they accept. */
-export const BUNDLED_TERMS_VERSION = termsOfUseDe.version;
+export const BUNDLED_TERMS_VERSION = legalDocumentVersions.termsOfUseDe;
 
 /**
  * Required acceptance row for forms that may create a Cloud Account, followed
@@ -14,13 +14,29 @@ export const BUNDLED_TERMS_VERSION = termsOfUseDe.version;
  */
 export function TermsAcceptanceField({
   name = 'acceptedTerms',
+  checked,
+  onChange,
 }: {
   name?: string;
+  /** Pass both to observe the choice, for example to enable a provider button. */
+  checked?: boolean;
+  onChange?: (checked: boolean) => void;
 }) {
   return (
     <>
       <label className="choice-row terms-acceptance">
-        <input type="checkbox" name={name} value="accepted" required />
+        <input
+          type="checkbox"
+          name={name}
+          value="accepted"
+          required
+          {...(checked !== undefined && onChange
+            ? {
+                checked,
+                onChange: (event) => onChange(event.currentTarget.checked),
+              }
+            : {})}
+        />
         <span>
           <Trans
             i18nKey="legal.accept"

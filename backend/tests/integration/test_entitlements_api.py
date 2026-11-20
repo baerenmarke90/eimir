@@ -37,6 +37,14 @@ from tests.conftest import (
 pytestmark = [pytest.mark.integration, requires_database]
 
 
+def _unserved() -> set[str]:
+    """Core-only, the plugin-owned capabilities are not effective (Decision 0017)."""
+    from eimir.plugins.manifest import PLUGIN_CAPABILITIES
+    from tests.support.plugins import plugins_loaded
+
+    return set() if plugins_loaded() else set(PLUGIN_CAPABILITIES)
+
+
 def test_entitlements_endpoint_requires_auth(client) -> None:  # type: ignore[no-untyped-def]
     response = client.get("/api/v1/spaces/01a05cf9-64c9-7273-8bfe-6252d8cefbbb/entitlements")
     assert response.status_code == 401
@@ -121,9 +129,9 @@ def test_couple_level_entitlement_shared_between_partners_without_cross_space_le
     ben_data = ben_response.json()
     assert ben_data["tier"] == "PREMIUM"
     assert ben_data["status"] == "ACTIVE"
-    expected_capabilities = set(ALL_PREMIUM_CAPABILITIES) - {
-        Capability.STORAGE_CLOUD_QUOTA_50GB.value
-    }
+    expected_capabilities = (
+        set(ALL_PREMIUM_CAPABILITIES) - {Capability.STORAGE_CLOUD_QUOTA_50GB.value} - _unserved()
+    )
     assert set(ben_data["capabilities"]) == expected_capabilities
 
     # Anna queries her solo space -> stays Free (no leakage across spaces)
@@ -183,7 +191,9 @@ def test_existing_demo_space_gets_full_pro_for_both_personas_on_ensure_and_reset
     assert len(full_grants) == 1
     assert full_grants[0].source_type == EntitlementSourceType.TEST_FIXTURE.value
 
-    expected = set(ALL_PREMIUM_CAPABILITIES) - {Capability.STORAGE_CLOUD_QUOTA_50GB.value}
+    expected = (
+        set(ALL_PREMIUM_CAPABILITIES) - {Capability.STORAGE_CLOUD_QUOTA_50GB.value} - _unserved()
+    )
     for account_id in (legacy.lea_id, legacy.alex_id):
         token = sign_in(session, session.get_one(Account, account_id))
         response = client.get(f"/api/v1/spaces/{legacy.space_id}/entitlements", headers=auth(token))

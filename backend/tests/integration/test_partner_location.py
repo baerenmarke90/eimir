@@ -35,6 +35,54 @@ def _base(space_id: object) -> str:
     return f"/api/v1/spaces/{space_id}/partner-location"
 
 
+def test_scheduled_reviews_drain_an_overdue_second_batch(session, monkeypatch, caplog) -> None:
+    import logging
+
+    from eimir.jobs.models import Job, JobStatus
+
+    at = now()
+    reviewed = []
+    for index in range(retention.BATCH_SIZE + 1):
+        owner = make_account(session, "Owner")
+        partner = make_account(session, "Partner")
+        space = make_space(session, owner)
+        relationship_service.add_member(session, space.id, partner)
+        if index < retention.BATCH_SIZE:
+            _grant(session, {"space": space, "sharer": owner})
+        consent = PartnerLocationConsent(
+            space_id=space.id,
+            account_id=owner.id,
+            recipient_account_id=partner.id,
+            level="DISTANCE",
+            indefinite=True,
+            next_review_at=at - timedelta(minutes=5) + timedelta(milliseconds=index),
+        )
+        session.add(consent)
+        reviewed.append(consent)
+    session.flush()
+    monkeypatch.setattr(retention, "now", lambda: at)
+    # In-process Alembic migrations can disable already registered application loggers.
+    monkeypatch.setattr(retention.log, "disabled", False)
+    with caplog.at_level(logging.INFO, logger=retention.__name__):
+        retention.handle_retention(session, {})
+    assert all(consent.next_review_at == at + retention.SCAN_INTERVAL for consent in reviewed[:-1])
+    assert reviewed[-1].suspended_at is None
+    metrics = [
+        record.oldest_due_seconds
+        for record in caplog.records
+        if record.name == retention.__name__
+        and record.getMessage() == "presence retention completed"
+    ]
+    assert len(metrics) == 1
+    assert 299 <= metrics[0] <= 300
+    job = session.scalars(select(Job).where(Job.kind == retention.JOB_KIND)).one()
+    assert job.run_after < now() + timedelta(seconds=2)
+    job.status = JobStatus.RUNNING.value
+    at += timedelta(seconds=1)
+    retention.handle_retention(session, {})
+    assert reviewed[-1].suspended_at == at
+
+
 def _grant(session: Session, couple: dict[str, Any]) -> Any:
     return entitlements.record_grant(
         session,
@@ -112,6 +160,7 @@ def test_defaults_are_off_and_only_stopping_is_free(client, session: Session, co
     assert settings.json() | {"generation": 0} == {
         "available": False,
         "level": "OFF",
+        "precision": "APPROXIMATE",
         "state": "OFF",
         "indefinite": False,
         "expiresAt": None,
@@ -143,8 +192,13 @@ def test_distance_only_never_exposes_coordinates_and_map_needs_its_own_level(  #
     assert published.json()["lastPublishedAt"] is not None
 
     snapshot = session.execute(select(PresenceSnapshot)).scalar_one()
-    assert (snapshot.latitude, snapshot.longitude) == (Decimal("53.55"), Decimal("9.99"))
-    assert snapshot.accuracy_meters == 1000
+    position = snapshot.payload
+    assert (position.latitude, position.longitude) == (Decimal("53.55"), Decimal("9.99"))
+    assert position.accuracy_meters == 1000
+    # The position lives only in the protected payload, never in a plain column.
+    assert {"latitude", "longitude", "accuracy_meters"}.isdisjoint(
+        PresenceSnapshot.__table__.columns.keys()
+    )
 
     distance = _distance(client, couple)
     assert distance.status_code == 200
@@ -155,6 +209,8 @@ def test_distance_only_never_exposes_coordinates_and_map_needs_its_own_level(  #
         "minKm": None,
         "maxKm": None,
         "approximateKm": 350,
+        "minMeters": None,
+        "maxMeters": None,
     }
     assert "53.55" not in distance.text and "9.99" not in distance.text
     assert _map(client, couple).json()["available"] is False

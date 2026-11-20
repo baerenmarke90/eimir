@@ -1,5 +1,3 @@
-import { fulfillFreeEntitlements } from '../support/freeEntitlements';
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type Route, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -7,6 +5,8 @@ import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { expectToday } from '../support/today';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
@@ -104,6 +104,7 @@ async function installMocks(
       ),
     );
   }
+  const sentCollectionIds: string[] = [];
   let finalCompletionFailed = false;
   let collectionGetCount = 0;
   let dashboardGetCount = 0;
@@ -451,6 +452,23 @@ async function installMocks(
       return;
     }
 
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/partner-nickname`
+    ) {
+      await json({ nickname: null, partnerId: PARTNER_ID });
+      return;
+    }
+    if (
+      method === 'POST' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/send`
+    ) {
+      sentCollectionIds.push(COLLECTION_ID);
+      await route.fulfill({ status: 204 });
+      return;
+    }
+
     await json(
       {
         code: 'E2E_UNEXPECTED_REQUEST',
@@ -464,6 +482,7 @@ async function installMocks(
 
   return {
     itemWrites,
+    sentCollectionIds: () => [...sentCollectionIds],
     collectionGetCount: () => collectionGetCount,
     dashboardGetCount: () => dashboardGetCount,
     pin: (selectedCollectionId: string | null) => {
@@ -509,6 +528,35 @@ async function navigateToToday(page: Page): Promise<void> {
   await page.getByRole('link', { name: navigation.today, exact: true }).click();
   await expect(page).toHaveURL(/\/today$/);
   await expectToday(page);
+}
+
+/**
+ * Pinning to Wir is a row of the list's actions menu; the row title follows
+ * the state, so the pinned state is read from the accessible name.
+ */
+function pinMenuRow(page: Page) {
+  return page
+    .getByRole('button', { name: m5s3.collection.pinToToday, exact: true })
+    .or(
+      page.getByRole('button', {
+        name: m5s3.collection.unpinFromToday,
+        exact: true,
+      }),
+    );
+}
+
+/** The sheet of the open list menu (rows plus pin status and problems). */
+function listMenu(page: Page) {
+  return page.locator('.item-menu');
+}
+
+async function openListMenu(page: Page): Promise<void> {
+  await page.getByRole('button', { name: m5s3.collection.menu.open }).click();
+}
+
+async function closeListMenu(page: Page): Promise<void> {
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 }
 
 async function expectNoHorizontalOverflow(page: Page): Promise<void> {
@@ -795,7 +843,10 @@ for (const outcome of ['failure', 'success'] as const) {
       .getByRole('link', { name: navigation.more, exact: true })
       .last()
       .click();
-    await page.locator('a[href="/more/collections"]').click();
+    await page
+      .getByRole('link', { name: navigation.shared, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/more\/collections/);
     await page.goBack();
     await page.goBack();
     await expect(row.locator('.shared-list-item-copy > p')).toHaveText(
@@ -969,7 +1020,10 @@ for (const view of [
         .getByRole('link', { name: navigation.more, exact: true })
         .last()
         .click();
-      await page.locator('a[href="/more/collections"]').click();
+      await page
+        .getByRole('link', { name: navigation.shared, exact: true })
+        .click();
+      await expect(page).toHaveURL(/\/more\/collections/);
       await page.goBack();
       await page.goBack();
       await expect(milkRow.locator('.shared-list-item-copy > p')).toHaveText(
@@ -1221,10 +1275,18 @@ test('pins a shared Collection personally and shows it as a tile that opens the 
   await page.goto(`/plan/collections/${COLLECTION_ID}`);
   await expect(page.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
 
-  await page.getByRole('button', { name: m5s3.collection.pinToToday }).click();
-  await expect(
-    page.getByRole('button', { name: m5s3.collection.unpinFromToday }),
-  ).toBeVisible();
+  await openListMenu(page);
+  await page
+    .getByRole('button', { name: m5s3.collection.pinToToday, exact: true })
+    .click();
+  const unpinRow = page.getByRole('button', {
+    name: m5s3.collection.unpinFromToday,
+    exact: true,
+  });
+  await expect(unpinRow).toBeVisible();
+  // The write settles before the page is left.
+  await expect(unpinRow).toBeEnabled();
+  await closeListMenu(page);
 
   await openToday(page);
   const pinnedSection = page.locator('.today-section-pinned-collection');
@@ -1277,6 +1339,63 @@ test('pins a shared Collection personally and shows it as a tile that opens the 
     pinnedSection.getByRole('link', { name: openListName }),
   ).toBeFocused();
 });
+
+for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' as const },
+  { name: '360-dark', width: 360, scheme: 'dark' as const },
+  { name: '430-light', width: 430, scheme: 'light' as const },
+]) {
+  test(`sends a shared list to the partner only after asking and confirms it calmly in ${view.name} (#1907 E2)`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 844 });
+    await page.emulateMedia({
+      colorScheme: view.scheme,
+      reducedMotion: 'reduce',
+    });
+    const mocks = await installMocks(page);
+    await signIn(page);
+
+    await page.goto(`/plan/collections/${COLLECTION_ID}`);
+    await expect(page.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
+    await page.getByRole('button', { name: m5s3.collection.menu.open }).click();
+    const sendName = m5s3.collection.menu.send.replace('{{name}}', 'Ben');
+    await page.getByRole('button', { name: sendName }).click();
+
+    // The first tap only asks; nothing was sent yet.
+    const sheet = page.getByRole('dialog');
+    await expect(
+      sheet.getByRole('heading', {
+        name: m5s3.collection.menu.sendTitle.replace('{{name}}', 'Ben'),
+      }),
+    ).toBeVisible();
+    expect(mocks.sentCollectionIds()).toEqual([]);
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`send-list-sheet-${view.name}.png`),
+      animations: 'disabled',
+    });
+
+    await sheet
+      .getByRole('button', {
+        name: m5s3.collection.menu.sendConfirm.replace('{{name}}', 'Ben'),
+      })
+      .click();
+    await expect(
+      page.getByRole('status').filter({
+        hasText: m5s3.collection.menu.sendDone.replace('{{name}}', 'Ben'),
+      }),
+    ).toBeVisible();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(mocks.sentCollectionIds()).toEqual([COLLECTION_ID]);
+    await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`send-list-confirmed-${view.name}.png`),
+      animations: 'disabled',
+    });
+  });
+}
 
 test('keeps the list tile compact on Expanded Web and its add link opens the list with the input focused', async ({
   page,
@@ -1454,19 +1573,15 @@ for (const view of [
     await page.goto(`/plan/collections/${COLLECTION_ID}`);
     if (view.scale)
       await page.addStyleTag({ content: 'html { font-size: 200%; }' });
-    const action = page.locator('.planning-collection-dashboard-action');
-    const button = action.getByRole('button');
+    await openListMenu(page);
+    const menu = listMenu(page);
+    const button = pinMenuRow(page);
     await expect(button).toBeEnabled();
     await button.click();
+    // The row answers at once with the pinned state, before the write settles.
     await expect(button).toHaveAccessibleName(m5s3.collection.unpinFromToday);
-    await expect(button).toContainText(m5s3.collection.pinLabel);
-    await expect(button).toHaveAttribute('aria-pressed', 'true');
     await expect(button).toBeDisabled();
-    await expect(action.getByRole('status')).toHaveText(de.common.saving);
-    await expect(button).toHaveAttribute(
-      'aria-describedby',
-      'collection-pin-pending',
-    );
+    await expect(menu.getByRole('status')).toHaveText(de.common.saving);
     await button.evaluate((element) => {
       (element as HTMLButtonElement).click();
       (element as HTMLButtonElement).click();
@@ -1484,7 +1599,8 @@ for (const view of [
     await expectNoWcagViolations(page);
     await held.confirm();
     await expect(button).toBeEnabled();
-    await expect(action.getByRole('status')).toHaveCount(0);
+    await expect(menu.getByRole('status')).toHaveCount(0);
+    await closeListMenu(page);
     await navigateToToday(page);
     await expect(
       page.locator('.today-section-pinned-collection'),
@@ -1495,18 +1611,18 @@ for (const view of [
         name: m5s5.today.wirLists.openAria.replace('{{title}}', 'Einkauf'),
       })
       .click();
-    // The tile opens the sheet; the pin button lives on the list page.
+    // The tile opens the sheet; the pin row lives in the list's menu.
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.goto(`/plan/collections/${COLLECTION_ID}`);
-    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await openListMenu(page);
+    await expect(button).toHaveAccessibleName(m5s3.collection.unpinFromToday);
     await expect(button).toBeEnabled();
     await button.click();
-    await expect(button).toHaveAttribute('aria-pressed', 'false');
     await expect(button).toHaveAccessibleName(m5s3.collection.pinToToday);
-    await expect(button).toContainText(m5s3.collection.pinLabel);
     await expect.poll(() => held.writes.length).toBe(2);
     await held.confirm();
     await expect(button).toBeEnabled();
+    await closeListMenu(page);
     await navigateToToday(page);
     await expect(page.locator('.today-section-pinned-collection')).toHaveCount(
       0,
@@ -1534,19 +1650,28 @@ for (const view of [
     await signIn(page);
     const held = await holdPersonalPin(page, network);
     await page.goto(`/plan/collections/${COLLECTION_ID}`);
-    const action = page.locator('.planning-collection-dashboard-action');
-    const button = action.getByRole('button').first();
+    await openListMenu(page);
+    const menu = listMenu(page);
+    const button = pinMenuRow(page);
+    const saving = menu
+      .getByRole('status')
+      .filter({ hasText: de.common.saving });
     await expect(button).toBeEnabled();
 
     await page.context().setOffline(true);
     await button.click();
     await expect(
-      action.getByText(de.states.offline.title, { exact: true }),
+      menu.getByText(de.states.offline.title, { exact: true }),
     ).toBeVisible();
-    await expect(button).toHaveAttribute('aria-pressed', 'false');
-    await expect(action.locator('#collection-pin-pending')).toHaveCount(0);
+    await expect(button).toHaveAccessibleName(m5s3.collection.pinToToday);
+    await expect(saving).toHaveCount(0);
     expect(held.writes).toEqual([]);
-    await expect(page.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
+    // The list stays in place behind its menu.
+    await expect(
+      page
+        .getByRole('heading', { name: 'Einkauf', includeHidden: true })
+        .first(),
+    ).toBeVisible();
     await expectNoHorizontalOverflow(page);
     await expectNoWcagViolations(page);
     await page.screenshot({
@@ -1557,15 +1682,16 @@ for (const view of [
 
     await page.context().setOffline(false);
     const readsBeforeRetry = held.reads();
-    await action.getByRole('button', { name: de.common.retry }).click();
+    await menu.getByRole('button', { name: de.common.retry }).click();
     await expect.poll(() => held.reads()).toBeGreaterThan(readsBeforeRetry);
     await expect(button).toBeEnabled();
-    await expect(button).toHaveAttribute('aria-pressed', 'false');
+    await expect(button).toHaveAccessibleName(m5s3.collection.pinToToday);
     expect(held.writes).toEqual([]);
     await button.click();
     await expect.poll(() => held.writes.length).toBe(1);
     await held.confirm();
     await expect(button).toBeEnabled();
+    await closeListMenu(page);
     await navigateToToday(page);
     await expect(
       page.locator('.today-section-pinned-collection'),
@@ -1576,28 +1702,30 @@ for (const view of [
         name: m5s5.today.wirLists.openAria.replace('{{title}}', 'Einkauf'),
       })
       .click();
-    // The tile opens the sheet; the pin button lives on the list page.
+    // The tile opens the sheet; the pin row lives in the list's menu.
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.goto(`/plan/collections/${COLLECTION_ID}`);
-    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await openListMenu(page);
+    await expect(button).toHaveAccessibleName(m5s3.collection.unpinFromToday);
     await expect(button).toBeEnabled();
 
     await page.context().setOffline(true);
     await button.click();
     await expect(
-      action.getByText(de.states.offline.title, { exact: true }),
+      menu.getByText(de.states.offline.title, { exact: true }),
     ).toBeVisible();
-    await expect(button).toHaveAttribute('aria-pressed', 'true');
-    await expect(action.locator('#collection-pin-pending')).toHaveCount(0);
+    await expect(button).toHaveAccessibleName(m5s3.collection.unpinFromToday);
+    await expect(saving).toHaveCount(0);
     expect(held.writes).toEqual([COLLECTION_ID]);
     await page.context().setOffline(false);
-    await action.getByRole('button', { name: de.common.retry }).click();
+    await menu.getByRole('button', { name: de.common.retry }).click();
     await expect(button).toBeEnabled();
     expect(held.writes).toEqual([COLLECTION_ID]);
     await button.click();
     await expect.poll(() => held.writes.length).toBe(2);
     await held.confirm();
     await expect(button).toBeEnabled();
+    await closeListMenu(page);
     await navigateToToday(page);
     await expect(page.locator('.today-section-pinned-collection')).toHaveCount(
       0,
@@ -1614,16 +1742,17 @@ test('personal pin recovers failed writes, conflicts and reads without replaying
   await signIn(page);
   const held = await holdPersonalPin(page, network);
   await page.goto(`/plan/collections/${COLLECTION_ID}`);
-  const action = page.locator('.planning-collection-dashboard-action');
-  const button = action.getByRole('button').first();
+  await openListMenu(page);
+  const menu = listMenu(page);
+  const button = pinMenuRow(page);
   await expect(button).toBeEnabled();
   await button.click();
   await expect.poll(() => held.writes.length).toBe(1);
   await held.fail();
   await expect(button).toBeEnabled();
-  await expect(button).toHaveAttribute('aria-pressed', 'false');
+  await expect(button).toHaveAccessibleName(m5s3.collection.pinToToday);
   await expect(
-    action.getByRole('button', { name: de.common.retry }),
+    menu.getByRole('button', { name: de.common.retry }),
   ).toBeVisible();
   await expectNoWcagViolations(page);
   await page.screenshot({
@@ -1631,7 +1760,7 @@ test('personal pin recovers failed writes, conflicts and reads without replaying
     fullPage: true,
   });
   const readsBeforeRetry = held.reads();
-  await action.getByRole('button', { name: de.common.retry }).click();
+  await menu.getByRole('button', { name: de.common.retry }).click();
   await expect.poll(() => held.reads()).toBeGreaterThan(readsBeforeRetry);
   expect(held.writes.length).toBe(1);
   await expect(button).toBeEnabled();
@@ -1640,23 +1769,26 @@ test('personal pin recovers failed writes, conflicts and reads without replaying
   network.pin(COLLECTION_ID);
   await held.fail(409);
   await expect(button).toBeEnabled();
-  await expect(button).toHaveAttribute('aria-pressed', 'true');
+  await expect(button).toHaveAccessibleName(m5s3.collection.unpinFromToday);
   await expect(
-    action.getByText(de.states.conflict.title, { exact: true }),
+    menu.getByText(de.states.conflict.title, { exact: true }),
   ).toBeVisible();
   await button.click();
   await expect.poll(() => held.writes.length).toBe(3);
   held.failReads(true);
   await held.fail();
   await expect(button).toBeDisabled();
-  await expect(button).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
+  await expect(button).toHaveAccessibleName(m5s3.collection.unpinFromToday);
+  // The list stays in place behind its menu.
+  await expect(
+    page.getByRole('heading', { name: 'Einkauf', includeHidden: true }).first(),
+  ).toBeVisible();
   await page.screenshot({
     path: testInfo.outputPath('collection-pin-read-recovery-390-light.png'),
     fullPage: true,
   });
   held.failReads(false);
-  await action.getByRole('button', { name: de.common.retry }).click();
+  await menu.getByRole('button', { name: de.common.retry }).click();
   await expect(button).toBeEnabled();
   expect(held.writes).toEqual([COLLECTION_ID, COLLECTION_ID, null]);
 });

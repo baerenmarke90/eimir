@@ -23,6 +23,8 @@ import { dashboardQueryKey } from '../client/dashboardQueries';
 import { reportNotificationWake } from '../client/foregroundNotifications';
 import {
   isPartnerGestureKind,
+  isPartnerNoticeKind,
+  isWishDateReceiptKind,
   OPEN_OWN_DAILY_CHECK_IN_STATE,
   receiptScope,
   requestPartnerGestureReceipt,
@@ -33,6 +35,7 @@ import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
 import { spaceEntitlementQueryKey } from '../client/spaceEntitlement';
 import coupleExperiences from '../i18n/locales/coupleExperiences';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
+import wishDateProposal from '../i18n/locales/wishDateProposal';
 import wishSelection from '../i18n/locales/wishSelection';
 import { NotificationMotion } from './NotificationMotion';
 import {
@@ -189,6 +192,56 @@ afterEach(() => {
 });
 
 describe('ForegroundNotificationHost', () => {
+  it('keeps the Vibe motion and opens the exact shared Wish proposal', async () => {
+    const openNotification = vi.fn();
+    setup({ unreadCount: 1, openNotification });
+    const proposal = gesture(
+      'proposal-1',
+      NotificationKind.WISH_DATE_PROPOSED,
+      {
+        createdAt: new Date(Date.now() + 1),
+        appointmentStart: new Date('2026-11-21T14:00:00Z'),
+        targetType: 'WISH',
+        targetId: 'wish-123',
+        target: {
+          title: 'Stadionführung',
+          targetType: 'WISH',
+          targetId: 'wish-123',
+        },
+      },
+    );
+    const concealed = {
+      ...proposal,
+      id: 'concealed',
+      createdAt: new Date(proposal.createdAt.getTime() + 1),
+      target: { ...proposal.target!, concealed: true },
+    };
+    notifications.getNotifications.mockResolvedValue(page(proposal, concealed));
+    await act(async () =>
+      reportNotificationWake({
+        accountId: ACCOUNT,
+        apiBaseUrl: 'https://eimir.test',
+        spaceId: SPACE,
+      }),
+    );
+    const incoming = screen.getByTestId('partner-gesture-receipt');
+    expect(incoming.getAttribute('data-variant')).toBe('calm-ring');
+    expect(incoming.querySelector('[data-glyph="icon"]')).not.toBeNull();
+    expect(incoming.querySelector('.partner-gesture-receipt-wave')).toBeNull();
+    expect(incoming.textContent).toContain(
+      wishDateProposal.receipt.proposed.replace('{{name}}', 'Ronja'),
+    );
+    expect(incoming.textContent).toContain('Stadionführung');
+    expect(openNotification).not.toHaveBeenCalled();
+    fireEvent.click(
+      screen.getByRole('button', { name: wishDateProposal.review }),
+    );
+    expect(openNotification).toHaveBeenCalledExactlyOnceWith(
+      proposal.id,
+      proposal.sourceEventId,
+    );
+  });
+
   it('does not read or replay anything at app start', async () => {
     setup({ unreadCount: 3 });
     await act(async () => undefined);
@@ -225,7 +278,10 @@ describe('ForegroundNotificationHost', () => {
         'Ronja',
       ),
     );
-    expect(banner.querySelector('[data-motion="wish-fan"]')).not.toBeNull();
+    // A partner-caused notice shares the calm receipt: quiet, badged, no waves.
+    expect(banner.getAttribute('data-variant')).toBe('calm-ring');
+    expect(banner.querySelector('[data-glyph="icon"]')).not.toBeNull();
+    expect(banner.querySelector('.partner-gesture-receipt-wave')).toBeNull();
     expect(openNotification).not.toHaveBeenCalled();
     fireEvent.click(
       screen.getByRole('button', { name: wishSelection.openOwn }),
@@ -253,9 +309,78 @@ describe('ForegroundNotificationHost', () => {
     expect(screen.queryByTestId('foreground-notification')).toBeNull();
   });
 
+  it('gives every partner-caused notice the calm receipt, and system kinds the plain surface', async () => {
+    const partnerKinds = Object.values(NotificationKind).filter(
+      (kind) => isPartnerNoticeKind(kind) && !isWishDateReceiptKind(kind),
+    );
+    expect(partnerKinds.length).toBeGreaterThan(8);
+    for (const kind of partnerKinds) {
+      notifications.getNotifications.mockResolvedValue(
+        page(
+          gesture(`calm-${kind}`, kind, {
+            createdAt: new Date(clock + 2_000),
+          }),
+        ),
+      );
+      const { rerender } = setup();
+      rerender(1);
+      const surface = await screen.findByTestId('foreground-notification');
+      expect(surface.getAttribute('data-variant'), kind).toBe('calm-ring');
+      expect(surface.querySelector('.partner-gesture-receipt-wave')).toBeNull();
+      expect(
+        surface.querySelector('[data-glyph="icon"] svg'),
+        kind,
+      ).not.toBeNull();
+      cleanup();
+    }
+    notifications.getNotifications.mockResolvedValue(
+      page(
+        gesture('transfer', NotificationKind.TRANSFER_READY, {
+          actor: null,
+          actorId: null,
+          createdAt: new Date(clock + 2_000),
+        }),
+      ),
+    );
+    const { rerender } = setup();
+    rerender(1);
+    const plain = await screen.findByTestId('foreground-notification');
+    expect(plain.hasAttribute('data-variant')).toBe(false);
+    expect(
+      plain.querySelector('[data-motion="download-ready"]'),
+    ).not.toBeNull();
+  });
+
+  it('keeps the gestures expressive and drops the waves only from the calm receipt', async () => {
+    notifications.getNotifications.mockResolvedValue(
+      page(gesture('wave-check', NotificationKind.PARTNER_CHECK_IN)),
+    );
+    const calm = setup();
+    calm.rerender(1);
+    const checkIn = await screen.findByTestId('partner-gesture-receipt');
+    expect(checkIn.querySelector('.partner-gesture-receipt-wave')).toBeNull();
+    expect(
+      checkIn.querySelector('.partner-gesture-receipt-glyph')?.textContent,
+    ).toBe('?');
+    cleanup();
+
+    notifications.getNotifications.mockResolvedValue(
+      page(gesture('wave-heart', NotificationKind.THINKING_OF_YOU)),
+    );
+    const heart = setup();
+    heart.rerender(1);
+    const thought = await screen.findByTestId('partner-gesture-receipt');
+    expect(
+      thought.querySelector('.partner-gesture-receipt-wave'),
+    ).not.toBeNull();
+    expect(
+      thought.querySelector('.partner-gesture-receipt-hero'),
+    ).not.toBeNull();
+  });
+
   it('assigns distinguishable animation names to each ordinary kind', () => {
     const kinds = Object.values(NotificationKind).filter(
-      (kind) => !isPartnerGestureKind(kind),
+      (kind) => !isPartnerGestureKind(kind) && !isPartnerNoticeKind(kind),
     );
     const { container } = render(
       kinds.map((kind) => <NotificationMotion key={kind} kind={kind} />),

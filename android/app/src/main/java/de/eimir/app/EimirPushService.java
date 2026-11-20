@@ -25,13 +25,14 @@ public final class EimirPushService extends PushService {
         PushActivation active = PushActivation.read(this);
         if (active == null || !"unifiedpush".equals(active.providerKey)
                 || !active.activationId.equals(instance) || !message.getDecrypted()
-                || message.getContent().length > 256) return;
+                || message.getContent().length > 2048) return;
         String notificationId = null;
         Context localized;
+        WishDatePush wishDate;
         try {
             JSONObject payload = new JSONObject(new String(message.getContent(), StandardCharsets.UTF_8));
             if (!"wake".equals(payload.optString("type"))) return;
-            HashSet<String> allowed = new HashSet<>(Arrays.asList("type", "notificationId", "locale"));
+            HashSet<String> allowed = new HashSet<>(Arrays.asList("type", "notificationId", "locale", "wishDatePreview"));
             Iterator<String> keys = payload.keys();
             while (keys.hasNext()) if (!allowed.contains(keys.next())) return;
             if (payload.has("notificationId")) {
@@ -41,8 +42,15 @@ public final class EimirPushService extends PushService {
             }
             localized = payload.has("locale")
                 ? RecipientLanguage.context(this, payload.optString("locale", "de")) : this;
+            if (payload.has("wishDatePreview") && notificationId != null) {
+                wishDate = WishDatePush.fromWebPush(payload.getJSONObject("wishDatePreview"));
+            } else {
+                if (message.getContent().length > 256 || payload.has("wishDatePreview")) return;
+                wishDate = null;
+            }
         } catch (JSONException | IllegalArgumentException invalid) { return; }
-        NativePushNotifications.present(localized, active, notificationId);
+        if (wishDate != null) NativePushNotifications.presentWishDate(localized, active, notificationId, wishDate);
+        else NativePushNotifications.present(localized, active, notificationId);
     }
 
     @Override

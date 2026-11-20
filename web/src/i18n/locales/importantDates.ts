@@ -37,6 +37,9 @@ const importantDates = {
   listTitle: 'Eure besonderen Tage',
   emptyTitle: 'Noch kein besonderer Tag festgehalten',
   monthEmpty: 'In diesem Monat steht nichts an.',
+  planKind: 'Plan',
+  planMeta: '{{schedule}} · Plan',
+  planEntryLabel: 'Plan: {{title}}',
   emptyBody:
     'Haltet hier Tage fest, an die ihr euch erinnern oder die ihr gemeinsam im Blick behalten möchtet.',
   dateValue: '{{date}}',
@@ -65,7 +68,7 @@ const importantDates = {
     description:
       'Zum Beispiel Ostern, Weihnachten, Neujahr, Pfingsten und Valentinstag.',
     deviceNote:
-      'Diese Auswahl gilt auf diesem Gerät. Eure gespeicherten Termine bleiben unverändert.',
+      'Diese Auswahl gilt nur für dich, auf all deinen Geräten. Eure gespeicherten Termine bleiben unverändert.',
     manage: 'Allgemeine Anlässe einstellen',
   },
   holidays: {

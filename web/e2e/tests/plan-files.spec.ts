@@ -2,6 +2,7 @@ import { expect, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import copy from '../../src/i18n/locales/m5s3';
 import fileCopy from '../../src/i18n/locales/planFiles';
+import { editViaMenu, itemMenuTrigger } from '../support/itemMenu';
 import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
@@ -224,9 +225,7 @@ test('a browser Plan saves a retried PDF, opens and downloads it, then removes i
     fullPage: true,
   });
 
-  await page
-    .getByRole('button', { name: copy.common.edit, exact: true })
-    .click();
+  await editViaMenu(page, copy.common.edit);
   await page
     .getByRole('button', {
       name: fileCopy.removeNamed.replace('{{name}}', file.name),
@@ -249,9 +248,7 @@ test('the Android runtime stages a PDF and opens it through the system handoff',
   const api = await installPlanFileApi(page, true);
   await signIn(page);
   await page.goto(planRoute);
-  await page
-    .getByRole('button', { name: copy.common.edit, exact: true })
-    .click();
+  await editViaMenu(page, copy.common.edit);
   await selectPdf(page);
   const save = page.getByRole('button', {
     name: copy.common.saveChanges,
@@ -265,9 +262,8 @@ test('the Android runtime stages a PDF and opens it through the system handoff',
     { fullPage: true },
   );
   await save.click();
-  await expect(
-    page.getByRole('button', { name: copy.common.edit, exact: true }),
-  ).toBeVisible();
+  // The detail page is back: its item menu is available again.
+  await expect(itemMenuTrigger(page)).toBeVisible();
   expect(api.patch()).toEqual({ add: [attachmentId], remove: [] });
   await captureScreenshot(
     page,

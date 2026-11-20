@@ -1,0 +1,179 @@
+/* "Erinnert ihr euch?" on Wir in the scrapbook language. Album view only: the
+ * classic card in TodayPage.css stays untouched and returns when the setting
+ * "Momente-Ansicht" is switched to Klassisch. Tokens only. A photo memory
+ * hangs from a clothespin and swings in once; a memory without a photo is a
+ * calm, static warm note (see `retrospectiveTone`). */
+
+/* The card itself sits in the warm colour world, which remaps the tinted
+   surface token to lavender. Read the token here, outside that world, so the
+   card gets the same tint as the plans, notes and activity cards. */
+.today-section-retrospective {
+  --rediscovery-card-surface: var(--color-surface-subtle);
+}
+
+.today-living-retrospective[data-diary-layout="album"] {
+  position: relative;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-4) var(--space-5);
+  overflow: hidden;
+  border: var(--border-surface-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-sheet);
+  /* The same tinted surface as the plans, notes and activity cards on Wir, so
+     the Polaroid (raised paper) lifts off it. The ruled wall texture looked
+     out of place on Wir; only the clothespin and the Polaroid stay scrapbook.
+     Momente > Erinnerungen uses the identical card (StoryHandmadeDiscover.css). */
+  background: var(--rediscovery-card-surface);
+  box-shadow: var(--shadow-raised);
+}
+
+/* A string the Polaroid hangs from. Decorative only. */
+.today-living-retrospective[data-diary-layout="album"]::before {
+  content: "";
+  position: absolute;
+  top: calc(var(--space-6) * -1);
+  inset-inline: calc(var(--space-6) * -1);
+  height: calc(var(--space-6) + var(--space-8));
+  border-bottom: 2px solid var(--color-text-muted);
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  pointer-events: none;
+}
+
+.today-living-retrospective[data-diary-layout="album"]
+  .today-retrospective-photo {
+  position: relative;
+  display: grid;
+  gap: var(--space-3);
+  width: min(100%, var(--polaroid-width));
+  min-width: 0;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-3) 0;
+  /* Keeps the paper readable where the card and the Polaroid share a colour
+     (most light designs). */
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 3px;
+  background: var(--color-surface-raised);
+  filter: drop-shadow(0 1px 1px var(--color-shadow-card))
+    drop-shadow(0 8px 8px var(--color-shadow-soft));
+  transform: rotate(-1.6deg);
+  transform-origin: 50% 0;
+  /* Enter `swing` from the motion catalogue (src/motion/motion.css). The
+     Ambient `sway` after it runs on the layer (useKeepsakeSway): a few
+     cycles around the rest pose, paused while hidden or off screen, then it
+     rests (#2063, M8). */
+  --keepsake-rest: 0deg;
+  --motion-swing-rest: var(--keepsake-rest);
+  animation: eimir-motion-enter-swing var(--duration-gesture-sequence)
+    var(--easing-standard) backwards;
+}
+
+/* Clothespin: decorative, not in the DOM and never over the user's photo. */
+.today-living-retrospective[data-diary-layout="album"]
+.today-retrospective-photo::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--space-4) * -1);
+  inset-inline-start: 50%;
+  width: 0.95rem;
+  height: 2.9rem;
+  margin-inline-start: -0.475rem;
+  border-radius: 4px 4px 3px 3px;
+  background: linear-gradient(
+    90deg,
+    color-mix(
+      in srgb,
+      var(--color-discovery) 55%,
+      var(--color-discovery-surface)
+    ),
+    color-mix(
+        in srgb,
+        var(--color-discovery) 75%,
+        var(--color-discovery-surface)
+      )
+      48%,
+    color-mix(
+      in srgb,
+      var(--color-discovery) 45%,
+      var(--color-discovery-surface)
+    )
+  );
+  box-shadow: 0 3px 6px var(--color-shadow-overlay);
+  pointer-events: none;
+}
+
+.today-living-retrospective[data-diary-layout="album"]
+  .today-retrospective-media {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--color-surface-subtle);
+}
+
+.today-living-retrospective[data-diary-layout="album"]
+  .today-retrospective-media
+  .story-media-preview,
+.today-living-retrospective[data-diary-layout="album"]
+  .today-retrospective-media
+  .story-media-skeleton,
+.today-living-retrospective[data-diary-layout="album"]
+  .today-retrospective-media
+  .story-media-placeholder {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  margin: 0;
+  border-radius: 0;
+}
+
+/* The photo "develops" once, like instant film. */
+.today-living-retrospective[data-diary-layout="album"]
+  .today-retrospective-media
+  .story-media-preview {
+  /* Opacity only (M6): an Enter `fade` from a faint print. */
+  --motion-enter-from-opacity: 0.12;
+  animation: eimir-motion-enter-fade var(--duration-gesture-sequence)
+    var(--easing-enter) var(--duration-sequence-beat) backwards;
+}
+
+.today-living-retrospective[data-diary-layout="album"]
+  .today-retrospective-title {
+  font: var(--font-content-heading);
+  letter-spacing: var(--tracking-content-heading);
+}
+
+/* A long text memory must not turn the card into a whole screen. */
+.today-living-retrospective[data-diary-layout="album"]
+  .today-retrospective-text-only
+  .today-retrospective-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  overflow: hidden;
+}
+
+.today-living-retrospective[data-diary-layout="album"]
+  .today-retrospective-action {
+  margin-block-start: var(--space-3);
+}
+
+/* Calm entries (no photo, no positive signal): a plain note on the same calm
+   surface as the photo card. No string, clothespin, swing or developing
+   effect. */
+.today-living-retrospective[data-diary-layout="album"][data-tone="calm"] {
+  padding-block-start: var(--space-5);
+}
+.today-living-retrospective[data-diary-layout="album"][data-tone="calm"]::before,
+.today-living-retrospective[data-diary-layout="album"][data-tone="calm"]
+  .today-retrospective-photo::before {
+  display: none;
+}
+.today-living-retrospective[data-diary-layout="album"][data-tone="calm"]
+  .today-retrospective-photo {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  filter: none;
+  transform: none;
+  animation: none;
+}

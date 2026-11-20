@@ -1,6 +1,11 @@
 {
+  "calendar.plan.open": "In eimir. öffnen",
   "notification.subject": "Neues bei eimir.",
   "push.neutral": "Du hast neue Nachrichten.",
+  "push.wish_date.partner": "Dein Partner",
+  "push.wish_date.wish_date_proposed": "{name} schlägt einen Termin vor",
+  "push.wish_date.wish_date_countered": "{name} schlägt einen anderen Termin vor",
+  "push.wish_date.wish_date_accepted": "{name} hat zugesagt",
   "auth.magic.subject": "Dein Anmeldelink für eimir.",
   "auth.signup.subject": "Bestätige deine E-Mail-Adresse für eimir.",
   "auth.verification.subject": "Bestätige deine E-Mail-Adresse für eimir.",

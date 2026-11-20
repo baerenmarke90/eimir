@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`accuracyMeters` | number
 `capturedAt` | Date
 `latitude` | number
 `longitude` | number
@@ -17,6 +18,7 @@ import type { PresencePosition } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "accuracyMeters": null,
   "capturedAt": null,
   "latitude": null,
   "longitude": null,

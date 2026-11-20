@@ -17,6 +17,7 @@ import {
 } from 'react-router-dom';
 import type { MemoryMapEntry } from '../api/generated/models/MemoryMapEntry';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import type { MemoryMapSession } from '../client/memoryMapSession';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { parseMapPlace } from '../client/photoPlaces';
 import {
@@ -31,6 +32,7 @@ import {
   storyFiltersToSearch,
 } from '../client/storyProduct';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
+import { useDiaryLayout } from '../client/useDiaryLayout';
 import { useTaskListReturn } from '../client/useTaskListReturn';
 import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -47,6 +49,7 @@ import { type StoryView, StoryViewTabs } from './StoryViewTabs';
 import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import './MemoryMapPage.css';
+import './MemoryMapAlbum.css';
 
 const MapCanvas = lazy(() => import('./PlaceMapCanvas'));
 
@@ -56,11 +59,13 @@ export function MemoryMapPage({
   accountId,
   apiBaseUrl,
   loadMemoryImage,
+  sessionViewport,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
   accountId: string;
   apiBaseUrl?: string;
+  sessionViewport?: MemoryMapSession;
   loadMemoryImage?: (
     memoryId: string,
     attachmentId: string,
@@ -68,6 +73,7 @@ export function MemoryMapPage({
   ) => Promise<ObjectUrlSource>;
 }) {
   const { t } = useTranslation();
+  const [diaryLayout] = useDiaryLayout();
   const locale = resolvedLocale();
   const {
     captureOrigin,
@@ -111,17 +117,44 @@ export function MemoryMapPage({
   });
   const viewport = useRef<{ scope: string; value?: MapViewport }>({
     scope: fullscreenScope,
-    value: returnContext?.viewport,
+    value:
+      returnContext?.viewport ??
+      (placeParam ? undefined : sessionViewport?.current),
   });
   if (viewport.current.scope !== fullscreenScope)
     viewport.current = { scope: fullscreenScope };
+  // The map stays mounted between visits (#2063), so a later task return
+  // (Back from a memory) restores its context here instead of on mount.
+  const appliedReturn = useRef(returnKey);
+  useLayoutEffect(() => {
+    if (!returnContext || appliedReturn.current === returnKey) return;
+    appliedReturn.current = returnKey;
+    setFullscreen({
+      scope: fullscreenScope,
+      open: returnContext.fullscreen ?? false,
+      placeId: returnContext.placeId ?? placeParam,
+    });
+    setActiveMemory({
+      scope: fullscreenScope,
+      placeId: returnContext.placeId ?? placeParam,
+      memoryId: returnContext.memoryId,
+    });
+    if (returnContext.viewport) viewport.current.value = returnContext.viewport;
+  }, [returnKey, returnContext, fullscreenScope, placeParam]);
   const rememberViewport = useCallback(
     (value: MapViewport) => {
       if (viewport.current.scope === fullscreenScope)
         viewport.current.value = value;
+      if (!hasOrigin && sessionViewport) sessionViewport.current = value;
     },
-    [fullscreenScope],
+    [fullscreenScope, hasOrigin, sessionViewport],
   );
+  // The Karte segment reopens the Place last selected here (#2078). The map
+  // panel stays mounted and sees its own last location while hidden, so only
+  // a selection made on the map changes it.
+  useEffect(() => {
+    if (sessionViewport) sessionViewport.place = placeParam ?? undefined;
+  }, [placeParam, sessionViewport]);
   const fullscreenTrigger = useRef<HTMLButtonElement>(null);
   const fullscreenSheet = useRef<ShortTaskSheetHandle>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -477,6 +510,7 @@ export function MemoryMapPage({
             {locations.length || focusPoint ? (
               <div
                 className="memory-map-surface"
+                data-diary-layout={diaryLayout}
                 data-map-moving={mapMoving || undefined}
               >
                 <div className="memory-map-tools">
@@ -523,6 +557,7 @@ export function MemoryMapPage({
                     ) : (
                       <MapCanvas
                         key={`${fullscreenScope}:inline`}
+                        revealWhenComplete
                         initialViewport={viewport.current.value}
                         onViewportChange={rememberViewport}
                         onUserMotionChange={setMapMoving}
@@ -546,6 +581,7 @@ export function MemoryMapPage({
                 >
                   <div
                     className="memory-map-fullscreen-surface"
+                    data-diary-layout={diaryLayout}
                     data-map-moving={mapMoving || undefined}
                   >
                     {expanded ? (
@@ -663,6 +699,7 @@ export function MemoryMapPage({
             {!selected ? (
               <ul
                 className="memory-map-places"
+                data-diary-layout={diaryLayout}
                 aria-label={t('memoryMap.places')}
               >
                 {locations.map(({ point, memories }) => (

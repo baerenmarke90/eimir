@@ -19,7 +19,7 @@ from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
 from eimir.core.context_tags import ContextTags, unique_tags
 from eimir.plans.models import PlanStatus
-from eimir.wishes import reminders, service
+from eimir.wishes import date_proposals, reminders, service
 from eimir.wishes.journey import NO_JOURNEY, WishJourney, journey_for, journeys_for
 from eimir.wishes.models import Wish, WishStatus
 
@@ -193,6 +193,166 @@ class WishPage(ApiModel):
     items: list[WishDetail]
     next_cursor: str | None
     has_more: bool
+
+
+class WishDateProposalWrite(ApiModel):
+    """A particular instant and the identity of a retryable send."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    planned_start: AwareDatetime
+    client_request_id: UUID
+
+
+class WishDateProposal(ApiModel):
+    id: UUID
+    proposed_by: UUID
+    recipient_id: UUID
+    planned_start: datetime
+    counter: bool
+
+
+class WishDateProposalState(ApiModel):
+    can_propose: bool
+    proposal: WishDateProposal | None
+
+
+class WishDateProposalAcceptance(ApiModel):
+    plan_id: UUID
+
+
+_WISH_DATE_PROPOSAL_PATH = "/spaces/{spaceId}/wishes/{wishId}/date-proposal"
+_WISH_DATE_PROPOSAL_ITEM = f"{_WISH_DATE_PROPOSAL_PATH}/{{proposalId}}"
+_PROPOSAL_WRITE_ERRORS = problem_responses(401, 404, 409, 422)
+_WISH_ID = Annotated[str, Path(alias="wishId")]
+_PROPOSAL_ID = Annotated[UUID, Path(alias="proposalId")]
+
+
+def _date_proposal_state(
+    state: date_proposals.ProposalState, response: Response
+) -> WishDateProposalState:
+    response.headers["Cache-Control"] = "private, no-store"
+    proposal = state.proposal
+    return WishDateProposalState(
+        can_propose=state.can_propose,
+        proposal=(
+            WishDateProposal(
+                id=proposal.id,
+                proposed_by=proposal.proposed_by,
+                recipient_id=proposal.recipient_id,
+                planned_start=proposal.planned_start,
+                counter=proposal.counter,
+            )
+            if proposal is not None
+            else None
+        ),
+    )
+
+
+@router.get(
+    _WISH_DATE_PROPOSAL_PATH,
+    operation_id="getWishDateProposal",
+    responses=problem_responses(401, 404, 422),
+)
+def get_wish_date_proposal(
+    authorization: Authorization, session: DbSession, response: Response, wish_id: _WISH_ID
+) -> WishDateProposalState:
+    return _date_proposal_state(date_proposals.get_state(session, authorization, wish_id), response)
+
+
+@router.post(
+    _WISH_DATE_PROPOSAL_PATH,
+    operation_id="createWishDateProposal",
+    responses=_PROPOSAL_WRITE_ERRORS,
+)
+def create_wish_date_proposal(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    wish_id: _WISH_ID,
+    body: WishDateProposalWrite,
+) -> WishDateProposalState:
+    state = date_proposals.propose(
+        session,
+        authorization,
+        wish_id,
+        planned_start=body.planned_start,
+        client_request_id=body.client_request_id,
+    )
+    return _date_proposal_state(state, response)
+
+
+@router.post(
+    f"{_WISH_DATE_PROPOSAL_ITEM}/counter",
+    operation_id="counterWishDateProposal",
+    responses=_PROPOSAL_WRITE_ERRORS,
+)
+def counter_wish_date_proposal(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    wish_id: _WISH_ID,
+    proposal_id: _PROPOSAL_ID,
+    body: WishDateProposalWrite,
+) -> WishDateProposalState:
+    state = date_proposals.propose(
+        session,
+        authorization,
+        wish_id,
+        planned_start=body.planned_start,
+        client_request_id=body.client_request_id,
+        counter_against=proposal_id,
+    )
+    return _date_proposal_state(state, response)
+
+
+@router.post(
+    f"{_WISH_DATE_PROPOSAL_ITEM}/accept",
+    operation_id="acceptWishDateProposal",
+    responses=_PROPOSAL_WRITE_ERRORS,
+)
+def accept_wish_date_proposal(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    wish_id: _WISH_ID,
+    proposal_id: _PROPOSAL_ID,
+) -> WishDateProposalAcceptance:
+    plan_id = date_proposals.accept(session, authorization, wish_id, proposal_id)
+    response.headers["Cache-Control"] = "private, no-store"
+    return WishDateProposalAcceptance(plan_id=plan_id)
+
+
+@router.post(
+    f"{_WISH_DATE_PROPOSAL_ITEM}/decline",
+    operation_id="declineWishDateProposal",
+    status_code=http_status.HTTP_204_NO_CONTENT,
+    responses=_PROPOSAL_WRITE_ERRORS,
+)
+def decline_wish_date_proposal(
+    authorization: Authorization,
+    session: DbSession,
+    wish_id: _WISH_ID,
+    proposal_id: _PROPOSAL_ID,
+) -> Response:
+    date_proposals.dismiss(session, authorization, wish_id, proposal_id, decline=True)
+    return Response(status_code=http_status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    f"{_WISH_DATE_PROPOSAL_ITEM}/withdraw",
+    operation_id="withdrawWishDateProposal",
+    status_code=http_status.HTTP_204_NO_CONTENT,
+    responses=_PROPOSAL_WRITE_ERRORS,
+)
+def withdraw_wish_date_proposal(
+    authorization: Authorization,
+    session: DbSession,
+    wish_id: _WISH_ID,
+    proposal_id: _PROPOSAL_ID,
+) -> Response:
+    date_proposals.dismiss(session, authorization, wish_id, proposal_id, decline=False)
+    return Response(status_code=http_status.HTTP_204_NO_CONTENT)
 
 
 class PersonalWishReminder(ApiModel):

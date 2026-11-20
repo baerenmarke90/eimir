@@ -14,7 +14,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, UniqueConstraint, select
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    Integer,
+    UniqueConstraint,
+    column,
+    select,
+    table,
+)
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
@@ -305,6 +314,18 @@ def parent_of(session: Session, attachment_id: UUID) -> tuple[str, UUID] | None:
     ).scalar_one_or_none()
     if account_id is not None:
         return "ACCOUNT_PROFILE", account_id
+
+    # Plugin parents come from the Core manifest, so exclusivity holds with or
+    # without the plugin (Decision 0017).
+    from eimir.plugins.manifest import attachment_rules
+
+    for row, rule in attachment_rules():
+        parent = table(row.table, column("id"), column(rule.column))
+        parent_id = session.scalar(
+            select(parent.c.id).where(parent.c[rule.column] == attachment_id)
+        )
+        if parent_id is not None:
+            return rule.parent_type, parent_id
     return None
 
 
@@ -343,6 +364,34 @@ def ensure_within_limits(attachments: list[Attachment]) -> None:
             "The parent exceeds its attachment limit.",
             ErrorCode.ATTACHMENT_LIMIT_EXCEEDED,
         )
+
+
+def check_replacements(
+    replacements: dict[UUID, UUID] | None,
+    *,
+    previous: set[UUID],
+    selected: list[UUID],
+) -> dict[UUID, UUID]:
+    """Validate edited-photo replacements as new id -> replaced bound id (#1907 G1).
+
+    An edited photo is a new attachment that takes the place of one the parent
+    already holds. The replaced photo must leave the gallery in the same write,
+    and the new one must not have been bound before; each photo is replaced at
+    most once. Removal authorization stays with the ordinary gallery rules.
+    """
+    if not replacements:
+        return {}
+    chosen = set(selected)
+    replaced = list(replacements.values())
+    if len(set(replaced)) != len(replaced) or any(
+        new_id not in chosen or new_id in previous or old_id not in previous or old_id in chosen
+        for new_id, old_id in replacements.items()
+    ):
+        raise ValidationError(
+            "An edited photo must replace a photo that leaves this gallery.",
+            "ATTACHMENT_REPLACEMENT_INVALID",
+        )
+    return dict(replacements)
 
 
 def reserved_size(attachment: Attachment) -> int:

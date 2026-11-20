@@ -1,8 +1,9 @@
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskSheets from '../../src/i18n/locales/taskSheets';
+import AxeBuilder from '../support/axe';
+import { pinDiaryLayout } from '../support/diaryLayout';
 import { waitForSettledMotion } from '../support/settledMotion';
 import {
   captureScreenshot,
@@ -10,6 +11,11 @@ import {
   ME,
   signIn,
 } from '../support/storyTimelineFixture';
+
+// These checks describe the compact composition, not the Album default.
+test.beforeEach(async ({ page }) => {
+  await pinDiaryLayout(page, 'compact');
+});
 
 const SELF_ATTRIBUTION = de.story.byAuthor.replace(
   '{{author}}',
@@ -33,6 +39,14 @@ async function openDiaryOptions(page: Page) {
   });
   await expect(sheet).toBeVisible();
   return sheet;
+}
+
+/** Who recorded a memory or milestone: the quiet footnote of its item menu. */
+async function menuProvenance(page: Page) {
+  await page.locator('.item-menu-trigger').first().click();
+  const footnote = page.locator('.item-menu-footnote');
+  await expect(footnote).toBeVisible();
+  return footnote;
 }
 
 async function expectCompactCommentHandoff(page: Page): Promise<void> {
@@ -344,15 +358,16 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     });
     await expect(filter).toBeVisible();
     // Match the existing filter-refresh journey: measure the target after
-    // its month heading has finished revealing, not a translated DOMRect.
+    // its month heading and the enclosing tab intro have finished moving,
+    // not a translated DOMRect (#1660).
     await expect(
       page.locator('.story-year-month-header').filter({ has: filter }),
     ).toHaveCSS('transform', 'none');
+    await waitForSettledMotion(page);
     const filterBox = await filter.boundingBox();
     if (!filterBox) throw new Error('Expected a visible Diary filter');
-    // Bounds are single-precision: a 44 px target can measure 43.99999.
-    expect(filterBox.width).toBeGreaterThanOrEqual(44 - 0.01);
-    expect(filterBox.height).toBeGreaterThanOrEqual(44 - 0.01);
+    expect(filterBox.width).toBeGreaterThanOrEqual(44);
+    expect(filterBox.height).toBeGreaterThanOrEqual(44);
     expect(filterBox.x).toBeGreaterThanOrEqual(0);
     expect(filterBox.x + filterBox.width).toBeLessThanOrEqual(320);
     await captureScreenshot(
@@ -577,10 +592,13 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(
       page.getByRole('heading', { name: 'Two years together', level: 2 }),
     ).toBeVisible();
-    const provenance = page.locator('.milestone-provenance-footer');
-    await expect(provenance).toBeVisible();
+    // Who recorded it is background: it sits in the item menu, not the page.
+    await expect(page.locator('.milestone-provenance-footer')).toHaveCount(0);
+    const provenance = await menuProvenance(page);
     await expect(provenance).toContainText(SELF_ATTRIBUTION);
     await expect(provenance).not.toContainText(ME.displayName);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.item-menu')).toHaveCount(0);
 
     await captureScreenshot(
       page,
@@ -597,25 +615,24 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await installMocks(page);
     await signIn(page);
 
+    // Heart moments keep the author on the page; memories and milestones
+    // carry it in the item menu.
     const details = [
-      {
-        path: '/story/memories/mem-canal',
-        footer: '.memory-provenance-footer',
-      },
+      { path: '/story/memories/mem-canal', footer: null },
       {
         path: '/story/heart-moments/hm-love',
         footer: '.heart-moment-provenance-footer',
       },
-      {
-        path: '/story/milestones/ms-2years',
-        footer: '.milestone-provenance-footer',
-      },
+      { path: '/story/milestones/ms-2years', footer: null },
     ] as const;
 
     for (const detail of details) {
       await page.goto(detail.path);
-      await expect(page.locator(detail.footer)).toContainText(SELF_ATTRIBUTION);
-      await expect(page.locator(detail.footer)).not.toContainText(
+      const provenance = detail.footer
+        ? page.locator(detail.footer)
+        : await menuProvenance(page);
+      await expect(provenance).toContainText(SELF_ATTRIBUTION);
+      await expect(provenance).not.toContainText(
         ME.displayName.replace(/ .*/u, ''),
       );
     }
@@ -642,9 +659,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     expect(timelineText.join(' ')).not.toContain(ME_ATTRIBUTION);
 
     await page.goto('/story/memories/mem-canal');
-    await expect(page.locator('.memory-provenance-footer')).toContainText(
-      ME_ATTRIBUTION,
-    );
+    await expect(await menuProvenance(page)).toContainText(ME_ATTRIBUTION);
   });
 
   test('shared Story detail comments keep a compact handoff across detail types and reflow states (#1024)', async ({

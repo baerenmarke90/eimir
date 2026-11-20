@@ -174,12 +174,13 @@ def create_place(
         space_id=context.space_id,
         owner_id=context.account_id,
         privacy_class=shared_privacy(),
-        latitude=coordinates.latitude,
-        longitude=coordinates.longitude,
+        has_coordinates=coordinates.latitude is not None,
         payload=PlacePayload(
             name=_normalize_name(name),
             description=description,
             address=address,
+            latitude=coordinates.latitude,
+            longitude=coordinates.longitude,
         ),
     )
     session.add(place)
@@ -240,14 +241,15 @@ def update_place(
                 update(relation).where(table.c.place_id == place.id).values(photo_generated=False)
             )
 
+    # Read through the properties: a legacy row still has the pair in its columns.
+    next_latitude, next_longitude = place.latitude, place.longitude
     coordinates_touched = bool({"latitude", "longitude"} & changed_fields)
     if coordinates_touched:
         coordinates = normalize_coordinates(
-            latitude if "latitude" in changed_fields else place.latitude,
-            longitude if "longitude" in changed_fields else place.longitude,
+            latitude if "latitude" in changed_fields else next_latitude,
+            longitude if "longitude" in changed_fields else next_longitude,
         )
-        place.latitude = coordinates.latitude
-        place.longitude = coordinates.longitude
+        next_latitude, next_longitude = coordinates.latitude, coordinates.longitude
 
     next_name = place.payload.name
     next_description = place.payload.description
@@ -260,7 +262,9 @@ def update_place(
     if "address" in changed_fields:
         next_address = address
 
-    if {"name", "description", "address"} & changed_fields:
+    if {"name", "description", "address", "latitude", "longitude"} & changed_fields:
+        # Any content write also takes a legacy row's coordinates out of its
+        # plain columns; the payload is their only home from here on.
         place.payload = PlacePayload(
             name=next_name,
             description=next_description,
@@ -268,7 +272,12 @@ def update_place(
             geocoding_source=(
                 place.payload.geocoding_source if next_address == place.payload.address else None
             ),
+            latitude=next_latitude,
+            longitude=next_longitude,
         )
+        place.legacy_latitude = None
+        place.legacy_longitude = None
+        place.has_coordinates = next_latitude is not None
 
     if "archived" in changed_fields:
         assert archived is not None

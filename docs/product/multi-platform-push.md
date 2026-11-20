@@ -3,11 +3,20 @@
 Browser Web Push and native iOS APNs are opt-in registrations for the current
 Account and device session. The existing Outbox, delivery queue, recipient
 preferences, Quiet Hours and authorized notification open endpoint serve both
-transports. They deliver **eimir.** and **You have new messages.** (German
+transports. Ordinary events deliver **eimir.** and **You have new messages.** (German
 **Du hast neue Nachrichten.**) with an opaque notification reference. Content is
 resolved after an authenticated tap. Browser push displays a user-visible system
 notification when active, as required by the Web Push platform. Android and iOS
 refresh the open app quietly in the foreground.
+
+The [Wish date exchange](notification-workflow.md#wish-date-exchange-presentation-1910)
+adds one negotiated preview to compatible browser Web Push subscriptions. The
+existing RFC 8291 envelope protects the sender, Wish title and appointment for
+the current recipient's browser. Older browser subscriptions and APNs keep
+the neutral copy and canonical reference. The device activation check and
+platform notification choices continue to govern display. A bound Wish date
+wake also signals a focused browser window to read the newest authorized
+notifications, even when the unread count stays the same.
 
 One-time messages wait for the recipient's Quiet Hours and remain subject to
 their normal expiration, discard, withdrawal and claim rules. Provider

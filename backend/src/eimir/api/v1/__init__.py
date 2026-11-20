@@ -16,20 +16,16 @@ from eimir.api.v1 import (
     attachments,
     auth,
     billing,
-    calendar_sync,
     chapter_relations,
     chapters,
     collections,
     comments,
     context_tags,
     daily_checkins,
-    daily_quote,
     dashboard,
-    date_ideas,
     demo,
     engagement,
     entitlements,
-    games,
     gentle_prompts,
     health,
     heart_moments,
@@ -40,13 +36,12 @@ from eimir.api.v1 import (
     memory_planning_relations,
     milestones,
     notification_preferences,
-    once_messages,
-    partner_location,
     people,
-    photo_sources,
+    personal_settings,
     place_relations,
     places,
     plan_collections,
+    plan_notes,
     plan_story,
     plans,
     private_area,
@@ -61,6 +56,7 @@ from eimir.api.v1 import (
     server_admin,
     server_admin_observability,
     session_context,
+    shared_notes,
     spaces,
     story,
     transfer,
@@ -70,6 +66,10 @@ from eimir.api.v1 import (
 )
 
 router = APIRouter()
+
+# The Pro routers are not listed here: the Pro plugin contributes them and
+# ``create_app()`` mounts them behind the same normal-operation dependency
+# (Decision 0017).
 
 # Health, public access state, authentication/recovery and ServerAdmin remain
 # reachable while maintenance is active. Every normal product route below is
@@ -87,15 +87,16 @@ normal_router.include_router(memory_planning_relations.router)
 normal_router.include_router(memory_planning_relations.story_router)
 normal_router.include_router(plan_story.router)
 normal_router.include_router(plan_collections.router)
+normal_router.include_router(plan_notes.router)
+normal_router.include_router(shared_notes.router)
 normal_router.include_router(context_tags.router)
 normal_router.include_router(appearance.router)
+normal_router.include_router(personal_settings.router)
 normal_router.include_router(session_context.router)
 normal_router.include_router(demo.router)
 normal_router.include_router(invitations.router)
 normal_router.include_router(attachments.router)
 normal_router.include_router(video.router)
-normal_router.include_router(photo_sources.router)
-normal_router.include_router(calendar_sync.router)
 normal_router.include_router(story.router)
 normal_router.include_router(search.router)
 normal_router.include_router(dashboard.router)
@@ -107,19 +108,14 @@ normal_router.include_router(push_endpoints.router)
 normal_router.include_router(memories.router)
 normal_router.include_router(milestones.router)
 normal_router.include_router(heart_moments.router)
-normal_router.include_router(once_messages.router)
 normal_router.include_router(comments.router)
 normal_router.include_router(link_previews.router)
 normal_router.include_router(daily_checkins.router)
-normal_router.include_router(partner_location.router)
-normal_router.include_router(daily_quote.router)
-normal_router.include_router(date_ideas.router)
 normal_router.include_router(people.router)
 normal_router.include_router(profiles.router)
 normal_router.include_router(spaces.router)
 normal_router.include_router(entitlements.router)
 normal_router.include_router(billing.router)
-normal_router.include_router(games.router)
 normal_router.include_router(wishes.router)
 normal_router.include_router(wish_selections.router)
 normal_router.include_router(places.router)

@@ -1,9 +1,10 @@
-import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
+import type { PluginListenerHandle } from '@capacitor/core';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { HEART_MOMENT_CREATE_ROUTE } from '../client/routes';
 import {
   clearSharedVoice,
+  isVoiceShareAvailable,
   nativeVoiceShare,
   readSharedVoice,
   stageSharedVoice,
@@ -29,7 +30,7 @@ export function VoiceShareIngress({ scope }: { scope: string }) {
   const currentScope = useRef(scope);
   currentScope.current = scope;
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
+    if (!isVoiceShareAvailable()) return;
     let active = true;
     let listener: PluginListenerHandle | undefined;
     const inspect = async () => {
@@ -45,13 +46,14 @@ export function VoiceShareIngress({ scope }: { scope: string }) {
       .addListener('voiceShared', () => void inspect())
       .then((handle) => {
         if (active) listener = handle;
-        else void handle.remove();
-      });
+        else return handle.remove();
+      })
+      .catch(() => {});
     void inspect();
     return () => {
       active = false;
       operation.current?.abort();
-      void listener?.remove();
+      void listener?.remove().catch(() => {});
       clearSharedVoice(scope);
       if (ownedGeneration.current)
         void nativeVoiceShare
@@ -93,7 +95,9 @@ export function VoiceShareIngress({ scope }: { scope: string }) {
         if (busy) return;
         if (editing) setDismissedAt(location.key);
         else {
-          void nativeVoiceShare.discard({ generation: pending.generation });
+          void nativeVoiceShare
+            .discard({ generation: pending.generation })
+            .catch(() => {});
           setPending(null);
         }
       }}

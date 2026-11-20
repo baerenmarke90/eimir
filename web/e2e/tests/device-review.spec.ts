@@ -1,6 +1,7 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, test } from '@playwright/test';
 import tags from '../../src/i18n/locales/contextTags';
+import momentCopy from '../../src/i18n/locales/m5s5';
 import memory from '../../src/i18n/locales/memoryProduct';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
@@ -18,6 +19,7 @@ import {
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
+import { editViaMenu } from '../support/itemMenu';
 
 for (const [width, theme] of [
   [360, 'light'],
@@ -38,32 +40,36 @@ for (const [width, theme] of [
     const writes: string[] = [];
     const plan = {
       id: 'linked-plan',
-      title: 'Unser Wochenende',
+      spaceId: SPACE_ID,
+      title: 'Our weekend at the lake with a picnic by the water',
       createdAt: '2026-11-04T10:00:00Z',
       updatedAt: '2026-11-04T10:00:00Z',
       version: 1,
-      status: 'OPEN',
+      status: 'PLANNED',
       author: { id: ACCOUNT_ID, displayName: 'Lea' },
       capabilities: { canEdit: true, canDelete: true, canComment: true },
       attachments: [],
       tags: [],
     };
-    const wish = { ...plan, id: 'linked-wish', title: 'Gemeinsam ans Meer' };
+    const wish = {
+      ...plan,
+      id: 'linked-wish',
+      title: 'Gemeinsam ans Meer',
+      status: 'OPEN',
+    };
     for (const kind of ['plans', 'wishes'] as const) {
-      await page.route(`**/api/v1/spaces/${SPACE_ID}/${kind}**`, (route) => {
-        const path = new URL(route.request().url()).pathname;
-        return route.fulfill({
-          json: path.endsWith(`/${kind}`)
-            ? {
-                items: [kind === 'plans' ? plan : wish],
-                nextCursor: null,
-                hasMore: false,
-              }
-            : kind === 'plans'
-              ? plan
-              : wish,
-        });
-      });
+      const item = kind === 'plans' ? plan : wish;
+      const path = `/api/v1/spaces/${SPACE_ID}/${kind}`;
+      await page.route(
+        (url) => url.pathname === path,
+        (route) =>
+          route.fulfill({
+            json: { items: [item], nextCursor: null, hasMore: false },
+          }),
+      );
+      await page.route(`**${path}/${item.id}`, (route) =>
+        route.fulfill({ json: item }),
+      );
       await page.route(
         `**/api/v1/spaces/${SPACE_ID}/memories/mem-canal/${kind}**`,
         async (route) => {
@@ -81,8 +87,30 @@ for (const [width, theme] of [
         },
       );
     }
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/plans/${plan.id}/story*`,
+      (route) =>
+        route.fulfill({
+          json: { items: [], nextCursor: null, hasMore: false },
+        }),
+    );
+    await page.route(
+      (url) => url.pathname === `/api/v1/spaces/${SPACE_ID}/places`,
+      (route) =>
+        route.fulfill({
+          json: { items: [], nextCursor: null, hasMore: false },
+        }),
+    );
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/wishes/${wish.id}/reminder`,
+      (route) => route.fulfill({ json: { dueAt: null } }),
+    );
     await signIn(page);
     await page.goto('/story/memories/mem-canal');
+    const group = page.getByRole('region', {
+      name: memory.planning.detailHeading,
+      exact: true,
+    });
     const own = page
       .locator('.comment-card')
       .filter({ hasText: 'Still smiling about this.' });
@@ -91,6 +119,7 @@ for (const [width, theme] of [
       .filter({ hasText: 'Me too.' });
     await expect(own).toBeVisible();
     await expect(partner).toBeVisible();
+    await expect(group).toHaveCount(0);
     await own.scrollIntoViewIfNeeded();
     const ownDate = await own.locator('time').boundingBox();
     const partnerDate = await partner.locator('time').boundingBox();
@@ -114,7 +143,7 @@ for (const [width, theme] of [
     await expect(
       page.getByRole('button', { name: memory.planning.add, exact: true }),
     ).toHaveCount(0);
-    await page.getByRole('link', { name: memory.edit, exact: true }).click();
+    await editViaMenu(page, memory.edit);
     const linked = page.getByRole('region', { name: memory.planning.heading });
     for (const kind of ['plans', 'wishes'] as const) {
       await page
@@ -150,14 +179,96 @@ for (const [width, theme] of [
     await page
       .getByRole('link', { name: taskBoundary.back, exact: true })
       .click();
-    for (const kind of ['plans', 'wishes'] as const) {
+    await expect(group.getByRole('heading')).toHaveText(
+      memory.planning.detailHeading,
+    );
+    const list = group.getByRole('list');
+    const planLink = list.getByRole('link', {
+      name: `${plan.title} ${momentCopy.kind.PLAN}`,
+      exact: true,
+    });
+    const wishLink = list.getByRole('link', {
+      name: `${wish.title} ${momentCopy.kind.WISH}`,
+      exact: true,
+    });
+    await expect(list.getByRole('link')).toHaveCount(2);
+    await expect(planLink).toHaveAttribute('href', '/plan/plans/linked-plan');
+    await expect(wishLink).toHaveAttribute('href', '/plan/wishes/linked-wish');
+    await group.scrollIntoViewIfNeeded();
+    const [planBounds, wishBounds] = await Promise.all([
+      planLink.boundingBox(),
+      wishLink.boundingBox(),
+    ]);
+    if (!planBounds || !wishBounds) throw new Error('Missing planning links');
+    expect(planBounds.height).toBeGreaterThanOrEqual(44);
+    expect(wishBounds.height).toBeGreaterThanOrEqual(44);
+    expect(planBounds.y + planBounds.height).toBeLessThanOrEqual(
+      wishBounds.y + 1,
+    );
+    expect(planBounds.width).toBeCloseTo(wishBounds.width, 1);
+    const divider = await list
+      .getByRole('listitem')
+      .nth(1)
+      .evaluate(
+        (row) => getComputedStyle(row, '::before').borderBlockStartWidth,
+      );
+    expect(parseFloat(divider)).toBeGreaterThan(0);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(width);
+    await captureScreenshot(
+      page,
+      info,
+      `memory-planning-links-${width}-${theme}.png`,
+    );
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .include('.memory-planning-links-detail')
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    if (width === 360) {
+      const largeText = await page.addStyleTag({
+        content: 'html { font-size: 150%; }',
+      });
+      await expect(planLink).toBeVisible();
+      const titleFits = await planLink.locator('strong').evaluate((title) => {
+        const lineHeight = parseFloat(getComputedStyle(title).lineHeight);
+        return (
+          title.scrollWidth <= title.clientWidth &&
+          title.clientHeight > lineHeight
+        );
+      });
+      expect(titleFits).toBe(true);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(width);
+      await largeText.evaluate((style) => style.remove());
+      await planLink.focus();
+      await expect(planLink).toBeFocused();
+      await page.keyboard.press('Tab');
+      await expect(wishLink).toBeFocused();
+      await wishLink.press('Enter');
+      await expect(page).toHaveURL(/\/plan\/wishes\/linked-wish$/);
       await expect(
-        linked.getByRole('link', {
-          name: kind === 'plans' ? plan.title : wish.title,
-        }),
-      ).toHaveAttribute('href', new RegExp(`/${kind}/linked-`));
+        page.getByRole('heading', { name: wish.title, exact: true }),
+      ).toBeVisible();
+      await page
+        .getByRole('button', { name: taskBoundary.back, exact: true })
+        .click();
+      await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
+      await planLink.click();
+      await expect(page).toHaveURL(/\/plan\/plans\/linked-plan$/);
+      await expect(
+        page.getByRole('heading', { name: plan.title, exact: true }),
+      ).toBeVisible();
+      await page
+        .getByRole('button', { name: taskBoundary.back, exact: true })
+        .click();
+      await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
     }
-    await page.getByRole('link', { name: memory.edit, exact: true }).click();
+    await editViaMenu(page, memory.edit);
     await linked
       .getByRole('button', {
         name: memory.planning.remove.replace('{{title}}', plan.title),
@@ -168,10 +279,9 @@ for (const [width, theme] of [
     await page
       .getByRole('link', { name: taskBoundary.back, exact: true })
       .click();
-    await expect(linked.getByRole('link', { name: plan.title })).toHaveCount(0);
-    await expect(
-      linked.getByRole('link', { name: wish.title }),
-    ).toHaveAttribute('href', /\/wishes\/linked-/);
+    await expect(planLink).toHaveCount(0);
+    await expect(list.getByRole('link')).toHaveCount(1);
+    await expect(wishLink).toHaveAttribute('href', '/plan/wishes/linked-wish');
     expect(writes).toEqual(['PUT:plans', 'PUT:wishes', 'DELETE:plans']);
     expect(unexpected).toEqual([]);
   });

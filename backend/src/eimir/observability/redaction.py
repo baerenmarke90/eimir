@@ -88,7 +88,7 @@ def scrub_url(url_string: str) -> str:
     """Scrub sensitive query parameters from a URL."""
     try:
         parts = urlsplit(url_string)
-        if not parts.query:
+        if not parts.query and not parts.fragment:
             return url_string
         query_pairs = parse_qsl(parts.query, keep_blank_values=True)
         cleaned_pairs: list[tuple[str, str]] = []
@@ -98,7 +98,7 @@ def scrub_url(url_string: str) -> str:
             else:
                 cleaned_pairs.append((key, value))
         cleaned_query = urlencode(cleaned_pairs, safe="[]")
-        return urlunsplit((parts.scheme, parts.netloc, parts.path, cleaned_query, parts.fragment))
+        return urlunsplit((parts.scheme, parts.netloc, parts.path, cleaned_query, ""))
     except Exception:
         return REDACTED
 

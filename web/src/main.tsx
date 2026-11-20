@@ -4,14 +4,17 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
 import { markNativeRuntime, useCapacitorShell } from './capacitorShell';
+import { registerNativeHaptics } from './motion/hapticsNative';
 import { isDemoModeConfigured } from './client/demoMode';
 import { identityBuildVariable } from './client/identityEnvironment';
 import { releaseLaunchScreenWhenPainted } from './client/launchScreen';
-import { startNativeSystemTheme } from './client/nativeSystemTheme';
 import { isNativeSessionStorageAvailable } from './client/nativeSessionStorage';
+import { startNativeSystemTheme } from './client/nativeSystemTheme';
+import { planPathFromCalendarLink } from './client/routes';
 import { restoreNativeSession } from './client/sessionPersistence';
 import { useControlPressFeedback } from './client/useControlPressFeedback';
 import { useFloatingCreateScrollTuck } from './client/useFloatingCreateScrollTuck';
+import { useStatusBarScrim } from './client/useStatusBarScrim';
 import { DemoBanner } from './components/DemoBanner';
 import { NativeSessionGate } from './components/NativeSessionGate';
 import { useTranslation } from './i18n';
@@ -20,6 +23,7 @@ import { initializeTheme } from './theme';
 import './styles.css';
 import './story-media.css';
 import './theme.css';
+import './motion/utilities.css';
 import './design/product-roles.css';
 import './shell.css';
 import './layout.css';
@@ -45,10 +49,20 @@ import './product-reflow.css';
 import './components/FreeComposer.css';
 import './components/StoryReading.css';
 import './design/identity-roles.css';
+import './design/person-colors.css';
 import './design/identity-components.css';
+import './design/app-designs.css';
 import { dateAwareStructuralSharing } from './client/structuralSharing';
 
+// Resolve calendar links before the router and sign-in read the entry URL.
+const calendarPlanPath = planPathFromCalendarLink(window.location.pathname);
+if (calendarPlanPath) {
+  window.history.replaceState(window.history.state, '', calendarPlanPath);
+}
+
 markNativeRuntime();
+// Native app only: the plugin is never loaded on the Web (Motion Contract 4.10).
+void registerNativeHaptics();
 initializeTheme();
 startNativeSystemTheme();
 registerProductionServiceWorker();
@@ -90,6 +104,7 @@ function RootApp() {
   useCapacitorShell();
   useControlPressFeedback();
   useFloatingCreateScrollTuck();
+  useStatusBarScrim();
   // Startup placeholders hold the launch screen; anything else ends it.
   useEffect(() => releaseLaunchScreenWhenPainted(), []);
   return (

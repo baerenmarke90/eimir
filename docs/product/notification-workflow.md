@@ -1,7 +1,7 @@
 # Module notification workflow
 
 **Product Owner decision:** 2026-11-01, approved implementation on PR #1568.
-**Runtime policy:** v11 in `engagement/notification_policy.py`.
+**Runtime policy:** v16 in `engagement/notification_policy.py`.
 
 **Narrow follow-up decision #1620 (2026-11-03):** personal default-off gentle
 prompts may offer adaptive writing/Memory invitations under the complete
@@ -30,7 +30,7 @@ foundation. It does not introduce the previously rejected daily summary.
    opt-outs and Quiet Hours. Comment Email retains its separately opted-in hourly
    digest; there is no daily engagement Push. New kinds
    inherit the relevant existing recipient group rather than another settings UI.
-5. The public lock-screen version stays neutral; Android's sensitive-content
+5. By default, the public lock-screen version stays neutral. Android's sensitive-content
    preference remains user-controlled. The Product Owner's 2026-11-01 follow-up
    authorizes named event/title previews on the device. Negotiated FCM preview v1
    carries standard JWE ciphertext bound to the current activation. Names, kinds,
@@ -41,31 +41,36 @@ foundation. It does not introduce the previously rejected daily summary.
    a short-lived access-token expiry alone does not interrupt background previews.
    Token rotation preserves the binding; a fresh authenticated registration can
    rebind the same endpoint after sign-in. Invalid families retain only the legacy
-   generic wake. Legacy registrations keep their generic wake. The UnifiedPush wake may carry
-   only a canonical Notification ID, never actor, category, title, body, photo,
-   private choice, filename or an arbitrary route. Browser Web Push and iOS APNs
-   carry a reference and an activation identifier, with neutral system copy.
-   Legacy wakes open the Center. See the [multi-platform push contract](multi-platform-push.md).
+   generic wake. Legacy registrations keep their generic wake. A standard
+   UnifiedPush wake may carry a canonical Notification ID. Standard browser Web
+   Push and iOS APNs carry a reference and an activation identifier, with neutral
+   system copy. The negotiated Wish date exception below adds only encrypted
+   device copy. Providers receive no relationship fields in plaintext. Legacy
+   wakes open the Center. See the [multi-platform push contract](multi-platform-push.md).
    The 2026-11-04 [content-completeness correction](design/references/565-contextual-push/content-completeness.md)
    adds negotiated preview v2 with a short current comment/shared-answer excerpt.
    V1 retains its exact field set. Additive server/native maximum-version fields
    select v2 only when both support it; older workers retain readable keys and
    emit v1. Text is projected from the exact currently authorized source only
-   for delivery, never persisted in notification/event/job metadata. Public
-   lock-screen content remains neutral. Every known native kind has its own
+   for delivery, never persisted in notification/event/job metadata. The
+   deliberate Wish date exchange in #1910 has the scoped presentation exception
+   below. Every known native kind has its own
    accurate localized label, including content-free automatic invitations and
    source-free due notices; a digest remains explicitly plural.
 6. A tap resolves current authenticated recipient state and opens its canonical
    destination. An unavailable target falls back to the Center. Account/Space
    changes invalidate pending navigation, and an active editor defers navigation
    through the existing document-leave guard. Dismissing/receiving is not reading.
-7. The active native app suppresses system presentation. Its wake signal and
-   the existing unread-count refresh admit new, authorized in-app items to the
-   [shared foreground banner](design/partner-gesture-receipt.md). Each kind has
-   its own one-shot animation or a stable symbol with reduced motion. Only one
-   banner is visible. Focused tasks keep the screen, and notifications that
-   arrived while the app was away stay in the inbox. The existing browser Web
-   Push platform contract still governs browser system notifications.
+7. A wake from the current native activation or a bound browser Wish date
+   notification can trigger a fresh, authorized inbox read in the focused
+   app even with an unchanged unread count. An increase in the observed count
+   can also trigger a read. A recent unread item can appear in the
+   [shared foreground banner](design/partner-gesture-receipt.md), with a
+   one-shot animation or the settled symbol for reduced motion. Only one banner
+   is visible. Focused tasks keep the screen, and notifications that arrived
+   while the app was away stay in the inbox. The active native app suppresses
+   system presentation. The [browser Web Push contract](multi-platform-push.md)
+   governs browser system notifications.
 
 ## Complete module inventory
 
@@ -94,8 +99,14 @@ foundation. It does not introduce the previously rejected daily summary.
 | Plan time/place changes | An actual schedule/place change affects an appointment within 48 hours | Neutral immediate partner notice, expiring with the relevant source appointment. Pure prose, cover and unchanged schedule writes stay silent. |
 | Plan cancellation | Unschedule, delete or return an imminent Plan to its Wish | One expiring neutral notice; open Planen when the original Plan has been removed. No copied deleted title. Completed/past Plans do not notify. |
 | Wishes | Ordinary create/edit | Existing shared Activity, no individual Push. |
+| Wish date proposal (#1910) | Explicitly propose a time, counter or accept on a shared Wish | One recipient-owned Center item. Push uses the existing reminder channel choice and Quiet Hours. A tap opens the active proposal on its Wish. Acceptance produces one shared Plan and the acceptance notice opens it. Decline or withdrawal leaves the Wish open. |
 | Personal Wish reminder (#812) | A partner's own one-time reminder for an open Wish becomes due | Owner-only Center and Push under the reminder setting, including during Quiet Hours. Opens the Wish. Public copy stays neutral, and an opted-in Android preview omits the Wish title. Replacement, removal, Wish completion, conversion, deletion or loss of access suppresses stale delivery. |
-| Shared Wish selection | Deliberately publish the shared candidate round; both partners publish and result becomes available | One invitation and one revealed-result notice per round. Individual favorites/publication are silent. Results disappear from notifications if mutual publication or current participant context no longer holds. Open the current selection. |
+| Shared Wish selection | Deliberately publish the shared candidate round; both partners publish and result becomes available; a partner proposes, accepts or declines the random pick (#1907 J1) | One invitation and one revealed-result notice per round, each naming the feature's question (`wishSelection.notice.*`); the invitation states how many ideas are in the round. A random-pick request and its acceptance notify by Push and in-app; a decline is in-app only. No notice reveals whether there was a match or what was chosen. Individual favorites/publication, a withdrawn request and a manual choice are silent. Notices disappear when mutual publication, the open request, the stored decision or the current participant context no longer holds. The preference stays with `THINKING_OF_YOU`. Open the current selection. |
+| Herzversteck (#1907 H3) | A partner hides a heart in a photo and sends it; the other partner finds it | One in-app and Push notice per event, naming the partner ("hid a heart", "found your heart"); the photo and its contents never appear in the notice. Both follow the shared-activity preference (`THINKING_OF_YOU`) and Quiet Hours; neither names a target row, because a round (and its photo) can already be gone when the notice is read. A tap opens the game. |
+| Sent list (#1907 E2) | A partner deliberately sends a shared list from its menu (confirmation first) | One recipient Center item and a neutral immediate Push (sender's name and "a list", never the list title, since a list may be a surprise). Its own recipient switch sits with the partner notices; Quiet Hours hold it. The list is added at the end of the recipient's pinned lists on Wir without touching their order or visibility. One notice per sender and list in 30 minutes; a repeat adds nothing and stays silent. A tap opens the list. Not offered by email. |
+| Shared Notes (#1969) | A partner creates a shared note or changes its text (pinning, plan links and deletion stay silent) | One recipient Center item per new note and one coalesced item per note for changes, and a neutral immediate Push naming only the partner and the action ("created / changed a shared note"; never the note's title or text). Inherits the comment Push choice and Quiet Hours; not offered by email. A change adds no Push while the partner has not yet read the note's earlier notice; once it was read, the next change notifies again. A tap opens the note. |
+| Garden seed (#1907 H3) | A partner sends today's seed in the shared garden (one per partner and day) | One recipient Center item and a neutral immediate Push (sender's name and "a seed", never the attached words). Its own recipient switch sits with the partner notices; Quiet Hours hold it. The notice stays current only while the seed waits to be planted; a tap opens the garden. A bouquet (up to three blooms, one per partner and day) reuses this kind with the target `GARDEN_BOUQUET` and its own text (`coupleExperiences.notifications.GARDEN_BOUQUET`, "gave you a bouquet"), current only while its card waits. At most one garden notice per person and local day; a later seed or bouquet that day stays silent. Watering, growth, unlocks, visiting animals and later garden moments send nothing. Not offered by email. |
+| Recaps (#1744) | A completed month or year is retained after its grace week; late shared entries make a retained recap's newer version | One identical in-app and neutral immediate Push notice per partner, naming only the period (`recaps.notice.readyMonth`, `readyYear`, `grewMonth`, `grewYear`). December is announced with the year film. Earlier periods that appear only now and newer versions are sent at most once a day per Space, several together as one notice that opens the overview. Never for the running period, never before 09:00 or after 21:00 in the Space's time zone; recipient Quiet Hours and the own recaps switch (`notificationSettings.recaps`) apply (`RECAP_GREW` follows it). Premium only: without `relationship.passport` nothing is composed or announced. Silent recompositions of open proposals send nothing. A tap opens the recap. Not offered by email. |
 | Shared Collections / checklists | Routine add/check/reorder | Update in place; no per-checkbox or small-edit alert. Explicit timed Reminders retain their existing recipient schedule. |
 | Places | Shared creation/edit/link | Existing Activity/source update only. A saved Place is not a time-sensitive event. |
 | People / birthdays / anniversaries / important dates | Existing scheduled occurrence becomes due | Existing source-owned planning lead/day-of reminder; one occurrence across all surfaces, localized date/time. |
@@ -107,6 +118,41 @@ foundation. It does not introduce the previously rejected daily summary.
 | Account / connection / security | Account-critical action | Existing dedicated transactional/account workflow; never a relationship-content banner or marketing message. |
 | Import / export | Validation ready, export ready, import complete or domain/terminal storage failure | Owner-only neutral outcome Notification/Push; opens the exact authenticated job in Data. Progress and retries stay in context. Expired/deleted/wrong-owner jobs are unavailable. Imported historical objects never replay relationship messages. |
 | Pro information / app information / operator diagnostics | Viewing information or operational changes | No couple-facing promotional/diagnostic Push; existing operator/account boundaries remain. |
+
+## Wish date exchange presentation (#1910)
+
+The Product Owner approved showing the sender, shared Wish title and appointment
+directly in the system notification for a deliberate proposal, counter or
+acceptance. The recipient's app and OS notification settings continue to govern
+delivery and visibility. This is Free/Core shared Wish and Plan behavior with
+one current proposal per Wish. A partner can accept only the proposal received.
+Confirmation uses the existing Wish-to-Plan conversion, preserving the wish
+link and context. Rejecting or withdrawing a proposal does not complete the Wish.
+
+The event and notification store canonical references and the expiry time.
+Delivery authorizes the intended recipient against current participants and
+source, verifies that the notice still represents the active proposal or its
+confirmed Plan, and projects the agreed fields from the source. Actor, title
+and appointment stay out of logs and plaintext provider fields. Replaced,
+declined, withdrawn, rescheduled, deleted or inaccessible sources cannot send
+a stale proposal. A discreet Plan remains concealed.
+
+| Transport | System presentation |
+| --- | --- |
+| Android FCM with a current v2 device binding | Existing device-bound JWE carries the details. A valid proposal payload lets Android present the full notification on the lock screen using the normal OS notification settings. |
+| Compatible Android UnifiedPush and browser Web Push | Current endpoints negotiate the Wish date preview and protect it with the existing recipient subscription's RFC 8291 encryption. |
+| Native iOS APNs and older registrations | Neutral system copy. A supported reference opens the Wish or Plan through the existing authorized resolver. Legacy reference-free Android wakes open the Center. |
+
+The existing device setup negotiates the preview. The recipient's device time
+zone is used consistently for the local date and time in the preview and in the
+app. The Wish date exchange adds no separate private-preview setting and no Email.
+
+The in-app receipt uses the shared foreground banner
+[#1912](design/partner-gesture-receipt.md) at the top of the current screen. Its
+avatar, soft breath and calendar badge follow the calm receipt from
+#455. The receipt uses a stable authorized entry, leaves focus and active tasks
+alone and shows the settled state immediately with reduced motion. Timeout or
+dismissal leaves the proposal and the Center's read state alone.
 
 ## Bounds, privacy and business model
 

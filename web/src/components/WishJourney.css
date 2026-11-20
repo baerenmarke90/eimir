@@ -89,24 +89,20 @@
   hyphens: auto;
 }
 
+/* The step that was just reached: its connector reaches out along its length
+   (Enter `reach`, never the stroke's width, M7), then its dot and label
+   arrive (Enter `grow`); the catalogue is src/motion/motion.css. */
 .wish-journey-path[data-advancing] .is-current::before {
-  animation: wish-journey-connect var(--duration-context) var(--easing-enter)
-    both;
+  --motion-reach-from: 0 1;
+  animation: eimir-motion-enter-reach var(--duration-context)
+    var(--easing-enter) both;
 }
 
 .wish-journey-path[data-advancing] .is-current .wish-journey-dot,
 .wish-journey-path[data-advancing] .is-current .wish-journey-label {
-  animation: wish-journey-arrive var(--duration-transition) var(--easing-enter)
-    var(--duration-feedback) both;
-}
-
-@keyframes wish-journey-connect {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
-  }
+  --motion-enter-from-scale: 0.6;
+  animation: eimir-motion-enter-grow var(--duration-transition)
+    var(--easing-enter) var(--duration-feedback) both;
 }
 
 @container wish-journey (max-width: 16em) {
@@ -137,36 +133,7 @@
   }
 
   .wish-journey-path[data-advancing] .is-current::before {
-    animation-name: wish-journey-connect-down;
-  }
-}
-
-@keyframes wish-journey-connect-down {
-  from {
-    transform: scaleY(0);
-  }
-  to {
-    transform: scaleY(1);
-  }
-}
-
-@keyframes wish-journey-arrive {
-  from {
-    opacity: 0;
-    transform: scale(0.6);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes wish-journey-fade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
+    --motion-reach-from: 1 0;
   }
 }
 
@@ -174,8 +141,8 @@
   .wish-journey-path[data-advancing] .is-current::before,
   .wish-journey-path[data-advancing] .is-current .wish-journey-dot,
   .wish-journey-path[data-advancing] .is-current .wish-journey-label {
-    animation: wish-journey-fade var(--duration-feedback) var(--easing-standard)
-      both;
+    animation: eimir-motion-enter-fade var(--duration-feedback)
+      var(--easing-standard) both;
   }
 }
 
@@ -315,6 +282,40 @@
 /* Wish detail: the path sits where the status word was. */
 .wish-detail-journey {
   margin-block: var(--space-1) var(--space-5);
+}
+
+.wish-date-proposal {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  scroll-margin-block-start: var(--space-4);
+}
+
+.wish-date-proposal > :is(h3, p) {
+  margin: 0;
+}
+
+.wish-date-proposal .wish-date-proposal-date {
+  color: var(--color-shared);
+  font-weight: 600;
+}
+
+.wish-detail:has(.wish-date-proposal) .wish-operations > summary.button-link {
+  background: var(--color-surface);
+  color: var(--color-shared);
+  box-shadow: none;
+}
+
+.wish-date-proposal-actions {
+  justify-content: flex-start;
+}
+
+@media (max-width: 839px) {
+  .wish-date-proposal .wish-date-proposal-actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
 }
 
 .wish-detail-plan-action {

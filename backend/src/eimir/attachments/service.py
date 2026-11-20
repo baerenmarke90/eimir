@@ -466,7 +466,15 @@ def _require_readable_parent(
     from eimir.memories.models import Memory
     from eimir.people.models import RelatedPerson
     from eimir.plans.models import Plan
+    from eimir.plugins.loader import loaded_plugins
 
+    plugin_rule = loaded_plugins().attachment_read_rules().get(parent_type)
+    if plugin_rule is not None:
+        # The plugin parent decides (heart hunt: exactly the two partners of the
+        # round). Without the plugin its parent types fall through to the denial.
+        if not plugin_rule(session, context, parent_id):
+            raise Attachment.privacy_absence.error()
+        return
     if parent_type == "MEMORY":
         model: type[Memory] | type[HeartMoment] | type[RelatedPerson] | type[Plan] = Memory
     elif parent_type == "HEART_MOMENT":

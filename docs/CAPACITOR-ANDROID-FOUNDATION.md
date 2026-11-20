@@ -26,7 +26,9 @@ web/ (Vite + TypeScript)
   - `appName`: `'eimir.'`
   - `webDir`: `'dist'`
   - `android.path`: `'../android'`
+  - `android.minWebViewVersion`: `111` (the supported WebView floor; see [Supported WebView and browser floor](#supported-webview-and-browser-floor-1613))
   - `server.androidScheme`: `'https'` (`https://localhost` inside WebView)
+  - `server.errorPath`: `'webview-unsupported.html'` (static ES5 notice below the WebView floor or after a failed main-frame load, #1931)
   - `plugins.CapacitorHttp.enabled`: `true` (native cross-origin HTTP bridge)
 - **API Base Requirement (Fail-Closed)**:
   - In native mode (`Capacitor.isNativePlatform()`), the app **strictly requires** a non-empty `VITE_EIMIR_API_BASE_URL` pointing to a valid remote server (HTTP/HTTPS).
@@ -78,6 +80,8 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 - **Delivered mailbox and invitation links:**
   - The shared Web identity-entry intake reads `appUrlOpen` and `App.getLaunchUrl()` for HTTPS auth URLs from the configured API origin, as well as browser routes and PWA launch targets. Proofs remain in memory and use the existing identity flow before an older signed-in shell can take precedence.
   - The regular main manifest permanently registers verified HTTPS App Links for `app.eimir.de` (and, until installed builds have moved, the transition host `demo.eimir.ur-cloud.de`, #1835) and the five canonical identity paths: `/auth/signup`, `/auth/magic-link`, `/auth/invitation`, `/auth/verify-email`, and `/auth/recovery`. Android verifies the website's `/.well-known/assetlinks.json` against the installed package and signer. The existing test-channel overlay may repeat the same filter; no arbitrary Self-Hosted domains are claimed. Intake still accepts only the configured API origin, not every URL delivered by Android. OS domain verification and APK distribution are separate boundaries. A Web/backend deployment cannot update a previously bundled APK.
+- **Calendar plan links (#1895):**
+  - Synced calendar events carry `https://<instance>/p/<short id>`, the plan UUID in unpadded base64url. The same verified App Link filter claims `/p/` for the hosts above, so the link opens the installed app. `usePlanShortLinkAppOpen` reads `appUrlOpen` and `App.getLaunchUrl()`, accepts only HTTPS links of the configured API origin and opens the plan detail; the Web route `/p/:shortId` does the same in a browser. Self-Hosted domains are not claimed, so their calendar links keep opening the browser.
 - **OIDC Authentication Flow:**
   - When running in native mode (`isCapacitorNative()`), OIDC login launches via `@capacitor/browser`:
     ```ts
@@ -92,6 +96,17 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
     1. `@capacitor/app` `appUrlOpen` listener (for warm starts / in-background resume).
     2. `App.getLaunchUrl()` (for cold-boot starts when the activity is created by the intent).
   - The handler verifies matching session `state`, extracts `code`, invokes the backend completion endpoint (`completeRecentAuthentication`), and closes the browser view (`Browser.close()`).
+- **Sign-in with an external provider (#58):**
+  - The sign-in and settings screens start Google (or another configured provider) with `client: android`; the
+    server answers with the connection's `android_redirect_uri` and `nativeAvailable` in the public instance
+    status decides whether the app offers it. The authorization page opens in the system browser tab
+    (`Browser.open`).
+  - The registered callback is the connection's verified HTTPS address `/auth/oidc/<id>`. The manifest claims
+    the prefix `/auth/oidc/` on the verified hosts, so Android returns the provider to the app, which reads it
+    through the same `appUrlOpen`/launch-URL intake as mailed links. Only the parameters a provider adds
+    (`code`, `state`, `error`, `scope`, `authuser`, `prompt`, `iss`, `hd`) are accepted, each once, on the
+    configured origin.
+  - Setting-up steps for operators: `docs/operations/google-and-passkey-sign-in.md`.
 - **Client Capabilities Filter**:
   - `loadRecentAuthenticationCapabilities()` automatically passes `client: RecentAuthenticationClient.android` when running natively.
   - The backend returns only OIDC connections that have an `android_redirect_uri` configured, preventing users from selecting unsupported web-only flows in the Android container.
@@ -104,7 +119,7 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 - `loadRecentAuthenticationCapabilities()` explicitly forces `passkey: false` in native container mode, so passkey re-authentication options are not presented in the native UI.
 - `authenticateRecentPasskey()` fails closed with an informative error if invoked in native mode.
 - Standard Web/PWA passkey authentication remains completely unchanged.
-- The bounded native passkey bridge (Credential Manager plus Digital Asset Links, handing its result to the existing Web auth orchestration) is tracked in #630. It is not implemented on `main`. OIDC needs no bridge and stays out of that scope.
+- The bounded native passkey bridge (#630) is the `Passkeys` Capacitor plugin (`PasskeysPlugin.java`): Android Credential Manager with the Play services provider for Android 13 and older. The server's WebAuthn options go to the platform as JSON and its JSON response goes back unchanged, so the Web layer never interprets credential material. The sign-in screen and Settings offer passkeys only after the plugin reports itself available; recent-authentication (account deletion, ServerAdmin) still reports `passkey: false` natively. The relying party must trust the app through Digital Asset Links (`get_login_creds`) and the server must accept the app's `android:apk-key-hash:` origin (`docs/operations/google-and-passkey-sign-in.md`). A real device check is required before the bridge counts as accepted. OIDC needs no bridge.
 - Third-party OIDC/Pocket-ID authentication (which runs in the system browser/Custom Tab via `@capacitor/browser`) is decoupled from WebView WebAuthn and functions independently.
 
 ---
@@ -128,7 +143,7 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 
 ### Compatible security toolchain
 
-The wrapper uses Gradle **9.9.1**, AGP **9.4.0**, Capacitor **8.5.2** and
+The wrapper uses Gradle **9.9.1**, AGP **9.4.0**, Capacitor **8.6.2** and
 JDK **21**. Gradle 9.8.1 and later contain the fixes for three advisories also repaired
 in the 8.14.6 patch used before this migration:
 [worker authentication](https://github.com/gradle/gradle/security/advisories/GHSA-mvvg-497x-hmj8),
@@ -143,7 +158,7 @@ later according to the
 The Capacitor project documents AGP 8.13.0 for
 [Capacitor 8](https://capacitorjs.com/docs/updating/8-0) and AGP 9.2.1 with
 Gradle 9.5.1 only in the [unreleased Capacitor 9 guide](https://capacitorjs.com/docs/next/updating/9-0).
-AGP 9.4.0 on Capacitor 8.5.2 is therefore a pairing Capacitor does not
+AGP 9.4.0 on Capacitor 8.6.2 is therefore a pairing Capacitor does not
 document. It is accepted for this repository because the wrapper builds and
 passes its own gates on it (debug APK, unsigned release APK/AAB, lint, unit
 tests, Android launcher tests under strict dependency verification), and the
@@ -234,7 +249,7 @@ Mobile Web is the normative product reference. React product work reaches the An
 |---|---|---|
 | `android/app/src/main/java/de/eimir/app/MainActivity.java` | NATIVE_CAPABILITY_REQUIRED | Capacitor `BridgeActivity` host; starts the one-shot cleanup. No product logic. |
 | `android/app/src/main/java/de/eimir/app/PhotoFileChooser.java` | NATIVE_CAPABILITY_REQUIRED | Selected-photo original-file handoff (#1471): optional photo-metadata permission, read-only document grants, original MediaStore access, cancellation and Activity ownership. No independent upload or location-tracking pipeline. |
-| `android/app/src/main/java/de/eimir/app/ApproximateLocationPlugin.java`, `ApproximateLocationPolicy.java` | NATIVE_CAPABILITY_REQUIRED | Partner distance (#1792): one approximate position on request under `ACCESS_COARSE_LOCATION`, reusing a recent cached fix first. Network/fused providers only, never GPS. |
+| `android/app/src/main/java/de/eimir/app/ApproximateLocationPlugin.java`, `ApproximateLocationPolicy.java` | NATIVE_CAPABILITY_REQUIRED | Partner distance (#1792): one approximate position on request under `ACCESS_COARSE_LOCATION`, reusing a recent cached fix first. Network/fused providers only, never GPS. Only after a person's own precise choice (PO 2026-11-17) and with `ACCESS_FINE_LOCATION` actually granted does a single measurement use fused, GPS or network (`PresencePrecision` rounds to about 100 m on the device). |
 | `android/app/src/main/java/de/eimir/app/PresenceBackground.java`, `PresencePublishRule.java`, `PresenceLocationReceiver.java`, `PresenceUploadJob.java` | NATIVE_CAPABILITY_REQUIRED | Opt-in background partner location (#1792): passive-provider fixes only, network-bound job uploads with a scoped presence device credential, 6-hour heartbeat without measuring, re-registration after boot/update. No foreground service and no Web-session refresh; cleared on sign-out. |
 | `android/app/src/main/java/de/eimir/app/LegacyNativeDataCleanup.java` | NATIVE_CAPABILITY_REQUIRED / TEMPORARY_UPGRADE_MIGRATION | Deletes the retired Kotlin client's Room database, Space preference and Keystore key after an in-place update. One-shot: writes a completion marker after all three removals succeed; retries only while one fails. Temporary: remove in a later cleanup once no installation that predates the wrapper can remain (no issue tracks that yet). |
 | `AndroidManifest.xml`, `res/**`, Gradle files | NATIVE_CAPABILITY_REQUIRED | Launcher, OIDC deep link, FileProvider, icons/splash, build and verification metadata. |
@@ -242,6 +257,8 @@ Mobile Web is the normative product reference. React product work reaches the An
 ## 9. Reuse-Before-Build Assessment
 
 ### Approximate location for partner distance (#1792)
+
+**Precise choice (PO 2026-11-17).** The same plugin serves a person's opt-in precise choice. `ACCESS_FINE_LOCATION` is declared next to the coarse permission and requested together with it (`requestPermissions` with the `location` and `preciseLocation` aliases), so Android 12+ shows its Precise/Approximate switch; the app never assumes the grant and continues approximately when the person keeps "approximate". A precise `current` call tries the fused provider, then GPS, then the network provider (12 s each when a fallback remains, 20 s for the last), accepts a cached fix only if it is younger than 3 minutes and reports at most 500 m, and the background passive registration uses a 200 m minimum distance instead of 1 km. Nothing in the background starts a measurement, so the energy contract in [PARTNER-LOCATION.md](m9/PARTNER-LOCATION.md) section 6 still holds. Play's Data safety form and location permission declaration must list precise location with this purpose.
 
 Alternatives considered: the Web Geolocation API inside the WebView, `@capacitor/geolocation`, Google Play services `FusedLocationProviderClient` and the platform `LocationManager` with AndroidX `LocationManagerCompat`.
 
@@ -347,7 +364,7 @@ Issue `#1008` (Slice B) moved all release, signing, SBOM attestation, and public
   - `.github/workflows/release-candidate.yml`: validates release inputs (`android_api_base_url`, `release_version`), forwards them to `release-evidence.yml`, and binds the immutable release candidate manifest.
   - `.github/workflows/release-publish.yml`: verifies release preflight, builds and cryptographically signs release APK/AAB from `android/`, re-attests signed bytes, and binds release publications.
 - **Tooling & Build Steps**:
-  - Pinned Actions: Node.js `24.21.0` via `actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1` (`v7.1.0`); JDK `21` Temurin via `actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c`.
+  - Pinned Actions: Node.js `26.13.1` via `actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1` (`v7.1.0`); JDK `21` Temurin via `actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c`.
   - Pinned Gradle Wrapper: distribution SHA-256 `f20c816177c0ff192881874852260771b462903aef3e794b0dac4759d1fda284`; wrapper JAR SHA-256 `621008afc4f5d59357fcf06ffa644dd5aade5e091bdc363742710445f73cdaf8`.
   - Web Bundle & Native Plugin Graph: built via `VITE_EIMIR_API_BASE_URL="$ANDROID_API_BASE_URL" npm run cap:build:web` followed by `npm run cap:sync`.
   - Native Wrapper Drift Guard: `git diff --exit-code -- android/capacitor.settings.gradle android/app/capacitor.build.gradle` confirms no uncommitted native file drift occurs during CI.
@@ -364,6 +381,16 @@ additional data and hashes to a distinct file name. AtomicFile writes occur on
 a single background executor in app-private no-backup storage. Snapshot size is
 bounded to 16 KiB, and storage errors contain no credential or path payload.
 The existing no-backup manifest policy remains enabled.
+
+The same plugin keeps one per-login media key (`mediaKey`, `clearMediaKey`):
+32 random bytes, wrapped by the same Keystore key under distinct associated
+data in a separate no-backup file. The WebView imports it as a non-extractable
+Web Crypto key and seals every stored image row with AES-GCM; image bytes never
+cross into native storage. `clear` (logout) deletes the media key together with
+the session envelope, which makes every sealed row unreadable. The read cache
+seals the payload of every row under the same key (`sealJson`), so cached text
+and the list outbox are stored as ciphertext as well, and Memory diary drafts
+seal their text and the bytes of their photos the same way.
 
 Before React mounts, the current instance's snapshot is restored into the
 existing Web session facade, with a five-second native-read budget. An existing
@@ -449,7 +476,7 @@ death, and this policy cannot establish the root cause of an unlogged device
 crash.
 
 Android's [termination handling guidance](https://developer.android.com/develop/ui/views/layout/webapps/handle-termination)
-and Capacitor 8.5.2's existing `BridgeActivity`/`Bridge` lifecycle own the
+and Capacitor 8.6.2's existing `BridgeActivity`/`Bridge` lifecycle own the
 implementation. No new dependency, service, account, data egress or cost.
 `RuntimeRecoveryTest` exercises real non-crash termination through
 `WebViewRenderProcess.terminate()` on API 29+, healthy return and real
@@ -461,6 +488,86 @@ rearming. Physical Pixel acceptance remains separate from emulator evidence.
 Bundled-interface readiness is required before native return screenshots on
 modern providers. The stock API 28 image still ships Chromium 69 and cannot
 parse the existing product bundle; its pre-existing native adapter/frame/crash
-coverage is not bundled Web-product acceptance. This exact legacy fixture is
-classified explicitly, not treated as a successful UI result. Provisioning a
-supported provider and extending that acceptance is tracked in [#1613](https://github.com/baerenmarke90/eimir/issues/1613).
+coverage is not bundled Web-product acceptance. It is classified by the
+product's WebView floor (below), not treated as a successful UI result.
+
+## Supported WebView and browser floor (#1613)
+
+Product Owner decision of 2026-11-15 ([#1613](https://github.com/baerenmarke90/eimir/issues/1613)):
+eimir. sets a minimum supported WebView version. It does not provision a newer
+WebView on the stock API 28 emulator image. Google distributes Android System
+WebView updates through Google Play, and there is no official checksum-published
+standalone package. On real devices with
+Google Play, Play keeps the WebView current; devices without Play depend on
+their vendor's WebView updates.
+
+| Surface | Supported floor | Where it is set |
+| --- | --- | --- |
+| Android app (Capacitor WebView) | Android System WebView / Chromium **111** | `android.minWebViewVersion` in `web/capacitor.config.ts` |
+| Web / PWA | Chrome and Edge 111, Firefox 114, Safari and iOS 16.4 | `build.target` in `web/vite.config.ts` |
+| Android OS | API 26 (`minSdkVersion`) | `android/variables.gradle` |
+
+- **Source of the floor.** The values equal Vite 8's `baseline-widely-available`
+  build target. They are pinned in `build.target`, so a toolchain upgrade cannot
+  move them silently; pinning produced a byte-identical bundle on 2026-11-15.
+  The newest platform features the product relies on stay within this floor:
+  for example `color-mix()` (Chromium 111), `:has()`, container queries and
+  dynamic viewport units in CSS, and `Intl.Segmenter`, `Object.hasOwn` and
+  `Array.prototype.at` in JavaScript. The hand-written `public/` scripts need at
+  most Chromium 85. `text-wrap` is progressive enhancement. Raising the floor
+  is a product decision: change all three places together.
+- **SDK level is not a browser capability.** An API level says nothing about
+  the installed WebView. Capacitor's `Bridge.isMinimumWebViewInstalled()`
+  compares the actual provider's major version with `android.minWebViewVersion`.
+- **Below the floor** ([#1931](https://github.com/baerenmarke90/eimir/issues/1931)).
+  Capacitor logs `System WebView is not supported` and loads
+  `web/public/webview-unsupported.html` (`server.errorPath`) instead of the app.
+  The page reuses the PWA offline page's stylesheet. Its generated ES5 script
+  (`npm run i18n:generate`, copy from the `webViewNotice` locale resources)
+  compares the WebView's Chromium version with the same floor:
+  - Below the floor, it asks for an Android System WebView update, with one
+    action that opens the Play Store listing.
+  - Otherwise, the page was reached through a failed main-frame load, which
+    Capacitor also routes to `errorPath`. It then offers a retry of the app root.
+
+  `webViewFloor.test.ts` keeps the floor identical in `vite.config.ts`,
+  `capacitor.config.ts` and the notice, and keeps the notice script free of
+  syntax newer than ES5.
+- **Native acceptance lanes.** API 36 and 37.1 run with providers above the
+  floor and must reach the bundled interface (`RuntimeRecoveryTest` waits for it
+  whenever `isMinimumWebViewInstalled()` is true). The stock API 28 image
+  (Chromium 69) is the explicit native-only legacy lane. It keeps its native
+  adapter, launcher, frame, real crash/recovery, picker, privacy, signing and
+  source checks, and it is not counted as Web-product acceptance. There
+  `RuntimeRecoveryTest` requires the painted update notice instead and captures
+  `webview-update-notice.png`. If the
+  configured floor were missing, the API 28 lane would have to show the bundled
+  interface and fail, so the classification cannot pass silently.
+
+## Screen protection for private surfaces (#683)
+
+The retired Compose client protected owner-only routes with `FLAG_SECURE` (#683). The Capacitor app restores that policy: while a private surface is open, Android blocks screenshots and screen recordings and shows a blank Recents preview. Browsers have no such control, and a second camera can always photograph the screen, so product copy never claims that copies are impossible.
+
+**Mechanism.** `SecureScreenPlugin.java` sets or clears `FLAG_SECURE` on the Activity window on the UI thread and reports the window's actual state. `web/src/client/secureScreen.ts` counts holds, orders requests and keeps the flag across a navigation from one private surface to the next. `useSecureScreen` and `SecureSurface` (`web/src/components/SecureSurface.tsx`) hold the flag while mounted and keep private content unpainted (`visibility: hidden`) until the window confirms it, so no frame of private content can be captured. When protection is not confirmed the content stays unpainted and a whole surface says so (fail closed). Opening a once message waits for confirmation before it uses the message up and never opens it without protection. Once messages are received and opened only in the app; the server refuses device-key registration and opening from sessions that did not sign in as `android` (see [once messages](product/once-messages.md#app-only-reception-683-po-2026-11-19)). A recreated Activity starts without the flag; the reloaded Web layer asks again before private content renders. Visibility is decided by the runtime platform, never by the viewport.
+
+**Protected surfaces.** Each surface that can render `OWNER_ONLY` content (`ContentVisibility.PRIVATE`, `ProfileVisibility.PRIVATE_PARTNER_NOTE`, Private Area records, once messages, private search results):
+
+| Surface | Scope |
+| --- | --- |
+| Once messages (`/today/only-you`, compose, read) | whole route |
+| Search | whole route |
+| Private Area (`/more/private/*`), including private partner notes | whole route |
+| Profile (private partner notes) | whole route |
+| Heart Moment create and edit | whole route |
+| Heart Moment detail | while the moment is not shared |
+| Story timeline (`StoryList`) | while it contains an own private Heart Moment; only those cards wait for confirmation |
+| Photos overview | while the private filter is selected |
+| Important dates (`ImportantDatesPanel`) | while it contains a private date or its editor is open |
+| Our Story landmarks (`RelationshipPassport`) | while an own private date is listed |
+| Recap private draft and reflection editor | while shown |
+
+Shared-only surfaces (Today, Discover, recaps, map, activity, notifications, People) stay capturable; their APIs return `SPACE_SHARED` content only, and related people are shared by database constraint (`people_are_shared`). A new surface that renders owner-only content must use `SecureSurface` or `useSecureScreen` in its first implementation.
+
+**Reuse review.** `@capacitor-community/privacy-screen` 8.0.0 (MIT, maintained, Capacitor 8) offers a global enable/disable switch. It was not selected: it adds a Gradle module with new dependency-verification entries, enables protection globally by default, and has no hold count or confirmed state, so the fail-closed ordering would still need the same Web layer. The in-house plugin is 50 lines on platform API only, follows the other in-house plugins in `MainActivity`, and needs no new dependency. Fallback: without the plugin a hold rejects and private content stays unpainted.
+
+**Verification.** `SecureWindowFlagsTest` (JVM) and `SecureScreenTest` (instrumentation through the real Capacitor bridge, including Activity recreation) run in CI; Web unit tests cover hold ordering, the unpainted gate and the once-message order. A device check on a Pixel (screenshot blocked, blank Recents preview) is still open.

@@ -11,11 +11,31 @@ export default {
     PLAN_CREATED: '{{name}} hat einen gemeinsamen Plan festgelegt.',
     PLAN_CHANGED: 'Zeit oder Ort eines anstehenden Plans haben sich geändert.',
     PLAN_CANCELLED: 'Ein anstehender gemeinsamer Plan wurde abgesagt.',
-    WISH_SELECTION_SHARED:
-      '{{name}} hat eine gemeinsame Wunschauswahl vorbereitet.',
-    WISH_SELECTION_READY: 'Eure gemeinsame Wunschauswahl ist bereit.',
+    WISH_SELECTION_SHARED: '{{name}} fragt: Was machen wir als Nächstes?',
+    WISH_SELECTION_READY: 'Was machen wir als Nächstes? Euer Ergebnis ist da.',
+    WISH_SELECTION_RANDOM_REQUESTED:
+      '{{name}} möchte den Zufall entscheiden lassen.',
+    WISH_SELECTION_RANDOM_ACCEPTED:
+      'Was machen wir als Nächstes? Der Zufall hat entschieden.',
+    WISH_SELECTION_RANDOM_DECLINED:
+      '{{name}} möchte lieber selbst entscheiden.',
+    HEART_HUNT_HIDDEN: '{{name}} hat ein Herz versteckt.',
+    HEART_HUNT_FOUND: '{{name}} hat dein Herz gefunden.',
+    PICTURE_PING_PONG_TURN: '{{name}} hat am Bild weitergemalt. Du bist dran.',
+    PICTURE_PING_PONG_FINISHED: '{{name}} hat euer Bild fertig gemalt.',
+    COUPLE_GAME_TURN:
+      '{{name}} hat bei einem eurer Spiele gespielt. Schau mal rein.',
+    COUPLE_GAME_TURN_WHO_OF_US:
+      '{{name}} hat bei „Wer von euch?“ gespielt. Schau mal rein.',
+    COUPLE_GAME_TURN_WISH_DETECTIVE:
+      '{{name}} hat beim Wunschdetektiv gespielt. Schau mal rein.',
+    COUPLE_GAME_TURN_OUR_MOMENTS:
+      '{{name}} hat bei „Unsere Momente“ gespielt. Schau mal rein.',
     PHOTO_REACTION: '{{name}} hat auf Fotos deines Moments reagiert.',
     PARTNER_JOINED: '{{name}} ist eurem gemeinsamen Bereich beigetreten.',
+    COLLECTION_SENT: '{{name}} hat dir eine Liste geschickt.',
+    GARDEN_SEED_ARRIVED: '{{name}} hat dir einen Samen geschickt.',
+    GARDEN_BOUQUET: '{{name}} hat dir einen Strauß geschenkt.',
     TRANSFER_READY:
       'Dein Datenauftrag ist bereit. Du kannst ihn jetzt ansehen.',
     TRANSFER_COMPLETED: 'Dein Datenimport ist abgeschlossen.',

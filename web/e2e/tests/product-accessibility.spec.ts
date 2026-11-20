@@ -1,23 +1,26 @@
-import composer from '../../src/i18n/locales/composer';
-import { fulfillEmptyPlanComments } from '../support/planComments';
-import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { expectVisibleFieldBoundary } from '../support/renderedContrast';
-import {
-  expectFloatingAddAction,
-  expectLabeledAddAction,
-} from '../support/addAction';
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
+import gentleCopy from '../../src/i18n/locales/gentlePrompts';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 import notificationSettings from '../../src/i18n/locales/notificationSettings';
-import gentleCopy from '../../src/i18n/locales/gentlePrompts';
-import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import privateArea from '../../src/i18n/locales/privateArea';
+import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import profiles from '../../src/i18n/locales/profiles';
+import quietHints from '../../src/i18n/locales/quietHints';
+import {
+  expectFloatingAddAction,
+  expectLabeledAddAction,
+} from '../support/addAction';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
+import { editViaMenu, itemMenuTrigger } from '../support/itemMenu';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { fulfillEmptyPlanComments } from '../support/planComments';
+import { fulfillNoWishSelectionRound } from '../support/productContext';
+import { expectVisibleFieldBoundary } from '../support/renderedContrast';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -229,6 +232,22 @@ async function installAuthorizedApiMocks(page: Page): Promise<
 
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}`) {
       await fulfillJson({ id: SPACE_ID, createdAt: TEST_NOW, partners: [] });
+      return;
+    }
+
+    // The Settings overview reads the calendar connection for its row status.
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/calendar-sync`
+    ) {
+      await fulfillJson({
+        available: false,
+        canSync: false,
+        connections: [],
+        services: [],
+        target: null,
+        targetToken: 'calendar-target-token',
+      });
       return;
     }
 
@@ -576,6 +595,16 @@ async function installAuthorizedApiMocks(page: Page): Promise<
       return;
     }
 
+    if (method === 'GET' && pathname === '/api/v1/auth/sign-in-methods') {
+      await fulfillJson({
+        passkeys: [],
+        oidc: [],
+        emailLink: true,
+        localPassword: false,
+      });
+      return;
+    }
+
     if (method === 'GET' && pathname === '/api/v1/auth/capabilities') {
       await fulfillJson({ serverAdmin: false });
       return;
@@ -793,6 +822,7 @@ async function installAuthorizedApiMocks(page: Page): Promise<
       return;
     }
 
+    if (await fulfillNoWishSelectionRound(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
@@ -823,6 +853,14 @@ async function navigateWithinApp(page: Page, path: string): Promise<void> {
       .getByRole('link', { name: navigation.plan, exact: true })
       .click();
     await expect(page).toHaveURL(/\/plan$/);
+    return;
+  }
+
+  if (path === '/more/collections') {
+    await page
+      .getByRole('link', { name: navigation.shared, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/more\/collections$/);
     return;
   }
 
@@ -923,10 +961,17 @@ for (const view of [
       }
       await route.fallback();
     });
+    // The area opens on the notes; this journey only passes through them.
+    await page.route(`**/api/v1/spaces/${SPACE_ID}/private/notes**`, (route) =>
+      route.fulfill({ json: { hasMore: false, items: [], nextCursor: null } }),
+    );
     await page.goto('/more/private');
     await signIn(page);
     await page
-      .getByRole('link', { name: privateArea.partnerNotes.title, exact: true })
+      .getByRole('link', {
+        name: privateArea.partnerNotes.shortTitle,
+        exact: true,
+      })
       .click();
     await expect(page).toHaveURL(/\/more\/private\/partner-notes$/);
     const trigger = page.getByRole('button', {
@@ -1085,7 +1130,7 @@ for (const view of [
     await page
       .getByRole('link', { name: privateArea.backToHub, exact: true })
       .click();
-    await expect(page).toHaveURL(/\/more\/private$/);
+    await expect(page).toHaveURL(/\/more\/private\/notes$/);
     await page.goto('/more/profile');
     await expect(
       page.getByText('Book the cabin for autumn', { exact: true }),
@@ -1168,12 +1213,16 @@ test('compact Wir keeps the contextual moment action reachable and accessible', 
     }),
   ).toBeVisible();
 
-  const quickCreate = page.getByRole('button', { name: de.story.addMoment });
+  const quickCreate = page.getByRole('button', {
+    name: navigation.quickCreateTitle,
+  });
   await expect(quickCreate).toBeVisible();
   await quickCreate.focus();
   await page.keyboard.press('Enter');
 
-  const sheetDialog = page.getByRole('dialog', { name: de.story.addMoment });
+  const sheetDialog = page.getByRole('dialog', {
+    name: navigation.quickCreateTitle,
+  });
   await expect(sheetDialog).toBeVisible();
   const diaryTarget = sheetDialog.getByRole('link', {
     name: composer.diaryEntry,
@@ -1186,7 +1235,8 @@ test('compact Wir keeps the contextual moment action reachable and accessible', 
   await expect(
     sheetDialog.getByRole('link', { name: de.story.kind.milestone }),
   ).toBeVisible();
-  await expect(sheetDialog.getByRole('link')).toHaveCount(3);
+  // Moments plus Plan, Wish and List on the Wir overview (#2063).
+  await expect(sheetDialog.getByRole('link')).toHaveCount(6);
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
@@ -1212,7 +1262,9 @@ test('authenticated shell removes decorative motion when reduced motion is prefe
     .evaluate((element) => getComputedStyle(element).animationName);
   expect(mainAnimation).toBe('none');
 
-  const quickCreate = page.getByRole('button', { name: de.story.addMoment });
+  const quickCreate = page.getByRole('button', {
+    name: navigation.quickCreateTitle,
+  });
   const quickCreateTransition = await quickCreate.evaluate(
     (element) => getComputedStyle(element).transitionDuration,
   );
@@ -1258,7 +1310,8 @@ test('expanded authenticated shell keeps deep links, back, focus, and accessibil
       level: 2,
     }),
   ).toBeVisible();
-  await expect(page.getByText(m5s5.dashboard.newSpaceIntro)).toBeVisible();
+  // #1907 I1: without a partner the move-in invites the first picture.
+  await expect(page.getByText(quietHints.moveIn.solo)).toBeVisible();
 
   const skipLink = page.getByRole('link', {
     name: de.navigation.skipToContent,
@@ -1295,7 +1348,7 @@ test('Space configuration is touch operable, reload-safe, responsive, and axe-cl
 
   await page.goto('/today');
   await signIn(page);
-  await page.goto('/more/settings/relationship');
+  await page.goto('/more/settings/shared');
 
   await expect(
     page.getByRole('heading', {
@@ -1356,7 +1409,7 @@ test.describe('Space configuration Daily Check-in modules', () => {
 
     await page.goto('/today');
     await signIn(page);
-    await page.goto('/more/settings/relationship');
+    await page.goto('/more/settings/shared');
 
     const energySwitch = page.getByRole('switch', {
       name: profileIdentity.energyCheckInToggle,
@@ -1474,6 +1527,10 @@ const SETTINGS_PAGES = [
     heading: profileIdentity.settingsRelationship,
   },
   {
+    path: '/more/settings/shared',
+    heading: profileIdentity.spaceConfigurationTitle,
+  },
+  {
     path: '/more/settings/notifications',
     heading: profileIdentity.settingsNotifications,
   },
@@ -1561,7 +1618,7 @@ test.describe('Complete Settings pages reflow (#1162)', () => {
     const unexpectedRequests = await installAuthorizedApiMocks(page);
     await page.goto('/today');
     await signIn(page);
-    await page.goto('/more/settings/relationship');
+    await page.goto('/more/settings/shared');
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '200%';
     });
@@ -1931,7 +1988,7 @@ test('planning sanctuary is compact, dark, reduced-motion, keyboard operable, an
   await navigateWithinApp(page, '/more/collections');
   await expect(
     page.getByRole('heading', {
-      name: m5s3.collection.overviewHeading,
+      name: navigation.sharedHeading,
       level: 1,
     }),
   ).toBeVisible();
@@ -1983,7 +2040,7 @@ test('planning sanctuary stays accessible in expanded light mode at 200 percent 
   await navigateWithinApp(page, '/more/collections');
   await expect(
     page.getByRole('heading', {
-      name: m5s3.collection.overviewHeading,
+      name: navigation.sharedHeading,
       level: 1,
     }),
   ).toBeVisible();
@@ -2012,9 +2069,6 @@ test('planning sanctuary stays accessible in expanded light mode at 200 percent 
   await page.locator('html').evaluate((element) => {
     element.style.zoom = '2';
   });
-  // Contrast is measured on the settled page, not mid route-entry fade.
-  await page.waitForFunction(() => document.getAnimations().length === 0);
-
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
   expect(unexpectedRequests).toEqual([]);
@@ -2029,9 +2083,10 @@ test('Place, Collection, and Chapter editors honor browser focus and history', a
   await page.goto('/');
   await signIn(page);
 
+  // Editing starts from the item menu; the menu button gets focus back.
   await page.goto('/plan/places/place-1');
-  const placeEdit = page.getByRole('button', { name: de.common.edit });
-  await placeEdit.click();
+  const placeEdit = itemMenuTrigger(page);
+  await editViaMenu(page, de.common.edit);
   const placeName = page.getByLabel(m5s3.place.name);
   await expect(placeName).toBeFocused();
   await placeName.fill('Lakeside park');
@@ -2050,15 +2105,15 @@ test('Place, Collection, and Chapter editors honor browser focus and history', a
   await expect(placeEdit).toBeFocused();
 
   await page.goto('/plan/collections/collection-1');
-  const collectionEdit = page.getByRole('button', { name: de.common.edit });
-  await collectionEdit.click();
+  const collectionEdit = itemMenuTrigger(page);
+  await editViaMenu(page, de.common.edit);
   await expect(page.getByLabel(m5s3.common.title)).toBeFocused();
   await page.goBack();
   await expect(collectionEdit).toBeFocused();
 
   await page.goto('/plan/chapters/chapter-1');
-  const chapterEdit = page.getByRole('button', { name: de.common.edit });
-  await chapterEdit.click();
+  const chapterEdit = itemMenuTrigger(page);
+  await editViaMenu(page, de.common.edit);
   await expect(page.getByLabel(m5s3.common.title)).toBeFocused();
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
@@ -2070,7 +2125,7 @@ test('Place, Collection, and Chapter editors honor browser focus and history', a
   await expect(chapterEdit).toBeFocused();
 
   await page.setViewportSize({ width: 1440, height: 900 });
-  await chapterEdit.click();
+  await editViaMenu(page, de.common.edit);
   await expect(page.getByLabel(m5s3.common.title)).toBeFocused();
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
@@ -2131,7 +2186,7 @@ for (const { colorScheme, width, height } of placeCoordinateGuidanceScenarios) {
     });
 
     await page.goto('/plan/places/place-1');
-    await page.getByRole('button', { name: de.common.edit }).click();
+    await editViaMenu(page, de.common.edit);
     await page
       .getByRole('dialog')
       .locator('summary', { hasText: m5s3.place.technicalDetails })
@@ -2177,6 +2232,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         [navigation.today, '/today'],
         [navigation.story, '/story'],
         [navigation.plan, '/plan'],
+        [navigation.shared, '/more/collections'],
         [navigation.more, '/more'],
       ]) {
         const link = navigationRegion.getByRole('link', { name, exact: true });
@@ -2191,7 +2247,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         expect(box.height).toBeGreaterThanOrEqual(44);
       }
       await expect(
-        page.getByRole('button', { name: de.story.addMoment }),
+        page.getByRole('button', { name: navigation.quickCreateTitle }),
       ).toBeVisible();
       await expect(
         page.getByRole('button', { name: navigation.newContent }),

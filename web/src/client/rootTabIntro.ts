@@ -1,23 +1,39 @@
-import { useEffect, useState } from 'react';
-
-/** Root tabs whose opening rise has already played in this page load. */
-const played = new Set<string>();
-
-const INTRO_WINDOW_MS = 1400;
+import type { RefObject } from 'react';
+import { motionCount, durationMs } from '../motion/tokens';
+import { useStage } from '../motion/stage';
 
 /**
- * Whether a root tab should play its short opening rise.
- *
- * True only for the first time the tab is shown after the app loads, and only
- * long enough for the sequence to finish, so returning to a tab is immediate.
+ * The keyframe prefix of the root-tab entrance (`motion.css`). It differs
+ * from the stage prefix, so the entrance around Wir never re-pins the Wir
+ * opening's own members.
  */
-export function useRootTabIntro(tab: string): boolean {
-  const [intro, setIntro] = useState(() => !played.has(tab));
-  useEffect(() => {
-    if (!intro) return;
-    played.add(tab);
-    const timer = window.setTimeout(() => setIntro(false), INTRO_WINDOW_MS);
-    return () => window.clearTimeout(timer);
-  }, [intro, tab]);
-  return intro;
+export const ROOT_TAB_INTRO_PREFIX = 'eimir-motion-root-';
+
+/**
+ * The entrance's whole length: each member rises over two sequence beats,
+ * and the members after the first start one stagger step apart, up to the
+ * stagger cap (Motion Contract 4.1).
+ */
+export function rootTabIntroDuration(): number {
+  const steps = Math.max(0, motionCount('stagger-max-items') - 1);
+  return durationMs('sequence-beat') * 2 + durationMs('stagger-item') * steps;
+}
+
+/**
+ * The short opening rise of a root tab (Wir, Momente, Planen, Mehr): an Enter
+ * `stage` on the motion layer, once per tab and app start.
+ *
+ * The returned ref goes on the tab's page root. While the entrance runs the
+ * root carries `data-motion-stage="playing"`; the layer removes it on the
+ * entrance's own deadline, or at once when the kept tab is hidden, so a
+ * return to the tab never replays it (M3, M4). With reduced motion the
+ * durations are `0ms` and it never plays (M9).
+ */
+export function useRootTabIntro<T extends HTMLElement>(
+  tab: string,
+): RefObject<T | null> {
+  return useStage<T>(`root-tab:${tab}`, {
+    duration: rootTabIntroDuration(),
+    animationPrefix: ROOT_TAB_INTRO_PREFIX,
+  });
 }

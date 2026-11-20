@@ -3,29 +3,27 @@
 from __future__ import annotations
 
 import contextlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Path, Query, Response
 from fastapi import status as http_status
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 
 from eimir.api.authors import resolve_author_summaries
-from eimir.api.deps import AccountBoundAuthorization, Authorization, DbSession, ensure_capability
+from eimir.api.deps import AccountBoundAuthorization, Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary
-from eimir.engagement import presentation, service, thinking
+from eimir.engagement import presentation, service, thinking, wish_date_notice
 from eimir.engagement.models import (
     Activity,
     ActivityKind,
     EngagementTarget,
     Notification,
     NotificationKind,
-    SupportGestureKind,
 )
-from eimir.entitlements.models import Capability
 
 router = APIRouter()
 
@@ -66,6 +64,11 @@ class NotificationItem(ApiModel):
     target_type: EngagementTarget | None
     target_id: UUID | None
     target: ActivityTargetPresentation | None = None
+    appointment_start: datetime | None = None
+    selection_size: int | None = Field(
+        default=None,
+        description="Ideas in the shared round a wish-selection invitation refers to (#1907 J1).",
+    )
     created_at: datetime
     read_at: datetime | None
 
@@ -94,19 +97,6 @@ class ThinkingOfYouCreate(ApiModel):
 class ThinkingOfYouAccepted(ApiModel):
     client_request_id: UUID
     thinking_of_you_available_at: datetime
-
-
-class PartnerQuickActionCreate(ApiModel):
-    model_config = ConfigDict(extra="forbid")
-
-    kind: SupportGestureKind
-    client_request_id: UUID
-
-
-class PartnerQuickActionAccepted(ApiModel):
-    kind: SupportGestureKind
-    client_request_id: UUID
-    available_at: datetime
 
 
 @router.get(
@@ -329,40 +319,6 @@ def send_thinking_of_you(
     )
 
 
-@router.post(
-    "/spaces/{spaceId}/partner-quick-actions",
-    response_model=PartnerQuickActionAccepted,
-    status_code=http_status.HTTP_202_ACCEPTED,
-    operation_id="sendPartnerQuickAction",
-    responses=problem_responses(401, 403, 404, 422, 429),
-    tags=["notifications"],
-)
-def send_partner_quick_action(
-    authorization: Authorization,
-    session: DbSession,
-    response: Response,
-    body: PartnerQuickActionCreate,
-) -> PartnerQuickActionAccepted:
-    ensure_capability(
-        session,
-        authorization.space_id,
-        Capability.PARTNER_QUICK_ACTIONS_EXTENDED.value,
-    )
-    request = thinking.send_support_gesture(
-        session,
-        authorization,
-        kind=body.kind,
-        client_request_id=body.client_request_id,
-    )
-    response.headers["Cache-Control"] = "private, no-store"
-    return PartnerQuickActionAccepted(
-        kind=body.kind,
-        client_request_id=request.client_request_id,
-        available_at=request.created_at
-        + timedelta(seconds=thinking.SUPPORT_GESTURE_COOLDOWN_SECONDS),
-    )
-
-
 def _resolve_actors(
     session: DbSession,
     actor_ids: set[UUID],
@@ -376,13 +332,18 @@ def _resolve_target_titles(
     targets: set[tuple[EngagementTarget, UUID]],
 ) -> TargetTitles:
     titles = presentation.target_titles(session, authorization, targets)
-    return TargetTitles(titles, presentation.concealed_targets(session, targets))
+    return TargetTitles(
+        titles,
+        presentation.concealed_targets(session, targets),
+        presentation.selection_sizes(session, authorization, targets),
+    )
 
 
 @dataclass(frozen=True)
 class TargetTitles:
     titles: dict[tuple[EngagementTarget, UUID], str]
     concealed: set[tuple[EngagementTarget, UUID]]
+    selection_sizes: dict[UUID, int] = field(default_factory=dict)
 
     def presentation(
         self, target_type: EngagementTarget, target_id: UUID
@@ -433,6 +394,11 @@ def _notification_item(
             target_presentation = (target_titles or TargetTitles({}, set())).presentation(
                 EngagementTarget(item.target_type), item.target_id
             )
+    selection_size = None
+    if item.kind == NotificationKind.WISH_SELECTION_SHARED.value and item.target_id is not None:
+        selection_size = (target_titles.selection_sizes if target_titles else {}).get(
+            item.target_id
+        )
     return NotificationItem(
         id=item.id,
         source_event_id=item.source_event_id,
@@ -442,6 +408,10 @@ def _notification_item(
         target_type=EngagementTarget(item.target_type) if item.target_type is not None else None,
         target_id=item.target_id,
         target=target_presentation,
+        appointment_start=wish_date_notice.appointment_start(
+            item, concealed=bool(target_presentation and target_presentation.concealed)
+        ),
+        selection_size=selection_size,
         created_at=item.created_at,
         read_at=item.read_at,
     )

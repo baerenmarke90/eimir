@@ -387,6 +387,14 @@ read-only mount; Web/migrate receive no credential. Leave inputs unset and omit
 the switch for default-off operation. Existing encryption, image identity,
 first-install bootstrap and migration-before-runtime gates remain mandatory.
 
+`EIMIR_PLUGINS` names the server plugins that API, worker and migrate load
+([Decision 0017](decisions/0017-pro-plugin-seam.md)). Leave it unset: the default
+`pro` loads the Pro features that ship in the released image today. A named plugin
+that is missing or does not match the Core build stops the process instead of
+starting with fewer features. An empty value runs the Core only: the Pro routes do
+not exist, Pro capabilities are not granted, and the Core keeps deleting and
+expiring the data that Pro features left behind.
+
 SMTP is optional. With:
 
 ```dotenv
@@ -451,6 +459,11 @@ the release guard and by the application:
   `python -m eimir.security migrate-payloads` and `migrate-media` finished, then `required`;
 - `disabled` as an explicit opt-out for operators who rely on their own disk/volume
   encryption (leave the key variables empty).
+
+The key set can also come from a private host file instead of the environment value
+(`EIMIR_ENCRYPTION_KEYS_FILE`, optional fragment `deploy/encryption-keys.compose.yaml`),
+which keeps it out of container inspection and container-manager views; see
+[ENCRYPTION-AT-REST.md section 9](ENCRYPTION-AT-REST.md#9-key-management-and-rotation).
 
 This is encryption at rest under keys you hold, not end-to-end encryption. Keep the keys
 apart from database and media backups; losing every copy of a key makes the content it

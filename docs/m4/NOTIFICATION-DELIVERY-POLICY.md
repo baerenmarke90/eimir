@@ -1,6 +1,6 @@
 # Notification delivery classification: #515 foundation
 
-## Current module workflow (v11)
+## Current module workflow (v16)
 
 The Product Owner-approved [module notification workflow](../product/notification-workflow.md)
 now owns cross-domain admission. It extends the historical foundation below.
@@ -15,6 +15,50 @@ Daily question sets, quotes, presence and Vibe submissions,
 rediscovery, ordinary edits and local games stay silent. Existing comments,
 recipient consent and quiet hours remain effective; no daily summary is added.
 
+A shared list a partner deliberately sends (#1907 E2, `COLLECTION_SENT`) uses
+neutral immediate delivery without the list title, its own recipient switch,
+Quiet Hours and no email choice; see the
+[module workflow](../product/notification-workflow.md).
+
+A shared note a partner creates or changes (#1969, `SHARED_NOTE_CREATED` and
+`SHARED_NOTE_CHANGED`) uses neutral immediate delivery that names only the
+partner and the action, never the note's title or text. It inherits the
+comment Push choice and Quiet Hours and offers no email. Edits of one note share
+a coalesced notice; a change adds no Push while the partner has not yet read
+the note's earlier notice, and notifies again once it was read.
+A garden seed from the partner (#1907 H3, `GARDEN_SEED_ARRIVED`) uses neutral
+immediate delivery without the attached words, its own recipient switch,
+Quiet Hours and no email choice; the notice is current only while the seed
+waits to be planted. A bouquet from the partner reuses the same kind with the
+target `GARDEN_BOUQUET` and its own text ("gave you a bouquet"), current only
+while its card waits; a person gets at most one garden notice per local day,
+so a later seed or bouquet on that day stays silent and waits in the garden.
+
+A finished shared picture (`PICTURE_PING_PONG_FINISHED`, target `PICTURE_GAME`)
+tells the partner of whoever completed it (last turn or early finish), and a
+remote couple game (`COUPLE_GAME_TURN`, targets `WHO_OF_US_GAME`,
+`WISH_DETECTIVE_GAME` and `OUR_MOMENTS_GAME`) tells the partner the game waits
+on them: their turn, or a result once the game is finished. Both use neutral
+immediate delivery that never shows the picture, answers, clues, guesses,
+wishes or moments, follow the picture turn notice's switch (inherited from
+thinking of you) and Quiet Hours, coalesce per recipient and target, and are
+current only while the picture stays finished or the game still waits on the
+reader.
+
+A retained recap (#1744, `RECAP_READY`, target `RECAP`) and a newer version of
+a retained recap after late entries (`RECAP_GREW`) use neutral immediate
+delivery to both partners: the device preview names only the period (a machine
+key such as `2026-10` that the device localizes), never a title or photo. Both
+follow the recipient's own recap switch (`RECAP_GREW` inherits it), Quiet Hours
+and the Space's 09:00 to 21:00 window, and are never offered by email. Several
+earlier recaps at once share one `RECAP_READY` notice without a target.
+
+The [#1910 Wish date exchange](../product/notification-workflow.md#wish-date-exchange-presentation-1910)
+uses immediate delivery for deliberate proposals, counters and acceptance.
+This is the scoped exception to neutral system copy. Source authorization
+and validation precede delivery, provider-facing relationship content stays
+encrypted, and device notification settings govern display.
+
 New UnifiedPush clients explicitly advertise reference-routing version 1.
 Only those subscriptions receive a canonical Notification ID inside the
 encrypted wake. Legacy subscriptions retain exactly the old one-field wake,
@@ -24,11 +68,10 @@ boundary. Fresh authenticated resolution and the editor/account/Space guards
 own navigation. The following v2 text is historical foundation for the unchanged
 gesture/comment/reminder semantics, not the complete current kind catalog.
 
-The closed v2 catalog began with #515's first runtime slices; this document
-describes the current policy, not the complete notification-policy feature.
-`backend/src/eimir/engagement/notification_policy.py` is the versioned,
-closed delivery-class catalog for the five currently persisted
-`NotificationKind` values. An unknown kind fails closed for push. Domain
+The closed v2 catalog began with #515's first runtime slices and covered five
+`NotificationKind` values. The current delivery-class catalog is
+`backend/src/eimir/engagement/notification_policy.py`.
+An unknown kind fails closed for push. Domain
 privacy/authorization, recipient derivation and module gates remain
 authoritative ahead of delivery decisions.
 
@@ -36,6 +79,7 @@ authoritative ahead of delivery decisions.
 | --- | --- | --- |
 | `THINKING_OF_YOU` | IMMEDIATE | Existing content-free generic push for an explicit, server-paced Free/Core signal. |
 | `PARTNER_KISS`, `PARTNER_CHECK_IN` | IMMEDIATE | Existing content-free generic push when a permitted extended gesture is sent; Premium only governs sending. |
+| `HEART_HUNT_HIDDEN`, `HEART_HUNT_FOUND` | IMMEDIATE | Herzversteck (#1907 H3): content-free generic push naming no photo; the recipient can read the partner name in the encrypted preview where that is already allowed. Premium only governs playing. |
 | `REMINDER_DUE` | IMMEDIATE | Existing generic push for an already due recipient-specific reminder; source rule/preference controls whether it exists. |
 | `COMMENT_CREATED` | DIGESTIBLE | Notification Center by default; bounded generic Push and EMAIL digests each require a separate explicit Account opt-in. No per-comment external delivery. |
 
@@ -45,6 +89,7 @@ authoritative ahead of delivery decisions.
 | --- | --- |
 | `THINKING_OF_YOU` | One sender/Space request per 30 minutes, with client-request replay and per-event delivery uniqueness. |
 | `PARTNER_KISS`, `PARTNER_CHECK_IN` | The same 30-minute pacing per sender/Space/gesture kind, with request replay and per-event delivery uniqueness. Different deliberate gestures remain independent. |
+| `HEART_HUNT_HIDDEN`, `HEART_HUNT_FOUND` | At most one hidden and one found notice per round, and one open round per hider; per-event delivery uniqueness. Quiet Hours defer them like other explicit partner signals. |
 | `REMINDER_DUE` | One generated occurrence per recipient, rule and due key; the chosen reminder schedule governs delivery, with source-event and channel receipt uniqueness. |
 | `COMMENT_CREATED` | One opted-in generic Push per recipient/Space/endpoint/fixed UTC hour and one separately opted-in generic EMAIL per recipient/Space/hour. Quiet Hours additionally coalesces held external receipts. |
 
@@ -72,15 +117,12 @@ A delivery already queued before a later policy change is
 re-evaluated before calling the provider; a blocked delivery terminates with
 the technical `PUSH_POLICY_BLOCKED` code and cannot replay on reenable.
 
-The only push preview remains `notification.generic`. The catalog explicitly
-disallows sender names, event categories, titles, and non-neutral lock-screen
-copy for each kind. Provider presentation is constructed centrally from only
-the canonical notification ID and kind. A catalog edit requesting a richer
-preview fails closed at both enqueue and provider-send boundaries until the
-transport and stricter domain rules have been reviewed and implemented. Never
-pass recipient-controlled plaintext, actor name, target title,
-unrevealed-surprise hint or private content to a provider. The
-existing Notification API read path rechecks current authorization.
+The baseline provider presentation is `notification.generic`. The catalog
+keeps neutral presentation for ordinary kinds. `notification.wish_date` is
+limited to the three deliberate Wish date events under the current workflow
+above. An arbitrary catalog edit requesting richer presentation fails closed
+at enqueue and provider-send boundaries. The existing Notification API read
+path rechecks current authorization.
 No new provider, broker, job queue or storage is needed; the existing Outbox,
 PushDelivery and PostgreSQL Job Queue are reused. External libraries,
 WebSocket and secondary preference stores are unsuitable for this catalog.
@@ -91,8 +133,8 @@ the authenticated endpoint API and a configured-only
 [UnifiedPush backend sender](./UNIFIEDPUSH-TRANSPORT.md); the Capacitor device
 lifecycle, FCM and real-device acceptance of Push delivery and tap routing are
 not delivered, so a green backend test is not live-device acceptance. Do not infer that a new notification class enables email, a
-foreground banner or a richer lock-screen preview. #1211 retains the current
-badge/preview/Center, and #1212 rejects motion from unread-count polling.
+foreground banner or a richer lock-screen preview. The scoped approvals in
+#1211 and #1212 require a fresh authorized notice before showing a receipt.
 Later deliveries must intersect the #515 class, the #638 recipient channel
 choice, domain privacy/module rules and technical channel availability.
 In particular, a comment digest cannot silently enable a new push channel
@@ -120,6 +162,7 @@ without classification; the existing signal/reminder integration paths
 preserve generic immediate push and idempotency; an integration regression
 checks that a DIGESTIBLE comment neither enqueues an individual push nor
 passes a stale queued delivery to the provider. A policy test verifies that
-every current kind uses the neutral preview and a catalog change asking for
-sender names is blocked, while existing immediate-provider handoffs remain
-generic. No UI change or screenshot is claimed in these backend-only slices.
+the three approved Wish date events are the only catalog-level exception to
+the neutral policy. Existing immediate-provider handoffs stay generic unless
+the transport has an independently reviewed device preview. This historic
+foundation has no UI acceptance evidence.

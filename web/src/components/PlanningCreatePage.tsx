@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom';
 import { planningIfMatch } from '../client/sharedPlanning';
+import { useInlineFieldError } from '../client/useInlineFieldError';
 import {
   ComposerChip,
   ComposerDescriptionField,
@@ -29,6 +30,7 @@ import type { AttachmentEntry } from '../api/generated/models/AttachmentEntry';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
+import type { SharedNoteDetail } from '../api/generated/models/SharedNoteDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
@@ -37,13 +39,17 @@ import {
   submitCreateRequest,
 } from '../client/createRequestIdentity';
 import { invalidateDashboard } from '../client/dashboardQueries';
+import { rememberDateIdeaWish } from '../client/dateIdeas';
 import {
   type ClientProblemError,
   normalizeClientError,
 } from '../client/problemDetails';
-import { rememberDateIdeaWish } from '../client/dateIdeas';
 import { createReferenceApis } from '../client/referenceFlow';
-import { planDetailPath, wishDetailPath } from '../client/routes';
+import {
+  DATE_IDEAS_ROUTE,
+  planDetailPath,
+  wishDetailPath,
+} from '../client/routes';
 import {
   loadAllPlaces,
   planScheduleFromInputs,
@@ -57,10 +63,12 @@ import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
 import { CollectionChoicePicker } from './CollectionChoicePicker';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
+import { DateIdeasComposerHint } from './DateIdeasComposerHint';
 import { EimirIcon } from './EimirIcon';
 import { MemoryTagChoices } from './MemoryTagChoices';
 import { PlaceChoicePicker } from './PlaceChoicePicker';
 import { PlanFilesEditor } from './PlanFiles';
+import { PlanNoteDraftLinks } from './PlanNoteDraftLinks';
 import { PlanningDiscardSheet } from './PlanningEditorLifecycle';
 import { PlanPhotosEditor } from './PlanPhotosEditor';
 import {
@@ -117,6 +125,9 @@ export function PlanningCreatePage({
   accountId?: string;
 }) {
   const { t } = useTranslation();
+  const titleError = useInlineFieldError({
+    missing: t('m5s3.plan.titleMissing'),
+  });
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -172,6 +183,9 @@ export function PlanningCreatePage({
   const [listToolHost, setListToolHost] = useState<HTMLSpanElement | null>(
     null,
   );
+  const [noteToolHost, setNoteToolHost] = useState<HTMLSpanElement | null>(
+    null,
+  );
   const [placeOpen, setPlaceOpen] = useState(false);
   const [placePending, setPlacePending] = useState(false);
   const placeSheet = useRef<ShortTaskSheetHandle>(null);
@@ -183,6 +197,7 @@ export function PlanningCreatePage({
   const [problem, setProblem] = useState<ClientProblemError | null>(null);
   const [pending, setPending] = useState(false);
   const [lists, setLists] = useState<CollectionDetail[]>([]);
+  const [notes, setNotes] = useState<SharedNoteDetail[]>([]);
   const [collectionPending, setCollectionPending] = useState(false);
   const confirmedParent = useRef<PlanDetail | WishDetail | null>(null);
   const [parentSaved, setParentSaved] = useState(false);
@@ -206,6 +221,7 @@ export function PlanningCreatePage({
       description !== (draft?.description ?? '') ||
       placeId ||
       tags.length ||
+      notes.length ||
       enrichmentDirty ||
       photos.items.length ||
       files.items.length ||
@@ -245,11 +261,13 @@ export function PlanningCreatePage({
     mutationFn: async ({
       values,
       collectionIds,
+      noteIds,
       selectedWish,
       owns,
     }: {
       values: PlanningCreateValues;
       collectionIds: string[];
+      noteIds: string[];
       selectedWish?: WishDetail | null;
       owns: () => boolean;
     }) => {
@@ -326,6 +344,20 @@ export function PlanningCreatePage({
               spaceId,
               planId: created.id,
               collectionId,
+            }),
+          );
+        }
+      // Linking follows the save: the Plan exists, so a failure here leaves it
+      // saved and is reported as such; a retry only repeats the idempotent links.
+      if (kind === 'plan')
+        for (const sharedNoteId of noteIds) {
+          if (!owns()) throw new Error('Planning task ownership changed');
+          assertOnlineWrite();
+          await apiCall(() =>
+            apis.plans.linkPlanNote({
+              spaceId,
+              planId: created.id,
+              sharedNoteId,
             }),
           );
         }
@@ -441,6 +473,7 @@ export function PlanningCreatePage({
         schedule,
       },
       collectionIds: lists.map((list) => list.id),
+      noteIds: notes.map((note) => note.id),
       selectedWish: wish,
       owns: capture(),
     });
@@ -558,7 +591,13 @@ export function PlanningCreatePage({
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder={t('m5s3.plan.titleHint')}
+                {...titleError.fieldProps}
               />
+              {titleError.error ? (
+                <p id={titleError.errorId} className="field-error" role="alert">
+                  {titleError.error}
+                </p>
+              ) : null}
               <ComposerDescriptionField
                 id="planning-create-description"
                 hint={t('m5s3.plan.descriptionPlaceholder')}
@@ -584,6 +623,30 @@ export function PlanningCreatePage({
                 </ComposerChip>
               ))}
             </div>
+            <PlanNoteDraftLinks
+              apis={apis}
+              spaceId={spaceId}
+              value={notes}
+              disabled={pending || parentSaved}
+              onChange={(chosen) => {
+                setNotes(chosen);
+                setEnrichmentDirty(true);
+              }}
+              renderTrigger={(open) =>
+                noteToolHost
+                  ? createPortal(
+                      <ComposerTool
+                        icon="notes"
+                        label={t('sharedNotes.plan.tool')}
+                        active={Boolean(notes.length)}
+                        disabled={pending || parentSaved}
+                        onClick={open}
+                      />,
+                      noteToolHost,
+                    )
+                  : null
+              }
+            />
             <MemoryTagChoices
               presentation="composer"
               parentType="PLAN"
@@ -652,7 +715,7 @@ export function PlanningCreatePage({
         {parentSaved && problem ? (
           <p role="status">
             {t(
-              wish
+              wish || notes.length
                 ? 'composer.planSavedLinkFailed'
                 : 'm5s3.collection.planSavedLinkFailed',
             )}
@@ -670,6 +733,7 @@ export function PlanningCreatePage({
             onClick={() => setPlaceOpen(true)}
           />
           <span className="composer-tool-slot" ref={setListToolHost} />
+          <span className="composer-tool-slot" ref={setNoteToolHost} />
           <span className="composer-tool-slot" ref={setTagToolHost} />
         </ComposerToolRow>
         <CollectionChoicePicker
@@ -765,6 +829,18 @@ export function PlanningCreatePage({
       onSubmit={submit}
       onClose={requestClose}
     >
+      {draft?.dateIdeaId ? null : (
+        <DateIdeasComposerHint
+          onOpen={() =>
+            requestClose(() =>
+              navigate(DATE_IDEAS_ROUTE, {
+                replace: true,
+                state: { taskOriginKey: originKey },
+              }),
+            )
+          }
+        />
+      )}
       {offlineAttempt ? (
         <p className="inline-message" role="alert">
           {t('taskBoundary.offline')}

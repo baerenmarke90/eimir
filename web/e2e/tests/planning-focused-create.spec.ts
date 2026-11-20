@@ -1,9 +1,10 @@
 import { expectFloatingAddAction } from '../support/addAction';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
+import { pickPlanDay } from '../support/planCalendar';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -11,6 +12,11 @@ import composer from '../../src/i18n/locales/composer';
 import contextTags from '../../src/i18n/locales/contextTags';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import {
+  deleteViaMenu,
+  editViaMenu,
+  itemMenuTrigger,
+} from '../support/itemMenu';
 import { captureR3Evidence } from './r3-evidence';
 import { expectLabeledComposerTool } from '../support/addAction';
 
@@ -451,8 +457,9 @@ test('the Wish composer creates, edits and returns through the saved Wish', asyn
   await page.getByRole('link', { name: new RegExp(title) }).click();
   await expect(prose).toContainText(opening);
 
-  const edit = page.getByRole('button', { name: de.common.edit, exact: true });
-  await edit.click();
+  // Edit and Delete live in the item menu; the menu button regains focus.
+  const edit = itemMenuTrigger(page);
+  await editViaMenu(page, de.common.edit);
   const editTitle = writing.getByLabel(m5s3.common.title, { exact: true });
   const editDescription = writing.getByLabel(m5s3.common.description);
   const save = page.getByRole('button', { name: m5s3.common.saveChanges });
@@ -461,6 +468,10 @@ test('the Wish composer creates, edits and returns through the saved Wish', asyn
   await expect(save).toHaveText(m5s3.common.save);
   await expect(page.locator('.mobile-bottom-shell')).toBeHidden();
   await expect(page.getByText(m5s3.wish.actionsHeading)).toHaveCount(0);
+  // Deleting is not offered inside the editor.
+  await expect(
+    page.getByRole('button', { name: m5s3.common.delete, exact: true }),
+  ).toHaveCount(0);
   await expect(editDescription).toHaveValue(description);
   expect(
     await editDescription.evaluate(
@@ -508,21 +519,16 @@ test('the Wish composer creates, edits and returns through the saved Wish', asyn
   await expect(edit).toBeFocused();
   expect(calls.wishUpdates).toBe(1);
 
-  await edit.click();
-  const remove = page.getByRole('button', {
-    name: m5s3.common.delete,
-    exact: true,
-  });
   const deleteConfirm = page.getByRole('alertdialog', {
     name: m5s3.common.deleteHeading,
   });
-  await remove.click();
+  await deleteViaMenu(page, m5s3.common.delete);
   await expect(deleteConfirm).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(deleteConfirm).toHaveCount(0);
-  await expect(remove).toBeFocused();
+  await expect(edit).toBeFocused();
   expect(calls.wishDeletes).toBe(0);
-  await remove.click();
+  await deleteViaMenu(page, m5s3.common.delete);
   await deleteConfirm
     .getByRole('button', { name: m5s3.common.confirmDelete })
     .click();
@@ -707,9 +713,7 @@ test('a weekend without times is saved as one multi-day date-only Plan', async (
   await page.getByLabel(m5s3.plan.intentionLabel).fill('Weekend at the lake');
   await page.locator('.composer-schedule-trigger').click();
   const sheet = page.getByRole('dialog', { name: m5s3.plan.schedule });
-  await sheet
-    .getByLabel(m5s3.plan.plannedDate, { exact: true })
-    .fill('2026-11-20');
+  await pickPlanDay(sheet, '2026-11-20');
   await sheet.getByRole('button', { name: m5s3.plan.addLastDay }).click();
   const lastDay = sheet.getByLabel(m5s3.plan.lastDay, { exact: true });
   await expect(lastDay).toHaveValue('2026-11-21');

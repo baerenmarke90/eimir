@@ -1,0 +1,14 @@
+eimir. Android 0.2.0-test.88
+
+- Edit photos in Memories, Plans and HeartMoments. Rotate, crop, draw or add text before uploading, or make changes to an existing photo while editing its entry.
+- Google Photos sign-in returns to the installed Android app after you confirm access. Photos kept on your Android device are encrypted. In the browser, private photos are cached only for the current session.
+- Try the Album design for Moments and the rediscovery card on Wir, with Polaroids, paper notes and chapter bookmarks. You can switch between Album and List in Appearance.
+- See shared milestones and relationship anniversaries in Your Story, along with round days such as 100, 200, 500 and every thousand days from 1,000 to 10,000.
+- Send a shared list from its menu. Your partner receives a neutral notice and finds the list pinned on Wir.
+- Open an eimir. Plan directly from its synced Google Calendar or CalDAV event.
+- Your view uses a consistent colour for each person. Automatic shows you in blue and your partner in rose. With Pro, you can choose your own pair in Appearance.
+- Open Wir and the partner map with less waiting. The Memories map remembers where you left it during your session, and Wir is centred on wider screens.
+- See the features included in eimir. Pro from Account.
+
+The product changes come from main at 06af723f2dded5f0bd1240e3ac050f537a34a157.
+Install over test.87 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 88.

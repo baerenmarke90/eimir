@@ -1,7 +1,10 @@
 import {
+  COLLECTION_CREATE_ROUTE,
   HEART_MOMENT_CREATE_ROUTE,
   MEMORY_CREATE_ROUTE,
   MILESTONE_CREATE_ROUTE,
+  PLAN_CREATE_ROUTE,
+  WISH_CREATE_ROUTE,
 } from '../client/routes';
 import {
   ContextualCreateMenu,
@@ -26,12 +29,43 @@ const targets = [
   },
 ] as const satisfies readonly ContextualCreateTarget[];
 
+/**
+ * Wir is the overview, so its create button offers every create task, not
+ * only moments (#2063, Product Owner 2026-11-19). Each target opens the same
+ * existing create page as its own area does.
+ */
+const everythingTargets = [
+  ...targets,
+  {
+    to: PLAN_CREATE_ROUTE,
+    labelKey: 'navigation.quickCreatePlan',
+    icon: 'planen',
+  },
+  {
+    to: WISH_CREATE_ROUTE,
+    labelKey: 'navigation.quickCreateWish',
+    icon: 'wuensche',
+  },
+  {
+    to: COLLECTION_CREATE_ROUTE,
+    labelKey: 'navigation.quickCreateList',
+    icon: 'listen',
+  },
+] as const satisfies readonly ContextualCreateTarget[];
+
 /** A bounded local entry into the existing moment capture tasks. */
-export function MomentCreateMenu({ floating = false }: { floating?: boolean }) {
+export function MomentCreateMenu({
+  floating = false,
+  everything = false,
+}: {
+  floating?: boolean;
+  /** Also offer Plan, Wish and List (the Wir overview). */
+  everything?: boolean;
+}) {
   return (
     <ContextualCreateMenu
-      labelKey="story.addMoment"
-      targets={targets}
+      labelKey={everything ? 'navigation.quickCreateTitle' : 'story.addMoment'}
+      targets={everything ? everythingTargets : targets}
       taskItemKey="moment-create"
       floating={floating}
     />

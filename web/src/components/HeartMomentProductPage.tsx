@@ -15,7 +15,7 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { AttachmentEntry } from '../api/generated/models/AttachmentEntry';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { HeartEmotion } from '../api/generated/models/HeartEmotion';
@@ -40,6 +40,7 @@ import { invalidateDashboard } from '../client/dashboardQueries';
 import { localDateInputValue } from '../client/dateInput';
 import { useLeaveDeletedEntries, useReturnTo } from '../client/historyEntries';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
+import { occasionsOn } from '../client/occasionMatches';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
   ClientProblemError,
@@ -64,8 +65,10 @@ import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { formatAttachmentDraftContextKey } from '../client/useAttachmentDrafts';
 import { useHeartVoiceDraft } from '../client/useHeartVoiceDraft';
+import { useItemSheets } from '../client/useItemSheets';
 import { useOrderedPhotoDrafts } from '../client/useOrderedPhotoDrafts';
 import { usePlanCaptureSource } from '../client/usePlanCaptureSource';
+import { useSpaceOccasions } from '../client/useSpaceOccasions';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
@@ -95,6 +98,13 @@ import {
   HEART_MOMENT_TAGS,
   HeartMomentTagChoices,
 } from './HeartMomentTagChoices';
+import {
+  ItemDeleteSheet,
+  ItemMenuOption,
+  ItemMenuSheet,
+  ItemMenuTrigger,
+  leaveItemMenu,
+} from './ItemActions';
 import { GalleryExpandAction, MediaGallery } from './MediaGallery';
 import { MomentDate } from './MomentDate';
 import {
@@ -102,13 +112,14 @@ import {
   type MomentPlaceSelection,
 } from './MomentPlaceField';
 import { MomentPlaces } from './MomentPlaces';
+import { OccasionMark } from './OccasionMark';
 import { ComposerTool, ComposerToolRow } from './PageComposer';
 import { PageHeader } from './PageHeader';
 import { PlanPhotosEditor } from './PlanPhotosEditor';
 import { ProblemState } from './ProblemState';
 import { SavedVoiceNote } from './SavedVoiceNote';
-import { ShortTaskSheet } from './ShortTaskSheet';
-import { StoryDetailEditLink } from './StoryDetailEditLink';
+import { SecureSurface } from './SecureSurface';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import {
   ComposerHeader,
   StoryCreatePageShell,
@@ -205,6 +216,9 @@ export function HeartMomentProductPage({
     heartMomentId: string,
     attachmentId: string,
     signal?: AbortSignal,
+    variant?: 'original' | 'thumbnail',
+    /** `false` for a private Heart Moment: session memory only. */
+    persist?: boolean,
   ) => Promise<ObjectUrlSource>;
 }) {
   const { t } = useTranslation();
@@ -218,6 +232,7 @@ export function HeartMomentProductPage({
     ?.taskOriginKey;
   const params = useParams();
   const queryClient = useQueryClient();
+  const occasions = useSpaceOccasions(spaceId, currentAccountId);
   const heartMomentId = params.heartMomentId;
   const queryKey = authorSummaryQueryKeys.heartMoment(spaceId, heartMomentId);
   const contextKey = formatAttachmentDraftContextKey(currentAccountId, spaceId);
@@ -233,6 +248,10 @@ export function HeartMomentProductPage({
     spaceId,
     heartMomentId,
   ] as const;
+  const sheets = useItemSheets(heartMomentId);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  const deleteSheet = useRef<ShortTaskSheetHandle>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
   const [createContentError, setCreateContentError] = useState(false);
   const [formDirty, setFormDirty] = useState(false);
   const [createText, setCreateText] = useState('');
@@ -464,6 +483,14 @@ export function HeartMomentProductPage({
         : false,
     retry: false,
   });
+
+  // A confirmed delete evicts the read before the confirmation sheet has left;
+  // the page keeps showing the deleted Heart Moment until that hand-off
+  // navigates.
+  const [leaving, setLeaving] = useState(false);
+  const lastRead = useRef(heartMomentQuery.data);
+  if (heartMomentQuery.data) lastRead.current = heartMomentQuery.data;
+  const holdForLeave = leaving && Boolean(lastRead.current);
 
   const loadedMediaScope = useRef('');
   const mediaScope = JSON.stringify([
@@ -802,7 +829,7 @@ export function HeartMomentProductPage({
   });
 
   const deleteMutation = useStoryDeletion<HeartMomentDetail>({
-    active: mode === 'edit',
+    active: mode === 'detail',
     accountId: currentAccountId,
     spaceId,
     resourceId: heartMomentId,
@@ -817,16 +844,18 @@ export function HeartMomentProductPage({
         heartMomentId: heartMoment.id,
         ifMatch: String(heartMoment.version),
       }),
-    onDeleted: () =>
-      editorLifecycle.closeConfirmed(() =>
+    onDeleted: () => {
+      const leave = () =>
         leaveDeleted(
           heartMomentDetailPath(heartMomentId ?? ''),
           appRoutePath('story'),
-        ),
-      ),
+        );
+      setLeaving(true);
+      // The confirmation sheet releases its history entry before leaving.
+      if (deleteSheet.current) deleteSheet.current.closeForNavigation(leave);
+      else leave();
+    },
   });
-  const { confirming: confirmDelete, setConfirming: setConfirmDelete } =
-    deleteMutation;
 
   const editorLifecycle = useTaskEditorLifecycle({
     isActive: mode !== 'detail',
@@ -1218,10 +1247,10 @@ export function HeartMomentProductPage({
       />
     );
   }
-  if (heartMomentQuery.isLoading) {
+  if (heartMomentQuery.isLoading && !holdForLeave) {
     return <UiState kind="loading" title={t('heartMomentProduct.loading')} />;
   }
-  if (heartMomentQuery.error) {
+  if (heartMomentQuery.error && !holdForLeave) {
     return (
       <ProblemState
         error={heartMomentQuery.error}
@@ -1229,7 +1258,8 @@ export function HeartMomentProductPage({
       />
     );
   }
-  const result = heartMomentQuery.data;
+  const result =
+    heartMomentQuery.data ?? (holdForLeave ? lastRead.current : undefined);
   if (!result) return null;
   const heartMoment = result.value;
   const offline = result.source === 'cache';
@@ -1433,6 +1463,9 @@ export function HeartMomentProductPage({
                   spaceId={spaceId}
                   planId={heartMoment.id}
                   parentType="HEART_MOMENT"
+                  persistMedia={
+                    heartMoment.visibility === ContentVisibility.SHARED
+                  }
                   disabled={updateMutation.isPending}
                   canUpload
                   canManageExisting={heartMoment.capabilities.canDelete}
@@ -1609,55 +1642,6 @@ export function HeartMomentProductPage({
             {editContentError ? (
               <p role="alert">{t('heartMomentProduct.contentRequired')}</p>
             ) : null}
-
-            {heartMoment.capabilities.canDelete && !offline ? (
-              <div style={{ marginTop: 'var(--space-8)' }}>
-                {!confirmDelete && !deleteMutation.isPending ? (
-                  <button
-                    type="button"
-                    className="button-link danger-link"
-                    onClick={() => setConfirmDelete(true)}
-                    disabled={deleteMutation.isBlocked}
-                  >
-                    {t('heartMomentProduct.delete')}
-                  </button>
-                ) : (
-                  <section
-                    className="memory-danger-zone memory-delete-confirmation"
-                    aria-label={t('heartMomentProduct.delete')}
-                    role="alert"
-                  >
-                    <div>
-                      <h2>{t('heartMomentProduct.deleteConfirmTitle')}</h2>
-                      <p>{t('heartMomentProduct.deleteConfirmBody')}</p>
-                    </div>
-                    <div className="memory-actions">
-                      <button
-                        type="button"
-                        className="tertiary"
-                        onClick={() => setConfirmDelete(false)}
-                        disabled={deleteMutation.isPending}
-                      >
-                        {t('heartMomentProduct.deleteCancel')}
-                      </button>
-                      <button
-                        type="button"
-                        className="danger"
-                        onClick={() => deleteMutation.mutate(heartMoment)}
-                        disabled={deleteMutation.isBlocked}
-                      >
-                        {deleteMutation.isPending
-                          ? t('heartMomentProduct.deleting')
-                          : t('heartMomentProduct.deleteConfirm')}
-                      </button>
-                    </div>
-                  </section>
-                )}
-                {deleteMutation.error ? (
-                  <ProblemState error={deleteMutation.error} />
-                ) : null}
-              </div>
-            ) : null}
           </>
         </StoryEditorPageShell>
       </HeartEmotionSurface>
@@ -1685,7 +1669,9 @@ export function HeartMomentProductPage({
       ]
     : visualMedia;
   const saved = Boolean((location.state as { saved?: boolean } | null)?.saved);
-  return (
+  const mayEdit = heartMoment.capabilities.canEdit && !offline;
+  const mayDelete = heartMoment.capabilities.canDelete && !offline;
+  const page = (
     <HeartEmotionSurface
       emotion={heartMoment.emotion}
       className="heart-moment-read-page"
@@ -1700,11 +1686,12 @@ export function HeartMomentProductPage({
           }
           title={t('heartMomentProduct.detailEyebrow')}
           action={
-            heartMoment.capabilities.canEdit && !offline ? (
-              <StoryDetailEditLink
-                to={heartMomentEditPath(heartMoment.id)}
-                label={t('heartMomentProduct.edit')}
-                state={{ taskOriginKey: originKey }}
+            mayEdit || mayDelete ? (
+              <ItemMenuTrigger
+                triggerRef={menuTrigger}
+                label={t('heartMomentProduct.menu')}
+                open={sheets.menuOpen}
+                onOpen={() => sheets.show('menu')}
               />
             ) : undefined
           }
@@ -1752,6 +1739,15 @@ export function HeartMomentProductPage({
               variant="subtle"
             />
           </div>
+          <OccasionMark
+            matches={occasionsOn(
+              heartMoment.happenedOn,
+              null,
+              occasions,
+              resolvedLocale(),
+            )}
+            revealKey={`heart-moment:${heartMoment.id}`}
+          />
         </div>
         <div
           className="heart-moment-detail-container"
@@ -1775,7 +1771,13 @@ export function HeartMomentProductPage({
                     isSensitive: item.isSensitive,
                   }))}
                   loadMedia={(attachmentId, signal) =>
-                    loadAttachment(heartMoment.id, attachmentId, signal)
+                    loadAttachment(
+                      heartMoment.id,
+                      attachmentId,
+                      signal,
+                      undefined,
+                      shared,
+                    )
                   }
                   loadPoster={(id, signal) =>
                     loadAuthorizedStoryImageResource(
@@ -1784,7 +1786,7 @@ export function HeartMomentProductPage({
                       'HEART_MOMENT',
                       heartMoment.id,
                       id,
-                      { signal, variant: 'thumbnail' },
+                      { signal, variant: 'thumbnail', persist: shared },
                     )
                   }
                   loadPlayback={(id, signal) =>
@@ -1892,8 +1894,69 @@ export function HeartMomentProductPage({
             </footer>
           </article>
         </div>
+
+        <ItemMenuSheet
+          open={sheets.menuOpen}
+          title={t('heartMomentProduct.detailEyebrow')}
+          restoreFocusRef={menuTrigger}
+          sheetRef={menuSheet}
+          onClose={() => sheets.close('menu')}
+        >
+          {mayEdit ? (
+            <ItemMenuOption
+              icon="pen"
+              title={t('heartMomentProduct.edit')}
+              onClick={() =>
+                leaveItemMenu(
+                  menuSheet,
+                  () =>
+                    void navigate(heartMomentEditPath(heartMoment.id), {
+                      state: { taskOriginKey: originKey },
+                    }),
+                  sheets.closeAll,
+                )
+              }
+            />
+          ) : null}
+          {mayDelete ? (
+            <ItemMenuOption
+              icon="trash"
+              danger
+              title={t('heartMomentProduct.delete')}
+              disabled={deleteMutation.isBlocked}
+              onClick={() => {
+                deleteMutation.reset();
+                sheets.show('delete');
+              }}
+            />
+          ) : null}
+        </ItemMenuSheet>
+
+        <ItemDeleteSheet
+          sheetRef={deleteSheet}
+          open={sheets.deleteOpen}
+          title={t('heartMomentProduct.deleteConfirmTitle')}
+          body={t('heartMomentProduct.deleteConfirmBody')}
+          confirmLabel={t('heartMomentProduct.deleteConfirm')}
+          pendingLabel={t('heartMomentProduct.deleting')}
+          pending={deleteMutation.isPending}
+          error={deleteMutation.error}
+          restoreFocusRef={menuTrigger}
+          onClose={() => sheets.close('delete')}
+          onConfirm={() => deleteMutation.mutate(heartMoment)}
+        />
       </div>
     </HeartEmotionSurface>
+  );
+  // A private Heart Moment stays out of screenshots, screen recordings and
+  // the Recents preview in the app (#683).
+  return (
+    <SecureSurface
+      active={heartMoment.visibility !== ContentVisibility.SHARED}
+      announceFailure
+    >
+      {page}
+    </SecureSurface>
   );
 }
 

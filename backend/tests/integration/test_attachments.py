@@ -59,6 +59,33 @@ def upload_body(**overrides: Any) -> dict[str, Any]:
     }
 
 
+def test_large_regular_upload_persists_only_encrypted_content(
+    client, couple, session, monkeypatch, tmp_path
+) -> None:
+    from eimir.media.encrypted import MAGIC, EncryptingMediaStore
+    from eimir.media.local import LocalMediaStore
+    from eimir.security.keyring import EncryptionMode
+    from tests.support.encryption import key_ring
+
+    raw = LocalMediaStore(tmp_path)
+    sealed = EncryptingMediaStore(raw, key_ring(), EncryptionMode.REQUIRED)
+    monkeypatch.setattr(service, "get_media_store", lambda: sealed)
+    with io.BytesIO() as output:
+        with Image.new("RGB", (2450, 2450), (15, 44, 71)) as picture:
+            picture.save(output, format="PNG", compress_level=0)
+        content = output.getvalue()
+    assert 16 * 1024**2 < len(content) < 25 * 1024**2
+    response, identifier = upload_and_finalize(
+        client, couple, data=content, originalName="fixture.png", expectedMimeType="image/png"
+    )
+    assert response.status_code == 202
+    attachment = session.get(Attachment, __import__("uuid").UUID(identifier))
+    key = service.storage_key_for(attachment)
+    with raw.open(key) as ciphertext, sealed.open(key) as plaintext:
+        assert ciphertext.read(len(MAGIC)) == MAGIC
+        assert plaintext.read() == content
+
+
 @pytest.fixture
 def couple(session: Session):  # type: ignore[no-untyped-def]
     anna = make_account(session, "Anna")

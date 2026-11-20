@@ -1,9 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/appIcon';
 import de from '../../src/i18n/locales/de';
+import motionCopy from '../../src/i18n/locales/motionSettings';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillDefaultProductContext } from '../support/productContext';
 
@@ -551,4 +552,152 @@ test('Android applies only the saved choice and retries a native failure without
   );
   await page.keyboard.press('Escape');
   await expect(page.getByRole('button', { name: copy.all })).toBeFocused();
+});
+
+/**
+ * The device-local haptics switch (#2076, Motion Contract 4.10): shown only
+ * in the native app, an accessible switch, stored on the device. Run with
+ * VISUAL_EVIDENCE_DIR to export the evidence images
+ * (docs/product/design/evidence/2076).
+ */
+test.describe('haptics switch in the native app (#2076)', () => {
+  async function installNativeShell(page: Page) {
+    await page.addInitScript(() => {
+      const nativeWindow = window as unknown as {
+        CapacitorCustomPlatform: { name: string };
+        Capacitor: unknown;
+        hapticCalls: string[];
+      };
+      nativeWindow.CapacitorCustomPlatform = { name: 'android' };
+      nativeWindow.hapticCalls = [];
+      nativeWindow.Capacitor = {
+        PluginHeaders: [
+          { name: 'AppIcon', methods: [{ name: 'apply', rtype: 'promise' }] },
+          {
+            name: 'Haptics',
+            methods: [
+              'impact',
+              'notification',
+              'selectionStart',
+              'selectionChanged',
+              'selectionEnd',
+            ].map((name) => ({ name, rtype: 'promise' })),
+          },
+          {
+            name: 'NativeSessionStorage',
+            methods: ['read', 'write', 'clear'].map((name) => ({
+              name,
+              rtype: 'promise',
+            })),
+          },
+        ],
+        nativePromise: async (
+          plugin: string,
+          method: string,
+          options: { iconId?: string; value?: string },
+        ) => {
+          if (plugin === 'NativeSessionStorage') {
+            if (method === 'write')
+              sessionStorage.setItem(
+                'native-test-session',
+                options.value ?? '',
+              );
+            if (method === 'clear')
+              sessionStorage.removeItem('native-test-session');
+            return {
+              value: sessionStorage.getItem('native-test-session') ?? undefined,
+            };
+          }
+          if (plugin === 'Haptics') {
+            nativeWindow.hapticCalls.push(method);
+            return {};
+          }
+          if (plugin === 'AppIcon' && method === 'apply')
+            return { iconId: options.iconId };
+          throw new Error('Unexpected native call');
+        },
+      };
+    });
+  }
+
+  const hapticsSwitch = (page: Page) =>
+    page.getByRole('switch', { name: motionCopy.hapticsSettings.label });
+
+  test('is not offered in the browser', async ({ page }) => {
+    await installMocks(page, false);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await signIn(page);
+    await expect(
+      page.getByRole('heading', { name: motionCopy.hapticsSettings.title }),
+    ).toHaveCount(0);
+    await expect(hapticsSwitch(page)).toHaveCount(0);
+  });
+
+  test('is an accessible, device-local switch in the native app', async ({
+    page,
+  }) => {
+    await installNativeShell(page);
+    await installMocks(page, false);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await signIn(page);
+    const control = hapticsSwitch(page);
+    await expect(control).toHaveAttribute('aria-checked', 'true');
+    await expect(control).toHaveAccessibleDescription(
+      motionCopy.hapticsSettings.hint,
+    );
+    await control.focus();
+    await page.keyboard.press('Space');
+    await expect(control).toHaveAttribute('aria-checked', 'false');
+    expect(
+      await page.evaluate(() => localStorage.getItem('eimir.motion.haptics')),
+    ).toBe('off');
+    // Device-local: the switch sends nothing to the server and survives a
+    // reload on this device.
+    await page.reload();
+    await expect(hapticsSwitch(page)).toHaveAttribute('aria-checked', 'false');
+    const results = await new AxeBuilder({ page })
+      .include('[data-testid="haptics-settings"]')
+      .analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  for (const variant of [
+    { width: 360, theme: 'light', text: '' },
+    { width: 360, theme: 'dark', text: '' },
+    { width: 390, theme: 'light', text: '' },
+    { width: 390, theme: 'dark', text: '' },
+    { width: 430, theme: 'light', text: '' },
+    { width: 430, theme: 'dark', text: '' },
+    { width: 390, theme: 'light', text: '200%' },
+    { width: 390, theme: 'dark', text: '200%' },
+  ] as const) {
+    const label = `${variant.width}-${variant.theme}${variant.text ? '-200-text' : ''}`;
+    test(`visual evidence 2076 haptics switch ${label}`, async ({
+      page,
+    }, info) => {
+      await installNativeShell(page);
+      await installMocks(page, false);
+      await page.setViewportSize({ width: variant.width, height: 800 });
+      await page.emulateMedia({ colorScheme: variant.theme });
+      await signIn(page);
+      if (variant.text)
+        await page.evaluate((size) => {
+          document.documentElement.style.fontSize = size;
+        }, variant.text);
+      const section = page.getByTestId('haptics-settings');
+      await section.scrollIntoViewIfNeeded();
+      await section.evaluate((element) =>
+        element.scrollIntoView({ block: 'center' }),
+      );
+      // No horizontal overflow at any width or text size.
+      expect(
+        await page.evaluate(
+          () =>
+            document.documentElement.scrollWidth <=
+            document.documentElement.clientWidth,
+        ),
+      ).toBe(true);
+      await capture(page, info, `2076-haptics-switch-${label}.png`);
+    });
+  }
 });

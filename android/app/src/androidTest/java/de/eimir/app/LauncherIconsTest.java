@@ -44,6 +44,11 @@ public class LauncherIconsTest {
                     .addCategory(Intent.CATEGORY_BROWSABLE).setPackage(context.getPackageName());
             assertEquals("Authentication remains reachable for " + id,
                     "de.eimir.app.LauncherActivity", manager.resolveActivity(callback, 0).activityInfo.name);
+            Intent calendar = new Intent(Intent.ACTION_VIEW,
+                    android.net.Uri.parse("de.eimir.app://calendar/google?calendarGoogle=connected"))
+                    .addCategory(Intent.CATEGORY_BROWSABLE).setPackage(context.getPackageName());
+            assertEquals("Calendar consent return remains reachable for " + id,
+                    "de.eimir.app.LauncherActivity", manager.resolveActivity(calendar, 0).activityInfo.name);
             ResolveInfo notification = manager.resolveActivity(NativePushNotifications.notificationIntent(context, new PushActivation(
             "17b4a730-e98c-4af3-b19e-5fae9485200c", "https://example.invalid", "unifiedpush",
             "0f94bddd-bede-4676-a343-7202f117fef9", null)), 0);

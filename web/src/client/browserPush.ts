@@ -11,6 +11,11 @@ import { ResponseError } from '../api/generated/runtime';
 import { isCapacitorNative } from '../pwa';
 import { isClientOnline } from './connectivity';
 import type { DevicePushController, DevicePushState } from './devicePush';
+import { reportNotificationWake } from './foregroundNotifications';
+import {
+  notificationsListQueryKey,
+  notificationUnreadCountQueryKey,
+} from './notificationQueries';
 import { MORE_NOTIFICATIONS_ROUTE } from './routes';
 
 const CACHE = 'eimir-browser-push-v1';
@@ -92,23 +97,25 @@ function withRegistrationLock<T>(run: () => Promise<T>): Promise<T> {
   return operation;
 }
 
-function supportsPushMessages(worker: ServiceWorker): Promise<boolean> {
+function pushMessageVersion(worker: ServiceWorker): Promise<0 | 1 | 2> {
   return new Promise((resolve) => {
     const channel = new MessageChannel();
-    function complete(supported: boolean) {
+    function complete(version: 0 | 1 | 2) {
       clearTimeout(timeout);
       channel.port1.close();
-      resolve(supported);
+      resolve(version);
     }
-    const timeout = window.setTimeout(() => complete(false), 750);
-    channel.port1.onmessage = (event) => complete(event.data === 1);
+    const timeout = window.setTimeout(() => complete(0), 750);
+    channel.port1.onmessage = (event) =>
+      complete(event.data === 2 || event.data === 1 ? event.data : 0);
     try {
-      worker.postMessage({ type: 'eimir-browser-push-version' }, [
-        channel.port2,
-      ]);
+      worker.postMessage(
+        { type: 'eimir-browser-push-version', wishDate: true },
+        [channel.port2],
+      );
     } catch {
       channel.port2.close();
-      complete(false);
+      complete(0);
     }
   });
 }
@@ -182,11 +189,13 @@ function parseOpen(value: unknown): NotificationOpen | null {
 export function useBrowserPush({
   accountId,
   apiBaseUrl,
+  spaceId,
   notificationsApi,
   queryClient,
   openNotification,
   settingsOpen,
 }: Owner & {
+  spaceId: string;
   notificationsApi: NotificationsApi;
   queryClient: QueryClient;
   openNotification(id?: string): void;
@@ -199,11 +208,17 @@ export function useBrowserPush({
   const [error, setError] = useState<string | null>(null);
   const [registered, setRegistered] = useState(false);
   const registration = useRef<ServiceWorkerRegistration | undefined>(undefined);
+  const wishDatePreview = useRef(false);
   const publicKey = useRef<string | undefined>(undefined);
   const operation = useRef(0);
   const scope = JSON.stringify([accountId, apiBaseUrl]);
-  const current = useRef({ scope, notificationsApi, openNotification });
-  current.current = { scope, notificationsApi, openNotification };
+  const current = useRef({
+    scope,
+    spaceId,
+    notificationsApi,
+    openNotification,
+  });
+  current.current = { scope, spaceId, notificationsApi, openNotification };
   const owner = useRef<Owner>({ accountId, apiBaseUrl });
   owner.current = { accountId, apiBaseUrl };
   const initialOpen = useRef<{ scope: string; hash: string } | null>(null);
@@ -249,6 +264,7 @@ export function useBrowserPush({
               activationId,
               notificationReferenceVersion: 1,
               localeVersion: 1,
+              ...(wishDatePreview.current ? { wishDatePreviewVersion: 1 } : {}),
             }),
           },
         });
@@ -315,7 +331,8 @@ export function useBrowserPush({
             }),
           ]);
       if (!stillCurrent()) return;
-      if (!ready.active || !(await supportsPushMessages(ready.active))) {
+      const version = ready.active ? await pushMessageVersion(ready.active) : 0;
+      if (!version) {
         if (!stillCurrent()) return;
         void ready.update().catch(() => undefined);
         setError('PUSH_BROWSER_UPDATE_PENDING');
@@ -323,6 +340,8 @@ export function useBrowserPush({
         return;
       }
       if (!stillCurrent()) return;
+      wishDatePreview.current =
+        version === 2 && config.webPush?.wishDatePreviewVersion === 1;
       registration.current = ready;
       const activeWorker = ready;
       const binding = await withRegistrationLock(async () => {
@@ -408,9 +427,9 @@ export function useBrowserPush({
         })
         .catch(() => undefined);
     }
-    const open = async (input: unknown) => {
+    const authorizedHint = async (input: unknown) => {
       const hint = parseOpen(input);
-      if (!hint) return false;
+      if (!hint) return null;
       const binding = await readBinding();
       if (
         !live ||
@@ -418,12 +437,37 @@ export function useBrowserPush({
         !owns(binding, owner.current) ||
         binding.activationId !== hint.activationId
       ) {
-        return false;
+        return null;
       }
+      return hint;
+    };
+    const open = async (input: unknown) => {
+      const hint = await authorizedHint(input);
+      if (!hint) return false;
       current.current.openNotification(hint.notificationId);
       return true;
     };
     const receive = (event: MessageEvent) => {
+      if (event.data?.type === 'eimir-wish-date-wake') {
+        const targetSpace = current.current.spaceId;
+        void authorizedHint(event.data)
+          .then((hint) => {
+            if (!hint || targetSpace !== current.current.spaceId) return;
+            void queryClient.invalidateQueries({
+              queryKey: notificationUnreadCountQueryKey(targetSpace),
+            });
+            void queryClient.invalidateQueries({
+              queryKey: notificationsListQueryKey(targetSpace),
+            });
+            reportNotificationWake({
+              accountId,
+              apiBaseUrl,
+              spaceId: targetSpace,
+            });
+          })
+          .catch(() => undefined);
+        return;
+      }
       if (event.data?.type !== 'eimir-notification-open') return;
       void open(event.data)
         .catch(() => false)
@@ -482,7 +526,15 @@ export function useBrowserPush({
       navigator.serviceWorker.removeEventListener('controllerchange', onFocus);
       navigator.serviceWorker.removeEventListener('message', receive);
     };
-  }, [available, scope, initialize, settingsOpen]);
+  }, [
+    available,
+    scope,
+    initialize,
+    settingsOpen,
+    accountId,
+    apiBaseUrl,
+    queryClient,
+  ]);
 
   async function enable() {
     if (browserRegistration) return;

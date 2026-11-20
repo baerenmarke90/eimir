@@ -1,0 +1,11 @@
+eimir. Android 0.2.0-test.86
+
+- Suggest a time from a shared wish. Your partner can accept, suggest a different time, or decline. Accepting creates a plan. Push and in-app notices take you to the proposal or plan.
+- See upcoming plans in Planning under Occasions. Multi-day plans mark every affected day, and tapping a plan opens its detail.
+- See when a memory, heart moment or milestone fell on a shared occasion, such as an anniversary or birthday. An unopened recap appears as a photo card at the top of Discover, with the guided experiences in a simpler list below.
+- On Wir, see nearby distances described in words and an animated connection or heart on the partner map. Profile photos fade in during the opening animation, and rapid reordering of Wir modules applies each move in sequence.
+- Return directly to the Android app after authorizing Google Calendar. If you come back from Google Photos without choosing anything, the app returns to the photo source chooser.
+- Open the shared eimir. Pro page from one row in App and Account settings. The Android build uses Capacitor 8.6 and specifies Chromium 111 as its minimum WebView version.
+
+The product changes come from main at 9b8c4a33e72c3cb17d8b68d309929f6eaa0e651b.
+Install over test.85 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 86.

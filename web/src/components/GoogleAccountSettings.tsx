@@ -1,7 +1,9 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { confirmGoogleAccessInApp } from '../client/photoSources';
 import { normalizeClientError } from '../client/problemDetails';
 import { usePhotoSources } from '../client/usePhotoSources';
 import { useTranslation } from '../i18n';
+import { isCapacitorNative } from '../pwa';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './PhotoSourcePicker.css';
 import './GoogleAccountSettings.css';
@@ -43,8 +45,22 @@ export function GoogleAccountSettings(props: {
     setFailed(false);
   }
 
+  // Android app: the address is saved but Google has not confirmed access yet.
+  const [consentPending, setConsentPending] = useState(false);
+
+  /** Confirms eimir.'s access at Google; true when the person did it. */
+  async function confirmAtGoogle(signal: AbortSignal) {
+    const result = await confirmGoogleAccessInApp(
+      apiRef.current,
+      spaceId,
+      signal,
+    );
+    setConsentPending(result !== 'confirmed');
+    return result === 'confirmed';
+  }
+
   async function run(
-    action: (signal: AbortSignal) => Promise<void>,
+    action: (signal: AbortSignal) => Promise<string | undefined>,
     success: string,
   ) {
     if (inFlight.current) return;
@@ -54,13 +70,13 @@ export function GoogleAccountSettings(props: {
     setMessage('');
     setFailed(false);
     try {
-      await action(signal);
+      const outcome = await action(signal);
       if (signal.aborted) return;
       await refreshAvailability();
       if (signal.aborted) return;
       setLinking(false);
       setValue('');
-      setMessage(t(success));
+      setMessage(t(outcome ?? success));
     } catch (error) {
       if (signal.aborted) return;
       const problem = await normalizeClientError(error);
@@ -90,29 +106,44 @@ export function GoogleAccountSettings(props: {
     event.preventDefault();
     const address = value.trim();
     if (!address) return;
-    void run(
-      async (signal) =>
-        apiRef.current.saveGooglePhotoAccount(
-          {
-            spaceId,
-            ifMatch: JSON.stringify(token),
-            googleAccountSave: { email: address, consent: true },
-          },
-          { signal },
-        ),
-      'photoSources.googleAccountLinked',
-    );
+    void run(async (signal) => {
+      await apiRef.current.saveGooglePhotoAccount(
+        {
+          spaceId,
+          ifMatch: JSON.stringify(token),
+          googleAccountSave: { email: address, consent: true },
+        },
+        { signal },
+      );
+      // In the app, finish the setup right here: Google asks for the access once.
+      if (!isCapacitorNative()) return undefined;
+      const confirmed = await confirmAtGoogle(signal).catch(() => {
+        setConsentPending(true);
+        return false;
+      });
+      return confirmed ? undefined : 'photoSources.googleConsentIncomplete';
+    }, 'photoSources.googleAccountLinked');
+  }
+
+  function confirmAccess() {
+    void run(async (signal) => {
+      const confirmed = await confirmAtGoogle(signal).catch(() => {
+        setConsentPending(true);
+        return false;
+      });
+      return confirmed ? undefined : 'photoSources.googleConsentIncomplete';
+    }, 'photoSources.googleAccountLinked');
   }
 
   function unlink() {
-    void run(
-      async (signal) =>
-        apiRef.current.removeGooglePhotoAccount(
-          { spaceId, ifMatch: JSON.stringify(token) },
-          { signal },
-        ),
-      'photoSources.googleAccountUnlinked',
-    );
+    void run(async (signal) => {
+      await apiRef.current.removeGooglePhotoAccount(
+        { spaceId, ifMatch: JSON.stringify(token) },
+        { signal },
+      );
+      setConsentPending(false);
+      return undefined;
+    }, 'photoSources.googleAccountUnlinked');
   }
 
   if (!availability?.googleAvailable) return null;
@@ -128,14 +159,21 @@ export function GoogleAccountSettings(props: {
       {email ? (
         <>
           <p>{email}</p>
-          <button
-            type="button"
-            className="secondary"
-            disabled={busy}
-            onClick={unlink}
-          >
-            {t('photoSources.googleAccountUnlink')}
-          </button>
+          <div className="google-account-actions">
+            {consentPending && isCapacitorNative() ? (
+              <button type="button" disabled={busy} onClick={confirmAccess}>
+                {t('photoSources.googleConsentConfirm')}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={unlink}
+            >
+              {t('photoSources.googleAccountUnlink')}
+            </button>
+          </div>
         </>
       ) : (
         <button

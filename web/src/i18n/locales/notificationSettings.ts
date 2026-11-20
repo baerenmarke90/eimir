@@ -1,9 +1,12 @@
 const notificationSettings = {
   title: 'Welche Nachrichten du bekommst',
   sharedActivityDescription:
-    'Kommentare, Fotoreaktionen, neue und fällige Erinnerungen.',
-  closenessDescription: 'Gedanken aneinander, Küsse und Check-ins.',
+    'Kommentare, Fotoreaktionen, gemeinsame Notizen, neue und fällige Erinnerungen.',
+  closenessDescription:
+    'Gedanken aneinander, Küsse, Check-ins, geschickte Listen und Samen aus eurem Garten.',
   individual: 'Einzeln anpassen',
+  pendingLegend:
+    'Gestrichelt: gewählt, wirkt aber erst, sobald der Kanal eingerichtet ist.',
   dates: 'Wichtige Tage',
   mixed:
     'Unterschiedlich eingestellt. Unter „Einzeln anpassen“ siehst du die Auswahl.',
@@ -13,14 +16,20 @@ const notificationSettings = {
     'Nicht alles wurde gespeichert. Bestätigte Änderungen bleiben erhalten. Prüfe die Auswahl und versuche es erneut.',
   sharedActivity: 'Gemeinsame Aktivität',
   closeness: 'Nähe',
+  recaps: 'Rückblicke',
+  recapsDescription:
+    'Wenn euer Monats- oder Jahresrückblick fertig ist oder Zuwachs bekommt.',
+  recapReady: 'Fertige Rückblicke',
   comment: 'Kommentare',
   commentDescription: 'Neue Kommentare werden im Posteingang gesammelt.',
   commentPushDescription:
-    'Push für neue Kommentare und Fotoreaktionen deines Partners. Ruhezeiten gelten für beide.',
+    'Push für neue Kommentare, Fotoreaktionen und gemeinsame Notizen deines Partners. Ruhezeiten gelten für beide.',
   commentEmailDescription: 'Höchstens eine neutrale E-Mail pro Stunde.',
   reminder: 'Fällige Erinnerungen',
   reminderCreated: 'Neue Erinnerungen',
   experience: 'Geteilte Momente',
+  collectionSent: 'Geschickte Listen',
+  gardenSeed: 'Samen aus eurem Garten',
   thinking: 'Ich denke an dich',
   kiss: 'Ein Kuss',
   checkIn: 'Check-in',
@@ -35,6 +44,8 @@ const notificationSettings = {
   endpointMissing: 'Auf diesem Gerät ist noch kein Push-Empfang eingerichtet.',
   pushUnavailable: 'Push ist derzeit nicht verfügbar.',
   deviceToggle: 'Push auf diesem Gerät',
+  deviceHintOff:
+    'Gewählte Push-Kanäle starten, sobald du Push eingerichtet hast.',
   browserToggle: 'Push in diesem Browser',
   browserPermissionDenied:
     'Erlaube Benachrichtigungen für eimir. in den Einstellungen dieses Browsers.',
@@ -66,6 +77,7 @@ const notificationSettings = {
   deviceError:
     'Die Verbindung konnte nicht eingerichtet werden. Versuche es erneut.',
   deviceDisableFailed: 'Ausschalten fehlgeschlagen. Versuche es erneut.',
+  deviceDiagnostic: 'Testversion: {{code}}',
   deviceNoDistributor:
     'Es ist noch kein Push-Dienst auf diesem Gerät installiert oder ausgewählt.',
   devicePermissionDenied:

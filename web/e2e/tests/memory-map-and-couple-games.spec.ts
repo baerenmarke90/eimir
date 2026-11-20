@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs';
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import calendarCopy from '../../src/i18n/locales/calendarPlan';
 import experienceCopy from '../../src/i18n/locales/coupleExperiences';
@@ -7,6 +6,7 @@ import de from '../../src/i18n/locales/de';
 import gameCopy from '../../src/i18n/locales/games';
 import mapCopy from '../../src/i18n/locales/memoryMap';
 import taskCopy from '../../src/i18n/locales/taskBoundary';
+import AxeBuilder from '../support/axe';
 import { type MapTileMock, mockMapTiles } from '../support/mapTiles';
 import { storyDetailBack } from '../support/memoryDiary';
 import {
@@ -19,20 +19,8 @@ import {
   TINY_PNG,
 } from '../support/storyTimelineFixture';
 
-async function expectSecondaryProIcons(page: Page) {
-  const pro = page.locator('.settings-pro-information');
-  const lead = await pro
-    .locator('.settings-pro-lead > .eimir-icon')
-    .boundingBox();
-  expect(lead).not.toBeNull();
-  const features = await pro.locator('li > .eimir-icon').all();
-  expect(features).toHaveLength(4);
-  for (const icon of features) {
-    const box = await icon.boundingBox();
-    expect(box).not.toBeNull();
-    expect(box?.width).toBeLessThanOrEqual(lead?.width ?? 0);
-    expect(box?.height).toBeLessThanOrEqual(lead?.height ?? 0);
-  }
+function proSettingsRow(page: Page) {
+  return page.locator('.settings-category-link[href="/more/pro"]');
 }
 
 async function exerciseMapTouchOwnership(page: Page, tiles: MapTileMock) {
@@ -317,7 +305,7 @@ for (const [width, theme] of [
     expect(thumbnailReads).toBe(readyThumbnailReads);
     await expect(page.locator('.memory-map-selection ul')).toHaveCSS(
       'animation-name',
-      width === 430 ? 'eimir-disclosure-reveal' : 'none',
+      width === 430 ? 'eimir-motion-enter-shift' : 'none',
     );
     expect(
       await page.evaluate(
@@ -338,21 +326,17 @@ for (const [width, theme] of [
     await expect(
       page.getByRole('link', { name: /Afternoon by the canal/ }),
     ).toBeVisible();
+    // #1907 D1: the account settings category leads to the Pro page with one row.
     await page.goto('/more/settings/account');
-    await expect(page.locator('.settings-pro-information h2')).toHaveText(
-      'eimir. Pro',
-    );
-    await expect(page.locator('.settings-pro-information li')).toHaveCount(4);
-    await expectSecondaryProIcons(page);
+    const proRow = proSettingsRow(page);
+    await expect(proRow).toContainText('eimir. Pro');
+    await expect(page.locator('.settings-pro-information')).toHaveCount(0);
     await captureScreenshot(page, info, `planning-pro-${width}-${theme}.png`, {
       fullPage: true,
     });
     expect(
-      (
-        await new AxeBuilder({ page })
-          .include('.settings-pro-information')
-          .analyze()
-      ).violations,
+      (await new AxeBuilder({ page }).include('.settings-index').analyze())
+        .violations,
     ).toEqual([]);
   });
 }
@@ -433,32 +417,22 @@ test('failed map tiles keep memories usable at 320px with large text', async ({
   await expect(fullscreen).toBeHidden();
   await page.goto('/more/settings/account');
   await page.addStyleTag({ content: 'html { font-size: 200%; }' });
-  const pro = page.locator('.settings-pro-information');
-  await expect(pro.locator('li')).toHaveCount(4);
-  await expectSecondaryProIcons(page);
-  const firstFeature = pro.locator('li').first();
-  const icon = await firstFeature.locator(':scope > .eimir-icon').boundingBox();
-  const copy = await firstFeature.locator(':scope > div').boundingBox();
-  expect(icon).not.toBeNull();
-  expect(copy).not.toBeNull();
-  expect(copy?.y).toBeGreaterThanOrEqual((icon?.y ?? 0) + (icon?.height ?? 0));
+  const proRow = proSettingsRow(page);
+  await expect(proRow).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
   expect(
-    await pro.evaluate((node) => node.scrollWidth <= node.clientWidth),
+    await proRow.evaluate((node) => node.scrollWidth <= node.clientWidth),
   ).toBe(true);
   await captureScreenshot(page, info, 'planning-pro-320-dark-large.png', {
     fullPage: true,
   });
   expect(
-    (
-      await new AxeBuilder({ page })
-        .include('.settings-pro-information')
-        .analyze()
-    ).violations,
+    (await new AxeBuilder({ page }).include('.settings-index').analyze())
+      .violations,
   ).toEqual([]);
 });
 
@@ -484,7 +458,7 @@ test('map entitlement denial explains Pro without loading external tiles', async
   await expect(page.locator('.place-map-viewport')).toHaveCount(0);
 });
 
-test('three Pro games retain their existing independent home', async ({
+test('six Pro games retain their existing independent home', async ({
   page,
 }, info) => {
   await installMocks(page);
@@ -514,7 +488,7 @@ test('three Pro games retain their existing independent home', async ({
   await signIn(page);
   await page.goto('/games');
   await expect(page.locator('.games-entry-status')).toHaveText(
-    Array(3).fill(gameCopy.status.playNow),
+    Array(6).fill(gameCopy.status.playNow),
   );
   await page.setViewportSize({ width: 390, height: 844 });
   await captureScreenshot(page, info, 'games-390-light.png', {
@@ -970,7 +944,7 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
         });
         await expect(reveal).toHaveCSS(
           'animation-name',
-          width === 430 ? 'experience-note-enter' : 'none',
+          width === 430 ? 'eimir-motion-enter-unfold' : 'none',
         );
         if (width === 430) {
           // Assert contrast while the entrance is in progress, not after it.
@@ -980,7 +954,7 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
               .find(
                 (animation) =>
                   animation instanceof CSSAnimation &&
-                  animation.animationName === 'experience-note-enter',
+                  animation.animationName === 'eimir-motion-enter-unfold',
               );
             if (!entrance?.effect)
               throw new Error('Experience entrance animation is unavailable.');
@@ -1085,10 +1059,15 @@ test('dated plan hands off an RFC calendar file without changing the plan', asyn
   );
   await signIn(page);
   await page.goto('/plan/plans/calendar-plan');
+  // The date opens the calendar sheet with the hand-off.
+  await page.locator('.planen-detail-schedule-action').click();
+  const calendarSheet = page.getByRole('dialog', {
+    name: calendarCopy.sheetTitle,
+  });
   await expect(
-    page.getByRole('link', { name: calendarCopy.add }),
+    calendarSheet.getByRole('link', { name: calendarCopy.add }),
   ).toBeVisible();
-  const calendar = await page
+  const calendar = await calendarSheet
     .getByRole('link', { name: calendarCopy.add })
     .getAttribute('href');
   const content = await page.evaluate(

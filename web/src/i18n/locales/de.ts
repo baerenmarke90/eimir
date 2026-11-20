@@ -26,7 +26,7 @@ const de = {
       lists: 'Listen',
     },
     subtitles: {
-      private: 'Notizen und Geschenkideen · {{visibility}}',
+      private: 'Notizen, Geschenkideen und Listen · {{visibility}}',
       media: 'Alle Fotos und Videos',
       chapters: 'Reisen, Umzüge, große Abschnitte',
       yearsAndRecaps: 'Eure Monate und Jahre im Überblick',
@@ -38,6 +38,11 @@ const de = {
     },
     visibility: {
       onlyYou: 'Nur du siehst das',
+    },
+    accountId: {
+      copy: 'Konto-ID kopieren',
+      copied: 'Konto-ID kopiert',
+      failed: 'Kopieren hat nicht geklappt. Deine Konto-ID:',
     },
     eyebrow: 'Mehr',
     title: 'Alles Weitere',
@@ -63,8 +68,7 @@ const de = {
     },
     private: {
       title: 'Nur für mich',
-      description:
-        'Notizen, Geschenkideen und Gedanken, die ausschließlich für dich bestimmt sind.',
+      description: 'Notizen, Geschenkideen und Listen, die nur du siehst.',
     },
     notifications: {
       title: 'Benachrichtigungen',
@@ -156,6 +160,34 @@ const de = {
     createFirstSpacePending: 'Gemeinsamer Ort wird erstellt …',
   },
   identity: {
+    dividerEmailLink: 'oder mit E-Mail-Link',
+    dividerOr: 'oder',
+    passkeyNoneOnDevice:
+      'Auf diesem Gerät ist kein Passkey für eimir. gespeichert.',
+    googleContinue: 'Weiter mit Google',
+    googleSignUp: 'Mit Google registrieren',
+    providerContinue: 'Weiter mit {{name}}',
+    providerContinueDefault: 'Mit einem anderen Konto anmelden',
+    passkeySignIn: 'Weiter mit Passkey',
+    passkeyLaterHint:
+      'Einen Passkey richtest du nach der Anmeldung in den Einstellungen ein.',
+    providerTermsFirst: 'Setze zuerst das Häkchen, dann geht es weiter.',
+    magicLinkHint: 'Wir schicken dir einen Link, mit dem du dich anmeldest.',
+    oidcOpening: 'Du wirst angemeldet …',
+    oidcNoAccountTitle: 'Zu dieser Anmeldung gibt es noch kein Konto.',
+    oidcNoAccountBody:
+      'Melde dich auf einem anderen Weg an und verknüpfe Google danach in den Einstellungen. Ein neues Konto startest du mit „Gemeinsam starten“ oder mit einer Einladung.',
+    oidcAddressTakenTitle: 'Für diese Adresse gibt es schon ein Konto.',
+    oidcAddressTakenBody:
+      'Melde dich mit dem E-Mail-Link an. In den Einstellungen kannst du Google danach mit deinem Konto verknüpfen.',
+    oidcEmailUnverifiedTitle: 'Deine E-Mail-Adresse ist nicht bestätigt.',
+    oidcEmailUnverifiedBody:
+      'Bestätige die Adresse bei deinem Anbieter oder starte mit dem E-Mail-Link.',
+    oidcExpiredTitle: 'Der Anmeldeversuch ist abgelaufen.',
+    oidcExpiredBody: 'Bitte starte die Anmeldung noch einmal.',
+    oidcFailedTitle: 'Die Anmeldung hat nicht geklappt.',
+    oidcFailedBody:
+      'Bitte versuche es noch einmal oder wähle einen anderen Weg.',
     entryAria: 'Zugang zu eimir.',
     invitationEyebrow: 'Einladung zu eimir.',
     invitationTitle:
@@ -252,6 +284,8 @@ const de = {
     heading: 'Anmelden',
     body: 'Melde dich an und geh zurück zu eurem gemeinsamen Ort.',
     email: 'E-Mail',
+    emailMissing: 'Gib deine E-Mail-Adresse ein.',
+    emailInvalid: 'Diese E-Mail-Adresse ist noch nicht vollständig.',
     password: 'Passwort',
     submit: 'Anmelden',
     pending: 'Anmeldung läuft …',
@@ -301,7 +335,6 @@ const de = {
     featuredKicker: 'Wisst ihr noch?',
     onThisDay_one: 'Heute vor einem Jahr',
     onThisDay_other: 'Heute vor {{count}} Jahren',
-    retrospectiveHeading: 'Rückblicke',
     retrospectiveSubhead: 'Ein Moment aus eurer gemeinsamen Geschichte.',
     retrospectiveOpen: 'Erinnerung öffnen',
     milestonesTitle: 'Meilensteine',
@@ -341,9 +374,9 @@ const de = {
   },
   storyYears: {
     backToMoments: 'Zurück',
-    backToYears: '← Unsere Jahre',
+    backToYears: '← Jahre & Rückblicke',
     eyebrow: 'Jahresarchiv',
-    title: 'Unsere Jahre',
+    title: 'Jahre & Rückblicke',
     intro: 'Eure gemeinsame Geschichte, Jahr für Jahr.',
     listAria: 'Gemeinsame Jahre',
     recapsEntryTitle: 'Eure Rückblicke',
@@ -397,6 +430,8 @@ const de = {
       resume: 'Entwurf fortsetzen',
       startNew: 'Entwurf verwerfen und neu beginnen',
       keepDraft: 'Entwurf behalten und schließen',
+      discardDraftBody:
+        'Dein Entwurf ist auf diesem Gerät gesichert. Behalte ihn für später oder verwirf ihn.',
       draft: {
         memoryOnlyUnavailable:
           'Dein Entwurf bleibt hier geöffnet. Die Sicherung auf diesem Gerät ist gerade nicht verfügbar.',
@@ -474,6 +509,12 @@ const de = {
   header: {
     sharedArea: 'Gemeinsamer Bereich',
     logout: 'Abmelden',
+    logoutDeviceTitle: 'Abmelden?',
+    logoutDeviceBody:
+      'Beim Abmelden wird alles von diesem Handy gelöscht: Fotos, offline gespeicherte Inhalte und Entwürfe, die du noch nicht gespeichert hast. Laufende Uploads werden abgebrochen.',
+    logoutDeviceKept:
+      'In eimir. bleibt alles erhalten. Nach dem nächsten Anmelden lädt die App deine Fotos wieder.',
+    logoutDeviceCancel: 'Abbrechen',
   },
   media: {
     unavailable: 'Foto derzeit nicht verfügbar',

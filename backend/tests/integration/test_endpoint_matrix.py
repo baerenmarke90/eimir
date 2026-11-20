@@ -105,6 +105,11 @@ MILESTONE = {
 }
 COMMENT = {"body": "Matrix Comment"}
 WISH = {"title": "Matrix Wish"}
+WISH_DATE_PROPOSAL_PATH = "/api/v1/spaces/{spaceId}/wishes/{wishId}/date-proposal"
+WISH_DATE_PROPOSAL = {
+    "clientRequestId": str(uuid4()),
+    "plannedStart": (clock.now() + timedelta(days=1)).isoformat(),
+}
 PLAN = {"title": "Matrix Plan", "description": "Text"}
 REMINDER = {
     "title": "Matrix Reminder",
@@ -126,6 +131,7 @@ CHAPTER = {"title": "Matrix Chapter", "description": "Text"}
 COLLECTION = {"title": "Matrix Collection"}
 COLLECTION_ITEM = {"title": "Matrix Collection Item"}
 STORY_VIEW = {"kind": "MEMORY", "itemId": str(uuid4())}
+SHARED_NOTE = {"title": "Matrix Shared Note", "body": "Shared body"}
 PRIVATE_NOTE = {"title": "Matrix Private Note", "body": "Private body"}
 GIFT_IDEA = {"title": "Matrix Gift Idea"}
 PRIVATE_COLLECTION = {"title": "Matrix Private Collection"}
@@ -199,6 +205,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/context-tag-suggestions"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/relationship-passport"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/story-lifeline"),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/story-lifeline/entries",
+        query={"from": "2026-10-05", "to": "2026-10-12"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/recaps"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/recaps/prepare"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/recaps", body={"kind": "YEAR", "year": 2025}),
@@ -238,6 +249,20 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/app-icon"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/wir-design"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/person-colours"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/personal-settings"),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/personal-settings",
+        body={"occasionHolidays": True},
+        if_match=True,
+    ),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/appearance/person-colours",
+        body={"colours": None},
+        if_match=True,
+    ),
     Endpoint(
         "PATCH",
         "/api/v1/spaces/{spaceId}/appearance/wir-design",
@@ -345,6 +370,12 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         fixture_aliases={"selectionId": "memoryId"},
     ),
     Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/authorize",
+        body={"state": "synthetic-state", "code": "synthetic-code"},
+        fixture_aliases={"selectionId": "memoryId"},
+    ),
+    Endpoint(
         "DELETE",
         "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}",
         fixture_aliases={"selectionId": "memoryId"},
@@ -435,6 +466,126 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/date-ideas/images/{imageId}"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/moments/candidates"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/wishes/candidates"),
+    # Herzversteck owns its privacy, photo and unknown-round rules in test_heart_hunt; the
+    # Premium gate answers before an unknown round ID, so no resource_absence here.
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/heart-hunt"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/heart-hunt/rounds",
+        body={
+            "requestId": str(uuid4()),
+            "attachmentId": str(uuid4()),
+            "heart": {"x": 1, "y": 1},
+        },
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/taps",
+        body={"x": 1, "y": 1},
+        fixture_aliases={"roundId": "memoryId"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/kept",
+        body={"memoryId": str(uuid4())},
+        fixture_aliases={"roundId": "memoryId"},
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/picture-ping-pong"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/picture-ping-pong"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/picture-ping-pong/turns",
+        body={"turnsDone": 0, "strokes": [{"colour": "PERSON", "points": [10, 10, 500, 500]}]},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/picture-ping-pong/finish",
+        body={"turnsDone": 1},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/picture-ping-pong/saved",
+        body={"memoryId": "00000000-0000-0000-0000-000000000001"},
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/who-of-us"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/who-of-us"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/who-of-us/answers",
+        body={
+            "gameId": "00000000-0000-0000-0000-000000000001",
+            "questionId": "snack",
+            "partnerId": "00000000-0000-0000-0000-000000000001",
+        },
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/who-of-us/end",
+        body={"gameId": "00000000-0000-0000-0000-000000000001"},
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/wish-detective"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/wish-detective"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/wish-detective/skip",
+        body={"gameId": "00000000-0000-0000-0000-000000000001", "round": 0},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/wish-detective/clues",
+        body={
+            "gameId": "00000000-0000-0000-0000-000000000001",
+            "round": 0,
+            "clues": ["Nacht", "Decke", "Warm"],
+        },
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/wish-detective/guesses",
+        body={"gameId": "00000000-0000-0000-0000-000000000001", "round": 0, "guess": "Meer"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/wish-detective/end",
+        body={"gameId": "00000000-0000-0000-0000-000000000001"},
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/our-moments"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/our-moments"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/our-moments/flips",
+        body={"gameId": "00000000-0000-0000-0000-000000000001", "flipsDone": 0, "position": 0},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/our-moments/end",
+        body={"gameId": "00000000-0000-0000-0000-000000000001"},
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/garden"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds", body={"species": "POPPY"}),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/garden/waterings",
+        body={"plantId": "00000000-0000-0000-0000-000000000001"},
+    ),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/news/seen"),
+    Endpoint("PUT", "/api/v1/spaces/{spaceId}/games/garden/name", body={"name": "Eck"}),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/games/garden/visitors/{animal}/name",
+        body={"name": "Frieda"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/garden/bouquets",
+        body={"plantIds": ["00000000-0000-0000-0000-000000000001"]},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/games/garden/bouquets/{bouquetId}/close",
+        body={"kept": False},
+    ),
     Endpoint(
         "GET",
         "/api/v1/spaces/{spaceId}/experiences/{kind}/questions",
@@ -849,6 +1000,12 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         body={"favoriteWishIds": [], "published": False},
         if_match=True,
     ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/wish-selection/decision",
+        body={"action": "CLEAR"},
+        if_match=True,
+    ),
     Endpoint("DELETE", "/api/v1/spaces/{spaceId}/wish-selection", if_match=True),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/wishes"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/wishes", body=WISH),
@@ -903,6 +1060,33 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "DELETE",
         "/api/v1/spaces/{spaceId}/wishes/{wishId}/reminder",
         resource_absence="WISH_NOT_FOUND",
+    ),
+    Endpoint("GET", WISH_DATE_PROPOSAL_PATH, resource_absence="WISH_NOT_FOUND"),
+    Endpoint(
+        "POST",
+        WISH_DATE_PROPOSAL_PATH,
+        body=WISH_DATE_PROPOSAL,
+        resource_absence="WISH_NOT_FOUND",
+    ),
+    # A proposal ID is a command version. Wish IDs govern resource absence.
+    Endpoint(
+        "POST",
+        f"{WISH_DATE_PROPOSAL_PATH}/{{proposalId}}/counter",
+        body={
+            "clientRequestId": str(uuid4()),
+            "plannedStart": (clock.now() + timedelta(days=2)).isoformat(),
+        },
+        resource_absence="WISH_NOT_FOUND",
+        placeholders=("wishId",),
+    ),
+    *(
+        Endpoint(
+            "POST",
+            f"{WISH_DATE_PROPOSAL_PATH}/{{proposalId}}/{command}",
+            resource_absence="WISH_NOT_FOUND",
+            placeholders=("wishId",),
+        )
+        for command in ("accept", "decline", "withdraw")
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/places"),
     Endpoint(
@@ -1050,6 +1234,36 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/chapters/{chapterId}/milestones/{targetId}",
         resource_absence="CHAPTER_NOT_FOUND",
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/shared-notes"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/shared-notes", body=SHARED_NOTE),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/shared-notes/{sharedNoteId}",
+        resource_absence="SHARED_NOTE_NOT_FOUND",
+        placeholders=("sharedNoteId",),
+    ),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/shared-notes/{sharedNoteId}",
+        body={"body": "Matrix Shared Note updated"},
+        if_match=True,
+        resource_absence="SHARED_NOTE_NOT_FOUND",
+        placeholders=("sharedNoteId",),
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/shared-notes/{sharedNoteId}/presentation",
+        body={"pinned": True},
+        resource_absence="SHARED_NOTE_NOT_FOUND",
+        placeholders=("sharedNoteId",),
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/shared-notes/{sharedNoteId}",
+        if_match=True,
+        resource_absence="SHARED_NOTE_NOT_FOUND",
+        placeholders=("sharedNoteId",),
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/collections"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/collections", body=COLLECTION),
     Endpoint(
@@ -1104,6 +1318,12 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "POST",
         "/api/v1/spaces/{spaceId}/collections/{collectionId}/finish",
         body={"itemIds": []},
+        resource_absence="COLLECTION_NOT_FOUND",
+        placeholders=("collectionId",),
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/collections/{collectionId}/send",
         resource_absence="COLLECTION_NOT_FOUND",
         placeholders=("collectionId",),
     ),
@@ -1246,6 +1466,21 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint(
         "DELETE",
         "/api/v1/spaces/{spaceId}/plans/{planId}/collections/{collectionId}",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/notes",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/notes/{sharedNoteId}",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/notes/{sharedNoteId}",
         resource_absence="PLAN_NOT_FOUND",
     ),
     Endpoint(
@@ -1397,6 +1632,8 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
     ("PUT", "/api/v1/account/device-context"),
     ("GET", "/api/v1/account/language-preference"),
     ("PUT", "/api/v1/account/language-preference"),
+    ("GET", "/api/v1/account/personal-settings"),
+    ("PATCH", "/api/v1/account/personal-settings"),
     ("GET", "/api/v1/account/photo-location-preference"),
     ("PUT", "/api/v1/account/photo-location-preference"),
     ("GET", "/api/v1/notification-preferences"),
@@ -1416,6 +1653,11 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
     # registered from an authenticated session.
     ("POST", "/api/v1/auth/passkeys/registration/start"),
     ("POST", "/api/v1/auth/passkeys/registration/finish"),
+    # The account's own passkeys and linked providers: listed and removed only by
+    # the signed-in owner, and always scoped by the caller's account id.
+    ("GET", "/api/v1/auth/sign-in-methods"),
+    ("DELETE", "/api/v1/auth/passkeys/{passkeyId}"),
+    ("DELETE", "/api/v1/auth/oidc/{connectionId}"),
     # Founding a Space has no Space yet to be scoped by; the founder is always
     # the authenticated Account.
     ("POST", "/api/v1/spaces"),
@@ -1556,6 +1798,7 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
         json=COLLECTION_ITEM,
         headers=headers,
     ).json()
+    shared_note = client.post(f"{base_path}/shared-notes", json=SHARED_NOTE, headers=headers).json()
     private_collection = client.post(
         f"{base_path}/private/collections",
         json=PRIVATE_COLLECTION,
@@ -1577,6 +1820,15 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
     recap_id = str(uuid4())
     callspec = getattr(request.node, "callspec", None)
     endpoint = callspec.params.get("endpoint") if callspec else None
+    proposal_id = str(uuid4())
+    if endpoint and "{proposalId}" in endpoint.template:
+        proposal = client.post(
+            f"{base_path}/wishes/{wish['id']}/date-proposal",
+            json=WISH_DATE_PROPOSAL,
+            headers=headers,
+        )
+        assert proposal.status_code == 200, proposal.text
+        proposal_id = proposal.json()["proposal"]["id"]
     if endpoint and "/wish-selection" in endpoint.template:
         second_wish = client.post(
             f"{base_path}/wishes", json={"title": "Another Matrix Wish"}, headers=headers
@@ -1632,6 +1884,7 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "milestoneId": milestone["id"],
             "commentId": comment["id"],
             "wishId": wish["id"],
+            "proposalId": proposal_id,
             "planId": plan["id"],
             "reminderId": reminder["id"],
             "ruleKey": "important_date_reminder",
@@ -1646,6 +1899,7 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "privateCollectionId": private_collection["id"],
             "privateCollectionItemId": private_collection_item["id"],
             "noteId": private_note["id"],
+            "sharedNoteId": shared_note["id"],
             "giftIdeaId": gift_idea["id"],
             "exportId": str(uuid4()),
             "importId": str(uuid4()),
@@ -1656,6 +1910,11 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "experienceKind": "HAPPINESS",
             # A catalog image ID, not a database row; tenant checks come first.
             "imageId": "category-nature",
+            # No seed exists in the matrix; tenant and entitlement checks come first.
+            "seedId": str(uuid4()),
+            "bouquetId": str(uuid4()),
+            # A closed visitor code, not a database row.
+            "animal": "SNAIL",
             "attachmentId": attachment["attachment"]["id"],
         },
     }

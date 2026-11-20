@@ -42,7 +42,9 @@ INTEGRATION_DATABASE_URL = os.environ.get("EIMIR_TEST_DATABASE_URL", "")
 
 
 @pytest.fixture
-def encryption(monkeypatch: pytest.MonkeyPatch) -> Iterator[EncryptionConfigurator]:
+def encryption(
+    monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> Iterator[EncryptionConfigurator]:
     """Configure application-controlled encryption for one test.
 
     Restores the settings caches afterwards so no test inherits another test's
@@ -50,8 +52,40 @@ def encryption(monkeypatch: pytest.MonkeyPatch) -> Iterator[EncryptionConfigurat
     """
     from tests.support.encryption import reset_encryption_caches
 
+    def carry_accounts(previous, current, first_switch: bool) -> None:  # type: ignore[no-untyped-def]
+        # Accounts exist before most tests choose a mode; see EncryptionConfigurator
+        # for why only the first switch may open them into plaintext.
+        if "session" not in request.fixturenames:
+            return
+        if not first_switch and not current.mode.encrypts_writes:
+            return
+        import json
+
+        from sqlalchemy import text
+
+        from eimir.identity.models import AccountPayload
+
+        session = request.getfixturevalue("session")
+        context = AccountPayload.crypto_context()
+        rows = session.execute(
+            text("SELECT id, payload FROM accounts WHERE payload IS NOT NULL")
+        ).all()
+        for account_id, stored in rows:
+            carried = current.protect(previous.reveal(stored, context=context), context=context)
+            session.execute(
+                text(
+                    "UPDATE accounts SET payload = CAST(:payload AS jsonb), "
+                    "crypto_version = :version WHERE id = :id"
+                ),
+                {
+                    "id": account_id,
+                    "payload": json.dumps(carried),
+                    "version": current.write_crypto_version,
+                },
+            )
+
     reset_encryption_caches()
-    yield EncryptionConfigurator(monkeypatch)
+    yield EncryptionConfigurator(monkeypatch, carry_accounts)
     monkeypatch.undo()
     reset_encryption_caches()
 
@@ -78,6 +112,60 @@ def _database_reachable(url: str) -> bool:
 
 DATABASE_AVAILABLE = _database_reachable(INTEGRATION_DATABASE_URL)
 
+
+@pytest.fixture(autouse=True)
+def _restore_pillow_pixel_limit() -> Iterator[None]:
+    """Keep Pillow's process-wide decompression-bomb limit per test.
+
+    Image processing sets ``Image.MAX_IMAGE_PIXELS`` to the rule's limit; a test
+    with a tiny rule would otherwise leak that limit into later tests, which
+    only shows up when the test order changes (for example in CI shards).
+    """
+    from PIL import Image
+
+    limit = Image.MAX_IMAGE_PIXELS
+    yield
+    Image.MAX_IMAGE_PIXELS = limit
+
+
+def pytest_ignore_collect(collection_path, config):  # type: ignore[no-untyped-def]
+    """Core-only configuration: do not even import the Pro feature test modules."""
+    from tests.support.plugins import PRO_TEST_MODULES, plugins_loaded
+
+    if plugins_loaded():
+        return None
+    relative = collection_path.as_posix().rsplit("/tests/", 1)[-1]
+    return True if relative in PRO_TEST_MODULES else None
+
+
+def pytest_collection_modifyitems(config, items):  # type: ignore[no-untyped-def]
+    """Core-only configuration: skip tests that need the Pro plugin.
+
+    That covers tests marked ``requires_pro`` and endpoint-matrix cases of Pro
+    operations.
+    """
+    from tests.support.plugins import is_pro_operation, plugins_loaded
+
+    if plugins_loaded():
+        return
+    skip = pytest.mark.skip(reason="Needs the Pro plugin; Core-only configuration.")
+    for item in items:
+        if item.get_closest_marker("requires_pro") is not None:
+            item.add_marker(skip)
+            continue
+        params = getattr(getattr(item, "callspec", None), "params", {})
+        candidates = [
+            (getattr(value, "method", None), getattr(value, "template", None))
+            for value in params.values()
+        ]
+        candidates.append((params.get("method"), params.get("path") or params.get("template")))
+        if any(
+            isinstance(method, str) and isinstance(path, str) and is_pro_operation(method, path)
+            for method, path in candidates
+        ):
+            item.add_marker(skip)
+
+
 requires_database = pytest.mark.skipif(
     not DATABASE_AVAILABLE,
     reason=(
@@ -91,53 +179,17 @@ def engine() -> Iterator[Engine]:
     if not DATABASE_AVAILABLE:
         pytest.skip("No database is reachable.")
 
-    # The same list as in alembic/env.py, for the same reason: anything missing
-    # here does not exist during create_all. A later import by the app would
-    # register the model, but only after the tables have been created, making
-    # tests pass or fail accidentally depending on prior imports.
-    from eimir.administration import models as _administration  # noqa: F401
-    from eimir.appearance import models as _appearance  # noqa: F401
-    from eimir.attachments import binding as _binding  # noqa: F401
-    from eimir.attachments import models as _attachments  # noqa: F401
-    from eimir.auth import recent_auth_models as _recent_auth  # noqa: F401
-    from eimir.calendar_sync import models as _calendar_sync  # noqa: F401
-    from eimir.chapters import models as _chapters  # noqa: F401
-    from eimir.collections import models as _collections  # noqa: F401
-    from eimir.comments import models as _comments  # noqa: F401
-    from eimir.context_tags import models as _context_tags  # noqa: F401
-    from eimir.daily_checkins import models as _daily_checkins  # noqa: F401
-    from eimir.dashboard import models as _dashboard  # noqa: F401
+    from importlib import import_module
+
     from eimir.db.base import Base
-    from eimir.demo import models as _demo  # noqa: F401
-    from eimir.engagement import models as _engagement  # noqa: F401
-    from eimir.entitlements import models as _entitlements  # noqa: F401
-    from eimir.gift_ideas import models as _gift_ideas  # noqa: F401
-    from eimir.heart_moments import models as _heart_moments  # noqa: F401
-    from eimir.identity import models as _identity  # noqa: F401
-    from eimir.jobs import models as _jobs  # noqa: F401
-    from eimir.legal import models as _legal  # noqa: F401
-    from eimir.memories import models as _memories  # noqa: F401
-    from eimir.milestones import models as _milestones  # noqa: F401
-    from eimir.once_messages import models as _once_messages  # noqa: F401
-    from eimir.outbox import models as _outbox  # noqa: F401
-    from eimir.people import models as _people  # noqa: F401
-    from eimir.photo_sources import models as _photo_sources  # noqa: F401
-    from eimir.places import models as _places  # noqa: F401
-    from eimir.plans import models as _plans  # noqa: F401
-    from eimir.presence import models as _presence  # noqa: F401
-    from eimir.private_collections import models as _private_collections  # noqa: F401
-    from eimir.private_notes import models as _private_notes  # noqa: F401
-    from eimir.profiles import models as _profiles  # noqa: F401
-    from eimir.quotes import models as _quotes  # noqa: F401
-    from eimir.recaps import models as _recaps  # noqa: F401
-    from eimir.relations import models as _relations  # noqa: F401
-    from eimir.relationship import models as _relationship  # noqa: F401
-    from eimir.reminders import models as _reminders  # noqa: F401
-    from eimir.reminders import runtime_models as _reminder_runtime  # noqa: F401
-    from eimir.story import view_models as _story_views  # noqa: F401
-    from eimir.transfer import models as _transfer  # noqa: F401
-    from eimir.wish_selections import models as _wish_selections  # noqa: F401
-    from eimir.wishes import models as _wishes  # noqa: F401
+    from eimir.db.registry import load_all_models
+    from eimir.pro_plugin import plugin as pro_plugin
+
+    load_all_models()
+    # The migrations create the Pro tables whether or not the plugin is loaded,
+    # so the Core-only configuration needs them too (Decision 0017).
+    for module in pro_plugin.model_modules():
+        import_module(module)
 
     # Test probe for owner/privacy authorization. It deliberately exists only
     # here: alembic/env.py does not know it, so it appears in no migration and
@@ -260,15 +312,16 @@ def make_space_without_daily_context(session: Session, founder):  # type: ignore
     return space
 
 
-def sign_in(session: Session, account) -> str:  # type: ignore[no-untyped-def]
+def sign_in(session: Session, account, platform: str = "") -> str:  # type: ignore[no-untyped-def]
     """Issue a real access token.
 
     Go through the regular service rather than around it; a forged token would
-    skip exactly the path that this helper is meant to exercise.
+    skip exactly the path that this helper is meant to exercise. ``platform``
+    is what the client declared at sign-in (``android`` for the app).
     """
     from eimir.auth.sessions import start_session
 
-    _, tokens = start_session(session, account)
+    _, tokens = start_session(session, account, platform=platform)
     session.flush()
     return tokens.access_token
 

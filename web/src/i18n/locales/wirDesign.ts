@@ -1,16 +1,20 @@
 export default {
-  title: 'Wir-Design',
-  intro: 'So fühlt sich deine Wir-Seite an. Nur deine Ansicht ändert sich.',
-  choices: 'Dein Wir-Design',
+  title: 'App-Design',
+  intro: 'So fühlt sich eimir. für dich an. Nur deine Ansicht ändert sich.',
+  choices: 'Dein App-Design',
   change: 'Design auswählen',
   welcome: 'Unser Platz zu zweit',
   nameJoiner: '&',
+  compact: { own: 'Dein Vibe', partner: '{{name}} heute' },
+  note: { open: 'Herzmoment öffnen' },
   names: {
     connected: 'Verbunden',
     shared_album: 'Seite an Seite',
     warm: 'Geborgen',
     modern: 'Klar & modern',
     classic: 'Klassisch',
+    quiet_together: 'Zu zweit',
+    handwriting: 'Handschrift',
   },
   descriptions: {
     connected:
@@ -22,6 +26,10 @@ export default {
       'Klar und luftig. Eure Namen neben den Porträts, mit ruhigen blauen Akzenten.',
     classic:
       'Vertraut und großzügig. Große Porträts über euren Namen und die bisherige Anordnung.',
+    quiet_together:
+      'Ruhige, gedeckte Farben in der ganzen App. Auf Wir eure Namen groß und euer Moment kompakt.',
+    handwriting:
+      'Warme Papierfarben und weinrote Akzente in der ganzen App. Auf Wir euer neuester Herzmoment wie eine Notiz.',
   },
   standard: 'Standard',
   free: 'Kostenlos',
@@ -37,7 +45,7 @@ export default {
   save: 'Auswahl speichern',
   saving: 'Wird gespeichert …',
   selected: 'Bereits ausgewählt',
-  saved: 'Dein Wir-Design ist gespeichert.',
+  saved: 'Dein App-Design ist gespeichert.',
   close: 'Schließen',
   conflict:
     'Deine Darstellung wurde inzwischen geändert. Lade den aktuellen Stand und bestätige deine Auswahl danach erneut.',

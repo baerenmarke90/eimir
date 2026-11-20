@@ -54,6 +54,13 @@ afterEach(() => {
 });
 
 describe('browser calendar handoff', () => {
+  it('names the personal copy as an addition once the shared calendar has the plan', async () => {
+    render(<PlanCalendarAction plan={plan} also />);
+    expect(
+      await screen.findByRole('link', { name: copy.addAlso }),
+    ).toBeTruthy();
+    expect(screen.queryByRole('link', { name: copy.add })).toBeNull();
+  });
   it('offers a real download and releases its resource on return', async () => {
     const view = render(<PlanCalendarAction plan={plan} />);
     const link = await screen.findByRole('link', { name: copy.add });

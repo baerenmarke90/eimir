@@ -70,6 +70,13 @@ import {
 } from './DiscreetPlan';
 import { EimirIcon } from './EimirIcon';
 import { ExpandableDescription } from './ExpandableDescription';
+import {
+  ItemDeleteSheet,
+  ItemMenuOption,
+  ItemMenuSheet,
+  ItemMenuTrigger,
+  leaveItemMenu,
+} from './ItemActions';
 import { MemoryTagChoices } from './MemoryTagChoices';
 import { MomentMapLink } from './MomentMapLink';
 import { NativeDateInput } from './NativeDateField';
@@ -79,11 +86,11 @@ import {
   ComposerToolRow,
 } from './PageComposer';
 import { PlaceChoicePicker } from './PlaceChoicePicker';
-import { PlanCalendarAction } from './PlanCalendarAction';
-import { PlanCalendarSyncLine } from './PlanCalendarSyncLine';
+import { PlanCalendarSheet } from './PlanCalendarSheet';
 import { PlanCollectionLinks } from './PlanCollectionLinks';
 import { PlanCover } from './PlanCover';
 import { PlanFilesEditor, PlanFilesList } from './PlanFiles';
+import { PlanNoteLinks } from './PlanNoteLinks';
 import {
   PlanningDiscardConfirmation,
   usePlanningEditorLifecycle,
@@ -99,8 +106,7 @@ import { PlanStoryLinks } from './PlanStoryLinks';
 import { PlanWishLink } from './PlanWishLink';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';
-import { ShortTaskSheet } from './ShortTaskSheet';
-import { EditPencilIcon } from './ListEntryActions';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { ComposerHeader } from './StoryFormPageShell';
 import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
@@ -142,7 +148,12 @@ export function PlanProductPage({
   } | null;
   const originKey = taskState?.taskOriginKey;
   const queryClient = useQueryClient();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmReturn, setConfirmReturn] = useState(false);
+  const deleteSheet = useRef<ShortTaskSheetHandle>(null);
+  const returnSheet = useRef<ShortTaskSheetHandle>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editTags, setEditTags] = useState<string[]>([]);
   const [editTitleValue, setEditTitleValue] = useState('');
@@ -163,6 +174,9 @@ export function PlanProductPage({
   );
   const [tagToolHost, setTagToolHost] = useState<HTMLSpanElement | null>(null);
   const [listToolHost, setListToolHost] = useState<HTMLSpanElement | null>(
+    null,
+  );
+  const [noteToolHost, setNoteToolHost] = useState<HTMLSpanElement | null>(
     null,
   );
   const tagEditor = useRef<ContextTagEditorHandle>(null);
@@ -200,7 +214,7 @@ export function PlanProductPage({
   const [selectedPlaceId, setSelectedPlaceId] = useState('');
   const editTitle = useRef<HTMLInputElement>(null);
   const scheduleFields = useRef<PlanScheduleFieldsHandle>(null);
-  const editTrigger = useRef<HTMLButtonElement>(null);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
   const key = authorSummaryQueryKeys.planDetail(spaceId, planId);
   const planWriteKey = ['plan-write', spaceId, planId] as const;
   const otherWritePending =
@@ -221,6 +235,8 @@ export function PlanProductPage({
     Boolean(planQuery.data?.discreet) && !isEditing,
   );
   const revealToggle = useRef<HTMLButtonElement>(null);
+  const scheduleButton = useRef<HTMLButtonElement>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const focusRevealToggle = useRef(false);
   useLayoutEffect(() => {
     if (!focusRevealToggle.current) return;
@@ -307,7 +323,6 @@ export function PlanProductPage({
       files.clear();
       setRemovedFileIds([]);
       setIsEditing(false);
-      setConfirmDelete(false);
       showSaved();
     },
   });
@@ -323,14 +338,13 @@ export function PlanProductPage({
     isDirty: editDirty,
     isPending: writesPending,
     initialFocusRef: editFocus,
-    restoreFocusRef: editTrigger,
+    restoreFocusRef: menuTrigger,
     onEscape: () => Boolean(document.querySelector('dialog[open]')),
     onClose: () => {
       photos.clear();
       files.clear();
       setRemovedFileIds([]);
       setIsEditing(false);
-      setConfirmDelete(false);
     },
   });
   const returnMutation = useMutation({
@@ -344,6 +358,8 @@ export function PlanProductPage({
         }),
       ),
     onSuccess: async () => {
+      // The server discards the plan and reopens its wish.
+      queryClient.removeQueries({ queryKey: key });
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ['m5-s3', 'plans', spaceId],
@@ -353,7 +369,11 @@ export function PlanProductPage({
         }),
         invalidateDashboard(queryClient, spaceId),
       ]);
-      navigate(`${appRoutePath('plan')}#wishes`, { replace: true });
+      const goToWishes = () =>
+        navigate(`${appRoutePath('plan')}#wishes`, { replace: true });
+      if (returnSheet.current)
+        returnSheet.current.closeForNavigation(goToWishes);
+      else goToWishes();
     },
   });
   const deleteMutation = useMutation({
@@ -374,7 +394,11 @@ export function PlanProductPage({
         }),
         invalidateDashboard(queryClient, spaceId),
       ]);
-      navigate(`${appRoutePath('plan')}#plans`, { replace: true });
+      const goToPlans = () =>
+        navigate(`${appRoutePath('plan')}#plans`, { replace: true });
+      if (deleteSheet.current)
+        deleteSheet.current.closeForNavigation(goToPlans);
+      else goToPlans();
     },
   });
 
@@ -470,6 +494,25 @@ export function PlanProductPage({
     });
   }
 
+  function startEdit() {
+    if (!plan || isPlanWritePending()) return;
+    setEditingPlan(plan);
+    setEditTags(plan.tags ?? []);
+    setEditTitleValue(plan.title);
+    setIsEditing(true);
+    setEditDirty(false);
+    photos.load(planPhotos(plan), plan.selectedCoverAttachmentId);
+    setPhotosChanged(false);
+    setRemovedFileIds([]);
+    setAnticipation(plan.anticipationEnabled ?? false);
+    setDiscreetDraft({
+      discreet: plan.discreet ?? false,
+      titleMode: plan.discreetTitleMode ?? 'PREVIEW',
+      previewTitle: plan.previewTitle ?? '',
+    });
+    setSelectedPlaceId(plan.placeId ?? '');
+  }
+
   function submitComplete(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!plan) return;
@@ -480,7 +523,7 @@ export function PlanProductPage({
     completion.complete({ plan, experiencedOn });
   }
 
-  const lifecycleError = completion.error || returnMutation.error;
+  const lifecycleError = completion.error;
   // Discreet (#1790 F3): place, description, media, lists and comments stay
   // out of the DOM until this view is revealed; schedule actions remain.
   const concealed = discreetReveal.concealed;
@@ -493,9 +536,27 @@ export function PlanProductPage({
   const placeName = place?.name ?? null;
   const scheduleLabel = planScheduleLabel(plan);
   const calendar = calendarPresentation(plan, placeName ?? undefined, t);
+  // Only a dated, open Plan has a calendar entry to hand off.
+  const hasCalendarEntry =
+    plan.status !== 'COMPLETED' && Boolean(plan.plannedOn ?? plan.plannedStart);
   const hasSubfacts = Boolean(plan.experiencedOn);
   const showsLifecycle =
     plan.capabilities.canEdit && plan.status !== 'COMPLETED';
+  // Ticking a plan off is the next step once its day has come or when it has
+  // no day. Before that the action waits in the item menu, so a plan for next
+  // month does not ask to be marked as experienced.
+  const plannedDay = plan.plannedStart
+    ? localCalendarDateInput(plan.plannedStart)
+    : plan.plannedOn
+      ? plan.plannedOn.toISOString().slice(0, 10)
+      : null;
+  const completionDue = !plannedDay || plannedDay <= localCalendarDateInput();
+  // Dissolving the plan back into its wish is a rare correction, so it sits in
+  // the item menu behind a confirmation instead of in the edit form.
+  const canReturnToWish =
+    Boolean(plan.sourceWishId) &&
+    plan.capabilities.canEdit &&
+    plan.status !== 'COMPLETED';
   const completionScope = `${spaceId}:${plan.id}`;
   const completionOpen =
     completionTarget === completionScope &&
@@ -562,38 +623,13 @@ export function PlanProductPage({
           }
           title={t('navigation.quickCreatePlan')}
           action={
-            plan.capabilities.canEdit ? (
-              <button
-                type="button"
-                ref={editTrigger}
-                className="tertiary composer-detail-edit"
-                aria-label={t('common.edit')}
-                title={t('common.edit')}
-                disabled={writesPending}
-                onClick={() => {
-                  if (isPlanWritePending()) return;
-                  setEditingPlan(plan);
-                  setEditTags(plan.tags ?? []);
-                  setEditTitleValue(plan.title);
-                  setIsEditing(true);
-                  setEditDirty(false);
-                  photos.load(planPhotos(plan), plan.selectedCoverAttachmentId);
-                  setPhotosChanged(false);
-                  setRemovedFileIds([]);
-                  setAnticipation(plan.anticipationEnabled ?? false);
-                  setDiscreetDraft({
-                    discreet: plan.discreet ?? false,
-                    titleMode: plan.discreetTitleMode ?? 'PREVIEW',
-                    previewTitle: plan.previewTitle ?? '',
-                  });
-                  setSelectedPlaceId(plan.placeId ?? '');
-                }}
-              >
-                <EditPencilIcon className="list-entry-icon" />
-                <span className="story-detail-edit-label">
-                  {t('common.edit')}
-                </span>
-              </button>
+            plan.capabilities.canEdit || plan.capabilities.canDelete ? (
+              <ItemMenuTrigger
+                triggerRef={menuTrigger}
+                label={t('m5s3.plan.menu')}
+                open={menuOpen}
+                onOpen={() => setMenuOpen(true)}
+              />
             ) : undefined
           }
         />
@@ -624,10 +660,23 @@ export function PlanProductPage({
           aria-label={t('m5s3.plan.scheduleFacts')}
         >
           <div className="planen-detail-when-where">
-            <p className="planen-detail-schedule">
-              <EimirIcon name="kalender" />
-              {scheduleLabel ?? t('m5s3.overview.undatedHeading')}
-            </p>
+            {hasCalendarEntry ? (
+              <button
+                ref={scheduleButton}
+                type="button"
+                className="planen-detail-schedule planen-detail-schedule-action"
+                aria-haspopup="dialog"
+                onClick={() => setCalendarOpen(true)}
+              >
+                <EimirIcon name="kalender" />
+                {scheduleLabel}
+              </button>
+            ) : (
+              <p className="planen-detail-schedule">
+                <EimirIcon name="kalender" />
+                {scheduleLabel ?? t('m5s3.overview.undatedHeading')}
+              </p>
+            )}
             {!isEditing && placeName && concealed ? (
               <span className="planen-schedule-place">
                 <EimirIcon name="orte" />
@@ -667,20 +716,25 @@ export function PlanProductPage({
               onRetry={() => void linkedPlaceQuery.refetch()}
             />
           ) : null}
-          {!isEditing && plan.status !== 'COMPLETED' ? (
-            <PlanCalendarAction
+          {hasCalendarEntry ? (
+            <PlanCalendarSheet
+              open={calendarOpen}
+              onClose={() => setCalendarOpen(false)}
+              restoreFocusRef={scheduleButton}
               plan={calendar.plan}
               location={calendar.location}
-            />
-          ) : null}
-          {!isEditing && apiBaseUrl && accessToken && accountId ? (
-            <PlanCalendarSyncLine
-              apiBaseUrl={apiBaseUrl}
-              accessToken={accessToken}
-              accountId={accountId}
-              spaceId={plan.spaceId}
-              planId={plan.id}
-              planVersion={plan.version}
+              sync={
+                apiBaseUrl && accessToken && accountId
+                  ? {
+                      apiBaseUrl,
+                      accessToken,
+                      accountId,
+                      spaceId: plan.spaceId,
+                      planId: plan.id,
+                      planVersion: plan.version,
+                    }
+                  : undefined
+              }
             />
           ) : null}
           {plan.status === 'COMPLETED' ? (
@@ -930,6 +984,30 @@ export function PlanProductPage({
                   : null
               }
             />
+            <PlanNoteLinks
+              apis={apis}
+              spaceId={spaceId}
+              accountId={accountId ?? ''}
+              plan={plan}
+              editing
+              disabled={writesPending || !online}
+              onNavigate={(destination) =>
+                editorLifecycle.requestClose(destination)
+              }
+              renderTrigger={(open) =>
+                noteToolHost
+                  ? createPortal(
+                      <ComposerTool
+                        icon="notes"
+                        label={t('sharedNotes.plan.tool')}
+                        disabled={writesPending}
+                        onClick={open}
+                      />,
+                      noteToolHost,
+                    )
+                  : null
+              }
+            />
             <MemoryTagChoices
               presentation="composer"
               parentType="PLAN"
@@ -1020,61 +1098,6 @@ export function PlanProductPage({
                 />
               ) : null}
             </fieldset>
-
-            {plan.capabilities.canDelete ? (
-              <div style={{ marginTop: 'var(--space-8)' }}>
-                {!confirmDelete ? (
-                  <button
-                    type="button"
-                    className="button-link danger-link"
-                    onClick={() => {
-                      if (!isPlanWritePending()) setConfirmDelete(true);
-                    }}
-                    disabled={writesPending}
-                  >
-                    {t('m5s3.common.delete')}
-                  </button>
-                ) : (
-                  <section
-                    className="planning-danger-zone"
-                    aria-labelledby="plan-delete-heading"
-                  >
-                    <h2 id="plan-delete-heading">
-                      {t('m5s3.common.deleteHeading')}
-                    </h2>
-                    <p>{t('m5s3.plan.deleteConsequence')}</p>
-                    <div className="planning-confirm-row">
-                      <button
-                        type="button"
-                        className="danger"
-                        onClick={() => {
-                          if (!isPlanWritePending())
-                            deleteMutation.mutate(plan);
-                        }}
-                        disabled={writesPending}
-                      >
-                        {deleteMutation.isPending
-                          ? t('m5s3.common.deleting')
-                          : t('m5s3.common.confirmDelete')}
-                      </button>
-                      <button
-                        type="button"
-                        className="tertiary"
-                        onClick={() => setConfirmDelete(false)}
-                      >
-                        {t('common.cancel')}
-                      </button>
-                    </div>
-                    {deleteMutation.error ? (
-                      <ProblemState
-                        error={deleteMutation.error}
-                        onRetry={() => void planQuery.refetch()}
-                      />
-                    ) : null}
-                  </section>
-                )}
-              </div>
-            ) : null}
           </section>
         ) : null}
 
@@ -1116,6 +1139,20 @@ export function PlanProductPage({
               ])}
               apis={apis}
               spaceId={spaceId}
+              plan={plan}
+              disabled={writesPending || !online}
+            />
+            <PlanNoteLinks
+              key={JSON.stringify([
+                'notes',
+                apiBaseUrl,
+                accountId,
+                spaceId,
+                plan.id,
+              ])}
+              apis={apis}
+              spaceId={spaceId}
+              accountId={accountId ?? ''}
               plan={plan}
               disabled={writesPending || !online}
             />
@@ -1181,21 +1218,7 @@ export function PlanProductPage({
           </section>
         ) : null}
 
-        {isEditing && plan.sourceWishId ? (
-          <section className="planning-subsection">
-            <button
-              type="button"
-              className="tertiary"
-              onClick={() => {
-                if (!isPlanWritePending()) returnMutation.mutate(plan);
-              }}
-              disabled={writesPending}
-            >
-              {t('m5s3.plan.returnToWish')}
-            </button>
-          </section>
-        ) : null}
-        {!isEditing && showsLifecycle ? (
+        {!isEditing && showsLifecycle && completionDue ? (
           <section className="planen-completion-action">
             {lifecycleError && !completionOpen ? (
               <ProblemState
@@ -1223,7 +1246,7 @@ export function PlanProductPage({
           onPresenceChange={setCompletionSheetPresent}
           title={t('m5s3.plan.completeDateTitle')}
           className="planen-completion-sheet"
-          restoreFocusRef={completionTrigger}
+          restoreFocusRef={completionDue ? completionTrigger : menuTrigger}
           onClose={() => setCompletionTarget(null)}
           isCloseBlocked={writesPending}
           footer={
@@ -1283,6 +1306,7 @@ export function PlanProductPage({
               onClick={() => setPlaceOpen(true)}
             />
             <span className="composer-tool-slot" ref={setListToolHost} />
+            <span className="composer-tool-slot" ref={setNoteToolHost} />
             <span className="composer-tool-slot" ref={setTagToolHost} />
           </ComposerToolRow>
           <ShortTaskSheet
@@ -1332,6 +1356,93 @@ export function PlanProductPage({
           </ShortTaskSheet>
         </>
       ) : null}
+      <ItemMenuSheet
+        open={menuOpen && !isEditing}
+        title={t('navigation.quickCreatePlan')}
+        restoreFocusRef={menuTrigger}
+        sheetRef={menuSheet}
+        onClose={() => setMenuOpen(false)}
+      >
+        {plan.capabilities.canEdit ? (
+          <ItemMenuOption
+            icon="pen"
+            title={t('common.edit')}
+            disabled={writesPending}
+            onClick={() =>
+              leaveItemMenu(menuSheet, startEdit, () => setMenuOpen(false))
+            }
+          />
+        ) : null}
+        {canReturnToWish ? (
+          <ItemMenuOption
+            icon="wuensche"
+            title={t('m5s3.plan.returnToWish')}
+            disabled={writesPending}
+            onClick={() => {
+              if (isPlanWritePending()) return;
+              setMenuOpen(false);
+              returnMutation.reset();
+              setConfirmReturn(true);
+            }}
+          />
+        ) : null}
+        {showsLifecycle && !completionDue ? (
+          <ItemMenuOption
+            icon="check"
+            title={t('m5s3.plan.complete')}
+            disabled={writesPending}
+            onClick={() => {
+              if (isPlanWritePending()) return;
+              setMenuOpen(false);
+              setCompletionTarget(completionScope);
+            }}
+          />
+        ) : null}
+        {plan.capabilities.canDelete ? (
+          <ItemMenuOption
+            icon="trash"
+            danger
+            title={t('m5s3.common.delete')}
+            disabled={writesPending}
+            onClick={() => {
+              if (isPlanWritePending()) return;
+              setMenuOpen(false);
+              deleteMutation.reset();
+              setConfirmDelete(true);
+            }}
+          />
+        ) : null}
+      </ItemMenuSheet>
+      <ItemDeleteSheet
+        sheetRef={returnSheet}
+        open={confirmReturn && !isEditing}
+        title={t('m5s3.plan.returnToWishConfirmTitle')}
+        body={t('m5s3.plan.returnToWishConfirmBody')}
+        confirmLabel={t('m5s3.plan.returnToWish')}
+        pendingLabel={t('m5s3.plan.returning')}
+        pending={returnMutation.isPending}
+        error={returnMutation.error}
+        restoreFocusRef={menuTrigger}
+        onClose={() => setConfirmReturn(false)}
+        onConfirm={() => {
+          if (!isPlanWritePending()) returnMutation.mutate(plan);
+        }}
+      />
+      <ItemDeleteSheet
+        sheetRef={deleteSheet}
+        open={confirmDelete && !isEditing}
+        title={t('m5s3.common.deleteHeading')}
+        body={t('m5s3.plan.deleteConsequence')}
+        confirmLabel={t('m5s3.common.confirmDelete')}
+        pendingLabel={t('m5s3.common.deleting')}
+        pending={deleteMutation.isPending}
+        error={deleteMutation.error}
+        restoreFocusRef={menuTrigger}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={() => {
+          if (!isPlanWritePending()) deleteMutation.mutate(plan);
+        }}
+      />
     </div>
   );
 }

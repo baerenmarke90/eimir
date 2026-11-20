@@ -19,12 +19,13 @@ from sqlalchemy import Date, and_, case, cast, exists, extract, func, or_, selec
 from sqlalchemy.orm import InstrumentedAttribute, Session
 from sqlalchemy.sql.elements import ColumnElement
 
-from eimir.attachments.binding import attachments_of_memories, cover_of
-from eimir.attachments.models import AttachmentStatus
+from eimir.attachments.binding import BoundAttachment, attachments_of_memories, cover_of
+from eimir.attachments.models import AttachmentStatus, MediaType
 from eimir.authorization import AuthorizationContext, PrivacyClass, readable
 from eimir.chapters.models import Chapter
 from eimir.collections.models import Collection
 from eimir.core import clock
+from eimir.core.errors import ValidationError
 from eimir.engagement import thinking
 from eimir.heart_moments.models import HeartMoment
 from eimir.identity.models import Account
@@ -46,6 +47,11 @@ from eimir.wishes.models import Wish
 
 SECTION_LIMIT = 8
 MAX_RECOGNITION_TEXT = 160
+LIFELINE_ENTRIES_LIMIT = 60
+"""The most entries of one lifeline period returned at once."""
+LIFELINE_ENTRIES_MAX_DAYS = 120
+"""The longest period a lifeline column covers: one quarter plus its edge weeks."""
+STORY_LIFELINE_RANGE_INVALID = "STORY_LIFELINE_RANGE_INVALID"
 KEEPSAKE_SCAN_LIMIT = 50
 RETROSPECTIVE_FALLBACK_MIN_AGE_DAYS = 30
 RETROSPECTIVE_SCAN_LIMIT = 50
@@ -78,6 +84,19 @@ class RelationshipDuration:
     display_mode: DurationDisplayMode
 
 
+# The Today Keepsake rotates through at most this many photos and clips.
+KEEPSAKE_GALLERY_LIMIT = 5
+
+
+@dataclass(frozen=True)
+class DashboardMedia:
+    """One photo or clip the Keepsake may rotate through."""
+
+    attachment_id: UUID
+    media_type: MediaType
+    has_thumbnail: bool
+
+
 @dataclass(frozen=True)
 class DashboardItem:
     type: DashboardItemType
@@ -91,6 +110,8 @@ class DashboardItem:
     preview_attachment_id: UUID | None = None
     preview_is_sensitive: bool = False
     preview_has_thumbnail: bool = False
+    gallery: tuple[DashboardMedia, ...] = ()
+    """Keepsake only: ready, non-sensitive photos and clips, at least two."""
     concealed: bool = False
     """Only the list title may show: a discreet Plan (#1790 F3)."""
 
@@ -203,6 +224,14 @@ class StoryLifeline:
     weeks: list[LifelineWeek]
 
 
+@dataclass(frozen=True)
+class StoryLifelineEntries:
+    """The entries behind one lifeline column, oldest first."""
+
+    total: int
+    items: list[DashboardItem]
+
+
 _LIFELINE_HIGHLIGHT_PREFERENCE: dict[story_service.StoryKind, int] = {
     # Memories are the only Story type with photos, so a week shows one first.
     story_service.StoryKind.MEMORY: 0,
@@ -265,16 +294,63 @@ def read_story_lifeline(
                 memories=sum(row.kind == story_service.StoryKind.MEMORY for row in rows),
                 heart_moments=sum(row.kind == story_service.StoryKind.HEART_MOMENT for row in rows),
                 milestones=sum(row.kind == story_service.StoryKind.MILESTONE for row in rows),
-                highlight=highlights.get(representative.id)
-                or DashboardItem(
-                    type=DashboardItemType(representative.kind.value),
-                    id=representative.id,
-                    occurred_on=representative.effective_date,
-                    created_at=representative.created_at,
-                ),
+                highlight=highlights.get(representative.id) or _lifeline_fallback(representative),
             )
         )
     return StoryLifeline(starts_on=starts_on, today=today, weeks=weeks)
+
+
+def read_story_lifeline_entries(
+    session: Session,
+    authorization: AuthorizationContext,
+    *,
+    starts_on: date,
+    ends_before: date,
+    at: datetime | None = None,
+) -> StoryLifelineEntries:
+    """Return every entry of one lifeline period, oldest first.
+
+    The lifeline only carries one highlight per week; selecting a column
+    reads its entries lazily. The set is exactly the one `read_story_lifeline`
+    counts (relationship-shared, up to the viewer's local today), narrowed to
+    the half-open range ``[starts_on, ends_before)``, so a column's dots and
+    its entries always agree. At most `LIFELINE_ENTRIES_LIMIT` entries are
+    loaded; `total` tells how many the period holds.
+    """
+    if ends_before <= starts_on:
+        raise ValidationError(
+            "The lifeline range must end after it starts.", STORY_LIFELINE_RANGE_INVALID
+        )
+    if (ends_before - starts_on).days > LIFELINE_ENTRIES_MAX_DAYS:
+        raise ValidationError(
+            "The lifeline range is longer than one period.", STORY_LIFELINE_RANGE_INVALID
+        )
+    account = session.get(Account, authorization.account_id)
+    if account is None:
+        raise RuntimeError("Authorized Dashboard account disappeared.")
+    instant = clock.ensure_utc(at if at is not None else clock.now())
+    today = clock.today_in(account.timezone, at=instant)
+    through = min(today, ends_before - timedelta(days=1))
+    if through < starts_on:
+        return StoryLifelineEntries(total=0, items=[])
+    rows = story_service.read_shared_story_rows(
+        session, authorization, through=through, since=starts_on
+    )
+    shown = rows[:LIFELINE_ENTRIES_LIMIT]
+    loaded = _lifeline_highlights(session, authorization, shown)
+    return StoryLifelineEntries(
+        total=len(rows),
+        items=[loaded.get(row.id) or _lifeline_fallback(row) for row in shown],
+    )
+
+
+def _lifeline_fallback(row: story_service.StoryRow) -> DashboardItem:
+    return DashboardItem(
+        type=DashboardItemType(row.kind.value),
+        id=row.id,
+        occurred_on=row.effective_date,
+        created_at=row.created_at,
+    )
 
 
 def _lifeline_highlights(
@@ -718,8 +794,31 @@ def _keepsake(
                 preview_attachment_id=preview_id,
                 preview_is_sensitive=preview_sensitive,
                 preview_has_thumbnail=preview_has_thumbnail,
+                gallery=_keepsake_gallery(galleries.get(memory.id, [])),
             )
     return None
+
+
+def _keepsake_gallery(bound_attachments: list[BoundAttachment]) -> tuple[DashboardMedia, ...]:
+    """The photos and clips the Keepsake may rotate through.
+
+    Only ready, non-sensitive photos and clips qualify: sensitive media never
+    rotates on its own, and audio or documents are not pictures. A single usable
+    item is not a rotation, so the gallery is then empty and the Keepsake keeps
+    showing its one preview.
+    """
+    media = [
+        DashboardMedia(
+            attachment_id=bound.attachment.id,
+            media_type=MediaType(bound.attachment.media_type),
+            has_thumbnail=bound.attachment.has_thumbnail,
+        )
+        for bound in bound_attachments
+        if bound.attachment.status == AttachmentStatus.READY
+        and bound.attachment.media_type in (MediaType.IMAGE.value, MediaType.VIDEO.value)
+        and not bound.attachment.payload.is_sensitive
+    ][:KEEPSAKE_GALLERY_LIMIT]
+    return tuple(media) if len(media) >= 2 else ()
 
 
 def _upcoming(
@@ -811,7 +910,7 @@ def _upcoming(
     birthdays = session.execute(
         readable(RelatedPerson, authorization).where(
             RelatedPerson.privacy_class == PrivacyClass.SPACE_SHARED.value,
-            RelatedPerson.birthday.is_not(None),
+            RelatedPerson.with_birthday(),
             RelatedPerson.show_birthday_on_dashboard.is_(True),
         )
     ).scalars()

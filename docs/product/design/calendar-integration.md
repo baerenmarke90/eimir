@@ -125,8 +125,10 @@ Google appears as the second provider choice of reference panel 3 once the
 operator configured the OAuth client. Choosing it opens Google's consent in
 the same tab (Web, corrected 2026-11-15: the server redirects back to the
 calendar settings with a fixed outcome) or the system browser (Android app)
-through the shared, host-allowlisted opener, where the localized return page
-links back to the calendar settings. Back in eimir., one
+through the shared, host-allowlisted opener. The app registers
+`de.eimir.app://calendar/google`; the server redirects there with the same
+fixed outcome, the app closes the browser and opens the calendar settings with
+the confirmation. Older app builds keep the localized return page. Back in eimir., one
 confirmation block (`calendarSync.google.confirmTitle`) shows the Google
 account address with a primary confirm and a quiet cancel; only then the
 existing calendar-choice sheet opens. This explicit confirmation is a
@@ -155,5 +157,5 @@ Approved direction (composed from the running app, 390 px and 1280 px, Light):
 | Choose another calendar | The existing bottom sheet lists the current connection's calendars and offers "another connection" (CalDAV, another Google account). |
 | More options | Collapsed disclosure: pause/resume, end sync with confirmation, remove the provider access (sponsor only). |
 | Success | A short, dismissing confirmation line instead of a persistent block. |
-| Google return | On the Web the consent runs in the same tab and returns to this page with the confirmation; the Android app keeps the system browser until a native return link exists. |
+| Google return | On the Web the consent runs in the same tab and returns to this page with the confirmation; the Android app closes the system browser through its `de.eimir.app://calendar/google` link and opens this page with the confirmation. |
 | Expanded | Same order, card bounded to the reading width, no full-width buttons. |

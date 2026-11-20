@@ -202,8 +202,16 @@ describe('shared People profiles and focused tasks', () => {
     );
     await screen.findByRole('heading', { name });
   }
-  async function editProfile() {
-    fireEvent.click(screen.getByRole('link', { name: people.edit }));
+  function openMenu(name = 'Lisa') {
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: people.menuLabel.replace('{{name}}', name),
+      }),
+    );
+  }
+  async function editProfile(name = 'Lisa') {
+    openMenu(name);
+    fireEvent.click(await screen.findByRole('button', { name: people.edit }));
     await screen.findByLabelText(people.nameLabel);
   }
   async function create() {
@@ -331,7 +339,7 @@ describe('shared People profiles and focused tasks', () => {
       api.createRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPost.mock
         .calls[0][0].relatedPersonFields,
     ).toMatchObject({ note, relationship: PersonRelationship.DAUGHTER });
-    await editProfile();
+    await editProfile('Emma');
     expect(
       (screen.getByLabelText(people.noteLabel) as HTMLTextAreaElement).value,
     ).toBe(note);
@@ -417,7 +425,7 @@ describe('shared People profiles and focused tasks', () => {
       'Alexandra Maximiliane Example-Surname With An Exceptionally Long Display Name';
     fixture([{ ...person, displayName: name }]);
     await openProfile(name);
-    await editProfile();
+    await editProfile(name);
     expect(
       (screen.getByLabelText(people.nameLabel) as HTMLInputElement).value,
     ).toBe(name);
@@ -454,7 +462,7 @@ describe('shared People profiles and focused tasks', () => {
   it('keeps destructive policy and its second confirmation outside the editor', async () => {
     const { api } = fixture();
     await openProfile();
-    fireEvent.click(screen.getByRole('button', { name: people.moreActions }));
+    openMenu();
     fireEvent.click(
       await screen.findByRole('button', { name: people.lifecycleTitle }),
     );
@@ -493,8 +501,9 @@ describe('shared People profiles and focused tasks', () => {
               relatedPerson('c', 'Charlie'),
             ];
       fixture(rows);
-      await openProfile(rows.find((p) => p.id === removeId)?.displayName);
-      fireEvent.click(screen.getByRole('button', { name: people.moreActions }));
+      const personName = rows.find((p) => p.id === removeId)?.displayName;
+      await openProfile(personName);
+      openMenu(personName);
       fireEvent.click(
         await screen.findByRole('button', { name: people.lifecycleTitle }),
       );

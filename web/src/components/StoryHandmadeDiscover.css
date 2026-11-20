@@ -1,0 +1,589 @@
+/* Momente > Erinnerungen (Discover) in the same scrapbook language as the
+ * Album diary (StoryHandmade.css). Rule of thumb: remembering hangs on the
+ * line, the diary is glued into the album. The time-for-you navigation
+ * deliberately stays as it is. Album view only; Compact keeps the old look.
+ * Tokens only; tone (playful / calm) comes from `data-tone`. */
+
+.story-page-unified .momente-discover-page[data-diary-layout="album"] {
+  --story-paper: var(--color-surface-raised);
+  /* Read outside the warm colour world a calm hero is wrapped in, so the card
+     tint matches the Wir card and the plans/notes cards. */
+  --rediscovery-card-surface: var(--color-surface-subtle);
+  --story-lift: drop-shadow(0 1px 1px var(--color-shadow-card))
+    drop-shadow(0 8px 8px var(--color-shadow-soft));
+  --story-tape-both: color-mix(
+    in srgb,
+    var(--color-discovery) 30%,
+    var(--color-discovery-surface)
+  );
+}
+
+/* ---------- hero: a Polaroid on a clothespin ---------- */
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-hero-highlight {
+  position: relative;
+  margin-block-start: 0;
+  /* The same card as "Erinnert ihr euch?" on Wir (TodayRetrospectiveAlbum.css):
+     the tinted surface of the plans/notes cards, with the Polaroid hanging
+     inside it. The string is clipped to the card, as on Wir. */
+  padding: var(--space-10) var(--space-4) var(--space-5);
+  overflow: hidden;
+  border: var(--border-surface-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-sheet);
+  background: var(--rediscovery-card-surface);
+  box-shadow: var(--shadow-raised);
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-hero-highlight:hover {
+  transform: none;
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-hero-highlight[data-tone="calm"] {
+  padding-block-start: var(--space-5);
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-hero-highlight[data-tone="playful"]::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: calc(var(--space-6) * -1);
+  inset-inline: calc(var(--space-6) * -1);
+  height: calc(var(--space-6) + var(--space-8));
+  border-bottom: 2px solid var(--color-text-muted);
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  pointer-events: none;
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-hero-link,
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-hero-link.has-media {
+  position: relative;
+  display: block;
+  width: min(100%, var(--polaroid-width));
+  margin-inline: auto;
+  padding: var(--space-3) var(--space-3) var(--space-4);
+  border-radius: 3px;
+  background: var(--story-paper);
+  filter: var(--story-lift);
+  transform-origin: 50% 0;
+  /* The rest pose; the swing settles on it and the sway
+     (useKeepsakeSway) moves around it. */
+  --keepsake-rest: -1.4deg;
+  rotate: var(--keepsake-rest);
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-hero-highlight[data-tone="playful"]
+  .momente-hero-link {
+  /* Enter `swing` from the motion catalogue (src/motion/motion.css). The
+     Ambient `sway` after it runs on the layer (useKeepsakeSway): a few
+     cycles, paused while hidden or off screen, then it rests (#2063, M8). */
+  --motion-swing-rest: var(--keepsake-rest);
+  animation: eimir-motion-enter-swing var(--duration-gesture-sequence)
+    var(--easing-standard) backwards;
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-hero-highlight[data-tone="calm"]
+  .momente-hero-link {
+  rotate: -0.3deg;
+}
+/* Clothespin, decorative. */
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-hero-highlight[data-tone="playful"]
+  .momente-hero-link::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--space-4) * -1);
+  inset-inline-start: 50%;
+  width: 0.95rem;
+  height: 2.9rem;
+  margin-inline-start: -0.475rem;
+  border-radius: 4px 4px 3px 3px;
+  background: linear-gradient(
+    90deg,
+    color-mix(
+      in srgb,
+      var(--color-discovery) 55%,
+      var(--color-discovery-surface)
+    ),
+    color-mix(
+        in srgb,
+        var(--color-discovery) 75%,
+        var(--color-discovery-surface)
+      )
+      48%,
+    color-mix(
+      in srgb,
+      var(--color-discovery) 45%,
+      var(--color-discovery-surface)
+    )
+  );
+  box-shadow: 0 3px 6px var(--color-shadow-overlay);
+  pointer-events: none;
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-hero-link.has-media
+  > * {
+  grid-area: auto;
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-hero-media {
+  aspect-ratio: 5 / 4;
+  border-radius: 0;
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-hero-highlight[data-tone="playful"]
+  .momente-hero-media
+  .story-media-preview {
+  /* The photo "develops" once on the paper like instant film: an Enter
+     `fade` from a faint print, opacity only (M6). */
+  --motion-enter-from-opacity: 0.12;
+  animation: eimir-motion-enter-fade var(--duration-gesture-sequence)
+    var(--easing-enter) var(--duration-sequence-beat) backwards;
+}
+/* The text sits on the paper, not on a dark gradient over the photo. */
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .has-media
+  .momente-hero-body,
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-hero-body {
+  padding: var(--space-3) var(--space-2) 0;
+  background: none;
+  color: var(--color-text);
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .has-media
+  .momente-hero-kicker {
+  color: var(--color-text-secondary);
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .has-media
+  .momente-hero-title,
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-hero-title {
+  font: var(--font-content-heading);
+  letter-spacing: var(--tracking-content-heading);
+  color: var(--color-text);
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .has-media
+  .momente-hero-meta {
+  color: var(--color-text-secondary);
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-hero-quote {
+  font: var(--font-composer-lead);
+  font-style: normal;
+  color: var(--color-story-heart-moment);
+}
+
+/* ---------- tapestry: pinboard of small scrapbook pieces ---------- */
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry {
+  row-gap: var(--space-6);
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-item {
+  --discover-tilt: -2deg;
+  --discover-tone-scale: 1;
+  overflow: visible;
+  border: 0;
+  border-radius: 3px;
+  background: var(--story-paper);
+  box-shadow: none;
+  filter: var(--story-lift);
+  rotate: calc(var(--discover-tilt) * var(--discover-tone-scale));
+  transition:
+    translate var(--duration-gesture-moment) var(--easing-enter),
+    rotate var(--duration-gesture-moment) var(--easing-enter),
+    opacity var(--duration-transition) var(--easing-enter),
+    transform var(--duration-context) var(--easing-standard);
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-item:nth-child(4n + 2) {
+  --discover-tilt: 1.8deg;
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-item:nth-child(4n + 3) {
+  --discover-tilt: -1.1deg;
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-item:nth-child(4n) {
+  --discover-tilt: 2.6deg;
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-item[data-tone="calm"] {
+  --discover-tone-scale: 0.2;
+}
+@media (hover: hover) and (pointer: fine) {
+  .story-page-unified
+    .momente-discover-page[data-diary-layout="album"]
+    .momente-tapestry-item:hover {
+    rotate: 0deg;
+    transform: scale(1.03) translateY(calc(var(--space-1) * -1));
+    box-shadow: none;
+  }
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-kind {
+  display: none;
+}
+
+/* Tape strip on playful pieces. */
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-item[data-tone="playful"]::before {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  top: calc(var(--space-2) * -1);
+  inset-inline-start: 50%;
+  width: 4.5rem;
+  height: 1.4rem;
+  margin-inline-start: -2.25rem;
+  rotate: calc(var(--discover-tilt) * -1.4);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-surface-raised) 35%, transparent) 0 5px,
+      transparent 5px 10px
+    ),
+    var(--story-tape-both);
+  clip-path: polygon(
+    0 0,
+    4% 14%,
+    0 28%,
+    4% 42%,
+    0 57%,
+    4% 71%,
+    0 86%,
+    3% 100%,
+    100% 100%,
+    96% 86%,
+    100% 71%,
+    96% 57%,
+    100% 42%,
+    96% 28%,
+    100% 14%,
+    97% 0
+  );
+  pointer-events: none;
+}
+
+/* Photo piece: Polaroid. */
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-media {
+  padding: var(--space-2) var(--space-2) 0;
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-media-frame {
+  border-radius: 0;
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-media
+  .momente-tapestry-body {
+  padding: var(--space-2) var(--space-1) var(--space-3);
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-title {
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--color-text);
+}
+
+/* Text keepsake: lined note, torn at the bottom. */
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-text {
+  padding: var(--space-2) var(--space-2) var(--space-6) 2rem;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 1.4rem,
+      color-mix(in srgb, var(--person-own-accent) 55%, transparent) 1.4rem
+        1.46rem,
+      transparent 1.46rem
+    ),
+    repeating-linear-gradient(
+      transparent 0 calc(1lh - 1px),
+      var(--color-border) calc(1lh - 1px) 1lh
+    )
+    0 var(--space-2) / 100% 100% no-repeat,
+    var(--story-paper);
+  clip-path: polygon(
+    calc(var(--space-5) * -1) calc(var(--space-8) * -1),
+    calc(100% + var(--space-5)) calc(var(--space-8) * -1),
+    calc(100% + var(--space-5)) 95%,
+    96% 100%,
+    91% 95.5%,
+    85% 100%,
+    79% 95%,
+    72% 100%,
+    66% 95.5%,
+    59% 100%,
+    53% 95%,
+    46% 100%,
+    39% 95.5%,
+    32% 100%,
+    25% 95%,
+    18% 100%,
+    11% 95.5%,
+    5% 100%,
+    0 95.5%,
+    calc(var(--space-5) * -1) 95%
+  );
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-text
+  .momente-tapestry-body {
+  padding: 0;
+}
+
+/* Heart Moment: scrap in its emotion colour, pinned. */
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-note {
+  border-radius: 3px 18px 4px 15px / 16px 4px 18px 3px;
+  background: var(--heart-emotion-surface, var(--color-brand-surface));
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-note[data-tone="playful"]::before {
+  top: calc(var(--space-2) * -1);
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-inline-start: -0.55rem;
+  border-radius: 50%;
+  rotate: none;
+  clip-path: none;
+  background: var(--person-own-accent);
+  box-shadow: 0 var(--space-1) var(--space-1) var(--color-shadow-overlay);
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-quote {
+  font: var(--font-story-summary);
+  font-style: normal;
+  color: var(--color-story-heart-moment);
+}
+
+/* Milestone: rubber stamp. */
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-milestone {
+  background: var(--color-background);
+  color: var(--color-text);
+  outline: 3px double var(--color-story-milestone);
+  outline-offset: calc(var(--space-2) * -1);
+  border-radius: var(--radius-medium);
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-milestone[data-tone="playful"]::before {
+  display: none;
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-milestone-icon {
+  background: transparent;
+  color: var(--color-story-milestone);
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-milestone-title,
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-milestone-date {
+  color: currentcolor;
+}
+
+/* Pieces settle onto the board: a short lift and turn instead of a plain fade. */
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-reveal {
+  translate: 0 1.6rem;
+  rotate: calc(var(--discover-tilt) * var(--discover-tone-scale) + 6deg);
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-reveal[data-discover-revealed="true"],
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-reveal:focus-visible {
+  translate: 0 0;
+  rotate: calc(var(--discover-tilt) * var(--discover-tone-scale));
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-item[data-tone="calm"].momente-tapestry-reveal {
+  translate: 0 var(--space-3);
+  rotate: calc(var(--discover-tilt) * var(--discover-tone-scale));
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-item[data-tone="calm"].momente-tapestry-reveal[data-discover-revealed="true"] {
+  translate: 0 0;
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-media-frame
+  .story-media-preview {
+  filter: brightness(2.2) saturate(0) blur(3px);
+  transition: filter var(--duration-gesture-sequence) var(--easing-enter)
+    var(--duration-sequence-beat);
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-reveal[data-discover-revealed="true"]
+  .momente-tapestry-media-frame
+  .story-media-preview {
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-page-unified
+    .momente-discover-page[data-diary-layout="album"]
+    .momente-hero-highlight
+    .momente-hero-link {
+    animation: none;
+  }
+  .story-page-unified
+    .momente-discover-page[data-diary-layout="album"]
+    .momente-tapestry-reveal,
+  .story-page-unified
+    .momente-discover-page[data-diary-layout="album"]
+    .momente-tapestry-item[data-tone="calm"].momente-tapestry-reveal {
+    translate: 0 0;
+    rotate: calc(var(--discover-tilt) * var(--discover-tone-scale));
+    transition: none;
+  }
+  .story-page-unified
+    .momente-discover-page[data-diary-layout="album"]
+    .momente-tapestry-media-frame
+    .story-media-preview,
+  .story-page-unified
+    .momente-discover-page[data-diary-layout="album"]
+    .momente-hero-media
+    .story-media-preview {
+    filter: none;
+    transition: none;
+    animation: none;
+  }
+}
+
+/* The grid reserves rounded row heights; the paper keeps its natural height
+   so the slack stays outside the card instead of becoming blank paper. */
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-item {
+  align-self: start;
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-milestone {
+  align-self: center;
+}
+
+/* Narrow (half-width) Heart Moment scraps: a little less padding and type so a
+   long word is not broken in the middle. Full-width scraps keep the larger size. */
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-note:not([data-discover-wide="true"])
+  .momente-tapestry-body {
+  padding: var(--space-3);
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-note:not([data-discover-wide="true"])
+  .momente-tapestry-quote {
+  font-size: 1.0625rem;
+  overflow-wrap: break-word;
+}
+
+/* ---------- photo frames follow the real photo shape ---------- */
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-media[data-photo-shape="portrait"]
+  .momente-tapestry-media-frame,
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-hero-highlight[data-photo-shape="portrait"]
+  .momente-hero-media {
+  aspect-ratio: 4 / 5;
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-media[data-photo-shape="landscape"]
+  .momente-tapestry-media-frame {
+  aspect-ratio: 4 / 3;
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-media[data-photo-shape="square"]
+  .momente-tapestry-media-frame,
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-hero-highlight[data-photo-shape="square"]
+  .momente-hero-media {
+  aspect-ratio: 1 / 1;
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  :is(.momente-tapestry-media-frame, .momente-hero-media)
+  .story-media-preview {
+  object-position: 50% 30%;
+}
+
+/* Ruling follows the text (see the Tagebuch note): line spacing from `lh`. */
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-text {
+  --note-lh: 1.6rem;
+  line-height: var(--note-lh);
+}
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-tapestry-text
+  :is(.momente-tapestry-title, .momente-tapestry-meta) {
+  line-height: var(--note-lh);
+}
+
+/* Taped corners and tilted paper may reach into the page gutter, never past the
+   screen edge: clipping (not hiding) keeps sticky headings working and the page
+   from scrolling sideways. */
+.story-page-unified .momente-discover-page[data-diary-layout="album"] {
+  overflow-x: clip;
+  overflow-clip-margin: var(--page-gutter);
+}

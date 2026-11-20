@@ -43,6 +43,8 @@
   font-weight: 700;
   box-shadow: 0 0 0 2px var(--color-surface);
   overflow: hidden;
+  /* Keeps the photo layer below from stacking over neighbouring badges. */
+  isolation: isolate;
   user-select: none;
   flex-shrink: 0;
 }
@@ -78,11 +80,37 @@
   opacity: 0.8;
 }
 
+/* The photo fades in over the initials once it has decoded; the initials are
+   hidden only after the fade so no empty circle shows in between. */
 .partner-avatar-img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: inherit;
+  opacity: 0;
+  transition: opacity var(--duration-transition) var(--easing-standard);
+}
+
+/* Already shown in this session, or decoded from the cache: no fade (M5). */
+.partner-avatar-img[data-motion-media="instant"] {
+  transition: none;
+}
+
+.partner-avatar-img.is-loaded {
+  opacity: 1;
+}
+
+.partner-avatar-img.is-loaded + .partner-avatar-initials {
+  visibility: hidden;
+  transition-property: visibility;
+  transition-delay: var(--duration-transition);
+}
+
+.partner-avatar-img[data-motion-media="instant"] + .partner-avatar-initials {
+  transition: none;
 }
 
 /* Sizes */

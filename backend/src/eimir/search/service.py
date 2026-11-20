@@ -21,9 +21,10 @@ ordering, cursors and pagination keep the ``search-v1`` contract.
 
 from __future__ import annotations
 
+import heapq
 import re
 import unicodedata
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from enum import StrEnum
@@ -31,7 +32,7 @@ from functools import cmp_to_key
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import null, select
 from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext, PrivacyClass
@@ -48,6 +49,7 @@ from eimir.plans import discreet
 from eimir.plans.models import Plan
 from eimir.private_collections.models import PrivateCollection, PrivateCollectionItem
 from eimir.private_notes.models import PrivateNote
+from eimir.shared_notes.models import SharedNote
 from eimir.wishes.models import Wish
 
 DEFAULT_LIMIT = 25
@@ -73,6 +75,7 @@ class SearchKind(StrEnum):
     CHAPTER = "CHAPTER"
     COLLECTION = "COLLECTION"
     COLLECTION_ITEM = "COLLECTION_ITEM"
+    SHARED_NOTE = "SHARED_NOTE"
     PRIVATE_NOTE = "PRIVATE_NOTE"
     GIFT_IDEA = "GIFT_IDEA"
     PRIVATE_COLLECTION = "PRIVATE_COLLECTION"
@@ -356,6 +359,17 @@ _SOURCES: dict[SearchKind, tuple[_Source, ...]] = {
             parent=Collection,
         ),
     ),
+    SearchKind.SHARED_NOTE: (
+        _Source(
+            SearchKind.SHARED_NOTE,
+            SearchScope.SHARED,
+            SharedNote,
+            (("title", "A"), ("body", "B")),
+            # A note may have no title: show the start of its text instead.
+            lambda row: row.payload.title or _bounded(row.payload.body.split("\n", 1)[0]),
+            lambda row: _bounded(row.payload.body),
+        ),
+    ),
     SearchKind.PRIVATE_NOTE: (
         _Source(
             SearchKind.PRIVATE_NOTE,
@@ -421,7 +435,7 @@ _SOURCES: dict[SearchKind, tuple[_Source, ...]] = {
 
 def _authorized_rows(
     session: Session, context: AuthorizationContext, source: _Source
-) -> list[tuple[Any, UUID | None]]:
+) -> Iterator[tuple[Any, UUID | None]]:
     """Load the rows this caller may search. Authorization is decided here, in SQL.
 
     Nothing outside this query is ever decrypted, so a row the caller may not
@@ -439,13 +453,14 @@ def _authorized_rows(
         )
         if source.owner_only:
             statement = statement.where(parent.owner_id == context.account_id)
-        return [(row, parent_id) for row, parent_id in session.execute(statement).all()]
-    statement = select(model).where(
-        model.space_id == context.space_id, model.privacy_class == source.privacy.value
-    )
-    if source.owner_only:
-        statement = statement.where(model.owner_id == context.account_id)
-    return [(row, None) for row in session.execute(statement).scalars()]
+    else:
+        statement = select(model, null()).where(
+            model.space_id == context.space_id, model.privacy_class == source.privacy.value
+        )
+        if source.owner_only:
+            statement = statement.where(model.owner_id == context.account_id)
+    with session.execute(statement.execution_options(yield_per=128)) as rows:
+        yield from rows.tuples()
 
 
 def _compare(left: SearchRow, right: SearchRow) -> int:
@@ -568,8 +583,10 @@ def search(
 
     exact_tag = tagged_query(normalized_query)
     groups = () if exact_tag is not None else parse_query(normalized_query)
-    matches: list[SearchRow] = []
-    if groups or exact_tag is not None:
+
+    def ranked_rows() -> Iterator[SearchRow]:
+        if not groups and exact_tag is None:
+            return
         for kind in selected:
             if exact_tag is not None and kind not in _TAGGED_KINDS:
                 continue
@@ -597,24 +614,22 @@ def search(
                         )
                     if rank is None:
                         continue
-                    matches.append(
-                        SearchRow(
-                            kind=source.kind,
-                            id=row.id,
-                            parent_id=parent_id,
-                            scope=source.scope,
-                            title=source.title(row),
-                            excerpt=source.excerpt(row),
-                            occurred_on=source.occurred_on(row),
-                            created_at=row.created_at,
-                            rank_key=rank,
-                            concealed=source.concealed(row),
-                        )
+                    item = SearchRow(
+                        kind=source.kind,
+                        id=row.id,
+                        parent_id=parent_id,
+                        scope=source.scope,
+                        title=source.title(row),
+                        excerpt=source.excerpt(row),
+                        occurred_on=source.occurred_on(row),
+                        created_at=row.created_at,
+                        rank_key=rank,
+                        concealed=source.concealed(row),
                     )
+                    if position is None or _is_after(item, position):
+                        yield item
 
-    matches.sort(key=cmp_to_key(_compare))
-    if position is not None:
-        matches = [item for item in matches if _is_after(item, position)]
+    matches = heapq.nsmallest(limit + 1, ranked_rows(), key=cmp_to_key(_compare))
     has_more = len(matches) > limit
     items = matches[:limit]
     next_cursor = None

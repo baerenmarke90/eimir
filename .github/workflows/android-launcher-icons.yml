@@ -1,6 +1,9 @@
 name: Android launcher icons
 
 on:
+  # Pull requests run this heavy workflow only when ready for review and labelled
+  # ci:full, or from a release/ branch (#2096); otherwise every job is skipped at
+  # no runner cost and the nightly regression on main covers it.
   pull_request:
     paths:
       - '.github/workflows/android-launcher-icons.yml'
@@ -8,6 +11,9 @@ on:
       - 'scripts/prepare_android_video_fixtures.sh'
       - 'backend/tests/fixtures/media/**'
       - 'web/src/client/selectedPhotoLocation.e2e.test.ts'
+      - 'web/capacitor.config.ts'
+      - 'web/public/offline.css'
+      - 'web/public/webview-unsupported.*'
       - 'scripts/test_android_photo_pipeline.sh'
       - 'web/src/client/nativeAppIcon.ts'
       - 'web/src/client/useNativeAppIcon.ts'
@@ -17,17 +23,19 @@ on:
       - 'scripts/test_android_launcher_identity.py'
       - 'docs/design/eimir/1307-premium-app-icons/build-android-icons.py'
       - 'docs/design/eimir/1307-premium-app-icons/source-crops.json'
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: android-launcher-${{ github.ref }}
+  group: android-launcher-${{ github.ref }}${{ github.event.action == 'labeled' && github.event.label.name != 'ci:full' && format('-ignored-label-{0}', github.run_id) || '' }}
   cancel-in-progress: true
 
 jobs:
   launcher:
+    if: github.event_name != 'pull_request' || ((startsWith(github.head_ref, 'release/') || (github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ci:full'))) && (github.event.action != 'labeled' || github.event.label.name == 'ci:full'))
     name: Android launcher API ${{ matrix.api }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -35,32 +43,22 @@ jobs:
       ANDROID_AVD_HOME: /tmp/eimir-launcher-avd
     strategy:
       fail-fast: false
+      # Labelled pull requests verify API 36; the nightly and manual regression
+      # cover the complete API 28 / 36 / 37.1 matrix (#2096). The 16K 37.1 guest
+      # killed instrumentation during its boot-time service burst at 6 GiB; the
+      # 16 GiB host retains room for an 8 GiB guest.
       matrix:
-        include:
-          - api: 28
-            image: android-28
-            tag: google_apis
-            memory: 2048
-          - api: 36
-            image: android-36
-            tag: google_apis
-            memory: 4096
-          - api: '37.1'
-            image: android-37.1
-            tag: google_apis_ps16k
-            # The 16K guest killed instrumentation during its boot-time service
-            # burst at 6 GiB; the 16 GiB host retains room for an 8 GiB guest.
-            memory: 8192
+        include: ${{ fromJSON(github.event_name == 'pull_request' && !startsWith(github.head_ref, 'release/') && '[{"api":36,"image":"android-36","tag":"google_apis","memory":4096}]' || '[{"api":28,"image":"android-28","tag":"google_apis","memory":2048},{"api":36,"image":"android-36","tag":"google_apis","memory":4096},{"api":"37.1","image":"android-37.1","tag":"google_apis_ps16k","memory":8192}]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '24.21.0'
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+          node-version: '26.13.1'
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
           java-version: '21'
-      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
       - name: Validate all Android icon resources and aliases
         run: |
           python3 scripts/test_android_launcher_identity.py
@@ -236,7 +234,7 @@ jobs:
             -e class de.eimir.app.IdentityAppLinksTest,de.eimir.app.LauncherIconsTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee instrumentation.log
-          grep -Eq '^OK \(7 tests\)' instrumentation.log
+          grep -Eq '^OK \(8 tests\)' instrumentation.log
           timeout 180 adb -e shell am instrument -w -r \
             -e class de.eimir.app.UnifiedPushAccountReplacementTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
@@ -288,6 +286,12 @@ jobs:
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee runtime-recovery.log
           grep -Eq '^OK \(5 tests\)' runtime-recovery.log
+          # FLAG_SECURE through the real Web bridge, released and recreated (#683).
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.SecureScreenTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee secure-screen.log
+          grep -Eq '^OK \(1 test\)' secure-screen.log
           # Exercise actual Android notification/PendingIntent and retained bridge
           # handoff with separate routing and privacy/retirement processes.
           # All eight cases remain selected once at their existing assertions
@@ -307,7 +311,7 @@ jobs:
             -e class de.eimir.app.PushPreviewTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee push-preview.log
-          grep -Eq '^OK \(6 tests\)' push-preview.log
+          grep -Eq '^OK \(7 tests\)' push-preview.log
           if [ '${{ matrix.api }}' != '28' ]; then
             adb -e exec-out run-as de.eimir.app.debug cat files/native-photo-picker.png > native-photo-picker.png
             test -s native-photo-picker.png
@@ -346,7 +350,7 @@ jobs:
             EimirPushFixture:I '*:S' > fixture-logcat.log 2>&1 || true
           timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -b crash -d -t 200 \
             > native-crash.log 2>&1 || true
-          for proof in native-media-upload-background.png native-media-upload-background.xml push-contextual-content.png push-contextual-content.xml push-contextual-content-dark-large.png push-contextual-content-dark-large.xml renderer-background-return.png renderer-real-crash.png native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg native-video-picker.png native-video-picker.txt native-video-confirmation.png native-video-confirmation.txt native-video-playback.png native-video-playback.txt native-video-failure.png native-video-failure.txt native-selected-video.mp4; do
+          for proof in native-media-upload-background.png native-media-upload-background.xml push-contextual-content.png push-contextual-content.xml push-contextual-content-dark-large.png push-contextual-content-dark-large.xml renderer-background-return.png renderer-real-crash.png webview-update-notice.png native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg native-video-picker.png native-video-picker.txt native-video-confirmation.png native-video-confirmation.txt native-video-playback.png native-video-playback.txt native-video-failure.png native-video-failure.txt native-selected-video.mp4; do
             # `test` is a shell builtin, not a run-as executable on these images.
             if "$ANDROID_HOME/platform-tools/adb" -e shell \
                 "run-as de.eimir.app.debug sh -c 'test -f files/$proof'"; then
@@ -365,6 +369,9 @@ jobs:
           fi
           if [ '${{ matrix.api }}' != '28' ]; then
             test -s renderer-background-return.png
+          else
+            # Below the WebView floor the update notice replaces the app (#1931).
+            test -s webview-update-notice.png
           fi
       - name: Capture failed instrumentation process diagnostics
         if: failure()
@@ -378,6 +385,8 @@ jobs:
               -exec cp -R {} emulator-crash/ \;
           fi
       - name: Upload native verification results
+        # The PNG/XML captures double as native visual evidence, so green runs
+        # keep them briefly; failures keep full diagnostics for retry triage (#2096).
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -400,6 +409,7 @@ jobs:
             android/native-media-upload-background.xml
             android/photo-file-chooser.log
             android/runtime-recovery.log
+            android/secure-screen.log
             android/renderer-background-return.png
             android/renderer-real-crash.png
             android/notification-open.log
@@ -436,3 +446,4 @@ jobs:
             android/native-selected-video.mp4
             android/external-video-owner.log
           if-no-files-found: ignore
+          retention-days: ${{ job.status == 'success' && 1 || 3 }}

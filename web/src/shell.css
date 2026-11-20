@@ -42,7 +42,11 @@
     --safe-area-inset-top,
     env(safe-area-inset-top, 0px)
   );
+  --shell-topbar-min-height: calc(72px + var(--shell-header-safe-top));
+  --shell-content-top-inset: var(--shell-header-safe-top);
 
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
   background: transparent;
 }
@@ -67,39 +71,6 @@
 
 #root:has(> .demo-instance-banner) .product-shell {
   --shell-header-safe-top: 0px;
-}
-
-/* The Today glow fades with the route handoff instead of popping in or out. */
-.product-shell {
-  position: relative;
-  isolation: isolate;
-}
-
-.product-shell::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: 0 0 auto;
-  height: 24rem;
-  background: radial-gradient(
-    120% 24rem at 30% 0%,
-    var(--color-brand-glow),
-    transparent 70%
-  );
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* The glow belongs to Wir alone. It fades in on arrival but leaves at once,
-   so it never lingers as a tint over the tab that slides in. */
-.product-shell[data-top-surface="today"]::before {
-  opacity: 1;
-  transition: opacity var(--duration-context) var(--easing-standard);
-}
-
-.product-shell[data-top-surface="today"]
-  .today-hero.couple-presence-card::before {
-  content: none;
 }
 
 .product-topbar {
@@ -425,48 +396,17 @@
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
   opacity: 1;
   transform: translateY(0);
-  animation: header-notifications-sheet-enter var(--duration-context)
-    var(--easing-enter);
+  /* Enter `surface` / Exit `surface-exit` (src/motion/motion.css). */
+  --motion-surface-from: 0 100%;
+  --motion-surface-to: 0 100%;
+  animation: eimir-motion-surface-in var(--duration-context) var(--easing-enter);
 }
 
 .header-notifications-portal[data-presence="exiting"]
   .header-notifications-bottom-sheet {
   pointer-events: none;
-  animation: header-notifications-sheet-exit var(--duration-transition)
+  animation: eimir-motion-surface-out var(--duration-transition)
     var(--easing-exit) forwards;
-}
-
-@keyframes header-notifications-sheet-enter {
-  from {
-    opacity: 0;
-    transform: translateY(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes header-notifications-sheet-exit {
-  to {
-    opacity: 0;
-    transform: translateY(100%);
-  }
-}
-
-@keyframes header-notifications-backdrop-enter {
-  from {
-    background-color: transparent;
-  }
-  to {
-    background-color: var(--color-scrim);
-  }
-}
-
-@keyframes header-notifications-backdrop-exit {
-  to {
-    background-color: transparent;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -482,14 +422,14 @@
   inset: 0;
   z-index: 90;
   background-color: var(--color-scrim);
-  animation: header-notifications-backdrop-enter var(--duration-context)
+  animation: eimir-motion-backdrop-in var(--duration-context)
     var(--easing-enter);
 }
 
 .header-notifications-portal[data-presence="exiting"]
   .header-notifications-backdrop {
   pointer-events: none;
-  animation: header-notifications-backdrop-exit var(--duration-transition)
+  animation: eimir-motion-backdrop-out var(--duration-transition)
     var(--easing-exit) forwards;
 }
 
@@ -525,15 +465,44 @@
   display: none;
 }
 
+/* A panel prepared before its first visit (#2063) is laid out like the
+   current page, so a map inside it draws at its real size, but invisibly,
+   behind everything and outside the scrollable page. */
+.product-main > .primary-tab-panel[data-primary-tab-prewarm] {
+  position: fixed;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.product-main > .primary-tab-panel[data-primary-tab-prewarm] > .page {
+  width: calc(100% - 2 * var(--page-gutter));
+  margin-inline: auto;
+}
+
+/* Resolve the shell's width before descendants introduce their own containers. */
+@property --shell-inline-size {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
 .product-main {
   --shell-focus-bottom-clearance: var(--shell-content-bottom-clearance);
+  --shell-inline-size: 100cqi;
+  --shell-main-padding-top: clamp(var(--space-6), 4vw, var(--space-10));
   --primary-tab-peek-offset: 0px;
   --primary-tab-offset: 0px;
 
   width: calc(100% - 2 * var(--page-gutter));
   margin: 0 auto;
-  padding: clamp(var(--space-6), 4vw, var(--space-10)) 0
-    var(--shell-content-bottom-clearance);
+  padding: var(--shell-main-padding-top) 0 var(--shell-content-bottom-clearance);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -597,7 +566,8 @@
 
   .product-main[data-navigation-motion="create"]
     :is(.page-composer-writing, .composer-writing-surface) {
-    animation: eimir-create-entry-rise var(--duration-transition)
+    --motion-enter-rise: var(--space-2);
+    animation: eimir-motion-enter-shift var(--duration-transition)
       var(--easing-standard);
   }
 }
@@ -678,7 +648,6 @@
   height: 1.35rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.9;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -797,7 +766,7 @@
 
 .mobile-bottom-shell .mobile-bottom-nav {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .mobile-bottom-nav .shell-nav-link {
@@ -812,7 +781,9 @@
   padding: var(--space-1) 2px;
   border-radius: var(--radius-large);
   color: var(--color-text);
-  font-size: 0.8rem;
+  /* Five labels share the bar: they shrink with the screen at large text
+     instead of breaking inside a word. */
+  font-size: min(0.8rem, 3.5vw);
   font-weight: 550;
   line-height: 1.15;
   text-align: center;
@@ -1078,6 +1049,10 @@
 }
 
 @media (min-width: 840px) {
+  .product-shell {
+    --shell-content-top-inset: var(--shell-topbar-min-height);
+  }
+
   .shell-nav {
     display: flex;
   }
@@ -1171,28 +1146,14 @@
   color: var(--color-brand-strong);
 }
 
-.app-pull-refresh-indicator.is-refreshing .app-pull-refresh-icon {
-  animation: app-pull-refresh-spin 0.8s linear infinite;
-}
-
 html.app-pull-refresh-enabled,
 html.app-pull-refresh-enabled body {
   overscroll-behavior-y: none;
 }
 
-@keyframes app-pull-refresh-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .app-pull-refresh-indicator {
     transition: none;
-  }
-
-  .app-pull-refresh-indicator.is-refreshing .app-pull-refresh-icon {
-    animation: none;
   }
 }
 

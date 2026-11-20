@@ -111,9 +111,9 @@ def run_security_retention(session: Session, payload: dict[str, Any]) -> None:
     """Prune expired security state and schedule the next run."""
     del payload
 
-    from eimir.once_messages.service import prune_expired
+    from eimir.plugins import lifecycle as plugin_lifecycle
 
-    prune_expired(session)
+    plugin_lifecycle.security_retention(session)
     replay_history = sessions.prune_replay_history(session)
     rate_limits = rate_limit.prune(session)
     oidc_requests = oidc.prune_auth_requests(session)

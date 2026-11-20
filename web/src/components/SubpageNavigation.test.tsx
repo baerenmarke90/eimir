@@ -1,8 +1,11 @@
 // @vitest-environment jsdom
+
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { subpageParentPath } from '../client/routes';
 import taskCopy from '../i18n/locales/taskBoundary';
+import { PageHeader } from './PageHeader';
 import { SubpageNavigation } from './SubpageNavigation';
 import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 
@@ -49,6 +52,27 @@ it('automatically supplies Back for an unregistered future secondary page and a 
   expect(back.querySelector('.sr-only')?.textContent).toBe(taskCopy.back);
   fireEvent.click(back);
   expect(screen.getByRole('heading', { name: 'Parent' })).toBeTruthy();
+});
+
+it.each([
+  '/more/insights',
+  '/more/insights/patterns',
+  '/story/recaps',
+  '/story/recaps/edition',
+  '/story/chapters',
+  '/plan/chapters/chapter',
+])('uses the shared chevron Back on the reading view %s (#2063)', (path) => {
+  render(
+    <MemoryRouter initialEntries={[path]}>
+      <SubpageNavigation>
+        <PageHeader title="Reading view" />
+      </SubpageNavigation>
+    </MemoryRouter>,
+  );
+
+  const back = screen.getByRole('button', { name: taskCopy.back });
+  expect(back.querySelector('.task-back-label')).toBeNull();
+  expect(back.querySelector('svg')).not.toBeNull();
 });
 
 it('places one page-owned guarded action above content and preserves its pending state', () => {
@@ -133,4 +157,98 @@ it.each([
   ['/search', '/more'],
 ])('maps direct entry %s to its canonical parent %s', (path, parent) => {
   expect(subpageParentPath(path)).toBe(parent);
+});
+
+describe('secondary-page header row (#1907 C4)', () => {
+  function renderAt(path: string, page: ReactNode) {
+    return render(
+      <MemoryRouter initialEntries={[path]}>
+        <SubpageNavigation>{page}</SubpageNavigation>
+      </MemoryRouter>,
+    );
+  }
+
+  it('puts the default Back beside the page title instead of a separate row', () => {
+    const { container } = renderAt(
+      '/more/places',
+      <PageHeader eyebrow="More" title="Places" description="Saved places" />,
+    );
+    const row = container.querySelector('.page-heading-title-row');
+    expect(row?.querySelector('.task-back-control')).not.toBeNull();
+    expect(row?.querySelector('h1')?.textContent).toBe('Places');
+    expect(container.querySelectorAll('.task-back-control')).toHaveLength(1);
+    expect(
+      container.querySelector('.subpage-back-slot')?.childElementCount,
+    ).toBe(0);
+    expect(container.querySelector('.eyebrow')).toBeNull();
+  });
+
+  it('moves a page-owned guarded Back into the same row', () => {
+    const close = vi.fn();
+    const { container } = renderAt(
+      '/plan/chapters/new',
+      <PageHeader
+        before={<TaskBackButton onClick={close} />}
+        title="New chapter"
+      />,
+    );
+    const back = container.querySelector(
+      '.page-heading-title-row .task-back-control',
+    );
+    expect(back).not.toBeNull();
+    expect(container.querySelectorAll('.task-back-control')).toHaveLength(1);
+    fireEvent.click(back as Element);
+    expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the shell row for a page without a heading', () => {
+    const { container } = renderAt('/more/places', <p>Loading</p>);
+    expect(
+      container.querySelector('.subpage-back-slot .task-back-control'),
+    ).not.toBeNull();
+  });
+
+  it('hosts Back in the first heading of the page only', () => {
+    const { container } = renderAt(
+      '/more/places',
+      <>
+        <PageHeader title="First" />
+        <PageHeader title="Second" />
+      </>,
+    );
+    const rows = container.querySelectorAll('.page-heading-title-row');
+    expect(rows[0].querySelector('.task-back-control')).not.toBeNull();
+    expect(rows[1].querySelector('.task-back-control')).toBeNull();
+  });
+
+  it('shows one named item with its type label, Back and edit in one row', () => {
+    const { container } = renderAt(
+      '/plan/chapters/chapter-1',
+      <PageHeader
+        itemLabel="Shared chapter"
+        title="Summer by the sea"
+        titleAction={<button type="button">Edit</button>}
+      />,
+    );
+    const row = container.querySelector('.page-heading-item-row');
+    expect(row?.querySelector('.task-back-control')).not.toBeNull();
+    expect(row?.querySelector('.page-heading-item-label')?.textContent).toBe(
+      'Shared chapter',
+    );
+    expect(
+      row?.querySelector('button:not(.task-back-control)')?.textContent,
+    ).toBe('Edit');
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Summer by the sea' }),
+    ).toBeTruthy();
+  });
+
+  it('leaves primary roots and their headings without Back', () => {
+    const { container } = renderAt(
+      '/more',
+      <PageHeader variant="root" title="More" />,
+    );
+    expect(container.querySelector('.task-back-control')).toBeNull();
+    expect(container.querySelector('.page-back-host')).toBeNull();
+  });
 });

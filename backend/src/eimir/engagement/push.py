@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Protocol
 from uuid import UUID
 
-from sqlalchemy import delete, func, or_, select, update
+from sqlalchemy import and_, delete, func, or_, select, update
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -23,8 +25,10 @@ from eimir.engagement import (
     notification_preferences,
     plan_push,
     quiet_hours_preferences,
+    wish_date_notice,
 )
 from eimir.engagement.models import (
+    WISH_DATE_NOTICE_KINDS,
     Notification,
     NotificationKind,
     PushDelivery,
@@ -399,6 +403,8 @@ def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) 
             continue
         if not _target_available(session, notification):
             continue
+        if _note_change_is_redundant(session, notification):
+            continue
         allowed = (
             notification_preferences.digest_push_enabled(
                 session, account_id=notification.recipient_account_id, kind=notification.kind
@@ -458,6 +464,25 @@ def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) 
                     delay=delay,
                     max_attempts=MAX_PUSH_ATTEMPTS,
                 )
+
+
+def _note_change_is_redundant(session: Session, notification: Notification) -> bool:
+    """A change adds nothing while the partner has not yet seen the new note."""
+    if notification.kind != NotificationKind.SHARED_NOTE_CHANGED.value:
+        return False
+    return (
+        session.scalar(
+            select(Notification.id).where(
+                Notification.space_id == notification.space_id,
+                Notification.recipient_account_id == notification.recipient_account_id,
+                Notification.kind == NotificationKind.SHARED_NOTE_CREATED.value,
+                Notification.target_type == notification.target_type,
+                Notification.target_id == notification.target_id,
+                Notification.read_at.is_(None),
+            )
+        )
+        is not None
+    )
 
 
 def _digest_superseded(
@@ -702,6 +727,13 @@ def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
                 PushDelivery.deferred_until.is_not(None),
                 Notification.recipient_account_id == notification.recipient_account_id,
                 Notification.space_id == notification.space_id,
+                or_(
+                    Notification.kind.not_in(tuple(WISH_DATE_NOTICE_KINDS)),
+                    and_(
+                        Notification.expires_at > checked_at,
+                        wish_date_notice.current_predicate(),
+                    ),
+                ),
             )
             .order_by(Notification.created_at.desc(), Notification.id.desc())
             .limit(1)
@@ -746,6 +778,20 @@ def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
             _finish_unavailable(delivery, "GENTLE_SUBMISSION_UNAVAILABLE")
             return
 
+    if notification.kind in WISH_DATE_NOTICE_KINDS:
+        try:
+            with session.begin_nested():
+                locked = wish_date_notice.lock_delivery_target(session, notification)
+        except OperationalError as exc:
+            if getattr(exc.orig, "sqlstate", None) != "55P03":
+                raise
+            # Existing edits can lock the Wish or Plan before an Account FK.
+            # Retry instead of waiting in the opposite order.
+            raise DeferredJobError(clock.now() + timedelta(seconds=2)) from None
+        if not locked or not _target_available(session, notification):
+            _finish_unavailable(delivery, "PUSH_TARGET_UNAVAILABLE")
+            return
+
     delivery.attempts += 1
     submitted = False
     try:
@@ -762,7 +808,7 @@ def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
             remaining = int((clock.ensure_utc(expires_at) - checked_at).total_seconds())
             reference["ttl"] = str(max(0, min(300, remaining)))
         endpoint_value = secret.payload.value if secret is not None else endpoint.endpoint_value
-        from eimir.engagement import fcm_push, push_preview
+        from eimir.engagement import fcm_push, push_preview, unified_push
 
         neutral = notification.kind in push_preview.NEUTRAL_ONLY_KINDS
         if endpoint.provider_key == "fcm":
@@ -797,6 +843,14 @@ def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
             elif adaptive:
                 _finish_unavailable(delivery, "GENTLE_DESTINATION_UNAVAILABLE")
                 return
+        elif isinstance(
+            provider, unified_push.UnifiedPushProvider
+        ) and provider.supports_wish_date_preview(endpoint_value):
+            preview_fields = push_preview.wish_date_web_push(
+                session, notification, accounts[notification.recipient_account_id]
+            )
+            if preview_fields is not None:
+                reference["wishDatePreview"] = json.dumps(preview_fields, ensure_ascii=False)
         submitted = True
         result = provider.send(
             idempotency_key=(

@@ -1,18 +1,22 @@
 import { Link } from 'react-router-dom';
-import { SETTINGS_CATEGORIES } from '../client/settingsNavigation';
 import {
-  appUpdatesAvailable,
   type AppUpdatesAdapter,
+  appUpdatesAvailable,
 } from '../client/appUpdates';
+import type { SettingsCategoryId } from '../client/routes';
+import {
+  SETTINGS_CATEGORIES,
+  SETTINGS_GROUPS,
+} from '../client/settingsNavigation';
 import { useTranslation } from '../i18n';
 import { AppUpdatesSummary } from './AppUpdatesSummary';
-import './SettingsIndex.css';
-
 import { EimirIcon, type EimirIconName } from './EimirIcon';
-import type { SettingsCategoryId } from '../client/routes';
+import { ProMark } from './ProMark';
+import './SettingsIndex.css';
 
 const CATEGORY_ICONS: Record<SettingsCategoryId, EimirIconName> = {
   relationship: 'wir',
+  shared: 'gemeinsam',
   notifications: 'benachrichtigungen',
   today: 'vibe',
   appearance: 'einstellungen',
@@ -24,42 +28,76 @@ const CATEGORY_ICONS: Record<SettingsCategoryId, EimirIconName> = {
   updates: 'einstellungen',
 };
 
+/**
+ * Settings grouped by whose they are (both of you, only me, connections,
+ * data and account). A group is one surface with hairline separators and every
+ * row carries one short line instead of a paragraph.
+ */
 export function SettingsIndex({
+  statuses = {},
   updatesAdapter,
 }: {
+  /** Live one-line statuses by category; a row without one shows its summary. */
+  statuses?: Partial<Record<SettingsCategoryId, string>>;
   updatesAdapter?: AppUpdatesAdapter;
-} = {}) {
+}) {
   const { t } = useTranslation();
+  const showUpdates = Boolean(updatesAdapter) || appUpdatesAvailable();
 
   return (
     <nav
       className="settings-index"
       aria-label={t('profileIdentity.settingsTitle')}
     >
-      <ul className="settings-category-list">
-        {SETTINGS_CATEGORIES.filter(
+      {SETTINGS_GROUPS.map((group) => {
+        const categories = SETTINGS_CATEGORIES.filter(
           (category) =>
-            category.id !== 'updates' ||
-            Boolean(updatesAdapter) ||
-            appUpdatesAvailable(),
-        ).map((category) => (
-          <li key={category.id}>
-            <Link className="settings-category-link" to={category.path}>
-              <span className="more-destination-icon" aria-hidden="true">
-                <EimirIcon name={CATEGORY_ICONS[category.id]} />
-              </span>
-              <span className="settings-category-copy">
-                <strong>{t(category.titleKey)}</strong>
-                {category.id === 'updates' ? (
-                  <AppUpdatesSummary adapter={updatesAdapter} />
-                ) : (
-                  <span>{t(category.descriptionKey)}</span>
-                )}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+            category.group === group.id &&
+            (category.id !== 'updates' || showUpdates),
+        );
+        if (!categories.length) return null;
+        const headingId = `settings-group-${group.id}`;
+        return (
+          <section
+            key={group.id}
+            className="settings-group"
+            aria-labelledby={headingId}
+          >
+            <h2 id={headingId} className="settings-group-title">
+              {t(group.titleKey)}
+            </h2>
+            <ul className="settings-category-list">
+              {categories.map((category) => (
+                <li key={category.id}>
+                  <Link className="settings-category-link" to={category.path}>
+                    <span className="more-destination-icon" aria-hidden="true">
+                      <EimirIcon name={CATEGORY_ICONS[category.id]} />
+                    </span>
+                    <span className="settings-category-copy">
+                      <strong>
+                        {t(category.titleKey)}
+                        {category.proKey ? (
+                          <>
+                            {' '}
+                            <ProMark label={t(category.proKey)} />
+                          </>
+                        ) : null}
+                      </strong>
+                      {category.id === 'updates' ? (
+                        <AppUpdatesSummary adapter={updatesAdapter} />
+                      ) : (
+                        <span>
+                          {statuses[category.id] ?? t(category.summaryKey)}
+                        </span>
+                      )}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
     </nav>
   );
 }

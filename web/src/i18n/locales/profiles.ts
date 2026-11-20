@@ -2,40 +2,16 @@ const profiles = {
   partnerSection: 'Über {{name}}',
   eyebrow: 'Profil',
   title: 'Du und dein Partner',
+  titleWithPartner: 'Du und {{name}}',
   intro:
     'Deine Identität, freigegebenen Vorlieben und das Profil deines Partners – klar getrennt von privaten Notizen.',
   settingsRailAria: 'Konto und Beziehung',
   accountTitle: 'Mein Konto',
   accountName: 'Anzeigename',
   premium: {
-    eyebrow: 'Premium',
     title: 'eimir. Pro',
-    badge: 'Pro',
-    gamesTitle: 'Spiele, Einblicke und persönliche Extras.',
-    gamesBody:
-      'Pro ergänzt eure gemeinsame Welt um Spiele, vertiefende Einblicke, den Spruch des Tages und zusätzliche persönliche Partneraktionen. Eure normalen Erinnerungen, Wünsche, Pläne und „Ich denke an dich“ bleiben davon unabhängig.',
-    action: 'Pro ansehen',
-    detailsTitle: 'Ein Zugang für euch beide',
-    detailsBody:
-      'Ein Pro-Zugang gilt für euren gemeinsamen Bereich und schaltet die enthaltenen Pro-Funktionen für euch beide frei. Eure bestehenden Inhalte und die kostenlosen Beziehungsfunktionen bleiben unabhängig davon erhalten.',
-    features: {
-      experiences: {
-        title: 'Spiele und gemeinsame Erlebnisse',
-        body: 'Spielt zusammen, haltet Glücksmomente fest oder schickt euch eine Zeitreise.',
-      },
-      history: {
-        title: 'Rückblicke, Einblicke und Erinnerungskarte',
-        body: 'Entdeckt eure Geschichte auf der Karte, in Rückblicken und mit vertiefenden Einblicken in eure gemeinsame Zeit.',
-      },
-      personal: {
-        title: 'Zitate und persönliche Gestaltung',
-        body: 'Ein Zitat für euren Tag, zusätzliche App-Symbole und persönliche Extras für eure Wir-Seite.',
-      },
-      photos: {
-        title: 'Verbundene Fotodienste',
-        body: 'Wählt auch Fotos aus eurem verbundenen Immich oder Google Fotos aus. Eure eigenen Gerätefotos bleiben kostenlos nutzbar.',
-      },
-    },
+    rowInactive: 'Funktionen und Preise entdecken',
+    rowActive: 'Pro aktiv · Funktionen entdecken',
   },
   relationshipTitle: 'Eure Beziehung',
   relationshipIntro:
@@ -51,8 +27,6 @@ const profiles = {
   anniversaryInDays_one: 'in 1 Tag',
   anniversaryInDays_other: 'in {{count}} Tagen',
   relationshipSavedSubtle: '✓ Gespeichert',
-  relationshipNotificationHint:
-    'Jahrestag-Erinnerungen in den Benachrichtigungseinstellungen verwalten',
   relationshipCurrent: 'Aktuell: {{duration}}',
   relationshipDurationTitle: 'Eure Zeit',
   relationshipNotAvailable: 'Tragt ein, seit wann ihr zusammen seid.',

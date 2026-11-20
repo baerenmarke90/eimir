@@ -10,14 +10,21 @@ import {
 } from '@testing-library/react';
 import { useState } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import type { GiftIdeaDetail } from '../api/generated/models/GiftIdeaDetail';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { PrivateCollectionDetail } from '../api/generated/models/PrivateCollectionDetail';
 import type { PrivateNoteDetail } from '../api/generated/models/PrivateNoteDetail';
 import { privateAreaQueryKeys } from '../client/privateArea';
 import { ClientProblemError } from '../client/problemDetails';
-import de from '../i18n/locales/de';
 import m5s3 from '../i18n/locales/m5s3';
 import privateArea from '../i18n/locales/privateArea';
 import { GiftIdeaEditPage } from './GiftIdeasPage';
@@ -122,6 +129,14 @@ function Location() {
   return <output data-testid="location">{useLocation().pathname}</output>;
 }
 
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
 beforeEach(() => window.history.replaceState({}, '', '/'));
 afterEach(() => {
   cleanup();
@@ -191,9 +206,17 @@ for (const definition of definitions) {
       render(<Harness />);
       async function submit() {
         if (definition.inline) {
-          fireEvent.click(screen.getByRole('button', { name: de.common.edit }));
+          // The collection starts editing from its item menu.
+          fireEvent.click(
+            screen.getByRole('button', {
+              name: privateArea.menuLabel.replace('{{name}}', base.title),
+            }),
+          );
+          fireEvent.click(
+            await screen.findByRole('button', { name: privateArea.edit }),
+          );
         }
-        fireEvent.change(screen.getByLabelText(definition.label), {
+        fireEvent.change(await screen.findByLabelText(definition.label), {
           target: { value: 'Submitted private title' },
         });
         fireEvent.click(

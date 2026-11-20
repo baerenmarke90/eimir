@@ -13,7 +13,19 @@ import { createPortal } from 'react-dom';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTranslation } from '../i18n';
 import { useModalLifecycle } from './useModalLifecycle';
-import { useOverlayPresence } from './useOverlayPresence';
+import {
+  commitDistance,
+  decideRelease,
+  GESTURE,
+  rubberBand,
+} from '../motion/gesture/follow';
+import { sampleSpring, springDuration } from '../motion/gesture/spring';
+import { VelocityTracker } from '../motion/gesture/velocity';
+import { haptic } from '../motion/haptics';
+import { useOverlayPresence } from '../motion/presence';
+import { prefersReducedMotion } from '../motion/reducedMotion';
+import { run, runningOn } from '../motion/run';
+import { durationMs } from '../motion/tokens';
 import './ShortTaskSheet.css';
 
 export interface ShortTaskSheetHandle {
@@ -24,13 +36,23 @@ export interface ShortTaskSheetHandle {
   requestClose: () => boolean;
 }
 
-const COMPACT_DRAG_DISMISS_MIN_PX = 120;
-const COMPACT_DRAG_DISMISS_MAX_PX = 180;
-const COMPACT_DRAG_DISMISS_RATIO = 0.22;
-const COMPACT_DRAG_REVERSAL_CANCEL_PX = 24;
-const COMPACT_DRAG_SLOP_PX = 4;
-const COMPACT_DRAG_AXIS_DOMINANCE = 1.15;
+// Sheet dismissal is Gesture follow (Motion Contract 4.6): one set of
+// tokenized slop, axis, reversal and commit values (`design/tokens.json`).
+const COMPACT_DRAG_DISMISS_MAX_PX = GESTURE.commit.sheet.maxPx;
+const SETTLE_CHANNEL = 'gesture';
 const EXPANDED_QUERY = '(min-width: 840px)';
+
+/** The sheet's current drag offset, including a running settle. */
+function currentSheetOffset(dialog: HTMLElement): number {
+  const transform = getComputedStyle(dialog).transform;
+  if (
+    !transform ||
+    transform === 'none' ||
+    typeof DOMMatrixReadOnly === 'undefined'
+  )
+    return 0;
+  return new DOMMatrixReadOnly(transform).m42;
+}
 
 // A deliberate downward pull may start anywhere on the sheet surface,
 // including buttons, links and list rows (the release then does not activate
@@ -46,6 +68,8 @@ const GESTURE_OWNER_DRAG_EXCLUSION_SELECTOR = [
   'audio',
   '.place-map-viewport',
   '.photo-crop-stage',
+  // The photo edit area owns pan, pinch, handles, pen and text (#1907 G1).
+  '.photo-edit-area',
   '[draggable="true"]',
   '[contenteditable]:not([contenteditable="false"])',
   '[role="slider"]',
@@ -68,18 +92,21 @@ interface DragGestureHandlers {
     clientX: number,
     clientY: number,
     target: EventTarget | null,
+    time?: number,
   ) => boolean;
   move: (
     input: DragInput,
     identifier: number,
     clientX: number,
     clientY: number,
+    time?: number,
   ) => DragMoveResult;
   finish: (
     input: DragInput,
     identifier: number,
     clientY: number,
     allowDismiss: boolean,
+    time?: number,
   ) => DragFinishResult;
 }
 
@@ -138,9 +165,13 @@ export function ShortTaskSheet({
   const dragStartYRef = useRef(0);
   const dragMaxDistanceRef = useRef(0);
   const dragPeakOffsetRef = useRef(0);
-  const dragSheetHeightRef = useRef(COMPACT_DRAG_DISMISS_MAX_PX);
+  const dragSheetHeightRef = useRef<number>(COMPACT_DRAG_DISMISS_MAX_PX);
   const dragScrollOwnerRef = useRef<HTMLElement | null>(null);
   const dragClaimedRef = useRef(false);
+  /** Where a grabbed settle stood when the finger landed. */
+  const dragBaseRef = useRef(0);
+  const dragBeyondRef = useRef(false);
+  const dragVelocityRef = useRef(new VelocityTracker());
   const suppressNextClickRef = useRef(false);
   const gestureHandlersRef = useRef<DragGestureHandlers | null>(null);
   const closeConfirmed = useEditorHistoryEntry({
@@ -200,18 +231,56 @@ export function ShortTaskSheet({
   function updateDragOffset(offset: number): void {
     dialogRef.current?.style.setProperty(
       '--short-task-sheet-drag-offset',
-      `${Math.max(0, offset)}px`,
+      `${offset}px`,
     );
   }
 
+  /**
+   * The release handoff back to rest: the sheet continues from where the
+   * finger left it, with its release velocity, through the sampled settle
+   * spring (instant with reduced motion). The rest offset is applied first,
+   * so the animation holds nothing afterwards.
+   */
+  function settleToRest(from: number, velocity: number): void {
+    const dialog = dialogRef.current;
+    updateDragOffset(0);
+    if (!dialog || prefersReducedMotion() || Math.abs(from) < 0.5) return;
+    const frames = sampleSpring(from, 0, velocity);
+    run(
+      dialog,
+      frames.map((value) => ({ transform: `translateY(${value}px)` })),
+      {
+        duration: springDuration(frames),
+        easing: 'linear',
+        channel: SETTLE_CHANNEL,
+        willChange: 'transform',
+      },
+    );
+  }
+
+  /**
+   * Grabbing a sheet that is still settling stops it where it is (Motion
+   * Contract 4.6), so the new gesture continues without a jump.
+   */
+  function grabSettle(dialog: HTMLElement): number {
+    const settle = runningOn(dialog, SETTLE_CHANNEL);
+    if (!settle) return 0;
+    const offset = currentSheetOffset(dialog);
+    settle.cancel();
+    updateDragOffset(offset);
+    return offset;
+  }
+
   function compactDragDismissThreshold(): number {
-    const height = dragSheetHeightRef.current;
-    return Math.min(
-      COMPACT_DRAG_DISMISS_MAX_PX,
-      Math.max(
-        COMPACT_DRAG_DISMISS_MIN_PX,
-        height * COMPACT_DRAG_DISMISS_RATIO,
-      ),
+    return commitDistance('sheet', dragSheetHeightRef.current);
+  }
+
+  function dragOffsetFor(deltaY: number): number {
+    // Upward past rest the sheet gives a little instead of stopping hard.
+    return rubberBand(
+      dragBaseRef.current + deltaY,
+      0,
+      Number.POSITIVE_INFINITY,
     );
   }
 
@@ -224,6 +293,9 @@ export function ShortTaskSheet({
     dragPeakOffsetRef.current = 0;
     dragScrollOwnerRef.current = null;
     dragClaimedRef.current = false;
+    dragBaseRef.current = 0;
+    dragBeyondRef.current = false;
+    dragVelocityRef.current.reset();
   }
 
   function elementFromTarget(target: EventTarget | null): Element | null {
@@ -276,6 +348,7 @@ export function ShortTaskSheet({
     clientX: number,
     clientY: number,
     target: EventTarget | null,
+    time = performance.now(),
   ): boolean {
     if (
       !isCompactPresentation() ||
@@ -302,15 +375,22 @@ export function ShortTaskSheet({
     );
     dragScrollOwnerRef.current = armed.scrollOwner;
     dragClaimedRef.current = false;
+    dragBaseRef.current = grabSettle(dialog);
+    dragBeyondRef.current =
+      dragBaseRef.current >= compactDragDismissThreshold();
+    dragPeakOffsetRef.current = Math.max(0, dragBaseRef.current);
+    dragVelocityRef.current.reset();
+    dragVelocityRef.current.add(time, clientY);
     suppressNextClickRef.current = false;
     return true;
   }
 
   function abandonPendingDrag(): void {
-    if (dragClaimedRef.current) {
-      dialogRef.current?.removeAttribute('data-dragging');
-      updateDragOffset(0);
-    }
+    const dialog = dialogRef.current;
+    if (dragClaimedRef.current) dialog?.removeAttribute('data-dragging');
+    const from = dialog ? currentSheetOffset(dialog) : 0;
+    if (dragClaimedRef.current || dragBaseRef.current !== 0)
+      settleToRest(from, 0);
     resetPendingDrag();
   }
 
@@ -319,6 +399,7 @@ export function ShortTaskSheet({
     identifier: number,
     clientX: number,
     clientY: number,
+    time = performance.now(),
   ): DragMoveResult {
     if (
       dragIdentifierRef.current !== identifier ||
@@ -331,17 +412,15 @@ export function ShortTaskSheet({
     const deltaY = clientY - dragStartYRef.current;
     const absoluteX = Math.abs(deltaX);
     const absoluteY = Math.abs(deltaY);
+    const wasClaimed = dragClaimedRef.current;
     if (!dragClaimedRef.current) {
-      if (
-        absoluteX <= COMPACT_DRAG_SLOP_PX &&
-        absoluteY <= COMPACT_DRAG_SLOP_PX
-      ) {
+      if (absoluteX < GESTURE.slopPx && absoluteY < GESTURE.slopPx) {
         return 'pending';
       }
 
       if (
         deltaY <= 0 ||
-        absoluteY < absoluteX * COMPACT_DRAG_AXIS_DOMINANCE ||
+        absoluteY < absoluteX * GESTURE.axisDominance ||
         (dragScrollOwnerRef.current && dragScrollOwnerRef.current.scrollTop > 0)
       ) {
         abandonPendingDrag();
@@ -352,18 +431,18 @@ export function ShortTaskSheet({
       const dialog = dialogRef.current;
       dialog?.setAttribute('data-interacted', 'true');
       dialog?.setAttribute('data-dragging', 'true');
-      updateDragOffset(deltaY);
-      dragPeakOffsetRef.current = Math.max(
-        dragPeakOffsetRef.current,
-        Math.max(0, deltaY),
-      );
-      return 'claimed-now';
     }
 
-    const offset = Math.max(0, deltaY);
+    dragVelocityRef.current.add(time, clientY);
+    const offset = dragOffsetFor(deltaY);
     dragPeakOffsetRef.current = Math.max(dragPeakOffsetRef.current, offset);
     updateDragOffset(offset);
-    return 'claimed';
+    const beyond = offset >= compactDragDismissThreshold();
+    if (beyond !== dragBeyondRef.current) {
+      dragBeyondRef.current = beyond;
+      haptic('threshold');
+    }
+    return wasClaimed ? 'claimed' : 'claimed-now';
   }
 
   function finishDragGesture(
@@ -371,6 +450,7 @@ export function ShortTaskSheet({
     identifier: number,
     clientY: number,
     allowDismiss: boolean,
+    time = performance.now(),
   ): DragFinishResult {
     if (
       dragIdentifierRef.current !== identifier ||
@@ -381,31 +461,67 @@ export function ShortTaskSheet({
 
     const wasDrag = dragClaimedRef.current;
     if (!wasDrag) {
+      // A tap on a grabbed settle lets the sheet return to rest.
+      if (dragBaseRef.current !== 0) settleToRest(dragBaseRef.current, 0);
       resetPendingDrag();
       return { wasDrag: false };
     }
 
     const deltaY = clientY - dragStartYRef.current;
-    const offset = Math.max(0, deltaY);
+    const offset = dragOffsetFor(deltaY);
     dragPeakOffsetRef.current = Math.max(dragPeakOffsetRef.current, offset);
-    const reversedUpward =
-      dragPeakOffsetRef.current - offset >= COMPACT_DRAG_REVERSAL_CANCEL_PX;
+    // Release velocity in px/ms, measured up to the release (#2073 tracker);
+    // above rest the sheet moved slower than the finger.
+    const finger = allowDismiss
+      ? dragVelocityRef.current.velocity({ t: time, p: clientY })
+      : 0;
+    const velocity = offset < 0 ? finger * GESTURE.edgeResistance : finger;
+    const threshold = compactDragDismissThreshold();
     dialogRef.current?.removeAttribute('data-dragging');
     // A claimed pull must not fall through into the control it started on.
     suppressNextClickRef.current = true;
 
     const shouldDismiss =
       allowDismiss &&
-      !reversedUpward &&
-      offset >= compactDragDismissThreshold();
+      decideRelease({
+        travel: offset,
+        peak: dragPeakOffsetRef.current,
+        velocity,
+        threshold,
+      }) === 'commit';
 
     resetPendingDrag();
 
-    if (shouldDismiss && requestClose()) {
-      return { wasDrag: true };
+    if (shouldDismiss) {
+      // The exit continues at the release speed: the remaining travel at the
+      // finger's velocity, within the feedback and transition roles.
+      const dialog = dialogRef.current;
+      if (dialog) {
+        const remaining = Math.max(
+          0,
+          dialog.getBoundingClientRect().height - offset,
+        );
+        const longest = durationMs('transition');
+        const shortest = Math.min(longest, durationMs('feedback'));
+        const exit =
+          velocity > 0
+            ? Math.min(longest, Math.max(shortest, remaining / velocity))
+            : longest;
+        dialog.style.setProperty(
+          '--short-task-sheet-exit-duration',
+          `${Math.round(exit)}ms`,
+        );
+      }
+      if (requestClose()) {
+        haptic('commit');
+        return { wasDrag: true };
+      }
+      dialogRef.current?.style.removeProperty(
+        '--short-task-sheet-exit-duration',
+      );
     }
 
-    updateDragOffset(0);
+    settleToRest(offset, velocity);
     return { wasDrag: true };
   }
 
@@ -446,6 +562,7 @@ export function ShortTaskSheet({
       dialog.removeAttribute('data-interacted');
       dialog.removeAttribute('data-dragging');
       dialog.style.removeProperty('--short-task-sheet-drag-offset');
+      dialog.style.removeProperty('--short-task-sheet-exit-duration');
       dialog.style.removeProperty('--short-task-sheet-drag-progress');
       dialog.style.removeProperty('--short-task-sheet-backdrop-opacity');
       dialog.close();
@@ -470,6 +587,7 @@ export function ShortTaskSheet({
         touch.clientX,
         touch.clientY,
         event.target,
+        event.timeStamp,
       );
     }
 
@@ -487,6 +605,7 @@ export function ShortTaskSheet({
         touch.identifier,
         touch.clientX,
         touch.clientY,
+        event.timeStamp,
       );
       if (
         (result === 'claimed-now' || result === 'claimed') &&
@@ -512,6 +631,7 @@ export function ShortTaskSheet({
         identifier,
         touch?.clientY ?? dragStartYRef.current,
         allowDismiss,
+        event.timeStamp,
       );
       if (result?.wasDrag && event.cancelable) event.preventDefault();
     }
@@ -553,6 +673,7 @@ export function ShortTaskSheet({
     dialog?.removeAttribute('data-interacted');
     dialog?.removeAttribute('data-dragging');
     dialog?.style.setProperty('--short-task-sheet-drag-offset', '0px');
+    dialog?.style.removeProperty('--short-task-sheet-exit-duration');
     dialog?.style.setProperty('--short-task-sheet-drag-progress', '0');
     dialog?.style.setProperty('--short-task-sheet-backdrop-opacity', '1');
   }, [open, present]);
@@ -641,6 +762,7 @@ export function ShortTaskSheet({
           event.clientX,
           event.clientY,
           event.target,
+          event.timeStamp,
         );
       }}
       onPointerMove={(event: ReactPointerEvent<HTMLDialogElement>) => {
@@ -650,6 +772,7 @@ export function ShortTaskSheet({
           event.pointerId,
           event.clientX,
           event.clientY,
+          event.timeStamp,
         );
         if (result !== 'claimed-now' && result !== 'claimed') return;
         event.preventDefault();
@@ -667,6 +790,7 @@ export function ShortTaskSheet({
           event.pointerId,
           event.clientY,
           true,
+          event.timeStamp,
         );
         if (result?.wasDrag) event.preventDefault();
         if (
@@ -683,6 +807,7 @@ export function ShortTaskSheet({
           event.pointerId,
           event.clientY,
           false,
+          event.timeStamp,
         );
         if (result?.wasDrag) event.preventDefault();
         if (
@@ -715,7 +840,7 @@ export function ShortTaskSheet({
         >
           <span className="short-task-sheet-drag-handle" aria-hidden="true" />
           <svg
-            className="short-task-sheet-close-icon"
+            className="short-task-sheet-close-icon inline-icon"
             viewBox="0 0 24 24"
             aria-hidden="true"
             focusable="false"

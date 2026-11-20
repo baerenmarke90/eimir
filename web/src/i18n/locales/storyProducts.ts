@@ -11,6 +11,43 @@ const storyProducts = {
     text: 'Erinnerung',
     milestone: 'Meilenstein',
   },
+  momentsLayout: {
+    title: 'Momente-Design',
+    intro:
+      'Diese Ansicht gilt für Erinnerungen, das Tagebuch, Kapitel und „Wir“ – auf all deinen Geräten.',
+    album: {
+      name: 'Album',
+      hint: 'Wie ein Fotoalbum: große Fotos als Polaroids, dazu kleine Zettel.',
+    },
+    compact: {
+      name: 'Liste',
+      hint: 'Kleine Vorschaubilder auf einer ruhigen Zeitleiste.',
+    },
+  },
+  // Momente > Erinnerungen Fotostory (direction C).
+  discoverStory: {
+    label: 'Eure Fotostory',
+    roleDescription: 'Fotostory',
+    themesLabel: 'Themen der Fotostory',
+    theme: {
+      photos: 'Fotos',
+      heartMoments: 'Herzmomente',
+      milestones: 'Meilensteine',
+      words: 'In Worten',
+    },
+    themeCount_one: '{{count}} Moment',
+    themeCount_other: '{{count}} Momente',
+    themeSeen: 'angesehen',
+    slideRoleDescription: 'Moment',
+    slidePosition: '{{position}} von {{count}}',
+    previous: 'Vorheriger Moment',
+    next: 'Nächster Moment',
+    pause: 'Fotostory anhalten',
+    play: 'Fotostory abspielen',
+    open: 'Öffnen',
+    openName: 'Öffnen: {{kind}} „{{title}}“',
+    from: 'Von {{name}}',
+  },
   storyFilters: {
     title: 'Filter',
     aria: 'Story filtern und sortieren',
@@ -145,6 +182,7 @@ const storyProducts = {
     formAria: 'Herzmoment bearbeiten',
     save: 'Herzmoment speichern',
     saving: 'Wird gespeichert …',
+    menu: 'Menü des Herzmoments',
     edit: 'Bearbeiten',
     editNotAllowedTitle: 'Dieser Herzmoment kann nicht bearbeitet werden.',
     editNotAllowedBody:
@@ -153,7 +191,6 @@ const storyProducts = {
     deleteConfirmTitle: 'Herzmoment wirklich löschen?',
     deleteConfirmBody: 'Der Herzmoment wird dauerhaft entfernt.',
     deleteConfirm: 'Endgültig löschen',
-    deleteCancel: 'Nicht löschen',
     deleting: 'Wird gelöscht …',
     commentsPrivate: 'Private Herzmomente haben keine geteilten Kommentare.',
     savedTitle: 'Herzmoment gespeichert.',
@@ -186,6 +223,7 @@ const storyProducts = {
     formAria: 'Meilenstein bearbeiten',
     save: 'Meilenstein speichern',
     saving: 'Wird gespeichert …',
+    menu: 'Menü des Meilensteins',
     edit: 'Bearbeiten',
     editNotAllowedTitle: 'Dieser Meilenstein kann nicht bearbeitet werden.',
     editNotAllowedBody:
@@ -194,7 +232,6 @@ const storyProducts = {
     deleteConfirmTitle: 'Meilenstein wirklich löschen?',
     deleteConfirmBody: 'Der Meilenstein wird dauerhaft entfernt.',
     deleteConfirm: 'Endgültig löschen',
-    deleteCancel: 'Nicht löschen',
     deleting: 'Wird gelöscht …',
     savedTitle: 'Meilenstein gespeichert.',
   },

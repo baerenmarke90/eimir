@@ -71,6 +71,7 @@ class Subscription:
     notification_reference_version: int = 0
     locale_version: int = 0
     activation_id: str | None = None
+    wish_date_preview_version: int = 0
 
     def as_webpush(self) -> dict[str, object]:
         return {
@@ -192,6 +193,7 @@ class UnifiedPushProvider:
                     "notificationReferenceVersion",
                     "localeVersion",
                     "activationId",
+                    "wishDatePreviewVersion",
                 }
             )
         ):
@@ -201,6 +203,13 @@ class UnifiedPushProvider:
             return None
         version = raw.get("notificationReferenceVersion", 0)
         if type(version) is not int or version not in {0, 1}:
+            return None
+        wish_date_preview_version = raw.get("wishDatePreviewVersion", 0)
+        if (
+            type(wish_date_preview_version) is not int
+            or wish_date_preview_version not in {0, 1}
+            or (wish_date_preview_version == 1 and version != 1)
+        ):
             return None
         activation = raw.get("activationId")
         if self._browser:
@@ -239,7 +248,13 @@ class UnifiedPushProvider:
         except ValueError:
             return None
         return Subscription(
-            endpoint, keys["p256dh"], keys["auth"], version, locale_version, activation
+            endpoint,
+            keys["p256dh"],
+            keys["auth"],
+            version,
+            locale_version,
+            activation,
+            wish_date_preview_version,
         )
 
     def accepts_endpoint(self, endpoint: str) -> bool:
@@ -248,6 +263,10 @@ class UnifiedPushProvider:
     def supports_notification_reference(self, endpoint: str) -> bool:
         registration = self._parse(endpoint)
         return registration is not None and registration.notification_reference_version == 1
+
+    def supports_wish_date_preview(self, endpoint: str) -> bool:
+        registration = self._parse(endpoint)
+        return registration is not None and registration.wish_date_preview_version == 1
 
     def registration_identity(self, endpoint: str) -> str:
         registration = self._parse(endpoint)
@@ -263,9 +282,9 @@ class UnifiedPushProvider:
         notification_reference: dict[str, str],
         generic_presentation_key: str,
     ) -> push.PushSendResult:
-        wake: dict[str, str] = {"type": "wake"}
-        # The encrypted hint contains only a canonical reference, never content,
-        # sender identity, event category or an arbitrary deep-link destination.
+        wake: dict[str, object] = {"type": "wake"}
+        # Wakes contain only a reference, with one negotiated, encrypted Wish
+        # date exception. No arbitrary routes or ordinary event previews.
         registration = self._parse(endpoint)
         if registration is None:
             raise push.PushProviderError("PUSH_SUBSCRIPTION_INVALID", retryable=False)
@@ -280,6 +299,30 @@ class UnifiedPushProvider:
             wake["activationId"] = registration.activation_id
         if generic_presentation_key != push.GENERIC_PRESENTATION_KEY:
             raise push.PushProviderError("PUSH_PRESENTATION_BLOCKED", retryable=False)
+        encoded = notification_reference.get("wishDatePreview")
+        if registration.wish_date_preview_version == 1 and encoded and "notificationId" in wake:
+            from eimir.engagement.models import WISH_DATE_NOTICE_KINDS
+
+            if (
+                notification_reference.get("kind") not in WISH_DATE_NOTICE_KINDS
+                or len(encoded) > 900
+            ):
+                raise push.PushProviderError("PUSH_PREVIEW_INVALID", retryable=False)
+            try:
+                preview = json.loads(encoded)
+            except ValueError:
+                raise push.PushProviderError("PUSH_PREVIEW_INVALID", retryable=False) from None
+            if (
+                not isinstance(preview, dict)
+                or set(preview) != {"kind", "headline", "title", "appointmentStart"}
+                or not all(isinstance(value, str) and value for value in preview.values())
+                or preview["kind"] != notification_reference["kind"]
+                or len(preview["headline"]) > 165
+                or len(preview["title"]) > 140
+                or len(preview["appointmentStart"]) > 48
+            ):
+                raise push.PushProviderError("PUSH_PREVIEW_INVALID", retryable=False)
+            wake["wishDatePreview"] = preview
         topic = base64.urlsafe_b64encode(hashlib.sha256(idempotency_key.encode()).digest())[
             :32
         ].decode("ascii")

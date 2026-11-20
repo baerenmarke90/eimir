@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import contextTags from '../../src/i18n/locales/contextTags';
@@ -123,16 +123,20 @@ async function setup(page: Page, premium = false) {
 }
 
 async function tagGeometry(page: Page) {
-  if (!(await page.getByLabel(contextTags.newLabel).isVisible())) {
-    const tool = page
-      .locator('.composer-tool-row button')
-      .filter({ has: page.locator('.eimir-icon-tag') });
-    if (await tool.count()) await expectLabeledComposerTool(tool, 'tag');
+  const inputField = page.getByLabel(contextTags.newLabel);
+  const tool = page
+    .locator('.composer-tool-row button')
+    .filter({ has: page.locator('.eimir-icon-tag') });
+  const disclosure = page.getByRole('button', {
+    name: contextTags.add,
+    exact: true,
+  });
+  await expect(
+    inputField.or(tool).or(disclosure).filter({ visible: true }).first(),
+  ).toBeVisible();
+  if (!(await inputField.isVisible())) {
+    if (await tool.isVisible()) await expectLabeledComposerTool(tool, 'tag');
     else {
-      const disclosure = page.getByRole('button', {
-        name: contextTags.add,
-        exact: true,
-      });
       await expectLabeledAddAction(disclosure, 'tag');
       await expectReadableActionLabel(disclosure);
     }

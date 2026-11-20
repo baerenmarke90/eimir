@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs';
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
@@ -9,6 +8,7 @@ import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import fixtureCopy from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
 import {
   expectInlineDraftActions,
@@ -22,6 +22,7 @@ import {
   installNativeAppLifecycle,
   nativeAppState,
 } from '../support/nativeAppLifecycle';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 
@@ -552,6 +553,7 @@ async function installApiMocks(
       return;
     }
 
+    if (await fulfillNoOccasionSources(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
@@ -955,7 +957,7 @@ for (const state of [
       localStorage.setItem('eimir.theme', theme);
       document.addEventListener('animationstart', (event) => {
         if (
-          event.animationName === 'eimir-affectionate-pulse' &&
+          event.animationName === 'eimir-motion-feedback-affection' &&
           event.target instanceof Element &&
           event.target.closest('.memory-photo-reactions')
         ) {
@@ -1193,18 +1195,16 @@ async function geometry(page: Page) {
     const frame = document.querySelector<HTMLElement>(
       '.media-gallery-carousel-viewport',
     );
-    const provenance = document.querySelector<HTMLElement>(
-      '.memory-provenance-footer',
-    );
-    if (!frame || !provenance) {
+    const belowGallery = document.querySelector<HTMLElement>('.comments-panel');
+    if (!frame || !belowGallery) {
       throw new Error('Memory carousel geometry did not render.');
     }
     const frameRect = frame.getBoundingClientRect();
-    const provenanceRect = provenance.getBoundingClientRect();
+    const belowGalleryRect = belowGallery.getBoundingClientRect();
     return {
       scrollY: window.scrollY,
       frameHeight: frameRect.height,
-      provenanceDocumentY: provenanceRect.top + window.scrollY,
+      belowGalleryDocumentY: belowGalleryRect.top + window.scrollY,
     };
   });
 }
@@ -1218,7 +1218,7 @@ function expectStableGeometry(
     1,
   );
   expect(
-    Math.abs(after.provenanceDocumentY - before.provenanceDocumentY),
+    Math.abs(after.belowGalleryDocumentY - before.belowGalleryDocumentY),
   ).toBeLessThanOrEqual(1);
 }
 
@@ -2112,12 +2112,13 @@ test('Memory carousel controls step aside while swiping and return after a rest'
 
   const viewport = page.locator('.media-gallery-carousel-viewport');
   const counter = page.locator('.media-gallery-carousel-counter');
-  await expect(counter).toHaveCSS('opacity', '1');
   const box = await viewport.boundingBox();
   if (!box) throw new Error('The carousel must be measurable');
+  // Pointer movement wakes controls that may already have faded out.
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(counter).toHaveCSS('opacity', '1');
   // A horizontal gesture on the photos, then the track scrolls. The scroll is
   // dispatched directly so the check does not depend on real layout widths.
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.wheel(160, 0);
   await page
     .locator('.media-gallery-carousel-track')
@@ -2125,5 +2126,35 @@ test('Memory carousel controls step aside while swiping and return after a rest'
   await expect(viewport).toHaveClass(/is-browsing/);
   await expect(counter).toHaveCSS('opacity', '0');
   await expect(viewport).not.toHaveClass(/is-browsing/, { timeout: 5_000 });
+  await expect(counter).toHaveCSS('opacity', '1');
+});
+
+test('Memory carousel controls fade out after a quiet moment and return on pointer movement', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await installApiMocks(page);
+  await page.goto('/today');
+  await signIn(page);
+  await openMemory(page);
+  await positionGalleryForReading(page);
+
+  const viewport = page.locator('.media-gallery-carousel-viewport');
+  const counter = page.locator('.media-gallery-carousel-counter');
+  const box = await viewport.boundingBox();
+  if (!box) throw new Error('The carousel must be measurable');
+  // Keep the pointer away from the photo so only time passes.
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height + 120);
+  await expect(viewport).toHaveClass(/is-quiet/, { timeout: 6_000 });
+  await expect(counter).toHaveCSS('opacity', '0');
+  // Faded controls still take a tap; they are not removed from the page.
+  // (The counter itself is never interactive, so the arrow is checked.)
+  await expect(page.locator('.media-gallery-carousel-next')).toHaveCSS(
+    'pointer-events',
+    'auto',
+  );
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(viewport).not.toHaveClass(/is-quiet/);
   await expect(counter).toHaveCSS('opacity', '1');
 });

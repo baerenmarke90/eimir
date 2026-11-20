@@ -1,0 +1,51 @@
+/*
+ * Small finds in the shared garden (#1907 H3 follow-up). A new find lands
+ * softly where a visitor left it and glints once; with reduced motion it is
+ * simply there for a moment. The book lists finds with the herbarium layout.
+ */
+
+.garden-keepsake-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  overflow: visible;
+}
+
+/* The line about a new find, below the visitors' status line. */
+.garden-keepsake-note {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.garden-keepsakes {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.garden-keepsakes .garden-hint {
+  margin: 0;
+}
+
+.garden-scene .garden-keepsake-land {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: eimir-motion-garden-keepsake-land var(--duration-gesture-moment)
+    var(--garden-spring) both;
+}
+
+.garden-scene .garden-keepsake-glint {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  opacity: 0;
+  animation: eimir-motion-garden-keepsake-glint var(--duration-gesture-sequence)
+    var(--easing-standard) both;
+  animation-delay: var(--garden-delay);
+}
+
+/* With reduced motion the page stops every animation; the glints stay hidden. */
+@media (prefers-reduced-motion: reduce) {
+  .garden-scene .garden-keepsake-glint {
+    display: none;
+  }
+}

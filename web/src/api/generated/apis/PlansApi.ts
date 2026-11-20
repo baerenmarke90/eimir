@@ -69,6 +69,11 @@ import {
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
 import {
+    type SharedNoteDetail,
+    SharedNoteDetailFromJSON,
+    SharedNoteDetailToJSON,
+} from '../models/SharedNoteDetail';
+import {
     type StoryPage,
     StoryPageFromJSON,
     StoryPageToJSON,
@@ -121,6 +126,12 @@ export interface LinkPlanCollectionRequest {
     spaceId: string;
 }
 
+export interface LinkPlanNoteRequest {
+    planId: string;
+    sharedNoteId: string;
+    spaceId: string;
+}
+
 export interface LinkWishToPlanRequest {
     planId: string;
     spaceId: string;
@@ -129,6 +140,11 @@ export interface LinkWishToPlanRequest {
 }
 
 export interface ListPlanCollectionsRequest {
+    planId: string;
+    spaceId: string;
+}
+
+export interface ListPlanNotesRequest {
     planId: string;
     spaceId: string;
 }
@@ -164,6 +180,12 @@ export interface SchedulePlanRequest {
 export interface UnlinkPlanCollectionRequest {
     planId: string;
     collectionId: string;
+    spaceId: string;
+}
+
+export interface UnlinkPlanNoteRequest {
+    planId: string;
+    sharedNoteId: string;
     spaceId: string;
 }
 
@@ -569,6 +591,66 @@ export class PlansApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for linkPlanNote without sending the request
+     */
+    async linkPlanNoteRequestOpts(requestParameters: LinkPlanNoteRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['planId'] == null) {
+            throw new runtime.RequiredError(
+                'planId',
+                'Required parameter "planId" was null or undefined when calling linkPlanNote().'
+            );
+        }
+
+        if (requestParameters['sharedNoteId'] == null) {
+            throw new runtime.RequiredError(
+                'sharedNoteId',
+                'Required parameter "sharedNoteId" was null or undefined when calling linkPlanNote().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling linkPlanNote().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/plans/{planId}/notes/{sharedNoteId}`;
+        urlPath = urlPath.replace('{planId}', encodeURIComponent(String(requestParameters['planId'])));
+        urlPath = urlPath.replace('{sharedNoteId}', encodeURIComponent(String(requestParameters['sharedNoteId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Link Plan Note
+     */
+    async linkPlanNoteRaw(requestParameters: LinkPlanNoteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.linkPlanNoteRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Link Plan Note
+     */
+    async linkPlanNote(requestParameters: LinkPlanNoteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.linkPlanNoteRaw(requestParameters, initOverrides);
+    }
+
+    /**
      * Creates request options for linkWishToPlan without sending the request
      */
     async linkWishToPlanRequestOpts(requestParameters: LinkWishToPlanRequest): Promise<runtime.RequestOpts> {
@@ -692,6 +774,59 @@ export class PlansApi extends runtime.BaseAPI {
      */
     async listPlanCollections(requestParameters: ListPlanCollectionsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<CollectionDetail>> {
         const response = await this.listPlanCollectionsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for listPlanNotes without sending the request
+     */
+    async listPlanNotesRequestOpts(requestParameters: ListPlanNotesRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['planId'] == null) {
+            throw new runtime.RequiredError(
+                'planId',
+                'Required parameter "planId" was null or undefined when calling listPlanNotes().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling listPlanNotes().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/plans/{planId}/notes`;
+        urlPath = urlPath.replace('{planId}', encodeURIComponent(String(requestParameters['planId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * List Plan Notes
+     */
+    async listPlanNotesRaw(requestParameters: ListPlanNotesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<SharedNoteDetail>>> {
+        const requestOptions = await this.listPlanNotesRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(SharedNoteDetailFromJSON));
+    }
+
+    /**
+     * List Plan Notes
+     */
+    async listPlanNotes(requestParameters: ListPlanNotesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<SharedNoteDetail>> {
+        const response = await this.listPlanNotesRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -1013,6 +1148,66 @@ export class PlansApi extends runtime.BaseAPI {
      */
     async unlinkPlanCollection(requestParameters: UnlinkPlanCollectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
         await this.unlinkPlanCollectionRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for unlinkPlanNote without sending the request
+     */
+    async unlinkPlanNoteRequestOpts(requestParameters: UnlinkPlanNoteRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['planId'] == null) {
+            throw new runtime.RequiredError(
+                'planId',
+                'Required parameter "planId" was null or undefined when calling unlinkPlanNote().'
+            );
+        }
+
+        if (requestParameters['sharedNoteId'] == null) {
+            throw new runtime.RequiredError(
+                'sharedNoteId',
+                'Required parameter "sharedNoteId" was null or undefined when calling unlinkPlanNote().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling unlinkPlanNote().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/plans/{planId}/notes/{sharedNoteId}`;
+        urlPath = urlPath.replace('{planId}', encodeURIComponent(String(requestParameters['planId'])));
+        urlPath = urlPath.replace('{sharedNoteId}', encodeURIComponent(String(requestParameters['sharedNoteId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Unlink Plan Note
+     */
+    async unlinkPlanNoteRaw(requestParameters: UnlinkPlanNoteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.unlinkPlanNoteRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Unlink Plan Note
+     */
+    async unlinkPlanNote(requestParameters: UnlinkPlanNoteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.unlinkPlanNoteRaw(requestParameters, initOverrides);
     }
 
     /**

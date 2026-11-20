@@ -263,10 +263,15 @@ def leave_space(session: Session, account: Account, space_id: UUID) -> LeaveSpac
         space.configuration_manager_account_id = None
     revoked = _revoke_open_invitations(session, space_id)
     cleanup = hard_delete_owner_only_in_space(session, account.id, space_id)
-    # The leaving sponsor's credentials stop writing this Space's calendar (#1895).
-    from eimir.calendar_sync import service as calendar_sync
+    # What the leaver takes with them, for example the calendar target their
+    # credentials write (#1895).
+    from eimir.plugins import lifecycle as plugin_lifecycle
 
-    calendar_sync.on_membership_ended(session, account.id, space_id)
+    plugin_lifecycle.member_left(session, space_id, account.id)
+    # The leaver's own choices in this Space are not kept for a former member.
+    from eimir.personal_settings import service as personal_settings
+
+    personal_settings.purge_membership(session, account.id, space_id)
     session.flush()
     _prepare_owner_media_cleanup(session, account_id=account.id, space_id=space_id)
     _shorten_owner_transfer_retention(session, account_id=account.id, space_id=space_id)

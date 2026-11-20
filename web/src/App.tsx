@@ -1,5 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Link,
   Navigate,
@@ -12,6 +20,7 @@ import { AppearanceApi } from './api/generated/apis/AppearanceApi';
 import { DailyCheckInsApi } from './api/generated/apis/DailyCheckInsApi';
 import { DailyQuoteApi } from './api/generated/apis/DailyQuoteApi';
 import { EntitlementsApi } from './api/generated/apis/EntitlementsApi';
+import { GamesApi } from './api/generated/apis/GamesApi';
 import { SpacesApi } from './api/generated/apis/SpacesApi';
 import type { AccountView } from './api/generated/models/AccountView';
 import { AttachmentReadRequestParentTypeEnum } from './api/generated/models/AttachmentReadRequest';
@@ -44,6 +53,7 @@ import {
 import { loadInstanceAccessStatus } from './client/instanceStatus';
 import { createM4ProductApis } from './client/m4Product';
 import { ProfilesApi } from './client/mediaApis';
+import type { MemoryMapSession } from './client/memoryMapSession';
 import {
   ONCE_CREATE_ROUTE,
   ONCE_ROUTE,
@@ -52,6 +62,8 @@ import {
 import { createPartnerLocationApi } from './client/partnerLocation';
 import { PartnerNicknameProvider } from './client/partnerNickname';
 import { createPeopleApi } from './client/peopleApi';
+import { PersonColoursProvider } from './client/personColoursContext';
+import { PLAN_SHORT_LINK_ROUTE_PATTERN } from './client/planShortLink';
 import { createPrivateAreaApi } from './client/privateArea';
 import {
   clientProblemKind,
@@ -68,7 +80,11 @@ import {
   COLLECTION_DETAIL_ROUTE_PATTERN,
   DATE_IDEAS_ROUTE,
   DEFAULT_APP_ROUTE,
+  GAMES_GARDEN_ROUTE,
+  GAMES_HEART_HUNT_ROUTE,
   GAMES_MOMENTS_ROUTE,
+  GAMES_PICTURE_PING_PONG_ROUTE,
+  GAMES_WHO_OF_US_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
   HAPPINESS_ROUTE,
   HEART_MOMENT_CREATE_ROUTE,
@@ -86,12 +102,16 @@ import {
   MORE_INSIGHTS_PATTERNS_ROUTE,
   MORE_INSIGHTS_RECAP_ROUTE,
   MORE_INSIGHTS_ROUTE,
+  MORE_NOTES_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
   MORE_PROFILE_ROUTE,
   MORE_SETTINGS_CATEGORY_ROUTE_PATTERN,
   MORE_SETTINGS_ROUTE,
+  NOTE_CREATE_ROUTE,
+  NOTE_DETAIL_ROUTE_PATTERN,
+  NOTE_EDIT_ROUTE_PATTERN,
   PARTNER_LOCATION_MAP_ROUTE,
   PARTNER_LOCATION_SETTINGS_ROUTE,
   PLACE_DETAIL_ROUTE_PATTERN,
@@ -134,7 +154,9 @@ import {
 import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
 import { type StoryStartupReads, startStoryReads } from './client/storyStartup';
 import { useAccountLanguage } from './client/useAccountLanguage';
+import { useCalendarGoogleAppReturn } from './client/useCalendarGoogleAppReturn';
 import { useIdentityEntry } from './client/useIdentityEntry';
+import { usePlanShortLinkAppOpen } from './client/usePlanShortLinkAppOpen';
 import { useSessionRefresh } from './client/useSessionRefresh';
 import { useSystemTimeZone } from './client/useSystemTimeZone';
 import { useVideoTransferNavigation } from './client/useVideoTransferNavigation';
@@ -145,18 +167,10 @@ import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AppShell } from './components/AppShell';
 import { Brand } from './components/Brand';
 import { BrandedStartup } from './components/BrandedStartup';
-import { ChapterCreatePage } from './components/ChapterCreatePage';
-import { ChapterProductPage } from './components/ChapterProductPage';
-import { ChaptersOverviewPage } from './components/ChaptersOverviewPage';
 import { CollectionProductPage } from './components/CollectionProductPage';
-import { CollectionsOverviewPage } from './components/CollectionsOverviewPage';
-import { CoupleExperiencePage } from './components/CoupleExperiencePage';
-import { DailyInsightsPage } from './components/DailyInsightsPage';
-import { DateIdeasPage } from './components/DateIdeasPage';
 import { DemoEntry } from './components/DemoEntry';
 import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
-import { HeartMomentProductPage } from './components/HeartMomentProductPage';
 import { IdentityEntry } from './components/IdentityEntry';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
 import { LegalDocumentPage } from './components/LegalDocumentPage';
@@ -165,39 +179,23 @@ import {
   NotificationsProductPage,
   SearchProductPage,
 } from './components/M4ProductPages';
-import { MediaOverviewPage } from './components/MediaOverviewPage';
-import { MemoryCreatePage } from './components/MemoryCreatePage';
-import { MemoryMapPage } from './components/MemoryMapPage';
-import { MemoryProductPage } from './components/MemoryProductPage';
-import { MilestoneProductPage } from './components/MilestoneProductPage';
 import { MoreOverviewPage } from './components/MoreOverviewPage';
 import { OnceMessagesPage } from './components/OnceMessages';
-import { OurMomentsGamePage } from './components/OurMomentsGamePage';
-import { PartnerLocationMapPage } from './components/PartnerLocationMapPage';
 import { PartnerLocationOnboarding } from './components/PartnerLocationOnboarding';
-import { PartnerLocationSettingsPage } from './components/PartnerLocationSettingsPage';
 import { PartnerLocationSync } from './components/PartnerLocationSync';
-import { PlaceProductPage } from './components/PlaceProductPage';
-import { PlacesOverviewPage } from './components/PlacesOverviewPage';
-import { PlanningCreatePage } from './components/PlanningCreatePage';
-import { PlanProductPage } from './components/PlanProductPage';
+import { PersonalSettingsSyncRuntime } from './components/PersonalSettingsSyncRuntime';
+import { PlanShortLinkRedirect } from './components/PlanShortLinkRedirect';
 import {
   type PrimaryTabPanel,
   PrimaryTabPanels,
 } from './components/PrimaryTabPanels';
-import { PrivateAreaProductPage } from './components/PrivateAreaProductPage';
 import { ProblemState } from './components/ProblemState';
-import { ProfilePage } from './components/ProfilePage';
-import { ProPaywallPage } from './components/ProPaywallPage';
-import { RelatedPeoplePage } from './components/RelatedPeoplePage';
-import { RelationshipRecapsPage } from './components/RelationshipRecapsPage';
 import { RelationshipStoryPage } from './components/RelationshipStoryPage';
-import { ReminderReadPage } from './components/ReminderReadPage';
+import { SecureSurface } from './components/SecureSurface';
 import {
   ServerAdminAccessGate,
   ServerAdminPage,
 } from './components/ServerAdminPage';
-import { SettingsPage } from './components/SettingsPage';
 import { SharedPlanningOverviewPage } from './components/SharedPlanningOverviewPage';
 import { StoryProductPage } from './components/StoryProductPage';
 import {
@@ -208,11 +206,219 @@ import { ThemeControl } from './components/ThemeControl';
 import { TodayPage } from './components/TodayPage';
 import { UiState } from './components/UiState';
 import { VoiceShareIngress } from './components/VoiceShareIngress';
-import { WishDetectiveGamePage } from './components/WishDetectiveGamePage';
-import { WishProductPage } from './components/WishProductPage';
-import { WishSelectionPage } from './components/WishSelectionPage';
+import { deferredComponent } from './deferredModules';
 import { useTranslation } from './i18n';
 import { legalDocumentIdForRoute } from './legal/legalDocuments';
+import { isCapacitorNative } from './pwa';
+
+const ChapterCreatePage = deferredComponent(() =>
+  import('./components/ChapterCreatePage').then(
+    (module) => module.ChapterCreatePage,
+  ),
+);
+const ChapterProductPage = deferredComponent(() =>
+  import('./components/ChapterProductPage').then(
+    (module) => module.ChapterProductPage,
+  ),
+);
+const ChaptersOverviewPage = deferredComponent(() =>
+  import('./components/ChaptersOverviewPage').then(
+    (module) => module.ChaptersOverviewPage,
+  ),
+);
+const CollectionsOverviewPage = deferredComponent(() =>
+  import('./components/CollectionsOverviewPage').then(
+    (module) => module.CollectionsOverviewPage,
+  ),
+);
+const CoupleExperiencePage = deferredComponent(() =>
+  import('./components/CoupleExperiencePage').then(
+    (module) => module.CoupleExperiencePage,
+  ),
+);
+const DailyInsightsPage = deferredComponent(() =>
+  import('./components/DailyInsightsPage').then(
+    (module) => module.DailyInsightsPage,
+  ),
+);
+const DateIdeasPage = deferredComponent(() =>
+  import('./components/DateIdeasPage').then((module) => module.DateIdeasPage),
+);
+const GardenGamePage = deferredComponent(() =>
+  import('./components/GardenGamePage').then((module) => module.GardenGamePage),
+);
+const HeartHuntGamePage = deferredComponent(() =>
+  import('./components/HeartHuntGamePage').then(
+    (module) => module.HeartHuntGamePage,
+  ),
+);
+const HeartMomentProductPage = deferredComponent(() =>
+  import('./components/HeartMomentProductPage').then(
+    (module) => module.HeartMomentProductPage,
+  ),
+);
+const MediaOverviewPage = deferredComponent(() =>
+  import('./components/MediaOverviewPage').then(
+    (module) => module.MediaOverviewPage,
+  ),
+);
+const MemoryCreatePage = deferredComponent(() =>
+  import('./components/MemoryCreatePage').then(
+    (module) => module.MemoryCreatePage,
+  ),
+);
+const MemoryMapPage = deferredComponent(() =>
+  import('./components/MemoryMapPage').then((module) => module.MemoryMapPage),
+);
+const MemoryProductPage = deferredComponent(() =>
+  import('./components/MemoryProductPage').then(
+    (module) => module.MemoryProductPage,
+  ),
+);
+const MilestoneProductPage = deferredComponent(() =>
+  import('./components/MilestoneProductPage').then(
+    (module) => module.MilestoneProductPage,
+  ),
+);
+const OurMomentsGamePage = deferredComponent(() =>
+  import('./components/OurMomentsGamePage').then(
+    (module) => module.OurMomentsGamePage,
+  ),
+);
+const PartnerLocationMapPage = deferredComponent(() =>
+  import('./components/PartnerLocationMapPage').then(
+    (module) => module.PartnerLocationMapPage,
+  ),
+);
+const PartnerLocationSettingsPage = deferredComponent(() =>
+  import('./components/PartnerLocationSettingsPage').then(
+    (module) => module.PartnerLocationSettingsPage,
+  ),
+);
+const PicturePingPongPage = deferredComponent(() =>
+  import('./components/PicturePingPongPage').then(
+    (module) => module.PicturePingPongPage,
+  ),
+);
+const PlaceProductPage = deferredComponent(() =>
+  import('./components/PlaceProductPage').then(
+    (module) => module.PlaceProductPage,
+  ),
+);
+const PlacesOverviewPage = deferredComponent(() =>
+  import('./components/PlacesOverviewPage').then(
+    (module) => module.PlacesOverviewPage,
+  ),
+);
+const PlanningCreatePage = deferredComponent(() =>
+  import('./components/PlanningCreatePage').then(
+    (module) => module.PlanningCreatePage,
+  ),
+);
+const PlanProductPage = deferredComponent(() =>
+  import('./components/PlanProductPage').then(
+    (module) => module.PlanProductPage,
+  ),
+);
+const PrivateAreaProductPage = deferredComponent(() =>
+  import('./components/PrivateAreaProductPage').then(
+    (module) => module.PrivateAreaProductPage,
+  ),
+);
+const ProfilePage = deferredComponent(() =>
+  import('./components/ProfilePage').then((module) => module.ProfilePage),
+);
+const ProPaywallPage = deferredComponent(() =>
+  import('./components/ProPaywallPage').then((module) => module.ProPaywallPage),
+);
+const RelatedPeoplePage = deferredComponent(() =>
+  import('./components/RelatedPeoplePage').then(
+    (module) => module.RelatedPeoplePage,
+  ),
+);
+const RelationshipRecapsPage = deferredComponent(() =>
+  import('./components/RelationshipRecapsPage').then(
+    (module) => module.RelationshipRecapsPage,
+  ),
+);
+const ReminderReadPage = deferredComponent(() =>
+  import('./components/ReminderReadPage').then(
+    (module) => module.ReminderReadPage,
+  ),
+);
+const SettingsPage = deferredComponent(() =>
+  import('./components/SettingsPage').then((module) => module.SettingsPage),
+);
+const SharedNoteEditorPage = deferredComponent(() =>
+  import('./components/SharedNoteEditorPage').then(
+    (module) => module.SharedNoteEditorPage,
+  ),
+);
+const SharedNoteReadPage = deferredComponent(() =>
+  import('./components/SharedNoteReadPage').then(
+    (module) => module.SharedNoteReadPage,
+  ),
+);
+const SharedNotesOverviewPage = deferredComponent(() =>
+  import('./components/SharedNotesOverviewPage').then(
+    (module) => module.SharedNotesOverviewPage,
+  ),
+);
+const WhoOfUsGamePage = deferredComponent(() =>
+  import('./components/WhoOfUsGamePage').then(
+    (module) => module.WhoOfUsGamePage,
+  ),
+);
+const WishDetectiveGamePage = deferredComponent(() =>
+  import('./components/WishDetectiveGamePage').then(
+    (module) => module.WishDetectiveGamePage,
+  ),
+);
+const WishProductPage = deferredComponent(() =>
+  import('./components/WishProductPage').then(
+    (module) => module.WishProductPage,
+  ),
+);
+const WishSelectionPage = deferredComponent(() =>
+  import('./components/WishSelectionPage').then(
+    (module) => module.WishSelectionPage,
+  ),
+);
+
+function DeferredRoutes({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
+  const { pathname } = useLocation();
+  // Retire the previous page's Back control while its destination loads.
+  return (
+    <Suspense
+      key={pathname}
+      fallback={<UiState kind="loading" title={t('states.loading.title')} />}
+    >
+      <Routes>{children}</Routes>
+    </Suspense>
+  );
+}
+
+/**
+ * Panels built in the background once the app is quiet (#2063). Only the
+ * phone app, where starting a map needs the GPU and its first data from the
+ * network; on the Web the map is built when it is opened.
+ */
+const PREWARMED_PANELS: readonly string[] = isCapacitorNative()
+  ? [MEMORY_MAP_ROUTE]
+  : [];
+
+/** A kept panel whose page code loads on first visit. */
+function DeferredPanel({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
+  return (
+    <Suspense
+      fallback={<UiState kind="loading" title={t('states.loading.title')} />}
+    >
+      {children}
+    </Suspense>
+  );
+}
 
 function SpaceContextGate({
   loading,
@@ -313,6 +519,14 @@ function AuthenticatedApp({
   const location = useLocation();
   const queryClient = useQueryClient();
   const previousSpaceId = useRef(spaceId);
+  // The Momente map's session memory: its last camera and its selected
+  // Place, kept in memory only and per account and space.
+  const memoryMapSession = useRef<MemoryMapSession & { scope: string }>({
+    scope: '',
+  });
+  const mapScope = JSON.stringify([apiBaseUrl, account.id, spaceId]);
+  if (memoryMapSession.current.scope !== mapScope)
+    memoryMapSession.current = { scope: mapScope };
   const apis = useMemo(
     () => createReferenceApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
@@ -349,6 +563,7 @@ function AuthenticatedApp({
   const browserPush = useBrowserPush({
     accountId: account.id,
     apiBaseUrl,
+    spaceId,
     notificationsApi: m4Apis.notifications,
     queryClient,
     openNotification: devicePush.openNotification,
@@ -429,6 +644,16 @@ function AuthenticatedApp({
       ),
     [apiBaseUrl, tokens.accessToken],
   );
+  const gamesApi = useMemo(
+    () =>
+      new GamesApi(
+        new Configuration({
+          basePath: apiBaseUrl,
+          headers: { Authorization: `Bearer ${tokens.accessToken}` },
+        }),
+      ),
+    [apiBaseUrl, tokens.accessToken],
+  );
 
   useEffect(() => {
     if (previousSpaceId.current === spaceId) return;
@@ -471,6 +696,7 @@ function AuthenticatedApp({
       attachmentId: string,
       signal?: AbortSignal,
       variant?: 'original' | 'thumbnail',
+      persist?: boolean,
     ) =>
       loadAuthorizedStoryImageResource(
         apis,
@@ -478,7 +704,7 @@ function AuthenticatedApp({
         AttachmentReadRequestParentTypeEnum.HEART_MOMENT,
         heartMomentId,
         attachmentId,
-        { signal, variant },
+        { signal, variant, persist },
       ),
     [apis, spaceId],
   );
@@ -546,10 +772,12 @@ function AuthenticatedApp({
           dailyQuoteApi={dailyQuoteApi}
           entitlementApi={entitlementApi}
           collectionsApi={planningApis.collections}
+          sharedNotesApi={planningApis.sharedNotes}
           loadMemoryImage={loadMemoryImage}
           profilesApi={profilesApi}
           account={account}
           partnerLocationApi={partnerLocationApi}
+          gamesApi={gamesApi}
         />
       ),
     },
@@ -558,6 +786,7 @@ function AuthenticatedApp({
       element: (
         <StoryProductPage
           apis={apis}
+          mapSession={memoryMapSession.current}
           accountId={account.id}
           spaceId={spaceId}
           loadMemoryImage={loadMemoryImage}
@@ -568,6 +797,21 @@ function AuthenticatedApp({
             storyStartupReads?.kind === 'diary' ? storyStartupReads : undefined
           }
         />
+      ),
+    },
+    {
+      // The Momente map stays mounted once visited (#2063): starting a map
+      // needs the GPU and its places' photos, so returning to it reuses the
+      // live map instead of building it again.
+      path: MEMORY_MAP_ROUTE,
+      element: (
+        <DeferredPanel>
+          <MemoryMapPage
+            {...planningProductProps}
+            loadMemoryImage={loadMemoryImage}
+            sessionViewport={memoryMapSession.current}
+          />
+        </DeferredPanel>
       ),
     },
     {
@@ -614,6 +858,7 @@ function AuthenticatedApp({
           <PrimaryTabPanels
             panels={primaryTabPanels}
             fallback={routeErrorFallback}
+            prewarm={PREWARMED_PANELS}
           />
         }
       >
@@ -621,18 +866,30 @@ function AuthenticatedApp({
           resetKey={location.pathname}
           fallback={routeErrorFallback}
         >
-          <Routes>
+          <DeferredRoutes>
             <Route
               path={ONCE_ROUTE}
-              element={<OnceMessagesPage mode="inbox" />}
+              element={
+                <SecureSurface announceFailure>
+                  <OnceMessagesPage mode="inbox" />
+                </SecureSurface>
+              }
             />
             <Route
               path={ONCE_CREATE_ROUTE}
-              element={<OnceMessagesPage mode="compose" />}
+              element={
+                <SecureSurface announceFailure>
+                  <OnceMessagesPage mode="compose" />
+                </SecureSurface>
+              }
             />
             <Route
               path={`${ONCE_ROUTE}/:messageId`}
-              element={<OnceMessagesPage mode="read" />}
+              element={
+                <SecureSurface announceFailure>
+                  <OnceMessagesPage mode="read" />
+                </SecureSurface>
+              }
             />
             <Route
               path="/"
@@ -715,6 +972,10 @@ function AuthenticatedApp({
               element={<PlanProductPage {...planningProductProps} />}
             />
             <Route
+              path={PLAN_SHORT_LINK_ROUTE_PATTERN}
+              element={<PlanShortLinkRedirect />}
+            />
+            <Route
               path={REMINDER_DETAIL_ROUTE_PATTERN}
               element={
                 <ReminderReadPage
@@ -741,15 +1002,8 @@ function AuthenticatedApp({
               path={CHAPTER_DETAIL_ROUTE_PATTERN}
               element={<ChapterProductPage {...planningProductProps} />}
             />
-            <Route
-              path={MEMORY_MAP_ROUTE}
-              element={
-                <MemoryMapPage
-                  {...planningProductProps}
-                  loadMemoryImage={loadMemoryImage}
-                />
-              }
-            />
+            {/* Kept like a primary tab (#2063); see primaryTabPanels. */}
+            <Route path={MEMORY_MAP_ROUTE} element={null} />
             <Route
               path={MORE_PLACES_ROUTE}
               element={<PlacesOverviewPage {...planningProductProps} />}
@@ -790,6 +1044,26 @@ function AuthenticatedApp({
                 />
               }
             />
+            <Route
+              path={MORE_NOTES_ROUTE}
+              element={<SharedNotesOverviewPage {...planningProductProps} />}
+            />
+            <Route
+              path={NOTE_CREATE_ROUTE}
+              element={
+                <SharedNoteEditorPage {...planningProductProps} mode="create" />
+              }
+            />
+            <Route
+              path={NOTE_DETAIL_ROUTE_PATTERN}
+              element={<SharedNoteReadPage {...planningProductProps} />}
+            />
+            <Route
+              path={NOTE_EDIT_ROUTE_PATTERN}
+              element={
+                <SharedNoteEditorPage {...planningProductProps} mode="edit" />
+              }
+            />
             <Route path={appRoutePath('today')} element={null} />
             <Route
               path={ACTIVITY_ROUTE}
@@ -804,7 +1078,11 @@ function AuthenticatedApp({
             />
             <Route
               path={SEARCH_ROUTE}
-              element={<SearchProductPage apis={m4Apis} spaceId={spaceId} />}
+              element={
+                <SecureSurface announceFailure>
+                  <SearchProductPage apis={m4Apis} spaceId={spaceId} />
+                </SecureSurface>
+              }
             />
             {(['happiness', 'timeTravel'] as const).flatMap((kind) =>
               ['', '/new'].map((suffix) => (
@@ -838,6 +1116,39 @@ function AuthenticatedApp({
               }
             />
             <Route
+              path={GAMES_PICTURE_PING_PONG_ROUTE}
+              element={
+                <PicturePingPongPage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  spaceId={spaceId}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={GAMES_GARDEN_ROUTE}
+              element={
+                <GardenGamePage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  spaceId={spaceId}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={GAMES_WHO_OF_US_ROUTE}
+              element={
+                <WhoOfUsGamePage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  spaceId={spaceId}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
               path={GAMES_WISH_DETECTIVE_ROUTE}
               element={
                 <WishDetectiveGamePage
@@ -848,12 +1159,36 @@ function AuthenticatedApp({
                 />
               }
             />
+            <Route
+              path={GAMES_HEART_HUNT_ROUTE}
+              element={
+                <HeartHuntGamePage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  spaceId={spaceId}
+                  currentAccountId={account.id}
+                />
+              }
+            />
             <Route path={appRoutePath('more')} element={null} />
+            <Route
+              path={MORE_INSIGHTS_RECAP_ROUTE}
+              element={
+                <Navigate
+                  replace
+                  to={{
+                    pathname: MORE_INSIGHTS_ROUTE,
+                    search: location.search,
+                    hash: '#wochenrueckblick',
+                  }}
+                  state={location.state}
+                />
+              }
+            />
             {(
               [
                 [MORE_INSIGHTS_ROUTE, 'week'],
                 [MORE_INSIGHTS_PATTERNS_ROUTE, 'patterns'],
-                [MORE_INSIGHTS_RECAP_ROUTE, 'recap'],
               ] as const
             ).map(([path, insightView]) => (
               <Route
@@ -882,6 +1217,7 @@ function AuthenticatedApp({
                   accessToken={tokens.accessToken}
                   account={account}
                   spaceId={spaceId}
+                  loadMemoryImage={loadMemoryImage}
                 />
               }
             />
@@ -927,12 +1263,14 @@ function AuthenticatedApp({
             <Route
               path={MORE_PROFILE_ROUTE}
               element={
-                <ProfilePage
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={tokens.accessToken}
-                  account={account}
-                  spaceId={spaceId}
-                />
+                <SecureSurface announceFailure>
+                  <ProfilePage
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    account={account}
+                    spaceId={spaceId}
+                  />
+                </SecureSurface>
               }
             />
             <Route
@@ -985,13 +1323,15 @@ function AuthenticatedApp({
             <Route
               path="/more/private/*"
               element={
-                <PrivateAreaProductPage
-                  api={privateAreaApi}
-                  profilesApi={profilesApi}
-                  spacesApi={spacesApi}
-                  accountId={account.id}
-                  spaceId={spaceId}
-                />
+                <SecureSurface announceFailure>
+                  <PrivateAreaProductPage
+                    api={privateAreaApi}
+                    profilesApi={profilesApi}
+                    spacesApi={spacesApi}
+                    accountId={account.id}
+                    spaceId={spaceId}
+                  />
+                </SecureSurface>
               }
             />
             <Route
@@ -1030,19 +1370,23 @@ function AuthenticatedApp({
             <Route
               path={HEART_MOMENT_CREATE_ROUTE}
               element={
-                <HeartMomentProductPage
-                  mode="create"
-                  {...heartMomentProductProps}
-                />
+                <SecureSurface announceFailure>
+                  <HeartMomentProductPage
+                    mode="create"
+                    {...heartMomentProductProps}
+                  />
+                </SecureSurface>
               }
             />
             <Route
               path={HEART_MOMENT_EDIT_ROUTE_PATTERN}
               element={
-                <HeartMomentProductPage
-                  mode="edit"
-                  {...heartMomentProductProps}
-                />
+                <SecureSurface announceFailure>
+                  <HeartMomentProductPage
+                    mode="edit"
+                    {...heartMomentProductProps}
+                  />
+                </SecureSurface>
               }
             />
             <Route
@@ -1111,9 +1455,16 @@ function AuthenticatedApp({
               path="*"
               element={<Navigate replace to={DEFAULT_APP_ROUTE} />}
             />
-          </Routes>
+          </DeferredRoutes>
         </AppErrorBoundary>
       </AppShell>
+      <PersonalSettingsSyncRuntime
+        key={`settings:${apiBaseUrl}:${account.id}:${spaceId}`}
+        apiBaseUrl={apiBaseUrl}
+        accessToken={tokens.accessToken}
+        accountId={account.id}
+        spaceId={spaceId}
+      />
       <PartnerLocationSync
         key={`${apiBaseUrl}:${account.id}:${spaceId}`}
         apiBaseUrl={apiBaseUrl}
@@ -1148,27 +1499,36 @@ function AuthenticatedApp({
         accountId={account.id}
         spaceId={spaceId}
       >
-        <OnceMessagesProvider
-          apiBaseUrl={apiBaseUrl}
-          accessToken={tokens.accessToken}
+        <PersonColoursProvider
+          key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+          api={appearanceApi}
+          entitlementsApi={entitlementApi}
+          instance={apiBaseUrl}
           accountId={account.id}
           spaceId={spaceId}
         >
-          {relationshipContent}
-        </OnceMessagesProvider>
-        <VoiceShareIngress
-          key={`${apiBaseUrl}:${account.id}:${spaceId}`}
-          scope={JSON.stringify([apiBaseUrl, account.id, spaceId])}
-        />
+          <OnceMessagesProvider
+            apiBaseUrl={apiBaseUrl}
+            accessToken={tokens.accessToken}
+            accountId={account.id}
+            spaceId={spaceId}
+          >
+            {relationshipContent}
+          </OnceMessagesProvider>
+          <VoiceShareIngress
+            key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+            scope={JSON.stringify([apiBaseUrl, account.id, spaceId])}
+          />
 
-        <DevicePushOnboarding
-          key={`${apiBaseUrl}:${account.id}`}
-          devicePush={devicePush}
-          accountId={account.id}
-          apiBaseUrl={apiBaseUrl}
-          onEnablePrompts={enableOnboardingPrompts}
-          onSettled={settlePushPrompt}
-        />
+          <DevicePushOnboarding
+            key={`${apiBaseUrl}:${account.id}`}
+            devicePush={devicePush}
+            accountId={account.id}
+            apiBaseUrl={apiBaseUrl}
+            onEnablePrompts={enableOnboardingPrompts}
+            onSettled={settlePushPrompt}
+          />
+        </PersonColoursProvider>
       </WirDesignProvider>
     </AppIconProvider>
   );
@@ -1182,6 +1542,8 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const { entryToken, clearEntryToken } = useIdentityEntry(config.apiBaseUrl);
+  useCalendarGoogleAppReturn();
+  usePlanShortLinkAppOpen(config.apiBaseUrl);
   const [initialStoredSession] = useState(loadStoredSession);
   const [startupLocation] = useState(() => ({
     pathname: location.pathname,

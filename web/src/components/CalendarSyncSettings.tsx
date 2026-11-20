@@ -69,11 +69,16 @@ export function CalendarSyncSettings(props: Props) {
   const [awaitingGoogle, setAwaitingGoogle] = useState(false);
   const inFlight = useRef(false);
   const trigger = useRef<HTMLButtonElement>(null);
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
 
-  // Web consent returns in the same tab with a fixed outcome code only.
+  // Consent returns (same tab on the Web, app link in the Android app) with a
+  // fixed outcome code only; read the pending account it created.
   const googleReturn = searchParams.get(GOOGLE_RETURN);
   useEffect(() => {
     if (!googleReturn) return;
+    setAwaitingGoogle(false);
+    void refreshRef.current().catch(() => {});
     if (googleReturn === 'denied' || googleReturn === 'failed')
       setProblem(t(`calendarSync.google.return.${googleReturn}`));
     if (googleReturn === 'expired')
@@ -83,7 +88,8 @@ export function CalendarSyncSettings(props: Props) {
     setSearchParams(next, { replace: true });
   }, [googleReturn, searchParams, setSearchParams, t]);
 
-  // The app hands consent to the system browser; read the result on return.
+  // Fallback while the system browser is open: read the result on return,
+  // also when the person closes the browser without finishing.
   useEffect(() => {
     if (!awaitingGoogle) return;
     const back = () => {
@@ -171,7 +177,7 @@ export function CalendarSyncSettings(props: Props) {
     await run(async () => {
       const started = await api.startGoogleCalendarConnection({
         spaceId: props.spaceId,
-        googleCalendarStartRequest: { returnTo: 'page' },
+        googleCalendarStartRequest: { returnTo: 'app' },
       });
       await openGoogleConsent(started.authorizationUrl, null);
       setAwaitingGoogle(true);
@@ -277,7 +283,6 @@ export function CalendarSyncSettings(props: Props) {
           view={view}
           busy={busy || offline}
           ifMatch={ifMatch}
-          accountLabel={sponsorConnection?.label ?? null}
           run={run}
           onChooseCalendar={() =>
             sponsorConnection
@@ -422,7 +427,6 @@ function TargetState(
     view: CalendarSyncView;
     busy: boolean;
     ifMatch: string;
-    accountLabel: string | null;
     run: (action: () => Promise<CalendarSyncView | void>) => Promise<void>;
     onChooseCalendar: () => void;
     onReconnect: () => void;
@@ -471,10 +475,10 @@ function TargetState(
     : status === 'synced' && lastSuccess
       ? t('calendarSync.status.syncedAt', { time: lastSuccess })
       : t(`calendarSync.status.${status}`);
+  // The card names who connected it, never the account address or server
+  // (#2063: couples should not see technical connection details here).
   const meta = target.sponsoredByMe
-    ? props.accountLabel
-      ? `${provider} · ${props.accountLabel}`
-      : t('calendarSync.target.viaYou', { provider })
+    ? t('calendarSync.target.viaYou', { provider })
     : t('calendarSync.target.via', {
         provider,
         name: target.sponsor.displayName,

@@ -3,7 +3,10 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 function readWebFile(relativePath: string): string {
-  return readFileSync(resolve(__dirname, '..', relativePath), 'utf8');
+  return readFileSync(resolve(__dirname, '..', relativePath), 'utf8').replace(
+    /\r\n/g,
+    '\n',
+  );
 }
 
 describe('Capacitor safe-area & statusbar insets (#1044)', () => {
@@ -27,6 +30,24 @@ describe('Capacitor safe-area & statusbar insets (#1044)', () => {
     expect(headerRules).not.toMatch(/position:\s*(?:sticky|fixed)/);
     expect(headerRules).not.toMatch(/\btop\s*:/);
     expect(headerRules).toContain('var(--shell-header-safe-top, 0px)');
+  });
+
+  it('keeps the sticky composer header below the native status bar', () => {
+    const composerCss = readWebFile('src/components/PageComposer.css');
+    const headerMatch = composerCss.match(
+      /\.page-composer \.composer-header\.page-heading\s*\{([^}]+)\}/,
+    );
+    expect(headerMatch).toBeTruthy();
+    const rules = (headerMatch?.[1] ?? '').replace(/\s+/g, ' ');
+
+    expect(rules).toContain('position: sticky;');
+    expect(rules).toContain(
+      'inset-block-start: calc( var(--composer-viewport-top, 0px) + var(--shell-header-safe-top, 0px) );',
+    );
+    // The ground is painted behind the status bar, as the gift composer does.
+    expect(composerCss).toContain(
+      'inset: calc(-1 * var(--shell-header-safe-top, 0px)) 0 0;',
+    );
   });
 
   it('incorporates safe-area-inset-top into .demo-instance-banner padding and min-height', () => {

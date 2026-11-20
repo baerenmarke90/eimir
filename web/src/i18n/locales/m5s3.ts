@@ -48,7 +48,7 @@ const m5s3 = {
     experiencedPlans: 'Erlebt',
     experiencedPlansEmpty: 'Noch keine gemeinsam erlebten Pläne.',
     experiencedOn: 'Erlebt am {{date}}',
-    openPlansEmpty: 'Gerade keine offenen Pläne.',
+    openPlansEmpty: 'Worauf freut ihr euch als Nächstes?',
     pastOpenPlans: 'Termin liegt zurück',
     wishScope: 'Wünsche anzeigen',
     fulfilledWishes: 'Erfüllt',
@@ -90,6 +90,7 @@ const m5s3 = {
     descriptionPlaceholder: 'Was macht diesen Wunsch für euch besonders?',
     loading: 'Wunsch wird geladen …',
     detailEyebrow: 'Gemeinsamer Wunsch',
+    menu: 'Menü des Wunsches',
     planTitle: 'Titel des Plans',
     convertHeading: 'Daraus einen Plan machen',
     convertIntro:
@@ -134,6 +135,7 @@ const m5s3 = {
     },
   },
   plan: {
+    menu: 'Menü des Plans',
     linkWish: 'Wunsch verknüpfen',
     linkWishHelp:
       'Der Plan bleibt bestehen. Wenn ihr ihn abschließt, wird auch der Wunsch erfüllt. Über „Zurück zum Wunsch“ könnt ihr den Plan später auflösen.',
@@ -152,6 +154,7 @@ const m5s3 = {
     intentionLabel: 'Was habt ihr gemeinsam vor?',
     intentionPlaceholder: 'Zum Beispiel: Picknick im Park',
     titleHint: 'Was habt ihr vor?',
+    titleMissing: 'Gebt eurem Plan noch einen Namen.',
     descriptionPlaceholder: 'Wie stellt ihr euch das vor?',
     addDetails: 'Termin, Ort und Beschreibung hinzufügen',
     loading: 'Plan wird geladen …',
@@ -161,8 +164,9 @@ const m5s3 = {
     plannedDate: 'Datum',
     plannedTime: 'Uhrzeit',
     plannedStartTime: 'Startzeit',
-    plannedTimeHint:
-      'Ohne Uhrzeit bleibt der ausgewählte Tag genau so bestehen.',
+    plannedTimeHint: 'Ohne Uhrzeit gilt der Plan für den ganzen Tag.',
+    calendarPrevious: 'Vorheriger Monat',
+    calendarNext: 'Nächster Monat',
     plannedStart: "Wann geht's los?",
     plannedEnd: 'Bis wann?',
     addEndTime: 'Endzeit hinzufügen',
@@ -185,6 +189,10 @@ const m5s3 = {
     completeDateTitle: 'Wann habt ihr das erlebt?',
     completePending: 'Abschluss für den {{date}} wird gespeichert …',
     returnToWish: 'Zurück zum Wunsch',
+    returnToWishConfirmTitle: 'Zurück zum Wunsch?',
+    returnToWishConfirmBody:
+      'Der Plan wird aufgelöst und der Wunsch ist wieder offen.',
+    returning: 'Wird zurückgeführt …',
     completedTitle: 'Gemeinsam erlebt',
     completedBody: 'Aus einem Plan wurde etwas, das ihr erlebt habt.',
     sharedAchievementTitle: 'Gemeinsam geschafft',
@@ -262,6 +270,7 @@ const m5s3 = {
     privacy:
       'Die Ortssuche nutzt Photon. Beim Laden der Karte erhält der Kartendienst OpenFreeMap deine IP-Adresse und den Kartenausschnitt. Eure übrigen Inhalte werden nicht übermittelt.',
     attribution: 'Kartendaten © OpenStreetMap-Mitwirkende · Suche mit Photon',
+    attributionDataFrom: 'Daten von',
     zoomIn: 'Karte vergrößern',
     zoomOut: 'Karte verkleinern',
     keyboardHelp:
@@ -302,7 +311,6 @@ const m5s3 = {
     archived: 'Ort archiviert. Eure Verknüpfungen bleiben erhalten.',
     restored: 'Ort wiederhergestellt.',
     emptyArchive: 'Hier erscheinen eure archivierten Orte.',
-    archiveSaveFirst: 'Speichere zuerst deine Änderungen oder verwirf sie.',
 
     heading: 'Orte',
     intro: 'Ein Name reicht. Adresse und Standort könnt ihr ergänzen.',
@@ -311,6 +319,7 @@ const m5s3 = {
     create: 'Ort hinzufügen',
     loading: 'Ort wird geladen …',
     detailEyebrow: 'Gemeinsamer Ort',
+    menu: 'Menü des Ortes',
     name: 'Name',
     address: 'Adresse',
     latitude: 'Breitengrad',
@@ -352,6 +361,7 @@ const m5s3 = {
     addMoreDetails: 'Zeitraum und Ort ergänzen',
     loading: 'Kapitel wird geladen …',
     detailEyebrow: 'Gemeinsames Kapitel',
+    menu: 'Menü des Kapitels',
     startOn: 'Beginn',
     endOn: 'Bis',
     contextHeading: 'Zeitraum und Ort',
@@ -415,7 +425,18 @@ const m5s3 = {
     },
   },
   collection: {
-    menu: { open: 'Menü der Liste' },
+    menu: {
+      open: 'Menü der Liste',
+      send: 'An {{name}} schicken',
+      sendTitle: 'Liste an {{name}} schicken?',
+      sendBody:
+        'Die Liste erscheint auf dem „Wir“ der anderen Person, mit einer kurzen Mitteilung. Ihr bearbeitet weiter dieselbe Liste.',
+      sendConfirm: 'An {{name}} schicken',
+      sendSending: 'Wird geschickt …',
+      sendKeep: 'Nicht jetzt',
+      sendDone: 'An {{name}} geschickt.',
+      partnerFallback: 'deinen Partner',
+    },
     defaultShopping: {
       title: 'Einkauf',
       heading: 'Gemeinsam einkaufen',
@@ -439,6 +460,8 @@ const m5s3 = {
     progress: '{{count}} Einträge · {{completed}} erledigt',
     progress_one: '{{count}} Eintrag · {{completed}} erledigt',
     progress_other: '{{count}} Einträge · {{completed}} erledigt',
+    previewMore: '+ {{count}} weitere',
+    previewLess: 'Weniger anzeigen',
     openItem: '„{{title}}“ bearbeiten',
     itemActions: 'Aktionen für „{{title}}“',
     editItem: 'Eintrag bearbeiten',
@@ -454,7 +477,6 @@ const m5s3 = {
     create: 'Liste hinzufügen',
     loading: 'Liste wird geladen …',
     detailEyebrow: 'Gemeinsame Liste',
-    pinLabel: 'Auf „Wir“',
     pinToToday: 'Auf „Wir“ anzeigen',
     unpinFromToday: 'Nicht mehr auf „Wir“ anzeigen',
     itemCount_one: '{{count}} Eintrag',
@@ -495,7 +517,6 @@ const m5s3 = {
       heading: 'Zuletzt gekauft',
       add: '{{title}} wieder hinzufügen',
       remove: 'Vorschlag „{{title}}“ entfernen',
-      note: 'Aus euren beendeten Einkäufen. Nur ihr beide seht das.',
     },
     finish: {
       action: 'Einkauf fertig',

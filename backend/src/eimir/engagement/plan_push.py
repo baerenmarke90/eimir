@@ -18,6 +18,7 @@ from eimir.reminders.rules import PLAN_START_RULE
 from eimir.reminders.runtime_models import ReminderOccurrence
 
 OVERLAP = timedelta(hours=24)
+_SCHEDULE_NOTICE_KINDS = (NotificationKind.PLAN_CREATED, NotificationKind.WISH_DATE_ACCEPTED)
 
 
 def short_term(session: Session, notice: Notification, account: Account) -> bool:
@@ -59,7 +60,7 @@ def overlaps_attempted_delivery(
             PushDelivery.push_endpoint_id == delivery.push_endpoint_id,
         )
     )
-    if notice.kind == NotificationKind.PLAN_CREATED.value:
+    if notice.kind in _SCHEDULE_NOTICE_KINDS:
         return (
             notice.target_id is not None
             and notice.expires_at is not None
@@ -87,7 +88,7 @@ def overlaps_attempted_delivery(
     starts_at = due_at + timedelta(days=occurrence.days_before)
     creations = session.execute(
         endpoint_notices.with_only_columns(Notification.created_at, PushDelivery.attempts).where(
-            Notification.kind == NotificationKind.PLAN_CREATED.value,
+            Notification.kind.in_(_SCHEDULE_NOTICE_KINDS),
             Notification.target_id == notice.target_id,
             Notification.expires_at == starts_at,
             Notification.created_at.between(due_at - OVERLAP, due_at + OVERLAP),

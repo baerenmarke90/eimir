@@ -12,23 +12,28 @@ import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
-import { ProblemState } from './ProblemState';
+import {
+  ItemDeleteSheet,
+  ItemMenuOption,
+  ItemMenuSheet,
+  ItemMenuTrigger,
+  leaveItemMenu,
+} from './ItemActions';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
-import { TaskBackButton, TaskBackLink } from './TaskBackButton';
+import { BackSlotHost, TaskBackButton, TaskBackLink } from './TaskBackButton';
 
 export function PrivateAreaFrame({
   children,
-  overviewAction,
-  showNavigation = true,
   editorFirst = false,
+  itemFirst = false,
 }: {
   children: ReactNode;
-  overviewAction?: ReactNode;
-  showNavigation?: boolean;
   editorFirst?: boolean;
+  /** One note, list or gift idea: its own header row leads; no card or tabs. */
+  itemFirst?: boolean;
 }) {
   const { t } = useTranslation();
-  const navigation = showNavigation ? (
+  const navigation = itemFirst ? null : (
     <nav
       className="private-area-nav"
       aria-label={t('privateArea.navigation.aria')}
@@ -46,29 +51,28 @@ export function PrivateAreaFrame({
         {t('privateArea.partnerNotes.shortTitle')}
       </NavLink>
     </nav>
-  ) : null;
+  );
   return (
     <div className="page private-area-page">
-      {editorFirst ? null : (
-        <section
-          className="private-area-context"
-          aria-label={t('privateArea.privacyLabel')}
-        >
-          <div className="private-area-header-info">
-            <h1 className="private-area-title-row">
-              <EimirIcon name="nurfuer" className="private-area-lock-icon" />
-              {t('privateArea.eyebrow')}
-            </h1>
-            <p className="private-area-intro-text">
-              {t(
-                showNavigation
-                  ? 'privateArea.intro'
-                  : 'privateArea.entry.privacy',
-              )}
-            </p>
-          </div>
-          {overviewAction}
-        </section>
+      {editorFirst || itemFirst ? null : (
+        // Back sits beside the area card, the page's title (#1907 C4).
+        <div className="private-area-head">
+          <BackSlotHost className="private-area-back" />
+          <section
+            className="private-area-context"
+            aria-label={t('privateArea.privacyLabel')}
+          >
+            <div className="private-area-header-info">
+              <h1 className="private-area-title-row">
+                <EimirIcon name="nurfuer" className="private-area-lock-icon" />
+                {t('privateArea.eyebrow')}
+              </h1>
+              <p className="private-area-intro-text">
+                {t('privateArea.intro')}
+              </p>
+            </div>
+          </section>
+        </div>
       )}
       {!editorFirst && navigation}
       {children}
@@ -157,86 +161,178 @@ export function PrivateEditorDiscardSheet({
 }) {
   const { t } = useTranslation();
   const sheetRef = useRef<ShortTaskSheetHandle>(null);
+  const keepRef = useRef<HTMLButtonElement>(null);
   return (
     <ShortTaskSheet
       ref={sheetRef}
       open={open}
       role="alertdialog"
       title={t('taskBoundary.discardTitle')}
+      initialFocusRef={keepRef}
       onClose={onKeep}
     >
       <p>{t('taskBoundary.discardBody')}</p>
+      {/* Discard first in source order: the phone layout reverses the column,
+          so the destructive action ends up last. */}
       <div className="form-actions">
-        <button type="button" className="secondary" onClick={onKeep}>
-          {t('taskBoundary.keepEditing')}
-        </button>
         <button
           type="button"
           className="danger"
           onClick={() => sheetRef.current?.closeForNavigation(onDiscard)}
         >
-          {t('taskBoundary.discard')}
+          {t('taskBoundary.discardConfirm')}
+        </button>
+        <button
+          ref={keepRef}
+          type="button"
+          className="secondary"
+          onClick={onKeep}
+        >
+          {t('taskBoundary.keepEditing')}
         </button>
       </div>
     </ShortTaskSheet>
   );
 }
 
-export function DeleteConfirmation({
-  onDelete,
-  pending,
-  disabled = false,
-  error,
+/**
+ * State of the item-actions menu of one private item (note, gift idea or
+ * list): the three-dot sheet, the delete confirmation and their focus anchors.
+ * Call it before any early return of the detail page.
+ */
+export function usePrivateItemMenu() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const deleteSheet = useRef<ShortTaskSheetHandle>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
+  return {
+    menuOpen,
+    setMenuOpen,
+    deleteOpen,
+    setDeleteOpen,
+    trigger,
+    deleteSheet,
+    menuSheet,
+  };
+}
+
+export type PrivateItemMenu = ReturnType<typeof usePrivateItemMenu>;
+
+/** The three-dot button of a private item, named after the item. */
+export function PrivateItemMenuTrigger({
+  menu,
+  name,
 }: {
-  onDelete: () => void;
-  pending: boolean;
-  disabled?: boolean;
-  error: Error | null;
+  menu: PrivateItemMenu;
+  name: string;
 }) {
   const { t } = useTranslation();
-  const [confirming, setConfirming] = useState(false);
   return (
-    <section
-      className="private-area-danger"
-      aria-label={t('privateArea.delete')}
-    >
-      {!confirming ? (
-        <button
-          type="button"
-          className="secondary"
-          onClick={() => setConfirming(true)}
-          disabled={disabled || pending}
-        >
-          {t('privateArea.delete')}
-        </button>
-      ) : (
-        <div className="private-area-delete-confirmation" role="alert">
-          <div>
-            <h2>{t('privateArea.deleteConfirmTitle')}</h2>
-            <p>{t('privateArea.deleteConfirmBody')}</p>
-          </div>
-          <div className="private-area-actions">
-            <button
-              type="button"
-              className="tertiary"
-              onClick={() => setConfirming(false)}
-              disabled={pending}
-            >
-              {t('privateArea.deleteCancel')}
-            </button>
-            <button
-              type="button"
-              onClick={onDelete}
-              disabled={pending || disabled}
-            >
-              {pending
-                ? t('privateArea.deleting')
-                : t('privateArea.deleteConfirm')}
-            </button>
-          </div>
-        </div>
-      )}
-      {error ? <ProblemState error={error} /> : null}
-    </section>
+    <ItemMenuTrigger
+      triggerRef={menu.trigger}
+      label={t('privateArea.menuLabel', { name })}
+      open={menu.menuOpen}
+      onOpen={() => menu.setMenuOpen(true)}
+    />
+  );
+}
+
+/**
+ * The sheets behind the trigger: Edit first (when allowed), Delete last (when
+ * allowed) with its confirmation. Neither belongs to the editor itself.
+ */
+export function PrivateItemMenuSheets({
+  menu,
+  title,
+  canEdit,
+  canDelete,
+  onEdit,
+  disabled = false,
+  deletePending,
+  deleteError,
+  onDeleteRequested,
+  onConfirmDelete,
+}: {
+  menu: PrivateItemMenu;
+  title: string;
+  canEdit: boolean;
+  canDelete: boolean;
+  onEdit: () => void;
+  disabled?: boolean;
+  deletePending: boolean;
+  deleteError: unknown;
+  /** Lets the page clear an earlier delete error before the confirmation. */
+  onDeleteRequested: () => void;
+  onConfirmDelete: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <ItemMenuSheet
+        open={menu.menuOpen}
+        title={title}
+        restoreFocusRef={menu.trigger}
+        sheetRef={menu.menuSheet}
+        onClose={() => menu.setMenuOpen(false)}
+      >
+        {canEdit ? (
+          <ItemMenuOption
+            icon="pen"
+            title={t('privateArea.edit')}
+            disabled={disabled}
+            onClick={() =>
+              leaveItemMenu(menu.menuSheet, onEdit, () =>
+                menu.setMenuOpen(false),
+              )
+            }
+          />
+        ) : null}
+        {canDelete ? (
+          <ItemMenuOption
+            icon="trash"
+            danger
+            title={t('privateArea.delete')}
+            disabled={disabled}
+            onClick={() => {
+              menu.setMenuOpen(false);
+              onDeleteRequested();
+              menu.setDeleteOpen(true);
+            }}
+          />
+        ) : null}
+      </ItemMenuSheet>
+      <ItemDeleteSheet
+        sheetRef={menu.deleteSheet}
+        open={menu.deleteOpen}
+        title={t('privateArea.deleteConfirmTitle')}
+        body={t('privateArea.deleteConfirmBody')}
+        confirmLabel={t('privateArea.deleteConfirm')}
+        pendingLabel={t('privateArea.deleting')}
+        pending={deletePending}
+        error={deleteError}
+        restoreFocusRef={menu.trigger}
+        onClose={() => menu.setDeleteOpen(false)}
+        onConfirm={onConfirmDelete}
+      />
+    </>
+  );
+}
+
+/** The type label of one private item, marked with the area lock. */
+export function PrivateItemLabel({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <EimirIcon name="nurfuer" className="private-item-lock-icon" />
+      {children}
+    </>
+  );
+}
+
+/** The quiet privacy line below a private item's name. */
+export function PrivateItemPrivacy() {
+  const { t } = useTranslation();
+  return (
+    <p className="private-item-privacy">{t('privateArea.entry.privacy')}</p>
   );
 }

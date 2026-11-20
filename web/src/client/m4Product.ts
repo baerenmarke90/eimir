@@ -17,13 +17,22 @@ import {
   appRoutePath,
   chapterDetailPath,
   collectionDetailPath,
+  GAMES_GARDEN_ROUTE,
+  GAMES_HEART_HUNT_ROUTE,
+  GAMES_MOMENTS_ROUTE,
+  GAMES_PICTURE_PING_PONG_ROUTE,
+  GAMES_WHO_OF_US_ROUTE,
+  GAMES_WISH_DETECTIVE_ROUTE,
   heartMomentDetailPath,
   MEMORY_CREATE_ROUTE,
   memoryDetailPath,
   milestoneDetailPath,
   placeDetailPath,
   planDetailPath,
+  recapDetailPath,
   reminderDetailPath,
+  STORY_RECAPS_ROUTE,
+  sharedNoteDetailPath,
   wishDetailPath,
 } from './routes';
 
@@ -76,7 +85,11 @@ export function searchResultPath(
     case 'COLLECTION':
       return collectionDetailPath(id);
     case 'COLLECTION_ITEM':
-      return appRoutePath('more');
+      // An entry opens its list when the parent is known; otherwise the
+      // Listen destination, where Lists and Notes live.
+      return parentId ? collectionDetailPath(parentId) : appRoutePath('shared');
+    case 'SHARED_NOTE':
+      return sharedNoteDetailPath(id);
     case 'PRIVATE_NOTE':
       return privateNotePath(id);
     case 'GIFT_IDEA':
@@ -147,6 +160,22 @@ export function engagementTargetPath(
       return chapterDetailPath(targetId);
     case 'COLLECTION':
       return collectionDetailPath(targetId);
+    case 'PICTURE_GAME':
+      return GAMES_PICTURE_PING_PONG_ROUTE;
+    // A remote couple game opens its own page; the page reads the current game.
+    case 'WHO_OF_US_GAME':
+      return GAMES_WHO_OF_US_ROUTE;
+    case 'WISH_DETECTIVE_GAME':
+      return GAMES_WISH_DETECTIVE_ROUTE;
+    case 'OUR_MOMENTS_GAME':
+      return GAMES_MOMENTS_ROUTE;
+    case 'SHARED_NOTE':
+      return sharedNoteDetailPath(targetId);
+    case 'GARDEN_SEED':
+    case 'GARDEN_BOUQUET':
+      return GAMES_GARDEN_ROUTE;
+    case 'RECAP':
+      return recapDetailPath(targetId);
     case 'WISH_SELECTION':
       return '/plan/choose';
     case 'TRANSFER_EXPORT':
@@ -163,6 +192,17 @@ export function notificationPath(item: {
   targetType: EngagementTarget | null;
   targetId: string | null;
 }): string | null {
+  if (
+    (item.kind === 'WISH_DATE_PROPOSED' ||
+      item.kind === 'WISH_DATE_COUNTERED') &&
+    item.targetType === 'WISH' &&
+    item.targetId
+  )
+    return `${wishDetailPath(item.targetId)}#terminvorschlag`;
+
+  if (item.kind === 'HEART_HUNT_HIDDEN' || item.kind === 'HEART_HUNT_FOUND')
+    return GAMES_HEART_HUNT_ROUTE;
+
   return (
     engagementTargetPath(item.targetType, item.targetId) ??
     (item.kind === 'GENTLE_PROMPT'
@@ -171,7 +211,10 @@ export function notificationPath(item: {
         ? '/plan'
         : item.kind === 'PARTNER_JOINED'
           ? '/today'
-          : null)
+          : // Several earlier recaps at once open the overview (#1744).
+            item.kind === 'RECAP_READY'
+            ? STORY_RECAPS_ROUTE
+            : null)
   );
 }
 

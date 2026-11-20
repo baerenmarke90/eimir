@@ -1,0 +1,81 @@
+/*
+ * "Euer Gartenjahr" (#1907 H3 follow-up): the replay opens as a calm dialog
+ * above the garden. The whole garden fits the width (the stage is a narrow
+ * garden frame), so every planting can be seen growing; with reduced motion the start and today stand next to each other.
+ */
+
+.garden-playback-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: end center;
+  padding: var(--space-4);
+  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  background: var(--color-scrim);
+  animation: eimir-motion-garden-playback-in var(--duration-transition)
+    var(--easing-standard) both;
+}
+
+.garden-playback {
+  display: grid;
+  gap: var(--space-3);
+  width: min(100%, 40rem);
+  max-height: calc(100dvh - 2 * var(--space-4));
+  overflow-y: auto;
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--garden-card);
+  box-shadow: var(--shadow-soft);
+  animation: eimir-motion-garden-unfold var(--duration-context)
+    var(--easing-standard) both;
+  transform-origin: 50% 100%;
+}
+
+.garden-playback h2,
+.garden-playback .garden-hint {
+  margin: 0;
+}
+
+.garden-playback-caption {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.garden-playback-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.garden-playback-pair figure {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.garden-playback-pair figcaption {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+@media (min-width: 48rem) {
+  .garden-playback-backdrop {
+    place-items: center;
+  }
+}
+
+.garden-playback-action {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.garden-playback-action .garden-hint {
+  margin: 0;
+}

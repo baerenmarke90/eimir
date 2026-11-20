@@ -2,6 +2,8 @@ import { useId, useRef, useState } from 'react';
 import type { PartnerLocationApi } from '../api/generated/apis/PartnerLocationApi';
 import type { PartnerLocationSettingsView } from '../api/generated/models/PartnerLocationSettingsView';
 import {
+  devicePreciseAccess,
+  type LocationPrecision,
   publishOwnPositionIfDue,
   requestLocationPermission,
 } from '../client/approximateLocation';
@@ -156,11 +158,64 @@ export function LevelChoice({
   );
 }
 
-export type ShareOutcome = 'shared' | 'unmeasured' | 'permission' | 'failed';
+/**
+ * "Approximate" or "Precise" with a one-line explanation of the selected
+ * option; the same wording is used in the start sheet and in Settings.
+ */
+export function PrecisionChoice({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: LocationPrecision;
+  onChange: (value: LocationPrecision) => void;
+  disabled?: boolean;
+}) {
+  const { t } = useTranslation();
+  const name = useId();
+  return (
+    <div className="partner-location-precision">
+      <SegmentedChoice
+        legend={t('partnerLocation.precisionLegend')}
+        name={name}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        options={[
+          {
+            value: 'APPROXIMATE' as LocationPrecision,
+            label: t('partnerLocation.precisionApproximate'),
+          },
+          {
+            value: 'PRECISE' as LocationPrecision,
+            label: t('partnerLocation.precisionPrecise'),
+          },
+        ]}
+      />
+      <p className="partner-location-hint" aria-live="polite">
+        {t(
+          value === 'PRECISE'
+            ? 'partnerLocation.precisionPreciseHint'
+            : 'partnerLocation.precisionApproximateHint',
+        )}
+      </p>
+    </div>
+  );
+}
+
+export type ShareOutcome =
+  | 'shared'
+  /** Shared, but Android only granted the approximate location. */
+  | 'approximateOnly'
+  | 'unmeasured'
+  | 'permission'
+  | 'failed';
 
 /**
- * Asks for the approximate OS permission only now (after the explicit choice),
- * stores the consent and publishes one approximate position.
+ * Asks for the OS permission only now (after the explicit choice; the precise
+ * one only for a precise choice), stores the consent and publishes one
+ * position. A precise choice that Android only partly grants is still shared,
+ * approximately, and says so.
  */
 export async function shareWithPermission({
   api,
@@ -169,6 +224,7 @@ export async function shareWithPermission({
   spaceId,
   level,
   duration,
+  precision = 'APPROXIMATE',
 }: {
   api: Pick<PartnerLocationApi, 'publishPartnerLocationSnapshot'>;
   writes: Writes;
@@ -176,15 +232,19 @@ export async function shareWithPermission({
   spaceId: string;
   level: SharedLevel;
   duration: SharingDuration;
+  precision?: LocationPrecision;
 }): Promise<ShareOutcome> {
-  const permission = await requestLocationPermission();
+  const permission = await requestLocationPermission(precision);
   if (permission !== 'granted') return 'permission';
   let view: PartnerLocationSettingsView;
   try {
-    view = await writes.share(level, duration);
+    view = await writes.share(level, duration, precision);
   } catch {
     return 'failed';
   }
+  const approximateOnly =
+    precision === 'PRECISE' &&
+    (await devicePreciseAccess()) === 'approximate-only';
   try {
     const published = await publishOwnPositionIfDue({
       api,
@@ -197,10 +257,17 @@ export async function shareWithPermission({
     // Consent is stored; the next open or resume measures again.
     return 'unmeasured';
   }
-  return 'shared';
+  return approximateOnly ? 'approximateOnly' : 'shared';
 }
 
-export function sharedSnackbar(level: SharedLevel): void {
+export function sharedSnackbar(
+  level: SharedLevel,
+  outcome: ShareOutcome = 'shared',
+): void {
+  if (outcome === 'approximateOnly') {
+    postSnackbar('partnerLocation.precisionApproximateOnlyShort');
+    return;
+  }
   postSnackbar(
     level === 'DISTANCE_AND_MAP'
       ? 'partnerLocation.sharedMap'
@@ -216,6 +283,7 @@ export function PartnerLocationShareSheet({
   open,
   mode,
   level,
+  precision = 'APPROXIMATE',
   partner,
   initialDuration = DEFAULT_SHARING_DURATION,
   api,
@@ -228,6 +296,8 @@ export function PartnerLocationShareSheet({
   open: boolean;
   mode: 'confirm' | 'duration';
   level: SharedLevel;
+  /** The owner's stored choice; the sheet never changes it. */
+  precision?: LocationPrecision;
   partner: string;
   initialDuration?: SharingDuration;
   api: Pick<PartnerLocationApi, 'publishPartnerLocationSnapshot'>;
@@ -270,13 +340,14 @@ export function PartnerLocationShareSheet({
         spaceId,
         level,
         duration,
+        precision,
       });
       if (outcome === 'permission') {
         setMessage(t('partnerLocation.permissionNeeded'));
       } else if (outcome === 'failed') {
         setMessage(t('partnerLocation.writeFailed'));
       } else {
-        sharedSnackbar(level);
+        sharedSnackbar(level, outcome);
         onOutcome(outcome);
         onClose();
       }
@@ -332,8 +403,17 @@ export function PartnerLocationShareSheet({
       {mode === 'confirm' ? (
         <p className="partner-location-sheet-lead">
           {level === 'DISTANCE_AND_MAP'
-            ? t('partnerLocation.confirmMapBody')
-            : t('partnerLocation.confirmDistanceBody', { partner })}
+            ? t(
+                precision === 'PRECISE'
+                  ? 'partnerLocation.confirmMapBodyPrecise'
+                  : 'partnerLocation.confirmMapBody',
+              )
+            : t(
+                precision === 'PRECISE'
+                  ? 'partnerLocation.confirmDistanceBodyPrecise'
+                  : 'partnerLocation.confirmDistanceBody',
+                { partner },
+              )}
         </p>
       ) : null}
       <DurationChoice value={duration} onChange={setDuration} disabled={busy} />
@@ -366,10 +446,10 @@ export function DisclosurePoint({
   return (
     <li>
       <svg
+        className="inline-icon"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.7"
         strokeLinecap="round"
         strokeLinejoin="round"
         aria-hidden="true"
@@ -389,6 +469,7 @@ export function DisclosurePoint({
 export function BackgroundLocationDisclosure({
   open,
   level,
+  precision = 'APPROXIMATE',
   partner,
   busy,
   onContinue,
@@ -396,6 +477,7 @@ export function BackgroundLocationDisclosure({
 }: {
   open: boolean;
   level: SharedLevel;
+  precision?: LocationPrecision;
   partner: string;
   busy: boolean;
   onContinue: () => void;
@@ -439,14 +521,22 @@ export function BackgroundLocationDisclosure({
       <p className="partner-location-sheet-lead">
         {t(
           level === 'DISTANCE_AND_MAP'
-            ? 'partnerLocation.disclosureBodyMap'
-            : 'partnerLocation.disclosureBody',
+            ? precision === 'PRECISE'
+              ? 'partnerLocation.disclosureBodyMapPrecise'
+              : 'partnerLocation.disclosureBodyMap'
+            : precision === 'PRECISE'
+              ? 'partnerLocation.disclosureBodyPrecise'
+              : 'partnerLocation.disclosureBody',
           { partner },
         )}
       </p>
       <ul className="partner-location-points">
         <DisclosurePoint icon="bolt">
-          {t('partnerLocation.disclosurePassive')}
+          {t(
+            precision === 'PRECISE'
+              ? 'partnerLocation.disclosurePassivePrecise'
+              : 'partnerLocation.disclosurePassive',
+          )}
         </DisclosurePoint>
         <DisclosurePoint icon="shield">
           {t('partnerLocation.disclosurePurpose', { partner })}

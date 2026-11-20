@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import {
+  createContext,
   type ReactNode,
+  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -12,24 +14,26 @@ import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
 import { ApiRuntimeProvider } from '../client/apiRuntimeContext';
+import { isAndroidApp } from '../client/config';
 import { notificationUnreadCountQueryKey } from '../client/notificationQueries';
 import {
   PRODUCT_CACHE_FALLBACK_EVENT,
   PRODUCT_CACHE_NETWORK_EVENT,
   type ProductCacheEventDetail,
 } from '../client/productReadCache';
-import { ProductTourProvider } from '../client/productTour';
 import { ProPresentationProvider } from '../client/proPresentation';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
 import {
   type AppRouteDefinition,
-  activeNavigationArea,
+  type AppRouteId,
   appRoutePath,
   COLLECTION_CREATE_ROUTE,
   DEFAULT_APP_ROUTE,
   MEMORY_CREATE_ROUTE,
+  NOTE_CREATE_ROUTE,
   PARTNER_LOCATION_MAP_ROUTE,
   PRIMARY_APP_ROUTES,
+  stickyNavigationArea,
 } from '../client/routes';
 import {
   captureSessionOwner,
@@ -44,10 +48,12 @@ import { TaskOriginProvider } from '../client/taskOrigin';
 import { useDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
+import { scheduleDeferredPrefetch } from '../deferredModules';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { DestinationIcon } from './DestinationIcon';
 import { GamesProductArea } from './GamesProductArea';
+import { LogoutDeviceDataSheet } from './LogoutDeviceDataSheet';
 import { ForegroundNotificationHost } from './PartnerGestureReceipt';
 import { PresenceHeartbeat } from './PresenceHeartbeat';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
@@ -56,12 +62,30 @@ import { SubpageNavigation } from './SubpageNavigation';
 import { ThemeControl } from './ThemeControl';
 import { useNavigationMotion } from './useNavigationMotion';
 
+/** The highlighted primary area, resolved once per shell (#2063). */
+const ActiveNavigationAreaContext = createContext<AppRouteId | null>(null);
+
+/**
+ * Keeps Mehr highlighted on Momente pages that were opened from Mehr; see
+ * `stickyNavigationArea`. The previous area is the one shown before this path.
+ */
+function useActiveNavigationArea(pathname: string): AppRouteId | null {
+  const previous = useRef<AppRouteId | null>(null);
+  const area = useMemo(
+    () => stickyNavigationArea(previous.current, pathname),
+    [pathname],
+  );
+  useEffect(() => {
+    previous.current = area;
+  }, [area]);
+  return area;
+}
+
 function NavigationLink({ route }: { route: AppRouteDefinition }) {
   const { t } = useTranslation();
-  const location = useLocation();
   const { unreadCount } = useShellUtilities();
   const hasUnread = route.id === 'more' && (unreadCount ?? 0) > 0;
-  const activeArea = activeNavigationArea(location.pathname);
+  const activeArea = useContext(ActiveNavigationAreaContext);
   const isActive = activeArea === route.id;
   const { destinationFor, navigatePrimary } = usePrimaryNavigation();
 
@@ -165,6 +189,9 @@ interface AppShellProps {
 }
 
 export function AppShell(props: AppShellProps) {
+  // Wir renders first; the rest of the app follows in the background, so later
+  // navigations render from memory instead of showing a loading state.
+  useEffect(() => scheduleDeferredPrefetch(), []);
   return (
     <ApiRuntimeProvider
       apiBaseUrl={props.apiBaseUrl}
@@ -178,12 +205,7 @@ export function AppShell(props: AppShellProps) {
           accountId={props.account.id}
           spaceId={props.spaceId}
         >
-          <ProductTourProvider
-            accountId={props.account.id}
-            spaceId={props.spaceId}
-          >
-            <AuthenticatedAppShell {...props} />
-          </ProductTourProvider>
+          <AuthenticatedAppShell {...props} />
         </TaskOriginProvider>
       </ProPresentationProvider>
     </ApiRuntimeProvider>
@@ -224,9 +246,17 @@ function AuthenticatedAppShell({
     });
   }
 
+  // The Android app names what leaves the phone before signing out.
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
+  function requestLogout(): void {
+    if (isAndroidApp()) setConfirmingLogout(true);
+    else logout();
+  }
+
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
   const pathname = location.pathname.replace(/\/$/, '');
+  const activeArea = useActiveNavigationArea(pathname);
   const navigationType = useNavigationType();
   const { navigatePrimary } = usePrimaryNavigation();
   useNavigationMotion({
@@ -253,6 +283,8 @@ function AuthenticatedAppShell({
     location.pathname === PARTNER_LOCATION_MAP_ROUTE ||
     location.pathname === '/story/heart-moments/new' ||
     /^\/story\/(?:happiness|time-travel)\/new$/.test(location.pathname) ||
+    location.pathname === NOTE_CREATE_ROUTE ||
+    /^\/more\/notes\/[^/]+\/edit$/.test(location.pathname) ||
     location.pathname === '/plan/plans/new' ||
     location.pathname === '/plan/wishes/new' ||
     location.pathname === '/plan/chapters/new' ||
@@ -316,112 +348,124 @@ function AuthenticatedAppShell({
 
   return (
     <ShellUtilitiesContext.Provider
-      value={{ unreadCount, serverAdmin, onLogout: logout }}
+      value={{ unreadCount, serverAdmin, onLogout: requestLogout }}
     >
-      <div
-        className="product-shell"
-        data-focused-task={isFocusedTask}
-        data-top-surface={
-          location.pathname === DEFAULT_APP_ROUTE ? 'today' : undefined
-        }
-      >
-        <ThemeControl />
-        <RouteEntryHandoff />
-        <PresenceHeartbeat accountId={account.id} spaceId={spaceId} />
-        <a className="skip-link" href="#main-content">
-          {t('navigation.skipToContent')}
-        </a>
+      <ActiveNavigationAreaContext.Provider value={activeArea}>
+        <LogoutDeviceDataSheet
+          open={confirmingLogout}
+          onCancel={() => setConfirmingLogout(false)}
+          onConfirm={() => {
+            setConfirmingLogout(false);
+            logout();
+          }}
+        />
+        <div
+          className="product-shell"
+          data-focused-task={isFocusedTask}
+          data-top-surface={
+            location.pathname === DEFAULT_APP_ROUTE ? 'today' : undefined
+          }
+        >
+          <ThemeControl />
+          <RouteEntryHandoff />
+          <PresenceHeartbeat accountId={account.id} spaceId={spaceId} />
+          <a className="skip-link" href="#main-content">
+            {t('navigation.skipToContent')}
+          </a>
 
-        {!isFocusedTask ? (
-          <header className="app-header product-topbar">
-            <nav className="shell-nav" aria-label={t('navigation.primary')}>
-              <PrimaryNavigationLinks />
-            </nav>
-            <div className="header-actions">
-              <span
-                className={`shared-context ${isPrivateArea ? 'private-context' : ''}`}
-              >
-                {isPrivateArea ? (
-                  <>
-                    <span aria-hidden="true">🔒</span>{' '}
-                    {t('privateArea.privacyLabel')}
-                  </>
-                ) : (
-                  <>
-                    <span aria-hidden="true">♥</span> {t('header.sharedArea')}
-                  </>
-                )}
+          {!isFocusedTask ? (
+            <header className="app-header product-topbar">
+              <nav className="shell-nav" aria-label={t('navigation.primary')}>
+                <PrimaryNavigationLinks />
+              </nav>
+              <div className="header-actions">
+                <span
+                  className={`shared-context ${isPrivateArea ? 'private-context' : ''}`}
+                >
+                  {isPrivateArea ? (
+                    <>
+                      <span aria-hidden="true">🔒</span>{' '}
+                      {t('privateArea.privacyLabel')}
+                    </>
+                  ) : (
+                    <>
+                      <span aria-hidden="true">♥</span> {t('header.sharedArea')}
+                    </>
+                  )}
+                </span>
+              </div>
+            </header>
+          ) : null}
+
+          {cachedAtLabel ? (
+            <div className="offline-banner" role="status">
+              <span aria-hidden="true">↯</span>
+              <span>
+                {t('cacheRuntime.cachedBanner', { timestamp: cachedAtLabel })}
               </span>
             </div>
-          </header>
-        ) : null}
+          ) : !online ? (
+            <div className="offline-banner" role="status">
+              <span aria-hidden="true">↯</span>
+              <span>{t('states.offline.banner')}</span>
+            </div>
+          ) : null}
 
-        {cachedAtLabel ? (
-          <div className="offline-banner" role="status">
-            <span aria-hidden="true">↯</span>
-            <span>
-              {t('cacheRuntime.cachedBanner', { timestamp: cachedAtLabel })}
-            </span>
-          </div>
-        ) : !online ? (
-          <div className="offline-banner" role="status">
-            <span aria-hidden="true">↯</span>
-            <span>{t('states.offline.banner')}</span>
-          </div>
-        ) : null}
-
-        <div className="product-shell-body">
-          <main
-            ref={mainRef}
-            id="main-content"
-            className="product-main"
-            data-area={
-              location.pathname.startsWith('/more') ? 'more' : undefined
-            }
-            tabIndex={-1}
-          >
-            <AppSurfacePullToRefresh pathname={location.pathname} />
-            {primaryTabs}
-            <SubpageNavigation>
-              {isGamesHub ? (
-                <GamesProductArea
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={accessToken}
-                  accountId={account.id}
-                  spaceId={spaceId}
-                />
-              ) : (
-                children
-              )}
-            </SubpageNavigation>
-          </main>
-        </div>
-
-        {!isFocusedTask ? (
-          <div className="mobile-bottom-shell" ref={bottomNavigationRef}>
-            <nav
-              className="mobile-bottom-nav"
-              aria-label={t('navigation.primary')}
+          <div className="product-shell-body">
+            <main
+              ref={mainRef}
+              id="main-content"
+              className="product-main"
+              data-area={
+                activeArea === 'more' && location.pathname.startsWith('/more')
+                  ? 'more'
+                  : undefined
+              }
+              tabIndex={-1}
             >
-              <PrimaryNavigationLinks />
-            </nav>
+              <AppSurfacePullToRefresh pathname={location.pathname} />
+              {primaryTabs}
+              <SubpageNavigation>
+                {isGamesHub ? (
+                  <GamesProductArea
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={accessToken}
+                    accountId={account.id}
+                    spaceId={spaceId}
+                  />
+                ) : (
+                  children
+                )}
+              </SubpageNavigation>
+            </main>
           </div>
-        ) : null}
 
-        {spaceId && accessToken ? (
-          <ForegroundNotificationHost
-            key={JSON.stringify([apiBaseUrl, account.id, spaceId])}
-            apiBaseUrl={apiBaseUrl}
-            accessToken={accessToken}
-            accountId={account.id}
-            spaceId={spaceId}
-            unreadCount={unreadCount}
-            suppressed={isFocusedTask}
-            openNotification={openNotification}
-          />
-        ) : null}
-        <Snackbar />
-      </div>
+          {!isFocusedTask ? (
+            <div className="mobile-bottom-shell" ref={bottomNavigationRef}>
+              <nav
+                className="mobile-bottom-nav"
+                aria-label={t('navigation.primary')}
+              >
+                <PrimaryNavigationLinks />
+              </nav>
+            </div>
+          ) : null}
+
+          {spaceId && accessToken ? (
+            <ForegroundNotificationHost
+              key={JSON.stringify([apiBaseUrl, account.id, spaceId])}
+              apiBaseUrl={apiBaseUrl}
+              accessToken={accessToken}
+              accountId={account.id}
+              spaceId={spaceId}
+              unreadCount={unreadCount}
+              suppressed={isFocusedTask}
+              openNotification={openNotification}
+            />
+          ) : null}
+          <Snackbar />
+        </div>
+      </ActiveNavigationAreaContext.Provider>
     </ShellUtilitiesContext.Provider>
   );
 }

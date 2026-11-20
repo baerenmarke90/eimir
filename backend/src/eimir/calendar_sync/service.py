@@ -12,7 +12,8 @@ the explicit connect/list actions of the sponsoring person.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from base64 import urlsafe_b64encode
+from dataclasses import dataclass, replace
 from datetime import timedelta
 from typing import Any, Literal
 from uuid import UUID
@@ -47,7 +48,9 @@ from eimir.db.locks import lock_subject
 from eimir.domain.events import EventType
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import Capability
+from eimir.i18n import DEFAULT_LOCALE, account_locale, text
 from eimir.identity.effects import has_active_membership
+from eimir.identity.models import Account
 from eimir.jobs import queue
 from eimir.jobs.errors import RetryableJobError
 from eimir.jobs.models import Job, JobStatus
@@ -59,6 +62,7 @@ from eimir.providers.caldav import CalDavAccount, CalDavClient, origin_label
 from eimir.providers.calendar import (
     CalendarAuthError,
     CalendarEvent,
+    CalendarEventLink,
     CalendarEventMissingError,
     CalendarProvider,
     CalendarProviderError,
@@ -690,10 +694,22 @@ def _apply(
         link.state == LinkState.SYNCED.value
         and plan is not None
         and link.synced_plan_version == plan.version
+        and (plan.discreet or link.backlink_plan_version == plan.version)
     ):
         return
 
     assert plan is not None
+    if not plan.discreet:
+        sponsor = session.get(Account, target.sponsor_account_id)
+        locale = account_locale(sponsor) if sponsor is not None else DEFAULT_LOCALE
+        short_id = urlsafe_b64encode(plan.id.bytes).decode("ascii").rstrip("=")
+        base_url = get_settings().public_base_url.rstrip("/")
+        event = replace(
+            event,
+            backlink=CalendarEventLink(
+                url=f"{base_url}/p/{short_id}", label=text("calendar.plan.open", locale)
+            ),
+        )
     version = link.payload.provider_version
     overwrite = link.reason == "OVERWRITE"
     if overwrite:
@@ -725,6 +741,7 @@ def _apply(
     link.state = LinkState.SYNCED.value
     link.reason = None
     link.synced_plan_version = plan.version
+    link.backlink_plan_version = plan.version if event.backlink is not None else None
     link.synced_at = clock.now()
 
 

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { STORY_OURS_ROUTE } from '../client/routes';
@@ -54,7 +54,6 @@ describe('MoreOverviewPage', () => {
       '/more/private',
       '/more/people',
       '/more/places',
-      '/more/collections',
       '/more/insights',
       '/games',
       '/more/notifications',
@@ -69,6 +68,10 @@ describe('MoreOverviewPage', () => {
     expect(weeklyInsightsIndex).toBeGreaterThan(-1);
     expect(weeklyInsightsIndex).toBeLessThan(peopleIndex);
 
+    // Lists and Notes live in the Gemeinsam primary destination, not in More.
+    expect(html).not.toContain('href="/more/collections"');
+    expect(html).not.toContain('href="/more/notes"');
+
     // #1790 E1: years and recaps share one destination that opens the years.
     expect(html).not.toContain('href="/more/passport"');
     expect(html).not.toContain('href="/story/recaps"');
@@ -80,7 +83,6 @@ describe('MoreOverviewPage', () => {
       de.more.subtitles.chapters,
       de.more.subtitles.yearsAndRecaps,
       de.more.subtitles.insights,
-      de.more.subtitles.lists,
       de.more.subtitles.places,
       de.more.subtitles.people,
       de.more.subtitles.games,
@@ -134,7 +136,7 @@ describe('MoreOverviewPage', () => {
     const rowMatches = html.match(
       /class="more-destination(?: more-profile-destination)?"/g,
     );
-    expect(rowMatches).toHaveLength(14);
+    expect(rowMatches).toHaveLength(13);
     expect(html).toContain('more-profile-avatar');
     expect(html).toContain('person-identity-avatar-medium');
 
@@ -257,4 +259,92 @@ describe('MoreOverviewPage', () => {
       expect(html.includes('href="/legal/privacy"')).toBe(shown);
     },
   );
+});
+
+describe('account ID copy on More', () => {
+  const ACCOUNT_ID = '0195b3c1-7a4e-7c2f-9d11-3f5a6b7c8d9e';
+
+  function renderMore() {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+    });
+    queryClient.setQueryData(['profile-identity', 'space-1', ACCOUNT_ID], {
+      accountId: ACCOUNT_ID,
+      displayName: 'Alex',
+      profileAttachmentId: null,
+      version: 1,
+    });
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <MoreOverviewPage
+            apiBaseUrl="http://api.example.test"
+            accessToken="test-token"
+            account={{ id: ACCOUNT_ID, displayName: 'Alex' }}
+            spaceId="space-1"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('copies the ID without showing it, confirms quietly and returns to rest', async () => {
+    vi.useFakeTimers();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } });
+    const { container, unmount } = renderMore();
+    const action = container.querySelector('.more-account-id-action');
+    if (!(action instanceof HTMLButtonElement))
+      throw new Error('The account ID action is missing');
+
+    // The ID is a support aid: it sits below sign-out and is never displayed.
+    expect(action.textContent).toBe(de.more.accountId.copy);
+    expect(container.textContent).not.toContain(ACCOUNT_ID);
+    expect(
+      container.querySelector('.more-account-actions .more-account-id'),
+    ).not.toBeNull();
+
+    await act(async () => {
+      fireEvent.click(action);
+    });
+
+    expect(writeText).toHaveBeenCalledWith(ACCOUNT_ID);
+    expect(action.textContent).toBe(de.more.accountId.copied);
+    expect(screen.getByRole('status').textContent).toBe(
+      de.more.accountId.copied,
+    );
+    expect(container.textContent).not.toContain(ACCOUNT_ID);
+
+    act(() => {
+      vi.advanceTimersByTime(2400);
+    });
+    expect(action.textContent).toBe(de.more.accountId.copy);
+    expect(screen.getByRole('status').textContent).toBe('');
+    unmount();
+  });
+
+  it('shows the ID to select by hand only when the device cannot copy', async () => {
+    vi.stubGlobal('navigator', { ...navigator, clipboard: undefined });
+    const { container, unmount } = renderMore();
+    const action = screen.getByRole('button', {
+      name: de.more.accountId.copy,
+    });
+
+    await act(async () => {
+      fireEvent.click(action);
+    });
+
+    const fallback = screen.getByRole('alert');
+    expect(fallback.textContent).toContain(de.more.accountId.failed);
+    expect(fallback.querySelector('code')?.textContent).toBe(ACCOUNT_ID);
+    expect(
+      container.querySelector('.more-account-id-action')?.textContent,
+    ).toBe(de.more.accountId.copy);
+    unmount();
+  });
 });

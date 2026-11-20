@@ -222,6 +222,7 @@ def test_unified_push_public_key_requires_auth_and_configuration(
         "vapidPublicKey": provider.vapid_public_key,
         "notificationReferenceVersion": 1,
         "localeVersion": 1,
+        "wishDatePreviewVersion": 1,
     }
     assert private_key.decode() not in response.text
     unified_only = client.get(f"{BASE}/configuration", headers=auth(token))

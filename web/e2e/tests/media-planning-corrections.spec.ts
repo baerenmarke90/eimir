@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import composerCopy from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
@@ -24,6 +24,7 @@ import {
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
+import { editViaMenu } from '../support/itemMenu';
 
 const copy = fixtureCopy.mediaPlanning;
 const stamp = '2026-11-04T09:00:00Z';
@@ -352,9 +353,7 @@ test('Plans load on scroll and an Edit-only Wish link preserves the unsaved titl
     exact: true,
   });
   await expect(linkWish).toHaveCount(0);
-  await page
-    .getByRole('button', { name: m5s3.common.edit, exact: true })
-    .click();
+  await editViaMenu(page, m5s3.common.edit);
   await page
     .getByRole('textbox', { name: m5s3.common.title, exact: true })
     .fill(copy.edit);
@@ -415,9 +414,7 @@ test('Memory linking stays behind Edit and dropped photos join the existing save
   await expect(
     page.getByRole('button', { name: memoryProduct.planning.add }),
   ).toHaveCount(0);
-  await page
-    .getByRole('link', { name: memoryProduct.edit, exact: true })
-    .click();
+  await editViaMenu(page, memoryProduct.edit);
   await expect(
     page.getByRole('button', { name: memoryProduct.planning.add }),
   ).toBeVisible();
@@ -686,10 +683,7 @@ test.describe('integrated soft media choices', () => {
         `/plan/plans/${plans[0].id}`,
       ].entries()) {
         await page.goto(route);
-        if (index === 3)
-          await page
-            .getByRole('button', { name: m5s3.common.edit, exact: true })
-            .click();
+        if (index === 3) await editViaMenu(page, m5s3.common.edit);
         if (scenario.large)
           await page.evaluate(() => {
             document.documentElement.style.fontSize = '200%';

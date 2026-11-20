@@ -4,8 +4,11 @@ import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import navigation from '../../src/i18n/locales/navigation';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { pickPlanDay } from '../support/planCalendar';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { editViaMenu } from '../support/itemMenu';
 import { closePlanSchedule, showPlanSchedule } from '../support/memoryDiary';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -377,6 +380,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
       return;
     }
 
+    if (await fulfillNoOccasionSources(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
@@ -473,13 +477,13 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   ).toBeVisible();
 
   // Reschedule to an earlier timed date using the #838 date + optional-time contract.
-  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await editViaMenu(page, de.common.edit);
   await showPlanSchedule(page);
-  const dateInput = page.locator('#plan-schedule-date');
+  // Phones choose the day in the in-app calendar (#2063).
+  const sheet = page.getByRole('dialog', { name: m5s3.plan.schedule });
   const timeInput = page.locator('#plan-schedule-time');
-  await expect(dateInput).toBeVisible();
   await expect(timeInput).toBeVisible();
-  await dateInput.fill('2026-09-05');
+  await pickPlanDay(sheet, '2026-09-05');
   await timeInput.fill('10:00');
   await closePlanSchedule(page);
 

@@ -169,7 +169,7 @@
 
 .relationship-story-page .passport-metrics a {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: var(--space-4) minmax(0, 1fr) auto;
   align-items: baseline;
   gap: var(--space-2) var(--space-3);
   min-height: 0;
@@ -192,7 +192,24 @@
 }
 
 .relationship-story-page .passport-metric-bar {
-  grid-column: 1 / -1;
+  grid-column: 2 / -1;
+}
+
+/* The three Story kinds keep their lifeline shape and colour; plans, places
+   and wishes keep the neutral brand bar without a glyph. */
+.relationship-story-page .passport-metric-glyph {
+  align-self: center;
+  font-size: 0.875rem;
+}
+
+.relationship-story-page .passport-metric-story .passport-metric-bar::after {
+  background: var(--story-kind-color);
+}
+
+@media (forced-colors: active) {
+  .relationship-story-page .passport-metric-bar::after {
+    background: CanvasText;
+  }
 }
 
 /* The story over time: the lifeline from Wir, without its own heading. */
@@ -360,13 +377,8 @@
 @media (prefers-reduced-motion: no-preference) {
   .relationship-story-page .passport-progress::after,
   .relationship-story-page .passport-metric-bar::after {
-    animation: relationship-story-bar calc(var(--duration-sequence-beat) * 3.5)
-      var(--easing-standard) var(--duration-context) backwards;
-  }
-}
-
-@keyframes relationship-story-bar {
-  from {
-    transform: scaleX(0);
+    animation: eimir-motion-enter-reach
+      calc(var(--duration-sequence-beat) * 3.5) var(--easing-standard)
+      var(--duration-context) backwards;
   }
 }

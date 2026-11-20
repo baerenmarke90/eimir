@@ -9,11 +9,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { DashboardView } from '../api/generated/models/DashboardView';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import { Configuration } from '../client/apiConfiguration';
 import { authorDisplayName } from '../client/authorPresentation';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { dashboardQueryKey } from '../client/dashboardQueries';
 import {
   NOTIFICATION_WAKE_EVENT,
@@ -21,16 +22,25 @@ import {
   notificationArrivalKey,
   selectArrivedNotification,
 } from '../client/foregroundNotifications';
-import { createM4ProductApis, type M4ProductApis } from '../client/m4Product';
+import {
+  createM4ProductApis,
+  type M4ProductApis,
+  notificationPath,
+} from '../client/m4Product';
 import { ProfilesApi } from '../client/mediaApis';
 import { getNotificationItemTitle } from '../client/notificationTitle';
 import {
   isPartnerGestureKind,
+  isPartnerNoticeKind,
+  isWishDateReceiptKind,
+  isWishSelectionReceiptKind,
   OPEN_OWN_DAILY_CHECK_IN_STATE,
   PARTNER_GESTURE_RECEIPT_EVENT,
   PARTNER_GESTURE_VARIANTS,
+  PARTNER_NOTICE_ICONS,
   type PartnerGestureReceiptRequest,
   receiptScope,
+  WISH_SELECTION_RECEIPT_COPY,
 } from '../client/partnerGestureReceipt';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { PARTNER_QUICK_ACTIONS_CAPABILITY } from '../client/partnerQuickActions';
@@ -41,13 +51,19 @@ import {
 } from '../client/spaceConfiguration';
 import { useSpaceCapability } from '../client/spaceEntitlement';
 import { isDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
+import { wishDateProposalQueryKey } from '../client/wishDateProposal';
 import { useTranslation } from '../i18n';
+import { haptic } from '../motion/haptics';
+import { type MomentTicket, startMoment } from '../motion/moment';
+import { usePresentationPresence } from '../motion/presence';
+import { durationMs } from '../motion/tokens';
+import { EimirIcon } from './EimirIcon';
 import { NotificationMotion } from './NotificationMotion';
 import { AuthorAvatar } from './PersonIdentity';
 import { ProMark } from './ProMark';
 import { isModalLayerActive } from './useModalLifecycle';
-import { usePresentationPresence } from './useOverlayPresence';
 import { isGestureCooldown, usePartnerGesture } from './usePartnerGesture';
+import '../motion/moments.css';
 import './PartnerGestureReceipt.css';
 
 /** Long enough to read the sentence and reach the reply comfortably. */
@@ -55,12 +71,66 @@ export const FOREGROUND_NOTIFICATION_VISIBLE_MS = 8_000;
 const HANDLED_LIMIT = 64;
 const ARRIVAL_PAGE_SIZE = 5;
 
+/** The Moment identity of a received notification's choreography. */
+export const RECEIPT_MOMENT = 'notification.receipt';
+/** Receipts whose beats were granted and have not ended yet, by arrival key. */
+const playingReceipts = new Map<string, MomentTicket>();
+
+/** The receipt's beats end when the badge has landed (receipt CSS). */
+function receiptMomentDuration(): number {
+  return (
+    2 * durationMs('sequence-beat') +
+    durationMs('gesture-sequence') +
+    durationMs('context')
+  );
+}
+
+/**
+ * Whether a receipt's choreography plays (Motion Contract 4.7). It plays at
+ * most once per received item, as the screen's one emphasized motion, only
+ * while the page is visible and never with reduced motion; otherwise the
+ * receipt shows its settled badge at once (`final`). A received gesture the
+ * person is looking at gets the Moment's one haptic on its first beat (4.10);
+ * calm notices get none. The same item rendering again while its beats run
+ * (a re-render, StrictMode) keeps playing instead of settling early.
+ */
+export function receiptMoment(
+  key: string,
+  gesture: boolean,
+): 'playing' | 'final' {
+  if (playingReceipts.has(key)) return 'playing';
+  const duration = receiptMomentDuration();
+  const ticket = startMoment(RECEIPT_MOMENT, key, {
+    visible:
+      typeof document === 'undefined' || document.visibilityState !== 'hidden',
+    duration,
+  });
+  if (!ticket) return 'final';
+  if (ticket.delay > 0) {
+    // Another emphasized motion is running: settle instead of waiting.
+    ticket.end();
+    return 'final';
+  }
+  if (gesture) haptic('moment');
+  playingReceipts.set(key, ticket);
+  setTimeout(() => {
+    playingReceipts.delete(key);
+    ticket.end();
+  }, duration);
+  return 'playing';
+}
+
 const HEART_PATH =
   'M12 20.3 4.7 13A4.8 4.8 0 0 1 11.5 6.2l.5.6.5-.6A4.8 4.8 0 0 1 19.3 13Z';
 
 function Heart() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <svg
+      className="inline-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
       <path d={HEART_PATH} />
     </svg>
   );
@@ -73,17 +143,75 @@ function receiptCopy(
   t: TFunction,
   nameOf: NameOf,
   accountId: string,
+  locale?: string,
 ) {
+  if (isWishDateReceiptKind(item.kind)) {
+    const accepted = item.kind === 'WISH_DATE_ACCEPTED';
+    const message = accepted
+      ? 'accepted'
+      : item.kind === 'WISH_DATE_COUNTERED'
+        ? 'countered'
+        : 'proposed';
+    const name =
+      nameOf(item) || t('m5s5.today.relationshipSignal.partnerFallback');
+    const date = item.appointmentStart
+      ? new Intl.DateTimeFormat(locale, {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }).format(item.appointmentStart)
+      : null;
+    return {
+      variant: {
+        motion: 'calm-ring',
+        reply: 'OPEN',
+        icons: PARTNER_NOTICE_ICONS[item.kind],
+      } as const,
+      title: t(`wishDateProposal.receipt.${message}`, { name }),
+      detail:
+        item.target?.title && date ? `${item.target.title} · ${date}` : null,
+      reply: t(
+        accepted ? 'wishDateProposal.openPlan' : 'wishDateProposal.review',
+      ),
+    };
+  }
+  if (isWishSelectionReceiptKind(item.kind)) {
+    const copy = WISH_SELECTION_RECEIPT_COPY[item.kind];
+    const name =
+      nameOf(item) || t('m5s5.today.relationshipSignal.partnerFallback');
+    const reply =
+      copy === 'ready' || copy === 'accepted' ? 'resultReply' : `${copy}Reply`;
+    return {
+      variant: {
+        motion: 'calm-ring',
+        reply: 'OPEN',
+        icons: PARTNER_NOTICE_ICONS[item.kind],
+      } as const,
+      title: t(`wishSelection.notice.${copy}Title`, { name }),
+      detail:
+        copy === 'shared'
+          ? item.selectionSize
+            ? t('wishSelection.notice.sharedDetail', {
+                count: item.selectionSize,
+              })
+            : t('wishSelection.notice.sharedDetailUncounted')
+          : t(`wishSelection.notice.${copy}Detail`, { name }),
+      reply: t(`wishSelection.notice.${reply}`),
+    };
+  }
   if (!isPartnerGestureKind(item.kind)) {
     return {
-      variant: null,
+      // Partner-caused notices share the calm receipt; system and owner-only
+      // kinds keep the plain notification surface.
+      variant: isPartnerNoticeKind(item.kind)
+        ? ({
+            motion: 'calm-ring',
+            reply: 'OPEN',
+            icons: PARTNER_NOTICE_ICONS[item.kind],
+          } as const)
+        : null,
       title: getNotificationItemTitle(item, t, accountId),
       detail: null,
-      reply: t(
-        item.kind === 'WISH_SELECTION_SHARED'
-          ? 'wishSelection.openOwn'
-          : 'm5s5.common.open',
-      ),
+      reply: t('m5s5.common.open'),
     };
   }
   const variant = PARTNER_GESTURE_VARIANTS[item.kind];
@@ -166,12 +294,12 @@ function NotificationReceipt({
   onHoldChange,
   openNotification,
 }: NotificationReceiptProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const client = useQueryClient();
   const nameOf = useActorName();
   const titleId = useId();
-  const copy = receiptCopy(item, t, nameOf, accountId);
+  const copy = receiptCopy(item, t, nameOf, accountId, i18n.resolvedLanguage);
   const [replied, setReplied] = useState(false);
   const [pointerInside, setPointerInside] = useState(false);
   const [focusInside, setFocusInside] = useState(false);
@@ -197,6 +325,15 @@ function NotificationReceipt({
   }, [hold, onHoldChange]);
 
   const { variant } = copy;
+  // Gestures draw their own glyph; the other calm notices badge an icon.
+  const icons = variant && 'icons' in variant ? variant.icons : undefined;
+  const calm = variant?.motion === 'calm-ring';
+  const [moment] = useState(() =>
+    variant ? receiptMoment(notificationArrivalKey(item), !calm) : undefined,
+  );
+  // A badge on an avatar-less circle would only repeat the icon inside it.
+  const showBadge =
+    icons !== undefined && (item.actor || icons.badge !== icons.center);
 
   const configuration = client.getQueryData<SpaceConfigurationSnapshot>(
     spaceConfigurationQueryKey(accountId, spaceId),
@@ -216,7 +353,7 @@ function NotificationReceipt({
   };
 
   let reply: { label: string; run: () => void; pro?: boolean } | null = null;
-  if (!variant) {
+  if (!variant || variant.reply === 'OPEN') {
     if (openNotification) {
       reply = {
         label: copy.reply,
@@ -308,9 +445,12 @@ function NotificationReceipt({
     <aside
       className="partner-gesture-receipt"
       data-variant={variant?.motion}
+      data-moment={moment === 'final' ? 'final' : undefined}
       data-presence={presenceState}
       data-testid={
-        variant ? 'partner-gesture-receipt' : 'foreground-notification'
+        isPartnerGestureKind(item.kind) || isWishDateReceiptKind(item.kind)
+          ? 'partner-gesture-receipt'
+          : 'foreground-notification'
       }
       aria-labelledby={titleId}
       onPointerEnter={() => setPointerInside(true)}
@@ -328,14 +468,8 @@ function NotificationReceipt({
     >
       <div className="partner-gesture-receipt-body">
         <div className="partner-gesture-receipt-person" aria-hidden="true">
-          {variant ? (
+          {variant && !calm ? (
             <span className="partner-gesture-receipt-wave" data-wave="1" />
-          ) : null}
-          {variant?.motion === 'calm-ring' ? (
-            <>
-              <span className="partner-gesture-receipt-wave" data-wave="2" />
-              <span className="partner-gesture-receipt-wave" data-wave="3" />
-            </>
           ) : null}
           {item.actor ? (
             <AuthorAvatar
@@ -346,10 +480,20 @@ function NotificationReceipt({
             />
           ) : (
             <span className="partner-gesture-receipt-placeholder">
-              {variant ? null : <NotificationMotion kind={item.kind} />}
+              {icons ? (
+                <EimirIcon name={icons.center} />
+              ) : variant ? null : (
+                <NotificationMotion kind={item.kind} />
+              )}
             </span>
           )}
-          {variant ? (
+          {icons ? (
+            showBadge ? (
+              <span className="partner-gesture-receipt-glyph" data-glyph="icon">
+                <EimirIcon name={icons.badge} />
+              </span>
+            ) : null
+          ) : variant ? (
             <span className="partner-gesture-receipt-glyph">
               {variant.motion === 'heart-pulse' ? (
                 <Heart />
@@ -367,7 +511,7 @@ function NotificationReceipt({
               <NotificationMotion kind={item.kind} />
             </span>
           ) : null}
-          {variant && variant.motion !== 'calm-ring' ? (
+          {variant && !calm ? (
             <span className="partner-gesture-receipt-hero">
               <Heart />
               {variant.motion === 'kiss' ? <Heart /> : null}
@@ -393,7 +537,7 @@ function NotificationReceipt({
                   if (!replyBusy) reply.run();
                 }}
               >
-                {variant && variant.motion !== 'calm-ring' ? <Heart /> : null}
+                {variant && !calm ? <Heart /> : null}
                 <span>{reply.label}</span>
                 {reply.pro ? (
                   <ProMark label={t('partnerQuickActions.pro')} />
@@ -450,8 +594,12 @@ export function ForegroundNotificationHost({
   suppressed,
   openNotification,
 }: ForegroundNotificationHostProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const nameOf = useActorName();
+  const client = useQueryClient();
+  const location = useLocation();
+  const pathname = useRef(location.pathname);
+  pathname.current = location.pathname;
   const scope = receiptScope(accountId, spaceId);
   const apis = useMemo(
     () => createM4ProductApis(apiBaseUrl, accessToken),
@@ -502,8 +650,35 @@ export function ForegroundNotificationHost({
   const show = useCallback(
     (item: NotificationItem) => {
       markHandled(notificationArrivalKey(item));
+      if (isWishDateReceiptKind(item.kind)) {
+        const wishId =
+          item.targetType === 'WISH' ? (item.targetId ?? undefined) : undefined;
+        void client.invalidateQueries({
+          queryKey: wishDateProposalQueryKey(
+            apiBaseUrl,
+            accountId,
+            spaceId,
+            wishId,
+          ),
+        });
+        if (item.kind === 'WISH_DATE_ACCEPTED') {
+          void client.invalidateQueries({
+            queryKey: authorSummaryQueryKeys.wishes(spaceId),
+          });
+          void client.invalidateQueries({
+            queryKey: authorSummaryQueryKeys.plans(spaceId),
+          });
+        }
+        if (notificationPath(item)?.split('#')[0] === pathname.current) return;
+      }
       if (taskOwnsScreen(suppressedRef.current)) return;
-      const copy = receiptCopy(item, t, nameOf, accountId);
+      const copy = receiptCopy(
+        item,
+        t,
+        nameOf,
+        accountId,
+        i18n.resolvedLanguage,
+      );
       setEntry(item);
       setHold(false);
       setOpen(true);
@@ -511,7 +686,16 @@ export function ForegroundNotificationHost({
         copy.detail ? `${copy.title}. ${copy.detail}` : copy.title,
       );
     },
-    [accountId, markHandled, nameOf, t],
+    [
+      accountId,
+      apiBaseUrl,
+      client,
+      i18n.resolvedLanguage,
+      markHandled,
+      nameOf,
+      spaceId,
+      t,
+    ],
   );
 
   const close = useCallback(() => {

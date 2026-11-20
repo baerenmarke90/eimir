@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from eimir.config import Environment
 from eimir.core import clock
+from eimir.demo.feature_examples import ensure_feature_examples
 from eimir.demo.finalize import ensure_story_structure
 from eimir.demo.presentation import normalize_demo_content
 from eimir.demo.reminders import ensure_reminder_examples
@@ -39,26 +40,12 @@ def _ensure_pro_entitlement(session: Session, result: DemoSeedResult) -> None:
     )
 
 
-def _ensure_demo_quote_preferences(session: Session, result: DemoSeedResult) -> None:
-    """Configure deterministic, distinct quote preferences for Lea and Alex."""
-    from eimir.quotes import service as quote_preference_service
+def _seed_plugin_examples(session: Session, result: DemoSeedResult) -> None:
+    """Examples of plugin features (quote preferences, partner location; Decision 0017)."""
+    from eimir.plugins.loader import loaded_plugins
 
-    quote_preference_service.update_preference(
-        session,
-        result.lea_id,
-        enabled=True,
-        selected_source_ids=["poetic_wisdom", "classic_literature"],
-        selected_category_ids=["love", "mindfulness"],
-        locale="de",
-    )
-    quote_preference_service.update_preference(
-        session,
-        result.alex_id,
-        enabled=True,
-        selected_source_ids=["stoic_philosophy"],
-        selected_category_ids=["philosophy", "serenity"],
-        locale="de",
-    )
+    for plugin in loaded_plugins().plugins:
+        plugin.seed_demo(session, result, created=result.created)
 
 
 def _ensure_product_examples(
@@ -78,7 +65,12 @@ def _ensure_product_examples(
         alex_id=result.alex_id,
     )
     _ensure_pro_entitlement(session, result)
-    _ensure_demo_quote_preferences(session, result)
+    # After the Pro grant: the plugin examples use Pro capabilities.
+    _seed_plugin_examples(session, result)
+    if result.created:
+        # Like the story structure, only a new canonical Space or a reset gets
+        # these, so ``ensure`` never restores content a visitor removed.
+        ensure_feature_examples(session, result, reference_date=reference_date)
 
 
 def create_demo_space(

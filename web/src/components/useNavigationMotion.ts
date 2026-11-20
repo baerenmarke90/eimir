@@ -1,15 +1,30 @@
 import { type RefObject, useLayoutEffect, useRef } from 'react';
-import { cssDurationMilliseconds } from '../client/cssDuration';
 import { setPrimaryTabPeek } from '../client/primaryTabPeek';
 import { PRIMARY_APP_ROUTES } from '../client/routes';
 import { isDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
+import {
+  commitDistance,
+  decideRelease,
+  GESTURE,
+  resolveOwnership,
+  rubberBand,
+} from '../motion/gesture/follow';
+import { sampleSpring, springDuration } from '../motion/gesture/spring';
+import { VelocityTracker } from '../motion/gesture/velocity';
+import { haptic } from '../motion/haptics';
+import {
+  prefersReducedMotion,
+  subscribeReducedMotion,
+} from '../motion/reducedMotion';
+import { run } from '../motion/run';
+import {
+  crossfade,
+  type NavigateDirection,
+  navigate as navigateMotion,
+} from '../motion/replace';
 
 const EDGE_INSET = 24;
-const DIRECTION_SLOP = 10;
-const HORIZONTAL_BIAS = 1.25;
 const ENTRY_OPACITY = 0.92;
-const RETURN_SLIDE = 32;
-const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
 // Count only page-level loading states and the visible overview panel.
 // A kept primary tab renders its page inside a visible tab panel.
 const PAGE_PARENTS = [
@@ -19,9 +34,6 @@ const PAGE_PARENTS = [
 const PEEK_PAGE = ':scope > .primary-tab-panel[data-primary-tab-peek] > .page';
 /** A cancelled or never-committed route change releases the drag state. */
 const COMMIT_FALLBACK_MS = 800;
-/** Past the end of the tab row the page only gives a little, never a neighbour. */
-const EDGE_RESISTANCE = 0.25;
-const EDGE_MAX_TRAVEL = 48;
 const ROUTE_LOADING = PAGE_PARENTS.flatMap((parent) => [
   `${parent} .ui-state-loading`,
   `${parent} .page > .ui-state-loading`,
@@ -31,12 +43,34 @@ const CURRENT_PAGE = PAGE_PARENTS.map((parent) => `${parent} .page`).join(', ');
 const BLOCKED_TARGETS =
   'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="switch"], [role="slider"], [role="tablist"], [draggable="true"], video, audio, .place-map-viewport, .media-gallery, .eimir-media-snap-track, [data-primary-tab-swipe-block]';
 
-function dragOffset(distance: number, hasNeighbour: boolean): number {
+/**
+ * A primary destination or one of its peer views (Momente's map, the shared
+ * notes): these share the primary surface, so a change between them is in
+ * place, never a deeper page.
+ */
+function isPrimarySurface(path: string): boolean {
+  return PRIMARY_APP_ROUTES.some(
+    (route) =>
+      route.path === path ||
+      ('peerPaths' in route &&
+        (route.peerPaths as readonly string[]).includes(path)),
+  );
+}
+
+/**
+ * The pager follows the finger 1:1 toward a neighbour that exists; past the
+ * end of the tab row it gives a little with rubber-banding (Gesture follow,
+ * Motion Contract 4.6), never a neighbour that does not exist.
+ */
+function dragOffset(
+  distance: number,
+  neighbours: { previous: boolean; next: boolean },
+): number {
   const width = window.innerWidth;
-  if (hasNeighbour) return Math.max(-width, Math.min(width, distance));
-  return (
-    Math.sign(distance) *
-    Math.min(EDGE_MAX_TRAVEL, Math.abs(distance) * EDGE_RESISTANCE)
+  return rubberBand(
+    distance,
+    neighbours.next ? -width : 0,
+    neighbours.previous ? width : 0,
   );
 }
 
@@ -45,67 +79,73 @@ interface Settle {
   finish: () => void;
   /** Drop the animations without reporting. */
   abort: () => void;
+  /** Stop where the pages are now and return that offset (interruption). */
+  grab: () => number;
+  /** Which way the pages travel: 1 reveals the next tab, -1 the previous one. */
+  direction: number;
 }
 
 /**
- * Settle the dragged pages like a pager: the current page and the revealed
- * neighbour finish their travel together. Returns null when there is nothing
- * to animate (reduced motion, no Web Animations), so the caller applies the
- * outcome immediately.
+ * The release handoff of the pager (Gesture follow into Replace `navigate`):
+ * the current page and the revealed neighbour continue together from where
+ * the finger left them, with the release velocity, through the sampled
+ * settle spring. The end state is applied before the animation starts, so
+ * nothing is held with `fill: forwards`. Returns null when there is nothing
+ * to animate (reduced motion, no Web Animations, already at rest), so the
+ * caller applies the outcome immediately.
  */
 function settlePages(
   surface: HTMLElement,
-  from: { current: number; peek: number },
-  to: { current: number; peek: number },
+  from: number,
+  to: number,
+  velocity: number,
+  direction: number,
+  place: (offset: number) => void,
   onSettled: () => void,
 ): Settle | null {
-  if (window.matchMedia?.(REDUCED_MOTION).matches) return null;
+  if (prefersReducedMotion() || Math.abs(from - to) < 0.5) return null;
+  const width = window.innerWidth;
+  const frames = sampleSpring(from, to, velocity, undefined, true);
+  const duration = springDuration(frames);
   // The current page is offset with `left`, not a transform: a transformed
   // page would become the containing block of its fixed add action and make
-  // that control travel with the page's bottom edge before snapping back.
-  const pages = [
-    [
-      surface.querySelector<HTMLElement>(CURRENT_PAGE),
-      from.current,
-      to.current,
-      'left',
-    ],
-    [surface.querySelector<HTMLElement>(PEEK_PAGE), from.peek, to.peek, null],
-  ] as const;
-  const style = window.getComputedStyle(surface);
-  const timing = {
-    duration: cssDurationMilliseconds(
-      style.getPropertyValue('--duration-transition'),
+  // that control travel with the page's bottom edge before snapping back
+  // (the sanctioned shell exception of Motion Contract M6).
+  const current = surface.querySelector<HTMLElement>(CURRENT_PAGE);
+  const peek = surface.querySelector<HTMLElement>(PEEK_PAGE);
+  place(to);
+  const options = {
+    duration,
+    easing: 'linear',
+    channel: 'gesture',
+  } as const;
+  const animations = [
+    run(
+      current,
+      frames.map((value) => ({ left: `${value}px` })),
+      options,
     ),
-    easing: style.getPropertyValue('--easing-standard').trim() || 'ease-out',
-    // The end state holds until the committed route replaces the pages.
-    fill: 'forwards' as const,
-  };
-  const animations = pages.flatMap(([page, start, end, offsetProperty]) =>
-    page && typeof page.animate === 'function'
-      ? [
-          page.animate(
-            offsetProperty
-              ? [{ left: `${start}px` }, { left: `${end}px` }]
-              : [
-                  { transform: `translate3d(${start}px, 0, 0)` },
-                  { transform: `translate3d(${end}px, 0, 0)` },
-                ],
-            timing,
-          ),
-        ]
-      : [],
-  );
+    run(
+      peek,
+      frames.map((value) => ({
+        transform: `translate3d(${direction * width + value}px, 0, 0)`,
+      })),
+      { ...options, willChange: 'transform' },
+    ),
+  ].filter((animation): animation is Animation => animation !== null);
   if (!animations.length) return null;
   let open = true;
   let pending = animations.length;
-  const finish = () => {
-    if (!open) return;
+  const stop = () => {
     open = false;
     for (const animation of animations) {
       animation.onfinish = null;
-      animation.finish();
+      animation.cancel();
     }
+  };
+  const finish = () => {
+    if (!open) return;
+    stop();
     onSettled();
   };
   for (const animation of animations)
@@ -114,13 +154,25 @@ function settlePages(
     };
   return {
     finish,
-    abort: () => {
-      open = false;
-      for (const animation of animations) {
-        animation.onfinish = null;
-        animation.cancel();
-      }
+    abort: stop,
+    grab: () => {
+      // The linear keyframes are interpolated the same way here, so the
+      // pages stop exactly where they are drawn.
+      const time = Number(animations[0]?.currentTime ?? duration);
+      const position = Math.min(
+        frames.length - 1,
+        Math.max(0, (time / duration) * (frames.length - 1)),
+      );
+      const index = Math.floor(position);
+      const next = frames[Math.min(frames.length - 1, index + 1)] ?? to;
+      const offset =
+        (frames[index] ?? to) +
+        (next - (frames[index] ?? to)) * (position - index);
+      stop();
+      place(offset);
+      return offset;
     },
+    direction,
   };
 }
 
@@ -169,14 +221,27 @@ interface Gesture {
   y: number;
   scrollY: number;
   horizontal: boolean;
+  /** Where the pages were when the finger landed (a grabbed settle). */
+  base: number;
   offset: number;
   /** Which way the pages travel: 1 reveals the next tab, -1 the previous one. */
   direction: number;
   /** The neighbour currently shown beside the page, if any. */
   peek: string | null;
-  startedAt: number;
+  /** The furthest travel toward each neighbour, for the reversal cancel. */
+  peakNext: number;
+  peakPrevious: number;
+  /** Past the commit distance toward the current neighbour (haptic tick). */
+  beyond: boolean;
+  velocity: VelocityTracker;
 }
 
+/**
+ * The arriving content fades up from `ENTRY_OPACITY` on the main surface
+ * (Replace `crossfade` on the motion layer). Only opacity: a transform would
+ * make the main element the containing block of fixed controls, including the
+ * contextual add action and composer toolbar.
+ */
 function animateContent(
   surface: HTMLElement,
   owner: RefObject<(() => void) | null>,
@@ -184,83 +249,70 @@ function animateContent(
   createEntry = false,
 ): void {
   owner.current?.();
-  const reducedMotion = window.matchMedia?.(REDUCED_MOTION);
-  if (reducedMotion?.matches || typeof surface.animate !== 'function') return;
-  const style = getComputedStyle(surface);
-  // A transform would make the main element the containing block of fixed
-  // controls, including the contextual add action and composer toolbar.
-  const animation = surface.animate([{ opacity }, { opacity: 1 }], {
-    duration: cssDurationMilliseconds(
-      style.getPropertyValue('--duration-transition'),
-    ),
-    easing: style.getPropertyValue('--easing-standard').trim() || 'ease-out',
-  });
+  const animation = crossfade(surface, { from: opacity });
+  if (!animation) return;
   surface.dataset.navigationMotion = createEntry ? 'create' : 'content';
+  trackMotion(animation, owner, () => {
+    delete surface.dataset.navigationMotion;
+  });
+}
+
+/**
+ * Releases a route entrance on its own finish or cancel (M2), cancels it when
+ * reduced motion is switched on mid-way (M9), and lets only the newest
+ * entrance clear the shared attribute (M11).
+ */
+function trackMotion(
+  animation: Animation,
+  owner: RefObject<(() => void) | null>,
+  release: () => void,
+): void {
   const complete = () => {
     if (owner.current !== cancel) return;
     owner.current = null;
-    delete surface.dataset.navigationMotion;
+    release();
     animation.onfinish = null;
     animation.oncancel = null;
-    reducedMotion?.removeEventListener('change', motionChanged);
+    stopWatching();
   };
   const cancel = () => {
     animation.cancel();
     complete();
   };
-  const motionChanged = () => {
-    if (reducedMotion?.matches) cancel();
-  };
+  const stopWatching = subscribeReducedMotion(() => {
+    if (prefersReducedMotion()) cancel();
+  });
   owner.current = cancel;
   animation.onfinish = complete;
   animation.oncancel = complete;
-  reducedMotion?.addEventListener('change', motionChanged);
 }
 
-/** Move only the page content, never the main shell (fixed actions stay fixed). */
+/**
+ * Brings the routed page in from the side its direction names (Replace
+ * `navigate`, Motion Contract 4.2). Only the page's horizontal offset moves,
+ * never the main shell, so fixed actions stay fixed and scroll restoration
+ * keeps its own coordinates.
+ */
 function animatePageSlide(
   surface: HTMLElement,
   owner: RefObject<(() => void) | null>,
-  fromX: number,
+  direction: NavigateDirection,
 ): boolean {
   owner.current?.();
   const page = surface.querySelector<HTMLElement>(CURRENT_PAGE);
-  const reduced = window.matchMedia?.(REDUCED_MOTION);
-  if (!page || !fromX || reduced?.matches || typeof page.animate !== 'function')
-    return false;
-  const style = window.getComputedStyle(surface);
-  const animation = page.animate(
-    // `left`, not a transform, so the page's fixed add action stays put.
-    [{ left: `${fromX}px` }, { left: '0px' }],
-    {
-      duration: cssDurationMilliseconds(
-        style.getPropertyValue('--duration-transition'),
-      ),
-      easing: style.getPropertyValue('--easing-standard').trim() || 'ease-out',
-    },
-  );
-  // Clip the page's transformed visual bounds for the complete animation,
-  // including after touchend has released the drag state.
+  // The page is positioned while `data-navigation-slide` is set (shell.css),
+  // so set it before the first frame of the offset.
   surface.dataset.navigationSlide = 'true';
-  const complete = () => {
-    if (owner.current !== cancel) return;
-    owner.current = null;
+  const animation = navigateMotion(page, direction, { offset: 'inset' });
+  if (!animation) {
     delete surface.dataset.navigationSlide;
-    animation.onfinish = null;
-    animation.oncancel = null;
-    reduced?.removeEventListener('change', onMotionChanged);
-  };
-  const cancel = () => {
-    animation.cancel();
-    complete();
-  };
-  const onMotionChanged = () => {
-    if (reduced?.matches) cancel();
-  };
-  owner.current = cancel;
-  animation.onfinish = complete;
-  animation.oncancel = complete;
-  reduced?.addEventListener('change', onMotionChanged);
+    return false;
+  }
+  // Clip the page's visual bounds for the complete animation, including after
+  // touchend has released the drag state.
+  trackMotion(animation, owner, () => {
+    delete surface.dataset.navigationSlide;
+  });
   return true;
 }
 
@@ -322,22 +374,39 @@ export function useNavigationMotion({
       !changedPage ||
       settled ||
       skipEntry ||
-      window.matchMedia?.(REDUCED_MOTION).matches
+      prefersReducedMotion()
     )
       return;
 
     // Start the root handoff on the committed destination, even if it still
     // displays loading UI. The content reveal below waits for usable data.
-    // Going back mirrors going forward: the page comes in from the side it
-    // was left on instead of cutting in. Only the page's horizontal offset
-    // moves, so scroll restoration keeps its own coordinates.
-    if (tabDirection)
-      animatePageSlide(surface, pageSlideCleanup, tabDirection * 32);
-    else if (returningRef.current)
-      animatePageSlide(surface, pageSlideCleanup, -RETURN_SLIDE);
+    // The direction follows the spatial model of the Motion Contract (4.2):
+    // primary tabs move laterally in tab order like a pager; a Back or task
+    // return comes in from the inline start; opening a deeper page (a detail,
+    // a further step) comes in from the inline end. A create task keeps its
+    // own entry, and any other change (a tab chosen from a detail page, a
+    // switch between a tab and its peer view such as the map) is in place:
+    // the content only fades.
+    const direction: NavigateDirection =
+      tabDirection > 0
+        ? 'next'
+        : tabDirection < 0
+          ? 'previous'
+          : returningRef.current
+            ? 'back'
+            : !isPrimarySurface(pathname) && !createEntry
+              ? 'forward'
+              : 'in-place';
+    // A lazy route shows only its loading fallback at first, without a page
+    // to move; its page then travels when it arrives.
+    let slid =
+      direction !== 'in-place' &&
+      animatePageSlide(surface, pageSlideCleanup, direction);
 
     const arrive = () => {
       if (surface.hasAttribute('data-primary-tab-dragging')) return;
+      if (!slid && direction !== 'in-place')
+        slid = animatePageSlide(surface, pageSlideCleanup, direction);
       animateContent(surface, mainMotionCleanup, ENTRY_OPACITY, createEntry);
     };
     let observer: MutationObserver | undefined;
@@ -376,6 +445,10 @@ export function useNavigationMotion({
       (route) => route.path === pathname,
     );
     if (!surface || index < 0) return;
+    const neighbours = {
+      previous: Boolean(PRIMARY_APP_ROUTES[index - 1]),
+      next: Boolean(PRIMARY_APP_ROUTES[index + 1]),
+    };
     let gesture: Gesture | null = null;
     let settle: Settle | null = null;
     let frame = 0;
@@ -416,9 +489,8 @@ export function useNavigationMotion({
       abortGesture();
     };
     const start = (event: TouchEvent) => {
-      // A touch catches the pages mid-settle: they land where they were
-      // headed and the new gesture starts from there.
-      settle?.finish();
+      const grabbed = settle;
+      settle = null;
       abortGesture();
       mainMotionCleanup.current?.();
       pageSlideCleanup.current?.();
@@ -434,19 +506,40 @@ export function useNavigationMotion({
         !(event.target instanceof Element) ||
         editingOrOverlayActive() ||
         contentOwnsGesture(event.target, surface)
-      )
+      ) {
+        // A settle that cannot be grabbed lands where it was headed.
+        if (grabbed) {
+          settle = grabbed;
+          grabbed.finish();
+        }
         return;
+      }
+      // Grabbing settling pages stops them where they are and continues the
+      // same swipe from there, without a jump (Motion Contract 4.6).
+      const base = grabbed ? grabbed.grab() : 0;
+      if (grabbed) settledSwipe.current = false;
       gesture = {
         id: touch.identifier,
         x: touch.clientX,
         y: touch.clientY,
         scrollY: window.scrollY,
-        horizontal: false,
-        offset: 0,
-        direction: 0,
+        horizontal: grabbed !== null,
+        base,
+        offset: base,
+        direction: grabbed?.direction ?? 0,
         peek: null,
-        startedAt: event.timeStamp,
+        peakNext: Math.max(0, -base),
+        peakPrevious: Math.max(0, base),
+        beyond: false,
+        velocity: new VelocityTracker(),
       };
+      if (grabbed) {
+        gesture.peek =
+          PRIMARY_APP_ROUTES[index + grabbed.direction]?.path ?? null;
+        gesture.beyond =
+          Math.abs(base) >= commitDistance('pager', window.innerWidth);
+      }
+      gesture.velocity.add(event.timeStamp, touch.clientX);
     };
     const move = (event: TouchEvent) => {
       if (!gesture) return;
@@ -467,8 +560,11 @@ export function useNavigationMotion({
       const dx = touch.clientX - gesture.x;
       const dy = touch.clientY - gesture.y;
       if (!gesture.horizontal) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) < DIRECTION_SLOP) return;
-        if (Math.abs(dx) < Math.abs(dy) * HORIZONTAL_BIAS) {
+        // One ownership rule for every Gesture follow owner: vertical page
+        // scrolling wins an ambiguous start (Motion Contract 4.6).
+        const ownership = resolveOwnership('x', dx, dy);
+        if (ownership === 'pending') return;
+        if (ownership === 'reject') {
           abortGesture();
           return;
         }
@@ -480,15 +576,25 @@ export function useNavigationMotion({
       }
       event.preventDefault();
       suppressClick.current = true;
-      const direction = dx < 0 ? 1 : -1;
+      gesture.velocity.add(event.timeStamp, touch.clientX);
+      const distance = gesture.base + dx;
+      const direction = distance < 0 ? 1 : -1;
       const neighbour = PRIMARY_APP_ROUTES[index + direction];
       gesture.direction = direction;
-      gesture.offset = dragOffset(dx, Boolean(neighbour));
+      gesture.offset = dragOffset(distance, neighbours);
+      gesture.peakNext = Math.max(gesture.peakNext, -gesture.offset);
+      gesture.peakPrevious = Math.max(gesture.peakPrevious, gesture.offset);
+      const beyond =
+        Boolean(neighbour) &&
+        Math.abs(gesture.offset) >= commitDistance('pager', window.innerWidth);
+      if (beyond !== gesture.beyond) {
+        gesture.beyond = beyond;
+        haptic('threshold');
+      }
       // The neighbour joins the drag like the next page of a pager, but only
-      // when the pages may move (reduced motion keeps the swipe invisible).
-      const peek = window.matchMedia?.(REDUCED_MOTION).matches
-        ? null
-        : (neighbour?.path ?? null);
+      // when the pages may move (reduced motion keeps the pages still, since
+      // a whole page travelling sideways is large-area motion).
+      const peek = prefersReducedMotion() ? null : (neighbour?.path ?? null);
       if (gesture.peek !== peek) {
         gesture.peek = peek;
         setPrimaryTabPeek(peek);
@@ -523,21 +629,32 @@ export function useNavigationMotion({
       }
       const dx = touch.clientX - current.x;
       const dy = touch.clientY - current.y;
-      const threshold = Math.min(80, Math.max(48, window.innerWidth * 0.18));
-      const elapsed = event.timeStamp - current.startedAt;
-      const velocity = Math.abs(dx) / Math.max(1, elapsed);
-      const direction = dx < 0 ? 1 : -1;
-      const destination = PRIMARY_APP_ROUTES[index + direction];
-      const commit =
-        Boolean(destination) &&
-        !(
-          (Math.abs(dx) < threshold &&
-            !(elapsed >= 32 && Math.abs(dx) >= 32 && velocity > 0.5)) ||
-          Math.abs(dx) < Math.abs(dy) * HORIZONTAL_BIAS
-        );
       const width = window.innerWidth;
+      const distance = current.base + dx;
+      const direction = distance < 0 ? 1 : -1;
+      const destination = PRIMARY_APP_ROUTES[index + direction];
       current.direction = direction;
-      current.offset = dragOffset(dx, Boolean(destination));
+      current.offset = dragOffset(distance, neighbours);
+      // Velocity toward larger x in px/ms, measured up to the release (Motion
+      // Contract 4.6, the #2073 tracker). Past the end of the tab row the
+      // pages moved slower than the finger.
+      const finger = current.velocity.velocity({
+        t: event.timeStamp,
+        p: touch.clientX,
+      });
+      const pageVelocity = destination
+        ? finger
+        : finger * GESTURE.edgeResistance;
+      const decision =
+        destination && Math.abs(dx) >= Math.abs(dy) * GESTURE.axisDominance
+          ? decideRelease({
+              travel: Math.abs(current.offset),
+              peak: direction === 1 ? current.peakNext : current.peakPrevious,
+              velocity: -direction * pageVelocity,
+              threshold: commitDistance('pager', width),
+            })
+          : 'cancel';
+      const commit = decision === 'commit';
       const finishCommit = () => {
         if (!destination) return;
         settledSwipe.current = true;
@@ -556,13 +673,15 @@ export function useNavigationMotion({
         settle = null;
         clearDrag();
       };
+      if (commit) haptic('commit');
       applyDrag(current);
       settle = settlePages(
         surface,
-        { current: current.offset, peek: direction * width + current.offset },
-        commit
-          ? { current: -direction * width, peek: 0 }
-          : { current: 0, peek: direction * width },
+        current.offset,
+        commit ? -direction * width : 0,
+        pageVelocity,
+        direction,
+        (offset) => applyDrag({ ...current, offset }),
         commit ? finishCommit : finishSnapBack,
       );
       if (settle) return;

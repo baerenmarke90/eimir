@@ -7,6 +7,7 @@
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PlanNoteDraftLinks.tsx",
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/MemoryPhotoGallery.tsx",
         "web/src/components/MediaGallery.tsx",
@@ -89,10 +90,13 @@
         "web/src/components/TodayPage.tsx",
         "web/src/components/RecapTasks.tsx",
         "web/src/components/RecapMedia.tsx",
-        "web/src/components/RecapEntryLink.tsx",
+        "web/src/components/RecapDiscoverLead.tsx",
         "web/src/components/CoupleExperienceLinks.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/client/recaps.ts",
+        "web/src/client/recapFilm.ts",
+        "web/src/components/RecapFilmScene.tsx",
+        "web/src/components/RecapFilmScene.css",
         "web/src/client/useStoryPlayback.ts",
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
@@ -124,6 +128,7 @@
         "web/src/components/LegalDocumentPage.tsx",
         "web/src/components/LegalDocumentView.tsx",
         "web/src/components/LegalDocumentLink.tsx",
+        "web/src/components/LegalDocumentContent.tsx",
         "web/src/components/MoreOverviewPage.tsx"
       ]
     },
@@ -200,6 +205,7 @@
         "web/src/components/TodayPage.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/CollectionsOverviewPage.tsx",
         "web/src/components/MoreOverviewPage.tsx",
         "web/src/components/MemoryCreatePage.tsx",
         "web/src/components/PrivateAreaProductPage.tsx",
@@ -215,6 +221,7 @@
         "web/src/components/TodayPage.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/CollectionsOverviewPage.tsx",
         "web/src/components/PrivateAreaProductPage.tsx",
         "web/src/components/GamesProductArea.tsx",
         "web/src/components/OurMomentsGamePage.tsx",
@@ -267,7 +274,7 @@
         "web/src/components/MemoryMapPage.tsx",
         "web/src/components/ProfilePage.tsx",
         "web/src/components/ProfileAppearancePanel.tsx",
-        "web/src/components/ProInformationPanel.tsx",
+        "web/src/components/ProSettingsRow.tsx",
         "web/src/components/M4ProductPages.tsx"
       ]
     },
@@ -344,6 +351,7 @@
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/AccountSettingsPanel.tsx",
+        "web/src/components/ProSettingsRow.tsx",
         "web/src/components/GamesProductArea.tsx",
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/PlaceMapCanvas.tsx",
@@ -354,10 +362,19 @@
     "milestone-delete-ownership.spec.ts": {
       "roots": ["web/src/components/MilestoneProductPage.tsx"]
     },
+    "deferred-prefetch.spec.ts": {
+      "roots": [
+        "web/src/deferredModules.tsx",
+        "web/src/components/AppShell.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/LegalDocumentText.tsx"
+      ]
+    },
     "mobile-header-more.spec.ts": {
       "roots": [
         "web/src/components/PageHeader.tsx",
         "web/src/components/MoreOverviewPage.tsx",
+        "web/src/components/LogoutDeviceDataSheet.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/PlanProductPage.tsx"
       ]
@@ -404,11 +421,23 @@
         "web/src/components/MilestoneProductPage.tsx"
       ]
     },
-    "optional-product-tour.spec.ts": {
+    "momente-album.spec.ts": {
       "roots": [
-        "web/src/client/productTour.tsx",
         "web/src/components/StoryProductPage.tsx",
-        "web/src/components/MomentCreateMenu.tsx"
+        "web/src/components/ProfileAppearancePanel.tsx"
+      ]
+    },
+    "quiet-hints.spec.ts": {
+      "roots": [
+        "web/src/client/quietHints.ts",
+        "web/src/client/connectedMoment.ts",
+        "web/src/client/firstContentSettle.ts",
+        "web/src/components/QuietHint.tsx",
+        "web/src/components/ConnectedMoment.tsx",
+        "web/src/components/FirstStepAction.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx"
       ]
     },
     "partner-nickname.spec.ts": {
@@ -446,9 +475,65 @@
         "web/src/components/ProfilePageBase.tsx"
       ]
     },
+    "heart-hunt.spec.ts": {
+      "roots": [
+        "web/src/components/HeartHuntGamePage.tsx",
+        "web/src/components/GamesProductArea.tsx",
+        "web/src/components/PartnerDistanceLine.tsx",
+        "web/src/client/heartHunt.ts"
+      ]
+    },
+    "garden-game.spec.ts": {
+      "roots": [
+        "web/src/components/GardenGamePage.tsx",
+        "web/src/components/GardenScene.tsx",
+        "web/src/components/GardenArt.tsx",
+        "web/src/client/garden.ts",
+        "web/src/client/gardenPresentation.ts",
+        "web/src/components/GardenPresentation.tsx",
+        "web/src/components/GardenSeasonArt.tsx",
+        "web/src/client/gardenGrowth.ts",
+        "web/src/client/gardenImage.ts",
+        "web/src/components/GardenBook.tsx",
+        "web/src/components/GardenBouquet.tsx",
+        "web/src/components/GardenFeatures.tsx",
+        "web/src/components/GardenFlora.tsx",
+        "web/src/components/GardenLife.tsx",
+        "web/src/components/GardenVisitors.tsx",
+        "web/src/components/GardenAmbience.tsx",
+        "web/src/client/gardenAmbience.ts",
+        "web/src/components/GardenGrowth.css",
+        "web/src/components/GamesProductArea.tsx"
+      ]
+    },
+    "garden-story.spec.ts": {
+      "roots": [
+        "web/src/components/GardenGamePage.tsx",
+        "web/src/components/GardenScene.tsx",
+        "web/src/components/GardenBook.tsx",
+        "web/src/components/GardenLife.tsx",
+        "web/src/components/useGardenStory.tsx",
+        "web/src/components/GardenStory.tsx",
+        "web/src/components/GardenStory.css",
+        "web/src/components/GardenKeepsakes.tsx",
+        "web/src/components/GardenKeepsakes.css",
+        "web/src/components/GardenRareVisitors.tsx",
+        "web/src/components/GardenRareVisitors.css",
+        "web/src/components/GardenPlayback.tsx",
+        "web/src/components/GardenPlayback.css",
+        "web/src/components/GardenFeedbackSettings.tsx",
+        "web/src/components/GardenFeedbackSettings.css",
+        "web/src/components/RelationshipStoryExtras.tsx",
+        "web/src/client/gardenStory.ts",
+        "web/src/client/gardenFeedback.ts",
+        "web/src/client/gardenKeepsakeStore.ts",
+        "web/src/components/GamesProductArea.tsx"
+      ]
+    },
     "perspective-game.spec.ts": {
       "roots": [
         "web/src/components/WhoOfUsGamePanel.tsx",
+        "web/src/components/WhoOfUsGamePage.tsx",
         "web/src/components/OurMomentsGamePage.tsx",
         "web/src/components/GamesProductArea.tsx"
       ]
@@ -598,6 +683,10 @@
         "web/src/components/SharedPlanningOverviewPage.tsx",
         "web/src/components/WishProductPage.tsx",
         "web/src/components/WishReminderAction.tsx",
+        "web/src/components/WishDateProposalAction.tsx",
+        "web/src/components/PartnerGestureReceipt.tsx",
+        "web/src/client/devicePush.ts",
+        "web/src/client/foregroundNotifications.ts",
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/TodayPage.tsx"
       ]
@@ -717,6 +806,8 @@
     },
     "relationship-reflections.spec.ts": {
       "roots": [
+        "web/src/components/SharedStorySummary.tsx",
+        "web/src/components/useNavigationMotion.ts",
         "web/src/components/RelationshipPassport.tsx",
         "web/src/components/RelationshipStoryPage.tsx",
         "web/src/components/RelationshipRecapsPage.tsx",
@@ -764,7 +855,8 @@
     "date-inspiration.spec.ts": {
       "roots": [
         "web/src/components/DateIdeasPage.tsx",
-        "web/src/components/DateIdeasEntry.tsx",
+        "web/src/components/DateIdeasComposerHint.tsx",
+        "web/src/components/DateIdeaCard.tsx",
         "web/src/components/DateIdeaImage.tsx",
         "web/src/components/DateIdeaFilters.tsx",
         "web/src/components/DateIdeaFacts.tsx",
@@ -773,7 +865,11 @@
         "web/src/components/SharedPlanningOverviewPage.tsx",
         "web/src/client/taskOrigin.tsx",
         "web/src/components/WishProductPage.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/ProSettingsRow.tsx",
         "web/src/components/ProPaywallPage.tsx",
+        "web/src/components/ProPaywall.css",
+        "web/src/components/ProFeatureCatalogue.tsx",
         "web/src/client/proBilling.ts",
         "web/src/client/proPresentation.tsx"
       ]
@@ -784,6 +880,7 @@
         "web/src/components/WishSelectionIdeaPicker.tsx",
         "web/src/client/wishSelection.ts",
         "web/src/components/DateIdeaFilters.tsx",
+        "web/src/components/DateIdeaCard.tsx",
         "web/src/components/DateIdeaFacts.tsx",
         "web/src/components/DateIdeaImage.tsx",
         "web/src/client/dateIdeas.ts",
@@ -795,6 +892,8 @@
     "shared-wish-selection.spec.ts": {
       "roots": [
         "web/src/components/WishSelectionPage.tsx",
+        "web/src/components/WishSelectionEntry.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
         "web/src/client/wishSelection.ts",
         "web/src/components/PlanningCreatePage.tsx",
         "web/src/components/PlanProductPage.tsx",
@@ -834,6 +933,12 @@
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/MilestoneProductPage.tsx"
+      ]
+    },
+    "story-waymarks.spec.ts": {
+      "roots": [
+        "web/src/components/RelationshipStoryPage.tsx",
+        "web/src/components/RelationshipPassport.tsx"
       ]
     },
     "story-years-product-reference.spec.ts": {
@@ -951,6 +1056,7 @@
         "web/src/components/WirDesignSettings.tsx",
         "web/src/components/DashboardSettingsPanel.tsx",
         "web/src/components/TodayPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
         "web/src/components/SettingsPage.tsx",
         "web/src/components/NotificationSettingsPanel.tsx",
         "web/src/client/browserPush.ts",
@@ -964,12 +1070,21 @@
         "web/src/components/GamesProductArea.tsx"
       ]
     },
+    "picture-ping-pong.spec.ts": {
+      "roots": [
+        "web/src/components/PicturePingPongPage.tsx",
+        "web/src/components/GamesProductArea.tsx",
+        "web/src/client/picturePingPong.ts"
+      ]
+    },
     "chapter-experience.spec.ts": {
       "roots": [
         "web/src/components/ChaptersOverviewPage.tsx",
         "web/src/components/ChapterCreatePage.tsx",
         "web/src/components/ChapterProductPage.tsx",
         "web/src/components/PlanningRelationManager.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/MomentsLayoutSettings.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/StoryYearsPage.tsx",
         "web/src/components/MemoryProductPage.tsx"
@@ -980,6 +1095,8 @@
         "web/src/components/MemoryPlanningLinks.tsx",
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/StoryPlanningLinks.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/WishProductPage.tsx",
         "web/src/components/CommentsPanel.tsx",
         "web/src/components/ContextTagEditor.tsx",
         "web/src/components/HeartMomentProductPage.tsx"
@@ -988,6 +1105,7 @@
     "subpage-navigation-context.spec.ts": {
       "roots": [
         "web/src/components/AppShell.tsx",
+        "web/src/components/PageHeader.tsx",
         "web/src/components/SubpageNavigation.tsx",
         "web/src/components/TaskBackButton.tsx",
         "web/src/components/MemoryProductPage.tsx",
@@ -1040,6 +1158,7 @@
     "planning-search-private-profile.spec.ts": {
       "roots": [
         "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/WishSelectionEntry.tsx",
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/WishProductPage.tsx",
         "web/src/components/WishReminderAction.tsx",
@@ -1065,6 +1184,21 @@
         "web/src/components/PhotoDraftGallery.tsx",
         "web/src/App.tsx",
         "web/src/components/MemoryCreatePage.tsx"
+      ]
+    },
+    "photo-edit.spec.ts": {
+      "roots": [
+        "web/src/components/PhotoEditTask.tsx",
+        "web/src/client/photoEdit.ts",
+        "web/src/client/jpegExif.ts",
+        "web/src/components/AttachmentDraftPicker.tsx",
+        "web/src/components/PhotoDraftGallery.tsx",
+        "web/src/client/useAttachmentDrafts.ts",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/PlanPhotosEditor.tsx",
+        "web/src/client/useOrderedPhotoDrafts.ts",
+        "web/src/client/savedPhotoFile.ts"
       ]
     },
     "profile-photo-crop.spec.ts": {
@@ -1102,6 +1236,7 @@
     "multilingual-product.spec.ts": {
       "roots": [
         "web/src/components/LanguageSettings.tsx",
+        "web/src/components/SettingsIndexLive.tsx",
         "web/src/client/useAccountLanguage.ts",
         "web/src/i18n/index.ts",
         "web/src/client/sessionPersistence.ts"
@@ -1160,12 +1295,41 @@
         "web/src/components/MilestoneProductPage.tsx"
       ]
     },
+    "shared-notes.spec.ts": {
+      "roots": [
+        "web/src/components/SharedNotesOverviewPage.tsx",
+        "web/src/components/SharedNoteReadPage.tsx",
+        "web/src/components/SharedNoteEditorPage.tsx",
+        "web/src/components/SharedNoteParts.tsx",
+        "web/src/components/WirNotes.tsx",
+        "web/src/components/PlanNoteLinks.tsx",
+        "web/src/components/PlanNoteDraftLinks.tsx",
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/NoteChoicePicker.tsx",
+        "web/src/components/MoreOverviewPage.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/PlanProductPage.tsx"
+      ]
+    },
+    "lists-tab.spec.ts": {
+      "roots": [
+        "web/src/client/routes.ts",
+        "web/src/components/CollectionsOverviewPage.tsx",
+        "web/src/components/CollectionProductPage.tsx",
+        "web/src/components/SharedNotesOverviewPage.tsx",
+        "web/src/components/SharedNoteReadPage.tsx",
+        "web/src/components/SharedContentTabs.tsx",
+        "web/src/components/CollapsibleSearch.tsx",
+        "web/src/components/ItemActions.tsx"
+      ]
+    },
     "map-place-stacks.spec.ts": {
       "roots": [
         "web/src/components/MemoryMapPage.tsx",
         "web/src/components/MemoryMapMemories.tsx",
         "web/src/components/PlaceMapCanvas.tsx",
-        "web/src/components/MemoryProductPage.tsx"
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/StoryProductPage.tsx"
       ]
     },
     "partner-location-settings.spec.ts": {
@@ -1202,11 +1366,15 @@
     },
     "settings-calendar-sync.spec.ts": {
       "roots": [
+        "web/src/main.tsx",
+        "web/src/client/routes.ts",
+        "web/src/components/PlanProductPage.tsx",
         "web/src/components/CalendarSyncSettings.tsx",
         "web/src/components/CalendarSyncSettings.css",
         "web/src/components/SettingsPage.tsx",
         "web/src/components/SettingsIndex.tsx",
         "web/src/client/calendarSync.ts",
+        "web/src/client/useCalendarGoogleAppReturn.ts",
         "web/src/client/settingsNavigation.ts",
         "web/src/i18n/locales/calendarSync.ts"
       ]
@@ -1219,6 +1387,43 @@
         "web/src/components/PhotoSourceSettingsPanel.tsx",
         "web/src/client/usePhotoSources.ts",
         "web/src/client/photoSources.ts"
+      ]
+    },
+    "occasion-memory-mark.spec.ts": {
+      "roots": [
+        "web/src/client/occasionMatches.ts",
+        "web/src/client/useSpaceOccasions.ts",
+        "web/src/client/authorSummaryConsumers.ts",
+        "web/src/components/OccasionMark.tsx",
+        "web/src/components/OccasionMark.css",
+        "web/src/components/StoryList.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx",
+        "web/src/components/PlanningOccasions.tsx",
+        "web/src/i18n/locales/occasionMarks.ts"
+      ]
+    },
+    "webview-update-notice.spec.ts": {
+      "roots": ["web/src/i18n/locales/webViewNotice.ts"]
+    },
+    "wir-garden.spec.ts": {
+      "roots": [
+        "web/src/components/WirGardenModule.tsx",
+        "web/src/components/WirGardenModule.css",
+        "web/src/components/GardenWirHint.tsx",
+        "web/src/components/GardenGamePage.tsx",
+        "web/src/components/QuietHint.tsx",
+        "web/src/client/quietHints.ts",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/DashboardSettingsPanel.tsx",
+        "web/src/components/PartnerDistanceWirSetting.tsx",
+        "web/src/client/dashboardModules.ts",
+        "web/src/client/dashboardPreferences.ts",
+        "web/src/components/GardenScene.tsx",
+        "web/src/components/GardenPresentation.tsx",
+        "web/src/client/garden.ts"
       ]
     }
   }

@@ -16,6 +16,12 @@ import {
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
+import { pinDiaryLayout } from '../support/diaryLayout';
+
+// These checks describe the compact composition, not the Album default.
+test.beforeEach(async ({ page }) => {
+  await pinDiaryLayout(page, 'compact');
+});
 
 const fixture = localizedFixture.sharedExperience;
 const root = `/api/v1/spaces/${SPACE_ID}`;
@@ -583,8 +589,8 @@ test('opening a current partner comment consumes only that event and moves it in
   activities = [comment('second-comment'), ...activities];
   await page.reload();
   await expect(signal).toBeVisible();
-  await expect(
-    page.locator('.today-section-recent .activity-card'),
-  ).toHaveCount(1);
+  // The new comment's Memory is featured as the signal, so the older comment
+  // on the same Memory is not repeated in the trace (#2063).
+  await expect(page.locator('.today-section-recent')).toHaveCount(0);
   expect(unknown).toEqual([]);
 });

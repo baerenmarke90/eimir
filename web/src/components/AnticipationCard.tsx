@@ -100,7 +100,7 @@ export function AnticipationCard({ value }: { value: DashboardAnticipation }) {
                 {number.format(count)}
               </span>
               <span className="anticipation-unit-label">
-                {t(`relationshipReflections.anticipation.${unit}`)}
+                {t(`relationshipReflections.anticipation.${unit}`, { count })}
               </span>
             </span>
           ))}

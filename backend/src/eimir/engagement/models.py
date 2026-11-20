@@ -40,6 +40,10 @@ class ActivityKind(StrEnum):
     CHAPTER_CREATED = "CHAPTER_CREATED"
     COLLECTION_CREATED = "COLLECTION_CREATED"
     COMMENT_CREATED = "COMMENT_CREATED"
+    # #1969: a shared note was written or changed. A feed entry names the note
+    # and its author; it never carries or exposes the note's text.
+    SHARED_NOTE_CREATED = "SHARED_NOTE_CREATED"
+    SHARED_NOTE_CHANGED = "SHARED_NOTE_CHANGED"
 
 
 class NotificationKind(StrEnum):
@@ -55,6 +59,11 @@ class NotificationKind(StrEnum):
     PLAN_CANCELLED = "PLAN_CANCELLED"
     WISH_SELECTION_SHARED = "WISH_SELECTION_SHARED"
     WISH_SELECTION_READY = "WISH_SELECTION_READY"
+    WISH_SELECTION_RANDOM_REQUESTED = "WISH_SELECTION_RANDOM_REQUESTED"
+    WISH_SELECTION_RANDOM_ACCEPTED = "WISH_SELECTION_RANDOM_ACCEPTED"
+    WISH_SELECTION_RANDOM_DECLINED = "WISH_SELECTION_RANDOM_DECLINED"
+    HEART_HUNT_HIDDEN = "HEART_HUNT_HIDDEN"
+    HEART_HUNT_FOUND = "HEART_HUNT_FOUND"
     PHOTO_REACTION = "PHOTO_REACTION"
     PARTNER_JOINED = "PARTNER_JOINED"
     COUPLE_EXPERIENCE_SHARED = "COUPLE_EXPERIENCE_SHARED"
@@ -64,6 +73,58 @@ class NotificationKind(StrEnum):
     PARTNER_CHECK_IN = "PARTNER_CHECK_IN"
     REMINDER_DUE = "REMINDER_DUE"
     WISH_REMINDER_DUE = "WISH_REMINDER_DUE"
+    WISH_DATE_PROPOSED = "WISH_DATE_PROPOSED"
+    WISH_DATE_COUNTERED = "WISH_DATE_COUNTERED"
+    WISH_DATE_ACCEPTED = "WISH_DATE_ACCEPTED"
+    COLLECTION_SENT = "COLLECTION_SENT"
+    PICTURE_PING_PONG_TURN = "PICTURE_PING_PONG_TURN"
+    # The partner completed the shared picture; the notice never shows it.
+    PICTURE_PING_PONG_FINISHED = "PICTURE_PING_PONG_FINISHED"
+    # One notice kind for every remote couple game; the target names the game.
+    COUPLE_GAME_TURN = "COUPLE_GAME_TURN"
+    # #1969: a partner wrote or changed a shared note. Content-free references only.
+    SHARED_NOTE_CREATED = "SHARED_NOTE_CREATED"
+    SHARED_NOTE_CHANGED = "SHARED_NOTE_CHANGED"
+    GARDEN_SEED_ARRIVED = "GARDEN_SEED_ARRIVED"
+    # #1744: a retained recap is ready, or a retained recap got a newer version.
+    # Both partners get the identical notice; it names only the period.
+    RECAP_READY = "RECAP_READY"
+    RECAP_GREW = "RECAP_GREW"
+
+
+WISH_DATE_NOTICE_KINDS = frozenset(
+    {
+        NotificationKind.WISH_DATE_PROPOSED,
+        NotificationKind.WISH_DATE_COUNTERED,
+        NotificationKind.WISH_DATE_ACCEPTED,
+    }
+)
+
+
+# Consent-based random pick of a revealed wish-selection round (#1907 J1).
+WISH_SELECTION_RANDOM_KINDS = frozenset(
+    {
+        NotificationKind.WISH_SELECTION_RANDOM_REQUESTED,
+        NotificationKind.WISH_SELECTION_RANDOM_ACCEPTED,
+        NotificationKind.WISH_SELECTION_RANDOM_DECLINED,
+    }
+)
+# One current notice per recipient, kind and target; a newer event replaces it.
+COALESCED_NOTIFICATION_KINDS = (
+    "PHOTO_REACTION",
+    "WISH_SELECTION_SHARED",
+    "WISH_SELECTION_READY",
+    "WISH_SELECTION_RANDOM_REQUESTED",
+    "WISH_SELECTION_RANDOM_ACCEPTED",
+    "WISH_SELECTION_RANDOM_DECLINED",
+    "COLLECTION_SENT",
+    "PICTURE_PING_PONG_TURN",
+    "PICTURE_PING_PONG_FINISHED",
+    "COUPLE_GAME_TURN",
+    # Several edits of one note leave one current notice, not a stack of them.
+    "SHARED_NOTE_CHANGED",
+    "GARDEN_SEED_ARRIVED",
+)
 
 
 class NotificationChannel(StrEnum):
@@ -91,6 +152,14 @@ class EngagementTarget(StrEnum):
     PLACE = "PLACE"
     CHAPTER = "CHAPTER"
     COLLECTION = "COLLECTION"
+    PICTURE_GAME = "PICTURE_GAME"
+    WHO_OF_US_GAME = "WHO_OF_US_GAME"
+    WISH_DETECTIVE_GAME = "WISH_DETECTIVE_GAME"
+    OUR_MOMENTS_GAME = "OUR_MOMENTS_GAME"
+    SHARED_NOTE = "SHARED_NOTE"
+    GARDEN_SEED = "GARDEN_SEED"
+    GARDEN_BOUQUET = "GARDEN_BOUQUET"
+    RECAP = "RECAP"
 
 
 class PushDeliveryStatus(StrEnum):
@@ -112,7 +181,6 @@ class EmailDeliveryStatus(StrEnum):
 _ACTIVITY_KIND_VALUES = ", ".join(f"'{value.value}'" for value in ActivityKind)
 _NOTIFICATION_KIND_VALUES = ", ".join(f"'{value.value}'" for value in NotificationKind)
 _NOTIFICATION_CHANNEL_VALUES = ", ".join(f"'{value.value}'" for value in NotificationChannel)
-_SUPPORT_GESTURE_KIND_VALUES = ", ".join(f"'{value.value}'" for value in SupportGestureKind)
 _TARGET_VALUES = ", ".join(f"'{value.value}'" for value in EngagementTarget)
 _PUSH_STATUS_VALUES = ", ".join(f"'{value.value}'" for value in PushDeliveryStatus)
 _EMAIL_STATUS_VALUES = ", ".join(f"'{value.value}'" for value in EmailDeliveryStatus)
@@ -236,6 +304,19 @@ class Activity(IdMixin, Base):
             unique=True,
             postgresql_where=text("kind = 'HEART_MOMENT_CREATED' AND target_type = 'HEART_MOMENT'"),
         ),
+        # One feed entry per note and kind: repeated edits move the single
+        # "changed" entry forward instead of stacking one entry per save.
+        Index(
+            "uq_activities_shared_note_target_kind",
+            "space_id",
+            "target_id",
+            "kind",
+            unique=True,
+            postgresql_where=text(
+                "kind IN ('SHARED_NOTE_CREATED', 'SHARED_NOTE_CHANGED') "
+                "AND target_type = 'SHARED_NOTE'"
+            ),
+        ),
     )
 
 
@@ -299,7 +380,7 @@ class Notification(IdMixin, Base):
             "target_id",
             unique=True,
             postgresql_where=text(
-                "kind IN ('PHOTO_REACTION', 'WISH_SELECTION_SHARED', 'WISH_SELECTION_READY')"
+                "kind IN (" + ", ".join(f"'{kind}'" for kind in COALESCED_NOTIFICATION_KINDS) + ")"
             ),
         ),
         Index(
@@ -390,63 +471,6 @@ class ThinkingOfYouRequest(IdMixin, Base):
             "ix_thinking_requests_sender_space_created",
             "sender_account_id",
             "space_id",
-            "created_at",
-        ),
-    )
-
-
-class SupportGestureRequest(IdMixin, Base):
-    """Idempotency/cooldown receipt for one content-free extended partner gesture."""
-
-    __tablename__ = "support_gesture_requests"
-
-    space_id: Mapped[UUID] = mapped_column(
-        postgresql.UUID(as_uuid=True),
-        ForeignKey("spaces.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    sender_account_id: Mapped[UUID] = mapped_column(
-        postgresql.UUID(as_uuid=True),
-        ForeignKey("accounts.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    recipient_account_id: Mapped[UUID] = mapped_column(
-        postgresql.UUID(as_uuid=True),
-        ForeignKey("accounts.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    kind: Mapped[str] = mapped_column(String(32), nullable=False)
-    client_request_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), nullable=False)
-    source_event_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-
-    __table_args__ = (
-        CheckConstraint(
-            "sender_account_id <> recipient_account_id",
-            name="support_gesture_sender_ne_recipient",
-        ),
-        CheckConstraint(
-            f"kind IN ({_SUPPORT_GESTURE_KIND_VALUES})",
-            name="support_gesture_kind_allowed",
-        ),
-        UniqueConstraint(
-            "source_event_id",
-            name="uq_support_gesture_requests_source_event_id",
-        ),
-        UniqueConstraint(
-            "space_id",
-            "sender_account_id",
-            "kind",
-            "client_request_id",
-            name="uq_support_gesture_requests_sender_space_kind_client",
-        ),
-        Index(
-            "ix_support_gesture_requests_sender_space_kind_created",
-            "sender_account_id",
-            "space_id",
-            "kind",
             "created_at",
         ),
     )

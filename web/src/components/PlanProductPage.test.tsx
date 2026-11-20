@@ -117,7 +117,7 @@ describe('PlanProductPage', () => {
     const withNotes = renderPlan(
       basePlan({ description: 'Remember the sunscreen.' }),
     );
-    expect(withNotes).not.toContain(i18n.t('m5s3.plan.notesHeading'));
+    expect(withNotes).not.toContain(`>${i18n.t('m5s3.plan.notesHeading')}<`);
     expect(withNotes).toContain(
       'class="planen-section planen-section-content"',
     );
@@ -128,14 +128,30 @@ describe('PlanProductPage', () => {
     expect(withoutNotes).not.toContain('planen-detail-meta');
   });
 
-  it('keeps one named Edit entry and a distinct completion action without management or visibility clutter', () => {
+  it('keeps one named actions menu and a distinct completion action without management or visibility clutter', () => {
     const html = renderPlan(basePlan());
 
     expect(html).not.toContain(i18n.t('m5s3.plan.sharedTitle'));
     expect(html).not.toContain(i18n.t('m5s3.plan.actionsHeading'));
-    expect(html).toContain(i18n.t('common.edit'));
+    expect(html).toContain(i18n.t('m5s3.plan.menu'));
+    expect(html).not.toContain('composer-detail-edit');
     expect(html).toContain('planen-complete-cta');
     expect(html).toContain(i18n.t('m5s3.plan.complete'));
+  });
+
+  it('keeps the completion in the menu while the planned day is still ahead', () => {
+    for (const html of [
+      renderPlan(basePlan({ plannedStart: new Date(2099, 0, 1, 10) })),
+      renderPlan(
+        basePlan({ plannedStart: null, plannedOn: new Date('2099-01-01') }),
+      ),
+    ]) {
+      expect(html).not.toContain('planen-complete-cta');
+      expect(html).toContain(i18n.t('m5s3.plan.menu'));
+    }
+    expect(
+      renderPlan(basePlan({ plannedStart: null, plannedOn: null })),
+    ).toContain('planen-complete-cta');
   });
 
   it('shows a completed Plan as a truthful read result without reopening capture automatically', () => {

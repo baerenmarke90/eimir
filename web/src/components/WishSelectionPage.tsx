@@ -18,6 +18,7 @@ import type { DateIdea } from '../api/generated/models/DateIdea';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import type { WishSelectionCandidateView } from '../api/generated/models/WishSelectionCandidateView';
+import type { WishSelectionDecisionUpdateActionEnum } from '../api/generated/models/WishSelectionDecisionUpdate';
 import type { WishSelectionView } from '../api/generated/models/WishSelectionView';
 import { WishStatus } from '../api/generated/models/WishStatus';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
@@ -33,6 +34,8 @@ import {
   useDateIdeasCatalog,
   useDateInspirationCapability,
 } from '../client/dateIdeas';
+import { usePartnerName } from '../client/partnerLocation';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   clientProblemKind,
   normalizeClientError,
@@ -67,16 +70,17 @@ import { DateIdeaFacts } from './DateIdeaFacts';
 import { DateIdeaImage } from './DateIdeaImage';
 import { DestinationIcon } from './DestinationIcon';
 import { EimirIcon } from './EimirIcon';
-import { PageHeader } from './PageHeader';
 import { PlanningDiscardConfirmation } from './PlanningEditorLifecycle';
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { ProblemState } from './ProblemState';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet } from './ShortTaskSheet';
-import { StatusScope } from './StatusScope';
 import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import { WishSelectionIdeaPicker } from './WishSelectionIdeaPicker';
+import { WishSelectionRandomDecision } from './WishSelectionRandomDecision';
+import { type ResultItem, WishSelectionVote } from './WishSelectionVote';
+import { WishSelectionWishPicker } from './WishSelectionWishPicker';
 import './DateIdeas.css';
 import './WishSelection.css';
 
@@ -89,7 +93,8 @@ interface Props {
 }
 
 type Mode = 'setup' | 'vote' | 'view' | 'plan';
-type Source = 'wishes' | 'ideas';
+/** Composing a round (#1907 J1): the hub with two sources, or one source. */
+type SetupStep = 'hub' | 'wishes' | 'ideas';
 type DraftBase = {
   token: string | null;
   sources: string;
@@ -112,6 +117,13 @@ function plainActivation(event: MouseEvent): boolean {
   );
 }
 type WishAttempt = { spaceId: string; title: string };
+
+function titleInitial(title: string): string {
+  const initial = Array.from(title.trim())[0] ?? '#';
+  return /\p{L}/u.test(initial)
+    ? initial.toLocaleUpperCase(resolvedLocale())
+    : '#';
+}
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
   try {
@@ -153,8 +165,21 @@ function WishSelectionTask({
   const [ideaIds, setIdeaIds] = useState<string[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [favoriteIdeaIds, setFavoriteIdeaIds] = useState<string[]>([]);
-  const [source, setSource] = useState<Source>('wishes');
+  const [step, setStep] = useState<SetupStep>('hub');
   const [ideasOpened, setIdeasOpened] = useState(false);
+  // Plays the short chance reveal once after this device agreed (#1907 J1).
+  const [revealing, setRevealing] = useState(false);
+  const partner = usePartnerName({
+    apiBaseUrl,
+    accessToken: accessToken ?? '',
+    accountId,
+    spaceId,
+    enabled: Boolean(accessToken),
+  });
+  const { relationshipLabel } = usePartnerNickname();
+  const partnerName = partner.name
+    ? relationshipLabel(partner.id, partner.name, '')
+    : '';
   const ideaCount = useRef(0);
   ideaCount.current = ideaIds.length;
   const [occasion, setOccasion] = useState('');
@@ -239,6 +264,14 @@ function WishSelectionTask({
     onDiscardRequested: () => setCancelPlan(true),
   });
 
+  useEditorHistoryEntry({
+    isActive: activeMode === 'setup' && step !== 'hub',
+    isDirty: false,
+    isCloseBlocked: busy,
+    onClose: () => setStep('hub'),
+    onDiscardRequested: () => setStep('hub'),
+  });
+
   const adopt = useCallback((current: WishSelectionView) => {
     const ids = current.candidates
       .filter((candidate) => candidate.status === 'OPEN')
@@ -278,9 +311,11 @@ function WishSelectionTask({
     )
       adopt(view);
   }, [view, dirty, busy, base, activeMode, mode, adopt]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new step or mode moves focus to the task start.
   useEffect(() => {
-    focusRef.current?.focus({ preventScroll: activeMode === 'setup' });
-  }, [activeMode]);
+    focusRef.current?.focus({ preventScroll: true });
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
+  }, [activeMode, step]);
 
   const wishes = useInfiniteQuery({
     queryKey: ['m5-s3', 'wishes', spaceId],
@@ -410,8 +445,56 @@ function WishSelectionTask({
       client.setQueryData(queryKey, saved);
       adopt(saved);
       setMode('vote');
+      setStep('hub');
       setOwnOnly(false);
       setShareConfirmed(false);
+    },
+    onSettled: finish,
+  });
+  const decisionMutation = useMutation({
+    networkMode: 'always',
+    gcTime: 0,
+    mutationFn: ({
+      action,
+      item,
+      token,
+    }: {
+      action: WishSelectionDecisionUpdateActionEnum;
+      item?: ResultItem;
+      token: string;
+      current: () => boolean;
+    }) =>
+      apiCall(() => {
+        assertOnlineWrite();
+        if (!api) throw new Error('Wish selection API unavailable.');
+        return api.decideWishSelection({
+          spaceId,
+          locale,
+          ifMatch: token,
+          wishSelectionDecisionUpdate: {
+            action,
+            wishId: item?.kind === 'wish' ? item.candidate.wishId : undefined,
+            dateIdeaId: item?.kind === 'idea' ? item.idea.id : undefined,
+          },
+        });
+      }),
+    onSuccess: (saved, vars) => {
+      if (!vars.current()) return;
+      client.setQueryData(queryKey, saved);
+      adopt(saved);
+      if (
+        vars.action === 'ACCEPT_RANDOM' ||
+        (vars.action === 'REQUEST_RANDOM' &&
+          saved.decision?.method === 'RANDOM')
+      ) {
+        const reduced =
+          typeof window !== 'undefined' &&
+          window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        if (!reduced) {
+          setRevealing(true);
+          window.setTimeout(() => setRevealing(false), 1200);
+        }
+      }
     },
     onSettled: finish,
   });
@@ -584,6 +667,7 @@ function WishSelectionTask({
   const problem =
     roundMutation.error ??
     ownMutation.error ??
+    decisionMutation.error ??
     createWish.error ??
     planMutation.error ??
     closeMutation.error ??
@@ -598,6 +682,7 @@ function WishSelectionTask({
   function clearProblems() {
     roundMutation.reset();
     ownMutation.reset();
+    decisionMutation.reset();
     createWish.reset();
     planMutation.reset();
     closeMutation.reset();
@@ -612,7 +697,23 @@ function WishSelectionTask({
     if (!view || busy) return;
     adopt(view);
     clearProblems();
+    setStep('hub');
     setMode('setup');
+  }
+  function decide(
+    action: WishSelectionDecisionUpdateActionEnum,
+    item?: ResultItem,
+  ) {
+    if (!view?.selectionToken || busy) return;
+    clearProblems();
+    const current = begin();
+    if (current)
+      decisionMutation.mutate({
+        current,
+        action,
+        item,
+        token: view.selectionToken,
+      });
   }
   function editOwn() {
     if (!view?.selectionToken || busy) return;
@@ -700,93 +801,306 @@ function WishSelectionTask({
   const pausedIdeas = paused ? view.dateIdeaCandidates.length : 0;
   const planned = view.candidates.filter((candidate) => candidate.planId);
   const shownIds = ownOnly ? ownSelectionIds(view) : view.commonWishIds;
-  const shown = available.filter((candidate) =>
-    shownIds.includes(candidate.wishId),
-  );
   const shownIdeaIds = ownOnly
     ? ownIdeaSelectionIds(view)
     : view.commonDateIdeaIds;
-  const shownIdeas = availableIdeas.filter((idea) =>
-    shownIdeaIds.includes(idea.id),
-  );
-  const shownCount = shown.length + shownIdeas.length;
+  const shownItems: ResultItem[] = [
+    ...available
+      .filter((candidate) => shownIds.includes(candidate.wishId))
+      .map((candidate) => ({
+        kind: 'wish' as const,
+        key: `wish:${candidate.wishId}`,
+        candidate,
+      })),
+    ...availableIdeas
+      .filter((idea) => shownIdeaIds.includes(idea.id))
+      .map((idea) => ({ kind: 'idea' as const, key: `idea:${idea.id}`, idea })),
+  ];
+  const shownCount = shownItems.length;
   const availableCount = available.length + availableIdeas.length;
   const ownFavoriteCount =
     ownSelectionIds(view).filter((id) =>
       available.some((candidate) => candidate.wishId === id),
     ).length + ownIdeaSelectionIds(view).length;
   const savedWishes = savedDateIdeaWishes(client, accountId, spaceId);
-  const titleKey =
+  // A revealed round is decided once for both devices (#1907 J1): a tap among
+  // several common favourites, or chance after both partners agreed.
+  const revealed = !ownOnly && view.resultState === 'READY';
+  const severalShared = revealed && shownCount >= 2;
+  const allItems: ResultItem[] = [
+    ...available.map((candidate) => ({
+      kind: 'wish' as const,
+      key: `wish:${candidate.wishId}`,
+      candidate,
+    })),
+    ...availableIdeas.map((idea) => ({
+      kind: 'idea' as const,
+      key: `idea:${idea.id}`,
+      idea,
+    })),
+  ];
+  const decision = revealed ? view.decision : null;
+  const chosen = decision
+    ? (allItems.find((item) =>
+        item.kind === 'wish'
+          ? item.candidate.wishId === decision.wishId
+          : item.idea.id === decision.dateIdeaId,
+      ) ?? null)
+    : null;
+  const randomRequest = revealed ? view.randomRequest : null;
+  const partnerLabel =
+    partnerName || t('m5s5.today.relationshipSignal.partnerFallback');
+  const ideasLang = (idea: DateIdea) =>
+    idea.contentLocale !== locale ? idea.contentLocale : undefined;
+  const itemTitle = (item: ResultItem) =>
+    item.kind === 'wish' ? item.candidate.title : item.idea.title;
+
+  const title =
     activeMode === 'setup'
-      ? 'setupTitle'
+      ? t(
+          step === 'wishes'
+            ? 'wishSelection.sourceWishesTitle'
+            : step === 'ideas'
+              ? 'wishSelection.ideasTitle'
+              : 'wishSelection.setupTitle',
+        )
       : activeMode === 'vote'
-        ? 'chooseTitle'
+        ? t('wishSelection.chooseTitle')
         : activeMode === 'plan'
-          ? 'prepareTitle'
+          ? t('wishSelection.prepareTitle')
           : paused
-            ? 'pausedTitle'
+            ? t('wishSelection.pausedTitle')
             : view.resultState === 'NEEDS_IDEAS'
-              ? 'changedTitle'
+              ? t('wishSelection.changedTitle')
               : ownOnly
-                ? 'ownTitle'
+                ? t('wishSelection.ownTitle')
                 : availableCount === 0 && planned.length
-                  ? 'allPlannedTitle'
+                  ? t('wishSelection.allPlannedTitle')
                   : view.resultState === 'CHOOSING'
-                    ? 'chooseTitle'
+                    ? t('wishSelection.chooseTitle')
                     : view.resultState === 'WAITING'
-                      ? 'waitingTitle'
-                      : shownCount
-                        ? 'sharedTitle'
-                        : 'noMatchTitle';
-  const introKey =
+                      ? t('wishSelection.waitingTitle')
+                      : chosen && !revealing
+                        ? t('wishSelection.chosenTitle')
+                        : severalShared
+                          ? t('wishSelection.sharedManyTitle', {
+                              amount: shownCount,
+                            })
+                          : shownCount
+                            ? t('wishSelection.sharedTitle')
+                            : t('wishSelection.noMatchTitle');
+  const chooseIntro = partnerName
+    ? t('wishSelection.chooseIntro', { name: partnerName })
+    : t('wishSelection.chooseIntroUnnamed');
+  const intro =
     activeMode === 'setup'
-      ? 'setupIntro'
+      ? null
       : activeMode === 'vote'
-        ? 'chooseIntro'
+        ? chooseIntro
         : activeMode === 'plan'
-          ? 'prepareIntro'
+          ? t('wishSelection.prepareIntro')
           : paused
-            ? 'pausedBody'
+            ? t('wishSelection.pausedBody')
             : view.resultState === 'NEEDS_IDEAS'
-              ? 'changedBody'
+              ? t('wishSelection.changedBody')
               : ownOnly
-                ? 'ownBody'
+                ? t('wishSelection.ownBody')
                 : availableCount === 0 && planned.length
-                  ? 'allPlannedBody'
+                  ? t('wishSelection.allPlannedBody')
                   : view.resultState === 'CHOOSING'
-                    ? 'chooseIntro'
+                    ? chooseIntro
                     : view.resultState === 'WAITING'
-                      ? 'waitingBody'
-                      : !shownCount
-                        ? 'noMatchBody'
-                        : null;
+                      ? partnerName
+                        ? t('wishSelection.waitingBody', { name: partnerName })
+                        : t('wishSelection.waitingBodyUnnamed')
+                      : chosen
+                        ? null
+                        : severalShared
+                          ? t('wishSelection.sharedManyIntro')
+                          : !shownCount
+                            ? t('wishSelection.noMatchBody')
+                            : null;
+
+  function goBack() {
+    if (activeMode === 'plan') {
+      if (planDirty) setCancelPlan(true);
+      else setMode('view');
+    } else if (activeMode === 'setup' && step !== 'hub') setStep('hub');
+    else lifecycle.requestClose();
+  }
+
+  function candidateMedia(item: ResultItem) {
+    return item.kind === 'idea' ? (
+      <span className="wish-selection-row-media">
+        <DateIdeaImage
+          api={dateApi}
+          accountId={accountId}
+          spaceId={spaceId}
+          image={item.idea.image}
+          decorative
+        />
+      </span>
+    ) : (
+      <span className="wish-selection-row-initial" aria-hidden="true">
+        {titleInitial(item.candidate.title)}
+      </span>
+    );
+  }
+
+  /** The existing result card: Plan for a Wish, Plan/remember for an idea. */
+  function resultCard(item: ResultItem, label: string, featured: boolean) {
+    if (item.kind === 'wish') {
+      const { candidate } = item;
+      return (
+        <section
+          key={item.key}
+          className={`wish-selection-result ${featured ? 'wish-selection-featured' : ''}`}
+        >
+          <p className="wish-selection-support">{label}</p>
+          <h2>{candidate.title}</h2>
+          <p className="wish-selection-source">
+            <DestinationIcon icon="wish" />
+            {t('wishSelection.wishSource')}
+          </p>
+          <button
+            type="button"
+            className={featured ? '' : 'secondary'}
+            disabled={busy}
+            onClick={() => prepare(candidate)}
+          >
+            {t('wishSelection.prepare')}
+          </button>
+        </section>
+      );
+    }
+    const { idea } = item;
+    const titleId = `wish-selection-idea-${idea.id}`;
+    const lang = ideasLang(idea);
+    const savedWishId = savedWishes[idea.id];
+    const planDraft = {
+      title: idea.planTitle,
+      description: idea.description,
+    };
+    return (
+      <section
+        key={item.key}
+        aria-labelledby={titleId}
+        className={`wish-selection-result is-idea ${featured ? 'wish-selection-featured' : ''}`}
+      >
+        {featured ? (
+          <DateIdeaImage
+            api={dateApi}
+            accountId={accountId}
+            spaceId={spaceId}
+            image={idea.image}
+            lang={lang}
+          />
+        ) : null}
+        <div className="wish-selection-result-body">
+          <p className="wish-selection-support">{label}</p>
+          <h2 id={titleId} lang={lang}>
+            {idea.title}
+          </h2>
+          <p className="wish-selection-source">
+            <EimirIcon name="sparkle" />
+            {t('wishSelection.ideaSource')}
+          </p>
+          <DateIdeaFacts
+            idea={idea}
+            placeLabel={placeLabels.get(idea.placeType)}
+          />
+          <div className="date-idea-actions">
+            <AddActionLink
+              icon="kalender"
+              className="date-idea-plan"
+              label={t('dateIdeas.card.plan')}
+              aria-describedby={titleId}
+              to={savedWishId ? wishDetailPath(savedWishId) : PLAN_CREATE_ROUTE}
+              onClick={(event) => {
+                if (!plainActivation(event)) return;
+                event.preventDefault();
+                // A Wish saved from this idea continues through the
+                // canonical Wish-to-Plan conversion.
+                if (savedWishId)
+                  openIdea(idea, wishDetailPath(savedWishId), {
+                    planningConvertDraft: planDraft,
+                  });
+                else
+                  openIdea(idea, PLAN_CREATE_ROUTE, {
+                    planningCreateDraft: planDraft,
+                  });
+              }}
+            />
+            {savedWishId ? (
+              <Link
+                className="button-link secondary-link date-idea-saved"
+                to={wishDetailPath(savedWishId)}
+                aria-describedby={titleId}
+                onClick={(event) => {
+                  if (!plainActivation(event)) return;
+                  event.preventDefault();
+                  openIdea(idea, wishDetailPath(savedWishId), {});
+                }}
+              >
+                <EimirIcon name="check" />
+                {t('dateIdeas.card.saved')}
+              </Link>
+            ) : (
+              <Link
+                className="button-link secondary-link date-idea-save"
+                to={WISH_CREATE_ROUTE}
+                aria-describedby={titleId}
+                onClick={(event) => {
+                  if (!plainActivation(event)) return;
+                  event.preventDefault();
+                  openIdea(idea, WISH_CREATE_ROUTE, {
+                    planningCreateDraft: {
+                      title: idea.wishTitle,
+                      description: idea.description,
+                      dateIdeaId: idea.id,
+                    },
+                  });
+                }}
+              >
+                <EimirIcon name="wuensche" />
+                {t('dateIdeas.card.save')}
+              </Link>
+            )}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const pickBar = (
+    <div className="wish-selection-pick-bar">
+      <p role="status">
+        {t('wishSelection.selected', { count: totalSelected })}
+      </p>
+      <button type="button" onClick={() => setStep('hub')}>
+        {t('wishSelection.pickDone')}
+      </button>
+    </div>
+  );
 
   return (
     <div className="page wish-selection-task">
-      <PageHeader
-        before={
-          <TaskBackButton
-            type="button"
-            className="back-link tertiary"
-            disabled={busy}
-            onClick={() => {
-              if (activeMode === 'plan') {
-                if (planDirty) setCancelPlan(true);
-                else setMode('view');
-              } else lifecycle.requestClose();
-            }}
-          >
-            {t(
-              activeMode === 'plan'
-                ? 'wishSelection.toSelection'
-                : 'taskBoundary.back',
-            )}
-          </TaskBackButton>
-        }
-        eyebrow={view.title && activeMode !== 'setup' ? view.title : undefined}
-        title={t(`wishSelection.${titleKey}`)}
-        description={introKey ? t(`wishSelection.${introKey}`) : undefined}
-      />
+      <header className="page-heading wish-selection-heading">
+        <TaskBackButton inline type="button" disabled={busy} onClick={goBack}>
+          {t(
+            activeMode === 'plan'
+              ? 'wishSelection.toSelection'
+              : 'taskBoundary.back',
+          )}
+        </TaskBackButton>
+        <div>
+          {view.title && activeMode !== 'setup' ? (
+            <p className="eyebrow">{view.title}</p>
+          ) : null}
+          <h1>{title}</h1>
+        </div>
+      </header>
+      {intro ? <p className="wish-selection-intro">{intro}</p> : null}
       <div ref={focusRef} tabIndex={-1} className="planning-task-focus" />
       {query.error ? (
         <ProblemState
@@ -837,7 +1151,12 @@ function WishSelectionTask({
           className="wish-selection-form"
           onSubmit={(event) => {
             event.preventDefault();
-            if (totalSelected < 2 || totalSelected > MAX_CANDIDATES || stale)
+            if (
+              step !== 'hub' ||
+              totalSelected < 2 ||
+              totalSelected > MAX_CANDIDATES ||
+              stale
+            )
               return;
             clearProblems();
             const current = begin();
@@ -852,179 +1171,282 @@ function WishSelectionTask({
           }}
         >
           <fieldset disabled={busy} className="wish-selection-fields">
-            <label className="field-group">
-              <span>{t('wishSelection.occasion')}</span>
-              <input
-                value={occasion}
-                maxLength={60}
-                onChange={(event) => setOccasion(event.target.value)}
-                placeholder={t('wishSelection.occasionPlaceholder')}
-              />
-            </label>
-            <section
-              className="wish-selection-tray"
-              aria-labelledby="wish-selection-tray-title"
-            >
-              <h2 id="wish-selection-tray-title">
-                {t('wishSelection.inSelection')}
-              </h2>
-              {totalSelected ? (
-                <ul>
-                  {candidateIds.map((id) => {
-                    const title =
-                      wishItems.find((wish) => wish.id === id)?.title ?? '';
-                    return (
-                      <li key={id}>
-                        <EimirIcon
-                          name="wuensche"
-                          className="wish-selection-tray-source"
-                        />
-                        <span>{title}</span>
-                        <button
-                          type="button"
-                          className="tertiary wish-selection-tray-remove"
-                          aria-label={t('wishSelection.removeCandidate', {
-                            title,
+            {step === 'hub' ? (
+              <>
+                {totalSelected === 0 ? (
+                  <ol
+                    className="wish-selection-steps"
+                    aria-label={t('wishSelection.stepsLabel')}
+                  >
+                    <li>
+                      <strong>{t('wishSelection.stepCollect')}</strong>
+                      <span>{t('wishSelection.stepCollectBody')}</span>
+                    </li>
+                    <li>
+                      <strong>{t('wishSelection.stepFavorites')}</strong>
+                      <span>
+                        {partnerName
+                          ? t('wishSelection.stepFavoritesBody', {
+                              name: partnerName,
+                            })
+                          : t('wishSelection.stepFavoritesBodyUnnamed')}
+                      </span>
+                    </li>
+                    <li>
+                      <strong>{t('wishSelection.stepResult')}</strong>
+                      <span>{t('wishSelection.stepResultBody')}</span>
+                    </li>
+                  </ol>
+                ) : (
+                  <section
+                    className="wish-selection-tray"
+                    aria-labelledby="wish-selection-tray-count"
+                  >
+                    <p
+                      id="wish-selection-tray-count"
+                      className="wish-selection-support"
+                      role="status"
+                    >
+                      {totalSelected === 1
+                        ? t('wishSelection.needOneMore')
+                        : t('wishSelection.selected', {
+                            count: totalSelected,
                           })}
-                          onClick={() =>
-                            setCandidateIds((current) => toggle(current, id))
-                          }
-                        >
-                          <EimirIcon name="close" />
-                        </button>
-                      </li>
-                    );
-                  })}
-                  {ideaIds.map((id) => {
-                    const idea = ideaById.get(id);
-                    const title = idea?.title ?? t('wishSelection.ideaSource');
-                    return (
-                      <li key={id}>
-                        <EimirIcon
-                          name="sparkle"
-                          className="wish-selection-tray-source is-idea"
-                        />
-                        <span
-                          lang={
-                            idea && idea.contentLocale !== locale
-                              ? idea.contentLocale
-                              : undefined
-                          }
-                        >
-                          {title}
-                        </span>
-                        <button
-                          type="button"
-                          className="tertiary wish-selection-tray-remove"
-                          aria-label={t('wishSelection.removeCandidate', {
-                            title,
-                          })}
-                          onClick={() =>
-                            setIdeaIds((current) => toggle(current, id))
-                          }
-                        >
-                          <EimirIcon name="close" />
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : null}
-              <p className="wish-selection-support" role="status">
-                {t(
-                  totalSelected < 2
-                    ? 'wishSelection.chooseMore'
-                    : 'wishSelection.selected',
-                  { count: totalSelected },
+                    </p>
+                    <ul>
+                      {candidateIds.map((id) => {
+                        const wishTitle =
+                          wishItems.find((wish) => wish.id === id)?.title ?? '';
+                        return (
+                          <li key={id}>
+                            <EimirIcon
+                              name="wuensche"
+                              className="wish-selection-tray-source"
+                            />
+                            <span>{wishTitle}</span>
+                            <button
+                              type="button"
+                              className="tertiary wish-selection-tray-remove"
+                              aria-label={t('wishSelection.removeCandidate', {
+                                title: wishTitle,
+                              })}
+                              onClick={() =>
+                                setCandidateIds((current) =>
+                                  toggle(current, id),
+                                )
+                              }
+                            >
+                              <EimirIcon name="close" />
+                            </button>
+                          </li>
+                        );
+                      })}
+                      {ideaIds.map((id) => {
+                        const idea = ideaById.get(id);
+                        const ideaTitle =
+                          idea?.title ?? t('wishSelection.ideaSource');
+                        return (
+                          <li key={id}>
+                            <EimirIcon
+                              name="sparkle"
+                              className="wish-selection-tray-source is-idea"
+                            />
+                            <span lang={idea ? ideasLang(idea) : undefined}>
+                              {ideaTitle}
+                            </span>
+                            <button
+                              type="button"
+                              className="tertiary wish-selection-tray-remove"
+                              aria-label={t('wishSelection.removeCandidate', {
+                                title: ideaTitle,
+                              })}
+                              onClick={() =>
+                                setIdeaIds((current) => toggle(current, id))
+                              }
+                            >
+                              <EimirIcon name="close" />
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </section>
                 )}
-              </p>
-            </section>
-            <StatusScope<Source>
-              label={t('wishSelection.sourceLabel')}
-              value={source}
-              options={[
-                { value: 'wishes', label: t('wishSelection.sourceWishes') },
-                { value: 'ideas', label: t('wishSelection.sourceIdeas') },
-              ]}
-              onChange={(value) => {
-                setSource(value);
-                if (value === 'ideas') setIdeasOpened(true);
-              }}
-            />
-            <div
-              className="wish-selection-source-panel"
-              hidden={source !== 'wishes'}
-            >
-              {wishes.error ? (
-                <ProblemState
-                  error={wishes.error}
-                  onRetry={() => void wishes.refetch()}
-                />
-              ) : null}
-              {wishes.isLoading ? (
-                <UiState kind="loading" title={t('states.loading.title')} />
-              ) : null}
-              {!wishes.isLoading && !wishes.error && wishItems.length < 2 ? (
-                <div className="wish-selection-empty">
-                  <h2>{t('wishSelection.emptyWishes')}</h2>
-                  <p>{t('wishSelection.emptyWishesBody')}</p>
-                </div>
-              ) : null}
-              <fieldset className="wish-selection-choices">
-                <legend>{t('wishSelection.openWishes')}</legend>
-                {wishItems.map((wish) => (
-                  <label key={wish.id} className="wish-selection-choice">
-                    <input
-                      type="checkbox"
-                      checked={candidateIds.includes(wish.id)}
-                      disabled={
-                        !candidateIds.includes(wish.id) &&
-                        totalSelected >= MAX_CANDIDATES
-                      }
-                      onChange={() =>
-                        setCandidateIds((current) => toggle(current, wish.id))
-                      }
-                    />
-                    <span>{wish.title}</span>
-                  </label>
-                ))}
-              </fieldset>
-              {wishes.hasNextPage ? (
-                <AutoLoadMore
-                  query={wishes}
-                  className="tertiary"
-                  blocked={wishes.isFetchingNextPage}
+                <ul
+                  className="wish-selection-sources"
+                  aria-label={t('wishSelection.sourcesLabel')}
                 >
-                  {t('m5s3.common.loadMore')}
-                </AutoLoadMore>
-              ) : null}
-              <label className="field-group">
-                <span>{t('wishSelection.newIdea')}</span>
-                <input
-                  value={newIdea}
-                  maxLength={200}
-                  placeholder={t('wishSelection.newIdeaPlaceholder')}
-                  onChange={(event) => setNewIdea(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') event.preventDefault();
+                  <li>
+                    <button
+                      type="button"
+                      className="wish-selection-source-card"
+                      onClick={() => setStep('wishes')}
+                    >
+                      <EimirIcon
+                        name="gemeinsam"
+                        className="wish-selection-source-icon"
+                      />
+                      <span className="wish-selection-source-text">
+                        <strong>{t('wishSelection.sourceWishesTitle')}</strong>
+                        <span>
+                          {wishes.isLoading
+                            ? t('states.loading.title')
+                            : wishItems.length
+                              ? t('wishSelection.sourceWishesBody', {
+                                  count: wishItems.length,
+                                })
+                              : t('wishSelection.sourceWishesNone')}
+                        </span>
+                      </span>
+                      {candidateIds.length ? (
+                        <span className="wish-selection-source-count">
+                          {t('wishSelection.sourceCount', {
+                            count: candidateIds.length,
+                          })}
+                        </span>
+                      ) : (
+                        <EimirIcon
+                          name="chevron-right"
+                          className="wish-selection-source-chevron"
+                        />
+                      )}
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      className="wish-selection-source-card is-ideas"
+                      onClick={() => {
+                        setIdeasOpened(true);
+                        setStep('ideas');
+                      }}
+                    >
+                      <EimirIcon
+                        name="sparkle"
+                        className="wish-selection-source-icon"
+                      />
+                      <span className="wish-selection-source-text">
+                        <strong>
+                          {t('wishSelection.sourceIdeasTitle')}
+                          <ProMark label={t('dateIdeas.pro')} />
+                        </strong>
+                        <span>{t('wishSelection.sourceIdeasBody')}</span>
+                      </span>
+                      {ideaIds.length ? (
+                        <span className="wish-selection-source-count">
+                          {t('wishSelection.sourceCount', {
+                            count: ideaIds.length,
+                          })}
+                        </span>
+                      ) : (
+                        <EimirIcon
+                          name="chevron-right"
+                          className="wish-selection-source-chevron"
+                        />
+                      )}
+                    </button>
+                  </li>
+                </ul>
+                {totalSelected > 0 || occasion ? (
+                  <label className="field-group">
+                    <span>{t('wishSelection.occasion')}</span>
+                    <input
+                      value={occasion}
+                      maxLength={60}
+                      onChange={(event) => setOccasion(event.target.value)}
+                      placeholder={t('wishSelection.occasionPlaceholder')}
+                    />
+                  </label>
+                ) : null}
+                <div className="wish-selection-actions">
+                  <button
+                    type="submit"
+                    disabled={
+                      busy ||
+                      stale ||
+                      totalSelected < 2 ||
+                      totalSelected > MAX_CANDIDATES
+                    }
+                  >
+                    {t(
+                      busy
+                        ? 'wishSelection.saving'
+                        : view.id
+                          ? 'wishSelection.replace'
+                          : 'wishSelection.start',
+                    )}
+                  </button>
+                  {view.id ? (
+                    <p className="wish-selection-support">
+                      {t('wishSelection.replaceNotice')}
+                    </p>
+                  ) : null}
+                </div>
+              </>
+            ) : null}
+            {step === 'wishes' ? (
+              <div className="wish-selection-source-panel">
+                {wishes.error ? (
+                  <ProblemState
+                    error={wishes.error}
+                    onRetry={() => void wishes.refetch()}
+                  />
+                ) : null}
+                {wishes.isLoading ? (
+                  <UiState kind="loading" title={t('states.loading.title')} />
+                ) : null}
+                {!wishes.isLoading && !wishes.error && wishItems.length < 2 ? (
+                  <div className="wish-selection-empty">
+                    <h2>{t('wishSelection.emptyWishes')}</h2>
+                    <p>{t('wishSelection.emptyWishesBody')}</p>
+                  </div>
+                ) : null}
+                <WishSelectionWishPicker
+                  wishItems={wishItems}
+                  candidateIds={candidateIds}
+                  full={totalSelected >= MAX_CANDIDATES}
+                  onToggle={(id) =>
+                    setCandidateIds((current) => toggle(current, id))
+                  }
+                />
+                {wishes.hasNextPage ? (
+                  <AutoLoadMore
+                    query={wishes}
+                    className="tertiary"
+                    blocked={wishes.isFetchingNextPage}
+                  >
+                    {t('m5s3.common.loadMore')}
+                  </AutoLoadMore>
+                ) : null}
+                <label className="field-group">
+                  <span>{t('wishSelection.newIdea')}</span>
+                  <input
+                    value={newIdea}
+                    maxLength={200}
+                    placeholder={t('wishSelection.newIdeaPlaceholder')}
+                    onChange={(event) => setNewIdea(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') event.preventDefault();
+                    }}
+                  />
+                </label>
+                <AddActionButton
+                  label={t('wishSelection.addIdea')}
+                  disabled={!newIdea.trim()}
+                  onClick={() => {
+                    clearProblems();
+                    const current = begin();
+                    if (current)
+                      createWish.mutate({ current, title: newIdea.trim() });
                   }}
                 />
-              </label>
-              <AddActionButton
-                label={t('wishSelection.addIdea')}
-                disabled={!newIdea.trim()}
-                onClick={() => {
-                  clearProblems();
-                  const current = begin();
-                  if (current)
-                    createWish.mutate({ current, title: newIdea.trim() });
-                }}
-              />
-            </div>
+                {pickBar}
+              </div>
+            ) : null}
             {ideasOpened ? (
               <div
                 className="wish-selection-source-panel"
-                hidden={source !== 'ideas'}
+                hidden={step !== 'ideas'}
               >
                 <WishSelectionIdeaPicker
                   api={dateApi}
@@ -1043,43 +1465,24 @@ function WishSelectionTask({
                     )
                   }
                 />
+                {ideasAllowed ? pickBar : null}
               </div>
             ) : null}
-            <div className="wish-selection-actions">
-              <button
-                type="submit"
-                disabled={
-                  busy ||
-                  stale ||
-                  totalSelected < 2 ||
-                  totalSelected > MAX_CANDIDATES
-                }
-              >
-                {t(
-                  busy
-                    ? 'wishSelection.saving'
-                    : view.id
-                      ? 'wishSelection.replace'
-                      : 'wishSelection.start',
-                )}
-              </button>
-              <p className="wish-selection-support">
-                {t(
-                  view.id
-                    ? 'wishSelection.replaceNotice'
-                    : 'wishSelection.startNotice',
-                )}
-              </p>
-            </div>
           </fieldset>
         </form>
       ) : null}
 
       {activeMode === 'vote' ? (
-        <form
-          className="wish-selection-form"
-          onSubmit={(event) => {
-            event.preventDefault();
+        <WishSelectionVote
+          available={available}
+          availableIdeas={availableIdeas}
+          busy={busy}
+          favoriteIds={favoriteIds}
+          favoriteIdeaIds={favoriteIdeaIds}
+          canPublish={Boolean(
+            base?.token && !stale && view.resultState !== 'NEEDS_IDEAS',
+          )}
+          onPublish={() => {
             if (!base?.token || stale || view.resultState === 'NEEDS_IDEAS')
               return;
             clearProblems();
@@ -1093,100 +1496,15 @@ function WishSelectionTask({
                 token: base.token,
               });
           }}
-        >
-          <fieldset disabled={busy} className="wish-selection-fields">
-            <p className="wish-selection-private">
-              <DestinationIcon icon="private" />
-              {t('wishSelection.personal')}
-            </p>
-            <fieldset className="wish-selection-choices">
-              <legend>{t('wishSelection.favorites')}</legend>
-              {available.map((candidate) => (
-                <label key={candidate.wishId} className="wish-selection-choice">
-                  <input
-                    type="checkbox"
-                    checked={favoriteIds.includes(candidate.wishId)}
-                    onChange={() =>
-                      setFavoriteIds((current) =>
-                        toggle(current, candidate.wishId),
-                      )
-                    }
-                  />
-                  <span className="wish-selection-choice-text">
-                    {candidate.title}
-                    {availableIdeas.length ? (
-                      <small>{t('wishSelection.wishSource')}</small>
-                    ) : null}
-                  </span>
-                </label>
-              ))}
-              {availableIdeas.map((idea) => (
-                <label key={idea.id} className="wish-selection-choice is-idea">
-                  <input
-                    type="checkbox"
-                    checked={favoriteIdeaIds.includes(idea.id)}
-                    onChange={() =>
-                      setFavoriteIdeaIds((current) => toggle(current, idea.id))
-                    }
-                  />
-                  <span className="wish-selection-choice-media">
-                    <DateIdeaImage
-                      api={dateApi}
-                      accountId={accountId}
-                      spaceId={spaceId}
-                      image={idea.image}
-                      lang={
-                        idea.contentLocale !== locale
-                          ? idea.contentLocale
-                          : undefined
-                      }
-                    />
-                  </span>
-                  <span
-                    className="wish-selection-choice-text"
-                    lang={
-                      idea.contentLocale !== locale
-                        ? idea.contentLocale
-                        : undefined
-                    }
-                  >
-                    {idea.title}
-                    <small>{t('wishSelection.ideaSourceShort')}</small>
-                  </span>
-                </label>
-              ))}
-            </fieldset>
-            <p className="wish-selection-support">
-              {t('wishSelection.privacy')}
-            </p>
-            <div className="wish-selection-actions">
-              <button
-                type="submit"
-                disabled={
-                  busy ||
-                  stale ||
-                  !base?.token ||
-                  view.resultState === 'NEEDS_IDEAS'
-                }
-              >
-                {t(
-                  busy
-                    ? 'wishSelection.saving'
-                    : favoriteIds.length + favoriteIdeaIds.length
-                      ? 'wishSelection.share'
-                      : 'wishSelection.shareNone',
-                )}
-              </button>
-              <p className="wish-selection-support">
-                {t(
-                  favoriteIds.length + favoriteIdeaIds.length
-                    ? 'wishSelection.changeLater'
-                    : 'wishSelection.noneIsFine',
-                )}
-              </p>
-            </div>
-          </fieldset>
-        </form>
+          onToggleWish={(id) =>
+            setFavoriteIds((current) => toggle(current, id))
+          }
+          onToggleIdea={(id) =>
+            setFavoriteIdeaIds((current) => toggle(current, id))
+          }
+          candidateMedia={candidateMedia}
+          ideasLang={ideasLang}
+        />
       ) : null}
 
       {activeMode === 'view' ? (
@@ -1224,150 +1542,127 @@ function WishSelectionTask({
             </button>
           ) : (
             <>
-              {shown.map((candidate, index) => (
-                <section
-                  key={candidate.wishId}
-                  className={`wish-selection-result ${index === 0 ? 'wish-selection-featured' : ''}`}
-                >
-                  <p className="wish-selection-support">
-                    {t(
-                      ownOnly
-                        ? 'wishSelection.ownOne'
-                        : index === 0
-                          ? 'wishSelection.sharedOne'
-                          : 'wishSelection.moreShared',
-                    )}
-                  </p>
-                  <h2>{candidate.title}</h2>
-                  <p className="wish-selection-source">
-                    <DestinationIcon icon="wish" />
-                    {t('wishSelection.wishSource')}
-                  </p>
+              {revealing ? (
+                <div className="wish-selection-rolling" role="status">
+                  <EimirIcon
+                    name="sparkle"
+                    className="wish-selection-rolling-icon eimir-motion-loading-roll"
+                  />
+                  <strong>{t('wishSelection.randomRolling')}</strong>
+                </div>
+              ) : null}
+              {severalShared && !chosen && !revealing ? (
+                <ul className="wish-selection-matches">
+                  {shownItems.map((item) => (
+                    <li key={item.key}>
+                      <button
+                        type="button"
+                        className="wish-selection-match"
+                        disabled={busy}
+                        onClick={() => decide('CHOOSE', item)}
+                      >
+                        {candidateMedia(item)}
+                        <span
+                          className="wish-selection-favorite-title"
+                          lang={
+                            item.kind === 'idea'
+                              ? ideasLang(item.idea)
+                              : undefined
+                          }
+                        >
+                          {itemTitle(item)}
+                        </span>
+                        <EimirIcon
+                          name="chevron-right"
+                          className="wish-selection-match-chevron"
+                        />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {chosen && !revealing ? (
+                <div className="wish-selection-chosen eimir-motion-success">
+                  {resultCard(
+                    chosen,
+                    t(
+                      decision?.method === 'RANDOM'
+                        ? 'wishSelection.chosenRandomLabel'
+                        : 'wishSelection.chosenLabel',
+                    ),
+                    true,
+                  )}
                   <button
                     type="button"
-                    className={index === 0 ? '' : 'secondary'}
+                    className="tertiary wish-selection-unchoose"
                     disabled={busy}
-                    onClick={() => prepare(candidate)}
+                    onClick={() => decide('CLEAR')}
                   >
-                    {t('wishSelection.prepare')}
+                    {t('wishSelection.unchoose')}
                   </button>
-                </section>
-              ))}
-              {shownIdeas.map((idea, offset) => {
-                const index = shown.length + offset;
-                const titleId = `wish-selection-idea-${idea.id}`;
-                const lang =
-                  idea.contentLocale !== locale
-                    ? idea.contentLocale
-                    : undefined;
-                const savedWishId = savedWishes[idea.id];
-                const planDraft = {
-                  title: idea.planTitle,
-                  description: idea.description,
-                };
-                return (
-                  <section
-                    key={idea.id}
-                    aria-labelledby={titleId}
-                    className={`wish-selection-result is-idea ${index === 0 ? 'wish-selection-featured' : ''}`}
-                  >
-                    {index === 0 ? (
-                      <DateIdeaImage
-                        api={dateApi}
-                        accountId={accountId}
-                        spaceId={spaceId}
-                        image={idea.image}
-                        lang={lang}
-                      />
-                    ) : null}
-                    <div className="wish-selection-result-body">
-                      <p className="wish-selection-support">
-                        {t(
-                          ownOnly
-                            ? 'wishSelection.ownOne'
-                            : index === 0
-                              ? 'wishSelection.sharedIdea'
-                              : 'wishSelection.moreShared',
-                        )}
-                      </p>
-                      <h2 id={titleId} lang={lang}>
-                        {idea.title}
+                  {shownItems.some((item) => item.key !== chosen.key) ? (
+                    <section
+                      className="wish-selection-also"
+                      aria-labelledby="wish-selection-also-title"
+                    >
+                      <h2 id="wish-selection-also-title">
+                        {t('wishSelection.alsoShared')}
                       </h2>
-                      <p className="wish-selection-source">
-                        <EimirIcon name="sparkle" />
-                        {t('wishSelection.ideaSource')}
-                      </p>
-                      <DateIdeaFacts
-                        idea={idea}
-                        placeLabel={placeLabels.get(idea.placeType)}
-                      />
-                      <div className="date-idea-actions">
-                        <AddActionLink
-                          icon="kalender"
-                          className="date-idea-plan"
-                          label={t('dateIdeas.card.plan')}
-                          aria-describedby={titleId}
-                          to={
-                            savedWishId
-                              ? wishDetailPath(savedWishId)
-                              : PLAN_CREATE_ROUTE
-                          }
-                          onClick={(event) => {
-                            if (!plainActivation(event)) return;
-                            event.preventDefault();
-                            // A Wish saved from this idea continues through the
-                            // canonical Wish-to-Plan conversion.
-                            if (savedWishId)
-                              openIdea(idea, wishDetailPath(savedWishId), {
-                                planningConvertDraft: planDraft,
-                              });
-                            else
-                              openIdea(idea, PLAN_CREATE_ROUTE, {
-                                planningCreateDraft: planDraft,
-                              });
-                          }}
-                        />
-                        {savedWishId ? (
-                          <Link
-                            className="button-link secondary-link date-idea-saved"
-                            to={wishDetailPath(savedWishId)}
-                            aria-describedby={titleId}
-                            onClick={(event) => {
-                              if (!plainActivation(event)) return;
-                              event.preventDefault();
-                              openIdea(idea, wishDetailPath(savedWishId), {});
-                            }}
-                          >
-                            <EimirIcon name="check" />
-                            {t('dateIdeas.card.saved')}
-                          </Link>
-                        ) : (
-                          <Link
-                            className="button-link secondary-link date-idea-save"
-                            to={WISH_CREATE_ROUTE}
-                            aria-describedby={titleId}
-                            onClick={(event) => {
-                              if (!plainActivation(event)) return;
-                              event.preventDefault();
-                              openIdea(idea, WISH_CREATE_ROUTE, {
-                                planningCreateDraft: {
-                                  title: idea.wishTitle,
-                                  description: idea.description,
-                                  dateIdeaId: idea.id,
-                                },
-                              });
-                            }}
-                          >
-                            <EimirIcon name="wuensche" />
-                            {t('dateIdeas.card.save')}
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  </section>
-                );
-              })}
-              {shownIdeas.length ? (
+                      <ul>
+                        {shownItems
+                          .filter((item) => item.key !== chosen.key)
+                          .map((item) => (
+                            <li key={item.key}>
+                              {candidateMedia(item)}
+                              <span
+                                lang={
+                                  item.kind === 'idea'
+                                    ? ideasLang(item.idea)
+                                    : undefined
+                                }
+                              >
+                                {itemTitle(item)}
+                              </span>
+                            </li>
+                          ))}
+                      </ul>
+                    </section>
+                  ) : null}
+                </div>
+              ) : null}
+              {!chosen && !revealing && revealed && view.randomPool ? (
+                <WishSelectionRandomDecision
+                  randomPool={view.randomPool}
+                  randomRequest={randomRequest}
+                  partnerLabel={partnerLabel}
+                  busy={busy}
+                  decide={decide}
+                  editOwn={editOwn}
+                />
+              ) : null}
+              {!severalShared && !chosen
+                ? shownItems.map((item, index) =>
+                    resultCard(
+                      item,
+                      t(
+                        ownOnly
+                          ? index === 0
+                            ? 'wishSelection.ownOne'
+                            : 'wishSelection.ownMore'
+                          : item.kind === 'idea'
+                            ? 'wishSelection.sharedIdea'
+                            : 'wishSelection.sharedOne',
+                      ),
+                      index === 0,
+                    ),
+                  )
+                : null}
+              {(
+                chosen
+                  ? chosen.kind === 'idea'
+                  : !severalShared &&
+                    shownItems.some((item) => item.kind === 'idea')
+              ) ? (
                 <div className="wish-selection-later">
                   <p className="wish-selection-support">
                     {t('wishSelection.ideaResultNote')}
@@ -1392,19 +1687,25 @@ function WishSelectionTask({
                   {t('wishSelection.noDeadline')}
                 </p>
               ) : null}
-              {!shownCount && view.resultState === 'READY' && availableCount ? (
+              {!shownCount &&
+              !chosen &&
+              view.resultState === 'READY' &&
+              availableCount &&
+              !(randomRequest && !randomRequest.declined) ? (
                 <button
                   type="button"
                   className="secondary"
                   disabled={busy}
                   onClick={changeIdeas}
                 >
-                  {t('wishSelection.changeIdeas')}
+                  {t('wishSelection.newRound')}
                 </button>
               ) : null}
               <div className="wish-selection-actions">
                 {!ownOnly &&
                 ownFavoriteCount > 0 &&
+                !chosen &&
+                !(randomRequest && !randomRequest.declined) &&
                 (view.resultState !== 'READY' || !shownCount) ? (
                   <button
                     type="button"
@@ -1437,14 +1738,7 @@ function WishSelectionTask({
                     title: candidate.title,
                   })}
                   onClick={(event) => {
-                    if (
-                      event.button !== 0 ||
-                      event.metaKey ||
-                      event.ctrlKey ||
-                      event.shiftKey ||
-                      event.altKey
-                    )
-                      return;
+                    if (!plainActivation(event)) return;
                     event.preventDefault();
                     prepare(candidate);
                   }}

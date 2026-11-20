@@ -153,6 +153,41 @@ public class PushPreviewTest {
         assertFalse(gesture.body(context).contains("Never display"));
     }
 
+    @Test public void onlyCompleteWishDatePayloadsCanBecomePublicAndTargetTheWishOrPlan() throws Exception {
+        JSONObject payload = new JSONObject()
+            .put("v", 2).put("notificationId", "01a19706-45b8-741d-a0d2-3687565a6789")
+            .put("kind", "WISH_DATE_PROPOSED").put("name", "Alex").put("title", "Stadium tour")
+            .put("targetType", "WISH").put("digest", false)
+            .put("issuedAt", 1000).put("expiresAt", 1300)
+            .put("body", "2035-12-21T14:00:00+01:00");
+        PushActivation active = activation(fixture().getString("activationId"));
+        Context english = localized("en-US");
+        for (String kind : new String[] {"WISH_DATE_PROPOSED", "WISH_DATE_COUNTERED", "WISH_DATE_ACCEPTED"}) {
+            boolean accepted = "WISH_DATE_ACCEPTED".equals(kind);
+            payload.put("kind", kind).put("targetType", accepted ? "PLAN" : "WISH");
+            PushPreview decrypted = PushPreview.decrypt(active, encrypt(active, payload), fixtureKey(), 1100);
+            assertNotNull(decrypted);
+            WishDatePush preview = WishDatePush.fromFcm(english, decrypted);
+            assertNotNull(preview);
+            assertTrue(preview.headline.contains("Alex"));
+            assertTrue(preview.detail(english).contains("Stadium tour"));
+            assertTrue(preview.detail(english).contains("2035"));
+            assertEquals(english.getString(accepted ? R.string.push_view_plan : R.string.push_view_wish_date),
+                preview.action(english));
+        }
+        payload.put("targetType", "WISH");
+        assertNull(WishDatePush.fromFcm(english, PushPreview.decrypt(active, encrypt(active, payload), fixtureKey(), 1100)));
+        payload.put("targetType", "PLAN").put("body", "invalid appointment");
+        assertNull(WishDatePush.fromFcm(english, PushPreview.decrypt(active, encrypt(active, payload), fixtureKey(), 1100)));
+
+        JSONObject webPush = new JSONObject().put("kind", "WISH_DATE_PROPOSED")
+            .put("headline", "Alex suggested a date").put("title", "Stadium tour")
+            .put("appointmentStart", "2035-12-21T14:00:00+01:00");
+        assertNotNull(WishDatePush.fromWebPush(webPush));
+        webPush.put("kind", "COMMENT_CREATED");
+        assertNull(WishDatePush.fromWebPush(webPush));
+    }
+
     private String encrypt(PushActivation active, JSONObject value) throws Exception {
         JWEObject encrypted = new JWEObject(new JWEHeader.Builder(JWEAlgorithm.DIR, EncryptionMethod.A256GCM)
             .type(new JOSEObjectType("eimir-push-preview+jwe")).keyID(active.activationId).build(), new Payload(value.toString()));

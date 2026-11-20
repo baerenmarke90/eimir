@@ -16,8 +16,8 @@ import {
   it,
   vi,
 } from 'vitest';
-import { PhotoSourcePicker } from './PhotoSourcePicker';
 import photoSources from '../i18n/locales/photoSources';
+import { PhotoSourcePicker } from './PhotoSourcePicker';
 
 const api = {
   startPhotoSelection: vi.fn(),
@@ -29,6 +29,7 @@ const browser = {
   prepare: vi.fn(),
   open: vi.fn(),
   close: vi.fn(),
+  returned: vi.fn(() => false),
 };
 
 vi.mock('../client/usePhotoSources', () => ({
@@ -53,6 +54,7 @@ vi.mock('../client/photoSources', async (importOriginal) => {
     openPhotoBrowser: (...args: unknown[]) => browser.open(...args),
     closePhotoBrowser: (...args: unknown[]) => browser.close(...args),
     waitForPhotoPoll: () => Promise.resolve(),
+    watchPhotoBrowserReturn: () => () => browser.returned(),
     photoFile: (blob: Blob, index: number) =>
       new File([blob], `photo-${index + 1}.jpg`, { type: 'image/jpeg' }),
   };
@@ -133,9 +135,65 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  browser.returned.mockReturnValue(false);
 });
 
+const PICKING = {
+  id: 'selection',
+  source: 'google',
+  status: 'PICKING',
+  pollAfterSeconds: 1,
+  items: [],
+  hasMore: false,
+};
+
 describe('Google Photos selection task', () => {
+  it('stops waiting when the person is back in the app without a choice', async () => {
+    browser.returned.mockReturnValue(true);
+    api.pollPhotoSelection.mockResolvedValue(PICKING);
+    const selection = renderPicker();
+    await openGoogle();
+    expect(await screen.findByText(photoSources.nothingChosen)).toBeTruthy();
+    // Two more answers from Google were awaited before giving up.
+    expect(api.pollPhotoSelection).toHaveBeenCalledTimes(2);
+    expect(api.cancelPhotoSelection).toHaveBeenCalledWith({
+      spaceId: 'space',
+      selectionId: 'selection',
+    });
+    expect(selection.commit).not.toHaveBeenCalled();
+    // The chooser is back, so Google Photos can be opened again.
+    expect(
+      screen.getByRole('button', { name: new RegExp(photoSources.google) }),
+    ).toBeTruthy();
+  });
+
+  it('still imports a choice that arrives right after the return', async () => {
+    browser.returned.mockReturnValue(true);
+    api.pollPhotoSelection
+      .mockResolvedValueOnce(PICKING)
+      .mockResolvedValue({ ...PICKING, status: 'READY', items: [{ id: 'p' }] });
+    api.readSelectedPhoto.mockResolvedValue(
+      new Blob(['synthetic'], { type: 'image/jpeg' }),
+    );
+    const selection = renderPicker();
+    await openGoogle();
+    await waitFor(() => expect(selection.commit).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText(photoSources.nothingChosen)).toBeNull();
+  });
+
+  it('keeps waiting while Google is still open', async () => {
+    let polls = 0;
+    api.pollPhotoSelection.mockImplementation(async () => {
+      if (++polls > 5) return new Promise(() => {});
+      return PICKING;
+    });
+    renderPicker();
+    await openGoogle();
+    await waitFor(() => expect(polls).toBeGreaterThan(5));
+    expect(screen.getByText(photoSources.waiting)).toBeTruthy();
+    expect(api.cancelPhotoSelection).not.toHaveBeenCalled();
+  });
+
   it('offers Google Photos without explanatory copy before authorization starts', async () => {
     renderPicker();
     fireEvent.click(screen.getByRole('button', { name: photoSources.more }));

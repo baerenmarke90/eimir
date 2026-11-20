@@ -1,0 +1,162 @@
+/*
+ * Presentation of the shared garden (#1907 H3, PR 2). Like the base palette in
+ * `GardenGamePage.css`, these illustration roles only mean something inside
+ * the garden scene, so they live here as local `--garden-*` values with Light
+ * and Dark variants (docs/DESIGN-TOKEN-POLICY.md, local literals).
+ */
+.garden-game-page {
+  --garden-snow: #ffffff;
+  --garden-mist: #eef1f8;
+  --garden-blossom: #f3c4d8;
+  --garden-leaf-autumn: #d9822b;
+  --garden-lantern-off: #d6e1f7;
+  /* The theme's own greens, resolved here so a season can tint them below. */
+  --garden-base-hill: var(--garden-hill);
+  --garden-base-hill-back: var(--garden-hill-back);
+  --garden-base-grass-front: var(--garden-grass-front);
+  --garden-base-grass-mid: var(--garden-grass-mid);
+  --garden-base-grass-back: var(--garden-grass-back);
+}
+
+:root[data-theme="dark"] .garden-game-page {
+  --garden-snow: #d3dbf2;
+  --garden-mist: #2a3150;
+  --garden-blossom: #e7aecb;
+  --garden-leaf-autumn: #c9792e;
+  --garden-lantern-off: #303f62;
+}
+
+/* Seasons follow the couple's calendar month and tint the theme's greens. */
+.garden-frame[data-season="summer"] {
+  --garden-grass-front: color-mix(
+    in srgb,
+    var(--garden-base-grass-front) 78%,
+    #2d6a2a
+  );
+  --garden-grass-mid: color-mix(
+    in srgb,
+    var(--garden-base-grass-mid) 78%,
+    #3b7a2f
+  );
+  --garden-hill: color-mix(in srgb, var(--garden-base-hill) 80%, #4c8c3a);
+  --garden-hill-back: color-mix(
+    in srgb,
+    var(--garden-base-hill-back) 80%,
+    #3f7d33
+  );
+}
+
+.garden-frame[data-season="autumn"] {
+  --garden-grass-front: color-mix(
+    in srgb,
+    var(--garden-base-grass-front) 55%,
+    #c8902f
+  );
+  --garden-grass-mid: color-mix(
+    in srgb,
+    var(--garden-base-grass-mid) 50%,
+    #d4a148
+  );
+  --garden-grass-back: color-mix(
+    in srgb,
+    var(--garden-base-grass-back) 50%,
+    #c79a5a
+  );
+  --garden-hill: color-mix(in srgb, var(--garden-base-hill) 55%, #d2b16f);
+  --garden-hill-back: color-mix(
+    in srgb,
+    var(--garden-base-hill-back) 55%,
+    #c49a5e
+  );
+}
+
+.garden-frame[data-season="winter"] {
+  --garden-grass-front: color-mix(
+    in srgb,
+    var(--garden-base-grass-front) 50%,
+    var(--garden-snow)
+  );
+  --garden-grass-mid: color-mix(
+    in srgb,
+    var(--garden-base-grass-mid) 45%,
+    var(--garden-snow)
+  );
+  --garden-grass-back: color-mix(
+    in srgb,
+    var(--garden-base-grass-back) 35%,
+    var(--garden-snow)
+  );
+  --garden-hill: color-mix(
+    in srgb,
+    var(--garden-base-hill) 35%,
+    var(--garden-snow)
+  );
+  --garden-hill-back: color-mix(
+    in srgb,
+    var(--garden-base-hill-back) 40%,
+    var(--garden-snow)
+  );
+  --garden-meadow-dot: var(--garden-snow);
+}
+
+.garden-card.is-calm {
+  background: var(--color-surface-panel-tint);
+}
+
+.garden-card .garden-eyebrow {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.garden-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.garden-card-actions a {
+  color: var(--color-brand-text);
+  font-weight: 700;
+}
+
+/* Motion: lit lanterns flicker gently while the garden is lively; leaves fall
+   once on open in autumn; the mist lifts once when the garden wakes. */
+.garden-flicker {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.garden-scene.is-lively .garden-flicker {
+  animation: eimir-motion-garden-flicker
+    calc(var(--duration-connection-travel) * 0.8) var(--easing-travel) infinite
+    alternate;
+}
+
+.garden-fall {
+  opacity: 0;
+  animation: eimir-motion-garden-fall var(--garden-fall-duration)
+    var(--easing-playback) both;
+  animation-delay: var(--garden-delay);
+}
+
+.garden-mist.is-lifting {
+  animation: eimir-motion-garden-mist-lift var(--duration-gesture-sequence)
+    var(--easing-exit) both;
+}
+
+.garden-sleep-card {
+  animation: eimir-motion-garden-unfold var(--duration-context)
+    var(--easing-standard) both;
+  transform-origin: 50% 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .garden-fall {
+    display: none;
+  }
+}

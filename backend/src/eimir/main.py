@@ -6,9 +6,10 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from eimir.api.deps import require_normal_operation
 from eimir.api.errors import register_error_handlers
 from eimir.api.openapi import EimirFastAPI
 from eimir.api.transport import (
@@ -18,6 +19,7 @@ from eimir.api.transport import (
 )
 from eimir.api.v1 import router as v1_router
 from eimir.config import Environment, Settings, get_settings
+from eimir.db.session import get_engine
 from eimir.engagement import push_providers
 from eimir.identity.deletion_self_service import reconcile_configured_deletions_on_startup
 from eimir.observability import (
@@ -25,6 +27,8 @@ from eimir.observability import (
     RequestLoggingMiddleware,
     configure_logging,
 )
+from eimir.plugins.dormant import warn_dormant_plugin_data_once
+from eimir.plugins.loader import check_route_collisions, loaded_plugins
 
 configure_logging(get_settings())
 
@@ -65,11 +69,15 @@ async def _lifespan(_: FastAPI) -> AsyncIterator[None]:
     # process failure. Re-establish its fail-closed database state before this
     # process can serve normal requests.
     reconcile_configured_deletions_on_startup()
+    # Read-only and never fatal: data of plugins that are not loaded (Decision 0017).
+    warn_dormant_plugin_data_once(get_engine())
     yield
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    # A named plugin that cannot be loaded stops the process here (Decision 0017).
+    plugins = loaded_plugins()
     push_providers.configure_push_providers(settings)
     _log_operating_mode(settings)
 
@@ -99,6 +107,18 @@ def create_app() -> FastAPI:
 
     register_error_handlers(app)
     app.include_router(v1_router, prefix="/api/v1")
+    plugin_routers = [
+        (plugin.name, plugin_router)
+        for plugin in plugins.plugins
+        for plugin_router in plugin.routers()
+    ]
+    check_route_collisions(app.routes, plugin_routers, prefix="/api/v1")
+    for _, plugin_router in plugin_routers:
+        app.include_router(
+            plugin_router,
+            prefix="/api/v1",
+            dependencies=[Depends(require_normal_operation)],
+        )
 
     return app
 

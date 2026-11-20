@@ -113,16 +113,23 @@
 .page-composer-detail .memory-planning-links {
   margin-block: var(--space-4);
 }
-.page-composer-detail .memory-planning-links a.memory-planning-destination {
+.page-composer-detail
+  .memory-planning-links:not(.memory-planning-links-detail)
+  a.memory-planning-destination {
   border: 0;
   background: var(--color-surface);
   box-shadow: none;
 }
-.page-composer-detail .memory-planning-destination .memory-planning-kind {
+.page-composer-detail
+  .memory-planning-links:not(.memory-planning-links-detail)
+  .memory-planning-kind {
   color: var(--composer-accent);
   font: var(--font-action-label);
 }
-.page-composer-detail .memory-planning-destination strong {
+.page-composer-detail
+  .memory-planning-links:not(.memory-planning-links-detail)
+  .memory-planning-destination
+  strong {
   color: var(--color-text-secondary);
   font: var(--font-supporting-copy);
 }
@@ -194,20 +201,35 @@
   }
 }
 
+/* A tag is a light chip: the icon follows the text size, and only the link
+   inside carries padding (it used to be doubled with the chip's own). The tap
+   area stays 44px tall through an invisible extension. */
 .page-composer-detail .memory-tag-summary li {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
   max-inline-size: 100%;
-  padding: var(--space-2) var(--space-3);
+  padding: 0;
   border-radius: var(--radius-pill);
   color: var(--composer-accent);
-  font: var(--font-action-label);
+  font: var(--font-supporting-copy);
+  font-weight: 500;
+}
+.page-composer-detail .memory-tag-summary .memory-tag-link {
+  position: relative;
+  min-height: 2rem;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  font-size: inherit;
+}
+.page-composer-detail .memory-tag-summary .memory-tag-link::after {
+  content: "";
+  position: absolute;
+  inset: -0.375rem 0;
 }
 .page-composer-detail .memory-tag-summary .eimir-icon {
   flex: none;
-  inline-size: var(--space-4);
-  block-size: var(--space-4);
+  inline-size: 1em;
+  block-size: 1em;
 }
 
 /* Diary detail header: two equal round controls with the entry type as a quiet
@@ -220,7 +242,7 @@
   .wish-detail
 ) .composer-header {
   --detail-control-size: var(--touch-target-web);
-  --detail-control-surface: var(--color-surface-subtle);
+  --detail-control-surface: var(--color-surface-raised);
   --detail-control-foreground: var(--color-text);
 
   grid-template-columns: var(--detail-control-size) minmax(0, 1fr) var(

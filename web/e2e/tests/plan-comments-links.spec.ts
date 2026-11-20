@@ -1,18 +1,19 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
-import storyProducts from '../../src/i18n/locales/storyProducts';
 import m5s3 from '../../src/i18n/locales/m5s3';
-import wishJourney from '../../src/i18n/locales/wishJourney';
+import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import wishJourney from '../../src/i18n/locales/wishJourney';
+import AxeBuilder from '../support/axe';
+import { editViaMenu } from '../support/itemMenu';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
   captureScreenshot,
   DETAIL_COMMENTS,
   installMocks,
-  signIn,
   SPACE_ID,
+  signIn,
 } from '../support/storyTimelineFixture';
 
 const PLAN_ID = 'plan-picnic';
@@ -303,7 +304,11 @@ for (const scenario of scenarios) {
       `plan-comment-result-${scenario.width}-${scenario.theme}.png`,
       { fullPage: true },
     );
-    await page.locator('.planen-completion-action').scrollIntoViewIfNeeded();
+    // The 2099 plan keeps its completion in the menu, so the discussion now
+    // ends the page; the viewport shot shows that end.
+    await page.evaluate(() =>
+      window.scrollTo(0, document.documentElement.scrollHeight),
+    );
     await captureScreenshot(
       page,
       testInfo,
@@ -400,10 +405,7 @@ test('Plan editing preserves a started reply and offline mode cannot submit it',
   const reply = panel.locator('form.comment-form').getByRole('textbox');
   await reply.click();
   await reply.fill('Keep this thought while checking our schedule.');
-  await page
-    .locator('.page-heading')
-    .getByRole('button', { name: copy.edit, exact: true })
-    .click();
+  await editViaMenu(page, m5s3.common.edit);
   await expect(panel).toBeHidden();
   await page
     .getByRole('button', { name: taskBoundary.close, exact: true })

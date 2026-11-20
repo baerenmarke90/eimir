@@ -5,8 +5,16 @@
 The Product Owner authorized narrowing the per-PR browser selection on
 2026-11-04. Four independent runners remain. No browser case, assertion,
 timeout, retry, accessibility contract or branch-protection context is removed.
-The full retained suite still runs on every `main` push and manual execution.
+The full retained suite ran on every `main` push and manual execution; since
+#2096 it runs in the nightly regression and on manual execution.
 This continues #1042 and the path-scoped CI work in #490.
+
+**Update 2026-11-20 (#2096):** to fit the GitHub Actions budget, pull requests
+run this selection only in the full CI tier: ready for review, labelled
+`ci:full`. Without the label every browser job is skipped, including the
+`Playwright + axe` aggregate, which is not a required check. The full retained
+regression runs nightly on `main` through `nightly-regression.yml` and on manual
+dispatch. The selection contract below is unchanged for labelled pull requests.
 
 The problem was selection growth: almost all retained feature coverage became
 mandatory for every unrelated Web change. In run
@@ -69,10 +77,15 @@ contract, not a claim that imports prove all possible browser interactions.
 Shared shell and cross-surface core coverage remain important, and a feature PR
 still needs relevant Product Acceptance beyond a green automated selection.
 
-The existing job/context names, four one-worker PR shards, four full-regression
-shards, independent retries, `fail-fast: false`, diagnostic paths and artifact
-names remain. The stable `Playwright + axe` aggregate additionally rejects a
-skipped additional job when the plan required it.
+The PR-critical group runs on six isolated one-worker runners. The additional
+group uses up to six native Playwright shards, capped by the number of selected
+additional spec files. The full regression runs on four runners. Failed shards
+can be retried independently with `fail-fast: false`, and diagnostic artifacts
+carry the shard number. The stable `Playwright + axe` aggregate rejects a skipped
+additional job when the plan required it.
+
+The additional group moved to native sharding on 2026-11-16 after single-runner
+jobs took 27-32 minutes.
 
 ## Measured collection, 2026-11-04
 

@@ -1,5 +1,7 @@
-import { useId, type ReactNode, type Ref } from 'react';
+import { type ReactNode, type Ref, useId } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { firstNameFromDisplayName } from '../client/personalName';
 import {
   type PartnerAvatarAction,
   PartnerAvatarPair,
@@ -7,8 +9,6 @@ import {
   type PartnerAvatarSize,
   type PartnerPresenceStatus,
 } from './PartnerAvatarPair';
-import { firstNameFromDisplayName } from '../client/personalName';
-import { useTranslation } from 'react-i18next';
 import './CouplePresence.css';
 
 export interface CouplePresenceAvatarAction {
@@ -40,6 +40,8 @@ export interface CouplePresenceProps {
   primaryAvatarAction?: PartnerAvatarAction;
   primaryAvatarAdornment?: ReactNode;
   secondaryAvatarAdornment?: ReactNode;
+  /** Shown under the empty partner place while nobody has joined. */
+  waitingAvatarAdornment?: ReactNode;
   actions?: ReactNode;
   /** A quiet relationship signal directly under the duration line (#1792). */
   signal?: ReactNode;
@@ -48,6 +50,10 @@ export interface CouplePresenceProps {
   eyebrow?: string;
   detailsFirst?: boolean;
   titleAction?: ReactNode;
+  /** Content between the people and the details (the note layout). */
+  feature?: ReactNode;
+  /** Set the two first names on their own lines (the names layout). */
+  stackNames?: boolean;
   className?: string;
 }
 
@@ -70,6 +76,7 @@ export function CouplePresence({
   primaryAvatarAction,
   primaryAvatarAdornment,
   secondaryAvatarAdornment,
+  waitingAvatarAdornment,
   actions,
   signal,
   context,
@@ -77,6 +84,8 @@ export function CouplePresence({
   eyebrow,
   detailsFirst = false,
   titleAction,
+  feature,
+  stackNames = false,
   className = '',
 }: CouplePresenceProps) {
   const { t } = useTranslation();
@@ -147,6 +156,7 @@ export function CouplePresence({
         primaryAction={primaryAvatarAction}
         primaryAdornment={primaryAvatarAdornment}
         secondaryAdornment={secondaryAvatarAdornment}
+        waitingAdornment={waitingAvatarAdornment}
       />
       {avatarAdornment ? (
         <div className="couple-presence-avatar-adornment">
@@ -160,7 +170,19 @@ export function CouplePresence({
     <div className="couple-presence-details">
       {eyebrow ? <p className="couple-presence-eyebrow">{eyebrow}</p> : null}
       <HeadingTag id={titleId} className="couple-presence-title">
-        {presenceTitle}
+        {stackNames && secondaryFirstName ? (
+          <>
+            <span>{primaryFirstName}</span>{' '}
+            <span>
+              <span className="couple-presence-joiner">
+                {t('wirDesign.nameJoiner')}
+              </span>{' '}
+              {secondaryFirstName}
+            </span>
+          </>
+        ) : (
+          presenceTitle
+        )}
       </HeadingTag>
 
       {titleAction}
@@ -192,6 +214,7 @@ export function CouplePresence({
               >
                 <span className="today-hero-pill-icon" aria-hidden="true">
                   <svg
+                    className="inline-icon"
                     viewBox="0 0 24 24"
                     width="12"
                     height="12"
@@ -239,6 +262,7 @@ export function CouplePresence({
     >
       <div className="couple-presence-main">
         {detailsFirst ? details : avatars}
+        {feature}
         {detailsFirst ? avatars : details}
       </div>
     </section>

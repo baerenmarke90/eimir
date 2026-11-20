@@ -17,6 +17,13 @@ COMPLETE = f"{DETAIL}/complete"
 PLAN = f"{DETAIL}/plan"
 REPEAT = f"{DETAIL}/repeat"
 REMINDER = f"{DETAIL}/reminder"
+DATE_PROPOSAL = f"{DETAIL}/date-proposal"
+DATE_PROPOSAL_COMMANDS = {
+    "accept": "acceptWishDateProposal",
+    "counter": "counterWishDateProposal",
+    "decline": "declineWishDateProposal",
+    "withdraw": "withdrawWishDateProposal",
+}
 
 
 def _schema() -> dict[str, object]:
@@ -48,12 +55,28 @@ def test_wish_routes_have_frozen_operation_ids() -> None:
     assert paths[REMINDER]["get"]["operationId"] == "getPersonalWishReminder"
     assert paths[REMINDER]["put"]["operationId"] == "setPersonalWishReminder"
     assert paths[REMINDER]["delete"]["operationId"] == "clearPersonalWishReminder"
+    assert paths[DATE_PROPOSAL]["get"]["operationId"] == "getWishDateProposal"
+    assert paths[DATE_PROPOSAL]["post"]["operationId"] == "createWishDateProposal"
+    for command, operation_id in DATE_PROPOSAL_COMMANDS.items():
+        assert (
+            paths[f"{DATE_PROPOSAL}/{{proposalId}}/{command}"]["post"]["operationId"]
+            == operation_id
+        )
 
 
 def test_the_contract_carries_exactly_the_decided_wish_surface() -> None:
     """Wish lifecycle commands are explicit rather than generic status writes."""
     wish_paths = _wish_paths()
-    assert wish_paths == {COLLECTION, DETAIL, COMPLETE, PLAN, REPEAT, REMINDER}
+    assert wish_paths == {
+        COLLECTION,
+        DETAIL,
+        COMPLETE,
+        PLAN,
+        REPEAT,
+        REMINDER,
+        DATE_PROPOSAL,
+        *(f"{DATE_PROPOSAL}/{{proposalId}}/{command}" for command in DATE_PROPOSAL_COMMANDS),
+    }
 
 
 def test_wish_status_has_no_generic_mutation_route() -> None:
@@ -95,7 +118,13 @@ def test_no_request_body_accepts_status_or_ownership() -> None:
         "createdAt",
         "updatedAt",
     }
-    for name in ("WishCreate", "WishUpdate", "WishRepeat", "PersonalWishReminderUpdate"):
+    for name in (
+        "WishCreate",
+        "WishUpdate",
+        "WishRepeat",
+        "PersonalWishReminderUpdate",
+        "WishDateProposalWrite",
+    ):
         schema = _components()[name]
         assert set(schema["properties"]) & forbidden == set()
         assert not {"followedFromWishId", "seriesId", "seriesPosition"} & set(schema["properties"])

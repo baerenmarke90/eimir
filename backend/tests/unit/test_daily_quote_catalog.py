@@ -1,144 +1,134 @@
 """Unit tests for the curated Daily Quote catalog, provenance, and metadata."""
 
+import json
+from pathlib import Path
+
 from eimir.i18n import catalogs as language_catalogs
 from eimir.quotes import catalog
 from eimir.quotes.catalog import RightsClassification
 
+CATEGORY_IDS = {
+    "love",
+    "friendship",
+    "motivation",
+    "humor",
+    "life",
+    "nature",
+    "travel",
+    "courage",
+    "selfcare",
+    "together",
+}
+
 
 def test_catalog_categories_and_sources_are_defined() -> None:
     categories = catalog.get_categories()
-    assert len(categories) >= 5
-    category_ids = {c.id for c in categories}
-    assert "love" in category_ids
-    assert "philosophy" in category_ids
-    assert "mindfulness" in category_ids
+    assert {c.id for c in categories} == CATEGORY_IDS
+    assert all(c.name.strip() and c.description.strip() for c in categories)
 
-    sources = catalog.get_sources()
-    assert len(sources) >= 3
-    source_ids = {s.id for s in sources}
-    assert "classic_literature" in source_ids
-    assert "stoic_philosophy" in source_ids
+    source_ids = {s.id for s in catalog.get_sources()}
     assert "poetic_wisdom" in source_ids
 
 
-def test_all_curated_quotes_have_complete_rights_and_attribution_metadata() -> None:
-    quotes = catalog.get_quotes(active_only=False)
-    assert len(quotes) >= 15
-    assert len({quote.id for quote in quotes}) == len(quotes)
-    assert len({(quote.locale, quote.text) for quote in quotes}) == len(quotes)
+def test_catalog_holds_one_thousand_unique_sayings_in_each_app_language() -> None:
+    languages = set(language_catalogs())
+    assert languages == {"de", "en"}
+    for locale in languages:
+        quotes = catalog.get_quotes(locale=locale, active_only=False)
+        assert len(quotes) == 1_000
+        assert len({quote.id for quote in quotes}) == len(quotes)
+        assert len({quote.text for quote in quotes}) == len(quotes)
+        assert {quote.locale for quote in quotes} == {locale}
 
+        per_category = {category: 0 for category in CATEGORY_IDS}
+        for quote in quotes:
+            assert len(quote.category_ids) == 1
+            per_category[quote.category_ids[0]] += 1
+        assert set(per_category.values()) == {100}
+
+
+def test_every_english_saying_translates_one_german_original() -> None:
+    originals = {
+        quote.id.removeprefix("saying-de-"): quote for quote in catalog.get_quotes(locale="de")
+    }
+    translations = {
+        quote.id.removeprefix("saying-en-"): quote for quote in catalog.get_quotes(locale="en")
+    }
+    assert translations.keys() == originals.keys()
+    for key, translation in translations.items():
+        original = originals[key]
+        assert translation.text != original.text
+        assert translation.category_ids == original.category_ids
+        assert translation.author_display == ""
+        assert translation.attribution_required is False
+        assert translation.source_display is None
+        assert translation.translator
+        assert "CC0 1.0 Universal" in translation.rights_basis
+        assert "AI-generated" in translation.rights_basis
+        assert translation.rights_classification == RightsClassification.EDITORIAL_CURATED
+
+
+def test_all_sayings_are_authorless_ai_generated_text_with_recorded_rights() -> None:
     valid_sources = {s.id for s in catalog.get_sources()}
     valid_categories = {c.id for c in catalog.get_categories()}
-    valid_locales = set(language_catalogs())
 
-    for quote in quotes:
-        assert quote.id.strip()
-        assert quote.text.strip()
-        if quote.attribution_required:
-            assert quote.author_display.strip()
-        else:
-            assert quote.author_display == ""
-            assert quote.source_display is None
-            assert quote.source_id == "poetic_wisdom"
+    for quote in catalog.get_quotes(active_only=False):
+        assert quote.id.startswith(f"saying-{quote.locale}-ai-")
+        assert quote.text.strip() == quote.text
+        assert len(quote.text) >= 10
+        assert quote.author_display == ""
+        assert quote.attribution_required is False
+        assert quote.source_display is None
         assert quote.source_id in valid_sources
-        assert len(quote.category_ids) >= 1
-        for cat_id in quote.category_ids:
-            assert cat_id in valid_categories
-        assert quote.locale in valid_locales
-        assert quote.rights_classification in (
-            RightsClassification.PUBLIC_DOMAIN,
-            RightsClassification.EDITORIAL_CURATED,
-        )
+        assert set(quote.category_ids) <= valid_categories
+        assert quote.rights_classification == RightsClassification.EDITORIAL_CURATED
+        assert "AI-generated" in quote.rights_basis
+        assert quote.original_work.strip()
+        assert quote.source_edition.strip()
+        assert quote.publication_year == 2026
         assert quote.active is True
+        assert (quote.translator is not None) == (quote.locale != "de")
 
 
-def test_quote_provenance_and_auditability() -> None:
-    """All quotes must include auditable legal provenance (#1151 review blocker)."""
-    quotes = catalog.get_quotes(active_only=False)
-    for quote in quotes:
-        assert quote.original_work.strip(), f"Missing original_work for quote {quote.id}"
-        assert quote.source_edition.strip(), f"Missing source_edition for quote {quote.id}"
-        assert quote.rights_basis.strip(), f"Missing rights_basis for quote {quote.id}"
-        assert "Public Domain" in quote.rights_basis
-        if quote.attribution_required:
-            assert "p.m.a. > 70 years" in quote.rights_basis
-        else:
-            assert "traditional" in quote.rights_basis
-
-        if quote.rights_classification == RightsClassification.EDITORIAL_CURATED:
-            assert quote.translator
-            assert "CC0 1.0 Universal" in quote.rights_basis
-        elif quote.translator is not None:
-            # Published historical translations have their own public-domain provenance.
-            assert "died" in quote.translator or "18" in quote.translator
+def test_no_garbled_generated_wording_is_in_the_catalog() -> None:
+    """The first generated draft repeated sayings with ungrammatical endings."""
+    for quote in catalog.get_quotes(active_only=False):
+        assert "ener Momente" not in quote.text
+        assert "Augenblicken gilt:" not in quote.text
+        assert "für ein Leben voller" not in quote.text
 
 
-def test_unverified_and_copyrighted_authors_are_excluded() -> None:
-    """Camus (died 1960) and spurious modern misattributions must not be in catalog."""
-    quotes = catalog.get_quotes(active_only=False)
-    authors = {q.author_display for q in quotes}
-    assert "Albert Camus" not in authors
+def test_previous_catalog_is_archived_and_no_longer_served() -> None:
+    archive = (
+        Path(__file__).resolve().parents[2]
+        / "archive"
+        / "quotes"
+        / "daily_sayings.before-ai-sayings-2026-11-18.json"
+    )
+    previous = json.loads(archive.read_text(encoding="utf-8"))
+    assert len(previous["entries"]) == 1_000
 
-    # Spurious attributions must not exist in quotes
-    texts = [q.text for q in quotes]
-    assert not any("In der Ruhe liegt die Kraft" in t for t in texts)
-    assert not any("Steinen" in t and "Weg" in t for t in texts)
-    assert not any("Chance" in t and "schönste" in t for t in texts)
+    served_texts = {quote.text for quote in catalog.get_quotes(active_only=False)}
+    archived_texts = {text for entry in previous["entries"] for text in entry["texts"].values()}
+    assert served_texts.isdisjoint(archived_texts)
 
 
 def test_get_quotes_filters_by_locale() -> None:
-    de_quotes = catalog.get_quotes(locale="de")
-    assert len(de_quotes) >= 1_000
-    assert all(q.locale == "de" for q in de_quotes)
-    assert sum("love" in q.category_ids for q in de_quotes) >= 500
-    assert any(not q.attribution_required for q in de_quotes)
+    german = catalog.get_quotes(locale="de")
+    assert len(german) == 1_000
+    assert {category for quote in german for category in quote.category_ids} == CATEGORY_IDS
+    assert catalog.get_quotes(locale="de-DE") == german
 
-    en_quotes = catalog.get_quotes(locale="en")
-    assert len(en_quotes) >= 1_000
-    assert all(q.locale == "en" for q in en_quotes)
-
-    # Prefix match "de-DE"
-    de_de_quotes = catalog.get_quotes(locale="de-DE")
-    assert len(de_de_quotes) == len(de_quotes)
-
-
-def test_new_sayings_have_equivalent_entries_in_every_app_language() -> None:
-    originals = {
-        quote.id.removeprefix("saying-de-"): quote
-        for quote in catalog.get_quotes(locale="de")
-        if quote.id.startswith("saying-de-")
-    }
-    assert len(originals) >= 1_000
-    assert all(
-        q.rights_classification == RightsClassification.PUBLIC_DOMAIN for q in originals.values()
-    )
-
-    for locale in set(language_catalogs()) - {"de"}:
-        prefix = f"saying-{locale}-"
-        localized = {
-            quote.id.removeprefix(prefix): quote
-            for quote in catalog.get_quotes(locale=locale)
-            if quote.id.startswith(prefix)
-        }
-        assert localized.keys() == originals.keys()
-        for key, quote in localized.items():
-            original = originals[key]
-            assert quote.text != original.text
-            assert quote.author_display == original.author_display
-            assert quote.attribution_required == original.attribution_required
-            assert quote.category_ids == original.category_ids
-            assert quote.source_id == original.source_id
-            assert quote.original_work == original.original_work
-            assert quote.source_edition == original.source_edition
-            assert quote.rights_classification == RightsClassification.EDITORIAL_CURATED
-            if quote.attribution_required:
-                assert quote.source_display
+    english = catalog.get_quotes(locale="en-US")
+    assert len(english) == 1_000
+    assert {quote.locale for quote in english} == {"en"}
 
 
 def test_get_quote_by_id() -> None:
-    quote = catalog.get_quote_by_id("quote-de-love-001")
+    quote = catalog.get_quote_by_id("saying-de-ai-love-001")
     assert quote is not None
-    assert quote.author_display == "Wilhelm Busch"
+    assert quote.category_ids == ("love",)
+    assert quote.author_display == ""
 
     missing = catalog.get_quote_by_id("nonexistent-quote-id")
     assert missing is None

@@ -1,0 +1,142 @@
+/*
+ * The optional Wir garden module (Product Owner 2026-11-17). The scene reuses
+ * the garden's own palette (`.garden-game-page` roles in GardenGamePage.css,
+ * GardenGrowth.css and GardenSeasonArt.css, with their Light/Dark values and
+ * reduced-motion rule); this file only arranges it as one calm card.
+ */
+.today-module-placeholder[data-kind="shared-garden"] {
+  min-height: 12rem;
+}
+
+.wir-garden-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "stage stage"
+    "copy icon";
+  align-items: center;
+  column-gap: var(--space-3);
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: transform var(--duration-feedback) var(--easing-standard);
+}
+
+.wir-garden-card:active {
+  transform: scale(0.99);
+}
+
+.wir-garden-card:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* The garden roles without the game page's own column layout. */
+.wir-garden-stage.garden-game-page {
+  display: block;
+  grid-area: stage;
+  width: 100%;
+  margin: 0;
+}
+
+.wir-garden-frame.garden-frame {
+  aspect-ratio: 2 / 1;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.wir-garden-frame .garden-scene.is-preview,
+.wir-garden-frame .garden-scene-stack {
+  width: 100%;
+  height: 100%;
+}
+
+.wir-garden-copy {
+  display: grid;
+  gap: var(--space-1);
+  grid-area: copy;
+  min-width: 0;
+  padding: var(--space-3) 0 var(--space-4) var(--space-4);
+}
+
+.wir-garden-title {
+  overflow-wrap: anywhere;
+}
+
+.wir-garden-status {
+  color: var(--color-text-secondary);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.wir-garden-card > .eimir-icon {
+  grid-area: icon;
+  width: var(--icon-size-standard);
+  height: var(--icon-size-standard);
+  margin-inline-end: var(--space-4);
+  color: var(--color-text-secondary);
+}
+
+@media (min-width: 48rem) {
+  .wir-garden-frame.garden-frame {
+    aspect-ratio: 3 / 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wir-garden-card {
+    transition: none;
+  }
+
+  .wir-garden-card:active {
+    transform: none;
+  }
+}
+
+/* On Wir the preview's idle life settles after a few cycles (#2063): the
+   scene's ambient loops (`.garden-scene.is-lively … infinite` in the garden
+   stylesheets) kept an idle Wir page rendering every frame. Only those looping
+   parts are listed, so one-shot motion keeps its single run; the full garden
+   keeps its endless life. `!important` beats the more specific per-animal
+   rules, like the reduced-motion rule in GardenGamePage.css. */
+.wir-garden-frame
+  .garden-scene
+  :is(
+    .garden-note-paper,
+    .garden-particle,
+    .garden-together-heart,
+    .garden-butterfly-wobble,
+    .garden-flap,
+    .garden-flap-y,
+    .garden-drift,
+    .garden-star,
+    .garden-sway,
+    .garden-tuft,
+    .garden-deer-head,
+    .garden-duck,
+    .garden-hedgehog-face,
+    .garden-rabbit-ears,
+    .garden-rabbit-head,
+    .garden-snail-foot,
+    .garden-squirrel-tail,
+    .garden-blink,
+    .garden-firefly,
+    .garden-ripple,
+    .garden-stream-flow,
+    .garden-duckling,
+    .garden-owl-eyes,
+    .garden-flicker
+  ) {
+  animation-iteration-count: var(--motion-ambient-repeat) !important;
+}
+
+/* Resting (#2063): offscreen, or after its short visible time, the preview
+   holds every part where it is instead of jumping back to a start pose, and
+   an idle Wir page renders nothing for it. */
+.wir-garden-frame[data-resting] .garden-scene,
+.wir-garden-frame[data-resting] .garden-scene * {
+  animation-play-state: paused !important;
+}

@@ -1,0 +1,21 @@
+/*
+ * The first item of an area that was empty settles into place with one soft
+ * glow (#1907 I1). Reduced motion shows it immediately; focus and content are
+ * the same either way.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .first-content-settle {
+    --motion-enter-from: 0 1rem;
+    --motion-enter-from-scale: 0.97;
+    border-radius: var(--radius-content);
+    animation:
+      eimir-motion-enter-arrive var(--duration-context) var(--easing-enter) both,
+      eimir-motion-feedback-glow var(--duration-gesture-moment)
+      var(--easing-standard) var(--duration-context) both;
+  }
+}
+
+/* The empty area's one action keeps the shared filled presentation. */
+.first-step-action {
+  margin-block-start: var(--space-2);
+}

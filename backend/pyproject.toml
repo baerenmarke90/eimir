@@ -47,6 +47,10 @@ dependencies = [
     "defusedxml>=0.7.1",
 ]
 
+# The in-tree Pro plugin (Decision 0017). Loaded only when named in EIMIR_PLUGINS.
+[project.entry-points."eimir.plugins"]
+pro = "eimir.pro_plugin:plugin"
+
 [dependency-groups]
 dev = [
     "pytest>=9.1",
@@ -66,7 +70,7 @@ dev = [
 required-version = "==0.12.15"
 
 [build-system]
-requires = ["setuptools==84.0.0"]
+requires = ["setuptools==84.2.1"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
@@ -83,6 +87,7 @@ pythonpath = ["src"]
 asyncio_mode = "auto"
 markers = [
     "integration: benoetigt eine erreichbare PostgreSQL-Instanz",
+    "requires_pro: needs the Pro plugin loaded; skipped in the Core-only configuration",
 ]
 filterwarnings = ["error::DeprecationWarning"]
 

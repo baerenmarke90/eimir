@@ -2,7 +2,8 @@ const relationshipReflections = {
   anticipation: {
     now: 'Jetzt ist es so weit',
     timerLabel: 'Countdown bis {{title}}',
-    timerDays: 'Tage',
+    timerDays_one: 'Tag',
+    timerDays_other: 'Tage',
     timerHours: 'Std.',
     timerMinutes: 'Min.',
     timerSeconds: 'Sek.',
@@ -24,11 +25,11 @@ const relationshipReflections = {
     wirStatisticsTitle: 'Eure Geschichte in Zahlen',
     wirStatisticsToggle: 'Statistik auf Wir anzeigen',
     wirStatisticsHelp:
-      'Freiwillig für dich auf diesem Gerät. Hier kannst du eure gemeinsamen Zähler zusätzlich auf Wir einblenden. Die Einstellung bei euren Rückblicken bleibt unabhängig davon.',
+      'Freiwillig und nur für dich, auf all deinen Geräten. Hier kannst du eure gemeinsamen Zähler zusätzlich auf Wir einblenden. Die Einstellung bei euren Rückblicken bleibt unabhängig davon.',
     wirStatisticsPro: 'Mit euren Rückblicken in Pro verfügbar.',
     statisticsToggle: 'Gemeinsame Statistik anzeigen',
     statisticsHelp:
-      'Freiwillig für dich auf diesem Gerät. Eure gemeinsamen Zähler erscheinen hier bei euren Rückblicken.',
+      'Freiwillig und nur für dich, auf all deinen Geräten. Eure gemeinsamen Zähler erscheinen hier bei euren Rückblicken.',
     nextChapter: 'Das nächste Kapitel',
     anniversary: 'Euer {{count}}. Jahrestag',
     roundDay: '{{days}} Tage gemeinsam',
@@ -64,6 +65,13 @@ const relationshipReflections = {
     dataRights:
       'Eure Erinnerungen, Pläne, Orte und der Datenexport bleiben auch ohne Pro zugänglich.',
     learnMore: 'Über eimir. Pro',
+  },
+  waymarks: {
+    title: 'Eure Wegmarken',
+    milestoneYears_one: '{{count}} Jahr seit „{{title}}“',
+    milestoneYears_other: '{{count}} Jahre seit „{{title}}“',
+    showAll: 'Alle {{count}} Wegmarken anzeigen',
+    showFewer: 'Weniger anzeigen',
   },
 };
 

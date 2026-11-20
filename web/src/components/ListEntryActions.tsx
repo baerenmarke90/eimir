@@ -7,7 +7,13 @@ import {
   useRef,
   useState,
 } from 'react';
+import { haptic } from '../motion/haptics';
+import { prefersReducedMotion } from '../motion/reducedMotion';
+import { captureLayout, type LayoutSnapshot, reorder } from '../motion/replace';
 import './ListEntryActions.css';
+
+/** Rows name their item with `data-sortable-item-id`. */
+const SORTABLE_KEY = 'sortableItemId';
 
 export function moveSortableItem(
   itemIds: readonly string[],
@@ -93,38 +99,58 @@ export function useListItemReorder({
 }: {
   itemIds: readonly string[];
   disabled: boolean;
-  onReorder: (itemIds: string[], movedId: string) => void;
+  /**
+   * Returns `true` when the caller accepted the order and will reflect it in
+   * `itemIds`. Later moves then start from that order even before it renders.
+   */
+  onReorder: (itemIds: string[], movedId: string) => boolean | undefined;
   animatePreview?: boolean;
 }) {
   const dragRef = useRef<DragState | null>(null);
   const scrollFrame = useRef<number | null>(null);
-  const previousRects = useRef<Map<string, number> | null>(null);
+  const previousRects = useRef<LayoutSnapshot | null>(null);
   const listRef = useRef<HTMLElement | null>(null);
-  const animations = useRef(new Map<HTMLElement, Animation>());
+  const animations = useRef<Animation[]>([]);
   const [previewOrder, setPreviewOrder] = useState<string[] | null>(null);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  // Accepted orders that `itemIds` does not reflect yet. A caller may apply
+  // its optimistic order after an asynchronous step, so a rapid second move
+  // must start from the latest accepted order rather than from the last
+  // rendered `itemIds`; otherwise the second move is lost (#1687).
+  const requestedOrders = useRef<string[][]>([]);
   const orderSignature = itemIds.join('|');
   const confirmedOrder = useRef(orderSignature);
   useEffect(() => {
-    if (confirmedOrder.current !== orderSignature && !dragRef.current)
-      setPreviewOrder(null);
+    if (confirmedOrder.current !== orderSignature) {
+      const reached = requestedOrders.current.findIndex(
+        (order) => order.join('|') === orderSignature,
+      );
+      // An order that matches no accepted request (a failed save restored,
+      // or another device's order) supersedes every pending request.
+      requestedOrders.current =
+        reached < 0 ? [] : requestedOrders.current.slice(reached + 1);
+      if (!dragRef.current)
+        setPreviewOrder(requestedOrders.current.at(-1) ?? null);
+    }
     confirmedOrder.current = orderSignature;
   }, [orderSignature]);
 
+  function latestOrder(): readonly string[] {
+    return requestedOrders.current.at(-1) ?? itemIds;
+  }
+
+  function requestOrder(order: string[], movedId: string): boolean {
+    if (onReorder(order, movedId) !== true) return false;
+    requestedOrders.current = [...requestedOrders.current, order];
+    return true;
+  }
+
   function captureRects() {
     if (!animatePreview) return;
-    previousRects.current = new Map(
-      Array.from(
-        listRef.current?.querySelectorAll<HTMLElement>(
-          '[data-sortable-item-id]',
-        ) ?? [],
-      )
-        .filter((row) => itemIds.includes(row.dataset.sortableItemId ?? ''))
-        .map((row) => [
-          row.dataset.sortableItemId ?? '',
-          row.getBoundingClientRect().top,
-        ]),
-    );
+    const layout = captureLayout(listRef.current, SORTABLE_KEY);
+    for (const id of layout.keys())
+      if (!itemIds.includes(id)) layout.delete(id);
+    previousRects.current = layout;
   }
 
   useLayoutEffect(() => {
@@ -132,8 +158,8 @@ export function useListItemReorder({
     previousRects.current = null;
     const drag = dragRef.current;
     if (before || drag) {
-      for (const animation of animations.current.values()) animation.cancel();
-      animations.current.clear();
+      for (const animation of animations.current) animation.cancel();
+      animations.current = [];
     }
     if (drag) {
       // Moving a keyed row in the DOM can release browser pointer capture.
@@ -154,45 +180,21 @@ export function useListItemReorder({
         drag.row.style.transform = `translateY(${offset}px)`;
       }
     }
-    if (
-      !before ||
-      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    )
-      return;
-    const rawDuration = getComputedStyle(document.documentElement)
-      .getPropertyValue('--duration-transition')
-      .trim();
-    const duration = rawDuration.endsWith('ms')
-      ? parseFloat(rawDuration)
-      : parseFloat(rawDuration) * 1000;
-    const easing =
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--easing-standard')
-        .trim() || 'ease-out';
-    for (const row of listRef.current?.querySelectorAll<HTMLElement>(
-      '[data-sortable-item-id]',
-    ) ?? []) {
-      if (row === drag?.row) continue;
-      const oldTop = before.get(row.dataset.sortableItemId ?? '');
-      if (oldTop === undefined || typeof row.animate !== 'function') continue;
-      const displacement = oldTop - row.getBoundingClientRect().top;
-      if (Math.abs(displacement) < 1) continue;
-      const animation = row.animate(
-        [
-          { transform: `translateY(${displacement}px)` },
-          { transform: 'translateY(0)' },
-        ],
-        { duration: Number.isFinite(duration) ? duration : 180, easing },
-      );
-      animations.current.set(row, animation);
-    }
+    // Replace `reorder` (Motion Contract 4.2): siblings move from their
+    // measured old place; a dropped row continues from where the finger left
+    // it into its slot. With reduced motion every row is in place at once.
+    if (!before || prefersReducedMotion()) return;
+    animations.current = reorder(listRef.current, before, {
+      key: SORTABLE_KEY,
+      skip: drag?.row,
+    });
   });
 
   useEffect(
     () => () => {
       dragRef.current?.row.style.removeProperty('transform');
       dragRef.current = null;
-      for (const animation of animations.current.values()) animation.cancel();
+      for (const animation of animations.current) animation.cancel();
       if (scrollFrame.current !== null)
         cancelAnimationFrame(scrollFrame.current);
     },
@@ -219,6 +221,8 @@ export function useListItemReorder({
       captureRects();
       drag.order = next;
       setPreviewOrder(next);
+      // The held row crossed into another slot (Motion Contract 4.10).
+      haptic('threshold');
     }
     // The held item follows the pointer, independent of sibling FLIP motion.
     drag.row.style.removeProperty('transform');
@@ -277,7 +281,7 @@ export function useListItemReorder({
     setActiveItemId(null);
 
     if (commit && !sameOrder(drag.initialOrder, drag.order)) {
-      onReorder(drag.order, drag.itemId);
+      if (requestOrder(drag.order, drag.itemId)) haptic('commit');
     }
   }
 
@@ -296,14 +300,15 @@ export function useListItemReorder({
         if (direction === 0) return;
 
         event.preventDefault();
+        const current = latestOrder();
         const next = moveSortableItemByOffset(
-          itemIds,
+          current,
           itemId,
           direction as -1 | 1,
         );
-        if (!sameOrder(itemIds, next)) {
+        if (!sameOrder(current, next)) {
           captureRects();
-          onReorder(next, itemId);
+          if (requestOrder(next, itemId)) setPreviewOrder(next);
         }
       },
       onPointerDown: (event) => {
@@ -314,10 +319,10 @@ export function useListItemReorder({
         const parent = row?.parentElement;
         if (!row || !parent) return;
         listRef.current = parent;
-        for (const animation of animations.current.values()) animation.cancel();
-        animations.current.clear();
+        for (const animation of animations.current) animation.cancel();
+        animations.current = [];
         const scrollContainer = scrollContainerFor(event.currentTarget);
-        const initialOrder = [...itemIds];
+        const initialOrder = [...latestOrder()];
         dragRef.current = {
           itemId,
           pointerId: event.pointerId,
@@ -415,14 +420,14 @@ export function EditPencilIcon({ className }: { className?: string }) {
       aria-hidden="true"
       focusable="false"
       viewBox="0 0 24 24"
-      className={className}
+      className={className ? `inline-icon ${className}` : 'inline-icon'}
     >
       <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
     </svg>
   );
 }
 
-function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
+export function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
   if (kind === 'edit') {
     return <EditPencilIcon className="list-entry-icon" />;
   }
@@ -432,7 +437,7 @@ function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
         aria-hidden="true"
         focusable="false"
         viewBox="0 0 24 24"
-        className="list-entry-icon"
+        className="list-entry-icon inline-icon"
       >
         <path d="m6 6 12 12M18 6 6 18" />
       </svg>
@@ -444,7 +449,7 @@ function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
       aria-hidden="true"
       focusable="false"
       viewBox="0 0 24 24"
-      className="list-entry-icon"
+      className="list-entry-icon inline-icon"
     >
       {kind === 'more' ? (
         <>
@@ -471,9 +476,12 @@ function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
       ) : null}
       {kind === 'reorder' ? (
         <>
-          <path d="M5 7h14" />
-          <path d="M5 12h14" />
-          <path d="M5 17h14" />
+          <circle cx="9" cy="6" r="1.2" />
+          <circle cx="15" cy="6" r="1.2" />
+          <circle cx="9" cy="12" r="1.2" />
+          <circle cx="15" cy="12" r="1.2" />
+          <circle cx="9" cy="18" r="1.2" />
+          <circle cx="15" cy="18" r="1.2" />
         </>
       ) : null}
     </svg>

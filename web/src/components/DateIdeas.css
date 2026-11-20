@@ -1,52 +1,7 @@
-/* Date inspiration (#1892): a quiet entry in the Wishes mode and a focused discovery
-   page. Ideas are independent units with their own actions, so each earns a
-   raised surface; filters stay borderless pills (StatusScope). */
-
-.date-ideas-entry {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: var(--touch-target-web);
-  margin-block: var(--space-2) var(--space-4);
-  padding: var(--space-4) var(--space-5);
-  border-radius: var(--radius-content);
-  background: var(--color-discovery-surface-soft);
-  color: var(--color-text);
-  text-decoration: none;
-}
-
-.date-ideas-entry:focus-visible {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 3px;
-}
-
-.date-ideas-entry-icon,
-.date-ideas-entry-chevron {
-  width: var(--space-5);
-  height: var(--space-5);
-  color: var(--color-brand-text);
-}
-
-.date-ideas-entry-text {
-  display: grid;
-  gap: var(--space-1);
-  min-width: 0;
-}
-
-.date-ideas-entry-title {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--color-brand-text);
-  font: var(--font-action-label);
-}
-
-.date-ideas-entry-hint {
-  color: var(--color-text-secondary);
-  font: var(--font-supporting-copy);
-}
+/* Date inspiration (#1892): a focused discovery page and the round's pick mode
+   (#1907 J1). Ideas are independent units with their own actions, so each earns
+   a raised surface; filters live in one sheet and active ones stay visible as
+   tinted chips. */
 
 .date-ideas-page {
   display: grid;
@@ -60,8 +15,8 @@
 }
 
 /* Long localized chip labels wrap at 200 % text instead of widening the page. */
-.date-ideas-filters .planen-status-scope > button,
-.date-ideas-more,
+.date-ideas-filter-groups .planen-status-scope > button,
+.date-ideas-filter-open,
 .date-idea-actions > * {
   max-width: 100%;
   white-space: normal;
@@ -79,10 +34,6 @@
   gap: var(--space-3);
 }
 
-.date-ideas-filters .planen-status-scope {
-  margin-block-end: 0;
-}
-
 .date-ideas-filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -91,14 +42,15 @@
   gap: var(--space-2) var(--space-4);
 }
 
-.date-ideas-more {
+.date-ideas-filter-open {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
   min-height: var(--touch-target-web);
+  border-radius: var(--radius-pill);
 }
 
-.date-ideas-more .eimir-icon {
+.date-ideas-filter-open .eimir-icon {
   width: var(--space-5);
   height: var(--space-5);
 }
@@ -107,18 +59,92 @@
   margin: 0;
   color: var(--color-text-secondary);
   font: var(--font-supporting-copy);
+  font-weight: 600;
 }
 
-.date-ideas-more-filters {
+.date-ideas-active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.date-ideas-active-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 100%;
+  min-height: var(--touch-target-web);
+  padding: var(--space-1) var(--space-3) var(--space-1) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--color-shared-surface);
+  color: var(--color-brand-text);
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.date-ideas-active-filter .eimir-icon {
+  flex: none;
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.date-ideas-filter-groups {
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-4);
-  border-radius: var(--radius-content);
-  background: var(--color-surface-panel);
 }
 
-.date-ideas-more-filters[hidden] {
-  display: none;
+.date-ideas-filter-groups .planen-status-scope {
+  margin-block-end: 0;
+}
+
+.date-ideas-filter-sheet-actions {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.date-ideas-composer-hint {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--touch-target-web);
+  margin-block: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-content);
+  background: var(--color-discovery-surface-soft);
+  color: var(--color-text);
+  font: var(--font-supporting-copy);
+  text-decoration: none;
+}
+
+.date-ideas-composer-hint:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.date-ideas-composer-hint-text strong {
+  color: var(--color-brand-text);
+  font-weight: 600;
+}
+
+.date-ideas-composer-hint-text .pro-mark {
+  margin-inline-start: var(--space-2);
+}
+
+.date-ideas-composer-hint-icon,
+.date-ideas-composer-hint-chevron {
+  width: var(--space-5);
+  height: var(--space-5);
+  color: var(--color-discovery);
+}
+
+.date-ideas-composer-hint-chevron {
+  color: var(--color-brand-text);
 }
 
 .date-ideas-filter-label {
@@ -289,25 +315,12 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .date-idea-media img {
-    animation: date-idea-image-fade var(--duration-transition)
+    animation: eimir-motion-enter-fade var(--duration-transition)
       var(--easing-standard);
   }
 
   .date-idea {
-    animation: date-idea-arrive var(--duration-transition) var(--easing-enter)
-      backwards;
-  }
-}
-
-@keyframes date-idea-image-fade {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes date-idea-arrive {
-  from {
-    opacity: 0;
-    transform: translateY(var(--space-2));
+    animation: eimir-motion-enter-travel var(--duration-transition)
+      var(--easing-enter) backwards;
   }
 }

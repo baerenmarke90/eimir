@@ -4,8 +4,8 @@ import './SharedListSuggestions.css';
 
 /**
  * What the couple bought on earlier trips, one tap to add it again (#1808).
- * The note says where the chips come from and who sees them; a chip can be
- * removed on its own, so nothing stays that the couple does not want.
+ * The heading says where the chips come from; a chip can be removed on its
+ * own, so nothing stays that the couple does not want.
  */
 export function SharedListSuggestions({
   suggestions,
@@ -55,12 +55,12 @@ export function SharedListSuggestions({
               onClick={() => onRemove(suggestion)}
             >
               <svg
+                className="inline-icon"
                 viewBox="0 0 24 24"
                 aria-hidden="true"
                 focusable="false"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2"
                 strokeLinecap="round"
               >
                 <path d="M7 7l10 10M17 7 7 17" />
@@ -69,9 +69,6 @@ export function SharedListSuggestions({
           </li>
         ))}
       </ul>
-      <p className="shared-list-suggestions-note">
-        {t('m5s3.collection.suggestions.note')}
-      </p>
     </section>
   );
 }

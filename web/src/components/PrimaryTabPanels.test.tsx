@@ -37,13 +37,14 @@ function Navigator() {
   return null;
 }
 
-function Harness() {
+function Harness({ prewarm }: { prewarm?: readonly string[] }) {
   return (
     <MemoryRouter initialEntries={['/today']}>
       <TaskOriginProvider accountId="account" spaceId="space">
         <Navigator />
         <PrimaryTabPanels
           fallback={<p>failed</p>}
+          prewarm={prewarm}
           panels={[
             { path: '/today', element: <Page name="today" /> },
             { path: '/story', element: <Page name="story" /> },
@@ -98,7 +99,7 @@ it('freezes the location a hidden tab sees', async () => {
   expect(screen.getByTestId('plan-search').textContent).toBe('?view=wishes');
 });
 
-it('restores the scroll position a tab had when it is shown again', async () => {
+it('starts Wir at the top when the tab is explicitly reopened', async () => {
   render(<Harness />);
   const scrollTo = vi.mocked(window.scrollTo);
   Object.defineProperty(window, 'scrollY', { configurable: true, value: 640 });
@@ -107,10 +108,54 @@ it('restores the scroll position a tab had when it is shown again', async () => 
   expect(scrollTo).toHaveBeenLastCalledWith({ top: 0, behavior: 'instant' });
   Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
   await act(() => navigate('/today'));
-  expect(scrollTo).toHaveBeenLastCalledWith({ top: 640, behavior: 'instant' });
+  expect(scrollTo).toHaveBeenLastCalledWith({ top: 0, behavior: 'instant' });
 });
 
-it('captures scroll before a new tab can clamp the outgoing document height', async () => {
+/** A carousel inside the panel that remembers how far it was swiped. */
+function addCarousel(path: string, scrollLeft: number) {
+  const carousel = document.createElement('div');
+  let offset = scrollLeft;
+  Object.defineProperty(carousel, 'scrollLeft', {
+    configurable: true,
+    get: () => offset,
+    set: (value: number) => {
+      offset = value;
+    },
+  });
+  panel(path)?.appendChild(carousel);
+  return carousel;
+}
+
+it('puts the Wir carousels back to their first item when the tab is reopened', async () => {
+  render(<Harness />);
+  const lists = addCarousel('/today', 320);
+  const upcoming = addCarousel('/today', 180);
+  await act(() => navigate('/story'));
+  // Leaving keeps the offsets while the panel is hidden ...
+  expect(lists.scrollLeft).toBe(320);
+  await act(() => navigate('/today'));
+  // ... and reopening from the tab bar starts them over.
+  expect(lists.scrollLeft).toBe(0);
+  expect(upcoming.scrollLeft).toBe(0);
+});
+
+it('keeps the Wir carousels where they were on Back', async () => {
+  render(<Harness />);
+  const lists = addCarousel('/today', 320);
+  await act(() => navigate('/story'));
+  await act(() => navigate(-1));
+  expect(lists.scrollLeft).toBe(320);
+});
+
+it('shows Wir from its first carousel item while it is peeked', async () => {
+  render(<Harness />);
+  await act(() => navigate('/story'));
+  const lists = addCarousel('/today', 240);
+  await act(() => setPrimaryTabPeek('/today'));
+  expect(lists.scrollLeft).toBe(0);
+});
+
+it('restores the Wir reading position on Back after a fast navigation', async () => {
   render(<Harness />);
   const scrollTo = vi.mocked(window.scrollTo);
   // A fast root navigation may commit before the browser dispatches a scroll
@@ -118,8 +163,21 @@ it('captures scroll before a new tab can clamp the outgoing document height', as
   Object.defineProperty(window, 'scrollY', { configurable: true, value: 540 });
   await act(() => navigate('/story'));
   Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
-  await act(() => navigate('/today'));
+  await act(() => navigate(-1));
   expect(scrollTo).toHaveBeenLastCalledWith({ top: 540, behavior: 'instant' });
+});
+
+it('restores Wir on an explicit task return', async () => {
+  render(<Harness />);
+  const scroll = vi.mocked(window.scrollTo);
+  Object.defineProperty(window, 'scrollY', { configurable: true, value: 420 });
+  const key = captures.get('today')?.();
+  expect(key).toBeTruthy();
+  await act(() => navigate('/story/memories/m1'));
+  await act(() =>
+    navigate('/today', { replace: true, state: { taskReturnKey: key } }),
+  );
+  expect(scroll).toHaveBeenLastCalledWith({ top: 420, behavior: 'instant' });
 });
 
 it('lets only the visible tab capture a task origin', async () => {
@@ -166,7 +224,7 @@ it('keeps restoring while a revealed tab is still settling to its full height', 
   await act(() => navigate('/story'));
   // The revealed tab is briefly 46px shorter than when it was left.
   scroll.page.max = 324;
-  await act(() => navigate('/today'));
+  await act(() => navigate(-1));
   expect(window.scrollY).toBe(324);
   scroll.page.max = 2000;
   act(() => scroll.flush());
@@ -179,7 +237,7 @@ it('stops restoring as soon as something else scrolls the page', async () => {
   scroll.setScroll(370);
   await act(() => navigate('/story'));
   scroll.page.max = 324;
-  await act(() => navigate('/today'));
+  await act(() => navigate(-1));
   // Reselecting the tab (or the person) scrolls to the top meanwhile.
   scroll.setScroll(0);
   scroll.page.max = 2000;
@@ -218,4 +276,39 @@ it('reveals the neighbouring tab for a swipe without keeping it unless it is ope
   expect(panel('/today')?.hidden).toBe(true);
   // The peeked page becomes the active tab without being rebuilt.
   expect(mounts).toHaveLength(mountedForPeek);
+});
+
+it('prepares a panel once the app is quiet and keeps it out of sight until visited', async () => {
+  vi.useFakeTimers();
+  try {
+    render(<Harness prewarm={['/plan']} />);
+    expect(panel('/plan')).toBeNull();
+    // Input keeps resetting the quiet time.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_900);
+      window.dispatchEvent(new Event('scroll'));
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    expect(panel('/plan')).toBeNull();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4_000);
+    });
+    const prepared = panel('/plan');
+    expect(prepared?.dataset.primaryTabPrewarm).toBe('true');
+    expect(prepared?.hidden).toBe(false);
+    expect(prepared?.getAttribute('aria-hidden')).toBe('true');
+    expect(prepared?.hasAttribute('inert')).toBe(true);
+    expect(mounts).toContain('plan');
+    const mountsBefore = mounts.filter((name) => name === 'plan').length;
+
+    act(() => navigate('/plan'));
+    const visited = panel('/plan');
+    expect(visited?.dataset.primaryTabPrewarm).toBeUndefined();
+    expect(visited?.hidden).toBe(false);
+    expect(visited?.hasAttribute('aria-hidden')).toBe(false);
+    // The prepared page is reused, not mounted again.
+    expect(mounts.filter((name) => name === 'plan').length).toBe(mountsBefore);
+  } finally {
+    vi.useRealTimers();
+  }
 });

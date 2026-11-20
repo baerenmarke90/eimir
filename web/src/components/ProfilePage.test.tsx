@@ -82,7 +82,7 @@ describe('Profile page reorganization', () => {
     expect(html).toContain('Alex');
     expect(html).toContain('Dies ist das Profil, das dein Partner sieht.');
     expect(html).toContain(profileIdentity.editProfile);
-    expect(html).not.toContain(profileIdentity.editName);
+    expect(html).not.toContain(profileIdentity.saveProfile);
     expect(html).not.toContain(profileIdentity.changeAvatar);
   });
 
@@ -90,7 +90,7 @@ describe('Profile page reorganization', () => {
     const html = renderProfilePageFixture();
     expect(html).not.toContain('profile-premium-section');
     expect(html).not.toContain(profiles.premium.title);
-    expect(html).not.toContain(profiles.premium.action);
+    expect(html).not.toContain(profiles.premium.rowInactive);
   });
 
   it('keeps authored personal preferences in the profile', () => {

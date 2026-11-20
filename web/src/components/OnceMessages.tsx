@@ -2,47 +2,49 @@ import './FreeComposer.css';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import type { OnceSealedMessage } from '../api/generated/models/OnceSealedMessage';
 import type { OnceMessageCreate } from '../api/generated/models/OnceMessageCreate';
+import type { OnceSealedMessage } from '../api/generated/models/OnceSealedMessage';
 import { authorDisplayName } from '../client/authorPresentation';
+import { isAndroidApp, isCapacitorNativePlatform } from '../client/config';
 import {
-  deviceKey,
-  removeDeviceKey,
-  encryptOnce,
-  decryptOnce,
+  notificationsListQueryKey,
+  notificationUnreadCountQueryKey,
+} from '../client/notificationQueries';
+import {
   base64Bytes,
-  onceMediaBlob,
-  prepareOnceAudio,
-  prepareOncePhoto,
+  decryptOnce,
+  deviceKey,
+  encryptOnce,
   ONCE_TEXT_MAX_LENGTH,
   type OnceContent,
   type OnceDeviceKey,
+  onceMediaBlob,
+  prepareOnceAudio,
+  prepareOncePhoto,
+  removeDeviceKey,
 } from '../client/onceMessageCrypto';
 import {
   ONCE_CREATE_ROUTE,
   ONCE_ROUTE,
+  type OnceEnvironment,
   onceMessagePath,
   useOnceEnvironment,
   useOnceInbox,
   useOnceStatus,
-  type OnceEnvironment,
 } from '../client/onceMessages';
 import {
-  normalizeClientError,
   clientProblemKind,
+  normalizeClientError,
 } from '../client/problemDetails';
-import {
-  notificationUnreadCountQueryKey,
-  notificationsListQueryKey,
-} from '../client/notificationQueries';
 import { proPaywallPath } from '../client/routes';
+import { holdSecureScreen } from '../client/secureScreen';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useVoiceRecorder } from '../client/useVoiceRecorder';
 import { VOICE_ACCEPT, voiceFile, voiceTime } from '../client/voiceNotes';
 import { useTranslation } from '../i18n';
-import { DraftExitPrompt } from './DraftExitPrompt';
 import { AddActionContent } from './AddAction';
+import { DraftExitPrompt } from './DraftExitPrompt';
 import { MediaActionGroup } from './MediaActionGroup';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -187,6 +189,20 @@ function OnceTask({
   const viewUrlRef = useRef<string | undefined>(undefined);
   const viewTimer = useRef<number | undefined>(undefined);
   const photoPicker = useRef<HTMLInputElement>(null);
+  // #2048: take the photo with the camera. Only where a camera answers the
+  // `capture` hint (phones and the Android app); a desktop browser would only
+  // open the same file dialog a second time.
+  const cameraPicker = useRef<HTMLInputElement>(null);
+  // Once messages are received and opened only in the app, where the screen
+  // is protected (#683). The server enforces the same rule.
+  const [receivingApp] = useState(isAndroidApp);
+  const [canCapture] = useState(
+    () =>
+      isCapacitorNativePlatform() ||
+      (typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(pointer: coarse)').matches),
+  );
   const audioPicker = useRef<HTMLInputElement>(null);
   const returnToOrigin = () => requestReturn(originKey, '/today');
   const lifecycle = useTaskEditorLifecycle({
@@ -276,11 +292,14 @@ function OnceTask({
     const problem = await normalizeClientError(cause);
     if (mounted.current)
       setError(
-        problem.code?.startsWith('ONCE_')
-          ? problem.code
-          : problem.kind === 'offline'
-            ? 'offline'
-            : 'failed',
+        problem.code === 'ONCE_APP_REQUIRED' && receivingApp
+          ? // The app's session predates the app-only rule (#683).
+            'ONCE_APP_SIGN_IN'
+          : problem.code?.startsWith('ONCE_')
+            ? problem.code
+            : problem.kind === 'offline'
+              ? 'offline'
+              : 'failed',
       );
   }
 
@@ -452,6 +471,18 @@ function OnceTask({
         setError('ONCE_DEVICE_UNAVAILABLE');
         return;
       }
+      // Opening uses the message up: confirm the app's screen protection
+      // first, and never open without it (#683, fail closed).
+      const protection = holdSecureScreen();
+      try {
+        await protection.ready;
+      } catch {
+        if (owner === generation.current && mounted.current) setError('failed');
+        return;
+      } finally {
+        protection.release();
+      }
+      if (owner !== generation.current || !mounted.current) return;
       const opened = await api.openOnceMessage(
         { spaceId, messageId, onceClaim: { deviceId: localKey.id, token } },
         { cache: 'no-store' },
@@ -652,19 +683,27 @@ function OnceTask({
                     })}
                   </p>
                   <EnvelopeIcon />
-                  <p>{t('onceMessages.openConsequence')}</p>
-                  <p className="once-support">{t('onceMessages.copyLimit')}</p>
-                  {!receivingHere ? (
-                    <p>{t('onceMessages.originalDevice')}</p>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="primary"
-                    disabled={busy || !receivingHere}
-                    onClick={() => void open()}
-                  >
-                    {t(busy ? 'onceMessages.opening' : 'onceMessages.open')}
-                  </button>
+                  {receivingApp ? (
+                    <>
+                      <p>{t('onceMessages.openConsequence')}</p>
+                      <p className="once-support">
+                        {t('onceMessages.copyLimit')}
+                      </p>
+                      {!receivingHere ? (
+                        <p>{t('onceMessages.originalDevice')}</p>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="primary"
+                        disabled={busy || !receivingHere}
+                        onClick={() => void open()}
+                      >
+                        {t(busy ? 'onceMessages.opening' : 'onceMessages.open')}
+                      </button>
+                    </>
+                  ) : (
+                    <p>{t('onceMessages.appOnly')}</p>
+                  )}
                   <button
                     type="button"
                     className="tertiary"
@@ -722,7 +761,28 @@ function OnceTask({
                   <h2 id="once-reception-title">
                     {t('onceMessages.reception')}
                   </h2>
-                  {!status.data.ownEnabled || !receivingHere ? (
+                  {!receivingApp ? (
+                    <>
+                      <p>
+                        {t(
+                          status.data.ownEnabled
+                            ? 'onceMessages.enabled'
+                            : 'onceMessages.consent',
+                        )}
+                      </p>
+                      <p>{t('onceMessages.appOnly')}</p>
+                      {status.data.ownEnabled ? (
+                        <button
+                          className="tertiary"
+                          type="button"
+                          disabled={busy}
+                          onClick={() => setConfirmOff(true)}
+                        >
+                          {t('onceMessages.disable')}
+                        </button>
+                      ) : null}
+                    </>
+                  ) : !status.data.ownEnabled || !receivingHere ? (
                     <>
                       <p>{t('onceMessages.consent')}</p>
                       <button
@@ -844,13 +904,29 @@ function OnceTask({
                       </div>
                     ) : null}
                     <div className="once-attachments">
+                      {canCapture ? (
+                        <button
+                          type="button"
+                          className="add-action"
+                          disabled={editingDisabled}
+                          onClick={() => cameraPicker.current?.click()}
+                        >
+                          <AddActionContent
+                            icon="foto"
+                            label={t('onceMessages.takePhoto')}
+                          />
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         className="add-action"
                         disabled={editingDisabled}
                         onClick={() => photoPicker.current?.click()}
                       >
-                        <AddActionContent label={t('onceMessages.photo')} />
+                        <AddActionContent
+                          icon="photo-library"
+                          label={t('onceMessages.photo')}
+                        />
                       </button>
                       <button
                         type="button"
@@ -888,6 +964,22 @@ function OnceTask({
                       if (file) void selectMedia(file, 'IMAGE');
                     }}
                   />
+                  {canCapture ? (
+                    <input
+                      type="file"
+                      ref={cameraPicker}
+                      className="visually-hidden-input"
+                      tabIndex={-1}
+                      aria-label={t('onceMessages.takePhoto')}
+                      accept="image/jpeg"
+                      capture="environment"
+                      onChange={(event) => {
+                        const file = event.currentTarget.files?.[0];
+                        event.currentTarget.value = '';
+                        if (file) void selectMedia(file, 'IMAGE');
+                      }}
+                    />
+                  ) : null}
                   <input
                     type="file"
                     ref={audioPicker}

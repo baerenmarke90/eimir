@@ -29,17 +29,16 @@ from eimir.core.clock import now
 from eimir.core.errors import BadRequestError, ConflictError, ErrorCode, NotFoundError
 from eimir.core.ids import new_id, parse_id
 from eimir.daily_checkins.models import RecommendationKey, RecommendationRating
+from eimir.db.session import schedule_after_rollback
 from eimir.identity.models import Account, AccountEmail
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.queue import enqueue
 from eimir.media import build_storage_key, get_media_store
-from eimir.photo_sources.models import GoogleAccountHint, PhotoConnection
 from eimir.relationship.models import Membership, MembershipStatus, SpaceProfile
 from eimir.transfer.archive import (
     MAX_COMPRESSED_BYTES,
+    ExportWriter,
     TransferArchiveError,
-    add_bytes,
-    add_stream,
     json_bytes,
     manifest_bytes,
     parse_json_bytes,
@@ -74,7 +73,13 @@ FILE_TABLES: dict[str, tuple[str, ...]] = {
     "milestones.json": ("milestones", "milestone_plans"),
     "comments.json": ("comments",),
     "wishes.json": ("wishes",),
-    "plans.json": ("plans", "plan_attachments", "plan_file_attachments", "plan_collections"),
+    "plans.json": (
+        "plans",
+        "plan_attachments",
+        "plan_file_attachments",
+        "plan_collections",
+        "plan_notes",
+    ),
     "places.json": (
         "places",
         "place_memories",
@@ -88,6 +93,7 @@ FILE_TABLES: dict[str, tuple[str, ...]] = {
         "chapter_heart_moments",
     ),
     "collections.json": ("collections", "collection_items", "collection_suggestions"),
+    "shared-notes.json": ("shared_notes",),
     "reminders.json": ("reminders", "reminder_offsets", "reminder_preferences"),
     "rules.json": ("rule_preferences",),
     "recaps.json": ("recap_editions", "recap_sources", "recap_reflections"),
@@ -115,6 +121,7 @@ CHILD_PARENT: dict[str, tuple[str, str]] = {
 }
 RELATION_REQUIREMENTS: dict[str, tuple[tuple[str, str], ...]] = {
     "plan_collections": (("plan_id", "plans"), ("collection_id", "collections")),
+    "plan_notes": (("plan_id", "plans"), ("note_id", "shared_notes")),
     "memory_plans": (("memory_id", "memories"), ("plan_id", "plans")),
     "heart_moment_plans": (("heart_moment_id", "heart_moments"), ("plan_id", "plans")),
     "milestone_plans": (("milestone_id", "milestones"), ("plan_id", "plans")),
@@ -131,7 +138,9 @@ RELATION_REQUIREMENTS: dict[str, tuple[tuple[str, str], ...]] = {
 }
 # Columns that reference a member account. ``completed_by`` is optional (#1808):
 # an item completed before the actor was recorded has none.
-ACCOUNT_REFERENCE_COLUMNS = frozenset({"owner_id", "created_by", "account_id", "completed_by"})
+ACCOUNT_REFERENCE_COLUMNS = frozenset(
+    {"owner_id", "created_by", "account_id", "completed_by", "edited_by"}
+)
 INSERT_ORDER = (
     "space_profiles",
     "partner_profiles",
@@ -149,6 +158,7 @@ INSERT_ORDER = (
     "collections",
     "collection_items",
     "collection_suggestions",
+    "shared_notes",
     "private_notes",
     "gift_ideas",
     "private_collections",
@@ -167,6 +177,7 @@ INSERT_ORDER = (
     "milestone_plans",
     "memory_wishes",
     "plan_collections",
+    "plan_notes",
     "place_memories",
     "place_milestones",
     "place_heart_moments",
@@ -583,13 +594,29 @@ def build_export_archive(
     scope: TransferScope,
 ) -> IO[bytes]:
     """Build one deterministic snapshot archive in an anonymous memory buffer."""
+    output = _new_plaintext_export_buffer()
+    try:
+        _write_export_archive(session, authorization, scope, output)
+        size = output.tell()
+        output.seek(0)
+        validate_zip(output, compressed_size=size)
+        output.seek(0)
+        return output
+    except BaseException:
+        output.close()
+        raise
+
+
+def _write_export_archive(
+    session: Session, authorization: AuthorizationContext, scope: TransferScope, output: IO[bytes]
+) -> None:
     rows = _portable_rows(session, authorization, scope)
     media = _media_rows(session, rows)
     accounts = _source_accounts(session, authorization.space_id)
-    output = _new_plaintext_export_buffer()
     checksums: dict[str, str] = {}
     store = get_media_store()
     with ZipFile(output, mode="w", compression=ZIP_DEFLATED, allowZip64=True) as archive:
+        writer = ExportWriter(archive, output)
         account_document: dict[str, Any] = {"members": accounts}
         from eimir.wish_selections.service import portable_snapshot
 
@@ -606,23 +633,18 @@ def build_export_archive(
                 "appIconId": preference.icon_id if preference else "original",
                 "wirDesign": (preference.wir_design if preference else DEFAULT_WIR_DESIGN.value),
             }
-            connections = session.scalars(
-                select(PhotoConnection).where(
-                    PhotoConnection.account_id == authorization.account_id
-                )
-            ).all()
-            account_document["personalPhotoSources"] = [
-                {"source": row.provider, "origin": row.payload.origin}
-                for row in connections
-                if row.payload.account_id == authorization.account_id
-            ]
-            google_account = session.scalar(
-                select(GoogleAccountHint).where(
-                    GoogleAccountHint.account_id == authorization.account_id
-                )
+            if preference is not None and preference.person_colours:
+                account_document["personalAppearance"]["personColours"] = preference.person_colours
+            from eimir.personal_settings import service as personal_settings
+
+            account_document["personalSettings"] = personal_settings.portable_snapshot(
+                session, authorization.account_id, authorization.space_id
             )
-            if google_account and google_account.payload.account_id == authorization.account_id:
-                account_document["personalGoogleAccountHint"] = google_account.payload.email
+            from eimir.plugins import lifecycle as plugin_lifecycle
+
+            account_document.update(
+                plugin_lifecycle.export_account_document(session, authorization, scope)
+            )
             from eimir.engagement.models import GentleMemoryExclusion, GentleProfile
 
             profile = session.get(GentleProfile, authorization.account_id)
@@ -651,7 +673,7 @@ def build_export_archive(
         # Connection credentials and transient selections are never portable.
         # Personal appearance is export-only metadata. Import never activates
         # paid choices or changes an installation based on untrusted bundles.
-        add_bytes(archive, "accounts.json", json_bytes(account_document), checksums)
+        writer.add_json("accounts.json", json_bytes(account_document), checksums)
         for file_name, table_names in FILE_TABLES.items():
             if scope is TransferScope.SHARED and file_name in PRIVATE_FILES:
                 continue
@@ -666,7 +688,7 @@ def build_export_archive(
                 ]
             }
             if document["tables"]:
-                add_bytes(archive, file_name, json_bytes(document), checksums)
+                writer.add_json(file_name, json_bytes(document), checksums)
 
         media_index: list[dict[str, Any]] = []
         for item in media:
@@ -685,13 +707,13 @@ def build_export_archive(
                     )
                 entry_name = f"media/{source_id}/{variant}"
                 with store.open(key) as source:
-                    add_stream(archive, entry_name, source, checksums)
+                    writer.add_media(entry_name, source, checksums)
                 stored_variants.append(variant)
             media_index.append({**item, "variants": stored_variants})
         if media_index:
-            add_bytes(archive, "media/index.json", json_bytes({"items": media_index}), checksums)
+            writer.add_json("media/index.json", json_bytes({"items": media_index}), checksums)
 
-        archive.writestr(
+        writer.add_json(
             "manifest.json",
             manifest_bytes(
                 exported_at=now().isoformat(),
@@ -704,10 +726,8 @@ def build_export_archive(
                     str(authorization.account_id) if scope is TransferScope.PERSONAL else None
                 ),
             ),
-            compress_type=ZIP_DEFLATED,
+            checksums,
         )
-    output.seek(0)
-    return output
 
 
 def create_export(
@@ -831,10 +851,20 @@ def create_import(
     )
     session.add(transfer)
     session.flush()
-    source.seek(0)
-    get_media_store().put(import_storage_key(transfer), source, "application/zip")
     job = enqueue(session, IMPORT_VALIDATE_JOB_KIND, {"importId": str(transfer.id)})
     transfer.validation_job_id = job.id
+    session.flush()
+    store = get_media_store()
+    key = import_storage_key(transfer)
+    # The object store is outside PostgreSQL. A failed final commit must also
+    # revoke a completed upload. Delete is idempotent for all store backends.
+    schedule_after_rollback(session, lambda _: store.delete(key))
+    source.seek(0)
+    try:
+        store.put(key, source, "application/zip")
+    except Exception:
+        store.delete(key)
+        raise
     return transfer
 
 
@@ -1541,6 +1571,30 @@ def _validate_media(
                 raise TransferArchiveError(
                     "Invalid voice media.", ErrorCode.TRANSFER_RELATION_INVALID
                 )
+        if item.get("mediaType") == MediaType.VIDEO:
+            from eimir.attachments.limits import VIDEO_MAX_SIZE, rule_for
+            from eimir.config import get_settings
+
+            size, mime_type = item.get("size"), item.get("mimeType")
+            rule = rule_for(mime_type) if isinstance(mime_type, str) else None
+            if (
+                type(size) is not int
+                or not 0 < size <= VIDEO_MAX_SIZE
+                or rule is None
+                or rule.media_type is not MediaType.VIDEO
+                or archive_sizes.get(f"media/{source_id}/original") != size
+            ):
+                raise TransferArchiveError(
+                    "Invalid video media.", ErrorCode.TRANSFER_RELATION_INVALID
+                )
+            # Imported video is re-validated by the video processor. Without
+            # one, fail closed before anything is written: the bundle stays
+            # usable on a server that can validate it.
+            if not get_settings().video_upload_enabled:
+                raise TransferArchiveError(
+                    "This server cannot validate transfer video.",
+                    ErrorCode.TRANSFER_FORMAT_UNSUPPORTED,
+                )
         owner_id = _uuid(item.get("ownerSourceId"), ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID)
         if source_id in indexed or source_id not in referenced or owner_id not in source_member_ids:
             raise TransferArchiveError(
@@ -2027,7 +2081,11 @@ def apply_import_bundle(
                     item["ownerSourceId"], ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID
                 )
                 target_owner = graph.mapping[owner_source]
+                revalidated = item["mediaType"] in {MediaType.AUDIO, MediaType.VIDEO}
                 for variant in item["variants"]:
+                    if revalidated and variant != "original":
+                        # Only the processor may produce derived variants.
+                        continue
                     key = build_storage_key(authorization.space_id, target_id, variant)
                     entry_name = f"media/{source_id}/{variant}"
                     with archive.open(entry_name, "r") as source:
@@ -2067,19 +2125,33 @@ def apply_import_bundle(
                     },
                     "version": 1,
                 }
-                if item["mediaType"] == "AUDIO":
-                    # Never publish untrusted transfer metadata as validated audio.
+                if revalidated:
+                    # Never publish untrusted transfer bytes or metadata as
+                    # validated audio or video. Restore is not paywalled: the
+                    # same worker job as an upload decides, without a
+                    # capability check.
                     attachment_values.update(
                         status=AttachmentStatus.VALIDATING.value,
                         mime_type=None,
                         size=None,
+                        width=None,
+                        height=None,
                         duration_seconds=None,
                         ready_at=None,
                         has_thumbnail=False,
                     )
-                    from eimir.attachments.service import ATTACHMENT_AUDIO_VALIDATION
+                    from eimir.attachments.service import (
+                        ATTACHMENT_AUDIO_VALIDATION,
+                        ATTACHMENT_VIDEO_VALIDATION,
+                    )
 
-                    enqueue(session, ATTACHMENT_AUDIO_VALIDATION, {"attachmentId": str(target_id)})
+                    enqueue(
+                        session,
+                        ATTACHMENT_AUDIO_VALIDATION
+                        if item["mediaType"] == MediaType.AUDIO
+                        else ATTACHMENT_VIDEO_VALIDATION,
+                        {"attachmentId": str(target_id)},
+                    )
                 session.execute(
                     attachment_table.insert().values(
                         **protect_values("attachments", attachment_values)

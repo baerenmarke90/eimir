@@ -13,7 +13,7 @@ Not included: Memories, Notifications, and Rules. Dates are modeled so a later R
 
 For third parties, store only what is needed for relationship care: display name, relationship type, and a birthday. No addresses, schools, phone numbers, or similar data. These people cannot view or delete their data themselves; therefore the model intentionally remains narrow.
 
-Display name and date label are the protected parts and are stored in a `ProtectedPayloadJSON` column — application-encrypted at rest when encryption is enabled (`crypto_version = 2`, see [ENCRYPTION-AT-REST.md](ENCRYPTION-AT-REST.md)), legacy plaintext otherwise (`crypto_version = 0`); **not E2EE**. Everything needed for sorting, linking, and later reminders — relationship, date, recurrence, visibility — remains queryable as columns.
+Display name, note, birthday, relationship type and date label are the protected parts and are stored in a `ProtectedPayloadJSON` column — application-encrypted at rest when encryption is enabled (`crypto_version = 2`, see [ENCRYPTION-AT-REST.md](ENCRYPTION-AT-REST.md)), legacy plaintext otherwise (`crypto_version = 0`); **not E2EE**. Everything needed for linking and later reminders — the date of an important date, recurrence, visibility, and whether a person has a birthday — remains queryable as columns. The people list is ordered by relationship type in the application, because that value is no longer readable in SQL (#797).
 
 ## Visibility
 
@@ -62,7 +62,7 @@ The UI must never display or indirectly reveal whether such private partner date
 
 ## Birthday without known year
 
-`DATE` has no representation for a date without a year. If the birth year is unknown (`birthdayYearKnown = false`), the server stores month and day using placeholder year **1904** — a leap year so February 29 can be represented. The database enforces the placeholder so no second location in code can choose another year.
+`DATE` has no representation for a date without a year. If the birth year is unknown (`birthdayYearKnown = false`), the server stores month and day using placeholder year **1904** — a leap year so February 29 can be represented. The birthday is protected content and is stored in the person's `ProtectedPayload` (#797), which the database cannot inspect; `normalize_birthday` in the people service is the one place that applies the placeholder. The plain column `has_birthday` records only that a birthday exists.
 
 Clients display only day and month when `birthdayYearKnown = false`. A known year without a date is inconsistent and is rejected with 422 (`RELATED_PERSON_BIRTHDAY_REQUIRED`) instead of silently corrected.
 

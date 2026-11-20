@@ -21,6 +21,7 @@ from pydantic import (
     BaseModel,
     BeforeValidator,
     Field,
+    PrivateAttr,
     SecretStr,
     field_validator,
     model_validator,
@@ -102,6 +103,11 @@ class OidcConnection(BaseModel):
     # select only this preconfigured URI; it can never supply an arbitrary redirect.
     android_redirect_uri: str | None = Field(default=None, min_length=1, max_length=512)
     scopes: str = "openid email profile"
+    # Presentation hint for the public sign-in screen. ``google`` lets clients
+    # show the provider's own button; ``generic`` uses ``label`` instead. It has
+    # no protocol meaning, and Google is otherwise an ordinary OIDC connection.
+    provider: Literal["google", "generic"] = "generic"
+    label: str = Field(default="", max_length=64)
 
     @field_validator("issuer")
     @classmethod
@@ -133,6 +139,8 @@ def _database_url_is_usable(value: str) -> str:
 _DatabaseUrl = Annotated[str, AfterValidator(_database_url_is_usable)]
 
 _DEMO_RESET_INTERVAL_PATTERN = re.compile(r"^(?P<value>[1-9][0-9]*)(?P<unit>[mhd])$")
+# A key set is a few short entries; anything larger is not a key file.
+_ENCRYPTION_KEYS_FILE_MAX_BYTES = 64 * 1024
 
 
 def _demo_reset_interval(value: object) -> timedelta:
@@ -204,6 +212,22 @@ class DatabaseSettings(IdentityCompatibleSettings):
     database_url: _DatabaseUrl = Field(default=DEFAULT_DATABASE_URL)
 
 
+class PluginSettings(BaseSettings):
+    """The plugin allow-list only (Decision 0017), read by ``api``, ``worker`` and ``migrate``.
+
+    Kept apart from ``Settings`` for the reason ``DatabaseSettings`` is: the
+    migration process loads plugins too and must not depend on application
+    configuration. ``EIMIR_PLUGINS`` is a comma-separated list of entry-point
+    names; an empty value runs Core only. The default is ``pro`` while the Pro
+    plugin ships inside this distribution, so existing installations keep
+    their behavior. The setting is new, so it has no legacy ``SBS_`` alias.
+    """
+
+    model_config = SettingsConfigDict(env_prefix="EIMIR_", env_file=".env", extra="ignore")
+
+    plugins: str = Field(default="pro")
+
+
 class Settings(IdentityCompatibleSettings):
     model_config = SettingsConfigDict(env_prefix="EIMIR_", env_file=".env", extra="ignore")
 
@@ -237,7 +261,7 @@ class Settings(IdentityCompatibleSettings):
     # Operator switch for M9 partner location (#1792). OFF writes stay accepted.
     partner_location_enabled: bool = True
 
-    # Optional local-only recap wording. Selection and complete fallback stay in Core.
+    # Optional local AI for weekly reviews and tag proposals. Keep the deployed setting names.
     recap_ai_url: str = ""
     recap_ai_model: str = "qwen3:1.7b-q4_K_M"
     recap_ai_timeout_seconds: float = Field(default=45, ge=1, le=120)
@@ -245,7 +269,7 @@ class Settings(IdentityCompatibleSettings):
     @field_validator("recap_ai_url")
     @classmethod
     def _recap_ai_origin(cls, value: str) -> str:
-        from eimir.recaps.local_ai import validate_local_url
+        from eimir.local_ai import validate_local_url
 
         return validate_local_url(value)
 
@@ -275,6 +299,13 @@ class Settings(IdentityCompatibleSettings):
     # ``{key_id: base64 32-byte key}``. Key material comes from the operator's
     # secret store; nothing in the repository or image supplies it.
     encryption_keys: Annotated[dict[str, SecretStr], NoDecode] = Field(default_factory=dict)
+    # Alternative to ``encryption_keys``: an absolute path to a private file that
+    # holds the same JSON object. It keeps the key material out of the process
+    # environment, where container managers and ``docker inspect`` display it.
+    encryption_keys_file: str = ""
+    # Validation can visit one instance twice; the second visit must not mistake
+    # the key set it loaded from the file for an inline one.
+    _encryption_keys_from_file: bool = PrivateAttr(default=False)
     encryption_active_key_id: str | None = None
 
     # Keyset cursors leave the server as opaque HMAC-protected tokens. An
@@ -623,6 +654,43 @@ class Settings(IdentityCompatibleSettings):
             raise ValueError("Production and Demo require an https EIMIR_S3_ENDPOINT.")
         if "/" in self.s3_bucket:
             raise ValueError("EIMIR_S3_BUCKET must be a bucket name, not a path.")
+        return self
+
+    @model_validator(mode="after")
+    def encryption_keys_file_is_loaded(self) -> Self:
+        """Read the key set from ``EIMIR_ENCRYPTION_KEYS_FILE`` when it is configured.
+
+        Runs before the consistency check below, so a file-provided key set is
+        validated exactly like an inline one. No message quotes the file content.
+        """
+        configured = self.encryption_keys_file.strip()
+        if not configured:
+            return self
+        if self._encryption_keys_from_file:
+            return self
+        if self.encryption_keys:
+            raise ValueError(
+                "Set either EIMIR_ENCRYPTION_KEYS or EIMIR_ENCRYPTION_KEYS_FILE, not both."
+            )
+        path = Path(configured)
+        if not path.is_absolute():
+            raise ValueError("EIMIR_ENCRYPTION_KEYS_FILE must be an absolute file path.")
+        try:
+            if not path.is_file() or path.stat().st_size > _ENCRYPTION_KEYS_FILE_MAX_BYTES:
+                raise OSError
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            raise ValueError(
+                "EIMIR_ENCRYPTION_KEYS_FILE must be a readable JSON file of key id to base64 key."
+            ) from None
+        if not isinstance(loaded, dict) or not all(
+            isinstance(key_id, str) and isinstance(value, str) for key_id, value in loaded.items()
+        ):
+            raise ValueError(
+                "EIMIR_ENCRYPTION_KEYS_FILE must be a readable JSON file of key id to base64 key."
+            )
+        self.encryption_keys = {key_id: SecretStr(value) for key_id, value in loaded.items()}
+        self._encryption_keys_from_file = True
         return self
 
     @model_validator(mode="after")

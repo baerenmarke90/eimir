@@ -69,15 +69,20 @@ and `tools/media/advisory-review.json`; unresolved evidence is not a blanket wai
 ## Reproducibility and verification
 
 `backend/uv.lock` is the binding, cross-platform resolution of all direct and
-transitive Python dependencies. The uv version `0.12.15`, Python `3.14.8`, the
+transitive Python dependencies. The uv version `0.12.15`, Python `3.15.2`, the
 build backend, and the Python container image are pinned exactly. CI and
 container installations run exclusively in frozen/locked mode;
 `uv lock --check` prevents a stale lock file.
 
 `web/package-lock.json` is the binding npm resolution for the thin M2-S8 Web
 reference flow. Direct versions are pinned exactly in `web/package.json`, CI
-installs exclusively with `npm ci`, and `npm audit --audit-level=high` blocks
-known vulnerabilities at high severity and above. The Node CI and Web build
+installs exclusively with `npm ci`, and `scripts/audit-gate.mjs` blocks
+known vulnerabilities at high severity and above. It runs `npm audit` and
+accepts an advisory only if `web/audit-allowlist.json` names its exact id with
+a reason, marks it as a development-only dependency and gives an expiry date.
+The gate still fails for any other advisory, for an expired entry and for an
+allowlisted advisory that appears in the production tree
+(`npm audit --omit=dev`). The Node CI and Web build
 image is additionally pinned by digest. The static production build runs in
 an unprivileged Nginx image that is also pinned by digest.
 
@@ -203,8 +208,8 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | uvicorn[standard] | 0.52.4 | PyPI | BSD-3-Clause |
 | sqlalchemy | 2.0.52 | PyPI | MIT |
 | alembic | 1.19.1 | PyPI | MIT |
-| psycopg[binary] | 3.3.4 | PyPI | **LGPL-3.0-only** |
-| pydantic | 2.13.4 | PyPI | MIT |
+| psycopg[binary] | 3.3.9 | PyPI | **LGPL-3.0-only** |
+| pydantic | 2.14.3 | PyPI | MIT |
 | pydantic-settings | 2.15.0 | PyPI | MIT |
 | uuid6 | 2025.0.1 | PyPI | MIT |
 | argon2-cffi | 25.1.0 | PyPI | MIT |
@@ -218,7 +223,7 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | joserfc | 1.7.7 | PyPI | BSD-3-Clause |
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
 | pillow | 13.0.0 | PyPI | MIT-CMU |
-| pillow-heif | 1.5.0 | PyPI | BSD-3-Clause |
+| pillow-heif | 1.8.1 | PyPI | BSD-3-Clause |
 | defusedxml | 0.7.1 | PyPI | PSFL |
 
 `defusedxml` parses untrusted CalDAV multistatus responses (#1895) without
@@ -235,7 +240,7 @@ The HTTPX HTTP/2 extra used by APNs resolves `h2` 4.4.1, `hpack` 4.2.0 and
 | pytest | 9.1.1 | PyPI | MIT |
 | pytest-asyncio | 1.4.0 | PyPI | Apache-2.0 |
 | httpx2 | 2.12.0 | PyPI | BSD-3-Clause |
-| cbor2 | 6.1.4 | PyPI | MIT |
+| cbor2 | 6.3.0 | PyPI | MIT |
 | ruff | 0.16.8 | PyPI | MIT |
 | mypy | 2.3.1 | PyPI | MIT |
 
@@ -249,7 +254,7 @@ The HTTPX HTTP/2 extra used by APNs resolves `h2` 4.4.1, `hpack` 4.2.0 and
 | react | 19.2.8 | npm | MIT |
 | react-dom | 19.2.8 | npm | MIT |
 | react-router-dom | 7.18.2 | npm | MIT |
-| maplibre-gl | 6.16.0 | npm / MapLibre | BSD-3-Clause |
+| maplibre-gl | 6.18.0 | npm / MapLibre | BSD-3-Clause |
 | mediabunny | 1.65.2 | npm / [upstream](https://github.com/Vanilagy/mediabunny/tree/v1.65.2) | MPL-2.0 |
 
 Mediabunny is used unmodified in a lazy, same-origin Web Worker for active
@@ -282,7 +287,7 @@ server-side lossy encoding is not a fallback. See [operations](operations/on-dev
 |---|---|---|---|
 | @types/react | 19.2.18 | npm | MIT |
 | @types/react-dom | 19.2.5 | npm | MIT |
-| @types/node | 24.19.1 | npm | MIT |
+| @types/node | 26.6.6 | npm | MIT |
 | typescript | 7.0.2 | npm | Apache-2.0 |
 | rolldown | 1.2.14 | npm | MIT |
 | vite | 8.2.4 | npm | MIT |
@@ -327,10 +332,11 @@ Its updated matcher augmentation preserves the custom focus assertion and
 uses the declared return/received type parameters. Compatibility is checked
 against the locked Vite and Node versions by the existing gates. The [upstream migration guide](https://vitest.dev/guide/migration/)
 was reviewed; object-URL and callback mocks now declare their actual callable
-signatures. Node 24 types are explicit because the removed transitive type
-dependency previously supplied the existing filesystem/layout tests. Existing
-test assertions and timeouts remain unchanged. The
-lockfile also advances Vite/PostCSS's transitive `source-map-js` to 1.2.2.
+signatures. The Web manifest declares `@types/node` directly because the
+removed transitive type dependency previously supplied the filesystem and layout
+tests. The types match the Node.js 26 build toolchain. Existing test assertions
+and timeouts remain unchanged. The lockfile also advances Vite/PostCSS's
+transitive `source-map-js` to 1.2.2.
 These are test/build dependencies and do not add a production feature or
 runtime provider. Core behavior and Cloud/Self-Hosted tiers are unchanged.
 
@@ -364,7 +370,8 @@ layers keep their upstream colors. Google Maps (key and billing) and CARTO tiles
 versioned and served with ten-year caching; the production service worker also
 keeps basemap responses in a bounded cache (1,500 entries, oldest first) so
 revisited areas load without the network. There is no prefetching and no bulk or
-offline download. The native app relies on its WebView HTTP cache. Photon search
+offline download. The native app prefers the WebView HTTP cache for the public
+versioned tiles. Style and TileJSON follow HTTP freshness rules. Photon search
 reuses the existing backend provider normalization and operator-controlled
 origin. It adds no Python dependency, end-user key or paid account. Existing
 places and manual coordinates survive provider outages. The original preflight
@@ -387,10 +394,14 @@ in `docs/m5/WEB-BROWSER-QA.md`.
 
 ## Web — Container toolchain
 
+The Web image builder and Linux browser CI use the same digest-pinned Node.js
+26.13.1 LTS image. Capacitor Android and release workflows use the official
+Node.js 26.13.1 distribution through the pinned `actions/setup-node` action.
+
 | Component | Version | Source | License |
 |---|---|---|---|
-| Node.js build image | 26.6.0-bookworm-slim, `sha256:81502e860176e63695d769d3d1a2d3a403abc1c27c6a02169b765f3e43b60ede` | Docker Hub / nodejs/docker-node | MIT (Node.js and image definition) |
-| nginx-unprivileged | 1.31.8, `sha256:e4264279b179f0e654579a90a1a9c1eab3ba9124c17551794bee20f68a38b5ce` | GHCR / nginx/docker-nginx-unprivileged | BSD-2-Clause (NGINX), Apache-2.0 (image definition) |
+| Node.js build image | 26.13.1-bookworm-slim, `sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1` | Docker Hub / nodejs/docker-node | MIT (Node.js and image definition) |
+| nginx-unprivileged | 1.31.8, `sha256:1d2d62ccb876da984beaef0084b895e8ce490acee185ccdef0c55e6263afd3b8` | GHCR / nginx/docker-nginx-unprivileged | BSD-2-Clause (NGINX), Apache-2.0 (image definition) |
 
 Both images are used only during the build or as a local static Web server.
 No eimir. user data is sent to Node.js, NGINX, or their registries;
@@ -408,21 +419,36 @@ and content-free system notifications. Capacitor plugin versions are pinned
 exactly in `web/package.json` and locked in `web/package-lock.json`; the Gradle
 modules below are resolved from `web/node_modules` by `npx cap sync android`.
 
+`@capacitor/haptics` (#2076, Motion Contract 4.10) is the official Capacitor
+haptics plugin. It has no runtime dependencies and declares the normal-level
+`android.permission.VIBRATE` (granted at install, no prompt). The Web client
+loads it only inside the native app, through the motion layer's haptics
+adapter; it never runs its Web implementation (`navigator.vibrate`). It sends
+no data anywhere, has no account, cost or rate limit, and behaves the same for
+eimir. Cloud and Self-Hosted. Without it the app works unchanged, only without
+haptic feedback; people turn haptics off with the in-app switch.
+
 | Package / platform component | Version | Source | License |
 |---|---|---|---|
-| @capacitor/android (native bridge) | 8.5.2 | npm | MIT |
+| @capacitor/android (native bridge) | 8.6.2 | npm | MIT |
 | @capacitor/app | 8.1.1 | npm | MIT |
-| @capacitor/browser | 8.0.4 | npm | MIT |
+| @capacitor/browser | 8.0.5 | npm | MIT |
+| @capacitor/haptics | 8.0.2 | npm | MIT |
 | @capgo/native-purchases | 8.9.16 | npm / [upstream](https://github.com/Cap-go/capacitor-native-purchases) | MPL-2.0 |
 | com.android.billingclient:billing (via @capgo/native-purchases) | 9.1.0 | Google Maven | Android Software Development Kit License |
 | org.unifiedpush.android:connector | 3.3.3 | Maven Central | Apache-2.0 |
-| com.google.firebase:firebase-bom | 35.1.0 | Google Maven | Apache-2.0 |
-| com.google.firebase:firebase-messaging | 26.0.1 (BoM-managed) | Google Maven | Apache-2.0 |
+| com.google.firebase:firebase-bom | 35.2.0 | Google Maven | Apache-2.0 |
+| com.google.firebase:firebase-messaging | 26.0.2 (BoM-managed) | Google Maven | Apache-2.0 |
 | com.google.firebase:firebase-installations | 20.0.0 (BoM-managed) | Google Maven | Apache-2.0 |
 | com.nimbusds:nimbus-jose-jwt | 10.10 | Maven Central | Apache-2.0 |
 | androidx.appcompat:appcompat | 1.7.1 | Google Maven | Apache-2.0 |
 | androidx.coordinatorlayout:coordinatorlayout | 1.3.0 | Google Maven | Apache-2.0 |
 | androidx.core:core-splashscreen | 1.2.0 | Google Maven | Apache-2.0 |
+| androidx.credentials:credentials | 1.5.0 | Google Maven | Apache-2.0 |
+| androidx.credentials:credentials-play-services-auth (passkeys on Android 13 and older) | 1.5.0 | Google Maven | Apache-2.0 |
+| com.google.android.gms:play-services-auth, -auth-base, -auth-api-phone, -auth-blockstore, -fido, -identity-credentials (via credentials-play-services-auth) | 21.1.1 / 18.0.10 / 18.0.2 / 16.4.0 / 21.0.0 / 16.0.0-alpha02 | Google Maven | Android Software Development Kit License |
+| com.google.android.libraries.identity.googleid:googleid (via credentials-play-services-auth) | 1.1.0 | Google Maven | Apache-2.0 |
+| androidx.biometric:biometric (via credentials) | 1.1.0 | Google Maven | Apache-2.0 |
 | Apache Cordova Android framework (Capacitor plugin compatibility layer) | 14.0.1 | Maven Central | Apache-2.0 |
 
 The wrapper adds **no** direct Room, WorkManager, Kotlin, or Compose dependency. It
@@ -468,7 +494,7 @@ runs on the eimir. Cloud backend with the already adopted `google-auth` and
 
 ## iOS — Capacitor wrapper runtime
 
-The official Capacitor iOS runtime and Swift Package Manager template (8.5.2,
+The official Capacitor iOS runtime and Swift Package Manager template (8.6.2,
 MIT) wrap the same React product. The existing Capacitor App and Browser packages
 provide platform integration. Apple Security and UserNotifications supply Keychain
 storage and remote notifications without another SDK.
@@ -479,7 +505,7 @@ storage and remote notifications without another SDK.
 |---|---|---|---|
 | Android Gradle Plugin | 9.4.0 | Google Maven | Apache-2.0 |
 | Gradle | 9.9.1 | gradle.org / CI setup-gradle | Apache-2.0 |
-| Google Services Gradle Plugin (inactive without `google-services.json`) | 4.5.0 | Google Maven | Apache-2.0 |
+| Google Services Gradle Plugin (inactive without `google-services.json`) | 4.6.0 | Google Maven | Apache-2.0 |
 | JUnit 4 | 4.13.2 | Maven Central | EPL-1.0 |
 | JSON-java (sideload host parser tests only; excluded from APKs) | 20250517 | Maven Central / stleary/JSON-java | Public Domain |
 | androidx.test.ext:junit | 1.3.0 | Google Maven | Apache-2.0 |
@@ -502,9 +528,9 @@ pinned to commit SHAs.
 
 | Image | Version | Source | License |
 |---|---|---|---|
-| python | 3.14.8-slim@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170 | Docker Hub | PSF-2.0 (Python), Debian packages under their respective licenses |
+| python | 3.15.2-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928 | Docker Hub | PSF-2.0 (Python), Debian packages under their respective licenses |
 | postgres | 17-alpine | Docker Hub | PostgreSQL License |
-| node | 26.6.0-bookworm-slim@sha256:81502e860176e63695d769d3d1a2d3a403abc1c27c6a02169b765f3e43b60ede | Docker Hub | MIT (Node.js), Debian packages under their respective licenses |
+| node | 26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1 | Docker Hub | MIT (Node.js), Debian packages under their respective licenses |
 
 ## Build-time tools
 
@@ -604,7 +630,7 @@ couple data. The Plan cover fixture is Darkmoon_Art/Pixabay 3374201 under CC0,
 as recorded in `backend/demo_assets/manifest.json`. The synthetic map tiles in
 browser evidence are a test fixture, not a third-party cartographic screenshot.
 
-## Optional local recap inference and reference assets (#1528)
+## Optional server-local inference and recap reference assets
 
 | Component / asset | Version / origin | License / use |
 | --- | --- | --- |
@@ -616,7 +642,7 @@ browser evidence are a test fixture, not a third-party cartographic screenshot.
 
 The optional model is not assumed immutable from its tag alone. Operators can
 record `ollama list`'s model identifier after download, and should review model
-updates deliberately. See [local recap operations](LOCAL-RECAP-AI.md) for resource,
+updates deliberately. See [local AI operations](LOCAL-RECAP-AI.md) for resource,
 privacy, fallback and deployment behavior. No paid remote model provider is used.
 
 `joserfc` and Nimbus JOSE+JWT implement RFC 7516 compact JWE for bounded

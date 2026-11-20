@@ -1,9 +1,11 @@
 import { readFileSync } from 'node:fs';
-import AxeBuilder from '@axe-core/playwright';
+import { fileURLToPath } from 'node:url';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import copy from '../../src/i18n/locales/storyProducts';
 import voice from '../../src/i18n/locales/voiceNotes';
+import { editViaMenu } from '../support/itemMenu';
 import { closeHeartAudience, showHeartAudience } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
@@ -167,7 +169,7 @@ async function importFile(page: Page) {
   await openVoiceTask(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: voice.choose, exact: true }).click();
-  await (await chooser).setFiles(input.pathname);
+  await (await chooser).setFiles(fileURLToPath(input));
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await openVoiceTask(page);
   await expect(
@@ -332,6 +334,10 @@ test('permission denial retains the thought and allows file import', async ({
     .getByRole('dialog')
     .getByRole('button', { name: 'Abbrechen', exact: true })
     .click();
+  // Cancelling closes the voice sheet. Wait for its exit to finish: during
+  // the exit animation the sheet still reports visible, so reopening it for
+  // the file import would act on the closing sheet.
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(
     page.getByRole('textbox', {
       name: copy.heartMomentProduct.textLabel,
@@ -406,10 +412,7 @@ test('preserves saved audio while editing and leaves unchanged edits without a d
       audio.evaluate((element: HTMLAudioElement) => element.currentTime),
     )
     .toBeCloseTo(0.1, 2);
-  const edit = () =>
-    page
-      .getByRole('link', { name: copy.heartMomentProduct.edit, exact: true })
-      .click();
+  const edit = () => editViaMenu(page, copy.heartMomentProduct.edit);
   await edit();
   await openVoiceTask(page);
   await expect(

@@ -1,7 +1,7 @@
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import fs from 'node:fs';
 import path from 'node:path';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import {
   expect,
   type Page,
@@ -10,10 +10,11 @@ import {
   test,
 } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
-import navigation from '../../src/i18n/locales/navigation';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { deleteViaMenu, itemMenuTrigger } from '../support/itemMenu';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 const accountId = '11111111-1111-4111-8111-111111111111';
 const spaceId = '22222222-2222-4222-8222-222222222222';
@@ -158,6 +159,7 @@ async function installFixture(page: Page) {
         periods: [],
         hasMore: false,
       });
+    if (await fulfillNoOccasionSources(route)) return;
     unknown.push(`${method} ${pathname}`);
     return json({ code: 'UNEXPECTED_FIXTURE_REQUEST' }, 500);
   });
@@ -188,7 +190,7 @@ async function installFixture(page: Page) {
   };
 }
 
-async function openEditor(page: Page, largeText = false) {
+async function openDetail(page: Page, largeText = false) {
   await page.goto('/story?tab=timeline');
   await page.getByLabel(de.login.email).fill('alex@example.test');
   await page.getByLabel(de.login.password).fill('long-enough-test-password');
@@ -207,23 +209,30 @@ async function openEditor(page: Page, largeText = false) {
   await expect(
     page.getByRole('heading', { name: milestone.title, exact: true, level: 2 }),
   ).toBeVisible();
-  await page.getByRole('link', { name: copy.edit, exact: true }).click();
+  // Deletion starts from the item menu of the detail page, not from the editor.
+  await expect(itemMenuTrigger(page)).toBeVisible();
   if (largeText)
     await page.addStyleTag({ content: ':root { font-size: 200%; }' });
-  await expect(page.getByLabel(copy.titleLabel)).toHaveValue(milestone.title);
+}
+
+function deleteSheetButton(page: Page, name: string) {
+  return page
+    .getByRole('alertdialog')
+    .getByRole('button', { name, exact: true });
+}
+
+/** Opens the confirmation twice: the first time it is cancelled without effect. */
+async function startDelete(page: Page) {
+  await deleteViaMenu(page, copy.delete);
+  await expect(page.getByRole('alertdialog')).toBeVisible();
+  await deleteSheetButton(page, de.common.cancel).click();
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  await deleteViaMenu(page, copy.delete);
+  await expect(page.getByRole('alertdialog')).toBeVisible();
 }
 
 async function confirm(page: Page) {
-  await page.getByRole('button', { name: copy.delete, exact: true }).click();
-  await page
-    .getByRole('button', { name: copy.deleteCancel, exact: true })
-    .click();
-  await page.getByRole('button', { name: copy.delete, exact: true }).click();
-  const button = page.getByRole('button', {
-    name: copy.deleteConfirm,
-    exact: true,
-  });
-  await button.focus();
+  await deleteSheetButton(page, copy.deleteConfirm).focus();
   await page.keyboard.press('Enter');
 }
 
@@ -235,9 +244,10 @@ async function inspect(page: Page, info: TestInfo, name: string) {
       ),
     )
     .toBe(true);
-  const controls = page.locator(
-    '.product-editor-page input, .product-editor-page textarea, .product-editor-page button',
-  );
+  const controls = page
+    .getByRole('alertdialog')
+    .locator('.form-actions button');
+  expect(await controls.count()).toBeGreaterThan(0);
   for (const control of await controls.all()) {
     const rect = await control.boundingBox();
     expect(rect).not.toBeNull();
@@ -279,75 +289,47 @@ for (const variant of [
       reducedMotion: 'reduce',
     });
     const fixture = await installFixture(page);
-    await openEditor(page, 'largeText' in variant);
-    await page
-      .getByLabel(copy.bodyLabel)
-      .fill('A later draft stays with this editor.');
+    await openDetail(page, 'largeText' in variant);
+    await startDelete(page);
     await confirm(page);
-    await expect(
-      page.getByRole('button', { name: copy.deleting }),
-    ).toBeDisabled();
-    await expect(
-      page.getByRole('button', { name: copy.save, exact: true }),
-    ).toBeDisabled();
+    await expect(deleteSheetButton(page, copy.deleting)).toBeDisabled();
     await fixture.respond(503);
     await expect(
       page.getByText(de.states.server.title, { exact: true }),
     ).toBeVisible();
-    await expect(page.getByLabel(copy.bodyLabel)).toHaveValue(
-      'A later draft stays with this editor.',
-    );
+    // The failed request keeps the confirmation open for a deliberate retry.
+    await expect(deleteSheetButton(page, copy.deleteConfirm)).toBeEnabled();
     await inspect(
       page,
       info,
       `milestone-failure-${variant.width}-${variant.theme}`,
     );
-    await page
-      .getByRole('button', { name: copy.deleteConfirm, exact: true })
-      .click();
-    await expect(
-      page.getByRole('button', { name: copy.deleting }),
-    ).toBeDisabled();
+    await deleteSheetButton(page, copy.deleteConfirm).click();
+    await expect(deleteSheetButton(page, copy.deleting)).toBeDisabled();
     await inspect(
       page,
       info,
       `milestone-pending-${variant.width}-${variant.theme}`,
     );
-    await page
-      .getByRole('link', { name: navigation.more, exact: true })
-      .click();
-    await expect(
-      page.getByRole('heading', { name: de.more.title }),
-    ).toBeVisible();
     if ('returnPending' in variant) {
+      // While the request is pending the confirmation cannot be left through
+      // the browser's Back: the task stays open and the delete stays pending.
       await page.goBack();
-      await expect(
-        page.getByRole('button', { name: copy.deleting }),
-      ).toBeDisabled();
-      await expect(
-        page.getByRole('button', { name: copy.save, exact: true }),
-      ).toBeDisabled();
+      await expect(page).toHaveURL(
+        new RegExp(`/story/milestones/${milestone.id}$`),
+      );
+      await expect(page.getByRole('alertdialog')).toBeVisible();
+      await expect(deleteSheetButton(page, copy.deleting)).toBeDisabled();
       await inspect(page, info, 'milestone-return-pending-390-light');
-      await page
-        .getByRole('link', { name: navigation.more, exact: true })
-        .click();
     }
     const completed = page.waitForResponse(
       (r) => r.request().method() === 'DELETE' && r.status() === 204,
     );
     await fixture.respond(204);
     await completed;
-    await expect(
-      page.getByRole('heading', { name: de.more.title }),
-    ).toBeVisible();
-    await inspect(
-      page,
-      info,
-      `milestone-other-task-${variant.width}-${variant.theme}`,
-    );
-    await page
-      .getByRole('link', { name: navigation.story, exact: true })
-      .click();
+    // The confirmed delete returns to the Timeline the item was opened from.
+    await expect(page).toHaveURL(/\/story\?tab=timeline$/);
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
     await expect(page.locator('.story-card-milestone')).toHaveCount(0);
     expect(fixture.deletions).toEqual([
       { id: milestone.id, version: '1' },
@@ -365,31 +347,21 @@ for (const theme of ['light', 'dark'] as const) {
     await page.setViewportSize({ width: 360, height: 900 });
     await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
     const fixture = await installFixture(page);
-    await openEditor(page);
-    await page.getByLabel(copy.bodyLabel).fill('Keep this offline draft.');
+    await openDetail(page);
+    // The menu is offered online only, so the confirmation opens first.
+    await startDelete(page);
     await context.setOffline(true);
     await confirm(page);
     await expect(
       page.getByText(de.states.offline.title, { exact: true }),
     ).toBeVisible();
-    await expect(page.getByLabel(copy.bodyLabel)).toHaveValue(
-      'Keep this offline draft.',
-    );
-    await expect(
-      page.getByRole('button', { name: copy.deleteConfirm, exact: true }),
-    ).toBeEnabled();
+    await expect(deleteSheetButton(page, copy.deleteConfirm)).toBeEnabled();
     await inspect(page, info, `milestone-offline-360-${theme}`);
     await context.setOffline(false);
-    await expect(
-      page.getByRole('button', { name: copy.deleteConfirm, exact: true }),
-    ).toBeEnabled();
+    await expect(deleteSheetButton(page, copy.deleteConfirm)).toBeEnabled();
     expect(fixture.deletions).toEqual([]);
-    await page
-      .getByRole('button', { name: copy.deleteConfirm, exact: true })
-      .click();
-    await expect(
-      page.getByRole('button', { name: copy.deleting }),
-    ).toBeDisabled();
+    await deleteSheetButton(page, copy.deleteConfirm).click();
+    await expect(deleteSheetButton(page, copy.deleting)).toBeDisabled();
     await fixture.respond(204);
     // Deleting returns to the Timeline scope the item was opened from (#1907).
     await expect(page).toHaveURL(/\/story\?tab=timeline$/);

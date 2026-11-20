@@ -1,3 +1,4 @@
+import { App } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { PhotoSourcesApi } from '../api/generated/apis/PhotoSourcesApi';
 import type { PhotoSelectionItemView } from '../api/generated/models/PhotoSelectionItemView';
@@ -72,6 +73,123 @@ export async function openPhotoBrowser(url: string, popup: Window | null) {
       throw new Error('Photo authorization window is unavailable.');
     popup.location.replace(parsed.href);
   }
+}
+
+/**
+ * Android app: whether the person closed Google's browser and is back in
+ * eimir. Google's photo picker cannot return to the app by itself, and the
+ * browser may also report "finished" when it is merely hidden, so the signal
+ * only counts while eimir. is visible again. Always false on the Web.
+ */
+export function watchPhotoBrowserReturn(signal: AbortSignal): () => boolean {
+  if (!isCapacitorNative() || signal.aborted) return () => false;
+  let finished = false;
+  const hidden = () => {
+    if (document.visibilityState === 'hidden') finished = false;
+  };
+  const listener = Browser.addListener('browserFinished', () => {
+    finished = true;
+  }).catch(() => null);
+  document.addEventListener('visibilitychange', hidden);
+  signal.addEventListener(
+    'abort',
+    () => {
+      document.removeEventListener('visibilitychange', hidden);
+      void listener.then((handle) => handle?.remove()).catch(() => {});
+    },
+    { once: true },
+  );
+  return () => finished && document.visibilityState === 'visible';
+}
+
+/** What Google's sign-in handed back to the app through its own link. */
+export type GoogleAppReturn =
+  | { state: string; code: string }
+  | 'denied'
+  | 'abandoned';
+
+const APP_RETURN_PARAMETERS = new Set(['state', 'code', 'outcome']);
+// After the system browser closed on its own, how long the app link may still arrive.
+const ABANDON_GRACE_MILLISECONDS = 4_000;
+
+/**
+ * The server's Google photo callback hands the installed app only the sign-in's `state`
+ * and Google's one-use `code` (or a denial) on `de.eimir.app://photos/google`. The code is
+ * useless without the PKCE verifier on the server, and only this signed-in app session can
+ * pair it with its selection. Anything else, including extra parameters, is ignored.
+ */
+export function readGoogleAppReturn(
+  rawUrl: string,
+): Exclude<GoogleAppReturn, 'abandoned'> | null {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return null;
+  }
+  if (
+    url.protocol !== 'de.eimir.app:' ||
+    url.host !== 'photos' ||
+    url.pathname !== '/google' ||
+    [...url.searchParams.keys()].some((key) => !APP_RETURN_PARAMETERS.has(key))
+  )
+    return null;
+  const state = url.searchParams.get('state');
+  if (!state) return null;
+  if (url.searchParams.get('outcome') === 'denied') return 'denied';
+  const code = url.searchParams.get('code');
+  return code ? { state, code } : null;
+}
+
+/**
+ * Android app: resolves when Google's sign-in returns through the app link, or as
+ * `abandoned` when the person closed the system browser (or the task ended) without
+ * returning. Register it before the browser opens so the link cannot be missed.
+ */
+export function watchGoogleAppReturn(
+  signal: AbortSignal,
+): Promise<GoogleAppReturn> {
+  return new Promise((resolve) => {
+    let settled = false;
+    let browserClosedAt: number | null = null;
+    const listeners: Array<Promise<{ remove: () => unknown } | null>> = [];
+    const timer = setInterval(() => {
+      if (
+        browserClosedAt !== null &&
+        Date.now() - browserClosedAt > ABANDON_GRACE_MILLISECONDS &&
+        document.visibilityState === 'visible'
+      )
+        finish('abandoned');
+    }, 500);
+    const hidden = () => {
+      if (document.visibilityState === 'hidden') browserClosedAt = null;
+    };
+    function finish(result: GoogleAppReturn) {
+      if (settled) return;
+      settled = true;
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', hidden);
+      signal.removeEventListener('abort', abandon);
+      for (const listener of listeners)
+        void listener.then((handle) => handle?.remove()).catch(() => {});
+      resolve(result);
+    }
+    function abandon() {
+      finish('abandoned');
+    }
+    listeners.push(
+      App.addListener('appUrlOpen', ({ url }) => {
+        const result = readGoogleAppReturn(url);
+        if (result) finish(result);
+      }).catch(() => null),
+      Browser.addListener('browserFinished', () => {
+        browserClosedAt ??= Date.now();
+      }).catch(() => null),
+    );
+    document.addEventListener('visibilitychange', hidden);
+    if (signal.aborted) abandon();
+    else signal.addEventListener('abort', abandon, { once: true });
+  });
 }
 
 export async function closePhotoBrowser(popup: Window | null) {
@@ -243,4 +361,56 @@ export function videoVerdictReason(code: string | undefined): string {
   if (code === 'VIDEO_DURATION_EXCEEDED') return 'video.tooLong';
   if (code === 'ATTACHMENT_TOO_LARGE') return 'video.tooLarge';
   return 'photoSources.itemVideoRejected';
+}
+
+export type GoogleConsentResult = 'confirmed' | 'denied' | 'abandoned';
+
+/**
+ * Android app: let the person confirm eimir.'s access at Google once, right where the account is
+ * set up. It runs the same app-link sign-in as an import, then drops the temporary Picker task:
+ * Google remembers the consent, so later imports go straight to the photo selection.
+ */
+export async function confirmGoogleAccessInApp(
+  api: PhotoSourcesApi,
+  spaceId: string,
+  signal: AbortSignal,
+): Promise<GoogleConsentResult> {
+  const started = await api.startPhotoSelection(
+    {
+      spaceId,
+      photoSelectionCreate: {
+        source: 'google',
+        maxItems: 1,
+        consent: true,
+        mediaRecoveryPolicy: 'memory-only-v1',
+        returnTo: 'app',
+      },
+    },
+    { signal },
+  );
+  try {
+    if (!started.authorizationUrl)
+      throw new Error('Photo authorization is unavailable.');
+    const signedIn = watchGoogleAppReturn(signal);
+    await openPhotoBrowser(started.authorizationUrl, null);
+    const result = await signedIn;
+    await closePhotoBrowser(null);
+    if (typeof result === 'string') return result;
+    const finished = await api.authorizePhotoSelection(
+      {
+        spaceId,
+        selectionId: started.id,
+        photoSelectionAuthorize: result,
+      },
+      { signal },
+    );
+    // Throws when Google ended the sign-in; PICKING means it worked.
+    selectionReady(finished);
+    return 'confirmed';
+  } finally {
+    // Ends the temporary Google task; nothing was chosen or copied.
+    void api
+      .cancelPhotoSelection({ spaceId, selectionId: started.id })
+      .catch(() => {});
+  }
 }

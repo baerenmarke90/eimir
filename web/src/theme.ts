@@ -1,4 +1,5 @@
 import type { AppIconId } from './api/generated/models/AppIconId';
+import { announcePersonalSettingChange } from './client/personalSettingsBus';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
@@ -84,7 +85,18 @@ export function readThemePreference(): ThemePreference {
   }
 }
 
+/** A person's own choice on this device; it follows the Account to other devices. */
 export function storeThemePreference(preference: ThemePreference): void {
+  writeThemePreference(preference);
+  announcePersonalSettingChange(THEME_STORAGE_KEY);
+}
+
+/** Applies the Account's saved choice from another device without echoing it back. */
+export function applySyncedThemePreference(preference: ThemePreference): void {
+  writeThemePreference(preference);
+}
+
+function writeThemePreference(preference: ThemePreference): void {
   activeThemePreference = preference;
   try {
     window.localStorage.setItem(THEME_STORAGE_KEY, preference);
@@ -113,18 +125,25 @@ export function applyResolvedTheme(
   root.dataset.theme = theme;
   if (preference) root.dataset.themePreference = preference;
   root.style.colorScheme = theme;
+  syncDocumentThemeColor();
+  applyDocumentFavicon(theme);
+}
 
+/**
+ * Browser chrome follows the resolved page role. Call after anything that
+ * changes it on the root: the theme or the personal app design.
+ */
+export function syncDocumentThemeColor(): void {
   const themeColor = document.querySelector<HTMLMetaElement>(
     'meta[name="theme-color"]',
   );
   // Resolve the semantic CSS role after switching data-theme so the React
   // runtime does not own a duplicate raw browser-chrome palette.
   const resolvedBackground = window
-    .getComputedStyle(root)
+    .getComputedStyle(document.documentElement)
     .getPropertyValue('--color-background')
     .trim();
   if (themeColor && resolvedBackground) themeColor.content = resolvedBackground;
-  applyDocumentFavicon(theme);
 }
 
 export function initializeTheme(): ThemePreference {

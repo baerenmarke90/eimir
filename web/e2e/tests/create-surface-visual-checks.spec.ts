@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
@@ -19,6 +19,7 @@ import {
   showMemoryDetails,
 } from '../support/memoryDiary';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { editViaMenu } from '../support/itemMenu';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -802,7 +803,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       element.style.zoom = '';
     });
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole('link', { name: memoryProduct.edit }).click();
+    await editViaMenu(page, memoryProduct.edit);
     await showContextTags(page);
     await showContextSuggestions(page);
     await expect(

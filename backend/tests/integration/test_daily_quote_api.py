@@ -139,7 +139,7 @@ def test_downgrade_preserves_personal_preferences_for_restored_pro(
     saved = client.patch(
         f"/api/v1/spaces/{space_id}/daily-quote/preferences",
         headers={**headers, "If-Match": original.headers["ETag"]},
-        json={"selectedSourceIds": ["stoic_philosophy"], "selectedCategoryIds": ["serenity"]},
+        json={"selectedSourceIds": ["stoic_philosophy"], "selectedCategoryIds": ["nature"]},
     )
     assert saved.status_code == 200
 
@@ -152,16 +152,16 @@ def test_downgrade_preserves_personal_preferences_for_restored_pro(
     persisted = preference_service.get_persisted_preference(session, account_id)
     assert persisted is not None
     assert persisted.selected_source_ids == ["stoic_philosophy"]
-    assert persisted.selected_category_ids == ["serenity"]
+    assert persisted.selected_category_ids == ["nature"]
 
     _grant_quote_capability(session, space_id, account_id)
     restored = client.get(f"/api/v1/spaces/{space_id}/daily-quote/preferences", headers=headers)
     assert restored.status_code == 200
     assert restored.json()["selectedSourceIds"] == ["stoic_philosophy"]
-    assert restored.json()["selectedCategoryIds"] == ["serenity"]
+    assert restored.json()["selectedCategoryIds"] == ["nature"]
     quote = client.get(f"/api/v1/spaces/{space_id}/daily-quote", headers=headers)
     assert quote.status_code == 200
-    assert "serenity" in quote.json()["quote"]["categoryIds"]
+    assert "nature" in quote.json()["quote"]["categoryIds"]
 
 
 def test_pro_space_receives_deterministic_daily_quote_and_metadata(
@@ -181,7 +181,9 @@ def test_pro_space_receives_deterministic_daily_quote_and_metadata(
     assert quote is not None
     assert quote["id"]
     assert len(quote["text"]) > 0
-    assert quote["rightsClassification"] == "PUBLIC_DOMAIN"
+    resolved_quote = catalog.get_quote_by_id(quote["id"])
+    assert resolved_quote is not None
+    assert quote["rightsClassification"] == resolved_quote.rights_classification
     assert quote["attributionRequired"] is bool(quote["authorDisplay"])
     if not quote["attributionRequired"]:
         assert quote["sourceDisplay"] is None
@@ -212,8 +214,12 @@ def test_daily_saying_follows_the_account_language(client, session: Session, cou
 
     before = client.get(path, headers=headers)
     assert before.status_code == 200
-    assert before.json()["quote"]["locale"] == "de"
-    assert "motivation" in before.json()["quote"]["categoryIds"]
+    saying = before.json()["quote"]
+    assert saying["locale"] == "de"
+    assert saying["categoryIds"] == ["motivation"]
+    assert saying["authorDisplay"] == ""
+    assert saying["attributionRequired"] is False
+    assert saying["sourceDisplay"] is None
 
     language_path = "/api/v1/account/language-preference"
     language = client.get(language_path, headers=headers)
@@ -228,18 +234,48 @@ def test_daily_saying_follows_the_account_language(client, session: Session, cou
 
     after = client.get(path, headers=headers)
     assert after.status_code == 200
-    saying = after.json()["quote"]
-    assert saying["locale"] == "en"
-    assert saying["id"].startswith("saying-en-")
-    assert saying["rightsClassification"] == "EDITORIAL_CURATED"
-    assert "motivation" in saying["categoryIds"]
-    translation = catalog.get_quote_by_id(saying["id"])
+    english = after.json()["quote"]
+    assert english["locale"] == "en"
+    assert english["id"] == saying["id"].replace("saying-de-", "saying-en-", 1)
+    assert english["categoryIds"] == ["motivation"]
+    assert english["authorDisplay"] == ""
+    assert english["attributionRequired"] is False
+    translation = catalog.get_quote_by_id(english["id"])
     assert translation is not None
-    assert saying["sourceId"] == translation.source_id
-    assert saying["text"] == translation.text
-    assert saying["sourceDisplay"] == (
-        "English translation" if saying["attributionRequired"] else None
+    assert english["text"] == translation.text
+    assert english["text"] != saying["text"]
+    assert english["rightsClassification"] == translation.rights_classification
+
+
+def test_retired_category_selection_falls_back_to_the_current_categories(
+    client, session: Session, couple
+) -> None:
+    space_id = couple["space"].id
+    _grant_quote_capability(session, space_id, couple["anna"].id)
+    headers = auth(couple["token_a"])
+    path = f"/api/v1/spaces/{space_id}/daily-quote"
+    preferences = client.get(f"{path}/preferences", headers=headers)
+    changed = client.patch(
+        f"{path}/preferences",
+        headers={**headers, "If-Match": preferences.headers["etag"]},
+        json={"selectedCategoryIds": ["love", "nature"]},
     )
+    assert changed.status_code == 200
+
+    persisted = preference_service.get_persisted_preference(session, couple["anna"].id)
+    assert persisted is not None
+    persisted.selected_category_ids = ["mindfulness", "love"]
+    session.flush()
+    partly = client.get(f"{path}/preferences", headers=headers)
+    assert partly.json()["selectedCategoryIds"] == ["love"]
+
+    persisted.selected_category_ids = ["mindfulness", "serenity"]
+    session.flush()
+    fallback = client.get(f"{path}/preferences", headers=headers)
+    assert fallback.json()["selectedCategoryIds"] == [
+        category.id for category in catalog.get_categories()
+    ]
+    assert client.get(path, headers=headers).json()["quote"] is not None
 
 
 def test_daily_quote_preferences_crud_and_optimistic_concurrency(
@@ -299,7 +335,7 @@ def test_daily_quote_preferences_crud_and_optimistic_concurrency(
         headers={**headers, "If-Match": etag},
         json={
             "selectedSourceIds": ["stoic_philosophy"],
-            "selectedCategoryIds": ["serenity"],
+            "selectedCategoryIds": ["nature"],
             "locale": "de",
         },
     )
@@ -309,14 +345,14 @@ def test_daily_quote_preferences_crud_and_optimistic_concurrency(
     updated_data = patch_valid.json()
     assert updated_data["version"] == 1
     assert updated_data["selectedSourceIds"] == ["stoic_philosophy"]
-    assert updated_data["selectedCategoryIds"] == ["serenity"]
+    assert updated_data["selectedCategoryIds"] == ["nature"]
     assert updated_data["locale"] == "de"
 
     # Verify daily quote resolution follows the category preference.
     quote_res = client.get(f"/api/v1/spaces/{space_id}/daily-quote", headers=headers)
     assert quote_res.status_code == 200
     q = quote_res.json()["quote"]
-    assert "serenity" in q["categoryIds"]
+    assert "nature" in q["categoryIds"]
 
     # 7. Disabling daily quote in preferences returns enabled=False and quote=None
     disable_patch = client.patch(
@@ -398,15 +434,24 @@ def test_catalog_endpoint_returns_sources_and_categories(client, session: Sessio
     assert "stoic_philosophy" in source_ids
     assert "poetic_wisdom" in source_ids
 
-    assert "love" in category_ids
-    assert "life" in category_ids
-    assert "philosophy" in category_ids
-    assert "mindfulness" in category_ids
-    assert "serenity" in category_ids
-    assert "motivation" in category_ids
+    assert category_ids == [category.id for category in catalog.get_categories()]
+    assert {
+        "love",
+        "friendship",
+        "motivation",
+        "humor",
+        "life",
+        "nature",
+        "travel",
+        "courage",
+        "selfcare",
+        "together",
+    } == set(category_ids)
 
     for source in data["sources"]:
-        assert source["rightsClassification"] == "PUBLIC_DOMAIN"
+        assert (
+            source["rightsClassification"] == catalog.SOURCE_MAP[source["id"]].rights_classification
+        )
 
 
 def test_demo_space_seeds_capabilities_and_distinct_quote_preferences(
@@ -437,13 +482,13 @@ def test_demo_space_seeds_capabilities_and_distinct_quote_preferences(
         "poetic_wisdom",
         "classic_literature",
     }
-    assert set(lea_pref.selected_category_ids) == {"love", "mindfulness"}
+    assert set(lea_pref.selected_category_ids) == {"love", "together"}
 
     alex_pref = preference_service.get_persisted_preference(session, result.alex_id)
     assert alex_pref is not None
     assert alex_pref.enabled is True
     assert set(alex_pref.selected_source_ids) == {"stoic_philosophy"}
-    assert set(alex_pref.selected_category_ids) == {"philosophy", "serenity"}
+    assert set(alex_pref.selected_category_ids) == {"life", "nature"}
 
 
 def test_restored_fixture_fails_closed_in_production(session: Session, couple, monkeypatch) -> None:

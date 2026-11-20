@@ -33,8 +33,8 @@
   width: var(--space-5);
   height: var(--space-5);
 }
+/* Loading pulse: `.eimir-motion-loading-pulse` from the motion layer. */
 .media-gallery-loading {
-  animation: gallery-pulse 1.4s ease-in-out infinite;
   background: var(--color-shimmer-base);
 }
 
@@ -278,7 +278,8 @@
   display: grid;
   place-items: center;
   padding: var(--space-4);
-  background: var(--color-scrim);
+  /* Opaque, so the tab bar no longer shows through behind photos (#2063). */
+  background: var(--color-media-viewer-backdrop);
 }
 
 .media-lightbox {
@@ -523,16 +524,6 @@
   right: var(--space-3);
 }
 
-@keyframes gallery-pulse {
-  0%,
-  100% {
-    opacity: 0.55;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
 @media (max-width: 640px) {
   .media-gallery-carousel-viewport {
     aspect-ratio: 4 / 5;
@@ -584,10 +575,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .media-gallery-loading {
-    animation: none;
-  }
-
   .media-gallery-carousel-nav,
   .media-lightbox-close,
   .media-lightbox-nav {
@@ -702,6 +689,19 @@
   transition: opacity var(--duration-context) var(--easing-standard);
 }
 
+/* After a quiet moment the controls fade out and leave the photo to itself.
+   Unlike swiping they still take a tap, and any touch, pointer movement or
+   focus brings them back at once (MediaGallery.tsx). */
+.media-gallery-carousel-viewport.is-quiet
+> :not(
+  .media-gallery-carousel-track,
+  .media-gallery-sensitive-control,
+  :focus-within
+) {
+  opacity: 0;
+  transition: opacity var(--duration-context) var(--easing-standard);
+}
+
 /* The dots below the photos already show the position on touch screens. */
 @media (max-width: 839px), (hover: none), (pointer: coarse) {
   .media-gallery-carousel:not(.photo-draft-stage .media-gallery-carousel):has(
@@ -722,4 +722,52 @@
     > :not(.media-gallery-carousel-track, .media-gallery-sensitive-control) {
     transition: none;
   }
+}
+
+/* A captioned viewer (profile photo, media overview) keeps its caption inside
+   the dialog. These rules used to live in MediaOverviewPage.css only, so the
+   caption spilled over the tab bar elsewhere (#2063). They follow the base
+   lightbox rules so the captioned layout wins, as it did before. */
+.media-lightbox-captioned {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 2 * var(--space-4));
+  overflow-y: auto;
+  background: var(--color-surface-overlay);
+  border-radius: var(--radius-large);
+}
+.media-lightbox-captioned .media-lightbox-stage {
+  flex: 1 1 auto;
+  height: 68dvh;
+  min-height: 30dvh;
+  max-height: 68dvh;
+}
+.media-lightbox-captioned .media-lightbox-content,
+.media-lightbox-captioned .media-gallery-loading,
+.media-lightbox-captioned .media-gallery-unavailable {
+  height: 100%;
+  max-height: 100%;
+}
+.media-lightbox-captioned .media-lightbox-close {
+  min-width: 48px;
+  min-height: 48px;
+}
+.media-lightbox-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+.media-lightbox-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text);
+  min-width: 0;
+}
+.media-lightbox-context button {
+  min-height: 48px;
 }

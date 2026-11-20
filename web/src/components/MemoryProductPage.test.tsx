@@ -1,4 +1,3 @@
-import { i18n } from '../i18n';
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -14,6 +13,7 @@ import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
+import { i18n } from '../i18n';
 import de from '../i18n/locales/de';
 import memoryProduct from '../i18n/locales/memoryProduct';
 import photoPlaces from '../i18n/locales/photoPlaces';
@@ -23,6 +23,12 @@ import { MemoryProductPage } from './MemoryProductPage';
 
 vi.mock('./CommentsPanel', () => ({ CommentsPanel: () => null }));
 beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
   window.matchMedia = (query: string) => ({
     matches: false,
     media: query,
@@ -171,6 +177,7 @@ describe('Memory detail edit action (#1014)', () => {
   function renderDetail(
     memoryTitle = 'A shared evening',
     viewer = 'account-1',
+    capabilities = { canEdit: true, canDelete: false },
   ) {
     const memory: MemoryDetail = {
       id: 'memory-1',
@@ -185,7 +192,7 @@ describe('Memory detail edit action (#1014)', () => {
       createdAt: new Date('2025-09-15'),
       updatedAt: new Date('2025-09-15'),
       version: 1,
-      capabilities: { canEdit: true, canDelete: false, canComment: false },
+      capabilities: { ...capabilities, canComment: false },
     };
     const client = new QueryClient({
       defaultOptions: { queries: { retry: false, staleTime: Infinity } },
@@ -221,6 +228,10 @@ describe('Memory detail edit action (#1014)', () => {
             >
               <Routes>
                 <Route
+                  path="/story/memories/:memoryId/edit"
+                  element={<output data-testid="edit-route">Edit page</output>}
+                />
+                <Route
                   path="/story/memories/:memoryId"
                   element={
                     <MemoryProductPage
@@ -248,7 +259,12 @@ describe('Memory detail edit action (#1014)', () => {
       .mockResolvedValue({ items: [], hasMore: false, nextCursor: null });
     try {
       renderDetail('Partner-authored memory', 'account-2');
-      await screen.findByRole('link', { name: memoryProduct.edit });
+      fireEvent.click(
+        await screen.findByRole('button', { name: memoryProduct.menu }),
+      );
+      expect(
+        await screen.findByRole('button', { name: memoryProduct.edit }),
+      ).toBeTruthy();
       expect(
         screen.queryByRole('button', { name: photoPlaces.add }),
       ).toBeNull();
@@ -264,16 +280,44 @@ describe('Memory detail edit action (#1014)', () => {
     }
   });
 
-  it('keeps Edit as a labeled text action in the compact type header', async () => {
-    renderDetail();
-    const editLink = await screen.findByRole('link', {
-      name: memoryProduct.edit,
+  it('offers Edit first and Delete last through one header menu', async () => {
+    renderDetail('A shared evening', 'account-1', {
+      canEdit: true,
+      canDelete: true,
     });
-    expect(editLink.getAttribute('href')).toBe('/story/memories/memory-1/edit');
-    // Icon-only: the accessible name comes from aria-label, not visible text.
-    expect(editLink.textContent?.trim()).toBe(memoryProduct.edit);
-    expect(editLink.className).not.toContain('button-link');
-    expect(editLink.className).not.toContain('secondary-link');
+    const trigger = await screen.findByRole('button', {
+      name: memoryProduct.menu,
+    });
+    // No separate Edit control outside the menu.
+    expect(screen.queryByRole('link', { name: memoryProduct.edit })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: memoryProduct.edit }),
+    ).toBeNull();
+    fireEvent.click(trigger);
+    await screen.findByRole('button', { name: memoryProduct.edit });
+    const rows = [...document.querySelectorAll('.item-menu-option')];
+    expect(rows.map((row) => row.textContent)).toEqual([
+      memoryProduct.edit,
+      memoryProduct.delete,
+    ]);
+    expect(rows[1]?.getAttribute('data-danger')).toBe('true');
+    fireEvent.click(rows[0] as HTMLElement);
+    expect(await screen.findByTestId('edit-route')).toBeTruthy();
+  });
+
+  it('keeps only who recorded it in the menu when the viewer can neither edit nor delete', async () => {
+    renderDetail('A shared evening', 'account-1', {
+      canEdit: false,
+      canDelete: false,
+    });
+    await screen.findByRole('heading', { name: 'A shared evening', level: 2 });
+    // Who recorded the entry is background, not part of the page.
+    expect(document.querySelector('.memory-provenance-footer')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: memoryProduct.menu }));
+    expect(document.querySelectorAll('.item-menu-option')).toHaveLength(0);
+    expect(
+      document.querySelector('.item-menu-footnote')?.textContent,
+    ).toContain(memoryProduct.authorLabel);
   });
 
   it('keeps the short date above content and an authored display title after media', async () => {

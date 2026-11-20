@@ -70,6 +70,8 @@ for (const [name, role] of [
   ['story-lifeline-dot', 'storyLifelineDot'],
   ['story-lifeline-step', 'storyLifelineStep'],
   ['story-lifeline-band', 'storyLifelineBand'],
+  ['story-lifeline-preview-media', 'storyLifelinePreviewMedia'],
+  ['story-lifeline-row-media', 'storyLifelineRowMedia'],
 ])
   declare(`space-${name}`, rem(`spacing.${role}`));
 declare('opacity-story-chip-fill', `${value('storyChip.fillOpacity') * 100}%`);
@@ -82,6 +84,9 @@ const storyColors = [
   ['heart-moment', 'storyHeartMoment'],
   ['milestone', 'storyMilestone'],
   ['surface', 'storySurface'],
+  // Discover Fotostory: note slides and stamp keepsakes sit on paper.
+  ['paper', 'storyPaper'],
+  ['paper-line', 'storyPaperLine'],
 ];
 function storyColorDeclarations(scheme, indent = '  ') {
   return storyColors
@@ -104,6 +109,7 @@ typography(
   'display',
   value('font.weight.semibold'),
 );
+typography('subpage-title', 'heading2', 'display', value('font.weight.bold'));
 typography('content-heading', 'heading3', 'display');
 typography('utility-heading', 'heading2', 'ui', value('font.weight.semibold'));
 typography('memory-detail-heading', 'memoryDetailHeading');
@@ -142,6 +148,9 @@ for (const role of [
   declare(`media-overlay-${name}`, value(`mediaOverlay.${role}`).toLowerCase());
 }
 
+for (const mark of ['white', 'black', 'rose', 'blue', 'yellow'])
+  declare(`photo-mark-${mark}`, value(`photoMark.${mark}`).toLowerCase());
+
 declare(
   'navigation-surface-opacity',
   `${value('navigationGlass.surfaceOpacity') * 100}%`,
@@ -156,6 +165,7 @@ for (const part of value('mapAppearance.darkTileFilter').split(' ')) {
   } else mapFilterLines[last] += ` ${part}`;
 }
 declarations.push(`${mapFilterLines.join('\n')};`);
+declare('map-paper-tile-filter', value('mapAppearance.paperTileFilter'));
 
 declare('sensitive-media-blur', value('mediaPrivacy.concealmentBlur'));
 declare('radius-media', rem('radius.large'));
@@ -199,9 +209,42 @@ declare('duration-map-camera', value('motion.duration.mapCamera'));
 declare('duration-map-stack', value('motion.duration.mapStack'));
 declare('duration-controls-return', value('motion.duration.controlsReturn'));
 declare('duration-sequence-beat', value('motion.duration.sequenceBeat'));
+declare('duration-send-flight', value('motion.duration.sendFlight'));
 declare('duration-gesture-moment', value('motion.duration.gestureMoment'));
+// Motion Contract 5.3: Enter stagger steps and their cap (#2073).
+declare('duration-stagger-item', value('motion.stagger.item'));
+declare('duration-stagger-module', value('motion.stagger.module'));
+declare('motion-stagger-max-items', value('motion.stagger.maxItems'));
 declare('duration-gesture-sequence', value('motion.duration.gestureSequence'));
-for (const role of ['standard', 'enter', 'exit', 'playback']) {
+declare('duration-connection-draw', value('motion.duration.connectionDraw'));
+declare('duration-connection-beat', value('motion.duration.connectionBeat'));
+declare(
+  'duration-connection-travel',
+  value('motion.duration.connectionTravel'),
+);
+declare(
+  'duration-connection-travel-far',
+  value('motion.duration.connectionTravelFar'),
+);
+// Momente > Erinnerungen Fotostory: dwell per slide and slow photo zoom.
+declare('duration-story-slide', value('motion.duration.storySlide'));
+declare('duration-story-ken-burns', value('motion.duration.storyKenBurns'));
+// Loading domain: one turn of a pending-status spinner (pull to refresh).
+declare('duration-loading-cycle', value('motion.duration.loadingCycle'));
+// Ambient idle motion (ring breath, hanging sway) settles after this many
+// cycles instead of looping forever, so an idle page stops rendering frames.
+declare('motion-ambient-repeat', value('motion.repeat.ambient'));
+// A decorative scene (the Wir garden) plays its ambient motion only while on
+// screen and only this long in total, then rests in place (#2063).
+declare('duration-ambient-rest', value('motion.duration.ambientRest'));
+for (const role of [
+  'standard',
+  'enter',
+  'exit',
+  'playback',
+  'travel',
+  'settle',
+]) {
   declare(
     `easing-${role}`,
     `cubic-bezier(${value(`motion.easing.${role}`).join(', ')})`,
@@ -299,8 +342,17 @@ ${storyColorDeclarations('dark', '    ')}
     --duration-map-stack: ${value('motion.duration.instant')};
     --duration-controls-return: ${value('motion.duration.instant')};
     --duration-sequence-beat: ${value('motion.duration.instant')};
+    --duration-send-flight: ${value('motion.duration.instant')};
     --duration-gesture-moment: ${value('motion.duration.instant')};
+    --duration-stagger-item: ${value('motion.duration.instant')};
+    --duration-stagger-module: ${value('motion.duration.instant')};
     --duration-gesture-sequence: ${value('motion.duration.instant')};
+    --duration-connection-draw: ${value('motion.duration.instant')};
+    --duration-connection-beat: ${value('motion.duration.instant')};
+    --duration-connection-travel: ${value('motion.duration.instant')};
+    --duration-connection-travel-far: ${value('motion.duration.instant')};
+    --duration-story-ken-burns: ${value('motion.duration.instant')};
+    --duration-loading-cycle: ${value('motion.duration.instant')};
   }
 }
 

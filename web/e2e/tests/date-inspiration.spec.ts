@@ -1,9 +1,9 @@
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import dateIdeas from '../../src/i18n/locales/dateIdeas';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import proPaywall from '../../src/i18n/locales/proPaywall';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import AxeBuilder from '../support/axe';
 import {
   catalogIdea,
   categoryLabel,
@@ -14,10 +14,12 @@ import {
 import { captureScreenshot } from '../support/storyTimelineFixture';
 
 /*
- * #1892: Pro date inspiration under Planen → Wishes and the shared Pro
- * paywall. Free Spaces see a calm hint without a catalog read and can open the
- * paywall deliberately. Pro Spaces filter the editorial catalog and adopt an
- * idea only through the existing composers, returning to the same filters.
+ * #1892: Pro date inspiration and the shared Pro paywall. Since #1907 J1 solo
+ * browsing starts from the Wish composer; the shared round has its own pick
+ * mode. Free Spaces see a calm hint without a catalog read and can open the
+ * paywall deliberately. Pro Spaces filter the editorial catalog in one sheet
+ * and adopt an idea only through the existing composers, returning to the
+ * same filters.
  */
 
 const EXISTING_WISH = '55555555-5555-4555-8555-555555555551';
@@ -43,12 +45,20 @@ async function assertNoWcagViolations(page: Page): Promise<void> {
   expect(result.violations, summary || 'No axe violations').toEqual([]);
 }
 
-async function openFromWishes(page: Page): Promise<void> {
+async function openFromWishes(
+  page: Page,
+  capture?: { info: TestInfo; name: string },
+): Promise<void> {
   await page.goto('/plan#wishes');
+  await page
+    .getByRole('link', { name: m5s3.overview.addWish, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/plan\/wishes\/new$/);
   const entry = page.getByRole('link', {
-    name: new RegExp(dateIdeas.entryAction),
+    name: new RegExp(dateIdeas.composerHintAction),
   });
   await expect(entry).toBeVisible();
+  if (capture) await captureScreenshot(page, capture.info, capture.name);
   await entry.click();
   await expect(page).toHaveURL(/\/plan\/ideas$/);
   await expect(
@@ -58,6 +68,13 @@ async function openFromWishes(page: Page): Promise<void> {
 
 function idea(page: Page, title: string) {
   return page.getByRole('article', { name: title });
+}
+
+async function openFilters(page: Page) {
+  await page.getByRole('button', { name: dateIdeas.filters.open }).click();
+  const sheet = page.getByRole('dialog', { name: dateIdeas.filters.label });
+  await expect(sheet).toBeVisible();
+  return sheet;
 }
 
 function back(page: Page) {
@@ -138,16 +155,28 @@ test.describe('date inspiration and Pro paywall (#1892)', () => {
       .click();
     await expect(page.getByRole('article')).toHaveCount(48);
 
-    const food = page.getByRole('button', {
-      name: categoryLabel('food_drink'),
-      exact: true,
-    });
-    await food.click();
-    await page.getByRole('button', { name: dateIdeas.filters.more }).click();
-    await page
+    const sheet = await openFilters(page);
+    await sheet
+      .getByRole('button', { name: categoryLabel('food_drink'), exact: true })
+      .click();
+    await sheet
       .getByRole('group', { name: dateIdeas.filters.placeLegend })
       .getByRole('button', { name: placeLabel('home') })
       .click();
+    await sheet
+      .getByRole('button', {
+        name: new RegExp(dateIdeas.filters.show_other.replace('{{count}}', '')),
+      })
+      .click();
+    await expect(sheet).toBeHidden();
+    // Active filters stay visible as removable chips above the ideas.
+    const food = page.getByRole('button', {
+      name: dateIdeas.filters.remove.replace(
+        '{{label}}',
+        categoryLabel('food_drink'),
+      ),
+    });
+    await expect(food).toBeVisible();
     const target = idea(page, FIRST.title);
     await expect(target).toBeVisible();
     // The idea's own image, loaded through the protected API, with alt text.
@@ -178,7 +207,7 @@ test.describe('date inspiration and Pro paywall (#1892)', () => {
 
     await back(page).click();
     await expect(page).toHaveURL(/\/plan\/ideas$/);
-    await expect(food).toHaveAttribute('aria-pressed', 'true');
+    await expect(food).toBeVisible();
     const saved = idea(page, FIRST.title);
     await expect(
       saved.getByRole('link', { name: dateIdeas.card.saved }),
@@ -274,8 +303,61 @@ test.describe('date inspiration and Pro paywall (#1892)', () => {
     ).toBeVisible();
     await expect(page.getByText(proPaywall.active.title)).toBeVisible();
     await expect(page.getByRole('radio')).toHaveCount(0);
+    const everyday = page.locator('summary', {
+      hasText: proPaywall.catalogue.groups.everyday,
+    });
+    await everyday.click();
+    await expect(
+      page.getByText(proPaywall.catalogue.features.onceMessages.body),
+    ).toBeVisible();
+    await expect(everyday.locator('..').locator('dl')).toHaveCSS(
+      'animation-name',
+      'none',
+    );
     await assertNoWcagViolations(page);
     await captureScreenshot(page, info, 'paywall-active-390-dark.png');
+  });
+
+  test('Free: explore the Pro features from Account and return', async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: 360, height: 844 });
+    await page.emulateMedia({
+      colorScheme: 'light',
+      reducedMotion: 'no-preference',
+    });
+    const state = await installDateIdeaMocks(page, { pro: false });
+    await signIn(page);
+    await page.goto('/more/settings/account');
+    await page.getByRole('link', { name: /eimir\. Pro/ }).click();
+    await expect(page).toHaveURL(/\/more\/pro$/);
+    await expect(page.getByText(proPaywall.webUnavailableBody)).toBeVisible();
+
+    const section = page.getByRole('region', {
+      name: proPaywall.catalogue.title,
+    });
+    const memories = section.locator('summary', {
+      hasText: proPaywall.catalogue.groups.memories,
+    });
+    const map = section.getByText(proPaywall.catalogue.features.memoryMap.body);
+    await expect(map).toBeHidden();
+    await memories.focus();
+    await memories.press('Enter');
+    await expect(map).toBeVisible();
+    await expect(memories.locator('..').locator('dl')).toHaveCSS(
+      'animation-name',
+      'eimir-motion-enter-shift',
+    );
+    await assertNoHorizontalOverflow(page);
+    await assertNoWcagViolations(page);
+    await captureScreenshot(page, info, 'paywall-catalogue-360-light.png', {
+      fullPage: true,
+    });
+    await memories.press('Space');
+    await expect(map).toBeHidden();
+    expect(state.catalogRequests).toBe(0);
+    await back(page).click();
+    await expect(page).toHaveURL(/\/more\/settings\/account$/);
   });
 
   for (const { width, theme } of [
@@ -296,14 +378,17 @@ test.describe('date inspiration and Pro paywall (#1892)', () => {
       );
       const state = await installDateIdeaMocks(page, { pro: true });
       await signIn(page);
-      await openFromWishes(page);
+      await openFromWishes(page, {
+        info,
+        name: `date-inspiration-composer-hint-${width}-${theme}.png`,
+      });
       await expect(idea(page, FIRST.title)).toBeVisible();
       await captureScreenshot(
         page,
         info,
         `date-inspiration-${width}-${theme}.png`,
       );
-      await page.getByRole('button', { name: dateIdeas.filters.more }).click();
+      await openFilters(page);
       if (width === 320)
         // 200 % text must still reflow without horizontal scrolling.
         await page.addStyleTag({
@@ -318,13 +403,24 @@ test.describe('date inspiration and Pro paywall (#1892)', () => {
       );
 
       state.pro = false;
-      await page.goto('/more/pro?context=recaps');
+      const context = width === 320 || width === 1280 ? 'general' : 'recaps';
+      await page.goto(`/more/pro?context=${context}`);
       await expect(
         page.getByRole('heading', {
           level: 1,
-          name: proPaywall.contexts.recaps.title,
+          name: proPaywall.contexts[context].title,
         }),
       ).toBeVisible();
+      if (context === 'general') {
+        await page
+          .locator('summary', {
+            hasText: proPaywall.catalogue.groups.integrations,
+          })
+          .click();
+        await expect(
+          page.getByText(proPaywall.catalogue.features.calendarSync.body),
+        ).toBeVisible();
+      }
       if (width === 320)
         await page.addStyleTag({
           content: 'html { font-size: 200% !important; }',

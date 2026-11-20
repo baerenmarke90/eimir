@@ -1,0 +1,10 @@
+eimir. Android 0.2.0-test.92
+
+- Your shared garden changes with the time of day and the season. Name its visitors, discover rare animals and finds, and replay your garden year. Milestones grow as special plants, and you can show the garden on Wir.
+- Tap individual memories, heart moments, and milestones on your lifeline to preview them. The Memories section in Moments now plays as a photo story.
+- Your partner's moves appear automatically while Heart Hunt, Picture Ping-Pong, or the garden is open. Start Picture Ping-Pong with a template or a blank canvas, and see your profile photos in all three games.
+- Settings groups shared and personal preferences, connections, and account options. See current statuses at a glance, choose notification channels by category, and find device push in its own card. Dark-mode switches are easier to see.
+- The rediscovery card on Wir has a simpler look in the Album design. Opening Wir from the tab bar returns its carousels to the first item.
+
+The product changes come from main at 4dbfa9531fb20f7092b708ee230d0f7c21a3ca9b.
+Install over test.91 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 92.

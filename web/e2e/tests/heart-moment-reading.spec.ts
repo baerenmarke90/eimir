@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import contextTags from '../../src/i18n/locales/contextTags';
@@ -17,6 +17,7 @@ import {
   signIn,
   SPACE_ID,
 } from '../support/storyTimelineFixture';
+import { editViaMenu } from '../support/itemMenu';
 
 const EMOTIONS = [
   'LOVED',
@@ -58,7 +59,13 @@ async function expectFeelingSurface(
   emotion: Emotion,
   reading = false,
 ) {
-  const surface = page.locator('.heart-emotion-page');
+  const textSelector = reading
+    ? '.heart-moment-detail-text'
+    : 'textarea.composer-lead';
+  const surface = page
+    .locator('.heart-emotion-page')
+    .filter({ has: page.locator(textSelector) });
+  await expect(surface).toHaveAttribute('data-heart-emotion', emotion);
   const semanticColor = await surface.evaluate(
     (element, token) =>
       getComputedStyle(element).getPropertyValue(token).trim(),
@@ -71,9 +78,7 @@ async function expectFeelingSurface(
     'background-color',
     expectedBackground,
   );
-  const text = surface.locator(
-    reading ? '.heart-moment-detail-text' : 'textarea.composer-lead',
-  );
+  const text = surface.locator(textSelector);
   const colors = await text.evaluate((element) => ({
     text: getComputedStyle(element).color,
     placeholder: getComputedStyle(element, '::placeholder').color,
@@ -359,9 +364,7 @@ for (const scenario of scenarios) {
         page.locator('.moment-metadata .visibility-private'),
       ).toBeVisible();
     }
-    await page
-      .getByRole('link', { name: copy.heartMomentProduct.edit, exact: true })
-      .click();
+    await editViaMenu(page, copy.heartMomentProduct.edit);
     const field = page.getByRole('textbox', {
       name: copy.heartMomentProduct.textLabel,
       exact: true,
@@ -397,10 +400,10 @@ for (const scenario of scenarios) {
   });
 }
 
-test('all six native feelings color the complete HeartMoment page through create, edit and reload in both themes', async ({
-  browser,
-}, info) => {
-  for (const theme of ['light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
+  test(`all six native feelings color the complete HeartMoment page through create, edit and reload in ${theme}`, async ({
+    browser,
+  }, info) => {
     const context = await browser.newContext({
       baseURL: info.project.use.baseURL,
       locale: 'de-DE',
@@ -492,9 +495,7 @@ test('all six native feelings color the complete HeartMoment page through create
     await expect(page.locator('.heart-moment-detail-text')).toHaveText(TEXT);
     await expectFeelingSurface(page, 'GRATEFUL', true);
     expect(creates).toBe(1);
-    await page
-      .getByRole('link', { name: copy.heartMomentProduct.edit, exact: true })
-      .click();
+    await editViaMenu(page, copy.heartMomentProduct.edit);
     const editColors = new Set<string>();
     await expectFeelingSurface(page, 'GRATEFUL');
     for (const emotion of EMOTIONS)
@@ -543,8 +544,8 @@ test('all six native feelings color the complete HeartMoment page through create
     await expect(momentsTab).toHaveCSS('background-color', defaultTint);
     expect(unknown).toEqual([]);
     await context.close();
-  }
-});
+  });
+}
 
 test('tag-only HeartMoments keep one compact title and no fabricated body', async ({
   page,

@@ -16,15 +16,25 @@
   overflow: hidden;
   opacity: 1;
   transform: translateY(var(--short-task-sheet-drag-offset, 0px));
-  transition:
-    transform var(--duration-transition) var(--easing-standard),
-    opacity var(--duration-transition) var(--easing-standard);
+  /* The drag settle is the Gesture follow spring (motion layer), not a
+     transform transition, so it continues with the release velocity and can
+     be grabbed again without a jump (Motion Contract 4.6). */
+  transition: opacity var(--duration-transition) var(--easing-standard);
 }
 
+/*
+ * Enter `surface` / Exit `surface-exit` from the motion catalogue
+ * (src/motion/motion.css): Compact slides the whole sheet up from below the
+ * edge, Expanded rises a short way as a centred dialog.
+ */
 .short-task-sheet[open] {
+  --motion-surface-from: 0 calc(100% + var(--space-4));
+  --motion-surface-to: 0 calc(100% + var(--space-4));
+  --motion-surface-from-opacity: 1;
+  --motion-surface-to-opacity: 1;
   display: flex;
   flex-direction: column;
-  animation: short-task-sheet-enter var(--duration-context) var(--easing-enter);
+  animation: eimir-motion-surface-in var(--duration-context) var(--easing-enter);
 }
 
 .short-task-sheet[open][data-interacted="true"] {
@@ -39,8 +49,11 @@
 
 .short-task-sheet[open][data-presence="exiting"] {
   pointer-events: none;
-  animation: short-task-sheet-exit var(--duration-transition) var(--easing-exit)
-    forwards;
+  /* A drag dismissal continues at its release speed: the owner sets the
+     exit duration from the remaining travel, within the token roles. */
+  animation: eimir-motion-surface-out
+    var(--short-task-sheet-exit-duration, var(--duration-transition))
+    var(--easing-exit) forwards;
   transition: none;
 }
 
@@ -48,7 +61,7 @@
   background-color: var(--color-scrim);
   opacity: 1;
   transition: opacity var(--duration-feedback) var(--easing-standard);
-  animation: short-task-sheet-backdrop-enter var(--duration-context)
+  animation: eimir-motion-backdrop-in var(--duration-context)
     var(--easing-enter);
 }
 
@@ -62,7 +75,7 @@
 }
 
 .short-task-sheet[open][data-presence="exiting"]::backdrop {
-  animation: short-task-sheet-backdrop-exit var(--duration-transition)
+  animation: eimir-motion-backdrop-out var(--duration-transition)
     var(--easing-exit) forwards;
   transition: none;
 }
@@ -139,7 +152,6 @@
   height: var(--space-5);
   fill: none;
   stroke: currentColor;
-  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -171,54 +183,6 @@
   overflow-y: auto;
 }
 
-@keyframes short-task-sheet-enter {
-  from {
-    transform: translateY(calc(100% + var(--space-4)));
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-@keyframes short-task-sheet-enter-expanded {
-  from {
-    opacity: 0;
-    transform: translateY(var(--space-3));
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes short-task-sheet-backdrop-enter {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes short-task-sheet-exit {
-  to {
-    transform: translateY(calc(100% + var(--space-4)));
-  }
-}
-
-@keyframes short-task-sheet-exit-expanded {
-  to {
-    opacity: 0;
-    transform: translateY(var(--space-2));
-  }
-}
-
-@keyframes short-task-sheet-backdrop-exit {
-  to {
-    opacity: 0;
-  }
-}
-
 @media (min-width: 840px) {
   .short-task-sheet {
     inset: 0;
@@ -229,11 +193,10 @@
   }
 
   .short-task-sheet[open] {
-    animation-name: short-task-sheet-enter-expanded;
-  }
-
-  .short-task-sheet[open][data-presence="exiting"] {
-    animation-name: short-task-sheet-exit-expanded;
+    --motion-surface-from: 0 var(--space-3);
+    --motion-surface-to: 0 var(--space-2);
+    --motion-surface-from-opacity: 0;
+    --motion-surface-to-opacity: 0;
   }
 
   .short-task-sheet-header {

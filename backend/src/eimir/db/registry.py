@@ -3,11 +3,17 @@
 Tooling that walks the metadata (the encryption lifecycle commands) needs the
 whole mapping, including foreign-key targets. The application imports these
 modules through its routers; a standalone process does not.
+
+``MODEL_MODULES`` lists Core modules only. Plugin model modules come from the
+loaded plugins (Decision 0017); Core knows plugin tables through
+``eimir.plugins.manifest`` instead.
 """
 
 from __future__ import annotations
 
 from importlib import import_module
+
+from eimir.plugins.loader import loaded_plugins
 
 MODEL_MODULES = (
     "eimir.administration.models",
@@ -16,7 +22,6 @@ MODEL_MODULES = (
     "eimir.attachments.models",
     "eimir.auth.recent_auth_models",
     "eimir.billing.models",
-    "eimir.calendar_sync.models",
     "eimir.chapters.models",
     "eimir.collections.models",
     "eimir.comments.models",
@@ -34,23 +39,21 @@ MODEL_MODULES = (
     "eimir.legal.models",
     "eimir.memories.models",
     "eimir.milestones.models",
-    "eimir.once_messages.models",
     "eimir.outbox.models",
     "eimir.people.models",
-    "eimir.photo_sources.models",
+    "eimir.personal_settings.models",
     "eimir.places.models",
     "eimir.plans.models",
-    "eimir.presence.models",
     "eimir.private_collections.models",
     "eimir.private_notes.models",
     "eimir.profiles.models",
-    "eimir.quotes.models",
     "eimir.recaps.models",
     "eimir.recaps.invalidation",
     "eimir.relations.models",
     "eimir.relationship.models",
     "eimir.reminders.models",
     "eimir.reminders.runtime_models",
+    "eimir.shared_notes.models",
     "eimir.story.view_models",
     "eimir.transfer.models",
     "eimir.wishes.models",
@@ -60,4 +63,6 @@ MODEL_MODULES = (
 
 def load_all_models() -> None:
     for module in MODEL_MODULES:
+        import_module(module)
+    for module in loaded_plugins().model_modules():
         import_module(module)

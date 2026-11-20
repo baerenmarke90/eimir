@@ -7,7 +7,7 @@ import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { showMemoryDetails } from '../support/memoryDiary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expectToday } from '../support/today';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import games from '../../src/i18n/locales/games';
@@ -277,7 +277,7 @@ async function waitForGamesHub(page: Page): Promise<void> {
 }
 
 test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
-  test('four equal docked destinations and a separate contextual plus', async ({
+  test('five equal docked destinations and a separate contextual plus', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -292,17 +292,20 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     const nav = floatingShell.locator('.mobile-bottom-nav');
     await expect(nav).toBeVisible();
     const links = nav.locator('a.shell-nav-link');
-    await expect(links).toHaveCount(4);
+    await expect(links).toHaveCount(5);
 
     const labels = await links.allInnerTexts();
     expect(labels.map((label) => label.trim())).toEqual([
       navigation.today,
       navigation.story,
       navigation.plan,
+      navigation.shared,
       navigation.more,
     ]);
 
-    const trigger = page.getByRole('button', { name: de.story.addMoment });
+    const trigger = page.getByRole('button', {
+      name: navigation.quickCreateTitle,
+    });
     await expectFloatingAddAction(trigger, floatingShell);
     await expect(floatingShell.getByRole('button')).toHaveCount(0);
     await expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
@@ -320,7 +323,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
       const links = Array.from(
         element.querySelectorAll('.mobile-bottom-nav .shell-nav-link'),
       );
-      if (links.length !== 4)
+      if (links.length !== 5)
         throw new Error('Missing bottom navigation destinations');
       return {
         height: element.getBoundingClientRect().height,
@@ -350,11 +353,13 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await signIn(page);
     await page.waitForURL('**/today');
 
-    const trigger = page.getByRole('button', { name: de.story.addMoment });
+    const trigger = page.getByRole('button', {
+      name: navigation.quickCreateTitle,
+    });
     await trigger.click();
 
     const dialog = page.getByRole('dialog', {
-      name: de.story.addMoment,
+      name: navigation.quickCreateTitle,
     });
     const settleDialogMotion = async () => {
       await dialog.evaluate(async (element) => {
@@ -415,10 +420,14 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await expect(trigger).toBeHidden();
 
     const momentChoices = dialog.getByRole('link');
+    // The Wir overview offers every create task (#2063).
     await expect(momentChoices).toHaveText([
       composer.diaryEntry,
       de.story.kind.heartMoment,
       de.story.kind.milestone,
+      navigation.quickCreatePlan,
+      navigation.quickCreateWish,
+      navigation.quickCreateList,
     ]);
 
     const axeResultsLight = await new AxeBuilder({ page })
@@ -536,7 +545,12 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     ).toBeLessThan(1);
 
     // The old 72px threshold closed on this short pull. It now settles back.
-    await page.mouse.move(dragCenterX, dragCenterY + 96, { steps: 4 });
+    // The pull is slow and rests before release: a quick flick of the same
+    // length is a fling and dismisses (Motion Contract 4.6, #2076).
+    for (let step = 1; step <= 4; step++) {
+      await page.mouse.move(dragCenterX, dragCenterY + step * 24);
+      await page.waitForTimeout(60);
+    }
     await page.mouse.up();
     await expect(dialog).toBeVisible();
     expect(
@@ -609,11 +623,13 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
 
     for (const width of [360, 430]) {
       await page.setViewportSize({ width, height: 844 });
-      const trigger = page.getByRole('button', { name: de.story.addMoment });
+      const trigger = page.getByRole('button', {
+        name: navigation.quickCreateTitle,
+      });
       await trigger.click();
 
       const dialog = page.getByRole('dialog', {
-        name: de.story.addMoment,
+        name: navigation.quickCreateTitle,
       });
       await expect(dialog).toBeVisible();
 
@@ -641,11 +657,13 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await signIn(page);
     await page.waitForURL('**/today');
 
-    const trigger = page.getByRole('button', { name: de.story.addMoment });
+    const trigger = page.getByRole('button', {
+      name: navigation.quickCreateTitle,
+    });
     await trigger.click();
 
     const dialog = page.getByRole('dialog', {
-      name: de.story.addMoment,
+      name: navigation.quickCreateTitle,
     });
     await expect(dialog).toBeVisible();
 
@@ -699,7 +717,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await page.waitForURL('**/today');
 
     const links = page.locator('.mobile-bottom-nav a.shell-nav-link');
-    await expect(links).toHaveCount(4);
+    await expect(links).toHaveCount(5);
 
     await expect(links.nth(0)).toHaveClass(/shell-nav-link-active/);
     await expect(links.nth(0)).toHaveAttribute('aria-current', 'page');
@@ -716,17 +734,25 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await expect(links.nth(2)).toHaveClass(/shell-nav-link-active/);
     await expect(links.nth(2)).toHaveAttribute('aria-current', 'page');
 
+    // Listen is a primary destination of its own, between Planen and Mehr.
     await links.nth(3).click();
-    await page.waitForURL('**/more');
+    await page.waitForURL('**/more/collections');
     await expect(links.nth(3)).toHaveClass(/shell-nav-link-active/);
     await expect(links.nth(3)).toHaveAttribute('aria-current', 'page');
+    await expect(links.nth(2)).not.toHaveClass(/shell-nav-link-active/);
+
+    await links.nth(4).click();
+    await page.waitForURL('**/more');
+    await expect(links.nth(4)).toHaveClass(/shell-nav-link-active/);
+    await expect(links.nth(4)).toHaveAttribute('aria-current', 'page');
+    await expect(links.nth(3)).not.toHaveClass(/shell-nav-link-active/);
 
     await page
       .getByRole('link', { name: new RegExp(navigation.games) })
       .click();
     await waitForGamesHub(page);
-    await expect(links.nth(3)).toHaveClass(/shell-nav-link-active/);
-    await expect(links.nth(3)).toHaveAttribute('aria-current', 'page');
+    await expect(links.nth(4)).toHaveClass(/shell-nav-link-active/);
+    await expect(links.nth(4)).toHaveAttribute('aria-current', 'page');
   });
 
   test('Our Moments child route stays under More and reflows without exposing sparse counts', async ({
@@ -792,8 +818,8 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await expect(page.getByText(games.momentsGame.sparseTitle)).toBeVisible();
 
     const links = page.locator('.mobile-bottom-nav a.shell-nav-link');
-    await expect(links.nth(3)).toHaveClass(/shell-nav-link-active/);
-    await expect(links.nth(3)).toHaveAttribute('aria-current', 'page');
+    await expect(links.nth(4)).toHaveClass(/shell-nav-link-active/);
+    await expect(links.nth(4)).toHaveAttribute('aria-current', 'page');
 
     const axe390 = await new AxeBuilder({ page })
       .include('.our-moments-page')
@@ -873,6 +899,9 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     expect(gamesAxe.violations).toEqual([]);
 
     await page.goto('/story/memories/new');
+    await expect(
+      page.getByRole('button', { name: de.memory.save, exact: true }),
+    ).toBeVisible();
     const memoryAxe = await new AxeBuilder({ page })
       .disableRules(['color-contrast'])
       .analyze();
@@ -947,8 +976,8 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await expect(floatingShell).toBeVisible();
 
     const links = floatingShell.locator('.mobile-bottom-nav a.shell-nav-link');
-    await expect(links).toHaveCount(4);
-    for (let index = 0; index < 4; index += 1) {
+    await expect(links).toHaveCount(5);
+    for (let index = 0; index < 5; index += 1) {
       await expect(links.nth(index)).toBeVisible();
     }
     const labels = await links.allInnerTexts();
@@ -956,10 +985,13 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
       navigation.today,
       navigation.story,
       navigation.plan,
+      navigation.shared,
       navigation.more,
     ]);
 
-    const trigger = page.getByRole('button', { name: de.story.addMoment });
+    const trigger = page.getByRole('button', {
+      name: navigation.quickCreateTitle,
+    });
     await expectFloatingAddAction(trigger, floatingShell);
 
     await page.goto('/story/memories/new');
@@ -991,10 +1023,12 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await page.locator('html').evaluate((element) => {
       element.style.zoom = '2';
     });
-    const zoomTrigger = page.getByRole('button', { name: de.story.addMoment });
+    const zoomTrigger = page.getByRole('button', {
+      name: navigation.quickCreateTitle,
+    });
     await zoomTrigger.click();
     const zoomDialog = page.getByRole('dialog', {
-      name: de.story.addMoment,
+      name: navigation.quickCreateTitle,
     });
     await expect(zoomDialog).toBeVisible();
     await expectNoHorizontalOverflow(page);
@@ -1015,11 +1049,11 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
       page.getByRole('button', { name: navigation.newContent }),
     ).toHaveCount(0);
     await expect(
-      page.getByRole('button', { name: de.story.addMoment }),
+      page.getByRole('button', { name: navigation.quickCreateTitle }),
     ).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
     await expectFloatingAddAction(
-      page.getByRole('button', { name: de.story.addMoment }),
+      page.getByRole('button', { name: navigation.quickCreateTitle }),
       page.locator('.mobile-bottom-shell'),
     );
   });

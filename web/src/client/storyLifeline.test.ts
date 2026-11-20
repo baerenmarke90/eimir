@@ -3,6 +3,10 @@ import type { DashboardItem } from '../api/generated/models/DashboardItem';
 import type { StoryLifelineView } from '../api/generated/models/StoryLifelineView';
 import {
   buildLifeline,
+  dotEntry,
+  entryDot,
+  type LifelineKind,
+  lifelineKindOf,
   MAX_LIFELINE_STACK,
   monthTicks,
   nearestColumn,
@@ -143,5 +147,80 @@ describe('lifeline helpers', () => {
       4, 5, 6, 7, 8, 9, 10,
     ]);
     expect(ticks[0].position).toBe(0);
+  });
+});
+
+describe('lifeline entries', () => {
+  const iso = (value: Date) => value.toISOString().slice(0, 10);
+
+  it('reads each column over the server weeks it counts', () => {
+    const weekly = buildLifeline({
+      startsOn: day('2026-05-13'),
+      today: day('2026-11-10'),
+      weeks: [week('2026-05-11', 3), week('2026-11-09', 3)],
+    });
+    expect(weekly.unit).toBe('week');
+    expect(weekly.columns.map((c) => [iso(c.from), iso(c.to)])).toEqual([
+      ['2026-05-11', '2026-05-18'],
+      ['2026-11-09', '2026-11-16'],
+    ]);
+    // A week starting at the end of March belongs to March, so the March
+    // column reads up to the first Monday of April.
+    const monthly = buildLifeline({
+      startsOn: day('2024-01-10'),
+      today: day('2026-11-10'),
+      weeks: [week('2026-03-30', 3), week('2026-11-09', 3)],
+    });
+    expect(monthly.unit).toBe('month');
+    expect(iso(monthly.columns[0].start)).toBe('2026-03-01');
+    expect([iso(monthly.columns[0].from), iso(monthly.columns[0].to)]).toEqual([
+      '2026-03-02',
+      '2026-04-06',
+    ]);
+  });
+
+  it('maps entries in date order onto the dots stacked by kind', () => {
+    const model = buildLifeline({
+      startsOn: day('2026-05-13'),
+      today: day('2026-11-10'),
+      weeks: [week('2026-05-11', 2, 1, 1), week('2026-11-09', 1)],
+    });
+    const column = model.columns[0];
+    expect(column.dots).toEqual([
+      'memories',
+      'memories',
+      'heartMoments',
+      'milestones',
+    ]);
+    const kinds: LifelineKind[] = [
+      'milestones',
+      'memories',
+      'heartMoments',
+      'memories',
+    ];
+    expect(kinds.map((_, index) => entryDot(column, kinds, index))).toEqual([
+      3, 0, 2, 1,
+    ]);
+    expect([0, 1, 2, 3].map((dot) => dotEntry(column, kinds, dot))).toEqual([
+      1, 3, 2, 0,
+    ]);
+    expect(entryDot(column, kinds, 9)).toBe(-1);
+    expect(lifelineKindOf('HEART_MOMENT')).toBe('heartMoments');
+    expect(lifelineKindOf('MILESTONE')).toBe('milestones');
+  });
+
+  it('lets several entries share a dot in a busy column', () => {
+    const model = buildLifeline({
+      startsOn: day('2026-05-13'),
+      today: day('2026-11-10'),
+      weeks: [week('2026-05-11', 12), week('2026-11-09', 1)],
+    });
+    const column = model.columns[0];
+    expect(column.dots).toHaveLength(MAX_LIFELINE_STACK);
+    const kinds = Array.from({ length: 12 }, () => 'memories' as const);
+    expect(kinds.map((_, index) => entryDot(column, kinds, index))).toEqual([
+      0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5,
+    ]);
+    expect(dotEntry(column, kinds, 3)).toBe(6);
   });
 });

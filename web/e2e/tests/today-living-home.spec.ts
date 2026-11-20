@@ -1,7 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s5 from '../../src/i18n/locales/m5s5';
@@ -9,7 +8,15 @@ import recaps from '../../src/i18n/locales/recaps';
 import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
 import localeFixtures from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
+
+const fillCopy = (template: string, values: Record<string, string | number>) =>
+  template.replace(/{{(\w+)}}/g, (_, key: string) => String(values[key]));
+const lifelinePosition = (position: number, total: number) =>
+  fillCopy(m5s5.dashboard.storyLifelinePosition, { position, total });
+const lifelineEntry = (position: number, total: number) =>
+  fillCopy(m5s5.dashboard.storyLifelineEntryLabel, { position, total });
 
 /*
  * Product Reference v1 R4 calibrates `/today` as the living home of a
@@ -268,9 +275,15 @@ async function settleMotion(page: Page): Promise<void> {
   await page.evaluate(async () => {
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    // Scroll-driven animations (the stage drift, the photograph parallax) are
+    // finite but never finish while the page stands still; they follow the
+    // finger, not the clock, so only the document timeline is awaited.
     const finite = document.getAnimations().filter((animation) => {
       const timing = animation.effect?.getTiming();
-      return timing?.iterations !== Number.POSITIVE_INFINITY;
+      return (
+        animation.timeline === document.timeline &&
+        timing?.iterations !== Number.POSITIVE_INFINITY
+      );
     });
     await Promise.all(
       finite.map((animation) => animation.finished.catch(() => undefined)),
@@ -350,8 +363,18 @@ type Scenario = {
 };
 
 /** The lifeline slider value text, composed from the locale templates. */
-function lifelineValue(date: string, count: number, title: string): string {
-  return m5s5.dashboard.storyLifelineValue
+function lifelineValue(
+  date: string,
+  count: number,
+  title: string,
+  kind: string = m5s5.dashboard.storyLifelineKindMemory,
+  position?: [number, number],
+): string {
+  return (
+    position
+      ? m5s5.dashboard.storyLifelineValuePosition
+      : m5s5.dashboard.storyLifelineValue
+  )
     .replace(
       '{{period}}',
       m5s5.dashboard.storyLifelineWeekOf.replace('{{date}}', date),
@@ -363,7 +386,43 @@ function lifelineValue(date: string, count: number, title: string): string {
         String(count),
       ),
     )
-    .replace('{{title}}', title);
+    .replace('{{kind}}', kind)
+    .replace('{{title}}', title)
+    .replace('{{position}}', String(position?.[0]))
+    .replace('{{total}}', String(position?.[1]));
+}
+
+/** The single entries of one lifeline week, read when its column opens. */
+function lifelineEntriesFor(scenario: Scenario, from: string) {
+  const lifeline = lifelineFor(scenario);
+  const week = lifeline.weeks.find((candidate) => candidate.weekStart === from);
+  if (!week) return { total: 0, items: [] };
+  const entry = (
+    type: string,
+    id: string,
+    titleOrText: string,
+    previewAttachmentId: string | null = null,
+  ) => ({
+    type,
+    id,
+    titleOrText,
+    occurredOn: week.weekStart,
+    scheduledAt: null,
+    createdAt: null,
+    previewAttachmentId,
+    previewIsSensitive: false,
+    previewHasThumbnail: false,
+  });
+  const items = [
+    entry('MILESTONE', `${week.highlight.id}-milestone`, 'Moved in together'),
+    week.highlight,
+    entry(
+      'HEART_MOMENT',
+      `${week.highlight.id}-heart`,
+      'Thank you for the day',
+    ),
+  ];
+  return { total: items.length, items };
 }
 
 /** A lifeline whose weekly parts add up exactly to the scenario totals. */
@@ -630,6 +689,14 @@ async function installMocks(
       pathname === `/api/v1/spaces/${SPACE_ID}/story-lifeline`
     ) {
       await fulfillJson(lifelineFor(scenario));
+      return;
+    }
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/story-lifeline/entries`
+    ) {
+      const from = new URL(request.url()).searchParams.get('from') ?? '';
+      await fulfillJson(lifelineEntriesFor(scenario, from));
       return;
     }
     if (
@@ -1925,7 +1992,7 @@ for (const [width, theme, largeText] of [
       const story = page.locator('.shared-story-summary');
       // The caption total is exactly the sum of the three parts below it.
       await expect(story.locator('.shared-story-summary-caption')).toHaveText(
-        '43 gemeinsame Erinnerungen seit Mai',
+        '43 festgehaltene Momente seit Mai',
       );
       await expect(story).not.toContainText('181 Tage');
       const lifeline = story.getByRole('slider', {
@@ -1944,7 +2011,7 @@ for (const [width, theme, largeText] of [
         expect(box?.height).toBeGreaterThanOrEqual(44);
       }
       await expect(
-        story.getByRole('link', { name: '29 Momente', exact: true }),
+        story.getByRole('link', { name: '29 Erinnerungen', exact: true }),
       ).toHaveAttribute('href', '/story?tab=timeline&type=MEMORY');
       await expect(
         story.getByRole('link', { name: '9 Herzmomente', exact: true }),
@@ -2053,8 +2120,87 @@ for (const [width, theme, largeText] of [
             `today-story-lifeline-preview-${width}-${theme}.png`,
           ),
         });
+        // Up and down choose single entries of the week, read on demand.
+        await page.keyboard.press('ArrowUp');
+        const heart = story.getByRole('link', {
+          name: /Thank you for the day/,
+        });
+        await expect(heart).toBeVisible();
+        await expect(heart).toContainText(
+          m5s5.dashboard.storyLifelineKindHeartMoment,
+        );
+        await expect(lifeline).toHaveAttribute(
+          'aria-valuetext',
+          lifelineValue(
+            '13. Juli',
+            13,
+            'Thank you for the day',
+            m5s5.dashboard.storyLifelineKindHeartMoment,
+            [3, 3],
+          ),
+        );
+        await expect(
+          story.locator(
+            '[data-lifeline-column="1"] .shared-story-lifeline-dot.is-selected.story-kind-heartMoments',
+          ),
+        ).toHaveCount(1);
+        // Pagination dots are the non-gesture way through the week.
+        const pager = story.locator('.shared-story-lifeline-pager');
+        await expect(pager).toHaveAccessibleName(lifelinePosition(3, 3));
+        const dots = pager.getByRole('button');
+        await expect(dots).toHaveCount(3);
+        await expect(
+          pager.getByRole('button', { name: lifelineEntry(3, 3) }),
+        ).toHaveAttribute('aria-current', 'true');
+        for (const dot of await dots.all()) {
+          const box = await dot.boundingBox();
+          expect(box?.width).toBeGreaterThanOrEqual(24);
+          expect(box?.height).toBeGreaterThanOrEqual(24);
+        }
+        await pager.getByRole('button', { name: lifelineEntry(1, 3) }).click();
+        const milestone = story.getByRole('link', {
+          name: /Moved in together/,
+        });
+        await expect(milestone).toBeVisible();
+        await expect(pager).toHaveAccessibleName(lifelinePosition(1, 3));
+        await expect(
+          pager.getByRole('button', { name: lifelineEntry(1, 3) }),
+        ).toHaveAttribute('aria-current', 'true');
+        // A left swipe on the card brings the next entry without opening
+        // the one under the pointer.
+        // Keep the card clear of the floating create action.
+        await milestone.evaluate((node) =>
+          node.scrollIntoView({ block: 'center' }),
+        );
+        const card = await milestone.boundingBox();
+        if (!card) throw new Error('Missing lifeline preview');
+        const swipeX = card.x + card.width / 2 + 30;
+        const swipeY = card.y + card.height / 2;
+        await page.mouse.move(swipeX, swipeY);
+        await page.mouse.down();
+        await page.mouse.move(swipeX - 30, swipeY, { steps: 4 });
+        await page.mouse.move(swipeX - 70, swipeY, { steps: 4 });
+        await page.mouse.up();
+        await expect(page).toHaveURL(/\/today$/);
+        await expect(
+          story.getByRole('link', { name: /Picnic at the lake/ }),
+        ).toBeVisible();
+        await pager.getByRole('button', { name: lifelineEntry(1, 3) }).click();
+        await expect(milestone).toBeVisible();
+        // Compact on Wir: the preview floats inside the graphic, no list.
+        await expect(story.locator('.shared-story-lifeline-fan')).toHaveCount(
+          0,
+        );
+        await expectNoHorizontalOverflow(page);
+        await story.screenshot({
+          path: info.outputPath(
+            `today-story-lifeline-entry-${width}-${theme}.png`,
+          ),
+        });
+        await lifeline.focus();
         await page.keyboard.press('Escape');
         await expect(preview).toHaveCount(0);
+        await expect(milestone).toHaveCount(0);
       }
     }
     scenario.summary = { memories: 3, heartMoments: 2, milestones: 0 };
@@ -2073,7 +2219,7 @@ for (const [width, theme, largeText] of [
     const story = page.locator('.shared-story-summary');
     await expect(duration).toHaveText('182 Tage zusammen');
     await expect(story.locator('.shared-story-summary-caption')).toHaveText(
-      '5 gemeinsame Erinnerungen seit Mai',
+      '5 festgehaltene Momente seit Mai',
     );
     await expect(story.locator('.shared-story-summary-row')).toHaveCount(2);
     await expect(story.getByRole('slider')).toBeVisible();
@@ -2089,20 +2235,22 @@ for (const [width, theme, largeText] of [
       });
     await expect(duration).toHaveCount(0);
     await expect(story.locator('.shared-story-summary-caption')).toHaveText(
-      '5 gemeinsame Erinnerungen seit Mai',
+      '5 festgehaltene Momente seit Mai',
     );
     await expectNoHorizontalOverflow(page);
     await story.evaluate((node) => node.scrollIntoView({ block: 'center' }));
     await story.screenshot({
       path: info.outputPath(`today-story-no-duration-${width}-${theme}.png`),
     });
-    await story.getByRole('link', { name: '3 Momente', exact: true }).focus();
+    await story
+      .getByRole('link', { name: '3 Erinnerungen', exact: true })
+      .focus();
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/\/story\?tab=timeline&type=MEMORY$/);
     await page.goBack();
     await expect(page).toHaveURL(/\/today$/);
     await expect(story.locator('.shared-story-summary-caption')).toHaveText(
-      '5 gemeinsame Erinnerungen seit Mai',
+      '5 festgehaltene Momente seit Mai',
     );
   });
 }
@@ -2223,4 +2371,74 @@ test('the add action stays put while a tab slides in', async ({ page }) => {
     expect(samples.slidePositions).toBeGreaterThan(0);
     expect(samples.positions).toHaveLength(1);
   }
+});
+
+/*
+ * The shared moment rotates through its memory's pictures (Wir). The server
+ * lists only ready, non-sensitive ones; the page rotates only while it can be
+ * seen, never inside the moment's link, and not at all with reduced motion.
+ */
+const GALLERY_SPACE = {
+  ...RICH_SPACE,
+  keepsake: {
+    ...MOMENT,
+    gallery: ['att-moment', 'att-strip-1', 'att-strip-2'].map((id) => ({
+      attachmentId: id,
+      mediaType: 'IMAGE',
+      hasThumbnail: false,
+    })),
+  },
+};
+
+test.describe('Wir: the shared moment rotates through its pictures', () => {
+  test('changes the picture on its own, keeps the link intact and shows nothing over the photograph', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installMocks(page, GALLERY_SPACE);
+    await signInAndOpenToday(page);
+
+    const frame = page.locator('.wir-moment-frame');
+    await expect(frame).toBeVisible();
+    const current = () =>
+      page.evaluate(() =>
+        Number(
+          document
+            .querySelector('.wir-moment-slide[data-state="active"]')
+            ?.getAttribute('data-index'),
+        ),
+      );
+    expect(await current()).toBe(0);
+    // Only the picture on show is exposed; the others are warm but hidden.
+    await expect(
+      frame.locator('.wir-moment-slide:not([aria-hidden="true"])'),
+    ).toHaveCount(1);
+    // Nothing sits over the photograph: no progress marks and no control.
+    await expect(frame.locator('button')).toHaveCount(0);
+    await expect(frame.locator('.wir-moment-marks')).toHaveCount(0);
+    await expect(frame.locator('a.today-moment')).toHaveCount(1);
+
+    // A resting mouse holds the picture, so the pointer leaves the frame first.
+    await page.mouse.move(1, 1);
+    await expect.poll(current, { timeout: 12_000 }).toBe(1);
+  });
+
+  test('shows one still picture and no controls with reduced motion', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installMocks(page, GALLERY_SPACE);
+    await signInAndOpenToday(page);
+
+    await expect(page.locator('.wir-moment-gallery')).toBeVisible();
+    await expect(page.locator('.wir-moment-frame button')).toHaveCount(0);
+    await page.waitForTimeout(7000);
+    await expect(
+      page.locator('.wir-moment-slide[data-state="active"]'),
+    ).toHaveCount(1);
+    await expect(page.locator('.wir-moment-slide[data-entering]')).toHaveCount(
+      0,
+    );
+  });
 });

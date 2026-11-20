@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
@@ -13,6 +13,7 @@ import {
   expectQuietComposerMedia,
   selectDraftMedia,
 } from '../support/mediaDraft';
+import { editViaMenu, itemMenuTrigger } from '../support/itemMenu';
 import { openComposerMediaSources } from '../support/mediaIntake';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
@@ -351,9 +352,7 @@ for (const scenario of [
           .analyze()
       ).violations,
     ).toEqual([]);
-    await page
-      .getByRole('button', { name: de.common.edit, exact: true })
-      .click();
+    await editViaMenu(page, de.common.edit);
     await selectDraftMedia(page);
     await page
       .getByRole('group', { name: de.memory.photoSelected, exact: true })
@@ -364,9 +363,7 @@ for (const scenario of [
     await page
       .getByRole('button', { name: copy.common.discardConfirm, exact: true })
       .click();
-    await expect(
-      page.getByRole('button', { name: de.common.edit, exact: true }),
-    ).toBeFocused();
+    await expect(itemMenuTrigger(page)).toBeFocused();
     expect(state.writes()).toBe(0);
     await page.goBack();
     await expect(page).toHaveURL(/\/plan$/);
@@ -725,9 +722,7 @@ for (const view of [
       `plan-gallery-reading-${view.width}-${view.theme}.png`,
       { fullPage: true },
     );
-    await page
-      .getByRole('button', { name: de.common.edit, exact: true })
-      .click();
+    await editViaMenu(page, de.common.edit);
     const original = state.payloads[0].map((photo) => photo.attachmentId);
     async function changeDraft() {
       await expectQuietComposerMedia(page);
@@ -764,17 +759,13 @@ for (const view of [
       .click();
     expect(state.counts().patches).toBe(0);
     expect(state.saved.attachments.map((photo) => photo.id)).toEqual(original);
-    await page
-      .getByRole('button', { name: de.common.edit, exact: true })
-      .click();
+    await editViaMenu(page, de.common.edit);
     await expect(drafts).toHaveCount(3);
     await changeDraft();
     await page
       .getByRole('button', { name: copy.common.saveChanges, exact: true })
       .click();
-    await expect(
-      page.getByRole('button', { name: de.common.edit, exact: true }),
-    ).toBeVisible();
+    await expect(itemMenuTrigger(page)).toBeVisible();
     expect(state.counts().patches).toBe(1);
     expect(state.payloads[1]).toEqual([
       { attachmentId: original[0], position: 0, isSensitive: true },

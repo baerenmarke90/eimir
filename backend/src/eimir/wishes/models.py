@@ -187,6 +187,34 @@ class WishReminder(IdMixin, Base):
     )
 
 
+class WishDateProposal(IdMixin, Base):
+    """One pending appointment per Wish, or an acceptance receipt for its Plan."""
+
+    __tablename__ = "wish_date_proposals"
+
+    wish_id: Mapped[UUID] = mapped_column(Uuid, nullable=False, unique=True)
+    space_id: Mapped[UUID] = mapped_column(Uuid, nullable=False, index=True)
+    proposed_by: Mapped[UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    recipient_id: Mapped[UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    planned_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    counter: Mapped[bool] = mapped_column(nullable=False)
+    accepted_plan_id: Mapped[UUID | None] = mapped_column(Uuid)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["wish_id", "space_id"], ["wishes.id", "wishes.space_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(
+            ["accepted_plan_id", "space_id"], ["plans.id", "plans.space_id"], ondelete="CASCADE"
+        ),
+        CheckConstraint("proposed_by <> recipient_id", name="partners_are_distinct"),
+    )
+
+
 def shared_privacy() -> PrivacyClass:
     """A wish is always shared space content (M3-D01)."""
     return PrivacyClass.SPACE_SHARED

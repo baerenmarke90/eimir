@@ -89,6 +89,22 @@
   color: var(--color-link-text);
 }
 
+/* MapLibre's own rule paints the attribution strip translucent white. Over the
+   dark map that is the brightest thing on screen, so Dark swaps it for the
+   page surface at the same translucency. Light keeps the stock strip. */
+:root[data-theme="dark"]
+  .place-map-viewport
+  .maplibregl-ctrl.maplibregl-ctrl-attrib {
+  background-color: color-mix(in srgb, var(--color-surface) 78%, transparent);
+}
+
+/* One calm, muted map tone for every map in the app (Momente map, distance map,
+   place picker). Only map pixels change; authored previews, markers and
+   attribution keep their true colours. */
+.place-map-viewport .maplibregl-canvas {
+  filter: var(--map-paper-tile-filter);
+}
+
 /* Only map pixels change scheme; authored previews, markers and attribution do not. */
 :root[data-theme="dark"] .place-map-viewport .maplibregl-canvas {
   filter: var(--map-dark-tile-filter);
@@ -142,4 +158,236 @@
 
 .place-map-area-marker .partner-avatar {
   box-shadow: 0 0 0 3px var(--color-surface);
+}
+
+/*
+ * Connection between two areas (#1907 H1): below the area markers. Its
+ * motion roles are instant with reduced motion, so the arc and heart appear
+ * at once and the glow never shows.
+ */
+.place-map-connection {
+  --place-map-connection-tone: var(--color-shared);
+  --place-map-connection-casing: var(--color-surface);
+  --place-map-connection-halo: color-mix(
+    in srgb,
+    var(--color-shared) 25%,
+    transparent
+  );
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.place-map-connection:not(.is-started) {
+  visibility: hidden;
+}
+
+.place-map-connection-line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.place-map-connection-reveal {
+  fill: none;
+  /* Mask luminance, not a visible color: white keeps the arc. */
+  stroke: white;
+  stroke-width: 16px;
+  stroke-linecap: round;
+  stroke-dasharray: 1 1;
+}
+
+.place-map-connection-casing,
+.place-map-connection-stroke {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.place-map-connection-casing {
+  stroke: var(--place-map-connection-casing);
+  stroke-width: 7px;
+  opacity: 0.9;
+}
+
+.place-map-connection-stroke {
+  stroke: var(--place-map-connection-tone);
+  stroke-width: 3.5px;
+}
+
+.place-map-connection.is-far .place-map-connection-stroke,
+.place-map-connection.is-earlier .place-map-connection-stroke {
+  stroke-width: 3px;
+  stroke-dasharray: 1 9;
+}
+
+.place-map-connection.is-earlier {
+  --place-map-connection-tone: var(--color-text-secondary);
+}
+
+.place-map-connection.is-earlier .place-map-connection-casing {
+  opacity: 0.6;
+}
+
+.place-map-connection.is-earlier .place-map-connection-stroke {
+  opacity: 0.55;
+}
+
+.place-map-connection-glow {
+  --place-map-connection-glow-opacity: 1;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--place-map-connection-tone);
+  box-shadow:
+    0 0 0 3px var(--place-map-connection-casing),
+    0 0 0 10px var(--place-map-connection-halo),
+    0 0 24px 10px var(--place-map-connection-halo);
+  offset-rotate: 0deg;
+  opacity: 0;
+}
+
+/* A short tail: smaller points that follow the glow a beat later. */
+.place-map-connection-glow.is-trail {
+  --place-map-connection-glow-opacity: 0.55;
+
+  width: 10px;
+  height: 10px;
+  box-shadow: 0 0 0 2px var(--place-map-connection-casing);
+}
+
+.place-map-connection-glow.is-trail-2 {
+  --place-map-connection-glow-opacity: 0.3;
+
+  width: 7px;
+  height: 7px;
+}
+
+.place-map-connection-heart {
+  position: absolute;
+  /* Above the translucent area circles, which would dull it. */
+  z-index: 1;
+  display: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--place-map-connection-casing);
+  color: var(--place-map-connection-tone);
+  translate: -50% -50%;
+}
+
+.place-map-connection-heart svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.place-map-connection.is-near .place-map-connection-line,
+.place-map-connection.is-near .place-map-connection-glow {
+  display: none;
+}
+
+.place-map-connection.is-near .place-map-connection-heart {
+  display: grid;
+}
+
+.place-map-connection.is-entering:not(.is-earlier)
+  .place-map-connection-reveal {
+  /* Enter `draw` from the motion catalogue (src/motion/motion.css). */
+  animation: eimir-motion-enter-draw var(--duration-connection-draw)
+    var(--easing-enter) both;
+}
+
+.place-map-connection.is-entering:not(.is-earlier) .place-map-connection-heart {
+  /* Enter `grow` from the motion catalogue (src/motion/motion.css). */
+  --motion-enter-from-scale: 0.6;
+  animation: eimir-motion-enter-grow var(--duration-connection-draw)
+    var(--easing-enter) both;
+}
+
+.place-map-connection.is-playing:not(.is-earlier) .place-map-connection-glow {
+  /* Three round trips after the arc has drawn in, then the glow rests
+     (the Map domain catalogue, src/motion/map.css). */
+  animation: eimir-motion-map-connection-travel
+    var(--duration-connection-travel) var(--easing-travel)
+    var(--duration-connection-draw) 3;
+}
+
+.place-map-connection.is-playing:not(.is-earlier)
+  .place-map-connection-glow.is-trail-1 {
+  animation-delay: calc(
+    var(--duration-connection-draw) +
+    var(--duration-feedback)
+  );
+}
+
+.place-map-connection.is-playing:not(.is-earlier)
+  .place-map-connection-glow.is-trail-2 {
+  animation-delay: calc(
+    var(--duration-connection-draw) +
+    2 *
+    var(--duration-feedback)
+  );
+}
+
+.place-map-connection.is-far.is-playing:not(.is-earlier)
+  .place-map-connection-glow {
+  animation-duration: var(--duration-connection-travel-far);
+}
+
+.place-map-connection.is-entering.is-playing:not(.is-earlier)
+  .place-map-connection-heart {
+  animation:
+    eimir-motion-enter-grow var(--duration-connection-draw) var(--easing-enter)
+    both,
+    eimir-motion-map-connection-beat var(--duration-connection-beat)
+    var(--easing-standard) var(--duration-connection-draw) 2;
+}
+
+.place-map-connection.is-paused * {
+  animation-play-state: paused;
+}
+
+/* A map shown in one piece (#2063): the calm map surface waits, then the
+   basemap and its marker photos fade in together. */
+.place-map-canvas[data-reveal] {
+  position: relative;
+}
+
+.place-map-canvas[data-reveal="waiting"] {
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+}
+
+/* The same calm loading surface the page showed while the map code loaded. */
+.place-map-waiting {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+}
+
+.place-map-canvas[data-reveal] .place-map-viewport {
+  transition: opacity var(--duration-context) var(--easing-standard);
+}
+
+.place-map-canvas[data-reveal="waiting"] .place-map-viewport {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .place-map-canvas[data-reveal] .place-map-viewport {
+    transition: none;
+  }
 }

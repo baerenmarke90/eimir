@@ -38,6 +38,11 @@ class WishSelectionCandidateSource(StrEnum):
     DATE_IDEA = "DATE_IDEA"
 
 
+class WishSelectionDecisionMethod(StrEnum):
+    RANDOM = "RANDOM"
+    MANUAL = "MANUAL"
+
+
 class WishSelectionRoundPayload(ProtectedPayload):
     title: str | None = None
 
@@ -62,6 +67,17 @@ class WishSelectionRound(IdMixin, TimestampMixin, VersionMixin, PrivateResourceM
     payload: Mapped[WishSelectionRoundPayload] = mapped_column(
         ProtectedPayloadJSON(WishSelectionRoundPayload), nullable=False
     )
+    # Consent-based random pick (#1907 J1): at most one open or declined
+    # request per round, identified by the partner who asked.
+    random_requested_by: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True), nullable=True
+    )
+    random_declined: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+    # The decided candidate, stored once so both devices show the same pick.
+    decision_position: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    decision_method: Mapped[str | None] = mapped_column(String(8), nullable=True)
 
     __table_args__ = (
         UniqueConstraint("space_id", name="uq_wish_selection_rounds_space"),
@@ -69,6 +85,15 @@ class WishSelectionRound(IdMixin, TimestampMixin, VersionMixin, PrivateResourceM
         CheckConstraint("privacy_class = 'SPACE_SHARED'", name="privacy_is_shared"),
         CheckConstraint("candidate_count BETWEEN 2 AND 5", name="candidate_count_is_bounded"),
         CheckConstraint("crypto_version >= 0", name="crypto_version_is_non_negative"),
+        CheckConstraint(
+            "random_requested_by IS NOT NULL OR NOT random_declined",
+            name="random_decline_has_request",
+        ),
+        CheckConstraint(
+            "(decision_position IS NULL AND decision_method IS NULL)"
+            " OR (decision_position BETWEEN 0 AND 4 AND decision_method IN ('RANDOM', 'MANUAL'))",
+            name="decision_is_complete",
+        ),
     )
 
 

@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
@@ -8,6 +8,7 @@ import memoryCopy from '../../src/i18n/locales/memoryProduct';
 import storyCopy from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import fixtures from '../fixtures/locales/de';
+import { editViaMenu, itemMenuTrigger } from '../support/itemMenu';
 import { closeHeartAudience, showHeartAudience } from '../support/memoryDiary';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
@@ -527,9 +528,7 @@ for (const view of [
       `plan-without-lists-${view.width}-${view.theme}.png`,
       { fullPage: true },
     );
-    await page
-      .getByRole('button', { name: de.common.edit, exact: true })
-      .click();
+    await editViaMenu(page, de.common.edit);
     await listTool(page).click();
     const dialog = page.getByRole('dialog', { name: copy.collection.choose });
     await expect(dialog).toBeVisible();
@@ -572,9 +571,7 @@ for (const view of [
       { fullPage: true },
     );
     await closePlanEditor(page);
-    await expect(
-      page.getByRole('button', { name: de.common.edit, exact: true }),
-    ).toBeVisible();
+    await expect(itemMenuTrigger(page)).toBeVisible();
     await expect(listTool(page)).toHaveCount(0);
     await expect(
       page.getByRole('button', { name: /Verknüpfung zu/ }),
@@ -627,9 +624,7 @@ for (const view of [
     await expect(
       page.getByRole('button', { name: /Verknüpfung zu/ }),
     ).toHaveCount(0);
-    await page
-      .getByRole('button', { name: de.common.edit, exact: true })
-      .click();
+    await editViaMenu(page, de.common.edit);
     await page
       .getByRole('button', {
         name: copy.collection.unlink.replace(
@@ -643,9 +638,7 @@ for (const view of [
     await page
       .getByRole('button', { name: copy.common.saveChanges, exact: true })
       .click();
-    await expect(
-      page.getByRole('button', { name: de.common.edit, exact: true }),
-    ).toBeVisible();
+    await expect(itemMenuTrigger(page)).toBeVisible();
     expect(state.calls.planUpdates).toHaveLength(1);
     await expect(listTool(page)).toHaveCount(0);
     await expect(
@@ -864,17 +857,12 @@ for (const view of [
       const reverse = page.getByRole('region', {
         name:
           source.kind === 'MEMORY'
-            ? memoryCopy.planning.heading
+            ? memoryCopy.planning.detailHeading
             : copy.planStory.plansHeading,
       });
       if (source.kind === 'HEART_MOMENT') {
         await expect(reverse).toHaveCount(0);
-        await page
-          .getByRole('link', {
-            name: storyCopy.heartMomentProduct.edit,
-            exact: true,
-          })
-          .click();
+        await editViaMenu(page, storyCopy.heartMomentProduct.edit);
         await expect(reverse).toContainText(state.plan.title);
         await noOverflow(page);
         await captureScreenshot(
@@ -961,9 +949,7 @@ test('shared HeartMoment capture retains its Plan in both directions', async ({
     handoff.getByRole('button', { name: de.common.retry, exact: true }),
   ).toHaveCount(0);
   expect(state.calls.sourceLinks).toEqual(['heart-moments/heart-new']);
-  await page
-    .getByRole('link', { name: storyCopy.heartMomentProduct.edit, exact: true })
-    .click();
+  await editViaMenu(page, storyCopy.heartMomentProduct.edit);
   await expect(reverse).toContainText(state.plan.title);
   await closeHeartEditor(page);
   await expect(reverse).toHaveCount(0);
@@ -1061,9 +1047,7 @@ test('Milestone capture retains its Plan and existing Milestones can unlink and 
       name: new RegExp(fixtures.planLinkedLists.savedMilestoneTitle),
     })
     .click();
-  await page
-    .getByRole('link', { name: storyCopy.milestoneProduct.edit, exact: true })
-    .click();
+  await editViaMenu(page, storyCopy.milestoneProduct.edit);
   await page
     .getByRole('button', {
       name: memoryCopy.planning.remove.replace('{{title}}', state.plan.title),
@@ -1100,7 +1084,7 @@ test('Plan field drafts survive guarded exit, bounded list choice and in-context
   const state = await fixture(page);
   state.linked.add('list-a');
   await page.reload();
-  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await editViaMenu(page, de.common.edit);
   const description = page.getByLabel(copy.common.description, { exact: true });
   await description.fill(fixtures.planLinkedLists.unsavedPlanDescription);
   await closePlanEditor(page);

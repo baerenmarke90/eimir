@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { RecapFilmView } from './RecapFilmView';
+import {
+    RecapFilmViewFromJSON,
+    RecapFilmViewFromJSONTyped,
+    RecapFilmViewToJSON,
+    RecapFilmViewToJSONTyped,
+} from './RecapFilmView';
 import type { RecapReflectionView } from './RecapReflectionView';
 import {
     RecapReflectionViewFromJSON,
@@ -68,6 +75,12 @@ export interface RecapView {
      * @memberof RecapView
      */
     facts?: RecapFactsView | null;
+    /**
+     * 
+     * @type {RecapFilmView}
+     * @memberof RecapView
+     */
+    film?: RecapFilmView | null;
     /**
      * 
      * @type {Date}
@@ -159,6 +172,18 @@ export interface RecapView {
      */
     status: string;
     /**
+     * The newer version that extends this retained edition (#1744).
+     * @type {string}
+     * @memberof RecapView
+     */
+    supersededById?: string | null;
+    /**
+     * The retained edition this newer version extends with late entries (#1744).
+     * @type {string}
+     * @memberof RecapView
+     */
+    supersedesId?: string | null;
+    /**
      * 
      * @type {string}
      * @memberof RecapView
@@ -228,6 +253,7 @@ export function RecapViewFromJSONTyped(json: any, ignoreDiscriminator: boolean):
     return {
         
         'facts': json['facts'] === undefined ? undefined : json['facts'] === null ? null : RecapFactsViewFromJSON(json['facts']),
+        'film': json['film'] === undefined ? undefined : json['film'] === null ? null : RecapFilmViewFromJSON(json['film']),
         'generatedAt': (json['generatedAt'] == null ? null : new Date(json['generatedAt'])),
         'headline': json['headline'],
         'id': json['id'],
@@ -243,6 +269,8 @@ export function RecapViewFromJSONTyped(json: any, ignoreDiscriminator: boolean):
         'sources': ((json['sources'] as Array<any>).map(RecapSourceViewFromJSON)),
         'startsOn': (new Date(json['startsOn'])),
         'status': json['status'],
+        'supersededById': json['supersededById'] === undefined ? undefined : json['supersededById'] === null ? null : json['supersededById'],
+        'supersedesId': json['supersedesId'] === undefined ? undefined : json['supersedesId'] === null ? null : json['supersedesId'],
         'theme': json['theme'],
         'throughOn': (new Date(json['throughOn'])),
         'variant': json['variant'],
@@ -263,6 +291,7 @@ export function RecapViewToJSONTyped(value?: RecapView | null, ignoreDiscriminat
     return {
         
         'facts': RecapFactsViewToJSON(value['facts']),
+        'film': RecapFilmViewToJSON(value['film']),
         'generatedAt': value['generatedAt'] == null ? value['generatedAt'] : value['generatedAt'].toISOString(),
         'headline': value['headline'],
         'id': value['id'],
@@ -278,6 +307,8 @@ export function RecapViewToJSONTyped(value?: RecapView | null, ignoreDiscriminat
         'sources': ((value['sources'] as Array<any>).map(RecapSourceViewToJSON)),
         'startsOn': value['startsOn'].toISOString().substring(0,10),
         'status': value['status'],
+        'supersededById': value['supersededById'],
+        'supersedesId': value['supersedesId'],
         'theme': value['theme'],
         'throughOn': value['throughOn'].toISOString().substring(0,10),
         'variant': value['variant'],

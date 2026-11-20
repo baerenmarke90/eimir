@@ -12,6 +12,8 @@ describe('surfaceRefreshDecision', () => {
     '/story/map',
     '/more/places',
     '/more/collections',
+    '/more/notes',
+    '/more/notes/abc',
     '/more/notifications',
     '/story/memories/abc',
     '/story/heart-moments/abc',

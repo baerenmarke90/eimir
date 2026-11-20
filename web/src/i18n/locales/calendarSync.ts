@@ -1,13 +1,13 @@
 export default {
   settingsTitle: 'Kalender verbinden',
   settingsIntro:
-    'Verbinde deinen Kalender, um gemeinsame Pläne automatisch zu synchronisieren und freie Zeit füreinander zu finden.',
+    'Verbinde einen Kalender, damit eure gemeinsamen Pläne dort automatisch erscheinen.',
   sharedHeading: 'Gemeinsamer Kalender',
   pro: 'Pro',
   sharedIntro:
     'Wählt einen Kalender, den ihr beide schon nutzt. Neue und geänderte Pläne erscheinen dort automatisch – einmal, für euch beide.',
   handoffStaysFree:
-    '„In Kalender übernehmen“ bei einzelnen Plänen bleibt kostenlos.',
+    '„In eigenen Kalender übernehmen“ bei einzelnen Plänen bleibt kostenlos.',
   proRequired:
     'Die automatische Synchronisation gehört zu eimir. Pro und gilt für euch beide.',
   unavailable:
@@ -145,7 +145,7 @@ export default {
     fallback: 'Das hat nicht geklappt. Versuche es erneut.',
   },
   plan: {
-    SYNCED: 'Im gemeinsamen Kalender',
+    SYNCED: 'Steht in eurem gemeinsamen Kalender',
     PENDING: 'Wird in euren Kalender übertragen',
     FAILED: 'Konnte nicht übertragen werden',
     CONFLICT: 'Im Kalender geändert',

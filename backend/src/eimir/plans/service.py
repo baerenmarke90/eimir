@@ -161,6 +161,7 @@ def _record(
     event_type: EventType,
     *,
     due_at: datetime | None = None,
+    notify_partner: bool = True,
 ) -> None:
     """Record an event without plan title or description (M3-D13)."""
     if event_type in {EventType.PLAN_CREATED, EventType.PLAN_SCHEDULED}:
@@ -184,7 +185,8 @@ def _record(
                     )
                     .limit(1)
                 )
-                if event_type
+                if notify_partner
+                and event_type
                 in {
                     EventType.PLAN_CREATED,
                     EventType.PLAN_SCHEDULED,
@@ -600,6 +602,7 @@ def update_plan(
     cover_attachment_id: UUID | None = None,
     cover_is_sensitive: bool | None = None,
     photos: PhotoSelection | None = None,
+    photo_replacements: dict[UUID, UUID] | None = None,
     add_file_attachment_ids: list[UUID] | None = None,
     remove_file_attachment_ids: list[UUID] | None = None,
     selected_cover_attachment_id: UUID | None = None,
@@ -618,7 +621,7 @@ def update_plan(
 
     if "attachments" in changed_fields:
         assert photos is not None
-        replace_photos(session, context, plan, photos)
+        replace_photos(session, context, plan, photos, replacements=photo_replacements)
         plan.updated_at = now()
     elif "cover_attachment_id" in changed_fields or "cover_is_sensitive" in changed_fields:
         replace_cover(
@@ -953,6 +956,7 @@ def convert_wish_to_plan(
     planned_start: datetime | None = None,
     planned_end: datetime | None = None,
     planned_until: date | None = None,
+    accepted_proposal_id: UUID | None = None,
 ) -> WishToPlanResult:
     """Convert one wish into exactly one Plan atomically and idempotently."""
     resolved_place_id = _resolve_place(session, context, place_id)
@@ -1011,10 +1015,18 @@ def convert_wish_to_plan(
             wish_service.WISH_HAS_ACTIVE_PLAN,
         ) from error
 
-    _record(session, plan, context.account_id, EventType.PLAN_CREATED)
+    _record(
+        session,
+        plan,
+        context.account_id,
+        EventType.PLAN_CREATED,
+        notify_partner=accepted_proposal_id is None,
+    )
     _flush(session)
 
-    wish_service.plan_created(session, wish, context.account_id)
+    wish_service.plan_created(
+        session, wish, context.account_id, accepted_proposal_id=accepted_proposal_id
+    )
     if status == PlanStatus.PLANNED:
         reminder_runtime.reconcile_space(session, context.space_id)
     return WishToPlanResult(wish=wish, plan=plan, created=True)

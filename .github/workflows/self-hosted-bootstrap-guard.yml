@@ -18,24 +18,6 @@ on:
       - "backend/src/eimir/config.py"
       - "backend/src/eimir/mail/**"
       - "backend/src/eimir/observability/**"
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/self-hosted-bootstrap-guard.yml"
-      - ".env.example"
-      - "compose.yaml"
-      - "scripts/build_self_hosted_source.py"
-      - "backend/Dockerfile"
-      - "backend/pyproject.toml"
-      - "backend/uv.lock"
-      - "backend/alembic/**"
-      - "backend/src/eimir/api/v1/auth.py"
-      - "backend/src/eimir/api/v1/server_admin.py"
-      - "backend/src/eimir/auth/**"
-      - "backend/src/eimir/authorization/server_admin.py"
-      - "backend/src/eimir/config.py"
-      - "backend/src/eimir/mail/**"
-      - "backend/src/eimir/observability/**"
   schedule:
     - cron: "17 5 * * 1"
   workflow_dispatch:
@@ -133,7 +115,7 @@ jobs:
           import sys
 
           text = sys.stdin.read()
-          matches = re.findall(r"/auth/verify-email\?token=([A-Za-z0-9._~-]+)", text)
+          matches = re.findall(r"/auth/verify-email#token=([A-Za-z0-9._~-]+)", text)
           print(matches[-1] if matches else "")
           ')
             if [ -n "$verification_token" ]; then

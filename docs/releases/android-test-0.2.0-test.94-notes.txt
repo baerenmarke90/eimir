@@ -1,0 +1,13 @@
+eimir. Android 0.2.0-test.94
+
+- Find shared lists and notes in the new Lists tab. Tick off entries from the overview, and use the three-dot menu to edit or delete an item.
+- Wir opens more gently, shows location on the names line and now welcomes people in a new, empty Space with invitations and a shortcut to their first moment.
+- Open the garden in full screen and landscape on Android. Watering after dark now shows a moonbow.
+- Play Who of Us, Wish Detective and Our Moments together from separate phones. Wish Detective now needs one open wish per person.
+- Give finished Picture Ping-Pong and Heart Hunt moments a name, and take a private photo directly from a one-time message.
+- Your theme, diary layout and selected garden and Wir preferences follow your account across devices.
+- Get a notification for a newly shared note and open it directly. The notification preview keeps the note text private.
+- Discover a new daily catalog of 1,000 sayings across ten categories.
+
+The product changes come from main at 01582d5302f23dc5522f2d2f51d9342fb30ad131.
+Install over test.93 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 94.

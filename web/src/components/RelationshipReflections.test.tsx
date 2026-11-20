@@ -10,10 +10,11 @@ import {
   within,
 } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ChaptersApi } from '../api/generated/apis/ChaptersApi';
 import { DashboardApi } from '../api/generated/apis/DashboardApi';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
+import { MilestonesApi } from '../api/generated/apis/MilestonesApi';
 import { PeopleApi } from '../api/generated/apis/PeopleApi';
 import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import { WishesApi } from '../api/generated/apis/WishesApi';
@@ -29,7 +30,7 @@ import { passportStatisticsKey } from '../client/passportPreferences';
 import { ClientProblemError } from '../client/problemDetails';
 import { chapterDetailPath } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
-import { i18n } from '../i18n';
+import { i18n, resolvedLocale } from '../i18n';
 import { AnticipationCard } from './AnticipationCard';
 import { PlanProductPage } from './PlanProductPage';
 import { RelationshipPassport } from './RelationshipPassport';
@@ -64,6 +65,15 @@ vi.mock('./PlaceMapCanvas', () => ({
   ),
 }));
 
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
+
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
@@ -71,6 +81,19 @@ afterEach(() => {
   vi.useRealTimers();
 });
 const label = () => i18n.t('relationshipReflections.anticipation.show');
+
+/** Edit lives in the Plan page's actions menu, like on every detail page. */
+async function openPlanEditor() {
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.plan.menu') }),
+  );
+  fireEvent.click(
+    await screen.findByRole('button', { name: i18n.t('common.edit') }),
+  );
+  // The menu sheet hands over to the editor once it has left.
+  await waitFor(() => expect(document.querySelector('.item-menu')).toBeNull());
+  await act(async () => {});
+}
 
 function setupPlan(send?: () => Promise<PlanDetail>) {
   let saved: PlanDetail = {
@@ -107,6 +130,7 @@ function setupPlan(send?: () => Promise<PlanDetail>) {
     plans: {
       getPlan: vi.fn(async () => saved),
       listPlanCollections: vi.fn(async () => []),
+      listPlanNotes: vi.fn(async () => []),
       updatePlan: update,
     },
     places: {
@@ -215,9 +239,7 @@ describe('Special Plan anticipation', () => {
     const { update } = setupPlan();
     expect(screen.queryByRole('switch', { name: label() })).toBeNull();
     expect(screen.queryByText(i18n.t('m5s3.plan.actionsHeading'))).toBeNull();
-    fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
-    );
+    await openPlanEditor();
     fireEvent.click(screen.getByRole('switch', { name: label() }));
     expect(update).not.toHaveBeenCalled();
     fireEvent.click(
@@ -241,9 +263,7 @@ describe('Special Plan anticipation', () => {
   it('keeps the staged choice after failure and deliberately retries the same intent', async () => {
     const { update } = setupPlan();
     update.mockRejectedValueOnce(new ClientProblemError('server'));
-    fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
-    );
+    await openPlanEditor();
     fireEvent.click(screen.getByRole('switch', { name: label() }));
     fireEvent.click(
       screen.getByRole('button', { name: i18n.t('m5s3.common.saveChanges') }),
@@ -273,9 +293,7 @@ describe('Special Plan anticipation', () => {
   it('never queues an offline edit for reconnect', async () => {
     const { update } = setupPlan();
     vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
-    fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
-    );
+    await openPlanEditor();
     fireEvent.click(screen.getByRole('switch', { name: label() }));
     fireEvent.click(
       screen.getByRole('button', { name: i18n.t('m5s3.common.saveChanges') }),
@@ -334,6 +352,8 @@ interface PassportExtras {
   chapters?: ChapterPageView['items'];
   mapPages?: MapPage[];
   partnerBirthday?: Date | null;
+  /** Authored Milestones, or a failing read. */
+  milestones?: { id: string; title: string; happenedOn: Date }[] | Error;
 }
 
 function pagedRead<Page>(pages: Page[]) {
@@ -416,6 +436,16 @@ function setupPassport(
     .mockImplementation(
       pagedRead(extras.mapPages ?? [{ items: [], nextCursor: null }]),
     );
+  const milestones = vi
+    .spyOn(MilestonesApi.prototype, 'listMilestones')
+    .mockImplementation(async () => {
+      if (extras.milestones instanceof Error) throw extras.milestones;
+      return {
+        items: extras.milestones ?? [],
+        nextCursor: null,
+        hasMore: false,
+      } as never;
+    });
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -442,6 +472,7 @@ function setupPassport(
       wishes,
       chapters,
       memoryMap,
+      milestones,
     },
   };
 }
@@ -739,9 +770,12 @@ describe('Pro relationship passport', () => {
         remaining: passportText('remaining', { count: 30 }),
       },
       {
-        label: passportText('roundDay', { count: 800, days: '800' }),
-        date: '2026-08-29',
-        remaining: passportText('remaining', { count: 80 }),
+        label: passportText('roundDay', {
+          count: 1000,
+          days: new Intl.NumberFormat(resolvedLocale()).format(1000),
+        }),
+        date: '2027-03-17',
+        remaining: passportText('remaining', { count: 280 }),
       },
     ]);
     // Past, repeated and fourth-nearest occasions stay out of the list.
@@ -862,6 +896,215 @@ describe('Pro relationship passport', () => {
       { spaceId: 'space-1', cursor: '1', limit: 100 },
     ]);
     expect(network).not.toHaveBeenCalled();
+  });
+  describe('waymarks', () => {
+    const together = {
+      ...counts,
+      // 17 June 2023 plus 1,230 days is the pinned day, 29 October 2026.
+      relationshipDuration: {
+        startedOn: new Date('2023-06-17T00:00:00Z'),
+        daysTogether: 1230,
+        displayMode: 'DAYS',
+      } as RelationshipPassportView['relationshipDuration'],
+    };
+    const waymarkText = (key: string, options?: Record<string, unknown>) =>
+      i18n.t(`relationshipReflections.waymarks.${key}`, options);
+
+    it('lists reached round days and Milestone anniversaries newest first, four at a time', async () => {
+      const { extraReads } = setupPassport(true, together, {
+        milestones: [
+          {
+            id: 'm-engaged',
+            title: 'Engaged',
+            happenedOn: new Date('2024-02-01'),
+          },
+        ],
+      });
+      const heading = await screen.findByRole('heading', {
+        name: waymarkText('title'),
+      });
+      expect(extraReads.milestones).toHaveBeenCalledWith(
+        expect.objectContaining({ spaceId: 'space-1' }),
+      );
+      const section = heading.closest('section') as HTMLElement;
+      const rows = () =>
+        Array.from(section.querySelectorAll('li')).map((row) => ({
+          label: row.querySelector('.passport-waymark-label')?.textContent,
+          date: row.querySelector('time')?.getAttribute('datetime'),
+        }));
+      const roundDay = (days: number) =>
+        passportText('roundDay', {
+          count: days,
+          days: new Intl.NumberFormat(resolvedLocale()).format(days),
+        });
+      const engaged = waymarkText('milestoneYears', {
+        count: 2,
+        title: 'Engaged',
+      });
+      // 4 round days, the first relationship anniversary and two Milestone
+      // anniversaries are reached; the thread is one card and shows the
+      // newest four.
+      const toggle = within(section).getByRole('button', {
+        name: waymarkText('showAll', { count: 7 }),
+      });
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      expect(rows().slice(0, 4)).toEqual([
+        { label: roundDay(1000), date: '2026-03-13' },
+        { label: engaged, date: '2026-02-01' },
+        {
+          label: waymarkText('milestoneYears', { count: 1, title: 'Engaged' }),
+          date: '2025-02-01',
+        },
+        { label: roundDay(500), date: '2024-10-29' },
+      ]);
+      expect(rows()).toHaveLength(7);
+      expect(section.querySelectorAll('ol')).toHaveLength(2);
+      expect(section.querySelector('ol[start="5"]')).not.toBeNull();
+      // The Milestone anniversary opens its Milestone; round days are text.
+      expect(screen.getByText(engaged).closest('a')?.getAttribute('href')).toBe(
+        '/story/milestones/m-engaged',
+      );
+      expect(screen.getByText(roundDay(1000)).closest('a')).toBeNull();
+      // Only the first of the three passed anniversaries is a milestone.
+      expect(
+        within(section).getAllByText(passportText('anniversary', { count: 1 })),
+      ).toHaveLength(1);
+      expect(
+        within(section).queryByText(passportText('anniversary', { count: 2 })),
+      ).toBeNull();
+      fireEvent.click(toggle);
+      expect(toggle.getAttribute('aria-expanded')).toBe('true');
+      expect(toggle.textContent).toBe(waymarkText('showFewer'));
+      expect(
+        section
+          .querySelector('.passport-waymarks-more')
+          ?.getAttribute('data-expanded'),
+      ).toBe('true');
+      fireEvent.click(toggle);
+      expect(toggle.textContent).toBe(waymarkText('showAll', { count: 7 }));
+    });
+
+    it('adds the nearest upcoming Milestone anniversary to the next chapter', async () => {
+      setupPassport(true, together, {
+        milestones: [
+          {
+            id: 'm-home',
+            title: 'Moved in',
+            happenedOn: new Date('2025-11-01'),
+          },
+          {
+            id: 'm-late',
+            title: 'Engaged',
+            happenedOn: new Date('2024-12-24'),
+          },
+        ],
+      });
+      await screen.findByRole('heading', { name: waymarkText('title') });
+      const rows = Array.from(
+        document.querySelectorAll('.passport-landmarks dl > div'),
+      ).map((row) => ({
+        label: row.querySelector('dt')?.textContent,
+        date: row.querySelector('time')?.getAttribute('datetime'),
+        remaining: row.querySelector('.passport-remaining')?.textContent,
+      }));
+      expect(rows).toEqual([
+        {
+          label: waymarkText('milestoneYears', { count: 1, title: 'Moved in' }),
+          date: '2026-11-01',
+          remaining: passportText('remaining', { count: 3 }),
+        },
+        {
+          label: passportText('anniversary', { count: 4 }),
+          date: '2027-06-17',
+          remaining: passportText('remaining', { count: 231 }),
+        },
+        {
+          label: passportText('roundDay', {
+            count: 2000,
+            days: new Intl.NumberFormat(resolvedLocale()).format(2000),
+          }),
+          date: '2028-12-07',
+          remaining: passportText('remaining', { count: 770 }),
+        },
+      ]);
+    });
+
+    it('leaves the section out while nothing is reached', async () => {
+      setupPassport(
+        true,
+        {
+          ...together,
+          relationshipDuration: {
+            startedOn: new Date('2026-10-15T00:00:00Z'),
+            daysTogether: 14,
+            displayMode: 'DAYS',
+          } as RelationshipPassportView['relationshipDuration'],
+        },
+        { milestones: [] },
+      );
+      await findMetrics();
+      expect(document.querySelector('.passport-landmarks')).not.toBeNull();
+      expect(document.querySelector('.passport-waymarks')).toBeNull();
+      expect(screen.queryByText(waymarkText('title'))).toBeNull();
+    });
+
+    it('shows no toggle when four or fewer are reached', async () => {
+      setupPassport(
+        true,
+        {
+          ...together,
+          relationshipDuration: {
+            startedOn: new Date('2026-04-01T00:00:00Z'),
+            daysTogether: 210,
+            displayMode: 'DAYS',
+          } as RelationshipPassportView['relationshipDuration'],
+        },
+        { milestones: [] },
+      );
+      const heading = await screen.findByRole('heading', {
+        name: waymarkText('title'),
+      });
+      const section = heading.closest('section') as HTMLElement;
+      expect(section.querySelectorAll('li')).toHaveLength(2);
+      expect(within(section).queryByRole('button')).toBeNull();
+    });
+
+    it('never blocks on the Milestones read', async () => {
+      setupPassport(true, together, { milestones: new Error('down') });
+      const heading = await screen.findByRole('heading', {
+        name: waymarkText('title'),
+      });
+      const section = heading.closest('section') as HTMLElement;
+      expect(section.querySelectorAll('li')).toHaveLength(5);
+      expect(section.querySelector('a')).toBeNull();
+      expect(
+        document.querySelectorAll('.passport-landmarks dl > div'),
+      ).toHaveLength(2);
+    });
+
+    it('keeps Milestone anniversaries when the couple has no start date', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-15T12:00:00Z'));
+      setupPassport(true, counts, {
+        milestones: [
+          {
+            id: 'm-met',
+            title: 'First date',
+            happenedOn: new Date('2024-03-02'),
+          },
+        ],
+      });
+      const heading = await screen.findByRole('heading', {
+        name: waymarkText('title'),
+      });
+      const section = heading.closest('section') as HTMLElement;
+      expect(
+        Array.from(section.querySelectorAll('li')).map((row) =>
+          row.querySelector('time')?.getAttribute('datetime'),
+        ),
+      ).toEqual(['2026-03-02', '2025-03-02']);
+      expect(document.querySelector('.passport-landmarks')).toBeNull();
+    });
   });
   it('leaves chapters and places out when the couple has none', async () => {
     setupPassport(true);

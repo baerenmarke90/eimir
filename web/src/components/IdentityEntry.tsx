@@ -6,8 +6,10 @@ import {
   useState,
 } from 'react';
 import type { AuthCapabilities } from '../api/generated/models/AuthCapabilities';
+import type { OidcConnectionView } from '../api/generated/models/OidcConnectionView';
 import type { InstanceAccessStatusAccountCreationEnum } from '../api/generated/models/InstanceAccessStatus';
 import type { SensitiveEntryToken } from '../client/entryToken';
+import { useInlineFieldError } from '../client/useInlineFieldError';
 import {
   ActiveAccountMismatchError,
   completePasswordRecovery,
@@ -25,14 +27,31 @@ import {
   loadInstanceAccessStatus,
   type RegistrationAvailability,
 } from '../client/instanceStatus';
-import { ClientProblemError } from '../client/problemDetails';
+import {
+  completeOidcSignIn,
+  goToProvider,
+  startOidcSignIn,
+} from '../client/oidcSignIn';
+import {
+  PasskeyCancelledError,
+  PasskeyNotOnDeviceError,
+  passkeysAvailable,
+  signInWithPasskey,
+  usePasskeyProbe,
+} from '../client/passkeys';
+import {
+  ClientProblemError,
+  clientProblemKind,
+} from '../client/problemDetails';
 import type { StoredSession } from '../client/sessionPersistence';
 import { useTaskActivation } from '../client/useTaskActivation';
+import { isCapacitorNative } from '../pwa';
 import { useTranslation } from '../i18n';
 import { cloudLegalDocumentsApply } from '../legal/legalDocuments';
 import { Brand } from './Brand';
 import { LegalFooterLinks } from './LegalDocumentLink';
 import { ProblemState } from './ProblemState';
+import { ProviderChoices } from './ProviderChoices';
 import {
   BUNDLED_TERMS_VERSION,
   TermsAcceptanceField,
@@ -56,7 +75,10 @@ type PendingAction =
   | 'magicLinkConsume'
   | 'verification'
   | 'signupRequest'
-  | 'signupConsume';
+  | 'signupConsume'
+  | 'oidcStart'
+  | 'oidcConsume'
+  | 'passkey';
 
 const TERMS_ACCEPTANCE_REQUIRED = 'TERMS_ACCEPTANCE_REQUIRED';
 const TERMS_VERSION_OUTDATED = 'TERMS_VERSION_OUTDATED';
@@ -100,6 +122,7 @@ export function IdentityEntry({
   onSession: (session: StoredSession) => void;
 }) {
   const { t } = useTranslation();
+  usePasskeyProbe();
   const invitationToken =
     entryToken?.kind === 'invitation' ? entryToken.token : null;
   const recoveryToken =
@@ -112,6 +135,16 @@ export function IdentityEntry({
     useState(false);
   const [, setAccountCreation] =
     useState<InstanceAccessStatusAccountCreationEnum>('invitation');
+  const [oidcConnections, setOidcConnections] = useState<OidcConnectionView[]>(
+    [],
+  );
+  const [oidcSignupAvailable, setOidcSignupAvailable] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [passkeyMissing, setPasskeyMissing] = useState(false);
+  const [failedAction, setFailedAction] = useState<PendingAction | null>(null);
+  const [pendingConnection, setPendingConnection] = useState<string | null>(
+    null,
+  );
   const [termsOfUseVersion, setTermsOfUseVersion] = useState<string | null>(
     null,
   );
@@ -160,6 +193,7 @@ export function IdentityEntry({
       const isCurrent = captureOwnership();
       pendingOwner.current = isCurrent;
       setActiveError(null);
+      setFailedAction(null);
       setPendingAction(action);
       try {
         const result = await operation();
@@ -172,7 +206,9 @@ export function IdentityEntry({
       } catch (error) {
         if (!isCurrent()) return;
         setActiveError(error);
+        setFailedAction(action);
         setPendingAction(null);
+        setPendingConnection(null);
       } finally {
         if (pendingOwner.current === isCurrent) pendingOwner.current = null;
       }
@@ -190,6 +226,8 @@ export function IdentityEntry({
       setSelfServiceSignupAvailable(result.selfServiceSignupAvailable);
       setAccountCreation(result.accountCreation);
       setTermsOfUseVersion(result.termsOfUseVersion);
+      setOidcConnections(result.oidcConnections ?? []);
+      setOidcSignupAvailable(Boolean(result.oidcSignupAvailable));
       if (result.auth && !result.auth.localPassword && result.auth.magicLink) {
         setMode((currentMode) =>
           currentMode === 'signIn' ||
@@ -250,6 +288,19 @@ export function IdentityEntry({
           () => confirmEmailAddress(apiBaseUrl, token),
           () => setVerificationSucceeded(true),
         );
+      } else if (entryToken.kind === 'oidc') {
+        if (entryToken.providerError || !entryToken.code) {
+          // The person declined or closed the provider: back to the form, quietly.
+          onEntryTokenCleared();
+          return;
+        }
+        const { connectionId, code } = entryToken;
+        void runAction(
+          'oidcConsume',
+          () => completeOidcSignIn(apiBaseUrl, connectionId, code, token),
+          onSession,
+          discardSession,
+        );
       } else if (entryToken.kind === 'signup') {
         void runAction(
           'signupConsume',
@@ -274,6 +325,7 @@ export function IdentityEntry({
     discardSession,
     entryKey,
     entryToken,
+    onEntryTokenCleared,
     onSession,
     runAction,
   ]);
@@ -434,6 +486,45 @@ export function IdentityEntry({
     );
   }
 
+  function continueWithProvider(connectionId: string, signup: boolean) {
+    setPendingConnection(connectionId);
+    void runAction(
+      'oidcStart',
+      () =>
+        startOidcSignIn(apiBaseUrl, connectionId, {
+          signup,
+          acceptedTermsVersion: termsAccepted ? acceptedTermsVersion : null,
+          invitationToken,
+        }),
+      goToProvider,
+    );
+  }
+
+  function continueWithPasskey() {
+    setPasskeyMissing(false);
+    void runAction(
+      'passkey',
+      async () => {
+        try {
+          return await signInWithPasskey(apiBaseUrl);
+        } catch (error) {
+          if (error instanceof PasskeyCancelledError) return null;
+          if (error instanceof PasskeyNotOnDeviceError) {
+            setPasskeyMissing(true);
+            return null;
+          }
+          throw error;
+        }
+      },
+      (session) => {
+        if (session) onSession(session);
+      },
+      (session) => {
+        if (session) discardSession(session);
+      },
+    );
+  }
+
   function submitSignupAcceptance(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (entryToken?.kind !== 'signup') return;
@@ -466,6 +557,56 @@ export function IdentityEntry({
     termsOfUseVersion !== null && termsOfUseVersion !== BUNDLED_TERMS_VERSION;
   const acceptedTermsVersion = termsOutdated ? null : termsOfUseVersion;
   const asksForTerms = acceptedTermsVersion !== null;
+  // The Android app runs a provider in the system browser tab when the server
+  // registered its native callback, and passkeys through Credential Manager.
+  const native = isCapacitorNative();
+  const passkeyOffered =
+    passkeysAvailable() &&
+    authCapabilities?.passkey !== false &&
+    !invitationToken &&
+    mode !== 'signupRequest';
+  const providerBusy = pendingAction !== null;
+  function providerChoices(options: {
+    signup: boolean;
+    needsTerms: boolean;
+    dividerKey: 'identity.dividerEmailLink' | 'identity.dividerOr';
+    passkey: boolean;
+    show?: boolean;
+  }) {
+    // Until the instance status arrives, the mode and the methods are unknown.
+    if (registrationAvailability === 'checking') return null;
+    const connections =
+      options.show === false
+        ? []
+        : native
+          ? oidcConnections.filter((connection) => connection.nativeAvailable)
+          : oidcConnections;
+    if (connections.length === 0 && !(options.passkey && passkeyOffered))
+      return null;
+    const blockedByTerms = options.needsTerms && !termsAccepted;
+    return (
+      <ProviderChoices
+        connections={connections}
+        signup={options.signup}
+        disabled={providerBusy || blockedByTerms}
+        pendingConnection={pendingConnection}
+        onProvider={(id) => continueWithProvider(id, options.signup)}
+        passkey={options.passkey && passkeyOffered}
+        passkeyPending={pendingAction === 'passkey'}
+        onPasskey={continueWithPasskey}
+        dividerKey={options.dividerKey}
+        notice={
+          passkeyMissing && options.passkey
+            ? t('identity.passkeyNoneOnDevice')
+            : null
+        }
+      />
+    );
+  }
+  const providerTermsHint = (needsTerms: boolean) =>
+    needsTerms && !termsAccepted && oidcConnections.length > 0 ? (
+      <p className="login-hint">{t('identity.providerTermsFirst')}</p>
+    ) : null;
   const outdatedTerms = (
     <div className="inline-message" role="status">
       <strong>{t('legal.outdatedTitle')}</strong>
@@ -504,6 +645,24 @@ export function IdentityEntry({
                 {t('identity.returnToActiveAccount')}
               </button>
             </>
+          ) : entryToken?.kind === 'oidc' ? (
+            activeError ? (
+              <>
+                {problemCode(activeError) === TERMS_VERSION_OUTDATED ||
+                problemCode(activeError) === TERMS_ACCEPTANCE_REQUIRED ? (
+                  outdatedTerms
+                ) : (
+                  <UiState
+                    kind="error"
+                    title={t(oidcFailureKeys(problemCode(activeError)).title)}
+                    body={t(oidcFailureKeys(problemCode(activeError)).body)}
+                  />
+                )}
+                <BackToSignIn onClick={discardEntryToken} />
+              </>
+            ) : (
+              <UiState kind="loading" title={t('identity.oidcOpening')} />
+            )
           ) : entryToken?.kind === 'magicLink' ? (
             activeError ? (
               <>
@@ -657,7 +816,7 @@ export function IdentityEntry({
 
               {mode === 'signupRequest' ? (
                 <>
-                  <div>
+                  <div className="entry-heading entry-heading-quiet">
                     <p className="eyebrow">
                       {t('identity.startTogetherEyebrow')}
                     </p>
@@ -675,8 +834,23 @@ export function IdentityEntry({
                       onSubmit={submitSignupRequest}
                       className="form-grid login-form"
                     >
+                      {asksForTerms ? (
+                        <TermsAcceptanceField
+                          checked={termsAccepted}
+                          onChange={setTermsAccepted}
+                        />
+                      ) : null}
+                      {oidcSignupAvailable
+                        ? providerTermsHint(asksForTerms)
+                        : null}
+                      {providerChoices({
+                        signup: true,
+                        needsTerms: asksForTerms,
+                        dividerKey: 'identity.dividerEmailLink',
+                        passkey: false,
+                        show: oidcSignupAvailable,
+                      })}
                       <EmailField inputRef={emailInputRef} />
-                      {asksForTerms ? <TermsAcceptanceField /> : null}
                       <button
                         type="submit"
                         disabled={pendingAction === 'signupRequest'}
@@ -686,6 +860,11 @@ export function IdentityEntry({
                           ? t('identity.startTogetherPending')
                           : t('identity.startTogetherSubmit')}
                       </button>
+                      {oidcSignupAvailable && passkeysAvailable() ? (
+                        <p className="login-hint">
+                          {t('identity.passkeyLaterHint')}
+                        </p>
+                      ) : null}
                     </form>
                   )}
                   <button
@@ -793,7 +972,13 @@ export function IdentityEntry({
                 </>
               ) : mode === 'magicLinkRequest' ? (
                 <>
-                  <div>
+                  <div
+                    className={
+                      selfServiceSignupAvailable
+                        ? 'entry-heading entry-heading-quiet'
+                        : 'entry-heading'
+                    }
+                  >
                     <p className="eyebrow">{t('identity.magicLinkEyebrow')}</p>
                     <h2 id="identity-entry-heading">
                       {t('identity.magicLinkTitle')}
@@ -811,12 +996,32 @@ export function IdentityEntry({
                       onSubmit={submitMagicLinkRequest}
                       className="form-grid login-form"
                     >
-                      <EmailField inputRef={emailInputRef} />
                       {selfServiceSignupAvailable &&
                       invitationToken &&
                       asksForTerms ? (
-                        <TermsAcceptanceField />
+                        <TermsAcceptanceField
+                          checked={termsAccepted}
+                          onChange={setTermsAccepted}
+                        />
                       ) : null}
+                      {providerChoices({
+                        signup: false,
+                        needsTerms: Boolean(
+                          selfServiceSignupAvailable &&
+                            invitationToken &&
+                            asksForTerms,
+                        ),
+                        dividerKey: 'identity.dividerEmailLink',
+                        passkey: true,
+                      })}
+                      {providerTermsHint(
+                        Boolean(
+                          selfServiceSignupAvailable &&
+                            invitationToken &&
+                            asksForTerms,
+                        ),
+                      )}
+                      <EmailField inputRef={emailInputRef} />
                       <button
                         type="submit"
                         disabled={pendingAction === 'magicLinkRequest'}
@@ -826,6 +1031,9 @@ export function IdentityEntry({
                           ? t('identity.magicLinkRequestPending')
                           : t('identity.magicLinkRequestSubmit')}
                       </button>
+                      <p className="login-hint login-hint-compact">
+                        {t('identity.magicLinkHint')}
+                      </p>
                     </form>
                   )}
                   {localPasswordEnabled ? (
@@ -881,6 +1089,12 @@ export function IdentityEntry({
                     onSubmit={submitSignIn}
                     className="form-grid login-form"
                   >
+                    {providerChoices({
+                      signup: false,
+                      needsTerms: false,
+                      dividerKey: 'identity.dividerOr',
+                      passkey: true,
+                    })}
                     <EmailField inputRef={emailInputRef} />
                     <div className="field-group">
                       <label htmlFor="password">{t('login.password')}</label>
@@ -944,10 +1158,17 @@ export function IdentityEntry({
           {activeError &&
           !(activeError instanceof ActiveAccountMismatchError) &&
           entryToken?.kind !== 'magicLink' &&
+          entryToken?.kind !== 'oidc' &&
           entryToken?.kind !== 'emailVerification' &&
           entryToken?.kind !== 'signup' ? (
             problemCode(activeError) === TERMS_VERSION_OUTDATED ? (
               outdatedTerms
+            ) : failedAction === 'signIn' &&
+              clientProblemKind(activeError) === 'unauthorized' ? (
+              // A wrong password is not an expired session.
+              <div className="inline-message inline-message-error" role="alert">
+                <span>{t('login.errorFallback')}</span>
+              </div>
             ) : (
               <ProblemState error={activeError} />
             )
@@ -960,6 +1181,49 @@ export function IdentityEntry({
       </div>
     </main>
   );
+}
+
+function oidcFailureKeys(code: string | null): {
+  title:
+    | 'identity.oidcNoAccountTitle'
+    | 'identity.oidcAddressTakenTitle'
+    | 'identity.oidcEmailUnverifiedTitle'
+    | 'identity.oidcExpiredTitle'
+    | 'identity.oidcFailedTitle';
+  body:
+    | 'identity.oidcNoAccountBody'
+    | 'identity.oidcAddressTakenBody'
+    | 'identity.oidcEmailUnverifiedBody'
+    | 'identity.oidcExpiredBody'
+    | 'identity.oidcFailedBody';
+} {
+  switch (code) {
+    case 'OIDC_NO_ACCOUNT':
+      return {
+        title: 'identity.oidcNoAccountTitle',
+        body: 'identity.oidcNoAccountBody',
+      };
+    case 'OIDC_ADDRESS_ALREADY_REGISTERED':
+      return {
+        title: 'identity.oidcAddressTakenTitle',
+        body: 'identity.oidcAddressTakenBody',
+      };
+    case 'OIDC_EMAIL_NOT_VERIFIED':
+      return {
+        title: 'identity.oidcEmailUnverifiedTitle',
+        body: 'identity.oidcEmailUnverifiedBody',
+      };
+    case 'OIDC_STATE_INVALID':
+      return {
+        title: 'identity.oidcExpiredTitle',
+        body: 'identity.oidcExpiredBody',
+      };
+    default:
+      return {
+        title: 'identity.oidcFailedTitle',
+        body: 'identity.oidcFailedBody',
+      };
+  }
 }
 
 function registrationAvailabilityTitleKey(
@@ -1006,6 +1270,10 @@ function EmailField({
   inputRef?: React.Ref<HTMLInputElement>;
 } = {}) {
   const { t } = useTranslation();
+  const { error, errorId, fieldProps } = useInlineFieldError({
+    missing: t('login.emailMissing'),
+    mismatch: t('login.emailInvalid'),
+  });
   return (
     <div className="field-group">
       <label htmlFor="email">{t('login.email')}</label>
@@ -1018,7 +1286,13 @@ function EmailField({
         autoCapitalize="none"
         spellCheck={false}
         required
+        {...fieldProps}
       />
+      {error ? (
+        <p id={errorId} className="field-error" role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

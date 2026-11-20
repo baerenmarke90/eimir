@@ -1,10 +1,10 @@
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import gentlePrompts from '../../src/i18n/locales/gentlePrompts';
 import copy from '../../src/i18n/locales/notificationSettings';
 import onceCopy from '../../src/i18n/locales/onceMessages';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
+import AxeBuilder from '../support/axe';
 import {
   ACCOUNT_ID,
   captureScreenshot,
@@ -489,8 +489,12 @@ test('iOS opt-in registers APNs and a tap opens the sealed view without claiming
     host.openNativeNotification(id);
   }, notificationId);
   await expect(page).toHaveURL(new RegExp(`/today/only-you/${messageId}$`));
-  await expect(page.getByText(onceCopy.openConsequence)).toBeVisible();
-  await expect(page.getByRole('button', { name: onceCopy.open })).toBeVisible();
+  // Once messages open only in the Android app, which blocks screenshots
+  // (#683); iOS cannot, so it shows the same app-only note as a browser.
+  await expect(page.getByText(onceCopy.appOnly)).toBeVisible();
+  await expect(page.getByRole('button', { name: onceCopy.open })).toHaveCount(
+    0,
+  );
   expect(protectedWrites).toEqual([]);
 });
 

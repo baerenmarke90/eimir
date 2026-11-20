@@ -15,11 +15,19 @@ signing keystore lives as a secret in the GitHub Environment
 `android-test-release`; never look for, create or use a local keystore for
 this flow, and never ask for signing passwords.
 
+The release branch is also the head branch of the standing draft pull request
+#1443 (its title is outdated). Every release adds commits to that PR; do not
+merge, close or retitle it, and do not open a new release PR. The publishing
+jobs exist only in the workflow file on the release branch, not on `main`, so a
+change to the source-check gate belongs on the release branch.
+
 ## Preconditions
 
 - The Product Owner asked for the release. Publishing is outward-facing.
-- `main` CI is green on the revision you will ship. If it is not, report the
-  failing checks and stop.
+- The full regression is green on the `main` revision you will ship. Pushes to
+  `main` start no workflows (#2096); the Nightly Regression dispatches them. If
+  that revision has no green dispatched runs yet, dispatch **Nightly Regression**
+  and wait for it. If it is red, report the failing checks and stop.
 - `gh` is authenticated with `repo` and `workflow` scopes.
 
 ## Steps
@@ -45,9 +53,23 @@ this flow, and never ask for signing passwords.
    Derive the bullets from the PRs merged into `main` since the previous
    test release's source (`git log --merges <previous main SHA>..origin/main`).
    Describe what changed for the couple; leave out tests and tooling.
+
+   **Push the integrate commit alone and wait for its checks.** The preflight
+   checks out `sourceRevision` and requires every named source check to be
+   completed and successful on exactly that commit, so a plan pointing to a
+   commit that never ran its own checks fails the gate. The checks run on the
+   branch head, which is why the source must have been the branch head. Push
+   the integrate commit on its own (never force-push), wait until all checks on
+   it are completed and green (use **Re-run failed jobs** for a diagnosed
+   transient failure, see `AGENTS.md`), and only then continue. If the plan was
+   already pushed together with the integrate commit, add a commit that
+   restores the previous plan (`build(android): hold test.<N-1> plan while
+   test.N source checks run`, identical tree to the integrate commit) and use
+   that commit as the source after its checks are green.
 3. **Publish.** In a second commit,
    `build(android): publish verified test.N from current main`, update
-   `.github/android-test-release.json`:
+   `.github/android-test-release.json` (`sourceRevision` is the integrate
+   commit, or the hold commit from step 2, whose checks passed):
 
    ```json
    {
@@ -67,8 +89,16 @@ this flow, and never ask for signing passwords.
    - it has the assets `eimir-android-test-v0.2.0-test.N.apk`,
      `eimir-test-update.json`, `native-acceptance.md` and `SHA256SUMS`.
 
+   Also confirm that the release tag points to the intended source commit and
+   that the downloaded APK matches `SHA256SUMS`.
+
    If a job fails, diagnose it from its logs before any retry (see
-   `AGENTS.md`, CI retry policy).
+   `AGENTS.md`, CI retry policy). A failing step "Confirm exact source and
+   required checks" lists the required check names that were missing or not
+   successful on the source commit. The `Changed browser specs` job is sharded
+   as `Changed browser specs N/M`; the gate requires the plan check and every
+   planned shard. If a check name changes on `main`, update that list on the
+   release branch.
 5. **Report.** Give the release link, the workflow run link, the shipped
    `main` SHA and the release notes. Device acceptance on the Product Owner's
    phone remains outstanding until they confirm it.

@@ -47,6 +47,11 @@ CalDAV needs no operator setup.
 
 The consent may finish in a different browser than the eimir. session (the
 Android app uses the system browser), so no browser-binding cookie is used.
+The start request names the return (`returnTo`: `web` same tab, `app` the
+app link `de.eimir.app://calendar/google`, `page` the localized return page
+for older app builds); every return carries only the fixed outcome. Another
+app claiming the custom scheme could at most learn that outcome: the pending
+connection still needs the signed-in person's confirmation inside eimir.
 State + PKCE bind the code to the started transaction (10 minutes, single
 use, encrypted verifier). A returned consent only creates a **pending**
 connection for the starting Account; it is listed to that Account only and
@@ -60,14 +65,28 @@ token or provider text.
 
 ## Data flow and privacy
 
-- Sent to the chosen calendar: Plan title, description, place name and
-  schedule; discreet Plans send only the list title and schedule.
+- Sent to the chosen calendar: Plan title, description, place name, schedule
+  and a link to the Plan. Discreet Plans send only the list title and schedule.
 - Stored by eimir.: encrypted credentials/refresh token, the target calendar
   reference and name, and per Plan the event reference, UID and ETag. No
   calendar contents are read or stored.
 - Removing a connection revokes the Google grant (best effort) and deletes
   credentials; events in the calendar stay. Account deletion removes
   connections and open consents; a sponsor leaving the Space ends its target.
+
+## Opening the Plan from a calendar event
+
+- The first line of a regular synced event's description is a localized
+  “Open in eimir.” link, even when the Plan has no description. In Google
+  Calendar it uses the event's HTML description. CalDAV clients can use the
+  iCalendar HTML alternative (`ALTREP`), the plain-text first line with the
+  short address, or the standard `URL` property, depending on the client.
+- The short address uses `EIMIR_PUBLIC_BASE_URL` and a compact Plan ID. It
+  opens the existing Plan detail route with the same sign-in and Space access
+  checks. The address does not grant access or contain a credential.
+- On the next full sync (including “Sync now”), active events written before
+  this format update get the link through the existing event mapping. The
+  provider version check still protects externally edited appointments.
 
 ## Acceptance status
 
@@ -77,4 +96,4 @@ token or provider text.
 | Google Calendar API behaviour (ids, ETags, cancelled ids, rate limits, refresh, revoke) | Automated (API double) |
 | Live CalDAV server | Radicale 3.5.4: protocol check passed locally (discovery, listing, conditional create/update/delete, 412 semantics, full-URL fallback; transport shimmed for loopback). Nextcloud/Sabre, SOGo, Baïkal: **not yet verified** |
 | Live Google account with the operator's OAuth client | **Not yet verified**; requires the Google setup above |
-| Android app consent via system browser | Not verified on a device |
+| Android app consent via system browser and app return link | Not verified on a device |

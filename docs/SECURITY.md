@@ -243,10 +243,37 @@ never causes an account merge: it is adopted only if the provider explicitly
 confirms `email_verified=true` and the address does not already belong to
 another account.
 
+On eimir. Cloud a person may also create a new Account through a provider
+without an invitation (#58). The start request must say so (`signup`) and carry
+the accepted terms-of-use version, which is stored with the short-lived
+authentication request; the callback never invents an acceptance. The provider
+must mark the address as verified, the administrator must admit new Accounts,
+and an address that already has an Account is refused with
+`OIDC_ADDRESS_ALREADY_REGISTERED` instead of being merged. A callback without
+the signup intent never creates an Account. The public instance status lists
+only the connection `id`, a presentation hint and whether a native callback is
+registered; issuer, client identity and addresses stay in configuration.
+
+An Account lists its passkeys and linked providers (`GET /auth/sign-in-methods`)
+and may remove any of them. A removal that would leave no way to sign in is
+refused with `SIGN_IN_METHOD_LAST`; the remaining ways are a verified primary
+address where mail exists, a local password where it is allowed, another
+passkey, or another provider that is still configured. Removals for one Account
+serialize on a lock so two simultaneous removals cannot both pass the check.
+
 Provider error text never leaves the adapter because it may contain internal
 addresses or the client secret. Externally, errors remain the stable codes
 `OIDC_TOKEN_INVALID`, `OIDC_STATE_INVALID`, `OIDC_PROVIDER_UNREACHABLE`,
-`OIDC_NO_ACCOUNT`, and `OIDC_IDENTITY_ALREADY_LINKED`.
+`OIDC_NO_ACCOUNT`, `OIDC_IDENTITY_ALREADY_LINKED`, `OIDC_EMAIL_NOT_VERIFIED`, and
+`OIDC_ADDRESS_ALREADY_REGISTERED`.
+
+In the Android app a provider returns through a verified App Link on the
+configured origin and the passkey ceremony runs through Credential Manager. A
+ceremony started by the native app carries the origin
+`android:apk-key-hash:<signing certificate hash>`; the server accepts it only
+when the operator lists it in `EIMIR_WEBAUTHN_ORIGINS`, and the relying party
+trusts the app only through Digital Asset Links (`get_login_creds`). The app
+forwards the platform's WebAuthn JSON unchanged and never interprets it.
 
 Passkeys are stored as independent WebAuthn credentials with globally unique
 credential ID, public key, signature counter, AAGUID, transports, and
@@ -758,6 +785,89 @@ Never logged: passwords; Bearer, refresh, Magic Link, signup, verification, or
 Recovery tokens; OIDC tokens; WebAuthn challenges; contents of Memories, HeartMoments,
 answers, private notes, and gift ideas; sensitive preference values; precise
 locations. Error tracking is sanitized in the same way.
+
+### Request logging at every proxy hop
+
+The Web virtual host in `web/nginx.conf` disables access logging at server level,
+including SPA entry routes and internal redirects. Its request-scoped error log
+goes to `/dev/null`: nginx can append the raw request or upstream URL to an error,
+and increasing the severity threshold does not redact it. Master/startup messages,
+container health checks and the application's sanitized diagnostics remain
+available. Do not enable raw request/debug logging to troubleshoot a live account.
+
+Application log filters cannot sanitize a proxy's independent output. Apply the
+same boundary to **every** operator-controlled TLS proxy, redirect/default host,
+load balancer and error-tracking/log-collection hop serving the eimir. origin.
+Preserve the routing, TLS, security headers and trusted-forwarding configuration
+from [Self-Hosting](SELF-HOSTING.md#reverse-proxy-and-public-exposure).
+
+For a plain nginx virtual host, use the following server-level policy before its
+locations, and remove any location/include that re-enables request logging:
+
+```nginx
+access_log off;
+error_log /dev/null;
+```
+
+Replace other `error_log` destinations at that level; adding `/dev/null` beside an
+existing error log leaves both active. Likewise, a location-level override can
+undo inherited protection. Protect HTTP-to-HTTPS redirects and default/error
+hosts as well as the HTTPS Web/API routes. Keep process/startup logging outside
+the request-serving virtual hosts and use sanitized application events and health
+checks for operational diagnosis. An access-log format that omits query arguments
+does not sanitize nginx error messages or private values in URL paths.
+
+**Nginx Proxy Manager:** inspect the generated configuration for the installed
+version. Its upstream proxy-host template declares host-specific access and error
+logs before the Advanced field. Adding another server-level `error_log /dev/null`
+in that field or `server_proxy.conf` does not remove the generated error sink.
+Apply the policy through a maintained, version-matched deployment/template
+override that replaces those destinations for the eimir. hosts. Regenerate the
+hosts, and verify again after saving, restarting or upgrading NPM. Do not treat a
+one-off edit of a generated host file as a persistent fix. Other hosts need not
+change. The actual operator configuration is a deployment acceptance step, not
+something the eimir. Web image can enforce on an external proxy.
+
+Upstream references:
+[nginx access logging](https://nginx.org/en/docs/http/ngx_http_log_module.html#access_log),
+[nginx error logging](https://nginx.org/en/docs/ngx_core_module.html#error_log),
+[NPM custom configuration](https://nginxproxymanager.com/advanced-config/#custom-nginx-configurations),
+and the installed version's
+[proxy-host template](https://github.com/NginxProxyManager/nginx-proxy-manager/blob/develop/backend/templates/proxy_host.conf).
+
+#### Verification
+
+1. Inspect `nginx -T` inside each proxy container locally. Check all relevant
+   servers, locations, includes and log destinations; do not publish the complete
+   output because other configuration may contain secrets. Run `nginx -t` before
+   reloading. Do not remove TLS, CSP, trusted-proxy or routing restrictions.
+2. Send synthetic query/header canaries through the public origin to the Web
+   entry routes, a rejected request and a controlled upstream-error case in a
+   disposable acceptance environment. Use no live account or valid token. Verify
+   successful Web delivery and expected failure status as well as log absence.
+3. Check each hop's access/error files, stdout/stderr and downstream log sinks,
+   including rotated/buffered output after flushing. Verify that process/startup
+   diagnostics and application health still work. An empty application log alone
+   does not prove proxy privacy.
+4. Repeat the check after proxy regeneration and relevant upgrades. Existing
+   retained logs are not rewritten by the new configuration; handle any sensitive
+   historical records through the existing restricted incident/retention process.
+
+The automated image-level regression runs in the existing **Network and Port
+Guard**, after the source images have been built:
+
+```sh
+web_image=$(docker compose --profile self-hosted --env-file .env config --format json \
+  | jq -er '.services.web.image')
+python3 web/scripts/test_request_log_privacy.py --image "$web_image"
+```
+
+The test pins the local image ID and uses disposable containers without external
+network access or published ports. It covers the canonical Web entry registry,
+SPA responses, rejected/malformed requests and unavailable API/media upstreams.
+Separate temporary access/error control fixtures must expose their synthetic
+canaries, proving that the detector observes both sinks. No real authentication,
+mail issuance, production data or operator proxy is involved.
 
 ## Encryption at rest (application-controlled)
 

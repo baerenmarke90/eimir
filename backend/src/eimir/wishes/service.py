@@ -31,7 +31,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, delete, or_, select
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
@@ -50,7 +50,7 @@ from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.outbox import service as outbox_service
 from eimir.plans.models import Plan
 from eimir.wishes import reminders as wish_reminders
-from eimir.wishes.models import Wish, WishPayload, WishStatus, shared_privacy
+from eimir.wishes.models import Wish, WishDateProposal, WishPayload, WishStatus, shared_privacy
 
 _RECEIPT_RESOURCE_TYPE = CreateReceiptResourceType.WISH.value
 
@@ -419,6 +419,7 @@ def complete_direct_wish(
         )
 
     wish.status = WishStatus.COMPLETED.value
+    session.execute(delete(WishDateProposal).where(WishDateProposal.wish_id == wish.id))
     wish_reminders.cancel_for_wish(session, wish.id)
     _flush(session)
     record_event(session, wish, context.account_id, EventType.WISH_COMPLETED)
@@ -426,7 +427,9 @@ def complete_direct_wish(
     return wish
 
 
-def plan_created(session: Session, wish: Wish, actor_id: UUID) -> None:
+def plan_created(
+    session: Session, wish: Wish, actor_id: UUID, *, accepted_proposal_id: UUID | None = None
+) -> None:
     """Apply ``OPEN -> PLANNED``, the only edge triggered by plan creation."""
     if wish.status != WishStatus.OPEN.value:
         raise ConflictError(
@@ -434,6 +437,10 @@ def plan_created(session: Session, wish: Wish, actor_id: UUID) -> None:
             WISH_STATUS_TRANSITION_INVALID,
         )
     wish.status = WishStatus.PLANNED.value
+    discard = delete(WishDateProposal).where(WishDateProposal.wish_id == wish.id)
+    if accepted_proposal_id is not None:
+        discard = discard.where(WishDateProposal.id != accepted_proposal_id)
+    session.execute(discard)
     wish_reminders.cancel_for_wish(session, wish.id)
     _flush(session)
     record_event(session, wish, actor_id, EventType.WISH_PLANNED)

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { loadGameParticipants } from '../client/gameParticipants';
 import { normalizeClientError } from '../client/problemDetails';
+import { useRemoteWhoOfUsGame } from '../client/useRemoteCoupleGames';
 import {
   createLocalWhoOfUsSession,
   selectWhoOfUsQuestions,
@@ -12,6 +13,11 @@ import {
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import {
+  CoupleGameModes,
+  type GamePeople,
+  RemoteWhoOfUsView,
+} from './RemoteCoupleGames';
 import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 
@@ -243,16 +249,65 @@ function WhoOfUsSessionView({
   );
 }
 
+/** #2048: one phone together or each partner on their own phone. */
+function WhoOfUsModes({
+  participants,
+  people,
+  apiBaseUrl,
+  accessToken,
+  spaceId,
+}: {
+  participants: readonly [WhoOfUsParticipant, WhoOfUsParticipant];
+  people: GamePeople;
+  apiBaseUrl: string;
+  accessToken: string;
+  spaceId: string;
+}) {
+  const remote = useRemoteWhoOfUsGame({
+    spaceId,
+    currentAccountId: people.me.id,
+    apiBaseUrl,
+    accessToken,
+  });
+  return (
+    <CoupleGameModes
+      partnerName={people.partner.displayName}
+      remote={remote}
+      renderLocal={() => <WhoOfUsSessionView participants={participants} />}
+      renderRemote={(onNewGame) => (
+        <RemoteWhoOfUsView
+          game={remote}
+          people={people}
+          onNewGame={onNewGame}
+        />
+      )}
+    />
+  );
+}
+
+function peopleOf(
+  participants: readonly [WhoOfUsParticipant, WhoOfUsParticipant],
+  currentAccountId: string | undefined,
+): GamePeople | null {
+  if (!currentAccountId) return null;
+  const me = participants.find((person) => person.id === currentAccountId);
+  const partner = participants.find((person) => person.id !== currentAccountId);
+  return me && partner ? { me, partner } : null;
+}
+
 export function WhoOfUsGamePanel({
   apiBaseUrl,
   accessToken,
   spaceId,
+  currentAccountId,
   onExit,
   loadParticipants,
 }: {
   apiBaseUrl: string;
   accessToken: string;
   spaceId: string;
+  /** Without it (older callers) only the one-phone game is offered. */
+  currentAccountId?: string;
   onExit: () => void;
   loadParticipants?: () => Promise<
     readonly [WhoOfUsParticipant, WhoOfUsParticipant] | null
@@ -304,6 +359,16 @@ export function WhoOfUsGamePanel({
           kind="empty"
           title={t('games.whoOfUs.coupleRequiredTitle')}
           body={t('games.whoOfUs.coupleRequiredBody')}
+        />
+      ) : peopleOf(participantsQuery.data, currentAccountId) ? (
+        <WhoOfUsModes
+          participants={participantsQuery.data}
+          people={
+            peopleOf(participantsQuery.data, currentAccountId) as GamePeople
+          }
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+          spaceId={spaceId}
         />
       ) : (
         <WhoOfUsSessionView participants={participantsQuery.data} />

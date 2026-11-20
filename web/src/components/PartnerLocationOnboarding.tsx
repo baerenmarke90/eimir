@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { LocationPrecision } from '../client/approximateLocation';
 import { isClientOnline } from '../client/connectivity';
 import {
   DEFAULT_SHARING_DURATION,
@@ -21,6 +22,7 @@ import {
   DisclosurePoint,
   DurationChoice,
   LevelChoice,
+  PrecisionChoice,
   sharedSnackbar,
   shareWithPermission,
 } from './PartnerLocationControls';
@@ -55,6 +57,7 @@ export function PartnerLocationOnboarding({
   );
   const [open, setOpen] = useState(false);
   const [level, setLevel] = useState<SharedLevel>('DISTANCE');
+  const [precision, setPrecision] = useState<LocationPrecision>('APPROXIMATE');
   const [duration, setDuration] = useState<SharingDuration>(
     DEFAULT_SHARING_DURATION,
   );
@@ -134,13 +137,14 @@ export function PartnerLocationOnboarding({
         spaceId,
         level,
         duration,
+        precision,
       });
       if (outcome === 'permission') {
         setMessage(t('partnerLocation.permissionNeeded'));
       } else if (outcome === 'failed') {
         setMessage(t('partnerLocation.writeFailed'));
       } else {
-        sharedSnackbar(level);
+        sharedSnackbar(level, outcome);
         setOpen(false);
       }
     } finally {
@@ -184,16 +188,29 @@ export function PartnerLocationOnboarding({
       </p>
       <ul className="partner-location-points">
         <DisclosurePoint icon="shield">
-          {t('partnerLocation.onboardingCoarse')}
+          {t(
+            precision === 'PRECISE'
+              ? 'partnerLocation.onboardingPrecise'
+              : 'partnerLocation.onboardingCoarse',
+          )}
         </DisclosurePoint>
         <DisclosurePoint icon="bolt">
-          {t('partnerLocation.onboardingEnergy')}
+          {t(
+            precision === 'PRECISE'
+              ? 'partnerLocation.onboardingEnergyPrecise'
+              : 'partnerLocation.onboardingEnergy',
+          )}
         </DisclosurePoint>
         <DisclosurePoint icon="off">
           {t('partnerLocation.onboardingStop')}
         </DisclosurePoint>
       </ul>
       <LevelChoice value={level} onChange={setLevel} disabled={busy} />
+      <PrecisionChoice
+        value={precision}
+        onChange={setPrecision}
+        disabled={busy}
+      />
       <DurationChoice value={duration} onChange={setDuration} disabled={busy} />
       {message ? (
         <p className="partner-location-sheet-message" role="alert">

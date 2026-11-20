@@ -7,6 +7,7 @@ import type { DashboardRelationshipDuration } from '../api/generated/models/Dash
 import type { RelationshipPassportView } from '../api/generated/models/RelationshipPassportView';
 import { Configuration } from '../client/apiConfiguration';
 import { ProfilesApi } from '../client/mediaApis';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
   ClientProblemError,
@@ -18,6 +19,12 @@ import {
   entitlementLoader,
   useSpaceCapability,
 } from '../client/spaceEntitlement';
+import type { LifelineKind } from '../client/storyLifeline';
+import {
+  type MilestoneRef,
+  nextMilestoneAnniversary,
+  waymarkToday,
+} from '../client/storyWaymarks';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { OVERVIEW_GC_TIME } from '../client/useWarmOverviewQuery';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -30,13 +37,34 @@ import {
   type StoryOccasion,
   StoryPlaces,
   useFulfilledWishes,
+  useStoryMilestones,
   useStoryOccasions,
 } from './RelationshipStoryExtras';
+import {
+  PassportWaymarks,
+  passportDate,
+  useWaymarkLabel,
+} from './RelationshipWaymarks';
+import { UNPAINTED, useSecureScreen } from './SecureSurface';
 import { SharedStorySummary } from './SharedStorySummary';
+import { StoryKindGlyph } from './StoryKindGlyph';
 import './RelationshipReflections.css';
 
 const CAPABILITY = 'relationship.passport';
-export function RelationshipPassport(props: ProfilePageProps) {
+
+/** Loads a Memory's photo through the authorized story media path. */
+export type PassportImageLoader = (
+  memoryId: string,
+  attachmentId: string,
+  signal?: AbortSignal,
+  variant?: 'original' | 'thumbnail',
+) => Promise<ObjectUrlSource>;
+
+type PassportProps = ProfilePageProps & {
+  loadMemoryImage?: PassportImageLoader;
+};
+
+export function RelationshipPassport(props: PassportProps) {
   const { t } = useTranslation();
   const apis = useMemo(() => {
     const configuration = new Configuration({
@@ -108,8 +136,9 @@ function PassportProEntry() {
 
 function PassportRead({
   apis,
+  loadMemoryImage,
   ...props
-}: ProfilePageProps & {
+}: PassportProps & {
   apis: { dashboard: DashboardApi; profiles: ProfilesApi };
 }) {
   const { t } = useTranslation();
@@ -169,6 +198,8 @@ function PassportRead({
           accountId={props.account.id}
           spaceId={props.spaceId}
           dashboardApi={apis.dashboard}
+          loadMemoryImage={loadMemoryImage}
+          variant="full"
         />
         <StoryChapters
           apiBaseUrl={props.apiBaseUrl}
@@ -240,6 +271,7 @@ function PassportContent({
     spaceId: props.spaceId,
   };
   const fulfilledWishes = useFulfilledWishes(storyScope);
+  const milestones = useStoryMilestones(storyScope);
   const occasions = useStoryOccasions(
     storyScope,
     partner
@@ -257,21 +289,30 @@ function PassportContent({
     key === 'fulfilledWishes'
       ? t('relationshipReflections.passport.fulfilledWishes', { count })
       : t(`relationshipReflections.passport.${key}`, { count });
-  const metrics = [
+  const metrics: {
+    key: string;
+    count: number;
+    to: string;
+    /** The three shared Story kinds keep their shape and colour here too. */
+    kind?: LifelineKind;
+  }[] = [
     {
       key: 'memories',
       count: value.memories,
       to: '/story?tab=timeline&type=MEMORY',
+      kind: 'memories',
     },
     {
       key: 'heartMoments',
       count: value.heartMoments,
       to: '/story?tab=timeline&type=HEART_MOMENT',
+      kind: 'heartMoments',
     },
     {
       key: 'milestones',
       count: value.milestones,
       to: '/story?tab=timeline&type=MILESTONE',
+      kind: 'milestones',
     },
     { key: 'completedPlans', count: value.completedPlans, to: '/plan#plans' },
     { key: 'places', count: value.places, to: MORE_PLACES_ROUTE },
@@ -345,6 +386,11 @@ function PassportContent({
       <PassportLandmarks
         duration={value.relationshipDuration}
         occasions={occasions}
+        milestones={milestones}
+      />
+      <PassportWaymarks
+        duration={value.relationshipDuration}
+        milestones={milestones}
       />
       {empty ? (
         <div>
@@ -356,11 +402,29 @@ function PassportContent({
           <h3>{t('relationshipReflections.passport.history')}</h3>
           <ul className="passport-metrics">
             {metrics.map((metric) => (
-              <li key={metric.key}>
+              <li
+                key={metric.key}
+                className={
+                  metric.kind
+                    ? `passport-metric-story story-kind-${metric.kind}`
+                    : undefined
+                }
+              >
                 <Link
                   to={metric.to}
                   aria-label={`${numbers.format(metric.count)} ${metricLabel(metric.key, metric.count)}`}
                 >
+                  {metric.kind ? (
+                    <StoryKindGlyph
+                      kind={metric.kind}
+                      className="passport-metric-glyph"
+                    />
+                  ) : (
+                    <span
+                      className="passport-metric-glyph"
+                      aria-hidden="true"
+                    />
+                  )}
                   <span className="passport-metric-label">
                     {metricLabel(metric.key, metric.count)}
                   </span>
@@ -386,25 +450,27 @@ function PassportContent({
   );
 }
 
-function passportDate(value: Date): string {
-  return new Intl.DateTimeFormat(resolvedLocale(), {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(value);
-}
-
 function PassportLandmarks({
   duration,
   occasions,
+  milestones,
 }: {
   duration: DashboardRelationshipDuration | null;
   occasions: readonly StoryOccasion[];
+  milestones: readonly MilestoneRef[];
 }) {
   const { t } = useTranslation();
+  const waymarkLabel = useWaymarkLabel();
+  // An own private date stays out of screenshots in the app (#683).
+  const secureScreen = useSecureScreen(
+    occasions.some((occasion) => occasion.private),
+  );
   const landmarks = passportLandmarks(duration);
   if (!landmarks) return null;
+  const upcomingMilestone = nextMilestoneAnniversary(
+    milestones,
+    waymarkToday(duration),
+  );
   const remaining = (count: number) =>
     count === 0
       ? t('relationshipReflections.passport.landmarkToday')
@@ -421,24 +487,48 @@ function PassportLandmarks({
       daysRemaining: landmarks.anniversary.daysRemaining,
       progress: 1 - landmarks.anniversary.daysRemaining / 365,
     },
-    {
-      key: 'roundDay',
-      label: t('relationshipReflections.passport.roundDay', {
-        count: landmarks.roundDay.days,
-        days: new Intl.NumberFormat(resolvedLocale()).format(
-          landmarks.roundDay.days,
-        ),
-      }),
-      date: landmarks.roundDay.date,
-      daysRemaining: landmarks.roundDay.daysRemaining,
-      progress: 1 - landmarks.roundDay.daysRemaining / landmarks.roundDay.days,
-    },
+    ...(landmarks.roundDay
+      ? [
+          {
+            key: 'roundDay',
+            label: waymarkLabel({
+              kind: 'roundDay',
+              key: 'next-round-day',
+              date: landmarks.roundDay.date,
+              days: landmarks.roundDay.days,
+            }),
+            date: landmarks.roundDay.date,
+            daysRemaining: landmarks.roundDay.daysRemaining,
+            progress:
+              1 - landmarks.roundDay.daysRemaining / landmarks.roundDay.days,
+          },
+        ]
+      : []),
+    ...(upcomingMilestone
+      ? [
+          {
+            key: `milestone-anniversary:${upcomingMilestone.milestoneId}`,
+            label: waymarkLabel({
+              kind: 'milestoneAnniversary',
+              key: 'next-milestone-anniversary',
+              date: upcomingMilestone.date,
+              years: upcomingMilestone.years,
+              milestoneId: upcomingMilestone.milestoneId,
+              title: upcomingMilestone.title,
+            }),
+            date: upcomingMilestone.date,
+            daysRemaining: upcomingMilestone.daysRemaining,
+            progress: 1 - upcomingMilestone.daysRemaining / 365,
+          },
+        ]
+      : []),
     ...occasions.map((occasion) => ({
       key: occasion.key,
       label: occasion.label,
       date: occasion.date,
       daysRemaining: occasion.daysRemaining,
       progress: 1 - occasion.daysRemaining / 365,
+      private: occasion.private,
     })),
   ].sort((a, b) => a.daysRemaining - b.daysRemaining);
   return (
@@ -446,7 +536,14 @@ function PassportLandmarks({
       <h3>{t('relationshipReflections.passport.nextChapter')}</h3>
       <dl>
         {rows.map((row) => (
-          <div key={row.key}>
+          <div
+            key={row.key}
+            style={
+              'private' in row && row.private && !secureScreen.shown
+                ? UNPAINTED
+                : undefined
+            }
+          >
             <dt>{row.label}</dt>
             <dd>
               <time dateTime={row.date.toISOString().slice(0, 10)}>

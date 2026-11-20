@@ -5,22 +5,61 @@ import {
   MapLibreMap,
   type MapMouseEvent,
   Marker,
+  type RequestTransformFunction,
+  type StyleSpecification,
   setWorkerUrl,
 } from 'maplibre-gl';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { cssDurationMilliseconds } from '../client/cssDuration';
+import { framingPoints } from '../client/mapFraming';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useTranslation } from '../i18n';
+import {
+  prefersReducedMotion,
+  subscribeReducedMotion,
+} from '../motion/reducedMotion';
+import { durationMs } from '../motion/tokens';
+import { observeVisibility } from '../motion/visibility';
+import { isCapacitorNative } from '../pwa';
+import '../motion/map.css';
 import './PlaceMapPicker.css';
-import { googleLikeStyle } from './placeMapStyle';
+import {
+  cachedBasemapStyle,
+  forgetBasemapStyle,
+  refreshBasemapStyle,
+} from '../client/basemapStyleCache';
+import { ConnectionOverlay, type MapConnection } from './placeMapConnection';
+import { googleLikeStyle, withLocalizedAttribution } from './placeMapStyle';
+
+export type { MapConnection } from './placeMapConnection';
 
 // The CSP forbids blob workers, so MapLibre runs its first-party worker file.
 setWorkerUrl(workerUrl);
 
 /** Keyless vector style built from OpenStreetMap data; see docs/DEPENDENCIES.md. */
-const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+const MAP_ORIGIN = 'https://tiles.openfreemap.org';
+const MAP_STYLE_URL = `${MAP_ORIGIN}/styles/liberty`;
+
+// Native WebViews do not register the browser map service worker. Reuse the
+// HTTP cache for versioned public tiles, the versioned sprite sheet and the
+// font glyphs (#2063), while style and TileJSON can advance to the next tile
+// set under their normal HTTP freshness rules.
+const CACHED_RESOURCES = new Set([
+  'Tile',
+  'SpriteJSON',
+  'SpriteImage',
+  'Glyphs',
+]);
+const cacheNativeTiles: RequestTransformFunction = (url, resourceType) =>
+  resourceType &&
+  CACHED_RESOURCES.has(resourceType) &&
+  url.startsWith(`${MAP_ORIGIN}/`)
+    ? { url, cache: 'force-cache' }
+    : undefined;
+/** Missing tiles from a stored style before it is replaced. */
+const STORED_STYLE_MISSING_TILES = 3;
+
 /**
  * Camera zoom values exchanged with callers use the 256 px raster-tile scale
  * the app started with. MapLibre counts 512 px vector tiles, one level lower.
@@ -34,6 +73,15 @@ const TILE_CACHE_ZOOM_LEVELS = 8;
 const PLACE_ZOOM = 15;
 const OVERVIEW_MAX_ZOOM = 12;
 const MARKER_KEYS = ['Enter', ' '];
+/** The connection starts at the latest this long after it was placed. */
+const MAP_READY_FALLBACK_MS = 2500;
+
+/** The longest the map waits for marker photos after its view has drawn. */
+const MAP_REVEAL_PHOTO_WAIT_MS = 1_200;
+/** The longest the map waits for those photos to decode. */
+const MAP_REVEAL_DECODE_WAIT_MS = 200;
+/** The map shows by then even when its basemap is slow or failing. */
+const MAP_REVEAL_CAP_MS = 4_000;
 
 export interface MapPoint {
   latitude: number;
@@ -54,7 +102,7 @@ export interface MapLocation extends MapPoint {
 /**
  * An approximate area, not a pin (#1792): a circle of at least the disclosed
  * radius with an optional decorative marker in its centre. Areas frame the
- * map once; later updates never move the camera.
+ * map as they arrive, until the viewer takes over the camera.
  */
 export interface MapArea extends MapPoint {
   id: string;
@@ -108,6 +156,30 @@ const USER_MOTION_REST_MS = 1500;
 type LngLat = [number, number];
 const lngLat = (point: MapPoint): LngLat => [point.longitude, point.latitude];
 
+/*
+ * The Map domain (Motion Contract 4.8). MapLibre renders and animates the
+ * camera itself; these read its durations through the token adapter and the
+ * one reduced-motion source (M1, M9). A `0` duration means a jump.
+ */
+
+/** An explicit camera journey (a Place, "show us", clearing the selection). */
+const cameraJourneyMs = () =>
+  prefersReducedMotion() ? 0 : durationMs('map-camera');
+
+/** One step of the zoom buttons. */
+const zoomStepMs = () =>
+  prefersReducedMotion() ? 0 : durationMs('transition');
+
+type PanInertia = Parameters<MapLibreMap['dragPan']['enable']>[0];
+
+/**
+ * The pan follows the finger 1:1 either way; with reduced motion it stops
+ * where the finger lifts instead of gliding on. Everyone else keeps
+ * MapLibre's own inertia (its default options).
+ */
+const panInertia = (): PanInertia =>
+  prefersReducedMotion() ? { maxSpeed: 0 } : undefined;
+
 /** Zoom buttons with localized names; MapLibre's stock control needs data: images. */
 class ZoomControl implements IControl {
   private group?: HTMLElement;
@@ -127,9 +199,14 @@ class ZoomControl implements IControl {
       button.textContent = glyph;
       button.title = label;
       button.setAttribute('aria-label', label);
-      button.addEventListener('click', () =>
-        kind === 'in' ? map.zoomIn() : map.zoomOut(),
-      );
+      button.addEventListener('click', () => {
+        // Gesture follow's non-gesture alternative (4.6, 4.8): one step with
+        // the transition role, or a jump with reduced motion.
+        const duration = zoomStepMs();
+        const options = duration ? { duration } : { animate: false };
+        if (kind === 'in') map.zoomIn(options);
+        else map.zoomOut(options);
+      });
       group.append(button);
       return button;
     };
@@ -168,7 +245,9 @@ export default function PlaceMapCanvas({
   onUserMotionChange,
   areas,
   showAreasRequest = 0,
+  connection,
   ariaLabel,
+  revealWhenComplete = false,
 }: {
   value?: MapPoint;
   focus?: MapPoint;
@@ -182,9 +261,18 @@ export default function PlaceMapCanvas({
   areas?: readonly MapArea[];
   /** Increment to frame all areas again (an explicit "show us"). */
   showAreasRequest?: number;
+  /** A decorative connection between two of the areas (#1907 H1). */
+  connection?: MapConnection;
   ariaLabel?: string;
+  /**
+   * Shows the map in one piece (#2063): the basemap and the marker photos
+   * appear together, once both are ready, instead of building up in front of
+   * the viewer. A cap keeps a slow or failing basemap from hiding it.
+   */
+  revealWhenComplete?: boolean;
 }) {
   const { t } = useTranslation();
+  const [complete, setComplete] = useState(false);
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markerRef = useRef<Marker | null>(null);
@@ -196,6 +284,7 @@ export default function PlaceMapCanvas({
   const [moving, setMoving] = useState(false);
   const initialPoint = useRef(value);
   const restoredViewport = useRef(initialViewport);
+  const keptCamera = useRef<MapViewport | null>(null);
   const viewportChangeRef = useRef(onViewportChange);
   viewportChangeRef.current = onViewportChange;
   const userMotionRef = useRef(onUserMotionChange);
@@ -218,10 +307,14 @@ export default function PlaceMapCanvas({
   const areaEntries = useRef(
     new Map<string, { marker: Marker; circle: HTMLElement; area: MapArea }>(),
   );
-  const areasFramed = useRef(false);
   const framePadding = useRef<number | typeof AREA_PADDING>(40);
   const areasRef = useRef(areas);
   areasRef.current = areas;
+  const connectionRef = useRef(connection);
+  connectionRef.current = connection;
+  const connectionOverlay = useRef<ConnectionOverlay | null>(null);
+  const stopConnectionVisibility = useRef<(() => void) | null>(null);
+  const placeConnection = useRef<(() => void) | null>(null);
   const markers = useRef(
     new Map<
       string,
@@ -232,6 +325,11 @@ export default function PlaceMapCanvas({
   useEffect(() => {
     if (!container.current) return;
     fittedGeometry.current = '';
+    // A locale change recreates the map. After the viewer moved the camera it
+    // starts where they left it, not at the opening view (4.8); an automatic
+    // frame is simply framed again.
+    if (keptCamera.current && !autoFrame.current)
+      restoredViewport.current = keptCamera.current;
     autoFrame.current = !restoredViewport.current;
     const element = container.current;
     const point =
@@ -245,6 +343,7 @@ export default function PlaceMapCanvas({
       // same area reuses tiles instead of reloading and re-parsing them. The
       // network side is already cached by the service worker and the browser.
       maxTileCacheZoomLevels: TILE_CACHE_ZOOM_LEVELS,
+      transformRequest: isCapacitorNative() ? cacheNativeTiles : undefined,
       // The page scrolls past an embedded map; zoom stays on buttons, double
       // tap and pinch. Rotation/tilt would need a compass the product lacks.
       scrollZoom: false,
@@ -254,7 +353,81 @@ export default function PlaceMapCanvas({
       attributionControl: { compact: false },
     });
     map.touchZoomRotate.disableRotation();
-    map.setStyle(MAP_STYLE_URL, { transformStyle: googleLikeStyle });
+    map.dragPan.enable(panInertia());
+    // Complete: the opening view has drawn and the marker photos have loaded
+    // and decoded (or a short wait passed); never later than the cap.
+    setComplete(false);
+    let revealed = false;
+    let revealFrame = 0;
+    let revealCap = 0;
+    const reveal = () => {
+      if (revealed) return;
+      revealed = true;
+      window.cancelAnimationFrame(revealFrame);
+      window.clearTimeout(revealCap);
+      setComplete(true);
+    };
+    revealCap = window.setTimeout(reveal, MAP_REVEAL_CAP_MS);
+    map.once('idle', () => {
+      const until = performance.now() + MAP_REVEAL_PHOTO_WAIT_MS;
+      const bounds = () => element.getBoundingClientRect();
+      // Only photos in the visible map count: a lazy photo outside it would
+      // never load, and a deferred placeholder is not loading at all.
+      const visiblePhotos = () => {
+        const box = bounds();
+        return [...element.querySelectorAll('img')].filter((image) => {
+          const rect = image.getBoundingClientRect();
+          return (
+            rect.right > box.left &&
+            rect.left < box.right &&
+            rect.bottom > box.top &&
+            rect.top < box.bottom
+          );
+        });
+      };
+      const photosReady = () => {
+        if (revealed) return;
+        const loading =
+          element.querySelector(
+            '.story-media-skeleton:not([data-media-deferred])',
+          ) !== null || visiblePhotos().some((image) => !image.complete);
+        if (loading && performance.now() < until) {
+          revealFrame = window.requestAnimationFrame(photosReady);
+          return;
+        }
+        // Decoded before they show, so no photo pops in after the fade.
+        const decoded = visiblePhotos()
+          .filter((image) => image.complete && image.naturalWidth > 0)
+          .map((image) => image.decode().catch(() => undefined));
+        const settle = new Promise((done) =>
+          window.setTimeout(done, MAP_REVEAL_DECODE_WAIT_MS),
+        );
+        void Promise.race([Promise.all(decoded), settle]).then(reveal);
+      };
+      photosReady();
+    });
+    const dataFrom = t('m5s3.map.attributionDataFrom');
+    const localizedStyle = (
+      previous: StyleSpecification | undefined,
+      next: StyleSpecification,
+    ) => withLocalizedAttribution(googleLikeStyle(previous, next), dataFrom);
+    // A style kept on the device (#2063) lets the first tiles load at once;
+    // without one the map fetches style and TileJSON as before. Either way
+    // the stored copy is refreshed in the background once the map has drawn.
+    const storedStyle = cachedBasemapStyle(MAP_STYLE_URL);
+    let usingStoredStyle = storedStyle !== null;
+    if (storedStyle)
+      map.setStyle(
+        withLocalizedAttribution(
+          googleLikeStyle(undefined, storedStyle),
+          dataFrom,
+        ),
+      );
+    else map.setStyle(MAP_STYLE_URL, { transformStyle: localizedStyle });
+    map.once('idle', () => {
+      void refreshBasemapStyle(MAP_STYLE_URL).catch(() => undefined);
+    });
+    let missingTiles = 0;
     mapRef.current = map;
     map.addControl(
       new ZoomControl({
@@ -271,12 +444,71 @@ export default function PlaceMapCanvas({
       }
     };
     map.on('zoom', sizeAreas);
+    const removeConnection = () => {
+      stopConnectionVisibility.current?.();
+      stopConnectionVisibility.current = null;
+      connectionOverlay.current?.remove();
+      connectionOverlay.current = null;
+    };
+    // The connection follows the areas on every camera change.
+    const drawConnection = () => {
+      const current = connectionRef.current;
+      const from = current && areaEntries.current.get(current.from);
+      const to = current && areaEntries.current.get(current.to);
+      if (!current || !from || !to) {
+        removeConnection();
+        return;
+      }
+      if (!connectionOverlay.current) {
+        const overlay = new ConnectionOverlay(
+          map.getCanvasContainer(),
+          map.getCanvas(),
+        );
+        connectionOverlay.current = overlay;
+        // Decorative motion holds while the page, the kept view or the map
+        // is out of sight, and continues where it paused (M4, M8).
+        stopConnectionVisibility.current = observeVisibility(
+          overlay.element,
+          ({ visible }) => (visible ? overlay.resume() : overlay.pause()),
+        );
+        // Start once the basemap is drawn; a slow or failing basemap must
+        // not hold the connection back for long.
+        const start = () => {
+          window.clearTimeout(fallback);
+          if (connectionOverlay.current === overlay) overlay.start();
+        };
+        const fallback = window.setTimeout(start, MAP_READY_FALLBACK_MS);
+        if (map.loaded()) start();
+        else map.once('idle', start);
+      }
+      connectionOverlay.current.update(
+        current,
+        map.project(lngLat(from.area)),
+        map.project(lngLat(to.area)),
+        { width: element.clientWidth, height: element.clientHeight },
+      );
+    };
+    placeConnection.current = drawConnection;
+    map.on('move', drawConnection);
+    map.on('resize', drawConnection);
     // A missing tile (HTTP 404) is an empty area; aborted requests are
     // ordinary pan/zoom cancellation. Everything else is a real outage.
     map.on('error', (event: ErrorEvent) => {
       const error = event.error as (Error & { status?: number }) | undefined;
-      if (error?.name === 'AbortError' || error?.status === 404) return;
+      if (error?.name === 'AbortError') return;
+      if (error?.status === 404) {
+        // Several missing tiles from a stored style mean its tile set has
+        // gone: forget it and load the current style.
+        if (usingStoredStyle && ++missingTiles >= STORED_STYLE_MISSING_TILES) {
+          usingStoredStyle = false;
+          forgetBasemapStyle();
+          map.setStyle(MAP_STYLE_URL, { transformStyle: localizedStyle });
+        }
+        return;
+      }
       setTileError(true);
+      // An outage shows its notice at once instead of a waiting surface.
+      reveal();
     });
     map.on('click', (event: MapMouseEvent) =>
       selectRef.current?.({
@@ -352,11 +584,13 @@ export default function PlaceMapCanvas({
       finishCamera.current = null;
       setMoving(false);
       const center = map.getCenter();
-      viewportChangeRef.current?.({
+      const viewport = {
         latitude: center.lat,
         longitude: center.lng,
         zoom: fromMapZoom(map.getZoom()),
-      });
+      };
+      keptCamera.current = viewport;
+      viewportChangeRef.current?.(viewport);
     });
     const interrupt = () => {
       if (!cameraMoving.current) return;
@@ -366,14 +600,16 @@ export default function PlaceMapCanvas({
       autoFrame.current = false;
       setMoving(false);
     };
-    // MapLibre owns pan/pinch; direct input supersedes a pending place flight.
+    // MapLibre owns pan/pinch; direct input stops a running camera journey
+    // at once: the finger always wins (4.8).
     for (const event of ['pointerdown', 'wheel', 'keydown'])
       element.addEventListener(event, interrupt, { passive: true });
-    const motion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
-    const motionChanged = () => {
-      if (motion?.matches) finishCamera.current?.();
-    };
-    motion?.addEventListener('change', motionChanged);
+    // A change of the preference applies at once: the pan inertia follows
+    // it, and a running journey finishes where it was going.
+    const stopMotionPreference = subscribeReducedMotion(() => {
+      map.dragPan.enable(panInertia());
+      if (prefersReducedMotion()) finishCamera.current?.();
+    });
     const resize = new ResizeObserver(frame);
     resize.observe(container.current);
     return () => {
@@ -382,11 +618,15 @@ export default function PlaceMapCanvas({
       if (userMoving) userMotionRef.current?.(false);
       for (const event of ['pointerdown', 'wheel', 'keydown'])
         element.removeEventListener(event, interrupt);
-      motion?.removeEventListener('change', motionChanged);
+      stopMotionPreference();
+      revealed = true;
+      window.cancelAnimationFrame(revealFrame);
+      window.clearTimeout(revealCap);
+      removeConnection();
+      placeConnection.current = null;
       map.remove();
       markers.current.clear();
       areaEntries.current.clear();
-      areasFramed.current = false;
       cameraMoving.current = false;
       finishCamera.current = null;
       mapRef.current = null;
@@ -479,8 +719,11 @@ export default function PlaceMapCanvas({
     );
     if (fittedGeometry.current !== geometry) {
       if (locations?.length) {
+        // The overview frames the densest region; one distant trip no longer
+        // zooms the map out to the whole world (#2063).
         const fitted = new LngLatBounds();
-        for (const point of locations) fitted.extend(lngLat(point));
+        for (const point of framingPoints(locations))
+          fitted.extend(lngLat(point));
         bounds.current = fitted;
       } else bounds.current = null;
       if (
@@ -500,6 +743,9 @@ export default function PlaceMapCanvas({
     const map = mapRef.current;
     if (!map) return;
     const liveIds = new Set(areas?.map(({ id }) => id));
+    const membershipChanged =
+      liveIds.size !== areaEntries.current.size ||
+      [...liveIds].some((id) => !areaEntries.current.has(id));
     for (const [id, entry] of areaEntries.current) {
       if (liveIds.has(id)) continue;
       entry.marker.remove();
@@ -535,21 +781,23 @@ export default function PlaceMapCanvas({
       if (host) hosts.push({ id: area.id, host, marker: area.marker });
     }
     setAreaHosts(hosts);
-    // Frame the first areas once; data refreshes never re-centre the map.
-    if (
-      !areasFramed.current &&
-      areas?.length &&
-      !locations?.length &&
-      !focusRef.current &&
-      !restoredViewport.current
-    ) {
-      areasFramed.current = true;
+    // Own and partner areas may arrive independently. Include new areas
+    // while the camera is automatic, and discard bounds of removed areas.
+    if (membershipChanged && !locations?.length && !focusRef.current) {
       framePadding.current = AREA_PADDING;
-      bounds.current = areaBounds(areas);
-      autoFrame.current = true;
-      updateFrame.current?.();
+      bounds.current = areas?.length ? areaBounds(areas) : null;
+      if (autoFrame.current) updateFrame.current?.();
     }
-  }, [areas, t]);
+  }, [areas, locations?.length, t]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Area and locale changes move or recreate the connection's ends.
+  useEffect(() => {
+    placeConnection.current?.();
+  }, [connection, areas, t]);
+
+  useEffect(() => {
+    if (connection?.playRequest) connectionOverlay.current?.play();
+  }, [connection?.playRequest]);
 
   // An explicit "show us" frames the areas again, with reduced-motion snap.
   useEffect(() => {
@@ -563,19 +811,22 @@ export default function PlaceMapCanvas({
       padding: AREA_PADDING,
       maxZoom: toMapZoom(OVERVIEW_MAX_ZOOM),
     };
-    const duration = container.current
-      ? cssDurationMilliseconds(
-          getComputedStyle(container.current).getPropertyValue(
-            '--duration-map-camera',
-          ),
-        )
-      : 0;
-    const reduced = window.matchMedia?.(
-      '(prefers-reduced-motion: reduce)',
-    ).matches;
-    if (reduced || !duration)
+    const snap = () => {
+      finishCamera.current = null;
+      map.stop();
+      cameraMoving.current = false;
       map.fitBounds(target, { ...options, animate: false });
-    else map.fitBounds(target, { ...options, duration, essential: true });
+    };
+    const duration = cameraJourneyMs();
+    if (!duration) {
+      snap();
+      return;
+    }
+    // One camera transition at a time: the finger, a later request or a
+    // change to reduced motion ends it like a Place journey.
+    finishCamera.current = snap;
+    cameraMoving.current = true;
+    map.fitBounds(target, { ...options, duration, essential: true });
   }, [showAreasRequest]);
 
   // An explicit Place selection owns the frame. User panning and later layout
@@ -602,17 +853,8 @@ export default function PlaceMapCanvas({
       else if (overview)
         map.fitBounds(overview, { ...options, animate: false });
     };
-    const duration = container.current
-      ? cssDurationMilliseconds(
-          getComputedStyle(container.current).getPropertyValue(
-            '--duration-map-camera',
-          ),
-        )
-      : 0;
-    const reduced = window.matchMedia?.(
-      '(prefers-reduced-motion: reduce)',
-    ).matches;
-    if (reduced || !duration || !container.current?.clientWidth) {
+    const duration = cameraJourneyMs();
+    if (!duration || !container.current?.clientWidth) {
       snap();
       return;
     }
@@ -634,7 +876,18 @@ export default function PlaceMapCanvas({
   }, [focus, value, t]);
 
   return (
-    <div className="place-map-canvas" data-map-moving={moving}>
+    <div
+      className="place-map-canvas"
+      data-map-moving={moving}
+      data-reveal={
+        revealWhenComplete ? (complete ? 'complete' : 'waiting') : undefined
+      }
+    >
+      {revealWhenComplete && !complete ? (
+        <p className="place-map-waiting" role="status">
+          {t('states.loading.title')}
+        </p>
+      ) : null}
       {markerHosts.map(({ id, host, preview }) =>
         createPortal(preview, host, id),
       )}
@@ -672,7 +925,11 @@ export default function PlaceMapCanvas({
             onClick={() => {
               setTileError(false);
               mapRef.current?.setStyle(MAP_STYLE_URL, {
-                transformStyle: googleLikeStyle,
+                transformStyle: (previous, next) =>
+                  withLocalizedAttribution(
+                    googleLikeStyle(previous, next),
+                    t('m5s3.map.attributionDataFrom'),
+                  ),
               });
             }}
           >

@@ -11,7 +11,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, cast
 
-from sqlalchemy import CursorResult, delete, func, select
+from sqlalchemy import CursorResult, delete, func, select, update
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.dml import Delete
 
@@ -96,12 +96,19 @@ def purge(
             .where(
                 PartnerLocationConsent.level != SharingLevel.OFF.value,
                 PartnerLocationConsent.suspended_at.is_(None),
+                PartnerLocationConsent.next_review_at <= at,
             )
-            .order_by(PartnerLocationConsent.updated_at, PartnerLocationConsent.id)
+            .order_by(PartnerLocationConsent.next_review_at, PartnerLocationConsent.id)
             .limit(limit)
             .with_for_update(skip_locked=True)
         ).scalars()
     )
+    if candidates:
+        session.execute(
+            update(PartnerLocationConsent)
+            .where(PartnerLocationConsent.id.in_([consent.id for consent in candidates]))
+            .values(next_review_at=at + SCAN_INTERVAL, updated_at=PartnerLocationConsent.updated_at)
+        )
     unentitled: set[Any] = set()
     for consent in candidates:
         if consent.space_id in unentitled:
@@ -131,9 +138,21 @@ def purge(
 
 def handle_retention(session: Session, payload: dict[str, Any]) -> None:
     del payload
-    touched = purge(session)
-    log.info("presence retention completed", extra={"rows_touched": touched})
-    schedule_next(session)
+    at = now()
+    touched = purge(session, current_time=at)
+    oldest = session.scalar(
+        select(func.min(PartnerLocationConsent.next_review_at)).where(
+            PartnerLocationConsent.level != SharingLevel.OFF.value,
+            PartnerLocationConsent.suspended_at.is_(None),
+        )
+    )
+    overdue = max(0, (at - oldest).total_seconds()) if oldest else 0
+    log.info(
+        "presence retention completed",
+        extra={"rows_touched": touched, "oldest_due_seconds": overdue},
+    )
+    delay = max(timedelta(seconds=1), oldest - at) if oldest else SCAN_INTERVAL
+    schedule_next(session, delay=min(delay, SCAN_INTERVAL))
 
 
 def register_handlers(target: JobRegistry | None = None) -> None:

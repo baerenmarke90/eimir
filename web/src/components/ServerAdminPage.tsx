@@ -1,7 +1,8 @@
+import { formatBytes } from '../client/formatBytes';
 import { TaskBackLink } from './TaskBackButton';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigationType, useSearchParams } from 'react-router-dom';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
 import type { ServerAdminPrivilegedAuditItem } from '../api/generated/models/ServerAdminPrivilegedAuditItem';
 import type { ServerAdminOverview } from '../api/generated/models/ServerAdminOverview';
@@ -144,18 +145,6 @@ function formatDate(value: Date | null): string | null {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(value);
-}
-
-function formatBytes(value: number): string {
-  if (value < 1024) return `${formatNumber(value)} B`;
-  const units = ['KB', 'MB', 'GB', 'TB'];
-  let amount = value / 1024;
-  let unit = units[0];
-  for (let index = 1; index < units.length && amount >= 1024; index += 1) {
-    amount /= 1024;
-    unit = units[index];
-  }
-  return `${new Intl.NumberFormat(resolvedLocale(), { maximumFractionDigits: 1 }).format(amount)} ${unit}`;
 }
 
 function healthLabel(status: string, t: (key: string) => string): string {
@@ -873,6 +862,14 @@ export function ServerAdminPage({
 }) {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
+  const navigationType = useNavigationType();
+  // The page lives outside the app shell's route handoff, so it kept the
+  // scroll offset of Mehr and opened halfway down (#2063). An in-app entry
+  // starts at the top; Back and Forward keep the browser's restoration.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Runs once per page entry.
+  useEffect(() => {
+    if (navigationType !== 'POP') window.scrollTo(0, 0);
+  }, []);
   const section = resolveServerAdminSection(searchParams.get('section'));
   const overviewSection =
     section === 'overview' || section === 'jobs' || section === 'security';

@@ -187,6 +187,46 @@ async function currentPush(data) {
   return cached && (await cached.json()).activationId === data.activationId;
 }
 
+function wishDatePush(data) {
+  const preview = data.wishDatePreview;
+  if (
+    !preview ||
+    Object.keys(preview).length !== 4 ||
+    ![
+      'WISH_DATE_PROPOSED',
+      'WISH_DATE_COUNTERED',
+      'WISH_DATE_ACCEPTED',
+    ].includes(preview.kind) ||
+    typeof preview.headline !== 'string' ||
+    !preview.headline.trim() ||
+    preview.headline.length > 330 ||
+    typeof preview.title !== 'string' ||
+    !preview.title.trim() ||
+    preview.title.length > 280 ||
+    typeof preview.appointmentStart !== 'string' ||
+    preview.appointmentStart.length > 48
+  )
+    return null;
+  const appointment = new Date(preview.appointmentStart);
+  if (
+    !Number.isFinite(appointment.getTime()) ||
+    appointment.getTime() <= Date.now()
+  )
+    return null;
+  try {
+    const scheduled = new Intl.DateTimeFormat(
+      data.locale === 'de' ? 'de-DE' : 'en-US',
+      {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      },
+    ).format(appointment);
+    return { title: preview.headline, body: `${preview.title} · ${scheduled}` };
+  } catch {
+    return null;
+  }
+}
+
 self.addEventListener('push', (event) => {
   event.waitUntil(
     (async () => {
@@ -197,25 +237,49 @@ self.addEventListener('push', (event) => {
       } catch {
         return;
       }
-      await self.registration.showNotification('eimir.', {
+      const preview = wishDatePush(data);
+      const tag = `eimir-push:${data.notificationId}`;
+      await self.registration.showNotification(preview?.title ?? 'eimir.', {
         body:
-          data.locale === 'de'
+          preview?.body ??
+          (data.locale === 'de'
             ? 'Du hast neue Nachrichten.'
-            : 'You have new messages.',
+            : 'You have new messages.'),
         icon: '/pwa-192.png',
-        tag: `eimir-push:${data.notificationId}`,
+        tag,
         data: {
           notificationId: data.notificationId,
           activationId: data.activationId,
         },
       });
+      if (preview) {
+        if (!(await currentPush(data))) {
+          // Sign-out can finish clearing its notifications while display settles.
+          const shown = await self.registration.getNotifications({ tag });
+          for (const notice of shown) {
+            if (notice.data?.activationId === data.activationId) notice.close();
+          }
+          return;
+        }
+        const clients = await self.clients.matchAll({ type: 'window' });
+        for (const client of clients) {
+          if (client.focused)
+            client.postMessage({
+              type: 'eimir-wish-date-wake',
+              notificationId: data.notificationId,
+              activationId: data.activationId,
+            });
+        }
+      }
     })(),
   );
 });
 
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'eimir-browser-push-version') {
-    event.ports[0]?.postMessage(PUSH_VERSION);
+    event.ports[0]?.postMessage(
+      event.data.wishDate === true ? 2 : PUSH_VERSION,
+    );
   }
 });
 

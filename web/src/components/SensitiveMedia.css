@@ -23,6 +23,24 @@
   height: 100%;
   object-fit: cover;
 }
+/* Visible on a large stage that reveals on tap (#2063): the blur alone did
+   not say what it was or how to see it. */
+.sensitive-media-hint {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-overlay);
+  color: var(--color-text);
+  font: var(--font-action-label);
+  text-align: center;
+}
+.sensitive-media-hint-action {
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
 .sensitive-media-label {
   position: relative;
   width: var(--space-12);

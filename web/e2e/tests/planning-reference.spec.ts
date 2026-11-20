@@ -1,14 +1,17 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import wishJourney from '../../src/i18n/locales/wishJourney';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureScreenshot } from '../support/storyTimelineFixture';
+import { editViaMenu } from '../support/itemMenu';
 import { expectLabeledAddAction } from '../support/addAction';
 import { closePlanSchedule, showPlanSchedule } from '../support/memoryDiary';
 import experiences from '../../src/i18n/locales/experiences';
@@ -374,6 +377,92 @@ test('ArrowLeft/ArrowRight moves focus and selection between the Plans and Wishe
   await expect(page.getByText(PLAN_TITLE)).toBeVisible();
 });
 
+for (const view of [
+  { width: 360, theme: 'light', reduce: false },
+  { width: 390, theme: 'dark', reduce: false },
+  { width: 430, theme: 'light', reduce: false },
+  { width: 390, theme: 'light', reduce: true },
+  { width: 1280, theme: 'dark', reduce: false },
+] as const) {
+  test(`the segmented mark slides onto the chosen tab at ${view.width}px ${view.theme}${view.reduce ? ' with reduced motion' : ''}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 844 });
+    await page.emulateMedia({
+      colorScheme: view.theme,
+      reducedMotion: view.reduce ? 'reduce' : 'no-preference',
+    });
+    await installMocks(page);
+    await signIn(page);
+    await page.goto('/plan');
+
+    // The mark moves with `translate` by whole segments (Motion Contract M6,
+    // #2080); it never transitions `left` or `width`.
+    const mark = () =>
+      page.evaluate((reduce) => {
+        const control = document.querySelector<HTMLElement>(
+          '.planen-segmented:not(.story-view-tabs)',
+        );
+        const active = control?.querySelector(':scope > .is-active');
+        if (!control || !active) return null;
+        const style = getComputedStyle(control, '::before');
+        // The computed translate keeps its percentage, e.g. `calc(100% + 2px)`;
+        // a percentage is of the mark's own width.
+        const width = Number.parseFloat(style.width);
+        const [x = '0px'] = style.translate.match(/^(calc\([^)]*\)|\S+)/) ?? [];
+        const percent = Number.parseFloat(x.match(/(-?[\d.]+)%/)?.[1] ?? '0');
+        const pixels = Number.parseFloat(x.match(/(-?[\d.]+)px/)?.[1] ?? '0');
+        const shift = (percent / 100) * width + pixels;
+        const box = control.getBoundingClientRect();
+        const target = active.getBoundingClientRect();
+        return {
+          offset:
+            Math.round(
+              box.left +
+                control.clientLeft +
+                Number.parseFloat(style.left) +
+                shift -
+                target.left,
+            ) + 0,
+          // `+ 0` turns a rounded -0 into 0.
+          width: Math.round(width - target.width) + 0,
+          transition: reduce ? 'none' : style.transitionProperty,
+        };
+      }, view.reduce);
+    const plansTab = page.getByRole('tab', {
+      name: m5s3.overview.segmentPlans,
+    });
+    const wishesTab = page.getByRole('tab', {
+      name: m5s3.overview.segmentWishes,
+    });
+    await plansTab.click();
+    await expect.poll(mark).toEqual({
+      offset: 0,
+      width: 0,
+      transition: view.reduce ? 'none' : 'translate',
+    });
+
+    await wishesTab.click();
+    await expect(wishesTab).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByText(WISH_TITLE)).toBeVisible();
+    await expect.poll(mark).toEqual({
+      offset: 0,
+      width: 0,
+      transition: view.reduce ? 'none' : 'translate',
+    });
+    await captureScreenshot(
+      page,
+      testInfo,
+      `2080-planen-segmented-${view.width}-${view.theme}${view.reduce ? '-reduce' : ''}.png`,
+    );
+
+    // Return: away to Today and back keeps the mark on the chosen tab.
+    await page.goto('/today');
+    await page.goto('/plan');
+    await expect.poll(mark).toMatchObject({ offset: 0, width: 0 });
+  });
+}
+
 test('clicking the focal Plan navigates from the Planning overview to the read-first detail page', async ({
   page,
 }) => {
@@ -434,7 +523,7 @@ test('end time is progressive, blocks an invalid range, and submits the same-day
   });
   await signIn(page);
   await page.goto(`/plan/plans/${PLAN_ID}`);
-  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await editViaMenu(page, de.common.edit);
   const scheduleTask = await showPlanSchedule(page);
   const disclosure = page.getByRole('button', { name: m5s3.plan.addEndTime });
   await expect(disclosure).toHaveAttribute('aria-expanded', 'false');
@@ -519,7 +608,7 @@ test('cross-day Plan range reflows at 320px and keeps the same hierarchy when ex
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, '320-cross-day-light');
 
-  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await editViaMenu(page, de.common.edit);
   await showPlanSchedule(page);
   await expect(page.getByLabel(m5s3.plan.endsAnotherDay)).toBeChecked();
   await closePlanSchedule(page);
@@ -672,9 +761,7 @@ for (const [width, colorScheme] of [
       exact: true,
     });
     await expect(trigger).toHaveCount(0);
-    await page
-      .getByRole('button', { name: m5s3.common.edit, exact: true })
-      .click();
+    await editViaMenu(page, m5s3.common.edit);
     await trigger.click();
     const sheet = page.getByRole('dialog', { name: m5s3.plan.linkWish });
     await sheet.getByRole('radio', { name: WISH_TITLE }).check();
@@ -783,4 +870,124 @@ test('Expanded: Wir, Planen, Momente and the text pages are centered', async ({
 
   await expect(page.getByRole('banner').getByRole('button')).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
+});
+
+/*
+ * Content areas on the motion layer (#2077): the Planen search unfolds with
+ * the catalogue's surface keyframes (opacity and a translate, no clip-path),
+ * folds back before its icon returns, and a kept-tab return replays nothing.
+ */
+test.describe('content areas on the motion layer (#2077)', () => {
+  const evidenceShot = async (page: Page, name: string) => {
+    const dir = process.env.VISUAL_EVIDENCE_DIR;
+    if (!dir) return;
+    fs.mkdirSync(dir, { recursive: true });
+    await page.screenshot({ path: path.join(dir, `2077-${name}.png`) });
+  };
+
+  /** Names of the CSS animations still running in the visible Planen panel. */
+  const runningInPlanen = (page: Page) =>
+    page.evaluate(() => {
+      const panel = document.querySelector(
+        'main > .primary-tab-panel:not([hidden])',
+      );
+      return (panel?.getAnimations({ subtree: true }) ?? [])
+        .filter(
+          (animation) =>
+            animation instanceof CSSAnimation &&
+            animation.playState === 'running' &&
+            animation.effect?.getComputedTiming().iterations === 1,
+        )
+        .map((animation) => (animation as CSSAnimation).animationName);
+    });
+
+  const views = [
+    { width: 360, scheme: 'light' },
+    { width: 360, scheme: 'dark' },
+    { width: 390, scheme: 'light' },
+    { width: 390, scheme: 'dark' },
+    { width: 430, scheme: 'light' },
+    { width: 430, scheme: 'dark' },
+    { width: 390, scheme: 'light', large: true },
+    { width: 390, scheme: 'light', reduced: true },
+    { width: 1280, scheme: 'light' },
+    { width: 1280, scheme: 'dark' },
+  ] as const;
+
+  for (const view of views) {
+    const label = `${view.width}-${view.scheme}${
+      'large' in view ? '-200-text' : ''
+    }${'reduced' in view ? '-reduced-motion' : ''}`;
+    test(`Planen search: open, search, close and return (${label})`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: view.width, height: 844 });
+      await page.emulateMedia({
+        colorScheme: view.scheme,
+        reducedMotion: 'reduced' in view ? 'reduce' : 'no-preference',
+      });
+      await page.addInitScript(
+        (theme) => localStorage.setItem('eimir.theme', theme),
+        view.scheme,
+      );
+      await installMocks(page);
+      await signIn(page);
+      await page.goto('/plan');
+      if ('large' in view)
+        await page.addStyleTag({
+          content: 'html { font-size: 200% !important; }',
+        });
+      await expect(page.getByText(PLAN_TITLE)).toBeVisible();
+
+      // Open: the field settles onto its row on the catalogue keyframes.
+      await page
+        .getByRole('button', { name: m5s3.overview.searchPlans, exact: true })
+        .click();
+      const field = page.getByRole('searchbox', {
+        name: m5s3.overview.searchPlans,
+      });
+      await expect(field).toBeFocused();
+      const search = page.locator('.planen-panel:visible .planen-search');
+      const opening = await search.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return { name: style.animationName, clip: style.clipPath };
+      });
+      expect(opening.clip).toBe('none');
+      expect(opening.name).toBe(
+        'reduced' in view ? 'none' : 'eimir-motion-surface-in',
+      );
+
+      // Interact and observe the result.
+      await field.fill('Picnic');
+      await expect(page.locator('.planen-next-link')).toContainText(PLAN_TITLE);
+      await expectNoHorizontalOverflow(page);
+      await evidenceShot(page, `planen-search-${label}`);
+
+      // Close: clearing and leaving the field folds it back to its icon.
+      await page
+        .getByRole('button', { name: m5s3.overview.clearSearch })
+        .click();
+      await expect(field).toHaveValue('');
+      await field.blur();
+      const toggle = page.getByRole('button', {
+        name: m5s3.overview.searchPlans,
+        exact: true,
+      });
+      await expect(toggle).toBeVisible();
+      await expect(page.getByText(PLAN_TITLE)).toBeVisible();
+
+      // Return: Wir and back to the kept Planen tab replays no entrance.
+      const nav = page.locator(
+        view.width >= 840 ? '.shell-nav' : '.mobile-bottom-nav',
+      );
+      await nav.locator('a[href="/today"]').first().click();
+      await expect(page).toHaveURL(/\/today$/);
+      await nav.locator('a[href="/plan"]').first().click();
+      await expect(page).toHaveURL(/\/plan$/);
+      await expect(page.getByText(PLAN_TITLE)).toBeVisible();
+      expect(await runningInPlanen(page)).toEqual([]);
+      await expect(toggle).toBeVisible();
+      await evidenceShot(page, `planen-return-${label}`);
+    });
+  }
 });

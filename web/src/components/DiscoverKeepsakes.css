@@ -1,0 +1,57 @@
+/* Momente > Erinnerungen keepsake visuals (DiscoverKeepsakes.tsx). Each piece
+ * styles only itself, so any surrounding layout can place it. Tokens only; the
+ * stamp press collapses under reduced motion. */
+
+/* ---------- lined note paper ---------- */
+.momente-keepsake-paper {
+  --paper-line: 1.625rem;
+  color: var(--color-text);
+  line-height: var(--paper-line);
+  background: repeating-linear-gradient(
+    var(--color-story-paper) 0 calc(var(--paper-line) - 1px),
+    var(--color-story-paper-line) calc(var(--paper-line) - 1px)
+      var(--paper-line)
+  );
+}
+
+/* ---------- milestone stamp ---------- */
+.momente-keepsake-stamp-mark {
+  inline-size: 6.5rem;
+  block-size: 6.5rem;
+}
+
+.momente-keepsake-stamp-fill {
+  fill: color-mix(in srgb, var(--color-story-milestone) 12%, transparent);
+}
+
+.momente-keepsake-stamp-outer,
+.momente-keepsake-stamp-inner {
+  fill: none;
+  stroke: var(--color-story-milestone);
+}
+
+.momente-keepsake-stamp-outer {
+  stroke-width: 2.5;
+  stroke-dasharray: 3 4;
+}
+
+.momente-keepsake-stamp-inner {
+  stroke-width: 1.5;
+}
+
+.momente-keepsake-stamp-star {
+  fill: var(--color-story-milestone);
+}
+
+/* Opt-in press, e.g. when a stamp slide becomes visible. */
+/* Enter `stamp` from the motion catalogue (src/motion/motion.css). */
+.momente-keepsake-stamp-mark[data-pressed="true"] {
+  animation: eimir-motion-enter-stamp var(--duration-gesture-moment)
+    var(--easing-settle) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .momente-keepsake-stamp-mark[data-pressed="true"] {
+    animation: none;
+  }
+}

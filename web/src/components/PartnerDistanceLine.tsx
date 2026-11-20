@@ -1,12 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { type AnimationEvent, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { PartnerLocationApi } from '../api/generated/apis/PartnerLocationApi';
 import type { PartnerLocationSettingsView } from '../api/generated/models/PartnerLocationSettingsView';
 import {
+  type DistanceWords,
   deviceLanguages,
+  distanceBandWords,
   distanceUnitFor,
+  formatCloseBand,
   formatDistanceBand,
   isDistanceFresh,
   type PartnerDistanceLine as PartnerDistanceLineState,
@@ -26,6 +29,10 @@ import {
 } from '../client/spaceEntitlement';
 import { resolvedLocale, useTranslation } from '../i18n';
 import './PartnerDistanceLine.css';
+import '../motion/motion.css';
+import { hasPlayed, markPlayed } from '../motion/playRegistry';
+
+const DISTANCE_WIGGLE = 'wir.distance.wiggle';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -55,11 +62,45 @@ export function useDistanceAsOfLabel() {
   };
 }
 
-/** The band as the localized `partnerLocation.distanceBetween` sentence. */
+const WORDS = {
+  aroundCorner: {
+    sentence: 'partnerLocation.distanceAroundCorner',
+    short: 'partnerLocation.distanceAroundCornerShort',
+  },
+  stonesThrow: {
+    sentence: 'partnerLocation.distanceStonesThrow',
+    short: 'partnerLocation.distanceStonesThrowShort',
+  },
+  notFar: {
+    sentence: 'partnerLocation.distanceNotFar',
+    short: 'partnerLocation.distanceNotFarShort',
+  },
+  shortTrip: {
+    sentence: 'partnerLocation.distanceShortTrip',
+    short: 'partnerLocation.distanceShortTripShort',
+  },
+} as const satisfies Record<DistanceWords, { sentence: string; short: string }>;
+
+/**
+ * The band as a localized sentence: words for nearby and range bands
+ * (#1907 H4), otherwise `partnerLocation.distanceBetween` with the value.
+ */
 export function useDistanceText() {
   const { t } = useTranslation();
   return (band: Parameters<typeof formatDistanceBand>[0]) => {
+    const words = distanceBandWords(band);
+    if (words) return t(WORDS[words].sentence);
     const locale = resolvedLocale();
+    const close = formatCloseBand(
+      band,
+      locale,
+      distanceUnitFor(locale, deviceLanguages()),
+    );
+    if (close) {
+      return close.under
+        ? t('partnerLocation.distanceCloseUnder', { distance: close.value })
+        : t('partnerLocation.distanceBetween', { distance: close.value });
+    }
     const distance = formatDistanceBand(
       band,
       locale,
@@ -74,7 +115,7 @@ export function useDistanceText() {
 function Glyph({ kind }: { kind: 'heart' | 'clock' | 'pin' | 'chevron' }) {
   return (
     <svg
-      className={`partner-distance-glyph is-${kind}`}
+      className={`inline-icon partner-distance-glyph is-${kind}`}
       viewBox="0 0 24 24"
       aria-hidden="true"
       focusable="false"
@@ -99,6 +140,40 @@ function Glyph({ kind }: { kind: 'heart' | 'clock' | 'pin' | 'chevron' }) {
 }
 
 /**
+ * The value on the Wir hero axis. A changed value fades over: the previous one
+ * leaves as a short-lived copy while the new one arrives, instead of the text
+ * jumping. The leaving copy exists only under `no-preference` (it is
+ * `display: none` otherwise), so it never lingers with reduced motion. The
+ * first value and a re-render with the same value do not animate.
+ */
+function HeroDistanceValue({ value }: { value: string }) {
+  const [shown, setShown] = useState(value);
+  const [leaving, setLeaving] = useState<string | null>(null);
+  const [swapped, setSwapped] = useState(false);
+  if (value !== shown) {
+    // Derived during render so the old text never flashes in its final state.
+    setLeaving(shown);
+    setShown(value);
+    setSwapped(true);
+  }
+  return (
+    <span className="wir-hero-distance-value" aria-hidden="true">
+      {leaving === null ? null : (
+        <span
+          className="wir-hero-distance-leaving"
+          onAnimationEnd={() => setLeaving(null)}
+        >
+          {leaving}
+        </span>
+      )}
+      <span key={shown} className={swapped ? 'is-arriving' : undefined}>
+        {shown}
+      </span>
+    </span>
+  );
+}
+
+/**
  * The quiet distance signal inside the Wir couple hero (#1792). Absent
  * without a placeholder or reason whenever nothing may be shown.
  */
@@ -117,6 +192,16 @@ export function PartnerDistanceLine({
   const { t } = useTranslation();
   const asOfLabel = useDistanceAsOfLabel();
   const distanceText = useDistanceText();
+  // The pin's one quiet wiggle plays once per session (Motion Contract M3,
+  // M4): the attribute that applies it goes when it ended or was cancelled.
+  const [wiggle, setWiggle] = useState(
+    () => !hasPlayed(DISTANCE_WIGGLE, 'session'),
+  );
+  const wiggled = (event: AnimationEvent<HTMLElement>) => {
+    if (!event.animationName?.includes('wiggle')) return;
+    markPlayed(DISTANCE_WIGGLE, 'session');
+    setWiggle(false);
+  };
 
   if (line.kind === 'hidden') return null;
 
@@ -134,12 +219,25 @@ export function PartnerDistanceLine({
       );
     }
     const locale = resolvedLocale();
-    const value =
-      formatDistanceBand(
-        line.band,
-        locale,
-        distanceUnitFor(locale, deviceLanguages()),
-      ) ?? t('partnerLocation.distanceNearShort');
+    const words = distanceBandWords(line.band);
+    const close = formatCloseBand(
+      line.band,
+      locale,
+      distanceUnitFor(locale, deviceLanguages()),
+    );
+    const value = words
+      ? t(WORDS[words].short)
+      : close
+        ? close.under
+          ? t('partnerLocation.distanceCloseUnderShort', {
+              distance: close.value,
+            })
+          : close.value
+        : (formatDistanceBand(
+            line.band,
+            locale,
+            distanceUnitFor(locale, deviceLanguages()),
+          ) ?? t('partnerLocation.distanceNearShort'));
     const compactFresh = isDistanceFresh(line.asOf, now);
     const compactDescription = compactFresh
       ? distanceText(line.band)
@@ -148,20 +246,31 @@ export function PartnerDistanceLine({
         })}`;
     const compactContent = (
       <>
-        <Glyph kind={compactFresh ? 'pin' : 'clock'} />
-        <span aria-hidden="true">{value}</span>
+        {/* Always the familiar distance pin (Product Owner, 2026-11-16); an
+            earlier value is named in the accessible description. */}
+        <Glyph kind="pin" />
+        <HeroDistanceValue value={value} />
       </>
     );
+    // A current position is marked (pin colour, one quiet wiggle); an earlier
+    // one stays grey and still.
+    const heroClass = `wir-hero-distance ${compactFresh ? 'is-fresh' : 'is-earlier'}`;
+    const wiggleProps = {
+      'data-motion-wiggle': (compactFresh && wiggle) || undefined,
+      onAnimationEnd: wiggled,
+      onAnimationCancel: wiggled,
+    };
     return line.mapAvailable ? (
       <Link
-        className="wir-hero-distance"
+        {...wiggleProps}
+        className={heroClass}
         to={PARTNER_LOCATION_MAP_ROUTE}
         aria-label={`${compactDescription}. ${t('partnerLocation.distanceOpenMap')}`}
       >
         {compactContent}
       </Link>
     ) : (
-      <p className="wir-hero-distance">
+      <p {...wiggleProps} className={heroClass}>
         {compactContent}
         <span className="sr-only">{compactDescription}</span>
       </p>
@@ -308,4 +417,35 @@ export function WirPartnerDistance({
       compact={compact}
     />
   );
+}
+
+/**
+ * The band as the short H4 word or value, for compact captions such as the
+ * Herzversteck flight (#1907 H3); never more precise than the server band.
+ */
+export function useDistanceShortText() {
+  const { t } = useTranslation();
+  return (band: Parameters<typeof formatDistanceBand>[0]) => {
+    const words = distanceBandWords(band);
+    if (words) return t(WORDS[words].short);
+    const locale = resolvedLocale();
+    const close = formatCloseBand(
+      band,
+      locale,
+      distanceUnitFor(locale, deviceLanguages()),
+    );
+    if (close) {
+      return close.under
+        ? t('partnerLocation.distanceCloseUnderShort', {
+            distance: close.value,
+          })
+        : close.value;
+    }
+    const distance = formatDistanceBand(
+      band,
+      locale,
+      distanceUnitFor(locale, deviceLanguages()),
+    );
+    return distance ?? t('partnerLocation.distanceNearShort');
+  };
 }

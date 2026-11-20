@@ -36,6 +36,7 @@ import {
   memoryUpdatePayload,
 } from '../client/memoryProduct';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
+import { occasionsOn } from '../client/occasionMatches';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
   ClientProblemError,
@@ -50,6 +51,7 @@ import {
   memoryDetailPath,
   memoryEditPath,
 } from '../client/routes';
+import { savedPhotoFile } from '../client/savedPhotoFile';
 import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
 import { postSnackbar } from '../client/snackbar';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
@@ -59,7 +61,9 @@ import {
   formatAttachmentDraftContextKey,
   useAttachmentDrafts,
 } from '../client/useAttachmentDrafts';
+import { useItemSheets } from '../client/useItemSheets';
 import { orderedPhotoKeys } from '../client/useOrderedPhotoDrafts';
+import { useSpaceOccasions } from '../client/useSpaceOccasions';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
@@ -78,6 +82,13 @@ import { DraftMediaPreview } from './DraftMediaPreview';
 import { EimirIcon } from './EimirIcon';
 import { ExpandableDescription } from './ExpandableDescription';
 import { ExperienceAnswers } from './ExperienceAnswers';
+import {
+  ItemDeleteSheet,
+  ItemMenuOption,
+  ItemMenuSheet,
+  ItemMenuTrigger,
+  leaveItemMenu,
+} from './ItemActions';
 import { MediaProcessingState } from './MediaProcessingState';
 import { MemoryPhotoGallery } from './MemoryPhotoGallery';
 import { MemoryPlacesDraftField } from './MemoryPlacesDraftField';
@@ -88,11 +99,12 @@ import { MomentDate } from './MomentDate';
 import type { MomentPlaceSelection } from './MomentPlaceField';
 import { MomentPlaces } from './MomentPlaces';
 import { NativeDateInput } from './NativeDateField';
+import { OccasionMark } from './OccasionMark';
 import { ComposerTool, ComposerToolRow } from './PageComposer';
 import { PageHeader } from './PageHeader';
 import { PhotoDraftGallery } from './PhotoDraftGallery';
 import { ProblemState } from './ProblemState';
-import { StoryDetailEditLink } from './StoryDetailEditLink';
+import type { ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryDetailPageShell } from './StoryDetailPageShell';
 import { StoryEditorPageShell } from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
@@ -147,6 +159,9 @@ export function MemoryProductPage({
   const [placeContextHost, setPlaceContextHost] =
     useState<HTMLSpanElement | null>(null);
   const [commentHost, setCommentHost] = useState<HTMLSpanElement | null>(null);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  const deleteSheet = useRef<ShortTaskSheetHandle>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
   const { t } = useTranslation();
   const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
@@ -166,6 +181,7 @@ export function MemoryProductPage({
   const params = useParams();
   const queryClient = useQueryClient();
   const memoryId = params.memoryId;
+  const sheets = useItemSheets(memoryId);
   const planningPending =
     useIsMutating({
       mutationKey: [
@@ -180,6 +196,7 @@ export function MemoryProductPage({
     }) > 0;
   const memoryKey = authorSummaryQueryKeys.memory(spaceId, memoryId);
   const contextKey = formatAttachmentDraftContextKey(currentAccountId, spaceId);
+  const occasions = useSpaceOccasions(spaceId, currentAccountId);
   const deleteKey = [
     'memory-delete',
     currentAccountId,
@@ -257,6 +274,12 @@ export function MemoryProductPage({
         : false,
     retry: false,
   });
+  // A confirmed delete evicts the read before the confirmation sheet has left;
+  // the page keeps showing the deleted Memory until that hand-off navigates.
+  const [leaving, setLeaving] = useState(false);
+  const lastRead = useRef(memoryQuery.data);
+  if (memoryQuery.data) lastRead.current = memoryQuery.data;
+  const holdForLeave = leaving && Boolean(lastRead.current);
   const editForm = useRef<HTMLFormElement>(null);
   const tagEditorRef = useRef<ContextTagEditorHandle>(null);
   const dateContextRef = useRef<ComposerDateContextHandle>(null);
@@ -310,6 +333,14 @@ export function MemoryProductPage({
     scope: string;
     key: string | null;
   } | null>(null);
+  // Edited saved photos (#1907 G1): draft id -> saved attachment id it replaces.
+  const [replacedPhotoState, setReplacedPhotoState] = useState<{
+    scope: string;
+    map: Record<string, string>;
+  }>({ scope: photoOrderScope, map: {} });
+  const replacedPhotos =
+    replacedPhotoState.scope === photoOrderScope ? replacedPhotoState.map : {};
+  const replacedOriginals = new Set(Object.values(replacedPhotos));
   const [placesDraft, setPlacesDraft] = useState<{
     scope: string;
     value: MomentPlaceSelection[];
@@ -405,6 +436,7 @@ export function MemoryProductPage({
               attachments: attachmentIds.map((attachmentId, position) => ({
                 attachmentId,
                 position,
+                ...replacementOf(attachmentId),
                 isSensitive:
                   sensitiveValues[attachmentId] ??
                   attachments.items.find(
@@ -501,7 +533,7 @@ export function MemoryProductPage({
   });
 
   const deleteMutation = useStoryDeletion<MemoryDetail>({
-    active: mode === 'edit',
+    active: mode === 'detail',
     accountId: currentAccountId,
     spaceId,
     resourceId: memoryId,
@@ -517,9 +549,12 @@ export function MemoryProductPage({
         ifMatch: memoryIfMatch(memory),
       }),
     onDeleted: () => {
-      editorLifecycle.closeConfirmed(() =>
-        leaveDeleted(memoryDetailPath(memoryId ?? ''), appRoutePath('story')),
-      );
+      const leave = () =>
+        leaveDeleted(memoryDetailPath(memoryId ?? ''), appRoutePath('story'));
+      setLeaving(true);
+      // The confirmation sheet releases its history entry before leaving.
+      if (deleteSheet.current) deleteSheet.current.closeForNavigation(leave);
+      else leave();
       postSnackbar('snackbar.memoryDeleted');
     },
   });
@@ -547,9 +582,42 @@ export function MemoryProductPage({
         });
     },
   });
-  const deleting = deleteMutation.isPending;
-  const { confirming: confirmDelete, setConfirming: setConfirmDelete } =
-    deleteMutation;
+
+  /** The saved photo an edited draft replaces, while it is still removed. */
+  function replacementOf(attachmentId: string) {
+    const draft = attachments.items.find(
+      (item) => item.attachmentId === attachmentId,
+    );
+    const replaced = draft ? replacedPhotos[draft.id] : undefined;
+    return replaced && removedAttachmentIds.has(replaced)
+      ? { replacesAttachmentId: replaced }
+      : {};
+  }
+
+  /** Put an edited version in place of a saved photo; saving replaces it. */
+  function replaceSavedPhoto(item: (typeof photoItems)[number], file: File) {
+    const saved = item.photo;
+    if (!saved) return;
+    const [draftId] = attachments.restore([
+      {
+        file,
+        isSensitive: sensitiveValues[saved.id] ?? saved.isSensitive === true,
+      },
+    ]);
+    if (!draftId) return;
+    const key = `draft:${draftId}`;
+    setRemovedAttachmentIds((current) => new Set(current).add(saved.id));
+    setPhotoOrder({
+      scope: photoOrderScope,
+      keys: photoKeys.map((current) => (current === item.key ? key : current)),
+    });
+    if (selectedCoverKey === item.key)
+      setCoverDraft({ scope: photoOrderScope, key });
+    setReplacedPhotoState({
+      scope: photoOrderScope,
+      map: { ...replacedPhotos, [draftId]: saved.id },
+    });
+  }
 
   function toggleAttachmentRemoval(attachmentId: string) {
     setRemovedAttachmentIds((current) => {
@@ -566,7 +634,6 @@ export function MemoryProductPage({
     setCoverDraft(null);
     setPlacesDraft(null);
     setFormDirty(false);
-    setConfirmDelete(false);
     setRemovedAttachmentIds(new Set());
     await memoryQuery.refetch();
   }
@@ -581,7 +648,7 @@ export function MemoryProductPage({
     );
   }
 
-  if (memoryQuery.isLoading) {
+  if (memoryQuery.isLoading && !holdForLeave) {
     return (
       <div className="page page-reading">
         <UiState kind="loading" title={t('memoryProduct.loading')} />
@@ -596,6 +663,7 @@ export function MemoryProductPage({
     );
   if (
     memoryQuery.error &&
+    !holdForLeave &&
     (!memoryQuery.data || readDenied || mode === 'edit')
   ) {
     return (
@@ -609,7 +677,8 @@ export function MemoryProductPage({
     );
   }
 
-  const result = memoryQuery.data;
+  const result =
+    memoryQuery.data ?? (holdForLeave ? lastRead.current : undefined);
   if (!result) return null;
   const memory = result.value;
   const selectedTags =
@@ -843,8 +912,27 @@ export function MemoryProductPage({
                 videoContext={{ apis, accountId: currentAccountId, spaceId }}
                 disabled={updateMutation.isPending}
                 attachments={attachments}
-                gallery={(addAction) => (
+                gallery={(addAction, editDraft, editFile) => (
                   <PhotoDraftGallery
+                    onEdit={
+                      editDraft && editFile
+                        ? (key) => {
+                            const item = photoItems.find(
+                              (entry) => entry.key === key,
+                            );
+                            const photo = item?.photo;
+                            if (item?.draft) editDraft(item.draft.id);
+                            else if (item && photo)
+                              editFile(
+                                loadMemoryImage(memory.id, photo.id).then(
+                                  (source) =>
+                                    savedPhotoFile(source, `${photo.id}.jpg`),
+                                ),
+                                (edited) => replaceSavedPhoto(item, edited),
+                              );
+                          }
+                        : undefined
+                    }
                     addAction={!memory.experienceKind ? addAction : undefined}
                     key={photoOrderScope}
                     resourceScopeKey={photoOrderScope}
@@ -1103,7 +1191,11 @@ export function MemoryProductPage({
             />
 
             {boundAttachments
-              .filter((photo) => removedAttachmentIds.has(photo.id))
+              .filter(
+                (photo) =>
+                  removedAttachmentIds.has(photo.id) &&
+                  !replacedOriginals.has(photo.id),
+              )
               .map((photo) => (
                 <div key={photo.id} className="photo-draft-controls">
                   <span role="status">
@@ -1149,7 +1241,6 @@ export function MemoryProductPage({
                   state={{ taskOriginKey: originKey }}
                   onClick={(event) => {
                     event.preventDefault();
-                    setConfirmDelete(false);
                     editorLifecycle.requestClose();
                   }}
                 >
@@ -1181,58 +1272,6 @@ export function MemoryProductPage({
               onRetry={() => void reloadCurrentMemory()}
             />
           ) : null}
-
-          {memory.capabilities.canDelete && !offline ? (
-            <div style={{ marginTop: 'var(--space-8)' }}>
-              {!confirmDelete && !deleting ? (
-                <button
-                  type="button"
-                  className="button-link danger-link"
-                  onClick={() => setConfirmDelete(true)}
-                  disabled={deleteMutation.isBlocked}
-                >
-                  {t('memoryProduct.delete')}
-                </button>
-              ) : (
-                <section
-                  className="memory-danger-zone memory-delete-confirmation"
-                  aria-label={t('memoryProduct.delete')}
-                  role="alert"
-                >
-                  <div>
-                    <h2>{t('memoryProduct.deleteConfirmTitle')}</h2>
-                    <p>{t('memoryProduct.deleteConfirmBody')}</p>
-                  </div>
-                  <div className="memory-actions">
-                    <button
-                      type="button"
-                      className="tertiary"
-                      onClick={() => setConfirmDelete(false)}
-                      disabled={deleting}
-                    >
-                      {t('memoryProduct.deleteCancel')}
-                    </button>
-                    <button
-                      type="button"
-                      className="danger"
-                      onClick={() => deleteMutation.mutate(memory)}
-                      disabled={deleteMutation.isBlocked}
-                    >
-                      {deleting
-                        ? t('memoryProduct.deleting')
-                        : t('memoryProduct.deleteConfirm')}
-                    </button>
-                  </div>
-                  {deleteMutation.error && (
-                    <ProblemState
-                      error={deleteMutation.error}
-                      onRetry={() => deleteMutation.reset()}
-                    />
-                  )}
-                </section>
-              )}
-            </div>
-          ) : null}
         </>
       </StoryEditorPageShell>
     );
@@ -1250,13 +1289,37 @@ export function MemoryProductPage({
     memory.title.trim() &&
       !isGeneratedMemoryTitle(memory.title, memory.happenedOn, t),
   );
+  // Answers of a shared experience are changed through their own page.
+  const ownsItem =
+    !memory.experienceKind ||
+    (!memory.experienceAnswers?.length && memory.authorId === currentAccountId);
+  const mayEdit = ownsItem && memory.capabilities.canEdit && !offline;
+  const mayDelete = ownsItem && memory.capabilities.canDelete && !offline;
 
   const provenanceAuthor = storyAuthorLabel(
     memory.author,
     currentAccountId,
     nicknameFor,
   );
+  // Who recorded it is background; it sits in the item menu, not the page.
+  const provenance = memory.experienceKind
+    ? null
+    : t('memoryProduct.provenance', {
+        author: provenanceAuthor,
+        createdAt: formatCreatedAt(memory.createdAt),
+      });
 
+  const occasionMark = (
+    <OccasionMark
+      matches={occasionsOn(
+        memory.happenedOn,
+        memory.happenedUntil,
+        occasions,
+        resolvedLocale(),
+      )}
+      revealKey={`memory:${memory.id}`}
+    />
+  );
   const dateContext = (
     <MomentDate
       dateTime={
@@ -1344,6 +1407,15 @@ export function MemoryProductPage({
 
   return (
     <StoryDetailPageShell
+      itemLabel={
+        memory.experienceKind
+          ? t(
+              memory.experienceKind === 'HAPPINESS'
+                ? 'coupleExperiences.sharedHappiness'
+                : 'coupleExperiences.sharedTimeTravel',
+            )
+          : undefined
+      }
       before={
         !memory.experienceKind ? (
           <TaskBackButton inline onClick={() => requestReturn(originKey)} />
@@ -1358,7 +1430,10 @@ export function MemoryProductPage({
       }
       titleContext={
         memory.experienceKind && !hasAuthoredTitle ? (
-          <div className="moment-metadata">{placeContext}</div>
+          <>
+            <div className="moment-metadata">{placeContext}</div>
+            {occasionMark}
+          </>
         ) : undefined
       }
       metadata={
@@ -1373,20 +1448,17 @@ export function MemoryProductPage({
               {dateContext}
               {placeContext}
             </div>
+            {occasionMark}
           </div>
         ) : undefined
       }
       titleAction={
-        (!memory.experienceKind ||
-          (!memory.experienceAnswers?.length &&
-            memory.authorId === currentAccountId)) &&
-        memory.capabilities.canEdit &&
-        !offline ? (
-          <StoryDetailEditLink
-            text={!memory.experienceKind}
-            to={memoryEditPath(memory.id)}
-            label={t('memoryProduct.edit')}
-            state={{ taskOriginKey: originKey }}
+        mayEdit || mayDelete || provenance ? (
+          <ItemMenuTrigger
+            triggerRef={menuTrigger}
+            label={t('memoryProduct.menu')}
+            open={sheets.menuOpen}
+            onOpen={() => sheets.show('menu')}
           />
         ) : undefined
       }
@@ -1407,7 +1479,7 @@ export function MemoryProductPage({
               )}
             </div>
           ) : null}
-          {memoryQuery.error ? (
+          {memoryQuery.error && !holdForLeave ? (
             <ProblemState
               error={memoryQuery.error}
               onRetry={() => void memoryQuery.refetch()}
@@ -1540,16 +1612,57 @@ export function MemoryProductPage({
         offline={offline}
       />
 
-      {!memory.experienceKind ? (
-        <footer className="memory-provenance-footer">
-          <p>
-            {t('memoryProduct.provenance', {
-              author: provenanceAuthor,
-              createdAt: formatCreatedAt(memory.createdAt),
-            })}
-          </p>
-        </footer>
-      ) : null}
+      <ItemMenuSheet
+        open={sheets.menuOpen}
+        title={t('memoryProduct.detailEyebrow')}
+        restoreFocusRef={menuTrigger}
+        sheetRef={menuSheet}
+        onClose={() => sheets.close('menu')}
+        footnote={provenance}
+      >
+        {mayEdit ? (
+          <ItemMenuOption
+            icon="pen"
+            title={t('memoryProduct.edit')}
+            onClick={() =>
+              leaveItemMenu(
+                menuSheet,
+                () =>
+                  void navigate(memoryEditPath(memory.id), {
+                    state: { taskOriginKey: originKey },
+                  }),
+                sheets.closeAll,
+              )
+            }
+          />
+        ) : null}
+        {mayDelete ? (
+          <ItemMenuOption
+            icon="trash"
+            danger
+            title={t('memoryProduct.delete')}
+            disabled={deleteMutation.isBlocked}
+            onClick={() => {
+              deleteMutation.reset();
+              sheets.show('delete');
+            }}
+          />
+        ) : null}
+      </ItemMenuSheet>
+
+      <ItemDeleteSheet
+        sheetRef={deleteSheet}
+        open={sheets.deleteOpen}
+        title={t('memoryProduct.deleteConfirmTitle')}
+        body={t('memoryProduct.deleteConfirmBody')}
+        confirmLabel={t('memoryProduct.deleteConfirm')}
+        pendingLabel={t('memoryProduct.deleting')}
+        pending={deleteMutation.isPending}
+        error={deleteMutation.error}
+        restoreFocusRef={menuTrigger}
+        onClose={() => sheets.close('delete')}
+        onConfirm={() => deleteMutation.mutate(memory)}
+      />
     </StoryDetailPageShell>
   );
 }

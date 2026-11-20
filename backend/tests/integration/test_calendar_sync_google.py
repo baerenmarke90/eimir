@@ -226,6 +226,34 @@ def test_web_consent_returns_to_the_settings_in_the_same_tab(  # type: ignore[no
     assert denied.headers["location"].endswith("?calendarGoogle=denied")
 
 
+def test_app_consent_hands_only_the_outcome_back_to_the_app(  # type: ignore[no-untyped-def]
+    client, session, couple, fake
+) -> None:
+    grant(session, couple)
+    oauth_state = start(client, couple, return_to="app")
+    back = client.get(
+        CALLBACK, params={"state": oauth_state, "code": "good-code"}, follow_redirects=False
+    )
+    assert back.status_code == 303
+    assert back.headers["location"] == "de.eimir.app://calendar/google?calendarGoogle=connected"
+    # Still only pending: the signed-in person confirms the account inside the app.
+    assert state(client, couple)["connections"][0]["status"] == "PENDING"
+    replay = client.get(
+        CALLBACK, params={"state": oauth_state, "code": "good-code"}, follow_redirects=False
+    )
+    # A consumed state no longer knows its origin and never redirects anywhere.
+    assert replay.status_code == 200
+
+
+def test_unknown_return_targets_are_rejected(client, couple) -> None:  # type: ignore[no-untyped-def]
+    response = client.post(
+        base(couple) + "/calendar-sync/connections/google",
+        headers=couple["a"],
+        json={"returnTo": "https://elsewhere.example"},
+    )
+    assert response.status_code == 422
+
+
 def test_opening_the_settings_never_drops_an_unconfirmed_consent(  # type: ignore[no-untyped-def]
     client, session, couple, fake, monkeypatch
 ) -> None:

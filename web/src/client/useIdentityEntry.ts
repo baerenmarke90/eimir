@@ -19,6 +19,48 @@ type LaunchQueueWindow = Window & {
   };
 };
 
+const OIDC_RETURN_PARAMETERS = new Set([
+  'code',
+  'state',
+  'error',
+  'error_description',
+  'scope',
+  'authuser',
+  'prompt',
+  'iss',
+  'hd',
+]);
+
+/**
+ * The return from an external provider, delivered by the OS as a verified App
+ * Link. Only the parameters a provider may add are accepted, each once.
+ */
+function readOidcReturnUrl(
+  url: URL,
+  expected: URL,
+  requireHttps: boolean,
+): SensitiveEntryToken | null {
+  if (url.protocol !== 'https:' && (requireHttps || url.protocol !== 'http:'))
+    return null;
+  if (url.hash || url.username || url.password) return null;
+  const names = [...url.searchParams.keys()];
+  if (
+    names.some((name) => !OIDC_RETURN_PARAMETERS.has(name)) ||
+    new Set(names).size !== names.length ||
+    url.searchParams.getAll('state').length !== 1
+  )
+    return null;
+  const entry = readSensitiveEntryToken(url.pathname, url.search);
+  if (
+    !entry ||
+    entry.kind !== 'oidc' ||
+    entry.token.length > 4096 ||
+    (entry.code?.length ?? 0) > 4096
+  )
+    return null;
+  return url.origin === expected.origin ? entry : null;
+}
+
 /** External delivery is trusted only for the current deployment's HTTP origin. */
 export function readIdentityEntryUrl(
   rawUrl: string,
@@ -33,6 +75,9 @@ export function readIdentityEntryUrl(
   try {
     const url = new URL(rawUrl);
     const expected = new URL(expectedOrigin);
+    if (url.pathname.startsWith('/auth/oidc/')) {
+      return readOidcReturnUrl(url, expected, requireHttps);
+    }
     if (
       !['https:', 'http:'].includes(url.protocol) ||
       (requireHttps && expected.protocol !== 'https:') ||
@@ -41,20 +86,22 @@ export function readIdentityEntryUrl(
       expected.password ||
       url.username ||
       url.password ||
-      url.searchParams.size !== 1 ||
-      url.searchParams.getAll('token').length !== 1
+      [...url.searchParams.keys()].some((name) => name !== 'token')
     )
       return null;
     const entry = readSensitiveEntryToken(url.pathname, url.search, url.hash);
     if (!entry || entry.token.length > 4096) return null;
     if (url.hash) {
       const fragment = new URLSearchParams(url.hash.slice(1));
+      const allowed =
+        entry.kind === 'signup' ? ['token', 'invitationToken'] : ['token'];
       if (
-        entry.kind !== 'signup' ||
-        fragment.size !== 1 ||
-        fragment.getAll('invitationToken').length !== 1 ||
-        !entry.invitationToken ||
-        entry.invitationToken.length > 4096
+        [...fragment.keys()].some((key) => !allowed.includes(key)) ||
+        (fragment.has('invitationToken') &&
+          (entry.kind !== 'signup' ||
+            fragment.getAll('invitationToken').length !== 1 ||
+            !entry.invitationToken ||
+            entry.invitationToken.length > 4096))
       )
         return null;
     }

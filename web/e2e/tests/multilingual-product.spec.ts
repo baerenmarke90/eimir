@@ -1,11 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import en from '../../src/i18n/locales/en.json' with { type: 'json' };
 import language from '../../src/i18n/locales/languageSettings';
+import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import AxeBuilder from '../support/axe';
+import { fulfillSettingsOverviewStatuses } from '../support/settingsOverview';
 import {
   ACCOUNT_ID,
   installMocks,
@@ -39,6 +41,7 @@ async function installLanguageJourney(page: Page) {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     const method = request.method();
+    if (await fulfillSettingsOverviewStatuses(route, SPACE_ID)) return;
     if (pathname === '/api/v1/account/language-preference') {
       const current = preferences.get(accountId);
       if (!current) throw new Error('Unknown language owner');
@@ -216,6 +219,12 @@ for (const [width, colorScheme] of [
       .getByRole('button', { name: taskBoundary.back, exact: true })
       .click();
     await expect(page).toHaveURL(/\/more\/settings$/);
+    await expect(
+      page.getByRole('navigation', {
+        name: profileIdentity.settingsTitle,
+        exact: true,
+      }),
+    ).toContainText(profileIdentity.statusPasskeysNone);
     expect(state.writes.map((entry) => entry.preference)).toEqual([
       'en',
       'auto',

@@ -7,6 +7,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -118,6 +119,18 @@ function renderPlacesOverview(apis: SharedPlanningApis) {
   return queryClient;
 }
 
+async function openEditor(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.place.menu') }),
+  );
+  await user.click(
+    await screen.findByRole('button', { name: i18n.t('common.edit') }),
+  );
+  // The menu sheet hands over to the editor once it has left.
+  await waitFor(() => expect(document.querySelector('.item-menu')).toBeNull());
+  await act(async () => {});
+}
+
 beforeEach(() => {
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute('open', '');
@@ -218,9 +231,7 @@ describe('PlaceProductPage editor lifecycle', () => {
     cleanup();
 
     renderPlace();
-    await user.click(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
-    );
+    await openEditor(user);
     const editHelp = document.querySelector('#place-edit-coordinate-help');
     expect(editHelp?.className).toBe('field-help planning-coordinate-help');
     expect(
@@ -269,9 +280,7 @@ describe('PlaceProductPage editor lifecycle', () => {
     const editClient = renderPlace(editApis);
     const editInvalidation = vi.spyOn(editClient, 'invalidateQueries');
 
-    await user.click(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
-    );
+    await openEditor(user);
     const name = screen.getByRole('textbox', {
       name: i18n.t('m5s3.place.name'),
     });
@@ -293,13 +302,14 @@ describe('PlaceProductPage editor lifecycle', () => {
   it('focuses the editor, associates coordinate errors, and preserves dirty drafts', async () => {
     const user = userEvent.setup();
     renderPlace();
-    const edit = screen.getByRole('button', { name: i18n.t('common.edit') });
-    await user.click(edit);
+    await openEditor(user);
 
     const name = screen.getByRole('textbox', {
       name: i18n.t('m5s3.place.name'),
     });
-    expect(document.activeElement).toBe(name);
+    // The editor is a modal dialog: in a browser the menu's trigger is inert
+    // behind it, so the menu closing cannot take focus from the name field.
+    expect(name).toBeTruthy();
     const latitude = screen.getByLabelText(
       i18n.t('m5s3.place.latitude'),
     ) as HTMLInputElement;
@@ -350,7 +360,7 @@ describe('PlaceProductPage editor lifecycle', () => {
     );
     await waitFor(() =>
       expect(document.activeElement).toBe(
-        screen.getByRole('button', { name: i18n.t('common.edit') }),
+        screen.getByRole('button', { name: i18n.t('m5s3.place.menu') }),
       ),
     );
   });
@@ -358,8 +368,7 @@ describe('PlaceProductPage editor lifecycle', () => {
   it('uses Browser Back to close a clean editor without a phantom entry', async () => {
     const user = userEvent.setup();
     renderPlace();
-    const edit = screen.getByRole('button', { name: i18n.t('common.edit') });
-    await user.click(edit);
+    await openEditor(user);
     expect(window.history.state?.[EDITOR_HISTORY_STATE_KEY]).toBeTruthy();
 
     window.history.back();
@@ -371,7 +380,7 @@ describe('PlaceProductPage editor lifecycle', () => {
     );
     await waitFor(() =>
       expect(document.activeElement).toBe(
-        screen.getByRole('button', { name: i18n.t('common.edit') }),
+        screen.getByRole('button', { name: i18n.t('m5s3.place.menu') }),
       ),
     );
     expect(window.history.state?.[EDITOR_HISTORY_STATE_KEY]).toBeUndefined();
@@ -381,9 +390,7 @@ describe('PlaceProductPage editor lifecycle', () => {
     const user = userEvent.setup();
     const updatePlace = vi.fn().mockReturnValue(new Promise(() => undefined));
     renderPlace(createApis({ updatePlace }));
-    await user.click(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
-    );
+    await openEditor(user);
     const name = screen.getByRole('textbox', {
       name: i18n.t('m5s3.place.name'),
     });
@@ -407,7 +414,7 @@ describe('PlaceProductPage editor lifecycle', () => {
     expect(screen.queryByRole('alertdialog')).toBeNull();
   });
 
-  it('restores delete focus and focuses the successor after success', async () => {
+  it('confirms Delete in its own sheet, restores focus on Cancel and focuses the successor after success', async () => {
     const user = userEvent.setup();
     const deletePlace = vi.fn().mockResolvedValue(undefined);
     const apis = createApis({ deletePlace });
@@ -423,28 +430,32 @@ describe('PlaceProductPage editor lifecycle', () => {
       );
     });
     const invalidation = vi.spyOn(queryClient, 'invalidateQueries');
+    const menuTrigger = screen.getByRole('button', {
+      name: i18n.t('m5s3.place.menu'),
+    });
+    await user.click(menuTrigger);
     await user.click(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
+      await screen.findByRole('button', { name: i18n.t('m5s3.common.delete') }),
     );
-    const deleteTrigger = screen.getByRole('button', {
-      name: i18n.t('m5s3.common.delete'),
-    });
-    await user.click(deleteTrigger);
-    expect(document.activeElement?.id).toBe('place-delete-heading');
+    const confirmation = await screen.findByRole('alertdialog');
+    expect(confirmation.textContent).toContain(
+      i18n.t('m5s3.place.deleteConsequence'),
+    );
+    expect(deletePlace).not.toHaveBeenCalled();
 
-    const deleteCancel = screen
-      .getAllByRole('button', { name: i18n.t('common.cancel') })
-      .at(-1);
-    expect(deleteCancel).toBeDefined();
-    await user.click(deleteCancel as HTMLButtonElement);
-    const restoredDeleteTrigger = screen.getByRole('button', {
-      name: i18n.t('m5s3.common.delete'),
-    });
-    expect(document.activeElement).toBe(restoredDeleteTrigger);
-
-    await user.click(restoredDeleteTrigger);
     await user.click(
-      screen.getByRole('button', {
+      within(confirmation).getByRole('button', {
+        name: i18n.t('common.cancel'),
+      }),
+    );
+    await waitFor(() => expect(document.activeElement).toBe(menuTrigger));
+
+    await user.click(menuTrigger);
+    await user.click(
+      await screen.findByRole('button', { name: i18n.t('m5s3.common.delete') }),
+    );
+    await user.click(
+      await screen.findByRole('button', {
         name: i18n.t('m5s3.common.confirmDelete'),
       }),
     );
@@ -454,5 +465,71 @@ describe('PlaceProductPage editor lifecycle', () => {
     expect(invalidation).toHaveBeenCalledWith({
       queryKey: authorSummaryQueryKeys.places('space-1'),
     });
+  });
+
+  it('keeps Edit, Archive and Delete in the menu and out of the editor', async () => {
+    const user = userEvent.setup();
+    renderPlace();
+    expect(
+      screen.queryByRole('button', { name: i18n.t('common.edit') }),
+    ).toBeNull();
+    await user.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.place.menu') }),
+    );
+    const rows = (await screen.findAllByRole('button'))
+      .filter((button) => button.classList.contains('item-menu-option'))
+      .map((button) => button.textContent);
+    expect(rows).toEqual([
+      i18n.t('common.edit'),
+      i18n.t('m5s3.place.archive'),
+      i18n.t('m5s3.common.delete'),
+    ]);
+
+    await user.click(screen.getByText(i18n.t('common.edit')));
+    await screen.findByRole('textbox', { name: i18n.t('m5s3.place.name') });
+    expect(
+      screen.queryByRole('button', { name: i18n.t('m5s3.common.delete') }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: i18n.t('m5s3.place.archive') }),
+    ).toBeNull();
+  });
+
+  it('archives from the menu and offers no menu without permission', async () => {
+    const user = userEvent.setup();
+    const updatePlace = vi
+      .fn()
+      .mockResolvedValue({ ...PLACE, archived: true, version: 2 });
+    renderPlace(createApis({ updatePlace }));
+    await user.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.place.menu') }),
+    );
+    await user.click(
+      await screen.findByRole('button', {
+        name: i18n.t('m5s3.place.archive'),
+      }),
+    );
+    await waitFor(() => expect(updatePlace).toHaveBeenCalledTimes(1));
+    expect(updatePlace.mock.calls[0][0].placeUpdate).toEqual({
+      archived: true,
+    });
+    cleanup();
+
+    const readOnly = {
+      ...PLACE,
+      capabilities: { canComment: false, canDelete: false, canEdit: false },
+    };
+    renderPlace(
+      createApis({ getPlace: vi.fn().mockResolvedValue(readOnly) }),
+      false,
+      (client) =>
+        client.setQueryData(
+          authorSummaryQueryKeys.placeDetail('space-1', PLACE.id),
+          readOnly,
+        ),
+    );
+    expect(
+      screen.queryByRole('button', { name: i18n.t('m5s3.place.menu') }),
+    ).toBeNull();
   });
 });

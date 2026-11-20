@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import { fulfillDefaultProductContext } from '../support/productContext';

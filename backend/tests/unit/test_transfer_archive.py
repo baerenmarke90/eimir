@@ -53,6 +53,13 @@ def _assert_code(bundle: io.BytesIO, code: str) -> None:
     assert caught.value.code == code
 
 
+def test_entry_names_require_portable_separators() -> None:
+    # ZipInfo may normalize filenames written on Windows before serialization.
+    with pytest.raises(TransferArchiveError) as caught:
+        transfer_archive.canonical_name("private\\notes.json")
+    assert caught.value.code == ErrorCode.TRANSFER_ARCHIVE_UNSAFE
+
+
 def test_valid_bundle_is_accepted() -> None:
     validated = validate_zip(_bundle())
     assert validated.manifest["formatVersion"] == 1
@@ -65,7 +72,6 @@ def test_valid_bundle_is_accepted() -> None:
         "../accounts.json",
         "/accounts.json",
         "C:/accounts.json",
-        "private\\notes.json",
         "CON",
         "media/../accounts.json",
     ],

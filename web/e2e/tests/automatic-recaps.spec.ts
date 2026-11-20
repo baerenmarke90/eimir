@@ -1,21 +1,25 @@
-import de from '../../src/i18n/locales/de';
-import { fulfillDefaultProductContext } from '../support/productContext';
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { expect, type Page, test } from '@playwright/test';
+import { recapDetailPath } from '../../src/client/routes';
+import de from '../../src/i18n/locales/de';
+import navigation from '../../src/i18n/locales/navigation';
 import copy from '../../src/i18n/locales/recaps';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
-import { recapDetailPath } from '../../src/client/routes';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import fixtures from '../fixtures/locales/de';
+import AxeBuilder from '../support/axe';
+import { fulfillDefaultProductContext } from '../support/productContext';
+
 const fixtureCopy = fixtures.recaps;
+
 import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 import {
   ACCOUNT_ID,
-  SPACE_ID,
   captureScreenshot,
+  getTimelineItems,
   installMocks,
+  SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
 
@@ -156,6 +160,240 @@ function denseSources() {
     ),
   ];
 }
+/** A monthly film (#1744): curated media, Places, answers, tags and a frozen look. */
+function filmMonth() {
+  const words = fixtureCopy.film;
+  const picture = (attachmentId: string, parentId: string) => ({
+    attachmentId,
+    parentId,
+    kind: 'IMAGE',
+  });
+  const sources = denseSources().map((entry) => {
+    const extra: Record<string, unknown> = {
+      media: entry.previewAttachmentId
+        ? [picture(entry.previewAttachmentId, entry.id)]
+        : [],
+      answers: [],
+      placeName: null,
+    };
+    if (entry.id === 'mem-canal') extra.placeName = words.lake;
+    if (entry.id === 'plan-market') extra.placeName = words.oldTown;
+    if (entry.id === 'mem-jetty')
+      extra.media = [
+        picture('recap-photo-dusk', entry.id),
+        picture('recap-photo-mono', entry.id),
+        picture('recap-photo', entry.id),
+      ];
+    if (entry.id === 'mem-breakfast')
+      Object.assign(extra, {
+        title: words.question,
+        answers: [
+          { text: words.answerA, authorId: ACCOUNT_ID, authorName: 'Anna' },
+          { text: words.answerB, authorId: 'partner', authorName: 'Ben' },
+        ],
+      });
+    return { ...entry, ...extra };
+  });
+  return {
+    sources,
+    facts: DENSE_FACTS,
+    film: {
+      mood: 'rose',
+      transitions: ['iris', 'slide'],
+      cover: 'mosaic',
+      motions: ['drift-left', 'zoom-in', 'parallax'],
+      layouts: {
+        photo: ['polaroid', 'bleed', 'split', 'inset', 'tilted'],
+        duo: ['overlap', 'stacked', 'side'],
+        words: ['letter', 'centered', 'lines', 'on-photo'],
+        title: ['stamp', 'band', 'outline'],
+        answers: ['dialog', 'stacked'],
+        place: ['marker', 'list'],
+        fact: ['large', 'row'],
+      },
+      highlightKey: 'MEMORY:mem-jetty',
+      tags: words.tags.map((label, index) => ({ label, count: 5 - index })),
+    },
+  };
+}
+/** A year film (#1744): ten month chapters, three firsts, tags and a frozen look. */
+function filmYear() {
+  const words = fixtureCopy.yearFilm;
+  const photos = [
+    'recap-photo',
+    'recap-photo-dusk',
+    'recap-photo-warm',
+    'recap-photo-detail',
+    'recap-photo-mono',
+  ];
+  const day = (month: number, value: number) =>
+    `2026-${String(month).padStart(2, '0')}-${String(value).padStart(2, '0')}`;
+  const picture = (attachmentId: string, parentId: string) => ({
+    attachmentId,
+    parentId,
+    kind: 'IMAGE',
+  });
+  const sources: Record<string, unknown>[] = [];
+  const monthHighlights: { month: number; key: string }[] = [];
+  words.highlights.forEach((title, index) => {
+    const month = index + 1;
+    const id = `year-top-${month}`;
+    const photo = photos[index % photos.length];
+    const place = [7, 5, 4].indexOf(month);
+    sources.push({
+      key: `MEMORY:${id}`,
+      id,
+      kind: 'MEMORY',
+      occurredOn: day(month, 6),
+      version: 1,
+      title,
+      excerpt: null,
+      previewAttachmentId: photo,
+      previewIsSensitive: false,
+      available: true,
+      media:
+        month === 7
+          ? [picture(photo, id), picture(photos[(index + 1) % 5], id)]
+          : [picture(photo, id)],
+      answers: [],
+      placeName: place >= 0 ? words.places[place] : null,
+    });
+    monthHighlights.push({ month, key: `MEMORY:${id}` });
+    const further = words.further[index];
+    const heart = further.endsWith('.');
+    const furtherId = `year-more-${month}`;
+    const furtherPhoto =
+      !heart && index % 3 === 0 ? photos[(index + 2) % 5] : null;
+    sources.push({
+      key: `${heart ? 'HEART_MOMENT' : 'MEMORY'}:${furtherId}`,
+      id: furtherId,
+      kind: heart ? 'HEART_MOMENT' : 'MEMORY',
+      occurredOn: day(month, 19),
+      version: 1,
+      title: further,
+      excerpt: heart ? further : null,
+      previewAttachmentId: furtherPhoto,
+      previewIsSensitive: false,
+      available: true,
+      media: furtherPhoto ? [picture(furtherPhoto, furtherId)] : [],
+      answers: [],
+      placeName: null,
+    });
+  });
+  words.firsts.forEach((title, index) => {
+    const id = `year-first-${index}`;
+    sources.push({
+      key: `MILESTONE:${id}`,
+      id,
+      kind: 'MILESTONE',
+      occurredOn: day(2 + index * 3, 11),
+      version: 1,
+      title,
+      excerpt: null,
+      previewAttachmentId: null,
+      previewIsSensitive: false,
+      available: true,
+      media: [],
+      answers: [],
+      placeName: null,
+    });
+  });
+  sources.sort((left, right) =>
+    String(left.occurredOn).localeCompare(String(right.occurredOn)),
+  );
+  return {
+    sources,
+    facts: {
+      ...DENSE_FACTS,
+      memories: 18,
+      heartMoments: 2,
+      milestones: 3,
+      activeDays: 23,
+    },
+    film: {
+      mood: 'sage',
+      transitions: ['rise', 'wipe'],
+      cover: 'mosaic',
+      motions: ['zoom-out', 'drift-right', 'parallax'],
+      layouts: {
+        photo: ['inset', 'bleed', 'polaroid', 'split', 'tilted'],
+        duo: ['side', 'overlap', 'stacked'],
+        words: ['centered', 'letter', 'lines', 'on-photo'],
+        title: ['band', 'stamp', 'outline'],
+        answers: ['stacked', 'dialog'],
+        place: ['list', 'marker'],
+        fact: ['large', 'row'],
+      },
+      highlightKey: 'MEMORY:year-top-7',
+      monthHighlights,
+      tags: words.tags.map((label, index) => ({ label, count: 9 - index })),
+    },
+  };
+}
+/** Every form of the wider film catalogue (#1744 film variety), in a calm order. */
+const VARIETY_LAYOUTS = {
+  photo: [
+    'pano',
+    'corner',
+    'mat',
+    'bleed',
+    'polaroid',
+    'split',
+    'inset',
+    'tilted',
+  ],
+  duo: ['diptych', 'scatter', 'crossfade', 'stacked', 'side', 'overlap'],
+  collage: ['scatter', 'grid', 'strip'],
+  words: ['margin', 'reveal', 'centered', 'letter', 'lines', 'on-photo'],
+  title: ['rule', 'stamp', 'band', 'outline'],
+  answers: ['cards', 'dialog', 'stacked'],
+  place: ['route', 'postcard', 'marker', 'list'],
+  fact: ['counter', 'large', 'row'],
+  month: ['numeral', 'stamp', 'line'],
+  firsts: ['cards', 'timeline'],
+  covers: ['calendar', 'strip', 'grid'],
+  closing: ['fade', 'stack', 'tiles'],
+};
+const VARIETY_LOOK = {
+  transitions: ['split', 'focus'],
+  accents: ['light', 'match', 'blinds'],
+  motions: ['diagonal', 'pan-up', 'breathe', 'drift-left', 'pan-down'],
+  pace: 'even',
+  layouts: VARIETY_LAYOUTS,
+};
+/** The synthetic month staged with the wider catalogue, formats and crop centres. */
+function filmVariety() {
+  const base = filmMonth();
+  const shapes: Record<string, [string, number, number]> = {
+    'mem-canal': ['landscape', 0.62, 0.45],
+    'plan-market': ['portrait', 0.4, 0.38],
+    'mem-breakfast': ['square', 0.5, 0.5],
+    'mem-jetty': ['landscape', 0.55, 0.6],
+  };
+  const sources = base.sources.map((entry) => {
+    const shape = shapes[entry.id];
+    if (!shape) return entry;
+    return {
+      ...entry,
+      media: (entry.media as Record<string, unknown>[]).map((item) => ({
+        ...item,
+        shape: shape[0],
+        focusX: shape[1],
+        focusY: shape[2],
+      })),
+    };
+  });
+  return {
+    ...base,
+    sources,
+    film: { ...base.film, ...VARIETY_LOOK, mood: 'ink', cover: 'stack' },
+  };
+}
+/** The synthetic year with the wider catalogue's year forms. */
+function filmYearVariety() {
+  const base = filmYear();
+  return { ...base, film: { ...base.film, ...VARIETY_LOOK, mood: 'morning' } };
+}
 const DENSE_FACTS = {
   memories: 11,
   heartMoments: 6,
@@ -179,6 +417,10 @@ async function setup(
     rhythm?: boolean;
     native?: boolean;
     earlier?: boolean;
+    film?: boolean;
+    yearFilm?: boolean;
+    variety?: boolean;
+    versions?: boolean;
   } = {},
 ) {
   // The API fixture's current day and the system clock share one timeline.
@@ -192,6 +434,29 @@ async function setup(
   const unexpected = await installMocks(page);
   const month = initial();
   const year = initial('year', true);
+  const september = {
+    ...initial('september'),
+    month: 9,
+    startsOn: '2026-09-01',
+    throughOn: '2026-09-30',
+    isPartial: false,
+    savedAt: '2026-10-08T03:00:00Z',
+    headline: fixtureCopy.previousHeadline,
+  };
+  const august = {
+    ...initial('august'),
+    month: 8,
+    startsOn: '2026-08-01',
+    throughOn: '2026-08-31',
+    isPartial: false,
+    headline: fixtureCopy.previousHeadline,
+    sources: [
+      {
+        ...source('mem-canal', fixtureCopy.photoTitle),
+        previewIsSensitive: true,
+      },
+    ],
+  };
   if (options.dense && options.ownWords) {
     const words = fixtureCopy.ownWords;
     const decorate = (sources: ReturnType<typeof denseSources>) =>
@@ -240,12 +505,27 @@ async function setup(
         leading: 3,
       },
     });
+  if (options.film)
+    Object.assign(month, options.variety ? filmVariety() : filmMonth());
+  if (options.yearFilm)
+    Object.assign(year, options.variety ? filmYearVariety() : filmYear());
   if (options.empty) {
     month.sources = [];
     month.status = 'EMPTY';
     month.headline = '';
   }
   if (options.pending) month.status = 'PENDING';
+  // Late entries produced a newer version of the retained September (#1744).
+  const newer = {
+    ...september,
+    id: 'september-newer',
+    savedAt: '2026-10-29T08:00:00Z',
+    generatedAt: '2026-10-29T08:00:00Z',
+    supersedesId: 'september',
+    supersededById: null as string | null,
+  };
+  if (options.versions)
+    Object.assign(september, { supersededById: newer.id, supersedesId: null });
   let fail = options.fail === true;
   let writes = 0;
   let prepares = 0;
@@ -269,26 +549,9 @@ async function setup(
           canCompose: options.pro !== false,
           editions: [
             month,
-            {
-              ...initial('september'),
-              month: 9,
-              startsOn: '2026-09-01',
-              throughOn: '2026-09-30',
-              isPartial: false,
-              headline: fixtureCopy.previousHeadline,
-            },
-            ...(earlierReady
-              ? [
-                  {
-                    ...initial('august'),
-                    month: 8,
-                    startsOn: '2026-08-01',
-                    throughOn: '2026-08-31',
-                    isPartial: false,
-                    headline: fixtureCopy.previousHeadline,
-                  },
-                ]
-              : []),
+            ...(options.versions ? [newer] : []),
+            september,
+            ...(earlierReady ? [august] : []),
             year,
           ],
           periods: options.earlier
@@ -337,6 +600,42 @@ async function setup(
         },
       });
     }
+    // Momente reads the same viewer day as Wir, so its Discover selection and
+    // Dashboard day follow this spec's clock instead of the shared fixture.
+    if (
+      options.start === 'momente' &&
+      path.endsWith('/dashboard') &&
+      method === 'GET'
+    ) {
+      return route.fulfill({
+        json: {
+          space: {
+            spaceId: SPACE_ID,
+            partner: { id: 'partner', displayName: 'Alex' },
+          },
+          viewerLocalDate: '2026-10-30',
+          relationshipDuration: null,
+          recentShared: [],
+          upcoming: [],
+          retrospective: null,
+        },
+      });
+    }
+    if (
+      options.start === 'momente' &&
+      path.endsWith('/discover') &&
+      method === 'GET'
+    ) {
+      const items = getTimelineItems();
+      return route.fulfill({
+        json: {
+          selectionDate: '2026-10-30',
+          lead: items[0] ?? null,
+          items: items.slice(1),
+          leadContext: null,
+        },
+      });
+    }
     if (
       options.start === 'wir' &&
       path.endsWith('/activity') &&
@@ -379,7 +678,10 @@ async function setup(
             selectedKeys: month.sources.map((item) => item.key),
           },
         });
-      return route.fulfill({ json: path.endsWith('/year') ? year : month });
+      const edition = [month, september, newer, august, year].find(
+        ({ id }) => path === `${BASE}/${id}`,
+      );
+      if (edition) return route.fulfill({ json: edition });
     }
     if (path.startsWith(BASE) && ['PUT', 'POST', 'DELETE'].includes(method)) {
       writes++;
@@ -620,7 +922,7 @@ test('Watch now advances automatically, resumes after a source, and finishes wit
   ).toBeVisible();
   await page.clock.fastForward(90001);
   await expect(page.locator('.recap-spread h1')).toHaveText(copy.finishTitle);
-  await page.locator('.subpage-back-slot .task-back-control').click();
+  await page.locator('.recap-reader-top .task-back-control').click();
   await expect(page).toHaveURL(/\/today$/);
   expect(state.prepares()).toBe(0);
   expect(state.unexpected).toEqual([]);
@@ -797,7 +1099,12 @@ for (const [width, theme] of [
       fixtureCopy.monthHeadline,
     );
     await expect(page.locator('.mobile-bottom-nav')).toBeHidden();
-    await page.getByRole('button', { name: copy.next, exact: true }).click();
+    const next = page.getByRole('button', { name: copy.next, exact: true });
+    await expect(next).toHaveText(copy.next);
+    await expect(
+      page.getByRole('button', { name: copy.previous, exact: true }),
+    ).toHaveText(copy.previous);
+    await next.click();
     await expect(page.locator('.recap-spread h1')).toHaveText(
       fixtureCopy.photoTitle,
     );
@@ -825,7 +1132,9 @@ for (const [width, theme] of [
       (await new AxeBuilder({ page }).include('.recap-reader').analyze())
         .violations,
     ).toEqual([]);
-    await page.getByRole('link', { name: /Original öffnen/ }).click();
+    const original = page.getByRole('link', { name: copy.source });
+    await expect(original).toHaveText(copy.source);
+    await original.click();
     await expect(page).toHaveURL(/\/story\/memories\/mem-canal/);
     await page
       .getByRole('button', {
@@ -900,14 +1209,26 @@ test('selection, private draft, explicit sharing, automatic retention and withdr
 
 test('Free reads retained editions without preparing or exposing composition', async ({
   page,
-}) => {
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   const state = await setup(page, { pro: false });
-  await expect(page.getByText(copy.gateBody)).toBeVisible();
-  await page
-    .getByRole('link', { name: new RegExp(copy.open) })
-    .first()
-    .click();
-  await expect(page.locator('.recap-spread h1')).toBeVisible();
+  const archive = page.getByRole('region', { name: copy.archive });
+  await expect(
+    page.locator('.recap-cover-featured .recap-period-note'),
+  ).toHaveText(copy.partialThrough.replace('{{date}}', '30. Okt. 2026'));
+  await expect(page.locator('.recap-archive ~ .recap-gate')).toContainText(
+    copy.gateBody,
+  );
+  await archive
+    .getByRole('heading')
+    .evaluate((heading) => heading.scrollIntoView({ block: 'center' }));
+  await captureScreenshot(page, info, 'recaps-retained-library-390-light.png');
+  await archive.getByRole('link', { name: /^September 2026/ }).click();
+  await expect(page).toHaveURL(/\/story\/recaps\/september$/);
+  await expect(page.locator('.recap-spread h1')).toHaveText(
+    fixtureCopy.previousHeadline,
+  );
   await expect(page.getByRole('button', { name: copy.edit })).toHaveCount(0);
   expect(state.prepares()).toBe(0);
 });
@@ -929,7 +1250,9 @@ for (const theme of ['light', 'dark'] as const) {
         year: 'numeric',
         timeZone: 'UTC',
       }).format(new Date(Date.UTC(2026, value - 1, 1)));
-    const preparing = page.locator('.recap-cover-preparing');
+    const preparing = page
+      .getByRole('region', { name: copy.otherPeriods })
+      .getByRole('listitem');
     await expect(preparing).toHaveCount(2);
     await expect(preparing.first()).toContainText(month(8));
     await expect(preparing.first()).toContainText(copy.preparing);
@@ -963,13 +1286,77 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByRole('tab', { name: copy.months }).click();
     await expect(preparing).toHaveCount(1);
     await expect(preparing).toContainText(month(7));
-    await expect(
-      page
-        .locator('.recap-archive .recap-cover:not(.recap-cover-preparing)')
-        .filter({ hasText: month(8) })
-        .getByRole('link', { name: new RegExp(copy.open) }),
-    ).toBeVisible();
+    const augustEntry = page
+      .getByRole('region', { name: copy.archive })
+      .getByRole('link', { name: new RegExp(`^${month(8)}`) });
+    await expect(augustEntry).toBeVisible();
+    await expect(augustEntry.locator('.recap-archive-art')).toHaveCount(0);
     expect(state.prepares()).toBe(1);
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+  });
+}
+
+for (const [width, theme] of [
+  [390, 'light'],
+  [390, 'dark'],
+  [1280, 'dark'],
+] as const) {
+  test(`a newer version after late entries sits beside the earlier one at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: width > 600 ? 900 : 844 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.addInitScript(
+      (value) => localStorage.setItem('eimir-theme', value),
+      theme,
+    );
+    const state = await setup(page, { versions: true });
+    const archive = page.getByRole('region', { name: copy.archive });
+    const rows = archive.getByRole('link', { name: /^September 2026/ });
+    await expect(rows).toHaveCount(2);
+    await expect(rows.first()).toContainText(copy.versionGrown);
+    await expect(rows.last()).toContainText(copy.versionEarlier);
+    await archive
+      .getByRole('heading')
+      .evaluate((heading) => heading.scrollIntoView({ block: 'start' }));
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-version-library-${width}-${theme}.png`,
+    );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    expect(
+      (await new AxeBuilder({ page }).include('.recap-library').analyze())
+        .violations,
+    ).toEqual([]);
+
+    // The earlier version stays readable and points to the newer one at its end.
+    await rows.last().click();
+    await expect(page).toHaveURL(/\/story\/recaps\/september$/);
+    const heading = page.locator('.recap-spread h1');
+    for (let step = 0; step < 8; step++) {
+      if ((await heading.textContent()) === copy.finishTitle) break;
+      await page.keyboard.press('ArrowRight');
+    }
+    await expect(heading).toHaveText(copy.finishTitle);
+    const note = page.locator('.recap-version-note');
+    await expect(note).toContainText(copy.versionNewer);
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-version-closing-${width}-${theme}.png`,
+    );
+    expect(
+      (await new AxeBuilder({ page }).include('.recap-reader').analyze())
+        .violations,
+    ).toEqual([]);
+    await note.getByRole('link', { name: copy.versionOpen }).click();
+    await expect(page).toHaveURL(/\/story\/recaps\/september-newer$/);
     expect(state.writes()).toBe(0);
     expect(state.unexpected).toEqual([]);
   });
@@ -978,8 +1365,8 @@ for (const theme of ['light', 'dark'] as const) {
 test('empty periods do not invent shared events', async ({ page }) => {
   await setup(page, { empty: true });
   await page
-    .getByRole('link', { name: new RegExp(copy.open) })
-    .first()
+    .getByRole('region', { name: copy.otherPeriods })
+    .getByRole('link', { name: new RegExp(copy.emptyTitle) })
     .click();
   await expect(page.getByText(copy.emptyBody)).toBeVisible();
   await expect(page.locator('.recap-scene-media')).toHaveCount(0);
@@ -1034,7 +1421,15 @@ test('pending generation remains readable as a background task', async ({
 }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await setup(page, { pending: true });
-  await page.locator('.recap-cover-featured a').click();
+  await expect(
+    page
+      .getByRole('region', { name: copy.archive })
+      .getByRole('link', { name: /^September 2026/ }),
+  ).toBeVisible();
+  await page
+    .getByRole('region', { name: copy.otherPeriods })
+    .getByRole('link', { name: /^Oktober 2026/ })
+    .click();
   await expect(
     page.getByText(copy.pendingTitle, { exact: true }),
   ).toBeVisible();
@@ -1415,7 +1810,7 @@ for (const [width, theme] of [
   [430, 'dark'],
   [1280, 'dark'],
 ] as const) {
-  test(`Momente links to the recap library, keeps Momente active and returns at ${width} ${theme}`, async ({
+  test(`Momente leads with a new recap until it is opened and returns at ${width} ${theme}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width, height: 844 });
@@ -1425,15 +1820,19 @@ for (const [width, theme] of [
       theme,
     );
     const state = await setup(page, { start: 'momente' });
-    const entry = page.locator('.couple-experience-links a.recap-entry');
-    await expect(entry).toBeVisible();
-    await expect(entry).toContainText(copy.shortTitle);
-    await expect(entry).toContainText(copy.entryAction);
-    await expect(entry.locator('img')).toBeVisible();
-    await entry
-      .locator('img')
-      .evaluate((img: HTMLImageElement) => img.decode());
-    await entry.evaluate((element) =>
+    // #1907 F4: two permanent experiences; the story overview lives on Wir
+    // and More, and the new recap leads only until it is opened.
+    const group = page.locator('.couple-experience-links');
+    const rows = group.locator('.couple-experience-list > li');
+    await expect(rows).toHaveCount(2);
+    await expect(group.locator('a[href="/story/our-story"]')).toHaveCount(0);
+    const lead = group.locator('a.recap-lead-card');
+    await expect(lead).toBeVisible();
+    await expect(lead).toContainText(copy.discoverNew);
+    await expect(lead).toContainText(copy.shortTitle);
+    await expect(lead.locator('img')).toBeVisible();
+    await lead.locator('img').evaluate((img: HTMLImageElement) => img.decode());
+    await group.evaluate((element) =>
       element.scrollIntoView({ block: 'center' }),
     );
     await captureScreenshot(
@@ -1446,41 +1845,6 @@ for (const [width, theme] of [
         () => document.documentElement.scrollWidth <= window.innerWidth,
       ),
     ).toBe(true);
-    // The library opens under Momente, so that tab stays selected.
-    await entry.click();
-    await expect(page).toHaveURL(/\/story\/recaps$/);
-    await expect(
-      page.getByRole('heading', { name: copy.shortTitle }),
-    ).toBeVisible();
-    const navLink = (href: string) =>
-      page
-        .locator(
-          `.mobile-bottom-nav a[href="${href}"], .shell-nav a[href="${href}"]`,
-        )
-        .filter({ visible: true });
-    if (width < 1280) {
-      await expect(navLink('/story')).toHaveAttribute('aria-current', 'page');
-      await expect(navLink('/more')).not.toHaveAttribute(
-        'aria-current',
-        'page',
-      );
-    }
-    const featured = page.locator('.recap-cover-featured');
-    await expect(featured.locator('img')).toBeVisible();
-    await featured
-      .locator('img')
-      .evaluate((img: HTMLImageElement) => img.decode());
-    await captureScreenshot(
-      page,
-      info,
-      `recaps-momente-library-${width}-${theme}.png`,
-    );
-    // Back returns to Momente, where the entry came from.
-    await page
-      .getByRole('button', { name: new RegExp(taskBoundary.back) })
-      .click();
-    await expect(page).toHaveURL(/\/story$/);
-    await expect(page.locator('.momente-discover-page')).toBeVisible();
     expect(
       (
         await new AxeBuilder({ page })
@@ -1488,10 +1852,75 @@ for (const [width, theme] of [
           .analyze()
       ).violations,
     ).toEqual([]);
+    await lead.click();
+    await expect(page).toHaveURL(
+      // The reader starts playback and drops its one-time play request.
+      new RegExp(`${recapDetailPath('october')}$`),
+    );
+    // The immersive reader names Momente as its Back destination and
+    // returns there, where the card no longer leads.
+    const back = page.getByRole('button', {
+      name: navigation.story,
+      exact: true,
+    });
+    await expect(back).toBeVisible();
+    await back.click();
+    await expect(page).toHaveURL(/\/story$/);
+    await expect(page.locator('.momente-discover-page')).toBeVisible();
+    await expect(rows).toHaveCount(2);
+    await expect(lead).toHaveCount(0);
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-momente-after-${width}-${theme}.png`,
+    );
     expect(state.writes()).toBe(0);
     expect(state.unexpected).toEqual([]);
   });
 }
+
+test('with motion the opened recap card collapses away after return', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await setup(page, { start: 'momente' });
+  const lead = page.locator('.couple-experience-links a.recap-lead-card');
+  await expect(lead).toBeVisible();
+  await lead.click();
+  await expect(page).toHaveURL(new RegExp(`${recapDetailPath('october')}$`));
+  await page
+    .getByRole('button', { name: navigation.story, exact: true })
+    .click();
+  await expect(page.locator('.momente-discover-page')).toBeVisible();
+  // The card may play its short collapse, but it must not stay.
+  await expect(page.locator('.recap-lead')).toHaveCount(0);
+  await expect(page.locator('.couple-experience-list > li')).toHaveCount(2);
+});
+
+test('Free keeps both Discover experiences with Pro marks at 360 with large text', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const state = await setup(page, { start: 'momente', pro: false });
+  const group = page.locator('.couple-experience-links');
+  const rows = group.locator('.couple-experience-list > li');
+  await expect(rows).toHaveCount(2);
+  for (const row of await rows.all())
+    await expect(row.locator('.pro-mark')).toBeVisible();
+  await page.addStyleTag({
+    content: 'html { font-size: 200% !important; }',
+  });
+  await group.evaluate((element) => element.scrollIntoView({ block: 'start' }));
+  await captureScreenshot(page, info, 'recaps-momente-free-360-large.png');
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  expect(state.unexpected).toEqual([]);
+});
 
 test('the former More addresses of the recap library and reader redirect with their query', async ({
   page,
@@ -1508,4 +1937,352 @@ test('the former More addresses of the recap library and reader redirect with th
   await expect(page).toHaveURL(/\/story\/our-story\?tab=years$/);
   await open('/more/passport/october?page=2');
   await expect(page).toHaveURL(/\/story\/recaps\/october\?page=2$/);
+});
+
+// #1744 year film: month chapters with markers, the firsts, the climax and the
+// month covers; progress orients by chapter instead of one bar per scene.
+for (const [width, height, scheme, all] of [
+  [390, 844, 'light', true],
+  [430, 932, 'dark', false],
+  [1280, 900, 'dark', false],
+] as const) {
+  test(`the year film plays its month chapters at ${width} px ${scheme}`, async ({
+    page,
+  }, info) => {
+    // A year has dozens of scenes; each one is opened by address.
+    test.setTimeout(180_000);
+    await page.setViewportSize({ width, height });
+    await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
+    const state = await setup(page, { yearFilm: true });
+    await page.goto(recapDetailPath('year'));
+    await expect(page.locator('.recap-film-frame').first()).toBeVisible();
+    // Intro, ten month chapters and the finale.
+    await expect(page.locator('.recap-progress-chapter')).toHaveCount(12);
+    const total = await page.locator('.recap-progress-step').count();
+    expect(total).toBeGreaterThan(30);
+    const captured = new Set<string>();
+    const wanted = all
+      ? null
+      : new Set(['cover', 'month', 'firsts', 'covers', 'climax']);
+    for (let index = 0; index < total; index++) {
+      await page.goto(`${recapDetailPath('year')}?page=${index}`);
+      const spread = page.locator('.recap-spread').first();
+      await expect(spread).toBeVisible();
+      const type = (await spread.getAttribute('class'))?.match(
+        /recap-scene-([a-z]+)/u,
+      )?.[1];
+      const name =
+        (await spread.getAttribute('data-climax')) === 'true'
+          ? 'climax'
+          : (type ?? 'scene');
+      if (captured.has(name) || (wanted && !wanted.has(name))) continue;
+      captured.add(name);
+      // Every picture of the scene is loaded before it is captured.
+      await page.waitForFunction(() => {
+        const pictures = document.querySelectorAll('.recap-film-picture');
+        const loaded = [
+          ...document.querySelectorAll<HTMLImageElement>(
+            '.recap-film-picture img',
+          ),
+        ].filter((image) => image.complete && image.naturalWidth > 0);
+        return loaded.length >= pictures.length;
+      });
+      await page.waitForTimeout(500);
+      // A caption band never sits under a picture.
+      const overlap = await page.evaluate(() => {
+        const caption = document.querySelector('.recap-film-caption');
+        if (!caption) return false;
+        const box = caption.getBoundingClientRect();
+        return [...document.querySelectorAll('.recap-film-picture')].some(
+          (picture) => {
+            const frame = picture.closest('[data-layout]');
+            if (frame?.getAttribute('data-layout') === 'bleed') return false;
+            const other = picture.getBoundingClientRect();
+            return other.bottom > box.top + 2 && other.top < box.bottom;
+          },
+        );
+      });
+      expect(overlap).toBe(false);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      await captureScreenshot(
+        page,
+        info,
+        `recaps-year-film-${name}-${width}-${scheme}.png`,
+      );
+    }
+    expect([...captured]).toEqual(
+      expect.arrayContaining(['cover', 'month', 'firsts', 'covers', 'climax']),
+    );
+    expect(
+      (await new AxeBuilder({ page }).include('.recap-reader').analyze())
+        .violations,
+    ).toEqual([]);
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+  });
+}
+
+test('the year film keeps browser-only arrows hidden in the native app', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const state = await setup(page, { yearFilm: true, native: true });
+  await page.goto(`${recapDetailPath('year')}?page=2`);
+  await expect(page.locator('.recap-progress-chapter')).toHaveCount(12);
+  await expect(page.locator('.recap-film-month')).toBeVisible();
+  for (const name of [copy.previous, copy.next])
+    await expect(page.getByRole('button', { name, exact: true })).toHaveClass(
+      /sr-only/,
+    );
+  await captureScreenshot(page, info, 'recaps-year-film-native-390-light.png');
+  expect(state.unexpected).toEqual([]);
+});
+
+// #1744 monthly film: every scene type of a curated month, captions never under a picture.
+for (const [width, height, scheme, all] of [
+  [390, 844, 'light', true],
+  [430, 932, 'dark', false],
+  [1280, 900, 'dark', false],
+] as const) {
+  test(`the monthly film presents its scenes at ${width} px ${scheme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height });
+    await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
+    const state = await setup(page, { film: true });
+    await page.goto(recapDetailPath('october'));
+    const reader = page.locator('.recap-reader');
+    await expect(reader).toBeVisible();
+    await expect(page.locator('.recap-film-frame').first()).toBeVisible();
+    const total = await page.locator('.recap-progress > *').count();
+    expect(total).toBeGreaterThan(8);
+    for (let index = 0; index < total; index++) {
+      if (!all && index !== 0 && index !== 4 && index !== total - 2) continue;
+      await page.goto(`${recapDetailPath('october')}?page=${index}`);
+      await expect(page.locator('.recap-spread').first()).toBeVisible();
+      await page.waitForTimeout(500);
+      // A caption band never sits under a picture.
+      const overlap = await page.evaluate(() => {
+        const caption = document.querySelector('.recap-film-caption');
+        if (!caption) return false;
+        const box = caption.getBoundingClientRect();
+        return [...document.querySelectorAll('.recap-film-picture')].some(
+          (picture) => {
+            const frame = picture.closest('[data-layout]');
+            if (frame?.getAttribute('data-layout') === 'bleed') return false;
+            const other = picture.getBoundingClientRect();
+            return other.bottom > box.top + 2 && other.top < box.bottom;
+          },
+        );
+      });
+      expect(overlap).toBe(false);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      await captureScreenshot(
+        page,
+        info,
+        `recaps-film-${String(index).padStart(2, '0')}-${width}-${scheme}.png`,
+      );
+    }
+    expect(
+      (await new AxeBuilder({ page }).include('.recap-reader').analyze())
+        .violations,
+    ).toEqual([]);
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+  });
+}
+
+/** The scene's stage name for evidence: its type, or 'climax' for the highlight. */
+async function stageName(page: Page): Promise<string> {
+  const spread = page.locator('.recap-spread').first();
+  const type = (await spread.getAttribute('class'))?.match(
+    /recap-scene-([a-z]+)/u,
+  )?.[1];
+  return (await spread.getAttribute('data-climax')) === 'true'
+    ? 'climax'
+    : (type ?? 'scene');
+}
+
+/** Waits until every picture of the scene has loaded. */
+async function picturesLoaded(page: Page) {
+  await page.waitForFunction(() => {
+    const pictures = document.querySelectorAll('.recap-film-picture');
+    const loaded = [
+      ...document.querySelectorAll<HTMLImageElement>('.recap-film-picture img'),
+    ].filter((image) => image.complete && image.naturalWidth > 0);
+    const waiting = document.querySelectorAll(
+      '.recap-film-picture .story-media-skeleton',
+    );
+    return loaded.length >= pictures.length && waiting.length === 0;
+  });
+}
+
+// #1744 film variety: the wider catalogue's forms in a synthetic month, with
+// captions never under a picture, no overflow and no axe violation.
+for (const [width, height, scheme, all] of [
+  [390, 844, 'light', true],
+  [430, 932, 'dark', false],
+  [1280, 900, 'dark', false],
+] as const) {
+  test(`the film variety stages its scenes at ${width} px ${scheme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height });
+    await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
+    const state = await setup(page, { film: true, variety: true });
+    await page.goto(recapDetailPath('october'));
+    await expect(page.locator('.recap-film-frame').first()).toBeVisible();
+    const total = await page.locator('.recap-progress > *').count();
+    const forms = new Set<string>();
+    for (let index = 0; index < total; index++) {
+      await page.goto(`${recapDetailPath('october')}?page=${index}`);
+      await expect(page.locator('.recap-spread').first()).toBeVisible();
+      const name = await stageName(page);
+      const frame = page.locator('.recap-film-frame').first();
+      forms.add(
+        `${name}:${(await frame.getAttribute('data-variant')) ?? (await frame.getAttribute('data-layout'))}`,
+      );
+      if (!all && !['cover', 'climax', 'closing'].includes(name)) continue;
+      await picturesLoaded(page);
+      await page.waitForTimeout(400);
+      const overlap = await page.evaluate(() => {
+        const caption = document.querySelector('.recap-film-caption');
+        if (!caption) return false;
+        const box = caption.getBoundingClientRect();
+        return [...document.querySelectorAll('.recap-film-picture')].some(
+          (picture) => {
+            const layout = picture
+              .closest('[data-layout]')
+              ?.getAttribute('data-layout');
+            if (layout === 'bleed') return false;
+            const other = picture.getBoundingClientRect();
+            return other.bottom > box.top + 2 && other.top < box.bottom;
+          },
+        );
+      });
+      expect(overlap).toBe(false);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      await captureScreenshot(
+        page,
+        info,
+        `recaps-film-variety-${String(index).padStart(2, '0')}-${name}-${width}-${scheme}.png`,
+      );
+    }
+    // The cover stack, the route of Places, the collage climax and the fading
+    // closing all come from the frozen look; nothing else chose them.
+    expect([...forms]).toEqual(
+      expect.arrayContaining([
+        'cover:stack',
+        'place:route',
+        'climax:grid',
+        'closing:fade',
+      ]),
+    );
+    expect(
+      (await new AxeBuilder({ page }).include('.recap-reader').analyze())
+        .violations,
+    ).toEqual([]);
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+  });
+}
+
+test('the film variety catches its accents and the breath before the highlight mid-flight', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const state = await setup(page, { film: true, variety: true });
+  await page.goto(recapDetailPath('october'));
+  await expect(page.locator('.recap-film-frame').first()).toBeVisible();
+  const total = await page.locator('.recap-progress > *').count();
+  const caught = new Set<string>();
+  for (let index = 0; index < total; index++) {
+    await page.goto(`${recapDetailPath('october')}?page=${index}`);
+    const spread = page.locator('.recap-spread').first();
+    await expect(spread).toBeVisible();
+    const transition = (await spread.getAttribute('data-transition')) ?? '';
+    if (caught.has(transition)) continue;
+    caught.add(transition);
+    await picturesLoaded(page);
+    // Every running entrance stops at 40 % so the frame is reproducible.
+    await page.evaluate(() => {
+      for (const animation of document.getAnimations()) {
+        animation.pause();
+        const duration = Number(
+          animation.effect?.getComputedTiming().duration ?? 0,
+        );
+        animation.currentTime = duration * 0.4;
+      }
+    });
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-film-variety-motion-${transition}-390-light.png`,
+    );
+  }
+  expect([...caught]).toEqual(
+    expect.arrayContaining(['split', 'light', 'match']),
+  );
+  expect(state.unexpected).toEqual([]);
+});
+
+test('the year film variety shows its numeral, cards of firsts and calendar of covers', async ({
+  page,
+}, info) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const state = await setup(page, { yearFilm: true, variety: true });
+  await page.goto(recapDetailPath('year'));
+  await expect(page.locator('.recap-progress-chapter')).toHaveCount(12);
+  const total = await page.locator('.recap-progress-step').count();
+  const wanted = new Map([
+    ['month', 'numeral'],
+    ['firsts', 'cards'],
+    ['covers', 'calendar'],
+  ]);
+  for (let index = 0; index < total && wanted.size; index++) {
+    await page.goto(`${recapDetailPath('year')}?page=${index}`);
+    await expect(page.locator('.recap-spread').first()).toBeVisible();
+    const name = await stageName(page);
+    const variant = wanted.get(name);
+    if (!variant) continue;
+    wanted.delete(name);
+    await expect(page.locator('.recap-film-frame').first()).toHaveAttribute(
+      'data-variant',
+      variant,
+    );
+    await picturesLoaded(page);
+    await page.waitForTimeout(400);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-year-film-variety-${name}-390-light.png`,
+    );
+  }
+  expect(wanted.size).toBe(0);
+  expect(
+    (await new AxeBuilder({ page }).include('.recap-reader').analyze())
+      .violations,
+  ).toEqual([]);
+  expect(state.unexpected).toEqual([]);
 });

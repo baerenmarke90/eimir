@@ -20,6 +20,9 @@ import {
   TINY_PNG,
 } from '../support/storyTimelineFixture';
 
+// Light maps share the app-wide muted paper tone (design token mapAppearance.paperTileFilter).
+const PAPER_TILE_FILTER = 'saturate(0.6) contrast(0.97) brightness(1.04)';
+
 const comments = storyProducts.comments;
 const base = `/api/v1/spaces/${SPACE_ID}`;
 const photo = readFileSync(
@@ -99,7 +102,7 @@ test('three peer modes retain Diary scope and the map follows Light, Dark and li
   expect(imageBounds.height).toBeLessThanOrEqual(frameBounds.height);
 
   await page.emulateMedia({ colorScheme: 'light' });
-  await expect(tiles).toHaveCSS('filter', 'none');
+  await expect(tiles).toHaveCSS('filter', PAPER_TILE_FILTER);
   await expect(marker).toHaveAttribute('src', source);
   await page
     .getByRole('tab', { name: de.story.tabTimeline, exact: true })
@@ -135,8 +138,9 @@ test('three peer modes retain Diary scope and the map follows Light, Dark and li
       'data-theme',
       preference,
     );
-    if (preference === 'light') await expect(tiles).toHaveCSS('filter', 'none');
-    else await expect(tiles).not.toHaveCSS('filter', 'none');
+    if (preference === 'light')
+      await expect(tiles).toHaveCSS('filter', PAPER_TILE_FILTER);
+    else await expect(tiles).not.toHaveCSS('filter', PAPER_TILE_FILTER);
     await captureScreenshot(page, info, `map-explicit-${preference}-390.png`, {
       fullPage: true,
     });
@@ -301,7 +305,7 @@ test('inline reading comments retain deliberate focus and one canonical save', a
   await expect(input).toBeFocused();
 });
 
-test('Pro information lives in App and Account and legacy profile links reach it', async ({
+test('Pro entry lives in App and Account and legacy profile links reach it', async ({
   page,
 }, info) => {
   await page.setViewportSize({ width: 390, height: 900 });
@@ -313,11 +317,13 @@ test('Pro information lives in App and Account and legacy profile links reach it
   ).toHaveCount(0);
   await page.goto('/more/profile#profile-premium');
   await expect(page).toHaveURL(/\/more\/settings\/account#eimir-pro$/);
-  await expect(
-    page.getByRole('heading', { name: profiles.premium.title, exact: true }),
-  ).toBeVisible();
-  for (const feature of Object.values(profiles.premium.features))
-    await expect(page.getByText(feature.title, { exact: true })).toBeVisible();
+  // #1907 D1: one row leads to the Pro page, which owns features and prices.
+  const proRow = page.getByRole('link', {
+    name: new RegExp(profiles.premium.title),
+  });
+  await expect(proRow).toBeVisible();
+  await expect(proRow).toHaveAttribute('href', '/more/pro');
+  await expect(page.getByText(profiles.premium.rowInactive)).toBeVisible();
   await captureScreenshot(page, info, 'pro-app-account-390.png', {
     fullPage: true,
   });

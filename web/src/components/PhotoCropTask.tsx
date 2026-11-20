@@ -1,5 +1,6 @@
 import type { PanzoomObject } from '@panzoom/panzoom';
 import Panzoom from '@panzoom/panzoom/dist/panzoom.es.js';
+import { panzoomMotionOptions } from '../motion/gesture/panzoom';
 import {
   type RefObject,
   useEffect,
@@ -13,8 +14,10 @@ import {
   cropRectFromLayout,
   type PhotoCropSource,
   renderCroppedPhoto,
+  turnPhotoCropSourceLeft,
 } from '../client/photoCrop';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './PhotoCropTask.css';
 
@@ -55,13 +58,33 @@ export function PhotoCropTask({
   const [zoom, setZoom] = useState(MIN_ZOOM);
   const [rendering, setRendering] = useState(false);
   // Keep the last photo through the sheet's exit so it does not blank out.
-  const [shown, setShown] = useState(source);
-  if (source && source !== shown) setShown(source);
+  const [selected, setSelected] = useState(source);
+  // The selected photo turned by the user (#1907 G1), if any.
+  const [turned, setTurned] = useState<PhotoCropSource | null>(null);
+  const [turning, setTurning] = useState(false);
+  if (source && source !== selected) {
+    setSelected(source);
+    setTurned(null);
+  }
+  const shown = turned ?? selected;
 
   useEffect(() => {
-    if (!shown) return;
-    return () => shown.release();
-  }, [shown]);
+    if (!selected) return;
+    return () => selected.release();
+  }, [selected]);
+
+  useEffect(() => {
+    if (!turned) return;
+    return () => turned.release();
+  }, [turned]);
+
+  async function turnLeft() {
+    if (!shown || turning) return;
+    setTurning(true);
+    const next = await turnPhotoCropSourceLeft(shown);
+    setTurning(false);
+    if (next) setTurned(next);
+  }
 
   useEffect(() => {
     if (source) setRendering(false);
@@ -78,11 +101,11 @@ export function PhotoCropTask({
       startY: -(element.offsetHeight - frame.clientHeight) / 2,
     });
     const instance = Panzoom(element, {
+      ...panzoomMotionOptions(),
       canvas: true,
       minScale: MIN_ZOOM,
       maxScale: MAX_ZOOM,
       contain: 'outside',
-      animate: false,
       touchAction: 'none',
       cursor: 'grab',
       ...centred(),
@@ -152,7 +175,8 @@ export function PhotoCropTask({
     const element = photo.current;
     if (!shown || !frame || !element || rendering) return;
     setRendering(true);
-    let file = shown.file;
+    // A photo that could not be cropped is uploaded as selected.
+    let file = selected?.file ?? shown.file;
     try {
       file = await renderCroppedPhoto(
         shown,
@@ -263,6 +287,18 @@ export function PhotoCropTask({
                 controller.current?.zoom(requested, { animate: false });
               }}
             />
+          </div>
+          <div className="photo-crop-actions">
+            <button
+              type="button"
+              className="secondary photo-crop-turn"
+              disabled={rendering || turning}
+              aria-busy={turning || undefined}
+              onClick={() => void turnLeft()}
+            >
+              <EimirIcon name="rotate" />
+              <span>{t('photoEdit.turn')}</span>
+            </button>
           </div>
           <p className="field-help photo-crop-help">{t('photoCrop.help')}</p>
           <p id={helpId} className="sr-only">

@@ -2,13 +2,16 @@ import { useQuery } from '@tanstack/react-query';
 import { lazy, Suspense, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ChaptersApi } from '../api/generated/apis/ChaptersApi';
+import { MilestonesApi } from '../api/generated/apis/MilestonesApi';
 import { PeopleApi } from '../api/generated/apis/PeopleApi';
 import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import { WishesApi } from '../api/generated/apis/WishesApi';
+import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { DateRepeat } from '../api/generated/models/DateRepeat';
 import { Configuration } from '../client/apiConfiguration';
 import { calculateNextAnniversary } from '../client/relationshipPreview';
 import { chapterDetailPath } from '../client/routes';
+import type { MilestoneRef } from '../client/storyWaymarks';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AppErrorBoundary } from './AppErrorBoundary';
 import type { MapLocation } from './PlaceMapCanvas';
@@ -59,6 +62,7 @@ function useStoryApis({ apiBaseUrl, accessToken }: StoryScope) {
     });
     return {
       chapters: new ChaptersApi(configuration),
+      milestones: new MilestonesApi(configuration),
       people: new PeopleApi(configuration),
       places: new PlacesApi(configuration),
       wishes: new WishesApi(configuration),
@@ -71,6 +75,8 @@ export interface StoryOccasion {
   label: string;
   date: Date;
   daysRemaining: number;
+  /** The account's own private date: shown only on a protected screen (#683). */
+  private?: boolean;
 }
 
 /** The couple's own upcoming occasions, nearest first. Holidays are not theirs. */
@@ -92,7 +98,13 @@ export function useStoryOccasions(
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
     const upcoming: StoryOccasion[] = [];
-    const add = (key: string, label: string, date: Date, annual: boolean) => {
+    const add = (
+      key: string,
+      label: string,
+      date: Date,
+      annual: boolean,
+      ownPrivate = false,
+    ) => {
       const next = annual
         ? calculateNextAnniversary(date, today)?.nextDate
         : date;
@@ -102,6 +114,7 @@ export function useStoryOccasions(
         label,
         date: next,
         daysRemaining: Math.round((next.getTime() - today.getTime()) / DAY_MS),
+        private: ownPrivate,
       });
     };
     for (const entry of dates.data ?? [])
@@ -110,6 +123,7 @@ export function useStoryOccasions(
         entry.label,
         entry.date,
         entry.repeats === DateRepeat.ANNUALLY,
+        entry.visibility !== ContentVisibility.SHARED,
       );
     if (partnerBirthday?.date)
       add(
@@ -131,6 +145,40 @@ export function useStoryOccasions(
       })
       .slice(0, 3);
   }, [dates.data, partnerBirthday?.date, partnerBirthday?.name, t]);
+}
+
+/**
+ * The couple's own authored Milestones, read across all pages. Milestones are
+ * always shared, so both partners derive the same waymarks from them. A failed
+ * or pending read yields an empty list and never blocks the page.
+ */
+export function useStoryMilestones(
+  scope: StoryScope,
+  { enabled = true }: { enabled?: boolean } = {},
+): MilestoneRef[] {
+  const apis = useStoryApis(scope);
+  const milestones = useQuery({
+    queryKey: ['story-overview', 'milestones', scope.accountId, scope.spaceId],
+    queryFn: () =>
+      readAllPages((cursor) =>
+        apis.milestones.listMilestones({
+          spaceId: scope.spaceId,
+          cursor,
+          limit: PAGE_LIMIT,
+        }),
+      ),
+    retry: false,
+    enabled,
+  });
+  return useMemo(
+    () =>
+      (milestones.data ?? []).map(({ id, title, happenedOn }) => ({
+        id,
+        title,
+        happenedOn,
+      })),
+    [milestones.data],
+  );
 }
 
 /** Fulfilled wishes, counted across all pages. */

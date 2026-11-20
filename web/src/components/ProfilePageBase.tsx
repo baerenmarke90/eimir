@@ -8,7 +8,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Link } from 'react-router-dom';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
@@ -35,7 +34,6 @@ import {
   formatAnniversaryDetail,
   formatRelationshipDuration,
 } from '../client/relationshipPreview';
-import { settingsCategoryPath } from '../client/routes';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
@@ -45,7 +43,7 @@ import { PartnerIdentityPanel } from './PartnerIdentityPanel';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
-import { useOverlayPresence } from './useOverlayPresence';
+import { useOverlayPresence } from '../motion/presence';
 
 type PreferenceVisibility =
   | typeof ProfileVisibility.SELF_PROFILE
@@ -373,15 +371,6 @@ export function RelationshipSettingsSection({
                 {t('profiles.relationshipSavedSubtle')}
               </span>
             ) : null}
-          </div>
-
-          <div className="relationship-notification-hint-row">
-            <Link
-              to={settingsCategoryPath('notifications')}
-              className="relationship-notification-hint-link"
-            >
-              {t('profiles.relationshipNotificationHint')}
-            </Link>
           </div>
         </form>
       ) : null}

@@ -10,6 +10,7 @@ Name | Type
 `consent` | boolean
 `maxItems` | number
 `mediaRecoveryPolicy` | string
+`returnTo` | string
 `source` | string
 
 ## Example
@@ -23,6 +24,7 @@ const example = {
   "consent": null,
   "maxItems": null,
   "mediaRecoveryPolicy": null,
+  "returnTo": null,
   "source": null,
 } satisfies PhotoSelectionCreate
 

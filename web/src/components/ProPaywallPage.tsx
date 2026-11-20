@@ -21,12 +21,14 @@ import {
 import { spaceEntitlementQueryKey } from '../client/spaceEntitlement';
 import { useBillingChannel } from '../client/storeBilling';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { haptic } from '../motion/haptics';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
+import { ProFeatureCatalogue } from './ProFeatureCatalogue';
 import { TaskBackButton } from './TaskBackButton';
 import './ProPaywall.css';
 
 const CONTEXT_ICONS: Record<
-  ProPaywallContext,
+  Exclude<ProPaywallContext, 'general'>,
   readonly [EimirIconName, EimirIconName, EimirIconName]
 > = {
   dateIdeas: ['sparkle', 'filter', 'planen'],
@@ -35,7 +37,6 @@ const CONTEXT_ICONS: Record<
   photoSources: ['photo-library', 'foto', 'video'],
   calendar: ['kalender', 'gemeinsam', 'check'],
   games: ['spiele', 'smile-plus', 'highlights'],
-  general: ['sparkle', 'erinnerungen', 'spiele'],
 };
 
 /** Safe destination when the paywall was opened without in-app history. */
@@ -99,6 +100,9 @@ export function ProPaywallPage({
 
   const settle = async (result: ProPurchaseOutcome) => {
     setOutcome(result);
+    // Feedback `success` only after the store confirmed it (Motion Contract
+    // 4.10, 4.12): one haptic in the native app, no celebration.
+    if (result === 'confirmed' || result === 'restored') haptic('success');
     window.requestAnimationFrame(() => outcomeRef.current?.focus());
     if (unlocksFeature(result) && accountId && spaceId) {
       // The backend reconciled the grant; renew the session read once.
@@ -122,6 +126,7 @@ export function ProPaywallPage({
   };
 
   const contextKey = `proPaywall.contexts.${context}`;
+  const contextIcons = context === 'general' ? null : CONTEXT_ICONS[context];
   const selected = offers.find((offer) => offer.id === plan) ?? offers[0];
 
   return (
@@ -131,7 +136,7 @@ export function ProPaywallPage({
         <span className="pro-paywall-hero-circle is-first" />
         <span className="pro-paywall-hero-circle is-second" />
         <EimirIcon
-          name={CONTEXT_ICONS[context][0]}
+          name={contextIcons?.[0] ?? 'sparkle'}
           className="pro-paywall-hero-icon"
         />
       </div>
@@ -141,20 +146,22 @@ export function ProPaywallPage({
         <p>{t(`${contextKey}.description`)}</p>
       </header>
 
-      <ul
-        className="pro-paywall-benefits"
-        aria-label={t('proPaywall.benefitsLabel')}
-      >
-        {BENEFITS.map((benefit, index) => (
-          <li key={benefit}>
-            <EimirIcon name={CONTEXT_ICONS[context][index]} />
-            <div>
-              <strong>{t(`${contextKey}.benefits.${benefit}.title`)}</strong>
-              <p>{t(`${contextKey}.benefits.${benefit}.body`)}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
+      {contextIcons ? (
+        <ul
+          className="pro-paywall-benefits"
+          aria-label={t('proPaywall.benefitsLabel')}
+        >
+          {BENEFITS.map((benefit, index) => (
+            <li key={benefit}>
+              <EimirIcon name={contextIcons[index]} />
+              <div>
+                <strong>{t(`${contextKey}.benefits.${benefit}.title`)}</strong>
+                <p>{t(`${contextKey}.benefits.${benefit}.body`)}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
       {active ? (
         <section className="pro-paywall-active" aria-live="polite">
@@ -290,7 +297,13 @@ export function ProPaywallPage({
           ) : (
             <section className="pro-paywall-unavailable" role="note">
               <h2>{t('proPaywall.unavailableTitle')}</h2>
-              <p>{t('proPaywall.unavailableBody')}</p>
+              <p>
+                {t(
+                  channel.platform === 'web'
+                    ? 'proPaywall.webUnavailableBody'
+                    : 'proPaywall.unavailableBody',
+                )}
+              </p>
             </section>
           )}
           {outcome ? (
@@ -307,6 +320,7 @@ export function ProPaywallPage({
         </>
       )}
 
+      {context === 'general' ? <ProFeatureCatalogue /> : null}
       <p className="pro-paywall-free">{t('proPaywall.free')}</p>
       <section
         className="pro-paywall-terms"

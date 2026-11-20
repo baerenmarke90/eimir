@@ -80,17 +80,10 @@
   justify-self: start;
 }
 @media (prefers-reduced-motion: no-preference) {
+  /* Enter `fade` from the motion catalogue (src/motion/motion.css). */
   .weekly-review-result {
-    animation: weekly-review-appear var(--duration-transition)
+    animation: eimir-motion-enter-fade var(--duration-transition)
       var(--easing-enter);
-  }
-  @keyframes weekly-review-appear {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
   }
 }
 

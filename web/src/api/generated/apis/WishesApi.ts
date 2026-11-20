@@ -34,6 +34,21 @@ import {
     WishCreateToJSON,
 } from '../models/WishCreate';
 import {
+    type WishDateProposalAcceptance,
+    WishDateProposalAcceptanceFromJSON,
+    WishDateProposalAcceptanceToJSON,
+} from '../models/WishDateProposalAcceptance';
+import {
+    type WishDateProposalState,
+    WishDateProposalStateFromJSON,
+    WishDateProposalStateToJSON,
+} from '../models/WishDateProposalState';
+import {
+    type WishDateProposalWrite,
+    WishDateProposalWriteFromJSON,
+    WishDateProposalWriteToJSON,
+} from '../models/WishDateProposalWrite';
+import {
     type WishDetail,
     WishDetailFromJSON,
     WishDetailToJSON,
@@ -59,6 +74,12 @@ import {
     WishUpdateToJSON,
 } from '../models/WishUpdate';
 
+export interface AcceptWishDateProposalRequest {
+    wishId: string;
+    proposalId: string;
+    spaceId: string;
+}
+
 export interface ClearPersonalWishReminderRequest {
     wishId: string;
     spaceId: string;
@@ -70,10 +91,29 @@ export interface CompleteWishRequest {
     ifMatch: string;
 }
 
+export interface CounterWishDateProposalRequest {
+    wishId: string;
+    proposalId: string;
+    spaceId: string;
+    wishDateProposalWrite: WishDateProposalWrite;
+}
+
 export interface CreateWishRequest {
     spaceId: string;
     wishCreate: WishCreate;
     idempotencyKey?: string | null;
+}
+
+export interface CreateWishDateProposalRequest {
+    wishId: string;
+    spaceId: string;
+    wishDateProposalWrite: WishDateProposalWrite;
+}
+
+export interface DeclineWishDateProposalRequest {
+    wishId: string;
+    proposalId: string;
+    spaceId: string;
 }
 
 export interface DeleteWishRequest {
@@ -88,6 +128,11 @@ export interface GetPersonalWishReminderRequest {
 }
 
 export interface GetWishRequest {
+    wishId: string;
+    spaceId: string;
+}
+
+export interface GetWishDateProposalRequest {
     wishId: string;
     spaceId: string;
 }
@@ -119,10 +164,77 @@ export interface UpdateWishRequest {
     wishUpdate: WishUpdate;
 }
 
+export interface WithdrawWishDateProposalRequest {
+    wishId: string;
+    proposalId: string;
+    spaceId: string;
+}
+
 /**
  * 
  */
 export class WishesApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for acceptWishDateProposal without sending the request
+     */
+    async acceptWishDateProposalRequestOpts(requestParameters: AcceptWishDateProposalRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['wishId'] == null) {
+            throw new runtime.RequiredError(
+                'wishId',
+                'Required parameter "wishId" was null or undefined when calling acceptWishDateProposal().'
+            );
+        }
+
+        if (requestParameters['proposalId'] == null) {
+            throw new runtime.RequiredError(
+                'proposalId',
+                'Required parameter "proposalId" was null or undefined when calling acceptWishDateProposal().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling acceptWishDateProposal().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/wishes/{wishId}/date-proposal/{proposalId}/accept`;
+        urlPath = urlPath.replace('{wishId}', encodeURIComponent(String(requestParameters['wishId'])));
+        urlPath = urlPath.replace('{proposalId}', encodeURIComponent(String(requestParameters['proposalId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Accept Wish Date Proposal
+     */
+    async acceptWishDateProposalRaw(requestParameters: AcceptWishDateProposalRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WishDateProposalAcceptance>> {
+        const requestOptions = await this.acceptWishDateProposalRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => WishDateProposalAcceptanceFromJSON(jsonValue));
+    }
+
+    /**
+     * Accept Wish Date Proposal
+     */
+    async acceptWishDateProposal(requestParameters: AcceptWishDateProposalRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WishDateProposalAcceptance> {
+        const response = await this.acceptWishDateProposalRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for clearPersonalWishReminder without sending the request
@@ -241,6 +353,77 @@ export class WishesApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for counterWishDateProposal without sending the request
+     */
+    async counterWishDateProposalRequestOpts(requestParameters: CounterWishDateProposalRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['wishId'] == null) {
+            throw new runtime.RequiredError(
+                'wishId',
+                'Required parameter "wishId" was null or undefined when calling counterWishDateProposal().'
+            );
+        }
+
+        if (requestParameters['proposalId'] == null) {
+            throw new runtime.RequiredError(
+                'proposalId',
+                'Required parameter "proposalId" was null or undefined when calling counterWishDateProposal().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling counterWishDateProposal().'
+            );
+        }
+
+        if (requestParameters['wishDateProposalWrite'] == null) {
+            throw new runtime.RequiredError(
+                'wishDateProposalWrite',
+                'Required parameter "wishDateProposalWrite" was null or undefined when calling counterWishDateProposal().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/wishes/{wishId}/date-proposal/{proposalId}/counter`;
+        urlPath = urlPath.replace('{wishId}', encodeURIComponent(String(requestParameters['wishId'])));
+        urlPath = urlPath.replace('{proposalId}', encodeURIComponent(String(requestParameters['proposalId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: WishDateProposalWriteToJSON(requestParameters['wishDateProposalWrite']),
+        };
+    }
+
+    /**
+     * Counter Wish Date Proposal
+     */
+    async counterWishDateProposalRaw(requestParameters: CounterWishDateProposalRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WishDateProposalState>> {
+        const requestOptions = await this.counterWishDateProposalRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => WishDateProposalStateFromJSON(jsonValue));
+    }
+
+    /**
+     * Counter Wish Date Proposal
+     */
+    async counterWishDateProposal(requestParameters: CounterWishDateProposalRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WishDateProposalState> {
+        const response = await this.counterWishDateProposalRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for createWish without sending the request
      */
     async createWishRequestOpts(requestParameters: CreateWishRequest): Promise<runtime.RequestOpts> {
@@ -297,6 +480,129 @@ export class WishesApi extends runtime.BaseAPI {
     async createWish(requestParameters: CreateWishRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WishDetail> {
         const response = await this.createWishRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Creates request options for createWishDateProposal without sending the request
+     */
+    async createWishDateProposalRequestOpts(requestParameters: CreateWishDateProposalRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['wishId'] == null) {
+            throw new runtime.RequiredError(
+                'wishId',
+                'Required parameter "wishId" was null or undefined when calling createWishDateProposal().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling createWishDateProposal().'
+            );
+        }
+
+        if (requestParameters['wishDateProposalWrite'] == null) {
+            throw new runtime.RequiredError(
+                'wishDateProposalWrite',
+                'Required parameter "wishDateProposalWrite" was null or undefined when calling createWishDateProposal().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/wishes/{wishId}/date-proposal`;
+        urlPath = urlPath.replace('{wishId}', encodeURIComponent(String(requestParameters['wishId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: WishDateProposalWriteToJSON(requestParameters['wishDateProposalWrite']),
+        };
+    }
+
+    /**
+     * Create Wish Date Proposal
+     */
+    async createWishDateProposalRaw(requestParameters: CreateWishDateProposalRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WishDateProposalState>> {
+        const requestOptions = await this.createWishDateProposalRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => WishDateProposalStateFromJSON(jsonValue));
+    }
+
+    /**
+     * Create Wish Date Proposal
+     */
+    async createWishDateProposal(requestParameters: CreateWishDateProposalRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WishDateProposalState> {
+        const response = await this.createWishDateProposalRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for declineWishDateProposal without sending the request
+     */
+    async declineWishDateProposalRequestOpts(requestParameters: DeclineWishDateProposalRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['wishId'] == null) {
+            throw new runtime.RequiredError(
+                'wishId',
+                'Required parameter "wishId" was null or undefined when calling declineWishDateProposal().'
+            );
+        }
+
+        if (requestParameters['proposalId'] == null) {
+            throw new runtime.RequiredError(
+                'proposalId',
+                'Required parameter "proposalId" was null or undefined when calling declineWishDateProposal().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling declineWishDateProposal().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/wishes/{wishId}/date-proposal/{proposalId}/decline`;
+        urlPath = urlPath.replace('{wishId}', encodeURIComponent(String(requestParameters['wishId'])));
+        urlPath = urlPath.replace('{proposalId}', encodeURIComponent(String(requestParameters['proposalId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Decline Wish Date Proposal
+     */
+    async declineWishDateProposalRaw(requestParameters: DeclineWishDateProposalRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.declineWishDateProposalRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Decline Wish Date Proposal
+     */
+    async declineWishDateProposal(requestParameters: DeclineWishDateProposalRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.declineWishDateProposalRaw(requestParameters, initOverrides);
     }
 
     /**
@@ -465,6 +771,59 @@ export class WishesApi extends runtime.BaseAPI {
      */
     async getWish(requestParameters: GetWishRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WishDetail> {
         const response = await this.getWishRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getWishDateProposal without sending the request
+     */
+    async getWishDateProposalRequestOpts(requestParameters: GetWishDateProposalRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['wishId'] == null) {
+            throw new runtime.RequiredError(
+                'wishId',
+                'Required parameter "wishId" was null or undefined when calling getWishDateProposal().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getWishDateProposal().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/wishes/{wishId}/date-proposal`;
+        urlPath = urlPath.replace('{wishId}', encodeURIComponent(String(requestParameters['wishId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Get Wish Date Proposal
+     */
+    async getWishDateProposalRaw(requestParameters: GetWishDateProposalRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WishDateProposalState>> {
+        const requestOptions = await this.getWishDateProposalRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => WishDateProposalStateFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Wish Date Proposal
+     */
+    async getWishDateProposal(requestParameters: GetWishDateProposalRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WishDateProposalState> {
+        const response = await this.getWishDateProposalRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -720,6 +1079,66 @@ export class WishesApi extends runtime.BaseAPI {
     async updateWish(requestParameters: UpdateWishRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WishDetail> {
         const response = await this.updateWishRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Creates request options for withdrawWishDateProposal without sending the request
+     */
+    async withdrawWishDateProposalRequestOpts(requestParameters: WithdrawWishDateProposalRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['wishId'] == null) {
+            throw new runtime.RequiredError(
+                'wishId',
+                'Required parameter "wishId" was null or undefined when calling withdrawWishDateProposal().'
+            );
+        }
+
+        if (requestParameters['proposalId'] == null) {
+            throw new runtime.RequiredError(
+                'proposalId',
+                'Required parameter "proposalId" was null or undefined when calling withdrawWishDateProposal().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling withdrawWishDateProposal().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/wishes/{wishId}/date-proposal/{proposalId}/withdraw`;
+        urlPath = urlPath.replace('{wishId}', encodeURIComponent(String(requestParameters['wishId'])));
+        urlPath = urlPath.replace('{proposalId}', encodeURIComponent(String(requestParameters['proposalId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Withdraw Wish Date Proposal
+     */
+    async withdrawWishDateProposalRaw(requestParameters: WithdrawWishDateProposalRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.withdrawWishDateProposalRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Withdraw Wish Date Proposal
+     */
+    async withdrawWishDateProposal(requestParameters: WithdrawWishDateProposalRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.withdrawWishDateProposalRaw(requestParameters, initOverrides);
     }
 
 }

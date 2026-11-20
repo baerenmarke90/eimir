@@ -1,15 +1,19 @@
-import { test, expect, type BrowserContext, type Page } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import { type BrowserContext, expect, type Page, test } from '@playwright/test';
+import copy from '../../src/i18n/locales/onceMessages';
+import AxeBuilder from '../support/axe';
+import {
+  installNativeAppLifecycle,
+  nativeSecureScreen,
+} from '../support/nativeAppLifecycle';
 import {
   ACCOUNT_ID,
+  captureScreenshot,
+  installMocks,
   PARTNER_ID,
   SPACE_ID,
-  TINY_PNG,
-  installMocks,
   signIn,
-  captureScreenshot,
+  TINY_PNG,
 } from '../support/storyTimelineFixture';
-import copy from '../../src/i18n/locales/onceMessages';
 
 const ROOT = '/today/only-you';
 const MESSAGE = '77777777-7777-4777-8777-777777777777';
@@ -193,6 +197,9 @@ async function enable(
   app: ReturnType<typeof server>,
   own: string,
 ) {
+  // Once messages are received only in the Android app (#683): both partners
+  // consent there, so each device runs as the app.
+  await installNativeAppLifecycle(page);
   await app.connect(page, own);
   await signIn(
     page,
@@ -256,6 +263,7 @@ test('two devices exchange actual encrypted content, deliberately reveal once an
       .click();
     await expect(receiver.getByText(WORDS, { exact: true })).toBeVisible();
     expect(app.opens).toBe(1);
+    expect(await nativeSecureScreen(receiver)).toBe(true);
     await captureScreenshot(receiver, info, 'once-open-390-light.png');
     const stored = await receiver.evaluate(() =>
       JSON.stringify({

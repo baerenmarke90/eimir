@@ -153,6 +153,24 @@ function setup() {
   };
 }
 
+function openMenu() {
+  fireEvent.click(
+    screen.getByRole('button', { name: m5s3.plan.menu, hidden: true }),
+  );
+}
+function editRow() {
+  return screen.getByRole('button', { name: de.common.edit, hidden: true });
+}
+/** Reads the Edit row's state, then closes the menu so other dialogs stay unique. */
+async function editIsDisabled() {
+  openMenu();
+  const row = editRow();
+  const disabled = row.hasAttribute('disabled');
+  const dialog = row.closest('dialog') as HTMLDialogElement;
+  fireEvent(dialog, new Event('cancel', { cancelable: true }));
+  await waitFor(() => expect(dialog.isConnected).toBe(false));
+  return disabled;
+}
 const completeButton = () =>
   (screen.queryByRole('dialog')
     ? within(screen.getByRole('dialog'))
@@ -205,11 +223,7 @@ it('claims the completion synchronously, names the day in one status and locks c
   expect(completeButton().textContent).toBe(m5s3.common.saving);
   expect((dateField() as HTMLInputElement).readOnly).toBe(true);
   expect((dateField() as HTMLInputElement).value).toBe(DAY);
-  expect(
-    screen
-      .getByRole('button', { name: de.common.edit, hidden: true })
-      .hasAttribute('disabled'),
-  ).toBe(true);
+  expect(await editIsDisabled()).toBe(true);
   expect(screen.queryByLabelText(m5s3.plan.plannedDate)).toBeNull();
 
   // Nothing is claimed before the server answers.
@@ -325,11 +339,7 @@ it('keeps competing writes locked until a conflict recovery read returns the cur
   expect(screen.getByText(de.states.conflict.title)).toBeDefined();
 
   expect(completeButton().getAttribute('aria-disabled')).toBe('true');
-  expect(
-    screen
-      .getByRole('button', { name: de.common.edit, hidden: true })
-      .hasAttribute('disabled'),
-  ).toBe(true);
+  expect(await editIsDisabled()).toBe(true);
   fireEvent.submit(
     (completeButton() as HTMLButtonElement).form as HTMLFormElement,
   );
@@ -351,13 +361,13 @@ it('prevents opening the unified editor while completion is already claimed', as
   const h = setup();
   await screen.findByText('Picnic in the park');
   fireEvent.change(dateField(), { target: { value: DAY } });
+  const completionForm = (completeButton() as HTMLButtonElement)
+    .form as HTMLFormElement;
+  openMenu();
+  const edit = editRow();
   act(() => {
-    fireEvent.submit(
-      (completeButton() as HTMLButtonElement).form as HTMLFormElement,
-    );
-    fireEvent.click(
-      screen.getByRole('button', { name: de.common.edit, hidden: true }),
-    );
+    fireEvent.submit(completionForm);
+    fireEvent.click(edit);
   });
   await waitFor(() => expect(h.completePlanRaw).toHaveBeenCalledTimes(1));
   expect(screen.queryByLabelText(m5s3.plan.plannedDate)).toBeNull();
@@ -367,9 +377,8 @@ it('prevents opening the unified editor while completion is already claimed', as
 it('admits one editor save and locks inputs and completion until it finishes', async () => {
   const h = setup();
   await screen.findByText('Picnic in the park');
-  fireEvent.click(
-    screen.getByRole('button', { name: de.common.edit, hidden: true }),
-  );
+  openMenu();
+  fireEvent.click(editRow());
   fireEvent.click(
     screen.getByRole('button', { name: new RegExp(m5s3.plan.schedule) }),
   );
@@ -532,11 +541,7 @@ it('does not leak pending state into another Space or recreate the cleared Space
   await waitFor(() => expect(screen.queryByRole('status')).toBeNull());
   await screen.findByText('Picnic in the park');
   expect(completeButton().getAttribute('aria-disabled')).toBe('false');
-  expect(
-    screen
-      .getByRole('button', { name: de.common.edit, hidden: true })
-      .hasAttribute('disabled'),
-  ).toBe(false);
+  expect(await editIsDisabled()).toBe(false);
 
   h.setServer(completedPlan());
   await act(async () => h.writes[0].resolve(confirmed(true)));

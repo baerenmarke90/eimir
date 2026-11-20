@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
 import { settingsCategoryPath } from '../../src/client/routes';
@@ -531,6 +531,7 @@ test('personal module reorder persists across reload and separates the visibilit
   );
 
   await page.goto(settingsCategoryPath('today'));
+  await expect(page.locator('#settings-dashboard')).toBeVisible();
   await page.screenshot({
     path: testInfo.outputPath('1194-reorder-compact-dark.png'),
     fullPage: true,

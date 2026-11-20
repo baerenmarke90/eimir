@@ -1,21 +1,3 @@
-@keyframes partner-quick-actions-popover-enter {
-  from {
-    transform: translate(-50%, var(--space-1));
-  }
-  to {
-    transform: translate(-50%, 0);
-  }
-}
-
-@keyframes partner-quick-actions-popover-exit {
-  from {
-    transform: translate(-50%, 0);
-  }
-  to {
-    transform: translate(-50%, calc(-1 * var(--space-1)));
-  }
-}
-
 .partner-quick-actions-popover {
   position: absolute;
   top: calc(100% + var(--space-3));
@@ -29,13 +11,22 @@
   box-shadow: var(--shadow-soft);
   transform: translateX(-50%);
   text-align: left;
-  animation: partner-quick-actions-popover-enter var(--duration-transition)
+  /*
+   * A small popover: Enter `surface` and Exit `surface-exit` with
+   * `--duration-transition` (src/motion/motion.css). It moves a little and
+   * keeps its opacity; the translate composes with the centring transform.
+   */
+  --motion-surface-from: 0 var(--space-1);
+  --motion-surface-to: 0 calc(-1 * var(--space-1));
+  --motion-surface-from-opacity: 1;
+  --motion-surface-to-opacity: 1;
+  animation: eimir-motion-surface-in var(--duration-transition)
     var(--easing-enter) both;
 }
 
 .partner-quick-actions-popover[data-presence="exiting"] {
   pointer-events: none;
-  animation-name: partner-quick-actions-popover-exit;
+  animation-name: eimir-motion-surface-out;
   animation-timing-function: var(--easing-exit);
 }
 
@@ -128,7 +119,6 @@
   overflow: visible;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.7;
   stroke-linecap: round;
   stroke-linejoin: round;
 }

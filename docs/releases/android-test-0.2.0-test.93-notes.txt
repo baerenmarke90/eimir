@@ -1,0 +1,9 @@
+eimir. Android 0.2.0-test.93
+
+- Wir opens with a gentler animation. Shared photos stay visible longer and fade into the next moment.
+- The daily retrospective stays on Wir. In Momente, the Fotostory follows your experiences.
+- Plans and wishes linked to a memory appear together. Each link opens its own plan or wish.
+- Swipe through lifeline entries on Wir without switching tabs. In Your Story, drag vertically on the timeline to browse entries within the selected period.
+
+The product changes come from main at 8a95f238b09b07dce6267b76b6bb96d3d268c7cc.
+Install over test.92 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 93.

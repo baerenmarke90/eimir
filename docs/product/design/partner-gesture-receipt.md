@@ -12,7 +12,14 @@ Owning issue: [#455](https://github.com/baerenmarke90/eimir/issues/455)
 (receipt part only; the global sender entry is unchanged). Related: #1206
 (quick actions), #515 (notification policy), #1790 (everyday closeness).
 
-## Scope
+[#1912](https://github.com/baerenmarke90/eimir/pull/1912) extends the shared
+receipt to new, authorized in-app notifications. The
+[Wish date proposal follow-up](../notification-workflow.md#wish-date-exchange-presentation-1910)
+uses the same host, timing and suppression rules. It puts a calendar badge on
+the check-in variant's calm arrival and gives the recipient a direct action to
+open the proposal or confirmed Plan. Ordinary check-in status updates remain silent.
+
+## Original scope (#455)
 
 - One shared presentation primitive, `PartnerGestureReceipt`, for the existing
   notification kinds `THINKING_OF_YOU`, `PARTNER_KISS` and `PARTNER_CHECK_IN`.
@@ -89,29 +96,95 @@ Mehr, and the Snackbar.
 | --- | --- | --- | --- |
 | `THINKING_OF_YOU` | `partnerGestureReceipt.thinking.title` / `.detail` ("Ben is thinking of you right now" / "a small hello, just for you") | A big heart appears over the avatar, beats twice (lub-dub) with one ripple, then settles as the heart badge. | `partnerGestureReceipt.thinking.reply` ("send one back") → existing `THINKING` send, only when the Thinking-of-You cooldown is not active. |
 | `PARTNER_KISS` | `partnerGestureReceipt.kiss.title` / `.detail` ("a kiss from Ben" / "for you") | Two hearts float in on arcs from both sides, meet over the avatar, "kiss" with a short squeeze and a soft bloom, then settle as two small hearts. | `partnerGestureReceipt.kiss.reply` ("send a kiss back") → existing `KISS` send with the extended capability; without it, the Pro mark opens the shared Pro page exactly like the quick actions (`proPaywallPath()`). Not offered while the cooldown is active or the entitlement is not yet known. |
-| `PARTNER_CHECK_IN` | `partnerGestureReceipt.checkIn.title` / `.detail` ("Ben would like to know how you are" / "only if you feel like it") | No hearts: the avatar takes one slow breath while three calm waves widen, then a "?" badge settles. | `partnerGestureReceipt.checkIn.reply` ("share how you feel") → opens the existing own daily check-in sheet on Wir, only when vibe or energy check-in is enabled for the Space. Nothing is changed automatically. |
+| `PARTNER_CHECK_IN` | `partnerGestureReceipt.checkIn.title` / `.detail` ("Ben would like to know how you are" / "only if you feel like it") | No hearts, no waves: the avatar takes one slow breath and a "?" badge settles soon after (calm receipt, see below). | `partnerGestureReceipt.checkIn.reply` ("share how you feel") → opens the existing own daily check-in sheet on Wir, only when vibe or energy check-in is enabled for the Space. Nothing is changed automatically. |
 
 Without an actor name the existing anonymous titles are used. The avatar uses
 the shared `AuthorAvatar` with its initials fallback.
+
+## Calm partner notices (standard, 2026-11-15)
+
+The Product Owner decided on 2026-11-15, after reviewing animated Compact
+examples on the real Wir, Planen and Momente screens, that the calm check-in
+receipt becomes the standard for every notification a partner deliberately
+causes. Waves were judged restless and removed.
+
+- **Calm receipt:** partner avatar (or its kind icon when no actor is
+  available), one soft breath, a small kind-specific badge that lands about
+  0.5 s after the surface opens, one reply pill, close. No waves, no hearts.
+  Enter, exit, auto-close (8 s), suppression, announcement and reduced motion
+  (settled state at once) stay as specified above.
+- **Kinds and badges** (`PARTNER_NOTICE_ICONS`, existing `EimirIcon` set):
+  Wish date proposal/counter/acceptance, Plan created and changed: calendar;
+  Plan cancelled: close; shared Wish selection started: "together"; result
+  ready: sparkle; random pick requested or decided: sparkle; random pick
+  declined: "together" (#1907 J1, each with the round's own question as title); Herzversteck hidden or found: sparkle badge on the photo icon (#1907 H3); comment: message; photo reaction: photo; shared moment:
+  moment; reminder created: bell; partner joined: "together"; one-time
+  message: message; check-in keeps "?". The plain wish heart is never a badge
+  because it belongs to "thinking of you".
+- **Keep their own expression:** `THINKING_OF_YOU` (heart pulse with one soft
+  ring) and `PARTNER_KISS` (two hearts meet, short bloom) are unchanged.
+- **Plain surface:** system and owner-only kinds (data transfers, video
+  failure, due reminders, gentle prompts) keep the avatar-less surface and
+  their own icon motion; failures stay readable without decorative arrival.
+- **Copy and replies** are unchanged: the title comes from the existing
+  Notification Center copy and the single reply opens the same destination as
+  the system notification. A deliberately opened push still navigates straight
+  to its target; only the three gestures present the receipt for it, because
+  the destination of the other kinds is the content itself.
+- **Android push** is unchanged: system presentation, generic lock-screen text,
+  at most one "view" action, no "reply" action.
+
+Reference: [calm notices, Compact](references/partner-gesture-receipt/calm-notices-compact-reference.png)
+(real screens, final state of the five examples; baseline `main` `9b8c4a33e`).
+
+## Sender side: the sent gesture flies (Product Owner, 2026-11-17)
+
+The receipt above is the recipient's moment. The sender's moment is the
+mirror image and uses the same visual language. After a gesture is tapped in
+the quick-action sheet, its symbol lifts out of the sheet and waits for the
+server; the existing pending line stays. Only a **confirmed** send continues:
+the sheet closes, the symbol flies to the partner avatar and lands in a way
+that matches the gesture, and the existing sent confirmation is posted as a
+Snackbar (the in-sheet line closes with the sheet). A failed send does the
+opposite: the symbol sinks back into its place, the sheet stays open and the
+existing inline error and retry apply. Offline, cooldown, entitlement and
+Pro boundaries are exactly as before; nothing is sent or queued differently.
+
+| Gesture | Landing on the partner avatar |
+| --- | --- |
+| Thinking of You | The heart beats twice over the avatar (lub-dub) with two ripples, then fades. |
+| Kiss (extended) | Two hearts, one from the own avatar, meet over the partner avatar, squeeze, bloom and scatter small hearts. |
+| Check-in (extended) | Calm: a question mark floats over, the avatar takes one slow breath, the mark rests briefly and fades. No hearts. |
+
+The flight elements live in the shared top-layer layer, are hidden from
+assistive technology, take no pointer events and never block. Roles:
+`motion.duration.emphasized` (lift), `motion.duration.sendFlight` (the flight)
+and `motion.duration.gestureMoment` (the landing beats), see the
+[Web Motion Guideline](motion-guideline.md). With reduced motion nothing
+flies and the sheet keeps today's calm behavior: the in-sheet confirmation and
+no closing.
 
 ## Arrival and lifecycle
 
 **Foreground arrival.** There is no realtime notification transport. The
 receipt reuses the existing signals only:
 
-1. The shell observes the existing unread-count query and a scoped native push
-   wake. The query continues its 30-second and focus refreshes.
-2. An increase after the first observed count, or a native wake even when the
-   count stays the same, triggers a bounded read of the authorized inbox
-   (`limit: 5`) in the visible, focused window. Concurrent signals share the
-   same in-flight read, with one pending read for arrivals that may have followed it.
-3. A newly created, unread notification qualifies while the shell has the
-   foreground. The newest item appears. Other items in that read stay in the
+1. The shell observes the existing unread-count query, a wake from the
+   current native activation and a scoped browser Wish date wake. The query
+   retains its 30-second and focus refreshes.
+2. An increase after the first observed count, or a scoped wake with any
+   count, triggers a bounded read of the authorized inbox (`limit: 5`) for the
+   current Account and Space in the visible, focused window. Concurrent
+   signals share the same in-flight read, with one pending read for arrivals
+   that may have followed it.
+3. An unread notification created during the current foreground session can
+   appear once. The newest item appears. Other items in that read stay in the
    Notification Center. The source event distinguishes updates to coalesced rows.
 
-So arrival latency is up to the existing 30-s refresh, or immediate when a
-native push wake reaches the foreground app. This is a documented limit, not a
-simulated realtime feature.
+A wake can reach the focused app without waiting for the next refresh.
+Without a wake, a notice can trigger the receipt on the next unread-count
+increase, usually within the refresh interval. Items that leave the count
+unchanged still appear in the Notification Center.
 
 **Open.** A system notification or the banner's open action resolves the item
 through `openNotification` and navigates to the current authorized destination.
@@ -150,8 +223,9 @@ error it stays until closed.
   defer external Push and Email only ([contract](../../m4/NOTIFICATION-QUIET-HOURS.md));
   the receipt is in-app, appears only in the focused, active window, makes no
   sound or vibration and never replaces a suppressed push.
-- **Push privacy:** unchanged. Push payloads stay neutral; the receipt content
-  is read from the authorized API after opening.
+- **Push privacy:** the foreground receipt reads its content from the
+  authorized API. The [delivery contract](../notification-workflow.md) owns
+  system copy and the encrypted Wish date preview.
 - **Haptics:** no existing haptic primitive exists. None is added, so no new
   native dependency.
 - **Business/freemium:** reviewed. Receiving and reading a gesture is the same
@@ -181,13 +255,12 @@ not a product regression.
 
 Known limits, documented instead of simulated:
 
-- **No realtime transport.** Arrival follows the existing 30-s unread-count
-  refresh, focus refresh and native push wake. A receipt can therefore appear
-  up to about 30 s after sending when push is off.
-- **Native foreground push.** This slice does not change how the Android app
-  presents a push while it is in the foreground; the receipt only adds the
-  in-app moment after the existing wake refresh.
+- **No realtime transport.** Arrival follows the existing unread-count
+  refresh and the scoped foreground wakes documented above. Without a wake
+  or a count increase, an item stays in the Notification Center.
+- **Native foreground push.** The active Android app receives the scoped wake
+  and presents the in-app receipt after the authorized inbox refresh.
 - **No device acceptance yet.** Android (Capacitor) behavior, including the
   push-open receipt, still needs a Pixel check.
-- **Read state** is unchanged by design: seeing, replying to or closing the
-  receipt does not mark the Center entry read.
+- **Read state.** The authorized open action follows the existing Center
+  behavior. Seeing, replying to or closing the receipt leaves read state alone.

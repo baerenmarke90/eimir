@@ -9,6 +9,7 @@ from tests.integration.test_endpoint_matrix import (
     SERVER_ADMIN_ONLY,
     SPACE_ENDPOINTS,
 )
+from tests.support.plugins import is_pro_operation, plugins_loaded
 
 
 def test_contract_is_completely_covered() -> None:
@@ -27,4 +28,7 @@ def test_contract_is_completely_covered() -> None:
         | set(PRESENCE_DEVICE_ENDPOINTS)
         | set(PUBLIC_ENDPOINTS)
     )
+    if not plugins_loaded():
+        # Core-only: the plugin's operations do not exist.
+        covered = {operation for operation in covered if not is_pro_operation(*operation)}
     assert contract == covered

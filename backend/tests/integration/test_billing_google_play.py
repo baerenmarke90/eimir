@@ -39,6 +39,7 @@ from eimir.entitlements.models import (
 from eimir.relationship.models import Membership, MembershipStatus
 from eimir.relationship.service import add_member
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
+from tests.support.plugins import requires_pro
 
 pytestmark = [pytest.mark.integration, requires_database]
 PACKAGE = "de.eimir.app"
@@ -207,6 +208,7 @@ def test_cloud_lists_google_play_with_both_base_plans(client, couple, play) -> N
     ]
 
 
+@requires_pro
 def test_one_purchase_unlocks_pro_for_both_partners(client, session, couple, play) -> None:  # type: ignore[no-untyped-def]
     catalog_url = base(couple) + "/date-ideas"
     wir_design_url = base(couple) + "/appearance/wir-design"

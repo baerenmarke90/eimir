@@ -87,6 +87,7 @@ pythonpath = ["src"]
 asyncio_mode = "auto"
 markers = [
     "integration: benoetigt eine erreichbare PostgreSQL-Instanz",
+    "requires_pro: needs the Pro plugin loaded; skipped in the Core-only configuration",
 ]
 filterwarnings = ["error::DeprecationWarning"]
 

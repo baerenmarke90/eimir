@@ -22,6 +22,7 @@ from eimir.wishes import service as wishes
 from tests.conftest import auth, requires_database
 from tests.integration.test_shared_experiences import actors as actors
 from tests.integration.test_shared_experiences import grant, path
+from tests.support.plugins import requires_pro
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -38,6 +39,7 @@ def rows(session, kind):  # type: ignore[no-untyped-def]
     return list(session.scalars(select(Notification).where(Notification.kind == kind.value)))
 
 
+@requires_pro
 def test_shared_questions_use_space_day_for_both_partners_and_emit_nothing(
     client, session, actors, monkeypatch
 ):  # type: ignore[no-untyped-def]

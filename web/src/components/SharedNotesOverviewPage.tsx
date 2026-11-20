@@ -91,15 +91,15 @@ function NoteSkeleton() {
     <div className="shared-note-skeletons" role="status">
       <span className="sr-only">{t('sharedNotes.loading')}</span>
       <div
-        className="shared-note-skeleton story-media-skeleton"
+        className="shared-note-skeleton story-media-skeleton eimir-motion-loading-skeleton"
         aria-hidden="true"
       />
       <div
-        className="shared-note-skeleton story-media-skeleton"
+        className="shared-note-skeleton story-media-skeleton eimir-motion-loading-skeleton"
         aria-hidden="true"
       />
       <div
-        className="shared-note-skeleton story-media-skeleton"
+        className="shared-note-skeleton story-media-skeleton eimir-motion-loading-skeleton"
         aria-hidden="true"
       />
     </div>

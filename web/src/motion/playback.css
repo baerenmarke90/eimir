@@ -1,0 +1,329 @@
+/*
+ * The motion layer's Playback catalogue (Motion Contract 4.8, M6, M9, M14;
+ * #2079): the recap film, the recap reader and the garden playback. Story
+ * playback on Momente is in `story-playback.css`.
+ *
+ * A playback engine composes its scenes on its own scene clock
+ * (`useStoryPlayback`): it pauses with the page and with the explicit pause
+ * control (`data-playing`). Durations are token roles
+ * only (M1).
+ *
+ * The Playback property exception in M6 is used on one layer at a time:
+ * - the scene cuts `recap-film-iris`, `-wipe`, `-shift`, `-split` and
+ *   `-match` reveal the next scene spread with `clip-path`, the film's
+ *   approved cuts, which a fade cannot express;
+ * - `recap-film-blur`, `-focus` and `-word` resolve a scene or a caption
+ *   from soft focus with `filter: blur()`.
+ * Everything else animates `transform` and `opacity`.
+ *
+ * With reduced motion the film keeps its short calm fade
+ * (`--film-calm-fade`) and no picture motion, and playback does not start on
+ * its own.
+ *
+ * Moved unchanged from the feature stylesheets. Imported by the playback
+ * components, so it loads only with them.
+ */
+
+/* RecapFilmScene */
+
+@keyframes eimir-motion-recap-film-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-recap-film-slide {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes eimir-motion-recap-film-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14%);
+  }
+}
+
+@keyframes eimir-motion-recap-film-zoom {
+  from {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+}
+
+@keyframes eimir-motion-recap-film-iris {
+  from {
+    clip-path: circle(0% at 50% 45%);
+  }
+  to {
+    clip-path: circle(80% at 50% 45%);
+  }
+}
+
+@keyframes eimir-motion-recap-film-wipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes eimir-motion-recap-film-shift {
+  from {
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(-6%);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes eimir-motion-recap-film-blur {
+  from {
+    opacity: 0;
+    filter: blur(18px);
+  }
+}
+
+@keyframes eimir-motion-recap-film-zoom-in {
+  to {
+    transform: scale(1.09);
+  }
+}
+
+@keyframes eimir-motion-recap-film-zoom-out {
+  from {
+    transform: scale(1.1);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes eimir-motion-recap-film-drift-left {
+  from {
+    transform: translateX(2%) scale(1.05);
+  }
+  to {
+    transform: translateX(-2%) scale(1.05);
+  }
+}
+
+@keyframes eimir-motion-recap-film-drift-right {
+  from {
+    transform: translateX(-2%) scale(1.05);
+  }
+  to {
+    transform: translateX(2%) scale(1.05);
+  }
+}
+
+@keyframes eimir-motion-recap-film-parallax {
+  from {
+    transform: translateY(2%) scale(1.07);
+  }
+  to {
+    transform: translateY(-2%) scale(1.07);
+  }
+}
+
+@keyframes eimir-motion-recap-film-strip {
+  from {
+    transform: translateX(4%);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes eimir-motion-recap-film-stagger {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes eimir-motion-recap-film-fly {
+  from {
+    opacity: 0;
+    transform: translate(var(--film-x, 0), var(--film-y, 0)) scale(0.6);
+  }
+}
+
+@keyframes eimir-motion-recap-film-blinds {
+  from {
+    --film-blind: 0%;
+  }
+}
+
+@keyframes eimir-motion-recap-film-split {
+  from {
+    clip-path: inset(0 50%);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes eimir-motion-recap-film-flip {
+  from {
+    opacity: 0;
+    transform: perspective(var(--film-depth)) rotateY(-70deg);
+  }
+}
+
+@keyframes eimir-motion-recap-film-focus {
+  from {
+    filter: blur(12px);
+    transform: scale(1.04);
+  }
+}
+
+@keyframes eimir-motion-recap-film-match {
+  from {
+    clip-path: inset(18% 14% round var(--radius-media));
+    transform: scale(0.96);
+  }
+  to {
+    clip-path: inset(0 round 0);
+  }
+}
+
+@keyframes eimir-motion-recap-film-light {
+  from {
+    opacity: 0;
+    transform: translateX(-40%);
+  }
+  40% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(45%);
+  }
+}
+
+@keyframes eimir-motion-recap-film-breath {
+  from,
+  35% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-recap-film-pan-up {
+  from {
+    transform: translateY(3%) scale(1.08);
+  }
+  to {
+    transform: translateY(-3%) scale(1.08);
+  }
+}
+
+@keyframes eimir-motion-recap-film-pan-down {
+  from {
+    transform: translateY(-3%) scale(1.08);
+  }
+  to {
+    transform: translateY(3%) scale(1.08);
+  }
+}
+
+@keyframes eimir-motion-recap-film-diagonal {
+  from {
+    transform: translate(-2%, 2%) scale(1.06);
+  }
+  to {
+    transform: translate(2%, -2%) scale(1.1);
+  }
+}
+
+@keyframes eimir-motion-recap-film-breathe {
+  50% {
+    transform: scale(1.05);
+  }
+  to {
+    transform: scale(1.025);
+  }
+}
+
+@keyframes eimir-motion-recap-film-climax {
+  from {
+    transform: scale(1.01);
+  }
+  to {
+    transform: scale(1.14);
+  }
+}
+
+@keyframes eimir-motion-recap-film-word {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+  }
+}
+
+@keyframes eimir-motion-recap-film-count {
+  from {
+    --film-count: 0;
+  }
+}
+
+@keyframes eimir-motion-recap-film-covers-travel {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(min(0px, calc(100cqi - 100%)));
+  }
+}
+
+@keyframes eimir-motion-recap-film-let-go {
+  from,
+  40% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.2;
+  }
+}
+
+/* RelationshipRecapsPage */
+
+@keyframes eimir-motion-recap-step-progress {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes eimir-motion-recap-photo-drift {
+  to {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes eimir-motion-recap-page-enter {
+  from {
+    opacity: 0.5;
+    transform: translateY(var(--space-2));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* GardenPlayback */
+
+@keyframes eimir-motion-garden-playback-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

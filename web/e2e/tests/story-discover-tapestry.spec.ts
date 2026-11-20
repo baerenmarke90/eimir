@@ -752,12 +752,18 @@ test('Momente Discover Fotostory autoplays only with motion, pauses on request a
   const fill = viewer.locator(
     '.momente-story-segment[data-state="current"] .momente-story-segment-fill',
   );
-  await expect(fill).toHaveCSS('animation-name', 'momente-story-progress');
+  await expect(fill).toHaveCSS(
+    'animation-name',
+    'eimir-motion-momente-story-progress',
+  );
   await expect(fill).toHaveCSS('animation-play-state', 'running');
   const zoom = viewer.locator(
     '.momente-story-slide[data-state="current"] .momente-story-photo > *',
   );
-  await expect(zoom).toHaveCSS('animation-name', 'momente-story-ken-burns');
+  await expect(zoom).toHaveCSS(
+    'animation-name',
+    'eimir-motion-momente-story-ken-burns',
+  );
 
   // WCAG 2.2.2: a visible, named pause toggle.
   const pause = page.getByRole('button', { name: story.pause, exact: true });

@@ -439,6 +439,162 @@ test('garden reflows at 320 px with 200% text', async ({ page }) => {
   expect(network.unexpected).toEqual([]);
 });
 
+/* Scenes domain (Motion Contract 4.8, #2079) --------------------------------- */
+
+/** The CSS animations inside the garden scene, by play state. */
+async function sceneMotion(page: Page) {
+  return page.evaluate(() => {
+    const stack = document.querySelector('.garden-scene-stack');
+    const inside = document.getAnimations().filter((animation) => {
+      const target = (animation.effect as KeyframeEffect | null)?.target;
+      return target instanceof Element && stack?.contains(target) === true;
+    });
+    return {
+      state: stack?.getAttribute('data-motion-scene') ?? null,
+      running: inside.filter((animation) => animation.playState === 'running')
+        .length,
+      total: inside.length,
+    };
+  });
+}
+
+/** Records a measurement as a test annotation for the PR evidence. */
+async function noteSceneMotion(page: Page, info: TestInfo, phase: string) {
+  const motion = await sceneMotion(page);
+  info.annotations.push({
+    type: 'scene-motion',
+    description: `${phase}: ${motion.state}, ${motion.running} running of ${motion.total}`,
+  });
+  return motion;
+}
+
+/** Emulates the page being hidden or shown again (app in the background). */
+async function setPageHidden(page: Page, hidden: boolean) {
+  await page.evaluate((value) => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => (value ? 'hidden' : 'visible'),
+    });
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => value,
+    });
+    document.dispatchEvent(new Event('visibilitychange'));
+  }, hidden);
+}
+
+for (const scenario of [
+  { width: 360, theme: 'light', reduce: false },
+  { width: 390, theme: 'dark', reduce: false },
+  { width: 430, theme: 'light', reduce: false },
+  { width: 390, theme: 'light', reduce: true },
+  { width: 1280, theme: 'dark', reduce: false },
+] as const) {
+  const label = `${scenario.width}px ${scenario.theme}${scenario.reduce ? ' reduced motion' : ''}`;
+  test(`garden scene loops only while seen and continues where it paused at ${label}`, async ({
+    page,
+  }, info) => {
+    const network = await installMocks(page);
+    const errors = await prepare(page, scenario);
+    await openGarden(page);
+    const stack = page.locator('.garden-scene-stack').first();
+    const name = `2079-garden-scene-${scenario.width}-${scenario.theme}${scenario.reduce ? '-reduce' : ''}`;
+
+    if (scenario.reduce) {
+      // Absent with reduced motion: nothing in the scene runs.
+      await expect(stack).toHaveAttribute('data-motion-scene', 'paused');
+      expect(
+        (await noteSceneMotion(page, info, 'reduced motion')).running,
+      ).toBe(0);
+      await capture(page, info, `${name}.png`);
+      expect(network.unexpected).toEqual([]);
+      expect(errors).toEqual([]);
+      return;
+    }
+
+    await expect(stack).toHaveAttribute('data-motion-scene', 'playing');
+    await expect
+      .poll(async () => (await sceneMotion(page)).running)
+      .toBeGreaterThan(0);
+    await noteSceneMotion(page, info, 'seen');
+    await capture(page, info, `${name}-playing.png`);
+
+    // The page goes to the background: every loop holds in place.
+    await setPageHidden(page, true);
+    await expect(stack).toHaveAttribute('data-motion-scene', 'paused');
+    const hidden = await noteSceneMotion(page, info, 'page hidden');
+    expect(hidden.running).toBe(0);
+    expect(hidden.total).toBeGreaterThan(0);
+    // Keep the held loops themselves, so the return compares the same
+    // animations (ambient effects may come and go meanwhile).
+    const heldCount = await page.evaluate(() => {
+      const held = document
+        .getAnimations()
+        .filter(
+          (animation) =>
+            animation.effect?.getTiming().iterations ===
+            Number.POSITIVE_INFINITY,
+        )
+        .map((animation) => ({
+          animation,
+          time: Number(animation.currentTime ?? 0),
+        }));
+      (window as unknown as { heldLoops: typeof held }).heldLoops = held;
+      return held.length;
+    });
+    expect(heldCount).toBeGreaterThan(0);
+
+    // It returns: the same animations continue from where they held, so
+    // nothing restarted (M4).
+    await setPageHidden(page, false);
+    await expect(stack).toHaveAttribute('data-motion-scene', 'playing');
+    const restarted = await page.evaluate(() => {
+      const held = (
+        window as unknown as {
+          heldLoops: Array<{ animation: Animation; time: number }>;
+        }
+      ).heldLoops;
+      const live = new Set(document.getAnimations());
+      return held.filter(
+        ({ animation, time }) =>
+          live.has(animation) && Number(animation.currentTime ?? 0) < time,
+      ).length;
+    });
+    expect(restarted).toBe(0);
+
+    // Scrolled off screen, the scene renders no animation frames. Compact
+    // only: a short Expanded viewport is landscape, where the garden opens its
+    // landscape view instead of scrolling.
+    const compact = scenario.width < 768;
+    if (compact)
+      await page.setViewportSize({ width: scenario.width, height: 420 });
+    await page.evaluate(() => {
+      const scene = document.querySelector('.garden-scene-stack');
+      const bottom = scene
+        ? scene.getBoundingClientRect().bottom + window.scrollY
+        : 0;
+      window.scrollTo({ top: bottom + 40, behavior: 'instant' });
+    });
+    const offscreen = await page.evaluate(() => {
+      const scene = document.querySelector('.garden-scene-stack');
+      return scene ? scene.getBoundingClientRect().bottom <= 0 : false;
+    });
+    if (compact && offscreen) {
+      await expect(stack).toHaveAttribute('data-motion-scene', 'paused');
+      expect((await noteSceneMotion(page, info, 'off screen')).running).toBe(0);
+      await page.evaluate(() =>
+        window.scrollTo({ top: 0, behavior: 'instant' }),
+      );
+      await expect(stack).toHaveAttribute('data-motion-scene', 'playing');
+    }
+    await page.setViewportSize({ width: scenario.width, height: 844 });
+    await noteSceneMotion(page, info, 'returned');
+    await capture(page, info, `${name}-returned.png`);
+    expect(network.unexpected).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+}
+
 async function expectNoAxeViolations(page: Page) {
   const axe = await new AxeBuilder({ page })
     .include('.garden-game-page')

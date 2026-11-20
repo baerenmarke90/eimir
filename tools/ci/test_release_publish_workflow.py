@@ -99,7 +99,12 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
 
     def test_private_channel_checks_completions_without_a_waiting_runner(self) -> None:
         triggers = self.workflow.split("\non:\n", 1)[1].split("\npermissions:\n", 1)[0]
-        self.assertNotIn("\n  push:", triggers)
+        # #2096: every merge to main publishes the test channel. The push trigger
+        # is main-only, only a newer merge cancels an unfinished one, and the
+        # product-release jobs stay workflow_dispatch-only (tested above).
+        push = triggers.split("\n  push:\n", 1)[1].split("\n  workflow_run:", 1)[0]
+        self.assertEqual(push.strip(), "branches: [main]")
+        self.assertIn("cancel-in-progress: ${{ github.event_name == 'push' }}", self.workflow)
         completion = triggers.split("  workflow_run:\n", 1)[1].split("\n  pull_request:", 1)[0]
         self.assertIn("types: [completed]", completion)
         self.assertIn("branches: [main]", completion)
@@ -116,6 +121,7 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertIn("scripts/test_deployment_channel.py check", gate)
         self.assertNotIn("scripts/test_deployment_channel.py wait", gate)
         self.assertIn("github.event.workflow_run.event == 'workflow_dispatch'", gate)
+        self.assertIn("github.event_name == 'push') &&", gate)
         self.assertIn("github.event.workflow_run.head_repository.full_name == github.repository", gate)
         self.assertIn("persist-credentials: false", gate)
         self.assertNotIn("contents: write", gate)

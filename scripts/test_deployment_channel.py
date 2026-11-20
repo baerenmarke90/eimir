@@ -42,6 +42,11 @@ REQUIRED_WORKFLOWS = frozenset(
 # or a manual dispatch.
 FULL_REGRESSION_EVENT = "workflow_dispatch"
 FULL_REGRESSION_DISPATCHER = "nightly-regression.yml"
+# Every merge to main publishes the private test channel right away (#2096,
+# Product Owner decision 2026-11-20): a push admits the current main commit
+# after its pull-request checks, without waiting for the full regression.
+# Product releases keep requiring the full regression.
+FAST_LANE_EVENT = "push"
 CLOUD_SERVICES = ("cloud-migrate", "cloud-api", "cloud-worker", "cloud-web")
 FCM_CREDENTIAL_TARGET = "/run/secrets/eimir-fcm-sender.json"
 _FCM_SOURCE_PLACEHOLDER = "/__eimir_source_only_fcm_mount__"
@@ -193,6 +198,14 @@ def channel_already_selected(source: str) -> bool:
 
 def check_for_publication(source: str, event_name: str, event: dict) -> bool:
     """Check once; later main workflow completions retry unfinished candidates."""
+    if event_name == FAST_LANE_EVENT:
+        if latest_main() != source:
+            print("Candidate was superseded on main; keeping the current channel")
+            return False
+        if channel_already_selected(source):
+            print("This source is already selected; preserving its exact image pair")
+            return False
+        return True
     if event_name == "workflow_run":
         if not completion_matches_source(event, source):
             print("Completion does not admit this exact main checkout")
@@ -599,10 +612,17 @@ def export_compose(
     return result
 
 
-def advance_channel(files: dict[str, str], source: str) -> bool:
+def source_admitted(source: str, *, full_regression: bool) -> bool:
+    """The fast lane needs the current main commit; otherwise its full regression too."""
+    return latest_main() == source and (not full_regression or candidate_ready(source))
+
+
+def advance_channel(
+    files: dict[str, str], source: str, *, full_regression: bool = True
+) -> bool:
     if set(files) != {"compose.yaml", "channel.json", "README.md"}:
         raise ChannelError("Only generated deployment files may enter the channel")
-    if latest_main() != source or not candidate_ready(source):
+    if not source_admitted(source, full_regression=full_regression):
         raise ChannelError(
             "Candidate is stale or required main checks are no longer successful"
         )
@@ -643,7 +663,7 @@ def advance_channel(files: dict[str, str], source: str) -> bool:
             "parents": [parent] if parent else [],
         },
     )
-    if latest_main() != source or not candidate_ready(source):
+    if not source_admitted(source, full_regression=full_regression):
         raise ChannelError(
             "Main advanced during publication; keeping the current channel"
         )
@@ -669,8 +689,10 @@ def advance_channel(files: dict[str, str], source: str) -> bool:
     return True
 
 
-def publish(source: str, artifact_root: Path, output: Path) -> None:
-    if latest_main() != source or not candidate_ready(source):
+def publish(
+    source: str, artifact_root: Path, output: Path, *, full_regression: bool = True
+) -> None:
+    if not source_admitted(source, full_regression=full_regression):
         raise ChannelError("Only the current, checked main commit may be published")
     run_id, attempt = os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"]
     if not all(re.fullmatch(r"[1-9][0-9]*", value) for value in (run_id, attempt)):
@@ -719,7 +741,7 @@ def publish(source: str, artifact_root: Path, output: Path) -> None:
     output.mkdir(parents=True, exist_ok=True)
     for name, content in files.items():
         (output / name).write_text(content)
-    advance_channel(files, source)
+    advance_channel(files, source, full_regression=full_regression)
 
 
 def main() -> int:
@@ -768,7 +790,12 @@ def main() -> int:
             with args.github_output.open("a") as stream:
                 stream.write(f"ready={str(ready).lower()}\n")
         else:
-            publish(source, args.artifact_root, args.output)
+            publish(
+                source,
+                args.artifact_root,
+                args.output,
+                full_regression=os.environ.get("GITHUB_EVENT_NAME") != FAST_LANE_EVENT,
+            )
     except (
         ChannelError,
         KeyError,

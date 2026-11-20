@@ -45,9 +45,10 @@ builds, Media Video, Release Evidence and CodeQL.
   `main` when its revision is untested. It can also be started manually. A
   failed run opens or updates the issue "Nightly regression failed"; repair
   `main` before merging further features.
-- Releases publish only a `main` revision with a green full regression. The
-  private test channel follows each green nightly run; a product release starts
-  a missing regression itself and asks to be re-run once it is green.
+- The private test channel (test instance) follows every merge to `main` right
+  away, verified only by the pull-request checks. Product releases publish only
+  a `main` revision with a green full regression; a product release starts a
+  missing regression itself and asks to be re-run once it is green.
 - Branches named `release/...` always run the full tier, also as drafts.
 
 When adding or changing a browser journey, update both inventories and review

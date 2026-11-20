@@ -21,6 +21,7 @@ import { BIRDHOUSE_X, benchX, POND, TREE_X } from '../client/gardenGrowth';
 import type { RareVisitor } from '../client/gardenStory';
 import { useTranslation } from '../i18n';
 import './GardenRareVisitors.css';
+import '../motion/garden.css';
 
 const REACTION_MS = 1800;
 

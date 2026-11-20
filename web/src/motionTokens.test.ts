@@ -55,13 +55,6 @@ const LEGACY_MOTION_ROLE =
 const RAW_MOTION_VALUE =
   /\b\d+(?:\.\d+)?(?:ms|s)\b|\bease(?:-in|-out|-in-out)?\b|\blinear\b/;
 
-const allowedContinuousLoops = new Map<string, string>([
-  [
-    './components/MediaGallery.css',
-    'animation: gallery-pulse 1.4s ease-in-out infinite;',
-  ],
-]);
-
 function normalizeWhitespace(value: string): string {
   return value.replace(/\s+/g, ' ').trim();
 }
@@ -102,10 +95,7 @@ describe('canonical Web motion roles', () => {
     const offenders: string[] = [];
 
     for (const [path, css] of Object.entries(productionStylesheets)) {
-      const allowedLoop = allowedContinuousLoops.get(path);
-
       for (const declaration of motionDeclarations(css)) {
-        if (allowedLoop && declaration === allowedLoop) continue;
         if (RAW_MOTION_VALUE.test(declaration)) {
           offenders.push(`${path}: ${declaration}`);
         }
@@ -115,15 +105,18 @@ describe('canonical Web motion roles', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('limits raw timing exceptions to continuous status/loading loops with reduced-motion fallbacks', () => {
-    for (const [path, declaration] of allowedContinuousLoops) {
-      const css = productionStylesheets[path];
+  it('runs the media gallery loading pulse on the motion layer (#2079)', () => {
+    // The last raw-timing loop: the gallery placeholder now uses the Loading
+    // utility, which reads token roles and is absent with reduced motion.
+    const css = productionStylesheets['./components/MediaGallery.css'];
+    const utilities = productionStylesheets['./motion/utilities.css'];
 
-      expect(css, `Missing stylesheet: ${path}`).toBeDefined();
-      expect(motionDeclarations(css)).toContain(declaration);
-      expect(css).toContain('@media (prefers-reduced-motion: reduce)');
-      expect(css).toContain('animation: none');
-    }
+    expect(css).not.toContain('gallery-pulse');
+    expect(productionSources['./components/MediaGallery.tsx']).toContain(
+      'eimir-motion-loading-pulse',
+    );
+    expect(utilities).toContain('.eimir-motion-loading-pulse');
+    expect(utilities).toContain('@media (prefers-reduced-motion: reduce)');
   });
 
   it('keeps Daily Quote on defined canonical duration roles', () => {

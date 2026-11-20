@@ -8,20 +8,27 @@ Android APK publication remains the separate #1331/#1332 channel.
 
 ## Automatic publication
 
-Pushes to `main` start no workflows (#2096). When the nightly regression
-(`.github/workflows/nightly-regression.yml`) or a manual dispatch runs the full
-suites on `main`, `.github/workflows/nightly-regression-report.yml` evaluates
-them at 02:47 and 04:47 UTC (or on manual dispatch). When every required workflow
-succeeded, it starts the private-channel jobs in `.github/workflows/release-publish.yml`
-(`private_test_channel=true`). It polls because runs dispatched with `GITHUB_TOKEN`
-emit no `workflow_run` events. The channel therefore follows `main` once per night;
-dispatch **Nightly Regression** and then **Nightly Regression Report** for an
-earlier update:
+Every merge to `main` publishes the private test channel right away (#2096,
+Product Owner decision 2026-11-20). The `push` to `main` starts the private-channel
+jobs in `.github/workflows/release-publish.yml`; the merged pull request's checks
+are the only verification. The full regression does **not** gate this test
+instance. A newer merge cancels an unfinished build of an older one, so the
+channel converges on the newest `main`. Product releases keep requiring the full
+regression (see `docs/m6/IMMUTABLE-RELEASES.md` and #2100).
+
+After a green full regression (nightly or manual), Nightly Regression Report also
+starts the publisher with `private_test_channel=true`; it is a no-op when that
+revision is already selected or `main` has moved on. A manual retry uses the same
+dispatch, described under one-time setup below.
+
+The publication jobs:
 
 1. Publication requires the repository
    Actions variable `EIMIR_TEST_CHANNEL_ENABLED=true`, the owning repository and
    its `main` ref. Pull requests never receive publishing permissions.
-2. Checks once for the exact revision's newest dispatched full-regression runs of CI, Web
+2. For a merge (`push`), admits only the current `main` commit and skips the full
+   regression. For a manual or report dispatch, checks once for the exact
+   revision's newest dispatched full-regression runs of CI, Web
    Browser QA, CodeQL SAST, Self-Hosted Deployment Guard, Self-Hosted Recovery and Media Video.
    Missing, pending, skipped, failed or cancelled workflows cannot admit a build.
    An unfinished candidate exits without building; the next required workflow

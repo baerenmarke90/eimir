@@ -12,6 +12,7 @@ import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './GardenFullscreen.css';
+import '../motion/garden.css';
 
 /*
  * The garden in full screen (#2048). An in-app overlay (the shared

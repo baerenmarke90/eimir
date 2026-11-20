@@ -36,6 +36,7 @@ from eimir.engagement.models import (
     Notification,
     NotificationPreference,
     PushEndpoint,
+    SupportGestureRequest,
     ThinkingOfYouRequest,
 )
 from eimir.identity.deletion_models import AccountDeletion, AccountDeletionStatus
@@ -306,6 +307,16 @@ def apply_core_cleanup(session: Session, account_id: UUID) -> AccountDeletion | 
             or_(
                 ThinkingOfYouRequest.sender_account_id == account_id,
                 ThinkingOfYouRequest.recipient_account_id == account_id,
+            )
+        )
+    )
+    # The extended-gesture receipts (kiss, check-in) are the same kind of
+    # content-free pacing data; they must not outlive either partner either.
+    session.execute(
+        delete(SupportGestureRequest).where(
+            or_(
+                SupportGestureRequest.sender_account_id == account_id,
+                SupportGestureRequest.recipient_account_id == account_id,
             )
         )
     )

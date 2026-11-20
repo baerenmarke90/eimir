@@ -1,0 +1,63 @@
+name: Nightly Regression Report
+
+# Opens or updates one issue when a full regression run on main fails (#2096).
+# Every other completion skips the job at no runner cost.
+on:
+  workflow_run:
+    # Keep this list in sync with the Nightly Regression dispatcher.
+    workflows:
+      - CI
+      - Web Browser QA
+      - Android launcher icons
+      - Backend Encrypted Mode
+      - Media Video
+      - CodeQL SAST
+      - Self-Hosted Deployment Guard
+      - Self-Hosted Recovery
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    name: Report failed full regression
+    if: >-
+      github.event.workflow_run.event == 'workflow_dispatch' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      contains(fromJSON('["failure", "timed_out", "startup_failure"]'), github.event.workflow_run.conclusion)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the nightly regression issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_NAME: ${{ github.event.workflow_run.name }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          set -euo pipefail
+
+          title="Nightly regression failed"
+          body=$(printf '%s\n' \
+            "**${RUN_NAME}** finished with \`${RUN_CONCLUSION}\` on \`main\` at ${RUN_SHA}." \
+            "" \
+            "Run: ${RUN_URL}" \
+            "" \
+            "Fixing \`main\` takes precedence over feature merges until this issue is closed (#2096).")
+
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+            --search "in:title \"${title}\"" --json number,title \
+            --jq "[.[] | select(.title == \"${title}\")][0].number // empty")
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body "$body"
+            echo "Updated #${existing}." >> "$GITHUB_STEP_SUMMARY"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+            echo "Opened a new nightly regression issue." >> "$GITHUB_STEP_SUMMARY"
+          fi

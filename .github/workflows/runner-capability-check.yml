@@ -1,0 +1,236 @@
+name: Runner Capability Check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  host:
+    name: Guest host and toolchain
+    runs-on: [eimir-kvm-nightly, "eimir-run-${{ github.run_id }}-${{ github.run_attempt }}"]
+    timeout-minutes: 25
+    steps:
+      - name: Check CLI and fresh guest state
+        id: fresh
+        run: |
+          for cli in git curl jq gh python3 unzip sha256sum timeout ss make gcc; do
+            command -v "$cli"
+          done
+          test -z "$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit)"
+          test -z "$(docker ps -aq --filter name=eimir-)"
+          test -z "$(docker volume ls -q --filter name=eimir-)"
+          test -z "$(docker network ls -q --filter name=eimir-)"
+          test -z "$(ss -H -ltn '( sport = :5432 or sport = :18080 or sport = :18081 or sport = :18082 )')"
+
+      - name: Measure free space before checks
+        id: disk_before
+        if: ${{ !cancelled() }}
+        run: |
+          docker_root=$(docker info --format '{{.DockerRootDir}}')
+          df -BG "$GITHUB_WORKSPACE" "$docker_root" | sed 's/^/    /' >> "$GITHUB_STEP_SUMMARY"
+          df -B1 --output=avail "$GITHUB_WORKSPACE" "$docker_root" |
+            awk 'NR > 1 && $1 < 30000000000 { inadequate = 1 } END { exit inadequate }'
+
+      - name: Check Docker build, run and Compose profiles on loopback
+        id: docker
+        if: ${{ !cancelled() }}
+        run: |
+          docker version
+          docker compose version
+          work=$(mktemp -d)
+          cd "$work"
+          trap 'docker compose --project-name eimir-runner-capability --profile probe down --volumes --rmi local; rm -rf -- "$work"' EXIT
+          cat > Dockerfile <<'EOF'
+          FROM node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
+          CMD ["node", "-e", "require('node:http').createServer((req, res) => res.end('ok')).listen(8080, '0.0.0.0')"]
+          EOF
+          cat > compose.yml <<'EOF'
+          services:
+            web:
+              build: .
+              profiles: [probe]
+              ports:
+                - '127.0.0.1:18080:8080'
+                - '127.0.0.1:18081:8080'
+                - '127.0.0.1:18082:8080'
+              volumes:
+                - probe:/probe
+              healthcheck:
+                test: [CMD, node, -e, "fetch('http://127.0.0.1:8080').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+                interval: 1s
+                timeout: 2s
+                retries: 15
+          volumes:
+            probe:
+          EOF
+          docker build -t eimir-runner-capability-web .
+          test "$(docker run --rm eimir-runner-capability-web node --version)" = v26.13.1
+          docker compose --project-name eimir-runner-capability --profile probe up -d --wait --wait-timeout 30
+          for port in 18080 18081 18082; do
+            test "$(curl -fsS --retry 5 --retry-connrefused "http://127.0.0.1:$port/")" = ok
+          done
+          docker compose --project-name eimir-runner-capability --profile probe down --volumes --rmi local
+          trap 'rm -rf -- "$work"' EXIT
+          test -z "$(docker ps -aq --filter name=eimir-runner-capability)"
+          test -z "$(docker volume ls -q --filter name=eimir-runner-capability)"
+          test -z "$(docker network ls -q --filter name=eimir-runner-capability)"
+          test -z "$(ss -H -ltn '( sport = :18080 or sport = :18081 or sport = :18082 )')"
+
+      - name: Install the media build packages with noninteractive sudo
+        id: apt
+        if: ${{ !cancelled() }}
+        run: |
+          sudo -n apt-get update
+          sudo -n apt-get install -y --no-install-recommends nasm autoconf automake libtool pkg-config ffmpeg
+          ffmpeg -version | sed -n '1p'
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        id: node
+        if: ${{ !cancelled() }}
+        with:
+          node-version: '26.13.1'
+          package-manager-cache: false
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        id: java
+        if: ${{ !cancelled() }}
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        id: python
+        if: ${{ !cancelled() }}
+        with:
+          python-version: '3.15.2'
+      - name: Check Python and install the pinned uv release
+        id: uv
+        if: ${{ !cancelled() && steps.python.outcome == 'success' }}
+        run: |
+          test "$(python --version)" = 'Python 3.15.2'
+          python -m pip install 'uv==0.12.15'
+          uv --version
+
+      - name: Verify that the setup actions used the writable toolcache
+        id: toolcache
+        if: ${{ !cancelled() }}
+        run: |
+          test "$RUNNER_TOOL_CACHE" = /srv/eimir-runner-toolcache/tools
+          test -w "$RUNNER_TOOL_CACHE"
+          test -d "$RUNNER_TOOL_CACHE/node/26.13.1"
+          test -d "$RUNNER_TOOL_CACHE/Python/3.15.2"
+          printf '%s\n' "$GITHUB_SHA" > "$RUNNER_TOOL_CACHE/capability-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+      - name: Check registry and download egress
+        id: egress
+        if: ${{ !cancelled() }}
+        run: |
+          failed=0
+          for url in https://registry.npmjs.org https://pypi.org/simple/uv/ https://files.pythonhosted.org \
+            https://ghcr.io/v2/ https://registry-1.docker.io/v2/ \
+            https://github.com https://objects.githubusercontent.com; do
+            if status=$(curl -sSL --connect-timeout 8 --max-time 20 --output /dev/null --write-out '%{http_code}' "$url") &&
+               [[ $status =~ ^(2[0-9][0-9]|3[0-9][0-9]|401|403|404)$ ]]; then
+              printf '%s PASS (HTTP %s)\n' "$url" "$status" | tee -a "$GITHUB_STEP_SUMMARY"
+            else
+              printf '%s FAIL (HTTP %s)\n' "$url" "$status" | tee -a "$GITHUB_STEP_SUMMARY"
+              failed=1
+            fi
+          done
+          exit "$failed"
+
+      - name: Measure free space after checks
+        id: disk_after
+        if: ${{ !cancelled() }}
+        run: |
+          docker_root=$(docker info --format '{{.DockerRootDir}}')
+          df -BG "$GITHUB_WORKSPACE" "$docker_root" | sed 's/^/    /' >> "$GITHUB_STEP_SUMMARY"
+          df -B1 --output=avail "$GITHUB_WORKSPACE" "$docker_root" |
+            awk 'NR > 1 && $1 < 30000000000 { inadequate = 1 } END { exit inadequate }'
+
+      - name: Summarize host capabilities
+        if: ${{ !cancelled() }}
+        env:
+          OUTCOMES: ${{ toJSON(steps) }}
+        run: |
+          printf '\n| Check | Result |\n| --- | --- |\n' >> "$GITHUB_STEP_SUMMARY"
+          jq -r 'to_entries[] | "| \(.key) | \(if .value.outcome == "success" then "PASS" else "FAIL" end) |"' \
+            <<< "$OUTCOMES" >> "$GITHUB_STEP_SUMMARY"
+          jq -e 'all(.[]; .outcome == "success")' <<< "$OUTCOMES"
+
+  job-container:
+    name: Node job container and Playwright
+    needs: host
+    if: ${{ !cancelled() }}
+    runs-on: [eimir-kvm-nightly, "eimir-run-${{ github.run_id }}-${{ github.run_attempt }}"]
+    timeout-minutes: 15
+    container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check workspace mount and Node version
+        id: mount
+        run: |
+          test -r "$GITHUB_WORKSPACE/web/e2e/package-lock.json"
+          test "$(node --version)" = v26.13.1
+      # Installing the pinned browser tests the actual Playwright CDN artifact URL.
+      - name: Download and launch pinned Chromium
+        id: browser
+        working-directory: web/e2e
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          ./node_modules/.bin/playwright install --with-deps chromium
+          node --input-type=module -e "import { chromium } from '@playwright/test'; const browser = await chromium.launch(); await browser.close();"
+          df -h "$GITHUB_WORKSPACE" >> "$GITHUB_STEP_SUMMARY"
+      - name: Summarize container checks
+        if: ${{ !cancelled() }}
+        run: |
+          echo 'Node version and workspace mount **${{ steps.mount.outcome == 'success' && 'PASS' || 'FAIL' }}**' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Playwright download and Chromium launch **${{ steps.browser.outcome == 'success' && 'PASS' || 'FAIL' }}**' >> "$GITHUB_STEP_SUMMARY"
+
+  service-container:
+    name: PostgreSQL service container
+    needs: job-container
+    if: ${{ !cancelled() }}
+    runs-on: [eimir-kvm-nightly, "eimir-run-${{ github.run_id }}-${{ github.run_attempt }}"]
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: eimir
+          POSTGRES_PASSWORD: capability-check
+          POSTGRES_DB: eimir_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U eimir -d eimir_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Confirm the toolcache survived the previous guest
+        id: retained
+        run: |
+          marker="$RUNNER_TOOL_CACHE/capability-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          test "$(cat "$marker")" = "$GITHUB_SHA"
+          rm -- "$marker"
+      - name: Query the service via localhost on a fresh guest
+        if: ${{ !cancelled() }}
+        id: query
+        run: |
+          test -z "$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit)"
+          test -z "$(ss -H -ltn '( sport = :18080 or sport = :18081 or sport = :18082 )')"
+          test -z "$(docker ps -aq --filter name=eimir-runner-capability)"
+          test "$(docker run --rm --network host -e PGPASSWORD=capability-check postgres:17-alpine \
+            psql -h 127.0.0.1 -U eimir -d eimir_test -Atc 'SELECT 1')" = 1
+      - name: Summarize PostgreSQL and isolation checks
+        if: ${{ !cancelled() }}
+        run: |
+          echo 'Persistent toolcache **${{ steps.retained.outcome == 'success' && 'PASS' || 'FAIL' }}**' >> "$GITHUB_STEP_SUMMARY"
+          echo 'PostgreSQL on port 5432 and clean guest **${{ steps.query.outcome == 'success' && 'PASS' || 'FAIL' }}**' >> "$GITHUB_STEP_SUMMARY"

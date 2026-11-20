@@ -21,7 +21,11 @@ env:
 jobs:
   changes:
     name: Change Detection
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
     timeout-minutes: 15
     permissions:
       contents: read
@@ -49,7 +53,9 @@ jobs:
         run: python3 tools/ci/test_change_scope.py
 
       - name: Test nightly regression wiring
-        run: python3 tools/ci/test_nightly_regression.py
+        run: |
+          python3 tools/ci/test_nightly_regression.py
+          python3 tools/ci/test_nightly_runner_routing.py
 
       - name: Test encryption test-key generator
         run: python3 tools/ci/test_encryption_test_keys.py
@@ -153,7 +159,11 @@ jobs:
     name: Backend
     needs: changes
     if: needs.changes.outputs.backend == 'true'
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
     env:
       EIMIR_ENVIRONMENT: test
     defaults:
@@ -222,7 +232,11 @@ jobs:
     needs: changes
     # Required check: unrelated pull requests report it as skipped (#2096).
     if: needs.changes.outputs.web == 'true'
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
     timeout-minutes: 30
     container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
     defaults:
@@ -266,7 +280,11 @@ jobs:
     name: Backend Integration Shard ${{ matrix.shard }}/${{ strategy.job-total }}
     needs: changes
     if: needs.changes.outputs.backend_integration == 'true'
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -377,7 +395,11 @@ jobs:
     name: Backend Integration
     needs: [changes, backend_integration_shards]
     if: ${{ always() }}
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
     timeout-minutes: 5
     # The repository ruleset requires the exact "Backend Integration" context.
     # Keep that stable while the expensive work fans out into matrix shards.
@@ -406,7 +428,11 @@ jobs:
     name: Backend Core-only Shard ${{ matrix.shard }}/${{ strategy.job-total }}
     needs: changes
     if: needs.changes.outputs.backend_integration == 'true'
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -535,7 +561,11 @@ jobs:
     name: Backend Core-only
     needs: [changes, backend_core_only_shards]
     if: ${{ always() }}
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
     timeout-minutes: 5
     steps:
       - name: Verify Core-only shards
@@ -562,7 +592,11 @@ jobs:
     name: Self-Hosted Start
     needs: changes
     if: needs.changes.outputs.self_hosted == 'true'
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
     # The failure from #110 passed every gate because CI only parsed the Compose
     # file and ran Alembic under EIMIR_ENVIRONMENT=test. No gate executed the
     # documented startup path. This job follows docs/SELF-HOSTING.md exactly.
@@ -690,7 +724,11 @@ jobs:
     name: API Clients
     needs: changes
     if: needs.changes.outputs.api_clients == 'true'
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
     # The contract is the single source of truth for the canonical Web client,
     # which the Capacitor Android wrapper packages unchanged (ADR 0011).
     steps:
@@ -719,7 +757,11 @@ jobs:
     name: Supply Chain
     needs: changes
     if: needs.changes.outputs.supply_chain == 'true'
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
     defaults:
       run:
         working-directory: backend
@@ -780,9 +822,13 @@ jobs:
 
   secrets:
     name: Secret Scan
-    # Forks and manually dispatched regressions keep the GitHub-hosted runner.
+    # Nightly guests and the same-repository PR pilot use separate labels.
     runs-on: >-
-      ${{ github.event_name == 'pull_request' &&
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) ||
+          github.event_name == 'pull_request' &&
           github.event.pull_request.head.repo.full_name == github.repository &&
           vars.EIMIR_PR_RUNNER != 'github-hosted' &&
           'eimir-kvm-pr' || 'ubuntu-latest' }}
@@ -814,7 +860,11 @@ jobs:
 
   provenance:
     name: Provenance
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Required documents are present

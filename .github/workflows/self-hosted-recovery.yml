@@ -14,7 +14,11 @@ concurrency:
 jobs:
   changes:
     name: Change Detection
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
     timeout-minutes: 15
     permissions:
       contents: read
@@ -90,7 +94,11 @@ jobs:
     name: Backup, Restore, and Upgrade
     needs: changes
     if: needs.changes.outputs.recovery == 'true'
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
     timeout-minutes: 35
     env:
       EIMIR_SELF_HOSTED_BACKEND_IMAGE: eimir-backend:source-recovery

@@ -40,11 +40,18 @@ builds, Media Video, Release Evidence and CodeQL.
   locally checked states instead of intermediate snapshots.
 - Keep a pull request in draft until it is complete, then mark it ready for
   review once. Draft pull requests always use the cheap tier.
-- Pushes to `main` start no workflows. The nightly regression
+- The nightly regression
   (`.github/workflows/nightly-regression.yml`) dispatches the complete suites on
   `main` when its revision is untested. It can also be started manually. A
   failed run opens or updates the issue "Nightly regression failed"; repair
   `main` before merging further features.
+- Nightly and manual full runs on `main` use `eimir-dev` for CI, Web Browser
+  QA, Backend Encrypted Mode, Media Video, CodeQL, Self-Hosted Deployment
+  Guard and Self-Hosted Recovery. Each job gets a fresh guest and runs in
+  sequence. GitHub hosts Android launcher icons and PR jobs, with the existing
+  same-repository Secret Scan pilot in a separate guest. Set the repository
+  variable `EIMIR_NIGHTLY_RUNNER` to `github-hosted` to route new dispatches to
+  `ubuntu-latest`.
 - The private test channel (test instance) follows every merge to `main` right
   away, verified only by the pull-request checks. Product releases publish only
   a `main` revision with a green full regression; a product release starts a

@@ -246,7 +246,11 @@ jobs:
   full-regression:
     if: github.event_name != 'pull_request'
     name: Full regression ${{ matrix.shard }}/4
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
     timeout-minutes: 40
     container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
     strategy:
@@ -343,10 +347,20 @@ jobs:
       - changed-specs
       - full-regression
     name: Playwright + axe
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: runner.environment == 'self-hosted'
+        with:
+          node-version: '26.13.1'
+          package-manager-cache: false
 
       - name: Verify browser QA topology
         env:

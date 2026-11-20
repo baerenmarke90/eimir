@@ -14,7 +14,11 @@ concurrency:
 jobs:
   changes:
     name: Change Detection
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
     timeout-minutes: 15
     permissions:
       contents: read
@@ -90,7 +94,11 @@ jobs:
     name: Install, upgrade, rollback and Demo rehearsal
     needs: changes
     if: needs.changes.outputs.deployment_guard == 'true'
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
     timeout-minutes: 45
     permissions:
       contents: read
@@ -119,7 +127,11 @@ jobs:
     name: Network and Port Guard
     needs: changes
     if: needs.changes.outputs.deployment_guard == 'true'
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

@@ -1346,7 +1346,7 @@ test('a checked entry glides into the cart, and with reduced motion it only appe
       name: m5s3.collection.markDone.replace('{{title}}', 'Brot'),
     })
     .click();
-  await seenWith('animationName', 'shared-list-row-arrive');
+  await seenWith('animationName', 'eimir-motion-enter-travel');
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page

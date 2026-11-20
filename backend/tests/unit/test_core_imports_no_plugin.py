@@ -28,6 +28,7 @@ PLUGIN_PACKAGES = (
     "eimir.picture_ping_pong",
     "eimir.presence",
     "eimir.quotes",
+    "eimir.recap_composition",
     "eimir.relationship_passport",
     "eimir.video_processing",
 )
@@ -55,6 +56,7 @@ PLUGIN_MODULES = (
             "partner_quick_actions",
             "photo_sources",
             "picture_ping_pong",
+            "recap_composition",
             "relationship_passport",
         )
     ),

@@ -1,4 +1,10 @@
-"""Authorized HTTP contract for monthly/yearly recap editions and reflections."""
+"""Authorized HTTP contract for monthly/yearly recap editions and reflections.
+
+These Core routes read stored editions and keep the members' own reflections
+editable and withdrawable on every server. Composing new editions is Premium:
+those routes are plugin code in ``eimir.api.v1.recap_composition`` and reuse the
+shared schemas and the ``no_store`` dependency from here.
+"""
 
 from __future__ import annotations
 
@@ -11,13 +17,12 @@ from pydantic import ConfigDict, Field
 from sqlalchemy import or_, select, true
 
 from eimir.api.concurrency import IfMatchVersion
-from eimir.api.deps import Authorization, DbSession, ensure_capability
+from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.core import clock
 from eimir.recaps import invalidation as _invalidation  # noqa: F401
 from eimir.recaps import presentation, service
-from eimir.recaps.composition import MANUAL_SELECTION_LIMIT
 from eimir.recaps.models import RecapEdition, RecapKind, RecapSourceKind
 
 
@@ -32,12 +37,6 @@ class RecapPeriod(ApiModel):
     kind: RecapKind
     year: int = Field(ge=1900, le=2100)
     month: int = Field(default=0, ge=0, le=12)
-
-
-class RecapRequest(RecapPeriod):
-    model_config = ConfigDict(extra="forbid")
-    variant: int = Field(default=0, ge=0, le=3)
-    refresh: bool = False
 
 
 RecapReaction = Literal["LOVE", "LAUGH", "CELEBRATE"]
@@ -200,16 +199,6 @@ class RecapOverview(ApiModel):
     has_more: bool
 
 
-class RecapSelectionUpdate(ApiModel):
-    model_config = ConfigDict(extra="forbid")
-    source_keys: list[str] = Field(max_length=MANUAL_SELECTION_LIMIT)
-
-
-class RecapSelectionView(ApiModel):
-    items: list[RecapSourceView]
-    selected_keys: list[str]
-
-
 class RecapReflectionUpdate(ApiModel):
     model_config = ConfigDict(extra="forbid")
     text: str = Field(min_length=1, max_length=2000)
@@ -269,38 +258,6 @@ def overview(
     )
 
 
-@router.post(
-    "/spaces/{spaceId}/recaps/prepare",
-    status_code=202,
-    operation_id="prepareRelationshipRecaps",
-    responses=problem_responses(401, 403, 404),
-)
-def prepare(authorization: Authorization, session: DbSession) -> None:
-    ensure_capability(session, authorization.space_id, service.CAPABILITY)
-    service.prepare_current(session, authorization)
-
-
-@router.post(
-    "/spaces/{spaceId}/recaps",
-    response_model=RecapView,
-    operation_id="requestRelationshipRecap",
-    responses=problem_responses(401, 403, 404, 422),
-)
-def request_recap(
-    payload: RecapRequest, authorization: Authorization, session: DbSession
-) -> RecapView:
-    value = service.request_period(
-        session,
-        authorization,
-        payload.kind,
-        payload.year,
-        payload.month,
-        variant=payload.variant,
-        refresh=payload.refresh,
-    )
-    return project(session, authorization, value)
-
-
 @router.get(
     "/spaces/{spaceId}/recaps/{recapId}",
     response_model=RecapView,
@@ -315,79 +272,6 @@ def get_recap(
 ) -> RecapView:
     response.headers["Cache-Control"] = "private, no-store"
     return project(session, authorization, service.edition(session, authorization, recap_id))
-
-
-@router.get(
-    "/spaces/{spaceId}/recaps/{recapId}/selection",
-    response_model=RecapSelectionView,
-    operation_id="getRecapSelection",
-    responses=problem_responses(401, 403, 404),
-)
-def get_selection(
-    recap_id: Annotated[str, Path(alias="recapId")],
-    authorization: Authorization,
-    session: DbSession,
-) -> RecapSelectionView:
-    value = service.edition(session, authorization, recap_id)
-    ensure_capability(session, authorization.space_id, service.CAPABILITY, lock_grants=False)
-    current, _ = presentation.materials(session, authorization, value)
-    pool = service.candidates(
-        session, authorization, value.starts_on, value.through_on, value.variant
-    )
-    eligible = [
-        item
-        for source in pool
-        if (item := presentation.source_material(session, authorization, source)) is not None
-    ]
-    merged = {item["key"]: item for item in [*eligible, *current] if item["available"]}
-    return RecapSelectionView(
-        items=[RecapSourceView.model_validate(item) for item in merged.values()],
-        selected_keys=[item["key"] for item in current if item["available"]],
-    )
-
-
-@router.put(
-    "/spaces/{spaceId}/recaps/{recapId}/selection",
-    response_model=RecapView,
-    operation_id="updateRecapSelection",
-    responses=problem_responses(401, 403, 404, 409, 422),
-)
-def update_selection(
-    recap_id: Annotated[str, Path(alias="recapId")],
-    payload: RecapSelectionUpdate,
-    expected_version: IfMatchVersion,
-    authorization: Authorization,
-    session: DbSession,
-) -> RecapView:
-    ensure_capability(session, authorization.space_id, service.CAPABILITY)
-    value = service.edition(session, authorization, recap_id, write=True, version=expected_version)
-    service.replace_sources(session, authorization, value, payload.source_keys)
-    session.flush()
-    return project(session, authorization, value)
-
-
-@router.post(
-    "/spaces/{spaceId}/recaps/{recapId}/save",
-    response_model=RecapView,
-    operation_id="saveRecapEdition",
-    responses=problem_responses(401, 403, 404, 409),
-)
-def save(
-    recap_id: Annotated[str, Path(alias="recapId")],
-    expected_version: IfMatchVersion,
-    authorization: Authorization,
-    session: DbSession,
-) -> RecapView:
-    ensure_capability(session, authorization.space_id, service.CAPABILITY)
-    value = service.edition(session, authorization, recap_id, write=True, version=expected_version)
-    if value.status not in {"READY", "EMPTY"}:
-        from eimir.core.errors import ConflictError, ErrorCode
-
-        raise ConflictError("The recap is not ready.", ErrorCode.VERSION_CONFLICT)
-    if not value.saved_at:
-        value.saved_at = clock.now()
-    session.flush()
-    return project(session, authorization, value)
 
 
 @router.put(

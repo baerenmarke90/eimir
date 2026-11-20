@@ -120,7 +120,7 @@ whether it is closed before Phase 3 or accepted.
 | `presence.location` | `presence` (own consent, Stop and deletion stay non-paywallable) | Yes | |
 | `planning.date_inspiration` | `date_ideas` and its catalog | Yes; the Core consumer in `wish_selections` goes through a hook | |
 | `memories.map` | Plugin route `api/v1/memory_map.py` and read model `places/memory_map.py` (tag `places` kept); Places, coordinates and Memory–Place links stay Core | Yes: moved into the plugin by [#2084](https://github.com/baerenmarke90/eimir/issues/2084) | |
-| `relationship.passport` | Plugin routes `api/v1/relationship_passport.py` and package `relationship_passport` (passport and lifeline, tag `dashboard` kept); recap composition still gated in shared Core (`recaps/service.py`) | Partly: passport and lifeline moved, the capability is plugin-owned; recap composition follows | [#2084](https://github.com/baerenmarke90/eimir/issues/2084), [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
+| `relationship.passport` | Plugin routes `api/v1/relationship_passport.py` and package `relationship_passport` (passport and lifeline, tag `dashboard` kept); recap composition routes `api/v1/recap_composition.py` and package `recap_composition` (tag `recaps` kept); the recap jobs still gated in shared Core (`recaps/service.py`, `recaps/jobs.py`) | Partly: passport, lifeline and the composing recap routes moved, the capability is plugin-owned; the recap jobs follow | [#2084](https://github.com/baerenmarke90/eimir/issues/2084), [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
 | `partner.quick_actions.extended` | Plugin route `api/v1/partner_quick_actions.py` and package `partner_quick_actions` (command and `support_gesture_requests`, tag `notifications` kept); vocabulary, projection, thinking-of-you and the module switch stay Core | Yes: moved into the plugin by [#2084](https://github.com/baerenmarke90/eimir/issues/2084) | |
 | `theme.bespoke_packs` | Value checks in shared Core (`api/v1/appearance.py`, `appearance/models.py`); the capability is plugin-owned, the packs live in the clients | Partly: Core-only refuses Pro values; the check itself stays public code | [#2084](https://github.com/baerenmarke90/eimir/issues/2084), [#2086](https://github.com/baerenmarke90/eimir/issues/2086) |
 | `media.video_upload` | Plugin package `video_processing` (processor and validation job); pipeline, voice notes, playback and the retained-media lifecycle stay Core | Yes: processor and job moved, the capability is plugin-owned | [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
@@ -134,11 +134,16 @@ Two further gaps are not capabilities:
   of composition is part of [#2085](https://github.com/baerenmarke90/eimir/issues/2085). Because
   `relationship.passport` is plugin-owned since #2084, a Core-only instance already behaves like an expired Pro:
   stored editions and reflections stay readable and exportable, members can still edit or withdraw their own words,
-  new composition answers `403` and queued composition pauses (`tests/integration/test_core_only_recaps.py`).
+  new composition is refused and queued composition pauses (`tests/integration/test_core_only_recaps.py`).
   The read path of a stored edition (source projection, live answers, places, media, tags, the couple's own words
   and the frozen mood) is its own Core module, `recaps/presentation.py`, and the member helpers of background
   jobs live in `jobs/members.py`; neither imports the composing modules
   (`tests/unit/test_recap_read_path_imports.py`), so composition can move into the plugin without them.
+  The composing routes (prepare, request, read and change the selection, keep an edition) are plugin routes
+  (`api/v1/recap_composition.py`, the selection write in package `recap_composition`), so a Core-only instance has
+  no such paths; the overview, reading an edition and the members' own reflections stay Core routes. The
+  composition jobs and the service functions they share with the routes (`request_period`, `prepare_current`,
+  `candidates`) still live in Core and move with the jobs.
 - **Clients.** The Web and Android clients contain the Pro screens and generated Pro client code. This decision is a
   backend seam; [#2086](https://github.com/baerenmarke90/eimir/issues/2086) decides what the public export contains.
 

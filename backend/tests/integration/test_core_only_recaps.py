@@ -15,7 +15,6 @@ from collections.abc import Iterator
 from contextlib import contextmanager, nullcontext
 from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
-from typing import Any
 from uuid import UUID
 from zipfile import ZipFile
 
@@ -26,11 +25,12 @@ from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext, PrivacyClass
 from eimir.core import clock
+from eimir.core.errors import PremiumEntitlementRequiredError
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
 from eimir.memories.models import Memory, MemoryPayload
-from eimir.recaps import jobs
-from eimir.recaps.models import RecapEdition
+from eimir.recaps import jobs, service
+from eimir.recaps.models import RecapEdition, RecapKind
 from eimir.relationship import service as relationship_service
 from eimir.transfer import service as transfer_service
 from eimir.transfer.models import TransferScope
@@ -85,10 +85,13 @@ def couple(session: Session, monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace
     )
 
 
-def _request(client: TestClient, couple: SimpleNamespace, **period: Any) -> Any:
-    return client.post(
-        couple.path, headers=couple.headers, json={"kind": "MONTH", "year": 2026, **period}
-    )
+def _compose(session: Session, couple: SimpleNamespace, month: int) -> str:
+    # Through the service: the request route is plugin code, so it is not mounted
+    # in the Core-only configuration (its absence is covered by test_pro_routes.py).
+    context = AuthorizationContext(account_id=couple.anna.id, space_id=couple.space.id)
+    value = service.request_period(session, context, RecapKind.MONTH, 2026, month)
+    session.flush()
+    return str(value.id)
 
 
 def _generate(session: Session, couple: SimpleNamespace, recap_id: str) -> None:
@@ -112,9 +115,7 @@ def test_without_the_plugin_recaps_stay_readable_exportable_and_composition_paus
     # Composed while the plugin was loaded: one ready recap with shared words,
     # one requested whose composition job has not run yet.
     with with_pro_plugin():
-        ready = _request(client, couple, month=10)
-        assert ready.status_code == 200
-        recap_id = ready.json()["id"]
+        recap_id = _compose(session, couple, 10)
         _generate(session, couple, recap_id)
         words = client.put(
             f"{couple.path}/{recap_id}/reflection",
@@ -122,8 +123,7 @@ def test_without_the_plugin_recaps_stay_readable_exportable_and_composition_paus
             json={"text": "Words we keep", "shared": True, "version": 0},
         )
         assert words.status_code == 200
-        pending = _request(client, couple, month=9)
-        assert pending.status_code == 200
+        pending_id = _compose(session, couple, 9)
     editions = session.scalar(
         select(func.count())
         .select_from(RecapEdition)
@@ -153,11 +153,10 @@ def test_without_the_plugin_recaps_stay_readable_exportable_and_composition_paus
         assert recap_id.encode() in exported and b"Words we keep" in exported
 
         # New composition pauses: no new period, and the queued job does not compose.
-        denied = _request(client, couple, month=8)
-        assert denied.status_code == 403
-        assert denied.json()["code"] == "PREMIUM_ENTITLEMENT_REQUIRED"
-        _generate(session, couple, pending.json()["id"])
-        paused = session.get(RecapEdition, UUID(pending.json()["id"]))
+        with pytest.raises(PremiumEntitlementRequiredError):
+            _compose(session, couple, 8)
+        _generate(session, couple, pending_id)
+        paused = session.get(RecapEdition, UUID(pending_id))
         assert paused is not None and paused.status == "PAUSED"
         jobs.scan(session, {})
         session.flush()

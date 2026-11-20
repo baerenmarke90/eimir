@@ -363,6 +363,7 @@ class InTreeProPlugin:
             partner_quick_actions,
             photo_sources,
             picture_ping_pong,
+            recap_composition,
             relationship_passport,
         )
 
@@ -382,6 +383,7 @@ class InTreeProPlugin:
             partner_quick_actions.router,
             relationship_passport.router,
             daily_insights.router,
+            recap_composition.router,
         )
 
     def register_jobs(self, registry: JobRegistry) -> None:

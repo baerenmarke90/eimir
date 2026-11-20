@@ -17,6 +17,7 @@ from eimir.relationship.service import add_member
 from eimir.transfer.models import TransferScope
 from eimir.transfer.service import build_export_archive
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
+from tests.support.plugins import requires_pro
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -75,6 +76,7 @@ def test_read_defaults_to_automatic_and_never_creates_a_row(client, session, cou
     assert session.scalar(select(func.count()).select_from(AppIconPreference)) == 0
 
 
+@requires_pro
 def test_a_pair_is_saved_with_pro_changed_and_cleared_back_to_automatic(
     client, session, couple
 ) -> None:
@@ -103,6 +105,7 @@ def test_a_pair_is_saved_with_pro_changed_and_cleared_back_to_automatic(
     assert session.scalars(select(AppIconPreference.person_colours)).all() == [None]
 
 
+@requires_pro
 def test_the_choice_is_personal_and_never_visible_to_the_partner(client, session, couple) -> None:
     grant(session, couple)
     initial = client.get(path(couple), headers=couple["a"])
@@ -118,6 +121,7 @@ def test_the_choice_is_personal_and_never_visible_to_the_partner(client, session
     }
 
 
+@requires_pro
 def test_membership_authentication_validation_and_concurrency(client, session, couple) -> None:
     grant(session, couple)
     initial = client.get(path(couple), headers=couple["a"])
@@ -149,6 +153,7 @@ def test_membership_authentication_validation_and_concurrency(client, session, c
     assert stale.status_code == 409
 
 
+@requires_pro
 def test_personal_export_contains_the_pair_only_when_chosen_and_deletion_removes_it(
     client, session, couple
 ) -> None:
@@ -178,6 +183,7 @@ def test_personal_export_contains_the_pair_only_when_chosen_and_deletion_removes
     assert session.scalar(select(func.count()).select_from(AppIconPreference)) == 0
 
 
+@requires_pro
 def test_choosing_a_pair_needs_pro_but_reading_and_going_back_to_automatic_stay_free(
     client, session, couple
 ) -> None:
@@ -200,6 +206,7 @@ def test_choosing_a_pair_needs_pro_but_reading_and_going_back_to_automatic_stay_
     assert allowed.json()["colours"] == "blue_deepblue"
 
 
+@requires_pro
 def test_downgrade_retains_the_pair_blocks_a_new_choice_and_reset_is_free(
     client, session, couple
 ) -> None:

@@ -76,7 +76,11 @@ Deliberately **not** part of the plugin, with the reason:
   `relationship.passport` is plugin-owned as well: the passport and Wir lifeline routes
   (`api/v1/relationship_passport.py`) and their read models (package `relationship_passport`) are plugin code, while
   `getDashboard`, its shared Story summary and recap composition stay Core for now, so a Core-only instance treats
-  recaps like an expired Pro (see the recap gap below).
+  recaps like an expired Pro (see the recap gap below). `theme.bespoke_packs` is plugin-owned too, but it has no
+  server feature code to move: the three value checks in `api/v1/appearance.py`, the stored columns and the value
+  enums stay Core, and the designs themselves live in the clients
+  ([#2086](https://github.com/baerenmarke90/eimir/issues/2086)). Without the plugin a Pro value is refused under
+  any grant, Free values keep working and a stored Pro value stays in effect.
 - `media.video_upload` (`api/v1/video.py`, `attachments/videos.py`, `attachments/video_jobs.py`,
   `jobs/video_worker.py`, gate also in `attachments/service.py` and `photo_sources/service.py`) and
   `daily.insights` (`daily_checkins/insights.py`, `recaps/mood.py`, `api/v1/daily_checkins.py`) are extractable,
@@ -107,7 +111,7 @@ whether it is closed before Phase 3 or accepted.
 | `memories.map` | Plugin route `api/v1/memory_map.py` and read model `places/memory_map.py` (tag `places` kept); Places, coordinates and Memory–Place links stay Core | Yes: moved into the plugin by [#2084](https://github.com/baerenmarke90/eimir/issues/2084) | |
 | `relationship.passport` | Plugin routes `api/v1/relationship_passport.py` and package `relationship_passport` (passport and lifeline, tag `dashboard` kept); recap composition still gated in shared Core (`recaps/service.py`) | Partly: passport and lifeline moved, the capability is plugin-owned; recap composition follows | [#2084](https://github.com/baerenmarke90/eimir/issues/2084), [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
 | `partner.quick_actions.extended` | Plugin route `api/v1/partner_quick_actions.py` and package `partner_quick_actions` (command and `support_gesture_requests`, tag `notifications` kept); vocabulary, projection, thinking-of-you and the module switch stay Core | Yes: moved into the plugin by [#2084](https://github.com/baerenmarke90/eimir/issues/2084) | |
-| `theme.bespoke_packs` | Gate in shared Core (`api/v1/appearance.py`, `appearance/models.py`) | No | [#2084](https://github.com/baerenmarke90/eimir/issues/2084) |
+| `theme.bespoke_packs` | Value checks in shared Core (`api/v1/appearance.py`, `appearance/models.py`); the capability is plugin-owned, the packs live in the clients | Partly: Core-only refuses Pro values; the check itself stays public code | [#2084](https://github.com/baerenmarke90/eimir/issues/2084), [#2086](https://github.com/baerenmarke90/eimir/issues/2086) |
 | `media.video_upload` | Woven into attachments and the video worker | No: extraction deferred | [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
 | `daily.insights` | `daily_checkins/insights.py`, `recaps/mood.py` | No: extraction deferred | [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
 | `storage.cloud_quota_50gb` | Operating-model capability, removed on Self-Hosted | Not Pro code; stays Core by design | |

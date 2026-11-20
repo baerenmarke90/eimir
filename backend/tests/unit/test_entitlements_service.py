@@ -329,7 +329,7 @@ def test_multiple_effective_grants_union_capabilities() -> None:
         tier=EntitlementTier.PREMIUM.value,
         effective_from=now - timedelta(days=1),
         effective_until=now + timedelta(days=10),
-        capabilities=[Capability.THEME_BESPOKE_PACKS.value],
+        capabilities=[Capability.CHAPTER_RICH_PRESENTATION.value],
     )
     session = FakeSession([promotion, subscription])
 
@@ -344,7 +344,7 @@ def test_multiple_effective_grants_union_capabilities() -> None:
     assert effective.status == EntitlementStatus.ACTIVE
     assert set(effective.capabilities) == {
         Capability.RECAP_PDF_YEARBOOK.value,
-        Capability.THEME_BESPOKE_PACKS.value,
+        Capability.CHAPTER_RICH_PRESENTATION.value,
     }
     assert effective.effective_until == subscription.effective_until
 

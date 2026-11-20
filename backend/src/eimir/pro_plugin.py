@@ -47,6 +47,7 @@ _MODEL_MODULES = (
     "eimir.garden.models",
     "eimir.heart_hunt.models",
     "eimir.once_messages.models",
+    "eimir.partner_quick_actions.models",
     "eimir.photo_sources.models",
     "eimir.picture_ping_pong.models",
     "eimir.presence.models",
@@ -289,12 +290,23 @@ def _delete_account_rows(session: Session, model: Any, account_id: UUID) -> None
 
 def _on_account_deleted(session: Session, account_id: UUID) -> None:
     from eimir.calendar_sync.models import CalendarConnection, CalendarOAuthTransaction
+    from eimir.partner_quick_actions.models import SupportGestureRequest
     from eimir.photo_sources.models import GoogleAccountHint, PhotoConnection, PhotoSelection
     from eimir.presence.models import PartnerLocationConsent, SharingLevel
     from eimir.presence.service import delete_owner_presence
 
     for model in personal_account_models():
         _delete_account_rows(session, model, account_id)
+    # Gesture receipts record who sent which gesture to whom and when:
+    # relationship metadata that ends with either side.
+    session.execute(
+        delete(SupportGestureRequest).where(
+            or_(
+                SupportGestureRequest.sender_account_id == account_id,
+                SupportGestureRequest.recipient_account_id == account_id,
+            )
+        )
+    )
     # A remaining partner keeps their preferences, but their old grant cannot
     # authorize this recipient or be silently transferred to another partner.
     received = session.scalars(
@@ -347,6 +359,7 @@ class InTreeProPlugin:
             memory_map,
             once_messages,
             partner_location,
+            partner_quick_actions,
             photo_sources,
             picture_ping_pong,
         )
@@ -364,6 +377,7 @@ class InTreeProPlugin:
             picture_ping_pong.router,
             couple_games.router,
             memory_map.router,
+            partner_quick_actions.router,
         )
 
     def register_jobs(self, registry: JobRegistry) -> None:

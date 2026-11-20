@@ -117,6 +117,7 @@ _SYNC = Capability.INTEGRATION_EXTERNAL_SYNC
 _ONCE = Capability.PARTNER_ONCE_MESSAGES
 _PRESENCE = Capability.PRESENCE_LOCATION
 _QUOTE = Capability.DAILY_QUOTE
+_QUICK_ACTIONS = Capability.PARTNER_QUICK_ACTIONS_EXTENDED
 
 _JOINED = Purge(LifecycleEvent.PARTNER_JOINED)
 _ENDED = Purge(LifecycleEvent.MEMBERSHIP_ENDED)
@@ -274,6 +275,19 @@ PLUGIN_TABLES: tuple[PluginTable, ...] = (
             "personalGoogleAccountHint", (ExportField("email", payload_field="email"),), single=True
         ),
     ),
+    # Extended partner gestures: content-free idempotency and pacing receipts.
+    # Who sent which gesture to whom ends with either Account; the notification
+    # they produced is a Core row without a plugin target and stays readable.
+    PluginTable(
+        "support_gesture_requests",
+        _QUICK_ACTIONS,
+        "space_id",
+        ("sender_account_id", "recipient_account_id"),
+        purge_on=(
+            Purge(LifecycleEvent.ACCOUNT_DELETED, "sender_account_id"),
+            Purge(LifecycleEvent.ACCOUNT_DELETED, "recipient_account_id"),
+        ),
+    ),
     # Daily quote.
     PluginTable("daily_quote_preferences", _QUOTE, None, ("account_id",), purge_on=(_ACCOUNT,)),
     # Partner location: own consent, Stop and deletion are not paywallable.
@@ -321,6 +335,7 @@ PLUGIN_CAPABILITIES = frozenset(
         Capability.INTEGRATION_EXTERNAL_SYNC.value,
         Capability.MEMORIES_MAP.value,
         Capability.PARTNER_ONCE_MESSAGES.value,
+        Capability.PARTNER_QUICK_ACTIONS_EXTENDED.value,
         Capability.PRESENCE_LOCATION.value,
         Capability.DAILY_QUOTE.value,
         Capability.PLANNING_DATE_INSPIRATION.value,

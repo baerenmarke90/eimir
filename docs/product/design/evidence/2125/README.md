@@ -17,3 +17,12 @@ Views: Compact 360 px Light and 390 px Dark, Expanded 1280 px Light.
 Motion: no motion was added. The sheet keeps its existing open and close motion; the states inside it change without animation, also with reduced motion.
 
 Open: no native device was tested. In the Capacitor app the chunk ships inside the APK, so the loading state lasts only for a local file read and the offline state cannot occur.
+
+## Start-up: Wir first, the rest in the background
+
+Product Owner decision (2026-11-20): the app starts, Wir loads, then the app loads the rest, which is then in memory.
+
+- The HTML entry and its module preloads hold only what the first screen needs (measured by `check-entry-size`); no preload tag was added.
+- About 1.5 s after the signed-in shell appeared, and then only in idle periods (`requestIdleCallback`, a short timeout where it is missing), the app loads every deferred chunk one at a time: the 37 deferred routes (Settings, product pages, games, maps and others), the map renderer and the legal texts. A failed chunk is skipped and loads on demand later. With the browser's Save-Data preference on, nothing is prefetched.
+- A route whose chunk is loaded renders in the same frame (`deferredComponent`), so it shows no loading state.
+- `deferred-prefetch.spec.ts`: after sign-in, without any navigation, the Settings and legal chunks are requested; opening More → Settings then shows no `.ui-state-loading` at any moment. A negative control with prefetch disabled (Save-Data) saw the loading state, so the assertion is sensitive.

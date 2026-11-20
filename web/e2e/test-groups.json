@@ -448,6 +448,11 @@
       "baselineTests": 4,
       "reason": "Places and Chapters share one content-recognition picker; selection, type-filter continuity, real save/detail/return, privacy-safe search, large text, focus and cancellation must remain coherent."
     },
+    "deferred-prefetch.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 1,
+      "reason": "Feature-owned startup contract: after the shell appears the deferred chunks load in the background and a later navigation (Settings) shows no loading state."
+    },
     "mobile-header-more.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 5,

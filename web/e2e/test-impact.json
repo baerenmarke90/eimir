@@ -352,6 +352,14 @@
     "milestone-delete-ownership.spec.ts": {
       "roots": ["web/src/components/MilestoneProductPage.tsx"]
     },
+    "deferred-prefetch.spec.ts": {
+      "roots": [
+        "web/src/deferredModules.tsx",
+        "web/src/components/AppShell.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/LegalDocumentText.tsx"
+      ]
+    },
     "mobile-header-more.spec.ts": {
       "roots": [
         "web/src/components/PageHeader.tsx",

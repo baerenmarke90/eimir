@@ -1,4 +1,5 @@
 import { type ComponentProps, useEffect, useState } from 'react';
+import { registerDeferredModule } from '../deferredModules';
 import { useTranslation } from '../i18n';
 import type { LegalDocumentContent } from './LegalDocumentContent';
 import { UiState } from './UiState';
@@ -20,6 +21,8 @@ export function preloadLegalDocumentContent(): Promise<LegalDocumentContentModul
   });
   return pending;
 }
+
+registerDeferredModule(preloadLegalDocumentContent);
 
 /**
  * A legal text from the on-demand chunk. A loaded chunk renders in the same

@@ -73,6 +73,10 @@ Deliberately **not** part of the plugin, with the reason:
   `api/v1/partner_quick_actions.py`, package `partner_quick_actions` with the `support_gesture_requests` model and a
   manifest row, whose existing migration stays in the Core chain like the other Pro-table migrations of
   decision 6; the gesture vocabulary, the notification projection and the Free thinking-of-you signal stay Core).
+  `relationship.passport` is plugin-owned as well: the passport and Wir lifeline routes
+  (`api/v1/relationship_passport.py`) and their read models (package `relationship_passport`) are plugin code, while
+  `getDashboard`, its shared Story summary and recap composition stay Core for now, so a Core-only instance treats
+  recaps like an expired Pro (see the recap gap below).
 - `media.video_upload` (`api/v1/video.py`, `attachments/videos.py`, `attachments/video_jobs.py`,
   `jobs/video_worker.py`, gate also in `attachments/service.py` and `photo_sources/service.py`) and
   `daily.insights` (`daily_checkins/insights.py`, `recaps/mood.py`, `api/v1/daily_checkins.py`) are extractable,
@@ -101,7 +105,7 @@ whether it is closed before Phase 3 or accepted.
 | `presence.location` | `presence` (own consent, Stop and deletion stay non-paywallable) | Yes | |
 | `planning.date_inspiration` | `date_ideas` and its catalog | Yes; the Core consumer in `wish_selections` goes through a hook | |
 | `memories.map` | Plugin route `api/v1/memory_map.py` and read model `places/memory_map.py` (tag `places` kept); Places, coordinates and Memory–Place links stay Core | Yes: moved into the plugin by [#2084](https://github.com/baerenmarke90/eimir/issues/2084) | |
-| `relationship.passport` | Gate in shared Core (`api/v1/dashboard.py`, `recaps/service.py`) | No | [#2084](https://github.com/baerenmarke90/eimir/issues/2084) |
+| `relationship.passport` | Plugin routes `api/v1/relationship_passport.py` and package `relationship_passport` (passport and lifeline, tag `dashboard` kept); recap composition still gated in shared Core (`recaps/service.py`) | Partly: passport and lifeline moved, the capability is plugin-owned; recap composition follows | [#2084](https://github.com/baerenmarke90/eimir/issues/2084), [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
 | `partner.quick_actions.extended` | Plugin route `api/v1/partner_quick_actions.py` and package `partner_quick_actions` (command and `support_gesture_requests`, tag `notifications` kept); vocabulary, projection, thinking-of-you and the module switch stay Core | Yes: moved into the plugin by [#2084](https://github.com/baerenmarke90/eimir/issues/2084) | |
 | `theme.bespoke_packs` | Gate in shared Core (`api/v1/appearance.py`, `appearance/models.py`) | No | [#2084](https://github.com/baerenmarke90/eimir/issues/2084) |
 | `media.video_upload` | Woven into attachments and the video worker | No: extraction deferred | [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
@@ -112,7 +116,10 @@ whether it is closed before Phase 3 or accepted.
 Two further gaps are not capabilities:
 
 - **Recap composition.** `recaps` stays Core so that retained editions remain readable without Pro; the Premium part
-  of composition is part of [#2085](https://github.com/baerenmarke90/eimir/issues/2085).
+  of composition is part of [#2085](https://github.com/baerenmarke90/eimir/issues/2085). Because
+  `relationship.passport` is plugin-owned since #2084, a Core-only instance already behaves like an expired Pro:
+  stored editions and reflections stay readable and exportable, members can still edit or withdraw their own words,
+  new composition answers `403` and queued composition pauses (`tests/integration/test_core_only_recaps.py`).
 - **Clients.** The Web and Android clients contain the Pro screens and generated Pro client code. This decision is a
   backend seam; [#2086](https://github.com/baerenmarke90/eimir/issues/2086) decides what the public export contains.
 
@@ -546,7 +553,7 @@ and the retirement of old artifacts are operational work on top.
   public Core chain (decision 6). They reveal table and column names, not behavior.
 - **Paying Self-Hosted operators receive the code.** A Python package in an image is readable source or bytecode.
   Protection there is the license and its terms, not secrecy.
-- **Gates in shared Core code stay patchable.** `relationship.passport`,
+- **Gates in shared Core code stay patchable.** `relationship.passport` (recap composition),
   `theme.bespoke_packs`, `media.video_upload` and `daily.insights` are checks in
   public code. Anyone running a modified Core can remove them, as they can today.
 - **Workflow cost.** With one private development repository there is no second PR per change, but there is an

@@ -24,8 +24,10 @@ from eimir.dashboard.preferences import CATALOG as DASHBOARD_CATALOG
 from eimir.engagement.models import Notification, NotificationKind
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
+from eimir.plugins.loader import loaded_plugins
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
+from tests.support.plugins import with_pro_plugin
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -51,6 +53,12 @@ class Endpoint:
     body_fixture_aliases: dict[str, str] = field(default_factory=dict)
     query: dict[str, str] = field(default_factory=dict)
     verification_template: str | None = None
+    plugin_capability_first: str | None = None
+    """A plugin-owned capability this Core endpoint checks before it looks up the resource.
+
+    Without the plugin it answers ``403 PREMIUM_ENTITLEMENT_REQUIRED`` for every
+    resource ID, so an unknown and a malformed ID stay indistinguishable.
+    """
 
     def __str__(self) -> str:
         return f"{self.method} {self.template}"
@@ -227,12 +235,14 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         body={"sourceKeys": []},
         if_match=True,
         resource_absence="RESOURCE_NOT_FOUND",
+        plugin_capability_first="relationship.passport",
     ),
     Endpoint(
         "POST",
         "/api/v1/spaces/{spaceId}/recaps/{recapId}/save",
         if_match=True,
         resource_absence="RESOURCE_NOT_FOUND",
+        plugin_capability_first="relationship.passport",
     ),
     Endpoint(
         "PUT",
@@ -1842,28 +1852,31 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
     if endpoint and "/recaps" in endpoint.template:
         # Keep unrelated domain fixtures Free. Recap writes need their own grant
         # so the matrix reaches resource/header checks instead of a Pro gate.
-        entitlements.record_grant(
-            session,
-            space_id=space.id,
-            account_id=anna.id,
-            source_type=EntitlementSourceType.ADMIN_GRANT,
-            status=EntitlementStatus.ACTIVE,
-            tier=EntitlementTier.PREMIUM,
-            effective_from=clock.now() - timedelta(days=1),
-            capabilities=["relationship.passport"],
-        )
-        session.flush()
-        recap = client.post(
-            f"{base_path}/recaps", json={"kind": "YEAR", "year": 2025}, headers=headers
-        )
-        assert recap.status_code == 200
-        recap_id = recap.json()["id"]
-        reflection = client.put(
-            f"{base_path}/recaps/{recap_id}/reflection",
-            json={"text": "Matrix recap reflection", "shared": True, "version": 0},
-            headers=headers,
-        )
-        assert reflection.status_code == 200
+        # Composing needs the Pro plugin's capability; a Core-only instance keeps
+        # the recaps it composed while the plugin was loaded.
+        with with_pro_plugin():
+            entitlements.record_grant(
+                session,
+                space_id=space.id,
+                account_id=anna.id,
+                source_type=EntitlementSourceType.ADMIN_GRANT,
+                status=EntitlementStatus.ACTIVE,
+                tier=EntitlementTier.PREMIUM,
+                effective_from=clock.now() - timedelta(days=1),
+                capabilities=["relationship.passport"],
+            )
+            session.flush()
+            recap = client.post(
+                f"{base_path}/recaps", json={"kind": "YEAR", "year": 2025}, headers=headers
+            )
+            assert recap.status_code == 200
+            recap_id = recap.json()["id"]
+            reflection = client.put(
+                f"{base_path}/recaps/{recap_id}/reflection",
+                json={"text": "Matrix recap reflection", "shared": True, "version": 0},
+                headers=headers,
+            )
+            assert reflection.status_code == 200
 
     return {
         "client": client,
@@ -2014,8 +2027,7 @@ class TestEveryResourceId:
             **dict.fromkeys(_resource_placeholders(endpoint), str(uuid4())),
         )
         response = _send(scenario, endpoint, path, scenario["owner_headers"])
-        assert response.status_code == 404
-        assert response.json()["code"] == endpoint.resource_absence
+        assert (response.status_code, response.json()["code"]) == _absence(endpoint)
 
     def test_malformed_resource_id_remains_same_404(self, scenario, endpoint: Endpoint) -> None:  # type: ignore[no-untyped-def]
         "Well-formedness must not disclose existence."
@@ -2031,8 +2043,17 @@ class TestEveryResourceId:
         )
         first = _send(scenario, endpoint, unknown, scenario["owner_headers"])
         second = _send(scenario, endpoint, malformed, scenario["owner_headers"])
-        assert first.status_code == second.status_code == 404
+        assert first.status_code == second.status_code == _absence(endpoint)[0]
         assert first.json() == second.json()
+
+
+def _absence(endpoint: Endpoint) -> tuple[int, str | None]:
+    """How the endpoint denies an unknown resource in this plugin configuration."""
+    if endpoint.plugin_capability_first is not None and (
+        endpoint.plugin_capability_first not in loaded_plugins().capabilities()
+    ):
+        return 403, "PREMIUM_ENTITLEMENT_REQUIRED"
+    return 404, endpoint.resource_absence
 
 
 def _resource_placeholders(endpoint: Endpoint) -> tuple[str, ...]:

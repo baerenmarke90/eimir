@@ -267,6 +267,7 @@ def test_the_in_tree_pro_plugin_provides_the_moving_capabilities() -> None:
         Capability.PARTNER_ONCE_MESSAGES.value,
         Capability.PARTNER_QUICK_ACTIONS_EXTENDED.value,
         Capability.PRESENCE_LOCATION.value,
+        Capability.RELATIONSHIP_PASSPORT.value,
         Capability.DAILY_QUOTE.value,
         Capability.PLANNING_DATE_INSPIRATION.value,
     }

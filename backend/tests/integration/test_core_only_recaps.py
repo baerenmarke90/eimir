@@ -1,0 +1,192 @@
+"""Recaps on an instance without the Pro plugin (Decision 0017, #2084).
+
+`relationship.passport` is plugin-owned, so a Core-only instance behaves like
+an expired Pro for recaps: what was composed while the plugin was loaded stays
+readable and exportable and the members' own words stay theirs, while new
+composition pauses. These tests are not Pro feature tests: the Core-only CI job
+runs them with ``EIMIR_PLUGINS=""``; the plugin-loaded job runs them against a
+simulated absent plugin.
+"""
+
+from __future__ import annotations
+
+import json
+from collections.abc import Iterator
+from contextlib import contextmanager, nullcontext
+from datetime import UTC, date, datetime, timedelta
+from types import SimpleNamespace
+from typing import Any
+from uuid import UUID
+from zipfile import ZipFile
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from eimir.authorization import AuthorizationContext, PrivacyClass
+from eimir.core import clock
+from eimir.entitlements import service as entitlements
+from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
+from eimir.memories.models import Memory, MemoryPayload
+from eimir.recaps import jobs
+from eimir.recaps.models import RecapEdition
+from eimir.relationship import service as relationship_service
+from eimir.transfer import service as transfer_service
+from eimir.transfer.models import TransferScope
+from tests.conftest import auth, make_account, make_space, requires_database, sign_in
+from tests.support.plugins import plugins_loaded, with_pro_plugin, without_plugins
+
+pytestmark = [pytest.mark.integration, requires_database]
+NOW = datetime(2026, 10, 30, 12, tzinfo=UTC)
+
+
+@contextmanager
+def core_only() -> Iterator[None]:
+    """Run Core-only: for real in the Core-only job, simulated in the plugin-loaded one."""
+    with nullcontext() if not plugins_loaded() else without_plugins():
+        yield
+
+
+@pytest.fixture
+def couple(session: Session, monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
+    monkeypatch.setattr(clock, "now", lambda: NOW)
+    anna, ben = make_account(session, "Anna"), make_account(session, "Ben")
+    space = make_space(session, anna)
+    relationship_service.add_member(session, space.id, ben)
+    # The Pro grant is still current: only the plugin is missing.
+    entitlements.record_grant(
+        session,
+        space_id=space.id,
+        account_id=anna.id,
+        source_type=EntitlementSourceType.ADMIN_GRANT,
+        status=EntitlementStatus.ACTIVE,
+        tier=EntitlementTier.PREMIUM,
+        effective_from=NOW - timedelta(days=30),
+        effective_until=NOW + timedelta(days=30),
+        capabilities=["relationship.passport"],
+    )
+    session.add(
+        Memory(
+            space_id=space.id,
+            owner_id=anna.id,
+            privacy_class=PrivacyClass.SPACE_SHARED.value,
+            happened_on=date(2026, 10, 21),
+            payload=MemoryPayload(title="A recorded experience", body="Our shared words"),
+        )
+    )
+    session.flush()
+    return SimpleNamespace(
+        anna=anna,
+        space=space,
+        headers=auth(sign_in(session, anna)),
+        partner=auth(sign_in(session, ben)),
+        path=f"/api/v1/spaces/{space.id}/recaps",
+    )
+
+
+def _request(client: TestClient, couple: SimpleNamespace, **period: Any) -> Any:
+    return client.post(
+        couple.path, headers=couple.headers, json={"kind": "MONTH", "year": 2026, **period}
+    )
+
+
+def _generate(session: Session, couple: SimpleNamespace, recap_id: str) -> None:
+    record = session.get(RecapEdition, UUID(recap_id))
+    assert record is not None
+    jobs.generate(
+        session,
+        {
+            "space_id": str(couple.space.id),
+            "account_id": str(couple.anna.id),
+            "edition_id": recap_id,
+            "request_token": str(record.request_token),
+        },
+    )
+    session.flush()
+
+
+def test_without_the_plugin_recaps_stay_readable_exportable_and_composition_pauses(
+    client: TestClient, session: Session, couple: SimpleNamespace
+) -> None:
+    # Composed while the plugin was loaded: one ready recap with shared words,
+    # one requested whose composition job has not run yet.
+    with with_pro_plugin():
+        ready = _request(client, couple, month=10)
+        assert ready.status_code == 200
+        recap_id = ready.json()["id"]
+        _generate(session, couple, recap_id)
+        words = client.put(
+            f"{couple.path}/{recap_id}/reflection",
+            headers=couple.headers,
+            json={"text": "Words we keep", "shared": True, "version": 0},
+        )
+        assert words.status_code == 200
+        pending = _request(client, couple, month=9)
+        assert pending.status_code == 200
+    editions = session.scalar(
+        select(func.count())
+        .select_from(RecapEdition)
+        .where(RecapEdition.space_id == couple.space.id)
+    )
+
+    with core_only():
+        overview = client.get(couple.path, headers=couple.headers)
+        assert overview.status_code == 200
+        assert overview.json()["canCompose"] is False
+
+        # Stored recaps and shared words stay readable for both members.
+        for headers in (couple.headers, couple.partner):
+            stored = client.get(f"{couple.path}/{recap_id}", headers=headers)
+            assert stored.status_code == 200
+            assert stored.json()["status"] == "READY"
+            assert [item["text"] for item in stored.json()["reflections"]] == ["Words we keep"]
+
+        # ...and exportable.
+        anna = AuthorizationContext(account_id=couple.anna.id, space_id=couple.space.id)
+        with (
+            transfer_service.build_export_archive(session, anna, TransferScope.PERSONAL) as bundle,
+            ZipFile(bundle) as archive,
+        ):
+            exported = archive.read("recaps.json")
+        assert json.loads(exported)["tables"]
+        assert recap_id.encode() in exported and b"Words we keep" in exported
+
+        # New composition pauses: no new period, and the queued job does not compose.
+        denied = _request(client, couple, month=8)
+        assert denied.status_code == 403
+        assert denied.json()["code"] == "PREMIUM_ENTITLEMENT_REQUIRED"
+        _generate(session, couple, pending.json()["id"])
+        paused = session.get(RecapEdition, UUID(pending.json()["id"]))
+        assert paused is not None and paused.status == "PAUSED"
+        jobs.scan(session, {})
+        session.flush()
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(RecapEdition)
+                .where(RecapEdition.space_id == couple.space.id)
+            )
+            == editions
+        )
+
+        # The member's own words stay theirs: editable and withdrawable.
+        own = client.get(f"{couple.path}/{recap_id}", headers=couple.headers).json()["reflections"][
+            0
+        ]
+        edited = client.put(
+            f"{couple.path}/{recap_id}/reflection",
+            headers=couple.headers,
+            json={"text": "Words we still keep", "shared": True, "version": own["version"]},
+        )
+        assert edited.status_code == 200
+        version = edited.json()["reflections"][0]["version"]
+        withdrawn = client.delete(
+            f"{couple.path}/{recap_id}/reflection",
+            headers={**couple.headers, "If-Match": str(version)},
+        )
+        assert withdrawn.status_code == 204
+        assert (
+            client.get(f"{couple.path}/{recap_id}", headers=couple.partner).json()["reflections"]
+            == []
+        )

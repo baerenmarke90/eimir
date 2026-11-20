@@ -27,6 +27,7 @@ PLUGIN_PACKAGES = (
     "eimir.picture_ping_pong",
     "eimir.presence",
     "eimir.quotes",
+    "eimir.relationship_passport",
 )
 """The in-tree Pro modules; Phase 2 moves them into their own distribution."""
 
@@ -51,6 +52,7 @@ PLUGIN_MODULES = (
             "partner_quick_actions",
             "photo_sources",
             "picture_ping_pong",
+            "relationship_passport",
         )
     ),
 )

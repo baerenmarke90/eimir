@@ -16,6 +16,7 @@ from eimir.memories.models import Memory, MemoryPayload
 from eimir.milestones.models import Milestone, MilestonePayload
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import SpaceProfile
+from eimir.relationship_passport import service as passport_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -80,7 +81,7 @@ def test_lifeline_requires_the_passport_capability_before_reading(
     def unexpected(*args, **kwargs):  # type: ignore[no-untyped-def]
         raise AssertionError("A Free request must not read the lifeline")
 
-    monkeypatch.setattr(dashboard_service, "read_story_lifeline", unexpected)
+    monkeypatch.setattr(passport_service, "read_story_lifeline", unexpected)
     result = lifeline(client, context)
     assert result.status_code == 403
     assert result.json()["code"] == "PREMIUM_ENTITLEMENT_REQUIRED"
@@ -226,7 +227,7 @@ def test_lifeline_entries_require_the_passport_capability_before_reading(
     def unexpected(*args, **kwargs):  # type: ignore[no-untyped-def]
         raise AssertionError("A Free request must not read lifeline entries")
 
-    monkeypatch.setattr(dashboard_service, "read_story_lifeline_entries", unexpected)
+    monkeypatch.setattr(passport_service, "read_story_lifeline_entries", unexpected)
     result = lifeline_entries(client, context, start="2026-10-05", end="2026-10-12")
     assert result.status_code == 403
     assert result.json()["code"] == "PREMIUM_ENTITLEMENT_REQUIRED"
@@ -300,7 +301,7 @@ def test_lifeline_entries_list_only_shared_past_entries_of_the_range_in_order(
 
 def test_lifeline_entries_stop_at_today_and_are_bounded(client, session, context, monkeypatch):  # type: ignore[no-untyped-def]
     grant(session, context)
-    monkeypatch.setattr(dashboard_service, "LIFELINE_ENTRIES_LIMIT", 2)
+    monkeypatch.setattr(passport_service, "LIFELINE_ENTRIES_LIMIT", 2)
     session.add_all(
         [
             Memory(

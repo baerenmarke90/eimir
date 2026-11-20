@@ -7,7 +7,6 @@ stale copied Dashboard record behind.
 
 from __future__ import annotations
 
-from collections import defaultdict
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 from enum import StrEnum
@@ -25,7 +24,6 @@ from eimir.authorization import AuthorizationContext, PrivacyClass, readable
 from eimir.chapters.models import Chapter
 from eimir.collections.models import Collection
 from eimir.core import clock
-from eimir.core.errors import ValidationError
 from eimir.engagement import thinking
 from eimir.heart_moments.models import HeartMoment
 from eimir.identity.models import Account
@@ -41,17 +39,11 @@ from eimir.relationship.models import (
     MembershipStatus,
     SpaceProfile,
 )
-from eimir.story import service as story_service
 from eimir.story.view_models import StoryItemViewAggregate
 from eimir.wishes.models import Wish
 
 SECTION_LIMIT = 8
 MAX_RECOGNITION_TEXT = 160
-LIFELINE_ENTRIES_LIMIT = 60
-"""The most entries of one lifeline period returned at once."""
-LIFELINE_ENTRIES_MAX_DAYS = 120
-"""The longest period a lifeline column covers: one quarter plus its edge weeks."""
-STORY_LIFELINE_RANGE_INVALID = "STORY_LIFELINE_RANGE_INVALID"
 KEEPSAKE_SCAN_LIMIT = 50
 RETROSPECTIVE_FALLBACK_MIN_AGE_DAYS = 30
 RETROSPECTIVE_SCAN_LIMIT = 50
@@ -130,7 +122,7 @@ class DashboardExperience:
 def read_incoming_experience(
     session: Session, authorization: AuthorizationContext
 ) -> DashboardExperience | None:
-    partner = _partner(session, authorization)
+    partner = partner_summary(session, authorization)
     if partner is None:
         return None
     canonical_id = func.coalesce(Memory.experience_root_id, Memory.id)
@@ -193,234 +185,6 @@ class Anticipation:
     concealed: bool = False
 
 
-@dataclass(frozen=True)
-class RelationshipPassport:
-    partner: PartnerSummary | None
-    relationship_duration: RelationshipDuration | None
-    memories: int
-    heart_moments: int
-    milestones: int
-    completed_plans: int
-    places: int
-
-
-@dataclass(frozen=True)
-class LifelineWeek:
-    """One calendar week (starting Monday) of the shared Story."""
-
-    week_start: date
-    memories: int
-    heart_moments: int
-    milestones: int
-    highlight: DashboardItem
-
-
-@dataclass(frozen=True)
-class StoryLifeline:
-    """The relationship lifeline drawn on Wir (#1770)."""
-
-    starts_on: date | None
-    today: date
-    weeks: list[LifelineWeek]
-
-
-@dataclass(frozen=True)
-class StoryLifelineEntries:
-    """The entries behind one lifeline column, oldest first."""
-
-    total: int
-    items: list[DashboardItem]
-
-
-_LIFELINE_HIGHLIGHT_PREFERENCE: dict[story_service.StoryKind, int] = {
-    # Memories are the only Story type with photos, so a week shows one first.
-    story_service.StoryKind.MEMORY: 0,
-    story_service.StoryKind.HEART_MOMENT: 1,
-    story_service.StoryKind.MILESTONE: 2,
-}
-
-
-def read_story_lifeline(
-    session: Session,
-    authorization: AuthorizationContext,
-    *,
-    at: datetime | None = None,
-) -> StoryLifeline:
-    """Bucket the relationship-shared Story by week for the Wir lifeline.
-
-    The weeks cover exactly the `shared_only` Story set up to the viewer's
-    local today, so the per-week counts always add up to the totals that the
-    client shows next to them. Each non-empty week carries one recognizable
-    entry for the scrub preview: its latest Memory when there is one,
-    otherwise its latest entry. Empty weeks are omitted.
-    """
-    account = session.get(Account, authorization.account_id)
-    if account is None:
-        raise RuntimeError("Authorized Dashboard account disappeared.")
-    instant = clock.ensure_utc(at if at is not None else clock.now())
-    today = clock.today_in(account.timezone, at=instant)
-    profile = session.execute(
-        select(SpaceProfile).where(SpaceProfile.space_id == authorization.space_id)
-    ).scalar_one_or_none()
-    duration = _relationship_duration(profile, today)
-    starts_on = (
-        duration.started_on if duration is not None and duration.started_on <= today else None
-    )
-
-    buckets: dict[date, list[story_service.StoryRow]] = defaultdict(list)
-    for row in story_service.read_shared_story_rows(session, authorization, through=today):
-        buckets[row.effective_date - timedelta(days=row.effective_date.weekday())].append(row)
-    representatives = {
-        week: max(
-            rows,
-            key=lambda row: (
-                -_LIFELINE_HIGHLIGHT_PREFERENCE[row.kind],
-                row.effective_date,
-                row.created_at,
-                str(row.id),
-            ),
-        )
-        for week, rows in buckets.items()
-    }
-    highlights = _lifeline_highlights(session, authorization, list(representatives.values()))
-
-    weeks: list[LifelineWeek] = []
-    for week in sorted(buckets):
-        rows = buckets[week]
-        representative = representatives[week]
-        weeks.append(
-            LifelineWeek(
-                week_start=week,
-                memories=sum(row.kind == story_service.StoryKind.MEMORY for row in rows),
-                heart_moments=sum(row.kind == story_service.StoryKind.HEART_MOMENT for row in rows),
-                milestones=sum(row.kind == story_service.StoryKind.MILESTONE for row in rows),
-                highlight=highlights.get(representative.id) or _lifeline_fallback(representative),
-            )
-        )
-    return StoryLifeline(starts_on=starts_on, today=today, weeks=weeks)
-
-
-def read_story_lifeline_entries(
-    session: Session,
-    authorization: AuthorizationContext,
-    *,
-    starts_on: date,
-    ends_before: date,
-    at: datetime | None = None,
-) -> StoryLifelineEntries:
-    """Return every entry of one lifeline period, oldest first.
-
-    The lifeline only carries one highlight per week; selecting a column
-    reads its entries lazily. The set is exactly the one `read_story_lifeline`
-    counts (relationship-shared, up to the viewer's local today), narrowed to
-    the half-open range ``[starts_on, ends_before)``, so a column's dots and
-    its entries always agree. At most `LIFELINE_ENTRIES_LIMIT` entries are
-    loaded; `total` tells how many the period holds.
-    """
-    if ends_before <= starts_on:
-        raise ValidationError(
-            "The lifeline range must end after it starts.", STORY_LIFELINE_RANGE_INVALID
-        )
-    if (ends_before - starts_on).days > LIFELINE_ENTRIES_MAX_DAYS:
-        raise ValidationError(
-            "The lifeline range is longer than one period.", STORY_LIFELINE_RANGE_INVALID
-        )
-    account = session.get(Account, authorization.account_id)
-    if account is None:
-        raise RuntimeError("Authorized Dashboard account disappeared.")
-    instant = clock.ensure_utc(at if at is not None else clock.now())
-    today = clock.today_in(account.timezone, at=instant)
-    through = min(today, ends_before - timedelta(days=1))
-    if through < starts_on:
-        return StoryLifelineEntries(total=0, items=[])
-    rows = story_service.read_shared_story_rows(
-        session, authorization, through=through, since=starts_on
-    )
-    shown = rows[:LIFELINE_ENTRIES_LIMIT]
-    loaded = _lifeline_highlights(session, authorization, shown)
-    return StoryLifelineEntries(
-        total=len(rows),
-        items=[loaded.get(row.id) or _lifeline_fallback(row) for row in shown],
-    )
-
-
-def _lifeline_fallback(row: story_service.StoryRow) -> DashboardItem:
-    return DashboardItem(
-        type=DashboardItemType(row.kind.value),
-        id=row.id,
-        occurred_on=row.effective_date,
-        created_at=row.created_at,
-    )
-
-
-def _lifeline_highlights(
-    session: Session,
-    authorization: AuthorizationContext,
-    rows: list[story_service.StoryRow],
-) -> dict[UUID, DashboardItem]:
-    """Load the displayed entries in one batch per Story type."""
-    ids: dict[story_service.StoryKind, list[UUID]] = defaultdict(list)
-    for row in rows:
-        ids[row.kind].append(row.id)
-    highlights: dict[UUID, DashboardItem] = {}
-
-    memory_ids = ids[story_service.StoryKind.MEMORY]
-    if memory_ids:
-        memories = list(
-            session.execute(
-                readable(Memory, authorization).where(Memory.id.in_(memory_ids))
-            ).scalars()
-        )
-        galleries = attachments_of_memories(session, [memory.id for memory in memories])
-        for memory in memories:
-            preview = cover_of(
-                galleries.get(memory.id, []), memory.payload.selected_cover_attachment_id
-            )
-            ready = preview is not None and preview.status == AttachmentStatus.READY
-            highlights[memory.id] = DashboardItem(
-                type=DashboardItemType.MEMORY,
-                id=memory.id,
-                title_or_text=_bounded(memory.payload.title),
-                occurred_on=memory.happened_on,
-                created_at=memory.created_at,
-                preview_attachment_id=preview.id if ready and preview is not None else None,
-                preview_is_sensitive=bool(
-                    ready and preview is not None and preview.payload.is_sensitive
-                ),
-                preview_has_thumbnail=bool(ready and preview is not None and preview.has_thumbnail),
-            )
-
-    heart_moment_ids = ids[story_service.StoryKind.HEART_MOMENT]
-    if heart_moment_ids:
-        for heart_moment in session.execute(
-            readable(HeartMoment, authorization).where(
-                HeartMoment.privacy_class == PrivacyClass.SPACE_SHARED.value,
-                HeartMoment.id.in_(heart_moment_ids),
-            )
-        ).scalars():
-            highlights[heart_moment.id] = DashboardItem(
-                type=DashboardItemType.HEART_MOMENT,
-                id=heart_moment.id,
-                title_or_text=_bounded(heart_moment.payload.text),
-                occurred_on=heart_moment.happened_on,
-                created_at=heart_moment.created_at,
-            )
-
-    milestone_ids = ids[story_service.StoryKind.MILESTONE]
-    if milestone_ids:
-        for milestone in session.execute(
-            readable(Milestone, authorization).where(Milestone.id.in_(milestone_ids))
-        ).scalars():
-            highlights[milestone.id] = DashboardItem(
-                type=DashboardItemType.MILESTONE,
-                id=milestone.id,
-                title_or_text=_bounded(milestone.payload.title),
-                occurred_on=milestone.happened_on,
-                created_at=milestone.created_at,
-            )
-    return highlights
-
-
 def read_anticipation(
     session: Session,
     authorization: AuthorizationContext,
@@ -454,45 +218,11 @@ def read_anticipation(
         day = clock.ensure_utc(plan.planned_start).astimezone(clock.resolve_zone(zone)).date()
     return Anticipation(
         plan_id=plan.id,
-        title=_bounded(discreet.list_title(plan)) or "",
+        title=bounded_text(discreet.list_title(plan)) or "",
         event_on=day,
         days_remaining=(day - today).days,
         event_at=clock.ensure_utc(plan.planned_start) if plan.planned_start is not None else None,
         concealed=plan.discreet,
-    )
-
-
-def read_relationship_passport(
-    session: Session,
-    authorization: AuthorizationContext,
-) -> RelationshipPassport:
-    """Read shared-only lifetime aggregates after the caller's Pro check."""
-    from eimir.story.service import read_shared_story_counts
-
-    account = session.get(Account, authorization.account_id)
-    if account is None:
-        raise RuntimeError("Authorized Dashboard account disappeared.")
-    profile = session.execute(
-        select(SpaceProfile).where(SpaceProfile.space_id == authorization.space_id)
-    ).scalar_one_or_none()
-    story = read_shared_story_counts(session, authorization)
-    completed = readable(Plan, authorization).where(
-        Plan.status == PlanStatus.COMPLETED.value,
-        Plan.privacy_class == PrivacyClass.SPACE_SHARED.value,
-    )
-    places = readable(Place, authorization).where(
-        Place.privacy_class == PrivacyClass.SPACE_SHARED.value
-    )
-    return RelationshipPassport(
-        partner=_partner(session, authorization),
-        relationship_duration=_relationship_duration(profile, clock.today_in(account.timezone)),
-        memories=story.memories,
-        heart_moments=story.heart_moments,
-        milestones=story.milestones,
-        completed_plans=session.execute(
-            select(func.count()).select_from(completed.subquery())
-        ).scalar_one(),
-        places=session.execute(select(func.count()).select_from(places.subquery())).scalar_one(),
     )
 
 
@@ -516,8 +246,8 @@ def read_dashboard(
     return DashboardView(
         space_id=authorization.space_id,
         viewer_local_date=today,
-        partner=_partner(session, authorization),
-        relationship_duration=_relationship_duration(profile, today),
+        partner=partner_summary(session, authorization),
+        relationship_duration=relationship_duration_on(profile, today),
         retrospective=_retrospective(session, authorization, today, account.timezone),
         keepsake=_keepsake(session, authorization, account.timezone),
         upcoming=_upcoming(
@@ -533,7 +263,7 @@ def read_dashboard(
     )
 
 
-def _partner(session: Session, authorization: AuthorizationContext) -> PartnerSummary | None:
+def partner_summary(session: Session, authorization: AuthorizationContext) -> PartnerSummary | None:
     partner = session.execute(
         select(Account)
         .join(Membership, Membership.account_id == Account.id)
@@ -551,7 +281,7 @@ def _partner(session: Session, authorization: AuthorizationContext) -> PartnerSu
     return PartnerSummary(id=partner.id, display_name=partner.display_name)
 
 
-def _relationship_duration(
+def relationship_duration_on(
     profile: SpaceProfile | None,
     today: date,
 ) -> RelationshipDuration | None:
@@ -631,7 +361,7 @@ def _retrospective(
                 DashboardItem(
                     type=DashboardItemType.MEMORY,
                     id=memory.id,
-                    title_or_text=_bounded(memory.payload.title),
+                    title_or_text=bounded_text(memory.payload.title),
                     occurred_on=memory.happened_on,
                     created_at=memory.created_at,
                 ),
@@ -651,7 +381,7 @@ def _retrospective(
                 DashboardItem(
                     type=DashboardItemType.MILESTONE,
                     id=milestone.id,
-                    title_or_text=_bounded(milestone.payload.title),
+                    title_or_text=bounded_text(milestone.payload.title),
                     occurred_on=milestone.happened_on,
                 ),
             )
@@ -673,7 +403,7 @@ def _retrospective(
                 DashboardItem(
                     type=DashboardItemType.HEART_MOMENT,
                     id=heart_moment.id,
-                    title_or_text=_bounded(heart_moment.payload.text),
+                    title_or_text=bounded_text(heart_moment.payload.text),
                     occurred_on=heart_moment.happened_on,
                 ),
             )
@@ -717,7 +447,7 @@ def _retrospective(
                         DashboardItem(
                             type=kind,
                             id=row.id,
-                            title_or_text=_bounded(
+                            title_or_text=bounded_text(
                                 row.payload.text
                                 if isinstance(row, HeartMoment)
                                 else row.payload.title
@@ -788,7 +518,7 @@ def _keepsake(
             return DashboardItem(
                 type=DashboardItemType.MEMORY,
                 id=memory.id,
-                title_or_text=_bounded(memory.payload.title),
+                title_or_text=bounded_text(memory.payload.title),
                 occurred_on=memory.happened_on,
                 created_at=memory.created_at,
                 preview_attachment_id=preview_id,
@@ -848,7 +578,7 @@ def _upcoming(
             DashboardItem(
                 type=DashboardItemType.PLAN,
                 id=plan.id,
-                title_or_text=_bounded(discreet.list_title(plan)),
+                title_or_text=bounded_text(discreet.list_title(plan)),
                 concealed=plan.discreet,
                 scheduled_at=clock.ensure_utc(plan.planned_start),
             )
@@ -872,7 +602,7 @@ def _upcoming(
             DashboardItem(
                 type=DashboardItemType.PLAN,
                 id=plan.id,
-                title_or_text=_bounded(discreet.list_title(plan)),
+                title_or_text=bounded_text(discreet.list_title(plan)),
                 concealed=plan.discreet,
                 scheduled_on=plan.planned_on,
                 scheduled_until=plan.planned_until,
@@ -893,7 +623,7 @@ def _upcoming(
             DashboardItem(
                 type=DashboardItemType.IMPORTANT_DATE,
                 id=important_date.id,
-                title_or_text=_bounded(important_date.payload.label),
+                title_or_text=bounded_text(important_date.payload.label),
                 occurred_on=next_on,
             )
         )
@@ -921,7 +651,7 @@ def _upcoming(
             DashboardItem(
                 type=DashboardItemType.BIRTHDAY,
                 id=person.id,
-                title_or_text=_bounded(person.payload.display_name),
+                title_or_text=bounded_text(person.payload.display_name),
                 occurred_on=_next_annual(person.birthday, today),
             )
         )
@@ -1036,7 +766,7 @@ def _recent_shared(
             DashboardItem(
                 type=DashboardItemType.MEMORY,
                 id=memory.id,
-                title_or_text=_bounded(memory.payload.title),
+                title_or_text=bounded_text(memory.payload.title),
                 occurred_on=memory.happened_on,
                 created_at=memory.created_at,
                 preview_attachment_id=preview_id,
@@ -1057,7 +787,7 @@ def _recent_shared(
             DashboardItem(
                 type=DashboardItemType.MILESTONE,
                 id=milestone.id,
-                title_or_text=_bounded(milestone.payload.title),
+                title_or_text=bounded_text(milestone.payload.title),
                 occurred_on=milestone.happened_on,
                 created_at=milestone.created_at,
             )
@@ -1076,7 +806,7 @@ def _recent_shared(
             DashboardItem(
                 type=DashboardItemType.HEART_MOMENT,
                 id=heart_moment.id,
-                title_or_text=_bounded(heart_moment.payload.text),
+                title_or_text=bounded_text(heart_moment.payload.text),
                 occurred_on=heart_moment.happened_on,
                 created_at=heart_moment.created_at,
             )
@@ -1089,7 +819,7 @@ def _recent_shared(
             DashboardItem(
                 type=DashboardItemType.WISH,
                 id=wish.id,
-                title_or_text=_bounded(wish.payload.title),
+                title_or_text=bounded_text(wish.payload.title),
                 created_at=wish.created_at,
             )
         )
@@ -1110,7 +840,7 @@ def _recent_shared(
             DashboardItem(
                 type=DashboardItemType.PLAN,
                 id=plan.id,
-                title_or_text=_bounded(discreet.list_title(plan)),
+                title_or_text=bounded_text(discreet.list_title(plan)),
                 concealed=plan.discreet,
                 occurred_on=plan.planned_on,
                 scheduled_at=plan.planned_start,
@@ -1127,7 +857,7 @@ def _recent_shared(
             DashboardItem(
                 type=DashboardItemType.PLACE,
                 id=place.id,
-                title_or_text=_bounded(place.payload.name),
+                title_or_text=bounded_text(place.payload.name),
                 created_at=place.created_at,
             )
         )
@@ -1144,7 +874,7 @@ def _recent_shared(
             DashboardItem(
                 type=DashboardItemType.CHAPTER,
                 id=chapter.id,
-                title_or_text=_bounded(chapter.payload.title),
+                title_or_text=bounded_text(chapter.payload.title),
                 occurred_on=chapter.start_on,
                 created_at=chapter.created_at,
             )
@@ -1159,7 +889,7 @@ def _recent_shared(
             DashboardItem(
                 type=DashboardItemType.COLLECTION,
                 id=collection.id,
-                title_or_text=_bounded(collection.payload.title),
+                title_or_text=bounded_text(collection.payload.title),
                 created_at=collection.created_at,
             )
         )
@@ -1168,7 +898,7 @@ def _recent_shared(
     return candidates[:SECTION_LIMIT]
 
 
-def _bounded(value: str | None) -> str | None:
+def bounded_text(value: str | None) -> str | None:
     if value is None:
         return None
     return value[:MAX_RECOGNITION_TEXT]

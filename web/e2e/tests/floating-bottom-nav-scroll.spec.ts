@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import AxeBuilder from '../support/axe';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -1063,7 +1065,7 @@ test('native primary tab switching replaces root history but keeps nested task r
   await page.addInitScript(() => {
     document.addEventListener('animationstart', ({ target, animationName }) => {
       if (
-        animationName === 'short-task-sheet-exit' &&
+        animationName === 'eimir-motion-surface-out' &&
         target instanceof HTMLDialogElement &&
         target.matches('.contextual-create-sheet')
       ) {
@@ -1823,6 +1825,344 @@ test.describe('floating create action while scrolling (#1790)', () => {
       await expect.poll(tucked).toBe(false);
       await expect.poll(opacity).toBe('1');
       await expectNoHorizontalOverflow(page);
+    });
+  }
+});
+
+/**
+ * Motion migration step 4 (#2075): shell, overlays and navigation on the
+ * motion layer. Run with VISUAL_EVIDENCE_DIR to export the evidence images
+ * (docs/product/design/evidence/2075).
+ */
+test.describe('shell, overlays and navigation on the motion layer (#2075)', () => {
+  type MotionLog = { css: string[]; tabs: string[]; offsets: string[] };
+
+  async function saveEvidence(page: Page, name: string) {
+    const output = test.info().outputPath(`${name}.png`);
+    await page.screenshot({ path: output });
+    const exportDir = process.env.VISUAL_EVIDENCE_DIR;
+    if (exportDir) {
+      fs.mkdirSync(exportDir, { recursive: true });
+      fs.copyFileSync(output, path.join(exportDir, `${name}.png`));
+    }
+  }
+
+  /**
+   * Records every CSS animation start (also with the primary tab it runs in)
+   * and every `left` route offset.
+   */
+  async function recordMotion(page: Page) {
+    await page.addInitScript(() => {
+      const log = {
+        css: [] as string[],
+        tabs: [] as string[],
+        offsets: [] as string[],
+      };
+      (window as unknown as { motionLog: typeof log }).motionLog = log;
+      document.addEventListener('animationstart', (event) => {
+        log.css.push(event.animationName);
+        const panel =
+          event.target instanceof Element
+            ? event.target.closest<HTMLElement>('[data-primary-tab]')
+            : null;
+        log.tabs.push(
+          `${event.animationName}@${panel?.dataset.primaryTab ?? ''}`,
+        );
+      });
+      const animate = Element.prototype.animate;
+      Element.prototype.animate = function (keyframes, options) {
+        const frames = Array.isArray(keyframes) ? keyframes : [];
+        const first = frames[0] as Keyframe | undefined;
+        if (first && 'left' in first && this.matches('.page'))
+          log.offsets.push(String(first.left));
+        return animate.call(this, keyframes, options);
+      };
+    });
+  }
+
+  const motionLog = (page: Page) =>
+    page.evaluate(
+      () => (window as unknown as { motionLog: MotionLog }).motionLog,
+    );
+
+  const clearMotionLog = (page: Page) =>
+    page.evaluate(() => {
+      const log = (window as unknown as { motionLog: MotionLog }).motionLog;
+      log.css.length = 0;
+      log.tabs.length = 0;
+      log.offsets.length = 0;
+    });
+
+  async function openQuickCreate(page: Page) {
+    const trigger = page.getByRole('button', {
+      name: navigationCopy.quickCreateTitle,
+    });
+    await trigger.click();
+    const sheet = page.getByRole('dialog', {
+      name: navigationCopy.quickCreateTitle,
+    });
+    await expect(sheet).toBeVisible();
+    return { trigger, sheet };
+  }
+
+  const runningLayerAnimations = (page: Page) =>
+    page.evaluate(() =>
+      document
+        .getAnimations()
+        .filter(
+          (animation) =>
+            animation.playState === 'running' &&
+            ((animation as CSSAnimation).animationName ?? '').startsWith(
+              'eimir-motion-',
+            ),
+        )
+        .map((animation) => (animation as CSSAnimation).animationName),
+    );
+
+  test('a sheet enters and exits on the catalogue for Close, Escape and the backdrop, and focus returns', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 740 });
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await recordMotion(page);
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await expect(page).toHaveURL(/\/today$/);
+
+    // Frame-sampled entrance: Compact slides the whole sheet up, so its
+    // translate falls to 0 while its opacity stays 1.
+    await clearMotionLog(page);
+    const { trigger, sheet } = await openQuickCreate(page);
+    const samples = await page.evaluate(async () => {
+      const dialog = document.querySelector('dialog.short-task-sheet');
+      const out: Array<{ translate: string; opacity: string }> = [];
+      for (let frame = 0; frame < 30 && dialog; frame += 1) {
+        const style = getComputedStyle(dialog);
+        out.push({ translate: style.translate, opacity: style.opacity });
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      return out;
+    });
+    test.info().annotations.push({
+      type: 'sheet-entrance-samples',
+      description: JSON.stringify(samples),
+    });
+    expect(samples.every((sample) => sample.opacity === '1')).toBe(true);
+    expect(samples.at(-1)?.translate).toMatch(/^(none|0px)$/);
+    const log = await motionLog(page);
+    expect(log.css).toContain('eimir-motion-surface-in');
+    expect(log.css).toContain('eimir-motion-backdrop-in');
+
+    // Escape: the shared exit, then the trigger has focus again.
+    await clearMotionLog(page);
+    await page.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
+    expect((await motionLog(page)).css).toContain('eimir-motion-surface-out');
+    await expect(trigger).toBeFocused();
+
+    // The close control.
+    await openQuickCreate(page);
+    await clearMotionLog(page);
+    await page
+      .locator('dialog.short-task-sheet .short-task-sheet-close')
+      .click();
+    await expect(sheet).toHaveCount(0);
+    expect((await motionLog(page)).css).toContain('eimir-motion-surface-out');
+    await expect(trigger).toBeFocused();
+
+    // The backdrop: a press above the sheet.
+    await openQuickCreate(page);
+    await clearMotionLog(page);
+    await page.mouse.click(195, 20);
+    await expect(sheet).toHaveCount(0);
+    expect((await motionLog(page)).css).toContain('eimir-motion-surface-out');
+    await expect(trigger).toBeFocused();
+
+    // Rapid open and close converge on closed, with nothing left running.
+    await trigger.click();
+    await page.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
+    await expect.poll(() => runningLayerAnimations(page)).toEqual([]);
+  });
+
+  test('navigation moves by direction, and a kept tab never replays its entrance', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 740 });
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await recordMotion(page);
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    const nav = page.locator('.mobile-bottom-nav');
+
+    // The first visit to Planen plays the root-tab entrance once. A later
+    // tab comes in from the inline end.
+    await clearMotionLog(page);
+    await primaryTabLink(nav, '/plan').click();
+    await expect(page).toHaveURL(/\/plan$/);
+    await expect
+      .poll(async () => (await motionLog(page)).css)
+      .toContain('eimir-motion-root-rise');
+    expect((await motionLog(page)).offsets).toContain('32px');
+    await expect(page.locator('.page[data-motion-stage]')).toHaveCount(0);
+
+    // Mehr, then Planen again: the kept tab shows its final state at once,
+    // and an earlier tab comes in from the inline start.
+    await primaryTabLink(nav, '/more').click();
+    await expect(page).toHaveURL(/\/more$/);
+    await expect(page.locator('.page[data-motion-stage]')).toHaveCount(0);
+    await clearMotionLog(page);
+    await primaryTabLink(nav, '/plan').click();
+    await expect(page).toHaveURL(/\/plan$/);
+    await expect(page.locator('.page[data-motion-stage]')).toHaveCount(0);
+    expect((await motionLog(page)).offsets).toContain('-32px');
+    expect((await motionLog(page)).tabs).not.toContain(
+      'eimir-motion-root-rise@/plan',
+    );
+
+    // Forward into a deeper page, then Back.
+    await primaryTabLink(nav, '/more').click();
+    await expect(page).toHaveURL(/\/more$/);
+    await clearMotionLog(page);
+    await page.locator('main a[href="/more/people"]').first().click();
+    await expect(page).toHaveURL(/\/more\/people$/);
+    await expect
+      .poll(async () => (await motionLog(page)).offsets)
+      .toEqual(['32px']);
+    await clearMotionLog(page);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/more$/);
+    await expect
+      .poll(async () => (await motionLog(page)).offsets)
+      .toEqual(['-32px']);
+    expect((await motionLog(page)).tabs).not.toContain(
+      'eimir-motion-root-rise@/more',
+    );
+  });
+
+  test('reduced motion shows sheets and destinations at once with the same focus', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 740 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await recordMotion(page);
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await expect(page).toHaveURL(/\/today$/);
+    await clearMotionLog(page);
+    const { trigger, sheet } = await openQuickCreate(page);
+    await expect(sheet.locator(':focus')).toHaveCount(1);
+    expect(await runningLayerAnimations(page)).toEqual([]);
+    await page.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await primaryTabLink(page.locator('.mobile-bottom-nav'), '/plan').click();
+    await expect(page).toHaveURL(/\/plan$/);
+    await expect(page.locator('.page[data-motion-stage]')).toHaveCount(0);
+    const log = await motionLog(page);
+    expect(log.offsets).toEqual([]);
+    expect(log.css.filter((name) => name.startsWith('eimir-motion-'))).toEqual(
+      [],
+    );
+    await saveEvidence(page, '2075-390-light-reduced-motion-plan');
+  });
+
+  for (const variant of [
+    { width: 360, theme: 'light', text: '' },
+    { width: 360, theme: 'dark', text: '' },
+    { width: 390, theme: 'light', text: '' },
+    { width: 390, theme: 'dark', text: '' },
+    { width: 430, theme: 'light', text: '' },
+    { width: 430, theme: 'dark', text: '' },
+    { width: 390, theme: 'light', text: '200%' },
+    { width: 1280, theme: 'light', text: '' },
+    { width: 1280, theme: 'dark', text: '' },
+  ] as const) {
+    const label = `${variant.width}-${variant.theme}${variant.text ? '-200-text' : ''}`;
+    test(`visual evidence 2075 ${label}`, async ({ page }) => {
+      await page.setViewportSize({ width: variant.width, height: 800 });
+      await page.emulateMedia({
+        colorScheme: variant.theme,
+        reducedMotion: 'no-preference',
+      });
+      await installApiMocks(page);
+      await page.goto('/login');
+      await signIn(page);
+      await expect(page).toHaveURL(/\/today$/);
+      const applyAppearance = () =>
+        page.evaluate(
+          ({ theme, text }) => {
+            document.documentElement.dataset.theme = theme;
+            if (text) document.documentElement.style.fontSize = text;
+          },
+          { theme: variant.theme, text: variant.text },
+        );
+      await applyAppearance();
+
+      // The sheet mid-entrance (paused at half its duration), then at rest.
+      await page.evaluate(() => {
+        document.addEventListener(
+          'animationstart',
+          (event) => {
+            if (event.animationName !== 'eimir-motion-surface-in') return;
+            for (const animation of document.getAnimations()) {
+              const name = (animation as CSSAnimation).animationName ?? '';
+              if (!name.startsWith('eimir-motion-')) continue;
+              const duration = Number(
+                animation.effect?.getComputedTiming().duration ?? 0,
+              );
+              animation.pause();
+              animation.currentTime = duration / 2;
+            }
+          },
+          { once: true },
+        );
+      });
+      const { sheet } = await openQuickCreate(page);
+      await saveEvidence(page, `2075-${label}-1-sheet-entering`);
+      await page.evaluate(() => {
+        for (const animation of document.getAnimations()) animation.finish();
+      });
+      await saveEvidence(page, `2075-${label}-2-sheet-open`);
+      await page.keyboard.press('Escape');
+      await expect(sheet).toHaveCount(0);
+
+      // A deeper page mid-arrival (paused at half), then settled.
+      const nav = page.locator(
+        variant.width >= 840 ? '.shell-nav' : '.mobile-bottom-nav',
+      );
+      await primaryTabLink(nav, '/more').click();
+      await expect(page).toHaveURL(/\/more$/);
+      await page.evaluate(() => {
+        for (const animation of document.getAnimations()) animation.finish();
+        const animate = Element.prototype.animate;
+        Element.prototype.animate = function (keyframes, options) {
+          const animation = animate.call(this, keyframes, options);
+          if (this.matches('.page, main.product-main')) {
+            const duration = Number(
+              animation.effect?.getComputedTiming().duration ?? 0,
+            );
+            animation.pause();
+            animation.currentTime = duration / 2;
+          }
+          return animation;
+        };
+      });
+      await page.locator('main a[href="/more/people"]').first().click();
+      await expect(page).toHaveURL(/\/more\/people$/);
+      await saveEvidence(page, `2075-${label}-3-forward-arriving`);
+      await page.evaluate(() => {
+        for (const animation of document.getAnimations()) animation.finish();
+      });
+      await saveEvidence(page, `2075-${label}-4-forward-settled`);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
     });
   }
 });

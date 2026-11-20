@@ -290,7 +290,7 @@ export function SharedPlanningOverviewPage({
   apiBaseUrl?: string;
   accessToken?: string;
 }) {
-  const rootIntro = useRootTabIntro('plan');
+  const rootIntro = useRootTabIntro<HTMLDivElement>('plan');
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -890,7 +890,7 @@ export function SharedPlanningOverviewPage({
   return (
     <div
       className="page planning-page planning-sanctuary planen-overview"
-      data-root-intro={rootIntro ? 'true' : undefined}
+      ref={rootIntro}
     >
       <PageHeader
         variant="root"

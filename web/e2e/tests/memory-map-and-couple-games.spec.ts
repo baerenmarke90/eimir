@@ -305,7 +305,7 @@ for (const [width, theme] of [
     expect(thumbnailReads).toBe(readyThumbnailReads);
     await expect(page.locator('.memory-map-selection ul')).toHaveCSS(
       'animation-name',
-      width === 430 ? 'eimir-disclosure-reveal' : 'none',
+      width === 430 ? 'eimir-motion-enter-shift' : 'none',
     );
     expect(
       await page.evaluate(

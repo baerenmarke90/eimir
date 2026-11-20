@@ -161,7 +161,7 @@ export function StoryProductPage({
   recapsApi?: RecapsApi;
   startupReads?: Extract<StoryStartupReads, { kind: 'diary' }>;
 }) {
-  const rootIntro = useRootTabIntro('story');
+  const rootIntro = useRootTabIntro<HTMLDivElement>('story');
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [renewing, setRenewing] = useState(false);
@@ -706,10 +706,7 @@ export function StoryProductPage({
   ]);
 
   return (
-    <div
-      className="page story-page story-page-unified"
-      data-root-intro={rootIntro ? 'true' : undefined}
-    >
+    <div className="page story-page story-page-unified" ref={rootIntro}>
       {saved ? (
         <div className="inline-message inline-message-success" role="status">
           <strong>{t('story.savedTitle')}</strong>

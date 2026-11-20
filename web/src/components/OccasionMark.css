@@ -42,7 +42,8 @@
 .occasion-mark-revealing > svg .accent {
   transform-box: fill-box;
   transform-origin: center;
-  animation: eimir-affectionate-pulse var(--duration-context)
+  /* Feedback `affection` from the motion catalogue (src/motion/utilities.css). */
+  animation: eimir-motion-feedback-affection var(--duration-context)
     var(--easing-standard);
 }
 

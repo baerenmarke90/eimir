@@ -396,48 +396,17 @@
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
   opacity: 1;
   transform: translateY(0);
-  animation: header-notifications-sheet-enter var(--duration-context)
-    var(--easing-enter);
+  /* Enter `surface` / Exit `surface-exit` (src/motion/motion.css). */
+  --motion-surface-from: 0 100%;
+  --motion-surface-to: 0 100%;
+  animation: eimir-motion-surface-in var(--duration-context) var(--easing-enter);
 }
 
 .header-notifications-portal[data-presence="exiting"]
   .header-notifications-bottom-sheet {
   pointer-events: none;
-  animation: header-notifications-sheet-exit var(--duration-transition)
+  animation: eimir-motion-surface-out var(--duration-transition)
     var(--easing-exit) forwards;
-}
-
-@keyframes header-notifications-sheet-enter {
-  from {
-    opacity: 0;
-    transform: translateY(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes header-notifications-sheet-exit {
-  to {
-    opacity: 0;
-    transform: translateY(100%);
-  }
-}
-
-@keyframes header-notifications-backdrop-enter {
-  from {
-    background-color: transparent;
-  }
-  to {
-    background-color: var(--color-scrim);
-  }
-}
-
-@keyframes header-notifications-backdrop-exit {
-  to {
-    background-color: transparent;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -453,14 +422,14 @@
   inset: 0;
   z-index: 90;
   background-color: var(--color-scrim);
-  animation: header-notifications-backdrop-enter var(--duration-context)
+  animation: eimir-motion-backdrop-in var(--duration-context)
     var(--easing-enter);
 }
 
 .header-notifications-portal[data-presence="exiting"]
   .header-notifications-backdrop {
   pointer-events: none;
-  animation: header-notifications-backdrop-exit var(--duration-transition)
+  animation: eimir-motion-backdrop-out var(--duration-transition)
     var(--easing-exit) forwards;
 }
 
@@ -597,7 +566,8 @@
 
   .product-main[data-navigation-motion="create"]
     :is(.page-composer-writing, .composer-writing-surface) {
-    animation: eimir-create-entry-rise var(--duration-transition)
+    --motion-enter-rise: var(--space-2);
+    animation: eimir-motion-enter-shift var(--duration-transition)
       var(--easing-standard);
   }
 }

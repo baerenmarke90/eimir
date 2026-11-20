@@ -1,6 +1,6 @@
 # #2078 Map motion on the contract (MapLibre domain)
 
-Captured with Playwright Chromium on Windows against the mocked API and the e2e map tile mock, which serves its attribution through TileJSON since #2070 and draws the basemap as a flat colour. The images come from a temporary capture spec run on this branch. It used the `map-place-stacks.spec.ts` fixture, with the Places Bostalsee (two memories) and Trier (one). The permanent regression is the new `map-place-stacks.spec.ts` test "a kept map returns without a camera journey and rests" (no-preference and reduce, 390 px).
+Captured with Playwright Chromium on Windows against the mocked API and the e2e map tile mock, which serves its attribution through TileJSON since #2070 and draws the basemap as a flat colour. The images come from a temporary capture spec run on this branch. It used the `map-place-stacks.spec.ts` fixture, with the Places Bostalsee (two memories) and Trier (one). The permanent regression is the new `map-place-stacks.spec.ts` test "a kept map returns without a camera journey and rests" (no-preference and reduce, 390 px). It returns through Momente › Karte twice: with Bostalsee selected, which the segment keeps, and after closing the selection. Both returns move the camera 0 times and keep the frame.
 
 The composition of every map is unchanged. This step changes map motion only. The images show the settled result; the motion itself is measured below. A real device has not been tested; see "Open".
 
@@ -35,7 +35,7 @@ How each column is measured:
 
 ## Where the map opens
 
-**Product Owner decision (2026-11-20): where the map opens.** A Moment with a Place opens the map at that Place (`photoPlaceMapUrl`, `/story/map?place=…`, as built). The Momente Karte segment opens the map with all Places (`StoryProductPage.tsx`). A return through the segment while a Place is selected therefore shows all Places, and the camera frames the overview as an explicit journey. The camera code follows the route and does not restore a selection on its own. The journey above closes the selection first.
+**Product Owner decision (2026-11-20): where the map opens.** A Moment with a Place opens the map at that Place (`photoPlaceMapUrl`, `/story/map?place=…`). The Momente Karte segment reopens the Place the couple last selected on the map, and all Places once they closed the selection. The map page records its selected Place in the app's session memory of the map (`client/memoryMapSession.ts`, in memory only, per account and space, next to the last camera), and `StoryProductPage.tsx` adds it to the map route. A return through the segment therefore keeps the selection with no camera move: the kept map is already framed on that Place.
 
 ## Checked elsewhere
 

@@ -1013,7 +1013,7 @@ Each step is its own issue and pull request. Draft issue texts for steps 2 to 9 
 6. **Content areas.** Today/Momente/Story, Planning, shared content pages, notifications, composer, insights, wishes, people and settings, login and startup, paywall, map connection, the Moments (gesture receipt, connected moment, achievement, once messages), and the remaining `disclose` uses.
    - Done in #2077. The feature keyframes moved to the catalogue (5.4), and the Moments run through `startMoment()` (4.7 as built). The `disclose` uses were checked (4.2), and the map connection was checked against M7 (4.8). 28 files left the allowlist (5.4).
    - Visible changes, each for a rule:
-     - The Planen search unfolds from its icon with opacity and a short translate instead of a `clip-path` reveal (M6).
+     - The Planen search settles onto its status row with opacity and a short vertical translate instead of a `clip-path` reveal (M6). It does not travel sideways, because the field spans the row and would widen the page.
      - The Polaroid "develop" fades the photo in from a faint print instead of animating `filter` (M6).
      - The handmade sway runs on the layer's Ambient `sway` around the rest pose: it pauses while hidden and continues where it paused (M4, M8).
      - The receipt ripple is a soft halo (M7).

@@ -112,17 +112,15 @@
 }
 
 .passport-waymarks-more[data-expanded="true"] .passport-waymark {
-  animation: eimir-motion-enter-rise var(--duration-context)
-    var(--easing-enter) backwards;
+  animation: eimir-motion-enter-rise var(--duration-context) var(--easing-enter)
+    backwards;
 }
 
-.passport-waymarks-more[data-expanded="true"]
-  .passport-waymark:nth-child(2) {
+.passport-waymarks-more[data-expanded="true"] .passport-waymark:nth-child(2) {
   animation-delay: var(--duration-stagger-item);
 }
 
-.passport-waymarks-more[data-expanded="true"]
-  .passport-waymark:nth-child(3) {
+.passport-waymarks-more[data-expanded="true"] .passport-waymark:nth-child(3) {
   animation-delay: calc(var(--duration-stagger-item) * 2);
 }
 

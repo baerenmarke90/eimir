@@ -18,7 +18,7 @@ Asserted in each view:
 
 - **Open:**
   - the search icon opens the field and moves the focus into it;
-  - the field animates with `eimir-motion-surface-in` (opacity and a short translate from the inline end) and never with `clip-path`;
+  - the field animates with `eimir-motion-surface-in` (opacity and a short vertical translate; no sideways travel, which widened the page at 200 % text) and never with `clip-path`;
   - with reduced motion there is no animation.
 - **Interact and observe:** typing filters the plans to the matching one, with no horizontal overflow.
 - **Close:** clearing and leaving the field folds it back (`eimir-motion-surface-out`), and the icon returns.

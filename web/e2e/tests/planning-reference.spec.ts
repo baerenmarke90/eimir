@@ -853,7 +853,7 @@ test.describe('content areas on the motion layer (#2077)', () => {
         });
       await expect(page.getByText(PLAN_TITLE)).toBeVisible();
 
-      // Open: the field unfolds from its icon on the catalogue keyframes.
+      // Open: the field settles onto its row on the catalogue keyframes.
       await page
         .getByRole('button', { name: m5s3.overview.searchPlans, exact: true })
         .click();

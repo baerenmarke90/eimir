@@ -996,19 +996,16 @@
   }
 
   /* Enter `surface` and Exit `surface-exit` from the motion catalogue
-     (src/motion/motion.css): the field unfolds from its icon at the inline
-     end with opacity and a short translate (M6; it no longer animates
-     `clip-path`), and folds back the same way before the icon returns. */
+     (src/motion/motion.css): the field settles onto its status row with
+     opacity and a short vertical translate (M6; it no longer animates
+     `clip-path`), and leaves the same way before the icon returns. The
+     field spans the whole row, so a sideways travel would push it past the
+     viewport and widen the page. */
   .planen-search {
-    --motion-surface-from: var(--space-4) 0;
-    --motion-surface-to: var(--space-4) 0;
+    --motion-surface-from: 0 calc(var(--space-2) * -1);
+    --motion-surface-to: 0 calc(var(--space-2) * -1);
     animation: eimir-motion-surface-in calc(var(--duration-sequence-beat) * 1.5)
       var(--easing-standard) backwards;
-  }
-
-  .planen-search:dir(rtl) {
-    --motion-surface-from: calc(var(--space-4) * -1) 0;
-    --motion-surface-to: calc(var(--space-4) * -1) 0;
   }
 
   .planen-search.is-closing {

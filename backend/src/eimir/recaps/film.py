@@ -9,12 +9,13 @@ countable signals, and photo quality is measured with plain pixel statistics.
 from __future__ import annotations
 
 import hashlib
-import re
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import date
 
 from PIL import Image
+
+from eimir.recaps.presentation import ANSWER_LIMIT, WORDS_LIMIT
 
 # --- Look catalogue -------------------------------------------------------------
 # Variants are code and design tokens. The reader maps every name to semantic
@@ -115,8 +116,6 @@ LANDSCAPE_RATIO = 0.87
 SCENE_LIMIT = 12
 DURATION_LIMIT_MS = 90_000
 MAX_PER_DAY = 2
-WORDS_LIMIT = 140
-ANSWER_LIMIT = 120
 CLIP_SECONDS = 5.0
 # Fixed scenes around the selected moments: cover, opener, tags and closing.
 FRAME_MS = 5_000 + 3_600 + 4_000 + 5_500
@@ -380,24 +379,6 @@ def tone(qualities: Sequence[PhotoQuality]) -> str | None:
 
 def similar(first: int, second: int) -> bool:
     return (first ^ second).bit_count() <= DUPLICATE_DISTANCE
-
-
-def excerpt(text: str, limit: int = WORDS_LIMIT) -> str:
-    """Whole sentences first, else a word boundary; the couple's words are never reworded."""
-    value = " ".join(text.split())
-    if len(value) <= limit:
-        return value
-    kept = ""
-    for sentence in re.split(r"(?<=[.!?…])\s+", value):
-        candidate = f"{kept} {sentence}".strip()
-        if len(candidate) > limit:
-            break
-        kept = candidate
-    if len(kept) >= 40:
-        return f"{kept} …"
-    head = value[:limit]
-    boundary = head.rfind(" ")
-    return f"{head[:boundary] if boundary > limit // 2 else head} …"
 
 
 @dataclass(frozen=True)

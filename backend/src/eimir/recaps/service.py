@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-from collections import Counter
 from datetime import date, timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Date, String, cast, delete, func, literal, select, union_all
+from sqlalchemy import String, cast, delete, func, select
 from sqlalchemy.orm import Session
 
-from eimir.attachments.binding import attachments_of_memories
-from eimir.attachments.models import AttachmentStatus
 from eimir.authorization import AuthorizationContext, PrivacyClass, readable
 from eimir.chapters.models import Chapter
 from eimir.core import clock
@@ -24,16 +21,10 @@ from eimir.core.errors import (
 )
 from eimir.core.ids import new_id, parse_id
 from eimir.entitlements import service as entitlements
-from eimir.heart_moments.models import HeartMoment
 from eimir.identity.models import Account
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
-from eimir.memories.models import Memory
-from eimir.milestones.models import Milestone
-from eimir.plans import discreet
-from eimir.plans.media import photos_of_plans
-from eimir.plans.models import Plan, PlanStatus
-from eimir.recaps import freshness, montage, mood, notices, words
+from eimir.recaps import freshness, mood, notices, words
 from eimir.recaps.composition import MANUAL_SELECTION_LIMIT, Candidate, period_bounds
 from eimir.recaps.models import (
     RecapEdition,
@@ -45,6 +36,7 @@ from eimir.recaps.models import (
     RecapSource,
     RecapSourceKind,
 )
+from eimir.recaps.presentation import materials, source_metadata
 from eimir.relations.models import ChapterHeartMoment, ChapterMemory, ChapterMilestone
 from eimir.relationship.models import Membership, Space, SpaceConfiguration
 
@@ -60,13 +52,6 @@ BACKFILL_DELAY = timedelta(minutes=2)
 # A completed period stays open for late entries and curation for one week (#1744).
 FINALISE_AFTER = timedelta(days=7)
 FINALISE_BATCH = 50
-MODELS: dict[RecapSourceKind, Any] = {
-    RecapSourceKind.MEMORY: Memory,
-    RecapSourceKind.HEART_MOMENT: HeartMoment,
-    RecapSourceKind.MILESTONE: Milestone,
-    RecapSourceKind.CHAPTER: Chapter,
-    RecapSourceKind.PLAN: Plan,
-}
 
 
 def can_compose(
@@ -110,48 +95,6 @@ def calendar_context(session: Session, context: AuthorizationContext) -> tuple[s
     return clock.resolve_zone(zone).key, founder.locale if founder else "en"
 
 
-def _date_column(kind: RecapSourceKind, model: Any) -> Any:
-    if kind == RecapSourceKind.CHAPTER:
-        return func.coalesce(model.start_on, cast(func.timezone("UTC", model.created_at), Date))
-    if kind == RecapSourceKind.PLAN:
-        return model.experienced_on
-    return func.coalesce(model.happened_on, cast(func.timezone("UTC", model.created_at), Date))
-
-
-def _metadata(context: AuthorizationContext) -> Any:
-    legs = []
-
-    for kind, model in MODELS.items():
-        day = _date_column(kind, model)
-        statement = readable(model, context).where(
-            model.privacy_class == PrivacyClass.SPACE_SHARED.value,
-            model.crypto_version.in_((0, 2)),
-        )
-        if kind == RecapSourceKind.PLAN:
-            statement = statement.where(
-                model.status == PlanStatus.COMPLETED.value, model.experienced_on.is_not(None)
-            )
-        if kind == RecapSourceKind.MEMORY:
-            from eimir.memories.experiences import roots_only
-
-            # Both answers to one guided question are one moment, not two.
-            statement = statement.where(roots_only())
-        legs.append(
-            statement.with_only_columns(
-                literal(kind.value).label("kind"),
-                model.id.label("id"),
-                day.label("day"),
-                (
-                    func.coalesce(Memory.happened_until, day)
-                    if kind == RecapSourceKind.MEMORY
-                    else day
-                ).label("through"),
-                model.version.label("version"),
-            )
-        )
-    return union_all(*legs).subquery()
-
-
 def candidates(
     session: Session,
     context: AuthorizationContext,
@@ -167,7 +110,7 @@ def candidates(
     The monthly film reads a wider pool, limited to moments that start in the
     month, because its selection depends on content rather than on chance.
     """
-    source = _metadata(context)
+    source = source_metadata(context)
     ranked = (
         select(
             source,
@@ -232,48 +175,8 @@ def candidates(
     ]
 
 
-def facts(
-    session: Session, context: AuthorizationContext, value: RecapEdition
-) -> dict[str, Any] | None:
-    """Counted shared entries of the frozen period; never an inferred relationship claim."""
-    source = _metadata(context)
-    active_day = func.greatest(source.c.day, value.starts_on)
-    # Keep all facts on the same snapshot when sources change during the read.
-    entries = session.execute(
-        select(active_day, source.c.kind, func.count())
-        .where(source.c.day <= value.through_on, source.c.through >= value.starts_on)
-        .group_by(active_day, source.c.kind)
-    ).all()
-    if not entries:
-        return None
-
-    counts: Counter[str] = Counter()
-    days: set[date] = set()
-    monthly_counts: Counter[int] = Counter()
-    for day, kind, count in entries:
-        counts[kind] += count
-        days.add(day)
-        monthly_counts[day.month] += count
-
-    busiest = None
-    if value.kind == RecapKind.YEAR.value:
-        leading = monthly_counts.most_common(2)
-        # A tie or a single entry is not a meaningful "most active month".
-        if leading[0][1] > 1 and (len(leading) == 1 or leading[0][1] > leading[1][1]):
-            busiest = leading[0][0]
-    return {
-        "memories": counts[RecapSourceKind.MEMORY.value],
-        "heart_moments": counts[RecapSourceKind.HEART_MOMENT.value],
-        "milestones": counts[RecapSourceKind.MILESTONE.value],
-        "chapters": counts[RecapSourceKind.CHAPTER.value],
-        "plans": counts[RecapSourceKind.PLAN.value],
-        "active_days": len(days),
-        "busiest_month": busiest,
-    }
-
-
 def periods(session: Session, context: AuthorizationContext, today: date) -> list[dict[str, Any]]:
-    source = _metadata(context)
+    source = source_metadata(context)
     from eimir.memories.periods import merged_intervals
 
     ranges = session.execute(
@@ -815,330 +718,6 @@ def schedule_backfill(session: Session, context: AuthorizationContext) -> None:
             delay=BACKFILL_DELAY,
             max_attempts=3,
         )
-
-
-def source_material(
-    session: Session,
-    context: AuthorizationContext,
-    item: Candidate,
-    *,
-    lock: bool = False,
-    own_words: bool = False,
-    film: RecapFilm | None = None,
-) -> dict[str, Any] | None:
-    model = MODELS[item.kind]
-    statement = readable(model, context).where(
-        model.id == item.id,
-        model.privacy_class == PrivacyClass.SPACE_SHARED.value,
-        model.crypto_version.in_((0, 2)),
-    )
-    if lock:
-        statement = statement.with_for_update()
-    value = session.scalar(statement.execution_options(populate_existing=True))
-    if value is None:
-        return None
-    if item.kind == RecapSourceKind.PLAN and value.status != PlanStatus.COMPLETED.value:
-        return None
-    payload = value.payload
-    title = payload.text if item.kind == RecapSourceKind.HEART_MOMENT else payload.title
-    excerpt = (
-        payload.text
-        if item.kind == RecapSourceKind.HEART_MOMENT
-        else getattr(payload, "body", None) or getattr(payload, "description", None)
-    )
-    # A discreet Plan presents only its list title; photos stay concealed (#1790 F3).
-    concealed = isinstance(value, Plan) and value.discreet
-    if concealed:
-        title, excerpt = discreet.list_title(value), None
-    attachment = None
-    sensitive = False
-    from eimir.attachments.binding import cover_of
-    from eimir.heart_moments.media import galleries as heart_galleries
-
-    gallery = (
-        attachments_of_memories(session, [item.id])
-        if item.kind == RecapSourceKind.MEMORY
-        else photos_of_plans(session, [value])
-        if item.kind == RecapSourceKind.PLAN
-        else heart_galleries(session, [value])
-        if item.kind == RecapSourceKind.HEART_MOMENT
-        else {}
-    )
-    photo = cover_of(
-        gallery.get(item.id, []), getattr(payload, "selected_cover_attachment_id", None)
-    )
-    if photo and photo.status == AttachmentStatus.READY:
-        attachment, sensitive = photo.id, photo.payload.is_sensitive or concealed
-    result = {
-        "key": item.key,
-        "kind": item.kind,
-        "id": item.id,
-        "occurred_on": item.occurred_on,
-        "version": value.version,
-        "title": title[:300] if title else None,
-        "excerpt": excerpt[:800] if excerpt else None,
-        "preview_attachment_id": attachment,
-        "preview_is_sensitive": sensitive,
-        "available": True,
-    }
-    if own_words:
-        result["quote"] = words.quote(session, context, item.kind, item.id, value.owner_id)
-        result["mutual_reaction"] = (
-            words.mutual_reaction(words.partners(session, context.space_id), payload, attachment)
-            if item.kind == RecapSourceKind.MEMORY
-            else None
-        )
-    if film is not None:
-        result.update(
-            montage.source_extras(session, context, item.kind, value, film.media.get(item.key))
-        )
-    return result
-
-
-def materials(
-    session: Session, context: AuthorizationContext, value: RecapEdition
-) -> tuple[list[dict[str, Any]], bool]:
-    result = []
-    unchanged = True
-    refs = session.scalars(
-        select(RecapSource).where(RecapSource.edition_id == value.id).order_by(RecapSource.position)
-    ).all()
-    film = value.payload.film
-    for ref in refs:
-        metadata = _metadata(context)
-        interval = session.execute(
-            select(metadata.c.day, metadata.c.through).where(
-                metadata.c.kind == ref.kind, metadata.c.id == ref.source_id
-            )
-        ).first()
-        day = interval.day if interval else None
-        current = (
-            source_material(
-                session,
-                context,
-                Candidate(
-                    RecapSourceKind(ref.kind),
-                    ref.source_id,
-                    day or value.starts_on,
-                    ref.source_version,
-                ),
-                own_words=True,
-                film=film,
-            )
-            if day
-            and interval
-            and interval.day <= value.through_on
-            and interval.through >= value.starts_on
-            else None
-        )
-        if current is None or current["version"] != ref.source_version:
-            unchanged = False
-        result.append(
-            current
-            or {
-                "key": f"{ref.kind}:{ref.source_id}",
-                "kind": ref.kind,
-                "id": ref.source_id,
-                "occurred_on": None,
-                "version": None,
-                "title": None,
-                "excerpt": None,
-                "preview_attachment_id": None,
-                "preview_is_sensitive": False,
-                "available": False,
-                "media": [],
-                "answers": [],
-                "place_name": None,
-            }
-        )
-    # The reaction line stays rare: only the first few in reading order keep it.
-    shown = 0
-    for item in result:
-        if item.get("mutual_reaction"):
-            shown += 1
-            if shown > words.REACTION_LINES_PER_EDITION:
-                item["mutual_reaction"] = None
-    return result, unchanged
-
-
-def project(session: Session, context: AuthorizationContext, value: RecapEdition) -> dict[str, Any]:
-    sources, unchanged = materials(session, context, value)
-    notes = session.scalars(
-        readable(RecapReflection, context).where(RecapReflection.edition_id == value.id)
-    ).all()
-    shared = [note for note in notes if note.privacy_class == PrivacyClass.SPACE_SHARED.value]
-    draft = next(
-        (
-            note
-            for note in notes
-            if note.owner_id == context.account_id
-            and note.privacy_class == PrivacyClass.OWNER_ONLY.value
-        ),
-        None,
-    )
-    author_ids = {note.owner_id for note in shared}
-    names = (
-        {
-            a.id: a.display_name
-            for a in session.scalars(select(Account).where(Account.id.in_(author_ids))).all()
-        }
-        if author_ids
-        else {}
-    )
-    result = {
-        key: getattr(value, key)
-        for key in (
-            "id",
-            "kind",
-            "year",
-            "month",
-            "variant",
-            "version",
-            "starts_on",
-            "through_on",
-            "is_partial",
-            "status",
-            "theme",
-            "generated_at",
-            "saved_at",
-            "locale",
-        )
-    }
-    result.update(
-        {
-            "headline": value.payload.headline if unchanged else None,
-            "introduction": value.payload.introduction if unchanged else None,
-            "sources": sources,
-            "facts": facts(session, context, value) if value.status == "READY" else None,
-            "mood": mood.visible(session, context.space_id, value.payload)
-            if value.status == "READY"
-            else None,
-            "film": film_view(session, context, value) if value.status == "READY" else None,
-            "reflections": [
-                {
-                    "id": n.id,
-                    "owner_id": n.owner_id,
-                    "display_name": names.get(n.owner_id, ""),
-                    "text": n.payload.text,
-                    "version": n.version,
-                }
-                for n in shared
-            ],
-            "own_draft": {"text": draft.payload.text, "version": draft.version} if draft else None,
-            "supersedes_id": value.supersedes_id,
-            "superseded_by_id": successors(session, [value]).get(value.id),
-        }
-    )
-    return result
-
-
-def successors(session: Session, values: list[RecapEdition]) -> dict[UUID, UUID]:
-    """The newest kept version that extends each retained edition, if any."""
-    if not values:
-        return {}
-    result: dict[UUID, UUID] = {}
-    for supersedes_id, edition_id in session.execute(
-        select(RecapEdition.supersedes_id, RecapEdition.id)
-        .where(
-            RecapEdition.supersedes_id.in_([value.id for value in values]),
-            RecapEdition.saved_at.is_not(None),
-        )
-        .order_by(RecapEdition.saved_at)
-    ):
-        result[supersedes_id] = edition_id
-    return result
-
-
-def film_view(
-    session: Session, context: AuthorizationContext, value: RecapEdition
-) -> dict[str, Any] | None:
-    """The frozen look and the guaranteed highlights; never scores or reasons."""
-    film = value.payload.film
-    if film is None:
-        return None
-    return {
-        **film.look.model_dump(),
-        "highlight_key": film.highlight_key,
-        "month_highlights": [
-            {"month": int(month), "key": key}
-            for month, key in sorted(film.months.items(), key=lambda pair: int(pair[0]))
-        ],
-        "tags": montage.month_tags(session, context, value),
-    }
-
-
-def summaries(
-    session: Session, context: AuthorizationContext, values: list[RecapEdition]
-) -> list[dict[str, Any]]:
-    """Batch source eligibility; read only one cover per edition on overview pages."""
-    if not values:
-        return []
-    refs = session.scalars(
-        select(RecapSource)
-        .where(RecapSource.edition_id.in_([v.id for v in values]))
-        .order_by(RecapSource.position)
-    ).all()
-    source = _metadata(context)
-    ids = {ref.source_id for ref in refs}
-    current = (
-        {
-            (row.kind, row.id): (row.version, row.day, row.through)
-            for row in session.execute(select(source).where(source.c.id.in_(ids)))
-        }
-        if ids
-        else {}
-    )
-    result = []
-    later = successors(session, values)
-    for value in values:
-        owned = [ref for ref in refs if ref.edition_id == value.id]
-        unchanged = all(
-            current.get((ref.kind, ref.source_id), (None, None))[0] == ref.source_version
-            and current[(ref.kind, ref.source_id)][1] <= value.through_on
-            and current[(ref.kind, ref.source_id)][2] >= value.starts_on
-            for ref in owned
-        )
-        cover = None
-        for ref in owned:
-            metadata = current.get((ref.kind, ref.source_id))
-            if metadata and metadata[1] <= value.through_on and metadata[2] >= value.starts_on:
-                cover = source_material(
-                    session,
-                    context,
-                    Candidate(RecapSourceKind(ref.kind), ref.source_id, metadata[1], metadata[0]),
-                )
-                if cover:
-                    break
-        item = {
-            key: getattr(value, key)
-            for key in (
-                "id",
-                "kind",
-                "year",
-                "month",
-                "variant",
-                "version",
-                "starts_on",
-                "through_on",
-                "is_partial",
-                "status",
-                "theme",
-                "generated_at",
-                "saved_at",
-                "locale",
-            )
-        }
-        item.update(
-            headline=value.payload.headline if unchanged else None,
-            introduction=value.payload.introduction if unchanged else None,
-            sources=[cover] if cover else [],
-            reflections=[],
-            own_draft=None,
-            supersedes_id=value.supersedes_id,
-            superseded_by_id=later.get(value.id),
-        )
-        result.append(item)
-    return result
 
 
 def replace_sources(

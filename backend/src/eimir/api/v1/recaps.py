@@ -16,7 +16,7 @@ from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.core import clock
 from eimir.recaps import invalidation as _invalidation  # noqa: F401
-from eimir.recaps import service
+from eimir.recaps import presentation, service
 from eimir.recaps.composition import MANUAL_SELECTION_LIMIT
 from eimir.recaps.models import RecapEdition, RecapKind, RecapSourceKind
 
@@ -218,7 +218,7 @@ class RecapReflectionUpdate(ApiModel):
 
 
 def project(session: DbSession, context: Authorization, value: RecapEdition) -> RecapView:
-    return RecapView.model_validate(service.project(session, context, value))
+    return RecapView.model_validate(presentation.project(session, context, value))
 
 
 @router.get(
@@ -257,7 +257,7 @@ def overview(
         can_compose=allowed,
         editions=[
             RecapView.model_validate(item)
-            for item in service.summaries(session, authorization, values[:24])
+            for item in presentation.summaries(session, authorization, values[:24])
         ],
         periods=[
             RecapPeriod.model_validate(item)
@@ -330,14 +330,14 @@ def get_selection(
 ) -> RecapSelectionView:
     value = service.edition(session, authorization, recap_id)
     ensure_capability(session, authorization.space_id, service.CAPABILITY, lock_grants=False)
-    current, _ = service.materials(session, authorization, value)
+    current, _ = presentation.materials(session, authorization, value)
     pool = service.candidates(
         session, authorization, value.starts_on, value.through_on, value.variant
     )
     eligible = [
         item
         for source in pool
-        if (item := service.source_material(session, authorization, source)) is not None
+        if (item := presentation.source_material(session, authorization, source)) is not None
     ]
     merged = {item["key"]: item for item in [*eligible, *current] if item["available"]}
     return RecapSelectionView(

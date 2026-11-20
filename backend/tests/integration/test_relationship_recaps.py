@@ -24,7 +24,7 @@ from eimir.memories.models import (
     MemoryPhotoReaction,
     PhotoReaction,
 )
-from eimir.recaps import jobs, mood, service
+from eimir.recaps import jobs, presentation, service
 from eimir.recaps.models import RecapEdition
 from eimir.relationship import configuration as configuration_service
 from eimir.relationship import service as relationship_service
@@ -519,7 +519,7 @@ def test_recap_transfer_retains_shared_words_and_only_the_exporters_private_draf
     assert transfer.status == ImportStatus.COMPLETED.value
     imported = session.scalar(select(RecapEdition).where(RecapEdition.space_id == target.id))
     assert imported and imported.saved_at and imported.customized
-    projected = service.project(session, target_context, imported)
+    projected = presentation.project(session, target_context, imported)
     assert projected["sources"][0]["available"]
     assert projected["own_draft"]["text"] == "Anna private draft"
     assert projected["reflections"][0]["text"] == "Shared words"
@@ -716,5 +716,5 @@ def test_mood_rhythm_counts_only_mutual_days_and_stays_frozen_after_a_downgrade(
     assert read(client, context, created).json()["mood"] == own["mood"]
 
     # It is not served once the Vibe module is switched off or a partner is gone.
-    monkeypatch.setattr(mood, "_vibe_enabled", lambda *args: False)
+    monkeypatch.setattr(presentation, "vibe_enabled", lambda *args: False)
     assert read(client, context, created).json()["mood"] is None

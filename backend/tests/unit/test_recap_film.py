@@ -6,7 +6,7 @@ from datetime import date, timedelta
 
 from PIL import Image, ImageDraw, ImageFilter
 
-from eimir.recaps import film
+from eimir.recaps import film, presentation
 from eimir.recaps.film import Look, Moment, Photo, PhotoQuality
 
 
@@ -46,12 +46,12 @@ def test_the_look_is_reproducible_and_differs_between_spaces() -> None:
 
 
 def test_excerpts_keep_whole_sentences_and_never_reword() -> None:
-    assert film.excerpt("  Ein   kurzer Satz. ") == "Ein kurzer Satz."
+    assert presentation.excerpt("  Ein   kurzer Satz. ") == "Ein kurzer Satz."
     text = "Erster Satz mit etwas Länge dabei. " * 3 + "Ein vierter Satz, der zu viel wäre."
-    short = film.excerpt(text, 80)
+    short = presentation.excerpt(text, 80)
     assert short.endswith(" …") and short[:-2] in text and short[:-2].endswith(".")
     long_word_run = "wort " * 60
-    cut = film.excerpt(long_word_run, 50)
+    cut = presentation.excerpt(long_word_run, 50)
     assert len(cut) <= 52 and cut.endswith(" …") and " ".join(cut[:-2].split()) in long_word_run
 
 

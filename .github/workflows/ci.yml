@@ -25,6 +25,8 @@ jobs:
       run: 'gh --version
 
         gh attestation trusted-root --help >/dev/null'
+    - name: Verify BuildKit is available
+      run: docker buildx version
     - name: Start build timing summary
       run: 'printf "| Image | Build and archive seconds |\n| --- | ---: |\n" >> "$GITHUB_STEP_SUMMARY"'
     - name: Build and archive backend image

@@ -1,8 +1,8 @@
-import { Suspense, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate, useNavigationType } from 'react-router-dom';
 import { useTranslation } from '../i18n';
 import { LEGAL_DOCUMENTS, type LegalDocumentId } from '../legal/legalDocuments';
-import { LazyLegalDocumentContent } from './lazyLegalDocumentContent';
+import { LegalDocumentText } from './LegalDocumentText';
 import { TaskBackButton } from './TaskBackButton';
 import './LegalDocumentPage.css';
 
@@ -50,13 +50,11 @@ export function LegalDocumentPage({
       <div className="legal-page-column">
         <TaskBackButton shellDefault onClick={goBack} />
         <p className="eyebrow">{t('legal.eyebrow')}</p>
-        <Suspense fallback={<p role="status">{t('states.loading.title')}</p>}>
-          <LazyLegalDocumentContent
-            documentId={documentId}
-            titleId="legal-page-title"
-            onShown={focusTitle}
-          />
-        </Suspense>
+        <LegalDocumentText
+          documentId={documentId}
+          titleId="legal-page-title"
+          onShown={focusTitle}
+        />
       </div>
     </main>
   );

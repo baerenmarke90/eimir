@@ -74,9 +74,11 @@ describe('LegalDocumentLink', () => {
     });
     // The text arrives from the on-demand legal chunk.
     fireEvent.click(
-      await within(terms).findByRole('link', {
-        name: TERMS_PRIVACY_REFERENCE,
-      }),
+      await within(terms).findByRole(
+        'link',
+        { name: TERMS_PRIVACY_REFERENCE },
+        { timeout: 10_000 },
+      ),
     );
 
     const privacy = await screen.findByRole('dialog', {

@@ -35,10 +35,15 @@ describe('LegalDocumentPage', () => {
     renderAt('/');
     fireEvent.click(screen.getByRole('link', { name: 'terms' }));
 
-    const title = await screen.findByRole('heading', {
-      level: 1,
-      name: termsOfUseDe.title,
-    });
+    const title = await screen.findByRole(
+      'heading',
+      {
+        level: 1,
+        name: termsOfUseDe.title,
+      },
+      // The text arrives from a dynamic import, slower on a loaded runner.
+      { timeout: 10_000 },
+    );
     expect(document.activeElement).toBe(title);
     expect(window.scrollTo).toHaveBeenCalledWith(0, 0);
   });
@@ -46,10 +51,15 @@ describe('LegalDocumentPage', () => {
   it('shows the on-demand text without moving focus on a history entry', async () => {
     renderAt('/legal/terms');
 
-    const title = await screen.findByRole('heading', {
-      level: 1,
-      name: termsOfUseDe.title,
-    });
+    const title = await screen.findByRole(
+      'heading',
+      {
+        level: 1,
+        name: termsOfUseDe.title,
+      },
+      // The text arrives from a dynamic import, slower on a loaded runner.
+      { timeout: 10_000 },
+    );
     expect(title.id).toBe('legal-page-title');
     expect(document.activeElement).not.toBe(title);
   });

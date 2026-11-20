@@ -2,7 +2,6 @@ import {
   type MouseEvent,
   type ReactNode,
   type RefObject,
-  Suspense,
   useEffect,
   useRef,
   useState,
@@ -14,11 +13,11 @@ import {
   type LegalDocumentId,
   legalDocumentIdForRoute,
 } from '../legal/legalDocuments';
-import type { LegalInternalLinkRenderer } from './LegalDocumentView';
 import {
-  LazyLegalDocumentContent,
+  LegalDocumentText,
   preloadLegalDocumentContent,
-} from './lazyLegalDocumentContent';
+} from './LegalDocumentText';
+import type { LegalInternalLinkRenderer } from './LegalDocumentView';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './LegalDocumentLink.css';
 
@@ -72,14 +71,12 @@ export function LegalReadingSheet({
         </button>
       }
     >
-      <Suspense fallback={<p role="status">{t('states.loading.title')}</p>}>
-        <LazyLegalDocumentContent
-          documentId={documentId}
-          showTitle={false}
-          sectionLevel={3}
-          renderInternalLink={renderSheetLink}
-        />
-      </Suspense>
+      <LegalDocumentText
+        documentId={documentId}
+        showTitle={false}
+        sectionLevel={3}
+        renderInternalLink={renderSheetLink}
+      />
     </ShortTaskSheet>
   );
 }

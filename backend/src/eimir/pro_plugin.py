@@ -17,13 +17,13 @@ from sqlalchemy import and_, delete, or_, select
 
 from eimir.deployment.revision import build_revision
 from eimir.engagement.models import EngagementTarget, NotificationKind
-from eimir.entitlements.models import Capability
 from eimir.plugins.contract import (
     PLUGIN_SEAM_VERSION,
     AttachmentReadRule,
     CoreNotifications,
     TargetRule,
 )
+from eimir.plugins.manifest import PLUGIN_CAPABILITIES
 
 if TYPE_CHECKING:
     from fastapi import APIRouter
@@ -36,16 +36,8 @@ if TYPE_CHECKING:
     from eimir.outbox.models import OutboxEvent
     from eimir.transfer.models import TransferScope
 
-_CAPABILITIES = frozenset(
-    {
-        Capability.GAMES_COUPLE.value,
-        Capability.INTEGRATION_EXTERNAL_SYNC.value,
-        Capability.PARTNER_ONCE_MESSAGES.value,
-        Capability.PRESENCE_LOCATION.value,
-        Capability.DAILY_QUOTE.value,
-        Capability.PLANNING_DATE_INSPIRATION.value,
-    }
-)
+# Every capability the Core manifest leaves to plugins is implemented here.
+_CAPABILITIES = PLUGIN_CAPABILITIES
 
 _MODEL_MODULES = (
     "eimir.calendar_sync.models",
@@ -342,9 +334,33 @@ class InTreeProPlugin:
         return _MODEL_MODULES
 
     def routers(self) -> Sequence[APIRouter]:
-        # Core still mounts the Pro routers itself; they move here in a later
-        # Phase 1 pull request, together with the Core-only configuration.
-        return ()
+        from eimir.api.v1 import (
+            calendar_sync,
+            couple_games,
+            daily_quote,
+            date_ideas,
+            games,
+            garden,
+            heart_hunt,
+            once_messages,
+            partner_location,
+            photo_sources,
+            picture_ping_pong,
+        )
+
+        return (
+            photo_sources.router,
+            calendar_sync.router,
+            once_messages.router,
+            partner_location.router,
+            daily_quote.router,
+            date_ideas.router,
+            games.router,
+            garden.router,
+            heart_hunt.router,
+            picture_ping_pong.router,
+            couple_games.router,
+        )
 
     def register_jobs(self, registry: JobRegistry) -> None:
         from eimir.calendar_sync import jobs as calendar_sync_jobs

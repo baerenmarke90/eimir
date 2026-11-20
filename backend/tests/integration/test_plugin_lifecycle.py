@@ -27,7 +27,7 @@ from eimir.presence.models import (
 from eimir.relationship.service import add_member
 from eimir.transfer.models import TransferScope
 from tests.conftest import make_account, make_space, requires_database
-from tests.support.plugins import without_plugins
+from tests.support.plugins import requires_pro, without_plugins
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -72,6 +72,7 @@ def _presence(session: Session, couple, *, expires_in: timedelta) -> None:  # ty
     session.flush()
 
 
+@requires_pro
 def test_with_the_plugin_loaded_the_executor_leaves_its_tables_alone(session, couple) -> None:  # type: ignore[no-untyped-def]
     """No double execution: the loaded plugin's hooks own its tables."""
     _presence(session, couple, expires_in=-timedelta(minutes=1))

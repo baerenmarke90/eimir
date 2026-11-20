@@ -77,6 +77,7 @@ from eimir.relationship.service import add_member
 from eimir.wishes import service as wish_service
 from eimir.wishes.models import WishReminder
 from tests.conftest import make_account, make_space, requires_database
+from tests.support.plugins import requires_pro
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -374,7 +375,12 @@ def test_core_cleanup_deletes_private_identity_state_but_retains_shared_history(
 
 
 @pytest.mark.parametrize(
-    ("completed_backup", "plugin_loaded"), [(False, True), (True, True), (False, False)]
+    ("completed_backup", "plugin_loaded"),
+    [
+        pytest.param(False, True, marks=requires_pro),
+        pytest.param(True, True, marks=requires_pro),
+        (False, False),
+    ],
 )
 def test_private_account_rows_are_removed_without_erasing_partner_data(
     session: Session, completed_backup: bool, plugin_loaded: bool

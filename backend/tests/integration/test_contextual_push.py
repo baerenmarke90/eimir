@@ -31,6 +31,7 @@ from tests.conftest import auth, requires_database
 from tests.integration.test_shared_experiences import actors as actors
 from tests.integration.test_shared_experiences import grant, path
 from tests.integration.test_thinking_push import FakePushProvider
+from tests.support.plugins import requires_pro
 
 pytestmark = [pytest.mark.integration, requires_database]
 KEY = base64.urlsafe_b64encode(bytes(range(32))).decode().rstrip("=")
@@ -408,6 +409,8 @@ def test_comments_encrypt_the_exact_current_authored_text_for_every_supported_pa
         push.providers.clear()
 
 
+# Guided experiences need the couple-games capability, which only the Pro plugin serves.
+@requires_pro
 @pytest.mark.parametrize("kind", ["HAPPINESS", "TIME_TRAVEL"])
 def test_shared_answers_encrypt_question_and_actual_answer_and_recheck_source_deletion(
     client, session, actors, encryption, kind

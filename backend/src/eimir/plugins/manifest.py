@@ -315,6 +315,22 @@ PLUGIN_TABLES: tuple[PluginTable, ...] = (
 
 PLUGIN_TABLE_NAMES = frozenset(row.table for row in PLUGIN_TABLES)
 
+PLUGIN_CAPABILITIES = frozenset(
+    {
+        Capability.GAMES_COUPLE.value,
+        Capability.INTEGRATION_EXTERNAL_SYNC.value,
+        Capability.PARTNER_ONCE_MESSAGES.value,
+        Capability.PRESENCE_LOCATION.value,
+        Capability.DAILY_QUOTE.value,
+        Capability.PLANNING_DATE_INSPIRATION.value,
+    }
+)
+"""Capabilities implemented by plugin code; granted only while a loaded plugin provides them.
+
+The six capabilities without any implementation keep today's behavior and join
+this set when their first implementation lands in a plugin.
+"""
+
 PLUGIN_JOB_KINDS = frozenset(
     {
         "calendar_sync.plan",

@@ -112,6 +112,60 @@ def _database_reachable(url: str) -> bool:
 
 DATABASE_AVAILABLE = _database_reachable(INTEGRATION_DATABASE_URL)
 
+
+@pytest.fixture(autouse=True)
+def _restore_pillow_pixel_limit() -> Iterator[None]:
+    """Keep Pillow's process-wide decompression-bomb limit per test.
+
+    Image processing sets ``Image.MAX_IMAGE_PIXELS`` to the rule's limit; a test
+    with a tiny rule would otherwise leak that limit into later tests, which
+    only shows up when the test order changes (for example in CI shards).
+    """
+    from PIL import Image
+
+    limit = Image.MAX_IMAGE_PIXELS
+    yield
+    Image.MAX_IMAGE_PIXELS = limit
+
+
+def pytest_ignore_collect(collection_path, config):  # type: ignore[no-untyped-def]
+    """Core-only configuration: do not even import the Pro feature test modules."""
+    from tests.support.plugins import PRO_TEST_MODULES, plugins_loaded
+
+    if plugins_loaded():
+        return None
+    relative = collection_path.as_posix().rsplit("/tests/", 1)[-1]
+    return True if relative in PRO_TEST_MODULES else None
+
+
+def pytest_collection_modifyitems(config, items):  # type: ignore[no-untyped-def]
+    """Core-only configuration: skip tests that need the Pro plugin.
+
+    That covers tests marked ``requires_pro`` and endpoint-matrix cases of Pro
+    operations.
+    """
+    from tests.support.plugins import is_pro_operation, plugins_loaded
+
+    if plugins_loaded():
+        return
+    skip = pytest.mark.skip(reason="Needs the Pro plugin; Core-only configuration.")
+    for item in items:
+        if item.get_closest_marker("requires_pro") is not None:
+            item.add_marker(skip)
+            continue
+        params = getattr(getattr(item, "callspec", None), "params", {})
+        candidates = [
+            (getattr(value, "method", None), getattr(value, "template", None))
+            for value in params.values()
+        ]
+        candidates.append((params.get("method"), params.get("path") or params.get("template")))
+        if any(
+            isinstance(method, str) and isinstance(path, str) and is_pro_operation(method, path)
+            for method, path in candidates
+        ):
+            item.add_marker(skip)
+
+
 requires_database = pytest.mark.skipif(
     not DATABASE_AVAILABLE,
     reason=(
@@ -125,10 +179,17 @@ def engine() -> Iterator[Engine]:
     if not DATABASE_AVAILABLE:
         pytest.skip("No database is reachable.")
 
+    from importlib import import_module
+
     from eimir.db.base import Base
     from eimir.db.registry import load_all_models
+    from eimir.pro_plugin import plugin as pro_plugin
 
     load_all_models()
+    # The migrations create the Pro tables whether or not the plugin is loaded,
+    # so the Core-only configuration needs them too (Decision 0017).
+    for module in pro_plugin.model_modules():
+        import_module(module)
 
     # Test probe for owner/privacy authorization. It deliberately exists only
     # here: alembic/env.py does not know it, so it appears in no migration and

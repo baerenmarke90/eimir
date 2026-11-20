@@ -1,6 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  lazy,
   type ReactNode,
   Suspense,
   useCallback,
@@ -207,194 +206,183 @@ import { ThemeControl } from './components/ThemeControl';
 import { TodayPage } from './components/TodayPage';
 import { UiState } from './components/UiState';
 import { VoiceShareIngress } from './components/VoiceShareIngress';
+import { deferredComponent } from './deferredModules';
 import { useTranslation } from './i18n';
 import { legalDocumentIdForRoute } from './legal/legalDocuments';
 import { isCapacitorNative } from './pwa';
 
-const ChapterCreatePage = lazy(() =>
-  import('./components/ChapterCreatePage').then((module) => ({
-    default: module.ChapterCreatePage,
-  })),
+const ChapterCreatePage = deferredComponent(() =>
+  import('./components/ChapterCreatePage').then(
+    (module) => module.ChapterCreatePage,
+  ),
 );
-const ChapterProductPage = lazy(() =>
-  import('./components/ChapterProductPage').then((module) => ({
-    default: module.ChapterProductPage,
-  })),
+const ChapterProductPage = deferredComponent(() =>
+  import('./components/ChapterProductPage').then(
+    (module) => module.ChapterProductPage,
+  ),
 );
-const ChaptersOverviewPage = lazy(() =>
-  import('./components/ChaptersOverviewPage').then((module) => ({
-    default: module.ChaptersOverviewPage,
-  })),
+const ChaptersOverviewPage = deferredComponent(() =>
+  import('./components/ChaptersOverviewPage').then(
+    (module) => module.ChaptersOverviewPage,
+  ),
 );
-const CollectionsOverviewPage = lazy(() =>
-  import('./components/CollectionsOverviewPage').then((module) => ({
-    default: module.CollectionsOverviewPage,
-  })),
+const CollectionsOverviewPage = deferredComponent(() =>
+  import('./components/CollectionsOverviewPage').then(
+    (module) => module.CollectionsOverviewPage,
+  ),
 );
-const CoupleExperiencePage = lazy(() =>
-  import('./components/CoupleExperiencePage').then((module) => ({
-    default: module.CoupleExperiencePage,
-  })),
+const CoupleExperiencePage = deferredComponent(() =>
+  import('./components/CoupleExperiencePage').then(
+    (module) => module.CoupleExperiencePage,
+  ),
 );
-const DailyInsightsPage = lazy(() =>
-  import('./components/DailyInsightsPage').then((module) => ({
-    default: module.DailyInsightsPage,
-  })),
+const DailyInsightsPage = deferredComponent(() =>
+  import('./components/DailyInsightsPage').then(
+    (module) => module.DailyInsightsPage,
+  ),
 );
-const DateIdeasPage = lazy(() =>
-  import('./components/DateIdeasPage').then((module) => ({
-    default: module.DateIdeasPage,
-  })),
+const DateIdeasPage = deferredComponent(() =>
+  import('./components/DateIdeasPage').then((module) => module.DateIdeasPage),
 );
-const GardenGamePage = lazy(() =>
-  import('./components/GardenGamePage').then((module) => ({
-    default: module.GardenGamePage,
-  })),
+const GardenGamePage = deferredComponent(() =>
+  import('./components/GardenGamePage').then((module) => module.GardenGamePage),
 );
-const HeartHuntGamePage = lazy(() =>
-  import('./components/HeartHuntGamePage').then((module) => ({
-    default: module.HeartHuntGamePage,
-  })),
+const HeartHuntGamePage = deferredComponent(() =>
+  import('./components/HeartHuntGamePage').then(
+    (module) => module.HeartHuntGamePage,
+  ),
 );
-const HeartMomentProductPage = lazy(() =>
-  import('./components/HeartMomentProductPage').then((module) => ({
-    default: module.HeartMomentProductPage,
-  })),
+const HeartMomentProductPage = deferredComponent(() =>
+  import('./components/HeartMomentProductPage').then(
+    (module) => module.HeartMomentProductPage,
+  ),
 );
-const MediaOverviewPage = lazy(() =>
-  import('./components/MediaOverviewPage').then((module) => ({
-    default: module.MediaOverviewPage,
-  })),
+const MediaOverviewPage = deferredComponent(() =>
+  import('./components/MediaOverviewPage').then(
+    (module) => module.MediaOverviewPage,
+  ),
 );
-const MemoryCreatePage = lazy(() =>
-  import('./components/MemoryCreatePage').then((module) => ({
-    default: module.MemoryCreatePage,
-  })),
+const MemoryCreatePage = deferredComponent(() =>
+  import('./components/MemoryCreatePage').then(
+    (module) => module.MemoryCreatePage,
+  ),
 );
-const MemoryMapPage = lazy(() =>
-  import('./components/MemoryMapPage').then((module) => ({
-    default: module.MemoryMapPage,
-  })),
+const MemoryMapPage = deferredComponent(() =>
+  import('./components/MemoryMapPage').then((module) => module.MemoryMapPage),
 );
-const MemoryProductPage = lazy(() =>
-  import('./components/MemoryProductPage').then((module) => ({
-    default: module.MemoryProductPage,
-  })),
+const MemoryProductPage = deferredComponent(() =>
+  import('./components/MemoryProductPage').then(
+    (module) => module.MemoryProductPage,
+  ),
 );
-const MilestoneProductPage = lazy(() =>
-  import('./components/MilestoneProductPage').then((module) => ({
-    default: module.MilestoneProductPage,
-  })),
+const MilestoneProductPage = deferredComponent(() =>
+  import('./components/MilestoneProductPage').then(
+    (module) => module.MilestoneProductPage,
+  ),
 );
-const OurMomentsGamePage = lazy(() =>
-  import('./components/OurMomentsGamePage').then((module) => ({
-    default: module.OurMomentsGamePage,
-  })),
+const OurMomentsGamePage = deferredComponent(() =>
+  import('./components/OurMomentsGamePage').then(
+    (module) => module.OurMomentsGamePage,
+  ),
 );
-const PartnerLocationMapPage = lazy(() =>
-  import('./components/PartnerLocationMapPage').then((module) => ({
-    default: module.PartnerLocationMapPage,
-  })),
+const PartnerLocationMapPage = deferredComponent(() =>
+  import('./components/PartnerLocationMapPage').then(
+    (module) => module.PartnerLocationMapPage,
+  ),
 );
-const PartnerLocationSettingsPage = lazy(() =>
-  import('./components/PartnerLocationSettingsPage').then((module) => ({
-    default: module.PartnerLocationSettingsPage,
-  })),
+const PartnerLocationSettingsPage = deferredComponent(() =>
+  import('./components/PartnerLocationSettingsPage').then(
+    (module) => module.PartnerLocationSettingsPage,
+  ),
 );
-const PicturePingPongPage = lazy(() =>
-  import('./components/PicturePingPongPage').then((module) => ({
-    default: module.PicturePingPongPage,
-  })),
+const PicturePingPongPage = deferredComponent(() =>
+  import('./components/PicturePingPongPage').then(
+    (module) => module.PicturePingPongPage,
+  ),
 );
-const PlaceProductPage = lazy(() =>
-  import('./components/PlaceProductPage').then((module) => ({
-    default: module.PlaceProductPage,
-  })),
+const PlaceProductPage = deferredComponent(() =>
+  import('./components/PlaceProductPage').then(
+    (module) => module.PlaceProductPage,
+  ),
 );
-const PlacesOverviewPage = lazy(() =>
-  import('./components/PlacesOverviewPage').then((module) => ({
-    default: module.PlacesOverviewPage,
-  })),
+const PlacesOverviewPage = deferredComponent(() =>
+  import('./components/PlacesOverviewPage').then(
+    (module) => module.PlacesOverviewPage,
+  ),
 );
-const PlanningCreatePage = lazy(() =>
-  import('./components/PlanningCreatePage').then((module) => ({
-    default: module.PlanningCreatePage,
-  })),
+const PlanningCreatePage = deferredComponent(() =>
+  import('./components/PlanningCreatePage').then(
+    (module) => module.PlanningCreatePage,
+  ),
 );
-const PlanProductPage = lazy(() =>
-  import('./components/PlanProductPage').then((module) => ({
-    default: module.PlanProductPage,
-  })),
+const PlanProductPage = deferredComponent(() =>
+  import('./components/PlanProductPage').then(
+    (module) => module.PlanProductPage,
+  ),
 );
-const PrivateAreaProductPage = lazy(() =>
-  import('./components/PrivateAreaProductPage').then((module) => ({
-    default: module.PrivateAreaProductPage,
-  })),
+const PrivateAreaProductPage = deferredComponent(() =>
+  import('./components/PrivateAreaProductPage').then(
+    (module) => module.PrivateAreaProductPage,
+  ),
 );
-const ProfilePage = lazy(() =>
-  import('./components/ProfilePage').then((module) => ({
-    default: module.ProfilePage,
-  })),
+const ProfilePage = deferredComponent(() =>
+  import('./components/ProfilePage').then((module) => module.ProfilePage),
 );
-const ProPaywallPage = lazy(() =>
-  import('./components/ProPaywallPage').then((module) => ({
-    default: module.ProPaywallPage,
-  })),
+const ProPaywallPage = deferredComponent(() =>
+  import('./components/ProPaywallPage').then((module) => module.ProPaywallPage),
 );
-const RelatedPeoplePage = lazy(() =>
-  import('./components/RelatedPeoplePage').then((module) => ({
-    default: module.RelatedPeoplePage,
-  })),
+const RelatedPeoplePage = deferredComponent(() =>
+  import('./components/RelatedPeoplePage').then(
+    (module) => module.RelatedPeoplePage,
+  ),
 );
-const RelationshipRecapsPage = lazy(() =>
-  import('./components/RelationshipRecapsPage').then((module) => ({
-    default: module.RelationshipRecapsPage,
-  })),
+const RelationshipRecapsPage = deferredComponent(() =>
+  import('./components/RelationshipRecapsPage').then(
+    (module) => module.RelationshipRecapsPage,
+  ),
 );
-const ReminderReadPage = lazy(() =>
-  import('./components/ReminderReadPage').then((module) => ({
-    default: module.ReminderReadPage,
-  })),
+const ReminderReadPage = deferredComponent(() =>
+  import('./components/ReminderReadPage').then(
+    (module) => module.ReminderReadPage,
+  ),
 );
-const SettingsPage = lazy(() =>
-  import('./components/SettingsPage').then((module) => ({
-    default: module.SettingsPage,
-  })),
+const SettingsPage = deferredComponent(() =>
+  import('./components/SettingsPage').then((module) => module.SettingsPage),
 );
-const SharedNoteEditorPage = lazy(() =>
-  import('./components/SharedNoteEditorPage').then((module) => ({
-    default: module.SharedNoteEditorPage,
-  })),
+const SharedNoteEditorPage = deferredComponent(() =>
+  import('./components/SharedNoteEditorPage').then(
+    (module) => module.SharedNoteEditorPage,
+  ),
 );
-const SharedNoteReadPage = lazy(() =>
-  import('./components/SharedNoteReadPage').then((module) => ({
-    default: module.SharedNoteReadPage,
-  })),
+const SharedNoteReadPage = deferredComponent(() =>
+  import('./components/SharedNoteReadPage').then(
+    (module) => module.SharedNoteReadPage,
+  ),
 );
-const SharedNotesOverviewPage = lazy(() =>
-  import('./components/SharedNotesOverviewPage').then((module) => ({
-    default: module.SharedNotesOverviewPage,
-  })),
+const SharedNotesOverviewPage = deferredComponent(() =>
+  import('./components/SharedNotesOverviewPage').then(
+    (module) => module.SharedNotesOverviewPage,
+  ),
 );
-const WhoOfUsGamePage = lazy(() =>
-  import('./components/WhoOfUsGamePage').then((module) => ({
-    default: module.WhoOfUsGamePage,
-  })),
+const WhoOfUsGamePage = deferredComponent(() =>
+  import('./components/WhoOfUsGamePage').then(
+    (module) => module.WhoOfUsGamePage,
+  ),
 );
-const WishDetectiveGamePage = lazy(() =>
-  import('./components/WishDetectiveGamePage').then((module) => ({
-    default: module.WishDetectiveGamePage,
-  })),
+const WishDetectiveGamePage = deferredComponent(() =>
+  import('./components/WishDetectiveGamePage').then(
+    (module) => module.WishDetectiveGamePage,
+  ),
 );
-const WishProductPage = lazy(() =>
-  import('./components/WishProductPage').then((module) => ({
-    default: module.WishProductPage,
-  })),
+const WishProductPage = deferredComponent(() =>
+  import('./components/WishProductPage').then(
+    (module) => module.WishProductPage,
+  ),
 );
-const WishSelectionPage = lazy(() =>
-  import('./components/WishSelectionPage').then((module) => ({
-    default: module.WishSelectionPage,
-  })),
+const WishSelectionPage = deferredComponent(() =>
+  import('./components/WishSelectionPage').then(
+    (module) => module.WishSelectionPage,
+  ),
 );
 
 function DeferredRoutes({ children }: { children: ReactNode }) {

@@ -1308,7 +1308,8 @@
         "web/src/components/MemoryMapPage.tsx",
         "web/src/components/MemoryMapMemories.tsx",
         "web/src/components/PlaceMapCanvas.tsx",
-        "web/src/components/MemoryProductPage.tsx"
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/StoryProductPage.tsx"
       ]
     },
     "partner-location-settings.spec.ts": {

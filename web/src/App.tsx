@@ -54,6 +54,7 @@ import {
 import { loadInstanceAccessStatus } from './client/instanceStatus';
 import { createM4ProductApis } from './client/m4Product';
 import { ProfilesApi } from './client/mediaApis';
+import type { MemoryMapSession } from './client/memoryMapSession';
 import {
   ONCE_CREATE_ROUTE,
   ONCE_ROUTE,
@@ -184,7 +185,6 @@ import { OnceMessagesPage } from './components/OnceMessages';
 import { PartnerLocationOnboarding } from './components/PartnerLocationOnboarding';
 import { PartnerLocationSync } from './components/PartnerLocationSync';
 import { PersonalSettingsSyncRuntime } from './components/PersonalSettingsSyncRuntime';
-import type { MapViewport } from './components/PlaceMapCanvas';
 import { PlanShortLinkRedirect } from './components/PlanShortLinkRedirect';
 import {
   type PrimaryTabPanel,
@@ -531,12 +531,14 @@ function AuthenticatedApp({
   const location = useLocation();
   const queryClient = useQueryClient();
   const previousSpaceId = useRef(spaceId);
-  const memoryMapViewport = useRef<{ scope: string; current?: MapViewport }>({
+  // The Momente map's session memory: its last camera and its selected
+  // Place, kept in memory only and per account and space.
+  const memoryMapSession = useRef<MemoryMapSession & { scope: string }>({
     scope: '',
   });
   const mapScope = JSON.stringify([apiBaseUrl, account.id, spaceId]);
-  if (memoryMapViewport.current.scope !== mapScope)
-    memoryMapViewport.current = { scope: mapScope };
+  if (memoryMapSession.current.scope !== mapScope)
+    memoryMapSession.current = { scope: mapScope };
   const apis = useMemo(
     () => createReferenceApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
@@ -796,6 +798,7 @@ function AuthenticatedApp({
       element: (
         <StoryProductPage
           apis={apis}
+          mapSession={memoryMapSession.current}
           accountId={account.id}
           spaceId={spaceId}
           loadMemoryImage={loadMemoryImage}
@@ -818,7 +821,7 @@ function AuthenticatedApp({
           <MemoryMapPage
             {...planningProductProps}
             loadMemoryImage={loadMemoryImage}
-            sessionViewport={memoryMapViewport.current}
+            sessionViewport={memoryMapSession.current}
           />
         </DeferredPanel>
       ),

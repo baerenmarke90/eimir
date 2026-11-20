@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render } from '@testing-library/react';
-import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, onTestFinished, vi } from 'vitest';
+import { i18n } from '../i18n';
+import { invalidateMotionTokens } from '../motion/tokens';
 import PlaceMapCanvas, { type MapArea } from './PlaceMapCanvas';
 
 const state = vi.hoisted(() => ({
@@ -21,6 +23,11 @@ const state = vi.hoisted(() => ({
   camera: vi.fn(),
   stop: vi.fn(),
   marker: vi.fn(),
+  dragPan: vi.fn(),
+  zoomIn: vi.fn(),
+  zoomOut: vi.fn(),
+  controls: [] as Array<{ onAdd: (map: unknown) => HTMLElement }>,
+  map: null as unknown,
 }));
 vi.mock('../pwa', () => ({ isCapacitorNative: () => state.native }));
 vi.mock('maplibre-gl/dist/maplibre-gl-worker.mjs?url', () => ({
@@ -51,7 +58,13 @@ vi.mock('maplibre-gl', () => {
     },
     off: vi.fn(),
     setStyle: state.setStyle,
-    addControl: vi.fn(),
+    addControl: (control: { onAdd: (map: unknown) => HTMLElement }) => {
+      state.controls.push(control);
+      return map;
+    },
+    zoomIn: state.zoomIn,
+    zoomOut: state.zoomOut,
+    dragPan: { enable: state.dragPan },
     touchZoomRotate: { disableRotation: vi.fn() },
     fitBounds: state.fit,
     resize: state.mapResize,
@@ -64,6 +77,7 @@ vi.mock('maplibre-gl', () => {
       return this;
     }
   }
+  state.map = map;
   return {
     setWorkerUrl: vi.fn(),
     MapLibreMap: function (options: Record<string, unknown>) {
@@ -89,7 +103,9 @@ beforeEach(() => {
   state.events = {};
   state.once = {};
   state.storedStyle = null;
+  state.controls = [];
   vi.clearAllMocks();
+  invalidateMotionTokens();
   vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(
     () => state.width,
   );
@@ -485,4 +501,169 @@ it('loads the style from the provider when none is kept', () => {
   expect(state.setStyle.mock.calls[0][0]).toBe(
     'https://tiles.openfreemap.org/styles/liberty',
   );
+});
+
+/** A preference that tests can switch at runtime. */
+function stubMotionPreference(reduced: boolean) {
+  const listeners = new Set<() => void>();
+  const query = {
+    matches: reduced,
+    addEventListener: (_: string, listener: () => void) =>
+      listeners.add(listener),
+    removeEventListener: (_: string, listener: () => void) =>
+      listeners.delete(listener),
+  };
+  vi.stubGlobal('matchMedia', () => query);
+  return (next: boolean) => {
+    query.matches = next;
+    for (const listener of listeners) listener();
+  };
+}
+
+/** Motion roles as the generated product roles define them. */
+function stubMotionRoles(roles: Record<string, string>) {
+  const computed = window.getComputedStyle;
+  vi.spyOn(window, 'getComputedStyle').mockImplementation((element) => {
+    const style = computed(element);
+    return new Proxy(style, {
+      get(target, key) {
+        if (key === 'getPropertyValue')
+          return (name: string) => roles[name] ?? target.getPropertyValue(name);
+        const value = Reflect.get(target, key);
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+  });
+}
+
+it('keeps pan inertia only without reduced motion and follows a change', () => {
+  const setReduced = stubMotionPreference(false);
+  render(<PlaceMapCanvas />);
+  expect(state.dragPan).toHaveBeenLastCalledWith(undefined);
+  act(() => setReduced(true));
+  expect(state.dragPan).toHaveBeenLastCalledWith({ maxSpeed: 0 });
+  act(() => setReduced(false));
+  expect(state.dragPan).toHaveBeenLastCalledWith(undefined);
+});
+
+it('steps the zoom buttons with the transition role and jumps with reduced motion', () => {
+  const setReduced = stubMotionPreference(false);
+  stubMotionRoles({ '--duration-transition': '240ms' });
+  render(<PlaceMapCanvas />);
+  const group = state.controls[0].onAdd(state.map);
+  const zoomIn = group.querySelector<HTMLButtonElement>('.place-map-zoom-in');
+  const zoomOut = group.querySelector<HTMLButtonElement>('.place-map-zoom-out');
+  zoomIn?.click();
+  expect(state.zoomIn).toHaveBeenLastCalledWith({ duration: 240 });
+  zoomOut?.click();
+  expect(state.zoomOut).toHaveBeenLastCalledWith({ duration: 240 });
+  act(() => setReduced(true));
+  zoomIn?.click();
+  expect(state.zoomIn).toHaveBeenLastCalledWith({ animate: false });
+  zoomOut?.click();
+  expect(state.zoomOut).toHaveBeenLastCalledWith({ animate: false });
+});
+
+it('returns to a kept map without moving its camera', () => {
+  stubMotionPreference(false);
+  stubMotionRoles({ '--duration-map-camera': '1100ms' });
+  state.width = 390;
+  state.height = 740;
+  const points = [
+    { id: 'south', label: 'South', latitude: 49, longitude: 7, count: 1 },
+    { id: 'north', label: 'North', latitude: 54, longitude: 8, count: 1 },
+  ];
+  const view = render(<PlaceMapCanvas locations={points} />);
+  // Opening frames the overview without a camera journey.
+  expect(state.fit).toHaveBeenCalledTimes(1);
+  expect(state.fit.mock.lastCall?.[1]).toEqual(
+    expect.objectContaining({ animate: false }),
+  );
+  view.rerender(
+    <PlaceMapCanvas
+      locations={points}
+      focus={{ latitude: 49, longitude: 7 }}
+    />,
+  );
+  expect(state.fly).toHaveBeenCalledTimes(1);
+  act(() => state.events.moveend());
+  const jumps = state.jump.mock.calls.length;
+  // The kept tab hides (no size), then shows again, also after a fold.
+  state.width = state.height = 0;
+  act(() => state.resize());
+  state.width = 720;
+  state.height = 740;
+  act(() => state.resize());
+  view.rerender(
+    <PlaceMapCanvas
+      locations={points}
+      focus={{ latitude: 49, longitude: 7 }}
+    />,
+  );
+  expect(state.fly).toHaveBeenCalledTimes(1);
+  expect(state.fit).toHaveBeenCalledTimes(1);
+  expect(state.jump).toHaveBeenCalledTimes(jumps);
+  expect(state.mapResize).toHaveBeenCalled();
+});
+
+it('lets the finger stop a "show us" journey and snaps it with reduced motion', () => {
+  const setReduced = stubMotionPreference(false);
+  stubMotionRoles({ '--duration-map-camera': '1100ms' });
+  state.width = 390;
+  state.height = 740;
+  const own: MapArea = {
+    id: 'own',
+    tone: 'own',
+    latitude: 50,
+    longitude: 7,
+    radiusMeters: 1000,
+  };
+  const view = render(<PlaceMapCanvas areas={[own]} />);
+  view.rerender(<PlaceMapCanvas areas={[own]} showAreasRequest={1} />);
+  expect(state.fit).toHaveBeenLastCalledWith(
+    expect.anything(),
+    expect.objectContaining({ duration: 1100, essential: true }),
+  );
+  const stops = state.stop.mock.calls.length;
+  const viewport = view.container.querySelector('.place-map-viewport');
+  if (!viewport) throw new Error('Map viewport must exist');
+  fireEvent.pointerDown(viewport);
+  expect(state.stop).toHaveBeenCalledTimes(stops + 1);
+  act(() => setReduced(true));
+  view.rerender(<PlaceMapCanvas areas={[own]} showAreasRequest={2} />);
+  expect(state.fit).toHaveBeenLastCalledWith(
+    expect.anything(),
+    expect.objectContaining({ animate: false }),
+  );
+});
+
+it('recreates the map for a new locale where the viewer left the camera', async () => {
+  const previous = i18n.language;
+  onTestFinished(async () => {
+    await i18n.changeLanguage(previous);
+  });
+  state.width = 390;
+  state.height = 740;
+  render(
+    <PlaceMapCanvas
+      locations={[
+        { id: 'south', label: 'South', latitude: 49, longitude: 7, count: 1 },
+      ]}
+    />,
+  );
+  expect(state.fit).toHaveBeenCalledTimes(1);
+  // The viewer pans; the camera then rests elsewhere.
+  act(() =>
+    state.events.movestart({ originalEvent: new Event('pointerdown') }),
+  );
+  act(() => state.events.moveend());
+  await act(() => i18n.changeLanguage(previous === 'de' ? 'en' : 'de'));
+  expect(state.remove).toHaveBeenCalledTimes(1);
+  expect(state.options).toEqual(
+    expect.objectContaining({ center: [7, 49], zoom: 14 }),
+  );
+  act(() => state.resize());
+  expect(state.jump).toHaveBeenLastCalledWith({ center: [7, 49], zoom: 14 });
+  expect(state.fit).toHaveBeenCalledTimes(1);
+  expect(state.fly).not.toHaveBeenCalled();
 });

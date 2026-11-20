@@ -5,7 +5,7 @@ from uuid import UUID
 
 import pytest
 
-from eimir.recaps import mood, words
+from eimir.recaps import mood, presentation
 from eimir.recaps.composition import Candidate, period_bounds, select_candidates
 from eimir.recaps.models import RecapKind, RecapSourceKind
 
@@ -48,8 +48,8 @@ def test_an_alternative_differs_when_distinct_source_kinds_have_no_ties() -> Non
 
 
 def test_quote_is_cut_at_a_word_boundary_and_never_reworded():  # type: ignore[no-untyped-def]
-    assert words.cut("  Short   note \n here ") == "Short note here"
-    long = words.cut("alpha " * 40)
+    assert presentation.cut("  Short   note \n here ") == "Short note here"
+    long = presentation.cut("alpha " * 40)
     assert long.endswith("\u2026") and len(long) <= 141 and "alpha alpha" in long
 
 

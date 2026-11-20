@@ -135,6 +135,10 @@ Two further gaps are not capabilities:
   `relationship.passport` is plugin-owned since #2084, a Core-only instance already behaves like an expired Pro:
   stored editions and reflections stay readable and exportable, members can still edit or withdraw their own words,
   new composition answers `403` and queued composition pauses (`tests/integration/test_core_only_recaps.py`).
+  The read path of a stored edition (source projection, live answers, places, media, tags, the couple's own words
+  and the frozen mood) is its own Core module, `recaps/presentation.py`, and the member helpers of background
+  jobs live in `jobs/members.py`; neither imports the composing modules
+  (`tests/unit/test_recap_read_path_imports.py`), so composition can move into the plugin without them.
 - **Clients.** The Web and Android clients contain the Pro screens and generated Pro client code. This decision is a
   backend seam; [#2086](https://github.com/baerenmarke90/eimir/issues/2086) decides what the public export contains.
 

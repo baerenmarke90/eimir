@@ -19,32 +19,14 @@ from sqlalchemy.orm import Session
 from eimir.daily_checkins.models import DailyCheckIn
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import Capability
-from eimir.recaps.models import MoodBucket, MoodRhythm, RecapKind, RecapPayload
-from eimir.relationship import configuration as configuration_service
-from eimir.relationship.models import Membership, MembershipStatus
+from eimir.recaps.models import MoodBucket, MoodRhythm, RecapKind
+from eimir.recaps.presentation import partner_pair, vibe_enabled
 
 GOOD_VIBES = frozenset({"VERY_GOOD", "GOOD"})
 MONTH_MINIMUM_DAYS = 5
 YEAR_MINIMUM_DAYS = 20
 YEAR_MINIMUM_MONTHS = 4
 CAPABILITY = Capability.DAILY_INSIGHTS.value
-
-
-def _partners(session: Session, space_id: UUID) -> tuple[UUID, UUID] | None:
-    members = list(
-        session.scalars(
-            select(Membership.account_id).where(
-                Membership.space_id == space_id,
-                Membership.status == MembershipStatus.ACTIVE.value,
-            )
-        )
-    )
-    return (members[0], members[1]) if len(members) == 2 else None
-
-
-def _vibe_enabled(session: Session, space_id: UUID) -> bool:
-    configuration = configuration_service.load(session, space_id)
-    return bool(configuration and configuration.vibe_check_enabled)
 
 
 def _bucket(kind: RecapKind, day: date) -> int:
@@ -55,8 +37,8 @@ def compute(
     session: Session, space_id: UUID, kind: RecapKind, starts_on: date, through_on: date
 ) -> MoodRhythm | None:
     """The period's rhythm, or None when there is too little mutual material."""
-    partners = _partners(session, space_id)
-    if partners is None or not _vibe_enabled(session, space_id):
+    partners = partner_pair(session, space_id)
+    if partners is None or not vibe_enabled(session, space_id):
         return None
     # The vibe is protected content: rows are loaded and filtered in Python.
     check_ins = session.execute(
@@ -119,11 +101,3 @@ def refreshed(
     if entitlements.has_capability(session, space_id, CAPABILITY):
         return compute(session, space_id, kind, starts_on, through_on)
     return previous
-
-
-def visible(session: Session, space_id: UUID, payload: RecapPayload) -> MoodRhythm | None:
-    """Serve the frozen aggregate only while both partners and the Vibe module remain."""
-    mood = payload.mood
-    if mood is None or _partners(session, space_id) is None:
-        return None
-    return mood if _vibe_enabled(session, space_id) else None

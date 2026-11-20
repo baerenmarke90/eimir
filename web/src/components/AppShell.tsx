@@ -48,6 +48,7 @@ import { TaskOriginProvider } from '../client/taskOrigin';
 import { useDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
+import { scheduleDeferredPrefetch } from '../deferredModules';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { DestinationIcon } from './DestinationIcon';
@@ -188,6 +189,9 @@ interface AppShellProps {
 }
 
 export function AppShell(props: AppShellProps) {
+  // Wir renders first; the rest of the app follows in the background, so later
+  // navigations render from memory instead of showing a loading state.
+  useEffect(() => scheduleDeferredPrefetch(), []);
   return (
     <ApiRuntimeProvider
       apiBaseUrl={props.apiBaseUrl}

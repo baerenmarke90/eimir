@@ -2153,6 +2153,7 @@ test.describe('shell, overlays and navigation on the motion layer (#2075)', () =
       });
       await page.locator('main a[href="/more/people"]').first().click();
       await expect(page).toHaveURL(/\/more\/people$/);
+      await expect(page.locator('main .ui-state-loading')).toHaveCount(0);
       await saveEvidence(page, `2075-${label}-3-forward-arriving`);
       await page.evaluate(() => {
         for (const animation of document.getAnimations()) animation.finish();

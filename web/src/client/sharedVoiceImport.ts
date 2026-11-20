@@ -10,6 +10,10 @@ interface SharedVoice {
   failed: boolean;
   generation: string;
 }
+export function isVoiceShareAvailable(): boolean {
+  return Capacitor.isPluginAvailable('VoiceShare');
+}
+
 export const nativeVoiceShare = registerPlugin<{
   peek(): Promise<SharedVoice>;
   read(options: {

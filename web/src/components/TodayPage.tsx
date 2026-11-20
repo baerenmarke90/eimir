@@ -174,7 +174,9 @@ import { useWirReveal } from './useWirReveal';
 // Undefined means the opening has not been considered yet; null means it was
 // skipped or interrupted. Late children can join an opening already in flight.
 let wirHeroIntroStartedAt: number | null | undefined;
-const WIR_HERO_INTRO_WINDOW_MS = 1500;
+// At least as long as the opening itself (about 2.7 s at the 2.2x beat in
+// WirMotion.css), so a hero that remounts mid-opening keeps drawing in step.
+const WIR_HERO_INTRO_WINDOW_MS = 3000;
 
 function WirIntroStage({ children }: { children: ReactNode }) {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -196,11 +198,22 @@ function WirIntroStage({ children }: { children: ReactNode }) {
           ? performance.now()
           : null;
     }
-    const intro =
-      wirHeroIntroStartedAt !== null &&
-      performance.now() - wirHeroIntroStartedAt < WIR_HERO_INTRO_WINDOW_MS;
+    const elapsed =
+      wirHeroIntroStartedAt === null
+        ? Number.POSITIVE_INFINITY
+        : performance.now() - wirHeroIntroStartedAt;
+    const intro = elapsed < WIR_HERO_INTRO_WINDOW_MS;
     stage.classList.toggle('wir-stage-intro', intro);
-    if (intro) alignWirIntroAnimations(stage, wirHeroIntroStartedAt);
+    if (!intro) return;
+    alignWirIntroAnimations(stage, wirHeroIntroStartedAt ?? null);
+    // The opening ends on its own clock, not at the next render: a class that
+    // outlived it kept the rings from breathing and replayed the whole
+    // opening when Wir was shown again, then cut it off at a later render.
+    const end = window.setTimeout(
+      () => stage.classList.remove('wir-stage-intro'),
+      WIR_HERO_INTRO_WINDOW_MS - elapsed,
+    );
+    return () => window.clearTimeout(end);
   });
   return (
     <div ref={stageRef} className="wir-stage">
@@ -1443,8 +1456,18 @@ export function TodayPage({
     livingModule?.kind === 'partner_signal'
       ? livingModule.activityItem.id
       : null;
+  // Content shown above (the moment, the month, the signal) is not repeated
+  // in the trace (#2063: one memory appeared three times on Wir).
+  const shownContentIds = new Set([
+    ...featuredIds,
+    ...monthlyItems.map((item) => item.id),
+  ]);
   const recentActivities = activityItems
-    .filter((item) => item.id !== currentSignalId)
+    .filter(
+      (item) =>
+        item.id !== currentSignalId &&
+        !(item.targetId && shownContentIds.has(item.targetId)),
+    )
     .slice(0, 3);
 
   /*
@@ -2475,7 +2498,7 @@ export function TodayPage({
               (namesLayout &&
                 showMomentSection &&
                 keepsakeVisible) ? undefined : (
-                <MomentCreateMenu floating={!sharedAlbum} />
+                <MomentCreateMenu floating={!sharedAlbum} everything />
               )
             }
           />

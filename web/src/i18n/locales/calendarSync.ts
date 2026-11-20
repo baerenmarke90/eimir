@@ -145,7 +145,7 @@ export default {
     fallback: 'Das hat nicht geklappt. Versuche es erneut.',
   },
   plan: {
-    SYNCED: 'Im gemeinsamen Kalender übernommen',
+    SYNCED: 'Steht in eurem gemeinsamen Kalender',
     PENDING: 'Wird in euren Kalender übertragen',
     FAILED: 'Konnte nicht übertragen werden',
     CONFLICT: 'Im Kalender geändert',

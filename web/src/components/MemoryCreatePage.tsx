@@ -174,6 +174,7 @@ export function MemoryCreatePage({
   );
   const discardDestinationRef = useRef<'timeline' | null>(null);
   const confirmRef = useRef<ShortTaskSheetHandle>(null);
+  const discardKeepRef = useRef<HTMLButtonElement>(null);
   const headingRef = useRef<HTMLDivElement>(null);
   const owner = useRef({ active: true, pending: false });
   useEffect(() => {
@@ -308,6 +309,8 @@ export function MemoryCreatePage({
     dirty,
     suspended: pending || uncertain || Boolean(partial),
   });
+  // A draft secured on this device can be kept when leaving.
+  const keepableDraft = !partial && !uncertain && diaryDraft.status === 'saved';
   useEffect(() => {
     if (
       !sourcePlanId ||
@@ -1450,6 +1453,7 @@ export function MemoryCreatePage({
                 ? 'taskBoundary.uncertainDiscardTitle'
                 : 'taskBoundary.discardTitle',
           )}
+          initialFocusRef={discardKeepRef}
           onClose={() => {
             keepDiscardEditing();
             discardDestinationRef.current = null;
@@ -1461,34 +1465,15 @@ export function MemoryCreatePage({
                 ? 'taskBoundary.partialDiscardBody'
                 : uncertain
                   ? 'taskBoundary.uncertainDiscardBody'
-                  : 'taskBoundary.discardBody',
+                  : keepableDraft
+                    ? 'memory.diary.discardDraftBody'
+                    : 'taskBoundary.discardBody',
             )}
           </p>
+          {/* Source order runs from the destructive action to the safest one:
+              the phone layout reverses the column, so discarding ends up last
+              and the safe choice, which also receives focus, first (#2063). */}
           <div className="form-actions">
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => {
-                keepDiscardEditing();
-                discardDestinationRef.current = null;
-              }}
-            >
-              {t('taskBoundary.keepEditing')}
-            </button>
-            {!partial && !uncertain && diaryDraft.status === 'saved' ? (
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => {
-                  confirmRef.current?.closeForNavigation(() => {
-                    keepDiscardEditing();
-                    closeTask();
-                  });
-                }}
-              >
-                {t('memory.diary.keepDraft')}
-              </button>
-            ) : null}
             <button
               type="button"
               className="danger"
@@ -1505,8 +1490,38 @@ export function MemoryCreatePage({
                 });
               }}
             >
-              {t('taskBoundary.discard')}
+              {t(
+                partial || uncertain
+                  ? 'taskBoundary.discard'
+                  : 'taskBoundary.discardConfirm',
+              )}
             </button>
+            <button
+              ref={keepableDraft ? undefined : discardKeepRef}
+              type="button"
+              className="secondary"
+              onClick={() => {
+                keepDiscardEditing();
+                discardDestinationRef.current = null;
+              }}
+            >
+              {t('taskBoundary.keepEditing')}
+            </button>
+            {keepableDraft ? (
+              <button
+                ref={discardKeepRef}
+                type="button"
+                className="primary"
+                onClick={() => {
+                  confirmRef.current?.closeForNavigation(() => {
+                    keepDiscardEditing();
+                    closeTask();
+                  });
+                }}
+              >
+                {t('memory.diary.keepDraft')}
+              </button>
+            ) : null}
           </div>
         </ShortTaskSheet>
       </>

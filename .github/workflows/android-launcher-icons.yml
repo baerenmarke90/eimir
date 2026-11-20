@@ -232,7 +232,7 @@ jobs:
             -e class de.eimir.app.IdentityAppLinksTest,de.eimir.app.LauncherIconsTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee instrumentation.log
-          grep -Eq '^OK \(7 tests\)' instrumentation.log
+          grep -Eq '^OK \(8 tests\)' instrumentation.log
           timeout 180 adb -e shell am instrument -w -r \
             -e class de.eimir.app.UnifiedPushAccountReplacementTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
@@ -284,6 +284,12 @@ jobs:
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee runtime-recovery.log
           grep -Eq '^OK \(5 tests\)' runtime-recovery.log
+          # FLAG_SECURE through the real Web bridge, released and recreated (#683).
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.SecureScreenTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee secure-screen.log
+          grep -Eq '^OK \(1 test\)' secure-screen.log
           # Exercise actual Android notification/PendingIntent and retained bridge
           # handoff with separate routing and privacy/retirement processes.
           # All eight cases remain selected once at their existing assertions
@@ -399,6 +405,7 @@ jobs:
             android/native-media-upload-background.xml
             android/photo-file-chooser.log
             android/runtime-recovery.log
+            android/secure-screen.log
             android/renderer-background-return.png
             android/renderer-real-crash.png
             android/notification-open.log

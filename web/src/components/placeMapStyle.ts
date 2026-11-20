@@ -108,3 +108,54 @@ export function googleLikeStyle(
     }) as StyleSpecification['layers'],
   };
 }
+
+/** The basemap provider; its TileJSON carries the required attribution. */
+const OPENFREEMAP_ORIGIN = 'https://tiles.openfreemap.org';
+
+/**
+ * OpenFreeMap's required attribution, as its TileJSON states it, with the
+ * English connector replaced by the localized `dataFrom`. Every source name
+ * and link stays as the provider requires.
+ */
+export function openFreeMapAttribution(dataFrom: string): string {
+  return `<a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> <a href="https://www.openmaptiles.org/" target="_blank">&copy; OpenMapTiles</a> ${dataFrom} <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>`;
+}
+
+/**
+ * Localizes the provider attribution's English connector ("Data from") while
+ * keeping every required source name and link (#2063).
+ *
+ * OpenFreeMap's style names its tiles by TileJSON URL, so the attribution
+ * arrives with the TileJSON at runtime, after this transform has run. MapLibre
+ * lets an `attribution` on the style source win over the TileJSON one, so an
+ * OpenFreeMap source without its own attribution gets the localized one here.
+ * A source that already carries an attribution keeps it, connector localized.
+ */
+export function withLocalizedAttribution(
+  style: StyleSpecification,
+  dataFrom: string,
+): StyleSpecification {
+  const sources = Object.fromEntries(
+    Object.entries(style.sources).map(([id, source]) => {
+      if ('attribution' in source && typeof source.attribution === 'string')
+        return [
+          id,
+          {
+            ...source,
+            attribution: source.attribution.replace('Data from', dataFrom),
+          },
+        ];
+      if (
+        'url' in source &&
+        typeof source.url === 'string' &&
+        source.url.startsWith(`${OPENFREEMAP_ORIGIN}/`)
+      )
+        return [
+          id,
+          { ...source, attribution: openFreeMapAttribution(dataFrom) },
+        ];
+      return [id, source];
+    }),
+  ) as StyleSpecification['sources'];
+  return { ...style, sources };
+}

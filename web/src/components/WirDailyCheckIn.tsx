@@ -18,7 +18,6 @@ import {
 import type { DailyCheckInUpdate } from '../api/generated/models/DailyCheckInUpdate';
 import { dailyCheckInTodayQueryOptions } from '../client/dailyCheckIn';
 import { ClientProblemError } from '../client/problemDetails';
-import { useQuietHint } from '../client/quietHints';
 import { postSnackbar } from '../client/snackbar';
 import { refreshSpaceConfiguration } from '../client/spaceConfiguration';
 import type { PartnerAvatarAction } from './PartnerAvatarPair';
@@ -236,9 +235,12 @@ function writeArrivalSeen(key: string, value: ArrivalSeen): void {
   }
 }
 
-const PROMPT_HINT_ID = 'wir-checkin-prompt';
-/** How long the line stays before it sinks into the plus. */
-const PROMPT_HOLD_MS = 2800;
+/**
+ * How long the line stays before it sinks into the plus. It arrives with the
+ * names during the Wir opening (fully shown after about 1.5 s), so this keeps
+ * it readable for about two seconds.
+ */
+const PROMPT_HOLD_MS = 3600;
 /** Accounts and spaces whose line already sank into the plus this session. */
 const promptSettled = new Set<string>();
 
@@ -802,23 +804,22 @@ export function useWirDailyCheckIn({
     energyWrite.reset,
   ]);
 
-  // The "Wie geht's?" line explains the plus on the own ring. It is a quiet
-  // hint: it shows for a few app sessions, holds for a moment, then sinks into
-  // the plus and is not seen again once the day has a value.
+  // The "Wie geht's?" line invites today's check-in and explains the plus on
+  // the own ring. It shows once per app session while today has no own value,
+  // holds for a moment and then sinks into the plus. It is the day's
+  // invitation, not a feature hint, so it no longer retires for good after
+  // three sessions (Product Owner, 2026-11-19: the line had stopped showing).
   const ownDayHasValue = Boolean(ownVibe) || ownEnergy !== null;
-  const promptHint = useQuietHint(accountId, spaceId, [
-    {
-      id: PROMPT_HINT_ID,
-      eligible: Boolean(snapshot) && !ownDayHasValue,
-      used: ownDayHasValue,
-    },
-  ]);
-  const promptKey = `:`;
+  const promptKey = `${accountId}:${spaceId}`;
   const [promptGone, setPromptGone] = useState(() =>
     promptSettled.has(promptKey),
   );
   const promptShown =
-    promptHint.activeId === PROMPT_HINT_ID && !promptGone && !panelOpen;
+    Boolean(snapshot) &&
+    !ownDayHasValue &&
+    !promptGone &&
+    !promptSettled.has(promptKey) &&
+    !panelOpen;
   useEffect(() => {
     if (!promptShown) return;
     let flight: PromptFlight | null = null;
@@ -840,7 +841,7 @@ export function useWirDailyCheckIn({
       window.clearTimeout(timer);
       flight?.cancel();
     };
-  }, [promptShown]);
+  }, [promptShown, promptKey]);
 
   if (!active || !accountId || !api) return null;
 
@@ -1298,7 +1299,11 @@ export function useWirDailyCheckIn({
                 maxLength={DAILY_NOTE_MAX_LENGTH}
                 rows={2}
                 disabled={disabled || !ownVibe}
-                placeholder={t('wirCheckIn.notePlaceholder')}
+                placeholder={t(
+                  ownVibe
+                    ? 'wirCheckIn.notePlaceholder'
+                    : 'wirCheckIn.notePlaceholderLocked',
+                )}
                 aria-describedby={`${panelId}-note-hint`}
                 onChange={(event) => {
                   setUndoNote(null);

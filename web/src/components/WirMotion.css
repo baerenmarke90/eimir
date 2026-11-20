@@ -13,8 +13,12 @@
  * 2. The modules: each arrives with a short rise and fade, once, as it is
  *    reached (useWirReveal). The ones already in view arrive together, in
  *    reading order.
- * 3. The rest: the rings around the portraits breathe very slowly, one after
- *    the other, and nothing else moves until you do.
+ * 3. The rest: the rings around the portraits breathe very slowly (opacity
+ *    only), one after the other, and nothing else moves until you do.
+ *
+ * A kept tab that is shown again does not replay any of this: un-hiding
+ * restarts CSS animations, so PrimaryTabPanels finishes those entrances at
+ * once (settleRestartedEntrances).
  *
  * Only `translate`, `scale` and `opacity` are animated, never on an element
  * that has its own `animation` (the hover lift), and never with a sideways move
@@ -24,19 +28,28 @@
  */
 
 @media (prefers-reduced-motion: no-preference) {
-  /* One beat for the whole opening, a little longer than the shared beat so
-     the arrival can be seen without becoming slow. Everything in the stage
-     below, and the heart line in WirHeroStage.css, counts in this beat. */
+  /* One beat for the whole opening. It was 1.4x the shared beat (280 ms),
+     which finished the whole arrival in about 1.7 s and was too quick to
+     notice (Product Owner, 2026-11-19). At 2.2x (440 ms) every element takes
+     about 1.6x as long and the whole opening about 2.7 s. Everything in the
+     stage below, and the heart line in WirHeroStage.css, counts in this beat,
+     so this is the one knob for the pace; keep WIR_HERO_INTRO_WINDOW_MS in
+     TodayPage.tsx at least as long as the opening. */
   .wir-stage-intro {
-    --wir-intro-beat: calc(var(--duration-sequence-beat) * 1.4);
+    --wir-intro-beat: calc(var(--duration-sequence-beat) * 2.2);
   }
 
   /* ---- 1. The stage ---------------------------------------------------- */
 
+  /* Every step of the opening uses the same slow-in, slow-out curve. The shared
+     entrance curves are front-loaded: with them each step looked finished after
+     roughly a third of its time, so the opening seemed over in under a second
+     whatever its duration (watched in real time, 2026-11-19). */
+
   /* Each person fades in place, the partner a beat later. */
   .wir-stage-intro .today-hero .partner-avatar-stack > * {
     animation: wir-intro-person calc(var(--wir-intro-beat) * 2.4)
-      var(--easing-enter) both;
+      var(--easing-travel) both;
   }
 
   .wir-stage-intro .today-hero .partner-avatar-stack > :nth-child(2) {
@@ -46,7 +59,7 @@
   /* The ring opens around the portrait a little after the portrait arrives. */
   .wir-stage-intro .today-hero .partner-avatar-stack > *::before {
     animation: wir-intro-ring calc(var(--wir-intro-beat) * 2.4)
-      var(--easing-enter) calc(var(--wir-intro-beat) * 0.6) both;
+      var(--easing-travel) calc(var(--wir-intro-beat) * 0.6) both;
   }
 
   .wir-stage-intro .today-hero .partner-avatar-stack > :nth-child(2)::before {
@@ -57,33 +70,34 @@
   .wir-stage-intro .wir-stage-name,
   .wir-stage-intro .today-hero .wir-checkin-badge {
     animation: wir-intro-caption calc(var(--wir-intro-beat) * 2)
-      var(--easing-enter) calc(var(--wir-intro-beat) * 1.4) both;
+      var(--easing-travel) calc(var(--wir-intro-beat) * 1.4) both;
   }
 
-  /* What joins you: the ampersand and the time settle in last. */
+  /* What joins you: the ampersand and the time settle in last, once the heart
+     is on its way (it starts at 2.0 beats, WirHeroStage.css). */
   .wir-stage-intro .wir-stage-amp,
   .wir-stage-intro .wir-bridge-lead,
   .wir-stage-intro .wir-bridge-rest {
-    animation: wir-intro-caption calc(var(--wir-intro-beat) * 2)
-      var(--easing-enter) calc(var(--wir-intro-beat) * 2.2) both;
+    animation: wir-intro-caption calc(var(--wir-intro-beat) * 1.8)
+      var(--easing-travel) calc(var(--wir-intro-beat) * 2.6) both;
   }
 
   /* The distance does not rise as a block: its pin settles on its own and
      the value follows, so the slot itself only fades. The `wir-intro-` names
      keep a late-arriving value on the same clock as the rest of the stage. */
   .wir-stage-intro .wir-stage-distance {
-    animation: wir-intro-fade calc(var(--wir-intro-beat) * 2)
-      var(--easing-enter) calc(var(--wir-intro-beat) * 2.2) both;
+    animation: wir-intro-fade calc(var(--wir-intro-beat) * 1.8)
+      var(--easing-travel) calc(var(--wir-intro-beat) * 2.6) both;
   }
 
   .wir-stage-intro .wir-hero-distance .partner-distance-glyph {
-    animation: wir-intro-pin-land calc(var(--wir-intro-beat) * 3)
-      var(--easing-standard) calc(var(--wir-intro-beat) * 2.2) both;
+    animation: wir-intro-pin-land calc(var(--wir-intro-beat) * 2.5)
+      var(--easing-travel) calc(var(--wir-intro-beat) * 2.6) both;
   }
 
   .wir-stage-intro .wir-hero-distance-value {
     animation: wir-intro-fade calc(var(--wir-intro-beat) * 2)
-      var(--easing-enter) calc(var(--wir-intro-beat) * 4.2) both;
+      var(--easing-travel) calc(var(--wir-intro-beat) * 4.2) both;
   }
 
   /* A current position makes the pin wiggle once, after it has settled, and
@@ -96,10 +110,10 @@
 
   .wir-stage-intro .wir-hero-distance.is-fresh .partner-distance-glyph {
     animation:
-      wir-intro-pin-land calc(var(--wir-intro-beat) * 3) var(--easing-standard)
-      calc(var(--wir-intro-beat) * 2.2) both,
+      wir-intro-pin-land calc(var(--wir-intro-beat) * 2.5) var(--easing-travel)
+      calc(var(--wir-intro-beat) * 2.6) both,
       wir-distance-wiggle var(--duration-gesture-moment) var(--easing-standard)
-      calc(var(--wir-intro-beat) * 4.4) both;
+      calc(var(--wir-intro-beat) * 4.6) both;
   }
 
   /* A changed value fades over instead of jumping. */
@@ -134,15 +148,17 @@
     translate: 0 0.5rem;
   }
 
+  /* The modules arrive at about twice the former pace, in step with the
+     slower opening above them. */
   .today-section[data-wir-reveal="shown"] .today-section-header {
-    animation: wir-reveal-fade var(--duration-context) var(--easing-enter)
-      var(--wir-reveal-delay) both;
+    animation: wir-reveal-fade calc(var(--duration-context) * 2)
+      var(--easing-enter) var(--wir-reveal-delay) both;
   }
 
   .today-section[data-wir-reveal="shown"] .today-section-body {
-    animation: wir-reveal-body calc(var(--duration-context) * 1.4)
+    animation: wir-reveal-body calc(var(--duration-context) * 3)
       var(--easing-enter)
-      calc(var(--wir-reveal-delay) + var(--duration-sequence-beat) * 0.3) both;
+      calc(var(--wir-reveal-delay) + var(--duration-sequence-beat) * 0.6) both;
   }
 
   /* The upcoming plans fade in one after another, so the row reads as a
@@ -153,14 +169,15 @@
   }
 
   .today-section[data-wir-reveal="shown"] .today-agenda-list > * {
-    animation: wir-reveal-fade var(--duration-context) var(--easing-enter)
+    animation: wir-reveal-fade calc(var(--duration-context) * 2)
+      var(--easing-enter)
       calc(
         var(--wir-reveal-delay) +
         var(--duration-sequence-beat) *
-        0.6 +
+        1.2 +
         var(--wir-reveal-step, 0) *
         var(--duration-sequence-beat) *
-        0.35
+        0.7
       )
       both;
   }
@@ -185,7 +202,7 @@
   .today-section-moment[data-wir-reveal="shown"] .today-moment-caption {
     animation: wir-reveal-fade var(--duration-gesture-moment)
       var(--easing-enter)
-      calc(var(--wir-reveal-delay) + var(--duration-sequence-beat) * 1.6) both;
+      calc(var(--wir-reveal-delay) + var(--duration-sequence-beat) * 3) both;
   }
 
   /* A rediscovered memory rises a little, like the other modules. */
@@ -197,23 +214,29 @@
   /* The daily quote arrives with a soft fade once it is known, instead of
      replacing the loading line in a single frame. */
   .today-page .daily-quote-block {
-    animation: wir-reveal-fade calc(var(--duration-sequence-beat) * 2.4)
+    animation: wir-reveal-fade calc(var(--duration-sequence-beat) * 5)
       var(--easing-enter) both;
   }
 
   /* ---- 3. The rest: a slow breath --------------------------------------- */
 
-  /* Once the arrival has landed, the rings around the two portraits swell and
-     settle very slowly, one after the other. Opacity and scale on a decorative
-     pseudo-element only: it never changes a portrait's box, so tapping and the
-     flights keep their exact targets. */
+  /* Once the arrival has landed, the rings around the two portraits soften
+     and return very slowly, one after the other. Opacity only, on a decorative
+     pseudo-element with its own layer: a growing 2 px ring moved its edge by
+     a few pixels over seconds, which stepped visibly from pixel to pixel on
+     phones and read as a pulse at a few frames per second (Product Owner,
+     2026-11-19). It never changes a portrait's box, so tapping and the flights
+     keep their exact targets. The breath settles after a few cycles (#2063):
+     an endless loop kept an idle Wir page rendering every frame. */
   .today-page
     .wir-stage:not(.wir-stage-intro)
     .today-hero
     .partner-avatar-stack
     > *::before {
+    will-change: opacity;
     animation: wir-breathe var(--duration-connection-travel-far)
-      var(--easing-travel) var(--duration-connection-beat) infinite;
+      var(--easing-travel) var(--duration-connection-beat)
+      var(--motion-ambient-repeat);
   }
 
   .today-page
@@ -385,11 +408,9 @@
   0%,
   100% {
     opacity: 1;
-    scale: 1;
   }
 
   50% {
-    opacity: 0.72;
-    scale: 1.035;
+    opacity: 0.55;
   }
 }

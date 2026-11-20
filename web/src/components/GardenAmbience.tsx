@@ -60,6 +60,7 @@ import { useTranslation } from '../i18n';
 import { Butterfly, cloudDriftStyle, WateringCan } from './GardenArt';
 import { SmallBird } from './GardenFeatures';
 import type { ScenePlant } from './GardenScene';
+import { sceneElement } from '../client/gardenSceneLayers';
 import './GardenAmbience.css';
 
 type Style = CSSProperties & Record<`--${string}`, string>;
@@ -660,7 +661,7 @@ export function useGardenAmbience({
     later(
       () =>
         replay(
-          svg.current?.querySelector(`[data-plant-art="${plant.id}"]`),
+          sceneElement(svg.current, `[data-plant-art="${plant.id}"]`),
           'is-perking',
         ),
       latest.current.reduced ? 0 : PERK_AT_MS,
@@ -696,7 +697,7 @@ export function useGardenAmbience({
     if (!plant) return;
     if (plant.stage > 0)
       replay(
-        svg.current?.querySelector(`[data-plant-art="${plant.id}"]`),
+        sceneElement(svg.current, `[data-plant-art="${plant.id}"]`),
         'is-boing',
       );
     const blooming = plant.stage === 3 && plant.species !== 'SURPRISE';
@@ -728,7 +729,7 @@ export function useGardenAmbience({
   }, [bounceKey, add, nextKey, svg, t]);
 
   const tapTree = () => {
-    replay(svg.current?.querySelector('.garden-tree-crown'), 'is-rustling');
+    replay(sceneElement(svg.current, '.garden-tree-crown'), 'is-rustling');
     const s = treeScale(unlocks);
     const base = treeBase();
     const crown = { x: base.x + 4 * s, y: base.y - 54 * s };

@@ -1,3 +1,4 @@
+import { formatBytes } from '../client/formatBytes';
 import { useQuery } from '@tanstack/react-query';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -5,18 +6,6 @@ import './ServerAdminObservabilityPanels.css';
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat(resolvedLocale()).format(value);
-}
-
-function formatBytes(value: number): string {
-  if (value < 1024) return `${formatNumber(value)} B`;
-  const units = ['KB', 'MB', 'GB', 'TB'];
-  let amount = value / 1024;
-  let unit = units[0];
-  for (let index = 1; index < units.length && amount >= 1024; index += 1) {
-    amount /= 1024;
-    unit = units[index];
-  }
-  return `${new Intl.NumberFormat(resolvedLocale(), { maximumFractionDigits: 1 }).format(amount)} ${unit}`;
 }
 
 function statusLabel(status: string, t: (key: string) => string): string {

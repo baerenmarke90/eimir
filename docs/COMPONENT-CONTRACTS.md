@@ -26,6 +26,11 @@ Every component documents:
 New visual variants are added only when they express a new meaning or
 interaction.
 
+The motion of a component (item 5, Behavior) uses a primitive from the
+[Motion Contract](product/design/motion-contract.md#4-primitive-catalogue)
+and keeps its invariants; a component does not define its own animation
+mechanics.
+
 ## 2. Shared state models
 
 ```text

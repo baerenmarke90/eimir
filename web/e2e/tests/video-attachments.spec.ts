@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import photoSources from '../../src/i18n/locales/photoSources';
@@ -9,6 +8,7 @@ import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import videoCopy from '../../src/i18n/locales/video';
 import fixtureCopy from '../fixtures/locales/de';
+import AxeBuilder from '../support/axe';
 import { swipeCarousel } from '../support/mediaCarouselGesture';
 import { addComposerMedia } from '../support/mediaIntake';
 import { fulfillDefaultProductContext } from '../support/productContext';
@@ -378,7 +378,7 @@ for (const [width, colorScheme] of [
     await expect(progress).toHaveAttribute('value', '17');
     expect((await progress.boundingBox())?.width).toBeGreaterThan(100);
     await page
-      .locator('.memory-provenance-footer')
+      .locator('.comments-panel')
       .evaluate((element) =>
         element.scrollIntoView({ block: 'center', inline: 'nearest' }),
       );

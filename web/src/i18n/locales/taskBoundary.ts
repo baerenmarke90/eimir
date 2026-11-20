@@ -33,7 +33,7 @@ const taskBoundary = {
   photosUnconfirmed:
     'Der Moment ist gespeichert. Die Verknüpfung der Fotos wurde nicht bestätigt. Prüfe die Fotos hier, bevor du sie ergänzt.',
   discardTitle: 'Eingaben verwerfen?',
-  discardBody: 'Deine ungespeicherten Eingaben gehen beim Verlassen verloren.',
+  discardBody: 'Was du noch nicht gespeichert hast, geht dabei verloren.',
   partialDiscardTitle: 'Gespeicherten Moment verlassen?',
   partialDiscardBody:
     'Der bereits gespeicherte Text bleibt erhalten. Die Verknüpfung der Fotos ist noch nicht bestätigt. Du kannst sie später am Moment prüfen.',
@@ -42,5 +42,6 @@ const taskBoundary = {
     'Deine Eingaben werden hier verworfen. Der Moment könnte bereits gespeichert sein. Prüfe eure Momente vor einem neuen Versuch.',
   keepEditing: 'Hier bleiben',
   discard: 'Verlassen',
+  discardConfirm: 'Verwerfen',
 };
 export default taskBoundary;

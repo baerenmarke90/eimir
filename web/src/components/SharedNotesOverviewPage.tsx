@@ -284,25 +284,29 @@ export function SharedNotesOverviewPage({
 
       <SharedContentTabs activeView="notes" />
 
-      <div className="planen-panel">
-        <CollapsibleSearch
-          label={t('sharedNotes.search')}
-          clearLabel={t('sharedNotes.searchClear')}
-          value={query}
-          onChange={setQuery}
-          inputRef={searchRef}
-          maxLength={200}
-        />
-        <StatusScope<NoteScope>
-          label={t('sharedNotes.scopeLabel')}
-          value={scope}
-          options={(['ALL', 'PINNED'] as const).map((value) => ({
-            value,
-            label: t(`sharedNotes.scope.${value}`),
-          }))}
-          onChange={changeScope}
-        />
-      </div>
+      {/* Nothing to search or filter before the first note (#2063). An
+          active filter or search keeps its controls, so it can be undone. */}
+      {firstUse && scope === 'ALL' && !query.trim() ? null : (
+        <div className="planen-panel">
+          <CollapsibleSearch
+            label={t('sharedNotes.search')}
+            clearLabel={t('sharedNotes.searchClear')}
+            value={query}
+            onChange={setQuery}
+            inputRef={searchRef}
+            maxLength={200}
+          />
+          <StatusScope<NoteScope>
+            label={t('sharedNotes.scopeLabel')}
+            value={scope}
+            options={(['ALL', 'PINNED'] as const).map((value) => ({
+              value,
+              label: t(`sharedNotes.scope.${value}`),
+            }))}
+            onChange={changeScope}
+          />
+        </div>
+      )}
 
       {notes.data &&
       (notes.isCached ||

@@ -61,7 +61,7 @@ it.each([
   '/story/recaps/edition',
   '/story/chapters',
   '/plan/chapters/chapter',
-])('shows the localized Back label on the reading view %s', (path) => {
+])('uses the shared chevron Back on the reading view %s (#2063)', (path) => {
   render(
     <MemoryRouter initialEntries={[path]}>
       <SubpageNavigation>
@@ -71,10 +71,8 @@ it.each([
   );
 
   const back = screen.getByRole('button', { name: taskCopy.back });
-  expect(back.querySelector('.task-back-label')?.textContent).toBe(
-    taskCopy.back,
-  );
-  expect(back.querySelector('svg')).toBeNull();
+  expect(back.querySelector('.task-back-label')).toBeNull();
+  expect(back.querySelector('svg')).not.toBeNull();
 });
 
 it('places one page-owned guarded action above content and preserves its pending state', () => {

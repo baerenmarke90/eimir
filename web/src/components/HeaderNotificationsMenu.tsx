@@ -18,7 +18,7 @@ import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
 import { AuthorAvatar } from './PersonIdentity';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
-import { useOverlayPresence } from './useOverlayPresence';
+import { useOverlayPresence } from '../motion/presence';
 
 export interface HeaderNotificationsMenuProps {
   apiBaseUrl: string;

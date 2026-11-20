@@ -19,7 +19,7 @@ import {
   type Point,
   pulseRing,
   scatterDots,
-} from './flightKit';
+} from '../motion/flight';
 import type { FlightKind } from './sendFlight';
 
 export interface ArrivalItem {

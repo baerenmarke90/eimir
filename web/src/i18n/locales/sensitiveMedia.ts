@@ -7,4 +7,5 @@ export default {
   hide: 'Wieder verbergen',
   reveal: 'Anzeigen',
   conceal: 'Verbergen',
+  tapToReveal: 'Zum Anzeigen tippen',
 };

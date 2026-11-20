@@ -91,7 +91,11 @@ export function leaveItemMenu(
   go();
 }
 
-/** The sheet that holds the rows; rows are the children. */
+/**
+ * The sheet that holds the rows; rows are the children. A quiet `footnote`
+ * below them carries background facts such as who recorded the item, which
+ * the page itself does not need to show.
+ */
 export function ItemMenuSheet({
   open,
   title,
@@ -99,6 +103,7 @@ export function ItemMenuSheet({
   restoreFocusRef,
   isCloseBlocked = false,
   sheetRef,
+  footnote,
   children,
 }: {
   open: boolean;
@@ -108,7 +113,8 @@ export function ItemMenuSheet({
   isCloseBlocked?: boolean;
   /** Lets the owner leave through the sheet when a row navigates elsewhere. */
   sheetRef?: RefObject<ShortTaskSheetHandle | null>;
-  children: ReactNode;
+  footnote?: ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <ShortTaskSheet
@@ -120,6 +126,7 @@ export function ItemMenuSheet({
       onClose={onClose}
     >
       <div className="item-menu">{children}</div>
+      {footnote ? <p className="item-menu-footnote">{footnote}</p> : null}
     </ShortTaskSheet>
   );
 }

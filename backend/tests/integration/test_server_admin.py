@@ -7,7 +7,7 @@ from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 from eimir.administration.models import (
     InstanceAdministrationActionEvent,
@@ -502,7 +502,8 @@ def test_server_admin_resends_normal_primary_email_verification(
     verification_url = next(
         line for line in mailbox.messages[0].body.splitlines() if line.startswith("http")
     )
-    token = parse_qs(urlsplit(verification_url).query)["token"][0]
+    assert not urlsplit(verification_url).query
+    token = parse_qs(urlsplit(verification_url).fragment)["token"][0]
     confirmed = client.post(
         "/api/v1/auth/email/verification/confirm",
         json={"token": token},
@@ -620,7 +621,8 @@ def test_operator_assisted_recovery_reuses_normal_one_time_recovery_flow(
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     recovery_url = response.json()["recoveryUrl"]
-    token = parse_qs(urlsplit(recovery_url).query)["token"][0]
+    assert not urlsplit(recovery_url).query
+    token = parse_qs(urlsplit(recovery_url).fragment)["token"][0]
     assert token
 
     consumed = client.post(
@@ -802,8 +804,11 @@ def test_server_admin_delete_account_idempotent_retry(
     )
     assert res1.status_code == 200
     accepted_at_1 = res1.json()["acceptedAt"]
+    assert accepted_at_1.endswith("Z")
 
-    # Second call (retry)
+    # A retry can read the same instant through a different database session timezone.
+    session.execute(text("SET LOCAL TIME ZONE 'Europe/Berlin'"))
+    session.expire_all()
     res2 = client.post(
         f"/api/v1/server-admin/accounts/{target.id}/deletion",
         headers=auth(admin_token),
@@ -811,6 +816,9 @@ def test_server_admin_delete_account_idempotent_retry(
     )
     assert res2.status_code == 200
     assert res2.json()["acceptedAt"] == accepted_at_1
+    detail = client.get(f"/api/v1/server-admin/accounts/{target.id}", headers=auth(admin_token))
+    assert detail.status_code == 200
+    assert detail.json()["deletionAcceptedAt"] == accepted_at_1
     assert len(journal.read_all()) == 1
 
 

@@ -24,18 +24,30 @@ spaces/{spaceId}/transfers/exports/{exportId}/bundle.zip
 spaces/{spaceId}/transfers/imports/{importId}/bundle.zip
 ```
 
-Export assembly uses a Python `SpooledTemporaryFile`: up to 16 MiB remains in
-worker memory and larger archives may spill into the worker host's operating
-system temporary directory while the ZIP is being assembled. The completed
-archive is then copied into the configured private `MediaStore`; the spool is
-closed by the worker after the copy attempt. Operators therefore need normal
-writable OS temporary space for the worker in addition to `MediaStore`
-capacity.
+Export workers assemble v1 archives in an anonymous Linux memfd or in
+process memory on platforms without memfd. The writer checks entry, JSON,
+total, compression and archive-size limits against the importer before
+publishing a READY artifact. An oversized v1 export fails as
+`TRANSFER_TOO_LARGE`. V1 has no multipart format.
 
-Import uploads are staged directly in the private `MediaStore`. Domain data is
-not mutated during staging or validation. Media restored by an apply receives
-new target IDs and remains unreachable through the application until the
-matching database rows commit.
+The API streams each import into a spool. The configured private MediaStore receives the
+completed stream and the database transaction schedules validation. A failed
+transaction removes its object. Apply uses new target IDs, visible only once
+the corresponding rows commit.
+
+### Multipart format for larger collections
+
+A future v2 bundle set uses a versioned index and numbered, individually bounded
+parts. The index carries a random set ID, scope, source-space ID, total number
+of parts, byte lengths and a SHA-256 digest per part. Each part carries the
+same set ID and its sequence number. Domain records have stable source IDs
+across parts. Media objects exceeding one part use numbered segments with a
+declared full length and digest. An importer must validate every part and the
+reassembled references before scheduling one apply transaction for the set.
+Missing, duplicate or mismatched parts leave the set incomplete. Retry reuses
+the same destination ID map. All staging objects inherit the same creator,
+scope, expiry and deletion lifecycle as individual v1 transfers. The current
+API accepts format v1 only.
 
 ## Member mapping
 
@@ -130,6 +142,16 @@ The archive reader and upload path enforce compressed/uncompressed size,
 member-count, JSON-entry, path, duplicate-entry, compression-ratio, encryption,
 symlink/device, checksum, and relation/privacy limits before Domain apply.
 These are abuse/safety controls, not commercial quotas.
+
+The API streams each import into a spool. Up to 16 MiB stays in process
+memory. Larger uploads roll into the API's private `/tmp` tmpfs in both
+Compose profiles. The same mount protects temporary files used by regular
+media uploads. Both the web proxy and the API allow transfer bodies up to
+512 MiB. The proxy forwards them without request-body buffering. Size
+`EIMIR_API_TMPFS_SIZE` (default 1 GiB) and container memory for the number
+of simultaneous uploads. Disable swap or use encrypted swap for plaintext
+memory pages. A full mount fails the upload. Request cleanup closes its spool
+on cancellation or failure.
 
 Operational logs contain technical state such as transfer ID, scope, size or
 media count and stable error codes. Bundle content, private titles, credentials,

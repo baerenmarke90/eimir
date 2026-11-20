@@ -281,6 +281,18 @@
   min-width: 0;
 }
 
+/* On phones the floating create button sits at the inline end above the
+   navigation. Section links end before its column so it never covers them
+   (#2063: it hid the planning link on first open). */
+@media (max-width: 839px) {
+  .today-page:has(.add-action[data-floating-create]) .today-section-header {
+    padding-inline-end: calc(
+      var(--touch-target-floating-create) +
+      var(--space-2)
+    );
+  }
+}
+
 /*
  * A section's "see everything" affordance is a quiet trailing link, not a
  * button: it must stay clearly subordinate to the content it sits above.

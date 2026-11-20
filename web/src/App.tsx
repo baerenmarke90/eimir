@@ -1,5 +1,14 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  lazy,
+  type ReactNode,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Link,
   Navigate,
@@ -54,6 +63,7 @@ import { createPartnerLocationApi } from './client/partnerLocation';
 import { PartnerNicknameProvider } from './client/partnerNickname';
 import { createPeopleApi } from './client/peopleApi';
 import { PersonColoursProvider } from './client/personColoursContext';
+import { PLAN_SHORT_LINK_ROUTE_PATTERN } from './client/planShortLink';
 import { createPrivateAreaApi } from './client/privateArea';
 import {
   clientProblemKind,
@@ -146,6 +156,7 @@ import { type StoryStartupReads, startStoryReads } from './client/storyStartup';
 import { useAccountLanguage } from './client/useAccountLanguage';
 import { useCalendarGoogleAppReturn } from './client/useCalendarGoogleAppReturn';
 import { useIdentityEntry } from './client/useIdentityEntry';
+import { usePlanShortLinkAppOpen } from './client/usePlanShortLinkAppOpen';
 import { useSessionRefresh } from './client/useSessionRefresh';
 import { useSystemTimeZone } from './client/useSystemTimeZone';
 import { useVideoTransferNavigation } from './client/useVideoTransferNavigation';
@@ -156,20 +167,10 @@ import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AppShell } from './components/AppShell';
 import { Brand } from './components/Brand';
 import { BrandedStartup } from './components/BrandedStartup';
-import { ChapterCreatePage } from './components/ChapterCreatePage';
-import { ChapterProductPage } from './components/ChapterProductPage';
-import { ChaptersOverviewPage } from './components/ChaptersOverviewPage';
 import { CollectionProductPage } from './components/CollectionProductPage';
-import { CollectionsOverviewPage } from './components/CollectionsOverviewPage';
-import { CoupleExperiencePage } from './components/CoupleExperiencePage';
-import { DailyInsightsPage } from './components/DailyInsightsPage';
-import { DateIdeasPage } from './components/DateIdeasPage';
 import { DemoEntry } from './components/DemoEntry';
 import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
-import { GardenGamePage } from './components/GardenGamePage';
-import { HeartHuntGamePage } from './components/HeartHuntGamePage';
-import { HeartMomentProductPage } from './components/HeartMomentProductPage';
 import { IdentityEntry } from './components/IdentityEntry';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
 import { LegalDocumentPage } from './components/LegalDocumentPage';
@@ -178,45 +179,24 @@ import {
   NotificationsProductPage,
   SearchProductPage,
 } from './components/M4ProductPages';
-import { MediaOverviewPage } from './components/MediaOverviewPage';
-import { MemoryCreatePage } from './components/MemoryCreatePage';
-import { MemoryMapPage } from './components/MemoryMapPage';
-import { MemoryProductPage } from './components/MemoryProductPage';
-import { MilestoneProductPage } from './components/MilestoneProductPage';
 import { MoreOverviewPage } from './components/MoreOverviewPage';
 import { OnceMessagesPage } from './components/OnceMessages';
-import { OurMomentsGamePage } from './components/OurMomentsGamePage';
-import { PartnerLocationMapPage } from './components/PartnerLocationMapPage';
 import { PartnerLocationOnboarding } from './components/PartnerLocationOnboarding';
-import { PartnerLocationSettingsPage } from './components/PartnerLocationSettingsPage';
 import { PartnerLocationSync } from './components/PartnerLocationSync';
 import { PersonalSettingsSyncRuntime } from './components/PersonalSettingsSyncRuntime';
-import { PicturePingPongPage } from './components/PicturePingPongPage';
 import type { MapViewport } from './components/PlaceMapCanvas';
-import { PlaceProductPage } from './components/PlaceProductPage';
-import { PlacesOverviewPage } from './components/PlacesOverviewPage';
-import { PlanningCreatePage } from './components/PlanningCreatePage';
-import { PlanProductPage } from './components/PlanProductPage';
+import { PlanShortLinkRedirect } from './components/PlanShortLinkRedirect';
 import {
   type PrimaryTabPanel,
   PrimaryTabPanels,
 } from './components/PrimaryTabPanels';
-import { PrivateAreaProductPage } from './components/PrivateAreaProductPage';
 import { ProblemState } from './components/ProblemState';
-import { ProfilePage } from './components/ProfilePage';
-import { ProPaywallPage } from './components/ProPaywallPage';
-import { RelatedPeoplePage } from './components/RelatedPeoplePage';
-import { RelationshipRecapsPage } from './components/RelationshipRecapsPage';
 import { RelationshipStoryPage } from './components/RelationshipStoryPage';
-import { ReminderReadPage } from './components/ReminderReadPage';
+import { SecureSurface } from './components/SecureSurface';
 import {
   ServerAdminAccessGate,
   ServerAdminPage,
 } from './components/ServerAdminPage';
-import { SettingsPage } from './components/SettingsPage';
-import { SharedNoteEditorPage } from './components/SharedNoteEditorPage';
-import { SharedNoteReadPage } from './components/SharedNoteReadPage';
-import { SharedNotesOverviewPage } from './components/SharedNotesOverviewPage';
 import { SharedPlanningOverviewPage } from './components/SharedPlanningOverviewPage';
 import { StoryProductPage } from './components/StoryProductPage';
 import {
@@ -227,12 +207,230 @@ import { ThemeControl } from './components/ThemeControl';
 import { TodayPage } from './components/TodayPage';
 import { UiState } from './components/UiState';
 import { VoiceShareIngress } from './components/VoiceShareIngress';
-import { WhoOfUsGamePage } from './components/WhoOfUsGamePage';
-import { WishDetectiveGamePage } from './components/WishDetectiveGamePage';
-import { WishProductPage } from './components/WishProductPage';
-import { WishSelectionPage } from './components/WishSelectionPage';
 import { useTranslation } from './i18n';
 import { legalDocumentIdForRoute } from './legal/legalDocuments';
+import { isCapacitorNative } from './pwa';
+
+const ChapterCreatePage = lazy(() =>
+  import('./components/ChapterCreatePage').then((module) => ({
+    default: module.ChapterCreatePage,
+  })),
+);
+const ChapterProductPage = lazy(() =>
+  import('./components/ChapterProductPage').then((module) => ({
+    default: module.ChapterProductPage,
+  })),
+);
+const ChaptersOverviewPage = lazy(() =>
+  import('./components/ChaptersOverviewPage').then((module) => ({
+    default: module.ChaptersOverviewPage,
+  })),
+);
+const CollectionsOverviewPage = lazy(() =>
+  import('./components/CollectionsOverviewPage').then((module) => ({
+    default: module.CollectionsOverviewPage,
+  })),
+);
+const CoupleExperiencePage = lazy(() =>
+  import('./components/CoupleExperiencePage').then((module) => ({
+    default: module.CoupleExperiencePage,
+  })),
+);
+const DailyInsightsPage = lazy(() =>
+  import('./components/DailyInsightsPage').then((module) => ({
+    default: module.DailyInsightsPage,
+  })),
+);
+const DateIdeasPage = lazy(() =>
+  import('./components/DateIdeasPage').then((module) => ({
+    default: module.DateIdeasPage,
+  })),
+);
+const GardenGamePage = lazy(() =>
+  import('./components/GardenGamePage').then((module) => ({
+    default: module.GardenGamePage,
+  })),
+);
+const HeartHuntGamePage = lazy(() =>
+  import('./components/HeartHuntGamePage').then((module) => ({
+    default: module.HeartHuntGamePage,
+  })),
+);
+const HeartMomentProductPage = lazy(() =>
+  import('./components/HeartMomentProductPage').then((module) => ({
+    default: module.HeartMomentProductPage,
+  })),
+);
+const MediaOverviewPage = lazy(() =>
+  import('./components/MediaOverviewPage').then((module) => ({
+    default: module.MediaOverviewPage,
+  })),
+);
+const MemoryCreatePage = lazy(() =>
+  import('./components/MemoryCreatePage').then((module) => ({
+    default: module.MemoryCreatePage,
+  })),
+);
+const MemoryMapPage = lazy(() =>
+  import('./components/MemoryMapPage').then((module) => ({
+    default: module.MemoryMapPage,
+  })),
+);
+const MemoryProductPage = lazy(() =>
+  import('./components/MemoryProductPage').then((module) => ({
+    default: module.MemoryProductPage,
+  })),
+);
+const MilestoneProductPage = lazy(() =>
+  import('./components/MilestoneProductPage').then((module) => ({
+    default: module.MilestoneProductPage,
+  })),
+);
+const OurMomentsGamePage = lazy(() =>
+  import('./components/OurMomentsGamePage').then((module) => ({
+    default: module.OurMomentsGamePage,
+  })),
+);
+const PartnerLocationMapPage = lazy(() =>
+  import('./components/PartnerLocationMapPage').then((module) => ({
+    default: module.PartnerLocationMapPage,
+  })),
+);
+const PartnerLocationSettingsPage = lazy(() =>
+  import('./components/PartnerLocationSettingsPage').then((module) => ({
+    default: module.PartnerLocationSettingsPage,
+  })),
+);
+const PicturePingPongPage = lazy(() =>
+  import('./components/PicturePingPongPage').then((module) => ({
+    default: module.PicturePingPongPage,
+  })),
+);
+const PlaceProductPage = lazy(() =>
+  import('./components/PlaceProductPage').then((module) => ({
+    default: module.PlaceProductPage,
+  })),
+);
+const PlacesOverviewPage = lazy(() =>
+  import('./components/PlacesOverviewPage').then((module) => ({
+    default: module.PlacesOverviewPage,
+  })),
+);
+const PlanningCreatePage = lazy(() =>
+  import('./components/PlanningCreatePage').then((module) => ({
+    default: module.PlanningCreatePage,
+  })),
+);
+const PlanProductPage = lazy(() =>
+  import('./components/PlanProductPage').then((module) => ({
+    default: module.PlanProductPage,
+  })),
+);
+const PrivateAreaProductPage = lazy(() =>
+  import('./components/PrivateAreaProductPage').then((module) => ({
+    default: module.PrivateAreaProductPage,
+  })),
+);
+const ProfilePage = lazy(() =>
+  import('./components/ProfilePage').then((module) => ({
+    default: module.ProfilePage,
+  })),
+);
+const ProPaywallPage = lazy(() =>
+  import('./components/ProPaywallPage').then((module) => ({
+    default: module.ProPaywallPage,
+  })),
+);
+const RelatedPeoplePage = lazy(() =>
+  import('./components/RelatedPeoplePage').then((module) => ({
+    default: module.RelatedPeoplePage,
+  })),
+);
+const RelationshipRecapsPage = lazy(() =>
+  import('./components/RelationshipRecapsPage').then((module) => ({
+    default: module.RelationshipRecapsPage,
+  })),
+);
+const ReminderReadPage = lazy(() =>
+  import('./components/ReminderReadPage').then((module) => ({
+    default: module.ReminderReadPage,
+  })),
+);
+const SettingsPage = lazy(() =>
+  import('./components/SettingsPage').then((module) => ({
+    default: module.SettingsPage,
+  })),
+);
+const SharedNoteEditorPage = lazy(() =>
+  import('./components/SharedNoteEditorPage').then((module) => ({
+    default: module.SharedNoteEditorPage,
+  })),
+);
+const SharedNoteReadPage = lazy(() =>
+  import('./components/SharedNoteReadPage').then((module) => ({
+    default: module.SharedNoteReadPage,
+  })),
+);
+const SharedNotesOverviewPage = lazy(() =>
+  import('./components/SharedNotesOverviewPage').then((module) => ({
+    default: module.SharedNotesOverviewPage,
+  })),
+);
+const WhoOfUsGamePage = lazy(() =>
+  import('./components/WhoOfUsGamePage').then((module) => ({
+    default: module.WhoOfUsGamePage,
+  })),
+);
+const WishDetectiveGamePage = lazy(() =>
+  import('./components/WishDetectiveGamePage').then((module) => ({
+    default: module.WishDetectiveGamePage,
+  })),
+);
+const WishProductPage = lazy(() =>
+  import('./components/WishProductPage').then((module) => ({
+    default: module.WishProductPage,
+  })),
+);
+const WishSelectionPage = lazy(() =>
+  import('./components/WishSelectionPage').then((module) => ({
+    default: module.WishSelectionPage,
+  })),
+);
+
+function DeferredRoutes({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
+  const { pathname } = useLocation();
+  // Retire the previous page's Back control while its destination loads.
+  return (
+    <Suspense
+      key={pathname}
+      fallback={<UiState kind="loading" title={t('states.loading.title')} />}
+    >
+      <Routes>{children}</Routes>
+    </Suspense>
+  );
+}
+
+/**
+ * Panels built in the background once the app is quiet (#2063). Only the
+ * phone app, where starting a map needs the GPU and its first data from the
+ * network; on the Web the map is built when it is opened.
+ */
+const PREWARMED_PANELS: readonly string[] = isCapacitorNative()
+  ? [MEMORY_MAP_ROUTE]
+  : [];
+
+/** A kept panel whose page code loads on first visit. */
+function DeferredPanel({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
+  return (
+    <Suspense
+      fallback={<UiState kind="loading" title={t('states.loading.title')} />}
+    >
+      {children}
+    </Suspense>
+  );
+}
 
 function SpaceContextGate({
   loading,
@@ -611,6 +809,21 @@ function AuthenticatedApp({
       ),
     },
     {
+      // The Momente map stays mounted once visited (#2063): starting a map
+      // needs the GPU and its places' photos, so returning to it reuses the
+      // live map instead of building it again.
+      path: MEMORY_MAP_ROUTE,
+      element: (
+        <DeferredPanel>
+          <MemoryMapPage
+            {...planningProductProps}
+            loadMemoryImage={loadMemoryImage}
+            sessionViewport={memoryMapViewport.current}
+          />
+        </DeferredPanel>
+      ),
+    },
+    {
       path: appRoutePath('plan'),
       element: (
         <SharedPlanningOverviewPage
@@ -654,6 +867,7 @@ function AuthenticatedApp({
           <PrimaryTabPanels
             panels={primaryTabPanels}
             fallback={routeErrorFallback}
+            prewarm={PREWARMED_PANELS}
           />
         }
       >
@@ -661,18 +875,30 @@ function AuthenticatedApp({
           resetKey={location.pathname}
           fallback={routeErrorFallback}
         >
-          <Routes>
+          <DeferredRoutes>
             <Route
               path={ONCE_ROUTE}
-              element={<OnceMessagesPage mode="inbox" />}
+              element={
+                <SecureSurface announceFailure>
+                  <OnceMessagesPage mode="inbox" />
+                </SecureSurface>
+              }
             />
             <Route
               path={ONCE_CREATE_ROUTE}
-              element={<OnceMessagesPage mode="compose" />}
+              element={
+                <SecureSurface announceFailure>
+                  <OnceMessagesPage mode="compose" />
+                </SecureSurface>
+              }
             />
             <Route
               path={`${ONCE_ROUTE}/:messageId`}
-              element={<OnceMessagesPage mode="read" />}
+              element={
+                <SecureSurface announceFailure>
+                  <OnceMessagesPage mode="read" />
+                </SecureSurface>
+              }
             />
             <Route
               path="/"
@@ -755,6 +981,10 @@ function AuthenticatedApp({
               element={<PlanProductPage {...planningProductProps} />}
             />
             <Route
+              path={PLAN_SHORT_LINK_ROUTE_PATTERN}
+              element={<PlanShortLinkRedirect />}
+            />
+            <Route
               path={REMINDER_DETAIL_ROUTE_PATTERN}
               element={
                 <ReminderReadPage
@@ -781,16 +1011,8 @@ function AuthenticatedApp({
               path={CHAPTER_DETAIL_ROUTE_PATTERN}
               element={<ChapterProductPage {...planningProductProps} />}
             />
-            <Route
-              path={MEMORY_MAP_ROUTE}
-              element={
-                <MemoryMapPage
-                  {...planningProductProps}
-                  loadMemoryImage={loadMemoryImage}
-                  sessionViewport={memoryMapViewport.current}
-                />
-              }
-            />
+            {/* Kept like a primary tab (#2063); see primaryTabPanels. */}
+            <Route path={MEMORY_MAP_ROUTE} element={null} />
             <Route
               path={MORE_PLACES_ROUTE}
               element={<PlacesOverviewPage {...planningProductProps} />}
@@ -865,7 +1087,11 @@ function AuthenticatedApp({
             />
             <Route
               path={SEARCH_ROUTE}
-              element={<SearchProductPage apis={m4Apis} spaceId={spaceId} />}
+              element={
+                <SecureSurface announceFailure>
+                  <SearchProductPage apis={m4Apis} spaceId={spaceId} />
+                </SecureSurface>
+              }
             />
             {(['happiness', 'timeTravel'] as const).flatMap((kind) =>
               ['', '/new'].map((suffix) => (
@@ -1046,12 +1272,14 @@ function AuthenticatedApp({
             <Route
               path={MORE_PROFILE_ROUTE}
               element={
-                <ProfilePage
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={tokens.accessToken}
-                  account={account}
-                  spaceId={spaceId}
-                />
+                <SecureSurface announceFailure>
+                  <ProfilePage
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    account={account}
+                    spaceId={spaceId}
+                  />
+                </SecureSurface>
               }
             />
             <Route
@@ -1104,13 +1332,15 @@ function AuthenticatedApp({
             <Route
               path="/more/private/*"
               element={
-                <PrivateAreaProductPage
-                  api={privateAreaApi}
-                  profilesApi={profilesApi}
-                  spacesApi={spacesApi}
-                  accountId={account.id}
-                  spaceId={spaceId}
-                />
+                <SecureSurface announceFailure>
+                  <PrivateAreaProductPage
+                    api={privateAreaApi}
+                    profilesApi={profilesApi}
+                    spacesApi={spacesApi}
+                    accountId={account.id}
+                    spaceId={spaceId}
+                  />
+                </SecureSurface>
               }
             />
             <Route
@@ -1149,19 +1379,23 @@ function AuthenticatedApp({
             <Route
               path={HEART_MOMENT_CREATE_ROUTE}
               element={
-                <HeartMomentProductPage
-                  mode="create"
-                  {...heartMomentProductProps}
-                />
+                <SecureSurface announceFailure>
+                  <HeartMomentProductPage
+                    mode="create"
+                    {...heartMomentProductProps}
+                  />
+                </SecureSurface>
               }
             />
             <Route
               path={HEART_MOMENT_EDIT_ROUTE_PATTERN}
               element={
-                <HeartMomentProductPage
-                  mode="edit"
-                  {...heartMomentProductProps}
-                />
+                <SecureSurface announceFailure>
+                  <HeartMomentProductPage
+                    mode="edit"
+                    {...heartMomentProductProps}
+                  />
+                </SecureSurface>
               }
             />
             <Route
@@ -1230,7 +1464,7 @@ function AuthenticatedApp({
               path="*"
               element={<Navigate replace to={DEFAULT_APP_ROUTE} />}
             />
-          </Routes>
+          </DeferredRoutes>
         </AppErrorBoundary>
       </AppShell>
       <PersonalSettingsSyncRuntime
@@ -1318,6 +1552,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const { t } = useTranslation();
   const { entryToken, clearEntryToken } = useIdentityEntry(config.apiBaseUrl);
   useCalendarGoogleAppReturn();
+  usePlanShortLinkAppOpen(config.apiBaseUrl);
   const [initialStoredSession] = useState(loadStoredSession);
   const [startupLocation] = useState(() => ({
     pathname: location.pathname,

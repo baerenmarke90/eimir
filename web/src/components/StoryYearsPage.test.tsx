@@ -97,7 +97,7 @@ describe('Story annual archive (#868)', () => {
       nextCursor: 'next',
     });
 
-    expect(html).toContain('Unsere Jahre');
+    expect(html).toContain(de.storyYears.title.replaceAll('&', '&amp;'));
     expect(html).toContain('href="/story/years/2026"');
     expect(html).toContain('href="/story/years/2024"');
     expect(html).toContain('href="/story/years/2022"');

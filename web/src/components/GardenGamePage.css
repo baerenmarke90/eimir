@@ -121,6 +121,39 @@
   max-width: none;
 }
 
+/* The scene is a stack of depth bands (#2063). The top band with the tap
+   targets stays in flow and sizes the stack exactly as the single scene did;
+   every other band is laid over its box. Each band gets its own compositor
+   layer, so a swaying tuft or a drifting cloud re-rasters only its band while
+   the sky and the hills stay painted. */
+.garden-scene-stack {
+  position: relative;
+  display: block;
+  max-width: none;
+}
+
+.garden-frame:not(.is-wide) .garden-scene-stack {
+  width: 100% !important;
+}
+
+.garden-scene-stack > .garden-scene {
+  will-change: transform;
+}
+
+.garden-scene-stack > .garden-scene-targets {
+  position: relative;
+  width: 100%;
+}
+
+.garden-scene-stack > svg.garden-scene.garden-scene-band {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  min-width: 0;
+  height: 100% !important;
+  pointer-events: none;
+}
+
 .garden-frame:not(.is-wide) .garden-scene {
   width: 100% !important;
 }
@@ -439,13 +472,15 @@
     var(--easing-travel) infinite alternate;
 }
 
+/* A whole group of tufts leans from its roots (#2063): a skew keeps every
+   root on the ground where a rotation of a wide group would lift its ends. */
 @keyframes garden-breeze {
   0%,
   100% {
-    transform: rotate(-1.5deg);
+    transform: skewX(1.5deg);
   }
   50% {
-    transform: rotate(2.5deg);
+    transform: skewX(-2.5deg);
   }
 }
 
@@ -464,13 +499,13 @@
     transform: none;
   }
   24% {
-    transform: rotate(9deg) skewX(-4deg);
+    transform: skewX(-12deg);
   }
   50% {
-    transform: rotate(-3deg);
+    transform: skewX(3deg);
   }
   74% {
-    transform: rotate(1.4deg);
+    transform: skewX(-1.4deg);
   }
   100% {
     transform: none;

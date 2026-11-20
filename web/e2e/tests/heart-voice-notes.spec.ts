@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
@@ -168,7 +169,7 @@ async function importFile(page: Page) {
   await openVoiceTask(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: voice.choose, exact: true }).click();
-  await (await chooser).setFiles(input.pathname);
+  await (await chooser).setFiles(fileURLToPath(input));
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await openVoiceTask(page);
   await expect(

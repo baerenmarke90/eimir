@@ -9,6 +9,9 @@ const state = vi.hoisted(() => ({
   native: false,
   resize: () => {},
   events: {} as Record<string, (event?: unknown) => void>,
+  once: {} as Record<string, Array<(event?: unknown) => void>>,
+  storedStyle: null as unknown,
+  setStyle: vi.fn(),
   options: {} as Record<string, unknown>,
   fit: vi.fn(),
   mapResize: vi.fn(),
@@ -22,6 +25,11 @@ const state = vi.hoisted(() => ({
 vi.mock('../pwa', () => ({ isCapacitorNative: () => state.native }));
 vi.mock('maplibre-gl/dist/maplibre-gl-worker.mjs?url', () => ({
   default: '/worker.js',
+}));
+vi.mock('../client/basemapStyleCache', () => ({
+  cachedBasemapStyle: () => state.storedStyle,
+  forgetBasemapStyle: vi.fn(),
+  refreshBasemapStyle: vi.fn(() => Promise.resolve()),
 }));
 vi.mock('maplibre-gl', () => {
   const map = {
@@ -37,8 +45,12 @@ vi.mock('maplibre-gl', () => {
       state.events[event] = callback;
       return map;
     },
+    once: (event: string, callback: () => void) => {
+      state.once[event] = [...(state.once[event] ?? []), callback];
+      return map;
+    },
     off: vi.fn(),
-    setStyle: vi.fn(),
+    setStyle: state.setStyle,
     addControl: vi.fn(),
     touchZoomRotate: { disableRotation: vi.fn() },
     fitBounds: state.fit,
@@ -75,6 +87,8 @@ beforeEach(() => {
   state.width = state.height = 0;
   state.native = false;
   state.events = {};
+  state.once = {};
+  state.storedStyle = null;
   vi.clearAllMocks();
   vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(
     () => state.width,
@@ -117,6 +131,22 @@ it('uses the native HTTP cache only for public map tiles', () => {
   expect(
     transform('https://tiles.openfreemap.org.example/tile', 'Tile'),
   ).toBeUndefined();
+  // The versioned sprite sheet and the font glyphs stay on the device (#2063).
+  for (const [url, type] of [
+    [
+      'https://tiles.openfreemap.org/sprites/ofm_f384/ofm@2x.json',
+      'SpriteJSON',
+    ],
+    [
+      'https://tiles.openfreemap.org/sprites/ofm_f384/ofm@2x.png',
+      'SpriteImage',
+    ],
+    [
+      'https://tiles.openfreemap.org/fonts/Noto%20Sans%20Bold/0-255.pbf',
+      'Glyphs',
+    ],
+  ])
+    expect(transform(url, type)).toEqual({ url, cache: 'force-cache' });
 });
 
 it('frames arriving areas until the viewer moves and drops withdrawn areas', () => {
@@ -408,4 +438,51 @@ it("reports only the viewer's own gestures and settles after they rest", () => {
   } finally {
     vi.useRealTimers();
   }
+});
+
+it('shows the map in one piece once its view has drawn and photos loaded', () => {
+  const { container } = render(<PlaceMapCanvas revealWhenComplete />);
+  const canvas = container.querySelector('.place-map-canvas');
+  expect(canvas?.getAttribute('data-reveal')).toBe('waiting');
+  act(() => {
+    for (const callback of state.once.idle ?? []) callback();
+  });
+  return act(async () => {
+    await Promise.resolve();
+  }).then(() => {
+    expect(canvas?.getAttribute('data-reveal')).toBe('complete');
+  });
+});
+
+it('leaves other maps as they are', () => {
+  const { container } = render(<PlaceMapCanvas />);
+  expect(
+    container.querySelector('.place-map-canvas')?.hasAttribute('data-reveal'),
+  ).toBe(false);
+});
+
+it('starts from the basemap style kept on the device, localized', () => {
+  state.storedStyle = {
+    version: 8,
+    sources: {
+      openmaptiles: {
+        type: 'vector',
+        tiles: ['https://tiles.openfreemap.org/planet/v/{z}/{x}/{y}.pbf'],
+        attribution: 'OpenFreeMap Data from OpenStreetMap',
+      },
+    },
+    layers: [],
+  };
+  render(<PlaceMapCanvas />);
+  const [style] = state.setStyle.mock.calls[0];
+  expect(typeof style).toBe('object');
+  expect(style.sources.openmaptiles.tiles).toHaveLength(1);
+  expect(style.sources.openmaptiles.attribution).not.toContain('Data from');
+});
+
+it('loads the style from the provider when none is kept', () => {
+  render(<PlaceMapCanvas />);
+  expect(state.setStyle.mock.calls[0][0]).toBe(
+    'https://tiles.openfreemap.org/styles/liberty',
+  );
 });

@@ -63,7 +63,12 @@ def actors(session):  # type: ignore[no-untyped-def]
     key_a, key_b = uuid4(), uuid4()
     for context, key_id in ((a, key_a), (b, key_b)):
         service.set_reception(
-            session, context, enable=True, device_id=key_id, public_jwk=public_key()
+            session,
+            context,
+            enable=True,
+            device_id=key_id,
+            public_jwk=public_key(),
+            platform="android",
         )
     grant = EntitlementGrant(
         space_id=space.id,
@@ -86,8 +91,9 @@ def actors(session):  # type: ignore[no-untyped-def]
         key_a=key_a,
         key_b=key_b,
         grant=grant,
-        token_a=sign_in(session, first),
-        token_b=sign_in(session, second),
+        token_a=sign_in(session, first, platform="android"),
+        token_b=sign_in(session, second, platform="android"),
+        token_b_web=sign_in(session, second, platform="web"),
         token_outsider=sign_in(session, outsider),
     )
 
@@ -155,7 +161,12 @@ def test_pro_only_creation_and_non_destructive_downgrade(session, client, actors
     assert create.status_code == 403
     assert create.json()["code"] == "PREMIUM_ENTITLEMENT_REQUIRED"
     opened = service.claim(
-        session, actors["b"], message.id, device_id=actors["key_b"], token=uuid4()
+        session,
+        actors["b"],
+        message.id,
+        device_id=actors["key_b"],
+        token=uuid4(),
+        platform="android",
     )
     assert opened.byte_size > 0
 
@@ -291,12 +302,19 @@ def test_foreign_account_wrong_sender_and_device_cannot_open(session, client, ac
 
 def test_consent_revocation_and_membership_end_purge_pending_content(session, actors):  # type: ignore[no-untyped-def]
     message = sent(session, actors)
-    service.set_reception(session, actors["b"], enable=False, device_id=None, public_jwk=None)
+    service.set_reception(
+        session, actors["b"], enable=False, device_id=None, public_jwk=None, platform="android"
+    )
     assert session.get(OnceMessage, message.id).payload.jwe == {}
     with pytest.raises(NotFoundError):
         service.get_sealed(session, actors["b"], message.id)
     service.set_reception(
-        session, actors["b"], enable=True, device_id=uuid4(), public_jwk=public_key()
+        session,
+        actors["b"],
+        enable=True,
+        device_id=uuid4(),
+        public_jwk=public_key(),
+        platform="android",
     )
     actors["key_b"] = service.current_keys(
         session,
@@ -317,7 +335,14 @@ def test_consent_revocation_and_membership_end_purge_pending_content(session, ac
 def test_expiry_and_crashed_viewer_cleanup(session, actors, monkeypatch):  # type: ignore[no-untyped-def]
     message = sent(session, actors)
     opened_at = clock.now()
-    service.claim(session, actors["b"], message.id, device_id=actors["key_b"], token=uuid4())
+    service.claim(
+        session,
+        actors["b"],
+        message.id,
+        device_id=actors["key_b"],
+        token=uuid4(),
+        platform="android",
+    )
     monkeypatch.setattr(clock, "now", lambda: opened_at + timedelta(minutes=6))
     service.cleanup(session, {"message_id": str(message.id)})
     assert message.payload.jwe == {} and message.byte_size == 0
@@ -335,8 +360,12 @@ def test_competing_openers_receive_one_view(production_client):  # type: ignore[
         relationship.add_member(setup, space.id, second)
         a, b = AuthorizationContext(first.id, space.id), AuthorizationContext(second.id, space.id)
         key_id = uuid4()
-        service.set_reception(setup, a, enable=True, device_id=uuid4(), public_jwk=public_key())
-        service.set_reception(setup, b, enable=True, device_id=key_id, public_jwk=public_key())
+        service.set_reception(
+            setup, a, enable=True, device_id=uuid4(), public_jwk=public_key(), platform="android"
+        )
+        service.set_reception(
+            setup, b, enable=True, device_id=key_id, public_jwk=public_key(), platform="android"
+        )
         setup.add(
             EntitlementGrant(
                 space_id=space.id,
@@ -355,7 +384,9 @@ def test_competing_openers_receive_one_view(production_client):  # type: ignore[
     def open_it() -> bool:
         try:
             with maker.begin() as transaction:
-                service.claim(transaction, b, message_id, device_id=key_id, token=uuid4())
+                service.claim(
+                    transaction, b, message_id, device_id=key_id, token=uuid4(), platform="android"
+                )
             return True
         except NotFoundError:
             return False
@@ -401,7 +432,9 @@ def test_discreet_push_still_delivers_when_device_has_rich_previews(session, act
         assert "ciphertext" not in json.dumps(provider.calls)
         push.handle_delivery(session, {"deliveryId": str(delivery.id)})
         assert len(provider.calls) == 1
-        service.set_reception(session, actors["b"], enable=False, device_id=None, public_jwk=None)
+        service.set_reception(
+            session, actors["b"], enable=False, device_id=None, public_jwk=None, platform="android"
+        )
         engagement.project_pending(session, limit=100)
         session.flush()
         assert (
@@ -445,7 +478,13 @@ def test_replaying_an_old_send_after_reconsent_does_not_restore_destroyed_conten
     args = dict(request_id=request, recipient_id=actors["second"].id, jwe=envelope(actors["key_b"]))
     message = service.create(session, actors["a"], **args)
     service.set_reception(
-        session, actors["b"], enable=False, device_id=None, public_jwk=None, expected_version=1
+        session,
+        actors["b"],
+        enable=False,
+        device_id=None,
+        public_jwk=None,
+        expected_version=1,
+        platform="android",
     )
     service.set_reception(
         session,
@@ -454,6 +493,7 @@ def test_replaying_an_old_send_after_reconsent_does_not_restore_destroyed_conten
         device_id=actors["key_b"],
         public_jwk=key,
         expected_version=2,
+        platform="android",
     )
     replay = service.create(session, actors["a"], **args)
     assert replay.id == message.id and replay.payload.jwe == {} and replay.byte_size == 0
@@ -467,3 +507,64 @@ def test_replaying_an_old_send_after_reconsent_does_not_restore_destroyed_conten
         )
         == 1
     )
+
+
+@pytest.mark.parametrize("platform", ["web", "", "ios"])
+def test_only_the_app_can_register_a_receiving_device(session, actors, platform):  # type: ignore[no-untyped-def]
+    from eimir.core.errors import ForbiddenError
+
+    with pytest.raises(ForbiddenError) as refused:
+        service.set_reception(
+            session,
+            actors["b"],
+            enable=True,
+            device_id=uuid4(),
+            public_jwk=public_key(),
+            platform=platform,
+        )
+    assert refused.value.code == "ONCE_APP_REQUIRED"
+    service.set_reception(
+        session, actors["b"], enable=False, device_id=None, public_jwk=None, platform=platform
+    )
+
+
+def test_a_browser_session_sees_the_inbox_but_cannot_open_or_enable(session, client, actors):  # type: ignore[no-untyped-def]
+    message = sent(session, actors)
+    prefix = f"/api/v1/spaces/{actors['space'].id}/once-messages"
+    web = auth(actors["token_b_web"])
+    listed = client.get(prefix, headers=web)
+    assert listed.status_code == 200, listed.text
+    assert [item["id"] for item in listed.json()["items"]] == [str(message.id)]
+
+    claim = {"deviceId": str(actors["key_b"]), "token": str(uuid4())}
+    refused = client.post(f"{prefix}/{message.id}/open", headers=web, json=claim)
+    assert refused.status_code == 403, refused.text
+    assert refused.json()["code"] == "ONCE_APP_REQUIRED"
+    assert "envelope" not in refused.text
+    stored = session.get(OnceMessage, message.id)
+    assert stored.claim_hash is None and stored.byte_size > 0
+    absent = client.post(f"{prefix}/{uuid4()}/open", headers=web, json=claim)
+    assert absent.status_code == 404
+
+    version = client.get(f"{prefix}/status", headers=web).json()["receptionVersion"]
+    enable = client.put(
+        f"{prefix}/reception",
+        headers=web,
+        json={
+            "enabled": True,
+            "expectedVersion": version,
+            "deviceId": str(uuid4()),
+            "publicJwk": public_key(),
+        },
+    )
+    assert enable.status_code == 403, enable.text
+    assert enable.json()["code"] == "ONCE_APP_REQUIRED"
+
+    opened = client.post(f"{prefix}/{message.id}/open", headers=auth(actors["token_b"]), json=claim)
+    assert opened.status_code == 200, opened.text
+
+    disable = client.put(
+        f"{prefix}/reception", headers=web, json={"enabled": False, "expectedVersion": version}
+    )
+    assert disable.status_code == 200, disable.text
+    assert disable.json()["ownEnabled"] is False

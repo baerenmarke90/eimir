@@ -1,5 +1,6 @@
 import { expectFloatingAddAction } from '../support/addAction';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
+import { pickPlanDay } from '../support/planCalendar';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
@@ -712,9 +713,7 @@ test('a weekend without times is saved as one multi-day date-only Plan', async (
   await page.getByLabel(m5s3.plan.intentionLabel).fill('Weekend at the lake');
   await page.locator('.composer-schedule-trigger').click();
   const sheet = page.getByRole('dialog', { name: m5s3.plan.schedule });
-  await sheet
-    .getByLabel(m5s3.plan.plannedDate, { exact: true })
-    .fill('2026-11-20');
+  await pickPlanDay(sheet, '2026-11-20');
   await sheet.getByRole('button', { name: m5s3.plan.addLastDay }).click();
   const lastDay = sheet.getByLabel(m5s3.plan.lastDay, { exact: true });
   await expect(lastDay).toHaveValue('2026-11-21');

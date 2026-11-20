@@ -134,6 +134,20 @@ function fitView(aspect: number, maxWidth: number, maxHeight: number): Size {
   return { width: Math.round(width), height: Math.round(width / aspect) };
 }
 
+/** The crop stage: the turned photo fitted into the area, plus the inset. */
+function fitStage(turned: Size, area: Size): Size {
+  const inner = fitView(
+    turned.width / turned.height,
+    area.width - 2 * STAGE_INSET_PX,
+    area.height - 2 * STAGE_INSET_PX,
+  );
+  if (!(inner.width > 0)) return { width: 0, height: 0 };
+  return {
+    width: inner.width + 2 * STAGE_INSET_PX,
+    height: inner.height + 2 * STAGE_INSET_PX,
+  };
+}
+
 /** The photo placed so the crop fills the stage, centred, as photo apps do. */
 function fitTransform(
   crop: NormalizedBox,
@@ -274,9 +288,13 @@ export function PhotoEditTask({
     [shown, edit.turns],
   );
   const minCrop = useMemo(() => minimumCrop(turned), [turned]);
+  // The stage hugs the turned photo plus room for the handles instead of a
+  // fixed letterbox, and eases to the new shape after a turn. It does not
+  // follow the crop, so a handle keeps room to widen the section again.
+  const stageSize = useMemo(() => fitStage(turned, bounds), [turned, bounds]);
   // Gesture handlers read the newest crop, also before React re-renders.
-  const latest = useRef({ crop: edit.crop, turned, bounds, minCrop });
-  latest.current = { crop: edit.crop, turned, bounds, minCrop };
+  const latest = useRef({ crop: edit.crop, turned, stageSize, minCrop });
+  latest.current = { crop: edit.crop, turned, stageSize, minCrop };
 
   const setCrop = useCallback((crop: NormalizedBox) => {
     latest.current.crop = crop;
@@ -313,7 +331,7 @@ export function PhotoEditTask({
   }, [usedFonts]);
 
   // ---- Crop stage: the frame stays, the photo moves and zooms under it ----
-  const fitted = fitTransform(edit.crop, turned, bounds);
+  const fitted = fitTransform(edit.crop, turned, stageSize);
   const transform = frozen ?? fitted;
   const frame = frameOf(edit.crop, turned, transform);
   const layerSize = useMemo(() => {
@@ -360,7 +378,7 @@ export function PhotoEditTask({
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
       const now = latest.current;
-      const at = fitTransform(now.crop, now.turned, now.bounds);
+      const at = fitTransform(now.crop, now.turned, now.stageSize);
       const box = frameOf(now.crop, now.turned, at);
       const rect = element.getBoundingClientRect();
       setCrop(
@@ -387,7 +405,7 @@ export function PhotoEditTask({
   function beginStageGesture() {
     const [first, second] = [...pointers.current.values()];
     const { crop } = latest.current;
-    const at = fitTransform(crop, turned, bounds);
+    const at = fitTransform(crop, turned, stageSize);
     if (first && second) {
       const mid = stagePoint(
         (first.x + second.x) / 2,
@@ -507,8 +525,8 @@ export function PhotoEditTask({
       limits: {
         x: -at.left / width,
         y: -at.top / height,
-        width: bounds.width / width,
-        height: bounds.height / height,
+        width: stageSize.width / width,
+        height: stageSize.height / height,
       },
       min: handleMin(at),
     };
@@ -890,7 +908,7 @@ export function PhotoEditTask({
       ref={stage}
       className="photo-edit-stage"
       data-interacting={interacting || undefined}
-      style={{ width: bounds.width, height: bounds.height }}
+      style={{ width: stageSize.width, height: stageSize.height }}
       onPointerDown={onStagePointerDown}
       onPointerMove={onStagePointerMove}
       onPointerUp={onStagePointerUp}
@@ -1060,6 +1078,9 @@ export function PhotoEditTask({
             data-pull-to-refresh-block="true"
             aria-label={t(`photoEdit.stage.${tool}`)}
             aria-describedby={helpId}
+            style={{
+              height: tool === 'crop' ? stageSize.height : view.height,
+            }}
           >
             {tool === 'crop' ? cropStage : markView}
           </fieldset>

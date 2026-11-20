@@ -77,6 +77,9 @@ class PartnerLocationConsent(IdMixin, TimestampMixin, Base):
         Integer, nullable=False, default=1, server_default=text("1")
     )
     suspended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    next_review_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
     precision: Mapped[str] = mapped_column(
         String(12),
         nullable=False,
@@ -85,6 +88,12 @@ class PartnerLocationConsent(IdMixin, TimestampMixin, Base):
     )
 
     __table_args__ = (
+        Index(
+            "ix_partner_location_due",
+            "next_review_at",
+            "id",
+            postgresql_where=text("level <> 'OFF' AND suspended_at IS NULL"),
+        ),
         UniqueConstraint(
             "space_id", "account_id", name="uq_partner_location_consents_space_account"
         ),

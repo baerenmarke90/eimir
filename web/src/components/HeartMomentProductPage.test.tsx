@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   MemoryRouter,
@@ -21,6 +21,7 @@ import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
+import { settleEditorHistory } from '../client/useEditorHistoryEntry';
 import { AudioProcessingContext } from '../client/voiceNotes';
 import composer from '../i18n/locales/composer';
 import contextTags from '../i18n/locales/contextTags';
@@ -1188,6 +1189,7 @@ describe('Completed Plan handoff to HeartMoment', () => {
         name: storyProducts.heartMomentProduct.edit,
       }),
     );
+    await act(settleEditorHistory);
     await screen.findByRole('heading', {
       level: 1,
       name: storyProducts.heartMomentProduct.editHeading,

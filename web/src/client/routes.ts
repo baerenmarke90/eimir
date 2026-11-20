@@ -413,6 +413,23 @@ export function activeNavigationArea(pathname: string): AppRouteId | null {
   return null;
 }
 
+/**
+ * The active area while moving through the app (#2063, Product Owner
+ * 2026-11-19). Media, Chapters, Years and Recaps belong to Momente but are
+ * also listed under Mehr: opened from Mehr (or from a page reached through
+ * Mehr), Mehr stays highlighted until the viewer leaves those pages; opened
+ * from Momente, Momente stays highlighted. Other paths keep their own area.
+ */
+export function stickyNavigationArea(
+  previous: AppRouteId | null,
+  pathname: string,
+): AppRouteId | null {
+  const area = activeNavigationArea(pathname);
+  if (previous === 'more' && area === 'story' && pathname !== '/story')
+    return 'more';
+  return area;
+}
+
 /* Path builders ----------------------------------------------------------- */
 
 export function memoryDetailPath(memoryId: string): string {

@@ -1,3 +1,6 @@
+import { App } from '@capacitor/app';
+import { useEffect, useState } from 'react';
+import { isCapacitorNative } from '../pwa';
 import type { DevicePushController } from './devicePush';
 
 const DEVICE_ERROR_STATUS_KEYS: Readonly<Record<string, string>> = {
@@ -32,6 +35,35 @@ export function devicePushStatusKey(devicePush: DevicePushController): string {
     (devicePush.error && DEVICE_ERROR_STATUS_KEYS[devicePush.error]) ||
     DEVICE_STATE_STATUS_KEYS[devicePush.state]
   );
+}
+
+/** Test releases are versioned `0.2.0-test.N`; no other build shows diagnostics. */
+export function useTestBuild(): boolean {
+  const [testBuild, setTestBuild] = useState(false);
+  useEffect(() => {
+    if (!isCapacitorNative()) return;
+    let live = true;
+    App.getInfo()
+      .then((info) => {
+        if (live) setTestBuild(/-test\.\d+$/.test(info.version));
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
+  return testBuild;
+}
+
+/** Failure code for Test builds when the status text has no cause of its own. */
+export function devicePushDiagnostic(
+  devicePush: DevicePushController,
+  testBuild: boolean,
+): string | null {
+  if (!testBuild || devicePush.state !== 'error' || !devicePush.error)
+    return null;
+  if (DEVICE_ERROR_STATUS_KEYS[devicePush.error]) return null;
+  return [devicePush.error, devicePush.errorDetail].filter(Boolean).join(' · ');
 }
 
 /** One dominant action per state; retry only where it can succeed. */

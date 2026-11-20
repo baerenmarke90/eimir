@@ -1,7 +1,7 @@
 /*
  * Gesture send flight: the symbols that lift out of the quick-action sheet and
  * fly to the partner avatar, plus the bloom of a kiss. The base layer and
- * element styles live in FlightLayer.css.
+ * element styles live in motion/FlightLayer.css.
  */
 
 .wir-checkin-flight-ghost.is-gesture {

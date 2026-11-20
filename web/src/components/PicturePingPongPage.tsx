@@ -790,7 +790,12 @@ export function PicturePingPongPage({
       const image = await renderPictureBlob(strokes, inks());
       const { memoryId } = await api.saveToMoments({
         title,
-        body: t('games.pingPong.memoryBody', { name: partnerName }),
+        // Both names, so the text reads right for whichever partner opens
+        // the moment later (#2063: it named the reader as the co-painter).
+        body: t('games.pingPong.memoryBody', {
+          own: ownName,
+          partner: partnerName,
+        }),
         image,
       });
       apply(await api.markSaved(memoryId));

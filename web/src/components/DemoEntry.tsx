@@ -42,7 +42,7 @@ export function DemoEntry() {
     try {
       const result = await requestDemoEntry(apiBaseUrl, persona);
       window.location.assign(
-        `/auth/magic-link?token=${encodeURIComponent(result.token)}`,
+        `/auth/magic-link#token=${encodeURIComponent(result.token)}`,
       );
     } catch (error) {
       setActiveError(error);

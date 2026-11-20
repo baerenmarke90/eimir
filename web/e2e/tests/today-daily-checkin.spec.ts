@@ -778,6 +778,97 @@ test('reduced motion closes calmly: no flight layer is ever created', async ({
   await expect(badge.locator('[data-flight-slot="note"]')).toBeVisible();
 });
 
+test('once the check-in prompt line is gone and nobody has a mark, the row it kept closes', async ({
+  page,
+}) => {
+  await installMocks(page);
+  // The row belongs to the Verbunden stage; this spec otherwise renders the
+  // Offen hero, which has no row that stays behind. Registered after the
+  // mocks so it answers first.
+  await page.route('**/api/v1/**/appearance/wir-design', (route) =>
+    route.fulfill({ json: { designId: 'connected', version: 1 } }),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await signIn(page);
+
+  // The day has no value, so the line invites first, then retires into the
+  // plus (without a flight under reduced motion).
+  const badge = page.getByTestId('wir-checkin-own-badge');
+  await expect(badge).toContainText(wirCheckIn.ownPrompt);
+  await expect(badge).toHaveAttribute('data-empty', 'true', {
+    timeout: 8_000,
+  });
+  // The row shows nothing, so it takes no room: the stage ends at the names
+  // instead of keeping a gap before the quote and the modules below.
+  await expect(badge).toHaveCSS('height', '0px');
+  const stage = await page.locator('.wir-stage').boundingBox();
+  const name = await page.locator('.wir-stage-name').first().boundingBox();
+  expect(stage && name).toBeTruthy();
+  if (stage && name)
+    expect(stage.y + stage.height - (name.y + name.height)).toBeLessThan(4);
+});
+
+test('the Wir opening ends on its own and returning to Wir replays no entrance', async ({
+  page,
+}) => {
+  await installMocks(page);
+  await page.route('**/api/v1/**/appearance/wir-design', (route) =>
+    route.fulfill({ json: { designId: 'connected', version: 1 } }),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+
+  // The opening hands over to the resting state by itself, without waiting
+  // for a later render: the rings breathe (opacity only, no growing edge).
+  const stage = page.locator('.wir-stage');
+  await expect(stage).not.toHaveClass(/wir-stage-intro/, { timeout: 6_000 });
+  const ring = await page.evaluate(() => {
+    const column = document.querySelector(
+      '.today-hero .partner-avatar-stack > *',
+    );
+    const animation = column
+      ?.getAnimations({ subtree: true })
+      .find((item) => (item as CSSAnimation).animationName === 'wir-breathe');
+    const frames = (animation?.effect as KeyframeEffect | undefined)
+      ?.getKeyframes()
+      .flatMap((frame) => Object.keys(frame));
+    return { breathing: Boolean(animation), frames: frames ?? [] };
+  });
+  expect(ring.breathing).toBe(true);
+  expect(ring.frames).not.toContain('scale');
+
+  const navigation = page.getByRole('navigation', { name: 'Hauptnavigation' });
+  await navigation.getByRole('link', { name: 'Planen' }).click();
+  await expect(page).toHaveURL(/\/plan/);
+  // The first frame after Wir is shown again already has every entrance
+  // finished; only the repeating breath may start over.
+  const replaying = await page.evaluate(
+    () =>
+      new Promise<string[]>((resolve) => {
+        const link = [
+          ...document.querySelectorAll<HTMLAnchorElement>('nav a'),
+        ].find((anchor) => anchor.textContent?.trim() === 'Wir');
+        link?.click();
+        requestAnimationFrame(() => {
+          const panel = document.querySelector('[data-primary-tab="/today"]');
+          resolve(
+            (panel?.getAnimations({ subtree: true }) ?? [])
+              .filter(
+                (animation) =>
+                  animation instanceof CSSAnimation &&
+                  animation.playState === 'running' &&
+                  animation.effect?.getComputedTiming().iterations === 1,
+              )
+              .map((animation) => (animation as CSSAnimation).animationName),
+          );
+        });
+      }),
+  );
+  await expect(page).toHaveURL(/\/today$/);
+  expect(replaying).toEqual([]);
+});
+
 test('Fertig without a change closes at once and flies nothing', async ({
   page,
 }) => {

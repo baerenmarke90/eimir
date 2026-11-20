@@ -6,18 +6,25 @@ import {
   type MapMouseEvent,
   Marker,
   type RequestTransformFunction,
+  type StyleSpecification,
   setWorkerUrl,
 } from 'maplibre-gl';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cssDurationMilliseconds } from '../client/cssDuration';
+import { framingPoints } from '../client/mapFraming';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useTranslation } from '../i18n';
 import { isCapacitorNative } from '../pwa';
 import './PlaceMapPicker.css';
+import {
+  cachedBasemapStyle,
+  forgetBasemapStyle,
+  refreshBasemapStyle,
+} from '../client/basemapStyleCache';
 import { ConnectionOverlay, type MapConnection } from './placeMapConnection';
-import { googleLikeStyle } from './placeMapStyle';
+import { googleLikeStyle, withLocalizedAttribution } from './placeMapStyle';
 
 export type { MapConnection } from './placeMapConnection';
 
@@ -29,12 +36,23 @@ const MAP_ORIGIN = 'https://tiles.openfreemap.org';
 const MAP_STYLE_URL = `${MAP_ORIGIN}/styles/liberty`;
 
 // Native WebViews do not register the browser map service worker. Reuse the
-// HTTP cache for versioned public tiles, while style and TileJSON can advance
-// to the next tile set under their normal HTTP freshness rules.
+// HTTP cache for versioned public tiles, the versioned sprite sheet and the
+// font glyphs (#2063), while style and TileJSON can advance to the next tile
+// set under their normal HTTP freshness rules.
+const CACHED_RESOURCES = new Set([
+  'Tile',
+  'SpriteJSON',
+  'SpriteImage',
+  'Glyphs',
+]);
 const cacheNativeTiles: RequestTransformFunction = (url, resourceType) =>
-  resourceType === 'Tile' && url.startsWith(`${MAP_ORIGIN}/`)
+  resourceType &&
+  CACHED_RESOURCES.has(resourceType) &&
+  url.startsWith(`${MAP_ORIGIN}/`)
     ? { url, cache: 'force-cache' }
     : undefined;
+/** Missing tiles from a stored style before it is replaced. */
+const STORED_STYLE_MISSING_TILES = 3;
 
 /**
  * Camera zoom values exchanged with callers use the 256 px raster-tile scale
@@ -51,6 +69,13 @@ const OVERVIEW_MAX_ZOOM = 12;
 const MARKER_KEYS = ['Enter', ' '];
 /** The connection starts at the latest this long after it was placed. */
 const MAP_READY_FALLBACK_MS = 2500;
+
+/** The longest the map waits for marker photos after its view has drawn. */
+const MAP_REVEAL_PHOTO_WAIT_MS = 1_200;
+/** The longest the map waits for those photos to decode. */
+const MAP_REVEAL_DECODE_WAIT_MS = 200;
+/** The map shows by then even when its basemap is slow or failing. */
+const MAP_REVEAL_CAP_MS = 4_000;
 
 export interface MapPoint {
   latitude: number;
@@ -187,6 +212,7 @@ export default function PlaceMapCanvas({
   showAreasRequest = 0,
   connection,
   ariaLabel,
+  revealWhenComplete = false,
 }: {
   value?: MapPoint;
   focus?: MapPoint;
@@ -203,8 +229,15 @@ export default function PlaceMapCanvas({
   /** A decorative connection between two of the areas (#1907 H1). */
   connection?: MapConnection;
   ariaLabel?: string;
+  /**
+   * Shows the map in one piece (#2063): the basemap and the marker photos
+   * appear together, once both are ready, instead of building up in front of
+   * the viewer. A cap keeps a slow or failing basemap from hiding it.
+   */
+  revealWhenComplete?: boolean;
 }) {
   const { t } = useTranslation();
+  const [complete, setComplete] = useState(false);
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markerRef = useRef<Marker | null>(null);
@@ -278,7 +311,80 @@ export default function PlaceMapCanvas({
       attributionControl: { compact: false },
     });
     map.touchZoomRotate.disableRotation();
-    map.setStyle(MAP_STYLE_URL, { transformStyle: googleLikeStyle });
+    // Complete: the opening view has drawn and the marker photos have loaded
+    // and decoded (or a short wait passed); never later than the cap.
+    setComplete(false);
+    let revealed = false;
+    let revealFrame = 0;
+    let revealCap = 0;
+    const reveal = () => {
+      if (revealed) return;
+      revealed = true;
+      window.cancelAnimationFrame(revealFrame);
+      window.clearTimeout(revealCap);
+      setComplete(true);
+    };
+    revealCap = window.setTimeout(reveal, MAP_REVEAL_CAP_MS);
+    map.once('idle', () => {
+      const until = performance.now() + MAP_REVEAL_PHOTO_WAIT_MS;
+      const bounds = () => element.getBoundingClientRect();
+      // Only photos in the visible map count: a lazy photo outside it would
+      // never load, and a deferred placeholder is not loading at all.
+      const visiblePhotos = () => {
+        const box = bounds();
+        return [...element.querySelectorAll('img')].filter((image) => {
+          const rect = image.getBoundingClientRect();
+          return (
+            rect.right > box.left &&
+            rect.left < box.right &&
+            rect.bottom > box.top &&
+            rect.top < box.bottom
+          );
+        });
+      };
+      const photosReady = () => {
+        if (revealed) return;
+        const loading =
+          element.querySelector(
+            '.story-media-skeleton:not([data-media-deferred])',
+          ) !== null || visiblePhotos().some((image) => !image.complete);
+        if (loading && performance.now() < until) {
+          revealFrame = window.requestAnimationFrame(photosReady);
+          return;
+        }
+        // Decoded before they show, so no photo pops in after the fade.
+        const decoded = visiblePhotos()
+          .filter((image) => image.complete && image.naturalWidth > 0)
+          .map((image) => image.decode().catch(() => undefined));
+        const settle = new Promise((done) =>
+          window.setTimeout(done, MAP_REVEAL_DECODE_WAIT_MS),
+        );
+        void Promise.race([Promise.all(decoded), settle]).then(reveal);
+      };
+      photosReady();
+    });
+    const dataFrom = t('m5s3.map.attributionDataFrom');
+    const localizedStyle = (
+      previous: StyleSpecification | undefined,
+      next: StyleSpecification,
+    ) => withLocalizedAttribution(googleLikeStyle(previous, next), dataFrom);
+    // A style kept on the device (#2063) lets the first tiles load at once;
+    // without one the map fetches style and TileJSON as before. Either way
+    // the stored copy is refreshed in the background once the map has drawn.
+    const storedStyle = cachedBasemapStyle(MAP_STYLE_URL);
+    let usingStoredStyle = storedStyle !== null;
+    if (storedStyle)
+      map.setStyle(
+        withLocalizedAttribution(
+          googleLikeStyle(undefined, storedStyle),
+          dataFrom,
+        ),
+      );
+    else map.setStyle(MAP_STYLE_URL, { transformStyle: localizedStyle });
+    map.once('idle', () => {
+      void refreshBasemapStyle(MAP_STYLE_URL).catch(() => undefined);
+    });
+    let missingTiles = 0;
     mapRef.current = map;
     map.addControl(
       new ZoomControl({
@@ -341,8 +447,20 @@ export default function PlaceMapCanvas({
     // ordinary pan/zoom cancellation. Everything else is a real outage.
     map.on('error', (event: ErrorEvent) => {
       const error = event.error as (Error & { status?: number }) | undefined;
-      if (error?.name === 'AbortError' || error?.status === 404) return;
+      if (error?.name === 'AbortError') return;
+      if (error?.status === 404) {
+        // Several missing tiles from a stored style mean its tile set has
+        // gone: forget it and load the current style.
+        if (usingStoredStyle && ++missingTiles >= STORED_STYLE_MISSING_TILES) {
+          usingStoredStyle = false;
+          forgetBasemapStyle();
+          map.setStyle(MAP_STYLE_URL, { transformStyle: localizedStyle });
+        }
+        return;
+      }
       setTileError(true);
+      // An outage shows its notice at once instead of a waiting surface.
+      reveal();
     });
     map.on('click', (event: MapMouseEvent) =>
       selectRef.current?.({
@@ -449,6 +567,9 @@ export default function PlaceMapCanvas({
       for (const event of ['pointerdown', 'wheel', 'keydown'])
         element.removeEventListener(event, interrupt);
       motion?.removeEventListener('change', motionChanged);
+      revealed = true;
+      window.cancelAnimationFrame(revealFrame);
+      window.clearTimeout(revealCap);
       document.removeEventListener('visibilitychange', visibilityChanged);
       connectionOverlay.current?.remove();
       connectionOverlay.current = null;
@@ -548,8 +669,11 @@ export default function PlaceMapCanvas({
     );
     if (fittedGeometry.current !== geometry) {
       if (locations?.length) {
+        // The overview frames the densest region; one distant trip no longer
+        // zooms the map out to the whole world (#2063).
         const fitted = new LngLatBounds();
-        for (const point of locations) fitted.extend(lngLat(point));
+        for (const point of framingPoints(locations))
+          fitted.extend(lngLat(point));
         bounds.current = fitted;
       } else bounds.current = null;
       if (
@@ -708,7 +832,18 @@ export default function PlaceMapCanvas({
   }, [focus, value, t]);
 
   return (
-    <div className="place-map-canvas" data-map-moving={moving}>
+    <div
+      className="place-map-canvas"
+      data-map-moving={moving}
+      data-reveal={
+        revealWhenComplete ? (complete ? 'complete' : 'waiting') : undefined
+      }
+    >
+      {revealWhenComplete && !complete ? (
+        <p className="place-map-waiting" role="status">
+          {t('states.loading.title')}
+        </p>
+      ) : null}
       {markerHosts.map(({ id, host, preview }) =>
         createPortal(preview, host, id),
       )}
@@ -746,7 +881,11 @@ export default function PlaceMapCanvas({
             onClick={() => {
               setTileError(false);
               mapRef.current?.setStyle(MAP_STYLE_URL, {
-                transformStyle: googleLikeStyle,
+                transformStyle: (previous, next) =>
+                  withLocalizedAttribution(
+                    googleLikeStyle(previous, next),
+                    t('m5s3.map.attributionDataFrom'),
+                  ),
               });
             }}
           >

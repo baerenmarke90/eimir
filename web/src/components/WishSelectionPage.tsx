@@ -1,3 +1,6 @@
+import { WishSelectionWishPicker } from './WishSelectionWishPicker';
+import { WishSelectionVote, type ResultItem } from './WishSelectionVote';
+import { WishSelectionRandomDecision } from './WishSelectionRandomDecision';
 import {
   useInfiniteQuery,
   useMutation,
@@ -92,9 +95,6 @@ interface Props {
 type Mode = 'setup' | 'vote' | 'view' | 'plan';
 /** Composing a round (#1907 J1): the hub with two sources, or one source. */
 type SetupStep = 'hub' | 'wishes' | 'ideas';
-type ResultItem =
-  | { kind: 'wish'; key: string; candidate: WishSelectionCandidateView }
-  | { kind: 'idea'; key: string; idea: DateIdea };
 type DraftBase = {
   token: string | null;
   sources: string;
@@ -123,20 +123,6 @@ function titleInitial(title: string): string {
   return /\p{L}/u.test(initial)
     ? initial.toLocaleUpperCase(resolvedLocale())
     : '#';
-}
-
-/** Outline heart that fills while the candidate is a private favourite. */
-function FavoriteHeart() {
-  return (
-    <svg
-      className="wish-selection-favorite-heart inline-icon"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" />
-    </svg>
-  );
 }
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
@@ -864,8 +850,6 @@ function WishSelectionTask({
   const randomRequest = revealed ? view.randomRequest : null;
   const partnerLabel =
     partnerName || t('m5s5.today.relationshipSignal.partnerFallback');
-  const favoriteTotal = favoriteIds.length + favoriteIdeaIds.length;
-  const candidateTotal = available.length + availableIdeas.length;
   const ideasLang = (idea: DateIdea) =>
     idea.contentLocale !== locale ? idea.contentLocale : undefined;
   const itemTitle = (item: ResultItem) =>
@@ -1084,111 +1068,6 @@ function WishSelectionTask({
             )}
           </div>
         </div>
-      </section>
-    );
-  }
-
-  /** Chance only with consent: propose, answer or withdraw (#1907 J1). */
-  function randomBlock() {
-    const poolText = t(
-      view?.randomPool === 'COMMON'
-        ? 'wishSelection.randomPoolCommon'
-        : view?.randomPool === 'FAVORITES'
-          ? 'wishSelection.randomPoolFavorites'
-          : 'wishSelection.randomPoolAll',
-    );
-    if (randomRequest && !randomRequest.declined && randomRequest.mine)
-      return (
-        <section className="wish-selection-random" aria-live="polite">
-          <div className="wish-selection-ask">
-            <EimirIcon name="sparkle" className="wish-selection-ask-icon" />
-            <div>
-              <strong>
-                {t('wishSelection.randomAskedTitle', { name: partnerLabel })}
-              </strong>
-              <p>{t('wishSelection.randomAskedBody')}</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="tertiary"
-            disabled={busy}
-            onClick={() => decide('WITHDRAW_RANDOM')}
-          >
-            {t('wishSelection.randomWithdraw')}
-          </button>
-        </section>
-      );
-    if (randomRequest && !randomRequest.declined)
-      return (
-        <section className="wish-selection-random" aria-live="polite">
-          <div className="wish-selection-ask is-incoming">
-            <EimirIcon name="sparkle" className="wish-selection-ask-icon" />
-            <div>
-              <strong>
-                {t('wishSelection.randomIncomingTitle', {
-                  name: partnerLabel,
-                })}
-              </strong>
-              <p>
-                {poolText}
-                {view?.randomPool === 'FAVORITES'
-                  ? ` ${t('wishSelection.randomOnlyOne')}`
-                  : null}
-              </p>
-            </div>
-          </div>
-          <div className="wish-selection-actions">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => decide('ACCEPT_RANDOM')}
-            >
-              {t('wishSelection.randomAccept')}
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              disabled={busy}
-              onClick={editOwn}
-            >
-              {t('wishSelection.randomChangeFirst')}
-            </button>
-            <button
-              type="button"
-              className="tertiary"
-              disabled={busy}
-              onClick={() => decide('DECLINE_RANDOM')}
-            >
-              {t('wishSelection.randomDecline')}
-            </button>
-          </div>
-        </section>
-      );
-    return (
-      <section className="wish-selection-random" aria-live="polite">
-        {randomRequest?.declined ? (
-          <p className="wish-selection-support" role="status">
-            {t(
-              randomRequest.mine
-                ? 'wishSelection.randomDeclinedByPartner'
-                : 'wishSelection.randomDeclinedByMe',
-              { name: partnerLabel },
-            )}
-          </p>
-        ) : null}
-        <button
-          type="button"
-          className="wish-selection-random-propose"
-          disabled={busy}
-          onClick={() => decide('REQUEST_RANDOM')}
-        >
-          <EimirIcon name="sparkle" />
-          {t('wishSelection.randomPropose')}
-        </button>
-        <p className="wish-selection-support">
-          {poolText} {t('wishSelection.randomConsent', { name: partnerLabel })}
-        </p>
       </section>
     );
   }
@@ -1522,27 +1401,14 @@ function WishSelectionTask({
                     <p>{t('wishSelection.emptyWishesBody')}</p>
                   </div>
                 ) : null}
-                <fieldset className="wish-selection-choices">
-                  <legend className="sr-only">
-                    {t('wishSelection.openWishes')}
-                  </legend>
-                  {wishItems.map((wish) => (
-                    <label key={wish.id} className="wish-selection-choice">
-                      <input
-                        type="checkbox"
-                        checked={candidateIds.includes(wish.id)}
-                        disabled={
-                          !candidateIds.includes(wish.id) &&
-                          totalSelected >= MAX_CANDIDATES
-                        }
-                        onChange={() =>
-                          setCandidateIds((current) => toggle(current, wish.id))
-                        }
-                      />
-                      <span>{wish.title}</span>
-                    </label>
-                  ))}
-                </fieldset>
+                <WishSelectionWishPicker
+                  wishItems={wishItems}
+                  candidateIds={candidateIds}
+                  full={totalSelected >= MAX_CANDIDATES}
+                  onToggle={(id) =>
+                    setCandidateIds((current) => toggle(current, id))
+                  }
+                />
                 {wishes.hasNextPage ? (
                   <AutoLoadMore
                     query={wishes}
@@ -1607,10 +1473,16 @@ function WishSelectionTask({
       ) : null}
 
       {activeMode === 'vote' ? (
-        <form
-          className="wish-selection-form"
-          onSubmit={(event) => {
-            event.preventDefault();
+        <WishSelectionVote
+          available={available}
+          availableIdeas={availableIdeas}
+          busy={busy}
+          favoriteIds={favoriteIds}
+          favoriteIdeaIds={favoriteIdeaIds}
+          canPublish={Boolean(
+            base?.token && !stale && view.resultState !== 'NEEDS_IDEAS',
+          )}
+          onPublish={() => {
             if (!base?.token || stale || view.resultState === 'NEEDS_IDEAS')
               return;
             clearProblems();
@@ -1624,96 +1496,15 @@ function WishSelectionTask({
                 token: base.token,
               });
           }}
-        >
-          <fieldset disabled={busy} className="wish-selection-fields">
-            <legend className="sr-only">{t('wishSelection.favorites')}</legend>
-            <ul className="wish-selection-favorites">
-              {available.map((candidate) => {
-                const on = favoriteIds.includes(candidate.wishId);
-                return (
-                  <li key={candidate.wishId}>
-                    <button
-                      type="button"
-                      className="wish-selection-favorite"
-                      aria-pressed={on}
-                      onClick={() =>
-                        setFavoriteIds((current) =>
-                          toggle(current, candidate.wishId),
-                        )
-                      }
-                    >
-                      {candidateMedia({
-                        kind: 'wish',
-                        key: candidate.wishId,
-                        candidate,
-                      })}
-                      <span className="wish-selection-favorite-title">
-                        {candidate.title}
-                      </span>
-                      <FavoriteHeart />
-                    </button>
-                  </li>
-                );
-              })}
-              {availableIdeas.map((idea) => {
-                const on = favoriteIdeaIds.includes(idea.id);
-                return (
-                  <li key={idea.id}>
-                    <button
-                      type="button"
-                      className="wish-selection-favorite is-idea"
-                      aria-pressed={on}
-                      onClick={() =>
-                        setFavoriteIdeaIds((current) =>
-                          toggle(current, idea.id),
-                        )
-                      }
-                    >
-                      {candidateMedia({ kind: 'idea', key: idea.id, idea })}
-                      <span
-                        className="wish-selection-favorite-title"
-                        lang={ideasLang(idea)}
-                      >
-                        {idea.title}
-                      </span>
-                      <FavoriteHeart />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-            <p className="wish-selection-support" role="status">
-              {favoriteTotal
-                ? t('wishSelection.favoriteCount', { count: favoriteTotal })
-                : t('wishSelection.favoriteNone')}
-              {favoriteTotal === candidateTotal && candidateTotal > 2
-                ? ` · ${t('wishSelection.allFavorites')}`
-                : null}
-            </p>
-            <div className="wish-selection-actions">
-              <button
-                type="submit"
-                disabled={
-                  busy ||
-                  stale ||
-                  !base?.token ||
-                  view.resultState === 'NEEDS_IDEAS'
-                }
-              >
-                {t(
-                  busy
-                    ? 'wishSelection.saving'
-                    : favoriteTotal
-                      ? 'wishSelection.share'
-                      : 'wishSelection.shareNone',
-                )}
-              </button>
-              <p className="wish-selection-support">
-                {t('wishSelection.changeLater')}
-              </p>
-            </div>
-          </fieldset>
-        </form>
+          onToggleWish={(id) =>
+            setFavoriteIds((current) => toggle(current, id))
+          }
+          onToggleIdea={(id) =>
+            setFavoriteIdeaIds((current) => toggle(current, id))
+          }
+          candidateMedia={candidateMedia}
+          ideasLang={ideasLang}
+        />
       ) : null}
 
       {activeMode === 'view' ? (
@@ -1839,9 +1630,16 @@ function WishSelectionTask({
                   ) : null}
                 </div>
               ) : null}
-              {!chosen && !revealing && revealed && view.randomPool
-                ? randomBlock()
-                : null}
+              {!chosen && !revealing && revealed && view.randomPool ? (
+                <WishSelectionRandomDecision
+                  randomPool={view.randomPool}
+                  randomRequest={randomRequest}
+                  partnerLabel={partnerLabel}
+                  busy={busy}
+                  decide={decide}
+                  editOwn={editOwn}
+                />
+              ) : null}
               {!severalShared && !chosen
                 ? shownItems.map((item, index) =>
                     resultCard(

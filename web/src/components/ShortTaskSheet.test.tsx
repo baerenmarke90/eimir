@@ -173,7 +173,7 @@ describe('ShortTaskSheet history ownership', () => {
         expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).not.toBe(parent),
       );
       fireEvent.click(
-        screen.getByRole('button', { name: taskBoundary.discard }),
+        screen.getByRole('button', { name: taskBoundary.discardConfirm }),
       );
       if (!reducedMotion) {
         const dialog = screen.getByRole('dialog');
@@ -218,7 +218,9 @@ describe('ShortTaskSheet history ownership', () => {
     expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).toBe(parent);
     expect(onExit).not.toHaveBeenCalled();
     await back();
-    fireEvent.click(screen.getByRole('button', { name: taskBoundary.discard }));
+    fireEvent.click(
+      screen.getByRole('button', { name: taskBoundary.discardConfirm }),
+    );
     await waitFor(() => expect(onExit).toHaveBeenCalledTimes(1));
   });
 

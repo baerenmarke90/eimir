@@ -586,6 +586,12 @@ export async function installMocks(
       return;
     }
 
+    // The phone app prepares the Momente map once it is quiet (#2063), so a
+    // native-shell journey reads the map's places in the background.
+    if (method === 'GET' && pathname.endsWith('/memory-map')) {
+      await fulfillJson({ items: [], nextCursor: null });
+      return;
+    }
     if (await fulfillNoOccasionSources(route)) return;
     if (options.strict) {
       unexpected.push(`${method} ${pathname}`);

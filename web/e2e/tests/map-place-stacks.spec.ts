@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '../support/axe';
 import { expect, type Locator, type Page, test } from '@playwright/test';
+import m5s3 from '../../src/i18n/locales/m5s3';
 import mapCopy from '../../src/i18n/locales/memoryMap';
 import { mockMapTiles } from '../support/mapTiles';
 import { storyDetailBack } from '../support/memoryDiary';
@@ -221,6 +222,14 @@ for (const [width, theme, motion] of [
       .click();
     await settledCamera(page);
     await expect(page.locator('.memory-map-marker')).toHaveCount(1);
+    // The provider's TileJSON attribution shows its connector localized
+    // (#2063) and keeps every required source link.
+    const attribution = page.locator('.maplibregl-ctrl-attrib');
+    await expect(attribution).toContainText(m5s3.map.attributionDataFrom);
+    await expect(attribution).not.toContainText('Data from');
+    await expect(
+      attribution.getByRole('link', { name: 'OpenStreetMap' }),
+    ).toBeVisible();
     expect(
       await page
         .locator('.memory-map-marker')

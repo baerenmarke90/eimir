@@ -1,4 +1,3 @@
-import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import { NOTIFICATION_WAKE_EVENT } from '../../src/client/foregroundNotifications';
 import de from '../../src/i18n/locales/de';
@@ -6,12 +5,13 @@ import m5s3 from '../../src/i18n/locales/m5s3';
 import wishDateProposal from '../../src/i18n/locales/wishDateProposal';
 import wishJourney from '../../src/i18n/locales/wishJourney';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
+import { chooseItemMenuRow, itemMenuTrigger } from '../support/itemMenu';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
-import { chooseItemMenuRow, itemMenuTrigger } from '../support/itemMenu';
 import { fulfillNoWishSelectionRound } from '../support/productContext';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 
@@ -497,7 +497,13 @@ async function expectCurrentStep(page: Page, label: string) {
 }
 
 async function completeMarketPlan(page: Page): Promise<void> {
-  await page.locator('.planen-complete-cta').click();
+  // The market is still ahead, so the completion waits in the plan menu.
+  await expect(page.locator('.planen-complete-cta')).toHaveCount(0);
+  await page.getByRole('button', { name: m5s3.plan.menu }).click();
+  await page
+    .locator('.item-menu')
+    .getByRole('button', { name: m5s3.plan.complete })
+    .click();
   await page.getByLabel(m5s3.plan.experiencedOn).fill(TODAY);
   await page
     .locator('.planen-completion-sheet')

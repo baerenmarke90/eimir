@@ -1,5 +1,5 @@
 import type { ReactNode, Ref } from 'react';
-import { usePresentationPresence } from './useOverlayPresence';
+import { usePresentationPresence } from '../motion/presence';
 import './SharedAchievementCelebration.css';
 
 export function SharedAchievementCelebration({

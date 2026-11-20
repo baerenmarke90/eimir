@@ -55,6 +55,11 @@ import { DiscreetLock } from './DiscreetPlan';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { NativeDateInput } from './NativeDateField';
 import { ProblemState } from './ProblemState';
+import {
+  SecureScreenFailure,
+  UNPAINTED,
+  useSecureScreen,
+} from './SecureSurface';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { UiState } from './UiState';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
@@ -1588,11 +1593,23 @@ export function ImportantDatesPanel({
       }}
     />
   );
+  // Private dates and the open editor stay out of screenshots, screen
+  // recordings and the Recents preview in the app (#683); a list of only
+  // shared dates stays capturable.
+  const secureScreen = useSecureScreen(
+    editing !== null ||
+      isCreating ||
+      (datesQuery.data ?? []).some(
+        (date) => date.visibility !== ContentVisibility.SHARED,
+      ),
+  );
   return (
     <section
       className="important-dates-section occasions-panel"
       aria-label={t('importantDates.heading')}
+      style={secureScreen.shown ? undefined : UNPAINTED}
     >
+      <SecureScreenFailure gate={secureScreen} />
       {createActionContainer
         ? createPortal(createAction, createActionContainer)
         : createAction}

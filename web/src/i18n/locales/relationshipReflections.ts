@@ -2,7 +2,8 @@ const relationshipReflections = {
   anticipation: {
     now: 'Jetzt ist es so weit',
     timerLabel: 'Countdown bis {{title}}',
-    timerDays: 'Tage',
+    timerDays_one: 'Tag',
+    timerDays_other: 'Tage',
     timerHours: 'Std.',
     timerMinutes: 'Min.',
     timerSeconds: 'Sek.',

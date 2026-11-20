@@ -71,6 +71,18 @@ def preview(client, base, token):
     return response.json()
 
 
+def test_review_after_scheduled_cleanup_counts_only_the_two_retained_days(client, session, couple):
+    from eimir.daily_checkins.retention import purge_expired
+
+    base = setup(session, couple)
+    seed(session, couple)
+    assert purge_expired(session, current_time=datetime(2026, 10, 28, 12, tzinfo=UTC)) == 16
+    result = preview(client, base, couple["token_a"])
+    assert not result["general"]
+    assert [item["kind"] for item in result["observations"]] == ["JOINT_DAYS"]
+    assert result["observations"][0]["value"] == 2
+
+
 def test_read_never_infers_and_sparse_generation_is_labelled_general(
     client, session, couple, monkeypatch
 ):

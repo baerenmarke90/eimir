@@ -354,7 +354,12 @@
 }
 .shared-content-page .planning-inline-create input {
   min-width: 0;
-  flex: 1 1 10rem;
+  /* Wide enough for the full placeholder: on a phone the add button moves to
+     its own line instead of cutting the hint off (#2063). */
+  flex: 1 1 15rem;
+}
+.shared-content-page .planning-inline-create .add-action {
+  margin-inline-start: auto;
 }
 .shared-list-items > li {
   display: flex;

@@ -139,6 +139,21 @@ describe('PlanProductPage', () => {
     expect(html).toContain(i18n.t('m5s3.plan.complete'));
   });
 
+  it('keeps the completion in the menu while the planned day is still ahead', () => {
+    for (const html of [
+      renderPlan(basePlan({ plannedStart: new Date(2099, 0, 1, 10) })),
+      renderPlan(
+        basePlan({ plannedStart: null, plannedOn: new Date('2099-01-01') }),
+      ),
+    ]) {
+      expect(html).not.toContain('planen-complete-cta');
+      expect(html).toContain(i18n.t('m5s3.plan.menu'));
+    }
+    expect(
+      renderPlan(basePlan({ plannedStart: null, plannedOn: null })),
+    ).toContain('planen-complete-cta');
+  });
+
   it('shows a completed Plan as a truthful read result without reopening capture automatically', () => {
     const html = renderPlan(
       basePlan({

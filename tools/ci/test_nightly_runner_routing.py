@@ -57,10 +57,8 @@ class NightlyRunnerRoutingTest(unittest.TestCase):
                 with self.subTest(workflow=workflow, job=job):
                     if (workflow, job) == ("ci.yml", "secrets"):
                         self.assertEqual(runner, with_hosted_fallback(f"{NIGHTLY_ROUTE} || {PR_PILOT_ROUTE}"))
-                    elif (
-                        workflow == "android-launcher-icons.yml"
-                        or (workflow, job) == ("ci.yml", "backend_core_only_shards")
-                        or (workflow == "web-browser-qa.yml" and job in PR_BROWSER_JOBS)
+                    elif workflow == "android-launcher-icons.yml" or (
+                        workflow == "web-browser-qa.yml" and job in PR_BROWSER_JOBS
                     ):
                         self.assertEqual(runner, "ubuntu-latest")
                     else:

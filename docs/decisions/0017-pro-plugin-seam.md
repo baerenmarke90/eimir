@@ -85,6 +85,11 @@ Deliberately **not** part of the plugin, with the reason:
   `jobs/video_worker.py`, gate also in `attachments/service.py` and `photo_sources/service.py`) and
   `daily.insights` (`daily_checkins/insights.py`, `recaps/mood.py`, `api/v1/daily_checkins.py`) are extractable,
   but they are woven into attachments and recaps. Their extraction is deferred to a later phase.
+  [#2085](https://github.com/baerenmarke90/eimir/issues/2085) extracts them under the Product Owner's rule "what is
+  Free is Core; what Premium newly creates is plugin". `daily.insights` is done: the insight and weekly-review routes
+  (`api/v1/daily_insights.py`) and the package `daily_insights` (insights, weekly patterns, weekly review) are
+  plugin code and the capability is plugin-owned; today's check-in, the rating route (clearing a retained rating is
+  Free) with `daily_checkins/feedback.py` and the `daily_insight_feedback` table stay Core.
 - `storage.cloud_quota_50gb` is an operating-model capability, already removed on Self-Hosted by
   `CLOUD_ONLY_CAPABILITIES` in `entitlements/service.py`. It stays Core.
 
@@ -113,7 +118,7 @@ whether it is closed before Phase 3 or accepted.
 | `partner.quick_actions.extended` | Plugin route `api/v1/partner_quick_actions.py` and package `partner_quick_actions` (command and `support_gesture_requests`, tag `notifications` kept); vocabulary, projection, thinking-of-you and the module switch stay Core | Yes: moved into the plugin by [#2084](https://github.com/baerenmarke90/eimir/issues/2084) | |
 | `theme.bespoke_packs` | Value checks in shared Core (`api/v1/appearance.py`, `appearance/models.py`); the capability is plugin-owned, the packs live in the clients | Partly: Core-only refuses Pro values; the check itself stays public code | [#2084](https://github.com/baerenmarke90/eimir/issues/2084), [#2086](https://github.com/baerenmarke90/eimir/issues/2086) |
 | `media.video_upload` | Woven into attachments and the video worker | No: extraction deferred | [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
-| `daily.insights` | `daily_checkins/insights.py`, `recaps/mood.py` | No: extraction deferred | [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
+| `daily.insights` | Plugin routes `api/v1/daily_insights.py` and package `daily_insights` (OpenAPI tag kept); the rating route, its table and the mood rhythm of recaps (`recaps/mood.py`) stay Core | Yes for the insights; the recap mood rhythm follows with recap composition | [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
 | `storage.cloud_quota_50gb` | Operating-model capability, removed on Self-Hosted | Not Pro code; stays Core by design | |
 | `chapter.rich_presentation`, `occasion.automation`, `recap.pdf_yearbook`, `recap.video_montage`, `question.5_year_mirror`, `surprise_mode.vault` | None (no implementation) | Nothing to protect yet: the first implementation is written as plugin code | |
 
@@ -558,7 +563,7 @@ and the retirement of old artifacts are operational work on top.
 - **Paying Self-Hosted operators receive the code.** A Python package in an image is readable source or bytecode.
   Protection there is the license and its terms, not secrecy.
 - **Gates in shared Core code stay patchable.** `relationship.passport` (recap composition),
-  `theme.bespoke_packs`, `media.video_upload` and `daily.insights` are checks in
+  `theme.bespoke_packs`, `media.video_upload` and `daily.insights` (recap mood rhythm, setting a rating) are checks in
   public code. Anyone running a modified Core can remove them, as they can today.
 - **Workflow cost.** With one private development repository there is no second PR per change, but there is an
   export step to maintain, a public repository whose contributions must be carried over by hand, and two images per

@@ -331,6 +331,7 @@ PLUGIN_TABLE_NAMES = frozenset(row.table for row in PLUGIN_TABLES)
 
 PLUGIN_CAPABILITIES = frozenset(
     {
+        Capability.DAILY_INSIGHTS.value,
         Capability.GAMES_COUPLE.value,
         Capability.INTEGRATION_EXTERNAL_SYNC.value,
         Capability.MEMORIES_MAP.value,

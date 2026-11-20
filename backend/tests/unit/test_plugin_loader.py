@@ -261,6 +261,7 @@ def test_the_in_tree_pro_plugin_is_registered_as_entry_point() -> None:
 
 def test_the_in_tree_pro_plugin_provides_the_moving_capabilities() -> None:
     assert pro_plugin.plugin.capabilities() == {
+        Capability.DAILY_INSIGHTS.value,
         Capability.GAMES_COUPLE.value,
         Capability.INTEGRATION_EXTERNAL_SYNC.value,
         Capability.MEMORIES_MAP.value,

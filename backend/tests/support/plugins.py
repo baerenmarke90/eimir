@@ -26,6 +26,7 @@ PRO_TEST_MODULES = frozenset(
         "integration/test_calendar_sync.py",
         "integration/test_calendar_sync_google.py",
         "integration/test_couple_games.py",
+        "integration/test_daily_checkins_pro_insights.py",
         "integration/test_daily_quote_api.py",
         "integration/test_date_ideas_api.py",
         "integration/test_demo_feature_examples.py",
@@ -53,6 +54,7 @@ PRO_TEST_MODULES = frozenset(
         "integration/test_relationship_recaps.py",
         "integration/test_shared_experiences.py",
         "integration/test_story_lifeline.py",
+        "integration/test_weekly_review.py",
         "integration/test_wish_selection_date_ideas.py",
         "unit/test_account_table_lifecycle.py",
         "unit/test_caldav_adapter.py",
@@ -69,6 +71,7 @@ PRO_TEST_MODULES = frozenset(
         "unit/test_photo_source_security_gate.py",
         "unit/test_presence_geo.py",
         "unit/test_privacy_policy_statements.py",
+        "unit/test_weekly_patterns.py",
         "unit/test_wish_detective_rules.py",
     }
 )

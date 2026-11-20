@@ -7,9 +7,9 @@ from datetime import date, timedelta
 from enum import StrEnum
 from statistics import mean
 
-from eimir.daily_checkins.insights import DailyInsightDayEntry, DailyInsightsResult
 from eimir.daily_checkins.models import RecommendationKey
 from eimir.daily_checkins.service import PartnerRevealState
+from eimir.daily_insights.insights import DailyInsightDayEntry, DailyInsightsResult
 
 
 class ObservationKind(StrEnum):

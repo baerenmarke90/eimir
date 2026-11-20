@@ -18,6 +18,7 @@ SOURCE = Path(__file__).resolve().parents[2] / "src"
 PLUGIN_PACKAGES = (
     "eimir.calendar_sync",
     "eimir.couple_games",
+    "eimir.daily_insights",
     "eimir.date_ideas",
     "eimir.garden",
     "eimir.heart_hunt",
@@ -41,6 +42,7 @@ PLUGIN_MODULES = (
         for name in (
             "calendar_sync",
             "couple_games",
+            "daily_insights",
             "daily_quote",
             "date_ideas",
             "games",

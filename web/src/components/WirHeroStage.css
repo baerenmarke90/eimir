@@ -527,6 +527,26 @@
   text-wrap: balance;
 }
 
+/* With very large text the line between the portraits is only a few
+   characters wide: the occasion keeps its main line, a little smaller, and
+   the quiet line below the heart (which repeats it) steps back. The bridge
+   becomes a size container only on an important day. */
+.wir-stage[data-important-day] .wir-bridge {
+  container: wir-bridge / inline-size;
+}
+
+@container wir-bridge (max-width: 4em) {
+  .wir-bridge-lead .wir-bridge-occasion {
+    max-inline-size: 100%;
+    font-size: 0.8em;
+    overflow-wrap: anywhere;
+  }
+
+  .wir-bridge-rest .wir-bridge-occasion {
+    display: none;
+  }
+}
+
 .wir-stage[data-important-day="before"] .wir-bridge-occasion,
 .wir-stage[data-important-day="playing"] .wir-bridge-time,
 .wir-stage[data-important-day="final"] .wir-bridge-time {
@@ -584,23 +604,21 @@
   > :nth-child(2)::after {
   position: absolute;
   z-index: -1;
-  top: calc(-1 * var(--wir-ring) - var(--space-3));
-  left: calc(-1 * var(--wir-ring) - var(--space-3));
-  width: calc(var(--wir-avatar) + 2 * (var(--wir-ring) + var(--space-3)));
-  height: calc(var(--wir-avatar) + 2 * (var(--wir-ring) + var(--space-3)));
+  /* The ring's own box with a soft glow around it: a shadow adds no
+     scrollable overflow at 360 px, where the portraits reach the edges. */
+  top: calc(-1 * var(--wir-ring));
+  left: calc(-1 * var(--wir-ring));
+  width: calc(var(--wir-avatar) + 2 * var(--wir-ring));
+  height: calc(var(--wir-avatar) + 2 * var(--wir-ring));
   border-radius: 50%;
-  background: radial-gradient(
-    closest-side,
-    var(--identity-icon-warm-fill),
-    transparent
-  );
+  box-shadow: 0 0 var(--space-5) var(--space-1) var(--identity-icon-warm-fill);
   content: "";
   opacity: var(--wir-occasion-halo-opacity);
   pointer-events: none;
 }
 
 .wir-stage {
-  --wir-occasion-halo-opacity: 0.35;
+  --wir-occasion-halo-opacity: 0.55;
 }
 
 .wir-stage[data-important-day="playing"]

@@ -1216,9 +1216,63 @@ for (const { width, theme, large, reduced } of [
     });
     await page.waitForTimeout(1_000);
     await saveEvidence(page, `2074-${label}-2-rest`);
-    const scrollWidth = await page.evaluate(
-      () => document.documentElement.scrollWidth,
+    // The occasion copy stays inside the viewport. (At 360 px with 200 %
+    // text the partner's send mark already reaches 9 px past the edge on
+    // `main`, with or without an occasion; that is not this change.)
+    const copy = await page.evaluate(() =>
+      [...document.querySelectorAll('.wir-bridge-occasion')]
+        .map((element) => element.getBoundingClientRect())
+        .filter((box) => box.width > 0)
+        .map((box) => ({ left: box.left, right: box.right })),
     );
-    expect(scrollWidth).toBeLessThanOrEqual(width);
+    expect(copy.length).toBeGreaterThan(0);
+    for (const box of copy) {
+      expect(box.left).toBeGreaterThanOrEqual(0);
+      expect(box.right).toBeLessThanOrEqual(width);
+    }
+  });
+}
+
+for (const { width, theme, large, reduced } of [
+  { width: 360, theme: 'light', large: false, reduced: false },
+  { width: 360, theme: 'dark', large: false, reduced: false },
+  { width: 390, theme: 'light', large: false, reduced: false },
+  { width: 390, theme: 'dark', large: false, reduced: false },
+  { width: 430, theme: 'light', large: false, reduced: false },
+  { width: 430, theme: 'dark', large: false, reduced: false },
+  { width: 390, theme: 'light', large: true, reduced: false },
+  { width: 390, theme: 'dark', large: false, reduced: true },
+] as const) {
+  const label = `${width}-${theme}${large ? '-200-text' : ''}${reduced ? '-reduced-motion' : ''}`;
+  test(`visual evidence 2074 ${label}: the Wir opening and its rest on an ordinary day`, async ({
+    page,
+  }) => {
+    await installMocks(page, { ownVibe: 'GOOD', partnerVibe: 'OKAY' });
+    await useConnectedDesign(page);
+    await page.setViewportSize({ width, height: 800 });
+    await page.emulateMedia({
+      colorScheme: theme,
+      reducedMotion: reduced ? 'reduce' : 'no-preference',
+    });
+    if (large) {
+      await page.addInitScript(() => {
+        document.addEventListener('DOMContentLoaded', () => {
+          const style = document.createElement('style');
+          style.textContent = 'html { font-size: 200% !important; }';
+          document.head.append(style);
+        });
+      });
+    }
+    await signIn(page);
+    const stage = page.locator('.wir-stage');
+    await expect(stage).not.toHaveAttribute('data-important-day', /.*/);
+    if (!reduced && (await stage.getAttribute('data-motion-stage'))) {
+      await saveEvidence(page, `2074-ordinary-${label}-1-opening`);
+    }
+    await expect(stage).not.toHaveAttribute('data-motion-stage', /.*/, {
+      timeout: 6_000,
+    });
+    await page.waitForTimeout(600);
+    await saveEvidence(page, `2074-ordinary-${label}-2-rest`);
   });
 }

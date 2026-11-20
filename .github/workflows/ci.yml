@@ -37,6 +37,7 @@ jobs:
       supply_chain_web: ${{ steps.scope.outputs.supply_chain_web }}
       supply_chain_backend_build: ${{ steps.scope.outputs.supply_chain_backend_build }}
       supply_chain_web_build: ${{ steps.scope.outputs.supply_chain_web_build }}
+      web: ${{ steps.scope.outputs.web }}
       tier: ${{ steps.scope.outputs.tier }}
       label_required: ${{ steps.scope.outputs.label_required }}
     steps:
@@ -86,7 +87,7 @@ jobs:
           set -euo pipefail
 
           enable_all() {
-            for scope in backend backend_integration self_hosted api_clients supply_chain supply_chain_backend supply_chain_web supply_chain_backend_build supply_chain_web_build; do
+            for scope in backend backend_integration self_hosted api_clients supply_chain supply_chain_backend supply_chain_web supply_chain_backend_build supply_chain_web_build web; do
               echo "$scope=true" >> "$GITHUB_OUTPUT"
             done
             echo "tier=full" >> "$GITHUB_OUTPUT"
@@ -215,6 +216,51 @@ jobs:
 
       - name: Tests without integration
         run: uv run --frozen pytest -m "not integration" -q
+
+  web:
+    name: Web Reference Flow
+    needs: changes
+    # Required check: unrelated pull requests report it as skipped (#2096).
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Restore npm download cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.npm
+          key: web-gate-npm-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+          restore-keys: web-gate-npm-${{ runner.os }}-
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Dependency audit
+        run: node scripts/audit-gate.mjs
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Tests
+        run: npm test
+
+      - name: Capacitor foundation check
+        run: npm run cap:check
+
+      - name: Production build
+        run: npm run build
 
   backend_integration_shards:
     name: Backend Integration Shard ${{ matrix.shard }}/${{ strategy.job-total }}

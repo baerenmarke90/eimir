@@ -51,7 +51,6 @@ SELF_VALIDATING_LEAF_WORKFLOW_PATHS = (
     ".github/workflows/product-design-review.yml",
     ".github/workflows/reuse-review.yml",
     ".github/workflows/web-browser-qa.yml",
-    ".github/workflows/web-s8.yml",
 )
 
 
@@ -555,6 +554,29 @@ class PullRequestTierTest(unittest.TestCase):
             with self.subTest(workflow=workflow):
                 text = (ROOT / workflow).read_text(encoding="utf-8")
                 self.assertIn("startsWith(github.head_ref, 'release/')", text)
+
+    def test_web_gate_follows_web_inputs_and_fails_closed(self) -> None:
+        for path in (
+            "web/src/client/App.tsx",
+            "android/app/build.gradle",
+            "design/tokens.json",
+            "design/designs/verbunden.json",
+            "legal/terms.md",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(tiered_outputs([path], pull_request=True)["web"], "true")
+        for path in ("backend/src/eimir/memories/service.py", "docs/ROADMAP.md", "design/brand/logo.svg"):
+            with self.subTest(path=path):
+                self.assertEqual(tiered_outputs([path], pull_request=True)["web"], "false")
+        self.assertEqual(tiered_outputs([".github/workflows/ci.yml"], pull_request=True)["web"], "true")
+        self.assertEqual(tiered_outputs(["future-build-system/x.toml"], pull_request=True)["web"], "true")
+
+    def test_web_gate_is_a_ci_job_with_the_required_name(self) -> None:
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        job = workflow.split("\n  web:\n", 1)[1].split("\n  backend_integration_shards:\n", 1)[0]
+        self.assertIn("    name: Web Reference Flow\n", job)
+        self.assertIn("    if: needs.changes.outputs.web == 'true'\n", job)
+        self.assertFalse((ROOT / ".github/workflows/web-s8.yml").exists())
 
     def test_docs_only_pull_request_is_cheap_without_heavy_work(self) -> None:
         outputs = tiered_outputs(["docs/ROADMAP.md"], pull_request=True)

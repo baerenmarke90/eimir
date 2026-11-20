@@ -65,7 +65,6 @@ SELF_VALIDATING_LEAF_WORKFLOW_EXACT = (
     ".github/workflows/product-design-review.yml",
     ".github/workflows/reuse-review.yml",
     ".github/workflows/web-browser-qa.yml",
-    ".github/workflows/web-s8.yml",
 )
 
 # Tooling that a dedicated leaf workflow validates itself. Each path maps to the
@@ -366,6 +365,13 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
     return result
 
 
+# The cheap Web gate (lint, format, typecheck, unit tests, Capacitor check and
+# production build) runs in CI's "Web Reference Flow" job for these inputs. As
+# a CI job it reports "skipped" for unrelated pull requests, which keeps it safe
+# as a required check (#2096).
+WEB_GATE_PREFIXES = ("web/", "android/", "design/designs/", "legal/")
+WEB_GATE_EXACT = ("design/tokens.json",)
+
 FULL_CI_LABEL = "ci:full"
 RELEASE_BRANCH_PREFIX = "release/"
 
@@ -498,6 +504,12 @@ def tiered_outputs(
     # builds belong to the heavy tier.
     outputs["supply_chain_backend_build"] = "true" if full and scopes["supply_chain_backend"] else "false"
     outputs["supply_chain_web_build"] = "true" if full and scopes["supply_chain_web"] else "false"
+    outputs["web"] = (
+        "true"
+        if any(_matches(path, prefixes=WEB_GATE_PREFIXES, exact=WEB_GATE_EXACT) for path in changed)
+        or classify_paths(changed) == _all_enabled()
+        else "false"
+    )
     outputs["tier"] = "full" if full else "cheap"
     outputs["tier_reason"] = reason
     outputs["label_required"] = "true" if label_required else "false"

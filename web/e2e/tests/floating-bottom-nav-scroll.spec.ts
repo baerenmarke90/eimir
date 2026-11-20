@@ -2348,18 +2348,36 @@ test.describe('gestures and haptics on the motion layer (#2076)', () => {
       const { session, width, y } = await swipeAndRelease(page);
       await nextFrame(page);
       await nextFrame(page);
-      const before = await pageOffset(page);
+      // Read the drawn offset in the same task as the grab: just before the
+      // app's own touch handler runs (capture phase) and right after it.
+      await page.evaluate((selector) => {
+        const record = window as unknown as { grab: number[] };
+        record.grab = [];
+        const read = () =>
+          Number.parseFloat(
+            getComputedStyle(document.querySelector(selector) as Element).left,
+          );
+        window.addEventListener('touchstart', () => record.grab.push(read()), {
+          capture: true,
+          once: true,
+        });
+        window.addEventListener('touchstart', () => record.grab.push(read()), {
+          once: true,
+        });
+      }, CURRENT_PAGE);
       await touch(session, 'touchStart', width * 0.5, y);
-      const after = await pageOffset(page);
+      const [before, after] = await page.evaluate(
+        () => (window as unknown as { grab: number[] }).grab,
+      );
+      expect(after).toBeCloseTo(await pageOffset(page), 0);
       exportMeasurement('2076-pager-grab-cpu4.json', {
         viewport: 390,
         cpuThrottling: 4,
         offsetBeforeGrab: before,
         offsetAfterGrab: after,
       });
-      // One frame may pass between the two reads; the pages do not snap to
-      // either end.
-      expect(Math.abs(after - before)).toBeLessThan(width * 0.1);
+      // No jump: the pages stop where they were drawn, not at either end.
+      expect(Math.abs(after - before)).toBeLessThan(1);
       expect(after).toBeGreaterThan(-width + 2);
       expect(after).toBeLessThan(-2);
       await expect(page).toHaveURL(/\/today$/);

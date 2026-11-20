@@ -156,12 +156,18 @@ function settlePages(
     finish,
     abort: stop,
     grab: () => {
+      // The linear keyframes are interpolated the same way here, so the
+      // pages stop exactly where they are drawn.
       const time = Number(animations[0]?.currentTime ?? duration);
-      const index = Math.min(
+      const position = Math.min(
         frames.length - 1,
-        Math.max(0, Math.round(time / (duration / (frames.length - 1)))),
+        Math.max(0, (time / duration) * (frames.length - 1)),
       );
-      const offset = frames[index] ?? to;
+      const index = Math.floor(position);
+      const next = frames[Math.min(frames.length - 1, index + 1)] ?? to;
+      const offset =
+        (frames[index] ?? to) +
+        (next - (frames[index] ?? to)) * (position - index);
       stop();
       place(offset);
       return offset;

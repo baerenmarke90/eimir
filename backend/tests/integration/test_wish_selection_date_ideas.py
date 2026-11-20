@@ -369,3 +369,26 @@ def test_export_has_catalog_references_without_copy_or_partner_choices(
             assert snapshot["ownSelection"]["favoriteDateIdeaIds"] == IDEAS[1:]
         else:
             assert "ownSelection" not in snapshot
+
+
+def test_without_the_plugin_a_round_with_date_ideas_pauses_and_keeps_its_data(  # type: ignore[no-untyped-def]
+    client, session: Session, couple
+):
+    """Decision 0017: without the catalog source the round pauses; nothing is deleted."""
+    from tests.support.plugins import without_plugins
+
+    _grant(session, couple)
+    body = start_mixed(client, couple).json()
+    share(client, couple, "a", body["selectionToken"], [0], IDEAS[:1])
+    title = get_catalog().idea(IDEAS[0], "de").title
+    with without_plugins():
+        paused = client.get(path(couple), headers=headers(couple))
+        assert paused.status_code == 200
+        data = paused.json()
+        assert data["resultState"] == "PAUSED"
+        assert [item["dateIdeaId"] for item in data["dateIdeaCandidates"]] == IDEAS
+        assert all(item["idea"] is None for item in data["dateIdeaCandidates"])
+        assert title not in paused.text
+        assert [item["title"] for item in data["candidates"]] == ["Wish 0", "Wish 1"]
+    resumed = client.get(path(couple), headers=headers(couple)).json()
+    assert resumed["resultState"] != "PAUSED"

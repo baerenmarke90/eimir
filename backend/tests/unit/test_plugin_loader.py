@@ -90,6 +90,12 @@ class FakePlugin:
     def export_account_document(self, *args: object) -> Mapping[str, Any]:
         return {}
 
+    def date_ideas(self) -> None:
+        return None
+
+    def seed_demo(self, *args: object, **kwargs: object) -> None:
+        return None
+
 
 def candidate(
     plugin: object, *, name: str = "pro", distribution: str | None = "eimir"

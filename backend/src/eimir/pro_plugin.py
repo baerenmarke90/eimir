@@ -31,10 +31,12 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
     from eimir.authorization import AuthorizationContext
+    from eimir.demo.service import DemoSeedResult
     from eimir.domain.events import EventType
     from eimir.jobs.worker import JobRegistry
     from eimir.outbox.models import OutboxEvent
     from eimir.transfer.models import TransferScope
+    from eimir.wish_selections.date_idea_contract import DateIdea, DateIdeaSource
 
 # Every capability the Core manifest leaves to plugins is implemented here.
 _CAPABILITIES = PLUGIN_CAPABILITIES
@@ -471,6 +473,101 @@ class InTreeProPlugin:
         if google_account and google_account.payload.account_id == authorization.account_id:
             document["personalGoogleAccountHint"] = google_account.payload.email
         return document
+
+    def date_ideas(self) -> DateIdeaSource | None:
+        return _DATE_IDEAS
+
+    def seed_demo(self, session: Session, result: DemoSeedResult, *, created: bool) -> None:
+        _ensure_demo_quote_preferences(session, result)
+        if created:
+            # Like the other examples, only a new canonical Space or a reset
+            # gets a location share, so ``ensure`` never restores a removed one.
+            _ensure_demo_partner_location(session, result)
+
+
+class _InTreeDateIdeas:
+    """The bundled editorial catalog as a Wish selection round sees it."""
+
+    def revision(self, idea_id: str) -> str | None:
+        from eimir.date_ideas.catalog import get_catalog
+
+        return get_catalog().revision(idea_id)
+
+    def view(self, idea_id: str, locale: str | None) -> DateIdea | None:
+        from eimir.api.v1.date_ideas import date_idea_view
+        from eimir.date_ideas.catalog import get_catalog
+        from eimir.date_ideas.images import get_images
+
+        catalog = get_catalog()
+        resolved = catalog.idea(idea_id, catalog.resolve_locale(locale))
+        return None if resolved is None else date_idea_view(resolved, get_images())
+
+
+_DATE_IDEAS = _InTreeDateIdeas()
+
+
+def _ensure_demo_quote_preferences(session: Session, result: DemoSeedResult) -> None:
+    """Configure deterministic, distinct quote preferences for Lea and Alex."""
+    from eimir.quotes import service as quote_preference_service
+
+    quote_preference_service.update_preference(
+        session,
+        result.lea_id,
+        enabled=True,
+        selected_source_ids=["poetic_wisdom", "classic_literature"],
+        selected_category_ids=["love", "together"],
+        locale="de",
+    )
+    quote_preference_service.update_preference(
+        session,
+        result.alex_id,
+        enabled=True,
+        selected_source_ids=["stoic_philosophy"],
+        selected_category_ids=["life", "nature"],
+        locale="de",
+    )
+
+
+def _ensure_demo_partner_location(session: Session, result: DemoSeedResult) -> None:
+    """Both demo partners share their location with each other."""
+    from eimir.authorization import AuthorizationContext
+    from eimir.core import clock
+    from eimir.demo.feature_examples import (
+        ALEX_POSITION,
+        LEA_POSITION,
+        POSITION_ACCURACY_METERS,
+    )
+    from eimir.presence import service as presence_service
+    from eimir.presence.models import SharingLevel
+
+    if not presence_service.feature_enabled():
+        return
+    captured_at = clock.now()
+    for account_id, (latitude, longitude) in (
+        (result.lea_id, LEA_POSITION),
+        (result.alex_id, ALEX_POSITION),
+    ):
+        context = AuthorizationContext(account_id=account_id, space_id=result.space_id)
+        settings = presence_service.get_settings_view(session, context)
+        if not settings.available:
+            return
+        if settings.level is not SharingLevel.DISTANCE_AND_MAP or not settings.indefinite:
+            settings = presence_service.update_settings(
+                session,
+                context,
+                level=SharingLevel.DISTANCE_AND_MAP,
+                indefinite=True,
+                expires_at=None,
+            )
+        presence_service.publish_snapshot(
+            session,
+            context,
+            latitude=latitude,
+            longitude=longitude,
+            accuracy_meters=POSITION_ACCURACY_METERS,
+            captured_at=captured_at,
+            consent_generation=settings.generation,
+        )
 
 
 plugin = InTreeProPlugin()

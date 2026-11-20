@@ -47,9 +47,10 @@ builds, Media Video, Release Evidence and CodeQL.
   `main` before merging further features.
 - Nightly and manual full runs on `main` use `eimir-dev` for CI, Web Browser
   QA, Backend Encrypted Mode, Media Video, CodeQL, Self-Hosted Deployment
-  Guard and Self-Hosted Recovery. Each job gets a fresh guest and runs in
-  sequence. GitHub hosts Android launcher icons and PR jobs, with the existing
-  same-repository Secret Scan pilot in a separate guest. Set the repository
+  Guard and Self-Hosted Recovery. Guest jobs run in sequence and each gets a
+  fresh guest. GitHub hosts Android launcher icons, Backend Core-only shards
+  (which exceeded the 30-minute job limit on the guest), and PR jobs, with the
+  existing same-repository Secret Scan pilot in a separate guest. Set the repository
   variable `EIMIR_NIGHTLY_RUNNER` to `github-hosted` to route new dispatches to
   `ubuntu-latest`.
 - The private test channel (test instance) follows every merge to `main` right

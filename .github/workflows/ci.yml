@@ -428,11 +428,8 @@ jobs:
     name: Backend Core-only Shard ${{ matrix.shard }}/${{ strategy.job-total }}
     needs: changes
     if: needs.changes.outputs.backend_integration == 'true'
-    runs-on: >-
-      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
-          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
-          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
-          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
+    # The nightly guest exceeded the existing 30-minute limit on Core-only.
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false

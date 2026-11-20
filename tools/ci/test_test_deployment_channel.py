@@ -147,9 +147,20 @@ class CompletionAdmissionTest(unittest.TestCase):
             self.assertFalse(channel.check_for_publication(SOURCE, "workflow_run", completion_event()))
             self.assertTrue(channel.check_for_publication(SOURCE, "workflow_dispatch", {}))
 
+    def test_tested_earlier_main_revision_is_admitted(self):
+        with (
+            patch.object(channel, "latest_main", return_value=PREVIOUS),
+            patch.object(channel, "compare_status", return_value="ahead") as compare,
+            patch.object(channel, "candidate_ready", return_value=True),
+            patch.object(channel, "channel_already_selected", return_value=False),
+        ):
+            self.assertTrue(channel.check_for_publication(SOURCE, "workflow_dispatch", {}))
+        compare.assert_called_once_with(SOURCE, PREVIOUS)
+
     def test_superseded_source_and_failed_checks_cannot_admit_a_build(self):
         with (
             patch.object(channel, "latest_main", return_value=PREVIOUS),
+            patch.object(channel, "compare_status", return_value="diverged"),
             patch.object(channel, "candidate_ready") as ready,
         ):
             self.assertFalse(channel.check_for_publication(SOURCE, "workflow_run", completion_event()))
@@ -312,6 +323,41 @@ class MainCheckTest(unittest.TestCase):
             ):
                 self.assertEqual(channel.main(), 1)
                 wait.assert_not_called()
+
+    def test_candidate_branch_admits_only_check_and_publish(self):
+        candidate = f"refs/heads/{channel.CANDIDATE_BRANCH}"
+        environment = {
+            "GITHUB_REPOSITORY": channel.REPOSITORY,
+            "GITHUB_REF": candidate,
+            "GITHUB_EVENT_NAME": "workflow_dispatch",
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "output"
+            with (
+                patch.dict(os.environ, environment),
+                patch.object(channel, "check_for_publication", return_value=True) as check,
+                patch.object(
+                    sys,
+                    "argv",
+                    ["channel", "check", "--revision", SOURCE, "--github-output", str(output)],
+                ),
+            ):
+                self.assertEqual(channel.main(), 0)
+                check.assert_called_once_with(SOURCE, "workflow_dispatch", {})
+        for command in (
+            ["wait", "--revision", SOURCE, "--github-output", "/unused"],
+            ["full-regression", "--revision", SOURCE],
+        ):
+            with (
+                self.subTest(command=command[0]),
+                patch.dict(os.environ, environment),
+                patch.object(channel, "wait_for_checks") as wait,
+                patch.object(channel, "require_full_regression") as gate,
+                patch.object(sys, "argv", ["channel", *command]),
+            ):
+                self.assertEqual(channel.main(), 1)
+                wait.assert_not_called()
+                gate.assert_not_called()
 
 
 class EvidenceAndImageTest(unittest.TestCase):
@@ -631,9 +677,12 @@ class BranchPromotionTest(unittest.TestCase):
             "README.md": "generated",
         }
         self.current_source = PREVIOUS
+        self.compare = "ahead"
 
     def api(self, endpoint, *, payload=None, **kwargs):
         self.calls.append((endpoint, payload, kwargs))
+        if "/compare/" in endpoint:
+            return {"status": self.compare}
         if "/git/ref/heads/" in endpoint:
             return {"object": {"sha": PREVIOUS}}
         if "/contents/" in endpoint:
@@ -674,6 +723,8 @@ class BranchPromotionTest(unittest.TestCase):
                 patch.object(
                     channel, "latest_main", return_value=PREVIOUS if stale else SOURCE
                 ),
+                # A stale candidate here is one that left main's history.
+                patch.object(channel, "compare_status", return_value="diverged"),
                 patch.object(channel, "candidate_ready", return_value=False),
                 patch.object(channel, "gh_api") as api,
                 self.assertRaises(channel.ChannelError),
@@ -681,12 +732,34 @@ class BranchPromotionTest(unittest.TestCase):
                 channel.advance_channel(self.files, SOURCE)
             api.assert_not_called()
 
-    def test_main_advancing_during_commit_creation_keeps_old_branch(self):
+    def test_main_rewritten_during_commit_creation_keeps_old_branch(self):
+        self.compare = "diverged"
         with (
             patch.object(channel, "latest_main", side_effect=[SOURCE, PREVIOUS]),
             patch.object(channel, "candidate_ready", return_value=True),
             patch.object(channel, "gh_api", side_effect=self.api),
             self.assertRaises(channel.ChannelError),
+        ):
+            channel.advance_channel(self.files, SOURCE)
+        self.assertFalse(any("/git/refs" in endpoint for endpoint, _, _ in self.calls))
+
+    def test_main_advancing_past_a_tested_source_still_promotes_it(self):
+        # #2096: a tested main revision stays publishable after later merges.
+        with (
+            patch.object(channel, "latest_main", side_effect=[SOURCE, PREVIOUS]),
+            patch.object(channel, "candidate_ready", return_value=True),
+            patch.object(channel, "gh_api", side_effect=self.api),
+        ):
+            self.assertTrue(channel.advance_channel(self.files, SOURCE))
+        self.assertTrue(self.calls[-1][0].endswith("/git/refs/heads/deploy/eimir-test"))
+
+    def test_older_source_than_the_selected_one_is_refused(self):
+        self.compare = "behind"
+        with (
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", return_value=True),
+            patch.object(channel, "gh_api", side_effect=self.api),
+            self.assertRaisesRegex(channel.ChannelError, "older than the selected"),
         ):
             channel.advance_channel(self.files, SOURCE)
         self.assertFalse(any("/git/refs" in endpoint for endpoint, _, _ in self.calls))

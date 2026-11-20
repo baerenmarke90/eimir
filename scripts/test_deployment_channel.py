@@ -42,6 +42,11 @@ REQUIRED_WORKFLOWS = frozenset(
 # or a manual dispatch.
 FULL_REGRESSION_EVENT = "workflow_dispatch"
 FULL_REGRESSION_DISPATCHER = "nightly-regression.yml"
+# The Nightly Regression Report points this branch at the exact revision whose
+# full regression passed and dispatches the publisher on it, so the channel can
+# publish a tested revision after main has moved on (#2096).
+CANDIDATE_BRANCH = "test-channel-candidate"
+PUBLICATION_REFS = frozenset({"refs/heads/main", f"refs/heads/{CANDIDATE_BRANCH}"})
 CLOUD_SERVICES = ("cloud-migrate", "cloud-api", "cloud-worker", "cloud-web")
 FCM_CREDENTIAL_TARGET = "/run/secrets/eimir-fcm-sender.json"
 _FCM_SOURCE_PLACEHOLDER = "/__eimir_source_only_fcm_mount__"
@@ -114,6 +119,41 @@ def latest_main() -> str:
     return revision(gh_api(f"repos/{REPOSITORY}/git/ref/heads/main")["object"]["sha"])
 
 
+def compare_status(base: str, head: str) -> str:
+    """GitHub compare status of head relative to base (ahead/behind/identical/diverged)."""
+    return str(gh_api(f"repos/{REPOSITORY}/compare/{base}...{head}").get("status", ""))
+
+
+def tested_revision_on_main(source: str) -> bool:
+    """Admit the current main commit or any earlier commit in main's history."""
+    current = latest_main()
+    return current == source or compare_status(source, current) == "ahead"
+
+
+def selected_source() -> str | None:
+    """Return the source revision currently selected on the channel branch, if any."""
+    try:
+        parent = revision(
+            gh_api(f"repos/{REPOSITORY}/git/ref/heads/{CHANNEL_BRANCH}")["object"][
+                "sha"
+            ]
+        )
+    except GitHubError as error:
+        if error.missing:
+            return None
+        raise
+    current = gh_api(f"repos/{REPOSITORY}/contents/channel.json?ref={parent}")
+    identity = json.loads(base64.b64decode(current["content"], validate=False))
+    if identity.get("kind") != CHANNEL_KIND or identity.get("schemaVersion") != 1:
+        raise ChannelError("Existing deployment branch is not an owned test channel")
+    return revision(identity["sourceRevision"])
+
+
+def newer_than_selected(source: str, selected: str | None) -> bool:
+    """The channel only moves forward along main's history, never back."""
+    return selected is None or selected == source or compare_status(selected, source) == "ahead"
+
+
 def workflow_state(runs: list[dict], source: str) -> bool:
     """Require the newest full-regression run/attempt of every exact main workflow."""
     selected: dict[str, dict] = {}
@@ -174,21 +214,7 @@ def completion_matches_source(event: dict, source: str) -> bool:
 
 def channel_already_selected(source: str) -> bool:
     """Avoid rebuilding an already selected pair after repeated completions."""
-    try:
-        parent = revision(
-            gh_api(f"repos/{REPOSITORY}/git/ref/heads/{CHANNEL_BRANCH}")["object"][
-                "sha"
-            ]
-        )
-    except GitHubError as error:
-        if error.missing:
-            return False
-        raise
-    current = gh_api(f"repos/{REPOSITORY}/contents/channel.json?ref={parent}")
-    identity = json.loads(base64.b64decode(current["content"], validate=False))
-    if identity.get("kind") != CHANNEL_KIND or identity.get("schemaVersion") != 1:
-        raise ChannelError("Existing deployment branch is not an owned test channel")
-    return revision(identity["sourceRevision"]) == source
+    return selected_source() == source
 
 
 def check_for_publication(source: str, event_name: str, event: dict) -> bool:
@@ -199,8 +225,8 @@ def check_for_publication(source: str, event_name: str, event: dict) -> bool:
             return False
     elif event_name != "workflow_dispatch":
         raise ChannelError("Test checks require a main completion or manual retry")
-    if latest_main() != source:
-        print("Candidate was superseded on main; keeping the current channel")
+    if not tested_revision_on_main(source):
+        print("Candidate is not part of main's history; keeping the current channel")
         return False
     if not candidate_ready(source):
         print("Required main workflows are unfinished; awaiting another completion")
@@ -208,6 +234,7 @@ def check_for_publication(source: str, event_name: str, event: dict) -> bool:
     if channel_already_selected(source):
         print("This source is already selected; preserving its exact image pair")
         return False
+    # advance_channel() refuses a candidate older than the selected source.
     return True
 
 
@@ -602,9 +629,9 @@ def export_compose(
 def advance_channel(files: dict[str, str], source: str) -> bool:
     if set(files) != {"compose.yaml", "channel.json", "README.md"}:
         raise ChannelError("Only generated deployment files may enter the channel")
-    if latest_main() != source or not candidate_ready(source):
+    if not tested_revision_on_main(source) or not candidate_ready(source):
         raise ChannelError(
-            "Candidate is stale or required main checks are no longer successful"
+            "Candidate is not on main or required main checks are no longer successful"
         )
     parent = None
     try:
@@ -626,6 +653,10 @@ def advance_channel(files: dict[str, str], source: str) -> bool:
                 "This source revision is already selected; preserving its exact image pair"
             )
             return False
+        if not newer_than_selected(source, revision(identity["sourceRevision"])):
+            raise ChannelError(
+                "Candidate is older than the selected source; keeping the current channel"
+            )
     tree = gh_api(
         f"repos/{REPOSITORY}/git/trees",
         payload={
@@ -643,9 +674,9 @@ def advance_channel(files: dict[str, str], source: str) -> bool:
             "parents": [parent] if parent else [],
         },
     )
-    if latest_main() != source or not candidate_ready(source):
+    if not tested_revision_on_main(source) or not candidate_ready(source):
         raise ChannelError(
-            "Main advanced during publication; keeping the current channel"
+            "Main history or checks changed during publication; keeping the current channel"
         )
     # GitHub rejects a non-fast-forward update if another writer moved the branch.
     # No force push is used, including on retries.
@@ -670,8 +701,8 @@ def advance_channel(files: dict[str, str], source: str) -> bool:
 
 
 def publish(source: str, artifact_root: Path, output: Path) -> None:
-    if latest_main() != source or not candidate_ready(source):
-        raise ChannelError("Only the current, checked main commit may be published")
+    if not tested_revision_on_main(source) or not candidate_ready(source):
+        raise ChannelError("Only a fully checked commit of main may be published")
     run_id, attempt = os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"]
     if not all(re.fullmatch(r"[1-9][0-9]*", value) for value in (run_id, attempt)):
         raise ChannelError("Invalid workflow run identity")
@@ -746,7 +777,13 @@ def main() -> int:
             raise ChannelError(
                 "Test publication is restricted to the owning repository"
             )
-        if os.environ.get("GITHUB_REF") != "refs/heads/main":
+        github_ref = os.environ.get("GITHUB_REF")
+        # check/publish also run on the candidate branch that points at a tested
+        # main revision; release gates and waiting stay restricted to main.
+        allowed_refs = (
+            PUBLICATION_REFS if args.command in {"check", "publish"} else {"refs/heads/main"}
+        )
+        if github_ref not in allowed_refs:
             raise ChannelError("Test publication is restricted to main")
         if args.command == "full-regression":
             require_full_regression(source, dispatch=args.dispatch)

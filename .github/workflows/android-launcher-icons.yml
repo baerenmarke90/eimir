@@ -48,7 +48,7 @@ jobs:
       # killed instrumentation during its boot-time service burst at 6 GiB; the
       # 16 GiB host retains room for an 8 GiB guest.
       matrix:
-        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"api":36,"image":"android-36","tag":"google_apis","memory":4096}]' || '[{"api":28,"image":"android-28","tag":"google_apis","memory":2048},{"api":36,"image":"android-36","tag":"google_apis","memory":4096},{"api":"37.1","image":"android-37.1","tag":"google_apis_ps16k","memory":8192}]') }}
+        include: ${{ fromJSON(github.event_name == 'pull_request' && !startsWith(github.head_ref, 'release/') && '[{"api":36,"image":"android-36","tag":"google_apis","memory":4096}]' || '[{"api":28,"image":"android-28","tag":"google_apis","memory":2048},{"api":36,"image":"android-36","tag":"google_apis","memory":4096},{"api":"37.1","image":"android-37.1","tag":"google_apis_ps16k","memory":8192}]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0

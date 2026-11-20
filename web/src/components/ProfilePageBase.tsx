@@ -43,7 +43,7 @@ import { PartnerIdentityPanel } from './PartnerIdentityPanel';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
-import { useOverlayPresence } from './useOverlayPresence';
+import { useOverlayPresence } from '../motion/presence';
 
 type PreferenceVisibility =
   | typeof ProfileVisibility.SELF_PROFILE

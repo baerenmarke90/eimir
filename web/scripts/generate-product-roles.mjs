@@ -211,6 +211,10 @@ declare('duration-controls-return', value('motion.duration.controlsReturn'));
 declare('duration-sequence-beat', value('motion.duration.sequenceBeat'));
 declare('duration-send-flight', value('motion.duration.sendFlight'));
 declare('duration-gesture-moment', value('motion.duration.gestureMoment'));
+// Motion Contract 5.3: Enter stagger steps and their cap (#2073).
+declare('duration-stagger-item', value('motion.stagger.item'));
+declare('duration-stagger-module', value('motion.stagger.module'));
+declare('motion-stagger-max-items', value('motion.stagger.maxItems'));
 declare('duration-gesture-sequence', value('motion.duration.gestureSequence'));
 declare('duration-connection-draw', value('motion.duration.connectionDraw'));
 declare('duration-connection-beat', value('motion.duration.connectionBeat'));
@@ -338,6 +342,8 @@ ${storyColorDeclarations('dark', '    ')}
     --duration-sequence-beat: ${value('motion.duration.instant')};
     --duration-send-flight: ${value('motion.duration.instant')};
     --duration-gesture-moment: ${value('motion.duration.instant')};
+    --duration-stagger-item: ${value('motion.duration.instant')};
+    --duration-stagger-module: ${value('motion.duration.instant')};
     --duration-gesture-sequence: ${value('motion.duration.instant')};
     --duration-connection-draw: ${value('motion.duration.instant')};
     --duration-connection-beat: ${value('motion.duration.instant')};

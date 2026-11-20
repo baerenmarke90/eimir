@@ -13,7 +13,7 @@ import { createPortal } from 'react-dom';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTranslation } from '../i18n';
 import { useModalLifecycle } from './useModalLifecycle';
-import { useOverlayPresence } from './useOverlayPresence';
+import { useOverlayPresence } from '../motion/presence';
 import './ShortTaskSheet.css';
 
 export interface ShortTaskSheetHandle {

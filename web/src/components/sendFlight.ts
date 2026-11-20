@@ -18,14 +18,14 @@ import {
   landingScale,
   openFlightLayer,
   type Point,
-} from './flightKit';
+} from '../motion/flight';
 
 export {
   arcPoint,
   flightKeyframes,
   landingScale,
   type Point,
-} from './flightKit';
+} from '../motion/flight';
 
 export type FlightKind = 'vibe' | 'energy' | 'note';
 

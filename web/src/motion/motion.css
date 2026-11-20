@@ -1,0 +1,78 @@
+/*
+ * The motion layer's CSS catalogue (Motion Contract 5.1, M14).
+ *
+ * One stylesheet for the shared keyframes per primitive variant, applied by
+ * data attributes that the layer sets and removes (`useEnter`). Durations and
+ * easings are token roles only (M1), so reduced motion (all roles 0ms) shows
+ * the final state at once. Every animation uses `fill: backwards`: it holds
+ * its first keyframe during a delay and leaves no style behind when the
+ * attribute is removed after it ended (M4).
+ *
+ * The feature keyframes still listed in scripts/motion-layer-allowlist.json
+ * move here, section by section, in the migration steps 3 to 8.
+ */
+
+/* Enter (4.1) */
+[data-motion-enter] {
+  animation-delay: var(--motion-enter-delay);
+  animation-fill-mode: backwards;
+  animation-timing-function: var(--easing-enter);
+  animation-duration: var(--duration-context);
+}
+
+[data-motion-enter="fade"],
+[data-motion-enter="surface"] {
+  animation-name: eimir-motion-enter-fade;
+}
+
+[data-motion-enter="rise"],
+[data-motion-enter="stagger"] {
+  animation-name: eimir-motion-enter-rise;
+}
+
+[data-motion-enter="stage"] {
+  animation-name: eimir-motion-enter-rise;
+  animation-duration: var(--duration-sequence-beat);
+}
+
+[data-motion-enter="draw"] {
+  animation-name: eimir-motion-enter-draw;
+  animation-duration: var(--duration-connection-draw);
+}
+
+[data-motion-enter="media"] {
+  animation-name: eimir-motion-enter-fade;
+  animation-duration: var(--duration-transition);
+  animation-timing-function: var(--easing-standard);
+}
+
+/* First reach: hold the first frame until the element is on screen. */
+[data-motion-enter][data-motion-state="pending"] {
+  animation-play-state: paused;
+}
+
+@keyframes eimir-motion-enter-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-enter-rise {
+  from {
+    opacity: 0;
+    translate: 0 var(--motion-enter-rise, 12px);
+  }
+}
+
+/* A path drawn in; the owner sets pathLength="1" on the SVG path. */
+@keyframes eimir-motion-enter-draw {
+  from {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+
+  to {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+}

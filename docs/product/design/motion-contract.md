@@ -1,6 +1,6 @@
 # eimir. Motion Contract
 
-**Version:** 1.0 (2026-11-19)<br>
+**Version:** 1.1 (2026-11-20)<br>
 **Status:** Normative lower-level design-system contract under Product Reference v1 once merged. Library decision **approved by the Product Owner on 2026-11-19**: an in-house motion layer on WAAPI and CSS for all primitives, Gesture follow included; Motion is not adopted ([6.6](#66-product-owner-decisions)). Haptics are approved ([4.10](#410-haptics)).<br>
 **Scope:** Canonical Web/Mobile Web UI, including the Capacitor-delivered Android app<br>
 **Issue:** [#2067](https://github.com/baerenmarke90/eimir/issues/2067)<br>
@@ -32,7 +32,7 @@ The measured inventory ([section 7](#7-inventory-on-main-at-915e97ec8)) shows 25
 
 ## 2. Terms
 
-- **Motion layer:** the shared module that implements this contract (proposed path `web/src/motion/`, see [section 5](#5-the-motion-layer)). Feature code asks the layer for a primitive. It does not write `@keyframes` or call `Element.animate()` itself.
+- **Motion layer:** the shared module that implements this contract (`web/src/motion/`, see [section 5](#5-the-motion-layer)). Feature code asks the layer for a primitive. It does not write `@keyframes` or call `Element.animate()` itself.
 - **Motion identity:** a stable string that names *what* plays, for example `wir.stage`, `wir.module.planning`, `today.quote`. It never contains personal content or user input, and is never persisted, logged or sent. Where one item needs its own identity (a received gesture, a photo URL for the `media` variant), the layer keys it by an opaque in-memory value that is dropped with the session.
 - **Prompted / unprompted:** prompted motion answers the person's own action. Unprompted motion announces something they did not trigger (a partner arrival, a received gesture, a hint).
 - **Choreography:** several motions on one screen that share one start time, for example the Wir stage and the modules that arrive after it.
@@ -431,7 +431,7 @@ Motion that announces something the person did not trigger: partner arrivals, re
   4. a quiet hint.
 
   A lower kind never interrupts a higher one. A lower kind that cannot play is dropped and its content is simply shown.
-- **Rate limits:** at most one unprompted motion at a time per screen. The same kind plays at most once per 30 seconds per screen (a proposed starting value, confirmed in the building-blocks step). Quiet hints keep their own limits (one per screen, one new per day, Freemium matrix "In-app guidance").
+- **Rate limits:** at most one unprompted motion at a time per screen. The same kind plays at most once per 30 seconds per screen (token `motion.attention.sameKindInterval`, confirmed in the building-blocks step #2073). Quiet hints keep their own limits (one per screen, one new per day, Freemium matrix "In-app guidance").
 - **Never queued.** Events that arrive while the page or the view is hidden, or while a higher motion plays, are shown in their final state when the person returns; they do not replay as a backlog.
 - **Never during input:** not while the person drags, types or has a sheet open (M16).
 - Reduced motion: the content appears at once; announcements for assistive technology are unchanged.
@@ -568,7 +568,7 @@ Legend:
 
 ## 5. The motion layer
 
-The layer is the single implementation of the catalogue. The API below describes responsibilities, not final names. The building-blocks issue fixes the names.
+The layer is the single implementation of the catalogue. Section 5.1 describes the responsibilities. Section [5.4](#54-api-as-built) gives the final names, built in the building-blocks step (#2073).
 
 ### 5.1 Responsibilities
 
@@ -598,17 +598,103 @@ The layer is the single implementation of the catalogue. The API below describes
 - Use CSS `transition` with token roles for simple state changes.
 - Product decisions on Wir and elsewhere (what moves, how strongly) keep their place in the Motion Guideline; the feature passes them to the layer as options of a primitive.
 
-### 5.3 Token extensions (proposed)
+### 5.3 Token extensions
 
-The existing roles cover all durations and easings. Only staggering lacks a token today (`useWirReveal.ts` uses a literal 220 ms step and a cap of 4). The building-blocks issue adds, with semantic names and values to be confirmed against the approved Wir timing:
+The existing roles cover all durations and easings. Staggering had no token: `useWirReveal.ts` uses a literal 220 ms step and a cap of 4. The building-blocks step (#2073) added these tokens to `design/tokens.json`:
 
-| Proposed token | Meaning | Starting value |
+| Token | Generated as | Meaning | Value |
+| --- | --- | --- | --- |
+| `motion.stagger.item` | `--duration-stagger-item` | delay between siblings of a `stagger` | 60 ms |
+| `motion.stagger.module` | `--duration-stagger-module` | delay between modules arriving together after an opening stage | 220 ms (today's Wir step) |
+| `motion.stagger.maxItems` | `--motion-stagger-max-items` | siblings that stagger before the rest arrive together | 4 |
+| `motion.gesture.*` | `MOTION_CONSTANTS.gesture` | Gesture follow thresholds (4.6), listed below | see below |
+| `motion.spring.settle` | `MOTION_CONSTANTS.spring` | the sampled settle spring of #2071 | stiffness 380, damping 39, mass 1 |
+| `motion.attention.sameKindInterval` | `MOTION_CONSTANTS.attention` | the same kind of unprompted motion plays at most once per interval per screen (4.9) | 30 000 ms |
+
+The `motion.gesture.*` values:
+
+| Threshold | Value |
+| --- | --- |
+| Slop | 8 px |
+| Axis dominance | 1.2 |
+| Reversal cancel | 24 px |
+| Fling velocity | 0.5 px/ms |
+| Fling minimum distance | 32 px |
+| Edge resistance | 0.25 |
+| Edge maximum travel | 48 px |
+| Commit `pager` | 18 % of the width, 48 to 80 px |
+| Commit `sheet` | 22 % of the height, 120 to 180 px |
+| Commit `pull` | 72 px |
+
+The stagger roles are generated into `product-roles.css` like the other motion roles. Both stagger durations resolve to `0ms` with reduced motion.
+
+Some values never follow reduced motion, theme or token set:
+- the gesture thresholds;
+- the spring;
+- the attention interval;
+- the haptics spacing, which uses the unreduced `--duration-context`.
+
+`scripts/generate-motion-tokens.mjs` generates these into `web/src/motion/tokens.generated.ts`. The surface steps change them only through `design/tokens.json`.
+
+### 5.4 API as built
+
+`web/src/motion/index.ts` lists the public API. Feature code imports the primitive's own module (for example `../motion/presence`), so a lazy route loads only the parts it uses and the entry chunk stays within its budget (`scripts/check-entry-size.mjs`).
+
+| Part | Module | API |
 | --- | --- | --- |
-| `motion.stagger.item` | delay between siblings of a `stagger` | 60 ms |
-| `motion.stagger.module` | delay between modules arriving together after an opening stage | 220 ms (today's Wir step) |
-| `motion.stagger.maxItems` | siblings that stagger before the rest arrive together | 4 |
+| Token adapter | `tokens.ts` | `durationMs(role)`, `easing(role)`, `motionCount('ambient-repeat' \| 'stagger-max-items')`, `MOTION_CONSTANTS`, `invalidateMotionTokens()`. Roles are re-read when an attribute of the root element or the reduced-motion preference changes. A missing role reads as `0` ms, never as a literal fallback |
+| Reduced-motion source | `reducedMotion.ts` | `prefersReducedMotion()`, `subscribeReducedMotion(listener)`, `useReducedMotion()`. Without `matchMedia`, motion is off |
+| Play registry | `playRegistry.ts` | `claimPlay(identity, scope, owner, surface?)`, `hasPlayed`, `markPlayed`, `createSurfaceScope()` and `useSurfaceScope()`, `resetMotionSession()`. Scopes: `app-start`, `session`, `surface` |
+| Visibility controller | `visibility.ts` | `isVisibleNow(element)` and `observeVisibility(element, listener)`. Covers page visibility, the kept view and `IntersectionObserver`. The kept view is read from the `hidden` attribute on the `[data-primary-tab]` panel of `PrimaryTabPanels`, observed without changing the panel component |
+| Runner | `run.ts` | `run(element, keyframes, { duration, easing, delay, iterations, channel, interrupt, fill, willChange })`: the layer's one entry to `Element.animate()`. It keeps one animation per element and channel (M11), sets `will-change` only while the animation runs, and returns `null` for a zero duration. Also `interruptChannel` and `runningOn` |
+| Enter | `enter.ts`, `motion.css` | `useEnter(identity, { variant, scope, surface, firstReach, choreography, offset, index, step, budget })` returns `{ ref, props, state }`. `props` applies `data-motion-enter` until the entrance ends on its own `animationend` or `animationcancel`, or at its token deadline (M2, M4). Variants: `fade`, `rise`, `surface`, `stage`, `stagger`, `draw`, `media`. Also `staggerDelay(index, step)` |
+| Media reveal | `mediaReveal.ts` | `useMediaReveal(url)` returns `{ shown, fade, ref }`. Also `revealMedia(image, url)`, `isMediaShown(url)`, `mediaRevealMode(url, decodeMs)` |
+| Replace / Exit | `presence.ts`, `departing.ts`, `replace.ts` | `usePresentationPresence` and `useOverlayPresence` (moved from `components/useOverlayPresence.ts`), `useDepartingItems` (moved from `components/useDepartingItems.ts`), `crossfade`, `navigate(element, 'forward' \| 'back' \| 'next' \| 'previous' \| 'in-place')`, `valueChange`, `disclose`, `captureLayout` with `reorder` (FLIP), `ScrollState` (hysteresis) |
+| Feedback | `feedback.ts` | `feedback(element, 'success' \| 'affection' \| 'refuse', { haptic })`. Press and toggle stay CSS state transitions of the component |
+| Flight | `flight.ts`, `FlightLayer.css` | Moved from `components/flightKit.ts`: `openFlightLayer()`, `flightKeyframes`, `arcPoint`, `landingScale`, `centre`, `pulseRing`, `scatterDots`, `readMotionRoles()` |
+| Ambient | `ambient.ts` | `ambient(element, { kind, keyframes, duration, iterations, after, onScreen })` returns `{ finished, stop }`. Repeats a finite number of times, pauses and resumes where it paused, and is absent with reduced motion |
+| Moment | `moment.ts` | `startMoment(identity, item, { visible, haptic, budget })` returns a ticket with the start delay, or `null` for the final state. Plays once per item |
+| Choreography clock | `choreography.ts` | `choreography(identity, scope)` returns a `Choreography` with `start()`, `timing({ offset, duration })` and `finished()`. `timing` returns `play` with an aligned delay, or `final`. `alignCssAnimations(root, startTime, prefix)` generalizes `wirIntroClock.ts`, which now delegates to it |
+| Budget | `budget.ts` | `screenBudget()` and `ScreenBudget`: `requestEmphasis(duration)`, `reserveElements(count)` (capped at `MAX_ANIMATED_ELEMENTS`, 12), `setInput('drag' \| 'type', active)` |
+| Attention scheduler | `attention.ts` | `attentionScheduler()` and `AttentionScheduler`: `request(kind, { visible, onPreempt })` and `setSheetOpen`. Priority runs `moment` > `arrival` > `enter` > `hint`, with one motion at a time, the same-kind interval, and drop instead of queue |
+| Haptics adapter | `haptics.ts` | `haptic(kind)`, `registerHapticsBackend(backend)`, `hapticsEnabled()` and `setHapticsEnabled()` (device-local), `hapticsAvailable()`. It is a no-op on the Web, and also until the gestures step registers the `@capacitor/haptics` backend |
+| Gesture follow | `gesture/follow.ts`, `gesture/velocity.ts`, `gesture/spring.ts` | `attachGestureFollow(element, { axis, direction, size, threshold, range, committedOffset, canStart, onCommit, onCancel, onDragStart, onDragEnd })`. Also `resolveOwnership`, `rubberBand`, `commitDistance`, `decideRelease`, `VelocityTracker`, `sampleSpring` |
 
-They are generated into `product-roles.css` like the other motion roles, and the stagger durations resolve to `0ms` with reduced motion. This PR does not change `design/tokens.json`.
+**Velocity estimator (tuned in #2073).** The gesture test (#2071) measured the finger as its travel from the first pointer sample within the 100 ms before the release up to the release. Its tracker read about 20 % high because it ignored the release:
+- it measured from the newest move back to the first sample at least 100 ms older, which in a short flick is the press origin;
+- it stopped at the last move.
+
+The tuned `VelocityTracker` takes the release (`pointerup` time and position) as its last sample and anchors the 100 ms window there. It returns the travel from the first sample in that window, divided by the time:
+- samples before a pause longer than 40 ms are ignored, so a hold-then-flick measures the flick;
+- a finger that rested for 40 ms before lifting reads 0.
+
+A least-squares slope was evaluated and rejected: it reads about 7 % high when the finger pauses briefly before lifting.
+
+Unit tests on pointer traces stay within ±5 % on:
+- slow, normal and fast flings at 60 and 120 Hz;
+- a flick that slows before lifting;
+- hold-then-flick;
+- coalesced batches delivered late;
+- an out-of-order sample and a repeated timestamp;
+- #2071's own pointer scripts, on which the old tracker read +17 % to +44 %.
+
+The sampled settle spring is used everywhere. `linear()` easing (Chromium 113 and later) remains an optional later optimization.
+
+**Guard.** `web/scripts/check-motion-layer.mjs` runs in `npm test` and `npm run build`. Outside `web/src/motion/` it counts:
+- `@keyframes`;
+- `.animate(`;
+- `infinite` in animation declarations;
+- layout properties in keyframes;
+- `cubic-bezier(` and non-zero literal durations in animation declarations.
+
+The ratchet allowlist `web/scripts/motion-layer-allowlist.json` records the per-file counts on `main` at `5528a2dbe`. It lists 66 CSS files and 8 TypeScript files:
+- the CSS files are the 65 with keyframes, plus `story-media.css` with one `infinite` loop;
+- the TypeScript count is after `flightKit.ts` and `useDepartingItems.ts` moved into the layer.
+
+The ratchet rules:
+- a count may only fall;
+- a file that reaches zero must leave the list (`node scripts/check-motion-layer.mjs --shrink`);
+- the number of listed files may not exceed that baseline.
 
 ## 6. Library decision
 
@@ -749,7 +835,7 @@ Measured on 2026-11-19 with `grep` over `web/src` (production files, tests exclu
 | TypeScript files with their own reduced-motion `matchMedia` | 22 |
 | TypeScript files reading motion tokens with their own parser | 9 |
 | `cubic-bezier(` literals outside the token file | 7 |
-| `@keyframes` animating layout properties | 0 |
+| `@keyframes` animating layout properties | 12 declarations in 3 files (`CoupleExperiences.css` `recap-lead-*`, `PicturePingPongPage.css` `pingpong-fly-x`, the disclosure keyframes in `styles.css`); recounted by the guard in #2073 |
 | Layout transitions (`height`, `grid-template-rows`, `interpolate-size`) | 7 in 5 files (Replace `disclose`) |
 | Hand-written gesture tracking (pointer or touch move) | 4 surfaces: tab pager, sheet dismissal, pull to refresh, list reorder |
 | Adopted gesture components | `@dnd-kit` in 2 files, `@panzoom/panzoom` in 2 files |
@@ -880,4 +966,5 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 1.1 | 2026-11-20 | Building blocks (#2073):<br>• the layer in `web/src/motion/` with the final API names (5.4);<br>• the stagger, gesture, spring and attention tokens (5.3);<br>• the 30 s attention interval confirmed (4.9);<br>• the tuned velocity estimator and the ratchet guard (5.4);<br>• the layout-keyframe count corrected (7.1). |
 | 1.0 | 2026-11-19 | First version (#2067). It contains:<br>• a catalogue of seven primitives, extended before merge at the Product Owner's request with Gesture follow and Moment;<br>• the Replace variants `navigate`, `disclose`, `value`, `scroll-state` and `appearance`, the Enter `media` variant, Feedback `refuse` and Flight `return`;<br>• the attention and haptics rules and the gap audit;<br>• invariants M1 to M16;<br>• the motion layer;<br>• the library decision: the in-house WAAPI and CSS layer for all primitives, Gesture follow included, approved by the Product Owner after the gesture test (#2071); Motion is not adopted;<br>• haptics, approved by the Product Owner;<br>• the Map domain with its camera, gesture, marker, rest and theme rules, and the map camera inventory;<br>• the coverage matrix of all app areas (4.12);<br>• the approved important-day Moment on Wir (4.7, #2072; the "Gratulieren" action rejected);<br>• the inventory and the migration plan (nine steps, including a map step). |

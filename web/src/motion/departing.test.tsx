@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { useDepartingItems } from './useDepartingItems';
+import { useDepartingItems } from './departing';
 
 const keyOf = (item: string) => item;
 const shown = (entries: { key: string; departing: boolean }[]) =>

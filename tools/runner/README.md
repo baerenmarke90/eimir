@@ -39,6 +39,15 @@ file `/etc/eimir-actions/dispatch.env` stay host-only. After #2115 merges, set
 there. Without them the runner does not pick up nightly jobs on `main` or
 test-channel jobs.
 
+Install or update the host files from one pinned commit, while no guest runs:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/baerenmarke90/eimir/<commit>/tools/runner/install-host.sh | sudo bash -s <commit>
+```
+
+It keeps `.bak-2115` copies of the replaced launcher and provisioning script,
+pauses the dispatcher, builds the runner image and enables the weekly timer.
+
 ## Prepared runner image
 
 Provisioning every guest during boot cost about 2 minutes per job: packages,

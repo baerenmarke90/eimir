@@ -346,7 +346,7 @@ test.describe('date inspiration and Pro paywall (#1892)', () => {
     await expect(map).toBeVisible();
     await expect(memories.locator('..').locator('dl')).toHaveCSS(
       'animation-name',
-      'eimir-disclosure-reveal',
+      'eimir-motion-enter-shift',
     );
     await assertNoHorizontalOverflow(page);
     await assertNoWcagViolations(page);

@@ -481,12 +481,14 @@ button.danger:hover:not(:disabled) {
 
 @media (prefers-reduced-motion: no-preference) {
   .focused-editor-backdrop[data-create-entry] {
-    animation: eimir-create-entry-fade var(--duration-context)
+    --motion-enter-from-opacity: 0.72;
+    animation: eimir-motion-enter-fade var(--duration-context)
       var(--easing-enter);
   }
 
   .focused-editor-backdrop[data-create-entry] > .focused-editor-sheet {
-    animation: eimir-create-entry-rise var(--duration-context)
+    --motion-enter-rise: var(--space-2);
+    animation: eimir-motion-enter-shift var(--duration-context)
       var(--easing-enter);
   }
 }

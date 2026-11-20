@@ -8,6 +8,13 @@ export const PAGE_SCROLLED_ATTRIBUTE = 'data-page-scrolled';
  * backdrop behind the system status bar fades in and scrolled content no
  * longer runs under the clock and status icons (#2063). At the very top the
  * backdrop stays hidden and hero colours reach the screen edge unchanged.
+ *
+ * Replace `scroll-state` (Motion Contract 4.2): the scroll position sets a
+ * state, and styles.css cross-fades the backdrop with `--duration-transition`
+ * (`0ms` with reduced motion). The state depends only on being at the very
+ * top, so it needs no travel hysteresis (`ScrollState` is for travel-based
+ * states such as the floating create tuck); there is no per-pixel
+ * scroll-linked transform.
  */
 export function useStatusBarScrim(): void {
   useEffect(() => {

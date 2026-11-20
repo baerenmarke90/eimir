@@ -882,7 +882,7 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   editor = page.locator('.important-date-editor');
   await expect(editor).toHaveAttribute(
     'data-e2e-entry-animation',
-    'eimir-create-entry-rise',
+    'eimir-motion-enter-shift',
   );
   await editor.getByLabel(importantDates.dateLabel).fill('2026-12-10');
   await editor.getByLabel(importantDates.labelLabel).fill('Winter evening');

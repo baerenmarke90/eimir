@@ -11,7 +11,11 @@ import { useLayoutEffect, useRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePrimaryTabPeek } from '../client/primaryTabPeek';
 import { useDocumentLeaveGuard } from '../client/useDocumentLeaveGuard';
+import { invalidateMotionTokens } from '../motion/tokens';
 import { useNavigationMotion } from './useNavigationMotion';
+
+/** A Web Animation's `finished` that the test settles by hand. */
+const pending = () => new Promise<Animation>(() => {});
 import { usePullToRefresh } from './usePullToRefresh';
 
 type Point = { clientX: number; clientY: number; identifier: number };
@@ -119,6 +123,13 @@ function PageMotionHarness({
 }
 
 beforeEach(() => {
+  // The motion layer reads its token roles from the root element.
+  document.documentElement.style.setProperty('--duration-transition', '180ms');
+  document.documentElement.style.setProperty(
+    '--easing-standard',
+    'cubic-bezier(0.2, 0, 0, 1)',
+  );
+  invalidateMotionTokens();
   Object.defineProperty(window, 'innerWidth', {
     configurable: true,
     value: 390,
@@ -136,6 +147,9 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  document.documentElement.style.removeProperty('--duration-transition');
+  document.documentElement.style.removeProperty('--easing-standard');
+  invalidateMotionTokens();
   document.body.style.overflow = '';
   vi.restoreAllMocks();
 });
@@ -274,7 +288,10 @@ describe('primary tab slide feedback', () => {
     'slides direct tab navigation from %s to %s by %spx',
     (from, to, offset) => {
       const navigate = vi.fn();
-      const slide = { cancel: vi.fn() } as unknown as Animation;
+      const slide = {
+        cancel: vi.fn(),
+        finished: pending(),
+      } as unknown as Animation;
       const view = render(
         <PageMotionHarness pathname={from} onNavigate={navigate} />,
       );
@@ -300,8 +317,12 @@ describe('primary tab slide feedback', () => {
     const view = render(<PageMotionHarness onNavigate={navigate} />);
     const surface = screen.getByTestId('motion-surface');
     const page = screen.getByTestId('motion-page');
-    const slide = vi.fn().mockReturnValue({ cancel: vi.fn() });
-    const fade = vi.fn().mockReturnValue({ cancel: vi.fn() });
+    const slide = vi
+      .fn()
+      .mockReturnValue({ cancel: vi.fn(), finished: pending() });
+    const fade = vi
+      .fn()
+      .mockReturnValue({ cancel: vi.fn(), finished: pending() });
     Object.defineProperty(page, 'animate', {
       configurable: true,
       value: slide,
@@ -323,11 +344,13 @@ describe('primary tab slide feedback', () => {
     expect(surface.dataset.navigationMotion).toBe('content');
   });
 
-  it('does not slide a nested destination or animate when motion is reduced', () => {
+  it('slides a deeper destination in from the inline end, and nothing when motion is reduced', () => {
     const navigate = vi.fn();
     const view = render(<PageMotionHarness onNavigate={navigate} />);
     const page = screen.getByTestId('motion-page');
-    const animate = vi.fn().mockReturnValue({ cancel: vi.fn() });
+    const animate = vi
+      .fn()
+      .mockReturnValue({ cancel: vi.fn(), finished: pending() });
     Object.defineProperty(page, 'animate', {
       configurable: true,
       value: animate,
@@ -338,8 +361,13 @@ describe('primary tab slide feedback', () => {
         onNavigate={navigate}
       />,
     );
-    expect(animate).not.toHaveBeenCalled();
+    // Motion Contract 4.2: forward arrives from the inline end.
+    expect(animate).toHaveBeenCalledExactlyOnceWith(
+      [{ left: '32px' }, { left: '0px' }],
+      expect.objectContaining({ duration: 180 }),
+    );
 
+    animate.mockClear();
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({
       matches: query === '(prefers-reduced-motion: reduce)',
       addEventListener: vi.fn(),
@@ -349,7 +377,7 @@ describe('primary tab slide feedback', () => {
     expect(animate).not.toHaveBeenCalled();
   });
 
-  it('slides a page back in when returning, but not for a forward step', () => {
+  it('slides Back in from the inline start and a forward step from the inline end', () => {
     const navigate = vi.fn();
     const view = render(
       <PageMotionHarness
@@ -358,7 +386,9 @@ describe('primary tab slide feedback', () => {
       />,
     );
     const page = screen.getByTestId('motion-page');
-    const animate = vi.fn().mockReturnValue({ cancel: vi.fn() });
+    const animate = vi
+      .fn()
+      .mockReturnValue({ cancel: vi.fn(), finished: pending() });
     Object.defineProperty(page, 'animate', {
       configurable: true,
       value: animate,
@@ -378,7 +408,84 @@ describe('primary tab slide feedback', () => {
         onNavigate={navigate}
       />,
     );
+    expect(animate).toHaveBeenCalledExactlyOnceWith(
+      [{ left: '32px' }, { left: '0px' }],
+      expect.anything(),
+    );
+  });
+
+  it('keeps a switch to a peer view of the same tab in place', () => {
+    const navigate = vi.fn();
+    const view = render(<PageMotionHarness onNavigate={navigate} />);
+    const page = screen.getByTestId('motion-page');
+    const animate = vi
+      .fn()
+      .mockReturnValue({ cancel: vi.fn(), finished: pending() });
+    Object.defineProperty(page, 'animate', {
+      configurable: true,
+      value: animate,
+    });
+    view.rerender(
+      <PageMotionHarness pathname="/story/map" onNavigate={navigate} />,
+    );
     expect(animate).not.toHaveBeenCalled();
+  });
+
+  it('mirrors the direction in a right-to-left layout', () => {
+    const navigate = vi.fn();
+    const view = render(<PageMotionHarness onNavigate={navigate} />);
+    const page = screen.getByTestId('motion-page');
+    page.style.direction = 'rtl';
+    const animate = vi
+      .fn()
+      .mockReturnValue({ cancel: vi.fn(), finished: pending() });
+    Object.defineProperty(page, 'animate', {
+      configurable: true,
+      value: animate,
+    });
+    view.rerender(
+      <PageMotionHarness
+        pathname="/story/memories/example"
+        onNavigate={navigate}
+      />,
+    );
+    expect(animate).toHaveBeenCalledExactlyOnceWith(
+      [{ left: '-32px' }, { left: '0px' }],
+      expect.anything(),
+    );
+  });
+
+  it('only fades the content for a change in place, such as a tab chosen from a detail', () => {
+    const navigate = vi.fn();
+    const view = render(
+      <PageMotionHarness
+        pathname="/story/memories/example"
+        onNavigate={navigate}
+      />,
+    );
+    const surface = screen.getByTestId('motion-surface');
+    const page = screen.getByTestId('motion-page');
+    const slide = vi
+      .fn()
+      .mockReturnValue({ cancel: vi.fn(), finished: pending() });
+    const fade = vi
+      .fn()
+      .mockReturnValue({ cancel: vi.fn(), finished: pending() });
+    Object.defineProperty(page, 'animate', {
+      configurable: true,
+      value: slide,
+    });
+    Object.defineProperty(surface, 'animate', {
+      configurable: true,
+      value: fade,
+    });
+    view.rerender(<PageMotionHarness pathname="/plan" onNavigate={navigate} />);
+    expect(slide).not.toHaveBeenCalled();
+    expect(surface.hasAttribute('data-navigation-slide')).toBe(false);
+    expect(fade).toHaveBeenCalledExactlyOnceWith(
+      [{ opacity: 0.92 }, { opacity: 1 }],
+      expect.objectContaining({ duration: 180 }),
+    );
   });
 
   it('settles a cancelled swipe back and releases the neighbour', () => {
@@ -390,6 +497,7 @@ describe('primary tab slide feedback', () => {
     const animation = {
       cancel: vi.fn(),
       finish: vi.fn(),
+      finished: pending(),
     } as unknown as Animation;
     const animate = vi.fn().mockReturnValue(animation);
     render(<PageMotionHarness onNavigate={navigate} />);
@@ -448,7 +556,7 @@ describe('primary tab swipe ownership', () => {
     const cancel = vi.fn();
     const animate = vi.fn(
       (_frames: Keyframe[], _options: KeyframeAnimationOptions) =>
-        ({ cancel }) as unknown as Animation,
+        ({ cancel, finished: pending() }) as unknown as Animation,
     );
     const view = render(
       <Harness pathname="/story" routeKey="first" onNavigate={navigate} />,
@@ -486,8 +594,14 @@ describe('primary tab swipe ownership', () => {
   });
 
   it('releases motion bounds on completion without letting an older animation clear its replacement', () => {
-    const first = { cancel: vi.fn() } as unknown as Animation;
-    const second = { cancel: vi.fn() } as unknown as Animation;
+    const first = {
+      cancel: vi.fn(),
+      finished: pending(),
+    } as unknown as Animation;
+    const second = {
+      cancel: vi.fn(),
+      finished: pending(),
+    } as unknown as Animation;
     const animate = vi
       .fn()
       .mockReturnValueOnce(first)

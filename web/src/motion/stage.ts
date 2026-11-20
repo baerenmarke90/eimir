@@ -40,6 +40,13 @@ export interface StageOptions {
   duration: number;
   /** An extra condition for the first consideration. */
   canStart?: (root: Element) => boolean;
+  /**
+   * The keyframe prefix of this stage's members, pinned to its clock.
+   * Default `eimir-motion-stage-`. A stage that contains another stage (the
+   * root-tab entrance around the Wir opening) uses its own prefix, so it never
+   * re-pins the inner stage's members.
+   */
+  animationPrefix?: string;
 }
 
 interface StageRecord {
@@ -110,7 +117,8 @@ export function useStage<T extends HTMLElement>(
   useLayoutEffect(() => {
     const root = ref.current;
     if (!root) return;
-    const { duration } = optionsRef.current;
+    const { duration, animationPrefix = STAGE_ANIMATION_PREFIX } =
+      optionsRef.current;
     consider(identity, root, optionsRef.current);
     const clock = choreography(identity, 'app-start');
     const start = clock.startTime;
@@ -120,7 +128,7 @@ export function useStage<T extends HTMLElement>(
       return;
     }
     root.setAttribute(STAGE_ATTRIBUTE, 'playing');
-    alignCssAnimations(root, start, STAGE_ANIMATION_PREFIX);
+    alignCssAnimations(root, start, animationPrefix);
     const finish = () => {
       root.removeAttribute(STAGE_ATTRIBUTE);
       end(identity);

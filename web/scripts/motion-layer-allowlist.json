@@ -108,12 +108,6 @@
     "src/components/PartnerLocation.css": {
       "keyframes": 1
     },
-    "src/components/PartnerQuickActions.css": {
-      "keyframes": 2
-    },
-    "src/components/PeopleProfiles.css": {
-      "keyframes": 1
-    },
     "src/components/PicturePingPongPage.css": {
       "keyframes": 2,
       "layout-keyframes": 2
@@ -131,9 +125,6 @@
     },
     "src/components/ProPaywall.css": {
       "keyframes": 1
-    },
-    "src/components/ProfilePage.css": {
-      "keyframes": 6
     },
     "src/components/RecapFilmScene.css": {
       "keyframes": 32
@@ -166,9 +157,6 @@
     "src/components/SharedStorySummary.css": {
       "keyframes": 5
     },
-    "src/components/ShortTaskSheet.css": {
-      "keyframes": 6
-    },
     "src/components/StoryHandmadeDiscover.css": {
       "keyframes": 3
     },
@@ -192,13 +180,10 @@
       "animate": 1
     },
     "src/components/useNavigationMotion.ts": {
-      "animate": 3
-    },
-    "src/layout.css": {
-      "keyframes": 2
+      "animate": 1
     },
     "src/shell.css": {
-      "keyframes": 5,
+      "keyframes": 1,
       "infinite": 1,
       "animation-literal": 1
     },
@@ -207,7 +192,7 @@
       "animation-literal": 1
     },
     "src/styles.css": {
-      "keyframes": 9,
+      "keyframes": 2,
       "infinite": 1,
       "layout-keyframes": 2,
       "animation-literal": 1

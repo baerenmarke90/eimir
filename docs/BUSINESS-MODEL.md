@@ -9,6 +9,12 @@ eimir. is intended to combine two models:
 
 Cloud monetization is based on operations, convenience, and service — not on artificially degrading the functionality of the Self-Hosted build.
 
+## Launch sequence
+
+The eimir. Cloud is the launch product (Product Owner decision of 2026-11-20, [Decision 0018](decisions/0018-cloud-first-self-hosted-later.md)).
+Self-Hosted follows much later and is not offered or advertised at launch. The Self-Hosted rules below, the shared
+Application Core, the noncommercial license and the offline-verifiable Pro license apply unchanged when it is offered.
+
 ## Operating models
 
 ### eimir. Self-Hosted

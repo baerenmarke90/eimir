@@ -76,3 +76,240 @@
     stroke-dashoffset: 0;
   }
 }
+
+/* Enter `shift`: a short settle into place without a fade (the content is
+   already readable), from `--motion-enter-rise`. */
+@keyframes eimir-motion-enter-shift {
+  from {
+    translate: 0 var(--motion-enter-rise, 4px);
+  }
+}
+
+/* Enter `pop`: a small filled mark (a dot, a badge glyph) appears with one
+   soft overshoot. Never on a thin stroke (M7). */
+@keyframes eimir-motion-enter-pop {
+  0% {
+    opacity: 0;
+    scale: 0.6;
+  }
+
+  70% {
+    opacity: 1;
+    scale: 1.1;
+  }
+}
+
+/*
+ * Enter `stage` (4.1): the members of a staged opening (`useStage`). The
+ * stage root carries `data-motion-stage="playing"`; the feature's descendant
+ * rules name these keyframes with its beats as token-derived delays and
+ * durations. Every name starts with `eimir-motion-stage-`, so the layer pins
+ * replacement members to the stage's clock (`alignCssAnimations`). The
+ * feature uses `animation-fill-mode: both` only inside the stage: the
+ * attribute is removed when the stage ends, which leaves no fill behind.
+ */
+@keyframes eimir-motion-stage-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-stage-rise {
+  from {
+    opacity: 0;
+    translate: 0 var(--motion-stage-rise, 0.5rem);
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* A filled shape (a portrait) settles in place. Not for thin strokes (M7). */
+@keyframes eimir-motion-stage-settle {
+  from {
+    opacity: 0;
+    scale: var(--motion-stage-scale, 0.97);
+  }
+
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+/* A straight connecting line reaches out along its length (a `draw` for a
+   box element): only the length scales, never the stroke's width (M7). */
+@keyframes eimir-motion-stage-reach {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* An SVG path with `pathLength` is traced from `--motion-trace-from` to its
+   full `--motion-trace-length` (Enter `draw`). */
+@keyframes eimir-motion-stage-trace {
+  0% {
+    opacity: 0;
+    stroke-dasharray: 0 var(--motion-trace-gap, 200);
+    stroke-dashoffset: var(--motion-trace-from, 0);
+  }
+
+  1% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+    stroke-dasharray: var(--motion-trace-length, 100)
+      var(--motion-trace-gap, 200);
+    stroke-dashoffset: 0;
+  }
+}
+
+/* A small glyph comes down, dips past its place and rests. */
+@keyframes eimir-motion-stage-land {
+  0% {
+    opacity: 0;
+    translate: 0 -0.5rem;
+    scale: 1.2;
+  }
+
+  60% {
+    opacity: 1;
+    translate: 0 0.08rem;
+    scale: 0.92;
+  }
+
+  100% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+@keyframes eimir-motion-stage-wiggle {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+
+  20% {
+    rotate: -12deg;
+  }
+
+  45% {
+    rotate: 9deg;
+  }
+
+  70% {
+    rotate: -5deg;
+  }
+
+  88% {
+    rotate: 2deg;
+  }
+}
+
+/* Replace `crossfade` (4.2): the incoming and the leaving layer. */
+@keyframes eimir-motion-replace-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-replace-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+/* Replace `value` (4.2): a short label leaves upward, the new one arrives. */
+@keyframes eimir-motion-value-leave {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  to {
+    opacity: 0;
+    translate: 0 -0.2rem;
+  }
+}
+
+@keyframes eimir-motion-value-arrive {
+  from {
+    opacity: 0;
+    translate: 0 0.2rem;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* Feedback (4.3) */
+
+/* A selected control settles with one small overshoot. */
+@keyframes eimir-motion-feedback-pop {
+  0% {
+    scale: 0.9;
+  }
+
+  60% {
+    scale: 1.06;
+  }
+}
+
+/* The landing beat of a Flight on its target slot. */
+@keyframes eimir-motion-feedback-land {
+  0% {
+    scale: 0.6;
+  }
+
+  55% {
+    scale: 1.2;
+  }
+}
+
+/* A small glyph tips to one side and the other, then rests upright. */
+@keyframes eimir-motion-feedback-wiggle {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+
+  20% {
+    rotate: -12deg;
+  }
+
+  45% {
+    rotate: 9deg;
+  }
+
+  70% {
+    rotate: -5deg;
+  }
+
+  88% {
+    rotate: 2deg;
+  }
+}

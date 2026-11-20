@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { DailyQuoteCatalogView } from '../api/generated/models/DailyQuoteCatalogView';
@@ -24,6 +24,8 @@ import {
 } from '../client/spaceEntitlement';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { languageName, resolveSupportedLocale } from '../i18n/locale';
+import { useEnter } from '../motion/enter';
+import { durationMs } from '../motion/tokens';
 import { EimirIcon } from './EimirIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './DailyQuoteCard.css';
@@ -162,6 +164,36 @@ function PreferencesContent({
   );
 }
 
+/**
+ * The quote itself. On Wir it arrives once per session (Enter `fade`,
+ * identity `wir.quote`); a refetch, a remount or a return shows it at once.
+ */
+function QuoteBlock({
+  lang,
+  arrive,
+  children,
+}: {
+  lang: string;
+  arrive: boolean;
+  children: ReactNode;
+}) {
+  const enter = useEnter<HTMLQuoteElement>('wir.quote', {
+    variant: 'fade',
+    duration: durationMs('sequence-beat') * 5,
+    disabled: !arrive,
+  });
+  return (
+    <blockquote
+      ref={enter.ref}
+      className="daily-quote-block"
+      lang={lang}
+      {...enter.props}
+    >
+      {children}
+    </blockquote>
+  );
+}
+
 export function DailyQuoteCard({
   quoteApi,
   entitlementsApi,
@@ -170,6 +202,7 @@ export function DailyQuoteCard({
   partnerName,
   partnerNameIsResolved = false,
   settingsOnly = false,
+  arrive = false,
 }: {
   quoteApi: DailyQuoteApi;
   entitlementsApi: EntitlementsApi;
@@ -178,6 +211,8 @@ export function DailyQuoteCard({
   partnerName?: string;
   partnerNameIsResolved?: boolean;
   settingsOnly?: boolean;
+  /** Wir: the quote arrives with Enter `fade` once per session (#2074). */
+  arrive?: boolean;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -436,7 +471,7 @@ export function DailyQuoteCard({
         });
 
     body = (
-      <blockquote className="daily-quote-block" lang={quote.locale}>
+      <QuoteBlock lang={quote.locale} arrive={arrive}>
         <EimirIcon name="quote" className="daily-quote-mark" />
         <p>
           {t('dailyQuote.quoteText', {
@@ -452,7 +487,7 @@ export function DailyQuoteCard({
             })}
           </footer>
         ) : null}
-      </blockquote>
+      </QuoteBlock>
     );
   }
 

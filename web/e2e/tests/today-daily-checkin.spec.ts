@@ -1,14 +1,14 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '../support/axe';
-import { expect, type Page, test } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
+import { expect, type Page, test } from '@playwright/test';
 import dailyVibe from '../../src/i18n/locales/dailyVibe';
 import de from '../../src/i18n/locales/de';
-import fixtureCopy from '../fixtures/locales/de';
-import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
 import onceMessages from '../../src/i18n/locales/onceMessages';
+import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
 import wirCheckIn from '../../src/i18n/locales/wirCheckIn';
+import fixtureCopy from '../fixtures/locales/de';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 /**
@@ -35,6 +35,10 @@ interface MockOptions {
   failFirstPatch?: boolean;
   /** Hold every PATCH response, to observe the waiting state. */
   patchDelayMs?: number;
+  /** #2072: the Space's relationship start (`YYYY-MM-DD`). */
+  relationshipStartedOn?: string;
+  /** #2072: the partner's profile birthday (`YYYY-MM-DD`). */
+  partnerBirthday?: string;
 }
 
 async function installMocks(page: Page, options: MockOptions = {}) {
@@ -130,6 +134,9 @@ async function installMocks(page: Page, options: MockOptions = {}) {
           { id: ACCOUNT_ID, displayName: 'Lea' },
           { id: PARTNER_ID, displayName: 'Alex' },
         ],
+        ...(options.relationshipStartedOn
+          ? { relationshipStartedOn: options.relationshipStartedOn }
+          : {}),
       });
     }
     if (method === 'GET' && pathname === `${space}/configuration`) {
@@ -162,6 +169,7 @@ async function installMocks(page: Page, options: MockOptions = {}) {
         accountId: partner ? PARTNER_ID : ACCOUNT_ID,
         createdAt: '2026-01-01T00:00:00Z',
         displayName: partner ? 'Alex' : 'Lea',
+        birthday: partner ? (options.partnerBirthday ?? null) : null,
         id: partner
           ? '00000000-0000-0000-0000-000000000022'
           : '00000000-0000-0000-0000-000000000020',
@@ -819,30 +827,58 @@ test('the Wir opening ends on its own and returning to Wir replays no entrance',
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page);
 
-  // The opening hands over to the resting state by itself, without waiting
-  // for a later render: the rings breathe (opacity only, no growing edge).
+  // The opening (Enter `stage`, #2074) plays and hands over to the resting
+  // state by itself on its own clock, without waiting for a later render:
+  // the rings breathe (Ambient `breath` on the ring, opacity only).
   const stage = page.locator('.wir-stage');
-  await expect(stage).not.toHaveClass(/wir-stage-intro/, { timeout: 6_000 });
+  await expect(stage).not.toHaveAttribute('data-motion-stage', /.*/, {
+    timeout: 6_000,
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        document
+          .querySelector('.today-hero .partner-avatar-stack > *')
+          ?.getAnimations({ subtree: true })
+          .some(
+            (item) =>
+              (item.effect as KeyframeEffect | null)?.pseudoElement ===
+              '::before',
+          ),
+      ),
+    )
+    .toBe(true);
   const ring = await page.evaluate(() => {
     const column = document.querySelector(
       '.today-hero .partner-avatar-stack > *',
     );
     const animation = column
       ?.getAnimations({ subtree: true })
-      .find((item) => (item as CSSAnimation).animationName === 'wir-breathe');
-    const frames = (animation?.effect as KeyframeEffect | undefined)
+      .find(
+        (item) =>
+          (item.effect as KeyframeEffect | null)?.pseudoElement === '::before',
+      );
+    const effect = animation?.effect as KeyframeEffect | undefined;
+    const frames = effect
       ?.getKeyframes()
       .flatMap((frame) => Object.keys(frame));
-    return { breathing: Boolean(animation), frames: frames ?? [] };
+    const timing = effect?.getComputedTiming();
+    return {
+      breathing: Boolean(animation),
+      frames: frames ?? [],
+      finite: Number.isFinite(timing?.iterations ?? Number.POSITIVE_INFINITY),
+    };
   });
   expect(ring.breathing).toBe(true);
+  expect(ring.finite).toBe(true);
+  expect(ring.frames).toContain('opacity');
   expect(ring.frames).not.toContain('scale');
 
   const navigation = page.getByRole('navigation', { name: 'Hauptnavigation' });
   await navigation.getByRole('link', { name: 'Planen' }).click();
   await expect(page).toHaveURL(/\/plan/);
   // The first frame after Wir is shown again already has every entrance
-  // finished; only the repeating breath may start over.
+  // finished; the breath continues where it paused (M4).
   const replaying = await page.evaluate(
     () =>
       new Promise<string[]>((resolve) => {
@@ -1023,3 +1059,220 @@ test('a hidden partner value never arrives, reduced motion shows values at once'
   ).toBeVisible();
   await expect(reduced.locator('.wir-checkin-flight-layer')).toHaveCount(0);
 });
+
+/**
+ * #2072 / #2074: the important-day Moment on Wir. It plays once per local
+ * day per device after the opening, then rests: no replay on a tab return or
+ * a new app start the same day, and the final state at once with reduced
+ * motion.
+ */
+function localToday() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return { year: now.getFullYear(), monthDay: `${month}-${day}` };
+}
+
+async function useConnectedDesign(page: Page) {
+  await page.route('**/api/v1/**/appearance/wir-design', (route) =>
+    route.fulfill({ json: { designId: 'connected', version: 1 } }),
+  );
+}
+
+/** Counts the rising hearts the Moment adds to the flight layer. */
+async function countRisingHearts(page: Page) {
+  await page.addInitScript(() => {
+    const record = window as unknown as { __risingHearts: number };
+    record.__risingHearts = 0;
+    new MutationObserver((mutations) => {
+      for (const mutation of mutations)
+        for (const node of mutation.addedNodes)
+          if (
+            node instanceof HTMLElement &&
+            node.classList.contains('wir-important-day-heart')
+          )
+            record.__risingHearts += 1;
+    }).observe(document, { childList: true, subtree: true });
+  });
+  return () =>
+    page.evaluate(
+      () => (window as unknown as { __risingHearts: number }).__risingHearts,
+    );
+}
+
+test('the important-day Moment plays once after the opening and rests for the day', async ({
+  page,
+}) => {
+  const { year, monthDay } = localToday();
+  await installMocks(page, {
+    relationshipStartedOn: `${year - 3}-${monthDay}`,
+  });
+  await useConnectedDesign(page);
+  const risingHearts = await countRisingHearts(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+
+  const stage = page.locator('.wir-stage');
+  await expect(stage).toHaveAttribute('data-important-day', 'final', {
+    timeout: 10_000,
+  });
+  await expect(stage).not.toHaveAttribute('data-motion-stage', /.*/);
+  expect(await risingHearts()).toBe(6);
+  await expect(page.locator('.wir-bridge-occasion').first()).toHaveText(
+    'Heute vor 3 Jahren',
+  );
+  await expect(page.locator('.wir-bridge-occasion').nth(1)).toHaveText(
+    'An eurem 3. Jahrestag',
+  );
+  await expect(page.locator('a.wir-bridge')).toHaveAccessibleName(
+    /^Heute vor 3 Jahren\./,
+  );
+
+  // A tab return shows the resting state at once and adds no hearts.
+  const navigation = page.getByRole('navigation', { name: 'Hauptnavigation' });
+  await navigation.getByRole('link', { name: 'Planen' }).click();
+  await expect(page).toHaveURL(/\/plan/);
+  await navigation.getByRole('link', { name: 'Wir' }).click();
+  await expect(page).toHaveURL(/\/today$/);
+  await expect(stage).toHaveAttribute('data-important-day', 'final');
+  expect(await risingHearts()).toBe(6);
+
+  // A new app start the same day: the final state, no Moment.
+  await page.reload();
+  await expect(stage).toHaveAttribute('data-important-day', 'final');
+  await page.waitForTimeout(3_500);
+  expect(await risingHearts()).toBe(0);
+});
+
+test('reduced motion shows the important day at once, without rising hearts', async ({
+  page,
+}) => {
+  const { year, monthDay } = localToday();
+  await installMocks(page, {
+    relationshipStartedOn: '2023-08-23',
+    partnerBirthday: `${year - 30}-${monthDay}`,
+  });
+  await useConnectedDesign(page);
+  const risingHearts = await countRisingHearts(page);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+
+  const stage = page.locator('.wir-stage');
+  await expect(stage).toHaveAttribute('data-important-day', 'final');
+  await expect(stage).toHaveAttribute('data-occasion-person', 'partner');
+  await expect(page.locator('.wir-occasion-cake')).toHaveCount(1);
+  await expect(page.locator('.wir-bridge-occasion').first()).toHaveText(
+    'Alles Gute, Alex',
+  );
+  expect(await risingHearts()).toBe(0);
+});
+
+for (const { width, theme, large, reduced } of [
+  { width: 360, theme: 'light', large: false, reduced: false },
+  { width: 360, theme: 'dark', large: false, reduced: false },
+  { width: 390, theme: 'light', large: false, reduced: false },
+  { width: 390, theme: 'dark', large: false, reduced: false },
+  { width: 430, theme: 'light', large: false, reduced: false },
+  { width: 430, theme: 'dark', large: false, reduced: false },
+  { width: 360, theme: 'light', large: true, reduced: false },
+  { width: 390, theme: 'light', large: false, reduced: true },
+] as const) {
+  const label = `${width}-${theme}${large ? '-200-text' : ''}${reduced ? '-reduced-motion' : ''}`;
+  test(`visual evidence 2074 ${label}: important day on the partner's birthday`, async ({
+    page,
+  }) => {
+    const { year, monthDay } = localToday();
+    await installMocks(page, {
+      relationshipStartedOn: '2023-08-23',
+      partnerBirthday: `${year - 30}-${monthDay}`,
+    });
+    await useConnectedDesign(page);
+    await page.setViewportSize({ width, height: 800 });
+    await page.emulateMedia({
+      colorScheme: theme,
+      reducedMotion: reduced ? 'reduce' : 'no-preference',
+    });
+    if (large) {
+      await page.addInitScript(() => {
+        document.addEventListener('DOMContentLoaded', () => {
+          const style = document.createElement('style');
+          style.textContent = 'html { font-size: 200% !important; }';
+          document.head.append(style);
+        });
+      });
+    }
+    await signIn(page);
+    const stage = page.locator('.wir-stage');
+    if (!reduced) {
+      await expect(stage).toHaveAttribute('data-important-day', 'playing', {
+        timeout: 10_000,
+      });
+      await page.waitForTimeout(450);
+      await saveEvidence(page, `2074-${label}-1-moment`);
+    }
+    await expect(stage).toHaveAttribute('data-important-day', 'final', {
+      timeout: 10_000,
+    });
+    await page.waitForTimeout(1_000);
+    await saveEvidence(page, `2074-${label}-2-rest`);
+    // The occasion copy stays inside the viewport. (At 360 px with 200 %
+    // text the partner's send mark already reaches 9 px past the edge on
+    // `main`, with or without an occasion; that is not this change.)
+    const copy = await page.evaluate(() =>
+      [...document.querySelectorAll('.wir-bridge-occasion')]
+        .map((element) => element.getBoundingClientRect())
+        .filter((box) => box.width > 0)
+        .map((box) => ({ left: box.left, right: box.right })),
+    );
+    expect(copy.length).toBeGreaterThan(0);
+    for (const box of copy) {
+      expect(box.left).toBeGreaterThanOrEqual(0);
+      expect(box.right).toBeLessThanOrEqual(width);
+    }
+  });
+}
+
+for (const { width, theme, large, reduced } of [
+  { width: 360, theme: 'light', large: false, reduced: false },
+  { width: 360, theme: 'dark', large: false, reduced: false },
+  { width: 390, theme: 'light', large: false, reduced: false },
+  { width: 390, theme: 'dark', large: false, reduced: false },
+  { width: 430, theme: 'light', large: false, reduced: false },
+  { width: 430, theme: 'dark', large: false, reduced: false },
+  { width: 390, theme: 'light', large: true, reduced: false },
+  { width: 390, theme: 'dark', large: false, reduced: true },
+] as const) {
+  const label = `${width}-${theme}${large ? '-200-text' : ''}${reduced ? '-reduced-motion' : ''}`;
+  test(`visual evidence 2074 ${label}: the Wir opening and its rest on an ordinary day`, async ({
+    page,
+  }) => {
+    await installMocks(page, { ownVibe: 'GOOD', partnerVibe: 'OKAY' });
+    await useConnectedDesign(page);
+    await page.setViewportSize({ width, height: 800 });
+    await page.emulateMedia({
+      colorScheme: theme,
+      reducedMotion: reduced ? 'reduce' : 'no-preference',
+    });
+    if (large) {
+      await page.addInitScript(() => {
+        document.addEventListener('DOMContentLoaded', () => {
+          const style = document.createElement('style');
+          style.textContent = 'html { font-size: 200% !important; }';
+          document.head.append(style);
+        });
+      });
+    }
+    await signIn(page);
+    const stage = page.locator('.wir-stage');
+    await expect(stage).not.toHaveAttribute('data-important-day', /.*/);
+    if (!reduced && (await stage.getAttribute('data-motion-stage'))) {
+      await saveEvidence(page, `2074-ordinary-${label}-1-opening`);
+    }
+    await expect(stage).not.toHaveAttribute('data-motion-stage', /.*/, {
+      timeout: 6_000,
+    });
+    await page.waitForTimeout(600);
+    await saveEvidence(page, `2074-ordinary-${label}-2-rest`);
+  });
+}

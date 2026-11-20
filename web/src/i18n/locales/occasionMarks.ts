@@ -11,6 +11,12 @@ const occasionMarks = {
   partnerBirthday: 'Am Geburtstag von {{name}}',
   more_one: 'und ein weiterer Anlass',
   more_other: 'und {{count}} weitere Anlässe',
+  // #2072: the Wir stage's middle line on the day itself.
+  todayAnniversary_one: 'Heute vor {{count}} Jahr',
+  todayAnniversary_other: 'Heute vor {{count}} Jahren',
+  todayRelationshipStart: 'Heute beginnt eure Geschichte',
+  todayOwnBirthday: 'Alles Gute zum Geburtstag',
+  todayPartnerBirthday: 'Alles Gute, {{name}}',
 };
 
 export default occasionMarks;

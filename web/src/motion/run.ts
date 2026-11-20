@@ -32,6 +32,11 @@ export interface RunOptions {
   fill?: 'none' | 'backwards';
   /** Adds `will-change` for these properties while the animation runs. */
   willChange?: string;
+  /**
+   * Animate a pseudo-element of `element` (for example a decorative ring on
+   * `::before`). It counts as its own element for the channel rule.
+   */
+  pseudoElement?: string;
 }
 
 const running = new WeakMap<Element, Map<string, Animation>>();
@@ -72,7 +77,9 @@ export function run(
   options: RunOptions,
 ): Animation | null {
   if (!canAnimate(element) || !(options.duration > 0)) return null;
-  const channel = options.channel ?? 'default';
+  const channel = options.pseudoElement
+    ? `${options.channel ?? 'default'}${options.pseudoElement}`
+    : (options.channel ?? 'default');
   const channels = running.get(element) ?? new Map<string, Animation>();
   running.set(element, channels);
   const previous = channels.get(channel);
@@ -82,7 +89,8 @@ export function run(
     else previous.cancel();
   }
 
-  const willChange = options.willChange;
+  // will-change on the host does not reach a pseudo-element's own layer.
+  const willChange = options.pseudoElement ? undefined : options.willChange;
   const ownsWillChange = !!willChange && !element.style.willChange;
   if (ownsWillChange && willChange) element.style.willChange = willChange;
 
@@ -92,6 +100,7 @@ export function run(
     delay: options.delay ?? 0,
     iterations: options.iterations ?? 1,
     fill: options.fill ?? 'none',
+    ...(options.pseudoElement ? { pseudoElement: options.pseudoElement } : {}),
   });
   channels.set(channel, animation);
   const release = () => {

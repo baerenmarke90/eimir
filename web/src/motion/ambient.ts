@@ -45,6 +45,13 @@ export interface AmbientOptions {
   after?: Promise<unknown>;
   /** Track on-screen visibility; default true. */
   onScreen?: boolean;
+  /**
+   * Milliseconds before the first cycle, once `after` settled. Negative
+   * values join a breath that is already under way (a remounted member).
+   */
+  delay?: number;
+  /** Animate a decorative pseudo-element of `element` (`::before`). */
+  pseudoElement?: string;
 }
 
 export interface AmbientHandle {
@@ -97,7 +104,10 @@ export function ambient(
         duration: cycle,
         easing: easing('travel'),
         iterations,
+        delay: options.delay ?? 0,
+        fill: 'none',
         channel: 'ambient',
+        pseudoElement: options.pseudoElement,
       },
     );
     if (!animation) {

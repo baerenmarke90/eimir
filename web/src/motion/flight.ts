@@ -215,3 +215,39 @@ export function scatterDots(
       );
   }
 }
+
+/**
+ * The layer's sanctioned entry to `Element.animate()` for Flight pieces
+ * (Motion Contract 4.4, M14).
+ *
+ * Flight ghosts live in the shared flight layer and are not part of the
+ * layout. Unlike the general runner (`run.ts`: one animation per element and
+ * channel, no forwards fill), several channels (travel, opacity, landing) run
+ * on one ghost at the same time, and a ghost may hold its last keyframe with
+ * `fill: 'forwards'` until it is removed.
+ *
+ * `fill: 'forwards'` is allowed only for decorative ghosts that the flight
+ * (or its caller) removes when the flight finishes or is cancelled. Never use
+ * this for an element that stays in the layout; animate that with `run()`
+ * and a channel, ending on the element's own style.
+ *
+ * Returns null when `element.animate` is not available.
+ */
+export function animateFlight(
+  element: Element,
+  keyframes: Keyframe[] | PropertyIndexedKeyframes,
+  options: KeyframeAnimationOptions,
+): Animation | null {
+  if (typeof (element as HTMLElement).animate !== 'function') return null;
+  return element.animate(keyframes, options);
+}
+
+/** Resolves when a Flight piece ended, whether it finished or was cancelled. */
+export function flightEnded(animation: Animation | null): Promise<void> {
+  return animation
+    ? animation.finished.then(
+        () => undefined,
+        () => undefined,
+      )
+    : Promise.resolve();
+}

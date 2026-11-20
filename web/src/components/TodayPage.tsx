@@ -1,11 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  type CSSProperties,
   Fragment,
   type ReactNode,
   useEffect,
   useLayoutEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -161,9 +161,19 @@ import {
 } from '../client/wirDesign';
 import { DiscreetLock } from './DiscreetPlan';
 import './WirDesign.css';
+import { stageFinished, useStage } from '../motion/stage';
 import { ConnectedMoment } from './ConnectedMoment';
 import { FirstStepAction } from './FirstStepAction';
-import { alignWirIntroAnimations } from './wirIntroClock';
+import { useImportantDayMoment, type WirOccasion } from './wirImportantDay';
+import { useWirOccasion } from './wirOccasion';
+
+import {
+  breatheRings,
+  WIR_INTRO_PACE,
+  WIR_STAGE,
+  wirStageCanStart,
+  wirStageDuration,
+} from './wirStageMotion';
 import './FirstContentSettle.css';
 import './WirHeroStage.css';
 import './WirSharedAlbum.css';
@@ -171,54 +181,62 @@ import './WirCompactLayouts.css';
 import './WirMotion.css';
 import { useWirReveal } from './useWirReveal';
 
-// Undefined means the opening has not been considered yet; null means it was
-// skipped or interrupted. Late children can join an opening already in flight.
-let wirHeroIntroStartedAt: number | null | undefined;
-// At least as long as the opening itself (about 2.7 s at the 2.2x beat in
-// WirMotion.css), so a hero that remounts mid-opening keeps drawing in step.
-const WIR_HERO_INTRO_WINDOW_MS = 3000;
-
-function WirIntroStage({ children }: { children: ReactNode }) {
-  const stageRef = useRef<HTMLDivElement>(null);
+/**
+ * The Wir opening on the motion layer (#2074): Enter `stage`, identity
+ * `wir.stage`, once per app start, on its own clock (`useStage`). After it
+ * (and after an important-day Moment) the rings breathe (`breatheRings`).
+ */
+function WirIntroStage({
+  occasion,
+  children,
+}: {
+  occasion: WirOccasion | null;
+  children: ReactNode;
+}) {
+  const stageRef = useStage<HTMLDivElement>(WIR_STAGE, {
+    duration: wirStageDuration(),
+    canStart: wirStageCanStart,
+  });
+  const moment = useImportantDayMoment(occasion, stageRef);
+  const [stageEnded, setStageEnded] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void stageFinished(WIR_STAGE).then(() => {
+      if (!cancelled) setStageEnded(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  // Ambient starts only after the opening and the Moment (M15); a portrait
+  // column that remounted joins the breath where it is.
   useLayoutEffect(() => {
-    const stage = stageRef.current;
-    if (!stage) return;
-    if (
-      stage.closest('[hidden], [data-primary-tab-peek]') ||
-      document.visibilityState === 'hidden'
-    ) {
-      if (wirHeroIntroStartedAt !== undefined) wirHeroIntroStartedAt = null;
-      stage.classList.remove('wir-stage-intro');
-      return;
-    }
-    if (wirHeroIntroStartedAt === undefined) {
-      const { top, bottom } = stage.getBoundingClientRect();
-      wirHeroIntroStartedAt =
-        window.scrollY === 0 && bottom > 0 && top < window.innerHeight
-          ? performance.now()
-          : null;
-    }
-    const elapsed =
-      wirHeroIntroStartedAt === null
-        ? Number.POSITIVE_INFINITY
-        : performance.now() - wirHeroIntroStartedAt;
-    const intro = elapsed < WIR_HERO_INTRO_WINDOW_MS;
-    stage.classList.toggle('wir-stage-intro', intro);
-    if (!intro) return;
-    alignWirIntroAnimations(stage, wirHeroIntroStartedAt ?? null);
-    // The opening ends on its own clock, not at the next render: a class that
-    // outlived it kept the rings from breathing and replayed the whole
-    // opening when Wir was shown again, then cut it off at a later render.
-    const end = window.setTimeout(
-      () => stage.classList.remove('wir-stage-intro'),
-      WIR_HERO_INTRO_WINDOW_MS - elapsed,
-    );
-    return () => window.clearTimeout(end);
+    if (stageEnded && (moment === 'none' || moment === 'final'))
+      breatheRings(stageRef.current);
   });
   return (
-    <div ref={stageRef} className="wir-stage">
+    <div
+      ref={stageRef}
+      className="wir-stage"
+      style={{ '--wir-intro-pace': WIR_INTRO_PACE } as CSSProperties}
+      data-important-day={moment === 'none' ? undefined : moment}
+      data-occasion-person={
+        moment === 'playing' || moment === 'final'
+          ? (occasion?.birthday ?? undefined)
+          : undefined
+      }
+    >
       {children}
     </div>
+  );
+}
+
+/** #2072: the cake mark on the birthday person's rim (decorative). */
+function WirOccasionCake() {
+  return (
+    <span className="wir-occasion-cake" aria-hidden="true">
+      <EimirIcon name="geburtstag" />
+    </span>
   );
 }
 
@@ -1665,11 +1683,29 @@ export function TodayPage({
             : null,
         ].filter((part): part is string => Boolean(part))
       : [];
+  // #2072: today's occasion, only with a partner and in the Verbunden stage.
+  const wirOccasion = useWirOccasion(
+    partner && connectedDesign ? spaceId : undefined,
+    account?.id,
+    dashboardQuery.data?.upcoming,
+  );
   // One stroke from person to person: each side draws its half of the heart.
   const heroBridgeLine = (
     <span className="wir-bridge-line" aria-hidden="true">
       <span className="wir-bridge-arm" />
       <svg viewBox="0 0 32 28" aria-hidden="true" focusable="false">
+        {wirOccasion ? (
+          <>
+            <path
+              className="wir-bridge-heart-fill wir-bridge-heart-fill-own"
+              d="M16 26.5C4 17.5 1 11.5 1 7.5 1 3.5 4 1 8 1c3.5 0 6.5 2 8 5z"
+            />
+            <path
+              className="wir-bridge-heart-fill wir-bridge-heart-fill-partner"
+              d="M16 26.5c12-9 15-15 15-19 0-4-3-6.5-7-6.5-3.5 0-6.5 2-8 5z"
+            />
+          </>
+        ) : null}
         <path
           className="wir-bridge-heart-own"
           pathLength={100}
@@ -1691,14 +1727,34 @@ export function TodayPage({
       <TodayDestinationLink
         to={STORY_OURS_ROUTE}
         className="wir-bridge"
-        ariaLabel={`${heroDurationText}. ${t('relationshipReflections.passport.title')}`}
+        ariaLabel={`${wirOccasion ? `${wirOccasion.primary}. ` : ''}${heroDurationText}. ${t('relationshipReflections.passport.title')}`}
       >
-        <strong className="wir-bridge-lead">{heroBridgeLead}</strong>
+        <strong className="wir-bridge-lead">
+          {wirOccasion ? (
+            <span className="wir-bridge-swap">
+              <span className="wir-bridge-time">{heroBridgeLead}</span>
+              <span className="wir-bridge-occasion">{wirOccasion.primary}</span>
+            </span>
+          ) : (
+            heroBridgeLead
+          )}
+        </strong>
         {heroBridgeLine}
         <span className="wir-bridge-rest">
-          {heroBridgeRest.map((part) => (
-            <span key={part}>{part}</span>
-          ))}
+          {wirOccasion ? (
+            <span className="wir-bridge-swap">
+              <span className="wir-bridge-time">
+                {heroBridgeRest.map((part) => (
+                  <span key={part}>{part}</span>
+                ))}
+              </span>
+              <span className="wir-bridge-occasion">
+                {wirOccasion.secondary}
+              </span>
+            </span>
+          ) : (
+            heroBridgeRest.map((part) => <span key={part}>{part}</span>)
+          )}
         </span>
       </TodayDestinationLink>
     ) : (
@@ -1718,7 +1774,7 @@ export function TodayPage({
     avatarAction?: CouplePresenceAvatarAction,
     avatarOverlay?: ReactNode,
   ) => (
-    <WirIntroStage>
+    <WirIntroStage occasion={wirOccasion}>
       <CouplePresence
         className="today-hero"
         headingLevel="h2"
@@ -1789,6 +1845,7 @@ export function TodayPage({
             <span className="wir-stage-name" aria-hidden="true">
               {heroOwnName}
             </span>
+            {wirOccasion?.birthday === 'own' ? <WirOccasionCake /> : null}
             {dailyCheckIn?.ownBadge}
             {dailyCheckIn ? (
               <span
@@ -1817,6 +1874,7 @@ export function TodayPage({
               <span className="wir-stage-name" aria-hidden="true">
                 {partnerName}
               </span>
+              {wirOccasion?.birthday === 'partner' ? <WirOccasionCake /> : null}
               {dailyCheckIn?.partnerBadge}
               {avatarAction ? (
                 <span className="wir-stage-gesture" aria-hidden="true">
@@ -2040,6 +2098,7 @@ export function TodayPage({
         spaceId={spaceId}
         partnerName={partner ? partnerName : undefined}
         partnerNameIsResolved
+        arrive
       />
     ) : null;
   const moduleContent: Record<DashboardModuleKey, ReactNode> = {

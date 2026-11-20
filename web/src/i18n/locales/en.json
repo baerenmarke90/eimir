@@ -6507,7 +6507,12 @@
     "ownBirthday": "On your birthday",
     "partnerBirthday": "On {{name}}'s birthday",
     "more_one": "and one more occasion",
-    "more_other": "and {{count}} more occasions"
+    "more_other": "and {{count}} more occasions",
+    "todayAnniversary_one": "{{count}} year ago today",
+    "todayAnniversary_other": "{{count}} years ago today",
+    "todayRelationshipStart": "Your story begins today",
+    "todayOwnBirthday": "Happy birthday to you",
+    "todayPartnerBirthday": "Happy birthday, {{name}}"
   },
   "sharedNotes": {
     "title": "Notes",

@@ -14,13 +14,16 @@
  */
 
 import {
+  animateFlight,
   centre,
+  flightEnded,
   flightKeyframes,
   openFlightLayer,
   type Point,
   pulseRing,
   scatterDots,
 } from '../motion/flight';
+import { run } from '../motion/run';
 import './GestureFlight.css';
 
 export type GestureKind = 'THINKING' | 'KISS' | 'CHECK_IN';
@@ -68,9 +71,13 @@ function translateTo(from: Point, to: Point, scale: number): string {
   return `translate(${to.x - from.x}px, ${to.y - from.y}px) scale(${scale})`;
 }
 
-async function finished(animation: Animation): Promise<void> {
-  await animation.finished.catch(() => undefined);
-}
+/**
+ * The partner avatar stays in the layout, so its landing beat runs on this
+ * channel of the motion runner; the ghosts animate through `animateFlight`.
+ */
+const LANDING_CHANNEL = 'flight-landing';
+
+const finished = flightEnded;
 
 export function startGestureFlight(input: {
   kind: GestureKind;
@@ -107,7 +114,8 @@ export function startGestureFlight(input: {
   };
   let cancelled = false;
 
-  const lift = ghost.animate(
+  const lift = animateFlight(
+    ghost,
     [{ transform: 'scale(1)' }, { transform: `scale(${LIFT_SCALE})` }],
     {
       duration: roles.context,
@@ -128,19 +136,21 @@ export function startGestureFlight(input: {
 
   const targetRect = () => target.getBoundingClientRect();
   const hop = (scale: number, duration: number) =>
-    target.animate(
+    run(
+      target,
       [
         { transform: 'scale(1)' },
         { transform: `scale(${scale})`, offset: 0.35 },
         { transform: 'scale(1)' },
       ],
-      { duration, easing: roles.standard },
+      { duration, easing: roles.standard, channel: LANDING_CHANNEL },
     );
   const moment = roles.moment || roles.context * 3;
 
   async function returnHome(): Promise<void> {
     await finished(
-      ghost.animate(
+      animateFlight(
+        ghost,
         [{ transform: `scale(${LIFT_SCALE})` }, { transform: 'scale(1)' }],
         { duration: roles.context, easing: roles.standard, fill: 'forwards' },
       ),
@@ -166,7 +176,7 @@ export function startGestureFlight(input: {
       { transform: translateTo(heart, to, 0.9), opacity: 0 },
     ];
     await finished(
-      ghost.animate(keyframes, {
+      animateFlight(ghost, keyframes, {
         duration: moment + roles.context / 2,
         fill: 'forwards',
       }),
@@ -184,7 +194,8 @@ export function startGestureFlight(input: {
     const ownStart = ownCentre ?? { x: from.x - 90, y: from.y };
     const flights = [
       finished(
-        ghost.animate(
+        animateFlight(
+          ghost,
           flightKeyframes(from, left, LIFT_SCALE, HEART_SCALE, -40, 60),
           {
             duration: roles.flight,
@@ -196,13 +207,14 @@ export function startGestureFlight(input: {
     ];
     if (second) {
       second.style.opacity = '0';
-      second.animate([{ opacity: 0 }, { opacity: 1 }], {
+      animateFlight(second, [{ opacity: 0 }, { opacity: 1 }], {
         duration: roles.stagger * 2,
         fill: 'forwards',
       });
       flights.push(
         finished(
-          second.animate(
+          animateFlight(
+            second,
             flightKeyframes(ownStart, right, 0.5, HEART_SCALE, 30, 40),
             {
               duration: roles.flight,
@@ -219,7 +231,8 @@ export function startGestureFlight(input: {
     hop(0.94, roles.context * 2);
     const hugs = [
       finished(
-        ghost.animate(
+        animateFlight(
+          ghost,
           [
             { transform: translateTo(from, left, HEART_SCALE) },
             {
@@ -237,7 +250,8 @@ export function startGestureFlight(input: {
     if (second && ownCentre)
       hugs.push(
         finished(
-          second.animate(
+          animateFlight(
+            second,
             [
               { transform: translateTo(ownStart, right, HEART_SCALE) },
               {
@@ -268,22 +282,23 @@ export function startGestureFlight(input: {
     bloom.style.height = `${size}px`;
     layer.append(bloom);
     extras.push(bloom);
-    bloom
-      .animate(
+    void finished(
+      animateFlight(
+        bloom,
         [
           { opacity: 0.7, transform: 'scale(0.3)' },
           { opacity: 0, transform: 'scale(1.5)' },
         ],
         { duration: moment * 0.72, easing: roles.enter },
-      )
-      .finished.catch(() => undefined);
+      ),
+    );
     scatterDots(layer, to, roles, 10);
     await Promise.all(
       [ghost, second].flatMap((element) =>
         element
           ? [
               finished(
-                element.animate([{ opacity: 1 }, { opacity: 0 }], {
+                animateFlight(element, [{ opacity: 1 }, { opacity: 0 }], {
                   duration: roles.context,
                   easing: roles.standard,
                   fill: 'forwards',
@@ -302,24 +317,30 @@ export function startGestureFlight(input: {
       y: to.y + CHECK_IN_OFFSET.y,
     };
     await finished(
-      ghost.animate(flightKeyframes(from, rest, LIFT_SCALE, 1, 10, 30), {
+      animateFlight(ghost, flightKeyframes(from, rest, LIFT_SCALE, 1, 10, 30), {
         duration: moment,
         easing: roles.standard,
         fill: 'forwards',
       }),
     );
     if (cancelled) return;
-    target.animate(
+    run(
+      target,
       [
         { transform: 'scale(1)' },
         { transform: 'scale(1.05)', offset: 0.5 },
         { transform: 'scale(1)' },
       ],
-      { duration: moment + roles.context * 2, easing: roles.standard },
+      {
+        duration: moment + roles.context * 2,
+        easing: roles.standard,
+        channel: LANDING_CHANNEL,
+      },
     );
     pulseRing(layer, targetRect(), roles, 1.5);
     await finished(
-      ghost.animate(
+      animateFlight(
+        ghost,
         [
           { transform: translateTo(from, rest, 1) },
           { transform: translateTo(from, rest, 1.12), offset: 0.4 },
@@ -329,7 +350,7 @@ export function startGestureFlight(input: {
       ),
     );
     await finished(
-      ghost.animate([{ opacity: 1 }, { opacity: 0 }], {
+      animateFlight(ghost, [{ opacity: 1 }, { opacity: 0 }], {
         duration: roles.context,
         fill: 'forwards',
       }),
@@ -348,7 +369,8 @@ export function startGestureFlight(input: {
       const to = centre(targetRect());
       if (kind === 'THINKING') {
         await finished(
-          ghost.animate(
+          animateFlight(
+            ghost,
             flightKeyframes(origin, to, LIFT_SCALE, HEART_SCALE, 40, 70),
             {
               duration: roles.flight,

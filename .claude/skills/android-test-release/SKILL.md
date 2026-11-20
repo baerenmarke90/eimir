@@ -24,8 +24,10 @@ change to the source-check gate belongs on the release branch.
 ## Preconditions
 
 - The Product Owner asked for the release. Publishing is outward-facing.
-- `main` CI is green on the revision you will ship. If it is not, report the
-  failing checks and stop.
+- The full regression is green on the `main` revision you will ship. Pushes to
+  `main` start no workflows (#2096); the Nightly Regression dispatches them. If
+  that revision has no green dispatched runs yet, dispatch **Nightly Regression**
+  and wait for it. If it is red, report the failing checks and stop.
 - `gh` is authenticated with `repo` and `workflow` scopes.
 
 ## Steps

@@ -9,9 +9,6 @@ on:
       - "web/**"
       - ".github/workflows/web-browser-qa.yml"
     types: [opened, synchronize, reopened, ready_for_review, labeled]
-  push:
-    branches: [main]
-    # Every main revision is a test-channel candidate, including backend changes.
   workflow_dispatch:
 
 permissions:

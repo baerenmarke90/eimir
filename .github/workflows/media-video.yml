@@ -7,8 +7,8 @@ on:
   # Pull requests run the restricted-codec acceptance only when the code it
   # exercises changes. Ordinary Backend changes are covered by the regular
   # Backend Integration suite, whose codec-dependent cases skip without the
-  # pinned binaries. Every push to main still runs this workflow completely
-  # and the immutable release publisher waits for that result.
+  # pinned binaries. The nightly regression dispatches this workflow completely
+  # on main, and the immutable release publisher waits for that result (#2096).
   pull_request:
     paths:
       # Media storage, attachment, processing-job and API surfaces, plus the
@@ -64,8 +64,6 @@ on:
       - "web/src/client/memoryAttachmentDraft.ts"
       - ".github/workflows/media-video.yml"
     types: [opened, synchronize, reopened, ready_for_review, labeled]
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

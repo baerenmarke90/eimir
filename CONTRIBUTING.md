@@ -40,10 +40,15 @@ builds, Media Video, Release Evidence and CodeQL.
   locally checked states instead of intermediate snapshots.
 - Keep a pull request in draft until it is complete, then mark it ready for
   review once. Draft pull requests always use the cheap tier.
-- The nightly regression (`.github/workflows/nightly-regression.yml`) dispatches
-  the complete suites on `main` when its revision is untested. It can also be
-  started manually. A failed run opens or updates the issue "Nightly regression
-  failed"; repair `main` before merging further features.
+- Pushes to `main` start no workflows. The nightly regression
+  (`.github/workflows/nightly-regression.yml`) dispatches the complete suites on
+  `main` when its revision is untested. It can also be started manually. A
+  failed run opens or updates the issue "Nightly regression failed"; repair
+  `main` before merging further features.
+- Releases publish only a `main` revision with a green full regression. The
+  private test channel follows each green nightly run; a product release starts
+  a missing regression itself and asks to be re-run once it is green.
+- Branches named `release/...` always run the full tier, also as drafts.
 
 When adding or changing a browser journey, update both inventories and review
 all relevant production roots, including navigation into another feature. Keep

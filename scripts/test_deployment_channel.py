@@ -37,6 +37,11 @@ REQUIRED_WORKFLOWS = frozenset(
         ".github/workflows/media-video.yml",
     }
 )
+# Pushes to main start no workflows (#2096). The full regression of a main
+# revision is the set of dispatched runs from the Nightly Regression dispatcher
+# or a manual dispatch.
+FULL_REGRESSION_EVENT = "workflow_dispatch"
+FULL_REGRESSION_DISPATCHER = "nightly-regression.yml"
 CLOUD_SERVICES = ("cloud-migrate", "cloud-api", "cloud-worker", "cloud-web")
 FCM_CREDENTIAL_TARGET = "/run/secrets/eimir-fcm-sender.json"
 _FCM_SOURCE_PLACEHOLDER = "/__eimir_source_only_fcm_mount__"
@@ -110,13 +115,13 @@ def latest_main() -> str:
 
 
 def workflow_state(runs: list[dict], source: str) -> bool:
-    """Require the newest push run/attempt of every exact main workflow."""
+    """Require the newest full-regression run/attempt of every exact main workflow."""
     selected: dict[str, dict] = {}
     for item in runs:
         path = item.get("path")
         if (
             path not in REQUIRED_WORKFLOWS
-            or item.get("event") != "push"
+            or item.get("event") != FULL_REGRESSION_EVENT
             or item.get("head_branch") != "main"
             or item.get("head_sha") != source
             or item.get("head_repository", {}).get("full_name") != REPOSITORY
@@ -137,7 +142,7 @@ def workflow_state(runs: list[dict], source: str) -> bool:
 
 def candidate_ready(source: str) -> bool:
     pages = gh_api(
-        f"repos/{REPOSITORY}/actions/runs?head_sha={source}&event=push&per_page=100",
+        f"repos/{REPOSITORY}/actions/runs?head_sha={source}&event={FULL_REGRESSION_EVENT}&per_page=100",
         paginate=True,
     )
     return workflow_state(
@@ -146,7 +151,7 @@ def candidate_ready(source: str) -> bool:
 
 
 def completion_matches_source(event: dict, source: str) -> bool:
-    """Admit only an owning-repository main push completion for this checkout."""
+    """Admit only an owning-repository main full-regression completion for this checkout."""
     if not isinstance(event, dict):
         return False
     completed = event.get("workflow_run")
@@ -158,7 +163,7 @@ def completion_matches_source(event: dict, source: str) -> bool:
     return (
         event.get("action") == "completed"
         and completed.get("path") in REQUIRED_WORKFLOWS
-        and completed.get("event") == "push"
+        and completed.get("event") == FULL_REGRESSION_EVENT
         and completed.get("head_branch") == "main"
         and completed.get("head_sha") == source
         and origin.get("full_name") == REPOSITORY
@@ -217,6 +222,28 @@ def wait_for_checks(source: str, timeout: int) -> bool:
         if time.monotonic() >= deadline:
             raise ChannelError("Timed out waiting for required main workflows")
         time.sleep(15)
+
+
+def require_full_regression(source: str, *, dispatch: bool) -> None:
+    """Refuse a product release unless its revision passed the full regression.
+
+    When the revision is current main and its regression is missing or still
+    running, optionally start the Nightly Regression dispatcher so a later
+    release attempt can pass without paying for a waiting runner.
+    """
+    if candidate_ready(source):
+        print("Full regression passed for this revision")
+        return
+    if dispatch and latest_main() == source:
+        run(["gh", "workflow", "run", FULL_REGRESSION_DISPATCHER, "--repo", REPOSITORY, "--ref", "main"])
+        raise ChannelError(
+            "Full regression is missing or unfinished; started Nightly Regression. "
+            "Re-run this release after it is green"
+        )
+    raise ChannelError(
+        "Full regression is missing or unfinished for this revision; dispatch the "
+        "required workflows on main and re-run this release after they are green"
+    )
 
 
 def sha256(path: Path) -> str:
@@ -705,6 +732,9 @@ def main() -> int:
     wait.add_argument("--revision", required=True)
     wait.add_argument("--timeout", type=int, default=3600)
     wait.add_argument("--github-output", type=Path, required=True)
+    regression = subparsers.add_parser("full-regression")
+    regression.add_argument("--revision", required=True)
+    regression.add_argument("--dispatch", action="store_true")
     publication = subparsers.add_parser("publish")
     publication.add_argument("--revision", required=True)
     publication.add_argument("--artifact-root", type=Path, required=True)
@@ -718,7 +748,9 @@ def main() -> int:
             )
         if os.environ.get("GITHUB_REF") != "refs/heads/main":
             raise ChannelError("Test publication is restricted to main")
-        if args.command in {"check", "wait"}:
+        if args.command == "full-regression":
+            require_full_regression(source, dispatch=args.dispatch)
+        elif args.command in {"check", "wait"}:
             if args.command == "check":
                 event_name = os.environ.get("GITHUB_EVENT_NAME", "")
                 event = (

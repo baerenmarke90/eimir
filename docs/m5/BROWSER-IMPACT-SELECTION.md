@@ -5,7 +5,8 @@
 The Product Owner authorized narrowing the per-PR browser selection on
 2026-11-04. Four independent runners remain. No browser case, assertion,
 timeout, retry, accessibility contract or branch-protection context is removed.
-The full retained suite still runs on every `main` push and manual execution.
+The full retained suite ran on every `main` push and manual execution; since
+#2096 it runs in the nightly regression and on manual execution.
 This continues #1042 and the path-scoped CI work in #490.
 
 **Update 2026-11-20 (#2096):** to fit the GitHub Actions budget, pull requests

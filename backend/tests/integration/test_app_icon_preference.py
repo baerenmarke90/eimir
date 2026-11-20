@@ -19,6 +19,7 @@ from eimir.relationship.service import add_member
 from eimir.transfer.models import TransferScope
 from eimir.transfer.service import build_export_archive
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
+from tests.support.plugins import requires_pro
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -76,6 +77,7 @@ def test_original_and_reads_are_free_and_never_create_rows(client, session, coup
     assert saved.headers["ETag"] != initial.headers["ETag"]
 
 
+@requires_pro
 @pytest.mark.parametrize("icon_id", [icon for icon in AppIconId if icon != AppIconId.ORIGINAL])
 def test_every_alternative_is_pro_for_both_partners(client, session, couple, icon_id) -> None:
     initial = client.get(path(couple), headers=couple["b"])
@@ -91,6 +93,7 @@ def test_every_alternative_is_pro_for_both_partners(client, session, couple, ico
     assert client.get(path(couple), headers=couple["a"]).json()["iconId"] == "original"
 
 
+@requires_pro
 def test_downgrade_retains_choice_but_new_paid_selection_is_blocked_and_reset_is_free(
     client,
     session,
@@ -123,6 +126,7 @@ def test_downgrade_retains_choice_but_new_paid_selection_is_blocked_and_reset_is
     assert reset.json()["iconId"] == "original"
 
 
+@requires_pro
 def test_membership_owner_scope_invalid_ids_and_required_concurrency(
     client, session, couple
 ) -> None:

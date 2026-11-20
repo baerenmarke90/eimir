@@ -338,6 +338,7 @@ PLUGIN_CAPABILITIES = frozenset(
         Capability.PARTNER_QUICK_ACTIONS_EXTENDED.value,
         Capability.PRESENCE_LOCATION.value,
         Capability.RELATIONSHIP_PASSPORT.value,
+        Capability.THEME_BESPOKE_PACKS.value,
         Capability.DAILY_QUOTE.value,
         Capability.PLANNING_DATE_INSPIRATION.value,
     }

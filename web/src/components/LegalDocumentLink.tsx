@@ -2,6 +2,8 @@ import {
   type MouseEvent,
   type ReactNode,
   type RefObject,
+  Suspense,
+  useEffect,
   useRef,
   useState,
 } from 'react';
@@ -12,10 +14,11 @@ import {
   type LegalDocumentId,
   legalDocumentIdForRoute,
 } from '../legal/legalDocuments';
+import type { LegalInternalLinkRenderer } from './LegalDocumentView';
 import {
-  LegalDocumentView,
-  type LegalInternalLinkRenderer,
-} from './LegalDocumentView';
+  LazyLegalDocumentContent,
+  preloadLegalDocumentContent,
+} from './lazyLegalDocumentContent';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './LegalDocumentLink.css';
 
@@ -69,12 +72,14 @@ export function LegalReadingSheet({
         </button>
       }
     >
-      <LegalDocumentView
-        document={entry.document}
-        showTitle={false}
-        sectionLevel={3}
-        renderInternalLink={renderSheetLink}
-      />
+      <Suspense fallback={<p role="status">{t('states.loading.title')}</p>}>
+        <LazyLegalDocumentContent
+          documentId={documentId}
+          showTitle={false}
+          sectionLevel={3}
+          renderInternalLink={renderSheetLink}
+        />
+      </Suspense>
     </ShortTaskSheet>
   );
 }
@@ -93,6 +98,9 @@ export function LegalDocumentLink({
   const [open, setOpen] = useState(false);
   const link = useRef<HTMLAnchorElement>(null);
   const entry = LEGAL_DOCUMENTS[documentId];
+  useEffect(() => {
+    void preloadLegalDocumentContent();
+  }, []);
   return (
     <>
       <a
@@ -129,6 +137,9 @@ export function LegalFooterLinks({
 }) {
   const { t } = useTranslation();
   const ids = Object.keys(LEGAL_DOCUMENTS) as LegalDocumentId[];
+  useEffect(() => {
+    void preloadLegalDocumentContent();
+  }, []);
   return (
     <nav className={className} aria-label={t('legal.eyebrow')}>
       {ids.map((id, index) => (

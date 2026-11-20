@@ -118,6 +118,7 @@
         "web/src/components/LegalDocumentPage.tsx",
         "web/src/components/LegalDocumentView.tsx",
         "web/src/components/LegalDocumentLink.tsx",
+        "web/src/components/LegalDocumentContent.tsx",
         "web/src/components/MoreOverviewPage.tsx"
       ]
     },

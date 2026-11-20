@@ -1,8 +1,8 @@
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useNavigate, useNavigationType } from 'react-router-dom';
 import { useTranslation } from '../i18n';
 import { LEGAL_DOCUMENTS, type LegalDocumentId } from '../legal/legalDocuments';
-import { LegalDocumentView } from './LegalDocumentView';
+import { LazyLegalDocumentContent } from './lazyLegalDocumentContent';
 import { TaskBackButton } from './TaskBackButton';
 import './LegalDocumentPage.css';
 
@@ -19,13 +19,17 @@ export function LegalDocumentPage({
 
   // The page lives outside the app shell's route handoff. An in-app entry,
   // such as a footer link or a cross-reference, starts at the title; Back and
-  // Forward keep the browser's own scroll restoration.
+  // Forward keep the browser's own scroll restoration. The text loads on
+  // demand, so the title takes focus once it is shown.
+  const enteredInApp = navigationType !== 'POP';
   // biome-ignore lint/correctness/useExhaustiveDependencies: Runs once per document entry; App keys the page by document.
   useEffect(() => {
-    if (navigationType === 'POP') return;
-    window.scrollTo(0, 0);
-    document.getElementById('legal-page-title')?.focus({ preventScroll: true });
+    if (enteredInApp) window.scrollTo(0, 0);
   }, []);
+  function focusTitle() {
+    if (!enteredInApp) return;
+    document.getElementById('legal-page-title')?.focus({ preventScroll: true });
+  }
 
   useEffect(() => {
     const previous = document.title;
@@ -46,10 +50,13 @@ export function LegalDocumentPage({
       <div className="legal-page-column">
         <TaskBackButton shellDefault onClick={goBack} />
         <p className="eyebrow">{t('legal.eyebrow')}</p>
-        <LegalDocumentView
-          document={entry.document}
-          titleId="legal-page-title"
-        />
+        <Suspense fallback={<p role="status">{t('states.loading.title')}</p>}>
+          <LazyLegalDocumentContent
+            documentId={documentId}
+            titleId="legal-page-title"
+            onShown={focusTitle}
+          />
+        </Suspense>
       </div>
     </main>
   );

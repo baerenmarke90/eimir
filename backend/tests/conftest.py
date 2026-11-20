@@ -113,6 +113,21 @@ def _database_reachable(url: str) -> bool:
 DATABASE_AVAILABLE = _database_reachable(INTEGRATION_DATABASE_URL)
 
 
+@pytest.fixture(autouse=True)
+def _restore_pillow_pixel_limit() -> Iterator[None]:
+    """Keep Pillow's process-wide decompression-bomb limit per test.
+
+    Image processing sets ``Image.MAX_IMAGE_PIXELS`` to the rule's limit; a test
+    with a tiny rule would otherwise leak that limit into later tests, which
+    only shows up when the test order changes (for example in CI shards).
+    """
+    from PIL import Image
+
+    limit = Image.MAX_IMAGE_PIXELS
+    yield
+    Image.MAX_IMAGE_PIXELS = limit
+
+
 def pytest_ignore_collect(collection_path, config):  # type: ignore[no-untyped-def]
     """Core-only configuration: do not even import the Pro feature test modules."""
     from tests.support.plugins import PRO_TEST_MODULES, plugins_loaded

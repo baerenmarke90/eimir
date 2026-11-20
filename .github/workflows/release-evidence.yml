@@ -75,7 +75,8 @@ permissions:
 
 concurrency:
   group: release-evidence-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  # A newer pull-request push supersedes its evidence build; release runs are never cancelled.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   SYFT_VERSION: "1.42.3"
@@ -531,7 +532,9 @@ jobs:
           name: release-evidence-${{ github.sha }}
           path: release-evidence/
           if-no-files-found: error
-          retention-days: 7
+          # Pull-request evidence is never attested or published; release callers
+          # consume it within days (#2096).
+          retention-days: ${{ github.event_name == 'pull_request' && 1 || 7 }}
           compression-level: 6
 
   attest:

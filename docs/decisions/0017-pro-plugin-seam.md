@@ -80,6 +80,41 @@ Deliberately **not** part of the plugin, with the reason:
 `question.5_year_mirror`, `surprise_mode.vault`. Their first implementation should be written as plugin code from
 day one.
 
+### Coverage of the 19 capabilities
+
+The Product Owner's condition for this decision is that every Premium feature is protected. This table states, per
+capability of `entitlements/models.py`, what this decision protects and what it does not. Only the first group is
+protected by Phase 1 and 2; the others are named gaps with an owning issue, and the Product Owner decides per gap
+whether it is closed before Phase 3 or accepted.
+
+| Capability | Server code today | Covered by this decision | Owner for the rest |
+| --- | --- | --- | --- |
+| `games.couple` | `garden`, `heart_hunt`, `picture_ping_pong`, `couple_games`, games router | Yes: moves into the plugin | |
+| `integration.external_sync` | `calendar_sync`, `photo_sources`, `providers/caldav.py` | Yes | |
+| `daily.quote` | `quotes` | Yes | |
+| `partner.once_messages` | `once_messages` (sending Premium; reception and deletion stay non-paywallable through manifest rules) | Yes | |
+| `presence.location` | `presence` (own consent, Stop and deletion stay non-paywallable) | Yes | |
+| `planning.date_inspiration` | `date_ideas` and its catalog | Yes; the Core consumer in `wish_selections` goes through a hook | |
+| `memories.map` | Gate in shared Core (`api/v1/places.py`) | No: the check and the feature stay public code | [#2084](https://github.com/baerenmarke90/eimir/issues/2084) |
+| `relationship.passport` | Gate in shared Core (`api/v1/dashboard.py`, `recaps/service.py`) | No | [#2084](https://github.com/baerenmarke90/eimir/issues/2084) |
+| `partner.quick_actions.extended` | Gate in shared Core (`api/v1/engagement.py`) | No | [#2084](https://github.com/baerenmarke90/eimir/issues/2084) |
+| `theme.bespoke_packs` | Gate in shared Core (`api/v1/appearance.py`, `appearance/models.py`) | No | [#2084](https://github.com/baerenmarke90/eimir/issues/2084) |
+| `media.video_upload` | Woven into attachments and the video worker | No: extraction deferred | [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
+| `daily.insights` | `daily_checkins/insights.py`, `recaps/mood.py` | No: extraction deferred | [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
+| `storage.cloud_quota_50gb` | Operating-model capability, removed on Self-Hosted | Not Pro code; stays Core by design | |
+| `chapter.rich_presentation`, `occasion.automation`, `recap.pdf_yearbook`, `recap.video_montage`, `question.5_year_mirror`, `surprise_mode.vault` | None (no implementation) | Nothing to protect yet: the first implementation is written as plugin code | |
+
+Two further gaps are not capabilities:
+
+- **Recap composition.** `recaps` stays Core so that retained editions remain readable without Pro; the Premium part
+  of composition is part of [#2085](https://github.com/baerenmarke90/eimir/issues/2085).
+- **Clients.** The Web and Android clients contain the Pro screens and generated Pro client code. This decision is a
+  backend seam; [#2086](https://github.com/baerenmarke90/eimir/issues/2086) decides what the public export contains.
+
+Result: six capabilities with server code are protected, four plain gates and two deferred capabilities are not, and
+the clients are undecided. The Core must not be published (Phase 3) before the Product Owner has decided each open
+row. Publishing earlier would expose the gate-only features and the client Pro code.
+
 ### Direct Core-to-Pro coupling (verified)
 
 These are the call sites the seam replaces. They are the real work.
@@ -378,7 +413,9 @@ export leaves out. No behavior change.
 the Core export of decision 7 publishes the Core into a fresh public repository, a Core image is built from the
 exported tree, and a private Pro image is built `FROM` that Core image digest with its own release identity and
 the distribution channel the Product Owner selects (open decisions). Before go-live, Phase 1 and 2 must be complete:
-otherwise the exported Core does not start without Pro.
+otherwise the exported Core does not start without Pro. The open rows of the coverage table (section
+"Coverage of the 19 capabilities" in the Context: #2084, #2085, #2086) must also be decided before the first export, because the
+export would otherwise publish the gate-only features and the client Pro code.
 
 **Effort estimate (an estimate, not a commitment):** Phase 1 about 8 to 12 working days of agent-assisted work
 including review cycles, about 1,500 to 2,500 changed lines across the 19 call sites, the seam and the Core-only

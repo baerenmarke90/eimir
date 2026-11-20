@@ -10,9 +10,12 @@ Android APK publication remains the separate #1331/#1332 channel.
 
 Pushes to `main` start no workflows (#2096). When the nightly regression
 (`.github/workflows/nightly-regression.yml`) or a manual dispatch runs the full
-suites on `main`, the private-channel jobs in `.github/workflows/release-publish.yml`
-are triggered by successful completions of the required workflows. The channel
-therefore follows `main` once per night; dispatch **Nightly Regression** for an
+suites on `main`, `.github/workflows/nightly-regression-report.yml` evaluates
+them at 02:47 and 04:47 UTC (or on manual dispatch). When every required workflow
+succeeded, it starts the private-channel jobs in `.github/workflows/release-publish.yml`
+(`private_test_channel=true`). It polls because runs dispatched with `GITHUB_TOKEN`
+emit no `workflow_run` events. The channel therefore follows `main` once per night;
+dispatch **Nightly Regression** and then **Nightly Regression Report** for an
 earlier update:
 
 1. Publication requires the repository

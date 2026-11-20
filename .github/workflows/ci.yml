@@ -1,288 +1,204 @@
-name: CI
+name: Runner Capability Check
 
 on:
-  # Pushes to main start no run; the nightly regression dispatches main (#2096).
-  # Pull requests run the cheap tier unless they are ready for review and carry
-  # ci:full or touch a risk path (tools/ci/change_scope.py, #2096). A re-run reads
-  # labels live, so adding ci:full and re-running the failed or skipped jobs applies it.
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-  # Nightly and manual runs come from the nightly regression dispatcher.
   workflow_dispatch:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+permissions:
+  contents: read
 
-env:
-  PYTHON_VERSION: "3.15.2"
-  UV_VERSION: "0.12.15"
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  changes:
-    name: Change Detection
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      # Labels and draft state are read live so a re-run after adding ci:full applies it.
-      pull-requests: read
-    outputs:
-      backend: ${{ steps.scope.outputs.backend }}
-      backend_integration: ${{ steps.scope.outputs.backend_integration }}
-      self_hosted: ${{ steps.scope.outputs.self_hosted }}
-      api_clients: ${{ steps.scope.outputs.api_clients }}
-      supply_chain: ${{ steps.scope.outputs.supply_chain }}
-      supply_chain_backend: ${{ steps.scope.outputs.supply_chain_backend }}
-      supply_chain_web: ${{ steps.scope.outputs.supply_chain_web }}
-      supply_chain_backend_build: ${{ steps.scope.outputs.supply_chain_backend_build }}
-      supply_chain_web_build: ${{ steps.scope.outputs.supply_chain_web_build }}
-      web: ${{ steps.scope.outputs.web }}
-      tier: ${{ steps.scope.outputs.tier }}
-      label_required: ${{ steps.scope.outputs.label_required }}
+  host:
+    name: Guest host and toolchain
+    runs-on: eimir-kvm-pr
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check CLI and fresh guest state
+        id: fresh
+        run: |
+          for cli in git curl jq gh python3 unzip sha256sum timeout ss make gcc; do
+            command -v "$cli"
+          done
+          test -z "$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit)"
+          test -z "$(docker ps -aq --filter name=eimir-)"
+          test -z "$(docker volume ls -q --filter name=eimir-)"
+          test -z "$(docker network ls -q --filter name=eimir-)"
+          test -z "$(ss -H -ltn '( sport = :5432 or sport = :18080 or sport = :18081 or sport = :18082 )')"
+
+      - name: Measure free space before checks
+        id: disk_before
+        if: ${{ !cancelled() }}
+        run: |
+          docker_root=$(docker info --format '{{.DockerRootDir}}')
+          df -BG "$GITHUB_WORKSPACE" "$docker_root" | sed 's/^/    /' >> "$GITHUB_STEP_SUMMARY"
+          df -B1 --output=avail "$GITHUB_WORKSPACE" "$docker_root" |
+            awk 'NR > 1 && $1 < 30000000000 { inadequate = 1 } END { exit inadequate }'
+
+      - name: Check Docker build, run and Compose profiles on loopback
+        id: docker
+        if: ${{ !cancelled() }}
+        run: |
+          docker version
+          docker compose version
+          work=$(mktemp -d)
+          cd "$work"
+          trap 'docker compose --project-name eimir-runner-capability --profile probe down --volumes --rmi local; rm -rf -- "$work"' EXIT
+          cat > Dockerfile <<'EOF'
+          FROM node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
+          CMD ["node", "-e", "require('node:http').createServer((req, res) => res.end('ok')).listen(8080, '0.0.0.0')"]
+          EOF
+          cat > compose.yml <<'EOF'
+          services:
+            web:
+              build: .
+              profiles: [probe]
+              ports:
+                - '127.0.0.1:18080:8080'
+                - '127.0.0.1:18081:8080'
+                - '127.0.0.1:18082:8080'
+              volumes:
+                - probe:/probe
+          volumes:
+            probe:
+          EOF
+          docker build -t eimir-runner-capability-web .
+          test "$(docker run --rm eimir-runner-capability-web node --version)" = v26.13.1
+          docker compose --project-name eimir-runner-capability --profile probe up -d
+          for port in 18080 18081 18082; do
+            test "$(curl -fsS --retry 5 --retry-connrefused "http://127.0.0.1:$port/")" = ok
+          done
+          docker compose --project-name eimir-runner-capability --profile probe down --volumes --rmi local
+          trap 'rm -rf -- "$work"' EXIT
+          test -z "$(docker ps -aq --filter name=eimir-runner-capability)"
+          test -z "$(docker volume ls -q --filter name=eimir-runner-capability)"
+          test -z "$(docker network ls -q --filter name=eimir-runner-capability)"
+          test -z "$(ss -H -ltn '( sport = :18080 or sport = :18081 or sport = :18082 )')"
+
+      - name: Install the media build packages with noninteractive sudo
+        id: apt
+        if: ${{ !cancelled() }}
+        run: |
+          sudo -n apt-get update
+          sudo -n apt-get install -y --no-install-recommends nasm autoconf automake libtool pkg-config ffmpeg
+          ffmpeg -version | sed -n '1p'
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        id: node
+        if: ${{ !cancelled() }}
         with:
-          fetch-depth: 0
-
-      - name: Test change-scope filter logic
-        run: python3 tools/ci/test_change_scope.py
-
-      - name: Test nightly regression wiring
-        run: python3 tools/ci/test_nightly_regression.py
-
-      - name: Test encryption test-key generator
-        run: python3 tools/ci/test_encryption_test_keys.py
-
-      - name: Test Google Photos Picker read-only probe
-        run: python3 tools/ci/test_google_photos_picker_probe.py
-
-      - name: Test cloud Google Photos Picker OAuth callback
-        run: python3 tools/ci/test_google_photos_picker_web_probe.py
-
-      - name: Test static eimir.de main site
-        run: python3 tools/ci/test_main_site.py
-
-      - name: Audit migrated engineering-language surfaces
-        run: |
-          python3 tools/ci/test_engineering_language_audit.py
-          python3 tools/ci/engineering_language_audit.py
-
-      - name: Classify legacy project-identity references
-        run: |
-          python3 tools/ci/test_project_identity_scan.py
-          python3 tools/ci/test_project_identity_migration.py
-          python3 tools/ci/project_identity_scan.py
-
-      - name: Determine relevant change scopes
-        id: scope
-        env:
-          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PUSH_BASE_SHA: ${{ github.event.before }}
-          PUSH_HEAD_SHA: ${{ github.sha }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          enable_all() {
-            for scope in backend backend_integration self_hosted api_clients supply_chain supply_chain_backend supply_chain_web supply_chain_backend_build supply_chain_web_build web; do
-              echo "$scope=true" >> "$GITHUB_OUTPUT"
-            done
-            echo "tier=full" >> "$GITHUB_OUTPUT"
-            echo "label_required=false" >> "$GITHUB_OUTPUT"
-          }
-
-          case "$GITHUB_EVENT_NAME" in
-            pull_request)
-              base_sha="$PR_BASE_SHA"
-              head_sha="$PR_HEAD_SHA"
-              ;;
-            push)
-              base_sha="$PUSH_BASE_SHA"
-              head_sha="$PUSH_HEAD_SHA"
-              ;;
-            *)
-              enable_all
-              echo "Scheduled/manual run: all expensive CI gates remain active."
-              exit 0
-              ;;
-          esac
-
-          if [ -z "$base_sha" ] || [ -z "$head_sha" ] \
-            || [[ "$base_sha" =~ ^0+$ ]] \
-            || ! git cat-file -e "${base_sha}^{commit}" 2>/dev/null \
-            || ! git cat-file -e "${head_sha}^{commit}" 2>/dev/null; then
-            enable_all
-            echo "Change range unavailable; failing closed to all expensive CI gates."
-            exit 0
-          fi
-
-          # Treat renames as delete+add intentionally. Moving a file out of a
-          # runtime path therefore still activates the originally affected gate,
-          # and deletions remain covered as well.
-          git diff --name-only --no-renames "$base_sha" "$head_sha" > /tmp/changed-files.txt
-          echo "Changed files:"
-          cat /tmp/changed-files.txt
-
-          tier_args=()
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            pr_state=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" \
-              --jq '{draft: .draft, labels: [.labels[].name] | join(",")}')
-            tier_args=(--pull-request
-              --draft "$(jq -r '.draft' <<< "$pr_state")"
-              --labels "$(jq -r '.labels' <<< "$pr_state")"
-              --head-ref "$GITHUB_HEAD_REF")
-          fi
-          python3 tools/ci/change_scope.py /tmp/changed-files.txt "${tier_args[@]}" > /tmp/scope-outputs.txt
-          cat /tmp/scope-outputs.txt >> "$GITHUB_OUTPUT"
-          cat /tmp/scope-outputs.txt
-          grep -E '^(tier|tier_reason)=' /tmp/scope-outputs.txt \
-            | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
-
-          # Label-gated workflows only see labels, not paths, so a changed
-          # definition must carry ci:full to run before merge.
-          if grep -qx 'label_required=true' /tmp/scope-outputs.txt; then
-            echo "::error::This pull request changes a workflow or tooling that only runs with the ci:full label."
-            echo "Add the ci:full label, then re-run this job; the changed workflow then runs before merge (#2096)."
-            exit 1
-          fi
-
-  backend:
-    name: Backend
-    needs: changes
-    if: needs.changes.outputs.backend == 'true'
-    runs-on: ubuntu-latest
-    env:
-      EIMIR_ENVIRONMENT: test
-    defaults:
-      run:
-        working-directory: backend
-
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
+          node-version: '26.13.1'
+          package-manager-cache: false
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        id: java
+        if: ${{ !cancelled() }}
+        with:
+          distribution: temurin
+          java-version: '21'
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        id: python
+        if: ${{ !cancelled() }}
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: backend/uv.lock
-
-      - name: Locked dependencies
+          python-version: '3.15.2'
+      - name: Check Python and install the pinned uv release
+        id: uv
+        if: ${{ !cancelled() && steps.python.outcome == 'success' }}
         run: |
-          python -m pip install "uv==$UV_VERSION"
-          uv lock --check
-          uv sync --frozen
+          test "$(python --version)" = 'Python 3.15.2'
+          python -m pip install 'uv==0.12.15'
+          uv --version
 
-      - name: Safe Self-Hosted configuration
-        working-directory: .
+      - name: Verify that the setup actions used the writable toolcache
+        id: toolcache
+        if: ${{ !cancelled() }}
         run: |
-          docker compose --env-file .env.example config --quiet
-          host_ip=$(docker compose --env-file .env.example config --format json \
-            | jq -r '.services.api.ports[0].host_ip')
-          if [ "$host_ip" != "127.0.0.1" ]; then
-            echo "The API is not restricted to loopback by default: $host_ip"
-            exit 1
-          fi
+          test "$RUNNER_TOOL_CACHE" = /srv/eimir-runner-toolcache/tools
+          test -w "$RUNNER_TOOL_CACHE"
+          test -d "$RUNNER_TOOL_CACHE/node/26.13.1"
+          test -d "$RUNNER_TOOL_CACHE/Python/3.15.2"
+          printf '%s\n' "$GITHUB_SHA" > "$RUNNER_TOOL_CACHE/capability-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
 
-      - name: No source file is hidden by .gitignore
-        # An unanchored pattern such as "media/" matches every directory with
-        # that name. This is invisible locally because the file remains on disk;
-        # only a fresh CI checkout exposes the missing file.
-        working-directory: .
+      - name: Check registry and download egress
+        id: egress
+        if: ${{ !cancelled() }}
         run: |
-          missing_files=$(comm -23 \
-            <(find backend/src web -name "*.py" -o -name "*.ts" \
-                -o -name "*.tsx" 2>/dev/null | sort) \
-            <(git ls-files backend/src web | sort))
-          if [ -n "$missing_files" ]; then
-            echo "These source files are not tracked:"
-            echo "$missing_files"
-            exit 1
-          fi
+          failed=0
+          for url in https://registry.npmjs.org https://pypi.org/simple/uv/ https://files.pythonhosted.org \
+            https://ghcr.io/v2/ https://registry-1.docker.io/v2/ \
+            https://github.com https://objects.githubusercontent.com https://cdn.playwright.dev; do
+            if status=$(curl -sSL --connect-timeout 8 --max-time 20 --output /dev/null --write-out '%{http_code}' "$url") &&
+               [[ $status =~ ^(2[0-9][0-9]|3[0-9][0-9]|401|403|404)$ ]]; then
+              printf '%s PASS (HTTP %s)\n' "$url" "$status" | tee -a "$GITHUB_STEP_SUMMARY"
+            else
+              printf '%s FAIL (HTTP %s)\n' "$url" "$status" | tee -a "$GITHUB_STEP_SUMMARY"
+              failed=1
+            fi
+          done
+          exit "$failed"
 
-      - name: Lint
-        run: uv run --frozen ruff check src tests scripts alembic
+      - name: Measure free space after checks
+        id: disk_after
+        if: ${{ !cancelled() }}
+        run: |
+          docker_root=$(docker info --format '{{.DockerRootDir}}')
+          df -BG "$GITHUB_WORKSPACE" "$docker_root" | sed 's/^/    /' >> "$GITHUB_STEP_SUMMARY"
+          df -B1 --output=avail "$GITHUB_WORKSPACE" "$docker_root" |
+            awk 'NR > 1 && $1 < 30000000000 { inadequate = 1 } END { exit inadequate }'
 
-      - name: Formatting
-        run: uv run --frozen ruff format --check src tests scripts alembic
+      - name: Summarize host capabilities
+        if: ${{ !cancelled() }}
+        env:
+          OUTCOMES: ${{ toJSON(steps) }}
+        run: |
+          printf '\n| Check | Result |\n| --- | --- |\n' >> "$GITHUB_STEP_SUMMARY"
+          jq -r 'to_entries[] | "| \(.key) | \(if .value.outcome == "success" then "PASS" else "FAIL" end) |"' \
+            <<< "$OUTCOMES" >> "$GITHUB_STEP_SUMMARY"
+          jq -e 'all(.[]; .outcome == "success")' <<< "$OUTCOMES"
 
-      - name: Type checking
-        run: uv run --frozen mypy
-
-      - name: OpenAPI contract
-        run: uv run --frozen python scripts/openapi_contract.py check
-
-      - name: Tests without integration
-        run: uv run --frozen pytest -m "not integration" -q
-
-  web:
-    name: Web Reference Flow
-    needs: changes
-    # Required check: unrelated pull requests report it as skipped (#2096).
-    if: needs.changes.outputs.web == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+  job-container:
+    name: Node job container and Playwright
+    needs: host
+    if: ${{ !cancelled() }}
+    runs-on: eimir-kvm-pr
+    timeout-minutes: 15
     container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
-    defaults:
-      run:
-        working-directory: web
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Restore npm download cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ~/.npm
-          key: web-gate-npm-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
-          restore-keys: web-gate-npm-${{ runner.os }}-
+          persist-credentials: false
+      - name: Check workspace mount and Node version
+        id: mount
+        run: |
+          test -r "$GITHUB_WORKSPACE/web/e2e/package-lock.json"
+          test "$(node --version)" = v26.13.1
+      - name: Download and launch pinned Chromium
+        id: browser
+        working-directory: web/e2e
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          ./node_modules/.bin/playwright install --with-deps chromium
+          node --input-type=module -e "import { chromium } from '@playwright/test'; const browser = await chromium.launch(); await browser.close();"
+          df -h "$GITHUB_WORKSPACE" >> "$GITHUB_STEP_SUMMARY"
+      - name: Summarize container checks
+        if: ${{ !cancelled() }}
+        run: |
+          echo 'Node version and workspace mount **${{ steps.mount.outcome == 'success' && 'PASS' || 'FAIL' }}**' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Playwright download and Chromium launch **${{ steps.browser.outcome == 'success' && 'PASS' || 'FAIL' }}**' >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Install locked dependencies
-        run: npm ci --ignore-scripts --no-audit --no-fund
-
-      - name: Dependency audit
-        run: node scripts/audit-gate.mjs
-
-      - name: Type check
-        run: npm run typecheck
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Format check
-        run: npm run format:check
-
-      - name: Tests
-        run: npm test
-
-      - name: Capacitor foundation check
-        run: npm run cap:check
-
-      - name: Production build
-        run: npm run build
-
-  backend_integration_shards:
-    name: Backend Integration Shard ${{ matrix.shard }}/${{ strategy.job-total }}
-    needs: changes
-    if: needs.changes.outputs.backend_integration == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4, 5, 6]
-
-    # Each shard gets its own runner and PostgreSQL service. The deterministic
-    # selector partitions the collected integration node IDs exactly once, so
-    # the gate keeps full coverage while lowering the time spent waiting for
-    # the slowest shard.
+  service-container:
+    name: PostgreSQL service container
+    needs: job-container
+    if: ${{ !cancelled() }}
+    runs-on: eimir-kvm-pr
+    timeout-minutes: 10
     services:
       postgres:
         image: postgres:17-alpine
         env:
           POSTGRES_USER: eimir
-          POSTGRES_PASSWORD: eimir
+          POSTGRES_PASSWORD: capability-check
           POSTGRES_DB: eimir_test
         ports:
           - 5432:5432
@@ -291,390 +207,24 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-
-    env:
-      EIMIR_ENVIRONMENT: test
-      EIMIR_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
-      EIMIR_TEST_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
-
-    defaults:
-      run:
-        working-directory: backend
-
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: backend/uv.lock
-
-      - name: Locked dependencies
+      - name: Confirm the toolcache survived the previous guest
+        id: retained
         run: |
-          python -m pip install "uv==$UV_VERSION"
-          uv lock --check
-          uv sync --frozen
-
-      - name: Migrations
-        run: uv run --frozen alembic upgrade head
-
-      - name: Migrations are complete
-        # A model/schema difference indicates a missing migration and would
-        # otherwise surface only during deployment.
+          marker="$RUNNER_TOOL_CACHE/capability-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          test "$(cat "$marker")" = "$GITHUB_SHA"
+          rm -- "$marker"
+      - name: Query the service via localhost on a fresh guest
+        if: ${{ !cancelled() }}
+        id: query
         run: |
-          uv run --frozen alembic revision --autogenerate -m "drift check" --rev-id drift_check
-          if grep -qE "op\.(create|drop|alter|add)_" alembic/versions/drift_check_*.py; then
-            echo "Models and migrations differ:"
-            cat alembic/versions/drift_check_*.py
-            exit 1
-          fi
-          rm alembic/versions/drift_check_*.py
-
-      - name: Integration tests actually ran
-        # Collect once per isolated shard, split node IDs deterministically, and
-        # retain the existing no-skips guarantee. --durations keeps the slowest
-        # tests visible so future fixture regressions can be optimized directly.
+          test -z "$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit)"
+          test -z "$(ss -H -ltn '( sport = :18080 or sport = :18081 or sport = :18082 )')"
+          test -z "$(docker ps -aq --filter name=eimir-runner-capability)"
+          test "$(docker run --rm --network host -e PGPASSWORD=capability-check postgres:17-alpine \
+            psql -h 127.0.0.1 -U eimir -d eimir_test -Atc 'SELECT 1')" = 1
+      - name: Summarize PostgreSQL and isolation checks
+        if: ${{ !cancelled() }}
         run: |
-          collection=$(mktemp)
-          selected_file=$(mktemp)
-          report=$(mktemp)
-          uv run --frozen pytest -m integration --collect-only -q > "$collection"
-          python ../tools/ci/pytest_shard.py \
-            --shard "${{ matrix.shard }}" \
-            --shard-count "${{ strategy.job-total }}" \
-            < "$collection" > "$selected_file"
-          mapfile -t selected < "$selected_file"
-          expected="${#selected[@]}"
-          if [ "$expected" -eq 0 ]; then
-            echo "Integration shard ${{ matrix.shard }}/${{ strategy.job-total }} selected no tests."
-            exit 1
-          fi
-          echo "Integration shard ${{ matrix.shard }}/${{ strategy.job-total }} selected $expected tests."
-          uv run --frozen pytest -m integration -q --durations=20 \
-            --junitxml="$report" "${selected[@]}"
-          uv run --frozen python - "$report" "$expected" <<'PY'
-          import sys
-          import xml.etree.ElementTree as ET
-
-          root = ET.parse(sys.argv[1]).getroot()
-          expected = int(sys.argv[2])
-          testcases = root.findall(".//testcase")
-          skipped = sum(case.find("skipped") is not None for case in testcases)
-
-          if len(testcases) != expected:
-              raise SystemExit(
-                  f"Expected {expected} integration tests, but JUnit contains {len(testcases)}."
-              )
-          if skipped:
-              raise SystemExit(
-                  f"{skipped} integration test(s) were skipped - "
-                  "is the database unavailable?"
-              )
-          PY
-
-  backend-integration:
-    name: Backend Integration
-    needs: [changes, backend_integration_shards]
-    if: ${{ always() }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    # The repository ruleset requires the exact "Backend Integration" context.
-    # Keep that stable while the expensive work fans out into matrix shards.
-    steps:
-      - name: Verify integration shards
-        env:
-          CHANGE_RESULT: ${{ needs.changes.result }}
-          INTEGRATION_REQUIRED: ${{ needs.changes.outputs.backend_integration }}
-          SHARDS_RESULT: ${{ needs.backend_integration_shards.result }}
-        run: |
-          if [ "$CHANGE_RESULT" != "success" ]; then
-            echo "Change Detection did not succeed: $CHANGE_RESULT"
-            exit 1
-          fi
-          if [ "$INTEGRATION_REQUIRED" != "true" ]; then
-            echo "Backend integration is not required for this change set."
-            exit 0
-          fi
-          if [ "$SHARDS_RESULT" != "success" ]; then
-            echo "One or more Backend Integration shards did not succeed: $SHARDS_RESULT"
-            exit 1
-          fi
-          echo "All Backend Integration shards succeeded."
-
-  self-hosted:
-    name: Self-Hosted Start
-    needs: changes
-    if: needs.changes.outputs.self_hosted == 'true'
-    runs-on: ubuntu-latest
-    # The failure from #110 passed every gate because CI only parsed the Compose
-    # file and ran Alembic under EIMIR_ENVIRONMENT=test. No gate executed the
-    # documented startup path. This job follows docs/SELF-HOSTING.md exactly.
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Prepare the documented first startup
-        # Follow the guide: copy, replace the password, build local Development
-        # images, and then start the single canonical Compose topology. The test
-        # value is a CI-only value and not a secret.
-        run: |
-          set -euo pipefail
-          cp .env.example .env
-          sed -i 's/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=ci-only-for-the-test-run/' .env
-          docker compose config --quiet
-          python3 scripts/build_self_hosted_source.py --env-file .env
-
-      - name: Start stack
-        run: docker compose up -d --wait --wait-timeout 300
-
-      - name: Migration completed
-        run: |
-          status=$(docker compose ps -a --format json migrate | jq -r '.ExitCode')
-          if [ "$status" != "0" ]; then
-            echo "migrate did not exit cleanly (ExitCode $status):"
-            docker compose logs migrate
-            exit 1
-          fi
-
-      - name: Health checks through published ports
-        run: |
-          curl --fail --silent --show-error http://127.0.0.1:8000/api/v1/health
-          curl --fail --silent --show-error http://127.0.0.1:8080/healthz
-          curl --fail --silent --show-error http://127.0.0.1:8080/ | grep -Fq "<title>eimir."
-          web/scripts/check_csp_header.sh http://127.0.0.1:8080/
-
-      - name: CSP origins are narrowly and fail-closed configurable
-        run: |
-          rendered=$(docker compose run --rm --no-deps \
-            -e EIMIR_WEB_CSP_CONNECT_ORIGINS="https://api.example.test https://s3.example.test:9443" \
-            web nginx -T 2>&1)
-          printf '%s\n' "$rendered" \
-            | grep -Fq "connect-src 'self' https://tiles.openfreemap.org https://api.example.test https://s3.example.test:9443;"
-
-          set +e
-          docker compose run --rm --no-deps \
-            -e EIMIR_WEB_CSP_CONNECT_ORIGINS="https://example.test; add_header X-Injected true" \
-            web nginx -t >/tmp/invalid-csp-origin.log 2>&1
-          status=$?
-          set -e
-          if [ "$status" -eq 0 ]; then
-            echo "The Web container accepted an injectable CSP origin."
-            exit 1
-          fi
-          grep -Fq "does not contain a valid exact HTTP(S) origin" /tmp/invalid-csp-origin.log
-
-      - name: No runtime service failed on configuration
-        # A missing Settings value exits the process immediately. With
-        # restart: unless-stopped, this soon looks like a restart loop instead of
-        # a clear failure.
-        run: |
-          for service in api worker web; do
-            status=$(docker compose ps --format json "$service" | jq -r '.State')
-            if [ "$status" != "running" ]; then
-              echo "$service is not running ($status):"
-              docker compose logs "$service"
-              exit 1
-            fi
-          done
-          if docker compose logs api worker | grep -q "validation error for Settings"; then
-            echo "A service logged a Settings error:"
-            docker compose logs api worker
-            exit 1
-          fi
-
-      - name: Migration is repeatable
-        run: |
-          docker compose run --rm migrate
-          echo "Second run against the existing schema succeeded"
-
-      - name: Production continues to reject unsafe configuration
-        # Test operation is the baseline, not an excuse. This check ensures that
-        # production invariants remain unchanged; otherwise weakening them would
-        # be the easiest path to green CI.
-        run: |
-          set +e
-          for unsafe_setting in "EIMIR_MAIL_TRANSPORT=log" "EIMIR_PUBLIC_BASE_URL=http://insecure.invalid" "EIMIR_CURSOR_SIGNING_KEY="; do
-            output=$(docker compose run --rm --no-deps \
-              -e EIMIR_ENVIRONMENT=production \
-              -e EIMIR_ENCRYPTION_AT_REST=disabled \
-              -e EIMIR_CURSOR_SIGNING_KEY=ci-test-value-with-at-least-32-characters \
-              -e EIMIR_MAIL_TRANSPORT=smtp \
-              -e EIMIR_PUBLIC_BASE_URL=https://ci.invalid \
-              -e "$unsafe_setting" \
-              api python -c "from eimir.config import Settings; Settings()" 2>&1)
-            if [ $? -eq 0 ]; then
-              echo "Production accepted an unsafe configuration: $unsafe_setting"
-              exit 1
-            fi
-            echo "Rejected as expected: $unsafe_setting"
-          done
-          set -e
-
-      - name: Production without a mail server is valid
-        # SMTP access is not a startup requirement (ADR 0002). Only "log" is
-        # forbidden because it writes one-time tokens to logs.
-        run: |
-          docker compose run --rm --no-deps \
-            -e EIMIR_ENVIRONMENT=production \
-            -e EIMIR_ENCRYPTION_AT_REST=disabled \
-            -e EIMIR_CURSOR_SIGNING_KEY=ci-test-value-with-at-least-32-characters \
-            -e EIMIR_MAIL_TRANSPORT=none \
-            -e EIMIR_PUBLIC_BASE_URL=https://ci.invalid \
-            api python -c "from eimir.config import Settings; Settings()"
-
-      - name: Logs on failure
-        if: failure()
-        run: docker compose logs
-
-      - name: Clean up
-        if: always()
-        run: docker compose down -v
-
-  api-clients:
-    name: API Clients
-    needs: changes
-    if: needs.changes.outputs.api_clients == 'true'
-    runs-on: ubuntu-latest
-    # The contract is the single source of truth for the canonical Web client,
-    # which the Capacitor Android wrapper packages unchanged (ADR 0011).
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Generated client code matches the contract
-        run: tools/openapi/generate.sh --check-web
-
-      - name: The TypeScript client has no runtime dependency
-        # The generator uses `typescript-fetch` so no HTTP package enters the
-        # Web client. This check preserves that boundary: a configuration change
-        # could otherwise add a dependency that surfaces only in the Web project.
-        run: |
-          if find web/src/api/generated -name package.json | grep -q .; then
-            echo "The generated TypeScript client includes a package.json."
-            exit 1
-          fi
-          external_imports=$(grep -rhoE "from '[^.][^']*'" web/src/api/generated || true)
-          if [ -n "$external_imports" ]; then
-            echo "The generated TypeScript client imports external packages:"
-            echo "$external_imports" | sort -u
-            exit 1
-          fi
-
-  supply-chain:
-    name: Supply Chain
-    needs: changes
-    if: needs.changes.outputs.supply_chain == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Verify Supply Chain subscopes
-        env:
-          BACKEND_REQUIRED: ${{ needs.changes.outputs.supply_chain_backend }}
-          WEB_REQUIRED: ${{ needs.changes.outputs.supply_chain_web }}
-        run: |
-          if [ "$BACKEND_REQUIRED" != "true" ] && [ "$WEB_REQUIRED" != "true" ]; then
-            echo "Supply Chain was enabled without an internal build surface."
-            exit 1
-          fi
-          echo "Backend Supply Chain required: $BACKEND_REQUIRED"
-          echo "Web Supply Chain required: $WEB_REQUIRED"
-
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        if: needs.changes.outputs.supply_chain_backend == 'true'
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: backend/uv.lock
-
-      - name: Install exact uv version
-        if: needs.changes.outputs.supply_chain_backend == 'true'
-        run: python -m pip install "uv==$UV_VERSION"
-
-      - name: Lockfile is current
-        if: needs.changes.outputs.supply_chain_backend == 'true'
-        run: uv lock --check
-
-      - name: Dependency and vulnerability scan
-        if: needs.changes.outputs.supply_chain_backend == 'true'
-        # Policy: every known OSV finding or adverse package status fails the
-        # job. Exceptions must be explicit, justified, and time-limited in
-        # pyproject.toml; none currently exist.
-        run: uv audit --preview --frozen
-
-      - name: Dependency inventory
-        if: needs.changes.outputs.supply_chain_backend == 'true'
-        run: |
-          uv sync --frozen
-          uv run --frozen python scripts/check_dependency_inventory.py ../docs/DEPENDENCIES.md
-
-      - name: Build backend wheel without cache
-        if: needs.changes.outputs.supply_chain_backend_build == 'true'
-        run: uv build --no-cache --wheel --out-dir /tmp/eimir-dist
-
-      - name: Build backend production container from scratch
-        if: needs.changes.outputs.supply_chain_backend_build == 'true'
-        run: docker build --pull --no-cache --tag eimir-backend:ci .
-
-      - name: Build Web production container from scratch
-        if: needs.changes.outputs.supply_chain_web_build == 'true'
-        run: docker build --pull --no-cache --tag eimir-web:ci ../web
-
-  secrets:
-    name: Secret Scan
-    # Forks and manually dispatched regressions keep the GitHub-hosted runner.
-    runs-on: >-
-      ${{ github.event_name == 'pull_request' &&
-          github.event.pull_request.head.repo.full_name == github.repository &&
-          vars.EIMIR_PR_RUNNER != 'github-hosted' &&
-          'eimir-kvm-pr' || 'ubuntu-latest' }}
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      # Run gitleaks directly instead of through the action. The action scans
-      # <previous commit>..HEAD and fails on the first push because the first
-      # commit has no predecessor. The direct invocation scans the complete
-      # history, which is the appropriate scope for a secret scan.
-      #
-      # --log-opts="HEAD" pins that history to the checked-out ref's own
-      # ancestry. Without it, gitleaks' git log defaults to --all, which
-      # walks every ref this fetch-depth: 0 checkout knows about — including
-      # unrelated, unmerged branches that happen to share this remote. A
-      # false-positive-triggering string on one such branch then fails
-      # Secret Scan for every other open PR, with no relation to that PR's
-      # own content.
-      - name: gitleaks
-        run: |
-          docker run --rm -v "$PWD:/repo" -w /repo \
-            zricethezav/gitleaks:v8.24.3 \
-            detect --source . --log-opts="HEAD" --redact --verbose --exit-code 1
-
-  provenance:
-    name: Provenance
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Required documents are present
-        run: |
-          for file in PROVENANCE.md docs/DEPENDENCIES.md \
-                       docs/SECURITY.md docs/PRIVACY-MODEL.md \
-                       specification/PRODUCT-SPEC.md LICENSE \
-                       COMMERCIAL-LICENSE.md CONTRIBUTING.md CLA.md \
-                       TRADEMARKS.md; do
-            test -f "$file" || { echo "missing: $file"; exit 1; }
-          done
-      - name: Licensing decision is consistent
-        # LICENSE is mandatory since the explicit licensing decision. CI ensures
-        # that the license, provenance, and commercial policy do not accidentally
-        # regress to the earlier open state.
-        run: |
-          grep -Fq "# PolyForm Noncommercial License 1.0.0" LICENSE
-          grep -Fq "PolyForm Noncommercial License 1.0.0" PROVENANCE.md
-          grep -Fq "Commercial use requires a separate commercial license" COMMERCIAL-LICENSE.md
+          echo 'Persistent toolcache **${{ steps.retained.outcome == 'success' && 'PASS' || 'FAIL' }}**' >> "$GITHUB_STEP_SUMMARY"
+          echo 'PostgreSQL on port 5432 and clean guest **${{ steps.query.outcome == 'success' && 'PASS' || 'FAIL' }}**' >> "$GITHUB_STEP_SUMMARY"

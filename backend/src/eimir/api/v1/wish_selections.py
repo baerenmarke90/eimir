@@ -18,10 +18,8 @@ from eimir.api.concurrency import IfMatchToken, etag_for_token
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
-from eimir.api.v1.date_ideas import DateIdea, date_idea_view
-from eimir.date_ideas.catalog import IDEA_ID_PATTERN, get_catalog
-from eimir.date_ideas.images import get_images
 from eimir.wish_selections import service
+from eimir.wish_selections.date_idea_contract import IDEA_ID_PATTERN, DateIdea
 from eimir.wishes.models import WishStatus
 
 router = APIRouter(tags=["wish-selections"])
@@ -151,16 +149,13 @@ def _view(
     own = projection.own
     eligible = {candidate.wish.id for candidate in projection.candidates}
     eligible_ideas = {idea.date_idea_id for idea in projection.date_idea_candidates}
-    catalog = get_catalog()
-    content_locale = catalog.resolve_locale(locale)
-    images = get_images() if projection.date_ideas_allowed else None
+    catalog = service.date_idea_source() if projection.date_ideas_allowed else None
 
     def idea_content(idea_id: str) -> DateIdea | None:
         # Catalog content only for an entitled Space; IDs alone carry no copy.
-        if images is None:
+        if catalog is None:
             return None
-        resolved = catalog.idea(idea_id, content_locale)
-        return None if resolved is None else date_idea_view(resolved, images)
+        return catalog.view(idea_id, locale)
 
     random_request = None
     if round is not None and round.random_requested_by is not None:

@@ -24,13 +24,15 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
     from eimir.authorization import AuthorizationContext
+    from eimir.demo.service import DemoSeedResult
     from eimir.domain.events import EventType
     from eimir.engagement.models import EngagementTarget, NotificationKind
     from eimir.jobs.worker import JobRegistry
     from eimir.outbox.models import OutboxEvent
     from eimir.transfer.models import TransferScope
+    from eimir.wish_selections.date_idea_contract import DateIdeaSource
 
-PLUGIN_SEAM_VERSION = 2
+PLUGIN_SEAM_VERSION = 3
 """The seam revision Core implements. A plugin declaring another value refuses to start."""
 
 PLUGIN_ENTRY_POINT_GROUP = "eimir.plugins"
@@ -189,4 +191,20 @@ class ProPlugin(Protocol):
         scope: TransferScope,
     ) -> Mapping[str, Any]:
         """Return the plugin's keys of the export's account document (read only)."""
+        ...
+
+    def date_ideas(self) -> DateIdeaSource | None:
+        """Return the curated date-idea catalog a Wish selection round may contain.
+
+        Pure and cached. Without a source the catalog is unavailable and rounds
+        with date ideas stay paused.
+        """
+        ...
+
+    def seed_demo(self, session: Session, result: DemoSeedResult, *, created: bool) -> None:
+        """Add the plugin's examples to the canonical demo Space; idempotent.
+
+        Runs inside the demo seed transaction after the demo Pro grant.
+        ``created`` is true for a new or reset demo Space.
+        """
         ...

@@ -36,7 +36,6 @@ from eimir.engagement.models import (
     Notification,
     NotificationPreference,
     PushEndpoint,
-    SupportGestureRequest,
     ThinkingOfYouRequest,
 )
 from eimir.identity.deletion_models import AccountDeletion, AccountDeletionStatus
@@ -307,17 +306,6 @@ def apply_core_cleanup(session: Session, account_id: UUID) -> AccountDeletion | 
             or_(
                 ThinkingOfYouRequest.sender_account_id == account_id,
                 ThinkingOfYouRequest.recipient_account_id == account_id,
-            )
-        )
-    )
-    # Support-gesture receipts (kiss, "how are you") record who sent which
-    # gesture to whom and when. Like the thinking-of-you receipts they are
-    # relationship metadata, not shared history, so they end with either side.
-    session.execute(
-        delete(SupportGestureRequest).where(
-            or_(
-                SupportGestureRequest.sender_account_id == account_id,
-                SupportGestureRequest.recipient_account_id == account_id,
             )
         )
     )

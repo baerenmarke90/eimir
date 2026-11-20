@@ -248,6 +248,31 @@ def test_plugin_notices_are_hidden_without_the_plugin(session: Session, couple) 
         assert engagement.unread_count(session, reader) == 0
 
 
+def test_received_partner_gestures_stay_readable_and_thinking_of_you_stays_free(
+    session: Session, couple: SimpleNamespace
+) -> None:
+    """Sending a kiss or check-in is plugin code; what it produced is Core data."""
+    from eimir.engagement import thinking
+
+    for kind in (NotificationKind.PARTNER_KISS, NotificationKind.PARTNER_CHECK_IN):
+        session.add(
+            Notification(
+                space_id=couple.space.id,
+                recipient_account_id=couple.ben.id,
+                source_event_id=uuid4(),
+                kind=kind.value,
+                actor_id=couple.anna.id,
+            )
+        )
+    session.flush()
+    reader = AuthorizationContext(account_id=couple.ben.id, space_id=couple.space.id)
+    sender = AuthorizationContext(account_id=couple.anna.id, space_id=couple.space.id)
+    with core_only():
+        assert engagement.unread_count(session, reader) == 2
+        # The Free gesture keeps working without the plugin.
+        assert thinking.send(session, sender, client_request_id=uuid4()) is not None
+
+
 def _photo_selection(session: Session, couple, *, expires_in: timedelta) -> PhotoSelection:  # type: ignore[no-untyped-def]
     device_session, _ = sessions.start_session(session, couple.anna)
     session.flush()

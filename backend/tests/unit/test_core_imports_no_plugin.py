@@ -22,6 +22,7 @@ PLUGIN_PACKAGES = (
     "eimir.garden",
     "eimir.heart_hunt",
     "eimir.once_messages",
+    "eimir.partner_quick_actions",
     "eimir.photo_sources",
     "eimir.picture_ping_pong",
     "eimir.presence",
@@ -45,6 +46,7 @@ PLUGIN_MODULES = (
             "heart_hunt",
             "once_messages",
             "partner_location",
+            "partner_quick_actions",
             "photo_sources",
             "picture_ping_pong",
         )

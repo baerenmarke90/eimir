@@ -1,4 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { choreography, now } from '../motion/choreography';
+import { staggerDelay } from '../motion/enter';
+import { claimPlay, hasPlayed, markPlayed } from '../motion/playRegistry';
+import { wirModuleBatch } from './wirStageMotion';
 
 /*
  * One-shot arrival of a Wir module the first time it is reached.
@@ -19,12 +23,6 @@ import { useEffect, useRef, useState } from 'react';
  * first would let a visible card jump down. Waiting means those late changes
  * only ever move things that are not shown yet.
  */
-const INITIAL_BATCH_WINDOW_MS = 1100;
-// The opening above them takes about 3 s now, so the first module starts once
-// the portraits and the heart line have landed instead of during their draw.
-const INITIAL_BATCH_START_MS = 1200;
-const INITIAL_BATCH_STEP_MS = 220;
-const INITIAL_BATCH_MAX_STEPS = 4;
 /** The hero and the quote count as settled after this long without a change. */
 const SETTLE_QUIET_MS = 300;
 /** A slow or failing request never keeps the modules hidden longer than this. */
@@ -33,25 +31,30 @@ const SETTLE_POLL_MS = 80;
 
 type RevealPhase = 'pending' | 'shown' | 'seen';
 
-const seenModules = new Set<string>();
-let initialBatchStartedAt: number | null = null;
-let initialBatchSize = 0;
+/** Play identities: `wir.module.<section class>`, scope `session`. */
+const MODULE_SCOPE = 'session';
+const moduleIdentity = (key: string) => `wir.module.${key}`;
+/** The modules already in view share one choreography clock (M15). */
+const MODULE_BATCH = 'wir.modules';
+let batchSize = 0;
 
-/** The delay a module in the opening batch waits before it arrives. */
-function takeInitialBatchDelayMs(now: number): number | null {
-  if (
-    initialBatchStartedAt === null ||
-    now - initialBatchStartedAt > INITIAL_BATCH_WINDOW_MS
-  ) {
-    // A later reveal starts a new batch only while the page has not been
-    // scrolled; a module reached by scrolling never waits for a choreography.
-    if (initialBatchStartedAt !== null || window.scrollY > 0) return null;
-    initialBatchStartedAt = now;
-    initialBatchSize = 0;
-  }
-  const step = Math.min(initialBatchSize, INITIAL_BATCH_MAX_STEPS);
-  initialBatchSize += 1;
-  return INITIAL_BATCH_START_MS + step * INITIAL_BATCH_STEP_MS;
+/**
+ * The delay a module in the opening batch waits before it arrives: after the
+ * portraits and the heart line, one module step (`--duration-stagger-module`)
+ * after the other, at most `--motion-stagger-max-items` steps.
+ */
+function takeInitialBatchDelayMs(): number | null {
+  const batch = choreography(MODULE_BATCH, MODULE_SCOPE);
+  const { start, window: batchWindow } = wirModuleBatch();
+  if (batch.startTime === null) {
+    // A module reached by scrolling never waits for a choreography.
+    if (window.scrollY > 0) return null;
+    batch.start(now());
+    batchSize = 0;
+  } else if (now() - batch.startTime > batchWindow) return null;
+  const delay = start + staggerDelay(batchSize, 'module');
+  batchSize += 1;
+  return delay;
 }
 
 let settled: Promise<void> | null = null;
@@ -111,8 +114,9 @@ function moduleKey(className: string | undefined): string | undefined {
 export function useWirReveal<T extends HTMLElement>(className?: string) {
   const key = moduleKey(className);
   const ref = useRef<T>(null);
+  const owner = useRef<object>({});
   const [phase, setPhase] = useState<RevealPhase>(() =>
-    key && seenModules.has(key) ? 'seen' : 'pending',
+    key && hasPlayed(moduleIdentity(key), MODULE_SCOPE) ? 'seen' : 'pending',
   );
   const [delayMs, setDelayMs] = useState(0);
 
@@ -122,7 +126,13 @@ export function useWirReveal<T extends HTMLElement>(className?: string) {
     if (!element || phase !== 'pending') return;
     let cancelled = false;
     const show = (delay: number) => {
-      if (key) seenModules.add(key);
+      // One play per module and session (M3); another mount of the same
+      // module that already claimed it shows the plain content.
+      if (key && !claimPlay(moduleIdentity(key), MODULE_SCOPE, owner.current)) {
+        setPhase('seen');
+        return;
+      }
+      if (key) markPlayed(moduleIdentity(key), MODULE_SCOPE);
       setDelayMs(delay);
       setPhase('shown');
     };
@@ -135,7 +145,7 @@ export function useWirReveal<T extends HTMLElement>(className?: string) {
         if (!entries.some((entry) => entry.isIntersecting)) return;
         observer.disconnect();
         const arrive = () => {
-          if (!cancelled) show(takeInitialBatchDelayMs(performance.now()) ?? 0);
+          if (!cancelled) show(takeInitialBatchDelayMs() ?? 0);
         };
         // A module reached by scrolling never waits for the hero.
         if (window.scrollY > 0) arrive();

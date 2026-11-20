@@ -8,13 +8,16 @@ import {
 import { useTranslation } from 'react-i18next';
 import { personInitials } from './PersonIdentity';
 import './PartnerAvatarPair.css';
+import { isMediaShown, markMediaShown } from '../motion/mediaReveal';
+import { prefersReducedMotion } from '../motion/reducedMotion';
 
-/**
- * Object URLs of avatar photos that already finished loading on this page.
- * The URLs are revoked when their owner releases them; a stale entry only
- * means one avatar skips its fade, it never shows a wrong photo.
+/*
+ * Avatar photos are Enter `media` (Motion Contract 4.1, M5): the layer's
+ * media registry remembers, in memory only, which URLs were already shown.
+ * A shown or cached photo appears at once; only the first decode of a URL in
+ * this session fades in over the initials. A stale entry for a revoked object
+ * URL only means one avatar skips its fade, it never shows a wrong photo.
  */
-const shownAvatarUrls = new Set<string>();
 
 export interface PartnerAvatarPerson {
   displayName: string;
@@ -75,9 +78,11 @@ export function SingleAvatar({
   // (its slot becomes a button once its action is known) shows it at once
   // instead of dropping back to the initials and fading the photo in again.
   const [loadedUrl, setLoadedUrl] = useState<string | null>(() =>
-    person.imageUrl && shownAvatarUrls.has(person.imageUrl)
-      ? person.imageUrl
-      : null,
+    person.imageUrl && isMediaShown(person.imageUrl) ? person.imageUrl : null,
+  );
+  // Shown at once (already shown, or decoded from the cache): no fade.
+  const [instantUrl, setInstantUrl] = useState<string | null>(() =>
+    person.imageUrl && isMediaShown(person.imageUrl) ? person.imageUrl : null,
   );
   const initials = useMemo(
     () => personInitials(person.displayName),
@@ -90,7 +95,8 @@ export function SingleAvatar({
   const detectCachedImage = useCallback(
     (image: HTMLImageElement | null) => {
       if (image?.complete && image.naturalWidth > 0 && imageUrl) {
-        shownAvatarUrls.add(imageUrl);
+        markMediaShown(imageUrl);
+        setInstantUrl(imageUrl);
         setLoadedUrl(imageUrl);
       }
     },
@@ -111,8 +117,14 @@ export function SingleAvatar({
           src={imageUrl}
           alt={person.displayName}
           className={`partner-avatar-img${loaded ? ' is-loaded' : ''}`}
+          data-motion-media={
+            instantUrl === imageUrl || prefersReducedMotion()
+              ? 'instant'
+              : undefined
+          }
           onLoad={() => {
-            shownAvatarUrls.add(imageUrl);
+            if (isMediaShown(imageUrl)) setInstantUrl(imageUrl);
+            markMediaShown(imageUrl);
             setLoadedUrl(imageUrl);
           }}
           onError={() => setFailed(true)}

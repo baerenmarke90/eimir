@@ -429,17 +429,23 @@ jobs:
       - name: Core-only tests actually ran
         # Unit and integration tests run in separate pytest processes, as in
         # the Backend and Backend Integration jobs; mixing them in one process
-        # leaks process-wide state between the two layers. Integration skips are
-        # accepted only with the Core-only reason, so a missing database still
-        # fails the shard.
+        # leaks process-wide state between the two layers. Like the Backend job,
+        # the unit layer runs without a database. Integration skips are accepted
+        # only with the Core-only reason, so a missing database still fails.
         run: |
           status=0
           for layer in unit integration; do
-            if [ "$layer" = unit ]; then marker="not integration"; else marker="integration"; fi
+            if [ "$layer" = unit ]; then
+              marker="not integration"
+              runner=(env -u EIMIR_DATABASE_URL -u EIMIR_TEST_DATABASE_URL uv run --frozen)
+            else
+              marker="integration"
+              runner=(uv run --frozen)
+            fi
             collection=$(mktemp)
             selected_file=$(mktemp)
             report=$(mktemp)
-            uv run --frozen pytest -m "$marker" --collect-only -q > "$collection"
+            "${runner[@]}" pytest -m "$marker" --collect-only -q > "$collection"
             python ../tools/ci/pytest_shard.py \
               --shard "${{ matrix.shard }}" \
               --shard-count "${{ strategy.job-total }}" \
@@ -451,7 +457,7 @@ jobs:
               exit 1
             fi
             echo "Core-only $layer shard ${{ matrix.shard }}/${{ strategy.job-total }} selected $expected tests."
-            uv run --frozen pytest -m "$marker" -q --durations=20 \
+            "${runner[@]}" pytest -m "$marker" -q --durations=20 \
               --junitxml="$report" "${selected[@]}" || status=1
             uv run --frozen python - "$report" "$expected" "$layer" <<'PY' || status=1
           import sys

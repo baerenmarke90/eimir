@@ -356,6 +356,7 @@ class InTreeProPlugin:
             games,
             garden,
             heart_hunt,
+            memory_map,
             once_messages,
             partner_location,
             partner_quick_actions,
@@ -375,6 +376,7 @@ class InTreeProPlugin:
             heart_hunt.router,
             picture_ping_pong.router,
             couple_games.router,
+            memory_map.router,
             partner_quick_actions.router,
         )
 

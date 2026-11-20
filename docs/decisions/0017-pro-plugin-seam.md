@@ -67,7 +67,9 @@ Deliberately **not** part of the plugin, with the reason:
 - Four capabilities are plain gates inside shared Core code and stay there: `memories.map`
   (`api/v1/places.py`), `relationship.passport` (`api/v1/dashboard.py`, `recaps/service.py`),
   `partner.quick_actions.extended` (`api/v1/engagement.py`) and `theme.bespoke_packs` (`api/v1/appearance.py`,
-  `appearance/models.py`).
+  `appearance/models.py`). [#2084](https://github.com/baerenmarke90/eimir/issues/2084) moves them into the plugin
+  one by one; `memories.map` is done (route `api/v1/memory_map.py` and read model `places/memory_map.py` are
+  plugin code, the capability is plugin-owned).
 - `media.video_upload` (`api/v1/video.py`, `attachments/videos.py`, `attachments/video_jobs.py`,
   `jobs/video_worker.py`, gate also in `attachments/service.py` and `photo_sources/service.py`) and
   `daily.insights` (`daily_checkins/insights.py`, `recaps/mood.py`, `api/v1/daily_checkins.py`) are extractable,
@@ -95,7 +97,7 @@ whether it is closed before Phase 3 or accepted.
 | `partner.once_messages` | `once_messages` (sending Premium; reception and deletion stay non-paywallable through manifest rules) | Yes | |
 | `presence.location` | `presence` (own consent, Stop and deletion stay non-paywallable) | Yes | |
 | `planning.date_inspiration` | `date_ideas` and its catalog | Yes; the Core consumer in `wish_selections` goes through a hook | |
-| `memories.map` | Gate in shared Core (`api/v1/places.py`) | No: the check and the feature stay public code | [#2084](https://github.com/baerenmarke90/eimir/issues/2084) |
+| `memories.map` | Plugin route `api/v1/memory_map.py` and read model `places/memory_map.py` (tag `places` kept); Places, coordinates and Memory–Place links stay Core | Yes: moved into the plugin by [#2084](https://github.com/baerenmarke90/eimir/issues/2084) | |
 | `relationship.passport` | Gate in shared Core (`api/v1/dashboard.py`, `recaps/service.py`) | No | [#2084](https://github.com/baerenmarke90/eimir/issues/2084) |
 | `partner.quick_actions.extended` | Gate in shared Core (`api/v1/engagement.py`) | No | [#2084](https://github.com/baerenmarke90/eimir/issues/2084) |
 | `theme.bespoke_packs` | Gate in shared Core (`api/v1/appearance.py`, `appearance/models.py`) | No | [#2084](https://github.com/baerenmarke90/eimir/issues/2084) |
@@ -541,7 +543,7 @@ and the retirement of old artifacts are operational work on top.
   public Core chain (decision 6). They reveal table and column names, not behavior.
 - **Paying Self-Hosted operators receive the code.** A Python package in an image is readable source or bytecode.
   Protection there is the license and its terms, not secrecy.
-- **Gates in shared Core code stay patchable.** `memories.map`, `relationship.passport`,
+- **Gates in shared Core code stay patchable.** `relationship.passport`,
   `partner.quick_actions.extended`, `theme.bespoke_packs`, `media.video_upload` and `daily.insights` are checks in
   public code. Anyone running a modified Core can remove them, as they can today.
 - **Workflow cost.** With one private development repository there is no second PR per change, but there is an

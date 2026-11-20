@@ -333,6 +333,7 @@ PLUGIN_CAPABILITIES = frozenset(
     {
         Capability.GAMES_COUPLE.value,
         Capability.INTEGRATION_EXTERNAL_SYNC.value,
+        Capability.MEMORIES_MAP.value,
         Capability.PARTNER_ONCE_MESSAGES.value,
         Capability.PARTNER_QUICK_ACTIONS_EXTENDED.value,
         Capability.PRESENCE_LOCATION.value,

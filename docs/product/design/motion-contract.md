@@ -1,6 +1,6 @@
 # eimir. Motion Contract
 
-**Version:** 1.6 (2026-11-20)<br>
+**Version:** 1.7 (2026-11-20)<br>
 **Status:** Normative lower-level design-system contract under Product Reference v1 once merged. Library decision **approved by the Product Owner on 2026-11-19**: an in-house motion layer on WAAPI and CSS for all primitives, Gesture follow included; Motion is not adopted ([6.6](#66-product-owner-decisions)). Haptics are approved ([4.10](#410-haptics)).<br>
 **Scope:** Canonical Web/Mobile Web UI, including the Capacitor-delivered Android app<br>
 **Issue:** [#2067](https://github.com/baerenmarke90/eimir/issues/2067)<br>
@@ -106,7 +106,7 @@ Do not use `scale` or `transform: scale(…)` on an element whose visible featur
 
 Ambient motion:
 
-- runs for at most `--motion-ambient-repeat` cycles (token `motion.repeat.ambient`, currently 4), or for a finite duration that is stated next to the motion, and then rests in its neutral pose. A decorative scene may instead play for at most `--duration-ambient-rest` of visible time in total and then hold in place (`motion.duration.ambientRest`, 12 s, `useAmbientRest`; added by #2070);
+- runs for at most `--motion-ambient-repeat` cycles (token `motion.repeat.ambient`, currently 4), or for a finite duration that is stated next to the motion, and then rests in its neutral pose. A decorative scene may instead play for at most `--duration-ambient-rest` of visible time in total and then hold in place (`motion.duration.ambientRest`, 12 s, `useAmbientRest` in the motion layer's `ambientRest.ts`; added by #2070, moved into the layer by #2079);
 - pauses while the page is hidden (`visibilitychange`), while its kept view is hidden and while it is off screen (`IntersectionObserver`), and continues where it paused;
 - is absent with reduced motion;
 - never moves a tap target, a portrait, text being read, or the source or target of a Flight.
@@ -247,6 +247,10 @@ Something already on screen changes or leaves: a value changes, an item is reord
      - Opening is option 1: an Enter `fade` at its full height. The `grid-template-rows` keyframes are gone.
      - Closing stays option 3: the one row transition on its slot, within `--duration-context`, clipped. The list below must follow when live data replaces the saved read instead of jumping, and scroll anchoring keeps the reading position.
    - **`PhotoEditTask.css` stays option 3, as a recorded exception to "one container".** The photo editor's area, stage and crop frame follow the photo's shape together when it turns or the aspect changes, within `--duration-transition`. They are the edited photo itself: no list, nothing being read below it, and the frame must never leave the photo mid-change.
+   Checked in #2079:
+   - **The monthly recap lead above the Discover experiences (`CoupleExperiences.css`, `RecapDiscoverLead.tsx`) is split like the cache notice.** Its `grid-template-rows` and `margin` keyframes are gone.
+     - Opening is option 1: an Enter `fade` at its full height, over two `--duration-context`s as before. The experiences below take their place at once.
+     - Closing stays option 3: the one row transition on the lead (`grid-template-rows`, its bottom margin and opacity), within `--duration-context` and clipped by its frame, so the experiences below follow the card as it closes. The card first renders open and collapses one frame later (`is-collapsing`), and it ends on its own `transitionend`.
 - Reduced motion: final size at once.
 
 **`value` (numbers and short text).** Count changes, the days-together tick, timer digits:
@@ -294,6 +298,8 @@ A direct response to a person's action or a confirmed result: press, toggle, sel
 - *Failed send:* the Flight `return` variant brings the item back, and an inline message explains it.
 - *Conflict:* the authoritative value replaces the local one with Replace `crossfade` and a message. There is no attention motion.
 - Errors never use celebratory or affectionate motion, and never red flashing.
+
+**As built (#2079): the first-content glow.** The first item of an area that was empty settles with an Enter `arrive` and then one soft glow that widens and fades (#1907 I1, `FirstContentSettle.css`). The glow animates `box-shadow` on that one item for `--duration-gesture-moment`, once per arrival and never on return. It is a recorded exception to the small-element and `--duration-transition` limits of the Feedback colour and shadow exception in M6. Its keyframes are the catalogue's `eimir-motion-feedback-glow`. It is absent with reduced motion.
 
 ### 4.4 Flight (shared element)
 
@@ -431,6 +437,27 @@ These are not primitives. They are areas whose motion is defined by their own cl
 - **Loading:** shimmer, spinner, progress pulse. Loops until the status is known; no interaction delay; reduced motion stops the movement and keeps text, shape and `aria-busy`/status.
 - **Playback:** the recap film (`RecapFilmScene.css`), story playback (`DiscoverStory.css`, `useStoryPlayback.ts`), garden playback. A playback engine composes Enter and Replace scenes on its own scene clock and may use the Playback property exception in M6. It pauses with the page and with an explicit pause control.
 - **Scenes:** interactive game playfields (garden, Heart Hunt, Picture Ping-Pong, remote games). The scene may loop ambient life while it is visible and in use; it pauses when hidden or off screen and is absent with reduced motion. Taps inside the scene are Feedback.
+  **As built (#2079).**
+  - **Playback.** The engines keep their own scene clock, `useStoryPlayback`, shared by the recap reader and story playback:
+    - reduced motion comes from the layer's one source (`useReducedMotion`);
+    - playback pauses when the page is hidden, on `pagehide` and on window blur, and with the explicit pause control (`data-playing`);
+    - with reduced motion it never starts on its own;
+    - story playback on Momente also pauses while it is less than half on screen and while a slide is held.
+
+    The keyframes moved unchanged into two catalogues:
+    - `motion/playback.css`: the recap film, the recap reader and the garden playback, loaded with them;
+    - `motion/story-playback.css`: the Momente story.
+
+    The Playback property exception in M6 is used only by the film's scene cuts: `clip-path` for iris, wipe, shift, split and match, and `filter: blur()` for blur, focus and the caption word reveal. Each runs on one layer at a time, the scene spread or the caption.
+  - **Scenes.** The layer's scene controller (`useScene` in `motion/scene.ts`) decides whether a scene plays: the page, its kept view and the scene itself are seen (the visibility controller), the owner reports it in use, and there is no reduced motion. Its owner spreads `data-motion-scene` on the scene root. While it is `paused`, `motion/scenes.css` holds every CSS animation inside in place, so a scene that returns continues where it paused (M4) and a hidden or offscreen scene renders no animation frames.
+    - **The garden.** `GardenScene.tsx` is the scene root on the garden page, in full screen and in the Wir module. On Wir, the decorative preview also rests after `--duration-ambient-rest` of visible time (`useAmbientRest`, now in the layer, which also rests while the page or its kept view is hidden). The ambient effect timers pause with the page (`usePageVisible`). The #2070 depth bands are unchanged: every garden keyframe animates `transform`, `opacity` or a bounded `stroke-dashoffset`, so each band keeps its own compositor layer.
+    - **The remote games.** The waiting dot ("the other one is playing") runs on the scene controller of its card.
+    - **Heart Hunt, Picture Ping-Pong and Who of us** have no loop; their beats are Feedback on a tap or result. The Heart Hunt flight runs on the layer's runner (`run()`), with its duration from the token adapter and `--easing-travel`. The Picture Ping-Pong flight crosses the court with `translate` instead of `inset-inline-start` (M6).
+
+    The garden keyframes are in `motion/garden.css`. `garden-wobble` was defined twice, and the later `GardenGrowth.css` body, which was in effect, is the one kept. The game keyframes are in `motion/games.css` (Who of us and the remote games, which the games area loads) and `motion/game-scenes.css` (Heart Hunt and Picture Ping-Pong).
+  - **Registered loops.** Outside the layer, `infinite` is allowed only in the Scenes files listed in the guard's `REGISTERED_LOOPS`, with an exact count each: five garden stylesheets and the remote games. The Loading loops run in the layer's utilities.
+  - **Loading.** The shared media skeleton sweeps a highlight layer with `translate` while it loads (`.eimir-motion-loading-skeleton`). The media gallery and video placeholders use the Loading pulse (`.eimir-motion-loading-pulse`), which replaced their literal 1.4 s `ease-in-out` loop with token roles (5.4).
+
 - **Map:** MapLibre GL renders the map in its own WebGL loop. The canvas is `PlaceMapCanvas.tsx`, used by Momente › Karte (`MemoryMapPage.tsx`), the Place picker (`PlaceMapPicker.tsx`), the partner location map (`PartnerLocationMapPage.tsx`) and the story extras. CSS and WAAPI rules do not reach the canvas on their own, so the map has these rules:
 
   **Open and first frame.**
@@ -716,7 +743,7 @@ Some values never follow reduced motion, theme or token set:
 
 | Part | Module | API |
 | --- | --- | --- |
-| Token adapter | `tokens.ts` | `durationMs(role)`, `easing(role)`, `motionCount('ambient-repeat' \| 'stagger-max-items')`, `MOTION_CONSTANTS`, `invalidateMotionTokens()`. Roles are re-read when an attribute of the root element or the reduced-motion preference changes. A missing role reads as `0` ms, never as a literal fallback |
+| Token adapter | `tokens.ts` | `durationMs(role)` (the roles include `ambient-rest` and `loading-cycle` since #2079), `easing(role)`, `motionCount('ambient-repeat' \| 'stagger-max-items')`, `MOTION_CONSTANTS`, `invalidateMotionTokens()`. Roles are re-read when an attribute of the root element or the reduced-motion preference changes. A missing role reads as `0` ms, never as a literal fallback |
 | Reduced-motion source | `reducedMotion.ts` | `prefersReducedMotion()`, `subscribeReducedMotion(listener)`, `useReducedMotion()`. Without `matchMedia`, motion is off |
 | Play registry | `playRegistry.ts` | `claimPlay(identity, scope, owner, surface?)`, `hasPlayed`, `markPlayed`, `createSurfaceScope()` and `useSurfaceScope()`, `resetMotionSession()`. Scopes: `app-start`, `session`, `surface` |
 | Visibility controller | `visibility.ts` | `isVisibleNow(element)` and `observeVisibility(element, listener)`. Covers page visibility, the kept view and `IntersectionObserver`. The kept view is read from the `hidden` attribute on the `[data-primary-tab]` panel of `PrimaryTabPanels`, observed without changing the panel component |
@@ -738,10 +765,14 @@ Some values never follow reduced motion, theme or token set:
 | Gesture follow | `gesture/follow.ts`, `gesture/velocity.ts`, `gesture/spring.ts` | `attachGestureFollow(element, { axis, direction, size, threshold, range, committedOffset, canStart, onCommit, onCancel, onDragStart, onDragEnd })`. Also `resolveOwnership`, `rubberBand`, `commitDistance`, `decideRelease`, `VelocityTracker`, `sampleSpring` and `springDuration`, used directly by owners with their own event plumbing (4.6 as built) |
 | Gesture library wrappers | `gesture/dragAndDrop.ts`, `gesture/panzoom.ts` | `dragSettleTiming()`, `sortableTransition()` and `dragFeedbackMotion()` for `@dnd-kit` (token roles, `null` with reduced motion), `dragCommitted(moved)`; `panzoomMotionOptions()` for `@panzoom/panzoom` |
 | Loading spinner | `motion.css`, `utilities.css` | `eimir-motion-loading-spin` and `.eimir-motion-loading-spin` with `--duration-loading-cycle` and `--easing-playback`; absent with reduced motion |
-| Loading shimmer and roll (#2077) | `motion.css`, `utilities.css` | `.eimir-motion-loading-shimmer`: a highlight layer (`::after`) sweeps with `translate` (`eimir-motion-loading-sweep`, two `--duration-loading-cycle`s per sweep, 1600 ms, the previous story shimmer speed). The owner must be a positioned box. `.eimir-motion-loading-roll` rocks a pending mark. `eimir-motion-loading-pan` is kept for the shared media skeleton in `story-media.css` only (see the Loading note below). All are absent with reduced motion |
+| Loading shimmer and roll (#2077) | `motion.css`, `utilities.css` | `.eimir-motion-loading-shimmer`: a highlight layer (`::after`) sweeps with `translate` (`eimir-motion-loading-sweep`, two `--duration-loading-cycle`s per sweep, 1600 ms, the previous story shimmer speed). The owner must be a positioned box. `.eimir-motion-loading-roll` rocks a pending mark. Since #2079, `.eimir-motion-loading-skeleton` gives the shared media skeleton the same sweep: paint containment makes the skeleton the containing block of its layer, without changing its own positioning. `.eimir-motion-loading-pulse` (`eimir-motion-loading-pulse`, 1.75 `--duration-loading-cycle`s) pulses the media gallery and video placeholders. `eimir-motion-loading-pan` is removed. All are absent with reduced motion |
 | Content-area entrances (#2077) | `motion.css` | Feature rules name these keyframes on a known state with token roles. Each animates from its first keyframe to the element's own style with the individual `translate`, `scale` and `rotate` properties:<br>• `eimir-motion-enter-travel` (opacity and `--motion-enter-from`);<br>• `-grow` (opacity and `--motion-enter-from-scale`; `--motion-enter-from-opacity` keeps a mark visible);<br>• `-arrive` (both);<br>• `-reach` (a connector grows along its length from `--motion-reach-from`, never its width, M7);<br>• `-swing` (a hung keepsake settles on `--motion-swing-rest`);<br>• `-stamp`;<br>• `-dash` (a path's dash from `--motion-dash-from` and `--motion-dash-from-array` to `--motion-dash-to-array`);<br>• Exit `eimir-motion-exit-leave`;<br>• Ambient `eimir-motion-ambient-sway`;<br>• Feedback `eimir-motion-feedback-fill-hold` (a segment keeps a clear fill while the shared indicator slides under it) |
 | Moment catalogue (#2077) | `moments.css` | The receipt choreography (`eimir-motion-moment-gesture-*`) and the notification glyph beats (`eimir-motion-notice-*`). Imported by `PartnerGestureReceipt.tsx` and `NotificationMotion.tsx`, so it loads only with them (4.7 as built) |
 | Map domain catalogue (#2078) | `map.css` | The partner connection's glow travel (`eimir-motion-map-connection-travel`, the Map domain's `offset-distance` exception in M6) and the nearby heartbeat (`eimir-motion-map-connection-beat`). Imported by `PlaceMapCanvas.tsx`, so it loads only with the map. The camera and gestures stay MapLibre's; their durations and the reduced-motion preference come from `durationMs()` and `prefersReducedMotion()` (4.8 as built) |
+| Scene controller (#2079) | `scene.ts`, `scenes.css` | `useScene(ref, { active, onScreen })` returns `{ playing, visible, props }`; `props` sets `data-motion-scene` (`playing` or `paused`) on the scene root, and `scenes.css` pauses every CSS animation inside a paused scene in place. Also `scenePlays()` and `usePageVisible()` (4.8 as built) |
+| Ambient rest (#2079) | `ambientRest.ts` | `useAmbientRest(ref, enabled)`, moved from `client/useAmbientRest.ts`: the decorative scene's visible-time budget (`durationMs('ambient-rest')`); it rests off screen and while the page or its kept view is hidden |
+| Playback and Scenes catalogues (#2079) | `playback.css`, `story-playback.css`, `garden.css`, `games.css`, `game-scenes.css` | The bounded domains' keyframes, moved unchanged and named `eimir-motion-<former name>`. Each is imported by its owners, so a lazy route loads only its own (4.8 as built) |
+| Content-area additions (#2079) | `motion.css` | Enter `eimir-motion-enter-unfold` (the couple experience note) and Feedback `eimir-motion-feedback-glow` (the first-content glow, 4.3 as built). The other remaining content entrances use the existing Enter `fade`, `travel`, `arrive`, `grow` and `reach` with their option properties |
 
 **Velocity estimator (tuned in #2073).** The gesture test (#2071) measured the finger as its travel from the first pointer sample within the 100 ms before the release up to the release. Its tracker read about 20 % high because it ignored the release:
 - it measured from the newest move back to the first sample at least 100 ms older, which in a short flick is the press origin;
@@ -774,9 +805,9 @@ The ratchet allowlist `web/scripts/motion-layer-allowlist.json` records the per-
 - the CSS files are the 65 with keyframes, plus `story-media.css` with one `infinite` loop;
 - the TypeScript count is after `flightKit.ts` and `useDepartingItems.ts` moved into the layer.
 
-After step 4 (#2075) it lists 55 CSS files and 4 TypeScript files. After step 5 (#2076) it lists 54 CSS files and 2 TypeScript files: `shell.css`, `useNavigationMotion.ts` and `ListEntryActions.tsx` left it. After step 6 (#2077) it lists 27 CSS files and 1 TypeScript file (`HeartHuntGamePage.tsx`, a Scene): 27 content-area stylesheets and `cartFlight.ts` left it, and `story-media.css` lost its literal duration. After step 7 (#2078) it lists 26 CSS files and 1 TypeScript file: `PlaceMapPicker.css` left it.
+After step 4 (#2075) it lists 55 CSS files and 4 TypeScript files. After step 5 (#2076) it lists 54 CSS files and 2 TypeScript files: `shell.css`, `useNavigationMotion.ts` and `ListEntryActions.tsx` left it. After step 6 (#2077) it lists 27 CSS files and 1 TypeScript file (`HeartHuntGamePage.tsx`, a Scene): 27 content-area stylesheets and `cartFlight.ts` left it, and `story-media.css` lost its literal duration. After step 7 (#2078) it lists 26 CSS files and 1 TypeScript file: `PlaceMapPicker.css` left it. After step 8 (#2079) it is empty. The bounded domains and the remaining content-area keyframes moved into the layer. `HeartHuntGamePage.tsx` calls `run()`. The Scenes loops are registered by domain in `REGISTERED_LOOPS`, with exact counts, instead of on the ratchet.
 
-**Loading note (#2077).** The shared media skeleton (`.story-media-skeleton` in `story-media.css`) still pans its gradient with `background-position` (`eimir-motion-loading-pan`). It is the one remaining Loading use of a non-compositor property. The skeleton sits in more than thirty media frames, some of them absolutely positioned, so the sweep layer would need a positioned box in each. It moves to the sweep with the bounded domains (step 8).
+**Loading note (#2077, closed in #2079).** The shared media skeleton (`.story-media-skeleton` in `story-media.css`) panned its gradient with `background-position` (`eimir-motion-loading-pan`), the last Loading use of a non-compositor property. Since #2079 it keeps a calm fill, and while it loads its owner adds `.eimir-motion-loading-skeleton`, which sweeps a highlight layer with `translate`. `contain: paint` gives the layer its containing block and clips it, so none of the more than thirty media frames had to change how they position the skeleton. A deferred skeleton (#2070) keeps only the fill.
 
 The ratchet rules:
 - a count may only fall;
@@ -1042,6 +1073,13 @@ Each step is its own issue and pull request. Draft issue texts for steps 2 to 9 
    - Device acceptance: Momente › Karte, opening, returning to the kept tab, selecting a Place, "show us", pinch, light/dark, and fold/unfold on the Pixel 10 Pro Fold.
    - Done in #2078, except the device acceptance on the Pixel 10 Pro Fold, which is open. See "As built" in [4.8](#48-bounded-domains-loading-playback-scenes-map). `PlaceMapPicker.css` left the allowlist. There are no `MemoryMapPage.css` keyframes: the photo stack is a `--duration-map-stack` transition.
 8. **Bounded domains.** Recap film, story playback, garden and games adopt the token adapter, reduced-motion source and visibility controller. Their keyframes move into the CSS catalogue's domain sections.
+   - Done in #2079, except the device acceptance on the Pixel, which is open. See "As built (#2079)" in [4.8](#48-bounded-domains-loading-playback-scenes-map). The allowlist is empty (5.4): the Playback and Scenes keyframes and the last content-area keyframes moved into the layer, and the Scenes loops are registered by domain.
+   - Visible changes, each for a rule:
+     - The garden, its Wir preview and the remote games' waiting dot pause while the page, the kept view or the scene itself is hidden, and continue where they paused (M4, M8).
+     - The media skeleton's shimmer sweeps a highlight layer instead of panning its gradient (M6).
+     - The media gallery placeholder pulses on token roles (1.4 s, as before).
+     - The recap lead opens with a fade at full height. It still closes with a row transition (4.2).
+     - The Picture Ping-Pong flight travels with `translate` (M6).
 9. **Close the guard.** The allowlist is empty. The guard rejects:
    - `@keyframes` and `.animate()` outside the motion layer;
    - `infinite` outside the registered domains;
@@ -1068,6 +1106,7 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 1.7 | 2026-11-20 | Playback and Scenes (#2079):<br>• the Playback and Scenes domains as built (4.8): story playback and the recap film on the one reduced-motion source, the scene controller `useScene` with `data-motion-scene`, `useAmbientRest` in the layer, and the domain catalogues (5.4);<br>• the registered Scenes loops in the guard instead of the ratchet;<br>• the media skeleton on the Loading sweep and the gallery placeholder on the Loading pulse (5.4);<br>• the recap lead `disclose` check (4.2) and the first-content glow exception (4.3);<br>• the allowlist empty after step 8 (5.4, 8). |
 | 1.6 | 2026-11-20 | Map (#2078):<br>• the Map domain as built (4.8): camera and zoom-button durations through the token adapter, reduced motion from the one source, no pan inertia with reduced motion, zoom buttons with `--duration-transition`, "show us" as the one running camera transition, and the locale change keeping the viewer's camera;<br>• the connection pauses and resumes on the visibility controller instead of restarting;<br>• the Map domain catalogue `map.css` (5.4);<br>• the allowlist after step 7 (5.4, 8). |
 | 1.5 | 2026-11-20 | Content areas (#2077):<br>• Product Owner decision recorded: with reduced motion the primary-tab pager pages stay still while the swipe still commits at once, a deliberate exception to the Gesture follow tracking rule (4.6; #2076, #2095);<br>• the content-area entrances, the Exit `leave`, the Ambient `sway`, the Feedback `fill-hold`, the Loading shimmer, roll and pan, and the Moment catalogue `moments.css` (5.4);<br>• the received gesture and the connected moment on `startMoment()`, the receipt ripple as a soft halo (4.7 as built);<br>• the `disclose` checks for the waymarks, the overview cache notice and the photo editor (4.2);<br>• the content-area haptics (4.10);<br>• the allowlist after step 6 (5.4, 8). |
 | 1.4 | 2026-11-20 | Gestures and haptics (#2076):<br>• the tab pager, sheet dismissal, pull to refresh and list reorder on the Gesture follow rules, with the velocity handoff and interruption (4.6 as built);<br>• `@dnd-kit` and `@panzoom/panzoom` wrapped (5.4);<br>• `@capacitor/haptics` 8.0.2 registered in the native app, the triggers wired and the native-only switch added (4.10);<br>• the Loading spinner and `--duration-loading-cycle` (5.4);<br>• `reorder` takes a `key` and a `skip`;<br>• the allowlist after step 5 (5.4, 8). |

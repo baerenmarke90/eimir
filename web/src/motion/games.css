@@ -7,9 +7,10 @@
  * with reduced motion. Token roles only (M1); every role is `0ms` with
  * reduced motion.
  *
- * Moved unchanged from `GamesProductArea.css` and `RemoteCoupleGames.css`. Imported by `main.tsx` next
- * to that stylesheet, so it stays in the entry stylesheet instead of adding
- * a chunk; the game playfields are in `game-scenes.css`.
+ * Moved unchanged from `GamesProductArea.css` and `RemoteCoupleGames.css`.
+ * Imported by `GamesProductArea.tsx`, which the entry already loads, so it
+ * joins the entry stylesheet instead of adding a chunk. The game playfields
+ * are in `game-scenes.css`.
  */
 
 /* GamesProductArea */

@@ -12,8 +12,10 @@
  * name these keyframes directly (sheets, dialogs, popovers, the root-tab
  * entrance, `.eimir-motion-*`), always with token roles.
  *
- * The feature keyframes still listed in scripts/motion-layer-allowlist.json
- * move here, section by section, in the migration steps 3 to 8.
+ * The feature keyframes moved here, section by section, in the migration
+ * steps 3 to 8. The bounded domains keep their own catalogues next to this
+ * one (map.css, playback.css, story-playback.css, garden.css, games.css and
+ * game-scenes.css), each loaded with its owners.
  */
 
 /* Enter (4.1) */

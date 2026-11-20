@@ -132,7 +132,8 @@ jobs:
               --jq '{draft: .draft, labels: [.labels[].name] | join(",")}')
             tier_args=(--pull-request
               --draft "$(jq -r '.draft' <<< "$pr_state")"
-              --labels "$(jq -r '.labels' <<< "$pr_state")")
+              --labels "$(jq -r '.labels' <<< "$pr_state")"
+              --head-ref "$GITHUB_HEAD_REF")
           fi
           python3 tools/ci/change_scope.py /tmp/changed-files.txt "${tier_args[@]}" > /tmp/scope-outputs.txt
           cat /tmp/scope-outputs.txt >> "$GITHUB_OUTPUT"

@@ -537,6 +537,25 @@ class PullRequestTierTest(unittest.TestCase):
         outputs = tiered_outputs(["tools/ci/test_release_publish_workflow.py"], pull_request=True)
         self.assertEqual(outputs["label_required"], "false")
 
+    def test_release_branch_draft_always_runs_the_full_tier(self) -> None:
+        outputs = tiered_outputs(
+            ["backend/src/eimir/memories/service.py", ".github/workflows/web-browser-qa.yml"],
+            pull_request=True,
+            draft=True,
+            head_ref="release/android-test.14-20261026",
+        )
+        self.assertEqual(outputs["tier"], "full")
+        self.assertEqual(self.heavy(outputs), {"backend_integration"})
+        self.assertEqual(outputs["label_required"], "false")
+
+    def test_label_gated_workflows_admit_release_branches(self) -> None:
+        from change_scope import LABEL_GATED_WORKFLOW_EXACT
+
+        for workflow in LABEL_GATED_WORKFLOW_EXACT:
+            with self.subTest(workflow=workflow):
+                text = (ROOT / workflow).read_text(encoding="utf-8")
+                self.assertIn("startsWith(github.head_ref, 'release/')", text)
+
     def test_docs_only_pull_request_is_cheap_without_heavy_work(self) -> None:
         outputs = tiered_outputs(["docs/ROADMAP.md"], pull_request=True)
         self.assertEqual(outputs["tier"], "cheap")

@@ -16,7 +16,8 @@ On top of the path scopes, pull requests run in one of two tiers (#2096):
   when it is ready for review and either carries the ``ci:full`` label or
   touches a risk path (migrations, authentication/authorization, deployment,
   Compose, Self-Hosted and release tooling, CI/workflow files, or an unknown
-  path). Draft pull requests always stay ``cheap``.
+  path). Draft pull requests stay ``cheap``, except from ``release/`` branches,
+  which publish from their own checks and always run ``full``.
 """
 
 from __future__ import annotations
@@ -366,6 +367,7 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
 
 
 FULL_CI_LABEL = "ci:full"
+RELEASE_BRANCH_PREFIX = "release/"
 
 # Scopes that need containers, PostgreSQL shards or full stack rehearsals. In
 # the cheap pull-request tier they move to the nightly regression (#2096).
@@ -454,6 +456,7 @@ def tiered_outputs(
     pull_request: bool,
     draft: bool = False,
     labels: Iterable[str] = (),
+    head_ref: str = "",
 ) -> dict[str, str]:
     """Combine the path scopes with the pull-request tier into workflow outputs."""
     changed = _normalized(paths)
@@ -461,8 +464,14 @@ def tiered_outputs(
     labelled = FULL_CI_LABEL in {label.strip() for label in labels}
     risky = risk_paths(changed)
 
+    release_branch = head_ref.startswith(RELEASE_BRANCH_PREFIX)
+
     if not pull_request:
         full, reason = True, "not a pull request"
+    elif release_branch:
+        # Release branches (for example the standing Android test release draft)
+        # publish from their own checks, so they always verify completely.
+        full, reason = True, f"release branch {head_ref}"
     elif draft:
         full, reason = False, "draft pull request"
     elif labelled:
@@ -476,7 +485,13 @@ def tiered_outputs(
         for scope in HEAVY_SCOPES:
             scopes[scope] = False
 
-    label_required = pull_request and not draft and not labelled and bool(label_gated_paths(changed))
+    label_required = (
+        pull_request
+        and not release_branch
+        and not draft
+        and not labelled
+        and bool(label_gated_paths(changed))
+    )
 
     outputs = {scope: "true" if enabled else "false" for scope, enabled in scopes.items()}
     # Supply Chain stays a cheap required check; only its container and wheel
@@ -499,6 +514,7 @@ def main() -> int:
     )
     parser.add_argument("--draft", choices=("true", "false"), default="false")
     parser.add_argument("--labels", default="", help="Newline- or comma-separated pull-request labels")
+    parser.add_argument("--head-ref", default="", help="Pull-request head branch")
     args = parser.parse_args()
 
     paths = args.changed_files.read_text(encoding="utf-8").splitlines()
@@ -508,6 +524,7 @@ def main() -> int:
         pull_request=args.pull_request,
         draft=args.draft == "true",
         labels=labels,
+        head_ref=args.head_ref,
     )
     for key, value in outputs.items():
         print(f"{key}={value}")

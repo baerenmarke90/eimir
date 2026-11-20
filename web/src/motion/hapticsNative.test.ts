@@ -46,7 +46,7 @@ afterEach(() => {
 });
 
 describe('native haptics backend (@capacitor/haptics)', () => {
-  it('maps the contract triggers to the plugin calls', () => {
+  it('maps the contract triggers to the plugin calls', async () => {
     const { plugin, calls } = pluginStub();
     const backend = capacitorHapticsBackend(plugin);
     backend.selectionChanged();
@@ -54,11 +54,15 @@ describe('native haptics backend (@capacitor/haptics)', () => {
     backend.impact('medium');
     backend.notification('success');
     backend.notification('warning');
-    // Android vibrates a selection change only inside a selection.
-    expect(calls).toEqual([
+    await vi.waitFor(() => expect(calls).toContain('selectionEnd'));
+    // Android vibrates a selection change only inside a selection, so the
+    // three calls arrive in this order.
+    expect(calls.filter((call) => call.startsWith('selection'))).toEqual([
       'selectionStart',
       'selectionChanged',
       'selectionEnd',
+    ]);
+    expect(calls.filter((call) => !call.startsWith('selection'))).toEqual([
       'impact:{"style":"LIGHT"}',
       'impact:{"style":"MEDIUM"}',
       'notification:{"type":"SUCCESS"}',
@@ -86,7 +90,10 @@ describe('native haptics backend (@capacitor/haptics)', () => {
   it('stays silent when the in-app switch is off', async () => {
     const { plugin, calls } = pluginStub();
     configureHapticsForTests({ native: true, now: () => 0 });
-    await registerNativeHaptics(() => true, () => Promise.resolve(plugin));
+    await registerNativeHaptics(
+      () => true,
+      () => Promise.resolve(plugin),
+    );
     setHapticsEnabled(false);
     expect(haptic('commit')).toBe(false);
     expect(calls).toEqual([]);

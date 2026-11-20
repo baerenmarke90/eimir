@@ -8,7 +8,7 @@
  *
  * On Android the plugin's `selectionChanged()` vibrates only between
  * `selectionStart()` and `selectionEnd()`, so the threshold tick sends the
- * three calls in order over the bridge.
+ * three calls one after another over the bridge.
  */
 import { isCapacitorNativePlatform } from '../client/config';
 import { type HapticsBackend, registerHapticsBackend } from './haptics';
@@ -20,9 +20,12 @@ export function capacitorHapticsBackend(plugin: HapticsPlugin): HapticsBackend {
   const ignore = () => {};
   return {
     selectionChanged() {
-      void Haptics.selectionStart().catch(ignore);
-      void Haptics.selectionChanged().catch(ignore);
-      void Haptics.selectionEnd().catch(ignore);
+      // Each call waits for the previous one: bridge calls are asynchronous
+      // and could otherwise arrive out of order.
+      void Haptics.selectionStart()
+        .then(() => Haptics.selectionChanged())
+        .then(() => Haptics.selectionEnd())
+        .catch(ignore);
     },
     impact(style) {
       void Haptics.impact({

@@ -8,7 +8,10 @@ import m5s3 from '../../src/i18n/locales/m5s3';
 import navigationCopy from '../../src/i18n/locales/navigation';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { nextFrame } from '../support/mediaCarouselGesture';
-import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
+import {
+  installNativeAppLifecycle,
+  nativeHapticCalls,
+} from '../support/nativeAppLifecycle';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -2166,4 +2169,251 @@ test.describe('shell, overlays and navigation on the motion layer (#2075)', () =
       ).toBe(true);
     });
   }
+});
+
+/**
+ * Motion migration step 5 (#2076): gestures and haptics on the motion layer.
+ * The tab pager settle is sampled frame by frame under 4x CPU throttling,
+ * grabbed again mid-settle, and checked with the native haptics stub. Run
+ * with VISUAL_EVIDENCE_DIR to export the measurements
+ * (docs/product/design/evidence/2076).
+ */
+test.describe('gestures and haptics on the motion layer (#2076)', () => {
+  test.use({ hasTouch: true });
+
+  type Sample = { t: number; left: number; dragging: boolean };
+  type Session = Awaited<
+    ReturnType<ReturnType<Page['context']>['newCDPSession']>
+  >;
+
+  const CURRENT_PAGE =
+    'main.product-main > .primary-tab-panel:not([hidden]):not([data-primary-tab-peek]) > .page';
+
+  function exportMeasurement(name: string, value: unknown) {
+    const exportDir = process.env.VISUAL_EVIDENCE_DIR;
+    const text = `${JSON.stringify(value, null, 2)}\n`;
+    fs.writeFileSync(test.info().outputPath(name), text);
+    if (exportDir) {
+      fs.mkdirSync(exportDir, { recursive: true });
+      fs.writeFileSync(path.join(exportDir, name), text);
+    }
+  }
+
+  /** Records the current page's `left` offset once per animation frame. */
+  async function startSampling(page: Page) {
+    await page.evaluate((selector) => {
+      const recorded: Sample[] = [];
+      const surface = document.querySelector('main.product-main');
+      const current = document.querySelector<HTMLElement>(selector);
+      (window as unknown as { settleSamples: Sample[] }).settleSamples =
+        recorded;
+      const start = performance.now();
+      const tick = () => {
+        recorded.push({
+          t: Math.round(performance.now() - start),
+          left: current?.isConnected
+            ? Number.parseFloat(getComputedStyle(current).left) || 0
+            : Number.NaN,
+          dragging: surface?.hasAttribute('data-primary-tab-dragging') ?? false,
+        });
+        if (recorded.length < 90 && recorded.at(-1)?.dragging)
+          requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }, CURRENT_PAGE);
+  }
+
+  const samples = (page: Page) =>
+    page.evaluate(
+      () => (window as unknown as { settleSamples: Sample[] }).settleSamples,
+    );
+
+  const pageOffset = (page: Page) =>
+    page.evaluate(
+      (selector) =>
+        Number.parseFloat(
+          getComputedStyle(document.querySelector(selector) as Element).left,
+        ),
+      CURRENT_PAGE,
+    );
+
+  async function openToday(page: Page, { native = true } = {}) {
+    await page.setViewportSize({ width: 390, height: 800 });
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    if (native) await installNativeAppLifecycle(page);
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await expect(page).toHaveURL(/\/today$/);
+    await expectPrimaryReadingSurface(page);
+  }
+
+  async function touch(
+    session: Session,
+    type: 'touchStart' | 'touchMove' | 'touchEnd',
+    x?: number,
+    y?: number,
+  ) {
+    await session.send('Input.dispatchTouchEvent', {
+      type,
+      touchPoints: x === undefined ? [] : [{ x, y: y ?? 0, id: 1 }],
+    });
+  }
+
+  /** A swipe toward the next tab, released at 40 % of the width. */
+  async function swipeAndRelease(page: Page, steps = 6) {
+    const { width, startX, y } = await primarySwipeStart(page, 'next');
+    const session = await page.context().newCDPSession(page);
+    const releaseX = width * 0.4;
+    await touch(session, 'touchStart', startX, y);
+    await nextFrame(page);
+    for (let step = 1; step <= steps; step++) {
+      await touch(
+        session,
+        'touchMove',
+        startX + ((releaseX - startX) * step) / steps,
+        y,
+      );
+      await nextFrame(page);
+    }
+    const released = await page.evaluate(
+      () =>
+        Number.parseFloat(
+          getComputedStyle(
+            document.querySelector('main.product-main') as Element,
+          ).getPropertyValue('--primary-tab-offset'),
+        ) || 0,
+    );
+    await startSampling(page);
+    await touch(session, 'touchEnd');
+    return { session, released, width, y };
+  }
+
+  test('the pager settle continues from the release, frame by frame, under 4x CPU throttling', async ({
+    page,
+  }) => {
+    await openToday(page);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    try {
+      const { session, released, width } = await swipeAndRelease(page);
+      await expect(page).toHaveURL(/\/story$/);
+      const frames = (await samples(page)).filter(
+        (sample) => sample.dragging && Number.isFinite(sample.left),
+      );
+      await session.detach();
+      exportMeasurement('2076-pager-settle-cpu4.json', {
+        viewport: 390,
+        cpuThrottling: 4,
+        releasedOffset: released,
+        target: -width,
+        frames,
+      });
+      // The settle starts where the finger let go (no jump), travels toward
+      // the next tab without reversing, and ends on it.
+      expect(frames.length).toBeGreaterThan(3);
+      expect(Math.abs(frames[0].left - released)).toBeLessThan(width * 0.25);
+      for (let index = 1; index < frames.length; index++)
+        expect(frames[index].left).toBeLessThanOrEqual(
+          frames[index - 1].left + 0.5,
+        );
+      expect(frames.at(-1)?.left ?? 0).toBeLessThan(released);
+      // Haptics: one threshold tick on the way (its three calls in order),
+      // one commit at release.
+      await expect
+        .poll(() => nativeHapticCalls(page))
+        .toEqual(expect.arrayContaining(['selectionEnd', 'impact:LIGHT']));
+      const calls = await nativeHapticCalls(page);
+      expect(calls.filter((call) => call.startsWith('selection'))).toEqual([
+        'selectionStart',
+        'selectionChanged',
+        'selectionEnd',
+      ]);
+      expect(calls.filter((call) => !call.startsWith('selection'))).toEqual([
+        'impact:LIGHT',
+      ]);
+    } finally {
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+      await cdp.detach();
+    }
+  });
+
+  test('grabbing the settling pages stops them where they are, without a jump', async ({
+    page,
+  }) => {
+    await openToday(page);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    try {
+      const { session, width, y } = await swipeAndRelease(page);
+      await nextFrame(page);
+      await nextFrame(page);
+      const before = await pageOffset(page);
+      await touch(session, 'touchStart', width * 0.5, y);
+      const after = await pageOffset(page);
+      exportMeasurement('2076-pager-grab-cpu4.json', {
+        viewport: 390,
+        cpuThrottling: 4,
+        offsetBeforeGrab: before,
+        offsetAfterGrab: after,
+      });
+      // One frame may pass between the two reads; the pages do not snap to
+      // either end.
+      expect(Math.abs(after - before)).toBeLessThan(width * 0.1);
+      expect(after).toBeGreaterThan(-width + 2);
+      expect(after).toBeLessThan(-2);
+      await expect(page).toHaveURL(/\/today$/);
+      // Dragging back toward Wir and releasing returns to rest on Wir.
+      for (let step = 1; step <= 6; step++) {
+        await touch(session, 'touchMove', width * 0.5 + step * 30, y);
+        await nextFrame(page);
+      }
+      await touch(session, 'touchEnd');
+      await session.detach();
+      await expect(
+        page.locator('main.product-main[data-primary-tab-dragging]'),
+      ).toHaveCount(0);
+      await expect(page).toHaveURL(/\/today$/);
+    } finally {
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+      await cdp.detach();
+    }
+  });
+
+  test('the in-app switch silences haptics in the native app', async ({
+    page,
+  }) => {
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.motion.haptics', 'off'),
+    );
+    await openToday(page);
+    const { session } = await swipeAndRelease(page);
+    await session.detach();
+    await expect(page).toHaveURL(/\/story$/);
+    expect(await nativeHapticCalls(page)).toEqual([]);
+  });
+
+  test('with reduced motion the swipe still commits, at once', async ({
+    page,
+  }) => {
+    await openToday(page, { native: false });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const { session } = await swipeAndRelease(page);
+    await session.detach();
+    await expect(page).toHaveURL(/\/story$/);
+    await expect(
+      page.locator('main.product-main[data-primary-tab-dragging]'),
+    ).toHaveCount(0);
+    expect(
+      await page.evaluate(() =>
+        document
+          .getAnimations()
+          .some((animation) =>
+            (animation.effect as KeyframeEffect | null)
+              ?.getKeyframes()
+              .some((frame) => 'left' in frame),
+          ),
+      ),
+    ).toBe(false);
+  });
 });

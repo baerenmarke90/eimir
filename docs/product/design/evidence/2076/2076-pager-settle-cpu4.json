@@ -1,0 +1,158 @@
+{
+  "viewport": 390,
+  "cpuThrottling": 4,
+  "releasedOffset": -136.5,
+  "target": -390,
+  "frames": [
+    {
+      "t": 16,
+      "left": -136.5,
+      "dragging": true
+    },
+    {
+      "t": 74,
+      "left": -136.5,
+      "dragging": true
+    },
+    {
+      "t": 78,
+      "left": -136.5,
+      "dragging": true
+    },
+    {
+      "t": 134,
+      "left": -150.559,
+      "dragging": true
+    },
+    {
+      "t": 169,
+      "left": -237.39,
+      "dragging": true
+    },
+    {
+      "t": 182,
+      "left": -288.163,
+      "dragging": true
+    },
+    {
+      "t": 189,
+      "left": -308.159,
+      "dragging": true
+    },
+    {
+      "t": 213,
+      "left": -324.695,
+      "dragging": true
+    },
+    {
+      "t": 227,
+      "left": -338.101,
+      "dragging": true
+    },
+    {
+      "t": 237,
+      "left": -348.992,
+      "dragging": true
+    },
+    {
+      "t": 252,
+      "left": -357.707,
+      "dragging": true
+    },
+    {
+      "t": 298,
+      "left": -364.598,
+      "dragging": true
+    },
+    {
+      "t": 306,
+      "left": -374.425,
+      "dragging": true
+    },
+    {
+      "t": 318,
+      "left": -377.812,
+      "dragging": true
+    },
+    {
+      "t": 335,
+      "left": -380.488,
+      "dragging": true
+    },
+    {
+      "t": 352,
+      "left": -382.571,
+      "dragging": true
+    },
+    {
+      "t": 368,
+      "left": -384.22,
+      "dragging": true
+    },
+    {
+      "t": 383,
+      "left": -385.492,
+      "dragging": true
+    },
+    {
+      "t": 402,
+      "left": -386.491,
+      "dragging": true
+    },
+    {
+      "t": 447,
+      "left": -387.266,
+      "dragging": true
+    },
+    {
+      "t": 458,
+      "left": -388.346,
+      "dragging": true
+    },
+    {
+      "t": 467,
+      "left": -388.714,
+      "dragging": true
+    },
+    {
+      "t": 484,
+      "left": -388.999,
+      "dragging": true
+    },
+    {
+      "t": 501,
+      "left": -389.22,
+      "dragging": true
+    },
+    {
+      "t": 517,
+      "left": -389.396,
+      "dragging": true
+    },
+    {
+      "t": 534,
+      "left": -389.999,
+      "dragging": true
+    },
+    {
+      "t": 562,
+      "left": -390,
+      "dragging": true
+    },
+    {
+      "t": 578,
+      "left": -390,
+      "dragging": true
+    },
+    {
+      "t": 597,
+      "left": -390,
+      "dragging": true
+    },
+    {
+      "t": 619,
+      "left": -390,
+      "dragging": true
+    }
+  ]
+}

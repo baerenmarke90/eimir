@@ -37,8 +37,13 @@ from eimir.engagement.models import (
     NotificationKind,
     NotificationPreference,
     PushEndpoint,
+    SupportGestureKind,
+    SupportGestureRequest,
+    ThinkingOfYouRequest,
 )
 from eimir.engagement.push import register_endpoint
+from eimir.engagement.thinking import send as send_thinking_of_you
+from eimir.engagement.thinking import send_support_gesture
 from eimir.garden.models import GardenPlant, GardenReader, GardenWatering
 from eimir.identity.deletion import (
     DELETED_ACCOUNT_DISPLAY_NAME,
@@ -586,3 +591,41 @@ def test_failed_cleanup_stays_fail_closed_and_can_retry(session: Session) -> Non
     assert retried.failed_at is None
     assert retried.last_failure_code is None
     assert account.disabled_at == accepted_at
+
+
+@pytest.mark.parametrize("deleted_party", ["sender", "recipient"])
+def test_core_cleanup_removes_partner_gesture_receipts_of_the_deleted_account(
+    session: Session, deleted_party: str
+) -> None:
+    # Gesture receipts record who sent which gesture to whom and when. They are
+    # relationship metadata, not shared history, so they must not outlive the
+    # Account on either side. Pseudonymising the Account never fires the
+    # ON DELETE CASCADE, so core cleanup has to delete them explicitly.
+    anna = make_account(session, "Anna")
+    space = make_space(session, anna)
+    ben = make_account(session, "Ben")
+    add_member(session, space.id, ben)
+    session.flush()
+
+    context = AuthorizationContext(account_id=anna.id, space_id=space.id)
+    send_thinking_of_you(session, context, client_request_id=uuid4())
+    send_support_gesture(
+        session,
+        context,
+        kind=SupportGestureKind.KISS,
+        client_request_id=uuid4(),
+    )
+    session.flush()
+
+    in_space = (
+        _count(session, ThinkingOfYouRequest, ThinkingOfYouRequest.space_id == space.id),
+        _count(session, SupportGestureRequest, SupportGestureRequest.space_id == space.id),
+    )
+    assert in_space == (1, 1)
+
+    deleted = anna if deleted_party == "sender" else ben
+    apply_accepted_tombstone(session, deleted.id, accepted_at=now())
+    apply_core_cleanup(session, deleted.id)
+
+    assert _count(session, ThinkingOfYouRequest, ThinkingOfYouRequest.space_id == space.id) == 0
+    assert _count(session, SupportGestureRequest, SupportGestureRequest.space_id == space.id) == 0

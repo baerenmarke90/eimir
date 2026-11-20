@@ -130,6 +130,14 @@ source IDs to new target IDs, and executes inside the worker transaction. A
 failed apply must not leave a readable partial Domain graph. Media objects
 written before a database failure are deleted on the apply error path.
 
+Bundles are not signed, so media metadata and bytes are untrusted. Validation
+checks every photo with the upload decoder (declared type, pixels, dimensions,
+size and a JPEG thumbnail of at most 512 px) and checks PDFs for PDF structure.
+Photos keep their exact bytes, capture time and orientation, because a second
+lossy encode would degrade every restore. Audio and video enter `VALIDATING`
+and run the upload worker job. Photo and PDF checks need no media processor and
+no Pro capability; restore stays non-paywallable.
+
 ## Self-Hosted capacity and monitoring
 
 Self-Hosted operators should size three resources for portability workloads:

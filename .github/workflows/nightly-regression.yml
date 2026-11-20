@@ -1,72 +1,34 @@
-name: Nightly Regression
+name: Dispatch nightly runner validation
 
-# Pull requests run a cheap tier by default (#2096). This dispatcher runs the
-# complete regression on main once per night, but only for workflows whose
-# current main revision has not been tested by a dispatched run yet. A failed
-# run for the same revision is not repeated automatically; the Nightly
-# Regression Report workflow opens an issue instead, and a manual dispatch of
-# this workflow or of a single workflow re-runs it on demand.
 on:
-  schedule:
-    # 01:17 UTC = 02:17 Europe/Berlin in winter, 03:17 in summer.
-    - cron: "17 1 * * *"
   workflow_dispatch:
     inputs:
-      force:
-        description: Dispatch every workflow even if this main revision was already tested.
-        required: false
-        default: false
-        type: boolean
+      expected_sha:
+        description: Approved head of the nightly validation branch
+        required: true
+        type: string
 
 permissions:
+  actions: write
   contents: read
-
-concurrency:
-  group: nightly-regression
-  cancel-in-progress: false
 
 jobs:
   dispatch:
-    name: Dispatch full regression on main
+    name: Start the eight validation workflows
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      actions: write
-      contents: read
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+      TARGET: ci/eimir-nightly-self-hosted
     steps:
-      - name: Dispatch workflows whose main revision is untested
-        env:
-          GH_TOKEN: ${{ github.token }}
-          FORCE: ${{ inputs.force || 'false' }}
+      - name: Verify the target and dispatch the branch regression
         run: |
           set -euo pipefail
-
-          # Keep this list in sync with the Nightly Regression Report triggers and
-          # tools/ci/test_nightly_regression.py.
-          workflows=(
-            ci.yml
-            web-browser-qa.yml
-            android-launcher-icons.yml
-            backend-encrypted.yml
-            media-video.yml
-            codeql.yml
-            self-hosted-deployment-guard.yml
-            self-hosted-recovery.yml
-          )
-
-          main_sha=$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)
-          echo "main is at ${main_sha}" | tee -a "$GITHUB_STEP_SUMMARY"
-
-          for workflow in "${workflows[@]}"; do
-            # Any dispatched run of this revision that was not cancelled counts:
-            # green needs no repeat, red is reported once instead of nightly.
-            tested=$(gh api \
-              "repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/runs?event=workflow_dispatch&branch=main&head_sha=${main_sha}&per_page=20" \
-              --jq '[.workflow_runs[] | select(.conclusion != "cancelled")] | length')
-            if [ "$FORCE" != "true" ] && [ "$tested" -gt 0 ]; then
-              echo "- ${workflow}: already tested at this revision, skipped" >> "$GITHUB_STEP_SUMMARY"
-              continue
-            fi
-            gh workflow run "$workflow" --repo "$GITHUB_REPOSITORY" --ref main
-            echo "- ${workflow}: dispatched" >> "$GITHUB_STEP_SUMMARY"
+          [[ "$EXPECTED_SHA" =~ ^[a-f0-9]{40}$ ]]
+          head=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$TARGET" --jq .object.sha)
+          test "$head" = "$EXPECTED_SHA"
+          for workflow in ci.yml web-browser-qa.yml android-launcher-icons.yml backend-encrypted.yml media-video.yml codeql.yml self-hosted-deployment-guard.yml self-hosted-recovery.yml; do
+            gh workflow run "$workflow" --repo "$GITHUB_REPOSITORY" --ref "$TARGET"
+            printf '%s dispatched on %s\n' "$workflow" "$head" >> "$GITHUB_STEP_SUMMARY"
           done

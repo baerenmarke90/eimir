@@ -1,14 +1,21 @@
 # Decision 0017: A Pro plugin seam inside the Core backend
 
 **Status:** Proposed; becomes accepted when the Product Owner merges the pull request  
-**Date:** November 18, 2026; updated November 19, 2026 for the Product Owner's repository-visibility direction  
-**Owning issue:** none yet. No issue owns this work; open one ("Pro plugin seam, Phase 1") before any
-implementation starts and link it here.  
+**Date:** November 18, 2026; updated November 19, 2026 for the Product Owner's repository-visibility direction;
+updated November 20, 2026 for the current `main` baseline and the owning issue  
+**Owning issue:** [#2082](https://github.com/baerenmarke90/eimir/issues/2082) (Phase 1). Phases 2 and 3 get their own
+issues when they start.  
 **Builds on:** [ADR 0006](../m6/ADR-0006-ENTITLEMENT-ARCHITECTURE.md) (capability entitlements),
 [`BUSINESS-MODEL.md`](../BUSINESS-MODEL.md), [`FREEMIUM-FEATURE-MATRIX.md`](../FREEMIUM-FEATURE-MATRIX.md) (Version 1.37),
 [`PREMIUM-BILLING-STRATEGY.md`](../PREMIUM-BILLING-STRATEGY.md) and [`SELF-HOSTING.md`](../SELF-HOSTING.md)  
 **Baseline:** `origin/main` at `d923c685b`; every file reference and figure below was re-read at that revision
-(the first draft used `10b42f9f5`; `couple_games` was added in between).
+(the first draft used `10b42f9f5`; `couple_games` was added in between).  
+**Update of November 20, 2026:** the figures were re-checked against `origin/main` at `9197ec3f0`. Since
+`d923c685b`, backend changes touched the Pro surface in three places: `identity/deletion.py` (C13) now deletes the
+personal rows of eight more Pro tables itself (and calls `presence.service.delete_owner_presence`), migrations
+`0163` to `0165` were added, and `presence` and `once_messages` gained code. The affected rows and counts below carry this update. The
+Core-importing file list is otherwise unchanged (16 files, same sites C1 to C19); only `identity/deletion.py` grew,
+from two to seven Pro import lines.
 
 ## Context
 
@@ -91,7 +98,7 @@ These are the call sites the seam replaces. They are the real work.
 | C10 | `relationship/service.py` `add_member()` | `couple_games.purge_space`, `picture_ping_pong.purge_space`, `garden.purge_space` |
 | C11 | `relationship/service.py` `end_membership()` | `couple_games.purge_space`, `once_messages.purge_space`, `heart_hunt.purge_space`, `picture_ping_pong.purge_space`, `garden.purge_space` |
 | C12 | `relationship/offboarding.py` `leave_space()` | `calendar_sync.on_membership_ended` |
-| C13 | `identity/deletion.py` `apply_core_cleanup()` | Deletes `PhotoSelection`, `PhotoConnection`, `GoogleAccountHint`, `CalendarConnection`, `CalendarOAuthTransaction` rows |
+| C13 | `identity/deletion.py` `apply_core_cleanup()` | Deletes `PhotoSelection`, `PhotoConnection`, `GoogleAccountHint`, `CalendarConnection`, `CalendarOAuthTransaction` rows. Since `9197ec3f0` it also deletes, through `PERSONAL_ACCOUNT_ROWS`, the rows of `GardenReader`, `GardenWatering`, `OnceDevice`, `OnceReception`, `PresenceDeviceCredential`, `PresenceSnapshot`, `PartnerLocationConsent` and `DailyQuotePreference`, and calls `presence.service.delete_owner_presence` to reset the consent a departing recipient had received |
 | C14 | `transfer/service.py` `build_export_archive()` | `PhotoConnection`, `GoogleAccountHint` into `personalPhotoSources` and `personalGoogleAccountHint` |
 | C15 | `attachments/binding.py` `parent_of()` | `HeartHuntRound` to resolve parent type `HEART_HUNT_ROUND` |
 | C16 | `attachments/retention.py` `classify_owner_attachment()` | `HeartHuntRound.hider_id` for account cleanup |
@@ -105,7 +112,8 @@ Two further facts shape the design:
   the attachment parent type `HEART_HUNT_ROUND` (also listed in `api/v1/attachments.py`) are database check
   constraints and client contract. Of the 162 Alembic migrations, 17 create or alter Pro tables and 6 more are
   Core migrations that rewrite the shared notification-kind and target constraints and restate Pro values in them
-  (`0126`, `0139`, `0140`, `0143`, `0151`, `0159`): 23 in total. `backend/openapi.json` holds 426 operations, 81 of
+  (`0126`, `0139`, `0140`, `0143`, `0151`, `0159`): 23 in total at `d923c685b` (25 of 165 at `9197ec3f0`, see the
+  update in the header). `backend/openapi.json` holds 426 operations, 81 of
   them tagged with the Pro router tags; the generated Web client contains them as well.
 - **Space deletion is already plugin-independent.** Every Pro table references `spaces.id` or `accounts.id` with
   `ON DELETE CASCADE`. Account deletion is not: Account rows are pseudonymized, so their cascade never fires and
@@ -132,7 +140,10 @@ against the code:
 - Missing from the initial list: C4 (encryption lifecycle), C7 (security retention), C18 (a Free/Core feature
   consumes the Pro catalog) and the `eimir.games` split.
 - The migration count was 22, not 21, at `10b42f9f5` (16 touch Pro tables, 6 shared Core migrations restate Pro
-  values in shared constraints); it is 23 at `d923c685b`.
+  values in shared constraints); it is 23 at `d923c685b`. At `9197ec3f0` there are 165 migrations and 25 of them
+  touch Pro tables or Pro values (`0164` adds a Pro column and index, `0165` resets once-message data), plus `0163`,
+  a Core data migration that deletes personal rows of completed accounts, including rows of Pro tables. All stay
+  in the Core chain (decision 6).
 
 ## Reuse review (`docs/REUSE-BEFORE-BUILD.md`)
 
@@ -229,7 +240,9 @@ manifest of every plugin-owned table (`eimir.plugins.manifest`), one row per tab
 
 - the table name, the owning capability and the scope columns (`space_id`, account columns);
 - `purge_on`: `PARTNER_JOINED`, `MEMBERSHIP_ENDED` and `ACCOUNT_DELETED`, executed by Core in the places of C10 to
-  C13 (Space deletion keeps relying on the `ON DELETE CASCADE` foreign keys);
+  C13 (Space deletion keeps relying on the `ON DELETE CASCADE` foreign keys). The eight Pro tables that
+  `PERSONAL_ACCOUNT_ROWS` in `identity/deletion.py` deletes today move into manifest rows with `ACCOUNT_DELETED`;
+  Core keeps its own account rows in that list;
 - `expires_column` for time-based retention, executed by Core's existing security-retention job (replaces C7 and
   the database part of the `presence`, `heart_hunt` and `photo_sources` retention jobs);
 - `attachment_columns` with the parent type (`HEART_HUNT_ROUND`), so `binding.parent_of()` keeps attachment
@@ -283,7 +296,7 @@ A new Pro table therefore needs a manifest row in Core in the same change (decis
 
 ### 6. Migrations
 
-- The 23 existing migrations that touch Pro tables or Pro values stay in the Core chain. Rewriting the chain of
+- The 25 existing migrations that touch Pro tables or Pro values stay in the Core chain. Rewriting the chain of
   existing installations is not acceptable.
 - **Challenge to "a separate Alembic branch in `version_locations`":** a branch records its head in the same
   `alembic_version` table. A Core-only `migrate` that cannot locate that revision exits non-zero, which is exactly
@@ -434,7 +447,7 @@ and the retirement of old artifacts are operational work on top.
   remain, and published release assets and public GHCR images contain the backend `src/` tree until they are
   retired (the cleanup path in the Context section). What was published stays usable under the license it was
   published with.
-- **The public Core shows the schema of existing Pro tables.** The 23 migrations and the manifest must stay in the
+- **The public Core shows the schema of existing Pro tables.** The 25 migrations and the manifest must stay in the
   public Core chain (decision 6). They reveal table and column names, not behavior.
 - **Paying Self-Hosted operators receive the code.** A Python package in an image is readable source or bytecode.
   Protection there is the license and its terms, not secrecy.
@@ -467,8 +480,16 @@ and the retirement of old artifacts are operational work on top.
 
 ## Open decisions for the Product Owner
 
-Decided on November 19, 2026: the repository becomes private before go-live, the Core is published, Pro stays
-private. Still open:
+Decided on November 19, 2026 and restated by the Product Owner on November 20, 2026: the main repository becomes
+private as soon as that is feasible and justifiable given the implementation state (Phases 1 and 2 are the
+precondition, see decision 8). The Core is then published as its own public repository; the main repository and
+the Pro code stay private. Still open:
+
+0. **Where the Pro code lives after Phase 2:** inside the private main repository as a separate distribution
+   (`backend/pro/`, the layout this decision assumes) or in a second private repository. The Product Owner's wording
+   of November 20 ("main repository and Pro repository stay private") allows both. Phase 1 does not depend on the
+   answer; Phase 2 does. A second repository is the superseded alternative of decision 7 and would bring back the
+   cost described there (a second CI and review cycle per contract change).
 
 1. **How the public Core is produced:** one reviewed snapshot per release, or a continuous mirror of reviewed
    revisions (decision 7).

@@ -14,7 +14,7 @@ from zipfile import ZIP_STORED, ZipFile
 import pytest
 from sqlalchemy import select
 
-from eimir.attachments import binding, service, video_jobs, videos
+from eimir.attachments import binding, service
 from eimir.attachments.models import Attachment, AttachmentStatus, MediaType
 from eimir.authorization import AuthorizationContext
 from eimir.config import get_settings
@@ -27,6 +27,8 @@ from eimir.transfer import jobs
 from eimir.transfer import service as transfers
 from eimir.transfer.archive import TransferArchiveError
 from eimir.transfer.models import ImportStatus, TransferScope
+from eimir.video_processing import jobs as video_validation
+from eimir.video_processing import videos
 from tests.conftest import auth, make_space, requires_database
 from tests.support.video import grant
 from tests.support.video import owner as owner
@@ -76,7 +78,7 @@ def _ready_source_video(client, session, owner, monkeypatch) -> None:  # type: i
     )
     assert bound.status_code == 200, bound.text
     monkeypatch.setattr(videos, "process", _processed(b"sanitized-source", duration=2))
-    video_jobs.validate(session, {"attachmentId": identifier})
+    video_validation.validate_video(session, {"attachmentId": identifier})
     session.expire_all()
     assert session.get(Attachment, identifier).status == AttachmentStatus.READY
 
@@ -174,7 +176,7 @@ def test_imported_video_is_revalidated_and_restored_without_pro(
 
     # The same restricted video job as an upload decides publication, without Pro.
     monkeypatch.setattr(videos, "process", _processed(b"sanitized-target", duration=2))
-    video_jobs.validate(session, {"attachmentId": str(imported.id)})
+    video_validation.validate_video(session, {"attachmentId": str(imported.id)})
     session.refresh(imported)
     assert imported.status == AttachmentStatus.READY
     assert imported.mime_type == "video/mp4"
@@ -198,7 +200,7 @@ def test_imported_video_rejected_by_the_processor_is_never_published(
         raise videos.VideoRejectedError("VIDEO_INVALID")
 
     monkeypatch.setattr(videos, "process", rejected)
-    video_jobs.validate(session, {"attachmentId": str(imported.id)})
+    video_validation.validate_video(session, {"attachmentId": str(imported.id)})
     session.refresh(imported)
     assert imported.status == AttachmentStatus.FAILED
     assert imported.failure_code == "VIDEO_INVALID"

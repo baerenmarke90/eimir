@@ -1591,8 +1591,11 @@ def _validate_media(
                     "Invalid voice media.", ErrorCode.TRANSFER_RELATION_INVALID
                 )
         if item.get("mediaType") == MediaType.VIDEO:
-            from eimir.attachments.limits import VIDEO_MAX_SIZE, rule_for
-            from eimir.config import get_settings
+            from eimir.attachments.limits import (
+                VIDEO_MAX_SIZE,
+                rule_for,
+                video_processing_available,
+            )
 
             size, mime_type = item.get("size"), item.get("mimeType")
             rule = rule_for(mime_type) if isinstance(mime_type, str) else None
@@ -1608,8 +1611,9 @@ def _validate_media(
                 )
             # Imported video is re-validated by the video processor. Without
             # one, fail closed before anything is written: the bundle stays
-            # usable on a server that can validate it.
-            if not get_settings().video_upload_enabled:
+            # usable on a server that can validate it. The processor is Pro
+            # plugin code, so a server without the plugin has none.
+            if not video_processing_available():
                 raise TransferArchiveError(
                     "This server cannot validate transfer video.",
                     ErrorCode.TRANSFER_FORMAT_UNSUPPORTED,

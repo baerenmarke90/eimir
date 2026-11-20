@@ -390,12 +390,14 @@ class InTreeProPlugin:
         from eimir.once_messages import service as once_messages
         from eimir.photo_sources import retention as photo_source_retention
         from eimir.presence import retention as presence_retention
+        from eimir.video_processing import jobs as video_jobs
 
         photo_source_retention.register_handlers(registry)
         once_messages.register_handlers(registry)
         heart_hunt_retention.register_handlers(registry)
         presence_retention.register_handlers(registry)
         calendar_sync_jobs.register_handlers(registry)
+        video_jobs.register_handlers(registry)
 
     def ensure_scheduled(self, session: Session) -> None:
         from eimir.heart_hunt import retention as heart_hunt_retention

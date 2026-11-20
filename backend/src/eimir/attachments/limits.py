@@ -120,8 +120,24 @@ def is_supported(rule: MediaRule) -> bool:
     from eimir.config import get_settings
 
     settings = get_settings()
-    return (rule.media_type is MediaType.VIDEO and settings.video_upload_enabled) or (
+    return (rule.media_type is MediaType.VIDEO and video_processing_available()) or (
         rule.media_type is MediaType.AUDIO and settings.audio_upload_enabled
+    )
+
+
+def video_processing_available() -> bool:
+    """The operator enabled video and a loaded plugin provides the video processor.
+
+    The processor is Pro plugin code (Decision 0017): without the plugin a server
+    behaves like one without a video processor, whatever the setting says.
+    """
+    from eimir.config import get_settings
+    from eimir.entitlements.models import Capability
+    from eimir.plugins.loader import loaded_plugins
+
+    return (
+        get_settings().video_upload_enabled
+        and Capability.MEDIA_VIDEO_UPLOAD.value in loaded_plugins().capabilities()
     )
 
 

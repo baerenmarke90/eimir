@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Any
 
 from eimir.attachments.limits import AUDIO_MAX_DURATION_SECONDS, AUDIO_MAX_SIZE
-from eimir.attachments.videos import PROBE_MAX_BYTES, VideoRejectedError, _run
+from eimir.attachments.media_process import PROBE_MAX_BYTES, VideoRejectedError
+from eimir.attachments.media_process import run_restricted as _run
 from eimir.config import get_settings
 
 

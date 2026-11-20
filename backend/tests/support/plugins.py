@@ -23,6 +23,7 @@ requires_pro = pytest.mark.requires_pro
 
 PRO_TEST_MODULES = frozenset(
     {
+        "integration/test_async_video_races.py",
         "integration/test_calendar_sync.py",
         "integration/test_calendar_sync_google.py",
         "integration/test_couple_games.py",
@@ -54,6 +55,8 @@ PRO_TEST_MODULES = frozenset(
         "integration/test_relationship_recaps.py",
         "integration/test_shared_experiences.py",
         "integration/test_story_lifeline.py",
+        "integration/test_transfer_video_revalidation.py",
+        "integration/test_video_lifecycle.py",
         "integration/test_weekly_review.py",
         "integration/test_wish_selection_date_ideas.py",
         "unit/test_account_table_lifecycle.py",
@@ -71,6 +74,7 @@ PRO_TEST_MODULES = frozenset(
         "unit/test_photo_source_security_gate.py",
         "unit/test_presence_geo.py",
         "unit/test_privacy_policy_statements.py",
+        "unit/test_video_processing.py",
         "unit/test_weekly_patterns.py",
         "unit/test_wish_detective_rules.py",
     }

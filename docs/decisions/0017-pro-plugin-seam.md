@@ -89,7 +89,13 @@ Deliberately **not** part of the plugin, with the reason:
   Free is Core; what Premium newly creates is plugin". `daily.insights` is done: the insight and weekly-review routes
   (`api/v1/daily_insights.py`) and the package `daily_insights` (insights, weekly patterns, weekly review) are
   plugin code and the capability is plugin-owned; today's check-in, the rating route (clearing a retained rating is
-  Free) with `daily_checkins/feedback.py` and the `daily_insight_feedback` table stay Core.
+  Free) with `daily_checkins/feedback.py` and the `daily_insight_feedback` table stay Core. `media.video_upload` is
+  done too: the video processor (package `video_processing`, `videos.py`) and its validation job are plugin code,
+  the job kind is in `PLUGIN_JOB_KINDS` and the capability is plugin-owned. The shared media pipeline
+  (`attachments/video_jobs.py`), the restricted process runner (`attachments/media_process.py`), voice notes,
+  admission, playback, export, restore, deletion and retention stay Core. Without the plugin a server behaves like
+  one without a video processor: no new video, queued video validations stay pending, transfer bundles with video
+  are refused.
 - `storage.cloud_quota_50gb` is an operating-model capability, already removed on Self-Hosted by
   `CLOUD_ONLY_CAPABILITIES` in `entitlements/service.py`. It stays Core.
 
@@ -117,7 +123,7 @@ whether it is closed before Phase 3 or accepted.
 | `relationship.passport` | Plugin routes `api/v1/relationship_passport.py` and package `relationship_passport` (passport and lifeline, tag `dashboard` kept); recap composition still gated in shared Core (`recaps/service.py`) | Partly: passport and lifeline moved, the capability is plugin-owned; recap composition follows | [#2084](https://github.com/baerenmarke90/eimir/issues/2084), [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
 | `partner.quick_actions.extended` | Plugin route `api/v1/partner_quick_actions.py` and package `partner_quick_actions` (command and `support_gesture_requests`, tag `notifications` kept); vocabulary, projection, thinking-of-you and the module switch stay Core | Yes: moved into the plugin by [#2084](https://github.com/baerenmarke90/eimir/issues/2084) | |
 | `theme.bespoke_packs` | Value checks in shared Core (`api/v1/appearance.py`, `appearance/models.py`); the capability is plugin-owned, the packs live in the clients | Partly: Core-only refuses Pro values; the check itself stays public code | [#2084](https://github.com/baerenmarke90/eimir/issues/2084), [#2086](https://github.com/baerenmarke90/eimir/issues/2086) |
-| `media.video_upload` | Woven into attachments and the video worker | No: extraction deferred | [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
+| `media.video_upload` | Plugin package `video_processing` (processor and validation job); pipeline, voice notes, playback and the retained-media lifecycle stay Core | Yes: processor and job moved, the capability is plugin-owned | [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
 | `daily.insights` | Plugin routes `api/v1/daily_insights.py` and package `daily_insights` (OpenAPI tag kept); the rating route, its table and the mood rhythm of recaps (`recaps/mood.py`) stay Core | Yes for the insights; the recap mood rhythm follows with recap composition | [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
 | `storage.cloud_quota_50gb` | Operating-model capability, removed on Self-Hosted | Not Pro code; stays Core by design | |
 | `chapter.rich_presentation`, `occasion.automation`, `recap.pdf_yearbook`, `recap.video_montage`, `question.5_year_mirror`, `surprise_mode.vault` | None (no implementation) | Nothing to protect yet: the first implementation is written as plugin code | |
@@ -257,7 +263,9 @@ The seam is internal to the eimir. product. It promises no compatibility to thir
 - Entry points need installed distribution metadata. Running from a plain `PYTHONPATH` without an installed
   project finds no plugin and, with the Phase 1 default, refuses to start with a clear message. Local recipes must
   use the installed environment (`uv sync`).
-- The `api`, `worker` and `migrate` processes load plugins through the same function and the same setting.
+- The `api`, `worker` and `migrate` processes load plugins through the same function and the same setting, and so
+  does the optional media role (`jobs/video_worker.py`) since #2085: it claims video validation only when a loaded
+  plugin registered it.
 
 ### 3. The hook contract
 
@@ -563,7 +571,7 @@ and the retirement of old artifacts are operational work on top.
 - **Paying Self-Hosted operators receive the code.** A Python package in an image is readable source or bytecode.
   Protection there is the license and its terms, not secrecy.
 - **Gates in shared Core code stay patchable.** `relationship.passport` (recap composition),
-  `theme.bespoke_packs`, `media.video_upload` and `daily.insights` (recap mood rhythm, setting a rating) are checks in
+  `theme.bespoke_packs`, `media.video_upload` (admission) and `daily.insights` (recap mood rhythm, setting a rating) are checks in
   public code. Anyone running a modified Core can remove them, as they can today.
 - **Workflow cost.** With one private development repository there is no second PR per change, but there is an
   export step to maintain, a public repository whose contributions must be carried over by hand, and two images per
@@ -609,7 +617,7 @@ the Pro code stay private. Still open:
 3. **Distribution channel for the Pro image:** a credentialed private registry, an image delivered with the
    signed license, or another channel; and how that fits "offline-verifiable without mandatory phone-home".
 4. **Package absent versus downgrade:** confirm the interpretation in the business review.
-5. **Extraction of `media.video_upload` and `daily.insights`:** deferred here; decide whether and when. Their code
-   stays in the public Core until then.
+5. **Extraction of `media.video_upload` and `daily.insights`:** deferred here; decided by the Product Owner for
+   [#2085](https://github.com/baerenmarke90/eimir/issues/2085) and done there.
 6. **License of the private package** for paying Self-Hosted operators (the public code is PolyForm
    Noncommercial 1.0.0).

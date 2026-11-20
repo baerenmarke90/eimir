@@ -9,13 +9,15 @@ from uuid import UUID
 import pytest
 from sqlalchemy import select
 
-from eimir.attachments import cleanup, service, video_jobs, videos
+from eimir.attachments import cleanup, service, video_jobs
 from eimir.attachments.models import Attachment, AttachmentStatus
 from eimir.config import get_settings
 from eimir.core.clock import now
 from eimir.entitlements.models import EntitlementStatus
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
+from eimir.video_processing import jobs as video_validation
+from eimir.video_processing import videos
 from tests.conftest import auth, requires_database
 from tests.support.video import grant
 from tests.support.video import owner as owner
@@ -85,7 +87,7 @@ def test_cancellation_during_decode_wins_before_publication(client, session, own
         raise videos.VideoRejectedError("VIDEO_INVALID")
 
     monkeypatch.setattr(videos, "process", cancel)
-    video_jobs.validate(session, {"attachmentId": str(identifier)})
+    video_validation.validate_video(session, {"attachmentId": str(identifier)})
     assert session.get(Attachment, identifier).status == AttachmentStatus.DELETING.value
 
 
@@ -104,7 +106,7 @@ def test_published_video_is_sanitized_and_keeps_nonfatal_missing_poster(
         return videos.ProcessedVideo(target, 9, 96, 64, 1, None)
 
     monkeypatch.setattr(videos, "process", processed)
-    video_jobs.validate(session, {"attachmentId": str(identifier)})
+    video_validation.validate_video(session, {"attachmentId": str(identifier)})
     attachment = session.get(Attachment, identifier)
     session.refresh(attachment)
     assert attachment.status == AttachmentStatus.READY.value
@@ -169,7 +171,7 @@ def test_worker_recovers_only_the_known_live_video_failure(
         return videos.ProcessedVideo(target, 9, 96, 64, 1, None)
 
     monkeypatch.setattr(videos, "process", processed)
-    video_jobs.validate(session, job.payload)
+    video_validation.validate_video(session, job.payload)
     session.refresh(attachment)
     assert attachment.status == AttachmentStatus.READY.value
     assert attachment.duration_seconds == 1
@@ -230,7 +232,7 @@ def test_submitted_video_binds_before_validation_and_preserves_later_classificat
         return videos.ProcessedVideo(output, 4, 96, 64, 1, None)
 
     monkeypatch.setattr(videos, "process", processed)
-    video_jobs.validate(session, {"attachmentId": str(identifier)})
+    video_validation.validate_video(session, {"attachmentId": str(identifier)})
     session.expire_all()
     current = session.get(Attachment, identifier)
     assert current.status == "READY"
@@ -259,11 +261,11 @@ def test_video_failure_notifies_only_uploader_once_and_retains_safe_recovery(
 
     monkeypatch.setattr(videos, "process", rejected)
     if fail_before_binding:
-        video_jobs.validate(session, {"attachmentId": str(identifier)})
+        video_validation.validate_video(session, {"attachmentId": str(identifier)})
     memory = bind_memory(client, owner, identifier)
     if not fail_before_binding:
-        video_jobs.validate(session, {"attachmentId": str(identifier)})
-    video_jobs.validate(session, {"attachmentId": str(identifier)})
+        video_validation.validate_video(session, {"attachmentId": str(identifier)})
+    video_validation.validate_video(session, {"attachmentId": str(identifier)})
     events = list(
         session.scalars(
             select(OutboxEvent).where(OutboxEvent.event_type == "VIDEO_PROCESSING_FAILED")
@@ -380,7 +382,7 @@ def test_heart_moment_accepts_submitted_video_without_exposing_unvalidated_media
         raise videos.VideoRejectedError("VIDEO_INVALID")
 
     monkeypatch.setattr(videos, "process", rejected)
-    video_jobs.validate(session, {"attachmentId": str(identifier)})
+    video_validation.validate_video(session, {"attachmentId": str(identifier)})
     event = session.scalar(
         select(OutboxEvent).where(OutboxEvent.event_type == "VIDEO_PROCESSING_FAILED")
     )

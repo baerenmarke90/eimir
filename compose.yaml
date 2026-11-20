@@ -90,7 +90,7 @@
         ],
         "timeout": "5s"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:c7610561595073418abcf0c1b54304de5deeab8eef6b40902a05999110963ad5",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:3c879a836ba6a1a27eff25cf1d4be7611adeaca7c291fe40f6f257ed2aa0443e",
       "networks": {
         "app": {
           "aliases": [
@@ -142,7 +142,7 @@
       "environment": {
         "EIMIR_DATABASE_URL": "postgresql+psycopg://sidebyside:${POSTGRES_PASSWORD:?Set the existing instance value in Arcane}@eimir-test-postgres:5432/sidebyside"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:c7610561595073418abcf0c1b54304de5deeab8eef6b40902a05999110963ad5",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:3c879a836ba6a1a27eff25cf1d4be7611adeaca7c291fe40f6f257ed2aa0443e",
       "networks": {
         "app": null
       },
@@ -182,7 +182,7 @@
         "EIMIR_PUBLIC_BASE_URL": "${EIMIR_PUBLIC_BASE_URL:?Set the existing instance value in Arcane}",
         "EIMIR_VIDEO_UPLOAD_ENABLED": "true"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-media@sha256:59fa575176d4fe5d494767b5a7d5f3b16d1fa3e3f94924ec8709162d586e20cb",
+      "image": "ghcr.io/baerenmarke90/eimir-media@sha256:0b0b6ad5765640a8ab539bd611eb5dce701d00b26248f4f5cad30a097d26e631",
       "init": true,
       "mem_limit": "1073741824",
       "networks": {
@@ -221,7 +221,7 @@
       "environment": {
         "EIMIR_WEB_CSP_CONNECT_ORIGINS": ""
       },
-      "image": "ghcr.io/baerenmarke90/eimir-web@sha256:7a28a7018aa7e11b09509679f9ce55ab274387ebde7fec442b1f2afc1742de85",
+      "image": "ghcr.io/baerenmarke90/eimir-web@sha256:d6d19169d75e4a6d5811124508b8d627f79d49b24aa91a9f59262962348d9e55",
       "networks": {
         "app": {},
         "proxy": {
@@ -303,7 +303,7 @@
         "EIMIR_WEBAUTHN_RP_ID": "${EIMIR_WEBAUTHN_RP_ID:?Set the existing instance value in Arcane}",
         "EIMIR_WEBAUTHN_RP_NAME": "eimir."
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:c7610561595073418abcf0c1b54304de5deeab8eef6b40902a05999110963ad5",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:3c879a836ba6a1a27eff25cf1d4be7611adeaca7c291fe40f6f257ed2aa0443e",
       "networks": {
         "app": null
       },

@@ -135,6 +135,7 @@
   --duration-connection-travel-far: 6000ms;
   --duration-story-slide: 5000ms;
   --duration-story-ken-burns: 9000ms;
+  --duration-loading-cycle: 800ms;
   --motion-ambient-repeat: 4;
   --duration-ambient-rest: 12000ms;
   --easing-standard: cubic-bezier(0.2, 0, 0, 1);
@@ -224,6 +225,7 @@
     --duration-connection-travel: 0ms;
     --duration-connection-travel-far: 0ms;
     --duration-story-ken-burns: 0ms;
+    --duration-loading-cycle: 0ms;
   }
 }
 

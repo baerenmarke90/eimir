@@ -73,9 +73,6 @@
     "src/components/HeartHuntGamePage.tsx": {
       "animate": 1
     },
-    "src/components/ListEntryActions.tsx": {
-      "animate": 1
-    },
     "src/components/LoginExperience.css": {
       "keyframes": 2
     },
@@ -178,14 +175,6 @@
     },
     "src/components/cartFlight.ts": {
       "animate": 1
-    },
-    "src/components/useNavigationMotion.ts": {
-      "animate": 1
-    },
-    "src/shell.css": {
-      "keyframes": 1,
-      "infinite": 1,
-      "animation-literal": 1
     },
     "src/story-media.css": {
       "infinite": 1,

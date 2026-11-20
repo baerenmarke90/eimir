@@ -381,3 +381,16 @@
     opacity: 0;
   }
 }
+
+/*
+ * Loading domain (4.8): one turn of a pending-status spinner. It loops only
+ * while the owner shows the pending state (pull to refresh while the refresh
+ * runs) and stops as soon as the status is known. With reduced motion the
+ * cycle is `0ms` and the owner drops the animation: the icon and the polite
+ * status text stay.
+ */
+@keyframes eimir-motion-loading-spin {
+  to {
+    rotate: 360deg;
+  }
+}

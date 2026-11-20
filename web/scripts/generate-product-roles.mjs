@@ -229,6 +229,8 @@ declare(
 // Momente > Erinnerungen Fotostory: dwell per slide and slow photo zoom.
 declare('duration-story-slide', value('motion.duration.storySlide'));
 declare('duration-story-ken-burns', value('motion.duration.storyKenBurns'));
+// Loading domain: one turn of a pending-status spinner (pull to refresh).
+declare('duration-loading-cycle', value('motion.duration.loadingCycle'));
 // Ambient idle motion (ring breath, hanging sway) settles after this many
 // cycles instead of looping forever, so an idle page stops rendering frames.
 declare('motion-ambient-repeat', value('motion.repeat.ambient'));
@@ -350,6 +352,7 @@ ${storyColorDeclarations('dark', '    ')}
     --duration-connection-travel: ${value('motion.duration.instant')};
     --duration-connection-travel-far: ${value('motion.duration.instant')};
     --duration-story-ken-burns: ${value('motion.duration.instant')};
+    --duration-loading-cycle: ${value('motion.duration.instant')};
   }
 }
 

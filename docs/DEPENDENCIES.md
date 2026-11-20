@@ -419,11 +419,21 @@ and content-free system notifications. Capacitor plugin versions are pinned
 exactly in `web/package.json` and locked in `web/package-lock.json`; the Gradle
 modules below are resolved from `web/node_modules` by `npx cap sync android`.
 
+`@capacitor/haptics` (#2076, Motion Contract 4.10) is the official Capacitor
+haptics plugin. It has no runtime dependencies and declares the normal-level
+`android.permission.VIBRATE` (granted at install, no prompt). The Web client
+loads it only inside the native app, through the motion layer's haptics
+adapter; it never runs its Web implementation (`navigator.vibrate`). It sends
+no data anywhere, has no account, cost or rate limit, and behaves the same for
+eimir. Cloud and Self-Hosted. Without it the app works unchanged, only without
+haptic feedback; people turn haptics off with the in-app switch.
+
 | Package / platform component | Version | Source | License |
 |---|---|---|---|
 | @capacitor/android (native bridge) | 8.6.2 | npm | MIT |
 | @capacitor/app | 8.1.1 | npm | MIT |
 | @capacitor/browser | 8.0.5 | npm | MIT |
+| @capacitor/haptics | 8.0.2 | npm | MIT |
 | @capgo/native-purchases | 8.9.16 | npm / [upstream](https://github.com/Cap-go/capacitor-native-purchases) | MPL-2.0 |
 | com.android.billingclient:billing (via @capgo/native-purchases) | 9.1.0 | Google Maven | Android Software Development Kit License |
 | org.unifiedpush.android:connector | 3.3.3 | Maven Central | Apache-2.0 |

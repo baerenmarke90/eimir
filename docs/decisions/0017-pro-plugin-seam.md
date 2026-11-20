@@ -1,6 +1,6 @@
 # Decision 0017: A Pro plugin seam inside the Core backend
 
-**Status:** Proposed; becomes accepted when the Product Owner merges the pull request  
+**Status:** Accepted (merged 2026-11-20, PR #2050)  
 **Date:** November 18, 2026; updated November 19, 2026 for the Product Owner's repository-visibility direction;
 updated November 20, 2026 for the current `main` baseline and the owning issue  
 **Owning issue:** [#2082](https://github.com/baerenmarke90/eimir/issues/2082) (Phase 1). Phases 2 and 3 get their own

@@ -8,7 +8,11 @@ Depending on those would make `alembic upgrade head` fail in production
 before the first revision ran.
 
 All models are imported here so `--autogenerate` can see them. A missing
-import can produce a migration that tries to drop a table.
+import can produce a migration that tries to drop a table. Plugin models come
+from the plugins named in `EIMIR_PLUGINS` (Decision 0017); a named plugin that
+cannot be loaded stops the migration. Without the plugin, its tables stay in
+the database and in the Core chain, so autogenerate must not propose dropping
+them: `include_object` skips the tables of the plugin manifest.
 """
 
 from __future__ import annotations
@@ -23,6 +27,7 @@ from sqlalchemy.schema import SchemaItem
 from eimir.config import DatabaseSettings
 from eimir.db.base import Base
 from eimir.db.registry import load_all_models
+from eimir.plugins.manifest import PLUGIN_TABLE_NAMES
 
 
 def _migration_connection() -> str:
@@ -69,8 +74,10 @@ def include_object(
     reflected: bool,
     compare_to: SchemaItem | None,
 ) -> bool:
-    """Exclude type-bound CHECK constraints from autogenerate comparison."""
-    del compare_to
+    """Exclude type-bound CHECK constraints and absent plugin tables from comparison."""
+    if type_ == "table" and reflected and compare_to is None and name in PLUGIN_TABLE_NAMES:
+        # A plugin table without a model in this process: its plugin is not loaded.
+        return False
     if type_ != "check_constraint" or not reflected or name is None:
         return True
     table = getattr(object_, "table", None)

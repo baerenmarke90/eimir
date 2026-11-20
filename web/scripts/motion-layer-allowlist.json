@@ -14,9 +14,6 @@
     "src/components/DailyInsights.css": {
       "keyframes": 3
     },
-    "src/components/DailyQuoteCard.css": {
-      "keyframes": 1
-    },
     "src/components/DateIdeas.css": {
       "keyframes": 2
     },
@@ -138,9 +135,6 @@
     "src/components/ProfilePage.css": {
       "keyframes": 6
     },
-    "src/components/QuietHint.css": {
-      "keyframes": 1
-    },
     "src/components/RecapFilmScene.css": {
       "keyframes": 32
     },
@@ -187,18 +181,6 @@
     "src/components/WeeklyInsightCard.css": {
       "keyframes": 1
     },
-    "src/components/WirDailyCheckIn.css": {
-      "keyframes": 4
-    },
-    "src/components/WirHeroStage.css": {
-      "keyframes": 2
-    },
-    "src/components/WirMomentGallery.css": {
-      "keyframes": 2
-    },
-    "src/components/WirMotion.css": {
-      "keyframes": 11
-    },
     "src/components/WishJourney.css": {
       "keyframes": 4
     },
@@ -208,18 +190,6 @@
     },
     "src/components/cartFlight.ts": {
       "animate": 1
-    },
-    "src/components/gestureFlight.ts": {
-      "animate": 16
-    },
-    "src/components/partnerArrival.ts": {
-      "animate": 7
-    },
-    "src/components/promptFlight.ts": {
-      "animate": 2
-    },
-    "src/components/sendFlight.ts": {
-      "animate": 3
     },
     "src/components/useNavigationMotion.ts": {
       "animate": 3

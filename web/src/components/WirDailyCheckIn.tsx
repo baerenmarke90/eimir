@@ -11,36 +11,37 @@ import {
   useSyncExternalStore,
 } from 'react';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
+import type { DailyCheckInUpdate } from '../api/generated/models/DailyCheckInUpdate';
 import {
   DailyVibe,
   type DailyVibe as DailyVibeValue,
 } from '../api/generated/models/DailyVibe';
-import type { DailyCheckInUpdate } from '../api/generated/models/DailyCheckInUpdate';
 import { dailyCheckInTodayQueryOptions } from '../client/dailyCheckIn';
 import { ClientProblemError } from '../client/problemDetails';
 import { postSnackbar } from '../client/snackbar';
 import { refreshSpaceConfiguration } from '../client/spaceConfiguration';
-import type { PartnerAvatarAction } from './PartnerAvatarPair';
 import { useTranslation } from '../i18n';
 import { BatteryIcon } from './DailyEnergyBattery';
 import { DailyVibeIcon } from './DailyVibeIcon';
 import { EimirIcon } from './EimirIcon';
-import { ShortTaskSheet } from './ShortTaskSheet';
-import { useDailyCheckInWrite } from './useDailyCheckInWrite';
+import type { PartnerAvatarAction } from './PartnerAvatarPair';
 import {
   arrivalMode,
   type PartnerArrival,
   startPartnerArrival,
 } from './partnerArrival';
 import { type PromptFlight, startPromptFlight } from './promptFlight';
+import { ShortTaskSheet } from './ShortTaskSheet';
 import {
   type FlightItem,
   type FlightKind,
   type SendFlight,
   startSendFlight,
 } from './sendFlight';
+import { useDailyCheckInWrite } from './useDailyCheckInWrite';
 import { useViewportClamp } from './useViewportClamp';
 import './WirDailyCheckIn.css';
+import '../motion/motion.css';
 
 /**
  * Daily check-in on the couple avatars on Wir (#1790 slice A).

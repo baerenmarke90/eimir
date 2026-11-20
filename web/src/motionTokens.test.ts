@@ -143,12 +143,17 @@ describe('canonical Web motion roles', () => {
   });
 
   it('keeps Daily Quote text legible throughout its entrance motion', () => {
+    // The card uses the motion layer's translate-only Enter `shift` (#2074).
     const css = productionStylesheets['./components/DailyQuoteCard.css'];
-    const reveal = css.match(
-      /@keyframes daily-quote-reveal\s*\{([\s\S]*?)\n\}/,
+    expect(normalizeWhitespace(css)).toContain(
+      'animation: eimir-motion-enter-shift var(--duration-transition)',
+    );
+    const catalogue = productionStylesheets['./motion/motion.css'];
+    const reveal = catalogue.match(
+      /@keyframes eimir-motion-enter-shift\s*\{([\s\S]*?)\n\}/,
     )?.[1];
 
-    expect(reveal).toContain('transform:');
+    expect(reveal).toContain('translate:');
     expect(reveal).not.toMatch(/\bopacity\s*:/);
   });
 });

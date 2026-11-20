@@ -35,7 +35,15 @@ function required<T>(value: T | null | undefined): T {
 export function useSpaceOccasions(
   spaceId: string | undefined,
   accountId: string | undefined,
+  options: {
+    /**
+     * Read the important-date list. Wir passes false: its dashboard already
+     * carries today's shared important dates (#2072).
+     */
+    importantDates?: boolean;
+  } = {},
 ): SpaceOccasion[] {
+  const withImportantDates = options.importantDates ?? true;
   const runtime = useApiRuntime();
   const apis = useMemo(() => {
     if (!runtime) return null;
@@ -95,7 +103,7 @@ export function useSpaceOccasions(
   });
   const importantDates = useQuery({
     queryKey: ['important-dates', spaceId ?? ''],
-    enabled,
+    enabled: enabled && withImportantDates,
     queryFn: () =>
       read(() =>
         required(
@@ -131,11 +139,12 @@ export function useSpaceOccasions(
             }
           : null,
       ],
-      importantDates: importantDates.data ?? [],
+      importantDates: withImportantDates ? (importantDates.data ?? []) : [],
       viewerAccountId: accountId,
     });
   }, [
     enabled,
+    withImportantDates,
     accountId,
     partnerId,
     partner?.displayName,

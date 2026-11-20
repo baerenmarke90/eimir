@@ -7,6 +7,7 @@
 
 import {
   ARC_RISE,
+  animateFlight,
   centre,
   flightKeyframes,
   landingScale,
@@ -62,20 +63,21 @@ export function startPromptFlight(
     dispose();
   };
 
-  const travel = ghost.animate(
+  const travel = animateFlight(
+    ghost,
     flightKeyframes(origin, end, 1, scale, LEAN, ARC_RISE / 2),
     { duration: roles.flight, easing: roles.standard, fill: 'forwards' },
   );
   // It dissolves into the plus over the last part of the way.
-  ghost.animate([{ opacity: 1 }, { opacity: 1, offset: 0.6 }, { opacity: 0 }], {
-    duration: roles.flight,
-    easing: 'linear',
-    fill: 'forwards',
-  });
+  animateFlight(
+    ghost,
+    [{ opacity: 1 }, { opacity: 1, offset: 0.6 }, { opacity: 0 }],
+    { duration: roles.flight, easing: 'linear', fill: 'forwards' },
+  );
 
   // Landed: the caller retires the line now, while the ring still plays and
   // the pill stays hidden until the layer is cleaned up.
-  const finished = travel.finished.then(
+  const finished = (travel?.finished ?? Promise.resolve()).then(
     () => {
       if (cancelled) return;
       // From here on the ring plays out and the timer below cleans up, even

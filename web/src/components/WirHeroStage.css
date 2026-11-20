@@ -480,49 +480,205 @@
  * sluggish), and the heart starts drawing just as they meet. Beat counts:
  * arms 1.0-2.2, heart 2.0-3.3. */
 @media (prefers-reduced-motion: no-preference) {
-  .wir-stage-intro .wir-bridge-arm {
+  .wir-stage[data-motion-stage="playing"] .wir-bridge-arm {
     transform-origin: left center;
-    animation: wir-intro-arm calc(var(--wir-intro-beat) * 1.2)
+    animation: eimir-motion-stage-reach calc(var(--wir-intro-beat) * 1.2)
       var(--easing-standard) var(--wir-intro-beat) both;
   }
 
-  .wir-stage-intro .wir-bridge-arm-partner {
+  .wir-stage[data-motion-stage="playing"] .wir-bridge-arm-partner {
     transform-origin: right center;
   }
 
   /* Each half is 100 units long; its arm arrives 56 units from the tip. */
-  .wir-stage-intro .wir-bridge-line path {
-    animation: wir-intro-heart calc(var(--wir-intro-beat) * 1.3)
+  .wir-stage[data-motion-stage="playing"] .wir-bridge-heart-own,
+  .wir-stage[data-motion-stage="playing"] .wir-bridge-heart-partner {
+    --motion-trace-from: -56;
+    animation: eimir-motion-stage-trace calc(var(--wir-intro-beat) * 1.3)
       var(--easing-standard) calc(var(--wir-intro-beat) * 2) both;
   }
 }
 
-@keyframes wir-intro-arm {
-  from {
-    transform: scaleX(0);
+/*
+ * #2072: the important-day Moment (Motion Contract 4.7). The stage carries
+ * `data-important-day`: `before` while the opening runs, `playing` for the
+ * Moment, `final` for the rest of the day. Only `playing` transitions, so a
+ * remount or a return shows the final state at once; reduced motion resolves
+ * the roles to 0 ms.
+ */
+.wir-bridge-swap {
+  display: grid;
+  justify-items: center;
+}
+
+.wir-bridge-swap > * {
+  grid-area: 1 / 1;
+}
+
+.wir-bridge-rest .wir-bridge-time {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The occasion copy may wrap between the portraits (200 % text, 360 px). */
+.wir-bridge-occasion {
+  max-inline-size: 9.5rem;
+  white-space: normal;
+  text-wrap: balance;
+}
+
+/* With very large text the line between the portraits is only a few
+   characters wide: the occasion keeps its main line, a little smaller, and
+   the quiet line below the heart (which repeats it) steps back. The bridge
+   becomes a size container only on an important day. */
+.wir-stage[data-important-day] .wir-bridge {
+  container: wir-bridge / inline-size;
+}
+
+@container wir-bridge (max-width: 4em) {
+  .wir-bridge-lead .wir-bridge-occasion {
+    max-inline-size: 100%;
+    font-size: 0.8em;
+    overflow-wrap: anywhere;
   }
 
-  to {
-    transform: scaleX(1);
+  .wir-bridge-rest .wir-bridge-occasion {
+    display: none;
   }
 }
 
-@keyframes wir-intro-heart {
-  0% {
-    opacity: 0;
-    stroke-dasharray: 0 200;
-    stroke-dashoffset: -56;
-  }
+.wir-stage[data-important-day="before"] .wir-bridge-occasion,
+.wir-stage[data-important-day="playing"] .wir-bridge-time,
+.wir-stage[data-important-day="final"] .wir-bridge-time {
+  opacity: 0;
+}
 
-  1% {
-    opacity: 1;
-  }
+.wir-bridge-heart-fill {
+  stroke: none;
+  opacity: 0;
+}
 
-  100% {
-    opacity: 1;
-    stroke-dasharray: 100 200;
-    stroke-dashoffset: 0;
-  }
+.wir-bridge-heart-fill-own {
+  fill: var(--wir-own-accent);
+}
+
+.wir-bridge-heart-fill-partner {
+  fill: var(--wir-partner-accent);
+}
+
+.wir-stage[data-important-day="playing"] .wir-bridge-heart-fill,
+.wir-stage[data-important-day="final"] .wir-bridge-heart-fill {
+  opacity: 1;
+}
+
+.wir-stage[data-important-day="playing"] .wir-bridge-time,
+.wir-stage[data-important-day="playing"] .wir-bridge-occasion,
+.wir-stage[data-important-day="playing"] .wir-bridge-heart-fill {
+  transition: opacity var(--duration-gesture-moment) var(--easing-standard);
+}
+
+/* Birthday: a warm ring, a soft halo behind it (opacity only, never a scaled
+   2 px ring: M7) and a cake mark on the rim. */
+.today-page .wir-stage .today-hero .partner-avatar-stack > * {
+  isolation: isolate;
+}
+
+.wir-stage[data-occasion-person="own"]
+  .today-hero
+  .partner-avatar-stack
+  > :nth-child(1)::before,
+.wir-stage[data-occasion-person="partner"]
+  .today-hero
+  .partner-avatar-stack
+  > :nth-child(2)::before {
+  border-color: var(--identity-icon-warm-fill);
+}
+
+.wir-stage[data-occasion-person="own"]
+  .today-hero
+  .partner-avatar-stack
+  > :nth-child(1)::after,
+.wir-stage[data-occasion-person="partner"]
+  .today-hero
+  .partner-avatar-stack
+  > :nth-child(2)::after {
+  position: absolute;
+  z-index: -1;
+  /* The ring's own box with a soft glow around it: a shadow adds no
+     scrollable overflow at 360 px, where the portraits reach the edges. */
+  top: calc(-1 * var(--wir-ring));
+  left: calc(-1 * var(--wir-ring));
+  width: calc(var(--wir-avatar) + 2 * var(--wir-ring));
+  height: calc(var(--wir-avatar) + 2 * var(--wir-ring));
+  border-radius: 50%;
+  box-shadow: 0 0 var(--space-5) var(--space-1) var(--identity-icon-warm-fill);
+  content: "";
+  opacity: var(--wir-occasion-halo-opacity);
+  pointer-events: none;
+}
+
+.wir-stage {
+  --wir-occasion-halo-opacity: 0.55;
+}
+
+.wir-stage[data-important-day="playing"]
+  .today-hero
+  .partner-avatar-stack
+  > *::before {
+  transition: border-color var(--duration-gesture-moment) var(--easing-standard);
+}
+
+.wir-stage[data-important-day="playing"]
+  .today-hero
+  .partner-avatar-stack
+  > *::after {
+  animation: eimir-motion-replace-in var(--duration-gesture-moment)
+    var(--easing-standard) both;
+}
+
+.wir-occasion-cake {
+  position: absolute;
+  top: calc(var(--wir-avatar) * 0.146 - 0.95rem - var(--wir-mark-out));
+  left: calc(var(--wir-avatar) * 0.146 - 0.95rem - var(--wir-mark-out));
+  z-index: 4;
+  display: grid;
+  width: 1.9rem;
+  height: 1.9rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-surface-raised);
+  box-shadow: 0 2px 10px var(--color-shadow-card);
+  color: var(--identity-icon-warm-fill);
+  pointer-events: none;
+}
+
+.wir-occasion-cake .eimir-icon {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.wir-stage[data-important-day="before"] .wir-occasion-cake {
+  opacity: 0;
+}
+
+.wir-stage[data-important-day="playing"] .wir-occasion-cake {
+  transition: opacity var(--duration-gesture-moment) var(--easing-standard);
+}
+
+/* The rising hearts live in the shared flight layer (FlightLayer.css). */
+.wir-important-day-heart {
+  position: absolute;
+  width: 0.85rem;
+  height: 0.85rem;
+  color: var(--identity-icon-warm-fill);
+  pointer-events: none;
+}
+
+.wir-important-day-heart svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
 }
 
 @media (min-width: 768px) {

@@ -424,7 +424,8 @@ differs from the text above in these points, which the hook table now reflects:
 
 Not implemented in Phase 1, because nothing uses them yet: the `migrations()` hook and the separate plugin
 Alembic environment of decision 6 (no new plugin table exists), the `validate(settings)` hook, and the
-dormant-plugin-data startup warning and ServerAdmin view of decision 5. The `/api/v1/instance` field stays a
+ServerAdmin view of dormant plugin data from decision 5. The startup warning for dormant plugin data of decision 5
+is implemented (#2121, `eimir.plugins.dormant`); the admin view is not. The `/api/v1/instance` field stays a
 separate task.
 
 The Core-only configuration runs as `Backend Core-only` in the full CI tier of pull requests and in the

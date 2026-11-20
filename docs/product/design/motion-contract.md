@@ -1,6 +1,6 @@
 # eimir. Motion Contract
 
-**Version:** 1.7 (2026-11-20)<br>
+**Version:** 1.8 (2026-11-20)<br>
 **Status:** Normative lower-level design-system contract under Product Reference v1 once merged. Library decision **approved by the Product Owner on 2026-11-19**: an in-house motion layer on WAAPI and CSS for all primitives, Gesture follow included; Motion is not adopted ([6.6](#66-product-owner-decisions)). Haptics are approved ([4.10](#410-haptics)).<br>
 **Scope:** Canonical Web/Mobile Web UI, including the Capacitor-delivered Android app<br>
 **Issue:** [#2067](https://github.com/baerenmarke90/eimir/issues/2067)<br>
@@ -140,7 +140,7 @@ Status, order, success, error and arrival are also expressed through content, se
 
 ### M14. One layer
 
-After migration, `@keyframes` and `Element.animate()` exist only inside the motion layer (and in the bounded domains' registered files during their migration, see [section 8](#8-migration-plan)). Feature code uses CSS `transition` with token roles for simple state changes. Transitions do not restart when a view returns from `display: none`, so they stay allowed everywhere. Pointer tracking for gestures also lives in the layer or in an adopted gesture component (`@dnd-kit`, `@panzoom/panzoom`) wrapped by it.
+`@keyframes` and `Element.animate()` exist only inside the motion layer. The guard enforces this since #2080 ([5.4](#54-api-as-built), [section 8](#8-migration-plan)). Feature code uses CSS `transition` with token roles for simple state changes. Transitions do not restart when a view returns from `display: none`, so they stay allowed everywhere. Pointer tracking for gestures also lives in the layer or in an adopted gesture component (`@dnd-kit`, `@panzoom/panzoom`) wrapped by it.
 
 ### M15. One choreography clock and a per-screen budget
 
@@ -251,6 +251,10 @@ Something already on screen changes or leaves: a value changes, an item is reord
    - **The monthly recap lead above the Discover experiences (`CoupleExperiences.css`, `RecapDiscoverLead.tsx`) is split like the cache notice.** Its `grid-template-rows` and `margin` keyframes are gone.
      - Opening is option 1: an Enter `fade` at its full height, over two `--duration-context`s as before. The experiences below take their place at once.
      - Closing stays option 3: the one row transition on the lead (`grid-template-rows`, its bottom margin and opacity), within `--duration-context` and clipped by its frame, so the experiences below follow the card as it closes. The card first renders open and collapses one frame later (`is-collapsing`), and it ends on its own `transitionend`.
+
+   Checked in #2080, when the guard began to count layout transitions:
+   - **The Planen search row (`PlanningReference.css`) stays option 3, as a recorded exception to "height".** When the search opens or closes, the status row below it moves by the search row's height with one `margin-top` transition on that one row, within `--duration-context`, and only without reduced motion. The search settles onto this row (#2077), so the row must visibly make room instead of jumping under it. Nothing is read below it while the person opens the search.
+   - The guard registers each sanctioned use with its count (`REGISTERED_LAYOUT_TRANSITIONS`): `WirHeroStage.css`, `QuietHint.css`, `styles.css`, `CoupleExperiences.css` and `PlanningReference.css` once, and `PhotoEditTask.css` three times. Any other layout transition fails it.
 - Reduced motion: final size at once.
 
 **`value` (numbers and short text).** Count changes, the days-together tick, timer digits:
@@ -377,6 +381,7 @@ Decisions and limits of this step:
 - **The pager's route lands when the shared settle ends.** The kept-tab panels swap visibility on a route change, so navigating at release would hide the outgoing page mid-travel. The decision is made at release and cannot be lost: a hidden page, a blur or a resize finishes the settle at once, and a fallback releases the drag if the route never commits. The settle is the spring's length: about 450 ms for the rest of a page at 390 px, less for a shorter travel.
 - **With reduced motion the pager pages stay still** while the swipe still works and commits at once. **Product Owner decision (2026-11-20; #2076, #2095):** the existing behaviour is kept. A whole page travelling sideways is large-area motion. This is a deliberate exception to the tracking rule above, which otherwise keeps tracking under reduced motion. Sheets, reorder and photos still track the finger with reduced motion.
 - **The pull indicator grows in height** while the finger pulls, without a transition, because it is an in-flow Loading indicator that makes room above the page. It is tracking, not an animation of a layout property; a transform-only indicator would need a layout change of the page top and is left for a later step.
+- **The lifeline preview card swipe** (`SharedStorySummary.tsx`, the Momente lifeline preview) follows the finger with its own slop, axis lock and commit distance, and returns to rest without the release velocity. Found by the pointer-tracking rule of #2080. It keeps its behaviour and is registered as a `gesture` owner; moving it onto the building block (`resolveOwnership`, `commitDistance`, `decideRelease` and the settle spring) is a follow-up with its own device acceptance. Its non-gesture alternative is the arrow keys and the pager dots.
 - **Scroll-snap carousels** (8 `scroll-snap-type` declarations) stay native scrolling, as the tracking rule requires. **Range controls** are native `<input type="range">` or `role="slider"` elements with keyboard steps; the pager, the sheet and pull to refresh exclude them from their gestures.
 
 ### 4.7 Moment
@@ -794,25 +799,31 @@ Unit tests on pointer traces stay within ±5 % on:
 
 The sampled settle spring is used everywhere. `linear()` easing (Chromium 113 and later) remains an optional later optimization.
 
-**Guard.** `web/scripts/check-motion-layer.mjs` runs in `npm test` and `npm run build`. Outside `web/src/motion/` it counts:
+**Guard.** `web/scripts/check-motion-layer.mjs` (`npm run motion:check`) runs in `npm test` and `npm run build`. Since #2080 it is closed: there is no allowlist. Outside `web/src/motion/` (tests excluded) it fails on:
 - `@keyframes`;
 - `.animate(`;
-- `infinite` in animation declarations;
+- `infinite` in animation declarations, and `iterations: Infinity`;
 - layout properties in keyframes;
-- `cubic-bezier(` and non-zero literal durations in animation declarations.
+- `cubic-bezier(` and non-zero literal durations in animation declarations;
+- a layout property, or `all`, in a `transition` or `transition-property` declaration;
+- a `pointermove`, `touchmove` or `mousemove` listener or React handler.
 
-The ratchet allowlist `web/scripts/motion-layer-allowlist.json` records the per-file counts on `main` at `5528a2dbe`. It lists 66 CSS files and 8 TypeScript files:
-- the CSS files are the 65 with keyframes, plus `story-media.css` with one `infinite` loop;
-- the TypeScript count is after `flightKit.ts` and `useDepartingItems.ts` moved into the layer.
+Three of these rules have reviewed registrations in the script, each with its use and its exact count per file. A registered file must keep exactly its count, so a new use needs a reviewed registration and a removed one must be unregistered:
 
-After step 4 (#2075) it lists 55 CSS files and 4 TypeScript files. After step 5 (#2076) it lists 54 CSS files and 2 TypeScript files: `shell.css`, `useNavigationMotion.ts` and `ListEntryActions.tsx` left it. After step 6 (#2077) it lists 27 CSS files and 1 TypeScript file (`HeartHuntGamePage.tsx`, a Scene): 27 content-area stylesheets and `cartFlight.ts` left it, and `story-media.css` lost its literal duration. After step 7 (#2078) it lists 26 CSS files and 1 TypeScript file: `PlaceMapPicker.css` left it. After step 8 (#2079) it is empty. The bounded domains and the remaining content-area keyframes moved into the layer. `HeartHuntGamePage.tsx` calls `run()`. The Scenes loops are registered by domain in `REGISTERED_LOOPS`, with exact counts, instead of on the ratchet.
+| Registration | Rule | Files | Uses |
+| --- | --- | ---: | ---: |
+| `REGISTERED_LOOPS` | `infinite`: the Scenes domain's playfields (4.8, M8) | 6 | 26 |
+| `REGISTERED_LAYOUT_TRANSITIONS` | layout transitions: the sanctioned `disclose` uses (4.2) | 6 | 8 |
+| `REGISTERED_POINTER_TRACKING` | pointer tracking: the Gesture follow owners (`gesture`, 4.6) and pointer input that moves nothing by itself (`input`: a cancelled press, a long-press slop, scroll intent, a drawn stroke, a scrubbed selection, the photo editor's handles) | 11 | 17 |
+
+The guard also rejects the animation libraries `motion`, `framer-motion`, `motion-plus*`, `gsap` and `animejs` in `web/package.json`, in `web/package-lock.json` (also as a transitive package) and as imports anywhere in `web/src`, unless a new decision in this contract allows one (6.6; Product Owner decision 2026-11-19).
+
+The rule "no `scale` keyframes on thin strokes" (M7) is not checked mechanically: no keyframes exist outside the layer, and no markup marks an element as a thin stroke. The catalogue keyframes inside the layer are reviewed against M7 with the review checklist (section 9).
+
+**The ratchet during the migration.** From #2073 to #2079 the guard had a ratchet allowlist, `web/scripts/motion-layer-allowlist.json`, with the per-file counts on `main` at `5528a2dbe`: 66 CSS files and 8 TypeScript files. A count could only fall, a file that reached zero left the list, and the number of listed files could not exceed that baseline. After step 4 (#2075) it listed 55 CSS and 4 TypeScript files, after step 5 (#2076) 54 and 2, after step 6 (#2077) 27 and 1, after step 7 (#2078) 26 and 1, and after step 8 (#2079) none. #2080 removed the file.
 
 **Loading note (#2077, closed in #2079).** The shared media skeleton (`.story-media-skeleton` in `story-media.css`) panned its gradient with `background-position` (`eimir-motion-loading-pan`), the last Loading use of a non-compositor property. Since #2079 it keeps a calm fill, and while it loads its owner adds `.eimir-motion-loading-skeleton`, which sweeps a highlight layer with `translate`. `contain: paint` gives the layer its containing block and clips it, so none of the more than thirty media frames had to change how they position the skeleton. A deferred skeleton (#2070) keeps only the fill.
 
-The ratchet rules:
-- a count may only fall;
-- a file that reaches zero must leave the list (`node scripts/check-motion-layer.mjs --shrink`);
-- the number of listed files may not exceed that baseline.
 
 ## 6. Library decision
 
@@ -1030,6 +1041,20 @@ The map step fixes both. Each animated camera call reads `--duration-map-camera`
 
 Done in #2078 (4.8 as built). The line numbers above are the inventory baseline. The ten calls keep their triggers, and "show us" is now registered as the one running camera transition, so the finger stops it like a Place journey.
 
+### 7.6 Inventory after the migration (#2080)
+
+Measured by the guard on `main` at `23e556cb7` plus #2080.
+
+| Measure | In the layer (`web/src/motion/`) | Outside the layer |
+| --- | ---: | ---: |
+| `@keyframes` | 181 in 9 stylesheets | 0 |
+| `Element.animate()` calls | 4 (`run.ts` once, `flight.ts` three times) | 0 |
+| `infinite` loops | 5 (Loading, `utilities.css`) | 26 registered Scenes loops in 6 files |
+| Layout properties in keyframes | 0 | 0 |
+| Layout transitions | 0 | 8 registered `disclose` uses in 6 files |
+| Pointer tracking | 1 (`gesture/follow.ts`) | 17 registered in 11 files |
+| Animation-library dependencies | 0 | 0 |
+
 ## 8. Migration plan
 
 Each step is its own issue and pull request. Draft issue texts for steps 2 to 9 are in the description of the pull request that adds this contract. Every user-facing step follows the visual-reference, Mobile Interaction Contract and visual-evidence gates in `AGENTS.md`. Approved product motion is preserved unless the Product Owner decides otherwise.
@@ -1088,6 +1113,13 @@ Each step is its own issue and pull request. Draft issue texts for steps 2 to 9 
    - `cubic-bezier(` and literal durations in animation declarations;
    - `pointermove`/`touchmove` handlers outside the layer and the wrapped gesture components;
    - an animation library dependency (`motion`, `framer-motion`, `motion-plus*`, `gsap`, `animejs`) without a new decision in this contract.
+   - Done in #2080. The allowlist file is removed, and the guard rules, registrations and limits are in 5.4; the final inventory is in 7.6. `CONTRIBUTING.md` describes the guard for contributors. The thin-stroke rule stays a review rule (5.4).
+   - The new layout-transition rule found three uses outside the sanctioned `disclose` list. Two moved onto compositor properties without a visible change, and one was a too-broad declaration:
+     - the Planen segmented control's active mark slides with `translate` by whole segments instead of `left` and `width` (M6);
+     - the Herzversteck warmth meter fills with `scale` along its track instead of `width`, like the story progress segments (M6);
+     - the private-area navigation in the vault theme transitions its colours, border and shadow instead of `all` (Feedback, M6).
+   - The Planen search row's `margin-top` is registered as a `disclose` use (4.2). The lifeline preview card swipe is a registered gesture owner that is not yet on the building block (4.6); moving it is a follow-up.
+   - With this step the migration is code-complete. The device acceptance of steps 5 to 8 on the Pixel stays open in their issues.
 
 ## 9. Review checklist addition
 
@@ -1100,12 +1132,14 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 - for ambient motion: the finite repeat and the pause conditions (M8);
 - for gestures: the commit/cancel thresholds, the release handoff, interruption, and the non-gesture alternative (4.6);
 - for unprompted motion: its priority and rate limit (4.9);
-- whether the screen's budget and choreography clock are kept (M15), and any haptics (4.10).
+- whether the screen's budget and choreography clock are kept (M15), and any haptics (4.10);
+- that `npm run motion:check` passes, and the reason for any change to a guard registration (5.4).
 
 ## 10. Changelog
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 1.8 | 2026-11-20 | Guard closed (#2080):<br>• the ratchet allowlist removed; the guard rejects ad-hoc motion everywhere outside the layer (M14, 5.4);<br>• new guard rules for layout transitions, pointer tracking and animation-library dependencies, with the reviewed registrations `REGISTERED_LOOPS`, `REGISTERED_LAYOUT_TRANSITIONS` and `REGISTERED_POINTER_TRACKING` (5.4);<br>• the Planen search row `disclose` check (4.2) and the lifeline preview card swipe recorded as a gesture owner not yet on the building block (4.6);<br>• the segmented mark, the Herzversteck meter and the vault navigation on compositor or Feedback properties (8);<br>• the thin-stroke rule kept as a review rule (5.4, 9);<br>• the final inventory (7.6) and step 9 done (8). |
 | 1.7 | 2026-11-20 | Playback and Scenes (#2079):<br>• the Playback and Scenes domains as built (4.8): story playback and the recap film on the one reduced-motion source, the scene controller `useScene` with `data-motion-scene`, `useAmbientRest` in the layer, and the domain catalogues (5.4);<br>• the registered Scenes loops in the guard instead of the ratchet;<br>• the media skeleton on the Loading sweep and the gallery placeholder on the Loading pulse (5.4);<br>• the recap lead `disclose` check (4.2) and the first-content glow exception (4.3);<br>• the allowlist empty after step 8 (5.4, 8). |
 | 1.6 | 2026-11-20 | Map (#2078):<br>• the Map domain as built (4.8): camera and zoom-button durations through the token adapter, reduced motion from the one source, no pan inertia with reduced motion, zoom buttons with `--duration-transition`, "show us" as the one running camera transition, and the locale change keeping the viewer's camera;<br>• the connection pauses and resumes on the visibility controller instead of restarting;<br>• the Map domain catalogue `map.css` (5.4);<br>• the allowlist after step 7 (5.4, 8). |
 | 1.5 | 2026-11-20 | Content areas (#2077):<br>• Product Owner decision recorded: with reduced motion the primary-tab pager pages stay still while the swipe still commits at once, a deliberate exception to the Gesture follow tracking rule (4.6; #2076, #2095);<br>• the content-area entrances, the Exit `leave`, the Ambient `sway`, the Feedback `fill-hold`, the Loading shimmer, roll and pan, and the Moment catalogue `moments.css` (5.4);<br>• the received gesture and the connected moment on `startMoment()`, the receipt ripple as a soft halo (4.7 as built);<br>• the `disclose` checks for the waymarks, the overview cache notice and the photo editor (4.2);<br>• the content-area haptics (4.10);<br>• the allowlist after step 6 (5.4, 8). |

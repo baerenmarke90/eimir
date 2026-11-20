@@ -377,6 +377,92 @@ test('ArrowLeft/ArrowRight moves focus and selection between the Plans and Wishe
   await expect(page.getByText(PLAN_TITLE)).toBeVisible();
 });
 
+for (const view of [
+  { width: 360, theme: 'light', reduce: false },
+  { width: 390, theme: 'dark', reduce: false },
+  { width: 430, theme: 'light', reduce: false },
+  { width: 390, theme: 'light', reduce: true },
+  { width: 1280, theme: 'dark', reduce: false },
+] as const) {
+  test(`the segmented mark slides onto the chosen tab at ${view.width}px ${view.theme}${view.reduce ? ' with reduced motion' : ''}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 844 });
+    await page.emulateMedia({
+      colorScheme: view.theme,
+      reducedMotion: view.reduce ? 'reduce' : 'no-preference',
+    });
+    await installMocks(page);
+    await signIn(page);
+    await page.goto('/plan');
+
+    // The mark moves with `translate` by whole segments (Motion Contract M6,
+    // #2080); it never transitions `left` or `width`.
+    const mark = () =>
+      page.evaluate((reduce) => {
+        const control = document.querySelector<HTMLElement>(
+          '.planen-segmented:not(.story-view-tabs)',
+        );
+        const active = control?.querySelector(':scope > .is-active');
+        if (!control || !active) return null;
+        const style = getComputedStyle(control, '::before');
+        // The computed translate keeps its percentage, e.g. `calc(100% + 2px)`;
+        // a percentage is of the mark's own width.
+        const width = Number.parseFloat(style.width);
+        const [x = '0px'] = style.translate.match(/^(calc\([^)]*\)|\S+)/) ?? [];
+        const percent = Number.parseFloat(x.match(/(-?[\d.]+)%/)?.[1] ?? '0');
+        const pixels = Number.parseFloat(x.match(/(-?[\d.]+)px/)?.[1] ?? '0');
+        const shift = (percent / 100) * width + pixels;
+        const box = control.getBoundingClientRect();
+        const target = active.getBoundingClientRect();
+        return {
+          offset:
+            Math.round(
+              box.left +
+                control.clientLeft +
+                Number.parseFloat(style.left) +
+                shift -
+                target.left,
+            ) + 0,
+          // `+ 0` turns a rounded -0 into 0.
+          width: Math.round(width - target.width) + 0,
+          transition: reduce ? 'none' : style.transitionProperty,
+        };
+      }, view.reduce);
+    const plansTab = page.getByRole('tab', {
+      name: m5s3.overview.segmentPlans,
+    });
+    const wishesTab = page.getByRole('tab', {
+      name: m5s3.overview.segmentWishes,
+    });
+    await plansTab.click();
+    await expect.poll(mark).toEqual({
+      offset: 0,
+      width: 0,
+      transition: view.reduce ? 'none' : 'translate',
+    });
+
+    await wishesTab.click();
+    await expect(wishesTab).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByText(WISH_TITLE)).toBeVisible();
+    await expect.poll(mark).toEqual({
+      offset: 0,
+      width: 0,
+      transition: view.reduce ? 'none' : 'translate',
+    });
+    await captureScreenshot(
+      page,
+      testInfo,
+      `2080-planen-segmented-${view.width}-${view.theme}${view.reduce ? '-reduce' : ''}.png`,
+    );
+
+    // Return: away to Today and back keeps the mark on the chosen tab.
+    await page.goto('/today');
+    await page.goto('/plan');
+    await expect.poll(mark).toMatchObject({ offset: 0, width: 0 });
+  });
+}
+
 test('clicking the focal Plan navigates from the Planning overview to the read-first detail page', async ({
   page,
 }) => {

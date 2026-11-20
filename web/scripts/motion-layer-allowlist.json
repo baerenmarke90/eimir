@@ -1,4 +1,0 @@
-{
-  "$comment": "Ratchet allowlist for scripts/check-motion-layer.mjs (Motion Contract M14, #2073). Baseline: main at 5528a2dbe. Counts may only fall; remove a file when it reaches zero (npm run motion:check -- --shrink). Never add files or raise counts.",
-  "files": {}
-}

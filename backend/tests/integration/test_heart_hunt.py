@@ -351,3 +351,64 @@ def test_unknown_and_malformed_round_ids_look_the_same(client, session, couple) 
             assert response.status_code == 404
             answers.append(response.json()["code"])
     assert set(answers) == {"HEART_ROUND_NOT_FOUND"}
+
+
+def test_without_the_plugin_expired_rounds_go_with_their_photo(client, session, couple) -> None:  # type: ignore[no-untyped-def]
+    from eimir.plugins import lifecycle
+    from tests.support.plugins import without_plugins
+
+    grant_games(session, couple)
+    attachment = photo(session, couple)
+    round_id = hide(client, session, couple, attachment=attachment).json()["id"]
+    heart_round = session.get(HeartHuntRound, UUID(round_id))
+    assert heart_round is not None
+    heart_round.purge_after = now() - timedelta(minutes=1)
+    session.flush()
+    with without_plugins():
+        lifecycle.prune_expired(session)
+    session.expire_all()
+    assert session.get(HeartHuntRound, UUID(round_id)) is None
+    photo_row = session.get(Attachment, attachment)
+    assert photo_row is not None and photo_row.status == AttachmentStatus.DELETING.value
+
+
+def test_without_the_plugin_membership_end_removes_rounds_and_photos(
+    client, session, couple
+) -> None:  # type: ignore[no-untyped-def]
+    from tests.support.plugins import without_plugins
+
+    grant_games(session, couple)
+    attachment = photo(session, couple)
+    hide(client, session, couple, attachment=attachment)
+    membership = next(
+        member
+        for member in relationship_service.active_memberships(session, couple["space"].id)
+        if member.account_id == couple["ben"].id
+    )
+    with without_plugins():
+        relationship_service.end_membership(session, membership)
+    session.flush()
+    session.expire_all()
+    assert session.scalar(select(HeartHuntRound.id)) is None
+    photo_row = session.get(Attachment, attachment)
+    assert photo_row is not None and photo_row.status == AttachmentStatus.DELETING.value
+
+
+def test_without_the_plugin_a_round_photo_is_neither_readable_nor_rebindable(  # type: ignore[no-untyped-def]
+    client, session, couple
+) -> None:
+    from eimir.attachments import binding
+    from tests.support.plugins import without_plugins
+
+    grant_games(session, couple)
+    attachment = photo(session, couple)
+    round_id = hide(client, session, couple, attachment=attachment).json()["id"]
+    path = f"/api/v1/spaces/{couple['space'].id}/attachments/{attachment}/read-access"
+    request = {"parentType": "HEART_HUNT_ROUND", "parentId": round_id}
+    assert client.post(path, json=request, headers=auth(couple["token_b"])).status_code == 200
+    with without_plugins():
+        # The manifest still knows the parent, so the photo stays bound to its round.
+        assert binding.parent_of(session, attachment) == ("HEART_HUNT_ROUND", UUID(round_id))
+        for token in ("token_a", "token_b"):
+            denied = client.post(path, json=request, headers=auth(couple[token]))
+            assert denied.status_code == 404

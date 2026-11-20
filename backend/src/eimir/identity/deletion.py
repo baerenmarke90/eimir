@@ -29,7 +29,6 @@ from eimir.auth.recent_auth_models import (
     RecentAuthenticationWebAuthnChallenge,
 )
 from eimir.authorization.retention import hard_delete_owner_only
-from eimir.calendar_sync.models import CalendarConnection, CalendarOAuthTransaction
 from eimir.core.clock import now
 from eimir.daily_checkins.models import DailyCheckIn, DailyInsightFeedback
 from eimir.dashboard.models import DashboardModulePreference
@@ -39,7 +38,6 @@ from eimir.engagement.models import (
     PushEndpoint,
     ThinkingOfYouRequest,
 )
-from eimir.garden.models import GardenReader, GardenWatering
 from eimir.identity.deletion_models import AccountDeletion, AccountDeletionStatus
 from eimir.identity.models import (
     Account,
@@ -52,17 +50,8 @@ from eimir.identity.models import (
     WebAuthnCredential,
 )
 from eimir.legal.models import TermsAcceptance
-from eimir.once_messages.models import OnceDevice, OnceReception
 from eimir.personal_settings.models import PersonalSettings
-from eimir.photo_sources.models import GoogleAccountHint, PhotoConnection, PhotoSelection
-from eimir.presence.models import (
-    PartnerLocationConsent,
-    PresenceDeviceCredential,
-    PresenceSnapshot,
-    SharingLevel,
-)
 from eimir.profiles.models import PartnerProfile
-from eimir.quotes.models import DailyQuotePreference
 from eimir.relationship.models import Invitation, Membership, MembershipStatus, SpacePresence
 from eimir.relationship.service import (
     end_membership,
@@ -78,20 +67,13 @@ DELETED_ACCOUNT_TIMEZONE = "Europe/Berlin"
 _FAILURE_CODE = re.compile(r"[A-Z0-9_-]{1,64}\Z")
 
 # These tables have no shared-history or external-storage lifecycle. Pseudonymizing
-# the Account does not trigger their foreign-key cascades.
+# the Account does not trigger their foreign-key cascades. Plugin tables are
+# removed through the plugin seam (``eimir.plugins.lifecycle.account_deleted``).
 PERSONAL_ACCOUNT_ROWS = (
     DailyCheckIn,
     DailyInsightFeedback,
-    DailyQuotePreference,
     DashboardModulePreference,
-    GardenReader,
-    GardenWatering,
     NotificationPreference,
-    OnceDevice,
-    OnceReception,
-    PresenceDeviceCredential,
-    PresenceSnapshot,
-    PartnerLocationConsent,
     RecentAuthenticationGrant,
     RecentAuthenticationOidcRequest,
     RecentAuthenticationWebAuthnChallenge,
@@ -304,31 +286,9 @@ def apply_core_cleanup(session: Session, account_id: UUID) -> AccountDeletion | 
     _delete_account_rows(session, PersonalSettings, account_id, PersonalSettings.account_id)
     for model in PERSONAL_ACCOUNT_ROWS:
         _delete_account_rows(session, model, account_id, model.account_id)
-    # A remaining partner keeps their preferences, but their old grant cannot
-    # authorize this recipient or be silently transferred to another partner.
-    from eimir.presence.service import delete_owner_presence
+    from eimir.plugins import lifecycle as plugin_lifecycle
 
-    received = session.scalars(
-        select(PartnerLocationConsent)
-        .where(PartnerLocationConsent.recipient_account_id == account_id)
-        .with_for_update()
-    )
-    for consent in received:
-        delete_owner_presence(session, consent.space_id, consent.account_id)
-        consent.recipient_account_id = None
-        consent.level = SharingLevel.OFF.value
-        consent.indefinite = False
-        consent.expires_at = None
-        consent.suspended_at = None
-        consent.generation += 1
-    _delete_account_rows(session, PhotoSelection, account_id, PhotoSelection.account_id)
-    _delete_account_rows(session, PhotoConnection, account_id, PhotoConnection.account_id)
-    _delete_account_rows(session, GoogleAccountHint, account_id, GoogleAccountHint.account_id)
-    # Calendar credentials go with the Account; sponsored Space targets cascade.
-    _delete_account_rows(session, CalendarConnection, account_id, CalendarConnection.account_id)
-    _delete_account_rows(
-        session, CalendarOAuthTransaction, account_id, CalendarOAuthTransaction.account_id
-    )
+    plugin_lifecycle.account_deleted(session, account_id)
     from eimir.attachments.photo_locations import discard_owner
 
     discard_owner(session, account_id)

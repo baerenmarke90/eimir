@@ -14,7 +14,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, UniqueConstraint, select
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    Integer,
+    UniqueConstraint,
+    column,
+    select,
+    table,
+)
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
@@ -306,13 +315,17 @@ def parent_of(session: Session, attachment_id: UUID) -> tuple[str, UUID] | None:
     if account_id is not None:
         return "ACCOUNT_PROFILE", account_id
 
-    from eimir.heart_hunt.models import HeartHuntRound
+    # Plugin parents come from the Core manifest, so exclusivity holds with or
+    # without the plugin (Decision 0017).
+    from eimir.plugins.manifest import attachment_rules
 
-    round_id = session.scalar(
-        select(HeartHuntRound.id).where(HeartHuntRound.attachment_id == attachment_id)
-    )
-    if round_id is not None:
-        return "HEART_HUNT_ROUND", round_id
+    for row, rule in attachment_rules():
+        parent = table(row.table, column("id"), column(rule.column))
+        parent_id = session.scalar(
+            select(parent.c.id).where(parent.c[rule.column] == attachment_id)
+        )
+        if parent_id is not None:
+            return rule.parent_type, parent_id
     return None
 
 

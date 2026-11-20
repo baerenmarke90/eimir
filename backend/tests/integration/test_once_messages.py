@@ -568,3 +568,74 @@ def test_a_browser_session_sees_the_inbox_but_cannot_open_or_enable(session, cli
     )
     assert disable.status_code == 200, disable.text
     assert disable.json()["ownEnabled"] is False
+
+
+def _once_notices(session, message_id):  # type: ignore[no-untyped-def]
+    return session.scalar(
+        select(func.count())
+        .select_from(Notification)
+        .where(Notification.target_type == "ONCE_MESSAGE", Notification.target_id == message_id)
+    )
+
+
+def test_without_the_plugin_membership_end_purges_messages_and_notices(session, actors):  # type: ignore[no-untyped-def]
+    from eimir.once_messages.models import OnceDevice, OnceReception
+    from tests.support.plugins import without_plugins
+
+    message_id = sent(session, actors).id
+    engagement.project_pending(session, limit=100)
+    assert _once_notices(session, message_id) == 1
+    member = next(
+        m
+        for m in relationship.active_memberships(session, actors["space"].id)
+        if m.account_id == actors["second"].id
+    )
+    with without_plugins():
+        relationship.end_membership(session, member)
+    session.flush()
+    session.expire_all()
+    assert session.get(OnceMessage, message_id) is None
+    assert _once_notices(session, message_id) == 0
+    for model in (OnceDevice, OnceReception):
+        rows = select(func.count()).select_from(model).where(model.space_id == actors["space"].id)
+        assert session.scalar(rows) == 0, model.__tablename__
+
+
+def test_without_the_plugin_a_claimed_message_goes_with_its_claim_window(  # type: ignore[no-untyped-def]
+    session, actors, monkeypatch
+):
+    """Core-only is never weaker: the plugin empties the payload, Core deletes the row."""
+    from eimir.jobs import maintenance
+    from tests.support.plugins import without_plugins
+
+    message_id = sent(session, actors).id
+    engagement.project_pending(session, limit=100)
+    opened_at = clock.now()
+    service.claim(
+        session,
+        actors["b"],
+        message_id,
+        device_id=actors["key_b"],
+        token=uuid4(),
+        platform="android",
+    )
+    waiting_id = sent(session, actors).id
+    monkeypatch.setattr(clock, "now", lambda: opened_at + timedelta(minutes=6))
+    with without_plugins():
+        maintenance.run_security_retention(session, {})
+    session.flush()
+    session.expire_all()
+    assert session.get(OnceMessage, message_id) is None
+    assert _once_notices(session, message_id) == 0
+    # A message inside its lifetime and without a claim stays for the recipient.
+    assert session.get(OnceMessage, waiting_id) is not None
+
+
+def test_without_the_plugin_once_notices_are_hidden(session, actors):  # type: ignore[no-untyped-def]
+    from tests.support.plugins import without_plugins
+
+    sent(session, actors)
+    engagement.project_pending(session, limit=100)
+    assert engagement.unread_count(session, actors["b"]) == 1
+    with without_plugins():
+        assert engagement.unread_count(session, actors["b"]) == 0

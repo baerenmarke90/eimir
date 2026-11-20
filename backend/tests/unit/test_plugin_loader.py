@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
+from typing import Any
 
 import pytest
 from fastapi import APIRouter, FastAPI
@@ -12,8 +13,10 @@ from fastapi.routing import iter_route_contexts
 
 from eimir import pro_plugin
 from eimir.deployment.revision import UNVERIFIED_REVISION
+from eimir.engagement.models import EngagementTarget
 from eimir.entitlements.models import Capability
 from eimir.jobs import runner
+from eimir.jobs.worker import JobRegistry
 from eimir.plugins import loader
 from eimir.plugins.contract import PLUGIN_SEAM_VERSION, ProPlugin
 from eimir.plugins.loader import (
@@ -37,6 +40,9 @@ class FakePlugin:
     provided: frozenset[str] = frozenset({Capability.GAMES_COUPLE.value})
     modules: tuple[str, ...] = ()
     plugin_routers: tuple[APIRouter, ...] = field(default=())
+    job_kinds: tuple[str, ...] = ()
+    targets: Mapping[EngagementTarget, Any] = field(default_factory=dict)
+    read_rules: Mapping[str, Callable[..., bool]] = field(default_factory=dict)
 
     def capabilities(self) -> frozenset[str]:
         return self.provided
@@ -46,6 +52,43 @@ class FakePlugin:
 
     def routers(self) -> Sequence[APIRouter]:
         return self.plugin_routers
+
+    def register_jobs(self, registry: JobRegistry) -> None:
+        for kind in self.job_kinds:
+            registry.register(kind, lambda session, payload: None)
+
+    def ensure_scheduled(self, session: object) -> None:
+        return None
+
+    def prune_expired(self, session: object) -> None:
+        return None
+
+    def on_outbox_event(self, session: object, event: object, event_type: object) -> None:
+        return None
+
+    def project_notification(self, *args: object) -> bool:
+        return False
+
+    def engagement_targets(self) -> Mapping[EngagementTarget, Any]:
+        return self.targets
+
+    def attachment_read_rules(self) -> Mapping[str, Callable[..., bool]]:
+        return self.read_rules
+
+    def on_partner_joined(self, *args: object) -> None:
+        return None
+
+    def on_membership_ended(self, *args: object) -> None:
+        return None
+
+    def on_member_left(self, *args: object) -> None:
+        return None
+
+    def on_account_deleted(self, *args: object) -> None:
+        return None
+
+    def export_account_document(self, *args: object) -> Mapping[str, Any]:
+        return {}
 
 
 def candidate(
@@ -316,3 +359,45 @@ def test_the_worker_refuses_to_start_without_its_named_plugin(
 
     with pytest.raises(PluginLoadError, match="refused"):
         runner.main()
+
+
+def test_a_plugin_target_the_manifest_does_not_declare_refuses_to_start() -> None:
+    plugin = FakePlugin(targets={EngagementTarget.MEMORY: lambda *args: None})
+
+    with pytest.raises(PluginLoadError, match="notification targets"):
+        resolve(["pro"], [candidate(plugin)])
+
+
+def test_a_plugin_attachment_parent_the_manifest_does_not_declare_refuses_to_start() -> None:
+    plugin = FakePlugin(read_rules={"MEMORY": lambda *args: True})
+
+    with pytest.raises(PluginLoadError, match="attachment parents"):
+        resolve(["pro"], [candidate(plugin)])
+
+
+def test_a_plugin_job_kind_the_manifest_does_not_declare_refuses_to_start() -> None:
+    loaded = resolve(["pro"], [candidate(FakePlugin(job_kinds=("pro.unknown_job",)))])
+
+    with pytest.raises(PluginLoadError, match="job kinds"):
+        loaded.register_jobs(JobRegistry())
+
+
+def test_a_worker_without_the_plugin_leaves_its_job_kinds_unclaimed() -> None:
+    from eimir.plugins.manifest import PLUGIN_JOB_KINDS
+
+    registry = JobRegistry()
+    LoadedPlugins(()).register_jobs(registry)
+    assert LoadedPlugins(()).unclaimed_job_kinds(registry) == PLUGIN_JOB_KINDS
+
+    pro_plugin.plugin.register_jobs(registry)
+    assert registry.kinds() == PLUGIN_JOB_KINDS
+    assert LoadedPlugins((pro_plugin.plugin,)).unclaimed_job_kinds(registry) == frozenset()
+
+
+def test_the_in_tree_pro_plugin_decides_exactly_the_declared_targets_and_parents() -> None:
+    from eimir.plugins.manifest import PLUGIN_ENGAGEMENT_TARGETS, attachment_rules
+
+    assert set(pro_plugin.plugin.engagement_targets()) == PLUGIN_ENGAGEMENT_TARGETS
+    assert set(pro_plugin.plugin.attachment_read_rules()) == {
+        rule.parent_type for _, rule in attachment_rules()
+    }

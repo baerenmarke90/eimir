@@ -256,8 +256,8 @@ the caller's `Session` and never commit, roll back or open their own transaction
 | `on_outbox_event(session, event, event_type)` | C8 (`calendar_sync.on_outbox_event`) | Runs inside `project_event()` before `_event_effects_allowed()`; may only enqueue work; must be idempotent under Outbox replay | An exception fails the projection job, which retries, as today. |
 | `project_notification(session, event, event_type, core) -> bool` | C8 projection branches | Runs after `_event_effects_allowed()`; uses the facade's target-notification projection, whose `ON CONFLICT` keys keep replays idempotent; returns `True` when it handled the event | Absent plugin: events of plugin types are not projected, so no new notification appears. |
 | `engagement_targets() -> Mapping[EngagementTarget, TargetRule]` (row check and SQL `exists` predicate) | C9 | Pure SQL expressions composed into Core queries; no I/O, no writes | Absent plugin: the predicate is `false()`, so existing notifications for those targets are hidden (fail closed). |
-| `attachment_read_authorizer(parent_type)` | C17 | Read only | Absent plugin: the existing `privacy_absence` branch denies the read. |
-| `on_partner_joined`, `on_membership_ended`, `on_account_deleted` | Only those parts of C10 to C13 that a manifest rule cannot express | Run in the caller's transaction **after** Core has applied the manifest rules | An exception rolls the whole lifecycle transaction back (fail closed, as today). Absent plugin: the manifest rules alone apply. |
+| `attachment_read_rules() -> Mapping[str, AttachmentReadRule]` | C17 | Read only | Absent plugin: the existing `privacy_absence` branch denies the read. |
+| `on_partner_joined`, `on_membership_ended`, `on_member_left`, `on_account_deleted`, `prune_expired` | C7, C10 to C13 | Run in the caller's transaction at the existing call sites; with the plugin loaded they own its tables' lifecycle (update of decision 4) | An exception rolls the whole lifecycle transaction back (fail closed, as today). Absent plugin: the manifest rules alone apply. |
 | `export_account_document(session, authorization, scope) -> Mapping` | C14 | Read only, inside the export transaction | Absent plugin: the manifest export rule produces the same keys (decision 4). |
 | `date_idea_catalog() -> Catalog` | C18 | Pure, cached | Absent plugin: Core treats the catalog as unavailable, which is the existing paused state of a round that contains date ideas (#465 within #1535): Wish-only rounds are unaffected, nothing is deleted, export keeps catalog IDs only. `IDEA_ID_PATTERN` stays a Core contract constant. |
 | `seed_demo(session, result)` | C19 | Inside the demo seed transaction; idempotent like the existing demo helpers | Absent plugin: the demo Space has no quote preferences and no location share. |
@@ -297,7 +297,8 @@ Alembic autogenerate in a Core-only checkout must not propose dropping manifest 
 
 The plugin's own hooks add only behavior a table rule cannot express. At the baseline that is nothing for
 lifecycle: every Pro purge is a database delete, and the only provider-side effect (calendar credential
-revocation) happens on explicit disconnect, not on membership end or account deletion.
+revocation) happens on explicit disconnect, not on membership end or account deletion. (Superseded by the update
+below: the plugin-loaded purges are not plain deletes.)
 
 **Required Core tests:**
 
@@ -308,6 +309,33 @@ revocation) happens on explicit disconnect, not on membership end or account del
   plugin loaded, and expired rows are purged.
 
 A new Pro table therefore needs a manifest row in Core in the same change (decision 7).
+
+**Update of November 20, 2026 (Phase 1, pull request b).** Implementing C7 and C10 to C13 showed that the
+statement "every Pro purge is a database delete" does not hold at `origin/main` `03c48d084`:
+`once_messages.purge_space` first deletes the notifications that point at the messages, the once-message expiry
+empties the payload at `claim_until` and keeps the row, presence retention suspends shares and removes the owner's
+location, and account deletion resets the location consents a departing recipient had received. Running the
+manifest first and the plugin hooks afterwards would change behavior with the plugin loaded. With the coordinator's
+approval the rule is therefore:
+
+- **Plugin loaded:** its hooks own the lifecycle of its tables. They call the existing functions unchanged and at
+  the existing call sites (`on_partner_joined`, `on_membership_ended`, `on_member_left`, `on_account_deleted`,
+  `prune_expired`), so plugin-loaded behavior stays identical. The manifest executor does not run for that
+  plugin's tables (no double execution).
+- **Plugin absent:** Core's manifest executor (`eimir.plugins.lifecycle`) applies the rules of the absent plugin's
+  tables only: `purge_on` deletes at the four lifecycle points, `expires_columns` deletes at retention, `transient`
+  tables are emptied, `attachment` hands photos to `mark_for_deletion`, `export` builds the personal-export keys,
+  and the new `notification_targets` field deletes the notifications that point at deleted rows. A purge rule may
+  name `dependents`, tables whose rows with the same `space_id` and `account_id` go with each matched row.
+
+The executor is never weaker than the plugin. Its known, deliberate differences from the plugin-loaded behavior:
+
+| Situation | Plugin loaded | Plugin absent |
+| --- | --- | --- |
+| Once message after its claim window | Payload emptied, row kept as a receipt until `expires_at` | Row deleted with its notifications |
+| Recipient of a location consent deletes their Account | Consent reset to `OFF` for the remaining partner, owner location removed | Consent deleted, owner location and publish credentials removed (`dependents`) |
+| Location snapshots, photo picker selections, calendar OAuth transactions | Retention by their own timers | Deleted at the next security-retention run (`transient`) |
+| Notifications of purged games and garden rows | Kept and hidden by the target predicate | Deleted with the row (`notification_targets`) |
 
 ### 5. Failure policy and capability visibility
 
@@ -461,7 +489,7 @@ and the retirement of old artifacts are operational work on top.
   table names and counts only.
 - **Concurrency and transactions:** hooks run in the caller's transaction and never commit; existing lock order
   (`relationship.lock_space`, account locks in `project_event`) is unchanged because the hooks are called at the
-  same points. Purge order is Core manifest first, then plugin hook.
+  same points. A loaded plugin's hooks purge its tables; the manifest executor runs only for absent plugins.
 - **Resilience:** a broken plugin stops the process instead of serving partial Pro behavior. Core-only workers
   leave plugin jobs unclaimed rather than failing them.
 - **Observability:** one structured log line per process start with loaded plugins, seam version, revision and

@@ -43,6 +43,9 @@ class JobRegistry:
     def get(self, kind: str) -> Handler | None:
         return self._handlers.get(kind)
 
+    def kinds(self) -> frozenset[str]:
+        return frozenset(self._handlers)
+
 
 registry = JobRegistry()
 

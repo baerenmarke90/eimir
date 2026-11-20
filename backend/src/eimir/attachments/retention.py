@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import StrEnum
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import column, select, table
 from sqlalchemy.orm import Session
 
 from eimir.attachments import binding
@@ -15,6 +15,7 @@ from eimir.heart_moments.models import HeartMoment
 from eimir.memories.models import Memory
 from eimir.people.models import RelatedPerson
 from eimir.plans.models import Plan
+from eimir.plugins.manifest import AttachmentRule, PluginTable, attachment_rules
 
 
 class OwnerAttachmentBinding(StrEnum):
@@ -57,6 +58,13 @@ def _resource_binding(
     return OwnerAttachmentBinding.INCONSISTENT
 
 
+def _plugin_attachment_rule(parent_type: str) -> tuple[PluginTable, AttachmentRule] | None:
+    for row, rule in attachment_rules():
+        if rule.parent_type == parent_type:
+            return row, rule
+    return None
+
+
 def classify_owner_attachment(
     session: Session,
     attachment: Attachment,
@@ -79,16 +87,18 @@ def classify_owner_attachment(
         return OwnerAttachmentBinding.UNBOUND
 
     parent_type, parent_id = parent
-    if parent_type == "HEART_HUNT_ROUND":
-        # The hider's round photo is deleted with the hider's account.
-        from eimir.heart_hunt.models import HeartHuntRound
-
-        hider_id = session.scalar(
-            select(HeartHuntRound.hider_id).where(HeartHuntRound.id == parent_id)
+    plugin_rule = _plugin_attachment_rule(parent_type)
+    if plugin_rule is not None:
+        # A plugin parent's photo is private to its owner column (the hider of a
+        # heart-hunt round) and is deleted with that account.
+        row, rule = plugin_rule
+        parent_table = table(row.table, column("id"), column(rule.owner_column))
+        owner_id = session.scalar(
+            select(parent_table.c[rule.owner_column]).where(parent_table.c.id == parent_id)
         )
         return (
             OwnerAttachmentBinding.OWNER_PRIVATE
-            if hider_id == account_id
+            if owner_id == account_id
             else OwnerAttachmentBinding.INCONSISTENT
         )
     if parent_type == "ACCOUNT_PROFILE":

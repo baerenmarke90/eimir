@@ -1556,6 +1556,25 @@ def _validate_media(
             raise TransferArchiveError(
                 "Transfer media classification is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
             )
+        if item.get("mediaType") not in set(MediaType) or not _restorable_metadata(item):
+            raise TransferArchiveError(
+                "Transfer media metadata is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+            )
+        if item.get("mediaType") == MediaType.IMAGE:
+            from eimir.attachments.limits import IMAGE_MAX_SIZE, rule_for
+
+            size, mime_type = item.get("size"), item.get("mimeType")
+            rule = rule_for(mime_type) if isinstance(mime_type, str) else None
+            if (
+                type(size) is not int
+                or not 0 < size <= IMAGE_MAX_SIZE
+                or rule is None
+                or rule.media_type is not MediaType.IMAGE
+                or archive_sizes.get(f"media/{source_id}/original") != size
+            ):
+                raise TransferArchiveError(
+                    "Invalid image media.", ErrorCode.TRANSFER_RELATION_INVALID
+                )
         if item.get("mediaType") == "AUDIO":
             from eimir.attachments.limits import AUDIO_MAX_SIZE, contracted_mime_types
 
@@ -1744,6 +1763,59 @@ def _validate_domain_schema_and_links(
             )
 
 
+def _restorable_metadata(item: Mapping[str, Any]) -> bool:
+    """Accept only the scalar media metadata shapes this server exports."""
+    orientation = item.get("orientation")
+    if orientation is not None and (type(orientation) is not int or not 1 <= orientation <= 8):
+        return False
+    for key in ("width", "height"):
+        value = item.get(key)
+        if value is not None and (type(value) is not int or value <= 0):
+            return False
+    captured_at = item.get("capturedAt")
+    if captured_at is None:
+        return True
+    if not isinstance(captured_at, str):
+        return False
+    try:
+        datetime.fromisoformat(captured_at)
+    except ValueError:
+        return False
+    return True
+
+
+def _inspect_image(archive: ZipFile, source_id: UUID, item: dict[str, Any]) -> None:
+    """Check restored photo bytes with the upload decoder, keeping them unchanged.
+
+    Re-encoding would cost quality and metadata on every restore. Type,
+    pixels, dimensions and the thumbnail are decided by the decoder instead
+    of the bundle.
+    """
+    from eimir.attachments import images
+    from eimir.attachments.limits import IMAGE_MAX_SIZE, rule_for
+
+    rule, thumbnail_rule = rule_for(str(item["mimeType"])), rule_for("image/jpeg")
+    if rule is None or thumbnail_rule is None:
+        raise TransferArchiveError("Invalid image media.", ErrorCode.TRANSFER_RELATION_INVALID)
+    try:
+        with archive.open(f"media/{source_id}/original", "r") as source:
+            inspected = images.inspect(source.read(IMAGE_MAX_SIZE + 1), rule)
+        if "thumbnail" in item["variants"]:
+            with archive.open(f"media/{source_id}/thumbnail", "r") as source:
+                thumbnail = images.inspect(source.read(IMAGE_MAX_SIZE + 1), thumbnail_rule)
+            if max(thumbnail.width, thumbnail.height) > images.THUMBNAIL_EDGE:
+                raise images.ImageRejectedError("IMAGE_TOO_LARGE")
+    except images.ImageRejectedError:
+        raise TransferArchiveError(
+            "Invalid image media.", ErrorCode.TRANSFER_RELATION_INVALID
+        ) from None
+    declared = (item.get("width"), item.get("height"))
+    if declared != (None, None) and declared != (inspected.width, inspected.height):
+        raise TransferArchiveError("Invalid image media.", ErrorCode.TRANSFER_RELATION_INVALID)
+    # Apply stores the decoder's facts, never the bundle's claims.
+    item.update(mimeType=inspected.mime_type, width=inspected.width, height=inspected.height)
+
+
 def validate_import_bundle(
     session: Session,
     authorization: AuthorizationContext,
@@ -1806,11 +1878,16 @@ def validate_import_bundle(
         media,
         {name: entry.file_size for name, entry in validated_zip.entries.items()},
     )
-    pdfs = [item for item in media if item.get("mediaType") == MediaType.DOCUMENT]
-    if pdfs:
+    checked = [
+        item for item in media if item.get("mediaType") in {MediaType.DOCUMENT, MediaType.IMAGE}
+    ]
+    if checked:
         with ZipFile(fileobj, mode="r") as archive:
-            for item in pdfs:
+            for item in checked:
                 source_id = _uuid(item.get("sourceId"), ErrorCode.TRANSFER_RELATION_INVALID)
+                if item["mediaType"] == MediaType.IMAGE:
+                    _inspect_image(archive, source_id, item)
+                    continue
                 with archive.open(f"media/{source_id}/original", "r") as source:
                     if not is_pdf(source.read(DOCUMENT_MAX_SIZE + 1)):
                         raise TransferArchiveError(

@@ -161,8 +161,41 @@ class CompletionAdmissionTest(unittest.TestCase):
         ):
             channel.check_for_publication(SOURCE, "workflow_run", completion_event())
 
+    def test_every_merge_admits_the_current_main_without_full_regression(self):
+        # #2096: the private test channel follows every merge to main.
+        with (
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready") as ready,
+            patch.object(channel, "channel_already_selected", side_effect=[False, True]),
+        ):
+            self.assertTrue(channel.check_for_publication(SOURCE, "push", {}))
+            self.assertFalse(channel.check_for_publication(SOURCE, "push", {}))
+            ready.assert_not_called()
+
+    def test_merge_superseded_by_a_newer_merge_is_not_built(self):
+        with (
+            patch.object(channel, "latest_main", return_value=PREVIOUS),
+            patch.object(channel, "candidate_ready") as ready,
+            patch.object(channel, "channel_already_selected") as selected,
+        ):
+            self.assertFalse(channel.check_for_publication(SOURCE, "push", {}))
+            ready.assert_not_called()
+            selected.assert_not_called()
+
+    def test_only_the_fast_lane_skips_the_full_regression(self):
+        with (
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", return_value=False) as ready,
+        ):
+            self.assertTrue(channel.source_admitted(SOURCE, full_regression=False))
+            ready.assert_not_called()
+            self.assertFalse(channel.source_admitted(SOURCE, full_regression=True))
+            ready.assert_called_once_with(SOURCE)
+        with patch.object(channel, "latest_main", return_value=PREVIOUS):
+            self.assertFalse(channel.source_admitted(SOURCE, full_regression=False))
+
     def test_other_trigger_types_cannot_admit_a_build(self):
-        for event_name in ("push", "pull_request", "schedule", ""):
+        for event_name in ("pull_request", "schedule", ""):
             with (
                 self.subTest(event_name=event_name),
                 patch.object(channel, "gh_api") as api,
@@ -667,6 +700,36 @@ class BranchPromotionTest(unittest.TestCase):
             if endpoint.endswith("/git/trees")
         )
         self.assertEqual({row["path"] for row in tree["tree"]}, set(self.files))
+
+    def test_merge_promotes_without_the_full_regression(self):
+        with (
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", return_value=False) as ready,
+            patch.object(channel, "gh_api", side_effect=self.api),
+        ):
+            self.assertTrue(channel.advance_channel(self.files, SOURCE, full_regression=False))
+        ready.assert_not_called()
+        self.assertTrue(self.calls[-1][0].endswith("/git/refs/heads/deploy/eimir-test"))
+
+    def test_cli_publish_uses_the_fast_lane_only_for_merges(self):
+        for event_name, expected in (("push", False), ("workflow_dispatch", True), ("workflow_run", True)):
+            environment = {
+                "GITHUB_REPOSITORY": channel.REPOSITORY,
+                "GITHUB_REF": "refs/heads/main",
+                "GITHUB_EVENT_NAME": event_name,
+            }
+            with (
+                self.subTest(event_name=event_name),
+                patch.dict(os.environ, environment),
+                patch.object(channel, "publish") as publish,
+                patch.object(
+                    sys,
+                    "argv",
+                    ["channel", "publish", "--revision", SOURCE, "--artifact-root", "/a", "--output", "/o"],
+                ),
+            ):
+                self.assertEqual(channel.main(), 0)
+                self.assertIs(publish.call_args.kwargs["full_regression"], expected)
 
     def test_stale_main_or_failed_checks_never_write_a_ref(self):
         for stale in (True, False):

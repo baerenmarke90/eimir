@@ -1,6 +1,11 @@
 name: Publish Immutable Release
 
 on:
+  # Every merge to main publishes the private test channel right away, after
+  # its pull-request checks only (#2096). Product releases still require the
+  # full regression; their jobs run on workflow_dispatch only.
+  push:
+    branches: [main]
   workflow_run:
     workflows:
       - CI
@@ -93,7 +98,8 @@ concurrency:
   # Late completions must not evict a queued candidate from another source or
   # origin. Product releases retain their single protected publication queue.
   group: publish-release-${{ github.event_name == 'workflow_dispatch' && 'protected' || github.event.workflow_run.head_sha && format('{0}-{1}-{2}', github.event.workflow_run.head_repository.full_name, github.event.workflow_run.event, github.event.workflow_run.head_sha) || github.ref }}
-  cancel-in-progress: false
+  # A newer merge supersedes an unfinished test-channel build of an older one.
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 env:
   SYFT_VERSION: "1.42.3"
@@ -103,7 +109,7 @@ env:
 jobs:
   contract:
     name: Release publication contract
-    if: github.event_name != 'workflow_run'
+    if: github.event_name != 'workflow_run' && github.event_name != 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -1428,7 +1434,8 @@ jobs:
         github.event.workflow_run.event == 'workflow_dispatch' &&
         github.event.workflow_run.conclusion == 'success' &&
         github.event.workflow_run.head_repository.full_name == github.repository) ||
-       (github.event_name == 'workflow_dispatch' && inputs.private_test_channel == true)) &&
+       (github.event_name == 'workflow_dispatch' && inputs.private_test_channel == true) ||
+       github.event_name == 'push') &&
       github.event_name != 'pull_request' && github.ref == 'refs/heads/main' &&
       vars.EIMIR_TEST_CHANNEL_ENABLED == 'true'
     runs-on: ubuntu-latest

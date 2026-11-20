@@ -539,7 +539,7 @@ jobs:
           if-no-files-found: error
           # Pull-request evidence is never attested or published; release callers
           # consume it within days (#2096).
-          retention-days: ${{ github.event_name == 'pull_request' && 1 || 7 }}
+          retention-days: ${{ (github.event_name == 'pull_request' || github.event_name == 'push') && 1 || 7 }}
           compression-level: 6
 
   attest:

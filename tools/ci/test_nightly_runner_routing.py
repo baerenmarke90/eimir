@@ -25,6 +25,28 @@ SECRET_SCAN_PILOT = (
 )
 PR_BROWSER_JOBS = {"pr-critical", "changed-spec-plan", "changed-specs"}
 
+# (guest, hosted) for scheduled jobs with an explicit pre-existing job limit.
+# Other routed jobs use GitHub's existing 360-minute default on both routes.
+NIGHTLY_TIMEOUTS = {
+    ("ci.yml", "changes"): (15, 15),
+    ("ci.yml", "web"): (30, 30),
+    ("ci.yml", "backend_integration_shards"): (45, 30),
+    ("ci.yml", "backend-integration"): (5, 5),
+    ("ci.yml", "backend_core_only_shards"): (53, 30),
+    ("ci.yml", "backend-core-only"): (5, 5),
+    ("web-browser-qa.yml", "full-regression"): (80, 40),
+    ("web-browser-qa.yml", "browser"): (10, 10),
+    ("backend-encrypted.yml", "unit"): (20, 20),
+    ("backend-encrypted.yml", "integration"): (69, 45),
+    ("media-video.yml", "processing"): (20, 20),
+    ("media-video.yml", "image"): (25, 25),
+    ("media-video.yml", "browser"): (12, 12),
+    ("self-hosted-deployment-guard.yml", "changes"): (15, 15),
+    ("self-hosted-deployment-guard.yml", "upgrade-rehearsal"): (45, 45),
+    ("self-hosted-recovery.yml", "changes"): (15, 15),
+    ("self-hosted-recovery.yml", "recovery"): (35, 35),
+}
+
 
 NIGHTLY_ROUTE = f"{NIGHTLY_GUARD} && {NIGHTLY_LABELS}"
 PR_PILOT_ROUTE = f"{SECRET_SCAN_PILOT} && 'eimir-kvm-pr'"
@@ -34,19 +56,27 @@ def with_hosted_fallback(route: str) -> str:
     return "${{ " + route + " || 'ubuntu-latest' }}"
 
 
-def job_runners(workflow: str) -> dict[str, str]:
-    """Read the direct runs-on field of each job without a YAML dependency."""
+def job_field(workflow: str, field: str) -> dict[str, str]:
+    """Read a direct job field without a YAML dependency."""
     jobs_block = text(WORKFLOWS / workflow).split("\njobs:\n", 1)[1]
     sections = re.split(r"^  ([a-zA-Z0-9_-]+):\s*$", jobs_block, flags=re.MULTILINE)
-    runners = {}
+    values = {}
     for job, definition in zip(sections[1::2], sections[2::2]):
-        match = re.search(r"^    runs-on: (.+)((?:\n      [^\n]+)*)", definition, re.MULTILINE)
-        if match is None:
-            raise AssertionError(f"{workflow}: {job} must declare its runner directly")
-        value = match[2] if match[1] == ">-" else match[1]
-        runners[job] = " ".join(value.split())
-    if not runners:
-        raise AssertionError(f"{workflow}: expected at least one job")
+        match = re.search(
+            rf"^    {re.escape(field)}: (.+)((?:\n      [^\n]+)*)", definition, re.MULTILINE
+        )
+        if match is not None:
+            value = match[2] if match[1] == ">-" else match[1]
+            values[job] = " ".join(value.split())
+    return values
+
+
+def job_runners(workflow: str) -> dict[str, str]:
+    runners = job_field(workflow, "runs-on")
+    jobs_block = text(WORKFLOWS / workflow).split("\njobs:\n", 1)[1]
+    jobs = set(re.findall(r"^  ([a-zA-Z0-9_-]+):\s*$", jobs_block, re.MULTILINE))
+    if not jobs or jobs != runners.keys():
+        raise AssertionError(f"{workflow}: all jobs must declare their runner directly")
     return runners
 
 
@@ -63,6 +93,20 @@ class NightlyRunnerRoutingTest(unittest.TestCase):
                         self.assertEqual(runner, "ubuntu-latest")
                     else:
                         self.assertEqual(runner, with_hosted_fallback(NIGHTLY_ROUTE))
+
+    def test_guest_and_hosted_nightly_timeouts_follow_runner_guard(self) -> None:
+        routed_jobs = set()
+        for workflow in dispatched_files():
+            timeouts = job_field(workflow, "timeout-minutes")
+            for job, runner in job_runners(workflow).items():
+                if NIGHTLY_ROUTE not in runner:
+                    continue
+                with self.subTest(workflow=workflow, job=job):
+                    routed_jobs.add((workflow, job))
+                    guest, hosted = NIGHTLY_TIMEOUTS.get((workflow, job), (360, 360))
+                    expected = "${{ " + f"{NIGHTLY_GUARD} && {guest} || {hosted}" + " }}"
+                    self.assertEqual(timeouts.get(job), expected)
+        self.assertLessEqual(NIGHTLY_TIMEOUTS.keys(), routed_jobs)
 
     def test_capability_check_is_manual_and_has_run_specific_labels(self) -> None:
         capability = "runner-capability-check.yml"

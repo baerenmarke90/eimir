@@ -414,6 +414,23 @@ describe('primary tab slide feedback', () => {
     );
   });
 
+  it('keeps a switch to a peer view of the same tab in place', () => {
+    const navigate = vi.fn();
+    const view = render(<PageMotionHarness onNavigate={navigate} />);
+    const page = screen.getByTestId('motion-page');
+    const animate = vi
+      .fn()
+      .mockReturnValue({ cancel: vi.fn(), finished: pending() });
+    Object.defineProperty(page, 'animate', {
+      configurable: true,
+      value: animate,
+    });
+    view.rerender(
+      <PageMotionHarness pathname="/story/map" onNavigate={navigate} />,
+    );
+    expect(animate).not.toHaveBeenCalled();
+  });
+
   it('mirrors the direction in a right-to-left layout', () => {
     const navigate = vi.fn();
     const view = render(<PageMotionHarness onNavigate={navigate} />);

@@ -226,9 +226,9 @@ Something already on screen changes or leaves: a value changes, an item is reord
 - **In the app shell (as built in #2075).** `useNavigationMotion.ts` maps each committed route change to one direction:
   - a primary tab to a later or earlier tab is `next` or `previous`;
   - a Back or task return is `back`;
-  - a deeper page that is not a primary tab (a detail, a further step) is `forward`;
+  - a deeper page that is neither a primary tab nor one of its peer views (a detail, a further step) is `forward`;
   - a create task keeps its own entry;
-  - every other change, such as a primary tab chosen from a detail page, is `in-place`.
+  - every other change, such as a primary tab chosen from a detail page or a switch between a tab and its peer view (Momente and its map), is `in-place`.
 
   The routed page travels with `navigate(page, direction, { offset: 'inset' })`, which moves only its `left` offset, by at most 32 CSS px. A transform would make the page the containing block of its fixed controls (the floating create action, the composer toolbar), which would then travel with the page and jump when it settles. So this one offset animation is sanctioned (M6). The arriving content fades on the main element from 0.92 with `crossfade(main, { from })` once the destination shows usable content, not while it still shows its loading state. A swipe that already moved the pages (Gesture follow) plays no second entrance.
 - Reduced motion: the new content is there at once; the restored position and focus are the same.

@@ -41,6 +41,20 @@ const CURRENT_PAGE = PAGE_PARENTS.map((parent) => `${parent} .page`).join(', ');
 const BLOCKED_TARGETS =
   'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="switch"], [role="slider"], [role="tablist"], [draggable="true"], video, audio, .place-map-viewport, .media-gallery, .eimir-media-snap-track, [data-primary-tab-swipe-block]';
 
+/**
+ * A primary destination or one of its peer views (Momente's map, the shared
+ * notes): these share the primary surface, so a change between them is in
+ * place, never a deeper page.
+ */
+function isPrimarySurface(path: string): boolean {
+  return PRIMARY_APP_ROUTES.some(
+    (route) =>
+      route.path === path ||
+      ('peerPaths' in route &&
+        (route.peerPaths as readonly string[]).includes(path)),
+  );
+}
+
 function dragOffset(distance: number, hasNeighbour: boolean): number {
   const width = window.innerWidth;
   if (hasNeighbour) return Math.max(-width, Math.min(width, distance));
@@ -335,8 +349,9 @@ export function useNavigationMotion({
     // primary tabs move laterally in tab order like a pager; a Back or task
     // return comes in from the inline start; opening a deeper page (a detail,
     // a further step) comes in from the inline end. A create task keeps its
-    // own entry, and any other change (a tab chosen from a detail page) is in
-    // place: the content only fades.
+    // own entry, and any other change (a tab chosen from a detail page, a
+    // switch between a tab and its peer view such as the map) is in place:
+    // the content only fades.
     const direction: NavigateDirection =
       tabDirection > 0
         ? 'next'
@@ -344,7 +359,7 @@ export function useNavigationMotion({
           ? 'previous'
           : returningRef.current
             ? 'back'
-            : after < 0 && !createEntry
+            : !isPrimarySurface(pathname) && !createEntry
               ? 'forward'
               : 'in-place';
     // A lazy route shows only its loading fallback at first, without a page

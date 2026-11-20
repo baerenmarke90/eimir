@@ -1,8 +1,8 @@
 # eimir. - Premium Billing Strategy
 
 **Status:** authoritative commercial packaging baseline  
-**Version:** 1.2  
-**Decision date:** 2026-09-10; price revised 2026-11-14; channels revised 2026-11-15  
+**Version:** 1.3  
+**Decision date:** 2026-09-10; price revised 2026-11-14; channels revised 2026-11-15; launch sequence revised 2026-11-20  
 **Owning product decision:** #876; price superseded by the Product Owner decision recorded with #1892; purchase channels superseded by the Product Owner decision recorded with #1525  
 **Freemium strategy:** [FREEMIUM-FEATURE-MATRIX.md](./FREEMIUM-FEATURE-MATRIX.md)  
 **Business model:** [BUSINESS-MODEL.md](./BUSINESS-MODEL.md)  
@@ -105,6 +105,10 @@ Cloud provides managed operational value, including infrastructure, deployment, 
 Cloud may impose transparent managed-resource limits because those resources create recurring operator cost. Storage quota values are governed by the current business/freemium documentation and remain working hypotheses until separately validated/frozen if that documentation says so.
 
 ### eimir. Self-Hosted
+
+The eimir. Cloud is the launch product; Self-Hosted, including Self-Hosted Pro and its signed license delivery
+(Slice 3), follows much later and is not offered at launch ([Decision 0018](decisions/0018-cloud-first-self-hosted-later.md)).
+The rules below apply when it is offered.
 
 Self-Hosted users operate their own infrastructure and storage. Personal/noncommercial Free/Core remains fully usable under the repository's licensing model.
 

@@ -624,11 +624,19 @@ jobs:
 
   secrets:
     name: Secret Scan
-    runs-on: ubuntu-latest
+    # Forks and manually dispatched regressions keep the GitHub-hosted runner.
+    runs-on: >-
+      ${{ github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          vars.EIMIR_PR_RUNNER != 'github-hosted' &&
+          'eimir-kvm-pr' || 'ubuntu-latest' }}
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       # Run gitleaks directly instead of through the action. The action scans
       # <previous commit>..HEAD and fails on the first push because the first

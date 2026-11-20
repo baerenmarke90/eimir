@@ -13,19 +13,17 @@ verify that a healthy deployment is also the intended deployment.
 
 from __future__ import annotations
 
-import os
-
 from fastapi import APIRouter, Response
 from sqlalchemy import text
 
 from eimir.api.schema import ApiModel
 from eimir.db.session import get_engine
+from eimir.deployment.revision import build_revision
 
 router = APIRouter(tags=["health"])
 
 REVISION_HEADER = "X-Eimir-Revision"
 LEGACY_REVISION_HEADER = "X-SideBySide-Revision"
-UNVERIFIED_REVISION = "unverified-local-checkout"
 
 
 class Health(ApiModel):
@@ -35,17 +33,6 @@ class Health(ApiModel):
 class Readiness(ApiModel):
     status: str
     database: str
-
-
-def build_revision() -> str:
-    """Return a response-header-safe build identity without exposing other config."""
-    value = os.environ.get(
-        "EIMIR_BUILD_REVISION",
-        os.environ.get("SBS_BUILD_REVISION", UNVERIFIED_REVISION),
-    ).strip()
-    if not value or "\r" in value or "\n" in value:
-        return "unknown"
-    return value[:128]
 
 
 def _set_revision_header(response: Response) -> None:

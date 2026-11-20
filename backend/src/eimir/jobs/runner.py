@@ -35,6 +35,7 @@ from eimir.observability import configure_logging
 from eimir.once_messages import service as once_messages
 from eimir.photo_sources import retention as photo_source_retention
 from eimir.places import photo_enrichment
+from eimir.plugins.loader import loaded_plugins
 from eimir.presence import retention as presence_retention
 from eimir.recaps import invalidation as _recap_invalidation  # noqa: F401
 from eimir.recaps import jobs as recap_jobs
@@ -100,6 +101,8 @@ def _run_engagement_projection() -> int:
 def main() -> None:
     settings = get_settings()
     configure_logging(settings)
+    # A named plugin that cannot be loaded stops the worker here (Decision 0017).
+    loaded_plugins()
     push_providers.configure_push_providers(settings)
 
     signal.signal(signal.SIGTERM, _request_shutdown)

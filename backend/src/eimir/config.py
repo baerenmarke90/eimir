@@ -212,6 +212,22 @@ class DatabaseSettings(IdentityCompatibleSettings):
     database_url: _DatabaseUrl = Field(default=DEFAULT_DATABASE_URL)
 
 
+class PluginSettings(BaseSettings):
+    """The plugin allow-list only (Decision 0017), read by ``api``, ``worker`` and ``migrate``.
+
+    Kept apart from ``Settings`` for the reason ``DatabaseSettings`` is: the
+    migration process loads plugins too and must not depend on application
+    configuration. ``EIMIR_PLUGINS`` is a comma-separated list of entry-point
+    names; an empty value runs Core only. The default is ``pro`` while the Pro
+    plugin ships inside this distribution, so existing installations keep
+    their behavior. The setting is new, so it has no legacy ``SBS_`` alias.
+    """
+
+    model_config = SettingsConfigDict(env_prefix="EIMIR_", env_file=".env", extra="ignore")
+
+    plugins: str = Field(default="pro")
+
+
 class Settings(IdentityCompatibleSettings):
     model_config = SettingsConfigDict(env_prefix="EIMIR_", env_file=".env", extra="ignore")
 

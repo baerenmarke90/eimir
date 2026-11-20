@@ -26,7 +26,6 @@ from eimir.administration.models import (
 from eimir.api.deps import CurrentServerAdmin, CurrentSession, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
-from eimir.api.v1.health import build_revision
 from eimir.attachments.models import Attachment, AttachmentStatus
 from eimir.auth import cloud, recent_auth
 from eimir.config import MailTransport
@@ -34,6 +33,7 @@ from eimir.config import get_settings as get_runtime_settings
 from eimir.core.clock import ensure_utc, now
 from eimir.core.errors import NotFoundError, ValidationError
 from eimir.core.ids import parse_id
+from eimir.deployment.revision import build_revision
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import (
     EntitlementGrant,

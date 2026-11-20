@@ -1571,6 +1571,30 @@ def _validate_media(
                 raise TransferArchiveError(
                     "Invalid voice media.", ErrorCode.TRANSFER_RELATION_INVALID
                 )
+        if item.get("mediaType") == MediaType.VIDEO:
+            from eimir.attachments.limits import VIDEO_MAX_SIZE, rule_for
+            from eimir.config import get_settings
+
+            size, mime_type = item.get("size"), item.get("mimeType")
+            rule = rule_for(mime_type) if isinstance(mime_type, str) else None
+            if (
+                type(size) is not int
+                or not 0 < size <= VIDEO_MAX_SIZE
+                or rule is None
+                or rule.media_type is not MediaType.VIDEO
+                or archive_sizes.get(f"media/{source_id}/original") != size
+            ):
+                raise TransferArchiveError(
+                    "Invalid video media.", ErrorCode.TRANSFER_RELATION_INVALID
+                )
+            # Imported video is re-validated by the video processor. Without
+            # one, fail closed before anything is written: the bundle stays
+            # usable on a server that can validate it.
+            if not get_settings().video_upload_enabled:
+                raise TransferArchiveError(
+                    "This server cannot validate transfer video.",
+                    ErrorCode.TRANSFER_FORMAT_UNSUPPORTED,
+                )
         owner_id = _uuid(item.get("ownerSourceId"), ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID)
         if source_id in indexed or source_id not in referenced or owner_id not in source_member_ids:
             raise TransferArchiveError(
@@ -2057,7 +2081,11 @@ def apply_import_bundle(
                     item["ownerSourceId"], ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID
                 )
                 target_owner = graph.mapping[owner_source]
+                revalidated = item["mediaType"] in {MediaType.AUDIO, MediaType.VIDEO}
                 for variant in item["variants"]:
+                    if revalidated and variant != "original":
+                        # Only the processor may produce derived variants.
+                        continue
                     key = build_storage_key(authorization.space_id, target_id, variant)
                     entry_name = f"media/{source_id}/{variant}"
                     with archive.open(entry_name, "r") as source:
@@ -2097,19 +2125,33 @@ def apply_import_bundle(
                     },
                     "version": 1,
                 }
-                if item["mediaType"] == "AUDIO":
-                    # Never publish untrusted transfer metadata as validated audio.
+                if revalidated:
+                    # Never publish untrusted transfer bytes or metadata as
+                    # validated audio or video. Restore is not paywalled: the
+                    # same worker job as an upload decides, without a
+                    # capability check.
                     attachment_values.update(
                         status=AttachmentStatus.VALIDATING.value,
                         mime_type=None,
                         size=None,
+                        width=None,
+                        height=None,
                         duration_seconds=None,
                         ready_at=None,
                         has_thumbnail=False,
                     )
-                    from eimir.attachments.service import ATTACHMENT_AUDIO_VALIDATION
+                    from eimir.attachments.service import (
+                        ATTACHMENT_AUDIO_VALIDATION,
+                        ATTACHMENT_VIDEO_VALIDATION,
+                    )
 
-                    enqueue(session, ATTACHMENT_AUDIO_VALIDATION, {"attachmentId": str(target_id)})
+                    enqueue(
+                        session,
+                        ATTACHMENT_AUDIO_VALIDATION
+                        if item["mediaType"] == MediaType.AUDIO
+                        else ATTACHMENT_VIDEO_VALIDATION,
+                        {"attachmentId": str(target_id)},
+                    )
                 session.execute(
                     attachment_table.insert().values(
                         **protect_values("attachments", attachment_values)

@@ -22,6 +22,7 @@ PLUGIN_PACKAGES = (
     "eimir.garden",
     "eimir.heart_hunt",
     "eimir.once_messages",
+    "eimir.partner_quick_actions",
     "eimir.photo_sources",
     "eimir.picture_ping_pong",
     "eimir.presence",
@@ -32,6 +33,7 @@ PLUGIN_PACKAGES = (
 PLUGIN_MODULES = (
     "eimir.pro_plugin",
     "eimir.games.service",
+    "eimir.places.memory_map",
     "eimir.providers.caldav",
     *(
         f"eimir.api.v1.{name}"
@@ -43,8 +45,10 @@ PLUGIN_MODULES = (
             "games",
             "garden",
             "heart_hunt",
+            "memory_map",
             "once_messages",
             "partner_location",
+            "partner_quick_actions",
             "photo_sources",
             "picture_ping_pong",
         )

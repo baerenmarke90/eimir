@@ -1,13 +1,9 @@
 import { LEGAL_PRIVACY_ROUTE, LEGAL_TERMS_ROUTE } from '../client/routes';
-import { privacyPolicyDe } from '../i18n/locales/legalDocuments/privacyPolicy.de.generated';
-import { termsOfUseDe } from '../i18n/locales/legalDocuments/termsOfUse.de.generated';
-import type { LegalDocument } from './legalDocument';
 
 export type LegalDocumentId = 'terms' | 'privacy';
 
 type LegalDocumentEntry = {
   route: string;
-  document: LegalDocument;
   /** Reading title of the sheet and the browser tab. */
   titleKey: string;
   /** Short label for footer links. */
@@ -15,20 +11,22 @@ type LegalDocumentEntry = {
   closeKey: string;
 };
 
-/** The eimir. Cloud legal documents the Web app delivers from its bundle. */
+/**
+ * The eimir. Cloud legal documents the Web app delivers from its bundle. The
+ * texts themselves live in `legalDocumentTexts`, a chunk that loads on demand
+ * so they stay out of the startup bundle.
+ */
 export const LEGAL_DOCUMENTS: Readonly<
   Record<LegalDocumentId, LegalDocumentEntry>
 > = {
   terms: {
     route: LEGAL_TERMS_ROUTE,
-    document: termsOfUseDe,
     titleKey: 'legal.termsSheetTitle',
     linkKey: 'legal.termsLink',
     closeKey: 'legal.sheetClose',
   },
   privacy: {
     route: LEGAL_PRIVACY_ROUTE,
-    document: privacyPolicyDe,
     titleKey: 'legal.privacySheetTitle',
     linkKey: 'legal.privacyLink',
     closeKey: 'legal.privacySheetClose',

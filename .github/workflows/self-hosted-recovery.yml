@@ -67,7 +67,19 @@ jobs:
             exit 0
           fi
 
-          git diff --name-only --no-renames "$base_sha" "$head_sha" > /tmp/changed-files.txt
+          # A pull request compares against the merge base. A plain two-commit diff
+          # would count newer base-branch commits that the head lacks as changes of
+          # this pull request and select the full tier for an unrelated change (#2096).
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            if ! git merge-base "$base_sha" "$head_sha" >/dev/null 2>&1; then
+              echo "recovery=true" >> "$GITHUB_OUTPUT"
+              echo "Pull-request merge base unavailable; failing closed to Self-Hosted Recovery."
+              exit 0
+            fi
+            git diff --name-only --no-renames "$base_sha...$head_sha" > /tmp/changed-files.txt
+          else
+            git diff --name-only --no-renames "$base_sha" "$head_sha" > /tmp/changed-files.txt
+          fi
           echo "Changed files:"
           cat /tmp/changed-files.txt
 

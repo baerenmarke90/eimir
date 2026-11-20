@@ -13,7 +13,7 @@ from fastapi import status as http_status
 from pydantic import ConfigDict, Field
 
 from eimir.api.authors import resolve_author_summaries
-from eimir.api.deps import AccountBoundAuthorization, Authorization, DbSession, ensure_capability
+from eimir.api.deps import AccountBoundAuthorization, Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary
 from eimir.engagement import presentation, service, thinking, wish_date_notice
@@ -23,9 +23,7 @@ from eimir.engagement.models import (
     EngagementTarget,
     Notification,
     NotificationKind,
-    SupportGestureKind,
 )
-from eimir.entitlements.models import Capability
 
 router = APIRouter()
 
@@ -99,19 +97,6 @@ class ThinkingOfYouCreate(ApiModel):
 class ThinkingOfYouAccepted(ApiModel):
     client_request_id: UUID
     thinking_of_you_available_at: datetime
-
-
-class PartnerQuickActionCreate(ApiModel):
-    model_config = ConfigDict(extra="forbid")
-
-    kind: SupportGestureKind
-    client_request_id: UUID
-
-
-class PartnerQuickActionAccepted(ApiModel):
-    kind: SupportGestureKind
-    client_request_id: UUID
-    available_at: datetime
 
 
 @router.get(
@@ -331,40 +316,6 @@ def send_thinking_of_you(
         client_request_id=request.client_request_id,
         thinking_of_you_available_at=request.created_at
         + timedelta(seconds=thinking.COOLDOWN_SECONDS),
-    )
-
-
-@router.post(
-    "/spaces/{spaceId}/partner-quick-actions",
-    response_model=PartnerQuickActionAccepted,
-    status_code=http_status.HTTP_202_ACCEPTED,
-    operation_id="sendPartnerQuickAction",
-    responses=problem_responses(401, 403, 404, 422, 429),
-    tags=["notifications"],
-)
-def send_partner_quick_action(
-    authorization: Authorization,
-    session: DbSession,
-    response: Response,
-    body: PartnerQuickActionCreate,
-) -> PartnerQuickActionAccepted:
-    ensure_capability(
-        session,
-        authorization.space_id,
-        Capability.PARTNER_QUICK_ACTIONS_EXTENDED.value,
-    )
-    request = thinking.send_support_gesture(
-        session,
-        authorization,
-        kind=body.kind,
-        client_request_id=body.client_request_id,
-    )
-    response.headers["Cache-Control"] = "private, no-store"
-    return PartnerQuickActionAccepted(
-        kind=body.kind,
-        client_request_id=request.client_request_id,
-        available_at=request.created_at
-        + timedelta(seconds=thinking.SUPPORT_GESTURE_COOLDOWN_SECONDS),
     )
 
 

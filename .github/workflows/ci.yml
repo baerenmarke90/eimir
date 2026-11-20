@@ -48,6 +48,9 @@ jobs:
       - name: Test change-scope filter logic
         run: python3 tools/ci/test_change_scope.py
 
+      - name: Test pull-request change range
+        run: python3 tools/ci/test_pr_change_range.py
+
       - name: Test nightly regression wiring
         run: python3 tools/ci/test_nightly_regression.py
 
@@ -122,7 +125,19 @@ jobs:
           # Treat renames as delete+add intentionally. Moving a file out of a
           # runtime path therefore still activates the originally affected gate,
           # and deletions remain covered as well.
-          git diff --name-only --no-renames "$base_sha" "$head_sha" > /tmp/changed-files.txt
+          # A pull request compares against the merge base. A plain two-commit diff
+          # would count newer base-branch commits that the head lacks as changes of
+          # this pull request and select the full tier for an unrelated change (#2096).
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            if ! git merge-base "$base_sha" "$head_sha" >/dev/null 2>&1; then
+              enable_all
+              echo "Pull-request merge base unavailable; failing closed to all expensive CI gates."
+              exit 0
+            fi
+            git diff --name-only --no-renames "$base_sha...$head_sha" > /tmp/changed-files.txt
+          else
+            git diff --name-only --no-renames "$base_sha" "$head_sha" > /tmp/changed-files.txt
+          fi
           echo "Changed files:"
           cat /tmp/changed-files.txt
 

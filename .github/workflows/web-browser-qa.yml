@@ -25,6 +25,7 @@ jobs:
     needs: changed-spec-plan
     name: PR-critical ${{ matrix.shard }}/${{ strategy.job-total }}
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
     strategy:
       fail-fast: false
@@ -32,6 +33,19 @@ jobs:
         shard: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Restore npm download cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.npm
+          key: web-browser-npm-${{ runner.os }}-${{ hashFiles('web/package-lock.json', 'web/e2e/package-lock.json') }}
+          restore-keys: web-browser-npm-${{ runner.os }}-
+
+      - name: Restore Playwright browser cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: web-browser-playwright-${{ runner.os }}-${{ hashFiles('web/e2e/package-lock.json') }}
 
       - name: Install locked Web dependencies
         working-directory: web
@@ -105,6 +119,7 @@ jobs:
     if: github.event_name == 'pull_request'
     name: Changed browser spec plan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
     outputs:
       has-specs: ${{ steps.plan.outputs.has-specs }}
@@ -135,6 +150,7 @@ jobs:
     needs: changed-spec-plan
     name: Changed browser specs ${{ matrix.shard }}/${{ needs.changed-spec-plan.outputs.additional-shard-total }}
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
     # The plan bounds the shard count by the selected spec files, so no shard
     # is empty; the aggregate fails if any shard fails, is cancelled or skips.
@@ -144,6 +160,19 @@ jobs:
         shard: ${{ fromJSON(needs.changed-spec-plan.outputs.additional-shards) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Restore npm download cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.npm
+          key: web-browser-npm-${{ runner.os }}-${{ hashFiles('web/package-lock.json', 'web/e2e/package-lock.json') }}
+          restore-keys: web-browser-npm-${{ runner.os }}-
+
+      - name: Restore Playwright browser cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: web-browser-playwright-${{ runner.os }}-${{ hashFiles('web/e2e/package-lock.json') }}
 
       - name: Install locked Web dependencies
         working-directory: web
@@ -217,6 +246,7 @@ jobs:
     if: github.event_name != 'pull_request'
     name: Full regression ${{ matrix.shard }}/4
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
     strategy:
       fail-fast: false
@@ -224,6 +254,19 @@ jobs:
         shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Restore npm download cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.npm
+          key: web-browser-npm-${{ runner.os }}-${{ hashFiles('web/package-lock.json', 'web/e2e/package-lock.json') }}
+          restore-keys: web-browser-npm-${{ runner.os }}-
+
+      - name: Restore Playwright browser cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: web-browser-playwright-${{ runner.os }}-${{ hashFiles('web/e2e/package-lock.json') }}
 
       - name: Install locked Web dependencies
         working-directory: web
@@ -300,6 +343,7 @@ jobs:
       - full-regression
     name: Playwright + axe
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 

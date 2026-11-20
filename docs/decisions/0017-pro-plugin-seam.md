@@ -248,9 +248,9 @@ the caller's `Session` and never commit, roll back or open their own transaction
 | --- | --- | --- | --- |
 | `seam_version`, `core_revision`, `name` | (new) | Constant attributes | Mismatch refuses to start (decision 1). |
 | `capabilities() -> frozenset[str]` | (new) feeds the filter next to `CLOUD_ONLY_CAPABILITIES` in `entitlements/service.py` `_grant_capabilities()` | Pure; read once at startup | A string that is not a `Capability` value refuses to start. Absent plugin: decision 5. |
-| `routers() -> Sequence[APIRouter]` | C1 | Mounted once, in `create_app()` (`main.py`), into `normal_router`, after all Core routers; today the router is assembled at import time of `eimir.api.v1`, which Phase 1 changes into a builder function | A `(method, path)` pair that collides with Core or another plugin refuses to start. Absent plugin: the paths do not exist and FastAPI answers `404`. |
+| `routers() -> Sequence[APIRouter]` | C1 | Mounted once, in `create_app()` (`main.py`), under `/api/v1` after all Core routers, with the same `require_normal_operation` dependency as `normal_router` (the Core router stays assembled at import time) | A `(method, path)` pair that collides with Core or another plugin refuses to start. Absent plugin: the paths do not exist and FastAPI answers `404`. |
 | `model_modules() -> Sequence[str]` | C2, C3 | Import only | Import error refuses to start. Lifecycle correctness never depends on this hook (decision 4). |
-| `migrations() -> MigrationSpec` (script location, `version_table`) | (new, decision 6) | Run by the `migrate` service after Core reaches head, in the same deploy step | A failing plugin migration fails `migrate`, which blocks the runtime exactly like a failing Core migration (`SELF-HOSTING.md`, "Upgrade and rollback semantics"). |
+| `migrations() -> MigrationSpec` (script location, `version_table`); not part of the contract yet, added with the first new plugin table | (new, decision 6) | Run by the `migrate` service after Core reaches head, in the same deploy step | A failing plugin migration fails `migrate`, which blocks the runtime exactly like a failing Core migration (`SELF-HOSTING.md`, "Upgrade and rollback semantics"). |
 | `register_jobs(registry)` | C5 | Handlers run in the job's `unit_of_work` with the existing retry, `DeferredJobError` and `RetryableJobError` semantics | Registering a kind that Core or the manifest does not declare as plugin-owned refuses to start. |
 | `ensure_scheduled(session)` | C6 | Called inside `_ensure_maintenance()`'s `unit_of_work`; must stay idempotent with the existing advisory-lock pattern of each module | An exception aborts the worker start, as today. |
 | `on_outbox_event(session, event, event_type)` | C8 (`calendar_sync.on_outbox_event`) | Runs inside `project_event()` before `_event_effects_allowed()`; may only enqueue work; must be idempotent under Outbox replay | An exception fails the projection job, which retries, as today. |
@@ -259,12 +259,13 @@ the caller's `Session` and never commit, roll back or open their own transaction
 | `attachment_read_rules() -> Mapping[str, AttachmentReadRule]` | C17 | Read only | Absent plugin: the existing `privacy_absence` branch denies the read. |
 | `on_partner_joined`, `on_membership_ended`, `on_member_left`, `on_account_deleted`, `prune_expired` | C7, C10 to C13 | Run in the caller's transaction at the existing call sites; with the plugin loaded they own its tables' lifecycle (update of decision 4) | An exception rolls the whole lifecycle transaction back (fail closed, as today). Absent plugin: the manifest rules alone apply. |
 | `export_account_document(session, authorization, scope) -> Mapping` | C14 | Read only, inside the export transaction | Absent plugin: the manifest export rule produces the same keys (decision 4). |
-| `date_idea_catalog() -> Catalog` | C18 | Pure, cached | Absent plugin: Core treats the catalog as unavailable, which is the existing paused state of a round that contains date ideas (#465 within #1535): Wish-only rounds are unaffected, nothing is deleted, export keeps catalog IDs only. `IDEA_ID_PATTERN` stays a Core contract constant. |
-| `seed_demo(session, result)` | C19 | Inside the demo seed transaction; idempotent like the existing demo helpers | Absent plugin: the demo Space has no quote preferences and no location share. |
-| `validate(settings) -> None` | (new) | Startup only | Raising refuses to start with the plugin's diagnostic. |
+| `date_ideas() -> DateIdeaSource \| None` (`revision`, `view`); the shared DTOs live in the Core contract `eimir.wish_selections.date_idea_contract` | C18 | Pure, cached | Absent plugin: Core treats the catalog as unavailable, which is the existing paused state of a round that contains date ideas (#465 within #1535): Wish-only rounds are unaffected, nothing is deleted, export keeps catalog IDs only. `IDEA_ID_PATTERN` stays a Core contract constant. |
+| `seed_demo(session, result, *, created)` | C19 | Inside the demo seed transaction after the demo Pro grant; idempotent like the existing demo helpers; `created` limits the location share to a new or reset demo Space | Absent plugin: the demo Space has no quote preferences and no location share. |
+| `validate(settings) -> None`; not part of the contract yet (no plugin setting needs it) | (new) | Startup only | Raising refuses to start with the plugin's diagnostic. |
 
-C15 and C16 (attachment parent resolution and owner classification) and C4 and C7 are **not** hooks. They become
-manifest rules, because they must work without the plugin.
+C15 and C16 (attachment parent resolution and owner classification) and C4 are **not** hooks. They become
+manifest rules, because they must work without the plugin. C7 is both: the plugin's `prune_expired` hook with
+the plugin loaded, the manifest's expiry rules without it (update of decision 4).
 
 ### 4. Data lifecycle never depends on the plugin being loaded
 
@@ -405,6 +406,29 @@ assumed.
 - Superseded alternative: two repositories (public Core, private Pro) with a Core PR merged before every Pro PR.
   It remains possible later, but it is not needed for the chosen direction and costs a second CI and review cycle
   per contract change.
+
+**Update of November 20, 2026: Phase 1 implemented.** Pull requests #2091 (a), #2093 (b), #2108 (c) and
+#2116 (d) implement Phase 1; `main` at `d3503cc5f` was checked against the acceptance criteria. The code
+differs from the text above in these points, which the hook table now reflects:
+
+- `PLUGIN_SEAM_VERSION` is `3` (raised with the hooks of b and d).
+- Plugin routers are mounted on the application under `/api/v1` with the `require_normal_operation`
+  dependency, not into a rebuilt `normal_router`; OpenAPI and the route resolution of every operation are
+  unchanged.
+- The date-idea hook is `date_ideas() -> DateIdeaSource | None`; the vocabulary and DTOs a Wish selection
+  round shares with the catalog moved into the Core contract `eimir.wish_selections.date_idea_contract`.
+- The demo hook is `seed_demo(session, result, *, created)`.
+- Plugin-owned job kinds, notification targets and capabilities are Core sets in the manifest
+  (`PLUGIN_JOB_KINDS`, `PLUGIN_ENGAGEMENT_TARGETS`, `PLUGIN_CAPABILITIES`), not per-row fields.
+- `alembic/env.py` already used `db/registry.load_all_models()` before Phase 1, so C3 was resolved through C2.
+
+Not implemented in Phase 1, because nothing uses them yet: the `migrations()` hook and the separate plugin
+Alembic environment of decision 6 (no new plugin table exists), the `validate(settings)` hook, and the
+dormant-plugin-data startup warning and ServerAdmin view of decision 5. The `/api/v1/instance` field stays a
+separate task.
+
+The Core-only configuration runs as `Backend Core-only` in the full CI tier of pull requests and in the
+nightly regression of `main` (#2096); pushes to `main` start no CI run, and the cheap pull-request tier skips it.
 
 ### 8. Phasing
 

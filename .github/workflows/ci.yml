@@ -61,12 +61,17 @@ jobs:
                 - '127.0.0.1:18082:8080'
               volumes:
                 - probe:/probe
+              healthcheck:
+                test: [CMD, node, -e, "fetch('http://127.0.0.1:8080').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+                interval: 1s
+                timeout: 2s
+                retries: 15
           volumes:
             probe:
           EOF
           docker build -t eimir-runner-capability-web .
           test "$(docker run --rm eimir-runner-capability-web node --version)" = v26.13.1
-          docker compose --project-name eimir-runner-capability --profile probe up -d
+          docker compose --project-name eimir-runner-capability --profile probe up -d --wait --wait-timeout 30
           for port in 18080 18081 18082; do
             test "$(curl -fsS --retry 5 --retry-connrefused "http://127.0.0.1:$port/")" = ok
           done

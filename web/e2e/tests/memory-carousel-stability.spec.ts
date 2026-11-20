@@ -957,7 +957,7 @@ for (const state of [
       localStorage.setItem('eimir.theme', theme);
       document.addEventListener('animationstart', (event) => {
         if (
-          event.animationName === 'eimir-affectionate-pulse' &&
+          event.animationName === 'eimir-motion-feedback-affection' &&
           event.target instanceof Element &&
           event.target.closest('.memory-photo-reactions')
         ) {

@@ -1599,7 +1599,7 @@ export function TodayPage({
     partner?.id ?? null,
     Boolean(dashboardQuery.data && !dashboardQuery.isCached),
   );
-  const rootIntro = useRootTabIntro('today');
+  const rootIntro = useRootTabIntro<HTMLDivElement>('today');
 
   // #1792: the distance is a normal Wir module. Directly below the couple
   // hero it stays inside the hero; moved elsewhere it renders in its place.
@@ -2544,10 +2544,7 @@ export function TodayPage({
       ) : null}
 
       {contentReady && dashboardQuery.data ? (
-        <div
-          className="today-content"
-          data-root-intro={rootIntro ? 'true' : undefined}
-        >
+        <div className="today-content" ref={rootIntro}>
           <PageHeader
             variant="root"
             className="content-overview-heading"

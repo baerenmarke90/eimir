@@ -714,31 +714,28 @@
 }
 
 /*
- * #1907 I1: Wir rises like the other roots, once per page load. The header
- * keeps the floating create action fixed, and the hero keeps its own intro.
+ * #1907 I1: Wir rises like the other roots, once per app start (the root-tab
+ * entrance in layout.css, `useRootTabIntro`). The header keeps the floating
+ * create action fixed, and the hero keeps its own opening (`wir.stage`).
  */
-@media (prefers-reduced-motion: no-preference) {
-  .today-content[data-root-intro] > :not(.page-heading, :nth-child(-n + 2)) {
-    animation: root-tab-intro calc(var(--duration-sequence-beat) * 2)
-      var(--easing-enter)
-      var(--root-intro-delay, calc(var(--duration-sequence-beat) * 0)) backwards;
-  }
+.today-content[data-motion-stage="playing"]
+> :not(.page-heading, :nth-child(-n + 2)) {
+  --motion-stage-rise: 0.9rem;
+  animation: eimir-motion-root-rise calc(var(--duration-sequence-beat) * 2)
+    var(--easing-enter)
+    var(--root-intro-delay, calc(var(--duration-stagger-item) * 0)) both;
+}
 
-  .today-content[data-root-intro] > :nth-child(3) {
-    --root-intro-delay: calc(var(--duration-sequence-beat) * 0.3);
-  }
+.today-content[data-motion-stage="playing"] > :nth-child(4) {
+  --root-intro-delay: var(--duration-stagger-item);
+}
 
-  .today-content[data-root-intro] > :nth-child(4) {
-    --root-intro-delay: calc(var(--duration-sequence-beat) * 0.6);
-  }
+.today-content[data-motion-stage="playing"] > :nth-child(5) {
+  --root-intro-delay: calc(var(--duration-stagger-item) * 2);
+}
 
-  .today-content[data-root-intro] > :nth-child(5) {
-    --root-intro-delay: calc(var(--duration-sequence-beat) * 0.9);
-  }
-
-  .today-content[data-root-intro] > :nth-child(n + 6) {
-    --root-intro-delay: calc(var(--duration-sequence-beat) * 1.2);
-  }
+.today-content[data-motion-stage="playing"] > :nth-child(n + 6) {
+  --root-intro-delay: calc(var(--duration-stagger-item) * 3);
 }
 
 @media (max-width: 599px) {

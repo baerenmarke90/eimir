@@ -3,12 +3,22 @@ import { cssDurationMilliseconds } from '../client/cssDuration';
 import { setPrimaryTabPeek } from '../client/primaryTabPeek';
 import { PRIMARY_APP_ROUTES } from '../client/routes';
 import { isDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
+import {
+  prefersReducedMotion,
+  subscribeReducedMotion,
+} from '../motion/reducedMotion';
+import {
+  crossfade,
+  type NavigateDirection,
+  navigate as navigateMotion,
+} from '../motion/replace';
 
 const EDGE_INSET = 24;
 const DIRECTION_SLOP = 10;
 const HORIZONTAL_BIAS = 1.25;
 const ENTRY_OPACITY = 0.92;
-const RETURN_SLIDE = 32;
+// Read by the swipe settle and its neighbour peek (moves to the Gesture
+// follow block in #2076); the route entrances use the motion layer.
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
 // Count only page-level loading states and the visible overview panel.
 // A kept primary tab renders its page inside a visible tab panel.
@@ -30,6 +40,20 @@ const ROUTE_LOADING = PAGE_PARENTS.flatMap((parent) => [
 const CURRENT_PAGE = PAGE_PARENTS.map((parent) => `${parent} .page`).join(', ');
 const BLOCKED_TARGETS =
   'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="switch"], [role="slider"], [role="tablist"], [draggable="true"], video, audio, .place-map-viewport, .media-gallery, .eimir-media-snap-track, [data-primary-tab-swipe-block]';
+
+/**
+ * A primary destination or one of its peer views (Momente's map, the shared
+ * notes): these share the primary surface, so a change between them is in
+ * place, never a deeper page.
+ */
+function isPrimarySurface(path: string): boolean {
+  return PRIMARY_APP_ROUTES.some(
+    (route) =>
+      route.path === path ||
+      ('peerPaths' in route &&
+        (route.peerPaths as readonly string[]).includes(path)),
+  );
+}
 
 function dragOffset(distance: number, hasNeighbour: boolean): number {
   const width = window.innerWidth;
@@ -177,6 +201,12 @@ interface Gesture {
   startedAt: number;
 }
 
+/**
+ * The arriving content fades up from `ENTRY_OPACITY` on the main surface
+ * (Replace `crossfade` on the motion layer). Only opacity: a transform would
+ * make the main element the containing block of fixed controls, including the
+ * contextual add action and composer toolbar.
+ */
 function animateContent(
   surface: HTMLElement,
   owner: RefObject<(() => void) | null>,
@@ -184,83 +214,70 @@ function animateContent(
   createEntry = false,
 ): void {
   owner.current?.();
-  const reducedMotion = window.matchMedia?.(REDUCED_MOTION);
-  if (reducedMotion?.matches || typeof surface.animate !== 'function') return;
-  const style = getComputedStyle(surface);
-  // A transform would make the main element the containing block of fixed
-  // controls, including the contextual add action and composer toolbar.
-  const animation = surface.animate([{ opacity }, { opacity: 1 }], {
-    duration: cssDurationMilliseconds(
-      style.getPropertyValue('--duration-transition'),
-    ),
-    easing: style.getPropertyValue('--easing-standard').trim() || 'ease-out',
-  });
+  const animation = crossfade(surface, { from: opacity });
+  if (!animation) return;
   surface.dataset.navigationMotion = createEntry ? 'create' : 'content';
+  trackMotion(animation, owner, () => {
+    delete surface.dataset.navigationMotion;
+  });
+}
+
+/**
+ * Releases a route entrance on its own finish or cancel (M2), cancels it when
+ * reduced motion is switched on mid-way (M9), and lets only the newest
+ * entrance clear the shared attribute (M11).
+ */
+function trackMotion(
+  animation: Animation,
+  owner: RefObject<(() => void) | null>,
+  release: () => void,
+): void {
   const complete = () => {
     if (owner.current !== cancel) return;
     owner.current = null;
-    delete surface.dataset.navigationMotion;
+    release();
     animation.onfinish = null;
     animation.oncancel = null;
-    reducedMotion?.removeEventListener('change', motionChanged);
+    stopWatching();
   };
   const cancel = () => {
     animation.cancel();
     complete();
   };
-  const motionChanged = () => {
-    if (reducedMotion?.matches) cancel();
-  };
+  const stopWatching = subscribeReducedMotion(() => {
+    if (prefersReducedMotion()) cancel();
+  });
   owner.current = cancel;
   animation.onfinish = complete;
   animation.oncancel = complete;
-  reducedMotion?.addEventListener('change', motionChanged);
 }
 
-/** Move only the page content, never the main shell (fixed actions stay fixed). */
+/**
+ * Brings the routed page in from the side its direction names (Replace
+ * `navigate`, Motion Contract 4.2). Only the page's horizontal offset moves,
+ * never the main shell, so fixed actions stay fixed and scroll restoration
+ * keeps its own coordinates.
+ */
 function animatePageSlide(
   surface: HTMLElement,
   owner: RefObject<(() => void) | null>,
-  fromX: number,
+  direction: NavigateDirection,
 ): boolean {
   owner.current?.();
   const page = surface.querySelector<HTMLElement>(CURRENT_PAGE);
-  const reduced = window.matchMedia?.(REDUCED_MOTION);
-  if (!page || !fromX || reduced?.matches || typeof page.animate !== 'function')
-    return false;
-  const style = window.getComputedStyle(surface);
-  const animation = page.animate(
-    // `left`, not a transform, so the page's fixed add action stays put.
-    [{ left: `${fromX}px` }, { left: '0px' }],
-    {
-      duration: cssDurationMilliseconds(
-        style.getPropertyValue('--duration-transition'),
-      ),
-      easing: style.getPropertyValue('--easing-standard').trim() || 'ease-out',
-    },
-  );
-  // Clip the page's transformed visual bounds for the complete animation,
-  // including after touchend has released the drag state.
+  // The page is positioned while `data-navigation-slide` is set (shell.css),
+  // so set it before the first frame of the offset.
   surface.dataset.navigationSlide = 'true';
-  const complete = () => {
-    if (owner.current !== cancel) return;
-    owner.current = null;
+  const animation = navigateMotion(page, direction, { offset: 'inset' });
+  if (!animation) {
     delete surface.dataset.navigationSlide;
-    animation.onfinish = null;
-    animation.oncancel = null;
-    reduced?.removeEventListener('change', onMotionChanged);
-  };
-  const cancel = () => {
-    animation.cancel();
-    complete();
-  };
-  const onMotionChanged = () => {
-    if (reduced?.matches) cancel();
-  };
-  owner.current = cancel;
-  animation.onfinish = complete;
-  animation.oncancel = complete;
-  reduced?.addEventListener('change', onMotionChanged);
+    return false;
+  }
+  // Clip the page's visual bounds for the complete animation, including after
+  // touchend has released the drag state.
+  trackMotion(animation, owner, () => {
+    delete surface.dataset.navigationSlide;
+  });
   return true;
 }
 
@@ -322,22 +339,39 @@ export function useNavigationMotion({
       !changedPage ||
       settled ||
       skipEntry ||
-      window.matchMedia?.(REDUCED_MOTION).matches
+      prefersReducedMotion()
     )
       return;
 
     // Start the root handoff on the committed destination, even if it still
     // displays loading UI. The content reveal below waits for usable data.
-    // Going back mirrors going forward: the page comes in from the side it
-    // was left on instead of cutting in. Only the page's horizontal offset
-    // moves, so scroll restoration keeps its own coordinates.
-    if (tabDirection)
-      animatePageSlide(surface, pageSlideCleanup, tabDirection * 32);
-    else if (returningRef.current)
-      animatePageSlide(surface, pageSlideCleanup, -RETURN_SLIDE);
+    // The direction follows the spatial model of the Motion Contract (4.2):
+    // primary tabs move laterally in tab order like a pager; a Back or task
+    // return comes in from the inline start; opening a deeper page (a detail,
+    // a further step) comes in from the inline end. A create task keeps its
+    // own entry, and any other change (a tab chosen from a detail page, a
+    // switch between a tab and its peer view such as the map) is in place:
+    // the content only fades.
+    const direction: NavigateDirection =
+      tabDirection > 0
+        ? 'next'
+        : tabDirection < 0
+          ? 'previous'
+          : returningRef.current
+            ? 'back'
+            : !isPrimarySurface(pathname) && !createEntry
+              ? 'forward'
+              : 'in-place';
+    // A lazy route shows only its loading fallback at first, without a page
+    // to move; its page then travels when it arrives.
+    let slid =
+      direction !== 'in-place' &&
+      animatePageSlide(surface, pageSlideCleanup, direction);
 
     const arrive = () => {
       if (surface.hasAttribute('data-primary-tab-dragging')) return;
+      if (!slid && direction !== 'in-place')
+        slid = animatePageSlide(surface, pageSlideCleanup, direction);
       animateContent(surface, mainMotionCleanup, ENTRY_OPACITY, createEntry);
     };
     let observer: MutationObserver | undefined;

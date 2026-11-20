@@ -43,13 +43,51 @@ function isRtl(element: Element): boolean {
   }
 }
 
+export interface CrossfadeOptions {
+  /** The opacity the new content starts from (default `0`). */
+  from?: number;
+}
+
 /** The new content fades in over the old. */
-export function crossfade(element: Element | null): Animation | null {
-  return run(element, [{ opacity: 0 }, { opacity: 1 }], {
+export function crossfade(
+  element: Element | null,
+  options: CrossfadeOptions = {},
+): Animation | null {
+  return run(element, [{ opacity: options.from ?? 0 }, { opacity: 1 }], {
     duration: durationMs('transition'),
     easing: easing('standard'),
     channel: 'opacity',
   });
+}
+
+export interface NavigateOptions {
+  /**
+   * How the entrance travels:
+   *
+   * - `transform` (default): opacity and `translateX` on the element;
+   * - `inset`: only the horizontal offset, as `left` on a positioned
+   *   element. This is for the routed page in the app shell: a transform
+   *   would make the page the containing block of its fixed controls (the
+   *   floating create action, the composer toolbar), which would then travel
+   *   with the page and jump when it settles. It is the one sanctioned
+   *   offset animation of `navigate` (Motion Contract 4.2, M6). The shell
+   *   fades its content separately (`crossfade` with `from`).
+   */
+  offset?: 'transform' | 'inset';
+}
+
+/**
+ * The signed horizontal distance a `navigate` entrance starts from: the
+ * inline end for forward and next, the inline start for back and previous,
+ * mirrored in right-to-left layouts; `0` in place.
+ */
+export function navigateTravel(
+  element: Element,
+  direction: NavigateDirection,
+): number {
+  if (direction === 'in-place') return 0;
+  const fromEnd = direction === 'forward' || direction === 'next';
+  return (fromEnd ? 1 : -1) * (isRtl(element) ? -1 : 1) * NAVIGATE_TRAVEL_PX;
 }
 
 /**
@@ -59,15 +97,21 @@ export function crossfade(element: Element | null): Animation | null {
 export function navigate(
   element: Element | null,
   direction: NavigateDirection,
+  options: NavigateOptions = {},
 ): Animation | null {
   if (!element) return null;
   if (direction === 'in-place') return crossfade(element);
-  const fromEnd = direction === 'forward' || direction === 'next';
-  const sign = (fromEnd ? 1 : -1) * (isRtl(element) ? -1 : 1);
+  const travel = navigateTravel(element, direction);
+  if (options.offset === 'inset')
+    return run(element, [{ left: `${travel}px` }, { left: '0px' }], {
+      duration: durationMs('transition'),
+      easing: easing('standard'),
+      channel: 'navigate',
+    });
   return run(
     element,
     [
-      { opacity: 0, transform: `translateX(${sign * NAVIGATE_TRAVEL_PX}px)` },
+      { opacity: 0, transform: `translateX(${travel}px)` },
       { opacity: 1, transform: 'translateX(0)' },
     ],
     {
@@ -180,6 +224,16 @@ export class ScrollState {
   ) {}
 
   get value(): boolean {
+    return this.active;
+  }
+
+  /**
+   * Starts over at `position` with the state off (or `active`), for example
+   * near the top of a page or after a scroll the person did not make.
+   */
+  reset(position: number | null = null, active = false): boolean {
+    this.active = active;
+    this.anchor = position;
     return this.active;
   }
 

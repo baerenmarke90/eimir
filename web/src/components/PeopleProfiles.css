@@ -583,25 +583,16 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .occasions-sheet {
-    animation: occasions-sheet-in var(--duration-transition) var(--easing-enter);
+    /* Enter `surface` (src/motion/motion.css): a short rise with a fade. */
+    --motion-surface-from: 0 0.5rem;
+    animation: eimir-motion-surface-in var(--duration-transition)
+      var(--easing-enter);
   }
 
   .occasions-band-month {
     transition:
       background var(--duration-feedback) var(--easing-standard),
       color var(--duration-feedback) var(--easing-standard);
-  }
-}
-
-@keyframes occasions-sheet-in {
-  from {
-    opacity: 0;
-    transform: translateY(0.5rem);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 

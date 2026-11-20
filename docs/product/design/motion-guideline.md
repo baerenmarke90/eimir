@@ -194,6 +194,8 @@ The audit found useful primitives that new work should reuse rather than duplica
 - `useDismissiblePopover`: outside-pointer, Escape, route-change and trigger-focus behavior for non-modal anchored popovers.
 - `.eimir-motion-disclosure`: transform-only local reveal for content opened by a known control or local state transition; never a route/page/section/query-result mount effect.
 - `.eimir-motion-success`: concise one-shot feedback for confirmed successful results; never pending, failed or neutral states.
+- Motion layer (`web/src/motion/`, Motion Contract 5.4): sheets, dialogs and popovers name its `eimir-motion-surface-*` and `eimir-motion-backdrop-*` keyframes (#2075); the shared utility classes above live in `motion/utilities.css`.
+- `useNavigationMotion`: the shell's route entrance on the motion layer (Replace `navigate`, Motion Contract 4.2). Primary tabs move in tab order, Back comes in from the inline start, a deeper page from the inline end, and anything else only fades. Only the routed page's `left` offset moves (at most 32 CSS px), so fixed controls stay fixed and restored scroll positions keep their coordinates. Root tabs rise once per tab and app start (`useRootTabIntro`) and never replay on return.
 - `ChecklistToggle`: tokenized local completion feedback.
 - `SharedAchievementCelebration`: existing shared-completion presentation.
 - `Snackbar`: decoupled non-critical acknowledgement independent of mutation ownership.

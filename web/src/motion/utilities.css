@@ -1,0 +1,68 @@
+/*
+ * The motion layer's shared utility classes (Motion Contract 5.1; moved from
+ * styles.css in #2075). Feature code applies them to a known element for one
+ * interaction; they never apply to route, page or query-result mounts.
+ *
+ * Imported by the entry (main.tsx) at the place where styles.css defined
+ * them, so they keep their cascade position after the component styles.
+ * Durations and easings are token roles only (M1).
+ */
+
+/* Enter `shift` for content revealed from a known control: transform only,
+   so descendant text contrast never dips (#790/#791). */
+.eimir-motion-disclosure {
+  --motion-enter-rise: 8px;
+  animation: eimir-motion-enter-shift var(--duration-transition)
+    var(--easing-enter);
+}
+
+/* Hover lift of a card: a state transition, not an animation (M14). */
+.eimir-motion-lift {
+  transition:
+    translate var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
+}
+
+.eimir-motion-lift:hover {
+  translate: 0 -4px;
+  box-shadow: 0 12px 24px var(--color-shadow-card);
+}
+
+/* Feedback `success` on the control that completed (4.3). */
+@keyframes eimir-motion-feedback-success {
+  50% {
+    scale: 1.05;
+  }
+}
+
+.eimir-motion-success {
+  animation: eimir-motion-feedback-success var(--duration-context)
+    var(--easing-enter);
+}
+
+/* Feedback `affection`: one soft beat on the item a partner reacted to. */
+@keyframes eimir-motion-feedback-affection {
+  50% {
+    opacity: 0.8;
+    scale: 1.1;
+  }
+}
+
+.eimir-motion-pulse {
+  animation: eimir-motion-feedback-affection var(--duration-context)
+    var(--easing-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eimir-motion-disclosure,
+  .eimir-motion-lift,
+  .eimir-motion-success,
+  .eimir-motion-pulse {
+    animation: none;
+    transition: none;
+  }
+
+  .eimir-motion-lift:hover {
+    translate: none;
+  }
+}

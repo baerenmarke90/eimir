@@ -499,74 +499,31 @@
 }
 
 /*
- * Momente, Planen and Mehr open with the same short rise as the
- * modules on Wir, once per page load. The header is left out because it holds
- * the floating create action, which must stay fixed to the viewport. The fill
- * only covers the wait, so no transform lingers afterwards.
+ * Momente, Planen and Mehr open with the same short rise as the modules on
+ * Wir, once per tab and app start: an Enter `stage` on the motion layer
+ * (`useRootTabIntro`, Motion Contract 4.1). The layer sets
+ * `data-motion-stage="playing"` on the page only while the entrance runs, so
+ * a kept tab that is shown again never replays it (M4). The header is left
+ * out because it holds the floating create action, which must stay fixed to
+ * the viewport. Members after the stagger cap start with the last one.
+ * Detail pages arrive with the shell's `navigate` transition instead
+ * (`useNavigationMotion`).
  */
-@media (prefers-reduced-motion: no-preference) {
-  .page[data-root-intro] > :not(.page-heading) {
-    --root-intro-delay: calc(var(--duration-sequence-beat) * 0);
-    animation: root-tab-intro calc(var(--duration-sequence-beat) * 2)
-      var(--easing-enter) var(--root-intro-delay) backwards;
-  }
-
-  .page[data-root-intro] > :nth-child(2) {
-    --root-intro-delay: 60ms;
-  }
-
-  .page[data-root-intro] > :nth-child(3) {
-    --root-intro-delay: 120ms;
-  }
-
-  .page[data-root-intro] > :nth-child(4) {
-    --root-intro-delay: 180ms;
-  }
-
-  .page[data-root-intro] > :nth-child(5) {
-    --root-intro-delay: 240ms;
-  }
-
-  .page[data-root-intro] > :nth-child(6) {
-    --root-intro-delay: 300ms;
-  }
-
-  .page[data-root-intro] > :nth-child(7) {
-    --root-intro-delay: 360ms;
-  }
-
-  .page[data-root-intro] > :nth-child(8) {
-    --root-intro-delay: 420ms;
-  }
-
-  /*
-   * A detail page fades in instead of replacing the list abruptly. It must not
-   * move: a transformed page becomes the containing block of its fixed
-   * controls, and the composer toolbar and the add action would jump.
-   */
-  .product-main > .page {
-    animation: detail-page-open var(--duration-context) var(--easing-enter);
-  }
+.page[data-motion-stage="playing"] > :not(.page-heading) {
+  --motion-stage-rise: 0.9rem;
+  animation: eimir-motion-root-rise calc(var(--duration-sequence-beat) * 2)
+    var(--easing-enter)
+    var(--root-intro-delay, calc(var(--duration-stagger-item) * 0)) both;
 }
 
-@keyframes root-tab-intro {
-  from {
-    opacity: 0;
-    transform: translateY(0.9rem);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.page[data-motion-stage="playing"] > :nth-child(2) {
+  --root-intro-delay: var(--duration-stagger-item);
 }
 
-@keyframes detail-page-open {
-  from {
-    opacity: 0;
-  }
+.page[data-motion-stage="playing"] > :nth-child(3) {
+  --root-intro-delay: calc(var(--duration-stagger-item) * 2);
+}
 
-  to {
-    opacity: 1;
-  }
+.page[data-motion-stage="playing"] > :nth-child(n + 4) {
+  --root-intro-delay: calc(var(--duration-stagger-item) * 3);
 }

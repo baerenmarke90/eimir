@@ -1,6 +1,6 @@
 # eimir. Motion Contract
 
-**Version:** 1.2 (2026-11-20)<br>
+**Version:** 1.3 (2026-11-20)<br>
 **Status:** Normative lower-level design-system contract under Product Reference v1 once merged. Library decision **approved by the Product Owner on 2026-11-19**: an in-house motion layer on WAAPI and CSS for all primitives, Gesture follow included; Motion is not adopted ([6.6](#66-product-owner-decisions)). Haptics are approved ([4.10](#410-haptics)).<br>
 **Scope:** Canonical Web/Mobile Web UI, including the Capacitor-delivered Android app<br>
 **Issue:** [#2067](https://github.com/baerenmarke90/eimir/issues/2067)<br>
@@ -87,7 +87,8 @@ Allowed to animate:
 - for the Playback domain only: `filter` and `clip-path` on one layer at a time, with a recorded reason in its owning document;
 - for the Map domain only: the MapLibre camera (rendered in its own WebGL loop), and `offset-distance` for the approved partner-connection glow (one small element; see [4.8](#48-bounded-domains-loading-playback-scenes-map));
 - for Gesture follow only: the scroll position of a scroller (native scrolling, scroll snap, `scrollTo`);
-- for the Replace `disclose` variant only: the one sanctioned layout transition described there.
+- for the Replace `disclose` variant only: the one sanctioned layout transition described there;
+- for the Replace `navigate` variant in the app shell only: the horizontal offset `left` of the routed page (`offset: 'inset'`, see [4.2](#42-replace--exit)).
 
 Never animated otherwise: layout properties (`width`, `height`, `max-height`, `top`, `left`, `right`, `bottom`, `inset`, `margin`, `padding`, `gap`, `font-size`, `line-height`, `border-width`, grid/flex tracks). Expand/collapse follows Motion Guideline section 3 ("Expand and collapse").
 
@@ -222,6 +223,14 @@ Something already on screen changes or leaves: a value changes, an item is reord
 - *Task return* restores the reading position first; it never animates scroll (Guideline section 7).
 - Duration `--duration-transition`, easing `--easing-standard`; navigation never waits for the animation (M10).
 - **No container transform.** A card does not grow into its detail, and list and detail share no flying element. The Product Owner decided this on 2026-11-19 after watching an interactive preview for Momente. Opening a detail uses the forward `navigate` transition above. This is a decision, not a deferral; reintroducing it needs a new Product Owner decision and a new version of this contract. React `<ViewTransition>` is therefore not adopted for navigation in v1.
+- **In the app shell (as built in #2075).** `useNavigationMotion.ts` maps each committed route change to one direction:
+  - a primary tab to a later or earlier tab is `next` or `previous`;
+  - a Back or task return is `back`;
+  - a deeper page that is neither a primary tab nor one of its peer views (a detail, a further step) is `forward`;
+  - a create task keeps its own entry;
+  - every other change, such as a primary tab chosen from a detail page or a switch between a tab and its peer view (Momente and its map), is `in-place`.
+
+  The routed page travels with `navigate(page, direction, { offset: 'inset' })`, which moves only its `left` offset, by at most 32 CSS px. A transform would make the page the containing block of its fixed controls (the floating create action, the composer toolbar), which would then travel with the page and jump when it settles. So this one offset animation is sanctioned (M6). The arriving content fades on the main element from 0.92 with `crossfade(main, { from })` once the destination shows usable content, not while it still shows its loading state. A swipe that already moved the pages (Gesture follow) plays no second entrance.
 - Reduced motion: the new content is there at once; the restored position and focus are the same.
 
 **`disclose` (expand and collapse: accordion, "+N weitere", the check-in row).** M6 forbids layout animation in general. The sanctioned way, in order of preference:
@@ -649,10 +658,12 @@ Some values never follow reduced motion, theme or token set:
 | Play registry | `playRegistry.ts` | `claimPlay(identity, scope, owner, surface?)`, `hasPlayed`, `markPlayed`, `createSurfaceScope()` and `useSurfaceScope()`, `resetMotionSession()`. Scopes: `app-start`, `session`, `surface` |
 | Visibility controller | `visibility.ts` | `isVisibleNow(element)` and `observeVisibility(element, listener)`. Covers page visibility, the kept view and `IntersectionObserver`. The kept view is read from the `hidden` attribute on the `[data-primary-tab]` panel of `PrimaryTabPanels`, observed without changing the panel component |
 | Runner | `run.ts` | `run(element, keyframes, { duration, easing, delay, iterations, channel, interrupt, fill, willChange })`: the layer's one entry to `Element.animate()`. It keeps one animation per element and channel (M11), sets `will-change` only while the animation runs, and returns `null` for a zero duration. Also `interruptChannel` and `runningOn` |
-| Stage | `stage.ts`, `motion.css` | `useStage(identity, { duration, canStart })` returns the stage root's ref. It sets `data-motion-stage="playing"` while the opening runs (once per app start), pins the `eimir-motion-stage-*` CSS animations of late or remounted members to the shared clock, and removes the attribute on the opening's own deadline or when its kept view is hidden. `stageFinished(identity)` resolves when the opening ended or was skipped; ambient motion and a Moment wait for it (M15) |
+| Stage | `stage.ts`, `motion.css` | `useStage(identity, { duration, canStart, animationPrefix })` returns the stage root's ref. It sets `data-motion-stage="playing"` while the opening runs (once per app start), pins the `eimir-motion-stage-*` CSS animations of late or remounted members to the shared clock, and removes the attribute on the opening's own deadline or when its kept view is hidden. `stageFinished(identity)` resolves when the opening ended or was skipped; ambient motion and a Moment wait for it (M15). A stage that contains another stage uses its own `animationPrefix`: the root-tab entrance (`useRootTabIntro` in `client/rootTabIntro.ts`, keyframes `eimir-motion-root-rise`, once per tab and app start) wraps the Wir opening and never re-pins its members |
 | Enter | `enter.ts`, `motion.css` | `useEnter(identity, { variant, scope, surface, firstReach, choreography, offset, index, step, budget })` returns `{ ref, props, state }`. `props` applies `data-motion-enter` until the entrance ends on its own `animationend` or `animationcancel`, or at its token deadline (M2, M4). Variants: `fade`, `rise`, `surface`, `stage`, `stagger`, `draw`, `media`. Also `staggerDelay(index, step)` |
 | Media reveal | `mediaReveal.ts` | `useMediaReveal(url)` returns `{ shown, fade, ref }`. Also `revealMedia(image, url)`, `isMediaShown(url)`, `mediaRevealMode(url, decodeMs)` |
-| Replace / Exit | `presence.ts`, `departing.ts`, `replace.ts` | `usePresentationPresence` and `useOverlayPresence` (moved from `components/useOverlayPresence.ts`), `useDepartingItems` (moved from `components/useDepartingItems.ts`), `crossfade`, `navigate(element, 'forward' \| 'back' \| 'next' \| 'previous' \| 'in-place')`, `valueChange`, `disclose`, `captureLayout` with `reorder` (FLIP), `ScrollState` (hysteresis) |
+| Replace / Exit | `presence.ts`, `departing.ts`, `replace.ts` | `usePresentationPresence` and `useOverlayPresence` (moved from `components/useOverlayPresence.ts`), `useDepartingItems` (moved from `components/useDepartingItems.ts`), `crossfade(element, { from })`, `navigate(element, 'forward' \| 'back' \| 'next' \| 'previous' \| 'in-place', { offset: 'transform' \| 'inset' })`, `navigateTravel`, `valueChange`, `disclose`, `captureLayout` with `reorder` (FLIP), `ScrollState` (hysteresis; `update` and `reset`) |
+| Surfaces | `motion.css` | Enter `surface` and Exit `surface-exit` as catalogue keyframes that the owner names on its open and `data-presence="exiting"` states. `eimir-motion-surface-in` and `-out` use the individual `translate` property, so they compose with the owner's own `transform`; their options are `--motion-surface-from`, `--motion-surface-to`, `--motion-surface-from-opacity` and `--motion-surface-to-opacity`. `eimir-motion-backdrop-in` and `-out` change opacity only. Used by `ShortTaskSheet.css`, the header notifications sheet in `shell.css`, the preference modals in `ProfilePage.css` (the scrim is its own `::before` layer), the quick-action popover and the occasions sheet. Presence stays `usePresentationPresence`; the exit releases on its own `animationend` |
+| Shared utilities | `utilities.css` | `.eimir-motion-disclosure` (Enter `shift`), `.eimir-motion-lift` (a hover state transition), `.eimir-motion-success` and `.eimir-motion-pulse` (Feedback `success` and `affection`). The entry imports it where `styles.css` defined them, so they keep their cascade position. The create entry names the catalogue's Enter keyframes, with `--motion-enter-from-opacity` for its soft fade |
 | Feedback | `feedback.ts` | `feedback(element, 'success' \| 'affection' \| 'refuse', { haptic })`. Press and toggle stay CSS state transitions of the component |
 | Flight | `flight.ts`, `FlightLayer.css` | Moved from `components/flightKit.ts`: `openFlightLayer()`, `animateFlight()` (the sanctioned `Element.animate()` for ghosts in the flight layer, several channels at once, `fill: 'forwards'` only for pieces that are removed afterwards), `flightEnded()`, `flightKeyframes`, `arcPoint`, `landingScale`, `centre`, `pulseRing`, `scatterDots`, `readMotionRoles()` |
 | Ambient | `ambient.ts` | `ambient(element, { kind, keyframes, duration, iterations, after, onScreen })` returns `{ finished, stop }`. Repeats a finite number of times, pauses and resumes where it paused, and is absent with reduced motion |
@@ -693,6 +704,8 @@ The sampled settle spring is used everywhere. `linear()` easing (Chromium 113 an
 The ratchet allowlist `web/scripts/motion-layer-allowlist.json` records the per-file counts on `main` at `5528a2dbe`. It lists 66 CSS files and 8 TypeScript files:
 - the CSS files are the 65 with keyframes, plus `story-media.css` with one `infinite` loop;
 - the TypeScript count is after `flightKit.ts` and `useDepartingItems.ts` moved into the layer.
+
+After step 4 (#2075) it lists 55 CSS files and 4 TypeScript files.
 
 The ratchet rules:
 - a count may only fall;
@@ -932,6 +945,9 @@ Each step is its own issue and pull request. Draft issue texts for steps 2 to 9 
    - Device acceptance on an Android test release: the opening plays once per app start, nothing replays on tab return, no avatar flash on remount, the ring breath is smooth, and "Wie geht's?" is visible.
    - Wir's files leave the allowlist.
 4. **Shell, overlays and navigation.** `ShortTaskSheet`, header notifications, profile/preference modals, quick-action popover, `layout.css` route entrances with `navigate` direction rules, `scroll-state` (floating create tuck, status-bar scrim), `appearance`, shared utilities in `styles.css`.
+   - Done in #2075. `ShortTaskSheet.css`, `ProfilePage.css`, `PartnerQuickActions.css`, `PeopleProfiles.css` and `layout.css` left the allowlist; `useNavigationMotion.ts` fell from 3 `animate` calls to 1.
+   - Still listed, with their owners: the swipe settle in `useNavigationMotion.ts` and the pull-to-refresh spinner in `shell.css` (step 5); the story shimmer (Loading) and the overview cache notice (`disclose`) in `styles.css` (step 6).
+   - `appearance` needed no code change. Themes are a root colour transition in `theme.css`. The app design and the token set are root attributes, which the token adapter re-reads. No entrance replays, because the play registry decides that, not a remount (M3).
 5. **Gestures and haptics.**
    - Move the tab pager, sheet dismissal, pull to refresh and list reorder onto the Gesture follow building block from step 2, with one set of tokenized thresholds and the velocity handoff. No animation library is added (decision 6.6).
    - Wrap `@dnd-kit` and `@panzoom/panzoom`.
@@ -969,6 +985,7 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 1.3 | 2026-11-20 | Shell, overlays and navigation (#2075):<br>• the `navigate` mapping of the app shell and its one sanctioned `left` offset for the routed page (4.2, M6), with `navigate(…, { offset })`, `navigateTravel` and `crossfade(…, { from })` (5.4);<br>• the root-tab entrance as an Enter `stage` with its own `animationPrefix` (5.4);<br>• the surface and backdrop catalogue keyframes and the shared utility classes (5.4);<br>• `ScrollState.reset` for the floating create tuck;<br>• the allowlist after step 4 (5.4, 8). |
 | 1.2 | 2026-11-20 | Wir as the reference surface (#2074):<br>• Enter `stage` as built: `useStage` in `stage.ts`, the `eimir-motion-stage-*` catalogue keyframes and the stage's own clock (5.4);<br>• `run()` and `ambient()` take `pseudoElement`, and `ambient()` takes `delay`, for the ring breath on the decorative `::before` ring;<br>• `animateFlight()` and `flightEnded()` in `flight.ts` for Flight ghosts;<br>• the Enter `shift` and `pop` keyframes, the Replace `crossfade` and `value` keyframes, and the Feedback `pop`, `land` and `wiggle` keyframes in the catalogue;<br>• the important-day Moment built (`wirImportantDay.ts`, #2072);<br>• Wir files removed from the ratchet allowlist. |
 | 1.1 | 2026-11-20 | Building blocks (#2073):<br>• the layer in `web/src/motion/` with the final API names (5.4);<br>• the stagger, gesture, spring and attention tokens (5.3);<br>• the 30 s attention interval confirmed (4.9);<br>• the tuned velocity estimator and the ratchet guard (5.4);<br>• the layout-keyframe count corrected (7.1). |
 | 1.0 | 2026-11-19 | First version (#2067). It contains:<br>• a catalogue of seven primitives, extended before merge at the Product Owner's request with Gesture follow and Moment;<br>• the Replace variants `navigate`, `disclose`, `value`, `scroll-state` and `appearance`, the Enter `media` variant, Feedback `refuse` and Flight `return`;<br>• the attention and haptics rules and the gap audit;<br>• invariants M1 to M16;<br>• the motion layer;<br>• the library decision: the in-house WAAPI and CSS layer for all primitives, Gesture follow included, approved by the Product Owner after the gesture test (#2071); Motion is not adopted;<br>• haptics, approved by the Product Owner;<br>• the Map domain with its camera, gesture, marker, rest and theme rules, and the map camera inventory;<br>• the coverage matrix of all app areas (4.12);<br>• the approved important-day Moment on Wir (4.7, #2072; the "Gratulieren" action rejected);<br>• the inventory and the migration plan (nine steps, including a map step). |

@@ -53,11 +53,22 @@
     var(--easing-standard);
 }
 
+/*
+ * Loading domain spinner (4.8): turns while the owner keeps the class on its
+ * pending icon, and stops as soon as the status is known. The constant-rate
+ * playback easing keeps every turn at the same speed.
+ */
+.eimir-motion-loading-spin {
+  animation: eimir-motion-loading-spin var(--duration-loading-cycle)
+    var(--easing-playback) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .eimir-motion-disclosure,
   .eimir-motion-lift,
   .eimir-motion-success,
-  .eimir-motion-pulse {
+  .eimir-motion-pulse,
+  .eimir-motion-loading-spin {
     animation: none;
     transition: none;
   }

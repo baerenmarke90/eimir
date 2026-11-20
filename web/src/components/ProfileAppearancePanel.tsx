@@ -1,5 +1,6 @@
 import { useTranslation } from '../i18n';
 import { AppIconSettingsPanel } from './AppIconSettingsPanel';
+import { HapticsSettings } from './HapticsSettings';
 import { LanguageSettings } from './LanguageSettings';
 import { MomentsLayoutSettings } from './MomentsLayoutSettings';
 import { PersonColoursSettings } from './PersonColoursSettings';
@@ -34,6 +35,7 @@ export function ProfileAppearancePanel({
       <PersonColoursSettings />
       <WirDesignSettings />
       <MomentsLayoutSettings />
+      <HapticsSettings />
       <AppIconSettingsPanel />
     </div>
   );

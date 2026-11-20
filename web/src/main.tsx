@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
 import { markNativeRuntime, useCapacitorShell } from './capacitorShell';
+import { registerNativeHaptics } from './motion/hapticsNative';
 import { isDemoModeConfigured } from './client/demoMode';
 import { identityBuildVariable } from './client/identityEnvironment';
 import { releaseLaunchScreenWhenPainted } from './client/launchScreen';
@@ -60,6 +61,8 @@ if (calendarPlanPath) {
 }
 
 markNativeRuntime();
+// Native app only: the plugin is never loaded on the Web (Motion Contract 4.10).
+void registerNativeHaptics();
 initializeTheme();
 startNativeSystemTheme();
 registerProductionServiceWorker();

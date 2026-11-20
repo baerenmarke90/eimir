@@ -1,5 +1,6 @@
 import type { PanzoomObject } from '@panzoom/panzoom';
 import Panzoom from '@panzoom/panzoom/dist/panzoom.es.js';
+import { panzoomMotionOptions } from '../motion/gesture/panzoom';
 import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { isCapacitorNativePlatform } from '../client/config';
 import { useTranslation } from '../i18n';
@@ -39,6 +40,7 @@ export function ZoomablePhoto({ src, alt }: { src: string; alt: string }) {
     if (!src || !photo || !frame) return;
     setScale(1);
     const controller = Panzoom(photo, {
+      ...panzoomMotionOptions(),
       canvas: true,
       minScale: 1,
       maxScale: 4,

@@ -1,5 +1,6 @@
 import type { PanzoomObject } from '@panzoom/panzoom';
 import Panzoom from '@panzoom/panzoom/dist/panzoom.es.js';
+import { panzoomMotionOptions } from '../motion/gesture/panzoom';
 import {
   type RefObject,
   useEffect,
@@ -100,11 +101,11 @@ export function PhotoCropTask({
       startY: -(element.offsetHeight - frame.clientHeight) / 2,
     });
     const instance = Panzoom(element, {
+      ...panzoomMotionOptions(),
       canvas: true,
       minScale: MIN_ZOOM,
       maxScale: MAX_ZOOM,
       contain: 'outside',
-      animate: false,
       touchAction: 'none',
       cursor: 'grab',
       ...centred(),

@@ -7,9 +7,9 @@
  * - Native app only: on the Web this is a no-op, and it never calls a
  *   backend there (the plugin's Web implementation would use
  *   `navigator.vibrate`).
- * - The backend is registered by the gestures-and-haptics step (#2077) with
- *   `@capacitor/haptics`; until then no backend is registered and nothing
- *   vibrates. This module adds no dependency.
+ * - The native backend is `@capacitor/haptics` (#2076), registered at start
+ *   by `registerNativeHaptics()` in `hapticsNative.ts`, which loads the
+ *   plugin only in the native app. This module itself adds no dependency.
  * - Budget: no two haptics within `--duration-context` (unreduced; haptics do
  *   not follow reduced motion); the later one is dropped. A gesture's
  *   threshold tick is outside that spacing but plays at most once per
@@ -70,12 +70,23 @@ export function hapticsEnabled(): boolean {
   }
 }
 
+const settingListeners = new Set<() => void>();
+
 export function setHapticsEnabled(enabled: boolean): void {
   try {
     storage()?.setItem(HAPTICS_SETTING_KEY, enabled ? 'on' : 'off');
   } catch {
     // Storage can be unavailable (private mode); the default stays.
   }
+  for (const listener of settingListeners) listener();
+}
+
+/** Notifies `listener` when the in-app switch changes on this page. */
+export function subscribeHapticsEnabled(listener: () => void): () => void {
+  settingListeners.add(listener);
+  return () => {
+    settingListeners.delete(listener);
+  };
 }
 
 /** True where the app can offer haptics (and its switch): the native app. */

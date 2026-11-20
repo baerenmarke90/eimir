@@ -5254,6 +5254,11 @@
       "dayMany": "days"
     }
   },
+  "hapticsSettings": {
+    "title": "Touch",
+    "label": "Haptic feedback",
+    "hint": "A light vibration when you swipe, drop and send. Applies to this device only."
+  },
   "momentsLayout": {
     "title": "Moments design",
     "intro": "This layout applies to Memories, the Diary, Chapters, and Us – on all your devices.",

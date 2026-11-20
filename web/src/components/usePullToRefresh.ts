@@ -1,8 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  commitDistance,
+  decideRelease,
+  resolveOwnership,
+} from '../motion/gesture/follow';
+import { haptic } from '../motion/haptics';
 
-const DEFAULT_THRESHOLD = 72;
-const START_SLOP = 8;
-const DIRECTION_LOCK_SLOP = 10;
+// Pull to refresh is Gesture follow plus Loading (Motion Contract 4.6, 4.8):
+// slop, axis ownership, reversal and the commit distance are the shared
+// tokens. The indicator shows half the pull, up to its own height.
+const DEFAULT_THRESHOLD = commitDistance('pull', 0);
+const INDICATOR_RATIO = 0.5;
 const MAX_PULL_DISTANCE = 64;
 const TOP_TOLERANCE = 1;
 const COARSE_POINTER_QUERY = '(pointer: coarse)';
@@ -95,14 +103,20 @@ export function usePullToRefresh({
     root.classList.add('app-pull-refresh-enabled');
 
     let tracking = false;
+    let claimed = false;
     let startX: number | null = null;
     let startY: number | null = null;
+    let travel = 0;
+    let peak = 0;
     let suppressClick = false;
 
     const cancelGesture = () => {
       tracking = false;
+      claimed = false;
       startX = null;
       startY = null;
+      travel = 0;
+      peak = 0;
       resetPull();
     };
 
@@ -148,8 +162,11 @@ export function usePullToRefresh({
         }
       }
       tracking = true;
+      claimed = false;
       startX = event.touches[0]?.clientX ?? null;
       startY = event.touches[0]?.clientY ?? null;
+      travel = 0;
+      peak = 0;
       resetPull();
     };
 
@@ -176,41 +193,65 @@ export function usePullToRefresh({
       if (currentX === undefined || currentY === undefined) return;
       const deltaX = currentX - startX;
       const deltaY = currentY - startY;
-      if (
-        Math.abs(deltaX) >= DIRECTION_LOCK_SLOP &&
-        Math.abs(deltaX) > Math.abs(deltaY)
-      ) {
-        cancelGesture();
-        return;
+      if (!claimed) {
+        // One ownership rule for every Gesture follow owner: a horizontal
+        // start belongs to the pager or a carousel, not to the refresh.
+        const ownership = resolveOwnership('y', deltaX, deltaY);
+        if (ownership === 'reject') {
+          cancelGesture();
+          return;
+        }
+        if (ownership === 'pending' || deltaY <= 0) return;
+        claimed = true;
       }
-      if (deltaY <= 0) {
+      travel = Math.max(0, deltaY);
+      peak = Math.max(peak, travel);
+      if (travel <= 0) {
         resetPull();
         return;
       }
-      if (deltaY < START_SLOP) return;
 
       // Once the gesture is clearly a downward pull at the document top,
       // keep the browser's own pull-to-refresh from competing with the app.
       event.preventDefault();
       suppressClick = true;
-      setPullDistance(Math.min(MAX_PULL_DISTANCE, deltaY * 0.5));
-      const thresholdReached = deltaY >= threshold;
+      setPullDistance(Math.min(MAX_PULL_DISTANCE, travel * INDICATOR_RATIO));
+      const thresholdReached = travel >= threshold;
+      if (thresholdReached !== readyRef.current) haptic('threshold');
       readyRef.current = thresholdReached;
       setReady(thresholdReached);
     };
 
-    const onTouchEnd = () => {
+    const onTouchEnd = (event: TouchEvent) => {
       if (!tracking) return;
+      const released = event.changedTouches?.[0];
+      // The release position, or the last tracked one when the platform
+      // reports no changed touch.
+      const releasedTravel = !claimed
+        ? null
+        : released && startY !== null
+          ? Math.max(0, released.clientY - startY)
+          : travel;
+      // A refresh starts by distance, unless the finger went back before
+      // lifting (Motion Contract 4.6). A fling does not start it: a quick
+      // downward flick at the top is how people scroll back up, and an
+      // accidental refresh would replace what they are reading.
       const shouldRefresh =
-        readyRef.current &&
+        releasedTravel !== null &&
+        decideRelease({
+          travel: releasedTravel,
+          peak: Math.max(peak, releasedTravel),
+          velocity: 0,
+          threshold,
+        }) === 'commit' &&
         !blockedRef.current &&
         !refreshInFlightRef.current &&
         isAtDocumentTop();
-      tracking = false;
-      startX = null;
-      startY = null;
-      resetPull();
-      if (shouldRefresh) void runRefresh();
+      cancelGesture();
+      if (shouldRefresh) {
+        haptic('commit');
+        void runRefresh();
+      }
     };
 
     const onTouchCancel = () => {

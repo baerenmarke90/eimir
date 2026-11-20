@@ -545,7 +545,12 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     ).toBeLessThan(1);
 
     // The old 72px threshold closed on this short pull. It now settles back.
-    await page.mouse.move(dragCenterX, dragCenterY + 96, { steps: 4 });
+    // The pull is slow and rests before release: a quick flick of the same
+    // length is a fling and dismisses (Motion Contract 4.6, #2076).
+    for (let step = 1; step <= 4; step++) {
+      await page.mouse.move(dragCenterX, dragCenterY + step * 24);
+      await page.waitForTimeout(60);
+    }
     await page.mouse.up();
     await expect(dialog).toBeVisible();
     expect(

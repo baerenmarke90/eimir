@@ -40,6 +40,7 @@ import {
 } from './sendFlight';
 import { useDailyCheckInWrite } from './useDailyCheckInWrite';
 import { useViewportClamp } from './useViewportClamp';
+import { haptic } from '../motion/haptics';
 import './WirDailyCheckIn.css';
 import '../motion/motion.css';
 
@@ -1375,7 +1376,11 @@ export function useWirDailyCheckIn({
             type="button"
             className="primary wir-checkin-done"
             disabled={flightWaiting}
-            onClick={() => finishPanel()}
+            onClick={() => {
+              // "Fertig" is a named emphasized action (Motion Contract 4.10).
+              haptic('press');
+              finishPanel();
+            }}
           >
             {t('wirCheckIn.done')}
           </button>

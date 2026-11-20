@@ -132,7 +132,7 @@ jobs:
           failed=0
           for url in https://registry.npmjs.org https://pypi.org/simple/uv/ https://files.pythonhosted.org \
             https://ghcr.io/v2/ https://registry-1.docker.io/v2/ \
-            https://github.com https://objects.githubusercontent.com https://cdn.playwright.dev; do
+            https://github.com https://objects.githubusercontent.com; do
             if status=$(curl -sSL --connect-timeout 8 --max-time 20 --output /dev/null --write-out '%{http_code}' "$url") &&
                [[ $status =~ ^(2[0-9][0-9]|3[0-9][0-9]|401|403|404)$ ]]; then
               printf '%s PASS (HTTP %s)\n' "$url" "$status" | tee -a "$GITHUB_STEP_SUMMARY"
@@ -178,6 +178,7 @@ jobs:
         run: |
           test -r "$GITHUB_WORKSPACE/web/e2e/package-lock.json"
           test "$(node --version)" = v26.13.1
+      # Installing the pinned browser tests the actual Playwright CDN artifact URL.
       - name: Download and launch pinned Chromium
         id: browser
         working-directory: web/e2e

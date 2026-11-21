@@ -88,7 +88,7 @@ Device/Browser
 | TM-06 | Upload spoofing | manipulated extension/MIME/container | malicious content, parser/resource attack | positive allowlist, actual MIME, size/pixel/duration limit, isolated processing | Media abuse suite |
 | TM-07 | Storage-Key injection | filename/path as Key | overwrite/foreign access | server-generated UUID Keys; name metadata only | Key contract test |
 | TM-08 | cache after logout/Space switch | Browser/Android cache remains | later access | partition by owner/Space and delete/lock | Logout/Switch E2E |
-| TM-09 | Notification Preview | Comment/Title text in Push | lockscreen/Provider leak | generic Preview, minimal Event, Preferences | Push payload snapshot |
+| TM-09 | Notification Preview | Comment/Title text in Push | lockscreen/Provider leak | Provider: minimal reference-only Event and data-only wake; content only inside the JWE encrypted for the recipient's registered device (activation-bound key, short lifetime, size bound). Lock screen: every notice `VISIBILITY_PRIVATE` with a neutral public version, so the person's Android setting for sensitive content decides (Product Owner 2026-11-21, #2158); Preferences and Quiet Hours | Push payload snapshot; preview catalog and v3 envelope tests |
 | TM-10 | Logging/Analytics leak | Request Body, URL, or Search text logged | internal/third-party leak | allowlist Logging, Redaction, no content properties | Canary in log scan |
 | TM-11 | visibility race | Share/Private concurrent with Comment/Read | invalid relation/brief leak | Version, transaction, Guard at final Read/Event | race test |
 | TM-12 | revoked Membership | old Token/Read URL/cache | access after revocation | Membership on API Read, short URL TTL, cache lock | revocation E2E |

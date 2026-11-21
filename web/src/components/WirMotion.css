@@ -2,40 +2,60 @@
  * Wir comes alive, calmly: the arrival of the two of you and of what you share.
  * Wir is the motion layer's reference surface (Motion Contract, #2074).
  *
- * Presentation only. Everything is visible, focusable and correct from the
- * first frame; nothing here waits on data, delays navigation or replays when a
+ * Presentation only. Everything is in the document, focusable and correct
+ * from the first frame; nothing here delays navigation or replays when a
  * query refetches. All durations and curves are the shared motion tokens and
  * every keyframe is the layer's catalogue (src/motion/motion.css); reduced
- * motion shows the final composition at once (every block is scoped to
- * `no-preference`, and the tokens resolve to 0 ms in `reduce` anyway).
+ * motion shows the final composition at once (every animated block is scoped
+ * to `no-preference`, and the tokens resolve to 0 ms in `reduce` anyway).
  *
- * Three layers, each with one job:
- * 1. The stage (hero), identity `wir.stage`, scope `app-start`: `useStage`
- *    sets `data-motion-stage="playing"` for the opening and removes it on the
- *    opening's own clock, so a kept tab that is shown again cannot restart
- *    it. The rules below give each member its beat.
- * 2. The modules, scope `session`: each arrives with a short rise and fade,
- *    once, as it is reached (useWirReveal). The ones already in view arrive
- *    together, in reading order.
- * 3. The rest: the rings around the portraits breathe very slowly (Ambient
- *    `breath`, opacity only, finite; wirStageMotion.ts), after the opening
- *    and the important-day Moment, and nothing else moves until you do.
+ * One clock (#2147). The opening, identity `wir.stage`, scope `app-start`,
+ * runs on one clock for the hero and, through its scope (the page content),
+ * for the daily quote and the modules in view:
+ * 1. It waits briefly and invisibly for the data its members show (check-in,
+ *    place, quote, photos; `data-motion-stage="waiting"`, at most the stage
+ *    data hold), then plays once (`data-motion-stage="playing"`). `useStage`
+ *    removes the attribute on the opening's own clock, so a kept tab that is
+ *    shown again cannot restart it.
+ * 2. Data that arrives while it plays joins it (`data-motion-join`: in the
+ *    time that is left, ending with it); data that arrives later is simply
+ *    there. Nothing fades twice and nothing animates after the picture has
+ *    settled. Every slot below counts in the opening's beat; the slots are
+ *    listed in WIR_STAGE_BEATS (wirStageMotion.ts), which the unit test keeps
+ *    in step with these rules and inside the opening budget.
+ * 3. The modules further down arrive once, when they are first reached by
+ *    scrolling (useWirReveal). After the opening (and an important-day
+ *    Moment) the rings around the portraits breathe very slowly (Ambient
+ *    `breath`, opacity only, finite; wirStageMotion.ts), and nothing else
+ *    moves until you do.
  *
- * Only `translate`, `scale` and `opacity` are animated, never `scale` on the
- * 2 px rings (M7), never on an element that has its own `animation` (the
- * hover lift), and never with a sideways move on the children of a
- * horizontal strip: that would widen the strip for a moment and nudge it.
+ * Only `translate` and `opacity` are animated here, one layer at a time: a
+ * member never fades inside another member that is still fading. Never
+ * `scale` on the 2 px rings (M7), and never a sideways move on the children
+ * of a horizontal strip: that would widen the strip for a moment and nudge it.
  */
 
 /* One beat for the whole opening. It was 1.4x the shared beat (280 ms),
    which finished the whole arrival in about 1.7 s and was too quick to notice
    (Product Owner, 2026-11-19). At 2.2x (440 ms) every element takes about
-   1.6x as long and the whole opening about 2.7 s. Everything in the stage
-   below, and the heart line in WirHeroStage.css, counts in this beat. The one
-   knob is WIR_INTRO_PACE in wirStageMotion.ts, which sets `--wir-intro-pace`
-   on the stage and computes the opening's own clock from the same beats. */
+   1.6x as long. Everything in the stage below, the heart line in
+   WirHeroStage.css and the modules count in this beat. The one knob is
+   WIR_INTRO_PACE in wirStageMotion.ts, which sets `--wir-intro-pace` and
+   computes the opening's own clock from the same beats. */
+.today-content,
 .wir-stage {
   --wir-intro-beat: calc(var(--duration-sequence-beat) * var(--wir-intro-pace));
+}
+
+/* While the opening waits for its data, the hero, the quote and the modules
+   are laid out but not painted, so a late value, quote or photo never moves
+   something that is already shown. This is a wait for data, not motion: it
+   applies with reduced motion too, and it ends after the stage data hold at
+   the latest. The page heading and its actions stay. */
+.today-content[data-motion-stage-scope="waiting"]
+> :not(.content-overview-heading),
+.wir-stage[data-motion-stage="waiting"] {
+  opacity: 0;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -46,12 +66,15 @@
      roughly a third of its time, so the opening seemed over in under a second
      whatever its duration (watched in real time, 2026-11-19). */
 
-  /* Each person fades in place, the partner a beat later. */
+  /* Each person arrives in place, the partner a little later: the portrait,
+     its ring, the name and the marks fade in as one column. Opacity only, so
+     the thin ring keeps its edge (M7) and nothing inside fades a second
+     time. */
   .wir-stage[data-motion-stage="playing"]
     .today-hero
     .partner-avatar-stack
     > * {
-    animation: eimir-motion-stage-settle calc(var(--wir-intro-beat) * 2.4)
+    animation: eimir-motion-stage-fade calc(var(--wir-intro-beat) * 1.6)
       var(--easing-travel) both;
   }
 
@@ -59,78 +82,48 @@
     .today-hero
     .partner-avatar-stack
     > :nth-child(2) {
-    animation-delay: calc(var(--wir-intro-beat) * 0.4);
+    animation-delay: calc(var(--wir-intro-beat) * 0.3);
   }
 
-  /* The ring opens around the portrait a little after the portrait arrives. */
+  /* Today's state follows under the names once both portraits have landed,
+     like a caption. It joins the opening when it arrives late. */
   .wir-stage[data-motion-stage="playing"]
     .today-hero
-    .partner-avatar-stack
-    > *::before {
-    animation: eimir-motion-stage-fade calc(var(--wir-intro-beat) * 2.4)
-      var(--easing-travel) calc(var(--wir-intro-beat) * 0.6) both;
+    .wir-checkin-badge:not([data-placeholder]) {
+    animation: eimir-motion-stage-rise calc(var(--wir-intro-beat) * 1.2)
+      var(--easing-travel) calc(var(--wir-intro-beat) * 1.9) both;
   }
 
-  .wir-stage[data-motion-stage="playing"]
-    .today-hero
-    .partner-avatar-stack
-    > :nth-child(2)::before {
-    animation-delay: var(--wir-intro-beat);
-  }
-
-  /* Names and today's state follow the portrait, like a caption. */
-  .wir-stage[data-motion-stage="playing"] .wir-stage-name,
-  .wir-stage[data-motion-stage="playing"] .today-hero .wir-checkin-badge {
-    animation: eimir-motion-stage-rise calc(var(--wir-intro-beat) * 2)
-      var(--easing-travel) calc(var(--wir-intro-beat) * 1.4) both;
-  }
-
-  /* What joins you: the ampersand and the time settle in last, once the heart
-     is on its way (it starts at 2.0 beats, WirHeroStage.css). */
+  /* What joins you: the ampersand, the time together and the place settle in
+     together, once the heart is on its way (it starts at 1.2 beats,
+     WirHeroStage.css). The place is one pill: its pin and its value arrive
+     together, and it joins the opening when it arrives late. */
   .wir-stage[data-motion-stage="playing"] .wir-stage-amp,
   .wir-stage[data-motion-stage="playing"] .wir-bridge-lead,
-  .wir-stage[data-motion-stage="playing"] .wir-bridge-rest {
-    animation: eimir-motion-stage-rise calc(var(--wir-intro-beat) * 1.8)
-      var(--easing-travel) calc(var(--wir-intro-beat) * 2.6) both;
+  .wir-stage[data-motion-stage="playing"] .wir-bridge-rest,
+  .wir-stage[data-motion-stage="playing"] .wir-hero-distance {
+    animation: eimir-motion-stage-rise calc(var(--wir-intro-beat) * 1.3)
+      var(--easing-travel) calc(var(--wir-intro-beat) * 1.8) both;
   }
 
-  /* The distance does not rise as a block: its pin settles on its own and
-     the value follows, so the slot itself only fades. The `wir-intro-` names
-     keep a late-arriving value on the same clock as the rest of the stage. */
-  .wir-stage[data-motion-stage="playing"] .wir-stage-distance {
-    animation: eimir-motion-stage-fade calc(var(--wir-intro-beat) * 1.8)
-      var(--easing-travel) calc(var(--wir-intro-beat) * 2.6) both;
-  }
-
-  .wir-stage[data-motion-stage="playing"]
-    .wir-hero-distance
-    .partner-distance-glyph {
-    animation: eimir-motion-stage-land calc(var(--wir-intro-beat) * 2.5)
-      var(--easing-travel) calc(var(--wir-intro-beat) * 2.6) both;
-  }
-
-  .wir-stage[data-motion-stage="playing"] .wir-hero-distance-value {
-    animation: eimir-motion-stage-fade calc(var(--wir-intro-beat) * 2)
-      var(--easing-travel) calc(var(--wir-intro-beat) * 4.2) both;
-  }
-
-  /* A current position makes the pin wiggle once per session, after it has
-     settled, and then it stays still (`data-motion-wiggle` is removed when it
-     ended). A position that is not current never moves. The opening repeats
-     the wiggle in its own list so both run on the stage's clock. */
-  .wir-hero-distance.is-fresh[data-motion-wiggle] .partner-distance-glyph {
-    animation: eimir-motion-feedback-wiggle var(--duration-gesture-moment)
-      var(--easing-standard) calc(var(--duration-sequence-beat) * 4.4) both;
-  }
-
+  /* A current position makes the pin wiggle once, inside the opening, while
+     the pill settles; an earlier position never moves, and a place that
+     arrives after the opening is simply there. `data-motion-wiggle` is
+     removed when it ended, once per session. */
   .wir-stage[data-motion-stage="playing"]
     .wir-hero-distance.is-fresh[data-motion-wiggle]
     .partner-distance-glyph {
-    animation:
-      eimir-motion-stage-land calc(var(--wir-intro-beat) * 2.5)
-      var(--easing-travel) calc(var(--wir-intro-beat) * 2.6) both,
-      eimir-motion-stage-wiggle var(--duration-gesture-moment)
-      var(--easing-standard) calc(var(--wir-intro-beat) * 4.6) both;
+    animation: eimir-motion-stage-wiggle var(--duration-gesture-moment)
+      var(--easing-standard) calc(var(--wir-intro-beat) * 2.6) both;
+  }
+
+  /* The daily quote below the hero arrives with the opening; a quote that
+     arrives late replaces its loading line in place (DailyQuoteCard). */
+  .today-content[data-motion-stage-scope="playing"] .daily-quote-card {
+    --motion-stage-rise: 0.5rem;
+
+    animation: eimir-motion-stage-rise calc(var(--wir-intro-beat) * 1.3)
+      var(--easing-travel) calc(var(--wir-intro-beat) * 2.2) both;
   }
 
   /* A changed value fades over instead of jumping. */
@@ -155,7 +148,9 @@
 
   /* Pending modules wait invisibly in their own place; the hook flips them
      once, when they are reached. They are never display:none, so find-in-page,
-     focus order and layout do not change. */
+     focus order and layout do not change. In the opening, `--wir-reveal-delay`
+     is the module's slot on the opening's clock, and a module that joins late
+     plays its beats compressed by `--wir-reveal-scale` into what is left. */
   .today-section[data-wir-reveal="pending"] .today-section-header {
     opacity: 0;
   }
@@ -165,38 +160,54 @@
     translate: 0 0.5rem;
   }
 
-  /* The modules arrive at about twice the former pace, in step with the
-     slower opening above them. */
   .today-section[data-wir-reveal="shown"] .today-section-header {
-    animation: eimir-motion-enter-fade calc(var(--duration-context) * 2)
+    animation: eimir-motion-enter-fade
+      calc(var(--wir-intro-beat) * 1.2 * var(--wir-reveal-scale, 1))
       var(--easing-enter) var(--wir-reveal-delay) both;
   }
 
   .today-section[data-wir-reveal="shown"] .today-section-body {
     --motion-enter-rise: 0.5rem;
 
-    animation: eimir-motion-enter-rise calc(var(--duration-context) * 3)
+    animation: eimir-motion-enter-rise
+      calc(var(--wir-intro-beat) * 1.4 * var(--wir-reveal-scale, 1))
       var(--easing-enter)
-      calc(var(--wir-reveal-delay) + var(--duration-sequence-beat) * 0.6) both;
+      calc(
+        var(--wir-reveal-delay) +
+        var(--wir-intro-beat) *
+        0.2 *
+        var(--wir-reveal-scale, 1)
+      )
+      both;
   }
 
   /* The upcoming plans fade in one after another, so the row reads as a
      sequence rather than a block. They never move sideways: that would widen
-     the scrolling strip for a moment and nudge it. */
+     the scrolling strip for a moment and nudge it. Their body only rises
+     (Enter `shift`), so no plan fades inside a fading body. */
+  .today-section[data-wir-reveal="pending"]
+  .today-section-body:has(.today-agenda-list) {
+    opacity: 1;
+  }
+
+  .today-section[data-wir-reveal="shown"]
+    .today-section-body:has(.today-agenda-list) {
+    animation-name: eimir-motion-enter-shift;
+  }
+
   .today-section[data-wir-reveal="pending"] .today-agenda-list > * {
     opacity: 0;
   }
 
   .today-section[data-wir-reveal="shown"] .today-agenda-list > * {
-    animation: eimir-motion-enter-fade calc(var(--duration-context) * 2)
+    animation: eimir-motion-enter-fade
+      calc(var(--wir-intro-beat) * var(--wir-reveal-scale, 1))
       var(--easing-enter)
       calc(
         var(--wir-reveal-delay) +
-        var(--duration-sequence-beat) *
-        1.2 +
-        var(--wir-reveal-step, 0) *
-        var(--duration-sequence-beat) *
-        0.7
+        (0.2 + var(--wir-reveal-step, 0) * 0.15) *
+        var(--wir-intro-beat) *
+        var(--wir-reveal-scale, 1)
       )
       both;
   }
@@ -213,28 +224,10 @@
     --wir-reveal-step: 3;
   }
 
-  /* The shared moment's caption follows its photograph. */
-  .today-section-moment[data-wir-reveal="pending"] .today-moment-caption {
-    opacity: 0;
-  }
-
-  .today-section-moment[data-wir-reveal="shown"] .today-moment-caption {
-    animation: eimir-motion-enter-fade var(--duration-gesture-moment)
-      var(--easing-enter)
-      calc(var(--wir-reveal-delay) + var(--duration-sequence-beat) * 3) both;
-  }
-
   /* A rediscovered memory rises a little, like the other modules. */
   .today-section-retrospective[data-wir-reveal="pending"] .today-section-body {
     opacity: 0;
     translate: 0 0.5rem;
-  }
-
-  /* The daily quote arrives with a soft fade once it is known, instead of
-     replacing the loading line in a single frame: Enter `fade`, identity
-     `wir.quote`, once per session (DailyQuoteCard `arrive`). */
-  .today-page .daily-quote-block[data-motion-enter] {
-    animation-duration: calc(var(--duration-sequence-beat) * 5);
   }
 }
 

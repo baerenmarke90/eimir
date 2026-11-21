@@ -473,17 +473,17 @@
   }
 }
 
-/* The portraits and content are visible immediately. Only the heart line
- * takes a short beat to draw when the start of Wir is visible. The two arms
- * reach out once the portraits are there, with the decisive start and soft
- * landing of `--easing-standard` (a symmetric curve made the connecting look
- * sluggish), and the heart starts drawing just as they meet. Beat counts:
- * arms 1.0-2.2, heart 2.0-3.3. */
+/* The heart line on the opening's clock (#2147, WIR_STAGE_BEATS): the two
+ * arms reach out once the portraits are arriving, with the decisive start and
+ * soft landing of `--easing-standard` (a symmetric curve made the connecting
+ * look sluggish), and the heart starts drawing just before they meet. Beat
+ * counts: arms 0.7-1.7, heart 1.2-2.3. The heart is a bounded line-draw of two
+ * short paths (`stroke-dashoffset`, Motion Contract M6). */
 @media (prefers-reduced-motion: no-preference) {
   .wir-stage[data-motion-stage="playing"] .wir-bridge-arm {
     transform-origin: left center;
-    animation: eimir-motion-stage-reach calc(var(--wir-intro-beat) * 1.2)
-      var(--easing-standard) var(--wir-intro-beat) both;
+    animation: eimir-motion-stage-reach var(--wir-intro-beat)
+      var(--easing-standard) calc(var(--wir-intro-beat) * 0.7) both;
   }
 
   .wir-stage[data-motion-stage="playing"] .wir-bridge-arm-partner {
@@ -494,8 +494,8 @@
   .wir-stage[data-motion-stage="playing"] .wir-bridge-heart-own,
   .wir-stage[data-motion-stage="playing"] .wir-bridge-heart-partner {
     --motion-trace-from: -56;
-    animation: eimir-motion-stage-trace calc(var(--wir-intro-beat) * 1.3)
-      var(--easing-standard) calc(var(--wir-intro-beat) * 2) both;
+    animation: eimir-motion-stage-trace calc(var(--wir-intro-beat) * 1.1)
+      var(--easing-standard) calc(var(--wir-intro-beat) * 1.2) both;
   }
 }
 

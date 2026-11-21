@@ -12,6 +12,7 @@ plugin-loaded job runs them against a simulated absent plugin.
 
 from __future__ import annotations
 
+import io
 import json
 from collections.abc import Iterator
 from contextlib import contextmanager, nullcontext
@@ -29,13 +30,16 @@ from eimir.authorization import AuthorizationContext, PrivacyClass
 from eimir.core import clock
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
+from eimir.identity.deletion import apply_accepted_tombstone, apply_core_cleanup
+from eimir.identity.models import Account
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import JobRegistry
 from eimir.memories.models import Memory, MemoryPayload
 from eimir.plugins.loader import loaded_plugins
 from eimir.plugins.manifest import PLUGIN_JOB_KINDS
-from eimir.recaps.models import RecapEdition, RecapKind
+from eimir.recaps.models import RecapEdition, RecapKind, RecapReflection
 from eimir.relationship import service as relationship_service
+from eimir.relationship.models import Membership
 from eimir.transfer import service as transfer_service
 from eimir.transfer.models import TransferScope
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
@@ -213,3 +217,117 @@ def test_without_the_plugin_recaps_stay_readable_exportable_and_composition_paus
             client.get(f"{couple.path}/{recap_id}", headers=couple.partner).json()["reflections"]
             == []
         )
+
+
+def _transfer(session: Session, source: AuthorizationContext, target: AuthorizationContext) -> None:
+    from eimir.transfer import jobs as transfer_jobs
+    from eimir.transfer.models import ImportStatus
+
+    with transfer_service.build_export_archive(session, source, TransferScope.PERSONAL) as bundle:
+        bundle.seek(0, io.SEEK_END)
+        size = bundle.tell()
+        bundle.seek(0)
+        transfer = transfer_service.create_import(session, target, bundle, size=size)
+    transfer_jobs.handle_validate_import(session, {"importId": str(transfer.id)})
+    transfer_service.request_apply(session, target, str(transfer.id))
+    transfer_jobs.handle_apply_import(session, {"importId": str(transfer.id)})
+    session.flush()
+    assert transfer.status == ImportStatus.COMPLETED.value
+
+
+def test_without_the_plugin_recaps_restore_and_follow_source_and_account_deletion(
+    client: TestClient, session: Session, couple: SimpleNamespace
+) -> None:
+    anna = AuthorizationContext(account_id=couple.anna.id, space_id=couple.space.id)
+    with with_pro_plugin():
+        recap_id = _compose(session, couple, 10)
+        _generate(session, couple, recap_id)
+        for text, shared in (("Words we keep", True), ("Anna private draft", False)):
+            reflection = client.put(
+                f"{couple.path}/{recap_id}/reflection",
+                headers=couple.headers,
+                json={"text": text, "shared": shared, "version": 0},
+            )
+            assert reflection.status_code == 200
+    ben = session.scalar(
+        select(Membership.account_id).where(
+            Membership.space_id == couple.space.id, Membership.account_id != couple.anna.id
+        )
+    )
+    assert ben is not None
+
+    with core_only():
+        # Restore: the bundle brings the edition and its words into another Space.
+        target = make_space(session, couple.anna)
+        relationship_service.add_member(session, target.id, session.get(Account, ben))
+        restored_context = AuthorizationContext(account_id=couple.anna.id, space_id=target.id)
+        _transfer(session, anna, restored_context)
+        restored = session.scalar(select(RecapEdition).where(RecapEdition.space_id == target.id))
+        assert restored is not None
+        reread = client.get(
+            f"/api/v1/spaces/{target.id}/recaps/{restored.id}", headers=couple.headers
+        )
+        assert reread.status_code == 200
+        assert [item["text"] for item in reread.json()["reflections"]] == ["Words we keep"]
+        assert reread.json()["ownDraft"]["text"] == "Anna private draft"
+
+        # The source still governs the stored edition: a deleted source becomes
+        # unavailable and its words leave the edition.
+        source = session.scalar(select(Memory).where(Memory.space_id == couple.space.id))
+        assert source is not None
+        session.delete(source)
+        session.flush()
+        withdrawn = client.get(f"{couple.path}/{recap_id}", headers=couple.partner).json()
+        assert [item["available"] for item in withdrawn["sources"]] == [False]
+        assert "Our shared words" not in json.dumps(withdrawn)
+
+        # Account deletion removes the member's private draft; the shared
+        # edition stays readable for the partner.
+        apply_accepted_tombstone(session, couple.anna.id, accepted_at=NOW)
+        apply_core_cleanup(session, couple.anna.id)
+        session.flush()
+        drafts = session.scalars(
+            select(RecapReflection).where(
+                RecapReflection.owner_id == couple.anna.id,
+                RecapReflection.privacy_class == PrivacyClass.OWNER_ONLY.value,
+            )
+        ).all()
+        assert drafts == []
+        kept = client.get(f"{couple.path}/{recap_id}", headers=couple.partner)
+        assert kept.status_code == 200
+        assert kept.json()["status"] == "READY"
+
+
+def test_a_recap_continues_unchanged_when_the_plugin_returns(
+    client: TestClient, session: Session, couple: SimpleNamespace
+) -> None:
+    with with_pro_plugin():
+        recap_id = _compose(session, couple, 10)
+        _generate(session, couple, recap_id)
+        pending_id = _compose(session, couple, 9)
+        before = client.get(f"{couple.path}/{recap_id}", headers=couple.headers).json()
+
+    with core_only():
+        assert client.get(f"{couple.path}/{recap_id}", headers=couple.headers).json() == before
+        assert session.get(RecapEdition, UUID(pending_id)).status == "PENDING"  # type: ignore[union-attr]
+
+    # The plugin is back: the queued composition runs with the same payload and
+    # the edition composed before the outage is unchanged.
+    with with_pro_plugin():
+        registry = JobRegistry()
+        loaded_plugins().register_jobs(registry)
+        assert loaded_plugins().unclaimed_job_kinds(registry).isdisjoint(RECAP_JOB_KINDS)
+        queued = session.scalar(
+            select(Job).where(
+                Job.kind == "recap.generate.v1", Job.payload["edition_id"].astext == pending_id
+            )
+        )
+        assert queued is not None and queued.status == JobStatus.PENDING.value
+        handler = registry.get("recap.generate.v1")
+        assert handler is not None
+        handler(session, dict(queued.payload))
+        session.flush()
+        resumed = session.get(RecapEdition, UUID(pending_id))
+        assert resumed is not None and resumed.status in {"READY", "EMPTY"}
+        assert client.get(f"{couple.path}/{recap_id}", headers=couple.headers).json() == before
+        assert client.get(couple.path, headers=couple.headers).json()["canCompose"] is True

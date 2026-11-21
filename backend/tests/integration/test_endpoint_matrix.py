@@ -19,12 +19,14 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy.orm import Session
 
+from eimir.authorization import AuthorizationContext
 from eimir.core import clock
 from eimir.dashboard.preferences import CATALOG as DASHBOARD_CATALOG
 from eimir.engagement.models import Notification, NotificationKind
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
-from eimir.plugins.loader import loaded_plugins
+from eimir.recaps import service as recaps
+from eimir.recaps.models import RecapKind
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 from tests.support.plugins import with_pro_plugin
@@ -53,12 +55,6 @@ class Endpoint:
     body_fixture_aliases: dict[str, str] = field(default_factory=dict)
     query: dict[str, str] = field(default_factory=dict)
     verification_template: str | None = None
-    plugin_capability_first: str | None = None
-    """A plugin-owned capability this Core endpoint checks before it looks up the resource.
-
-    Without the plugin it answers ``403 PREMIUM_ENTITLEMENT_REQUIRED`` for every
-    resource ID, so an unknown and a malformed ID stay indistinguishable.
-    """
 
     def __str__(self) -> str:
         return f"{self.method} {self.template}"
@@ -235,14 +231,12 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         body={"sourceKeys": []},
         if_match=True,
         resource_absence="RESOURCE_NOT_FOUND",
-        plugin_capability_first="relationship.passport",
     ),
     Endpoint(
         "POST",
         "/api/v1/spaces/{spaceId}/recaps/{recapId}/save",
         if_match=True,
         resource_absence="RESOURCE_NOT_FOUND",
-        plugin_capability_first="relationship.passport",
     ),
     Endpoint(
         "PUT",
@@ -1866,11 +1860,17 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
                 capabilities=["relationship.passport"],
             )
             session.flush()
-            recap = client.post(
-                f"{base_path}/recaps", json={"kind": "YEAR", "year": 2025}, headers=headers
+            # Composed through the service: the request route is plugin code and
+            # is not mounted in the Core-only configuration.
+            recap_id = str(
+                recaps.request_period(
+                    session,
+                    AuthorizationContext(account_id=anna.id, space_id=space.id),
+                    RecapKind.YEAR,
+                    2025,
+                    0,
+                ).id
             )
-            assert recap.status_code == 200
-            recap_id = recap.json()["id"]
             reflection = client.put(
                 f"{base_path}/recaps/{recap_id}/reflection",
                 json={"text": "Matrix recap reflection", "shared": True, "version": 0},
@@ -2027,7 +2027,8 @@ class TestEveryResourceId:
             **dict.fromkeys(_resource_placeholders(endpoint), str(uuid4())),
         )
         response = _send(scenario, endpoint, path, scenario["owner_headers"])
-        assert (response.status_code, response.json()["code"]) == _absence(endpoint)
+        assert response.status_code == 404
+        assert response.json()["code"] == endpoint.resource_absence
 
     def test_malformed_resource_id_remains_same_404(self, scenario, endpoint: Endpoint) -> None:  # type: ignore[no-untyped-def]
         "Well-formedness must not disclose existence."
@@ -2043,17 +2044,8 @@ class TestEveryResourceId:
         )
         first = _send(scenario, endpoint, unknown, scenario["owner_headers"])
         second = _send(scenario, endpoint, malformed, scenario["owner_headers"])
-        assert first.status_code == second.status_code == _absence(endpoint)[0]
+        assert first.status_code == second.status_code == 404
         assert first.json() == second.json()
-
-
-def _absence(endpoint: Endpoint) -> tuple[int, str | None]:
-    """How the endpoint denies an unknown resource in this plugin configuration."""
-    if endpoint.plugin_capability_first is not None and (
-        endpoint.plugin_capability_first not in loaded_plugins().capabilities()
-    ):
-        return 403, "PREMIUM_ENTITLEMENT_REQUIRED"
-    return 404, endpoint.resource_absence
 
 
 def _resource_placeholders(endpoint: Endpoint) -> tuple[str, ...]:

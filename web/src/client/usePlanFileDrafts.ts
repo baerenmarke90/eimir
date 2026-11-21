@@ -1,6 +1,7 @@
 import { MediaType } from '../api/generated/models/MediaType';
 import { i18n } from '../i18n';
 import { MAX_MEMORY_ATTACHMENTS } from './attachmentLimits';
+import { storageRefusal } from './storageQuota';
 import type { uploadMemoryDraftAttachment } from './memoryAttachmentDraft';
 import {
   ReferenceFlowError,
@@ -69,6 +70,8 @@ const uploadPdf: typeof uploadMemoryDraftAttachment = async (
   } catch (error) {
     options.signal?.throwIfAborted();
     if (error instanceof ReferenceFlowError && error.code) throw error;
+    const refused = await storageRefusal(error);
+    if (refused) throw refused;
     throw new ReferenceFlowError(i18n.t('planFiles.uploadFailed'));
   }
 };

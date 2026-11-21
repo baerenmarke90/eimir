@@ -18,6 +18,7 @@ import {
   waitUntilAttachmentReady,
 } from './referenceFlow';
 import { selectedPhotoUnavailable } from './selectedMediaRetention';
+import { storageRefusal } from './storageQuota';
 import { compressVideoForUpload } from './videoCompression';
 
 export type DraftUploadPhase = 'preparing' | 'uploading' | 'validating';
@@ -195,6 +196,9 @@ export async function uploadMemoryDraftAttachment(
       throw error;
     }
     if (error instanceof ReferenceFlowError) throw error;
+    // A full storage is said plainly and the same way on every media path.
+    const refused = await storageRefusal(error);
+    if (refused) throw refused;
     throw new ReferenceFlowError(
       i18n.t(video ? 'video.startFailed' : 'flow.uploadFailed'),
     );

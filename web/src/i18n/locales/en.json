@@ -6752,5 +6752,24 @@
       "SHARED_NOTE_CREATED": "{{name}} added a shared note",
       "SHARED_NOTE_CHANGED": "{{name}} changed a shared note"
     }
+  },
+  "storageQuota": {
+    "heading": "Storage",
+    "used": "{{used}} of {{quota}} used",
+    "counts": "Photos, videos, voice messages and PDFs count. Previews and your profile photo do not.",
+    "free": "{{available}} still free.",
+    "proIncluded": "With eimir. Pro you have {{quota}}.",
+    "almostFull": {
+      "title": "Your storage is almost full",
+      "body": "After that, no new photos or videos can be added. Everything you already have stays."
+    },
+    "full": {
+      "title": "Your storage is full",
+      "body": "New photos, videos, voice messages and PDFs can be added again once you free up space or use Pro. Everything you have stays and can still be viewed, edited and exported.",
+      "bodyPro": "New photos, videos, voice messages and PDFs can be added again once you free up space. Everything you have stays and can still be viewed, edited and exported."
+    },
+    "viewMedia": "View photos and videos",
+    "morePro": "More space with eimir. Pro",
+    "uploadRefused": "This no longer fits your storage. Free up space or use Pro, then you can add it again."
   }
 }

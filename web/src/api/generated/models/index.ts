@@ -468,6 +468,7 @@ export * from './SpacePersonalSettingsPatch';
 export * from './SpacePersonalSettingsView';
 export * from './SpaceProfileUpdate';
 export * from './SpaceProfileView';
+export * from './SpaceStorageUsage';
 export * from './SpaceView';
 export * from './StoreChannel';
 export * from './StoreChannelView';

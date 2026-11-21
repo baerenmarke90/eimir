@@ -299,7 +299,14 @@ def test_recovering_videos_that_do_not_fit_is_refused(
 
     assert refused.status_code == 413, refused.text
     assert refused.json()["code"] == "STORAGE_QUOTA_EXCEEDED"
-    assert len(transfers.recoverable_videos(session, skipped["target"].id, again.summary)) == 2
+    assert (
+        len(
+            transfers.recoverable_videos(
+                session, skipped["target"].id, skipped["anna"].id, again.summary
+            )
+        )
+        == 2
+    )
 
 
 def test_the_recovery_job_checks_the_quota_again(
@@ -316,7 +323,14 @@ def test_the_recovery_job_checks_the_quota_again(
 
     assert again.status == ImportStatus.READY_TO_APPLY
     assert again.error_code == "STORAGE_QUOTA_EXCEEDED"
-    assert len(transfers.recoverable_videos(session, skipped["target"].id, again.summary)) == 2
+    assert (
+        len(
+            transfers.recoverable_videos(
+                session, skipped["target"].id, skipped["anna"].id, again.summary
+            )
+        )
+        == 2
+    )
 
 
 def test_the_refusal_carries_no_partial_write(session, staged, cloud_quota) -> None:  # type: ignore[no-untyped-def]

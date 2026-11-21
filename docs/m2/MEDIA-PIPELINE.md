@@ -147,6 +147,7 @@ Additionally:
 - Server values are binding; client limits are UX only.
 - Size is determined from the actually stored object, not client metadata.
 - An upload never stores more than its declared size (#2141): the declared size is what the Cloud storage quota reserved. The server stream stops at it, and validation fails a larger object with `ATTACHMENT_TOO_LARGE`, which also covers a direct provider upload whose signature does not bind the length. On Cloud, `createUpload` refuses a declared size that does not fit the Space's quota with `413 STORAGE_QUOTA_EXCEEDED` (Freemium matrix, "Cloud storage quota").
+- `getSpaceStorage` (`GET /spaces/{spaceId}/storage`) reports the Space's `used` bytes, its `quota` and what is `available`, measured as above; both partners read the same figure. `quota` and `available` are `null` where storage is unmetered (Self-Hosted), and the client then shows no storage section.
 - Image dimensions and video duration are determined from server-recognized Media information.
 - Declared MIME, file extension, and original name are not trusted sources.
 

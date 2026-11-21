@@ -22,8 +22,9 @@ from eimir.api.schema import ApiModel
 from eimir.api.v1.recaps import RecapPeriod, RecapSourceView, RecapView, no_store, project
 from eimir.core import clock
 from eimir.core.errors import ConflictError, ErrorCode
+from eimir.recap_composition import composer
 from eimir.recap_composition.selection import replace_sources
-from eimir.recaps import composer, presentation, service
+from eimir.recaps import presentation, service
 from eimir.recaps.composition import MANUAL_SELECTION_LIMIT
 
 router = APIRouter(tags=["recaps"], dependencies=[Depends(no_store)])

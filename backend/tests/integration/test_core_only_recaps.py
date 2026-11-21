@@ -3,9 +3,11 @@
 `relationship.passport` is plugin-owned, so a Core-only instance behaves like
 an expired Pro for recaps: what was composed while the plugin was loaded stays
 readable and exportable and the members' own words stay theirs, while new
-composition pauses. These tests are not Pro feature tests: the Core-only CI job
-runs them with ``EIMIR_PLUGINS=""``; the plugin-loaded job runs them against a
-simulated absent plugin.
+composition pauses: the composing routes are not mounted and no worker without
+the plugin claims a queued recap job. The data of the plugin-loaded past is
+created through plugin code, imported where it is used. These tests are not Pro
+feature tests: the Core-only CI job runs them with ``EIMIR_PLUGINS=""``; the
+plugin-loaded job runs them against a simulated absent plugin.
 """
 
 from __future__ import annotations
@@ -25,11 +27,13 @@ from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext, PrivacyClass
 from eimir.core import clock
-from eimir.core.errors import PremiumEntitlementRequiredError
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
+from eimir.jobs.models import Job, JobStatus
+from eimir.jobs.worker import JobRegistry
 from eimir.memories.models import Memory, MemoryPayload
-from eimir.recaps import composer, jobs
+from eimir.plugins.loader import loaded_plugins
+from eimir.plugins.manifest import PLUGIN_JOB_KINDS
 from eimir.recaps.models import RecapEdition, RecapKind
 from eimir.relationship import service as relationship_service
 from eimir.transfer import service as transfer_service
@@ -39,6 +43,15 @@ from tests.support.plugins import plugins_loaded, with_pro_plugin, without_plugi
 
 pytestmark = [pytest.mark.integration, requires_database]
 NOW = datetime(2026, 10, 30, 12, tzinfo=UTC)
+RECAP_JOB_KINDS = frozenset(
+    {
+        "recap.announce.v1",
+        "recap.backfill.v1",
+        "recap.generate.v1",
+        "recap.refresh.v1",
+        "recap.scan.v1",
+    }
+)
 
 
 @contextmanager
@@ -88,6 +101,8 @@ def couple(session: Session, monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace
 def _compose(session: Session, couple: SimpleNamespace, month: int) -> str:
     # Through the service: the request route is plugin code, so it is not mounted
     # in the Core-only configuration (its absence is covered by test_pro_routes.py).
+    from eimir.recap_composition import composer
+
     context = AuthorizationContext(account_id=couple.anna.id, space_id=couple.space.id)
     value = composer.request_period(session, context, RecapKind.MONTH, 2026, month)
     session.flush()
@@ -95,6 +110,8 @@ def _compose(session: Session, couple: SimpleNamespace, month: int) -> str:
 
 
 def _generate(session: Session, couple: SimpleNamespace, recap_id: str) -> None:
+    from eimir.recap_composition import jobs
+
     record = session.get(RecapEdition, UUID(recap_id))
     assert record is not None
     jobs.generate(
@@ -152,14 +169,21 @@ def test_without_the_plugin_recaps_stay_readable_exportable_and_composition_paus
         assert json.loads(exported)["tables"]
         assert recap_id.encode() in exported and b"Words we keep" in exported
 
-        # New composition pauses: no new period, and the queued job does not compose.
-        with pytest.raises(PremiumEntitlementRequiredError):
-            _compose(session, couple, 8)
-        _generate(session, couple, pending_id)
-        paused = session.get(RecapEdition, UUID(pending_id))
-        assert paused is not None and paused.status == "PAUSED"
-        jobs.scan(session, {})
-        session.flush()
+        # New composition pauses: a worker without the plugin claims no recap job,
+        # so the queued composition stays pending (never failed) for a worker that
+        # loads the plugin, and no scan prepares new periods.
+        registry = JobRegistry()
+        loaded_plugins().register_jobs(registry)
+        assert RECAP_JOB_KINDS <= PLUGIN_JOB_KINDS
+        assert loaded_plugins().unclaimed_job_kinds(registry) >= RECAP_JOB_KINDS
+        queued = session.scalar(
+            select(Job).where(
+                Job.kind == "recap.generate.v1", Job.payload["edition_id"].astext == pending_id
+            )
+        )
+        assert queued is not None and queued.status == JobStatus.PENDING.value
+        waiting = session.get(RecapEdition, UUID(pending_id))
+        assert waiting is not None and waiting.status == "PENDING"
         assert (
             session.scalar(
                 select(func.count())

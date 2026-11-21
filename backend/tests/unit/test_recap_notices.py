@@ -10,8 +10,8 @@ from eimir.domain.events import EventType
 from eimir.engagement import notification_policy, notification_preferences, quiet_hours_preferences
 from eimir.engagement.models import COALESCED_NOTIFICATION_KINDS, NotificationKind
 from eimir.engagement.notification_policy import GENERIC_PREVIEW, DeliveryClass
-from eimir.recaps import freshness, notices
-from eimir.recaps.freshness import Step
+from eimir.recap_composition import freshness, notices
+from eimir.recap_composition.freshness import Step
 
 NOW = datetime(2026, 11, 7, 10, tzinfo=UTC)
 

@@ -25,7 +25,7 @@ from eimir.jobs.errors import DeferredJobError
 from eimir.jobs.models import Job, JobStatus
 from eimir.memories.models import MemoryPayload
 from eimir.outbox.models import OutboxEvent
-from eimir.recaps import composer, freshness, jobs, notices
+from eimir.recap_composition import composer, freshness, jobs, notices
 from eimir.recaps.models import RecapEdition, RecapSource
 from tests.conftest import requires_database
 from tests.integration.test_recap_film import picture, titled

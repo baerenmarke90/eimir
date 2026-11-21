@@ -29,7 +29,7 @@ from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 from eimir.plans.media import photos_of_plans
 from eimir.plans.models import Plan
-from eimir.recaps import film
+from eimir.recap_composition import film
 from eimir.recaps.composition import Candidate
 from eimir.recaps.models import (
     FilmLook,

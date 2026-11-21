@@ -25,7 +25,6 @@ from eimir.dashboard.preferences import CATALOG as DASHBOARD_CATALOG
 from eimir.engagement.models import Notification, NotificationKind
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
-from eimir.recaps import composer
 from eimir.recaps.models import RecapKind
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
@@ -1860,8 +1859,10 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
                 capabilities=["relationship.passport"],
             )
             session.flush()
-            # Composed through the service: the request route is plugin code and
-            # is not mounted in the Core-only configuration.
+            # Composed through the plugin code: the request route is not mounted in
+            # the Core-only configuration.
+            from eimir.recap_composition import composer
+
             recap_id = str(
                 composer.request_period(
                     session,

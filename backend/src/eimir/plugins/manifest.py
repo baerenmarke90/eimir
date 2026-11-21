@@ -361,6 +361,11 @@ PLUGIN_JOB_KINDS = frozenset(
         "photo_selection_cleanup",
         "photo_selection_expire",
         "presence_retention",
+        "recap.announce.v1",
+        "recap.backfill.v1",
+        "recap.generate.v1",
+        "recap.refresh.v1",
+        "recap.scan.v1",
     }
 )
 """Job kinds only a plugin handles. A worker without that plugin leaves them unclaimed."""

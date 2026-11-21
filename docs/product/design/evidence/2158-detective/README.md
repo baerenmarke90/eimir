@@ -7,7 +7,7 @@ opened Planen → Wünsche by tapping.
 
 | File | Shows |
 | --- | --- |
-| `wishes-tab-de-390-light.png`, `-dark.png` | Lea's open wishes during the game: her own wishes stay in the alphabet; Alex's two open wishes are placeholders in their own group "Im Wunschdetektiv" below it, naming only who wished them, with a link to the game. The rows open nothing. |
+| `wishes-tab-de-390-light.png`, `-dark.png` | Lea's open wishes during the game: her own wishes stay in the alphabet; Alex's two open wishes are placeholders in their own group (`wishConcealment.groupTitle`, "In Wish detective" in English) below it, naming only who wished them, with a link to the game. The rows open nothing. |
 | `wishes-tab-en-390-light.png` | The same in English. |
 | `wish-detail-de-390-light.png`, `-dark.png`, `wish-detail-en-390-light.png` | The detail of a hidden wish (reached as from a notice or a linked Moment): no title, no menu, no actions, only when it will be revealed and the way to the game. |
 | `wishes-tab-de-1280-light.png`, `-dark.png`, `wish-detail-de-1280-light.png`, `-dark.png` | Expanded (1280 × 800): the same group in the centred Wishes column; the detail note in the composer detail column. |

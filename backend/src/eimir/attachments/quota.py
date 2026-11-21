@@ -29,6 +29,7 @@ from sqlalchemy.orm import Session
 
 from eimir.attachments.models import Attachment, AttachmentStatus
 from eimir.config import Deployment, Settings, get_settings
+from eimir.core.errors import ErrorCode, PayloadTooLargeError
 from eimir.db.locks import lock_subject
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import Capability
@@ -60,6 +61,33 @@ class SpaceStorage:
     def fits(self, additional: int) -> bool:
         """Whether ``additional`` new bytes fit, the limit itself included."""
         return self.quota is None or self.used + additional <= self.quota
+
+
+class StorageQuotaExceededError(PayloadTooLargeError):
+    """New bytes would take the Space past its Cloud storage quota.
+
+    Nothing has been written when it is raised: existing content stays as it
+    is, and the member can free space or get Premium and try again.
+    """
+
+
+def require_fit(storage: SpaceStorage, needed: int, *, without_videos: int | None = None) -> None:
+    """Refuse ``needed`` new bytes that do not fit.
+
+    ``without_videos`` is what the same write would need without its videos.
+    When that would fit, the refusal says so, so the member can choose it.
+    """
+    if storage.fits(needed):
+        return
+    if without_videos is not None and without_videos < needed and storage.fits(without_videos):
+        raise StorageQuotaExceededError(
+            "The Space's storage is full; this fits without its videos.",
+            ErrorCode.STORAGE_QUOTA_EXCEEDED_FITS_WITHOUT_VIDEOS,
+        )
+    raise StorageQuotaExceededError(
+        "The Space's storage is full. Free up space or get Premium.",
+        ErrorCode.STORAGE_QUOTA_EXCEEDED,
+    )
 
 
 def space_usage(session: Session, space_id: UUID) -> int:

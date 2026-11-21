@@ -18028,6 +18028,11 @@
             "title": "Recordcounts",
             "type": "object"
           },
+          "recoverableVideoBytes": {
+            "description": "Total size of the recoverable videos; recovering them counts toward the Space's storage quota.",
+            "title": "Recoverablevideobytes",
+            "type": "integer"
+          },
           "recoverableVideoCount": {
             "description": "Videos this Space skipped in an earlier import that this file holds again (same source and checksum). Apply with `mode: VIDEOS_ONLY` to add exactly these to their galleries.",
             "title": "Recoverablevideocount",
@@ -18049,6 +18054,38 @@
           "sourceMemberCount": {
             "title": "Sourcemembercount",
             "type": "integer"
+          },
+          "storageAvailable": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Bytes that still fit the Space's storage quota, read live while the import is ready to apply. `null` when the Space is unmetered (Self-Hosted) or the import is no longer ready.",
+            "title": "Storageavailable"
+          },
+          "storageFitsWithoutVideos": {
+            "description": "True when importing with `mode: WITHOUT_VIDEOS` fits the storage quota.",
+            "title": "Storagefitswithoutvideos",
+            "type": "boolean"
+          },
+          "storageNeeded": {
+            "description": "Bytes the import would add to the Space's storage: the media it would add, at their size. Media the Space already has and thumbnails do not count.",
+            "title": "Storageneeded",
+            "type": "integer"
+          },
+          "storageNeededWithoutVideos": {
+            "description": "Bytes the import would add with `mode: WITHOUT_VIDEOS`.",
+            "title": "Storageneededwithoutvideos",
+            "type": "integer"
+          },
+          "storageQuotaExceeded": {
+            "description": "True when importing everything would exceed the Space's storage quota; applying is then refused with `413 STORAGE_QUOTA_EXCEEDED` or, when `storageFitsWithoutVideos` is true, `413 STORAGE_QUOTA_EXCEEDED_FITS_WITHOUT_VIDEOS`. Free up space or get Premium.",
+            "title": "Storagequotaexceeded",
+            "type": "boolean"
           },
           "unrecoveredVideoCount": {
             "description": "Remembered videos `VIDEOS_ONLY` could not add because the gallery is full.",
@@ -18083,7 +18120,13 @@
           "skippedVideoCount",
           "recoverableVideoCount",
           "recoveredVideoCount",
-          "unrecoveredVideoCount"
+          "unrecoveredVideoCount",
+          "recoverableVideoBytes",
+          "storageNeeded",
+          "storageNeededWithoutVideos",
+          "storageAvailable",
+          "storageQuotaExceeded",
+          "storageFitsWithoutVideos"
         ],
         "title": "TransferImportSummary",
         "type": "object"
@@ -52486,6 +52529,16 @@
               }
             },
             "description": "The request conflicts with the current state of the resource."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "What the import would add exceeds the Space's storage quota (`STORAGE_QUOTA_EXCEEDED`, or `STORAGE_QUOTA_EXCEEDED_FITS_WITHOUT_VIDEOS` when applying with `mode: WITHOUT_VIDEOS` would fit). Nothing changes and the import stays ready to apply."
           },
           "422": {
             "content": {

@@ -146,6 +146,33 @@ Provenance does not survive a second hop: a file exported from a Space that
 itself received the content by import carries that Space's IDs, which are new
 to the original Space.
 
+### Cloud storage quota (#2141)
+
+On eimir. Cloud an import must fit the Space's storage quota (Freemium matrix,
+"Cloud storage quota"); Self-Hosted is unmetered. What counts is the media the
+import would actually add, at their size: media the Space already has (see
+above) and thumbnails count nothing, so a repeated import of the same file needs
+no room.
+
+- The preview reports `storageNeeded` and `storageNeededWithoutVideos`, both
+  fixed at validation, and reads `storageAvailable`, `storageQuotaExceeded` and
+  `storageFitsWithoutVideos` live while the import is ready to apply.
+  `recoverableVideoBytes` is what `VIDEOS_ONLY` would add.
+- Applying refuses the whole bundle with `413 STORAGE_QUOTA_EXCEEDED` when it
+  does not fit ("free up space or get Premium"), or with
+  `413 STORAGE_QUOTA_EXCEEDED_FITS_WITHOUT_VIDEOS` when applying with
+  `mode: WITHOUT_VIDEOS` would fit. Nothing changes and the import stays ready
+  to apply.
+- The apply job checks again under the Space's storage lock with exactly what it
+  is about to add, after leaving out what the Space already has. If an upload
+  took the room meanwhile, nothing is written and the import returns to ready to
+  apply with that code as `errorCode`, so the member can free space and apply the
+  same file again without uploading it once more.
+- Recovering skipped videos (`VIDEOS_ONLY`) is checked the same way: the
+  remembered videos found in the file must fit, or none is added.
+- A Space over its quota, for example after a downgrade, keeps everything; only
+  new bytes are refused.
+
 ## Failure and retry behavior
 
 Transfer work is asynchronous and survives the initiating HTTP connection.

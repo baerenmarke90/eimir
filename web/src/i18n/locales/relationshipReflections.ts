@@ -11,9 +11,17 @@ const relationshipReflections = {
     tomorrow: 'Morgen ist es so weit',
     days_one: 'Noch {{count}} Tag',
     days_other: 'Noch {{count}} Tage',
-    show: 'Vorfreude auf Wir zeigen',
-    help: 'Diesen besonderen Plan auf eurer Startseite hervorheben.',
-    saved: 'Vorfreude aktualisiert.',
+    choiceLabel: 'Vorfreude auf Wir',
+    automatic: 'Automatisch',
+    always: 'Immer',
+    never: 'Nie',
+    automaticHelp:
+      'Steht dieser Plan als Nächstes an, zählt Wir die Zeit bis dahin.',
+    automaticDiscreetHelp:
+      'Einen diskreten Plan zeigt Wir nur als Countdown, wenn du „Immer“ wählst.',
+    alwaysHelp:
+      'Wir zählt bis zu diesem Plan, auch wenn vorher noch etwas ansteht.',
+    neverHelp: 'Dieser Plan erscheint nicht als Countdown auf Wir.',
   },
   passport: {
     title: 'Eure Geschichte',

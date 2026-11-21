@@ -19,6 +19,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import type { PlanAnticipation } from '../api/generated/models/PlanAnticipation';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanUpdate } from '../api/generated/models/PlanUpdate';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
@@ -104,7 +105,7 @@ import {
 import { PlanStoryContinuation } from './PlanStoryContinuation';
 import { PlanStoryLinks } from './PlanStoryLinks';
 import { PlanWishLink } from './PlanWishLink';
-import { PreferenceSwitch } from './PreferenceSwitch';
+import { PlanAnticipationChoice } from './PlanAnticipationChoice';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { ComposerHeader } from './StoryFormPageShell';
@@ -205,7 +206,8 @@ export function PlanProductPage({
     isClientOnline,
     () => true,
   );
-  const [anticipation, setAnticipation] = useState(false);
+  const [anticipation, setAnticipation] =
+    useState<PlanAnticipation>('AUTOMATIC');
   const [discreetDraft, setDiscreetDraft] = useState<DiscreetDraft>({
     discreet: false,
     titleMode: 'PREVIEW',
@@ -458,7 +460,7 @@ export function PlanProductPage({
         description: description || null,
         placeId: placeId || null,
         experiencedOn: experiencedOn ? dateFromInput(experiencedOn) : undefined,
-        anticipationEnabled: anticipation,
+        anticipation,
         ...(discreetDraft.discreet || plan.discreet
           ? {
               discreet: discreetDraft.discreet,
@@ -504,7 +506,7 @@ export function PlanProductPage({
     photos.load(planPhotos(plan), plan.selectedCoverAttachmentId);
     setPhotosChanged(false);
     setRemovedFileIds([]);
-    setAnticipation(plan.anticipationEnabled ?? false);
+    setAnticipation(plan.anticipation ?? 'AUTOMATIC');
     setDiscreetDraft({
       discreet: plan.discreet ?? false,
       titleMode: plan.discreetTitleMode ?? 'PREVIEW',
@@ -1061,12 +1063,11 @@ export function PlanProductPage({
               onChange={() => setEditDirty(true)}
             >
               {plan.status !== 'COMPLETED' ? (
-                <PreferenceSwitch
-                  label={t('relationshipReflections.anticipation.show')}
-                  description={t('relationshipReflections.anticipation.help')}
-                  checked={anticipation}
+                <PlanAnticipationChoice
+                  value={anticipation}
+                  discreet={discreetDraft.discreet}
                   disabled={writesPending}
-                  onCheckedChange={(value) => {
+                  onChange={(value) => {
                     setAnticipation(value);
                     setEditDirty(true);
                   }}

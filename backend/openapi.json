@@ -17894,6 +17894,26 @@
         "title": "TransferExportDetail",
         "type": "object"
       },
+      "TransferImportApply": {
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/TransferImportApplyMode",
+            "default": "ALL",
+            "description": "`WITHOUT_VIDEOS` is the member's explicit confirmation to import the bundle without its videos. Without it, a bundle whose videos need Pro is refused with `409 TRANSFER_VIDEOS_NEED_PRO` and nothing changes."
+          }
+        },
+        "title": "TransferImportApply",
+        "type": "object"
+      },
+      "TransferImportApplyMode": {
+        "enum": [
+          "ALL",
+          "WITHOUT_VIDEOS"
+        ],
+        "title": "TransferImportApplyMode",
+        "type": "string"
+      },
       "TransferImportDetail": {
         "properties": {
           "artifactSize": {
@@ -18005,16 +18025,40 @@
           "scope": {
             "$ref": "#/components/schemas/TransferScope"
           },
+          "skippedVideoCount": {
+            "description": "Videos left out by an import applied without videos.",
+            "title": "Skippedvideocount",
+            "type": "integer"
+          },
           "sourceMemberCount": {
             "title": "Sourcemembercount",
             "type": "integer"
+          },
+          "videoBytes": {
+            "description": "Total declared size of those videos.",
+            "title": "Videobytes",
+            "type": "integer"
+          },
+          "videoCount": {
+            "description": "Videos in the bundle; importing one counts as a video upload.",
+            "title": "Videocount",
+            "type": "integer"
+          },
+          "videosNeedPro": {
+            "description": "True when the bundle has videos this Space cannot import now: it lacks `media.video_upload` or the server cannot validate video. Apply with `mode: WITHOUT_VIDEOS` to import everything else.",
+            "title": "Videosneedpro",
+            "type": "boolean"
           }
         },
         "required": [
           "scope",
           "recordCounts",
           "mediaCount",
-          "sourceMemberCount"
+          "sourceMemberCount",
+          "videoCount",
+          "videoBytes",
+          "videosNeedPro",
+          "skippedVideoCount"
         ],
         "title": "TransferImportSummary",
         "type": "object"
@@ -52341,6 +52385,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/TransferImportApply"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
         "responses": {
           "202": {
             "content": {
@@ -52381,6 +52442,16 @@
               }
             },
             "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
           }
         },
         "summary": "Apply Transfer Import",

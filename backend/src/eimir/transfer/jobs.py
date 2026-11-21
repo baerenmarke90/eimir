@@ -324,7 +324,13 @@ def handle_apply_import(session: Session, payload: dict[str, Any]) -> None:
 
     try:
         with get_media_store().open(service.import_storage_key(transfer)) as source:
-            service.apply_import_bundle(session, authorization, transfer, source)
+            service.apply_import_bundle(
+                session,
+                authorization,
+                transfer,
+                source,
+                skip_videos=payload.get("skipVideos") is True,
+            )
     except (BadRequestError, PayloadTooLargeError) as error:
         transfer.status = ImportStatus.FAILED.value
         transfer.error_code = error.code

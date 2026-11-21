@@ -218,9 +218,13 @@ for API and worker processes. This is an operator rollout, not couple-facing
 infrastructure setup. Disable the flag to stop new admission; retained media
 continues to play. Transfer-bundle import never trusts bundled video bytes or
 metadata: each video enters `VALIDATING` and runs the same worker job as an
-upload, without a `media.video_upload` check, so restore stays non-paywallable.
-A server with the flag off refuses a bundle that contains video before writing
-anything (`TRANSFER_FORMAT_UNSUPPORTED`); the bundle stays importable elsewhere. Do not enable it during a partial rollout or a queue outage.
+upload. Since #2141 an imported video counts as a video upload: it needs the
+Space's `media.video_upload` and this flag (with the processor). Otherwise the
+import preview reports the videos and applying the bundle answers
+`409 TRANSFER_VIDEOS_NEED_PRO` until the member confirms importing it without
+them (`mode: WITHOUT_VIDEOS`); nothing is written before that confirmation and
+the bundle stays importable elsewhere. Do not enable the flag during a partial
+rollout or a queue outage.
 A cancelled/deleted attachment wins before the worker publishes a result.
 A dead worker's lease expires; unbound/incomplete uploads, including stranded
 video validation, enter ordinary 24-hour media cleanup.

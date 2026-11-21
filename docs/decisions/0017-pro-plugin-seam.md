@@ -95,8 +95,8 @@ Deliberately **not** part of the plugin, with the reason:
   the job kind is in `PLUGIN_JOB_KINDS` and the capability is plugin-owned. The shared media pipeline
   (`attachments/video_jobs.py`), the restricted process runner (`attachments/media_process.py`), voice notes,
   admission, playback, export, restore, deletion and retention stay Core. Without the plugin a server behaves like
-  one without a video processor: no new video, queued video validations stay pending, transfer bundles with video
-  are refused.
+  one without a video processor: no new video, queued video validations stay pending, and a transfer bundle with
+  video is imported only after the member confirms leaving its videos out (#2141).
 - `storage.cloud_quota_50gb` is an operating-model capability, already removed on Self-Hosted by
   `CLOUD_ONLY_CAPABILITIES` in `entitlements/service.py`. It stays Core.
 

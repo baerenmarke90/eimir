@@ -2,7 +2,7 @@
 
 <!-- status-surface: authoritative-living -->
 
-As of: September 20, 2026
+As of: November 21, 2026
 Current repository state: GitHub `main` is the canonical SHA source; this living status document deliberately stores no static current SHA.  
 Current gate status: **M0-M6 are complete for their intended scope and G1-G5 have passed. The final 2026-09-20 #525 closure certifies immutable release `v0.1.2` for Web + Self-Hosted after the required `production-release` approval boundary was exercised and verified.**
 
@@ -288,3 +288,59 @@ truthfully bound to its immutable `v0.1.0` live deployment identity.
 
 Post-launch M7-M9 work may proceed independently and does not retroactively change the
 G5 decision unless a future release introduces a new launch-critical regression.
+
+## Post-launch delivery since G5 (as of November 21, 2026)
+
+The G5 decision above is unchanged. This section records the delivery state after it, from merged pull
+requests and open Issues; GitHub remains canonical for each item.
+
+### Pro plugin seam (Decision 0017)
+
+[Decision 0017](decisions/0017-pro-plugin-seam.md) is accepted (PR #2050). Phase 1 keeps the Pro modules in this
+repository, but Core reaches them only through a seam (loader, contract, lifecycle manifest, Core-only CI).
+
+- [x] **#2082 a-f — seam foundation:** loader, contract, manifest, registry, Alembic and encryption wiring (#2091); jobs,
+  retention, engagement and attachment hooks (#2093); routers, capability filter and Core-only CI (#2108); date
+  ideas, demo hooks and the Core import guard (#2116); Core-only lifecycle tests (#2120); dormant plugin data warning
+  (#2121).
+- [x] **#2084 PR 1-4 — Pro capability extraction:** saved-memory map (#2126), extended partner gestures (#2129),
+  relationship passport and Wir lifeline (#2131), plugin-owned `theme.bespoke_packs` (#2133).
+- [x] **#2085 — extractable Pro capabilities:** Daily Check-in insights (#2134), video processor (#2135) and recap
+  composition (R1-R4, #2136 to #2140) moved behind the seam. The Issue was closed on 2026-11-21.
+- [x] **#2082 — Phase 1 closed on 2026-11-21:** all seven acceptance criteria are evidenced on `main`. The plugin Alembic
+  environment, the `validate` hook, `proFeaturesAvailable` and a ServerAdmin view of dormant data are deferred (no
+  consumer yet) and tracked in #2148.
+- [x] **#2084 — closed on 2026-11-21:** all four capabilities are plugin-owned with Core-only tests.
+- [ ] **#2148:** deferred Phase 1 items of the Pro plugin seam; not launch-blocking under Cloud first.
+- [ ] **#2086:** decide how the public Core export handles Pro client code.
+- [ ] **#2087:** Pro delivery and licensing (private Pro image, signed license).
+- [ ] **#2088:** Cloud first, Self-Hosted later. [Decision 0018](decisions/0018-cloud-first-self-hosted-later.md) was
+  merged through #2089; its status line still reads "Proposed" and the re-scoping work is open.
+- [ ] **#2090:** make the repository and packages private (checks, order and cutover).
+
+### Actions usage and CI tiers (#2096)
+
+- [x] Hygiene, cheap/full pull-request tiers with the nightly regression, and release binding to a green full
+  regression are merged (#2097, #2098, #2100, with follow-ups #2109 to #2114). Pushes to `main` start no workflows; the
+  private test channel follows every merge to `main` (see [PRIVATE-TEST-CHANNEL.md](PRIVATE-TEST-CHANNEL.md)).
+- [x] The ruleset now requires `Web Reference Flow` and no longer requires CodeQL (Product Owner, recorded on the Issue).
+- [ ] **#2096:** open are the Product Owner decision on the nightly cost (the first measured nightly regression used
+  about 421 billable minutes per night against the target of at most 9,000 minutes per month), the
+  `release-evidence-` artifact cleanup, the 14-day measurement and the matching `android-launcher-icons.yml` matrix
+  condition on `main`; the Issue stays open until the measured target is met.
+
+### Product and client delivery
+
+- The Motion Contract and its migration (#2068; steps 5-9 as #2076 to #2080) are merged, including the closing motion
+  guard (#2122). The step Issues #2076 to #2080 stay open: the Pixel device acceptance of 2026-11-21 found localized
+  defects rather than general jank: the two below, plus slow map opening (observed, not yet tracked).
+- [ ] **#2146:** Wir at rest renders about 18 fps because the Date-Abend countdown replays a digit fade every second.
+- [ ] **#2147:** the Wir opening takes 4 to 5 s because late elements are off the stage clock.
+- Android test prereleases continue under `android-test-v0.2.0-test.N`; the newest published at this update is
+  `test.96`. Android store launch remains outside the G5 certification.
+- [ ] **#2063:** fix the on-device QA findings from Android test.95.
+- [ ] **#2127 / #2094:** shrink the Web startup entry bundle and recover the start screen LCP regression.
+- [ ] **#1638 (MX):** end-to-end encryption remains a separately evaluated Security milestone (concept PR #1639).
+
+Product backlog Issues (for example #1907, #2029, #2048, #1744, #1808, #1467) remain open in their own Issues and are not
+duplicated here.

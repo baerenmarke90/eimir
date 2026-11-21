@@ -68,6 +68,7 @@ import wirCheckIn from './locales/wirCheckIn';
 import wirDesign from './locales/wirDesign';
 import wishDateProposal from './locales/wishDateProposal';
 import wishJourney from './locales/wishJourney';
+import wishConcealment from './locales/wishConcealment';
 import wishRepeat from './locales/wishRepeat';
 import wishSelection from './locales/wishSelection';
 
@@ -93,6 +94,7 @@ export const germanResources = {
   wishJourney,
   wishDateProposal,
   wishRepeat,
+  wishConcealment,
   navigation: { ...de.navigation, ...navigation },
   notificationSettings,
   demo,

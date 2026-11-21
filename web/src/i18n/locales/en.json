@@ -6004,6 +6004,17 @@
     },
     "separator": " · "
   },
+  "wishConcealment": {
+    "groupTitle": "In Wish detective",
+    "groupIntro": "These wishes stay hidden until your game is over, so the guessing stays fair.",
+    "rowTitle": "A wish from {{name}}",
+    "rowHint": "Revealed after the game",
+    "toGame": "Go to the game",
+    "detailEyebrow": "In Wish detective",
+    "detailTitle": "This wish is in play",
+    "detailBody": "It's part of your Wish detective game. To keep the guessing fair, you'll see it as soon as {{name}} reveals it in the game or the game is over.",
+    "linkedTitle": "Hidden wish"
+  },
   "discreetPlans": {
     "lockLabel": "Concealed",
     "fallbackTitle": "Our plan",

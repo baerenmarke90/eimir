@@ -40,6 +40,10 @@ import {
   wishJourneyHint,
   wishPlanDateLabel,
 } from '../client/wishJourney';
+import {
+  isHiddenDuringGame,
+  withoutHiddenWishes,
+} from '../client/wishConcealment';
 import { groupCompletedSeries, type WishSeriesRow } from '../client/wishSeries';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionLink } from './AddAction';
@@ -60,6 +64,7 @@ import {
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import { CollapsibleSearch } from './CollapsibleSearch';
+import { HiddenWishGroup } from './WishGameConcealment';
 import { WishOriginMark } from './WishJourney';
 import { WishSelectionEntry } from './WishSelectionEntry';
 import './SharedPlanningPages.css';
@@ -544,17 +549,22 @@ export function SharedPlanningOverviewPage({
     planSearch.trim() && plans.hasNextPage && !plans.error,
   );
 
+  const scopedWishes = [
+    ...new Map(
+      (wishes.data?.pages.flatMap((page) => page.items) ?? [])
+        .filter((wish) => wish.status === wishStatus)
+        .map((wish) => [wish.id, wish]),
+    ).values(),
+  ];
+  // #2158 H: a partner's wish an open Wish detective game hides keeps a
+  // placeholder of its own below the alphabet; it has no title to sort by.
+  const hiddenWishes = wishSearch.trim()
+    ? []
+    : scopedWishes.filter(isHiddenDuringGame);
   const alphabeticalWishes = sortByProductLabel(
-    [
-      ...new Map(
-        (wishes.data?.pages.flatMap((page) => page.items) ?? [])
-          .filter((wish) => wish.status === wishStatus)
-          .filter((wish) =>
-            matchesSearch(wishSearch, wish.title, ...(wish.tags ?? [])),
-          )
-          .map((wish) => [wish.id, wish]),
-      ).values(),
-    ],
+    withoutHiddenWishes(scopedWishes).filter((wish) =>
+      matchesSearch(wishSearch, wish.title, ...(wish.tags ?? [])),
+    ),
     (wish) => wish.title,
     resolvedLocale(),
   );
@@ -1194,7 +1204,8 @@ export function SharedPlanningOverviewPage({
         {!wishes.isLoading &&
         !assemblingWishes &&
         !wishes.error &&
-        wishItems.length === 0 ? (
+        wishItems.length === 0 &&
+        hiddenWishes.length === 0 ? (
           <div className="planen-empty-state">
             <h2>
               {t(
@@ -1266,7 +1277,9 @@ export function SharedPlanningOverviewPage({
             {t('quietHints.tips.planFromWish')}
           </QuietHint>
         ) : null}
-        {!assemblingWishes && wishItems.length && wishStatus === 'OPEN' ? (
+        {!assemblingWishes &&
+        (wishItems.length || hiddenWishes.length) &&
+        wishStatus === 'OPEN' ? (
           <div
             className={
               wishesSettle
@@ -1308,6 +1321,7 @@ export function SharedPlanningOverviewPage({
                 </ul>
               </section>
             ))}
+            <HiddenWishGroup wishes={hiddenWishes} />
           </div>
         ) : null}
         {activeSegment === 'wishes' && wishes.hasNextPage && wishes.error ? (

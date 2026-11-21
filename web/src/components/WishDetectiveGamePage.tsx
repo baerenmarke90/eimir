@@ -69,30 +69,48 @@ function setWishDetectiveHiddenRoundMarker(
   }
 }
 
-async function loadDefaultSetup({
-  apiBaseUrl,
-  accessToken,
-  spaceId,
-  currentAccountId,
-}: {
+type Participants = readonly [
+  WishDetectiveParticipant,
+  WishDetectiveParticipant,
+];
+type LocalRounds = Pick<WishDetectiveGameSetup, 'rounds' | 'missing'>;
+type LoadLocalRounds = (participants: Participants) => Promise<LocalRounds>;
+
+interface ApiAccess {
   apiBaseUrl: string;
   accessToken: string;
   spaceId: string;
-  currentAccountId: string;
-}): Promise<WishDetectiveGameSetup> {
-  const configuration = new Configuration({
+}
+
+function configurationFor({ apiBaseUrl, accessToken }: ApiAccess) {
+  return new Configuration({
     basePath: apiBaseUrl,
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  const gamesApi = new GamesApi(configuration);
-  const spacesApi = new SpacesApi(configuration);
-  const [candidateSet, space] = await Promise.all([
-    gamesApi.getGameWishCandidates({ spaceId }),
-    spacesApi.getSpaceApiV1SpacesSpaceIdGet({ spaceId }),
-  ]);
-  const participants = orderParticipants(space.partners, currentAccountId);
-  if (!participants) return { participants: null, rounds: [] };
+}
 
+async function loadDefaultParticipants(
+  access: ApiAccess,
+  currentAccountId: string,
+): Promise<Participants | null> {
+  const space = await new SpacesApi(
+    configurationFor(access),
+  ).getSpaceApiV1SpacesSpaceIdGet({ spaceId: access.spaceId });
+  return orderParticipants(space.partners, currentAccountId);
+}
+
+/*
+ * #2158 H: the partner's wish titles reach this device only for a game on
+ * one phone, where both of you sit together and the giver reads the wish
+ * anyway. A game at a distance never loads them: the server draws the wish.
+ */
+async function loadDefaultLocalRounds(
+  access: ApiAccess,
+  participants: Participants,
+): Promise<LocalRounds> {
+  const candidateSet = await new GamesApi(
+    configurationFor(access),
+  ).getGameWishCandidates({ spaceId: access.spaceId });
   const candidates: WishDetectiveCandidate[] = candidateSet.items.map(
     (candidate) => ({
       wishId: candidate.wishId,
@@ -101,7 +119,6 @@ async function loadDefaultSetup({
     }),
   );
   return {
-    participants,
     rounds: selectWishDetectiveRounds(candidates, participants),
     missing: {
       you: !candidates.some((c) => c.createdBy === participants[0].id),
@@ -154,23 +171,25 @@ function SparseWishes({
 /*
  * #2048: one phone together or each partner on their own phone. An open game
  * at a distance always resumes; without enough wishes neither mode starts.
+ * #2158 H: whether each of you has a wish comes from the server's readiness
+ * (a yes/no per person), so choosing a mode loads no wish titles.
  */
 function WishDetectiveModes({
-  setup,
+  participants,
+  loadLocalRounds,
   hiddenRoundStorageKey,
   apiBaseUrl,
   accessToken,
   spaceId,
 }: {
-  setup: WishDetectiveGameSetup & {
-    participants: readonly [WishDetectiveParticipant, WishDetectiveParticipant];
-  };
+  participants: Participants;
+  loadLocalRounds: LoadLocalRounds;
   hiddenRoundStorageKey: string;
   apiBaseUrl: string;
   accessToken: string;
   spaceId: string;
 }) {
-  const [me, partner] = setup.participants;
+  const [me, partner] = participants;
   const people = { me, partner };
   const remote = useRemoteWishDetectiveGame({
     spaceId,
@@ -178,30 +197,36 @@ function WishDetectiveModes({
     apiBaseUrl,
     accessToken,
   });
-  const sparse = setup.rounds.length === 0;
+  const readiness = remote.state?.readiness;
   const openRemote = remote.state?.game?.status === 'OPEN';
-  if (sparse && !openRemote && !remote.isLoading) {
+  if (
+    readiness &&
+    !(readiness.ownWishesAvailable && readiness.partnerWishesAvailable) &&
+    !openRemote &&
+    !remote.isLoading
+  ) {
     return (
-      <SparseWishes partnerName={partner.displayName} missing={setup.missing} />
+      <SparseWishes
+        partnerName={partner.displayName}
+        missing={{
+          you: !readiness.ownWishesAvailable,
+          partner: !readiness.partnerWishesAvailable,
+        }}
+      />
     );
   }
   return (
     <CoupleGameModes
       partnerName={partner.displayName}
       remote={remote}
-      renderLocal={() =>
-        sparse ? (
-          <SparseWishes
-            partnerName={partner.displayName}
-            missing={setup.missing}
-          />
-        ) : (
-          <WishDetectiveSessionView
-            setup={{ participants: setup.participants, rounds: setup.rounds }}
-            hiddenRoundStorageKey={hiddenRoundStorageKey}
-          />
-        )
-      }
+      renderLocal={() => (
+        <LocalWishDetective
+          participants={participants}
+          loadLocalRounds={loadLocalRounds}
+          hiddenRoundStorageKey={hiddenRoundStorageKey}
+          queryKey={[spaceId, me.id]}
+        />
+      )}
       renderRemote={(onNewGame) => (
         <RemoteWishDetectiveView
           game={remote}
@@ -209,6 +234,61 @@ function WishDetectiveModes({
           onNewGame={onNewGame}
         />
       )}
+    />
+  );
+}
+
+/* The one-phone game: only now are both partners' open wishes loaded. */
+function LocalWishDetective({
+  participants,
+  loadLocalRounds,
+  hiddenRoundStorageKey,
+  queryKey,
+}: {
+  participants: Participants;
+  loadLocalRounds: LoadLocalRounds;
+  hiddenRoundStorageKey: string;
+  queryKey: readonly string[];
+}) {
+  const { t } = useTranslation();
+  const local = useQuery({
+    queryKey: ['games', 'wish-detective', 'local-rounds', ...queryKey],
+    queryFn: async () => {
+      try {
+        return await loadLocalRounds(participants);
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    retry: false,
+    gcTime: 0,
+  });
+  if (local.isPending) {
+    return (
+      <UiState
+        kind="loading"
+        title={t('games.wishDetective.loadingTitle')}
+        body={t('games.wishDetective.loadingBody')}
+      />
+    );
+  }
+  if (local.error) {
+    return (
+      <ProblemState error={local.error} onRetry={() => void local.refetch()} />
+    );
+  }
+  if (local.data.rounds.length === 0) {
+    return (
+      <SparseWishes
+        partnerName={participants[1].displayName}
+        missing={local.data.missing}
+      />
+    );
+  }
+  return (
+    <WishDetectiveSessionView
+      setup={{ participants, rounds: local.data.rounds }}
+      hiddenRoundStorageKey={hiddenRoundStorageKey}
     />
   );
 }
@@ -510,9 +590,17 @@ export function WishDetectiveGamePage({
   accessToken: string;
   spaceId: string;
   currentAccountId: string;
+  /** Test seam: the couple and the one-phone wish pool in one step. */
   loadSetup?: () => Promise<WishDetectiveGameSetup>;
 }) {
   const { t } = useTranslation();
+  const access = { apiBaseUrl, accessToken, spaceId };
+  const loadLocalRounds: LoadLocalRounds = loadSetup
+    ? async () => {
+        const { rounds, missing } = await loadSetup();
+        return { rounds, missing };
+      }
+    : (participants) => loadDefaultLocalRounds(access, participants);
   const hiddenRoundStorageKey = wishDetectiveHiddenRoundStorageKey(
     spaceId,
     currentAccountId,
@@ -521,17 +609,18 @@ export function WishDetectiveGamePage({
     hasWishDetectiveHiddenRoundMarker(hiddenRoundStorageKey),
   );
   const setupQuery = useQuery({
-    queryKey: ['games', 'wish-detective', 'setup', spaceId, currentAccountId],
+    queryKey: [
+      'games',
+      'wish-detective',
+      'participants',
+      spaceId,
+      currentAccountId,
+    ],
     queryFn: async () => {
       try {
         return loadSetup
-          ? await loadSetup()
-          : await loadDefaultSetup({
-              apiBaseUrl,
-              accessToken,
-              spaceId,
-              currentAccountId,
-            });
+          ? (await loadSetup()).participants
+          : await loadDefaultParticipants(access, currentAccountId);
       } catch (error) {
         throw await normalizeClientError(error);
       }
@@ -582,7 +671,7 @@ export function WishDetectiveGamePage({
           error={setupQuery.error}
           onRetry={() => void setupQuery.refetch()}
         />
-      ) : !setupQuery.data.participants ? (
+      ) : !setupQuery.data ? (
         <UiState
           kind="empty"
           title={t('games.wishDetective.coupleRequiredTitle')}
@@ -590,11 +679,8 @@ export function WishDetectiveGamePage({
         />
       ) : (
         <WishDetectiveModes
-          setup={{
-            participants: setupQuery.data.participants,
-            rounds: setupQuery.data.rounds,
-            missing: setupQuery.data.missing,
-          }}
+          participants={setupQuery.data}
+          loadLocalRounds={loadLocalRounds}
           hiddenRoundStorageKey={hiddenRoundStorageKey}
           apiBaseUrl={apiBaseUrl}
           accessToken={accessToken}

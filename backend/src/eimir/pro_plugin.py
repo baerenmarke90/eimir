@@ -502,6 +502,11 @@ class InTreeProPlugin:
             document["personalGoogleAccountHint"] = google_account.payload.email
         return document
 
+    def hidden_wish_ids(self, session: Session, context: AuthorizationContext) -> frozenset[UUID]:
+        from eimir.couple_games import service as couple_games
+
+        return couple_games.hidden_wish_ids(session, context)
+
     def date_ideas(self) -> DateIdeaSource | None:
         return _DATE_IDEAS
 

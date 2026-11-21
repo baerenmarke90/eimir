@@ -915,7 +915,7 @@ def link_wish_to_plan(
     Wish -> Plan is the same lock order used by conversion/completion. An
     exact replay is harmless; it cannot relink a Wish or overwrite Plan prose.
     """
-    wish = wish_service.lock(session, context, wish_id)
+    wish = wish_service.lock_visible(session, context, wish_id)
     plan = _lock_plan(session, context, plan_id)
     if plan.source_wish_id == wish.id:
         if wish.status not in (WishStatus.PLANNED.value, WishStatus.COMPLETED.value):
@@ -962,7 +962,7 @@ def convert_wish_to_plan(
     resolved_place_id = _resolve_place(session, context, place_id)
     status = _initial_schedule_status(planned_on, planned_start, planned_end, planned_until)
 
-    wish = wish_service.lock(session, context, wish_id)
+    wish = wish_service.lock_visible(session, context, wish_id)
     existing = session.execute(
         select(Plan).where(Plan.source_wish_id == wish.id).with_for_update()
     ).scalar_one_or_none()

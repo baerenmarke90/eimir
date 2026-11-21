@@ -351,6 +351,44 @@ def wish_titles(
     }
 
 
+def hidden_wish_ids(session: Session, context: AuthorizationContext) -> frozenset[UUID]:
+    """The partner's wishes the reader must not see while they still guess (#2158 H).
+
+    In an open remote game every partner guesses in turn, so the pool the
+    partner's next clues are drawn from stays hidden as a whole: all of the
+    partner's OPEN wishes, not only the current round's, otherwise the small
+    pool could be narrowed down in the Wishes tab. A wish is revealed with
+    its round; the rest once the partner has no clue round left or the game
+    is over. Local pass-and-play keeps no server state and hides nothing.
+    """
+    game = session.scalar(
+        select(CoupleGame).where(
+            CoupleGame.space_id == context.space_id,
+            CoupleGame.game == CoupleGameKind.WISH_DETECTIVE.value,
+            CoupleGame.status == CoupleGameStatus.OPEN.value,
+        )
+    )
+    data = game.payload.wish_detective if game is not None else None
+    partner = other_member(session, context) if data is not None else None
+    if data is None or partner is None:
+        return frozenset()
+    rounds_given = sum(
+        1 for round_ in data.rounds if round_.giver_id == partner and round_.result is not None
+    )
+    # Rounds alternate, so each partner gives half of them.
+    if rounds_given * 2 >= data.rounds_total:
+        return frozenset()
+    revealed = {round_.wish_id for round_ in data.rounds if round_.result is not None}
+    pool = session.scalars(
+        select(Wish.id).where(
+            Wish.space_id == context.space_id,
+            Wish.owner_id == partner,
+            Wish.status.in_(CANDIDATE_WISH_STATUSES),
+        )
+    )
+    return frozenset(wish_id for wish_id in pool if wish_id not in revealed)
+
+
 def phase_of(round_: WishDetectiveRound) -> WishDetectivePhase | None:
     if round_.result is not None:
         return None

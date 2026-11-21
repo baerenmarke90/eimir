@@ -303,6 +303,7 @@ the caller's `Session` and never commit, roll back or open their own transaction
 | `on_partner_joined`, `on_membership_ended`, `on_member_left`, `on_account_deleted`, `prune_expired` | C7, C10 to C13 | Run in the caller's transaction at the existing call sites; with the plugin loaded they own its tables' lifecycle (update of decision 4) | An exception rolls the whole lifecycle transaction back (fail closed, as today). Absent plugin: the manifest rules alone apply. |
 | `export_account_document(session, authorization, scope) -> Mapping` | C14 | Read only, inside the export transaction | Absent plugin: the manifest export rule produces the same keys (decision 4). |
 | `date_ideas() -> DateIdeaSource \| None` (`revision`, `view`); the shared DTOs live in the Core contract `eimir.wish_selections.date_idea_contract` | C18 | Pure, cached | Absent plugin: Core treats the catalog as unavailable, which is the existing paused state of a round that contains date ideas (#465 within #1535): Wish-only rounds are unaffected, nothing is deleted, export keeps catalog IDs only. `IDEA_ID_PATTERN` stays a Core contract constant. |
+| `hidden_wish_ids(session, context) -> frozenset[UUID]` | (new, [#2158](https://github.com/baerenmarke90/eimir/issues/2158) H) | Read only, inside the caller's read or write transaction | Absent plugin: nothing is hidden. Core (`eimir.wishes.concealment`) masks the returned Wishes in its read models (list, detail, Search, Wir, notification titles, Wish selection, the one-phone game pool) and refuses the reader's writes to them while an open remote Wish detective game hides them. |
 | `seed_demo(session, result, *, created)` | C19 | Inside the demo seed transaction after the demo Pro grant; idempotent like the existing demo helpers; `created` limits the location share to a new or reset demo Space | Absent plugin: the demo Space has no quote preferences and no location share. |
 | `validate(settings) -> None`; not part of the contract yet (no plugin setting needs it) | (new) | Startup only | Raising refuses to start with the plugin's diagnostic. |
 
@@ -454,7 +455,8 @@ assumed.
 #2116 (d) implement Phase 1; `main` at `d3503cc5f` was checked against the acceptance criteria. The code
 differs from the text above in these points, which the hook table now reflects:
 
-- `PLUGIN_SEAM_VERSION` is `3` (raised with the hooks of b and d).
+- `PLUGIN_SEAM_VERSION` is `3` (raised with the hooks of b and d), and `4` since #2158 H added
+  `hidden_wish_ids`.
 - Plugin routers are mounted on the application under `/api/v1` with the `require_normal_operation`
   dependency, not into a rebuilt `normal_router`; OpenAPI and the route resolution of every operation are
   unchanged.

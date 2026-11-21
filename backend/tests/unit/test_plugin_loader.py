@@ -6,6 +6,7 @@ import logging
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi import APIRouter, FastAPI
@@ -43,6 +44,7 @@ class FakePlugin:
     job_kinds: tuple[str, ...] = ()
     targets: Mapping[EngagementTarget, Any] = field(default_factory=dict)
     read_rules: Mapping[str, Callable[..., bool]] = field(default_factory=dict)
+    hidden_wishes: frozenset[UUID] = frozenset()
 
     def capabilities(self) -> frozenset[str]:
         return self.provided
@@ -90,6 +92,9 @@ class FakePlugin:
     def export_account_document(self, *args: object) -> Mapping[str, Any]:
         return {}
 
+    def hidden_wish_ids(self, session: object, context: object) -> frozenset[UUID]:
+        return self.hidden_wishes
+
     def date_ideas(self) -> None:
         return None
 
@@ -123,6 +128,15 @@ def test_a_named_plugin_is_loaded_with_its_capabilities() -> None:
 def test_an_empty_allow_list_runs_core_only() -> None:
     assert parse_plugin_names(" , ") == ()
     assert resolve([], []).plugins == ()
+
+
+def test_hidden_wishes_come_only_from_loaded_plugins() -> None:
+    # #2158 H: Core masks what a plugin's open game hides, and nothing without one.
+    hidden = frozenset({uuid4()})
+    loaded = resolve(["pro"], [candidate(FakePlugin(hidden_wishes=hidden))])
+
+    assert loaded.hidden_wish_ids(object(), object()) == hidden  # type: ignore[arg-type]
+    assert LoadedPlugins(()).hidden_wish_ids(object(), object()) == frozenset()  # type: ignore[arg-type]
 
 
 def test_a_named_but_missing_plugin_refuses_to_start() -> None:

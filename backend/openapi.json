@@ -18912,6 +18912,12 @@
             "title": "Hasmemory",
             "type": "boolean"
           },
+          "hiddenDuringGame": {
+            "default": false,
+            "description": "True while an open game hides this Wish from the reader, for example a partner's Wish that may still be the answer in Wish detective. Title, description and tags are then empty, the series fields point to the Wish itself, every capability is false and writes are refused with `WISH_HIDDEN_DURING_GAME`. The game reveals it with its round or at the end.",
+            "title": "Hiddenduringgame",
+            "type": "boolean"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",

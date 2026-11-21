@@ -40,6 +40,7 @@ from eimir.relationship.models import (
     SpaceProfile,
 )
 from eimir.story.view_models import StoryItemViewAggregate
+from eimir.wishes import concealment
 from eimir.wishes.models import Wish
 
 SECTION_LIMIT = 8
@@ -812,9 +813,13 @@ def _recent_shared(
             )
         )
 
+    # A Wish an open game hides from this reader is left out (#2158 H).
+    hidden_wishes = concealment.hidden_wish_ids(session, authorization)
     for wish in session.execute(
         readable(Wish, authorization).order_by(Wish.created_at.desc(), Wish.id).limit(SECTION_LIMIT)
     ).scalars():
+        if wish.id in hidden_wishes:
+            continue
         candidates.append(
             DashboardItem(
                 type=DashboardItemType.WISH,

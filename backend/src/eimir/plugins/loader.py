@@ -37,9 +37,13 @@ from eimir.plugins.contract import (
 from eimir.plugins.manifest import PLUGIN_ENGAGEMENT_TARGETS, PLUGIN_JOB_KINDS, attachment_rules
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     from fastapi import APIRouter
+    from sqlalchemy.orm import Session
     from starlette.routing import BaseRoute
 
+    from eimir.authorization import AuthorizationContext
     from eimir.engagement.models import EngagementTarget
     from eimir.jobs.worker import JobRegistry
     from eimir.wish_selections.date_idea_contract import DateIdeaSource
@@ -100,6 +104,13 @@ class LoadedPlugins:
             if source is not None:
                 return source
         return None
+
+    def hidden_wish_ids(self, session: Session, context: AuthorizationContext) -> frozenset[UUID]:
+        """Every loaded plugin's hidden Wishes for this reader; none without a plugin."""
+        hidden: set[UUID] = set()
+        for plugin in self.plugins:
+            hidden |= plugin.hidden_wish_ids(session, context)
+        return frozenset(hidden)
 
     def attachment_read_rules(self) -> dict[str, AttachmentReadRule]:
         return {

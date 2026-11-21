@@ -52,6 +52,7 @@ from eimir.wish_selections.models import (
     WishSelectionRound,
     WishSelectionRoundPayload,
 )
+from eimir.wishes import concealment
 from eimir.wishes.models import Wish, WishStatus
 
 ResultState = Literal["NO_ROUND", "CHOOSING", "WAITING", "READY", "NEEDS_IDEAS", "PAUSED"]
@@ -429,7 +430,10 @@ def replace_round(
             .execution_options(populate_existing=True)
         )
     )
-    if len(sources) != len(wish_ids):
+    # A Wish an open game hides from the composer cannot enter a round, whose
+    # candidates show their titles (#2158 H).
+    hidden = concealment.hidden_wish_ids(session, context)
+    if len(sources) != len(wish_ids) or any(source.id in hidden for source in sources):
         raise ValidationError(
             "Some Wishes are no longer available. Choose again.",
             "WISH_SELECTION_CANDIDATES_INVALID",

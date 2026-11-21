@@ -7,6 +7,7 @@ Atomic content, image and optional schedule correction.  Explicit null ``schedul
 
 Name | Type
 ------------ | -------------
+`anticipation` | [PlanAnticipation](PlanAnticipation.md)
 `anticipationEnabled` | boolean
 `attachments` | [Array&lt;AttachmentEntry&gt;](AttachmentEntry.md)
 `coverAttachmentId` | string
@@ -30,6 +31,7 @@ import type { PlanUpdate } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "anticipation": null,
   "anticipationEnabled": null,
   "attachments": null,
   "coverAttachmentId": null,

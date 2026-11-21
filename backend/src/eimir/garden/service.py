@@ -103,6 +103,11 @@ def _partner_of(session: Session, context: AuthorizationContext) -> UUID:
     return others[0]
 
 
+def require_couple(session: Session, context: AuthorizationContext) -> UUID:
+    """The reader's partner; the garden needs exactly two partners in the Space."""
+    return _partner_of(session, context)
+
+
 def _today(session: Session, context: AuthorizationContext) -> date:
     zone, _ = calendar_context(session, context)
     return clock.today_in(zone)
@@ -199,6 +204,11 @@ def _settle(session: Session, context: AuthorizationContext, today: date) -> Non
         .order_by(GardenPlant.sent_on, GardenPlant.created_at)
     ):
         _plant(session, seed)
+
+
+def settle(session: Session, context: AuthorizationContext, today: date) -> None:
+    """Plant overdue seeds before a read, as the garden view does."""
+    _settle(session, context, today)
 
 
 def _last_visit(session: Session, space_id: UUID) -> date | None:
@@ -389,6 +399,8 @@ def send_seed(
                 continue
             plant.stage += 1
             if plant.stage == MAX_STAGE:
+                if not plant.bloomed:
+                    plant.bloomed_on = today
                 plant.bloomed = True
         session.flush()
     outbox_service.record(

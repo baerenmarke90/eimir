@@ -18012,6 +18012,11 @@
       },
       "TransferImportSummary": {
         "properties": {
+          "alreadyPresentCount": {
+            "description": "Records and media of this file the Space already has, from an earlier import of the same file or because the file was exported from this Space. Applying leaves them exactly as they are and adds only what is missing, so importing the same file again never duplicates anything.",
+            "title": "Alreadypresentcount",
+            "type": "integer"
+          },
           "mediaCount": {
             "title": "Mediacount",
             "type": "integer"
@@ -18056,7 +18061,7 @@
             "type": "integer"
           },
           "videoCount": {
-            "description": "Videos in the bundle; importing one counts as a video upload.",
+            "description": "Videos the import would add; importing one counts as a video upload. Videos the Space already has are not counted.",
             "title": "Videocount",
             "type": "integer"
           },
@@ -18071,6 +18076,7 @@
           "recordCounts",
           "mediaCount",
           "sourceMemberCount",
+          "alreadyPresentCount",
           "videoCount",
           "videoBytes",
           "videosNeedPro",

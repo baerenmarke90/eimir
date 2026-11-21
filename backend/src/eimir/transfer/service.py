@@ -9,7 +9,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from enum import StrEnum
-from typing import IO, Any
+from typing import IO, TYPE_CHECKING, Any, cast
 from uuid import UUID
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -17,6 +17,9 @@ from pydantic import BaseModel
 from sqlalchemy import MetaData, Table, and_, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
+
+if TYPE_CHECKING:
+    from sqlalchemy import CursorResult
 
 from eimir.appearance import service as appearance_service
 from eimir.appearance.models import DEFAULT_WIR_DESIGN
@@ -29,6 +32,7 @@ from eimir.core.clock import now
 from eimir.core.errors import BadRequestError, ConflictError, ErrorCode, NotFoundError
 from eimir.core.ids import new_id, parse_id
 from eimir.daily_checkins.models import RecommendationKey, RecommendationRating
+from eimir.db.locks import lock_subject
 from eimir.db.session import schedule_after_rollback
 from eimir.identity.models import Account, AccountEmail
 from eimir.jobs.models import Job, JobStatus
@@ -1876,13 +1880,20 @@ def without_videos(graph: ValidatedGraph) -> ValidatedGraph:
     points at a video is cleared and photo reactions on a video are dropped, so
     the rest is as consistent as an export without those videos.
     """
+    return _without_media(
+        graph,
+        {
+            str(item.get("sourceId"))
+            for item in graph.media
+            if item.get("mediaType") == MediaType.VIDEO
+        },
+    )
+
+
+def _without_media(graph: ValidatedGraph, videos: set[str]) -> ValidatedGraph:
+    """The same graph with these media items and each reference to them removed."""
     import copy
 
-    videos = {
-        str(item.get("sourceId"))
-        for item in graph.media
-        if item.get("mediaType") == MediaType.VIDEO
-    }
     if not videos:
         return graph
     tables = copy.deepcopy(graph.tables)
@@ -2102,13 +2113,28 @@ def validate_import_bundle(
     }
     videos = [item for item in media if item.get("mediaType") == MediaType.VIDEO]
     checksums = {str(name): str(value) for name, value in dict(manifest["checksums"]).items()}
+    graph = ValidatedGraph(
+        scope=scope,
+        source_space_id=source_space,
+        personal_owner_source_id=personal_owner,
+        mapping=mapping,
+        tables=tables,
+        media=media,
+        summary={},
+        checksums=checksums,
+    )
+    # A repeated import adds only what is missing (#2141), so only the videos it
+    # would actually add count as video uploads.
+    plan = plan_import(session, authorization.space_id, graph)
+    new_videos = [item for item in plan.graph.media if item.get("mediaType") == MediaType.VIDEO]
     summary: dict[str, object] = {
         "scope": scope.value,
         "recordCounts": counts,
         "mediaCount": len(media),
         "sourceMemberCount": len(source_members),
-        "videoCount": len(videos),
-        "videoBytes": sum(int(item["size"]) for item in videos),
+        "alreadyPresentCount": plan.present_count,
+        "videoCount": len(new_videos),
+        "videoBytes": sum(int(item["size"]) for item in new_videos),
         # How a later "recover videos" recognises these videos in this file;
         # internal, never part of the API summary.
         "videoSources": [
@@ -2151,16 +2177,244 @@ def _column_value(column: Any, value: Any) -> Any:
     return value
 
 
-def _new_id_map(graph: ValidatedGraph) -> dict[UUID, UUID]:
+_TARGET_ID_CONTEXT = b"eimir.transfer.target-id.v1\x00"
+_PRESENCE_CHUNK = 1000
+# An attachment on its way out cannot take a new binding; the import leaves it out.
+_UNUSABLE_MEDIA_STATUSES = frozenset(
+    {AttachmentStatus.DELETING.value, AttachmentStatus.DELETE_FAILED.value}
+)
+# Owner columns that must match before an existing row counts as the bundle's own.
+_PRESENCE_OWNER_COLUMNS = ("owner_id", "account_id")
+# Ordered child rows belong to their parent: a parent already in the Space keeps
+# its gallery or its list exactly as it is now, positions included.
+_ORDERED_CHILD_PARENTS = {
+    **{table: foreign_key for table, foreign_key, _, _ in _GALLERIES},
+    "plan_file_attachments": "plan_id",
+    "collection_items": "collection_id",
+    "private_collection_items": "collection_id",
+}
+# Tables with a deferrable unique constraint, which PostgreSQL cannot use as an
+# ``ON CONFLICT`` arbiter: their inserts skip only a primary-key conflict. Their
+# position constraint cannot conflict, because the rows of a present parent are
+# left out above.
+_DEFERRED_UNIQUE_TABLES = frozenset({"collection_items", "private_collection_items"})
+
+
+def _target_id(target_space: UUID, source: UUID) -> UUID:
+    """The stable ID one bundle record gets in one target Space.
+
+    The same source record always lands on the same ID in the same Space, so a
+    repeated import recognises what it already added instead of duplicating it.
+    The result is a valid UUIDv7 that keeps a UUIDv7 source's time prefix, so
+    index order and time-sortability stay as with ``new_id()``.
+    """
+    import hashlib
+
+    raw = bytearray(
+        hashlib.sha256(_TARGET_ID_CONTEXT + target_space.bytes + source.bytes).digest()[:16]
+    )
+    if source.version == 7:
+        raw[0:6] = source.bytes[0:6]
+    raw[6] = 0x70 | (raw[6] & 0x0F)
+    raw[8] = 0x80 | (raw[8] & 0x3F)
+    return UUID(bytes=bytes(raw))
+
+
+def _target_id_map(graph: ValidatedGraph, target_space: UUID) -> dict[UUID, UUID]:
     result: dict[UUID, UUID] = {}
     for rows in graph.tables.values():
         for raw in rows:
             row = _row_snake(raw)
             if row.get("id") is not None:
-                result[_uuid(row["id"], ErrorCode.TRANSFER_RELATION_INVALID)] = new_id()
+                source = _uuid(row["id"], ErrorCode.TRANSFER_RELATION_INVALID)
+                result[source] = _target_id(target_space, source)
     for item in graph.media:
-        result[_uuid(item["sourceId"], ErrorCode.TRANSFER_RELATION_INVALID)] = new_id()
+        source = _uuid(item["sourceId"], ErrorCode.TRANSFER_RELATION_INVALID)
+        result[source] = _target_id(target_space, source)
     return result
+
+
+@dataclass(frozen=True)
+class ImportPlan:
+    """What applying a bundle adds to one Space, and what is already there (#2141).
+
+    ``graph`` holds only what is missing. ``ids`` maps every source ID of the
+    bundle, including records already present, to its ID in the target Space.
+    """
+
+    graph: ValidatedGraph
+    ids: dict[UUID, UUID]
+    present_count: int
+
+
+def _existing_owners(
+    session: Session,
+    table: Table,
+    target_space: UUID,
+    candidates: list[UUID],
+) -> dict[UUID, tuple[Any, ...]]:
+    """Existing rows of the target Space among ``candidates``, with their owner columns."""
+    owner_columns = [table.c[name] for name in _PRESENCE_OWNER_COLUMNS if name in table.c]
+    extra = [table.c.status] if table.name == "attachments" else []
+    found: dict[UUID, tuple[Any, ...]] = {}
+    for start in range(0, len(candidates), _PRESENCE_CHUNK):
+        statement = select(table.c.id, *owner_columns, *extra).where(
+            table.c.id.in_(candidates[start : start + _PRESENCE_CHUNK])
+        )
+        if "space_id" in table.c:
+            statement = statement.where(table.c.space_id == target_space)
+        for row in session.execute(statement):
+            found[row[0]] = tuple(row[1:])
+    return found
+
+
+def _expected_owners(
+    table: Table, row: Mapping[str, Any], mapping: Mapping[UUID, UUID]
+) -> tuple[Any, ...]:
+    values: list[Any] = []
+    for name in _PRESENCE_OWNER_COLUMNS:
+        if name not in table.c:
+            continue
+        raw = row.get(name)
+        values.append(
+            None if raw is None else mapping.get(_uuid(raw, ErrorCode.TRANSFER_RELATION_INVALID))
+        )
+    return tuple(values)
+
+
+def _media_references(rows: dict[str, list[dict[str, Any]]], media_ids: set[str]) -> set[str]:
+    """Media source IDs that any of these rows refers to, in a column or payload."""
+    found: set[str] = set()
+
+    def visit(value: Any) -> None:
+        if isinstance(value, dict):
+            for item in value.values():
+                visit(item)
+        elif isinstance(value, list):
+            for item in value:
+                visit(item)
+        elif value is not None:
+            text = str(value)
+            if text in media_ids:
+                found.add(text)
+
+    for table_rows in rows.values():
+        for row in table_rows:
+            visit(row)
+    return found
+
+
+def plan_import(session: Session, target_space: UUID, graph: ValidatedGraph) -> ImportPlan:
+    """Leave out every record and media item of the bundle the Space already has.
+
+    A record is present when the row it became on an earlier import of this
+    bundle into this Space still exists, or, for a bundle exported from this
+    same Space, when the original row still exists. Its owner must match what
+    the bundle says, so a crafted file cannot claim a partner's private row.
+    Present records stay exactly as they are now: they are never overwritten,
+    and a present parent keeps its current gallery. Missing records come back.
+    """
+    ids = _target_id_map(graph, target_space)
+    same_space = graph.source_space_id == target_space
+    metadata = MetaData()
+    present: set[UUID] = set()
+
+    def resolve(table: Table, sources: list[tuple[UUID, tuple[Any, ...]]]) -> dict[UUID, Any]:
+        candidates = {ids[source] for source, _ in sources}
+        if same_space:
+            candidates.update(source for source, _ in sources)
+        found = _existing_owners(session, table, target_space, sorted(candidates))
+        resolved: dict[UUID, Any] = {}
+        for source, owners in sources:
+            for target in (source, ids[source]) if same_space else (ids[source],):
+                existing = found.get(target)
+                if existing is None:
+                    continue
+                if existing[: len(owners)] != owners:
+                    continue
+                ids[source] = target
+                resolved[source] = existing[len(owners) :]
+                break
+        return resolved
+
+    for table_name, rows in graph.tables.items():
+        if not rows:
+            continue
+        table = _table(session, table_name, metadata)
+        sources = [
+            (
+                _uuid(row["id"], ErrorCode.TRANSFER_RELATION_INVALID),
+                _expected_owners(table, row, graph.mapping),
+            )
+            for row in (_row_snake(raw) for raw in rows)
+            if row.get("id") is not None
+        ]
+        if sources:
+            present.update(resolve(table, sources))
+
+    unusable: set[str] = set()
+    present_media: set[str] = set()
+    if graph.media:
+        attachments = _table(session, "attachments", metadata)
+        sources = [
+            (
+                _uuid(item["sourceId"], ErrorCode.TRANSFER_RELATION_INVALID),
+                (
+                    graph.mapping.get(
+                        _uuid(item["ownerSourceId"], ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID)
+                    ),
+                ),
+            )
+            for item in graph.media
+        ]
+        for source, (status,) in resolve(attachments, sources).items():
+            if status in _UNUSABLE_MEDIA_STATUSES:
+                unusable.add(str(source))
+            else:
+                present_media.add(str(source))
+
+    tables: dict[str, list[dict[str, Any]]] = {}
+    for table_name, rows in graph.tables.items():
+        parent_column = _ORDERED_CHILD_PARENTS.get(table_name)
+        kept: list[dict[str, Any]] = []
+        for raw in rows:
+            row = _row_snake(raw)
+            if row.get("id") is not None and (
+                _uuid(row["id"], ErrorCode.TRANSFER_RELATION_INVALID) in present
+            ):
+                continue
+            if parent_column is not None and (
+                _uuid(row.get(parent_column), ErrorCode.TRANSFER_RELATION_INVALID) in present
+            ):
+                continue
+            kept.append(raw)
+        tables[table_name] = kept
+    missing = ValidatedGraph(
+        scope=graph.scope,
+        source_space_id=graph.source_space_id,
+        personal_owner_source_id=graph.personal_owner_source_id,
+        mapping=graph.mapping,
+        tables=tables,
+        media=graph.media,
+        summary=graph.summary,
+        checksums=graph.checksums,
+    )
+    # A missing record that needs media going away arrives without it, cut out
+    # cleanly like a skipped video.
+    missing = _without_media(missing, unusable & _media_references(missing.tables, unusable))
+    media_ids = {str(item["sourceId"]) for item in missing.media}
+    needed = _media_references(missing.tables, media_ids) - present_media
+    missing = ValidatedGraph(
+        scope=missing.scope,
+        source_space_id=missing.source_space_id,
+        personal_owner_source_id=missing.personal_owner_source_id,
+        mapping=missing.mapping,
+        tables=missing.tables,
+        media=[item for item in missing.media if str(item["sourceId"]) in needed],
+        summary=missing.summary,
+        checksums=missing.checksums,
+    )
+    return ImportPlan(graph=missing, ids=ids, present_count=len(present) + len(present_media))
 
 
 def _remap_uuid(
@@ -2400,13 +2654,19 @@ def apply_import_bundle(
         raise TransferArchiveError(
             "Transfer member mapping changed.", ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID
         )
-    video_count = sum(1 for item in graph.media if item.get("mediaType") == MediaType.VIDEO)
     if videos_only:
         if not videos_allowed(session, authorization.space_id):
             raise TransferArchiveError(
                 "Imported video needs the video capability.", ErrorCode.TRANSFER_VIDEOS_NEED_PRO
             )
         return _recover_videos(session, authorization, transfer, graph, fileobj)
+    # Only what the Space does not have yet is added; a repeated import of the
+    # same file never duplicates anything (#2141). Imports into one Space run
+    # one after another, so the second one sees what the first one added.
+    lock_subject(session, "transfer-import-apply", str(authorization.space_id))
+    plan = plan_import(session, authorization.space_id, graph)
+    graph = plan.graph
+    video_count = sum(1 for item in graph.media if item.get("mediaType") == MediaType.VIDEO)
     if video_count and not skip_videos and not videos_allowed(session, authorization.space_id):
         # The capability ended between the confirmation and this job.
         raise TransferArchiveError(
@@ -2421,8 +2681,9 @@ def apply_import_bundle(
     transfer.summary = {
         **(transfer.summary or {}),
         "skippedVideoCount": video_count if skip_videos else 0,
+        "alreadyPresentCount": plan.present_count,
     }
-    ids = _new_id_map(graph)
+    ids = plan.ids
 
     # SpaceProfile is a singleton on the target Space. Additive import must not
     # replace it, but generated relationship reminders may refer to its source
@@ -2489,6 +2750,9 @@ def apply_import_bundle(
                     written_keys,
                 )
 
+        # Source IDs of rows this import did not add, because the Space already
+        # had an equivalent row; rows that refer to them are left out too.
+        not_added: set[UUID] = set()
         for table_name in INSERT_ORDER:
             table = tables[table_name]
             raw_rows = graph.tables.get(table_name, [])
@@ -2514,6 +2778,16 @@ def apply_import_bundle(
                     in reused_partner_profiles
                 ):
                     continue
+                row_source = (
+                    _uuid(raw["id"], ErrorCode.TRANSFER_RELATION_INVALID)
+                    if raw.get("id") is not None
+                    else None
+                )
+                if _refers_to(table, raw, not_added):
+                    # Its parent was not added, so neither is this row.
+                    if row_source is not None:
+                        not_added.add(row_source)
+                    continue
                 values = _prepare_row(
                     table,
                     raw,
@@ -2523,18 +2797,38 @@ def apply_import_bundle(
                 )
                 if table_name == "daily_insight_feedback":
                     # Additive restore never replaces the caller's current choice.
-                    session.execute(
-                        pg_insert(table)
-                        .values(**values)
-                        .on_conflict_do_nothing(
-                            index_elements=["space_id", "account_id", "recommendation_key"]
-                        )
+                    result = cast(
+                        "CursorResult[Any]",
+                        session.execute(
+                            pg_insert(table)
+                            .values(**values)
+                            .on_conflict_do_nothing(
+                                index_elements=["space_id", "account_id", "recommendation_key"]
+                            )
+                        ),
                     )
                 else:
-                    session.execute(table.insert().values(**protect_values(table_name, values)))
+                    # Additive import never replaces what the Space has: when an
+                    # equivalent row already exists (a link, a nickname, a
+                    # reminder offset), the existing one stays (#2141).
+                    statement = pg_insert(table).values(**protect_values(table_name, values))
+                    result = cast(
+                        "CursorResult[Any]",
+                        session.execute(
+                            statement.on_conflict_do_nothing(
+                                index_elements=[column.name for column in table.primary_key]
+                            )
+                            if table_name in _DEFERRED_UNIQUE_TABLES
+                            else statement.on_conflict_do_nothing()
+                        ),
+                    )
+                if result.rowcount == 0 and row_source is not None:
+                    not_added.add(row_source)
         # Remember each skipped video where it belonged, so the same file can
         # add exactly these videos later (#2141).
         for source, (parent_table, parent_source, position) in skipped.items():
+            if _uuid(parent_source, ErrorCode.TRANSFER_RELATION_INVALID) in not_added:
+                continue
             item = skipped_media[source]
             parent_id = ids[_uuid(parent_source, ErrorCode.TRANSFER_RELATION_INVALID)]
             session.add(
@@ -2562,6 +2856,24 @@ def apply_import_bundle(
                 _log.warning("transfer media rollback cleanup failed")
         raise
     return written_keys
+
+
+def _refers_to(table: Table, raw: Mapping[str, Any], sources: set[UUID]) -> bool:
+    """Whether a bundle row refers to one of these source records by foreign key."""
+    if not sources:
+        return False
+    row = _row_snake(raw)
+    for constraint in table.foreign_key_constraints:
+        for element in constraint.elements:
+            value = row.get(element.parent.name)
+            if value is None or element.column.table.name in {"spaces", "accounts"}:
+                continue
+            try:
+                if UUID(str(value)) in sources:
+                    return True
+            except ValueError:
+                continue
+    return False
 
 
 def _recover_videos(

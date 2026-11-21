@@ -28,6 +28,12 @@ import {
  */
 export interface TransferImportSummary {
     /**
+     * Records and media of this file the Space already has, from an earlier import of the same file or because the file was exported from this Space. Applying leaves them exactly as they are and adds only what is missing, so importing the same file again never duplicates anything.
+     * @type {number}
+     * @memberof TransferImportSummary
+     */
+    alreadyPresentCount: number;
+    /**
      * 
      * @type {number}
      * @memberof TransferImportSummary
@@ -82,7 +88,7 @@ export interface TransferImportSummary {
      */
     videoBytes: number;
     /**
-     * Videos in the bundle; importing one counts as a video upload.
+     * Videos the import would add; importing one counts as a video upload. Videos the Space already has are not counted.
      * @type {number}
      * @memberof TransferImportSummary
      */
@@ -101,6 +107,7 @@ export interface TransferImportSummary {
  * Check if a given object implements the TransferImportSummary interface.
  */
 export function instanceOfTransferImportSummary(value: object): value is TransferImportSummary {
+    if (!('alreadyPresentCount' in value) || value['alreadyPresentCount'] === undefined) return false;
     if (!('mediaCount' in value) || value['mediaCount'] === undefined) return false;
     if (!('recordCounts' in value) || value['recordCounts'] === undefined) return false;
     if (!('recoverableVideoCount' in value) || value['recoverableVideoCount'] === undefined) return false;
@@ -125,6 +132,7 @@ export function TransferImportSummaryFromJSONTyped(json: any, ignoreDiscriminato
     }
     return {
         
+        'alreadyPresentCount': json['alreadyPresentCount'],
         'mediaCount': json['mediaCount'],
         'recordCounts': json['recordCounts'],
         'recoverableVideoCount': json['recoverableVideoCount'],
@@ -150,6 +158,7 @@ export function TransferImportSummaryToJSONTyped(value?: TransferImportSummary |
 
     return {
         
+        'alreadyPresentCount': value['alreadyPresentCount'],
         'mediaCount': value['mediaCount'],
         'recordCounts': value['recordCounts'],
         'recoverableVideoCount': value['recoverableVideoCount'],

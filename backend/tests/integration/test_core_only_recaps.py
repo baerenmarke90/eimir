@@ -29,7 +29,7 @@ from eimir.core.errors import PremiumEntitlementRequiredError
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
 from eimir.memories.models import Memory, MemoryPayload
-from eimir.recaps import jobs, service
+from eimir.recaps import composer, jobs
 from eimir.recaps.models import RecapEdition, RecapKind
 from eimir.relationship import service as relationship_service
 from eimir.transfer import service as transfer_service
@@ -89,7 +89,7 @@ def _compose(session: Session, couple: SimpleNamespace, month: int) -> str:
     # Through the service: the request route is plugin code, so it is not mounted
     # in the Core-only configuration (its absence is covered by test_pro_routes.py).
     context = AuthorizationContext(account_id=couple.anna.id, space_id=couple.space.id)
-    value = service.request_period(session, context, RecapKind.MONTH, 2026, month)
+    value = composer.request_period(session, context, RecapKind.MONTH, 2026, month)
     session.flush()
     return str(value.id)
 

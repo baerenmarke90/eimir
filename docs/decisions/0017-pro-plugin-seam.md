@@ -142,8 +142,10 @@ Two further gaps are not capabilities:
   The composing routes (prepare, request, read and change the selection, keep an edition) are plugin routes
   (`api/v1/recap_composition.py`, the selection write in package `recap_composition`), so a Core-only instance has
   no such paths; the overview, reading an edition and the members' own reflections stay Core routes. The
-  composition jobs and the service functions they share with the routes (`request_period`, `prepare_current`,
-  `candidates`) still live in Core and move with the jobs.
+  composition jobs and the composing functions they share with the routes (`request_period`, `prepare_current`,
+  `candidates` and the life of an edition, `recaps/composer.py`) still live in Core and move with the jobs;
+  `recaps/service.py` keeps only the Core reads, periods and reflection writes and, like the Core recap routes,
+  does not import the composing modules.
 - **Clients.** The Web and Android clients contain the Pro screens and generated Pro client code. This decision is a
   backend seam; [#2086](https://github.com/baerenmarke90/eimir/issues/2086) decides what the public export contains.
 

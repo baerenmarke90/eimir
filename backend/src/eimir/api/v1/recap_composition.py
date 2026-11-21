@@ -23,7 +23,7 @@ from eimir.api.v1.recaps import RecapPeriod, RecapSourceView, RecapView, no_stor
 from eimir.core import clock
 from eimir.core.errors import ConflictError, ErrorCode
 from eimir.recap_composition.selection import replace_sources
-from eimir.recaps import presentation, service
+from eimir.recaps import composer, presentation, service
 from eimir.recaps.composition import MANUAL_SELECTION_LIMIT
 
 router = APIRouter(tags=["recaps"], dependencies=[Depends(no_store)])
@@ -53,7 +53,7 @@ class RecapSelectionView(ApiModel):
 )
 def prepare(authorization: Authorization, session: DbSession) -> None:
     ensure_capability(session, authorization.space_id, service.CAPABILITY)
-    service.prepare_current(session, authorization)
+    composer.prepare_current(session, authorization)
 
 
 @router.post(
@@ -65,7 +65,7 @@ def prepare(authorization: Authorization, session: DbSession) -> None:
 def request_recap(
     payload: RecapRequest, authorization: Authorization, session: DbSession
 ) -> RecapView:
-    value = service.request_period(
+    value = composer.request_period(
         session,
         authorization,
         payload.kind,
@@ -93,7 +93,7 @@ def get_selection(
     ensure_capability(session, authorization.space_id, service.CAPABILITY, lock_grants=False)
     value = service.edition(session, authorization, recap_id)
     current, _ = presentation.materials(session, authorization, value)
-    pool = service.candidates(
+    pool = composer.candidates(
         session, authorization, value.starts_on, value.through_on, value.variant
     )
     eligible = [

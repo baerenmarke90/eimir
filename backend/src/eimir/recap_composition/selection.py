@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from eimir.authorization import AuthorizationContext
 from eimir.core.errors import ConflictError, ErrorCode, ValidationError
 from eimir.core.ids import new_id
+from eimir.recaps.composer import candidates
 from eimir.recaps.composition import MANUAL_SELECTION_LIMIT, Candidate
 from eimir.recaps.models import (
     RecapEdition,
@@ -16,7 +17,6 @@ from eimir.recaps.models import (
     RecapSourceKind,
 )
 from eimir.recaps.presentation import materials
-from eimir.recaps.service import candidates
 
 
 def replace_sources(

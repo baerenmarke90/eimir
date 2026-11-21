@@ -163,25 +163,19 @@ For every new or materially changed user-facing Web feature or native capability
 
 A new feature must use the shared product language in its first mergeable implementation. `Functionality first, design later` is not an acceptable UI delivery strategy.
 
-### Generated visual product reference is mandatory before implementation
+### Baseline review before UI implementation (no generated reference image required)
 
-For every new or materially changed user-facing feature, the owning issue MUST contain at least one generated visual reference image before UI implementation starts.
+The Product Owner decision of 2026-11-21 removes the requirement for a generated visual reference image. It had not proven worth its cost. A rendered HTML mock-up of the real interface, a sketch, or no visual artifact at all is acceptable; the owning issue or pull request decides what helps the review. The decision supersedes the earlier mandatory generated-image rule in this file, in `CONTRIBUTING.md`, in the feature issue template, and in section 9A of the Partner-App Experience Standard.
 
-The visual-reference preflight is repository-aware, not a free-form concept exercise:
+What stays binding is the repository-aware baseline review before UI implementation starts:
 
-- inspect current `main` and the actual destination screen/route before generating the image;
-- account for the existing functions, content hierarchy, shell/navigation, interaction primitives, design-system components, tokens, and relevant states already present there;
-- preserve existing visible capabilities that remain in scope and represent them as they currently exist instead of silently replacing or omitting them;
-- integrate the new feature into the whole composition so placement, hierarchy, density, interaction entry points, and coexistence with neighboring features can be reviewed;
-- use Compact/smartphone as the primary generated composition; add an Expanded/Web visual only when its adaptation is materially different;
-- do not satisfy this gate with an isolated feature card, a blank replacement screen, generic SaaS/admin artwork, or a mockup detached from the current eimir. product;
-- attach/link the generated reference in the issue and record the baseline `main` SHA plus the existing screen/functions that were reviewed;
-- if the affected screen changes materially before implementation starts, regenerate or update the image against the new baseline;
-- for an existing feature issue that lacks this artifact, perform this visual preflight before writing or continuing UI implementation.
+- inspect current `main` and the actual destination screen/route, including the existing functions, content hierarchy, shell/navigation, interaction primitives, design-system components, tokens, and relevant states already present there;
+- preserve existing visible capabilities that remain in scope instead of silently replacing or omitting them;
+- plan placement, hierarchy, density, interaction entry points, and coexistence with neighboring features as part of the Mobile Interaction Contract;
+- record the baseline `main` SHA and the reviewed screen/functions in the issue or pull request;
+- refresh that review if the affected screen changes materially before implementation starts.
 
-The requirement to generate the image is binding. The generated image guides composition and Product Acceptance but is not automatically a pixel-perfect lock; normative Product Reference rules, accessibility, privacy, security, business/domain contracts, and later explicit Product Owner decisions still govern. If an issue needs particular visual decisions to be exact, it must say so explicitly.
-
-[#1151](https://github.com/baerenmarke90/eimir/issues/1151) may be consulted as a **non-binding example of the workflow only**. It does not establish a reusable layout, style template, or precedence for unrelated features.
+Visual evidence of the implemented result is still required before merge (see below).
 
 ### Couple-facing anti-patterns
 

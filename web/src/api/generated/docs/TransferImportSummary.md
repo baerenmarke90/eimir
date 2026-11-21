@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`alreadyPresentCount` | number
 `mediaCount` | number
 `recordCounts` | { [key: string]: number; }
 `recoverableVideoCount` | number
@@ -25,6 +26,7 @@ import type { TransferImportSummary } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "alreadyPresentCount": null,
   "mediaCount": null,
   "recordCounts": null,
   "recoverableVideoCount": null,

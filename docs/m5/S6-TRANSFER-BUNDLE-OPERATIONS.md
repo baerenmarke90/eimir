@@ -117,6 +117,34 @@ when a member dismisses them, with their Memory or HeartMoment, by account
 deletion of their owner and by final Space retention. Recovery matches the
 source ID and the checksum, so a changed file recovers nothing.
 
+### Repeated imports never duplicate (#2141)
+
+Importing the same file again adds only what the Space does not have. Each
+source record and media item lands on a stable target ID derived from the
+target Space and its source ID (a UUIDv7 that keeps the source's time prefix),
+so a later import of the same file recognises what the earlier one added. For a
+file exported from the same Space, the original row counts as present. A row
+counts as present only when its owner matches what the file says, so a crafted
+file cannot claim a partner's private row.
+
+- Present records stay exactly as they are: they are never overwritten, and a
+  present Memory, HeartMoment or Plan keeps its current gallery.
+- A record deleted since the earlier import comes back, once, under the same
+  ID. Its photos are reused while they still exist; an attachment that is being
+  deleted is left out and cut out like a skipped video.
+- Media are copied only when a record the import adds refers to them.
+- Any other unique conflict with an existing row (a link, a nickname, a
+  reminder offset) keeps the existing row, and rows that depend on a row that
+  was not added are left out too.
+- The preview reports `alreadyPresentCount`. `videoCount`, `videoBytes` and
+  `videosNeedPro` count only the videos the import would add, so a file whose
+  videos the Space already has does not need Pro again. Skipped videos of a
+  record that is already present stay recoverable through `VIDEOS_ONLY`.
+
+Provenance does not survive a second hop: a file exported from a Space that
+itself received the content by import carries that Space's IDs, which are new
+to the original Space.
+
 ## Failure and retry behavior
 
 Transfer work is asynchronous and survives the initiating HTTP connection.
@@ -137,7 +165,7 @@ validation never reaches Domain apply.
 Export generation uses a dedicated PostgreSQL `REPEATABLE READ` transaction so
 all exported Domain rows come from one deterministic snapshot. Import apply is
 additive, revalidates the staged bundle immediately before mutation, maps
-source IDs to new target IDs, and executes inside the worker transaction. A
+source IDs to stable target IDs (see above), and executes inside the worker transaction. A
 failed apply must not leave a readable partial Domain graph. Media objects
 written before a database failure are deleted on the apply error path.
 

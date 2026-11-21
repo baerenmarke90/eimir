@@ -54,8 +54,19 @@ class TransferImportSummary(ApiModel):
     record_counts: dict[str, int]
     media_count: int
     source_member_count: int
+    already_present_count: int = Field(
+        description=(
+            "Records and media of this file the Space already has, from an earlier import "
+            "of the same file or because the file was exported from this Space. Applying "
+            "leaves them exactly as they are and adds only what is missing, so importing "
+            "the same file again never duplicates anything."
+        )
+    )
     video_count: int = Field(
-        description="Videos in the bundle; importing one counts as a video upload."
+        description=(
+            "Videos the import would add; importing one counts as a video upload. Videos "
+            "the Space already has are not counted."
+        )
     )
     video_bytes: int = Field(description="Total declared size of those videos.")
     videos_need_pro: bool = Field(
@@ -166,6 +177,7 @@ def _import_detail(session: DbSession, transfer: TransferImport) -> TransferImpo
             record_counts=_summary_record_counts(transfer.summary.get("recordCounts", {})),
             media_count=_summary_count(transfer.summary.get("mediaCount", 0)),
             source_member_count=_summary_count(transfer.summary.get("sourceMemberCount", 0)),
+            already_present_count=_summary_count(transfer.summary.get("alreadyPresentCount", 0)),
             video_count=video_count,
             video_bytes=_summary_count(transfer.summary.get("videoBytes", 0)),
             # Read live: Pro can begin or end between the preview and applying it.

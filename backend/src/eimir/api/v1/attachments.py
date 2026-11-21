@@ -261,7 +261,21 @@ def _no_store(response: Response) -> None:
     response_model=UploadDescriptor,
     status_code=status.HTTP_201_CREATED,
     operation_id="createAttachmentUpload",
-    responses=problem_responses(401, 404, 413, 415, 422),
+    responses=problem_responses(
+        401,
+        404,
+        413,
+        415,
+        422,
+        descriptions={
+            # Plain text: the client generator escapes quotes and backticks here.
+            413: (
+                "The file exceeds the size limit for its type (code ATTACHMENT_TOO_LARGE), or "
+                "its declared size does not fit the storage quota of the Space (code "
+                "STORAGE_QUOTA_EXCEEDED: free up space or get Premium)."
+            )
+        },
+    ),
 )
 def create_attachment_upload(
     authorization: Authorization,
@@ -343,7 +357,9 @@ async def upload_attachment_content(
             bytes_read = 0
             async for chunk in request.stream():
                 bytes_read += len(chunk)
-                if bytes_read > claim.rule.max_size:
+                # Never more than declared: the declared size is what the
+                # Space's storage quota reserved (#2141).
+                if bytes_read > claim.max_bytes:
                     raise service.too_large()
                 await run_in_threadpool(body.write, chunk)
                 if upload_ownership.should_renew(claim):

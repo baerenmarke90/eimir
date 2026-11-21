@@ -8,9 +8,12 @@ Name | Type
 ------------ | -------------
 `mediaCount` | number
 `recordCounts` | { [key: string]: number; }
+`recoverableVideoCount` | number
+`recoveredVideoCount` | number
 `scope` | [TransferScope](TransferScope.md)
 `skippedVideoCount` | number
 `sourceMemberCount` | number
+`unrecoveredVideoCount` | number
 `videoBytes` | number
 `videoCount` | number
 `videosNeedPro` | boolean
@@ -24,9 +27,12 @@ import type { TransferImportSummary } from ''
 const example = {
   "mediaCount": null,
   "recordCounts": null,
+  "recoverableVideoCount": null,
+  "recoveredVideoCount": null,
   "scope": null,
   "skippedVideoCount": null,
   "sourceMemberCount": null,
+  "unrecoveredVideoCount": null,
   "videoBytes": null,
   "videoCount": null,
   "videosNeedPro": null,

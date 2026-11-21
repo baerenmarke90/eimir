@@ -330,6 +330,7 @@ def handle_apply_import(session: Session, payload: dict[str, Any]) -> None:
                 transfer,
                 source,
                 skip_videos=payload.get("skipVideos") is True,
+                videos_only=payload.get("videosOnly") is True,
             )
     except (BadRequestError, PayloadTooLargeError) as error:
         transfer.status = ImportStatus.FAILED.value

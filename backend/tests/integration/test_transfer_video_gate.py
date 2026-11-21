@@ -95,7 +95,7 @@ def _forge_videos(
         if item["sourceId"] in videos:
             item.update(mediaType="VIDEO", mimeType="video/mp4", variants=["original"])
     entries["media/index.json"] = json.dumps(index).encode()
-    document = json.loads(entries["memories.json"])
+    document = json.loads(entries.get("memories.json", b'{"tables": []}'))
     for group in document["tables"]:
         if group["name"] != "memories":
             continue
@@ -106,7 +106,8 @@ def _forge_videos(
                     {"attachment_id": cover, "account_id": str(partner), "reaction": "LOVE"},
                     {"attachment_id": kept, "account_id": str(partner), "reaction": "LAUGH"},
                 ]
-    entries["memories.json"] = json.dumps(document).encode()
+    if "memories.json" in entries:
+        entries["memories.json"] = json.dumps(document).encode()
     manifest = json.loads(entries["manifest.json"])
     for name in manifest["checksums"]:
         manifest["checksums"][name] = hashlib.sha256(entries[name]).hexdigest()

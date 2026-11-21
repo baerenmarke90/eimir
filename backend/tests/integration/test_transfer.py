@@ -482,6 +482,7 @@ def test_personal_import_maps_requester_ignores_appearance_and_is_idempotent(
         "sourceMemberCount": 1,
         "videoCount": 0,
         "videoBytes": 0,
+        "videoSources": [],
     }
 
     service.request_apply(session, authorization, str(transfer.id))

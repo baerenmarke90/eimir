@@ -106,6 +106,17 @@ Cleanup is idempotent:
 The local `MediaStore` implementation uses missing-safe deletion. Other
 providers must preserve the same logical idempotency contract.
 
+### Skipped videos (#2141)
+
+An import applied without its videos (`mode: WITHOUT_VIDEOS`) remembers each
+skipped video in `transfer_skipped_videos`: the imported Memory or HeartMoment,
+the owner, the gallery position, the source attachment ID and the manifest
+checksum. The rows hold no content and are not part of an export. They are
+removed when the video is recovered (`mode: VIDEOS_ONLY` with the same file),
+when a member dismisses them, with their Memory or HeartMoment, by account
+deletion of their owner and by final Space retention. Recovery matches the
+source ID and the checksum, so a changed file recovers nothing.
+
 ## Failure and retry behavior
 
 Transfer work is asynchronous and survives the initiating HTTP connection.

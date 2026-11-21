@@ -68,11 +68,25 @@ class TransferImportSummary(ApiModel):
     skipped_video_count: int = Field(
         description="Videos left out by an import applied without videos."
     )
+    recoverable_video_count: int = Field(
+        description=(
+            "Videos this Space skipped in an earlier import that this file holds again "
+            "(same source and checksum). Apply with `mode: VIDEOS_ONLY` to add exactly "
+            "these to their galleries."
+        )
+    )
+    recovered_video_count: int = Field(
+        description="Videos added back by an import applied with `VIDEOS_ONLY`."
+    )
+    unrecovered_video_count: int = Field(
+        description="Remembered videos `VIDEOS_ONLY` could not add because the gallery is full."
+    )
 
 
 class TransferImportApplyMode(StrEnum):
     ALL = "ALL"
     WITHOUT_VIDEOS = "WITHOUT_VIDEOS"
+    VIDEOS_ONLY = "VIDEOS_ONLY"
 
 
 class TransferImportApply(ApiModel):
@@ -82,7 +96,10 @@ class TransferImportApply(ApiModel):
         description=(
             "`WITHOUT_VIDEOS` is the member's explicit confirmation to import the bundle "
             "without its videos. Without it, a bundle whose videos need Pro is refused "
-            "with `409 TRANSFER_VIDEOS_NEED_PRO` and nothing changes."
+            "with `409 TRANSFER_VIDEOS_NEED_PRO` and nothing changes. `VIDEOS_ONLY` imports "
+            "nothing but the videos this Space skipped earlier from the same file; it needs "
+            "the video capability and answers `409 TRANSFER_NOTHING_TO_RECOVER` when the "
+            "file holds none of them."
         ),
     )
 
@@ -155,6 +172,16 @@ def _import_detail(session: DbSession, transfer: TransferImport) -> TransferImpo
             videos_need_pro=video_count > 0
             and not service.videos_allowed(session, transfer.space_id),
             skipped_video_count=_summary_count(transfer.summary.get("skippedVideoCount", 0)),
+            # Read live: a skipped video can be recovered, dismissed or deleted meanwhile.
+            recoverable_video_count=len(
+                service.recoverable_videos(session, transfer.space_id, transfer.summary)
+            )
+            if transfer.status == ImportStatus.READY_TO_APPLY.value
+            else 0,
+            recovered_video_count=_summary_count(transfer.summary.get("recoveredVideoCount", 0)),
+            unrecovered_video_count=_summary_count(
+                transfer.summary.get("unrecoveredVideoCount", 0)
+            ),
         )
     return TransferImportDetail(
         id=transfer.id,
@@ -331,6 +358,39 @@ def apply_transfer_import(
         authorization,
         import_id,
         skip_videos=mode is TransferImportApplyMode.WITHOUT_VIDEOS,
+        videos_only=mode is TransferImportApplyMode.VIDEOS_ONLY,
     )
     _no_store(response)
     return _import_detail(session, transfer)
+
+
+class TransferSkippedVideos(ApiModel):
+    """Videos this Space left out of an earlier import and can still recover (#2141)."""
+
+    count: int
+    total_size: int
+
+
+@router.get(
+    "/spaces/{spaceId}/transfer/skipped-videos",
+    response_model=TransferSkippedVideos,
+    operation_id="getTransferSkippedVideos",
+    responses=problem_responses(401, 404),
+)
+def get_transfer_skipped_videos(
+    authorization: Authorization, session: DbSession, response: Response
+) -> TransferSkippedVideos:
+    count, total = service.skipped_videos(session, authorization)
+    _no_store(response)
+    return TransferSkippedVideos(count=count, total_size=total)
+
+
+@router.delete(
+    "/spaces/{spaceId}/transfer/skipped-videos",
+    status_code=status.HTTP_204_NO_CONTENT,
+    operation_id="dismissTransferSkippedVideos",
+    responses=problem_responses(401, 404),
+)
+def dismiss_transfer_skipped_videos(authorization: Authorization, session: DbSession) -> None:
+    """Forget the skipped videos; the imported content and the file stay as they are."""
+    service.dismiss_skipped_videos(session, authorization)

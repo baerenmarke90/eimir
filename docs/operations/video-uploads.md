@@ -223,7 +223,10 @@ Space's `media.video_upload` and this flag (with the processor). Otherwise the
 import preview reports the videos and applying the bundle answers
 `409 TRANSFER_VIDEOS_NEED_PRO` until the member confirms importing it without
 them (`mode: WITHOUT_VIDEOS`); nothing is written before that confirmation and
-the bundle stays importable elsewhere. Do not enable the flag during a partial
+the bundle stays importable elsewhere. Each skipped video is remembered in
+`transfer_skipped_videos`; importing the same file again with
+`mode: VIDEOS_ONLY` adds exactly these videos (as uploads, through the same
+validation job) and nothing else. Do not enable the flag during a partial
 rollout or a queue outage.
 A cancelled/deleted attachment wins before the worker publishes a result.
 A dead worker's lease expires; unbound/incomplete uploads, including stranded

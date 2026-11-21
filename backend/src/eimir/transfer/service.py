@@ -6,7 +6,7 @@ import io
 import logging
 import os
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from enum import StrEnum
 from typing import IO, Any
@@ -50,6 +50,7 @@ from eimir.transfer.models import (
     TransferExport,
     TransferImport,
     TransferScope,
+    TransferSkippedVideo,
 )
 from eimir.transfer.payload_boundary import protect_values, reveal_row
 
@@ -204,6 +205,8 @@ class ValidatedGraph:
     tables: dict[str, list[dict[str, Any]]]
     media: list[dict[str, Any]]
     summary: dict[str, object]
+    checksums: dict[str, str] = field(default_factory=dict)
+    """Manifest SHA-256 per archive entry, e.g. ``media/<sourceId>/original``."""
 
 
 def export_storage_key(export: TransferExport) -> str:
@@ -907,6 +910,7 @@ def request_apply(
     import_id: str,
     *,
     skip_videos: bool = False,
+    videos_only: bool = False,
 ) -> TransferImport:
     parsed = _transfer_id(import_id, kind="Transfer import")
     transfer = session.execute(
@@ -934,7 +938,18 @@ def request_apply(
     if transfer.status != ImportStatus.READY_TO_APPLY.value:
         raise ConflictError("Transfer import is not ready.", ErrorCode.TRANSFER_NOT_READY)
     has_videos = bool((transfer.summary or {}).get("videoCount"))
-    if has_videos and not skip_videos and not videos_allowed(session, authorization.space_id):
+    if videos_only:
+        # Recovering skipped videos is a video upload (#2141).
+        if not videos_allowed(session, authorization.space_id):
+            raise ConflictError(
+                "Imported video needs the video capability.", ErrorCode.TRANSFER_VIDEOS_NEED_PRO
+            )
+        if not recoverable_videos(session, authorization.space_id, transfer.summary):
+            raise ConflictError(
+                "This file holds no skipped video of this Space.",
+                ErrorCode.TRANSFER_NOTHING_TO_RECOVER,
+            )
+    elif has_videos and not skip_videos and not videos_allowed(session, authorization.space_id):
         # A video counts as a video upload (#2141): import it with the
         # capability, or confirm importing everything else without it.
         raise ConflictError(
@@ -942,7 +957,9 @@ def request_apply(
         )
     transfer.status = ImportStatus.APPLYING.value
     payload: dict[str, Any] = {"importId": str(transfer.id)}
-    if skip_videos and has_videos:
+    if videos_only:
+        payload["videosOnly"] = True
+    elif skip_videos and has_videos:
         payload["skipVideos"] = True
     job = enqueue(session, IMPORT_APPLY_JOB_KIND, payload)
     transfer.apply_job_id = job.id
@@ -1876,12 +1893,6 @@ def without_videos(graph: ValidatedGraph) -> ValidatedGraph:
             if str(row.get(_key(row, "attachment_id"))) not in videos
         ]
         for parent in tables.get(parent_table, []):
-            has_primary = False
-            if primary is not None:
-                column = _key(parent, primary)
-                if str(parent.get(column)) in videos:
-                    parent[column] = None
-                has_primary = parent.get(column) is not None
             gallery = sorted(
                 (
                     row
@@ -1890,7 +1901,20 @@ def without_videos(graph: ValidatedGraph) -> ValidatedGraph:
                 ),
                 key=lambda row: int(row[_key(row, "position")]),
             )
-            for position, row in enumerate(gallery, start=1 if has_primary else 0):
+            start = 0
+            if primary is not None:
+                # The primary item owns position 0 and gallery rows start at 1.
+                # When the primary is a video, the first remaining gallery item
+                # takes its place.
+                column = _key(parent, primary)
+                if str(parent.get(column)) in videos:
+                    parent[column] = None
+                    if gallery:
+                        promoted = gallery.pop(0)
+                        parent[column] = promoted.get(_key(promoted, "attachment_id"))
+                        kept.remove(promoted)
+                start = 1
+            for position, row in enumerate(gallery, start=start):
                 row[_key(row, "position")] = position
         tables[table] = kept
     for parent_table in ("memories", "heart_moments", "plans"):
@@ -1917,7 +1941,69 @@ def without_videos(graph: ValidatedGraph) -> ValidatedGraph:
         tables=tables,
         media=[item for item in graph.media if str(item.get("sourceId")) not in videos],
         summary=graph.summary,
+        checksums=graph.checksums,
     )
+
+
+def _video_parents(graph: ValidatedGraph) -> dict[str, tuple[str, str, int]]:
+    """Each video's gallery parent in the bundle: (parent table, source ID, position)."""
+    videos = {
+        str(item.get("sourceId"))
+        for item in graph.media
+        if item.get("mediaType") == MediaType.VIDEO
+    }
+    parents: dict[str, tuple[str, str, int]] = {}
+    for table, foreign_key, parent_table, _ in _GALLERIES:
+        for row in graph.tables.get(table, []):
+            identifier = str(row.get(_key(row, "attachment_id")))
+            if identifier in videos:
+                parents[identifier] = (
+                    parent_table,
+                    str(row.get(_key(row, foreign_key))),
+                    int(row[_key(row, "position")]),
+                )
+    for parent in graph.tables.get("heart_moments", []):
+        identifier = str(parent.get(_key(parent, "attachment_id")))
+        if identifier in videos:
+            parents[identifier] = ("heart_moments", str(parent.get("id")), 0)
+    return parents
+
+
+def recoverable_videos(
+    session: Session, space_id: UUID, summary: Mapping[str, object] | None, *, lock: bool = False
+) -> list[TransferSkippedVideo]:
+    """Skipped videos of this Space that the staged file holds again (#2141).
+
+    A video is recognised by its source attachment ID and its manifest checksum,
+    so a changed file never fills a gallery with a different video.
+    """
+    sources = (summary or {}).get("videoSources")
+    if not isinstance(sources, list):
+        return []
+    keys = {
+        (str(item.get("sourceId")), str(item.get("checksum")))
+        for item in sources
+        if isinstance(item, Mapping)
+    }
+    if not keys:
+        return []
+    statement = (
+        select(TransferSkippedVideo)
+        .where(
+            TransferSkippedVideo.space_id == space_id,
+            TransferSkippedVideo.source_attachment_id.in_(
+                [parse_id(source) for source, _ in keys if parse_id(source) is not None]
+            ),
+        )
+        .order_by(TransferSkippedVideo.created_at, TransferSkippedVideo.id)
+    )
+    if lock:
+        statement = statement.with_for_update()
+    return [
+        row
+        for row in session.scalars(statement)
+        if (str(row.source_attachment_id), row.checksum) in keys
+    ]
 
 
 def validate_import_bundle(
@@ -2015,6 +2101,7 @@ def validate_import_bundle(
         if any(tables.get(table_name) for table_name in table_names)
     }
     videos = [item for item in media if item.get("mediaType") == MediaType.VIDEO]
+    checksums = {str(name): str(value) for name, value in dict(manifest["checksums"]).items()}
     summary: dict[str, object] = {
         "scope": scope.value,
         "recordCounts": counts,
@@ -2022,6 +2109,15 @@ def validate_import_bundle(
         "sourceMemberCount": len(source_members),
         "videoCount": len(videos),
         "videoBytes": sum(int(item["size"]) for item in videos),
+        # How a later "recover videos" recognises these videos in this file;
+        # internal, never part of the API summary.
+        "videoSources": [
+            {
+                "sourceId": str(item["sourceId"]),
+                "checksum": checksums[f"media/{item['sourceId']}/original"],
+            }
+            for item in videos
+        ],
     }
     return ValidatedGraph(
         scope=scope,
@@ -2031,6 +2127,7 @@ def validate_import_bundle(
         tables=tables,
         media=media,
         summary=summary,
+        checksums=checksums,
     )
 
 
@@ -2186,6 +2283,97 @@ def _prepare_row(
     return result
 
 
+def _import_media(
+    session: Session,
+    archive: ZipFile,
+    authorization: AuthorizationContext,
+    attachment_table: Table,
+    item: Mapping[str, Any],
+    target_id: UUID,
+    target_owner: UUID,
+    written_keys: list[str],
+) -> None:
+    """Copy one bundle media item into the target Space and add its Attachment row.
+
+    Audio and video enter `VALIDATING` and run the same worker job as an upload.
+    Written store keys are appended to ``written_keys`` for rollback cleanup.
+    """
+    store = get_media_store()
+    source_id = _uuid(item["sourceId"], ErrorCode.TRANSFER_RELATION_INVALID)
+    revalidated = item["mediaType"] in {MediaType.AUDIO, MediaType.VIDEO}
+    for variant in item["variants"]:
+        if revalidated and variant != "original":
+            # Only the processor may produce derived variants.
+            continue
+        key = build_storage_key(authorization.space_id, target_id, variant)
+        entry_name = f"media/{source_id}/{variant}"
+        with archive.open(entry_name, "r") as source:
+            store.put(key, source, str(item.get("mimeType") or "application/octet-stream"))
+        written_keys.append(key)
+    moment = now()
+    attachment_values = {
+        "id": target_id,
+        "space_id": authorization.space_id,
+        "owner_id": target_owner,
+        "privacy_class": PrivacyClass.OWNER_ONLY.value,
+        "status": AttachmentStatus.READY.value,
+        "media_type": item["mediaType"],
+        "declared_mime_type": item["mimeType"],
+        "declared_size": int(item["size"]),
+        "mime_type": item["mimeType"],
+        "size": int(item["size"]),
+        "width": item.get("width"),
+        "height": item.get("height"),
+        "duration_seconds": item.get("durationSeconds"),
+        "has_thumbnail": "thumbnail" in item["variants"],
+        "failure_code": None,
+        "ready_at": moment,
+        "failed_at": None,
+        "uploaded_at": moment,
+        "payload": {
+            "original_name": (
+                display_name(item["originalName"])
+                if item["mediaType"] == MediaType.DOCUMENT
+                else "eimir-transfer"
+            ),
+            "captured_at": item.get("capturedAt"),
+            "orientation": item.get("orientation"),
+            "is_sensitive": item.get("isSensitive", False),
+        },
+        "version": 1,
+    }
+    if revalidated:
+        # Never publish untrusted transfer bytes or metadata as
+        # validated audio or video: the same worker job as an upload
+        # decides. Whether a video may enter at all is decided before
+        # (`videos_allowed`, #2141).
+        attachment_values.update(
+            status=AttachmentStatus.VALIDATING.value,
+            mime_type=None,
+            size=None,
+            width=None,
+            height=None,
+            duration_seconds=None,
+            ready_at=None,
+            has_thumbnail=False,
+        )
+        from eimir.attachments.service import (
+            ATTACHMENT_AUDIO_VALIDATION,
+            ATTACHMENT_VIDEO_VALIDATION,
+        )
+
+        enqueue(
+            session,
+            ATTACHMENT_AUDIO_VALIDATION
+            if item["mediaType"] == MediaType.AUDIO
+            else ATTACHMENT_VIDEO_VALIDATION,
+            {"attachmentId": str(target_id)},
+        )
+    session.execute(
+        attachment_table.insert().values(**protect_values("attachments", attachment_values))
+    )
+
+
 def apply_import_bundle(
     session: Session,
     authorization: AuthorizationContext,
@@ -2193,6 +2381,7 @@ def apply_import_bundle(
     fileobj: IO[bytes],
     *,
     skip_videos: bool = False,
+    videos_only: bool = False,
 ) -> list[str]:
     """Revalidate then add the complete graph in the caller's transaction.
 
@@ -2212,11 +2401,21 @@ def apply_import_bundle(
             "Transfer member mapping changed.", ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID
         )
     video_count = sum(1 for item in graph.media if item.get("mediaType") == MediaType.VIDEO)
+    if videos_only:
+        if not videos_allowed(session, authorization.space_id):
+            raise TransferArchiveError(
+                "Imported video needs the video capability.", ErrorCode.TRANSFER_VIDEOS_NEED_PRO
+            )
+        return _recover_videos(session, authorization, transfer, graph, fileobj)
     if video_count and not skip_videos and not videos_allowed(session, authorization.space_id):
         # The capability ended between the confirmation and this job.
         raise TransferArchiveError(
             "Imported video needs the video capability.", ErrorCode.TRANSFER_VIDEOS_NEED_PRO
         )
+    skipped = _video_parents(graph) if skip_videos else {}
+    skipped_media = {
+        str(item["sourceId"]): item for item in graph.media if str(item["sourceId"]) in skipped
+    }
     if skip_videos:
         graph = without_videos(graph)
     transfer.summary = {
@@ -2276,86 +2475,18 @@ def apply_import_bundle(
         with ZipFile(fileobj, mode="r") as archive:
             for item in graph.media:
                 source_id = _uuid(item["sourceId"], ErrorCode.TRANSFER_RELATION_INVALID)
-                target_id = ids[source_id]
                 owner_source = _uuid(
                     item["ownerSourceId"], ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID
                 )
-                target_owner = graph.mapping[owner_source]
-                revalidated = item["mediaType"] in {MediaType.AUDIO, MediaType.VIDEO}
-                for variant in item["variants"]:
-                    if revalidated and variant != "original":
-                        # Only the processor may produce derived variants.
-                        continue
-                    key = build_storage_key(authorization.space_id, target_id, variant)
-                    entry_name = f"media/{source_id}/{variant}"
-                    with archive.open(entry_name, "r") as source:
-                        store.put(
-                            key, source, str(item.get("mimeType") or "application/octet-stream")
-                        )
-                    written_keys.append(key)
-                moment = now()
-                attachment_values = {
-                    "id": target_id,
-                    "space_id": authorization.space_id,
-                    "owner_id": target_owner,
-                    "privacy_class": PrivacyClass.OWNER_ONLY.value,
-                    "status": AttachmentStatus.READY.value,
-                    "media_type": item["mediaType"],
-                    "declared_mime_type": item["mimeType"],
-                    "declared_size": int(item["size"]),
-                    "mime_type": item["mimeType"],
-                    "size": int(item["size"]),
-                    "width": item.get("width"),
-                    "height": item.get("height"),
-                    "duration_seconds": item.get("durationSeconds"),
-                    "has_thumbnail": "thumbnail" in item["variants"],
-                    "failure_code": None,
-                    "ready_at": moment,
-                    "failed_at": None,
-                    "uploaded_at": moment,
-                    "payload": {
-                        "original_name": (
-                            display_name(item["originalName"])
-                            if item["mediaType"] == MediaType.DOCUMENT
-                            else "eimir-transfer"
-                        ),
-                        "captured_at": item.get("capturedAt"),
-                        "orientation": item.get("orientation"),
-                        "is_sensitive": item.get("isSensitive", False),
-                    },
-                    "version": 1,
-                }
-                if revalidated:
-                    # Never publish untrusted transfer bytes or metadata as
-                    # validated audio or video. Restore is not paywalled: the
-                    # same worker job as an upload decides, without a
-                    # capability check.
-                    attachment_values.update(
-                        status=AttachmentStatus.VALIDATING.value,
-                        mime_type=None,
-                        size=None,
-                        width=None,
-                        height=None,
-                        duration_seconds=None,
-                        ready_at=None,
-                        has_thumbnail=False,
-                    )
-                    from eimir.attachments.service import (
-                        ATTACHMENT_AUDIO_VALIDATION,
-                        ATTACHMENT_VIDEO_VALIDATION,
-                    )
-
-                    enqueue(
-                        session,
-                        ATTACHMENT_AUDIO_VALIDATION
-                        if item["mediaType"] == MediaType.AUDIO
-                        else ATTACHMENT_VIDEO_VALIDATION,
-                        {"attachmentId": str(target_id)},
-                    )
-                session.execute(
-                    attachment_table.insert().values(
-                        **protect_values("attachments", attachment_values)
-                    )
+                _import_media(
+                    session,
+                    archive,
+                    authorization,
+                    attachment_table,
+                    item,
+                    ids[source_id],
+                    graph.mapping[owner_source],
+                    written_keys,
                 )
 
         for table_name in INSERT_ORDER:
@@ -2401,6 +2532,28 @@ def apply_import_bundle(
                     )
                 else:
                     session.execute(table.insert().values(**protect_values(table_name, values)))
+        # Remember each skipped video where it belonged, so the same file can
+        # add exactly these videos later (#2141).
+        for source, (parent_table, parent_source, position) in skipped.items():
+            item = skipped_media[source]
+            parent_id = ids[_uuid(parent_source, ErrorCode.TRANSFER_RELATION_INVALID)]
+            session.add(
+                TransferSkippedVideo(
+                    space_id=authorization.space_id,
+                    memory_id=parent_id if parent_table == "memories" else None,
+                    heart_moment_id=parent_id if parent_table == "heart_moments" else None,
+                    owner_id=graph.mapping[
+                        _uuid(item["ownerSourceId"], ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID)
+                    ],
+                    import_id=transfer.id,
+                    source_attachment_id=_uuid(source, ErrorCode.TRANSFER_RELATION_INVALID),
+                    checksum=graph.checksums[f"media/{source}/original"],
+                    size=int(item["size"]),
+                    mime_type=str(item["mimeType"]),
+                    position=position,
+                )
+            )
+        session.flush()
     except Exception:
         for key in reversed(written_keys):
             try:
@@ -2409,6 +2562,163 @@ def apply_import_bundle(
                 _log.warning("transfer media rollback cleanup failed")
         raise
     return written_keys
+
+
+def _recover_videos(
+    session: Session,
+    authorization: AuthorizationContext,
+    transfer: TransferImport,
+    graph: ValidatedGraph,
+    fileobj: IO[bytes],
+) -> list[str]:
+    """Add exactly the remembered videos from this file to their galleries (#2141).
+
+    Nothing else in the bundle is imported. A video whose gallery is now full
+    (count or size) stays remembered and is reported as not recovered.
+    """
+    from sqlalchemy import func, update
+
+    from eimir.attachments.binding import (
+        MAX_GALLERY_TOTAL_SIZE,
+        HeartMomentAttachment,
+        MemoryAttachment,
+    )
+    from eimir.attachments.models import Attachment
+    from eimir.heart_moments.models import HeartMoment
+    from eimir.memories.models import Memory
+
+    rows = recoverable_videos(session, authorization.space_id, transfer.summary, lock=True)
+    media = {
+        (str(item["sourceId"]), graph.checksums.get(f"media/{item['sourceId']}/original")): item
+        for item in graph.media
+        if item.get("mediaType") == MediaType.VIDEO
+    }
+    attachment_table = _table(session, "attachments", MetaData())
+    written_keys: list[str] = []
+    recovered = 0
+    try:
+        fileobj.seek(0)
+        with ZipFile(fileobj, mode="r") as archive:
+            for row in rows:
+                item = media.get((str(row.source_attachment_id), row.checksum))
+                if item is None:
+                    continue
+                relation: Any
+                parent_column: Any
+                parent_id: Any
+                if row.memory_id is not None:
+                    relation, parent_column, parent_id = (
+                        MemoryAttachment,
+                        MemoryAttachment.memory_id,
+                        row.memory_id,
+                    )
+                    primary = None
+                    parent_model: Any = Memory
+                else:
+                    relation, parent_column, parent_id = (
+                        HeartMomentAttachment,
+                        HeartMomentAttachment.heart_moment_id,
+                        row.heart_moment_id,
+                    )
+                    primary = session.scalar(
+                        select(HeartMoment.attachment_id).where(HeartMoment.id == parent_id)
+                    )
+                    parent_model = HeartMoment
+                bound = list(
+                    session.execute(
+                        select(relation.position, Attachment.size, Attachment.declared_size)
+                        .join(Attachment, Attachment.id == relation.attachment_id)
+                        .where(parent_column == parent_id)
+                    )
+                )
+                sizes = [size if size is not None else declared for _, size, declared in bound]
+                if primary is not None:
+                    primary_size = session.execute(
+                        select(Attachment.size, Attachment.declared_size).where(
+                            Attachment.id == primary
+                        )
+                    ).one()
+                    sizes.append(primary_size[0] or primary_size[1])
+                if (
+                    len(sizes) + 1 > MAX_GALLERY_ATTACHMENTS
+                    or sum(sizes) + row.size > MAX_GALLERY_TOTAL_SIZE
+                ):
+                    continue
+                target_id = new_id()
+                _import_media(
+                    session,
+                    archive,
+                    authorization,
+                    attachment_table,
+                    item,
+                    target_id,
+                    row.owner_id,
+                    written_keys,
+                )
+                changes: dict[str, Any] = {
+                    "version": parent_model.version + 1,
+                    "updated_at": func.now(),
+                }
+                if relation is HeartMomentAttachment and primary is None:
+                    # A HeartMoment without media takes the video as its own.
+                    changes["attachment_id"] = target_id
+                else:
+                    last = max((position for position, _, _ in bound), default=None)
+                    first = 0 if relation is MemoryAttachment else 1
+                    session.add(
+                        relation(
+                            **{parent_column.key: parent_id},
+                            attachment_id=target_id,
+                            position=first if last is None else last + 1,
+                        )
+                    )
+                # The gallery changed: readers holding the old version re-read it.
+                session.execute(
+                    update(parent_model)
+                    .where(parent_model.id == parent_id)
+                    .values(**changes)
+                    .execution_options(synchronize_session=False)
+                )
+                session.delete(row)
+                recovered += 1
+            session.flush()
+    except Exception:
+        for key in reversed(written_keys):
+            try:
+                get_media_store().delete(key)
+            except OSError:
+                _log.warning("transfer media rollback cleanup failed")
+        raise
+    transfer.summary = {
+        **(transfer.summary or {}),
+        "skippedVideoCount": 0,
+        "recoveredVideoCount": recovered,
+        "unrecoveredVideoCount": len(rows) - recovered,
+    }
+    return written_keys
+
+
+def dismiss_skipped_videos(session: Session, authorization: AuthorizationContext) -> int:
+    """Forget the Space's skipped videos; nothing else changes (#2141)."""
+    from sqlalchemy import delete
+
+    result = session.execute(
+        delete(TransferSkippedVideo).where(TransferSkippedVideo.space_id == authorization.space_id)
+    )
+    return int(getattr(result, "rowcount", 0) or 0)
+
+
+def skipped_videos(session: Session, authorization: AuthorizationContext) -> tuple[int, int]:
+    """How many skipped videos the Space remembers, and their total size."""
+    from sqlalchemy import func
+
+    count, size = session.execute(
+        select(
+            func.count(TransferSkippedVideo.id),
+            func.coalesce(func.sum(TransferSkippedVideo.size), 0),
+        ).where(TransferSkippedVideo.space_id == authorization.space_id)
+    ).one()
+    return int(count), int(size)
 
 
 def cleanup_expired(session: Session, *, at: datetime | None = None) -> int:

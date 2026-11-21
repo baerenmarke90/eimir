@@ -28,7 +28,7 @@ import {
  */
 export interface TransferImportApply {
     /**
-     * `WITHOUT_VIDEOS` is the member's explicit confirmation to import the bundle without its videos. Without it, a bundle whose videos need Pro is refused with `409 TRANSFER_VIDEOS_NEED_PRO` and nothing changes.
+     * `WITHOUT_VIDEOS` is the member's explicit confirmation to import the bundle without its videos. Without it, a bundle whose videos need Pro is refused with `409 TRANSFER_VIDEOS_NEED_PRO` and nothing changes. `VIDEOS_ONLY` imports nothing but the videos this Space skipped earlier from the same file; it needs the video capability and answers `409 TRANSFER_NOTHING_TO_RECOVER` when the file holds none of them.
      * @type {TransferImportApplyMode}
      * @memberof TransferImportApply
      */

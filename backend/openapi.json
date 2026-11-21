@@ -4142,6 +4142,12 @@
             "title": "Androidpackage",
             "type": "string"
           },
+          "encryptedPreviewDetailVersion": {
+            "const": 3,
+            "default": 3,
+            "title": "Encryptedpreviewdetailversion",
+            "type": "integer"
+          },
           "encryptedPreviewMaxVersion": {
             "const": 2,
             "default": 2,
@@ -4206,7 +4212,8 @@
           "version": {
             "enum": [
               1,
-              2
+              2,
+              3
             ],
             "title": "Version",
             "type": "integer"

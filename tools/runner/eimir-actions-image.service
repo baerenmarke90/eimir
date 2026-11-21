@@ -1,0 +1,13 @@
+[Unit]
+Description=Rebuild the prepared eimir Actions runner image (#2115)
+Wants=network-online.target
+After=network-online.target
+# A running guest holds the launcher lock; retry until the runner is idle.
+StartLimitIntervalSec=1d
+StartLimitBurst=8
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/eimir-actions-guest-probe image /var/lib/eimir-actions-vm/noble-amd64.qcow2
+Restart=on-failure
+RestartSec=15min

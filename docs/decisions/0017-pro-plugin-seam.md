@@ -300,6 +300,7 @@ the caller's `Session` and never commit, roll back or open their own transaction
 | `project_notification(session, event, event_type, core) -> bool` | C8 projection branches | Runs after `_event_effects_allowed()`; uses the facade's target-notification projection, whose `ON CONFLICT` keys keep replays idempotent; returns `True` when it handled the event | Absent plugin: events of plugin types are not projected, so no new notification appears. |
 | `engagement_targets() -> Mapping[EngagementTarget, TargetRule]` (row check and SQL `exists` predicate) | C9 | Pure SQL expressions composed into Core queries; no I/O, no writes | Absent plugin: the predicate is `false()`, so existing notifications for those targets are hidden (fail closed). |
 | `attachment_read_rules() -> Mapping[str, AttachmentReadRule]` | C17 | Read only | Absent plugin: the existing `privacy_absence` branch denies the read. |
+| `push_preview_detail(session, context, target_type, target_id) -> tuple[str, str] \| None` (#2158, seam version 4) | (new) the plugin half of the encrypted device preview v3 | Read only; called only for a plugin target Core already found current for the reader; returns closed machine codes (title, body), never free text | Absent plugin: plugin targets are never current, so no preview asks for it. |
 | `on_partner_joined`, `on_membership_ended`, `on_member_left`, `on_account_deleted`, `prune_expired` | C7, C10 to C13 | Run in the caller's transaction at the existing call sites; with the plugin loaded they own its tables' lifecycle (update of decision 4) | An exception rolls the whole lifecycle transaction back (fail closed, as today). Absent plugin: the manifest rules alone apply. |
 | `export_account_document(session, authorization, scope) -> Mapping` | C14 | Read only, inside the export transaction | Absent plugin: the manifest export rule produces the same keys (decision 4). |
 | `date_ideas() -> DateIdeaSource \| None` (`revision`, `view`); the shared DTOs live in the Core contract `eimir.wish_selections.date_idea_contract` | C18 | Pure, cached | Absent plugin: Core treats the catalog as unavailable, which is the existing paused state of a round that contains date ideas (#465 within #1535): Wish-only rounds are unaffected, nothing is deleted, export keeps catalog IDs only. `IDEA_ID_PATTERN` stays a Core contract constant. |
@@ -454,7 +455,8 @@ assumed.
 #2116 (d) implement Phase 1; `main` at `d3503cc5f` was checked against the acceptance criteria. The code
 differs from the text above in these points, which the hook table now reflects:
 
-- `PLUGIN_SEAM_VERSION` is `3` (raised with the hooks of b and d).
+- `PLUGIN_SEAM_VERSION` is `3` (raised with the hooks of b and d). #2158 raised it to `4` with the
+  `push_preview_detail` hook.
 - Plugin routers are mounted on the application under `/api/v1` with the `require_normal_operation`
   dependency, not into a rebuilt `normal_router`; OpenAPI and the route resolution of every operation are
   unchanged.

@@ -131,8 +131,8 @@ foundation. It does not introduce the previously rejected daily summary.
 
 ## Detailed device content (#2158)
 
-Product Owner decision 2026-11-21: "Android entscheidet und alles Neutrale
-auflösen mit echten Inhalten". Android FCM preview v3 is negotiated like v2 and
+Product Owner decision 2026-11-21: Android decides, and every neutral notice
+gets its real content. Android FCM preview v3 is negotiated like v2 and
 stays device-bound JWE ciphertext. The server reads each field from the current,
 recipient-authorized source at delivery, never from notification, event, job or
 log state. Free text is shortened so the envelope stays within the native and

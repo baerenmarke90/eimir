@@ -182,7 +182,7 @@ A compatible consumer price message is:
 
 The consumer plan name was defined by #876; the current EUR target price is the 2026-11-14 Product Owner decision above. The following commercial details remain intentionally open until pre-launch validation or the relevant distribution path requires them:
 
-- final Cloud storage quotas and paid storage add-ons;
+- paid storage add-ons (the Cloud storage quota values themselves are decided: 5 GB Free and 50 GB Premium per Space, #2141, see the Freemium matrix);
 - SLA/support commitments and any partner/enterprise packaging;
 - final trial duration and whether payment details are required at trial start;
 - independent non-EUR regional price points and app-store price tiers;

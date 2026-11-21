@@ -46,6 +46,12 @@ export interface TransferImportSummary {
      */
     recordCounts: { [key: string]: number; };
     /**
+     * Total size of the recoverable videos; recovering them counts toward the Space's storage quota.
+     * @type {number}
+     * @memberof TransferImportSummary
+     */
+    recoverableVideoBytes: number;
+    /**
      * Videos this Space skipped in an earlier import that this file holds again (same source and checksum). Apply with `mode: VIDEOS_ONLY` to add exactly these to their galleries.
      * @type {number}
      * @memberof TransferImportSummary
@@ -75,6 +81,36 @@ export interface TransferImportSummary {
      * @memberof TransferImportSummary
      */
     sourceMemberCount: number;
+    /**
+     * Bytes that still fit the Space's storage quota, read live while the import is ready to apply. `null` when the Space is unmetered (Self-Hosted) or the import is no longer ready.
+     * @type {number}
+     * @memberof TransferImportSummary
+     */
+    storageAvailable: number | null;
+    /**
+     * True when importing with `mode: WITHOUT_VIDEOS` fits the storage quota.
+     * @type {boolean}
+     * @memberof TransferImportSummary
+     */
+    storageFitsWithoutVideos: boolean;
+    /**
+     * Bytes the import would add to the Space's storage: the media it would add, at their size. Media the Space already has and thumbnails do not count.
+     * @type {number}
+     * @memberof TransferImportSummary
+     */
+    storageNeeded: number;
+    /**
+     * Bytes the import would add with `mode: WITHOUT_VIDEOS`.
+     * @type {number}
+     * @memberof TransferImportSummary
+     */
+    storageNeededWithoutVideos: number;
+    /**
+     * True when importing everything would exceed the Space's storage quota; applying is then refused with `413 STORAGE_QUOTA_EXCEEDED` or, when `storageFitsWithoutVideos` is true, `413 STORAGE_QUOTA_EXCEEDED_FITS_WITHOUT_VIDEOS`. Free up space or get Premium.
+     * @type {boolean}
+     * @memberof TransferImportSummary
+     */
+    storageQuotaExceeded: boolean;
     /**
      * Remembered videos `VIDEOS_ONLY` could not add because the gallery is full.
      * @type {number}
@@ -110,11 +146,17 @@ export function instanceOfTransferImportSummary(value: object): value is Transfe
     if (!('alreadyPresentCount' in value) || value['alreadyPresentCount'] === undefined) return false;
     if (!('mediaCount' in value) || value['mediaCount'] === undefined) return false;
     if (!('recordCounts' in value) || value['recordCounts'] === undefined) return false;
+    if (!('recoverableVideoBytes' in value) || value['recoverableVideoBytes'] === undefined) return false;
     if (!('recoverableVideoCount' in value) || value['recoverableVideoCount'] === undefined) return false;
     if (!('recoveredVideoCount' in value) || value['recoveredVideoCount'] === undefined) return false;
     if (!('scope' in value) || value['scope'] === undefined) return false;
     if (!('skippedVideoCount' in value) || value['skippedVideoCount'] === undefined) return false;
     if (!('sourceMemberCount' in value) || value['sourceMemberCount'] === undefined) return false;
+    if (!('storageAvailable' in value) || value['storageAvailable'] === undefined) return false;
+    if (!('storageFitsWithoutVideos' in value) || value['storageFitsWithoutVideos'] === undefined) return false;
+    if (!('storageNeeded' in value) || value['storageNeeded'] === undefined) return false;
+    if (!('storageNeededWithoutVideos' in value) || value['storageNeededWithoutVideos'] === undefined) return false;
+    if (!('storageQuotaExceeded' in value) || value['storageQuotaExceeded'] === undefined) return false;
     if (!('unrecoveredVideoCount' in value) || value['unrecoveredVideoCount'] === undefined) return false;
     if (!('videoBytes' in value) || value['videoBytes'] === undefined) return false;
     if (!('videoCount' in value) || value['videoCount'] === undefined) return false;
@@ -135,11 +177,17 @@ export function TransferImportSummaryFromJSONTyped(json: any, ignoreDiscriminato
         'alreadyPresentCount': json['alreadyPresentCount'],
         'mediaCount': json['mediaCount'],
         'recordCounts': json['recordCounts'],
+        'recoverableVideoBytes': json['recoverableVideoBytes'],
         'recoverableVideoCount': json['recoverableVideoCount'],
         'recoveredVideoCount': json['recoveredVideoCount'],
         'scope': TransferScopeFromJSON(json['scope']),
         'skippedVideoCount': json['skippedVideoCount'],
         'sourceMemberCount': json['sourceMemberCount'],
+        'storageAvailable': json['storageAvailable'],
+        'storageFitsWithoutVideos': json['storageFitsWithoutVideos'],
+        'storageNeeded': json['storageNeeded'],
+        'storageNeededWithoutVideos': json['storageNeededWithoutVideos'],
+        'storageQuotaExceeded': json['storageQuotaExceeded'],
         'unrecoveredVideoCount': json['unrecoveredVideoCount'],
         'videoBytes': json['videoBytes'],
         'videoCount': json['videoCount'],
@@ -161,11 +209,17 @@ export function TransferImportSummaryToJSONTyped(value?: TransferImportSummary |
         'alreadyPresentCount': value['alreadyPresentCount'],
         'mediaCount': value['mediaCount'],
         'recordCounts': value['recordCounts'],
+        'recoverableVideoBytes': value['recoverableVideoBytes'],
         'recoverableVideoCount': value['recoverableVideoCount'],
         'recoveredVideoCount': value['recoveredVideoCount'],
         'scope': TransferScopeToJSON(value['scope']),
         'skippedVideoCount': value['skippedVideoCount'],
         'sourceMemberCount': value['sourceMemberCount'],
+        'storageAvailable': value['storageAvailable'],
+        'storageFitsWithoutVideos': value['storageFitsWithoutVideos'],
+        'storageNeeded': value['storageNeeded'],
+        'storageNeededWithoutVideos': value['storageNeededWithoutVideos'],
+        'storageQuotaExceeded': value['storageQuotaExceeded'],
         'unrecoveredVideoCount': value['unrecoveredVideoCount'],
         'videoBytes': value['videoBytes'],
         'videoCount': value['videoCount'],

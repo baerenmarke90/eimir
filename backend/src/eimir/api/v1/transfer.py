@@ -18,6 +18,7 @@ from starlette.concurrency import run_in_threadpool
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
+from eimir.attachments.quota import space_storage
 from eimir.core.errors import ErrorCode, PayloadTooLargeError, UnsupportedMediaTypeError
 from eimir.transfer import service
 from eimir.transfer.archive import MAX_COMPRESSED_BYTES, STREAM_CHUNK
@@ -91,6 +92,39 @@ class TransferImportSummary(ApiModel):
     )
     unrecovered_video_count: int = Field(
         description="Remembered videos `VIDEOS_ONLY` could not add because the gallery is full."
+    )
+    recoverable_video_bytes: int = Field(
+        description=(
+            "Total size of the recoverable videos; recovering them counts toward the "
+            "Space's storage quota."
+        )
+    )
+    storage_needed: int = Field(
+        description=(
+            "Bytes the import would add to the Space's storage: the media it would add, at "
+            "their size. Media the Space already has and thumbnails do not count."
+        )
+    )
+    storage_needed_without_videos: int = Field(
+        description="Bytes the import would add with `mode: WITHOUT_VIDEOS`."
+    )
+    storage_available: int | None = Field(
+        description=(
+            "Bytes that still fit the Space's storage quota, read live while the import is "
+            "ready to apply. `null` when the Space is unmetered (Self-Hosted) or the import "
+            "is no longer ready."
+        )
+    )
+    storage_quota_exceeded: bool = Field(
+        description=(
+            "True when importing everything would exceed the Space's storage quota; "
+            "applying is then refused with `413 STORAGE_QUOTA_EXCEEDED` or, when "
+            "`storageFitsWithoutVideos` is true, `413 STORAGE_QUOTA_EXCEEDED_FITS_WITHOUT_VIDEOS`. "
+            "Free up space or get Premium."
+        )
+    )
+    storage_fits_without_videos: bool = Field(
+        description="True when importing with `mode: WITHOUT_VIDEOS` fits the storage quota."
     )
 
 
@@ -172,6 +206,18 @@ def _import_detail(session: DbSession, transfer: TransferImport) -> TransferImpo
         raw_scope = transfer.summary.get("scope", transfer.scope)
         scope = raw_scope if isinstance(raw_scope, str) else transfer.scope
         video_count = _summary_count(transfer.summary.get("videoCount", 0))
+        ready = transfer.status == ImportStatus.READY_TO_APPLY.value
+        recoverable = (
+            service.recoverable_videos(session, transfer.space_id, transfer.summary)
+            if ready
+            else []
+        )
+        needed = _summary_count(transfer.summary.get("storageNeeded", 0))
+        needed_without_videos = _summary_count(
+            transfer.summary.get("storageNeededWithoutVideos", 0)
+        )
+        # Read live: usage, Premium and the quota change between preview and apply.
+        storage = space_storage(session, transfer.space_id) if ready else None
         summary = TransferImportSummary(
             scope=TransferScope(scope),
             record_counts=_summary_record_counts(transfer.summary.get("recordCounts", {})),
@@ -185,15 +231,17 @@ def _import_detail(session: DbSession, transfer: TransferImport) -> TransferImpo
             and not service.videos_allowed(session, transfer.space_id),
             skipped_video_count=_summary_count(transfer.summary.get("skippedVideoCount", 0)),
             # Read live: a skipped video can be recovered, dismissed or deleted meanwhile.
-            recoverable_video_count=len(
-                service.recoverable_videos(session, transfer.space_id, transfer.summary)
-            )
-            if transfer.status == ImportStatus.READY_TO_APPLY.value
-            else 0,
+            recoverable_video_count=len(recoverable),
             recovered_video_count=_summary_count(transfer.summary.get("recoveredVideoCount", 0)),
             unrecovered_video_count=_summary_count(
                 transfer.summary.get("unrecoveredVideoCount", 0)
             ),
+            recoverable_video_bytes=sum(row.size for row in recoverable),
+            storage_needed=needed,
+            storage_needed_without_videos=needed_without_videos,
+            storage_available=storage.available if storage is not None else None,
+            storage_quota_exceeded=storage is not None and not storage.fits(needed),
+            storage_fits_without_videos=storage is None or storage.fits(needed_without_videos),
         )
     return TransferImportDetail(
         id=transfer.id,
@@ -355,7 +403,22 @@ def get_transfer_import(
     response_model=TransferImportDetail,
     status_code=status.HTTP_202_ACCEPTED,
     operation_id="applyTransferImport",
-    responses=problem_responses(401, 404, 409, 422),
+    responses=problem_responses(
+        401,
+        404,
+        409,
+        413,
+        422,
+        descriptions={
+            # Plain text: the client generator escapes quotes and backticks here.
+            413: (
+                "What the import would add exceeds the storage quota of the Space (code "
+                "STORAGE_QUOTA_EXCEEDED, or STORAGE_QUOTA_EXCEEDED_FITS_WITHOUT_VIDEOS when "
+                "applying with mode WITHOUT_VIDEOS would fit). Nothing changes and the import "
+                "stays ready to apply."
+            )
+        },
+    ),
 )
 def apply_transfer_import(
     authorization: Authorization,

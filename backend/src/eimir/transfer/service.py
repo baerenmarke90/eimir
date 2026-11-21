@@ -27,6 +27,7 @@ from eimir.attachments.binding import MAX_GALLERY_ATTACHMENTS
 from eimir.attachments.documents import display_name, is_pdf
 from eimir.attachments.limits import DOCUMENT_MAX_SIZE, PDF_MIME_TYPE
 from eimir.attachments.models import AttachmentStatus, MediaType
+from eimir.attachments.quota import require_fit, space_storage
 from eimir.authorization import AuthorizationContext, PrivacyClass
 from eimir.core.clock import now
 from eimir.core.errors import BadRequestError, ConflictError, ErrorCode, NotFoundError
@@ -959,7 +960,28 @@ def request_apply(
         raise ConflictError(
             "Imported video needs the video capability.", ErrorCode.TRANSFER_VIDEOS_NEED_PRO
         )
+    # Refuse up front what cannot fit the Space's storage, so the import stays
+    # ready to apply once space is freed (#2141). The job checks again under
+    # the Space lock with exactly what it is about to add.
+    summary = transfer.summary or {}
+    storage = space_storage(session, authorization.space_id)
+    if videos_only:
+        require_fit(
+            storage,
+            sum(row.size for row in recoverable_videos(session, authorization.space_id, summary)),
+        )
+    elif skip_videos and has_videos:
+        require_fit(storage, _stored_count(summary, "storageNeededWithoutVideos"))
+    else:
+        require_fit(
+            storage,
+            _stored_count(summary, "storageNeeded"),
+            without_videos=_stored_count(summary, "storageNeededWithoutVideos")
+            if has_videos
+            else None,
+        )
     transfer.status = ImportStatus.APPLYING.value
+    transfer.error_code = None
     payload: dict[str, Any] = {"importId": str(transfer.id)}
     if videos_only:
         payload["videosOnly"] = True
@@ -968,6 +990,18 @@ def request_apply(
     job = enqueue(session, IMPORT_APPLY_JOB_KIND, payload)
     transfer.apply_job_id = job.id
     return transfer
+
+
+def _stored_count(summary: Mapping[str, object], key: str) -> int:
+    value = summary.get(key, 0)
+    return value if isinstance(value, int) and not isinstance(value, bool) else 0
+
+
+def _media_bytes(media: list[dict[str, Any]], *, videos: bool = True) -> int:
+    """Bytes these bundle media add to the Space's storage, at their size."""
+    return sum(
+        int(item["size"]) for item in media if videos or item.get("mediaType") != MediaType.VIDEO
+    )
 
 
 def _load_documents(
@@ -2135,6 +2169,10 @@ def validate_import_bundle(
         "alreadyPresentCount": plan.present_count,
         "videoCount": len(new_videos),
         "videoBytes": sum(int(item["size"]) for item in new_videos),
+        # What the import would add to the Space's storage quota (#2141): the
+        # media it would actually add, at their size; thumbnails do not count.
+        "storageNeeded": _media_bytes(plan.graph.media),
+        "storageNeededWithoutVideos": _media_bytes(plan.graph.media, videos=False),
         # How a later "recover videos" recognises these videos in this file;
         # internal, never part of the API summary.
         "videoSources": [
@@ -2678,6 +2716,14 @@ def apply_import_bundle(
     }
     if skip_videos:
         graph = without_videos(graph)
+    # The whole bundle is refused when what it adds does not fit (#2141).
+    # Checked and written under the Space's storage lock, so an upload or
+    # another import cannot take the same room at the same time.
+    require_fit(
+        space_storage(session, authorization.space_id, lock=True),
+        _media_bytes(graph.media),
+        without_videos=None if skip_videos else _media_bytes(graph.media, videos=False),
+    )
     transfer.summary = {
         **(transfer.summary or {}),
         "skippedVideoCount": video_count if skip_videos else 0,
@@ -2905,6 +2951,12 @@ def _recover_videos(
         for item in graph.media
         if item.get("mediaType") == MediaType.VIDEO
     }
+    # Recovering is an upload: the videos found in this file must fit the
+    # Space's storage, or none is added (#2141).
+    require_fit(
+        space_storage(session, authorization.space_id, lock=True),
+        sum(row.size for row in rows if (str(row.source_attachment_id), row.checksum) in media),
+    )
     attachment_table = _table(session, "attachments", MetaData())
     written_keys: list[str] = []
     recovered = 0

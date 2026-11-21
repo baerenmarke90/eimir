@@ -6774,7 +6774,7 @@
   },
   "uploadFailure": {
     "image": "This photo could not be uploaded just now.",
-    "imageType": "eimir. cannot take this image format. JPG, PNG, WebP and HEIC work.",
+    "imageType": "eimir. cannot take this image format. JPG, PNG, WebP, HEIC and HEIF work.",
     "offline": "You are offline right now. Once you have a connection again, you can try once more.",
     "connection": "The connection dropped while uploading. Check your network and try again.",
     "stalled": "The upload stopped making progress and was paused. Try again, ideally on a stable network.",

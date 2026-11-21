@@ -2,7 +2,7 @@
 const uploadFailure = {
   image: 'Dieses Foto konnte gerade nicht hochgeladen werden.',
   imageType:
-    'Dieses Bildformat kann eimir. nicht aufnehmen. Möglich sind JPG, PNG, WebP und HEIC.',
+    'Dieses Bildformat kann eimir. nicht aufnehmen. Möglich sind JPG, PNG, WebP, HEIC und HEIF.',
   offline:
     'Du bist gerade offline. Sobald du wieder Netz hast, kannst du es noch einmal versuchen.',
   connection:

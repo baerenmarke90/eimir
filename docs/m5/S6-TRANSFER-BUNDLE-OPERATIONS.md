@@ -127,8 +127,9 @@ file exported from the same Space, the original row counts as present. A row
 counts as present only when its owner matches what the file says, so a crafted
 file cannot claim a partner's private row.
 
-- Present records stay exactly as they are: they are never overwritten, and a
-  present Memory, HeartMoment or Plan keeps its current gallery.
+- Present records stay exactly as they are: they are never overwritten. A
+  present Memory, HeartMoment or Plan keeps its current gallery, and a present
+  list (Collection or private collection) keeps its current items and order.
 - A record deleted since the earlier import comes back, once, under the same
   ID. Its photos are reused while they still exist; an attachment that is being
   deleted is left out and cut out like a skipped video.

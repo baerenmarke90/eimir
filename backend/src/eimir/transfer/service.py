@@ -2185,12 +2185,19 @@ _UNUSABLE_MEDIA_STATUSES = frozenset(
 )
 # Owner columns that must match before an existing row counts as the bundle's own.
 _PRESENCE_OWNER_COLUMNS = ("owner_id", "account_id")
-# Gallery rows belong to their parent: a parent already in the Space keeps its
-# gallery exactly as it is now.
-_GALLERY_PARENTS = {
+# Ordered child rows belong to their parent: a parent already in the Space keeps
+# its gallery or its list exactly as it is now, positions included.
+_ORDERED_CHILD_PARENTS = {
     **{table: foreign_key for table, foreign_key, _, _ in _GALLERIES},
     "plan_file_attachments": "plan_id",
+    "collection_items": "collection_id",
+    "private_collection_items": "collection_id",
 }
+# Tables with a deferrable unique constraint, which PostgreSQL cannot use as an
+# ``ON CONFLICT`` arbiter: their inserts skip only a primary-key conflict. Their
+# position constraint cannot conflict, because the rows of a present parent are
+# left out above.
+_DEFERRED_UNIQUE_TABLES = frozenset({"collection_items", "private_collection_items"})
 
 
 def _target_id(target_space: UUID, source: UUID) -> UUID:
@@ -2368,7 +2375,7 @@ def plan_import(session: Session, target_space: UUID, graph: ValidatedGraph) -> 
 
     tables: dict[str, list[dict[str, Any]]] = {}
     for table_name, rows in graph.tables.items():
-        parent_column = _GALLERY_PARENTS.get(table_name)
+        parent_column = _ORDERED_CHILD_PARENTS.get(table_name)
         kept: list[dict[str, Any]] = []
         for raw in rows:
             row = _row_snake(raw)
@@ -2804,12 +2811,15 @@ def apply_import_bundle(
                     # Additive import never replaces what the Space has: when an
                     # equivalent row already exists (a link, a nickname, a
                     # reminder offset), the existing one stays (#2141).
+                    statement = pg_insert(table).values(**protect_values(table_name, values))
                     result = cast(
                         "CursorResult[Any]",
                         session.execute(
-                            pg_insert(table)
-                            .values(**protect_values(table_name, values))
-                            .on_conflict_do_nothing()
+                            statement.on_conflict_do_nothing(
+                                index_elements=[column.name for column in table.primary_key]
+                            )
+                            if table_name in _DEFERRED_UNIQUE_TABLES
+                            else statement.on_conflict_do_nothing()
                         ),
                     )
                 if result.rowcount == 0 and row_source is not None:

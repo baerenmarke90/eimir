@@ -31,3 +31,31 @@ def test_the_id_is_a_uuid7_with_the_source_time_prefix() -> None:
 def test_a_non_uuid7_source_still_gets_a_uuid7() -> None:
     target = _target_id(new_id(), UUID("12345678-1234-4234-8234-123456789abc"))
     assert target.version == 7
+
+
+def test_every_imported_table_with_a_deferred_unique_constraint_is_known() -> None:
+    """PostgreSQL rejects such a constraint as an ON CONFLICT arbiter (#2141)."""
+    from sqlalchemy import UniqueConstraint
+
+    from eimir.db.base import Base
+    from eimir.db.registry import load_all_models
+    from eimir.transfer.service import (
+        _DEFERRED_UNIQUE_TABLES,
+        _ORDERED_CHILD_PARENTS,
+        FILE_TABLES,
+    )
+
+    load_all_models()
+    imported = {name for names in FILE_TABLES.values() for name in names}
+    deferred = {
+        table.name
+        for table in Base.metadata.tables.values()
+        if table.name in imported
+        and any(
+            isinstance(constraint, UniqueConstraint) and constraint.deferrable
+            for constraint in table.constraints
+        )
+    }
+    assert deferred == _DEFERRED_UNIQUE_TABLES
+    # A present parent keeps its ordered rows, so their positions never conflict.
+    assert deferred <= set(_ORDERED_CHILD_PARENTS)

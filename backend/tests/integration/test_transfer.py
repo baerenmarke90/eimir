@@ -480,6 +480,7 @@ def test_personal_import_maps_requester_ignores_appearance_and_is_idempotent(
         "recordCounts": {},
         "mediaCount": 0,
         "sourceMemberCount": 1,
+        "alreadyPresentCount": 0,
         "videoCount": 0,
         "videoBytes": 0,
         "videoSources": [],

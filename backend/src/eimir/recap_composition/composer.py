@@ -21,7 +21,7 @@ from eimir.core.errors import ErrorCode, ValidationError
 from eimir.core.ids import new_id
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
-from eimir.recaps import freshness, mood, notices, words
+from eimir.recap_composition import freshness, mood, notices, words
 from eimir.recaps.composition import Candidate, period_bounds
 from eimir.recaps.models import (
     RecapEdition,

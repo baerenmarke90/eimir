@@ -24,7 +24,8 @@ from eimir.memories.models import (
     MemoryPhotoReaction,
     PhotoReaction,
 )
-from eimir.recaps import composer, jobs, presentation, service
+from eimir.recap_composition import composer, jobs
+from eimir.recaps import presentation, service
 from eimir.recaps.models import RecapEdition
 from eimir.relationship import configuration as configuration_service
 from eimir.relationship import service as relationship_service

@@ -74,7 +74,7 @@ class FilmMedia(ProtectedPayload):
 
 
 class FilmLook(ProtectedPayload):
-    """Design variants chosen once per edition from a fixed catalogue (``recaps.film``)."""
+    """Design variants chosen once per edition from a fixed catalogue (``recap_composition.film``)."""
 
     mood: str = Field(max_length=16)
     transitions: list[str] = Field(min_length=2, max_length=2)

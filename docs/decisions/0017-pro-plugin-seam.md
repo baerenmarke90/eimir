@@ -57,7 +57,8 @@ The ten modules hold 23 tables. Their ORM models are 1,342 lines.
 Deliberately **not** part of the plugin, with the reason:
 
 - `recaps` (3,881 lines) stays Core. Its matrix row is "Premium composition / Free retained artifacts" and
-  retained editions must stay readable without Pro. The local model helper now lives in the Core module
+  retained editions must stay readable without Pro. #2085 later moved the composing half into the plugin package
+  `recap_composition` (see the recap gap below). The local model helper now lives in the Core module
   `eimir.local_ai`, used by `context_tags` and `daily_checkins`.
 - `wish_selections` (884 lines) stays Core. The matrix classifies it Free/Core; only the date-idea candidate
   branch checks `planning.date_inspiration` (`wish_selections/service.py`, `DATE_IDEAS_CAPABILITY`).
@@ -75,15 +76,15 @@ Deliberately **not** part of the plugin, with the reason:
   decision 6; the gesture vocabulary, the notification projection and the Free thinking-of-you signal stay Core).
   `relationship.passport` is plugin-owned as well: the passport and Wir lifeline routes
   (`api/v1/relationship_passport.py`) and their read models (package `relationship_passport`) are plugin code, while
-  `getDashboard`, its shared Story summary and recap composition stay Core for now, so a Core-only instance treats
-  recaps like an expired Pro (see the recap gap below). `theme.bespoke_packs` is plugin-owned too, but it has no
+  `getDashboard` and its shared Story summary stay Core; recap composition followed in #2085 (see the recap gap
+  below). `theme.bespoke_packs` is plugin-owned too, but it has no
   server feature code to move: the three value checks in `api/v1/appearance.py`, the stored columns and the value
   enums stay Core, and the designs themselves live in the clients
   ([#2086](https://github.com/baerenmarke90/eimir/issues/2086)). Without the plugin a Pro value is refused under
   any grant, Free values keep working and a stored Pro value stays in effect.
 - `media.video_upload` (`api/v1/video.py`, `attachments/videos.py`, `attachments/video_jobs.py`,
   `jobs/video_worker.py`, gate also in `attachments/service.py` and `photo_sources/service.py`) and
-  `daily.insights` (`daily_checkins/insights.py`, `recaps/mood.py`, `api/v1/daily_checkins.py`) are extractable,
+  `daily.insights` (`daily_checkins/insights.py`, the recap mood rhythm, `api/v1/daily_checkins.py`) are extractable,
   but they are woven into attachments and recaps. Their extraction is deferred to a later phase.
   [#2085](https://github.com/baerenmarke90/eimir/issues/2085) extracts them under the Product Owner's rule "what is
   Free is Core; what Premium newly creates is plugin". `daily.insights` is done: the insight and weekly-review routes
@@ -120,32 +121,29 @@ whether it is closed before Phase 3 or accepted.
 | `presence.location` | `presence` (own consent, Stop and deletion stay non-paywallable) | Yes | |
 | `planning.date_inspiration` | `date_ideas` and its catalog | Yes; the Core consumer in `wish_selections` goes through a hook | |
 | `memories.map` | Plugin route `api/v1/memory_map.py` and read model `places/memory_map.py` (tag `places` kept); Places, coordinates and Memory–Place links stay Core | Yes: moved into the plugin by [#2084](https://github.com/baerenmarke90/eimir/issues/2084) | |
-| `relationship.passport` | Plugin routes `api/v1/relationship_passport.py` and package `relationship_passport` (passport and lifeline, tag `dashboard` kept); recap composition routes `api/v1/recap_composition.py` and package `recap_composition` (tag `recaps` kept); the recap jobs still gated in shared Core (`recaps/service.py`, `recaps/jobs.py`) | Partly: passport, lifeline and the composing recap routes moved, the capability is plugin-owned; the recap jobs follow | [#2084](https://github.com/baerenmarke90/eimir/issues/2084), [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
+| `relationship.passport` | Plugin routes `api/v1/relationship_passport.py` and package `relationship_passport` (passport and lifeline, tag `dashboard` kept); recap composition routes `api/v1/recap_composition.py` and package `recap_composition` (tag `recaps` kept: selection pool, requests, jobs, notices, film, freshness, montage and mood); reads, reflections and the reflection check stay Core (`recaps/service.py`, `recaps/presentation.py`) | Yes: passport, lifeline and recap composition moved, the capability is plugin-owned | [#2084](https://github.com/baerenmarke90/eimir/issues/2084), [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
 | `partner.quick_actions.extended` | Plugin route `api/v1/partner_quick_actions.py` and package `partner_quick_actions` (command and `support_gesture_requests`, tag `notifications` kept); vocabulary, projection, thinking-of-you and the module switch stay Core | Yes: moved into the plugin by [#2084](https://github.com/baerenmarke90/eimir/issues/2084) | |
 | `theme.bespoke_packs` | Value checks in shared Core (`api/v1/appearance.py`, `appearance/models.py`); the capability is plugin-owned, the packs live in the clients | Partly: Core-only refuses Pro values; the check itself stays public code | [#2084](https://github.com/baerenmarke90/eimir/issues/2084), [#2086](https://github.com/baerenmarke90/eimir/issues/2086) |
 | `media.video_upload` | Plugin package `video_processing` (processor and validation job); pipeline, voice notes, playback and the retained-media lifecycle stay Core | Yes: processor and job moved, the capability is plugin-owned | [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
-| `daily.insights` | Plugin routes `api/v1/daily_insights.py` and package `daily_insights` (OpenAPI tag kept); the rating route, its table and the mood rhythm of recaps (`recaps/mood.py`) stay Core | Yes for the insights; the recap mood rhythm follows with recap composition | [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
+| `daily.insights` | Plugin routes `api/v1/daily_insights.py` and package `daily_insights` (OpenAPI tag kept); the rating route and its table stay Core; the recap mood rhythm moved with recap composition (`recap_composition/mood.py`) | Yes | [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
 | `storage.cloud_quota_50gb` | Operating-model capability, removed on Self-Hosted | Not Pro code; stays Core by design | |
 | `chapter.rich_presentation`, `occasion.automation`, `recap.pdf_yearbook`, `recap.video_montage`, `question.5_year_mirror`, `surprise_mode.vault` | None (no implementation) | Nothing to protect yet: the first implementation is written as plugin code | |
 
 Two further gaps are not capabilities:
 
-- **Recap composition.** `recaps` stays Core so that retained editions remain readable without Pro; the Premium part
-  of composition is part of [#2085](https://github.com/baerenmarke90/eimir/issues/2085). Because
-  `relationship.passport` is plugin-owned since #2084, a Core-only instance already behaves like an expired Pro:
-  stored editions and reflections stay readable and exportable, members can still edit or withdraw their own words,
-  new composition is refused and queued composition pauses (`tests/integration/test_core_only_recaps.py`).
-  The read path of a stored edition (source projection, live answers, places, media, tags, the couple's own words
-  and the frozen mood) is its own Core module, `recaps/presentation.py`, and the member helpers of background
-  jobs live in `jobs/members.py`; neither imports the composing modules
-  (`tests/unit/test_recap_read_path_imports.py`), so composition can move into the plugin without them.
-  The composing routes (prepare, request, read and change the selection, keep an edition) are plugin routes
-  (`api/v1/recap_composition.py`, the selection write in package `recap_composition`), so a Core-only instance has
-  no such paths; the overview, reading an edition and the members' own reflections stay Core routes. The
-  composition jobs and the composing functions they share with the routes (`request_period`, `prepare_current`,
-  `candidates` and the life of an edition, `recaps/composer.py`) still live in Core and move with the jobs;
-  `recaps/service.py` keeps only the Core reads, periods and reflection writes and, like the Core recap routes,
-  does not import the composing modules.
+- **Recap composition.** Retained editions stay readable without Pro, while the Premium composition is plugin code
+  since [#2085](https://github.com/baerenmarke90/eimir/issues/2085). The read path of a stored edition (source
+  projection, live answers, places, media, tags, the couple's own words and the frozen mood) is the Core module
+  `recaps/presentation.py`; `recaps/service.py` keeps the reads, periods and reflection writes, the job member
+  helpers live in `jobs/members.py`, and the privacy scrub on source changes stays `recaps/invalidation.py`. The
+  composing routes (prepare, request, read and change the selection, keep an edition) are plugin routes
+  (`api/v1/recap_composition.py`); the selection pool, requests and the life of an edition, the jobs, notices,
+  film, freshness, montage and mood computation are the plugin package `recap_composition`. The plugin registers
+  the recap handlers and schedules the scan through `register_jobs()` and `ensure_scheduled()`; the five recap job
+  kinds are plugin job kinds. A Core-only instance behaves like an expired Pro: stored editions and reflections stay
+  readable, exportable and restorable, members can still edit or withdraw their own words, the composing paths are
+  absent, and queued recap jobs stay unclaimed and pending until a worker with the plugin runs them
+  (`tests/integration/test_core_only_recaps.py`).
 - **Clients.** The Web and Android clients contain the Pro screens and generated Pro client code. This decision is a
   backend seam; [#2086](https://github.com/baerenmarke90/eimir/issues/2086) decides what the public export contains.
 
@@ -581,8 +579,8 @@ and the retirement of old artifacts are operational work on top.
   public Core chain (decision 6). They reveal table and column names, not behavior.
 - **Paying Self-Hosted operators receive the code.** A Python package in an image is readable source or bytecode.
   Protection there is the license and its terms, not secrecy.
-- **Gates in shared Core code stay patchable.** `relationship.passport` (recap composition),
-  `theme.bespoke_packs`, `media.video_upload` (admission) and `daily.insights` (recap mood rhythm, setting a rating) are checks in
+- **Gates in shared Core code stay patchable.** `relationship.passport` (a new recap reflection),
+  `theme.bespoke_packs`, `media.video_upload` (admission) and `daily.insights` (setting a rating) are checks in
   public code. Anyone running a modified Core can remove them, as they can today.
 - **Workflow cost.** With one private development repository there is no second PR per change, but there is an
   export step to maintain, a public repository whose contributions must be carried over by hand, and two images per

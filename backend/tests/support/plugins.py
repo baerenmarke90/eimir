@@ -74,6 +74,11 @@ PRO_TEST_MODULES = frozenset(
         "unit/test_photo_source_security_gate.py",
         "unit/test_presence_geo.py",
         "unit/test_privacy_policy_statements.py",
+        # Recap composition is plugin code; the Core reads stay in
+        # `unit/test_recap_composition.py`.
+        "unit/test_recap_film.py",
+        "unit/test_recap_mood.py",
+        "unit/test_recap_notices.py",
         "unit/test_video_processing.py",
         "unit/test_weekly_patterns.py",
         "unit/test_wish_detective_rules.py",

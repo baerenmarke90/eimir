@@ -1,4 +1,10 @@
-"""Automatic relationship recap films on the existing PostgreSQL queue."""
+"""Automatic relationship recap films on the existing PostgreSQL queue (plugin code).
+
+The Pro plugin registers these handlers and schedules the scan through its
+``register_jobs()`` and ``ensure_scheduled()`` hooks (Decision 0017). A worker
+without the plugin leaves queued recap jobs unclaimed; they run once a worker
+with the plugin is back.
+"""
 
 from __future__ import annotations
 
@@ -13,8 +19,9 @@ from eimir.core import clock
 from eimir.jobs import queue
 from eimir.jobs.members import authorized_context, first_member
 from eimir.jobs.models import Job, JobStatus
-from eimir.jobs.worker import registry
-from eimir.recaps import composer, freshness, montage, mood, notices, presentation, service
+from eimir.jobs.worker import JobRegistry, registry
+from eimir.recap_composition import composer, freshness, montage, mood, notices
+from eimir.recaps import presentation, service
 from eimir.recaps.composition import theme_for
 from eimir.recaps.models import RecapKind, RecapPayload
 from eimir.relationship.models import Membership, MembershipStatus
@@ -135,9 +142,26 @@ def backfill(session: Session, payload: dict[str, Any]) -> None:
         composer.prepare_current(session, context)
 
 
-def register_handlers() -> None:
-    registry.register(composer.GENERATE_JOB, generate)
-    registry.register(composer.BACKFILL_JOB, backfill)
-    registry.register(composer.REFRESH_JOB, backfill)
-    registry.register(notices.ANNOUNCE_JOB, notices.announce)
-    registry.register(SCAN_JOB, scan)
+JOB_KINDS = frozenset(
+    {
+        composer.GENERATE_JOB,
+        composer.BACKFILL_JOB,
+        composer.REFRESH_JOB,
+        notices.ANNOUNCE_JOB,
+        SCAN_JOB,
+    }
+)
+"""Every recap job kind; the Core manifest declares them as plugin job kinds."""
+
+
+def register_handlers(target: JobRegistry | None = None) -> None:
+    destination = target if target is not None else registry
+    for kind, handler in (
+        (composer.GENERATE_JOB, generate),
+        (composer.BACKFILL_JOB, backfill),
+        (composer.REFRESH_JOB, backfill),
+        (notices.ANNOUNCE_JOB, notices.announce),
+        (SCAN_JOB, scan),
+    ):
+        if destination.get(kind) is None:
+            destination.register(kind, handler)

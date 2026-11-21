@@ -12,7 +12,7 @@ from eimir.attachments.models import Attachment, AttachmentPayload, AttachmentSt
 from eimir.authorization import AuthorizationContext, PrivacyClass
 from eimir.core.clock import now
 from eimir.outbox.models import OutboxEvent
-from eimir.recaps import composer
+from eimir.recaps import presentation
 from eimir.recaps.models import RecapSourceKind
 from eimir.relationship import service as relationship
 from eimir.story.photo_service import read_shared_photos
@@ -91,10 +91,16 @@ def test_weekend_survives_new_year_multiple_places_and_membership_conflicts(
         page = client.get(f"{base}/timeline", headers=auth(token), params={"year": year}).json()
         assert [item["memory"]["id"] for item in page["items"]] == [memory["id"]]
         assert set(page["availableYears"]) == {2026, 2027}
-    selected = composer.candidates(session, context, date(2027, 1, 1), date(2027, 1, 31))
-    assert [item.id for item in selected if item.kind == RecapSourceKind.MEMORY] == [
-        UUID(memory["id"])
-    ]
+    # The recap source metadata (Core) places the multi-day memory in January too.
+    source = presentation.source_metadata(context)
+    january = session.scalars(
+        select(source.c.id).where(
+            source.c.kind == RecapSourceKind.MEMORY.value,
+            source.c.day <= date(2027, 1, 31),
+            source.c.through >= date(2027, 1, 1),
+        )
+    ).all()
+    assert january == [UUID(memory["id"])]
     changed = client.patch(
         f"{base}/memories/{memory['id']}",
         headers={**auth(token), "If-Match": str(memory["version"])},

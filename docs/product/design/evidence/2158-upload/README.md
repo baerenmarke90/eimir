@@ -8,8 +8,8 @@ reference for testers where the couple cannot act on the cause themselves.
 
 `main` at `d477e9c46` (issue baseline), built on #2159 (`249cd42`), which adds the
 plain "storage full" message. Screen reviewed: the Memory composer's draft gallery
-with its failure note ("Ein Foto braucht deine Hilfe. · Ansehen") and the
-failed-upload inspector. The tile and status label "Upload fehlgeschlagen" stay;
+with its failure note (`memory.photoFailures` with `memory.photoReviewFailure`) and the
+failed-upload inspector. The tile and status label `memory.photoFailed` stay;
 only the inspector's reason line changes.
 
 ## Screens
@@ -21,10 +21,10 @@ server answer.
 
 | File | State |
 | --- | --- |
-| `2158-upload-connection-390-light.png`, `-360-light`, `-430-light`, `-390-dark-reduced` | The photo's bytes lose the connection: "Die Verbindung ist beim Hochladen abgerissen …" with reference `put-network-web` |
+| `2158-upload-connection-390-light.png`, `-360-light`, `-430-light`, `-390-dark-reduced` | The photo's bytes lose the connection: `uploadFailure.connection` with reference `put-network-web` |
 | `2158-upload-connection-1280-light.png` | The same, Expanded (1280 px) |
 | `2158-upload-connection-320-text200-light.png` | The same at 320 px with 200 % text |
-| `2158-upload-connection-retried-390-light.png` | After the connection is back, "Erneut versuchen" sends the same photo; it validates and the entry saves |
+| `2158-upload-connection-retried-390-light.png` | After the connection is back, `common.retry` sends the same photo; it validates and the entry saves |
 | `2158-upload-refused-finalize-390-light.png` | The server refuses a later step (502 at finalize): warm fallback with reference `finalize-502-web` |
 | `2158-upload-type-390-light.png` | A GIF the server does not accept (415 `ATTACHMENT_TYPE_NOT_ALLOWED`): the accepted formats, no reference |
 

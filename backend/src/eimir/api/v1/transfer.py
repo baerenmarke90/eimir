@@ -410,11 +410,12 @@ def get_transfer_import(
         413,
         422,
         descriptions={
+            # Plain text: the client generator escapes quotes and backticks here.
             413: (
-                "What the import would add exceeds the Space's storage quota "
-                "(`STORAGE_QUOTA_EXCEEDED`, or `STORAGE_QUOTA_EXCEEDED_FITS_WITHOUT_VIDEOS` "
-                "when applying with `mode: WITHOUT_VIDEOS` would fit). Nothing changes and "
-                "the import stays ready to apply."
+                "What the import would add exceeds the storage quota of the Space (code "
+                "STORAGE_QUOTA_EXCEEDED, or STORAGE_QUOTA_EXCEEDED_FITS_WITHOUT_VIDEOS when "
+                "applying with mode WITHOUT_VIDEOS would fit). Nothing changes and the import "
+                "stays ready to apply."
             )
         },
     ),

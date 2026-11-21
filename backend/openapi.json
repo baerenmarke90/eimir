@@ -52538,7 +52538,7 @@
                 }
               }
             },
-            "description": "What the import would add exceeds the Space's storage quota (`STORAGE_QUOTA_EXCEEDED`, or `STORAGE_QUOTA_EXCEEDED_FITS_WITHOUT_VIDEOS` when applying with `mode: WITHOUT_VIDEOS` would fit). Nothing changes and the import stays ready to apply."
+            "description": "What the import would add exceeds the storage quota of the Space (code STORAGE_QUOTA_EXCEEDED, or STORAGE_QUOTA_EXCEEDED_FITS_WITHOUT_VIDEOS when applying with mode WITHOUT_VIDEOS would fit). Nothing changes and the import stays ready to apply."
           },
           "422": {
             "content": {

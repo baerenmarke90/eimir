@@ -1422,6 +1422,15 @@
         "web/src/components/GardenPresentation.tsx",
         "web/src/client/garden.ts"
       ]
+    },
+    "transfer-import-storage.spec.ts": {
+      "roots": [
+        "web/src/components/TransferPanel.tsx",
+        "web/src/components/TransferImportSection.tsx",
+        "web/src/client/transferImport.ts",
+        "web/src/client/transfer.ts",
+        "web/src/components/ProPaywallPage.tsx"
+      ]
     }
   }
 }

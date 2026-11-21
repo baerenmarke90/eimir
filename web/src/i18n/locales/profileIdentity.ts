@@ -174,7 +174,7 @@ const profileIdentity = {
   settingsPrivacy: 'Privater Bereich',
   settingsData: 'Daten und Portabilität',
   settingsDataIntro:
-    'Exportiere deine Daten oder importiere unterstützte Inhalte mit den bestehenden Prüfungen.',
+    'Sichere eure Erinnerungen als Datei oder übernimm sie aus einem früheren Export.',
   settingsAccount: 'App und Konto',
   settingsAccountIntro:
     'eimir. Pro und dein Konto. Eure gemeinsamen Inhalte bleiben geschützt.',

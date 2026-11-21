@@ -46,11 +46,35 @@ export interface TransferImportSummary {
      */
     scope: TransferScope;
     /**
+     * Videos left out by an import applied without videos.
+     * @type {number}
+     * @memberof TransferImportSummary
+     */
+    skippedVideoCount: number;
+    /**
      * 
      * @type {number}
      * @memberof TransferImportSummary
      */
     sourceMemberCount: number;
+    /**
+     * Total declared size of those videos.
+     * @type {number}
+     * @memberof TransferImportSummary
+     */
+    videoBytes: number;
+    /**
+     * Videos in the bundle; importing one counts as a video upload.
+     * @type {number}
+     * @memberof TransferImportSummary
+     */
+    videoCount: number;
+    /**
+     * True when the bundle has videos this Space cannot import now: it lacks `media.video_upload` or the server cannot validate video. Apply with `mode: WITHOUT_VIDEOS` to import everything else.
+     * @type {boolean}
+     * @memberof TransferImportSummary
+     */
+    videosNeedPro: boolean;
 }
 
 
@@ -62,7 +86,11 @@ export function instanceOfTransferImportSummary(value: object): value is Transfe
     if (!('mediaCount' in value) || value['mediaCount'] === undefined) return false;
     if (!('recordCounts' in value) || value['recordCounts'] === undefined) return false;
     if (!('scope' in value) || value['scope'] === undefined) return false;
+    if (!('skippedVideoCount' in value) || value['skippedVideoCount'] === undefined) return false;
     if (!('sourceMemberCount' in value) || value['sourceMemberCount'] === undefined) return false;
+    if (!('videoBytes' in value) || value['videoBytes'] === undefined) return false;
+    if (!('videoCount' in value) || value['videoCount'] === undefined) return false;
+    if (!('videosNeedPro' in value) || value['videosNeedPro'] === undefined) return false;
     return true;
 }
 
@@ -79,7 +107,11 @@ export function TransferImportSummaryFromJSONTyped(json: any, ignoreDiscriminato
         'mediaCount': json['mediaCount'],
         'recordCounts': json['recordCounts'],
         'scope': TransferScopeFromJSON(json['scope']),
+        'skippedVideoCount': json['skippedVideoCount'],
         'sourceMemberCount': json['sourceMemberCount'],
+        'videoBytes': json['videoBytes'],
+        'videoCount': json['videoCount'],
+        'videosNeedPro': json['videosNeedPro'],
     };
 }
 
@@ -97,7 +129,11 @@ export function TransferImportSummaryToJSONTyped(value?: TransferImportSummary |
         'mediaCount': value['mediaCount'],
         'recordCounts': value['recordCounts'],
         'scope': TransferScopeToJSON(value['scope']),
+        'skippedVideoCount': value['skippedVideoCount'],
         'sourceMemberCount': value['sourceMemberCount'],
+        'videoBytes': value['videoBytes'],
+        'videoCount': value['videoCount'],
+        'videosNeedPro': value['videosNeedPro'],
     };
 }
 

@@ -905,6 +905,8 @@ def request_apply(
     session: Session,
     authorization: AuthorizationContext,
     import_id: str,
+    *,
+    skip_videos: bool = False,
 ) -> TransferImport:
     parsed = _transfer_id(import_id, kind="Transfer import")
     transfer = session.execute(
@@ -931,8 +933,18 @@ def request_apply(
         return transfer
     if transfer.status != ImportStatus.READY_TO_APPLY.value:
         raise ConflictError("Transfer import is not ready.", ErrorCode.TRANSFER_NOT_READY)
+    has_videos = bool((transfer.summary or {}).get("videoCount"))
+    if has_videos and not skip_videos and not videos_allowed(session, authorization.space_id):
+        # A video counts as a video upload (#2141): import it with the
+        # capability, or confirm importing everything else without it.
+        raise ConflictError(
+            "Imported video needs the video capability.", ErrorCode.TRANSFER_VIDEOS_NEED_PRO
+        )
     transfer.status = ImportStatus.APPLYING.value
-    job = enqueue(session, IMPORT_APPLY_JOB_KIND, {"importId": str(transfer.id)})
+    payload: dict[str, Any] = {"importId": str(transfer.id)}
+    if skip_videos and has_videos:
+        payload["skipVideos"] = True
+    job = enqueue(session, IMPORT_APPLY_JOB_KIND, payload)
     transfer.apply_job_id = job.id
     return transfer
 
@@ -1591,11 +1603,7 @@ def _validate_media(
                     "Invalid voice media.", ErrorCode.TRANSFER_RELATION_INVALID
                 )
         if item.get("mediaType") == MediaType.VIDEO:
-            from eimir.attachments.limits import (
-                VIDEO_MAX_SIZE,
-                rule_for,
-                video_processing_available,
-            )
+            from eimir.attachments.limits import VIDEO_MAX_SIZE, rule_for
 
             size, mime_type = item.get("size"), item.get("mimeType")
             rule = rule_for(mime_type) if isinstance(mime_type, str) else None
@@ -1609,15 +1617,8 @@ def _validate_media(
                 raise TransferArchiveError(
                     "Invalid video media.", ErrorCode.TRANSFER_RELATION_INVALID
                 )
-            # Imported video is re-validated by the video processor. Without
-            # one, fail closed before anything is written: the bundle stays
-            # usable on a server that can validate it. The processor is Pro
-            # plugin code, so a server without the plugin has none.
-            if not video_processing_available():
-                raise TransferArchiveError(
-                    "This server cannot validate transfer video.",
-                    ErrorCode.TRANSFER_FORMAT_UNSUPPORTED,
-                )
+            # Whether the video may enter the Space is decided when the import
+            # is applied (`videos_allowed`); the bundle stays importable without it.
         owner_id = _uuid(item.get("ownerSourceId"), ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID)
         if source_id in indexed or source_id not in referenced or owner_id not in source_member_ids:
             raise TransferArchiveError(
@@ -1820,6 +1821,105 @@ def _inspect_image(archive: ZipFile, source_id: UUID, item: dict[str, Any]) -> N
     item.update(mimeType=inspected.mime_type, width=inspected.width, height=inspected.height)
 
 
+def videos_allowed(session: Session, space_id: UUID) -> bool:
+    """Whether imported video may enter this Space: it counts as a video upload (#2141).
+
+    Like an upload it needs the Space's `media.video_upload` capability and a
+    server that can validate video (the processor is Pro plugin code).
+    """
+    from eimir.attachments.limits import video_processing_available
+    from eimir.entitlements import service as entitlements
+    from eimir.entitlements.models import Capability
+
+    return video_processing_available() and entitlements.has_capability(
+        session, space_id, Capability.MEDIA_VIDEO_UPLOAD
+    )
+
+
+_GALLERIES = (
+    ("memory_attachments", "memory_id", "memories", None),
+    ("heart_moment_attachments", "heart_moment_id", "heart_moments", "attachment_id"),
+    ("plan_attachments", "plan_id", "plans", "cover_attachment_id"),
+)
+"""Gallery tables with their parent table and the parent's primary media column.
+
+A primary media item sits at position 0, before the gallery rows.
+"""
+
+
+def _key(row: Mapping[str, Any], snake: str) -> str:
+    camel = _snake_to_camel(snake)
+    return camel if camel in row else snake
+
+
+def without_videos(graph: ValidatedGraph) -> ValidatedGraph:
+    """The same graph with every video and each reference to it removed (#2141).
+
+    Gallery positions are renumbered in their original order, a cover that
+    points at a video is cleared and photo reactions on a video are dropped, so
+    the rest is as consistent as an export without those videos.
+    """
+    import copy
+
+    videos = {
+        str(item.get("sourceId"))
+        for item in graph.media
+        if item.get("mediaType") == MediaType.VIDEO
+    }
+    if not videos:
+        return graph
+    tables = copy.deepcopy(graph.tables)
+    for table, foreign_key, parent_table, primary in _GALLERIES:
+        kept = [
+            row
+            for row in tables.get(table, [])
+            if str(row.get(_key(row, "attachment_id"))) not in videos
+        ]
+        for parent in tables.get(parent_table, []):
+            has_primary = False
+            if primary is not None:
+                column = _key(parent, primary)
+                if str(parent.get(column)) in videos:
+                    parent[column] = None
+                has_primary = parent.get(column) is not None
+            gallery = sorted(
+                (
+                    row
+                    for row in kept
+                    if str(row.get(_key(row, foreign_key))) == str(parent.get("id"))
+                ),
+                key=lambda row: int(row[_key(row, "position")]),
+            )
+            for position, row in enumerate(gallery, start=1 if has_primary else 0):
+                row[_key(row, "position")] = position
+        tables[table] = kept
+    for parent_table in ("memories", "heart_moments", "plans"):
+        for parent in tables.get(parent_table, []):
+            payload = parent.get("payload")
+            if not isinstance(payload, dict):
+                continue
+            if str(payload.get("selected_cover_attachment_id")) in videos:
+                payload["selected_cover_attachment_id"] = None
+            reactions = payload.get("photo_reactions")
+            if isinstance(reactions, list):
+                payload["photo_reactions"] = [
+                    reaction
+                    for reaction in reactions
+                    if not (
+                        isinstance(reaction, dict) and str(reaction.get("attachment_id")) in videos
+                    )
+                ]
+    return ValidatedGraph(
+        scope=graph.scope,
+        source_space_id=graph.source_space_id,
+        personal_owner_source_id=graph.personal_owner_source_id,
+        mapping=graph.mapping,
+        tables=tables,
+        media=[item for item in graph.media if str(item.get("sourceId")) not in videos],
+        summary=graph.summary,
+    )
+
+
 def validate_import_bundle(
     session: Session,
     authorization: AuthorizationContext,
@@ -1914,11 +2014,14 @@ def validate_import_bundle(
         for file_name, table_names in FILE_TABLES.items()
         if any(tables.get(table_name) for table_name in table_names)
     }
+    videos = [item for item in media if item.get("mediaType") == MediaType.VIDEO]
     summary: dict[str, object] = {
         "scope": scope.value,
         "recordCounts": counts,
         "mediaCount": len(media),
         "sourceMemberCount": len(source_members),
+        "videoCount": len(videos),
+        "videoBytes": sum(int(item["size"]) for item in videos),
     }
     return ValidatedGraph(
         scope=scope,
@@ -2088,9 +2191,13 @@ def apply_import_bundle(
     authorization: AuthorizationContext,
     transfer: TransferImport,
     fileobj: IO[bytes],
+    *,
+    skip_videos: bool = False,
 ) -> list[str]:
     """Revalidate then add the complete graph in the caller's transaction.
 
+    With ``skip_videos`` the videos and their references are left out, as the
+    importing member confirmed; otherwise a video needs `videos_allowed` (#2141).
     Returns target MediaStore keys written before the DB commit so the caller
     can delete them if the transaction fails.
     """
@@ -2104,6 +2211,18 @@ def apply_import_bundle(
         raise TransferArchiveError(
             "Transfer member mapping changed.", ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID
         )
+    video_count = sum(1 for item in graph.media if item.get("mediaType") == MediaType.VIDEO)
+    if video_count and not skip_videos and not videos_allowed(session, authorization.space_id):
+        # The capability ended between the confirmation and this job.
+        raise TransferArchiveError(
+            "Imported video needs the video capability.", ErrorCode.TRANSFER_VIDEOS_NEED_PRO
+        )
+    if skip_videos:
+        graph = without_videos(graph)
+    transfer.summary = {
+        **(transfer.summary or {}),
+        "skippedVideoCount": video_count if skip_videos else 0,
+    }
     ids = _new_id_map(graph)
 
     # SpaceProfile is a singleton on the target Space. Additive import must not

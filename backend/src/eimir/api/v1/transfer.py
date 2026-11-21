@@ -5,13 +5,14 @@ from __future__ import annotations
 import tempfile
 from collections.abc import Iterator, Mapping
 from datetime import datetime
+from enum import StrEnum
 from typing import Annotated
 from uuid import UUID
 
 from anyio import CancelScope
 from fastapi import APIRouter, Path, Request, Response, status
 from fastapi.responses import StreamingResponse
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
 
 from eimir.api.deps import Authorization, DbSession
@@ -53,6 +54,37 @@ class TransferImportSummary(ApiModel):
     record_counts: dict[str, int]
     media_count: int
     source_member_count: int
+    video_count: int = Field(
+        description="Videos in the bundle; importing one counts as a video upload."
+    )
+    video_bytes: int = Field(description="Total declared size of those videos.")
+    videos_need_pro: bool = Field(
+        description=(
+            "True when the bundle has videos this Space cannot import now: it lacks "
+            "`media.video_upload` or the server cannot validate video. Apply with "
+            "`mode: WITHOUT_VIDEOS` to import everything else."
+        ),
+    )
+    skipped_video_count: int = Field(
+        description="Videos left out by an import applied without videos."
+    )
+
+
+class TransferImportApplyMode(StrEnum):
+    ALL = "ALL"
+    WITHOUT_VIDEOS = "WITHOUT_VIDEOS"
+
+
+class TransferImportApply(ApiModel):
+    model_config = ConfigDict(extra="forbid")
+    mode: TransferImportApplyMode = Field(
+        default=TransferImportApplyMode.ALL,
+        description=(
+            "`WITHOUT_VIDEOS` is the member's explicit confirmation to import the bundle "
+            "without its videos. Without it, a bundle whose videos need Pro is refused "
+            "with `409 TRANSFER_VIDEOS_NEED_PRO` and nothing changes."
+        ),
+    )
 
 
 class TransferImportDetail(ApiModel):
@@ -106,16 +138,23 @@ def _summary_record_counts(value: object) -> dict[str, int]:
     }
 
 
-def _import_detail(transfer: TransferImport) -> TransferImportDetail:
+def _import_detail(session: DbSession, transfer: TransferImport) -> TransferImportDetail:
     summary: TransferImportSummary | None = None
     if transfer.summary is not None and transfer.scope is not None:
         raw_scope = transfer.summary.get("scope", transfer.scope)
         scope = raw_scope if isinstance(raw_scope, str) else transfer.scope
+        video_count = _summary_count(transfer.summary.get("videoCount", 0))
         summary = TransferImportSummary(
             scope=TransferScope(scope),
             record_counts=_summary_record_counts(transfer.summary.get("recordCounts", {})),
             media_count=_summary_count(transfer.summary.get("mediaCount", 0)),
             source_member_count=_summary_count(transfer.summary.get("sourceMemberCount", 0)),
+            video_count=video_count,
+            video_bytes=_summary_count(transfer.summary.get("videoBytes", 0)),
+            # Read live: Pro can begin or end between the preview and applying it.
+            videos_need_pro=video_count > 0
+            and not service.videos_allowed(session, transfer.space_id),
+            skipped_video_count=_summary_count(transfer.summary.get("skippedVideoCount", 0)),
         )
     return TransferImportDetail(
         id=transfer.id,
@@ -245,7 +284,7 @@ async def create_transfer_import(
         # before either the spool or the request transaction is released.
         def stage() -> TransferImportDetail:
             transfer = service.create_import(session, authorization, temporary, size=size)
-            return _import_detail(transfer)
+            return _import_detail(session, transfer)
 
         detail = await run_in_threadpool(stage)
     finally:
@@ -269,7 +308,7 @@ def get_transfer_import(
 ) -> TransferImportDetail:
     transfer = service.get_import(session, authorization, import_id)
     _no_store(response)
-    return _import_detail(transfer)
+    return _import_detail(session, transfer)
 
 
 @router.post(
@@ -277,14 +316,21 @@ def get_transfer_import(
     response_model=TransferImportDetail,
     status_code=status.HTTP_202_ACCEPTED,
     operation_id="applyTransferImport",
-    responses=problem_responses(401, 404, 409),
+    responses=problem_responses(401, 404, 409, 422),
 )
 def apply_transfer_import(
     authorization: Authorization,
     session: DbSession,
     response: Response,
     import_id: Annotated[str, Path(alias="importId")],
+    payload: TransferImportApply | None = None,
 ) -> TransferImportDetail:
-    transfer = service.request_apply(session, authorization, import_id)
+    mode = payload.mode if payload is not None else TransferImportApplyMode.ALL
+    transfer = service.request_apply(
+        session,
+        authorization,
+        import_id,
+        skip_videos=mode is TransferImportApplyMode.WITHOUT_VIDEOS,
+    )
     _no_store(response)
-    return _import_detail(transfer)
+    return _import_detail(session, transfer)

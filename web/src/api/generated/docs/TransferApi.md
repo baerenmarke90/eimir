@@ -15,7 +15,7 @@ All URIs are relative to *http://localhost*
 
 ## applyTransferImport
 
-> TransferImportDetail applyTransferImport(importId, spaceId)
+> TransferImportDetail applyTransferImport(importId, spaceId, transferImportApply)
 
 Apply Transfer Import
 
@@ -37,6 +37,8 @@ async function example() {
     importId: importId_example,
     // string
     spaceId: spaceId_example,
+    // TransferImportApply (optional)
+    transferImportApply: ...,
   } satisfies ApplyTransferImportRequest;
 
   try {
@@ -58,6 +60,7 @@ example().catch(console.error);
 |------------- | ------------- | ------------- | -------------|
 | **importId** | `string` |  | [Defaults to `undefined`] |
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **transferImportApply** | [TransferImportApply](TransferImportApply.md) |  | [Optional] |
 
 ### Return type
 
@@ -69,7 +72,7 @@ No authorization required
 
 ### HTTP request headers
 
-- **Content-Type**: Not defined
+- **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
 
@@ -80,6 +83,7 @@ No authorization required
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

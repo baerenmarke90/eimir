@@ -497,6 +497,8 @@ export * from './TokenOnlyRequest';
 export * from './TokenView';
 export * from './TransferExportCreate';
 export * from './TransferExportDetail';
+export * from './TransferImportApply';
+export * from './TransferImportApplyMode';
 export * from './TransferImportDetail';
 export * from './TransferImportSummary';
 export * from './TransferScope';

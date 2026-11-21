@@ -9,7 +9,11 @@ Name | Type
 `mediaCount` | number
 `recordCounts` | { [key: string]: number; }
 `scope` | [TransferScope](TransferScope.md)
+`skippedVideoCount` | number
 `sourceMemberCount` | number
+`videoBytes` | number
+`videoCount` | number
+`videosNeedPro` | boolean
 
 ## Example
 
@@ -21,7 +25,11 @@ const example = {
   "mediaCount": null,
   "recordCounts": null,
   "scope": null,
+  "skippedVideoCount": null,
   "sourceMemberCount": null,
+  "videoBytes": null,
+  "videoCount": null,
+  "videosNeedPro": null,
 } satisfies TransferImportSummary
 
 console.log(example)

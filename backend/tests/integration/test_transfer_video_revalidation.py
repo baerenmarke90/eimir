@@ -1,4 +1,9 @@
-"""Imported videos are restored without Pro but never trusted as already validated."""
+"""Imported videos count as video uploads and are never trusted as already validated.
+
+Since #2141 a video in a Transfer Bundle needs the target Space's
+`media.video_upload`, like an upload; without it the member can confirm importing
+everything else without the videos (Core tests: `test_transfer_video_gate.py`).
+"""
 
 from __future__ import annotations
 
@@ -18,7 +23,7 @@ from eimir.attachments import binding, service
 from eimir.attachments.models import Attachment, AttachmentStatus, MediaType
 from eimir.authorization import AuthorizationContext
 from eimir.config import get_settings
-from eimir.core.errors import ErrorCode
+from eimir.core.errors import ConflictError, ErrorCode
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import Capability
 from eimir.jobs.models import Job
@@ -116,14 +121,35 @@ def _forge(
     return forged
 
 
-def _apply(session, context: AuthorizationContext, bundle: IO[bytes], size: int) -> None:  # type: ignore[no-untyped-def]
+def _stage(session, context: AuthorizationContext, bundle: IO[bytes], size: int):  # type: ignore[no-untyped-def]
     transfer = transfers.create_import(session, context, bundle, size=size)
     jobs.handle_validate_import(session, {"importId": str(transfer.id)})
-    assert transfer.status == ImportStatus.READY_TO_APPLY, transfer.failure_code
-    transfers.request_apply(session, context, str(transfer.id))
-    jobs.handle_apply_import(session, {"importId": str(transfer.id)})
+    assert transfer.status == ImportStatus.READY_TO_APPLY, transfer.error_code
+    return transfer
+
+
+def _apply(  # type: ignore[no-untyped-def]
+    session,
+    context: AuthorizationContext,
+    bundle: IO[bytes],
+    size: int,
+    *,
+    skip_videos: bool = False,
+) -> None:
+    transfer = _stage(session, context, bundle, size)
+    transfers.request_apply(session, context, str(transfer.id), skip_videos=skip_videos)
     session.flush()
-    assert transfer.status == ImportStatus.COMPLETED
+    job = session.get(Job, transfer.apply_job_id)
+    assert job is not None
+    jobs.handle_apply_import(session, dict(job.payload))
+    session.flush()
+    assert transfer.status == ImportStatus.COMPLETED, transfer.error_code
+
+
+def _pro_target(session, owner):  # type: ignore[no-untyped-def]
+    target = make_space(session, owner[0])
+    grant(session, (owner[0], target, owner[2]))
+    return target
 
 
 def _imported_video(session, space_id) -> Attachment:  # type: ignore[no-untyped-def]
@@ -134,14 +160,13 @@ def _imported_video(session, space_id) -> Attachment:  # type: ignore[no-untyped
     ).one()
 
 
-def test_imported_video_is_revalidated_and_restored_without_pro(
+def test_imported_video_is_revalidated_like_an_upload_in_a_pro_space(
     client, session, owner, monkeypatch
 ):  # type: ignore[no-untyped-def]
     _ready_source_video(client, session, owner, monkeypatch)
-    target = make_space(session, owner[0])
+    target = _pro_target(session, owner)
     target_context = AuthorizationContext(account_id=owner[0].id, space_id=target.id)
-    # Restore is non-paywallable: the target Space has no video capability.
-    assert not entitlements.has_capability(session, target.id, Capability.MEDIA_VIDEO_UPLOAD)
+    assert entitlements.has_capability(session, target.id, Capability.MEDIA_VIDEO_UPLOAD)
 
     with _exported(session, owner) as (bundle, _):
         # A hostile author replaces the bytes and the metadata the server used to trust.
@@ -174,7 +199,7 @@ def test_imported_video_is_revalidated_and_restored_without_pro(
     # The bundle's thumbnail is not copied; only the processor may produce one.
     assert not get_media_store().exists(service.storage_key_for(imported, "thumbnail"))
 
-    # The same restricted video job as an upload decides publication, without Pro.
+    # The same restricted video job as an upload decides publication.
     monkeypatch.setattr(videos, "process", _processed(b"sanitized-target", duration=2))
     video_validation.validate_video(session, {"attachmentId": str(imported.id)})
     session.refresh(imported)
@@ -190,7 +215,7 @@ def test_imported_video_rejected_by_the_processor_is_never_published(
     client, session, owner, monkeypatch
 ):  # type: ignore[no-untyped-def]
     _ready_source_video(client, session, owner, monkeypatch)
-    target = make_space(session, owner[0])
+    target = _pro_target(session, owner)
     target_context = AuthorizationContext(account_id=owner[0].id, space_id=target.id)
     with _exported(session, owner) as (bundle, size):
         _apply(session, target_context, bundle, size)
@@ -232,17 +257,23 @@ def test_forged_video_metadata_is_rejected_before_anything_is_written(
     assert error.value.code == ErrorCode.TRANSFER_RELATION_INVALID
 
 
-def test_video_bundle_is_refused_where_no_video_processor_runs(client, session, owner, monkeypatch):  # type: ignore[no-untyped-def]
+@pytest.mark.parametrize("pro", [False, True], ids=["free-space", "no-processor"])
+def test_a_video_the_space_cannot_import_needs_a_confirmation_to_leave_it_out(
+    client, session, owner, monkeypatch, pro
+):  # type: ignore[no-untyped-def]
     _ready_source_video(client, session, owner, monkeypatch)
-    target = make_space(session, owner[0])
+    target = _pro_target(session, owner) if pro else make_space(session, owner[0])
     target_context = AuthorizationContext(account_id=owner[0].id, space_id=target.id)
-    monkeypatch.setenv("EIMIR_VIDEO_UPLOAD_ENABLED", "false")
-    get_settings.cache_clear()
-    # Fail closed and keep the bundle usable: nothing is written or deleted.
-    with (
-        _exported(session, owner) as (bundle, size),
-        pytest.raises(TransferArchiveError) as error,
-    ):
-        transfers.validate_import_bundle(session, target_context, bundle, compressed_size=size)
-    assert error.value.code == ErrorCode.TRANSFER_FORMAT_UNSUPPORTED
+    if pro:
+        # A Pro Space on a server that cannot validate video.
+        monkeypatch.setenv("EIMIR_VIDEO_UPLOAD_ENABLED", "false")
+        get_settings.cache_clear()
+    with _exported(session, owner) as (bundle, size):
+        transfer = _stage(session, target_context, bundle, size)
+        with pytest.raises(ConflictError) as error:
+            transfers.request_apply(session, target_context, str(transfer.id))
+        assert error.value.code == ErrorCode.TRANSFER_VIDEOS_NEED_PRO
+        assert transfer.status == ImportStatus.READY_TO_APPLY
+        bundle.seek(0)
+        _apply(session, target_context, bundle, size, skip_videos=True)
     assert session.scalar(select(Attachment).where(Attachment.space_id == target.id)) is None

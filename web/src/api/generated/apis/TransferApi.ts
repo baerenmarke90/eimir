@@ -29,6 +29,11 @@ import {
     TransferExportDetailToJSON,
 } from '../models/TransferExportDetail';
 import {
+    type TransferImportApply,
+    TransferImportApplyFromJSON,
+    TransferImportApplyToJSON,
+} from '../models/TransferImportApply';
+import {
     type TransferImportDetail,
     TransferImportDetailFromJSON,
     TransferImportDetailToJSON,
@@ -37,6 +42,7 @@ import {
 export interface ApplyTransferImportRequest {
     importId: string;
     spaceId: string;
+    transferImportApply?: TransferImportApply | null;
 }
 
 export interface CreateTransferExportRequest {
@@ -91,6 +97,8 @@ export class TransferApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        headerParameters['Content-Type'] = 'application/json';
+
 
         let urlPath = `/api/v1/spaces/{spaceId}/transfer/imports/{importId}/apply`;
         urlPath = urlPath.replace('{importId}', encodeURIComponent(String(requestParameters['importId'])));
@@ -101,6 +109,7 @@ export class TransferApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
+            body: TransferImportApplyToJSON(requestParameters['transferImportApply']),
         };
     }
 

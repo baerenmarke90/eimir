@@ -1799,7 +1799,9 @@ jobs:
             echo 'Refusing to overwrite an existing release or draft.' >&2
             exit 1
           fi
-          gh release create "$TAG" --draft --prerelease --latest=false --target "$SOURCE" \
+          # Diagnostic (2026-11-21): print the full API exchange so a 403 on the draft
+          # shows GitHub's message and required permission. gh masks the token.
+          GH_DEBUG=api gh release create "$TAG" --draft --prerelease --latest=false --target "$SOURCE" \
             --title "eimir. Android $VERSION_NAME" \
             --notes-file "$NOTES_FILE"
           gh release upload "$TAG" "$RUNNER_TEMP/release/$APK" \

@@ -17,6 +17,7 @@ import json
 from collections.abc import Iterator
 from contextlib import contextmanager, nullcontext
 from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 from types import SimpleNamespace
 from uuid import UUID
 from zipfile import ZipFile
@@ -37,9 +38,9 @@ from eimir.jobs.worker import JobRegistry
 from eimir.memories.models import Memory, MemoryPayload
 from eimir.plugins.loader import loaded_plugins
 from eimir.plugins.manifest import PLUGIN_JOB_KINDS
-from eimir.recaps.models import RecapEdition, RecapKind, RecapReflection
+from eimir.recaps.models import RecapEdition, RecapKind, RecapReflection, RecapSource
 from eimir.relationship import service as relationship_service
-from eimir.relationship.models import Membership
+from eimir.relationship.models import Membership, MembershipStatus
 from eimir.transfer import service as transfer_service
 from eimir.transfer.models import TransferScope
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
@@ -331,3 +332,47 @@ def test_a_recap_continues_unchanged_when_the_plugin_returns(
         assert resumed is not None and resumed.status in {"READY", "EMPTY"}
         assert client.get(f"{couple.path}/{recap_id}", headers=couple.headers).json() == before
         assert client.get(couple.path, headers=couple.headers).json()["canCompose"] is True
+
+
+def test_without_the_plugin_space_retention_purges_its_recaps(
+    client: TestClient,
+    session: Session,
+    couple: SimpleNamespace,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from eimir.media.local import LocalMediaStore
+    from eimir.relationship import policy, retention
+
+    with with_pro_plugin():
+        recap_id = _compose(session, couple, 10)
+        _generate(session, couple, recap_id)
+        words = client.put(
+            f"{couple.path}/{recap_id}/reflection",
+            headers=couple.headers,
+            json={"text": "Words we keep", "shared": True, "version": 0},
+        )
+        assert words.status_code == 200
+
+    with core_only():
+        # Both members left long enough ago: the final whole-Space purge also
+        # removes the recap editions, their sources and the reflections.
+        ended_at = NOW - policy.SPACE_OFFBOARDING_RETENTION - timedelta(days=1)
+        for membership in session.scalars(
+            select(Membership).where(Membership.space_id == couple.space.id)
+        ):
+            membership.status = MembershipStatus.LEFT.value
+            membership.ended_at = ended_at
+        couple.space.offboarding_purge_at = policy.purge_eligible_at(ended_at)
+        session.flush()
+        monkeypatch.setattr(retention, "get_media_store", lambda: LocalMediaStore(tmp_path))
+
+        purged, _, _ = retention.purge_due_spaces(session, current_time=NOW)
+        session.flush()
+
+        assert purged == 1
+        edition = UUID(recap_id)
+        assert session.get(RecapEdition, edition) is None
+        for model in (RecapSource, RecapReflection):
+            count = select(func.count()).select_from(model).where(model.edition_id == edition)
+            assert session.scalar(count) == 0

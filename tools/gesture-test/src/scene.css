@@ -1,0 +1,155 @@
+:root {
+  --duration-transition: 180ms;
+  --duration-context: 280ms;
+  --easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --easing-exit: cubic-bezier(0.4, 0, 1, 1);
+  font-family: system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-transition: 0ms;
+    --duration-context: 0ms;
+  }
+}
+
+body {
+  margin: 0;
+  background: #f6f1ee;
+  color: #2b2226;
+}
+
+.feed {
+  padding: 16px;
+}
+
+.feed-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.feed-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f2b8c6, #9cc5e8);
+}
+
+.feed-lines {
+  flex: 1;
+}
+
+.feed-line {
+  height: 12px;
+  margin: 8px 0;
+  border-radius: 6px;
+  background: #ece4e0;
+}
+
+.feed-line.short {
+  width: 60%;
+}
+
+.sheet {
+  position: fixed;
+  inset: auto 0 0;
+  height: 60vh;
+  box-sizing: border-box;
+  padding: 12px 20px;
+  border-radius: 24px 24px 0 0;
+  background: #fff;
+  box-shadow: 0 -8px 32px rgb(0 0 0 / 18%);
+  touch-action: none;
+  user-select: none;
+}
+
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 16px;
+  border-radius: 2px;
+  background: #cfc4c0;
+}
+
+.sheet-title {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.sheet-copy {
+  margin: 0;
+}
+
+/* The current ShortTaskSheet settle: a CSS transition on transform. */
+.sheet.is-current {
+  transform: translateY(var(--sheet-offset, 0px));
+  transition: transform var(--duration-transition) var(--easing-standard);
+}
+
+.sheet.is-current[data-dragging] {
+  transition: none;
+}
+
+.sheet.is-current[data-dismissed] {
+  transform: translateY(100%);
+  transition: transform var(--duration-context) var(--easing-exit);
+}
+
+/* On-device controls (gesture-test build). */
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 8px;
+  background: rgb(246 241 238 / 96%);
+  border-bottom: 1px solid #e4d9d4;
+}
+
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.toolbar-title {
+  flex: 1;
+  font-size: 15px;
+}
+
+.toolbar-button,
+.toolbar-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #cfc4c0;
+  border-radius: 20px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.toolbar-button.primary {
+  border-color: #2f6fdb;
+  background: #2f6fdb;
+  color: #fff;
+}
+
+.toolbar-chip.active {
+  border-color: #2b2226;
+  background: #2b2226;
+  color: #fff;
+}
+
+.toolbar-stats {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}

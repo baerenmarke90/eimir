@@ -121,17 +121,17 @@ whether it is closed before Phase 3 or accepted.
 | `presence.location` | `presence` (own consent, Stop and deletion stay non-paywallable) | Yes | |
 | `planning.date_inspiration` | `date_ideas` and its catalog | Yes; the Core consumer in `wish_selections` goes through a hook | |
 | `memories.map` | Plugin route `api/v1/memory_map.py` and read model `places/memory_map.py` (tag `places` kept); Places, coordinates and Memory–Place links stay Core | Yes: moved into the plugin by [#2084](https://github.com/baerenmarke90/eimir/issues/2084) | |
-| `relationship.passport` | Plugin routes `api/v1/relationship_passport.py` and package `relationship_passport` (passport and lifeline, tag `dashboard` kept); recap composition routes `api/v1/recap_composition.py` and package `recap_composition` (tag `recaps` kept: selection pool, requests, jobs, notices, film, freshness, montage and mood); reads, reflections and the reflection check stay Core (`recaps/service.py`, `recaps/presentation.py`) | Yes: passport, lifeline and recap composition moved, the capability is plugin-owned | [#2084](https://github.com/baerenmarke90/eimir/issues/2084), [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
+| `relationship.passport` | Plugin routes `api/v1/relationship_passport.py` and package `relationship_passport` (passport and lifeline, tag `dashboard` kept); recap composition routes `api/v1/recap_composition.py` and package `recap_composition` (tag `recaps` kept: selection pool, requests, jobs, notices, film, freshness, montage and mood); reads, reflections and the reflection check stay Core (`recaps/service.py`, `recaps/presentation.py`) | Yes: passport and lifeline moved by [#2084](https://github.com/baerenmarke90/eimir/issues/2084), recap composition and its jobs by [#2085](https://github.com/baerenmarke90/eimir/issues/2085); the capability is plugin-owned | |
 | `partner.quick_actions.extended` | Plugin route `api/v1/partner_quick_actions.py` and package `partner_quick_actions` (command and `support_gesture_requests`, tag `notifications` kept); vocabulary, projection, thinking-of-you and the module switch stay Core | Yes: moved into the plugin by [#2084](https://github.com/baerenmarke90/eimir/issues/2084) | |
-| `theme.bespoke_packs` | Value checks in shared Core (`api/v1/appearance.py`, `appearance/models.py`); the capability is plugin-owned, the packs live in the clients | Partly: Core-only refuses Pro values; the check itself stays public code | [#2084](https://github.com/baerenmarke90/eimir/issues/2084), [#2086](https://github.com/baerenmarke90/eimir/issues/2086) |
-| `media.video_upload` | Plugin package `video_processing` (processor and validation job); pipeline, voice notes, playback and the retained-media lifecycle stay Core | Yes: processor and job moved, the capability is plugin-owned | [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
-| `daily.insights` | Plugin routes `api/v1/daily_insights.py` and package `daily_insights` (OpenAPI tag kept); the rating route and its table stay Core; the recap mood rhythm moved with recap composition (`recap_composition/mood.py`) | Yes | [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
+| `theme.bespoke_packs` | Value checks in shared Core (`api/v1/appearance.py`, `appearance/models.py`); the capability is plugin-owned, the packs live in the clients | Partly: plugin-owned by [#2084](https://github.com/baerenmarke90/eimir/issues/2084), so Core-only refuses Pro values; the check itself stays public code | [#2086](https://github.com/baerenmarke90/eimir/issues/2086) |
+| `media.video_upload` | Plugin package `video_processing` (processor and validation job); pipeline, voice notes, playback and the retained-media lifecycle stay Core | Yes: processor and job moved by [#2085](https://github.com/baerenmarke90/eimir/issues/2085), the capability is plugin-owned | |
+| `daily.insights` | Plugin routes `api/v1/daily_insights.py` and package `daily_insights` (OpenAPI tag kept); the rating route and its table stay Core; the recap mood rhythm moved with recap composition (`recap_composition/mood.py`) | Yes: moved by [#2085](https://github.com/baerenmarke90/eimir/issues/2085), the capability is plugin-owned | |
 | `storage.cloud_quota_50gb` | Operating-model capability, removed on Self-Hosted | Not Pro code; stays Core by design | |
 | `chapter.rich_presentation`, `occasion.automation`, `recap.pdf_yearbook`, `recap.video_montage`, `question.5_year_mirror`, `surprise_mode.vault` | None (no implementation) | Nothing to protect yet: the first implementation is written as plugin code | |
 
-Two further gaps are not capabilities:
+Two further topics are not capabilities:
 
-- **Recap composition.** Retained editions stay readable without Pro, while the Premium composition is plugin code
+- **Recap composition (closed).** Retained editions stay readable without Pro, while the Premium composition is plugin code
   since [#2085](https://github.com/baerenmarke90/eimir/issues/2085). The read path of a stored edition (source
   projection, live answers, places, media, tags, the couple's own words and the frozen mood) is the Core module
   `recaps/presentation.py`; `recaps/service.py` keeps the reads, periods and reflection writes, the job member
@@ -141,15 +141,20 @@ Two further gaps are not capabilities:
   film, freshness, montage and mood computation are the plugin package `recap_composition`. The plugin registers
   the recap handlers and schedules the scan through `register_jobs()` and `ensure_scheduled()`; the five recap job
   kinds are plugin job kinds. A Core-only instance behaves like an expired Pro: stored editions and reflections stay
-  readable, exportable and restorable, members can still edit or withdraw their own words, the composing paths are
-  absent, and queued recap jobs stay unclaimed and pending until a worker with the plugin runs them
-  (`tests/integration/test_core_only_recaps.py`).
+  readable, exportable and restorable, a deleted source leaves the edition, account deletion removes the member's
+  private draft, members can still edit or withdraw their own words, the composing paths are absent, and queued
+  recap jobs stay unclaimed and pending. When the plugin returns, the queued composition runs with its original
+  payload and the editions composed before stay unchanged (`tests/integration/test_core_only_recaps.py`).
 - **Clients.** The Web and Android clients contain the Pro screens and generated Pro client code. This decision is a
   backend seam; [#2086](https://github.com/baerenmarke90/eimir/issues/2086) decides what the public export contains.
 
-Result: six capabilities with server code are protected, four plain gates and two deferred capabilities are not, and
-the clients are undecided. The Core must not be published (Phase 3) before the Product Owner has decided each open
-row. Publishing earlier would expose the gate-only features and the client Pro code.
+Result: when this decision was taken, six capabilities with server code were protected, four plain gates and two
+deferred capabilities were not, and the clients were undecided. After #2084 and #2085, eleven capabilities with
+server code are plugin code with a plugin-owned capability; `theme.bespoke_packs` is plugin-owned, but its value
+check stays public Core code and its designs live in the clients; `storage.cloud_quota_50gb` stays Core by design;
+six capabilities have no implementation yet; the clients are still undecided
+([#2086](https://github.com/baerenmarke90/eimir/issues/2086)). The Core must not be published (Phase 3) before the
+Product Owner has decided each open row. Publishing earlier would expose the gate-only features and the client Pro code.
 
 ### Direct Core-to-Pro coupling (verified)
 
@@ -505,7 +510,7 @@ the Core export of decision 7 publishes the Core into a fresh public repository,
 exported tree, and a private Pro image is built `FROM` that Core image digest with its own release identity and
 the distribution channel the Product Owner selects (open decisions). Before go-live, Phase 1 and 2 must be complete:
 otherwise the exported Core does not start without Pro. The open rows of the coverage table (section
-"Coverage of the 19 capabilities" in the Context: #2084, #2085, #2086) must also be decided before the first export, because the
+"Coverage of the 19 capabilities" in the Context; after #2084 and #2085 only #2086 is open) must also be decided before the first export, because the
 export would otherwise publish the gate-only features and the client Pro code.
 
 **Effort estimate (an estimate, not a commitment):** Phase 1 about 8 to 12 working days of agent-assisted work

@@ -131,7 +131,10 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
             "\n  test-channel-contract:\n", 1
         )[0]
         preflight, publisher = channel.split("\n  android-test-publish:\n", 1)
-        self.assertIn("gh release download android-fcm-v0.2.0-fcm.2", preflight)
+        self.assertNotIn("gh release download android-fcm-v0.2.0-fcm.2", preflight)
+        self.assertIn('gh release download "$PREVIOUS_TAG"', preflight)
+        self.assertIn('[ "$FRESH_PACKAGE" = true ]', preflight)
+        self.assertIn("sha256sum --check --strict SHA256SUMS", preflight)
         self.assertIn("apksigner\" verify --verbose --print-certs", preflight)
         self.assertIn("actual == os.environ['CERTIFICATE']", preflight)
         self.assertIn("int(os.environ['VERSION_CODE']) >= 39 and not compatible", preflight)

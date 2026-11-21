@@ -78,8 +78,12 @@ builds the unsigned validation variant, runs sideload lint and actual policy/cat
 JVM tests, confirms the canonical eimir keystore certificate, signs the release APK and
 verifies the actual package/signature/version/source identity. The one-time
 test.38 → test.39 boundary checks the exact old/new packages and versions as
-well as both signatures. The existing canonical fcm.2 APK is additionally verified
-as a same-package/same-key predecessor. Only the legacy app remains a separate
+well as both signatures. At that boundary the existing canonical fcm.2 APK was
+additionally verified as a same-package/same-key predecessor. The fcm.2 release was
+removed on 2026-11-21 (Product Owner decision to retire old test releases); the
+preflight now verifies that the published predecessor release (the previous test
+version) is signed by the protected canonical certificate, and a fresh-package
+transition can no longer be verified. Only the legacy app remains a separate
 installation; existing de.eimir.app installations update in place. APK inspection uses
 an SDK view containing **only build-tools 36.0.0**: a runner may also have 37 installed,
 whose human-readable signer output is incompatible with the existing helper parser.

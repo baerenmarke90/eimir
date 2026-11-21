@@ -1453,13 +1453,22 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release download android-fcm-v0.2.0-fcm.2 --repo "$GH_REPO" \
-            --pattern eimir-android-0.2.0-fcm.2.apk --pattern SHA256SUMS \
+          # The canonical signer is anchored in the immutable published predecessor
+          # of this channel. The original android-fcm-v0.2.0-fcm.2 release was
+          # removed on 2026-11-21; every later test release was verified against
+          # its predecessor's signer, so the chain still leads back to it. The
+          # fresh-package boundary (test.39) needed fcm.2 and cannot run again.
+          if [ "$FRESH_PACKAGE" = true ]; then
+            echo 'A fresh-package transition needs the removed fcm.2 release and can no longer be verified.' >&2
+            exit 1
+          fi
+          gh release download "$PREVIOUS_TAG" --repo "$GH_REPO" \
+            --pattern "$PREVIOUS_APK" --pattern SHA256SUMS \
             --dir "$RUNNER_TEMP/canonical-predecessor"
           (cd "$RUNNER_TEMP/canonical-predecessor" && sha256sum --check --strict SHA256SUMS)
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'build-tools;36.0.0'
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs \
-            "$RUNNER_TEMP/canonical-predecessor/eimir-android-0.2.0-fcm.2.apk" \
+            "$RUNNER_TEMP/canonical-predecessor/$PREVIOUS_APK" \
             > "$RUNNER_TEMP/canonical-predecessor/signer.txt"
           python3 - <<'PY'
           import os, re
@@ -1469,13 +1478,13 @@ jobs:
               r'^Signer #[0-9]+ certificate SHA-256 digest: ([0-9a-fA-F]{64})$',
               (root / 'signer.txt').read_text(), re.MULTILINE)
           if len(certificates) != 1:
-              raise SystemExit('The canonical FCM predecessor must have one verified signer')
+              raise SystemExit('The published predecessor must have one verified signer')
           actual = certificates[0].lower()
-          print('Verified published canonical FCM signer SHA-256: ' + actual)
+          print('Verified published predecessor signer SHA-256: ' + actual)
           compatible = actual == os.environ['CERTIFICATE']
-          print('Protected test signer matches existing canonical FCM installation: ' + str(compatible))
+          print('Protected test signer matches the published predecessor installation: ' + str(compatible))
           if int(os.environ['VERSION_CODE']) >= 39 and not compatible:
-              raise SystemExit('Canonical FCM signer differs; configure its existing signing identity before publication. Do not uninstall or clear app data.')
+              raise SystemExit('Published predecessor signer differs; configure its existing signing identity before publication. Do not uninstall or clear app data.')
           PY
       - name: Checkout the immutable planned APK source
         if: steps.plan.outputs.ready == 'true'

@@ -1,6 +1,6 @@
 # eimir. Motion Contract
 
-**Version:** 1.8 (2026-11-20)<br>
+**Version:** 1.9 (2026-11-21)<br>
 **Status:** Normative lower-level design-system contract under Product Reference v1 once merged. Library decision **approved by the Product Owner on 2026-11-19**: an in-house motion layer on WAAPI and CSS for all primitives, Gesture follow included; Motion is not adopted ([6.6](#66-product-owner-decisions)). Haptics are approved ([4.10](#410-haptics)).<br>
 **Scope:** Canonical Web/Mobile Web UI, including the Capacitor-delivered Android app<br>
 **Issue:** [#2067](https://github.com/baerenmarke90/eimir/issues/2067)<br>
@@ -191,6 +191,15 @@ Content arrives: a screen's opening stage, a module reveal, a staggered list, a 
 | Remount | final state in the same frame (M5) |
 | Off screen | `on first reach` for module reveals, otherwise final state (M12) |
 | Reduced motion | final state at once; `surface` may keep a backdrop opacity change of at most `--duration-transition` |
+
+**`stage` variant: data hold and late members (#2147).** An opening shows data that arrives from the network after its first paint (on Wir: the check-in, the place, the quote and the photos). These rules keep it on one clock:
+
+- The stage may wait for its members' data, invisibly, for at most `motion.stage.dataHold` (400 ms) after its root first paints visibly (`data-motion-stage="waiting"`). It then plays once with whatever is there. The hold is a wait for data, not motion, so it also applies with reduced motion: late data then never moves a layout that is already shown. A stage that cannot start (hidden, scrolled, `canStart` false) never waits.
+- The hold and the stage together fit `motion.stage.openingBudget` (2 500 ms) from the first paint until every member rests. A unit test checks the owner's beats against it, so a slower pace has to give the time back elsewhere.
+- A member that carries late data is marked `data-motion-join`. If it mounts before its slot, it plays on the slot. If it mounts after its slot began, it plays in the time that is left, at least `--duration-transition` and ending with the stage; with less time left it shows its final state. Other members that mount or remount mid-opening keep their point on the clock (M5).
+- Data that arrives after the stage ended is simply there: no enter animation, no fade over a placeholder (Enter `media` included).
+- A wider `scope` (Wir: the page content) shares the stage's clock and state (`data-motion-stage-scope`), so the content below the hero arrives in the same opening instead of in a second entrance beside it.
+- Nothing fades twice and nothing fades inside a member that is still fading: a container and its child are never both opacity members at the same time.
 
 **`media` variant (photo decode, skeleton to content).** The avatar blink came from this case, so these rules are binding:
 
@@ -716,6 +725,8 @@ The existing roles cover all durations and easings. Staggering had no token: `us
 | `motion.gesture.*` | `MOTION_CONSTANTS.gesture` | Gesture follow thresholds (4.6), listed below | see below |
 | `motion.spring.settle` | `MOTION_CONSTANTS.spring` | the sampled settle spring of #2071 | stiffness 380, damping 39, mass 1 |
 | `motion.attention.sameKindInterval` | `MOTION_CONSTANTS.attention` | the same kind of unprompted motion plays at most once per interval per screen (4.9) | 30 000 ms |
+| `motion.stage.dataHold` | `MOTION_CONSTANTS.stage.dataHoldMs` | the longest an opening stage waits, invisibly, for its members' data (4.1, #2147) | 400 ms |
+| `motion.stage.openingBudget` | `MOTION_CONSTANTS.stage.openingBudgetMs` | the data hold plus the stage, from the first paint until every member rests (4.1, #2147) | 2 500 ms |
 
 The `motion.gesture.*` values:
 
@@ -738,7 +749,8 @@ Some values never follow reduced motion, theme or token set:
 - the gesture thresholds;
 - the spring;
 - the attention interval;
-- the haptics spacing, which uses the unreduced `--duration-context`.
+- the haptics spacing, which uses the unreduced `--duration-context`;
+- the stage data hold and opening budget (#2147): a wait for data is not motion.
 
 `scripts/generate-motion-tokens.mjs` generates these into `web/src/motion/tokens.generated.ts`. The surface steps change them only through `design/tokens.json`.
 
@@ -753,7 +765,7 @@ Some values never follow reduced motion, theme or token set:
 | Play registry | `playRegistry.ts` | `claimPlay(identity, scope, owner, surface?)`, `hasPlayed`, `markPlayed`, `createSurfaceScope()` and `useSurfaceScope()`, `resetMotionSession()`. Scopes: `app-start`, `session`, `surface` |
 | Visibility controller | `visibility.ts` | `isVisibleNow(element)` and `observeVisibility(element, listener)`. Covers page visibility, the kept view and `IntersectionObserver`. The kept view is read from the `hidden` attribute on the `[data-primary-tab]` panel of `PrimaryTabPanels`, observed without changing the panel component |
 | Runner | `run.ts` | `run(element, keyframes, { duration, easing, delay, iterations, channel, interrupt, fill, willChange })`: the layer's one entry to `Element.animate()`. It keeps one animation per element and channel (M11), sets `will-change` only while the animation runs, and returns `null` for a zero duration. Also `interruptChannel` and `runningOn` |
-| Stage | `stage.ts`, `motion.css` | `useStage(identity, { duration, canStart, animationPrefix })` returns the stage root's ref. It sets `data-motion-stage="playing"` while the opening runs (once per app start), pins the `eimir-motion-stage-*` CSS animations of late or remounted members to the shared clock, and removes the attribute on the opening's own deadline or when its kept view is hidden. `stageFinished(identity)` resolves when the opening ended or was skipped; ambient motion and a Moment wait for it (M15). A stage that contains another stage uses its own `animationPrefix`: the root-tab entrance (`useRootTabIntro` in `client/rootTabIntro.ts`, keyframes `eimir-motion-root-rise`, once per tab and app start) wraps the Wir opening and never re-pins its members |
+| Stage | `stage.ts`, `motion.css` | `useStage(identity, { duration, canStart, animationPrefix, hold, scope })` returns the stage root's ref. With `hold` it first waits, `data-motion-stage="waiting"`, while `useStageHold(identity, pending)` calls report pending data, for at most `hold` ms (#2147). It sets `data-motion-stage="playing"` while the opening runs (once per app start), mirrors the state on its `scope` in `data-motion-stage-scope`, pins the `eimir-motion-stage-*` CSS animations of late or remounted members to the shared clock (a `MutationObserver` places members that mount without a render of the stage), lets `data-motion-join` members play in the time that is left or rest, and removes the attributes on the opening's own deadline or when its kept view is hidden. `stagePhase`, `useStagePhase`, `subscribeStage`, `stageStartTime` and `stageDuration` report the opening (`idle`, `waiting`, `playing`, `ended`); `StageContext` lets a shared component (a portrait) hold the opening of the stage it is in. `stageFinished(identity)` resolves when the opening ended or was skipped; ambient motion and a Moment wait for it (M15). A stage that contains another stage uses its own `animationPrefix`: the root-tab entrance (`useRootTabIntro` in `client/rootTabIntro.ts`, keyframes `eimir-motion-root-rise`, once per tab and app start) wraps the Wir opening and never re-pins its members |
 | Enter | `enter.ts`, `motion.css` | `useEnter(identity, { variant, scope, surface, firstReach, choreography, offset, index, step, budget })` returns `{ ref, props, state }`. `props` applies `data-motion-enter` until the entrance ends on its own `animationend` or `animationcancel`, or at its token deadline (M2, M4). Variants: `fade`, `rise`, `surface`, `stage`, `stagger`, `draw`, `media`. Also `staggerDelay(index, step)` |
 | Media reveal | `mediaReveal.ts` | `useMediaReveal(url)` returns `{ shown, fade, ref }`. Also `revealMedia(image, url)`, `isMediaShown(url)`, `mediaRevealMode(url, decodeMs)` |
 | Replace / Exit | `presence.ts`, `departing.ts`, `replace.ts` | `usePresentationPresence` and `useOverlayPresence` (moved from `components/useOverlayPresence.ts`), `useDepartingItems` (moved from `components/useDepartingItems.ts`), `crossfade(element, { from })`, `navigate(element, 'forward' \| 'back' \| 'next' \| 'previous' \| 'in-place', { offset: 'transform' \| 'inset' })`, `navigateTravel`, `valueChange`, `disclose`, `captureLayout(container, key?)` with `reorder(container, before, { key, skip })` (FLIP), `ScrollState` (hysteresis; `update` and `reset`) |
@@ -1139,6 +1151,7 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 1.9 | 2026-11-21 | Wir opening on one clock (#2147):<br>• Enter `stage` gains the data hold, the opening budget, late `data-motion-join` members and a wider `scope` (4.1, 5.4);<br>• the tokens `motion.stage.dataHold` and `motion.stage.openingBudget` (5.3);<br>• on Wir the check-in, the place, the quote, the photos and the modules in view are members of the one opening; the root-tab entrance no longer runs beside it; data after the opening is simply there;<br>• the partner's check-in arrival (Flight) waits until the opening ended (M15). |
 | 1.8 | 2026-11-20 | Guard closed (#2080):<br>• the ratchet allowlist removed; the guard rejects ad-hoc motion everywhere outside the layer (M14, 5.4);<br>• new guard rules for layout transitions, pointer tracking and animation-library dependencies, with the reviewed registrations `REGISTERED_LOOPS`, `REGISTERED_LAYOUT_TRANSITIONS` and `REGISTERED_POINTER_TRACKING` (5.4);<br>• the Planen search row `disclose` check (4.2) and the lifeline preview card swipe recorded as a gesture owner not yet on the building block (4.6);<br>• the segmented mark, the Herzversteck meter and the vault navigation on compositor or Feedback properties (8);<br>• the thin-stroke rule kept as a review rule (5.4, 9);<br>• the final inventory (7.6) and step 9 done (8). |
 | 1.7 | 2026-11-20 | Playback and Scenes (#2079):<br>• the Playback and Scenes domains as built (4.8): story playback and the recap film on the one reduced-motion source, the scene controller `useScene` with `data-motion-scene`, `useAmbientRest` in the layer, and the domain catalogues (5.4);<br>• the registered Scenes loops in the guard instead of the ratchet;<br>• the media skeleton on the Loading sweep and the gallery placeholder on the Loading pulse (5.4);<br>• the recap lead `disclose` check (4.2) and the first-content glow exception (4.3);<br>• the allowlist empty after step 8 (5.4, 8). |
 | 1.6 | 2026-11-20 | Map (#2078):<br>• the Map domain as built (4.8): camera and zoom-button durations through the token adapter, reduced motion from the one source, no pan inertia with reduced motion, zoom buttons with `--duration-transition`, "show us" as the one running camera transition, and the locale change keeping the viewer's camera;<br>• the connection pauses and resumes on the visibility controller instead of restarting;<br>• the Map domain catalogue `map.css` (5.4);<br>• the allowlist after step 7 (5.4, 8). |

@@ -1331,6 +1331,14 @@
         "web/src/components/DevicePushOnboarding.tsx"
       ]
     },
+    "wir-opening-timeline.spec.ts": {
+      "roots": [
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/PrimaryTabPanels.tsx",
+        "web/src/components/PartnerLocationSync.tsx"
+      ]
+    },
     "partner-distance-wir.spec.ts": {
       "roots": [
         "web/src/components/PartnerDistanceLine.tsx",

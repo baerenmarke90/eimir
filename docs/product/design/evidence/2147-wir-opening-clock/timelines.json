@@ -1,0 +1,997 @@
+{
+ "unit": "ms after the first Wir paint (first frame with .wir-stage); Chromium, 390 px, mocked API",
+ "before": {
+  "0ms": {
+   "lastEnd": 3357,
+   "table": [
+    {
+     "target": "span.sr-only",
+     "name": "eimir-motion-root-rise",
+     "end": 150
+    },
+    {
+     "target": "span.wir-checkin-badge-content",
+     "name": "eimir-motion-enter-rise",
+     "end": 163
+    },
+    {
+     "target": "span.wir-checkin-badge-content",
+     "name": "eimir-motion-enter-rise",
+     "end": 163
+    },
+    {
+     "target": "img.partner-avatar-img.is-loaded",
+     "name": "transition:opacity",
+     "end": 180
+    },
+    {
+     "target": "section.daily-quote-card",
+     "name": "eimir-motion-root-rise",
+     "end": 210
+    },
+    {
+     "target": "section.today-section.today-section-upcoming",
+     "name": "eimir-motion-root-rise",
+     "end": 270
+    },
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-secondary",
+     "name": "",
+     "end": 543
+    },
+    {
+     "target": "section.daily-quote-card",
+     "name": "eimir-motion-enter-shift",
+     "end": 647
+    },
+    {
+     "target": "span.wir-bridge-arm",
+     "name": "eimir-motion-stage-reach",
+     "end": 718
+    },
+    {
+     "target": "span.wir-bridge-arm.wir-bridge-arm-partner",
+     "name": "eimir-motion-stage-reach",
+     "end": 718
+    },
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-primary",
+     "name": "eimir-motion-stage-settle",
+     "end": 806
+    },
+    {
+     "target": "div.wir-checkin-flight-ring.is-halo",
+     "name": "",
+     "end": 883
+    },
+    {
+     "target": "blockquote.daily-quote-block",
+     "name": "eimir-motion-enter-fade",
+     "end": 900
+    },
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-secondary",
+     "name": "eimir-motion-stage-settle",
+     "end": 982
+    },
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-primary::before",
+     "name": "eimir-motion-stage-fade",
+     "end": 1070
+    },
+    {
+     "target": "div.wir-checkin-flight-ghost.is-arrival.is-vibe",
+     "name": "",
+     "end": 1103
+    },
+    {
+     "target": "div.wir-checkin-flight-ghost.is-arrival.is-energy",
+     "name": "",
+     "end": 1163
+    },
+    {
+     "target": "path.wir-bridge-heart-own",
+     "name": "eimir-motion-stage-trace",
+     "end": 1202
+    },
+    {
+     "target": "path.wir-bridge-heart-partner",
+     "name": "eimir-motion-stage-trace",
+     "end": 1202
+    },
+    {
+     "target": "span.wir-stage-name",
+     "name": "eimir-motion-stage-rise",
+     "end": 1246
+    },
+    {
+     "target": "span.wir-checkin-badge.wir-checkin-badge-own",
+     "name": "eimir-motion-stage-rise",
+     "end": 1246
+    },
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-secondary::before",
+     "name": "eimir-motion-stage-fade",
+     "end": 1246
+    },
+    {
+     "target": "span.wir-stage-name",
+     "name": "eimir-motion-stage-rise",
+     "end": 1246
+    },
+    {
+     "target": "span.wir-checkin-badge.wir-checkin-badge-partner",
+     "name": "eimir-motion-stage-rise",
+     "end": 1246
+    },
+    {
+     "target": "span.wir-checkin-slot",
+     "name": "eimir-motion-feedback-land",
+     "end": 1413
+    },
+    {
+     "target": "span.wir-checkin-slot",
+     "name": "eimir-motion-feedback-land",
+     "end": 1480
+    },
+    {
+     "target": "span.wir-checkin-badge.wir-checkin-badge-partner",
+     "name": "",
+     "end": 1677
+    },
+    {
+     "target": "strong.wir-bridge-lead",
+     "name": "eimir-motion-stage-rise",
+     "end": 1686
+    },
+    {
+     "target": "span.wir-bridge-rest",
+     "name": "eimir-motion-stage-rise",
+     "end": 1686
+    },
+    {
+     "target": "span.wir-stage-amp",
+     "name": "eimir-motion-stage-rise",
+     "end": 1686
+    },
+    {
+     "target": "span.wir-stage-distance",
+     "name": "eimir-motion-stage-fade",
+     "end": 1686
+    },
+    {
+     "target": "div.today-section-header",
+     "name": "eimir-motion-enter-fade",
+     "end": 2403
+    },
+    {
+     "target": "a.today-agenda-row.today-agenda-row-link",
+     "name": "eimir-motion-enter-fade",
+     "end": 2643
+    },
+    {
+     "target": "svg.inline-icon.partner-distance-glyph.is-pin",
+     "name": "eimir-motion-stage-land",
+     "end": 2677
+    },
+    {
+     "target": "div.today-section-body",
+     "name": "eimir-motion-enter-rise",
+     "end": 2803
+    },
+    {
+     "target": "span.wir-hero-distance-value",
+     "name": "eimir-motion-stage-fade",
+     "end": 3161
+    },
+    {
+     "target": "svg.inline-icon.partner-distance-glyph.is-pin",
+     "name": "eimir-motion-stage-wiggle",
+     "end": 3357
+    }
+   ]
+  },
+  "1000ms": {
+   "lastEnd": 4274,
+   "table": [
+    {
+     "target": "section.daily-quote-card",
+     "name": "eimir-motion-root-rise",
+     "end": 333
+    },
+    {
+     "target": "span.sr-only",
+     "name": "eimir-motion-root-rise",
+     "end": 333
+    },
+    {
+     "target": "section.today-section.today-section-upcoming",
+     "name": "eimir-motion-root-rise",
+     "end": 393
+    },
+    {
+     "target": "section.daily-quote-card",
+     "name": "eimir-motion-enter-shift",
+     "end": 697
+    },
+    {
+     "target": "span.wir-bridge-arm",
+     "name": "eimir-motion-stage-reach",
+     "end": 901
+    },
+    {
+     "target": "span.wir-bridge-arm.wir-bridge-arm-partner",
+     "name": "eimir-motion-stage-reach",
+     "end": 901
+    },
+    {
+     "target": "span.wir-bridge-arm",
+     "name": "eimir-motion-stage-reach",
+     "end": 901
+    },
+    {
+     "target": "span.wir-bridge-arm.wir-bridge-arm-partner",
+     "name": "eimir-motion-stage-reach",
+     "end": 901
+    },
+    {
+     "target": "span.partner-avatar-slot.partner-avatar-slot-primary",
+     "name": "eimir-motion-stage-settle",
+     "end": 989
+    },
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-primary",
+     "name": "eimir-motion-stage-settle",
+     "end": 989
+    },
+    {
+     "target": "span.partner-avatar-slot.partner-avatar-slot-secondary",
+     "name": "eimir-motion-stage-settle",
+     "end": 1165
+    },
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-secondary",
+     "name": "eimir-motion-stage-settle",
+     "end": 1165
+    },
+    {
+     "target": "span.partner-avatar-slot.partner-avatar-slot-primary::before",
+     "name": "eimir-motion-stage-fade",
+     "end": 1253
+    },
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-primary::before",
+     "name": "eimir-motion-stage-fade",
+     "end": 1253
+    },
+    {
+     "target": "path.wir-bridge-heart-own",
+     "name": "eimir-motion-stage-trace",
+     "end": 1385
+    },
+    {
+     "target": "path.wir-bridge-heart-partner",
+     "name": "eimir-motion-stage-trace",
+     "end": 1385
+    },
+    {
+     "target": "path.wir-bridge-heart-own",
+     "name": "eimir-motion-stage-trace",
+     "end": 1385
+    },
+    {
+     "target": "path.wir-bridge-heart-partner",
+     "name": "eimir-motion-stage-trace",
+     "end": 1385
+    },
+    {
+     "target": "span.wir-checkin-badge-content",
+     "name": "eimir-motion-enter-rise",
+     "end": 1413
+    },
+    {
+     "target": "span.wir-checkin-badge-content",
+     "name": "eimir-motion-enter-rise",
+     "end": 1413
+    },
+    {
+     "target": "span.wir-stage-name",
+     "name": "eimir-motion-stage-rise",
+     "end": 1429
+    },
+    {
+     "target": "span.partner-avatar-slot.partner-avatar-slot-secondary::before",
+     "name": "eimir-motion-stage-fade",
+     "end": 1429
+    },
+    {
+     "target": "span.wir-stage-name",
+     "name": "eimir-motion-stage-rise",
+     "end": 1429
+    },
+    {
+     "target": "span.wir-stage-name",
+     "name": "eimir-motion-stage-rise",
+     "end": 1429
+    },
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-secondary::before",
+     "name": "eimir-motion-stage-fade",
+     "end": 1429
+    },
+    {
+     "target": "span.wir-stage-name",
+     "name": "eimir-motion-stage-rise",
+     "end": 1429
+    },
+    {
+     "target": "span.wir-checkin-badge.wir-checkin-badge-own",
+     "name": "eimir-motion-stage-rise",
+     "end": 1429
+    },
+    {
+     "target": "span.wir-checkin-badge.wir-checkin-badge-partner",
+     "name": "eimir-motion-stage-rise",
+     "end": 1429
+    },
+    {
+     "target": "img.partner-avatar-img.is-loaded",
+     "name": "transition:opacity",
+     "end": 1463
+    },
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-secondary",
+     "name": "",
+     "end": 1793
+    },
+    {
+     "target": "strong.wir-bridge-lead",
+     "name": "eimir-motion-stage-rise",
+     "end": 1869
+    },
+    {
+     "target": "span.wir-bridge-rest",
+     "name": "eimir-motion-stage-rise",
+     "end": 1869
+    },
+    {
+     "target": "span.wir-stage-amp",
+     "name": "eimir-motion-stage-rise",
+     "end": 1869
+    },
+    {
+     "target": "span.wir-stage-distance",
+     "name": "eimir-motion-stage-fade",
+     "end": 1869
+    },
+    {
+     "target": "strong.wir-bridge-lead",
+     "name": "eimir-motion-stage-rise",
+     "end": 1869
+    },
+    {
+     "target": "span.wir-bridge-rest",
+     "name": "eimir-motion-stage-rise",
+     "end": 1869
+    },
+    {
+     "target": "span.wir-stage-amp",
+     "name": "eimir-motion-stage-rise",
+     "end": 1869
+    },
+    {
+     "target": "span.wir-stage-distance",
+     "name": "eimir-motion-stage-fade",
+     "end": 1869
+    },
+    {
+     "target": "blockquote.daily-quote-block",
+     "name": "eimir-motion-enter-fade",
+     "end": 2000
+    },
+    {
+     "target": "div.wir-checkin-flight-ring.is-halo",
+     "name": "",
+     "end": 2133
+    },
+    {
+     "target": "div.wir-checkin-flight-ghost.is-arrival.is-vibe",
+     "name": "",
+     "end": 2353
+    },
+    {
+     "target": "div.wir-checkin-flight-ghost.is-arrival.is-energy",
+     "name": "",
+     "end": 2413
+    },
+    {
+     "target": "span.wir-checkin-slot",
+     "name": "eimir-motion-feedback-land",
+     "end": 2663
+    },
+    {
+     "target": "span.wir-checkin-slot",
+     "name": "eimir-motion-feedback-land",
+     "end": 2713
+    },
+    {
+     "target": "span.wir-checkin-badge.wir-checkin-badge-partner",
+     "name": "",
+     "end": 2943
+    },
+    {
+     "target": "div.today-section-header",
+     "name": "eimir-motion-enter-fade",
+     "end": 3370
+    },
+    {
+     "target": "svg.inline-icon.partner-distance-glyph.is-pin",
+     "name": "eimir-motion-stage-land",
+     "end": 3594
+    },
+    {
+     "target": "a.today-agenda-row.today-agenda-row-link",
+     "name": "eimir-motion-enter-fade",
+     "end": 3610
+    },
+    {
+     "target": "div.today-section-body",
+     "name": "eimir-motion-enter-rise",
+     "end": 3770
+    },
+    {
+     "target": "span.wir-hero-distance-value",
+     "name": "eimir-motion-stage-fade",
+     "end": 4078
+    },
+    {
+     "target": "svg.inline-icon.partner-distance-glyph.is-pin",
+     "name": "eimir-motion-stage-wiggle",
+     "end": 4274
+    }
+   ]
+  },
+  "3000ms": {
+   "lastEnd": 5047,
+   "table": [
+    {
+     "target": "section.daily-quote-card",
+     "name": "eimir-motion-root-rise",
+     "end": 350
+    },
+    {
+     "target": "span.sr-only",
+     "name": "eimir-motion-root-rise",
+     "end": 350
+    },
+    {
+     "target": "section.today-section.today-section-upcoming",
+     "name": "eimir-motion-root-rise",
+     "end": 410
+    },
+    {
+     "target": "section.daily-quote-card",
+     "name": "eimir-motion-enter-shift",
+     "end": 713
+    },
+    {
+     "target": "span.wir-bridge-arm",
+     "name": "eimir-motion-stage-reach",
+     "end": 918
+    },
+    {
+     "target": "span.wir-bridge-arm.wir-bridge-arm-partner",
+     "name": "eimir-motion-stage-reach",
+     "end": 918
+    },
+    {
+     "target": "span.wir-bridge-arm",
+     "name": "eimir-motion-stage-reach",
+     "end": 918
+    },
+    {
+     "target": "span.wir-bridge-arm.wir-bridge-arm-partner",
+     "name": "eimir-motion-stage-reach",
+     "end": 918
+    },
+    {
+     "target": "span.partner-avatar-slot.partner-avatar-slot-primary",
+     "name": "eimir-motion-stage-settle",
+     "end": 1006
+    },
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-primary",
+     "name": "eimir-motion-stage-settle",
+     "end": 1006
+    },
+    {
+     "target": "span.partner-avatar-slot.partner-avatar-slot-secondary",
+     "name": "eimir-motion-stage-settle",
+     "end": 1182
+    },
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-secondary",
+     "name": "eimir-motion-stage-settle",
+     "end": 1182
+    },
+    {
+     "target": "span.partner-avatar-slot.partner-avatar-slot-primary::before",
+     "name": "eimir-motion-stage-fade",
+     "end": 1270
+    },
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-primary::before",
+     "name": "eimir-motion-stage-fade",
+     "end": 1270
+    },
+    {
+     "target": "path.wir-bridge-heart-own",
+     "name": "eimir-motion-stage-trace",
+     "end": 1402
+    },
+    {
+     "target": "path.wir-bridge-heart-partner",
+     "name": "eimir-motion-stage-trace",
+     "end": 1402
+    },
+    {
+     "target": "path.wir-bridge-heart-own",
+     "name": "eimir-motion-stage-trace",
+     "end": 1402
+    },
+    {
+     "target": "path.wir-bridge-heart-partner",
+     "name": "eimir-motion-stage-trace",
+     "end": 1402
+    },
+    {
+     "target": "span.wir-stage-name",
+     "name": "eimir-motion-stage-rise",
+     "end": 1446
+    },
+    {
+     "target": "span.partner-avatar-slot.partner-avatar-slot-secondary::before",
+     "name": "eimir-motion-stage-fade",
+     "end": 1446
+    },
+    {
+     "target": "span.wir-stage-name",
+     "name": "eimir-motion-stage-rise",
+     "end": 1446
+    },
+    {
+     "target": "span.wir-stage-name",
+     "name": "eimir-motion-stage-rise",
+     "end": 1446
+    },
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-secondary::before",
+     "name": "eimir-motion-stage-fade",
+     "end": 1446
+    },
+    {
+     "target": "span.wir-stage-name",
+     "name": "eimir-motion-stage-rise",
+     "end": 1446
+    },
+    {
+     "target": "strong.wir-bridge-lead",
+     "name": "eimir-motion-stage-rise",
+     "end": 1886
+    },
+    {
+     "target": "span.wir-bridge-rest",
+     "name": "eimir-motion-stage-rise",
+     "end": 1886
+    },
+    {
+     "target": "span.wir-stage-amp",
+     "name": "eimir-motion-stage-rise",
+     "end": 1886
+    },
+    {
+     "target": "span.wir-stage-distance",
+     "name": "eimir-motion-stage-fade",
+     "end": 1886
+    },
+    {
+     "target": "strong.wir-bridge-lead",
+     "name": "eimir-motion-stage-rise",
+     "end": 1886
+    },
+    {
+     "target": "span.wir-bridge-rest",
+     "name": "eimir-motion-stage-rise",
+     "end": 1886
+    },
+    {
+     "target": "span.wir-stage-amp",
+     "name": "eimir-motion-stage-rise",
+     "end": 1886
+    },
+    {
+     "target": "span.wir-stage-distance",
+     "name": "eimir-motion-stage-fade",
+     "end": 1886
+    },
+    {
+     "target": "span.wir-checkin-badge-content",
+     "name": "eimir-motion-enter-rise",
+     "end": 3363
+    },
+    {
+     "target": "span.wir-checkin-badge-content",
+     "name": "eimir-motion-enter-rise",
+     "end": 3363
+    },
+    {
+     "target": "img.partner-avatar-img.is-loaded",
+     "name": "transition:opacity",
+     "end": 3397
+    },
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-secondary",
+     "name": "",
+     "end": 3743
+    },
+    {
+     "target": "blockquote.daily-quote-block",
+     "name": "eimir-motion-enter-fade",
+     "end": 4000
+    },
+    {
+     "target": "div.today-section-header",
+     "name": "eimir-motion-enter-fade",
+     "end": 4003
+    },
+    {
+     "target": "div.wir-checkin-flight-ring.is-halo",
+     "name": "",
+     "end": 4083
+    },
+    {
+     "target": "a.today-agenda-row.today-agenda-row-link",
+     "name": "eimir-motion-enter-fade",
+     "end": 4243
+    },
+    {
+     "target": "div.wir-checkin-flight-ghost.is-arrival.is-vibe",
+     "name": "",
+     "end": 4303
+    },
+    {
+     "target": "div.wir-checkin-flight-ghost.is-arrival.is-energy",
+     "name": "",
+     "end": 4363
+    },
+    {
+     "target": "div.today-section-body",
+     "name": "eimir-motion-enter-rise",
+     "end": 4403
+    },
+    {
+     "target": "span.wir-checkin-slot",
+     "name": "eimir-motion-feedback-land",
+     "end": 4596
+    },
+    {
+     "target": "span.wir-checkin-slot",
+     "name": "eimir-motion-feedback-land",
+     "end": 4646
+    },
+    {
+     "target": "span.wir-checkin-badge.wir-checkin-badge-partner",
+     "name": "",
+     "end": 4876
+    },
+    {
+     "target": "svg.inline-icon.partner-distance-glyph.is-pin",
+     "name": "eimir-motion-feedback-wiggle",
+     "end": 5047
+    }
+   ]
+  }
+ },
+ "after": {
+  "3000ms": {
+   "lastEnd": 2187,
+   "peakConcurrent": 7,
+   "table": [
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-primary",
+     "name": "eimir-motion-stage-fade",
+     "start": 383,
+     "end": 1087
+    },
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-secondary",
+     "name": "eimir-motion-stage-fade",
+     "start": 515,
+     "end": 1219
+    },
+    {
+     "target": "span.wir-bridge-arm",
+     "name": "eimir-motion-stage-reach",
+     "start": 691,
+     "end": 1131
+    },
+    {
+     "target": "span.wir-bridge-arm.wir-bridge-arm-partner",
+     "name": "eimir-motion-stage-reach",
+     "start": 691,
+     "end": 1131
+    },
+    {
+     "target": "path.wir-bridge-heart-own",
+     "name": "eimir-motion-stage-trace",
+     "start": 911,
+     "end": 1395
+    },
+    {
+     "target": "path.wir-bridge-heart-partner",
+     "name": "eimir-motion-stage-trace",
+     "start": 911,
+     "end": 1395
+    },
+    {
+     "target": "strong.wir-bridge-lead",
+     "name": "eimir-motion-stage-rise",
+     "start": 1175,
+     "end": 1747
+    },
+    {
+     "target": "span.wir-bridge-rest",
+     "name": "eimir-motion-stage-rise",
+     "start": 1175,
+     "end": 1747
+    },
+    {
+     "target": "span.wir-stage-amp",
+     "name": "eimir-motion-stage-rise",
+     "start": 1175,
+     "end": 1747
+    },
+    {
+     "target": "section.daily-quote-card",
+     "name": "eimir-motion-stage-rise",
+     "start": 1351,
+     "end": 1923
+    },
+    {
+     "target": "div.today-section-header",
+     "name": "eimir-motion-enter-fade",
+     "start": 1483,
+     "end": 2011
+    },
+    {
+     "target": "a.today-agenda-row.today-agenda-row-link",
+     "name": "eimir-motion-enter-fade",
+     "start": 1571,
+     "end": 2011
+    },
+    {
+     "target": "div.today-section-body",
+     "name": "eimir-motion-enter-shift",
+     "start": 1571,
+     "end": 2187
+    }
+   ]
+  },
+  "0ms": {
+   "lastEnd": 2577,
+   "peakConcurrent": 10,
+   "table": [
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-primary",
+     "name": "eimir-motion-stage-fade",
+     "start": 533,
+     "end": 1237
+    },
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-secondary",
+     "name": "eimir-motion-stage-fade",
+     "start": 665,
+     "end": 1369
+    },
+    {
+     "target": "span.wir-bridge-arm",
+     "name": "eimir-motion-stage-reach",
+     "start": 841,
+     "end": 1281
+    },
+    {
+     "target": "span.wir-bridge-arm.wir-bridge-arm-partner",
+     "name": "eimir-motion-stage-reach",
+     "start": 841,
+     "end": 1281
+    },
+    {
+     "target": "path.wir-bridge-heart-own",
+     "name": "eimir-motion-stage-trace",
+     "start": 1061,
+     "end": 1545
+    },
+    {
+     "target": "path.wir-bridge-heart-partner",
+     "name": "eimir-motion-stage-trace",
+     "start": 1061,
+     "end": 1545
+    },
+    {
+     "target": "strong.wir-bridge-lead",
+     "name": "eimir-motion-stage-rise",
+     "start": 1325,
+     "end": 1897
+    },
+    {
+     "target": "span.wir-bridge-rest",
+     "name": "eimir-motion-stage-rise",
+     "start": 1325,
+     "end": 1897
+    },
+    {
+     "target": "p.wir-hero-distance.is-fresh",
+     "name": "eimir-motion-stage-rise",
+     "start": 1325,
+     "end": 1897
+    },
+    {
+     "target": "span.wir-checkin-badge.wir-checkin-badge-own",
+     "name": "eimir-motion-stage-rise",
+     "start": 1369,
+     "end": 1897
+    },
+    {
+     "target": "span.wir-checkin-badge.wir-checkin-badge-partner",
+     "name": "eimir-motion-stage-rise",
+     "start": 1369,
+     "end": 1897
+    },
+    {
+     "target": "section.daily-quote-card",
+     "name": "eimir-motion-stage-rise",
+     "start": 1501,
+     "end": 2073
+    },
+    {
+     "target": "div.today-section-header",
+     "name": "eimir-motion-enter-fade",
+     "start": 1666,
+     "end": 2194
+    },
+    {
+     "target": "svg.inline-icon.partner-distance-glyph.is-pin",
+     "name": "eimir-motion-stage-wiggle",
+     "start": 1677,
+     "end": 2577
+    },
+    {
+     "target": "a.today-agenda-row.today-agenda-row-link",
+     "name": "eimir-motion-enter-fade",
+     "start": 1754,
+     "end": 2194
+    },
+    {
+     "target": "div.today-section-body",
+     "name": "eimir-motion-enter-shift",
+     "start": 1754,
+     "end": 2370
+    }
+   ]
+  },
+  "1000ms": {
+   "lastEnd": 2427,
+   "peakConcurrent": 11,
+   "table": [
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-primary",
+     "name": "eimir-motion-stage-fade",
+     "start": 383,
+     "end": 1087
+    },
+    {
+     "target": "button.partner-avatar-slot.partner-avatar-slot-secondary",
+     "name": "eimir-motion-stage-fade",
+     "start": 515,
+     "end": 1219
+    },
+    {
+     "target": "span.wir-bridge-arm",
+     "name": "eimir-motion-stage-reach",
+     "start": 691,
+     "end": 1131
+    },
+    {
+     "target": "span.wir-bridge-arm.wir-bridge-arm-partner",
+     "name": "eimir-motion-stage-reach",
+     "start": 691,
+     "end": 1131
+    },
+    {
+     "target": "path.wir-bridge-heart-own",
+     "name": "eimir-motion-stage-trace",
+     "start": 911,
+     "end": 1395
+    },
+    {
+     "target": "path.wir-bridge-heart-partner",
+     "name": "eimir-motion-stage-trace",
+     "start": 911,
+     "end": 1395
+    },
+    {
+     "target": "strong.wir-bridge-lead",
+     "name": "eimir-motion-stage-rise",
+     "start": 1175,
+     "end": 1747
+    },
+    {
+     "target": "span.wir-bridge-rest",
+     "name": "eimir-motion-stage-rise",
+     "start": 1175,
+     "end": 1747
+    },
+    {
+     "target": "span.wir-stage-amp",
+     "name": "eimir-motion-stage-rise",
+     "start": 1175,
+     "end": 1747
+    },
+    {
+     "target": "span.wir-checkin-badge.wir-checkin-badge-own",
+     "name": "eimir-motion-stage-rise",
+     "start": 1283,
+     "end": 1811
+    },
+    {
+     "target": "span.wir-checkin-badge.wir-checkin-badge-partner",
+     "name": "eimir-motion-stage-rise",
+     "start": 1283,
+     "end": 1811
+    },
+    {
+     "target": "img.partner-avatar-img.is-loaded",
+     "name": "transition:opacity",
+     "start": 1333,
+     "end": 1513
+    },
+    {
+     "target": "section.daily-quote-card",
+     "name": "eimir-motion-stage-rise",
+     "start": 1351,
+     "end": 1923
+    },
+    {
+     "target": "p.wir-hero-distance.is-fresh",
+     "name": "eimir-motion-stage-rise",
+     "start": 1400,
+     "end": 1972
+    },
+    {
+     "target": "div.today-section-header",
+     "name": "eimir-motion-enter-fade",
+     "start": 1483,
+     "end": 2011
+    },
+    {
+     "target": "svg.inline-icon.partner-distance-glyph.is-pin",
+     "name": "eimir-motion-stage-wiggle",
+     "start": 1527,
+     "end": 2427
+    },
+    {
+     "target": "a.today-agenda-row.today-agenda-row-link",
+     "name": "eimir-motion-enter-fade",
+     "start": 1571,
+     "end": 2011
+    },
+    {
+     "target": "div.today-section-body",
+     "name": "eimir-motion-enter-shift",
+     "start": 1571,
+     "end": 2187
+    }
+   ]
+  }
+ }
+}

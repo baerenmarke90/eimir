@@ -310,6 +310,11 @@ def apply_core_cleanup(session: Session, account_id: UUID) -> AccountDeletion | 
         )
     )
     _delete_account_rows(session, PushEndpoint, account_id, PushEndpoint.account_id)
+    # Hints to recover skipped videos from a Transfer Bundle (#2141) hold no
+    # shared history; the deleted Account's videos are no longer offered.
+    from eimir.transfer.models import TransferSkippedVideo
+
+    _delete_account_rows(session, TransferSkippedVideo, account_id, TransferSkippedVideo.owner_id)
 
     # The active partner-facing profile is not retained as historical Account
     # identity. SELF_PROFILE preferences cascade with it; owner-only partner

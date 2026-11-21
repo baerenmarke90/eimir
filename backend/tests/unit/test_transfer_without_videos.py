@@ -61,20 +61,32 @@ def test_a_gallery_keeps_its_order_and_loses_cover_and_reactions_on_a_video() ->
     assert payload["selected_cover_attachment_id"] == str(video)
 
 
-def test_a_heart_moment_whose_primary_media_is_a_video_moves_its_gallery_up() -> None:
-    moment, video, photo = uuid4(), uuid4(), uuid4()
+def test_a_heart_moment_whose_primary_media_is_a_video_promotes_its_first_photo() -> None:
+    # The primary item owns position 0; gallery rows start at 1 (database rule).
+    moment, video, first, second = uuid4(), uuid4(), uuid4(), uuid4()
     tables = {
         "heart_moments": [{"id": str(moment), "attachmentId": str(video), "payload": {}}],
         "heart_moment_attachments": [
-            {"heartMomentId": str(moment), "attachmentId": str(photo), "position": 1}
+            {"heartMomentId": str(moment), "attachmentId": str(first), "position": 1},
+            {"heartMomentId": str(moment), "attachmentId": str(second), "position": 2},
         ],
     }
-    result = without_videos(_graph(tables, [_media(video, "VIDEO"), _media(photo, "IMAGE")]))
+    media = [_media(video, "VIDEO"), _media(first, "IMAGE"), _media(second, "IMAGE")]
+    result = without_videos(_graph(tables, media))
 
-    assert result.tables["heart_moments"][0]["attachmentId"] is None
+    assert result.tables["heart_moments"][0]["attachmentId"] == str(first)
     assert [
         (row["attachmentId"], row["position"]) for row in result.tables["heart_moment_attachments"]
-    ] == [(str(photo), 0)]
+    ] == [(str(second), 1)]
+
+
+def test_a_heart_moment_with_only_a_video_keeps_no_media() -> None:
+    moment, video = uuid4(), uuid4()
+    tables = {"heart_moments": [{"id": str(moment), "attachmentId": str(video), "payload": {}}]}
+    result = without_videos(_graph(tables, [_media(video, "VIDEO")]))
+
+    assert result.tables["heart_moments"][0]["attachmentId"] is None
+    assert result.media == []
 
 
 def test_a_memory_with_only_a_video_keeps_its_content_without_media() -> None:

@@ -19,7 +19,8 @@
  */
 export const TransferImportApplyMode = {
     ALL: 'ALL',
-    WITHOUT_VIDEOS: 'WITHOUT_VIDEOS'
+    WITHOUT_VIDEOS: 'WITHOUT_VIDEOS',
+    VIDEOS_ONLY: 'VIDEOS_ONLY'
 } as const;
 export type TransferImportApplyMode = typeof TransferImportApplyMode[keyof typeof TransferImportApplyMode];
 

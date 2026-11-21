@@ -1577,6 +1577,8 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="TRANSFER_NOT_FOUND",
         placeholders=("importId",),
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/transfer/skipped-videos"),
+    Endpoint("DELETE", "/api/v1/spaces/{spaceId}/transfer/skipped-videos"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/attachment-upload-policy"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/attachments", body=ATTACHMENT),
     Endpoint(

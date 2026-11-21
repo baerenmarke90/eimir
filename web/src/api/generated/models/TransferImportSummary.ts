@@ -40,6 +40,18 @@ export interface TransferImportSummary {
      */
     recordCounts: { [key: string]: number; };
     /**
+     * Videos this Space skipped in an earlier import that this file holds again (same source and checksum). Apply with `mode: VIDEOS_ONLY` to add exactly these to their galleries.
+     * @type {number}
+     * @memberof TransferImportSummary
+     */
+    recoverableVideoCount: number;
+    /**
+     * Videos added back by an import applied with `VIDEOS_ONLY`.
+     * @type {number}
+     * @memberof TransferImportSummary
+     */
+    recoveredVideoCount: number;
+    /**
      * 
      * @type {TransferScope}
      * @memberof TransferImportSummary
@@ -57,6 +69,12 @@ export interface TransferImportSummary {
      * @memberof TransferImportSummary
      */
     sourceMemberCount: number;
+    /**
+     * Remembered videos `VIDEOS_ONLY` could not add because the gallery is full.
+     * @type {number}
+     * @memberof TransferImportSummary
+     */
+    unrecoveredVideoCount: number;
     /**
      * Total declared size of those videos.
      * @type {number}
@@ -85,9 +103,12 @@ export interface TransferImportSummary {
 export function instanceOfTransferImportSummary(value: object): value is TransferImportSummary {
     if (!('mediaCount' in value) || value['mediaCount'] === undefined) return false;
     if (!('recordCounts' in value) || value['recordCounts'] === undefined) return false;
+    if (!('recoverableVideoCount' in value) || value['recoverableVideoCount'] === undefined) return false;
+    if (!('recoveredVideoCount' in value) || value['recoveredVideoCount'] === undefined) return false;
     if (!('scope' in value) || value['scope'] === undefined) return false;
     if (!('skippedVideoCount' in value) || value['skippedVideoCount'] === undefined) return false;
     if (!('sourceMemberCount' in value) || value['sourceMemberCount'] === undefined) return false;
+    if (!('unrecoveredVideoCount' in value) || value['unrecoveredVideoCount'] === undefined) return false;
     if (!('videoBytes' in value) || value['videoBytes'] === undefined) return false;
     if (!('videoCount' in value) || value['videoCount'] === undefined) return false;
     if (!('videosNeedPro' in value) || value['videosNeedPro'] === undefined) return false;
@@ -106,9 +127,12 @@ export function TransferImportSummaryFromJSONTyped(json: any, ignoreDiscriminato
         
         'mediaCount': json['mediaCount'],
         'recordCounts': json['recordCounts'],
+        'recoverableVideoCount': json['recoverableVideoCount'],
+        'recoveredVideoCount': json['recoveredVideoCount'],
         'scope': TransferScopeFromJSON(json['scope']),
         'skippedVideoCount': json['skippedVideoCount'],
         'sourceMemberCount': json['sourceMemberCount'],
+        'unrecoveredVideoCount': json['unrecoveredVideoCount'],
         'videoBytes': json['videoBytes'],
         'videoCount': json['videoCount'],
         'videosNeedPro': json['videosNeedPro'],
@@ -128,9 +152,12 @@ export function TransferImportSummaryToJSONTyped(value?: TransferImportSummary |
         
         'mediaCount': value['mediaCount'],
         'recordCounts': value['recordCounts'],
+        'recoverableVideoCount': value['recoverableVideoCount'],
+        'recoveredVideoCount': value['recoveredVideoCount'],
         'scope': TransferScopeToJSON(value['scope']),
         'skippedVideoCount': value['skippedVideoCount'],
         'sourceMemberCount': value['sourceMemberCount'],
+        'unrecoveredVideoCount': value['unrecoveredVideoCount'],
         'videoBytes': value['videoBytes'],
         'videoCount': value['videoCount'],
         'videosNeedPro': value['videosNeedPro'],

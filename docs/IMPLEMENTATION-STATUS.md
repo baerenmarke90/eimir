@@ -257,7 +257,7 @@ No current open issue documents an actual G4-blocking Critical/High Security/Pri
 - [ ] **M7 — Relationship Depth:** post-launch expansion; not a G5 prerequisite
 - [ ] **M8 — Discover & Integrations:** post-launch expansion; not a G5 prerequisite
 - [ ] **M9 — Context & Presence:** post-launch expansion; not a G5 prerequisite
-- [ ] MX — real E2EE as a separately evaluated Security milestone
+- [ ] MX — real E2EE as a separately evaluated Security milestone (#1638; concept only, not implemented: `docs/mx/E2EE-CONCEPT.md`)
 
 ## Current launch-readiness status
 

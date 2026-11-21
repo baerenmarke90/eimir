@@ -194,7 +194,9 @@ place where a visibility rule can be forgotten.
 ## E2EE readiness
 
 The first release has **no** real end-to-end encryption. The architecture must
-be able to adopt it later without being rebuilt.
+be able to adopt it later without being rebuilt. The proposed MX design, which builds on
+the boundary below, is described in the [E2EE concept](mx/E2EE-CONCEPT.md); it is not
+implemented.
 
 Every sensitive domain object therefore separates two areas:
 

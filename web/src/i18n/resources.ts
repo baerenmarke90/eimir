@@ -61,6 +61,7 @@ import storyProducts from './locales/storyProducts';
 import motionSettings from './locales/motionSettings';
 import taskBoundary from './locales/taskBoundary';
 import taskSheets from './locales/taskSheets';
+import uploadFailure from './locales/uploadFailure';
 import video from './locales/video';
 import voiceNotes from './locales/voiceNotes';
 import webViewNotice from './locales/webViewNotice';
@@ -127,6 +128,7 @@ export const germanResources = {
   ...sharedNotes,
   spaceOffboarding,
   storageQuota,
+  uploadFailure,
   ...relationshipComponents,
   relationshipReflections,
   recaps,

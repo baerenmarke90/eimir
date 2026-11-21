@@ -52,6 +52,43 @@ export class ReferenceFlowError extends Error {
   }
 }
 
+/** Where the byte transfer stopped, without any request or file content. */
+export type UploadTransferDetail =
+  | 'http'
+  | 'network'
+  | 'timeout'
+  | 'stalled'
+  | 'client';
+
+/**
+ * The byte PUT failed. It keeps the generic message for existing callers and
+ * adds only privacy-safe facts for {@link describeUploadFailure}: the HTTP
+ * status (0 when the transport never saw one), the server's problem code and
+ * how far the bytes got. Never the URL, a token or the file name.
+ */
+export class UploadTransferError extends ReferenceFlowError {
+  constructor(
+    readonly detail: UploadTransferDetail,
+    readonly status = 0,
+    code?: string,
+    readonly progress?: number,
+  ) {
+    super(i18n.t('flow.uploadFailed'), code);
+    this.name = 'UploadTransferError';
+  }
+}
+
+async function problemCode(response: Response): Promise<string | undefined> {
+  try {
+    const problem = (await response.clone().json()) as ApiProblem;
+    if (typeof problem.code === 'string' && problem.code.trim())
+      return problem.code.trim();
+  } catch {
+    // A proxy page or an empty body has no machine-readable code.
+  }
+  return undefined;
+}
+
 export function createReferenceApis(
   apiBaseUrl: string,
   accessToken?: string,
@@ -100,10 +137,17 @@ async function rethrowLocalized(
   throw new ReferenceFlowError(fallback, code);
 }
 
-async function assertOk(response: Response, action: string): Promise<void> {
+async function assertUploadAccepted(
+  response: Response,
+  progress?: number,
+): Promise<void> {
   if (response.ok) return;
-  const detail = `${response.status} ${response.statusText}`.trim();
-  throw new ReferenceFlowError(detail ? `${action}: ${detail}` : action);
+  throw new UploadTransferError(
+    'http',
+    response.status,
+    await problemCode(response),
+    progress,
+  );
 }
 
 export async function uploadAttachmentBytes(
@@ -132,7 +176,7 @@ export async function uploadAttachmentBytes(
       signal,
     },
   );
-  await assertOk(response, i18n.t('flow.uploadFailed'));
+  await assertUploadAccepted(response);
 }
 
 export async function uploadAttachmentBytesWithProgress(
@@ -166,9 +210,17 @@ export async function uploadAttachmentBytesWithProgress(
   }
 
   let reportedProgress = 0;
+  // Raw share of bytes the transport sent, for the failure breadcrumb only.
+  let sentPercent = 0;
   const xhrTransport: typeof fetch = (url, init) =>
     new Promise<Response>((resolve, reject) => {
-      const request = createBinaryUploadRequest();
+      let request: XMLHttpRequest;
+      try {
+        request = createBinaryUploadRequest();
+      } catch {
+        reject(new UploadTransferError('client', 0, undefined, sentPercent));
+        return;
+      }
       let finished = false;
       let lastLoaded = 0;
       let stallTimer: ReturnType<typeof setTimeout>;
@@ -182,11 +234,13 @@ export async function uploadAttachmentBytesWithProgress(
         clear();
         reject(error);
       };
+      const transferFailed = (detail: UploadTransferDetail, status = 0) =>
+        new UploadTransferError(detail, status, undefined, sentPercent);
       const armStallTimer = () => {
         if (finished) return;
         clearTimeout(stallTimer);
         stallTimer = setTimeout(() => {
-          fail(new ReferenceFlowError(i18n.t('flow.uploadFailed')));
+          fail(transferFailed('stalled'));
           request.abort();
         }, UPLOAD_STALL_TIMEOUT_MS);
       };
@@ -203,9 +257,13 @@ export async function uploadAttachmentBytesWithProgress(
           armStallTimer();
         }
         if (!event.lengthComputable || event.total <= 0) return;
+        sentPercent = Math.min(
+          100,
+          Math.floor((event.loaded / event.total) * 100),
+        );
         const progress = advanceUploadProgress(
           reportedProgress,
-          Math.min(99, Math.floor((event.loaded / event.total) * 100)),
+          Math.min(99, sentPercent),
         );
         if (progress === reportedProgress) return;
         reportedProgress = progress;
@@ -214,21 +272,28 @@ export async function uploadAttachmentBytesWithProgress(
       request.onload = () => {
         if (finished) return;
         if (request.status < 200 || request.status > 599) {
-          fail(new ReferenceFlowError(i18n.t('flow.uploadFailed')));
+          fail(transferFailed('network', request.status));
           return;
         }
         clear();
+        // Keep a refusal's problem body so its code can be told apart.
+        let body: string | null = null;
+        if (request.status >= 400) {
+          try {
+            body = request.responseText || null;
+          } catch {
+            body = null;
+          }
+        }
         resolve(
-          new Response(null, {
+          new Response(body, {
             status: request.status,
             statusText: request.statusText,
           }),
         );
       };
-      request.onerror = () =>
-        fail(new ReferenceFlowError(i18n.t('flow.uploadFailed')));
-      request.ontimeout = () =>
-        fail(new ReferenceFlowError(i18n.t('flow.uploadFailed')));
+      request.onerror = () => fail(transferFailed('network'));
+      request.ontimeout = () => fail(transferFailed('timeout'));
       request.onabort = () =>
         fail(new DOMException('Upload aborted.', 'AbortError'));
 
@@ -242,10 +307,8 @@ export async function uploadAttachmentBytesWithProgress(
       armStallTimer();
       try {
         request.send(file);
-      } catch (error) {
-        fail(
-          error instanceof Error ? error : new Error('Binary upload failed.'),
-        );
+      } catch {
+        fail(transferFailed('client'));
       }
     });
   const transport =
@@ -261,7 +324,7 @@ export async function uploadAttachmentBytesWithProgress(
       signal: options.signal,
     },
   );
-  await assertOk(response, i18n.t('flow.uploadFailed'));
+  await assertUploadAccepted(response, sentPercent);
   options.onProgress?.(100);
 }
 

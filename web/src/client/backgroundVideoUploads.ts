@@ -8,6 +8,7 @@ import type { UploadDescriptor } from '../api/generated/models/UploadDescriptor'
 import { isAndroidApp } from './config';
 import type { ReferenceApis } from './referenceFlow';
 import { uploadAttachmentBytesWithProgress } from './referenceFlow';
+import type { UploadPhase } from './uploadFailure';
 import { advanceUploadProgress } from './uploadProgress';
 
 export interface VideoTransfer {
@@ -392,30 +393,49 @@ export async function startBackgroundVideoTransfer({
     entry.run = async (signal) => {
       if (signal.aborted)
         throw new DOMException('Upload aborted.', 'AbortError');
-      const current = await apis.attachments.getAttachment(
-        { spaceId, attachmentId },
-        { signal },
-      );
-      if (['READY', 'PROCESSING'].includes(current.status)) return;
-      await uploadAttachmentBytesWithProgress(
-        apiBaseUrl,
-        accessToken,
-        descriptor,
-        file,
-        {
-          signal,
-          onProgress: (progress) => {
-            if (!signal.aborted) update(attachmentId, { progress });
+      let phase: UploadPhase = 'start';
+      try {
+        const current = await apis.attachments.getAttachment(
+          { spaceId, attachmentId },
+          { signal },
+        );
+        if (['READY', 'PROCESSING'].includes(current.status)) return;
+        phase = 'put';
+        await uploadAttachmentBytesWithProgress(
+          apiBaseUrl,
+          accessToken,
+          descriptor,
+          file,
+          {
+            signal,
+            onProgress: (progress) => {
+              if (!signal.aborted) update(attachmentId, { progress });
+            },
           },
-        },
-        fetchApi,
-      );
-      signal.throwIfAborted();
-      update(attachmentId, { phase: 'processing', progress: 100 });
-      await apis.attachments.finalizeAttachmentUpload(
-        { spaceId, attachmentId, body: {} },
-        { signal },
-      );
+          fetchApi,
+        );
+        signal.throwIfAborted();
+        update(attachmentId, { phase: 'processing', progress: 100 });
+        phase = 'finalize';
+        await apis.attachments.finalizeAttachmentUpload(
+          { spaceId, attachmentId, body: {} },
+          { signal },
+        );
+      } catch (error) {
+        // The transfer shows its own resumable state; this leaves the
+        // privacy-safe breadcrumb for testers (#2158).
+        // Loaded lazily: session persistence imports this module, and the
+        // failure mapping depends on the reference flow that imports it.
+        if (!signal.aborted)
+          void import('./uploadFailure').then(({ describeUploadFailure }) =>
+            describeUploadFailure(error, {
+              phase,
+              media: 'video',
+              size: selected.size,
+            }),
+          );
+        throw error;
+      }
     };
   transfers.set(attachmentId, entry);
   nativeOwner = owner;

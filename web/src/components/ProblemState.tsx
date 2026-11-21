@@ -34,9 +34,12 @@ const COPY_KEYS = {
 export function ProblemState({
   error,
   onRetry,
+  detail,
 }: {
   error: unknown;
   onRetry?: () => void;
+  /** An already localized, more specific reason replacing the generic body. */
+  detail?: string;
 }) {
   const { t } = useTranslation();
   const kind = clientProblemKind(error);
@@ -61,7 +64,7 @@ export function ProblemState({
     <UiState
       kind={KIND_TO_STATE[kind]}
       title={t(titleKey)}
-      body={t(bodyKey)}
+      body={detail || t(bodyKey)}
       action={action}
     />
   );

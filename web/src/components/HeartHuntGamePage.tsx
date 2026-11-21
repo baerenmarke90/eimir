@@ -47,7 +47,10 @@ import {
 } from '../client/partnerLocation';
 import type { PersonRole } from '../client/personColours';
 import { normalizeClientError } from '../client/problemDetails';
-import { createReferenceApis } from '../client/referenceFlow';
+import {
+  createReferenceApis,
+  ReferenceFlowError,
+} from '../client/referenceFlow';
 import {
   entitlementLoader,
   useSpaceCapability,
@@ -874,8 +877,13 @@ function HidePanel({
       );
       setAttachmentId(ready.attachmentId);
       setPhase('ready');
-    } catch {
-      setError(t('games.heartHunt.hide.uploadFailed'));
+    } catch (failure) {
+      // The specific reason (full storage, connection, format) when known.
+      setError(
+        failure instanceof ReferenceFlowError
+          ? failure.message
+          : t('games.heartHunt.hide.uploadFailed'),
+      );
       setPreview(null);
       setPhase('idle');
     }

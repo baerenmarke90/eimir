@@ -306,9 +306,10 @@ repository, but Core reaches them only through a seam (loader, contract, lifecyc
 - [x] **#2084 PR 1-4 — Pro capability extraction:** saved-memory map (#2126), extended partner gestures (#2129),
   relationship passport and Wir lifeline (#2131), plugin-owned `theme.bespoke_packs` (#2133).
 - [x] **#2085 — extractable Pro capabilities:** Daily Check-in insights (#2134), video processor (#2135) and recap
-  composition (R1-R4, #2136 to #2140) moved behind the seam.
-- [ ] **#2082 / #2084 / #2085 closure:** the owning Issues are still open; closure needs a reconciliation against their
-  acceptance criteria.
+  composition (R1-R4, #2136 to #2140) moved behind the seam. The Issue was closed on 2026-11-21.
+- [ ] **#2082:** Phase 1 criteria 1 to 7 are evidenced on `main`; the plugin Alembic environment, the `validate` hook and
+  the `/api/v1/instance` field `proFeaturesAvailable` are deferred (no consumer yet). Closure waits for the Product Owner.
+- [ ] **#2084:** all four capabilities are plugin-owned with Core-only tests; closure waits for the Product Owner.
 - [ ] **#2086:** decide how the public Core export handles Pro client code.
 - [ ] **#2087:** Pro delivery and licensing (private Pro image, signed license).
 - [ ] **#2088:** Cloud first, Self-Hosted later. [Decision 0018](decisions/0018-cloud-first-self-hosted-later.md) was
@@ -320,13 +321,19 @@ repository, but Core reaches them only through a seam (loader, contract, lifecyc
 - [x] Hygiene, cheap/full pull-request tiers with the nightly regression, and release binding to a green full
   regression are merged (#2097, #2098, #2100, with follow-ups #2109 to #2114). Pushes to `main` start no workflows; the
   private test channel follows every merge to `main` (see [PRIVATE-TEST-CHANNEL.md](PRIVATE-TEST-CHANNEL.md)).
-- [ ] **#2096:** the 14-day usage measurement, the ruleset required-check update and the approved deletion of historical
-  artifacts are outstanding; the Issue stays open until the measured target is met.
+- [x] The ruleset now requires `Web Reference Flow` and no longer requires CodeQL (Product Owner, recorded on the Issue).
+- [ ] **#2096:** open are the Product Owner decision on the nightly cost (the first measured nightly regression used
+  about 421 billable minutes per night against the target of at most 9,000 minutes per month), the
+  `release-evidence-` artifact cleanup, the 14-day measurement and the matching `android-launcher-icons.yml` matrix
+  condition on `main`; the Issue stays open until the measured target is met.
 
 ### Product and client delivery
 
 - The Motion Contract and its migration (#2068; steps 5-9 as #2076 to #2080) are merged, including the closing motion
-  guard (#2122). The step Issues themselves still show open.
+  guard (#2122). The step Issues #2076 to #2080 stay open: the Pixel device acceptance of 2026-11-21 found localized
+  defects rather than general jank: the two below, plus slow map opening (observed, not yet tracked).
+- [ ] **#2146:** Wir at rest renders about 18 fps because the Date-Abend countdown replays a digit fade every second.
+- [ ] **#2147:** the Wir opening takes 4 to 5 s because late elements are off the stage clock.
 - Android test prereleases continue under `android-test-v0.2.0-test.N`; the newest published at this update is
   `test.96`. Android store launch remains outside the G5 certification.
 - [ ] **#2063:** fix the on-device QA findings from Android test.95.

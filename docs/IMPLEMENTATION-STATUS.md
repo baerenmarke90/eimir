@@ -307,9 +307,11 @@ repository, but Core reaches them only through a seam (loader, contract, lifecyc
   relationship passport and Wir lifeline (#2131), plugin-owned `theme.bespoke_packs` (#2133).
 - [x] **#2085 — extractable Pro capabilities:** Daily Check-in insights (#2134), video processor (#2135) and recap
   composition (R1-R4, #2136 to #2140) moved behind the seam. The Issue was closed on 2026-11-21.
-- [ ] **#2082:** Phase 1 criteria 1 to 7 are evidenced on `main`; the plugin Alembic environment, the `validate` hook and
-  the `/api/v1/instance` field `proFeaturesAvailable` are deferred (no consumer yet). Closure waits for the Product Owner.
-- [ ] **#2084:** all four capabilities are plugin-owned with Core-only tests; closure waits for the Product Owner.
+- [x] **#2082 — Phase 1 closed on 2026-11-21:** all seven acceptance criteria are evidenced on `main`. The plugin Alembic
+  environment, the `validate` hook, `proFeaturesAvailable` and a ServerAdmin view of dormant data are deferred (no
+  consumer yet) and tracked in #2148.
+- [x] **#2084 — closed on 2026-11-21:** all four capabilities are plugin-owned with Core-only tests.
+- [ ] **#2148:** deferred Phase 1 items of the Pro plugin seam; not launch-blocking under Cloud first.
 - [ ] **#2086:** decide how the public Core export handles Pro client code.
 - [ ] **#2087:** Pro delivery and licensing (private Pro image, signed license).
 - [ ] **#2088:** Cloud first, Self-Hosted later. [Decision 0018](decisions/0018-cloud-first-self-hosted-later.md) was

@@ -746,6 +746,29 @@ test('tapping a person brings them into view; "show us" returns to both', async 
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(partnerAvatar).toBeInViewport();
   await captureScreenshot(page, info, 'partner-map-person-focus-1280.png');
+
+  // 200 % text: the person rows reflow and stay the way to a person.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+  await page.waitForTimeout(400);
+  await expectNoHorizontalOverflow(page);
+  const ownRow = page.locator('.partner-map-sheet').getByRole('button', {
+    name: new RegExp(`^${copy.mapYou}.*${copy.mapZoomToOwn}$`),
+  });
+  const rowBox = await ownRow.boundingBox();
+  expect(rowBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+  await ownRow.click();
+  await expect(ownArea).toBeInViewport();
+  // A full-page capture of a scrolled page would show the fixed skip link.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await captureScreenshot(
+    page,
+    info,
+    'partner-map-person-focus-390-large.png',
+    {
+      fullPage: true,
+    },
+  );
 });
 
 test('an earlier partner snapshot keeps a muted connection without motion', async ({

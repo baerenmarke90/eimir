@@ -39,6 +39,7 @@ import {
   type PartnerAction,
   usePartnerGesture,
 } from './usePartnerGesture';
+import { haptic } from '../motion/haptics';
 import './PartnerQuickActions.css';
 
 const EXPANDED_QUERY = '(min-width: 840px)';
@@ -268,9 +269,15 @@ export function PartnerQuickActions({
       if (succeeded) {
         close();
         postSnackbar(SENT_SNACKBAR[action]);
+      } else {
+        // The gesture returns to its button (Flight `return`, 4.10).
+        haptic('refuse');
       }
       void flight.settle(succeeded);
     });
+    // A gesture to the partner is an emphasized action; a kiss is an
+    // affectionate beat (Motion Contract 4.10). One haptic per send.
+    if (accepted) haptic(action === 'KISS' ? 'affection' : 'press');
     const icon = button?.querySelector('.partner-quick-action-icon');
     const avatar = triggerRef.current;
     if (!accepted || !icon || !avatar) return;

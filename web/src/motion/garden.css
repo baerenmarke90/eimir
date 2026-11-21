@@ -1,0 +1,954 @@
+/*
+ * The motion layer's Scenes catalogue for the garden (Motion Contract 4.8,
+ * M6, M8, M9, M14; #2079).
+ *
+ * The garden is an interactive playfield: its ambient life (breeze, drift,
+ * twinkle, animals) may loop while the scene is visible and in use. The
+ * owner names these keyframes on its own states with token roles only (M1).
+ * The loops pause with the scene controller (`useScene` in `scene.ts`,
+ * `data-motion-scene="paused"`) while the page, the kept view or the scene
+ * itself is hidden, and with `useAmbientRest` after the decorative rest
+ * budget on Wir. They are absent with reduced motion: every duration role is
+ * `0ms`, and the garden stylesheets switch the loops off.
+ *
+ * The depth bands of #2070 stay separate compositor layers: every keyframe
+ * here animates `transform`, `opacity` or a bounded `stroke-dashoffset`.
+ *
+ * Moved unchanged from the garden stylesheets. `garden-wobble` was defined
+ * twice; the later `GardenGrowth.css` body was the one in effect and is the
+ * one kept.
+ *
+ * Imported by the garden components, so it loads only with the garden.
+ */
+
+/* GardenAmbience */
+
+@keyframes eimir-motion-garden-particle-fall {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  8% {
+    opacity: 0.9;
+  }
+  25% {
+    transform: translate(calc(var(--garden-dx) * 0.4), 56px)
+      rotate(calc(var(--garden-rotate) * 0.25));
+  }
+  50% {
+    transform: translate(calc(var(--garden-dx) * -0.2), 112px)
+      rotate(calc(var(--garden-rotate) * 0.5));
+  }
+  75% {
+    transform: translate(calc(var(--garden-dx) * 0.6), 168px)
+      rotate(calc(var(--garden-rotate) * 0.75));
+  }
+  92% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--garden-dx), 224px) rotate(var(--garden-rotate));
+  }
+}
+
+@keyframes eimir-motion-garden-particle-rise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  15% {
+    opacity: 0.75;
+  }
+  50% {
+    transform: translate(calc(var(--garden-dx) * 0.3), -60px);
+  }
+  85% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--garden-dx) * -0.2), -130px);
+  }
+}
+
+@keyframes eimir-motion-garden-boing {
+  0% {
+    transform: none;
+  }
+  30% {
+    transform: scale(1.14, 0.84);
+  }
+  60% {
+    transform: scale(0.94, 1.1);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-garden-perk {
+  0% {
+    transform: scaleY(0.9);
+  }
+  55% {
+    transform: scaleY(1.12);
+  }
+  80% {
+    transform: scaleY(0.98);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-garden-tap-leaf {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--garden-dx), 74px) rotate(var(--garden-rotate));
+  }
+}
+
+@keyframes eimir-motion-garden-tap-bird {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.7);
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-130px, -86px) scale(1);
+  }
+}
+
+@keyframes eimir-motion-garden-tap-ring {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(3.2);
+  }
+}
+
+@keyframes eimir-motion-garden-tap-fish {
+  0% {
+    opacity: 1;
+    transform: translate(0, 4px) rotate(-60deg);
+  }
+  50% {
+    transform: translate(9px, -18px) rotate(0deg);
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(18px, 4px) rotate(60deg);
+  }
+}
+
+@keyframes eimir-motion-garden-tap-petal {
+  0% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--garden-dx), var(--garden-dy)) scale(0.4);
+  }
+}
+
+@keyframes eimir-motion-garden-tap-butterfly {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  12% {
+    opacity: 1;
+  }
+  35% {
+    transform: translate(14px, -24px);
+  }
+  65% {
+    transform: translate(-8px, -48px);
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(30px, -96px);
+  }
+}
+
+@keyframes eimir-motion-garden-tap-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  20% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(64px);
+  }
+}
+
+@keyframes eimir-motion-garden-can {
+  0% {
+    opacity: 0;
+    transform: translate(-14px, -8px) rotate(0deg);
+  }
+  14% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  30%,
+  72% {
+    opacity: 1;
+    transform: rotate(52deg);
+  }
+  88% {
+    opacity: 1;
+    transform: rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-14px, -8px) rotate(0deg);
+  }
+}
+
+@keyframes eimir-motion-garden-can-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(13px);
+  }
+}
+
+@keyframes eimir-motion-garden-rainbow-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: var(--garden-bow-opacity);
+  }
+}
+
+@keyframes eimir-motion-garden-rainbow-moment {
+  0% {
+    opacity: 0;
+  }
+  25%,
+  70% {
+    opacity: var(--garden-bow-opacity);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-garden-reveal-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-garden-heart-float {
+  from {
+    transform: translateY(0) scale(0.9);
+  }
+  to {
+    transform: translateY(-3px) scale(1.05);
+  }
+}
+
+@keyframes eimir-motion-garden-note-wiggle {
+  from {
+    transform: rotate(-4deg);
+  }
+  to {
+    transform: rotate(4deg);
+  }
+}
+
+@keyframes eimir-motion-garden-greet-heart {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.4);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.9);
+  }
+}
+
+@keyframes eimir-motion-garden-hello {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: translateY(-6px) scaleY(1.05);
+  }
+}
+
+/* GardenFullscreen */
+
+@keyframes eimir-motion-garden-fullscreen-hint {
+  from {
+    opacity: 0;
+    translate: 0 0.5rem;
+  }
+}
+
+/* GardenGamePage */
+
+@keyframes eimir-motion-garden-breeze {
+  0%,
+  100% {
+    transform: skewX(1.5deg);
+  }
+  50% {
+    transform: skewX(-2.5deg);
+  }
+}
+
+@keyframes eimir-motion-garden-breeze-plant {
+  0%,
+  100% {
+    transform: rotate(-1deg);
+  }
+  50% {
+    transform: rotate(1.6deg);
+  }
+}
+
+@keyframes eimir-motion-garden-gust {
+  0% {
+    transform: none;
+  }
+  24% {
+    transform: skewX(-12deg);
+  }
+  50% {
+    transform: skewX(3deg);
+  }
+  74% {
+    transform: skewX(-1.4deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-garden-gust-plant {
+  0% {
+    transform: none;
+  }
+  26% {
+    transform: rotate(6deg);
+  }
+  54% {
+    transform: rotate(-2.2deg);
+  }
+  78% {
+    transform: rotate(1deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-garden-drift {
+  from {
+    transform: translateX(-14px);
+  }
+  to {
+    transform: translateX(14px);
+  }
+}
+
+@keyframes eimir-motion-garden-twinkle {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-garden-rays {
+  0% {
+    opacity: 0;
+    transform: rotate(0deg) scale(0.7);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(35deg) scale(1);
+  }
+}
+
+@keyframes eimir-motion-garden-pop {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-garden-open {
+  from {
+    transform: scale(0.25) rotate(-30deg);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-garden-stretch {
+  from {
+    transform: scaleY(var(--garden-from, 0.7));
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-garden-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes eimir-motion-garden-drop {
+  0% {
+    transform: translateY(-80px);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-garden-puff {
+  0% {
+    transform: none;
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(var(--garden-dx), -7px) scale(0.4);
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-garden-pollen {
+  0% {
+    opacity: 0;
+    transform: none;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--garden-dx), -76px);
+  }
+}
+
+@keyframes eimir-motion-garden-butterfly {
+  0% {
+    transform: translate(-16px, 112px);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  50% {
+    transform: translate(calc(var(--garden-width) / 2), 80px);
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--garden-width), 108px);
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-garden-flap {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0.35);
+  }
+}
+
+@keyframes eimir-motion-garden-flap-y {
+  from {
+    transform: scaleY(1);
+  }
+  to {
+    transform: scaleY(0.3);
+  }
+}
+
+@keyframes eimir-motion-garden-unfold {
+  from {
+    transform: scaleY(0.2) rotate(-2deg);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* GardenGrowth */
+
+@keyframes eimir-motion-garden-firefly {
+  from {
+    opacity: calc(var(--garden-firefly-opacity) * 0.1);
+    transform: none;
+  }
+  to {
+    opacity: var(--garden-firefly-opacity);
+    transform: translate(5px, -8px);
+  }
+}
+
+@keyframes eimir-motion-garden-ripple {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scaleX(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(1.1);
+  }
+}
+
+@keyframes eimir-motion-garden-stream {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+
+@keyframes eimir-motion-garden-blink {
+  0%,
+  94%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes eimir-motion-garden-wobble {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  20% {
+    transform: rotate(-8deg) translateY(1px);
+  }
+  45% {
+    transform: rotate(6deg);
+  }
+  70% {
+    transform: rotate(-3deg);
+  }
+}
+
+@keyframes eimir-motion-garden-inch {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(1.06);
+  }
+}
+
+@keyframes eimir-motion-garden-nibble {
+  0%,
+  40%,
+  100% {
+    transform: rotate(0deg);
+  }
+  8%,
+  24% {
+    transform: rotate(7deg);
+  }
+  16%,
+  32% {
+    transform: rotate(1deg);
+  }
+}
+
+@keyframes eimir-motion-garden-ear-twitch {
+  0%,
+  88%,
+  100% {
+    transform: rotate(0deg);
+  }
+  91% {
+    transform: rotate(-9deg);
+  }
+  94% {
+    transform: rotate(4deg);
+  }
+}
+
+@keyframes eimir-motion-garden-sniff {
+  0%,
+  100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes eimir-motion-garden-roll {
+  0% {
+    transform: none;
+  }
+  12% {
+    transform: translateY(-2px) rotate(-14deg) scale(0.95);
+  }
+  42%,
+  82% {
+    transform: translateX(16px) rotate(360deg) scale(0.95);
+  }
+  52% {
+    transform: translateX(15px) rotate(352deg) scale(0.95);
+  }
+  100% {
+    transform: translateX(0) rotate(0deg) scale(1);
+  }
+}
+
+@keyframes eimir-motion-garden-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(1.2px) rotate(-2deg);
+  }
+}
+
+@keyframes eimir-motion-garden-dip {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(18deg);
+  }
+}
+
+@keyframes eimir-motion-garden-water-ring {
+  from {
+    opacity: 0.9;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+@keyframes eimir-motion-garden-tail-flick {
+  0%,
+  30%,
+  100% {
+    transform: rotate(0deg);
+  }
+  8% {
+    transform: rotate(-16deg);
+  }
+  14% {
+    transform: rotate(7deg);
+  }
+  20% {
+    transform: rotate(-4deg);
+  }
+}
+
+@keyframes eimir-motion-garden-peek {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  20%,
+  80% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(0) rotate(-10deg);
+  }
+  60% {
+    transform: translateY(0) rotate(8deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes eimir-motion-garden-rustle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(-2.5deg);
+  }
+  70% {
+    transform: rotate(2.5deg);
+  }
+}
+
+@keyframes eimir-motion-garden-graze {
+  0%,
+  30%,
+  84%,
+  100% {
+    transform: rotate(64deg);
+  }
+  40%,
+  74% {
+    transform: rotate(0deg);
+  }
+  46%,
+  58% {
+    transform: rotate(6deg);
+  }
+}
+
+@keyframes eimir-motion-garden-name-float {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.6);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+/* GardenKeepsakes */
+
+@keyframes eimir-motion-garden-keepsake-land {
+  from {
+    transform: translateY(-10px) scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-garden-keepsake-glint {
+  0% {
+    opacity: 0;
+    scale: 0.2;
+  }
+  40% {
+    opacity: 1;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 0.6;
+  }
+}
+
+/* GardenRareVisitors */
+
+@keyframes eimir-motion-garden-owl-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes eimir-motion-garden-owl-turn {
+  0% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(-18deg);
+  }
+  60% {
+    transform: rotate(14deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes eimir-motion-garden-fox-swish {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(16deg);
+  }
+  60% {
+    transform: rotate(-8deg);
+  }
+}
+
+@keyframes eimir-motion-garden-fox-ears {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(-8deg);
+  }
+}
+
+@keyframes eimir-motion-garden-duckling-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.6px);
+  }
+}
+
+@keyframes eimir-motion-garden-duckling-paddle {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(6px);
+  }
+}
+
+/* GardenSeasonArt */
+
+@keyframes eimir-motion-garden-flicker {
+  from {
+    opacity: 0.8;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes eimir-motion-garden-fall {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  10% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--garden-dx), 205px) rotate(var(--garden-rotate));
+  }
+}
+
+@keyframes eimir-motion-garden-mist-lift {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* GardenStory */
+
+@keyframes eimir-motion-garden-memory-sway {
+  0% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-6deg);
+  }
+  55% {
+    transform: rotate(4deg);
+  }
+  80% {
+    transform: rotate(-1.5deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}

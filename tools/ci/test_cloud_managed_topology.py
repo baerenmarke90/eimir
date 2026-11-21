@@ -422,6 +422,20 @@ class CloudComposeTextContractTest(unittest.TestCase):
         )
         self.assertNotIn("EIMIR_MAIL_TRANSPORT:-log", cloud_anchor)
 
+    def test_storage_quota_reaches_only_the_cloud_runtime(self) -> None:
+        cloud_anchor = self.compose.split("\nx-cloud-runtime-environment:", 1)[1].split(
+            "\nx-", 1
+        )[0]
+        self.assertIn("EIMIR_DEPLOYMENT: cloud", cloud_anchor)
+        self.assertIn(
+            '"${EIMIR_STORAGE_QUOTA_FREE_BYTES-5000000000}"', cloud_anchor
+        )
+        self.assertIn(
+            '"${EIMIR_STORAGE_QUOTA_PREMIUM_BYTES-50000000000}"', cloud_anchor
+        )
+        outside_cloud = self.compose.replace(cloud_anchor, "")
+        self.assertNotIn("EIMIR_STORAGE_QUOTA_", outside_cloud)
+
 
 class CloudRuntimeImageIdentityContractTest(unittest.TestCase):
     """#668: tag-only Production identities are never considered immutable."""
@@ -615,6 +629,10 @@ class CloudEnvironmentTemplateTest(unittest.TestCase):
         self.assertEqual(self.values["COMPOSE_PROFILES"], "cloud")
         self.assertEqual(self.values["EIMIR_ENVIRONMENT"], "production")
         self.assertEqual(self.values["EIMIR_DEPLOYMENT"], "cloud")
+
+    def test_declares_the_decided_storage_quota(self) -> None:
+        self.assertEqual(self.values["EIMIR_STORAGE_QUOTA_FREE_BYTES"], "5000000000")
+        self.assertEqual(self.values["EIMIR_STORAGE_QUOTA_PREMIUM_BYTES"], "50000000000")
 
     def test_declares_local_media_store_as_supported_default(self) -> None:
         self.assertEqual(self.values["EIMIR_MEDIA_STORE"], "local")

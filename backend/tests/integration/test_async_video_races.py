@@ -8,7 +8,7 @@ from threading import Barrier, Event
 import pytest
 from sqlalchemy import select
 
-from eimir.attachments import binding, video_jobs, videos
+from eimir.attachments import binding
 from eimir.attachments import service as attachments
 from eimir.attachments.models import Attachment, AttachmentPayload
 from eimir.authorization import AuthorizationContext
@@ -17,6 +17,8 @@ from eimir.core.clock import now
 from eimir.media import get_media_store
 from eimir.memories import service as memories
 from eimir.memories.models import Memory, MemoryPayload
+from eimir.video_processing import jobs as video_validation
+from eimir.video_processing import videos
 from tests.conftest import make_account, make_space, requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -101,7 +103,7 @@ def test_worker_preserves_binding_classification_and_deletion_winners(
 
     def run():  # type: ignore[no-untyped-def]
         with maker() as session:
-            video_jobs.validate(session, {"attachmentId": str(ids[0])})
+            video_validation.validate_video(session, {"attachmentId": str(ids[0])})
 
     with ThreadPoolExecutor(max_workers=1) as pool:
         result = pool.submit(run)
@@ -155,7 +157,7 @@ def test_concurrent_video_publications_cannot_overfill_the_same_gallery(
 
     def run(identifier):  # type: ignore[no-untyped-def]
         with maker() as session:
-            video_jobs.validate(session, {"attachmentId": str(identifier)})
+            video_validation.validate_video(session, {"attachmentId": str(identifier)})
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         results = [pool.submit(run, identifier) for identifier in ids[:2]]

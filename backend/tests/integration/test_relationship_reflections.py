@@ -1,4 +1,8 @@
-"""Real PostgreSQL/HTTP boundaries for special Plans and the Pro passport."""
+"""Real PostgreSQL/HTTP boundaries for special Plans on the Dashboard (Free/Core).
+
+The Pro relationship passport is plugin code; its tests live in
+``test_relationship_passport.py``.
+"""
 
 from datetime import UTC, date, datetime, timedelta
 
@@ -9,12 +13,8 @@ from eimir.authorization import PrivacyClass
 from eimir.dashboard import service as dashboard_service
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
-from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
-from eimir.memories.models import Memory, MemoryPayload
-from eimir.places.models import Place, PlacePayload
-from eimir.plans.models import Plan, PlanPayload, PlanStatus
+from eimir.plans.models import Plan, PlanPayload
 from eimir.relationship import service as relationship_service
-from eimir.relationship.models import SpaceProfile
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -169,87 +169,3 @@ def test_highlight_uses_existing_plan_version_and_clears_without_pro(client, ses
     )
     assert cleared.status_code == 200
     assert cleared.json()["anticipationEnabled"] is False
-
-
-def test_passport_free_denied_before_aggregation(client, session, context, monkeypatch):  # type: ignore[no-untyped-def]
-    def unexpected(*args):  # type: ignore[no-untyped-def]
-        raise AssertionError("Free request must not calculate premium aggregates")
-
-    monkeypatch.setattr(dashboard_service, "read_relationship_passport", unexpected)
-    result = client.get(
-        f"/api/v1/spaces/{context['space'].id}/relationship-passport",
-        headers=auth(context["token"]),
-    )
-    assert result.status_code == 403
-    assert result.json()["code"] == "PREMIUM_ENTITLEMENT_REQUIRED"
-
-
-@pytest.mark.parametrize(
-    "capabilities,expired", [(["daily.insights"], False), (["relationship.passport"], True)]
-)
-def test_passport_requires_its_own_current_capability(
-    client, session, context, monkeypatch, capabilities, expired
-):  # type: ignore[no-untyped-def]
-    monkeypatch.setattr(dashboard_service.clock, "now", lambda: NOW)
-    grant(session, context, capabilities=capabilities, expired=expired)
-    result = client.get(
-        f"/api/v1/spaces/{context['space'].id}/relationship-passport",
-        headers=auth(context["token"]),
-    )
-    assert result.status_code == 403
-
-
-def test_passport_is_shared_only_couple_scoped_and_respects_duration_preference(
-    client, session, context, monkeypatch
-):  # type: ignore[no-untyped-def]
-    monkeypatch.setattr(dashboard_service.clock, "now", lambda: NOW)
-    grant(session, context, capabilities=["relationship.passport"])
-    session.add(
-        Memory(
-            **root(context), payload=MemoryPayload(title="Shared memory", body="Our shared story")
-        )
-    )
-    session.add(
-        Memory(
-            **root(context, foreign=True),
-            payload=MemoryPayload(title="Foreign memory", body="A different Space"),
-        )
-    )
-    for private in (False, True):
-        session.add(
-            HeartMoment(
-                **root(context, private=private),
-                happened_on=NOW.date(),
-                payload=HeartMomentPayload(text="A moment", emotion=HeartEmotion.LOVED),
-            )
-        )
-    session.add(Place(**root(context), payload=PlacePayload(name="Our place")))
-    plan(session, context, day=date(2026, 10, 28), status=PlanStatus.COMPLETED.value)
-    plan(session, context, day=date(2026, 11, 10))
-    session.flush()
-    path = f"/api/v1/spaces/{context['space'].id}/relationship-passport"
-    for token in (context["token"], context["partner_token"]):
-        result = client.get(path, headers=auth(token))
-        assert result.status_code == 200
-        assert result.headers["Cache-Control"] == "private, no-store"
-        value = result.json()
-        assert value["memories"] == 1
-        assert value["heartMoments"] == 1
-        assert value["completedPlans"] == 1
-        assert value["places"] == 1
-        assert value["relationshipDuration"] is None
-    foreign = client.get(
-        f"/api/v1/spaces/{context['foreign'].id}/relationship-passport",
-        headers=auth(context["token"]),
-    )
-    assert foreign.status_code == 404
-    profile = session.query(SpaceProfile).filter_by(space_id=context["space"].id).one()
-    profile.relationship_started_on = date(2023, 5, 14)
-    profile.show_relationship_duration = True
-    session.flush()
-    assert (
-        client.get(path, headers=auth(context["token"])).json()["relationshipDuration"][
-            "daysTogether"
-        ]
-        == (NOW.date() - date(2023, 5, 14)).days
-    )

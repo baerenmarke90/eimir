@@ -78,6 +78,7 @@ import { SecureSurface } from './SecureSurface';
 import { BackSlotHost, TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import './RelationshipRecapsPage.css';
+import '../motion/playback.css';
 
 export type RecapsPageProps = ProfilePageProps & { mediaApis: ReferenceApis };
 const POLL_WINDOW_MS = 120_000;

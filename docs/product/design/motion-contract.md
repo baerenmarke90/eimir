@@ -1,6 +1,6 @@
 # eimir. Motion Contract
 
-**Version:** 1.3 (2026-11-20)<br>
+**Version:** 1.9 (2026-11-21)<br>
 **Status:** Normative lower-level design-system contract under Product Reference v1 once merged. Library decision **approved by the Product Owner on 2026-11-19**: an in-house motion layer on WAAPI and CSS for all primitives, Gesture follow included; Motion is not adopted ([6.6](#66-product-owner-decisions)). Haptics are approved ([4.10](#410-haptics)).<br>
 **Scope:** Canonical Web/Mobile Web UI, including the Capacitor-delivered Android app<br>
 **Issue:** [#2067](https://github.com/baerenmarke90/eimir/issues/2067)<br>
@@ -106,7 +106,7 @@ Do not use `scale` or `transform: scale(…)` on an element whose visible featur
 
 Ambient motion:
 
-- runs for at most `--motion-ambient-repeat` cycles (token `motion.repeat.ambient`, currently 4), or for a finite duration that is stated next to the motion, and then rests in its neutral pose. A decorative scene may instead play for at most `--duration-ambient-rest` of visible time in total and then hold in place (`motion.duration.ambientRest`, 12 s, `useAmbientRest`; added by #2070, pending merge);
+- runs for at most `--motion-ambient-repeat` cycles (token `motion.repeat.ambient`, currently 4), or for a finite duration that is stated next to the motion, and then rests in its neutral pose. A decorative scene may instead play for at most `--duration-ambient-rest` of visible time in total and then hold in place (`motion.duration.ambientRest`, 12 s, `useAmbientRest` in the motion layer's `ambientRest.ts`; added by #2070, moved into the layer by #2079);
 - pauses while the page is hidden (`visibilitychange`), while its kept view is hidden and while it is off screen (`IntersectionObserver`), and continues where it paused;
 - is absent with reduced motion;
 - never moves a tap target, a portrait, text being read, or the source or target of a Flight.
@@ -140,7 +140,7 @@ Status, order, success, error and arrival are also expressed through content, se
 
 ### M14. One layer
 
-After migration, `@keyframes` and `Element.animate()` exist only inside the motion layer (and in the bounded domains' registered files during their migration, see [section 8](#8-migration-plan)). Feature code uses CSS `transition` with token roles for simple state changes. Transitions do not restart when a view returns from `display: none`, so they stay allowed everywhere. Pointer tracking for gestures also lives in the layer or in an adopted gesture component (`@dnd-kit`, `@panzoom/panzoom`) wrapped by it.
+`@keyframes` and `Element.animate()` exist only inside the motion layer. The guard enforces this since #2080 ([5.4](#54-api-as-built), [section 8](#8-migration-plan)). Feature code uses CSS `transition` with token roles for simple state changes. Transitions do not restart when a view returns from `display: none`, so they stay allowed everywhere. Pointer tracking for gestures also lives in the layer or in an adopted gesture component (`@dnd-kit`, `@panzoom/panzoom`) wrapped by it.
 
 ### M15. One choreography clock and a per-screen budget
 
@@ -192,6 +192,15 @@ Content arrives: a screen's opening stage, a module reveal, a staggered list, a 
 | Off screen | `on first reach` for module reveals, otherwise final state (M12) |
 | Reduced motion | final state at once; `surface` may keep a backdrop opacity change of at most `--duration-transition` |
 
+**`stage` variant: data hold and late members (#2147).** An opening shows data that arrives from the network after its first paint (on Wir: the check-in, the place, the quote and the photos). These rules keep it on one clock:
+
+- The stage may wait for its members' data, invisibly, for at most `motion.stage.dataHold` (400 ms) after its root first paints visibly (`data-motion-stage="waiting"`). It then plays once with whatever is there. The hold is a wait for data, not motion, so it also applies with reduced motion: late data then never moves a layout that is already shown. A stage that cannot start (hidden, scrolled, `canStart` false) never waits.
+- The hold and the stage together fit `motion.stage.openingBudget` (2 500 ms) from the first paint until every member rests. A unit test checks the owner's beats against it, so a slower pace has to give the time back elsewhere.
+- A member that carries late data is marked `data-motion-join`. If it mounts before its slot, it plays on the slot. If it mounts after its slot began, it plays in the time that is left, at least `--duration-transition` and ending with the stage; with less time left it shows its final state. Other members that mount or remount mid-opening keep their point on the clock (M5).
+- Data that arrives after the stage ended is simply there: no enter animation, no fade over a placeholder (Enter `media` included).
+- A wider `scope` (Wir: the page content) shares the stage's clock and state (`data-motion-stage-scope`), so the content below the hero arrives in the same opening instead of in a second entrance beside it.
+- Nothing fades twice and nothing fades inside a member that is still fading: a container and its child are never both opacity members at the same time.
+
 **`media` variant (photo decode, skeleton to content).** The avatar blink came from this case, so these rules are binding:
 
 - The placeholder (initials, colour field, skeleton) and the media share one box. The media is drawn above the placeholder only after `decode()` resolved, or after `load` for elements without `decode()`.
@@ -240,6 +249,21 @@ Something already on screen changes or leaves: a value changes, an item is reord
 3. *One bounded size transition.* Only where 1 and 2 cannot express it (the #2066 check-in row that closes under the names): a single `height`/`block-size` transition on **one** container per interaction, with `interpolate-size: allow-keywords` as a progressive enhancement. It lasts at most `--duration-context`, clips its content (`overflow: clip`), animates only in the direction that the decision names, is never used inside lists or on more than one element at once, and must not shift content the person is reading (scroll anchoring checked). Browsers without `interpolate-size` change in one step; this is acceptable by definition. Each use is listed in the owning document. On `main` today: `WirHeroStage.css` (check-in row), `QuietHint.css`, `RelationshipWaymarks.css`, the disclosure rule in `styles.css` (`grid-template-rows`) and three `height` transitions in `PhotoEditTask.css`. The migration checks each one against 1 and 2. Checked in #2074:
    - The Wir check-in row stays option 3: the quote and the modules below must visibly follow the row as it closes (#2066). It closes only in the "way in" direction, on one container. Its height part lasts 2.5 × `--duration-context` after a `--duration-transition` delay, by the Product Owner's #2066 decision; this is a recorded exception to the cap above.
    - The `QuietHint.css` fold-away stays option 3 within `--duration-transition`.
+
+   Checked in #2077:
+   - **`RelationshipWaymarks.css` ("+N weitere") moves to option 1.** The list takes its height at once, and its rows arrive with an Enter `stagger` within the cap. Closing is immediate. Nothing below the list is being read while the person opens it.
+   - **The overview cache notice in `styles.css` is split.**
+     - Opening is option 1: an Enter `fade` at its full height. The `grid-template-rows` keyframes are gone.
+     - Closing stays option 3: the one row transition on its slot, within `--duration-context`, clipped. The list below must follow when live data replaces the saved read instead of jumping, and scroll anchoring keeps the reading position.
+   - **`PhotoEditTask.css` stays option 3, as a recorded exception to "one container".** The photo editor's area, stage and crop frame follow the photo's shape together when it turns or the aspect changes, within `--duration-transition`. They are the edited photo itself: no list, nothing being read below it, and the frame must never leave the photo mid-change.
+   Checked in #2079:
+   - **The monthly recap lead above the Discover experiences (`CoupleExperiences.css`, `RecapDiscoverLead.tsx`) is split like the cache notice.** Its `grid-template-rows` and `margin` keyframes are gone.
+     - Opening is option 1: an Enter `fade` at its full height, over two `--duration-context`s as before. The experiences below take their place at once.
+     - Closing stays option 3: the one row transition on the lead (`grid-template-rows`, its bottom margin and opacity), within `--duration-context` and clipped by its frame, so the experiences below follow the card as it closes. The card first renders open and collapses one frame later (`is-collapsing`), and it ends on its own `transitionend`.
+
+   Checked in #2080, when the guard began to count layout transitions:
+   - **The Planen search row (`PlanningReference.css`) stays option 3, as a recorded exception to "height".** When the search opens or closes, the status row below it moves by the search row's height with one `margin-top` transition on that one row, within `--duration-context`, and only without reduced motion. The search settles onto this row (#2077), so the row must visibly make room instead of jumping under it. Nothing is read below it while the person opens the search.
+   - The guard registers each sanctioned use with its count (`REGISTERED_LAYOUT_TRANSITIONS`): `WirHeroStage.css`, `QuietHint.css`, `styles.css`, `CoupleExperiences.css` and `PlanningReference.css` once, and `PhotoEditTask.css` three times. Any other layout transition fails it.
 - Reduced motion: final size at once.
 
 **`value` (numbers and short text).** Count changes, the days-together tick, timer digits:
@@ -287,6 +311,8 @@ A direct response to a person's action or a confirmed result: press, toggle, sel
 - *Failed send:* the Flight `return` variant brings the item back, and an inline message explains it.
 - *Conflict:* the authoritative value replaces the local one with Replace `crossfade` and a message. There is no attention motion.
 - Errors never use celebratory or affectionate motion, and never red flashing.
+
+**As built (#2079): the first-content glow.** The first item of an area that was empty settles with an Enter `arrive` and then one soft glow that widens and fades (#1907 I1, `FirstContentSettle.css`). The glow animates `box-shadow` on that one item for `--duration-gesture-moment`, once per arrival and never on return. It is a recorded exception to the small-element and `--duration-transition` limits of the Feedback colour and shadow exception in M6. Its keyframes are the catalogue's `eimir-motion-feedback-glow`. It is absent with reduced motion.
 
 ### 4.4 Flight (shared element)
 
@@ -347,6 +373,26 @@ Motion that follows the finger (or mouse, pen, scroll) instead of a clock. On `m
 | Accessibility | **every gesture has a non-gesture alternative** with the same result: tabs in the tab bar, a visible close control and System Back for sheets, move-up/move-down actions or a reorder mode for lists, a refresh action or automatic refresh, zoom buttons or double-tap plus keyboard for photos, keyboard-operable sliders with step values. The alternative is reachable by keyboard and screen reader, and never hidden behind the gesture |
 | Off screen / hidden | a gesture that is interrupted by the page being hidden, a pointer cancel or a route change cancels and settles to rest at once |
 
+**As built (#2076).** All gesture owners use the building block's rules from `motion/gesture/`: `resolveOwnership`, `rubberBand`, `commitDistance` with the `pager`, `sheet` and `pull` presets, `decideRelease`, the tuned `VelocityTracker` and the sampled settle spring. Owners that must keep their own event plumbing (touch events with `preventDefault`, CSS offset properties, two moving pages) call these functions instead of `attachGestureFollow`.
+
+| Gesture | Owner | Release handoff | Interruption | Haptics | Non-gesture alternative |
+| --- | --- | --- | --- | --- | --- |
+| Primary-tab pager | `useNavigationMotion.ts` | the current page (`left`, the shell exception in M6) and the neighbour (`transform`) continue on one sampled spring with the release velocity into Replace `navigate`; the end state is applied first, so nothing is held with `fill: forwards` | a touch on settling pages stops them where they are and continues the same swipe; a touch that cannot start a swipe lets the settle land | threshold tick, commit | the tab bar |
+| Sheet drag-to-dismiss | `ShortTaskSheet.tsx` | cancel: a sampled spring back to rest with the release velocity (the transform transition is gone). Commit: Exit `surface-exit` with `--short-task-sheet-exit-duration`, the remaining height at the release velocity, between `--duration-feedback` and `--duration-transition`. Upward past rest it rubber-bands | grabbing a returning sheet stops the spring where it is | threshold tick, commit | the visible close control, System Back and Escape |
+| Pull to refresh | `usePullToRefresh.ts`, `PullToRefreshIndicator.tsx` | the refresh starts at release (M10) and shows the Loading spinner (`.eimir-motion-loading-spin`, `--duration-loading-cycle`) | — (the indicator returns at once) | threshold tick, commit | the automatic refetch when the app returns to the foreground or reconnects (`refetchOnWindowFocus`, `refetchOnReconnect`) |
+| List reorder | `ListEntryActions.tsx` | the dropped row and its siblings move with Replace `reorder` from their measured places (`reorder(container, before, { key, skip })`) | a new drag cancels running reorder moves | a tick per slot change, commit on an accepted drop | the arrow keys on the handle, with the order announced |
+| Photo arrangement | `PhotoArrangeTask.tsx`, `PhotoDraftSorting.tsx` with `@dnd-kit` | the library's sorting and drop animations take the token roles from `motion/gesture/dragAndDrop.ts`; with reduced motion they are `null` (instant) | the library's own | commit on a drop that changed the order | the keyboard sensor and the position buttons |
+| Photo zoom and crop | `ZoomablePhoto.tsx`, `PhotoCropTask.tsx` with `@panzoom/panzoom` | pinch, pan and wheel follow 1:1; step zooms are instant (`motion/gesture/panzoom.ts` passes `animate: false` with the token roles) | the library's own | none | zoom buttons, double-tap and the keyboard |
+
+Decisions and limits of this step:
+
+- **Pull to refresh does not commit on a fling.** A quick downward flick at the top of a page is how people scroll back up, and an accidental refresh would replace what they are reading. It commits by distance (72 px) and cancels on a reversal.
+- **The pager's route lands when the shared settle ends.** The kept-tab panels swap visibility on a route change, so navigating at release would hide the outgoing page mid-travel. The decision is made at release and cannot be lost: a hidden page, a blur or a resize finishes the settle at once, and a fallback releases the drag if the route never commits. The settle is the spring's length: about 450 ms for the rest of a page at 390 px, less for a shorter travel.
+- **With reduced motion the pager pages stay still** while the swipe still works and commits at once. **Product Owner decision (2026-11-20; #2076, #2095):** the existing behaviour is kept. A whole page travelling sideways is large-area motion. This is a deliberate exception to the tracking rule above, which otherwise keeps tracking under reduced motion. Sheets, reorder and photos still track the finger with reduced motion.
+- **The pull indicator grows in height** while the finger pulls, without a transition, because it is an in-flow Loading indicator that makes room above the page. It is tracking, not an animation of a layout property; a transform-only indicator would need a layout change of the page top and is left for a later step.
+- **The lifeline preview card swipe** (`SharedStorySummary.tsx`, the Momente lifeline preview) follows the finger with its own slop, axis lock and commit distance, and returns to rest without the release velocity. Found by the pointer-tracking rule of #2080. It keeps its behaviour and is registered as a `gesture` owner; moving it onto the building block (`resolveOwnership`, `commitDistance`, `decideRelease` and the settle spring) is a follow-up with its own device acceptance. Its non-gesture alternative is the arrow keys and the pager dots.
+- **Scroll-snap carousels** (8 `scroll-snap-type` declarations) stay native scrolling, as the tracking rule requires. **Range controls** are native `<input type="range">` or `role="slider"` elements with keyboard steps; the pager, the sheet and pull to refresh exclude them from their gestures.
+
 ### 4.7 Moment
 
 A rare, multi-beat emotional choreography: a received partner gesture (`PartnerGestureReceipt.css`), the connected moment when a couple becomes two (`ConnectedMoment.css`), a shared achievement (`SharedAchievementCelebration.css`), the reveal of a love or once message (`OnceMessages.tsx`). Feedback `affection` stays a single beat; anything with several beats is a Moment.
@@ -361,6 +407,18 @@ A rare, multi-beat emotional choreography: a received partner gesture (`PartnerG
 | Replays | once per item (opaque in-memory key): a received gesture or message never plays again after it was seen, on any return or remount |
 | Content | the content (message text, gesture meaning) is readable from the first beat and stays after the Moment; motion never hides it or reveals it as the only way to see it (M13). A once message's privacy and screenshot-protection rules are unaffected |
 | Reduced motion | a static composition with the same content, focus and actions |
+
+**As built (#2077).** Two other approved Moments decide with `startMoment()` whether their beats play. That gives them once per item, the one-emphasis budget (M15) and the first-beat haptic (4.10):
+
+| Moment | Owner | Item key | When it shows the final state | Haptic |
+| --- | --- | --- | --- | --- |
+| Received gesture or notice (#455, "variant B") | `PartnerGestureReceipt.tsx` (`receiptMoment`) | the arrival key (the notification and its event id), in memory only | the item played before, the page is hidden, another emphasized motion runs, or reduced motion; `data-moment="final"` then shows the settled badge at once, like reduced motion | one `moment` haptic for a received heart or kiss; none for calm notices |
+| Connected moment | `ConnectedMoment.tsx` (`connectedMomentPlays`) | one item per app session; the device-local record in `connectedMoment.ts` still decides the day | a remount or a second render in the same session, the page is hidden, another emphasized motion runs, or reduced motion | one `moment` haptic |
+
+- **The keyframes are in the layer.** The receipt's choreography and the notification glyph beats are in `motion/moments.css`, which loads only with its owners. The connected moment and the shared achievement use the shared Enter and surface keyframes.
+- **The shared achievement is a single arrival, not a multi-beat Moment.** It is Enter `surface` with `surface-exit`, released by its presence.
+- **The receipt's ripple is now a soft filled halo instead of a scaled 2 px ring (M7).** The transfer-done glyph fades instead of wiping with `clip-path` (M6).
+- **Once messages** already reveal with Enter `shift` (`OnceMessages.css`). There is no multi-beat once-message choreography, so no Moment runs and there is no haptic. The privacy and screenshot rules are unchanged.
 
 **Approved instance: the important-day Moment on Wir** (Product Owner, 2026-11-20). The full specification is in [#2072](https://github.com/baerenmarke90/eimir/issues/2072); the rules below are its motion contract.
 
@@ -393,11 +451,32 @@ These are not primitives. They are areas whose motion is defined by their own cl
 - **Loading:** shimmer, spinner, progress pulse. Loops until the status is known; no interaction delay; reduced motion stops the movement and keeps text, shape and `aria-busy`/status.
 - **Playback:** the recap film (`RecapFilmScene.css`), story playback (`DiscoverStory.css`, `useStoryPlayback.ts`), garden playback. A playback engine composes Enter and Replace scenes on its own scene clock and may use the Playback property exception in M6. It pauses with the page and with an explicit pause control.
 - **Scenes:** interactive game playfields (garden, Heart Hunt, Picture Ping-Pong, remote games). The scene may loop ambient life while it is visible and in use; it pauses when hidden or off screen and is absent with reduced motion. Taps inside the scene are Feedback.
+  **As built (#2079).**
+  - **Playback.** The engines keep their own scene clock, `useStoryPlayback`, shared by the recap reader and story playback:
+    - reduced motion comes from the layer's one source (`useReducedMotion`);
+    - playback pauses when the page is hidden, on `pagehide` and on window blur, and with the explicit pause control (`data-playing`);
+    - with reduced motion it never starts on its own;
+    - story playback on Momente also pauses while it is less than half on screen and while a slide is held.
+
+    The keyframes moved unchanged into two catalogues:
+    - `motion/playback.css`: the recap film, the recap reader and the garden playback, loaded with them;
+    - `motion/story-playback.css`: the Momente story.
+
+    The Playback property exception in M6 is used only by the film's scene cuts: `clip-path` for iris, wipe, shift, split and match, and `filter: blur()` for blur, focus and the caption word reveal. Each runs on one layer at a time, the scene spread or the caption.
+  - **Scenes.** The layer's scene controller (`useScene` in `motion/scene.ts`) decides whether a scene plays: the page, its kept view and the scene itself are seen (the visibility controller), the owner reports it in use, and there is no reduced motion. Its owner spreads `data-motion-scene` on the scene root. While it is `paused`, `motion/scenes.css` holds every CSS animation inside in place, so a scene that returns continues where it paused (M4) and a hidden or offscreen scene renders no animation frames.
+    - **The garden.** `GardenScene.tsx` is the scene root on the garden page, in full screen and in the Wir module. On Wir, the decorative preview also rests after `--duration-ambient-rest` of visible time (`useAmbientRest`, now in the layer, which also rests while the page or its kept view is hidden). The ambient effect timers pause with the page (`usePageVisible`). The #2070 depth bands are unchanged: every garden keyframe animates `transform`, `opacity` or a bounded `stroke-dashoffset`, so each band keeps its own compositor layer.
+    - **The remote games.** The waiting dot ("the other one is playing") runs on the scene controller of its card.
+    - **Heart Hunt, Picture Ping-Pong and Who of us** have no loop; their beats are Feedback on a tap or result. The Heart Hunt flight runs on the layer's runner (`run()`), with its duration from the token adapter and `--easing-travel`. The Picture Ping-Pong flight crosses the court with `translate` instead of `inset-inline-start` (M6).
+
+    The garden keyframes are in `motion/garden.css`. `garden-wobble` was defined twice, and the later `GardenGrowth.css` body, which was in effect, is the one kept. The game keyframes are in `motion/games.css` (Who of us and the remote games, which the games area loads) and `motion/game-scenes.css` (Heart Hunt and Picture Ping-Pong).
+  - **Registered loops.** Outside the layer, `infinite` is allowed only in the Scenes files listed in the guard's `REGISTERED_LOOPS`, with an exact count each: five garden stylesheets and the remote games. The Loading loops run in the layer's utilities.
+  - **Loading.** The shared media skeleton sweeps a highlight layer with `translate` while it loads (`.eimir-motion-loading-skeleton`). The media gallery and video placeholders use the Loading pulse (`.eimir-motion-loading-pulse`), which replaced their literal 1.4 s `ease-in-out` loop with token roles (5.4).
+
 - **Map:** MapLibre GL renders the map in its own WebGL loop. The canvas is `PlaceMapCanvas.tsx`, used by Momente › Karte (`MemoryMapPage.tsx`), the Place picker (`PlaceMapPicker.tsx`), the partner location map (`PartnerLocationMapPage.tsx`) and the story extras. CSS and WAAPI rules do not reach the canvas on their own, so the map has these rules:
 
   **Open and first frame.**
   - The map container shows its static placeholder until the style and the first tiles are rendered, then the canvas replaces it in one step. There is no camera journey on open: the first frame starts at the restored viewport (`jumpTo`) or at the overview (`fitBounds` without animation).
-  - Place thumbnails that are deferred below the viewport do not shimmer until they load (#2070, pending merge, `data-media-deferred`).
+  - Place thumbnails that are deferred below the viewport do not shimmer until they load (#2070, `data-media-deferred`).
   - **Return to the kept Momente › Karte tab:** the map keeps its camera, markers and selection. Nothing replays, the camera does not fly again, and the connection line does not draw in again (M3, M4). A resize on return (fold or unfold, rotation) keeps the center and zoom with `resize()` and `jumpTo`.
 
   **Camera.**
@@ -410,8 +489,8 @@ These are not primitives. They are areas whose motion is defined by their own cl
 
   **Pinch, pan, inertia, double-tap and zoom buttons** are Gesture follow (4.6), but they use MapLibre's own handlers, which already track 1:1 and carry inertia.
   - The setup stays token-aware: rotation and pitch are off, and scroll zoom is off on embedded maps (both true on `main`).
-  - With reduced motion, pan inertia is off (`dragPan` without inertia), and a camera move that is running when the preference changes finishes at once. The second is on `main`; the map step adds the first.
-  - The zoom buttons animate with `--duration-transition` and jump with reduced motion. On `main` they use MapLibre's default `zoomIn`/`zoomOut` animation, which ignores reduced motion; the map step fixes this.
+  - With reduced motion, pan inertia is off (`dragPan` without inertia), and a camera move that is running when the preference changes finishes at once.
+  - The zoom buttons animate with `--duration-transition` and jump with reduced motion.
   - The non-gesture alternatives are the zoom buttons and the keyboard (arrow keys pan; +/- zoom; the localized keyboard help that exists today).
 
   **Markers.**
@@ -424,11 +503,26 @@ These are not primitives. They are areas whose motion is defined by their own cl
     - The glow travels along it with `offset-distance` for three round trips and then rests (Ambient, finite).
     - The heart, a filled 22 px glyph and not a thin stroke, appears with `scale` and beats twice.
     - It complies with M7. It pauses when hidden (`.is-paused`) and is absent with reduced motion.
+    - Checked again in #2077: unchanged. Its keyframes moved into the catalogue with the map step (#2078; see "As built" below).
 
   **Rest and theme.**
   - An idle map renders nothing. No CSS animation loops over the map, deferred skeletons do not shimmer (#2070), the connection glow rests after three trips, and MapLibre renders only while the camera, tiles or markers change.
   - Ambient motion on the map follows `--duration-ambient-rest` (#2070) like other decorative scenes.
   - **Light/dark:** the dark style is a CSS filter on the canvas (`--map-dark-tile-filter`, `PlaceMapPicker.css`). A theme change swaps it at once with the rest of the appearance (Replace `appearance`); the style is not reloaded and the camera does not move. A change of locale recreates the map at the same viewport (`jumpTo`).
+
+  **As built (#2078).** `PlaceMapCanvas.tsx` applies these rules for all four users:
+  - **Durations and preference.** The camera reads `durationMs('map-camera')` and the zoom buttons `durationMs('transition')` through the token adapter, and both follow `prefersReducedMotion()`. A `0` duration is a jump (`jumpTo`, `fitBounds` with `animate: false`, `zoomIn`/`zoomOut` with `animate: false`). The two `getComputedStyle` readers and the map's own `matchMedia` check are gone (M1, M9).
+  - **Inertia.** MapLibre's own handlers stay. With reduced motion, `dragPan.enable({ maxSpeed: 0 })` ends the pan where the finger lifts. Otherwise MapLibre's default inertia applies. A change of the preference (`subscribeReducedMotion`) re-applies the inertia and finishes a running journey.
+  - **One transition at a time.** "Show us" is registered like a Place journey. A press, wheel or key on the map stops it, a later request replaces it, and reduced motion finishes it.
+  - **Open, return, resize and locale.**
+    - Open and a kept-tab return or resize never fly: the resize path only calls `resize()` and, for an automatic frame, `jumpTo` or an un-animated `fitBounds`.
+    - A locale change recreates the map at the last camera the viewer chose; an automatic frame is framed again.
+    - A light/dark change does not touch the map.
+  - **Connection.** It pauses and resumes on the layer's visibility controller (`observeVisibility`: page, kept view and on screen) and continues where it paused instead of restarting its three trips (M4, M8). Only an explicit "show us" plays it again.
+  - **Keyframes.** The connection's glow travel and heartbeat are `eimir-motion-map-connection-travel` and `-beat` in the Map domain catalogue `motion/map.css`, which loads with the map. The arc and the heart use the shared Enter `draw` and Enter `grow` (`--motion-enter-from-scale: 0.6`). `PlaceMapPicker.css` left the allowlist.
+  - **Selection.** The marker style, the camera journey and the Place strip below the map start together and do not wait for one another (M15). The photo stack keeps its `--duration-map-stack` transition, static with reduced motion.
+  - **Product Owner decision (2026-11-20): where the map opens.** A Moment with a Place opens the map at that Place (`photoPlaceMapUrl`, `/story/map?place=…`). The Momente Karte segment reopens the Place the couple last selected on the map, and all Places once they closed the selection. The map page records its selected Place in the app's session memory of the map (`client/memoryMapSession.ts`, in memory only, per account and space, next to the last camera), and `StoryProductPage.tsx` adds it to the map route. A return through the segment therefore keeps the selection with no camera move: the kept map is already framed on that Place.
+  - **Pinch zoom and double tap.** They keep MapLibre's own handling. MapLibre (6.18) already skips their animation and the zoom inertia when the system asks for reduced motion.
 
 ### 4.9 Attention (unprompted motion)
 
@@ -449,7 +543,16 @@ Motion that announces something the person did not trigger: partner arrivals, re
 
 ### 4.10 Haptics
 
-**Approved by the Product Owner on 2026-11-19:** the app gets haptic feedback, through the official `@capacitor/haptics` plugin. `main` has no haptics yet. The gestures-and-haptics step adds them.
+**Approved by the Product Owner on 2026-11-19:** the app gets haptic feedback, through the official `@capacitor/haptics` plugin. The gestures-and-haptics step (#2076) added them: `@capacitor/haptics` 8.0.2 (MIT, no runtime dependencies), registered by `motion/hapticsNative.ts` in the native app only, and the switch in Settings › Appearance (`HapticsSettings.tsx`).
+
+Wired triggers after #2076: the gesture threshold tick and commit of the pager, the sheet, pull to refresh, list reorder and the photo arrangement; the press of "Fertig" in the check-in; a gesture to the partner (`press`, a kiss `affection`) and its failed return (`refuse`); the important-day Moment (#2074).
+
+Added in #2077:
+- the first beat of a received heart or kiss and of the connected moment (`moment`, 4.7 as built);
+- a confirmed or restored store purchase on the paywall (`success`);
+- an issued partner invitation (`success`).
+
+Ordinary saves, list checks and refetches get no haptic.
 
 Haptics belong to direct actions. They are never decorative and never the only signal (M13). All calls go through the layer's haptics adapter. Feature code never calls the plugin or `navigator.vibrate` itself.
 
@@ -473,6 +576,7 @@ Rules:
   - whether the light impacts feel like system ticks.
 
   If they feel like buzzes instead of ticks, the step may propose a small project plugin on `performHapticFeedback` (`CONFIRM`, `REJECT`, `GESTURE_THRESHOLD_ACTIVATE`, `CLOCK_TICK`) through its own reuse review.
+  - Source review of 8.0.2 (#2076): on Android `selectionChanged()` vibrates only between `selectionStart()` and `selectionEnd()`, so the adapter sends the three calls in order. Its waveforms are 100 ms at amplitude 100 for a selection, 50 ms at 110 for a light impact and 43 ms at 180 for a medium impact. A 100 ms selection is longer than a system tick, so the threshold tick is the first candidate for the device check. The device acceptance on an Android test release is still open.
 - **Web fallback:** none. The adapter is a no-op outside the native app. The plugin's Web implementation calls `navigator.vibrate` directly, so the adapter never calls the plugin on the Web. Reasons: iOS Safari has no Vibration API; on Android browsers `navigator.vibrate` is a buzz that follows no system haptic setting; desktop has no vibration. A later Web use of `navigator.vibrate` would need its own decision.
 - **iOS:** the repository has a Capacitor iOS project; the same adapter applies there through the plugin's Taptic Engine implementation when iOS ships.
 
@@ -621,6 +725,8 @@ The existing roles cover all durations and easings. Staggering had no token: `us
 | `motion.gesture.*` | `MOTION_CONSTANTS.gesture` | Gesture follow thresholds (4.6), listed below | see below |
 | `motion.spring.settle` | `MOTION_CONSTANTS.spring` | the sampled settle spring of #2071 | stiffness 380, damping 39, mass 1 |
 | `motion.attention.sameKindInterval` | `MOTION_CONSTANTS.attention` | the same kind of unprompted motion plays at most once per interval per screen (4.9) | 30 000 ms |
+| `motion.stage.dataHold` | `MOTION_CONSTANTS.stage.dataHoldMs` | the longest an opening stage waits, invisibly, for its members' data (4.1, #2147) | 400 ms |
+| `motion.stage.openingBudget` | `MOTION_CONSTANTS.stage.openingBudgetMs` | the data hold plus the stage, from the first paint until every member rests (4.1, #2147) | 2 500 ms |
 
 The `motion.gesture.*` values:
 
@@ -643,7 +749,8 @@ Some values never follow reduced motion, theme or token set:
 - the gesture thresholds;
 - the spring;
 - the attention interval;
-- the haptics spacing, which uses the unreduced `--duration-context`.
+- the haptics spacing, which uses the unreduced `--duration-context`;
+- the stage data hold and opening budget (#2147): a wait for data is not motion.
 
 `scripts/generate-motion-tokens.mjs` generates these into `web/src/motion/tokens.generated.ts`. The surface steps change them only through `design/tokens.json`.
 
@@ -653,15 +760,15 @@ Some values never follow reduced motion, theme or token set:
 
 | Part | Module | API |
 | --- | --- | --- |
-| Token adapter | `tokens.ts` | `durationMs(role)`, `easing(role)`, `motionCount('ambient-repeat' \| 'stagger-max-items')`, `MOTION_CONSTANTS`, `invalidateMotionTokens()`. Roles are re-read when an attribute of the root element or the reduced-motion preference changes. A missing role reads as `0` ms, never as a literal fallback |
+| Token adapter | `tokens.ts` | `durationMs(role)` (the roles include `ambient-rest` and `loading-cycle` since #2079), `easing(role)`, `motionCount('ambient-repeat' \| 'stagger-max-items')`, `MOTION_CONSTANTS`, `invalidateMotionTokens()`. Roles are re-read when an attribute of the root element or the reduced-motion preference changes. A missing role reads as `0` ms, never as a literal fallback |
 | Reduced-motion source | `reducedMotion.ts` | `prefersReducedMotion()`, `subscribeReducedMotion(listener)`, `useReducedMotion()`. Without `matchMedia`, motion is off |
 | Play registry | `playRegistry.ts` | `claimPlay(identity, scope, owner, surface?)`, `hasPlayed`, `markPlayed`, `createSurfaceScope()` and `useSurfaceScope()`, `resetMotionSession()`. Scopes: `app-start`, `session`, `surface` |
 | Visibility controller | `visibility.ts` | `isVisibleNow(element)` and `observeVisibility(element, listener)`. Covers page visibility, the kept view and `IntersectionObserver`. The kept view is read from the `hidden` attribute on the `[data-primary-tab]` panel of `PrimaryTabPanels`, observed without changing the panel component |
 | Runner | `run.ts` | `run(element, keyframes, { duration, easing, delay, iterations, channel, interrupt, fill, willChange })`: the layer's one entry to `Element.animate()`. It keeps one animation per element and channel (M11), sets `will-change` only while the animation runs, and returns `null` for a zero duration. Also `interruptChannel` and `runningOn` |
-| Stage | `stage.ts`, `motion.css` | `useStage(identity, { duration, canStart, animationPrefix })` returns the stage root's ref. It sets `data-motion-stage="playing"` while the opening runs (once per app start), pins the `eimir-motion-stage-*` CSS animations of late or remounted members to the shared clock, and removes the attribute on the opening's own deadline or when its kept view is hidden. `stageFinished(identity)` resolves when the opening ended or was skipped; ambient motion and a Moment wait for it (M15). A stage that contains another stage uses its own `animationPrefix`: the root-tab entrance (`useRootTabIntro` in `client/rootTabIntro.ts`, keyframes `eimir-motion-root-rise`, once per tab and app start) wraps the Wir opening and never re-pins its members |
+| Stage | `stage.ts`, `motion.css` | `useStage(identity, { duration, canStart, animationPrefix, hold, scope })` returns the stage root's ref. With `hold` it first waits, `data-motion-stage="waiting"`, while `useStageHold(identity, pending)` calls report pending data, for at most `hold` ms (#2147). It sets `data-motion-stage="playing"` while the opening runs (once per app start), mirrors the state on its `scope` in `data-motion-stage-scope`, pins the `eimir-motion-stage-*` CSS animations of late or remounted members to the shared clock (a `MutationObserver` places members that mount without a render of the stage), lets `data-motion-join` members play in the time that is left or rest, and removes the attributes on the opening's own deadline or when its kept view is hidden. `stagePhase`, `useStagePhase`, `subscribeStage`, `stageStartTime` and `stageDuration` report the opening (`idle`, `waiting`, `playing`, `ended`); `StageContext` lets a shared component (a portrait) hold the opening of the stage it is in. `stageFinished(identity)` resolves when the opening ended or was skipped; ambient motion and a Moment wait for it (M15). A stage that contains another stage uses its own `animationPrefix`: the root-tab entrance (`useRootTabIntro` in `client/rootTabIntro.ts`, keyframes `eimir-motion-root-rise`, once per tab and app start) wraps the Wir opening and never re-pins its members |
 | Enter | `enter.ts`, `motion.css` | `useEnter(identity, { variant, scope, surface, firstReach, choreography, offset, index, step, budget })` returns `{ ref, props, state }`. `props` applies `data-motion-enter` until the entrance ends on its own `animationend` or `animationcancel`, or at its token deadline (M2, M4). Variants: `fade`, `rise`, `surface`, `stage`, `stagger`, `draw`, `media`. Also `staggerDelay(index, step)` |
 | Media reveal | `mediaReveal.ts` | `useMediaReveal(url)` returns `{ shown, fade, ref }`. Also `revealMedia(image, url)`, `isMediaShown(url)`, `mediaRevealMode(url, decodeMs)` |
-| Replace / Exit | `presence.ts`, `departing.ts`, `replace.ts` | `usePresentationPresence` and `useOverlayPresence` (moved from `components/useOverlayPresence.ts`), `useDepartingItems` (moved from `components/useDepartingItems.ts`), `crossfade(element, { from })`, `navigate(element, 'forward' \| 'back' \| 'next' \| 'previous' \| 'in-place', { offset: 'transform' \| 'inset' })`, `navigateTravel`, `valueChange`, `disclose`, `captureLayout` with `reorder` (FLIP), `ScrollState` (hysteresis; `update` and `reset`) |
+| Replace / Exit | `presence.ts`, `departing.ts`, `replace.ts` | `usePresentationPresence` and `useOverlayPresence` (moved from `components/useOverlayPresence.ts`), `useDepartingItems` (moved from `components/useDepartingItems.ts`), `crossfade(element, { from })`, `navigate(element, 'forward' \| 'back' \| 'next' \| 'previous' \| 'in-place', { offset: 'transform' \| 'inset' })`, `navigateTravel`, `valueChange`, `disclose`, `captureLayout(container, key?)` with `reorder(container, before, { key, skip })` (FLIP), `ScrollState` (hysteresis; `update` and `reset`) |
 | Surfaces | `motion.css` | Enter `surface` and Exit `surface-exit` as catalogue keyframes that the owner names on its open and `data-presence="exiting"` states. `eimir-motion-surface-in` and `-out` use the individual `translate` property, so they compose with the owner's own `transform`; their options are `--motion-surface-from`, `--motion-surface-to`, `--motion-surface-from-opacity` and `--motion-surface-to-opacity`. `eimir-motion-backdrop-in` and `-out` change opacity only. Used by `ShortTaskSheet.css`, the header notifications sheet in `shell.css`, the preference modals in `ProfilePage.css` (the scrim is its own `::before` layer), the quick-action popover and the occasions sheet. Presence stays `usePresentationPresence`; the exit releases on its own `animationend` |
 | Shared utilities | `utilities.css` | `.eimir-motion-disclosure` (Enter `shift`), `.eimir-motion-lift` (a hover state transition), `.eimir-motion-success` and `.eimir-motion-pulse` (Feedback `success` and `affection`). The entry imports it where `styles.css` defined them, so they keep their cascade position. The create entry names the catalogue's Enter keyframes, with `--motion-enter-from-opacity` for its soft fade |
 | Feedback | `feedback.ts` | `feedback(element, 'success' \| 'affection' \| 'refuse', { haptic })`. Press and toggle stay CSS state transitions of the component |
@@ -671,8 +778,18 @@ Some values never follow reduced motion, theme or token set:
 | Choreography clock | `choreography.ts` | `choreography(identity, scope)` returns a `Choreography` with `start()`, `timing({ offset, duration })` and `finished()`. `timing` returns `play` with an aligned delay, or `final`. `alignCssAnimations(root, startTime, prefix)` generalizes `wirIntroClock.ts`, which now delegates to it |
 | Budget | `budget.ts` | `screenBudget()` and `ScreenBudget`: `requestEmphasis(duration)`, `reserveElements(count)` (capped at `MAX_ANIMATED_ELEMENTS`, 12), `setInput('drag' \| 'type', active)` |
 | Attention scheduler | `attention.ts` | `attentionScheduler()` and `AttentionScheduler`: `request(kind, { visible, onPreempt })` and `setSheetOpen`. Priority runs `moment` > `arrival` > `enter` > `hint`, with one motion at a time, the same-kind interval, and drop instead of queue |
-| Haptics adapter | `haptics.ts` | `haptic(kind)`, `registerHapticsBackend(backend)`, `hapticsEnabled()` and `setHapticsEnabled()` (device-local), `hapticsAvailable()`. It is a no-op on the Web, and also until the gestures step registers the `@capacitor/haptics` backend |
-| Gesture follow | `gesture/follow.ts`, `gesture/velocity.ts`, `gesture/spring.ts` | `attachGestureFollow(element, { axis, direction, size, threshold, range, committedOffset, canStart, onCommit, onCancel, onDragStart, onDragEnd })`. Also `resolveOwnership`, `rubberBand`, `commitDistance`, `decideRelease`, `VelocityTracker`, `sampleSpring` |
+| Haptics adapter | `haptics.ts`, `hapticsNative.ts` | `haptic(kind)`, `registerHapticsBackend(backend)`, `hapticsEnabled()`, `setHapticsEnabled()` and `subscribeHapticsEnabled()` (device-local), `hapticsAvailable()`. It is a no-op on the Web. `registerNativeHaptics()` (called in `main.tsx`) loads `@capacitor/haptics` with a dynamic import only in the native app and registers `capacitorHapticsBackend(plugin)` |
+| Gesture follow | `gesture/follow.ts`, `gesture/velocity.ts`, `gesture/spring.ts` | `attachGestureFollow(element, { axis, direction, size, threshold, range, committedOffset, canStart, onCommit, onCancel, onDragStart, onDragEnd })`. Also `resolveOwnership`, `rubberBand`, `commitDistance`, `decideRelease`, `VelocityTracker`, `sampleSpring` and `springDuration`, used directly by owners with their own event plumbing (4.6 as built) |
+| Gesture library wrappers | `gesture/dragAndDrop.ts`, `gesture/panzoom.ts` | `dragSettleTiming()`, `sortableTransition()` and `dragFeedbackMotion()` for `@dnd-kit` (token roles, `null` with reduced motion), `dragCommitted(moved)`; `panzoomMotionOptions()` for `@panzoom/panzoom` |
+| Loading spinner | `motion.css`, `utilities.css` | `eimir-motion-loading-spin` and `.eimir-motion-loading-spin` with `--duration-loading-cycle` and `--easing-playback`; absent with reduced motion |
+| Loading shimmer and roll (#2077) | `motion.css`, `utilities.css` | `.eimir-motion-loading-shimmer`: a highlight layer (`::after`) sweeps with `translate` (`eimir-motion-loading-sweep`, two `--duration-loading-cycle`s per sweep, 1600 ms, the previous story shimmer speed). The owner must be a positioned box. `.eimir-motion-loading-roll` rocks a pending mark. Since #2079, `.eimir-motion-loading-skeleton` gives the shared media skeleton the same sweep: paint containment makes the skeleton the containing block of its layer, without changing its own positioning. `.eimir-motion-loading-pulse` (`eimir-motion-loading-pulse`, 1.75 `--duration-loading-cycle`s) pulses the media gallery and video placeholders. `eimir-motion-loading-pan` is removed. All are absent with reduced motion |
+| Content-area entrances (#2077) | `motion.css` | Feature rules name these keyframes on a known state with token roles. Each animates from its first keyframe to the element's own style with the individual `translate`, `scale` and `rotate` properties:<br>• `eimir-motion-enter-travel` (opacity and `--motion-enter-from`);<br>• `-grow` (opacity and `--motion-enter-from-scale`; `--motion-enter-from-opacity` keeps a mark visible);<br>• `-arrive` (both);<br>• `-reach` (a connector grows along its length from `--motion-reach-from`, never its width, M7);<br>• `-swing` (a hung keepsake settles on `--motion-swing-rest`);<br>• `-stamp`;<br>• `-dash` (a path's dash from `--motion-dash-from` and `--motion-dash-from-array` to `--motion-dash-to-array`);<br>• Exit `eimir-motion-exit-leave`;<br>• Ambient `eimir-motion-ambient-sway`;<br>• Feedback `eimir-motion-feedback-fill-hold` (a segment keeps a clear fill while the shared indicator slides under it) |
+| Moment catalogue (#2077) | `moments.css` | The receipt choreography (`eimir-motion-moment-gesture-*`) and the notification glyph beats (`eimir-motion-notice-*`). Imported by `PartnerGestureReceipt.tsx` and `NotificationMotion.tsx`, so it loads only with them (4.7 as built) |
+| Map domain catalogue (#2078) | `map.css` | The partner connection's glow travel (`eimir-motion-map-connection-travel`, the Map domain's `offset-distance` exception in M6) and the nearby heartbeat (`eimir-motion-map-connection-beat`). Imported by `PlaceMapCanvas.tsx`, so it loads only with the map. The camera and gestures stay MapLibre's; their durations and the reduced-motion preference come from `durationMs()` and `prefersReducedMotion()` (4.8 as built) |
+| Scene controller (#2079) | `scene.ts`, `scenes.css` | `useScene(ref, { active, onScreen })` returns `{ playing, visible, props }`; `props` sets `data-motion-scene` (`playing` or `paused`) on the scene root, and `scenes.css` pauses every CSS animation inside a paused scene in place. Also `scenePlays()` and `usePageVisible()` (4.8 as built) |
+| Ambient rest (#2079) | `ambientRest.ts` | `useAmbientRest(ref, enabled)`, moved from `client/useAmbientRest.ts`: the decorative scene's visible-time budget (`durationMs('ambient-rest')`); it rests off screen and while the page or its kept view is hidden |
+| Playback and Scenes catalogues (#2079) | `playback.css`, `story-playback.css`, `garden.css`, `games.css`, `game-scenes.css` | The bounded domains' keyframes, moved unchanged and named `eimir-motion-<former name>`. Each is imported by its owners, so a lazy route loads only its own (4.8 as built) |
+| Content-area additions (#2079) | `motion.css` | Enter `eimir-motion-enter-unfold` (the couple experience note) and Feedback `eimir-motion-feedback-glow` (the first-content glow, 4.3 as built). The other remaining content entrances use the existing Enter `fade`, `travel`, `arrive`, `grow` and `reach` with their option properties |
 
 **Velocity estimator (tuned in #2073).** The gesture test (#2071) measured the finger as its travel from the first pointer sample within the 100 ms before the release up to the release. Its tracker read about 20 % high because it ignored the release:
 - it measured from the newest move back to the first sample at least 100 ms older, which in a short flick is the press origin;
@@ -694,23 +811,31 @@ Unit tests on pointer traces stay within ±5 % on:
 
 The sampled settle spring is used everywhere. `linear()` easing (Chromium 113 and later) remains an optional later optimization.
 
-**Guard.** `web/scripts/check-motion-layer.mjs` runs in `npm test` and `npm run build`. Outside `web/src/motion/` it counts:
+**Guard.** `web/scripts/check-motion-layer.mjs` (`npm run motion:check`) runs in `npm test` and `npm run build`. Since #2080 it is closed: there is no allowlist. Outside `web/src/motion/` (tests excluded) it fails on:
 - `@keyframes`;
 - `.animate(`;
-- `infinite` in animation declarations;
+- `infinite` in animation declarations, and `iterations: Infinity`;
 - layout properties in keyframes;
-- `cubic-bezier(` and non-zero literal durations in animation declarations.
+- `cubic-bezier(` and non-zero literal durations in animation declarations;
+- a layout property, or `all`, in a `transition` or `transition-property` declaration;
+- a `pointermove`, `touchmove` or `mousemove` listener or React handler.
 
-The ratchet allowlist `web/scripts/motion-layer-allowlist.json` records the per-file counts on `main` at `5528a2dbe`. It lists 66 CSS files and 8 TypeScript files:
-- the CSS files are the 65 with keyframes, plus `story-media.css` with one `infinite` loop;
-- the TypeScript count is after `flightKit.ts` and `useDepartingItems.ts` moved into the layer.
+Three of these rules have reviewed registrations in the script, each with its use and its exact count per file. A registered file must keep exactly its count, so a new use needs a reviewed registration and a removed one must be unregistered:
 
-After step 4 (#2075) it lists 55 CSS files and 4 TypeScript files.
+| Registration | Rule | Files | Uses |
+| --- | --- | ---: | ---: |
+| `REGISTERED_LOOPS` | `infinite`: the Scenes domain's playfields (4.8, M8) | 6 | 26 |
+| `REGISTERED_LAYOUT_TRANSITIONS` | layout transitions: the sanctioned `disclose` uses (4.2) | 6 | 8 |
+| `REGISTERED_POINTER_TRACKING` | pointer tracking: the Gesture follow owners (`gesture`, 4.6) and pointer input that moves nothing by itself (`input`: a cancelled press, a long-press slop, scroll intent, a drawn stroke, a scrubbed selection, the photo editor's handles) | 11 | 17 |
 
-The ratchet rules:
-- a count may only fall;
-- a file that reaches zero must leave the list (`node scripts/check-motion-layer.mjs --shrink`);
-- the number of listed files may not exceed that baseline.
+The guard also rejects the animation libraries `motion`, `framer-motion`, `motion-plus*`, `gsap` and `animejs` in `web/package.json`, in `web/package-lock.json` (also as a transitive package) and as imports anywhere in `web/src`, unless a new decision in this contract allows one (6.6; Product Owner decision 2026-11-19).
+
+The rule "no `scale` keyframes on thin strokes" (M7) is not checked mechanically: no keyframes exist outside the layer, and no markup marks an element as a thin stroke. The catalogue keyframes inside the layer are reviewed against M7 with the review checklist (section 9).
+
+**The ratchet during the migration.** From #2073 to #2079 the guard had a ratchet allowlist, `web/scripts/motion-layer-allowlist.json`, with the per-file counts on `main` at `5528a2dbe`: 66 CSS files and 8 TypeScript files. A count could only fall, a file that reached zero left the list, and the number of listed files could not exceed that baseline. After step 4 (#2075) it listed 55 CSS and 4 TypeScript files, after step 5 (#2076) 54 and 2, after step 6 (#2077) 27 and 1, after step 7 (#2078) 26 and 1, and after step 8 (#2079) none. #2080 removed the file.
+
+**Loading note (#2077, closed in #2079).** The shared media skeleton (`.story-media-skeleton` in `story-media.css`) panned its gradient with `background-position` (`eimir-motion-loading-pan`), the last Loading use of a non-compositor property. Since #2079 it keeps a calm fill, and while it loads its owner adds `.eimir-motion-loading-skeleton`, which sweeps a highlight layer with `translate`. `contain: paint` gives the layer its containing block and clips it, so none of the more than thirty media frames had to change how they position the skeleton. A deferred skeleton (#2070) keeps only the fill.
+
 
 ## 6. Library decision
 
@@ -926,6 +1051,22 @@ Not in this list:
 
 The map step fixes both. Each animated camera call reads `--duration-map-camera` with its own `getComputedStyle` parser; these readers move to the token adapter (M1).
 
+Done in #2078 (4.8 as built). The line numbers above are the inventory baseline. The ten calls keep their triggers, and "show us" is now registered as the one running camera transition, so the finger stops it like a Place journey.
+
+### 7.6 Inventory after the migration (#2080)
+
+Measured by the guard on `main` at `23e556cb7` plus #2080.
+
+| Measure | In the layer (`web/src/motion/`) | Outside the layer |
+| --- | ---: | ---: |
+| `@keyframes` | 181 in 9 stylesheets | 0 |
+| `Element.animate()` calls | 4 (`run.ts` once, `flight.ts` three times) | 0 |
+| `infinite` loops | 5 (Loading, `utilities.css`) | 26 registered Scenes loops in 6 files |
+| Layout properties in keyframes | 0 | 0 |
+| Layout transitions | 0 | 8 registered `disclose` uses in 6 files |
+| Pointer tracking | 1 (`gesture/follow.ts`) | 17 registered in 11 files |
+| Animation-library dependencies | 0 | 0 |
+
 ## 8. Migration plan
 
 Each step is its own issue and pull request. Draft issue texts for steps 2 to 9 are in the description of the pull request that adds this contract. Every user-facing step follows the visual-reference, Mobile Interaction Contract and visual-evidence gates in `AGENTS.md`. Approved product motion is preserved unless the Product Owner decides otherwise.
@@ -953,12 +1094,29 @@ Each step is its own issue and pull request. Draft issue texts for steps 2 to 9 
    - Wrap `@dnd-kit` and `@panzoom/panzoom`.
    - Check the non-gesture alternative of every gesture.
    - Haptics (approved 2026-11-19): adopt `@capacitor/haptics` 8.x (MIT), record it in `docs/DEPENDENCIES.md`, connect the haptics adapter to the triggers in [4.10](#410-haptics), add the in-app on/off switch (native app only, localized, device-local), and run device acceptance on an Android test release: system vibration settings, Do Not Disturb, and how the light impacts feel.
+   - Done in #2076, except the device acceptance on an Android test release, which is open. See "As built" in [4.6](#46-gesture-follow-direct-manipulation) and [4.10](#410-haptics). `shell.css`, `useNavigationMotion.ts` and `ListEntryActions.tsx` left the allowlist.
 6. **Content areas.** Today/Momente/Story, Planning, shared content pages, notifications, composer, insights, wishes, people and settings, login and startup, paywall, map connection, the Moments (gesture receipt, connected moment, achievement, once messages), and the remaining `disclose` uses.
+   - Done in #2077. The feature keyframes moved to the catalogue (5.4), and the Moments run through `startMoment()` (4.7 as built). The `disclose` uses were checked (4.2), and the map connection was checked against M7 (4.8). 28 files left the allowlist (5.4).
+   - Visible changes, each for a rule:
+     - The Planen search settles onto its status row with opacity and a short vertical translate instead of a `clip-path` reveal (M6). It does not travel sideways, because the field spans the row and would widen the page.
+     - The Polaroid "develop" fades the photo in from a faint print instead of animating `filter` (M6).
+     - The handmade sway runs on the layer's Ambient `sway` around the rest pose: it pauses while hidden and continues where it paused (M4, M8).
+     - The receipt ripple is a soft halo (M7).
+     - Lifeline rows stagger with `--duration-stagger-item` within the cap.
+     - The plan cover shimmer sweeps a highlight layer with `translate`.
 7. **Map.**
    - Apply the Map domain rules (4.8) to `PlaceMapCanvas.tsx` and its users: camera reads through the token adapter, the zoom buttons with `--duration-transition` and a jump under reduced motion, no pan inertia under reduced motion, and the open, return and resize rules.
    - Move the map keyframes (`PlaceMapPicker.css` connection, `MemoryMapPage.css` photo stack) into the catalogue's Map section.
    - Device acceptance: Momente › Karte, opening, returning to the kept tab, selecting a Place, "show us", pinch, light/dark, and fold/unfold on the Pixel 10 Pro Fold.
+   - Done in #2078, except the device acceptance on the Pixel 10 Pro Fold, which is open. See "As built" in [4.8](#48-bounded-domains-loading-playback-scenes-map). `PlaceMapPicker.css` left the allowlist. There are no `MemoryMapPage.css` keyframes: the photo stack is a `--duration-map-stack` transition.
 8. **Bounded domains.** Recap film, story playback, garden and games adopt the token adapter, reduced-motion source and visibility controller. Their keyframes move into the CSS catalogue's domain sections.
+   - Done in #2079, except the device acceptance on the Pixel, which is open. See "As built (#2079)" in [4.8](#48-bounded-domains-loading-playback-scenes-map). The allowlist is empty (5.4): the Playback and Scenes keyframes and the last content-area keyframes moved into the layer, and the Scenes loops are registered by domain.
+   - Visible changes, each for a rule:
+     - The garden, its Wir preview and the remote games' waiting dot pause while the page, the kept view or the scene itself is hidden, and continue where they paused (M4, M8).
+     - The media skeleton's shimmer sweeps a highlight layer instead of panning its gradient (M6).
+     - The media gallery placeholder pulses on token roles (1.4 s, as before).
+     - The recap lead opens with a fade at full height. It still closes with a row transition (4.2).
+     - The Picture Ping-Pong flight travels with `translate` (M6).
 9. **Close the guard.** The allowlist is empty. The guard rejects:
    - `@keyframes` and `.animate()` outside the motion layer;
    - `infinite` outside the registered domains;
@@ -967,6 +1125,13 @@ Each step is its own issue and pull request. Draft issue texts for steps 2 to 9 
    - `cubic-bezier(` and literal durations in animation declarations;
    - `pointermove`/`touchmove` handlers outside the layer and the wrapped gesture components;
    - an animation library dependency (`motion`, `framer-motion`, `motion-plus*`, `gsap`, `animejs`) without a new decision in this contract.
+   - Done in #2080. The allowlist file is removed, and the guard rules, registrations and limits are in 5.4; the final inventory is in 7.6. `CONTRIBUTING.md` describes the guard for contributors. The thin-stroke rule stays a review rule (5.4).
+   - The new layout-transition rule found three uses outside the sanctioned `disclose` list. Two moved onto compositor properties without a visible change, and one was a too-broad declaration:
+     - the Planen segmented control's active mark slides with `translate` by whole segments instead of `left` and `width` (M6);
+     - the Herzversteck warmth meter fills with `scale` along its track instead of `width`, like the story progress segments (M6);
+     - the private-area navigation in the vault theme transitions its colours, border and shadow instead of `all` (Feedback, M6).
+   - The Planen search row's `margin-top` is registered as a `disclose` use (4.2). The lifeline preview card swipe is a registered gesture owner that is not yet on the building block (4.6); moving it is a follow-up.
+   - With this step the migration is code-complete. The device acceptance of steps 5 to 8 on the Pixel stays open in their issues.
 
 ## 9. Review checklist addition
 
@@ -979,12 +1144,19 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 - for ambient motion: the finite repeat and the pause conditions (M8);
 - for gestures: the commit/cancel thresholds, the release handoff, interruption, and the non-gesture alternative (4.6);
 - for unprompted motion: its priority and rate limit (4.9);
-- whether the screen's budget and choreography clock are kept (M15), and any haptics (4.10).
+- whether the screen's budget and choreography clock are kept (M15), and any haptics (4.10);
+- that `npm run motion:check` passes, and the reason for any change to a guard registration (5.4).
 
 ## 10. Changelog
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 1.9 | 2026-11-21 | Wir opening on one clock (#2147):<br>• Enter `stage` gains the data hold, the opening budget, late `data-motion-join` members and a wider `scope` (4.1, 5.4);<br>• the tokens `motion.stage.dataHold` and `motion.stage.openingBudget` (5.3);<br>• on Wir the check-in, the place, the quote, the photos and the modules in view are members of the one opening; the root-tab entrance no longer runs beside it; data after the opening is simply there;<br>• the partner's check-in arrival (Flight) waits until the opening ended (M15). |
+| 1.8 | 2026-11-20 | Guard closed (#2080):<br>• the ratchet allowlist removed; the guard rejects ad-hoc motion everywhere outside the layer (M14, 5.4);<br>• new guard rules for layout transitions, pointer tracking and animation-library dependencies, with the reviewed registrations `REGISTERED_LOOPS`, `REGISTERED_LAYOUT_TRANSITIONS` and `REGISTERED_POINTER_TRACKING` (5.4);<br>• the Planen search row `disclose` check (4.2) and the lifeline preview card swipe recorded as a gesture owner not yet on the building block (4.6);<br>• the segmented mark, the Herzversteck meter and the vault navigation on compositor or Feedback properties (8);<br>• the thin-stroke rule kept as a review rule (5.4, 9);<br>• the final inventory (7.6) and step 9 done (8). |
+| 1.7 | 2026-11-20 | Playback and Scenes (#2079):<br>• the Playback and Scenes domains as built (4.8): story playback and the recap film on the one reduced-motion source, the scene controller `useScene` with `data-motion-scene`, `useAmbientRest` in the layer, and the domain catalogues (5.4);<br>• the registered Scenes loops in the guard instead of the ratchet;<br>• the media skeleton on the Loading sweep and the gallery placeholder on the Loading pulse (5.4);<br>• the recap lead `disclose` check (4.2) and the first-content glow exception (4.3);<br>• the allowlist empty after step 8 (5.4, 8). |
+| 1.6 | 2026-11-20 | Map (#2078):<br>• the Map domain as built (4.8): camera and zoom-button durations through the token adapter, reduced motion from the one source, no pan inertia with reduced motion, zoom buttons with `--duration-transition`, "show us" as the one running camera transition, and the locale change keeping the viewer's camera;<br>• the connection pauses and resumes on the visibility controller instead of restarting;<br>• the Map domain catalogue `map.css` (5.4);<br>• the allowlist after step 7 (5.4, 8). |
+| 1.5 | 2026-11-20 | Content areas (#2077):<br>• Product Owner decision recorded: with reduced motion the primary-tab pager pages stay still while the swipe still commits at once, a deliberate exception to the Gesture follow tracking rule (4.6; #2076, #2095);<br>• the content-area entrances, the Exit `leave`, the Ambient `sway`, the Feedback `fill-hold`, the Loading shimmer, roll and pan, and the Moment catalogue `moments.css` (5.4);<br>• the received gesture and the connected moment on `startMoment()`, the receipt ripple as a soft halo (4.7 as built);<br>• the `disclose` checks for the waymarks, the overview cache notice and the photo editor (4.2);<br>• the content-area haptics (4.10);<br>• the allowlist after step 6 (5.4, 8). |
+| 1.4 | 2026-11-20 | Gestures and haptics (#2076):<br>• the tab pager, sheet dismissal, pull to refresh and list reorder on the Gesture follow rules, with the velocity handoff and interruption (4.6 as built);<br>• `@dnd-kit` and `@panzoom/panzoom` wrapped (5.4);<br>• `@capacitor/haptics` 8.0.2 registered in the native app, the triggers wired and the native-only switch added (4.10);<br>• the Loading spinner and `--duration-loading-cycle` (5.4);<br>• `reorder` takes a `key` and a `skip`;<br>• the allowlist after step 5 (5.4, 8). |
 | 1.3 | 2026-11-20 | Shell, overlays and navigation (#2075):<br>• the `navigate` mapping of the app shell and its one sanctioned `left` offset for the routed page (4.2, M6), with `navigate(…, { offset })`, `navigateTravel` and `crossfade(…, { from })` (5.4);<br>• the root-tab entrance as an Enter `stage` with its own `animationPrefix` (5.4);<br>• the surface and backdrop catalogue keyframes and the shared utility classes (5.4);<br>• `ScrollState.reset` for the floating create tuck;<br>• the allowlist after step 4 (5.4, 8). |
 | 1.2 | 2026-11-20 | Wir as the reference surface (#2074):<br>• Enter `stage` as built: `useStage` in `stage.ts`, the `eimir-motion-stage-*` catalogue keyframes and the stage's own clock (5.4);<br>• `run()` and `ambient()` take `pseudoElement`, and `ambient()` takes `delay`, for the ring breath on the decorative `::before` ring;<br>• `animateFlight()` and `flightEnded()` in `flight.ts` for Flight ghosts;<br>• the Enter `shift` and `pop` keyframes, the Replace `crossfade` and `value` keyframes, and the Feedback `pop`, `land` and `wiggle` keyframes in the catalogue;<br>• the important-day Moment built (`wirImportantDay.ts`, #2072);<br>• Wir files removed from the ratchet allowlist. |
 | 1.1 | 2026-11-20 | Building blocks (#2073):<br>• the layer in `web/src/motion/` with the final API names (5.4);<br>• the stagger, gesture, spring and attention tokens (5.3);<br>• the 30 s attention interval confirmed (4.9);<br>• the tuned velocity estimator and the ratchet guard (5.4);<br>• the layout-keyframe count corrected (7.1). |

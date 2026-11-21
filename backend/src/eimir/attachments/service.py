@@ -32,6 +32,7 @@ from eimir.attachments.models import (
     MediaType,
     PhotoLocationDraft,
 )
+from eimir.attachments.quota import require_fit, space_storage
 from eimir.authorization import (
     AuthorizationContext,
     PrivacyClass,
@@ -204,6 +205,11 @@ def create_upload(
             "The attachment exceeds the size limit.",
             ErrorCode.ATTACHMENT_TOO_LARGE,
         )
+    # On Cloud the declared size must fit the Space's storage quota (#2141);
+    # the row reserves it until the file is finished, fails or is deleted.
+    # Measured and added under the Space's storage lock, so two uploads that
+    # each fit cannot together exceed it. Self-Hosted is unmetered.
+    require_fit(space_storage(session, context.space_id, lock=True), expected_size)
 
     attachment = Attachment(
         space_id=context.space_id,
@@ -248,6 +254,15 @@ def open_upload(
     return attachment, rule
 
 
+def upload_limit(attachment: Attachment, rule: MediaRule) -> int:
+    """The most bytes this upload may store: its declared size, within the type's limit.
+
+    The declared size is what the Space's storage quota reserved (#2141), so a
+    client cannot reserve little and then send more.
+    """
+    return min(rule.max_size, attachment.declared_size)
+
+
 def too_large() -> PayloadTooLargeError:
     return PayloadTooLargeError(
         "The attachment exceeds the size limit.",
@@ -266,12 +281,13 @@ def complete_upload(
     The size limit is already applied while reading; it is checked again here
     so another caller cannot bypass the request-layer boundary.
     """
-    if isinstance(data, bytes) and len(data) > rule.max_size:
+    limit = upload_limit(attachment, rule)
+    if isinstance(data, bytes) and len(data) > limit:
         raise too_large()
     source = io.BytesIO(data) if isinstance(data, bytes) else data
     try:
         get_media_store().put(
-            storage_key_for(attachment), BoundedSource(source, rule.max_size), rule.mime_type
+            storage_key_for(attachment), BoundedSource(source, limit), rule.mime_type
         )
     except ByteLimitExceededError:
         raise too_large() from None
@@ -592,7 +608,9 @@ def validate(session: Session, attachment_id: UUID) -> None:
         _fail(attachment, ErrorCode.ATTACHMENT_VALIDATION_FAILED)
         return
 
-    if len(raw) > rule.max_size:
+    # An object larger than declared never becomes READY: the declared size is
+    # what the storage quota reserved, also for a direct provider upload (#2141).
+    if len(raw) > upload_limit(attachment, rule):
         _fail(attachment, ErrorCode.ATTACHMENT_TOO_LARGE)
         return
 

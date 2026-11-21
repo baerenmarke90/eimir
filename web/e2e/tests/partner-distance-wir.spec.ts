@@ -598,7 +598,10 @@ test('both sharing: the map connects the two avatars by distance', async ({
   const glow = connection(page).locator(
     '.place-map-connection-glow:not(.is-trail)',
   );
-  await expect(glow).toHaveCSS('animation-name', 'place-map-connection-travel');
+  await expect(glow).toHaveCSS(
+    'animation-name',
+    'eimir-motion-map-connection-travel',
+  );
   await expect(glow).toHaveCSS('animation-duration', '6s');
   await expect(glow).toHaveCSS('animation-iteration-count', '3');
   await expect(

@@ -7,15 +7,15 @@ from types import SimpleNamespace
 
 import pytest
 
-from eimir.daily_checkins import weekly_review
-from eimir.daily_checkins.insights import (
+from eimir.daily_checkins.models import RecommendationKey
+from eimir.daily_checkins.service import PartnerDimensionProjection, PartnerRevealState
+from eimir.daily_insights import weekly_review
+from eimir.daily_insights.insights import (
     DailyInsightDayEntry,
     DailyInsightsResult,
     DailyInsightSummary,
 )
-from eimir.daily_checkins.models import RecommendationKey
-from eimir.daily_checkins.service import PartnerDimensionProjection, PartnerRevealState
-from eimir.daily_checkins.weekly_patterns import ObservationKind, observations, paired_energy
+from eimir.daily_insights.weekly_patterns import ObservationKind, observations, paired_energy
 
 
 def projection(weeks: int = 8, *, hidden: bool = False) -> DailyInsightsResult:

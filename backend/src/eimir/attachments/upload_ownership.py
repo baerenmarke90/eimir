@@ -54,6 +54,8 @@ class UploadClaim:
     rule: MediaRule
     lease_until: datetime
     expires_at: datetime
+    max_bytes: int
+    """The most bytes this upload may send: its declared size, within the type's limit."""
 
 
 @contextmanager
@@ -177,6 +179,7 @@ def claim_upload(
             rule=rule,
             lease_until=lease_until,
             expires_at=expires_at,
+            max_bytes=service.upload_limit(locked, rule),
         )
 
 

@@ -78,6 +78,7 @@ import { useTaskListReturn } from '../client/useTaskListReturn';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CoupleExperienceLinks } from './CoupleExperienceLinks';
 import { FirstStepAction } from './FirstStepAction';
+import { useKeepsakeSway } from './useKeepsakeSway';
 import './FirstContentSettle.css';
 import { DiaryChapterPeriods } from './DiaryChapterPeriods';
 import { DiscoverStory } from './DiscoverStory';
@@ -108,6 +109,8 @@ import { groupDiaryEntries } from '../client/diaryEntries';
 import { DiaryList } from './DiaryList';
 import './StoryTaskFilters.css';
 import './StoryYearsPage.css';
+import type { MemoryMapSession } from '../client/memoryMapSession';
+import { parseMapPlace } from '../client/photoPlaces';
 import {
   formatStoryDate,
   resolveStoryKindLabel,
@@ -147,6 +150,7 @@ export function StoryProductPage({
   dashboardApi,
   recapsApi,
   startupReads,
+  mapSession,
 }: {
   apis: ReferenceApis;
   accountId: string;
@@ -160,6 +164,8 @@ export function StoryProductPage({
   dashboardApi?: DashboardApi;
   recapsApi?: RecapsApi;
   startupReads?: Extract<StoryStartupReads, { kind: 'diary' }>;
+  /** The map's session memory: the Karte segment reopens its Place. */
+  mapSession?: MemoryMapSession;
 }) {
   const rootIntro = useRootTabIntro<HTMLDivElement>('story');
   const { t } = useTranslation();
@@ -376,7 +382,13 @@ export function StoryProductPage({
   function setView(view: StoryView) {
     if (view === 'map') {
       const taskOriginKey = captureOrigin();
-      const retainedFilters = storyFiltersToSearch(filters).toString();
+      const retained = storyFiltersToSearch(filters);
+      // The segment returns to the Place the couple last selected on the map
+      // (Product Owner decision 2026-11-20, #2078).
+      const keptPlace = mapSession?.place;
+      if (keptPlace && parseMapPlace(keptPlace))
+        retained.set('place', keptPlace);
+      const retainedFilters = retained.toString();
       void navigate(
         `${MEMORY_MAP_ROUTE}${retainedFilters ? `?${retainedFilters}` : ''}`,
         { state: { taskOriginKey, focusStoryView: true } },
@@ -554,6 +566,12 @@ export function StoryProductPage({
     ? storyItemPresentation(featuredItem, t, nicknameFor)
     : null;
   const _featuredAuthor = featuredItem ? storyItemAuthor(featuredItem) : null;
+  const featuredTone = featuredItem
+    ? storyEntryTone(featuredItem, Boolean(featuredMedia))
+    : undefined;
+  const featuredSwayRef = useKeepsakeSway<HTMLAnchorElement>(
+    diaryLayout === 'album' && featuredTone === 'playful',
+  );
   const onThisDayKicker =
     leadContext?.type === 'ON_THIS_DAY' && sameSelectionDay;
   // #1790 C2: varying wording instead of a bare date as the title. A heart
@@ -775,13 +793,14 @@ export function StoryProductPage({
             {featuredItem && featuredPresentation ? (
               <article
                 className="momente-hero-highlight"
-                data-tone={storyEntryTone(featuredItem, Boolean(featuredMedia))}
+                data-tone={featuredTone}
                 data-photo-shape={
                   featuredMedia ? photoShape(featuredMedia) : undefined
                 }
                 data-color-world={featuredMedia ? undefined : 'warm'}
               >
                 <Link
+                  ref={featuredSwayRef}
                   to={featuredPath}
                   className={`momente-hero-link ${featuredMedia ? 'has-media' : ''}`}
                   aria-label={`${t('story.featuredHighlight')}: ${featuredHeadline}`}

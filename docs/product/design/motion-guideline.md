@@ -195,6 +195,10 @@ The audit found useful primitives that new work should reuse rather than duplica
 - `.eimir-motion-disclosure`: transform-only local reveal for content opened by a known control or local state transition; never a route/page/section/query-result mount effect.
 - `.eimir-motion-success`: concise one-shot feedback for confirmed successful results; never pending, failed or neutral states.
 - Motion layer (`web/src/motion/`, Motion Contract 5.4): sheets, dialogs and popovers name its `eimir-motion-surface-*` and `eimir-motion-backdrop-*` keyframes (#2075); the shared utility classes above live in `motion/utilities.css`.
+  - Content areas (#2077) name its Enter, Exit, Ambient and Feedback keyframes with token roles.
+  - Placeholders use `.eimir-motion-loading-shimmer`.
+  - The approved receipt choreography and the notification glyph beats live in `motion/moments.css`. The received gesture and the connected moment play through `startMoment()`, once per item.
+  - The hung Polaroids (Wir rediscovery, Momente) swing in once and then sway a few times on the layer's Ambient `sway` (`useKeepsakeSway`); the sway pauses while hidden. Their photo "develops" as an opacity fade from a faint print.
 - `useNavigationMotion`: the shell's route entrance on the motion layer (Replace `navigate`, Motion Contract 4.2). Primary tabs move in tab order, Back comes in from the inline start, a deeper page from the inline end, and anything else only fades. Only the routed page's `left` offset moves (at most 32 CSS px), so fixed controls stay fixed and restored scroll positions keep their coordinates. Root tabs rise once per tab and app start (`useRootTabIntro`) and never replay on return.
 - `ChecklistToggle`: tokenized local completion feedback.
 - `SharedAchievementCelebration`: existing shared-completion presentation.

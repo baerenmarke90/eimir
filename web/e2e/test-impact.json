@@ -118,6 +118,7 @@
         "web/src/components/LegalDocumentPage.tsx",
         "web/src/components/LegalDocumentView.tsx",
         "web/src/components/LegalDocumentLink.tsx",
+        "web/src/components/LegalDocumentContent.tsx",
         "web/src/components/MoreOverviewPage.tsx"
       ]
     },
@@ -350,6 +351,14 @@
     },
     "milestone-delete-ownership.spec.ts": {
       "roots": ["web/src/components/MilestoneProductPage.tsx"]
+    },
+    "deferred-prefetch.spec.ts": {
+      "roots": [
+        "web/src/deferredModules.tsx",
+        "web/src/components/AppShell.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/LegalDocumentText.tsx"
+      ]
     },
     "mobile-header-more.spec.ts": {
       "roots": [
@@ -1308,7 +1317,8 @@
         "web/src/components/MemoryMapPage.tsx",
         "web/src/components/MemoryMapMemories.tsx",
         "web/src/components/PlaceMapCanvas.tsx",
-        "web/src/components/MemoryProductPage.tsx"
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/StoryProductPage.tsx"
       ]
     },
     "partner-location-settings.spec.ts": {
@@ -1319,6 +1329,14 @@
         "web/src/components/PartnerLocationSync.tsx",
         "web/src/components/SettingsPage.tsx",
         "web/src/components/DevicePushOnboarding.tsx"
+      ]
+    },
+    "wir-opening-timeline.spec.ts": {
+      "roots": [
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/PrimaryTabPanels.tsx",
+        "web/src/components/PartnerLocationSync.tsx"
       ]
     },
     "partner-distance-wir.spec.ts": {

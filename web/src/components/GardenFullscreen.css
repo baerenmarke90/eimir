@@ -133,15 +133,8 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .garden-fullscreen-pan {
-    animation: garden-fullscreen-hint var(--duration-transition)
+    animation: eimir-motion-garden-fullscreen-hint var(--duration-transition)
       var(--easing-enter);
-  }
-}
-
-@keyframes garden-fullscreen-hint {
-  from {
-    opacity: 0;
-    translate: 0 0.5rem;
   }
 }
 

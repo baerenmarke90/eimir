@@ -271,7 +271,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  animation: garden-unfold var(--duration-context) var(--easing-standard) both;
+  animation: eimir-motion-garden-unfold var(--duration-context)
+    var(--easing-standard) both;
   transform-origin: 50% 0;
 }
 
@@ -297,7 +298,8 @@
   box-shadow: inset 3px 0 0 var(--person-accent);
   color: var(--color-text) !important;
   font-family: var(--font-display);
-  animation: garden-unfold var(--duration-context) var(--easing-standard) both;
+  animation: eimir-motion-garden-unfold var(--duration-context)
+    var(--easing-standard) both;
   transform-origin: 50% 0;
 }
 
@@ -357,52 +359,52 @@
 }
 
 .garden-scene.is-lively .garden-tuft {
-  animation: garden-breeze calc(var(--duration-connection-travel) * 1.5)
-    var(--easing-travel) infinite;
+  animation: eimir-motion-garden-breeze
+    calc(var(--duration-connection-travel) * 1.5) var(--easing-travel) infinite;
   animation-delay: var(--garden-breeze);
 }
 
 .garden-scene.is-lively .garden-sway {
-  animation: garden-breeze-plant calc(var(--duration-connection-travel) * 2)
-    var(--easing-travel) infinite;
+  animation: eimir-motion-garden-breeze-plant
+    calc(var(--duration-connection-travel) * 2) var(--easing-travel) infinite;
   animation-delay: var(--garden-breeze);
 }
 
 .garden-scene.is-lively .garden-drift {
-  animation: garden-drift var(--garden-drift-duration) var(--easing-travel)
-    infinite alternate;
+  animation: eimir-motion-garden-drift var(--garden-drift-duration)
+    var(--easing-travel) infinite alternate;
   animation-delay: var(--garden-drift-delay);
 }
 
 .garden-scene.is-lively .garden-star {
-  animation: garden-twinkle var(--duration-connection-travel)
+  animation: eimir-motion-garden-twinkle var(--duration-connection-travel)
     var(--easing-travel) infinite alternate;
   animation-delay: var(--garden-delay);
 }
 
 .garden-scene.is-gusting .garden-tuft {
-  animation: garden-gust var(--duration-gesture-sequence) var(--easing-travel)
-    both;
+  animation: eimir-motion-garden-gust var(--duration-gesture-sequence)
+    var(--easing-travel) both;
   animation-delay: var(--garden-wave);
 }
 
 .garden-scene.is-gusting .garden-sway {
-  animation: garden-gust-plant calc(var(--duration-gesture-sequence) * 1.05)
-    var(--easing-travel) both;
+  animation: eimir-motion-garden-gust-plant
+    calc(var(--duration-gesture-sequence) * 1.05) var(--easing-travel) both;
   animation-delay: calc(var(--garden-wave) + var(--duration-feedback));
 }
 
 .garden-scene.is-celebrating .garden-rays {
   transform-box: fill-box;
   transform-origin: center;
-  animation: garden-rays calc(var(--duration-gesture-sequence) * 1.45)
-    var(--easing-enter) both;
+  animation: eimir-motion-garden-rays
+    calc(var(--duration-gesture-sequence) * 1.45) var(--easing-enter) both;
 }
 
 .garden-pop {
   transform-box: fill-box;
   transform-origin: var(--garden-origin, 50% 50%);
-  animation: garden-pop calc(var(--duration-gesture-moment) * 0.58)
+  animation: eimir-motion-garden-pop calc(var(--duration-gesture-moment) * 0.58)
     var(--easing-standard) both;
   animation-delay: var(--garden-delay);
 }
@@ -410,49 +412,50 @@
 .garden-open {
   transform-box: fill-box;
   transform-origin: center;
-  animation: garden-open var(--duration-connection-draw) var(--easing-standard)
-    var(--duration-context) both;
+  animation: eimir-motion-garden-open var(--duration-connection-draw)
+    var(--easing-standard) var(--duration-context) both;
 }
 
 .garden-stretch {
   transform-box: fill-box;
   transform-origin: 50% 100%;
-  animation: garden-stretch var(--duration-gesture-moment)
+  animation: eimir-motion-garden-stretch var(--duration-gesture-moment)
     var(--easing-standard) both;
 }
 
 .garden-draw {
   stroke-dasharray: 1;
-  animation: garden-draw var(--duration-connection-draw) var(--easing-enter)
-    both;
+  animation: eimir-motion-garden-draw var(--duration-connection-draw)
+    var(--easing-enter) both;
 }
 
 .garden-drop {
-  animation: garden-drop calc(var(--duration-gesture-moment) * 0.62)
-    var(--easing-exit) both;
+  animation: eimir-motion-garden-drop
+    calc(var(--duration-gesture-moment) * 0.62) var(--easing-exit) both;
 }
 
 .garden-puff {
   transform-box: fill-box;
-  animation: garden-puff calc(var(--duration-gesture-moment) * 0.7)
+  animation: eimir-motion-garden-puff calc(var(--duration-gesture-moment) * 0.7)
     var(--easing-enter) calc(var(--duration-gesture-moment) * 0.6) both;
 }
 
 .garden-pollen {
   transform-box: fill-box;
-  animation: garden-pollen calc(var(--duration-gesture-sequence) * 1.33)
-    var(--easing-enter) both;
+  animation: eimir-motion-garden-pollen
+    calc(var(--duration-gesture-sequence) * 1.33) var(--easing-enter) both;
   animation-delay: var(--garden-delay);
 }
 
 .garden-butterfly {
-  animation: garden-butterfly var(--duration-connection-travel-far)
+  animation: eimir-motion-garden-butterfly var(--duration-connection-travel-far)
     var(--easing-playback) var(--duration-connection-draw) both;
 }
 
 .garden-butterfly-wobble {
-  animation: garden-wobble calc(var(--duration-gesture-moment) * 1.33)
-    var(--easing-travel) infinite alternate;
+  animation: eimir-motion-garden-wobble
+    calc(var(--duration-gesture-moment) * 1.33) var(--easing-travel) infinite
+    alternate;
 }
 
 .garden-flap,
@@ -462,244 +465,18 @@
 }
 
 .garden-flap {
-  animation: garden-flap calc(var(--duration-sequence-beat) * 1.1)
+  animation: eimir-motion-garden-flap calc(var(--duration-sequence-beat) * 1.1)
     var(--easing-travel) infinite alternate;
 }
 
 .garden-flap-y {
   transform-origin: 50% 100%;
-  animation: garden-flap-y calc(var(--duration-feedback) * 1.4)
+  animation: eimir-motion-garden-flap-y calc(var(--duration-feedback) * 1.4)
     var(--easing-travel) infinite alternate;
 }
 
 /* A whole group of tufts leans from its roots (#2063): a skew keeps every
    root on the ground where a rotation of a wide group would lift its ends. */
-@keyframes garden-breeze {
-  0%,
-  100% {
-    transform: skewX(1.5deg);
-  }
-  50% {
-    transform: skewX(-2.5deg);
-  }
-}
-
-@keyframes garden-breeze-plant {
-  0%,
-  100% {
-    transform: rotate(-1deg);
-  }
-  50% {
-    transform: rotate(1.6deg);
-  }
-}
-
-@keyframes garden-gust {
-  0% {
-    transform: none;
-  }
-  24% {
-    transform: skewX(-12deg);
-  }
-  50% {
-    transform: skewX(3deg);
-  }
-  74% {
-    transform: skewX(-1.4deg);
-  }
-  100% {
-    transform: none;
-  }
-}
-
-@keyframes garden-gust-plant {
-  0% {
-    transform: none;
-  }
-  26% {
-    transform: rotate(6deg);
-  }
-  54% {
-    transform: rotate(-2.2deg);
-  }
-  78% {
-    transform: rotate(1deg);
-  }
-  100% {
-    transform: none;
-  }
-}
-
-@keyframes garden-drift {
-  from {
-    transform: translateX(-14px);
-  }
-  to {
-    transform: translateX(14px);
-  }
-}
-
-@keyframes garden-twinkle {
-  from {
-    opacity: 0.25;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes garden-rays {
-  0% {
-    opacity: 0;
-    transform: rotate(0deg) scale(0.7);
-  }
-  35% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: rotate(35deg) scale(1);
-  }
-}
-
-@keyframes garden-pop {
-  from {
-    transform: scale(0);
-    opacity: 0;
-  }
-  to {
-    transform: none;
-    opacity: 1;
-  }
-}
-
-@keyframes garden-open {
-  from {
-    transform: scale(0.25) rotate(-30deg);
-  }
-  to {
-    transform: none;
-  }
-}
-
-@keyframes garden-stretch {
-  from {
-    transform: scaleY(var(--garden-from, 0.7));
-  }
-  to {
-    transform: none;
-  }
-}
-
-@keyframes garden-draw {
-  from {
-    stroke-dashoffset: 1;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes garden-drop {
-  0% {
-    transform: translateY(-80px);
-    opacity: 0;
-  }
-  25% {
-    opacity: 1;
-  }
-  100% {
-    transform: none;
-    opacity: 1;
-  }
-}
-
-@keyframes garden-puff {
-  0% {
-    transform: none;
-    opacity: 0;
-  }
-  15% {
-    opacity: 0.9;
-  }
-  100% {
-    transform: translate(var(--garden-dx), -7px) scale(0.4);
-    opacity: 0;
-  }
-}
-
-@keyframes garden-pollen {
-  0% {
-    opacity: 0;
-    transform: none;
-  }
-  20% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(var(--garden-dx), -76px);
-  }
-}
-
-@keyframes garden-butterfly {
-  0% {
-    transform: translate(-16px, 112px);
-    opacity: 0;
-  }
-  8% {
-    opacity: 1;
-  }
-  50% {
-    transform: translate(calc(var(--garden-width) / 2), 80px);
-  }
-  92% {
-    opacity: 1;
-  }
-  100% {
-    transform: translate(var(--garden-width), 108px);
-    opacity: 0;
-  }
-}
-
-@keyframes garden-wobble {
-  from {
-    transform: translateY(-5px) rotate(-10deg);
-  }
-  to {
-    transform: translateY(5px) rotate(10deg);
-  }
-}
-
-@keyframes garden-flap {
-  from {
-    transform: scaleX(1);
-  }
-  to {
-    transform: scaleX(0.35);
-  }
-}
-
-@keyframes garden-flap-y {
-  from {
-    transform: scaleY(1);
-  }
-  to {
-    transform: scaleY(0.3);
-  }
-}
-
-@keyframes garden-unfold {
-  from {
-    transform: scaleY(0.2) rotate(-2deg);
-    opacity: 0;
-  }
-  to {
-    transform: none;
-    opacity: 1;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .garden-game-page *,
   .garden-game-page *::before,

@@ -1,11 +1,13 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
+  # Pushes to main start no run; the nightly regression dispatches main (#2096).
+  # Pull requests run the cheap tier unless they are ready for review and carry
+  # ci:full or touch a risk path (tools/ci/change_scope.py, #2096). A re-run reads
+  # labels live, so adding ci:full and re-running the failed or skipped jobs applies it.
   pull_request:
-  schedule:
-    - cron: '11 4 * * 1'
+    types: [opened, synchronize, reopened, ready_for_review]
+  # Nightly and manual runs come from the nightly regression dispatcher.
   workflow_dispatch:
 
 concurrency:
@@ -20,6 +22,11 @@ jobs:
   changes:
     name: Change Detection
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      # Labels and draft state are read live so a re-run after adding ci:full applies it.
+      pull-requests: read
     outputs:
       backend: ${{ steps.scope.outputs.backend }}
       backend_integration: ${{ steps.scope.outputs.backend_integration }}
@@ -28,6 +35,11 @@ jobs:
       supply_chain: ${{ steps.scope.outputs.supply_chain }}
       supply_chain_backend: ${{ steps.scope.outputs.supply_chain_backend }}
       supply_chain_web: ${{ steps.scope.outputs.supply_chain_web }}
+      supply_chain_backend_build: ${{ steps.scope.outputs.supply_chain_backend_build }}
+      supply_chain_web_build: ${{ steps.scope.outputs.supply_chain_web_build }}
+      web: ${{ steps.scope.outputs.web }}
+      tier: ${{ steps.scope.outputs.tier }}
+      label_required: ${{ steps.scope.outputs.label_required }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -35,6 +47,12 @@ jobs:
 
       - name: Test change-scope filter logic
         run: python3 tools/ci/test_change_scope.py
+
+      - name: Test pull-request change range
+        run: python3 tools/ci/test_pr_change_range.py
+
+      - name: Test nightly regression wiring
+        run: python3 tools/ci/test_nightly_regression.py
 
       - name: Test encryption test-key generator
         run: python3 tools/ci/test_encryption_test_keys.py
@@ -66,13 +84,17 @@ jobs:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PUSH_BASE_SHA: ${{ github.event.before }}
           PUSH_HEAD_SHA: ${{ github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
           enable_all() {
-            for scope in backend backend_integration self_hosted api_clients supply_chain supply_chain_backend supply_chain_web; do
+            for scope in backend backend_integration self_hosted api_clients supply_chain supply_chain_backend supply_chain_web supply_chain_backend_build supply_chain_web_build web; do
               echo "$scope=true" >> "$GITHUB_OUTPUT"
             done
+            echo "tier=full" >> "$GITHUB_OUTPUT"
+            echo "label_required=false" >> "$GITHUB_OUTPUT"
           }
 
           case "$GITHUB_EVENT_NAME" in
@@ -103,10 +125,44 @@ jobs:
           # Treat renames as delete+add intentionally. Moving a file out of a
           # runtime path therefore still activates the originally affected gate,
           # and deletions remain covered as well.
-          git diff --name-only --no-renames "$base_sha" "$head_sha" > /tmp/changed-files.txt
+          # A pull request compares against the merge base. A plain two-commit diff
+          # would count newer base-branch commits that the head lacks as changes of
+          # this pull request and select the full tier for an unrelated change (#2096).
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            if ! git merge-base "$base_sha" "$head_sha" >/dev/null 2>&1; then
+              enable_all
+              echo "Pull-request merge base unavailable; failing closed to all expensive CI gates."
+              exit 0
+            fi
+            git diff --name-only --no-renames "$base_sha...$head_sha" > /tmp/changed-files.txt
+          else
+            git diff --name-only --no-renames "$base_sha" "$head_sha" > /tmp/changed-files.txt
+          fi
           echo "Changed files:"
           cat /tmp/changed-files.txt
-          python3 tools/ci/change_scope.py /tmp/changed-files.txt >> "$GITHUB_OUTPUT"
+
+          tier_args=()
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            pr_state=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" \
+              --jq '{draft: .draft, labels: [.labels[].name] | join(",")}')
+            tier_args=(--pull-request
+              --draft "$(jq -r '.draft' <<< "$pr_state")"
+              --labels "$(jq -r '.labels' <<< "$pr_state")"
+              --head-ref "$GITHUB_HEAD_REF")
+          fi
+          python3 tools/ci/change_scope.py /tmp/changed-files.txt "${tier_args[@]}" > /tmp/scope-outputs.txt
+          cat /tmp/scope-outputs.txt >> "$GITHUB_OUTPUT"
+          cat /tmp/scope-outputs.txt
+          grep -E '^(tier|tier_reason)=' /tmp/scope-outputs.txt \
+            | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+
+          # Label-gated workflows only see labels, not paths, so a changed
+          # definition must carry ci:full to run before merge.
+          if grep -qx 'label_required=true' /tmp/scope-outputs.txt; then
+            echo "::error::This pull request changes a workflow or tooling that only runs with the ci:full label."
+            echo "Add the ci:full label, then re-run this job; the changed workflow then runs before merge (#2096)."
+            exit 1
+          fi
 
   backend:
     name: Backend
@@ -175,6 +231,51 @@ jobs:
 
       - name: Tests without integration
         run: uv run --frozen pytest -m "not integration" -q
+
+  web:
+    name: Web Reference Flow
+    needs: changes
+    # Required check: unrelated pull requests report it as skipped (#2096).
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container: node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Restore npm download cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.npm
+          key: web-gate-npm-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+          restore-keys: web-gate-npm-${{ runner.os }}-
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Dependency audit
+        run: node scripts/audit-gate.mjs
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Tests
+        run: npm test
+
+      - name: Capacitor foundation check
+        run: npm run cap:check
+
+      - name: Production build
+        run: npm run build
 
   backend_integration_shards:
     name: Backend Integration Shard ${{ matrix.shard }}/${{ strategy.job-total }}
@@ -315,6 +416,162 @@ jobs:
             exit 1
           fi
           echo "All Backend Integration shards succeeded."
+
+  backend_core_only_shards:
+    name: Backend Core-only Shard ${{ matrix.shard }}/${{ strategy.job-total }}
+    needs: changes
+    if: needs.changes.outputs.backend_integration == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+
+    # Decision 0017: the backend suite also runs without the Pro plugin. The
+    # Pro feature modules are not collected and `requires_pro` tests skip;
+    # everything else, including the Core-only assertions of #2082, runs here.
+    # Migration and drift check also run without the plugin, so a Core-only
+    # `migrate` starts and autogenerate never proposes dropping plugin tables.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: eimir
+          POSTGRES_PASSWORD: eimir
+          POSTGRES_DB: eimir_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U eimir -d eimir_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      EIMIR_ENVIRONMENT: test
+      EIMIR_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
+      EIMIR_TEST_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
+      EIMIR_PLUGINS: ""
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/uv.lock
+
+      - name: Locked dependencies
+        run: |
+          python -m pip install "uv==$UV_VERSION"
+          uv lock --check
+          uv sync --frozen
+
+      - name: Core-only migrations
+        run: uv run --frozen alembic upgrade head
+
+      - name: Core-only autogenerate keeps plugin tables
+        run: |
+          uv run --frozen alembic revision --autogenerate -m "drift check" --rev-id drift_check
+          if grep -qE "op\.(create|drop|alter|add)_" alembic/versions/drift_check_*.py; then
+            echo "Core-only models and migrations differ:"
+            cat alembic/versions/drift_check_*.py
+            exit 1
+          fi
+          rm alembic/versions/drift_check_*.py
+
+      - name: Core-only tests actually ran
+        # Unit and integration tests run in separate pytest processes, as in
+        # the Backend and Backend Integration jobs; mixing them in one process
+        # leaks process-wide state between the two layers. Like the Backend job,
+        # the unit layer runs without a database. Integration skips are accepted
+        # only with the Core-only reason, so a missing database still fails.
+        run: |
+          status=0
+          for layer in unit integration; do
+            if [ "$layer" = unit ]; then
+              marker="not integration"
+              runner=(env -u EIMIR_DATABASE_URL -u EIMIR_TEST_DATABASE_URL uv run --frozen)
+            else
+              marker="integration"
+              runner=(uv run --frozen)
+            fi
+            collection=$(mktemp)
+            selected_file=$(mktemp)
+            report=$(mktemp)
+            "${runner[@]}" pytest -m "$marker" --collect-only -q > "$collection"
+            python ../tools/ci/pytest_shard.py \
+              --shard "${{ matrix.shard }}" \
+              --shard-count "${{ strategy.job-total }}" \
+              < "$collection" > "$selected_file"
+            mapfile -t selected < "$selected_file"
+            expected="${#selected[@]}"
+            if [ "$expected" -eq 0 ]; then
+              echo "Core-only $layer shard ${{ matrix.shard }}/${{ strategy.job-total }} selected no tests."
+              exit 1
+            fi
+            echo "Core-only $layer shard ${{ matrix.shard }}/${{ strategy.job-total }} selected $expected tests."
+            "${runner[@]}" pytest -m "$marker" -q --durations=20 \
+              --junitxml="$report" "${selected[@]}" || status=1
+            uv run --frozen python - "$report" "$expected" "$layer" <<'PY' || status=1
+          import sys
+          import xml.etree.ElementTree as ET
+
+          root = ET.parse(sys.argv[1]).getroot()
+          expected = int(sys.argv[2])
+          layer = sys.argv[3]
+          testcases = root.findall(".//testcase")
+          unexpected = [
+              case.get("name")
+              for case in testcases
+              if (skip := case.find("skipped")) is not None
+              and "Core-only configuration" not in (skip.get("message") or "")
+          ]
+          if len(testcases) != expected:
+              raise SystemExit(
+                  f"Expected {expected} Core-only {layer} tests, but JUnit contains {len(testcases)}."
+              )
+          if layer == "integration" and unexpected:
+              raise SystemExit(
+                  f"{len(unexpected)} Core-only integration test(s) were skipped for another "
+                  "reason - is the database unavailable?"
+              )
+          PY
+          done
+          exit "$status"
+
+  backend-core-only:
+    name: Backend Core-only
+    needs: [changes, backend_core_only_shards]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify Core-only shards
+        env:
+          CHANGE_RESULT: ${{ needs.changes.result }}
+          CORE_ONLY_REQUIRED: ${{ needs.changes.outputs.backend_integration }}
+          SHARDS_RESULT: ${{ needs.backend_core_only_shards.result }}
+        run: |
+          if [ "$CHANGE_RESULT" != "success" ]; then
+            echo "Change Detection did not succeed: $CHANGE_RESULT"
+            exit 1
+          fi
+          if [ "$CORE_ONLY_REQUIRED" != "true" ]; then
+            echo "The Core-only backend suite is not required for this change set."
+            exit 0
+          fi
+          if [ "$SHARDS_RESULT" != "success" ]; then
+            echo "One or more Backend Core-only shards did not succeed: $SHARDS_RESULT"
+            exit 1
+          fi
+          echo "All Backend Core-only shards succeeded."
 
   self-hosted:
     name: Self-Hosted Start
@@ -525,24 +782,32 @@ jobs:
           uv run --frozen python scripts/check_dependency_inventory.py ../docs/DEPENDENCIES.md
 
       - name: Build backend wheel without cache
-        if: needs.changes.outputs.supply_chain_backend == 'true'
+        if: needs.changes.outputs.supply_chain_backend_build == 'true'
         run: uv build --no-cache --wheel --out-dir /tmp/eimir-dist
 
       - name: Build backend production container from scratch
-        if: needs.changes.outputs.supply_chain_backend == 'true'
+        if: needs.changes.outputs.supply_chain_backend_build == 'true'
         run: docker build --pull --no-cache --tag eimir-backend:ci .
 
       - name: Build Web production container from scratch
-        if: needs.changes.outputs.supply_chain_web == 'true'
+        if: needs.changes.outputs.supply_chain_web_build == 'true'
         run: docker build --pull --no-cache --tag eimir-web:ci ../web
 
   secrets:
     name: Secret Scan
-    runs-on: ubuntu-latest
+    # Forks and manually dispatched regressions keep the GitHub-hosted runner.
+    runs-on: >-
+      ${{ github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          vars.EIMIR_PR_RUNNER != 'github-hosted' &&
+          'eimir-kvm-pr' || 'ubuntu-latest' }}
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       # Run gitleaks directly instead of through the action. The action scans
       # <previous commit>..HEAD and fails on the first push because the first

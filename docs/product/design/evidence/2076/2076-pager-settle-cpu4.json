@@ -1,0 +1,168 @@
+{
+  "viewport": 390,
+  "cpuThrottling": 4,
+  "releasedOffset": -136.5,
+  "target": -390,
+  "frames": [
+    {
+      "t": 22,
+      "left": -136.5,
+      "dragging": true
+    },
+    {
+      "t": 59,
+      "left": -136.5,
+      "dragging": true
+    },
+    {
+      "t": 64,
+      "left": -136.5,
+      "dragging": true
+    },
+    {
+      "t": 115,
+      "left": -150.635,
+      "dragging": true
+    },
+    {
+      "t": 122,
+      "left": -207.35,
+      "dragging": true
+    },
+    {
+      "t": 145,
+      "left": -264.563,
+      "dragging": true
+    },
+    {
+      "t": 158,
+      "left": -288.242,
+      "dragging": true
+    },
+    {
+      "t": 175,
+      "left": -308.219,
+      "dragging": true
+    },
+    {
+      "t": 190,
+      "left": -324.655,
+      "dragging": true
+    },
+    {
+      "t": 207,
+      "left": -338.146,
+      "dragging": true
+    },
+    {
+      "t": 223,
+      "left": -349.025,
+      "dragging": true
+    },
+    {
+      "t": 241,
+      "left": -357.686,
+      "dragging": true
+    },
+    {
+      "t": 257,
+      "left": -364.58,
+      "dragging": true
+    },
+    {
+      "t": 274,
+      "left": -370.078,
+      "dragging": true
+    },
+    {
+      "t": 290,
+      "left": -374.414,
+      "dragging": true
+    },
+    {
+      "t": 307,
+      "left": -377.803,
+      "dragging": true
+    },
+    {
+      "t": 323,
+      "left": -380.481,
+      "dragging": true
+    },
+    {
+      "t": 341,
+      "left": -382.578,
+      "dragging": true
+    },
+    {
+      "t": 362,
+      "left": -384.217,
+      "dragging": true
+    },
+    {
+      "t": 373,
+      "left": -385.496,
+      "dragging": true
+    },
+    {
+      "t": 390,
+      "left": -386.489,
+      "dragging": true
+    },
+    {
+      "t": 406,
+      "left": -387.268,
+      "dragging": true
+    },
+    {
+      "t": 423,
+      "left": -387.872,
+      "dragging": true
+    },
+    {
+      "t": 440,
+      "left": -388.345,
+      "dragging": true
+    },
+    {
+      "t": 458,
+      "left": -388.713,
+      "dragging": true
+    },
+    {
+      "t": 476,
+      "left": -388.998,
+      "dragging": true
+    },
+    {
+      "t": 490,
+      "left": -389.221,
+      "dragging": true
+    },
+    {
+      "t": 507,
+      "left": -389.394,
+      "dragging": true
+    },
+    {
+      "t": 530,
+      "left": -390,
+      "dragging": true
+    },
+    {
+      "t": 545,
+      "left": -390,
+      "dragging": true
+    },
+    {
+      "t": 561,
+      "left": -390,
+      "dragging": true
+    },
+    {
+      "t": 573,
+      "left": -390,
+      "dragging": true
+    }
+  ]
+}

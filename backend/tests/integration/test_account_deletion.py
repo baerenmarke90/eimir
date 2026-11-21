@@ -37,8 +37,11 @@ from eimir.engagement.models import (
     NotificationKind,
     NotificationPreference,
     PushEndpoint,
+    SupportGestureKind,
+    ThinkingOfYouRequest,
 )
 from eimir.engagement.push import register_endpoint
+from eimir.engagement.thinking import send as send_thinking_of_you
 from eimir.garden.models import GardenPlant, GardenReader, GardenWatering
 from eimir.identity.deletion import (
     DELETED_ACCOUNT_DISPLAY_NAME,
@@ -56,6 +59,8 @@ from eimir.legal.models import TermsAcceptance, TermsAcceptanceOrigin
 from eimir.legal.terms import record_acceptance
 from eimir.memories.models import Memory, MemoryPayload
 from eimir.once_messages.models import OnceDevice, OnceReception
+from eimir.partner_quick_actions.models import SupportGestureRequest
+from eimir.partner_quick_actions.service import send_support_gesture
 from eimir.presence.models import (
     PartnerLocationConsent,
     PresenceDeviceCredential,
@@ -77,6 +82,7 @@ from eimir.relationship.service import add_member
 from eimir.wishes import service as wish_service
 from eimir.wishes.models import WishReminder
 from tests.conftest import make_account, make_space, requires_database
+from tests.support.plugins import requires_pro
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -374,7 +380,12 @@ def test_core_cleanup_deletes_private_identity_state_but_retains_shared_history(
 
 
 @pytest.mark.parametrize(
-    ("completed_backup", "plugin_loaded"), [(False, True), (True, True), (False, False)]
+    ("completed_backup", "plugin_loaded"),
+    [
+        pytest.param(False, True, marks=requires_pro),
+        pytest.param(True, True, marks=requires_pro),
+        (False, False),
+    ],
 )
 def test_private_account_rows_are_removed_without_erasing_partner_data(
     session: Session, completed_backup: bool, plugin_loaded: bool
@@ -580,3 +591,57 @@ def test_failed_cleanup_stays_fail_closed_and_can_retry(session: Session) -> Non
     assert retried.failed_at is None
     assert retried.last_failure_code is None
     assert account.disabled_at == accepted_at
+
+
+@pytest.mark.parametrize(
+    ("deleted_party", "plugin_loaded"),
+    [
+        pytest.param("sender", True, marks=requires_pro),
+        pytest.param("recipient", True, marks=requires_pro),
+        ("sender", False),
+        ("recipient", False),
+    ],
+)
+def test_core_cleanup_removes_partner_gesture_receipts_of_the_deleted_account(
+    session: Session, deleted_party: str, plugin_loaded: bool
+) -> None:
+    # Gesture receipts record who sent which gesture to whom and when. They are
+    # relationship metadata, not shared history, so they must not outlive the
+    # Account on either side. Pseudonymising the Account never fires the
+    # ON DELETE CASCADE, so the cleanup has to delete them explicitly: the Pro
+    # plugin's account hook when it is loaded, the Core manifest otherwise
+    # (an instance that once ran with the plugin).
+    from contextlib import nullcontext
+
+    from tests.support.plugins import plugins_loaded, without_plugins
+
+    anna = make_account(session, "Anna")
+    space = make_space(session, anna)
+    ben = make_account(session, "Ben")
+    add_member(session, space.id, ben)
+    session.flush()
+
+    context = AuthorizationContext(account_id=anna.id, space_id=space.id)
+    send_thinking_of_you(session, context, client_request_id=uuid4())
+    send_support_gesture(
+        session,
+        context,
+        kind=SupportGestureKind.KISS,
+        client_request_id=uuid4(),
+    )
+    session.flush()
+
+    in_space = (
+        _count(session, ThinkingOfYouRequest, ThinkingOfYouRequest.space_id == space.id),
+        _count(session, SupportGestureRequest, SupportGestureRequest.space_id == space.id),
+    )
+    assert in_space == (1, 1)
+
+    deleted = anna if deleted_party == "sender" else ben
+    core_only = nullcontext() if plugin_loaded or not plugins_loaded() else without_plugins()
+    with core_only:
+        apply_accepted_tombstone(session, deleted.id, accepted_at=now())
+        apply_core_cleanup(session, deleted.id)
+
+    assert _count(session, ThinkingOfYouRequest, ThinkingOfYouRequest.space_id == space.id) == 0
+    assert _count(session, SupportGestureRequest, SupportGestureRequest.space_id == space.id) == 0

@@ -12,11 +12,17 @@ import {
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { cssDurationMilliseconds } from '../client/cssDuration';
 import { framingPoints } from '../client/mapFraming';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useTranslation } from '../i18n';
+import {
+  prefersReducedMotion,
+  subscribeReducedMotion,
+} from '../motion/reducedMotion';
+import { durationMs } from '../motion/tokens';
+import { observeVisibility } from '../motion/visibility';
 import { isCapacitorNative } from '../pwa';
+import '../motion/map.css';
 import './PlaceMapPicker.css';
 import {
   cachedBasemapStyle,
@@ -150,6 +156,30 @@ const USER_MOTION_REST_MS = 1500;
 type LngLat = [number, number];
 const lngLat = (point: MapPoint): LngLat => [point.longitude, point.latitude];
 
+/*
+ * The Map domain (Motion Contract 4.8). MapLibre renders and animates the
+ * camera itself; these read its durations through the token adapter and the
+ * one reduced-motion source (M1, M9). A `0` duration means a jump.
+ */
+
+/** An explicit camera journey (a Place, "show us", clearing the selection). */
+const cameraJourneyMs = () =>
+  prefersReducedMotion() ? 0 : durationMs('map-camera');
+
+/** One step of the zoom buttons. */
+const zoomStepMs = () =>
+  prefersReducedMotion() ? 0 : durationMs('transition');
+
+type PanInertia = Parameters<MapLibreMap['dragPan']['enable']>[0];
+
+/**
+ * The pan follows the finger 1:1 either way; with reduced motion it stops
+ * where the finger lifts instead of gliding on. Everyone else keeps
+ * MapLibre's own inertia (its default options).
+ */
+const panInertia = (): PanInertia =>
+  prefersReducedMotion() ? { maxSpeed: 0 } : undefined;
+
 /** Zoom buttons with localized names; MapLibre's stock control needs data: images. */
 class ZoomControl implements IControl {
   private group?: HTMLElement;
@@ -169,9 +199,14 @@ class ZoomControl implements IControl {
       button.textContent = glyph;
       button.title = label;
       button.setAttribute('aria-label', label);
-      button.addEventListener('click', () =>
-        kind === 'in' ? map.zoomIn() : map.zoomOut(),
-      );
+      button.addEventListener('click', () => {
+        // Gesture follow's non-gesture alternative (4.6, 4.8): one step with
+        // the transition role, or a jump with reduced motion.
+        const duration = zoomStepMs();
+        const options = duration ? { duration } : { animate: false };
+        if (kind === 'in') map.zoomIn(options);
+        else map.zoomOut(options);
+      });
       group.append(button);
       return button;
     };
@@ -249,6 +284,7 @@ export default function PlaceMapCanvas({
   const [moving, setMoving] = useState(false);
   const initialPoint = useRef(value);
   const restoredViewport = useRef(initialViewport);
+  const keptCamera = useRef<MapViewport | null>(null);
   const viewportChangeRef = useRef(onViewportChange);
   viewportChangeRef.current = onViewportChange;
   const userMotionRef = useRef(onUserMotionChange);
@@ -277,6 +313,7 @@ export default function PlaceMapCanvas({
   const connectionRef = useRef(connection);
   connectionRef.current = connection;
   const connectionOverlay = useRef<ConnectionOverlay | null>(null);
+  const stopConnectionVisibility = useRef<(() => void) | null>(null);
   const placeConnection = useRef<(() => void) | null>(null);
   const markers = useRef(
     new Map<
@@ -288,6 +325,11 @@ export default function PlaceMapCanvas({
   useEffect(() => {
     if (!container.current) return;
     fittedGeometry.current = '';
+    // A locale change recreates the map. After the viewer moved the camera it
+    // starts where they left it, not at the opening view (4.8); an automatic
+    // frame is simply framed again.
+    if (keptCamera.current && !autoFrame.current)
+      restoredViewport.current = keptCamera.current;
     autoFrame.current = !restoredViewport.current;
     const element = container.current;
     const point =
@@ -311,6 +353,7 @@ export default function PlaceMapCanvas({
       attributionControl: { compact: false },
     });
     map.touchZoomRotate.disableRotation();
+    map.dragPan.enable(panInertia());
     // Complete: the opening view has drawn and the marker photos have loaded
     // and decoded (or a short wait passed); never later than the cap.
     setComplete(false);
@@ -401,14 +444,19 @@ export default function PlaceMapCanvas({
       }
     };
     map.on('zoom', sizeAreas);
+    const removeConnection = () => {
+      stopConnectionVisibility.current?.();
+      stopConnectionVisibility.current = null;
+      connectionOverlay.current?.remove();
+      connectionOverlay.current = null;
+    };
     // The connection follows the areas on every camera change.
     const drawConnection = () => {
       const current = connectionRef.current;
       const from = current && areaEntries.current.get(current.from);
       const to = current && areaEntries.current.get(current.to);
       if (!current || !from || !to) {
-        connectionOverlay.current?.remove();
-        connectionOverlay.current = null;
+        removeConnection();
         return;
       }
       if (!connectionOverlay.current) {
@@ -417,6 +465,12 @@ export default function PlaceMapCanvas({
           map.getCanvas(),
         );
         connectionOverlay.current = overlay;
+        // Decorative motion holds while the page, the kept view or the map
+        // is out of sight, and continues where it paused (M4, M8).
+        stopConnectionVisibility.current = observeVisibility(
+          overlay.element,
+          ({ visible }) => (visible ? overlay.resume() : overlay.pause()),
+        );
         // Start once the basemap is drawn; a slow or failing basemap must
         // not hold the connection back for long.
         const start = () => {
@@ -437,12 +491,6 @@ export default function PlaceMapCanvas({
     placeConnection.current = drawConnection;
     map.on('move', drawConnection);
     map.on('resize', drawConnection);
-    // Decorative motion holds while hidden and plays again on return.
-    const visibilityChanged = () => {
-      if (document.hidden) connectionOverlay.current?.pause();
-      else connectionOverlay.current?.play();
-    };
-    document.addEventListener('visibilitychange', visibilityChanged);
     // A missing tile (HTTP 404) is an empty area; aborted requests are
     // ordinary pan/zoom cancellation. Everything else is a real outage.
     map.on('error', (event: ErrorEvent) => {
@@ -536,11 +584,13 @@ export default function PlaceMapCanvas({
       finishCamera.current = null;
       setMoving(false);
       const center = map.getCenter();
-      viewportChangeRef.current?.({
+      const viewport = {
         latitude: center.lat,
         longitude: center.lng,
         zoom: fromMapZoom(map.getZoom()),
-      });
+      };
+      keptCamera.current = viewport;
+      viewportChangeRef.current?.(viewport);
     });
     const interrupt = () => {
       if (!cameraMoving.current) return;
@@ -550,14 +600,16 @@ export default function PlaceMapCanvas({
       autoFrame.current = false;
       setMoving(false);
     };
-    // MapLibre owns pan/pinch; direct input supersedes a pending place flight.
+    // MapLibre owns pan/pinch; direct input stops a running camera journey
+    // at once: the finger always wins (4.8).
     for (const event of ['pointerdown', 'wheel', 'keydown'])
       element.addEventListener(event, interrupt, { passive: true });
-    const motion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
-    const motionChanged = () => {
-      if (motion?.matches) finishCamera.current?.();
-    };
-    motion?.addEventListener('change', motionChanged);
+    // A change of the preference applies at once: the pan inertia follows
+    // it, and a running journey finishes where it was going.
+    const stopMotionPreference = subscribeReducedMotion(() => {
+      map.dragPan.enable(panInertia());
+      if (prefersReducedMotion()) finishCamera.current?.();
+    });
     const resize = new ResizeObserver(frame);
     resize.observe(container.current);
     return () => {
@@ -566,13 +618,11 @@ export default function PlaceMapCanvas({
       if (userMoving) userMotionRef.current?.(false);
       for (const event of ['pointerdown', 'wheel', 'keydown'])
         element.removeEventListener(event, interrupt);
-      motion?.removeEventListener('change', motionChanged);
+      stopMotionPreference();
       revealed = true;
       window.cancelAnimationFrame(revealFrame);
       window.clearTimeout(revealCap);
-      document.removeEventListener('visibilitychange', visibilityChanged);
-      connectionOverlay.current?.remove();
-      connectionOverlay.current = null;
+      removeConnection();
       placeConnection.current = null;
       map.remove();
       markers.current.clear();
@@ -761,19 +811,22 @@ export default function PlaceMapCanvas({
       padding: AREA_PADDING,
       maxZoom: toMapZoom(OVERVIEW_MAX_ZOOM),
     };
-    const duration = container.current
-      ? cssDurationMilliseconds(
-          getComputedStyle(container.current).getPropertyValue(
-            '--duration-map-camera',
-          ),
-        )
-      : 0;
-    const reduced = window.matchMedia?.(
-      '(prefers-reduced-motion: reduce)',
-    ).matches;
-    if (reduced || !duration)
+    const snap = () => {
+      finishCamera.current = null;
+      map.stop();
+      cameraMoving.current = false;
       map.fitBounds(target, { ...options, animate: false });
-    else map.fitBounds(target, { ...options, duration, essential: true });
+    };
+    const duration = cameraJourneyMs();
+    if (!duration) {
+      snap();
+      return;
+    }
+    // One camera transition at a time: the finger, a later request or a
+    // change to reduced motion ends it like a Place journey.
+    finishCamera.current = snap;
+    cameraMoving.current = true;
+    map.fitBounds(target, { ...options, duration, essential: true });
   }, [showAreasRequest]);
 
   // An explicit Place selection owns the frame. User panning and later layout
@@ -800,17 +853,8 @@ export default function PlaceMapCanvas({
       else if (overview)
         map.fitBounds(overview, { ...options, animate: false });
     };
-    const duration = container.current
-      ? cssDurationMilliseconds(
-          getComputedStyle(container.current).getPropertyValue(
-            '--duration-map-camera',
-          ),
-        )
-      : 0;
-    const reduced = window.matchMedia?.(
-      '(prefers-reduced-motion: reduce)',
-    ).matches;
-    if (reduced || !duration || !container.current?.clientWidth) {
+    const duration = cameraJourneyMs();
+    if (!duration || !container.current?.clientWidth) {
       snap();
       return;
     }

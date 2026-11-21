@@ -320,7 +320,7 @@
   border-radius: 50%;
   background: var(--who-of-us-outcome-accent, var(--color-text-secondary));
   transform: translate(-50%, -50%) scale(0);
-  animation: who-of-us-connector-same var(--duration-context)
+  animation: eimir-motion-who-of-us-connector-same var(--duration-context)
     var(--easing-enter) forwards;
 }
 
@@ -328,7 +328,7 @@
   width: 2px;
   height: 2.5rem;
   border-radius: var(--radius-pill);
-  animation-name: who-of-us-connector-different;
+  animation-name: eimir-motion-who-of-us-connector-different;
 }
 
 .who-of-us-reveal-person {
@@ -348,21 +348,21 @@
 }
 
 .who-of-us-reveal-person:first-child {
-  animation-name: who-of-us-person-in-left;
+  animation-name: eimir-motion-who-of-us-person-in-left;
 }
 
 .who-of-us-reveal-person:last-child {
-  animation-name: who-of-us-person-in-right;
+  animation-name: eimir-motion-who-of-us-person-in-right;
 }
 
 .who-of-us-reveal[data-outcome="different"]
   .who-of-us-reveal-person:first-child {
-  animation-name: who-of-us-person-out-left;
+  animation-name: eimir-motion-who-of-us-person-out-left;
 }
 
 .who-of-us-reveal[data-outcome="different"]
   .who-of-us-reveal-person:last-child {
-  animation-name: who-of-us-person-out-right;
+  animation-name: eimir-motion-who-of-us-person-out-right;
 }
 
 .who-of-us-reveal[data-outcome="different"] .who-of-us-reveal-person {
@@ -397,62 +397,8 @@
   font-weight: 800;
 }
 
-@keyframes who-of-us-connector-same {
-  from {
-    transform: translate(-50%, -50%) scale(0);
-  }
-  to {
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
-
-@keyframes who-of-us-connector-different {
-  from {
-    transform: translate(-50%, -50%) scaleY(0);
-  }
-  to {
-    transform: translate(-50%, -50%) scaleY(1);
-  }
-}
-
 /* Converge (SAME): each person starts further out and settles inward, toward the center connector. */
-@keyframes who-of-us-person-in-left {
-  from {
-    transform: translateX(-10px);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes who-of-us-person-in-right {
-  from {
-    transform: translateX(10px);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
 /* Diverge (DIFFERENT): each person starts closer to the center connector and settles outward, apart. */
-@keyframes who-of-us-person-out-left {
-  from {
-    transform: translateX(6px);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes who-of-us-person-out-right {
-  from {
-    transform: translateX(-6px);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
 .who-of-us-finish-count {
   margin: 0;
   color: var(--color-text);

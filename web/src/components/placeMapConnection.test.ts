@@ -101,9 +101,29 @@ describe('ConnectionOverlay', () => {
     );
     overlay.pause();
     expect(classList.contains('is-paused')).toBe(true);
+    // An explicit replay while hidden stays held until the drawing is seen.
     overlay.play();
+    expect(classList.contains('is-paused')).toBe(true);
+    expect(classList.contains('is-playing')).toBe(true);
+    overlay.resume();
     expect(classList.contains('is-paused')).toBe(false);
     expect(classList.contains('is-playing')).toBe(true);
+  });
+
+  it('resumes where it paused instead of replaying (M4)', () => {
+    const { container, canvas } = setup();
+    const overlay = new ConnectionOverlay(container, canvas);
+    overlay.start();
+    const { classList } = overlay.element;
+    const remove = vi.spyOn(classList, 'remove');
+    overlay.pause();
+    overlay.resume();
+    // Only the pause is lifted; the playing state is never reset.
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(remove).toHaveBeenCalledWith('is-paused');
+    expect([...classList]).toEqual(
+      expect.arrayContaining(['is-started', 'is-entering', 'is-playing']),
+    );
   });
 
   it('switches to the heart nearby and mutes an earlier snapshot', () => {

@@ -292,16 +292,23 @@
   }
 }
 
+/* The loading line keeps the place of a two-line quote with its attribution
+   (the quotation mark, two lines of the quote, one of the attribution), so
+   the quote replaces it in place without moving what follows (#2147). */
+.daily-quote-state.is-loading {
+  min-block-size: calc(
+    1.5rem +
+    var(--space-2) *
+    2 +
+    clamp(1rem, 4.1vw, 1.12rem) *
+    1.45 *
+    2 +
+    0.8rem *
+    1.4
+  );
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  /* The card settles into place without a fade, so its text stays legible
-     throughout: the catalogue's translate-only Enter `shift`. */
-  .daily-quote-card {
-    --motion-enter-rise: var(--space-1);
-
-    animation: eimir-motion-enter-shift var(--duration-transition)
-      var(--easing-enter);
-  }
-
   .daily-quote-category {
     transition:
       background var(--duration-feedback) var(--easing-standard),

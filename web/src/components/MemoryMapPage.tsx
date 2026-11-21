@@ -17,6 +17,7 @@ import {
 } from 'react-router-dom';
 import type { MemoryMapEntry } from '../api/generated/models/MemoryMapEntry';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import type { MemoryMapSession } from '../client/memoryMapSession';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { parseMapPlace } from '../client/photoPlaces';
 import {
@@ -64,7 +65,7 @@ export function MemoryMapPage({
   spaceId: string;
   accountId: string;
   apiBaseUrl?: string;
-  sessionViewport?: { current?: MapViewport };
+  sessionViewport?: MemoryMapSession;
   loadMemoryImage?: (
     memoryId: string,
     attachmentId: string,
@@ -148,6 +149,12 @@ export function MemoryMapPage({
     },
     [fullscreenScope, hasOrigin, sessionViewport],
   );
+  // The Karte segment reopens the Place last selected here (#2078). The map
+  // panel stays mounted and sees its own last location while hidden, so only
+  // a selection made on the map changes it.
+  useEffect(() => {
+    if (sessionViewport) sessionViewport.place = placeParam ?? undefined;
+  }, [placeParam, sessionViewport]);
   const fullscreenTrigger = useRef<HTMLButtonElement>(null);
   const fullscreenSheet = useRef<ShortTaskSheetHandle>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);

@@ -56,66 +56,14 @@
     drop-shadow(0 8px 8px var(--color-shadow-soft));
   transform: rotate(-1.6deg);
   transform-origin: 50% 0;
-  animation: today-retrospective-swing-in var(--duration-gesture-sequence)
+  /* Enter `swing` from the motion catalogue (src/motion/motion.css). The
+     Ambient `sway` after it runs on the layer (useKeepsakeSway): a few
+     cycles around the rest pose, paused while hidden or off screen, then it
+     rests (#2063, M8). */
+  --keepsake-rest: 0deg;
+  --motion-swing-rest: var(--keepsake-rest);
+  animation: eimir-motion-enter-swing var(--duration-gesture-sequence)
     var(--easing-standard) backwards;
-}
-
-/* The sway settles after a few cycles and holds its last pose (#2063): with
-   the drop-shadow filter above, an endless sway repainted every frame. */
-@media (prefers-reduced-motion: no-preference) {
-  .today-living-retrospective[data-diary-layout="album"]
-    .today-retrospective-photo {
-    animation:
-      today-retrospective-swing-in var(--duration-gesture-sequence)
-      var(--easing-standard) backwards,
-      today-retrospective-sway var(--duration-connection-travel-far)
-      var(--duration-gesture-sequence) var(--easing-travel)
-      var(--motion-ambient-repeat) alternate forwards;
-  }
-}
-
-@keyframes today-retrospective-swing-in {
-  0% {
-    rotate: 16deg;
-    opacity: 0;
-  }
-  15% {
-    opacity: 1;
-  }
-  28% {
-    rotate: -9deg;
-  }
-  46% {
-    rotate: 5deg;
-  }
-  62% {
-    rotate: -2.4deg;
-  }
-  80% {
-    rotate: 1deg;
-  }
-  100% {
-    rotate: 0deg;
-  }
-}
-@keyframes today-retrospective-sway {
-  from {
-    rotate: -1.1deg;
-  }
-  to {
-    rotate: 1.1deg;
-  }
-}
-@keyframes today-retrospective-develop {
-  0% {
-    filter: brightness(2.6) saturate(0) contrast(0.5) blur(4px);
-  }
-  45% {
-    filter: brightness(1.5) saturate(0.35) sepia(0.5) blur(2px);
-  }
-  100% {
-    filter: none;
-  }
 }
 
 /* Clothespin: decorative, not in the DOM and never over the user's photo. */
@@ -180,8 +128,10 @@
 .today-living-retrospective[data-diary-layout="album"]
   .today-retrospective-media
   .story-media-preview {
-  animation: today-retrospective-develop var(--duration-gesture-sequence)
-    var(--duration-sequence-beat) var(--easing-enter) backwards;
+  /* Opacity only (M6): an Enter `fade` from a faint print. */
+  --motion-enter-from-opacity: 0.12;
+  animation: eimir-motion-enter-fade var(--duration-gesture-sequence)
+    var(--easing-enter) var(--duration-sequence-beat) backwards;
 }
 
 .today-living-retrospective[data-diary-layout="album"]

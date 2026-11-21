@@ -40,8 +40,6 @@ from eimir.memories import service as memory_service
 from eimir.memories.models import Memory
 from eimir.plans import service as plan_service
 from eimir.plans.models import Plan
-from eimir.presence import service as presence_service
-from eimir.presence.models import SharingLevel
 from eimir.profiles import service as profile_service
 from eimir.relationship import profile as relationship_profile
 from eimir.shared_notes import service as shared_note_service
@@ -200,37 +198,6 @@ def _ensure_occasion_memories(
         )
 
 
-def _ensure_partner_location(session: Session, result: DemoSeedResult) -> None:
-    if not presence_service.feature_enabled():
-        return
-    captured_at = clock.now()
-    for account_id, (latitude, longitude) in (
-        (result.lea_id, LEA_POSITION),
-        (result.alex_id, ALEX_POSITION),
-    ):
-        context = _context(result, account_id)
-        settings = presence_service.get_settings_view(session, context)
-        if not settings.available:
-            return
-        if settings.level is not SharingLevel.DISTANCE_AND_MAP or not settings.indefinite:
-            settings = presence_service.update_settings(
-                session,
-                context,
-                level=SharingLevel.DISTANCE_AND_MAP,
-                indefinite=True,
-                expires_at=None,
-            )
-        presence_service.publish_snapshot(
-            session,
-            context,
-            latitude=latitude,
-            longitude=longitude,
-            accuracy_meters=POSITION_ACCURACY_METERS,
-            captured_at=captured_at,
-            consent_generation=settings.generation,
-        )
-
-
 def _ensure_shopping_list(session: Session, result: DemoSeedResult) -> None:
     exists = session.scalar(
         select(Collection.id).where(
@@ -340,7 +307,6 @@ def ensure_feature_examples(
 ) -> None:
     """Idempotently add the recent-feature examples to the canonical demo Space."""
     _ensure_occasion_memories(session, result, reference_date=reference_date)
-    _ensure_partner_location(session, result)
     _ensure_shopping_list(session, result)
     _ensure_multi_day_plan(session, result, reference_date=reference_date)
     _ensure_wish_date_proposal(session, result, reference_date=reference_date)

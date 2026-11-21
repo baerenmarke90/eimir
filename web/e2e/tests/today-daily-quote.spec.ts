@@ -984,6 +984,8 @@ test('Today clarity: live countdown, honest dates and docked navigation across t
   await expect(page.locator('.today-agenda-row')).toContainText('14. Mai 2027');
   const timer = page.getByRole('timer');
   await expect(timer).toHaveAttribute('aria-live', 'off');
+  // The countdown only ticks while the card is on screen.
+  await timer.scrollIntoViewIfNeeded();
   const seconds = timer.locator('.anticipation-digit').last();
   const before = await seconds.textContent();
   await page.clock.runFor(1100);

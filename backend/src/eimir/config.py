@@ -141,6 +141,7 @@ _DatabaseUrl = Annotated[str, AfterValidator(_database_url_is_usable)]
 _DEMO_RESET_INTERVAL_PATTERN = re.compile(r"^(?P<value>[1-9][0-9]*)(?P<unit>[mhd])$")
 # A key set is a few short entries; anything larger is not a key file.
 _ENCRYPTION_KEYS_FILE_MAX_BYTES = 64 * 1024
+_GIGABYTE = 1000**3
 
 
 def _demo_reset_interval(value: object) -> timedelta:
@@ -254,6 +255,13 @@ class Settings(IdentityCompatibleSettings):
     audio_upload_enabled: bool = False
     ffmpeg_path: str = "/opt/eimir-media/bin/ffmpeg"
     ffprobe_path: str = "/opt/eimir-media/bin/ffprobe"
+    # Cloud storage quota per Space (#2141), in bytes. It applies only with
+    # EIMIR_DEPLOYMENT=cloud; Self-Hosted is unmetered whatever is set here.
+    # Premium is the Space's `storage.cloud_quota_50gb` capability. An empty
+    # value leaves that tier unmetered. The defaults are the decided 5 GB and
+    # 50 GB in decimal gigabytes, as the Freemium matrix states them.
+    storage_quota_free_bytes: int | None = Field(default=5 * _GIGABYTE, ge=1)
+    storage_quota_premium_bytes: int | None = Field(default=50 * _GIGABYTE, ge=1)
     # Operator-owned Photon origin; an empty value disables reverse lookup.
     # Only canonical saved photo coordinates and language reach this service.
     photo_place_geocoding_url: str = "https://photon.komoot.io"
@@ -596,6 +604,23 @@ class Settings(IdentityCompatibleSettings):
             if connection.id == connection_id:
                 return connection
         return None
+
+    @field_validator("storage_quota_free_bytes", "storage_quota_premium_bytes", mode="before")
+    @classmethod
+    def _empty_quota_is_unmetered(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @model_validator(mode="after")
+    def premium_quota_is_not_below_free(self) -> Self:
+        free, premium = self.storage_quota_free_bytes, self.storage_quota_premium_bytes
+        if free is not None and premium is not None and premium < free:
+            raise ValueError(
+                "EIMIR_STORAGE_QUOTA_PREMIUM_BYTES must not be below "
+                "EIMIR_STORAGE_QUOTA_FREE_BYTES."
+            )
+        return self
 
     @model_validator(mode="after")
     def calendar_private_hosts_are_self_hosted(self) -> Self:

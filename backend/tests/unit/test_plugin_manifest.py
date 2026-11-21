@@ -10,6 +10,7 @@ import json
 import os
 import subprocess
 import sys
+from importlib import import_module
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -19,15 +20,24 @@ from sqlalchemy import MetaData, Table
 from eimir.db.base import Base
 from eimir.db.protected_payload import ProtectedPayloadJSON
 from eimir.db.registry import MODEL_MODULES, load_all_models
-from eimir.plugins.loader import loaded_plugins
 from eimir.plugins.manifest import PLUGIN_TABLE_NAMES, PLUGIN_TABLES, protected_payload_tables
+from eimir.pro_plugin import plugin as pro_plugin
 from eimir.security import lifecycle
+from tests.support.plugins import requires_pro
 
 BACKEND = Path(__file__).resolve().parents[2]
 
 
-def _tables_of_modules(modules: set[str]) -> set[str]:
+def _load() -> None:
+    # The in-tree plugin is the reference in both configurations; Core-only
+    # does not import its models through the registry.
     load_all_models()
+    for module in pro_plugin.model_modules():
+        import_module(module)
+
+
+def _tables_of_modules(modules: set[str]) -> set[str]:
+    _load()
     return {
         table.name
         for mapper in Base.registry.mappers
@@ -37,12 +47,12 @@ def _tables_of_modules(modules: set[str]) -> set[str]:
 
 
 def _table(name: str) -> Table:
-    load_all_models()
+    _load()
     return Base.metadata.tables[name]
 
 
 def test_every_table_of_every_plugin_has_a_manifest_row() -> None:
-    plugin_tables = _tables_of_modules(set(loaded_plugins().model_modules()))
+    plugin_tables = _tables_of_modules(set(pro_plugin.model_modules()))
 
     assert plugin_tables
     assert plugin_tables == PLUGIN_TABLE_NAMES
@@ -53,7 +63,7 @@ def test_every_manifest_row_is_unique() -> None:
 
 
 def test_core_model_modules_contribute_no_plugin_table() -> None:
-    assert not set(MODEL_MODULES) & set(loaded_plugins().model_modules())
+    assert not set(MODEL_MODULES) & set(pro_plugin.model_modules())
     assert not _tables_of_modules(set(MODEL_MODULES)) & PLUGIN_TABLE_NAMES
 
 
@@ -103,6 +113,7 @@ def test_encryption_lifecycle_covers_plugin_tables_without_the_plugin(
     )
 
 
+@requires_pro
 def test_with_the_plugin_loaded_encryption_keeps_the_payload_models() -> None:
     discovered = {entry.name: entry for entry in lifecycle.payload_tables()}
 

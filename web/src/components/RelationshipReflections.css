@@ -47,19 +47,6 @@
 .anticipation-unit-label {
   font: var(--font-supporting-copy);
 }
-@media (prefers-reduced-motion: no-preference) {
-  .anticipation-digit {
-    animation: anticipation-tick var(--duration-feedback) var(--easing-standard);
-  }
-}
-@keyframes anticipation-tick {
-  from {
-    opacity: 0.65;
-  }
-  to {
-    opacity: 1;
-  }
-}
 .anticipation-date {
   font: var(--font-supporting-copy);
   font-variant-numeric: tabular-nums;

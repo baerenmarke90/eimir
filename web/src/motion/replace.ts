@@ -159,14 +159,39 @@ export function disclose(element: Element | null): Animation | null {
 
 export type LayoutSnapshot = Map<string, DOMRect>;
 
-/** Measures every `[data-motion-key]` element under `container`. */
-export function captureLayout(container: Element | null): LayoutSnapshot {
+/**
+ * The data attribute that names a keyed element, as its `dataset` property
+ * (default `motionKey`, that is `data-motion-key`). An owner with its own
+ * stable item attribute (for example `sortableItemId`) passes that instead.
+ */
+export type LayoutKey = string;
+
+function keyedNodes(container: Element | null, key: LayoutKey): HTMLElement[] {
+  const attribute = key.replace(
+    /[A-Z]/g,
+    (letter) => `-${letter.toLowerCase()}`,
+  );
+  return Array.from(
+    container?.querySelectorAll<HTMLElement>(`[data-${attribute}]`) ?? [],
+  );
+}
+
+/** Measures every keyed element under `container`. */
+export function captureLayout(
+  container: Element | null,
+  key: LayoutKey = 'motionKey',
+): LayoutSnapshot {
   const rects: LayoutSnapshot = new Map();
-  for (const node of container?.querySelectorAll<HTMLElement>(
-    '[data-motion-key]',
-  ) ?? [])
-    rects.set(node.dataset.motionKey ?? '', node.getBoundingClientRect());
+  for (const node of keyedNodes(container, key))
+    rects.set(node.dataset[key] ?? '', node.getBoundingClientRect());
   return rects;
+}
+
+export interface ReorderOptions {
+  /** The keyed attribute, as in `captureLayout`. */
+  key?: LayoutKey;
+  /** An element that is still under the finger and moves on its own. */
+  skip?: Element | null;
 }
 
 /**
@@ -177,15 +202,16 @@ export function captureLayout(container: Element | null): LayoutSnapshot {
 export function reorder(
   container: Element | null,
   before: LayoutSnapshot,
+  options: ReorderOptions = {},
 ): Animation[] {
   const duration = durationMs('transition');
   const settle = easing('standard');
+  const key = options.key ?? 'motionKey';
   if (!container || duration <= 0 || !settle) return [];
   const moves: Array<{ node: HTMLElement; dx: number; dy: number }> = [];
-  for (const node of container.querySelectorAll<HTMLElement>(
-    '[data-motion-key]',
-  )) {
-    const old = before.get(node.dataset.motionKey ?? '');
+  for (const node of keyedNodes(container, key)) {
+    if (node === options.skip) continue;
+    const old = before.get(node.dataset[key] ?? '');
     if (!old) continue;
     const now = node.getBoundingClientRect();
     const dx = old.left - now.left;

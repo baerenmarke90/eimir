@@ -24,10 +24,10 @@ import {
 } from '../client/spaceEntitlement';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { languageName, resolveSupportedLocale } from '../i18n/locale';
-import { useEnter } from '../motion/enter';
-import { durationMs } from '../motion/tokens';
+import { useStageHold } from '../motion/stage';
 import { EimirIcon } from './EimirIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
+import { WIR_STAGE } from './wirStageMotion';
 import './DailyQuoteCard.css';
 
 function toggleSelection(values: string[], id: string): string[] {
@@ -165,30 +165,13 @@ function PreferencesContent({
 }
 
 /**
- * The quote itself. On Wir it arrives once per session (Enter `fade`,
- * identity `wir.quote`); a refetch, a remount or a return shows it at once.
+ * The quote itself. It never fades on its own: on Wir the card arrives with
+ * the opening (or is simply there), and the quote replaces the loading line
+ * in place (#2147).
  */
-function QuoteBlock({
-  lang,
-  arrive,
-  children,
-}: {
-  lang: string;
-  arrive: boolean;
-  children: ReactNode;
-}) {
-  const enter = useEnter<HTMLQuoteElement>('wir.quote', {
-    variant: 'fade',
-    duration: durationMs('sequence-beat') * 5,
-    disabled: !arrive,
-  });
+function QuoteBlock({ lang, children }: { lang: string; children: ReactNode }) {
   return (
-    <blockquote
-      ref={enter.ref}
-      className="daily-quote-block"
-      lang={lang}
-      {...enter.props}
-    >
+    <blockquote className="daily-quote-block" lang={lang}>
       {children}
     </blockquote>
   );
@@ -211,7 +194,10 @@ export function DailyQuoteCard({
   partnerName?: string;
   partnerNameIsResolved?: boolean;
   settingsOnly?: boolean;
-  /** Wir: the quote arrives with Enter `fade` once per session (#2074). */
+  /**
+   * Wir: the card belongs to the Wir opening (#2074, #2147). The opening
+   * waits briefly for the quote, and a quote that arrives late joins it.
+   */
   arrive?: boolean;
 }) {
   const { t } = useTranslation();
@@ -256,6 +242,13 @@ export function DailyQuoteCard({
     retry: false,
     gcTime: 0,
   });
+
+  useStageHold(
+    WIR_STAGE,
+    arrive &&
+      !settingsOnly &&
+      (entitlementQuery.isLoading || (hasCapability && quoteQuery.isLoading)),
+  );
 
   const catalogQuery = useQuery({
     queryKey: catalogKey,
@@ -471,7 +464,7 @@ export function DailyQuoteCard({
         });
 
     body = (
-      <QuoteBlock lang={quote.locale} arrive={arrive}>
+      <QuoteBlock lang={quote.locale}>
         <EimirIcon name="quote" className="daily-quote-mark" />
         <p>
           {t('dailyQuote.quoteText', {
@@ -515,6 +508,7 @@ export function DailyQuoteCard({
         <section
           className="daily-quote-card"
           aria-labelledby="daily-quote-title"
+          data-motion-join={arrive ? '' : undefined}
         >
           <h2 id="daily-quote-title" className="sr-only">
             {t('dailyQuote.title')}

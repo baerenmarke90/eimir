@@ -21,6 +21,9 @@ import { ClientProblemError } from '../client/problemDetails';
 import { postSnackbar } from '../client/snackbar';
 import { refreshSpaceConfiguration } from '../client/spaceConfiguration';
 import { useTranslation } from '../i18n';
+import { haptic } from '../motion/haptics';
+import { prefersReducedMotion } from '../motion/reducedMotion';
+import { useStageHold, useStagePhase } from '../motion/stage';
 import { BatteryIcon } from './DailyEnergyBattery';
 import { DailyVibeIcon } from './DailyVibeIcon';
 import { EimirIcon } from './EimirIcon';
@@ -40,6 +43,7 @@ import {
 } from './sendFlight';
 import { useDailyCheckInWrite } from './useDailyCheckInWrite';
 import { useViewportClamp } from './useViewportClamp';
+import { WIR_STAGE } from './wirStageMotion';
 import './WirDailyCheckIn.css';
 import '../motion/motion.css';
 
@@ -290,6 +294,11 @@ export function useWirDailyCheckIn({
     ...queryOptions,
     enabled: queryOptions.enabled && active,
   });
+  // #2147: the Wir opening waits briefly for today's state under the names.
+  useStageHold(WIR_STAGE, active && dailyQuery.isLoading);
+  // The partner's news arrives after the opening, never during it (M15).
+  const openingPhase = useStagePhase(WIR_STAGE);
+  const openingBusy = openingPhase === 'waiting' || openingPhase === 'playing';
   const vibeWrite = useDailyCheckInWrite({
     api,
     accountId: account,
@@ -459,6 +468,17 @@ export function useWirDailyCheckIn({
       current.note === base.note
     )
       return;
+    // While the opening runs, the news waits; values that will travel stay
+    // hidden meanwhile, so they never show first and then fly in again.
+    if (openingBusy) {
+      if (
+        kinds.length > 0 &&
+        arrivalMode(kinds) === 'travel' &&
+        !prefersReducedMotion()
+      )
+        setArrivalHidden(new Set(kinds));
+      return;
+    }
     // From now on this state counts as seen: it never plays twice.
     writeArrivalSeen(arrivalKey, current);
     if (kinds.length === 0) return;
@@ -485,7 +505,10 @@ export function useWirDailyCheckIn({
         },
       },
     );
-    if (!arrival) return;
+    if (!arrival) {
+      setArrivalHidden(NO_KINDS);
+      return;
+    }
     arrivalRef.current = arrival;
     if (arrivalMode(kinds) === 'travel') setArrivalHidden(new Set(kinds));
     if (kinds.includes('vibe') && base.vibe && base.vibe !== current.vibe)
@@ -500,6 +523,7 @@ export function useWirDailyCheckIn({
     day,
     flightHidden,
     flightWaiting,
+    openingBusy,
     pageVisible,
     panelOpen,
     partnerEnergyValue,
@@ -1019,10 +1043,11 @@ export function useWirDailyCheckIn({
       data-pending={ownPending ? 'true' : undefined}
       data-empty={!ownHasValue && !promptShown ? 'true' : undefined}
       data-testid="wir-checkin-own-badge"
+      data-motion-join=""
       aria-hidden="true"
     >
-      <span
-        key={ownHasValue ? `${ownVibe}:${ownEnergy === null}` : 'empty'}
+      <BadgeContent
+        changeKey={ownHasValue ? `${ownVibe}:${ownEnergy === null}` : 'empty'}
         className="wir-checkin-badge-content"
       >
         {ownHasValue ? (
@@ -1043,7 +1068,7 @@ export function useWirDailyCheckIn({
             <span aria-hidden="true">+</span> {t('wirCheckIn.ownPrompt')}
           </span>
         )}
-      </span>
+      </BadgeContent>
       {ownNote ? (
         <FlightSlot
           kind="note"
@@ -1054,6 +1079,14 @@ export function useWirDailyCheckIn({
         </FlightSlot>
       ) : null}
     </ClampedBadge>
+  ) : dailyQuery.isLoading ? (
+    // While today's state loads, its row under the name keeps its place, so a
+    // late value never pushes the quote and the modules down (#2147).
+    <span
+      className="wir-checkin-badge wir-checkin-badge-own"
+      data-placeholder="true"
+      aria-hidden="true"
+    />
   ) : null;
 
   const partnerSlotState = {
@@ -1070,10 +1103,11 @@ export function useWirDailyCheckIn({
           badgeRef={partnerBadgeRef}
           data-state={partnerState}
           data-testid="wir-checkin-partner-badge"
+          data-motion-join=""
           aria-hidden="true"
         >
-          <span
-            key={`${partnerState}:${revealKey}:${partnerVibeValue}:${partnerEnergyValue === null}`}
+          <BadgeContent
+            changeKey={`${partnerState}:${revealKey}:${partnerVibeValue}:${partnerEnergyValue === null}`}
             className={`wir-checkin-badge-content${revealKey > 0 && partnerState === 'visible' ? ' is-revealed' : ''}`}
           >
             {partnerState === 'hidden' ? (
@@ -1106,13 +1140,13 @@ export function useWirDailyCheckIn({
                 ) : null}
               </>
             )}
-          </span>
+          </BadgeContent>
         </ClampedBadge>
         {partnerNote && noteSeen.unread ? (
           <FlightSlot
             key={`dot:${revealKey}`}
             kind="note"
-            className="wir-checkin-note-dot"
+            className={`wir-checkin-note-dot${revealKey > 0 ? ' is-new' : ''}`}
             testId="wir-checkin-note-dot"
             {...partnerSlotState}
           >
@@ -1375,7 +1409,11 @@ export function useWirDailyCheckIn({
             type="button"
             className="primary wir-checkin-done"
             disabled={flightWaiting}
-            onClick={() => finishPanel()}
+            onClick={() => {
+              // "Fertig" is a named emphasized action (Motion Contract 4.10).
+              haptic('press');
+              finishPanel();
+            }}
           >
             {t('wirCheckIn.done')}
           </button>
@@ -1451,6 +1489,43 @@ function FlightSlot({
 }
 
 /** Keeps an avatar badge inside the viewport at any text size (#1790 A). */
+/**
+ * The badge's values. They settle in only when they change while Wir is
+ * shown (a new value, a reveal), never when the badge first appears: then
+ * the badge itself is part of the Wir opening or simply there (#2147). The
+ * change class is removed when its animation ended, so a kept tab that is
+ * shown again does not replay it (M4).
+ */
+function BadgeContent({
+  changeKey,
+  className,
+  children,
+}: {
+  changeKey: string;
+  className: string;
+  children: ReactNode;
+}) {
+  const shownKey = useRef(changeKey);
+  const [changedKey, setChangedKey] = useState<string | null>(null);
+  useLayoutEffect(() => {
+    if (shownKey.current === changeKey) return;
+    shownKey.current = changeKey;
+    setChangedKey(changeKey);
+  }, [changeKey]);
+  const changed = changedKey === changeKey;
+  return (
+    <span
+      key={changeKey}
+      className={`${className}${changed ? ' is-changed' : ''}`}
+      onAnimationEnd={(event) => {
+        if (event.target === event.currentTarget) setChangedKey(null);
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
 function ClampedBadge({
   className,
   children,
@@ -1463,6 +1538,7 @@ function ClampedBadge({
   'data-pending'?: string;
   'data-state'?: string;
   'data-testid'?: string;
+  'data-motion-join'?: string;
   'aria-hidden'?: 'true';
 }) {
   const ref = useRef<HTMLSpanElement>(null);

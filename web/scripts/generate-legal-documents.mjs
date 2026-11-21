@@ -39,16 +39,7 @@ const relativeTo = (root, file) =>
     .split(sep)
     .join('/');
 
-for (const { source, output, exportName } of documents) {
-  const parsed = parseLegalMarkdown(readFileSync(source, 'utf8'));
-  const sourceName = relativeTo('../../legal/', source);
-  const raw = [
-    `// Generated from legal/${sourceName} by scripts/generate-legal-documents.mjs. Do not edit.`,
-    "import type { LegalDocument } from '../../../legal/legalDocument';",
-    '',
-    `export const ${exportName}: LegalDocument = ${JSON.stringify(parsed)};`,
-    '',
-  ].join('\n');
+function emit(output, raw, description) {
   const formatted = execFileSync(
     process.execPath,
     [
@@ -65,9 +56,40 @@ for (const { source, output, exportName } of documents) {
         `${fileURLToPath(output)} is stale. Run npm run legal:generate.`,
       );
     }
-    console.log(`Legal document matches legal/${sourceName}.`);
+    console.log(`${description} is current.`);
   } else {
     writeFileSync(output, formatted);
     console.log(`Generated ${fileURLToPath(output)}.`);
   }
 }
+
+// The full texts load on demand; the startup bundle only needs the versions,
+// for example to record which terms version a new Account accepts.
+const versions = {};
+for (const { source, output, exportName } of documents) {
+  const parsed = parseLegalMarkdown(readFileSync(source, 'utf8'));
+  const sourceName = relativeTo('../../legal/', source);
+  versions[exportName] = parsed.version;
+  const raw = [
+    `// Generated from legal/${sourceName} by scripts/generate-legal-documents.mjs. Do not edit.`,
+    "import type { LegalDocument } from '../../../legal/legalDocument';",
+    '',
+    `export const ${exportName}: LegalDocument = ${JSON.stringify(parsed)};`,
+    '',
+  ].join('\n');
+  emit(output, raw, `Legal document legal/${sourceName}`);
+}
+
+emit(
+  new URL(
+    '../src/i18n/locales/legalDocuments/versions.generated.ts',
+    import.meta.url,
+  ),
+  [
+    '// Generated from legal/de/*.md by scripts/generate-legal-documents.mjs. Do not edit.',
+    '',
+    `export const legalDocumentVersions = ${JSON.stringify(versions)} as const;`,
+    '',
+  ].join('\n'),
+  'Legal document versions',
+);

@@ -21,6 +21,8 @@ from eimir.entitlements.service import (
     record_grant,
     revoke_grant,
 )
+from eimir.plugins.manifest import PLUGIN_CAPABILITIES
+from tests.support.plugins import plugins_loaded
 
 
 class FakeSession:
@@ -94,7 +96,9 @@ def test_active_premium_grant_provides_all_cloud_premium_capabilities() -> None:
     assert effective.tier == EntitlementTier.PREMIUM
     assert effective.status == EntitlementStatus.ACTIVE
     assert effective.is_in_grace_period is False
-    assert set(effective.capabilities) == set(ALL_PREMIUM_CAPABILITIES)
+    # Core-only, the plugin-owned capabilities are not effective (Decision 0017).
+    unserved = set() if plugins_loaded() else PLUGIN_CAPABILITIES
+    assert set(effective.capabilities) == set(ALL_PREMIUM_CAPABILITIES) - unserved
     assert has_capability(
         session,
         space_id,
@@ -325,7 +329,7 @@ def test_multiple_effective_grants_union_capabilities() -> None:
         tier=EntitlementTier.PREMIUM.value,
         effective_from=now - timedelta(days=1),
         effective_until=now + timedelta(days=10),
-        capabilities=[Capability.THEME_BESPOKE_PACKS.value],
+        capabilities=[Capability.CHAPTER_RICH_PRESENTATION.value],
     )
     session = FakeSession([promotion, subscription])
 
@@ -340,7 +344,7 @@ def test_multiple_effective_grants_union_capabilities() -> None:
     assert effective.status == EntitlementStatus.ACTIVE
     assert set(effective.capabilities) == {
         Capability.RECAP_PDF_YEARBOOK.value,
-        Capability.THEME_BESPOKE_PACKS.value,
+        Capability.CHAPTER_RICH_PRESENTATION.value,
     }
     assert effective.effective_until == subscription.effective_until
 

@@ -24,7 +24,8 @@ from eimir.memories.models import (
     MemoryPhotoReaction,
     PhotoReaction,
 )
-from eimir.recaps import jobs, mood, service
+from eimir.recap_composition import composer, jobs
+from eimir.recaps import presentation, service
 from eimir.recaps.models import RecapEdition
 from eimir.relationship import configuration as configuration_service
 from eimir.relationship import service as relationship_service
@@ -115,7 +116,7 @@ def test_period_preparation_is_idempotent_and_reopening_never_enqueues(client, s
     assert first.json()["id"] == second.json()["id"]
     assert (
         session.scalar(
-            select(func.count()).select_from(Job).where(Job.kind == service.GENERATE_JOB)
+            select(func.count()).select_from(Job).where(Job.kind == composer.GENERATE_JOB)
         )
         == 1
     )
@@ -131,7 +132,7 @@ def test_period_preparation_is_idempotent_and_reopening_never_enqueues(client, s
     )
     assert (
         session.scalar(
-            select(func.count()).select_from(Job).where(Job.kind == service.GENERATE_JOB)
+            select(func.count()).select_from(Job).where(Job.kind == composer.GENERATE_JOB)
         )
         == 1
     )
@@ -290,7 +291,7 @@ def test_recaps_with_local_ai_configured_use_standard_wording(
     session.flush()
     assert stored.payload.headline is None
     assert stored.generated_by == "RULES"
-    queued = session.scalars(select(Job).where(Job.kind == service.GENERATE_JOB)).all()
+    queued = session.scalars(select(Job).where(Job.kind == composer.GENERATE_JOB)).all()
     assert all("account_id" in job.payload for job in queued)
 
 
@@ -361,24 +362,24 @@ def test_earlier_periods_are_prepared_in_bounded_batches_without_a_request(
     assert len(waiting()) == 21 + 3
     assert client.post(f"{context['path']}/prepare", headers=context["headers"]).status_code == 202
     # Current month, current year and the completed previous year, plus one batch.
-    assert editions() == 3 + service.BACKFILL_BATCH
+    assert editions() == 3 + composer.BACKFILL_BATCH
     left = waiting()
-    assert len(left) == 21 - service.BACKFILL_BATCH
+    assert len(left) == 21 - composer.BACKFILL_BATCH
     # The newest earlier periods come first.
     assert ("MONTH", 2025, 10) not in left and ("MONTH", 2024, 1) in left
-    assert count(service.BACKFILL_JOB) == 1
+    assert count(composer.BACKFILL_JOB) == 1
 
     assert client.post(f"{context['path']}/prepare", headers=context["headers"]).status_code == 202
-    assert count(service.BACKFILL_JOB) == 1
+    assert count(composer.BACKFILL_JOB) == 1
     payload = {"space_id": str(context["space"].id), "account_id": str(context["anna"].id)}
     for _ in range(4):
         jobs.backfill(session, payload)
         session.flush()
     assert waiting() == []
     assert editions() == 3 + 21
-    assert count(service.GENERATE_JOB) == editions()
+    assert count(composer.GENERATE_JOB) == editions()
     # Nothing is left, so the continuation does not reschedule itself again.
-    assert count(service.BACKFILL_JOB) == 1
+    assert count(composer.BACKFILL_JOB) == 1
 
     context["grant"].status = EntitlementStatus.REVOKED.value
     session.flush()
@@ -519,7 +520,7 @@ def test_recap_transfer_retains_shared_words_and_only_the_exporters_private_draf
     assert transfer.status == ImportStatus.COMPLETED.value
     imported = session.scalar(select(RecapEdition).where(RecapEdition.space_id == target.id))
     assert imported and imported.saved_at and imported.customized
-    projected = service.project(session, target_context, imported)
+    projected = presentation.project(session, target_context, imported)
     assert projected["sources"][0]["available"]
     assert projected["own_draft"]["text"] == "Anna private draft"
     assert projected["reflections"][0]["text"] == "Shared words"
@@ -716,5 +717,5 @@ def test_mood_rhythm_counts_only_mutual_days_and_stays_frozen_after_a_downgrade(
     assert read(client, context, created).json()["mood"] == own["mood"]
 
     # It is not served once the Vibe module is switched off or a partner is gone.
-    monkeypatch.setattr(mood, "_vibe_enabled", lambda *args: False)
+    monkeypatch.setattr(presentation, "vibe_enabled", lambda *args: False)
     assert read(client, context, created).json()["mood"] is None

@@ -17,13 +17,13 @@ from sqlalchemy import and_, delete, or_, select
 
 from eimir.deployment.revision import build_revision
 from eimir.engagement.models import EngagementTarget, NotificationKind
-from eimir.entitlements.models import Capability
 from eimir.plugins.contract import (
     PLUGIN_SEAM_VERSION,
     AttachmentReadRule,
     CoreNotifications,
     TargetRule,
 )
+from eimir.plugins.manifest import PLUGIN_CAPABILITIES
 
 if TYPE_CHECKING:
     from fastapi import APIRouter
@@ -31,21 +31,15 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
     from eimir.authorization import AuthorizationContext
+    from eimir.demo.service import DemoSeedResult
     from eimir.domain.events import EventType
     from eimir.jobs.worker import JobRegistry
     from eimir.outbox.models import OutboxEvent
     from eimir.transfer.models import TransferScope
+    from eimir.wish_selections.date_idea_contract import DateIdea, DateIdeaSource
 
-_CAPABILITIES = frozenset(
-    {
-        Capability.GAMES_COUPLE.value,
-        Capability.INTEGRATION_EXTERNAL_SYNC.value,
-        Capability.PARTNER_ONCE_MESSAGES.value,
-        Capability.PRESENCE_LOCATION.value,
-        Capability.DAILY_QUOTE.value,
-        Capability.PLANNING_DATE_INSPIRATION.value,
-    }
-)
+# Every capability the Core manifest leaves to plugins is implemented here.
+_CAPABILITIES = PLUGIN_CAPABILITIES
 
 _MODEL_MODULES = (
     "eimir.calendar_sync.models",
@@ -53,6 +47,7 @@ _MODEL_MODULES = (
     "eimir.garden.models",
     "eimir.heart_hunt.models",
     "eimir.once_messages.models",
+    "eimir.partner_quick_actions.models",
     "eimir.photo_sources.models",
     "eimir.picture_ping_pong.models",
     "eimir.presence.models",
@@ -295,12 +290,23 @@ def _delete_account_rows(session: Session, model: Any, account_id: UUID) -> None
 
 def _on_account_deleted(session: Session, account_id: UUID) -> None:
     from eimir.calendar_sync.models import CalendarConnection, CalendarOAuthTransaction
+    from eimir.partner_quick_actions.models import SupportGestureRequest
     from eimir.photo_sources.models import GoogleAccountHint, PhotoConnection, PhotoSelection
     from eimir.presence.models import PartnerLocationConsent, SharingLevel
     from eimir.presence.service import delete_owner_presence
 
     for model in personal_account_models():
         _delete_account_rows(session, model, account_id)
+    # Gesture receipts record who sent which gesture to whom and when:
+    # relationship metadata that ends with either side.
+    session.execute(
+        delete(SupportGestureRequest).where(
+            or_(
+                SupportGestureRequest.sender_account_id == account_id,
+                SupportGestureRequest.recipient_account_id == account_id,
+            )
+        )
+    )
     # A remaining partner keeps their preferences, but their old grant cannot
     # authorize this recipient or be silently transferred to another partner.
     received = session.scalars(
@@ -342,9 +348,43 @@ class InTreeProPlugin:
         return _MODEL_MODULES
 
     def routers(self) -> Sequence[APIRouter]:
-        # Core still mounts the Pro routers itself; they move here in a later
-        # Phase 1 pull request, together with the Core-only configuration.
-        return ()
+        from eimir.api.v1 import (
+            calendar_sync,
+            couple_games,
+            daily_insights,
+            daily_quote,
+            date_ideas,
+            games,
+            garden,
+            heart_hunt,
+            memory_map,
+            once_messages,
+            partner_location,
+            partner_quick_actions,
+            photo_sources,
+            picture_ping_pong,
+            recap_composition,
+            relationship_passport,
+        )
+
+        return (
+            photo_sources.router,
+            calendar_sync.router,
+            once_messages.router,
+            partner_location.router,
+            daily_quote.router,
+            date_ideas.router,
+            games.router,
+            garden.router,
+            heart_hunt.router,
+            picture_ping_pong.router,
+            couple_games.router,
+            memory_map.router,
+            partner_quick_actions.router,
+            relationship_passport.router,
+            daily_insights.router,
+            recap_composition.router,
+        )
 
     def register_jobs(self, registry: JobRegistry) -> None:
         from eimir.calendar_sync import jobs as calendar_sync_jobs
@@ -352,21 +392,27 @@ class InTreeProPlugin:
         from eimir.once_messages import service as once_messages
         from eimir.photo_sources import retention as photo_source_retention
         from eimir.presence import retention as presence_retention
+        from eimir.recap_composition import jobs as recap_jobs
+        from eimir.video_processing import jobs as video_jobs
 
         photo_source_retention.register_handlers(registry)
         once_messages.register_handlers(registry)
         heart_hunt_retention.register_handlers(registry)
         presence_retention.register_handlers(registry)
         calendar_sync_jobs.register_handlers(registry)
+        video_jobs.register_handlers(registry)
+        recap_jobs.register_handlers(registry)
 
     def ensure_scheduled(self, session: Session) -> None:
         from eimir.heart_hunt import retention as heart_hunt_retention
         from eimir.photo_sources import retention as photo_source_retention
         from eimir.presence import retention as presence_retention
+        from eimir.recap_composition import jobs as recap_jobs
 
         heart_hunt_retention.ensure_scheduled(session)
         presence_retention.ensure_scheduled(session)
         photo_source_retention.ensure_scheduled(session)
+        recap_jobs.ensure_scheduled(session)
 
     def prune_expired(self, session: Session) -> None:
         from eimir.once_messages.service import prune_expired
@@ -455,6 +501,101 @@ class InTreeProPlugin:
         if google_account and google_account.payload.account_id == authorization.account_id:
             document["personalGoogleAccountHint"] = google_account.payload.email
         return document
+
+    def date_ideas(self) -> DateIdeaSource | None:
+        return _DATE_IDEAS
+
+    def seed_demo(self, session: Session, result: DemoSeedResult, *, created: bool) -> None:
+        _ensure_demo_quote_preferences(session, result)
+        if created:
+            # Like the other examples, only a new canonical Space or a reset
+            # gets a location share, so ``ensure`` never restores a removed one.
+            _ensure_demo_partner_location(session, result)
+
+
+class _InTreeDateIdeas:
+    """The bundled editorial catalog as a Wish selection round sees it."""
+
+    def revision(self, idea_id: str) -> str | None:
+        from eimir.date_ideas.catalog import get_catalog
+
+        return get_catalog().revision(idea_id)
+
+    def view(self, idea_id: str, locale: str | None) -> DateIdea | None:
+        from eimir.api.v1.date_ideas import date_idea_view
+        from eimir.date_ideas.catalog import get_catalog
+        from eimir.date_ideas.images import get_images
+
+        catalog = get_catalog()
+        resolved = catalog.idea(idea_id, catalog.resolve_locale(locale))
+        return None if resolved is None else date_idea_view(resolved, get_images())
+
+
+_DATE_IDEAS = _InTreeDateIdeas()
+
+
+def _ensure_demo_quote_preferences(session: Session, result: DemoSeedResult) -> None:
+    """Configure deterministic, distinct quote preferences for Lea and Alex."""
+    from eimir.quotes import service as quote_preference_service
+
+    quote_preference_service.update_preference(
+        session,
+        result.lea_id,
+        enabled=True,
+        selected_source_ids=["poetic_wisdom", "classic_literature"],
+        selected_category_ids=["love", "together"],
+        locale="de",
+    )
+    quote_preference_service.update_preference(
+        session,
+        result.alex_id,
+        enabled=True,
+        selected_source_ids=["stoic_philosophy"],
+        selected_category_ids=["life", "nature"],
+        locale="de",
+    )
+
+
+def _ensure_demo_partner_location(session: Session, result: DemoSeedResult) -> None:
+    """Both demo partners share their location with each other."""
+    from eimir.authorization import AuthorizationContext
+    from eimir.core import clock
+    from eimir.demo.feature_examples import (
+        ALEX_POSITION,
+        LEA_POSITION,
+        POSITION_ACCURACY_METERS,
+    )
+    from eimir.presence import service as presence_service
+    from eimir.presence.models import SharingLevel
+
+    if not presence_service.feature_enabled():
+        return
+    captured_at = clock.now()
+    for account_id, (latitude, longitude) in (
+        (result.lea_id, LEA_POSITION),
+        (result.alex_id, ALEX_POSITION),
+    ):
+        context = AuthorizationContext(account_id=account_id, space_id=result.space_id)
+        settings = presence_service.get_settings_view(session, context)
+        if not settings.available:
+            return
+        if settings.level is not SharingLevel.DISTANCE_AND_MAP or not settings.indefinite:
+            settings = presence_service.update_settings(
+                session,
+                context,
+                level=SharingLevel.DISTANCE_AND_MAP,
+                indefinite=True,
+                expires_at=None,
+            )
+        presence_service.publish_snapshot(
+            session,
+            context,
+            latitude=latitude,
+            longitude=longitude,
+            accuracy_meters=POSITION_ACCURACY_METERS,
+            captured_at=captured_at,
+            consent_generation=settings.generation,
+        )
 
 
 plugin = InTreeProPlugin()

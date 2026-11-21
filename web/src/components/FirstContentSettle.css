@@ -5,37 +5,13 @@
  */
 @media (prefers-reduced-motion: no-preference) {
   .first-content-settle {
+    --motion-enter-from: 0 1rem;
+    --motion-enter-from-scale: 0.97;
     border-radius: var(--radius-content);
     animation:
-      first-content-settle var(--duration-context) var(--easing-enter) both,
-      first-content-glow var(--duration-gesture-moment) var(--easing-standard)
-      var(--duration-context) both;
-  }
-}
-
-@keyframes first-content-settle {
-  from {
-    opacity: 0;
-    transform: translateY(1rem) scale(0.97);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes first-content-glow {
-  0% {
-    box-shadow: 0 0 0 0 var(--color-brand-glow);
-  }
-
-  40% {
-    box-shadow: 0 0 0 0.6rem var(--color-brand-glow);
-  }
-
-  100% {
-    box-shadow: 0 0 0 1.1rem transparent;
+      eimir-motion-enter-arrive var(--duration-context) var(--easing-enter) both,
+      eimir-motion-feedback-glow var(--duration-gesture-moment)
+      var(--easing-standard) var(--duration-context) both;
   }
 }
 

@@ -34,7 +34,7 @@ def successful_runs() -> list[dict]:
             "id": index,
             "run_attempt": 1,
             "path": path,
-            "event": "push",
+            "event": channel.FULL_REGRESSION_EVENT,
             "head_branch": "main",
             "head_sha": SOURCE,
             "head_repository": {"full_name": channel.REPOSITORY},
@@ -47,6 +47,45 @@ def successful_runs() -> list[dict]:
 
 def completion_event() -> dict:
     return {"action": "completed", "workflow_run": successful_runs()[0]}
+
+
+class FullRegressionGateTest(unittest.TestCase):
+    def test_green_full_regression_admits_the_release(self):
+        with patch.object(channel, "candidate_ready", return_value=True), patch.object(channel, "run") as command:
+            channel.require_full_regression(SOURCE, dispatch=True)
+        command.assert_not_called()
+
+    def test_missing_regression_on_current_main_starts_the_dispatcher_and_refuses(self):
+        with (
+            patch.object(channel, "candidate_ready", return_value=False),
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "run") as command,
+            self.assertRaises(channel.ChannelError),
+        ):
+            channel.require_full_regression(SOURCE, dispatch=True)
+        command.assert_called_once_with(
+            ["gh", "workflow", "run", channel.FULL_REGRESSION_DISPATCHER, "--repo", channel.REPOSITORY, "--ref", "main"]
+        )
+
+    def test_missing_regression_on_an_older_revision_refuses_without_dispatch(self):
+        with (
+            patch.object(channel, "candidate_ready", return_value=False),
+            patch.object(channel, "latest_main", return_value=PREVIOUS),
+            patch.object(channel, "run") as command,
+            self.assertRaises(channel.ChannelError),
+        ):
+            channel.require_full_regression(SOURCE, dispatch=True)
+        command.assert_not_called()
+
+    def test_failed_regression_refuses(self):
+        with (
+            patch.object(channel, "candidate_ready", side_effect=channel.ChannelError("failed")),
+            self.assertRaises(channel.ChannelError),
+        ):
+            channel.require_full_regression(SOURCE, dispatch=True)
+
+    def test_dispatcher_exists(self):
+        self.assertTrue((ROOT / ".github/workflows" / channel.FULL_REGRESSION_DISPATCHER).is_file())
 
 
 class CompletionAdmissionTest(unittest.TestCase):
@@ -62,7 +101,9 @@ class CompletionAdmissionTest(unittest.TestCase):
     def test_untrusted_or_unrelated_completions_never_query_github(self):
         for mutation in (
             {"event": "pull_request"},
-            {"event": "workflow_dispatch"},
+            # Pushes to main no longer run the required workflows (#2096).
+            {"event": "push"},
+            {"event": "schedule"},
             {"head_branch": "feature"},
             {"head_sha": PREVIOUS},
             {"head_repository": {"full_name": "other/eimir"}},
@@ -120,8 +161,41 @@ class CompletionAdmissionTest(unittest.TestCase):
         ):
             channel.check_for_publication(SOURCE, "workflow_run", completion_event())
 
+    def test_every_merge_admits_the_current_main_without_full_regression(self):
+        # #2096: the private test channel follows every merge to main.
+        with (
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready") as ready,
+            patch.object(channel, "channel_already_selected", side_effect=[False, True]),
+        ):
+            self.assertTrue(channel.check_for_publication(SOURCE, "push", {}))
+            self.assertFalse(channel.check_for_publication(SOURCE, "push", {}))
+            ready.assert_not_called()
+
+    def test_merge_superseded_by_a_newer_merge_is_not_built(self):
+        with (
+            patch.object(channel, "latest_main", return_value=PREVIOUS),
+            patch.object(channel, "candidate_ready") as ready,
+            patch.object(channel, "channel_already_selected") as selected,
+        ):
+            self.assertFalse(channel.check_for_publication(SOURCE, "push", {}))
+            ready.assert_not_called()
+            selected.assert_not_called()
+
+    def test_only_the_fast_lane_skips_the_full_regression(self):
+        with (
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", return_value=False) as ready,
+        ):
+            self.assertTrue(channel.source_admitted(SOURCE, full_regression=False))
+            ready.assert_not_called()
+            self.assertFalse(channel.source_admitted(SOURCE, full_regression=True))
+            ready.assert_called_once_with(SOURCE)
+        with patch.object(channel, "latest_main", return_value=PREVIOUS):
+            self.assertFalse(channel.source_admitted(SOURCE, full_regression=False))
+
     def test_other_trigger_types_cannot_admit_a_build(self):
-        for event_name in ("push", "pull_request", "schedule", ""):
+        for event_name in ("pull_request", "schedule", ""):
             with (
                 self.subTest(event_name=event_name),
                 patch.object(channel, "gh_api") as api,
@@ -179,22 +253,16 @@ class CompletionAdmissionTest(unittest.TestCase):
 
 
 class MainCheckTest(unittest.TestCase):
-    def test_required_workflows_run_for_every_main_push(self):
+    def test_required_workflows_are_dispatched_by_the_full_regression(self):
+        # Pushes to main start no workflows (#2096). Every required workflow is
+        # dispatched unfiltered by the nightly regression instead.
+        dispatcher = (ROOT / ".github/workflows" / channel.FULL_REGRESSION_DISPATCHER).read_text()
         for path in sorted(channel.REQUIRED_WORKFLOWS):
             with self.subTest(path=path):
-                lines = (ROOT / path).read_text().splitlines()
-                start = lines.index("  push:") + 1
-                push = []
-                for line in lines[start:]:
-                    if line.strip() and len(line) - len(line.lstrip()) < 4:
-                        break
-                    push.append(line.strip())
-                self.assertIn("branches: [main]", push)
-                for key in ("paths:", "paths-ignore:", "tags:", "tags-ignore:"):
-                    self.assertFalse(
-                        any(line.startswith(key) for line in push),
-                        f"{path} must not filter required main push checks",
-                    )
+                text = (ROOT / path).read_text()
+                self.assertIn("\n  workflow_dispatch:", text)
+                self.assertNotIn("\n  push:", text)
+                self.assertIn(f"\n            {Path(path).name}\n", dispatcher)
 
     def test_only_every_exact_main_workflow_admits_a_candidate(self):
         self.assertTrue(channel.workflow_state(successful_runs(), SOURCE))
@@ -632,6 +700,36 @@ class BranchPromotionTest(unittest.TestCase):
             if endpoint.endswith("/git/trees")
         )
         self.assertEqual({row["path"] for row in tree["tree"]}, set(self.files))
+
+    def test_merge_promotes_without_the_full_regression(self):
+        with (
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", return_value=False) as ready,
+            patch.object(channel, "gh_api", side_effect=self.api),
+        ):
+            self.assertTrue(channel.advance_channel(self.files, SOURCE, full_regression=False))
+        ready.assert_not_called()
+        self.assertTrue(self.calls[-1][0].endswith("/git/refs/heads/deploy/eimir-test"))
+
+    def test_cli_publish_uses_the_fast_lane_only_for_merges(self):
+        for event_name, expected in (("push", False), ("workflow_dispatch", True), ("workflow_run", True)):
+            environment = {
+                "GITHUB_REPOSITORY": channel.REPOSITORY,
+                "GITHUB_REF": "refs/heads/main",
+                "GITHUB_EVENT_NAME": event_name,
+            }
+            with (
+                self.subTest(event_name=event_name),
+                patch.dict(os.environ, environment),
+                patch.object(channel, "publish") as publish,
+                patch.object(
+                    sys,
+                    "argv",
+                    ["channel", "publish", "--revision", SOURCE, "--artifact-root", "/a", "--output", "/o"],
+                ),
+            ):
+                self.assertEqual(channel.main(), 0)
+                self.assertIs(publish.call_args.kwargs["full_regression"], expected)
 
     def test_stale_main_or_failed_checks_never_write_a_ref(self):
         for stale in (True, False):

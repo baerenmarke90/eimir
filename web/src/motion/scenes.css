@@ -1,0 +1,19 @@
+/*
+ * The Scenes domain's pause rule (Motion Contract 4.8, M4, M8; #2079).
+ *
+ * The scene controller (`useScene` in `scene.ts`) sets
+ * `data-motion-scene="paused"` on a scene's root while the page, its kept
+ * view or the scene itself is hidden, while the owner reports it is not in
+ * use, and with reduced motion. Every CSS animation inside then holds where
+ * it is and continues from there when the scene plays again: nothing
+ * restarts and nothing jumps. A paused scene renders no animation frames.
+ *
+ * `!important` because the scene's own rules set the `animation` shorthand,
+ * which resets the play state.
+ */
+[data-motion-scene="paused"],
+[data-motion-scene="paused"] *,
+[data-motion-scene="paused"] *::before,
+[data-motion-scene="paused"] *::after {
+  animation-play-state: paused !important;
+}

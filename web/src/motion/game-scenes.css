@@ -1,0 +1,51 @@
+/*
+ * The motion layer's Scenes catalogue for the game playfields (Motion
+ * Contract 4.8, M6, M9, M14; #2079): Heart Hunt and Picture Ping-Pong.
+ *
+ * Taps and results inside a game are Feedback; neither playfield loops.
+ * Durations are token roles only (M1).
+ *
+ * Moved from the game stylesheets. The Picture Ping-Pong flight crosses the
+ * court with `translate` instead of `inset-inline-start` (M6).
+ *
+ * Imported by the game pages, so it loads only with them.
+ */
+
+/* HeartHuntGamePage */
+
+@keyframes eimir-motion-heart-hunt-pop {
+  0% {
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  60% {
+    transform: translate(-50%, -50%) scale(1.7);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.3);
+  }
+}
+
+/* PicturePingPongPage */
+
+/* The flyer spans the court; it crosses one court width (`--pingpong-court`,
+   negative in right-to-left) with `translate` instead of an inset. */
+@keyframes eimir-motion-pingpong-fly-x {
+  from {
+    translate: 0 0;
+  }
+
+  to {
+    translate: var(--pingpong-court, 100%) 0;
+  }
+}
+
+@keyframes eimir-motion-pingpong-fly-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(calc(var(--pingpong-arc, 0.3) * -3rem));
+  }
+}

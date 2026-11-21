@@ -42,6 +42,7 @@ if TYPE_CHECKING:
 
     from eimir.engagement.models import EngagementTarget
     from eimir.jobs.worker import JobRegistry
+    from eimir.wish_selections.date_idea_contract import DateIdeaSource
 
 log = logging.getLogger(__name__)
 
@@ -91,6 +92,14 @@ class LoadedPlugins:
             for plugin in self.plugins
             for target, rule in plugin.engagement_targets().items()
         }
+
+    def date_ideas(self) -> DateIdeaSource | None:
+        """The first loaded plugin's date-idea catalog, if any."""
+        for plugin in self.plugins:
+            source = plugin.date_ideas()
+            if source is not None:
+                return source
+        return None
 
     def attachment_read_rules(self) -> dict[str, AttachmentReadRule]:
         return {

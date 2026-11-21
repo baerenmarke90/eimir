@@ -18,7 +18,6 @@ import type { DistanceBandView } from '../api/generated/models/DistanceBandView'
 import type { HeartHuntRoundView } from '../api/generated/models/HeartHuntRoundView';
 import type { HeartHuntState } from '../api/generated/models/HeartHuntState';
 import type { HeartHuntTapResult } from '../api/generated/models/HeartHuntTapResult';
-import type { PartnerLocationSettingsView } from '../api/generated/models/PartnerLocationSettingsView';
 import type { PartnerView } from '../api/generated/models/PartnerView';
 import { Configuration } from '../client/apiConfiguration';
 import {
@@ -43,7 +42,7 @@ import {
 } from '../client/partnerDistance';
 import {
   PARTNER_LOCATION_CAPABILITY,
-  partnerLocationSettingsQueryKey,
+  usePartnerLocationSettingsEntry,
 } from '../client/partnerLocation';
 import type { PersonRole } from '../client/personColours';
 import { normalizeClientError } from '../client/problemDetails';
@@ -284,10 +283,7 @@ function useHeartDistance({
     load,
     capability: PARTNER_LOCATION_CAPABILITY,
   });
-  const settings = useQuery<PartnerLocationSettingsView>({
-    queryKey: partnerLocationSettingsQueryKey(accountId, spaceId),
-    enabled: false,
-  }).data;
+  const settings = usePartnerLocationSettingsEntry(accountId, spaceId);
   const enabled =
     override === undefined &&
     capability.data === true &&

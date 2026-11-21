@@ -25,7 +25,7 @@ from eimir.dashboard.preferences import CATALOG as DASHBOARD_CATALOG
 from eimir.engagement.models import Notification, NotificationKind
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
-from eimir.recaps import service as recaps
+from eimir.recaps import composer
 from eimir.recaps.models import RecapKind
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
@@ -1863,7 +1863,7 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             # Composed through the service: the request route is plugin code and
             # is not mounted in the Core-only configuration.
             recap_id = str(
-                recaps.request_period(
+                composer.request_period(
                     session,
                     AuthorizationContext(account_id=anna.id, space_id=space.id),
                     RecapKind.YEAR,

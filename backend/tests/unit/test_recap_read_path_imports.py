@@ -1,9 +1,11 @@
 """The recap read path stands on its own (Decision 0017, #2085).
 
-Stored editions stay readable, exportable and restorable on every server, so the
-Core read module and the job member helpers must not depend on the composing
-side of recaps (selection pool, film cut, look, mood computation, notices,
-freshness or the jobs). This keeps the composition movable into the Pro plugin.
+Stored editions stay readable, exportable and restorable on every server, and
+the members' own reflections stay editable and withdrawable. So the Core read
+module, the Core recap service and routes, and the job member helpers must not
+depend on the composing side of recaps (selection pool and requests, film cut,
+look, mood computation, notices, freshness or the jobs). This keeps the
+composition movable into the Pro plugin.
 """
 
 from __future__ import annotations
@@ -17,7 +19,7 @@ SOURCE = Path(__file__).resolve().parents[2] / "src" / "eimir"
 
 COMPOSING = {
     f"eimir.recaps.{name}"
-    for name in ("film", "freshness", "jobs", "montage", "mood", "notices", "service", "words")
+    for name in ("composer", "film", "freshness", "jobs", "montage", "mood", "notices", "words")
 }
 
 
@@ -34,7 +36,14 @@ def _imports(path: Path) -> set[str]:
 
 @pytest.mark.parametrize(
     "relative",
-    ["recaps/presentation.py", "recaps/invalidation.py", "jobs/members.py", "context_tags/jobs.py"],
+    [
+        "recaps/presentation.py",
+        "recaps/invalidation.py",
+        "recaps/service.py",
+        "api/v1/recaps.py",
+        "jobs/members.py",
+        "context_tags/jobs.py",
+    ],
 )
 def test_the_read_path_does_not_import_recap_composition(relative: str) -> None:
     assert _imports(SOURCE / relative) & COMPOSING == set()

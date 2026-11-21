@@ -14,7 +14,7 @@ from eimir.jobs import queue
 from eimir.jobs.members import authorized_context, first_member
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import registry
-from eimir.recaps import freshness, montage, mood, notices, presentation, service
+from eimir.recaps import composer, freshness, montage, mood, notices, presentation, service
 from eimir.recaps.composition import theme_for
 from eimir.recaps.models import RecapKind, RecapPayload
 from eimir.relationship.models import Membership, MembershipStatus
@@ -48,7 +48,7 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
         value.status = "PAUSED"
         return
     kind = RecapKind(value.kind)
-    pool = service.candidates(
+    pool = composer.candidates(
         session,
         context,
         value.starts_on,
@@ -73,7 +73,7 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
     if not service.can_compose(session, context, lock_grants=True):
         value.status = "PAUSED"
         return
-    service.store_selection(session, value, selected)
+    composer.store_selection(session, value, selected)
     rhythm = mood.refreshed(
         session, space_id, kind, value.starts_on, value.through_on, value.payload.mood
     )
@@ -90,7 +90,7 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
     value.observed_digest = value.observed_at = None
     if value.supersedes_id is not None:
         zone, _ = service.calendar_context(session, context)
-        service.settle_version(session, context, value, clock.today_in(zone))
+        composer.settle_version(session, context, value, clock.today_in(zone))
 
 
 def ensure_scheduled(
@@ -121,7 +121,7 @@ def scan(session: Session, payload: dict[str, Any]) -> None:
             continue
         context = authorized_context(session, account_id, space_id)
         if context and service.can_compose(session, context):
-            service.prepare_current(session, context)
+            composer.prepare_current(session, context)
     if len(spaces) == 100:
         queue.enqueue(session, SCAN_JOB, {"after": str(spaces[-1])})
     else:
@@ -132,12 +132,12 @@ def backfill(session: Session, payload: dict[str, Any]) -> None:
     """Continue preparing earlier periods; stops by itself once none are left."""
     context = authorized_context(session, UUID(payload["account_id"]), UUID(payload["space_id"]))
     if context and service.can_compose(session, context):
-        service.prepare_current(session, context)
+        composer.prepare_current(session, context)
 
 
 def register_handlers() -> None:
-    registry.register(service.GENERATE_JOB, generate)
-    registry.register(service.BACKFILL_JOB, backfill)
-    registry.register(service.REFRESH_JOB, backfill)
+    registry.register(composer.GENERATE_JOB, generate)
+    registry.register(composer.BACKFILL_JOB, backfill)
+    registry.register(composer.REFRESH_JOB, backfill)
     registry.register(notices.ANNOUNCE_JOB, notices.announce)
     registry.register(SCAN_JOB, scan)

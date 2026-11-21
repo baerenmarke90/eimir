@@ -1,0 +1,11 @@
+eimir. Android 0.2.0-test.97
+
+- The Date-Abend countdown on Wir now ticks in place and only while it is visible, instead of fading again every second.
+- The Wir opening runs as one calm sequence on a single clock, so late data (place, quote, check-in, photo) joins it or appears at rest.
+- Importing the same Transfer Bundle again no longer duplicates content.
+- Videos in a Transfer Bundle now count as video uploads, and videos that were skipped can be recovered by importing the same file again.
+- Photos imported from a Transfer Bundle are checked like regular uploads.
+- A Transfer import that would exceed the Cloud storage quota is now refused.
+
+The product changes come from main at 3cc4d5b1d5af322aae0bef787afb26015aea249c.
+Install over test.96 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 97.

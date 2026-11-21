@@ -14,7 +14,7 @@ from eimir.recaps.models import RecapEdition, RecapSource
 
 def _before_flush(session: Session, flush_context: Any, instances: Any) -> None:
     del flush_context, instances
-    from eimir.recaps.service import MODELS
+    from eimir.recaps.presentation import MODELS
 
     kinds = {model: kind.value for kind, model in MODELS.items()}
     affected: set[UUID] = set()

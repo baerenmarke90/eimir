@@ -261,12 +261,16 @@ def test_the_in_tree_pro_plugin_is_registered_as_entry_point() -> None:
 
 def test_the_in_tree_pro_plugin_provides_the_moving_capabilities() -> None:
     assert pro_plugin.plugin.capabilities() == {
+        Capability.DAILY_INSIGHTS.value,
         Capability.GAMES_COUPLE.value,
         Capability.INTEGRATION_EXTERNAL_SYNC.value,
+        Capability.MEDIA_VIDEO_UPLOAD.value,
         Capability.MEMORIES_MAP.value,
         Capability.PARTNER_ONCE_MESSAGES.value,
         Capability.PARTNER_QUICK_ACTIONS_EXTENDED.value,
         Capability.PRESENCE_LOCATION.value,
+        Capability.RELATIONSHIP_PASSPORT.value,
+        Capability.THEME_BESPOKE_PACKS.value,
         Capability.DAILY_QUOTE.value,
         Capability.PLANNING_DATE_INSPIRATION.value,
     }

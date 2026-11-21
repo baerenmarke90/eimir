@@ -18,6 +18,7 @@ SOURCE = Path(__file__).resolve().parents[2] / "src"
 PLUGIN_PACKAGES = (
     "eimir.calendar_sync",
     "eimir.couple_games",
+    "eimir.daily_insights",
     "eimir.date_ideas",
     "eimir.garden",
     "eimir.heart_hunt",
@@ -27,6 +28,9 @@ PLUGIN_PACKAGES = (
     "eimir.picture_ping_pong",
     "eimir.presence",
     "eimir.quotes",
+    "eimir.recap_composition",
+    "eimir.relationship_passport",
+    "eimir.video_processing",
 )
 """The in-tree Pro modules; Phase 2 moves them into their own distribution."""
 
@@ -40,6 +44,7 @@ PLUGIN_MODULES = (
         for name in (
             "calendar_sync",
             "couple_games",
+            "daily_insights",
             "daily_quote",
             "date_ideas",
             "games",
@@ -51,6 +56,8 @@ PLUGIN_MODULES = (
             "partner_quick_actions",
             "photo_sources",
             "picture_ping_pong",
+            "recap_composition",
+            "relationship_passport",
         )
     ),
 )

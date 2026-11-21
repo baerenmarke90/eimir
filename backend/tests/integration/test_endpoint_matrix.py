@@ -19,13 +19,16 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy.orm import Session
 
+from eimir.authorization import AuthorizationContext
 from eimir.core import clock
 from eimir.dashboard.preferences import CATALOG as DASHBOARD_CATALOG
 from eimir.engagement.models import Notification, NotificationKind
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
+from eimir.recaps.models import RecapKind
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
+from tests.support.plugins import with_pro_plugin
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -1574,6 +1577,8 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="TRANSFER_NOT_FOUND",
         placeholders=("importId",),
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/transfer/skipped-videos"),
+    Endpoint("DELETE", "/api/v1/spaces/{spaceId}/transfer/skipped-videos"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/attachment-upload-policy"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/attachments", body=ATTACHMENT),
     Endpoint(
@@ -1842,28 +1847,39 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
     if endpoint and "/recaps" in endpoint.template:
         # Keep unrelated domain fixtures Free. Recap writes need their own grant
         # so the matrix reaches resource/header checks instead of a Pro gate.
-        entitlements.record_grant(
-            session,
-            space_id=space.id,
-            account_id=anna.id,
-            source_type=EntitlementSourceType.ADMIN_GRANT,
-            status=EntitlementStatus.ACTIVE,
-            tier=EntitlementTier.PREMIUM,
-            effective_from=clock.now() - timedelta(days=1),
-            capabilities=["relationship.passport"],
-        )
-        session.flush()
-        recap = client.post(
-            f"{base_path}/recaps", json={"kind": "YEAR", "year": 2025}, headers=headers
-        )
-        assert recap.status_code == 200
-        recap_id = recap.json()["id"]
-        reflection = client.put(
-            f"{base_path}/recaps/{recap_id}/reflection",
-            json={"text": "Matrix recap reflection", "shared": True, "version": 0},
-            headers=headers,
-        )
-        assert reflection.status_code == 200
+        # Composing needs the Pro plugin's capability; a Core-only instance keeps
+        # the recaps it composed while the plugin was loaded.
+        with with_pro_plugin():
+            entitlements.record_grant(
+                session,
+                space_id=space.id,
+                account_id=anna.id,
+                source_type=EntitlementSourceType.ADMIN_GRANT,
+                status=EntitlementStatus.ACTIVE,
+                tier=EntitlementTier.PREMIUM,
+                effective_from=clock.now() - timedelta(days=1),
+                capabilities=["relationship.passport"],
+            )
+            session.flush()
+            # Composed through the plugin code: the request route is not mounted in
+            # the Core-only configuration.
+            from eimir.recap_composition import composer
+
+            recap_id = str(
+                composer.request_period(
+                    session,
+                    AuthorizationContext(account_id=anna.id, space_id=space.id),
+                    RecapKind.YEAR,
+                    2025,
+                    0,
+                ).id
+            )
+            reflection = client.put(
+                f"{base_path}/recaps/{recap_id}/reflection",
+                json={"text": "Matrix recap reflection", "shared": True, "version": 0},
+                headers=headers,
+            )
+            assert reflection.status_code == 200
 
     return {
         "client": client,

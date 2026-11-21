@@ -17894,6 +17894,27 @@
         "title": "TransferExportDetail",
         "type": "object"
       },
+      "TransferImportApply": {
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/TransferImportApplyMode",
+            "default": "ALL",
+            "description": "`WITHOUT_VIDEOS` is the member's explicit confirmation to import the bundle without its videos. Without it, a bundle whose videos need Pro is refused with `409 TRANSFER_VIDEOS_NEED_PRO` and nothing changes. `VIDEOS_ONLY` imports nothing but the videos this Space skipped earlier from the same file; it needs the video capability and answers `409 TRANSFER_NOTHING_TO_RECOVER` when the file holds none of them."
+          }
+        },
+        "title": "TransferImportApply",
+        "type": "object"
+      },
+      "TransferImportApplyMode": {
+        "enum": [
+          "ALL",
+          "WITHOUT_VIDEOS",
+          "VIDEOS_ONLY"
+        ],
+        "title": "TransferImportApplyMode",
+        "type": "string"
+      },
       "TransferImportDetail": {
         "properties": {
           "artifactSize": {
@@ -17991,6 +18012,11 @@
       },
       "TransferImportSummary": {
         "properties": {
+          "alreadyPresentCount": {
+            "description": "Records and media of this file the Space already has, from an earlier import of the same file or because the file was exported from this Space. Applying leaves them exactly as they are and adds only what is missing, so importing the same file again never duplicates anything.",
+            "title": "Alreadypresentcount",
+            "type": "integer"
+          },
           "mediaCount": {
             "title": "Mediacount",
             "type": "integer"
@@ -18002,19 +18028,105 @@
             "title": "Recordcounts",
             "type": "object"
           },
+          "recoverableVideoBytes": {
+            "description": "Total size of the recoverable videos; recovering them counts toward the Space's storage quota.",
+            "title": "Recoverablevideobytes",
+            "type": "integer"
+          },
+          "recoverableVideoCount": {
+            "description": "Videos this Space skipped in an earlier import that this file holds again (same source and checksum). Apply with `mode: VIDEOS_ONLY` to add exactly these to their galleries.",
+            "title": "Recoverablevideocount",
+            "type": "integer"
+          },
+          "recoveredVideoCount": {
+            "description": "Videos added back by an import applied with `VIDEOS_ONLY`.",
+            "title": "Recoveredvideocount",
+            "type": "integer"
+          },
           "scope": {
             "$ref": "#/components/schemas/TransferScope"
+          },
+          "skippedVideoCount": {
+            "description": "Videos left out by an import applied without videos.",
+            "title": "Skippedvideocount",
+            "type": "integer"
           },
           "sourceMemberCount": {
             "title": "Sourcemembercount",
             "type": "integer"
+          },
+          "storageAvailable": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Bytes that still fit the Space's storage quota, read live while the import is ready to apply. `null` when the Space is unmetered (Self-Hosted) or the import is no longer ready.",
+            "title": "Storageavailable"
+          },
+          "storageFitsWithoutVideos": {
+            "description": "True when importing with `mode: WITHOUT_VIDEOS` fits the storage quota.",
+            "title": "Storagefitswithoutvideos",
+            "type": "boolean"
+          },
+          "storageNeeded": {
+            "description": "Bytes the import would add to the Space's storage: the media it would add, at their size. Media the Space already has and thumbnails do not count.",
+            "title": "Storageneeded",
+            "type": "integer"
+          },
+          "storageNeededWithoutVideos": {
+            "description": "Bytes the import would add with `mode: WITHOUT_VIDEOS`.",
+            "title": "Storageneededwithoutvideos",
+            "type": "integer"
+          },
+          "storageQuotaExceeded": {
+            "description": "True when importing everything would exceed the Space's storage quota; applying is then refused with `413 STORAGE_QUOTA_EXCEEDED` or, when `storageFitsWithoutVideos` is true, `413 STORAGE_QUOTA_EXCEEDED_FITS_WITHOUT_VIDEOS`. Free up space or get Premium.",
+            "title": "Storagequotaexceeded",
+            "type": "boolean"
+          },
+          "unrecoveredVideoCount": {
+            "description": "Remembered videos `VIDEOS_ONLY` could not add because the gallery is full.",
+            "title": "Unrecoveredvideocount",
+            "type": "integer"
+          },
+          "videoBytes": {
+            "description": "Total declared size of those videos.",
+            "title": "Videobytes",
+            "type": "integer"
+          },
+          "videoCount": {
+            "description": "Videos the import would add; importing one counts as a video upload. Videos the Space already has are not counted.",
+            "title": "Videocount",
+            "type": "integer"
+          },
+          "videosNeedPro": {
+            "description": "True when the bundle has videos this Space cannot import now: it lacks `media.video_upload` or the server cannot validate video. Apply with `mode: WITHOUT_VIDEOS` to import everything else.",
+            "title": "Videosneedpro",
+            "type": "boolean"
           }
         },
         "required": [
           "scope",
           "recordCounts",
           "mediaCount",
-          "sourceMemberCount"
+          "sourceMemberCount",
+          "alreadyPresentCount",
+          "videoCount",
+          "videoBytes",
+          "videosNeedPro",
+          "skippedVideoCount",
+          "recoverableVideoCount",
+          "recoveredVideoCount",
+          "unrecoveredVideoCount",
+          "recoverableVideoBytes",
+          "storageNeeded",
+          "storageNeededWithoutVideos",
+          "storageAvailable",
+          "storageQuotaExceeded",
+          "storageFitsWithoutVideos"
         ],
         "title": "TransferImportSummary",
         "type": "object"
@@ -18026,6 +18138,25 @@
         ],
         "title": "TransferScope",
         "type": "string"
+      },
+      "TransferSkippedVideos": {
+        "description": "Videos this Space left out of an earlier import and can still recover (#2141).",
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "totalSize": {
+            "title": "Totalsize",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "totalSize"
+        ],
+        "title": "TransferSkippedVideos",
+        "type": "object"
       },
       "UnifiedPushConfiguration": {
         "properties": {
@@ -52341,6 +52472,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/TransferImportApply"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
         "responses": {
           "202": {
             "content": {
@@ -52381,9 +52529,125 @@
               }
             },
             "description": "The request conflicts with the current state of the resource."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "What the import would add exceeds the storage quota of the Space (code STORAGE_QUOTA_EXCEEDED, or STORAGE_QUOTA_EXCEEDED_FITS_WITHOUT_VIDEOS when applying with mode WITHOUT_VIDEOS would fit). Nothing changes and the import stays ready to apply."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
           }
         },
         "summary": "Apply Transfer Import",
+        "tags": [
+          "transfer"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/transfer/skipped-videos": {
+      "delete": {
+        "description": "Forget the skipped videos; the imported content and the file stay as they are.",
+        "operationId": "dismissTransferSkippedVideos",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Dismiss Transfer Skipped Videos",
+        "tags": [
+          "transfer"
+        ]
+      },
+      "get": {
+        "operationId": "getTransferSkippedVideos",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferSkippedVideos"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Transfer Skipped Videos",
         "tags": [
           "transfer"
         ]

@@ -235,6 +235,113 @@ describe('Special Plan anticipation', () => {
     unmount();
     expect(vi.getTimerCount()).toBe(0);
   });
+  describe('tick lifecycle', () => {
+    const anticipation = {
+      planId: 'plan-1',
+      title: 'Ghost Night',
+      daysRemaining: 0,
+      eventOn: new Date('2026-11-21'),
+      eventAt: new Date('2026-11-21T19:00:00Z'),
+    };
+    const digits = () =>
+      Array.from(document.querySelectorAll('.anticipation-digit'));
+    let callbacks: ((entries: { isIntersecting: boolean }[]) => void)[] = [];
+    let disconnects = 0;
+    const seen = (isIntersecting: boolean) =>
+      act(() => {
+        for (const callback of callbacks) callback([{ isIntersecting }]);
+      });
+    const renderCard = () =>
+      render(
+        <MemoryRouter>
+          <AnticipationCard value={anticipation} />
+        </MemoryRouter>,
+      );
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-11-21T18:00:00Z'));
+      callbacks = [];
+      disconnects = 0;
+      class FakeObserver {
+        constructor(callback: (typeof callbacks)[number]) {
+          callbacks.push(callback);
+        }
+        observe() {}
+        disconnect() {
+          disconnects += 1;
+        }
+      }
+      vi.stubGlobal('IntersectionObserver', FakeObserver);
+    });
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    });
+
+    it('updates digits in place without remounting or animating', () => {
+      const { unmount } = renderCard();
+      const before = digits();
+      const seconds = before[3] as HTMLElement;
+      const text = seconds.textContent;
+      act(() => vi.advanceTimersByTime(1000));
+      const after = digits();
+      expect(after).toHaveLength(4);
+      for (const [index, node] of after.entries())
+        expect(node).toBe(before[index]);
+      expect(seconds.textContent).not.toBe(text);
+      expect(seconds.style.animation).toBe('');
+      expect(getComputedStyle(seconds).animationName).not.toBe(
+        'eimir-motion-enter-fade',
+      );
+      const timer = screen.getByRole('timer');
+      expect(timer.getAttribute('aria-live')).toBe('off');
+      expect(timer.getAttribute('aria-label')).toBeTruthy();
+      unmount();
+    });
+
+    it('stops ticking while the card is out of view and refreshes when it returns', () => {
+      const { unmount } = renderCard();
+      expect(vi.getTimerCount()).toBe(1);
+      seen(false);
+      expect(vi.getTimerCount()).toBe(0);
+      vi.setSystemTime(new Date('2026-11-21T18:59:55Z'));
+      expect(digits()[3]?.textContent).not.toBe('05');
+      seen(true);
+      expect(digits().map((node) => node.textContent)).toEqual([
+        '00',
+        '00',
+        '00',
+        '05',
+      ]);
+      expect(vi.getTimerCount()).toBe(1);
+      unmount();
+      expect(vi.getTimerCount()).toBe(0);
+      expect(disconnects).toBeGreaterThan(0);
+    });
+
+    it('keeps pausing while the document is hidden even if the card is in view', () => {
+      const { unmount } = renderCard();
+      const visibility = vi.spyOn(document, 'visibilityState', 'get');
+      visibility.mockReturnValue('hidden');
+      act(() => document.dispatchEvent(new Event('visibilitychange')));
+      expect(vi.getTimerCount()).toBe(0);
+      seen(true);
+      expect(vi.getTimerCount()).toBe(0);
+      visibility.mockReturnValue('visible');
+      act(() => document.dispatchEvent(new Event('visibilitychange')));
+      expect(vi.getTimerCount()).toBe(1);
+      unmount();
+    });
+
+    it('counts the card as visible without IntersectionObserver', () => {
+      vi.stubGlobal('IntersectionObserver', undefined);
+      const { unmount } = renderCard();
+      expect(vi.getTimerCount()).toBe(1);
+      act(() => vi.advanceTimersByTime(1000));
+      expect(digits()[3]?.textContent).toBe('59');
+      unmount();
+    });
+  });
   it('shows countdown only in Edit and saves its staged choice with one versioned Plan update', async () => {
     const { update } = setupPlan();
     expect(screen.queryByRole('switch', { name: label() })).toBeNull();

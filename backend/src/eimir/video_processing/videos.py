@@ -1,27 +1,30 @@
-"""Lossless validation/sanitization of device-prepared video in the restricted role."""
+"""Lossless validation/sanitization of device-prepared video in the restricted role.
+
+Plugin code (``media.video_upload``, Decision 0017): the Pro plugin registers the
+video validation job with this processor. The restricted process runner, the
+shared validation pipeline and voice notes stay Core.
+"""
 
 from __future__ import annotations
 
 import json
 import math
-import os
-import resource
-import signal
-import subprocess
 import time
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from tempfile import TemporaryFile
 from typing import Any
 
 from eimir.attachments import images
 from eimir.attachments.limits import VIDEO_MAX_DURATION_SECONDS, VIDEO_MAX_SIZE, rule_for
+from eimir.attachments.media_process import (
+    PROBE_MAX_BYTES,
+    PROCESS_TIMEOUT_SECONDS,
+    VideoRejectedError,
+)
+from eimir.attachments.media_process import run_restricted as _run
 from eimir.config import get_settings
 
-PROCESS_TIMEOUT_SECONDS = 600
-PROCESS_MEMORY_BYTES = 768 * 1024 * 1024
-PROBE_MAX_BYTES = 512 * 1024
 _HDR_TRANSFERS = {"smpte2084": 16, "arib-std-b67": 18}
 _INPUT_PIXELS = {
     "yuv420p",
@@ -57,12 +60,6 @@ _CLEAN_TAGS = frozenset(
 )
 
 
-class VideoRejectedError(ValueError):
-    def __init__(self, code: str = "VIDEO_UNREADABLE") -> None:
-        super().__init__(code)
-        self.code = code
-
-
 @dataclass(frozen=True)
 class ProcessedVideo:
     path: Path
@@ -71,62 +68,6 @@ class ProcessedVideo:
     height: int
     duration_seconds: int
     thumbnail: bytes | None
-
-
-def _limits(file_limit: int) -> None:
-    resource.setrlimit(resource.RLIMIT_AS, (PROCESS_MEMORY_BYTES, PROCESS_MEMORY_BYTES))
-    resource.setrlimit(resource.RLIMIT_CPU, (PROCESS_TIMEOUT_SECONDS, PROCESS_TIMEOUT_SECONDS))
-    resource.setrlimit(resource.RLIMIT_FSIZE, (file_limit, file_limit))
-    resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
-    resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
-    # RLIMIT_NPROC counts every process/thread owned by the host UID, including
-    # unrelated jobs. The dedicated role's cgroup pids_limit is the per-role
-    # process boundary; codec/filter thread counts are explicit below.
-
-
-def _run(command: list[str], *, probe: bool = False, deadline: float | None = None) -> bytes:
-    """Never capture unbounded decoder output or inherit application credentials."""
-    if not probe:
-        command = [
-            command[0],
-            "-filter_threads",
-            "1",
-            "-filter_complex_threads",
-            "1",
-            *command[1:-1],
-            "-threads",
-            "1",
-            command[-1],
-        ]
-    with TemporaryFile(mode="w+b") as output:
-        try:
-            child = subprocess.Popen(
-                command,
-                stdin=subprocess.DEVNULL,
-                stdout=output,
-                stderr=subprocess.DEVNULL,
-                close_fds=True,
-                start_new_session=True,
-                env={"PATH": "/usr/bin:/bin", "LANG": "C", "HOME": "/nonexistent"},
-                preexec_fn=lambda: _limits(PROBE_MAX_BYTES if probe else VIDEO_MAX_SIZE),
-            )
-        except OSError:
-            raise VideoRejectedError("VIDEO_PROCESSOR_UNAVAILABLE") from None
-        try:
-            timeout = (
-                PROCESS_TIMEOUT_SECONDS
-                if deadline is None
-                else max(0.1, deadline - time.monotonic())
-            )
-            result = child.wait(timeout=timeout)
-        except subprocess.TimeoutExpired:
-            os.killpg(child.pid, signal.SIGKILL)
-            child.wait()
-            raise VideoRejectedError("VIDEO_PROCESSING_TIMEOUT") from None
-        if result != 0:
-            raise VideoRejectedError()
-        output.seek(0)
-        return output.read(PROBE_MAX_BYTES + 1) if probe else b""
 
 
 def _input(path: Path) -> list[str]:

@@ -11,6 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.engine import Connection
 from sqlalchemy.orm import Session
 
+from eimir.attachments.quota import StorageQuotaExceededError
 from eimir.authorization import AuthorizationContext
 from eimir.core.clock import now
 from eimir.core.errors import BadRequestError, ErrorCode, PayloadTooLargeError
@@ -324,7 +325,25 @@ def handle_apply_import(session: Session, payload: dict[str, Any]) -> None:
 
     try:
         with get_media_store().open(service.import_storage_key(transfer)) as source:
-            service.apply_import_bundle(session, authorization, transfer, source)
+            service.apply_import_bundle(
+                session,
+                authorization,
+                transfer,
+                source,
+                skip_videos=payload.get("skipVideos") is True,
+                videos_only=payload.get("videosOnly") is True,
+            )
+    except StorageQuotaExceededError as error:
+        # Nothing was written. The import stays ready to apply, so the member
+        # can free space or get Premium and apply it again without uploading
+        # the file once more (#2141).
+        transfer.status = ImportStatus.READY_TO_APPLY.value
+        transfer.error_code = error.code
+        log.info(
+            "transfer import refused by the storage quota",
+            extra={"transfer_id": str(transfer.id), "error_code": error.code},
+        )
+        return
     except (BadRequestError, PayloadTooLargeError) as error:
         transfer.status = ImportStatus.FAILED.value
         transfer.error_code = error.code

@@ -168,7 +168,8 @@ def _emit(session: Session, space_id: UUID, kind: EventType, subject_id: UUID) -
 
 def announce(session: Session, payload: dict[str, Any]) -> None:
     """Send the pending readiness notices of one Space."""
-    from eimir.recaps import jobs, service
+    from eimir.jobs.members import authorized_context, first_member
+    from eimir.recaps import service
 
     space_id = UUID(payload["space_id"])
     session.execute(select(func.pg_advisory_xact_lock(space_id.int & ((1 << 63) - 1))))
@@ -186,10 +187,8 @@ def announce(session: Session, payload: dict[str, Any]) -> None:
     if not pending_rows:
         return
     now = clock.now()
-    account_id = jobs.first_member(session, space_id)
-    context = (
-        jobs.authorized_context(session, account_id, space_id) if account_id is not None else None
-    )
+    account_id = first_member(session, space_id)
+    context = authorized_context(session, account_id, space_id) if account_id is not None else None
     if context is None or not service.can_compose(session, context):
         # Without the capability (or without members) nothing is announced later.
         for row in pending_rows:

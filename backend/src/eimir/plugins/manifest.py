@@ -331,12 +331,16 @@ PLUGIN_TABLE_NAMES = frozenset(row.table for row in PLUGIN_TABLES)
 
 PLUGIN_CAPABILITIES = frozenset(
     {
+        Capability.DAILY_INSIGHTS.value,
         Capability.GAMES_COUPLE.value,
         Capability.INTEGRATION_EXTERNAL_SYNC.value,
+        Capability.MEDIA_VIDEO_UPLOAD.value,
         Capability.MEMORIES_MAP.value,
         Capability.PARTNER_ONCE_MESSAGES.value,
         Capability.PARTNER_QUICK_ACTIONS_EXTENDED.value,
         Capability.PRESENCE_LOCATION.value,
+        Capability.RELATIONSHIP_PASSPORT.value,
+        Capability.THEME_BESPOKE_PACKS.value,
         Capability.DAILY_QUOTE.value,
         Capability.PLANNING_DATE_INSPIRATION.value,
     }
@@ -351,11 +355,17 @@ PLUGIN_JOB_KINDS = frozenset(
     {
         "calendar_sync.plan",
         "calendar_sync.space",
+        "attachment_video_validation",
         "heart_hunt_retention",
         "once_message_expiry",
         "photo_selection_cleanup",
         "photo_selection_expire",
         "presence_retention",
+        "recap.announce.v1",
+        "recap.backfill.v1",
+        "recap.generate.v1",
+        "recap.refresh.v1",
+        "recap.scan.v1",
     }
 )
 """Job kinds only a plugin handles. A worker without that plugin leaves them unclaimed."""

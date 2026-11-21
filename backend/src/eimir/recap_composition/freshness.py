@@ -106,9 +106,9 @@ def fingerprints(session: Session, context: AuthorizationContext) -> dict[Period
     starting in the period) and their versions, so any create, edit, move,
     withdrawal or deletion changes the digest of the affected periods.
     """
-    from eimir.recaps.service import _metadata
+    from eimir.recaps.presentation import source_metadata
 
-    source = _metadata(context)
+    source = source_metadata(context)
     year = func.extract("year", source.c.day)
     month = func.extract("month", source.c.day)
     entry = (
@@ -152,7 +152,7 @@ def changed_since(
     session: Session, context: AuthorizationContext, keys: Iterable[str], since: datetime
 ) -> set[str]:
     """Keys of the given sources created or changed after ``since`` (database time)."""
-    from eimir.recaps.service import MODELS
+    from eimir.recaps.presentation import MODELS
 
     wanted: dict[RecapSourceKind, set[UUID]] = {}
     for key in keys:

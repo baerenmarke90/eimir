@@ -645,6 +645,11 @@
       "baselineTests": 20,
       "reason": "Feature-owned #1792 partner-distance acceptance: one-time start sheet after the push prompt (Not now remembered, OS permission only after Share distance), Settings › Relationship › Location & distance share/duration/Stop with body-only coordinates, calm Pro state with Stop for a stored share, Android prominent background disclosure before Allow all the time, and Compact/Expanded Light/Dark/large-text evidence. No always-run expansion."
     },
+    "wir-opening-timeline.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 14,
+      "reason": "Feature-owned #2147 Wir opening on one clock: with the hero data at once, at 1 s and at 3 s, every element rests within 2.5 s of the first Wir paint, late data joins or appears at rest, nothing fades twice or inside another fade, at most 12 animate at once, no painted element jumps when the quote, place or check-in arrives, a tab return replays nothing, reduced motion keeps the same layout, and the partner news waits for the opening. Measured from document.getAnimations() timing, not wall-clock frames. Frame-sequence evidence runs only with VISUAL_EVIDENCE_DIR. No always-run expansion."
+    },
     "partner-distance-wir.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 11,

@@ -14,29 +14,45 @@ export function AnticipationCard({ value }: { value: DashboardAnticipation }) {
   const { t } = useTranslation();
   const target = value.eventAt?.getTime();
   const [now, setNow] = useState(Date.now);
+  const [timerElement, setTimerElement] = useState<HTMLElement | null>(null);
   const timed = target !== undefined && Number.isFinite(target);
   const remaining = timed ? Math.max(0, Math.ceil((target - now) / 1000)) : 0;
   useEffect(() => {
     if (target === undefined || !Number.isFinite(target)) return;
     let timer: ReturnType<typeof setInterval> | undefined;
+    // Without IntersectionObserver (old WebViews) the card counts as visible.
+    let onScreen = true;
     const refresh = () => {
       const instant = Date.now();
       setNow(instant);
       if (instant >= target) clearInterval(timer);
     };
+    // Tick only while the document is shown and the card is on screen.
     const resume = () => {
       clearInterval(timer);
-      if (document.visibilityState === 'hidden') return;
+      timer = undefined;
+      if (document.visibilityState === 'hidden' || !onScreen) return;
       refresh();
       if (Date.now() < target) timer = setInterval(refresh, 1000);
     };
+    let observer: IntersectionObserver | undefined;
+    if (timerElement && typeof IntersectionObserver === 'function') {
+      observer = new IntersectionObserver((entries) => {
+        const visible = entries[entries.length - 1]?.isIntersecting ?? true;
+        if (visible === onScreen) return;
+        onScreen = visible;
+        resume();
+      });
+      observer.observe(timerElement);
+    }
     resume();
     document.addEventListener('visibilitychange', resume);
     return () => {
       clearInterval(timer);
+      observer?.disconnect();
       document.removeEventListener('visibilitychange', resume);
     };
-  }, [target]);
+  }, [target, timerElement]);
 
   const days = value.daysRemaining;
   // A discreet Plan's countdown shows its list title and the lock only.
@@ -88,6 +104,7 @@ export function AnticipationCard({ value }: { value: DashboardAnticipation }) {
       {timed && remaining > 0 ? (
         <span
           className="anticipation-timer"
+          ref={setTimerElement}
           role="timer"
           aria-live="off"
           aria-label={t('relationshipReflections.anticipation.timerLabel', {
@@ -96,9 +113,7 @@ export function AnticipationCard({ value }: { value: DashboardAnticipation }) {
         >
           {units.map(([unit, count]) => (
             <span className="anticipation-unit" key={unit}>
-              <span className="anticipation-digit" key={count}>
-                {number.format(count)}
-              </span>
+              <span className="anticipation-digit">{number.format(count)}</span>
               <span className="anticipation-unit-label">
                 {t(`relationshipReflections.anticipation.${unit}`, { count })}
               </span>

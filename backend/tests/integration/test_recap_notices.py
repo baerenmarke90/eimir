@@ -25,7 +25,7 @@ from eimir.jobs.errors import DeferredJobError
 from eimir.jobs.models import Job, JobStatus
 from eimir.memories.models import MemoryPayload
 from eimir.outbox.models import OutboxEvent
-from eimir.recaps import freshness, jobs, notices, service
+from eimir.recap_composition import composer, freshness, jobs, notices
 from eimir.recaps.models import RecapEdition, RecapSource
 from tests.conftest import requires_database
 from tests.integration.test_recap_film import picture, titled
@@ -54,7 +54,7 @@ def compose_pending(session) -> int:  # type: ignore[no-untyped-def]
     while True:
         waiting = session.scalars(
             select(Job)
-            .where(Job.kind == service.GENERATE_JOB, Job.status == JobStatus.PENDING.value)
+            .where(Job.kind == composer.GENERATE_JOB, Job.status == JobStatus.PENDING.value)
             .order_by(Job.created_at, Job.id)
         ).all()
         if not waiting:
@@ -73,7 +73,7 @@ def waiting_compositions(session, kind: str, year: int, month: int) -> int:  # t
         UUID(payload["edition_id"])
         for payload in session.scalars(
             select(Job.payload).where(
-                Job.kind == service.GENERATE_JOB, Job.status == JobStatus.PENDING.value
+                Job.kind == composer.GENERATE_JOB, Job.status == JobStatus.PENDING.value
             )
         )
     }
@@ -207,7 +207,7 @@ def test_a_burst_of_late_entries_in_the_grace_week_recomposes_once_and_stays_sil
     assert waiting_compositions(session, "MONTH", 2026, 10) == 0
     refresh = session.scalar(
         select(func.count(Job.id)).where(
-            Job.kind == service.REFRESH_JOB, Job.status == JobStatus.PENDING.value
+            Job.kind == composer.REFRESH_JOB, Job.status == JobStatus.PENDING.value
         )
     )
     assert refresh == 1  # a follow-up scan is queued for when the period is quiet

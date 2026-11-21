@@ -162,7 +162,12 @@ import {
 } from '../client/wirDesign';
 import { DiscreetLock } from './DiscreetPlan';
 import './WirDesign.css';
-import { stageFinished, useStage } from '../motion/stage';
+import {
+  StageContext,
+  stageFinished,
+  useStage,
+  useStageHold,
+} from '../motion/stage';
 import { ConnectedMoment } from './ConnectedMoment';
 import { FirstStepAction } from './FirstStepAction';
 import { useImportantDayMoment, type WirOccasion } from './wirImportantDay';
@@ -174,6 +179,8 @@ import {
   WIR_STAGE,
   wirStageCanStart,
   wirStageDuration,
+  wirStageHold,
+  wirStageScope,
 } from './wirStageMotion';
 import './FirstContentSettle.css';
 import './WirHeroStage.css';
@@ -183,9 +190,12 @@ import './WirMotion.css';
 import { useWirReveal } from './useWirReveal';
 
 /**
- * The Wir opening on the motion layer (#2074): Enter `stage`, identity
- * `wir.stage`, once per app start, on its own clock (`useStage`). After it
- * (and after an important-day Moment) the rings breathe (`breatheRings`).
+ * The Wir opening on the motion layer (#2074, #2147): Enter `stage`, identity
+ * `wir.stage`, once per app start, on one clock (`useStage`) for the hero and
+ * the quote and modules in the page content (`scope`). It waits briefly and
+ * invisibly for the data its members show (`hold`), so late data joins the
+ * opening instead of arriving on its own clock. After it (and after an
+ * important-day Moment) the rings breathe (`breatheRings`).
  */
 function WirIntroStage({
   occasion,
@@ -197,6 +207,8 @@ function WirIntroStage({
   const stageRef = useStage<HTMLDivElement>(WIR_STAGE, {
     duration: wirStageDuration(),
     canStart: wirStageCanStart,
+    hold: wirStageHold(),
+    scope: wirStageScope,
   });
   const moment = useImportantDayMoment(occasion, stageRef);
   const [stageEnded, setStageEnded] = useState(false);
@@ -227,7 +239,9 @@ function WirIntroStage({
           : undefined
       }
     >
-      {children}
+      <StageContext.Provider value={WIR_STAGE}>
+        {children}
+      </StageContext.Provider>
     </div>
   );
 }
@@ -1315,6 +1329,28 @@ export function TodayPage({
     spaceId,
     partner?.id ?? '',
     partnerProfileQuery.data?.profileAttachmentId,
+  );
+
+  // #2147: the opening waits briefly, invisibly, for what its portraits and
+  // the check-in row show (the Space configuration, both profiles and their
+  // photos), so they join the opening instead of arriving on their own.
+  const portraitPending = (
+    query: {
+      isLoading: boolean;
+      data?: { profileAttachmentId?: string | null } | null;
+    },
+    avatar: { avatarUrl: string | null; loadFailed: boolean },
+  ) =>
+    query.isLoading ||
+    (Boolean(query.data?.profileAttachmentId) &&
+      !avatar.avatarUrl &&
+      !avatar.loadFailed);
+  useStageHold(
+    WIR_STAGE,
+    Boolean(dashboardQuery.data) &&
+      (liveSpaceConfigurationQuery.isLoading ||
+        portraitPending(userProfileQuery, userAvatar) ||
+        portraitPending(partnerProfileQuery, partnerAvatar)),
   );
 
   /*
@@ -2549,7 +2585,11 @@ export function TodayPage({
       ) : null}
 
       {contentReady && dashboardQuery.data ? (
-        <div className="today-content" ref={rootIntro}>
+        <div
+          className="today-content"
+          ref={rootIntro}
+          style={{ '--wir-intro-pace': WIR_INTRO_PACE } as CSSProperties}
+        >
           <PageHeader
             variant="root"
             className="content-overview-heading"

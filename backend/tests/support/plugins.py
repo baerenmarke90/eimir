@@ -23,9 +23,11 @@ requires_pro = pytest.mark.requires_pro
 
 PRO_TEST_MODULES = frozenset(
     {
+        "integration/test_async_video_races.py",
         "integration/test_calendar_sync.py",
         "integration/test_calendar_sync_google.py",
         "integration/test_couple_games.py",
+        "integration/test_daily_checkins_pro_insights.py",
         "integration/test_daily_quote_api.py",
         "integration/test_date_ideas_api.py",
         "integration/test_demo_feature_examples.py",
@@ -44,7 +46,18 @@ PRO_TEST_MODULES = frozenset(
         "integration/test_partner_quick_actions.py",
         "integration/test_photo_sources.py",
         "integration/test_picture_ping_pong.py",
+        # The recap modules compose recaps, which needs `relationship.passport`,
+        # a capability only a loaded plugin provides; what stays readable and
+        # writable without it is covered by `integration/test_core_only_recaps.py`.
+        "integration/test_recap_film.py",
+        "integration/test_recap_notices.py",
+        "integration/test_relationship_passport.py",
+        "integration/test_relationship_recaps.py",
         "integration/test_shared_experiences.py",
+        "integration/test_story_lifeline.py",
+        "integration/test_transfer_video_revalidation.py",
+        "integration/test_video_lifecycle.py",
+        "integration/test_weekly_review.py",
         "integration/test_wish_selection_date_ideas.py",
         "unit/test_account_table_lifecycle.py",
         "unit/test_caldav_adapter.py",
@@ -61,6 +74,13 @@ PRO_TEST_MODULES = frozenset(
         "unit/test_photo_source_security_gate.py",
         "unit/test_presence_geo.py",
         "unit/test_privacy_policy_statements.py",
+        # Recap composition is plugin code; the Core reads stay in
+        # `unit/test_recap_composition.py`.
+        "unit/test_recap_film.py",
+        "unit/test_recap_mood.py",
+        "unit/test_recap_notices.py",
+        "unit/test_video_processing.py",
+        "unit/test_weekly_patterns.py",
         "unit/test_wish_detective_rules.py",
     }
 )
@@ -115,6 +135,25 @@ def without_plugins() -> Iterator[None]:
     """
     loaded = loader.loaded_plugins()
     loader._loaded = loader.LoadedPlugins(())
+    try:
+        yield
+    finally:
+        loader._loaded = loaded
+
+
+@contextmanager
+def with_pro_plugin() -> Iterator[None]:
+    """Make ``loaded_plugins()`` report the in-tree Pro plugin inside the block.
+
+    The Core-only configuration uses it to create the data an instance keeps
+    from the time it ran with the plugin (for example composed recaps) before
+    the step under test runs without it. Routes are not remounted: only the
+    capabilities and hooks of the plugin become effective.
+    """
+    from eimir.pro_plugin import plugin
+
+    loaded = loader.loaded_plugins()
+    loader._loaded = loader.LoadedPlugins((plugin,))
     try:
         yield
     finally:

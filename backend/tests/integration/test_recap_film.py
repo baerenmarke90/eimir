@@ -10,7 +10,7 @@ from eimir.attachments.models import Attachment, AttachmentPayload, AttachmentSt
 from eimir.authorization import PrivacyClass
 from eimir.memories.models import Memory, MemoryPayload
 from eimir.milestones.models import Milestone, MilestonePayload
-from eimir.recaps import film
+from eimir.recap_composition import film
 from eimir.recaps.models import RecapEdition
 from tests.conftest import requires_database
 from tests.integration.test_relationship_recaps import NOW, generate, read, request
@@ -277,7 +277,9 @@ def test_the_look_carries_accents_and_pace_and_media_their_format_and_focus(
     client, session, context, monkeypatch
 ):  # type: ignore[no-untyped-def]
     measured = film.PhotoQuality(300.0, 0.1, 0x0F0F0F0F0F0F0F0F, 1.4, 0.2, 0.0, 0.0, 0.64, 0.36)
-    monkeypatch.setattr("eimir.recaps.montage.measure", lambda attachment, cache: measured)
+    monkeypatch.setattr(
+        "eimir.recap_composition.montage.measure", lambda attachment, cache: measured
+    )
     trip = titled(session, context, "Night at the lake", date(2026, 10, 12))
     picture(session, context, trip)
     titled(session, context, "Walk", date(2026, 10, 3))

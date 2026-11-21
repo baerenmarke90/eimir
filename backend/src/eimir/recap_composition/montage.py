@@ -9,14 +9,13 @@ withdrawn, deleted or newly sensitive item disappears at once.
 from __future__ import annotations
 
 import contextlib
-from collections import Counter
 from collections.abc import Iterable
 from dataclasses import replace
 from typing import Any
 from uuid import UUID
 
 from PIL import Image
-from sqlalchemy import Date, cast, func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from eimir.attachments import service as attachments
@@ -26,13 +25,11 @@ from eimir.authorization import AuthorizationContext, PrivacyClass, readable
 from eimir.heart_moments.media import galleries as heart_galleries
 from eimir.heart_moments.models import HeartMoment
 from eimir.identity.models import Account
-from eimir.memories import experiences
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
-from eimir.places.models import Place
 from eimir.plans.media import photos_of_plans
 from eimir.plans.models import Plan
-from eimir.recaps import film
+from eimir.recap_composition import film
 from eimir.recaps.composition import Candidate
 from eimir.recaps.models import (
     FilmLook,
@@ -43,11 +40,16 @@ from eimir.recaps.models import (
     RecapSource,
     RecapSourceKind,
 )
-from eimir.recaps.words import POSITIVE_REACTIONS, partners
-from eimir.relations.models import PlaceHeartMoment, PlaceMemory, PlaceMilestone
+from eimir.recaps.presentation import (
+    ANSWER_LIMIT,
+    POSITIVE_REACTIONS,
+    answers_of,
+    excerpt,
+    partners,
+    place_names,
+)
 from eimir.relationship.models import Membership, MembershipStatus
 
-TAG_LIMIT = 12
 # Titles the app writes when a memory is saved without one; they are not the couple's words.
 FALLBACK_TITLE_PREFIXES = ("Erinnerung vom ", "Memory from ")
 QualityCache = dict[UUID, film.PhotoQuality | None]
@@ -72,51 +74,6 @@ def _load(
         model.crypto_version.in_((0, 2)),
     )
     return {value.id: value for value in session.scalars(statement)}
-
-
-def answers_of(
-    session: Session, context: AuthorizationContext, roots: list[Memory]
-) -> dict[UUID, list[Memory]]:
-    """Each partner's own response to a guided happiness or time-travel question."""
-    grouped = experiences.responses(
-        session, context, [root for root in roots if root.experience_kind]
-    )
-    return {
-        root_id: [
-            entry
-            for entry in entries
-            if entry.privacy_class == PrivacyClass.SPACE_SHARED.value
-            and (entry.payload.body or "").strip()
-        ]
-        for root_id, entries in grouped.items()
-    }
-
-
-def place_names(
-    session: Session, context: AuthorizationContext, keyed: dict[RecapSourceKind, list[UUID]]
-) -> dict[UUID, str]:
-    """The first linked Place of each moment, read through the Place authorization."""
-    result: dict[UUID, str] = {}
-    for kind, relation, column in (
-        (RecapSourceKind.MEMORY, PlaceMemory, PlaceMemory.memory_id),
-        (RecapSourceKind.HEART_MOMENT, PlaceHeartMoment, PlaceHeartMoment.heart_moment_id),
-        (RecapSourceKind.MILESTONE, PlaceMilestone, PlaceMilestone.milestone_id),
-    ):
-        ids = keyed.get(kind, [])
-        if not ids:
-            continue
-        rows = session.execute(
-            readable(Place, context)
-            .join(relation, relation.place_id == Place.id)
-            .where(column.in_(ids), Place.archived.is_(False))
-            .with_only_columns(column, Place)
-            .order_by(relation.created_at, Place.id)
-        )
-        for parent_id, place in rows:
-            name = (place.payload.name or "").strip()
-            if name:
-                result.setdefault(parent_id, name)
-    return result
 
 
 def birthdays(session: Session, space_id: UUID) -> set[tuple[int, int]]:
@@ -257,9 +214,7 @@ def moments(
                     has_title=not is_fallback_title(memory.payload.title),
                     words=len(text.split()),
                     answers=len(responses),
-                    answer_chars=sum(
-                        len(film.excerpt(e.payload.body, film.ANSWER_LIMIT)) for e in responses
-                    ),
+                    answer_chars=sum(len(excerpt(e.payload.body, ANSWER_LIMIT)) for e in responses),
                     mutual_reaction=mutual,
                     reactions=reactions,
                     photos=tuple(photos),
@@ -513,100 +468,3 @@ def compose(
         highlight_key=result.highlight,
         media=_film_media(result.media),
     )
-
-
-def readable_media(
-    session: Session,
-    context: AuthorizationContext,
-    stored: list[FilmMedia],
-    bound: dict[UUID, list[BoundAttachment]],
-) -> list[dict[str, Any]]:
-    """Stored picks that are still bound, ready and not marked sensitive."""
-    current = {
-        entry.attachment.id: entry.attachment
-        for entries in bound.values()
-        for entry in entries
-        if entry.attachment.status == AttachmentStatus.READY
-        and not entry.attachment.payload.is_sensitive
-    }
-    return [
-        {
-            "attachment_id": media.attachment_id,
-            "parent_id": media.parent_id,
-            "kind": "VIDEO" if media.video else "IMAGE",
-            "clip_start_seconds": media.clip_start,
-            "clip_seconds": media.clip_seconds,
-            "shape": media.shape,
-            "focus_x": media.focus_x,
-            "focus_y": media.focus_y,
-        }
-        for media in stored
-        if media.attachment_id in current
-    ]
-
-
-def source_extras(
-    session: Session,
-    context: AuthorizationContext,
-    kind: RecapSourceKind,
-    value: Any,
-    stored: list[FilmMedia] | None,
-) -> dict[str, Any]:
-    """Live answers, place and media of one source of a film edition."""
-    extras: dict[str, Any] = {"answers": [], "place_name": None, "media": []}
-    places = place_names(session, context, {kind: [value.id]})
-    extras["place_name"] = places.get(value.id)
-    bound: dict[UUID, list[BoundAttachment]] = {}
-    if kind == RecapSourceKind.MEMORY:
-        responses = answers_of(session, context, [value]).get(
-            value.experience_root_id or value.id, []
-        )
-        names = (
-            {
-                account.id: account.display_name
-                for account in session.scalars(
-                    select(Account).where(Account.id.in_({entry.owner_id for entry in responses}))
-                )
-            }
-            if responses
-            else {}
-        )
-        extras["answers"] = [
-            {
-                "text": film.excerpt(entry.payload.body, film.ANSWER_LIMIT),
-                "author_id": entry.owner_id,
-                "author_name": names.get(entry.owner_id, ""),
-            }
-            for entry in responses
-        ]
-        bound = attachments_of_memories(session, [value.id, *(entry.id for entry in responses)])
-    elif kind == RecapSourceKind.HEART_MOMENT:
-        bound = heart_galleries(session, [value])
-    elif kind == RecapSourceKind.PLAN and not value.discreet:
-        bound = photos_of_plans(session, [value])
-    if stored:
-        extras["media"] = readable_media(session, context, stored, bound)
-    return extras
-
-
-def month_tags(
-    session: Session, context: AuthorizationContext, value: RecapEdition
-) -> list[dict[str, Any]]:
-    """Authored tags of the month's shared moments, most used first; read live."""
-    starts, through = value.starts_on, value.through_on
-    counts: Counter[str] = Counter()
-    for model in (Memory, HeartMoment):
-        day = func.coalesce(model.happened_on, cast(func.timezone("UTC", model.created_at), Date))
-        statement = readable(model, context).where(
-            model.privacy_class == PrivacyClass.SPACE_SHARED.value,
-            model.crypto_version.in_((0, 2)),
-            day >= starts,
-            day <= through,
-        )
-        if model is Memory:
-            statement = statement.where(experiences.roots_only())
-        rows: Iterable[Any] = session.scalars(statement)
-        for item in rows:
-            counts.update(dict.fromkeys(item.payload.tags or [], 1))
-    ranked = sorted(counts.items(), key=lambda pair: (-pair[1], pair[0].casefold()))
-    return [{"label": label, "count": count} for label, count in ranked[:TAG_LIMIT]]

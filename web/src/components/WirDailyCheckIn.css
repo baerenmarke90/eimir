@@ -34,6 +34,11 @@
   pointer-events: none;
 }
 
+/* The row's place while today's state loads (#2147). */
+.wir-checkin-badge[data-placeholder] {
+  visibility: hidden;
+}
+
 /* Own: outer bottom-left of the own avatar, growing outwards (left). */
 .wir-checkin-badge-own {
   right: 46%;
@@ -48,13 +53,18 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
+}
+
+/* A value that changes while Wir is shown settles in (never its first
+   appearance: then the badge belongs to the Wir opening, #2147). */
+.wir-checkin-badge-content.is-changed {
   --motion-enter-rise: 6px;
 
   animation: eimir-motion-enter-rise var(--duration-transition)
     var(--easing-standard) both;
 }
 
-.wir-checkin-badge-content.is-revealed {
+.wir-checkin-badge-content.is-changed.is-revealed {
   animation-duration: var(--duration-context);
 }
 
@@ -117,6 +127,11 @@
   box-shadow: 0 0 0 2px var(--color-surface);
   color: var(--color-on-action-primary);
   pointer-events: none;
+}
+
+/* A note revealed while Wir is shown pops in; one that is already there on
+   opening belongs to the portrait (#2147). */
+.wir-checkin-note-dot.is-new {
   animation: eimir-motion-enter-pop var(--duration-context)
     var(--easing-standard) both;
 }
@@ -688,10 +703,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wir-checkin-badge .wir-checkin-badge-content,
+  .wir-checkin-badge .wir-checkin-badge-content.is-changed,
   .wir-checkin-badge [data-flight-landing="true"],
   .wir-checkin-note-dot[data-flight-landing="true"],
-  .wir-checkin-note-dot,
+  .wir-checkin-note-dot.is-new,
   .wir-checkin-vibe.is-selected .wir-checkin-vibe-circle {
     animation: none;
   }

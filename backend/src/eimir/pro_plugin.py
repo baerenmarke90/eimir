@@ -351,6 +351,7 @@ class InTreeProPlugin:
         from eimir.api.v1 import (
             calendar_sync,
             couple_games,
+            daily_insights,
             daily_quote,
             date_ideas,
             games,
@@ -362,6 +363,8 @@ class InTreeProPlugin:
             partner_quick_actions,
             photo_sources,
             picture_ping_pong,
+            recap_composition,
+            relationship_passport,
         )
 
         return (
@@ -378,6 +381,9 @@ class InTreeProPlugin:
             couple_games.router,
             memory_map.router,
             partner_quick_actions.router,
+            relationship_passport.router,
+            daily_insights.router,
+            recap_composition.router,
         )
 
     def register_jobs(self, registry: JobRegistry) -> None:
@@ -386,21 +392,27 @@ class InTreeProPlugin:
         from eimir.once_messages import service as once_messages
         from eimir.photo_sources import retention as photo_source_retention
         from eimir.presence import retention as presence_retention
+        from eimir.recap_composition import jobs as recap_jobs
+        from eimir.video_processing import jobs as video_jobs
 
         photo_source_retention.register_handlers(registry)
         once_messages.register_handlers(registry)
         heart_hunt_retention.register_handlers(registry)
         presence_retention.register_handlers(registry)
         calendar_sync_jobs.register_handlers(registry)
+        video_jobs.register_handlers(registry)
+        recap_jobs.register_handlers(registry)
 
     def ensure_scheduled(self, session: Session) -> None:
         from eimir.heart_hunt import retention as heart_hunt_retention
         from eimir.photo_sources import retention as photo_source_retention
         from eimir.presence import retention as presence_retention
+        from eimir.recap_composition import jobs as recap_jobs
 
         heart_hunt_retention.ensure_scheduled(session)
         presence_retention.ensure_scheduled(session)
         photo_source_retention.ensure_scheduled(session)
+        recap_jobs.ensure_scheduled(session)
 
     def prune_expired(self, session: Session) -> None:
         from eimir.once_messages.service import prune_expired

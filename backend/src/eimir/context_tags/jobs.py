@@ -18,11 +18,11 @@ from eimir.core.context_tags import ContextTags
 from eimir.heart_moments.models import HeartMoment
 from eimir.identity.models import Account
 from eimir.jobs import queue
+from eimir.jobs.members import authorized_context
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import registry
 from eimir.local_ai import query_structured
 from eimir.memories.models import Memory
-from eimir.recaps.jobs import authorized_context
 from eimir.relationship.models import Membership, MembershipStatus
 
 SCAN_JOB = "context-tags.scan.v1"

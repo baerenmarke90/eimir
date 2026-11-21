@@ -1,4 +1,10 @@
-"""Automatic relationship recap films on the existing PostgreSQL queue."""
+"""Automatic relationship recap films on the existing PostgreSQL queue (plugin code).
+
+The Pro plugin registers these handlers and schedules the scan through its
+``register_jobs()`` and ``ensure_scheduled()`` hooks (Decision 0017). A worker
+without the plugin leaves queued recap jobs unclaimed; they run once a worker
+with the plugin is back.
+"""
 
 from __future__ import annotations
 
@@ -9,51 +15,22 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from eimir.authorization import AuthorizationContext
 from eimir.core import clock
-from eimir.core.errors import NotFoundError
-from eimir.identity.models import Account
 from eimir.jobs import queue
+from eimir.jobs.members import authorized_context, first_member
 from eimir.jobs.models import Job, JobStatus
-from eimir.jobs.worker import registry
-from eimir.recaps import freshness, montage, mood, notices, service
+from eimir.jobs.worker import JobRegistry, registry
+from eimir.recap_composition import composer, freshness, montage, mood, notices
+from eimir.recaps import presentation, service
 from eimir.recaps.composition import theme_for
 from eimir.recaps.models import RecapKind, RecapPayload
 from eimir.relationship.models import Membership, MembershipStatus
-from eimir.relationship.service import require_membership
 
 SCAN_JOB = "recap.scan.v1"
 SCAN_INTERVAL = timedelta(hours=6)
 SCAN_LOCK = 8_150_228
 # Moments per kind and month a film may weigh; a month rarely has more.
 FILM_POOL = 60
-
-
-def authorized_context(
-    session: Session, account_id: UUID, space_id: UUID
-) -> AuthorizationContext | None:
-    account = session.get(Account, account_id)
-    if account is None or account.disabled_at:
-        return None
-    try:
-        require_membership(session, account, space_id)
-    except NotFoundError:
-        return None
-    return AuthorizationContext(account_id=account_id, space_id=space_id)
-
-
-def first_member(session: Session, space_id: UUID) -> UUID | None:
-    return session.scalar(
-        select(Membership.account_id)
-        .join(Account, Account.id == Membership.account_id)
-        .where(
-            Membership.space_id == space_id,
-            Membership.status == MembershipStatus.ACTIVE.value,
-            Account.disabled_at.is_(None),
-        )
-        .order_by(Membership.created_at, Membership.id)
-        .limit(1)
-    )
 
 
 def generate(session: Session, payload: dict[str, Any]) -> None:
@@ -78,7 +55,7 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
         value.status = "PAUSED"
         return
     kind = RecapKind(value.kind)
-    pool = service.candidates(
+    pool = composer.candidates(
         session,
         context,
         value.starts_on,
@@ -95,7 +72,7 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
     live_sources = [
         item
         for source in sorted(selected, key=lambda item: (item.kind, str(item.id)))
-        if (item := service.source_material(session, context, source, lock=True)) is not None
+        if (item := presentation.source_material(session, context, source, lock=True)) is not None
     ]
     value = service.edition(session, context, edition_id, write=True)
     if value.request_token != token or value.saved_at or value.customized:
@@ -103,7 +80,7 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
     if not service.can_compose(session, context, lock_grants=True):
         value.status = "PAUSED"
         return
-    service.store_selection(session, value, selected)
+    composer.store_selection(session, value, selected)
     rhythm = mood.refreshed(
         session, space_id, kind, value.starts_on, value.through_on, value.payload.mood
     )
@@ -120,7 +97,7 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
     value.observed_digest = value.observed_at = None
     if value.supersedes_id is not None:
         zone, _ = service.calendar_context(session, context)
-        service.settle_version(session, context, value, clock.today_in(zone))
+        composer.settle_version(session, context, value, clock.today_in(zone))
 
 
 def ensure_scheduled(
@@ -151,7 +128,7 @@ def scan(session: Session, payload: dict[str, Any]) -> None:
             continue
         context = authorized_context(session, account_id, space_id)
         if context and service.can_compose(session, context):
-            service.prepare_current(session, context)
+            composer.prepare_current(session, context)
     if len(spaces) == 100:
         queue.enqueue(session, SCAN_JOB, {"after": str(spaces[-1])})
     else:
@@ -162,12 +139,29 @@ def backfill(session: Session, payload: dict[str, Any]) -> None:
     """Continue preparing earlier periods; stops by itself once none are left."""
     context = authorized_context(session, UUID(payload["account_id"]), UUID(payload["space_id"]))
     if context and service.can_compose(session, context):
-        service.prepare_current(session, context)
+        composer.prepare_current(session, context)
 
 
-def register_handlers() -> None:
-    registry.register(service.GENERATE_JOB, generate)
-    registry.register(service.BACKFILL_JOB, backfill)
-    registry.register(service.REFRESH_JOB, backfill)
-    registry.register(notices.ANNOUNCE_JOB, notices.announce)
-    registry.register(SCAN_JOB, scan)
+JOB_KINDS = frozenset(
+    {
+        composer.GENERATE_JOB,
+        composer.BACKFILL_JOB,
+        composer.REFRESH_JOB,
+        notices.ANNOUNCE_JOB,
+        SCAN_JOB,
+    }
+)
+"""Every recap job kind; the Core manifest declares them as plugin job kinds."""
+
+
+def register_handlers(target: JobRegistry | None = None) -> None:
+    destination = target if target is not None else registry
+    for kind, handler in (
+        (composer.GENERATE_JOB, generate),
+        (composer.BACKFILL_JOB, backfill),
+        (composer.REFRESH_JOB, backfill),
+        (notices.ANNOUNCE_JOB, notices.announce),
+        (SCAN_JOB, scan),
+    ):
+        if destination.get(kind) is None:
+            destination.register(kind, handler)

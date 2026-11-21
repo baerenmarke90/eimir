@@ -34,7 +34,6 @@ from eimir.places import photo_enrichment
 from eimir.plugins.dormant import warn_dormant_plugin_data_once
 from eimir.plugins.loader import loaded_plugins
 from eimir.recaps import invalidation as _recap_invalidation  # noqa: F401
-from eimir.recaps import jobs as recap_jobs
 from eimir.relationship import retention as space_retention
 from eimir.reminders import runtime as reminder_runtime
 from eimir.security import column_moves
@@ -79,7 +78,6 @@ def _ensure_maintenance() -> None:
             transfer_jobs.ensure_scheduled(session)
             space_retention.ensure_scheduled(session)
             photo_enrichment.ensure_scheduled(session)
-            recap_jobs.ensure_scheduled(session)
             context_tag_jobs.ensure_scheduled(session)
             for plugin in loaded_plugins().plugins:
                 plugin.ensure_scheduled(session)
@@ -107,7 +105,6 @@ def main() -> None:
     log.info("worker started", extra={"worker": name})
 
     photo_enrichment.register_handlers()
-    recap_jobs.register_handlers()
     context_tag_jobs.register_handlers()
     maintenance.register_handlers()
     gentle_jobs.register_handlers()

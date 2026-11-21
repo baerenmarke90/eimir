@@ -28,7 +28,7 @@ from eimir.daily_checkins.models import DailyCheckIn
 from eimir.daily_checkins.service import (
     PartnerDimensionProjection,
     PartnerRevealState,
-    _active_partner_account_id,
+    active_partner_account_id,
 )
 from eimir.relationship import configuration as configuration_service
 from eimir.relationship.models import DailyCheckInVisibilityMode
@@ -109,7 +109,7 @@ def get_daily_insights(
     vibe_enabled = configuration.vibe_check_enabled
     energy_enabled = configuration.energy_check_in_enabled
 
-    partner_id = _active_partner_account_id(session, authorization)
+    partner_id = active_partner_account_id(session, authorization)
 
     # Strictly space-scoped query
     account_ids = [authorization.account_id]

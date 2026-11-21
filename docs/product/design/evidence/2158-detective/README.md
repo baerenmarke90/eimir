@@ -10,6 +10,8 @@ opened Planen → Wünsche by tapping.
 | `wishes-tab-de-390-light.png`, `-dark.png` | Lea's open wishes during the game: her own wishes stay in the alphabet; Alex's two open wishes are placeholders in their own group "Im Wunschdetektiv" below it, naming only who wished them, with a link to the game. The rows open nothing. |
 | `wishes-tab-en-390-light.png` | The same in English. |
 | `wish-detail-de-390-light.png`, `-dark.png`, `wish-detail-en-390-light.png` | The detail of a hidden wish (reached as from a notice or a linked Moment): no title, no menu, no actions, only when it will be revealed and the way to the game. |
+| `wishes-tab-de-1280-light.png`, `-dark.png`, `wish-detail-de-1280-light.png`, `-dark.png` | Expanded (1280 × 800): the same group in the centred Wishes column; the detail note in the composer detail column. |
+| `wishes-tab-de-320-200pct-light.png`, `wish-detail-de-320-200pct-light.png`, `*-390-200pct-light.png` | 200 % text (root font size doubled) at 320 and 390 px: the placeholder rows and the detail note reflow; measured horizontal overflow 0 px on list and detail at both widths. Long words in the letter-spaced eyebrow break like other eyebrows of the app. The detail capture is a full-page capture, so the fixed bottom navigation appears over the middle of it. |
 | `wishes-tab-after-end-de-390-light.png` | After Alex ended the game: Alex's wishes are back in the alphabet with their titles. |
 
 Behavior covered by tests rather than screenshots:
@@ -24,5 +26,4 @@ Behavior covered by tests rather than screenshots:
 
 Motion: none added. The placeholders are static; after the reveal the next load shows the wishes in the alphabet.
 
-Not covered: Expanded (1280 px) and native Android were not captured; the group reuses the Compact wish list
-layout, which the Wishes tab already adapts on Expanded.
+Not covered: native Android was not captured (no device or emulator here).

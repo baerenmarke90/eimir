@@ -26137,7 +26137,7 @@
                 }
               }
             },
-            "description": "The content exceeds the server-side size limit."
+            "description": "The file exceeds the size limit for its type (code ATTACHMENT_TOO_LARGE), or its declared size does not fit the storage quota of the Space (code STORAGE_QUOTA_EXCEEDED: free up space or get Premium)."
           },
           "415": {
             "content": {

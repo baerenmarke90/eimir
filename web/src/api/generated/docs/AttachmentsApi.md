@@ -159,7 +159,7 @@ No authorization required
 | **201** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
-| **413** | The content exceeds the server-side size limit. |  -  |
+| **413** | The file exceeds the size limit for its type (code ATTACHMENT_TOO_LARGE), or its declared size does not fit the storage quota of the Space (code STORAGE_QUOTA_EXCEEDED: free up space or get Premium). |  -  |
 | **415** | The media type is not on the allowlist. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
 

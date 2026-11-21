@@ -1580,6 +1580,7 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/transfer/skipped-videos"),
     Endpoint("DELETE", "/api/v1/spaces/{spaceId}/transfer/skipped-videos"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/attachment-upload-policy"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/storage"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/attachments", body=ATTACHMENT),
     Endpoint(
         "POST",

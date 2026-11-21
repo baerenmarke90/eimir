@@ -114,8 +114,16 @@ the owner, the gallery position, the source attachment ID and the manifest
 checksum. The rows hold no content and are not part of an export. They are
 removed when the video is recovered (`mode: VIDEOS_ONLY` with the same file),
 when a member dismisses them, with their Memory or HeartMoment, by account
-deletion of their owner and by final Space retention. Recovery matches the
-source ID and the checksum, so a changed file recovers nothing.
+deletion of their owner or of the member who imported them, and by final Space
+retention. Recovery matches the source ID and the checksum, so a changed file
+recovers nothing.
+
+Only the member who imported the bundle (`imported_by`) sees, recovers and
+dismisses the remembered videos (Product Owner decision P7). The partner's
+`getTransferSkippedVideos` reports nothing, their `dismissTransferSkippedVideos`
+answers `404`, and their import of the same file offers nothing to recover
+(`409 TRANSFER_NOTHING_TO_RECOVER`). `owner_id` stays the owner a recovered video
+gets, which in a shared bundle is often the partner.
 
 ### Repeated imports never duplicate (#2141)
 

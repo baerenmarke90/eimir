@@ -14,7 +14,7 @@
 
 import { mapValues } from '../runtime';
 /**
- * Videos this Space left out of an earlier import and can still recover (#2141).
+ * Videos this member left out of an earlier import and can still recover (#2141).
  * @export
  * @interface TransferSkippedVideos
  */

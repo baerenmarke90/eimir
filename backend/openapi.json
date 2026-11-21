@@ -17182,6 +17182,47 @@
         "title": "SpaceProfileView",
         "type": "object"
       },
+      "SpaceStorageUsage": {
+        "description": "How much of the Cloud storage quota of the Space is used (#2141).",
+        "properties": {
+          "available": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Bytes that still fit, never negative; `null` when unmetered.",
+            "title": "Available"
+          },
+          "quota": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The Space's storage quota in bytes. `null` means unmetered (Self-Hosted, or a tier without a limit); the client then shows no storage section.",
+            "title": "Quota"
+          },
+          "used": {
+            "description": "Bytes the Space keeps: every attachment at its actual size, and a file still being uploaded or validated at its declared size. Thumbnails, the profile photo, one-time messages and Transfer archives do not count.",
+            "title": "Used",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "used",
+          "quota",
+          "available"
+        ],
+        "title": "SpaceStorageUsage",
+        "type": "object"
+      },
       "SpaceView": {
         "properties": {
           "createdAt": {
@@ -18140,7 +18181,7 @@
         "type": "string"
       },
       "TransferSkippedVideos": {
-        "description": "Videos this Space left out of an earlier import and can still recover (#2141).",
+        "description": "Videos this member left out of an earlier import and can still recover (#2141).",
         "properties": {
           "count": {
             "title": "Count",
@@ -51622,6 +51663,58 @@
         "summary": "Set Shared Note Presentation",
         "tags": [
           "shared-notes"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/storage": {
+      "get": {
+        "operationId": "getSpaceStorage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceStorageUsage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Space Storage",
+        "tags": [
+          "attachments"
         ]
       }
     },

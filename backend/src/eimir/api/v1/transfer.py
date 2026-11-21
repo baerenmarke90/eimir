@@ -208,7 +208,9 @@ def _import_detail(session: DbSession, transfer: TransferImport) -> TransferImpo
         video_count = _summary_count(transfer.summary.get("videoCount", 0))
         ready = transfer.status == ImportStatus.READY_TO_APPLY.value
         recoverable = (
-            service.recoverable_videos(session, transfer.space_id, transfer.summary)
+            service.recoverable_videos(
+                session, transfer.space_id, transfer.created_by, transfer.summary
+            )
             if ready
             else []
         )
@@ -440,7 +442,7 @@ def apply_transfer_import(
 
 
 class TransferSkippedVideos(ApiModel):
-    """Videos this Space left out of an earlier import and can still recover (#2141)."""
+    """Videos this member left out of an earlier import and can still recover (#2141)."""
 
     count: int
     total_size: int

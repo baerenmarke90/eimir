@@ -193,3 +193,51 @@ def test_registering_holds_the_space_storage_lock(
     with engine.connect() as other:
         assert other.scalar(select(func.pg_try_advisory_xact_lock(key))) is False
         other.rollback()
+
+
+def _storage(client, member, token: str | None = None):  # type: ignore[no-untyped-def]
+    return client.get(
+        f"/api/v1/spaces/{member['space'].id}/storage",
+        headers=auth(token or member["token"]),
+    )
+
+
+def test_the_storage_endpoint_reports_usage_and_quota(client, session, member, cloud) -> None:  # type: ignore[no-untyped-def]
+    cloud()
+    assert _register(client, member, 4_000).status_code == 201
+
+    read = _storage(client, member)
+
+    assert read.status_code == 200, read.text
+    assert read.json() == {"used": 4_000, "quota": FREE, "available": FREE - 4_000}
+    assert read.headers["Cache-Control"] == "private, no-store"
+
+
+def test_the_storage_endpoint_is_unmetered_on_self_hosted(client, session, member) -> None:  # type: ignore[no-untyped-def]
+    assert _register(client, member, 4_000).status_code == 201
+
+    read = _storage(client, member)
+
+    assert read.json() == {"used": 4_000, "quota": None, "available": None}
+
+
+def test_both_partners_see_the_same_storage(client, session, member, cloud) -> None:  # type: ignore[no-untyped-def]
+    from eimir.relationship import service as relationship_service
+
+    cloud()
+    partner = make_account(session, "Ben")
+    relationship_service.add_member(session, member["space"].id, partner)
+    assert _register(client, member, 4_000).status_code == 201
+
+    read = _storage(client, member, sign_in(session, partner))
+
+    assert read.json()["used"] == 4_000
+
+
+def test_a_stranger_cannot_read_the_storage(client, session, member) -> None:  # type: ignore[no-untyped-def]
+    stranger = make_account(session, "Stranger")
+    make_space(session, stranger)
+
+    read = _storage(client, member, sign_in(session, stranger))
+
+    assert read.status_code == 404, read.text

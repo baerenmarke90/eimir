@@ -31,6 +31,8 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import './PartnerDistanceLine.css';
 import '../motion/motion.css';
 import { hasPlayed, markPlayed } from '../motion/playRegistry';
+import { useStageHold } from '../motion/stage';
+import { WIR_STAGE } from './wirStageMotion';
 
 const DISTANCE_WIGGLE = 'wir.distance.wiggle';
 
@@ -263,6 +265,7 @@ export function PartnerDistanceLine({
     return line.mapAvailable ? (
       <Link
         {...wiggleProps}
+        data-motion-join=""
         className={heroClass}
         to={PARTNER_LOCATION_MAP_ROUTE}
         aria-label={`${compactDescription}. ${t('partnerLocation.distanceOpenMap')}`}
@@ -270,7 +273,7 @@ export function PartnerDistanceLine({
         {compactContent}
       </Link>
     ) : (
-      <p {...wiggleProps} className={heroClass}>
+      <p {...wiggleProps} data-motion-join="" className={heroClass}>
         {compactContent}
         <span className="sr-only">{compactDescription}</span>
       </p>
@@ -409,6 +412,15 @@ export function WirPartnerDistance({
     !capability.isError &&
     settings?.available === true;
   const query = usePartnerDistanceLine({ api, accountId, spaceId, enabled });
+  // #2147: in the hero, the Wir opening waits briefly for the place, so the
+  // pill and its value arrive together on the opening's clock.
+  useStageHold(
+    WIR_STAGE,
+    compact &&
+      (capability.isLoading ||
+        (capability.data === true && settings === undefined) ||
+        (enabled && query.isLoading)),
+  );
   if (!enabled || query.isError || !query.data) return null;
   return (
     <PartnerDistanceLine

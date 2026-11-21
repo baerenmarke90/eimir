@@ -35,6 +35,10 @@ export const MOTION_CONSTANTS = {
   attention: {
     sameKindIntervalMs: 30000,
   },
+  stage: {
+    dataHoldMs: 400,
+    openingBudgetMs: 2500,
+  },
   haptics: {
     minIntervalMs: 280,
   },

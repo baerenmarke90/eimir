@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import {
+  onlineManager,
   QueryClient,
   QueryClientProvider,
-  onlineManager,
 } from '@tanstack/react-query';
 import {
   act,
@@ -31,7 +31,11 @@ import { ClientProblemError } from '../client/problemDetails';
 import { SNACKBAR_EVENT, type SnackbarEventDetail } from '../client/snackbar';
 import dailyVibe from '../i18n/locales/dailyVibe';
 import wirCheckIn from '../i18n/locales/wirCheckIn';
+import { resetChoreographiesForTests } from '../motion/choreography';
+import { resetPlayRegistryForTests } from '../motion/playRegistry';
+import { resetStagesForTests, useStage } from '../motion/stage';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
+import { WIR_STAGE } from './wirStageMotion';
 
 type VibePartner =
   | { state: 'HIDDEN_UNTIL_SELF_CHECK_IN' }
@@ -506,6 +510,56 @@ describe('WirDailyCheckIn panel', () => {
     await waitFor(() =>
       expect(vibeButton('GOOD').getAttribute('aria-pressed')).toBe('true'),
     );
+  });
+
+  it('settles a value in only when it changes, never on its first appearance (#2147)', async () => {
+    const update = vi
+      .fn()
+      .mockResolvedValue(
+        rawResponse(
+          projection({ ownVibe: 'OKAY', ownEnergy: 60 }),
+          '"today:2"',
+        ),
+      );
+    const { api } = apiFor(projection({ ownVibe: 'GOOD', ownEnergy: 60 }), {
+      update,
+    });
+    renderCheckIn({ api });
+    await loaded();
+    const content = () =>
+      screen
+        .getByTestId('wir-checkin-own-badge')
+        .querySelector('.wir-checkin-badge-content');
+    // The badge arrives with the Wir opening (or is simply there).
+    expect(content()?.classList.contains('is-changed')).toBe(false);
+
+    await openPanel();
+    fireEvent.click(vibeButton('OKAY'));
+    await waitFor(() =>
+      expect(content()?.classList.contains('is-changed')).toBe(true),
+    );
+    // The change class goes when its animation ended (M4: no replay).
+    const changed = content();
+    if (changed) {
+      // React listens for the prefixed name where jsdom has no AnimationEvent.
+      fireEvent.animationEnd(changed);
+      fireEvent(changed, new Event('webkitAnimationEnd', { bubbles: true }));
+    }
+    expect(content()?.classList.contains('is-changed')).toBe(false);
+  });
+
+  it("keeps the place of today's row while the read loads (#2147)", () => {
+    const { api } = apiFor(projection({}));
+    api.getDailyCheckInTodayRaw = vi.fn(
+      () => new Promise(() => {}),
+    ) as unknown as DailyCheckInsApi['getDailyCheckInTodayRaw'];
+    renderCheckIn({ api });
+    const placeholder = document.querySelector(
+      '.wir-checkin-badge-own[data-placeholder]',
+    );
+    expect(placeholder).not.toBeNull();
+    expect(placeholder?.getAttribute('aria-hidden')).toBe('true');
+    expect(screen.queryByTestId('wir-checkin-own-badge')).toBeNull();
   });
 
   it('removes the selected feeling when it is tapped again', async () => {
@@ -1365,6 +1419,9 @@ describe('WirDailyCheckIn partner arrival', () => {
   const SEEN_ARRIVAL_KEY = 'eimir.wir.partnerArrivalSeen:account-1:space-1';
   let restore: () => void;
   beforeEach(() => {
+    resetStagesForTests();
+    resetChoreographiesForTests();
+    resetPlayRegistryForTests();
     restore = installFlightSupport(true);
   });
   afterEach(() => restore());
@@ -1416,6 +1473,34 @@ describe('WirDailyCheckIn partner arrival', () => {
     await screen.findByTestId('wir-checkin-partner-badge');
     expect(ghosts()).toHaveLength(0);
     expect(document.querySelector('[popover]')).toBeNull();
+  });
+
+  it('waits with the partner news until the Wir opening ended (#2147)', async () => {
+    function Opening() {
+      const ref = useStage<HTMLDivElement>(WIR_STAGE, { duration: 150 });
+      return <div ref={ref} />;
+    }
+    const { api } = apiFor(visiblePartner);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Opening />
+        <Harness api={api} />
+      </QueryClientProvider>,
+    );
+    await screen.findByTestId('wir-checkin-partner-badge');
+    // While the opening plays the values wait, hidden, in their places.
+    expect(ghosts()).toHaveLength(0);
+    expect(partnerSlot('vibe')?.getAttribute('data-flight-hidden')).toBe(
+      'true',
+    );
+    expect(window.localStorage.getItem(SEEN_ARRIVAL_KEY)).toBeNull();
+    // Then they arrive in one movement.
+    await waitFor(() => expect(ghosts().length).toBe(2), { timeout: 1000 });
+    act(() => releaseAnimations());
+    await waitFor(() => expect(ghosts()).toHaveLength(0));
   });
 
   it('plays again only for what changed since the last visit', async () => {

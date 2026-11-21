@@ -122,24 +122,22 @@ describe('canonical Web motion roles', () => {
   it('keeps Daily Quote on defined canonical duration roles', () => {
     const css = productionStylesheets['./components/DailyQuoteCard.css'];
 
-    expect(css).toContain('var(--duration-transition)');
     expect(css).toContain('var(--duration-feedback)');
     expect(css).not.toContain('--duration-standard');
     expect(css).not.toContain('--duration-fast');
   });
 
-  it('keeps Daily Quote text legible throughout its entrance motion', () => {
-    // The card uses the motion layer's translate-only Enter `shift` (#2074).
+  it('gives the Daily Quote one entrance, on the Wir opening clock (#2147)', () => {
+    // The card no longer enters on its own clock, and the quote never fades
+    // a second time: on Wir the card is a member of the opening stage.
     const css = productionStylesheets['./components/DailyQuoteCard.css'];
-    expect(normalizeWhitespace(css)).toContain(
-      'animation: eimir-motion-enter-shift var(--duration-transition)',
+    expect(css).not.toMatch(/\banimation\s*:/);
+    const wir = normalizeWhitespace(
+      productionStylesheets['./components/WirMotion.css'],
     );
-    const catalogue = productionStylesheets['./motion/motion.css'];
-    const reveal = catalogue.match(
-      /@keyframes eimir-motion-enter-shift\s*\{([\s\S]*?)\n\}/,
-    )?.[1];
-
-    expect(reveal).toContain('translate:');
-    expect(reveal).not.toMatch(/\bopacity\s*:/);
+    expect(wir).toContain(
+      '.today-content[data-motion-stage-scope="playing"] .daily-quote-card {',
+    );
+    expect(wir).not.toContain('.daily-quote-block[data-motion-enter]');
   });
 });

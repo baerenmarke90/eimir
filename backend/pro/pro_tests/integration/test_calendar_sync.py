@@ -6,11 +6,12 @@ from datetime import date
 from typing import Any
 
 import pytest
+from eimir_pro.calendar_sync import ical, service
+from eimir_pro.calendar_sync.models import CalendarConnection, PlanCalendarLink
+from eimir_pro.providers.calendar import CalendarEvent
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from eimir.calendar_sync import ical, service
-from eimir.calendar_sync.models import CalendarConnection, PlanCalendarLink
 from eimir.config import get_settings
 from eimir.core.clock import now
 from eimir.engagement import service as engagement
@@ -18,11 +19,10 @@ from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import Capability, EntitlementSourceType, EntitlementStatus
 from eimir.jobs.errors import RetryableJobError
 from eimir.jobs.models import Job, JobStatus
-from eimir.providers.calendar import CalendarEvent
 from eimir.relationship.offboarding import leave_space
 from eimir.relationship.service import add_member
+from pro_tests.support.fake_caldav import FakeCalDavServer, install, unreachable
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
-from tests.support.fake_caldav import FakeCalDavServer, install, unreachable
 
 pytestmark = [pytest.mark.integration, requires_database]
 SHARED = "/calendars/anna/shared/"
@@ -481,9 +481,9 @@ def test_wrong_credentials_and_unwritable_calendars_are_explained(  # type: igno
 def test_without_the_plugin_a_leaving_sponsor_takes_the_target_along(  # type: ignore[no-untyped-def]
     client, session, couple, server
 ) -> None:
+    from eimir_pro.calendar_sync.models import SpaceCalendarTarget
     from sqlalchemy import func, select
 
-    from eimir.calendar_sync.models import SpaceCalendarTarget
     from tests.support.plugins import without_plugins
 
     grant(session, couple)

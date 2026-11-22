@@ -12,8 +12,8 @@ from eimir.identity.models import DeviceSession
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import JobRegistry, registry
-from eimir.photo_sources.models import PhotoSelection
-from eimir.photo_sources.service import EXPIRE_JOB, expire, remove
+from eimir_pro.photo_sources.models import PhotoSelection
+from eimir_pro.photo_sources.service import EXPIRE_JOB, expire, remove
 
 KIND = "photo_selection_cleanup"
 INTERVAL = timedelta(minutes=5)

@@ -5,14 +5,14 @@ from unittest.mock import Mock
 from uuid import uuid4
 
 import pytest
+from eimir_pro.api import photo_sources as api
+from eimir_pro.photo_sources import service
+from eimir_pro.photo_sources.models import PhotoSelection, PhotoSelectionPayload
 from fastapi import Response
 
-from eimir.api.v1 import photo_sources as api
 from eimir.authorization import AuthorizationContext
 from eimir.config import Environment
 from eimir.core.errors import ServiceUnavailableError
-from eimir.photo_sources import service
-from eimir.photo_sources.models import PhotoSelection, PhotoSelectionPayload
 from eimir.security.keyring import EncryptionMode
 
 

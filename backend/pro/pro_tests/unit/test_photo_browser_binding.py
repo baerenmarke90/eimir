@@ -7,20 +7,20 @@ from unittest.mock import Mock
 from uuid import uuid4
 
 import pytest
+from eimir_pro.api import photo_sources as api
+from eimir_pro.photo_sources import browser_binding, service
+from eimir_pro.photo_sources.models import PhotoSelection, PhotoSelectionPayload
+from eimir_pro.providers.google_photos_config import GooglePhotosClient
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
 from eimir.api import deps
-from eimir.api.v1 import photo_sources as api
 from eimir.auth.tokens import generate_token, hash_token
 from eimir.authorization import AuthorizationContext
 from eimir.core.clock import now
 from eimir.core.errors import ServiceUnavailableError
 from eimir.db.session import get_session
-from eimir.photo_sources import browser_binding, service
-from eimir.photo_sources.models import PhotoSelection, PhotoSelectionPayload
-from eimir.providers.google_photos_config import GooglePhotosClient
 from eimir.providers.photo_transport import PhotoSourceError
 
 

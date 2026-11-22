@@ -15,24 +15,11 @@ import pytest
 
 SOURCE = Path(__file__).resolve().parents[2] / "src"
 
-PLUGIN_PACKAGES = (
-    "eimir.calendar_sync",
-    "eimir.photo_sources",
-)
-"""The in-tree Pro modules; Phase 2 moves them into their own distribution."""
+PLUGIN_PACKAGES: tuple[str, ...] = ()
+"""In-tree Pro packages; Phase 2 moved them into ``backend/pro`` (#2182)."""
 
-PLUGIN_MODULES = (
-    "eimir.pro_plugin",
-    "eimir.providers.caldav",
-    *(
-        f"eimir.api.v1.{name}"
-        for name in (
-            "calendar_sync",
-            "photo_sources",
-        )
-    ),
-)
-"""Single Pro modules inside otherwise Core packages."""
+PLUGIN_MODULES = ("eimir.pro_plugin",)
+"""The in-tree plugin object, until it moves into ``backend/pro`` as well."""
 
 
 def _module_name(path: Path) -> str:
@@ -96,7 +83,7 @@ def test_core_module_imports_no_plugin_code(path: Path) -> None:
 def test_the_check_catches_a_plugin_import() -> None:
     tree = ast.parse(
         "def f():\n    from eimir_pro.garden import service\n"
-        "from eimir.api.v1 import calendar_sync\nimport eimir_pro.presence.models\n"
+        "from eimir_pro.api import calendar_sync\nimport eimir_pro.presence.models\n"
         "import eimir_pro.plugin\n"
     )
     assert {
@@ -104,7 +91,8 @@ def test_the_check_catches_a_plugin_import() -> None:
     } == {
         "eimir_pro.garden",
         "eimir_pro.garden.service",
-        "eimir.api.v1.calendar_sync",
+        "eimir_pro.api",
+        "eimir_pro.api.calendar_sync",
         "eimir_pro.presence.models",
         "eimir_pro.plugin",
     }

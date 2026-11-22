@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from eimir.calendar_sync import service
 from eimir.jobs.worker import JobRegistry, registry
+from eimir_pro.calendar_sync import service
 
 
 def register_handlers(target: JobRegistry | None = None) -> None:

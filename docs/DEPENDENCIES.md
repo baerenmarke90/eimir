@@ -214,16 +214,25 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | uuid6 | 2025.0.1 | PyPI | MIT |
 | argon2-cffi | 25.1.0 | PyPI | MIT |
 | httpx[http2] | 0.28.1 | PyPI | BSD-3-Clause |
-| google-auth-oauthlib | 1.5.0 | PyPI | Apache 2.0 |
 | pyjwt[crypto] | 2.15.1 | PyPI | MIT |
 | cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
 | pywebpush | 2.5.0 | PyPI | MPL-2.0 |
 | google-auth[requests] | 2.62.0 | PyPI | Apache 2.0 |
-| oauthlib | 4.0.1 | PyPI | BSD-3-Clause |
 | joserfc | 1.7.7 | PyPI | BSD-3-Clause |
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
 | pillow | 13.0.0 | PyPI | MIT-CMU |
 | pillow-heif | 1.8.1 | PyPI | BSD-3-Clause |
+
+## Backend — Pro plugin runtime (`backend/pro`)
+
+These direct dependencies belong to the Pro distribution `eimir-pro` (Decision 0017,
+Phase 2, #2182). They are locked in the same `backend/uv.lock` workspace and are not
+part of a Core-only installation.
+
+| Package | Version | Source | License |
+|---|---|---|---|
+| google-auth-oauthlib | 1.5.0 | PyPI | Apache 2.0 |
+| oauthlib | 4.0.1 | PyPI | BSD-3-Clause |
 | defusedxml | 0.7.1 | PyPI | PSFL |
 
 `defusedxml` parses untrusted CalDAV multistatus responses (#1895) without

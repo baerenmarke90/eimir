@@ -42,18 +42,6 @@ from eimir.entitlements.models import Capability
 from eimir.identity.models import Account, AccountEmail, DeviceSession
 from eimir.identity.service import validate_email
 from eimir.jobs import queue
-from eimir.photo_sources.browser_binding import valid_proof
-from eimir.photo_sources.models import (
-    GoogleAccountHint,
-    GoogleAccountHintPayload,
-    PhotoConnection,
-    PhotoConnectionPayload,
-    PhotoSelection,
-    PhotoSelectionPayload,
-    SelectedPhotoItem,
-)
-from eimir.providers import google_photos
-from eimir.providers.immich_photos import ImmichSelectedPhotoReader
 from eimir.providers.photo_transport import (
     PhotoResponse,
     PhotoSourceError,
@@ -62,6 +50,18 @@ from eimir.providers.photo_transport import (
 )
 from eimir.relationship.service import require_membership
 from eimir.security.keyring import EncryptionMode
+from eimir_pro.photo_sources.browser_binding import valid_proof
+from eimir_pro.photo_sources.models import (
+    GoogleAccountHint,
+    GoogleAccountHintPayload,
+    PhotoConnection,
+    PhotoConnectionPayload,
+    PhotoSelection,
+    PhotoSelectionPayload,
+    SelectedPhotoItem,
+)
+from eimir_pro.providers import google_photos
+from eimir_pro.providers.immich_photos import ImmichSelectedPhotoReader
 
 Provider = Literal["google", "immich"]
 EXPIRE_JOB = "photo_selection_expire"

@@ -6,12 +6,12 @@ from types import SimpleNamespace
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
+from eimir_pro.photo_sources import google_setup
+from eimir_pro.providers import google_photos as google
+from eimir_pro.providers import google_photos_config as configuration
 from pydantic import SecretStr, ValidationError
 
 from eimir.config import Settings
-from eimir.photo_sources import google_setup
-from eimir.providers import google_photos as google
-from eimir.providers import google_photos_config as configuration
 from eimir.providers.photo_transport import PhotoSourceError
 from eimir.security.keyring import EncryptionMode
 

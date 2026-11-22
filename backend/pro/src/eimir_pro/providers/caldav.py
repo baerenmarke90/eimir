@@ -21,8 +21,8 @@ from xml.etree.ElementTree import Element
 
 from defusedxml import ElementTree as SafeElementTree  # type: ignore[import-untyped]
 
-from eimir.calendar_sync import ical
-from eimir.providers.calendar import (
+from eimir_pro.calendar_sync import ical
+from eimir_pro.providers.calendar import (
     CalendarAuthError,
     CalendarEvent,
     CalendarEventMissingError,
@@ -32,7 +32,7 @@ from eimir.providers.calendar import (
     CalendarVersionConflictError,
     RemoteEvent,
 )
-from eimir.providers.calendar_transport import (
+from eimir_pro.providers.calendar_transport import (
     CalendarHttp,
     CalendarRateLimitedError,
     CalendarTransportError,

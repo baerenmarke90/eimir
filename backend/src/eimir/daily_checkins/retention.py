@@ -65,7 +65,7 @@ def purge_expired(
     """Delete at most ``limit`` rows of an earlier Space day.
 
     Only the current authoritative Space day is kept: once a Space's day ends,
-    its check-ins are purge-eligible (ADR 0007 amendment 2026-11-22, #2210).
+    its Daily Check-in rows are purge-eligible (ADR 0007 amendment 2026-11-22, #2210).
     The run interval bounds how long a value outlives its day.
 
     ``daily_context_timezone`` is validated at the configuration write boundary.

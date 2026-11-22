@@ -22,7 +22,6 @@ const de = {
       years: 'Jahre',
       recaps: 'Rückblicke',
       yearsAndRecaps: 'Jahre & Rückblicke',
-      insights: 'Einblicke',
       lists: 'Listen',
     },
     subtitles: {
@@ -30,7 +29,6 @@ const de = {
       media: 'Alle Fotos und Videos',
       chapters: 'Reisen, Umzüge, große Abschnitte',
       yearsAndRecaps: 'Eure Monate und Jahre im Überblick',
-      insights: 'Wie es euch zuletzt ging',
       lists: 'Packlisten, Einkauf, Checklisten',
       places: 'Eure Lieblingsorte',
       people: 'Familie, Freunde und ihre wichtigen Tage',

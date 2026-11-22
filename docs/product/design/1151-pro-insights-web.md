@@ -1,5 +1,7 @@
 # #1151 Pro Vibe/Energy insights — Web implementation notes
 
+> **Removed and deferred (#2210, Product Owner 2026-11-22).** Einblicke is no longer part of the product or the code. This record is history; the archive issue #2210 links the last code revision.
+
 **Status:** implementation record for the Web slice of [#1151](https://github.com/baerenmarke90/eimir/issues/1151). It is not a new design authority.<br/>
 **Authority:** the approved references in [`references/1151/`](references/1151/), [Product Reference v1](product-reference-v1.md) and the current Today/More information architecture. Historical #1151 screenshots remain delivery evidence, not current placement authority.<br/>
 **Placement update:** [#1196](https://github.com/baerenmarke90/eimir/issues/1196) supersedes the historical Today entry. Weekly insights are discovered only from **More**.

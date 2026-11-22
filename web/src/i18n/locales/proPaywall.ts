@@ -34,8 +34,8 @@ const proPaywall = {
           body: 'Ergänzt Gedanken zu einem Rückblick – fertige Ausgaben bleiben lesbar.',
         },
         third: {
-          title: 'Vertiefende Einblicke',
-          body: 'Wochenrückblicke und behutsame Muster eurer gemeinsamen Tage.',
+          title: 'Als Film erzählt',
+          body: 'Eure Fotos, Videos und Worte als bewegter Rückblick.',
         },
       },
     },
@@ -176,10 +176,6 @@ const proPaywall = {
       experiences: {
         title: 'Glücksmomente & Zeitreise',
         body: 'Teilt, was euch gerade glücklich macht, oder schickt euch gegenseitig eine kleine Reise in eure Erinnerungen.',
-      },
-      insights: {
-        title: 'Einblicke in Stimmung & Energie',
-        body: 'Schaut über mehrere Wochen oder Monate auf eure Check-ins und entdeckt, wie sich Stimmung und Energie entwickeln. Der tägliche Check-in bleibt kostenlos.',
       },
       quote: {
         title: 'Spruch des Tages',

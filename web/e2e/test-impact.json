@@ -1015,14 +1015,6 @@
         "web/src/components/CollectionProductPage.tsx"
       ]
     },
-    "today-pro-insights.spec.ts": {
-      "roots": [
-        "web/src/components/TodayPage.tsx",
-        "web/src/components/SettingsPage.tsx",
-        "web/src/components/DailyInsightsPage.tsx",
-        "web/src/components/MoreOverviewPage.tsx"
-      ]
-    },
     "today-recent-trace.spec.ts": {
       "roots": [
         "web/src/components/TodayPage.tsx",

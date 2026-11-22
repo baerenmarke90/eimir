@@ -16,7 +16,7 @@ const FEATURE_GROUPS = [
   {
     id: 'everyday',
     icon: 'wir',
-    features: ['insights', 'quote', 'gestures', 'onceMessages', 'location'],
+    features: ['quote', 'gestures', 'onceMessages', 'location'],
   },
   {
     id: 'style',

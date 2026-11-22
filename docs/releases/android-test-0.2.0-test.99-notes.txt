@@ -3,9 +3,10 @@ eimir. Android 0.2.0-test.99
 - This test build now talks to app.eimir.de, the address that sign-in and registration mails link to, so those mailed links open in the app. Sign in once again after installing.
 - After a sign-in, registration or recovery mail was requested, you can ask for a new link or use another address instead of being stuck on the notice.
 - A mailed link that cannot be used with this app version is now reported on the sign-in screen instead of doing nothing.
-- A rule-based weekly brief ("Wochenbrief") summarises your week, has a private "just me" view, and Wir shows a quiet hint when last week's brief is ready. Einblicke now shows one weekly view.
 - The rediscovery lead plays as the first Fotostory slide, and a Fotostory pauses once only 60 % of it is on screen.
 - Every Transfer export and import failure is named in plain words, including when the server refuses a file that is too large.
+- Einblicke is removed from the app for now, together with the weekly brief and its hint on Wir, the "good days" scene in recaps and the stored ratings. The Vibecheck stays and keeps only the current day; it is deleted after midnight.
+- The notification dot on More is easier to see.
 
-The product changes come from main at 9f30110ff7920f25cefcddcedb8bc29c7e53848d.
+The product changes come from main at 7dbb7a4c745939cb301e4eb756f02632c8d99d82.
 Install over test.98 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 99.

@@ -5,7 +5,6 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { STORY_OURS_ROUTE } from '../client/routes';
 import { ShellUtilitiesContext } from '../client/shellUtilities';
-import dailyInsights from '../i18n/locales/dailyInsights';
 import de from '../i18n/locales/de';
 import games from '../i18n/locales/games';
 import navigation from '../i18n/locales/navigation';
@@ -54,7 +53,6 @@ describe('MoreOverviewPage', () => {
       '/more/private',
       '/more/people',
       '/more/places',
-      '/more/insights',
       '/games',
       '/more/notifications',
       '/today/activity',
@@ -63,10 +61,8 @@ describe('MoreOverviewPage', () => {
       expect(html).toContain(`href="${href}"`);
     }
 
-    const weeklyInsightsIndex = html.indexOf('href="/more/insights"');
-    const peopleIndex = html.indexOf('href="/more/people"');
-    expect(weeklyInsightsIndex).toBeGreaterThan(-1);
-    expect(weeklyInsightsIndex).toBeLessThan(peopleIndex);
+    // Einblicke was removed and deferred (#2210).
+    expect(html).not.toContain('href="/more/insights"');
 
     // Lists and Notes live in the Gemeinsam primary destination, not in More.
     expect(html).not.toContain('href="/more/collections"');
@@ -82,7 +78,6 @@ describe('MoreOverviewPage', () => {
       de.more.subtitles.media,
       de.more.subtitles.chapters,
       de.more.subtitles.yearsAndRecaps,
-      de.more.subtitles.insights,
       de.more.subtitles.places,
       de.more.subtitles.people,
       de.more.subtitles.games,
@@ -136,16 +131,13 @@ describe('MoreOverviewPage', () => {
     const rowMatches = html.match(
       /class="more-destination(?: more-profile-destination)?"/g,
     );
-    expect(rowMatches).toHaveLength(13);
+    expect(rowMatches).toHaveLength(12);
     expect(html).toContain('more-profile-avatar');
     expect(html).toContain('person-identity-avatar-medium');
 
     const badgeMatches = html.match(/class="more-destination-badge"/g);
-    expect(badgeMatches).toHaveLength(3);
+    expect(badgeMatches).toHaveLength(2);
     expect(html).toContain(games.status.premium);
-    expect(html).toContain(de.more.destinations.insights);
-    expect(html).toContain(dailyInsights.pro);
-    expect(html).not.toContain(dailyInsights.week.subtitle);
   });
   it.each([false, true])(
     'keeps account actions and unread state in More (admin=%s)',

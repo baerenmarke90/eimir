@@ -1,6 +1,6 @@
 # 7. Use one Space-day DailyCheckIn boundary and server-side Mutual Reveal
 
-- **Status:** accepted; sections 6 and 7 amended on 2026-11-13 (#1790); section 9 amended on 2026-11-22 (#2169)
+- **Status:** accepted; sections 6 and 7 amended on 2026-11-13 (#1790); section 9 amended on 2026-11-22 (#2169), superseded the same day (#2210)
 - **Date:** 2026-09-02
 - **Issue:** #598
 - **Related:** #429, #431, #432, #493, #455, #433
@@ -220,8 +220,9 @@ without exposing hidden content or repeatedly announcing unchanged values.
 
 ### 9. V1 retention is deliberately ephemeral
 
-> Amended for Spaces with `daily.insights`: see
-> [Amendment 2026-11-22](#amendment-2026-11-22-pro-insights-keep-90-days-2169).
+> Amended twice on 2026-11-22: see
+> [Amendment: Einblicke removed, current day only (#2210)](#amendment-2026-11-22-einblicke-removed-current-day-only-2210),
+> which supersedes [Pro insights keep 90 days (#2169)](#amendment-2026-11-22-pro-insights-keep-90-days-2169).
 
 Daily Check-in is not a history or relationship-scoring product in V1.
 
@@ -323,6 +324,8 @@ Related #1790 decisions:
 
 ## Amendment 2026-11-22: Pro insights keep 90 days (#2169)
 
+> **Superseded** by the amendment below (#2210). Kept as history.
+
 **Decision owner:** Product Owner, recorded in #2169.
 
 The Pro insights (#1151, #1546) promise weekly, monthly and multiweek
@@ -344,6 +347,28 @@ decided:
   is derived, Mutual Reveal projection rules are unchanged, values stay in the
   protected payload (#797), and rows remain excluded from transfer bundles.
 - Normal account and Space deletion remove the rows immediately as before.
+
+## Amendment 2026-11-22: Einblicke removed, current day only (#2210)
+
+**Decision owner:** Product Owner, recorded in #2210.
+
+The Product Owner removed and deferred the whole Einblicke feature (Pro
+insights, weekly brief, private view, history charts and the recap good-days
+rhythm). The code is archived in #2210. For the check-in itself:
+
+- Every Space, Free or Pro, keeps only the **current** authoritative Space day.
+  Once the Space day ends, its rows are purge-eligible; the cleanup job runs
+  every hour, so a value outlives its day by at most about an hour.
+- `daily.insights` no longer changes retention. It stays a reserved,
+  unimplemented capability until a new product decision.
+- Monthly and yearly recaps no longer compose a good-days rhythm. A one-off
+  worker job (`recaps.mood_purge`) deletes the counts frozen into older
+  editions, because Alembic cannot read protected payloads.
+- The ratings retained from the former weekly AI review are deleted with their
+  table (migration 0171).
+- Before a history returns, the legal review recorded in #2209/#2210 applies:
+  the history is health-related special-category data and needs explicit
+  per-person consent.
 
 ## Consequences
 

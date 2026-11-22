@@ -515,11 +515,7 @@ export function sharedNoteEditPath(noteId: string): string {
 }
 
 /**
- * Pro Vibe/Energy insights (#1151, placement updated by #1196). Discovery and
- * all three views live under More so the Mehr destination stays active while
- * people move between week, patterns and recap.
+ * Former home of the Pro Vibe/Energy insights (#1151). Einblicke was removed
+ * and deferred (#2210); the path only redirects old links to More.
  */
 export const MORE_INSIGHTS_ROUTE = '/more/insights';
-export const MORE_INSIGHTS_WEEK_ROUTE = `${MORE_INSIGHTS_ROUTE}/week`;
-export const MORE_INSIGHTS_PATTERNS_ROUTE = `${MORE_INSIGHTS_ROUTE}/patterns`;
-export const MORE_INSIGHTS_RECAP_ROUTE = `${MORE_INSIGHTS_ROUTE}/recap`;

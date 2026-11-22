@@ -79,4 +79,6 @@ Product Owner decisions of 2026-11-12: recap texts come from the couple's own wo
 
 ## Rhythm of good days (#1744, backend contract)
 
+> **Removed (#2210, Product Owner 2026-11-22)** together with Einblicke. Recaps no longer compose or serve the rhythm; a one-off worker job deletes counts frozen into older editions. The section below is history.
+
 Product Owner decisions of 2026-11-12: the mood arc is a rhythm of good days, stored as a frozen aggregate, with thresholds of five mutual days for a month and twenty mutual days in at least four months for a year. Only days on which both active members have a Vibe count, so the aggregate is identical for both readers and discloses nothing that is not already visible to both under either visibility mode. Difficult states, Energy, rankings and relationship claims are not surfaced, and check-in data never reaches the wording model. The aggregate lives in the protected edition payload (no new column), is refreshed on recomposition and on retention of a curated edition while `daily.insights` is held, and is served only while exactly two members are active and the Vibe module is enabled. The reader scene is not built; it needs a generated Compact reference first.

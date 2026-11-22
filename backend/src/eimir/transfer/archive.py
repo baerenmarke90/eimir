@@ -55,6 +55,7 @@ _ALLOWED_ROOT_FILES = {
     "private/notes.json",
     "private/gift-ideas.json",
     "private/collections.json",
+    # Written by exports before #2210; accepted and ignored on import.
     "private/weekly-insight-feedback.json",
 }
 _MEDIA_ENTRY = re.compile(

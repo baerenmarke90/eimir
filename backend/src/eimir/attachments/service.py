@@ -20,6 +20,7 @@ from typing import BinaryIO
 from uuid import UUID
 
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
@@ -534,6 +535,17 @@ def delete_attachment(
             "The resource was changed since it was loaded.",
             ErrorCode.RESOURCE_VERSION_CONFLICT,
         )
+    from eimir.attachments import binding
+
+    # A Heart Moment owns its photos: removing one goes through editing the
+    # Heart Moment. Marking a still-used attachment would leave a row the cleanup
+    # can never purge and a Heart Moment pointing at an invisible photo.
+    binding.lock_for_binding(session, [attachment.id])
+    if binding.used_by_heart_moment(session, attachment.id):
+        raise ConflictError(
+            "The attachment is still in use.",
+            ErrorCode.ATTACHMENT_IN_USE,
+        )
     mark_for_deletion(session, attachment)
     _flush(session)
 
@@ -544,26 +556,51 @@ def mark_for_deletion(session: Session, attachment: Attachment) -> None:
 
 
 def purge(session: Session, attachment: Attachment) -> bool:
-    """Remove provider objects and row, returning whether cleanup succeeded.
+    """Remove the row and provider objects, returning whether cleanup succeeded.
 
     Storage failure must not reverse domain-visible deletion. On failure the row
     remains DELETE_FAILED for retry and never becomes visible again.
+
+    The row is deleted first, inside a savepoint, and the provider objects only
+    after that succeeded. A row that a feature still references (for example a
+    Heart Moment photo, whose foreign key is ``RESTRICT``) makes the database
+    refuse the delete; the savepoint then rolls back only this attachment, its
+    bytes stay, and the caller's round carries on with the other rows instead of
+    failing as a whole on every run.
     """
-    # Sensitive staging does not inherit a provider deletion failure's retry lifetime.
-    session.execute(delete(PhotoLocationDraft).where(PhotoLocationDraft.id == attachment.id))
+    attachment_id = attachment.id
     store = get_media_store()
     variants = [ORIGINAL_VARIANT]
     if attachment.has_thumbnail:
         variants.append(THUMBNAIL_VARIANT)
+    storage_keys = [
+        storage_key
+        for variant in variants
+        for storage_key in storage_homes_for(attachment, variant)
+    ]
     try:
-        for variant in variants:
-            for storage_key in storage_homes_for(attachment, variant):
+        with session.begin_nested():
+            # Sensitive staging does not inherit a provider deletion failure's
+            # retry lifetime.
+            session.execute(
+                delete(PhotoLocationDraft).where(PhotoLocationDraft.id == attachment_id)
+            )
+            session.delete(attachment)
+            session.flush()
+            for storage_key in storage_keys:
                 store.delete(storage_key)
-    except OSError:
-        attachment.status = AttachmentStatus.DELETE_FAILED.value
-        log.warning("attachment purge failed", extra={"attachmentId": str(attachment.id)})
+    except IntegrityError:
+        # Still referenced: keep row and bytes, leave the status as it is.
+        log.warning(
+            "attachment purge blocked by a remaining reference",
+            extra={"attachmentId": str(attachment_id)},
+        )
         return False
-    session.delete(attachment)
+    except OSError:
+        # The savepoint restored the row; mark it for the next retry.
+        attachment.status = AttachmentStatus.DELETE_FAILED.value
+        log.warning("attachment purge failed", extra={"attachmentId": str(attachment_id)})
+        return False
     return True
 
 

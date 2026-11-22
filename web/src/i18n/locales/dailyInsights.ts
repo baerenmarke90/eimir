@@ -10,6 +10,7 @@ const dailyInsights = {
   proBrand: 'eimir. Pro',
   nav: {
     label: 'Ansicht wechseln',
+    brief: 'Wochenbrief',
     week: 'Woche',
     patterns: 'Monat',
     recap: 'Rückblick',
@@ -220,6 +221,90 @@ const dailyInsights = {
     partnerEnergyVibe_own: {
       title: 'Wenn du viel Energie hattest, ging es {{name}} oft auch gut.',
       body: 'Beides kam häufig am selben Tag vor – ohne dass eines das andere erklärt.',
+    },
+  },
+  brief: {
+    loading: 'Euer Wochenbrief wird zusammengestellt …',
+    coverage: 'An {{count}} von {{total}} Tagen habt ihr beide etwas geteilt.',
+    basisToggle: 'Worauf beruht das?',
+    basis:
+      'Gezählt werden nur Tage, an denen ihr beide eure Werte sehen könnt. Die Aussagen beschreiben, was zusammen vorkam. Sie sagen nichts darüber, was wodurch passiert, und nichts über eure Beziehung als Ganzes.',
+    headline: {
+      EMPTY: {
+        title: 'Diese Woche gibt es noch nichts Gemeinsames zu sehen.',
+        body: 'Sobald ihr beide Vibe oder Energie teilt, entsteht hier euer Wochenbrief.',
+      },
+      SPARSE: {
+        title: 'Für Muster war diese Woche zu wenig geteilt.',
+        body: 'Mit jedem Tag, an dem ihr beide etwas teilt, wird das Bild deutlicher.',
+      },
+      SHARED_GOOD_DAYS: {
+        title:
+          'Eure guten Tage hatten etwas gemeinsam: Ihr hattet etwas zusammen vor.',
+        body: '{{days}} ging es euch beiden gut. An diesen Tagen gab es einen gemeinsamen Plan oder Moment.',
+      },
+      GOOD_DAYS: {
+        title_one: 'An einem Tag ging es euch beiden gut.',
+        title_other: 'An {{count}} Tagen ging es euch beiden gut.',
+        body: 'Das war {{days}}.',
+      },
+      STEADY: {
+        title: 'Eine gleichmäßige Woche.',
+        body: 'Kein Tag stach heraus. Auch ruhige Wochen gehören dazu.',
+      },
+    },
+    good: {
+      title: 'Was euch gutgetan hat',
+      momentDate: '{{date}}',
+      momentPhotos_one: '{{date}} · ein Foto',
+      momentPhotos_other: '{{date}} · {{count}} Fotos',
+      momentUntitled: 'Euer Moment',
+      stripLabel: 'Eure Woche, Tag für Tag',
+      stripHint: 'Tippe auf einen Tag, um eure Werte zu sehen.',
+      legendShared: 'Plan oder Moment',
+      dayGood: 'Euch beiden ging es gut.',
+      dayShared: 'Ihr hattet einen gemeinsamen Plan oder Moment.',
+    },
+    attention: {
+      title: 'Was gerade Aufmerksamkeit braucht',
+      OWN_CLOSENESS:
+        'An {{count}} Tagen hast du dir Nähe gewünscht, während {{name}} eher Ruhe wollte.',
+      PARTNER_CLOSENESS:
+        'An {{count}} Tagen wünschte sich {{name}} Nähe, während du eher Ruhe wolltest.',
+      MIXED:
+        'An {{count}} Tagen wünschte sich einer von euch Nähe und der andere eher Ruhe.',
+      body: 'Das kommt in jeder Beziehung vor. Wenn ihr kurz darüber sprecht, wisst ihr beim nächsten Mal besser, was der andere braucht.',
+      prompt:
+        'Sprecht kurz darüber: Was hilft dir, wenn du Ruhe brauchst, und was hilft mir, wenn ich Nähe brauche?',
+    },
+    impulse: {
+      title: 'Euer Impuls für nächste Woche',
+      sourceOwn: 'Dein Wunsch · seit {{date}} auf eurer Liste',
+      sourcePartner: 'Wunsch von {{name}} · seit {{date}} auf eurer Liste',
+      rhythm:
+        '{{weekday}} hattet ihr in den letzten Wochen oft beide viel Energie. Wie wäre es mit {{date}}?',
+      plan: 'Als Plan anlegen',
+      next: 'Andere Idee',
+      emptyTitle: 'Kein offener Wunsch auf eurer Liste',
+      emptyBody:
+        'Haltet einen Wunsch fest, dann schlägt euch der Wochenbrief hier einen nächsten Plan vor.',
+      addWish: 'Wunsch festhalten',
+    },
+    followUp: {
+      title: 'Aus der letzten Woche',
+      body: 'Ihr hattet „{{title}}“ für {{date}} geplant. Hat es geklappt? Im Plan könnt ihr ihn abschließen und einen Moment festhalten.',
+      bodyUntitled:
+        'Ihr hattet einen Plan für {{date}}. Hat es geklappt? Im Plan könnt ihr ihn abschließen und einen Moment festhalten.',
+      open: 'Plan ansehen',
+    },
+    newPatterns: {
+      title: 'Neu entdeckt',
+    },
+    history: 'Verlauf über Wochen und Monate',
+    wirHint: {
+      text: 'Euer Wochenbrief für letzte Woche ist da.',
+      open: 'Wochenbrief ansehen',
+      later: 'Später',
     },
   },
   weekdayAdverb: {

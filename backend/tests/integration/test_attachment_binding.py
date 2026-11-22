@@ -982,3 +982,103 @@ class TestPartnerEnrichment:
         )
         assert response.status_code == 403
         assert client.get(url, headers=auth(couple["token_b"])).json()["attachment"]["id"] == photo
+
+
+class TestCleanupWithReferencedAttachment:
+    """A referenced attachment marked for deletion must not block the cleanup round."""
+
+    def test_purge_blocked_by_heart_moment_does_not_abort_round(
+        self, client, couple, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        bound = ready_attachment(client, couple, session)
+        heart = heart_moment(client, couple, attachment_id=bound)
+        assert heart.status_code == 201, heart.text
+        loose = ready_attachment(client, couple, session)
+
+        # Both reach DELETING; the bound one is still referenced by the moment.
+        for identifier in (bound, loose):
+            row = session.get(Attachment, UUID(identifier))
+            service.mark_for_deletion(session, row)
+        session.flush()
+
+        cleanup.run_media_cleanup(session, {})
+        session.flush()
+
+        # The unreferenced attachment is purged; the referenced one keeps its row
+        # and its bytes, and stays invisible (DELETING) rather than failing the round.
+        assert session.get(Attachment, UUID(loose)) is None
+        kept = session.get(Attachment, UUID(bound))
+        assert kept is not None
+        assert kept.status == AttachmentStatus.DELETING.value
+        assert get_media_store().exists(build_storage_key(kept.space_id, kept.id, "original"))
+
+        # A second round behaves the same way: the bad row never blocks the queue.
+        cleanup.run_media_cleanup(session, {})
+        session.flush()
+        assert session.get(Attachment, UUID(bound)) is not None
+
+
+class TestDeleteRefusedWhileHeartMomentUsesAttachment:
+    """``DELETE`` must not mark an attachment a Heart Moment still uses (PO decision)."""
+
+    def _delete(self, client, couple, session, attachment_id: str):  # type: ignore[no-untyped-def]
+        session.expire_all()
+        row = session.get(Attachment, UUID(attachment_id))
+        return client.delete(
+            f"{base_path(couple['space'].id)}/attachments/{attachment_id}",
+            headers=if_match(couple["token_a"], row.version),
+        )
+
+    def test_primary_photo_is_refused_and_stays_ready(self, client, couple, session) -> None:  # type: ignore[no-untyped-def]
+        bound = ready_attachment(client, couple, session)
+        assert heart_moment(client, couple, attachment_id=bound).status_code == 201
+
+        response = self._delete(client, couple, session, bound)
+
+        assert response.status_code == 409, response.text
+        assert response.json()["code"] == "ATTACHMENT_IN_USE"
+        assert bound not in response.text.replace(str(couple["space"].id), "")
+        session.expire_all()
+        assert session.get(Attachment, UUID(bound)).status == AttachmentStatus.READY.value
+
+    def test_gallery_photo_is_refused(self, client, couple, session) -> None:  # type: ignore[no-untyped-def]
+        first = ready_attachment(client, couple, session)
+        second = ready_attachment(client, couple, session)
+        created = client.post(
+            f"{base_path(couple['space'].id)}/heart-moments",
+            json={
+                "text": "Zwei Fotos.",
+                "emotion": "LOVED",
+                "visibility": "SHARED",
+                "happenedOn": "2025-06-13",
+                "attachments": [
+                    {"attachmentId": first, "position": 0},
+                    {"attachmentId": second, "position": 1},
+                ],
+            },
+            headers=auth(couple["token_a"]),
+        )
+        assert created.status_code == 201, created.text
+
+        for identifier in (first, second):
+            response = self._delete(client, couple, session, identifier)
+            assert response.status_code == 409, response.text
+            assert response.json()["code"] == "ATTACHMENT_IN_USE"
+
+    def test_unbound_attachment_still_deletes(self, client, couple, session) -> None:  # type: ignore[no-untyped-def]
+        loose = ready_attachment(client, couple, session)
+
+        assert self._delete(client, couple, session, loose).status_code == 204
+        session.expire_all()
+        assert session.get(Attachment, UUID(loose)).status == AttachmentStatus.DELETING.value
+
+    def test_profile_picture_is_not_treated_as_heart_moment_use(
+        self, client, couple, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        from eimir.attachments import binding
+
+        avatar = ready_attachment(client, couple, session)
+        # The web flow deletes a just-uploaded avatar candidate when the identity
+        # update fails; it is unbound and must remain deletable.
+        assert not binding.used_by_heart_moment(session, UUID(avatar))
+        assert self._delete(client, couple, session, avatar).status_code == 204

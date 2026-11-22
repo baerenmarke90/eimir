@@ -145,14 +145,15 @@ import { TodayDestinationLink } from './TodayDestinationLink';
 import { UiState } from './UiState';
 import { useKeepsakeSway } from './useKeepsakeSway';
 import { prefersReducedData, useMomentRotation } from './useMomentRotation';
+import { WeeklyBriefWirHint } from './WeeklyBriefWirHint';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
 import { WirGardenModule } from './WirGardenModule';
-import { WirWaitingGamesModule } from './WirWaitingGamesModule';
 import { WirLists } from './WirLists';
 import { type MomentClipLoader, WirMomentSlides } from './WirMomentGallery';
 import { WirNotes } from './WirNotes';
 import { WirPartnerDaySheet } from './WirPartnerDaySheet';
 import { WirStageDistance } from './WirStageDistance';
+import { WirWaitingGamesModule } from './WirWaitingGamesModule';
 import './TodayPage.css';
 import './TodayRetrospectiveAlbum.css';
 import { concealedTitle } from '../client/discreetPlans';
@@ -2204,6 +2205,15 @@ export function TodayPage({
         ) : null}
         {relationshipPresenceVisible ? dailyCheckIn?.panel : null}
         {dailyCheckIn?.announcement}
+        {account?.id && dailyCheckInsApi && entitlementApi && !isSparse ? (
+          <WeeklyBriefWirHint
+            accountId={account.id}
+            spaceId={spaceId}
+            dailyCheckInsApi={dailyCheckInsApi}
+            entitlementApi={entitlementApi}
+            modulesEnabled={vibeCheckEnabled || energyCheckInEnabled}
+          />
+        ) : null}
         <OnceIncomingSignal />
       </>
     ),

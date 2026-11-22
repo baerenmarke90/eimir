@@ -50,6 +50,8 @@ Where a feature is not yet available, the draft says so explicitly.
 | 10 | Immich: personal HTTPS origin and API key, encrypted, account-scoped; selected-item copy; 10-min selection | `docs/product/integrations/1444-photo-source-delivery.md`, `backend/src/eimir/photo_sources/service.py` |
 | 10, 15 | Google Photos is gated off (#1467); its OAuth browser binding is the only cookie (`__Host-`, 10 min) | `docs/product/integrations/1444-google-security-gate.md`, `backend/src/eimir/photo_sources/browser_binding.py` |
 | 11 | Local Ollama for weekly review selection and shared tag proposals. Only their bounded inputs are sent, and prompts and responses stay out of logs. | `docs/LOCAL-RECAP-AI.md`, `backend/src/eimir/daily_checkins/weekly_review.py`, `backend/src/eimir/context_tags/jobs.py` |
+| 4, 22 | Daily Check-in retention: two Space days, 90 Space days while the Space holds `daily.insights`; re-evaluated on every cleanup run | `docs/decisions/0007-daily-check-in-and-mutual-reveal.md` (amendment 2026-11-22), `backend/src/eimir/daily_checkins/retention.py` |
+| 11 | Weekly brief: rule-based, model-free composition from mutually visible Vibe/Energy values and readable shared Plans, Memories and open Wishes; nothing stored | `backend/src/eimir/daily_insights/weekly_brief.py` |
 | 11 | Eure Woche: the backend computes descriptive observations from visible Vibe/Energy values (selected week plus seven preceding weeks, bounded by retention); the model only selects observation and catalog IDs; no score, diagnosis or personality label | `docs/product/design/references/1546/weekly-ai.md`, `backend/src/eimir/daily_checkins/weekly_review.py` |
 | 12 | Mails: magic link, signup, verification; notification mail opt-in and content-free | `backend/src/eimir/i18n/locales/de.json`, `backend/src/eimir/engagement/email_delivery.py` |
 | 12 | Push on Android only (no browser Web Push): FCM wake payload `type`+`activationId`, or UnifiedPush; auto-init off; FID cleanup; Google's 180-day deletion statement | `docs/PRIVACY-MODEL.md` (#565), `android/app/build.gradle`, `AndroidManifest.xml` |
@@ -259,11 +261,13 @@ officer should confirm them before publication.
     refers to location presence, but the wording invites confusion.
     **Recommendation:** add a personal switch. It makes the objection
     self-service and matches terms § 8.2.
-11. **Daily check-in history.** `weekly_review.py` evaluates the selected week
-    plus seven preceding weeks, but retention deletes rows after the previous
-    Space day, so Eure Woche can only see two days. Reconcile the product.
-    Longer retention changes §§ 4.5, 11.2 and 22 and weighs on decisions 1
-    and 2.
+11. **Daily check-in history.** Resolved in product terms by the Product Owner
+    decision of 2026-11-22 (#2169, ADR 0007 amendment): Spaces with
+    `daily.insights` keep check-ins for 90 Space days, all others keep the
+    previous and current day, and an ended entitlement returns to two days on
+    the next cleanup run. Draft-7 updates §§ 4.5, 11.1 and 22. **Open for
+    legal review:** the longer retention of possibly health-related values
+    (§ 7, Art. 9 GDPR) for the Pro insights purpose weighs on decisions 1 and 2.
 12. **Change notification.** **Recommendation:** use the channel of the terms
     changes (email and in-app), without acceptance.
 13. **One-time messages in Cloud backups.** The canonical dump excludes the

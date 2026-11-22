@@ -28,8 +28,6 @@ const m5s6 = {
         QUEUED: 'Wartet auf Verarbeitung',
         RUNNING: 'Wird erstellt',
         READY: 'Bereit zum Herunterladen',
-        FAILED: 'Das hat nicht geklappt',
-        EXPIRED: 'Die Datei ist abgelaufen',
       },
     },
     import: {
@@ -45,8 +43,6 @@ const m5s6 = {
         READY_TO_APPLY: 'Geprüft · 24 Stunden bereit',
         APPLYING: 'Wird übernommen …',
         COMPLETED: 'Import abgeschlossen',
-        FAILED: 'Das hat nicht geklappt',
-        EXPIRED: 'Die geprüfte Datei ist abgelaufen',
       },
       checkingHint: 'Noch wird nichts übernommen.',
       applyingHint: 'Du kannst die App weiter benutzen.',
@@ -103,9 +99,6 @@ const m5s6 = {
           '{{count}} Videos passten nicht mehr in ihre Galerie und bleiben gemerkt.',
         toMoments: 'Zu euren Momenten',
       },
-      failed:
-        'Die Datei konnte nicht übernommen werden. Es wurde nichts geändert.',
-      expired: 'Wähle die Datei noch einmal aus, um sie zu übernehmen.',
       offline: {
         title: 'Keine Verbindung',
         body: 'Ohne Internet lässt sich nichts importieren. Es wurde nichts geändert.',
@@ -138,7 +131,52 @@ const m5s6 = {
       dismissConfirm: 'Ausblenden',
       dismissCancel: 'Abbrechen',
     },
-    genericFailure: 'Das hat nicht geklappt. Es wurde nichts geändert.',
+    failure: {
+      exportTooLarge: {
+        title: 'Der Export ist zu groß',
+        body: 'Eure Fotos und Videos passen nicht in eine einzelne Datei. Es wurde nichts geändert.',
+      },
+      exportFailed: {
+        title: 'Der Export hat nicht geklappt',
+        body: 'Er konnte nicht erstellt werden. Versuche es gleich noch einmal. Es wurde nichts geändert.',
+      },
+      exportGeneric: {
+        title: 'Das hat nicht geklappt',
+        body: 'Es wurde nichts geändert.',
+      },
+      exportExpired: {
+        title: 'Die Datei ist abgelaufen',
+        body: 'Erstelle den Export noch einmal.',
+      },
+      importTooLarge: {
+        title: 'Die Datei ist zu groß',
+        body: 'Eine so große Datei kann eimir. nicht auf einmal übernehmen. Es wurde nichts geändert.',
+      },
+      formatUnsupported: {
+        title: 'Die Datei passt nicht zu dieser Version',
+        body: 'Sie stammt aus einer anderen eimir.-Version. Es wurde nichts geändert.',
+      },
+      fileInvalid: {
+        title: 'Die Datei ist nicht in Ordnung',
+        body: 'Sie ist beschädigt oder unvollständig. Lade den Export noch einmal herunter und wähle ihn erneut aus. Es wurde nichts geändert.',
+      },
+      members: {
+        title: 'Die Personen in der Datei passen nicht zu euch',
+        body: 'Sie lassen sich euch nicht zuordnen. Es wurde nichts geändert.',
+      },
+      privacy: {
+        title: 'Die Datei enthält Privates',
+        body: 'Eine gemeinsame Datei darf nichts Privates enthalten. Es wurde nichts übernommen.',
+      },
+      importFailed: {
+        title: 'Das hat nicht geklappt',
+        body: 'Die Datei konnte nicht übernommen werden. Es wurde nichts geändert.',
+      },
+      importExpired: {
+        title: 'Die geprüfte Datei ist abgelaufen',
+        body: 'Wähle die Datei noch einmal aus, um sie zu übernehmen.',
+      },
+    },
   },
 };
 

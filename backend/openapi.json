@@ -18557,6 +18557,265 @@
         "title": "WaitingGames",
         "type": "object"
       },
+      "WeeklyBriefAttention": {
+        "description": "Who asked for closeness on the days on which the other asked for space.",
+        "enum": [
+          "OWN_CLOSENESS",
+          "PARTNER_CLOSENESS",
+          "MIXED"
+        ],
+        "title": "WeeklyBriefAttention",
+        "type": "string"
+      },
+      "WeeklyBriefHeadline": {
+        "description": "Which single rule-backed sentence opens the brief.",
+        "enum": [
+          "EMPTY",
+          "SPARSE",
+          "SHARED_GOOD_DAYS",
+          "GOOD_DAYS",
+          "STEADY"
+        ],
+        "title": "WeeklyBriefHeadline",
+        "type": "string"
+      },
+      "WeeklyBriefMomentView": {
+        "properties": {
+          "attachmentHasThumbnail": {
+            "default": false,
+            "title": "Attachmenthasthumbnail",
+            "type": "boolean"
+          },
+          "attachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachmentid"
+          },
+          "attachmentIsSensitive": {
+            "default": false,
+            "title": "Attachmentissensitive",
+            "type": "boolean"
+          },
+          "happenedOn": {
+            "format": "date",
+            "title": "Happenedon",
+            "type": "string"
+          },
+          "memoryId": {
+            "format": "uuid",
+            "title": "Memoryid",
+            "type": "string"
+          },
+          "photoCount": {
+            "title": "Photocount",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "memoryId",
+          "title",
+          "happenedOn",
+          "photoCount"
+        ],
+        "title": "WeeklyBriefMomentView",
+        "type": "object"
+      },
+      "WeeklyBriefPlanView": {
+        "properties": {
+          "concealed": {
+            "title": "Concealed",
+            "type": "boolean"
+          },
+          "planId": {
+            "format": "uuid",
+            "title": "Planid",
+            "type": "string"
+          },
+          "plannedOn": {
+            "format": "date",
+            "title": "Plannedon",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "List title; null asks the client for its neutral discreet fallback.",
+            "title": "Title"
+          }
+        },
+        "required": [
+          "planId",
+          "concealed",
+          "plannedOn"
+        ],
+        "title": "WeeklyBriefPlanView",
+        "type": "object"
+      },
+      "WeeklyBriefView": {
+        "properties": {
+          "attention": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WeeklyBriefAttention"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "attentionDays": {
+            "title": "Attentiondays",
+            "type": "integer"
+          },
+          "elapsedDays": {
+            "description": "Days of the week up to the Space day, at most 7.",
+            "title": "Elapseddays",
+            "type": "integer"
+          },
+          "followUp": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WeeklyBriefPlanView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "goodDays": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Gooddays",
+            "type": "array"
+          },
+          "headline": {
+            "$ref": "#/components/schemas/WeeklyBriefHeadline"
+          },
+          "highlight": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WeeklyBriefMomentView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "jointDays": {
+            "description": "Days with values of both people visible to the caller.",
+            "title": "Jointdays",
+            "type": "integer"
+          },
+          "newObservations": {
+            "items": {
+              "$ref": "#/components/schemas/WeeklyObservationView"
+            },
+            "title": "Newobservations",
+            "type": "array"
+          },
+          "sharedDays": {
+            "description": "Days with a readable Plan or Memory.",
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Shareddays",
+            "type": "array"
+          },
+          "suggestedDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggesteddate"
+          },
+          "weekEnd": {
+            "format": "date",
+            "title": "Weekend",
+            "type": "string"
+          },
+          "weekStart": {
+            "format": "date",
+            "title": "Weekstart",
+            "type": "string"
+          },
+          "wishes": {
+            "items": {
+              "$ref": "#/components/schemas/WeeklyBriefWishView"
+            },
+            "title": "Wishes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "weekStart",
+          "weekEnd",
+          "elapsedDays",
+          "jointDays",
+          "headline",
+          "goodDays",
+          "sharedDays",
+          "attentionDays",
+          "wishes",
+          "newObservations"
+        ],
+        "title": "WeeklyBriefView",
+        "type": "object"
+      },
+      "WeeklyBriefWishView": {
+        "properties": {
+          "createdOn": {
+            "format": "date",
+            "title": "Createdon",
+            "type": "string"
+          },
+          "own": {
+            "title": "Own",
+            "type": "boolean"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "wishId": {
+            "format": "uuid",
+            "title": "Wishid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "wishId",
+          "title",
+          "own",
+          "createdOn"
+        ],
+        "title": "WeeklyBriefWishView",
+        "type": "object"
+      },
       "WeeklyFeedbackUpdate": {
         "additionalProperties": false,
         "properties": {
@@ -31603,6 +31862,99 @@
           }
         },
         "summary": "Update Daily Check In Today",
+        "tags": [
+          "daily-check-ins"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/daily-check-in/weekly-brief": {
+      "get": {
+        "description": "Rule-based weekly brief over mutually visible values and readable shared content.\n\nModel-free and deterministic (#2169). Plans, Memories and Wishes are read\nthrough the ordinary visibility rules; the brief stores nothing.",
+        "operationId": "getDailyCheckInWeeklyBrief",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "week_start",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Week Start",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyBriefView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: Pro capability `daily.insights` required."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Daily Check In Weekly Brief",
         "tags": [
           "daily-check-ins"
         ]

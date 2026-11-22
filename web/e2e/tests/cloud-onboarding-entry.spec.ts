@@ -4,6 +4,7 @@ import en from '../../src/i18n/locales/en.json' with { type: 'json' };
 import legal from '../../src/i18n/locales/legal';
 import { privacyPolicyDe } from '../../src/i18n/locales/legalDocuments/privacyPolicy.de.generated';
 import { termsOfUseDe } from '../../src/i18n/locales/legalDocuments/termsOfUse.de.generated';
+import snackbarDe from '../../src/i18n/locales/snackbar';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
@@ -663,6 +664,57 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
 
     // Accessibility check
     await expectNoWcagViolations(page);
+  });
+
+  test('a delivered mail link that cannot be used is reported on the sign-in screen (#2176)', async ({
+    page,
+  }, testInfo) => {
+    await routeCloudEntry(page);
+    await page.addInitScript(() => {
+      // Chromium exposes launchQueue itself, so a plain assignment is ignored.
+      Object.defineProperty(window, 'launchQueue', {
+        value: {
+          setConsumer(consumer: (params: { targetURL: string }) => void) {
+            Object.assign(window, { deliverLaunch: consumer });
+          },
+        },
+      });
+    });
+    await page.goto('/');
+    await expect(page.getByLabel(de.login.email)).toBeVisible();
+
+    // The link names another host than this deployment, as in the Android
+    // test.98 report where the build and the mail disagreed.
+    await page.evaluate(() =>
+      (
+        window as unknown as {
+          deliverLaunch: (params: { targetURL: string }) => void;
+        }
+      ).deliverLaunch({
+        targetURL: 'https://other-host.invalid/auth/signup#token=secret-proof',
+      }),
+    );
+
+    const snackbar = page.locator('.snackbar');
+    await expect(snackbar).toContainText(
+      snackbarDe.snackbar.identityLinkUnusable,
+    );
+    await expect(snackbar).not.toContainText('secret-proof');
+    await expect(snackbar).not.toContainText('other-host');
+    await expect(page.getByLabel(de.login.email)).toBeVisible();
+    for (const scheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const width of [360, 390, 430]) {
+        await page.setViewportSize({ width, height: 844 });
+        await page.screenshot({
+          path: testInfo.outputPath(`link-unusable-${scheme}-${width}.png`),
+        });
+      }
+    }
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.screenshot({
+      path: testInfo.outputPath('link-unusable-expanded.png'),
+    });
   });
 
   test('a requested link can be sent again or restarted with another address (#2176)', async ({

@@ -65,6 +65,9 @@ PY
 
 echo "Running the Pro tests from the copy"
 cd "$work/pro"
+# The demo assets are Core runtime data outside the wheel: the Core image ships
+# them next to the application, which finds them relative to its working directory.
+cp -R "$repo/backend/demo_assets" demo_assets
 # The pytest settings an extracted Pro repository carries itself (the Core
 # settings live in backend/pyproject.toml and point at the Core source tree).
 cat >pytest.ini <<'INI'

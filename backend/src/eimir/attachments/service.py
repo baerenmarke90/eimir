@@ -535,6 +535,17 @@ def delete_attachment(
             "The resource was changed since it was loaded.",
             ErrorCode.RESOURCE_VERSION_CONFLICT,
         )
+    from eimir.attachments import binding
+
+    # A Heart Moment owns its photos: removing one goes through editing the
+    # Heart Moment. Marking a still-used attachment would leave a row the cleanup
+    # can never purge and a Heart Moment pointing at an invisible photo.
+    binding.lock_for_binding(session, [attachment.id])
+    if binding.used_by_heart_moment(session, attachment.id):
+        raise ConflictError(
+            "The attachment is still in use.",
+            ErrorCode.ATTACHMENT_IN_USE,
+        )
     mark_for_deletion(session, attachment)
     _flush(session)
 

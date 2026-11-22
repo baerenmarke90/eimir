@@ -1,0 +1,288 @@
+#!/usr/bin/env python3
+"""Start isolated runners on eimir-dev when GitHub has a job for a configured label.
+
+Install as /usr/local/sbin/eimir-actions-dispatch (root:root, 0755) with
+tools/runner/install-host.sh. The host-only unit eimir-actions-dispatch.service
+runs it with /etc/eimir-actions/dispatch.env and the GitHub App key as the
+`github-app-key` systemd credential.
+
+Up to two guests run at the same time, one per launcher slot (#2115). Job
+selection and the run identity each guest admits are unchanged from the
+single-guest dispatcher.
+"""
+
+import base64
+from datetime import datetime
+import json
+import os
+from pathlib import Path
+import subprocess
+import threading
+import time
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
+from uuid import uuid4
+
+
+API_ROOT = "https://api.github.com"
+REPOSITORY = "baerenmarke90/eimir"
+REPOSITORY_API = f"/repos/{REPOSITORY}"
+GUEST_LAUNCHER = "/usr/local/sbin/eimir-actions-guest-probe"
+GUEST_IMAGE = "/var/lib/eimir-actions-vm/noble-amd64.qcow2"
+GUEST_SLOTS = (1, 2)
+POLL_SECONDS = 20
+LAUNCH_COOLDOWN_SECONDS = 180
+PR_CI_WORKFLOW = ".github/workflows/ci.yml"
+CAPABILITY_PROBE = "ci/eimir-runner-capability-probe"
+NIGHTLY_LABEL = "eimir-kvm-nightly"
+RELEASE_WORKFLOW = ".github/workflows/release-publish.yml"
+TEST_CHANNEL_JOBS = {
+    "Check completed main",
+    "Private test channel contract",
+    "Build and attest test runtime pair / Build artifacts and SPDX SBOMs",
+    "Build and attest test runtime pair / Attest exact artifact bytes",
+    "Publish images and promote one Git Sync commit",
+}
+NIGHTLY_WORKFLOWS = {
+    PR_CI_WORKFLOW,
+    ".github/workflows/backend-encrypted.yml",
+    ".github/workflows/codeql.yml",
+    ".github/workflows/media-video.yml",
+    ".github/workflows/runner-capability-check.yml",
+    ".github/workflows/self-hosted-deployment-guard.yml",
+    ".github/workflows/self-hosted-recovery.yml",
+    ".github/workflows/web-browser-qa.yml",
+}
+
+
+def api(path, token, *, method="GET", payload=None):
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {token}",
+        "X-GitHub-Api-Version": "2026-03-10",
+        "User-Agent": "eimir-actions-dispatch",
+    }
+    body = None
+    if payload is not None:
+        headers["Content-Type"] = "application/json"
+        body = json.dumps(payload).encode()
+    request = Request(f"{API_ROOT}{path}", data=body, headers=headers, method=method)
+    with urlopen(request, timeout=20) as response:
+        return None if response.status == 204 else json.load(response)
+
+
+def b64url(value):
+    return base64.urlsafe_b64encode(value).rstrip(b"=")
+
+
+def app_jwt(app_id, key):
+    now = int(time.time())
+    header = b64url(b'{"alg":"RS256","typ":"JWT"}')
+    claims = b64url(json.dumps({"iat": now - 30, "exp": now + 480, "iss": app_id}).encode())
+    message = header + b"." + claims
+    signature = subprocess.run(
+        ["/usr/bin/openssl", "dgst", "-sha256", "-sign", str(key)],
+        input=message, stdout=subprocess.PIPE, check=True, timeout=10,
+    ).stdout
+    return (message + b"." + b64url(signature)).decode()
+
+
+class InstallationToken:
+    """Share one GitHub App installation token between the poller and guest threads."""
+
+    def __init__(self, app_id, installation_id, key):
+        self._app_id = app_id
+        self._installation_id = installation_id
+        self._key = key
+        self._lock = threading.Lock()
+        self._token = None
+        self._expires_at = 0.0
+
+    def get(self):
+        with self._lock:
+            if time.time() + 1500 >= self._expires_at:
+                installation = api(
+                    f"/app/installations/{self._installation_id}/access_tokens",
+                    app_jwt(self._app_id, self._key),
+                    method="POST", payload={"repositories": ["eimir"]},
+                )
+                self._token = installation["token"]
+                self._expires_at = datetime.fromisoformat(installation["expires_at"]).timestamp()
+            return self._token
+
+
+def queued_job(token, label, workflows, blocked, pr_label, probe_sha, nightly_sha, enable_main, enable_test_channel):
+    for status in ("queued", "in_progress"):
+        runs = api(f"{REPOSITORY_API}/actions/runs?status={status}&per_page=100", token)
+        for run in reversed(runs["workflow_runs"]):
+            path = run["path"].split("@", 1)[0]
+            same_repo = (run.get("head_repository") or {}).get("full_name") == REPOSITORY
+            branch = run["head_branch"]
+            sha = run["head_sha"]
+            manual = same_repo and run["event"] == "workflow_dispatch"
+            pr_scan = (pr_label and path == PR_CI_WORKFLOW and same_repo and run["event"] == "pull_request")
+            probe = manual and path == PR_CI_WORKFLOW and branch == CAPABILITY_PROBE and sha == probe_sha
+            nightly = manual and path in NIGHTLY_WORKFLOWS and (
+                (branch == "main" and enable_main)
+                or (branch == "ci/eimir-nightly-self-hosted" and sha == nightly_sha)
+            )
+            test_channel = (enable_test_channel and same_repo and run["event"] == "push"
+                            and branch == "main" and path == RELEASE_WORKFLOW)
+            if not (pr_scan or probe or nightly or test_channel or (manual and path in workflows)):
+                continue
+            provision = probe or nightly or test_channel
+            job_label = NIGHTLY_LABEL if provision else (pr_label if pr_scan else label)
+            if not job_label:
+                continue
+            run_id = int(run["id"])
+            run_attempt = int(run["run_attempt"])
+            affinity = f"eimir-run-{run_id}-{run_attempt}"
+            required_labels = {job_label, affinity} if provision else {job_label}
+            jobs = api(f"{REPOSITORY_API}/actions/runs/{run_id}/jobs?per_page=100", token)
+            for job in jobs["jobs"]:
+                if pr_scan and job["name"] != "Secret Scan":
+                    continue
+                if test_channel and job["name"] not in TEST_CHANNEL_JOBS:
+                    continue
+                if job["status"] == "queued" and required_labels.issubset(job["labels"]) and job["id"] not in blocked:
+                    identity = {
+                        "GITHUB_REPOSITORY": REPOSITORY,
+                        "GITHUB_EVENT_NAME": run["event"],
+                    }
+                    if pr_scan:
+                        identity["GITHUB_JOB"] = "secrets"
+                    else:
+                        identity.update({
+                            "GITHUB_RUN_ID": str(run_id),
+                            "GITHUB_RUN_ATTEMPT": str(run_attempt),
+                            "GITHUB_SHA": sha,
+                            "GITHUB_WORKFLOW_REF": f"{REPOSITORY}/{path}@refs/heads/{branch}",
+                        })
+                    return job["id"], sorted(required_labels), identity, bool(provision)
+    return None
+
+
+def run_guest(tokens, labels, job_id, identity, provision, slot):
+    registration = api(
+        f"{REPOSITORY_API}/actions/runners/generate-jitconfig",
+        tokens.get(),
+        method="POST",
+        payload={
+            "name": f"eimir-dev-kvm-{uuid4().hex[:12]}",
+            "runner_group_id": 1,
+            "labels": ["self-hosted", "Linux", "X64", *labels],
+            "work_folder": "_work",
+        },
+    )
+    runner_id = int(registration["runner"]["id"])
+    print(f"Starting a fresh runner in slot {slot} for queued GitHub job {job_id} (runner {runner_id}).", flush=True)
+    try:
+        subprocess.run(
+            [GUEST_LAUNCHER, "jit-nightly" if provision else "jit", GUEST_IMAGE, str(slot)],
+            input=registration["encoded_jit_config"] + "\n" + json.dumps(identity) + "\n",
+            text=True,
+            env={"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8"},
+            check=True,
+        )
+    finally:
+        try:
+            # A fresh token: guest jobs can outlast the token used for registration.
+            api(f"{REPOSITORY_API}/actions/runners/{runner_id}", tokens.get(), method="DELETE")
+        except HTTPError as error:
+            if error.code != 404:
+                print(f"Runner cleanup returned HTTP {error.code} for {runner_id}.", flush=True)
+        except (OSError, URLError, ValueError, KeyError) as error:
+            print(f"Runner cleanup failed for {runner_id} ({type(error).__name__}).", flush=True)
+
+
+class Dispatcher:
+    """Assign queued jobs to free guest slots, one guest thread per slot."""
+
+    def __init__(self, tokens, select, launch=run_guest, slots=GUEST_SLOTS, clock=time.monotonic):
+        self._tokens = tokens
+        self._select = select
+        self._launch = launch
+        self._slots = tuple(slots)
+        self._clock = clock
+        self._lock = threading.Lock()
+        self._active = {}  # job ID -> slot
+        self._failed_until = {}  # job ID -> monotonic deadline
+        self._threads = []
+
+    def free_slots(self):
+        with self._lock:
+            busy = set(self._active.values())
+            return [slot for slot in self._slots if slot not in busy]
+
+    def poll_once(self):
+        """Start at most one guest. Return (job ID, slot) or None."""
+        free = self.free_slots()
+        if not free:
+            return None
+        with self._lock:
+            now = self._clock()
+            for job_id in [job for job, until in self._failed_until.items() if until <= now]:
+                del self._failed_until[job_id]
+            # A job that already has a starting or running guest must not get a second one.
+            blocked = set(self._failed_until) | set(self._active)
+        job = self._select(self._tokens.get(), blocked)
+        if job is None:
+            return None
+        job_id = job[0]
+        slot = free[0]
+        with self._lock:
+            self._active[job_id] = slot
+        thread = threading.Thread(target=self._serve, args=(job, slot), name=f"guest-slot-{slot}", daemon=True)
+        self._threads = [alive for alive in self._threads if alive.is_alive()] + [thread]
+        thread.start()
+        return job_id, slot
+
+    def _serve(self, job, slot):
+        job_id, labels, identity, provision = job
+        try:
+            self._launch(self._tokens, labels, job_id, identity, provision, slot)
+        except Exception as error:  # noqa: BLE001 - a failed guest must always release its slot.
+            with self._lock:
+                self._failed_until[job_id] = self._clock() + LAUNCH_COOLDOWN_SECONDS
+            print(f"Runner launch failed for job {job_id} in slot {slot} ({type(error).__name__}). "
+                  "Retrying after a cooldown.", flush=True)
+        finally:
+            with self._lock:
+                self._active.pop(job_id, None)
+
+    def join(self, timeout=None):
+        for thread in list(self._threads):
+            thread.join(timeout)
+
+
+def main():
+    app_id = str(int(os.environ["GITHUB_APP_ID"]))
+    installation_id = int(os.environ["GITHUB_INSTALLATION_ID"])
+    key = Path(os.environ["CREDENTIALS_DIRECTORY"]) / "github-app-key"
+    label = os.environ["EIMIR_RUNNER_LABEL"]
+    workflows = set(os.environ["EIMIR_RUNNER_WORKFLOWS"].split(","))
+    pr_label = os.environ.get("EIMIR_PR_RUNNER_LABEL")
+    probe_sha = os.environ.get("EIMIR_CAPABILITY_PROBE_SHA")
+    nightly_sha = os.environ.get("EIMIR_NIGHTLY_VALIDATION_SHA")
+    enable_main = os.environ.get("EIMIR_NIGHTLY_MAIN_ENABLED") == "true"
+    enable_test_channel = os.environ.get("EIMIR_TEST_CHANNEL_MAIN_ENABLED") == "true"
+
+    def select(token, blocked):
+        return queued_job(token, label, workflows, blocked, pr_label, probe_sha, nightly_sha,
+                          enable_main, enable_test_channel)
+
+    dispatcher = Dispatcher(InstallationToken(app_id, installation_id, key), select)
+    while True:
+        try:
+            # Fill a second free slot in the same cycle when two jobs are queued.
+            while dispatcher.poll_once() is not None:
+                pass
+            time.sleep(POLL_SECONDS)
+        except (OSError, URLError, subprocess.SubprocessError, ValueError, KeyError) as error:
+            status = f"HTTP {error.code}" if isinstance(error, HTTPError) else type(error).__name__
+            print(f"Dispatcher unavailable ({status}). Retrying in 60 seconds.", flush=True)
+            time.sleep(60)
+
+
+if __name__ == "__main__":
+    main()

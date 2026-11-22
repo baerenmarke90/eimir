@@ -5,12 +5,17 @@ set -euo pipefail
 # Install as /usr/local/sbin/eimir-actions-guest-probe (root:root, 0755).
 #   image        bake the reusable runner image from the verified Ubuntu Noble image
 #   jit-nightly  run one dispatched nightly or test-channel job, from the runner image when present
-if [[ $EUID != 0 || $(hostname -s) != eimir-dev || $# != 2 || ! $1 =~ ^(network|containers|runner|jit|jit-nightly|image)$ ]]; then
-    printf 'Run as root on eimir-dev: %s network|containers|runner|jit|jit-nightly|image <verified Ubuntu Noble image>\n' "$0" >&2
+# The optional third argument selects guest slot 1 (default) or 2. Two guests
+# can run side by side, one per slot. Each slot owns a system account, a lock,
+# a transient unit, a firewall table and a toolcache disk.
+if [[ $EUID != 0 || $(hostname -s) != eimir-dev || $# -lt 2 || $# -gt 3 ||
+      ! $1 =~ ^(network|containers|runner|jit|jit-nightly|image)$ || ! ${3:-1} =~ ^[12]$ ]]; then
+    printf 'Run as root on eimir-dev: %s network|containers|runner|jit|jit-nightly|image <verified Ubuntu Noble image> [1|2]\n' "$0" >&2
     exit 1
 fi
 
 mode=$1
+slot=${3:-1}
 memory_mib=2048
 cpus=2
 disk_size=16G
@@ -19,12 +24,15 @@ registration_wait=360
 tasks_max=64
 guest_disk_cache=writeback
 account=eimir-actions-vm
+if [[ $slot != 1 ]]; then
+    account=eimir-actions-vm$slot
+fi
 state=/var/lib/eimir-actions-vm
 base=$state/noble-amd64.qcow2
 runner_image=$state/noble-eimir-runner.qcow2
 firmware=/usr/share/OVMF
-table=eimir_actions_probe
-unit=eimir-actions-network-probe.service
+table=eimir_actions_slot$slot
+unit=eimir-actions-network-probe-slot$slot.service
 
 test -c /dev/kvm
 test -r "$firmware/OVMF_CODE_4M.fd"
@@ -35,9 +43,15 @@ if [[ $mode == runner || $mode == jit* ]]; then
     runtime_seconds=1200
 fi
 if [[ $mode == jit-nightly ]]; then
-    cpus=4
+    # Two nightly guests share the six host vCPUs. Their peak RAM reached
+    # 2.51 GiB of the 2.9 GiB a 3072 MiB guest sees; two 3584 MiB guests still
+    # pass the start check below on the 9.7 GiB host.
+    memory_mib=3584
+    cpus=3
     disk_size=48G
-    runtime_seconds=3900
+    # The longest nightly job limit (Browser full regression, 80 min) plus
+    # 15 min for boot, provisioning and runner registration.
+    runtime_seconds=5700
     registration_wait=900
     tasks_max=256
 fi
@@ -54,12 +68,20 @@ if ! id "$account" >/dev/null 2>&1; then
 fi
 [[ $(id -Gn "$account") == "$account" ]]
 install -d -m 0755 "$state"
-exec 9>"$state/probe.lock"
+# Guests share the launcher lock; an image build needs it exclusively, so it
+# only starts while both slots are idle and no guest starts during the build.
+exec 8>"$state/launcher.lock"
+if [[ $mode == image ]]; then
+    flock -n -x 8
+else
+    flock -n -s 8
+fi
+exec 9>"$state/slot$slot.lock"
 flock -n 9
 [[ $(systemctl show "$unit" -p ActiveState --value) == inactive ]]
 if [[ ! -f $base ]]; then
-    install -m 0444 -- "$2" "$state/.noble-amd64.qcow2"
-    mv -T -- "$state/.noble-amd64.qcow2" "$base"
+    install -m 0444 -- "$2" "$state/.noble-amd64.qcow2.$slot"
+    mv -T -- "$state/.noble-amd64.qcow2.$slot" "$base"
 fi
 # Nightly and test-channel guests start from the prepared runner image. Without
 # it they fall back to provisioning the plain Noble image during boot.
@@ -68,7 +90,7 @@ if [[ $mode == jit-nightly && -f $runner_image ]]; then
     backing=$runner_image
 fi
 
-job=$(mktemp -d "$state/probe.XXXXXX")
+job=$(mktemp -d "$state/slot$slot.XXXXXX")
 firewall_loaded=false
 cleanup() {
     if "$firewall_loaded"; then
@@ -240,16 +262,45 @@ write_files:
           if [[ $1 == jit-nightly ]]; then
               runuser -u actions-runner -- ./run.sh --jitconfig "$token" &
               runner_pid=$!
+              # With two slots, a runner started for one queued job of a run can
+              # find that another runner already took the run's last job. Stop
+              # it after 15 minutes without a job instead of holding the slot.
+              (
+                  for _ in $(seq 90); do
+                      sleep 10
+                      if pgrep -x Runner.Worker >/dev/null; then exit 0; fi
+                  done
+                  touch /run/eimir-runner-idle
+                  echo 'EIMIR_ACTIONS_PROBE runner_idle_timeout'
+                  pkill -TERM -x Runner.Listener || true
+              ) &
+              idle_pid=$!
               python3 -u - "$runner_pid" <<'PY' &
       import os
       from pathlib import Path
       import sys
       import time
 
+
+      def cpu_ticks():
+          fields = [int(value) for value in Path('/proc/stat').read_text().split('\n', 1)[0].split()[1:]]
+          return sum(fields[:8]), fields[7]
+
+
+      def stall_seconds(resource):
+          # Pressure stall totals in microseconds since boot, as {'some': s, 'full': s}.
+          try:
+              lines = Path(f'/proc/pressure/{resource}').read_text().splitlines()
+          except OSError:
+              return {}
+          return {line.split()[0]: int(line.rsplit('total=', 1)[1]) / 1e6 for line in lines}
+
+
       runner = Path('/proc') / sys.argv[1]
       peak_ram = peak_disk = 0
       disk = os.statvfs('/')
       total_disk = disk.f_blocks * disk.f_frsize
+      start_total, start_steal = cpu_ticks()
       while runner.exists():
           memory = dict(line.split(':', 1) for line in Path('/proc/meminfo').read_text().splitlines())
           memory_used = int(memory['MemTotal'].split()[0]) - int(memory['MemAvailable'].split()[0])
@@ -257,13 +308,25 @@ write_files:
           disk = os.statvfs('/')
           peak_disk = max(peak_disk, (disk.f_blocks - disk.f_bfree) * disk.f_frsize)
           time.sleep(2)
+      end_total, end_steal = cpu_ticks()
+      steal = 100 * (end_steal - start_steal) / max(1, end_total - start_total)
+      memory_stall = stall_seconds('memory')
+      cpu_stall = stall_seconds('cpu')
       print(f'EIMIR_ACTIONS_PROBE job_resources guest_peak_ram_bytes={peak_ram} '
-            f'guest_peak_disk_bytes={peak_disk} guest_disk_capacity_bytes={total_disk}', flush=True)
+            f'guest_peak_disk_bytes={peak_disk} guest_disk_capacity_bytes={total_disk} '
+            f'guest_cpu_steal_percent={steal:.1f} '
+            f'guest_memory_stall_some_seconds={memory_stall.get("some", -1):.0f} '
+            f'guest_memory_stall_full_seconds={memory_stall.get("full", -1):.0f} '
+            f'guest_cpu_stall_some_seconds={cpu_stall.get("some", -1):.0f}', flush=True)
       PY
               meter_pid=$!
               result=0
               wait "$runner_pid" || result=$?
+              kill "$idle_pid" 2>/dev/null || true
               wait "$meter_pid"
+              if [[ -e /run/eimir-runner-idle ]]; then
+                  result=0
+              fi
               if (( result != 0 )); then exit "$result"; fi
           else
               runuser -u actions-runner -- ./run.sh --jitconfig "$token"
@@ -328,7 +391,8 @@ fi
 toolcache_drive=()
 toolcache_mount=()
 if [[ $mode == jit-nightly ]]; then
-    toolcache=$state/nightly-toolcache.ext4
+    # Two running guests cannot share one writable disk, so each slot has its own.
+    toolcache=$state/nightly-toolcache-slot$slot.ext4
     if [[ ! -f $toolcache ]]; then
         truncate -s 20G "$job/toolcache.ext4"
         /usr/sbin/mkfs.ext4 -q -F -m 0 "$job/toolcache.ext4"
@@ -460,7 +524,7 @@ for result in "${expected[@]}"; do
     fi
 done
 if [[ $mode == jit-nightly ]]; then
-    grep -F 'EIMIR_ACTIONS_PROBE job_resources ' "$job/boot.log" || true
+    grep -E 'EIMIR_ACTIONS_PROBE (job_resources|runner_idle_timeout)' "$job/boot.log" || true
 fi
 if [[ $mode == image ]]; then
     # Flatten the prepared guest into a standalone, read-only runner image and

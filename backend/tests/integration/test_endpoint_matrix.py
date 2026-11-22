@@ -447,6 +447,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         query={"week_start": "2026-10-26"},
     ),
     Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-brief",
+        query={"week_start": "2026-10-26"},
+    ),
+    Endpoint(
         "POST",
         "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review",
         body={"weekStart": "2026-10-26", "evidenceToken": "a" * 64},

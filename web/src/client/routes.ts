@@ -518,5 +518,6 @@ export function sharedNoteEditPath(noteId: string): string {
  * people move between week, patterns and recap.
  */
 export const MORE_INSIGHTS_ROUTE = '/more/insights';
+export const MORE_INSIGHTS_WEEK_ROUTE = `${MORE_INSIGHTS_ROUTE}/week`;
 export const MORE_INSIGHTS_PATTERNS_ROUTE = `${MORE_INSIGHTS_ROUTE}/patterns`;
 export const MORE_INSIGHTS_RECAP_ROUTE = `${MORE_INSIGHTS_ROUTE}/recap`;

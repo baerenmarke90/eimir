@@ -17,6 +17,7 @@ import type { AccountView } from '../api/generated/models/AccountView';
 import type { DailyCheckInInsightDayView } from '../api/generated/models/DailyCheckInInsightDayView';
 import type { DailyCheckInInsightsView } from '../api/generated/models/DailyCheckInInsightsView';
 import { DailyVibe } from '../api/generated/models/DailyVibe';
+import type { WeeklyBriefView } from '../api/generated/models/WeeklyBriefView';
 import { ClientProblemError } from '../client/problemDetails';
 import dailyInsights from '../i18n/locales/dailyInsights';
 import {
@@ -110,6 +111,58 @@ interface Harness {
   entitlement: ReturnType<typeof vi.fn>;
   insights: ReturnType<typeof vi.fn>;
   dashboard: ReturnType<typeof vi.fn>;
+  weeklyBrief: ReturnType<typeof vi.fn>;
+}
+
+function briefView(extra: Partial<WeeklyBriefView> = {}): WeeklyBriefView {
+  return {
+    weekStart: new Date('2026-09-21'),
+    weekEnd: new Date('2026-09-27'),
+    elapsedDays: 3,
+    jointDays: 3,
+    headline: 'SHARED_GOOD_DAYS',
+    // The generated client delivers date array items as strings at runtime.
+    goodDays: ['2026-09-21', '2026-09-23'] as unknown as Date[],
+    sharedDays: ['2026-09-21', '2026-09-23'] as unknown as Date[],
+    highlight: {
+      memoryId: 'memory-1',
+      title: 'Rheinufer',
+      happenedOn: new Date('2026-09-23'),
+      photoCount: 4,
+    },
+    attention: 'PARTNER_CLOSENESS',
+    attentionDays: 2,
+    wishes: [
+      {
+        wishId: 'wish-1',
+        title: 'Fondue-Abend',
+        own: false,
+        createdOn: new Date('2026-08-10'),
+      },
+      {
+        wishId: 'wish-2',
+        title: 'Museum',
+        own: true,
+        createdOn: new Date('2026-09-01'),
+      },
+    ],
+    suggestedDate: new Date('2026-10-02'),
+    followUp: {
+      planId: 'plan-1',
+      title: 'Kochabend',
+      concealed: false,
+      plannedOn: new Date('2026-09-17'),
+    },
+    newObservations: [
+      {
+        key: 'weekday_lower',
+        kind: 'WEEKDAY_LOWER',
+        sampleCount: 20,
+        weekday: 1,
+      },
+    ],
+    ...extra,
+  };
 }
 
 function renderPage({
@@ -119,6 +172,7 @@ function renderPage({
   data = FULL_WEEK,
   flags,
   insightsImpl,
+  brief = briefView(),
   accountId = 'account-lea',
   spaceId = 'space-1',
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
@@ -133,6 +187,7 @@ function renderPage({
     startDate?: Date | null;
     endDate?: Date | null;
   }) => Promise<DailyCheckInInsightsView>;
+  brief?: WeeklyBriefView | (() => Promise<WeeklyBriefView>);
   accountId?: string;
   spaceId?: string;
   client?: QueryClient;
@@ -156,6 +211,9 @@ function renderPage({
           ? buildView(iso(request.startDate), iso(request.endDate), data, flags)
           : buildView('2026-09-17', TODAY, data, flags)),
   );
+  const weeklyBrief = vi.fn(async () =>
+    typeof brief === 'function' ? brief() : brief,
+  );
   const dashboard = vi.fn(async () => ({
     space: {
       partner: { id: 'account-philipp', displayName: 'Philipp Beispiel' },
@@ -166,6 +224,7 @@ function renderPage({
   } as unknown as EntitlementsApi;
   const dailyCheckInsApi = {
     getDailyCheckInInsights: insights,
+    getDailyCheckInWeeklyBrief: weeklyBrief,
   } as unknown as DailyCheckInsApi;
   const dashboardApi = { getDashboard: dashboard } as unknown as DashboardApi;
   const element = (ids: { accountId: string; spaceId: string }) => (
@@ -190,6 +249,7 @@ function renderPage({
     entitlement,
     insights,
     dashboard,
+    weeklyBrief,
     rerenderWith: (next) =>
       utils.rerender(
         element({
@@ -522,7 +582,7 @@ describe('Pro insights: navigation between weeks and accounts', () => {
 });
 
 describe('Pro insights: views', () => {
-  it('offers two views and shows the derived highlights in the week', async () => {
+  it('offers three views and shows the derived highlights in the week', async () => {
     renderPage();
     const recap = await screen.findByRole('region', {
       name: dailyInsights.week.summary,
@@ -534,7 +594,11 @@ describe('Pro insights: views', () => {
       within(nav)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual([dailyInsights.nav.week, dailyInsights.nav.patterns]);
+    ).toEqual([
+      dailyInsights.nav.brief,
+      dailyInsights.nav.week,
+      dailyInsights.nav.patterns,
+    ]);
     expect(
       within(recap).getByText(dailyInsights.recap.highlightBothGood),
     ).toBeTruthy();
@@ -567,7 +631,7 @@ describe('Pro insights: views', () => {
   });
 
   it('never uses scoring, judging or causal wording anywhere on the pages', async () => {
-    for (const view of ['week', 'patterns'] as const) {
+    for (const view of ['brief', 'week', 'patterns'] as const) {
       renderPage({ view });
       await screen.findByRole('heading', { level: 1 });
       await waitFor(() =>
@@ -576,5 +640,120 @@ describe('Pro insights: views', () => {
       expect(document.body.textContent).not.toMatch(JUDGING_WORDING);
       cleanup();
     }
+  });
+});
+
+describe('Pro insights: weekly brief (#2169)', () => {
+  const brief = dailyInsights.brief;
+
+  it('reads as one flow from good days through attention to one impulse', async () => {
+    const { weeklyBrief } = renderPage({ view: 'brief' });
+    expect(
+      await screen.findByRole('heading', {
+        level: 2,
+        name: brief.headline.SHARED_GOOD_DAYS.title,
+      }),
+    ).toBeTruthy();
+    expect(weeklyBrief).toHaveBeenCalledWith(
+      { spaceId: 'space-1', weekStart: new Date('2026-09-21') },
+      expect.anything(),
+    );
+    expect(
+      screen.getByText(
+        brief.headline.SHARED_GOOD_DAYS.body.replace(
+          '{{days}}',
+          new Intl.ListFormat('de', {
+            style: 'long',
+            type: 'conjunction',
+          }).format(['Montag', 'Mittwoch']),
+        ),
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        brief.coverage.replace('{{count}}', '3').replace('{{total}}', '3'),
+      ),
+    ).toBeTruthy();
+    const moment = screen.getByRole('link', { name: /Rheinufer/ });
+    expect(moment.getAttribute('href')).toBe('/story/memories/memory-1');
+    expect(
+      screen.getByText(
+        'An 2 Tagen wünschte sich Philipp Nähe, während du eher Ruhe wolltest.',
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText(brief.attention.prompt)).toBeTruthy();
+    expect(screen.getByText('Fondue-Abend')).toBeTruthy();
+    expect(
+      screen.getByText(new RegExp(`^${dailyInsights.weekdayAdverb[4]} `)),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: brief.impulse.plan }),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: brief.impulse.next }));
+    expect(screen.getByText('Museum')).toBeTruthy();
+    expect(screen.getByText(/Kochabend/)).toBeTruthy();
+    expect(
+      screen
+        .getByRole('link', { name: brief.followUp.open })
+        .getAttribute('href'),
+    ).toBe('/plan/plans/plan-1');
+    expect(screen.getByText(brief.newPatterns.title)).toBeTruthy();
+  });
+
+  it('discloses the calculation basis only on request', async () => {
+    renderPage({ view: 'brief' });
+    const toggle = await screen.findByRole('button', {
+      name: brief.basisToggle,
+    });
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getByText(brief.basis).hidden).toBe(true);
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByText(brief.basis).hidden).toBe(false);
+  });
+
+  it('omits unsupported sections and offers a wish when none is open', async () => {
+    renderPage({
+      view: 'brief',
+      brief: briefView({
+        headline: 'SPARSE',
+        jointDays: 1,
+        goodDays: [],
+        sharedDays: [],
+        highlight: null,
+        attention: null,
+        attentionDays: 0,
+        wishes: [],
+        suggestedDate: null,
+        followUp: null,
+        newObservations: [],
+      }),
+    });
+    expect(
+      await screen.findByRole('heading', {
+        name: brief.headline.SPARSE.title,
+      }),
+    ).toBeTruthy();
+    expect(screen.queryByText(brief.attention.title)).toBeNull();
+    expect(screen.queryByText(brief.newPatterns.title)).toBeNull();
+    expect(screen.queryByText(brief.followUp.title)).toBeNull();
+    expect(
+      screen
+        .getByRole('link', { name: brief.impulse.addWish })
+        .getAttribute('href'),
+    ).toBe('/plan/wishes/new');
+    expect(document.body.textContent).not.toMatch(HIDDEN_STATE_WORDING);
+  });
+
+  it('shows a retryable problem when the brief cannot be read', async () => {
+    renderPage({
+      view: 'brief',
+      brief: async () => {
+        throw new ClientProblemError('server', 503);
+      },
+    });
+    expect(
+      await screen.findByRole('button', { name: de.common.retry }),
+    ).toBeTruthy();
   });
 });

@@ -67,6 +67,7 @@ async function installMocks(
     insights: 0,
     entitlements: 0,
     weeklyReads: 0,
+    briefReads: 0,
     inference: 0,
     revision: 'a'.repeat(64),
     denied: false,
@@ -91,6 +92,53 @@ async function installMocks(
         body: JSON.stringify(body),
       });
     const space = `/api/v1/spaces/${SPACE_ID}`;
+    if (pathname === `${space}/daily-check-in/weekly-brief`) {
+      requests.briefReads += 1;
+      const monday = url.searchParams.get('week_start') ?? '2026-09-21';
+      const current = monday === '2026-09-21';
+      await json({
+        weekStart: monday,
+        weekEnd: current ? '2026-09-27' : '2026-09-20',
+        elapsedDays: current ? 3 : 7,
+        jointDays: current ? 3 : 6,
+        headline: 'SHARED_GOOD_DAYS',
+        goodDays: current ? ['2026-09-21', '2026-09-23'] : ['2026-09-17'],
+        sharedDays: current ? ['2026-09-21', '2026-09-23'] : ['2026-09-17'],
+        highlight: {
+          memoryId: '00000000-0000-0000-0000-000000000501',
+          title: 'Rheinufer',
+          happenedOn: current ? '2026-09-23' : '2026-09-17',
+          photoCount: 0,
+        },
+        attention: 'PARTNER_CLOSENESS',
+        attentionDays: 2,
+        wishes: [
+          {
+            wishId: '00000000-0000-0000-0000-000000000601',
+            title: 'Fondue-Abend',
+            own: false,
+            createdOn: '2026-08-10',
+          },
+          {
+            wishId: '00000000-0000-0000-0000-000000000602',
+            title: 'Museum',
+            own: true,
+            createdOn: '2026-09-01',
+          },
+        ],
+        suggestedDate: '2026-10-02',
+        followUp: {
+          planId: '00000000-0000-0000-0000-000000000701',
+          title: 'Kochabend',
+          concealed: false,
+          plannedOn: '2026-09-17',
+        },
+        newObservations: [
+          { key: 'weekend_higher', kind: 'WEEKEND_HIGHER', sampleCount: 42 },
+        ],
+      });
+      return;
+    }
     if (pathname === `${space}/daily-check-in/weekly-review`) {
       if (requests.denied) {
         await json(
@@ -447,6 +495,15 @@ async function openInsightsFromMore(
   ).toBeVisible();
 }
 
+/** The weekly brief is the landing view; the charts live in the week tab. */
+async function openWeekTab(page: Page) {
+  await page
+    .getByRole('navigation', { name: dailyInsights.nav.label })
+    .getByRole('link', { name: dailyInsights.nav.week, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/more\/insights\/week(\?.*)?$/);
+}
+
 /** Loads the previous week so charts, statements and highlights have data. */
 async function goToPreviousWeek(page: Page) {
   await page
@@ -464,12 +521,30 @@ async function visitViews(
   label: string,
 ) {
   await openInsightsFromMore(page, testInfo, label);
+  await expect(
+    page.getByRole('heading', {
+      level: 2,
+      name: dailyInsights.brief.headline.SHARED_GOOD_DAYS.title,
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole('link', { name: /Rheinufer/ })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: dailyInsights.brief.impulse.plan }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.screenshot({
+    path: testInfo.outputPath(`insights-brief-${label}.png`),
+    fullPage: true,
+  });
+
+  await openWeekTab(page);
   await goToPreviousWeek(page);
   await expect(
     page
       .getByRole('navigation', { name: dailyInsights.nav.label })
       .getByRole('link'),
-  ).toHaveCount(2);
+  ).toHaveCount(3);
   const dates = page.getByRole('group', { name: dailyInsights.chart.dayGroup });
   await expect(dates.getByRole('button')).toHaveCount(7);
   await dates.getByRole('button', { name: /^Donnerstag/ }).click();
@@ -500,11 +575,13 @@ async function visitViews(
     fullPage: true,
   });
 
-  await page.getByRole('link', { name: dailyInsights.nav.week }).click();
-  await expect(page).toHaveURL(/week=2026-09-14$/);
+  await page
+    .getByRole('link', { name: dailyInsights.nav.week, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/more\/insights\/week\?week=2026-09-14$/);
   await page.goto('/more/insights/recap?week=2026-09-14');
   await expect(page).toHaveURL(
-    /\/more\/insights\?week=2026-09-14#wochenrueckblick$/,
+    /\/more\/insights\/week\?week=2026-09-14#wochenrueckblick$/,
   );
   await expect(
     page.getByRole('region', { name: dailyInsights.week.summary }),
@@ -608,6 +685,7 @@ for (const state of [
     });
     await signIn(page);
     await openInsightsFromMore(page);
+    await openWeekTab(page);
     if (state.large)
       await page.evaluate(() => {
         document.documentElement.style.fontSize = '200%';
@@ -673,6 +751,7 @@ test('Weekly AI general fallback preserves failed feedback and requires explicit
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page);
   await openInsightsFromMore(page);
+  await openWeekTab(page);
   await page.getByRole('button', { name: weeklyInsights.generate }).click();
   await expect(
     page.getByText(weeklyInsights.general, { exact: true }),
@@ -703,6 +782,7 @@ test('Weekly AI hides stale evidence and revoked access without automatic infere
   await page.clock.install();
   await signIn(page);
   await openInsightsFromMore(page);
+  await openWeekTab(page);
   await page.getByRole('button', { name: weeklyInsights.generate }).click();
   await expect(
     page.getByText(weeklyInsights.ai, { exact: true }),
@@ -722,4 +802,49 @@ test('Weekly AI hides stale evidence and revoked access without automatic infere
     page.getByText(weeklyInsights.error, { exact: true }),
   ).toBeVisible();
   expect(requests.inference).toBe(1);
+});
+
+test('Weekly brief turns a wish into the existing Wish-to-Plan task and returns', async ({
+  page,
+}) => {
+  const requests = await installMocks(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+  await openInsightsFromMore(page);
+  await expect(
+    page.getByRole('heading', {
+      level: 2,
+      name: dailyInsights.brief.headline.SHARED_GOOD_DAYS.title,
+    }),
+  ).toBeVisible();
+  expect(requests.briefReads).toBe(1);
+  expect(requests.inference).toBe(0);
+  await page
+    .getByRole('button', { name: dailyInsights.brief.basisToggle })
+    .click();
+  await expect(
+    page.getByText(dailyInsights.brief.basis, { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: dailyInsights.brief.impulse.next })
+    .click();
+  await expect(page.getByText('Museum', { exact: true })).toBeVisible();
+  await page
+    .getByRole('button', { name: dailyInsights.brief.impulse.next })
+    .click();
+  await page
+    .getByRole('button', { name: dailyInsights.brief.impulse.plan })
+    .click();
+  await expect(page).toHaveURL(
+    /\/plan\/wishes\/00000000-0000-0000-0000-000000000601$/,
+  );
+  await page.goBack();
+  await expect(page).toHaveURL(/\/more\/insights$/);
+  await expect(
+    page.getByRole('heading', {
+      level: 2,
+      name: dailyInsights.brief.headline.SHARED_GOOD_DAYS.title,
+    }),
+  ).toBeVisible();
+  expect(requests.inference).toBe(0);
 });

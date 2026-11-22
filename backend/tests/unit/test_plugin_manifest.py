@@ -22,7 +22,7 @@ from eimir.db.protected_payload import ProtectedPayloadJSON
 from eimir.db.registry import MODEL_MODULES, load_all_models
 from eimir.plugins.manifest import PLUGIN_TABLE_NAMES, PLUGIN_TABLES, protected_payload_tables
 from eimir.security import lifecycle
-from tests.support.plugins import pro_plugin_object, requires_pro
+from tests.support.plugins import pro_plugin_object, require_pro_distribution, requires_pro
 
 BACKEND = Path(__file__).resolve().parents[2]
 
@@ -178,13 +178,14 @@ def test_autogenerate_keeps_plugin_tables_whose_plugin_is_not_loaded() -> None:
 
 
 def test_migrate_refuses_to_start_without_its_named_plugin() -> None:
-    process = _run(INCLUDE_OBJECT, EIMIR_PLUGINS="pro,missing")
+    process = _run(INCLUDE_OBJECT, EIMIR_PLUGINS="missing")
 
     assert process.returncode != 0
     assert "unknown plugin 'missing'" in process.stderr
 
 
 def test_migrate_names_its_plugins_at_startup() -> None:
+    require_pro_distribution()
     process = _run(INCLUDE_OBJECT, EIMIR_PLUGINS="pro")
 
     assert process.returncode == 0, process.stderr

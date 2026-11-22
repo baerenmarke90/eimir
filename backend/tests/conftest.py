@@ -16,7 +16,7 @@ import tempfile
 from collections.abc import Iterator
 
 import pytest
-from sqlalchemy import Engine, create_engine, text
+from sqlalchemy import Engine, create_engine, inspect, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from tests.support.encryption import EncryptionConfigurator
@@ -209,7 +209,24 @@ def engine() -> Iterator[Engine]:
 
     db_engine = create_engine(INTEGRATION_DATABASE_URL, future=True)
     Base.metadata.create_all(db_engine)
+    # Without ``eimir-pro`` the Pro tables have no models here. They come from the
+    # Core migration chain, and the Core manifest executor works on them.
+    plugin_tables_from_migrations = not pro_distribution_installed()
+    if plugin_tables_from_migrations:
+        from eimir.plugins.manifest import PLUGIN_TABLE_NAMES
+
+        missing = PLUGIN_TABLE_NAMES - set(inspect(db_engine).get_table_names())
+        if missing:
+            raise RuntimeError(
+                "Without eimir-pro the test database must be freshly migrated "
+                f"(alembic upgrade head); missing plugin tables: {', '.join(sorted(missing))}."
+            )
     yield db_engine
+    if plugin_tables_from_migrations:
+        # They reference Core tables, so they go first.
+        with db_engine.begin() as connection:
+            for name in PLUGIN_TABLE_NAMES:
+                connection.execute(text(f'DROP TABLE IF EXISTS "{name}" CASCADE'))
     Base.metadata.drop_all(db_engine)
     db_engine.dispose()
 

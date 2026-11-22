@@ -90,15 +90,34 @@ def operation_key(method: str, path: str) -> tuple[str, str]:
     return method.upper(), _PARAMETER.sub("{}", path)
 
 
-@lru_cache(maxsize=1)
-def pro_operations() -> frozenset[tuple[str, str]]:
-    """Every ``(method, path)`` the Pro plugin mounts under ``/api/v1``.
+HIDDEN_PRO_OPERATIONS = frozenset(
+    {
+        ("GET", "/api/v1/calendar-sync/google/callback"),
+        ("GET", "/api/v1/photo-sources/google/callback"),
+        ("POST", "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}"),
+    }
+)
+"""Pro routes hidden from the OpenAPI contract; a Pro test keeps this list exact."""
 
-    With ``eimir-pro`` installed this is read from the plugin's routers. Without
-    it, the versioned contract (``backend/openapi.json``, built with the plugin
-    loaded) minus what the Core router mounts stands in; it lacks only the few
-    plugin routes hidden from the schema (OAuth callbacks).
-    """
+
+def plugin_route_operations() -> frozenset[tuple[str, str]]:
+    """Every ``(method, path)`` the installed Pro plugin's routers mount."""
+    from fastapi import FastAPI
+    from fastapi.routing import iter_route_contexts
+
+    app = FastAPI()
+    for router in pro_plugin_object().routers():
+        app.include_router(router, prefix="/api/v1")
+    return frozenset(
+        (method, route.path)
+        for route in iter_route_contexts(app.routes)
+        if route.path is not None and route.path.startswith("/api/v1")
+        for method in route.methods or ()
+    )
+
+
+def contract_pro_operations() -> frozenset[tuple[str, str]]:
+    """The operations of the complete contract that the Core router does not mount."""
     import json
     from pathlib import Path
 
@@ -106,17 +125,6 @@ def pro_operations() -> frozenset[tuple[str, str]]:
     from fastapi.routing import iter_route_contexts
 
     from eimir.api.v1 import router as core_router
-
-    if pro_distribution_installed():
-        plugin_app = FastAPI()
-        for plugin_router in pro_plugin_object().routers():
-            plugin_app.include_router(plugin_router, prefix="/api/v1")
-        return frozenset(
-            (method, route.path)
-            for route in iter_route_contexts(plugin_app.routes)
-            if route.path is not None and route.path.startswith("/api/v1")
-            for method in route.methods or ()
-        )
 
     app = FastAPI()
     app.include_router(core_router, prefix="/api/v1")
@@ -136,6 +144,19 @@ def pro_operations() -> frozenset[tuple[str, str]]:
         if method.lower() in {"get", "put", "post", "delete", "patch", "options", "head"}
         and operation_key(method, path) not in core
     )
+
+
+@lru_cache(maxsize=1)
+def pro_operations() -> frozenset[tuple[str, str]]:
+    """Every ``(method, path)`` the Pro plugin mounts under ``/api/v1``.
+
+    Read from the plugin's routers when ``eimir-pro`` is installed. Without it,
+    the versioned contract (built with the plugin loaded) minus the Core routes,
+    plus the few Pro routes hidden from the schema, gives the same set.
+    """
+    if pro_distribution_installed():
+        return plugin_route_operations()
+    return contract_pro_operations() | HIDDEN_PRO_OPERATIONS
 
 
 def is_pro_operation(method: str, path: str) -> bool:

@@ -247,7 +247,7 @@ Something already on screen changes or leaves: a value changes, an item is reord
 1. *No height animation.* The control changes state at once, revealed content uses Enter `fade`/`rise` (or `stagger` for "+N weitere" items, within the stagger cap), and content below moves to its new place at once. Use this whenever the content below is not being read.
 2. *Gap with translate.* When content below must visibly follow, the layer measures and moves it with `reorder`/`collapse-gap` (FLIP, `translate` only).
 3. *One bounded size transition.* Only where 1 and 2 cannot express it (the #2066 check-in row that closes under the names): a single `height`/`block-size` transition on **one** container per interaction, with `interpolate-size: allow-keywords` as a progressive enhancement. It lasts at most `--duration-context`, clips its content (`overflow: clip`), animates only in the direction that the decision names, is never used inside lists or on more than one element at once, and must not shift content the person is reading (scroll anchoring checked). Browsers without `interpolate-size` change in one step; this is acceptable by definition. Each use is listed in the owning document. On `main` today: `WirHeroStage.css` (check-in row), `QuietHint.css`, `RelationshipWaymarks.css`, the disclosure rule in `styles.css` (`grid-template-rows`) and three `height` transitions in `PhotoEditTask.css`. The migration checks each one against 1 and 2. Checked in #2074:
-   - The Wir check-in row stays option 3: the quote and the modules below must visibly follow the row as it closes (#2066). It closes only in the "way in" direction, on one container. Its height part lasts 2.5 × `--duration-context` after a `--duration-transition` delay, by the Product Owner's #2066 decision; this is a recorded exception to the cap above.
+   - The Wir check-in row stayed option 3 at this point: the quote and the modules below had to visibly follow the row as it closed (#2066). It closed only in the "way in" direction, on one container. Its height part lasted 2.5 × `--duration-context` after a `--duration-transition` delay, by the Product Owner's #2066 decision, as a recorded exception to the cap above. **Superseded on 2026-11-22**, see the last entry of this list.
    - The `QuietHint.css` fold-away stays option 3 within `--duration-transition`.
 
    Checked in #2077:
@@ -263,7 +263,10 @@ Something already on screen changes or leaves: a value changes, an item is reord
 
    Checked in #2080, when the guard began to count layout transitions:
    - **The Planen search row (`PlanningReference.css`) stays option 3, as a recorded exception to "height".** When the search opens or closes, the status row below it moves by the search row's height with one `margin-top` transition on that one row, within `--duration-context`, and only without reduced motion. The search settles onto this row (#2077), so the row must visibly make room instead of jumping under it. Nothing is read below it while the person opens the search.
-   - The guard registers each sanctioned use with its count (`REGISTERED_LAYOUT_TRANSITIONS`): `WirHeroStage.css`, `QuietHint.css`, `styles.css`, `CoupleExperiences.css` and `PlanningReference.css` once, and `PhotoEditTask.css` three times. Any other layout transition fails it.
+   - The guard registers each sanctioned use with its count (`REGISTERED_LAYOUT_TRANSITIONS`): `QuietHint.css`, `styles.css`, `CoupleExperiences.css` and `PlanningReference.css` once, and `PhotoEditTask.css` three times. Any other layout transition fails it.
+
+   Decided by the Product Owner on 2026-11-22:
+   - **The Wir check-in row moves to option 1.** The daily invitation (`wirCheckIn.ownPrompt`) now sits next to the plus and takes no room under the names, so the row is closed from the first frame on a day without a mark and the quote never slides up. While today's state loads, the row keeps its place only when this device last saw a mark today. A value that arrives opens the row at once and moves the quote down.
 - Reduced motion: final size at once.
 
 **`value` (numbers and short text).** Count changes, the days-together tick, timer digits:
@@ -832,7 +835,7 @@ Three of these rules have reviewed registrations in the script, each with its us
 | Registration | Rule | Files | Uses |
 | --- | --- | ---: | ---: |
 | `REGISTERED_LOOPS` | `infinite`: the Scenes domain's playfields (4.8, M8) | 6 | 26 |
-| `REGISTERED_LAYOUT_TRANSITIONS` | layout transitions: the sanctioned `disclose` uses (4.2) | 6 | 8 |
+| `REGISTERED_LAYOUT_TRANSITIONS` | layout transitions: the sanctioned `disclose` uses (4.2) | 5 | 7 |
 | `REGISTERED_POINTER_TRACKING` | pointer tracking: the Gesture follow owners (`gesture`, 4.6) and pointer input that moves nothing by itself (`input`: a cancelled press, a long-press slop, scroll intent, a drawn stroke, a scrubbed selection, the photo editor's handles) | 11 | 17 |
 
 The guard also rejects the animation libraries `motion`, `framer-motion`, `motion-plus*`, `gsap` and `animejs` in `web/package.json`, in `web/package-lock.json` (also as a transitive package) and as imports anywhere in `web/src`, unless a new decision in this contract allows one (6.6; Product Owner decision 2026-11-19).
@@ -1070,7 +1073,7 @@ Measured by the guard on `main` at `23e556cb7` plus #2080.
 | `Element.animate()` calls | 4 (`run.ts` once, `flight.ts` three times) | 0 |
 | `infinite` loops | 5 (Loading, `utilities.css`) | 26 registered Scenes loops in 6 files |
 | Layout properties in keyframes | 0 | 0 |
-| Layout transitions | 0 | 8 registered `disclose` uses in 6 files |
+| Layout transitions | 0 | 7 registered `disclose` uses in 5 files |
 | Pointer tracking | 1 (`gesture/follow.ts`) | 17 registered in 11 files |
 | Animation-library dependencies | 0 | 0 |
 

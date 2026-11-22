@@ -1,12 +1,12 @@
 /**
- * The "Wie geht's?" line under the own name explains the plus on the own ring.
- * After a short hold it sinks into that plus, so the plus is left to speak for
- * itself. Decoration only: it reuses the flight layer and motion roles of the
- * other Wir flights, so reduced motion (zero durations) never starts it.
+ * The "Wie geht's?" line beside the plus on the own ring invites the day's
+ * check-in. After a short hold it slides into that plus, so the plus is left to
+ * speak for itself. Decoration only: it reuses the flight layer and motion
+ * roles of the other Wir flights, so reduced motion (zero durations) never
+ * starts it.
  */
 
 import {
-  ARC_RISE,
   animateFlight,
   centre,
   flightKeyframes,
@@ -15,8 +15,6 @@ import {
   pulseRing,
 } from '../motion/flight';
 
-/** The arc leans a little towards the corner it lands in. */
-const LEAN = -20;
 /** How far the landing ring grows beyond the plus. */
 const RING_GROWTH = 1.7;
 
@@ -44,6 +42,8 @@ export function startPromptFlight(
   const ghost = document.createElement('div');
   ghost.className = 'wir-checkin-flight-ghost is-prompt';
   ghost.textContent = source.textContent?.trim() ?? '';
+  // The same pill lifts off, so the hand-over to the flight is not visible.
+  ghost.style.minHeight = `${from.height}px`;
   layer.append(ghost);
   const origin = centre(from);
   ghost.style.left = `${origin.x - ghost.offsetWidth / 2}px`;
@@ -63,9 +63,10 @@ export function startPromptFlight(
     dispose();
   };
 
+  // The plus is right next to the line: a straight slide, without an arc.
   const travel = animateFlight(
     ghost,
-    flightKeyframes(origin, end, 1, scale, LEAN, ARC_RISE / 2),
+    flightKeyframes(origin, end, 1, scale, 0, 0),
     { duration: roles.flight, easing: roles.standard, fill: 'forwards' },
   );
   // It dissolves into the plus over the last part of the way.

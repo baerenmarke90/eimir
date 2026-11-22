@@ -786,7 +786,7 @@ test('reduced motion closes calmly: no flight layer is ever created', async ({
   await expect(badge.locator('[data-flight-slot="note"]')).toBeVisible();
 });
 
-test('once the check-in prompt line is gone and nobody has a mark, the row it kept closes', async ({
+test('the daily invitation sits beside the plus and never holds the row under the names open', async ({
   page,
 }) => {
   await installMocks(page);
@@ -800,21 +800,43 @@ test('once the check-in prompt line is gone and nobody has a mark, the row it ke
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await signIn(page);
 
-  // The day has no value, so the line invites first, then retires into the
-  // plus (without a flight under reduced motion).
+  // The day has no value, so the line invites beside the plus. The row under
+  // the name stays closed meanwhile: the stage already ends at the names, so
+  // nothing below moves when the line leaves.
+  const prompt = page.getByTestId('wir-checkin-own-prompt');
+  await expect(prompt).toHaveText(wirCheckIn.ownPrompt);
   const badge = page.getByTestId('wir-checkin-own-badge');
-  await expect(badge).toContainText(wirCheckIn.ownPrompt);
-  await expect(badge).toHaveAttribute('data-empty', 'true', {
-    timeout: 8_000,
-  });
-  // The row shows nothing, so it takes no room: the stage ends at the names
-  // instead of keeping a gap before the quote and the modules below.
+  await expect(badge).toHaveAttribute('data-empty', 'true');
   await expect(badge).toHaveCSS('height', '0px');
-  const stage = await page.locator('.wir-stage').boundingBox();
-  const name = await page.locator('.wir-stage-name').first().boundingBox();
-  expect(stage && name).toBeTruthy();
-  if (stage && name)
-    expect(stage.y + stage.height - (name.y + name.height)).toBeLessThan(4);
+  const stageEnd = async () => {
+    const stage = await page.locator('.wir-stage').boundingBox();
+    const name = await page.locator('.wir-stage-name').first().boundingBox();
+    expect(stage && name).toBeTruthy();
+    if (stage && name)
+      expect(stage.y + stage.height - (name.y + name.height)).toBeLessThan(4);
+    return stage ? stage.y + stage.height : 0;
+  };
+  const withPrompt = await stageEnd();
+  const line = await prompt.boundingBox();
+  const plus = await page.locator('.wir-stage-gesture-own').boundingBox();
+  expect(line && plus).toBeTruthy();
+  if (line && plus) {
+    expect(line.x).toBeGreaterThanOrEqual(plus.x + plus.width);
+    expect(
+      Math.abs(line.y + line.height / 2 - (plus.y + plus.height / 2)),
+    ).toBeLessThan(1);
+  }
+
+  // It retires into the plus (without a flight under reduced motion) and the
+  // stage keeps its height.
+  await expect(prompt).toHaveCount(0, { timeout: 8_000 });
+  expect(await stageEnd()).toBeCloseTo(withPrompt, 0);
+
+  // A later opening of the same day does not invite again.
+  await page.reload();
+  await expect(page.getByTestId('wir-checkin-own-badge')).toBeAttached();
+  await page.waitForTimeout(600);
+  await expect(prompt).toHaveCount(0);
 });
 
 test('the Wir opening ends on its own and returning to Wir replays no entrance', async ({

@@ -288,6 +288,78 @@
   height: 1.25rem;
 }
 
+/* The shared/private scope switch (#2197) reuses the shared segmented control. */
+.brief-scope-tabs {
+  margin-block-end: var(--space-4);
+  background: color-mix(in srgb, var(--color-surface-subtle) 70%, transparent);
+}
+
+/* Same calm selected treatment as the Einblicke tabs above it. */
+.brief-scope-tabs .planen-segment.is-active {
+  background: var(--color-surface);
+  color: var(--color-brand-text);
+  box-shadow: 0 2px 8px var(--color-shadow-soft);
+}
+
+.personal-private-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  justify-self: start;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-private-surface-soft);
+  color: var(--color-private);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.personal-private-label svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.personal-bars {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.personal-bar-row {
+  display: grid;
+  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 0.875rem;
+}
+
+.personal-bar-row strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.personal-bar-track {
+  display: block;
+  height: 0.75rem;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--insight-track);
+}
+
+.personal-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--insight-own);
+}
+
+.personal-bar-fill[data-muted] {
+  background: color-mix(in srgb, var(--insight-own) 45%, transparent);
+}
+
+.personal-basis {
+  color: var(--insight-quiet-text);
+  font-size: 0.8125rem;
+}
+
 /* Sections settle with a transform only (see DailyInsights.css). */
 @media (prefers-reduced-motion: no-preference) {
   .brief-headline,

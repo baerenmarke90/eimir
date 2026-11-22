@@ -14,7 +14,7 @@
 
 ## Routes
 
-`/more/insights` (weekly brief, #2169), `/more/insights/week` (week), `/more/insights/patterns` (month) and `/more/insights/recap` (weekly recap, redirected into the week view) live under **More**, which keeps *Mehr* active across the complete Pro context. Since #1196, **Eure Woche** is the first destination in the shared **Gemeinsam** group on `/more`, using the standard destination-row contract with title, quiet Pro badge and chevron. There is no Today/Wir teaser and no descriptive subtitle in the More row.
+`/more/insights` (weekly brief, #2169), `/more/insights/week` (history, labelled Verlauf: the week charts only since #2203), `/more/insights/patterns` (month) and `/more/insights/recap` (former weekly recap, redirected to the history view) live under **More**, which keeps *Mehr* active across the complete Pro context. Since #1196, **Eure Woche** is the first destination in the shared **Gemeinsam** group on `/more`, using the standard destination-row contract with title, quiet Pro badge and chevron. There is no Today/Wir teaser and no descriptive subtitle in the More row.
 
 ## Privacy and Mutual Reveal
 
@@ -88,3 +88,23 @@ A Product Owner decision of 2026-11-22 partially supersedes #1196: Wir shows one
 - **Limits.** It uses the device-local quiet-hint store with one id per week (`weeklyBrief:<monday>`) and its limits: one per screen, one new per day, three sessions.
 - **When it retires.** After dismissal, or when that week's brief is opened.
 - **Free Spaces.** They see nothing (#2048).
+
+## Private view (#2197)
+
+Inside the Wochenbrief tab, a shared/private scope switch (`?scope=own`) switches to `PersonalWeeklyBrief`, read from `GET /spaces/{spaceId}/daily-check-in/weekly-brief/personal`. Product Owner, 2026-11-22: Pro, like the rest of Einblicke.
+
+- **Data.** It reads only the caller's own check-in rows; partner rows are never queried, so no Mutual Reveal applies. Shared Plan and Memory dates come through `readable()`.
+- **Statements.** Each requires minimum samples:
+  - own good days;
+  - own Energy on shared days compared with other days;
+  - own lower and higher weekdays.
+- **Presentation.** The view carries an owner-only label, and its bars have a text alternative.
+
+## Cleanup (#2203)
+
+Product Owner, 2026-11-22: "alles aufräumen". Einblicke now has one weekly view, the brief, and two chart views.
+
+- **Verlauf.** The former week tab keeps its route `/more/insights/week` and shows only the week charts, the gap note and the sparse note. The week recap (highlights and noticed statements) is gone because the brief covers it. The old recap link lands here without an anchor.
+- **Slogans.** No handwriting slogan remains in Verlauf or Monat. The good-weekday content in Monat stays.
+- **Weekly AI review.** The card and its endpoints were removed. An optional, selection-only successor inside the brief is deferred to #2201.
+- **Retained ratings.** Ratings from the retired card stay caller-private Core data. A quiet line at the end of Verlauf, and on the Free gate, appears only while such ratings exist; it deletes all of them with one action (`GET`/`DELETE /spaces/{spaceId}/daily-check-in/weekly-feedback`) and then confirms with a status message. No new rating can be set.

@@ -1,19 +1,18 @@
-"""HTTP contract of the Pro Daily Check-in insights and weekly review (Decision 0017).
+"""HTTP contract of the Pro Daily Check-in insights and weekly brief (Decision 0017).
 
 Mounted by the Pro plugin through ``routers()``; a Core-only server has no such
 routes. Tag, paths, ``operation_id``s and schema names are those of the former
 Core routes, so the full OpenAPI contract and the generated clients are unchanged.
-Today's check-in and the rating route (whose clearing path is Free) stay Core.
+Today's check-in and the retained-rating routes (#2203) stay Core.
 """
 
 from __future__ import annotations
 
 from datetime import date
-from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Response
-from pydantic import ConfigDict, Field
+from pydantic import Field
 
 from eimir.api.deps import Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
@@ -21,14 +20,13 @@ from eimir.api.schema import ApiModel
 from eimir.api.v1.daily_checkins import (
     PartnerEnergyProjection,
     PartnerVibeProjection,
-    WeeklyFeedbackView,
     partner_energy_view,
     partner_vibe_view,
 )
 from eimir.daily_checkins.context import DailyCheckInErrorCode
-from eimir.daily_checkins.models import DailyVibe, RecommendationKey
+from eimir.daily_checkins.models import DailyVibe
 from eimir.entitlements.models import Capability
-from eimir_pro.daily_insights import insights, weekly_brief, weekly_review
+from eimir_pro.daily_insights import insights, personal_brief, weekly_brief
 from eimir_pro.daily_insights.weekly_patterns import ObservationKind
 
 router = APIRouter(tags=["daily-check-ins"])
@@ -144,115 +142,10 @@ class WeeklyObservationView(ApiModel):
     weekday: int | None = None
 
 
-class WeeklyReviewView(ApiModel):
-    week_start: date
-    week_end: date
-    history_start: date
-    history_end: date
-    evidence_token: str
-    observations: list[WeeklyObservationView]
-    recommendations: list[RecommendationKey]
-    feedback: list[WeeklyFeedbackView]
-    general: bool
-    generated_by: Literal["RULES", "AI"] = "RULES"
-
-
-class WeeklyReviewRequest(ApiModel):
-    model_config = ConfigDict(extra="forbid")
-    week_start: date
-    evidence_token: str = Field(pattern=r"^[a-f0-9]{64}$")
-
-
-def _weekly_view(
-    value: weekly_review.Preview,
-    *,
-    selection: weekly_review.Selection | None = None,
-    ai: bool = False,
-) -> WeeklyReviewView:
-    facts = value.observations
-    keys = value.recommendations
-    if selection is not None:
-        indexed = {fact.key: fact for fact in facts}
-        facts = [indexed[key] for key in selection.observation_keys if key in indexed]
-        keys = [
-            RecommendationKey(key)
-            for key in selection.recommendation_keys
-            if key in {item.value for item in keys}
-        ]
-    return WeeklyReviewView(
-        week_start=value.week_start,
-        week_end=value.week_end,
-        history_start=value.history_start,
-        history_end=value.history_end,
-        evidence_token=value.evidence_token,
-        observations=[
-            WeeklyObservationView(
-                key=f.key,
-                kind=f.kind,
-                sample_count=f.sample_count,
-                value=f.value,
-                weekday=f.weekday,
-            )
-            for f in facts
-        ],
-        recommendations=keys,
-        feedback=[
-            WeeklyFeedbackView(recommendation_key=f.recommendation_key, rating=f.rating)
-            for f in value.feedback
-        ],
-        general=value.general,
-        generated_by="AI" if ai else "RULES",
-    )
-
-
 def _weekly_capability(session: DbSession, authorization: Authorization) -> None:
     ensure_capability(
         session, authorization.space_id, Capability.DAILY_INSIGHTS.value, lock_grants=False
     )
-
-
-@router.get(
-    "/spaces/{spaceId}/daily-check-in/weekly-review",
-    response_model=WeeklyReviewView,
-    operation_id="getDailyCheckInWeeklyReview",
-    responses=problem_responses(401, 403, 404, 409, 422),
-)
-def get_daily_check_in_weekly_review(
-    authorization: Authorization, session: DbSession, response: Response, week_start: date
-) -> WeeklyReviewView:
-    """Read current authorized multiweek observations without running inference."""
-    _weekly_capability(session, authorization)
-    response.headers["Cache-Control"] = "private, no-store"
-    return _weekly_view(weekly_review.preview(session, authorization, week_start))
-
-
-@router.post(
-    "/spaces/{spaceId}/daily-check-in/weekly-review",
-    response_model=WeeklyReviewView,
-    operation_id="createDailyCheckInWeeklyReview",
-    responses=problem_responses(401, 403, 404, 409, 422, 429),
-)
-def create_daily_check_in_weekly_review(
-    authorization: Authorization, session: DbSession, response: Response, body: WeeklyReviewRequest
-) -> WeeklyReviewView:
-    """Explicit bounded model selection; revisions are revalidated after inference."""
-    _weekly_capability(session, authorization)
-    prepared = weekly_review.preview(session, authorization, body.week_start)
-    weekly_review.require_revision(body.evidence_token, prepared)
-    weekly_review.reserve_inference(session, authorization, prepared)
-    selected, ai = weekly_review.choose(prepared)
-    session.expire_all()
-    _weekly_capability(session, authorization)
-    fresh = weekly_review.preview(session, authorization, body.week_start)
-    weekly_review.require_revision(body.evidence_token, fresh)
-    if not set(selected.recommendation_keys) <= {key.value for key in fresh.recommendations}:
-        selected = weekly_review.Selection.model_construct(
-            observation_keys=[fact.key for fact in fresh.observations[:3]],
-            recommendation_keys=[key.value for key in fresh.recommendations[:2]],
-        )
-        ai = False
-    response.headers["Cache-Control"] = "private, no-store"
-    return _weekly_view(fresh, selection=selected, ai=ai)
 
 
 class WeeklyBriefMomentView(ApiModel):
@@ -377,3 +270,87 @@ def get_daily_check_in_weekly_brief(
     _weekly_capability(session, authorization)
     response.headers["Cache-Control"] = "private, no-store"
     return _brief_view(weekly_brief.build(session, authorization, week_start))
+
+
+class PersonalEnergyComparisonView(ApiModel):
+    group: int = Field(description="Mean own Energy on days with a shared Plan or Memory.")
+    others: int = Field(description="Mean own Energy on the other days.")
+    sample_days: int
+
+
+class PersonalWeekdayPatternView(ApiModel):
+    weekday: int = Field(ge=0, le=6, description="0 is Monday.")
+    energy: int
+    others: int
+    sample_days: int
+
+
+class PersonalWeeklyBriefView(ApiModel):
+    week_start: date
+    week_end: date
+    elapsed_days: int
+    own_days: list[date]
+    good_days: list[date]
+    shared_days: list[date]
+    headline: personal_brief.PersonalBriefHeadline
+    shared_energy: PersonalEnergyComparisonView | None = None
+    lower_weekday: PersonalWeekdayPatternView | None = None
+    higher_weekday: PersonalWeekdayPatternView | None = None
+
+
+def _weekday_view(
+    value: personal_brief.WeekdayPattern | None,
+) -> PersonalWeekdayPatternView | None:
+    if value is None:
+        return None
+    return PersonalWeekdayPatternView(
+        weekday=value.weekday,
+        energy=value.energy,
+        others=value.others,
+        sample_days=value.sample_days,
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/daily-check-in/weekly-brief/personal",
+    response_model=PersonalWeeklyBriefView,
+    operation_id="getDailyCheckInPersonalWeeklyBrief",
+    responses=problem_responses(
+        401,
+        403,
+        404,
+        409,
+        422,
+        descriptions={
+            403: "`PREMIUM_ENTITLEMENT_REQUIRED`: Pro capability `daily.insights` required.",
+        },
+    ),
+)
+def get_daily_check_in_personal_weekly_brief(
+    authorization: Authorization, session: DbSession, response: Response, week_start: date
+) -> PersonalWeeklyBriefView:
+    """Private weekly brief over the caller's own values alone (#2197).
+
+    Model-free. Partner Daily Check-in rows are never read; shared Plan and Memory dates
+    follow the ordinary visibility rules.
+    """
+    _weekly_capability(session, authorization)
+    response.headers["Cache-Control"] = "private, no-store"
+    value = personal_brief.build_personal(session, authorization, week_start)
+    energy = value.shared_energy
+    return PersonalWeeklyBriefView(
+        week_start=value.week_start,
+        week_end=value.week_end,
+        elapsed_days=value.elapsed_days,
+        own_days=value.own_days,
+        good_days=value.good_days,
+        shared_days=value.shared_days,
+        headline=value.headline,
+        shared_energy=None
+        if energy is None
+        else PersonalEnergyComparisonView(
+            group=energy.group, others=energy.others, sample_days=energy.sample_days
+        ),
+        lower_weekday=_weekday_view(value.lower_weekday),
+        higher_weekday=_weekday_view(value.higher_weekday),
+    )

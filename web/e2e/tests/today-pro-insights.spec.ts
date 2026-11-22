@@ -2,7 +2,6 @@ import { expect, type Page, test } from '@playwright/test';
 import dailyInsights from '../../src/i18n/locales/dailyInsights';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
-import weeklyInsights from '../../src/i18n/locales/weeklyInsights';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
 import { waitForSettledMotion } from '../support/settledMotion';
@@ -58,21 +57,22 @@ async function installMocks(
   page: Page,
   options: {
     capabilities?: string[];
-    general?: boolean;
-    failedFeedback?: boolean;
+    retained?: number;
   } = {},
 ) {
   const capabilities = options.capabilities ?? ['daily.insights'];
   const requests = {
     insights: 0,
     entitlements: 0,
-    weeklyReads: 0,
     briefReads: 0,
     briefWeeks: [] as string[],
-    inference: 0,
-    revision: 'a'.repeat(64),
-    denied: false,
-    feedback: [] as { recommendationKey: string; rating: string }[],
+    personalReads: 0,
+    retainedReads: 0,
+    retainedClears: 0,
+    retained: ['quiet_time', 'small_plan']
+      .slice(0, options.retained ?? 0)
+      .map((recommendationKey) => ({ recommendationKey, rating: 'HELPFUL' })),
+    legacyReviewCalls: 0,
   };
 
   await page.route('**/api/v1/**', async (route) => {
@@ -93,6 +93,22 @@ async function installMocks(
         body: JSON.stringify(body),
       });
     const space = `/api/v1/spaces/${SPACE_ID}`;
+    if (pathname === `${space}/daily-check-in/weekly-brief/personal`) {
+      requests.personalReads += 1;
+      await json({
+        weekStart: '2026-09-21',
+        weekEnd: '2026-09-27',
+        elapsedDays: 3,
+        ownDays: ['2026-09-21', '2026-09-22', '2026-09-23'],
+        goodDays: ['2026-09-21', '2026-09-23'],
+        sharedDays: ['2026-09-21'],
+        headline: 'WEEKDAY_LOWER',
+        sharedEnergy: { group: 72, others: 54, sampleDays: 31 },
+        lowerWeekday: { weekday: 1, energy: 48, others: 66, sampleDays: 31 },
+        higherWeekday: { weekday: 4, energy: 80, others: 60, sampleDays: 31 },
+      });
+      return;
+    }
     if (pathname === `${space}/daily-check-in/weekly-brief`) {
       requests.briefReads += 1;
       const monday = url.searchParams.get('week_start') ?? '2026-09-21';
@@ -141,60 +157,21 @@ async function installMocks(
       });
       return;
     }
-    if (pathname === `${space}/daily-check-in/weekly-review`) {
-      if (requests.denied) {
-        await json(
-          {
-            code: 'PREMIUM_ENTITLEMENT_REQUIRED',
-            status: 403,
-            title: 'Pro required',
-          },
-          403,
-        );
-        return;
-      }
-      if (method === 'POST') requests.inference += 1;
-      else requests.weeklyReads += 1;
-      await json({
-        evidenceToken: requests.revision,
-        weekStart: '2026-09-21',
-        weekEnd: '2026-09-27',
-        historyStart: '2026-08-03',
-        historyEnd: SPACE_TODAY,
-        general: options.general ?? false,
-        generatedBy: options.general ? 'RULES' : 'AI',
-        feedback: requests.feedback,
-        observations: options.general
-          ? []
-          : [
-              {
-                key: 'weekend_higher',
-                kind: 'WEEKEND_HIGHER',
-                sampleCount: 42,
-              },
-            ],
-        recommendations: ['quiet_time', 'small_plan'],
-      });
+    if (pathname.startsWith(`${space}/daily-check-in/weekly-review`)) {
+      // The retired weekly review (#2203) must never be called.
+      requests.legacyReviewCalls += 1;
+      await json({ code: 'NOT_FOUND', status: 404, title: 'Not found' }, 404);
       return;
     }
-    if (
-      pathname.startsWith(`${space}/daily-check-in/weekly-feedback/`) &&
-      method === 'PUT'
-    ) {
-      if (options.failedFeedback) {
-        await json(
-          { code: 'UNAVAILABLE', status: 503, title: 'Unavailable' },
-          503,
-        );
+    if (pathname === `${space}/daily-check-in/weekly-feedback`) {
+      if (method === 'DELETE') {
+        requests.retainedClears += 1;
+        requests.retained = [];
+        await route.fulfill({ status: 204 });
         return;
       }
-      const recommendationKey = pathname.split('/').at(-1) as string;
-      const rating = request.postDataJSON().rating as string | null;
-      requests.feedback = requests.feedback.filter(
-        (entry) => entry.recommendationKey !== recommendationKey,
-      );
-      if (rating) requests.feedback.push({ recommendationKey, rating });
-      await json({ recommendationKey, rating });
+      requests.retainedReads += 1;
+      await json({ ratings: requests.retained });
       return;
     }
 
@@ -556,9 +533,10 @@ async function visitViews(
       name: /^Donnerstag/,
     }),
   ).toBeVisible();
+  // History (Verlauf) shows only the charts (#2203).
   await expect(
-    page.getByRole('region', { name: dailyInsights.week.summary }),
-  ).toBeVisible();
+    page.locator('.insight-week-recap, .weekly-review, .insight-handwriting'),
+  ).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.screenshot({
@@ -582,11 +560,9 @@ async function visitViews(
     .click();
   await expect(page).toHaveURL(/\/more\/insights\/week\?week=2026-09-14$/);
   await page.goto('/more/insights/recap?week=2026-09-14');
-  await expect(page).toHaveURL(
-    /\/more\/insights\/week\?week=2026-09-14#wochenrueckblick$/,
-  );
+  await expect(page).toHaveURL(/\/more\/insights\/week\?week=2026-09-14$/);
   await expect(
-    page.getByRole('region', { name: dailyInsights.week.summary }),
+    page.getByRole('heading', { name: dailyInsights.patterns.vibeRow }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
@@ -701,16 +677,13 @@ test('Free Spaces see a calm gated state and never request insights', async ({
 });
 
 for (const state of [
-  { width: 360, theme: 'light', large: false },
-  { width: 390, theme: 'dark', large: false },
-  { width: 430, theme: 'light', large: false },
-  { width: 1280, theme: 'dark', large: false },
+  { width: 390, theme: 'light', large: false },
   { width: 320, theme: 'dark', large: true },
 ] as const) {
-  test(`Weekly AI insight selection and private feedback at ${state.width} ${state.theme}`, async ({
+  test(`Retained ratings of the retired weekly review can be deleted at ${state.width} ${state.theme}`, async ({
     page,
   }, testInfo) => {
-    const requests = await installMocks(page);
+    const requests = await installMocks(page, { retained: 2 });
     await page.setViewportSize({ width: state.width, height: 844 });
     await page.emulateMedia({
       colorScheme: state.theme,
@@ -723,118 +696,71 @@ for (const state of [
       await page.evaluate(() => {
         document.documentElement.style.fontSize = '200%';
       });
-    expect(requests.inference).toBe(0);
-    expect(requests.weeklyReads).toBe(0);
-    await page.getByRole('button', { name: weeklyInsights.generate }).click();
-    await expect(
-      page.getByText(weeklyInsights.ai, { exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByText(weeklyInsights.facts.WEEKEND_HIGHER, { exact: true }),
-    ).toBeVisible();
-    const feedback = page.getByRole('group', {
-      name: weeklyInsights.feedbackFor.replace(
-        '{{title}}',
-        weeklyInsights.recommendations.quiet_time.title,
-      ),
-    });
-    await feedback
-      .getByRole('button', { name: weeklyInsights.ratings.HELPFUL })
-      .click();
-    await expect(
-      feedback.getByRole('button', { name: weeklyInsights.ratings.HELPFUL }),
-    ).toHaveAttribute('aria-pressed', 'true');
-    expect(requests.inference).toBe(1);
-    await expect(
-      page.getByRole('region', { name: dailyInsights.week.summary }),
-    ).toBeVisible();
+    const line = page.locator('.insight-retained-ratings');
+    await expect(line).toContainText(
+      dailyInsights.retainedRatings.body_other.replace('{{count}}', '2'),
+    );
     await expectNoHorizontalOverflow(page);
     expect(
-      (await new AxeBuilder({ page }).include('.weekly-review').analyze())
-        .violations,
+      (
+        await new AxeBuilder({ page })
+          .include('.insight-retained-ratings')
+          .analyze()
+      ).violations,
     ).toEqual([]);
-    await page.evaluate(() => window.scrollTo(0, 0));
+    await line.scrollIntoViewIfNeeded();
     await page.screenshot({
       path: testInfo.outputPath(
-        `weekly-ai-${state.width}-${state.theme}${state.large ? '-200pct' : ''}.png`,
+        `insights-retained-ratings-${state.width}-${state.theme}${state.large ? '-200pct' : ''}.png`,
       ),
       fullPage: true,
     });
+    await line
+      .getByRole('button', { name: dailyInsights.retainedRatings.clear })
+      .click();
+    await expect(
+      page.getByRole('status').filter({
+        hasText: dailyInsights.retainedRatings.cleared,
+      }),
+    ).toBeVisible();
+    expect(requests.retainedClears).toBe(1);
     await page
       .getByRole('link', { name: dailyInsights.nav.patterns, exact: true })
       .click();
-    await expect(page.locator('.weekly-review')).toHaveCount(0);
     await page
       .getByRole('link', { name: dailyInsights.nav.week, exact: true })
       .click();
     await expect(
-      page.getByText(weeklyInsights.ai, { exact: true }),
+      page.getByRole('heading', { name: dailyInsights.patterns.vibeRow }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: dailyInsights.retainedRatings.clear }),
     ).toHaveCount(0);
-    expect(requests.inference).toBe(1);
+    expect(requests.legacyReviewCalls).toBe(0);
   });
 }
 
-test('Weekly AI general fallback preserves failed feedback and requires explicit retry', async ({
+test('Free Spaces can still delete retained ratings from the gate', async ({
   page,
-}, testInfo) => {
+}) => {
   const requests = await installMocks(page, {
-    general: true,
-    failedFeedback: true,
+    capabilities: [],
+    retained: 1,
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page);
-  await openInsightsFromMore(page);
-  await openWeekTab(page);
-  await page.getByRole('button', { name: weeklyInsights.generate }).click();
+  await openInsightsFromMore(page, undefined, undefined, false);
   await expect(
-    page.getByText(weeklyInsights.general, { exact: true }),
+    page.getByText(dailyInsights.retainedRatings.body_one, { exact: true }),
   ).toBeVisible();
+  await page
+    .getByRole('button', { name: dailyInsights.retainedRatings.clear })
+    .click();
   await expect(
-    page.getByText(weeklyInsights.sparse, { exact: true }),
+    page.getByText(dailyInsights.retainedRatings.cleared, { exact: true }),
   ).toBeVisible();
-  const button = page
-    .getByRole('button', { name: weeklyInsights.ratings.HELPFUL })
-    .first();
-  await button.click();
-  await expect(page.getByRole('alert')).toContainText(weeklyInsights.error);
-  await expect(button).toHaveAttribute('aria-pressed', 'false');
-  expect(requests.feedback).toEqual([]);
-  expect(requests.inference).toBe(1);
-  await expectNoHorizontalOverflow(page);
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await page.screenshot({
-    path: testInfo.outputPath('weekly-ai-sparse-error-390.png'),
-    fullPage: true,
-  });
-});
-
-test('Weekly AI hides stale evidence and revoked access without automatic inference', async ({
-  page,
-}) => {
-  const requests = await installMocks(page);
-  await page.clock.install();
-  await signIn(page);
-  await openInsightsFromMore(page);
-  await openWeekTab(page);
-  await page.getByRole('button', { name: weeklyInsights.generate }).click();
-  await expect(
-    page.getByText(weeklyInsights.ai, { exact: true }),
-  ).toBeVisible();
-  requests.revision = 'b'.repeat(64);
-  await page.clock.fastForward(31_000);
-  await expect(page.getByText(weeklyInsights.ai, { exact: true })).toHaveCount(
-    0,
-  );
-  await expect(
-    page.getByText(weeklyInsights.changed, { exact: true }),
-  ).toBeVisible();
-  expect(requests.inference).toBe(1);
-  requests.denied = true;
-  await page.clock.fastForward(31_000);
-  await expect(
-    page.getByText(weeklyInsights.error, { exact: true }),
-  ).toBeVisible();
-  expect(requests.inference).toBe(1);
+  expect(requests.retainedClears).toBe(1);
+  expect(requests.insights).toBe(0);
 });
 
 test('Weekly brief turns a wish into the existing Wish-to-Plan task and returns', async ({
@@ -854,7 +780,6 @@ test('Weekly brief turns a wish into the existing Wish-to-Plan task and returns'
   expect(requests.briefWeeks.filter((week) => week === '2026-09-21')).toEqual([
     '2026-09-21',
   ]);
-  expect(requests.inference).toBe(0);
   await page
     .getByRole('button', { name: dailyInsights.brief.basisToggle })
     .click();
@@ -882,5 +807,66 @@ test('Weekly brief turns a wish into the existing Wish-to-Plan task and returns'
       name: dailyInsights.brief.headline.SHARED_GOOD_DAYS.title,
     }),
   ).toBeVisible();
-  expect(requests.inference).toBe(0);
 });
+
+for (const state of [
+  { width: 390, theme: 'light', large: false },
+  { width: 390, theme: 'dark', large: false },
+  { width: 320, theme: 'dark', large: true },
+  { width: 1280, theme: 'light', large: false },
+] as const) {
+  test(`Private weekly brief shows only own patterns at ${state.width} ${state.theme}${state.large ? ' 200%' : ''}`, async ({
+    page,
+  }, testInfo) => {
+    const requests = await installMocks(page);
+    await page.setViewportSize({ width: state.width, height: 844 });
+    await page.emulateMedia({
+      colorScheme: state.theme,
+      reducedMotion: state.large ? 'reduce' : 'no-preference',
+    });
+    await signIn(page);
+    await openInsightsFromMore(page);
+    if (state.large)
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = '200%';
+      });
+    await page
+      .getByRole('tab', { name: dailyInsights.brief.scope.own, exact: true })
+      .click();
+    await expect(page).toHaveURL(/scope=own/);
+    await expect(
+      page.getByText(dailyInsights.brief.personal.privateLabel, {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', {
+        level: 2,
+        name: dailyInsights.brief.personal.headline.WEEKDAY_LOWER.title.replace(
+          '{{weekdays}}',
+          dailyInsights.weekdayPlural[1],
+        ),
+      }),
+    ).toBeVisible();
+    expect(requests.personalReads).toBe(1);
+    await expectNoHorizontalOverflow(page);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `insights-personal-${state.width}-${state.theme}${state.large ? '-200pct' : ''}.png`,
+      ),
+      fullPage: true,
+    });
+    await page
+      .getByRole('tab', { name: dailyInsights.brief.scope.shared, exact: true })
+      .click();
+    await expect(page).not.toHaveURL(/scope=own/);
+    await expect(
+      page.getByRole('heading', {
+        level: 2,
+        name: dailyInsights.brief.headline.SHARED_GOOD_DAYS.title,
+      }),
+    ).toBeVisible();
+  });
+}

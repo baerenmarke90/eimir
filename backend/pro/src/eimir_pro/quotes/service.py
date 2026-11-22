@@ -9,13 +9,13 @@ from sqlalchemy.orm import Session
 
 from eimir.core.errors import ConflictError, ErrorCode, ValidationError
 from eimir.identity.models import Account
-from eimir.quotes.catalog import (
+from eimir_pro.quotes.catalog import (
     CATEGORY_MAP,
     SOURCE_MAP,
     get_categories,
     get_sources,
 )
-from eimir.quotes.models import DailyQuotePreference
+from eimir_pro.quotes.models import DailyQuotePreference
 
 
 def current_category_ids(selected_category_ids: list[str]) -> list[str]:

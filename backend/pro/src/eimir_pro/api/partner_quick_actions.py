@@ -20,7 +20,7 @@ from eimir.api.schema import ApiModel
 from eimir.engagement import thinking
 from eimir.engagement.models import SupportGestureKind
 from eimir.entitlements.models import Capability
-from eimir.partner_quick_actions.service import send_support_gesture
+from eimir_pro.partner_quick_actions.service import send_support_gesture
 
 router = APIRouter()
 

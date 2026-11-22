@@ -19,17 +19,13 @@ PLUGIN_PACKAGES = (
     "eimir.calendar_sync",
     "eimir.couple_games",
     "eimir.daily_insights",
-    "eimir.date_ideas",
     "eimir.garden",
     "eimir.heart_hunt",
     "eimir.once_messages",
-    "eimir.partner_quick_actions",
     "eimir.photo_sources",
     "eimir.picture_ping_pong",
     "eimir.presence",
-    "eimir.quotes",
     "eimir.recap_composition",
-    "eimir.relationship_passport",
     "eimir.video_processing",
 )
 """The in-tree Pro modules; Phase 2 moves them into their own distribution."""
@@ -38,7 +34,6 @@ PLUGIN_MODULES = (
     "eimir.pro_plugin",
     "eimir.games.service",
     "eimir.games.waiting",
-    "eimir.places.memory_map",
     "eimir.providers.caldav",
     *(
         f"eimir.api.v1.{name}"
@@ -46,19 +41,14 @@ PLUGIN_MODULES = (
             "calendar_sync",
             "couple_games",
             "daily_insights",
-            "daily_quote",
-            "date_ideas",
             "games",
             "garden",
             "heart_hunt",
-            "memory_map",
             "once_messages",
             "partner_location",
-            "partner_quick_actions",
             "photo_sources",
             "picture_ping_pong",
             "recap_composition",
-            "relationship_passport",
         )
     ),
 )
@@ -126,7 +116,7 @@ def test_core_module_imports_no_plugin_code(path: Path) -> None:
 def test_the_check_catches_a_plugin_import() -> None:
     tree = ast.parse(
         "def f():\n    from eimir.garden import service\n"
-        "from eimir.api.v1 import date_ideas\nimport eimir.presence.models\n"
+        "from eimir.api.v1 import games\nimport eimir.presence.models\n"
         "import eimir_pro.plugin\n"
     )
     assert {
@@ -134,7 +124,7 @@ def test_the_check_catches_a_plugin_import() -> None:
     } == {
         "eimir.garden",
         "eimir.garden.service",
-        "eimir.api.v1.date_ideas",
+        "eimir.api.v1.games",
         "eimir.presence.models",
         "eimir_pro.plugin",
     }

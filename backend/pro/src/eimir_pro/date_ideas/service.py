@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from eimir.date_ideas.catalog import (
+from eimir_pro.date_ideas.catalog import (
     DateIdeaCatalog,
     IdeaFilter,
     ResolvedIdea,

@@ -17,7 +17,9 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
 echo "Building the Core wheel from $repo/backend"
-(cd "$repo/backend" && uv build --wheel --package eimir --out-dir "$work/dist" >/dev/null)
+# Through an sdist: a direct wheel build would reuse and leave backend/build,
+# and stale files there could end up in the wheel.
+(cd "$repo/backend" && uv build --package eimir --out-dir "$work/dist" >/dev/null)
 
 echo "Copying backend/pro into a clean directory"
 cp -R "$repo/backend/pro" "$work/pro"

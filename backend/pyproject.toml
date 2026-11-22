@@ -69,6 +69,11 @@ dev = [
 # version may use another lockfile format or different resolution rules.
 required-version = "==0.12.15"
 
+[tool.uv.workspace]
+# The Pro plugin is its own distribution (Decision 0017, Phase 2, #2182). A
+# plain `uv sync` installs Core only; `uv sync --all-packages` adds Pro.
+members = ["pro"]
+
 [build-system]
 requires = ["setuptools==84.2.1"]
 build-backend = "setuptools.build_meta"
@@ -82,7 +87,7 @@ where = ["src"]
 "eimir.date_ideas" = ["data/*.json", "data/images/*.webp"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "pro/pro_tests"]
 pythonpath = ["src"]
 asyncio_mode = "auto"
 markers = [
@@ -118,7 +123,7 @@ known-first-party = ["eimir", "tests", "scripts"]
 
 [tool.mypy]
 python_version = "3.12"
-files = ["src"]
+files = ["src", "pro/src"]
 strict = true
 plugins = []
 

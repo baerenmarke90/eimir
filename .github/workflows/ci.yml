@@ -188,7 +188,7 @@ jobs:
         run: |
           python -m pip install "uv==$UV_VERSION"
           uv lock --check
-          uv sync --frozen
+          uv sync --frozen --all-packages
 
       - name: Safe Self-Hosted configuration
         working-directory: .
@@ -208,9 +208,9 @@ jobs:
         working-directory: .
         run: |
           missing_files=$(comm -23 \
-            <(find backend/src web -name "*.py" -o -name "*.ts" \
+            <(find backend/src backend/pro/src web -name "*.py" -o -name "*.ts" \
                 -o -name "*.tsx" 2>/dev/null | sort) \
-            <(git ls-files backend/src web | sort))
+            <(git ls-files backend/src backend/pro/src web | sort))
           if [ -n "$missing_files" ]; then
             echo "These source files are not tracked:"
             echo "$missing_files"
@@ -218,10 +218,10 @@ jobs:
           fi
 
       - name: Lint
-        run: uv run --frozen ruff check src tests scripts alembic
+        run: uv run --frozen ruff check src tests scripts alembic pro
 
       - name: Formatting
-        run: uv run --frozen ruff format --check src tests scripts alembic
+        run: uv run --frozen ruff format --check src tests scripts alembic pro
 
       - name: Type checking
         run: uv run --frozen mypy
@@ -329,7 +329,7 @@ jobs:
         run: |
           python -m pip install "uv==$UV_VERSION"
           uv lock --check
-          uv sync --frozen
+          uv sync --frozen --all-packages
 
       - name: Migrations
         run: uv run --frozen alembic upgrade head
@@ -471,7 +471,10 @@ jobs:
         run: |
           python -m pip install "uv==$UV_VERSION"
           uv lock --check
-          uv sync --frozen
+          # The Pro distribution (#2182) stays installed but unloaded
+          # (EIMIR_PLUGINS="") until the plugin object leaves Core; then this
+          # lane installs Core only.
+          uv sync --frozen --all-packages
 
       - name: Core-only migrations
         run: uv run --frozen alembic upgrade head
@@ -778,7 +781,7 @@ jobs:
       - name: Dependency inventory
         if: needs.changes.outputs.supply_chain_backend == 'true'
         run: |
-          uv sync --frozen
+          uv sync --frozen --all-packages
           uv run --frozen python scripts/check_dependency_inventory.py ../docs/DEPENDENCIES.md
 
       - name: Build backend wheel without cache

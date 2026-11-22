@@ -38,6 +38,8 @@ BACKEND_ROOTS = (
     Path("backend/scripts"),
     Path("backend/alembic"),
     Path("backend/tests"),
+    # The Pro distribution (Decision 0017, Phase 2, #2182).
+    Path("backend/pro"),
 )
 
 BACKEND_SUFFIXES = {".py", ".md", ".ini", ".toml", ".txt", ".sh"}

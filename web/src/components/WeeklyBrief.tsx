@@ -49,12 +49,12 @@ function capitalized(text: string): string {
 }
 
 function observationText(t: TFunction, fact: WeeklyObservationView): string {
-  // Same weekday rendering as the weekly review card (2026-01-05 is a Monday).
+  // 2026-01-05 is a Monday.
   const weekday = new Intl.DateTimeFormat(resolvedLocale(), {
     weekday: 'long',
     timeZone: 'UTC',
   }).format(new Date(Date.UTC(2026, 0, 5 + (fact.weekday ?? 0))));
-  return t(`weeklyInsights.facts.${fact.kind}`, {
+  return t(`dailyInsights.brief.facts.${fact.kind}`, {
     value: fact.value ?? undefined,
     weekday,
   });

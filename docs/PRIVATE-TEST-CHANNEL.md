@@ -377,7 +377,7 @@ setup is added. Released Self-Hosted/Production contracts remain unchanged.
 
 ## Optional server-local AI
 
-For weekly reviews and tag proposals, the application channel forwards the
+For tag proposals, the application channel forwards the
 optional `EIMIR_RECAP_AI_URL`, `EIMIR_RECAP_AI_MODEL` and
 `EIMIR_RECAP_AI_TIMEOUT_SECONDS` expressions to API and worker. Keep local inference in a separate Arcane project on `eimir-test-data`,
 so an application Git Sync update does not remove an operator-added service.

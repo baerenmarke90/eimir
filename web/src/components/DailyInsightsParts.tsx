@@ -90,14 +90,6 @@ export function ProMark({ label }: { label?: string }) {
 }
 
 /** Decorative handwritten accent; the same meaning is never carried only here. */
-export function Handwriting({ children }: { children: ReactNode }) {
-  return (
-    <span className="insight-handwriting" aria-hidden="true">
-      {children}
-    </span>
-  );
-}
-
 export interface InsightPerson {
   key: PersonKey;
   name: string;
@@ -218,10 +210,6 @@ export function formatWeekdayLong(iso: IsoDate): string {
 
 export function formatDayLong(iso: IsoDate): string {
   return format(iso, { weekday: 'long', day: 'numeric', month: 'long' });
-}
-
-export function formatDayShort(iso: IsoDate): string {
-  return format(iso, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 export function formatWeekRange(start: IsoDate, end: IsoDate): string {

@@ -4,14 +4,10 @@ import { DailyVibe } from '../api/generated/models/DailyVibe';
 import {
   addDays,
   daysInRange,
-  deriveBothGood,
-  deriveEnergyVersusPrevious,
   deriveHighlights,
   derivePartnerEnergyVibe,
-  deriveSharedDays,
   deriveVibeEnergy,
   deriveWeekdayEnergy,
-  deriveWeekendEnergy,
   energyBand,
   energyPosition,
   energySegments,
@@ -30,12 +26,11 @@ import {
 
 const BOTH = { vibe: true, energy: true };
 
-it('keeps very-good days in their own lane and includes them in positive shared observations', () => {
+it('keeps very-good days in their own lane and includes them in positive shared highlights', () => {
   const days = [
     day('2026-11-02', { vibe: DailyVibe.VERY_GOOD }, { vibe: DailyVibe.GOOD }),
     day('2026-11-03', { vibe: DailyVibe.GOOD }, { vibe: DailyVibe.VERY_GOOD }),
   ];
-  expect(deriveBothGood(days, BOTH)?.params.count).toBe(2);
   expect(deriveHighlights(days, BOTH)).toHaveLength(2);
 });
 
@@ -228,43 +223,6 @@ describe('derived insights', () => {
   const monday = '2026-09-21';
   const dates = weekDates(monday);
 
-  it('reports days on which both people shared a good vibe', () => {
-    const days = [
-      day(dates[0], { vibe: DailyVibe.GOOD }, { vibe: DailyVibe.GOOD }),
-      day(dates[3], { vibe: DailyVibe.GOOD }, { vibe: DailyVibe.GOOD }),
-      day(dates[4], { vibe: DailyVibe.GOOD }, { vibe: DailyVibe.OKAY }),
-    ];
-    expect(deriveBothGood(days, BOTH)).toEqual({
-      kind: 'bothGood',
-      params: { count: 2, date: dates[3] },
-    });
-    expect(deriveBothGood(days, { vibe: false, energy: true })).toBeNull();
-    expect(deriveBothGood([], BOTH)).toBeNull();
-  });
-
-  it('describes weekend Energy only with enough data and a clear difference', () => {
-    const high = [
-      day(dates[0], { energy: 40 }),
-      day(dates[1], { energy: 40 }),
-      day(dates[2], { energy: 50 }),
-      day(dates[5], { energy: 80 }),
-      day(dates[6], { energy: 80 }),
-    ];
-    expect(deriveWeekendEnergy(high, BOTH)?.params.direction).toBe('higher');
-    // Too few weekend samples: no statement instead of a weak one.
-    expect(deriveWeekendEnergy(high.slice(0, 4), BOTH)).toBeNull();
-    // Difference below the threshold.
-    const flat = [
-      day(dates[0], { energy: 60 }),
-      day(dates[1], { energy: 60 }),
-      day(dates[2], { energy: 60 }),
-      day(dates[5], { energy: 60 }),
-      day(dates[6], { energy: 60 }),
-    ];
-    expect(deriveWeekendEnergy(flat, BOTH)).toBeNull();
-    expect(deriveWeekendEnergy(high, { vibe: true, energy: false })).toBeNull();
-  });
-
   it('describes Vibe and Energy occurring together without a score', () => {
     const days = [
       day(dates[0], { vibe: DailyVibe.GOOD, energy: 90 }),
@@ -277,31 +235,6 @@ describe('derived insights', () => {
     expect(insight?.params).toEqual({ good: 85, other: 35 });
     expect(deriveVibeEnergy(days.slice(0, 3), BOTH)).toBeNull();
     expect(deriveVibeEnergy(days, { vibe: true, energy: false })).toBeNull();
-  });
-
-  it('counts shared days only from visible values', () => {
-    const days = dates.map((date, index) =>
-      index < 3
-        ? day(date, { vibe: DailyVibe.OKAY }, { vibe: DailyVibe.OKAY })
-        : day(date, { vibe: DailyVibe.OKAY }),
-    );
-    expect(deriveSharedDays(days)).toBeNull();
-    expect(deriveSharedDays(days, 3)?.params).toEqual({ count: 3, total: 7 });
-  });
-
-  it('compares with the previous week from visible values only', () => {
-    const now = [10, 10, 10].map((energy, index) =>
-      day(dates[index], { energy }),
-    );
-    const before = [60, 70, 80].map((energy, index) =>
-      day(addDays(dates[index], -7), { energy }),
-    );
-    expect(
-      deriveEnergyVersusPrevious(now, before, BOTH)?.params.direction,
-    ).toBe('lower');
-    expect(
-      deriveEnergyVersusPrevious(now, before.slice(0, 2), BOTH),
-    ).toBeNull();
   });
 
   it('finds a weekday whose Energy differs clearly from the month', () => {
@@ -338,9 +271,7 @@ describe('derived insights', () => {
     const days = dates.map((date) =>
       day(date, { vibe: DailyVibe.GOOD, energy: 70 }),
     );
-    expect(deriveBothGood(days, BOTH)).toBeNull();
     expect(derivePartnerEnergyVibe(days, BOTH)).toBeNull();
-    expect(deriveSharedDays(days)).toBeNull();
     expect(deriveHighlights(days, BOTH)).toEqual([]);
   });
 });

@@ -443,11 +443,6 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-check-in/insights"),
     Endpoint(
         "GET",
-        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review",
-        query={"week_start": "2026-10-26"},
-    ),
-    Endpoint(
-        "GET",
         "/api/v1/spaces/{spaceId}/daily-check-in/weekly-brief",
         query={"week_start": "2026-10-26"},
     ),
@@ -456,16 +451,8 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/daily-check-in/weekly-brief/personal",
         query={"week_start": "2026-10-26"},
     ),
-    Endpoint(
-        "POST",
-        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review",
-        body={"weekStart": "2026-10-26", "evidenceToken": "a" * 64},
-    ),
-    Endpoint(
-        "PUT",
-        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback/{recommendationKey}",
-        body={"rating": "HELPFUL"},
-    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback"),
+    Endpoint("DELETE", "/api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote/catalog"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote/preferences"),
@@ -1917,7 +1904,6 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "planId": plan["id"],
             "reminderId": reminder["id"],
             "ruleKey": "important_date_reminder",
-            "recommendationKey": "quiet_time",
             "moduleKey": "upcoming",
             "placeId": place["id"],
             "chapterId": chapter["id"],

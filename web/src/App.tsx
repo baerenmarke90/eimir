@@ -1180,7 +1180,6 @@ function AuthenticatedApp({
                   to={{
                     pathname: MORE_INSIGHTS_WEEK_ROUTE,
                     search: location.search,
-                    hash: '#wochenrueckblick',
                   }}
                   state={location.state}
                 />

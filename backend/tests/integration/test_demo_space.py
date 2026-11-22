@@ -131,7 +131,7 @@ def test_create_is_idempotent_and_representative(session: Session) -> None:
     assert _count(session, Activity, first.space_id) > 0
     assert _count(session, Notification, first.space_id) >= 2
 
-    assert _count(session, DailyCheckIn, first.space_id) == 26
+    assert _count(session, DailyCheckIn, first.space_id) == 2
     for account_id in (first.lea_id, first.alex_id):
         pinned = {
             state.key: state

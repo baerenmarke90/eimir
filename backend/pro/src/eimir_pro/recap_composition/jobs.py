@@ -24,7 +24,7 @@ from eimir.recaps import presentation, service
 from eimir.recaps.composition import theme_for
 from eimir.recaps.models import RecapKind, RecapPayload
 from eimir.relationship.models import Membership, MembershipStatus
-from eimir_pro.recap_composition import composer, freshness, montage, mood, notices
+from eimir_pro.recap_composition import composer, freshness, montage, notices
 
 SCAN_JOB = "recap.scan.v1"
 SCAN_INTERVAL = timedelta(hours=6)
@@ -81,10 +81,7 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
         value.status = "PAUSED"
         return
     composer.store_selection(session, value, selected)
-    rhythm = mood.refreshed(
-        session, space_id, kind, value.starts_on, value.through_on, value.payload.mood
-    )
-    value.payload = RecapPayload(mood=rhythm, film=film)
+    value.payload = RecapPayload(film=film)
     value.generated_by = "RULES"
     value.theme = theme_for(selected)
     value.status = "READY" if live_sources else "EMPTY"

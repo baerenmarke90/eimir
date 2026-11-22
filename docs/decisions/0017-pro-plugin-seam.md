@@ -88,11 +88,10 @@ Deliberately **not** part of the plugin, with the reason:
   `daily.insights` (`daily_checkins/insights.py`, the recap mood rhythm, `api/v1/daily_checkins.py`) are extractable,
   but they are woven into attachments and recaps. Their extraction is deferred to a later phase.
   [#2085](https://github.com/baerenmarke90/eimir/issues/2085) extracts them under the Product Owner's rule "what is
-  Free is Core; what Premium newly creates is plugin". `daily.insights` is done: the insight and weekly brief routes
-  (`api/v1/daily_insights.py`) and the package `daily_insights` (insights, weekly patterns, weekly brief) are
-  plugin code and the capability is plugin-owned; today's check-in, the retained-rating routes (reading and clearing
-  are Free) with `daily_checkins/feedback.py` and the `daily_insight_feedback` table stay Core. The weekly review
-  that collected those ratings was retired in [#2203](https://github.com/baerenmarke90/eimir/issues/2203). `media.video_upload` is
+  Free is Core; what Premium newly creates is plugin". `daily.insights` was done (insight and weekly brief routes as plugin code) until the Product Owner removed
+  and deferred Einblicke in [#2210](https://github.com/baerenmarke90/eimir/issues/2210): the routes, the package
+  `daily_insights`, the retained-rating table and the recap good-days rhythm are gone, and `daily.insights` is a
+  reserved capability without implementation again. Today's check-in stays Core. `media.video_upload` is
   done too: the video processor (package `video_processing`, `videos.py`) and its validation job are plugin code,
   the job kind is in `PLUGIN_JOB_KINDS` and the capability is plugin-owned. The shared media pipeline
   (`attachments/video_jobs.py`), the restricted process runner (`attachments/media_process.py`), voice notes,
@@ -127,7 +126,7 @@ whether it is closed before Phase 3 or accepted.
 | `partner.quick_actions.extended` | Plugin route `api/v1/partner_quick_actions.py` and package `partner_quick_actions` (command and `support_gesture_requests`, tag `notifications` kept); vocabulary, projection, thinking-of-you and the module switch stay Core | Yes: moved into the plugin by [#2084](https://github.com/baerenmarke90/eimir/issues/2084) | |
 | `theme.bespoke_packs` | Value checks in shared Core (`api/v1/appearance.py`, `appearance/models.py`); the capability is plugin-owned, the packs live in the clients | Partly: plugin-owned by [#2084](https://github.com/baerenmarke90/eimir/issues/2084), so Core-only refuses Pro values; the check itself stays public code | [#2086](https://github.com/baerenmarke90/eimir/issues/2086) |
 | `media.video_upload` | Plugin package `video_processing` (processor and validation job); pipeline, voice notes, playback and the retained-media lifecycle stay Core | Yes: processor and job moved by [#2085](https://github.com/baerenmarke90/eimir/issues/2085), the capability is plugin-owned | |
-| `daily.insights` | Plugin routes `api/v1/daily_insights.py` and package `daily_insights` (OpenAPI tag kept); the rating route and its table stay Core; the recap mood rhythm moved with recap composition (`recap_composition/mood.py`) | Yes: moved by [#2085](https://github.com/baerenmarke90/eimir/issues/2085), the capability is plugin-owned | |
+| `daily.insights` | None since [#2210](https://github.com/baerenmarke90/eimir/issues/2210): Einblicke, its routes, the rating table and the recap mood rhythm were removed and deferred | Nothing to protect: reserved capability without implementation again | |
 | `storage.cloud_quota_50gb` | Operating-model capability, removed on Self-Hosted | Not Pro code; stays Core by design | |
 | `chapter.rich_presentation`, `occasion.automation`, `recap.pdf_yearbook`, `recap.video_montage`, `question.5_year_mirror`, `surprise_mode.vault` | None (no implementation) | Nothing to protect yet: the first implementation is written as plugin code | |
 
@@ -624,7 +623,7 @@ and the retirement of old artifacts are operational work on top.
 - **Paying Self-Hosted operators receive the code.** A Python package in an image is readable source or bytecode.
   Protection there is the license and its terms, not secrecy.
 - **Gates in shared Core code stay patchable.** `relationship.passport` (a new recap reflection),
-  `theme.bespoke_packs`, `media.video_upload` (admission) and `daily.insights` (setting a rating) are checks in
+  `theme.bespoke_packs` and `media.video_upload` (admission) are checks in
   public code. Anyone running a modified Core can remove them, as they can today.
 - **Workflow cost.** With one private development repository there is no second PR per change, but there is an
   export step to maintain, a public repository whose contributions must be carried over by hand, and two images per

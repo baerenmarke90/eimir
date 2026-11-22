@@ -145,7 +145,6 @@ import { TodayDestinationLink } from './TodayDestinationLink';
 import { UiState } from './UiState';
 import { useKeepsakeSway } from './useKeepsakeSway';
 import { prefersReducedData, useMomentRotation } from './useMomentRotation';
-import { WeeklyBriefWirHint } from './WeeklyBriefWirHint';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
 import { WirGardenModule } from './WirGardenModule';
 import { WirLists } from './WirLists';
@@ -2207,15 +2206,6 @@ export function TodayPage({
         ) : null}
         {relationshipPresenceVisible ? dailyCheckIn?.panel : null}
         {dailyCheckIn?.announcement}
-        {account?.id && dailyCheckInsApi && entitlementApi && !isSparse ? (
-          <WeeklyBriefWirHint
-            accountId={account.id}
-            spaceId={spaceId}
-            dailyCheckInsApi={dailyCheckInsApi}
-            entitlementApi={entitlementApi}
-            modulesEnabled={vibeCheckEnabled || energyCheckInEnabled}
-          />
-        ) : null}
         <OnceIncomingSignal />
       </>
     ),

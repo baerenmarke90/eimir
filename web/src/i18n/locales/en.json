@@ -5955,6 +5955,8 @@
     "wirModuleLabel": "Distance between you",
     "mapTitle": "Where we are",
     "mapShowUs": "Show us",
+    "mapZoomToPartner": "Zoom to {{partner}}",
+    "mapZoomToOwn": "Zoom to you",
     "mapLoading": "Loading map …",
     "mapPartnerArea": "{{partner}}",
     "mapPartnerNotSharing": "{{partner}} is not sharing anything right now",

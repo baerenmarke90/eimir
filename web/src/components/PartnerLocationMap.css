@@ -80,6 +80,22 @@
   gap: var(--space-3);
 }
 
+/* A person on the map: the row itself brings them into view (#2158). */
+.partner-map-person-button {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 0;
+  border-radius: var(--radius-medium);
+  background: transparent;
+  color: inherit;
+  font-weight: inherit;
+  text-align: start;
+}
+
 .partner-map-person .partner-avatar,
 .place-map-area-marker .partner-avatar {
   width: 2.75rem;

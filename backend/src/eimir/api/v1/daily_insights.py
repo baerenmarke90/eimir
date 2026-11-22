@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from datetime import date
 from typing import Literal
+from uuid import UUID
 
 from fastapi import APIRouter, Response
 from pydantic import ConfigDict, Field
@@ -26,7 +27,7 @@ from eimir.api.v1.daily_checkins import (
 )
 from eimir.daily_checkins.context import DailyCheckInErrorCode
 from eimir.daily_checkins.models import DailyVibe, RecommendationKey
-from eimir.daily_insights import insights, weekly_review
+from eimir.daily_insights import insights, weekly_brief, weekly_review
 from eimir.daily_insights.weekly_patterns import ObservationKind
 from eimir.entitlements.models import Capability
 
@@ -252,3 +253,127 @@ def create_daily_check_in_weekly_review(
         ai = False
     response.headers["Cache-Control"] = "private, no-store"
     return _weekly_view(fresh, selection=selected, ai=ai)
+
+
+class WeeklyBriefMomentView(ApiModel):
+    memory_id: UUID
+    title: str
+    happened_on: date
+    photo_count: int
+    attachment_id: UUID | None = None
+    attachment_is_sensitive: bool = False
+    attachment_has_thumbnail: bool = False
+
+
+class WeeklyBriefWishView(ApiModel):
+    wish_id: UUID
+    title: str
+    own: bool
+    created_on: date
+
+
+class WeeklyBriefPlanView(ApiModel):
+    plan_id: UUID
+    title: str | None = Field(
+        default=None,
+        description="List title; null asks the client for its neutral discreet fallback.",
+    )
+    concealed: bool
+    planned_on: date
+
+
+class WeeklyBriefView(ApiModel):
+    week_start: date
+    week_end: date
+    elapsed_days: int = Field(description="Days of the week up to the Space day, at most 7.")
+    joint_days: int = Field(description="Days with values of both people visible to the caller.")
+    headline: weekly_brief.WeeklyBriefHeadline
+    good_days: list[date]
+    shared_days: list[date] = Field(description="Days with a readable Plan or Memory.")
+    highlight: WeeklyBriefMomentView | None = None
+    attention: weekly_brief.WeeklyBriefAttention | None = None
+    attention_days: int
+    wishes: list[WeeklyBriefWishView]
+    suggested_date: date | None = None
+    follow_up: WeeklyBriefPlanView | None = None
+    new_observations: list[WeeklyObservationView]
+
+
+def _brief_view(value: weekly_brief.WeeklyBrief) -> WeeklyBriefView:
+    moment = value.highlight
+    plan = value.follow_up
+    return WeeklyBriefView(
+        week_start=value.week_start,
+        week_end=value.week_end,
+        elapsed_days=value.elapsed_days,
+        joint_days=value.joint_days,
+        headline=value.headline,
+        good_days=value.good_days,
+        shared_days=value.shared_days,
+        highlight=None
+        if moment is None
+        else WeeklyBriefMomentView(
+            memory_id=moment.memory_id,
+            title=moment.title,
+            happened_on=moment.happened_on,
+            photo_count=moment.photo_count,
+            attachment_id=moment.attachment_id,
+            attachment_is_sensitive=moment.attachment_is_sensitive,
+            attachment_has_thumbnail=moment.attachment_has_thumbnail,
+        ),
+        attention=value.attention,
+        attention_days=value.attention_days,
+        wishes=[
+            WeeklyBriefWishView(
+                wish_id=wish.wish_id, title=wish.title, own=wish.own, created_on=wish.created_on
+            )
+            for wish in value.wishes
+        ],
+        suggested_date=value.suggested_date,
+        follow_up=None
+        if plan is None
+        else WeeklyBriefPlanView(
+            plan_id=plan.plan_id,
+            title=plan.title,
+            concealed=plan.concealed,
+            planned_on=plan.planned_on,
+        ),
+        new_observations=[
+            WeeklyObservationView(
+                key=f.key,
+                kind=f.kind,
+                sample_count=f.sample_count,
+                value=f.value,
+                weekday=f.weekday,
+            )
+            for f in value.new_observations
+        ],
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/daily-check-in/weekly-brief",
+    response_model=WeeklyBriefView,
+    operation_id="getDailyCheckInWeeklyBrief",
+    responses=problem_responses(
+        401,
+        403,
+        404,
+        409,
+        422,
+        descriptions={
+            403: "`PREMIUM_ENTITLEMENT_REQUIRED`: Pro capability `daily.insights` required.",
+        },
+    ),
+)
+def get_daily_check_in_weekly_brief(
+    authorization: Authorization, session: DbSession, response: Response, week_start: date
+) -> WeeklyBriefView:
+    """Rule-based weekly brief over mutually visible values and readable shared content.
+
+    Model-free and deterministic (#2169). Plans, Memories and Wishes are read
+    through the ordinary visibility rules; the brief stores nothing.
+    """
+    _weekly_capability(session, authorization)
+    response.headers["Cache-Control"] = "private, no-store"
+    return _brief_view(weekly_brief.build(session, authorization, week_start))

@@ -37,17 +37,14 @@ from eimir.plans.models import Plan, PlanStatus
 from eimir.recaps.composition import Candidate
 from eimir.recaps.models import (
     FilmMedia,
-    MoodRhythm,
     RecapEdition,
     RecapFilm,
     RecapKind,
-    RecapPayload,
     RecapReflection,
     RecapSource,
     RecapSourceKind,
 )
 from eimir.relations.models import PlaceHeartMoment, PlaceMemory, PlaceMilestone
-from eimir.relationship import configuration as configuration_service
 from eimir.relationship.models import Membership, MembershipStatus
 
 MODELS: dict[RecapSourceKind, Any] = {
@@ -349,35 +346,6 @@ def month_tags(
     return [{"label": label, "count": count} for label, count in ranked[:TAG_LIMIT]]
 
 
-# --- Frozen mood rhythm --------------------------------------------------------------
-
-
-def partner_pair(session: Session, space_id: UUID) -> tuple[UUID, UUID] | None:
-    """Both active members in query order, or None while the Space does not have two."""
-    members = list(
-        session.scalars(
-            select(Membership.account_id).where(
-                Membership.space_id == space_id,
-                Membership.status == MembershipStatus.ACTIVE.value,
-            )
-        )
-    )
-    return (members[0], members[1]) if len(members) == 2 else None
-
-
-def vibe_enabled(session: Session, space_id: UUID) -> bool:
-    configuration = configuration_service.load(session, space_id)
-    return bool(configuration and configuration.vibe_check_enabled)
-
-
-def visible_mood(session: Session, space_id: UUID, payload: RecapPayload) -> MoodRhythm | None:
-    """Serve the frozen aggregate only while both partners and the Vibe module remain."""
-    mood = payload.mood
-    if mood is None or partner_pair(session, space_id) is None:
-        return None
-    return mood if vibe_enabled(session, space_id) else None
-
-
 # --- Edition projection ---------------------------------------------------------------
 
 
@@ -611,9 +579,6 @@ def project(session: Session, context: AuthorizationContext, value: RecapEdition
             "introduction": value.payload.introduction if unchanged else None,
             "sources": sources,
             "facts": facts(session, context, value) if value.status == "READY" else None,
-            "mood": visible_mood(session, context.space_id, value.payload)
-            if value.status == "READY"
-            else None,
             "film": film_view(session, context, value) if value.status == "READY" else None,
             "reflections": [
                 {

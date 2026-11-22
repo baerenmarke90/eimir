@@ -55,8 +55,6 @@ it('automatically supplies Back for an unregistered future secondary page and a 
 });
 
 it.each([
-  '/more/insights',
-  '/more/insights/patterns',
   '/story/recaps',
   '/story/recaps/edition',
   '/story/chapters',

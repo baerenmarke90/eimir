@@ -9,12 +9,12 @@ from fastapi import APIRouter, Response
 from pydantic import ConfigDict, Field, RootModel, model_validator
 
 from eimir.api.concurrency import IfMatchToken, etag_for_token
-from eimir.api.deps import AccountBoundAuthorization, Authorization, DbSession
+from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
-from eimir.daily_checkins import feedback, service
+from eimir.daily_checkins import service
 from eimir.daily_checkins.context import DailyCheckInErrorCode
-from eimir.daily_checkins.models import DailyVibe, RecommendationKey, RecommendationRating
+from eimir.daily_checkins.models import DailyVibe
 from eimir.relationship.models import DailyCheckInVisibilityMode
 
 router = APIRouter(tags=["daily-check-ins"])
@@ -292,46 +292,3 @@ def update_daily_check_in_today(
     )
     _headers(response, projection)
     return _view(projection)
-
-
-class WeeklyFeedbackView(ApiModel):
-    recommendation_key: RecommendationKey
-    rating: RecommendationRating
-
-
-class RetainedWeeklyFeedbackView(ApiModel):
-    ratings: list[WeeklyFeedbackView]
-
-
-@router.get(
-    "/spaces/{spaceId}/daily-check-in/weekly-feedback",
-    response_model=RetainedWeeklyFeedbackView,
-    operation_id="getDailyCheckInWeeklyFeedback",
-    responses=problem_responses(401, 404),
-)
-def get_daily_check_in_weekly_feedback(
-    authorization: AccountBoundAuthorization, session: DbSession, response: Response
-) -> RetainedWeeklyFeedbackView:
-    """The caller's own ratings retained from the retired weekly review; not paywalled."""
-    response.headers["Cache-Control"] = "private, no-store"
-    return RetainedWeeklyFeedbackView(
-        ratings=[
-            WeeklyFeedbackView(recommendation_key=item.recommendation_key, rating=item.rating)
-            for item in feedback.feedback(session, authorization)
-        ]
-    )
-
-
-@router.delete(
-    "/spaces/{spaceId}/daily-check-in/weekly-feedback",
-    status_code=204,
-    response_class=Response,
-    operation_id="clearDailyCheckInWeeklyFeedback",
-    responses=problem_responses(401, 404),
-)
-def clear_daily_check_in_weekly_feedback(
-    authorization: AccountBoundAuthorization, session: DbSession
-) -> Response:
-    """Delete all of the caller's retained ratings; idempotent and not paywalled."""
-    feedback.clear_feedback(session, authorization)
-    return Response(status_code=204, headers={"Cache-Control": "private, no-store"})

@@ -18,15 +18,15 @@ from eimir.daily_checkins.models import DailyCheckIn
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
 from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
-from eimir.jobs.models import Job
+from eimir.jobs.models import Job, JobStatus
 from eimir.memories.models import (
     Memory,
     MemoryPayload,
     MemoryPhotoReaction,
     PhotoReaction,
 )
-from eimir.recaps import presentation, service
-from eimir.recaps.models import RecapEdition
+from eimir.recaps import mood_purge, presentation, service
+from eimir.recaps.models import MoodBucket, MoodRhythm, RecapEdition
 from eimir.relationship import configuration as configuration_service
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
@@ -650,36 +650,20 @@ def test_the_reaction_line_needs_both_members_to_react_alike_and_stays_rare(
     assert extra
 
 
-def test_mood_rhythm_counts_only_mutual_days_and_stays_frozen_after_a_downgrade(
-    client, session, context, monkeypatch
-):  # type: ignore[no-untyped-def]
+def test_recaps_carry_no_good_days_rhythm_and_older_counts_are_purged(client, session, context):  # type: ignore[no-untyped-def]
+    """The rhythm was removed with Einblicke (#2210): never composed, never served."""
     memory(session, context)
     configuration_service.load(session, context["space"].id).vibe_check_enabled = True
     for number in range(1, 7):
-        for account, vibe in ((context["anna"], "GOOD"), (context["ben"], "VERY_GOOD")):
+        for account in (context["anna"], context["ben"]):
             session.add(
                 DailyCheckIn(
                     space_id=context["space"].id,
                     account_id=account.id,
                     checked_on=date(2026, 10, number),
-                    vibe=vibe,
+                    vibe="GOOD",
                 )
             )
-    # One-sided day: counted nowhere and implied nowhere.
-    session.add(
-        DailyCheckIn(
-            space_id=context["space"].id,
-            account_id=context["anna"].id,
-            checked_on=date(2026, 10, 20),
-            vibe="GOOD",
-        )
-    )
-    session.flush()
-    created = request(client, context).json()
-
-    generate(session, context, created)
-    assert read(client, context, created).json()["mood"] is None  # no daily.insights yet
-
     entitlements.record_grant(
         session,
         space_id=context["space"].id,
@@ -692,30 +676,31 @@ def test_mood_rhythm_counts_only_mutual_days_and_stays_frozen_after_a_downgrade(
         capabilities=["daily.insights"],
     )
     session.flush()
+    created = request(client, context).json()
     generate(session, context, created)
-    own, partner = (read(client, context, created, partner=who).json() for who in (False, True))
-    assert own["mood"] == partner["mood"]
-    assert own["mood"]["leading"] == 1
-    assert [(b["index"], b["mutualDays"], b["goodDays"]) for b in own["mood"]["buckets"]] == [
-        (1, 6, 6),
-        (2, 0, 0),
-        (3, 0, 0),
-        (4, 0, 0),
-        (5, 0, 0),
-    ]
+    served = read(client, context, created).json()
+    assert "mood" not in served
+    record = session.get(RecapEdition, UUID(created["id"]))
+    assert record.payload.mood is None
 
-    # Without the capability a recomposition keeps the frozen aggregate.
-    original = entitlements.has_capability
-    monkeypatch.setattr(
-        entitlements,
-        "has_capability",
-        lambda session, space_id, capability, **kwargs: (
-            capability != "daily.insights" and original(session, space_id, capability, **kwargs)
-        ),
+    # An edition written before the removal still carries counts: the job clears them.
+    record.payload = record.payload.model_copy(
+        update={
+            "mood": MoodRhythm(buckets=[MoodBucket(index=1, mutual_days=6, good_days=6)], leading=1)
+        }
     )
-    generate(session, context, created)
-    assert read(client, context, created).json()["mood"] == own["mood"]
-
-    # It is not served once the Vibe module is switched off or a partner is gone.
-    monkeypatch.setattr(presentation, "vibe_enabled", lambda *args: False)
-    assert read(client, context, created).json()["mood"] is None
+    session.flush()
+    version = record.version
+    cleared, missed, last = mood_purge.purge_batch(session, after=None)
+    assert (cleared, missed, last) == (1, 0, None)
+    stored = session.get(RecapEdition, UUID(created["id"]))
+    assert stored.payload.mood is None
+    assert stored.version == version
+    # A later pass finds nothing left, and a finished purge is never scheduled again.
+    assert mood_purge.purge_batch(session, after=None) == (0, 0, None)
+    job = mood_purge.ensure_scheduled(session)
+    assert job is not None
+    assert mood_purge.ensure_scheduled(session) is None  # one open job only
+    job.status = JobStatus.SUCCEEDED.value
+    session.flush()
+    assert mood_purge.ensure_scheduled(session) is None

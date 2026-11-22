@@ -105,6 +105,13 @@ class LoadedPlugins:
                 return source
         return None
 
+    def hidden_wish_ids(self, session: Session, context: AuthorizationContext) -> frozenset[UUID]:
+        """Every loaded plugin's hidden Wishes for this reader; none without a plugin."""
+        hidden: set[UUID] = set()
+        for plugin in self.plugins:
+            hidden |= plugin.hidden_wish_ids(session, context)
+        return frozenset(hidden)
+
     def attachment_read_rules(self) -> dict[str, AttachmentReadRule]:
         return {
             parent_type: rule

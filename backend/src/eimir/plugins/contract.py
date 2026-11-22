@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from eimir.transfer.models import TransferScope
     from eimir.wish_selections.date_idea_contract import DateIdeaSource
 
-PLUGIN_SEAM_VERSION = 4
+PLUGIN_SEAM_VERSION = 5
 """The seam revision Core implements. A plugin declaring another value refuses to start."""
 
 PLUGIN_ENTRY_POINT_GROUP = "eimir.plugins"
@@ -208,6 +208,15 @@ class ProPlugin(Protocol):
         scope: TransferScope,
     ) -> Mapping[str, Any]:
         """Return the plugin's keys of the export's account document (read only)."""
+        ...
+
+    def hidden_wish_ids(self, session: Session, context: AuthorizationContext) -> frozenset[UUID]:
+        """Return the Wishes whose content the reader must not see right now (read only).
+
+        A game in progress hides the Wishes the reader is guessing (#2158 H).
+        Core masks them in its Wish read models and refuses the reader's
+        writes to them. Without the plugin nothing is hidden.
+        """
         ...
 
     def date_ideas(self) -> DateIdeaSource | None:

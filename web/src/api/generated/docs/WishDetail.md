@@ -13,6 +13,7 @@ Name | Type
 `description` | string
 `followedFromWishId` | string
 `hasMemory` | boolean
+`hiddenDuringGame` | boolean
 `id` | string
 `plan` | [WishPlanReference](WishPlanReference.md)
 `seriesId` | string
@@ -38,6 +39,7 @@ const example = {
   "description": null,
   "followedFromWishId": null,
   "hasMemory": null,
+  "hiddenDuringGame": null,
   "id": null,
   "plan": null,
   "seriesId": null,

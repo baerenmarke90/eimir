@@ -220,6 +220,36 @@ describe('WishProductPage actions menu', () => {
       screen.queryByRole('button', { name: i18n.t('m5s3.wish.menu') }),
     ).toBeNull();
   });
+
+  it('shows only a placeholder while an open game hides the wish (#2158 H)', () => {
+    renderWish({
+      ...OPEN_WISH,
+      title: '',
+      description: null,
+      tags: [],
+      creator: { id: 'account-alex', displayName: 'Alex' },
+      capabilities: { canComment: false, canDelete: false, canEdit: false },
+      hiddenDuringGame: true,
+    });
+    expect(
+      screen.getByRole('heading', {
+        name: i18n.t('wishConcealment.detailTitle'),
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(i18n.t('wishConcealment.detailBody', { name: 'Alex' })),
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole('link', { name: i18n.t('wishConcealment.toGame') })
+        .getAttribute('href'),
+    ).toBe('/games/wish-detective');
+    // Nothing to edit, plan, complete, remind or propose.
+    expect(
+      screen.queryByRole('button', { name: i18n.t('m5s3.wish.menu') }),
+    ).toBeNull();
+    expect(screen.queryAllByRole('button')).toHaveLength(1);
+  });
 });
 
 describe('WishProductPage conversion', () => {

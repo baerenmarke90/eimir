@@ -59,6 +59,7 @@ PRO_TEST_MODULES = frozenset(
         "integration/test_transfer_video_revalidation.py",
         "integration/test_video_lifecycle.py",
         "integration/test_waiting_games.py",
+        "integration/test_weekly_brief.py",
         "integration/test_weekly_review.py",
         "integration/test_wish_detective_concealment.py",
         "integration/test_wish_selection_date_ideas.py",

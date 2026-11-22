@@ -2861,6 +2861,7 @@
     "proBrand": "eimir. Pro",
     "nav": {
       "label": "Switch view",
+      "brief": "Weekly brief",
       "week": "Week",
       "patterns": "Month",
       "recap": "Recap"
@@ -3077,6 +3078,76 @@
       "4": "Fridays",
       "5": "Saturdays",
       "6": "Sundays"
+    },
+    "brief": {
+      "loading": "Putting your weekly brief together …",
+      "coverage": "You both shared something on {{count}} of {{total}} days.",
+      "basisToggle": "What is this based on?",
+      "basis": "Only days on which you can both see your values are counted. The statements describe what happened together. They say nothing about what caused what, and nothing about your relationship as a whole.",
+      "headline": {
+        "EMPTY": {
+          "title": "Nothing shared by both of you this week yet.",
+          "body": "As soon as you both share Vibe or Energy, your weekly brief appears here."
+        },
+        "SPARSE": {
+          "title": "Too little was shared this week for patterns.",
+          "body": "Every day you both share something makes the picture clearer."
+        },
+        "SHARED_GOOD_DAYS": {
+          "title": "Your good days had something in common: you had plans together.",
+          "body": "{{days}}, you both felt good. On those days you had a shared plan or moment."
+        },
+        "GOOD_DAYS": {
+          "title_one": "On one day you both felt good.",
+          "title_other": "On {{count}} days you both felt good.",
+          "body": "That was {{days}}."
+        },
+        "STEADY": {
+          "title": "An even week.",
+          "body": "No day stood out. Quiet weeks belong too."
+        }
+      },
+      "good": {
+        "title": "What did you good",
+        "momentDate": "{{date}}",
+        "momentPhotos_one": "{{date}} · one photo",
+        "momentPhotos_other": "{{date}} · {{count}} photos",
+        "momentUntitled": "Your moment",
+        "stripLabel": "Your week, day by day",
+        "stripHint": "Tap a day to see your values.",
+        "legendShared": "Plan or moment",
+        "dayGood": "You both felt good.",
+        "dayShared": "You had a shared plan or moment."
+      },
+      "attention": {
+        "title": "What needs attention right now",
+        "OWN_CLOSENESS": "On {{count}} days you wanted closeness while {{name}} preferred some quiet.",
+        "PARTNER_CLOSENESS": "On {{count}} days {{name}} wanted closeness while you preferred some quiet.",
+        "MIXED": "On {{count}} days one of you wanted closeness and the other preferred some quiet.",
+        "body": "This happens in every relationship. A short talk helps you know next time what the other needs.",
+        "prompt": "Talk about it briefly: what helps you when you need quiet, and what helps me when I need closeness?"
+      },
+      "impulse": {
+        "title": "Your idea for next week",
+        "sourceOwn": "Your wish · on your list since {{date}}",
+        "sourcePartner": "Wish from {{name}} · on your list since {{date}}",
+        "rhythm": "{{weekday}} you have often both had a lot of energy in recent weeks. How about {{date}}?",
+        "plan": "Make it a plan",
+        "next": "Another idea",
+        "emptyTitle": "No open wish on your list",
+        "emptyBody": "Write down a wish and the weekly brief will suggest your next plan here.",
+        "addWish": "Add a wish"
+      },
+      "followUp": {
+        "title": "From last week",
+        "body": "You had planned “{{title}}” for {{date}}. Did it happen? In the plan you can complete it and keep a moment.",
+        "bodyUntitled": "You had a plan for {{date}}. Did it happen? In the plan you can complete it and keep a moment.",
+        "open": "View plan"
+      },
+      "newPatterns": {
+        "title": "Newly noticed"
+      },
+      "history": "History over weeks and months"
     }
   },
   "weeklyInsights": {

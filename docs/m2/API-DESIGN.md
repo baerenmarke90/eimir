@@ -335,6 +335,7 @@ Binding M2 codes:
 | `ATTACHMENT_VALIDATION_FAILED` | 422 | Media validation failed |
 | `ATTACHMENT_NOT_READY` | 409 | Bind/Read before READY |
 | `ATTACHMENT_ALREADY_LINKED` | 409 | exclusive binding violated |
+| `ATTACHMENT_IN_USE` | 409 | delete refused: a Heart Moment still uses the attachment |
 | `ATTACHMENT_LIMIT_EXCEEDED` | 409 | parent cardinality/total size violated |
 | `COMMENT_TARGET_NOT_AVAILABLE` | 404 | parent not visible/not commentable |
 | `RATE_LIMITED` | 429 | existing Rate Limit convention |

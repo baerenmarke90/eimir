@@ -740,7 +740,10 @@ export function WishProductPage({
                       </option>
                     ))}
                   </select>
-                  <PlanScheduleFields idPrefix="wish-plan-schedule" />
+                  <PlanScheduleFields
+                    idPrefix="wish-plan-schedule"
+                    defaultDate={convertDraft?.plannedOn}
+                  />
                   <button type="submit" disabled={writesPending}>
                     {convertMutation.isPending
                       ? t('m5s3.wish.converting')

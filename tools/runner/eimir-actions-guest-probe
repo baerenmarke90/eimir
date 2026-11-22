@@ -6,7 +6,7 @@ set -euo pipefail
 #   image        bake the reusable runner image from the verified Ubuntu Noble image
 #   jit-nightly  run one dispatched nightly or test-channel job, from the runner image when present
 # The optional third argument selects guest slot 1 (default) or 2. Two guests
-# can run side by side, one per slot. Each slot owns a system account, a lock,
+# can run at the same time, one per slot. Each slot owns a system account, a lock,
 # a transient unit, a firewall table and a toolcache disk.
 if [[ $EUID != 0 || $(hostname -s) != eimir-dev || $# -lt 2 || $# -gt 3 ||
       ! $1 =~ ^(network|containers|runner|jit|jit-nightly|image)$ || ! ${3:-1} =~ ^[12]$ ]]; then

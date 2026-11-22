@@ -14,11 +14,11 @@ from eimir.api.schema import ApiModel
 from eimir.core import clock
 from eimir.domain.experiences import ExperienceKind
 from eimir.entitlements.models import Capability
-from eimir.games import service, waiting
 from eimir.games.questions import select_questions
-from eimir.games.waiting import WaitingGameKind, WaitingGameReason
 from eimir.memories import experiences
 from eimir.recaps.service import calendar_context
+from eimir_pro.games import service, waiting
+from eimir_pro.games.waiting import WaitingGameKind, WaitingGameReason
 
 router = APIRouter(tags=["games"])
 

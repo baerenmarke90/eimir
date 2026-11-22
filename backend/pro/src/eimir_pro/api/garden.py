@@ -20,8 +20,8 @@ from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.core.errors import NotFoundError
 from eimir.entitlements.models import Capability
-from eimir.garden import growth, history, service
-from eimir.garden.models import (
+from eimir_pro.garden import growth, history, service
+from eimir_pro.garden.models import (
     GardenBouquet,
     GardenForm,
     GardenHistoryKind,

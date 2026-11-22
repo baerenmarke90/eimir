@@ -33,8 +33,13 @@ from eimir.core import clock
 from eimir.core.errors import ConflictError, NotFoundError, ValidationError
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.engagement.models import Notification
-from eimir.garden import growth
-from eimir.garden.models import (
+from eimir.outbox import service as outbox_service
+from eimir.plans.models import Plan, PlanAnticipation, PlanStatus
+from eimir.recaps.service import calendar_context
+from eimir.relationship import service as relationship
+from eimir.relationship.models import Membership, MembershipStatus
+from eimir_pro.garden import growth
+from eimir_pro.garden.models import (
     MAX_STAGE,
     Garden,
     GardenBouquet,
@@ -48,11 +53,6 @@ from eimir.garden.models import (
     GardenWatering,
     GardenWords,
 )
-from eimir.outbox import service as outbox_service
-from eimir.plans.models import Plan, PlanAnticipation, PlanStatus
-from eimir.recaps.service import calendar_context
-from eimir.relationship import service as relationship
-from eimir.relationship.models import Membership, MembershipStatus
 
 SLEEP_AFTER_DAYS = 4
 """Full calendar days without either partner in the garden before it sleeps."""

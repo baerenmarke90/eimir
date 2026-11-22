@@ -37,9 +37,10 @@ from sqlalchemy.orm import QueryableAttribute, Session
 from eimir.authorization import AuthorizationContext
 from eimir.core import clock
 from eimir.core import cursor as cursor_codec
-from eimir.garden import growth
-from eimir.garden import service as garden_service
-from eimir.garden.models import (
+from eimir.recaps.service import calendar_context
+from eimir_pro.garden import growth
+from eimir_pro.garden import service as garden_service
+from eimir_pro.garden.models import (
     GardenBouquet,
     GardenHistoryKind,
     GardenPlant,
@@ -47,7 +48,6 @@ from eimir.garden.models import (
     GardenWatering,
     GardenWords,
 )
-from eimir.recaps.service import calendar_context
 
 MAX_LIMIT = 50
 

@@ -30,8 +30,14 @@ from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext, readable
 from eimir.core.errors import ConflictError, ErrorCode, ValidationError
-from eimir.couple_games import wish_detective_rules as rules
-from eimir.couple_games.models import (
+from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
+from eimir.memories.models import Memory
+from eimir.outbox import service as outbox_service
+from eimir.relationship import service as relationship
+from eimir.relationship.models import Membership, MembershipStatus
+from eimir.wishes.models import Wish, WishStatus
+from eimir_pro.couple_games import wish_detective_rules as rules
+from eimir_pro.couple_games.models import (
     OUR_MOMENTS_MAX_PAIRS,
     OUR_MOMENTS_MIN_PAIRS,
     WHO_OF_US_QUESTION_IDS,
@@ -52,13 +58,7 @@ from eimir.couple_games.models import (
     WishDetectiveResult,
     WishDetectiveRound,
 )
-from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
-from eimir.games.service import MemoryCandidate, read_memory_candidates
-from eimir.memories.models import Memory
-from eimir.outbox import service as outbox_service
-from eimir.relationship import service as relationship
-from eimir.relationship.models import Membership, MembershipStatus
-from eimir.wishes.models import Wish, WishStatus
+from eimir_pro.games.service import MemoryCandidate, read_memory_candidates
 
 # Only open wishes take part; a planned wish is no riddle (PO 2026-11-18).
 CANDIDATE_WISH_STATUSES = (WishStatus.OPEN.value,)

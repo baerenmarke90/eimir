@@ -8,14 +8,13 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
+from eimir_pro.garden.models import Garden, GardenBouquet, GardenPlant, GardenReader
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from eimir.engagement.models import Notification, NotificationKind
-from eimir.garden.models import Garden, GardenBouquet, GardenPlant, GardenReader
 from eimir.relationship import service as relationship_service
-from tests.conftest import auth, requires_database
-from tests.integration.test_garden import (  # noqa: F401 (fixtures)
+from pro_tests.integration.test_garden import (  # noqa: F401 (fixtures)
     DAY_ONE,
     _at,
     _h,
@@ -25,6 +24,7 @@ from tests.integration.test_garden import (  # noqa: F401 (fixtures)
     couple,
     premium,
 )
+from tests.conftest import auth, requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]
 

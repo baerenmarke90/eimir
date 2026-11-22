@@ -14,8 +14,8 @@ from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.core.ids import parse_id
 from eimir.entitlements.models import Capability
-from eimir.heart_hunt import service
-from eimir.heart_hunt.models import HeartHuntRound, HeartRoundState
+from eimir_pro.heart_hunt import service
+from eimir_pro.heart_hunt.models import HeartHuntRound, HeartRoundState
 
 router = APIRouter(tags=["games"])
 

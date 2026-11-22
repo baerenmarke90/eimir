@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
+from eimir_pro.picture_ping_pong.models import PicturePingPong
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
@@ -22,7 +23,6 @@ from eimir.entitlements.models import (
 )
 from eimir.memories.models import Memory, MemoryPayload
 from eimir.outbox.models import OutboxEvent
-from eimir.picture_ping_pong.models import PicturePingPong
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 

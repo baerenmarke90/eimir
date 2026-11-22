@@ -11,6 +11,7 @@ from uuid import UUID, uuid4
 import pytest
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
+from eimir_pro.garden.models import GardenPlant, GardenReader, GardenWatering
 from eimir_pro.once_messages.models import OnceDevice, OnceReception
 from eimir_pro.partner_quick_actions.models import SupportGestureRequest
 from eimir_pro.partner_quick_actions.service import send_support_gesture
@@ -52,7 +53,6 @@ from eimir.engagement.models import (
 )
 from eimir.engagement.push import register_endpoint
 from eimir.engagement.thinking import send as send_thinking_of_you
-from eimir.garden.models import GardenPlant, GardenReader, GardenWatering
 from eimir.identity.deletion import (
     DELETED_ACCOUNT_DISPLAY_NAME,
     DELETED_ACCOUNT_LOCALE,

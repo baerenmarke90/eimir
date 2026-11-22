@@ -31,11 +31,11 @@ from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext
 from eimir.core import clock
-from eimir.couple_games.models import CoupleGame, CoupleGameKind, CoupleGameStatus
-from eimir.garden.models import GardenBouquet, GardenPlant
-from eimir.heart_hunt.models import HeartHuntRound, HeartRoundState
-from eimir.picture_ping_pong.models import PicturePingPong, PictureStatus
 from eimir.recaps.service import calendar_context
+from eimir_pro.couple_games.models import CoupleGame, CoupleGameKind, CoupleGameStatus
+from eimir_pro.garden.models import GardenBouquet, GardenPlant
+from eimir_pro.heart_hunt.models import HeartHuntRound, HeartRoundState
+from eimir_pro.picture_ping_pong.models import PicturePingPong, PictureStatus
 
 
 class WaitingGameKind(StrEnum):

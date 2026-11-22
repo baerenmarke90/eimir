@@ -1,24 +1,28 @@
 
-# WeeklyReviewRequest
+# PersonalWeekdayPatternView
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`evidenceToken` | string
-`weekStart` | Date
+`energy` | number
+`others` | number
+`sampleDays` | number
+`weekday` | number
 
 ## Example
 
 ```typescript
-import type { WeeklyReviewRequest } from ''
+import type { PersonalWeekdayPatternView } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "evidenceToken": null,
-  "weekStart": null,
-} satisfies WeeklyReviewRequest
+  "energy": null,
+  "others": null,
+  "sampleDays": null,
+  "weekday": null,
+} satisfies PersonalWeekdayPatternView
 
 console.log(example)
 
@@ -27,7 +31,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as WeeklyReviewRequest
+const exampleParsed = JSON.parse(exampleJSON) as PersonalWeekdayPatternView
 console.log(exampleParsed)
 ```
 

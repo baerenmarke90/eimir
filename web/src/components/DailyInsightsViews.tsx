@@ -1,16 +1,13 @@
 import type { TFunction } from 'i18next';
-import { type ReactNode, useState } from 'react';
+import { useState } from 'react';
 import {
   compact,
   type DerivedInsight,
   daysWithValues,
-  deriveEnergyVersusPrevious,
   deriveHighlights,
   derivePartnerEnergyVibe,
-  deriveSharedDays,
   deriveVibeEnergy,
   deriveWeekdayEnergy,
-  deriveWeekendEnergy,
   energyBand,
   energyPosition,
   goodWeekdays,
@@ -34,9 +31,6 @@ import {
 import {
   formatDayLong,
   formatDayNumber,
-  formatDayShort,
-  formatWeekdayLong,
-  Handwriting,
   InsightIcon,
   type InsightIconName,
   type InsightPerson,
@@ -59,11 +53,7 @@ interface StatementCopy {
 }
 
 const STATEMENT_ICONS: Record<InsightKind, InsightIconName> = {
-  bothGood: 'calendar',
-  weekendEnergy: 'bars',
   vibeEnergy: 'hearts',
-  sharedDays: 'sprout',
-  energyVersusPrevious: 'sun',
   weekdayEnergy: 'moon',
   partnerEnergyVibe: 'trend',
 };
@@ -78,30 +68,12 @@ export function describeInsight(
   const base = `dailyInsights.insight.${kind}`;
   const icon = STATEMENT_ICONS[kind];
   switch (kind) {
-    case 'bothGood': {
-      const values = {
-        count: params.count,
-        weekday: formatWeekdayLong(String(params.date)),
-      };
-      return {
-        icon,
-        title: t(`${base}.title`, values),
-        body: t(`${base}.body`, values),
-      };
-    }
     case 'weekdayEnergy':
       return {
         icon,
         title: t(`${base}_${params.direction}.title`, {
           weekday: t(`dailyInsights.weekdayAdverb.${params.weekday}`),
         }),
-        body: t(`${base}_${params.direction}.body`),
-      };
-    case 'weekendEnergy':
-    case 'energyVersusPrevious':
-      return {
-        icon,
-        title: t(`${base}_${params.direction}.title`),
         body: t(`${base}_${params.direction}.body`),
       };
     case 'partnerEnergyVibe':
@@ -145,53 +117,20 @@ function ClosingLandscape() {
   );
 }
 
-/* Week — Pro Screen A ---------------------------------------------------- */
+/* History (Verlauf) — the week charts only (#2203) ------------------------ */
 
-export function WeekView({
-  days,
-  previousDays,
-  people,
-  modules,
-  weeklyReview,
-}: ViewProps & {
-  previousDays: readonly InsightDay[];
-  weeklyReview?: ReactNode;
-}) {
+export function WeekView({ days, people, modules }: ViewProps) {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<IsoDate | null>(null);
   const withValues = daysWithValues(days);
   const latestDay = days.filter((day) => daysWithValues([day]) > 0).at(-1);
-  const partnerName = partnerNameOf(
-    people,
-    t('dailyInsights.people.partnerFallback'),
-  );
 
-  if (!latestDay) {
-    return (
-      <>
-        <EmptyCard />
-        {weeklyReview}
-      </>
-    );
-  }
+  if (!latestDay) return <EmptyCard />;
 
   const dimensions: ChartDimension[] = [
     ...(modules.vibe ? (['vibe'] as const) : []),
     ...(modules.energy ? (['energy'] as const) : []),
   ];
-  const highlights = deriveHighlights(days, modules);
-  const highlightGroups = (['bothGood', 'bothEnergy'] as const).map((kind) => ({
-    kind,
-    dates: highlights
-      .filter((item) => item.kind === kind)
-      .map((item) => item.date),
-  }));
-  const statements = compact([
-    deriveEnergyVersusPrevious(days, previousDays, modules),
-    deriveWeekendEnergy(days, modules),
-    deriveVibeEnergy(days, modules),
-    deriveSharedDays(days),
-  ]).map((insight) => describeInsight(t, insight, partnerName));
 
   return (
     <>
@@ -201,63 +140,12 @@ export function WeekView({
         dimensions={dimensions}
         selected={selected ?? latestDay.date}
         onSelect={setSelected}
-        highlights={highlights}
+        highlights={deriveHighlights(days, modules)}
       />
-      <section
-        className="insight-card insight-week-recap"
-        id="wochenrueckblick"
-        aria-labelledby="insight-week-recap-title"
-        tabIndex={-1}
-      >
-        <h2 id="insight-week-recap-title">{t('dailyInsights.week.summary')}</h2>
-        {highlights.length > 0 ? (
-          <ul className="insight-week-highlights">
-            {highlightGroups.map(({ kind, dates }) =>
-              dates.length > 0 ? (
-                <li key={kind} data-highlight={kind}>
-                  <span>
-                    <InsightIcon name={kind === 'bothGood' ? 'sun' : 'bolt'} />
-                    {t(
-                      kind === 'bothGood'
-                        ? 'dailyInsights.recap.highlightBothGood'
-                        : 'dailyInsights.recap.highlightBothEnergy',
-                    )}
-                  </span>
-                  <span>
-                    {dates.map((date) => (
-                      <button
-                        type="button"
-                        key={date}
-                        aria-label={formatDayLong(date)}
-                        onClick={() => setSelected(date)}
-                      >
-                        {formatDayShort(date)}
-                      </button>
-                    ))}
-                  </span>
-                </li>
-              ) : null,
-            )}
-          </ul>
-        ) : (
-          <p>{t('dailyInsights.week.noHighlights')}</p>
-        )}
-        {statements.length > 0 ? (
-          <details className="insight-week-observations">
-            <summary>{t('dailyInsights.recap.noticedTitle')}</summary>
-            <ul className="insight-statements">
-              {statements.map((statement) => (
-                <InsightStatement key={statement.title} {...statement} />
-              ))}
-            </ul>
-          </details>
-        ) : null}
-      </section>
       <p className="insight-note">{t('dailyInsights.gapNote')}</p>
       {withValues < 3 ? (
         <p className="insight-note">{t('dailyInsights.sparse')}</p>
       ) : null}
-      {weeklyReview}
     </>
   );
 }
@@ -604,7 +492,6 @@ export function PatternsView({
             </ul>
           ) : null}
         </div>
-        <Handwriting>{t('dailyInsights.patterns.goodHandwriting')}</Handwriting>
       </section>
     </>
   );
@@ -617,5 +504,3 @@ function emptyDay(date: IsoDate): InsightDay {
     partner: { vibe: null, energy: null },
   };
 }
-
-/* Recap — Pro Screen C --------------------------------------------------- */

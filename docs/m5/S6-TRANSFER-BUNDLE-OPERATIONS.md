@@ -229,8 +229,14 @@ These are abuse/safety controls, not commercial quotas.
 The API streams each import into a spool. Up to 16 MiB stays in process
 memory. Larger uploads roll into the API's private `/tmp` tmpfs in both
 Compose profiles. The same mount protects temporary files used by regular
-media uploads. Both the web proxy and the API allow transfer bodies up to
-512 MiB. The proxy forwards them without request-body buffering. Size
+media uploads. The API allows transfer bodies up to 512 MiB. The Web
+container's Nginx has a matching location, but only the local loopback test
+uses that hop: in production `/api/` reaches the API directly through the TLS
+reverse proxy, which must itself allow 512 MiB, must not buffer request bodies
+and needs timeouts that cover a slow upload (see
+[Request bodies and timeouts](../ARCANE.md#request-bodies-and-timeouts)). A
+proxy refusal is an HTML `413` without an eimir. problem code, not
+`TRANSFER_TOO_LARGE`; the Web UI names both as a file that is too large. Size
 `EIMIR_API_TMPFS_SIZE` (default 1 GiB) and container memory for the number
 of simultaneous uploads. Disable swap or use encrypted swap for plaintext
 memory pages. A full mount fails the upload. Request cleanup closes its spool

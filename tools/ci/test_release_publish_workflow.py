@@ -79,6 +79,13 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertIn("queue: max", publisher)
         self.assertNotIn("if: always()\n    runs-on:", publisher)
         self.assertIn("scripts/test_deployment_channel.py publish", publisher)
+        # Decision 0019 phase 0b: package prefix and staged promotion are plain
+        # Actions variables handed to the publish step only; no secret carries them.
+        for name in ("EIMIR_TEST_CHANNEL_PACKAGE_PREFIX", "EIMIR_TEST_CHANNEL_PROMOTE"):
+            self.assertIn(f"{name}: ${{{{ vars.{name} }}}}", publisher)
+            self.assertNotIn(f"secrets.{name}", self.workflow)
+        self.assertEqual(publisher.count("docker login ghcr.io"), 1)
+        self.assertIn("REGISTRY_TOKEN: ${{ github.token }}", publisher)
         self.assertNotIn("gh release", publisher)
         self.assertNotIn("git tag", publisher)
         jobs = re.findall(

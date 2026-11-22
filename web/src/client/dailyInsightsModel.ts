@@ -276,14 +276,7 @@ export interface InsightModules {
   energy: boolean;
 }
 
-export type InsightKind =
-  | 'bothGood'
-  | 'weekendEnergy'
-  | 'vibeEnergy'
-  | 'sharedDays'
-  | 'energyVersusPrevious'
-  | 'weekdayEnergy'
-  | 'partnerEnergyVibe';
+export type InsightKind = 'vibeEnergy' | 'weekdayEnergy' | 'partnerEnergyVibe';
 
 export interface DerivedInsight {
   kind: InsightKind;
@@ -296,46 +289,6 @@ const ENERGY_DIFFERENCE = 10;
 
 function isPositiveVibe(vibe: DailyVibe | null): boolean {
   return vibe === DailyVibe.GOOD || vibe === DailyVibe.VERY_GOOD;
-}
-
-function bothGoodDays(days: readonly InsightDay[]): InsightDay[] {
-  return days.filter(
-    (day) => isPositiveVibe(day.own.vibe) && isPositiveVibe(day.partner.vibe),
-  );
-}
-
-export function deriveBothGood(
-  days: readonly InsightDay[],
-  modules: InsightModules,
-): DerivedInsight | null {
-  if (!modules.vibe) return null;
-  const matches = bothGoodDays(days);
-  if (matches.length === 0) return null;
-  return {
-    kind: 'bothGood',
-    params: { count: matches.length, date: matches.at(-1)?.date ?? '' },
-  };
-}
-
-export function deriveWeekendEnergy(
-  days: readonly InsightDay[],
-  modules: InsightModules,
-): DerivedInsight | null {
-  if (!modules.energy) return null;
-  const weekend = energyValues(
-    days.filter((day) => weekdayIndex(day.date) >= 5),
-  );
-  const weekdays = energyValues(
-    days.filter((day) => weekdayIndex(day.date) < 5),
-  );
-  if (weekend.length < MIN_SAMPLES_PER_GROUP || weekdays.length < 3)
-    return null;
-  const difference = (mean(weekend) ?? 0) - (mean(weekdays) ?? 0);
-  if (Math.abs(difference) < ENERGY_DIFFERENCE) return null;
-  return {
-    kind: 'weekendEnergy',
-    params: { direction: difference > 0 ? 'higher' : 'lower' },
-  };
 }
 
 export function deriveVibeEnergy(
@@ -358,32 +311,6 @@ export function deriveVibeEnergy(
   return {
     kind: 'vibeEnergy',
     params: { good: Math.round(goodMean), other: Math.round(otherMean) },
-  };
-}
-
-export function deriveSharedDays(
-  days: readonly InsightDay[],
-  minimum = 4,
-): DerivedInsight | null {
-  const shared = mutualDays(days).length;
-  if (shared < minimum) return null;
-  return { kind: 'sharedDays', params: { count: shared, total: days.length } };
-}
-
-export function deriveEnergyVersusPrevious(
-  current: readonly InsightDay[],
-  previous: readonly InsightDay[],
-  modules: InsightModules,
-): DerivedInsight | null {
-  if (!modules.energy) return null;
-  const now = energyValues(current);
-  const before = energyValues(previous);
-  if (now.length < 3 || before.length < 3) return null;
-  const difference = (mean(now) ?? 0) - (mean(before) ?? 0);
-  if (Math.abs(difference) < 5) return null;
-  return {
-    kind: 'energyVersusPrevious',
-    params: { direction: difference > 0 ? 'higher' : 'lower' },
   };
 }
 

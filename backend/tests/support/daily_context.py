@@ -1,22 +1,26 @@
-"""Daily check-in configuration for tests (Core test support).
+"""Daily check-in setup for tests (Core test support).
 
-Shared by Core tests and the Pro insights tests (``backend/pro/pro_tests``), so the
-Core tests never import a Pro test module (#2182).
+Shared by Core tests and the Pro insights tests (``backend/pro/pro_tests``), so no
+Core test imports a Pro test module (#2182).
 """
 
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
 
+import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from eimir.relationship import configuration as configuration_service
+from eimir.relationship import service as relationship_service
 from eimir.relationship.models import (
     DailyCheckInVisibilityMode,
     Membership,
     SpaceConfiguration,
 )
+from tests.conftest import make_account, make_space, sign_in
 
 
 def _membership(session: Session, space_id: UUID, account_id: UUID) -> Membership:
@@ -61,3 +65,27 @@ def configure_daily(
         vibe_visibility_mode=vibe_mode,
         energy_visibility_mode=energy_mode,
     )
+
+
+@pytest.fixture
+def couple(session: Session) -> dict[str, Any]:
+    """A couple's Space, a foreign Space and their signed-in members."""
+    anna = make_account(session, "Anna")
+    ben = make_account(session, "Ben")
+    outsider = make_account(session, "Outsider")
+
+    space = make_space(session, anna)
+    relationship_service.add_member(session, space.id, ben)
+    foreign_space = make_space(session, outsider)
+    session.flush()
+
+    return {
+        "anna": anna,
+        "ben": ben,
+        "outsider": outsider,
+        "space": space,
+        "foreign_space": foreign_space,
+        "token_a": sign_in(session, anna),
+        "token_b": sign_in(session, ben),
+        "token_outsider": sign_in(session, outsider),
+    }

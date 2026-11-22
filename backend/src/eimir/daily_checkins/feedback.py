@@ -1,8 +1,8 @@
-"""The caller's private ratings of weekly recommendations (Core data).
+"""The caller's private ratings of the retired weekly recommendations (Core data).
 
-Setting a rating is part of the Premium weekly review; reading, clearing,
-exporting and deleting retained ratings stay Free/Core, so this module stays in
-Core while the review itself is plugin code (``eimir_pro.daily_insights``).
+The weekly AI review that collected these ratings was retired (#2203), so no
+new rating can be set. Ratings retained from it stay caller-private Core data:
+they can be read, cleared, exported and deleted without Pro.
 """
 
 from __future__ import annotations
@@ -10,11 +10,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from sqlalchemy import delete, select
-from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext
-from eimir.core.clock import now
 from eimir.daily_checkins.models import (
     DailyInsightFeedback,
     RecommendationKey,
@@ -43,32 +41,11 @@ def feedback(session: Session, context: AuthorizationContext) -> list[Feedback]:
     ]
 
 
-def set_feedback(
-    session: Session,
-    context: AuthorizationContext,
-    key: RecommendationKey,
-    rating: RecommendationRating | None,
-) -> Feedback | None:
-    if rating is None:
-        session.execute(
-            delete(DailyInsightFeedback).where(
-                DailyInsightFeedback.space_id == context.space_id,
-                DailyInsightFeedback.account_id == context.account_id,
-                DailyInsightFeedback.recommendation_key == key.value,
-            )
-        )
-        return None
+def clear_feedback(session: Session, context: AuthorizationContext) -> None:
+    """Remove every retained rating of the caller in this Space."""
     session.execute(
-        insert(DailyInsightFeedback)
-        .values(
-            space_id=context.space_id,
-            account_id=context.account_id,
-            recommendation_key=key.value,
-            rating=rating.value,
-        )
-        .on_conflict_do_update(
-            index_elements=["space_id", "account_id", "recommendation_key"],
-            set_={"rating": rating.value, "updated_at": now()},
+        delete(DailyInsightFeedback).where(
+            DailyInsightFeedback.space_id == context.space_id,
+            DailyInsightFeedback.account_id == context.account_id,
         )
     )
-    return Feedback(key, rating)

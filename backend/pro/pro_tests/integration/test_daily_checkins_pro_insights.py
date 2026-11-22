@@ -29,37 +29,14 @@ from eimir.entitlements.models import (
     EntitlementStatus,
     EntitlementTier,
 )
-from eimir.relationship import service as relationship_service
 from eimir.relationship.models import (
     DailyCheckInVisibilityMode,
 )
-from tests.conftest import auth, make_account, make_space, requires_database, sign_in
+from tests.conftest import auth, requires_database
 from tests.support.daily_context import configure_daily
+from tests.support.daily_context import couple as couple
 
 pytestmark = [pytest.mark.integration, requires_database]
-
-
-@pytest.fixture
-def couple(session: Session):  # type: ignore[no-untyped-def]
-    anna = make_account(session, "Anna")
-    ben = make_account(session, "Ben")
-    outsider = make_account(session, "Outsider")
-
-    space = make_space(session, anna)
-    relationship_service.add_member(session, space.id, ben)
-    foreign_space = make_space(session, outsider)
-    session.flush()
-
-    return {
-        "anna": anna,
-        "ben": ben,
-        "outsider": outsider,
-        "space": space,
-        "foreign_space": foreign_space,
-        "token_a": sign_in(session, anna),
-        "token_b": sign_in(session, ben),
-        "token_outsider": sign_in(session, outsider),
-    }
 
 
 def _grant_insights(session: Session, space_id: UUID, account_id: UUID) -> None:

@@ -140,9 +140,9 @@ def build(session: Session, context: AuthorizationContext, week_start: date) -> 
         for day in current
         if (pair := paired_vibes(day)) is not None and set(pair) <= GOOD_VIBES
     ]
-    plan_days = _plan_days(session, context, week_start, week_end, zone)
+    week_plan_days = plan_days(session, context, week_start, week_end, zone)
     memories = _week_memories(session, context, week_start, week_end)
-    shared_days = sorted(set(plan_days) | {m.happened_on for m in memories if m.happened_on})
+    shared_days = sorted(set(week_plan_days) | {m.happened_on for m in memories if m.happened_on})
     attention, attention_days = _attention(current)
     return WeeklyBrief(
         week_start=week_start,
@@ -234,7 +234,7 @@ def _scheduled_plans(
     return list(session.execute(statement).scalars())
 
 
-def _plan_days(
+def plan_days(
     session: Session, context: AuthorizationContext, start: date, end: date, zone: ZoneInfo
 ) -> set[date]:
     days: set[date] = set()

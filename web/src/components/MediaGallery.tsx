@@ -136,8 +136,12 @@ export function GalleryExpandAction({
 
 /** How long the carousel's controls stay hidden after the last swipe. */
 const CONTROLS_REST_MS = 1500;
-/** How long resting controls stay before they leave the photo to itself. */
-const CONTROLS_QUIET_MS = 3000;
+/**
+ * How long resting controls stay before they leave the photo to itself.
+ * Shared with the Momente story viewer (DiscoverStory), so overlaid controls
+ * rest in one rhythm across the app.
+ */
+export const CONTROLS_QUIET_MS = 3000;
 const CONTROLS_HIDDEN_CLASS = 'is-browsing';
 const CONTROLS_QUIET_CLASS = 'is-quiet';
 

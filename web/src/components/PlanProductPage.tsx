@@ -32,6 +32,7 @@ import {
 } from '../client/discreetPlans';
 import { formatCalendarDate } from '../client/formatRecency';
 import { photoPlaceMapUrl } from '../client/photoPlaces';
+import { usePlanStoryCapture } from '../client/planStoryCapture';
 import {
   planScheduleLabel,
   planStatusWord,
@@ -143,6 +144,12 @@ export function PlanProductPage({
   const navigate = useNavigate();
   const location = useLocation();
   const { requestReturn } = useTaskOrigin();
+  const captureStory = usePlanStoryCapture({
+    planId,
+    spaceId,
+    accountId,
+    apiBaseUrl,
+  });
   const taskState = location.state as {
     taskOriginKey?: unknown;
     planningCreated?: boolean;
@@ -559,6 +566,10 @@ export function PlanProductPage({
     Boolean(plan.sourceWishId) &&
     plan.capabilities.canEdit &&
     plan.status !== 'COMPLETED';
+  // A completed Plan can become a Moment at any time, not only right after
+  // completing it (#2158, Product Owner 2026-11-21).
+  const canCaptureStory =
+    plan.status === 'COMPLETED' && plan.capabilities.canEdit;
   const completionScope = `${spaceId}:${plan.id}`;
   const completionOpen =
     completionTarget === completionScope &&
@@ -1374,6 +1385,29 @@ export function PlanProductPage({
             }
           />
         ) : null}
+        {canCaptureStory
+          ? (
+              [
+                ['memory', 'erinnerungen', 'm5s3.planStory.menuMemory'],
+                ['heartMoment', 'denken', 'm5s3.planStory.menuHeartMoment'],
+                ['milestone', 'meilensteine', 'm5s3.planStory.menuMilestone'],
+              ] as const
+            ).map(([kind, icon, label]) => (
+              <ItemMenuOption
+                key={kind}
+                icon={icon}
+                title={t(label)}
+                disabled={writesPending}
+                onClick={() =>
+                  leaveItemMenu(
+                    menuSheet,
+                    () => captureStory(kind),
+                    () => setMenuOpen(false),
+                  )
+                }
+              />
+            ))
+          : null}
         {canReturnToWish ? (
           <ItemMenuOption
             icon="wuensche"

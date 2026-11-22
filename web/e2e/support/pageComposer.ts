@@ -183,7 +183,13 @@ export async function installPageComposerFixture(
     ],
   ]);
   let uploadNumber = 0;
-  const uploads = { failuresRemaining: 0, requests: 0, failedRequests: 0 };
+  const uploads = {
+    failuresRemaining: 0,
+    /** Uploads the storage quota refuses (#2141), before any transient failure. */
+    quotaFailuresRemaining: 0,
+    requests: 0,
+    failedRequests: 0,
+  };
   const links = new Map<string, Set<string>>();
   if (linkedWish) {
     resources.set('wishes/composer-wish', {
@@ -301,6 +307,20 @@ export async function installPageComposerFixture(
     if (path === `${base}/attachments` && method === 'POST') {
       const values = record();
       uploads.requests++;
+      if (uploads.quotaFailuresRemaining > 0) {
+        uploads.quotaFailuresRemaining--;
+        uploads.failedRequests++;
+        return json(
+          {
+            type: 'payload_too_large',
+            title: 'Payload too large',
+            status: 413,
+            detail: 'The storage quota of the Space is full.',
+            code: 'STORAGE_QUOTA_EXCEEDED',
+          },
+          413,
+        );
+      }
       if (values.mediaType === 'IMAGE' && uploads.failuresRemaining > 0) {
         uploads.failuresRemaining--;
         uploads.failedRequests++;

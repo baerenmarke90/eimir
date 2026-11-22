@@ -1,9 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
 import { type AnimationEvent, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { PartnerLocationApi } from '../api/generated/apis/PartnerLocationApi';
-import type { PartnerLocationSettingsView } from '../api/generated/models/PartnerLocationSettingsView';
 import {
   type DistanceWords,
   deviceLanguages,
@@ -17,7 +15,7 @@ import {
 } from '../client/partnerDistance';
 import {
   PARTNER_LOCATION_CAPABILITY,
-  partnerLocationSettingsQueryKey,
+  usePartnerLocationSettingsEntry,
 } from '../client/partnerLocation';
 import {
   PARTNER_LOCATION_MAP_ROUTE,
@@ -403,10 +401,7 @@ export function WirPartnerDistance({
   });
   // The app-level sync reads the owner's settings on open and resume; this
   // only observes that entry instead of adding another read.
-  const settings = useQuery<PartnerLocationSettingsView>({
-    queryKey: partnerLocationSettingsQueryKey(accountId, spaceId),
-    enabled: false,
-  }).data;
+  const settings = usePartnerLocationSettingsEntry(accountId, spaceId);
   const enabled =
     capability.data === true &&
     !capability.isError &&

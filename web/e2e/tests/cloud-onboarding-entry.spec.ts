@@ -1,12 +1,13 @@
-import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import en from '../../src/i18n/locales/en.json' with { type: 'json' };
 import legal from '../../src/i18n/locales/legal';
 import { privacyPolicyDe } from '../../src/i18n/locales/legalDocuments/privacyPolicy.de.generated';
 import { termsOfUseDe } from '../../src/i18n/locales/legalDocuments/termsOfUse.de.generated';
+import snackbarDe from '../../src/i18n/locales/snackbar';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 import {
   installMocks,
   ACCOUNT_ID as SHELL_ACCOUNT_ID,
@@ -663,6 +664,58 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
 
     // Accessibility check
     await expectNoWcagViolations(page);
+  });
+
+  test('a delivered mail link that cannot be used is reported on the sign-in screen (#2176)', async ({
+    page,
+  }, testInfo) => {
+    await routeCloudEntry(page);
+    await page.addInitScript(() => {
+      const holder = window as unknown as {
+        launchQueue: { setConsumer: (consumer: unknown) => void };
+        deliverLaunch?: (params: { targetURL: string }) => void;
+      };
+      holder.launchQueue = {
+        setConsumer(consumer) {
+          holder.deliverLaunch = consumer as typeof holder.deliverLaunch;
+        },
+      };
+    });
+    await page.goto('/');
+    await expect(page.getByLabel(de.login.email)).toBeVisible();
+
+    // The link names another host than this deployment, as in the Android
+    // test.98 report where the build and the mail disagreed.
+    await page.evaluate(() =>
+      (
+        window as unknown as {
+          deliverLaunch: (params: { targetURL: string }) => void;
+        }
+      ).deliverLaunch({
+        targetURL: 'https://other-host.invalid/auth/signup#token=secret-proof',
+      }),
+    );
+
+    const snackbar = page.locator('.snackbar');
+    await expect(snackbar).toContainText(
+      snackbarDe.snackbar.identityLinkUnusable,
+    );
+    await expect(snackbar).not.toContainText('secret-proof');
+    await expect(snackbar).not.toContainText('other-host');
+    await expect(page.getByLabel(de.login.email)).toBeVisible();
+    for (const scheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const width of [360, 390, 430]) {
+        await page.setViewportSize({ width, height: 844 });
+        await page.screenshot({
+          path: testInfo.outputPath(`link-unusable-${scheme}-${width}.png`),
+        });
+      }
+    }
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.screenshot({
+      path: testInfo.outputPath('link-unusable-expanded.png'),
+    });
   });
 
   test('consumes signup token, displays FirstSpaceGate, creates space and hands off to settings connection', async ({

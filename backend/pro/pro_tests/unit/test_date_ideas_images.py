@@ -9,13 +9,12 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from eimir_pro.date_ideas.catalog import DateIdeaCategory, get_catalog
+from eimir_pro.date_ideas.images import get_images, manifest_problems, parse_manifest
+from pro_scripts import date_ideas_catalog
 from pydantic import ValidationError
 
-from eimir.date_ideas.catalog import DateIdeaCategory, get_catalog
-from eimir.date_ideas.images import get_images, manifest_problems, parse_manifest
-from scripts import date_ideas_catalog
-
-DATA = Path(str(files("eimir.date_ideas").joinpath("data")))
+DATA = Path(str(files("eimir_pro.date_ideas").joinpath("data")))
 
 
 def _manifest() -> dict[str, Any]:

@@ -20,7 +20,7 @@ from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
-from eimir.date_ideas.catalog import (
+from eimir_pro.date_ideas.catalog import (
     IDEA_ID_PATTERN,
     DateIdeaCategory,
     get_catalog,
@@ -141,7 +141,7 @@ class DateIdeaImages:
 
 
 def _data_root() -> Traversable:
-    return files("eimir.date_ideas").joinpath("data")
+    return files("eimir_pro.date_ideas").joinpath("data")
 
 
 @cache

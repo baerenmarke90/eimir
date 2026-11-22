@@ -654,6 +654,172 @@ class EvidenceAndImageTest(unittest.TestCase):
             channel.publish(SOURCE, self.root, self.root / "out")
         advance.assert_not_called()
 
+    def channel_environment(self, **values):
+        """Run with only the given channel variables set, independent of the host."""
+        own = {channel.PACKAGE_PREFIX_ENV, channel.PROMOTE_ENV, "GITHUB_STEP_SUMMARY"}
+        environment = {key: value for key, value in os.environ.items() if key not in own}
+        environment.update(GITHUB_RUN_ID="1", GITHUB_RUN_ATTEMPT="1", **values)
+        return patch.dict(os.environ, environment, clear=True)
+
+    def add_media_record(self):
+        record = {
+            "id": "media-runtime",
+            "path": "media-runtime.image.tar",
+            "sbom": "sbom/media-runtime.spdx.json",
+            "roles": ["video-worker"],
+        }
+        for field, digest in (("path", "sha256"), ("sbom", "sbomSha256")):
+            (self.root / record[field]).write_bytes(b"restricted-worker-evidence")
+            record[digest] = channel.sha256(self.root / record[field])
+        self.index["artifacts"].append(record)
+        self.write_index()
+
+    def publish_staged_pair(self, **values):
+        """Publish with every registry and GitHub write replaced by a recorder."""
+        self.add_media_record()
+        media = "ghcr.io/baerenmarke90/eimir-media@sha256:" + "5" * 64
+        with (
+            self.channel_environment(**values),
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", return_value=True),
+            patch.object(
+                channel, "publish_image", side_effect=[BACKEND, WEB, media]
+            ) as publish,
+            patch.object(channel, "canonical_compose", return_value={}),
+            patch.object(channel, "export_compose", return_value={"services": {}}),
+            patch.object(channel, "advance_channel", return_value=True) as advance,
+        ):
+            channel.publish(SOURCE, self.root, self.root / "out")
+        return publish, advance, media
+
+    def test_default_package_names_are_the_historical_public_names(self):
+        for values in ({}, {channel.PACKAGE_PREFIX_ENV: ""}, {channel.PACKAGE_PREFIX_ENV: "  "}):
+            with self.subTest(values=values), self.channel_environment(**values):
+                for role in ("backend", "web", "media"):
+                    self.assertEqual(
+                        channel.package_repository(role),
+                        f"ghcr.io/baerenmarke90/eimir-{role}",
+                    )
+
+    def test_cloud_prefix_selects_the_new_private_package_names(self):
+        with self.channel_environment(**{channel.PACKAGE_PREFIX_ENV: "eimir-cloud"}):
+            for role in ("backend", "web", "media"):
+                self.assertEqual(
+                    channel.package_repository(role),
+                    f"ghcr.io/baerenmarke90/eimir-cloud-{role}",
+                )
+
+    def test_invalid_package_prefixes_are_refused(self):
+        for value in (
+            "other",
+            "eimir-",
+            "eimir--cloud",
+            "Eimir-cloud",
+            "eimir_cloud",
+            "eimir/cloud",
+            "eimir-cloud:latest",
+            "eimir-cloud ghcr.io/other",
+            "../eimir",
+            "ghcr.io/baerenmarke90/eimir-cloud",
+        ):
+            with (
+                self.subTest(value=value),
+                self.channel_environment(**{channel.PACKAGE_PREFIX_ENV: value}),
+                self.assertRaises(channel.ChannelError),
+            ):
+                channel.package_prefix()
+
+    def test_promote_setting_accepts_only_empty_true_or_false(self):
+        for value, expected in (("", True), ("true", True), ("false", False)):
+            with self.subTest(value=value), self.channel_environment(
+                **{channel.PROMOTE_ENV: value}
+            ):
+                self.assertIs(channel.promote_enabled(), expected)
+        with self.channel_environment():
+            self.assertIs(channel.promote_enabled(), True)
+        for value in ("False", "FALSE", "0", "no", "yes", "stage"):
+            with (
+                self.subTest(value=value),
+                self.channel_environment(**{channel.PROMOTE_ENV: value}),
+                self.assertRaises(channel.ChannelError),
+            ):
+                channel.promote_enabled()
+
+    def test_registry_push_targets_the_selected_package(self):
+        self.prepare_image_archive()
+        with (
+            self.channel_environment(**{channel.PACKAGE_PREFIX_ENV: "eimir-cloud"}),
+            patch.object(channel, "run", side_effect=self.image_run) as run,
+        ):
+            pinned = channel.publish_image(
+                self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
+            )
+        self.assertEqual(
+            pinned, "ghcr.io/baerenmarke90/eimir-cloud-backend@sha256:" + "b" * 64
+        )
+        calls = [call.args[0] for call in run.call_args_list]
+        self.assertIn(
+            [
+                "docker",
+                "tag",
+                f"eimir-backend:evidence-{SOURCE}",
+                f"ghcr.io/baerenmarke90/eimir-cloud-backend:test-{SOURCE}-1-1",
+            ],
+            calls,
+        )
+        # The local evidence tag keeps its historical name; only the registry target moves.
+        self.assertFalse(any("ghcr.io/baerenmarke90/eimir-backend" in " ".join(c) for c in calls))
+
+    def test_invalid_settings_refuse_publication_before_any_registry_use(self):
+        self.add_media_record()
+        for name, value in (
+            (channel.PACKAGE_PREFIX_ENV, "evil"),
+            (channel.PROMOTE_ENV, "maybe"),
+        ):
+            with (
+                self.subTest(name=name),
+                self.channel_environment(**{name: value}),
+                patch.object(channel, "latest_main", return_value=SOURCE),
+                patch.object(channel, "candidate_ready", return_value=True),
+                patch.object(channel, "publish_image") as publish,
+                patch.object(channel, "advance_channel") as advance,
+                self.assertRaises(channel.ChannelError),
+            ):
+                channel.publish(SOURCE, self.root, self.root / "out")
+            publish.assert_not_called()
+            advance.assert_not_called()
+
+    def test_staged_publication_pushes_but_never_advances_the_branch(self):
+        summary = self.root / "summary.md"
+        publish, advance, media = self.publish_staged_pair(
+            **{channel.PROMOTE_ENV: "false", "GITHUB_STEP_SUMMARY": str(summary)}
+        )
+        self.assertEqual(publish.call_count, 3)
+        advance.assert_not_called()
+        for name in ("compose.yaml", "channel.json", "README.md"):
+            self.assertTrue((self.root / "out" / name).is_file(), name)
+        text = summary.read_text(encoding="utf-8")
+        self.assertIn("Staged only", text)
+        for reference in (BACKEND, WEB, media):
+            self.assertIn(reference, text)
+
+    def test_default_publication_advances_the_branch_and_lists_the_references(self):
+        summary = self.root / "summary.md"
+        publish, advance, media = self.publish_staged_pair(
+            **{"GITHUB_STEP_SUMMARY": str(summary)}
+        )
+        self.assertEqual(publish.call_count, 3)
+        advance.assert_called_once()
+        text = summary.read_text(encoding="utf-8")
+        self.assertIn("Promoted to", text)
+        self.assertNotIn("Staged only", text)
+        self.assertIn(media, text)
+
+    def test_summary_is_optional_outside_actions(self):
+        publish, advance, _ = self.publish_staged_pair()
+        self.assertEqual(publish.call_count, 3)
+        advance.assert_called_once()
+
 
 class BranchPromotionTest(unittest.TestCase):
     def setUp(self):

@@ -68,11 +68,17 @@ export function importFailureId(code?: string | null): TransferFailureId {
 /**
  * A refused import request (for example a file over the size limit) that has its
  * own text. Other problems keep the shared problem state.
+ *
+ * A hop in front of the API (the TLS reverse proxy) answers an oversized body
+ * with an HTML 413 that carries no problem code (#2188). It means the same to
+ * the person as the API's own refusal, so a 413 without a code is named too.
  */
 export function importRequestFailureId(
   error: unknown,
 ): TransferFailureId | null {
   if (!(error instanceof ClientProblemError)) return null;
   const id = IMPORT_FAILURES[error.code ?? ''];
-  return id && id !== 'importFailed' ? id : null;
+  if (id && id !== 'importFailed') return id;
+  if (error.status === 413 && !error.code) return 'importTooLarge';
+  return null;
 }

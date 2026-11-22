@@ -19,3 +19,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"eimir_pro.quotes" = ["daily_sayings.json"]
+"eimir_pro.date_ideas" = ["data/*.json", "data/images/*.webp"]

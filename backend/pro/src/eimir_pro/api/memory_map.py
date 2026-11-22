@@ -18,7 +18,7 @@ from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.attachments.binding import attachments_of_memories, cover_of
 from eimir.entitlements.models import Capability
-from eimir.places.memory_map import list_memory_map
+from eimir_pro.memory_map import list_memory_map
 
 router = APIRouter(tags=["places"])
 

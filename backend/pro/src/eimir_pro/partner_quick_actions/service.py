@@ -25,9 +25,9 @@ from eimir.engagement.thinking import (
     SUPPORT_GESTURE_COOLDOWN_SECONDS,
 )
 from eimir.outbox import service as outbox_service
-from eimir.partner_quick_actions.models import SupportGestureRequest
 from eimir.relationship import configuration as space_configuration
 from eimir.relationship.models import Membership, MembershipStatus
+from eimir_pro.partner_quick_actions.models import SupportGestureRequest
 
 _SUPPORT_GESTURE_EVENT_TYPES = {
     SupportGestureKind.KISS: EventType.PARTNER_KISS,

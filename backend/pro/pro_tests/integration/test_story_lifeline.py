@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
+from eimir_pro.relationship_passport import service as passport_service
 from sqlalchemy.orm import Session
 
 from eimir.authorization import PrivacyClass
@@ -16,7 +17,6 @@ from eimir.memories.models import Memory, MemoryPayload
 from eimir.milestones.models import Milestone, MilestonePayload
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import SpaceProfile
-from eimir.relationship_passport import service as passport_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]

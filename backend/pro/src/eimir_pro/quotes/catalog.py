@@ -4,7 +4,7 @@ This catalog is closed and code-owned (#1151):
 - Every saying is AI-generated text without an individual author. It is selected for
   eimir. and used under the repository license, so no author or citation is shown.
 - The previous catalog of public-domain quotations and first-party editorial sayings is
-  archived in `backend/archive/quotes` and no longer served.
+  archived in `backend/pro/archive/quotes` and no longer served.
 - Rights and provenance stay recorded per saying in `daily_sayings.json`.
 - Each saying expresses a complete thought and carries exactly one category.
 """
@@ -140,7 +140,7 @@ SOURCE_MAP: dict[str, QuoteSource] = {source.id: source for source in SOURCES}
 
 
 def _load_localized_sayings() -> tuple[DailyQuote, ...]:
-    resource = files("eimir.quotes").joinpath("daily_sayings.json")
+    resource = files("eimir_pro.quotes").joinpath("daily_sayings.json")
     data = json.loads(resource.read_text(encoding="utf-8"))
     sayings = []
     for entry in data["entries"]:

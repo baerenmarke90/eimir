@@ -13,9 +13,9 @@ from eimir.api.deps import Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.entitlements.models import Capability
-from eimir.quotes import catalog, resolver
-from eimir.quotes import service as preference_service
-from eimir.quotes.catalog import RightsClassification
+from eimir_pro.quotes import catalog, resolver
+from eimir_pro.quotes import service as preference_service
+from eimir_pro.quotes.catalog import RightsClassification
 
 router = APIRouter(tags=["daily-quote"])
 

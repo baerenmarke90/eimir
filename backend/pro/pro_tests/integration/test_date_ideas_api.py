@@ -5,12 +5,12 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
+from eimir_pro.date_ideas.catalog import get_catalog
+from eimir_pro.date_ideas.images import get_images
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from eimir.core.clock import now
-from eimir.date_ideas.catalog import get_catalog
-from eimir.date_ideas.images import get_images
 from eimir.entitlements import service as entitlement_service
 from eimir.entitlements.models import (
     Capability,

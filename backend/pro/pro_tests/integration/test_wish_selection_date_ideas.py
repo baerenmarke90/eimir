@@ -12,12 +12,12 @@ from uuid import UUID
 from zipfile import ZipFile
 
 import pytest
+from eimir_pro.date_ideas.catalog import get_catalog
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext
 from eimir.core.clock import now
-from eimir.date_ideas.catalog import get_catalog
 from eimir.domain.events import EventType
 from eimir.entitlements import service as entitlement_service
 from eimir.entitlements.models import (

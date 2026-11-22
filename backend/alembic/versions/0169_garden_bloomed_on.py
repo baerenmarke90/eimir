@@ -7,15 +7,15 @@ first bloom from now on. Earlier blooms keep no day: it cannot be derived
 reliably (a tulip rests until spring, a bouquet resets the stage), so the
 history simply leaves them out instead of showing an invented date.
 
-Revision ID: 0168
-Revises: 0167
+Revision ID: 0169
+Revises: 0168
 """
 
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0168"
-down_revision = "0167"
+revision = "0169"
+down_revision = "0168"
 branch_labels = None
 depends_on = None
 

@@ -1,15 +1,9 @@
-"""Evidence thresholds, reveal safety and constrained local-model selection."""
+"""Evidence thresholds and reveal safety of the descriptive weekly observations."""
 
-import json
 from dataclasses import replace
 from datetime import date, timedelta
-from types import SimpleNamespace
 
-import pytest
-
-from eimir.daily_checkins.models import RecommendationKey
 from eimir.daily_checkins.service import PartnerDimensionProjection, PartnerRevealState
-from eimir.daily_insights import weekly_review
 from eimir.daily_insights.insights import (
     DailyInsightDayEntry,
     DailyInsightsResult,
@@ -101,78 +95,3 @@ def test_missing_own_dimension_cannot_infer_partner_participation():
     data = projection()
     days = [replace(day, own_energy=None, own_vibe=None) for day in data.days]
     assert observations(replace(data, days=days), date(2026, 9, 21)) == []
-
-
-def prepared() -> weekly_review.Preview:
-    data = projection()
-    return weekly_review.Preview(
-        date(2026, 9, 21),
-        date(2026, 9, 27),
-        data.start_date,
-        data.end_date,
-        "a" * 64,
-        observations(data, date(2026, 9, 21)),
-        list(RecommendationKey),
-        [],
-        False,
-    )
-
-
-@pytest.mark.parametrize(
-    "result",
-    [
-        '{"observation_keys":["invented"],"recommendation_keys":["quiet_time"]}',
-        '{"observation_keys":["joint_days","joint_days"],"recommendation_keys":["quiet_time"]}',
-        '{"observation_keys":["joint_days"],"recommendation_keys":["diagnosis"]}',
-        (
-            '{"observation_keys":["joint_days"],"recommendation_keys":["quiet_time"],'
-            '"prose":"Unverified relationship claim"}'
-        ),
-        "not json",
-    ],
-)
-def test_model_cannot_add_claims_or_unknown_identifiers(monkeypatch, result):  # type: ignore[no-untyped-def]
-    monkeypatch.setattr(
-        weekly_review,
-        "get_settings",
-        lambda: SimpleNamespace(recap_ai_url="http://local-ai", recap_ai_model="existing-model"),
-    )
-    monkeypatch.setattr(
-        weekly_review, "query_structured", lambda *args, **kwargs: {"message": {"content": result}}
-    )
-    chosen, ai = weekly_review.choose(prepared())
-    assert not ai
-    assert set(chosen.observation_keys) <= {fact.key for fact in prepared().observations}
-    assert set(chosen.recommendation_keys) <= set(RecommendationKey)
-
-
-def test_model_selects_only_from_bounded_aggregate_packet(monkeypatch):  # type: ignore[no-untyped-def]
-    monkeypatch.setattr(
-        weekly_review,
-        "get_settings",
-        lambda: SimpleNamespace(recap_ai_url="http://local-ai", recap_ai_model="existing-model"),
-    )
-    packets = []
-
-    def query(body, **kwargs):  # type: ignore[no-untyped-def]
-        packets.append(body)
-        return {
-            "message": {
-                "content": (
-                    '{"observation_keys":["weekend_higher"],"recommendation_keys":["small_plan"]}'
-                )
-            }
-        }
-
-    monkeypatch.setattr(weekly_review, "query_structured", query)
-    chosen, ai = weekly_review.choose(prepared())
-    assert ai and chosen.observation_keys == ["weekend_higher"]
-    packet = json.loads(packets[0]["messages"][1]["content"])
-    assert set(packet) == {"observations", "recommendations"}
-    assert all(
-        set(item) == {"key", "kind", "sample_count", "value", "weekday"}
-        for item in packet["observations"]
-    )
-    packets.clear()
-    _, ai = weekly_review.choose(replace(prepared(), observations=[], general=True))
-    assert not ai and not packets

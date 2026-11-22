@@ -1,13 +1,14 @@
 /*
  * The motion layer's Playback catalogue for story playback on Momente
  * (Motion Contract 4.8, M6, M9, M14; #2079): the progress fill, the slide
- * entrance and the slow picture drift of `DiscoverStory`.
+ * entrance, the slow picture drift and the developing lead photo of
+ * `DiscoverStory`.
  *
  * Its scene clock is `useStoryPlayback`: the story pauses with the page,
- * when it is less than half on screen, with the explicit pause control and
- * while the person holds a slide (`--story-play-state`). With reduced motion
- * it never starts on its own and the slides change without movement. Token
- * roles only (M1).
+ * when no more than 60 % of it is on screen, with the explicit pause
+ * control and while the person holds a slide (`--story-play-state`). With
+ * reduced motion it never starts on its own and the slides change without
+ * movement. Token roles only (M1).
  *
  * Moved unchanged from `DiscoverStory.css`. Imported by `DiscoverStory.tsx`
  * (Momente), kept apart from the lazily loaded recap film.
@@ -39,5 +40,29 @@
   to {
     scale: 1.12;
     translate: -3% -2%;
+  }
+}
+
+/* The rediscovery lead photo develops like instant film: from a dark,
+   colourless, soft print to the photo. It uses the Playback property
+   exception of M6 (`filter` on the one photo layer); the reason is recorded
+   in the Motion Contract, 4.8 as built. */
+@keyframes eimir-motion-momente-story-develop {
+  0% {
+    opacity: 0.35;
+    filter: brightness(0.3) saturate(0) sepia(0.5) contrast(0.7) blur(3px);
+  }
+  35% {
+    opacity: 0.75;
+    filter: brightness(0.6) saturate(0.25) sepia(0.45) contrast(0.8) blur(1.5px);
+  }
+  70% {
+    opacity: 1;
+    filter: brightness(0.92) saturate(0.75) sepia(0.15) contrast(0.95)
+      blur(0.4px);
+  }
+  100% {
+    opacity: 1;
+    filter: none;
   }
 }

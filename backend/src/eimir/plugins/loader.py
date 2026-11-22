@@ -44,6 +44,7 @@ if TYPE_CHECKING:
     from starlette.routing import BaseRoute
 
     from eimir.authorization import AuthorizationContext
+    from eimir.config import Settings
     from eimir.engagement.models import EngagementTarget
     from eimir.jobs.worker import JobRegistry
     from eimir.wish_selections.date_idea_contract import DateIdeaSource
@@ -132,6 +133,16 @@ class LoadedPlugins:
             if detail is not None:
                 return detail
         return None
+
+    def validate(self, settings: Settings) -> None:
+        """Let every plugin check its configuration; a raising plugin refuses to start."""
+        for plugin in self.plugins:
+            try:
+                plugin.validate(settings)
+            except Exception as error:
+                raise PluginLoadError(
+                    f"Plugin {plugin.name!r} refused its configuration: {error}"
+                ) from error
 
     def register_jobs(self, registry: JobRegistry) -> None:
         """Register every plugin's job handlers; a kind the manifest does not declare refuses."""

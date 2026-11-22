@@ -39,7 +39,7 @@ export interface WeeklyFeedbackView {
      * @type {RecommendationRating}
      * @memberof WeeklyFeedbackView
      */
-    rating: RecommendationRating | null;
+    rating: RecommendationRating;
     /**
      * 
      * @type {RecommendationKey}

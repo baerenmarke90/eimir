@@ -29,39 +29,28 @@ import {
     DailyCheckInUpdateToJSON,
 } from '../models/DailyCheckInUpdate';
 import {
+    type PersonalWeeklyBriefView,
+    PersonalWeeklyBriefViewFromJSON,
+    PersonalWeeklyBriefViewToJSON,
+} from '../models/PersonalWeeklyBriefView';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
 import {
-    type RecommendationKey,
-    RecommendationKeyFromJSON,
-    RecommendationKeyToJSON,
-} from '../models/RecommendationKey';
+    type RetainedWeeklyFeedbackView,
+    RetainedWeeklyFeedbackViewFromJSON,
+    RetainedWeeklyFeedbackViewToJSON,
+} from '../models/RetainedWeeklyFeedbackView';
 import {
-    type WeeklyFeedbackUpdate,
-    WeeklyFeedbackUpdateFromJSON,
-    WeeklyFeedbackUpdateToJSON,
-} from '../models/WeeklyFeedbackUpdate';
-import {
-    type WeeklyFeedbackView,
-    WeeklyFeedbackViewFromJSON,
-    WeeklyFeedbackViewToJSON,
-} from '../models/WeeklyFeedbackView';
-import {
-    type WeeklyReviewRequest,
-    WeeklyReviewRequestFromJSON,
-    WeeklyReviewRequestToJSON,
-} from '../models/WeeklyReviewRequest';
-import {
-    type WeeklyReviewView,
-    WeeklyReviewViewFromJSON,
-    WeeklyReviewViewToJSON,
-} from '../models/WeeklyReviewView';
+    type WeeklyBriefView,
+    WeeklyBriefViewFromJSON,
+    WeeklyBriefViewToJSON,
+} from '../models/WeeklyBriefView';
 
-export interface CreateDailyCheckInWeeklyReviewRequest {
+export interface ClearDailyCheckInWeeklyFeedbackRequest {
     spaceId: string;
-    weeklyReviewRequest: WeeklyReviewRequest;
 }
 
 export interface GetDailyCheckInInsightsRequest {
@@ -70,19 +59,22 @@ export interface GetDailyCheckInInsightsRequest {
     endDate?: Date | null;
 }
 
-export interface GetDailyCheckInTodayRequest {
-    spaceId: string;
-}
-
-export interface GetDailyCheckInWeeklyReviewRequest {
+export interface GetDailyCheckInPersonalWeeklyBriefRequest {
     spaceId: string;
     weekStart: Date;
 }
 
-export interface SetDailyCheckInWeeklyFeedbackRequest {
-    recommendationKey: RecommendationKey;
+export interface GetDailyCheckInTodayRequest {
     spaceId: string;
-    weeklyFeedbackUpdate: WeeklyFeedbackUpdate;
+}
+
+export interface GetDailyCheckInWeeklyBriefRequest {
+    spaceId: string;
+    weekStart: Date;
+}
+
+export interface GetDailyCheckInWeeklyFeedbackRequest {
+    spaceId: string;
 }
 
 export interface UpdateDailyCheckInTodayRequest {
@@ -97,20 +89,13 @@ export interface UpdateDailyCheckInTodayRequest {
 export class DailyCheckInsApi extends runtime.BaseAPI {
 
     /**
-     * Creates request options for createDailyCheckInWeeklyReview without sending the request
+     * Creates request options for clearDailyCheckInWeeklyFeedback without sending the request
      */
-    async createDailyCheckInWeeklyReviewRequestOpts(requestParameters: CreateDailyCheckInWeeklyReviewRequest): Promise<runtime.RequestOpts> {
+    async clearDailyCheckInWeeklyFeedbackRequestOpts(requestParameters: ClearDailyCheckInWeeklyFeedbackRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['spaceId'] == null) {
             throw new runtime.RequiredError(
                 'spaceId',
-                'Required parameter "spaceId" was null or undefined when calling createDailyCheckInWeeklyReview().'
-            );
-        }
-
-        if (requestParameters['weeklyReviewRequest'] == null) {
-            throw new runtime.RequiredError(
-                'weeklyReviewRequest',
-                'Required parameter "weeklyReviewRequest" was null or undefined when calling createDailyCheckInWeeklyReview().'
+                'Required parameter "spaceId" was null or undefined when calling clearDailyCheckInWeeklyFeedback().'
             );
         }
 
@@ -118,39 +103,35 @@ export class DailyCheckInsApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        headerParameters['Content-Type'] = 'application/json';
 
-
-        let urlPath = `/api/v1/spaces/{spaceId}/daily-check-in/weekly-review`;
+        let urlPath = `/api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback`;
         urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
 
         return {
             path: urlPath,
-            method: 'POST',
+            method: 'DELETE',
             headers: headerParameters,
             query: queryParameters,
-            body: WeeklyReviewRequestToJSON(requestParameters['weeklyReviewRequest']),
         };
     }
 
     /**
-     * Explicit bounded model selection; revisions are revalidated after inference.
-     * Create Daily Check In Weekly Review
+     * Delete all of the caller\'s retained ratings; idempotent and not paywalled.
+     * Clear Daily Check In Weekly Feedback
      */
-    async createDailyCheckInWeeklyReviewRaw(requestParameters: CreateDailyCheckInWeeklyReviewRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WeeklyReviewView>> {
-        const requestOptions = await this.createDailyCheckInWeeklyReviewRequestOpts(requestParameters);
+    async clearDailyCheckInWeeklyFeedbackRaw(requestParameters: ClearDailyCheckInWeeklyFeedbackRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.clearDailyCheckInWeeklyFeedbackRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => WeeklyReviewViewFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
-     * Explicit bounded model selection; revisions are revalidated after inference.
-     * Create Daily Check In Weekly Review
+     * Delete all of the caller\'s retained ratings; idempotent and not paywalled.
+     * Clear Daily Check In Weekly Feedback
      */
-    async createDailyCheckInWeeklyReview(requestParameters: CreateDailyCheckInWeeklyReviewRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WeeklyReviewView> {
-        const response = await this.createDailyCheckInWeeklyReviewRaw(requestParameters, initOverrides);
-        return await response.value();
+    async clearDailyCheckInWeeklyFeedback(requestParameters: ClearDailyCheckInWeeklyFeedbackRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.clearDailyCheckInWeeklyFeedbackRaw(requestParameters, initOverrides);
     }
 
     /**
@@ -209,6 +190,64 @@ export class DailyCheckInsApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getDailyCheckInPersonalWeeklyBrief without sending the request
+     */
+    async getDailyCheckInPersonalWeeklyBriefRequestOpts(requestParameters: GetDailyCheckInPersonalWeeklyBriefRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getDailyCheckInPersonalWeeklyBrief().'
+            );
+        }
+
+        if (requestParameters['weekStart'] == null) {
+            throw new runtime.RequiredError(
+                'weekStart',
+                'Required parameter "weekStart" was null or undefined when calling getDailyCheckInPersonalWeeklyBrief().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['weekStart'] != null) {
+            queryParameters['week_start'] = (requestParameters['weekStart'] as any).toISOString().substring(0,10);
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/daily-check-in/weekly-brief/personal`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Private weekly brief over the caller\'s own values alone (#2197).  Model-free. Partner Daily Check-in rows are never read; shared Plan and Memory dates follow the ordinary visibility rules.
+     * Get Daily Check In Personal Weekly Brief
+     */
+    async getDailyCheckInPersonalWeeklyBriefRaw(requestParameters: GetDailyCheckInPersonalWeeklyBriefRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PersonalWeeklyBriefView>> {
+        const requestOptions = await this.getDailyCheckInPersonalWeeklyBriefRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PersonalWeeklyBriefViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Private weekly brief over the caller\'s own values alone (#2197).  Model-free. Partner Daily Check-in rows are never read; shared Plan and Memory dates follow the ordinary visibility rules.
+     * Get Daily Check In Personal Weekly Brief
+     */
+    async getDailyCheckInPersonalWeeklyBrief(requestParameters: GetDailyCheckInPersonalWeeklyBriefRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PersonalWeeklyBriefView> {
+        const response = await this.getDailyCheckInPersonalWeeklyBriefRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for getDailyCheckInToday without sending the request
      */
     async getDailyCheckInTodayRequestOpts(requestParameters: GetDailyCheckInTodayRequest): Promise<runtime.RequestOpts> {
@@ -254,20 +293,20 @@ export class DailyCheckInsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for getDailyCheckInWeeklyReview without sending the request
+     * Creates request options for getDailyCheckInWeeklyBrief without sending the request
      */
-    async getDailyCheckInWeeklyReviewRequestOpts(requestParameters: GetDailyCheckInWeeklyReviewRequest): Promise<runtime.RequestOpts> {
+    async getDailyCheckInWeeklyBriefRequestOpts(requestParameters: GetDailyCheckInWeeklyBriefRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['spaceId'] == null) {
             throw new runtime.RequiredError(
                 'spaceId',
-                'Required parameter "spaceId" was null or undefined when calling getDailyCheckInWeeklyReview().'
+                'Required parameter "spaceId" was null or undefined when calling getDailyCheckInWeeklyBrief().'
             );
         }
 
         if (requestParameters['weekStart'] == null) {
             throw new runtime.RequiredError(
                 'weekStart',
-                'Required parameter "weekStart" was null or undefined when calling getDailyCheckInWeeklyReview().'
+                'Required parameter "weekStart" was null or undefined when calling getDailyCheckInWeeklyBrief().'
             );
         }
 
@@ -280,7 +319,7 @@ export class DailyCheckInsApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
 
-        let urlPath = `/api/v1/spaces/{spaceId}/daily-check-in/weekly-review`;
+        let urlPath = `/api/v1/spaces/{spaceId}/daily-check-in/weekly-brief`;
         urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
 
         return {
@@ -292,47 +331,33 @@ export class DailyCheckInsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Read current authorized multiweek observations without running inference.
-     * Get Daily Check In Weekly Review
+     * Rule-based weekly brief over mutually visible values and readable shared content.  Model-free and deterministic (#2169). Plans, Memories and Wishes are read through the ordinary visibility rules; the brief stores nothing.
+     * Get Daily Check In Weekly Brief
      */
-    async getDailyCheckInWeeklyReviewRaw(requestParameters: GetDailyCheckInWeeklyReviewRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WeeklyReviewView>> {
-        const requestOptions = await this.getDailyCheckInWeeklyReviewRequestOpts(requestParameters);
+    async getDailyCheckInWeeklyBriefRaw(requestParameters: GetDailyCheckInWeeklyBriefRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WeeklyBriefView>> {
+        const requestOptions = await this.getDailyCheckInWeeklyBriefRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => WeeklyReviewViewFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => WeeklyBriefViewFromJSON(jsonValue));
     }
 
     /**
-     * Read current authorized multiweek observations without running inference.
-     * Get Daily Check In Weekly Review
+     * Rule-based weekly brief over mutually visible values and readable shared content.  Model-free and deterministic (#2169). Plans, Memories and Wishes are read through the ordinary visibility rules; the brief stores nothing.
+     * Get Daily Check In Weekly Brief
      */
-    async getDailyCheckInWeeklyReview(requestParameters: GetDailyCheckInWeeklyReviewRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WeeklyReviewView> {
-        const response = await this.getDailyCheckInWeeklyReviewRaw(requestParameters, initOverrides);
+    async getDailyCheckInWeeklyBrief(requestParameters: GetDailyCheckInWeeklyBriefRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WeeklyBriefView> {
+        const response = await this.getDailyCheckInWeeklyBriefRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
-     * Creates request options for setDailyCheckInWeeklyFeedback without sending the request
+     * Creates request options for getDailyCheckInWeeklyFeedback without sending the request
      */
-    async setDailyCheckInWeeklyFeedbackRequestOpts(requestParameters: SetDailyCheckInWeeklyFeedbackRequest): Promise<runtime.RequestOpts> {
-        if (requestParameters['recommendationKey'] == null) {
-            throw new runtime.RequiredError(
-                'recommendationKey',
-                'Required parameter "recommendationKey" was null or undefined when calling setDailyCheckInWeeklyFeedback().'
-            );
-        }
-
+    async getDailyCheckInWeeklyFeedbackRequestOpts(requestParameters: GetDailyCheckInWeeklyFeedbackRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['spaceId'] == null) {
             throw new runtime.RequiredError(
                 'spaceId',
-                'Required parameter "spaceId" was null or undefined when calling setDailyCheckInWeeklyFeedback().'
-            );
-        }
-
-        if (requestParameters['weeklyFeedbackUpdate'] == null) {
-            throw new runtime.RequiredError(
-                'weeklyFeedbackUpdate',
-                'Required parameter "weeklyFeedbackUpdate" was null or undefined when calling setDailyCheckInWeeklyFeedback().'
+                'Required parameter "spaceId" was null or undefined when calling getDailyCheckInWeeklyFeedback().'
             );
         }
 
@@ -340,39 +365,35 @@ export class DailyCheckInsApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        headerParameters['Content-Type'] = 'application/json';
 
-
-        let urlPath = `/api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback/{recommendationKey}`;
-        urlPath = urlPath.replace('{recommendationKey}', encodeURIComponent(String(requestParameters['recommendationKey'])));
+        let urlPath = `/api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback`;
         urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
 
         return {
             path: urlPath,
-            method: 'PUT',
+            method: 'GET',
             headers: headerParameters,
             query: queryParameters,
-            body: WeeklyFeedbackUpdateToJSON(requestParameters['weeklyFeedbackUpdate']),
         };
     }
 
     /**
-     * Set one caller preference; clearing retained feedback is not paywalled.
-     * Set Daily Check In Weekly Feedback
+     * The caller\'s own ratings retained from the retired weekly review; not paywalled.
+     * Get Daily Check In Weekly Feedback
      */
-    async setDailyCheckInWeeklyFeedbackRaw(requestParameters: SetDailyCheckInWeeklyFeedbackRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WeeklyFeedbackView>> {
-        const requestOptions = await this.setDailyCheckInWeeklyFeedbackRequestOpts(requestParameters);
+    async getDailyCheckInWeeklyFeedbackRaw(requestParameters: GetDailyCheckInWeeklyFeedbackRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RetainedWeeklyFeedbackView>> {
+        const requestOptions = await this.getDailyCheckInWeeklyFeedbackRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => WeeklyFeedbackViewFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => RetainedWeeklyFeedbackViewFromJSON(jsonValue));
     }
 
     /**
-     * Set one caller preference; clearing retained feedback is not paywalled.
-     * Set Daily Check In Weekly Feedback
+     * The caller\'s own ratings retained from the retired weekly review; not paywalled.
+     * Get Daily Check In Weekly Feedback
      */
-    async setDailyCheckInWeeklyFeedback(requestParameters: SetDailyCheckInWeeklyFeedbackRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WeeklyFeedbackView> {
-        const response = await this.setDailyCheckInWeeklyFeedbackRaw(requestParameters, initOverrides);
+    async getDailyCheckInWeeklyFeedback(requestParameters: GetDailyCheckInWeeklyFeedbackRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RetainedWeeklyFeedbackView> {
+        const response = await this.getDailyCheckInWeeklyFeedbackRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

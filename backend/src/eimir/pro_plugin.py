@@ -21,6 +21,7 @@ from eimir.plugins.contract import (
     PLUGIN_SEAM_VERSION,
     AttachmentReadRule,
     CoreNotifications,
+    MigrationSpec,
     TargetRule,
 )
 from eimir.plugins.manifest import PLUGIN_CAPABILITIES
@@ -31,6 +32,7 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
     from eimir.authorization import AuthorizationContext
+    from eimir.config import Settings
     from eimir.demo.service import DemoSeedResult
     from eimir.domain.events import EventType
     from eimir.jobs.worker import JobRegistry
@@ -523,6 +525,15 @@ class InTreeProPlugin:
 
     def date_ideas(self) -> DateIdeaSource | None:
         return _DATE_IDEAS
+
+    def migrations(self) -> MigrationSpec | None:
+        # The existing Pro tables stay in the Core chain (Decision 0017,
+        # decision 6); a plugin chain starts with the first new Pro table.
+        return None
+
+    def validate(self, settings: Settings) -> None:
+        # The integration settings are still Core settings and Core validates them.
+        del settings
 
     def seed_demo(self, session: Session, result: DemoSeedResult, *, created: bool) -> None:
         _ensure_demo_quote_preferences(session, result)

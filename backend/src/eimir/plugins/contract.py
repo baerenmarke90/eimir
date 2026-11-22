@@ -14,6 +14,7 @@ Core call site it replaces.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 from uuid import UUID
@@ -24,6 +25,7 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
     from eimir.authorization import AuthorizationContext
+    from eimir.config import Settings
     from eimir.demo.service import DemoSeedResult
     from eimir.domain.events import EventType
     from eimir.engagement.models import EngagementTarget, NotificationKind
@@ -32,7 +34,7 @@ if TYPE_CHECKING:
     from eimir.transfer.models import TransferScope
     from eimir.wish_selections.date_idea_contract import DateIdeaSource
 
-PLUGIN_SEAM_VERSION = 5
+PLUGIN_SEAM_VERSION = 6
 """The seam revision Core implements. A plugin declaring another value refuses to start."""
 
 PLUGIN_ENTRY_POINT_GROUP = "eimir.plugins"
@@ -49,6 +51,23 @@ inside its notification and activity queries. Pure SQL: no I/O, no writes.
 
 AttachmentReadRule = Callable[["Session", "AuthorizationContext", UUID], bool]
 """Whether the reader may read an attachment bound to a plugin parent (read only)."""
+
+
+@dataclass(frozen=True)
+class MigrationSpec:
+    """Where a plugin keeps its own Alembic revisions (Decision 0017, decision 6).
+
+    The plugin chain is separate from the Core chain and records its state in
+    its own ``version_table``, so a Core-only ``migrate`` never meets a plugin
+    revision. Plugin revisions may reference Core tables; Core revisions never
+    reference plugin tables. Core runs the chain after the Core chain reached
+    its head; a directory without revisions does nothing and creates no table.
+    """
+
+    script_location: str
+    """Absolute path of the plugin's Alembic script directory (with ``versions/``)."""
+    version_table: str
+    """The plugin's own Alembic version table, for example ``alembic_version_pro``."""
 
 
 class CoreNotifications(Protocol):
@@ -224,6 +243,24 @@ class ProPlugin(Protocol):
 
         Pure and cached. Without a source the catalog is unavailable and rounds
         with date ideas stay paused.
+        """
+        ...
+
+    def migrations(self) -> MigrationSpec | None:
+        """Return the plugin's own migration chain, or ``None`` while it has none.
+
+        Run by the ``migrate`` process after Core reached its head, in the same
+        deploy step. A failing plugin revision fails ``migrate`` like a failing
+        Core revision.
+        """
+        ...
+
+    def validate(self, settings: Settings) -> None:
+        """Check the plugin's configuration before the process serves anything.
+
+        Called once by the ``api``, ``worker`` and media processes after loading.
+        Raising refuses to start with the plugin's diagnostic. The ``migrate``
+        process does not load the application settings and does not call it.
         """
         ...
 

@@ -21,6 +21,7 @@ from eimir.security.payload_envelope import (
     stored_key_id,
 )
 from tests.support.encryption import key_ring, random_key
+from tests.support.tampering import flip_base64url_byte
 
 PLAIN = {"title": "Anniversary dinner", "body": "We said yes in the rain ❤"}
 CTX = "MemoryPayload"
@@ -156,7 +157,12 @@ def test_rewrap_refuses_plaintext() -> None:
 def test_failures_never_echo_content() -> None:
     protector = _protector()
     stored: dict[str, Any] = protector.protect(PLAIN, context=CTX)
-    stored["ct"] = stored["ct"][:-2] + "AA"
+    # AES-GCM is a stream cipher: ciphertext byte i encrypts canonical-JSON byte i.
+    # Flipping a bit inside a string value keeps the plaintext valid JSON, so only
+    # tag verification can reject it, and the tamper always changes the bytes.
+    canonical = json.dumps(PLAIN, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    title_offset = canonical.encode("utf-8").index(b"Anniversary")
+    stored["ct"] = flip_base64url_byte(stored["ct"], title_offset)
     with pytest.raises(DecryptionError) as raised:
         protector.reveal(stored, context=CTX)
     assert "Anniversary" not in str(raised.value)

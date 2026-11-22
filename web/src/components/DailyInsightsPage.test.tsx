@@ -121,8 +121,9 @@ function briefView(extra: Partial<WeeklyBriefView> = {}): WeeklyBriefView {
     elapsedDays: 3,
     jointDays: 3,
     headline: 'SHARED_GOOD_DAYS',
-    goodDays: [new Date('2026-09-21'), new Date('2026-09-23')],
-    sharedDays: [new Date('2026-09-21'), new Date('2026-09-23')],
+    // The generated client delivers date array items as strings at runtime.
+    goodDays: ['2026-09-21', '2026-09-23'] as unknown as Date[],
+    sharedDays: ['2026-09-21', '2026-09-23'] as unknown as Date[],
     highlight: {
       memoryId: 'memory-1',
       title: 'Spaziergang am Rhein',

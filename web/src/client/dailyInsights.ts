@@ -51,6 +51,10 @@ export async function loadDailyInsights(
   }
 }
 
+function asDate(value: Date | string): Date {
+  return value instanceof Date ? value : new Date(value);
+}
+
 /** The weekly brief (#2169) is caller-specific and never outlives its consumer. */
 export function weeklyBriefQueryKey(
   accountId: string,
@@ -67,10 +71,16 @@ export async function loadWeeklyBrief(
   signal?: AbortSignal,
 ): Promise<WeeklyBriefView> {
   try {
-    return await api.getDailyCheckInWeeklyBrief(
+    const brief = await api.getDailyCheckInWeeklyBrief(
       { spaceId, weekStart: isoToDate(monday) },
       signal ? { signal } : undefined,
     );
+    // The generated client leaves `date` array items as ISO strings at runtime.
+    return {
+      ...brief,
+      goodDays: brief.goodDays.map(asDate),
+      sharedDays: brief.sharedDays.map(asDate),
+    };
   } catch (error) {
     throw await normalizeClientError(error);
   }

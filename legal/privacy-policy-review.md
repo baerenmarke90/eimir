@@ -1,7 +1,7 @@
 # Privacy policy draft: review notes
 
 Status: drafting baseline for the legal review of
-[`de/privacy-policy.md`](de/privacy-policy.md) (version `2026-11-18.draft-6`).
+[`de/privacy-policy.md`](de/privacy-policy.md) (version `2026-11-22.draft-9`).
 This file is not legal advice and is not shown to users. It records where each
 statement comes from, which facts the operator must supply and which decisions
 are open, so that the reviewer can check the draft against the product instead
@@ -49,8 +49,9 @@ Where a feature is not yet available, the draft says so explicitly.
 | 9 | „In Google Maps öffnen“ passes coordinates only | `web/src/client/photoPlaces.ts` |
 | 10 | Immich: personal HTTPS origin and API key, encrypted, account-scoped; selected-item copy; 10-min selection | `docs/product/integrations/1444-photo-source-delivery.md`, `backend/src/eimir/photo_sources/service.py` |
 | 10, 15 | Google Photos is gated off (#1467); its OAuth browser binding is the only cookie (`__Host-`, 10 min) | `docs/product/integrations/1444-google-security-gate.md`, `backend/src/eimir/photo_sources/browser_binding.py` |
-| 11 | Local Ollama for weekly review selection and shared tag proposals. Only their bounded inputs are sent, and prompts and responses stay out of logs. | `docs/LOCAL-RECAP-AI.md`, `backend/src/eimir/daily_checkins/weekly_review.py`, `backend/src/eimir/context_tags/jobs.py` |
-| 11 | Eure Woche: the backend computes descriptive observations from visible Vibe/Energy values (selected week plus seven preceding weeks, bounded by retention); the model only selects observation and catalog IDs; no score, diagnosis or personality label | `docs/product/design/references/1546/weekly-ai.md`, `backend/src/eimir/daily_checkins/weekly_review.py` |
+| 11 | Local Ollama for shared tag proposals only (the weekly AI review was retired in #2203). Only bounded inputs are sent, and prompts and responses stay out of logs. | `docs/LOCAL-RECAP-AI.md`, `backend/src/eimir/context_tags/jobs.py` |
+| 4, 22 | Daily Check-in retention: only the current Space day for every Space; the hourly cleanup deletes rows of an earlier day (#2210) | `docs/decisions/0007-daily-check-in-and-mutual-reveal.md` (amendment 2026-11-22, #2210), `backend/src/eimir/daily_checkins/retention.py` |
+| 11 | Einblicke (weekly brief, history, recap good-days rhythm) removed and deferred (#2210); retained ratings of the former weekly review deleted with their table (migration 0171); counts frozen into older recaps deleted by a one-off worker job | `backend/alembic/versions/0171_drop_daily_insight_feedback.py`, `backend/src/eimir/recaps/mood_purge.py` |
 | 12 | Mails: magic link, signup, verification; notification mail opt-in and content-free | `backend/src/eimir/i18n/locales/de.json`, `backend/src/eimir/engagement/email_delivery.py` |
 | 12 | Push on Android only (no browser Web Push): FCM wake payload `type`+`activationId`, or UnifiedPush; auto-init off; FID cleanup; Google's 180-day deletion statement | `docs/PRIVACY-MODEL.md` (#565), `android/app/build.gradle`, `AndroidManifest.xml` |
 | 13 | Link previews: explicit action, server-side fetch, nothing persisted | `backend/src/eimir/api/v1/link_previews.py` |
@@ -132,7 +133,7 @@ this section.
 | Storage period or criteria (Art. 13(2)(a)) | §§ 3–16, 22 | Concrete periods bound to the code by `test_privacy_policy_statements.py`; logs and backups are placeholders |
 | Rights, withdrawal, complaint (Art. 13(2)(b)–(d)) | §§ 23, 24 | Present; the objection right is separate and bold (Art. 21(4)) |
 | Requirement to provide data and consequences (Art. 13(2)(e)) | § 3.6 | Present; the Cloud display name is optional |
-| Automated decisions and profiling (Art. 13(2)(f)) | § 11 | No Art. 22 decisions; the Eure Woche evaluation is described |
+| Automated decisions and profiling (Art. 13(2)(f)) | § 11 | No Art. 22 decisions; only tag proposals remain (the weekly brief was removed, #2210) |
 | Data from other sources (Art. 14) | §§ 2.1, 8.4 | Partner: own notice at signup (Art. 14(5)(a)); third persons: public notice and rights path (Art. 14(5)(b)) |
 | Transparency (Art. 12) | whole notice | Layered summary, plain language; German only (decision 6) |
 | Device storage and access (§ 25 TDDDG) | §§ 9.2, 12.5, 15 | Strictly necessary items under § 25(2) no. 2; Android photo location under § 25(1) |
@@ -154,7 +155,8 @@ this section.
   consequence of declining.
 - § 9.4: map tiles under legitimate interest instead of contract necessity
   (decision 4).
-- § 11.2: what Eure Woche evaluates.
+- § 11.1: tag proposals only; the weekly brief and the weekly AI review were
+  removed (#2203, #2210).
 - § 16.1: the application log has no IP address; Web server and ingress logs
   may contain it.
 - § 16.3: restore order as in `ACCOUNT-DELETION-RETENTION.md` § 7.3.
@@ -220,7 +222,7 @@ officer should confirm them before publication.
    carry one out before launch. The processing meets several criteria of the
    EDPB-endorsed WP248 rev.01: data of a highly personal nature (shared
    diaries and life-logging, criterion 4), innovative technology (local LLM,
-   criterion 8), evaluation of personal aspects (Eure Woche, criterion 1) and,
+   criterion 8), evaluation of personal aspects (criterion 1, no longer met since Einblicke was removed, #2210) and,
    with growth, large scale (criterion 5). Two criteria usually require a
    DPIA. The German supervisory authorities' list for the private sector also
    names AI that evaluates personal aspects.
@@ -259,11 +261,13 @@ officer should confirm them before publication.
     refers to location presence, but the wording invites confusion.
     **Recommendation:** add a personal switch. It makes the objection
     self-service and matches terms § 8.2.
-11. **Daily check-in history.** `weekly_review.py` evaluates the selected week
-    plus seven preceding weeks, but retention deletes rows after the previous
-    Space day, so Eure Woche can only see two days. Reconcile the product.
-    Longer retention changes §§ 4.5, 11.2 and 22 and weighs on decisions 1
-    and 2.
+11. **Daily check-in history.** Resolved by removal: the Product Owner removed
+    and deferred Einblicke on 2026-11-22 (#2210). Every Space keeps check-ins
+    only for the current Space day; the hourly cleanup deletes earlier rows,
+    the recap good-days counts and the retained ratings are deleted as well.
+    Draft-9 updates §§ 4.5, 11.1 and 22. The legal review of the 90-day history
+    (closed PR #2209, summarised in #2210) applies if a history returns: it is
+    health-related special-category data and needs explicit consent.
 12. **Change notification.** **Recommendation:** use the channel of the terms
     changes (email and in-app), without acceptance.
 13. **One-time messages in Cloud backups.** The canonical dump excludes the

@@ -214,16 +214,25 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | uuid6 | 2025.0.1 | PyPI | MIT |
 | argon2-cffi | 25.1.0 | PyPI | MIT |
 | httpx[http2] | 0.28.1 | PyPI | BSD-3-Clause |
-| google-auth-oauthlib | 1.5.0 | PyPI | Apache 2.0 |
 | pyjwt[crypto] | 2.15.1 | PyPI | MIT |
 | cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
 | pywebpush | 2.5.0 | PyPI | MPL-2.0 |
 | google-auth[requests] | 2.62.0 | PyPI | Apache 2.0 |
-| oauthlib | 4.0.1 | PyPI | BSD-3-Clause |
 | joserfc | 1.7.7 | PyPI | BSD-3-Clause |
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
 | pillow | 13.0.0 | PyPI | MIT-CMU |
 | pillow-heif | 1.8.1 | PyPI | BSD-3-Clause |
+
+## Backend — Pro plugin runtime (`backend/pro`)
+
+These direct dependencies belong to the Pro distribution `eimir-pro` (Decision 0017,
+Phase 2, #2182). They are locked in the same `backend/uv.lock` workspace and are not
+part of a Core-only installation.
+
+| Package | Version | Source | License |
+|---|---|---|---|
+| google-auth-oauthlib | 1.5.0 | PyPI | Apache 2.0 |
+| oauthlib | 4.0.1 | PyPI | BSD-3-Clause |
 | defusedxml | 0.7.1 | PyPI | PSFL |
 
 `defusedxml` parses untrusted CalDAV multistatus responses (#1895) without
@@ -600,7 +609,7 @@ decision for the project's own source code.
 | `docs/product/design/references/1444/photo-source-sheet-delivery.png` | Generated whole-diary/source-sheet preflight for #1444, 2026-10-27 | eimir. project workflow using ImageGen | project asset; no separate public license grant |
 | `docs/product/design/references/1444/evidence/photo-source-*.png` (eight named files in its README) | Actual local browser renders of the project UI using synthetic account data and the existing cabin/lake demo fixture | eimir. project workflow; embedded photo by Darkmoon_Art (Pixabay 3374201) | UI screenshots: project asset, no separate public license grant; embedded photo: CC0 1.0 Universal, as recorded in `backend/demo_assets/manifest.json` |
 | `docs/assets/readme/01-anmelden.webp` … `07-mehr.webp` (seven named files) | README product preview: actual browser captures of the current Web client at ~390 px width in the Light theme, taken from the canonical demo Space (fictional identities and content) | eimir. project workflow; embedded demo photographs by the creators named in `backend/demo_assets/manifest.json` (Pixabay) | UI screenshots: project asset, no separate public license grant; embedded photographs: CC0 1.0 Universal, as recorded in `backend/demo_assets/manifest.json` |
-| `backend/src/eimir/date_ideas/data/images/*.webp` (25 files) and `images.json` | Editorial date-idea images for #1892 (15 idea images, 10 category images, 1200×800 WebP), generated with OpenAI's built-in image generation without reference images; the manifest keeps alt texts and the exact prompts | eimir. project editorial workflow using ImageGen | project asset; no separate public license grant; served only through the Pro-gated API |
+| `backend/pro/src/eimir_pro/date_ideas/data/images/*.webp` (25 files) and `images.json` | Editorial date-idea images for #1892 (15 idea images, 10 category images, 1200×800 WebP), generated with OpenAI's built-in image generation without reference images; the manifest keeps alt texts and the exact prompts | eimir. project editorial workflow using ImageGen | project asset; no separate public license grant; served only through the Pro-gated API |
 | `docs/assets/roadmap/roadmap-overview.svg` | eimir. Roadmap | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `docs/assets/roadmap/roadmap-tracks.svg` | eimir. Roadmap | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `design/m2/m2-screenflow.svg` | M2 Client handoff | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |

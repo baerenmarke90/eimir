@@ -61,6 +61,28 @@ function readOidcReturnUrl(
   return url.origin === expected.origin ? entry : null;
 }
 
+/**
+ * A delivered web address that points at an identity entry path (a mailed
+ * sign-in, sign-up, recovery, verification, invitation or provider-return
+ * link) but was not accepted, for example because it names another origin.
+ * Other deliveries (app schemes, plan links) are not identity links.
+ */
+export function isIgnoredIdentityLink(rawUrl: string): boolean {
+  try {
+    const url = new URL(rawUrl);
+    if (!['https:', 'http:'].includes(url.protocol)) return false;
+    const path = url.pathname.replace(/\/$/, '');
+    return (
+      path.startsWith('/auth/oidc/') ||
+      ['recovery', 'magic-link', 'verify-email', 'invitation', 'signup'].some(
+        (name) => path === `/auth/${name}`,
+      )
+    );
+  } catch {
+    return false;
+  }
+}
+
 /** External delivery is trusted only for the current deployment's HTTP origin. */
 export function readIdentityEntryUrl(
   rawUrl: string,
@@ -172,7 +194,13 @@ export function useIdentityEntry(apiBaseUrl: string) {
     const receiveUrl = (url: string) => {
       if (cancelled) return false;
       const entry = readIdentityEntryUrl(url, origin, native);
-      if (!entry) return false;
+      if (!entry) {
+        // Never silent: the person tapped a mailed link and must learn that it
+        // cannot be used here. The text names neither host nor token.
+        if (isIgnoredIdentityLink(url))
+          postSnackbar('snackbar.identityLinkUnusable');
+        return false;
+      }
       if (receive(entry)) navigateRef.current('/', { replace: true });
       return true;
     };

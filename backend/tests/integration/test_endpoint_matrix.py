@@ -440,22 +440,6 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         body={"energyLevel": 50},
         if_match=True,
     ),
-    Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-check-in/insights"),
-    Endpoint(
-        "GET",
-        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review",
-        query={"week_start": "2026-10-26"},
-    ),
-    Endpoint(
-        "POST",
-        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review",
-        body={"weekStart": "2026-10-26", "evidenceToken": "a" * 64},
-    ),
-    Endpoint(
-        "PUT",
-        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback/{recommendationKey}",
-        body={"rating": "HELPFUL"},
-    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote/catalog"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote/preferences"),
@@ -1866,7 +1850,7 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             session.flush()
             # Composed through the plugin code: the request route is not mounted in
             # the Core-only configuration.
-            from eimir.recap_composition import composer
+            from eimir_pro.recap_composition import composer
 
             recap_id = str(
                 composer.request_period(
@@ -1907,7 +1891,6 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "planId": plan["id"],
             "reminderId": reminder["id"],
             "ruleKey": "important_date_reminder",
-            "recommendationKey": "quiet_time",
             "moduleKey": "upcoming",
             "placeId": place["id"],
             "chapterId": chapter["id"],

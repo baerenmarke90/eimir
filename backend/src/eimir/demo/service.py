@@ -410,32 +410,16 @@ def _seed_daily_check_ins(
     *,
     reference_date: date,
 ) -> None:
-    """Seed recent Daily Check-in history through the normal write boundary.
+    """Seed today's Daily Check-in through the normal write boundary.
 
-    The deliberately uneven rows make the Pro insights and Mutual Reveal
-    states representative without turning the demo into a wall of perfect
-    daily participation. Today's values exist for both personas so the public
-    entry point opens with a useful, fully revealed example.
+    Only the current Space day is kept (#2210), so the demo seeds today's
+    values for both personas: the public entry point opens with a useful,
+    fully revealed example.
     """
     history: tuple[
         tuple[int, DailyVibe | None, int | None, DailyVibe | None, int | None],
         ...,
-    ] = (
-        (0, DailyVibe.GOOD, 80, DailyVibe.OKAY, 70),
-        (1, DailyVibe.OKAY, 70, DailyVibe.GOOD, 80),
-        (2, DailyVibe.STRESSED, 50, DailyVibe.OKAY, 60),
-        (3, DailyVibe.GOOD, 90, DailyVibe.GOOD, 80),
-        (4, DailyVibe.NEEDS_CONNECTION, 40, DailyVibe.OKAY, 60),
-        (5, DailyVibe.GOOD, 60, None, 70),
-        (6, DailyVibe.OKAY, 70, DailyVibe.STRESSED, 50),
-        (7, DailyVibe.GOOD, 80, DailyVibe.GOOD, 90),
-        (8, DailyVibe.NEEDS_SPACE, 40, DailyVibe.OKAY, 70),
-        (9, None, None, DailyVibe.GOOD, 80),
-        (10, DailyVibe.SAD, 40, None, None),
-        (11, DailyVibe.OKAY, 60, DailyVibe.OKAY, 60),
-        (12, DailyVibe.GOOD, 90, DailyVibe.NEEDS_CONNECTION, 50),
-        (13, DailyVibe.GOOD, 80, DailyVibe.GOOD, 80),
-    )
+    ] = ((0, DailyVibe.GOOD, 80, DailyVibe.OKAY, 70),)
 
     def write(
         context: AuthorizationContext,

@@ -396,3 +396,62 @@ describe('TransferImportSection', () => {
     });
   });
 });
+
+describe('a failed import names its cause', () => {
+  it.each([
+    ['TRANSFER_TOO_LARGE', copy.failure.importTooLarge],
+    ['TRANSFER_FORMAT_UNSUPPORTED', copy.failure.formatUnsupported],
+    ['TRANSFER_MANIFEST_INVALID', copy.failure.fileInvalid],
+    ['TRANSFER_ARCHIVE_UNSAFE', copy.failure.fileInvalid],
+    ['TRANSFER_CHECKSUM_MISMATCH', copy.failure.fileInvalid],
+    ['TRANSFER_RELATION_INVALID', copy.failure.fileInvalid],
+    ['TRANSFER_MEMBER_MAPPING_REQUIRED', copy.failure.members],
+    ['TRANSFER_MEMBER_MAPPING_INVALID', copy.failure.members],
+    ['TRANSFER_PRIVACY_SCOPE_INVALID', copy.failure.privacy],
+    ['TRANSFER_IMPORT_FAILED', copy.failure.importFailed],
+    ['SOMETHING_UNKNOWN', copy.failure.importFailed],
+    [null, copy.failure.importFailed],
+  ])('shows the text for %s', async (code, text) => {
+    transferApi.getTransferImport.mockResolvedValue(
+      detail(null, { status: ImportStatus.FAILED, errorCode: code }),
+    );
+    renderSection();
+
+    expect(await screen.findByText(text.title)).toBeTruthy();
+    expect(screen.getByText(text.body)).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(
+      /TRANSFER_|SOMETHING_UNKNOWN/,
+    );
+  });
+
+  it('says an expired file has expired', async () => {
+    transferApi.getTransferImport.mockResolvedValue(
+      detail(null, { status: ImportStatus.EXPIRED }),
+    );
+    renderSection();
+
+    expect(
+      await screen.findByText(copy.failure.importExpired.title),
+    ).toBeTruthy();
+    expect(screen.getByText(copy.failure.importExpired.body)).toBeTruthy();
+  });
+
+  it('names a file that is refused as too large while it is uploaded', async () => {
+    transferApi.getTransferImport.mockResolvedValue(detail(null));
+    transferApi.createTransferImport.mockRejectedValue(
+      new ClientProblemError('validation', 413, 'TRANSFER_TOO_LARGE'),
+    );
+    renderSection(null);
+
+    fireEvent.change(await screen.findByLabelText(copy.import.fileLabel), {
+      target: { files: [new File(['bundle'], 'eimir-export.zip')] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: copy.import.upload }));
+
+    expect(
+      await screen.findByText(copy.failure.importTooLarge.title),
+    ).toBeTruthy();
+    expect(screen.getByText(copy.failure.importTooLarge.body)).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/TRANSFER_/);
+  });
+});

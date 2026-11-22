@@ -17,17 +17,21 @@ RUN pip install --no-cache-dir "uv==0.12.15"
 
 # Install only the locked runtime dependencies first. This keeps the expensive
 # layer independent of application code, and uv must not modify the lock state.
+# The Pro plugin is its own workspace distribution (Decision 0017, #2182); this
+# image still ships it until the separate Core and Pro images exist.
 COPY pyproject.toml uv.lock .python-version ./
-RUN uv sync --frozen --no-install-project --no-editable
+COPY pro/pyproject.toml ./pro/
+RUN uv sync --frozen --all-packages --no-install-workspace --no-editable
 
 COPY src ./src
+COPY pro/src ./pro/src
 COPY demo_assets ./demo_assets
 # Ship only the operational demo entrypoint, not the development/CI scripts.
 COPY scripts/__init__.py scripts/demo_space.py ./scripts/
 COPY alembic ./alembic
 COPY alembic.ini ./
 
-RUN uv sync --locked --no-editable
+RUN uv sync --locked --all-packages --no-editable
 # Keep the deployment-time demo bootstrap contract covered by every production
 # image build without creating data or requiring demo credentials.
 RUN python -m scripts.demo_space --help >/dev/null

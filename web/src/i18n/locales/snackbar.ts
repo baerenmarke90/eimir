@@ -4,6 +4,8 @@ const snackbar = {
     spaceSwitched: 'Bereich gewechselt.',
     identityLinkWaiting:
       'Dein Link wartet. Speichere oder schließe zuerst deinen Entwurf.',
+    identityLinkUnusable:
+      'Dieser Link passt nicht zu dieser App-Version. Fordere einen neuen an.',
     notificationWaiting:
       'Deine Mitteilung wartet. Speichere oder schließe zuerst deinen Entwurf.',
     memoryDeleted: 'Erinnerung gelöscht.',

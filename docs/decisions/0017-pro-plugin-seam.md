@@ -2,9 +2,10 @@
 
 **Status:** Accepted (merged 2026-11-20, PR #2050)  
 **Date:** November 18, 2026; updated November 19, 2026 for the Product Owner's repository-visibility direction;
-updated November 20, 2026 for the current `main` baseline and the owning issue  
-**Owning issue:** [#2082](https://github.com/baerenmarke90/eimir/issues/2082) (Phase 1). Phases 2 and 3 get their own
-issues when they start.  
+updated November 20, 2026 for the current `main` baseline and the owning issue; updated November 22, 2026 for
+the Phase 2 plan and the Product Owner's decisions of that day  
+**Owning issue:** [#2082](https://github.com/baerenmarke90/eimir/issues/2082) (Phase 1),
+[#2182](https://github.com/baerenmarke90/eimir/issues/2182) (Phase 2). Phase 3 gets its own issue when it starts.  
 **Builds on:** [ADR 0006](../m6/ADR-0006-ENTITLEMENT-ARCHITECTURE.md) (capability entitlements),
 [`BUSINESS-MODEL.md`](../BUSINESS-MODEL.md), [`FREEMIUM-FEATURE-MATRIX.md`](../FREEMIUM-FEATURE-MATRIX.md) (Version 1.37),
 [`PREMIUM-BILLING-STRATEGY.md`](../PREMIUM-BILLING-STRATEGY.md) and [`SELF-HOSTING.md`](../SELF-HOSTING.md)  
@@ -87,10 +88,10 @@ Deliberately **not** part of the plugin, with the reason:
   `daily.insights` (`daily_checkins/insights.py`, the recap mood rhythm, `api/v1/daily_checkins.py`) are extractable,
   but they are woven into attachments and recaps. Their extraction is deferred to a later phase.
   [#2085](https://github.com/baerenmarke90/eimir/issues/2085) extracts them under the Product Owner's rule "what is
-  Free is Core; what Premium newly creates is plugin". `daily.insights` is done: the insight and weekly-review routes
-  (`api/v1/daily_insights.py`) and the package `daily_insights` (insights, weekly patterns, weekly review) are
-  plugin code and the capability is plugin-owned; today's check-in, the rating route (clearing a retained rating is
-  Free) with `daily_checkins/feedback.py` and the `daily_insight_feedback` table stay Core. `media.video_upload` is
+  Free is Core; what Premium newly creates is plugin". `daily.insights` was done (insight and weekly brief routes as plugin code) until the Product Owner removed
+  and deferred Einblicke in [#2210](https://github.com/baerenmarke90/eimir/issues/2210): the routes, the package
+  `daily_insights`, the retained-rating table and the recap good-days rhythm are gone, and `daily.insights` is a
+  reserved capability without implementation again. Today's check-in stays Core. `media.video_upload` is
   done too: the video processor (package `video_processing`, `videos.py`) and its validation job are plugin code,
   the job kind is in `PLUGIN_JOB_KINDS` and the capability is plugin-owned. The shared media pipeline
   (`attachments/video_jobs.py`), the restricted process runner (`attachments/media_process.py`), voice notes,
@@ -125,7 +126,7 @@ whether it is closed before Phase 3 or accepted.
 | `partner.quick_actions.extended` | Plugin route `api/v1/partner_quick_actions.py` and package `partner_quick_actions` (command and `support_gesture_requests`, tag `notifications` kept); vocabulary, projection, thinking-of-you and the module switch stay Core | Yes: moved into the plugin by [#2084](https://github.com/baerenmarke90/eimir/issues/2084) | |
 | `theme.bespoke_packs` | Value checks in shared Core (`api/v1/appearance.py`, `appearance/models.py`); the capability is plugin-owned, the packs live in the clients | Partly: plugin-owned by [#2084](https://github.com/baerenmarke90/eimir/issues/2084), so Core-only refuses Pro values; the check itself stays public code | [#2086](https://github.com/baerenmarke90/eimir/issues/2086) |
 | `media.video_upload` | Plugin package `video_processing` (processor and validation job); pipeline, voice notes, playback and the retained-media lifecycle stay Core | Yes: processor and job moved by [#2085](https://github.com/baerenmarke90/eimir/issues/2085), the capability is plugin-owned | |
-| `daily.insights` | Plugin routes `api/v1/daily_insights.py` and package `daily_insights` (OpenAPI tag kept); the rating route and its table stay Core; the recap mood rhythm moved with recap composition (`recap_composition/mood.py`) | Yes: moved by [#2085](https://github.com/baerenmarke90/eimir/issues/2085), the capability is plugin-owned | |
+| `daily.insights` | None since [#2210](https://github.com/baerenmarke90/eimir/issues/2210): Einblicke, its routes, the rating table and the recap mood rhythm were removed and deferred | Nothing to protect: reserved capability without implementation again | |
 | `storage.cloud_quota_50gb` | Operating-model capability, removed on Self-Hosted | Not Pro code; stays Core by design | |
 | `chapter.rich_presentation`, `occasion.automation`, `recap.pdf_yearbook`, `recap.video_montage`, `question.5_year_mirror`, `surprise_mode.vault` | None (no implementation) | Nothing to protect yet: the first implementation is written as plugin code | |
 
@@ -417,9 +418,16 @@ The executor is never weaker than the plugin. Its known, deliberate differences 
   Core migrations, because they are shared contract.
 - Consequence for the public Core: existing installations know these 23 revisions, so the published Core chain must
   contain them unchanged. The public Core therefore shows the schema of the existing Pro tables (not their logic),
-  as does the manifest in decision 4. Tables of future Pro features live only in the private plugin environment.
+  as does the manifest in decision 4. The migrations of future Pro tables live only in the private plugin
+  environment. Their table and column names do not: decision 4 requires a Core manifest row for every plugin
+  table, so deletion, retention, encryption and export keep working without the plugin. The Product Owner accepted
+  that on November 22, 2026 (see the Phase 2 update in decision 8); there is no plugin-supplied manifest hook.
 
 ### 7. Repository layout and API contract
+
+> **Superseded on November 22, 2026 by [Decision 0019](0019-repository-split-and-cutover.md).** The end state is a
+> public Core repository with fresh history plus a small private Pro and release repository, not one private
+> development repository. The seam, the allow-list checks and the contract rules below stay valid.
 
 Following the Product Owner's direction, there is **one private development repository** that holds Core and Pro,
 and the public Core repository is **produced from it**. This replaces the two-repository workflow the first draft
@@ -508,6 +516,33 @@ configuration; (d) date ideas, `eimir.games` split and demo hooks.
 `backend/pro/`) inside the same repository, with its own tests. That directory is the boundary the public Core
 export leaves out. No behavior change.
 
+**Update of November 22, 2026: the Phase 2 plan** ([#2182](https://github.com/baerenmarke90/eimir/issues/2182),
+baseline `main` at `1ebb920db`, Alembic head `0170`). The Product Owner decided on November 22:
+
+1. **Layout.** The distribution is `eimir-pro` in `backend/pro/` with the import root `eimir_pro`. A namespace
+   package `eimir.pro` is not used: `eimir` is a regular package, and a separate top-level package keeps "Core never
+   imports Pro" a plain prefix check. `backend/pro/` must be extractable unchanged into a private Pro repository and
+   install on top of a published Core. The entry point `pro` moves with the plugin object (`eimir_pro.plugin:plugin`),
+   the expected distribution becomes `eimir-pro`, and the default of `EIMIR_PLUGINS` becomes empty in the same step;
+   the Pro image sets `EIMIR_PLUGINS=pro`. That step comes last.
+2. **What moves**, derived from the manifest, the plugin object and an import graph: the 15 Pro packages, the 16
+   plugin routers, `games/service.py` and `games/waiting.py`, `places/memory_map.py`, `providers/caldav.py` and the
+   six provider modules only Pro imports (`calendar`, `calendar_transport`, `google_calendar`, `google_photos`,
+   `google_photos_config`, `immich_photos`), and the Pro-only runtime dependencies `defusedxml` and
+   `google-auth-oauthlib`. Encryption is unaffected by the rename: a payload's crypto context is its class name.
+3. **Migrations (decision 6 confirmed).** The 22 revisions that create or change Pro tables and the 6 Core revisions
+   that restate Pro values in shared constraints stay unchanged in the Core chain. No Core table has a foreign key to
+   a Pro table. Seam version 6 adds the `migrations()` hook and a plugin migration runner as a scaffold: it runs
+   after Core reaches head in the `migrate` process, uses its own `version_table`, and creates nothing while the
+   plugin has no revisions. A committed schema fingerprint of the head proves that a fresh database reaches the same
+   schema with and without the plugin. A Core baseline squash that would leave the Pro tables out of the public
+   chain is deferred; it can be done later at any head, because a baseline that takes the id of the last squashed
+   revision needs no adoption step for existing databases.
+4. **#2148.** The `validate(settings)` hook joins seam version 6. `proFeaturesAvailable` with its Core-only client
+   state and the ServerAdmin view of dormant plugin data wait until Self-Hosted work starts.
+5. **Repository.** Phase 2 runs in this repository; an extraction dry-run job builds a Core wheel and installs
+   `backend/pro/` from a clean copy on top of it. No second repository is created in Phase 2.
+
 **Phase 3: publication and delivery.** The repository becomes private (the cleanup path in the Context section),
 the Core export of decision 7 publishes the Core into a fresh public repository, a Core image is built from the
 exported tree, and a private Pro image is built `FROM` that Core image digest with its own release identity and
@@ -588,7 +623,7 @@ and the retirement of old artifacts are operational work on top.
 - **Paying Self-Hosted operators receive the code.** A Python package in an image is readable source or bytecode.
   Protection there is the license and its terms, not secrecy.
 - **Gates in shared Core code stay patchable.** `relationship.passport` (a new recap reflection),
-  `theme.bespoke_packs`, `media.video_upload` (admission) and `daily.insights` (setting a rating) are checks in
+  `theme.bespoke_packs` and `media.video_upload` (admission) are checks in
   public code. Anyone running a modified Core can remove them, as they can today.
 - **Workflow cost.** With one private development repository there is no second PR per change, but there is an
   export step to maintain, a public repository whose contributions must be carried over by hand, and two images per
@@ -621,11 +656,10 @@ private as soon as that is feasible and justifiable given the implementation sta
 precondition, see decision 8). The Core is then published as its own public repository; the main repository and
 the Pro code stay private. Still open:
 
-0. **Where the Pro code lives after Phase 2:** inside the private main repository as a separate distribution
-   (`backend/pro/`, the layout this decision assumes) or in a second private repository. The Product Owner's wording
-   of November 20 ("main repository and Pro repository stay private") allows both. Phase 1 does not depend on the
-   answer; Phase 2 does. A second repository is the superseded alternative of decision 7 and would bring back the
-   cost described there (a second CI and review cycle per contract change).
+0. **Where the Pro code lives after Phase 2 (decided November 22, 2026):** Phase 2 builds `backend/pro/` in this
+   repository. The intended end state is a public Core repository with a fresh history plus a small private Pro
+   repository; the current repository is set private and archived at the cut-over. That brings back the cost of a
+   second CI and review cycle per contract change (decision 7); the cut-over itself is planned separately.
 
 1. **How the public Core is produced:** one reviewed snapshot per release, or a continuous mirror of reviewed
    revisions (decision 7).

@@ -670,13 +670,12 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
     page,
   }, testInfo) => {
     await routeCloudEntry(page);
-    // Chromium defines `launchQueue` as a read-only accessor, so a plain
-    // assignment is ignored; define the property instead.
     await page.addInitScript(() => {
+      // Chromium exposes launchQueue itself, so a plain assignment is ignored.
       Object.defineProperty(window, 'launchQueue', {
         value: {
           setConsumer(consumer: (params: { targetURL: string }) => void) {
-            Object.assign(window, { deliverTestLaunch: consumer });
+            Object.assign(window, { deliverLaunch: consumer });
           },
         },
       });
@@ -689,9 +688,9 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
     await page.evaluate(() =>
       (
         window as unknown as {
-          deliverTestLaunch: (params: { targetURL: string }) => void;
+          deliverLaunch: (params: { targetURL: string }) => void;
         }
-      ).deliverTestLaunch({
+      ).deliverLaunch({
         targetURL: 'https://other-host.invalid/auth/signup#token=secret-proof',
       }),
     );

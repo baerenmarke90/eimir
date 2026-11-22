@@ -2858,13 +2858,11 @@
   "dailyInsights": {
     "title": "Insights",
     "pro": "Pro",
-    "proBrand": "eimir. Pro",
     "nav": {
       "label": "Switch view",
       "brief": "Weekly brief",
-      "week": "Week",
-      "patterns": "Month",
-      "recap": "Recap"
+      "week": "History",
+      "patterns": "Month"
     },
     "loading": "Loading your history …",
     "people": {
@@ -2927,25 +2925,8 @@
       "veryLow": "Very low"
     },
     "week": {
-      "title": "Your week",
       "subtitle": "Feeling & energy",
-      "accent": "Small details. Meaningful moments.",
-      "handwriting": "Shared insights. Closer together.",
-      "range": "{{start}} – {{end}}",
-      "previous": "Previous week",
-      "next": "Next week",
-      "current": "This week",
-      "picker": "Choose week",
-      "summary": "Weekly recap",
-      "noHighlights": "There is no shared highlight from the visible check-ins for this week.",
-      "vibeTitle": "Your feeling",
-      "vibeSubtitle": "How you felt.",
-      "energyTitle": "Your energy",
-      "energySubtitle": "How much energy you had.",
-      "insightsLabel": "Your week in brief",
-      "closingCta": "View weekly recap",
-      "closingHandwriting": "Quiet days. Together as us.",
-      "closingBody": "A calm look at your days – without judgement."
+      "picker": "Choose week"
     },
     "patterns": {
       "title": "Discover patterns",
@@ -2983,66 +2964,13 @@
       "goodEmpty": "Once a pattern of days when you both often felt good appears, you will see it here."
     },
     "recap": {
-      "title": "Weekly recap",
-      "subtitle": "Feeling & energy at a glance.",
-      "handwriting": "Shared moments count.",
-      "proSubline": "More insights.",
-      "heroLabel": "Your week in one sentence",
-      "heroHandwriting": "Small moments. A sense of us.",
-      "noticedTitle": "What stood out",
-      "noticedSubtitle": "Small insights from your feeling and energy data.",
-      "noticedHandwriting": "Little things. Meaningful moments.",
-      "noticedEmpty": "There are not enough shared values for insights this week yet.",
-      "highlightsTitle": "Your highlights",
-      "highlightsSubtitle": "Special moments from your week.",
-      "highlightsAll": "View all days",
-      "highlightsEmpty": "There is no standout shared day this week – a quiet history is perfectly fine too.",
       "highlightBothGood": "Both shared a good feeling",
-      "highlightBothGoodBody": "You both shared a good feeling.",
-      "highlightBothEnergy": "Both with plenty of energy",
-      "highlightBothEnergyBody": "You both had plenty of energy.",
-      "discoverBody": "Discover more of your journey.",
-      "discoverSubline": "Your changes. Your patterns. Your us.",
-      "discoverCta": "View month",
-      "hero": {
-        "bothGood_one": "This week, there was one day when you both felt good.",
-        "bothGood_other": "This week, there were {{count}} days when you both felt good.",
-        "weekendEnergy_higher": "You had especially high energy this weekend.",
-        "sharedDays": "This week, you often both shared something.",
-        "fallback": "This week, you captured your days.",
-        "empty": "There is no recap for this week yet."
-      }
+      "highlightBothEnergy": "Both with plenty of energy"
     },
     "insight": {
-      "bothGood": {
-        "title_one": "You both felt good on {{weekday}}.",
-        "title_other": "You both felt good on {{count}} days.",
-        "body_one": "You both shared a good feeling.",
-        "body_other": "Most recently on {{weekday}}."
-      },
-      "weekendEnergy_higher": {
-        "title": "Your energy was higher at the weekend.",
-        "body": "Saturday and Sunday were above the weekdays."
-      },
-      "weekendEnergy_lower": {
-        "title": "Your energy was a little lower at the weekend.",
-        "body": "Saturday and Sunday were below the weekdays."
-      },
       "vibeEnergy": {
         "title": "Days with a good feeling often also had more energy.",
         "body": "Average energy was {{good}} %, compared with {{other}} % on other days."
-      },
-      "sharedDays": {
-        "title": "You both shared something on {{count}} of {{total}} days.",
-        "body": "Little check-ins that connect you."
-      },
-      "energyVersusPrevious_higher": {
-        "title": "Your energy was a little higher than the previous week.",
-        "body": "The comparison uses values both of you can see."
-      },
-      "energyVersusPrevious_lower": {
-        "title": "Your energy was a little lower than the previous week.",
-        "body": "The comparison uses values both of you can see."
       },
       "weekdayEnergy_higher": {
         "title": "Your energy was often higher on {{weekday}}.",
@@ -3078,6 +3006,13 @@
       "4": "Fridays",
       "5": "Saturdays",
       "6": "Sundays"
+    },
+    "retainedRatings": {
+      "body_one": "You rated a suggestion in Insights earlier. The rating is visible only to you and is no longer used.",
+      "body_other": "You rated {{count}} suggestions in Insights earlier. The ratings are visible only to you and are no longer used.",
+      "clear": "Delete ratings",
+      "cleared": "Your earlier ratings have been deleted.",
+      "error": "The ratings could not be deleted. Check your connection and try again."
     },
     "brief": {
       "loading": "Putting your weekly brief together …",
@@ -3202,75 +3137,17 @@
         "weekTitle": "Your week",
         "dayGood": "You felt good.",
         "stripHint": "Tap a day to see your values."
+      },
+      "facts": {
+        "JOINT_DAYS": "In the selected week, you both shared feeling or energy on {{value}} days.",
+        "ENERGY_RISING": "On recorded days, average energy was higher for both of you than in the previous week.",
+        "ENERGY_FALLING": "On recorded days, average energy was lower for both of you than in the previous week.",
+        "WEEKEND_HIGHER": "Across several weeks, both of your average energy levels on recorded weekend days were higher than on weekdays.",
+        "WEEKEND_LOWER": "Across several weeks, both of your average energy levels on recorded weekend days were lower than on weekdays.",
+        "WEEKDAY_LOWER": "On recorded {{weekday}} days, both of your average energy levels were lower than on other weekdays.",
+        "DIFFERENT_VIBES": "Across several weeks, you reported different feelings on {{value}} jointly recorded days."
       }
     }
-  },
-  "weeklyInsights": {
-    "eyebrow": "A moment to understand",
-    "title": "What connects you right now",
-    "intro": "Discover patterns from up to eight weeks and small ideas for daily life. You decide what fits.",
-    "generate": "Discover insights",
-    "regenerate": "View fresh insights",
-    "loading": "Checking your visible entries …",
-    "error": "That did not work just now. Check your connection and try again. Your last confirmed feedback stays saved.",
-    "changed": "Your entries or sharing permissions have changed. Please create the insights again.",
-    "ai": "Selected from your entries with AI",
-    "rules": "Compiled from your entries",
-    "general": "General ideas",
-    "range": "Period considered: {{start}} to {{end}}",
-    "sparse": "There are not enough mutually visible entries for personal patterns yet. These ideas are general.",
-    "limits": "This only describes recorded days. Gaps stay open; causes or the quality of your relationship cannot be inferred.",
-    "samples_one": "Based on one mutually visible day",
-    "samples_other": "Based on {{count}} mutually visible days",
-    "facts": {
-      "JOINT_DAYS": "In the selected week, you both shared feeling or energy on {{value}} days.",
-      "ENERGY_RISING": "On recorded days, average energy was higher for both of you than in the previous week.",
-      "ENERGY_FALLING": "On recorded days, average energy was lower for both of you than in the previous week.",
-      "WEEKEND_HIGHER": "Across several weeks, both of your average energy levels on recorded weekend days were higher than on weekdays.",
-      "WEEKEND_LOWER": "Across several weeks, both of your average energy levels on recorded weekend days were lower than on weekdays.",
-      "WEEKDAY_LOWER": "On recorded {{weekday}} days, both of your average energy levels were lower than on other weekdays.",
-      "DIFFERENT_VIBES": "Across several weeks, you reported different feelings on {{value}} jointly recorded days."
-    },
-    "recommendationsTitle": "A little inspiration for you",
-    "optional": "General ideas to try – choose together what feels good for you.",
-    "recommendations": {
-      "quiet_time": {
-        "title": "Time without a programme",
-        "body": "How about a quiet evening without fixed plans? Ask each other first whether you would like closeness or some time to yourselves."
-      },
-      "small_plan": {
-        "title": "Plan something small",
-        "body": "Choose a small shared activity you both feel like doing. A walk or cooking together can be enough."
-      },
-      "appreciation": {
-        "title": "Say something appreciative",
-        "body": "Tell each other one specific little thing you appreciated this week. It does not have to be anything big."
-      },
-      "listening": {
-        "title": "Simply listen",
-        "body": "Take a few undisturbed minutes: What is on your mind? Ask whether listening or thinking it through together would help."
-      },
-      "own_pace": {
-        "title": "Find your rhythm",
-        "body": "Ask each other: What would feel good right now – time together, quiet or something just for you? Different wishes can coexist."
-      },
-      "keep_ritual": {
-        "title": "Keep a small ritual",
-        "body": "Is there a moment that feels good for both of you? Consider making some room for it again next week."
-      }
-    },
-    "feedbackFor": "Your feedback on “{{title}}”",
-    "ratings": {
-      "HELPFUL": "Helpful for me",
-      "NOT_FITTING": "Does not fit me"
-    },
-    "feedbackPrivacy": "Your feedback is visible only to you and influences your next suggestions. It is not a shared rating.",
-    "manageFeedback": "Manage your feedback",
-    "clear": "Remove feedback",
-    "clearAll": "Delete my inspiration feedback",
-    "cleared": "Your inspiration feedback is deleted.",
-    "clearError": "The feedback could not be fully deleted. Please try again.",
-    "allExcluded": "You have hidden all suggestions. Remove your feedback below to view new insights."
   },
   "recaps": {
     "title": "Your recaps",

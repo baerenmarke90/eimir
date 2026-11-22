@@ -7,13 +7,11 @@
 const dailyInsights = {
   title: 'Einblicke',
   pro: 'Pro',
-  proBrand: 'eimir. Pro',
   nav: {
     label: 'Ansicht wechseln',
     brief: 'Wochenbrief',
-    week: 'Woche',
+    week: 'Verlauf',
     patterns: 'Monat',
-    recap: 'Rückblick',
   },
   loading: 'Euer Verlauf wird geladen …',
   people: {
@@ -79,26 +77,8 @@ const dailyInsights = {
     veryLow: 'Sehr wenig',
   },
   week: {
-    title: 'Eure Woche',
     subtitle: 'Vibe & Energie',
-    accent: 'Kleine Daten. Große Momente.',
-    handwriting: 'Gemeinsame Einblicke. Tiefere Nähe.',
-    range: '{{start}} – {{end}}',
-    previous: 'Vorherige Woche',
-    next: 'Nächste Woche',
-    current: 'Diese Woche',
     picker: 'Woche wählen',
-    summary: 'Wochenfazit',
-    noHighlights:
-      'Für diese Woche gibt es kein gemeinsames Highlight aus den sichtbaren Check-ins.',
-    vibeTitle: 'Euer Vibe',
-    vibeSubtitle: 'Wie ihr euch gefühlt habt.',
-    energyTitle: 'Eure Energie',
-    energySubtitle: 'Wie viel Energie ihr hattet.',
-    insightsLabel: 'Eure Woche in Kürze',
-    closingCta: 'Wochenrückblick ansehen',
-    closingHandwriting: 'Ruhige Tage. Stärkere Wir.',
-    closingBody: 'Ein ruhiger Blick auf eure Tage – ohne Bewertung.',
   },
   patterns: {
     title: 'Muster entdecken',
@@ -140,71 +120,13 @@ const dailyInsights = {
       'Sobald sich zeigt, an welchen Tagen es euch beiden oft gut ging, steht das hier.',
   },
   recap: {
-    title: 'Wochenrückblick',
-    subtitle: 'Vibe & Energie im Überblick.',
-    handwriting: 'Gemeinsame Momente zählen.',
-    proSubline: 'Noch mehr Einblicke.',
-    heroLabel: 'Eure Woche in einem Satz',
-    heroHandwriting: 'Kleine Momente. Starkes Wir.',
-    noticedTitle: 'Das ist aufgefallen',
-    noticedSubtitle: 'Kleine Erkenntnisse aus euren Vibe- und Energie-Daten.',
-    noticedHandwriting: 'Kleine Dinge. Große Wirkung.',
-    noticedEmpty:
-      'Für diese Woche gibt es noch nicht genug gemeinsame Werte für Erkenntnisse.',
-    highlightsTitle: 'Eure Highlights',
-    highlightsSubtitle: 'Besondere Momente aus eurer Woche.',
-    highlightsAll: 'Alle Tage ansehen',
-    highlightsEmpty:
-      'Diese Woche ist kein besonderer gemeinsamer Tag dabei – auch ein ruhiger Verlauf ist völlig in Ordnung.',
     highlightBothGood: 'Beide mit gutem Vibe',
-    highlightBothGoodBody: 'Ihr habt beide einen guten Vibe geteilt.',
     highlightBothEnergy: 'Beide mit viel Energie',
-    highlightBothEnergyBody: 'Ihr hattet beide viel Energie.',
-    discoverBody: 'Noch mehr aus eurer Reise entdecken.',
-    discoverSubline: 'Eure Entwicklung. Eure Muster. Euer Wir.',
-    discoverCta: 'Monat ansehen',
-    hero: {
-      bothGood_one:
-        'Diese Woche gab es einen Tag, an dem es euch beiden gut ging.',
-      bothGood_other:
-        'Diese Woche gab es {{count}} Tage, an denen es euch beiden gut ging.',
-      weekendEnergy_higher:
-        'Am Wochenende hattet ihr diese Woche besonders viel Energie.',
-      sharedDays: 'Diese Woche habt ihr oft beide etwas miteinander geteilt.',
-      fallback: 'Diese Woche habt ihr eure Tage festgehalten.',
-      empty: 'Für diese Woche gibt es noch keinen Rückblick.',
-    },
   },
   insight: {
-    bothGood: {
-      title_one: 'Am {{weekday}} ging es euch beiden gut.',
-      title_other: 'An {{count}} Tagen ging es euch beiden gut.',
-      body_one: 'Ihr habt beide einen guten Vibe geteilt.',
-      body_other: 'Zuletzt am {{weekday}}.',
-    },
-    weekendEnergy_higher: {
-      title: 'Am Wochenende war eure Energie höher.',
-      body: 'Samstag und Sonntag lagen über den Tagen unter der Woche.',
-    },
-    weekendEnergy_lower: {
-      title: 'Am Wochenende war eure Energie etwas niedriger.',
-      body: 'Samstag und Sonntag lagen unter den Tagen unter der Woche.',
-    },
     vibeEnergy: {
       title: 'An Tagen mit gutem Vibe war oft auch mehr Energie da.',
       body: 'Im Schnitt lag die Energie dann bei {{good}} %, an anderen Tagen bei {{other}} %.',
-    },
-    sharedDays: {
-      title: 'An {{count}} von {{total}} Tagen habt ihr beide etwas geteilt.',
-      body: 'Kleine Check-ins, die euch verbinden.',
-    },
-    energyVersusPrevious_higher: {
-      title: 'Eure Energie lag etwas höher als in der Vorwoche.',
-      body: 'Verglichen werden die Werte, die ihr beide sehen könnt.',
-    },
-    energyVersusPrevious_lower: {
-      title: 'Eure Energie lag etwas niedriger als in der Vorwoche.',
-      body: 'Verglichen werden die Werte, die ihr beide sehen könnt.',
     },
     weekdayEnergy_higher: {
       title: '{{weekday}} war eure Energie oft höher.',
@@ -223,8 +145,34 @@ const dailyInsights = {
       body: 'Beides kam häufig am selben Tag vor – ohne dass eines das andere erklärt.',
     },
   },
+  retainedRatings: {
+    body_one:
+      'Du hast früher eine Anregung in den Einblicken bewertet. Die Bewertung ist nur für dich sichtbar und wird nicht mehr genutzt.',
+    body_other:
+      'Du hast früher {{count}} Anregungen in den Einblicken bewertet. Die Bewertungen sind nur für dich sichtbar und werden nicht mehr genutzt.',
+    clear: 'Bewertungen löschen',
+    cleared: 'Deine früheren Bewertungen sind gelöscht.',
+    error:
+      'Die Bewertungen konnten nicht gelöscht werden. Prüfe deine Verbindung und versuche es noch einmal.',
+  },
   brief: {
     loading: 'Euer Wochenbrief wird zusammengestellt …',
+    facts: {
+      JOINT_DAYS:
+        'In der gewählten Woche habt ihr an {{value}} Tagen beide Vibe oder Energie geteilt.',
+      ENERGY_RISING:
+        'An den erfassten Tagen lag eure Energie bei euch beiden im Mittel höher als in der Vorwoche.',
+      ENERGY_FALLING:
+        'An den erfassten Tagen lag eure Energie bei euch beiden im Mittel niedriger als in der Vorwoche.',
+      WEEKEND_HIGHER:
+        'Über mehrere Wochen lag eure Energie an erfassten Wochenendtagen bei euch beiden im Mittel höher als unter der Woche.',
+      WEEKEND_LOWER:
+        'Über mehrere Wochen lag eure Energie an erfassten Wochenendtagen bei euch beiden im Mittel niedriger als unter der Woche.',
+      WEEKDAY_LOWER:
+        'An erfassten Tagen am {{weekday}} lag eure Energie bei euch beiden im Mittel niedriger als an anderen Wochentagen.',
+      DIFFERENT_VIBES:
+        'Über mehrere Wochen habt ihr an {{value}} der gemeinsam erfassten Tage unterschiedliche Vibes angegeben.',
+    },
     coverage: 'An {{count}} von {{total}} Tagen habt ihr beide etwas geteilt.',
     basisToggle: 'Worauf beruht das?',
     basis:

@@ -1,17 +1,13 @@
 # Optional server-local AI
 
-**Weekly reviews** can use an operator-configured Ollama service to select from
-computed shared observations and curated recommendations on request. eimir.
-uses its rule-based selection if inference is disabled or the response cannot
-be used.
-
-**Tag proposals** use the same service in a bounded background job for shared
+**Tag proposals** use an operator-configured Ollama service in a bounded background job for shared
 Memories and HeartMoments. Authored tags and learned suggestions remain
 available independently of inference.
 
 Monthly and yearly relationship recaps use a rule-based film and localized
 wording. Existing generated wording stays readable while its sources remain
-valid. The service name and environment variables keep their historical naming
+valid. The former weekly AI review in Einblicke was retired (#2203); a
+selection-only successor inside the weekly brief is deferred (#2201). The service name and environment variables keep their historical naming
 for deployment compatibility.
 
 ## Runtime contract
@@ -107,8 +103,7 @@ docker compose -p eimir-test-recap-ai -f arcane-ki.compose.json ps
 
 ## Verification and rollback
 
-Check API and worker readiness. Request a weekly review with enough shared
-observations and check the displayed source. Check the worker's tag proposals
+Check API and worker readiness. Check the worker's tag proposals
 with an eligible shared Memory or HeartMoment. A new monthly or yearly recap
 uses the same film and localized wording with or without Ollama.
 

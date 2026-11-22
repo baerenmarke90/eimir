@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { type ReactNode, useEffect, useId, useMemo } from 'react';
-import { Link, NavLink, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, NavLink, useSearchParams } from 'react-router-dom';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
@@ -63,13 +63,10 @@ import { PatternsView, WeekView } from './DailyInsightsViews';
 import { NativeDateInput } from './NativeDateField';
 import { PersonalWeeklyBrief } from './PersonalWeeklyBrief';
 import { ProblemState } from './ProblemState';
+import { RetainedWeeklyRatings } from './RetainedWeeklyRatings';
 import { UiState } from './UiState';
 import { WeeklyBrief } from './WeeklyBrief';
 import { weeklyBriefHintId } from './WeeklyBriefWirHint';
-import {
-  ClearWeeklyInsightFeedback,
-  WeeklyInsightCard,
-} from './WeeklyInsightCard';
 
 export type DailyInsightsViewId = 'brief' | 'week' | 'patterns';
 
@@ -266,7 +263,6 @@ export function DailyInsightsPage({
   apiBaseUrl = '',
 }: DailyInsightsPageProps) {
   const { t } = useTranslation();
-  const { hash } = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const loadEntitlement = useMemo(
@@ -317,8 +313,7 @@ export function DailyInsightsPage({
   const range = useMemo(() => {
     if (monday === null || month === null) return null;
     if (view === 'patterns') return { start: month, end: monthEnd(month) };
-    // The previous week rides along for the recap's comparison.
-    return { start: addDays(monday, -7), end: addDays(monday, 6) };
+    return { start: monday, end: addDays(monday, 6) };
   }, [monday, month, view]);
 
   const rangeQuery = useQuery({
@@ -365,11 +360,6 @@ export function DailyInsightsPage({
     if (view !== 'brief' || !monday || !briefQuery.isSuccess) return;
     retireQuietHint(account.id, spaceId, weeklyBriefHintId(monday));
   }, [view, monday, briefQuery.isSuccess, account.id, spaceId]);
-
-  useEffect(() => {
-    if (hash !== '#wochenrueckblick' || !rangeQuery.isSuccess) return;
-    document.getElementById('wochenrueckblick')?.scrollIntoView?.();
-  }, [hash, rangeQuery.isSuccess]);
 
   const dashboardQuery = useQuery({
     queryKey: dashboardQueryKey(spaceId),
@@ -478,9 +468,10 @@ export function DailyInsightsPage({
   } else if (gated) {
     body = (
       <GateCard>
-        <ClearWeeklyInsightFeedback
+        <RetainedWeeklyRatings
           key={`${apiBaseUrl}:${account.id}:${spaceId}`}
           api={dailyCheckInsApi}
+          accountId={account.id}
           spaceId={spaceId}
         />
       </GateCard>
@@ -608,26 +599,21 @@ export function DailyInsightsPage({
       />
     );
   } else {
-    const current = daysInRange(allDays, weekDates(monday));
-    const previous = daysInRange(allDays, weekDates(addDays(monday, -7)));
     body = (
-      <WeekView
-        weeklyReview={
-          <WeeklyInsightCard
-            key={`${apiBaseUrl}:${account.id}:${spaceId}:${monday}`}
-            api={dailyCheckInsApi}
-            instance={apiBaseUrl}
-            accountId={account.id}
-            spaceId={spaceId}
-            monday={monday}
-          />
-        }
-        key={monday}
-        days={current}
-        previousDays={previous}
-        people={people}
-        modules={modules}
-      />
+      <>
+        <WeekView
+          key={monday}
+          days={daysInRange(allDays, weekDates(monday))}
+          people={people}
+          modules={modules}
+        />
+        <RetainedWeeklyRatings
+          key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+          api={dailyCheckInsApi}
+          accountId={account.id}
+          spaceId={spaceId}
+        />
+      </>
     );
   }
 

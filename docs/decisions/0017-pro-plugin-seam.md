@@ -88,10 +88,11 @@ Deliberately **not** part of the plugin, with the reason:
   `daily.insights` (`daily_checkins/insights.py`, the recap mood rhythm, `api/v1/daily_checkins.py`) are extractable,
   but they are woven into attachments and recaps. Their extraction is deferred to a later phase.
   [#2085](https://github.com/baerenmarke90/eimir/issues/2085) extracts them under the Product Owner's rule "what is
-  Free is Core; what Premium newly creates is plugin". `daily.insights` is done: the insight and weekly-review routes
-  (`api/v1/daily_insights.py`) and the package `daily_insights` (insights, weekly patterns, weekly review) are
-  plugin code and the capability is plugin-owned; today's check-in, the rating route (clearing a retained rating is
-  Free) with `daily_checkins/feedback.py` and the `daily_insight_feedback` table stay Core. `media.video_upload` is
+  Free is Core; what Premium newly creates is plugin". `daily.insights` is done: the insight and weekly brief routes
+  (`api/v1/daily_insights.py`) and the package `daily_insights` (insights, weekly patterns, weekly brief) are
+  plugin code and the capability is plugin-owned; today's check-in, the retained-rating routes (reading and clearing
+  are Free) with `daily_checkins/feedback.py` and the `daily_insight_feedback` table stay Core. The weekly review
+  that collected those ratings was retired in [#2203](https://github.com/baerenmarke90/eimir/issues/2203). `media.video_upload` is
   done too: the video processor (package `video_processing`, `videos.py`) and its validation job are plugin code,
   the job kind is in `PLUGIN_JOB_KINDS` and the capability is plugin-owned. The shared media pipeline
   (`attachments/video_jobs.py`), the restricted process runner (`attachments/media_process.py`), voice notes,

@@ -1,22 +1,22 @@
 
-# WeeklyFeedbackUpdate
+# RetainedWeeklyFeedbackView
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`rating` | [RecommendationRating](RecommendationRating.md)
+`ratings` | [Array&lt;WeeklyFeedbackView&gt;](WeeklyFeedbackView.md)
 
 ## Example
 
 ```typescript
-import type { WeeklyFeedbackUpdate } from ''
+import type { RetainedWeeklyFeedbackView } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "rating": null,
-} satisfies WeeklyFeedbackUpdate
+  "ratings": null,
+} satisfies RetainedWeeklyFeedbackView
 
 console.log(example)
 
@@ -25,7 +25,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as WeeklyFeedbackUpdate
+const exampleParsed = JSON.parse(exampleJSON) as RetainedWeeklyFeedbackView
 console.log(exampleParsed)
 ```
 

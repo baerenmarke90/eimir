@@ -106,7 +106,7 @@ def test_without_the_plugin_check_ins_keep_the_two_day_window(
     """History retention follows the effective capability, not the stored grant."""
     from eimir.daily_checkins import retention
     from eimir.daily_checkins.models import DailyCheckIn
-    from tests.integration.test_daily_checkins_pro_insights import configure_daily
+    from tests.support.daily_context import configure_daily
 
     configure_daily(session, space_id=couple.space.id, manager_id=couple.anna.id)
     instant = clock.now()

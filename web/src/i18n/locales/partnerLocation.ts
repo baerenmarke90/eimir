@@ -152,7 +152,8 @@ const partnerLocation = {
   distanceAroundCorner: 'Ihr seid gleich um die Ecke',
   distanceAroundCornerShort: 'Um die Ecke',
   distanceStonesThrow: 'Nur ein Katzensprung zwischen euch',
-  distanceStonesThrowShort: 'Katzensprung',
+  // The soft hyphen lets the long word wrap between the Wir portraits.
+  distanceStonesThrowShort: 'Katzen\u00ADsprung',
   distanceNotFar: 'Ihr seid nicht weit voneinander',
   distanceNotFarShort: 'Nicht weit',
   distanceShortTrip: 'Nur eine kurze Fahrt zwischen euch',

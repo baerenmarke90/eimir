@@ -20,6 +20,7 @@ import { normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
 import { clearRetrospectiveDismissal } from './todayRetrospectiveDismissal';
 import { clearWirDesignPreferences } from './wirDesignPreferenceStore';
+import { clearWirDistanceSeen } from './wirDistanceSeen';
 
 export const SESSION_STORAGE_KEY = SESSION_LANGUAGE_KEY;
 export const LEGACY_SESSION_STORAGE_KEY = 'sidebyside-session-v1';
@@ -323,6 +324,7 @@ export function clearStoredSession(): Promise<void> {
   clearBackgroundVideoTransfers();
   clearAuthorizedMediaCache();
   clearWirDesignPreferences();
+  clearWirDistanceSeen();
   clearPersonColourPreferences();
   clearPersonalSettingsSyncState();
   clearMemoryDiaryDrafts();

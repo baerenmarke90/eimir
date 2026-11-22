@@ -2,6 +2,7 @@ import type { ApproximatePosition } from './approximateLocation';
 import {
   DISTANCE_FRESH_MS,
   distanceBandWords,
+  distanceStage,
   distanceUnitFor,
   formatCloseBand,
   formatDistanceBand,
@@ -291,5 +292,21 @@ describe('freshness and preference key', () => {
     expect(
       isDistanceFresh(new Date(now.getTime() - DISTANCE_FRESH_MS - 1), now),
     ).toBe(false);
+  });
+});
+
+describe('distanceStage', () => {
+  it('maps every server band to one of seven steps', () => {
+    expect(distanceStage({ kind: 'NEARBY' })).toBe(0);
+    expect(
+      distanceStage({ kind: 'CLOSE', minMeters: 300, maxMeters: 1000 }),
+    ).toBe(0);
+    expect(distanceStage({ kind: 'RANGE', minKm: 2, maxKm: 5 })).toBe(1);
+    expect(distanceStage({ kind: 'RANGE', minKm: 5, maxKm: 10 })).toBe(2);
+    expect(distanceStage({ kind: 'RANGE', minKm: 10, maxKm: 25 })).toBe(3);
+    expect(distanceStage({ kind: 'RANGE', minKm: 25, maxKm: 50 })).toBe(4);
+    expect(distanceStage({ kind: 'APPROXIMATE', approximateKm: 450 })).toBe(5);
+    expect(distanceStage({ kind: 'APPROXIMATE', approximateKm: 500 })).toBe(6);
+    expect(distanceStage({ kind: 'APPROXIMATE', approximateKm: 1200 })).toBe(6);
   });
 });

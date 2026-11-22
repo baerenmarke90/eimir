@@ -3411,6 +3411,19 @@
         "description": "Send each other a seed every day, wherever you are."
       }
     },
+    "waiting": {
+      "settingsLabel": "Games waiting for you",
+      "title": "Your turn",
+      "reasons": {
+        "WHO_OF_US": "{{name}} is waiting for your answers.",
+        "WISH_DETECTIVE": "{{name}} is waiting for your move.",
+        "OUR_MOMENTS": "{{name}} is waiting for your move.",
+        "PICTURE_PING_PONG": "{{name}} drew on. Your turn.",
+        "HEART_HUNT": "{{name}} hid a heart for you.",
+        "GARDEN_SEED": "A seed from {{name}} is waiting to be planted.",
+        "GARDEN_BOUQUET": "{{name}} tied a bouquet for you."
+      }
+    },
     "heartHunt": {
       "intro": "Hide a heart in a photo from your day. The one who searches feels their way through the fog.",
       "loadingTitle": "Opening the hiding place",

@@ -2,24 +2,24 @@
 
 Usage (from ``backend/``):
 
-    uv run python scripts/date_ideas_catalog.py validate PATH
-    uv run python scripts/date_ideas_catalog.py import PATH
-    uv run python scripts/date_ideas_catalog.py validate-images DIR
-    uv run python scripts/date_ideas_catalog.py import-images DIR
+    uv run python pro/pro_scripts/date_ideas_catalog.py validate PATH
+    uv run python pro/pro_scripts/date_ideas_catalog.py import PATH
+    uv run python pro/pro_scripts/date_ideas_catalog.py validate-images DIR
+    uv run python pro/pro_scripts/date_ideas_catalog.py import-images DIR
 
 ``validate`` checks one file against the catalog models, which mirror the
-editorial JSON Schema (``docs/product/date-inspiration/catalog.schema.json``)
+editorial JSON Schema (``backend/pro/docs/date-inspiration/catalog.schema.json``)
 and additionally require unique idea IDs. It also compares the file with the
 bundled catalog: persistent idea IDs must never disappear. ``import`` runs the
 same checks and then copies the file byte for byte to the bundled location
-(``src/eimir/date_ideas/data/catalog.json``), so the repository keeps exactly
+(``src/eimir_pro/date_ideas/data/catalog.json``), so the repository keeps exactly
 the editorial handoff.
 
 ``validate-images`` and ``import-images`` take a handoff directory containing
 ``eimir-date-ideas.images.v1.json`` and its ``images/`` folder. The manifest
 must match the bundled catalog version, cover every category, reference only
 known ideas and point to existing WebP files. Import replaces the bundled
-manifest (``src/eimir/date_ideas/data/images.json``) and image folder.
+manifest (``src/eimir_pro/date_ideas/data/images.json``) and image folder.
 
 No network access, provider or database is involved; the catalog ships with
 the application and behaves identically in Cloud and Self-Hosted deployments.
@@ -34,12 +34,11 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+from eimir_pro.date_ideas.catalog import CatalogFile, parse_catalog, removed_idea_ids
+from eimir_pro.date_ideas.images import manifest_problems, parse_manifest
 from pydantic import ValidationError
 
-from eimir.date_ideas.catalog import CatalogFile, parse_catalog, removed_idea_ids
-from eimir.date_ideas.images import manifest_problems, parse_manifest
-
-BUNDLED = Path(__file__).resolve().parents[1] / "src/eimir/date_ideas/data/catalog.json"
+BUNDLED = Path(__file__).resolve().parents[1] / "src/eimir_pro/date_ideas/data/catalog.json"
 IMAGE_MANIFEST_NAME = "eimir-date-ideas.images.v1.json"
 
 

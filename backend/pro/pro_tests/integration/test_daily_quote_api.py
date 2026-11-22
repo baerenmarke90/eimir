@@ -28,6 +28,9 @@ from types import SimpleNamespace
 from uuid import UUID
 
 import pytest
+from eimir_pro.quotes import catalog
+from eimir_pro.quotes import service as preference_service
+from eimir_pro.quotes.models import DailyQuotePreference
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -41,9 +44,6 @@ from eimir.entitlements.models import (
     EntitlementStatus,
     EntitlementTier,
 )
-from eimir.quotes import catalog
-from eimir.quotes import service as preference_service
-from eimir.quotes.models import DailyQuotePreference
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 

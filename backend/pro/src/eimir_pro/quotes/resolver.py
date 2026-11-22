@@ -22,11 +22,11 @@ from eimir.authorization import AuthorizationContext
 from eimir.core import clock
 from eimir.daily_checkins.context import resolve_space_day
 from eimir.identity.models import Account
-from eimir.quotes import catalog
-from eimir.quotes import service as preference_service
-from eimir.quotes.catalog import DailyQuote
-from eimir.quotes.models import DailyQuotePreference
 from eimir.relationship import configuration as configuration_service
+from eimir_pro.quotes import catalog
+from eimir_pro.quotes import service as preference_service
+from eimir_pro.quotes.catalog import DailyQuote
+from eimir_pro.quotes.models import DailyQuotePreference
 
 
 @dataclass(frozen=True)

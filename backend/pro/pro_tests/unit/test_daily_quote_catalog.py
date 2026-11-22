@@ -3,9 +3,10 @@
 import json
 from pathlib import Path
 
+from eimir_pro.quotes import catalog
+from eimir_pro.quotes.catalog import RightsClassification
+
 from eimir.i18n import catalogs as language_catalogs
-from eimir.quotes import catalog
-from eimir.quotes.catalog import RightsClassification
 
 CATEGORY_IDS = {
     "love",

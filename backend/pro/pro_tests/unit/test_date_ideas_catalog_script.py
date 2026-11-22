@@ -7,9 +7,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
-from eimir.date_ideas.catalog import bundled_catalog_text
-from scripts import date_ideas_catalog
+from eimir_pro.date_ideas.catalog import bundled_catalog_text
+from pro_scripts import date_ideas_catalog
 
 
 def _bundled() -> dict[str, Any]:

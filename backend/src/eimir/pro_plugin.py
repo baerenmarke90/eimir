@@ -49,11 +49,11 @@ _MODEL_MODULES = (
     "eimir.garden.models",
     "eimir.heart_hunt.models",
     "eimir.once_messages.models",
-    "eimir.partner_quick_actions.models",
+    "eimir_pro.partner_quick_actions.models",
     "eimir.photo_sources.models",
     "eimir.picture_ping_pong.models",
     "eimir.presence.models",
-    "eimir.quotes.models",
+    "eimir_pro.quotes.models",
 )
 
 # Remote couple games share one notice kind; the target names the game.
@@ -265,6 +265,8 @@ def _project_notification(
 
 def personal_account_models() -> tuple[Any, ...]:
     """Pro models whose rows of a deleted Account are deleted by ``account_id``."""
+    from eimir_pro.quotes.models import DailyQuotePreference
+
     from eimir.garden.models import GardenReader, GardenWatering
     from eimir.once_messages.models import OnceDevice, OnceReception
     from eimir.presence.models import (
@@ -272,7 +274,6 @@ def personal_account_models() -> tuple[Any, ...]:
         PresenceDeviceCredential,
         PresenceSnapshot,
     )
-    from eimir.quotes.models import DailyQuotePreference
 
     return (
         DailyQuotePreference,
@@ -291,8 +292,9 @@ def _delete_account_rows(session: Session, model: Any, account_id: UUID) -> None
 
 
 def _on_account_deleted(session: Session, account_id: UUID) -> None:
+    from eimir_pro.partner_quick_actions.models import SupportGestureRequest
+
     from eimir.calendar_sync.models import CalendarConnection, CalendarOAuthTransaction
-    from eimir.partner_quick_actions.models import SupportGestureRequest
     from eimir.photo_sources.models import GoogleAccountHint, PhotoConnection, PhotoSelection
     from eimir.presence.models import PartnerLocationConsent, SharingLevel
     from eimir.presence.service import delete_owner_presence
@@ -350,23 +352,26 @@ class InTreeProPlugin:
         return _MODEL_MODULES
 
     def routers(self) -> Sequence[APIRouter]:
+        from eimir_pro.api import (
+            daily_quote,
+            date_ideas,
+            memory_map,
+            partner_quick_actions,
+            relationship_passport,
+        )
+
         from eimir.api.v1 import (
             calendar_sync,
             couple_games,
             daily_insights,
-            daily_quote,
-            date_ideas,
             games,
             garden,
             heart_hunt,
-            memory_map,
             once_messages,
             partner_location,
-            partner_quick_actions,
             photo_sources,
             picture_ping_pong,
             recap_composition,
-            relationship_passport,
         )
 
         return (
@@ -546,14 +551,14 @@ class _InTreeDateIdeas:
     """The bundled editorial catalog as a Wish selection round sees it."""
 
     def revision(self, idea_id: str) -> str | None:
-        from eimir.date_ideas.catalog import get_catalog
+        from eimir_pro.date_ideas.catalog import get_catalog
 
         return get_catalog().revision(idea_id)
 
     def view(self, idea_id: str, locale: str | None) -> DateIdea | None:
-        from eimir.api.v1.date_ideas import date_idea_view
-        from eimir.date_ideas.catalog import get_catalog
-        from eimir.date_ideas.images import get_images
+        from eimir_pro.api.date_ideas import date_idea_view
+        from eimir_pro.date_ideas.catalog import get_catalog
+        from eimir_pro.date_ideas.images import get_images
 
         catalog = get_catalog()
         resolved = catalog.idea(idea_id, catalog.resolve_locale(locale))
@@ -565,7 +570,7 @@ _DATE_IDEAS = _InTreeDateIdeas()
 
 def _ensure_demo_quote_preferences(session: Session, result: DemoSeedResult) -> None:
     """Configure deterministic, distinct quote preferences for Lea and Alex."""
-    from eimir.quotes import service as quote_preference_service
+    from eimir_pro.quotes import service as quote_preference_service
 
     quote_preference_service.update_preference(
         session,

@@ -9,9 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from pydantic import ValidationError
-
-from eimir.date_ideas.catalog import (
+from eimir_pro.date_ideas.catalog import (
     BUDGET_MAX,
     IDEA_COUNT,
     MINUTES_MAX,
@@ -24,13 +22,15 @@ from eimir.date_ideas.catalog import (
     parse_catalog,
     removed_idea_ids,
 )
+from pydantic import ValidationError
+
 from eimir.entitlements.models import Capability
 from eimir.entitlements.service import ALL_PREMIUM_CAPABILITIES
 
 SCHEMA = json.loads(
-    (
-        Path(__file__).resolve().parents[3] / "docs/product/date-inspiration/catalog.schema.json"
-    ).read_text(encoding="utf-8")
+    (Path(__file__).resolve().parents[2] / "docs/date-inspiration/catalog.schema.json").read_text(
+        encoding="utf-8"
+    )
 )
 
 

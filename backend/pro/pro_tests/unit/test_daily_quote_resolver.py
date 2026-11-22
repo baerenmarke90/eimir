@@ -4,12 +4,12 @@ from unittest.mock import MagicMock
 from uuid import UUID, uuid4
 
 import pytest
+from eimir_pro.quotes import resolver
+from eimir_pro.quotes.catalog import DailyQuote, RightsClassification
+from eimir_pro.quotes.models import DailyQuotePreference
 
 from eimir.authorization import AuthorizationContext
 from eimir.core.errors import ConflictError
-from eimir.quotes import resolver
-from eimir.quotes.catalog import DailyQuote, RightsClassification
-from eimir.quotes.models import DailyQuotePreference
 from eimir.relationship.models import SpaceConfiguration
 
 

@@ -22,7 +22,7 @@ from eimir.api.v1.dashboard import (
     project_item,
 )
 from eimir.entitlements.models import Capability
-from eimir.relationship_passport import service
+from eimir_pro.relationship_passport import service
 
 router = APIRouter(tags=["dashboard"])
 

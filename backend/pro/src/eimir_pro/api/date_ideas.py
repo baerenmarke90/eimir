@@ -18,8 +18,10 @@ from eimir.api.deps import Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.core.errors import NotFoundError
-from eimir.date_ideas import service
-from eimir.date_ideas.catalog import (
+from eimir.entitlements.models import Capability
+from eimir.wish_selections.date_idea_contract import DateIdea, DateIdeaImage
+from eimir_pro.date_ideas import service
+from eimir_pro.date_ideas.catalog import (
     BUDGET_MAX,
     MINUTES_MAX,
     DateIdeaCategory,
@@ -27,9 +29,7 @@ from eimir.date_ideas.catalog import (
     IdeaFilter,
     ResolvedIdea,
 )
-from eimir.date_ideas.images import IMAGE_ID_PATTERN, DateIdeaImages, get_images
-from eimir.entitlements.models import Capability
-from eimir.wish_selections.date_idea_contract import DateIdea, DateIdeaImage
+from eimir_pro.date_ideas.images import IMAGE_ID_PATTERN, DateIdeaImages, get_images
 
 router = APIRouter(tags=["date-ideas"])
 

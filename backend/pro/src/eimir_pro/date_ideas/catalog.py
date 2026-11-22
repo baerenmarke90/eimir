@@ -2,10 +2,10 @@
 
 The catalog is editorial data, not code. ``data/catalog.json`` is the verbatim
 editorial file; its format is the handoff JSON Schema published at
-``docs/product/date-inspiration/catalog.schema.json``. The models below mirror
+``backend/pro/docs/date-inspiration/catalog.schema.json``. The models below mirror
 that schema and add the checks a JSON Schema cannot express (unique idea IDs).
 The same models validate the bundled file at load and any replacement file
-through ``scripts/date_ideas_catalog.py``, so a new catalog revision replaces
+through ``pro/pro_scripts/date_ideas_catalog.py``, so a new catalog revision replaces
 the file without code changes.
 
 Rules from the handoff:
@@ -289,7 +289,7 @@ CATALOG_RESOURCE = "data/catalog.json"
 
 
 def bundled_catalog_text() -> str:
-    return files("eimir.date_ideas").joinpath(CATALOG_RESOURCE).read_text(encoding="utf-8")
+    return files("eimir_pro.date_ideas").joinpath(CATALOG_RESOURCE).read_text(encoding="utf-8")
 
 
 @cache

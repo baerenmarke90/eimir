@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
+from eimir_pro.partner_quick_actions.models import SupportGestureRequest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -21,7 +22,6 @@ from eimir.entitlements.models import (
     EntitlementTier,
 )
 from eimir.outbox.models import OutboxEvent
-from eimir.partner_quick_actions.models import SupportGestureRequest
 from eimir.relationship import configuration as space_configuration
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in

@@ -344,15 +344,6 @@ decided:
   is derived, Mutual Reveal projection rules are unchanged, values stay in the
   protected payload (#797), and rows remain excluded from transfer bundles.
 - Normal account and Space deletion remove the rows immediately as before.
-- Monthly and yearly recaps also freeze the counts of shared good-Vibe days
-  while the Space holds `daily.insights` (`recap_composition/mood.py`); these
-  counts stay with the recap edition.
-- **Legal review (2026-11-22).** The period is proportionate, but the history
-  is health-related special-category data (Art. 9 GDPR). Before eimir. Cloud
-  publication it needs a separate, optional, per-person explicit consent,
-  deletion on withdrawal including the frozen recap counts, and later
-  self-service deletion and the own values in the personal export. See
-  `legal/privacy-policy-review.md`, "Legal review: Pro check-in history".
 
 ## Consequences
 

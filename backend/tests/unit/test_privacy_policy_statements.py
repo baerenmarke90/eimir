@@ -13,7 +13,6 @@ from pathlib import Path
 import pytest
 
 from eimir.auth import action_tokens, tokens
-from eimir.daily_checkins import retention as daily_checkin_retention
 from eimir.jobs import maintenance
 from eimir.once_messages import service as once_messages
 from eimir.photo_sources import service as photo_sources
@@ -101,18 +100,6 @@ STATEMENTS = [
         timedelta(hours=24),
         "spätestens 24 Stunden nach der Messung löschen wir sie",
         id="partner-location-snapshot",
-    ),
-    pytest.param(
-        timedelta(days=daily_checkin_retention.INSIGHTS_HISTORY_DAYS),
-        timedelta(days=90),
-        "speichern wir sie stattdessen 90 Tage",
-        id="daily-check-in-pro-history",
-    ),
-    pytest.param(
-        daily_checkin_retention.SCAN_INTERVAL,
-        timedelta(hours=6),
-        "beim nächsten automatischen Aufräumen, das alle sechs Stunden läuft",
-        id="daily-check-in-cleanup-interval",
     ),
 ]
 

@@ -4,7 +4,7 @@ import type { LegalDocument } from '../../../legal/legalDocument';
 export const privacyPolicyDe: LegalDocument = {
   document: 'privacy-policy',
   locale: 'de-DE',
-  version: '2026-11-22.draft-9',
+  version: '2026-11-22.draft-8',
   status: 'draft',
   title: 'Datenschutzhinweise für eimir.',
   placeholders: [
@@ -322,7 +322,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Teilst du dein „Gefühl für heute“ oder deinen Akku, speichern wir diese Angaben für den aktuellen und den vorherigen Tag und löschen sie danach automatisch. Nutzt euer Space eimir. Pro mit den Einblicken, speichern wir sie stattdessen 90 Tage, damit die Einblicke eure Wochen und Monate zeigen können. eimir. Pro gilt für euren gemeinsamen Space: Hat einer von euch es gebucht, gilt das auch für die Angaben des anderen. Endet eimir. Pro, löschen wir die älteren Angaben beim nächsten automatischen Aufräumen, das alle sechs Stunden läuft. Monats- und Jahresrückblicke halten außerdem fest, an wie vielen Tagen ihr beide ein gutes Gefühl geteilt habt. Diese Zahlen bleiben mit dem Rückblick gespeichert, die einzelnen Angaben nicht. Möchtest du deine bisherigen Angaben vorher löschen lassen, schreib uns (Abschnitt 23). Ob und wann dein Partner sie sieht, folgt den Einstellungen eures Space.',
+              text: 'Teilst du dein „Gefühl für heute“ oder deinen Akku, speichern wir diese Angaben für den aktuellen und den vorherigen Tag und löschen sie danach automatisch. Nutzt euer Space eimir. Pro mit den Einblicken, speichern wir sie stattdessen 90 Tage, damit die Einblicke eure Wochen und Monate zeigen können. Endet eimir. Pro, löschen wir die älteren Angaben beim nächsten automatischen Aufräumen. Ob und wann dein Partner sie sieht, folgt den Einstellungen eures Space.',
             },
           ],
           children: [],
@@ -1306,7 +1306,7 @@ export const privacyPolicyDe: LegalDocument = {
             { kind: 'strong', text: '„Gefühl für heute“ und Akku:' },
             {
               kind: 'text',
-              text: ' bis zum Ende des folgenden Tages; mit eimir. Pro und den Einblicken 90 Tage, nach dem Ende von eimir. Pro wieder bis zum Ende des folgenden Tages, spätestens nach dem nächsten Aufräumen alle sechs Stunden. Die Zahl gemeinsamer guter Tage in einem Rückblick: so lange wie der Rückblick.',
+              text: ' bis zum Ende des folgenden Tages; mit eimir. Pro und den Einblicken 90 Tage, nach dem Ende von eimir. Pro wieder bis zum Ende des folgenden Tages.',
             },
           ],
           children: [],

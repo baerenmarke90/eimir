@@ -1066,6 +1066,7 @@ class TestRetentionAndPortability:
             (la.id, date(2026, 9, 19)),
         }
 
+    @pytest.mark.requires_pro
     def test_insights_spaces_keep_ninety_days_until_the_capability_ends(
         self, session: Session
     ) -> None:

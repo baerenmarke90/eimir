@@ -86,7 +86,7 @@ describe('mail-requested state', () => {
       expect(screen.getByText(de.identity.mailRequestedBody)).toBeDefined();
       expect(resendButton()).toBeDefined();
       expect(otherAddressButton()).toBeDefined();
-      // "Zur Anmeldung" is only offered where a distinct sign-in mode exists.
+      // The back-to-sign-in control (identity.backToSignIn) is only offered where a distinct sign-in mode exists.
       expect(
         screen.queryByRole('button', { name: de.identity.backToSignIn }),
       ).toBeNull();
@@ -242,7 +242,7 @@ describe('mail-requested state', () => {
       await screen.findByText(de.identity.mailRequestedTitle);
     }
 
-    it('resends, offers another address, and keeps Zur Anmeldung', async () => {
+    it('resends, offers another address, and keeps the back-to-sign-in control', async () => {
       await requestRecoveryLink();
       const card = within(
         screen.getByRole('status').parentElement as HTMLElement,

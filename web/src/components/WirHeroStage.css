@@ -168,17 +168,12 @@
 }
 
 /*
- * Once the "Wie geht's?" line has sunk into the plus and nobody has a mark to
- * show, the row it kept under the name closes, so the quote and the modules
- * rise to where the names end instead of leaving a gap. Only the way in is
- * animated: when a value arrives the row opens again at once, so the flight
- * to the mark always measures its final place. Browsers without
- * `interpolate-size` close the row in one step.
+ * Without a mark to show, the row under the name takes no room, so the quote
+ * and the modules start where the names end. The "Wie geht's?" line sits beside
+ * the plus and never holds this row open, and the row never animates: the quote
+ * is in its place from the first frame and only moves down when a value
+ * arrives, so the flight to the mark always measures its final place.
  */
-.today-page .wir-stage {
-  interpolate-size: allow-keywords;
-}
-
 .today-page
   .wir-stage
   .today-hero
@@ -190,17 +185,7 @@
   margin-top: calc(-1 * var(--space-2));
   padding-block: 0;
   overflow: clip;
-  transition:
-    opacity var(--duration-context) var(--easing-standard),
-    visibility var(--duration-context) var(--easing-standard),
-    height calc(var(--duration-context) * 2.5) var(--easing-standard)
-    var(--duration-transition),
-    min-height calc(var(--duration-context) * 2.5) var(--easing-standard)
-    var(--duration-transition),
-    margin-top calc(var(--duration-context) * 2.5) var(--easing-standard)
-    var(--duration-transition),
-    padding-block calc(var(--duration-context) * 2.5) var(--easing-standard)
-    var(--duration-transition);
+  transition: none;
 }
 
 /* On the rim at 45 degrees: 14.6 % in from the portrait's bounding corner. */
@@ -245,9 +230,42 @@
   left: calc(var(--wir-avatar) * 0.146 - 0.95rem - var(--wir-mark-out));
 }
 
-/* The plus now lives on the ring; the line under the name only invites. */
-.today-page .wir-stage .wir-checkin-prompt > span[aria-hidden="true"] {
-  display: none;
+/*
+ * The day's "Wie geht's?" sits right beside the plus, centred on it, and lies
+ * over the portrait instead of taking room under the name. Solid like the
+ * flight that carries it into the plus, so the hand-over is not visible. A tap
+ * goes through to the portrait, which opens the check-in.
+ */
+.today-page .wir-stage .wir-stage-prompt {
+  position: absolute;
+  top: calc(
+    var(--wir-avatar) *
+    0.854 +
+    var(--wir-mark-out) -
+    var(--wir-stage-mark-height) /
+    2
+  );
+  left: calc(
+    var(--wir-avatar) *
+    0.146 +
+    0.95rem -
+    var(--wir-mark-out) +
+    var(--space-1)
+  );
+  z-index: 4;
+  display: inline-flex;
+  box-sizing: border-box;
+  min-height: var(--wir-stage-mark-height);
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  box-shadow: var(--elevation-overlay);
+  font: var(--font-supporting-copy);
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 /* The bridge spans exactly the space between the two portraits. */

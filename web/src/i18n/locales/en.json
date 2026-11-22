@@ -2215,9 +2215,7 @@
       "status": {
         "QUEUED": "Waiting for processing",
         "RUNNING": "Creating",
-        "READY": "Ready to download",
-        "FAILED": "That did not work",
-        "EXPIRED": "The file has expired"
+        "READY": "Ready to download"
       }
     },
     "import": {
@@ -2232,9 +2230,7 @@
         "VALIDATING": "Checking the file …",
         "READY_TO_APPLY": "Checked · ready for 24 hours",
         "APPLYING": "Adding …",
-        "COMPLETED": "Import complete",
-        "FAILED": "That did not work",
-        "EXPIRED": "The checked file has expired"
+        "COMPLETED": "Import complete"
       },
       "checkingHint": "Nothing is added yet.",
       "applyingHint": "You can keep using the app.",
@@ -2283,8 +2279,6 @@
         "unrecovered_other": "{{count}} videos no longer fit their gallery and stay remembered.",
         "toMoments": "Go to your moments"
       },
-      "failed": "The file could not be added. Nothing was changed.",
-      "expired": "Choose the file again to add it.",
       "offline": {
         "title": "No connection",
         "body": "Nothing can be imported without internet. Nothing was changed."
@@ -2312,7 +2306,52 @@
       "dismissConfirm": "Hide",
       "dismissCancel": "Cancel"
     },
-    "genericFailure": "That did not work. Nothing was changed."
+    "failure": {
+      "exportTooLarge": {
+        "title": "The export is too large",
+        "body": "Your photos and videos do not fit into a single file. Nothing was changed."
+      },
+      "exportFailed": {
+        "title": "The export did not work",
+        "body": "It could not be created. Try again in a moment. Nothing was changed."
+      },
+      "exportGeneric": {
+        "title": "That did not work",
+        "body": "Nothing was changed."
+      },
+      "exportExpired": {
+        "title": "The file has expired",
+        "body": "Create the export again."
+      },
+      "importTooLarge": {
+        "title": "The file is too large",
+        "body": "eimir. cannot add a file this large in one go. Nothing was changed."
+      },
+      "formatUnsupported": {
+        "title": "The file does not match this version",
+        "body": "It comes from another eimir. version. Nothing was changed."
+      },
+      "fileInvalid": {
+        "title": "The file is not in order",
+        "body": "It is damaged or incomplete. Download the export again and choose it again. Nothing was changed."
+      },
+      "members": {
+        "title": "The people in the file do not match you",
+        "body": "They cannot be matched to you. Nothing was changed."
+      },
+      "privacy": {
+        "title": "The file contains private content",
+        "body": "A shared file must not contain anything private. Nothing was added."
+      },
+      "importFailed": {
+        "title": "That did not work",
+        "body": "The file could not be added. Nothing was changed."
+      },
+      "importExpired": {
+        "title": "The checked file has expired",
+        "body": "Choose the file again to add it."
+      }
+    }
   },
   "partnerConnection": {
     "eyebrow": "Connect partner",

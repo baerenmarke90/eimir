@@ -1,9 +1,10 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import storyProducts from '../../src/i18n/locales/storyProducts';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 
 /*
@@ -267,9 +268,15 @@ for (const surface of SURFACES) {
     expect(text).not.toBe(date);
     await expect(page.locator(surface.variant)).toHaveCount(0);
     if (surface.key === 'momente') {
-      await expect(page.locator('.momente-hero-link')).toHaveAttribute(
+      // The lead is the story's first slide; the story's open action names
+      // it with the visible headline (#2192).
+      await expect(
+        page.locator('.momente-story-viewer .momente-story-open'),
+      ).toHaveAttribute(
         'aria-label',
-        `${de.story.featuredHighlight}: ${text}`,
+        storyProducts.discoverStory.openName
+          .replace('{{kind}}', de.story.featuredHighlight)
+          .replace('{{title}}', text ?? ''),
       );
     }
 

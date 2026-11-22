@@ -4,6 +4,7 @@ import {
   type KeyboardEvent,
   type MouseEvent,
   type PointerEvent,
+  type ReactNode,
   type RefObject,
   useCallback,
   useEffect,
@@ -34,6 +35,7 @@ import {
   HeartEmotionBadge,
   type HeartEmotionValue,
 } from './HeartEmotionVisual';
+import { CONTROLS_QUIET_MS } from './MediaGallery';
 import { MemoryPreview } from './MemoryPreview';
 import {
   formatStoryDate,
@@ -54,7 +56,25 @@ type LoadMemoryImage = (
   signal?: AbortSignal,
 ) => Promise<ObjectUrlSource>;
 
-type SlideKind = 'photo' | 'heart' | 'milestone' | 'words';
+type SlideKind = 'photo' | 'heart' | 'milestone' | 'words' | 'lead';
+
+/** Theme keys of the viewer: the lead's own theme plus the curated ones. */
+type StoryThemeKey = DiscoverStoryThemeKey | 'remember';
+
+/**
+ * The rediscovery lead (`story.featuredKicker`) plays as the story's first
+ * slide, in a theme of its own. The page renders its composition (the
+ * developing polaroid); the story places it first, pages past it and opens
+ * it through its own open link, so the slide content holds no link.
+ */
+export interface DiscoverStoryLead {
+  key: string;
+  path: string;
+  kindLabel: string;
+  title: string;
+  content: ReactNode;
+  face: ReactNode;
+}
 
 interface StorySlide {
   key: string;
@@ -70,9 +90,12 @@ interface StorySlide {
   cover?: MemoryAttachmentSummary;
   emotion?: HeartEmotionValue;
   experience?: Extract<StoryItem, { kind: 'MEMORY' }>['memory'];
+  content?: ReactNode;
+  face?: ReactNode;
 }
 
-const THEME_SLIDE_KIND: Record<DiscoverStoryThemeKey, SlideKind> = {
+const THEME_SLIDE_KIND: Record<StoryThemeKey, SlideKind> = {
+  remember: 'lead',
   photos: 'photo',
   heartMoments: 'heart',
   milestones: 'milestone',
@@ -182,6 +205,7 @@ function ThemeFace({
       </svg>
     );
   if (kind === 'milestone') return <KeepsakeStampMark />;
+  if (kind === 'lead') return slide.face ?? null;
   return null;
 }
 
@@ -197,6 +221,8 @@ function StorySlideContent({
   const { t } = useTranslation();
   const date = <time dateTime={slide.dateTime}>{slide.dateLabel}</time>;
   switch (slide.kind) {
+    case 'lead':
+      return slide.content ?? null;
     case 'photo':
       return (
         <>
@@ -294,6 +320,7 @@ function StorySlideContent({
 }
 
 const SLIDE_CLASS: Record<SlideKind, string> = {
+  lead: 'momente-story-slide-lead',
   photo: 'momente-story-slide-photo',
   heart: 'momente-story-slide-heart',
   milestone: 'momente-story-slide-milestone',
@@ -302,8 +329,10 @@ const SLIDE_CLASS: Record<SlideKind, string> = {
 
 /**
  * Momente > Erinnerungen "Fotostory": round theme bubbles above one large
- * story viewer. Photos, Heart Moments, Milestones and Memories told in words
- * play as slides in the canonical order of the curated selection. Autoplay
+ * story viewer. The rediscovery lead (`story.featuredKicker`), when there
+ * is one, plays first; Photos, Heart Moments, Milestones and Memories told
+ * in words follow as slides in the canonical order of the curated
+ * selection. Autoplay
  * runs only with motion allowed, while the viewer is at least half visible,
  * the document is visible and nobody holds, pauses or keyboard-focuses it;
  * the progress segment's CSS animation is the timer (no per-frame renders).
@@ -313,7 +342,10 @@ export function DiscoverStory({
   loadMemoryImage,
   onOpen,
   nicknameFor,
+  lead,
 }: {
+  /** The rediscovery lead, played before the curated themes. */
+  lead?: DiscoverStoryLead | null;
   items: readonly StoryItem[];
   loadMemoryImage: LoadMemoryImage;
   onOpen: (event: MouseEvent<HTMLAnchorElement>, to: string) => void;
@@ -322,13 +354,30 @@ export function DiscoverStory({
   const { t } = useTranslation();
   const locale = resolvedLocale();
   const themes = useMemo(() => {
-    return buildDiscoverStoryThemes(items).map((theme) => ({
-      key: theme.key,
-      items: theme.items.map((item) =>
-        buildSlide(item, THEME_SLIDE_KIND[theme.key], t, locale, nicknameFor),
-      ),
-    }));
-  }, [items, t, locale, nicknameFor]);
+    const curated: { key: StoryThemeKey; items: StorySlide[] }[] =
+      buildDiscoverStoryThemes(items).map((theme) => ({
+        key: theme.key,
+        items: theme.items.map((item) =>
+          buildSlide(item, THEME_SLIDE_KIND[theme.key], t, locale, nicknameFor),
+        ),
+      }));
+    if (!lead) return curated;
+    const leadSlide: StorySlide = {
+      key: `lead:${lead.key}`,
+      kind: 'lead',
+      path: lead.path,
+      kindLabel: lead.kindLabel,
+      title: lead.title,
+      titleIsDate: false,
+      dateTime: '',
+      dateLabel: '',
+      authorName: '',
+      memoryId: '',
+      content: lead.content,
+      face: lead.face,
+    };
+    return [{ key: 'remember' as const, items: [leadSlide] }, ...curated];
+  }, [items, t, locale, nicknameFor, lead]);
   const selectionKey = themes
     .map((theme) => theme.items.map((slide) => slide.key).join(','))
     .join('|');
@@ -337,9 +386,7 @@ export function DiscoverStory({
     theme: 0,
     slide: 0,
   });
-  const [seen, setSeen] = useState<ReadonlySet<DiscoverStoryThemeKey>>(
-    () => new Set(),
-  );
+  const [seen, setSeen] = useState<ReadonlySet<StoryThemeKey>>(() => new Set());
   const [userPaused, setUserPaused] = useState(false);
   const [holding, setHolding] = useState(false);
   const [keyboardFocus, setKeyboardFocus] = useState(false);
@@ -413,11 +460,34 @@ export function DiscoverStory({
     [themes, themeIndex, slideIndex],
   );
 
+  // Like the media viewer in Erinnerungen, the overlaid controls (pause and
+  // open) fade after a quiet moment so the slide stands on its own. A touch,
+  // the pointer entering or focus brings them back at once; while the story
+  // is paused they stay, so the play control is never hidden.
+  const [controlsResting, setControlsResting] = useState(false);
+  const quietTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wakeControls = useCallback(() => {
+    if (quietTimer.current) clearTimeout(quietTimer.current);
+    setControlsResting(false);
+    quietTimer.current = setTimeout(() => {
+      quietTimer.current = null;
+      setControlsResting(true);
+    }, CONTROLS_QUIET_MS);
+  }, []);
+  useEffect(() => {
+    wakeControls();
+    return () => {
+      if (quietTimer.current) clearTimeout(quietTimer.current);
+    };
+  }, [wakeControls]);
+  const controlsQuiet = controlsResting && !userPaused;
+
   // Press-and-hold pauses after a short delay; a quick tap never flickers
   // the progress and still pages. A completed hold does not count as a tap.
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressTap = useRef(false);
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
+    wakeControls();
     if (!autoplay || event.button !== 0) return;
     if ((event.target as Element).closest('a, .momente-story-playback')) return;
     suppressTap.current = false;
@@ -456,6 +526,7 @@ export function DiscoverStory({
   function onFocus(event: FocusEvent<HTMLDivElement>) {
     // Keyboard focus inside the viewer suspends autoplay (APG carousel).
     setKeyboardFocus(isKeyboardFocus(event.target));
+    wakeControls();
   }
   function onBlur(event: FocusEvent<HTMLDivElement>) {
     if (!event.currentTarget.contains(event.relatedTarget as Node | null))
@@ -524,11 +595,13 @@ export function DiscoverStory({
         role="group"
         aria-label={themeLabel}
         data-story-theme={theme.key}
+        data-controls={controlsQuiet ? 'quiet' : undefined}
         // biome-ignore lint/a11y/noNoninteractiveTabindex: the viewer takes focus so ArrowLeft/ArrowRight page the story.
         tabIndex={0}
         onKeyDown={onKeyDown}
         onFocus={onFocus}
         onBlur={onBlur}
+        onPointerEnter={wakeControls}
         onPointerDown={onPointerDown}
         onPointerUp={endPress}
         onPointerCancel={endPress}

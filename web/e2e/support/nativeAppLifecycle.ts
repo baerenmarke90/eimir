@@ -51,16 +51,9 @@ export async function installNativeAppLifecycle(
           ],
         },
         {
-          // @capacitor/haptics (#2076): calls are recorded, never vibrated.
-          name: 'Haptics',
-          methods: [
-            'impact',
-            'notification',
-            'vibrate',
-            'selectionStart',
-            'selectionChanged',
-            'selectionEnd',
-          ].map((name) => ({ name, rtype: 'promise' })),
+          // Android system haptics: calls are recorded, never vibrated.
+          name: 'SystemHaptics',
+          methods: [{ name: 'perform', rtype: 'promise' }],
         },
         {
           // FLAG_SECURE for private surfaces (#683): private content stays
@@ -111,17 +104,13 @@ export async function installNativeAppLifecycle(
           name?: string;
           fileId?: string;
           secure?: boolean;
-          style?: string;
-          type?: string;
+          kind?: string;
         },
       ) => {
-        if (plugin === 'Haptics') {
+        if (plugin === 'SystemHaptics' && method === 'perform') {
           nativeWindow.hapticCalls ??= [];
-          const detail = options?.style ?? options?.type;
-          nativeWindow.hapticCalls.push(
-            detail ? `${method}:${detail}` : method,
-          );
-          return {};
+          nativeWindow.hapticCalls.push(options?.kind ?? '');
+          return { played: true };
         }
         if (plugin === 'SecureScreen' && method === 'setSecure') {
           nativeWindow.secureScreen = options?.secure === true;

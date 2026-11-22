@@ -581,14 +581,19 @@ Rules:
 - **Budget:** at most one haptic per direct action plus the threshold tick of a gesture. No two haptics within `--duration-context`; the later one is dropped. No haptics for unprompted motion (arrivals, hints, realtime signals, received items the person is not looking at), Ambient, Enter, Replace, navigation by tap, Loading or Scenes' ambient life.
 - **User setting:** a visible on/off switch "Haptisches Feedback" (localized through i18n) in the app's settings, on by default, stored on the device only (not shared with the partner, not sent to the server). The switch is shown only in the native app (runtime platform check, AGENTS.md "Browser-only controls"), because the Web has no haptics.
 - **Reduced motion:** does not switch haptics off; they are a separate preference and also help people who reduce motion. A person who wants neither turns off the in-app switch.
-- **Android behaviour:** the plugin (version 8.0.2, MIT) vibrates through `Vibrator` with `VibrationEffect` one-shots and waveforms, and declares the normal-level `VIBRATE` permission (granted at install, no runtime prompt). It does **not** use `View.performHapticFeedback`, so it does not follow the system touch-feedback setting the way native controls do. The in-app switch is therefore required, and the gestures step verifies on a device:
-  - how Android 13+ "Vibration & haptics" settings and Do Not Disturb affect it;
-  - whether the light impacts feel like system ticks.
+- **Android behaviour (Product Owner correction, 2026-11-22):** Android uses system haptics such as the keyboard's instead of the waveforms from `@capacitor/haptics` 8.0.2 (100 ms selection, 50 ms light impact, 43 ms medium impact). The project plugin `SystemHaptics` calls `View.performHapticFeedback`, so feedback follows the device's tuning and its system touch-feedback setting. The in-app switch stays as the app-level control. The Plugin call column above remains the cross-platform contract and maps on Android as follows:
 
-  If they feel like buzzes instead of ticks, the step may propose a small project plugin on `performHapticFeedback` (`CONFIRM`, `REJECT`, `GESTURE_THRESHOLD_ACTIVATE`, `CLOCK_TICK`) through its own reuse review.
-  - Source review of 8.0.2 (#2076): on Android `selectionChanged()` vibrates only between `selectionStart()` and `selectionEnd()`, so the adapter sends the three calls in order. Its waveforms are 100 ms at amplitude 100 for a selection, 50 ms at 110 for a light impact and 43 ms at 180 for a medium impact. A 100 ms selection is longer than a system tick, so the threshold tick is the first candidate for the device check. The device acceptance on an Android test release is still open.
+  | Plugin call | Android system feedback | Fallback |
+  | --- | --- | --- |
+  | `selectionChanged()` | `GESTURE_THRESHOLD_ACTIVATE` (API 34) | `CLOCK_TICK` |
+  | `impact({ style: Light })` | `KEYBOARD_TAP` | none needed |
+  | `impact({ style: Medium })` | `VIRTUAL_KEY` | none needed |
+  | `notification({ type: Success })` | `CONFIRM` (API 30) | `VIRTUAL_KEY` |
+  | `notification({ type: Warning })` | `REJECT` (API 30) | `LONG_PRESS` |
+
+  Device acceptance on an Android test release is still open.
 - **Web fallback:** none. The adapter is a no-op outside the native app. The plugin's Web implementation calls `navigator.vibrate` directly, so the adapter never calls the plugin on the Web. Reasons: iOS Safari has no Vibration API; on Android browsers `navigator.vibrate` is a buzz that follows no system haptic setting; desktop has no vibration. A later Web use of `navigator.vibrate` would need its own decision.
-- **iOS:** the repository has a Capacitor iOS project; the same adapter applies there through the plugin's Taptic Engine implementation when iOS ships.
+- **iOS:** the repository has a Capacitor iOS project; the same adapter applies there through the `@capacitor/haptics` Taptic Engine implementation when iOS ships.
 
 ### 4.11 Gap audit
 

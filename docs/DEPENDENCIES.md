@@ -433,8 +433,10 @@ modules below are resolved from `web/node_modules` by `npx cap sync android`.
 `@capacitor/haptics` (#2076, Motion Contract 4.10) is the official Capacitor
 haptics plugin. It has no runtime dependencies and declares the normal-level
 `android.permission.VIBRATE` (granted at install, no prompt). The Web client
-loads it only inside the native app, through the motion layer's haptics
-adapter; it never runs its Web implementation (`navigator.vibrate`). It sends
+loads it only on non-Android native platforms, through the motion layer's
+haptics adapter; Android uses the project's `SystemHaptics` plugin on the
+platform API `View.performHapticFeedback`. The package never runs its Web
+implementation (`navigator.vibrate`). It sends
 no data anywhere, has no account, cost or rate limit, and behaves the same for
 eimir. Cloud and Self-Hosted. Without it the app works unchanged, only without
 haptic feedback; people turn haptics off with the in-app switch.

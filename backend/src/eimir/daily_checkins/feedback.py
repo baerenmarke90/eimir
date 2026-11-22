@@ -2,7 +2,7 @@
 
 Setting a rating is part of the Premium weekly review; reading, clearing,
 exporting and deleting retained ratings stay Free/Core, so this module stays in
-Core while the review itself is plugin code (``eimir.daily_insights``).
+Core while the review itself is plugin code (``eimir_pro.daily_insights``).
 """
 
 from __future__ import annotations

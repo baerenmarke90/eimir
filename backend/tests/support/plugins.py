@@ -23,12 +23,9 @@ requires_pro = pytest.mark.requires_pro
 
 PRO_TEST_MODULES = frozenset(
     {
-        "integration/test_async_video_races.py",
         "integration/test_calendar_sync.py",
         "integration/test_calendar_sync_google.py",
         "integration/test_couple_games.py",
-        "integration/test_daily_checkins_pro_insights.py",
-        "integration/test_demo_feature_examples.py",
         "integration/test_demo_wish_detective.py",
         "integration/test_games_moment_candidates.py",
         "integration/test_games_wish_candidates.py",
@@ -37,23 +34,13 @@ PRO_TEST_MODULES = frozenset(
         "integration/test_garden_history.py",
         "integration/test_garden_visitors.py",
         "integration/test_heart_hunt.py",
-        "integration/test_once_messages.py",
-        "integration/test_partner_location.py",
-        "integration/test_partner_location_device.py",
-        "integration/test_partner_location_precision.py",
         "integration/test_photo_sources.py",
         "integration/test_picture_ping_pong.py",
         # The recap modules compose recaps, which needs `relationship.passport`,
         # a capability only a loaded plugin provides; what stays readable and
         # writable without it is covered by `integration/test_core_only_recaps.py`.
-        "integration/test_recap_film.py",
-        "integration/test_recap_notices.py",
-        "integration/test_relationship_recaps.py",
         "integration/test_shared_experiences.py",
-        "integration/test_transfer_video_revalidation.py",
-        "integration/test_video_lifecycle.py",
         "integration/test_waiting_games.py",
-        "integration/test_weekly_review.py",
         "integration/test_wish_detective_concealment.py",
         "unit/test_account_table_lifecycle.py",
         "unit/test_caldav_adapter.py",
@@ -63,15 +50,9 @@ PRO_TEST_MODULES = frozenset(
         "unit/test_m3_plan_openapi.py",
         "unit/test_photo_browser_binding.py",
         "unit/test_photo_source_security_gate.py",
-        "unit/test_presence_geo.py",
         "unit/test_privacy_policy_statements.py",
         # Recap composition is plugin code; the Core reads stay in
         # `unit/test_recap_composition.py`.
-        "unit/test_recap_film.py",
-        "unit/test_recap_mood.py",
-        "unit/test_recap_notices.py",
-        "unit/test_video_processing.py",
-        "unit/test_weekly_patterns.py",
         "unit/test_wish_detective_rules.py",
     }
 )

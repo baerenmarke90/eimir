@@ -161,6 +161,29 @@ def _record_exhausted_storage(
         _record_outcome(session, transfer, EventType.TRANSFER_FAILED)
 
 
+def _log_refused(
+    kind: str,
+    transfer: TransferExport | TransferImport,
+    error: BadRequestError | PayloadTooLargeError,
+) -> None:
+    """Make a handled failure visible in the worker log without private content.
+
+    The job is recorded as succeeded when the handler stores a failed status, so
+    without this line the cause would only be visible in the database. Only the
+    stable error code and identifiers are logged, never archive or user content.
+    """
+    log.warning(
+        "transfer %s failed",
+        kind,
+        extra={
+            "transfer_id": str(transfer.id),
+            "scope": transfer.scope,
+            "error_code": error.code,
+            "error_type": type(error).__name__,
+        },
+    )
+
+
 def handle_export(session: Session, payload: dict[str, Any]) -> None:
     identifier = _identifier(payload, "exportId")
     if identifier is None:
@@ -214,6 +237,7 @@ def handle_export(session: Session, payload: dict[str, Any]) -> None:
         finally:
             archive.close()
     except (BadRequestError, PayloadTooLargeError) as error:
+        _log_refused("export", transfer, error)
         transfer.status = ExportStatus.FAILED.value
         transfer.error_code = error.code
         _record_outcome(session, transfer, EventType.TRANSFER_FAILED)
@@ -269,6 +293,7 @@ def handle_validate_import(session: Session, payload: dict[str, Any]) -> None:
                 compressed_size=transfer.artifact_size,
             )
     except (BadRequestError, PayloadTooLargeError) as error:
+        _log_refused("import validation", transfer, error)
         transfer.status = ImportStatus.FAILED.value
         transfer.error_code = error.code
         _record_outcome(session, transfer, EventType.TRANSFER_FAILED)
@@ -345,6 +370,7 @@ def handle_apply_import(session: Session, payload: dict[str, Any]) -> None:
         )
         return
     except (BadRequestError, PayloadTooLargeError) as error:
+        _log_refused("import apply", transfer, error)
         transfer.status = ImportStatus.FAILED.value
         transfer.error_code = error.code
         _record_outcome(session, transfer, EventType.TRANSFER_FAILED)

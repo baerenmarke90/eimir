@@ -278,6 +278,26 @@ export function distanceBandWords(
   return 'shortTrip';
 }
 
+/** The farthest of the seven steps the Wir heart and light can show. */
+export const DISTANCE_STAGE_MAX = 6;
+
+/**
+ * The band as a step from together (0) to far apart (6) for the Wir heart and
+ * light. It follows the server band only, so it is never more precise than
+ * the band: everything under 2 km is one step.
+ */
+export function distanceStage(band: DistanceBandView): number {
+  if (band.kind === 'NEARBY' || band.kind === 'CLOSE') return 0;
+  if (band.kind === 'RANGE' && band.maxKm != null) {
+    if (band.maxKm <= 5) return 1;
+    if (band.maxKm <= 10) return 2;
+    if (band.maxKm <= 25) return 3;
+    return 4;
+  }
+  const km = band.approximateKm ?? band.maxKm ?? band.minKm;
+  return km != null && km < 500 ? 5 : DISTANCE_STAGE_MAX;
+}
+
 const FEET_PER_METRE = 3.28084;
 const METRES_PER_KM = 1000;
 /** From here on a converted distance reads better in miles than in feet. */

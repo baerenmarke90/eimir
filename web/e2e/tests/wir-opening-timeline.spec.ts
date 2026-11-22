@@ -670,7 +670,7 @@ async function grantLocation(page: Page) {
 
 /**
  * The partner's check-in was already seen on this device today, so the row
- * under the names keeps its place while today's state loads.
+ * under the portraits keeps its place while today's state loads.
  */
 async function partnerNewsSeen(page: Page) {
   await page.addInitScript(
@@ -729,7 +729,7 @@ async function openWirCold(page: Page, options: ColdStart = {}) {
 
 /** Everything has arrived and Wir is at rest. */
 async function expectComplete(page: Page) {
-  await expect(page.locator('.wir-hero-distance')).toBeVisible({
+  await expect(page.locator('.wir-bridge-moon')).toBeAttached({
     timeout: 10_000,
   });
   await expect(page.locator('.daily-quote-block')).toBeVisible();

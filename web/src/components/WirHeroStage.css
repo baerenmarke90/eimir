@@ -18,6 +18,7 @@
   --wir-own-accent: var(--person-own-accent);
   --wir-partner-accent: var(--person-partner-accent);
   position: relative;
+  isolation: isolate;
   margin-bottom: var(--space-section);
 }
 
@@ -275,64 +276,18 @@
   height: var(--wir-avatar);
 }
 
-/* The ampersand joins the two names on their own line. */
-.wir-stage-amp {
-  position: absolute;
-  top: calc(100% + var(--space-1) + var(--space-2));
-  right: 0;
-  left: 0;
-  color: var(--color-text-muted);
-  font-family: var(--font-display);
-  font-size: 1.3rem;
-  font-weight: 500;
-  line-height: 1.2;
-  text-align: center;
+/*
+ * The heart and what the bridge shows sit in one slot. The story link and the
+ * heart's own control are siblings there, so neither is nested in the other.
+ */
+.wir-bridge-slot {
+  position: relative;
+  display: block;
+  height: 100%;
+  container: wir-distance-slot / inline-size;
 }
 
-/* A location statement takes the ampersand's place between the names. */
-.wir-stage-amp:has(~ .wir-stage-distance .wir-hero-distance) {
-  display: none;
-}
-
-/* The distance is shared too: on the middle axis, in the place of the
-   ampersand and centred on the names' line, as a tinted chip. */
-.wir-stage-distance {
-  position: absolute;
-  /* The names' line is 1.56rem tall; the chip is centred on it. */
-  top: calc(
-    100% +
-    var(--space-1) +
-    var(--space-2) +
-    (1.56rem - var(--wir-stage-mark-height)) /
-    2
-  );
-  /* Centred on its own line: the words of a range band (#1907 H4) are wider
-     than the gap between the avatars and must not wrap there. */
-  left: 50%;
-  width: max-content;
-  max-width: min(18rem, calc(100vw - 2 * var(--space-4)));
-  translate: -50% 0;
-  display: flex;
-  justify-content: center;
-  pointer-events: auto;
-}
-
-/* Too close to a name: its own line below the daily marks (#1907 H4). */
-.wir-stage-distance.is-below-marks {
-  top: calc(
-    100% +
-    var(--space-1) +
-    3 *
-    var(--space-2) +
-    1.56rem +
-    var(--wir-stage-mark-height)
-  );
-}
-
-.today-page .wir-stage .today-hero:has(.wir-stage-distance.is-below-marks) {
-  padding-bottom: calc(var(--wir-stage-mark-height) + var(--space-2));
-}
-
+/* The compact distance chip of the shared-album design. */
 .wir-hero-distance {
   display: inline-flex;
   min-height: var(--wir-stage-mark-height);
@@ -371,11 +326,6 @@
   display: none;
 }
 
-/* The pin tips about its point when it wiggles (WirMotion.css). */
-.wir-hero-distance .partner-distance-glyph.is-pin {
-  transform-origin: 50% 87.5%;
-}
-
 .wir-hero-distance.is-action {
   color: var(--color-brand-text);
 }
@@ -394,7 +344,7 @@
 
 .wir-bridge-lead {
   align-self: end;
-  /* One quiet voice down the middle axis: time, ampersand, distance. */
+  /* One quiet voice down the middle axis: the time, or for a moment the place. */
   color: var(--color-text-muted);
   font-family: var(--font-display);
   font-size: clamp(0.9rem, 4vw, 1.05rem);
@@ -402,24 +352,18 @@
   line-height: 1.15;
   letter-spacing: -0.01em;
   white-space: nowrap;
+  transition: opacity var(--duration-transition) var(--easing-standard);
+}
+
+.wir-bridge-slot[data-distance-phase] .wir-bridge-lead {
+  opacity: 0;
 }
 
 .wir-bridge-line {
   display: flex;
   width: 100%;
   align-items: flex-start;
-}
-
-/* The arms meet the heart at the widest point of its two lobes. */
-.wir-bridge-arm {
-  height: 2px;
-  flex: 1 1 0;
-  margin-top: calc(1.75rem * 7.5 / 28 - 1px);
-  background: var(--wir-own-accent);
-}
-
-.wir-bridge-arm-partner {
-  background: var(--wir-partner-accent);
+  justify-content: center;
 }
 
 .wir-bridge-line svg {
@@ -439,6 +383,229 @@
 
 .wir-bridge-heart-partner {
   stroke: var(--wir-partner-accent);
+}
+
+/*
+ * The heart fills like the moon (Product Owner, 2026-11-22): a round shadow in
+ * the mask moves over it with the distance, leaving a thin crescent far apart
+ * and nothing at the closest step, where the heart is completely full.
+ */
+.wir-bridge-moon-own {
+  fill: var(--wir-own-accent);
+  stroke: none;
+}
+
+.wir-bridge-moon-partner {
+  fill: var(--wir-partner-accent);
+  stroke: none;
+}
+
+.wir-bridge-moon-beat {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.wir-bridge-moon-shadow {
+  translate: calc(var(--wir-distance-closeness, 0) * -25.8px) 0;
+  transition: translate var(--duration-gesture-moment) var(--easing-standard);
+}
+
+/* An earlier value is never presented as live. */
+.wir-bridge-moon.is-earlier {
+  opacity: var(--wir-distance-earlier-opacity, 0.5);
+}
+
+/*
+ * The light behind the portraits. Each person keeps a small glow; the wide
+ * glows and the shared light in the middle fade in as the two come closer.
+ * Only opacity changes (Motion Contract M6).
+ */
+.wir-distance-light {
+  --wir-distance-bleed: var(--page-gutter, var(--space-4));
+  --wir-distance-rise: var(--space-6);
+
+  position: absolute;
+  z-index: -1;
+  inset: calc(-1 * var(--wir-distance-rise))
+    calc(-1 * var(--wir-distance-bleed)) calc(-1 * var(--space-5));
+  overflow: clip;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    var(--color-text) 18%,
+    var(--color-text) 78%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    var(--color-text) 18%,
+    var(--color-text) 78%,
+    transparent
+  );
+}
+
+.wir-distance-glow {
+  --wir-distance-glow-size: 1.5;
+
+  position: absolute;
+  top: calc(var(--wir-distance-rise) + var(--space-5) + var(--wir-avatar) / 2);
+  width: calc(var(--wir-avatar) * var(--wir-distance-glow-size));
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--wir-distance-glow-colour) 32%, transparent) 36%,
+    color-mix(in srgb, var(--wir-distance-glow-colour) 13%, transparent) 70%,
+    transparent
+  );
+  translate: -50% -50%;
+  transition: opacity var(--duration-gesture-moment) var(--easing-standard);
+}
+
+.wir-distance-glow.is-own {
+  --wir-distance-glow-colour: var(--wir-own-accent);
+
+  left: calc(var(--wir-distance-bleed) + var(--wir-avatar) / 2);
+}
+
+.wir-distance-glow.is-partner {
+  --wir-distance-glow-colour: var(--wir-partner-accent);
+
+  left: calc(100% - var(--wir-distance-bleed) - var(--wir-avatar) / 2);
+}
+
+.wir-distance-glow.is-near {
+  --wir-distance-glow-size: 3;
+
+  opacity: calc(1 - var(--wir-distance-closeness));
+}
+
+.wir-distance-glow.is-shared {
+  --wir-distance-glow-size: 2.5;
+  --wir-distance-glow-colour: color-mix(
+    in srgb,
+    var(--wir-own-accent),
+    var(--wir-partner-accent)
+  );
+
+  left: 50%;
+  opacity: max(0, calc(1 - var(--wir-distance-closeness) * 2));
+}
+
+/* The heart's control, the moment's soft flash and the word above the heart. */
+.wir-distance-tell {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.wir-distance-heart {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  translate: -50% -50%;
+}
+
+.wir-distance-heart:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.wir-distance-flash {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(
+      in srgb,
+      color-mix(in srgb, var(--wir-own-accent), var(--wir-partner-accent)) 55%,
+      transparent
+    ),
+    transparent
+  );
+  opacity: 0;
+  translate: -50% -50%;
+}
+
+/*
+ * The gap between the portraits is narrow (about 100 px at 390 px), so the pin
+ * sits above the word and the type follows the gap. The slot centres the word
+ * even when it is wider than the gap, where the circles leave more room.
+ */
+.wir-distance-word-slot {
+  position: absolute;
+  right: 0;
+  bottom: calc(50% + 0.875rem + var(--space-1) + 0.125rem);
+  left: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.wir-distance-word {
+  display: inline-flex;
+  max-inline-size: calc(100cqi + 0.35rem);
+  min-block-size: 1.5rem;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: clamp(0.68rem, 13.5cqi, 0.92rem);
+  font-weight: 600;
+  line-height: 1.12;
+  text-align: center;
+  text-decoration: none;
+  overflow-wrap: break-word;
+  hyphens: manual;
+  pointer-events: auto;
+}
+
+.wir-distance-word .partner-distance-glyph {
+  width: 0.9rem;
+  height: 0.9rem;
+  color: var(--color-brand-text);
+}
+
+.wir-distance-word.is-earlier .partner-distance-glyph {
+  color: var(--color-text-muted);
+}
+
+a.wir-distance-word:focus-visible {
+  border-radius: var(--radius-control, 0.5rem);
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* One small light per side, in the shared flight layer. */
+.wir-distance-spark {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--wir-distance-spark);
+  box-shadow: 0 0 0 0.2rem
+    color-mix(in srgb, var(--wir-distance-spark) 26%, transparent);
+  pointer-events: none;
+}
+
+.wir-distance-spark.is-trail {
+  opacity: 0.4;
+  box-shadow: none;
 }
 
 .wir-bridge-rest {
@@ -491,29 +658,82 @@
   }
 }
 
-/* The heart line on the opening's clock (#2147, WIR_STAGE_BEATS): the two
- * arms reach out once the portraits are arriving, with the decisive start and
- * soft landing of `--easing-standard` (a symmetric curve made the connecting
- * look sluggish), and the heart starts drawing just before they meet. Beat
- * counts: arms 0.7-1.7, heart 1.2-2.3. The heart is a bounded line-draw of two
- * short paths (`stroke-dashoffset`, Motion Contract M6). */
+/* The heart on the opening's clock (#2147, WIR_STAGE_BEATS), with the decisive
+ * start and soft landing of `--easing-standard`. Beat counts: heart 1.2-2.3.
+ * The heart is a bounded line-draw of two short paths (`stroke-dashoffset`,
+ * Motion Contract M6); its moon fill and the light fade in on the same beat. */
 @media (prefers-reduced-motion: no-preference) {
-  .wir-stage[data-motion-stage="playing"] .wir-bridge-arm {
-    transform-origin: left center;
-    animation: eimir-motion-stage-reach var(--wir-intro-beat)
-      var(--easing-standard) calc(var(--wir-intro-beat) * 0.7) both;
-  }
-
-  .wir-stage[data-motion-stage="playing"] .wir-bridge-arm-partner {
-    transform-origin: right center;
-  }
-
-  /* Each half is 100 units long; its arm arrives 56 units from the tip. */
+  /* Each half is 100 units long and starts at the widest point of its lobe. */
   .wir-stage[data-motion-stage="playing"] .wir-bridge-heart-own,
   .wir-stage[data-motion-stage="playing"] .wir-bridge-heart-partner {
     --motion-trace-from: -56;
     animation: eimir-motion-stage-trace calc(var(--wir-intro-beat) * 1.1)
       var(--easing-standard) calc(var(--wir-intro-beat) * 1.2) both;
+  }
+
+  .wir-stage[data-motion-stage="playing"] .wir-bridge-moon,
+  .wir-stage[data-motion-stage="playing"] .wir-distance-light {
+    animation: eimir-motion-stage-fade calc(var(--wir-intro-beat) * 1.1)
+      var(--easing-standard) calc(var(--wir-intro-beat) * 1.2) both;
+  }
+
+  /* The word comes down beside its pin when the two lights have met. */
+  .wir-distance-word {
+    animation: eimir-motion-value-arrive var(--duration-transition)
+      var(--easing-enter) both;
+  }
+
+  .wir-distance-word .partner-distance-glyph {
+    --motion-enter-from: 0 -0.55rem;
+
+    animation: eimir-motion-enter-travel var(--duration-context)
+      var(--easing-settle) both;
+  }
+
+  .wir-bridge-slot[data-distance-phase="told"] .wir-distance-flash {
+    animation: eimir-motion-replace-out var(--duration-context)
+      var(--easing-standard) both;
+  }
+}
+
+@media (min-width: 768px) {
+  /* The wider column leaves room for the light on both sides; it fades out
+     before it reaches the edge of the window. */
+  .wir-distance-light {
+    --wir-distance-bleed: min(10rem, calc((100vw - 34rem) / 2 - 1rem));
+
+    -webkit-mask-image:
+      linear-gradient(
+        to bottom,
+        transparent,
+        var(--color-text) 18%,
+        var(--color-text) 78%,
+        transparent
+      ),
+      linear-gradient(
+        to right,
+        transparent,
+        var(--color-text) 16%,
+        var(--color-text) 84%,
+        transparent
+      );
+    mask-image:
+      linear-gradient(
+        to bottom,
+        transparent,
+        var(--color-text) 18%,
+        var(--color-text) 78%,
+        transparent
+      ),
+      linear-gradient(
+        to right,
+        transparent,
+        var(--color-text) 16%,
+        var(--color-text) 84%,
+        transparent
+      );
+    -webkit-mask-composite: source-in;
+    mask-composite: intersect;
   }
 }
 

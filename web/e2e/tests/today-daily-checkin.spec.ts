@@ -801,7 +801,7 @@ test('the daily invitation sits beside the plus and never holds the row under th
   await signIn(page);
 
   // The day has no value, so the line invites beside the plus. The row under
-  // the name stays closed meanwhile: the stage already ends at the names, so
+  // the portrait stays closed meanwhile: the stage already ends there, so
   // nothing below moves when the line leaves.
   const prompt = page.getByTestId('wir-checkin-own-prompt');
   await expect(prompt).toHaveText(wirCheckIn.ownPrompt);
@@ -810,10 +810,15 @@ test('the daily invitation sits beside the plus and never holds the row under th
   await expect(badge).toHaveCSS('height', '0px');
   const stageEnd = async () => {
     const stage = await page.locator('.wir-stage').boundingBox();
-    const name = await page.locator('.wir-stage-name').first().boundingBox();
-    expect(stage && name).toBeTruthy();
-    if (stage && name)
-      expect(stage.y + stage.height - (name.y + name.height)).toBeLessThan(4);
+    const portrait = await page
+      .locator('.wir-stage .partner-avatar')
+      .first()
+      .boundingBox();
+    expect(stage && portrait).toBeTruthy();
+    if (stage && portrait)
+      expect(
+        stage.y + stage.height - (portrait.y + portrait.height),
+      ).toBeLessThan(12);
     return stage ? stage.y + stage.height : 0;
   };
   const withPrompt = await stageEnd();

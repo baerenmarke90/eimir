@@ -425,6 +425,10 @@ The executor is never weaker than the plugin. Its known, deliberate differences 
 
 ### 7. Repository layout and API contract
 
+> **Superseded on November 22, 2026 by [Decision 0019](0019-repository-split-and-cutover.md).** The end state is a
+> public Core repository with fresh history plus a small private Pro and release repository, not one private
+> development repository. The seam, the allow-list checks and the contract rules below stay valid.
+
 Following the Product Owner's direction, there is **one private development repository** that holds Core and Pro,
 and the public Core repository is **produced from it**. This replaces the two-repository workflow the first draft
 assumed.

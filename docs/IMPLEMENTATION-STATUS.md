@@ -321,7 +321,12 @@ repository, but Core reaches them only through a seam (loader, contract, lifecyc
 - [ ] **#2087:** Pro delivery and licensing (private Pro image, signed license).
 - [ ] **#2088:** Cloud first, Self-Hosted later. [Decision 0018](decisions/0018-cloud-first-self-hosted-later.md) was
   merged through #2089; its status line still reads "Proposed" and the re-scoping work is open.
-- [ ] **#2090:** make the repository and packages private (checks, order and cutover).
+- [ ] **#2090:** make the repository and packages private (checks, order and cutover). Superseded in approach by
+  [Decision 0019](decisions/0019-repository-split-and-cutover.md): the repository stays public until the split is
+  ready; the cut-over is tracked in #2183.
+- [ ] **#2182:** Pro plugin seam Phase 2 (relocation into `backend/pro/`, extraction dry-run job, seam version 6).
+- [ ] **#2183:** repository split (public Core, private Pro and release repository) and the cut-over day
+  ([Decision 0019](decisions/0019-repository-split-and-cutover.md), proposed).
 
 ### Actions usage and CI tiers (#2096)
 

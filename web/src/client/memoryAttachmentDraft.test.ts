@@ -1,5 +1,6 @@
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { UploadDescriptorMethodEnum } from '../api/generated/models/UploadDescriptor';
+import { ResponseError } from '../api/generated/runtime';
 import { i18n } from '../i18n';
 import * as backgroundVideoUploads from './backgroundVideoUploads';
 import {
@@ -142,6 +143,43 @@ describe('uploadMemoryDraftAttachment', () => {
     ).rejects.toThrow(i18n.t('video.preparationFailed'));
     expect(create).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['photo', new File(['image'], 'photo.jpg', { type: 'image/jpeg' })],
+    ['voice message', new File(['audio'], 'voice.ogg', { type: 'audio/ogg' })],
+  ])(
+    'says plainly when a %s no longer fits the storage',
+    async (_kind, file) => {
+      const refusal = new ResponseError(
+        new Response(
+          JSON.stringify({
+            type: 'payload_too_large',
+            title: 'Payload too large',
+            status: 413,
+            detail: 'The Space storage is full.',
+            code: 'STORAGE_QUOTA_EXCEEDED',
+          }),
+          { status: 413, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+      await expect(
+        uploadMemoryDraftAttachment(
+          {
+            attachments: {
+              createAttachmentUpload: vi.fn().mockRejectedValue(refusal),
+            },
+          } as unknown as ReferenceApis,
+          'https://api.example.invalid',
+          'synthetic',
+          'space',
+          file,
+        ),
+      ).rejects.toMatchObject({
+        message: i18n.t('storageQuota.uploadRefused'),
+        code: 'STORAGE_QUOTA_EXCEEDED',
+      });
+    },
+  );
 
   it('cancels a pending validation read without leaving polling timers behind', async () => {
     vi.useFakeTimers();

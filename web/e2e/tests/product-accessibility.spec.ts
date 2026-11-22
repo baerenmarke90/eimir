@@ -260,6 +260,17 @@ async function installAuthorizedApiMocks(page: Page): Promise<
       return;
     }
 
+    // Settings > Data reads the Space's storage (#2141); a Free Cloud Space
+    // with room, so the storage section is part of the reflow check.
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/storage`) {
+      await fulfillJson({
+        used: 1_800_000_000,
+        quota: 5_000_000_000,
+        available: 3_200_000_000,
+      });
+      return;
+    }
+
     // Partner distance (#1792): an unpaired Free Space shares nothing.
     if (
       method === 'GET' &&

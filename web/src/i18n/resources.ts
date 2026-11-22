@@ -56,6 +56,7 @@ import serverAdmin from './locales/serverAdmin';
 import sharedNotes from './locales/sharedNotes';
 import snackbar from './locales/snackbar';
 import spaceOffboarding from './locales/spaceOffboarding';
+import storageQuota from './locales/storageQuota';
 import storyProducts from './locales/storyProducts';
 import motionSettings from './locales/motionSettings';
 import taskBoundary from './locales/taskBoundary';
@@ -125,6 +126,7 @@ export const germanResources = {
   serverAdmin,
   ...sharedNotes,
   spaceOffboarding,
+  storageQuota,
   ...relationshipComponents,
   relationshipReflections,
   recaps,

@@ -3,6 +3,7 @@ import path from 'node:path';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s6 from '../../src/i18n/locales/m5s6';
+import storageQuota from '../../src/i18n/locales/storageQuota';
 import AxeBuilder from '../support/axe';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import { fulfillSettingsOverviewStatuses } from '../support/settingsOverview';
@@ -80,6 +81,9 @@ interface Journey {
   completed?: Summary;
   skipped?: { count: number; totalSize: number };
   videosAllowed?: boolean;
+  /** The Space's storage; unmetered (Self-Hosted) unless given. */
+  storage?: { used: number; quota: number | null; available: number | null };
+  capabilities?: string[];
 }
 
 interface Recorded {
@@ -153,13 +157,20 @@ async function installMocks(page: Page, journey: Journey): Promise<Recorded> {
       return;
     }
     if (pathname.endsWith('/entitlements')) {
+      const capabilities = journey.capabilities ?? [];
       await respond({
         spaceId: SPACE_ID,
-        capabilities: [],
+        capabilities,
         isInGracePeriod: false,
-        tier: 'FREE',
+        tier: capabilities.length ? 'PREMIUM' : 'FREE',
         status: 'ACTIVE',
       });
+      return;
+    }
+    if (pathname === `${base}/storage`) {
+      await respond(
+        journey.storage ?? { used: 2 * GB, quota: null, available: null },
+      );
       return;
     }
     if (pathname === `${base}/transfer/skipped-videos`) {
@@ -257,9 +268,9 @@ async function capture(
   }
 }
 
-async function expectAccessible(page: Page) {
+async function expectAccessible(page: Page, scope = '.transfer-import-stack') {
   const result = await new AxeBuilder({ page })
-    .include('.transfer-import-stack')
+    .include(scope)
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
     .analyze();
   expect(result.violations).toEqual([]);
@@ -490,4 +501,114 @@ test('the importer recovers skipped videos with Pro and can hide the note', asyn
     page.getByRole('heading', { name: copy.skipped.heading, exact: true }),
   ).toHaveCount(0);
   expect(recorded.dismissed).toBe(1);
+});
+
+const STORAGE_STATES = [
+  {
+    name: 'roomy',
+    storage: { used: 1.8 * GB, quota: 5 * GB, available: 3.2 * GB },
+  },
+  {
+    name: 'almost-full',
+    storage: { used: 4.3 * GB, quota: 5 * GB, available: 0.7 * GB },
+    title: storageQuota.almostFull.title,
+  },
+  {
+    name: 'full',
+    storage: { used: 5 * GB, quota: 5 * GB, available: 0 },
+    title: storageQuota.full.title,
+  },
+] as const;
+
+for (const state of STORAGE_STATES) {
+  test(`the storage section shows ${state.name} and its ways out on Compact and Expanded`, async ({
+    page,
+  }, info) => {
+    await installMocks(page, { preview: summary(), storage: state.storage });
+    await page.setViewportSize({ width: 390, height: 900 });
+    await openData(page, '');
+    const section = page.locator('.storage-section');
+    await expect(
+      section.getByRole('heading', { name: storageQuota.heading }),
+    ).toBeVisible();
+    if ('title' in state)
+      await expect(section.getByText(state.title)).toBeVisible();
+    else await expect(section.getByText(storageQuota.counts)).toBeVisible();
+    for (const width of [360, 390, 430]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expectNoHorizontalOverflow(page);
+    }
+    await capture(
+      page,
+      info,
+      `2141-storage-${state.name}-390-light.png`,
+      '.storage-section',
+    );
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+    await expectAccessible(page, '.storage-section');
+    await capture(
+      page,
+      info,
+      `2141-storage-${state.name}-390-dark-reduced.png`,
+      '.storage-section',
+    );
+    await page.emulateMedia({
+      colorScheme: 'light',
+      reducedMotion: 'no-preference',
+    });
+    await expectAccessible(page, '.storage-section');
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '200%';
+    });
+    await expectNoHorizontalOverflow(page);
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '';
+    });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await capture(
+      page,
+      info,
+      `2141-storage-${state.name}-1280-light.png`,
+      '.storage-section',
+    );
+    if (state.name === 'full') {
+      // Return: the media overview is the way to free up space.
+      await section.getByRole('link', { name: storageQuota.viewMedia }).click();
+      await expect(page).toHaveURL(/\/story\/photos/);
+      await page.goBack();
+      await expect(section.getByText(state.title)).toBeVisible();
+    }
+  });
+}
+
+test('a Pro couple reads its 50 GB in words and sees no Pro offer', async ({
+  page,
+}, info) => {
+  await installMocks(page, {
+    preview: summary(),
+    storage: { used: 12.4 * GB, quota: 50 * GB, available: 37.6 * GB },
+    capabilities: ['storage.cloud_quota_50gb'],
+  });
+  await page.setViewportSize({ width: 390, height: 900 });
+  await openData(page, '');
+  const section = page.locator('.storage-section');
+  await expect(
+    section.getByText(storageQuota.proIncluded.replace('{{quota}}', '50 GB')),
+  ).toBeVisible();
+  await expect(section.getByRole('link')).toHaveCount(0);
+  await capture(
+    page,
+    info,
+    '2141-storage-pro-390-light.png',
+    '.storage-section',
+  );
+});
+
+test('Self-Hosted shows no storage section', async ({ page }) => {
+  await installMocks(page, { preview: summary() });
+  await page.setViewportSize({ width: 390, height: 900 });
+  await openData(page, '');
+  await expect(page.getByRole('heading', { name: copy.title })).toBeVisible();
+  await expect(page.locator('.storage-section')).toHaveCount(0);
 });

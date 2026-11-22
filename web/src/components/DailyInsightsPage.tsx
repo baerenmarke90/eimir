@@ -31,6 +31,7 @@ import {
 } from '../client/dailyInsightsModel';
 import { dashboardQueryKey } from '../client/dashboardQueries';
 import { firstNameFromDisplayName } from '../client/personalName';
+import { retireQuietHint } from '../client/quietHints';
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
   appRoutePath,
@@ -59,6 +60,7 @@ import { NativeDateInput } from './NativeDateField';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import { WeeklyBrief } from './WeeklyBrief';
+import { weeklyBriefHintId } from './WeeklyBriefWirHint';
 import {
   ClearWeeklyInsightFeedback,
   WeeklyInsightCard,
@@ -290,6 +292,12 @@ export function DailyInsightsPage({
     gcTime: 0,
     refetchOnMount: 'always',
   });
+
+  // Opening a week's brief retires that week's Wir hint (#2194).
+  useEffect(() => {
+    if (view !== 'brief' || !monday || !briefQuery.isSuccess) return;
+    retireQuietHint(account.id, spaceId, weeklyBriefHintId(monday));
+  }, [view, monday, briefQuery.isSuccess, account.id, spaceId]);
 
   useEffect(() => {
     if (hash !== '#wochenrueckblick' || !rangeQuery.isSuccess) return;

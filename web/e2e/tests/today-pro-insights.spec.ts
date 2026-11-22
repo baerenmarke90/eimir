@@ -68,6 +68,7 @@ async function installMocks(
     entitlements: 0,
     weeklyReads: 0,
     briefReads: 0,
+    briefWeeks: [] as string[],
     inference: 0,
     revision: 'a'.repeat(64),
     denied: false,
@@ -95,6 +96,7 @@ async function installMocks(
     if (pathname === `${space}/daily-check-in/weekly-brief`) {
       requests.briefReads += 1;
       const monday = url.searchParams.get('week_start') ?? '2026-09-21';
+      requests.briefWeeks.push(monday);
       const current = monday === '2026-09-21';
       await json({
         weekStart: monday,
@@ -594,7 +596,7 @@ async function visitViews(
   });
 }
 
-test('Pro insights are absent from Today and open from More on Compact', async ({
+test('Wir hints at last week’s brief and insights open from More on Compact', async ({
   page,
 }, testInfo) => {
   await installMocks(page);
@@ -605,13 +607,23 @@ test('Pro insights are absent from Today and open from More on Compact', async (
   });
   await signIn(page);
 
-  // The free daily ritual stays on Today, but weekly insights do not.
+  // The daily ritual stays on Wir; the weekly insights are no destination
+  // there, only one quiet hint that last week's brief is ready (#2194).
   await expect(page.getByTestId('wir-checkin-own-badge')).toBeVisible();
   await expect(
     page.getByRole('link', { name: dailyInsights.title }),
   ).toHaveCount(0);
+  await expect(
+    page.getByText(dailyInsights.brief.wirHint.text, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator('.weekly-brief-wir-hint')
+      .getByRole('link', { name: dailyInsights.brief.wirHint.open }),
+  ).toHaveAttribute('href', /\/more\/insights\?week=\d{4}-\d{2}-\d{2}$/);
+  await expectNoHorizontalOverflow(page);
   await page.screenshot({
-    path: testInfo.outputPath('today-without-weekly-insights-390-light.png'),
+    path: testInfo.outputPath('today-weekly-brief-hint-390-light.png'),
     fullPage: true,
   });
 
@@ -631,6 +643,14 @@ test('Pro insights reflow from More at 320px with large text, Dark and Reduced M
   await expect(
     page.getByRole('link', { name: dailyInsights.title }),
   ).toHaveCount(0);
+  await expect(
+    page.getByText(dailyInsights.brief.wirHint.text, { exact: true }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await page.screenshot({
+    path: testInfo.outputPath('today-weekly-brief-hint-320-dark-200pct.png'),
+    fullPage: true,
+  });
   await visitViews(page, testInfo, '320-dark-200pct');
 });
 
@@ -644,6 +664,14 @@ test('Pro insights adapt to Expanded Web from More', async ({
     reducedMotion: 'no-preference',
   });
   await signIn(page);
+  await expect(
+    page.getByText(dailyInsights.brief.wirHint.text, { exact: true }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await page.screenshot({
+    path: testInfo.outputPath('today-weekly-brief-hint-1280-light.png'),
+    fullPage: true,
+  });
   await visitViews(page, testInfo, '1280-light');
 });
 
@@ -653,12 +681,17 @@ test('Free Spaces see a calm gated state and never request insights', async ({
   const requests = await installMocks(page, { capabilities: [] });
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page);
+  await expect(page.getByTestId('wir-checkin-own-badge')).toBeVisible();
+  await expect(
+    page.getByText(dailyInsights.brief.wirHint.text, { exact: true }),
+  ).toHaveCount(0);
   await openInsightsFromMore(page, testInfo, '390-free', false);
   await expect(
     page.getByRole('heading', { name: dailyInsights.gate.title }),
   ).toBeVisible();
   await expect(page.getByText(dailyInsights.gate.freeNote)).toBeVisible();
   expect(requests.insights).toBe(0);
+  expect(requests.briefReads).toBe(0);
   await expectNoHorizontalOverflow(page);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.screenshot({
@@ -817,7 +850,10 @@ test('Weekly brief turns a wish into the existing Wish-to-Plan task and returns'
       name: dailyInsights.brief.headline.SHARED_GOOD_DAYS.title,
     }),
   ).toBeVisible();
-  expect(requests.briefReads).toBe(1);
+  // One read for the selected week; Wir's hint reads last week's separately.
+  expect(requests.briefWeeks.filter((week) => week === '2026-09-21')).toEqual([
+    '2026-09-21',
+  ]);
   expect(requests.inference).toBe(0);
   await page
     .getByRole('button', { name: dailyInsights.brief.basisToggle })

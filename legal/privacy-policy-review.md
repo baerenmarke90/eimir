@@ -1,7 +1,7 @@
 # Privacy policy draft: review notes
 
 Status: drafting baseline for the legal review of
-[`de/privacy-policy.md`](de/privacy-policy.md) (version `2026-11-18.draft-6`).
+[`de/privacy-policy.md`](de/privacy-policy.md) (version `2026-11-22.draft-9`).
 This file is not legal advice and is not shown to users. It records where each
 statement comes from, which facts the operator must supply and which decisions
 are open, so that the reviewer can check the draft against the product instead
@@ -50,7 +50,8 @@ Where a feature is not yet available, the draft says so explicitly.
 | 10 | Immich: personal HTTPS origin and API key, encrypted, account-scoped; selected-item copy; 10-min selection | `docs/product/integrations/1444-photo-source-delivery.md`, `backend/src/eimir/photo_sources/service.py` |
 | 10, 15 | Google Photos is gated off (#1467); its OAuth browser binding is the only cookie (`__Host-`, 10 min) | `docs/product/integrations/1444-google-security-gate.md`, `backend/src/eimir/photo_sources/browser_binding.py` |
 | 11 | Local Ollama for shared tag proposals only (the weekly AI review was retired in #2203). Only bounded inputs are sent, and prompts and responses stay out of logs. | `docs/LOCAL-RECAP-AI.md`, `backend/src/eimir/context_tags/jobs.py` |
-| 4, 22 | Daily Check-in retention: two Space days, 90 Space days while the Space holds `daily.insights`; re-evaluated on every cleanup run | `docs/decisions/0007-daily-check-in-and-mutual-reveal.md` (amendment 2026-11-22), `backend/src/eimir/daily_checkins/retention.py` |
+| 4, 22 | Daily Check-in retention: two Space days, 90 Space days while the Space holds `daily.insights`; re-evaluated on every cleanup run, which runs every six hours | `docs/decisions/0007-daily-check-in-and-mutual-reveal.md` (amendment 2026-11-22), `backend/src/eimir/daily_checkins/retention.py` |
+| 4, 22 | Monthly and yearly recaps freeze the counts of days on which both partners had a good Vibe (only while the Space holds `daily.insights`); they stay with the recap edition | `backend/src/eimir/recap_composition/mood.py` |
 | 11 | Weekly brief: rule-based, model-free composition from mutually visible Vibe/Energy values and readable shared Plans, Memories and open Wishes; nothing stored | `backend/src/eimir/daily_insights/weekly_brief.py` |
 | 11 | Retained ratings of the retired weekly review (#2203): caller-private Core data, readable and deletable without Pro, exported only in the personal scope; no new ratings | `backend/src/eimir/daily_checkins/feedback.py`, `backend/src/eimir/transfer/service.py` |
 | 12 | Mails: magic link, signup, verification; notification mail opt-in and content-free | `backend/src/eimir/i18n/locales/de.json`, `backend/src/eimir/engagement/email_delivery.py` |
@@ -191,6 +192,123 @@ developments. Decisions 1, 2, 3, 4 and 15 are judgment calls with real
 liability: the Product Owner decides them, and a lawyer or the data protection
 officer should confirm them before publication.
 
+## Legal review: Pro check-in history (2026-11-22)
+
+Scope: the 90-day retention of Daily Check-in values (Vibe, Energy) while a
+Space holds `daily.insights` (ADR 0007 amendment 2026-11-22, #2169), and its
+uses: the Pro insights reads, the rule-based weekly brief with its private
+view (#2197), and the mood rhythm frozen into monthly and yearly recaps
+(`backend/src/eimir/recap_composition/mood.py`). Baseline: `main` at `5ae0d0b`.
+The limits of this review (above) apply; a lawyer or the data protection
+officer should confirm the result before publication.
+
+### Facts
+
+- **Values.** One Vibe from a fixed list (for example „Gestresst“,
+  „Traurig“, „Nähe wäre schön“) and an Energy level from 0 to 100 per person
+  and Space day, plus an optional Vibe note that is cleared with the Vibe.
+  They are stored in the protected payload (#797), served `private, no-store`
+  and never logged.
+- **Retention.** 90 Space days while the Space's effective entitlement holds
+  `daily.insights`, otherwise the current and the previous Space day. The
+  cleanup job runs every six hours (`SCAN_INTERVAL`) and re-evaluates the
+  entitlement on every run. Account and Space deletion remove the rows at once.
+- **Who triggers it.** The entitlement belongs to the Space. A purchase by one
+  partner extends the retention of the other partner's values too; the other
+  partner takes no action and is not asked.
+- **Uses.**
+  - Charts and month view over at most 90 days.
+  - The shared brief over the selected week and seven preceding weeks, using
+    only values both can see.
+  - The private view over the caller's own values only.
+  - Monthly and yearly recaps: counts of days on which both partners had a
+    good Vibe, frozen into the recap edition and kept as long as the edition
+    exists (beyond the 90 days).
+  - Nothing is sent to a model; there is no score, diagnosis or Art. 22
+    decision.
+- **Rights tooling.** A person can change or clear today's values. There is
+  no self-service deletion of the own history, and the rows are excluded from
+  the export bundles (ADR 0007).
+
+### Assessment
+
+1. **Special category (Art. 9(1), Art. 4(15) and recital 35).** A single Vibe
+   is borderline, but a 90-day series of mood and energy values plainly
+   allows conclusions about a person's mental health. Under the broad reading
+   of Art. 9 (C-184/20, C-252/21) the history is data concerning health. The
+   longer retention therefore strengthens the classification in open
+   decision 1; it does not create a new one.
+2. **Legal basis.** Art. 9(2) has no contract ground, and no other exception
+   fits. Only explicit consent (Art. 9(2)(a)) can carry the history. The
+   Pro purchase is not such a consent, and it can never be the consent of the
+   partner who did not buy.
+3. **Granularity and freely given consent (Art. 7(2), 7(4), recital 43;
+   EDPB Guidelines 05/2020).** The daily ritual works with the two-day window,
+   so the 90-day history is not necessary for the core service. Folding it
+   into the mandatory account-creation consent of decision 1 would make an
+   unnecessary processing a condition of the contract. **Result:** the history
+   needs its own, optional, per-person explicit consent that can be withdrawn
+   at any time without affecting the account.
+4. **Purpose limitation (Art. 5(1)(b)).** ADR 0007 section 9 required a
+   separate privacy decision before any historical use. The amendment of
+   2026-11-22 is that decision; the purposes listed there (insights reads,
+   weekly brief) are specific and explicit. The frozen recap mood rhythm is a
+   further purpose and must be named in the consent and the notice.
+5. **Data minimisation and storage limitation (Art. 5(1)(c) and (e)).**
+   90 days equals the server cap of the insights read; the brief needs eight
+   weeks and the month view reaches back about three months. The period is
+   proportionate. Deletion within six hours of the entitlement ending is
+   adequate and should be stated concretely. The frozen recap counts outlive
+   the 90 days; they are coarse (only shared good days, no difficult states)
+   but remain derived health data and need a stated retention and a deletion
+   path on withdrawal.
+6. **Transparency (Art. 13(1)(c), 13(2)(a)).** Draft-8 states the 90 days and
+   the return to two days. It does not yet say that one partner's purchase
+   affects both, how often the cleanup runs, or that recaps keep the counts.
+   Draft-9 adds these points.
+7. **Data subject rights (Art. 15, 17, 20).** Access and erasure of the own
+   history are possible today only through support, which is lawful but slow.
+   The own values are provided by the person and processed on consent, so the
+   right to data portability applies; excluding them from the personal export
+   bundle conflicts with Art. 20 once the history exists. Restoring an export
+   must still never turn an old value into today's status (ADR 0007).
+8. **Privacy by default (Art. 25(2)).** The other partner's history starts
+   without any action of that person. With per-person consent (point 3) the
+   default becomes the two-day window, which satisfies Art. 25(2).
+9. **Profiling and automated decisions (Art. 4(4), Art. 22).** The brief
+   evaluates personal aspects and is profiling in the sense of Art. 4(4).
+   It makes no decision with legal or similarly significant effect, so
+   Art. 22 does not apply; § 11.1 already describes the logic.
+10. **Security (Art. 32).** Protected payload, no logs, `no-store`, Space
+    isolation and Mutual Reveal projection are adequate.
+11. **DPIA (Art. 35).** Systematic evaluation of health-related data over
+    90 days is an additional WP248 criterion (evaluation of personal aspects,
+    sensitive data). Include the history and the brief in the DPIA of
+    decision 2.
+
+### Result
+
+The 90-day retention is proportionate and can be lawful, but **not on the
+current consent model**. Before the notice is published for eimir. Cloud:
+
+- **Blocking.** A separate, optional, per-person explicit consent for the
+  insights history (Art. 9(2)(a)), asked when a person first uses Einblicke or
+  when the Space gains Pro, recorded and versioned like the terms acceptance,
+  and withdrawable in the settings. Without it, that person's values stay in
+  the two-day window and do not feed the insights, the brief or the recap
+  counts. Partners must not be able to tell a missing consent from a missing
+  check-in (the neutral "no value visible" rule of #1151 already covers this).
+- **Blocking.** On withdrawal, delete the person's history on the next cleanup
+  run and remove their contribution from frozen recap counts, or remove the
+  counts from editions that include them.
+- **Before launch.** Self-service deletion of the own history, and the own
+  values in the personal export (Art. 20).
+- **Recommended.** A one-time notice to both partners when the Space gains Pro
+  insights, and the DPIA extension of point 11.
+- **Done in draft-9.** The notice says that the Space's Pro applies to both
+  partners, that the cleanup runs every six hours, that recaps keep the counts
+  of shared good days, and how to request deletion.
+
 ## Open decisions before publication
 
 1. **Special categories (Art. 9 GDPR).** Couple content can directly or
@@ -207,6 +325,8 @@ officer should confirm them before publication.
    explicit consent (Art. 9(2)(a)). The product is built for intimate content,
    and two flows reveal special categories in structured form: the couple
    pairing and the Vibe/Energy check-ins with their weekly evaluation. The
+   90-day Pro check-in history is not necessary for the core service and needs
+   a separate optional consent (see "Legal review: Pro check-in history"). The
    consent needs its own unticked checkbox at Cloud account creation, separate
    from the terms acceptance (Art. 7(2)), a versioned record like the terms
    acceptance, and withdrawal in the settings. Because the service cannot run
@@ -266,9 +386,13 @@ officer should confirm them before publication.
     decision of 2026-11-22 (#2169, ADR 0007 amendment): Spaces with
     `daily.insights` keep check-ins for 90 Space days, all others keep the
     previous and current day, and an ended entitlement returns to two days on
-    the next cleanup run. Draft-7 updates §§ 4.5, 11.1 and 22. **Open for
-    legal review:** the longer retention of possibly health-related values
-    (§ 7, Art. 9 GDPR) for the Pro insights purpose weighs on decisions 1 and 2.
+    the next cleanup run. **Legal review done on 2026-11-22** (see
+    "Legal review: Pro check-in history" above): the period is proportionate,
+    but the history needs its own optional per-person explicit consent
+    (Art. 9(2)(a)) before publication, together with deletion on withdrawal,
+    including the frozen recap counts. Self-service deletion and the own values
+    in the personal export follow before launch. Draft-9 completes the
+    information in §§ 4.5 and 22.
 12. **Change notification.** **Recommendation:** use the channel of the terms
     changes (email and in-app), without acceptance.
 13. **One-time messages in Cloud backups.** The canonical dump excludes the

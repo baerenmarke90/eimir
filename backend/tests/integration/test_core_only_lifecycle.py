@@ -17,7 +17,6 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
-from eimir_pro.once_messages.models import OnceDevice, OnceEnvelope, OnceMessage, OnceReception
 from sqlalchemy import MetaData, func, select, text
 from sqlalchemy.orm import Session
 
@@ -29,6 +28,7 @@ from eimir.engagement import service as engagement
 from eimir.engagement.models import EngagementTarget, Notification, NotificationKind
 from eimir.garden.models import GardenPlant
 from eimir.jobs import maintenance
+from eimir.once_messages.models import OnceDevice, OnceEnvelope, OnceMessage, OnceReception
 from eimir.photo_sources.models import (
     GoogleAccountHint,
     GoogleAccountHintPayload,

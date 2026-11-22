@@ -29,10 +29,14 @@ const storyProducts = {
     label: 'Eure Fotostory',
     roleDescription: 'Fotostory',
     themesLabel: 'Themen der Fotostory',
+    // Soft hyphens (U+00AD) let the narrow theme bubbles break these long
+    // words at a syllable instead of mid-word when the browser has no
+    // German hyphenation dictionary.
     theme: {
-      photos: 'Fotos',
-      heartMoments: 'Herzmomente',
-      milestones: 'Meilensteine',
+      remember: 'Wisst ihr noch?',
+      photos: 'Erinne\u00ADrungen',
+      heartMoments: 'Herz\u00ADmomente',
+      milestones: 'Meilen\u00ADsteine',
       words: 'In Worten',
     },
     themeCount_one: '{{count}} Moment',

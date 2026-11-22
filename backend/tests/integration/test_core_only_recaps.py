@@ -106,7 +106,7 @@ def couple(session: Session, monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace
 def _compose(session: Session, couple: SimpleNamespace, month: int) -> str:
     # Through the service: the request route is plugin code, so it is not mounted
     # in the Core-only configuration (its absence is covered by test_pro_routes.py).
-    from eimir_pro.recap_composition import composer
+    from eimir.recap_composition import composer
 
     context = AuthorizationContext(account_id=couple.anna.id, space_id=couple.space.id)
     value = composer.request_period(session, context, RecapKind.MONTH, 2026, month)
@@ -115,7 +115,7 @@ def _compose(session: Session, couple: SimpleNamespace, month: int) -> str:
 
 
 def _generate(session: Session, couple: SimpleNamespace, recap_id: str) -> None:
-    from eimir_pro.recap_composition import jobs
+    from eimir.recap_composition import jobs
 
     record = session.get(RecapEdition, UUID(recap_id))
     assert record is not None

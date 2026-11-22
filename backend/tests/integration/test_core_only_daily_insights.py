@@ -1,9 +1,8 @@
 """Daily Check-in insights on an instance without the Pro plugin (Decision 0017, #2085).
 
-`daily.insights` is plugin-owned: the insight and weekly-review routes are plugin
-code. A member's retained ratings of weekly recommendations stay Core data:
-without the plugin they stay exportable and can always be cleared, while a new
-rating is refused even under a current Premium grant. These tests are not Pro
+`daily.insights` is plugin-owned: the insight and weekly brief routes are plugin
+code. A member's ratings retained from the retired weekly review (#2203) stay
+Core data: without the plugin they stay readable, exportable and clearable. These tests are not Pro
 feature tests: the Core-only CI job runs them with ``EIMIR_PLUGINS=""``; the
 plugin-loaded job runs them against a simulated absent plugin.
 """
@@ -78,7 +77,7 @@ def couple(session: Session) -> SimpleNamespace:
 def test_without_the_plugin_retained_ratings_stay_exportable_and_clearable(
     client: TestClient, session: Session, couple: SimpleNamespace
 ) -> None:
-    rating_path = f"{couple.base}/weekly-feedback/quiet_time"
+    retained_path = f"{couple.base}/weekly-feedback"
     with core_only():
         # The ratings are personal Core data and stay in the personal export.
         context = AuthorizationContext(account_id=couple.anna.id, space_id=couple.space.id)
@@ -87,18 +86,18 @@ def test_without_the_plugin_retained_ratings_stay_exportable_and_clearable(
             "quiet_time"
         ]
 
-        # A new rating is part of the Premium review and is refused.
-        refused = client.put(rating_path, headers=couple.headers, json={"rating": "NOT_FITTING"})
-        assert refused.status_code == 403
-        assert refused.json()["code"] == "PREMIUM_ENTITLEMENT_REQUIRED"
-        stored = session.scalars(select(DailyInsightFeedback)).one()
-        assert stored.rating == "HELPFUL"
+        # Reading them stays Free.
+        listed = client.get(retained_path, headers=couple.headers)
+        assert listed.status_code == 200
+        assert listed.json() == {
+            "ratings": [{"recommendationKey": "quiet_time", "rating": "HELPFUL"}]
+        }
 
-        # Clearing the retained rating stays Free.
-        cleared = client.put(rating_path, headers=couple.headers, json={"rating": None})
-        assert cleared.status_code == 200
-        assert cleared.json() == {"recommendationKey": "quiet_time", "rating": None}
+        # Clearing them stays Free.
+        cleared = client.delete(retained_path, headers=couple.headers)
+        assert cleared.status_code == 204
         assert session.scalars(select(DailyInsightFeedback)).all() == []
+        assert client.get(retained_path, headers=couple.headers).json() == {"ratings": []}
 
 
 def test_without_the_plugin_check_ins_keep_the_two_day_window(
@@ -107,7 +106,7 @@ def test_without_the_plugin_check_ins_keep_the_two_day_window(
     """History retention follows the effective capability, not the stored grant."""
     from eimir.daily_checkins import retention
     from eimir.daily_checkins.models import DailyCheckIn
-    from tests.support.daily_context import configure_daily
+    from tests.integration.test_daily_checkins_pro_insights import configure_daily
 
     configure_daily(session, space_id=couple.space.id, manager_id=couple.anna.id)
     instant = clock.now()

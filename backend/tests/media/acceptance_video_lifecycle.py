@@ -11,9 +11,9 @@ from pathlib import Path
 from uuid import UUID
 
 import pytest
-from eimir_pro.video_processing import jobs as video_validation
 
 from eimir.attachments.models import Attachment, AttachmentStatus
+from eimir.video_processing import jobs as video_validation
 from tests.conftest import auth, requires_database
 from tests.support.video import grant
 from tests.support.video import owner as owner

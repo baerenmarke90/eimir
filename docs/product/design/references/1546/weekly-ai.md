@@ -1,5 +1,7 @@
 # Weekly AI insights and voluntary recommendations
 
+> **Retired (#2203, Product Owner 2026-11-22).** This contract is historical. The card and its endpoints were removed; retained ratings remain readable and deletable as Core data. A selection-only successor inside the weekly brief is deferred to [#2201](https://github.com/baerenmarke90/eimir/issues/2201).
+
 ## Authorization and preflight
 
 The PO explicitly authorized this extension after the discussion of deeper multiweek observations, general recommendations and feedback. This extends PR #1547; merge/release remains outside the task.

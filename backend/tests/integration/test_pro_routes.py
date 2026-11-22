@@ -107,11 +107,10 @@ def _path(template: str, space_id: str) -> str:
 @pytest.fixture
 def integrations_on(monkeypatch):  # type: ignore[no-untyped-def]
     """Configured integrations, so a route reaches its capability check."""
-    from eimir_pro.presence import service as presence
-
     from eimir.calendar_sync import google as calendar_google
     from eimir.calendar_sync import service as calendar_sync
     from eimir.photo_sources import service as photo_sources
+    from eimir.presence import service as presence
 
     monkeypatch.setattr(calendar_sync, "available", lambda: True)
     monkeypatch.setattr(calendar_google, "_require_client", lambda: object())

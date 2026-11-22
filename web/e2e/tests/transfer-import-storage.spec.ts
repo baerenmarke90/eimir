@@ -29,6 +29,7 @@ const ACCOUNT_ID = '00000000-0000-4000-8000-000000000001';
 const PARTNER_ID = '00000000-0000-4000-8000-000000000002';
 const SPACE_ID = '00000000-0000-4000-8000-000000000010';
 const IMPORT_ID = '01a1ff11-f4f7-7e9b-b7ed-e1f581e613b5';
+const EXPORT_ID = '01a1ff11-f4f7-7e9b-b7ed-e1f581e613b6';
 const GB = 1_000_000_000;
 
 type Summary = Record<string, unknown>;
@@ -76,8 +77,28 @@ function importDetail(
   };
 }
 
+function exportDetail(status: string, errorCode: string | null) {
+  return {
+    id: EXPORT_ID,
+    scope: 'SHARED',
+    status,
+    createdAt: '2026-11-22T10:00:00Z',
+    readyAt: null,
+    expiresAt: '2026-11-23T10:00:00Z',
+    artifactSize: null,
+    errorCode,
+    downloadUrl: null,
+  };
+}
+
 interface Journey {
   preview: Summary;
+  /** A finished export the server reports (#2173); the file is never really made. */
+  exportOutcome?: { status: string; errorCode: string | null };
+  /** The state a staged import is already in when the page opens (#2173). */
+  importOutcome?: { status: string; errorCode: string | null };
+  /** A problem code the upload itself is refused with (#2173). */
+  uploadRefusal?: string;
   completed?: Summary;
   skipped?: { count: number; totalSize: number };
   videosAllowed?: boolean;
@@ -93,7 +114,7 @@ interface Recorded {
 
 async function installMocks(page: Page, journey: Journey): Promise<Recorded> {
   const recorded: Recorded = { applied: [], dismissed: 0 };
-  let status = 'READY_TO_APPLY';
+  let status = journey.importOutcome?.status ?? 'READY_TO_APPLY';
   let skipped = journey.skipped ?? { count: 0, totalSize: 0 };
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultProductContext(route)) return;
@@ -197,6 +218,19 @@ async function installMocks(page: Page, journey: Journey): Promise<Recorded> {
       pathname === `${base}/transfer/imports` &&
       request.method() === 'POST'
     ) {
+      if (journey.uploadRefusal) {
+        await route.fulfill({
+          status: 413,
+          json: {
+            type: 'payload_too_large',
+            title: 'Payload too large',
+            status: 413,
+            detail: 'Transfer archive exceeds the supported resource limits.',
+            code: journey.uploadRefusal,
+          },
+        });
+        return;
+      }
       status = 'READY_TO_APPLY';
       await respond(importDetail(status, journey.preview));
       return;
@@ -214,8 +248,24 @@ async function installMocks(page: Page, journey: Journey): Promise<Recorded> {
           status === 'COMPLETED'
             ? (journey.completed ?? journey.preview)
             : journey.preview,
+          journey.importOutcome?.errorCode ?? null,
         ),
       );
+      return;
+    }
+    if (
+      pathname === `${base}/transfer/exports` &&
+      request.method() === 'POST'
+    ) {
+      await respond(exportDetail('QUEUED', null));
+      return;
+    }
+    if (pathname === `${base}/transfer/exports/${EXPORT_ID}`) {
+      const outcome = journey.exportOutcome ?? {
+        status: 'QUEUED',
+        errorCode: null,
+      };
+      await respond(exportDetail(outcome.status, outcome.errorCode));
       return;
     }
     if (request.method() === 'GET') {
@@ -611,4 +661,178 @@ test('Self-Hosted shows no storage section', async ({ page }) => {
   await openData(page, '');
   await expect(page.getByRole('heading', { name: copy.title })).toBeVisible();
   await expect(page.locator('.storage-section')).toHaveCount(0);
+});
+
+/* A failed export or import names its cause (#2173, slice A). */
+
+const EXPORT_FAILURES = [
+  {
+    name: 'an export that is too large',
+    outcome: { status: 'FAILED', errorCode: 'TRANSFER_TOO_LARGE' },
+    text: copy.failure.exportTooLarge,
+    file: 'too-large',
+  },
+  {
+    name: 'an export that failed for another reason',
+    outcome: { status: 'FAILED', errorCode: 'TRANSFER_EXPORT_FAILED' },
+    text: copy.failure.exportFailed,
+    file: 'failed',
+  },
+  {
+    name: 'an export with an unknown code',
+    outcome: { status: 'FAILED', errorCode: 'SOMETHING_NEW' },
+    text: copy.failure.exportGeneric,
+    file: 'generic',
+  },
+  {
+    name: 'an export that has expired',
+    outcome: { status: 'EXPIRED', errorCode: null },
+    text: copy.failure.exportExpired,
+    file: 'expired',
+  },
+];
+
+for (const failure of EXPORT_FAILURES) {
+  test(`${failure.name} says what happened on Compact and Expanded`, async ({
+    page,
+  }, info) => {
+    await installMocks(page, {
+      preview: summary(),
+      exportOutcome: failure.outcome,
+    });
+    await page.setViewportSize({ width: 360, height: 900 });
+    await openData(page, '');
+    await page.getByRole('button', { name: copy.export.start }).click();
+    await expect(page.getByText(failure.text.title)).toBeVisible();
+    await expect(page.getByText(failure.text.body)).toBeVisible();
+    // Nothing but the named failure: no status row, no download hint, no code.
+    await expect(page.getByText(copy.export.statusLabel)).toHaveCount(0);
+    await expect(page.locator('.transfer-panel')).not.toContainText(
+      /TRANSFER_|SOMETHING_NEW/,
+    );
+    for (const width of [360, 390, 430]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expectNoHorizontalOverflow(page);
+      await capture(
+        page,
+        info,
+        `2173-export-${failure.file}-${width}-light.png`,
+        '.transfer-callout',
+      );
+    }
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+    await expectAccessible(page, '.transfer-panel');
+    await capture(
+      page,
+      info,
+      `2173-export-${failure.file}-390-dark-reduced.png`,
+      '.transfer-callout',
+    );
+    await page.emulateMedia({
+      colorScheme: 'light',
+      reducedMotion: 'no-preference',
+    });
+    await expectAccessible(page, '.transfer-panel');
+    // Large text reflows at the narrowest width without horizontal scrolling.
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '200%';
+    });
+    await expectNoHorizontalOverflow(page);
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '';
+    });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(page.getByText(failure.text.title)).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await capture(
+      page,
+      info,
+      `2173-export-${failure.file}-1280-light.png`,
+      '.transfer-callout',
+    );
+  });
+}
+
+const IMPORT_FAILURES = [
+  {
+    name: 'a damaged file',
+    outcome: { status: 'FAILED', errorCode: 'TRANSFER_CHECKSUM_MISMATCH' },
+    text: copy.failure.fileInvalid,
+    file: 'damaged',
+  },
+  {
+    name: 'a file from another version',
+    outcome: { status: 'FAILED', errorCode: 'TRANSFER_FORMAT_UNSUPPORTED' },
+    text: copy.failure.formatUnsupported,
+    file: 'version',
+  },
+  {
+    name: 'a checked file that has expired',
+    outcome: { status: 'EXPIRED', errorCode: null },
+    text: copy.failure.importExpired,
+    file: 'expired',
+  },
+];
+
+for (const failure of IMPORT_FAILURES) {
+  test(`an import of ${failure.name} says what happened`, async ({
+    page,
+  }, info) => {
+    await installMocks(page, {
+      preview: summary(),
+      importOutcome: failure.outcome,
+    });
+    await page.setViewportSize({ width: 390, height: 900 });
+    await openData(page);
+    await expect(page.getByText(failure.text.title)).toBeVisible();
+    await expect(page.getByText(failure.text.body)).toBeVisible();
+    await expect(page.locator('.transfer-panel')).not.toContainText(
+      /TRANSFER_/,
+    );
+    await expectNoHorizontalOverflow(page);
+    await expectAccessible(page);
+    await capture(
+      page,
+      info,
+      `2173-import-${failure.file}-390-light.png`,
+      '.transfer-callout',
+    );
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+    await expectAccessible(page);
+    await capture(
+      page,
+      info,
+      `2173-import-${failure.file}-390-dark-reduced.png`,
+      '.transfer-callout',
+    );
+  });
+}
+
+test('a file that is too large is named while it is chosen', async ({
+  page,
+}, info) => {
+  await installMocks(page, {
+    preview: summary(),
+    uploadRefusal: 'TRANSFER_TOO_LARGE',
+  });
+  await page.setViewportSize({ width: 390, height: 900 });
+  await openData(page, '');
+  await page.locator('#transfer-import-file').setInputFiles({
+    name: 'eimir-export.zip',
+    mimeType: 'application/zip',
+    buffer: Buffer.from('bundle'),
+  });
+  await page.getByRole('button', { name: copy.import.upload }).click();
+  await expect(page.getByText(copy.failure.importTooLarge.title)).toBeVisible();
+  await expect(page.getByText(copy.failure.importTooLarge.body)).toBeVisible();
+  await expect(page.locator('.transfer-panel')).not.toContainText(/TRANSFER_/);
+  await expectNoHorizontalOverflow(page);
+  await expectAccessible(page);
+  await capture(
+    page,
+    info,
+    '2173-import-too-large-390-light.png',
+    '.transfer-callout',
+  );
 });

@@ -3,7 +3,7 @@
 Reading a stored edition, listing the periods with shared material and the
 members' own reflections stay Core on every server. Composing new editions
 (the selection pool, requests, preparation, late entries and versions) lives in
-``eimir_pro.recap_composition.composer``, which this module must not import.
+``eimir.recap_composition.composer``, which this module must not import.
 """
 
 from __future__ import annotations

@@ -22,8 +22,13 @@ import {
   recoveryFits,
   STORAGE_QUOTA_CODES,
 } from '../client/transferImport';
+import {
+  importFailureId,
+  importRequestFailureId,
+} from '../client/transferFailure';
 import { useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
+import { TransferFailure } from './TransferFailure';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 
 /** Refusals the preview explains itself; they never reach the generic error state. */
@@ -186,6 +191,8 @@ export function TransferImportSection({
     applyError ??
     cacheConvergenceError;
 
+  const requestFailure = importRequestFailureId(importError);
+
   function startImport(file: File, nextPurpose: Purpose) {
     setImportId(null);
     setConfirmed(false);
@@ -341,7 +348,11 @@ export function TransferImportSection({
           />
         ) : null}
 
-        {importError ? <ProblemState error={importError} /> : null}
+        {requestFailure ? (
+          <TransferFailure id={requestFailure} />
+        ) : importError ? (
+          <ProblemState error={importError} />
+        ) : null}
       </section>
     </div>
   );
@@ -445,14 +456,13 @@ function ImportDetail({
 
   if (status === ImportStatus.FAILED || status === ImportStatus.EXPIRED) {
     return (
-      <div className="transfer-callout" data-tone="error" role="status">
-        <strong>{t(`transfer.import.status.${status}`)}</strong>
-        <span>
-          {status === ImportStatus.FAILED
-            ? t('transfer.import.failed')
-            : t('transfer.import.expired')}
-        </span>
-      </div>
+      <TransferFailure
+        id={
+          status === ImportStatus.FAILED
+            ? importFailureId(detail.errorCode)
+            : 'importExpired'
+        }
+      />
     );
   }
 

@@ -11,15 +11,8 @@ from uuid import UUID, uuid4
 import pytest
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
-from eimir_pro.once_messages.models import OnceDevice, OnceReception
 from eimir_pro.partner_quick_actions.models import SupportGestureRequest
 from eimir_pro.partner_quick_actions.service import send_support_gesture
-from eimir_pro.presence.models import (
-    PartnerLocationConsent,
-    PresenceDeviceCredential,
-    PresencePositionPayload,
-    PresenceSnapshot,
-)
 from eimir_pro.quotes.models import DailyQuotePreference
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -68,6 +61,13 @@ from eimir.identity.models import AccountEmail, AuthIdentity, AuthProvider, Devi
 from eimir.legal.models import TermsAcceptance, TermsAcceptanceOrigin
 from eimir.legal.terms import record_acceptance
 from eimir.memories.models import Memory, MemoryPayload
+from eimir.once_messages.models import OnceDevice, OnceReception
+from eimir.presence.models import (
+    PartnerLocationConsent,
+    PresenceDeviceCredential,
+    PresencePositionPayload,
+    PresenceSnapshot,
+)
 from eimir.private_notes.models import PrivateNote, PrivateNotePayload
 from eimir.profiles.models import (
     PartnerProfile,

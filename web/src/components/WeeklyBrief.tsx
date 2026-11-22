@@ -49,12 +49,12 @@ function capitalized(text: string): string {
 }
 
 function observationText(t: TFunction, fact: WeeklyObservationView): string {
-  // Same weekday rendering as the weekly review card (2026-01-05 is a Monday).
+  // 2026-01-05 is a Monday.
   const weekday = new Intl.DateTimeFormat(resolvedLocale(), {
     weekday: 'long',
     timeZone: 'UTC',
   }).format(new Date(Date.UTC(2026, 0, 5 + (fact.weekday ?? 0))));
-  return t(`weeklyInsights.facts.${fact.kind}`, {
+  return t(`dailyInsights.brief.facts.${fact.kind}`, {
     value: fact.value ?? undefined,
     weekday,
   });
@@ -73,22 +73,30 @@ function Headline({ brief }: { brief: WeeklyBriefView }) {
   );
 }
 
-function DayStrip({
+export function DayStrip({
   days,
-  brief,
+  goodDays,
+  sharedDays,
+  goodLabel,
+  hint,
   people,
   dimensions,
 }: {
   days: readonly InsightDay[];
-  brief: WeeklyBriefView;
+  goodDays: readonly Date[];
+  sharedDays: readonly Date[];
+  /** Detail sentence for a highlighted day. */
+  goodLabel: string;
+  /** Prompt shown before a day is selected. */
+  hint?: string;
   people: readonly InsightPerson[];
   dimensions: readonly ChartDimension[];
 }) {
   const { t } = useTranslation();
   const hintId = useId();
   const [selected, setSelected] = useState<IsoDate | null>(null);
-  const good = new Set(brief.goodDays.map(iso));
-  const shared = new Set(brief.sharedDays.map(iso));
+  const good = new Set(goodDays.map(iso));
+  const shared = new Set(sharedDays.map(iso));
   const selectedDay = days.find((day) => day.date === selected) ?? null;
   return (
     <div className="brief-strip">
@@ -139,15 +147,13 @@ function DayStrip({
           <>
             <strong>{formatDayLong(selectedDay.date)}</strong>
             <span>{daySummary(t, selectedDay, people, dimensions)}</span>
-            {good.has(selectedDay.date) ? (
-              <span>{t('dailyInsights.brief.good.dayGood')}</span>
-            ) : null}
+            {good.has(selectedDay.date) ? <span>{goodLabel}</span> : null}
             {shared.has(selectedDay.date) ? (
               <span>{t('dailyInsights.brief.good.dayShared')}</span>
             ) : null}
           </>
         ) : (
-          t('dailyInsights.brief.good.stripHint')
+          (hint ?? t('dailyInsights.brief.good.stripHint'))
         )}
       </p>
     </div>
@@ -415,7 +421,9 @@ export function WeeklyBrief({
         />
         <DayStrip
           days={days}
-          brief={brief}
+          goodDays={brief.goodDays}
+          sharedDays={brief.sharedDays}
+          goodLabel={t('dailyInsights.brief.good.dayGood')}
           people={people}
           dimensions={dimensions}
         />

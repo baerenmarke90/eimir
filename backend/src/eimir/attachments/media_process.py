@@ -2,7 +2,7 @@
 
 Runs ffprobe/ffmpeg with no credentials, bounded output, resource limits and a
 deadline. Voice notes are Free and use it directly; the Pro video processor
-(``eimir_pro.video_processing``) uses the same runner.
+(``eimir.video_processing``) uses the same runner.
 """
 
 from __future__ import annotations

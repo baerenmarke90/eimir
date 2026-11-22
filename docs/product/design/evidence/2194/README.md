@@ -7,6 +7,7 @@ the scrolled content; that is an artifact of full-page screenshots.
 | File | State |
 | --- | --- |
 | `wir-hint-390-light.webp` | Compact 390 px, Light: the quiet hint below the couple hero and check-in |
+| `wir-hint-1280-light.webp` | Expanded 1280 px, Light: the same hint inside the bounded Wir column |
 | `wir-hint-320-dark-200pct-reduced-motion.webp` | 320 px, Dark, 200 % text, reduced motion; copy and action hyphenate instead of clipping |
 
 The same spec asserts that Free Spaces never see the hint or read the brief,

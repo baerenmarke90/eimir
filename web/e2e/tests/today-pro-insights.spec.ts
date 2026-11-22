@@ -664,6 +664,14 @@ test('Pro insights adapt to Expanded Web from More', async ({
     reducedMotion: 'no-preference',
   });
   await signIn(page);
+  await expect(
+    page.getByText(dailyInsights.brief.wirHint.text, { exact: true }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await page.screenshot({
+    path: testInfo.outputPath('today-weekly-brief-hint-1280-light.png'),
+    fullPage: true,
+  });
   await visitViews(page, testInfo, '1280-light');
 });
 

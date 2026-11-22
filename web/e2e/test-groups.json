@@ -682,8 +682,8 @@
     },
     "transfer-import-storage.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 9,
-      "reason": "Settings Data import for #2141 B2+N2: import without videos, no room (space or Pro), fits only without videos, recovering and dismissing skipped videos, with result and return, Compact 360/390/430 Light/Dark, reduced motion, Expanded 1280 and axe in both themes; and the storage section (#2141 Q5): room, almost full from 80 percent, full with Pro and media ways out, Pro in words, none on Self-Hosted, Compact/Expanded, Light/Dark, reduced motion and 200 percent text."
+      "baselineTests": 17,
+      "reason": "Settings Data import for #2141 B2+N2: import without videos, no room (space or Pro), fits only without videos, recovering and dismissing skipped videos, with result and return, Compact 360/390/430 Light/Dark, reduced motion, Expanded 1280 and axe in both themes; and the storage section (#2141 Q5): room, almost full from 80 percent, full with Pro and media ways out, Pro in words, none on Self-Hosted, Compact/Expanded, Light/Dark, reduced motion and 200 percent text; and failed exports and imports that name their cause (#2173): too large, failed, unknown code and expired exports, a damaged file, another version and an expired checked file, and a file refused as too large while it is chosen, at 360/390/430 Light/Dark, reduced motion, 200 percent text, Expanded 1280 and axe."
     },
     "storage-upload-refusal.spec.ts": {
       "disposition": "PR_CRITICAL",

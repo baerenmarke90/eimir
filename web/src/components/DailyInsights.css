@@ -115,20 +115,13 @@
   line-height: 1.4;
 }
 
-.insight-handwriting {
-  color: var(--insight-quiet-text);
-  font-family: var(--font-display);
-  font-size: 0.95rem;
-  font-style: italic;
-  line-height: 1.25;
-  transform: rotate(-2.5deg);
-  transform-origin: left center;
-}
-
 /* Sub navigation and pickers ------------------------------------------- */
 
 .insight-nav {
   display: flex;
+  /* With large text the tabs wrap as whole words instead of breaking
+     inside a word (three views since #2169). */
+  flex-wrap: wrap;
   gap: var(--space-1);
   padding: var(--space-1);
   border-radius: var(--radius-pill);
@@ -137,7 +130,7 @@
 
 .insight-nav a {
   display: grid;
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-height: 44px;
   min-width: 0;
   place-items: center;
@@ -148,8 +141,8 @@
   font-weight: 650;
   text-align: center;
   text-decoration: none;
-  overflow-wrap: anywhere;
-  hyphens: auto;
+  overflow-wrap: normal;
+  hyphens: manual;
 }
 
 .insight-nav a[aria-current="page"] {
@@ -164,8 +157,6 @@
 .insight-cta:focus-visible,
 .insight-link:focus-visible,
 .insight-chart-column:focus-visible,
-.insight-week-highlights button:focus-visible,
-.insight-week-observations summary:focus-visible,
 .insight-cell:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
@@ -302,6 +293,19 @@
 
 .insight-gate-reassurance {
   color: var(--color-text);
+}
+
+/* Retained ratings of the retired weekly review (#2203): quiet, last. */
+.insight-retained-ratings {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.insight-retained-ratings button {
+  text-align: start;
 }
 
 .insight-link {
@@ -640,8 +644,7 @@
   color: var(--color-on-action-primary);
 }
 
-.insight-week-detail h2,
-.insight-week-recap h2 {
+.insight-week-detail h2 {
   font-family: var(--font-ui);
   font-size: 1.05rem;
   font-weight: 700;
@@ -672,66 +675,6 @@
 
 .insight-week-detail-people dd::before {
   content: " · ";
-}
-
-.insight-week-recap {
-  background: var(--insight-card-surface);
-  scroll-margin-block: var(--space-4);
-}
-
-.insight-week-highlights {
-  display: grid;
-  gap: var(--space-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: 0.86rem;
-}
-
-.insight-week-highlights li,
-.insight-week-highlights span {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.insight-week-highlights li {
-  justify-content: space-between;
-}
-
-.insight-week-highlights li[data-highlight="bothGood"] svg {
-  color: var(--color-success);
-}
-
-.insight-week-highlights li[data-highlight="bothEnergy"] svg {
-  color: var(--color-discovery);
-}
-
-.insight-week-highlights button {
-  min-height: 44px;
-  padding: 0 var(--space-1);
-  border: 0;
-  border-radius: var(--radius-small);
-  background: transparent;
-  color: var(--color-brand-text);
-  font: inherit;
-  text-decoration: underline;
-  text-underline-offset: 0.16em;
-  cursor: pointer;
-}
-
-.insight-week-observations summary {
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-  color: var(--color-brand-text);
-  list-style: none;
-  cursor: pointer;
-}
-
-.insight-week-observations summary::-webkit-details-marker {
-  display: none;
 }
 
 .insight-chart-detail {
@@ -877,16 +820,6 @@
 
 .insight-landscape-near {
   fill: color-mix(in srgb, var(--color-brand) 24%, transparent);
-}
-
-.insight-closing > .insight-handwriting,
-.insight-hero > .insight-handwriting {
-  position: absolute;
-  right: var(--space-4);
-  bottom: var(--space-3);
-  max-width: 9rem;
-  text-align: right;
-  transform-origin: right center;
 }
 
 .insight-closing h2 {
@@ -1293,8 +1226,7 @@
   padding-bottom: var(--space-5);
   background: var(--color-shared-surface);
 }
-.daily-insights[data-view="week"] .insight-landscape,
-.daily-insights[data-view="week"] .insight-closing > .insight-handwriting {
+.daily-insights[data-view="week"] .insight-landscape {
   display: none;
 }
 .daily-insights[data-view="week"] .insight-statements-grid {

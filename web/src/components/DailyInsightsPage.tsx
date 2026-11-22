@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { type ReactNode, useEffect, useId, useMemo } from 'react';
-import { Link, NavLink, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, NavLink, useSearchParams } from 'react-router-dom';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
@@ -12,6 +12,10 @@ import {
   isInsightsContextUnavailable,
   isInsightsEntitlementRequired,
   loadDailyInsights,
+  loadPersonalBrief,
+  loadWeeklyBrief,
+  personalBriefQueryKey,
+  weeklyBriefQueryKey,
 } from '../client/dailyInsights';
 import {
   addDays,
@@ -29,20 +33,25 @@ import {
 } from '../client/dailyInsightsModel';
 import { dashboardQueryKey } from '../client/dashboardQueries';
 import { firstNameFromDisplayName } from '../client/personalName';
+import { retireQuietHint } from '../client/quietHints';
+import type { ReferenceApis } from '../client/referenceFlow';
 import {
   appRoutePath,
   MORE_INSIGHTS_PATTERNS_ROUTE,
   MORE_INSIGHTS_ROUTE,
+  MORE_INSIGHTS_WEEK_ROUTE,
   settingsCategoryPath,
 } from '../client/routes';
 import {
   entitlementLoader,
   useSpaceCapability,
 } from '../client/spaceEntitlement';
+import { handleTabKeyDown } from '../client/tabKeyboard';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { useTranslation } from '../i18n';
 import { BackSlotHost, TaskBackLink } from './TaskBackButton';
 import './DailyInsights.css';
+import './PlanningReference.css';
 import {
   formatMonthYear,
   formatWeekRange,
@@ -52,14 +61,14 @@ import {
 } from './DailyInsightsParts';
 import { PatternsView, WeekView } from './DailyInsightsViews';
 import { NativeDateInput } from './NativeDateField';
+import { PersonalWeeklyBrief } from './PersonalWeeklyBrief';
 import { ProblemState } from './ProblemState';
+import { RetainedWeeklyRatings } from './RetainedWeeklyRatings';
 import { UiState } from './UiState';
-import {
-  ClearWeeklyInsightFeedback,
-  WeeklyInsightCard,
-} from './WeeklyInsightCard';
+import { WeeklyBrief } from './WeeklyBrief';
+import { weeklyBriefHintId } from './WeeklyBriefWirHint';
 
-export type DailyInsightsViewId = 'week' | 'patterns';
+export type DailyInsightsViewId = 'brief' | 'week' | 'patterns';
 
 interface DailyInsightsPageProps {
   view: DailyInsightsViewId;
@@ -69,13 +78,20 @@ interface DailyInsightsPageProps {
   entitlementApi: EntitlementsApi;
   dashboardApi: DashboardApi;
   profilesApi?: ProfilesApi;
+  mediaApis?: ReferenceApis;
   apiBaseUrl?: string;
 }
 
 const NAV_ITEMS = [
   {
-    id: 'week',
+    id: 'brief',
     to: MORE_INSIGHTS_ROUTE,
+    labelKey: 'dailyInsights.nav.brief',
+    end: true,
+  },
+  {
+    id: 'week',
+    to: MORE_INSIGHTS_WEEK_ROUTE,
     labelKey: 'dailyInsights.nav.week',
     end: true,
   },
@@ -105,9 +121,9 @@ function PeriodPicker({
   const datePickerId = useId();
   const offsets = selected === current ? [-2, -1, 0] : [-1, 0, 1];
   const periods = offsets.map((offset) =>
-    view === 'week'
-      ? addDays(selected, offset * 7)
-      : shiftMonth(selected, offset),
+    view === 'patterns'
+      ? shiftMonth(selected, offset)
+      : addDays(selected, offset * 7),
   );
   return (
     <fieldset className="insight-picker">
@@ -119,9 +135,9 @@ function PeriodPicker({
           aria-pressed={date === selected}
           onClick={() => onSelect(date)}
         >
-          {view === 'week'
-            ? formatWeekRange(date, addDays(date, 6))
-            : formatMonthYear(date)}
+          {view === 'patterns'
+            ? formatMonthYear(date)
+            : formatWeekRange(date, addDays(date, 6))}
         </button>
       ))}
       <label className="insight-date-picker" htmlFor={datePickerId}>
@@ -135,6 +151,49 @@ function PeriodPicker({
         />
       </label>
     </fieldset>
+  );
+}
+
+type BriefScope = 'shared' | 'own';
+
+/** Shared and private ("just me") peer views of the weekly brief (#2197). */
+function BriefScopeTabs({
+  scope,
+  onSelect,
+}: {
+  scope: BriefScope;
+  onSelect: (scope: BriefScope) => void;
+}) {
+  const { t } = useTranslation();
+  const scopes: readonly BriefScope[] = ['shared', 'own'];
+  return (
+    <div
+      className="planen-segmented brief-scope-tabs"
+      role="tablist"
+      aria-label={t('dailyInsights.brief.scope.label')}
+      onKeyDown={(event) =>
+        handleTabKeyDown(event, (tab) => {
+          const next = scopes.find((value) => tab.id === `brief-tab-${value}`);
+          if (next) onSelect(next);
+        })
+      }
+    >
+      {scopes.map((value) => (
+        <button
+          key={value}
+          type="button"
+          role="tab"
+          id={`brief-tab-${value}`}
+          aria-selected={scope === value}
+          aria-controls={scope === value ? `brief-panel-${value}` : undefined}
+          tabIndex={scope === value ? 0 : -1}
+          className={`planen-segment ${scope === value ? 'is-active' : ''}`}
+          onClick={() => onSelect(value)}
+        >
+          {t(`dailyInsights.brief.scope.${value}`)}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -200,10 +259,10 @@ export function DailyInsightsPage({
   entitlementApi,
   dashboardApi,
   profilesApi,
+  mediaApis,
   apiBaseUrl = '',
 }: DailyInsightsPageProps) {
   const { t } = useTranslation();
-  const { hash } = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const loadEntitlement = useMemo(
@@ -246,16 +305,15 @@ export function DailyInsightsPage({
   function selectPeriod(date: IsoDate) {
     if (!today || !validPeriod(date, today)) return;
     const nextParams = new URLSearchParams(searchParams);
-    if (view === 'week') nextParams.set('week', mondayOf(date));
-    else nextParams.set('month', monthStart(date));
+    if (view === 'patterns') nextParams.set('month', monthStart(date));
+    else nextParams.set('week', mondayOf(date));
     setSearchParams(nextParams, { replace: true });
   }
 
   const range = useMemo(() => {
     if (monday === null || month === null) return null;
     if (view === 'patterns') return { start: month, end: monthEnd(month) };
-    // The previous week rides along for the recap's comparison.
-    return { start: addDays(monday, -7), end: addDays(monday, 6) };
+    return { start: monday, end: addDays(monday, 6) };
   }, [monday, month, view]);
 
   const rangeQuery = useQuery({
@@ -268,10 +326,40 @@ export function DailyInsightsPage({
     refetchOnMount: 'always',
   });
 
+  const scope: BriefScope =
+    searchParams.get('scope') === 'own' ? 'own' : 'shared';
+  function selectScope(next: BriefScope) {
+    const nextParams = new URLSearchParams(searchParams);
+    if (next === 'own') nextParams.set('scope', 'own');
+    else nextParams.delete('scope');
+    setSearchParams(nextParams, { replace: true });
+  }
+  const personalQuery = useQuery({
+    queryKey: personalBriefQueryKey(account.id, spaceId, monday ?? ''),
+    queryFn: ({ signal }) =>
+      loadPersonalBrief(dailyCheckInsApi, spaceId, monday ?? '', signal),
+    enabled: capable && view === 'brief' && scope === 'own' && monday !== null,
+    retry: false,
+    gcTime: 0,
+    refetchOnMount: 'always',
+  });
+
+  const briefQuery = useQuery({
+    queryKey: weeklyBriefQueryKey(account.id, spaceId, monday ?? ''),
+    queryFn: ({ signal }) =>
+      loadWeeklyBrief(dailyCheckInsApi, spaceId, monday ?? '', signal),
+    enabled:
+      capable && view === 'brief' && scope === 'shared' && monday !== null,
+    retry: false,
+    gcTime: 0,
+    refetchOnMount: 'always',
+  });
+
+  // Opening a week's brief retires that week's Wir hint (#2194).
   useEffect(() => {
-    if (hash !== '#wochenrueckblick' || !rangeQuery.isSuccess) return;
-    document.getElementById('wochenrueckblick')?.scrollIntoView?.();
-  }, [hash, rangeQuery.isSuccess]);
+    if (view !== 'brief' || !monday || !briefQuery.isSuccess) return;
+    retireQuietHint(account.id, spaceId, weeklyBriefHintId(monday));
+  }, [view, monday, briefQuery.isSuccess, account.id, spaceId]);
 
   const dashboardQuery = useQuery({
     queryKey: dashboardQueryKey(spaceId),
@@ -351,7 +439,9 @@ export function DailyInsightsPage({
   const gated =
     capabilityQuery.data === false ||
     isInsightsEntitlementRequired(anchorQuery.error) ||
-    isInsightsEntitlementRequired(rangeQuery.error);
+    isInsightsEntitlementRequired(rangeQuery.error) ||
+    isInsightsEntitlementRequired(briefQuery.error) ||
+    isInsightsEntitlementRequired(personalQuery.error);
   const modulesOff =
     anchorQuery.data !== undefined &&
     !anchorQuery.data.vibeEnabled &&
@@ -378,9 +468,10 @@ export function DailyInsightsPage({
   } else if (gated) {
     body = (
       <GateCard>
-        <ClearWeeklyInsightFeedback
+        <RetainedWeeklyRatings
           key={`${apiBaseUrl}:${account.id}:${spaceId}`}
           api={dailyCheckInsApi}
+          accountId={account.id}
           spaceId={spaceId}
         />
       </GateCard>
@@ -413,6 +504,90 @@ export function DailyInsightsPage({
     );
   } else if (!rangeQuery.data || monday === null || month === null) {
     body = <UiState kind="loading" title={t('dailyInsights.loading')} />;
+  } else if (view === 'brief' && scope === 'own') {
+    const tabs = <BriefScopeTabs scope={scope} onSelect={selectScope} />;
+    if (personalQuery.error) {
+      body = (
+        <>
+          {tabs}
+          <ProblemState
+            error={personalQuery.error}
+            onRetry={() => void personalQuery.refetch()}
+          />
+        </>
+      );
+    } else if (!personalQuery.data) {
+      body = (
+        <>
+          {tabs}
+          <UiState
+            kind="loading"
+            title={t('dailyInsights.brief.personal.loading')}
+          />
+        </>
+      );
+    } else {
+      body = (
+        <>
+          {tabs}
+          <div
+            id="brief-panel-own"
+            role="tabpanel"
+            aria-labelledby="brief-tab-own"
+          >
+            <PersonalWeeklyBrief
+              key={monday}
+              brief={personalQuery.data}
+              days={daysInRange(allDays, weekDates(monday))}
+              people={people}
+              modules={modules}
+            />
+          </div>
+        </>
+      );
+    }
+  } else if (view === 'brief') {
+    const tabs = <BriefScopeTabs scope={scope} onSelect={selectScope} />;
+    if (briefQuery.error) {
+      body = (
+        <>
+          {tabs}
+          <ProblemState
+            error={briefQuery.error}
+            onRetry={() => void briefQuery.refetch()}
+          />
+        </>
+      );
+    } else if (!briefQuery.data) {
+      body = (
+        <>
+          {tabs}
+          <UiState kind="loading" title={t('dailyInsights.brief.loading')} />
+        </>
+      );
+    } else {
+      body = (
+        <>
+          {tabs}
+          <div
+            id="brief-panel-shared"
+            role="tabpanel"
+            aria-labelledby="brief-tab-shared"
+          >
+            <WeeklyBrief
+              key={monday}
+              brief={briefQuery.data}
+              days={daysInRange(allDays, weekDates(monday))}
+              people={people}
+              modules={modules}
+              spaceId={spaceId}
+              mediaApis={mediaApis ?? null}
+              historySearch={searchParams.toString()}
+            />
+          </div>
+        </>
+      );
+    }
   } else if (view === 'patterns') {
     body = (
       <PatternsView
@@ -424,26 +599,21 @@ export function DailyInsightsPage({
       />
     );
   } else {
-    const current = daysInRange(allDays, weekDates(monday));
-    const previous = daysInRange(allDays, weekDates(addDays(monday, -7)));
     body = (
-      <WeekView
-        weeklyReview={
-          <WeeklyInsightCard
-            key={`${apiBaseUrl}:${account.id}:${spaceId}:${monday}`}
-            api={dailyCheckInsApi}
-            instance={apiBaseUrl}
-            accountId={account.id}
-            spaceId={spaceId}
-            monday={monday}
-          />
-        }
-        key={monday}
-        days={current}
-        previousDays={previous}
-        people={people}
-        modules={modules}
-      />
+      <>
+        <WeekView
+          key={monday}
+          days={daysInRange(allDays, weekDates(monday))}
+          people={people}
+          modules={modules}
+        />
+        <RetainedWeeklyRatings
+          key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+          api={dailyCheckInsApi}
+          accountId={account.id}
+          spaceId={spaceId}
+        />
+      </>
     );
   }
 
@@ -483,12 +653,12 @@ export function DailyInsightsPage({
         <PeriodPicker
           view={view}
           label={t(
-            view === 'week'
-              ? 'dailyInsights.week.picker'
-              : 'dailyInsights.patterns.monthPicker',
+            view === 'patterns'
+              ? 'dailyInsights.patterns.monthPicker'
+              : 'dailyInsights.week.picker',
           )}
-          selected={view === 'week' ? monday : month}
-          current={view === 'week' ? mondayOf(today) : monthStart(today)}
+          selected={view === 'patterns' ? month : monday}
+          current={view === 'patterns' ? monthStart(today) : mondayOf(today)}
           today={today}
           onSelect={selectPeriod}
         />

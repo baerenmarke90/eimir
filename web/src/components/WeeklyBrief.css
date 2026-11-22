@@ -1,0 +1,372 @@
+/*
+ * Weekly brief (#2169). A single reading column: content and meaning lead,
+ * one filled creation action follows, metadata stays quiet. Colors derive from
+ * the insights roles defined in DailyInsights.css, which derive from the
+ * semantic theme tokens, so Light and Dark stay aligned.
+ */
+.weekly-brief {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.brief-coverage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-2);
+  row-gap: var(--space-1);
+  color: var(--insight-quiet-text);
+  font-size: 0.875rem;
+}
+
+.brief-basis {
+  flex-basis: 100%;
+  margin: var(--space-1) 0 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-small);
+  background: var(--insight-card-surface);
+  color: var(--color-text);
+}
+
+.brief-text-button {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-brand-text);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  cursor: pointer;
+}
+
+.brief-follow-up {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--insight-card-surface);
+}
+
+.brief-follow-up p {
+  margin: 0;
+}
+
+.brief-headline {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.brief-headline h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.brief-headline p {
+  margin: 0;
+  color: var(--insight-quiet-text);
+}
+
+.brief-section {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.brief-section p {
+  margin: 0;
+}
+
+.brief-eyebrow {
+  margin: 0;
+  color: var(--insight-quiet-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.brief-statement {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.brief-prompt {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--insight-card-surface);
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  line-height: 1.4;
+}
+
+/* The shared moment is a real destination, so it earns its boundary. */
+.brief-moment {
+  display: grid;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--insight-card-surface);
+  box-shadow: 0 2px 10px var(--color-shadow-soft);
+  color: inherit;
+  text-decoration: none;
+}
+
+.brief-moment-photo {
+  display: block;
+  aspect-ratio: 16 / 10;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.brief-moment-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.brief-moment-caption {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+}
+
+.brief-moment-caption span {
+  color: var(--insight-quiet-text);
+  font-size: 0.875rem;
+}
+
+.brief-strip {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.brief-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.brief-day {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  min-height: 44px;
+  padding: var(--space-2) 0;
+  border: 0;
+  border-radius: var(--radius-large);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.brief-day[data-good] {
+  background: var(--insight-card-surface);
+}
+
+.brief-day[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px var(--color-brand);
+}
+
+.brief-marker[data-empty] {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px var(--insight-card-line);
+}
+
+.brief-day-shared {
+  display: grid;
+  place-items: center;
+  height: 1rem;
+  color: var(--color-brand-text);
+}
+
+.brief-day-shared svg,
+.brief-legend-shared svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.brief-strip-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--insight-quiet-text);
+  font-size: 0.8125rem;
+}
+
+.brief-legend-shared {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.brief-day-detail {
+  display: grid;
+  gap: var(--space-1);
+  min-height: 44px;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-small);
+  background: var(--insight-card-surface);
+  font-size: 0.875rem;
+}
+
+.brief-impulse {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--insight-card-surface);
+  box-shadow: 0 2px 10px var(--color-shadow-soft);
+}
+
+.brief-impulse p {
+  margin: 0;
+}
+
+.brief-impulse-title {
+  font-size: 1.125rem;
+}
+
+.brief-impulse-source {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--insight-quiet-text);
+  font-size: 0.875rem;
+}
+
+.brief-impulse-source svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+
+.brief-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.brief-observations {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.brief-history {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.brief-history svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* The shared/private scope switch (#2197) reuses the shared segmented control. */
+.brief-scope-tabs {
+  margin-block-end: var(--space-4);
+  background: color-mix(in srgb, var(--color-surface-subtle) 70%, transparent);
+}
+
+/* Same calm selected treatment as the Einblicke tabs above it. */
+.brief-scope-tabs .planen-segment.is-active {
+  background: var(--color-surface);
+  color: var(--color-brand-text);
+  box-shadow: 0 2px 8px var(--color-shadow-soft);
+}
+
+.personal-private-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  justify-self: start;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-private-surface-soft);
+  color: var(--color-private);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.personal-private-label svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.personal-bars {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.personal-bar-row {
+  display: grid;
+  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 0.875rem;
+}
+
+.personal-bar-row strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.personal-bar-track {
+  display: block;
+  height: 0.75rem;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--insight-track);
+}
+
+.personal-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--insight-own);
+}
+
+.personal-bar-fill[data-muted] {
+  background: color-mix(in srgb, var(--insight-own) 45%, transparent);
+}
+
+.personal-basis {
+  color: var(--insight-quiet-text);
+  font-size: 0.8125rem;
+}
+
+/* Sections settle with a transform only (see DailyInsights.css). */
+@media (prefers-reduced-motion: no-preference) {
+  .brief-headline,
+  .brief-section,
+  .brief-follow-up {
+    --motion-enter-rise: 6px;
+    animation: eimir-motion-enter-shift var(--duration-transition)
+      var(--easing-enter) both;
+  }
+}

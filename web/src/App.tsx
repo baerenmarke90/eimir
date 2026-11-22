@@ -102,6 +102,7 @@ import {
   MORE_INSIGHTS_PATTERNS_ROUTE,
   MORE_INSIGHTS_RECAP_ROUTE,
   MORE_INSIGHTS_ROUTE,
+  MORE_INSIGHTS_WEEK_ROUTE,
   MORE_NOTES_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PEOPLE_ROUTE,
@@ -197,6 +198,7 @@ import {
   ServerAdminPage,
 } from './components/ServerAdminPage';
 import { SharedPlanningOverviewPage } from './components/SharedPlanningOverviewPage';
+import { Snackbar } from './components/Snackbar';
 import { StoryProductPage } from './components/StoryProductPage';
 import {
   StoryYearDetailPage,
@@ -1177,9 +1179,8 @@ function AuthenticatedApp({
                 <Navigate
                   replace
                   to={{
-                    pathname: MORE_INSIGHTS_ROUTE,
+                    pathname: MORE_INSIGHTS_WEEK_ROUTE,
                     search: location.search,
-                    hash: '#wochenrueckblick',
                   }}
                   state={location.state}
                 />
@@ -1187,7 +1188,8 @@ function AuthenticatedApp({
             />
             {(
               [
-                [MORE_INSIGHTS_ROUTE, 'week'],
+                [MORE_INSIGHTS_ROUTE, 'brief'],
+                [MORE_INSIGHTS_WEEK_ROUTE, 'week'],
                 [MORE_INSIGHTS_PATTERNS_ROUTE, 'patterns'],
               ] as const
             ).map(([path, insightView]) => (
@@ -1205,6 +1207,7 @@ function AuthenticatedApp({
                     entitlementApi={entitlementApi}
                     dashboardApi={m4Apis.dashboard}
                     profilesApi={profilesApi}
+                    mediaApis={apis}
                   />
                 }
               />
@@ -1890,6 +1893,8 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     return (
       <>
         <ThemeControl />
+        {/* The shell's snackbar is not mounted while signed out; a mailed link that cannot be used is reported here. */}
+        <Snackbar />
         {showDemoEntry ? (
           <DemoEntry />
         ) : (

@@ -2,7 +2,7 @@
 
 The pipeline (staging, byte bound, publication, gallery limit, failure state) is
 Core and shared by voice notes (Free) and video. The video processor itself is
-Pro plugin code (``eimir.video_processing``, Decision 0017): the plugin registers
+Pro plugin code (``eimir_pro.video_processing``, Decision 0017): the plugin registers
 the video validation job with it, Core registers the audio one.
 """
 

@@ -4,7 +4,7 @@ import type { LegalDocument } from '../../../legal/legalDocument';
 export const privacyPolicyDe: LegalDocument = {
   document: 'privacy-policy',
   locale: 'de-DE',
-  version: '2026-11-18.draft-6',
+  version: '2026-11-22.draft-8',
   status: 'draft',
   title: 'Datenschutzhinweise für eimir.',
   placeholders: [
@@ -322,7 +322,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Teilst du dein „Gefühl für heute“ oder deinen Akku, speichern wir diese Angaben nur für den aktuellen und den vorherigen Tag und löschen sie danach automatisch. Ob und wann dein Partner sie sieht, folgt den Einstellungen eures Space.',
+              text: 'Teilst du dein „Gefühl für heute“ oder deinen Akku, speichern wir diese Angaben für den aktuellen und den vorherigen Tag und löschen sie danach automatisch. Nutzt euer Space eimir. Pro mit den Einblicken, speichern wir sie stattdessen 90 Tage, damit die Einblicke eure Wochen und Monate zeigen können. Endet eimir. Pro, löschen wir die älteren Angaben beim nächsten automatischen Aufräumen. Ob und wann dein Partner sie sieht, folgt den Einstellungen eures Space.',
             },
           ],
           children: [],
@@ -736,7 +736,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'In „Eure Woche“ wählen wir Beobachtungen und Anregungen aus. Für gemeinsame Erinnerungen und Herzmomente machen wir Schlagwortvorschläge. Wenn dabei ein KI-Sprachmodell zum Einsatz kommt, läuft es in unserer eigenen Serverumgebung. Eure Inhalte gehen dafür nicht an externe KI-Anbieter.',
+              text: 'Im Wochenbrief der Einblicke stellen wir nach festen Regeln zusammen, was euch gutgetan hat, was Aufmerksamkeit braucht und welcher eurer offenen Wünsche ein nächster Plan sein könnte. Dafür nutzen wir eure Einträge für „Gefühl für heute“ und Akku, soweit ihr beide sie sehen könnt, und eure gemeinsamen Pläne, Erinnerungen und Wünsche. Dabei kommt kein KI-Modell zum Einsatz, und wir speichern das Ergebnis nicht. Hast du früher Anregungen in den Einblicken bewertet, bleiben diese Bewertungen nur für dich gespeichert, bis du sie in den Einblicken löschst. Wir nutzen sie nicht mehr. Für gemeinsame Erinnerungen und Herzmomente machen wir Schlagwortvorschläge. Wenn dabei ein KI-Sprachmodell zum Einsatz kommt, läuft es in unserer eigenen Serverumgebung. Eure Inhalte gehen dafür nicht an externe KI-Anbieter.',
             },
           ],
           children: [],
@@ -745,7 +745,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Das Modell erhält nur gemeinsame Inhalte und nur die Ausschnitte, die für den jeweiligen Vorschlag nötig sind, niemals „Nur für mich“-Inhalte. Für „Eure Woche“ berechnen wir aus euren Einträgen für „Gefühl für heute“ und Akku einfache Beobachtungen, zum Beispiel ob sich eure Energie verändert hat. Das Modell erhält dafür keine Texte, Fotos, Namen oder Orte, sondern nur diese Beobachtungen, und wählt dazu passende Anregungen aus.',
+              text: 'Das Modell erhält nur gemeinsame Inhalte und nur die Ausschnitte, die für den jeweiligen Vorschlag nötig sind, niemals „Nur für mich“-Inhalte.',
             },
           ],
           children: [],
@@ -1304,7 +1304,10 @@ export const privacyPolicyDe: LegalDocument = {
         {
           content: [
             { kind: 'strong', text: '„Gefühl für heute“ und Akku:' },
-            { kind: 'text', text: ' bis zum Ende des folgenden Tages.' },
+            {
+              kind: 'text',
+              text: ' bis zum Ende des folgenden Tages; mit eimir. Pro und den Einblicken 90 Tage, nach dem Ende von eimir. Pro wieder bis zum Ende des folgenden Tages.',
+            },
           ],
           children: [],
         },

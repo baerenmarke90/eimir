@@ -21,6 +21,7 @@ from eimir.plugins.contract import (
     PLUGIN_SEAM_VERSION,
     AttachmentReadRule,
     CoreNotifications,
+    MigrationSpec,
     TargetRule,
 )
 from eimir.plugins.manifest import PLUGIN_CAPABILITIES
@@ -31,6 +32,7 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
     from eimir.authorization import AuthorizationContext
+    from eimir.config import Settings
     from eimir.demo.service import DemoSeedResult
     from eimir.domain.events import EventType
     from eimir.jobs.worker import JobRegistry
@@ -46,12 +48,12 @@ _MODEL_MODULES = (
     "eimir.couple_games.models",
     "eimir.garden.models",
     "eimir.heart_hunt.models",
-    "eimir.once_messages.models",
-    "eimir.partner_quick_actions.models",
+    "eimir_pro.once_messages.models",
+    "eimir_pro.partner_quick_actions.models",
     "eimir.photo_sources.models",
     "eimir.picture_ping_pong.models",
-    "eimir.presence.models",
-    "eimir.quotes.models",
+    "eimir_pro.presence.models",
+    "eimir_pro.quotes.models",
 )
 
 # Remote couple games share one notice kind; the target names the game.
@@ -65,8 +67,8 @@ _COUPLE_GAME_TARGETS = {
 def _once_message_is_available(
     session: Session, context: AuthorizationContext, target_id: Any, kind: Any
 ) -> ColumnElement[bool]:
-    from eimir.once_messages import service as once_messages
-    from eimir.once_messages.models import OnceMessage
+    from eimir_pro.once_messages import service as once_messages
+    from eimir_pro.once_messages.models import OnceMessage
 
     del session, kind
     return (
@@ -263,14 +265,15 @@ def _project_notification(
 
 def personal_account_models() -> tuple[Any, ...]:
     """Pro models whose rows of a deleted Account are deleted by ``account_id``."""
-    from eimir.garden.models import GardenReader, GardenWatering
-    from eimir.once_messages.models import OnceDevice, OnceReception
-    from eimir.presence.models import (
+    from eimir_pro.once_messages.models import OnceDevice, OnceReception
+    from eimir_pro.presence.models import (
         PartnerLocationConsent,
         PresenceDeviceCredential,
         PresenceSnapshot,
     )
-    from eimir.quotes.models import DailyQuotePreference
+    from eimir_pro.quotes.models import DailyQuotePreference
+
+    from eimir.garden.models import GardenReader, GardenWatering
 
     return (
         DailyQuotePreference,
@@ -289,11 +292,12 @@ def _delete_account_rows(session: Session, model: Any, account_id: UUID) -> None
 
 
 def _on_account_deleted(session: Session, account_id: UUID) -> None:
+    from eimir_pro.partner_quick_actions.models import SupportGestureRequest
+    from eimir_pro.presence.models import PartnerLocationConsent, SharingLevel
+    from eimir_pro.presence.service import delete_owner_presence
+
     from eimir.calendar_sync.models import CalendarConnection, CalendarOAuthTransaction
-    from eimir.partner_quick_actions.models import SupportGestureRequest
     from eimir.photo_sources.models import GoogleAccountHint, PhotoConnection, PhotoSelection
-    from eimir.presence.models import PartnerLocationConsent, SharingLevel
-    from eimir.presence.service import delete_owner_presence
 
     for model in personal_account_models():
         _delete_account_rows(session, model, account_id)
@@ -348,23 +352,26 @@ class InTreeProPlugin:
         return _MODEL_MODULES
 
     def routers(self) -> Sequence[APIRouter]:
-        from eimir.api.v1 import (
-            calendar_sync,
-            couple_games,
+        from eimir_pro.api import (
             daily_insights,
             daily_quote,
             date_ideas,
-            games,
-            garden,
-            heart_hunt,
             memory_map,
             once_messages,
             partner_location,
             partner_quick_actions,
-            photo_sources,
-            picture_ping_pong,
             recap_composition,
             relationship_passport,
+        )
+
+        from eimir.api.v1 import (
+            calendar_sync,
+            couple_games,
+            games,
+            garden,
+            heart_hunt,
+            photo_sources,
+            picture_ping_pong,
         )
 
         return (
@@ -387,13 +394,14 @@ class InTreeProPlugin:
         )
 
     def register_jobs(self, registry: JobRegistry) -> None:
+        from eimir_pro.once_messages import service as once_messages
+        from eimir_pro.presence import retention as presence_retention
+        from eimir_pro.recap_composition import jobs as recap_jobs
+        from eimir_pro.video_processing import jobs as video_jobs
+
         from eimir.calendar_sync import jobs as calendar_sync_jobs
         from eimir.heart_hunt import retention as heart_hunt_retention
-        from eimir.once_messages import service as once_messages
         from eimir.photo_sources import retention as photo_source_retention
-        from eimir.presence import retention as presence_retention
-        from eimir.recap_composition import jobs as recap_jobs
-        from eimir.video_processing import jobs as video_jobs
 
         photo_source_retention.register_handlers(registry)
         once_messages.register_handlers(registry)
@@ -404,10 +412,11 @@ class InTreeProPlugin:
         recap_jobs.register_handlers(registry)
 
     def ensure_scheduled(self, session: Session) -> None:
+        from eimir_pro.presence import retention as presence_retention
+        from eimir_pro.recap_composition import jobs as recap_jobs
+
         from eimir.heart_hunt import retention as heart_hunt_retention
         from eimir.photo_sources import retention as photo_source_retention
-        from eimir.presence import retention as presence_retention
-        from eimir.recap_composition import jobs as recap_jobs
 
         heart_hunt_retention.ensure_scheduled(session)
         presence_retention.ensure_scheduled(session)
@@ -415,7 +424,7 @@ class InTreeProPlugin:
         recap_jobs.ensure_scheduled(session)
 
     def prune_expired(self, session: Session) -> None:
-        from eimir.once_messages.service import prune_expired
+        from eimir_pro.once_messages.service import prune_expired
 
         prune_expired(session)
 
@@ -464,10 +473,11 @@ class InTreeProPlugin:
         garden.purge_space(session, space_id)
 
     def on_membership_ended(self, session: Session, space_id: UUID, account_id: UUID) -> None:
+        from eimir_pro.once_messages import service as once_messages
+
         from eimir.couple_games import service as couple_games
         from eimir.garden import service as garden
         from eimir.heart_hunt import service as heart_hunt
-        from eimir.once_messages import service as once_messages
         from eimir.picture_ping_pong import service as picture_ping_pong
 
         del account_id
@@ -523,6 +533,15 @@ class InTreeProPlugin:
     def date_ideas(self) -> DateIdeaSource | None:
         return _DATE_IDEAS
 
+    def migrations(self) -> MigrationSpec | None:
+        # The existing Pro tables stay in the Core chain (Decision 0017,
+        # decision 6); a plugin chain starts with the first new Pro table.
+        return None
+
+    def validate(self, settings: Settings) -> None:
+        # The integration settings are still Core settings and Core validates them.
+        del settings
+
     def seed_demo(self, session: Session, result: DemoSeedResult, *, created: bool) -> None:
         _ensure_demo_quote_preferences(session, result)
         if created:
@@ -535,14 +554,14 @@ class _InTreeDateIdeas:
     """The bundled editorial catalog as a Wish selection round sees it."""
 
     def revision(self, idea_id: str) -> str | None:
-        from eimir.date_ideas.catalog import get_catalog
+        from eimir_pro.date_ideas.catalog import get_catalog
 
         return get_catalog().revision(idea_id)
 
     def view(self, idea_id: str, locale: str | None) -> DateIdea | None:
-        from eimir.api.v1.date_ideas import date_idea_view
-        from eimir.date_ideas.catalog import get_catalog
-        from eimir.date_ideas.images import get_images
+        from eimir_pro.api.date_ideas import date_idea_view
+        from eimir_pro.date_ideas.catalog import get_catalog
+        from eimir_pro.date_ideas.images import get_images
 
         catalog = get_catalog()
         resolved = catalog.idea(idea_id, catalog.resolve_locale(locale))
@@ -554,7 +573,7 @@ _DATE_IDEAS = _InTreeDateIdeas()
 
 def _ensure_demo_quote_preferences(session: Session, result: DemoSeedResult) -> None:
     """Configure deterministic, distinct quote preferences for Lea and Alex."""
-    from eimir.quotes import service as quote_preference_service
+    from eimir_pro.quotes import service as quote_preference_service
 
     quote_preference_service.update_preference(
         session,
@@ -576,6 +595,9 @@ def _ensure_demo_quote_preferences(session: Session, result: DemoSeedResult) -> 
 
 def _ensure_demo_partner_location(session: Session, result: DemoSeedResult) -> None:
     """Both demo partners share their location with each other."""
+    from eimir_pro.presence import service as presence_service
+    from eimir_pro.presence.models import SharingLevel
+
     from eimir.authorization import AuthorizationContext
     from eimir.core import clock
     from eimir.demo.feature_examples import (
@@ -583,8 +605,6 @@ def _ensure_demo_partner_location(session: Session, result: DemoSeedResult) -> N
         LEA_POSITION,
         POSITION_ACCURACY_METERS,
     )
-    from eimir.presence import service as presence_service
-    from eimir.presence.models import SharingLevel
 
     if not presence_service.feature_enabled():
         return

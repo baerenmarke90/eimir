@@ -1943,13 +1943,17 @@ jobs:
       - name: Verify complete archive and SBOM checksums
         working-directory: release-evidence
         run: sha256sum --check --strict SHA256SUMS
-      - name: Authenticate the existing GHCR packages
+      - name: Authenticate GHCR for the channel packages
         env:
           REGISTRY_TOKEN: ${{ github.token }}
         run: printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-      - name: Verify images, publish both, and atomically select the test pair
+      - name: Verify images, publish all three, and atomically select the test set
         env:
           GH_TOKEN: ${{ github.token }}
+          # Decision 0019 phase 0b. Empty or unset keeps today's package names and
+          # promotion; both are plain Actions variables, never secrets.
+          EIMIR_TEST_CHANNEL_PACKAGE_PREFIX: ${{ vars.EIMIR_TEST_CHANNEL_PACKAGE_PREFIX }}
+          EIMIR_TEST_CHANNEL_PROMOTE: ${{ vars.EIMIR_TEST_CHANNEL_PROMOTE }}
         run: >-
           python3 scripts/test_deployment_channel.py publish
           --revision "$GITHUB_SHA" --artifact-root release-evidence --output test-channel

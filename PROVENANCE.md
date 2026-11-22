@@ -119,11 +119,11 @@ repository's existing authorized assets. No predecessor assets were consulted.
 
 ## Date-idea catalog and images
 
-`backend/src/eimir/date_ideas/data/catalog.json` is the eimir. editorial
+`backend/pro/src/eimir_pro/date_ideas/data/catalog.json` is the eimir. editorial
 date-idea catalog (#1892): 200 original ideas in German and English, written
 for eimir. and delivered as a versioned handoff with its JSON Schema.
 
-`backend/src/eimir/date_ideas/data/images/` holds 25 editorial images for that
+`backend/pro/src/eimir_pro/date_ideas/data/images/` holds 25 editorial images for that
 catalog (15 per idea, 10 per category). They were generated with OpenAI's
 built-in image-generation tool without reference images; `images.json`
 records each file, size, German and English alt text and the exact prompt.
@@ -133,7 +133,7 @@ are served only through the Pro-gated API.
 
 ## Daily Saying catalog
 
-`backend/src/eimir/quotes/daily_sayings.json` contains 1,000 sayings in ten
+`backend/pro/src/eimir_pro/quotes/daily_sayings.json` contains 1,000 sayings in ten
 categories (100 each), in German and English. All of them are AI-generated
 text without an individual author. The Product Owner supplied and selected the
 German originals for eimir. on 2026-11-18, and they are used under the
@@ -147,7 +147,7 @@ and rights basis in the same file.
 The previous catalog is archived, not served. It held German and English
 public-domain quotations, traditional sayings, public remarks and the earlier
 `eimir.` editorial sayings. The archived file is
-`backend/archive/quotes/daily_sayings.before-ai-sayings-2026-11-18.json`.
+`backend/pro/archive/quotes/daily_sayings.before-ai-sayings-2026-11-18.json`.
 Its source editions, credits and licensing terms (including the TextGrid
 CC BY 3.0 DE credit and the CC0 1.0 translations) remain recorded in that file
 and in the git history. Restoring any of it requires the credits recorded there.

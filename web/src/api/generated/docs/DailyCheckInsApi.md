@@ -4,22 +4,23 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
-| [**createDailyCheckInWeeklyReview**](DailyCheckInsApi.md#createdailycheckinweeklyreview) | **POST** /api/v1/spaces/{spaceId}/daily-check-in/weekly-review | Create Daily Check In Weekly Review |
+| [**clearDailyCheckInWeeklyFeedback**](DailyCheckInsApi.md#cleardailycheckinweeklyfeedback) | **DELETE** /api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback | Clear Daily Check In Weekly Feedback |
 | [**getDailyCheckInInsights**](DailyCheckInsApi.md#getdailycheckininsights) | **GET** /api/v1/spaces/{spaceId}/daily-check-in/insights | Get Daily Check In Insights |
+| [**getDailyCheckInPersonalWeeklyBrief**](DailyCheckInsApi.md#getdailycheckinpersonalweeklybrief) | **GET** /api/v1/spaces/{spaceId}/daily-check-in/weekly-brief/personal | Get Daily Check In Personal Weekly Brief |
 | [**getDailyCheckInToday**](DailyCheckInsApi.md#getdailycheckintoday) | **GET** /api/v1/spaces/{spaceId}/daily-check-in/today | Get Daily Check In Today |
-| [**getDailyCheckInWeeklyReview**](DailyCheckInsApi.md#getdailycheckinweeklyreview) | **GET** /api/v1/spaces/{spaceId}/daily-check-in/weekly-review | Get Daily Check In Weekly Review |
-| [**setDailyCheckInWeeklyFeedback**](DailyCheckInsApi.md#setdailycheckinweeklyfeedback) | **PUT** /api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback/{recommendationKey} | Set Daily Check In Weekly Feedback |
+| [**getDailyCheckInWeeklyBrief**](DailyCheckInsApi.md#getdailycheckinweeklybrief) | **GET** /api/v1/spaces/{spaceId}/daily-check-in/weekly-brief | Get Daily Check In Weekly Brief |
+| [**getDailyCheckInWeeklyFeedback**](DailyCheckInsApi.md#getdailycheckinweeklyfeedback) | **GET** /api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback | Get Daily Check In Weekly Feedback |
 | [**updateDailyCheckInToday**](DailyCheckInsApi.md#updatedailycheckintoday) | **PATCH** /api/v1/spaces/{spaceId}/daily-check-in/today | Update Daily Check In Today |
 
 
 
-## createDailyCheckInWeeklyReview
+## clearDailyCheckInWeeklyFeedback
 
-> WeeklyReviewView createDailyCheckInWeeklyReview(spaceId, weeklyReviewRequest)
+> clearDailyCheckInWeeklyFeedback(spaceId)
 
-Create Daily Check In Weekly Review
+Clear Daily Check In Weekly Feedback
 
-Explicit bounded model selection; revisions are revalidated after inference.
+Delete all of the caller\&#39;s retained ratings; idempotent and not paywalled.
 
 ### Example
 
@@ -28,7 +29,7 @@ import {
   Configuration,
   DailyCheckInsApi,
 } from '';
-import type { CreateDailyCheckInWeeklyReviewRequest } from '';
+import type { ClearDailyCheckInWeeklyFeedbackRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
@@ -37,12 +38,10 @@ async function example() {
   const body = {
     // string
     spaceId: spaceId_example,
-    // WeeklyReviewRequest
-    weeklyReviewRequest: ...,
-  } satisfies CreateDailyCheckInWeeklyReviewRequest;
+  } satisfies ClearDailyCheckInWeeklyFeedbackRequest;
 
   try {
-    const data = await api.createDailyCheckInWeeklyReview(body);
+    const data = await api.clearDailyCheckInWeeklyFeedback(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -59,11 +58,10 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
-| **weeklyReviewRequest** | [WeeklyReviewRequest](WeeklyReviewRequest.md) |  | |
 
 ### Return type
 
-[**WeeklyReviewView**](WeeklyReviewView.md)
+`void` (Empty response body)
 
 ### Authorization
 
@@ -71,20 +69,16 @@ No authorization required
 
 ### HTTP request headers
 
-- **Content-Type**: `application/json`
+- **Content-Type**: Not defined
 - **Accept**: `application/json`
 
 
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | Successful Response |  -  |
+| **204** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
-| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
-| **409** | The request conflicts with the current state of the resource. |  -  |
-| **422** | Request parameters or domain inputs are invalid. |  -  |
-| **429** | Too many attempts occurred within the allowed time window. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -167,6 +161,81 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## getDailyCheckInPersonalWeeklyBrief
+
+> PersonalWeeklyBriefView getDailyCheckInPersonalWeeklyBrief(spaceId, weekStart)
+
+Get Daily Check In Personal Weekly Brief
+
+Private weekly brief over the caller\&#39;s own values alone (#2197).  Model-free. Partner Daily Check-in rows are never read; shared Plan and Memory dates follow the ordinary visibility rules.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DailyCheckInsApi,
+} from '';
+import type { GetDailyCheckInPersonalWeeklyBriefRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DailyCheckInsApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // Date
+    weekStart: 2013-10-20,
+  } satisfies GetDailyCheckInPersonalWeeklyBriefRequest;
+
+  try {
+    const data = await api.getDailyCheckInPersonalWeeklyBrief(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **weekStart** | `Date` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**PersonalWeeklyBriefView**](PersonalWeeklyBriefView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | &#x60;PREMIUM_ENTITLEMENT_REQUIRED&#x60;: Pro capability &#x60;daily.insights&#x60; required. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## getDailyCheckInToday
 
 > DailyCheckInTodayView getDailyCheckInToday(spaceId)
@@ -235,13 +304,13 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
-## getDailyCheckInWeeklyReview
+## getDailyCheckInWeeklyBrief
 
-> WeeklyReviewView getDailyCheckInWeeklyReview(spaceId, weekStart)
+> WeeklyBriefView getDailyCheckInWeeklyBrief(spaceId, weekStart)
 
-Get Daily Check In Weekly Review
+Get Daily Check In Weekly Brief
 
-Read current authorized multiweek observations without running inference.
+Rule-based weekly brief over mutually visible values and readable shared content.  Model-free and deterministic (#2169). Plans, Memories and Wishes are read through the ordinary visibility rules; the brief stores nothing.
 
 ### Example
 
@@ -250,7 +319,7 @@ import {
   Configuration,
   DailyCheckInsApi,
 } from '';
-import type { GetDailyCheckInWeeklyReviewRequest } from '';
+import type { GetDailyCheckInWeeklyBriefRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
@@ -261,10 +330,10 @@ async function example() {
     spaceId: spaceId_example,
     // Date
     weekStart: 2013-10-20,
-  } satisfies GetDailyCheckInWeeklyReviewRequest;
+  } satisfies GetDailyCheckInWeeklyBriefRequest;
 
   try {
-    const data = await api.getDailyCheckInWeeklyReview(body);
+    const data = await api.getDailyCheckInWeeklyBrief(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -285,7 +354,7 @@ example().catch(console.error);
 
 ### Return type
 
-[**WeeklyReviewView**](WeeklyReviewView.md)
+[**WeeklyBriefView**](WeeklyBriefView.md)
 
 ### Authorization
 
@@ -302,7 +371,7 @@ No authorization required
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
-| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **403** | &#x60;PREMIUM_ENTITLEMENT_REQUIRED&#x60;: Pro capability &#x60;daily.insights&#x60; required. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
@@ -310,13 +379,13 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
-## setDailyCheckInWeeklyFeedback
+## getDailyCheckInWeeklyFeedback
 
-> WeeklyFeedbackView setDailyCheckInWeeklyFeedback(recommendationKey, spaceId, weeklyFeedbackUpdate)
+> RetainedWeeklyFeedbackView getDailyCheckInWeeklyFeedback(spaceId)
 
-Set Daily Check In Weekly Feedback
+Get Daily Check In Weekly Feedback
 
-Set one caller preference; clearing retained feedback is not paywalled.
+The caller\&#39;s own ratings retained from the retired weekly review; not paywalled.
 
 ### Example
 
@@ -325,23 +394,19 @@ import {
   Configuration,
   DailyCheckInsApi,
 } from '';
-import type { SetDailyCheckInWeeklyFeedbackRequest } from '';
+import type { GetDailyCheckInWeeklyFeedbackRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
   const api = new DailyCheckInsApi();
 
   const body = {
-    // RecommendationKey
-    recommendationKey: ...,
     // string
     spaceId: spaceId_example,
-    // WeeklyFeedbackUpdate
-    weeklyFeedbackUpdate: ...,
-  } satisfies SetDailyCheckInWeeklyFeedbackRequest;
+  } satisfies GetDailyCheckInWeeklyFeedbackRequest;
 
   try {
-    const data = await api.setDailyCheckInWeeklyFeedback(body);
+    const data = await api.getDailyCheckInWeeklyFeedback(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -357,13 +422,11 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **recommendationKey** | `RecommendationKey` |  | [Defaults to `undefined`] [Enum: quiet_time, small_plan, appreciation, listening, own_pace, keep_ritual] |
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
-| **weeklyFeedbackUpdate** | [WeeklyFeedbackUpdate](WeeklyFeedbackUpdate.md) |  | |
 
 ### Return type
 
-[**WeeklyFeedbackView**](WeeklyFeedbackView.md)
+[**RetainedWeeklyFeedbackView**](RetainedWeeklyFeedbackView.md)
 
 ### Authorization
 
@@ -371,7 +434,7 @@ No authorization required
 
 ### HTTP request headers
 
-- **Content-Type**: `application/json`
+- **Content-Type**: Not defined
 - **Accept**: `application/json`
 
 
@@ -380,9 +443,7 @@ No authorization required
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
-| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
-| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

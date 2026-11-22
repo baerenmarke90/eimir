@@ -5,12 +5,13 @@ from tests.support.plugins import plugins_loaded
 
 CORE_DAILY_PATHS = {
     "/api/v1/spaces/{spaceId}/daily-check-in/today",
-    # Clearing a retained rating is Free, so the rating route stays Core.
-    "/api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback/{recommendationKey}",
+    # Reading and clearing retained ratings is Free, so the route stays Core (#2203).
+    "/api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback",
 }
 PRO_DAILY_PATHS = {
     "/api/v1/spaces/{spaceId}/daily-check-in/insights",
-    "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review",
+    "/api/v1/spaces/{spaceId}/daily-check-in/weekly-brief",
+    "/api/v1/spaces/{spaceId}/daily-check-in/weekly-brief/personal",
 }
 
 
@@ -28,6 +29,9 @@ def test_daily_check_in_contract_has_reveal_aware_today_and_insights_routes() ->
         if parameter["name"] == "If-Match"
     )
     assert if_match["required"] is True
+
+    retained = schema["paths"]["/api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback"]
+    assert set(retained) == {"get", "delete"}
 
     if pro:
         insights_route = schema["paths"]["/api/v1/spaces/{spaceId}/daily-check-in/insights"]

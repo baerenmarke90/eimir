@@ -5,17 +5,16 @@ from __future__ import annotations
 from datetime import date
 from typing import Annotated, Literal, Self
 
-from fastapi import APIRouter, Path, Response
+from fastapi import APIRouter, Response
 from pydantic import ConfigDict, Field, RootModel, model_validator
 
 from eimir.api.concurrency import IfMatchToken, etag_for_token
-from eimir.api.deps import AccountBoundAuthorization, Authorization, DbSession, ensure_capability
+from eimir.api.deps import AccountBoundAuthorization, Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.daily_checkins import feedback, service
 from eimir.daily_checkins.context import DailyCheckInErrorCode
 from eimir.daily_checkins.models import DailyVibe, RecommendationKey, RecommendationRating
-from eimir.entitlements.models import Capability
 from eimir.relationship.models import DailyCheckInVisibilityMode
 
 router = APIRouter(tags=["daily-check-ins"])
@@ -297,36 +296,42 @@ def update_daily_check_in_today(
 
 class WeeklyFeedbackView(ApiModel):
     recommendation_key: RecommendationKey
-    rating: RecommendationRating | None
+    rating: RecommendationRating
 
 
-class WeeklyFeedbackUpdate(ApiModel):
-    model_config = ConfigDict(extra="forbid")
-    rating: RecommendationRating | None
+class RetainedWeeklyFeedbackView(ApiModel):
+    ratings: list[WeeklyFeedbackView]
 
 
-def _weekly_capability(session: DbSession, authorization: Authorization) -> None:
-    ensure_capability(
-        session, authorization.space_id, Capability.DAILY_INSIGHTS.value, lock_grants=False
+@router.get(
+    "/spaces/{spaceId}/daily-check-in/weekly-feedback",
+    response_model=RetainedWeeklyFeedbackView,
+    operation_id="getDailyCheckInWeeklyFeedback",
+    responses=problem_responses(401, 404),
+)
+def get_daily_check_in_weekly_feedback(
+    authorization: AccountBoundAuthorization, session: DbSession, response: Response
+) -> RetainedWeeklyFeedbackView:
+    """The caller's own ratings retained from the retired weekly review; not paywalled."""
+    response.headers["Cache-Control"] = "private, no-store"
+    return RetainedWeeklyFeedbackView(
+        ratings=[
+            WeeklyFeedbackView(recommendation_key=item.recommendation_key, rating=item.rating)
+            for item in feedback.feedback(session, authorization)
+        ]
     )
 
 
-@router.put(
-    "/spaces/{spaceId}/daily-check-in/weekly-feedback/{recommendationKey}",
-    response_model=WeeklyFeedbackView,
-    operation_id="setDailyCheckInWeeklyFeedback",
-    responses=problem_responses(401, 403, 404, 422),
+@router.delete(
+    "/spaces/{spaceId}/daily-check-in/weekly-feedback",
+    status_code=204,
+    response_class=Response,
+    operation_id="clearDailyCheckInWeeklyFeedback",
+    responses=problem_responses(401, 404),
 )
-def set_daily_check_in_weekly_feedback(
-    authorization: AccountBoundAuthorization,
-    session: DbSession,
-    response: Response,
-    recommendation_key: Annotated[RecommendationKey, Path(alias="recommendationKey")],
-    body: WeeklyFeedbackUpdate,
-) -> WeeklyFeedbackView:
-    """Set one caller preference; clearing retained feedback is not paywalled."""
-    if body.rating is not None:
-        _weekly_capability(session, authorization)
-    feedback.set_feedback(session, authorization, recommendation_key, body.rating)
-    response.headers["Cache-Control"] = "private, no-store"
-    return WeeklyFeedbackView(recommendation_key=recommendation_key, rating=body.rating)
+def clear_daily_check_in_weekly_feedback(
+    authorization: AccountBoundAuthorization, session: DbSession
+) -> Response:
+    """Delete all of the caller's retained ratings; idempotent and not paywalled."""
+    feedback.clear_feedback(session, authorization)
+    return Response(status_code=204, headers={"Cache-Control": "private, no-store"})

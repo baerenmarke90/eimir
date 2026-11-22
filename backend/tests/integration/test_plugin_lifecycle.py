@@ -11,6 +11,11 @@ from datetime import timedelta
 from uuid import uuid4
 
 import pytest
+from eimir_pro.presence.models import (
+    PresenceDeviceCredential,
+    PresencePositionPayload,
+    PresenceSnapshot,
+)
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -19,11 +24,6 @@ from eimir.authorization import AuthorizationContext
 from eimir.core.clock import now
 from eimir.photo_sources.models import PhotoConnection, PhotoConnectionPayload
 from eimir.plugins import lifecycle
-from eimir.presence.models import (
-    PresenceDeviceCredential,
-    PresencePositionPayload,
-    PresenceSnapshot,
-)
 from eimir.relationship.service import add_member
 from eimir.transfer.models import TransferScope
 from tests.conftest import make_account, make_space, requires_database
@@ -141,10 +141,11 @@ def test_without_the_plugin_the_demo_has_no_plugin_examples(session) -> None:  #
     """C19: the demo seeds quote preferences and a location share only through the plugin."""
     from datetime import date
 
+    from eimir_pro.presence.models import PartnerLocationConsent
+    from eimir_pro.quotes.models import DailyQuotePreference
+
     from eimir.config import Environment
     from eimir.demo import create_demo_space
-    from eimir.presence.models import PartnerLocationConsent
-    from eimir.quotes.models import DailyQuotePreference
 
     with without_plugins():
         result = create_demo_space(
@@ -169,9 +170,10 @@ def test_without_the_plugin_the_demo_has_no_plugin_examples(session) -> None:  #
 def test_with_the_plugin_the_demo_has_quote_preferences(session) -> None:  # type: ignore[no-untyped-def]
     from datetime import date
 
+    from eimir_pro.quotes.models import DailyQuotePreference
+
     from eimir.config import Environment
     from eimir.demo import create_demo_space
-    from eimir.quotes.models import DailyQuotePreference
 
     result = create_demo_space(
         session,

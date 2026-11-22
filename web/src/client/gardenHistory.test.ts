@@ -168,7 +168,10 @@ describe('garden history wording', () => {
     );
     expect(line.text).toBe(fill(history.bouquetPartner));
     expect(line.detail).toBe(
-      `${copy.species.POPPY.name} und ${copy.species.TULIP.name}`,
+      new Intl.ListFormat('de', { type: 'conjunction' }).format([
+        copy.species.POPPY.name,
+        copy.species.TULIP.name,
+      ]),
     );
     expect(line.marks.map((mark) => mark.role)).toEqual(['own', 'partner']);
   });

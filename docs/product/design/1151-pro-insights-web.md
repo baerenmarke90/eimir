@@ -73,4 +73,4 @@ optional AI review (#1546) moved unchanged to the **Woche** tab.
 - **Model use:** the brief makes no model call.
 - **Visibility:** hidden partner days count as missing.
 - **Plans, Memories and Wishes:** only rows `readable()` for the caller take part.
-- **Retention:** history is available because Spaces with `daily.insights` now keep check-ins for 90 days (ADR 0007 amendment 2026-11-22).
+- **Retention:** history is available because Spaces with `daily.insights` now keep Daily Check-in rows for 90 days (ADR 0007 amendment 2026-11-22).

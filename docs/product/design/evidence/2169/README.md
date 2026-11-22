@@ -14,6 +14,6 @@ artifact of full-page screenshots, not of the layout.
 | `gated-390-light.webp` | Free Space: unchanged calm gate, no insights request |
 
 Behavior covered by the same spec: open from More, axe without violations,
-no horizontal overflow, basis disclosure, "Andere Idee", "Als Plan anlegen"
-opening the Wish → Plan conversion, Back returning to the brief, and no model
-call.
+no horizontal overflow, basis disclosure, cycling to the next idea, the plan
+action opening the Wish → Plan conversion, Back returning to the brief, and no
+model call.

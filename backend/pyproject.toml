@@ -88,7 +88,8 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "pro/pro_tests"]
-pythonpath = ["src"]
+# "." makes the Core test support (`tests`) importable for `pro/pro_tests` too.
+pythonpath = ["src", "."]
 asyncio_mode = "auto"
 markers = [
     "integration: benoetigt eine erreichbare PostgreSQL-Instanz",

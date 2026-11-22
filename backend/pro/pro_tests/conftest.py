@@ -9,8 +9,13 @@ collect them at all.
 
 from __future__ import annotations
 
+# Importing the Core conftest also applies its test environment defaults. The
+# fixtures are re-exported so they reach the Pro tests, the autouse ones too.
 from tests.conftest import (  # noqa: F401  (pytest fixtures)
+    _media_root,
+    _restore_pillow_pixel_limit,
     client,
+    encryption,
     engine,
     production_client,
     session,

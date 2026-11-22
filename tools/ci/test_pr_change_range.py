@@ -16,8 +16,6 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 WORKFLOWS = (
     ".github/workflows/ci.yml",
     ".github/workflows/codeql.yml",
-    ".github/workflows/self-hosted-deployment-guard.yml",
-    ".github/workflows/self-hosted-recovery.yml",
 )
 THREE_DOT = 'git diff --name-only --no-renames "$base_sha...$head_sha"'
 TWO_DOT = 'git diff --name-only --no-renames "$base_sha" "$head_sha"'
@@ -36,6 +34,21 @@ class PullRequestChangeRangeTest(unittest.TestCase):
                 self.assertLess(pr_branch, three_dot)
                 self.assertIn("else", text[three_dot:two_dot])
                 self.assertEqual(text.count(TWO_DOT), 1)
+
+    def test_self_hosted_checks_share_ci_change_detection(self) -> None:
+        ci = (ROOT / WORKFLOWS[0]).read_text(encoding="utf-8")
+        for scope, filename in (
+            ("deployment_guard", "self-hosted-deployment-guard.yml"),
+            ("recovery", "self-hosted-recovery.yml"),
+        ):
+            with self.subTest(scope=scope):
+                path = f".github/workflows/{filename}"
+                workflow = (ROOT / path).read_text(encoding="utf-8")
+                self.assertNotIn("  pull_request:\n", workflow)
+                self.assertIn("  workflow_call:", workflow)
+                self.assertNotIn("    name: Change Detection", workflow)
+                self.assertIn(f"    uses: ./{path}", ci)
+                self.assertIn(f"needs.changes.outputs.{scope} == 'true'", ci)
 
     def test_merge_base_range_ignores_newer_base_commits(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

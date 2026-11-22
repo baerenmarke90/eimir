@@ -31,6 +31,8 @@ jobs:
       backend: ${{ steps.scope.outputs.backend }}
       backend_integration: ${{ steps.scope.outputs.backend_integration }}
       self_hosted: ${{ steps.scope.outputs.self_hosted }}
+      deployment_guard: ${{ steps.scope.outputs.deployment_guard }}
+      recovery: ${{ steps.scope.outputs.recovery }}
       api_clients: ${{ steps.scope.outputs.api_clients }}
       supply_chain: ${{ steps.scope.outputs.supply_chain }}
       supply_chain_backend: ${{ steps.scope.outputs.supply_chain_backend }}
@@ -90,7 +92,7 @@ jobs:
           set -euo pipefail
 
           enable_all() {
-            for scope in backend backend_integration self_hosted api_clients supply_chain supply_chain_backend supply_chain_web supply_chain_backend_build supply_chain_web_build web; do
+            for scope in backend backend_integration self_hosted deployment_guard recovery api_clients supply_chain supply_chain_backend supply_chain_web supply_chain_backend_build supply_chain_web_build web; do
               echo "$scope=true" >> "$GITHUB_OUTPUT"
             done
             echo "tier=full" >> "$GITHUB_OUTPUT"
@@ -860,3 +862,53 @@ jobs:
           grep -Fq "# PolyForm Noncommercial License 1.0.0" LICENSE
           grep -Fq "PolyForm Noncommercial License 1.0.0" PROVENANCE.md
           grep -Fq "Commercial use requires a separate commercial license" COMMERCIAL-LICENSE.md
+
+  self-hosted-upgrade-rehearsal:
+    name: Self-Hosted upgrade rehearsal
+    needs: changes
+    if: github.event_name == 'pull_request' && needs.changes.outputs.deployment_guard == 'true'
+    uses: ./.github/workflows/self-hosted-deployment-guard.yml
+    permissions:
+      contents: read
+    with:
+      check: rehearsal
+
+  self-hosted-network-checks:
+    name: Self-Hosted network checks
+    needs: changes
+    if: github.event_name == 'pull_request' && needs.changes.outputs.deployment_guard == 'true'
+    uses: ./.github/workflows/self-hosted-deployment-guard.yml
+    permissions:
+      contents: read
+    with:
+      check: network
+
+  network-and-port-guard:
+    # Keep the required status name when the tests run in a reusable workflow.
+    name: Network and Port Guard
+    needs: [changes, self-hosted-network-checks]
+    if: >-
+      ${{ always() && github.event_name == 'pull_request' &&
+          (needs.changes.result != 'success' || needs.changes.outputs.deployment_guard != 'false') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Verify the selected network checks completed
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          CHECK_RESULT: ${{ needs.self-hosted-network-checks.result }}
+          NETWORK_GUARD_PASSED: ${{ needs.self-hosted-network-checks.outputs.network_guard_passed }}
+        run: |
+          if [[ "$CHANGES_RESULT" != "success" || "$CHECK_RESULT" != "success" || "$NETWORK_GUARD_PASSED" != "true" ]]; then
+            echo "::error::Network and Port Guard did not complete successfully."
+            exit 1
+          fi
+
+  self-hosted-recovery:
+    name: Self-Hosted recovery
+    needs: changes
+    if: github.event_name == 'pull_request' && needs.changes.outputs.recovery == 'true'
+    uses: ./.github/workflows/self-hosted-recovery.yml
+    permissions:
+      contents: read

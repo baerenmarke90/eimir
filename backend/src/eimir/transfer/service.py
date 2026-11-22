@@ -1063,7 +1063,7 @@ def _load_documents(
                         "Transfer domain document is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
                     )
                 seen_tables.add(table_name)
-                tables[table_name] = rows
+                tables[table_name] = [_upgrade_legacy_row(table_name, row) for row in rows]
         media: list[dict[str, Any]] = []
         if "media/index.json" in validated.entries:
             media_doc = parse_json_bytes(archive.read("media/index.json"))
@@ -1088,6 +1088,23 @@ def _uuid(value: Any, code: str) -> UUID:
 
 def _row_snake(row: Mapping[str, Any]) -> dict[str, Any]:
     return {_camel_to_snake(str(key)): value for key, value in row.items()}
+
+
+def _upgrade_legacy_row(table_name: str, row: dict[str, Any]) -> dict[str, Any]:
+    """Translate a column an older v1 archive still carries into the current schema.
+
+    Plans exported before #2158 D carry the countdown opt-in ``anticipationEnabled``,
+    where false only meant "not chosen": true pins the Plan, false is automatic.
+    Any other value is left for schema validation to reject.
+    """
+    if table_name != "plans" or "anticipationEnabled" not in row or "anticipation" in row:
+        return row
+    flag = row["anticipationEnabled"]
+    if not isinstance(flag, bool):
+        return row
+    upgraded = {key: value for key, value in row.items() if key != "anticipationEnabled"}
+    upgraded["anticipation"] = "ALWAYS" if flag else "AUTOMATIC"
+    return upgraded
 
 
 def _validate_ids_and_privacy(

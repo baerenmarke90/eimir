@@ -35,6 +35,7 @@ const CONTEXT_ICONS: Record<
   recaps: ['erinnerungen', 'notes', 'statistiken'],
   memoryMap: ['orte', 'momente', 'erinnerungen'],
   photoSources: ['photo-library', 'foto', 'video'],
+  storage: ['photo-library', 'video', 'erinnerungen'],
   calendar: ['kalender', 'gemeinsam', 'check'],
   games: ['spiele', 'smile-plus', 'highlights'],
 };
@@ -45,6 +46,7 @@ const CONTEXT_HOME: Record<ProPaywallContext, string> = {
   recaps: STORY_RECAPS_ROUTE,
   memoryMap: MEMORY_MAP_ROUTE,
   photoSources: `${MORE_SETTINGS_ROUTE}/account`,
+  storage: `${MORE_SETTINGS_ROUTE}/data`,
   calendar: `${MORE_SETTINGS_ROUTE}/calendar`,
   games: '/games',
   general: '/more',

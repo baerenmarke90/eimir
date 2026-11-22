@@ -19,6 +19,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import type { PlanAnticipation } from '../api/generated/models/PlanAnticipation';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanUpdate } from '../api/generated/models/PlanUpdate';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
@@ -31,6 +32,7 @@ import {
 } from '../client/discreetPlans';
 import { formatCalendarDate } from '../client/formatRecency';
 import { photoPlaceMapUrl } from '../client/photoPlaces';
+import { usePlanStoryCapture } from '../client/planStoryCapture';
 import {
   planScheduleLabel,
   planStatusWord,
@@ -104,7 +106,7 @@ import {
 import { PlanStoryContinuation } from './PlanStoryContinuation';
 import { PlanStoryLinks } from './PlanStoryLinks';
 import { PlanWishLink } from './PlanWishLink';
-import { PreferenceSwitch } from './PreferenceSwitch';
+import { PlanAnticipationChoice } from './PlanAnticipationChoice';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { ComposerHeader } from './StoryFormPageShell';
@@ -142,6 +144,12 @@ export function PlanProductPage({
   const navigate = useNavigate();
   const location = useLocation();
   const { requestReturn } = useTaskOrigin();
+  const captureStory = usePlanStoryCapture({
+    planId,
+    spaceId,
+    accountId,
+    apiBaseUrl,
+  });
   const taskState = location.state as {
     taskOriginKey?: unknown;
     planningCreated?: boolean;
@@ -205,7 +213,8 @@ export function PlanProductPage({
     isClientOnline,
     () => true,
   );
-  const [anticipation, setAnticipation] = useState(false);
+  const [anticipation, setAnticipation] =
+    useState<PlanAnticipation>('AUTOMATIC');
   const [discreetDraft, setDiscreetDraft] = useState<DiscreetDraft>({
     discreet: false,
     titleMode: 'PREVIEW',
@@ -458,7 +467,7 @@ export function PlanProductPage({
         description: description || null,
         placeId: placeId || null,
         experiencedOn: experiencedOn ? dateFromInput(experiencedOn) : undefined,
-        anticipationEnabled: anticipation,
+        anticipation,
         ...(discreetDraft.discreet || plan.discreet
           ? {
               discreet: discreetDraft.discreet,
@@ -504,7 +513,7 @@ export function PlanProductPage({
     photos.load(planPhotos(plan), plan.selectedCoverAttachmentId);
     setPhotosChanged(false);
     setRemovedFileIds([]);
-    setAnticipation(plan.anticipationEnabled ?? false);
+    setAnticipation(plan.anticipation ?? 'AUTOMATIC');
     setDiscreetDraft({
       discreet: plan.discreet ?? false,
       titleMode: plan.discreetTitleMode ?? 'PREVIEW',
@@ -557,6 +566,10 @@ export function PlanProductPage({
     Boolean(plan.sourceWishId) &&
     plan.capabilities.canEdit &&
     plan.status !== 'COMPLETED';
+  // A completed Plan can become a Moment at any time, not only right after
+  // completing it (#2158, Product Owner 2026-11-21).
+  const canCaptureStory =
+    plan.status === 'COMPLETED' && plan.capabilities.canEdit;
   const completionScope = `${spaceId}:${plan.id}`;
   const completionOpen =
     completionTarget === completionScope &&
@@ -1061,12 +1074,11 @@ export function PlanProductPage({
               onChange={() => setEditDirty(true)}
             >
               {plan.status !== 'COMPLETED' ? (
-                <PreferenceSwitch
-                  label={t('relationshipReflections.anticipation.show')}
-                  description={t('relationshipReflections.anticipation.help')}
-                  checked={anticipation}
+                <PlanAnticipationChoice
+                  value={anticipation}
+                  discreet={discreetDraft.discreet}
                   disabled={writesPending}
-                  onCheckedChange={(value) => {
+                  onChange={(value) => {
                     setAnticipation(value);
                     setEditDirty(true);
                   }}
@@ -1373,6 +1385,29 @@ export function PlanProductPage({
             }
           />
         ) : null}
+        {canCaptureStory
+          ? (
+              [
+                ['memory', 'erinnerungen', 'm5s3.planStory.menuMemory'],
+                ['heartMoment', 'denken', 'm5s3.planStory.menuHeartMoment'],
+                ['milestone', 'meilensteine', 'm5s3.planStory.menuMilestone'],
+              ] as const
+            ).map(([kind, icon, label]) => (
+              <ItemMenuOption
+                key={kind}
+                icon={icon}
+                title={t(label)}
+                disabled={writesPending}
+                onClick={() =>
+                  leaveItemMenu(
+                    menuSheet,
+                    () => captureStory(kind),
+                    () => setMenuOpen(false),
+                  )
+                }
+              />
+            ))
+          : null}
         {canReturnToWish ? (
           <ItemMenuOption
             icon="wuensche"

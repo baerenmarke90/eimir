@@ -310,7 +310,7 @@ def _special_plan(session: Session, couple, **fields):  # type: ignore[no-untype
         "privacy_class": PrivacyClass.SPACE_SHARED.value,
         "payload": PlanPayload(title="Finally together"),
         "status": PlanStatus.PLANNED.value,
-        "anticipation_enabled": True,
+        "anticipation": "ALWAYS",
     } | fields
     plan = Plan(**values)
     session.add(plan)
@@ -348,8 +348,10 @@ def test_watering_counts_as_being_in_the_garden(client, premium, monkeypatch) ->
 def test_the_next_anticipated_shared_plan_is_the_reunion(client, premium, session) -> None:  # type: ignore[no-untyped-def]
     _special_plan(session, premium, planned_on=date(2026, 11, 30))
     _special_plan(session, premium, planned_on=date(2026, 11, 20))
-    # Neither an ordinary Plan, a completed nor a past Plan counts.
-    _special_plan(session, premium, planned_on=date(2026, 11, 17), anticipation_enabled=False)
+    # Neither an automatic or never-shown Plan (#2158 D), a completed nor a past
+    # Plan counts: only an explicitly pinned Plan is the reunion.
+    _special_plan(session, premium, planned_on=date(2026, 11, 17), anticipation="AUTOMATIC")
+    _special_plan(session, premium, planned_on=date(2026, 11, 18), anticipation="NEVER")
     _special_plan(
         session,
         premium,

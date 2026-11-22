@@ -147,6 +147,7 @@ import { useKeepsakeSway } from './useKeepsakeSway';
 import { prefersReducedData, useMomentRotation } from './useMomentRotation';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
 import { WirGardenModule } from './WirGardenModule';
+import { WirWaitingGamesModule } from './WirWaitingGamesModule';
 import { WirLists } from './WirLists';
 import { type MomentClipLoader, WirMomentSlides } from './WirMomentGallery';
 import { WirNotes } from './WirNotes';
@@ -1053,7 +1054,7 @@ export function TodayPage({
     'getPartnerDistance' | 'getPartnerLocationMap'
   >;
   /** The shared garden's read for the optional Wir module. */
-  gamesApi?: Pick<GamesApi, 'getGarden'>;
+  gamesApi?: Pick<GamesApi, 'getGarden' | 'getWaitingGames'>;
 }) {
   const { t } = useTranslation();
   // Clips of the shared moment play silently; they need the media APIs.
@@ -2514,6 +2515,21 @@ export function TodayPage({
         ) : null}
       </>
     ),
+    // #2158 C: on by default and Premium; it renders only while a game waits.
+    games_waiting:
+      account?.id && gamesApi && entitlementApi ? (
+        <WirWaitingGamesModule
+          gamesApi={gamesApi}
+          entitlementApi={entitlementApi}
+          accountId={account.id}
+          spaceId={spaceId}
+          partnerName={partnerName}
+          visible={isDashboardModuleVisible(
+            dashboardPreferences,
+            'games_waiting',
+          )}
+        />
+      ) : null,
     // Opt-in and Premium; it renders nothing (and reads nothing) otherwise.
     shared_garden:
       account?.id && gamesApi && entitlementApi ? (

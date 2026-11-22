@@ -58,6 +58,24 @@ const proPaywall = {
         },
       },
     },
+    storage: {
+      title: 'Mehr Platz für eure Erinnerungen.',
+      description: 'Mit eimir. Pro habt ihr 50 GB für Fotos, Videos und mehr.',
+      benefits: {
+        first: {
+          title: '50 GB Speicher',
+          body: 'Zehnmal so viel Platz für Fotos, Videos, Sprachnachrichten und PDFs.',
+        },
+        second: {
+          title: 'Videos',
+          body: 'Haltet kurze Videos in euren Erinnerungen fest und übernehmt sie aus euren Exporten.',
+        },
+        third: {
+          title: 'Übersprungene Videos nachholen',
+          body: 'Holt Videos, die ein Import ausgelassen hat, aus derselben Datei nach.',
+        },
+      },
+    },
     photoSources: {
       title: 'Eure Erinnerungen. Noch einfacher zusammen.',
       description: 'Übernehmt ausgewählte Fotos direkt aus euren Fotodiensten.',

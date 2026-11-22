@@ -679,6 +679,98 @@ test('both sharing regionally: a solid arc with a shorter trip', async ({
   await captureScreenshot(page, info, 'partner-connection-regional-390.png');
 });
 
+test('tapping a person brings them into view; "show us" returns to both', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await grantBrowserLocation(page);
+  await distanceMocks(page, { ownLevel: 'DISTANCE_AND_MAP' });
+  await openMapFromWir(page, between('340 km'));
+
+  const surface = page.locator('.partner-map-surface');
+  const partnerArea = page.locator('.place-map-area.is-partner');
+  const partnerCircle = partnerArea.locator('.place-map-area-circle');
+  const ownArea = page.locator('.place-map-area.is-own');
+  const partnerAvatar = surface.getByRole('button', {
+    name: forPartner(copy.mapZoomToPartner),
+    exact: true,
+  });
+  const ownAvatar = surface.getByRole('button', {
+    name: copy.mapZoomToOwn,
+    exact: true,
+  });
+  const circleWidth = async () =>
+    (await partnerCircle.boundingBox())?.width ?? 0;
+  // Only the avatar takes the tap; the area keeps passing gestures through.
+  await expect(partnerArea).toHaveCSS('pointer-events', 'none');
+  await expect(partnerAvatar).toHaveCSS('pointer-events', 'auto');
+  await expect(ownAvatar).toBeInViewport();
+  const overview = await circleWidth();
+
+  // The partner's avatar: the camera fits their approximate area.
+  await partnerAvatar.click();
+  await expect.poll(circleWidth).toBeGreaterThan(Math.max(200, overview * 2));
+  await expect(ownArea).not.toBeInViewport();
+  await captureScreenshot(page, info, 'partner-map-person-focus-390.png');
+
+  // The own row in the sheet: the camera centres on the viewer.
+  await page
+    .locator('.partner-map-sheet')
+    .getByRole('button', {
+      name: new RegExp(`^${copy.mapYou}.*${copy.mapZoomToOwn}$`),
+    })
+    .click();
+  await expect(ownArea).toBeInViewport();
+  await expect(partnerArea).not.toBeInViewport();
+  const map = await page.locator('.place-map-viewport').boundingBox();
+  const own = await ownArea.boundingBox();
+  if (!map || !own) throw new Error('Map and own marker must be laid out');
+  expect(Math.abs(own.x - (map.x + map.width / 2))).toBeLessThan(4);
+  expect(Math.abs(own.y - (map.y + map.height / 2))).toBeLessThan(4);
+
+  // "Show us" returns to the two of you.
+  await page.getByRole('button', { name: copy.mapShowUs }).click();
+  await expect(ownArea).toBeInViewport();
+  await expect(partnerArea).toBeInViewport();
+  await expect.poll(circleWidth).toBeLessThan(overview + 2);
+
+  // The keyboard reaches the same action.
+  await partnerAvatar.focus();
+  await page.keyboard.press('Enter');
+  await expect.poll(circleWidth).toBeGreaterThan(Math.max(200, overview * 2));
+  await expectAxeClean(page, '.partner-map-sheet');
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await captureScreenshot(page, info, 'partner-map-person-focus-dark-390.png');
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(partnerAvatar).toBeInViewport();
+  await captureScreenshot(page, info, 'partner-map-person-focus-1280.png');
+
+  // 200 % text: the person rows reflow and stay the way to a person.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+  await page.waitForTimeout(400);
+  await expectNoHorizontalOverflow(page);
+  const ownRow = page.locator('.partner-map-sheet').getByRole('button', {
+    name: new RegExp(`^${copy.mapYou}.*${copy.mapZoomToOwn}$`),
+  });
+  const rowBox = await ownRow.boundingBox();
+  expect(rowBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+  await ownRow.click();
+  await expect(ownArea).toBeInViewport();
+  // A full-page capture of a scrolled page would show the fixed skip link.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await captureScreenshot(
+    page,
+    info,
+    'partner-map-person-focus-390-large.png',
+    {
+      fullPage: true,
+    },
+  );
+});
+
 test('an earlier partner snapshot keeps a muted connection without motion', async ({
   page,
 }, info) => {

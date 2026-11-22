@@ -203,6 +203,12 @@ async function installMocks(
       await route.fulfill({ json: garden });
       return;
     }
+    if (method === 'GET' && pathname === `${GARDEN_PATH}/history`) {
+      await route.fulfill({
+        json: { items: [], nextCursor: null, hasMore: false },
+      });
+      return;
+    }
     if (method === 'GET' && pathname in responses) {
       await route.fulfill({ json: responses[pathname] });
       return;

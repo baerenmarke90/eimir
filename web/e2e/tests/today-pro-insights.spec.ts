@@ -5,6 +5,7 @@ import navigation from '../../src/i18n/locales/navigation';
 import weeklyInsights from '../../src/i18n/locales/weeklyInsights';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
+import { waitForSettledMotion } from '../support/settledMotion';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -365,6 +366,9 @@ async function signIn(page: Page) {
  * without introducing document-level horizontal scrolling.
  */
 async function expectNoHorizontalOverflow(page: Page): Promise<void> {
+  // Measure the page at rest: the page entrance slides in, so a measurement
+  // during it saw the header still offset to the right.
+  await waitForSettledMotion(page);
   const result = await page.evaluate(() => {
     const root = document.documentElement;
     const overflowing = Array.from(

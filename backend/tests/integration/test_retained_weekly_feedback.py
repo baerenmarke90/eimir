@@ -19,7 +19,7 @@ from eimir.transfer import service as transfer
 from eimir.transfer.archive import validate_zip
 from eimir.transfer.models import ImportStatus, TransferScope
 from tests.conftest import auth, requires_database
-from tests.integration.test_daily_checkins_pro_insights import couple as couple
+from tests.support.daily_context import couple as couple
 
 pytestmark = [pytest.mark.integration, requires_database]
 

@@ -338,6 +338,63 @@ describe('DiscoverStory', () => {
     expect(container.querySelector('.momente-story')).toBeNull();
   });
 
+  describe('visibility', () => {
+    let report: (entry: Partial<IntersectionObserverEntry>) => void = () => {};
+    beforeEach(() => {
+      class FakeObserver {
+        constructor(callback: IntersectionObserverCallback) {
+          report = (entry) =>
+            callback(
+              [entry as IntersectionObserverEntry],
+              this as unknown as IntersectionObserver,
+            );
+        }
+        observe() {}
+        disconnect() {}
+      }
+      vi.stubGlobal('IntersectionObserver', FakeObserver);
+    });
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    function visibleShare(height: number, visible: number, viewport = 800) {
+      act(() =>
+        report({
+          isIntersecting: visible > 0,
+          boundingClientRect: { height } as DOMRectReadOnly,
+          intersectionRect: { height: visible } as DOMRectReadOnly,
+          rootBounds: { height: viewport } as DOMRectReadOnly,
+        }),
+      );
+    }
+
+    it('plays only while more than 60 % of the viewer is on screen', () => {
+      const { container } = renderStory();
+      const story = container.querySelector('.momente-story');
+      // Not yet reported: the story waits.
+      expect(story?.getAttribute('data-playing')).toBe('false');
+      visibleShare(500, 500);
+      expect(story?.getAttribute('data-playing')).toBe('true');
+      visibleShare(500, 310);
+      expect(story?.getAttribute('data-playing')).toBe('true');
+      // Scrolled on: only 60 % of the photo is left, so it pauses.
+      visibleShare(500, 300);
+      expect(story?.getAttribute('data-playing')).toBe('false');
+      visibleShare(500, 0);
+      expect(story?.getAttribute('data-playing')).toBe('false');
+    });
+
+    it('measures a viewer taller than the viewport against the viewport', () => {
+      const { container } = renderStory();
+      const story = container.querySelector('.momente-story');
+      visibleShare(1200, 700, 800);
+      expect(story?.getAttribute('data-playing')).toBe('true');
+      visibleShare(1200, 400, 800);
+      expect(story?.getAttribute('data-playing')).toBe('false');
+    });
+  });
+
   describe('resting controls', () => {
     function viewerOf(container: HTMLElement) {
       const viewer = container.querySelector('.momente-story-viewer');

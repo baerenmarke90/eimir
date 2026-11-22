@@ -5,10 +5,10 @@
  * `DiscoverStory`.
  *
  * Its scene clock is `useStoryPlayback`: the story pauses with the page,
- * when it is less than half on screen, with the explicit pause control and
- * while the person holds a slide (`--story-play-state`). With reduced motion
- * it never starts on its own and the slides change without movement. Token
- * roles only (M1).
+ * when no more than 60 % of it is on screen, with the explicit pause
+ * control and while the person holds a slide (`--story-play-state`). With
+ * reduced motion it never starts on its own and the slides change without
+ * movement. Token roles only (M1).
  *
  * Moved unchanged from `DiscoverStory.css`. Imported by `DiscoverStory.tsx`
  * (Momente), kept apart from the lazily loaded recap film.

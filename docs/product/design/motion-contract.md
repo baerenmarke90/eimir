@@ -462,7 +462,14 @@ These are not primitives. They are areas whose motion is defined by their own cl
     - `motion/playback.css`: the recap film, the recap reader and the garden playback, loaded with them;
     - `motion/story-playback.css`: the Momente story.
 
-    The Playback property exception in M6 is used only by the film's scene cuts: `clip-path` for iris, wipe, shift, split and match, and `filter: blur()` for blur, focus and the caption word reveal. Each runs on one layer at a time, the scene spread or the caption.
+    The Playback property exception in M6 is used by the film's scene cuts: `clip-path` for iris, wipe, shift, split and match, and `filter: blur()` for blur, focus and the caption word reveal. Each runs on one layer at a time, the scene spread or the caption.
+
+    Story playback uses it once more, for the rediscovery lead (`story.featuredKicker`) on Momente › Erinnerungen ([#2192](https://github.com/baerenmarke90/eimir/issues/2192)). The lead plays as the story's first slide, and its photo develops like instant film. It goes from a dark, colourless, soft print to the photo with `filter` (brightness, saturation, sepia, contrast, blur) and opacity, on the one photo layer:
+    - **Reason:** an opacity fade from a faint print could not be seen as developing on the device, and the Product Owner asked for a visible develop.
+    - **Timing:** it lasts `--duration-story-develop` (3.2 s) after one `--duration-sequence-beat`, and the lead slide dwells `--duration-story-lead-slide` (8 s) instead of `--duration-story-slide`.
+    - **Replay:** it runs each time the lead becomes the visible slide, like the slide entrance. It is part of that entrance, so it finishes even while the story is paused.
+    - **Loading:** while the photo loads, the frame shows the undeveloped film (`--color-media-scrim-strong`) instead of the shimmer, so loading and developing read as one moment.
+    - **Reduced motion:** the photo is shown at once.
   - **Scenes.** The layer's scene controller (`useScene` in `motion/scene.ts`) decides whether a scene plays: the page, its kept view and the scene itself are seen (the visibility controller), the owner reports it in use, and there is no reduced motion. Its owner spreads `data-motion-scene` on the scene root. While it is `paused`, `motion/scenes.css` holds every CSS animation inside in place, so a scene that returns continues where it paused (M4) and a hidden or offscreen scene renders no animation frames.
     - **The garden.** `GardenScene.tsx` is the scene root on the garden page, in full screen and in the Wir module. On Wir, the decorative preview also rests after `--duration-ambient-rest` of visible time (`useAmbientRest`, now in the layer, which also rests while the page or its kept view is hidden). The ambient effect timers pause with the page (`usePageVisible`). The #2070 depth bands are unchanged: every garden keyframe animates `transform`, `opacity` or a bounded `stroke-dashoffset`, so each band keeps its own compositor layer.
     - **The remote games.** The waiting dot ("the other one is playing") runs on the scene controller of its card.
@@ -1099,7 +1106,7 @@ Each step is its own issue and pull request. Draft issue texts for steps 2 to 9 
    - Done in #2077. The feature keyframes moved to the catalogue (5.4), and the Moments run through `startMoment()` (4.7 as built). The `disclose` uses were checked (4.2), and the map connection was checked against M7 (4.8). 28 files left the allowlist (5.4).
    - Visible changes, each for a rule:
      - The Planen search settles onto its status row with opacity and a short vertical translate instead of a `clip-path` reveal (M6). It does not travel sideways, because the field spans the row and would widen the page.
-     - The Polaroid "develop" fades the photo in from a faint print instead of animating `filter` (M6).
+     - The Polaroid "develop" fades the photo in from a faint print instead of animating `filter` (M6). Inside the story, the rediscovery lead later replaced this fade with a Playback develop (4.8 as built).
      - The handmade sway runs on the layer's Ambient `sway` around the rest pose: it pauses while hidden and continues where it paused (M4, M8).
      - The receipt ripple is a soft halo (M7).
      - Lifeline rows stagger with `--duration-stagger-item` within the cap.

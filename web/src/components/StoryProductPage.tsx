@@ -4,12 +4,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Link,
-  useLocation,
-  useNavigate,
-  useSearchParams,
-} from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { RecapsApi } from '../api/generated/apis/RecapsApi';
@@ -569,7 +564,7 @@ export function StoryProductPage({
   const featuredTone = featuredItem
     ? storyEntryTone(featuredItem, Boolean(featuredMedia))
     : undefined;
-  const featuredSwayRef = useKeepsakeSway<HTMLAnchorElement>(
+  const featuredSwayRef = useKeepsakeSway<HTMLDivElement>(
     diaryLayout === 'album' && featuredTone === 'playful',
   );
   const onThisDayKicker =
@@ -723,6 +718,105 @@ export function StoryProductPage({
     },
   ]);
 
+  // The rediscovery lead (`story.featuredKicker`) opens the Fotostory as its
+  // first slide; its polaroid develops on the slide instead of hanging above
+  // the story. The story's open link opens it, so the composition holds no
+  // link.
+  const storyLead =
+    featuredItem && featuredPresentation
+      ? {
+          key: storyItemKey(featuredItem),
+          path: featuredPath,
+          kindLabel: t('story.featuredHighlight'),
+          title: featuredHeadline,
+          face: featuredMedia ? (
+            <MemoryPreview
+              memoryId={
+                featuredItem.kind === 'MEMORY' ? featuredItem.memory.id : ''
+              }
+              attachmentId={featuredMedia.id}
+              hasThumbnail={featuredMedia.hasThumbnail}
+              isSensitive={featuredMedia.isSensitive}
+              loadImage={loadMemoryImage}
+              loadingMode="immediate"
+            />
+          ) : (
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
+            </svg>
+          ),
+          content: (
+            <div
+              className="momente-hero-highlight"
+              data-tone={featuredTone}
+              data-photo-shape={
+                featuredMedia ? photoShape(featuredMedia) : undefined
+              }
+              data-color-world={featuredMedia ? undefined : 'warm'}
+            >
+              <div
+                ref={featuredSwayRef}
+                className={`momente-hero-link ${featuredMedia ? 'has-media' : ''}`}
+              >
+                {featuredMedia ? (
+                  <div className="momente-hero-media">
+                    <MemoryPreview
+                      memoryId={
+                        featuredItem.kind === 'MEMORY'
+                          ? featuredItem.memory.id
+                          : ''
+                      }
+                      attachmentId={featuredMedia.id}
+                      hasThumbnail={featuredMedia.hasThumbnail}
+                      isSensitive={featuredMedia.isSensitive}
+                      loadImage={loadMemoryImage}
+                      loadingMode="immediate"
+                    />
+                  </div>
+                ) : null}
+                <div className="momente-hero-body">
+                  <span className="momente-hero-kicker">
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="14"
+                      height="14"
+                      fill="currentColor"
+                      aria-hidden="true"
+                      className="kicker-icon inline-icon"
+                    >
+                      <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
+                    </svg>
+                    <span>
+                      {onThisDayKicker
+                        ? t('story.onThisDay', {
+                            count: leadContext.yearsAgo,
+                          })
+                        : t('story.featuredKicker')}
+                    </span>
+                  </span>
+                  {featuredItem.kind === 'HEART_MOMENT' ? (
+                    <blockquote className="momente-hero-quote">
+                      "{featuredHeadline}"
+                    </blockquote>
+                  ) : (
+                    <h3 className="momente-hero-title">{featuredHeadline}</h3>
+                  )}
+                  <div className="momente-hero-meta">
+                    <RediscoverySecondaryLine
+                      variantLine={featuredWording?.variantLine ?? null}
+                      date={formatStoryDate(featuredItem.effectiveDate, locale)}
+                      dateTime={featuredItem.effectiveDate
+                        .toISOString()
+                        .slice(0, 10)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ),
+        }
+      : null;
+
   return (
     <div className="page story-page story-page-unified" ref={rootIntro}>
       {saved ? (
@@ -789,98 +883,6 @@ export function StoryProductPage({
             aria-labelledby="momente-tab-discover"
             data-diary-layout={diaryLayout}
           >
-            {/* 1. Featured Editorial Highlight */}
-            {featuredItem && featuredPresentation ? (
-              <article
-                className="momente-hero-highlight"
-                data-tone={featuredTone}
-                data-photo-shape={
-                  featuredMedia ? photoShape(featuredMedia) : undefined
-                }
-                data-color-world={featuredMedia ? undefined : 'warm'}
-              >
-                <Link
-                  ref={featuredSwayRef}
-                  to={featuredPath}
-                  className={`momente-hero-link ${featuredMedia ? 'has-media' : ''}`}
-                  aria-label={`${t('story.featuredHighlight')}: ${featuredHeadline}`}
-                  onClick={(event) => openDiscoverItem(event, featuredPath)}
-                >
-                  {featuredMedia ? (
-                    <div className="momente-hero-media">
-                      <MemoryPreview
-                        memoryId={
-                          featuredItem.kind === 'MEMORY'
-                            ? featuredItem.memory.id
-                            : ''
-                        }
-                        attachmentId={featuredMedia.id}
-                        hasThumbnail={featuredMedia.hasThumbnail}
-                        isSensitive={featuredMedia.isSensitive}
-                        loadImage={loadMemoryImage}
-                        loadingMode="immediate"
-                      />
-                    </div>
-                  ) : null}
-                  <div className="momente-hero-body">
-                    <span className="momente-hero-kicker">
-                      <svg
-                        viewBox="0 0 24 24"
-                        width="14"
-                        height="14"
-                        fill="currentColor"
-                        aria-hidden="true"
-                        className="kicker-icon inline-icon"
-                      >
-                        <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
-                      </svg>
-                      <span>
-                        {onThisDayKicker
-                          ? t('story.onThisDay', {
-                              count: leadContext.yearsAgo,
-                            })
-                          : t('story.featuredKicker')}
-                      </span>
-                    </span>
-                    {featuredItem.kind === 'HEART_MOMENT' ? (
-                      <blockquote className="momente-hero-quote">
-                        "{featuredHeadline}"
-                      </blockquote>
-                    ) : (
-                      <h3 className="momente-hero-title">{featuredHeadline}</h3>
-                    )}
-                    <div className="momente-hero-meta">
-                      <RediscoverySecondaryLine
-                        variantLine={featuredWording?.variantLine ?? null}
-                        date={formatStoryDate(
-                          featuredItem.effectiveDate,
-                          locale,
-                        )}
-                        dateTime={featuredItem.effectiveDate
-                          .toISOString()
-                          .slice(0, 10)}
-                      />
-                    </div>
-                  </div>
-                </Link>
-              </article>
-            ) : null}
-
-            {newsHint.activeId ? (
-              <QuietHint
-                tone="new"
-                onDismiss={newsHint.dismiss}
-                action={{
-                  to: STORY_OURS_ROUTE,
-                  label: t('quietHints.news.waymarksAction'),
-                }}
-              >
-                {t('quietHints.news.waymarks')}
-              </QuietHint>
-            ) : null}
-
-            <CoupleExperienceLinks onOpen={openDiscoverItem} lead={recapLead} />
-
             {/* 2. Curated Fotostory (direction C): theme bubbles above one
               story viewer, deliberately unlike the Tagebuch cards. The
               Expanded renew action replaces the touch-only pull gesture. */}
@@ -898,11 +900,26 @@ export function StoryProductPage({
               </button>
             </div>
             <DiscoverStory
+              lead={storyLead}
               items={curatedItems}
               loadMemoryImage={loadMemoryImage}
               onOpen={openDiscoverItem}
               nicknameFor={nicknameFor}
             />
+            {newsHint.activeId ? (
+              <QuietHint
+                tone="new"
+                onDismiss={newsHint.dismiss}
+                action={{
+                  to: STORY_OURS_ROUTE,
+                  label: t('quietHints.news.waymarksAction'),
+                }}
+              >
+                {t('quietHints.news.waymarks')}
+              </QuietHint>
+            ) : null}
+
+            <CoupleExperienceLinks onOpen={openDiscoverItem} lead={recapLead} />
             {renewed ? (
               <p className="sr-only" role="status">
                 {t('story.discoverRenewed')}

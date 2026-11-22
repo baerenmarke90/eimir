@@ -12,7 +12,6 @@ import pytest
 from fastapi import APIRouter, FastAPI
 from fastapi.routing import iter_route_contexts
 
-from eimir import pro_plugin
 from eimir.deployment.revision import UNVERIFIED_REVISION
 from eimir.engagement.models import EngagementTarget
 from eimir.entitlements.models import Capability
@@ -29,6 +28,7 @@ from eimir.plugins.loader import (
     parse_plugin_names,
     resolve_plugins,
 )
+from tests.support.plugins import pro_plugin_object
 
 REVISION = "0123456789abcdef"
 
@@ -280,12 +280,12 @@ def test_the_in_tree_pro_plugin_is_registered_as_entry_point() -> None:
 
     assert [entry.distribution for entry in candidates] == ["eimir"]
     loaded = resolve(["pro"], candidates, UNVERIFIED_REVISION)
-    assert loaded.plugins == (pro_plugin.plugin,)
-    assert isinstance(pro_plugin.plugin, ProPlugin)
+    assert loaded.plugins == (pro_plugin_object(),)
+    assert isinstance(pro_plugin_object(), ProPlugin)
 
 
 def test_the_in_tree_pro_plugin_provides_the_moving_capabilities() -> None:
-    assert pro_plugin.plugin.capabilities() == {
+    assert pro_plugin_object().capabilities() == {
         Capability.GAMES_COUPLE.value,
         Capability.INTEGRATION_EXTERNAL_SYNC.value,
         Capability.MEDIA_VIDEO_UPLOAD.value,
@@ -305,8 +305,8 @@ def test_the_in_tree_pro_plugin_is_built_against_this_core(
 ) -> None:
     monkeypatch.setenv("EIMIR_BUILD_REVISION", REVISION)
 
-    assert pro_plugin.plugin.core_revision == REVISION
-    assert resolve(["pro"], [candidate(pro_plugin.plugin)]).plugins == (pro_plugin.plugin,)
+    assert pro_plugin_object().core_revision == REVISION
+    assert resolve(["pro"], [candidate(pro_plugin_object())]).plugins == (pro_plugin_object(),)
 
 
 def test_startup_names_plugins_seam_revision_and_capabilities(
@@ -425,16 +425,16 @@ def test_a_worker_without_the_plugin_leaves_its_job_kinds_unclaimed() -> None:
     LoadedPlugins(()).register_jobs(registry)
     assert LoadedPlugins(()).unclaimed_job_kinds(registry) == PLUGIN_JOB_KINDS
 
-    pro_plugin.plugin.register_jobs(registry)
+    pro_plugin_object().register_jobs(registry)
     assert registry.kinds() == PLUGIN_JOB_KINDS
-    assert LoadedPlugins((pro_plugin.plugin,)).unclaimed_job_kinds(registry) == frozenset()
+    assert LoadedPlugins((pro_plugin_object(),)).unclaimed_job_kinds(registry) == frozenset()
 
 
 def test_the_in_tree_pro_plugin_decides_exactly_the_declared_targets_and_parents() -> None:
     from eimir.plugins.manifest import PLUGIN_ENGAGEMENT_TARGETS, attachment_rules
 
-    assert set(pro_plugin.plugin.engagement_targets()) == PLUGIN_ENGAGEMENT_TARGETS
-    assert set(pro_plugin.plugin.attachment_read_rules()) == {
+    assert set(pro_plugin_object().engagement_targets()) == PLUGIN_ENGAGEMENT_TARGETS
+    assert set(pro_plugin_object().attachment_read_rules()) == {
         rule.parent_type for _, rule in attachment_rules()
     }
 
@@ -473,5 +473,5 @@ def test_the_in_tree_pro_plugin_has_no_chain_and_accepts_the_settings() -> None:
     # The existing Pro tables stay in the Core chain (Decision 0017, decision 6).
     from eimir.config import get_settings
 
-    assert pro_plugin.plugin.migrations() is None
-    pro_plugin.plugin.validate(get_settings())
+    assert pro_plugin_object().migrations() is None
+    pro_plugin_object().validate(get_settings())

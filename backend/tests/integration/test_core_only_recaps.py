@@ -44,7 +44,7 @@ from eimir.relationship.models import Membership, MembershipStatus
 from eimir.transfer import service as transfer_service
 from eimir.transfer.models import TransferScope
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
-from tests.support.plugins import plugins_loaded, with_pro_plugin, without_plugins
+from tests.support.plugins import import_pro, plugins_loaded, with_pro_plugin, without_plugins
 
 pytestmark = [pytest.mark.integration, requires_database]
 NOW = datetime(2026, 10, 30, 12, tzinfo=UTC)
@@ -106,7 +106,7 @@ def couple(session: Session, monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace
 def _compose(session: Session, couple: SimpleNamespace, month: int) -> str:
     # Through the service: the request route is plugin code, so it is not mounted
     # in the Core-only configuration (its absence is covered by test_pro_routes.py).
-    from eimir_pro.recap_composition import composer
+    composer = import_pro("eimir_pro.recap_composition.composer")
 
     context = AuthorizationContext(account_id=couple.anna.id, space_id=couple.space.id)
     value = composer.request_period(session, context, RecapKind.MONTH, 2026, month)
@@ -115,7 +115,7 @@ def _compose(session: Session, couple: SimpleNamespace, month: int) -> str:
 
 
 def _generate(session: Session, couple: SimpleNamespace, recap_id: str) -> None:
-    from eimir_pro.recap_composition import jobs
+    jobs = import_pro("eimir_pro.recap_composition.jobs")
 
     record = session.get(RecapEdition, UUID(recap_id))
     assert record is not None

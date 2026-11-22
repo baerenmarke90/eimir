@@ -13,6 +13,10 @@ import re
 from collections.abc import Iterator
 from contextlib import contextmanager
 from functools import lru_cache
+from importlib import import_module
+from importlib.util import find_spec
+from types import ModuleType
+from typing import Any
 
 import pytest
 
@@ -35,6 +39,43 @@ PRO_TEST_MODULES = frozenset(
 )
 """Test modules of Pro features, relative to ``tests/``; not collected Core-only."""
 
+PRO_DISTRIBUTION_TEST_MODULES = frozenset(
+    {
+        # Core lifecycle tests that create real Pro rows through the Pro models
+        # and then switch the plugin off themselves (``without_plugins``). They
+        # run wherever the Pro distribution is installed, the plugin-loaded
+        # configuration included.
+        "integration/test_core_only_lifecycle.py",
+        "integration/test_dormant_plugin_data.py",
+        "integration/test_plugin_lifecycle.py",
+    }
+)
+"""Core test modules that import Pro models; not collected without ``eimir-pro`` (#2182)."""
+
+CORE_ONLY_SKIP = "Core-only configuration: the Pro distribution (eimir-pro) is not installed."
+
+
+def pro_distribution_installed() -> bool:
+    """Whether ``eimir-pro`` is importable in this test process."""
+    return find_spec("eimir_pro") is not None
+
+
+def require_pro_distribution() -> None:
+    """Skip the calling test when the Pro distribution is not installed."""
+    if not pro_distribution_installed():
+        pytest.skip(CORE_ONLY_SKIP)
+
+
+def import_pro(module: str) -> ModuleType:
+    """Import a Pro module, or skip the calling test when Pro is not installed."""
+    require_pro_distribution()
+    return import_module(module)
+
+
+def pro_plugin_object() -> Any:
+    """The Pro plugin object, or skip the calling test when Pro is not installed."""
+    return import_pro("eimir.pro_plugin").plugin
+
 
 def plugins_loaded() -> bool:
     """Whether this test process runs with a plugin (the plugin-loaded configuration)."""
@@ -51,20 +92,49 @@ def operation_key(method: str, path: str) -> tuple[str, str]:
 
 @lru_cache(maxsize=1)
 def pro_operations() -> frozenset[tuple[str, str]]:
-    """Every ``(method, path)`` the in-tree Pro plugin mounts under ``/api/v1``."""
+    """Every ``(method, path)`` the Pro plugin mounts under ``/api/v1``.
+
+    With ``eimir-pro`` installed this is read from the plugin's routers. Without
+    it, the versioned contract (``backend/openapi.json``, built with the plugin
+    loaded) minus what the Core router mounts stands in; it lacks only the few
+    plugin routes hidden from the schema (OAuth callbacks).
+    """
+    import json
+    from pathlib import Path
+
     from fastapi import FastAPI
     from fastapi.routing import iter_route_contexts
 
-    from eimir.pro_plugin import plugin
+    from eimir.api.v1 import router as core_router
+
+    if pro_distribution_installed():
+        plugin_app = FastAPI()
+        for plugin_router in pro_plugin_object().routers():
+            plugin_app.include_router(plugin_router, prefix="/api/v1")
+        return frozenset(
+            (method, route.path)
+            for route in iter_route_contexts(plugin_app.routes)
+            if route.path is not None and route.path.startswith("/api/v1")
+            for method in route.methods or ()
+        )
 
     app = FastAPI()
-    for router in plugin.routers():
-        app.include_router(router, prefix="/api/v1")
-    return frozenset(
-        (method, route.path)
+    app.include_router(core_router, prefix="/api/v1")
+    core = {
+        operation_key(method, route.path)
         for route in iter_route_contexts(app.routes)
-        if route.path is not None and route.path.startswith("/api/v1")
+        if route.path is not None
         for method in route.methods or ()
+    }
+    contract = json.loads(
+        (Path(__file__).resolve().parents[2] / "openapi.json").read_text(encoding="utf-8")
+    )
+    return frozenset(
+        (method.upper(), path)
+        for path, operations in contract["paths"].items()
+        for method in operations
+        if method.lower() in {"get", "put", "post", "delete", "patch", "options", "head"}
+        and operation_key(method, path) not in core
     )
 
 
@@ -99,7 +169,7 @@ def with_pro_plugin() -> Iterator[None]:
     the step under test runs without it. Routes are not remounted: only the
     capabilities and hooks of the plugin become effective.
     """
-    from eimir.pro_plugin import plugin
+    plugin = pro_plugin_object()
 
     loaded = loader.loaded_plugins()
     loader._loaded = loader.LoadedPlugins((plugin,))

@@ -334,6 +334,11 @@ jobs:
       - name: Migrations
         run: uv run --frozen alembic upgrade head
 
+      - name: Schema matches the committed fingerprint
+        # Decision 0017, Phase 2 (#2182): moving the Pro code must not change the
+        # schema a fresh database reaches, with or without the plugin.
+        run: uv run --frozen python -m scripts.schema_fingerprint check
+
       - name: Migrations are complete
         # A model/schema difference indicates a missing migration and would
         # otherwise surface only during deployment.
@@ -478,6 +483,9 @@ jobs:
 
       - name: Core-only migrations
         run: uv run --frozen alembic upgrade head
+
+      - name: Core-only schema matches the committed fingerprint
+        run: uv run --frozen python -m scripts.schema_fingerprint check
 
       - name: Core-only autogenerate keeps plugin tables
         run: |

@@ -6,7 +6,7 @@ import {
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { EimirIcon } from './EimirIcon';
+import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { TaskOriginLink } from './TodayDestinationLink';
 import './QuietHint.css';
 import '../motion/motion.css';
@@ -38,6 +38,7 @@ export function QuietHint({
   children,
   action,
   dismissLabel,
+  icon,
   onDismiss,
 }: {
   tone?: 'tip' | 'new';
@@ -48,6 +49,8 @@ export function QuietHint({
     | { onClick: () => void; label: string; disabled?: boolean };
   /** Replaces the default "Verstanden"/"Ausblenden" wording. */
   dismissLabel?: string;
+  /** Replaces the tone's default icon when the hint has its own subject. */
+  icon?: EimirIconName;
   onDismiss: () => void;
 }) {
   const { t } = useTranslation();
@@ -116,7 +119,7 @@ export function QuietHint({
     >
       <div className="quiet-hint-body">
         <EimirIcon
-          name={tone === 'new' ? 'sparkle' : 'hilfe'}
+          name={icon ?? (tone === 'new' ? 'sparkle' : 'hilfe')}
           className="quiet-hint-icon"
         />
         <div className="quiet-hint-copy">

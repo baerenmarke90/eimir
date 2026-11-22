@@ -22,8 +22,13 @@ from sqlalchemy.orm import Session
 
 from eimir.auth import rate_limit
 from eimir.authorization.privacy import AuthorizationContext
-from eimir.calendar_sync import service
-from eimir.calendar_sync.models import (
+from eimir.config import get_settings
+from eimir.core import clock
+from eimir.core.errors import NotFoundError, ServiceUnavailableError, ValidationError
+from eimir.db.locks import lock_subject
+from eimir.identity.effects import has_active_membership
+from eimir_pro.calendar_sync import service
+from eimir_pro.calendar_sync.models import (
     CalendarConnection,
     CalendarConnectionPayload,
     CalendarOAuthPayload,
@@ -31,13 +36,8 @@ from eimir.calendar_sync.models import (
     CalendarProviderKind,
     ConnectionStatus,
 )
-from eimir.config import get_settings
-from eimir.core import clock
-from eimir.core.errors import NotFoundError, ServiceUnavailableError, ValidationError
-from eimir.db.locks import lock_subject
-from eimir.identity.effects import has_active_membership
-from eimir.providers import google_calendar
-from eimir.providers.calendar import CalendarAuthError, CalendarProviderError, CalendarSummary
+from eimir_pro.providers import google_calendar
+from eimir_pro.providers.calendar import CalendarAuthError, CalendarProviderError, CalendarSummary
 
 TRANSACTION_LIFETIME = timedelta(minutes=10)
 # Long enough to come back from Google's window later; purged only when the

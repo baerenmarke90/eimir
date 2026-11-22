@@ -8,6 +8,13 @@ requires-python = ">=3.12"
 # pins the published Core instead (#2182).
 dependencies = [
     "eimir",
+    # Google Photos and Google Calendar consent flows (photo sources, calendar sync).
+    "google-auth-oauthlib>=1.5.0",
+    # Keep the adopted OAuth stack above the corrected device-grant advisory baseline.
+    "oauthlib>=4.0.1,<5",
+    # Untrusted CalDAV multistatus XML (#1895): parse without entity expansion
+    # or external resources instead of hardening the stdlib parser by hand.
+    "defusedxml>=0.7.1",
 ]
 
 [tool.uv.sources]

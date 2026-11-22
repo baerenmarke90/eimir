@@ -5,8 +5,8 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock
 
 import pytest
+from eimir_pro.providers import google_photos as google
 
-from eimir.providers import google_photos as google
 from eimir.providers.photo_transport import PhotoSourceError
 
 

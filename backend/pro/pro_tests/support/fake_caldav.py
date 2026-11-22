@@ -14,7 +14,7 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 
-from eimir.providers.calendar_transport import (
+from eimir_pro.providers.calendar_transport import (
     CalendarRateLimitedError,
     CalendarTransportError,
     HttpResponse,
@@ -263,7 +263,7 @@ class FakeTransport:
 
 def install(monkeypatch: object, server: FakeCalDavServer) -> None:
     """Route every CalDavClient created by the application to ``server``."""
-    from eimir.providers import caldav
+    from eimir_pro.providers import caldav
 
     def factory(origin: object, authorization: str, **_: object) -> FakeTransport:
         return FakeTransport(server, authorization)

@@ -21,19 +21,19 @@ from eimir.api.concurrency import IfMatchToken
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary
-from eimir.calendar_sync import google, service
-from eimir.calendar_sync.models import (
+from eimir.config import get_settings
+from eimir.core.errors import ConflictError
+from eimir.entitlements.service import has_capability
+from eimir.i18n import request_locale, text
+from eimir_pro.calendar_sync import google, service
+from eimir_pro.calendar_sync.models import (
     CalendarConnection,
     LinkState,
     PlanCalendarLink,
     SpaceCalendarTarget,
 )
-from eimir.config import get_settings
-from eimir.core.errors import ConflictError
-from eimir.entitlements.service import has_capability
-from eimir.i18n import request_locale, text
-from eimir.providers.calendar import CalendarSummary
-from eimir.providers.google_calendar import CALLBACK_PATH
+from eimir_pro.providers.calendar import CalendarSummary
+from eimir_pro.providers.google_calendar import CALLBACK_PATH
 
 router = APIRouter(tags=["calendar-sync"])
 _HEADERS = {"Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer"}

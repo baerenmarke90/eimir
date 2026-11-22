@@ -31,7 +31,7 @@ from urllib.parse import quote
 import httpx
 from pydantic import SecretStr
 
-from eimir.providers.calendar import (
+from eimir_pro.providers.calendar import (
     CalendarAuthError,
     CalendarEvent,
     CalendarEventMissingError,

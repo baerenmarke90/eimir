@@ -6,6 +6,15 @@ from unittest.mock import Mock
 from uuid import UUID, uuid4
 
 import pytest
+from eimir_pro.photo_sources import service
+from eimir_pro.photo_sources.models import (
+    GoogleAccountHint,
+    PhotoConnection,
+    PhotoSelection,
+    PhotoSelectionPayload,
+    SelectedPhotoItem,
+)
+from eimir_pro.providers.immich_photos import SelectedPhoto
 from PIL import Image
 from pydantic import SecretStr
 from sqlalchemy import func, select, text
@@ -16,15 +25,6 @@ from eimir.config import get_settings
 from eimir.core.clock import now
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import Capability, EntitlementSourceType, EntitlementStatus
-from eimir.photo_sources import service
-from eimir.photo_sources.models import (
-    GoogleAccountHint,
-    PhotoConnection,
-    PhotoSelection,
-    PhotoSelectionPayload,
-    SelectedPhotoItem,
-)
-from eimir.providers.immich_photos import SelectedPhoto
 from eimir.relationship.service import add_member
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
@@ -355,8 +355,9 @@ def test_google_gate_rejects_legacy_callback_poll_and_read_without_provider_acce
 def test_google_gate_preserves_legacy_cleanup_after_disable_and_downgrade(
     client, session, owners, monkeypatch, cleanup
 ):
+    from eimir_pro.photo_sources.retention import cleanup as periodic_cleanup
+
     from eimir.identity.models import DeviceSession
-    from eimir.photo_sources.retention import cleanup as periodic_cleanup
 
     entitlement = grant(session, owners)
     row = legacy_google_selection(session, owners)
@@ -440,8 +441,9 @@ def test_personal_export_excludes_credentials_and_account_deletion_purges_link(
 
 
 def test_periodic_cleanup_recovers_lost_expiry_jobs_and_revoked_sessions(client, session, owners):
+    from eimir_pro.photo_sources.retention import cleanup
+
     from eimir.identity.models import DeviceSession
-    from eimir.photo_sources.retention import cleanup
 
     grant(session, owners)
     assert link(client, owners).status_code == 204
@@ -480,8 +482,9 @@ def test_missing_match_headers_cannot_replace_or_disconnect_link(client, session
 
 @pytest.fixture
 def synthetic_google(monkeypatch):
+    from eimir_pro.providers.google_photos_config import GooglePhotosClient
+
     from eimir.auth.tokens import generate_token
-    from eimir.providers.google_photos_config import GooglePhotosClient
 
     oauth_client = GooglePhotosClient(
         "synthetic.apps.googleusercontent.com",
@@ -559,9 +562,8 @@ def google_callback(browser, state, code="synthetic-code"):
 def test_google_callback_requires_the_initiating_browser_and_consumes_once(
     client, session, owners, synthetic_google
 ):
+    from eimir_pro.photo_sources.browser_binding import cookie_name
     from fastapi.testclient import TestClient
-
-    from eimir.photo_sources.browser_binding import cookie_name
 
     states, exchange, _ = synthetic_google
     grant(session, owners)
@@ -608,9 +610,8 @@ def test_google_callback_requires_the_initiating_browser_and_consumes_once(
 def test_two_google_transactions_have_independent_browser_proofs(
     client, session, owners, synthetic_google
 ):
+    from eimir_pro.photo_sources.browser_binding import cookie_name
     from fastapi.testclient import TestClient
-
-    from eimir.photo_sources.browser_binding import cookie_name
 
     states, exchange, _ = synthetic_google
     grant(session, owners)
@@ -633,10 +634,10 @@ def test_two_google_transactions_have_independent_browser_proofs(
 def test_google_browser_proof_does_not_bypass_lifecycle_checks(
     client, session, owners, synthetic_google, monkeypatch, condition
 ):
+    from eimir_pro.photo_sources.browser_binding import cookie_name
     from fastapi.testclient import TestClient
 
     from eimir.identity.models import DeviceSession
-    from eimir.photo_sources.browser_binding import cookie_name
 
     states, exchange, _ = synthetic_google
     entitlement = grant(session, owners)
@@ -863,8 +864,9 @@ LISTED = "anna.test@eimir.example"
 @pytest.fixture
 def eligible_google(monkeypatch):
     """Synthetic provider WITHOUT patching the literal production gate."""
+    from eimir_pro.providers.google_photos_config import GooglePhotosClient
+
     from eimir.auth.tokens import generate_token
-    from eimir.providers.google_photos_config import GooglePhotosClient
 
     oauth_client = GooglePhotosClient(
         "synthetic.apps.googleusercontent.com",

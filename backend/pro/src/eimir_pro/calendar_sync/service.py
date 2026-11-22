@@ -23,18 +23,6 @@ from sqlalchemy.orm import Session
 
 from eimir.auth import rate_limit
 from eimir.authorization.privacy import AuthorizationContext
-from eimir.calendar_sync.models import (
-    CalendarConnection,
-    CalendarConnectionPayload,
-    CalendarProviderKind,
-    ConnectionStatus,
-    LinkState,
-    PlanCalendarLink,
-    PlanCalendarLinkPayload,
-    SpaceCalendarTarget,
-    SpaceCalendarTargetPayload,
-    TargetStatus,
-)
 from eimir.config import get_settings
 from eimir.core import clock
 from eimir.core.errors import (
@@ -58,8 +46,21 @@ from eimir.outbox.models import OutboxEvent
 from eimir.places.models import Place
 from eimir.plans import discreet
 from eimir.plans.models import Plan, PlanStatus
-from eimir.providers.caldav import CalDavAccount, CalDavClient, origin_label
-from eimir.providers.calendar import (
+from eimir.security.keyring import EncryptionMode
+from eimir_pro.calendar_sync.models import (
+    CalendarConnection,
+    CalendarConnectionPayload,
+    CalendarProviderKind,
+    ConnectionStatus,
+    LinkState,
+    PlanCalendarLink,
+    PlanCalendarLinkPayload,
+    SpaceCalendarTarget,
+    SpaceCalendarTargetPayload,
+    TargetStatus,
+)
+from eimir_pro.providers.caldav import CalDavAccount, CalDavClient, origin_label
+from eimir_pro.providers.calendar import (
     CalendarAuthError,
     CalendarEvent,
     CalendarEventLink,
@@ -69,8 +70,7 @@ from eimir.providers.calendar import (
     CalendarSummary,
     CalendarVersionConflictError,
 )
-from eimir.providers.calendar_transport import CalendarTransportError
-from eimir.security.keyring import EncryptionMode
+from eimir_pro.providers.calendar_transport import CalendarTransportError
 
 log = logging.getLogger(__name__)
 
@@ -146,7 +146,7 @@ def provider_for(connection: CalendarConnection) -> CalendarProvider:
             private_hosts=_private_hosts(),
         )
     if connection.provider == CalendarProviderKind.GOOGLE.value:
-        from eimir.calendar_sync import google
+        from eimir_pro.calendar_sync import google
 
         return google.provider_for(connection)
     raise ServiceUnavailableError("Calendar connection is unavailable.", "CALENDAR_UNAVAILABLE")

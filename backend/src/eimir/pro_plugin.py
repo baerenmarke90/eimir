@@ -42,13 +42,13 @@ if TYPE_CHECKING:
 _CAPABILITIES = PLUGIN_CAPABILITIES
 
 _MODEL_MODULES = (
-    "eimir.calendar_sync.models",
+    "eimir_pro.calendar_sync.models",
     "eimir_pro.couple_games.models",
     "eimir_pro.garden.models",
     "eimir_pro.heart_hunt.models",
     "eimir_pro.once_messages.models",
     "eimir_pro.partner_quick_actions.models",
-    "eimir.photo_sources.models",
+    "eimir_pro.photo_sources.models",
     "eimir_pro.picture_ping_pong.models",
     "eimir_pro.presence.models",
     "eimir_pro.quotes.models",
@@ -289,12 +289,11 @@ def _delete_account_rows(session: Session, model: Any, account_id: UUID) -> None
 
 
 def _on_account_deleted(session: Session, account_id: UUID) -> None:
+    from eimir_pro.calendar_sync.models import CalendarConnection, CalendarOAuthTransaction
     from eimir_pro.partner_quick_actions.models import SupportGestureRequest
+    from eimir_pro.photo_sources.models import GoogleAccountHint, PhotoConnection, PhotoSelection
     from eimir_pro.presence.models import PartnerLocationConsent, SharingLevel
     from eimir_pro.presence.service import delete_owner_presence
-
-    from eimir.calendar_sync.models import CalendarConnection, CalendarOAuthTransaction
-    from eimir.photo_sources.models import GoogleAccountHint, PhotoConnection, PhotoSelection
 
     for model in personal_account_models():
         _delete_account_rows(session, model, account_id)
@@ -350,6 +349,7 @@ class InTreeProPlugin:
 
     def routers(self) -> Sequence[APIRouter]:
         from eimir_pro.api import (
+            calendar_sync,
             couple_games,
             daily_insights,
             daily_quote,
@@ -361,12 +361,11 @@ class InTreeProPlugin:
             once_messages,
             partner_location,
             partner_quick_actions,
+            photo_sources,
             picture_ping_pong,
             recap_composition,
             relationship_passport,
         )
-
-        from eimir.api.v1 import calendar_sync, photo_sources
 
         return (
             photo_sources.router,
@@ -388,14 +387,13 @@ class InTreeProPlugin:
         )
 
     def register_jobs(self, registry: JobRegistry) -> None:
+        from eimir_pro.calendar_sync import jobs as calendar_sync_jobs
         from eimir_pro.heart_hunt import retention as heart_hunt_retention
         from eimir_pro.once_messages import service as once_messages
+        from eimir_pro.photo_sources import retention as photo_source_retention
         from eimir_pro.presence import retention as presence_retention
         from eimir_pro.recap_composition import jobs as recap_jobs
         from eimir_pro.video_processing import jobs as video_jobs
-
-        from eimir.calendar_sync import jobs as calendar_sync_jobs
-        from eimir.photo_sources import retention as photo_source_retention
 
         photo_source_retention.register_handlers(registry)
         once_messages.register_handlers(registry)
@@ -407,10 +405,9 @@ class InTreeProPlugin:
 
     def ensure_scheduled(self, session: Session) -> None:
         from eimir_pro.heart_hunt import retention as heart_hunt_retention
+        from eimir_pro.photo_sources import retention as photo_source_retention
         from eimir_pro.presence import retention as presence_retention
         from eimir_pro.recap_composition import jobs as recap_jobs
-
-        from eimir.photo_sources import retention as photo_source_retention
 
         heart_hunt_retention.ensure_scheduled(session)
         presence_retention.ensure_scheduled(session)
@@ -425,7 +422,7 @@ class InTreeProPlugin:
     def on_outbox_event(self, session: Session, event: OutboxEvent, event_type: EventType) -> None:
         # Calendar sync (#1895) reads the current Plan later in its own job, so it
         # only schedules work here and never depends on notification eligibility.
-        from eimir.calendar_sync import service as calendar_sync
+        from eimir_pro.calendar_sync import service as calendar_sync
 
         calendar_sync.on_outbox_event(session, event, event_type)
 
@@ -482,7 +479,7 @@ class InTreeProPlugin:
 
     def on_member_left(self, session: Session, space_id: UUID, account_id: UUID) -> None:
         # The leaving sponsor's credentials stop writing this Space's calendar (#1895).
-        from eimir.calendar_sync import service as calendar_sync
+        from eimir_pro.calendar_sync import service as calendar_sync
 
         calendar_sync.on_membership_ended(session, account_id, space_id)
 
@@ -495,7 +492,8 @@ class InTreeProPlugin:
         authorization: AuthorizationContext,
         scope: TransferScope,
     ) -> Mapping[str, Any]:
-        from eimir.photo_sources.models import GoogleAccountHint, PhotoConnection
+        from eimir_pro.photo_sources.models import GoogleAccountHint, PhotoConnection
+
         from eimir.transfer.models import TransferScope
 
         document: dict[str, Any] = {}

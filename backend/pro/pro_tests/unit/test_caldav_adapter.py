@@ -8,11 +8,10 @@ from datetime import UTC, date, datetime
 from urllib.parse import unquote
 
 import pytest
-
-from eimir.calendar_sync import ical
-from eimir.providers import calendar_transport
-from eimir.providers.caldav import CalDavAccount, CalDavClient
-from eimir.providers.calendar import (
+from eimir_pro.calendar_sync import ical
+from eimir_pro.providers import calendar_transport
+from eimir_pro.providers.caldav import CalDavAccount, CalDavClient
+from eimir_pro.providers.calendar import (
     CalendarAuthError,
     CalendarEvent,
     CalendarEventLink,
@@ -20,12 +19,13 @@ from eimir.providers.calendar import (
     CalendarProviderError,
     CalendarVersionConflictError,
 )
-from eimir.providers.calendar_transport import (
+from eimir_pro.providers.calendar_transport import (
     CalendarTransportError,
     Origin,
     parse_https_url,
 )
-from tests.support.fake_caldav import Dialect, FakeCalDavServer, unreachable
+
+from pro_tests.support.fake_caldav import Dialect, FakeCalDavServer, unreachable
 
 DIALECTS = {
     # Radicale-style: relative hrefs, ETag on PUT, privilege sets.
@@ -58,8 +58,9 @@ def client(
 
 
 def _transport(server: FakeCalDavServer, account: CalDavAccount):  # type: ignore[no-untyped-def]
-    from eimir.providers.caldav import _authorization
-    from tests.support.fake_caldav import FakeTransport
+    from eimir_pro.providers.caldav import _authorization
+
+    from pro_tests.support.fake_caldav import FakeTransport
 
     return FakeTransport(server, _authorization(account.username, account.password))
 

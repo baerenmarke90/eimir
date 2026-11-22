@@ -1,7 +1,7 @@
 """Provider-neutral calendar contract for automatic Plan sync (#1895).
 
 Adapters translate this small contract to one provider (CalDAV, Google
-Calendar). The sync lifecycle in ``eimir.calendar_sync`` never sees provider
+Calendar). The sync lifecycle in ``eimir_pro.calendar_sync`` never sees provider
 protocols: it works with calendar references, event references and opaque
 provider versions (ETags) only. Free/busy is deliberately absent because
 shared availability is not commissioned; the contract can be extended.

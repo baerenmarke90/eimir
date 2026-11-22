@@ -12,7 +12,7 @@ from datetime import UTC, date, datetime
 from urllib.parse import quote
 
 from eimir.core import clock
-from eimir.providers.calendar import CalendarEvent
+from eimir_pro.providers.calendar import CalendarEvent
 
 PRODUCT_ID = "-//eimir.//Calendar sync//EN"
 

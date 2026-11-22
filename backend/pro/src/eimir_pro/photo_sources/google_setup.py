@@ -6,9 +6,9 @@ import argparse
 import json
 
 from eimir.config import get_settings
-from eimir.photo_sources.service import google_import_available
-from eimir.providers.google_photos_config import SCOPE, callback_uri, client_configuration
 from eimir.providers.photo_transport import PhotoSourceError
+from eimir_pro.photo_sources.service import google_import_available
+from eimir_pro.providers.google_photos_config import SCOPE, callback_uri, client_configuration
 
 
 def main(argv: list[str] | None = None) -> int:

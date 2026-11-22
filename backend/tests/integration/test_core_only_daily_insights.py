@@ -99,3 +99,29 @@ def test_without_the_plugin_retained_ratings_stay_exportable_and_clearable(
         assert cleared.status_code == 200
         assert cleared.json() == {"recommendationKey": "quiet_time", "rating": None}
         assert session.scalars(select(DailyInsightFeedback)).all() == []
+
+
+def test_without_the_plugin_check_ins_keep_the_two_day_window(
+    client: TestClient, session: Session, couple: SimpleNamespace
+) -> None:
+    """History retention follows the effective capability, not the stored grant."""
+    from eimir.daily_checkins import retention
+    from eimir.daily_checkins.models import DailyCheckIn
+    from tests.integration.test_daily_checkins_pro_insights import configure_daily
+
+    configure_daily(session, space_id=couple.space.id, manager_id=couple.anna.id)
+    instant = clock.now()
+    today = instant.date()
+    for offset in (0, 3):
+        session.add(
+            DailyCheckIn(
+                space_id=couple.space.id,
+                account_id=couple.anna.id,
+                checked_on=today - timedelta(days=offset),
+                energy_level=50,
+            )
+        )
+    session.flush()
+    with core_only():
+        assert retention.purge_expired(session, current_time=instant) == 1
+    assert [row.checked_on for row in session.scalars(select(DailyCheckIn))] == [today]

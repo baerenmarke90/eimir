@@ -12,6 +12,8 @@ import {
   isInsightsContextUnavailable,
   isInsightsEntitlementRequired,
   loadDailyInsights,
+  loadWeeklyBrief,
+  weeklyBriefQueryKey,
 } from '../client/dailyInsights';
 import {
   addDays,
@@ -29,10 +31,12 @@ import {
 } from '../client/dailyInsightsModel';
 import { dashboardQueryKey } from '../client/dashboardQueries';
 import { firstNameFromDisplayName } from '../client/personalName';
+import type { ReferenceApis } from '../client/referenceFlow';
 import {
   appRoutePath,
   MORE_INSIGHTS_PATTERNS_ROUTE,
   MORE_INSIGHTS_ROUTE,
+  MORE_INSIGHTS_WEEK_ROUTE,
   settingsCategoryPath,
 } from '../client/routes';
 import {
@@ -54,12 +58,13 @@ import { PatternsView, WeekView } from './DailyInsightsViews';
 import { NativeDateInput } from './NativeDateField';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
+import { WeeklyBrief } from './WeeklyBrief';
 import {
   ClearWeeklyInsightFeedback,
   WeeklyInsightCard,
 } from './WeeklyInsightCard';
 
-export type DailyInsightsViewId = 'week' | 'patterns';
+export type DailyInsightsViewId = 'brief' | 'week' | 'patterns';
 
 interface DailyInsightsPageProps {
   view: DailyInsightsViewId;
@@ -69,13 +74,20 @@ interface DailyInsightsPageProps {
   entitlementApi: EntitlementsApi;
   dashboardApi: DashboardApi;
   profilesApi?: ProfilesApi;
+  mediaApis?: ReferenceApis;
   apiBaseUrl?: string;
 }
 
 const NAV_ITEMS = [
   {
-    id: 'week',
+    id: 'brief',
     to: MORE_INSIGHTS_ROUTE,
+    labelKey: 'dailyInsights.nav.brief',
+    end: true,
+  },
+  {
+    id: 'week',
+    to: MORE_INSIGHTS_WEEK_ROUTE,
     labelKey: 'dailyInsights.nav.week',
     end: true,
   },
@@ -105,9 +117,9 @@ function PeriodPicker({
   const datePickerId = useId();
   const offsets = selected === current ? [-2, -1, 0] : [-1, 0, 1];
   const periods = offsets.map((offset) =>
-    view === 'week'
-      ? addDays(selected, offset * 7)
-      : shiftMonth(selected, offset),
+    view === 'patterns'
+      ? shiftMonth(selected, offset)
+      : addDays(selected, offset * 7),
   );
   return (
     <fieldset className="insight-picker">
@@ -119,9 +131,9 @@ function PeriodPicker({
           aria-pressed={date === selected}
           onClick={() => onSelect(date)}
         >
-          {view === 'week'
-            ? formatWeekRange(date, addDays(date, 6))
-            : formatMonthYear(date)}
+          {view === 'patterns'
+            ? formatMonthYear(date)
+            : formatWeekRange(date, addDays(date, 6))}
         </button>
       ))}
       <label className="insight-date-picker" htmlFor={datePickerId}>
@@ -200,6 +212,7 @@ export function DailyInsightsPage({
   entitlementApi,
   dashboardApi,
   profilesApi,
+  mediaApis,
   apiBaseUrl = '',
 }: DailyInsightsPageProps) {
   const { t } = useTranslation();
@@ -246,8 +259,8 @@ export function DailyInsightsPage({
   function selectPeriod(date: IsoDate) {
     if (!today || !validPeriod(date, today)) return;
     const nextParams = new URLSearchParams(searchParams);
-    if (view === 'week') nextParams.set('week', mondayOf(date));
-    else nextParams.set('month', monthStart(date));
+    if (view === 'patterns') nextParams.set('month', monthStart(date));
+    else nextParams.set('week', mondayOf(date));
     setSearchParams(nextParams, { replace: true });
   }
 
@@ -263,6 +276,16 @@ export function DailyInsightsPage({
     queryFn: ({ signal }) =>
       loadDailyInsights(dailyCheckInsApi, spaceId, range, signal),
     enabled: capable && range !== null,
+    retry: false,
+    gcTime: 0,
+    refetchOnMount: 'always',
+  });
+
+  const briefQuery = useQuery({
+    queryKey: weeklyBriefQueryKey(account.id, spaceId, monday ?? ''),
+    queryFn: ({ signal }) =>
+      loadWeeklyBrief(dailyCheckInsApi, spaceId, monday ?? '', signal),
+    enabled: capable && view === 'brief' && monday !== null,
     retry: false,
     gcTime: 0,
     refetchOnMount: 'always',
@@ -351,7 +374,8 @@ export function DailyInsightsPage({
   const gated =
     capabilityQuery.data === false ||
     isInsightsEntitlementRequired(anchorQuery.error) ||
-    isInsightsEntitlementRequired(rangeQuery.error);
+    isInsightsEntitlementRequired(rangeQuery.error) ||
+    isInsightsEntitlementRequired(briefQuery.error);
   const modulesOff =
     anchorQuery.data !== undefined &&
     !anchorQuery.data.vibeEnabled &&
@@ -413,6 +437,32 @@ export function DailyInsightsPage({
     );
   } else if (!rangeQuery.data || monday === null || month === null) {
     body = <UiState kind="loading" title={t('dailyInsights.loading')} />;
+  } else if (view === 'brief') {
+    if (briefQuery.error) {
+      body = (
+        <ProblemState
+          error={briefQuery.error}
+          onRetry={() => void briefQuery.refetch()}
+        />
+      );
+    } else if (!briefQuery.data) {
+      body = (
+        <UiState kind="loading" title={t('dailyInsights.brief.loading')} />
+      );
+    } else {
+      body = (
+        <WeeklyBrief
+          key={monday}
+          brief={briefQuery.data}
+          days={daysInRange(allDays, weekDates(monday))}
+          people={people}
+          modules={modules}
+          spaceId={spaceId}
+          mediaApis={mediaApis ?? null}
+          historySearch={searchParams.toString()}
+        />
+      );
+    }
   } else if (view === 'patterns') {
     body = (
       <PatternsView
@@ -483,12 +533,12 @@ export function DailyInsightsPage({
         <PeriodPicker
           view={view}
           label={t(
-            view === 'week'
-              ? 'dailyInsights.week.picker'
-              : 'dailyInsights.patterns.monthPicker',
+            view === 'patterns'
+              ? 'dailyInsights.patterns.monthPicker'
+              : 'dailyInsights.week.picker',
           )}
-          selected={view === 'week' ? monday : month}
-          current={view === 'week' ? mondayOf(today) : monthStart(today)}
+          selected={view === 'patterns' ? month : monday}
+          current={view === 'patterns' ? monthStart(today) : mondayOf(today)}
           today={today}
           onSelect={selectPeriod}
         />

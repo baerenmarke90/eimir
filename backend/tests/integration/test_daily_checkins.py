@@ -1066,6 +1066,64 @@ class TestRetentionAndPortability:
             (la.id, date(2026, 9, 19)),
         }
 
+    def test_insights_spaces_keep_ninety_days_until_the_capability_ends(
+        self, session: Session
+    ) -> None:
+        from datetime import timedelta
+
+        from eimir.entitlements import service as entitlement_service
+        from eimir.entitlements.models import (
+            Capability,
+            EntitlementSourceType,
+            EntitlementStatus,
+            EntitlementTier,
+        )
+
+        instant = datetime(2026, 9, 21, 12, tzinfo=UTC)
+        pro_owner = make_account(session, "Pro")
+        free_owner = make_account(session, "Free")
+        pro = make_space(session, pro_owner)
+        free = make_space(session, free_owner)
+        for space, owner in ((pro, pro_owner), (free, free_owner)):
+            configure_daily(
+                session, space_id=space.id, manager_id=owner.id, timezone="Europe/Berlin"
+            )
+            for offset in (0, 1, 2, 89, 90):
+                session.add(
+                    DailyCheckIn(
+                        space_id=space.id,
+                        account_id=owner.id,
+                        checked_on=date(2026, 9, 21) - timedelta(days=offset),
+                        energy_level=50,
+                    )
+                )
+        grant = entitlement_service.record_grant(
+            session,
+            space_id=pro.id,
+            account_id=pro_owner.id,
+            source_type=EntitlementSourceType.TEST_FIXTURE,
+            status=EntitlementStatus.ACTIVE,
+            tier=EntitlementTier.PREMIUM,
+            effective_from=instant - timedelta(days=1),
+            capabilities=[Capability.DAILY_INSIGHTS.value],
+        )
+        session.flush()
+
+        def kept(space_id: UUID) -> set[int]:
+            rows = session.execute(
+                select(DailyCheckIn.checked_on).where(DailyCheckIn.space_id == space_id)
+            ).scalars()
+            return {(date(2026, 9, 21) - day).days for day in rows}
+
+        assert retention.purge_expired(session, current_time=instant) == 4
+        assert kept(pro.id) == {0, 1, 2, 89}
+        assert kept(free.id) == {0, 1}
+
+        entitlement_service.revoke_grant(session, grant.id)
+        session.flush()
+        assert retention.purge_expired(session, current_time=instant) == 2
+        assert kept(pro.id) == {0, 1}
+
     def test_daily_check_ins_are_not_portable_transfer_state(self) -> None:
         portable_tables = {
             table for tables in transfer_service.FILE_TABLES.values() for table in tables

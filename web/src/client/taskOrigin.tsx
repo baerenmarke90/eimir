@@ -57,8 +57,15 @@ export interface TaskOriginMetadata {
     description?: string;
     dateIdeaId?: string;
   };
-  /** Editable prefill for converting a known Wish into a Plan. */
-  planningConvertDraft?: { title: string; description?: string };
+  /**
+   * Editable prefill for converting a known Wish into a Plan; `plannedOn` is a
+   * date-only suggestion such as the weekly brief's rhythm day (#2169).
+   */
+  planningConvertDraft?: {
+    title: string;
+    description?: string;
+    plannedOn?: string;
+  };
   /** Restores the date inspiration filters; catalog keys only, never content. */
   dateIdeasFilter?: DateIdeasFilterState;
   /** Bounded, account/Space-scoped map return context; never persisted or logged. */

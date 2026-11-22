@@ -91,7 +91,6 @@ test('cross-surface journeys follow their real destination rather than their his
     ['MemoryCreatePage', 'planning-wish-completion-continuation'],
     ['MemoryProductPage', 'memory-map-and-couple-games'],
     ['HeartMomentProductPage', 'today-keepsake-precedence'],
-    ['DailyInsightsPage', 'today-pro-insights'],
     ['PlaceProductPage', 'moment-relation-picker'],
     ['PlanProductPage', 'relationship-reflections'],
     ['MediaOverviewPage', 'story-discover-tapestry'],

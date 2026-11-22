@@ -10,7 +10,6 @@ import {
   ACTIVITY_ROUTE,
   type AppRouteIcon,
   appRoutePath,
-  MORE_INSIGHTS_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
@@ -81,13 +80,6 @@ const STORY_DESTINATIONS: readonly MoreDestination[] = [
     icon: 'plan',
     titleKey: 'more.destinations.yearsAndRecaps',
     subtitleKey: 'more.subtitles.yearsAndRecaps',
-  },
-  {
-    path: MORE_INSIGHTS_ROUTE,
-    icon: 'activity',
-    titleKey: 'more.destinations.insights',
-    subtitleKey: 'more.subtitles.insights',
-    badgeKey: 'dailyInsights.pro',
   },
 ];
 

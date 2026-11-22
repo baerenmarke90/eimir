@@ -29,7 +29,11 @@ def upgrade() -> None:
                 ) pending;
                 EXIT WHEN batch IS NULL;
                 DELETE FROM daily_check_ins WHERE account_id = ANY(batch);
-                DELETE FROM daily_insight_feedback WHERE account_id = ANY(batch);
+                -- Dropped by 0171 (#2210); guarded so the cleanup can also replay at head.
+                IF to_regclass('public.daily_insight_feedback') IS NOT NULL THEN
+                    EXECUTE 'DELETE FROM daily_insight_feedback WHERE account_id = ANY($1)'
+                        USING batch;
+                END IF;
                 DELETE FROM daily_quote_preferences WHERE account_id = ANY(batch);
                 DELETE FROM dashboard_module_preferences WHERE account_id = ANY(batch);
                 DELETE FROM notification_preferences WHERE account_id = ANY(batch);

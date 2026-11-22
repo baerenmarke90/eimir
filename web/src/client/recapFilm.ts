@@ -4,7 +4,6 @@ import type { RecapFilmView } from '../api/generated/models/RecapFilmView';
 import type { RecapSourceView } from '../api/generated/models/RecapSourceView';
 import type { RecapTagView } from '../api/generated/models/RecapTagView';
 import type { RecapView } from '../api/generated/models/RecapView';
-import { recapRhythm } from './recaps';
 
 /**
  * Monthly and yearly recaps as films (#1744, PO 2026-11-17).
@@ -177,12 +176,6 @@ export type FilmScene = Timing &
       }
     | { type: 'place'; places: string[] }
     | { type: 'fact'; days: number }
-    | {
-        type: 'rhythm';
-        buckets: { index: number; goodDays: number }[];
-        leading: number | null;
-        total: number;
-      }
     | {
         type: 'photo';
         source: RecapSourceView;
@@ -434,9 +427,6 @@ function sceneMs(
       ms =
         Math.max(FIXED_MS[draft.type] * rhythm, clip(draft.media)) +
         answerChars(draft) * FILM_MS_PER_CHAR;
-      break;
-    case 'rhythm':
-      ms = readingMs(40 + draft.buckets.length * 12);
       break;
     case 'firsts':
       ms = FIRSTS_BASE_MS + draft.sources.length * FIRSTS_ITEM_MS;
@@ -690,7 +680,6 @@ export function recapFilmScenes(value: RecapView): FilmScene[] | null {
         : days > 0
           ? [{ type: 'fact', key: 'fact', days }]
           : [];
-  const rhythm = recapRhythm(value);
   const intro: Draft[] = [
     {
       type: 'cover',
@@ -700,17 +689,6 @@ export function recapFilmScenes(value: RecapView): FilmScene[] | null {
       source: highlight,
     },
     ...opener,
-    ...(rhythm
-      ? [
-          {
-            type: 'rhythm' as const,
-            key: 'rhythm',
-            buckets: rhythm.buckets,
-            leading: rhythm.leading,
-            total: rhythm.total,
-          },
-        ]
-      : []),
   ];
   // The closing form is frozen in the look; a fade lets the highlight go.
   const finish = layoutOrder(film, 'closing')[0];

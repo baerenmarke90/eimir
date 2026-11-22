@@ -1,7 +1,7 @@
 ---
 document: privacy-policy
 locale: de-DE
-version: 2026-11-22.draft-8
+version: 2026-11-22.draft-9
 status: draft
 effective: null
 legal_review: pending
@@ -55,7 +55,7 @@ Diese Übersicht soll dir den Einstieg erleichtern. Die Einzelheiten stehen in d
 2. Was ihr „Für uns beide“ speichert, seht ihr beide. Gemeinsame Erinnerungen und ähnliche Inhalte kann dein Partner auch bearbeiten und im Datenexport herunterladen, auch wenn du sie erstellt hast.
 3. Was du als „Nur für mich“ speicherst, zum Beispiel private Notizen, Geschenkideen oder private Herzmomente, siehst nur du. Diese Grenze setzen unsere Server durch, nicht nur die Anzeige in der App.
 4. Dein Partner sieht außerdem deinen Anzeigenamen, dein Profilbild und die Angaben, die du in deinem Profil für deinen Partner hinterlegst. Während ihr eimir. nutzt, sieht dein Partner, ob du gerade oder vor Kurzem aktiv warst, aber keine Uhrzeit. Dafür speichern wir nur den Zeitpunkt deiner letzten Aktivität und überschreiben ihn laufend. Diese Anzeige beruht auf unserem und eurem berechtigten Interesse, dass ihr in eimir. merkt, wann der andere da ist (Art. 6 Abs. 1 lit. f DSGVO). Du kannst ihr widersprechen (Abschnitt 24).
-5. Teilst du dein „Gefühl für heute“ oder deinen Akku, speichern wir diese Angaben für den aktuellen und den vorherigen Tag und löschen sie danach automatisch. Nutzt euer Space eimir. Pro mit den Einblicken, speichern wir sie stattdessen 90 Tage, damit die Einblicke eure Wochen und Monate zeigen können. Endet eimir. Pro, löschen wir die älteren Angaben beim nächsten automatischen Aufräumen. Ob und wann dein Partner sie sieht, folgt den Einstellungen eures Space.
+5. Teilst du dein „Gefühl für heute“ oder deinen Akku, speichern wir diese Angaben nur für den aktuellen Tag. Ist der Tag vorbei, verschwinden sie in eimir., und wir löschen sie beim nächsten automatischen Aufräumen, das jede Stunde läuft. Ob und wann dein Partner sie sieht, folgt den Einstellungen eures Space.
 6. Fotos, Videos und Sprachnachrichten prüfen wir technisch, erzeugen Vorschaubilder und wandeln Videos und Sprachnachrichten in ein einheitliches Format um. Bei Fotos, die du einer Erinnerung oder einem Herzmoment hinzufügst, bleiben lesbare Metadaten in der Originaldatei erhalten, zum Beispiel Aufnahmezeit, Aufnahmeort und Gerätemodell. Wer das Foto sehen darf, kann es mit diesen Metadaten herunterladen. Das gilt auch, wenn du die automatische Ortszuordnung ausgeschaltet hast (Abschnitt 9). Aus allen anderen Fotos, etwa deinem Profilbild, sowie aus Vorschaubildern, Videos und Sprachnachrichten entfernen wir eingebettete Metadaten.
 7. Eine Sprachnachricht nimmst du in eimir. auf, oder du übernimmst eine Audiodatei, in der Android-App auch über die Teilen-Funktion einer anderen App. Das Mikrofon nutzt eimir. nur, während du aufnimmst; dafür fragt dein Browser oder dein Gerät nach der Berechtigung. Sprachnachrichten schreiben wir nicht automatisch ab.
 8. Verlässt du einen Space, löschen wir deine „Nur für mich“-Inhalte aus diesem Space. Gemeinsame Inhalte bleiben für deinen Partner erhalten, auch die, die du erstellt hast. Das beruht auf dem berechtigten Interesse deines Partners, eure gemeinsame Geschichte nicht einseitig zu verlieren (Art. 6 Abs. 1 lit. f DSGVO). Eigene gemeinsame Inhalte kannst du vor dem Verlassen löschen. Sollen andere gemeinsame Inhalte nicht bei deinem Partner bleiben, etwa Fotos von dir, schreib uns (Abschnitt 24). Verlässt auch dein Partner den Space, löschen wir ihn 30 Tage später mit allen Inhalten.
@@ -112,7 +112,7 @@ Diese Übersicht soll dir den Einstieg erleichtern. Die Einzelheiten stehen in d
 
 ## 11. Automatische Vorschläge und lokale KI
 
-1. Im Wochenbrief der Einblicke stellen wir nach festen Regeln zusammen, was euch gutgetan hat, was Aufmerksamkeit braucht und welcher eurer offenen Wünsche ein nächster Plan sein könnte. Dafür nutzen wir eure Einträge für „Gefühl für heute“ und Akku, soweit ihr beide sie sehen könnt, und eure gemeinsamen Pläne, Erinnerungen und Wünsche. Dabei kommt kein KI-Modell zum Einsatz, und wir speichern das Ergebnis nicht. Hast du früher Anregungen in den Einblicken bewertet, bleiben diese Bewertungen nur für dich gespeichert, bis du sie in den Einblicken löschst. Wir nutzen sie nicht mehr. Für gemeinsame Erinnerungen und Herzmomente machen wir Schlagwortvorschläge. Wenn dabei ein KI-Sprachmodell zum Einsatz kommt, läuft es in unserer eigenen Serverumgebung. Eure Inhalte gehen dafür nicht an externe KI-Anbieter.
+1. Für gemeinsame Erinnerungen und Herzmomente machen wir Schlagwortvorschläge. Wenn dabei ein KI-Sprachmodell zum Einsatz kommt, läuft es in unserer eigenen Serverumgebung. Eure Inhalte gehen dafür nicht an externe KI-Anbieter.
 2. Das Modell erhält nur gemeinsame Inhalte und nur die Ausschnitte, die für den jeweiligen Vorschlag nötig sind, niemals „Nur für mich“-Inhalte.
 3. Wir trainieren keine KI-Modelle mit euren Inhalten und speichern Eingaben und Ergebnisse des Modells nicht in Protokollen. Vorschläge können trotzdem unzutreffend sein. Prüfe sie, bevor du sie übernimmst oder teilst.
 4. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO. Wir treffen keine Entscheidungen, die ausschließlich automatisiert zustande kommen und dir gegenüber rechtliche Wirkung entfalten oder dich in ähnlicher Weise erheblich beeinträchtigen (Art. 22 DSGVO).
@@ -200,7 +200,7 @@ Wir speichern deine Daten nur so lange, wie wir sie für die beschriebenen Zweck
 - **Einzelne Inhalte, die ihr löscht:** sofort aus eimir.; Kopien in Sicherungen mit deren Ablauf.
 - **Einmalnachrichten:** ungeöffnet 24 Stunden, nach dem Öffnen sofort.
 - **Entfernung zum Partner:** deine aktuelle gerundete Position höchstens 24 Stunden und beim Beenden des Teilens sofort; deine Einstellung zum Teilen bis zum Löschen deines Kontos.
-- **„Gefühl für heute“ und Akku:** bis zum Ende des folgenden Tages; mit eimir. Pro und den Einblicken 90 Tage, nach dem Ende von eimir. Pro wieder bis zum Ende des folgenden Tages.
+- **„Gefühl für heute“ und Akku:** bis zum Ende des Tages, gelöscht spätestens beim nächsten stündlichen Aufräumen.
 - **Sitzungen:** bis zu 60 Tage ohne Nutzung, höchstens 180 Tage.
 - **Links:** Anmeldelinks 15 Minuten, Links zur Bestätigung deiner Adresse 24 Stunden, Einladungen für deinen Partner 14 Tage.
 - **Missbrauchsschutz:** ein Tag.

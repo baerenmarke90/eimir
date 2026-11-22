@@ -6,7 +6,6 @@ import composer from './locales/composer';
 import contextTags from './locales/contextTags';
 import coupleExperiences from './locales/coupleExperiences';
 import dailyEnergy from './locales/dailyEnergy';
-import dailyInsights from './locales/dailyInsights';
 import dailyQuote from './locales/dailyQuote';
 import dailyVibe from './locales/dailyVibe';
 import dateIdeas from './locales/dateIdeas';
@@ -101,7 +100,6 @@ export const germanResources = {
   demo,
   discreetPlans,
   dailyEnergy,
-  dailyInsights,
   dailyQuote,
   dailyVibe,
   dateIdeas,

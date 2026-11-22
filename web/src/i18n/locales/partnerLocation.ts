@@ -165,6 +165,8 @@ const partnerLocation = {
   wirModuleLabel: 'Entfernung zwischen euch',
   mapTitle: 'Wo wir gerade sind',
   mapShowUs: 'Uns zeigen',
+  mapZoomToPartner: 'Zu {{partner}} zoomen',
+  mapZoomToOwn: 'Zu dir zoomen',
   mapLoading: 'Karte wird geladen …',
   mapPartnerArea: '{{partner}}',
   mapPartnerNotSharing: '{{partner}} teilt gerade nichts',

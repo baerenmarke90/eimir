@@ -41,6 +41,7 @@ const MODULE_ICONS: Record<DashboardModuleKey, EimirIconName> = {
   relationship_presence: 'wir',
   partner_distance: 'orte',
   shared_experience: 'nurfuer',
+  games_waiting: 'spiele',
   daily_quote: 'quote',
   keepsake: 'momente',
   upcoming: 'kalender',
@@ -57,6 +58,7 @@ const MODULE_ICONS: Record<DashboardModuleKey, EimirIconName> = {
 /** Pro modules whose row carries the calm Pro marker. */
 const PRO_MARKED_MODULES: readonly DashboardModuleKey[] = [
   'partner_distance',
+  'games_waiting',
   'shared_garden',
 ];
 

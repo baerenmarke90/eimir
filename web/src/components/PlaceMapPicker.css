@@ -156,6 +156,21 @@
   place-items: center;
 }
 
+/* A person's avatar is a button that brings them into view (#2158); the
+   area around it keeps passing gestures to the map. */
+button.place-map-area-marker {
+  min-height: 0;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  pointer-events: auto;
+}
+
+button.place-map-area-marker:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
 .place-map-area-marker .partner-avatar {
   box-shadow: 0 0 0 3px var(--color-surface);
 }

@@ -2493,6 +2493,7 @@ describe('formatRelationshipDuration', () => {
       relationship_presence: 'today-hero',
       partner_distance: 'partner-distance-signal',
       shared_experience: 'shared-experience-section',
+      games_waiting: 'today-section-waiting-games',
       daily_quote: 'daily-quote-card',
       upcoming: 'today-section-upcoming',
       pinned_collection: 'today-section-pinned-collection',
@@ -2518,7 +2519,10 @@ describe('formatRelationshipDuration', () => {
         key !== 'partner_distance' &&
         // Opt-in Premium module with its own read; covered by
         // `WirGardenModule.test.tsx` and `wir-garden.spec.ts`.
-        key !== 'shared_garden',
+        key !== 'shared_garden' &&
+        // Premium module with its own read that renders only while a game
+        // waits; covered by `WirWaitingGamesModule.test.tsx`.
+        key !== 'games_waiting',
     );
 
     it('renders a personal complete order in DOM order, including the presence hero', () => {

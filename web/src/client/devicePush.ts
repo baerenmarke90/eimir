@@ -65,7 +65,7 @@ type SelectedConfiguration =
       providerKey: 'fcm';
       firebaseProjectId: string;
       androidPackage: string;
-      encryptedPreviewVersion?: 1 | 2;
+      encryptedPreviewVersion?: 1 | 2 | 3;
       neutralReferenceVersion?: 1;
       localeVersion?: 1;
     }
@@ -342,10 +342,14 @@ function selectConfiguration(
             : {}),
           ...(available.fcm.encryptedPreviewVersion === 1
             ? {
+                // v3 (#2158) is advertised by its own additive field, so that
+                // installed apps expecting exactly 2 keep negotiating v2.
                 encryptedPreviewVersion:
-                  available.fcm.encryptedPreviewMaxVersion === 2
-                    ? (2 as const)
-                    : (1 as const),
+                  available.fcm.encryptedPreviewDetailVersion === 3
+                    ? (3 as const)
+                    : available.fcm.encryptedPreviewMaxVersion === 2
+                      ? (2 as const)
+                      : (1 as const),
               }
             : {}),
         }
@@ -610,10 +614,14 @@ export function useDevicePush({
               fcmSubscription?.previewVersion === 1
                 ? {
                     version:
-                      configuration.current.encryptedPreviewVersion === 2 &&
-                      fcmSubscription.previewMaxVersion === 2
-                        ? (2 as const)
-                        : (1 as const),
+                      configuration.current.encryptedPreviewVersion === 3 &&
+                      fcmSubscription.previewMaxVersion === 3
+                        ? (3 as const)
+                        : configuration.current.encryptedPreviewVersion !== 1 &&
+                            (fcmSubscription.previewMaxVersion === 2 ||
+                              fcmSubscription.previewMaxVersion === 3)
+                          ? (2 as const)
+                          : (1 as const),
                     key: fcmSubscription.previewKey as string,
                     ...(configuration.current.neutralReferenceVersion === 1 &&
                     fcmSubscription.neutralReferenceVersion === 1

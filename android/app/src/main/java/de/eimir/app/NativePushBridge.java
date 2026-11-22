@@ -356,7 +356,7 @@ public final class NativePushBridge extends Plugin {
                 // Only this transient authenticated-registration event carries it.
                 if (active.apiBaseUrl.startsWith("https://")) {
                     value = new JSONObject(value).put("neutralReferenceVersion", 1).put("previewVersion", 1)
-                        .put("previewMaxVersion", 2)
+                        .put("previewMaxVersion", 3)
                         .put("previewKey", PushPreviewKeys.registrationKey(context, active)).toString();
                 }
                 emit("endpoint", updated, value, true);

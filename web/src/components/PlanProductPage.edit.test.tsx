@@ -184,7 +184,7 @@ describe('PlanProductPage editor request serialization', () => {
           placeId: null,
           title: 'Evening together',
           tags: [],
-          anticipationEnabled: false,
+          anticipation: 'AUTOMATIC',
           schedule:
             status === 'PLANNED'
               ? { plannedStart: '2026-11-21T21:00:00.000Z' }
@@ -222,7 +222,7 @@ describe('PlanProductPage editor request serialization', () => {
         placeId: null,
         title: 'Evening together',
         tags: [],
-        anticipationEnabled: false,
+        anticipation: 'AUTOMATIC',
       },
     ]);
   });

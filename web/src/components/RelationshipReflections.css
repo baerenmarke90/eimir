@@ -55,11 +55,6 @@
   background: var(--identity-hover);
 }
 
-.plan-anticipation-control {
-  border-radius: var(--radius-card);
-  padding: var(--space-4);
-  background: var(--color-shared-surface);
-}
 .relationship-passport {
   padding: var(--space-5);
   border-radius: var(--radius-card);

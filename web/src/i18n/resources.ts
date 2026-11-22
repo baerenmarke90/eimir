@@ -56,10 +56,12 @@ import serverAdmin from './locales/serverAdmin';
 import sharedNotes from './locales/sharedNotes';
 import snackbar from './locales/snackbar';
 import spaceOffboarding from './locales/spaceOffboarding';
+import storageQuota from './locales/storageQuota';
 import storyProducts from './locales/storyProducts';
 import motionSettings from './locales/motionSettings';
 import taskBoundary from './locales/taskBoundary';
 import taskSheets from './locales/taskSheets';
+import uploadFailure from './locales/uploadFailure';
 import video from './locales/video';
 import voiceNotes from './locales/voiceNotes';
 import webViewNotice from './locales/webViewNotice';
@@ -127,6 +129,8 @@ export const germanResources = {
   serverAdmin,
   ...sharedNotes,
   spaceOffboarding,
+  storageQuota,
+  uploadFailure,
   ...relationshipComponents,
   relationshipReflections,
   recaps,

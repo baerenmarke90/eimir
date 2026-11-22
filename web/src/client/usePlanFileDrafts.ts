@@ -7,6 +7,7 @@ import {
   uploadAttachmentBytesWithProgress,
   waitUntilAttachmentReady,
 } from './referenceFlow';
+import { describeUploadFailure, type UploadPhase } from './uploadFailure';
 import {
   type AttachmentDraftOptions,
   useAttachmentDrafts,
@@ -34,6 +35,7 @@ const uploadPdf: typeof uploadMemoryDraftAttachment = async (
   if (file.size > MAX_PDF_BYTES)
     throw new ReferenceFlowError(i18n.t('planFiles.tooLarge'));
 
+  let phase: UploadPhase = 'create';
   try {
     options.signal?.throwIfAborted();
     const upload = await apis.attachments.createAttachmentUpload(
@@ -49,6 +51,7 @@ const uploadPdf: typeof uploadMemoryDraftAttachment = async (
       { signal: options.signal },
     );
     options.signal?.throwIfAborted();
+    phase = 'put';
     await uploadAttachmentBytesWithProgress(
       apiBaseUrl,
       accessToken,
@@ -60,16 +63,21 @@ const uploadPdf: typeof uploadMemoryDraftAttachment = async (
     options.signal?.throwIfAborted();
     const attachmentId = upload.attachment.id;
     onPhase?.('validating');
+    phase = 'finalize';
     await apis.attachments.finalizeAttachmentUpload(
       { spaceId, attachmentId, body: {} },
       { signal: options.signal },
     );
+    phase = 'validate';
     await waitUntilAttachmentReady(apis, spaceId, attachmentId, options.signal);
     return { attachmentId };
   } catch (error) {
     options.signal?.throwIfAborted();
-    if (error instanceof ReferenceFlowError && error.code) throw error;
-    throw new ReferenceFlowError(i18n.t('planFiles.uploadFailed'));
+    throw await describeUploadFailure(error, {
+      phase,
+      media: 'document',
+      size: file.size,
+    });
   }
 };
 

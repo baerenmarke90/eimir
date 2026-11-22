@@ -65,7 +65,7 @@ const notificationSettings = {
   onboardingOffline:
     'Du bist gerade offline. Benachrichtigungen wurden noch nicht aktiviert.',
   deviceIntro:
-    'Hinweise können Namen und Titel zeigen. Auf dem Sperrbildschirm gilt deine Android-Auswahl für sensible Inhalte. Konkrete Vorschauen werden für den Versand verschlüsselt. Google oder dein Push-Dienst erhält eine Installationskennung und Verbindungsdaten.',
+    'Hinweise zeigen, was passiert ist, etwa Namen, Titel, Termine und kurze Auszüge. Ob sie auf dem gesperrten Bildschirm vollständig erscheinen, entscheidet deine Android-Einstellung für sensible Inhalte. Die Inhalte werden für den Versand verschlüsselt. Google oder dein Push-Dienst erhält eine Installationskennung und Verbindungsdaten.',
   iosDeviceIntro:
     'Auf deinem Gerät erscheint ein neutraler Hinweis. Wenn du darauf tippst, öffnet eimir. den Inhalt nach der Anmeldung.',
   deviceLoading: 'Push-Einrichtung wird geprüft …',

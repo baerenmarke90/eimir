@@ -9,59 +9,136 @@ const m5s6 = {
     eyebrow: 'Daten übertragen',
     title: 'Export und Import',
     intro:
-      'Exportiere eure gemeinsamen Daten oder zusätzlich deine eigenen privaten Inhalte. Importe werden zuerst geprüft und erst nach deiner Bestätigung angewendet.',
+      'Bevor etwas übernommen wird, siehst du, was die Datei enthält. Ein Import ergänzt nur und löscht nichts.',
     export: {
       heading: 'Export',
-      scopeLabel: 'Umfang',
+      scopeLabel: 'Was soll in die Datei?',
       shared: 'Gemeinsame Daten',
-      sharedHelp: 'Enthält nur, was ihr beide miteinander teilt.',
+      sharedHelp: 'Nur, was ihr beide miteinander teilt.',
       personal: 'Meine Daten',
       personalHelp:
-        'Enthält die gemeinsamen Daten und zusätzlich nur deine eigenen privaten Inhalte.',
+        'Das Gemeinsame und zusätzlich deine eigenen privaten Inhalte.',
       start: 'Export erstellen',
       starting: 'Export wird angefordert …',
-      expires: 'Die Exportdatei ist 24 Stunden verfügbar.',
+      expires: 'Die Datei steht 24 Stunden zum Herunterladen bereit.',
       download: 'Export herunterladen',
       downloading: 'Download wird vorbereitet …',
-      statusLabel: 'Exportstatus',
+      statusLabel: 'Stand',
       status: {
         QUEUED: 'Wartet auf Verarbeitung',
         RUNNING: 'Wird erstellt',
-        READY: 'Bereit zum Download',
-        FAILED: 'Export fehlgeschlagen',
-        EXPIRED: 'Export abgelaufen',
+        READY: 'Bereit zum Herunterladen',
+        FAILED: 'Das hat nicht geklappt',
+        EXPIRED: 'Die Datei ist abgelaufen',
       },
     },
     import: {
       heading: 'Import',
-      fileLabel: 'eimir. Transfer Bundle',
-      fileHelp: 'Wähle genau eine ZIP-Datei aus einem eimir.-Export.',
+      fileLabel: 'Datei aus einem eimir.-Export',
+      fileHelp: 'Wähle die ZIP-Datei, die du bei einem Export bekommen hast.',
       upload: 'Datei prüfen',
       uploading: 'Datei wird hochgeladen …',
-      statusLabel: 'Importstatus',
+      statusLabel: 'Stand',
       status: {
-        QUEUED: 'Wartet auf Prüfung',
-        VALIDATING: 'Wird geprüft',
-        READY_TO_APPLY: 'Geprüft und bereit',
-        APPLYING: 'Wird importiert',
+        QUEUED: 'Wartet auf die Prüfung',
+        VALIDATING: 'Datei wird geprüft …',
+        READY_TO_APPLY: 'Geprüft · 24 Stunden bereit',
+        APPLYING: 'Wird übernommen …',
         COMPLETED: 'Import abgeschlossen',
-        FAILED: 'Import fehlgeschlagen',
-        EXPIRED: 'Import abgelaufen',
+        FAILED: 'Das hat nicht geklappt',
+        EXPIRED: 'Die geprüfte Datei ist abgelaufen',
       },
-      summaryHeading: 'Geprüfter Inhalt',
-      scope: 'Umfang',
-      members: 'Quellpersonen',
-      records: 'Datensätze',
-      media: 'Medien',
-      confirm:
-        'Ich habe die Zusammenfassung geprüft und möchte diese Daten zusätzlich in den aktuellen Space importieren.',
-      apply: 'Import anwenden',
-      applying: 'Import wird angewendet …',
-      additive:
-        'Der Import ergänzt neue Einträge. Er ersetzt oder löscht keine bestehenden Daten.',
+      checkingHint: 'Noch wird nichts übernommen.',
+      applyingHint: 'Du kannst die App weiter benutzen.',
+      lead_one: 'Diese Datei bringt {{count}} Eintrag mit.',
+      lead_other: 'Diese Datei bringt {{count}} Einträge mit.',
+      media_one: 'Dazu gehört {{count}} Foto oder Video.',
+      media_other: 'Dazu gehören {{count}} Fotos und Videos.',
+      present_one: '{{count}} davon habt ihr schon. Es bleibt, wie es ist.',
+      present_other:
+        '{{count}} davon habt ihr schon. Sie bleiben, wie sie sind.',
+      storage: 'Braucht {{needed}}, frei sind {{available}}.',
+      additive: 'Der Import ergänzt nur. Er ersetzt oder löscht nichts.',
+      confirm: 'Ich möchte diese Inhalte zusätzlich übernehmen.',
+      confirmWithoutVideos:
+        'Ich möchte diese Inhalte ohne die Videos zusätzlich übernehmen.',
+      apply: 'Importieren',
+      applyWithoutVideos: 'Ohne Videos importieren',
+      applying: 'Wird übernommen …',
+      videosNeedPro: {
+        title: 'Videos gibt es mit eimir. Pro',
+        body_one:
+          'Du kannst alles andere jetzt übernehmen. Das Video merkt sich eimir., und du kannst es später aus derselben Datei nachholen.',
+        body_other:
+          'Du kannst alles andere jetzt übernehmen. Die {{count}} Videos merkt sich eimir., und du kannst sie später aus derselben Datei nachholen.',
+      },
+      noRoom: {
+        title: 'Dafür reicht euer Speicher nicht',
+        body: 'Die Datei braucht {{needed}}, frei sind {{available}}. Es wurde nichts übernommen. Schafft Platz oder nutzt Pro, dann kannst du dieselbe Datei hier übernehmen.',
+      },
+      fitsWithoutVideos: {
+        title: 'Mit Videos reicht der Speicher nicht',
+        body_one:
+          'Ohne das Video passt die Datei: Sie braucht dann {{needed}}, frei sind {{available}}. Das Video kannst du später nachholen, wenn wieder Platz ist.',
+        body_other:
+          'Ohne die {{count}} Videos passt die Datei: Sie braucht dann {{needed}}, frei sind {{available}}. Die Videos kannst du später nachholen, wenn wieder Platz ist.',
+      },
+      roomTaken: {
+        title: 'Inzwischen ist weniger Platz frei',
+        body: 'Während des Imports wurde Speicher belegt. Es wurde nichts übernommen; die Datei bleibt bereit.',
+      },
+      morePro: 'Mehr Platz mit eimir. Pro',
+      discoverPro: 'Mit eimir. Pro entdecken',
+      viewMedia: 'Fotos und Videos ansehen',
+      completed: {
+        title: 'Import abgeschlossen',
+        body: 'Die übernommenen Inhalte findest du bei euren Momenten.',
+        skipped_one: '{{count}} Video wurde übersprungen.',
+        skipped_other: '{{count}} Videos wurden übersprungen.',
+        recovered_one: '{{count}} Video nachgeholt.',
+        recovered_other: '{{count}} Videos nachgeholt.',
+        unrecovered_one:
+          '{{count}} Video passte nicht mehr in seine Galerie und bleibt gemerkt.',
+        unrecovered_other:
+          '{{count}} Videos passten nicht mehr in ihre Galerie und bleiben gemerkt.',
+        toMoments: 'Zu euren Momenten',
+      },
+      failed:
+        'Die Datei konnte nicht übernommen werden. Es wurde nichts geändert.',
+      expired: 'Wähle die Datei noch einmal aus, um sie zu übernehmen.',
+      offline: {
+        title: 'Keine Verbindung',
+        body: 'Ohne Internet lässt sich nichts importieren. Es wurde nichts geändert.',
+      },
+      recover: {
+        lead_one: 'In dieser Datei steckt {{count}} übersprungenes Video.',
+        lead_other: 'In dieser Datei stecken {{count}} übersprungene Videos.',
+        none: 'In dieser Datei stecken keine übersprungenen Videos. Wähle die Datei aus dem früheren Import.',
+        storage: 'Braucht {{needed}}, frei sind {{available}}.',
+        noRoom:
+          'Die Videos brauchen {{needed}}, frei sind {{available}}. Schafft Platz oder nutzt Pro, dann kannst du sie nachholen.',
+        action_one: 'Video nachholen',
+        action_other: '{{count}} Videos nachholen',
+      },
     },
-    genericFailure:
-      'Der Vorgang konnte nicht abgeschlossen werden. Es wurden keine privaten Archivinhalte in der Fehlermeldung angezeigt.',
+    skipped: {
+      heading: 'Übersprungene Videos',
+      lead_one:
+        '{{count}} Video aus einem früheren Import fehlt noch ({{size}}).',
+      lead_other:
+        '{{count}} Videos aus einem früheren Import fehlen noch ({{size}}).',
+      bodyPro:
+        'Wähle dieselbe Datei noch einmal. eimir. fügt dann nur diese Videos dort ein, wo sie hingehören. Sonst ändert sich nichts.',
+      bodyFree: 'Mit eimir. Pro kannst du sie aus derselben Datei nachholen.',
+      recover: 'Videos nachholen',
+      dismiss: 'Hinweis ausblenden',
+      dismissTitle: 'Hinweis ausblenden?',
+      dismissBody:
+        'Danach lassen sich diese Videos nicht mehr nachholen. Eure Erinnerungen und die Datei bleiben, wie sie sind.',
+      dismissConfirm: 'Ausblenden',
+      dismissCancel: 'Abbrechen',
+    },
+    genericFailure: 'Das hat nicht geklappt. Es wurde nichts geändert.',
   },
 };
 

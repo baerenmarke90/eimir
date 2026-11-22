@@ -246,7 +246,7 @@ def test_one_patch_saves_content_schedule_countdown_and_cover_atomically(client,
             "title": "A weekend",
             "description": "Together",
             "schedule": {"plannedOn": "2027-06-17"},
-            "anticipationEnabled": True,
+            "anticipation": "ALWAYS",
             "coverAttachmentId": image,
         },
         headers=headers,
@@ -257,6 +257,7 @@ def test_one_patch_saves_content_schedule_countdown_and_cover_atomically(client,
     assert saved["status"] == "PLANNED"
     assert saved["plannedOn"] == "2027-06-17"
     assert saved["plannedStart"] is None
+    assert saved["anticipation"] == "ALWAYS"
     assert saved["anticipationEnabled"] is True
     assert saved["coverAttachment"]["id"] == image
     assert saved["version"] == plan["version"] + 1

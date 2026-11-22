@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from eimir.transfer.models import TransferScope
     from eimir.wish_selections.date_idea_contract import DateIdeaSource
 
-PLUGIN_SEAM_VERSION = 4
+PLUGIN_SEAM_VERSION = 5
 """The seam revision Core implements. A plugin declaring another value refuses to start."""
 
 PLUGIN_ENTRY_POINT_GROUP = "eimir.plugins"
@@ -162,6 +162,23 @@ class ProPlugin(Protocol):
         """Return the read rule per plugin attachment parent type.
 
         Without the plugin an attachment of such a parent is not readable.
+        """
+        ...
+
+    def push_preview_detail(
+        self,
+        session: Session,
+        context: AuthorizationContext,
+        target_type: EngagementTarget,
+        target_id: UUID,
+    ) -> tuple[str, str] | None:
+        """Return the ``(title, body)`` of an encrypted v3 device preview (#2158).
+
+        Called only for a plugin notification target that Core already found
+        current for the reader. Read only. Both values are short closed
+        machine codes the device localizes, never free text; ``None`` keeps
+        the preview to its localized action. Without the plugin no plugin
+        target is current, so Core never needs this hook then.
         """
         ...
 

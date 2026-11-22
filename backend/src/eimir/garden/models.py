@@ -109,6 +109,19 @@ class GardenWords(StrEnum):
     FOR_YOU = "FOR_YOU"
 
 
+class GardenHistoryKind(StrEnum):
+    """What one entry of the garden's history tells; derived, never stored."""
+
+    SEED_SENT = "SEED_SENT"
+    SEED_PLANTED = "SEED_PLANTED"
+    SHARED_DAY = "SHARED_DAY"
+    FIRST_BLOOM = "FIRST_BLOOM"
+    WATERED = "WATERED"
+    WATERED_TOGETHER = "WATERED_TOGETHER"
+    BOUQUET_GIVEN = "BOUQUET_GIVEN"
+    BOUQUET_KEPT = "BOUQUET_KEPT"
+
+
 def _allowed(column: str, values: Iterable[StrEnum]) -> str:
     return f"{column} IN ({', '.join(repr(value.value) for value in values)})"
 
@@ -142,6 +155,9 @@ class GardenPlant(IdMixin, TimestampMixin, Base):
     bloomed: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default=text("false")
     )
+    # The couple's calendar day of that first bloom, for the garden's history.
+    # Blooms from before it was recorded (#2158) keep no day.
+    bloomed_on: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     __table_args__ = (
         UniqueConstraint("space_id", "sender_id", "sent_on", name="uq_garden_plants_daily_seed"),
@@ -151,6 +167,7 @@ class GardenPlant(IdMixin, TimestampMixin, Base):
         CheckConstraint(f"words IS NULL OR {_allowed('words', GardenWords)}", name="words_allowed"),
         CheckConstraint(f"stage BETWEEN 0 AND {MAX_STAGE}", name="stage_bounded"),
         CheckConstraint("sender_id <> receiver_id", name="sender_is_not_receiver"),
+        CheckConstraint("bloomed_on IS NULL OR bloomed", name="bloomed_on_needs_bloom"),
         CheckConstraint(
             "(planted_at IS NULL AND slot IS NULL AND stage = 0)"
             " OR (planted_at IS NOT NULL AND slot IS NOT NULL AND slot >= 0)",

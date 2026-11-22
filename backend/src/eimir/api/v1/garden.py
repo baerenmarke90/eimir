@@ -12,7 +12,7 @@ from datetime import date
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Path, Response
+from fastapi import APIRouter, Path, Query, Response
 from pydantic import ConfigDict, Field
 
 from eimir.api.deps import Authorization, DbSession, ensure_capability
@@ -20,10 +20,11 @@ from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.core.errors import NotFoundError
 from eimir.entitlements.models import Capability
-from eimir.garden import growth, service
+from eimir.garden import growth, history, service
 from eimir.garden.models import (
     GardenBouquet,
     GardenForm,
+    GardenHistoryKind,
     GardenPlant,
     GardenSpecies,
     GardenUnlock,
@@ -115,6 +116,41 @@ class GardenView(ApiModel):
     gave_bouquet_today: bool = Field(
         default=False, description="The reader already gave a bouquet today."
     )
+
+
+class GardenHistoryEntry(ApiModel):
+    key: str = Field(description="Stable identity of the entry within the history.")
+    kind: GardenHistoryKind
+    happened_on: date = Field(description="The couple's calendar day of the entry.")
+    actor_id: UUID | None = Field(
+        default=None,
+        description=(
+            "Who did it. Absent when both did (a shared day, watering together), "
+            "for a first bloom and for a seed that found its place by itself."
+        ),
+    )
+    sender_id: UUID | None = Field(
+        default=None, description="Who once sent the seed the entry is about, if any."
+    )
+    species: GardenSpecies | None = Field(
+        default=None, description="A surprise stays `SURPRISE` until it first blooms."
+    )
+    words: GardenWords | None = Field(
+        default=None,
+        description="The seed's words; absent while the seed still waits for the reader.",
+    )
+    flowers: list[GardenBouquetFlower] = Field(
+        default_factory=list, description="A bouquet's flowers."
+    )
+    waiting: bool = Field(
+        default=False, description="The seed still waits for the reader to plant it."
+    )
+
+
+class GardenHistoryPage(ApiModel):
+    items: list[GardenHistoryEntry] = Field(description="Newest first.")
+    next_cursor: str | None
+    has_more: bool
 
 
 class GardenSeedInput(ApiModel):
@@ -222,6 +258,23 @@ def _view(state: service.GardenState) -> GardenView:
     )
 
 
+def _history_entry(entry: history.HistoryEntry) -> GardenHistoryEntry:
+    return GardenHistoryEntry(
+        key=entry.key,
+        kind=entry.kind,
+        happened_on=entry.happened_on,
+        actor_id=entry.actor_id,
+        sender_id=entry.sender_id,
+        species=entry.species,
+        words=entry.words,
+        flowers=[
+            GardenBouquetFlower(species=species, sender_id=sender)
+            for species, sender in entry.flowers
+        ],
+        waiting=entry.waiting,
+    )
+
+
 def _ensure_games(session: DbSession, authorization: Authorization, *, write: bool) -> None:
     ensure_capability(
         session,
@@ -242,6 +295,30 @@ def get_garden(authorization: Authorization, session: DbSession, response: Respo
     _ensure_games(session, authorization, write=False)
     response.headers["Cache-Control"] = "private, no-store"
     return _view(service.state(session, authorization))
+
+
+@router.get(
+    f"{_BASE}/history",
+    response_model=GardenHistoryPage,
+    operation_id="listGardenHistory",
+    responses=problem_responses(400, 401, 403, 404, 409, 422),
+)
+def list_garden_history(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    cursor: Annotated[str | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=history.MAX_LIMIT)] = 20,
+) -> GardenHistoryPage:
+    """What happened in the garden between the two partners, newest first."""
+    _ensure_games(session, authorization, write=False)
+    response.headers["Cache-Control"] = "private, no-store"
+    page = history.history(session, authorization, cursor=cursor, limit=limit)
+    return GardenHistoryPage(
+        items=[_history_entry(entry) for entry in page.items],
+        next_cursor=page.next_cursor,
+        has_more=page.has_more,
+    )
 
 
 @router.post(

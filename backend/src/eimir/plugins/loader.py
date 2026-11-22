@@ -119,6 +119,20 @@ class LoadedPlugins:
             for parent_type, rule in plugin.attachment_read_rules().items()
         }
 
+    def push_preview_detail(
+        self,
+        session: Session,
+        context: AuthorizationContext,
+        target_type: EngagementTarget,
+        target_id: UUID,
+    ) -> tuple[str, str] | None:
+        """The first loaded plugin's v3 preview codes for one of its targets, if any."""
+        for plugin in self.plugins:
+            detail = plugin.push_preview_detail(session, context, target_type, target_id)
+            if detail is not None:
+                return detail
+        return None
+
     def register_jobs(self, registry: JobRegistry) -> None:
         """Register every plugin's job handlers; a kind the manifest does not declare refuses."""
         for plugin in self.plugins:

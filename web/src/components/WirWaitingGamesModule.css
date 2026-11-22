@@ -1,0 +1,48 @@
+/* #2158 C: one calm row per game that waits on the reader. The rows reuse
+   the Wir agenda row; they stack instead of scrolling sideways. */
+.wir-waiting-games {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wir-waiting-games > li {
+  min-width: 0;
+}
+
+.wir-waiting-game {
+  min-height: var(--touch-target-web);
+}
+
+.wir-waiting-game .today-agenda-copy {
+  flex: 1 1 auto;
+}
+
+/* Whole words wrap at large text; only a word wider than the row breaks. */
+.wir-waiting-game .today-agenda-title {
+  overflow-wrap: break-word;
+}
+
+.wir-waiting-game-reason {
+  color: var(--color-text-secondary);
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  overflow-wrap: break-word;
+}
+
+.wir-waiting-game .today-agenda-icon .eimir-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.wir-waiting-game > .eimir-icon-chevron-right {
+  flex: 0 0 auto;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-left: auto;
+  color: var(--color-text-secondary);
+}

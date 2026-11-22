@@ -20,6 +20,13 @@ import {
     ResourceCapabilitiesToJSON,
     ResourceCapabilitiesToJSONTyped,
 } from './ResourceCapabilities';
+import type { PlanAnticipation } from './PlanAnticipation';
+import {
+    PlanAnticipationFromJSON,
+    PlanAnticipationFromJSONTyped,
+    PlanAnticipationToJSON,
+    PlanAnticipationToJSONTyped,
+} from './PlanAnticipation';
 import type { AuthorSummary } from './AuthorSummary';
 import {
     AuthorSummaryFromJSON,
@@ -71,8 +78,15 @@ import {
 export interface PlanDetail {
     /**
      * 
+     * @type {PlanAnticipation}
+     * @memberof PlanDetail
+     */
+    anticipation?: PlanAnticipation;
+    /**
+     * Deprecated for older clients: true only while anticipation is ALWAYS.
      * @type {boolean}
      * @memberof PlanDetail
+     * @deprecated
      */
     anticipationEnabled?: boolean;
     /**
@@ -268,6 +282,7 @@ export function PlanDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     }
     return {
         
+        'anticipation': json['anticipation'] == null ? undefined : PlanAnticipationFromJSON(json['anticipation']),
         'anticipationEnabled': json['anticipationEnabled'] == null ? undefined : json['anticipationEnabled'],
         'attachments': json['attachments'] == null ? undefined : ((json['attachments'] as Array<any>).map(OrderedAttachmentSummaryFromJSON)),
         'capabilities': ResourceCapabilitiesFromJSON(json['capabilities']),
@@ -309,6 +324,7 @@ export function PlanDetailToJSONTyped(value?: PlanDetail | null, ignoreDiscrimin
 
     return {
         
+        'anticipation': PlanAnticipationToJSON(value['anticipation']),
         'anticipationEnabled': value['anticipationEnabled'],
         'attachments': value['attachments'] == null ? undefined : ((value['attachments'] as Array<any>).map(OrderedAttachmentSummaryToJSON)),
         'capabilities': ResourceCapabilitiesToJSON(value['capabilities']),

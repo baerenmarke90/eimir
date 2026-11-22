@@ -215,12 +215,19 @@ describe('PlanProductPage discreet plans (#1790 F3)', () => {
     });
     expect(screen.getByText('Lake view room, sauna at seven')).toBeTruthy();
     await openEditor();
+    // The countdown choice sits above the Diskret switch, the only switch.
+    const group = screen.getByRole('group', {
+      name: t('relationshipReflections.anticipation.choiceLabel'),
+    });
     const switches = screen.getAllByRole('switch');
     expect(switches.map((node) => node.getAttribute('aria-label'))).toEqual([
-      t('relationshipReflections.anticipation.show'),
       t('discreetPlans.editor.label'),
     ]);
-    const discreet = switches[1];
+    const discreet = switches[0];
+    expect(
+      group.compareDocumentPosition(discreet) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(discreet.getAttribute('aria-checked')).toBe('false');
     fireEvent.click(discreet);
     const suggestions = discreetTitleSuggestions(plan, t);

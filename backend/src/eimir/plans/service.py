@@ -61,6 +61,7 @@ from eimir.plans.media import PhotoSelection, replace_cover, replace_photos, sel
 from eimir.plans.models import (
     DiscreetTitleMode,
     Plan,
+    PlanAnticipation,
     PlanPayload,
     PlanStatus,
     shared_privacy,
@@ -595,7 +596,7 @@ def update_plan(
     description: str | None,
     place_id: UUID | str | None,
     experienced_on: date | None,
-    anticipation_enabled: bool | None = None,
+    anticipation: PlanAnticipation | None = None,
     discreet: bool | None = None,
     discreet_title_mode: DiscreetTitleMode | None = None,
     preview_title: str | None = None,
@@ -666,9 +667,9 @@ def update_plan(
         )
     if "place_id" in changed_fields:
         plan.place_id = next_place_id
-    if "anticipation_enabled" in changed_fields:
-        assert anticipation_enabled is not None
-        plan.anticipation_enabled = anticipation_enabled
+    if "anticipation" in changed_fields:
+        assert anticipation is not None
+        plan.anticipation = anticipation.value
     # Discreet presentation is shared state on the entry: either partner may
     # set or clear it, exactly like any other collaborative Plan field.
     if "discreet" in changed_fields:

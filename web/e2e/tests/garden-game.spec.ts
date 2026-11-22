@@ -235,6 +235,12 @@ async function installMocks(
       });
       return;
     }
+    if (method === 'GET' && pathname === `${GARDEN_PATH}/history`) {
+      await route.fulfill({
+        json: { items: [], nextCursor: null, hasMore: false },
+      });
+      return;
+    }
     if (pathname.startsWith(GARDEN_PATH)) {
       if (method !== 'GET')
         writes.push(`${method} ${pathname.slice(GARDEN_PATH.length)}`);
@@ -703,6 +709,12 @@ async function installGrowthMocks(page: Page) {
     const pathname = new URL(request.url()).pathname;
     const method = request.method();
     const suffix = pathname.slice(GARDEN_PATH.length);
+    if (method === 'GET' && suffix === '/history') {
+      await route.fulfill({
+        json: { items: [], nextCursor: null, hasMore: false },
+      });
+      return;
+    }
     if (method !== 'GET') network.writes.push(`${method} ${suffix}`);
     if (method === 'POST' && suffix === '/news/seen') {
       garden = { ...garden, news: [] };

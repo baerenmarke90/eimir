@@ -109,6 +109,20 @@ export interface MapArea extends MapPoint {
   radiusMeters: number;
   marker?: ReactNode;
   tone: 'partner' | 'own';
+  /**
+   * With `onAreaSelect`, the marker becomes a button with this accessible
+   * name; only the marker, never the area around it, takes the tap.
+   */
+  selectLabel?: string;
+}
+
+/**
+ * A camera target: a Place at the Place zoom, or an area framed by its
+ * radius (#2158). A new `request` flies there again after the viewer moved.
+ */
+export interface MapFocus extends MapPoint {
+  radiusMeters?: number;
+  request?: number;
 }
 
 const EARTH_CIRCUMFERENCE_M = 40_075_016.686;
@@ -135,7 +149,9 @@ function areaDiameterPx(map: MapLibreMap, area: MapArea): number {
   );
 }
 
-function areaBounds(areas: readonly MapArea[]): LngLatBounds | null {
+function areaBounds(
+  areas: readonly (MapPoint & { radiusMeters: number })[],
+): LngLatBounds | null {
   if (!areas.length) return null;
   const bounds = new LngLatBounds();
   for (const area of areas) {
@@ -155,6 +171,23 @@ const USER_MOTION_REST_MS = 1500;
 
 type LngLat = [number, number];
 const lngLat = (point: MapPoint): LngLat => [point.longitude, point.latitude];
+
+/** Where a focus puts the camera: an area fills the view, a Place zooms in. */
+function focusCamera(map: MapLibreMap, focus: MapFocus) {
+  const place = { center: lngLat(focus), zoom: toMapZoom(PLACE_ZOOM) };
+  const radiusMeters = focus.radiusMeters ?? 0;
+  if (radiusMeters <= 0) return place;
+  const target = areaBounds([{ ...focus, radiusMeters }]);
+  const camera =
+    target &&
+    map.cameraForBounds(target, {
+      padding: AREA_PADDING,
+      maxZoom: toMapZoom(PLACE_ZOOM),
+    });
+  return camera?.center && camera.zoom != null
+    ? { center: camera.center, zoom: camera.zoom }
+    : place;
+}
 
 /*
  * The Map domain (Motion Contract 4.8). MapLibre renders and animates the
@@ -243,6 +276,7 @@ export default function PlaceMapCanvas({
   initialViewport,
   onViewportChange,
   onUserMotionChange,
+  onAreaSelect,
   areas,
   showAreasRequest = 0,
   connection,
@@ -250,10 +284,12 @@ export default function PlaceMapCanvas({
   revealWhenComplete = false,
 }: {
   value?: MapPoint;
-  focus?: MapPoint;
+  focus?: MapFocus;
   onSelect?: (point: MapPoint) => void;
   locations?: readonly MapLocation[];
   onLocationSelect?: (id: string) => void;
+  /** Called when the viewer taps the marker of an area with a `selectLabel`. */
+  onAreaSelect?: (id: string) => void;
   initialViewport?: MapViewport;
   onViewportChange?: (viewport: MapViewport) => void;
   /** True while the viewer pans or zooms, and for a moment after they stop. */
@@ -280,6 +316,9 @@ export default function PlaceMapCanvas({
   selectRef.current = onSelect;
   const locationSelectRef = useRef(onLocationSelect);
   locationSelectRef.current = onLocationSelect;
+  const areaSelectRef = useRef(onAreaSelect);
+  areaSelectRef.current = onAreaSelect;
+  const areasSelectable = Boolean(onAreaSelect);
   const [tileError, setTileError] = useState(false);
   const [moving, setMoving] = useState(false);
   const initialPoint = useRef(value);
@@ -292,6 +331,7 @@ export default function PlaceMapCanvas({
   const focusRef = useRef(focus);
   const lastFocus = useRef(focus);
   focusRef.current = focus;
+  const focusShowAreasRequest = useRef(showAreasRequest);
   const [markerHosts, setMarkerHosts] = useState<
     { id: string; host: HTMLElement; preview: ReactNode }[]
   >([]);
@@ -305,7 +345,15 @@ export default function PlaceMapCanvas({
     { id: string; host: HTMLElement; marker: ReactNode }[]
   >([]);
   const areaEntries = useRef(
-    new Map<string, { marker: Marker; circle: HTMLElement; area: MapArea }>(),
+    new Map<
+      string,
+      {
+        marker: Marker;
+        circle: HTMLElement;
+        host: HTMLElement;
+        area: MapArea;
+      }
+    >(),
   );
   const framePadding = useRef<number | typeof AREA_PADDING>(40);
   const areasRef = useRef(areas);
@@ -539,14 +587,11 @@ export default function PlaceMapCanvas({
         // must not snap to the target before that transition can start or finish.
         if (
           cameraMoving.current ||
-          !samePoint(lastFocus.current, focusRef.current)
+          !sameFocus(lastFocus.current, focusRef.current)
         )
           return;
         if (focusRef.current && autoFrame.current)
-          map.jumpTo({
-            center: lngLat(focusRef.current),
-            zoom: toMapZoom(PLACE_ZOOM),
-          });
+          map.jumpTo(focusCamera(map, focusRef.current));
         else if (bounds.current && autoFrame.current)
           map.fitBounds(bounds.current, {
             padding: framePadding.current,
@@ -753,42 +798,66 @@ export default function PlaceMapCanvas({
     }
     const hosts = [];
     for (const area of areas ?? []) {
+      const selectable = areasSelectable && Boolean(area.selectLabel);
       let entry = areaEntries.current.get(area.id);
+      if (entry && (entry.host.tagName === 'BUTTON') !== selectable) {
+        entry.marker.remove();
+        areaEntries.current.delete(area.id);
+        entry = undefined;
+      }
       if (!entry) {
         const element = document.createElement('div');
         element.className = `place-map-area is-${area.tone}`;
         // The page carries the text alternative; the drawing is decorative.
-        element.setAttribute('aria-hidden', 'true');
         const circle = document.createElement('span');
         circle.className = 'place-map-area-circle';
-        const host = document.createElement('span');
+        circle.setAttribute('aria-hidden', 'true');
+        let host: HTMLElement;
+        if (selectable) {
+          // Only the avatar takes the tap (#2158); the area stays see-through
+          // for the map's own gestures, as before.
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.addEventListener('click', (event) => {
+            // The map's own click is a Place pick; a person is not one.
+            event.stopPropagation();
+            areaSelectRef.current?.(area.id);
+          });
+          host = button;
+        } else {
+          host = document.createElement('span');
+          host.setAttribute('aria-hidden', 'true');
+        }
         host.className = 'place-map-area-marker';
         element.append(circle, host);
         const marker = new Marker({ element })
           .setLngLat(lngLat(area))
           .addTo(map);
-        entry = { marker, circle, area };
+        entry = { marker, circle, host, area };
         areaEntries.current.set(area.id, entry);
       }
       entry.area = area;
       entry.marker.setLngLat(lngLat(area));
+      if (selectable && area.selectLabel) {
+        entry.host.setAttribute('aria-label', area.selectLabel);
+        entry.host.title = area.selectLabel;
+      }
       const diameter = areaDiameterPx(map, area);
       entry.circle.style.width = `${diameter}px`;
       entry.circle.style.height = `${diameter}px`;
-      const host = entry.marker
-        .getElement()
-        .querySelector<HTMLElement>('.place-map-area-marker');
-      if (host) hosts.push({ id: area.id, host, marker: area.marker });
+      hosts.push({ id: area.id, host: entry.host, marker: area.marker });
     }
     setAreaHosts(hosts);
     // Own and partner areas may arrive independently. Include new areas
     // while the camera is automatic, and discard bounds of removed areas.
-    if (membershipChanged && !locations?.length && !focusRef.current) {
+    // A person in focus keeps the camera, but "show us" and clearing the
+    // focus return to everyone who is there now.
+    if (membershipChanged && !locations?.length) {
       framePadding.current = AREA_PADDING;
       bounds.current = areas?.length ? areaBounds(areas) : null;
-      if (autoFrame.current) updateFrame.current?.();
+      if (autoFrame.current && !focusRef.current) updateFrame.current?.();
     }
-  }, [areas, locations?.length, t]);
+  }, [areas, areasSelectable, locations?.length, t]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Area and locale changes move or recreate the connection's ends.
   useEffect(() => {
@@ -837,19 +906,25 @@ export default function PlaceMapCanvas({
     if (!map) return;
     const wasFocused = lastFocus.current;
     lastFocus.current = focus;
-    if (samePoint(wasFocused, focus)) return;
+    // A "show us" that clears the focus in the same step owns the journey
+    // back to everyone; a second flight would only interrupt it.
+    const showAreasRequested =
+      focusShowAreasRequest.current !== showAreasRequest;
+    focusShowAreasRequest.current = showAreasRequest;
+    if (sameFocus(wasFocused, focus)) return;
+    if (!focus && showAreasRequested) return;
     if (!focus && (!wasFocused || value || !bounds.current)) return;
     map.stop();
     autoFrame.current = !focus;
     const overview = bounds.current;
     const options = { padding: 64, maxZoom: toMapZoom(OVERVIEW_MAX_ZOOM) };
+    const target = focus ? focusCamera(map, focus) : null;
     const snap = () => {
       finishCamera.current = null;
       map.stop();
       cameraMoving.current = false;
       setMoving(false);
-      if (focus)
-        map.jumpTo({ center: lngLat(focus), zoom: toMapZoom(PLACE_ZOOM) });
+      if (target) map.jumpTo(target);
       else if (overview)
         map.fitBounds(overview, { ...options, animate: false });
     };
@@ -861,13 +936,7 @@ export default function PlaceMapCanvas({
     finishCamera.current = snap;
     cameraMoving.current = true;
     setMoving(true);
-    if (focus)
-      map.flyTo({
-        center: lngLat(focus),
-        zoom: toMapZoom(PLACE_ZOOM),
-        duration,
-        essential: true,
-      });
+    if (target) map.flyTo({ ...target, duration, essential: true });
     else if (overview) {
       const camera = map.cameraForBounds(overview, options);
       if (camera) map.flyTo({ ...camera, duration, essential: true });
@@ -944,5 +1013,13 @@ export default function PlaceMapCanvas({
 function samePoint(left?: MapPoint, right?: MapPoint) {
   return (
     left?.latitude === right?.latitude && left?.longitude === right?.longitude
+  );
+}
+
+function sameFocus(left?: MapFocus, right?: MapFocus) {
+  return (
+    samePoint(left, right) &&
+    left?.radiusMeters === right?.radiusMeters &&
+    left?.request === right?.request
   );
 }

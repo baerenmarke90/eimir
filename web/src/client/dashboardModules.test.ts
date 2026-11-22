@@ -12,6 +12,7 @@ describe('dashboardModules', () => {
       'partner_distance',
       'shared_experience',
       'daily_quote',
+      'games_waiting',
       'keepsake',
       'upcoming',
       'pinned_collection',

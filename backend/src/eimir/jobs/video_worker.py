@@ -41,11 +41,14 @@ def claimed_kinds(jobs: JobRegistry) -> list[str]:
 
 
 def main() -> None:
-    configure_logging(get_settings())
+    settings = get_settings()
+    configure_logging(settings)
     signal.signal(signal.SIGTERM, _stop)
     signal.signal(signal.SIGINT, _stop)
     # A named plugin that cannot be loaded stops the role here.
-    loaded_plugins().register_jobs(registry)
+    plugins = loaded_plugins()
+    plugins.validate(settings)
+    plugins.register_jobs(registry)
     video_jobs.register()
     kinds = claimed_kinds(registry)
     while not _shutdown:

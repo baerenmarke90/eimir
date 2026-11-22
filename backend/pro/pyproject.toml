@@ -1,0 +1,21 @@
+[project]
+name = "eimir-pro"
+version = "0.1.0"
+description = "eimir. - Pro plugin (Decision 0017)"
+requires-python = ">=3.12"
+# The Pro plugin is installed on top of a Core of the same revision. In this
+# repository the Core comes from the uv workspace; an extracted Pro repository
+# pins the published Core instead (#2182).
+dependencies = [
+    "eimir",
+]
+
+[tool.uv.sources]
+eimir = { workspace = true }
+
+[build-system]
+requires = ["setuptools==84.2.1"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

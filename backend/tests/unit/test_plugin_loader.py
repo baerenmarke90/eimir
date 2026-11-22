@@ -45,6 +45,7 @@ class FakePlugin:
     targets: Mapping[EngagementTarget, Any] = field(default_factory=dict)
     read_rules: Mapping[str, Callable[..., bool]] = field(default_factory=dict)
     hidden_wishes: frozenset[UUID] = frozenset()
+    refused_setting: str | None = None
 
     def capabilities(self) -> frozenset[str]:
         return self.provided
@@ -100,6 +101,13 @@ class FakePlugin:
 
     def date_ideas(self) -> None:
         return None
+
+    def migrations(self) -> None:
+        return None
+
+    def validate(self, settings: object) -> None:
+        if self.refused_setting is not None:
+            raise ValueError(self.refused_setting)
 
     def seed_demo(self, *args: object, **kwargs: object) -> None:
         return None
@@ -430,3 +438,41 @@ def test_the_in_tree_pro_plugin_decides_exactly_the_declared_targets_and_parents
     assert set(pro_plugin.plugin.attachment_read_rules()) == {
         rule.parent_type for _, rule in attachment_rules()
     }
+
+
+def test_a_plugin_that_refuses_its_configuration_refuses_to_start() -> None:
+    loaded = resolve(["pro"], [candidate(FakePlugin(refused_setting="missing key"))])
+
+    with pytest.raises(PluginLoadError, match="'pro' refused its configuration: missing key"):
+        loaded.validate(object())  # type: ignore[arg-type]
+
+
+def test_the_api_refuses_to_start_when_a_plugin_refuses_its_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from eimir import main
+
+    plugin = FakePlugin(refused_setting="missing key")
+    monkeypatch.setattr(main, "loaded_plugins", lambda: LoadedPlugins((plugin,)))
+
+    with pytest.raises(PluginLoadError, match="missing key"):
+        main.create_app()
+
+
+def test_the_worker_refuses_to_start_when_a_plugin_refuses_its_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    plugin = FakePlugin(refused_setting="missing key")
+    monkeypatch.setattr(runner, "configure_logging", lambda settings: None)
+    monkeypatch.setattr(runner, "loaded_plugins", lambda: LoadedPlugins((plugin,)))
+
+    with pytest.raises(PluginLoadError, match="missing key"):
+        runner.main()
+
+
+def test_the_in_tree_pro_plugin_has_no_chain_and_accepts_the_settings() -> None:
+    # The existing Pro tables stay in the Core chain (Decision 0017, decision 6).
+    from eimir.config import get_settings
+
+    assert pro_plugin.plugin.migrations() is None
+    pro_plugin.plugin.validate(get_settings())

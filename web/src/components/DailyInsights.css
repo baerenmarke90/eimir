@@ -129,6 +129,9 @@
 
 .insight-nav {
   display: flex;
+  /* With large text the tabs wrap as whole words instead of breaking
+     inside a word (three views since #2169). */
+  flex-wrap: wrap;
   gap: var(--space-1);
   padding: var(--space-1);
   border-radius: var(--radius-pill);
@@ -137,7 +140,7 @@
 
 .insight-nav a {
   display: grid;
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-height: 44px;
   min-width: 0;
   place-items: center;
@@ -148,8 +151,8 @@
   font-weight: 650;
   text-align: center;
   text-decoration: none;
-  overflow-wrap: anywhere;
-  hyphens: auto;
+  overflow-wrap: normal;
+  hyphens: manual;
 }
 
 .insight-nav a[aria-current="page"] {

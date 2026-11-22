@@ -7,6 +7,12 @@ resolution-markers = [
     "python_full_version < '3.14'",
 ]
 
+[manifest]
+members = [
+    "eimir",
+    "eimir-pro",
+]
+
 [[package]]
 name = "aiohappyeyeballs"
 version = "2.7.1"
@@ -778,6 +784,17 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=1.4" },
     { name = "ruff", specifier = "==0.16.8" },
 ]
+
+[[package]]
+name = "eimir-pro"
+version = "0.1.0"
+source = { editable = "pro" }
+dependencies = [
+    { name = "eimir" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "eimir", editable = "." }]
 
 [[package]]
 name = "fastapi"

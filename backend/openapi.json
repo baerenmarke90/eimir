@@ -18345,6 +18345,75 @@
         "title": "VideoPlaybackRequest",
         "type": "object"
       },
+      "WaitingGameKind": {
+        "enum": [
+          "WHO_OF_US",
+          "WISH_DETECTIVE",
+          "OUR_MOMENTS",
+          "PICTURE_PING_PONG",
+          "HEART_HUNT",
+          "GARDEN_SEED",
+          "GARDEN_BOUQUET"
+        ],
+        "title": "WaitingGameKind",
+        "type": "string"
+      },
+      "WaitingGameReason": {
+        "description": "What the reader is asked to do; the client words it.",
+        "enum": [
+          "ANSWER",
+          "TURN",
+          "DRAW",
+          "SEEK",
+          "PLANT",
+          "OPEN_BOUQUET"
+        ],
+        "title": "WaitingGameReason",
+        "type": "string"
+      },
+      "WaitingGameView": {
+        "description": "One game that waits on the reader; it names the game and the ask only.",
+        "properties": {
+          "game": {
+            "$ref": "#/components/schemas/WaitingGameKind",
+            "description": "The game; the client opens its own page."
+          },
+          "reason": {
+            "$ref": "#/components/schemas/WaitingGameReason",
+            "description": "What the reader is asked to do."
+          },
+          "since": {
+            "description": "When the game started waiting on the reader.",
+            "format": "date-time",
+            "title": "Since",
+            "type": "string"
+          }
+        },
+        "required": [
+          "game",
+          "reason",
+          "since"
+        ],
+        "title": "WaitingGameView",
+        "type": "object"
+      },
+      "WaitingGames": {
+        "properties": {
+          "items": {
+            "description": "Every game that waits on the reader, newest first; empty when none.",
+            "items": {
+              "$ref": "#/components/schemas/WaitingGameView"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "WaitingGames",
+        "type": "object"
+      },
       "WeeklyFeedbackUpdate": {
         "additionalProperties": false,
         "properties": {
@@ -34667,6 +34736,69 @@
           }
         },
         "summary": "Hand Over Picture Ping Pong Turn",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/waiting": {
+      "get": {
+        "description": "Games that wait on the reader, for Wir (#2158 C); never their content.",
+        "operationId": "getWaitingGames",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitingGames"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Waiting Games",
         "tags": [
           "games"
         ]

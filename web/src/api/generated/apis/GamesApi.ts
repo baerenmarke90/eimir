@@ -149,6 +149,11 @@ import {
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
 import {
+    type WaitingGames,
+    WaitingGamesFromJSON,
+    WaitingGamesToJSON,
+} from '../models/WaitingGames';
+import {
     type WhoOfUsAnswerInput,
     WhoOfUsAnswerInputFromJSON,
     WhoOfUsAnswerInputToJSON,
@@ -250,6 +255,10 @@ export interface GetOurMomentsRemoteGameRequest {
 }
 
 export interface GetPicturePingPongRequest {
+    spaceId: string;
+}
+
+export interface GetWaitingGamesRequest {
     spaceId: string;
 }
 
@@ -1196,6 +1205,53 @@ export class GamesApi extends runtime.BaseAPI {
      */
     async getPicturePingPong(requestParameters: GetPicturePingPongRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PicturePingPongState> {
         const response = await this.getPicturePingPongRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getWaitingGames without sending the request
+     */
+    async getWaitingGamesRequestOpts(requestParameters: GetWaitingGamesRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getWaitingGames().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/waiting`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Games that wait on the reader, for Wir (#2158 C); never their content.
+     * Get Waiting Games
+     */
+    async getWaitingGamesRaw(requestParameters: GetWaitingGamesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WaitingGames>> {
+        const requestOptions = await this.getWaitingGamesRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => WaitingGamesFromJSON(jsonValue));
+    }
+
+    /**
+     * Games that wait on the reader, for Wir (#2158 C); never their content.
+     * Get Waiting Games
+     */
+    async getWaitingGames(requestParameters: GetWaitingGamesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WaitingGames> {
+        const response = await this.getWaitingGamesRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

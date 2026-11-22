@@ -720,6 +720,21 @@
   pointer-events: none;
 }
 
+/* The brand fill drops below 3:1 on the dark navigation surface of some app
+   designs; the brand text role stays legible in all of them. */
+.shell-nav-link .notification-dot {
+  top: -3px;
+  right: -3px;
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+  background-color: var(--color-brand-text);
+}
+
+.mobile-bottom-nav .notification-dot {
+  border-color: var(--color-surface-overlay);
+}
+
 .mobile-bottom-shell {
   position: fixed;
   z-index: 50;

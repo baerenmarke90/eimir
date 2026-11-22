@@ -306,6 +306,7 @@ export * from './PlaceLookupRequest';
 export * from './PlaceLookupResult';
 export * from './PlacePage';
 export * from './PlaceUpdate';
+export * from './PlanAnticipation';
 export * from './PlanCalendarSyncView';
 export * from './PlanComplete';
 export * from './PlanCreate';

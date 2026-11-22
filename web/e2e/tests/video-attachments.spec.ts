@@ -6,6 +6,7 @@ import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import storyCopy from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
+import uploadFailure from '../../src/i18n/locales/uploadFailure';
 import videoCopy from '../../src/i18n/locales/video';
 import fixtureCopy from '../fixtures/locales/de';
 import AxeBuilder from '../support/axe';
@@ -940,8 +941,15 @@ for (const [width, colorScheme] of [
           exact: true,
         })
         .click();
+      // The refused start names its step, status and code for testers (#2158).
       await expect(
-        page.getByText(videoCopy.startFailed, { exact: true }),
+        page.getByText(
+          `${videoCopy.startFailed} ${uploadFailure.reference.replace(
+            '{{reference}}',
+            'create-503-SERVICE_UNAVAILABLE-web',
+          )}`,
+          { exact: true },
+        ),
       ).toBeVisible();
       await expect(
         page.getByText(videoCopy.failedNotSaved, { exact: true }),

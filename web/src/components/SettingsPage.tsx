@@ -50,6 +50,7 @@ import { SettingsIndexLive } from './SettingsIndexLive';
 import { SettingsScopeNote } from './SettingsScopeNote';
 import { SpaceConfigurationPanel } from './SpaceConfigurationPanel';
 import { SpaceOffboardingPanel } from './SpaceOffboardingPanel';
+import { StorageSection } from './StorageSection';
 import { TransferPanel } from './TransferPanel';
 import { WirStatisticsSetting } from './WirStatisticsSetting';
 import './SettingsPage.css';
@@ -298,6 +299,12 @@ export function SettingsPage(props: SettingsPageProps) {
         id="settings-data"
         className="settings-category-content settings-data-block"
       >
+        <StorageSection
+          apiBaseUrl={props.apiBaseUrl}
+          accessToken={props.accessToken}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+        />
         <TransferPanel
           key={`${props.account.id}:${props.spaceId}:${location.search}`}
           apiBaseUrl={props.apiBaseUrl}

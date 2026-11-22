@@ -18,6 +18,7 @@ import {
   waitUntilAttachmentReady,
 } from './referenceFlow';
 import { selectedPhotoUnavailable } from './selectedMediaRetention';
+import { describeUploadFailure, type UploadPhase } from './uploadFailure';
 import { compressVideoForUpload } from './videoCompression';
 
 export type DraftUploadPhase = 'preparing' | 'uploading' | 'validating';
@@ -72,6 +73,8 @@ export async function uploadMemoryDraftAttachment(
 
   let createdAttachment: { id: string; version: number } | null = null;
   let prepared: NativePreparedVideo | undefined;
+  let phase: UploadPhase = 'create';
+  let uploadSize = file.size;
   const owner = {
     instance: apiBaseUrl,
     accountId: options.accountId ?? '',
@@ -102,6 +105,7 @@ export async function uploadMemoryDraftAttachment(
       throwIfAborted(options.signal);
     }
     const selected = prepared ?? uploadFile;
+    uploadSize = selected.size;
     onPhase?.('uploading');
     const upload = await apis.attachments.createAttachmentUpload({
       spaceId,
@@ -124,6 +128,7 @@ export async function uploadMemoryDraftAttachment(
     };
 
     if (video && options.accountId) {
+      phase = 'start';
       await startBackgroundVideoTransfer({
         apis,
         apiBaseUrl,
@@ -146,6 +151,7 @@ export async function uploadMemoryDraftAttachment(
       };
     }
 
+    phase = 'put';
     await uploadAttachmentBytesWithProgress(
       apiBaseUrl,
       accessToken,
@@ -156,6 +162,7 @@ export async function uploadMemoryDraftAttachment(
     );
     throwIfAborted(options.signal);
     onPhase?.('validating');
+    phase = 'finalize';
     const finalized = await apis.attachments.finalizeAttachmentUpload({
       spaceId,
       attachmentId: upload.attachment.id,
@@ -168,6 +175,7 @@ export async function uploadMemoryDraftAttachment(
         hasThumbnail: finalized.status === 'READY' && finalized.hasThumbnail,
         durationSeconds: finalized.durationSeconds,
       };
+    phase = 'validate';
     const ready = await waitUntilAttachmentReady(
       apis,
       spaceId,
@@ -194,10 +202,13 @@ export async function uploadMemoryDraftAttachment(
       }
       throw error;
     }
-    if (error instanceof ReferenceFlowError) throw error;
-    throw new ReferenceFlowError(
-      i18n.t(video ? 'video.startFailed' : 'flow.uploadFailed'),
-    );
+    // The real reason, the same way on every media path; a full storage is
+    // said plainly (#2141 P6) and the rest carries a neutral reference (#2158).
+    throw await describeUploadFailure(error, {
+      phase,
+      media: video ? 'video' : audio ? 'audio' : 'image',
+      size: uploadSize,
+    });
   } finally {
     if (prepared) await releasePreparedVideo(owner, prepared);
   }

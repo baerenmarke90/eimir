@@ -759,6 +759,9 @@
       "intro": "Would you like to capture this moment in your shared story?",
       "memoryAction": "Capture memory",
       "milestoneAction": "Capture milestone",
+      "menuMemory": "Capture as a memory",
+      "menuHeartMoment": "Capture as a heart moment",
+      "menuMilestone": "Capture as a milestone",
       "chapterAction": "Add to a chapter",
       "later": "Later",
       "chapterNeedsStory": "Chapters contain your shared moments. Capture a memory or milestone first – then you can add it directly to a chapter.",
@@ -3283,9 +3286,14 @@
       "tomorrow": "Tomorrow is the day",
       "days_one": "{{count}} day to go",
       "days_other": "{{count}} days to go",
-      "show": "Show anticipation on Us",
-      "help": "Highlight this special plan on your home page.",
-      "saved": "Anticipation updated."
+      "choiceLabel": "Anticipation on Us",
+      "automatic": "Automatic",
+      "always": "Show first",
+      "never": "Never",
+      "automaticHelp": "When this plan is next, Us counts down to it.",
+      "automaticDiscreetHelp": "Us only counts down to a discreet plan when you choose Show first.",
+      "alwaysHelp": "Us counts down to this plan, even if something else comes first.",
+      "neverHelp": "This plan never appears as the countdown on Us."
     },
     "passport": {
       "title": "Your story",
@@ -5968,6 +5976,8 @@
     "wirModuleLabel": "Distance between you",
     "mapTitle": "Where we are",
     "mapShowUs": "Show us",
+    "mapZoomToPartner": "Zoom to {{partner}}",
+    "mapZoomToOwn": "Zoom to you",
     "mapLoading": "Loading map …",
     "mapPartnerArea": "{{partner}}",
     "mapPartnerNotSharing": "{{partner}} is not sharing anything right now",
@@ -6765,5 +6775,32 @@
       "SHARED_NOTE_CREATED": "{{name}} added a shared note",
       "SHARED_NOTE_CHANGED": "{{name}} changed a shared note"
     }
+  },
+  "storageQuota": {
+    "heading": "Storage",
+    "used": "{{used}} of {{quota}} used",
+    "counts": "Photos, videos, voice messages and PDFs count. Previews and your profile photo do not.",
+    "free": "{{available}} still free.",
+    "proIncluded": "With eimir. Pro you have {{quota}}.",
+    "almostFull": {
+      "title": "Your storage is almost full",
+      "body": "After that, no new photos or videos can be added. Everything you already have stays."
+    },
+    "full": {
+      "title": "Your storage is full",
+      "body": "New photos, videos, voice messages and PDFs can be added again once you free up space or use Pro. Everything you have stays and can still be viewed, edited and exported.",
+      "bodyPro": "New photos, videos, voice messages and PDFs can be added again once you free up space. Everything you have stays and can still be viewed, edited and exported."
+    },
+    "viewMedia": "View photos and videos",
+    "morePro": "More space with eimir. Pro",
+    "uploadRefused": "This no longer fits your storage. Free up space or use Pro, then you can add it again."
+  },
+  "uploadFailure": {
+    "image": "This photo could not be uploaded just now.",
+    "imageType": "eimir. cannot take this image format. JPG, PNG, WebP, HEIC and HEIF work.",
+    "offline": "You are offline right now. Once you have a connection again, you can try once more.",
+    "connection": "The connection dropped while uploading. Check your network and try again.",
+    "stalled": "The upload stopped making progress and was paused. Try again, ideally on a stable network.",
+    "reference": "Reference for troubleshooting: {{reference}}"
   }
 }

@@ -80,6 +80,19 @@ class DiscreetTitleMode(StrEnum):
     ORIGINAL = "ORIGINAL"
 
 
+class PlanAnticipation(StrEnum):
+    """Whether a Plan may carry the countdown on Wir (#504, #2158 D).
+
+    ``AUTOMATIC`` lets the countdown show the Plan when it is the next upcoming
+    one and no Plan is pinned. ``ALWAYS`` pins it: a pinned upcoming Plan wins
+    over every automatic one. ``NEVER`` keeps the Plan off the countdown.
+    """
+
+    AUTOMATIC = "AUTOMATIC"
+    ALWAYS = "ALWAYS"
+    NEVER = "NEVER"
+
+
 PREVIEW_TITLE_MAX_LENGTH = 200
 
 
@@ -170,9 +183,14 @@ class Plan(
 
     planned_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     planned_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    anticipation_enabled: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False, server_default=text("false")
+    anticipation: Mapped[str] = mapped_column(
+        String(16),
+        nullable=False,
+        default=PlanAnticipation.AUTOMATIC.value,
+        server_default=text("'AUTOMATIC'"),
     )
+    """The Plan's countdown preference on Wir (#2158 D); see ``PlanAnticipation``."""
+
     discreet: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default=text("false")
     )
@@ -216,6 +234,10 @@ class Plan(
         CheckConstraint(
             "discreet_title_mode IN ('PREVIEW', 'ORIGINAL')",
             name="discreet_title_mode_is_known",
+        ),
+        CheckConstraint(
+            "anticipation IN ('AUTOMATIC', 'ALWAYS', 'NEVER')",
+            name="anticipation_is_known",
         ),
         # A schedule has exactly one semantic start representation. Keeping the
         # two columns mutually exclusive makes date-only versus timed explicit
@@ -282,7 +304,7 @@ class Plan(
         Index("ix_plans_place_id", "place_id"),
         Index("ix_plans_space_id_created_at_id", "space_id", "created_at", "id"),
         Index("ix_plans_space_id_status", "space_id", "status"),
-        Index("ix_plans_space_id_anticipation", "space_id", "anticipation_enabled", "status"),
+        Index("ix_plans_space_id_anticipation", "space_id", "anticipation", "status"),
         Index("ix_plans_space_id_planned_on", "space_id", "planned_on"),
         Index("ix_plans_space_id_planned_start", "space_id", "planned_start"),
     )

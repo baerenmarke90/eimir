@@ -32,7 +32,7 @@ from eimir.milestones.models import Milestone
 from eimir.people.models import DateRepeat, ImportantDate, RelatedPerson
 from eimir.places.models import Place
 from eimir.plans import discreet
-from eimir.plans.models import Plan, PlanStatus
+from eimir.plans.models import Plan, PlanAnticipation, PlanStatus
 from eimir.relationship.models import (
     DurationDisplayMode,
     Membership,
@@ -191,7 +191,15 @@ def read_anticipation(
     *,
     at: datetime | None = None,
 ) -> Anticipation | None:
-    """Select one explicitly highlighted Plan independently of agenda limits."""
+    """Select the one countdown Plan independently of agenda limits (#504, #2158 D).
+
+    A pinned (``ALWAYS``) upcoming Plan wins; otherwise the next upcoming
+    ``AUTOMATIC`` Plan shows. ``NEVER`` Plans never show. A discreet Plan is a
+    shield against onlookers, so it is never picked automatically: it shows
+    only when pinned, and then with its list title alone. A timed Plan stays
+    upcoming until it ends (its start when it has no end); a date-only Plan
+    stays upcoming through its day.
+    """
     account = session.get(Account, authorization.account_id)
     if account is None:
         raise RuntimeError("Authorized Dashboard account disappeared.")
@@ -199,14 +207,30 @@ def read_anticipation(
     zone = clock.resolve_zone(account.timezone).key
     today = clock.today_in(zone, at=instant)
     event_day = func.coalesce(Plan.planned_on, cast(func.timezone(zone, Plan.planned_start), Date))
+    pinned = Plan.anticipation == PlanAnticipation.ALWAYS.value
     plan = session.execute(
         readable(Plan, authorization)
         .where(
-            Plan.anticipation_enabled.is_(True),
+            or_(
+                pinned,
+                and_(
+                    Plan.anticipation == PlanAnticipation.AUTOMATIC.value,
+                    Plan.discreet.is_(False),
+                ),
+            ),
             Plan.status == PlanStatus.PLANNED.value,
             event_day >= today,
+            or_(
+                Plan.planned_start.is_(None),
+                func.coalesce(Plan.planned_end, Plan.planned_start) >= instant,
+            ),
         )
-        .order_by(event_day, Plan.planned_start.asc().nulls_first(), Plan.id)
+        .order_by(
+            case((pinned, 0), else_=1),
+            event_day,
+            Plan.planned_start.asc().nulls_first(),
+            Plan.id,
+        )
         .limit(1)
     ).scalar_one_or_none()
     if plan is None:

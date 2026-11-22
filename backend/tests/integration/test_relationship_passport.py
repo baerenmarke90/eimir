@@ -60,7 +60,7 @@ def plan(session, context, *, day=None, start=None, special=True, status="PLANNE
         status=status,
         planned_on=day,
         planned_start=start,
-        anticipation_enabled=special,
+        anticipation="ALWAYS" if special else "AUTOMATIC",
         experienced_on=date(2026, 10, 28) if status == "COMPLETED" else None,
     )
     session.add(item)

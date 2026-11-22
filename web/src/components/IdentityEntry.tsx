@@ -6,10 +6,9 @@ import {
   useState,
 } from 'react';
 import type { AuthCapabilities } from '../api/generated/models/AuthCapabilities';
-import type { OidcConnectionView } from '../api/generated/models/OidcConnectionView';
 import type { InstanceAccessStatusAccountCreationEnum } from '../api/generated/models/InstanceAccessStatus';
+import type { OidcConnectionView } from '../api/generated/models/OidcConnectionView';
 import type { SensitiveEntryToken } from '../client/entryToken';
-import { useInlineFieldError } from '../client/useInlineFieldError';
 import {
   ActiveAccountMismatchError,
   completePasswordRecovery,
@@ -44,10 +43,11 @@ import {
   clientProblemKind,
 } from '../client/problemDetails';
 import type { StoredSession } from '../client/sessionPersistence';
+import { useInlineFieldError } from '../client/useInlineFieldError';
 import { useTaskActivation } from '../client/useTaskActivation';
-import { isCapacitorNative } from '../pwa';
 import { useTranslation } from '../i18n';
 import { cloudLegalDocumentsApply } from '../legal/legalDocuments';
+import { isCapacitorNative } from '../pwa';
 import { Brand } from './Brand';
 import { LegalFooterLinks } from './LegalDocumentLink';
 import { ProblemState } from './ProblemState';
@@ -155,6 +155,11 @@ export function IdentityEntry({
   const [recoveryRequested, setRecoveryRequested] = useState(false);
   const [magicLinkRequested, setMagicLinkRequested] = useState(false);
   const [signupRequested, setSignupRequested] = useState(false);
+  // The address typed on this device for the last mail request; kept in memory
+  // only so a resend needs no retyping.
+  const requestedEmail = useRef('');
+  const [mailRequestCount, setMailRequestCount] = useState(0);
+  const [focusRequest, setFocusRequest] = useState(0);
   const [verificationDismissed, setVerificationDismissed] = useState(false);
   const [verificationSucceeded, setVerificationSucceeded] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -330,18 +335,25 @@ export function IdentityEntry({
     runAction,
   ]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: focusRequest re-runs the focus after a restart inside the same mode
   useEffect(() => {
     if (shouldFocusInput.current && mode) {
       shouldFocusInput.current = false;
       emailInputRef.current?.focus();
     }
-  }, [mode]);
+  }, [mode, focusRequest]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mailRequestCount moves focus back to the notice after a resend
   useEffect(() => {
-    if (signupRequested) {
+    if (signupRequested || magicLinkRequested || recoveryRequested) {
       neutralMailStatusRef.current?.focus();
     }
-  }, [signupRequested]);
+  }, [
+    signupRequested,
+    magicLinkRequested,
+    recoveryRequested,
+    mailRequestCount,
+  ]);
 
   useEffect(() => {
     if (problemCode(activeError) === TERMS_ACCEPTANCE_REQUIRED) {
@@ -350,7 +362,19 @@ export function IdentityEntry({
   }, [activeError]);
 
   function switchMode(nextMode: EntryMode) {
-    if (nextMode === mode) return;
+    if (nextMode === mode) {
+      // Tapping the active tab restarts a mode that shows the mailbox notice
+      // instead of leaving the person on a dead end.
+      const showsNotice =
+        (mode === 'magicLinkRequest' && magicLinkRequested) ||
+        (mode === 'signupRequest' && signupRequested) ||
+        (mode === 'recoveryRequest' && recoveryRequested);
+      if (showsNotice) restartMailRequest();
+      return;
+    }
+    setRecoveryRequested(false);
+    setMagicLinkRequested(false);
+    setSignupRequested(false);
     if (
       !localPasswordEnabled &&
       nextMode !== 'magicLinkRequest' &&
@@ -426,15 +450,22 @@ export function IdentityEntry({
     );
   }
 
-  function submitRecoveryRequest(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const email = String(data.get('email'));
+  function sendRecoveryRequest(email: string) {
+    requestedEmail.current = email;
     void runAction(
       'recoveryRequest',
       () => requestPasswordRecovery(apiBaseUrl, email),
-      () => setRecoveryRequested(true),
+      () => {
+        setRecoveryRequested(true);
+        setMailRequestCount((count) => count + 1);
+      },
     );
+  }
+
+  function submitRecoveryRequest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    sendRecoveryRequest(String(data.get('email')));
   }
 
   function submitRecovery(event: FormEvent<HTMLFormElement>) {
@@ -454,10 +485,8 @@ export function IdentityEntry({
     );
   }
 
-  function submitMagicLinkRequest(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const email = String(data.get('email'));
+  function sendMagicLinkRequest(email: string) {
+    requestedEmail.current = email;
     void runAction(
       'magicLinkRequest',
       () =>
@@ -471,19 +500,47 @@ export function IdentityEntry({
               )
             : requestSignup(apiBaseUrl, email)
           : requestMagicLink(apiBaseUrl, email),
-      () => setMagicLinkRequested(true),
+      () => {
+        setMagicLinkRequested(true);
+        setMailRequestCount((count) => count + 1);
+      },
+    );
+  }
+
+  function submitMagicLinkRequest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    sendMagicLinkRequest(String(data.get('email')));
+  }
+
+  function sendSignupRequest(email: string) {
+    requestedEmail.current = email;
+    void runAction(
+      'signupRequest',
+      () => requestSignup(apiBaseUrl, email, null, acceptedTermsVersion),
+      () => {
+        setSignupRequested(true);
+        setMailRequestCount((count) => count + 1);
+      },
     );
   }
 
   function submitSignupRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const email = String(data.get('email'));
-    void runAction(
-      'signupRequest',
-      () => requestSignup(apiBaseUrl, email, null, acceptedTermsVersion),
-      () => setSignupRequested(true),
-    );
+    sendSignupRequest(String(data.get('email')));
+  }
+
+  /** Back to the empty form, with the keyboard opened because the person chose to type. */
+  function restartMailRequest() {
+    setActiveError(null);
+    setFailedAction(null);
+    setRecoveryRequested(false);
+    setMagicLinkRequested(false);
+    setSignupRequested(false);
+    requestedEmail.current = '';
+    shouldFocusInput.current = true;
+    setFocusRequest((count) => count + 1);
   }
 
   function continueWithProvider(connectionId: string, signup: boolean) {
@@ -826,7 +883,17 @@ export function IdentityEntry({
                     <p className="muted">{t('identity.startTogetherBody')}</p>
                   </div>
                   {signupRequested ? (
-                    <NeutralMailResult statusRef={neutralMailStatusRef} />
+                    <>
+                      <NeutralMailResult statusRef={neutralMailStatusRef} />
+                      <MailRequestedActions
+                        pending={pendingAction === 'signupRequest'}
+                        pendingLabel={t('identity.startTogetherPending')}
+                        onResend={() =>
+                          sendSignupRequest(requestedEmail.current)
+                        }
+                        onOtherAddress={restartMailRequest}
+                      />
+                    </>
                   ) : termsOutdated ? (
                     outdatedTerms
                   ) : (
@@ -945,7 +1012,17 @@ export function IdentityEntry({
                     <p className="muted">{t('identity.recoveryRequestBody')}</p>
                   </div>
                   {recoveryRequested ? (
-                    <NeutralMailResult />
+                    <>
+                      <NeutralMailResult statusRef={neutralMailStatusRef} />
+                      <MailRequestedActions
+                        pending={pendingAction === 'recoveryRequest'}
+                        pendingLabel={t('identity.recoveryRequestPending')}
+                        onResend={() =>
+                          sendRecoveryRequest(requestedEmail.current)
+                        }
+                        onOtherAddress={restartMailRequest}
+                      />
+                    </>
                   ) : (
                     <form
                       onSubmit={submitRecoveryRequest}
@@ -986,7 +1063,17 @@ export function IdentityEntry({
                     <p className="muted">{t('identity.magicLinkBody')}</p>
                   </div>
                   {magicLinkRequested ? (
-                    <NeutralMailResult />
+                    <>
+                      <NeutralMailResult statusRef={neutralMailStatusRef} />
+                      <MailRequestedActions
+                        pending={pendingAction === 'magicLinkRequest'}
+                        pendingLabel={t('identity.magicLinkRequestPending')}
+                        onResend={() =>
+                          sendMagicLinkRequest(requestedEmail.current)
+                        }
+                        onOtherAddress={restartMailRequest}
+                      />
+                    </>
                   ) : selfServiceSignupAvailable &&
                     invitationToken &&
                     termsOutdated ? (
@@ -1342,6 +1429,41 @@ function NeutralMailResult({
     >
       <strong>{t('identity.mailRequestedTitle')}</strong>
       <span>{t('identity.mailRequestedBody')}</span>
+    </div>
+  );
+}
+
+function MailRequestedActions({
+  pending,
+  pendingLabel,
+  onResend,
+  onOtherAddress,
+}: {
+  pending: boolean;
+  pendingLabel: string;
+  onResend: () => void;
+  onOtherAddress: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="form-grid">
+      <button
+        type="button"
+        className="secondary"
+        disabled={pending}
+        aria-busy={pending}
+        onClick={onResend}
+      >
+        {pending ? pendingLabel : t('identity.requestNewLink')}
+      </button>
+      <button
+        type="button"
+        className="tertiary"
+        disabled={pending}
+        onClick={onOtherAddress}
+      >
+        {t('identity.useOtherAddress')}
+      </button>
     </div>
   );
 }

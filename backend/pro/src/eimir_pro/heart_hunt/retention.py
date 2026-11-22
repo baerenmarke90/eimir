@@ -9,10 +9,10 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from eimir.heart_hunt import service
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import JobRegistry, registry
+from eimir_pro.heart_hunt import service
 
 log = logging.getLogger(__name__)
 

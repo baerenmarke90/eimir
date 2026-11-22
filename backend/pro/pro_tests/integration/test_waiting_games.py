@@ -10,13 +10,17 @@ from datetime import timedelta
 from uuid import uuid4
 
 import pytest
+from eimir_pro.couple_games import service as couple_games
+from eimir_pro.couple_games.models import CoupleGame, CoupleGamePayload, CoupleGameStatus
+from eimir_pro.garden.models import GardenBouquet, GardenPlant
+from eimir_pro.heart_hunt.models import HeartHuntRound, HeartRoundState
+from eimir_pro.picture_ping_pong import service as picture_ping_pong
+from eimir_pro.picture_ping_pong.models import PictureStatus
 from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext
 from eimir.core import clock
 from eimir.core.clock import now
-from eimir.couple_games import service as couple_games
-from eimir.couple_games.models import CoupleGame, CoupleGamePayload, CoupleGameStatus
 from eimir.entitlements import service as entitlement_service
 from eimir.entitlements.models import (
     Capability,
@@ -24,10 +28,6 @@ from eimir.entitlements.models import (
     EntitlementStatus,
     EntitlementTier,
 )
-from eimir.garden.models import GardenBouquet, GardenPlant
-from eimir.heart_hunt.models import HeartHuntRound, HeartRoundState
-from eimir.picture_ping_pong import service as picture_ping_pong
-from eimir.picture_ping_pong.models import PictureStatus
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 

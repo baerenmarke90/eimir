@@ -7,10 +7,12 @@ import re
 from pathlib import Path
 
 import pytest
+from eimir_pro.couple_games import wish_detective_rules as rules
 
-from eimir.couple_games import wish_detective_rules as rules
+import tests
 
-LOCALES = Path(__file__).resolve().parents[3] / "web/src/i18n/locales"
+# The Web client lives with the Core; ``tests`` is the Core test support.
+LOCALES = Path(tests.__file__).resolve().parents[2] / "web/src/i18n/locales"
 VECTORS = json.loads((LOCALES / "wishDetectiveRuleVectors.json").read_text(encoding="utf-8"))
 
 

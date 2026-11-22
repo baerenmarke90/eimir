@@ -5305,6 +5305,7 @@
     "dismiss": "Close",
     "spaceSwitched": "Space switched.",
     "identityLinkWaiting": "Your link is waiting. Save or close your draft first.",
+    "identityLinkUnusable": "This link does not match this version of the app. Request a new one.",
     "notificationWaiting": "Your notification is waiting. Save or close your draft first.",
     "memoryDeleted": "Memory deleted.",
     "dailyEnergyConflict": "The battery level changed in the meantime. The latest value was loaded.",

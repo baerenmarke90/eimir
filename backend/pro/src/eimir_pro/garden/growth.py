@@ -12,7 +12,7 @@ from collections.abc import Iterable
 from datetime import date
 from types import MappingProxyType
 
-from eimir.garden.models import GardenForm, GardenSpecies, GardenUnlock
+from eimir_pro.garden.models import GardenForm, GardenSpecies, GardenUnlock
 
 # Product Owner approved prototype thresholds (2026-11-16), in shared days.
 UNLOCK_DAYS: MappingProxyType[GardenUnlock, int] = MappingProxyType(

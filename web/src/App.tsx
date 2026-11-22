@@ -195,6 +195,7 @@ import {
   ServerAdminPage,
 } from './components/ServerAdminPage';
 import { SharedPlanningOverviewPage } from './components/SharedPlanningOverviewPage';
+import { Snackbar } from './components/Snackbar';
 import { StoryProductPage } from './components/StoryProductPage';
 import {
   StoryYearDetailPage,
@@ -1850,6 +1851,8 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     return (
       <>
         <ThemeControl />
+        {/* The shell's snackbar is not mounted while signed out; a mailed link that cannot be used is reported here. */}
+        <Snackbar />
         {showDemoEntry ? (
           <DemoEntry />
         ) : (

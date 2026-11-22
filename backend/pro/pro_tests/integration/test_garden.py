@@ -6,6 +6,7 @@ import json
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
+from eimir_pro.garden.models import GardenPlant
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -21,7 +22,6 @@ from eimir.entitlements.models import (
     EntitlementStatus,
     EntitlementTier,
 )
-from eimir.garden.models import GardenPlant
 from eimir.outbox.models import OutboxEvent
 from eimir.plans.models import Plan, PlanPayload, PlanStatus
 from eimir.relationship import service as relationship_service
@@ -396,7 +396,8 @@ def test_a_timed_reunion_uses_the_couple_calendar_day(client, premium, session) 
 
 
 def test_without_the_plugin_the_garden_leaves_with_the_couple(client, premium, session) -> None:  # type: ignore[no-untyped-def]
-    from eimir.garden.models import Garden
+    from eimir_pro.garden.models import Garden
+
     from tests.support.plugins import without_plugins
 
     _send(client, premium)

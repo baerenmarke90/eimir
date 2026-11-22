@@ -17,29 +17,18 @@ SOURCE = Path(__file__).resolve().parents[2] / "src"
 
 PLUGIN_PACKAGES = (
     "eimir.calendar_sync",
-    "eimir.couple_games",
-    "eimir.garden",
-    "eimir.heart_hunt",
     "eimir.photo_sources",
-    "eimir.picture_ping_pong",
 )
 """The in-tree Pro modules; Phase 2 moves them into their own distribution."""
 
 PLUGIN_MODULES = (
     "eimir.pro_plugin",
-    "eimir.games.service",
-    "eimir.games.waiting",
     "eimir.providers.caldav",
     *(
         f"eimir.api.v1.{name}"
         for name in (
             "calendar_sync",
-            "couple_games",
-            "games",
-            "garden",
-            "heart_hunt",
             "photo_sources",
-            "picture_ping_pong",
         )
     ),
 )
@@ -106,16 +95,16 @@ def test_core_module_imports_no_plugin_code(path: Path) -> None:
 
 def test_the_check_catches_a_plugin_import() -> None:
     tree = ast.parse(
-        "def f():\n    from eimir.garden import service\n"
-        "from eimir.api.v1 import games\nimport eimir_pro.presence.models\n"
+        "def f():\n    from eimir_pro.garden import service\n"
+        "from eimir.api.v1 import calendar_sync\nimport eimir_pro.presence.models\n"
         "import eimir_pro.plugin\n"
     )
     assert {
         name for name in _imported(tree, "eimir.wish_selections.service") if _is_plugin(name)
     } == {
-        "eimir.garden",
-        "eimir.garden.service",
-        "eimir.api.v1.games",
+        "eimir_pro.garden",
+        "eimir_pro.garden.service",
+        "eimir.api.v1.calendar_sync",
         "eimir_pro.presence.models",
         "eimir_pro.plugin",
     }

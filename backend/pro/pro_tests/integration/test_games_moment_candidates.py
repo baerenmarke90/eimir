@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
+from eimir_pro.games.service import MAX_MEMORY_CANDIDATES
 from sqlalchemy.orm import Session
 
 from eimir.attachments.binding import MemoryAttachment
@@ -18,7 +19,6 @@ from eimir.entitlements.models import (
     EntitlementStatus,
     EntitlementTier,
 )
-from eimir.games.service import MAX_MEMORY_CANDIDATES
 from eimir.memories.models import Memory, MemoryPayload
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in

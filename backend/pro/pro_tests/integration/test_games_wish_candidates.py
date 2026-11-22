@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 import pytest
+from eimir_pro.games.service import MAX_WISH_CANDIDATES
 from sqlalchemy.orm import Session
 
 from eimir.authorization import PrivacyClass
@@ -16,7 +17,6 @@ from eimir.entitlements.models import (
     EntitlementStatus,
     EntitlementTier,
 )
-from eimir.games.service import MAX_WISH_CANDIDATES
 from eimir.relationship import service as relationship_service
 from eimir.wishes.models import Wish, WishPayload, WishStatus
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in

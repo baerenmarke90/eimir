@@ -18,8 +18,8 @@ from eimir.api.deps import Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.entitlements.models import Capability
-from eimir.picture_ping_pong import service
-from eimir.picture_ping_pong.models import (
+from eimir_pro.picture_ping_pong import service
+from eimir_pro.picture_ping_pong.models import (
     MAX_STROKE_VALUES,
     MAX_STROKES_PER_TURN,
     MAX_TURNS,

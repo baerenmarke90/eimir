@@ -5521,7 +5521,8 @@
     "roleDescription": "Photo story",
     "themesLabel": "Photo story themes",
     "theme": {
-      "photos": "Photos",
+      "remember": "Remember when?",
+      "photos": "Memories",
       "heartMoments": "Heart moments",
       "milestones": "Milestones",
       "words": "In words"

@@ -29,6 +29,11 @@ import {
     DailyCheckInUpdateToJSON,
 } from '../models/DailyCheckInUpdate';
 import {
+    type PersonalWeeklyBriefView,
+    PersonalWeeklyBriefViewFromJSON,
+    PersonalWeeklyBriefViewToJSON,
+} from '../models/PersonalWeeklyBriefView';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
@@ -73,6 +78,11 @@ export interface GetDailyCheckInInsightsRequest {
     spaceId: string;
     startDate?: Date | null;
     endDate?: Date | null;
+}
+
+export interface GetDailyCheckInPersonalWeeklyBriefRequest {
+    spaceId: string;
+    weekStart: Date;
 }
 
 export interface GetDailyCheckInTodayRequest {
@@ -215,6 +225,64 @@ export class DailyCheckInsApi extends runtime.BaseAPI {
      */
     async getDailyCheckInInsights(requestParameters: GetDailyCheckInInsightsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DailyCheckInInsightsView> {
         const response = await this.getDailyCheckInInsightsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getDailyCheckInPersonalWeeklyBrief without sending the request
+     */
+    async getDailyCheckInPersonalWeeklyBriefRequestOpts(requestParameters: GetDailyCheckInPersonalWeeklyBriefRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getDailyCheckInPersonalWeeklyBrief().'
+            );
+        }
+
+        if (requestParameters['weekStart'] == null) {
+            throw new runtime.RequiredError(
+                'weekStart',
+                'Required parameter "weekStart" was null or undefined when calling getDailyCheckInPersonalWeeklyBrief().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['weekStart'] != null) {
+            queryParameters['week_start'] = (requestParameters['weekStart'] as any).toISOString().substring(0,10);
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/daily-check-in/weekly-brief/personal`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Private weekly brief over the caller\'s own values alone (#2197).  Model-free. Partner Daily Check-in rows are never read; shared Plan and Memory dates follow the ordinary visibility rules.
+     * Get Daily Check In Personal Weekly Brief
+     */
+    async getDailyCheckInPersonalWeeklyBriefRaw(requestParameters: GetDailyCheckInPersonalWeeklyBriefRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PersonalWeeklyBriefView>> {
+        const requestOptions = await this.getDailyCheckInPersonalWeeklyBriefRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PersonalWeeklyBriefViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Private weekly brief over the caller\'s own values alone (#2197).  Model-free. Partner Daily Check-in rows are never read; shared Plan and Memory dates follow the ordinary visibility rules.
+     * Get Daily Check In Personal Weekly Brief
+     */
+    async getDailyCheckInPersonalWeeklyBrief(requestParameters: GetDailyCheckInPersonalWeeklyBriefRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PersonalWeeklyBriefView> {
+        const response = await this.getDailyCheckInPersonalWeeklyBriefRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -205,3 +205,90 @@ def test_completed_or_running_plans_are_no_follow_up(client, session, couple):
     )
     session.flush()
     assert brief(client, base, couple["token_a"])["followUp"] is None
+
+
+# Private ("just me") brief (#2197) ------------------------------------------
+
+
+def personal(client, base, token, week=WEEK):
+    response = client.get(f"{base}/personal?week_start={week.isoformat()}", headers=auth(token))
+    assert response.status_code == 200, response.text
+    assert response.headers["Cache-Control"] == "private, no-store"
+    return response.json()
+
+
+def test_personal_brief_is_pro_only(client, session, couple):
+    base = setup(session, couple, pro=False)
+    response = client.get(f"{base}/personal?week_start={WEEK}", headers=auth(couple["token_a"]))
+    assert response.status_code == 403
+    assert response.json()["code"] == "PREMIUM_ENTITLEMENT_REQUIRED"
+
+
+def test_personal_brief_finds_own_weekday_and_shared_day_patterns(client, session, couple):
+    base = setup(session, couple)
+    anna = ctx(couple, "anna")
+    # Four weeks back to the brief week: Tuesdays low, shared Saturdays high.
+    for weeks_back in range(4):
+        monday = WEEK - timedelta(weeks=weeks_back)
+        for offset in range(6):
+            day = monday + timedelta(days=offset)
+            if day > TODAY:
+                continue
+            energy = 30 if offset == 1 else (90 if offset == 5 else 60)
+            check_in(session, couple, "anna", day, "GOOD" if offset == 5 else "OKAY", energy)
+        saturday = monday + timedelta(days=5)
+        if saturday <= TODAY:
+            plans.create_plan(
+                session,
+                anna,
+                title="Ausflug",
+                description=None,
+                place_id=None,
+                planned_on=saturday,
+            )
+    session.flush()
+    result = personal(client, base, couple["token_a"])
+    assert result["ownDays"] == [
+        "2026-10-26",
+        "2026-10-27",
+        "2026-10-28",
+        "2026-10-29",
+        "2026-10-30",
+        "2026-10-31",
+    ]
+    assert result["goodDays"] == ["2026-10-31"]
+    assert result["sharedDays"] == ["2026-10-31"]
+    assert result["headline"] == "WEEKDAY_LOWER"
+    assert result["lowerWeekday"]["weekday"] == 1
+    assert result["lowerWeekday"]["energy"] == 30
+    assert result["higherWeekday"]["weekday"] == 5
+    assert result["sharedEnergy"]["group"] == 90
+    assert result["sharedEnergy"]["group"] > result["sharedEnergy"]["others"]
+
+
+def test_partner_values_never_change_the_personal_brief(client, session, couple):
+    base = setup(session, couple)
+    for offset in range(3):
+        check_in(session, couple, "anna", WEEK + timedelta(days=offset), "OKAY", 50)
+    session.flush()
+    before = personal(client, base, couple["token_a"])
+    for weeks_back in range(6):
+        for offset in range(7):
+            day = WEEK - timedelta(weeks=weeks_back) + timedelta(days=offset)
+            if day <= TODAY:
+                check_in(session, couple, "ben", day, "VERY_GOOD", 100)
+    session.flush()
+    after = personal(client, base, couple["token_a"])
+    assert after == before
+    assert before["headline"] == "STEADY"
+
+
+def test_personal_brief_states_empty_and_sparse_weeks(client, session, couple):
+    base = setup(session, couple)
+    assert personal(client, base, couple["token_a"])["headline"] == "EMPTY"
+    check_in(session, couple, "anna", WEEK, "GOOD", 70)
+    session.flush()
+    sparse = personal(client, base, couple["token_a"])
+    assert sparse["headline"] == "SPARSE"
+    assert sparse["sharedEnergy"] is None
+    assert sparse["lowerWeekday"] is None

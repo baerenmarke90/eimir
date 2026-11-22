@@ -1,5 +1,6 @@
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyCheckInInsightsView } from '../api/generated/models/DailyCheckInInsightsView';
+import type { PersonalWeeklyBriefView } from '../api/generated/models/PersonalWeeklyBriefView';
 import type { WeeklyBriefView } from '../api/generated/models/WeeklyBriefView';
 import { type IsoDate, isoToDate } from './dailyInsightsModel';
 import { ClientProblemError, normalizeClientError } from './problemDetails';
@@ -78,6 +79,43 @@ export async function loadWeeklyBrief(
     // The generated client leaves `date` array items as ISO strings at runtime.
     return {
       ...brief,
+      goodDays: brief.goodDays.map(asDate),
+      sharedDays: brief.sharedDays.map(asDate),
+    };
+  } catch (error) {
+    throw await normalizeClientError(error);
+  }
+}
+
+/** The private ("just me") brief (#2197) is the caller's alone. */
+export function personalBriefQueryKey(
+  accountId: string,
+  spaceId: string,
+  monday: IsoDate,
+): readonly ['daily-insights', 'personal-brief', string, string, string] {
+  return [
+    'daily-insights',
+    'personal-brief',
+    accountId,
+    spaceId,
+    monday,
+  ] as const;
+}
+
+export async function loadPersonalBrief(
+  api: DailyCheckInsApi,
+  spaceId: string,
+  monday: IsoDate,
+  signal?: AbortSignal,
+): Promise<PersonalWeeklyBriefView> {
+  try {
+    const brief = await api.getDailyCheckInPersonalWeeklyBrief(
+      { spaceId, weekStart: isoToDate(monday) },
+      signal ? { signal } : undefined,
+    );
+    return {
+      ...brief,
+      ownDays: brief.ownDays.map(asDate),
       goodDays: brief.goodDays.map(asDate),
       sharedDays: brief.sharedDays.map(asDate),
     };

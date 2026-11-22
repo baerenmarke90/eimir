@@ -12,7 +12,9 @@ import {
   isInsightsContextUnavailable,
   isInsightsEntitlementRequired,
   loadDailyInsights,
+  loadPersonalBrief,
   loadWeeklyBrief,
+  personalBriefQueryKey,
   weeklyBriefQueryKey,
 } from '../client/dailyInsights';
 import {
@@ -44,10 +46,12 @@ import {
   entitlementLoader,
   useSpaceCapability,
 } from '../client/spaceEntitlement';
+import { handleTabKeyDown } from '../client/tabKeyboard';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { useTranslation } from '../i18n';
 import { BackSlotHost, TaskBackLink } from './TaskBackButton';
 import './DailyInsights.css';
+import './PlanningReference.css';
 import {
   formatMonthYear,
   formatWeekRange,
@@ -57,6 +61,7 @@ import {
 } from './DailyInsightsParts';
 import { PatternsView, WeekView } from './DailyInsightsViews';
 import { NativeDateInput } from './NativeDateField';
+import { PersonalWeeklyBrief } from './PersonalWeeklyBrief';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import { WeeklyBrief } from './WeeklyBrief';
@@ -149,6 +154,49 @@ function PeriodPicker({
         />
       </label>
     </fieldset>
+  );
+}
+
+type BriefScope = 'shared' | 'own';
+
+/** Shared and private ("just me") peer views of the weekly brief (#2197). */
+function BriefScopeTabs({
+  scope,
+  onSelect,
+}: {
+  scope: BriefScope;
+  onSelect: (scope: BriefScope) => void;
+}) {
+  const { t } = useTranslation();
+  const scopes: readonly BriefScope[] = ['shared', 'own'];
+  return (
+    <div
+      className="planen-segmented brief-scope-tabs"
+      role="tablist"
+      aria-label={t('dailyInsights.brief.scope.label')}
+      onKeyDown={(event) =>
+        handleTabKeyDown(event, (tab) => {
+          const next = scopes.find((value) => tab.id === `brief-tab-${value}`);
+          if (next) onSelect(next);
+        })
+      }
+    >
+      {scopes.map((value) => (
+        <button
+          key={value}
+          type="button"
+          role="tab"
+          id={`brief-tab-${value}`}
+          aria-selected={scope === value}
+          aria-controls={scope === value ? `brief-panel-${value}` : undefined}
+          tabIndex={scope === value ? 0 : -1}
+          className={`planen-segment ${scope === value ? 'is-active' : ''}`}
+          onClick={() => onSelect(value)}
+        >
+          {t(`dailyInsights.brief.scope.${value}`)}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -283,11 +331,30 @@ export function DailyInsightsPage({
     refetchOnMount: 'always',
   });
 
+  const scope: BriefScope =
+    searchParams.get('scope') === 'own' ? 'own' : 'shared';
+  function selectScope(next: BriefScope) {
+    const nextParams = new URLSearchParams(searchParams);
+    if (next === 'own') nextParams.set('scope', 'own');
+    else nextParams.delete('scope');
+    setSearchParams(nextParams, { replace: true });
+  }
+  const personalQuery = useQuery({
+    queryKey: personalBriefQueryKey(account.id, spaceId, monday ?? ''),
+    queryFn: ({ signal }) =>
+      loadPersonalBrief(dailyCheckInsApi, spaceId, monday ?? '', signal),
+    enabled: capable && view === 'brief' && scope === 'own' && monday !== null,
+    retry: false,
+    gcTime: 0,
+    refetchOnMount: 'always',
+  });
+
   const briefQuery = useQuery({
     queryKey: weeklyBriefQueryKey(account.id, spaceId, monday ?? ''),
     queryFn: ({ signal }) =>
       loadWeeklyBrief(dailyCheckInsApi, spaceId, monday ?? '', signal),
-    enabled: capable && view === 'brief' && monday !== null,
+    enabled:
+      capable && view === 'brief' && scope === 'shared' && monday !== null,
     retry: false,
     gcTime: 0,
     refetchOnMount: 'always',
@@ -383,7 +450,8 @@ export function DailyInsightsPage({
     capabilityQuery.data === false ||
     isInsightsEntitlementRequired(anchorQuery.error) ||
     isInsightsEntitlementRequired(rangeQuery.error) ||
-    isInsightsEntitlementRequired(briefQuery.error);
+    isInsightsEntitlementRequired(briefQuery.error) ||
+    isInsightsEntitlementRequired(personalQuery.error);
   const modulesOff =
     anchorQuery.data !== undefined &&
     !anchorQuery.data.vibeEnabled &&
@@ -445,30 +513,88 @@ export function DailyInsightsPage({
     );
   } else if (!rangeQuery.data || monday === null || month === null) {
     body = <UiState kind="loading" title={t('dailyInsights.loading')} />;
-  } else if (view === 'brief') {
-    if (briefQuery.error) {
+  } else if (view === 'brief' && scope === 'own') {
+    const tabs = <BriefScopeTabs scope={scope} onSelect={selectScope} />;
+    if (personalQuery.error) {
       body = (
-        <ProblemState
-          error={briefQuery.error}
-          onRetry={() => void briefQuery.refetch()}
-        />
+        <>
+          {tabs}
+          <ProblemState
+            error={personalQuery.error}
+            onRetry={() => void personalQuery.refetch()}
+          />
+        </>
       );
-    } else if (!briefQuery.data) {
+    } else if (!personalQuery.data) {
       body = (
-        <UiState kind="loading" title={t('dailyInsights.brief.loading')} />
+        <>
+          {tabs}
+          <UiState
+            kind="loading"
+            title={t('dailyInsights.brief.personal.loading')}
+          />
+        </>
       );
     } else {
       body = (
-        <WeeklyBrief
-          key={monday}
-          brief={briefQuery.data}
-          days={daysInRange(allDays, weekDates(monday))}
-          people={people}
-          modules={modules}
-          spaceId={spaceId}
-          mediaApis={mediaApis ?? null}
-          historySearch={searchParams.toString()}
-        />
+        <>
+          {tabs}
+          <div
+            id="brief-panel-own"
+            role="tabpanel"
+            aria-labelledby="brief-tab-own"
+          >
+            <PersonalWeeklyBrief
+              key={monday}
+              brief={personalQuery.data}
+              days={daysInRange(allDays, weekDates(monday))}
+              people={people}
+              modules={modules}
+            />
+          </div>
+        </>
+      );
+    }
+  } else if (view === 'brief') {
+    const tabs = <BriefScopeTabs scope={scope} onSelect={selectScope} />;
+    if (briefQuery.error) {
+      body = (
+        <>
+          {tabs}
+          <ProblemState
+            error={briefQuery.error}
+            onRetry={() => void briefQuery.refetch()}
+          />
+        </>
+      );
+    } else if (!briefQuery.data) {
+      body = (
+        <>
+          {tabs}
+          <UiState kind="loading" title={t('dailyInsights.brief.loading')} />
+        </>
+      );
+    } else {
+      body = (
+        <>
+          {tabs}
+          <div
+            id="brief-panel-shared"
+            role="tabpanel"
+            aria-labelledby="brief-tab-shared"
+          >
+            <WeeklyBrief
+              key={monday}
+              brief={briefQuery.data}
+              days={daysInRange(allDays, weekDates(monday))}
+              people={people}
+              modules={modules}
+              spaceId={spaceId}
+              mediaApis={mediaApis ?? null}
+              historySearch={searchParams.toString()}
+            />
+          </div>
+        </>
       );
     }
   } else if (view === 'patterns') {

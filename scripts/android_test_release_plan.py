@@ -25,6 +25,8 @@ CERTIFICATE = "1d403a18b4d3694f8e5fd9853906a60c012644d23e5a3a1ef40819b119cb1da9"
 LEGACY_CERTIFICATE = "b5009739477874fbc76b483c66ddb1502132255dd15de37f7570ee6a13b5f472"
 FIREBASE_PROJECT = "eimir-production"
 ORIGIN = "https://app.eimir.de"
+LEGACY_ORIGIN = "https://demo.eimir.ur-cloud.de"
+FIRST_ORIGIN_VERSION = 99
 MAX_APK_BYTES = 256 * 1024 * 1024
 FIELDS = {"schemaVersion", "sourceRevision", "versionName", "versionCode", "previousVersionName", "notesFile"}
 
@@ -35,6 +37,14 @@ def package_for_version(version: str) -> str:
     if not match:
         raise ValueError("Invalid test-channel version")
     return LEGACY_PACKAGE if int(match[1]) <= 38 else PACKAGE
+
+
+def origin_for_version(version: str) -> str:
+    """Keep published pre-test.99 builds verifiable; new builds must use the real test origin."""
+    match = VERSION.fullmatch(version)
+    if not match:
+        raise ValueError("Invalid test-channel version")
+    return LEGACY_ORIGIN if int(match[1]) < FIRST_ORIGIN_VERSION else ORIGIN
 
 
 class PublicationPending(Exception):
@@ -183,7 +193,7 @@ def verify_once(plan: Plan, reader=fetch, expected_root: Path | None = None) -> 
     expected = {
         "channel": "android-test", "sourceRevision": plan.source,
         "versionName": plan.version, "versionCode": plan.code, "dirty": False,
-        "validationOnly": False, "apiOrigin": ORIGIN, "demoMode": False,
+        "validationOnly": False, "apiOrigin": origin_for_version(plan.version), "demoMode": False,
         "demoResetTimer": False, "testUpdates": True,
     }
     if package_for_version(plan.version) == PACKAGE:

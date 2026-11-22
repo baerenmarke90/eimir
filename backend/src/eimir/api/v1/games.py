@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Response
@@ -14,8 +14,9 @@ from eimir.api.schema import ApiModel
 from eimir.core import clock
 from eimir.domain.experiences import ExperienceKind
 from eimir.entitlements.models import Capability
-from eimir.games import service
+from eimir.games import service, waiting
 from eimir.games.questions import select_questions
+from eimir.games.waiting import WaitingGameKind, WaitingGameReason
 from eimir.memories import experiences
 from eimir.recaps.service import calendar_context
 
@@ -175,5 +176,41 @@ def get_game_wish_candidates(
                 title=candidate.title,
             )
             for candidate in service.read_wish_candidates(session, authorization)
+        ]
+    )
+
+
+class WaitingGameView(ApiModel):
+    """One game that waits on the reader; it names the game and the ask only."""
+
+    game: WaitingGameKind = Field(description="The game; the client opens its own page.")
+    reason: WaitingGameReason = Field(description="What the reader is asked to do.")
+    since: datetime = Field(description="When the game started waiting on the reader.")
+
+
+class WaitingGames(ApiModel):
+    items: list[WaitingGameView] = Field(
+        description="Every game that waits on the reader, newest first; empty when none."
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/games/waiting",
+    response_model=WaitingGames,
+    operation_id="getWaitingGames",
+    responses=problem_responses(401, 403, 404),
+)
+def get_waiting_games(
+    authorization: Authorization, session: DbSession, response: Response
+) -> WaitingGames:
+    """Games that wait on the reader, for Wir (#2158 C); never their content."""
+    ensure_capability(
+        session, authorization.space_id, Capability.GAMES_COUPLE.value, lock_grants=False
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return WaitingGames(
+        items=[
+            WaitingGameView(game=item.kind, reason=item.reason, since=item.since)
+            for item in waiting.waiting_games(session, authorization)
         ]
     )

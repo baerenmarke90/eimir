@@ -37,6 +37,7 @@ PLUGIN_PACKAGES = (
 PLUGIN_MODULES = (
     "eimir.pro_plugin",
     "eimir.games.service",
+    "eimir.games.waiting",
     "eimir.places.memory_map",
     "eimir.providers.caldav",
     *(

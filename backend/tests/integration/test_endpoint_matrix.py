@@ -564,6 +564,7 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/games/our-moments/end",
         body={"gameId": "00000000-0000-0000-0000-000000000001"},
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/waiting"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/garden"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds", body={"species": "POPPY"}),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant"),

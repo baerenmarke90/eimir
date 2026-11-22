@@ -982,3 +982,37 @@ class TestPartnerEnrichment:
         )
         assert response.status_code == 403
         assert client.get(url, headers=auth(couple["token_b"])).json()["attachment"]["id"] == photo
+
+
+class TestCleanupWithReferencedAttachment:
+    """A referenced attachment marked for deletion must not block the cleanup round."""
+
+    def test_purge_blocked_by_heart_moment_does_not_abort_round(
+        self, client, couple, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        bound = ready_attachment(client, couple, session)
+        heart = heart_moment(client, couple, attachment_id=bound)
+        assert heart.status_code == 201, heart.text
+        loose = ready_attachment(client, couple, session)
+
+        # Both reach DELETING; the bound one is still referenced by the moment.
+        for identifier in (bound, loose):
+            row = session.get(Attachment, UUID(identifier))
+            service.mark_for_deletion(session, row)
+        session.flush()
+
+        cleanup.run_media_cleanup(session, {})
+        session.flush()
+
+        # The unreferenced attachment is purged; the referenced one keeps its row
+        # and its bytes, and stays invisible (DELETING) rather than failing the round.
+        assert session.get(Attachment, UUID(loose)) is None
+        kept = session.get(Attachment, UUID(bound))
+        assert kept is not None
+        assert kept.status == AttachmentStatus.DELETING.value
+        assert get_media_store().exists(build_storage_key(kept.space_id, kept.id, "original"))
+
+        # A second round behaves the same way: the bad row never blocks the queue.
+        cleanup.run_media_cleanup(session, {})
+        session.flush()
+        assert session.get(Attachment, UUID(bound)) is not None

@@ -813,6 +813,12 @@ test('Weekly brief turns a wish into the existing Wish-to-Plan task and returns'
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page);
   await openInsightsFromMore(page);
+  await expect(
+    page.getByRole('heading', {
+      level: 2,
+      name: dailyInsights.brief.headline.SHARED_GOOD_DAYS.title,
+    }),
+  ).toBeVisible();
   expect(requests.briefReads).toBe(1);
   expect(requests.inference).toBe(0);
   await page

@@ -59,10 +59,11 @@ of the commit to restore the saved files.
 
 ## Guest slots
 
-The dispatcher runs up to two guests at once, one per launcher slot. It
-selects jobs and pins each guest to the run identity exactly as the
-single-guest dispatcher did. A job with a starting or running guest gets no
-second one. The Secret Scan PR guest also occupies a slot.
+The launcher runs each guest in slot 1 or 2. The dispatcher's `GUEST_SLOTS`
+sets how many guests run at the same time. It selects jobs and pins each guest
+to the run identity independently of that number. A job with a starting or
+running guest gets no second one. The Secret Scan PR guest also occupies a
+slot.
 
 | Per slot | Slot 1 | Slot 2 |
 | --- | --- | --- |
@@ -74,16 +75,23 @@ second one. The Secret Scan PR guest also occupies a slot.
 
 Each job gets its own copy-on-write overlay in a fresh job directory. Guests
 hold `launcher.lock` shared; an image build holds it exclusively, so it starts
-only while both slots are idle.
+only while every slot is idle.
 
-Nightly guests get 3 vCPUs (`CPUQuota=300%`) and 3584 MiB RAM each. Their
-largest measured peak at 3072 MiB was 2.51 GiB of the 2.9 GiB the guest sees.
-The host has 9.7 GiB and six vCPUs on a four-core, eight-thread i7-8665U, so
-two busy guests share physical cores. A guest stops after 95 minutes: the
-longest nightly job limit (Browser full regression, 80 minutes) plus 15 minutes
-for boot and registration. A guest that receives no job within 15 minutes
-stops and frees its slot, because a second runner for the same run can find
-the run's last job already taken. PR guests keep 2 vCPUs and 3072 MiB.
+eimir-dev uses one slot. Its six vCPUs run nested on a four-core, eight-thread
+i7-8665U Proxmox host that other VMs share. On 2026-11-22 two 3-vCPU guests
+made each job about 1.3–1.7 times slower than one 4-vCPU guest, because most
+test jobs use about one core: Backend Integration Shard 3/6 took 39m 21s
+instead of 23m 35s, Browser full regression 2/4 67m 12s instead of 51m 08s.
+The Proxmox host was about 98 % busy, half of it in system time. A second slot
+only pays off on a host with spare cores.
+
+The nightly guest gets 5 vCPUs (`CPUQuota=500%`) and 7168 MiB RAM, which
+leaves one vCPU for eimir-dev itself. CodeQL JavaScript ran out of Java heap
+in a 3584 MiB guest. A guest stops after 95 minutes: the longest nightly job
+limit (Browser full regression, 80 minutes) plus 15 minutes for boot and
+registration. A guest that receives no job within 15 minutes stops and frees
+its slot, because another runner for the same run can take the run's last job
+first. PR guests keep 2 vCPUs and 3072 MiB.
 
 Each nightly guest reports peak RAM and disk, CPU steal and pressure stall
 times in the dispatcher journal (`EIMIR_ACTIONS_PROBE job_resources`). During a

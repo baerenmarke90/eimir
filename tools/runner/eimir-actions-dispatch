@@ -6,9 +6,9 @@ tools/runner/install-host.sh. The host-only unit eimir-actions-dispatch.service
 runs it with /etc/eimir-actions/dispatch.env and the GitHub App key as the
 `github-app-key` systemd credential.
 
-Up to two guests run at the same time, one per launcher slot (#2115). Job
-selection and the run identity each guest admits are unchanged from the
-single-guest dispatcher.
+Each guest runs in a launcher slot (#2115). GUEST_SLOTS sets how many guests
+run at the same time; job selection and the run identity each guest admits do
+not depend on it.
 """
 
 import base64
@@ -29,7 +29,10 @@ REPOSITORY = "baerenmarke90/eimir"
 REPOSITORY_API = f"/repos/{REPOSITORY}"
 GUEST_LAUNCHER = "/usr/local/sbin/eimir-actions-guest-probe"
 GUEST_IMAGE = "/var/lib/eimir-actions-vm/noble-amd64.qcow2"
-GUEST_SLOTS = (1, 2)
+# eimir-dev runs one larger guest: on its shared four-core laptop CPU, two
+# 3-vCPU guests made each job about 1.3-1.7 times slower (2026-11-22). The
+# launcher keeps slot 2 for a host with more capacity.
+GUEST_SLOTS = (1,)
 POLL_SECONDS = 20
 LAUNCH_COOLDOWN_SECONDS = 180
 PR_CI_WORKFLOW = ".github/workflows/ci.yml"

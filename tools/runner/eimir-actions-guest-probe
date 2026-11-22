@@ -43,11 +43,12 @@ if [[ $mode == runner || $mode == jit* ]]; then
     runtime_seconds=1200
 fi
 if [[ $mode == jit-nightly ]]; then
-    # Two nightly guests share the six host vCPUs. Their peak RAM reached
-    # 2.51 GiB of the 2.9 GiB a 3072 MiB guest sees; two 3584 MiB guests still
-    # pass the start check below on the 9.7 GiB host.
-    memory_mib=3584
-    cpus=3
+    # eimir-dev runs one nightly guest at a time (see the dispatcher's
+    # GUEST_SLOTS). Five of the six vCPUs leave one for the host itself.
+    # CodeQL JavaScript ran out of Java heap in a 3584 MiB guest; 7168 MiB
+    # still passes the start check below on the 9.7 GiB host.
+    memory_mib=7168
+    cpus=5
     disk_size=48G
     # The longest nightly job limit (Browser full regression, 80 min) plus
     # 15 min for boot, provisioning and runner registration.

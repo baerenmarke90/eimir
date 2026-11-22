@@ -44,11 +44,11 @@ class RunnerHostScriptTest(unittest.TestCase):
                 subprocess.run(["bash", "-n", str(script)], check=True)
         compile(DISPATCH.read_text(encoding="utf-8"), str(DISPATCH), "exec")
 
-    def test_nightly_guests_use_the_prepared_image_and_three_cpus(self) -> None:
+    def test_nightly_guests_use_the_prepared_image_and_five_cpus(self) -> None:
         text = LAUNCHER.read_text(encoding="utf-8")
         nightly = "if [[ $mode == jit-nightly ]]; then\n"
-        self.assertEqual(launcher_setting(text, nightly, "cpus"), 3)
-        self.assertEqual(launcher_setting(text, nightly, "memory_mib"), 3584)
+        self.assertEqual(launcher_setting(text, nightly, "cpus"), 5)
+        self.assertEqual(launcher_setting(text, nightly, "memory_mib"), 7168)
         self.assertIn("runner_image=$state/noble-eimir-runner.qcow2", text)
         self.assertIn('if [[ $mode == jit-nightly && -f $runner_image ]]; then\n    backing=$runner_image', text)
         self.assertIn('qemu-img create -q -f qcow2 -F qcow2 -b "$backing"', text)
@@ -56,15 +56,19 @@ class RunnerHostScriptTest(unittest.TestCase):
         self.assertIn('CPUQuota=$((cpus * 100))%', text)
         self.assertGreater(text.index(nightly + "    #"), text.index("cpus=2"))
 
-    def test_two_nightly_guests_fit_the_host_memory(self) -> None:
+    def test_nightly_guests_fit_the_host(self) -> None:
         text = LAUNCHER.read_text(encoding="utf-8")
-        memory = launcher_setting(text, "if [[ $mode == jit-nightly ]]; then\n", "memory_mib")
-        # eimir-dev reports 9.7 GiB. Each guest's unit may use memory_mib + 1024,
-        # and the second guest must still pass the start check while the first
-        # guest uses its RAM plus about 300 MiB of QEMU overhead.
+        nightly = "if [[ $mode == jit-nightly ]]; then\n"
+        memory = launcher_setting(text, nightly, "memory_mib")
+        cpus = launcher_setting(text, nightly, "cpus")
+        slots = len(load_dispatcher().GUEST_SLOTS)
+        # eimir-dev has six vCPUs and about 8900 MiB available. Every running guest
+        # uses its RAM plus about 300 MiB of QEMU overhead, and the last guest to
+        # start must still pass the memory_mib + 1024 start check.
         self.assertIn('min_kib="$(( (memory_mib + 1024) * 1024 ))"', text)
         host_available_mib = 8900
-        self.assertGreaterEqual(host_available_mib - (memory + 300), memory + 1024)
+        self.assertGreaterEqual(host_available_mib - (slots - 1) * (memory + 300), memory + 1024)
+        self.assertLessEqual(slots * cpus, 5, "leave one vCPU for the host")
 
     def test_guest_runtime_covers_the_longest_nightly_job(self) -> None:
         text = LAUNCHER.read_text(encoding="utf-8")
@@ -175,8 +179,17 @@ class DispatcherSlotTest(unittest.TestCase):
         self.started.append((job_id, slot))
         self.release.wait(5)
 
-    def dispatcher(self, launch=None):
-        return self.module.Dispatcher(FakeTokens(), self.select, launch or self.launch, clock=lambda: self.now)
+    def dispatcher(self, launch=None, slots=(1, 2)):
+        return self.module.Dispatcher(FakeTokens(), self.select, launch or self.launch, slots=slots,
+                                      clock=lambda: self.now)
+
+    def test_single_slot_runs_one_guest_at_a_time(self) -> None:
+        dispatcher = self.dispatcher(slots=(1,))
+        self.assertEqual(dispatcher.poll_once(), (101, 1))
+        self.assertIsNone(dispatcher.poll_once())
+        self.release.set()
+        dispatcher.join(5)
+        self.assertEqual(self.started, [(101, 1)])
 
     def test_two_queued_jobs_run_in_both_slots_and_a_third_waits(self) -> None:
         dispatcher = self.dispatcher()

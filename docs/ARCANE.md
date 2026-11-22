@@ -404,6 +404,10 @@ Production pulls the released package identity instead of Git contexts. If regis
 authentication is required, configure it in Docker/Arcane registry credentials; do not
 add registry tokens to Compose, `.env`, release evidence, or support bundles.
 
+The private `eimir-test` channel pulls its images from private GHCR packages; the staged
+switch, the read-only registry credential and the rollback are described in
+[Private Test Channel](PRIVATE-TEST-CHANNEL.md#private-channel-packages-decision-0019-phase-0b).
+
 Do not create another Compose manifest as an authentication or deployment workaround.
 
 ## Reverse proxy architecture

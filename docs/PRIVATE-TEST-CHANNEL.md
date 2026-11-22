@@ -51,7 +51,8 @@ The publication jobs:
    a failed feed check keeps the previous channel in place. Nothing builds on the
    Docker host.
 4. Loads all three archives, verifies source/version/platform labels, publishes to the
-   existing GHCR backend/Web/media packages and checks the exact registry manifests and
+   GHCR backend/Web/media packages (names and visibility: see "Private channel
+   packages" below) and checks the exact registry manifests and
    pulled-back image identities. Docker pushes only `linux/amd64`, so containerd
    provenance indexes are not deployment references. The single registry
    manifest's config digest must match the exact config bytes in the verified
@@ -94,8 +95,9 @@ Merge the implementation PR through ordinary required checks. Then:
    branch **main**, with **private_test_channel=true**, release version `0.0.0`,
    and **confirm_publish=false**. The private selector excludes all product-release
    jobs; the placeholder version is unused. Subsequent nightly regressions are automatic.
-3. If package access is not inherited, grant this repository **Write** under the
-   existing `eimir-backend` and `eimir-web` packages' Actions access settings.
+3. If package access is not inherited, grant this repository **Write** under each
+   channel package's Actions access settings (the packages named in "Private channel
+   packages" below).
    Only the publisher job requests package and channel-branch write permissions.
 4. If a ruleset protects `deploy/eimir-test`, allow the channel publisher under
    that branch's policy. Do not relax `main` protections. A rejected branch write
@@ -106,6 +108,66 @@ Merge the implementation PR through ordinary required checks. Then:
 The workflow does not change package visibility. For private packages, configure
 a read-only package credential in Arcane's Container Registries, never in Compose,
 a Git URL or the application environment.
+
+## Private channel packages (Decision 0019, phase 0b)
+
+Images built from now on contain the Pro code, so the channel moves from the public
+`eimir-backend`, `eimir-web` and `eimir-media` packages to **private** packages
+`ghcr.io/baerenmarke90/eimir-cloud-backend`, `eimir-cloud-web` and `eimir-cloud-media`
+([#2202](https://github.com/baerenmarke90/eimir/issues/2202)). The repository stays public
+until the cut-over. The old public packages receive no new versions after the switch and
+stay as the rollback until the Product Owner approves their retirement. Product-release
+(Self-Hosted `v0.x`) images are not part of this channel and keep their names.
+
+Two plain repository **Actions variables** control the publisher. Neither is a secret.
+
+| Variable | Values | Effect |
+| --- | --- | --- |
+| `EIMIR_TEST_CHANNEL_PACKAGE_PREFIX` | unset/empty (default `eimir`) or `eimir-cloud` | Package name prefix. Only `eimir` or `eimir-` followed by lowercase letters, digits and single hyphens is accepted; anything else refuses publication before any push. |
+| `EIMIR_TEST_CHANNEL_PROMOTE` | unset/empty or `true` (default), or `false` | `false` stages: all three images are pushed and verified and the generated files are produced, but `deploy/eimir-test` is **not** advanced. Any other value refuses publication. |
+
+The job summary of the publisher lists the three pinned references. A package that is
+first published by this workflow is created **private** and linked to the repository (the
+publisher already requires the `org.opencontainers.image.source` label), so the workflow
+token can write to it. If GitHub still refuses the first push, open the package settings
+and use **Manage Actions access -> Add Repository** with the Write role, then re-run the
+failed job. Never change a package to Public: GitHub does not allow making it private again.
+
+### Switch procedure (each step needs the Product Owner's approval)
+
+1. Create the rollback branch `deploy/eimir-test-rollback` from the current tip of
+   `deploy/eimir-test` (it holds the old public digests; the publisher never writes to it).
+2. Set `EIMIR_TEST_CHANNEL_PACKAGE_PREFIX=eimir-cloud` and
+   `EIMIR_TEST_CHANNEL_PROMOTE=false`. The next merge to `main` stages the private images; the
+   test instance keeps running on its previous images.
+3. Prove the pull before promoting. A pull of a public image succeeds with or without a
+   credential and proves nothing, so use a private one:
+   - signed out, the package page `https://github.com/users/baerenmarke90/packages/container/package/eimir-cloud-web`
+     must show "not found";
+   - create a personal access token (classic) with **only** `read:packages` (fine-grained
+     tokens cannot access Packages), valid for about 12 months, and save it in Arcane under
+     Images -> Registries (host `ghcr.io`, username `baerenmarke90`, the token as password).
+     Arcane selects credentials by host name. Never put the token in Compose, a Git URL,
+     the application environment, an issue or the repository;
+   - in Arcane, pull one staged image by its digest from the job summary
+     (Images -> Pull Image, for example `ghcr.io/baerenmarke90/eimir-cloud-web@sha256:...`).
+4. Promote: set `EIMIR_TEST_CHANNEL_PROMOTE=true` (or delete the variable). The next merge
+   advances `deploy/eimir-test`; Arcane Git Sync redeploys the same code revision on the new
+   images. Check that the containers are healthy and that the app signs in.
+5. A follow-up changes the default prefix to `eimir-cloud` and removes the staging
+   variable from this procedure. The old public packages are retired only after at least 7
+   days of healthy operation and only with explicit approval per package (GitHub refuses
+   deletion of a public package with a version above 5,000 downloads; then use GitHub Support).
+
+### Rollback
+
+In Arcane open the `eimir-test` Git Sync, change the branch to `deploy/eimir-test-rollback`
+and sync. This does not depend on the publisher and works while the old packages exist.
+Then set `EIMIR_TEST_CHANNEL_PACKAGE_PREFIX` back to `eimir` (or delete it) so that the next
+merge publishes to the old names again. A redeploy is not a database rollback (see
+[Self-Hosted Recovery](SELF-HOSTED-RECOVERY.md)); the staged and old images carry the same
+code revision, so no schema change is involved. When the token expires, running containers
+keep running but new pulls fail until a new read-only token is saved in Arcane.
 
 ## Preserve the existing instance
 

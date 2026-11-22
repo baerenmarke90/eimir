@@ -960,12 +960,13 @@ for (const variant of [
         .click();
     await expect(selectedStoryTab).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('tablist')).toHaveCount(1);
-    // Discover plays its curated entries as one Fotostory; the Diary lists them.
+    // Discover plays one Fotostory that opens with the rediscovery lead
+    // (#2192); the Diary lists the entries.
     await expect(
       variant.view === 'discover'
         ? page
             .locator('.momente-story-slide[data-state="current"]')
-            .getByText('Summer picnic memories', { exact: true })
+            .getByText('Late Summer Lake Walk', { exact: true })
         : page
             .getByText('Cooked fresh pasta together', { exact: true })
             .first(),

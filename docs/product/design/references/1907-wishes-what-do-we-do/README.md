@@ -7,7 +7,7 @@ unchanged on `76c68d9a4`.
 
 The board was rendered from a clickable HTML prototype that uses the light identity roles from
 `web/src/design/identity-roles.css`, Literata and Instrument Sans. It shows six real ideas from the bundled
-catalog (`backend/src/eimir/date_ideas/data`, catalog 1.0.0, `de`) with their AI-generated project images
+catalog (`backend/pro/src/eimir_pro/date_ideas/data`, catalog 1.0.0, `de`) with their AI-generated project images
 (see `images.json` for provenance). Wish titles, the partner names `Alex` and `Lena`, and the dashed
 "Simulation" buttons are prototype aids, not product UI. The composition is the reference; Product Reference
 v1, accessibility and the contracts in this folder's issue govern details.

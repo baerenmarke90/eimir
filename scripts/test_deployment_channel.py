@@ -25,6 +25,13 @@ import release_manifest
 
 REPOSITORY = "baerenmarke90/eimir"
 CHANNEL_BRANCH = "deploy/eimir-test"
+# Phase 0b of Decision 0019: images can move to new private GHCR packages
+# (for example prefix "eimir-cloud") without a code change. The default keeps
+# the historical package names. Both settings are Actions variables, never secrets.
+PACKAGE_PREFIX_ENV = "EIMIR_TEST_CHANNEL_PACKAGE_PREFIX"
+PROMOTE_ENV = "EIMIR_TEST_CHANNEL_PROMOTE"
+DEFAULT_PACKAGE_PREFIX = "eimir"
+PACKAGE_PREFIX_PATTERN = re.compile(r"eimir(?:-[a-z0-9]+)*")
 CHANNEL_KIND = "eimir-private-test-channel"
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_WORKFLOWS = frozenset(
@@ -315,13 +322,58 @@ def archive_config_digest(path: Path, expected_tag: str | None = None) -> str:
         raise ChannelError(str(exc)) from exc
 
 
+def package_prefix() -> str:
+    """The package name prefix; an unset or empty variable selects the default."""
+    value = os.environ.get(PACKAGE_PREFIX_ENV, "").strip()
+    if not value:
+        return DEFAULT_PACKAGE_PREFIX
+    if not PACKAGE_PREFIX_PATTERN.fullmatch(value):
+        raise ChannelError(
+            f"{PACKAGE_PREFIX_ENV} must be 'eimir' or start with 'eimir-' and use "
+            "only lowercase letters, digits and single hyphens"
+        )
+    return value
+
+
+def promote_enabled() -> bool:
+    """Whether publication advances the Git Sync branch; `false` only stages images."""
+    value = os.environ.get(PROMOTE_ENV, "").strip()
+    if value in {"", "true"}:
+        return True
+    if value == "false":
+        return False
+    raise ChannelError(f"{PROMOTE_ENV} must be empty, 'true' or 'false'")
+
+
+def package_repository(role: str) -> str:
+    owner = REPOSITORY.partition("/")[0]
+    return f"ghcr.io/{owner}/{package_prefix()}-{role}"
+
+
+def write_step_summary(images: dict[str, str], state: str) -> None:
+    """List the pinned references for the operator; nothing secret is included."""
+    path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if not path:
+        return
+    lines = [
+        "### Private test channel images",
+        "",
+        state,
+        "",
+        *(f"- `{reference}`" for reference in images.values()),
+        "",
+    ]
+    with open(path, "a", encoding="utf-8") as stream:
+        stream.write("\n".join(lines))
+
+
 def publish_image(
     root: Path, record: dict, source: str, version: str, attempt: str
 ) -> str:
     artifact_id = record["id"]
     role = artifact_id.removesuffix("-runtime")
     local = f"eimir-{role}:evidence-{source}"
-    repository = f"ghcr.io/{REPOSITORY}-{role}"
+    repository = package_repository(role)
     target = f"{repository}:test-{source}-{attempt}"
     config_digest = archive_config_digest(root / record["path"], local)
     run(["docker", "load", "--input", str(root / record["path"])], timeout=600)
@@ -694,6 +746,9 @@ def publish(
 ) -> None:
     if not source_admitted(source, full_regression=full_regression):
         raise ChannelError("Only the current, checked main commit may be published")
+    # Validate both settings before any image is pushed.
+    package_prefix()
+    promote = promote_enabled()
     run_id, attempt = os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"]
     if not all(re.fullmatch(r"[1-9][0-9]*", value) for value in (run_id, attempt)):
         raise ChannelError("Invalid workflow run identity")
@@ -741,7 +796,23 @@ def publish(
     output.mkdir(parents=True, exist_ok=True)
     for name, content in files.items():
         (output / name).write_text(content)
-    advance_channel(files, source, full_regression=full_regression)
+    if not promote:
+        print(
+            f"{PROMOTE_ENV}=false: images pushed and verified; "
+            f"{CHANNEL_BRANCH} was not changed"
+        )
+        write_step_summary(
+            images,
+            f"Staged only: {PROMOTE_ENV}=false, so `{CHANNEL_BRANCH}` was not changed.",
+        )
+        return
+    advanced = advance_channel(files, source, full_regression=full_regression)
+    write_step_summary(
+        images,
+        f"Promoted to `{CHANNEL_BRANCH}`."
+        if advanced
+        else f"`{CHANNEL_BRANCH}` already selected this source; nothing changed.",
+    )
 
 
 def main() -> int:

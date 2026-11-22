@@ -1431,6 +1431,8 @@
       "roots": [
         "web/src/components/TransferPanel.tsx",
         "web/src/components/TransferImportSection.tsx",
+        "web/src/components/TransferFailure.tsx",
+        "web/src/client/transferFailure.ts",
         "web/src/client/transferImport.ts",
         "web/src/client/transfer.ts",
         "web/src/components/ProPaywallPage.tsx",

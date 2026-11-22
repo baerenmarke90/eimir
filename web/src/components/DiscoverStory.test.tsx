@@ -269,6 +269,12 @@ describe('DiscoverStory', () => {
     fireEvent.click(next);
     expect(story?.getAttribute('data-playing')).toBe('true');
     expect(openLink().getAttribute('href')).toBe('/story/memories/m-2');
+    // No hold timer is left behind; only the resting-controls timer runs,
+    // and it ends on its own.
+    expect(vi.getTimerCount()).toBe(1);
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
     expect(vi.getTimerCount()).toBe(0);
   });
 
@@ -330,5 +336,199 @@ describe('DiscoverStory', () => {
   it('renders nothing for an empty selection', () => {
     const { container } = renderStory([]);
     expect(container.querySelector('.momente-story')).toBeNull();
+  });
+
+  describe('visibility', () => {
+    let report: (entry: Partial<IntersectionObserverEntry>) => void = () => {};
+    beforeEach(() => {
+      class FakeObserver {
+        constructor(callback: IntersectionObserverCallback) {
+          report = (entry) =>
+            callback(
+              [entry as IntersectionObserverEntry],
+              this as unknown as IntersectionObserver,
+            );
+        }
+        observe() {}
+        disconnect() {}
+      }
+      vi.stubGlobal('IntersectionObserver', FakeObserver);
+    });
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    function visibleShare(height: number, visible: number, viewport = 800) {
+      act(() =>
+        report({
+          isIntersecting: visible > 0,
+          boundingClientRect: { height } as DOMRectReadOnly,
+          intersectionRect: { height: visible } as DOMRectReadOnly,
+          rootBounds: { height: viewport } as DOMRectReadOnly,
+        }),
+      );
+    }
+
+    it('plays only while more than 60 % of the viewer is on screen', () => {
+      const { container } = renderStory();
+      const story = container.querySelector('.momente-story');
+      // Not yet reported: the story waits.
+      expect(story?.getAttribute('data-playing')).toBe('false');
+      visibleShare(500, 500);
+      expect(story?.getAttribute('data-playing')).toBe('true');
+      visibleShare(500, 310);
+      expect(story?.getAttribute('data-playing')).toBe('true');
+      // Scrolled on: only 60 % of the photo is left, so it pauses.
+      visibleShare(500, 300);
+      expect(story?.getAttribute('data-playing')).toBe('false');
+      visibleShare(500, 0);
+      expect(story?.getAttribute('data-playing')).toBe('false');
+    });
+
+    it('measures a viewer taller than the viewport against the viewport', () => {
+      const { container } = renderStory();
+      const story = container.querySelector('.momente-story');
+      visibleShare(1200, 700, 800);
+      expect(story?.getAttribute('data-playing')).toBe('true');
+      visibleShare(1200, 400, 800);
+      expect(story?.getAttribute('data-playing')).toBe('false');
+    });
+  });
+
+  describe('resting controls', () => {
+    function viewerOf(container: HTMLElement) {
+      const viewer = container.querySelector('.momente-story-viewer');
+      if (!(viewer instanceof HTMLElement)) throw new Error('No viewer.');
+      return viewer;
+    }
+
+    it('fades the controls after a quiet moment and wakes them on a touch', () => {
+      vi.useFakeTimers();
+      const { container } = renderStory();
+      const viewer = viewerOf(container);
+      expect(viewer.hasAttribute('data-controls')).toBe(false);
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(viewer.getAttribute('data-controls')).toBe('quiet');
+      // The controls stay in the document for assistive technology.
+      expect(openLink()).toBeTruthy();
+      fireEvent.pointerDown(viewer, { button: 0 });
+      expect(viewer.hasAttribute('data-controls')).toBe(false);
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(viewer.getAttribute('data-controls')).toBe('quiet');
+      fireEvent.focus(viewer);
+      expect(viewer.hasAttribute('data-controls')).toBe(false);
+    });
+
+    it('keeps the controls while the story is paused', () => {
+      vi.useFakeTimers();
+      const { container } = renderStory();
+      const viewer = viewerOf(container);
+      fireEvent.click(screen.getByRole('button', { name: copy.pause }));
+      act(() => {
+        vi.advanceTimersByTime(6000);
+      });
+      expect(viewer.hasAttribute('data-controls')).toBe(false);
+      fireEvent.click(screen.getByRole('button', { name: copy.play }));
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(viewer.getAttribute('data-controls')).toBe('quiet');
+    });
+  });
+
+  describe('with the "Wisst ihr noch?" lead', () => {
+    const lead = {
+      key: 'MEMORY:lead-1',
+      path: '/story/memories/lead-1',
+      kindLabel: 'Special moment',
+      title: 'That day at the lake',
+      content: <p className="lead-content">That day at the lake</p>,
+      face: <span className="lead-face" />,
+    };
+
+    function renderWithLead(items = ITEMS) {
+      const onOpen = vi.fn();
+      const view = render(
+        <MemoryRouter>
+          <DiscoverStory
+            lead={lead}
+            items={items}
+            loadMemoryImage={vi.fn() as never}
+            onOpen={onOpen}
+          />
+        </MemoryRouter>,
+      );
+      return { ...view, onOpen };
+    }
+
+    it('plays the lead as the first slide in a theme of its own', () => {
+      const { container } = renderWithLead();
+      const bubbles = within(
+        screen.getByRole('list', { name: copy.themesLabel }),
+      ).getAllByRole('button');
+      expect(bubbles.map((bubble) => bubble.dataset.storyTheme)).toEqual([
+        'remember',
+        'photos',
+        'heartMoments',
+        'milestones',
+        'words',
+      ]);
+      expect(bubbles[0].getAttribute('aria-current')).toBe('true');
+      expect(bubbles[0].textContent).toContain(copy.theme.remember);
+      expect(bubbles[0].querySelector('.lead-face')).not.toBeNull();
+
+      const viewer = container.querySelector('.momente-story-viewer');
+      expect(viewer?.getAttribute('data-story-theme')).toBe('remember');
+      expect(viewer?.getAttribute('aria-label')).toBe(copy.theme.remember);
+      expect(container.querySelectorAll('.momente-story-segment')).toHaveLength(
+        1,
+      );
+      const current = container.querySelector(
+        '.momente-story-slide[data-state="current"]',
+      );
+      expect(current?.getAttribute('data-story-slide')).toBe('lead');
+      expect(current?.querySelector('.lead-content')).not.toBeNull();
+      // The composition holds no link; the story's open action opens it.
+      expect(current?.querySelector('a')).toBeNull();
+      expect(openLink().getAttribute('href')).toBe('/story/memories/lead-1');
+      expect(openLink().getAttribute('aria-label')).toBe(
+        copy.openName
+          .replace('{{kind}}', 'Special moment')
+          .replace('{{title}}', 'That day at the lake'),
+      );
+    });
+
+    it('continues with the curated themes and returns to the lead', () => {
+      const { onOpen } = renderWithLead();
+      const next = screen.getByRole('button', { name: copy.next });
+      fireEvent.click(next);
+      expect(openLink().getAttribute('href')).toBe('/story/memories/m-1');
+      fireEvent.click(screen.getByRole('button', { name: copy.previous }));
+      expect(openLink().getAttribute('href')).toBe('/story/memories/lead-1');
+      fireEvent.click(openLink());
+      expect(onOpen).toHaveBeenCalledWith(
+        expect.anything(),
+        '/story/memories/lead-1',
+      );
+    });
+
+    it('advances from the lead when its progress ends', () => {
+      const { container } = renderWithLead();
+      endProgress(container);
+      expect(openLink().getAttribute('href')).toBe('/story/memories/m-1');
+    });
+
+    it('plays the lead alone when the curated selection is empty', () => {
+      const { container } = renderWithLead([]);
+      expect(container.querySelector('.momente-story')).not.toBeNull();
+      expect(container.querySelectorAll('.momente-story-bubble')).toHaveLength(
+        1,
+      );
+      expect(openLink().getAttribute('href')).toBe('/story/memories/lead-1');
+    });
   });
 });

@@ -68,9 +68,9 @@ collection, not a record table.
   endpoints. The catalog is never a public or bundled client asset.
 - Catalog: the editorial handoff `eimir-date-ideas.v1.json` (200 ideas, de/en,
   `catalogVersion` 1.0.0) is stored verbatim as
-  `backend/src/eimir/date_ideas/data/catalog.json`. Its format is the editorial
-  [JSON Schema](../date-inspiration/catalog.schema.json); the Pydantic models
-  mirror it and additionally require unique IDs. `backend/scripts/date_ideas_catalog.py validate|import`
+  `backend/pro/src/eimir_pro/date_ideas/data/catalog.json`. Its format is the editorial
+  [JSON Schema](../../../backend/pro/docs/date-inspiration/catalog.schema.json); the Pydantic models
+  mirror it and additionally require unique IDs. `backend/pro/pro_scripts/date_ideas_catalog.py validate|import`
   re-checks any revision and rejects files that would drop a persistent ID.
   IDs stay stable across translations, copy edits and reordering.
 - Filters: category, `maxMinutes` and `maxBudget` as inclusive upper bounds
@@ -83,7 +83,7 @@ collection, not a record table.
   by the Pro-gated `GET /spaces/{id}/date-ideas/images/{imageId}`
   (`private, no-store`), held in the Account/Space query cache with the catalog
   (removed on downgrade) and loaded when a card nears the viewport inside a
-  reserved 3:2 frame. `scripts/date_ideas_catalog.py validate-images|import-images`
+  reserved 3:2 frame. `pro/pro_scripts/date_ideas_catalog.py validate-images|import-images`
   checks a new image handoff against the catalog version, categories and files.
 - Locale: an unsupported locale uses the complete default (German) entry;
   fields of two languages are never combined.

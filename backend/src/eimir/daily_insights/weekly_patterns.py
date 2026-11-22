@@ -7,7 +7,6 @@ from datetime import date, timedelta
 from enum import StrEnum
 from statistics import mean
 
-from eimir.daily_checkins.models import RecommendationKey
 from eimir.daily_checkins.service import PartnerRevealState
 from eimir.daily_insights.insights import DailyInsightDayEntry, DailyInsightsResult
 
@@ -125,15 +124,3 @@ def observations(result: DailyInsightsResult, week_start: date) -> list[Observat
             )
         )
     return facts
-
-
-def recommendation_order(facts: list[Observation]) -> list[RecommendationKey]:
-    kinds = {fact.kind for fact in facts}
-    preferred: list[RecommendationKey] = []
-    if kinds & {ObservationKind.ENERGY_FALLING, ObservationKind.WEEKDAY_LOWER}:
-        preferred.append(RecommendationKey.QUIET_TIME)
-    if ObservationKind.DIFFERENT_VIBES in kinds:
-        preferred.append(RecommendationKey.OWN_PACE)
-    if kinds & {ObservationKind.ENERGY_RISING, ObservationKind.WEEKEND_HIGHER}:
-        preferred.append(RecommendationKey.SMALL_PLAN)
-    return list(dict.fromkeys([*preferred, *RecommendationKey]))

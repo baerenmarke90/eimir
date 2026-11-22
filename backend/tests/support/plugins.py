@@ -27,17 +27,15 @@ requires_pro = pytest.mark.requires_pro
 
 PRO_TEST_MODULES = frozenset(
     {
-        # The recap modules compose recaps, which needs `relationship.passport`,
-        # a capability only a loaded plugin provides; what stays readable and
-        # writable without it is covered by `integration/test_core_only_recaps.py`.
         "integration/test_shared_experiences.py",
         "unit/test_account_table_lifecycle.py",
         "unit/test_m3_plan_openapi.py",
-        # Recap composition is plugin code; the Core reads stay in
-        # `unit/test_recap_composition.py`.
     }
 )
-"""Test modules of Pro features, relative to ``tests/``; not collected Core-only."""
+"""Core test modules that need the plugin loaded, relative to ``tests/``; not collected Core-only.
+
+The Pro feature tests themselves live in ``backend/pro/pro_tests``.
+"""
 
 PRO_DISTRIBUTION_TEST_MODULES = frozenset(
     {

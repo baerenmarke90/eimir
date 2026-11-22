@@ -147,8 +147,10 @@ public final class PushPreview {
             case "COUPLE_GAME_TURN": return "WHO_OF_US_GAME".equals(targetType) ? R.string.push_game_who_of_us
                 : "WISH_DETECTIVE_GAME".equals(targetType) ? R.string.push_game_wish_detective
                 : "OUR_MOMENTS_GAME".equals(targetType) ? R.string.push_game_our_moments : 0;
-            // Up to v2 a garden seed never showed its words; v3 names the seed and
-            // its words (#2158). A bouquet reuses the seed notice with its own text (#1907 H3).
+            // Up to v2 a garden seed never showed its words; v3 names the seed. The
+            // server never sends its words (Product Owner 2026-11-22, #2158); a
+            // words code would still render. A bouquet reuses the seed notice with
+            // its own text (#1907 H3).
             case "GARDEN_SEED_ARRIVED": return "GARDEN_BOUQUET".equals(targetType)
                 ? R.string.push_garden_bouquet : R.string.push_garden_seed;
             // A recap notice names only its period, never a title or a photo (#1744).

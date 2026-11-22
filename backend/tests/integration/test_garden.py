@@ -257,10 +257,10 @@ def test_seed_notice_is_neutral_and_goes_stale_once_planted(client, premium, ses
     assert "GARDEN_SEED_ARRIVED" not in stale.text
 
 
-def test_detailed_seed_preview_names_the_seed_and_words_but_keeps_a_surprise(
+def test_detailed_seed_preview_names_the_seed_never_its_words_and_keeps_a_surprise(
     client, premium, session
 ) -> None:  # type: ignore[no-untyped-def]
-    """Preview v3 (#2158): what arrived and the partner's words; a surprise stays one."""
+    """Preview v3 (#2158): what arrived, never the words (a folded card); a surprise stays one."""
     from eimir.engagement import push_preview
 
     _send(client, premium, words="MISS_YOU")
@@ -275,7 +275,8 @@ def test_detailed_seed_preview_names_the_seed_and_words_but_keeps_a_surprise(
     encoded = push_preview.for_notification(session, notice, digest=False, version=3)
     assert encoded is not None
     detailed = json.loads(encoded)
-    assert (detailed["title"], detailed["body"]) == ("POPPY", "MISS_YOU")
+    assert (detailed["title"], detailed["body"]) == ("POPPY", "")
+    assert "MISS_YOU" not in encoded
     assert detailed["targetType"] == "GARDEN_SEED"
     # v2 keeps its neutral seed notice.
     legacy = json.loads(push_preview.for_notification(session, notice, digest=False, version=2))
@@ -285,8 +286,9 @@ def test_detailed_seed_preview_names_the_seed_and_words_but_keeps_a_surprise(
     seed.species = "MOONFLOWER"
     session.flush()
     surprise = json.loads(push_preview.for_notification(session, notice, digest=False, version=3))
-    assert (surprise["title"], surprise["body"]) == ("", "MISS_YOU")
+    assert (surprise["title"], surprise["body"]) == ("", "")
     assert "MOONFLOWER" not in json.dumps(surprise)
+    assert "MISS_YOU" not in json.dumps(surprise)
 
 
 def test_the_garden_leaves_with_the_couple(client, premium, session) -> None:  # type: ignore[no-untyped-def]

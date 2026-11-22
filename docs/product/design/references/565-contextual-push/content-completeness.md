@@ -34,7 +34,7 @@ must remain compatible with existing installations.
   Product Owner decision of 2026-11-21 (#2158) the person's Android setting for
   sensitive content alone decides what a locked screen shows; negotiated preview
   v3 gives every kind its real content (title, Plan time and place, note, reminder
-  and comment excerpts, reaction, garden seed and words).
+  and comment excerpts, reaction, garden seed without its attached words).
 - Unknown future kinds retain the safe generic body without unknown content or
   fabricated actions. Legacy peers retain compatible v1 or generic delivery.
 

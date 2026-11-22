@@ -15,7 +15,7 @@ import java.util.Set;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-/** Bounded device copy for the explicitly public shared-Wish date notices. */
+/** Bounded device copy for the shared-Wish date notices; the lock-screen setting governs them. */
 final class WishDatePush {
     private static final Set<String> FIELDS = new HashSet<>(Arrays.asList(
         "kind", "headline", "title", "appointmentStart"));

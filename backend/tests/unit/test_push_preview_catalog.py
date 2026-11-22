@@ -42,7 +42,14 @@ def test_installed_catalog_covers_every_sender_kind_and_both_envelope_versions()
         assert kinds <= {
             case["payload"]["kind"] for case in cases if case["payload"]["title"] == title
         }
-    assert {case["payload"]["v"] for case in cases} == {1, 2}
+        # Detailed preview v3 (#2158) is installed for the complete catalog too.
+        assert kinds <= {
+            case["payload"]["kind"]
+            for case in cases
+            if case["payload"]["title"] == title and case["payload"]["v"] == 3
+        }
+    assert {case["payload"]["v"] for case in cases} == {1, 2, 3}
+    assert len({case["id"] for case in cases}) == len(cases)
     key = OctKey.import_key(
         {
             "kty": "oct",
@@ -63,7 +70,7 @@ def test_installed_catalog_covers_every_sender_kind_and_both_envelope_versions()
 
 
 @pytest.mark.parametrize("digest", [False, True])
-@pytest.mark.parametrize("version", [1, 2])
+@pytest.mark.parametrize("version", [1, 2, 3])
 def test_once_message_preview_never_reads_content(digest: bool, version: int) -> None:
     session = Mock(spec=Session)
     notification = Notification(kind=NotificationKind.ONCE_MESSAGE_RECEIVED.value)
@@ -97,3 +104,46 @@ def test_largest_content_envelope_fits_existing_provider_and_native_limits() -> 
         raw,
     )
     assert len(compact) <= 3000
+
+
+def test_largest_detailed_envelope_is_shortened_to_fit_provider_and_native_limits() -> None:
+    fixture = json.loads(CATALOG.read_text())
+    value: dict[str, object] = dict(fixture["cases"][0]["payload"])
+    value.update(v=3, kind="REMINDER_DUE", targetType="REMINDER", digest=False)
+    value.update(name="💛" * 80, title="💛" * 140, body="💛" * 180, place="💛" * 80)
+    value.update(when="2035-12-21T14:00:00+00:00")
+    fitted = push_preview._fit(dict(value))
+    raw = push_preview._encode(fitted)
+    assert len(raw.encode()) <= push_preview.PLAINTEXT_BYTES
+    assert len(raw.encode("utf-16-le")) // 2 <= 1600
+    # Free text is shortened in order: the body first, then the place; codes stay.
+    assert fitted["name"] == value["name"] and fitted["title"] == value["title"]
+    assert fitted["when"] == value["when"]
+    assert str(fitted["body"]).endswith("…") and len(str(fitted["body"])) < 180
+    key = base64.urlsafe_b64encode(bytes(fixture["keyBytes"])).decode().rstrip("=")
+    compact = fcm_push.encrypt_preview(
+        json.dumps(
+            {"fid": "c" + "a" * 21, "activationId": fixture["activationId"]}, separators=(",", ":")
+        ),
+        key,
+        raw,
+    )
+    assert len(compact) <= 3000
+    small = dict(value, name="Alex", title="Walk", body="Words", place="Lake")
+    assert push_preview._fit(dict(small)) == small
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("POPPY", "POPPY"),
+        ("POPPY,TULIP,WATER_LILY", "POPPY,TULIP,WATER_LILY"),
+        ("", ""),
+        ("A,B,C,D", ""),
+        ("poppy", ""),
+        ("Ich liebe dich", ""),
+        ("POPPY,", ""),
+    ],
+)
+def test_plugin_preview_codes_are_closed_tokens_only(value: str, expected: str) -> None:
+    assert push_preview._codes(value) == expected

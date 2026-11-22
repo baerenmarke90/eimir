@@ -37,9 +37,13 @@ from eimir.plugins.contract import (
 from eimir.plugins.manifest import PLUGIN_ENGAGEMENT_TARGETS, PLUGIN_JOB_KINDS, attachment_rules
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     from fastapi import APIRouter
+    from sqlalchemy.orm import Session
     from starlette.routing import BaseRoute
 
+    from eimir.authorization import AuthorizationContext
     from eimir.engagement.models import EngagementTarget
     from eimir.jobs.worker import JobRegistry
     from eimir.wish_selections.date_idea_contract import DateIdeaSource
@@ -107,6 +111,20 @@ class LoadedPlugins:
             for plugin in self.plugins
             for parent_type, rule in plugin.attachment_read_rules().items()
         }
+
+    def push_preview_detail(
+        self,
+        session: Session,
+        context: AuthorizationContext,
+        target_type: EngagementTarget,
+        target_id: UUID,
+    ) -> tuple[str, str] | None:
+        """The first loaded plugin's v3 preview codes for one of its targets, if any."""
+        for plugin in self.plugins:
+            detail = plugin.push_preview_detail(session, context, target_type, target_id)
+            if detail is not None:
+                return detail
+        return None
 
     def register_jobs(self, registry: JobRegistry) -> None:
         """Register every plugin's job handlers; a kind the manifest does not declare refuses."""

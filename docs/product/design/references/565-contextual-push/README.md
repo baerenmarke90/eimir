@@ -37,8 +37,12 @@ The reminder read view reuses PageHeader and tertiary Back with a bounded plain
 reading column. No typing or new technical configuration is needed. Compact is primary;
 Expanded reuses the same read destination and existing shell. Preserve draft
 guards, Back, current Account/API/Space validation, reduced motion and source
-unavailable fallback. The public lock-screen version stays generic without names,
-titles or actions. System sensitive-content settings remain user-controlled.
+unavailable fallback. The public version stays generic without names, titles or
+actions; Android shows it only when the person's lock-screen setting hides
+sensitive content. Product Owner decision 2026-11-21 (#2158): the app forces no
+neutral presentation of its own, so that setting alone decides whether a locked
+screen shows the full notice, and every kind carries its real content through
+the encrypted preview v3 (see the [notification workflow](../../../notification-workflow.md) step 5).
 
 Creation notices cover deliberate **manual shared** reminders only, once for the
 other active partner; generated rules/imports/private-source changes remain

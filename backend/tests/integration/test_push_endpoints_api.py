@@ -67,6 +67,7 @@ def test_device_configuration_is_authenticated_private_and_truthful(
             "androidPackage": "de.eimir.app",
             "encryptedPreviewVersion": 1,
             "encryptedPreviewMaxVersion": 2,
+            "encryptedPreviewDetailVersion": 3,
             "neutralReferenceVersion": 1,
             "localeVersion": 1,
         },
@@ -411,7 +412,7 @@ def test_registration_caps_active_endpoints_per_account(client, session: Session
     assert len(session.execute(select(PushEndpoint)).scalars().all()) == push.MAX_ACTIVE_ENDPOINTS
 
 
-@pytest.mark.parametrize("version", [1, 2])
+@pytest.mark.parametrize("version", [1, 2, 3])
 def test_preview_registration_is_owned_private_optional_and_legacy_compatible(
     client, session: Session, fcm_provider, encryption, version
 ):
@@ -462,7 +463,7 @@ def test_preview_registration_is_owned_private_optional_and_legacy_compatible(
     assert downgraded.json()["id"] == endpoint_id
     assert session.scalar(select(PushPreviewSecret)).preview_version == 1
     invalid = client.post(
-        BASE, headers=headers, json={**body, "encryptedPreview": {"version": 3, "key": key}}
+        BASE, headers=headers, json={**body, "encryptedPreview": {"version": 4, "key": key}}
     )
     assert invalid.status_code == 422 and key not in invalid.text
     assert client.delete(f"{BASE}/{endpoint_id}", headers=headers).status_code == 204

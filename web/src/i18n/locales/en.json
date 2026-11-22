@@ -2535,7 +2535,7 @@
     "onboardingActivate": "Enable",
     "onboardingLater": "Later",
     "onboardingOffline": "You are offline. Notifications have not been enabled yet.",
-    "deviceIntro": "Notifications may show names and titles. Your Android setting for sensitive content applies on the lock screen. Specific previews are encrypted for delivery. Google or your push service receives an installation identifier and connection data.",
+    "deviceIntro": "Notifications say what happened, such as names, titles, dates and short excerpts. Your Android setting for sensitive content decides whether they appear in full on the lock screen. The content is encrypted for delivery. Google or your push service receives an installation identifier and connection data.",
     "iosDeviceIntro": "Your device shows a neutral notification. Tap it to open the content in eimir. after signing in.",
     "deviceLoading": "Checking push setup …",
     "deviceUnavailable": "Push is unavailable on this installation.",

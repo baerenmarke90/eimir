@@ -661,6 +661,35 @@ def bouquet_is_open(
     )
 
 
+def notice_preview(
+    session: Session, context: AuthorizationContext, target_type: str, target_id: UUID
+) -> tuple[str, str] | None:
+    """Closed codes for the reader's encrypted v3 device preview (#2158).
+
+    A seed names what it is; a wrapped surprise stays a surprise until it
+    first blooms, so it names no species. Its attached words never travel in
+    a push: they arrive in the garden as a folded card the recipient opens
+    (Product Owner 2026-11-22, #2158). A bouquet names its flowers, which have
+    all bloomed. Only while the notice is current for the reader.
+    """
+    if target_type == "GARDEN_SEED":
+        seed = session.scalar(
+            seed_is_waiting(session, context, target_id).with_only_columns(GardenPlant)
+        )
+        if seed is None:
+            return None
+        shown = growth.shown_species(seed.species, seed.bloomed)
+        return ("" if shown is GardenSpecies.SURPRISE else shown.value, "")
+    if target_type == "GARDEN_BOUQUET":
+        bouquet = session.scalar(
+            bouquet_is_open(session, context, target_id).with_only_columns(GardenBouquet)
+        )
+        if bouquet is None:
+            return None
+        return (",".join(dict.fromkeys(bouquet.flowers)), "")
+    return None
+
+
 def notice_taken_today(
     session: Session, space_id: UUID, recipient_id: UUID, at: datetime, kind: str
 ) -> bool:

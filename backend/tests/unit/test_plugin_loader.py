@@ -75,6 +75,9 @@ class FakePlugin:
     def attachment_read_rules(self) -> Mapping[str, Callable[..., bool]]:
         return self.read_rules
 
+    def push_preview_detail(self, *args: object) -> None:
+        return None
+
     def on_partner_joined(self, *args: object) -> None:
         return None
 

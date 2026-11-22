@@ -88,6 +88,15 @@ public final class NativePushNotifications {
         present(context, activation, notificationId, null, wishDate);
     }
 
+    /** What a locked screen shows when the person chose to hide sensitive content. */
+    private static android.app.Notification publicVersion(Context context) {
+        return new NotificationCompat.Builder(context, CHANNEL)
+            .setSmallIcon(R.drawable.ic_launcher_monochrome)
+            .setContentTitle(context.getString(R.string.app_name))
+            .setContentText(context.getString(R.string.push_notification_body))
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC).build();
+    }
+
     private static void present(Context context, PushActivation activation, String notificationId, PushPreview preview, WishDatePush wishDate) {
         synchronized (PushActivation.class) {
             if (!PushActivation.current(context, activation)) return;
@@ -102,6 +111,12 @@ public final class NativePushNotifications {
                 context.getString(R.string.push_channel_name), NotificationManager.IMPORTANCE_DEFAULT));
             PendingIntent tap = PendingIntent.getActivity(context, 0, notificationIntent(context, activation, notificationId),
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            // Every notice is VISIBILITY_PRIVATE with a neutral public version, and the
+            // channel sets no lock-screen override. Android's own lock-screen setting
+            // then decides alone (Product Owner, 2026-11-21, #2158): "Show all
+            // notification content" shows the full notice on a locked screen,
+            // "Hide sensitive content" shows only the public version below, and
+            // "Don't show notifications" shows nothing. The app forces neither.
             NotificationCompat.Builder notification = new NotificationCompat.Builder(context, CHANNEL)
                 .setSmallIcon(R.drawable.ic_launcher_monochrome).setContentTitle(context.getString(R.string.app_name))
                 .setContentText(context.getString(R.string.push_notification_body)).setContentIntent(tap)
@@ -109,20 +124,17 @@ public final class NativePushNotifications {
                 .setVisibility(NotificationCompat.VISIBILITY_PRIVATE);
             if (wishDate != null) {
                 String detail = wishDate.detail(context);
+                // A Wish date notice no longer overrides the setting with VISIBILITY_PUBLIC.
                 notification.setContentTitle(wishDate.headline).setContentText(detail)
                     .setStyle(new NotificationCompat.BigTextStyle().bigText(detail))
                     .setOnlyAlertOnce(true)
-                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .setPublicVersion(publicVersion(context))
                     .addAction(0, wishDate.action(context), tap);
             } else if (preview != null) {
                 String body = preview.body(context);
                 notification.setContentText(body).setStyle(new NotificationCompat.BigTextStyle().bigText(body))
                     .setOnlyAlertOnce(true)
-                    .setPublicVersion(new NotificationCompat.Builder(context, CHANNEL)
-                        .setSmallIcon(R.drawable.ic_launcher_monochrome)
-                        .setContentTitle(context.getString(R.string.app_name))
-                        .setContentText(context.getString(R.string.push_notification_body))
-                        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC).build());
+                    .setPublicVersion(publicVersion(context));
                 String action = preview.action(context);
                 if (action != null) notification.addAction(0, action, tap);
             }

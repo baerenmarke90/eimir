@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
@@ -254,6 +255,40 @@ def test_seed_notice_is_neutral_and_goes_stale_once_planted(client, premium, ses
         f"/api/v1/spaces/{premium['space'].id}/notifications", headers=_h(premium, "b")
     )
     assert "GARDEN_SEED_ARRIVED" not in stale.text
+
+
+def test_detailed_seed_preview_names_the_seed_never_its_words_and_keeps_a_surprise(
+    client, premium, session
+) -> None:  # type: ignore[no-untyped-def]
+    """Preview v3 (#2158): what arrived, never the words (a folded card); a surprise stays one."""
+    from eimir.engagement import push_preview
+
+    _send(client, premium, words="MISS_YOU")
+    _project(session)
+    notice = session.scalar(
+        select(Notification).where(
+            Notification.kind == NotificationKind.GARDEN_SEED_ARRIVED.value,
+            Notification.recipient_account_id == premium["ben"].id,
+        )
+    )
+    assert notice is not None
+    encoded = push_preview.for_notification(session, notice, digest=False, version=3)
+    assert encoded is not None
+    detailed = json.loads(encoded)
+    assert (detailed["title"], detailed["body"]) == ("POPPY", "")
+    assert "MISS_YOU" not in encoded
+    assert detailed["targetType"] == "GARDEN_SEED"
+    # v2 keeps its neutral seed notice.
+    legacy = json.loads(push_preview.for_notification(session, notice, digest=False, version=2))
+    assert (legacy["title"], legacy["body"]) == ("", "")
+    # A wrapped surprise names no species until its moonflower first blooms.
+    seed = session.scalar(select(GardenPlant).where(GardenPlant.id == notice.target_id))
+    seed.species = "MOONFLOWER"
+    session.flush()
+    surprise = json.loads(push_preview.for_notification(session, notice, digest=False, version=3))
+    assert (surprise["title"], surprise["body"]) == ("", "")
+    assert "MOONFLOWER" not in json.dumps(surprise)
+    assert "MISS_YOU" not in json.dumps(surprise)
 
 
 def test_the_garden_leaves_with_the_couple(client, premium, session) -> None:  # type: ignore[no-untyped-def]

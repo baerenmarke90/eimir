@@ -1347,6 +1347,10 @@ it.each([
   [1, 2, 1],
   [2, undefined, 1],
   [2, 2, 2],
+  [2, 3, 2],
+  [3, undefined, 1],
+  [3, 2, 2],
+  [3, 3, 3],
 ] as const)(
   'negotiates FCM preview server max %s and native max %s as %s',
   async (serverMax, nativeMax, negotiated) => {
@@ -1361,8 +1365,11 @@ it.each([
         fcm: {
           ...fcmConfiguration,
           ...(serverMax ? { encryptedPreviewVersion: 1 as const } : {}),
-          ...(serverMax === 2
+          ...(serverMax && serverMax >= 2
             ? { encryptedPreviewMaxVersion: 2 as const }
+            : {}),
+          ...(serverMax === 3
+            ? { encryptedPreviewDetailVersion: 3 as const }
             : {}),
         },
       });

@@ -1,4 +1,9 @@
-"""Compare direct dependencies with locked installation and documentation."""
+"""Compare direct dependencies with locked installation and documentation.
+
+The direct dependencies are those of the Core project and of every workspace
+member next to it (the Pro distribution in ``pro/``, #2182). Dependencies on
+another of these projects are not third-party packages and are not documented.
+"""
 
 from __future__ import annotations
 
@@ -17,14 +22,17 @@ MARKDOWN_ROW = re.compile(
 )
 
 
-def _dependency_names(pyproject_path: Path) -> set[str]:
-    with pyproject_path.open("rb") as handle:
-        project = tomllib.load(handle)
-
-    requirements = list(project["project"]["dependencies"])
-    for group in project.get("dependency-groups", {}).values():
-        requirements.extend(group)
-    return {canonicalize_name(Requirement(value).name) for value in requirements}
+def _dependency_names(pyproject_paths: list[Path]) -> set[str]:
+    requirements: list[str] = []
+    projects: set[str] = set()
+    for pyproject_path in pyproject_paths:
+        with pyproject_path.open("rb") as handle:
+            project = tomllib.load(handle)
+        projects.add(canonicalize_name(project["project"]["name"]))
+        requirements.extend(project["project"]["dependencies"])
+        for group in project.get("dependency-groups", {}).values():
+            requirements.extend(group)
+    return {canonicalize_name(Requirement(value).name) for value in requirements} - projects
 
 
 def _documented_dependencies(documentation_path: Path) -> dict[str, tuple[str, str]]:
@@ -51,8 +59,8 @@ def _installed_license(package_name: str) -> str:
     return ""
 
 
-def check_inventory(pyproject_path: Path, documentation_path: Path) -> list[str]:
-    required = _dependency_names(pyproject_path)
+def check_inventory(pyproject_paths: list[Path], documentation_path: Path) -> list[str]:
+    required = _dependency_names(pyproject_paths)
     documented = _documented_dependencies(documentation_path)
     errors: list[str] = []
 
@@ -87,9 +95,17 @@ def check_inventory(pyproject_path: Path, documentation_path: Path) -> list[str]
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("documentation", type=Path)
-    parser.add_argument("--pyproject", type=Path, default=Path("pyproject.toml"))
+    parser.add_argument(
+        "--pyproject",
+        type=Path,
+        action="append",
+        help="Project file to read; defaults to pyproject.toml and pro/pyproject.toml.",
+    )
     arguments = parser.parse_args()
-    errors = check_inventory(arguments.pyproject, arguments.documentation)
+    pyprojects = arguments.pyproject or [
+        path for path in (Path("pyproject.toml"), Path("pro/pyproject.toml")) if path.is_file()
+    ]
+    errors = check_inventory(pyprojects, arguments.documentation)
     if errors:
         print("Dependency inventory is inconsistent:")
         for error in errors:

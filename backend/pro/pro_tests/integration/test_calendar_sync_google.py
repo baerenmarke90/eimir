@@ -7,17 +7,17 @@ from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
+from eimir_pro.calendar_sync.models import CalendarConnection, CalendarOAuthTransaction
+from eimir_pro.providers import google_calendar
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from eimir.calendar_sync.models import CalendarConnection, CalendarOAuthTransaction
 from eimir.config import get_settings
 from eimir.core import clock
-from eimir.providers import google_calendar
 from eimir.relationship.service import add_member
+from pro_tests.integration.test_calendar_sync import base, drain, grant, plan, state
+from pro_tests.support.fake_google_calendar import FakeGoogleCalendar
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
-from tests.integration.test_calendar_sync import base, drain, grant, plan, state
-from tests.support.fake_google_calendar import FakeGoogleCalendar
 
 pytestmark = [pytest.mark.integration, requires_database]
 SHARED = "shared-calendar@group.calendar.google.com"

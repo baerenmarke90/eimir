@@ -21,9 +21,9 @@ from eimir.config import get_settings
 from eimir.core.clock import now
 from eimir.entitlements.models import Capability
 from eimir.entitlements.service import has_capability
-from eimir.photo_sources import browser_binding, service
-from eimir.photo_sources.models import PhotoSelection
 from eimir.security.keyring import EncryptionMode
+from eimir_pro.photo_sources import browser_binding, service
+from eimir_pro.photo_sources.models import PhotoSelection
 
 router = APIRouter(tags=["photo-sources"])
 _HEADERS = {

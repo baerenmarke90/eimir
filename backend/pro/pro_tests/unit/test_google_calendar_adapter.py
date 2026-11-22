@@ -6,10 +6,8 @@ from datetime import UTC, date, datetime
 
 import httpx
 import pytest
-from pydantic import SecretStr
-
-from eimir.providers import google_calendar
-from eimir.providers.calendar import (
+from eimir_pro.providers import google_calendar
+from eimir_pro.providers.calendar import (
     CalendarAuthError,
     CalendarEvent,
     CalendarEventLink,
@@ -17,8 +15,10 @@ from eimir.providers.calendar import (
     CalendarProviderError,
     CalendarVersionConflictError,
 )
-from eimir.providers.google_calendar import GoogleCalendarApi, GoogleCalendarClient, event_id
-from tests.support.fake_google_calendar import FakeGoogleCalendar, rate_limited
+from eimir_pro.providers.google_calendar import GoogleCalendarApi, GoogleCalendarClient, event_id
+from pydantic import SecretStr
+
+from pro_tests.support.fake_google_calendar import FakeGoogleCalendar, rate_limited
 
 CLIENT = GoogleCalendarClient("client-id", SecretStr("client-secret"), "https://eimir.example/cb")
 SHARED = "shared-calendar@group.calendar.google.com"

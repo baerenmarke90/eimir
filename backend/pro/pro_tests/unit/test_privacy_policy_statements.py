@@ -12,16 +12,18 @@ from pathlib import Path
 
 import pytest
 from eimir_pro.once_messages import service as once_messages
+from eimir_pro.photo_sources import service as photo_sources
 from eimir_pro.presence import service as presence
 
+import tests
 from eimir.auth import action_tokens, tokens
 from eimir.daily_checkins import retention as daily_checkin_retention
 from eimir.jobs import maintenance
-from eimir.photo_sources import service as photo_sources
 from eimir.relationship import invitations, policy
 from eimir.transfer import service as transfer
 
-DOCUMENT = Path(__file__).resolve().parents[3] / "legal" / "de" / "privacy-policy.md"
+# The legal documents live with the Core; ``tests`` is the Core test support.
+DOCUMENT = Path(tests.__file__).resolve().parents[2] / "legal" / "de" / "privacy-policy.md"
 
 STATEMENTS = [
     pytest.param(

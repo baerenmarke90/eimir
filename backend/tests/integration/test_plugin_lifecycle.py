@@ -11,6 +11,7 @@ from datetime import timedelta
 from uuid import uuid4
 
 import pytest
+from eimir_pro.photo_sources.models import PhotoConnection, PhotoConnectionPayload
 from eimir_pro.presence.models import (
     PresenceDeviceCredential,
     PresencePositionPayload,
@@ -22,7 +23,6 @@ from sqlalchemy.orm import Session
 from eimir.auth import sessions
 from eimir.authorization import AuthorizationContext
 from eimir.core.clock import now
-from eimir.photo_sources.models import PhotoConnection, PhotoConnectionPayload
 from eimir.plugins import lifecycle
 from eimir.relationship.service import add_member
 from eimir.transfer.models import TransferScope

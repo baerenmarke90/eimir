@@ -23,20 +23,12 @@ requires_pro = pytest.mark.requires_pro
 
 PRO_TEST_MODULES = frozenset(
     {
-        "integration/test_calendar_sync.py",
-        "integration/test_calendar_sync_google.py",
-        "integration/test_photo_sources.py",
         # The recap modules compose recaps, which needs `relationship.passport`,
         # a capability only a loaded plugin provides; what stays readable and
         # writable without it is covered by `integration/test_core_only_recaps.py`.
         "integration/test_shared_experiences.py",
         "unit/test_account_table_lifecycle.py",
-        "unit/test_caldav_adapter.py",
-        "unit/test_google_photo_configuration.py",
         "unit/test_m3_plan_openapi.py",
-        "unit/test_photo_browser_binding.py",
-        "unit/test_photo_source_security_gate.py",
-        "unit/test_privacy_policy_statements.py",
         # Recap composition is plugin code; the Core reads stay in
         # `unit/test_recap_composition.py`.
     }

@@ -36,15 +36,9 @@ dependencies = [
     # HEIC/HEIF steht in der M2-D04-Allowlist und ist ohne libheif nicht
     # zu dekodieren. Registriert sich als Plugin in Pillow.
     "pillow-heif>=1.1",
-    "google-auth-oauthlib>=1.5.0",
     "google-auth[requests]>=2.62,<3",
-    # Keep the adopted OAuth stack above the corrected device-grant advisory baseline.
-    "oauthlib>=4.0.1,<5",
     # Standard JWE encrypted device previews; never implement JOSE framing here.
     "joserfc==1.7.7",
-    # Untrusted CalDAV multistatus XML (#1895): parse without entity expansion
-    # or external resources instead of hardening the stdlib parser by hand.
-    "defusedxml>=0.7.1",
 ]
 
 # The in-tree Pro plugin (Decision 0017). Loaded only when named in EIMIR_PLUGINS.

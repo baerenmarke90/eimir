@@ -13,9 +13,9 @@ from typing import Any
 from unittest.mock import Mock
 
 import pytest
+from eimir_pro.providers import immich_photos as photos
 from pydantic import SecretStr
 
-from eimir.providers import immich_photos as photos
 from eimir.providers import photo_transport as transport
 
 ORIGIN = "https://photos.example.org"

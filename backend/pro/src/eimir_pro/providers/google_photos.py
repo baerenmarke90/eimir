@@ -14,20 +14,20 @@ from urllib.parse import quote, urlencode, urlsplit
 from pydantic import SecretStr
 
 from eimir.attachments.limits import IMAGE_MAX_SIZE, VIDEO_MAX_SIZE, supported_mime_types
-from eimir.providers.google_photos_config import (
-    AUTH_URI,
-    SCOPE,
-    TOKEN_URI,
-)
-from eimir.providers.google_photos_config import CALLBACK_PATH as CALLBACK_PATH
-from eimir.providers.google_photos_config import GooglePhotosClient as GooglePhotosClient
-from eimir.providers.google_photos_config import client_configuration as client_configuration
 from eimir.providers.photo_transport import (
     PhotoResponse,
     PhotoSourceError,
     PhotoSourceHttp,
     SelectedPhoto,
 )
+from eimir_pro.providers.google_photos_config import (
+    AUTH_URI,
+    SCOPE,
+    TOKEN_URI,
+)
+from eimir_pro.providers.google_photos_config import CALLBACK_PATH as CALLBACK_PATH
+from eimir_pro.providers.google_photos_config import GooglePhotosClient as GooglePhotosClient
+from eimir_pro.providers.google_photos_config import client_configuration as client_configuration
 
 _JSON_LIMIT = 128 * 1024
 _MIME = re.compile(r"[a-z0-9][a-z0-9!#$&^_.+-]{0,40}/[a-z0-9][a-z0-9!#$&^_.+-]{0,60}")

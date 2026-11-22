@@ -24,7 +24,7 @@ cp -R "$repo/backend/pro" "$work/pro"
 rm -rf "$work/pro/.venv" "$work/pro/build" "$work/pro"/src/*.egg-info
 # An extracted repository replaces the workspace source of Core with a pinned
 # Core reference; here the Core wheel built above takes that place.
-sed -i '/^\[tool\.uv\.sources\]$/,/^$/d' "$work/pro/pyproject.toml"
+sed -i -E '/^\[tool\.uv\.sources\]\r?$/,/^\r?$/d' "$work/pro/pyproject.toml"
 if grep -q "workspace = true" "$work/pro/pyproject.toml"; then
   echo "backend/pro/pyproject.toml still names a workspace source" >&2
   exit 1

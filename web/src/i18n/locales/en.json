@@ -3286,9 +3286,14 @@
       "tomorrow": "Tomorrow is the day",
       "days_one": "{{count}} day to go",
       "days_other": "{{count}} days to go",
-      "show": "Show anticipation on Us",
-      "help": "Highlight this special plan on your home page.",
-      "saved": "Anticipation updated."
+      "choiceLabel": "Anticipation on Us",
+      "automatic": "Automatic",
+      "always": "Show first",
+      "never": "Never",
+      "automaticHelp": "When this plan is next, Us counts down to it.",
+      "automaticDiscreetHelp": "Us only counts down to a discreet plan when you choose Show first.",
+      "alwaysHelp": "Us counts down to this plan, even if something else comes first.",
+      "neverHelp": "This plan never appears as the countdown on Us."
     },
     "passport": {
       "title": "Your story",

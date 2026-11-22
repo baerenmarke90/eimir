@@ -40,6 +40,19 @@ const games = {
       description: 'Versteckt ein Herz in einem Foto. Wer findet es?',
     },
   },
+  waiting: {
+    settingsLabel: 'Spiele, die auf dich warten',
+    title: 'Du bist dran',
+    reasons: {
+      WHO_OF_US: '{{name}} wartet auf deine Antworten.',
+      WISH_DETECTIVE: '{{name}} wartet auf deinen Zug.',
+      OUR_MOMENTS: '{{name}} wartet auf deinen Zug.',
+      PICTURE_PING_PONG: '{{name}} hat weitergemalt. Jetzt du.',
+      HEART_HUNT: '{{name}} hat ein Herz für dich versteckt.',
+      GARDEN_SEED: 'Ein Samen von {{name}} wartet aufs Einpflanzen.',
+      GARDEN_BOUQUET: '{{name}} hat dir einen Strauß gebunden.',
+    },
+  },
   heartHunt: {
     intro:
       'Versteckt ein Herz in einem Foto aus eurem Tag. Wer sucht, tastet sich durch den Nebel.',

@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, waitFor } from '@testing-library/react';
 import { fireEvent, screen } from '@testing-library/react';
 import { StrictMode } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ImportStatus } from '../api/generated/models/ImportStatus';
 import type { TransferImportDetail } from '../api/generated/models/TransferImportDetail';
@@ -20,6 +21,7 @@ const transferApi = vi.hoisted(() => ({
   applyTransferImport: vi.fn(),
   createTransferImport: vi.fn(),
   getTransferImport: vi.fn(),
+  getTransferSkippedVideos: vi.fn(),
 }));
 
 vi.mock('./transfer', async (importOriginal) => {
@@ -86,6 +88,9 @@ beforeEach(() => {
   transferApi.applyTransferImport.mockReset();
   transferApi.createTransferImport.mockReset();
   transferApi.getTransferImport.mockReset();
+  transferApi.getTransferSkippedVideos
+    .mockReset()
+    .mockResolvedValue({ count: 0, totalSize: 0 });
 });
 
 describe('import cache convergence', () => {
@@ -114,13 +119,15 @@ describe('import cache convergence', () => {
     });
     client.setQueryData(['story', SPACE_ID], { value: 'stale' });
     render(
-      <QueryClientProvider client={client}>
-        <TransferPanel
-          apiBaseUrl="https://api.example.test"
-          accessToken="token"
-          spaceId={SPACE_ID}
-        />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={client}>
+          <TransferPanel
+            apiBaseUrl="https://api.example.test"
+            accessToken="token"
+            spaceId={SPACE_ID}
+          />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
 
     const fileInput = screen.getByLabelText(

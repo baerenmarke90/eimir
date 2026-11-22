@@ -7,8 +7,8 @@ grows one stage, exactly once. Watering is a daily gesture that never changes
 growth. Distance and location never reach this module.
 
 Presentation state is derived, never stored: the garden sleeps after a pause of
-both partners and wakes when one of them returns, and the next anticipated
-shared Plan (#504) is the couple's reunion, shown by its day only.
+both partners and wakes when one of them returns, and the next pinned shared
+Plan (#504) is the couple's reunion, shown by its day only.
 
 PR 3 (growth and life) adds the cumulative shared days that unlock new things,
 more species (a water lily lives in the pond, a tulip waits for spring, a
@@ -49,7 +49,7 @@ from eimir.garden.models import (
     GardenWords,
 )
 from eimir.outbox import service as outbox_service
-from eimir.plans.models import Plan, PlanStatus
+from eimir.plans.models import Plan, PlanAnticipation, PlanStatus
 from eimir.recaps.service import calendar_context
 from eimir.relationship import service as relationship
 from eimir.relationship.models import Membership, MembershipStatus
@@ -226,7 +226,12 @@ def _last_visit(session: Session, space_id: UUID) -> date | None:
 def _reunion(
     session: Session, context: AuthorizationContext, zone: str, today: date
 ) -> tuple[date | None, bool]:
-    """The next anticipated shared Plan (#504) marks the reunion; its day only."""
+    """The next pinned shared Plan (#504) marks the reunion; its day only.
+
+    Only an explicit ``ALWAYS`` choice counts (#2158 D). The Wir countdown also
+    falls back to the next ``AUTOMATIC`` Plan, but an ordinary dinner is not a
+    reunion, and the reunion keeps the garden awake.
+    """
     starts = func.coalesce(Plan.planned_on, cast(func.timezone(zone, Plan.planned_start), Date))
     ends = func.coalesce(
         Plan.planned_until, cast(func.timezone(zone, Plan.planned_end), Date), starts
@@ -234,7 +239,7 @@ def _reunion(
     row = session.execute(
         readable(Plan, context)
         .where(
-            Plan.anticipation_enabled.is_(True),
+            Plan.anticipation == PlanAnticipation.ALWAYS.value,
             Plan.status == PlanStatus.PLANNED.value,
             starts.is_not(None),
             ends >= today,

@@ -20,6 +20,7 @@ All URIs are relative to *http://localhost*
 | [**getHeartHunt**](GamesApi.md#gethearthunt) | **GET** /api/v1/spaces/{spaceId}/games/heart-hunt | Get Heart Hunt |
 | [**getOurMomentsRemoteGame**](GamesApi.md#getourmomentsremotegame) | **GET** /api/v1/spaces/{spaceId}/games/our-moments | Get Our Moments Remote Game |
 | [**getPicturePingPong**](GamesApi.md#getpicturepingpong) | **GET** /api/v1/spaces/{spaceId}/games/picture-ping-pong | Get Picture Ping Pong |
+| [**getWaitingGames**](GamesApi.md#getwaitinggames) | **GET** /api/v1/spaces/{spaceId}/games/waiting | Get Waiting Games |
 | [**getWhoOfUsRemoteGame**](GamesApi.md#getwhoofusremotegame) | **GET** /api/v1/spaces/{spaceId}/games/who-of-us | Get Who Of Us Remote Game |
 | [**getWishDetectiveRemoteGame**](GamesApi.md#getwishdetectiveremotegame) | **GET** /api/v1/spaces/{spaceId}/games/wish-detective | Get Wish Detective Remote Game |
 | [**giveGardenBouquet**](GamesApi.md#givegardenbouquet) | **POST** /api/v1/spaces/{spaceId}/games/garden/bouquets | Give Garden Bouquet |
@@ -1185,6 +1186,76 @@ example().catch(console.error);
 ### Return type
 
 [**PicturePingPongState**](PicturePingPongState.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getWaitingGames
+
+> WaitingGames getWaitingGames(spaceId)
+
+Get Waiting Games
+
+Games that wait on the reader, for Wir (#2158 C); never their content.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { GetWaitingGamesRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetWaitingGamesRequest;
+
+  try {
+    const data = await api.getWaitingGames(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**WaitingGames**](WaitingGames.md)
 
 ### Authorization
 

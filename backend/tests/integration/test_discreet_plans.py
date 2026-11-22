@@ -184,8 +184,16 @@ def test_search_matches_real_content_but_displays_only_the_list_title(client, co
     assert hit["title"] == TITLE and hit["excerpt"] == DESCRIPTION and hit["concealed"] is False
 
 
+def test_the_countdown_never_picks_a_discreet_plan_automatically(client, couple):  # type: ignore[no-untyped-def]
+    # A discreet Plan is a shield against onlookers (#2158 D): only a pin shows it.
+    plan = make_discreet(client, couple, create(client, couple))
+    assert plan["anticipation"] == "AUTOMATIC"
+    view = client.get(path(couple, "dashboard"), headers=auth(couple["token_b"])).json()
+    assert view["anticipation"] is None
+
+
 def test_wir_upcoming_and_countdown_show_only_the_list_title(client, couple):  # type: ignore[no-untyped-def]
-    plan = make_discreet(client, couple, create(client, couple), anticipationEnabled=True)
+    plan = make_discreet(client, couple, create(client, couple), anticipation="ALWAYS")
     response = client.get(path(couple, "dashboard"), headers=auth(couple["token_b"]))
     assert response.status_code == 200, response.text
     view = response.json()

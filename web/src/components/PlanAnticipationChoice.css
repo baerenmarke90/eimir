@@ -1,0 +1,79 @@
+.plan-anticipation-choice {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-2) 0;
+  border: 0;
+}
+
+.plan-anticipation-choice legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+  font-weight: 600;
+}
+
+.plan-anticipation-choice-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+}
+
+.plan-anticipation-choice-options label {
+  position: relative;
+  display: grid;
+  flex: 1 1 auto;
+  place-items: center;
+  min-height: var(--touch-target-web);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  text-align: center;
+  overflow-wrap: break-word;
+  cursor: pointer;
+  /* Like the Planen segments: foreground and background switch together, since
+     interpolating contrasting pairs makes intermediate frames unreadable. */
+  transition: box-shadow var(--duration-feedback) var(--easing-standard);
+}
+
+.plan-anticipation-choice-options input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.plan-anticipation-choice-options label:has(input:checked) {
+  background: var(--color-brand-strong);
+  color: var(--color-on-accent);
+  box-shadow: var(--shadow-soft);
+}
+
+.plan-anticipation-choice-options label:has(input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.plan-anticipation-choice:disabled label {
+  cursor: wait;
+  opacity: var(--opacity-disabled);
+}
+
+.plan-anticipation-choice-help {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plan-anticipation-choice-options label {
+    transition: none;
+  }
+}

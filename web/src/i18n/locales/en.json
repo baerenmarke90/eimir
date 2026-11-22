@@ -759,6 +759,9 @@
       "intro": "Would you like to capture this moment in your shared story?",
       "memoryAction": "Capture memory",
       "milestoneAction": "Capture milestone",
+      "menuMemory": "Capture as a memory",
+      "menuHeartMoment": "Capture as a heart moment",
+      "menuMilestone": "Capture as a milestone",
       "chapterAction": "Add to a chapter",
       "later": "Later",
       "chapterNeedsStory": "Chapters contain your shared moments. Capture a memory or milestone first – then you can add it directly to a chapter.",
@@ -1604,7 +1607,7 @@
     "partnerBirthdayReminderLoading": "Loading birthday reminder …",
     "settingsPrivacy": "Private area",
     "settingsData": "Data and portability",
-    "settingsDataIntro": "Export your data or import supported content with the existing checks.",
+    "settingsDataIntro": "Save your memories as a file or bring them in from an earlier export.",
     "settingsAccount": "App and account",
     "settingsAccountIntro": "eimir. Pro and your account. Your shared content stays protected.",
     "settingsBackToMore": "Back to More",
@@ -1701,8 +1704,13 @@
     "change": "Choose design",
     "welcome": "Our place for two",
     "nameJoiner": "&",
-    "compact": { "own": "Your vibe", "partner": "{{name}} today" },
-    "note": { "open": "Open Heart Moment" },
+    "compact": {
+      "own": "Your vibe",
+      "partner": "{{name}} today"
+    },
+    "note": {
+      "open": "Open Heart Moment"
+    },
     "names": {
       "connected": "Connected",
       "shared_album": "Our Album",
@@ -2190,55 +2198,121 @@
   "transfer": {
     "eyebrow": "Transfer data",
     "title": "Export and import",
-    "intro": "Export your shared data, with your own private content if you choose. Imports are checked first and applied only after your confirmation.",
+    "intro": "Before anything is added, you see what the file contains. An import only adds and deletes nothing.",
     "export": {
       "heading": "Export",
-      "scopeLabel": "Scope",
+      "scopeLabel": "What should go into the file?",
       "shared": "Shared data",
-      "sharedHelp": "Contains only what the two of you share.",
+      "sharedHelp": "Only what the two of you share.",
       "personal": "My data",
-      "personalHelp": "Contains shared data and only your own private content in addition.",
+      "personalHelp": "Everything shared, plus your own private content.",
       "start": "Create export",
       "starting": "Requesting export …",
-      "expires": "The export file is available for 24 hours.",
+      "expires": "The file is ready to download for 24 hours.",
       "download": "Download export",
       "downloading": "Preparing download …",
-      "statusLabel": "Export status",
+      "statusLabel": "Status",
       "status": {
         "QUEUED": "Waiting for processing",
         "RUNNING": "Creating",
         "READY": "Ready to download",
-        "FAILED": "Export failed",
-        "EXPIRED": "Export expired"
+        "FAILED": "That did not work",
+        "EXPIRED": "The file has expired"
       }
     },
     "import": {
       "heading": "Import",
-      "fileLabel": "eimir. Transfer Bundle",
-      "fileHelp": "Choose exactly one ZIP file from an eimir. export.",
+      "fileLabel": "File from an eimir. export",
+      "fileHelp": "Choose the ZIP file you received from an export.",
       "upload": "Check file",
       "uploading": "Uploading file …",
-      "statusLabel": "Import status",
+      "statusLabel": "Status",
       "status": {
-        "QUEUED": "Waiting for checking",
-        "VALIDATING": "Checking",
-        "READY_TO_APPLY": "Checked and ready",
-        "APPLYING": "Importing",
+        "QUEUED": "Waiting to be checked",
+        "VALIDATING": "Checking the file …",
+        "READY_TO_APPLY": "Checked · ready for 24 hours",
+        "APPLYING": "Adding …",
         "COMPLETED": "Import complete",
-        "FAILED": "Import failed",
-        "EXPIRED": "Import expired"
+        "FAILED": "That did not work",
+        "EXPIRED": "The checked file has expired"
       },
-      "summaryHeading": "Checked content",
-      "scope": "Scope",
-      "members": "Source people",
-      "records": "Records",
-      "media": "Media",
-      "confirm": "I have reviewed the summary and want to add this data to the current space.",
-      "apply": "Apply import",
-      "applying": "Applying import …",
-      "additive": "Import adds new entries. It does not replace or delete existing data."
+      "checkingHint": "Nothing is added yet.",
+      "applyingHint": "You can keep using the app.",
+      "lead_one": "This file brings {{count}} entry.",
+      "lead_other": "This file brings {{count}} entries.",
+      "media_one": "It includes {{count}} photo or video.",
+      "media_other": "It includes {{count}} photos and videos.",
+      "present_one": "You already have {{count}} of them. It stays as it is.",
+      "present_other": "You already have {{count}} of them. They stay as they are.",
+      "storage": "Needs {{needed}}, {{available}} free.",
+      "additive": "The import only adds. It replaces or deletes nothing.",
+      "confirm": "I want to add this content.",
+      "confirmWithoutVideos": "I want to add this content without the videos.",
+      "apply": "Import",
+      "applyWithoutVideos": "Import without videos",
+      "applying": "Adding …",
+      "videosNeedPro": {
+        "title": "Videos come with eimir. Pro",
+        "body_one": "You can add everything else now. eimir. remembers the video, and you can bring it in later from the same file.",
+        "body_other": "You can add everything else now. eimir. remembers the {{count}} videos, and you can bring them in later from the same file."
+      },
+      "noRoom": {
+        "title": "Your storage is not enough for this",
+        "body": "The file needs {{needed}}, {{available}} is free. Nothing was added. Free up space or use Pro, then you can add the same file here."
+      },
+      "fitsWithoutVideos": {
+        "title": "With the videos, the storage is not enough",
+        "body_one": "Without the video the file fits: it then needs {{needed}}, {{available}} is free. You can bring the video in later when there is room again.",
+        "body_other": "Without the {{count}} videos the file fits: it then needs {{needed}}, {{available}} is free. You can bring the videos in later when there is room again."
+      },
+      "roomTaken": {
+        "title": "Less space is free now",
+        "body": "Storage was used up during the import. Nothing was added; the file stays ready."
+      },
+      "morePro": "More space with eimir. Pro",
+      "discoverPro": "Discover eimir. Pro",
+      "viewMedia": "View photos and videos",
+      "completed": {
+        "title": "Import complete",
+        "body": "You find the added content in your moments.",
+        "skipped_one": "{{count}} video was skipped.",
+        "skipped_other": "{{count}} videos were skipped.",
+        "recovered_one": "{{count}} video brought in.",
+        "recovered_other": "{{count}} videos brought in.",
+        "unrecovered_one": "{{count}} video no longer fit its gallery and stays remembered.",
+        "unrecovered_other": "{{count}} videos no longer fit their gallery and stay remembered.",
+        "toMoments": "Go to your moments"
+      },
+      "failed": "The file could not be added. Nothing was changed.",
+      "expired": "Choose the file again to add it.",
+      "offline": {
+        "title": "No connection",
+        "body": "Nothing can be imported without internet. Nothing was changed."
+      },
+      "recover": {
+        "lead_one": "This file holds {{count}} skipped video.",
+        "lead_other": "This file holds {{count}} skipped videos.",
+        "none": "This file holds none of the skipped videos. Choose the file from the earlier import.",
+        "storage": "Needs {{needed}}, {{available}} free.",
+        "noRoom": "The videos need {{needed}}, {{available}} is free. Free up space or use Pro, then you can bring them in.",
+        "action_one": "Bring in the video",
+        "action_other": "Bring in {{count}} videos"
+      }
     },
-    "genericFailure": "The operation could not be completed. No private archive content was shown in the error message."
+    "skipped": {
+      "heading": "Skipped videos",
+      "lead_one": "{{count}} video from an earlier import is still missing ({{size}}).",
+      "lead_other": "{{count}} videos from an earlier import are still missing ({{size}}).",
+      "bodyPro": "Choose the same file again. eimir. then adds only these videos where they belong. Nothing else changes.",
+      "bodyFree": "With eimir. Pro you can bring them in from the same file.",
+      "recover": "Bring in videos",
+      "dismiss": "Hide this note",
+      "dismissTitle": "Hide this note?",
+      "dismissBody": "Afterwards these videos can no longer be brought in. Your memories and the file stay as they are.",
+      "dismissConfirm": "Hide",
+      "dismissCancel": "Cancel"
+    },
+    "genericFailure": "That did not work. Nothing was changed."
   },
   "partnerConnection": {
     "eyebrow": "Connect partner",
@@ -3212,9 +3286,14 @@
       "tomorrow": "Tomorrow is the day",
       "days_one": "{{count}} day to go",
       "days_other": "{{count}} days to go",
-      "show": "Show anticipation on Us",
-      "help": "Highlight this special plan on your home page.",
-      "saved": "Anticipation updated."
+      "choiceLabel": "Anticipation on Us",
+      "automatic": "Automatic",
+      "always": "Show first",
+      "never": "Never",
+      "automaticHelp": "When this plan is next, Us counts down to it.",
+      "automaticDiscreetHelp": "Us only counts down to a discreet plan when you choose Show first.",
+      "alwaysHelp": "Us counts down to this plan, even if something else comes first.",
+      "neverHelp": "This plan never appears as the countdown on Us."
     },
     "passport": {
       "title": "Your story",
@@ -3338,6 +3417,19 @@
         "role": "Grow",
         "title": "Our garden",
         "description": "Send each other a seed every day, wherever you are."
+      }
+    },
+    "waiting": {
+      "settingsLabel": "Games waiting for you",
+      "title": "Your turn",
+      "reasons": {
+        "WHO_OF_US": "{{name}} is waiting for your answers.",
+        "WISH_DETECTIVE": "{{name}} is waiting for your move.",
+        "OUR_MOMENTS": "{{name}} is waiting for your move.",
+        "PICTURE_PING_PONG": "{{name}} drew on. Your turn.",
+        "HEART_HUNT": "{{name}} hid a heart for you.",
+        "GARDEN_SEED": "A seed from {{name}} is waiting to be planted.",
+        "GARDEN_BOUQUET": "{{name}} tied a bouquet for you."
       }
     },
     "heartHunt": {
@@ -3991,7 +4083,12 @@
               "c": "Scout",
               "d": "Rusty"
             },
-            "deer": { "a": "Fern", "b": "Rosie", "c": "Moss", "d": "Willow" }
+            "deer": {
+              "a": "Fern",
+              "b": "Rosie",
+              "c": "Moss",
+              "d": "Willow"
+            }
           },
           "namedSub": "{{animal}} · {{where}}",
           "unnamed": "No name yet",
@@ -5912,6 +6009,8 @@
     "wirModuleLabel": "Distance between you",
     "mapTitle": "Where we are",
     "mapShowUs": "Show us",
+    "mapZoomToPartner": "Zoom to {{partner}}",
+    "mapZoomToOwn": "Zoom to you",
     "mapLoading": "Loading map …",
     "mapPartnerArea": "{{partner}}",
     "mapPartnerNotSharing": "{{partner}} is not sharing anything right now",
@@ -6193,6 +6292,24 @@
           "third": {
             "title": "Recaps as well",
             "body": "Discover your story in monthly and yearly recaps too."
+          }
+        }
+      },
+      "storage": {
+        "title": "More space for your memories.",
+        "description": "With eimir. Pro you have 50 GB for photos, videos and more.",
+        "benefits": {
+          "first": {
+            "title": "50 GB of storage",
+            "body": "Ten times the space for photos, videos, voice messages and PDFs."
+          },
+          "second": {
+            "title": "Videos",
+            "body": "Keep short videos in your memories and bring them in from your exports."
+          },
+          "third": {
+            "title": "Bring in skipped videos",
+            "body": "Bring in videos an import left out, from the same file."
           }
         }
       },
@@ -6691,5 +6808,32 @@
       "SHARED_NOTE_CREATED": "{{name}} added a shared note",
       "SHARED_NOTE_CHANGED": "{{name}} changed a shared note"
     }
+  },
+  "storageQuota": {
+    "heading": "Storage",
+    "used": "{{used}} of {{quota}} used",
+    "counts": "Photos, videos, voice messages and PDFs count. Previews and your profile photo do not.",
+    "free": "{{available}} still free.",
+    "proIncluded": "With eimir. Pro you have {{quota}}.",
+    "almostFull": {
+      "title": "Your storage is almost full",
+      "body": "After that, no new photos or videos can be added. Everything you already have stays."
+    },
+    "full": {
+      "title": "Your storage is full",
+      "body": "New photos, videos, voice messages and PDFs can be added again once you free up space or use Pro. Everything you have stays and can still be viewed, edited and exported.",
+      "bodyPro": "New photos, videos, voice messages and PDFs can be added again once you free up space. Everything you have stays and can still be viewed, edited and exported."
+    },
+    "viewMedia": "View photos and videos",
+    "morePro": "More space with eimir. Pro",
+    "uploadRefused": "This no longer fits your storage. Free up space or use Pro, then you can add it again."
+  },
+  "uploadFailure": {
+    "image": "This photo could not be uploaded just now.",
+    "imageType": "eimir. cannot take this image format. JPG, PNG, WebP, HEIC and HEIF work.",
+    "offline": "You are offline right now. Once you have a connection again, you can try once more.",
+    "connection": "The connection dropped while uploading. Check your network and try again.",
+    "stalled": "The upload stopped making progress and was paused. Try again, ideally on a stable network.",
+    "reference": "Reference for troubleshooting: {{reference}}"
   }
 }

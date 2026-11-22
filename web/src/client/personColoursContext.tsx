@@ -182,7 +182,7 @@ function usePersonColoursState({
   ]);
 
   // Every `person-role-*` surface reads these four variables, so one write
-  // recolours lists, the Wir stage and the insights without re-rendering them.
+  // recolours lists and the Wir stage without re-rendering them.
   useEffect(() => {
     const root = document.documentElement;
     const variables = personColourVariables(personColourPair(colours));

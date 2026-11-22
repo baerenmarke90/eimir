@@ -17,6 +17,7 @@ from eimir_pro.presence import service as presence
 
 import tests
 from eimir.auth import action_tokens, tokens
+from eimir.daily_checkins import retention as daily_checkin_retention
 from eimir.jobs import maintenance
 from eimir.relationship import invitations, policy
 from eimir.transfer import service as transfer
@@ -102,6 +103,12 @@ STATEMENTS = [
         timedelta(hours=24),
         "spätestens 24 Stunden nach der Messung löschen wir sie",
         id="partner-location-snapshot",
+    ),
+    pytest.param(
+        daily_checkin_retention.SCAN_INTERVAL,
+        timedelta(hours=1),
+        "beim nächsten automatischen Aufräumen, das jede Stunde läuft",
+        id="daily-check-in-cleanup-interval",
     ),
 ]
 

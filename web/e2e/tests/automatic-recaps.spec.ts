@@ -1738,72 +1738,33 @@ for (const [width, theme] of [
   });
 }
 
-for (const [width, theme] of [
-  [390, 'light'],
-  [430, 'dark'],
-  [1280, 'dark'],
-] as const) {
-  test(`good days together show as a quiet rhythm with text equivalents at ${width} ${theme}`, async ({
-    page,
-  }, info) => {
-    await page.setViewportSize({ width, height: 844 });
-    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
-    await page.addInitScript(
-      (value) => localStorage.setItem('eimir-theme', value),
-      theme,
-    );
-    const state = await setup(page, { dense: true, rhythm: true });
-    await page
-      .getByRole('link', { name: new RegExp(copy.open) })
-      .first()
-      .click();
-    const stage = page.locator('.recap-spread');
-    const next = page.getByRole('button', { name: copy.next, exact: true });
-    await next.click();
-    await expect(stage.locator('h1')).toHaveText(copy.factsTitle);
-    await next.click();
-    // The rhythm follows the counted facts and adds one page.
-    await expect(stage.locator('h1')).toHaveText(copy.rhythm.title);
-    await expect(
-      page.getByText(fill(copy.page, { page: 3, count: 12 })),
-    ).toBeVisible();
-    await expect(stage.locator('.recap-reader-intro')).toHaveText(
-      fill(copy.rhythm.summary_other, { count: 9 }),
-    );
-    const items = stage.locator('.recap-rhythm li');
-    await expect(items).toHaveCount(5);
-    await expect(items.locator('.recap-rhythm-label')).toHaveText(
-      [1, 2, 3, 4, 5].map((count) => fill(copy.rhythm.week, { count })),
-    );
-    // Every bar has a text equivalent; only the leading week is marked.
-    await expect(items.first()).toContainText(
-      fill(copy.rhythm.days_other, { count: 3 }),
-    );
-    await expect(items.nth(3)).toContainText(
-      fill(copy.rhythm.days_other, { count: 0 }),
-    );
-    await expect(
-      stage.locator('.recap-rhythm li[data-leading="true"]'),
-    ).toHaveCount(1);
-    await expect(
-      stage.locator(
-        '.recap-rhythm li[data-leading="true"] .recap-rhythm-label',
-      ),
-    ).toHaveText(fill(copy.rhythm.week, { count: 3 }));
-    await captureScreenshot(page, info, `recaps-rhythm-${width}-${theme}.png`);
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-    ).toBe(true);
-    expect(
-      (await new AxeBuilder({ page }).include('.recap-reader').analyze())
-        .violations,
-    ).toEqual([]);
-    expect(state.writes()).toBe(0);
-    expect(state.unexpected).toEqual([]);
-  });
-}
+// The good-days rhythm was removed with Einblicke (#2210): even a stale
+// server payload that still carries `mood` adds no page.
+test('the facts lead straight to the highlights without a good-days page', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const state = await setup(page, { dense: true, rhythm: true });
+  await page
+    .getByRole('link', { name: new RegExp(copy.open) })
+    .first()
+    .click();
+  const stage = page.locator('.recap-spread');
+  const next = page.getByRole('button', { name: copy.next, exact: true });
+  await next.click();
+  await expect(stage.locator('h1')).toHaveText(copy.factsTitle);
+  await expect(
+    page.getByText(fill(copy.page, { page: 2, count: 11 })),
+  ).toBeVisible();
+  await next.click();
+  await expect(
+    page.getByText(fill(copy.page, { page: 3, count: 11 })),
+  ).toBeVisible();
+  await expect(page.locator('.recap-rhythm')).toHaveCount(0);
+  expect(state.writes()).toBe(0);
+  expect(state.unexpected).toEqual([]);
+});
 
 for (const [width, theme] of [
   [390, 'light'],

@@ -671,15 +671,14 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
   }, testInfo) => {
     await routeCloudEntry(page);
     await page.addInitScript(() => {
-      const holder = window as unknown as {
-        launchQueue: { setConsumer: (consumer: unknown) => void };
-        deliverLaunch?: (params: { targetURL: string }) => void;
-      };
-      holder.launchQueue = {
-        setConsumer(consumer) {
-          holder.deliverLaunch = consumer as typeof holder.deliverLaunch;
+      // Chromium exposes launchQueue itself, so a plain assignment is ignored.
+      Object.defineProperty(window, 'launchQueue', {
+        value: {
+          setConsumer(consumer: (params: { targetURL: string }) => void) {
+            Object.assign(window, { deliverLaunch: consumer });
+          },
         },
-      };
+      });
     });
     await page.goto('/');
     await expect(page.getByLabel(de.login.email)).toBeVisible();

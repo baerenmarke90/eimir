@@ -4410,6 +4410,142 @@
         "title": "GardenForm",
         "type": "string"
       },
+      "GardenHistoryEntry": {
+        "properties": {
+          "actorId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Who did it. Absent when both did (a shared day, watering together), for a first bloom and for a seed that found its place by itself.",
+            "title": "Actorid"
+          },
+          "flowers": {
+            "description": "A bouquet's flowers.",
+            "items": {
+              "$ref": "#/components/schemas/GardenBouquetFlower"
+            },
+            "title": "Flowers",
+            "type": "array"
+          },
+          "happenedOn": {
+            "description": "The couple's calendar day of the entry.",
+            "format": "date",
+            "title": "Happenedon",
+            "type": "string"
+          },
+          "key": {
+            "description": "Stable identity of the entry within the history.",
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/GardenHistoryKind"
+          },
+          "senderId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Who once sent the seed the entry is about, if any.",
+            "title": "Senderid"
+          },
+          "species": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GardenSpecies"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A surprise stays `SURPRISE` until it first blooms."
+          },
+          "waiting": {
+            "default": false,
+            "description": "The seed still waits for the reader to plant it.",
+            "title": "Waiting",
+            "type": "boolean"
+          },
+          "words": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GardenWords"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The seed's words; absent while the seed still waits for the reader."
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "happenedOn"
+        ],
+        "title": "GardenHistoryEntry",
+        "type": "object"
+      },
+      "GardenHistoryKind": {
+        "description": "What one entry of the garden's history tells; derived, never stored.",
+        "enum": [
+          "SEED_SENT",
+          "SEED_PLANTED",
+          "SHARED_DAY",
+          "FIRST_BLOOM",
+          "WATERED",
+          "WATERED_TOGETHER",
+          "BOUQUET_GIVEN",
+          "BOUQUET_KEPT"
+        ],
+        "title": "GardenHistoryKind",
+        "type": "string"
+      },
+      "GardenHistoryPage": {
+        "properties": {
+          "hasMore": {
+            "title": "Hasmore",
+            "type": "boolean"
+          },
+          "items": {
+            "description": "Newest first.",
+            "items": {
+              "$ref": "#/components/schemas/GardenHistoryEntry"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ],
+        "title": "GardenHistoryPage",
+        "type": "object"
+      },
       "GardenNameInput": {
         "additionalProperties": false,
         "properties": {
@@ -33068,6 +33204,127 @@
           }
         },
         "summary": "Close Garden Bouquet",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/garden/history": {
+      "get": {
+        "description": "What happened in the garden between the two partners, newest first.",
+        "operationId": "listGardenHistory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenHistoryPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request is syntactically valid but cannot be processed in this form."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "List Garden History",
         "tags": [
           "games"
         ]

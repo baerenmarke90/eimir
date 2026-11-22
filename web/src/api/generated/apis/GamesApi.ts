@@ -49,6 +49,11 @@ import {
     GardenBouquetInputToJSON,
 } from '../models/GardenBouquetInput';
 import {
+    type GardenHistoryPage,
+    GardenHistoryPageFromJSON,
+    GardenHistoryPageToJSON,
+} from '../models/GardenHistoryPage';
+import {
     type GardenNameInput,
     GardenNameInputFromJSON,
     GardenNameInputToJSON,
@@ -289,6 +294,12 @@ export interface KeepHeartHuntRoundRequest {
     roundId: string;
     spaceId: string;
     heartHuntKept: HeartHuntKept;
+}
+
+export interface ListGardenHistoryRequest {
+    spaceId: string;
+    cursor?: string | null;
+    limit?: number;
 }
 
 export interface MarkPicturePingPongSavedRequest {
@@ -1582,6 +1593,61 @@ export class GamesApi extends runtime.BaseAPI {
      */
     async keepHeartHuntRound(requestParameters: KeepHeartHuntRoundRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<HeartHuntRoundView> {
         const response = await this.keepHeartHuntRoundRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for listGardenHistory without sending the request
+     */
+    async listGardenHistoryRequestOpts(requestParameters: ListGardenHistoryRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling listGardenHistory().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['cursor'] != null) {
+            queryParameters['cursor'] = requestParameters['cursor'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/garden/history`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * What happened in the garden between the two partners, newest first.
+     * List Garden History
+     */
+    async listGardenHistoryRaw(requestParameters: ListGardenHistoryRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GardenHistoryPage>> {
+        const requestOptions = await this.listGardenHistoryRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GardenHistoryPageFromJSON(jsonValue));
+    }
+
+    /**
+     * What happened in the garden between the two partners, newest first.
+     * List Garden History
+     */
+    async listGardenHistory(requestParameters: ListGardenHistoryRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GardenHistoryPage> {
+        const response = await this.listGardenHistoryRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

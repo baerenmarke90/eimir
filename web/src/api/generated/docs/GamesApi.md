@@ -27,6 +27,7 @@ All URIs are relative to *http://localhost*
 | [**guessWishDetectiveRemoteWish**](GamesApi.md#guesswishdetectiveremotewish) | **POST** /api/v1/spaces/{spaceId}/games/wish-detective/guesses | Guess Wish Detective Remote Wish |
 | [**handOverPicturePingPongTurn**](GamesApi.md#handoverpicturepingpongturn) | **POST** /api/v1/spaces/{spaceId}/games/picture-ping-pong/turns | Hand Over Picture Ping Pong Turn |
 | [**keepHeartHuntRound**](GamesApi.md#keephearthuntround) | **POST** /api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/kept | Keep Round |
+| [**listGardenHistory**](GamesApi.md#listgardenhistory) | **GET** /api/v1/spaces/{spaceId}/games/garden/history | List Garden History |
 | [**markPicturePingPongSaved**](GamesApi.md#markpicturepingpongsaved) | **POST** /api/v1/spaces/{spaceId}/games/picture-ping-pong/saved | Mark Picture Ping Pong Saved |
 | [**nameGardenVisitor**](GamesApi.md#namegardenvisitor) | **PUT** /api/v1/spaces/{spaceId}/games/garden/visitors/{animal}/name | Name Garden Visitor |
 | [**plantGardenSeed**](GamesApi.md#plantgardenseed) | **POST** /api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant | Plant Garden Seed |
@@ -1711,6 +1712,85 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## listGardenHistory
+
+> GardenHistoryPage listGardenHistory(spaceId, cursor, limit)
+
+List Garden History
+
+What happened in the garden between the two partners, newest first.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { ListGardenHistoryRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // string (optional)
+    cursor: cursor_example,
+    // number (optional)
+    limit: 56,
+  } satisfies ListGardenHistoryRequest;
+
+  try {
+    const data = await api.listGardenHistory(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **cursor** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **limit** | `number` |  | [Optional] [Defaults to `20`] |
+
+### Return type
+
+[**GardenHistoryPage**](GardenHistoryPage.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **400** | The request is syntactically valid but cannot be processed in this form. |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |

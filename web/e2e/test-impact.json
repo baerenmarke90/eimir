@@ -493,6 +493,10 @@
         "web/src/components/GardenAmbience.tsx",
         "web/src/client/gardenAmbience.ts",
         "web/src/components/GardenGrowth.css",
+        "web/src/components/GardenHistory.tsx",
+        "web/src/components/GardenHistory.css",
+        "web/src/client/gardenHistory.ts",
+        "web/src/client/gardenFlightReveal.ts",
         "web/src/components/GamesProductArea.tsx"
       ]
     },

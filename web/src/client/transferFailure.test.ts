@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { ResponseError } from '../api/generated/runtime';
 import en from '../i18n/locales/en.json';
 import m5s6 from '../i18n/locales/m5s6';
-import { ClientProblemError } from './problemDetails';
+import { ClientProblemError, normalizeClientError } from './problemDetails';
 import {
   exportFailureId,
   importFailureId,
@@ -101,6 +102,39 @@ describe('import failure names', () => {
     ).toBeNull();
     expect(importRequestFailureId(new Error('boom'))).toBeNull();
     expect(importRequestFailureId(null)).toBeNull();
+  });
+
+  it('names a 413 that carries no problem code', () => {
+    expect(importRequestFailureId(new ClientProblemError('unknown', 413))).toBe(
+      'importTooLarge',
+    );
+    // Other statuses and other codes keep their own handling.
+    expect(
+      importRequestFailureId(new ClientProblemError('unknown', 408)),
+    ).toBeNull();
+    expect(
+      importRequestFailureId(new ClientProblemError('server', 502)),
+    ).toBeNull();
+    expect(
+      importRequestFailureId(
+        new ClientProblemError('unknown', 413, 'STORAGE_QUOTA_EXCEEDED'),
+      ),
+    ).toBeNull();
+  });
+
+  it('names an HTML 413 from a reverse proxy in front of the API', async () => {
+    const html =
+      '<html><head><title>413 Request Entity Too Large</title></head></html>';
+    const refused = new ResponseError(
+      new Response(html, {
+        status: 413,
+        headers: { 'Content-Type': 'text/html' },
+      }),
+    );
+    const normalized = await normalizeClientError(refused);
+    expect(normalized.status).toBe(413);
+    expect(normalized.code).toBeUndefined();
+    expect(importRequestFailureId(normalized)).toBe('importTooLarge');
   });
 
   it('gives every server code a text on export or import', () => {

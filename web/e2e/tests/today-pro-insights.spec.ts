@@ -69,6 +69,7 @@ async function installMocks(
     weeklyReads: 0,
     briefReads: 0,
     briefWeeks: [] as string[],
+    personalReads: 0,
     inference: 0,
     revision: 'a'.repeat(64),
     denied: false,
@@ -93,6 +94,22 @@ async function installMocks(
         body: JSON.stringify(body),
       });
     const space = `/api/v1/spaces/${SPACE_ID}`;
+    if (pathname === `${space}/daily-check-in/weekly-brief/personal`) {
+      requests.personalReads += 1;
+      await json({
+        weekStart: '2026-09-21',
+        weekEnd: '2026-09-27',
+        elapsedDays: 3,
+        ownDays: ['2026-09-21', '2026-09-22', '2026-09-23'],
+        goodDays: ['2026-09-21', '2026-09-23'],
+        sharedDays: ['2026-09-21'],
+        headline: 'WEEKDAY_LOWER',
+        sharedEnergy: { group: 72, others: 54, sampleDays: 31 },
+        lowerWeekday: { weekday: 1, energy: 48, others: 66, sampleDays: 31 },
+        higherWeekday: { weekday: 4, energy: 80, others: 60, sampleDays: 31 },
+      });
+      return;
+    }
     if (pathname === `${space}/daily-check-in/weekly-brief`) {
       requests.briefReads += 1;
       const monday = url.searchParams.get('week_start') ?? '2026-09-21';
@@ -884,3 +901,65 @@ test('Weekly brief turns a wish into the existing Wish-to-Plan task and returns'
   ).toBeVisible();
   expect(requests.inference).toBe(0);
 });
+
+for (const state of [
+  { width: 390, theme: 'light', large: false },
+  { width: 390, theme: 'dark', large: false },
+  { width: 320, theme: 'dark', large: true },
+  { width: 1280, theme: 'light', large: false },
+] as const) {
+  test(`Private weekly brief shows only own patterns at ${state.width} ${state.theme}${state.large ? ' 200%' : ''}`, async ({
+    page,
+  }, testInfo) => {
+    const requests = await installMocks(page);
+    await page.setViewportSize({ width: state.width, height: 844 });
+    await page.emulateMedia({
+      colorScheme: state.theme,
+      reducedMotion: state.large ? 'reduce' : 'no-preference',
+    });
+    await signIn(page);
+    await openInsightsFromMore(page);
+    if (state.large)
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = '200%';
+      });
+    await page
+      .getByRole('tab', { name: dailyInsights.brief.scope.own, exact: true })
+      .click();
+    await expect(page).toHaveURL(/scope=own/);
+    await expect(
+      page.getByText(dailyInsights.brief.personal.privateLabel, {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', {
+        level: 2,
+        name: dailyInsights.brief.personal.headline.WEEKDAY_LOWER.title.replace(
+          '{{weekdays}}',
+          dailyInsights.weekdayPlural[1],
+        ),
+      }),
+    ).toBeVisible();
+    expect(requests.personalReads).toBe(1);
+    await expectNoHorizontalOverflow(page);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `insights-personal-${state.width}-${state.theme}${state.large ? '-200pct' : ''}.png`,
+      ),
+      fullPage: true,
+    });
+    await page
+      .getByRole('tab', { name: dailyInsights.brief.scope.shared, exact: true })
+      .click();
+    await expect(page).not.toHaveURL(/scope=own/);
+    await expect(
+      page.getByRole('heading', {
+        level: 2,
+        name: dailyInsights.brief.headline.SHARED_GOOD_DAYS.title,
+      }),
+    ).toBeVisible();
+  });
+}

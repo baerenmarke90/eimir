@@ -6,6 +6,7 @@ All URIs are relative to *http://localhost*
 |------------- | ------------- | -------------|
 | [**createDailyCheckInWeeklyReview**](DailyCheckInsApi.md#createdailycheckinweeklyreview) | **POST** /api/v1/spaces/{spaceId}/daily-check-in/weekly-review | Create Daily Check In Weekly Review |
 | [**getDailyCheckInInsights**](DailyCheckInsApi.md#getdailycheckininsights) | **GET** /api/v1/spaces/{spaceId}/daily-check-in/insights | Get Daily Check In Insights |
+| [**getDailyCheckInPersonalWeeklyBrief**](DailyCheckInsApi.md#getdailycheckinpersonalweeklybrief) | **GET** /api/v1/spaces/{spaceId}/daily-check-in/weekly-brief/personal | Get Daily Check In Personal Weekly Brief |
 | [**getDailyCheckInToday**](DailyCheckInsApi.md#getdailycheckintoday) | **GET** /api/v1/spaces/{spaceId}/daily-check-in/today | Get Daily Check In Today |
 | [**getDailyCheckInWeeklyBrief**](DailyCheckInsApi.md#getdailycheckinweeklybrief) | **GET** /api/v1/spaces/{spaceId}/daily-check-in/weekly-brief | Get Daily Check In Weekly Brief |
 | [**getDailyCheckInWeeklyReview**](DailyCheckInsApi.md#getdailycheckinweeklyreview) | **GET** /api/v1/spaces/{spaceId}/daily-check-in/weekly-review | Get Daily Check In Weekly Review |
@@ -163,6 +164,81 @@ No authorization required
 | **403** | &#x60;PREMIUM_ENTITLEMENT_REQUIRED&#x60;: Pro capability &#x60;daily.insights&#x60; required. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | &#x60;DAILY_CHECK_IN_CONTEXT_UNAVAILABLE&#x60;: the Space has no valid authoritative Daily Check-in time zone. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getDailyCheckInPersonalWeeklyBrief
+
+> PersonalWeeklyBriefView getDailyCheckInPersonalWeeklyBrief(spaceId, weekStart)
+
+Get Daily Check In Personal Weekly Brief
+
+Private weekly brief over the caller\&#39;s own values alone (#2197).  Model-free. Partner Daily Check-in rows are never read; shared Plan and Memory dates follow the ordinary visibility rules.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DailyCheckInsApi,
+} from '';
+import type { GetDailyCheckInPersonalWeeklyBriefRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DailyCheckInsApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // Date
+    weekStart: 2013-10-20,
+  } satisfies GetDailyCheckInPersonalWeeklyBriefRequest;
+
+  try {
+    const data = await api.getDailyCheckInPersonalWeeklyBrief(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **weekStart** | `Date` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**PersonalWeeklyBriefView**](PersonalWeeklyBriefView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | &#x60;PREMIUM_ENTITLEMENT_REQUIRED&#x60;: Pro capability &#x60;daily.insights&#x60; required. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)

@@ -301,6 +301,63 @@ const dailyInsights = {
       title: 'Neu entdeckt',
     },
     history: 'Verlauf über Wochen und Monate',
+    scope: {
+      label: 'Wochenbrief für',
+      shared: 'Gemeinsam',
+      own: 'Nur ich',
+    },
+    personal: {
+      loading: 'Dein Wochenbrief wird zusammengestellt …',
+      privateLabel: 'Nur für dich sichtbar',
+      headline: {
+        EMPTY: {
+          title: 'Diese Woche hast du noch nichts geteilt.',
+          body: 'Sobald du Vibe oder Energie teilst, entsteht hier dein persönlicher Wochenbrief.',
+        },
+        SPARSE: {
+          title: 'Für Muster war diese Woche zu wenig dabei.',
+          body: 'An {{count}} von {{total}} Tagen hast du etwas geteilt.',
+        },
+        WEEKDAY_LOWER: {
+          title: '{{weekdays}} kosten dich oft Energie.',
+          body: 'An {{count}} von {{total}} Tagen hast du diese Woche etwas geteilt.',
+        },
+        SHARED_HIGHER: {
+          title: 'Gemeinsame Pläne und Momente tun dir gut.',
+          body: 'An {{count}} von {{total}} Tagen hast du diese Woche etwas geteilt.',
+        },
+        GOOD_DAYS: {
+          title_one: 'An einem Tag ging es dir gut.',
+          title_other: 'An {{count}} Tagen ging es dir gut.',
+          body: 'An {{count}} von {{total}} Tagen hast du diese Woche etwas geteilt.',
+        },
+        STEADY: {
+          title: 'Eine gleichmäßige Woche für dich.',
+          body: 'An {{count}} von {{total}} Tagen hast du diese Woche etwas geteilt.',
+        },
+      },
+      goodTitle: 'Was dir guttut',
+      sharedHigher:
+        'An Tagen mit einem gemeinsamen Plan oder Moment hattest du mehr Energie.',
+      sharedLower:
+        'An Tagen mit einem gemeinsamen Plan oder Moment hattest du weniger Energie.',
+      withShared: 'Mit Plan oder Moment',
+      otherDays: 'Andere Tage',
+      barsLabel:
+        'Deine Energie im Schnitt: {{group}} % an Tagen mit Plan oder Moment, {{others}} % an anderen Tagen.',
+      basis_one:
+        'Grundlage: ein Tag mit deiner Energie in den letzten acht Wochen.',
+      basis_other:
+        'Grundlage: {{count}} Tage mit deiner Energie in den letzten acht Wochen.',
+      rhythmTitle: 'Dein Wochenrhythmus',
+      lowerWeekday:
+        '{{weekday}} lag deine Energie meist niedriger: im Schnitt {{energy}} % statt {{others}} %.',
+      higherWeekday:
+        '{{weekday}} lag deine Energie meist höher: im Schnitt {{energy}} % statt {{others}} %.',
+      weekTitle: 'Deine Woche',
+      dayGood: 'Dir ging es gut.',
+      stripHint: 'Tippe auf einen Tag, um deine Werte zu sehen.',
+    },
     wirHint: {
       text: 'Euer Wochenbrief für letzte Woche ist da.',
       open: 'Wochenbrief ansehen',

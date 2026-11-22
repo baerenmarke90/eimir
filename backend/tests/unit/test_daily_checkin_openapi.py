@@ -12,6 +12,7 @@ PRO_DAILY_PATHS = {
     "/api/v1/spaces/{spaceId}/daily-check-in/insights",
     "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review",
     "/api/v1/spaces/{spaceId}/daily-check-in/weekly-brief",
+    "/api/v1/spaces/{spaceId}/daily-check-in/weekly-brief/personal",
 }
 
 

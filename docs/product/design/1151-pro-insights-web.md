@@ -88,3 +88,14 @@ A Product Owner decision of 2026-11-22 partially supersedes #1196: Wir shows one
 - **Limits.** It uses the device-local quiet-hint store with one id per week (`weeklyBrief:<monday>`) and its limits: one per screen, one new per day, three sessions.
 - **When it retires.** After dismissal, or when that week's brief is opened.
 - **Free Spaces.** They see nothing (#2048).
+
+## Private view (#2197)
+
+Inside the Wochenbrief tab, a shared/private scope switch (`?scope=own`) switches to `PersonalWeeklyBrief`, read from `GET /spaces/{spaceId}/daily-check-in/weekly-brief/personal`. Product Owner, 2026-11-22: Pro, like the rest of Einblicke.
+
+- **Data.** It reads only the caller's own check-in rows; partner rows are never queried, so no Mutual Reveal applies. Shared Plan and Memory dates come through `readable()`.
+- **Statements.** Each requires minimum samples:
+  - own good days;
+  - own Energy on shared days compared with other days;
+  - own lower and higher weekdays.
+- **Presentation.** The view carries an owner-only label, and its bars have a text alternative.

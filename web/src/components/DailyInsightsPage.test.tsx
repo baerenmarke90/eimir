@@ -17,6 +17,7 @@ import type { AccountView } from '../api/generated/models/AccountView';
 import type { DailyCheckInInsightDayView } from '../api/generated/models/DailyCheckInInsightDayView';
 import type { DailyCheckInInsightsView } from '../api/generated/models/DailyCheckInInsightsView';
 import { DailyVibe } from '../api/generated/models/DailyVibe';
+import type { PersonalWeeklyBriefView } from '../api/generated/models/PersonalWeeklyBriefView';
 import type { WeeklyBriefView } from '../api/generated/models/WeeklyBriefView';
 import { ClientProblemError } from '../client/problemDetails';
 import dailyInsights from '../i18n/locales/dailyInsights';
@@ -165,6 +166,22 @@ function briefView(extra: Partial<WeeklyBriefView> = {}): WeeklyBriefView {
   };
 }
 
+function personalView(): PersonalWeeklyBriefView {
+  return {
+    weekStart: new Date('2026-09-21'),
+    weekEnd: new Date('2026-09-27'),
+    elapsedDays: 3,
+    // The generated client delivers date array items as strings at runtime.
+    ownDays: ['2026-09-21', '2026-09-22', '2026-09-23'] as unknown as Date[],
+    goodDays: ['2026-09-21'] as unknown as Date[],
+    sharedDays: ['2026-09-21'] as unknown as Date[],
+    headline: 'WEEKDAY_LOWER',
+    sharedEnergy: { group: 72, others: 54, sampleDays: 31 },
+    lowerWeekday: { weekday: 1, energy: 48, others: 66, sampleDays: 31 },
+    higherWeekday: null,
+  };
+}
+
 function renderPage({
   view = 'week' as DailyInsightsViewId,
   capabilities = ['daily.insights'] as string[],
@@ -214,6 +231,7 @@ function renderPage({
   const weeklyBrief = vi.fn(async () =>
     typeof brief === 'function' ? brief() : brief,
   );
+  const personalBrief = vi.fn(async () => personalView());
   const dashboard = vi.fn(async () => ({
     space: {
       partner: { id: 'account-philipp', displayName: 'Philipp Beispiel' },
@@ -225,6 +243,7 @@ function renderPage({
   const dailyCheckInsApi = {
     getDailyCheckInInsights: insights,
     getDailyCheckInWeeklyBrief: weeklyBrief,
+    getDailyCheckInPersonalWeeklyBrief: personalBrief,
   } as unknown as DailyCheckInsApi;
   const dashboardApi = { getDashboard: dashboard } as unknown as DashboardApi;
   const element = (ids: { accountId: string; spaceId: string }) => (
@@ -755,5 +774,43 @@ describe('Pro insights: weekly brief (#2169)', () => {
     expect(
       await screen.findByRole('button', { name: de.common.retry }),
     ).toBeTruthy();
+  });
+});
+
+describe('Pro insights: private weekly brief (#2197)', () => {
+  const personal = dailyInsights.brief.personal;
+
+  it('switches to the private view with only the caller’s own statements', async () => {
+    renderPage({ view: 'brief' });
+    const tab = await screen.findByRole('tab', {
+      name: dailyInsights.brief.scope.own,
+    });
+    expect(
+      screen
+        .getByRole('tab', { name: dailyInsights.brief.scope.shared })
+        .getAttribute('aria-selected'),
+    ).toBe('true');
+    fireEvent.click(tab);
+    expect(await screen.findByText(personal.privateLabel)).toBeTruthy();
+    expect(
+      screen.getByRole('heading', {
+        level: 2,
+        name: personal.headline.WEEKDAY_LOWER.title.replace(
+          '{{weekdays}}',
+          dailyInsights.weekdayPlural[1],
+        ),
+      }),
+    ).toBeTruthy();
+    expect(screen.getByText(personal.sharedHigher)).toBeTruthy();
+    expect(
+      screen.getByRole('img', {
+        name: personal.barsLabel
+          .replace('{{group}}', '72')
+          .replace('{{others}}', '54'),
+      }),
+    ).toBeTruthy();
+    const panel = screen.getByRole('tabpanel');
+    expect(within(panel).queryByText(/Philipp/)).toBeNull();
+    expect(document.body.textContent).not.toMatch(JUDGING_WORDING);
   });
 });

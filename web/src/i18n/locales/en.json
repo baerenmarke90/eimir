@@ -3113,6 +3113,56 @@
         "text": "Your weekly brief for last week is ready.",
         "open": "View weekly brief",
         "later": "Later"
+      },
+      "scope": {
+        "label": "Weekly brief for",
+        "shared": "Together",
+        "own": "Just me"
+      },
+      "personal": {
+        "loading": "Putting your weekly brief together …",
+        "privateLabel": "Only visible to you",
+        "headline": {
+          "EMPTY": {
+            "title": "You have not shared anything this week yet.",
+            "body": "As soon as you share Vibe or Energy, your personal weekly brief appears here."
+          },
+          "SPARSE": {
+            "title": "Too little this week for patterns.",
+            "body": "You shared something on {{count}} of {{total}} days."
+          },
+          "WEEKDAY_LOWER": {
+            "title": "{{weekdays}} often drain your energy.",
+            "body": "You shared something on {{count}} of {{total}} days this week."
+          },
+          "SHARED_HIGHER": {
+            "title": "Shared plans and moments do you good.",
+            "body": "You shared something on {{count}} of {{total}} days this week."
+          },
+          "GOOD_DAYS": {
+            "title_one": "On one day you felt good.",
+            "title_other": "On {{count}} days you felt good.",
+            "body": "You shared something on {{count}} of {{total}} days this week."
+          },
+          "STEADY": {
+            "title": "An even week for you.",
+            "body": "You shared something on {{count}} of {{total}} days this week."
+          }
+        },
+        "goodTitle": "What does you good",
+        "sharedHigher": "On days with a shared plan or moment you had more energy.",
+        "sharedLower": "On days with a shared plan or moment you had less energy.",
+        "withShared": "With plan or moment",
+        "otherDays": "Other days",
+        "barsLabel": "Your average energy: {{group}} % on days with a plan or moment, {{others}} % on other days.",
+        "basis_one": "Based on one day with your energy in the last eight weeks.",
+        "basis_other": "Based on {{count}} days with your energy in the last eight weeks.",
+        "rhythmTitle": "Your weekly rhythm",
+        "lowerWeekday": "{{weekday}} your energy was mostly lower: {{energy}} % on average instead of {{others}} %.",
+        "higherWeekday": "{{weekday}} your energy was mostly higher: {{energy}} % on average instead of {{others}} %.",
+        "weekTitle": "Your week",
+        "dayGood": "You felt good.",
+        "stripHint": "Tap a day to see your values."
       }
     }
   },

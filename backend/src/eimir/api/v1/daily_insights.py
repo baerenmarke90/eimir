@@ -27,7 +27,7 @@ from eimir.api.v1.daily_checkins import (
 )
 from eimir.daily_checkins.context import DailyCheckInErrorCode
 from eimir.daily_checkins.models import DailyVibe, RecommendationKey
-from eimir.daily_insights import insights, weekly_brief, weekly_review
+from eimir.daily_insights import insights, personal_brief, weekly_brief, weekly_review
 from eimir.daily_insights.weekly_patterns import ObservationKind
 from eimir.entitlements.models import Capability
 
@@ -377,3 +377,87 @@ def get_daily_check_in_weekly_brief(
     _weekly_capability(session, authorization)
     response.headers["Cache-Control"] = "private, no-store"
     return _brief_view(weekly_brief.build(session, authorization, week_start))
+
+
+class PersonalEnergyComparisonView(ApiModel):
+    group: int = Field(description="Mean own Energy on days with a shared Plan or Memory.")
+    others: int = Field(description="Mean own Energy on the other days.")
+    sample_days: int
+
+
+class PersonalWeekdayPatternView(ApiModel):
+    weekday: int = Field(ge=0, le=6, description="0 is Monday.")
+    energy: int
+    others: int
+    sample_days: int
+
+
+class PersonalWeeklyBriefView(ApiModel):
+    week_start: date
+    week_end: date
+    elapsed_days: int
+    own_days: list[date]
+    good_days: list[date]
+    shared_days: list[date]
+    headline: personal_brief.PersonalBriefHeadline
+    shared_energy: PersonalEnergyComparisonView | None = None
+    lower_weekday: PersonalWeekdayPatternView | None = None
+    higher_weekday: PersonalWeekdayPatternView | None = None
+
+
+def _weekday_view(
+    value: personal_brief.WeekdayPattern | None,
+) -> PersonalWeekdayPatternView | None:
+    if value is None:
+        return None
+    return PersonalWeekdayPatternView(
+        weekday=value.weekday,
+        energy=value.energy,
+        others=value.others,
+        sample_days=value.sample_days,
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/daily-check-in/weekly-brief/personal",
+    response_model=PersonalWeeklyBriefView,
+    operation_id="getDailyCheckInPersonalWeeklyBrief",
+    responses=problem_responses(
+        401,
+        403,
+        404,
+        409,
+        422,
+        descriptions={
+            403: "`PREMIUM_ENTITLEMENT_REQUIRED`: Pro capability `daily.insights` required.",
+        },
+    ),
+)
+def get_daily_check_in_personal_weekly_brief(
+    authorization: Authorization, session: DbSession, response: Response, week_start: date
+) -> PersonalWeeklyBriefView:
+    """Private weekly brief over the caller's own values alone (#2197).
+
+    Model-free. Partner Daily Check-in rows are never read; shared Plan and Memory dates
+    follow the ordinary visibility rules.
+    """
+    _weekly_capability(session, authorization)
+    response.headers["Cache-Control"] = "private, no-store"
+    value = personal_brief.build_personal(session, authorization, week_start)
+    energy = value.shared_energy
+    return PersonalWeeklyBriefView(
+        week_start=value.week_start,
+        week_end=value.week_end,
+        elapsed_days=value.elapsed_days,
+        own_days=value.own_days,
+        good_days=value.good_days,
+        shared_days=value.shared_days,
+        headline=value.headline,
+        shared_energy=None
+        if energy is None
+        else PersonalEnergyComparisonView(
+            group=energy.group, others=energy.others, sample_days=energy.sample_days
+        ),
+        lower_weekday=_weekday_view(value.lower_weekday),
+        higher_weekday=_weekday_view(value.higher_weekday),
+    )

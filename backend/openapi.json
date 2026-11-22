@@ -9761,6 +9761,160 @@
         "title": "PersonRelationship",
         "type": "string"
       },
+      "PersonalBriefHeadline": {
+        "enum": [
+          "EMPTY",
+          "SPARSE",
+          "WEEKDAY_LOWER",
+          "SHARED_HIGHER",
+          "GOOD_DAYS",
+          "STEADY"
+        ],
+        "title": "PersonalBriefHeadline",
+        "type": "string"
+      },
+      "PersonalEnergyComparisonView": {
+        "properties": {
+          "group": {
+            "description": "Mean own Energy on days with a shared Plan or Memory.",
+            "title": "Group",
+            "type": "integer"
+          },
+          "others": {
+            "description": "Mean own Energy on the other days.",
+            "title": "Others",
+            "type": "integer"
+          },
+          "sampleDays": {
+            "title": "Sampledays",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "group",
+          "others",
+          "sampleDays"
+        ],
+        "title": "PersonalEnergyComparisonView",
+        "type": "object"
+      },
+      "PersonalWeekdayPatternView": {
+        "properties": {
+          "energy": {
+            "title": "Energy",
+            "type": "integer"
+          },
+          "others": {
+            "title": "Others",
+            "type": "integer"
+          },
+          "sampleDays": {
+            "title": "Sampledays",
+            "type": "integer"
+          },
+          "weekday": {
+            "description": "0 is Monday.",
+            "maximum": 6.0,
+            "minimum": 0.0,
+            "title": "Weekday",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "weekday",
+          "energy",
+          "others",
+          "sampleDays"
+        ],
+        "title": "PersonalWeekdayPatternView",
+        "type": "object"
+      },
+      "PersonalWeeklyBriefView": {
+        "properties": {
+          "elapsedDays": {
+            "title": "Elapseddays",
+            "type": "integer"
+          },
+          "goodDays": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Gooddays",
+            "type": "array"
+          },
+          "headline": {
+            "$ref": "#/components/schemas/PersonalBriefHeadline"
+          },
+          "higherWeekday": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PersonalWeekdayPatternView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lowerWeekday": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PersonalWeekdayPatternView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ownDays": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Owndays",
+            "type": "array"
+          },
+          "sharedDays": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Shareddays",
+            "type": "array"
+          },
+          "sharedEnergy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PersonalEnergyComparisonView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "weekEnd": {
+            "format": "date",
+            "title": "Weekend",
+            "type": "string"
+          },
+          "weekStart": {
+            "format": "date",
+            "title": "Weekstart",
+            "type": "string"
+          }
+        },
+        "required": [
+          "weekStart",
+          "weekEnd",
+          "elapsedDays",
+          "ownDays",
+          "goodDays",
+          "sharedDays",
+          "headline"
+        ],
+        "title": "PersonalWeeklyBriefView",
+        "type": "object"
+      },
       "PersonalWishReminder": {
         "description": "Current pending schedule visible only to its owner.",
         "properties": {
@@ -31955,6 +32109,99 @@
           }
         },
         "summary": "Get Daily Check In Weekly Brief",
+        "tags": [
+          "daily-check-ins"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/daily-check-in/weekly-brief/personal": {
+      "get": {
+        "description": "Private weekly brief over the caller's own values alone (#2197).\n\nModel-free. Partner Daily Check-in rows are never read; shared Plan and Memory dates\nfollow the ordinary visibility rules.",
+        "operationId": "getDailyCheckInPersonalWeeklyBrief",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "week_start",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Week Start",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalWeeklyBriefView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: Pro capability `daily.insights` required."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Daily Check In Personal Weekly Brief",
         "tags": [
           "daily-check-ins"
         ]

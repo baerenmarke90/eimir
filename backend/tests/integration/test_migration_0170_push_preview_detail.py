@@ -1,4 +1,4 @@
-"""Migration 0168 allows preview v3; a downgrade returns v3 endpoints to v2 (#2158)."""
+"""Migration 0170 allows preview v3; a downgrade returns v3 endpoints to v2 (#2158)."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def test_downgrade_keeps_detailed_endpoints_on_v2_and_upgrade_allows_v3(session)
     session.flush()
     version = text("SELECT preview_version FROM push_preview_secrets")
     assert session.scalar(version) == 3
-    migration = ScriptDirectory.from_config(Config("alembic.ini")).get_revision("0168").module
+    migration = ScriptDirectory.from_config(Config("alembic.ini")).get_revision("0170").module
     context = MigrationContext.configure(
         session.connection(), opts={"target_metadata": Base.metadata}
     )

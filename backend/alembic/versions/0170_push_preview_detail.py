@@ -4,14 +4,14 @@ Preview v3 carries every notice's real content, still encrypted for the
 recipient's own device. The negotiated version is stored per FCM endpoint like
 v2 (0109). A downgrade returns v3 endpoints to v2, which every v3 app also reads.
 
-Revision ID: 0168
-Revises: 0167
+Revision ID: 0170
+Revises: 0169
 """
 
 from alembic import op
 
-revision = "0168"
-down_revision = "0167"
+revision = "0170"
+down_revision = "0169"
 branch_labels = None
 depends_on = None
 

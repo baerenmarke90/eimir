@@ -34,6 +34,7 @@ from eimir.places import photo_enrichment
 from eimir.plugins.dormant import warn_dormant_plugin_data_once
 from eimir.plugins.loader import loaded_plugins
 from eimir.recaps import invalidation as _recap_invalidation  # noqa: F401
+from eimir.recaps import mood_purge as recap_mood_purge
 from eimir.relationship import retention as space_retention
 from eimir.reminders import runtime as reminder_runtime
 from eimir.security import column_moves
@@ -75,6 +76,7 @@ def _ensure_maintenance() -> None:
             demo_reset.ensure_scheduled(session)
             daily_checkin_retention.ensure_scheduled(session)
             column_moves.ensure_scheduled(session)
+            recap_mood_purge.ensure_scheduled(session)
             transfer_jobs.ensure_scheduled(session)
             space_retention.ensure_scheduled(session)
             photo_enrichment.ensure_scheduled(session)
@@ -96,6 +98,7 @@ def main() -> None:
     configure_logging(settings)
     # A named plugin that cannot be loaded stops the worker here (Decision 0017).
     plugins = loaded_plugins()
+    plugins.validate(settings)
     push_providers.configure_push_providers(settings)
 
     signal.signal(signal.SIGTERM, _request_shutdown)
@@ -116,6 +119,7 @@ def main() -> None:
     demo_reset.register_handlers()
     daily_checkin_retention.register_handlers()
     column_moves.register_handlers()
+    recap_mood_purge.register_handlers()
     transfer_jobs.register_handlers()
     space_retention.register_handlers()
     account_deletion_jobs.register_handlers()

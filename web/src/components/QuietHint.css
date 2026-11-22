@@ -55,6 +55,7 @@
   font: var(--font-supporting-copy);
   line-height: 1.45;
   overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 .quiet-hint-actions {
@@ -79,6 +80,15 @@
 
 .quiet-hint-dismiss {
   color: var(--color-text-secondary);
+}
+
+/* A long action word wraps instead of being clipped at narrow widths with
+   large text (#2194). */
+.quiet-hint-action {
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 @media (prefers-reduced-motion: no-preference) {

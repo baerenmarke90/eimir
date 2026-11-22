@@ -13,8 +13,10 @@ import {
   transferBundleFilename,
   triggerTransferDownload,
 } from '../client/transfer';
+import { exportFailureId } from '../client/transferFailure';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
+import { TransferFailure } from './TransferFailure';
 import { TransferImportSection } from './TransferImportSection';
 import './TransferPanel.css';
 
@@ -149,7 +151,11 @@ export function TransferPanel({
             </button>
           </form>
 
-          {exportDetail ? (
+          {exportDetail?.status === ExportStatus.FAILED ? (
+            <TransferFailure id={exportFailureId(exportDetail.errorCode)} />
+          ) : exportDetail?.status === ExportStatus.EXPIRED ? (
+            <TransferFailure id="exportExpired" />
+          ) : exportDetail ? (
             <div className="transfer-status" role="status" aria-live="polite">
               <strong>{t('transfer.export.statusLabel')}</strong>
               <span>{t(`transfer.export.status.${exportDetail.status}`)}</span>
@@ -168,10 +174,6 @@ export function TransferPanel({
                     ? t('transfer.export.downloading')
                     : t('transfer.export.download')}
                 </button>
-              ) : null}
-              {exportDetail.status === ExportStatus.FAILED ||
-              exportDetail.status === ExportStatus.EXPIRED ? (
-                <span>{t('transfer.genericFailure')}</span>
               ) : null}
             </div>
           ) : null}

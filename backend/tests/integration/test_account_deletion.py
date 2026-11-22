@@ -11,6 +11,17 @@ from uuid import UUID, uuid4
 import pytest
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
+from eimir_pro.garden.models import GardenPlant, GardenReader, GardenWatering
+from eimir_pro.once_messages.models import OnceDevice, OnceReception
+from eimir_pro.partner_quick_actions.models import SupportGestureRequest
+from eimir_pro.partner_quick_actions.service import send_support_gesture
+from eimir_pro.presence.models import (
+    PartnerLocationConsent,
+    PresenceDeviceCredential,
+    PresencePositionPayload,
+    PresenceSnapshot,
+)
+from eimir_pro.quotes.models import DailyQuotePreference
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -26,9 +37,6 @@ from eimir.core.clock import now
 from eimir.core.errors import UnauthenticatedError
 from eimir.daily_checkins.models import (
     DailyCheckIn,
-    DailyInsightFeedback,
-    RecommendationKey,
-    RecommendationRating,
 )
 from eimir.dashboard.models import DashboardModulePreference
 from eimir.engagement.models import (
@@ -42,7 +50,6 @@ from eimir.engagement.models import (
 )
 from eimir.engagement.push import register_endpoint
 from eimir.engagement.thinking import send as send_thinking_of_you
-from eimir.garden.models import GardenPlant, GardenReader, GardenWatering
 from eimir.identity.deletion import (
     DELETED_ACCOUNT_DISPLAY_NAME,
     DELETED_ACCOUNT_LOCALE,
@@ -58,15 +65,6 @@ from eimir.identity.models import AccountEmail, AuthIdentity, AuthProvider, Devi
 from eimir.legal.models import TermsAcceptance, TermsAcceptanceOrigin
 from eimir.legal.terms import record_acceptance
 from eimir.memories.models import Memory, MemoryPayload
-from eimir.once_messages.models import OnceDevice, OnceReception
-from eimir.partner_quick_actions.models import SupportGestureRequest
-from eimir.partner_quick_actions.service import send_support_gesture
-from eimir.presence.models import (
-    PartnerLocationConsent,
-    PresenceDeviceCredential,
-    PresencePositionPayload,
-    PresenceSnapshot,
-)
 from eimir.private_notes.models import PrivateNote, PrivateNotePayload
 from eimir.profiles.models import (
     PartnerProfile,
@@ -76,7 +74,6 @@ from eimir.profiles.models import (
     ProfilePreferencePayload,
     ProfileVisibility,
 )
-from eimir.quotes.models import DailyQuotePreference
 from eimir.relationship.models import Invitation, Membership, MembershipStatus, SpacePresence
 from eimir.relationship.service import add_member
 from eimir.wishes import service as wish_service
@@ -429,11 +426,6 @@ def test_private_account_rows_are_removed_without_erasing_partner_data(
         session.add_all(
             [
                 DailyCheckIn(**keys, checked_on=at.date(), vibe="GOOD"),
-                DailyInsightFeedback(
-                    **keys,
-                    recommendation_key=RecommendationKey.QUIET_TIME.value,
-                    rating=RecommendationRating.HELPFUL.value,
-                ),
                 DailyQuotePreference(account_id=person.id),
                 DashboardModulePreference(**keys, module_key="fixture"),
                 GardenReader(**keys),

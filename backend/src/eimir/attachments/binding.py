@@ -329,6 +329,27 @@ def parent_of(session: Session, attachment_id: UUID) -> tuple[str, UUID] | None:
     return None
 
 
+def used_by_heart_moment(session: Session, attachment_id: UUID) -> bool:
+    """Whether a Heart Moment still uses the attachment, as primary or gallery photo.
+
+    These references are ``RESTRICT`` or ``CASCADE`` at the database and are
+    removed only by editing or deleting the Heart Moment itself; a direct
+    attachment delete must not race ahead of them.
+    """
+    from eimir.heart_moments.models import HeartMoment
+
+    return (
+        session.scalar(select(HeartMoment.id).where(HeartMoment.attachment_id == attachment_id))
+        is not None
+        or session.scalar(
+            select(HeartMomentAttachment.heart_moment_id).where(
+                HeartMomentAttachment.attachment_id == attachment_id
+            )
+        )
+        is not None
+    )
+
+
 def ensure_unlinked(
     session: Session, attachment_id: UUID, *, allow: tuple[str, UUID] | None = None
 ) -> None:

@@ -77,7 +77,7 @@ the following implemented Pro boundaries without changing their classification.
 | `media.video_upload` | New short videos require both a grant and an enabled media processor. Existing videos remain accessible. |
 | `planning.date_inspiration` | Curated catalog, catalog images and catalog participation in shared Wish selection. Ordinary Wishes and Plans remain Core. |
 | `games.couple` | Premium gameplay and new Happiness/Time Travel experiences. Existing shared memories remain accessible. |
-| `daily.insights`, `daily.quote` | Long-term mood and energy trends plus the daily quote. Daily mood and energy entries stay Free. |
+| `daily.quote` | The daily quote. Daily mood and energy entries are Free; the long-term trends (`daily.insights`) were removed and deferred (#2210). |
 | `presence.location`, `partner.once_messages`, `partner.quick_actions.extended` | Consensual location sharing and distance, new one-time messages, and extended partner gestures. Receiving retained messages, stopping sharing and Thinking of You remain available as specified in the feature matrix. |
 | `theme.bespoke_packs` | Saving new paid Wir designs, app icons and person-colour pairs. Defaults and previously saved selections continue to work. |
 | `integration.external_sync` | Photo import from configured sources and automatic calendar sync. Imported media and one-time calendar handoff remain Core. |

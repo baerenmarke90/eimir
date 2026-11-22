@@ -1004,14 +1004,6 @@
         "web/src/components/CollectionProductPage.tsx"
       ]
     },
-    "today-pro-insights.spec.ts": {
-      "roots": [
-        "web/src/components/TodayPage.tsx",
-        "web/src/components/SettingsPage.tsx",
-        "web/src/components/DailyInsightsPage.tsx",
-        "web/src/components/MoreOverviewPage.tsx"
-      ]
-    },
     "today-recent-trace.spec.ts": {
       "roots": [
         "web/src/components/TodayPage.tsx",
@@ -1431,6 +1423,8 @@
       "roots": [
         "web/src/components/TransferPanel.tsx",
         "web/src/components/TransferImportSection.tsx",
+        "web/src/components/TransferFailure.tsx",
+        "web/src/client/transferFailure.ts",
         "web/src/client/transferImport.ts",
         "web/src/client/transfer.ts",
         "web/src/components/ProPaywallPage.tsx",

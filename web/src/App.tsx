@@ -99,8 +99,6 @@ import {
   MILESTONE_DETAIL_ROUTE_PATTERN,
   MILESTONE_EDIT_ROUTE_PATTERN,
   MORE_COLLECTIONS_ROUTE,
-  MORE_INSIGHTS_PATTERNS_ROUTE,
-  MORE_INSIGHTS_RECAP_ROUTE,
   MORE_INSIGHTS_ROUTE,
   MORE_NOTES_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
@@ -197,6 +195,7 @@ import {
   ServerAdminPage,
 } from './components/ServerAdminPage';
 import { SharedPlanningOverviewPage } from './components/SharedPlanningOverviewPage';
+import { Snackbar } from './components/Snackbar';
 import { StoryProductPage } from './components/StoryProductPage';
 import {
   StoryYearDetailPage,
@@ -234,11 +233,6 @@ const CollectionsOverviewPage = deferredComponent(() =>
 const CoupleExperiencePage = deferredComponent(() =>
   import('./components/CoupleExperiencePage').then(
     (module) => module.CoupleExperiencePage,
-  ),
-);
-const DailyInsightsPage = deferredComponent(() =>
-  import('./components/DailyInsightsPage').then(
-    (module) => module.DailyInsightsPage,
   ),
 );
 const DateIdeasPage = deferredComponent(() =>
@@ -1171,44 +1165,11 @@ function AuthenticatedApp({
               }
             />
             <Route path={appRoutePath('more')} element={null} />
+            {/* Einblicke was removed and deferred (#2210); old links land on More. */}
             <Route
-              path={MORE_INSIGHTS_RECAP_ROUTE}
-              element={
-                <Navigate
-                  replace
-                  to={{
-                    pathname: MORE_INSIGHTS_ROUTE,
-                    search: location.search,
-                    hash: '#wochenrueckblick',
-                  }}
-                  state={location.state}
-                />
-              }
+              path={`${MORE_INSIGHTS_ROUTE}/*`}
+              element={<Navigate replace to={appRoutePath('more')} />}
             />
-            {(
-              [
-                [MORE_INSIGHTS_ROUTE, 'week'],
-                [MORE_INSIGHTS_PATTERNS_ROUTE, 'patterns'],
-              ] as const
-            ).map(([path, insightView]) => (
-              <Route
-                key={path}
-                path={path}
-                element={
-                  <DailyInsightsPage
-                    apiBaseUrl={apiBaseUrl}
-                    key={`${account.id}:${spaceId}`}
-                    view={insightView}
-                    spaceId={spaceId}
-                    account={account}
-                    dailyCheckInsApi={dailyCheckInsApi}
-                    entitlementApi={entitlementApi}
-                    dashboardApi={m4Apis.dashboard}
-                    profilesApi={profilesApi}
-                  />
-                }
-              />
-            ))}
             <Route
               path={STORY_OURS_ROUTE}
               element={
@@ -1890,6 +1851,8 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     return (
       <>
         <ThemeControl />
+        {/* The shell's snackbar is not mounted while signed out; a mailed link that cannot be used is reported here. */}
+        <Snackbar />
         {showDemoEntry ? (
           <DemoEntry />
         ) : (

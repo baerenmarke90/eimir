@@ -17,25 +17,25 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from eimir_pro.couple_games.models import CoupleGame, CoupleGamePayload, WhoOfUsData
+from eimir_pro.garden.models import GardenPlant
+from eimir_pro.once_messages.models import OnceDevice, OnceEnvelope, OnceMessage, OnceReception
+from eimir_pro.photo_sources.models import (
+    GoogleAccountHint,
+    GoogleAccountHintPayload,
+    PhotoSelection,
+    PhotoSelectionPayload,
+)
+from eimir_pro.picture_ping_pong.models import PicturePayload, PicturePingPong
 from sqlalchemy import MetaData, func, select, text
 from sqlalchemy.orm import Session
 
 from eimir.auth import sessions
 from eimir.authorization import AuthorizationContext
 from eimir.core import clock
-from eimir.couple_games.models import CoupleGame, CoupleGamePayload, WhoOfUsData
 from eimir.engagement import service as engagement
 from eimir.engagement.models import EngagementTarget, Notification, NotificationKind
-from eimir.garden.models import GardenPlant
 from eimir.jobs import maintenance
-from eimir.once_messages.models import OnceDevice, OnceEnvelope, OnceMessage, OnceReception
-from eimir.photo_sources.models import (
-    GoogleAccountHint,
-    GoogleAccountHintPayload,
-    PhotoSelection,
-    PhotoSelectionPayload,
-)
-from eimir.picture_ping_pong.models import PicturePayload, PicturePingPong
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import Membership
 from eimir.security import lifecycle

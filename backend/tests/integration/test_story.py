@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
+from tests.support.tampering import tamper_cursor_signature
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -354,7 +355,7 @@ class TestPagination:
         for i in range(4):
             memory(client, couple, title=f"M{i}")
         cursor = timeline(client, couple, limit=2).json()["nextCursor"]
-        response = timeline(client, couple, limit=2, cursor=cursor[:-2] + "xy")
+        response = timeline(client, couple, limit=2, cursor=tamper_cursor_signature(cursor))
         assert response.status_code == 400
         assert "spaceId" not in response.text
 

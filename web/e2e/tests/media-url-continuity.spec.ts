@@ -285,10 +285,10 @@ test('revisiting kept tabs and Pro detail routes does not repeat session members
     }, path);
     await expect.poll(() => new URL(page.url()).pathname).toBe(path);
   };
-  for (const path of ['/more/insights', '/story/recaps', '/more']) {
+  for (const path of ['/games', '/story/recaps', '/more']) {
     await openInApp(path);
   }
-  for (const path of ['/more/insights', '/story/recaps', '/more']) {
+  for (const path of ['/games', '/story/recaps', '/more']) {
     await openInApp(path);
   }
   await expect(page.locator('.primary-tab-panel:not([hidden])')).toHaveCount(1);

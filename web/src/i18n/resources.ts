@@ -6,7 +6,6 @@ import composer from './locales/composer';
 import contextTags from './locales/contextTags';
 import coupleExperiences from './locales/coupleExperiences';
 import dailyEnergy from './locales/dailyEnergy';
-import dailyInsights from './locales/dailyInsights';
 import dailyQuote from './locales/dailyQuote';
 import dailyVibe from './locales/dailyVibe';
 import dateIdeas from './locales/dateIdeas';
@@ -65,7 +64,6 @@ import uploadFailure from './locales/uploadFailure';
 import video from './locales/video';
 import voiceNotes from './locales/voiceNotes';
 import webViewNotice from './locales/webViewNotice';
-import weeklyInsights from './locales/weeklyInsights';
 import wirCheckIn from './locales/wirCheckIn';
 import wirDesign from './locales/wirDesign';
 import wishDateProposal from './locales/wishDateProposal';
@@ -102,8 +100,6 @@ export const germanResources = {
   demo,
   discreetPlans,
   dailyEnergy,
-  dailyInsights,
-  weeklyInsights,
   dailyQuote,
   dailyVibe,
   dateIdeas,

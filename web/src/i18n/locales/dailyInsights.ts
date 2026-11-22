@@ -301,6 +301,11 @@ const dailyInsights = {
       title: 'Neu entdeckt',
     },
     history: 'Verlauf über Wochen und Monate',
+    wirHint: {
+      text: 'Euer Wochenbrief für letzte Woche ist da.',
+      open: 'Wochenbrief ansehen',
+      later: 'Später',
+    },
   },
   weekdayAdverb: {
     0: 'Montags',

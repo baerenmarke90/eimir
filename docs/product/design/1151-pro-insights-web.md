@@ -74,3 +74,17 @@ optional AI review (#1546) moved unchanged to the **Woche** tab.
 - **Visibility:** hidden partner days count as missing.
 - **Plans, Memories and Wishes:** only rows `readable()` for the caller take part.
 - **Retention:** history is available because Spaces with `daily.insights` now keep Daily Check-in rows for 90 days (ADR 0007 amendment 2026-11-22).
+
+## Wir hint (#2194)
+
+A Product Owner decision of 2026-11-22 partially supersedes #1196: Wir shows one quiet hint (`WeeklyBriefWirHint`, the shared `QuietHint`) while last week's brief is ready.
+
+- **When it shows.** All of these hold:
+  - the Space holds `daily.insights`;
+  - Vibe or Energy is enabled;
+  - the Space is not sparse;
+  - that week's brief has content.
+- **What it shows.** Only a neutral sentence and a link to `/more/insights?week=<monday>`. No brief content appears on Wir.
+- **Limits.** It uses the device-local quiet-hint store with one id per week (`weeklyBrief:<monday>`) and its limits: one per screen, one new per day, three sessions.
+- **When it retires.** After dismissal, or when that week's brief is opened.
+- **Free Spaces.** They see nothing (#2048).

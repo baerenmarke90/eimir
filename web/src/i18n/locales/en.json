@@ -3108,7 +3108,12 @@
       "newPatterns": {
         "title": "Newly noticed"
       },
-      "history": "History over weeks and months"
+      "history": "History over weeks and months",
+      "wirHint": {
+        "text": "Your weekly brief for last week is ready.",
+        "open": "View weekly brief",
+        "later": "Later"
+      }
     }
   },
   "weeklyInsights": {

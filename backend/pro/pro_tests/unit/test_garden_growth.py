@@ -2,8 +2,8 @@
 
 from datetime import date, timedelta
 
-from eimir.garden import growth
-from eimir.garden.models import GardenForm, GardenSpecies, GardenUnlock
+from eimir_pro.garden import growth
+from eimir_pro.garden.models import GardenForm, GardenSpecies, GardenUnlock
 
 AUTUMN = date(2026, 11, 16)
 SPRING = date(2027, 4, 10)

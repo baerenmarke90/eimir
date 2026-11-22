@@ -22,8 +22,9 @@ from eimir.api.deps import Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.authorization import AuthorizationContext
-from eimir.couple_games import service
-from eimir.couple_games.models import (
+from eimir.entitlements.models import Capability
+from eimir_pro.couple_games import service
+from eimir_pro.couple_games.models import (
     OUR_MOMENTS_MAX_PAIRS,
     WISH_DETECTIVE_CLUE_COUNT,
     WISH_DETECTIVE_MAX_CLUE_INPUT,
@@ -36,7 +37,6 @@ from eimir.couple_games.models import (
     WishDetectivePhase,
     WishDetectiveResult,
 )
-from eimir.entitlements.models import Capability
 
 router = APIRouter(tags=["games"])
 

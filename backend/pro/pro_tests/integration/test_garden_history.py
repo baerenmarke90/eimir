@@ -8,12 +8,11 @@ from __future__ import annotations
 from datetime import timedelta
 
 import pytest
+from eimir_pro.garden.models import GardenPlant
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from eimir.garden.models import GardenPlant
-from tests.conftest import auth, requires_database
-from tests.integration.test_garden import (  # noqa: F401 (fixtures)
+from pro_tests.integration.test_garden import (  # noqa: F401 (fixtures)
     DAY_ONE,
     _at,
     _h,
@@ -22,7 +21,8 @@ from tests.integration.test_garden import (  # noqa: F401 (fixtures)
     couple,
     premium,
 )
-from tests.integration.test_garden_growth import _even_day, _history, _send_offered
+from pro_tests.integration.test_garden_growth import _even_day, _history, _send_offered
+from tests.conftest import auth, requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]
 

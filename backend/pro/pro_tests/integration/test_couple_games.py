@@ -10,6 +10,7 @@ from datetime import date
 from uuid import uuid4
 
 import pytest
+from eimir_pro.couple_games.models import WHO_OF_US_QUESTION_IDS, CoupleGame
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
@@ -17,7 +18,6 @@ from eimir.attachments.binding import MemoryAttachment
 from eimir.attachments.models import Attachment, AttachmentPayload, AttachmentStatus, MediaType
 from eimir.authorization import PrivacyClass
 from eimir.core.clock import now
-from eimir.couple_games.models import WHO_OF_US_QUESTION_IDS, CoupleGame
 from eimir.engagement import notification_policy
 from eimir.engagement import service as engagement
 from eimir.engagement.models import Notification, NotificationKind

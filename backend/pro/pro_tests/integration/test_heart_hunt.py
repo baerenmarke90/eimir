@@ -6,6 +6,8 @@ from datetime import timedelta
 from uuid import UUID, uuid4
 
 import pytest
+from eimir_pro.heart_hunt import service
+from eimir_pro.heart_hunt.models import HeartHuntRound
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -21,8 +23,6 @@ from eimir.entitlements.models import (
     EntitlementStatus,
     EntitlementTier,
 )
-from eimir.heart_hunt import service
-from eimir.heart_hunt.models import HeartHuntRound
 from eimir.memories import service as memories
 from eimir.outbox.models import OutboxEvent
 from eimir.relationship import service as relationship_service

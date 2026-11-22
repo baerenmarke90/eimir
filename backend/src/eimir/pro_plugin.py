@@ -43,13 +43,13 @@ _CAPABILITIES = PLUGIN_CAPABILITIES
 
 _MODEL_MODULES = (
     "eimir.calendar_sync.models",
-    "eimir.couple_games.models",
-    "eimir.garden.models",
-    "eimir.heart_hunt.models",
+    "eimir_pro.couple_games.models",
+    "eimir_pro.garden.models",
+    "eimir_pro.heart_hunt.models",
     "eimir_pro.once_messages.models",
     "eimir_pro.partner_quick_actions.models",
     "eimir.photo_sources.models",
-    "eimir.picture_ping_pong.models",
+    "eimir_pro.picture_ping_pong.models",
     "eimir_pro.presence.models",
     "eimir_pro.quotes.models",
 )
@@ -80,7 +80,7 @@ def _garden_seed_is_waiting(
     session: Session, context: AuthorizationContext, target_id: Any, kind: Any
 ) -> ColumnElement[bool]:
     # A seed notice is current only while the seed waits for the reader.
-    from eimir.garden import service as garden
+    from eimir_pro.garden import service as garden
 
     del kind
     return garden.seed_is_waiting(session, context, target_id).exists()
@@ -90,7 +90,7 @@ def _garden_bouquet_is_open(
     session: Session, context: AuthorizationContext, target_id: Any, kind: Any
 ) -> ColumnElement[bool]:
     # A bouquet notice is current only while its card waits for the reader.
-    from eimir.garden import service as garden
+    from eimir_pro.garden import service as garden
 
     del kind
     return garden.bouquet_is_open(session, context, target_id).exists()
@@ -101,7 +101,7 @@ def _picture_is_current(
 ) -> ColumnElement[bool]:
     # A turn notice is current only while it is still the recipient's turn; a
     # finished notice only while that picture is finished (not restarted).
-    from eimir.picture_ping_pong.models import PicturePingPong, PictureStatus
+    from eimir_pro.picture_ping_pong.models import PicturePingPong, PictureStatus
 
     del session
     turn = (
@@ -138,8 +138,8 @@ def _couple_game_is_current(game: str) -> TargetRule:
         session: Session, context: AuthorizationContext, target_id: Any, kind: Any
     ) -> ColumnElement[bool]:
         # A game notice is current only while the game still waits on the reader.
-        from eimir.couple_games import service as couple_games
-        from eimir.couple_games.models import CoupleGameKind
+        from eimir_pro.couple_games import service as couple_games
+        from eimir_pro.couple_games.models import CoupleGameKind
 
         del session, kind
         return couple_games.notice_is_current(context, target_id, CoupleGameKind[game]).exists()
@@ -160,7 +160,7 @@ def _heart_hunt_photo_is_readable(
     session: Session, context: AuthorizationContext, parent_id: UUID
 ) -> bool:
     # Exactly the two partners of the round, never decided by the uploader alone.
-    from eimir.heart_hunt import service as heart_hunt
+    from eimir_pro.heart_hunt import service as heart_hunt
 
     return heart_hunt.can_read_photo(session, context, parent_id)
 
@@ -200,7 +200,7 @@ def _project_notification(
         return True
 
     if event_type in {EventType.GARDEN_SEED_ARRIVED, EventType.GARDEN_BOUQUET_GIVEN}:
-        from eimir.garden import service as garden
+        from eimir_pro.garden import service as garden
 
         recipient = event.payload.recipient_id
         # A bouquet reuses the seed notice with its own target and text; the
@@ -238,8 +238,8 @@ def _project_notification(
             NotificationKind.PICTURE_PING_PONG_FINISHED,
         )
     elif event_type is EventType.COUPLE_GAME_TURN:
-        from eimir.couple_games import service as couple_games
-        from eimir.couple_games.models import CoupleGameKind
+        from eimir_pro.couple_games import service as couple_games
+        from eimir_pro.couple_games.models import CoupleGameKind
 
         subjects = {
             couple_games.SUBJECT_TYPES[CoupleGameKind[game]]: target
@@ -263,6 +263,7 @@ def _project_notification(
 
 def personal_account_models() -> tuple[Any, ...]:
     """Pro models whose rows of a deleted Account are deleted by ``account_id``."""
+    from eimir_pro.garden.models import GardenReader, GardenWatering
     from eimir_pro.once_messages.models import OnceDevice, OnceReception
     from eimir_pro.presence.models import (
         PartnerLocationConsent,
@@ -270,8 +271,6 @@ def personal_account_models() -> tuple[Any, ...]:
         PresenceSnapshot,
     )
     from eimir_pro.quotes.models import DailyQuotePreference
-
-    from eimir.garden.models import GardenReader, GardenWatering
 
     return (
         DailyQuotePreference,
@@ -351,26 +350,23 @@ class InTreeProPlugin:
 
     def routers(self) -> Sequence[APIRouter]:
         from eimir_pro.api import (
+            couple_games,
             daily_insights,
             daily_quote,
             date_ideas,
+            games,
+            garden,
+            heart_hunt,
             memory_map,
             once_messages,
             partner_location,
             partner_quick_actions,
+            picture_ping_pong,
             recap_composition,
             relationship_passport,
         )
 
-        from eimir.api.v1 import (
-            calendar_sync,
-            couple_games,
-            games,
-            garden,
-            heart_hunt,
-            photo_sources,
-            picture_ping_pong,
-        )
+        from eimir.api.v1 import calendar_sync, photo_sources
 
         return (
             photo_sources.router,
@@ -392,13 +388,13 @@ class InTreeProPlugin:
         )
 
     def register_jobs(self, registry: JobRegistry) -> None:
+        from eimir_pro.heart_hunt import retention as heart_hunt_retention
         from eimir_pro.once_messages import service as once_messages
         from eimir_pro.presence import retention as presence_retention
         from eimir_pro.recap_composition import jobs as recap_jobs
         from eimir_pro.video_processing import jobs as video_jobs
 
         from eimir.calendar_sync import jobs as calendar_sync_jobs
-        from eimir.heart_hunt import retention as heart_hunt_retention
         from eimir.photo_sources import retention as photo_source_retention
 
         photo_source_retention.register_handlers(registry)
@@ -410,10 +406,10 @@ class InTreeProPlugin:
         recap_jobs.register_handlers(registry)
 
     def ensure_scheduled(self, session: Session) -> None:
+        from eimir_pro.heart_hunt import retention as heart_hunt_retention
         from eimir_pro.presence import retention as presence_retention
         from eimir_pro.recap_composition import jobs as recap_jobs
 
-        from eimir.heart_hunt import retention as heart_hunt_retention
         from eimir.photo_sources import retention as photo_source_retention
 
         heart_hunt_retention.ensure_scheduled(session)
@@ -457,26 +453,25 @@ class InTreeProPlugin:
     ) -> tuple[str, str] | None:
         if target_type not in {EngagementTarget.GARDEN_SEED, EngagementTarget.GARDEN_BOUQUET}:
             return None
-        from eimir.garden import service as garden
+        from eimir_pro.garden import service as garden
 
         return garden.notice_preview(session, context, target_type.value, target_id)
 
     def on_partner_joined(self, session: Session, space_id: UUID) -> None:
-        from eimir.couple_games import service as couple_games
-        from eimir.garden import service as garden
-        from eimir.picture_ping_pong import service as picture_ping_pong
+        from eimir_pro.couple_games import service as couple_games
+        from eimir_pro.garden import service as garden
+        from eimir_pro.picture_ping_pong import service as picture_ping_pong
 
         picture_ping_pong.purge_space(session, space_id)
         couple_games.purge_space(session, space_id)
         garden.purge_space(session, space_id)
 
     def on_membership_ended(self, session: Session, space_id: UUID, account_id: UUID) -> None:
+        from eimir_pro.couple_games import service as couple_games
+        from eimir_pro.garden import service as garden
+        from eimir_pro.heart_hunt import service as heart_hunt
         from eimir_pro.once_messages import service as once_messages
-
-        from eimir.couple_games import service as couple_games
-        from eimir.garden import service as garden
-        from eimir.heart_hunt import service as heart_hunt
-        from eimir.picture_ping_pong import service as picture_ping_pong
+        from eimir_pro.picture_ping_pong import service as picture_ping_pong
 
         del account_id
         once_messages.purge_space(session, space_id)
@@ -524,7 +519,7 @@ class InTreeProPlugin:
         return document
 
     def hidden_wish_ids(self, session: Session, context: AuthorizationContext) -> frozenset[UUID]:
-        from eimir.couple_games import service as couple_games
+        from eimir_pro.couple_games import service as couple_games
 
         return couple_games.hidden_wish_ids(session, context)
 

@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import pytest
-
-from eimir.heart_hunt.service import warmth
+from eimir_pro.heart_hunt.service import warmth
 
 
 def test_tap_on_the_heart_is_found_and_hot() -> None:

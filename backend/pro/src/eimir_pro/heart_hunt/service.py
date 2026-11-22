@@ -25,10 +25,10 @@ from eimir.authorization import AuthorizationContext
 from eimir.core import clock
 from eimir.core.errors import ConflictError, NotFoundError, ValidationError
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
-from eimir.heart_hunt.models import HeartHuntRound, HeartRoundState
 from eimir.memories.models import Memory
 from eimir.outbox import service as outbox
 from eimir.relationship.models import Membership, MembershipStatus
+from eimir_pro.heart_hunt.models import HeartHuntRound, HeartRoundState
 
 FOUND_RETENTION = timedelta(days=14)
 """A found round's photo is deleted this long after it was found (Product Owner)."""

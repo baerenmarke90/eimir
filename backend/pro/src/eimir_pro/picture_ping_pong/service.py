@@ -24,7 +24,9 @@ from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.engagement.models import Notification, NotificationKind
 from eimir.memories.models import Memory
 from eimir.outbox import service as outbox_service
-from eimir.picture_ping_pong.models import (
+from eimir.relationship import service as relationship
+from eimir.relationship.models import Membership, MembershipStatus
+from eimir_pro.picture_ping_pong.models import (
     GRID,
     MAX_STROKE_VALUES,
     MAX_STROKES_PER_TURN,
@@ -37,8 +39,6 @@ from eimir.picture_ping_pong.models import (
     PictureStatus,
     PictureStroke,
 )
-from eimir.relationship import service as relationship
-from eimir.relationship.models import Membership, MembershipStatus
 
 ALLOWED_COLOURS = frozenset({"PERSON", "INK", "SUN"})
 

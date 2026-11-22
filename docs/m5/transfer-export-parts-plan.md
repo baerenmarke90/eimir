@@ -1,7 +1,7 @@
 # Transfer export: named failures and part sets for large Spaces
 
-- **Status:** PLANNED (slices are delivered one PR at a time, each with its own Product Owner go)
-- **Date:** 2026-11-22
+- **Status:** IN PROGRESS. Slice A1 is delivered (#2178 merged 2026-11-22, #2190 merged 2026-11-22); the logging PR #2171 is open as a draft; slices C0 to C4 are planned. Slices are delivered one PR at a time, each with its own Product Owner go.
+- **Date:** 2026-11-22 (synchronized with `main` 27abe8aa7)
 - **Owning issue:** #2173
 - **Related:** #2171 (worker logging and size-limit test), #2141 (Cloud storage quota, skipped-video recovery), #2150 (re-import adds only what is missing)
 - **Binding sources:** `docs/FREEMIUM-FEATURE-MATRIX.md` (row "Essential data portability / Transfer Bundle": Non-paywallable), `docs/m5/S6-CACHE-PORTABILITY-DECISIONS.md`, `docs/m5/S6-TRANSFER-BUNDLE-OPERATIONS.md`
@@ -34,9 +34,11 @@ Do both A and C, so that failures are also named (Product Owner, in German; para
 
 Raising the single-file limits, a records-only export as a separate product, and doing nothing were considered and not chosen (see section 6).
 
-## 3. Slice A1: name every Transfer failure (Web)
+## 3. Slice A1: name every Transfer failure (Web) - delivered
 
-Today `TransferPanel.tsx` shows `transfer.genericFailure` for every `FAILED` export, and the import section shows one generic `failed` text. `errorCode` is already stored and returned by the API (`TransferExportDetail.errorCode`, `TransferImportDetail.errorCode`), so this slice needs no API or contract change.
+**Delivered** in #2178 (merged as `f71f965c8`) and #2190 (merged as `7a410e4bf`, #2188). The Product Owner approved the wording and the mock-up on 2026-11-22: all proposed rows as written, one shared text for the four file errors (manifest invalid, archive unsafe, checksum mismatch, relation invalid), and no outlook on splitting in the "too large" text until slice C exists. #2190 also names a `413` without a problem code on import (a reverse proxy refusing the body, #2188) with the same "too large" text and documents the proxy body limit in `docs/ARCANE.md`. The conflict codes `TRANSFER_NOT_READY`, `TRANSFER_EXPIRED` and `TRANSFER_ALREADY_APPLIED` stayed out of the slice and still show the shared conflict state. Evidence: `docs/product/design/evidence/2173-transfer-failures/`. The text below is the plan as it was written; where it differs, the merged code and the evidence README are authoritative.
+
+Today (before the slice) `TransferPanel.tsx` shows `transfer.genericFailure` for every `FAILED` export, and the import section shows one generic `failed` text. `errorCode` is already stored and returned by the API (`TransferExportDetail.errorCode`, `TransferImportDetail.errorCode`), so this slice needs no API or contract change.
 
 - Map each `ErrorCode.TRANSFER_*` to its own i18n key for export and import: `TRANSFER_TOO_LARGE`, `TRANSFER_FORMAT_UNSUPPORTED`, `TRANSFER_MANIFEST_INVALID`, `TRANSFER_ARCHIVE_UNSAFE`, `TRANSFER_CHECKSUM_MISMATCH`, `TRANSFER_RELATION_INVALID`, `TRANSFER_MEMBER_MAPPING_REQUIRED`, `TRANSFER_MEMBER_MAPPING_INVALID`, `TRANSFER_PRIVACY_SCOPE_INVALID`, `TRANSFER_NOT_READY`, `TRANSFER_EXPIRED`, `TRANSFER_ALREADY_APPLIED`, `TRANSFER_EXPORT_FAILED`, `TRANSFER_IMPORT_FAILED`. Codes that already have dedicated handling (`TRANSFER_VIDEOS_NEED_PRO`, `TRANSFER_NOTHING_TO_RECOVER`, the quota refusal) keep it. Unknown or missing codes keep the current generic text as a safe fallback.
 - Related codes may share a text where the member's next step is the same (for example damaged or incomplete file). The grouping and the exact German wording are the Product Owner's decision and are proposed in the PR, not decided here.
@@ -56,6 +58,7 @@ Today `TransferPanel.tsx` shows `transfer.genericFailure` for every `FAILED` exp
 - Completion is by recognition, never by position: a part is recognized by `partSetId`, and a media item by source attachment ID and manifest checksum. A part imported twice, in another order, or never leaves the Space consistent and additive.
 - Export storage: one `TransferExport` owns N artifacts, keys `.../exports/{exportId}/part-{k}.zip`, with one retention and deletion lifecycle. The API detail lists the parts (index, size, download link). The worker streams each part and never holds more than one part in memory (this also removes the whole-archive RAM buffer). Part files are temporary and are not counted against the Cloud storage quota, as archives are not today.
 - Operator setting: part budget in bytes, documented for Self-Hosted and Cloud, default about 400 MiB. The import API limit and tmpfs size are not changed.
+- Proxy body limit: `docs/ARCANE.md` (#2190) tells operators to allow request bodies of at least 512 MiB on `/api/`. A part stays within that bound by construction (budget plus bundle overhead is well below it), so part sets need no new proxy setting. If an operator raises the budget above 512 MiB the setting is refused at startup instead of producing parts that no import can accept.
 
 ### 4.2 Slices
 
@@ -86,5 +89,6 @@ Each slice is its own PR. The Product Owner's go is needed before each merge. Au
 ## 7. Open points for the Product Owner (asked one at a time)
 
 1. Is a set of several files acceptable for a 50 GB Premium Space (about 125 parts at 400 MiB), or should very large Spaces get another mechanism later?
-2. Confirm the deviation in 4.1: every part carries the records, instead of "part 1 all records, later parts media only".
-3. The wording of the error texts (slice A1) after the mock-up.
+2. Confirm the deviation in 4.1: every part carries the records, instead of "part 1 all records, later parts media only". Not decided until the Product Owner answers; C0 and later slices must not assume it before then.
+
+The wording of the error texts (slice A1) was point 3 and is decided (section 3).

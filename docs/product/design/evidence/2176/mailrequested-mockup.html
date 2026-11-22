@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mail-requested state mock-up</title>
+<style>
+  /* Values copied from web/src/theme.css (Light/Dark runtime palette); approximate, not the real app. */
+  :root { --bg:#e6ebfa; --surface:#f3f5fc; --raised:#fff; --text:#19233e; --text2:#58627b; --border:#bbc9e5;
+          --brand:#3055b8; --on-accent:#fff; --shared-surface:#e8f4ef; --shared-border:#20726633; --shared:#207266;
+          --pill:#d6e1f7; --snack:#19233e; --snack-text:#fff; }
+  .dark { --bg:#14182b; --surface:#252b43; --raised:#303751; --text:#f6f7ff; --text2:#c4cee8; --border:#3d476b;
+          --brand:#9bb6ff; --shared-surface:#1d3a36; --shared-border:#4fb3a244; --shared:#8fe0d0; --pill:#303f62;
+          --snack:#f6f7ff; --snack-text:#19233e; }
+  body { margin:0; font:16px/1.45 system-ui, sans-serif; background:#cfd6ea; color:#222; padding:24px 16px 48px; }
+  h1 { font-size:20px; margin:0 0 4px } p.lead { margin:0 0 20px; max-width:62ch; color:#333 }
+  .row { display:flex; flex-wrap:wrap; gap:24px; align-items:flex-start }
+  figure { margin:0; width:390px }
+  figcaption { font-size:14px; margin:0 0 8px; font-weight:600 }
+  figcaption span { font-weight:400; color:#444; display:block }
+  .phone { position:relative; width:390px; height:760px; border-radius:28px; overflow:hidden; background:var(--bg);
+           color:var(--text); border:1px solid #9aa6c8; box-shadow:0 10px 30px #0002; }
+  .card { margin:72px 16px 0; padding:20px 18px 22px; border-radius:22px; background:var(--surface);
+          box-shadow:0 18px 50px #231e281a; display:grid; gap:14px }
+  .toggle { display:grid; grid-template-columns:1fr 1fr; background:var(--pill); border-radius:999px; padding:4px; gap:4px }
+  .toggle b { text-align:center; padding:11px 8px; border-radius:999px; font-weight:600; font-size:15px; color:var(--text2); min-height:22px }
+  .toggle b.on { background:var(--raised); color:var(--text); box-shadow:0 2px 8px #0001 }
+  .eyebrow { margin:0; color:var(--brand); font-size:13px; font-weight:600 }
+  h2 { margin:2px 0 4px; font-size:24px; line-height:1.2 } .muted { margin:0; color:var(--text2); font-size:15px }
+  .notice { border:1px solid var(--shared-border); background:var(--shared-surface); border-radius:16px; padding:14px 16px; display:grid; gap:4px; font-size:15px }
+  .notice strong { color:var(--shared) } .notice small { color:var(--text2); font-size:14px }
+  .btn { min-height:48px; border-radius:999px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:16px; width:100% }
+  .btn.secondary { background:var(--surface); color:var(--brand); border:1px solid var(--border) }
+  .btn.tertiary { background:transparent; color:var(--text2); border:1px solid transparent }
+  .btn.disabled { opacity:.55 }
+  .field { display:grid; gap:6px; font-size:14px; color:var(--text2) }
+  .input { min-height:48px; border:1px solid var(--border); border-radius:14px; background:var(--raised); padding:0 14px; display:flex; align-items:center; color:var(--text2) }
+  .btn.primary { background:var(--brand); color:var(--on-accent) }
+  .dark .btn.primary { color:#14182b }
+  .snack { position:absolute; left:16px; right:16px; bottom:28px; background:var(--snack); color:var(--snack-text);
+           border-radius:14px; padding:14px 16px; font-size:15px; box-shadow:0 8px 28px #0004 }
+  .gap { height:2px } .flag { font-size:12px; color:#8a3b00; font-weight:600 }
+  table { border-collapse:collapse; margin-top:28px; background:#fff; max-width:900px } td,th { border:1px solid #c6cde2; padding:8px 12px; font-size:14px; text-align:left; vertical-align:top }
+</style>
+</head>
+<body>
+<h1>Mail-requested state, Compact (390 px)</h1>
+<p class="lead">Mock-up for the Android test.98 report. Left: what the Pixel shows today (dead end). Middle/right: proposal.
+  The app is not running here; colours are copied from <code>theme.css</code>. Baseline: <code>origin/main 1ebb920db</code>, screen
+  <code>IdentityEntry</code> (modes <code>magicLinkRequest</code>, <code>signupRequest</code>).</p>
+<div class="row">
+
+  <figure>
+    <figcaption>1 · Today: Cloud sign-in after a link was requested<span>No email field, no resend, the active "Anmelden" tab does nothing.</span></figcaption>
+    <div class="phone"><div class="card">
+      <div class="toggle"><b class="on">Anmelden</b><b>Gemeinsam starten</b></div>
+      <div><p class="eyebrow">Anmelden ohne Passwort</p><h2>Anmeldelink anfordern</h2></div>
+      <div class="notice"><strong>Prüfe dein Postfach</strong><span>Wenn die Adresse für diesen Zugang verwendet werden kann, wurde ein zeitlich begrenzter Link gesendet.</span></div>
+    </div></div>
+  </figure>
+
+  <figure>
+    <figcaption>2 · Proposal: Cloud sign-in, link requested (Light)<span>Notice stays. Two quiet actions below it; no new primary action.</span></figcaption>
+    <div class="phone"><div class="card">
+      <div class="toggle"><b class="on">Anmelden</b><b>Gemeinsam starten</b></div>
+      <div><p class="eyebrow">Anmelden ohne Passwort</p><h2>Anmeldelink anfordern</h2></div>
+      <div class="notice" role="status"><strong>Prüfe dein Postfach</strong><span>Wenn die Adresse für diesen Zugang verwendet werden kann, wurde ein zeitlich begrenzter Link gesendet.</span><small>Gesendet an admin@example.invalid <span class="flag">(optional)</span></small></div>
+      <div class="btn secondary">Neuen Link anfordern</div>
+      <div class="btn tertiary">Andere Adresse verwenden</div>
+    </div></div>
+  </figure>
+
+  <figure class="dark">
+    <figcaption>3 · Proposal: "Gemeinsam starten", link requested (Dark)<span>Same two actions; the existing "Bereits registriert? Anmelden" stays as the way back.</span></figcaption>
+    <div class="phone dark"><div class="card">
+      <div class="toggle"><b>Anmelden</b><b class="on">Gemeinsam starten</b></div>
+      <div><p class="eyebrow">Zusammen loslegen</p><h2>Gemeinsam starten</h2></div>
+      <div class="notice" role="status"><strong>Prüfe dein Postfach</strong><span>Wenn die Adresse für diesen Zugang verwendet werden kann, wurde ein zeitlich begrenzter Link gesendet.</span><small>Gesendet an new@example.invalid <span class="flag">(optional)</span></small></div>
+      <div class="btn secondary">Neuen Link anfordern</div>
+      <div class="btn tertiary">Andere Adresse verwenden</div>
+      <div class="btn secondary">Bereits registriert? Anmelden</div>
+    </div></div>
+  </figure>
+
+  <figure>
+    <figcaption>4 · "Andere Adresse verwenden" → form again, field focused and empty<span>Keyboard opens only now, because the person chose to type.</span></figcaption>
+    <div class="phone"><div class="card">
+      <div class="toggle"><b class="on">Anmelden</b><b>Gemeinsam starten</b></div>
+      <div><p class="eyebrow">Anmelden ohne Passwort</p><h2>Anmeldelink anfordern</h2><p class="muted">(existing body text, unchanged)</p></div>
+      <div class="field">E-Mail-Adresse<div class="input">name@beispiel.de</div></div>
+      <div class="btn primary">Link anfordern</div>
+    </div></div>
+  </figure>
+
+  <figure>
+    <figcaption>5 · Delivered link that cannot be used (Light, over the form)<span>Snackbar (existing component), no host or token in the text.</span></figcaption>
+    <div class="phone"><div class="card">
+      <div class="toggle"><b class="on">Anmelden</b><b>Gemeinsam starten</b></div>
+      <div><p class="eyebrow">Anmelden ohne Passwort</p><h2>Anmeldelink anfordern</h2></div>
+      <div class="field">E-Mail-Adresse<div class="input">name@beispiel.de</div></div>
+      <div class="btn primary">Link anfordern</div>
+    </div>
+    <div class="snack" role="status">Dieser Link passt nicht zu dieser App-Version. Fordere einen neuen an.</div></div>
+  </figure>
+
+  <figure class="dark">
+    <figcaption>6 · Resend in progress (Dark)<span>Button keeps its width; text changes; no double tap.</span></figcaption>
+    <div class="phone dark"><div class="card">
+      <div class="toggle"><b class="on">Anmelden</b><b>Gemeinsam starten</b></div>
+      <div><p class="eyebrow">Anmelden ohne Passwort</p><h2>Anmeldelink anfordern</h2></div>
+      <div class="notice" role="status"><strong>Prüfe dein Postfach</strong><span>Wenn die Adresse für diesen Zugang verwendet werden kann, wurde ein zeitlich begrenzter Link gesendet.</span></div>
+      <div class="btn secondary disabled">Anfrage wird gesendet …</div>
+      <div class="btn tertiary disabled">Andere Adresse verwenden</div>
+    </div></div>
+  </figure>
+</div>
+
+<table>
+  <tr><th>Contract item</th><th>Decision</th></tr>
+  <tr><td>User goal</td><td>I asked for a link and it did not arrive or did not work: try again or fix the address without leaving the app.</td></tr>
+  <tr><td>Dominant action</td><td>None added. The real next step happens in the mail app. "Neuen Link anfordern" is a secondary button (48 dp), "Andere Adresse verwenden" is tertiary (transparent, no outline).</td></tr>
+  <tr><td>Typing / keyboard</td><td>Resend needs no typing (same address kept in memory only). Keyboard opens only after "Andere Adresse verwenden".</td></tr>
+  <tr><td>States</td><td>Loading: button text "Anfrage wird gesendet …", same width. Success: the status area is updated and keeps focus (screen reader announces it). Error: existing inline error pattern above the buttons. Offline: the request fails with the existing offline error; buttons stay. Empty: n/a.</td></tr>
+  <tr><td>Privacy</td><td>Neutral wording stays (no account-existence oracle). The echoed address is the one the person typed on this device; never from the server. Snackbar has no host or token.</td></tr>
+  <tr><td>Large text / narrow</td><td>Full-width stacked buttons wrap; no fixed heights; nothing needs horizontal scroll at 320 px.</td></tr>
+  <tr><td>Motion</td><td>Notice text swap uses the existing fade; reduced motion: instant swap. No new animation.</td></tr>
+  <tr><td>Expanded</td><td>Same card, buttons may share one row; meaning unchanged.</td></tr>
+  <tr><td>Reuse</td><td><code>NeutralMailResult</code>, <code>BackToSignIn</code>, button variants, <code>postSnackbar</code>. No new component or token.</td></tr>
+  <tr><td>Open</td><td>Optional "Gesendet an …" line and an optional 30 s resend pause (server already rate-limits).</td></tr>
+</table>
+</body>
+</html>

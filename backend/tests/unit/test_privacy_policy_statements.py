@@ -11,13 +11,13 @@ from datetime import timedelta
 from pathlib import Path
 
 import pytest
+from eimir_pro.once_messages import service as once_messages
+from eimir_pro.presence import service as presence
 
 from eimir.auth import action_tokens, tokens
 from eimir.daily_checkins import retention as daily_checkin_retention
 from eimir.jobs import maintenance
-from eimir.once_messages import service as once_messages
 from eimir.photo_sources import service as photo_sources
-from eimir.presence import service as presence
 from eimir.relationship import invitations, policy
 from eimir.transfer import service as transfer
 

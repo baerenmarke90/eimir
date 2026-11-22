@@ -1850,7 +1850,7 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             session.flush()
             # Composed through the plugin code: the request route is not mounted in
             # the Core-only configuration.
-            from eimir.recap_composition import composer
+            from eimir_pro.recap_composition import composer
 
             recap_id = str(
                 composer.request_period(

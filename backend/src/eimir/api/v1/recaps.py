@@ -2,7 +2,7 @@
 
 These Core routes read stored editions and keep the members' own reflections
 editable and withdrawable on every server. Composing new editions is Premium:
-those routes are plugin code in ``eimir.api.v1.recap_composition`` and reuse the
+those routes are plugin code in ``eimir_pro.api.recap_composition`` and reuse the
 shared schemas and the ``no_store`` dependency from here.
 """
 

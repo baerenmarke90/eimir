@@ -312,7 +312,12 @@ repository, but Core reaches them only through a seam (loader, contract, lifecyc
   consumer yet) and tracked in #2148.
 - [x] **#2084 — closed on 2026-11-21:** all four capabilities are plugin-owned with Core-only tests.
 - [ ] **#2148:** deferred Phase 1 items of the Pro plugin seam; not launch-blocking under Cloud first.
-- [ ] **#2086:** decide how the public Core export handles Pro client code.
+- [x] **#2086 — closed on 2026-11-22:** Product Owner decision for the Cloud: the Web and Android clients stay one
+  bundle and the server enforces every Pro route; no client-side hiding or obfuscation is added. The optional Play
+  Integrity check is tracked in #2170. Whether a public Core export contains client code at all waits for
+  Self-Hosted (open decision 2 of [Decision 0017](decisions/0017-pro-plugin-seam.md)).
+- [ ] **#2170:** evaluate Play Integrity as an optional check that Android requests come from the genuine app; not
+  launch-blocking.
 - [ ] **#2087:** Pro delivery and licensing (private Pro image, signed license).
 - [ ] **#2088:** Cloud first, Self-Hosted later. [Decision 0018](decisions/0018-cloud-first-self-hosted-later.md) was
   merged through #2089; its status line still reads "Proposed" and the re-scoping work is open.

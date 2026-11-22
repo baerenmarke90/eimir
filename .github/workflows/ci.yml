@@ -171,6 +171,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       EIMIR_ENVIRONMENT: test
+      # Core plus the Pro plugin, as in the released image (#2182).
+      EIMIR_PLUGINS: pro
     defaults:
       run:
         working-directory: backend
@@ -311,6 +313,8 @@ jobs:
       EIMIR_ENVIRONMENT: test
       EIMIR_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
       EIMIR_TEST_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
+      # Core plus the Pro plugin, as in the released image (#2182).
+      EIMIR_PLUGINS: pro
 
     defaults:
       run:
@@ -476,10 +480,9 @@ jobs:
         run: |
           python -m pip install "uv==$UV_VERSION"
           uv lock --check
-          # The Pro distribution (#2182) stays installed but unloaded
-          # (EIMIR_PLUGINS="") until the plugin object leaves Core; then this
-          # lane installs Core only.
-          uv sync --frozen --all-packages
+          # Core only: the Pro distribution (backend/pro, #2182) is not
+          # installed, so nothing here can import or load Pro code.
+          uv sync --frozen
 
       - name: Core-only migrations
         run: uv run --frozen alembic upgrade head
@@ -796,9 +799,55 @@ jobs:
         if: needs.changes.outputs.supply_chain_backend_build == 'true'
         run: uv build --no-cache --wheel --out-dir /tmp/eimir-dist
 
+      - name: Core wheel carries no Pro code
+        if: needs.changes.outputs.supply_chain_backend_build == 'true'
+        # Decision 0017, Phase 2 (#2182): the Core distribution must not ship
+        # the Pro plugin, its object or its editorial data.
+        run: |
+          python - /tmp/eimir-dist <<'PY'
+          import pathlib
+          import sys
+          import zipfile
+
+          wheels = sorted(pathlib.Path(sys.argv[1]).glob("eimir-*.whl"))
+          if len(wheels) != 1:
+              raise SystemExit(f"Expected one Core wheel, found {wheels}")
+          names = zipfile.ZipFile(wheels[0]).namelist()
+          pro = [
+              name
+              for name in names
+              if name.startswith(("eimir_pro/", "eimir/pro_plugin"))
+              or "date_ideas" in name
+              or "daily_sayings" in name
+          ]
+          if pro:
+              raise SystemExit("The Core wheel contains Pro files: " + ", ".join(pro[:20]))
+          print(f"{wheels[0].name}: {len(names)} files, no Pro file.")
+          PY
+
       - name: Build backend production container from scratch
         if: needs.changes.outputs.supply_chain_backend_build == 'true'
         run: docker build --pull --no-cache --tag eimir-backend:ci .
+
+      - name: Core image without Pro, Pro image with it
+        if: needs.changes.outputs.supply_chain_backend_build == 'true'
+        # The default target is the image with the Pro plugin; the `core`
+        # stage is the Core alone (Decision 0017, Phase 2, #2182).
+        run: |
+          docker build --tag eimir-backend:core --target core .
+          docker run --rm --entrypoint python eimir-backend:core -c "
+          import importlib.util, os
+          from eimir.plugins.loader import loaded_plugins
+          assert not os.path.exists('/app/pro/src')
+          assert importlib.util.find_spec('eimir_pro') is None
+          assert loaded_plugins().names == ()
+          print('Core image: Core only.')
+          "
+          docker run --rm --entrypoint python eimir-backend:ci -c "
+          from eimir.plugins.loader import loaded_plugins
+          assert loaded_plugins().names == ('pro',)
+          print('Pro image: Core with the Pro plugin.')
+          "
 
       - name: Build Web production container from scratch
         if: needs.changes.outputs.supply_chain_web_build == 'true'

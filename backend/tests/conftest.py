@@ -10,6 +10,7 @@ Two layers are deliberately kept separate:
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import shutil
 import tempfile
@@ -23,6 +24,11 @@ from tests.support.encryption import EncryptionConfigurator
 
 # Never accidentally run against a real instance.
 os.environ.setdefault("EIMIR_ENVIRONMENT", "test")
+
+# The suite runs with the Pro plugin when its distribution is installed, as
+# before Phase 2 (#2182); the Core-only configuration sets EIMIR_PLUGINS="".
+if importlib.util.find_spec("eimir_pro") is not None:
+    os.environ.setdefault("EIMIR_PLUGINS", "pro")
 
 # Encryption at rest has no default in production. Tests that construct
 # production settings for unrelated reasons inherit an explicit "disabled" here;
@@ -197,7 +203,7 @@ def engine() -> Iterator[Engine]:
     # so the Core-only configuration needs them too when the Pro models are
     # installed (Decision 0017). Without ``eimir-pro`` only Core tables exist here.
     if pro_distribution_installed():
-        from eimir.pro_plugin import plugin as pro_plugin
+        from eimir_pro.plugin import plugin as pro_plugin
 
         for module in pro_plugin.model_modules():
             import_module(module)

@@ -156,7 +156,10 @@ def test_rewrap_refuses_plaintext() -> None:
 def test_failures_never_echo_content() -> None:
     protector = _protector()
     stored: dict[str, Any] = protector.protect(PLAIN, context=CTX)
-    stored["ct"] = stored["ct"][:-2] + "AA"
+    # Change the first character: it encodes six whole bits of the first byte,
+    # so the ciphertext always changes (#2211 hit an unchanged "AA" tail).
+    value = stored["ct"]
+    stored["ct"] = ("A" if value[0] != "A" else "B") + value[1:]
     with pytest.raises(DecryptionError) as raised:
         protector.reveal(stored, context=CTX)
     assert "Anniversary" not in str(raised.value)

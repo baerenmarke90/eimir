@@ -1,4 +1,3 @@
-import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import en from '../../src/i18n/locales/en.json' with { type: 'json' };
@@ -7,6 +6,7 @@ import { privacyPolicyDe } from '../../src/i18n/locales/legalDocuments/privacyPo
 import { termsOfUseDe } from '../../src/i18n/locales/legalDocuments/termsOfUse.de.generated';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 import {
   installMocks,
   ACCOUNT_ID as SHELL_ACCOUNT_ID,
@@ -663,6 +663,65 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
 
     // Accessibility check
     await expectNoWcagViolations(page);
+  });
+
+  test('a requested link can be sent again or restarted with another address (#2176)', async ({
+    page,
+  }, testInfo) => {
+    const requested: unknown[] = [];
+    await routeCloudEntry(page, (body) => requested.push(body));
+    await page.goto('/');
+    await page.getByLabel(de.login.email).fill('admin@example.org');
+    await page
+      .getByRole('button', { name: de.identity.magicLinkRequestSubmit })
+      .click();
+    await expect(page.getByText(de.identity.mailRequestedTitle)).toBeVisible();
+    const resend = page.getByRole('button', {
+      name: de.identity.requestNewLink,
+    });
+    const otherAddress = page.getByRole('button', {
+      name: de.identity.useOtherAddress,
+    });
+    await expect(resend).toBeVisible();
+    await expect(otherAddress).toBeVisible();
+
+    // Evidence: Compact widths, Light and Dark, large text, reduced motion.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    for (const scheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
+      for (const width of [360, 390, 430]) {
+        await page.setViewportSize({ width, height: 844 });
+        await expectNoHorizontalOverflow(page);
+        await page.screenshot({
+          path: testInfo.outputPath(`mail-requested-${scheme}-${width}.png`),
+        });
+      }
+    }
+    await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+    await page.setViewportSize({ width: 360, height: 844 });
+    await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath('mail-requested-large-text-360.png'),
+    });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.screenshot({
+      path: testInfo.outputPath('mail-requested-expanded.png'),
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expectNoWcagViolations(page);
+
+    // Resend needs no retyping and moves focus back to the notice.
+    const before = requested.length;
+    await resend.click();
+    await expect.poll(() => requested.length).toBe(before + 1);
+    expect(requested.at(-1)).toMatchObject({ email: 'admin@example.org' });
+    await expect(page.getByRole('status')).toBeFocused();
+
+    // Another address opens the empty form with the field focused.
+    await otherAddress.click();
+    await expect(page.getByLabel(de.login.email)).toBeFocused();
+    await expect(page.getByLabel(de.login.email)).toHaveValue('');
+    await expect(page.getByText(de.identity.mailRequestedTitle)).toBeHidden();
   });
 
   test('consumes signup token, displays FirstSpaceGate, creates space and hands off to settings connection', async ({

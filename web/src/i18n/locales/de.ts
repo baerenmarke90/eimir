@@ -240,6 +240,8 @@ const de = {
     mailRequestedBody:
       'Wenn die Adresse für diesen Zugang verwendet werden kann, wurde ein zeitlich begrenzter Link gesendet.',
     backToSignIn: 'Zur Anmeldung',
+    requestNewLink: 'Neuen Link anfordern',
+    useOtherAddress: 'Andere Adresse verwenden',
     useMagicLink: 'Anmeldelink per E-Mail',
     magicLinkEyebrow: 'Anmelden ohne Passwort',
     magicLinkTitle: 'Anmeldelink anfordern',

@@ -427,13 +427,16 @@ export async function startBackgroundVideoTransfer({
         // Loaded lazily: session persistence imports this module, and the
         // failure mapping depends on the reference flow that imports it.
         if (!signal.aborted)
-          void import('./uploadFailure').then(({ describeUploadFailure }) =>
-            describeUploadFailure(error, {
-              phase,
-              media: 'video',
-              size: selected.size,
-            }),
-          );
+          void import('./uploadFailure')
+            .then(({ describeUploadFailure }) =>
+              describeUploadFailure(error, {
+                phase,
+                media: 'video',
+                size: selected.size,
+              }),
+            )
+            // A breadcrumb is best effort and never a second failure.
+            .catch(() => undefined);
         throw error;
       }
     };

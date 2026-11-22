@@ -6,7 +6,7 @@ import {
   ReferenceFlowError,
   type UploadTransferDetail,
   UploadTransferError,
-} from './referenceFlow';
+} from './uploadErrors';
 import { STORAGE_QUOTA_EXCEEDED } from './storageQuota';
 
 /** The step of an attachment upload that failed. */

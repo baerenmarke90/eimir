@@ -866,13 +866,20 @@ test('quote and statistics order survives pointer release, keyboard movement and
   await grip.scrollIntoViewIfNeeded();
   const initial = await grip.boundingBox();
   const rowBefore = await quote.boundingBox();
-  if (!initial || !rowBefore) throw new Error('Missing visible quote row');
+  // Since #2158 C the waiting-games row sits between the quote and the
+  // keepsake; drag past both so the quote lands after the keepsake on Wir.
+  const keepsakeRow = await page
+    .locator('[data-sortable-item-id="keepsake"]')
+    .boundingBox();
+  if (!initial || !rowBefore || !keepsakeRow)
+    throw new Error('Missing visible quote or keepsake row');
   await page.mouse.move(
     initial.x + initial.width / 2,
     initial.y + initial.height / 2,
   );
   await page.mouse.down();
-  const dragDistance = rowBefore.height + 20;
+  const dragDistance =
+    keepsakeRow.y + keepsakeRow.height - (rowBefore.y + rowBefore.height) + 20;
   await page.mouse.move(
     initial.x + initial.width / 2,
     initial.y + initial.height / 2 + dragDistance,

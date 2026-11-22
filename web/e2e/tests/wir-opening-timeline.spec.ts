@@ -38,6 +38,8 @@ interface Scenario {
   lateDelayMs?: number;
   /** Which reads are held. Default: all of them. */
   late?: readonly LateData[];
+  /** Nobody has checked in today, so the row under the names stays closed. */
+  emptyDay?: boolean;
 }
 
 const hold = (ms: number) =>
@@ -243,14 +245,20 @@ async function installMocks(page: Page, scenario: Scenario = {}) {
         json: {
           checkedOn: '2026-11-13',
           dailyContextTimezone: 'Europe/Berlin',
-          own: { energyLevel: 80, vibe: 'GOOD', vibeNote: null, version: 1 },
+          own: scenario.emptyDay
+            ? { energyLevel: null, vibe: null, vibeNote: null, version: 0 }
+            : { energyLevel: 80, vibe: 'GOOD', vibeNote: null, version: 1 },
           energy: {
             visibilityMode: 'IMMEDIATE',
-            partner: { state: 'VISIBLE', value: 40 },
+            partner: scenario.emptyDay
+              ? { state: 'NO_CHECK_IN' }
+              : { state: 'VISIBLE', value: 40 },
           },
           vibe: {
             visibilityMode: 'IMMEDIATE',
-            partner: { state: 'VISIBLE', value: 'OKAY' },
+            partner: scenario.emptyDay
+              ? { state: 'NO_CHECK_IN' }
+              : { state: 'VISIBLE', value: 'OKAY' },
             partnerNote: null,
           },
         },
@@ -660,10 +668,13 @@ async function grantLocation(page: Page) {
   });
 }
 
-/** The partner's check-in was already seen on this device today. */
+/**
+ * The partner's check-in was already seen on this device today, so the row
+ * under the names keeps its place while today's state loads.
+ */
 async function partnerNewsSeen(page: Page) {
   await page.addInitScript(
-    ({ key }) => {
+    ({ key, rowKey }) => {
       window.localStorage.setItem(
         key,
         JSON.stringify({
@@ -673,8 +684,12 @@ async function partnerNewsSeen(page: Page) {
           note: null,
         }),
       );
+      window.localStorage.setItem(rowKey, '2026-11-13');
     },
-    { key: `eimir.wir.partnerArrivalSeen:${ACCOUNT_ID}:${SPACE_ID}` },
+    {
+      key: `eimir.wir.partnerArrivalSeen:${ACCOUNT_ID}:${SPACE_ID}`,
+      rowKey: `eimir.wir.checkInRowDay:${ACCOUNT_ID}:${SPACE_ID}`,
+    },
   );
 }
 
@@ -815,6 +830,30 @@ test('#2147 reduced motion: the same layout, nothing moves when data arrives', a
   );
   expect(reducedBoxes).toEqual(animatedBoxes);
 });
+
+for (const reduced of [false, true]) {
+  test(`an empty day keeps the quote in place when its state arrives late (${reduced ? 'reduced motion' : 'motion'})`, async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await openWirCold(page, {
+      reduced,
+      emptyDay: true,
+      newsSeen: false,
+      late: ['checkIn'],
+      lateDelayMs: 1_000,
+    });
+    await expect(page.getByTestId('wir-checkin-own-badge')).toHaveAttribute(
+      'data-empty',
+      'true',
+      { timeout: 10_000 },
+    );
+    await page.waitForTimeout(1_000);
+    const timeline = await readTimeline(page);
+    for (const key of ['hero', 'quote', 'module'])
+      expect(jumpsAfterPaint(timeline, key)).toEqual([]);
+  });
+}
 
 test('#2147 the partner news waits for the opening and never shows twice', async ({
   page,

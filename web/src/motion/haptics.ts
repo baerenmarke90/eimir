@@ -7,9 +7,9 @@
  * - Native app only: on the Web this is a no-op, and it never calls a
  *   backend there (the plugin's Web implementation would use
  *   `navigator.vibrate`).
- * - The native backend is `@capacitor/haptics` (#2076), registered at start
- *   by `registerNativeHaptics()` in `hapticsNative.ts`, which loads the
- *   plugin only in the native app. This module itself adds no dependency.
+ * - The native backend is registered at start by `registerNativeHaptics()` in
+ *   `hapticsNative.ts`: Android system feedback, or `@capacitor/haptics` on
+ *   other native platforms. This module itself adds no dependency.
  * - Budget: no two haptics within `--duration-context` (unreduced; haptics do
  *   not follow reduced motion); the later one is dropped. A gesture's
  *   threshold tick is outside that spacing but plays at most once per

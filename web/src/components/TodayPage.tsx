@@ -1241,6 +1241,7 @@ export function TodayPage({
     partnerName,
     vibeEnabled: vibeCheckEnabled,
     energyEnabled: energyCheckInEnabled,
+    promptBesidePlus: connectedDesign,
   });
   // "Gefühl teilen" from a partner check-in receipt opens the viewer's own
   // daily check-in once; the flag is removed so Back never reopens it.
@@ -1889,6 +1890,7 @@ export function TodayPage({
             </span>
             {wirOccasion?.birthday === 'own' ? <WirOccasionCake /> : null}
             {dailyCheckIn?.ownBadge}
+            {dailyCheckIn?.ownPrompt}
             {dailyCheckIn ? (
               <span
                 className="wir-stage-gesture wir-stage-gesture-own"

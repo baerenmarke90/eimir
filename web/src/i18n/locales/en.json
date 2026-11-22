@@ -3214,10 +3214,10 @@
       "days_other": "{{count}} days to go",
       "choiceLabel": "Anticipation on Us",
       "automatic": "Automatic",
-      "always": "Always",
+      "always": "Show first",
       "never": "Never",
       "automaticHelp": "When this plan is next, Us counts down to it.",
-      "automaticDiscreetHelp": "Us only counts down to a discreet plan when you choose Always.",
+      "automaticDiscreetHelp": "Us only counts down to a discreet plan when you choose Show first.",
       "alwaysHelp": "Us counts down to this plan, even if something else comes first.",
       "neverHelp": "This plan never appears as the countdown on Us."
     },

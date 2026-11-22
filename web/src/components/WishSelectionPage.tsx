@@ -56,6 +56,7 @@ import {
 import { type TaskOriginMetadata, useTaskOrigin } from '../client/taskOrigin';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
+import { withoutHiddenWishes } from '../client/wishConcealment';
 import {
   ownIdeaSelectionIds,
   ownSelectionIds,
@@ -352,7 +353,10 @@ function WishSelectionTask({
     [
       ...new Map<string, { id: string; title: string }>(
         [
-          ...(wishes.data?.pages.flatMap((page) => page.items) ?? []),
+          // #2158 H: a wish an open game hides from the reader is no choice.
+          ...withoutHiddenWishes(
+            wishes.data?.pages.flatMap((page) => page.items) ?? [],
+          ),
           ...(view?.candidates
             .filter((candidate) => candidate.status === 'OPEN')
             .map((candidate) => ({

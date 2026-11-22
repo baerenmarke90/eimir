@@ -30,8 +30,15 @@ foundation. It does not introduce the previously rejected daily summary.
    opt-outs and Quiet Hours. Comment Email retains its separately opted-in hourly
    digest; there is no daily engagement Push. New kinds
    inherit the relevant existing recipient group rather than another settings UI.
-5. By default, the public lock-screen version stays neutral. Android's sensitive-content
-   preference remains user-controlled. The Product Owner's 2026-11-01 follow-up
+5. **Android decides (Product Owner decision 2026-11-21, #2158, amending M4-D41).**
+   The app forces no neutral lock-screen presentation. Every native notice is
+   `VISIBILITY_PRIVATE` with a neutral public version and the channel sets no
+   lock-screen override, so the person's Android setting alone decides: "show all
+   notification content" shows the full notice on a locked screen, "hide sensitive
+   content" shows only the neutral public version, "don't show notifications" shows
+   nothing. Negotiated FCM preview v3 gives every kind its real content (see
+   [Detailed device content](#detailed-device-content-2158)); the exceptions there
+   are surprise and technical protections. The Product Owner's 2026-11-01 follow-up
    authorizes named event/title previews on the device. Negotiated FCM preview v1
    carries standard JWE ciphertext bound to the current activation. Names, kinds,
    titles and the canonical notification ID stay inside that envelope; the key
@@ -56,7 +63,10 @@ foundation. It does not introduce the previously rejected daily summary.
    deliberate Wish date exchange in #1910 has the scoped presentation exception
    below. Every known native kind has its own
    accurate localized label, including content-free automatic invitations and
-   source-free due notices; a digest remains explicitly plural.
+   source-free due notices; a digest remains explicitly plural. Preview v3
+   (#2158) is negotiated the same way through the additive
+   `encryptedPreviewDetailVersion` field, so installed apps keep v2 and v1 with
+   their exact fields and meaning.
 6. A tap resolves current authenticated recipient state and opens its canonical
    destination. An unavailable target falls back to the Center. Account/Space
    changes invalidate pending navigation, and an active editor defers navigation
@@ -76,8 +86,8 @@ foundation. It does not introduce the previously rejected daily summary.
 
 | Module / surface | Meaningful occasion | App behavior / external delivery |
 | --- | --- | --- |
-| One-time partner message (#1672) | Deliberately send a one-time message after bilateral reception consent | One recipient Center item and neutral Push; never a rich native preview or Email. Tap opens the sealed page; claim/discard/expiry removes its derived notice. Existing channels and Quiet Hours apply; sending is Pro, pending reception is not. |
-| Glucksmomente | Deliberately share an authored present joy/appreciation | One partner Notification and neutral immediate Push; latest incoming source on Wir; canonical Memory read/history. |
+| One-time partner message (#1672) | Deliberately send a one-time message after bilateral reception consent | One recipient Center item and neutral Push; never a rich native preview or Email: the message is sealed on the sender's device and the server cannot read it (#2158 exception a). Tap opens the sealed page; claim/discard/expiry removes its derived notice. Existing channels and Quiet Hours apply; sending is Pro, pending reception is not. |
+| Glucksmomente | Deliberately share an authored present joy/appreciation | One partner Notification and immediate Push naming the partner, title and an excerpt of the words; latest incoming source on Wir; canonical Memory read/history. |
 | Zeitreise | Deliberately share a recollection | Same authored-source workflow, optional past date. |
 | Daily writing questions | Three optional inspirations per module/Space day | Fetch only; no Outbox, Notification, Push or completion obligation. Free writing is unlimited. |
 | Thinking of you / kiss / check-in gesture | Deliberate paced partner signal | Existing neutral immediate delivery and quiet-hours behavior. No request to reciprocate. |
@@ -93,19 +103,19 @@ foundation. It does not introduce the previously rejected daily summary.
 | Milestones / chapters | Shared creation; important date approaches | Existing Activity; the date's existing reminder occurrence owns timed attention. |
 | Shared photos / saved map | Upload, gallery or place relation changes | Refresh/progress in context; no per-photo, GPS, map or import-history Push. |
 | Comments | Either partner comments on accessible content, including replies on their own parent entry | One reference-only event, Activity and partner Center item; immediate Push under existing endpoint/recipient choices and Quiet Hours. No self-notice. Email remains an opted-in hourly digest; the open thread updates silently. |
-| Manual shared reminders | A partner deliberately creates a shared reminder | One recipient-owned creation notice, with current creator/title and an authorized reminder read action; inherits existing reminder choices and respects Quiet Hours. Generated/private-source rules and imports remain silent. |
-| Photo reactions | Partner adds or changes a preset reaction on the recipient's shared Memory | One coalesced Center item per recipient/Memory and one Push delivery per active endpoint for that item. Inherits the comment Push choice and respects Quiet Hours. Opens the authorized Memory. Removing the last incoming reaction removes the notice and suppresses pending delivery. |
-| Plans | A new binding scheduled Plan, including scheduling an existing idea | Center and a partner Push for today or tomorrow in the recipient's calendar. Later appointments stay Center-only on creation. The Push inherits the reminder setting, respects Quiet Hours and opens the Plan. A Plan whose date or time has moved no longer sends the original notice. |
-| Plan time/place changes | An actual schedule/place change affects an appointment within 48 hours | Neutral immediate partner notice, expiring with the relevant source appointment. Pure prose, cover and unchanged schedule writes stay silent. |
-| Plan cancellation | Unschedule, delete or return an imminent Plan to its Wish | One expiring neutral notice; open Planen when the original Plan has been removed. No copied deleted title. Completed/past Plans do not notify. |
+| Manual shared reminders | A partner deliberately creates a shared reminder | One recipient-owned creation notice, with current creator/title, its time and an excerpt of its description (v3) and an authorized reminder read action; inherits existing reminder choices and respects Quiet Hours. Generated/private-source rules and imports remain silent. |
+| Photo reactions | Partner adds or changes a preset reaction on the recipient's shared Memory | One coalesced Center item per recipient/Memory and one Push delivery per active endpoint for that item, naming the Memory and the reaction symbol (v3). Inherits the comment Push choice and respects Quiet Hours. Opens the authorized Memory. Removing the last incoming reaction removes the notice and suppresses pending delivery. |
+| Plans | A new binding scheduled Plan, including scheduling an existing idea | Center and a partner Push for today or tomorrow in the recipient's calendar, naming the title, the start in the device's time zone and the place (v3). Later appointments stay Center-only on creation. The Push inherits the reminder setting, respects Quiet Hours and opens the Plan. A Plan whose date or time has moved no longer sends the original notice. |
+| Plan time/place changes | An actual schedule/place change affects an appointment within 48 hours | Immediate partner notice naming the title and the new time and place (v3; the previous values are not recorded, so it does not say which one changed), expiring with the relevant source appointment. Pure prose, cover and unchanged schedule writes stay silent. |
+| Plan cancellation | Unschedule, delete or return an imminent Plan to its Wish | One expiring notice that names the Plan while it still exists (v3); open Planen when the original Plan has been removed. No copied deleted title, so a deleted Plan's notice stays without one. Completed/past Plans do not notify. |
 | Wishes | Ordinary create/edit | Existing shared Activity, no individual Push. |
 | Wish date proposal (#1910) | Explicitly propose a time, counter or accept on a shared Wish | One recipient-owned Center item. Push uses the existing reminder channel choice and Quiet Hours. A tap opens the active proposal on its Wish. Acceptance produces one shared Plan and the acceptance notice opens it. Decline or withdrawal leaves the Wish open. |
-| Personal Wish reminder (#812) | A partner's own one-time reminder for an open Wish becomes due | Owner-only Center and Push under the reminder setting, including during Quiet Hours. Opens the Wish. Public copy stays neutral, and an opted-in Android preview omits the Wish title. Replacement, removal, Wish completion, conversion, deletion or loss of access suppresses stale delivery. |
+| Personal Wish reminder (#812) | A partner's own one-time reminder for an open Wish becomes due | Owner-only Center and Push under the reminder setting, including during Quiet Hours. Opens the Wish. The v3 device preview names the Wish title; Android's lock-screen setting decides what a locked screen shows. Replacement, removal, Wish completion, conversion, deletion or loss of access suppresses stale delivery. |
 | Shared Wish selection | Deliberately publish the shared candidate round; both partners publish and result becomes available; a partner proposes, accepts or declines the random pick (#1907 J1) | One invitation and one revealed-result notice per round, each naming the feature's question (`wishSelection.notice.*`); the invitation states how many ideas are in the round. A random-pick request and its acceptance notify by Push and in-app; a decline is in-app only. No notice reveals whether there was a match or what was chosen. Individual favorites/publication, a withdrawn request and a manual choice are silent. Notices disappear when mutual publication, the open request, the stored decision or the current participant context no longer holds. The preference stays with `THINKING_OF_YOU`. Open the current selection. |
 | Herzversteck (#1907 H3) | A partner hides a heart in a photo and sends it; the other partner finds it | One in-app and Push notice per event, naming the partner ("hid a heart", "found your heart"); the photo and its contents never appear in the notice. Both follow the shared-activity preference (`THINKING_OF_YOU`) and Quiet Hours; neither names a target row, because a round (and its photo) can already be gone when the notice is read. A tap opens the game. |
-| Sent list (#1907 E2) | A partner deliberately sends a shared list from its menu (confirmation first) | One recipient Center item and a neutral immediate Push (sender's name and "a list", never the list title, since a list may be a surprise). Its own recipient switch sits with the partner notices; Quiet Hours hold it. The list is added at the end of the recipient's pinned lists on Wir without touching their order or visibility. One notice per sender and list in 30 minutes; a repeat adds nothing and stays silent. A tap opens the list. Not offered by email. |
-| Shared Notes (#1969) | A partner creates a shared note or changes its text (pinning, plan links and deletion stay silent) | One recipient Center item per new note and one coalesced item per note for changes, and a neutral immediate Push naming only the partner and the action ("created / changed a shared note"; never the note's title or text). Inherits the comment Push choice and Quiet Hours; not offered by email. A change adds no Push while the partner has not yet read the note's earlier notice; once it was read, the next change notifies again. A tap opens the note. |
-| Garden seed (#1907 H3) | A partner sends today's seed in the shared garden (one per partner and day) | One recipient Center item and a neutral immediate Push (sender's name and "a seed", never the attached words). Its own recipient switch sits with the partner notices; Quiet Hours hold it. The notice stays current only while the seed waits to be planted; a tap opens the garden. A bouquet (up to three blooms, one per partner and day) reuses this kind with the target `GARDEN_BOUQUET` and its own text (`coupleExperiences.notifications.GARDEN_BOUQUET`, "gave you a bouquet"), current only while its card waits. At most one garden notice per person and local day; a later seed or bouquet that day stays silent. Watering, growth, unlocks, visiting animals and later garden moments send nothing. Not offered by email. |
+| Sent list (#1907 E2) | A partner deliberately sends a shared list from its menu (confirmation first) | One recipient Center item and an immediate Push naming the sender and the list title (v3; the earlier "never the list title" rule is superseded by the 2026-11-21 decision, the sender chooses to send). Its own recipient switch sits with the partner notices; Quiet Hours hold it. The list is added at the end of the recipient's pinned lists on Wir without touching their order or visibility. One notice per sender and list in 30 minutes; a repeat adds nothing and stays silent. A tap opens the list. Not offered by email. |
+| Shared Notes (#1969) | A partner creates a shared note or changes its text (pinning, plan links and deletion stay silent) | One recipient Center item per new note and one coalesced item per note for changes, and an immediate Push naming the partner, the action, the note's title and a short excerpt of its text (v3; v1/v2 name only the partner and the action). Inherits the comment Push choice and Quiet Hours; not offered by email. A change adds no Push while the partner has not yet read the note's earlier notice; once it was read, the next change notifies again. A tap opens the note. |
+| Garden seed (#1907 H3) | A partner sends today's seed in the shared garden (one per partner and day) | One recipient Center item and an immediate Push naming the sender and what the seed is (v3). The attached words never travel in a push: they stay a folded card the recipient opens in the garden (Product Owner 2026-11-22, #2158). A wrapped surprise names no species until its moonflower first blooms (#2158 exception c). Its own recipient switch sits with the partner notices; Quiet Hours hold it. The notice stays current only while the seed waits to be planted; a tap opens the garden. A bouquet (up to three blooms, one per partner and day) reuses this kind with the target `GARDEN_BOUQUET` and its own text (`coupleExperiences.notifications.GARDEN_BOUQUET`, "gave you a bouquet", in v3 with its flowers), current only while its card waits. At most one garden notice per person and local day; a later seed or bouquet that day stays silent. Watering, growth, unlocks, visiting animals and later garden moments send nothing. Not offered by email. |
 | Recaps (#1744) | A completed month or year is retained after its grace week; late shared entries make a retained recap's newer version | One identical in-app and neutral immediate Push notice per partner, naming only the period (`recaps.notice.readyMonth`, `readyYear`, `grewMonth`, `grewYear`). December is announced with the year film. Earlier periods that appear only now and newer versions are sent at most once a day per Space, several together as one notice that opens the overview. Never for the running period, never before 09:00 or after 21:00 in the Space's time zone; recipient Quiet Hours and the own recaps switch (`notificationSettings.recaps`) apply (`RECAP_GREW` follows it). Premium only: without `relationship.passport` nothing is composed or announced. Silent recompositions of open proposals send nothing. A tap opens the recap. Not offered by email. |
 | Shared Collections / checklists | Routine add/check/reorder | Update in place; no per-checkbox or small-edit alert. Explicit timed Reminders retain their existing recipient schedule. |
 | Places | Shared creation/edit/link | Existing Activity/source update only. A saved Place is not a time-sensitive event. |
@@ -118,6 +128,46 @@ foundation. It does not introduce the previously rejected daily summary.
 | Account / connection / security | Account-critical action | Existing dedicated transactional/account workflow; never a relationship-content banner or marketing message. |
 | Import / export | Validation ready, export ready, import complete or domain/terminal storage failure | Owner-only neutral outcome Notification/Push; opens the exact authenticated job in Data. Progress and retries stay in context. Expired/deleted/wrong-owner jobs are unavailable. Imported historical objects never replay relationship messages. |
 | Pro information / app information / operator diagnostics | Viewing information or operational changes | No couple-facing promotional/diagnostic Push; existing operator/account boundaries remain. |
+
+## Detailed device content (#2158)
+
+Product Owner decision 2026-11-21: Android decides, and every neutral notice
+gets its real content. Android FCM preview v3 is negotiated like v2 and
+stays device-bound JWE ciphertext. The server reads each field from the current,
+recipient-authorized source at delivery, never from notification, event, job or
+log state. Free text is shortened so the envelope stays within the native and
+provider bounds (UTF-8 plaintext at most 2000 bytes, JWE at most 3000).
+
+| Kind | v3 content |
+| --- | --- |
+| Plan created / changed, Plan start reminder | Title, start (date or time in the device's time zone) and place |
+| Plan cancelled | Title while the Plan still exists |
+| Manual reminder created / due | Title, time (created) and description excerpt |
+| Personal Wish reminder | Wish title |
+| Comment | Target title (a heart moment's own text) and comment excerpt |
+| Shared moment | Title and words (unchanged from v2) |
+| Shared note created / changed | Note title and text excerpt |
+| Sent list | List title |
+| Photo reaction | Memory title and the reaction symbol |
+| Garden seed / bouquet | What the seed is (never its attached words); a bouquet's flowers |
+| Video processing failed | The Moment's title |
+| Gestures, partner joined, games, recaps, transfers | Their existing complete wording (the action is the whole event) |
+
+Exceptions (surprise and technical protections, proposed for Product Owner confirmation):
+
+- **a. One-time message:** the content is encrypted on the sender's device; the server cannot read it, so no
+  notice can carry it. The device receives only a neutral reference.
+- **b. Discreet Plan:** the partner the surprise is hidden from is the recipient. The notice shows only the
+  creator's preview title (the real title only when the creator chose "original title"), with its date like the
+  overviews, never the real title, place, description or comments. Without a preview title the wording is
+  neutral ("scheduled a plan").
+- **c. Garden seed:** a wrapped moonflower names no species until it first blooms, and a seed's attached words never show in a push; they stay a folded card opened in the garden (confirmed by the Product Owner 2026-11-22).
+- **d. Game reveals:** no notice names answers, guesses, wishes in a round, a Wish selection's favourites or
+  result, a random pick's choice, the hidden heart's photo or position, or the picture. These reveals happen in
+  the app.
+
+iOS APNs and browser Web Push keep neutral system copy: they have no device-bound preview key today, and the
+Wish date exception stays their only content. UnifiedPush keeps its negotiated Wish date preview.
 
 ## Wish date exchange presentation (#1910)
 
@@ -191,7 +241,7 @@ same device, the creation Push and generated start reminders for that exact
 start coalesce within 24 hours of creation. An attempted provider handoff is
 enough to coalesce, since an ambiguous provider response may have delivered the
 first Push. Both notices open the Plan where reference routing is supported.
-The start reminder's device preview stays generic. In-app reminder records and
+The start reminder's v3 device preview names the Plan, its start and its place (v1/v2 stay generic). In-app reminder records and
 notifications still follow their schedules.
 
 A personal Wish reminder uses the same 24-hour catch-up limit as scheduled

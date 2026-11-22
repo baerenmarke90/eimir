@@ -311,7 +311,7 @@ jobs:
             -e class de.eimir.app.PushPreviewTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee push-preview.log
-          grep -Eq '^OK \(7 tests\)' push-preview.log
+          grep -Eq '^OK \(8 tests\)' push-preview.log
           if [ '${{ matrix.api }}' != '28' ]; then
             adb -e exec-out run-as de.eimir.app.debug cat files/native-photo-picker.png > native-photo-picker.png
             test -s native-photo-picker.png

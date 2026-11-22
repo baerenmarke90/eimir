@@ -441,6 +441,19 @@ class InTreeProPlugin:
     def attachment_read_rules(self) -> Mapping[str, AttachmentReadRule]:
         return _ATTACHMENT_READ_RULES
 
+    def push_preview_detail(
+        self,
+        session: Session,
+        context: AuthorizationContext,
+        target_type: EngagementTarget,
+        target_id: UUID,
+    ) -> tuple[str, str] | None:
+        if target_type not in {EngagementTarget.GARDEN_SEED, EngagementTarget.GARDEN_BOUQUET}:
+            return None
+        from eimir.garden import service as garden
+
+        return garden.notice_preview(session, context, target_type.value, target_id)
+
     def on_partner_joined(self, session: Session, space_id: UUID) -> None:
         from eimir.couple_games import service as couple_games
         from eimir.garden import service as garden
@@ -501,6 +514,11 @@ class InTreeProPlugin:
         if google_account and google_account.payload.account_id == authorization.account_id:
             document["personalGoogleAccountHint"] = google_account.payload.email
         return document
+
+    def hidden_wish_ids(self, session: Session, context: AuthorizationContext) -> frozenset[UUID]:
+        from eimir.couple_games import service as couple_games
+
+        return couple_games.hidden_wish_ids(session, context)
 
     def date_ideas(self) -> DateIdeaSource | None:
         return _DATE_IDEAS

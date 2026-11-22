@@ -503,6 +503,10 @@
         "web/src/components/GardenAmbience.tsx",
         "web/src/client/gardenAmbience.ts",
         "web/src/components/GardenGrowth.css",
+        "web/src/components/GardenHistory.tsx",
+        "web/src/components/GardenHistory.css",
+        "web/src/client/gardenHistory.ts",
+        "web/src/client/gardenFlightReveal.ts",
         "web/src/components/GamesProductArea.tsx"
       ]
     },
@@ -1432,6 +1436,27 @@
         "web/src/components/GardenScene.tsx",
         "web/src/components/GardenPresentation.tsx",
         "web/src/client/garden.ts"
+      ]
+    },
+    "transfer-import-storage.spec.ts": {
+      "roots": [
+        "web/src/components/TransferPanel.tsx",
+        "web/src/components/TransferImportSection.tsx",
+        "web/src/client/transferImport.ts",
+        "web/src/client/transfer.ts",
+        "web/src/components/ProPaywallPage.tsx",
+        "web/src/components/StorageSection.tsx",
+        "web/src/client/storageQuota.ts",
+        "web/src/components/SettingsPage.tsx"
+      ]
+    },
+    "storage-upload-refusal.spec.ts": {
+      "roots": [
+        "web/src/client/storageQuota.ts",
+        "web/src/client/memoryAttachmentDraft.ts",
+        "web/src/client/usePlanFileDrafts.ts",
+        "web/src/client/photoSources.ts",
+        "web/src/components/PhotoDraftGallery.tsx"
       ]
     }
   }

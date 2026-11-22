@@ -176,6 +176,7 @@ export const PRO_PAYWALL_CONTEXTS = [
   'recaps',
   'memoryMap',
   'photoSources',
+  'storage',
   'calendar',
   'games',
   'general',

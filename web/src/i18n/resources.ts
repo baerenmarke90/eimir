@@ -57,10 +57,12 @@ import serverAdmin from './locales/serverAdmin';
 import sharedNotes from './locales/sharedNotes';
 import snackbar from './locales/snackbar';
 import spaceOffboarding from './locales/spaceOffboarding';
+import storageQuota from './locales/storageQuota';
 import storyProducts from './locales/storyProducts';
 import motionSettings from './locales/motionSettings';
 import taskBoundary from './locales/taskBoundary';
 import taskSheets from './locales/taskSheets';
+import uploadFailure from './locales/uploadFailure';
 import video from './locales/video';
 import voiceNotes from './locales/voiceNotes';
 import webViewNotice from './locales/webViewNotice';
@@ -69,6 +71,7 @@ import wirCheckIn from './locales/wirCheckIn';
 import wirDesign from './locales/wirDesign';
 import wishDateProposal from './locales/wishDateProposal';
 import wishJourney from './locales/wishJourney';
+import wishConcealment from './locales/wishConcealment';
 import wishRepeat from './locales/wishRepeat';
 import wishSelection from './locales/wishSelection';
 
@@ -95,6 +98,7 @@ export const germanResources = {
   wishJourney,
   wishDateProposal,
   wishRepeat,
+  wishConcealment,
   navigation: { ...de.navigation, ...navigation },
   notificationSettings,
   demo,
@@ -127,6 +131,8 @@ export const germanResources = {
   serverAdmin,
   ...sharedNotes,
   spaceOffboarding,
+  storageQuota,
+  uploadFailure,
   ...relationshipComponents,
   relationshipReflections,
   recaps,

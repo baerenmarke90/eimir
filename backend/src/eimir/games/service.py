@@ -19,6 +19,7 @@ from eimir.attachments.models import Attachment, AttachmentStatus, MediaType
 from eimir.authorization import AuthorizationContext, readable
 from eimir.memories.models import Memory
 from eimir.relationship.models import Membership, MembershipStatus
+from eimir.wishes import concealment
 from eimir.wishes.models import Wish, WishStatus
 
 MAX_MEMORY_CANDIDATES = 24
@@ -162,6 +163,9 @@ def read_wish_candidates(
 
     base_limit, remainder = divmod(limit, len(participant_ids))
     candidates: list[WishCandidate] = []
+    # An open remote game hides the partner's pool from the guesser; this
+    # one-phone pool never carries those titles to their device (#2158 H).
+    hidden = concealment.hidden_wish_ids(session, context)
 
     for index, participant_id in enumerate(participant_ids):
         participant_limit = base_limit + (1 if index < remainder else 0)
@@ -179,6 +183,8 @@ def read_wish_candidates(
         )
         added_for_participant = 0
         for wish in session.execute(statement).scalars().yield_per(100):
+            if wish.id in hidden:
+                continue
             title = wish.payload.title.strip()
             if not title:
                 continue

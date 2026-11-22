@@ -4142,6 +4142,12 @@
             "title": "Androidpackage",
             "type": "string"
           },
+          "encryptedPreviewDetailVersion": {
+            "const": 3,
+            "default": 3,
+            "title": "Encryptedpreviewdetailversion",
+            "type": "integer"
+          },
           "encryptedPreviewMaxVersion": {
             "const": 2,
             "default": 2,
@@ -4206,7 +4212,8 @@
           "version": {
             "enum": [
               1,
-              2
+              2,
+              3
             ],
             "title": "Version",
             "type": "integer"
@@ -4409,6 +4416,142 @@
         ],
         "title": "GardenForm",
         "type": "string"
+      },
+      "GardenHistoryEntry": {
+        "properties": {
+          "actorId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Who did it. Absent when both did (a shared day, watering together), for a first bloom and for a seed that found its place by itself.",
+            "title": "Actorid"
+          },
+          "flowers": {
+            "description": "A bouquet's flowers.",
+            "items": {
+              "$ref": "#/components/schemas/GardenBouquetFlower"
+            },
+            "title": "Flowers",
+            "type": "array"
+          },
+          "happenedOn": {
+            "description": "The couple's calendar day of the entry.",
+            "format": "date",
+            "title": "Happenedon",
+            "type": "string"
+          },
+          "key": {
+            "description": "Stable identity of the entry within the history.",
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/GardenHistoryKind"
+          },
+          "senderId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Who once sent the seed the entry is about, if any.",
+            "title": "Senderid"
+          },
+          "species": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GardenSpecies"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A surprise stays `SURPRISE` until it first blooms."
+          },
+          "waiting": {
+            "default": false,
+            "description": "The seed still waits for the reader to plant it.",
+            "title": "Waiting",
+            "type": "boolean"
+          },
+          "words": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GardenWords"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The seed's words; absent while the seed still waits for the reader."
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "happenedOn"
+        ],
+        "title": "GardenHistoryEntry",
+        "type": "object"
+      },
+      "GardenHistoryKind": {
+        "description": "What one entry of the garden's history tells; derived, never stored.",
+        "enum": [
+          "SEED_SENT",
+          "SEED_PLANTED",
+          "SHARED_DAY",
+          "FIRST_BLOOM",
+          "WATERED",
+          "WATERED_TOGETHER",
+          "BOUQUET_GIVEN",
+          "BOUQUET_KEPT"
+        ],
+        "title": "GardenHistoryKind",
+        "type": "string"
+      },
+      "GardenHistoryPage": {
+        "properties": {
+          "hasMore": {
+            "title": "Hasmore",
+            "type": "boolean"
+          },
+          "items": {
+            "description": "Newest first.",
+            "items": {
+              "$ref": "#/components/schemas/GardenHistoryEntry"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ],
+        "title": "GardenHistoryPage",
+        "type": "object"
       },
       "GardenNameInput": {
         "additionalProperties": false,
@@ -10633,6 +10776,16 @@
         "title": "PlaceUpdate",
         "type": "object"
       },
+      "PlanAnticipation": {
+        "description": "Whether a Plan may carry the countdown on Wir (#504, #2158 D).\n\n``AUTOMATIC`` lets the countdown show the Plan when it is the next upcoming\none and no Plan is pinned. ``ALWAYS`` pins it: a pinned upcoming Plan wins\nover every automatic one. ``NEVER`` keeps the Plan off the countdown.",
+        "enum": [
+          "AUTOMATIC",
+          "ALWAYS",
+          "NEVER"
+        ],
+        "title": "PlanAnticipation",
+        "type": "string"
+      },
       "PlanCalendarSyncView": {
         "properties": {
           "reason": {
@@ -10788,8 +10941,14 @@
       },
       "PlanDetail": {
         "properties": {
+          "anticipation": {
+            "$ref": "#/components/schemas/PlanAnticipation",
+            "default": "AUTOMATIC"
+          },
           "anticipationEnabled": {
             "default": false,
+            "deprecated": true,
+            "description": "Deprecated for older clients: true only while anticipation is ALWAYS.",
             "title": "Anticipationenabled",
             "type": "boolean"
           },
@@ -11161,7 +11320,13 @@
         "additionalProperties": false,
         "description": "Atomic content, image and optional schedule correction.\n\nExplicit null ``schedule`` removes the date; omission preserves it.\n``experiencedOn`` is the one exception: it may be corrected on a completed\nPlan without reopening it (M3-D04).",
         "properties": {
+          "anticipation": {
+            "$ref": "#/components/schemas/PlanAnticipation",
+            "title": "Anticipation"
+          },
           "anticipationEnabled": {
+            "deprecated": true,
+            "description": "Deprecated alias of anticipation for older clients: true pins the Plan (ALWAYS), false returns it to AUTOMATIC.",
             "title": "Anticipationenabled",
             "type": "boolean"
           },
@@ -17182,6 +17347,47 @@
         "title": "SpaceProfileView",
         "type": "object"
       },
+      "SpaceStorageUsage": {
+        "description": "How much of the Cloud storage quota of the Space is used (#2141).",
+        "properties": {
+          "available": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Bytes that still fit, never negative; `null` when unmetered.",
+            "title": "Available"
+          },
+          "quota": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The Space's storage quota in bytes. `null` means unmetered (Self-Hosted, or a tier without a limit); the client then shows no storage section.",
+            "title": "Quota"
+          },
+          "used": {
+            "description": "Bytes the Space keeps: every attachment at its actual size, and a file still being uploaded or validated at its declared size. Thumbnails, the profile photo, one-time messages and Transfer archives do not count.",
+            "title": "Used",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "used",
+          "quota",
+          "available"
+        ],
+        "title": "SpaceStorageUsage",
+        "type": "object"
+      },
       "SpaceView": {
         "properties": {
           "createdAt": {
@@ -18140,7 +18346,7 @@
         "type": "string"
       },
       "TransferSkippedVideos": {
-        "description": "Videos this Space left out of an earlier import and can still recover (#2141).",
+        "description": "Videos this member left out of an earlier import and can still recover (#2141).",
         "properties": {
           "count": {
             "title": "Count",
@@ -18280,6 +18486,75 @@
           "parentId"
         ],
         "title": "VideoPlaybackRequest",
+        "type": "object"
+      },
+      "WaitingGameKind": {
+        "enum": [
+          "WHO_OF_US",
+          "WISH_DETECTIVE",
+          "OUR_MOMENTS",
+          "PICTURE_PING_PONG",
+          "HEART_HUNT",
+          "GARDEN_SEED",
+          "GARDEN_BOUQUET"
+        ],
+        "title": "WaitingGameKind",
+        "type": "string"
+      },
+      "WaitingGameReason": {
+        "description": "What the reader is asked to do; the client words it.",
+        "enum": [
+          "ANSWER",
+          "TURN",
+          "DRAW",
+          "SEEK",
+          "PLANT",
+          "OPEN_BOUQUET"
+        ],
+        "title": "WaitingGameReason",
+        "type": "string"
+      },
+      "WaitingGameView": {
+        "description": "One game that waits on the reader; it names the game and the ask only.",
+        "properties": {
+          "game": {
+            "$ref": "#/components/schemas/WaitingGameKind",
+            "description": "The game; the client opens its own page."
+          },
+          "reason": {
+            "$ref": "#/components/schemas/WaitingGameReason",
+            "description": "What the reader is asked to do."
+          },
+          "since": {
+            "description": "When the game started waiting on the reader.",
+            "format": "date-time",
+            "title": "Since",
+            "type": "string"
+          }
+        },
+        "required": [
+          "game",
+          "reason",
+          "since"
+        ],
+        "title": "WaitingGameView",
+        "type": "object"
+      },
+      "WaitingGames": {
+        "properties": {
+          "items": {
+            "description": "Every game that waits on the reader, newest first; empty when none.",
+            "items": {
+              "$ref": "#/components/schemas/WaitingGameView"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "WaitingGames",
         "type": "object"
       },
       "WeeklyFeedbackUpdate": {
@@ -18869,6 +19144,12 @@
           "hasMemory": {
             "description": "Whether a Memory is linked to this PLANNED or COMPLETED Wish or to its originating Plan; always false for OPEN Wishes.",
             "title": "Hasmemory",
+            "type": "boolean"
+          },
+          "hiddenDuringGame": {
+            "default": false,
+            "description": "True while an open game hides this Wish from the reader, for example a partner's Wish that may still be the answer in Wish detective. Title, description and tags are then empty, the series fields point to the Wish itself, every capability is false and writes are refused with `WISH_HIDDEN_DURING_GAME`. The game reveals it with its round or at the end.",
+            "title": "Hiddenduringgame",
             "type": "boolean"
           },
           "id": {
@@ -26137,7 +26418,7 @@
                 }
               }
             },
-            "description": "The content exceeds the server-side size limit."
+            "description": "The file exceeds the size limit for its type (code ATTACHMENT_TOO_LARGE), or its declared size does not fit the storage quota of the Space (code STORAGE_QUOTA_EXCEEDED: free up space or get Premium)."
           },
           "415": {
             "content": {
@@ -32941,6 +33222,127 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/games/garden/history": {
+      "get": {
+        "description": "What happened in the garden between the two partners, newest first.",
+        "operationId": "listGardenHistory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GardenHistoryPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request is syntactically valid but cannot be processed in this form."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "List Garden History",
+        "tags": [
+          "games"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/games/garden/name": {
       "put": {
         "description": "Name the shared garden; it becomes the page title for both partners.",
@@ -34604,6 +35006,69 @@
           }
         },
         "summary": "Hand Over Picture Ping Pong Turn",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/waiting": {
+      "get": {
+        "description": "Games that wait on the reader, for Wir (#2158 C); never their content.",
+        "operationId": "getWaitingGames",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitingGames"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Waiting Games",
         "tags": [
           "games"
         ]
@@ -51622,6 +52087,58 @@
         "summary": "Set Shared Note Presentation",
         "tags": [
           "shared-notes"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/storage": {
+      "get": {
+        "operationId": "getSpaceStorage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceStorageUsage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Space Storage",
+        "tags": [
+          "attachments"
         ]
       }
     },

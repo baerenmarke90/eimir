@@ -61,6 +61,7 @@ from eimir.plans.media import PhotoSelection, replace_cover, replace_photos, sel
 from eimir.plans.models import (
     DiscreetTitleMode,
     Plan,
+    PlanAnticipation,
     PlanPayload,
     PlanStatus,
     shared_privacy,
@@ -595,7 +596,7 @@ def update_plan(
     description: str | None,
     place_id: UUID | str | None,
     experienced_on: date | None,
-    anticipation_enabled: bool | None = None,
+    anticipation: PlanAnticipation | None = None,
     discreet: bool | None = None,
     discreet_title_mode: DiscreetTitleMode | None = None,
     preview_title: str | None = None,
@@ -666,9 +667,9 @@ def update_plan(
         )
     if "place_id" in changed_fields:
         plan.place_id = next_place_id
-    if "anticipation_enabled" in changed_fields:
-        assert anticipation_enabled is not None
-        plan.anticipation_enabled = anticipation_enabled
+    if "anticipation" in changed_fields:
+        assert anticipation is not None
+        plan.anticipation = anticipation.value
     # Discreet presentation is shared state on the entry: either partner may
     # set or clear it, exactly like any other collaborative Plan field.
     if "discreet" in changed_fields:
@@ -915,7 +916,7 @@ def link_wish_to_plan(
     Wish -> Plan is the same lock order used by conversion/completion. An
     exact replay is harmless; it cannot relink a Wish or overwrite Plan prose.
     """
-    wish = wish_service.lock(session, context, wish_id)
+    wish = wish_service.lock_visible(session, context, wish_id)
     plan = _lock_plan(session, context, plan_id)
     if plan.source_wish_id == wish.id:
         if wish.status not in (WishStatus.PLANNED.value, WishStatus.COMPLETED.value):
@@ -962,7 +963,7 @@ def convert_wish_to_plan(
     resolved_place_id = _resolve_place(session, context, place_id)
     status = _initial_schedule_status(planned_on, planned_start, planned_end, planned_until)
 
-    wish = wish_service.lock(session, context, wish_id)
+    wish = wish_service.lock_visible(session, context, wish_id)
     existing = session.execute(
         select(Plan).where(Plan.source_wish_id == wish.id).with_for_update()
     ).scalar_one_or_none()

@@ -50,6 +50,7 @@ from eimir.plans.models import Plan
 from eimir.private_collections.models import PrivateCollection, PrivateCollectionItem
 from eimir.private_notes.models import PrivateNote
 from eimir.shared_notes.models import SharedNote
+from eimir.wishes import concealment
 from eimir.wishes.models import Wish
 
 DEFAULT_LIMIT = 25
@@ -590,8 +591,17 @@ def search(
         for kind in selected:
             if exact_tag is not None and kind not in _TAGGED_KINDS:
                 continue
+            # A Wish an open game hides is not even matched: a hit alone would
+            # tell the guesser what it is about (#2158 H).
+            hidden = (
+                concealment.hidden_wish_ids(session, context)
+                if kind is SearchKind.WISH
+                else frozenset()
+            )
             for source in _SOURCES[kind]:
                 for row, parent_id in _authorized_rows(session, context, source):
+                    if row.id in hidden:
+                        continue
                     if exact_tag is not None:
                         # SQL authorization stays authoritative before reading
                         # protected tags; unrelated prose cannot match.

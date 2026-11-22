@@ -37,7 +37,10 @@ class PushPreviewPolicy:
     presentation_key: str
 
 
-# Generic delivery is the baseline. The shared-Wish proposal exception also
+# Generic provider delivery is the baseline: a reference and a data-only wake.
+# Content travels only inside the encrypted device preview, which since #2158
+# (v3) carries every kind's real content; the device's lock-screen setting then
+# decides what a locked screen shows. The shared-Wish proposal exception also
 # requires a compatible encrypted device adapter and an authorized source.
 GENERIC_PREVIEW = PushPreviewPolicy(
     allow_sender_name=False,
@@ -153,8 +156,9 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
             DeliveryClass.DIGESTIBLE, GENERIC_PREVIEW, immediate_push=True
         ),
         # #1969: a shared note notifies the partner by push (Product Owner decision
-        # 2026-11-17). The lock screen only says who did what: never the note's
-        # title or text. Later edits of one note update a single coalesced entry.
+        # 2026-11-17). Preview v3 names the note's title and an excerpt (#2158);
+        # v1/v2 only say who did what. Later edits of one note update a single
+        # coalesced entry.
         NotificationKind.SHARED_NOTE_CREATED: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
@@ -172,11 +176,12 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.WISH_REMINDER_DUE: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
-        # A list the partner deliberately sent (#1907 E2); neutral device preview.
+        # A list the partner deliberately sent (#1907 E2); v3 names the list (#2158).
         NotificationKind.COLLECTION_SENT: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
-        # A garden seed from the partner (#1907 H3); never the attached words.
+        # A garden seed from the partner (#1907 H3); v3 names the seed and its words,
+        # but never the species of a wrapped surprise (#2158).
         NotificationKind.GARDEN_SEED_ARRIVED: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),

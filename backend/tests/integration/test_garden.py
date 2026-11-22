@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
@@ -256,6 +257,40 @@ def test_seed_notice_is_neutral_and_goes_stale_once_planted(client, premium, ses
     assert "GARDEN_SEED_ARRIVED" not in stale.text
 
 
+def test_detailed_seed_preview_names_the_seed_never_its_words_and_keeps_a_surprise(
+    client, premium, session
+) -> None:  # type: ignore[no-untyped-def]
+    """Preview v3 (#2158): what arrived, never the words (a folded card); a surprise stays one."""
+    from eimir.engagement import push_preview
+
+    _send(client, premium, words="MISS_YOU")
+    _project(session)
+    notice = session.scalar(
+        select(Notification).where(
+            Notification.kind == NotificationKind.GARDEN_SEED_ARRIVED.value,
+            Notification.recipient_account_id == premium["ben"].id,
+        )
+    )
+    assert notice is not None
+    encoded = push_preview.for_notification(session, notice, digest=False, version=3)
+    assert encoded is not None
+    detailed = json.loads(encoded)
+    assert (detailed["title"], detailed["body"]) == ("POPPY", "")
+    assert "MISS_YOU" not in encoded
+    assert detailed["targetType"] == "GARDEN_SEED"
+    # v2 keeps its neutral seed notice.
+    legacy = json.loads(push_preview.for_notification(session, notice, digest=False, version=2))
+    assert (legacy["title"], legacy["body"]) == ("", "")
+    # A wrapped surprise names no species until its moonflower first blooms.
+    seed = session.scalar(select(GardenPlant).where(GardenPlant.id == notice.target_id))
+    seed.species = "MOONFLOWER"
+    session.flush()
+    surprise = json.loads(push_preview.for_notification(session, notice, digest=False, version=3))
+    assert (surprise["title"], surprise["body"]) == ("", "")
+    assert "MOONFLOWER" not in json.dumps(surprise)
+    assert "MISS_YOU" not in json.dumps(surprise)
+
+
 def test_the_garden_leaves_with_the_couple(client, premium, session) -> None:  # type: ignore[no-untyped-def]
     _send(client, premium)
     membership = next(
@@ -275,7 +310,7 @@ def _special_plan(session: Session, couple, **fields):  # type: ignore[no-untype
         "privacy_class": PrivacyClass.SPACE_SHARED.value,
         "payload": PlanPayload(title="Finally together"),
         "status": PlanStatus.PLANNED.value,
-        "anticipation_enabled": True,
+        "anticipation": "ALWAYS",
     } | fields
     plan = Plan(**values)
     session.add(plan)
@@ -313,8 +348,10 @@ def test_watering_counts_as_being_in_the_garden(client, premium, monkeypatch) ->
 def test_the_next_anticipated_shared_plan_is_the_reunion(client, premium, session) -> None:  # type: ignore[no-untyped-def]
     _special_plan(session, premium, planned_on=date(2026, 11, 30))
     _special_plan(session, premium, planned_on=date(2026, 11, 20))
-    # Neither an ordinary Plan, a completed nor a past Plan counts.
-    _special_plan(session, premium, planned_on=date(2026, 11, 17), anticipation_enabled=False)
+    # Neither an automatic or never-shown Plan (#2158 D), a completed nor a past
+    # Plan counts: only an explicitly pinned Plan is the reunion.
+    _special_plan(session, premium, planned_on=date(2026, 11, 17), anticipation="AUTOMATIC")
+    _special_plan(session, premium, planned_on=date(2026, 11, 18), anticipation="NEVER")
     _special_plan(
         session,
         premium,

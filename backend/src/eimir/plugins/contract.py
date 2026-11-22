@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from eimir.transfer.models import TransferScope
     from eimir.wish_selections.date_idea_contract import DateIdeaSource
 
-PLUGIN_SEAM_VERSION = 3
+PLUGIN_SEAM_VERSION = 5
 """The seam revision Core implements. A plugin declaring another value refuses to start."""
 
 PLUGIN_ENTRY_POINT_GROUP = "eimir.plugins"
@@ -165,6 +165,23 @@ class ProPlugin(Protocol):
         """
         ...
 
+    def push_preview_detail(
+        self,
+        session: Session,
+        context: AuthorizationContext,
+        target_type: EngagementTarget,
+        target_id: UUID,
+    ) -> tuple[str, str] | None:
+        """Return the ``(title, body)`` of an encrypted v3 device preview (#2158).
+
+        Called only for a plugin notification target that Core already found
+        current for the reader. Read only. Both values are short closed
+        machine codes the device localizes, never free text; ``None`` keeps
+        the preview to its localized action. Without the plugin no plugin
+        target is current, so Core never needs this hook then.
+        """
+        ...
+
     def on_partner_joined(self, session: Session, space_id: UUID) -> None:
         """Remove the plugin's couple-bound state when a partner joins the Space."""
         ...
@@ -191,6 +208,15 @@ class ProPlugin(Protocol):
         scope: TransferScope,
     ) -> Mapping[str, Any]:
         """Return the plugin's keys of the export's account document (read only)."""
+        ...
+
+    def hidden_wish_ids(self, session: Session, context: AuthorizationContext) -> frozenset[UUID]:
+        """Return the Wishes whose content the reader must not see right now (read only).
+
+        A game in progress hides the Wishes the reader is guessing (#2158 H).
+        Core masks them in its Wish read models and refuses the reader's
+        writes to them. Without the plugin nothing is hidden.
+        """
         ...
 
     def date_ideas(self) -> DateIdeaSource | None:

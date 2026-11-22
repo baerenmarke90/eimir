@@ -219,7 +219,7 @@ def register_endpoint(
     endpoint = endpoint_value.strip()
     if not provider or not endpoint:
         raise ValueError("push endpoint and provider must not be blank")
-    if preview_version not in {1, 2}:
+    if preview_version not in {1, 2, 3}:
         raise ValueError("Unsupported preview protocol version.")
 
     with session.no_autoflush:

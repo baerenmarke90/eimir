@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `androidPackage` | string
+`encryptedPreviewDetailVersion` | number
 `encryptedPreviewMaxVersion` | number
 `encryptedPreviewVersion` | number
 `localeVersion` | number
@@ -22,6 +23,7 @@ import type { FcmConfiguration } from ''
 // TODO: Update the object below with actual values
 const example = {
   "androidPackage": null,
+  "encryptedPreviewDetailVersion": null,
   "encryptedPreviewMaxVersion": null,
   "encryptedPreviewVersion": null,
   "localeVersion": null,

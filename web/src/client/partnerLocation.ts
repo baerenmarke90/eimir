@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { skipToken, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { PartnerLocationApi } from '../api/generated/apis/PartnerLocationApi';
@@ -167,6 +167,21 @@ export function usePartnerLocationSettings(
     enabled: enabled && Boolean(accountId && spaceId),
     retry: false,
   });
+}
+
+/**
+ * The owner's settings as the app-level sync last stored them, without another
+ * read. `skipToken` marks the observer as read-only, so React Query neither
+ * fetches nor warns about a missing query function.
+ */
+export function usePartnerLocationSettingsEntry(
+  accountId: string,
+  spaceId: string,
+): PartnerLocationSettingsView | undefined {
+  return useQuery<PartnerLocationSettingsView>({
+    queryKey: partnerLocationSettingsQueryKey(accountId, spaceId),
+    queryFn: skipToken,
+  }).data;
 }
 
 export function isEntitlementRequired(error: unknown): boolean {

@@ -949,7 +949,9 @@ def request_apply(
             raise ConflictError(
                 "Imported video needs the video capability.", ErrorCode.TRANSFER_VIDEOS_NEED_PRO
             )
-        if not recoverable_videos(session, authorization.space_id, transfer.summary):
+        if not recoverable_videos(
+            session, authorization.space_id, authorization.account_id, transfer.summary
+        ):
             raise ConflictError(
                 "This file holds no skipped video of this Space.",
                 ErrorCode.TRANSFER_NOTHING_TO_RECOVER,
@@ -968,7 +970,12 @@ def request_apply(
     if videos_only:
         require_fit(
             storage,
-            sum(row.size for row in recoverable_videos(session, authorization.space_id, summary)),
+            sum(
+                row.size
+                for row in recoverable_videos(
+                    session, authorization.space_id, authorization.account_id, summary
+                )
+            ),
         )
     elif skip_videos and has_videos:
         require_fit(storage, _stored_count(summary, "storageNeededWithoutVideos"))
@@ -1056,7 +1063,7 @@ def _load_documents(
                         "Transfer domain document is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
                     )
                 seen_tables.add(table_name)
-                tables[table_name] = rows
+                tables[table_name] = [_upgrade_legacy_row(table_name, row) for row in rows]
         media: list[dict[str, Any]] = []
         if "media/index.json" in validated.entries:
             media_doc = parse_json_bytes(archive.read("media/index.json"))
@@ -1081,6 +1088,23 @@ def _uuid(value: Any, code: str) -> UUID:
 
 def _row_snake(row: Mapping[str, Any]) -> dict[str, Any]:
     return {_camel_to_snake(str(key)): value for key, value in row.items()}
+
+
+def _upgrade_legacy_row(table_name: str, row: dict[str, Any]) -> dict[str, Any]:
+    """Translate a column an older v1 archive still carries into the current schema.
+
+    Plans exported before #2158 D carry the countdown opt-in ``anticipationEnabled``,
+    where false only meant "not chosen": true pins the Plan, false is automatic.
+    Any other value is left for schema validation to reject.
+    """
+    if table_name != "plans" or "anticipationEnabled" not in row or "anticipation" in row:
+        return row
+    flag = row["anticipationEnabled"]
+    if not isinstance(flag, bool):
+        return row
+    upgraded = {key: value for key, value in row.items() if key != "anticipationEnabled"}
+    upgraded["anticipation"] = "ALWAYS" if flag else "AUTOMATIC"
+    return upgraded
 
 
 def _validate_ids_and_privacy(
@@ -2015,12 +2039,18 @@ def _video_parents(graph: ValidatedGraph) -> dict[str, tuple[str, str, int]]:
 
 
 def recoverable_videos(
-    session: Session, space_id: UUID, summary: Mapping[str, object] | None, *, lock: bool = False
+    session: Session,
+    space_id: UUID,
+    imported_by: UUID,
+    summary: Mapping[str, object] | None,
+    *,
+    lock: bool = False,
 ) -> list[TransferSkippedVideo]:
-    """Skipped videos of this Space that the staged file holds again (#2141).
+    """Skipped videos of this member that the staged file holds again (#2141).
 
     A video is recognised by its source attachment ID and its manifest checksum,
-    so a changed file never fills a gallery with a different video.
+    so a changed file never fills a gallery with a different video. Only the
+    member who imported a video sees and recovers it; the partner never does.
     """
     sources = (summary or {}).get("videoSources")
     if not isinstance(sources, list):
@@ -2036,6 +2066,7 @@ def recoverable_videos(
         select(TransferSkippedVideo)
         .where(
             TransferSkippedVideo.space_id == space_id,
+            TransferSkippedVideo.imported_by == imported_by,
             TransferSkippedVideo.source_attachment_id.in_(
                 [parse_id(source) for source, _ in keys if parse_id(source) is not None]
             ),
@@ -2886,6 +2917,7 @@ def apply_import_bundle(
                         _uuid(item["ownerSourceId"], ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID)
                     ],
                     import_id=transfer.id,
+                    imported_by=authorization.account_id,
                     source_attachment_id=_uuid(source, ErrorCode.TRANSFER_RELATION_INVALID),
                     checksum=graph.checksums[f"media/{source}/original"],
                     size=int(item["size"]),
@@ -2945,7 +2977,9 @@ def _recover_videos(
     from eimir.heart_moments.models import HeartMoment
     from eimir.memories.models import Memory
 
-    rows = recoverable_videos(session, authorization.space_id, transfer.summary, lock=True)
+    rows = recoverable_videos(
+        session, authorization.space_id, authorization.account_id, transfer.summary, lock=True
+    )
     media = {
         (str(item["sourceId"]), graph.checksums.get(f"media/{item['sourceId']}/original")): item
         for item in graph.media
@@ -3063,24 +3097,37 @@ def _recover_videos(
 
 
 def dismiss_skipped_videos(session: Session, authorization: AuthorizationContext) -> int:
-    """Forget the Space's skipped videos; nothing else changes (#2141)."""
+    """Forget the skipped videos this member imported; nothing else changes (#2141).
+
+    There is nothing to dismiss for a member who imported none, including the
+    partner of the member who did: that is ``404``, never the partner's rows.
+    """
     from sqlalchemy import delete
 
     result = session.execute(
-        delete(TransferSkippedVideo).where(TransferSkippedVideo.space_id == authorization.space_id)
+        delete(TransferSkippedVideo).where(
+            TransferSkippedVideo.space_id == authorization.space_id,
+            TransferSkippedVideo.imported_by == authorization.account_id,
+        )
     )
-    return int(getattr(result, "rowcount", 0) or 0)
+    removed = int(getattr(result, "rowcount", 0) or 0)
+    if not removed:
+        raise NotFoundError("No skipped videos to dismiss.", "RESOURCE_NOT_FOUND")
+    return removed
 
 
 def skipped_videos(session: Session, authorization: AuthorizationContext) -> tuple[int, int]:
-    """How many skipped videos the Space remembers, and their total size."""
+    """How many skipped videos this member imported, and their total size."""
     from sqlalchemy import func
 
     count, size = session.execute(
         select(
             func.count(TransferSkippedVideo.id),
             func.coalesce(func.sum(TransferSkippedVideo.size), 0),
-        ).where(TransferSkippedVideo.space_id == authorization.space_id)
+        ).where(
+            TransferSkippedVideo.space_id == authorization.space_id,
+            TransferSkippedVideo.imported_by == authorization.account_id,
+        )
     ).one()
     return int(count), int(size)
 

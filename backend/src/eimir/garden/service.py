@@ -7,8 +7,8 @@ grows one stage, exactly once. Watering is a daily gesture that never changes
 growth. Distance and location never reach this module.
 
 Presentation state is derived, never stored: the garden sleeps after a pause of
-both partners and wakes when one of them returns, and the next anticipated
-shared Plan (#504) is the couple's reunion, shown by its day only.
+both partners and wakes when one of them returns, and the next pinned shared
+Plan (#504) is the couple's reunion, shown by its day only.
 
 PR 3 (growth and life) adds the cumulative shared days that unlock new things,
 more species (a water lily lives in the pond, a tulip waits for spring, a
@@ -49,7 +49,7 @@ from eimir.garden.models import (
     GardenWords,
 )
 from eimir.outbox import service as outbox_service
-from eimir.plans.models import Plan, PlanStatus
+from eimir.plans.models import Plan, PlanAnticipation, PlanStatus
 from eimir.recaps.service import calendar_context
 from eimir.relationship import service as relationship
 from eimir.relationship.models import Membership, MembershipStatus
@@ -101,6 +101,11 @@ def _partner_of(session: Session, context: AuthorizationContext) -> UUID:
             "GARDEN_COUPLE_REQUIRED",
         )
     return others[0]
+
+
+def require_couple(session: Session, context: AuthorizationContext) -> UUID:
+    """The reader's partner; the garden needs exactly two partners in the Space."""
+    return _partner_of(session, context)
 
 
 def _today(session: Session, context: AuthorizationContext) -> date:
@@ -201,6 +206,11 @@ def _settle(session: Session, context: AuthorizationContext, today: date) -> Non
         _plant(session, seed)
 
 
+def settle(session: Session, context: AuthorizationContext, today: date) -> None:
+    """Plant overdue seeds before a read, as the garden view does."""
+    _settle(session, context, today)
+
+
 def _last_visit(session: Session, space_id: UUID) -> date | None:
     """The latest day either partner sent a seed or watered."""
     seeds = session.scalar(
@@ -216,7 +226,12 @@ def _last_visit(session: Session, space_id: UUID) -> date | None:
 def _reunion(
     session: Session, context: AuthorizationContext, zone: str, today: date
 ) -> tuple[date | None, bool]:
-    """The next anticipated shared Plan (#504) marks the reunion; its day only."""
+    """The next pinned shared Plan (#504) marks the reunion; its day only.
+
+    Only an explicit ``ALWAYS`` choice counts (#2158 D). The Wir countdown also
+    falls back to the next ``AUTOMATIC`` Plan, but an ordinary dinner is not a
+    reunion, and the reunion keeps the garden awake.
+    """
     starts = func.coalesce(Plan.planned_on, cast(func.timezone(zone, Plan.planned_start), Date))
     ends = func.coalesce(
         Plan.planned_until, cast(func.timezone(zone, Plan.planned_end), Date), starts
@@ -224,7 +239,7 @@ def _reunion(
     row = session.execute(
         readable(Plan, context)
         .where(
-            Plan.anticipation_enabled.is_(True),
+            Plan.anticipation == PlanAnticipation.ALWAYS.value,
             Plan.status == PlanStatus.PLANNED.value,
             starts.is_not(None),
             ends >= today,
@@ -389,6 +404,8 @@ def send_seed(
                 continue
             plant.stage += 1
             if plant.stage == MAX_STAGE:
+                if not plant.bloomed:
+                    plant.bloomed_on = today
                 plant.bloomed = True
         session.flush()
     outbox_service.record(
@@ -642,6 +659,35 @@ def bouquet_is_open(
         GardenBouquet.receiver_id == context.account_id,
         GardenBouquet.closed_at.is_(None),
     )
+
+
+def notice_preview(
+    session: Session, context: AuthorizationContext, target_type: str, target_id: UUID
+) -> tuple[str, str] | None:
+    """Closed codes for the reader's encrypted v3 device preview (#2158).
+
+    A seed names what it is; a wrapped surprise stays a surprise until it
+    first blooms, so it names no species. Its attached words never travel in
+    a push: they arrive in the garden as a folded card the recipient opens
+    (Product Owner 2026-11-22, #2158). A bouquet names its flowers, which have
+    all bloomed. Only while the notice is current for the reader.
+    """
+    if target_type == "GARDEN_SEED":
+        seed = session.scalar(
+            seed_is_waiting(session, context, target_id).with_only_columns(GardenPlant)
+        )
+        if seed is None:
+            return None
+        shown = growth.shown_species(seed.species, seed.bloomed)
+        return ("" if shown is GardenSpecies.SURPRISE else shown.value, "")
+    if target_type == "GARDEN_BOUQUET":
+        bouquet = session.scalar(
+            bouquet_is_open(session, context, target_id).with_only_columns(GardenBouquet)
+        )
+        if bouquet is None:
+            return None
+        return (",".join(dict.fromkeys(bouquet.flowers)), "")
+    return None
 
 
 def notice_taken_today(

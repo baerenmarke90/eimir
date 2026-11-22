@@ -415,7 +415,9 @@ registry or uses a hoster-controlled mirror.
 The Android Gradle project in `android/` contains no product UI screens. Product
 screens are the React application from `web/`, packaged as a local asset
 bundle. A small native bridge handles FCM/UnifiedPush registration, wake events,
-and content-free system notifications. Capacitor plugin versions are pinned
+and system notifications. Their content arrives only inside the device-bound
+encrypted preview and is shown according to the person's Android lock-screen
+setting (#2158); provider payloads stay content-free. Capacitor plugin versions are pinned
 exactly in `web/package.json` and locked in `web/package-lock.json`; the Gradle
 modules below are resolved from `web/node_modules` by `npx cap sync android`.
 

@@ -564,7 +564,9 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/games/our-moments/end",
         body={"gameId": "00000000-0000-0000-0000-000000000001"},
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/waiting"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/garden"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/garden/history"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds", body={"species": "POPPY"}),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant"),
     Endpoint(
@@ -1580,6 +1582,7 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/transfer/skipped-videos"),
     Endpoint("DELETE", "/api/v1/spaces/{spaceId}/transfer/skipped-videos"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/attachment-upload-policy"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/storage"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/attachments", body=ATTACHMENT),
     Endpoint(
         "POST",

@@ -574,14 +574,8 @@ test.describe('haptics switch in the native app (#2076)', () => {
         PluginHeaders: [
           { name: 'AppIcon', methods: [{ name: 'apply', rtype: 'promise' }] },
           {
-            name: 'Haptics',
-            methods: [
-              'impact',
-              'notification',
-              'selectionStart',
-              'selectionChanged',
-              'selectionEnd',
-            ].map((name) => ({ name, rtype: 'promise' })),
+            name: 'SystemHaptics',
+            methods: [{ name: 'perform', rtype: 'promise' }],
           },
           {
             name: 'NativeSessionStorage',
@@ -608,9 +602,9 @@ test.describe('haptics switch in the native app (#2076)', () => {
               value: sessionStorage.getItem('native-test-session') ?? undefined,
             };
           }
-          if (plugin === 'Haptics') {
+          if (plugin === 'SystemHaptics') {
             nativeWindow.hapticCalls.push(method);
-            return {};
+            return { played: true };
           }
           if (plugin === 'AppIcon' && method === 'apply')
             return { iconId: options.iconId };

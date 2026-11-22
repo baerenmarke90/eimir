@@ -143,10 +143,24 @@ function buildSlide(
   }
 }
 
-/** True while at least half of the element is inside the viewport. */
-function useHalfVisible(
+/**
+ * Share of the viewer that must be on screen for the story to play (#2192):
+ * scrolled further, with only 60 % of the photo left, it pauses.
+ */
+export const STORY_PLAY_VISIBLE_SHARE = 0.6;
+
+/** Fine steps, so the share is re-read close to where it crosses the limit. */
+const VISIBILITY_STEPS = Array.from({ length: 21 }, (_, index) => index / 20);
+
+/**
+ * True while more than `share` of the element is on screen. A viewer taller
+ * than the viewport (large text) is measured against the viewport height, so
+ * it can still count as fully visible.
+ */
+function useMostlyVisible(
   ref: RefObject<HTMLElement | null>,
   mounted: boolean,
+  share: number,
 ): boolean {
   const [visible, setVisible] = useState(
     () => typeof IntersectionObserver === 'undefined',
@@ -158,13 +172,20 @@ function useHalfVisible(
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries.at(-1);
-        if (entry) setVisible(entry.intersectionRatio >= 0.5);
+        if (!entry) return;
+        const viewport = entry.rootBounds?.height ?? window.innerHeight;
+        const full = Math.min(entry.boundingClientRect.height, viewport);
+        setVisible(
+          entry.isIntersecting &&
+            full > 0 &&
+            entry.intersectionRect.height / full > share,
+        );
       },
-      { threshold: [0, 0.5, 1] },
+      { threshold: VISIBILITY_STEPS },
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [ref, mounted]);
+  }, [ref, mounted, share]);
   return visible;
 }
 
@@ -332,9 +353,9 @@ const SLIDE_CLASS: Record<SlideKind, string> = {
  * story viewer. The rediscovery lead (`story.featuredKicker`), when there
  * is one, plays first; Photos, Heart Moments, Milestones and Memories told
  * in words follow as slides in the canonical order of the curated
- * selection. Autoplay
- * runs only with motion allowed, while the viewer is at least half visible,
- * the document is visible and nobody holds, pauses or keyboard-focuses it;
+ * selection. Autoplay runs only with motion allowed, while more than 60 % of
+ * the viewer is visible, the document is visible and nobody holds, pauses or
+ * keyboard-focuses it;
  * the progress segment's CSS animation is the timer (no per-frame renders).
  */
 export function DiscoverStory({
@@ -404,7 +425,11 @@ export function DiscoverStory({
 
   const viewerRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
-  const halfVisible = useHalfVisible(viewerRef, themes.length > 0);
+  const mostlyVisible = useMostlyVisible(
+    viewerRef,
+    themes.length > 0,
+    STORY_PLAY_VISIBLE_SHARE,
+  );
   const documentVisible = usePageVisible();
   const autoplay = !reducedMotion;
   const playing =
@@ -412,7 +437,7 @@ export function DiscoverStory({
     !userPaused &&
     !holding &&
     !keyboardFocus &&
-    halfVisible &&
+    mostlyVisible &&
     documentVisible;
 
   const themeIndex = Math.min(position.theme, themes.length - 1);

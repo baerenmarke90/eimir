@@ -456,7 +456,7 @@ These are not primitives. They are areas whose motion is defined by their own cl
     - reduced motion comes from the layer's one source (`useReducedMotion`);
     - playback pauses when the page is hidden, on `pagehide` and on window blur, and with the explicit pause control (`data-playing`);
     - with reduced motion it never starts on its own;
-    - story playback on Momente also pauses while it is less than half on screen and while a slide is held.
+    - story playback on Momente also pauses while no more than 60 % of the viewer is on screen (measured against the viewport height when the viewer is taller; #2192) and while a slide is held.
 
     The keyframes moved unchanged into two catalogues:
     - `motion/playback.css`: the recap film, the recap reader and the garden playback, loaded with them;

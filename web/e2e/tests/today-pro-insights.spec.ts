@@ -106,7 +106,7 @@ async function installMocks(
         sharedDays: current ? ['2026-09-21', '2026-09-23'] : ['2026-09-17'],
         highlight: {
           memoryId: '00000000-0000-0000-0000-000000000501',
-          title: 'Spaziergang am Rhein',
+          title: 'Rheinufer',
           happenedOn: current ? '2026-09-23' : '2026-09-17',
           photoCount: 0,
         },
@@ -527,9 +527,7 @@ async function visitViews(
       name: dailyInsights.brief.headline.SHARED_GOOD_DAYS.title,
     }),
   ).toBeVisible();
-  await expect(
-    page.getByRole('link', { name: /Spaziergang am Rhein/ }),
-  ).toBeVisible();
+  await expect(page.getByRole('link', { name: /Rheinufer/ })).toBeVisible();
   await expect(
     page.getByRole('button', { name: dailyInsights.brief.impulse.plan }),
   ).toBeVisible();

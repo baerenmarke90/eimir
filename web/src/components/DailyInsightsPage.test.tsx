@@ -126,7 +126,7 @@ function briefView(extra: Partial<WeeklyBriefView> = {}): WeeklyBriefView {
     sharedDays: ['2026-09-21', '2026-09-23'] as unknown as Date[],
     highlight: {
       memoryId: 'memory-1',
-      title: 'Spaziergang am Rhein',
+      title: 'Rheinufer',
       happenedOn: new Date('2026-09-23'),
       photoCount: 4,
     },
@@ -659,14 +659,22 @@ describe('Pro insights: weekly brief (#2169)', () => {
       expect.anything(),
     );
     expect(
-      screen.getByText('Montag und Mittwoch ging es euch beiden gut.', {
-        exact: false,
-      }),
+      screen.getByText(
+        brief.headline.SHARED_GOOD_DAYS.body.replace(
+          '{{days}}',
+          new Intl.ListFormat('de', {
+            style: 'long',
+            type: 'conjunction',
+          }).format(['Montag', 'Mittwoch']),
+        ),
+      ),
     ).toBeTruthy();
     expect(
-      screen.getByText('An 3 von 3 Tagen habt ihr beide etwas geteilt.'),
+      screen.getByText(
+        brief.coverage.replace('{{count}}', '3').replace('{{total}}', '3'),
+      ),
     ).toBeTruthy();
-    const moment = screen.getByRole('link', { name: /Spaziergang am Rhein/ });
+    const moment = screen.getByRole('link', { name: /Rheinufer/ });
     expect(moment.getAttribute('href')).toBe('/story/memories/memory-1');
     expect(
       screen.getByText(
@@ -676,7 +684,7 @@ describe('Pro insights: weekly brief (#2169)', () => {
     expect(screen.getByText(brief.attention.prompt)).toBeTruthy();
     expect(screen.getByText('Fondue-Abend')).toBeTruthy();
     expect(
-      screen.getByText(/Freitags hattet ihr in den letzten Wochen/),
+      screen.getByText(new RegExp(`^${dailyInsights.weekdayAdverb[4]} `)),
     ).toBeTruthy();
     expect(
       screen.getByRole('button', { name: brief.impulse.plan }),

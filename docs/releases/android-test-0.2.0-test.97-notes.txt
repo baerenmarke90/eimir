@@ -1,11 +1,21 @@
 eimir. Android 0.2.0-test.97
 
+- When an upload fails, the photo now says why (storage full, file too large, format, connection lost or stalled) and shows a short reference to report.
+- Storage settings show how much of the Space's Cloud storage is used, and an upload that no longer fits says so plainly.
+- Tapping your or your partner's avatar on the distance map zooms to that person; "Uns zeigen" brings both back.
+- A completed Plan offers "Als Erinnerung / Herzmoment / Meilenstein festhalten" in its menu at any time.
+- Wir counts down to the next upcoming Plan automatically; a Plan can be set to "Als Erstes anzeigen" or never to show.
+- Wir shows the games that are waiting for you, such as your turn or a seed that arrived.
+- Notifications on Android now say what happened (Plan time and place, reminder, list and note titles, excerpts); Android's lock-screen setting decides what is visible there. A seed's words and surprises stay hidden.
+- In the garden, the messenger's flight is brought into view when you send a seed or a bouquet, and "Eure Gartengeschichte" at the bottom tells what happened in your garden.
+- During a Wish detective game at a distance, the partner's wishes are hidden in the Wishes tab until they are revealed.
+- Importing a Transfer Bundle explains what happens in words, and skipped videos can be recovered.
 - The Date-Abend countdown on Wir now ticks in place and only while it is visible, instead of fading again every second.
 - The Wir opening runs as one calm sequence on a single clock, so late data (place, quote, check-in, photo) joins it or appears at rest.
 - Importing the same Transfer Bundle again no longer duplicates content.
 - Videos in a Transfer Bundle now count as video uploads, and videos that were skipped can be recovered by importing the same file again.
 - Photos imported from a Transfer Bundle are checked like regular uploads.
-- A Transfer import that would exceed the Cloud storage quota is now refused.
+- A Transfer import or an upload that would exceed the Cloud storage quota is now refused.
 
-The product changes come from main at 3cc4d5b1d5af322aae0bef787afb26015aea249c.
+The product changes come from main at 4c011480db2a1f64ec34c36406b67ea508fd8480.
 Install over test.96 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 97.

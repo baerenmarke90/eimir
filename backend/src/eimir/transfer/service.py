@@ -32,7 +32,6 @@ from eimir.authorization import AuthorizationContext, PrivacyClass
 from eimir.core.clock import now
 from eimir.core.errors import BadRequestError, ConflictError, ErrorCode, NotFoundError
 from eimir.core.ids import new_id, parse_id
-from eimir.daily_checkins.models import RecommendationKey, RecommendationRating
 from eimir.db.locks import lock_subject
 from eimir.db.session import schedule_after_rollback
 from eimir.identity.models import Account, AccountEmail
@@ -106,13 +105,10 @@ FILE_TABLES: dict[str, tuple[str, ...]] = {
     "private/notes.json": ("private_notes",),
     "private/gift-ideas.json": ("gift_ideas",),
     "private/collections.json": ("private_collections", "private_collection_items"),
-    "private/weekly-insight-feedback.json": ("daily_insight_feedback",),
 }
 PRIVATE_FILES = frozenset(name for name in FILE_TABLES if name.startswith("private/"))
 PRIVATE_ROOTS = frozenset({"private_notes", "gift_ideas", "private_collections"})
-ACCOUNT_SCOPED_CONFIG_TABLES = frozenset(
-    {"rule_preferences", "reminder_preferences", "daily_insight_feedback"}
-)
+ACCOUNT_SCOPED_CONFIG_TABLES = frozenset({"rule_preferences", "reminder_preferences"})
 CHILD_PARENT: dict[str, tuple[str, str]] = {
     "collection_items": ("collection_id", "collections"),
     "collection_suggestions": ("collection_id", "collections"),
@@ -173,7 +169,6 @@ INSERT_ORDER = (
     "reminder_offsets",
     "reminder_preferences",
     "rule_preferences",
-    "daily_insight_feedback",
     "comments",
     "recap_editions",
     "recap_sources",
@@ -383,22 +378,6 @@ def _portable_rows(
     all_tables = {name for names in FILE_TABLES.values() for name in names}
 
     for table_name in all_tables:
-        if table_name == "daily_insight_feedback":
-            table = _table(session, table_name, metadata)
-            rows[table_name] = (
-                []
-                if scope is TransferScope.SHARED
-                else [
-                    dict(row)
-                    for row in session.execute(
-                        select(table).where(
-                            table.c.space_id == authorization.space_id,
-                            table.c.account_id == authorization.account_id,
-                        )
-                    ).mappings()
-                ]
-            )
-            continue
         if table_name in CHILD_PARENT or table_name in RELATION_REQUIREMENTS:
             continue
         table = _table(session, table_name, metadata)
@@ -1117,7 +1096,6 @@ def _validate_ids_and_privacy(
     globally_seen: set[UUID] = set()
     for table_name, json_rows in tables.items():
         table_ids: set[UUID] = set()
-        feedback_keys: set[str] = set()
         for raw in json_rows:
             row = _row_snake(raw)
             raw_id = row.get("id")
@@ -1172,21 +1150,6 @@ def _validate_ids_and_privacy(
                         "Transfer privacy scope is invalid.",
                         ErrorCode.TRANSFER_PRIVACY_SCOPE_INVALID,
                     )
-            if table_name == "daily_insight_feedback":
-                key = row.get("recommendation_key")
-                rating = row.get("rating")
-                if (
-                    not isinstance(key, str)
-                    or not isinstance(rating, str)
-                    or key not in {item.value for item in RecommendationKey}
-                    or rating not in {item.value for item in RecommendationRating}
-                    or key in feedback_keys
-                ):
-                    raise TransferArchiveError(
-                        "Transfer recommendation preference is invalid.",
-                        ErrorCode.TRANSFER_RELATION_INVALID,
-                    )
-                feedback_keys.add(str(key))
             for column in ACCOUNT_REFERENCE_COLUMNS:
                 if (
                     row.get(column) is not None
@@ -2872,33 +2835,20 @@ def apply_import_bundle(
                     authorization=authorization,
                     ids=ids,
                 )
-                if table_name == "daily_insight_feedback":
-                    # Additive restore never replaces the caller's current choice.
-                    result = cast(
-                        "CursorResult[Any]",
-                        session.execute(
-                            pg_insert(table)
-                            .values(**values)
-                            .on_conflict_do_nothing(
-                                index_elements=["space_id", "account_id", "recommendation_key"]
-                            )
-                        ),
-                    )
-                else:
-                    # Additive import never replaces what the Space has: when an
-                    # equivalent row already exists (a link, a nickname, a
-                    # reminder offset), the existing one stays (#2141).
-                    statement = pg_insert(table).values(**protect_values(table_name, values))
-                    result = cast(
-                        "CursorResult[Any]",
-                        session.execute(
-                            statement.on_conflict_do_nothing(
-                                index_elements=[column.name for column in table.primary_key]
-                            )
-                            if table_name in _DEFERRED_UNIQUE_TABLES
-                            else statement.on_conflict_do_nothing()
-                        ),
-                    )
+                # Additive import never replaces what the Space has: when an
+                # equivalent row already exists (a link, a nickname, a
+                # reminder offset), the existing one stays (#2141).
+                statement = pg_insert(table).values(**protect_values(table_name, values))
+                result = cast(
+                    "CursorResult[Any]",
+                    session.execute(
+                        statement.on_conflict_do_nothing(
+                            index_elements=[column.name for column in table.primary_key]
+                        )
+                        if table_name in _DEFERRED_UNIQUE_TABLES
+                        else statement.on_conflict_do_nothing()
+                    ),
+                )
                 if result.rowcount == 0 and row_source is not None:
                     not_added.add(row_source)
         # Remember each skipped video where it belonged, so the same file can

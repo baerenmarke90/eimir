@@ -331,7 +331,6 @@ PLUGIN_TABLE_NAMES = frozenset(row.table for row in PLUGIN_TABLES)
 
 PLUGIN_CAPABILITIES = frozenset(
     {
-        Capability.DAILY_INSIGHTS.value,
         Capability.GAMES_COUPLE.value,
         Capability.INTEGRATION_EXTERNAL_SYNC.value,
         Capability.MEDIA_VIDEO_UPLOAD.value,
@@ -347,8 +346,9 @@ PLUGIN_CAPABILITIES = frozenset(
 )
 """Capabilities implemented by plugin code; granted only while a loaded plugin provides them.
 
-The six capabilities without any implementation keep today's behavior and join
-this set when their first implementation lands in a plugin.
+The capabilities without any implementation (including ``daily.insights``,
+whose Einblicke implementation was removed and archived in #2210) keep
+today's behavior and join this set when an implementation lands in a plugin.
 """
 
 PLUGIN_JOB_KINDS = frozenset(

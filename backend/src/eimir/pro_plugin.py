@@ -363,7 +363,6 @@ class InTreeProPlugin:
         from eimir.api.v1 import (
             calendar_sync,
             couple_games,
-            daily_insights,
             games,
             garden,
             heart_hunt,
@@ -389,7 +388,6 @@ class InTreeProPlugin:
             memory_map.router,
             partner_quick_actions.router,
             relationship_passport.router,
-            daily_insights.router,
             recap_composition.router,
         )
 

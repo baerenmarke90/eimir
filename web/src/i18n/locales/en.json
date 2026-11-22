@@ -87,7 +87,6 @@
       "years": "Years",
       "recaps": "Recaps",
       "yearsAndRecaps": "Years & recaps",
-      "insights": "Insights",
       "lists": "Lists"
     },
     "subtitles": {
@@ -95,7 +94,6 @@
       "media": "All photos and videos",
       "chapters": "Trips, moves, big chapters",
       "yearsAndRecaps": "Your months and years at a glance",
-      "insights": "How you have been lately",
       "lists": "Packing, shopping, checklists",
       "places": "Your favourite places",
       "people": "Family, friends and their important days",
@@ -2855,300 +2853,6 @@
     "cancel": "Cancel",
     "removed": "Link removed"
   },
-  "dailyInsights": {
-    "title": "Insights",
-    "pro": "Pro",
-    "nav": {
-      "label": "Switch view",
-      "brief": "Weekly brief",
-      "week": "History",
-      "patterns": "Month"
-    },
-    "loading": "Loading your history …",
-    "people": {
-      "you": "You",
-      "partnerFallback": "Your partner",
-      "ownAvatar": "Your profile picture",
-      "partnerAvatar": "{{name}}'s profile picture",
-      "ownInitials": "Your initials",
-      "partnerInitials": "{{name}}'s initials",
-      "ownMarker": "Circle",
-      "partnerMarker": "Diamond"
-    },
-    "gate": {
-      "title": "Your feeling & energy history",
-      "body": "With eimir. Pro, see how feeling and energy develop over weeks and months – a calm look back, without judgement.",
-      "freeNote": "Your daily feeling and energy check-in remains free for both of you as usual.",
-      "keptNote": "Everything you have already shared is retained.",
-      "back": "Back to Us"
-    },
-    "modulesOff": {
-      "title": "Feeling and energy are currently turned off",
-      "body": "Your space settings determine whether feeling and energy are used. eimir. Pro does not change that.",
-      "settings": "Go to Settings",
-      "vibeOff": "Feeling is turned off in your space.",
-      "energyOff": "Energy is turned off in your space."
-    },
-    "contextUnavailable": {
-      "title": "Your history is unavailable right now",
-      "body": "Your space does not have a shared day boundary set yet. Once it does, your history appears here."
-    },
-    "empty": {
-      "title": "Nothing to see here yet",
-      "body": "As you share feeling or energy, your history takes shape here."
-    },
-    "sparse": "Only a few days so far. Each check-in makes the picture clearer.",
-    "gapNote": "Only values both of you may see appear here. Empty days mean no visible value.",
-    "noValue": "no visible value",
-    "percentage": "{{value}} %",
-    "chart": {
-      "detailHint": "Tap a day to see the values.",
-      "dayLabel": "{{date}}: {{summary}}",
-      "vibeChartLabel": "Feeling during the week",
-      "energyChartLabel": "Energy during the week",
-      "dayGroup": "Days of the week"
-    },
-    "lanes": {
-      "VERY_GOOD": "Very good",
-      "GOOD": "Relaxed",
-      "OKAY": "So-so",
-      "NEEDS_CONNECTION": "Closeness",
-      "NEEDS_SPACE": "Quiet",
-      "STRESSED": "Stressed",
-      "SAD": "Sad"
-    },
-    "bands": {
-      "veryHigh": "Very high",
-      "high": "High",
-      "mid": "Okay",
-      "low": "Rather low",
-      "veryLow": "Very low"
-    },
-    "week": {
-      "subtitle": "Feeling & energy",
-      "picker": "Choose week"
-    },
-    "patterns": {
-      "title": "Discover patterns",
-      "subtitle": "Feeling & energy during the month.",
-      "handwriting": "Deeper insights. More of us.",
-      "monthPicker": "Choose month",
-      "previous": "Previous month",
-      "next": "Next month",
-      "glanceTitle": "Your month at a glance",
-      "glanceSubtitle": "Feeling and energy, week by week.",
-      "matrixLabel": "Your month: feeling and energy each day",
-      "matrixDayLabel": "{{date}}: {{summary}}",
-      "vibeRow": "Feeling",
-      "energyRow": "Energy",
-      "legendVibe": "Feeling",
-      "legendEnergy": "Energy",
-      "weekLabel": "Week {{number}}",
-      "calmTitle": "Shared patterns",
-      "calmSubtitle": "What appeared in your data.",
-      "calmNote": "No right or wrong. Just insights for you.",
-      "patternsEmpty": "This pattern needs a few more days. It appears once enough values are available.",
-      "relationTitle": "Feeling & energy together",
-      "relationSubtitle": "How much energy you had on days with different feelings.",
-      "relationAxis": "Energy",
-      "relationVibeAxis": "Feeling",
-      "relationLow": "Very low",
-      "relationHigh": "Very high",
-      "relationNote": "This only describes what happened on the same day – not what depends on what.",
-      "relationEmpty": "Once feeling and energy are shared together on more days, you can see their association here.",
-      "relationLaneCount_one": "{{count}} day",
-      "relationLaneCount_other": "{{count}} days",
-      "goodTitle": "Your good days",
-      "goodBody": "On these weekdays, both of you often felt good.",
-      "goodHandwriting": "More of what connects you.",
-      "goodEmpty": "Once a pattern of days when you both often felt good appears, you will see it here."
-    },
-    "recap": {
-      "highlightBothGood": "Both shared a good feeling",
-      "highlightBothEnergy": "Both with plenty of energy"
-    },
-    "insight": {
-      "vibeEnergy": {
-        "title": "Days with a good feeling often also had more energy.",
-        "body": "Average energy was {{good}} %, compared with {{other}} % on other days."
-      },
-      "weekdayEnergy_higher": {
-        "title": "Your energy was often higher on {{weekday}}.",
-        "body": "On these days, the average was above the rest of the month."
-      },
-      "weekdayEnergy_lower": {
-        "title": "Your energy was often a little lower on {{weekday}}.",
-        "body": "On these days, the average was below the rest of the month."
-      },
-      "partnerEnergyVibe_partner": {
-        "title": "When {{name}} had plenty of energy, you often felt good too.",
-        "body": "Both often occurred on the same day – without one explaining the other."
-      },
-      "partnerEnergyVibe_own": {
-        "title": "When you had plenty of energy, {{name}} often felt good too.",
-        "body": "Both often occurred on the same day – without one explaining the other."
-      }
-    },
-    "weekdayAdverb": {
-      "0": "On Mondays",
-      "1": "On Tuesdays",
-      "2": "On Wednesdays",
-      "3": "On Thursdays",
-      "4": "On Fridays",
-      "5": "On Saturdays",
-      "6": "On Sundays"
-    },
-    "weekdayPlural": {
-      "0": "Mondays",
-      "1": "Tuesdays",
-      "2": "Wednesdays",
-      "3": "Thursdays",
-      "4": "Fridays",
-      "5": "Saturdays",
-      "6": "Sundays"
-    },
-    "retainedRatings": {
-      "body_one": "You rated a suggestion in Insights earlier. The rating is visible only to you and is no longer used.",
-      "body_other": "You rated {{count}} suggestions in Insights earlier. The ratings are visible only to you and are no longer used.",
-      "clear": "Delete ratings",
-      "cleared": "Your earlier ratings have been deleted.",
-      "error": "The ratings could not be deleted. Check your connection and try again."
-    },
-    "brief": {
-      "loading": "Putting your weekly brief together …",
-      "coverage": "You both shared something on {{count}} of {{total}} days.",
-      "basisToggle": "What is this based on?",
-      "basis": "Only days on which you can both see your values are counted. The statements describe what happened together. They say nothing about what caused what, and nothing about your relationship as a whole.",
-      "headline": {
-        "EMPTY": {
-          "title": "Nothing shared by both of you this week yet.",
-          "body": "As soon as you both share Vibe or Energy, your weekly brief appears here."
-        },
-        "SPARSE": {
-          "title": "Too little was shared this week for patterns.",
-          "body": "Every day you both share something makes the picture clearer."
-        },
-        "SHARED_GOOD_DAYS": {
-          "title": "Your good days had something in common: you had plans together.",
-          "body": "{{days}}, you both felt good. On those days you had a shared plan or moment."
-        },
-        "GOOD_DAYS": {
-          "title_one": "On one day you both felt good.",
-          "title_other": "On {{count}} days you both felt good.",
-          "body": "That was {{days}}."
-        },
-        "STEADY": {
-          "title": "An even week.",
-          "body": "No day stood out. Quiet weeks belong too."
-        }
-      },
-      "good": {
-        "title": "What did you good",
-        "momentDate": "{{date}}",
-        "momentPhotos_one": "{{date}} · one photo",
-        "momentPhotos_other": "{{date}} · {{count}} photos",
-        "momentUntitled": "Your moment",
-        "stripLabel": "Your week, day by day",
-        "stripHint": "Tap a day to see your values.",
-        "legendShared": "Plan or moment",
-        "dayGood": "You both felt good.",
-        "dayShared": "You had a shared plan or moment."
-      },
-      "attention": {
-        "title": "What needs attention right now",
-        "OWN_CLOSENESS": "On {{count}} days you wanted closeness while {{name}} preferred some quiet.",
-        "PARTNER_CLOSENESS": "On {{count}} days {{name}} wanted closeness while you preferred some quiet.",
-        "MIXED": "On {{count}} days one of you wanted closeness and the other preferred some quiet.",
-        "body": "This happens in every relationship. A short talk helps you know next time what the other needs.",
-        "prompt": "Talk about it briefly: what helps you when you need quiet, and what helps me when I need closeness?"
-      },
-      "impulse": {
-        "title": "Your idea for next week",
-        "sourceOwn": "Your wish · on your list since {{date}}",
-        "sourcePartner": "Wish from {{name}} · on your list since {{date}}",
-        "rhythm": "{{weekday}} you have often both had a lot of energy in recent weeks. How about {{date}}?",
-        "plan": "Make it a plan",
-        "next": "Another idea",
-        "emptyTitle": "No open wish on your list",
-        "emptyBody": "Write down a wish and the weekly brief will suggest your next plan here.",
-        "addWish": "Add a wish"
-      },
-      "followUp": {
-        "title": "From last week",
-        "body": "You had planned “{{title}}” for {{date}}. Did it happen? In the plan you can complete it and keep a moment.",
-        "bodyUntitled": "You had a plan for {{date}}. Did it happen? In the plan you can complete it and keep a moment.",
-        "open": "View plan"
-      },
-      "newPatterns": {
-        "title": "Newly noticed"
-      },
-      "history": "History over weeks and months",
-      "wirHint": {
-        "text": "Your weekly brief for last week is ready.",
-        "open": "View weekly brief",
-        "later": "Later"
-      },
-      "scope": {
-        "label": "Weekly brief for",
-        "shared": "Together",
-        "own": "Just me"
-      },
-      "personal": {
-        "loading": "Putting your weekly brief together …",
-        "privateLabel": "Only visible to you",
-        "headline": {
-          "EMPTY": {
-            "title": "You have not shared anything this week yet.",
-            "body": "As soon as you share Vibe or Energy, your personal weekly brief appears here."
-          },
-          "SPARSE": {
-            "title": "Too little this week for patterns.",
-            "body": "You shared something on {{count}} of {{total}} days."
-          },
-          "WEEKDAY_LOWER": {
-            "title": "{{weekdays}} often drain your energy.",
-            "body": "You shared something on {{count}} of {{total}} days this week."
-          },
-          "SHARED_HIGHER": {
-            "title": "Shared plans and moments do you good.",
-            "body": "You shared something on {{count}} of {{total}} days this week."
-          },
-          "GOOD_DAYS": {
-            "title_one": "On one day you felt good.",
-            "title_other": "On {{count}} days you felt good.",
-            "body": "You shared something on {{count}} of {{total}} days this week."
-          },
-          "STEADY": {
-            "title": "An even week for you.",
-            "body": "You shared something on {{count}} of {{total}} days this week."
-          }
-        },
-        "goodTitle": "What does you good",
-        "sharedHigher": "On days with a shared plan or moment you had more energy.",
-        "sharedLower": "On days with a shared plan or moment you had less energy.",
-        "withShared": "With plan or moment",
-        "otherDays": "Other days",
-        "barsLabel": "Your average energy: {{group}} % on days with a plan or moment, {{others}} % on other days.",
-        "basis_one": "Based on one day with your energy in the last eight weeks.",
-        "basis_other": "Based on {{count}} days with your energy in the last eight weeks.",
-        "rhythmTitle": "Your weekly rhythm",
-        "lowerWeekday": "{{weekday}} your energy was mostly lower: {{energy}} % on average instead of {{others}} %.",
-        "higherWeekday": "{{weekday}} your energy was mostly higher: {{energy}} % on average instead of {{others}} %.",
-        "weekTitle": "Your week",
-        "dayGood": "You felt good.",
-        "stripHint": "Tap a day to see your values."
-      },
-      "facts": {
-        "JOINT_DAYS": "In the selected week, you both shared feeling or energy on {{value}} days.",
-        "ENERGY_RISING": "On recorded days, average energy was higher for both of you than in the previous week.",
-        "ENERGY_FALLING": "On recorded days, average energy was lower for both of you than in the previous week.",
-        "WEEKEND_HIGHER": "Across several weeks, both of your average energy levels on recorded weekend days were higher than on weekdays.",
-        "WEEKEND_LOWER": "Across several weeks, both of your average energy levels on recorded weekend days were lower than on weekdays.",
-        "WEEKDAY_LOWER": "On recorded {{weekday}} days, both of your average energy levels were lower than on other weekdays.",
-        "DIFFERENT_VIBES": "Across several weeks, you reported different feelings on {{value}} jointly recorded days."
-      }
-    }
-  },
   "recaps": {
     "title": "Your recaps",
     "shortTitle": "Your recaps",
@@ -3234,15 +2938,6 @@
       "DAYS_other": "days with entries"
     },
     "factsBusiest": "Most kept in {{month}}",
-    "rhythm": {
-      "title": "Good days together",
-      "summary_one": "{{count}} day when you both had a good day.",
-      "summary_other": "{{count}} days when you both had a good day.",
-      "week": "Week {{count}}",
-      "days_one": "{{count}} good day",
-      "days_other": "{{count}} good days",
-      "note": "Only days you both checked in are counted."
-    },
     "film": {
       "coverFallback": "Your {{month}}",
       "days_one": "day you captured",
@@ -6326,8 +6021,8 @@
             "body": "Add your thoughts to a recap – finished editions stay readable."
           },
           "third": {
-            "title": "Deeper insights",
-            "body": "Weekly recaps and gentle patterns of your shared days."
+            "title": "Told as a film",
+            "body": "Your photos, videos and words as a moving recap."
           }
         }
       },
@@ -6464,10 +6159,6 @@
         "experiences": {
           "title": "Happy moments & time travel",
           "body": "Share what’s making you happy today or send each other on a little trip through your memories."
-        },
-        "insights": {
-          "title": "Mood & energy insights",
-          "body": "Look back across weeks or months of check-ins and see how your moods and energy have changed. Daily check-ins stay free."
         },
         "quote": {
           "title": "Quote of the day",

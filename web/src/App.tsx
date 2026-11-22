@@ -99,10 +99,7 @@ import {
   MILESTONE_DETAIL_ROUTE_PATTERN,
   MILESTONE_EDIT_ROUTE_PATTERN,
   MORE_COLLECTIONS_ROUTE,
-  MORE_INSIGHTS_PATTERNS_ROUTE,
-  MORE_INSIGHTS_RECAP_ROUTE,
   MORE_INSIGHTS_ROUTE,
-  MORE_INSIGHTS_WEEK_ROUTE,
   MORE_NOTES_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PEOPLE_ROUTE,
@@ -235,11 +232,6 @@ const CollectionsOverviewPage = deferredComponent(() =>
 const CoupleExperiencePage = deferredComponent(() =>
   import('./components/CoupleExperiencePage').then(
     (module) => module.CoupleExperiencePage,
-  ),
-);
-const DailyInsightsPage = deferredComponent(() =>
-  import('./components/DailyInsightsPage').then(
-    (module) => module.DailyInsightsPage,
   ),
 );
 const DateIdeasPage = deferredComponent(() =>
@@ -1172,45 +1164,11 @@ function AuthenticatedApp({
               }
             />
             <Route path={appRoutePath('more')} element={null} />
+            {/* Einblicke was removed and deferred (#2210); old links land on More. */}
             <Route
-              path={MORE_INSIGHTS_RECAP_ROUTE}
-              element={
-                <Navigate
-                  replace
-                  to={{
-                    pathname: MORE_INSIGHTS_WEEK_ROUTE,
-                    search: location.search,
-                  }}
-                  state={location.state}
-                />
-              }
+              path={`${MORE_INSIGHTS_ROUTE}/*`}
+              element={<Navigate replace to={appRoutePath('more')} />}
             />
-            {(
-              [
-                [MORE_INSIGHTS_ROUTE, 'brief'],
-                [MORE_INSIGHTS_WEEK_ROUTE, 'week'],
-                [MORE_INSIGHTS_PATTERNS_ROUTE, 'patterns'],
-              ] as const
-            ).map(([path, insightView]) => (
-              <Route
-                key={path}
-                path={path}
-                element={
-                  <DailyInsightsPage
-                    apiBaseUrl={apiBaseUrl}
-                    key={`${account.id}:${spaceId}`}
-                    view={insightView}
-                    spaceId={spaceId}
-                    account={account}
-                    dailyCheckInsApi={dailyCheckInsApi}
-                    entitlementApi={entitlementApi}
-                    dashboardApi={m4Apis.dashboard}
-                    profilesApi={profilesApi}
-                    mediaApis={apis}
-                  />
-                }
-              />
-            ))}
             <Route
               path={STORY_OURS_ROUTE}
               element={

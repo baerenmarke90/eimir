@@ -21,7 +21,7 @@ from eimir.core.errors import ErrorCode, ValidationError
 from eimir.core.ids import new_id
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
-from eimir.recap_composition import freshness, mood, notices, words
+from eimir.recap_composition import freshness, notices, words
 from eimir.recaps.composition import Candidate, period_bounds
 from eimir.recaps.models import (
     RecapEdition,
@@ -348,18 +348,6 @@ def finalise_completed(
                 continue
             # The couple's own selection stands; only the frozen period is completed.
             value.through_on, value.is_partial = through, False
-            value.payload = value.payload.model_copy(
-                update={
-                    "mood": mood.refreshed(
-                        session,
-                        context.space_id,
-                        kind,
-                        value.starts_on,
-                        through,
-                        value.payload.mood,
-                    )
-                }
-            )
         value.saved_at = clock.now()
         notices.announce_retained(session, context, value, today)
         finalised += 1
@@ -482,9 +470,7 @@ def start_version(
         is_partial=False,
         status="PENDING",
         request_token=new_id(),
-        payload=RecapPayload(
-            mood=retained.payload.mood, film=RecapFilm(look=film.look) if film else None
-        ),
+        payload=RecapPayload(film=RecapFilm(look=film.look) if film else None),
         supersedes_id=retained.id,
     )
     session.add(draft)

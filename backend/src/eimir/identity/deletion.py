@@ -30,7 +30,7 @@ from eimir.auth.recent_auth_models import (
 )
 from eimir.authorization.retention import hard_delete_owner_only
 from eimir.core.clock import now
-from eimir.daily_checkins.models import DailyCheckIn, DailyInsightFeedback
+from eimir.daily_checkins.models import DailyCheckIn
 from eimir.dashboard.models import DashboardModulePreference
 from eimir.engagement.models import (
     Notification,
@@ -71,7 +71,6 @@ _FAILURE_CODE = re.compile(r"[A-Z0-9_-]{1,64}\Z")
 # removed through the plugin seam (``eimir.plugins.lifecycle.account_deleted``).
 PERSONAL_ACCOUNT_ROWS = (
     DailyCheckIn,
-    DailyInsightFeedback,
     DashboardModulePreference,
     NotificationPreference,
     RecentAuthenticationGrant,

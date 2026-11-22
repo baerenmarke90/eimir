@@ -410,7 +410,6 @@ for (const view of [
       de.more.destinations.media,
       de.more.destinations.chapters,
       de.more.destinations.yearsAndRecaps,
-      de.more.destinations.insights,
     ]);
     await captureScreenshot(
       page,

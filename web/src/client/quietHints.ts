@@ -227,20 +227,6 @@ export function restoreQuietHint(
   updateHint(key, id, (record) => ({ views: record.views }));
 }
 
-/**
- * Retires a hint from another screen, for example when the place it points
- * to was opened directly (the weekly brief of that week, #2194).
- */
-export function retireQuietHint(
-  accountId: string,
-  spaceId: string,
-  id: string,
-) {
-  const key = quietHintKey(accountId, spaceId);
-  if (readStore(key).hints[id]?.retired) return;
-  updateHint(key, id, (record) => ({ ...record, retired: true }));
-}
-
 /** Lets a screen skip reads that only feed a hint that already retired. */
 export function quietHintRetired(
   accountId: string | undefined,

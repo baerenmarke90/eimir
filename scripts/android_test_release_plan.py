@@ -24,7 +24,7 @@ LEGACY_PACKAGE = "de.sidebyside.app"
 CERTIFICATE = "1d403a18b4d3694f8e5fd9853906a60c012644d23e5a3a1ef40819b119cb1da9"
 LEGACY_CERTIFICATE = "b5009739477874fbc76b483c66ddb1502132255dd15de37f7570ee6a13b5f472"
 FIREBASE_PROJECT = "eimir-production"
-ORIGIN = "https://demo.eimir.ur-cloud.de"
+ORIGIN = "https://app.eimir.de"
 MAX_APK_BYTES = 256 * 1024 * 1024
 FIELDS = {"schemaVersion", "sourceRevision", "versionName", "versionCode", "previousVersionName", "notesFile"}
 

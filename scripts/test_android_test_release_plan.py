@@ -30,7 +30,7 @@ class PublicFixture:
             "channel": "android-test", "sourceRevision": "a" * 40,
             "versionName": self.plan.version, "versionCode": self.plan.code,
             "dirty": False, "validationOnly": False,
-            "apiOrigin": "https://demo.eimir.ur-cloud.de", "demoMode": False,
+            "apiOrigin": "https://app.eimir.de", "demoMode": False,
             "demoResetTimer": False, "testUpdates": True,
         }
         identity.update(identity_change or {})

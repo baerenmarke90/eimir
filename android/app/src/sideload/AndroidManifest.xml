@@ -8,6 +8,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" />
+                <data android:host="app.eimir.de" />
                 <data android:host="demo.eimir.ur-cloud.de" />
                 <data android:path="/auth/signup" />
                 <data android:path="/auth/magic-link" />

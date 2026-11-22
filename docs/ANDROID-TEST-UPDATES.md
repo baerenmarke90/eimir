@@ -4,7 +4,7 @@ Owner: #1331. Scope: Philipp and his partner, using real registration, sign-in,
 partner onboarding and everyday product flows before public release.
 
 The only product UI remains `web/`, packaged by Capacitor. The test API origin is
-`https://demo.eimir.ur-cloud.de`. **This is a regular persistent installation, not
+`https://app.eimir.de`. **This is a regular persistent installation, not
 public Demo mode.** Backend provisioning follows app preparation. Do not enable
 Demo entry, reset timers, synthetic memberships or Premium overrides. Full
 connected acceptance is pending until that installation exists.
@@ -18,7 +18,7 @@ not the installation candidate for this Cloud mail flow. Use the higher-version
 same-key `0.2.0-test.2` candidate with HTTPS email entry support instead.
 
 The sideload manifest declares verified App Links only for the five existing
-email-proof paths on `demo.eimir.ur-cloud.de`. React validates the configured HTTPS
+email-proof paths on `app.eimir.de` (and, until installed builds have moved, the former test host `demo.eimir.ur-cloud.de`). React validates the configured HTTPS
 origin, bounded token and exact allowed path, then passes the proof in memory to
 the existing IdentityEntry consumer. The shared `useIdentityEntry` intake waits for session restoration and processes
 a same-account invitation even when already signed in. A callback for a different

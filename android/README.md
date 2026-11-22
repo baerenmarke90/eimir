@@ -70,7 +70,7 @@ The opt-in `sideload` build adds a bounded APK updater to the shared Settings UI
 The ordinary `release` source set contains neither the updater plugin nor
 `REQUEST_INSTALL_PACKAGES`. Use the dedicated build/verification helper instead
 of manually assembling a publishable test APK. It pins
-`https://demo.eimir.ur-cloud.de`, disables Demo mode and reset timers, and records
+`https://app.eimir.de`, disables Demo mode and reset timers, and records
 the clean source revision in the APK.
 
 See [Android test channel runbook](../docs/ANDROID-TEST-UPDATES.md) for signing

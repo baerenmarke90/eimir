@@ -19,8 +19,7 @@ from eimir.auth import sessions
 from eimir.core.clock import now
 from eimir.entitlements import service as entitlements
 from eimir.identity.models import DeviceSession
-from tests.conftest import auth, requires_database
-from tests.integration.test_partner_location import (
+from pro_tests.integration.test_partner_location import (
     HAMBURG,
     _base,
     _distance,
@@ -28,6 +27,7 @@ from tests.integration.test_partner_location import (
     _share,
     couple,
 )
+from tests.conftest import auth, requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]
 

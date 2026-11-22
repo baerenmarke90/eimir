@@ -20,14 +20,14 @@ from eimir.transfer import jobs
 from eimir.transfer import service as transfer
 from eimir.transfer.archive import validate_zip
 from eimir.transfer.models import ImportStatus, TransferScope
-from tests.conftest import auth, requires_database
-from tests.integration.test_daily_checkins_pro_insights import (
+from pro_tests.integration.test_daily_checkins_pro_insights import (
     _grant_insights,
     configure_daily,
 )
-from tests.integration.test_daily_checkins_pro_insights import (
+from pro_tests.integration.test_daily_checkins_pro_insights import (
     couple as couple,
 )
+from tests.conftest import auth, requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]
 

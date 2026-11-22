@@ -27,9 +27,9 @@ from eimir.jobs.models import Job, JobStatus
 from eimir.memories.models import MemoryPayload
 from eimir.outbox.models import OutboxEvent
 from eimir.recaps.models import RecapEdition, RecapSource
+from pro_tests.integration.test_recap_film import picture, titled
+from pro_tests.integration.test_relationship_recaps import context as context
 from tests.conftest import requires_database
-from tests.integration.test_recap_film import picture, titled
-from tests.integration.test_relationship_recaps import context as context
 from tests.integration.test_thinking_push import FakePushProvider
 
 pytestmark = [pytest.mark.integration, requires_database]

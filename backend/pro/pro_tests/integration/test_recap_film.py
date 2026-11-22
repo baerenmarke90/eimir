@@ -12,9 +12,9 @@ from eimir.authorization import PrivacyClass
 from eimir.memories.models import Memory, MemoryPayload
 from eimir.milestones.models import Milestone, MilestonePayload
 from eimir.recaps.models import RecapEdition
+from pro_tests.integration.test_relationship_recaps import NOW, generate, read, request
+from pro_tests.integration.test_relationship_recaps import context as context
 from tests.conftest import requires_database
-from tests.integration.test_relationship_recaps import NOW, generate, read, request
-from tests.integration.test_relationship_recaps import context as context
 
 pytestmark = [pytest.mark.integration, requires_database]
 

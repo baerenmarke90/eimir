@@ -87,6 +87,7 @@ export function WeeklyBriefWirHint({
   return (
     <div className="weekly-brief-wir-hint">
       <QuietHint
+        icon="nachrichten"
         action={{
           to: `${MORE_INSIGHTS_ROUTE}?week=${monday}`,
           label: t('dailyInsights.brief.wirHint.open'),

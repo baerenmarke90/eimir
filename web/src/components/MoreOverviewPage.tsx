@@ -23,6 +23,7 @@ import {
   STORY_YEARS_ROUTE,
 } from '../client/routes';
 import { useShellUtilities } from '../client/shellUtilities';
+import { openSupportReport } from '../client/supportReportLauncher';
 import { useCurrentProfileIdentity } from '../client/useCurrentProfileIdentity';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { cloudLegalDocumentsApply } from '../legal/legalDocuments';
@@ -198,6 +199,43 @@ function MoreDestinationRow({
           ) : null}
         </span>
       </TaskOriginLink>
+    </li>
+  );
+}
+
+/**
+ * "Help & feedback" (#2189): a destination row that opens the shell's support
+ * report sheet instead of navigating. It starts with feedback and attaches no
+ * failure; a problem stays selectable in the sheet.
+ */
+function HelpAndFeedbackRow() {
+  const { t } = useTranslation();
+  const rowId = useId();
+  const titleId = `${rowId}-title`;
+  const subtitleId = `${rowId}-subtitle`;
+  return (
+    <li>
+      <button
+        type="button"
+        className="more-destination more-destination-button"
+        aria-labelledby={titleId}
+        aria-describedby={subtitleId}
+        aria-haspopup="dialog"
+        onClick={() => openSupportReport({ kind: 'FEEDBACK' })}
+      >
+        <span className="more-destination-icon" aria-hidden="true">
+          <EimirIcon name="hilfe" />
+        </span>
+        <span className="more-destination-copy">
+          <span className="more-destination-title-row">
+            <strong id={titleId}>{t('supportReport.entry.title')}</strong>
+          </span>
+          <span id={subtitleId} className="more-destination-subtitle">
+            {t('supportReport.entry.subtitle')}
+          </span>
+        </span>
+        <span className="more-destination-trailing" />
+      </button>
     </li>
   );
 }
@@ -383,6 +421,9 @@ export function MoreOverviewPage({
               destination={destination}
             />
           ))}
+          {instanceStatus.data?.supportReportsAvailable ? (
+            <HelpAndFeedbackRow />
+          ) : null}
         </MoreDestinationGroup>
         {serverAdmin ? (
           <MoreDestinationGroup title={t('navigation.operatorArea')}>

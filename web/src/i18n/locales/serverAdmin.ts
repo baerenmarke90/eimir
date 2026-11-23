@@ -44,6 +44,8 @@ const serverAdmin = {
     mailVerification:
       'Der E-Mail-Versand ist deaktiviert, gleichzeitig existieren unverifizierte Accounts. Verifikation und Recovery können Betreiberunterstützung benötigen.',
     failedJobs: 'Es liegen fehlgeschlagene Hintergrundjobs vor.',
+    supportReportsUnread:
+      'Es liegen Meldungen seit mehr als 14 Tagen ungelesen vor.',
   },
   health: {
     title: 'Systemzustand',
@@ -71,6 +73,7 @@ const serverAdmin = {
     unverifiedEmails: 'Unverifizierte primäre E-Mails',
     mediaObjects: 'Medienobjekte',
     mediaBytes: 'Gespeicherte Medien',
+    supportReportsNew: 'Neue Meldungen',
   },
   security: {
     title: 'Sicherheit & Anmeldung',

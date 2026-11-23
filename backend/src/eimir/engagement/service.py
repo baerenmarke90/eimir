@@ -434,6 +434,15 @@ def project_event(session: Session, event: OutboxEvent) -> None:
             NotificationKind(event_type.value),
             expires_at=event.payload.due_at,
         )
+    if event_type is EventType.SUPPORT_REPLY and _is_support_report_subject(event.subject_type):
+        # #2189: one notice per reply, only for the reporter of the report.
+        _project_target_notification(
+            session,
+            event,
+            EngagementTarget.SUPPORT_REPORT,
+            event.subject_id,
+            NotificationKind.SUPPORT_REPLY,
+        )
 
     if event_type is EventType.VIDEO_PROCESSING_FAILED and event.subject_type == "attachment":
         from eimir.attachments import binding
@@ -764,6 +773,8 @@ def _target_is_projectable(
         return current.round is not None and current.round.id == target_id
     if target_type is EngagementTarget.RECAP:
         return session.scalar(_recap_is_readable(context, target_id)) is not None
+    if target_type is EngagementTarget.SUPPORT_REPORT:
+        return session.scalar(_support_report_is_own(context, target_id)) is not None
     model = _TARGET_MODELS[target_type]
     statement = readable(model, context).where(model.id == target_id)
     if not (allow_private_heart and target_type is EngagementTarget.HEART_MOMENT):
@@ -782,6 +793,32 @@ def _recap_is_readable(context: AuthorizationContext, target_id: Any) -> Any:
         RecapEdition.space_id == context.space_id,
         RecapEdition.status == "READY",
         RecapEdition.saved_at.is_not(None),
+    )
+
+
+def _is_support_report_subject(subject_type: str) -> bool:
+    """True for the subject type the support reply event carries (#2189).
+
+    The producer's constant is the single source, so a rename cannot silently
+    stop the notice. Imported lazily like the report model below: the Core
+    support module is not loaded until a reply event is projected.
+    """
+    from eimir.support_reports.service import REPLY_SUBJECT_TYPE
+
+    return subject_type == REPLY_SUBJECT_TYPE
+
+
+def _support_report_is_own(context: AuthorizationContext, target_id: Any) -> Any:
+    """A support reply notice belongs only to the report's own reporter (#2189).
+
+    A report is not Space content: the viewer's account decides, not the Space.
+    The notice disappears with the report (account deletion, retention).
+    """
+    from eimir.support_reports.models import SupportReport
+
+    return select(SupportReport.id).where(
+        SupportReport.id == target_id,
+        SupportReport.account_id == context.account_id,
     )
 
 
@@ -808,6 +845,12 @@ def _projectable_predicate(
         and_(
             target_type_column == EngagementTarget.RECAP.value,
             _recap_is_readable(context, target_id_column).exists(),
+        )
+    )
+    clauses.append(
+        and_(
+            target_type_column == EngagementTarget.SUPPORT_REPORT.value,
+            _support_report_is_own(context, target_id_column).exists(),
         )
     )
     for target_type, model in _TARGET_MODELS.items():

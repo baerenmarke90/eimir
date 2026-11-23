@@ -14,6 +14,8 @@ export function getNotificationItemTitle(
     return t('m5s3.wish.reminder.notification');
   if (item.kind === 'RECAP_READY' || item.kind === 'RECAP_GREW')
     return recapNoticeTitle(item, t);
+  // #2189: a neutral title; the reply itself is read by the list item.
+  if (item.kind === 'SUPPORT_REPLY') return t('supportReport.reply.title');
   const isOwn = Boolean(
     currentAccountId && item.actor?.id === currentAccountId,
   );

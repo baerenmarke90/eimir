@@ -62,6 +62,7 @@ import { MEMORY_TAGS } from './MemoryTagChoices';
 import { PageHeader } from './PageHeader';
 import { AuthorAvatar } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
+import { SupportReplyNotice } from './SupportReplyNotice';
 import { UiState } from './UiState';
 import './M4ProductPages.css';
 
@@ -593,6 +594,11 @@ function NotificationCard({
         ) : null}
         <div className="m4-notification-copy">
           <p className="m4-notification-title">{titleContent}</p>
+          {item.kind === 'SUPPORT_REPLY' &&
+          item.targetType === 'SUPPORT_REPORT' &&
+          item.targetId ? (
+            <SupportReplyNotice reportId={item.targetId} />
+          ) : null}
           <time
             className="m4-item-meta"
             dateTime={item.createdAt.toISOString()}

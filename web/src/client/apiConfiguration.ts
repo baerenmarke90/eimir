@@ -3,6 +3,7 @@ import {
   type ConfigurationParameters,
 } from '../api/generated/runtime';
 import type { TokenView } from '../api/generated/models/TokenView';
+import { recordingFailures } from './failureReference';
 import { ClientProblemError } from './problemDetails';
 import {
   captureSessionOwner,
@@ -47,7 +48,7 @@ export class Configuration extends GeneratedConfiguration {
     const transport = parameters.fetchApi ?? ((url, init) => fetch(url, init));
     super({
       ...parameters,
-      fetchApi: async (url, init) => {
+      fetchApi: recordingFailures(async (url, init) => {
         const target =
           typeof url === 'string' || url instanceof URL ? url : url.url;
         if (new URL(target, baseUrl).origin !== baseUrl.origin) {
@@ -76,7 +77,7 @@ export class Configuration extends GeneratedConfiguration {
           await refreshSessionTokens(apiBaseUrl, current.refreshToken);
         }
         return send(requireTokens(owner).accessToken);
-      },
+      }),
     });
     this.mediaCacheScope = mediaCacheScopeForOwner(
       owner,

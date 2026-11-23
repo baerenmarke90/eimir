@@ -42,6 +42,8 @@ export interface InstanceStatusResult {
   oidcConnections?: OidcConnectionView[];
   /** A person may create a new Account through a provider right now. */
   oidcSignupAvailable?: boolean;
+  /** The operator accepts support reports (#2189); false while unknown. */
+  supportReportsAvailable?: boolean;
 }
 
 export function isSelfServiceSignupAllowed(
@@ -76,6 +78,7 @@ export async function loadInstanceAccessStatus(
       termsOfUseVersion: status.termsOfUseVersion ?? null,
       oidcConnections: status.oidcConnections ?? [],
       oidcSignupAvailable: Boolean(status.oidcSignupAvailable),
+      supportReportsAvailable: status.supportReportsAvailable === true,
     };
   } catch {
     return {
@@ -88,6 +91,7 @@ export async function loadInstanceAccessStatus(
       termsOfUseVersion: null,
       oidcConnections: [],
       oidcSignupAvailable: false,
+      supportReportsAvailable: false,
     };
   }
 }

@@ -55,6 +55,69 @@ describe('deferredComponent', () => {
   });
 });
 
+describe('deferredModule', () => {
+  it('shares one load, forgets a failed one and keeps the loaded value', async () => {
+    vi.useRealTimers();
+    const { deferredModule } = await loadFresh();
+    const load = vi
+      .fn<() => Promise<string>>()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValue('sheet');
+    const module = deferredModule(load);
+
+    expect(module.current()).toBeNull();
+    await expect(module.load()).rejects.toThrow('offline');
+    expect(module.current()).toBeNull();
+
+    const [first, second] = await Promise.all([module.load(), module.load()]);
+    expect([first, second]).toEqual(['sheet', 'sheet']);
+    expect(module.current()).toBe('sheet');
+    await module.load();
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('optionalDeferredComponent', () => {
+  it('renders nothing and does not throw when its chunk fails, then loads on the next mount', async () => {
+    vi.useRealTimers();
+    const { optionalDeferredComponent } = await loadFresh();
+    const load = vi
+      .fn<() => Promise<typeof Page>>()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValue(Page);
+    const Optional = optionalDeferredComponent(load);
+
+    // No Suspense boundary: a failed load must not suspend or throw.
+    const failed = render(
+      <div data-testid="around">
+        <Optional label="reply" />
+      </div>,
+    );
+    await act(async () => {});
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('around').innerHTML).toBe('');
+    failed.unmount();
+
+    render(<Optional label="reply" />);
+    expect(await screen.findByText('reply')).toBeDefined();
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it('renders a loaded chunk in the first frame', async () => {
+    vi.useRealTimers();
+    const { optionalDeferredComponent } = await loadFresh();
+    const load = vi.fn(async () => Page);
+    const Optional = optionalDeferredComponent(load);
+    const first = render(<Optional label="first" />);
+    expect(await screen.findByText('first')).toBeDefined();
+    first.unmount();
+
+    render(<Optional label="again" />);
+    expect(screen.getByText('again')).toBeDefined();
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('scheduleDeferredPrefetch', () => {
   it('loads every deferred chunk one after another, only after the delay', async () => {
     const modules = await loadFresh();

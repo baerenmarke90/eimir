@@ -19,6 +19,38 @@ import type { ReferenceApis } from '../client/referenceFlow';
 import photoReactions from '../i18n/locales/photoReactions';
 import { MemoryPhotoGallery } from './MemoryPhotoGallery';
 
+function Consumer({
+  scope: currentScope,
+  memory,
+  responseProjection,
+  apis,
+}: {
+  scope: string;
+  memory: MemoryDetail;
+  responseProjection: boolean;
+  apis: ReferenceApis;
+}) {
+  const query = useQuery({
+    queryKey: key,
+    queryFn: async () => ({ value: memory, source: 'network' }),
+  });
+  return (
+    <MemoryPhotoGallery
+      memory={
+        responseProjection
+          ? { ...query.data!.value, id: 'response', version: 1 }
+          : query.data!.value
+      }
+      projectionMemoryId={responseProjection ? 'memory' : undefined}
+      apis={apis}
+      accountId="account"
+      scope={currentScope}
+      offline={false}
+      loadImage={async () => 'blob:photo'}
+    />
+  );
+}
+
 const key = authorSummaryQueryKeys.memory('space', 'memory');
 function fixture(): MemoryDetail {
   return {
@@ -67,31 +99,15 @@ function setup(
   const apis = {
     memories: { setMemoryPhotoReaction: save },
   } as unknown as ReferenceApis;
-  function Consumer({ scope: currentScope }: { scope: string }) {
-    const query = useQuery({
-      queryKey: key,
-      queryFn: async () => ({ value: memory, source: 'network' }),
-    });
-    return (
-      <MemoryPhotoGallery
-        memory={
-          responseProjection
-            ? { ...query.data!.value, id: 'response', version: 1 }
-            : query.data!.value
-        }
-        projectionMemoryId={responseProjection ? 'memory' : undefined}
-        apis={apis}
-        accountId="account"
-        scope={currentScope}
-        offline={false}
-        loadImage={async () => 'blob:photo'}
-      />
-    );
-  }
   const tree = (currentScope: string) => (
     <QueryClientProvider client={client}>
       <MemoryRouter>
-        <Consumer scope={currentScope} />
+        <Consumer
+          scope={currentScope}
+          memory={memory}
+          responseProjection={responseProjection}
+          apis={apis}
+        />
       </MemoryRouter>
     </QueryClientProvider>
   );

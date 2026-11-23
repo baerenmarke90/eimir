@@ -38,6 +38,11 @@ import { resetStagesForTests, useStage } from '../motion/stage';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
 import { WIR_STAGE } from './wirStageMotion';
 
+function Opening() {
+  const ref = useStage<HTMLDivElement>(WIR_STAGE, { duration: 150 });
+  return <div ref={ref} />;
+}
+
 type VibePartner =
   | { state: 'HIDDEN_UNTIL_SELF_CHECK_IN' }
   | { state: 'NO_CHECK_IN' }
@@ -1602,10 +1607,6 @@ describe('WirDailyCheckIn partner arrival', () => {
   });
 
   it('waits with the partner news until the Wir opening ended (#2147)', async () => {
-    function Opening() {
-      const ref = useStage<HTMLDivElement>(WIR_STAGE, { duration: 150 });
-      return <div ref={ref} />;
-    }
     const { api } = apiFor(visiblePartner);
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },

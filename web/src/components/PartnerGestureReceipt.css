@@ -318,7 +318,7 @@
 /* No waves: the badge lands soon after the soft breath begins (Product Owner
  * decision, 2026-11-15). */
 .partner-gesture-receipt[data-variant="calm-ring"]
-.partner-gesture-receipt-glyph {
+  .partner-gesture-receipt-glyph {
   animation-delay: calc(
     var(--duration-sequence-beat) +
     var(--duration-context)

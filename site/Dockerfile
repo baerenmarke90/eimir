@@ -14,7 +14,7 @@ COPY web/src src
 COPY web/preview preview
 RUN npm run build:preview
 
-FROM python:3.15.0-slim@sha256:f5b92f2a669a4c347044f29367f31983280b648250ca94dea66f98c53bc87e58 AS build
+FROM python:3.15.2-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928 AS build
 
 WORKDIR /src
 COPY site site
@@ -29,7 +29,7 @@ COPY docs/assets/site docs/assets/site
 COPY --from=preview /app/dist-preview web/dist-preview
 RUN python tools/site/build_main_site.py --production
 
-FROM ghcr.io/nginx/nginx-unprivileged:1.31.8@sha256:1d2d62ccb876da984beaef0084b895e8ce490acee185ccdef0c55e6263afd3b8
+FROM ghcr.io/nginx/nginx-unprivileged:1.31.9@sha256:0255fc1dcc1d7b358aac20166543e52029fea577413edadb0912f5b928c7e312
 
 COPY site/nginx.conf /etc/nginx/conf.d/default.conf
 COPY site/security-headers.conf /etc/nginx/security-headers.conf

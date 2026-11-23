@@ -19,6 +19,12 @@ import taskBoundary from '../i18n/locales/taskBoundary';
 import { PlanningCreatePage } from './PlanningCreatePage';
 import { sharedNote } from './sharedNoteFixtures';
 
+function LocationTracker({ locations }: { locations: string[] }) {
+  const location = useLocation();
+  locations.push(location.pathname);
+  return null;
+}
+
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute('open', '');
@@ -46,11 +52,6 @@ function renderCreate(
     ...overrides,
   } as SharedPlanningApis;
   const locations: string[] = [];
-  const Tracker = () => {
-    const location = useLocation();
-    locations.push(location.pathname);
-    return null;
-  };
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -62,7 +63,7 @@ function renderCreate(
           kind === 'plan' ? '/plan/plans/new' : '/plan/wishes/new',
         ]}
       >
-        <Tracker />
+        <LocationTracker locations={locations} />
         <Routes>
           <Route
             path="/plan/plans/new"

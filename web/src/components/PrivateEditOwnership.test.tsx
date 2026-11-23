@@ -8,7 +8,6 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { useState } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import {
   afterEach,
@@ -169,10 +168,7 @@ for (const definition of definitions) {
         updatePrivateCollection: update,
       } as unknown as PrivateAreaApi;
       const Editor = definition.Editor;
-      let hideEditor!: () => void;
-      function Harness() {
-        const [visible, setVisible] = useState(true);
-        hideEditor = () => setVisible(false);
+      function application(visible: boolean) {
         return (
           <QueryClientProvider client={queryClient}>
             <MemoryRouter initialEntries={[definition.path]}>
@@ -203,7 +199,8 @@ for (const definition of definitions) {
           </QueryClientProvider>
         );
       }
-      render(<Harness />);
+      const view = render(application(true));
+      const hideEditor = () => view.rerender(application(false));
       async function submit() {
         if (definition.inline) {
           // The collection starts editing from its item menu.

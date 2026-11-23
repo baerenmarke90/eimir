@@ -8,7 +8,6 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { useState } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
@@ -80,11 +79,8 @@ for (const definition of definitions) {
         },
       });
       queryClient.setQueryData(definition.key, { items: [] });
-      let endSession!: () => void;
       const Editor = definition.Editor;
-      function Harness() {
-        const [active, setActive] = useState(true);
-        endSession = () => setActive(false);
+      function application(active: boolean) {
         return (
           <QueryClientProvider client={queryClient}>
             <MemoryRouter initialEntries={[`${definition.path}/new`]}>
@@ -113,7 +109,8 @@ for (const definition of definitions) {
           </QueryClientProvider>
         );
       }
-      render(<Harness />);
+      const view = render(application(true));
+      const endSession = () => view.rerender(application(false));
       async function submit() {
         fireEvent.change(screen.getByLabelText(definition.label), {
           target: { value: saved.title },

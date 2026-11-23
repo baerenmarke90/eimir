@@ -58,6 +58,18 @@ export function deferredModule<T>(load: () => Promise<T>): DeferredModule<T> {
   return { load: loadOnce, current: () => loaded };
 }
 
+function DeferredPage<P extends object>({
+  resolve,
+  pageProps,
+}: {
+  resolve: () => ComponentType<P>;
+  pageProps: P;
+}) {
+  // Keep the same component for the lifetime of this mount, including after prefetch.
+  const [Component] = useState(resolve);
+  return <Component {...pageProps} />;
+}
+
 /**
  * A component in its own chunk, outside the startup bundle. Before its chunk
  * has loaded it suspends like `React.lazy`. Once loaded, by the background
@@ -72,14 +84,35 @@ export function deferredComponent<P extends object>(
     module.load().then((component) => ({ default: component })),
   );
 
-  function Deferred(props: P) {
-    // Chosen once per mount, so a mounted page never changes component identity.
-    const [Component] = useState<ComponentType<P>>(
-      () => module.current() ?? Lazy,
+  const resolve = () => module.current() ?? Lazy;
+  return (props) => <DeferredPage resolve={resolve} pageProps={props} />;
+}
+
+function OptionalDeferredPage<P extends object>({
+  module,
+  pageProps,
+}: {
+  module: DeferredModule<ComponentType<P>>;
+  pageProps: P;
+}) {
+  const [, loadedNow] = useReducer((count: number) => count + 1, 0);
+  const Component = module.current();
+  useEffect(() => {
+    if (Component) return;
+    let live = true;
+    module.load().then(
+      () => {
+        if (live) loadedNow();
+      },
+      () => {
+        // Stays empty; the next mount loads again.
+      },
     );
-    return <Component {...props} />;
-  }
-  return Deferred;
+    return () => {
+      live = false;
+    };
+  }, [Component, module]);
+  return Component ? <Component {...pageProps} /> : null;
 }
 
 /**
@@ -94,27 +127,7 @@ export function optionalDeferredComponent<P extends object>(
 ): ComponentType<P> {
   const module = deferredModule(load);
 
-  function OptionalDeferred(props: P) {
-    const [, loadedNow] = useReducer((count: number) => count + 1, 0);
-    const Component = module.current();
-    useEffect(() => {
-      if (Component) return;
-      let live = true;
-      module.load().then(
-        () => {
-          if (live) loadedNow();
-        },
-        () => {
-          // Stays empty; the next mount loads again.
-        },
-      );
-      return () => {
-        live = false;
-      };
-    }, [Component]);
-    return Component ? <Component {...props} /> : null;
-  }
-  return OptionalDeferred;
+  return (props) => <OptionalDeferredPage module={module} pageProps={props} />;
 }
 
 /** Wait after the shell appeared, so the prefetch never competes with its opening. */

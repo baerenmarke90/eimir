@@ -7,9 +7,10 @@
  * "map is moving" states in MemoryMapPage.css still win. */
 
 :where(
-  .memory-map-surface[data-diary-layout="album"],
-  .memory-map-fullscreen-surface[data-diary-layout="album"]
-) .memory-map-stack-photo {
+    .memory-map-surface[data-diary-layout="album"],
+    .memory-map-fullscreen-surface[data-diary-layout="album"]
+  )
+  .memory-map-stack-photo {
   box-sizing: border-box;
   padding: 3px 3px 9px;
   border: 0;
@@ -39,9 +40,10 @@
 
 /* The count reads as a caption on a stack of prints. */
 :where(
-  .memory-map-surface[data-diary-layout="album"],
-  .memory-map-fullscreen-surface[data-diary-layout="album"]
-) .memory-map-marker-count {
+    .memory-map-surface[data-diary-layout="album"],
+    .memory-map-fullscreen-surface[data-diary-layout="album"]
+  )
+  .memory-map-marker-count {
   top: auto;
   bottom: 0;
   inset-inline-end: 0;

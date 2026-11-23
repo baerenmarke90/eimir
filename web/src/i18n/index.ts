@@ -10,6 +10,11 @@ import { localeRegistry, resources, supportedLocales } from './resources';
 
 export { DEFAULT_LOCALE } from './locale';
 
+export interface TranslateText {
+  (key: string): string;
+  (key: string, values: Record<string, unknown>): string;
+}
+
 export function resolvedLocale(): string {
   return (
     resolveSupportedLocale(i18n.resolvedLanguage || i18n.language) ||

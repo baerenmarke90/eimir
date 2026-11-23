@@ -19,6 +19,26 @@ import { invalidateMotionTokens } from '../motion/tokens';
 import { useNavigationMotion } from './useNavigationMotion';
 
 /** A Web Animation's `finished` that the test settles by hand. */
+function CommitProbe({
+  pathname,
+  onNavigate,
+}: {
+  pathname: string;
+  onNavigate: (root: string) => void;
+}) {
+  const ref = useRef<HTMLElement>(null);
+  useNavigationMotion({
+    surfaceRef: ref,
+    pathname,
+    routeKey: pathname,
+    onNavigate,
+  });
+  useLayoutEffect(() => {
+    if (pathname === '/plan' && ref.current) swipe(ref.current);
+  }, [pathname]);
+  return <main ref={ref}>Committed reading surface</main>;
+}
+
 const pending = () => new Promise<Animation>(() => {});
 
 import { usePullToRefresh } from './usePullToRefresh';
@@ -666,21 +686,10 @@ describe('primary tab swipe ownership', () => {
 
   it('accepts another gesture as soon as a new destination commits', () => {
     const onNavigate = vi.fn();
-    function CommitProbe({ pathname }: { pathname: string }) {
-      const ref = useRef<HTMLElement>(null);
-      useNavigationMotion({
-        surfaceRef: ref,
-        pathname,
-        routeKey: pathname,
-        onNavigate,
-      });
-      useLayoutEffect(() => {
-        if (pathname === '/plan' && ref.current) swipe(ref.current);
-      }, [pathname]);
-      return <main ref={ref}>Committed reading surface</main>;
-    }
-    const view = render(<CommitProbe pathname="/story" />);
-    view.rerender(<CommitProbe pathname="/plan" />);
+    const view = render(
+      <CommitProbe onNavigate={onNavigate} pathname="/story" />,
+    );
+    view.rerender(<CommitProbe onNavigate={onNavigate} pathname="/plan" />);
     expect(onNavigate).toHaveBeenCalledExactlyOnceWith('/more/collections');
   });
   it('keeps a live reading surface interactive during rapid consecutive tab changes', () => {

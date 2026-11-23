@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type FormEvent, useMemo, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { ProfileIdentityUpdate } from '../api/generated/models/ProfileIdentityUpdate';
 import { Configuration } from '../client/apiConfiguration';
@@ -153,12 +153,17 @@ export function ProfileIdentityPanel({
       setEditingIdentity(false);
       requestAnimationFrame(() => editIdentityButtonRef.current?.focus());
     },
-    onError: (_error, changes) =>
-      (changes.displayName !== undefined
-        ? displayNameInputRef.current
-        : birthdayInputRef.current
-      )?.focus(),
   });
+
+  useEffect(() => {
+    if (!saveMutation.error) return;
+    // Pending inputs are disabled until React commits the failed save.
+    const input =
+      saveMutation.variables?.displayName !== undefined
+        ? displayNameInputRef.current
+        : birthdayInputRef.current;
+    input?.focus();
+  }, [saveMutation.error, saveMutation.variables]);
 
   const avatarMutation = useMutation({
     mutationFn: async (file: File) => {

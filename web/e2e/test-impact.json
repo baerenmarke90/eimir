@@ -1092,6 +1092,10 @@
       "roots": [
         "web/src/components/AppShell.tsx",
         "web/src/components/PageHeader.tsx",
+        "web/src/components/WishComposer.tsx",
+        "web/src/components/WishSelectionPage.tsx",
+        "web/src/components/SharedNoteEditorPage.tsx",
+        "web/src/components/PlanningCreatePage.tsx",
         "web/src/components/SubpageNavigation.tsx",
         "web/src/components/TaskBackButton.tsx",
         "web/src/components/MemoryProductPage.tsx",

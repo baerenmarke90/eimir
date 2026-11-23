@@ -1,6 +1,6 @@
 .m4-product-page {
   display: grid;
-  gap: var(--space-6);
+  --page-stack-gap: var(--space-6);
 }
 
 /*
@@ -243,12 +243,7 @@
 /* Feeds (Activity, Notifications) read as one calm list: tight rhythm, no
    panel around panels, a small status line instead of a summary card. */
 .m4-feed-page {
-  gap: var(--space-3);
-}
-
-.m4-feed-page > .page-heading {
-  margin-block-end: 0;
-  padding-block-end: 0;
+  --page-stack-gap: var(--space-3);
 }
 
 .m4-feed-page .m4-list {

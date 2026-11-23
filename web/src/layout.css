@@ -22,6 +22,12 @@
   margin: 0 auto;
 }
 
+/* A page stack shares its row spacing with the secondary heading contract. */
+:where(.page) {
+  --page-stack-gap: 0px;
+  gap: var(--page-stack-gap);
+}
+
 /*
  * Expanded: text and list pages that would otherwise run the full content
  * width with their copy at the leading edge sit in a centered reading column.

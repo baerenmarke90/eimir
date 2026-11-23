@@ -147,7 +147,7 @@ Send now, Done) scrolls fully into view above the fixed footer edge and is at
 least 44 × 44 CSS px; the sheet body scrolls; the dialog keeps its accessible
 name and the focus lands on the note (or on Done after sending); the error
 state action, the More row and both "mark as read" actions stay at least
-44 px tall. It also asserts that the two report kinds still sit side by side
+44 px tall. It also asserts that the two report kinds still sit next to each other
 at 100 % text. A one-off exploration additionally checked 320 px at 100 %
 text (WCAG 1.4.10) for the same states: no horizontal scrolling, nothing
 clipped, every target at least 44 px.
@@ -175,7 +175,7 @@ VISUAL_EVIDENCE_DIR="$(pwd)/../../docs/product/design/evidence/2189" \
 
 Defects found and fixed in `c4d86fe7f`:
 
-1. The two report kinds stayed side by side and broke words mid-word
+1. The two report kinds stayed next to each other and broke words mid-word
    ("funkti-oniert", "Feedb-ack"). They now use the shared
    `repeat(auto-fit, minmax(min(100%, 8rem), 1fr))` reflow pattern and stack
    when larger text would break a word.

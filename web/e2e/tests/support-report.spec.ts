@@ -771,7 +771,7 @@ test.describe('large text at 2x', () => {
           kinds.map((kind) => kind.getBoundingClientRect().toJSON()),
         );
 
-    // At 100 % text the two choices still sit side by side.
+    // At 100 % text the two choices still sit next to each other.
     await report.click();
     await expect(sheet.dialog).toBeVisible();
     const [first, second] = await kindBoxes();

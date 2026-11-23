@@ -22,7 +22,7 @@
 }
 
 /* A two-option choice: native radios with the segmented presentation. The
-   options sit side by side while each has room for its longest word and
+   options sit next to each other while each has room for its longest word and
    stack once larger text would break a word (the shared reflow pattern). */
 .support-report-kinds {
   display: grid;

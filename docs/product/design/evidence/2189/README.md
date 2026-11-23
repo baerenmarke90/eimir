@@ -10,8 +10,10 @@ The captures below are real renders of the running app, not the sketch.
 
 ## Baseline
 
-Implementation revision `8ddd6402e` (branch `claude/laughing-thompson-4d209c`),
-on top of `main` `28ebc7080`, the baseline the design reviewed. Screens
+Re-captured on implementation revision `6a70c5157` (branch
+`claude/laughing-thompson-4d209c`: the shell-level sheet host `e2e465cc1`
+and the polish `6a70c5157`), on top of `main` `28ebc7080`, the baseline the
+design reviewed. The first captures were taken on `8ddd6402e`. Screens
 reviewed: the shared `ProblemState`, More, and the notification list.
 
 ## How the captures were produced
@@ -38,16 +40,17 @@ Compact 390 px unless the name says otherwise.
 
 | File | State |
 | --- | --- |
-| `01-error-state-390-{light,dark}.png` | Error state with "Erneut versuchen" and the quiet "Problem melden" |
+| `01-error-state-390-{light,dark}.png` | Error state with the shared secondary "Erneut versuchen" and the smaller tertiary "Problem melden" |
 | `02-more-row-390-{light,dark}.png` | More, "Hilfe & Feedback" row in "App und Konto" |
-| `03-problem-sheet-390-{light,dark}.png` | Problem sheet, idle, with the failure line ("Fehler-Code") |
+| `03-problem-sheet-390-{light,dark}.png` | Problem sheet, idle: "Fehler-Code" label above the raw reference, filled note field without resize grip |
 | `03-problem-sheet-360-light.png`, `-430-light.png` | The same at 360 and 430 px |
 | `03-problem-sheet-390-light-reduced-motion.png` | The same with reduced motion emulated |
 | `03-problem-sheet-1280-light.png` | Expanded: the sheet as a centered dialog, no Close icon |
 | `04-feedback-sheet-empty-390-{light,dark}.png` | Feedback from More, empty: "Senden" disabled, hint, no failure line |
-| `05-queued-offline-390-{light,dark}.png` | Offline: note kept, "Du bist offline", "Jetzt senden" |
-| `06-success-390-{light,dark}.png` | Success: calm "Danke, angekommen.", no promise of an answer |
-| `07-reply-notification-390-{light,dark}.png` | Reply in the notification list as plain text (the reply is `<b>hi</b> ...` and shows literally) |
+| `05-feedback-filled-390-{light,dark}.png` | Feedback with text, online, just before going offline (compare with the next row) |
+| `05-queued-offline-390-{light,dark}.png` | Offline: note kept, "Du bist offline" below the note, "Jetzt senden"; choice and field keep their place in the sheet |
+| `06-success-390-{light,dark}.png` | Success: one centered column (check, "Danke, angekommen.", body), no promise of an answer |
+| `07-reply-notification-390-{light,dark}.png` | Reply in the notification list as plain text (the reply is `<b>hi</b> ...` and shows literally); the timestamp is smaller, muted and set apart |
 
 ## Journeys
 
@@ -62,6 +65,10 @@ observe the result and return:
   `supportReportsAvailable` is true; feedback is preselected, needs text and
   attaches no failure; offline keeps the note; it is delivered once after
   reconnect.
+- `sheet_survives_problem_state_replacement`: with the sheet open and a
+  note typed, a reconnect refetches the failed list, which recovers and
+  replaces the error state; the sheet stays open with the note and the
+  failure it was opened with.
 
 ## Not captured
 
@@ -75,18 +82,26 @@ observe the result and return:
 
 ## Findings from reviewing the captures
 
-Not fixed here; they belong to the product code.
+The six findings of the first captures (`8ddd6402e`) are addressed in
+`e2e465cc1`/`6a70c5157` and visible in the files above: the failure
+reference breaks anywhere under its own "Fehler-Code" label; "Problem
+melden" is the smaller, lighter tertiary action; the offline message sits
+below the note; success is one centered column; the reply's timestamp is
+smaller, muted and set apart; the note field has no resize grip (and now
+uses the shared filled field surface, so it stays visible when unfocused).
 
-1. The failure line breaks mid-token at narrow and medium widths
-   (`...notifications:50` / `0:E2E_...` at 390, `...:we` / `b` at 1280,
-   `...:E2E` / `_UNAVAILABLE` at 430). A break at `:` or `/` reads better.
-2. The two actions in the error state ("Erneut versuchen", "Problem melden")
-   sit indented from the text's left edge and look alike; the report action
-   is not clearly the quieter one.
-3. When the offline message appears it is inserted above the choice, which
-   moves the form down (compare `04-...` and `05-...`).
-4. The success state mixes a left-aligned title with a centered check and
-   centered body text.
-5. The reply text and its timestamp (`23.11.2026, 10:30`) have the same
-   weight and almost no spacing between them.
-6. The note field shows the browser's native resize grip.
+Remaining deviations from the mock-up:
+
+1. The error-state actions stay left-aligned and indented by the shared
+   secondary button's own padding (the design has no visible button border,
+   `--border-surface-width: 0px`); every `ProblemState` shows the retry this
+   way. The mock-up centers the whole state and both actions.
+2. The Compact sheet grows from the bottom: when the offline message appears
+   the sheet's top edge rises by the message height, carrying the title,
+   choice and field with it. Inside the sheet nothing moves; only reserving
+   the message space in the idle state would keep the edge still.
+3. Action colour is the active design's plum/pink, not the mock-up's blue
+   (anticipated by the design doc); the success title uses the sheet heading
+   style instead of the mock-up's serif.
+4. The raw failure reference is shown as sent; its wording is parked for the
+   Product Owner.

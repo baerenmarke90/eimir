@@ -1447,15 +1447,17 @@
     },
     "support-report.spec.ts": {
       "roots": [
+        "web/src/client/supportReportLauncher.ts",
+        "web/src/components/SupportReportHost.tsx",
         "web/src/components/SupportReportSheet.tsx",
+        "web/src/client/useSupportReportDraft.ts",
+        "web/src/client/supportReport.ts",
+        "web/src/components/ShortTaskSheet.tsx",
         "web/src/components/ProblemState.tsx",
         "web/src/components/MoreOverviewPage.tsx",
         "web/src/components/SupportReplyNotice.tsx",
         "web/src/components/M4ProductPages.tsx",
-        "web/src/components/ShortTaskSheet.tsx",
-        "web/src/client/supportReport.ts",
         "web/src/client/failureReference.ts",
-        "web/src/client/useSupportReportDraft.ts",
         "web/src/client/supportReportsAvailability.ts"
       ]
     }

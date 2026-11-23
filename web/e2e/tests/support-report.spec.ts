@@ -249,6 +249,25 @@ async function captureThemes(
   await setTheme(page, 'light');
 }
 
+/**
+ * Where the choice and the note field sit inside the open sheet, measured from
+ * its top edge. A message must not push them down. (The Compact sheet grows
+ * from the bottom, so its top edge itself rises with any taller content.)
+ */
+async function formPositions(page: Page) {
+  return page.evaluate(() => {
+    const dialog = document.querySelector('dialog[open]');
+    const sheetTop = dialog?.getBoundingClientRect().top ?? NaN;
+    const offset = (selector: string) =>
+      (dialog?.querySelector(selector)?.getBoundingClientRect().top ?? NaN) -
+      sheetTop;
+    return {
+      kinds: offset('.support-report-kinds'),
+      note: offset('.support-report-note'),
+    };
+  });
+}
+
 function assertAllowedPayload(body: Record<string, unknown>) {
   const keys = (value: unknown) => Object.keys(value as object).sort();
   const allowed = [
@@ -309,12 +328,14 @@ test('report_a_problem_from_error_state_and_receive_reply', async ({
     sheet.dialog.getByRole('heading', { name: copy.title.PROBLEM }),
   ).toBeVisible();
   await expect(sheet.problemKind).toBeChecked();
-  await expect(
-    sheet.dialog.getByText(
-      copy.items.failure.replace('{{reference}}', FAILURE_REFERENCE),
-      { exact: true },
-    ),
-  ).toBeVisible();
+  // The failure line: its label, then the raw reference exactly as sent.
+  const failureLine = sheet.dialog.locator('.support-report-failure');
+  await expect(failureLine.locator('.support-report-failure-label')).toHaveText(
+    copy.items.failureLabel,
+  );
+  await expect(failureLine.locator('.support-report-failure-token')).toHaveText(
+    FAILURE_REFERENCE,
+  );
   // The sheet shows no Close icon; the labeled handle remains the close target.
   await expect(sheet.handle).toBeVisible();
   await expect(
@@ -401,7 +422,7 @@ test('feedback_from_more_requires_text', async ({ page }) => {
   ).toBeVisible();
   await expect(sheet.feedbackKind).toBeChecked();
   await expect(sheet.send).toBeDisabled();
-  await expect(sheet.dialog.getByText(/Fehler-Code:/)).toHaveCount(0);
+  await expect(sheet.dialog.locator('.support-report-failure')).toHaveCount(0);
   await expect(sheet.dialog.getByText(copy.feedbackNoCode)).toBeVisible();
   await expect(sheet.dialog.getByText(copy.noteRequired)).toBeVisible();
   await expectAccessibleSheet(page);
@@ -469,6 +490,51 @@ test('feedback_from_more_requires_text', async ({ page }) => {
   expect(recorded.posts).toHaveLength(1);
 });
 
+test('sheet_survives_problem_state_replacement', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const { flags, recorded } = await install(page, { notificationsFail: true });
+  await openSignedIn(page, '/more/notifications');
+  const problem = page.getByText(de.states.server.title, { exact: true });
+  await expect(problem).toBeVisible();
+  await page.getByRole('button', { name: copy.action, exact: true }).click();
+  const sheet = sheetOf(page);
+  await expect(sheet.dialog).toBeVisible();
+  await sheet.problemNote.fill('Mitten im Satz');
+
+  // A reconnect refetches the failed list while the person is typing; the
+  // list recovers and its content replaces the error state behind the sheet.
+  flags.notificationsFail = false;
+  await page.context().setOffline(true);
+  await page.context().setOffline(false);
+  await expect(problem).toBeHidden();
+  await expect(
+    page.getByRole('button', { name: copy.action, exact: true }),
+  ).toHaveCount(0);
+
+  // The sheet is still open with the note and the failure it was opened with.
+  await expect(sheet.dialog).toBeVisible();
+  await expect(sheet.problemNote).toHaveValue('Mitten im Satz');
+  await expect(
+    sheet.dialog.locator('.support-report-failure-token'),
+  ).toHaveText(FAILURE_REFERENCE);
+  await sheet.problemNote.press('End');
+  await sheet.problemNote.pressSequentially(', weiter.');
+  await expect(sheet.problemNote).toHaveValue('Mitten im Satz, weiter.');
+  expect(recorded.posts).toHaveLength(0);
+
+  // Closing keeps the draft for the next report, as before.
+  await page.keyboard.press('Escape');
+  await expect(sheet.dialog).toBeHidden();
+  const draft = await page.evaluate(
+    (key) => JSON.parse(localStorage.getItem(key) ?? 'null'),
+    DRAFT_KEY,
+  );
+  expect(draft).toMatchObject({
+    kind: 'PROBLEM',
+    note: 'Mitten im Satz, weiter.',
+  });
+});
+
 test.describe('states at 2x', () => {
   // Crisp captures: small glyphs and borders are unreadable at 1x.
   test.use({ deviceScaleFactor: 2 });
@@ -481,13 +547,23 @@ test.describe('states at 2x', () => {
     await openSignedIn(page, '/more/notifications');
     const report = page.getByRole('button', { name: copy.action, exact: true });
     await expect(report).toBeVisible();
+    // The report action is the quiet tertiary one: smaller than the retry.
+    const fontSize = (name: string) =>
+      page
+        .getByRole('button', { name, exact: true })
+        .evaluate((element) => parseFloat(getComputedStyle(element).fontSize));
+    expect(await fontSize(copy.action)).toBeLessThan(
+      await fontSize(de.common.retry),
+    );
     await captureThemes(page, info, '01-error-state-390');
 
     // The problem sheet with its failure line, at every Compact width.
     await report.click();
     const sheet = sheetOf(page);
     await expect(sheet.dialog).toBeVisible();
-    await expect(sheet.dialog.getByText(/Fehler-Code:/)).toBeVisible();
+    await expect(sheet.dialog.locator('.support-report-failure')).toBeVisible();
+    // No native resize grip on the note field.
+    await expect(sheet.problemNote).toHaveCSS('resize', 'none');
     await captureThemes(page, info, '03-problem-sheet-390', {
       axe: true,
     });
@@ -514,6 +590,20 @@ test.describe('states at 2x', () => {
     await sheet.problemNote.fill('Die Liste lädt nicht.');
     await sheet.send.click();
     await expect(sheet.done).toBeVisible();
+    // One centered column: check above the title, title above the body.
+    await expect(
+      sheet.dialog.getByRole('heading', { name: copy.success.title }),
+    ).toHaveCSS('text-align', 'center');
+    const successOrder = await sheet.dialog.evaluate((dialog) => {
+      const top = (selector: string) =>
+        dialog.querySelector(selector)?.getBoundingClientRect().top ?? NaN;
+      return [
+        top('.support-report-success-mark'),
+        top('.short-task-sheet-title'),
+        top('.support-report-success-body'),
+      ];
+    });
+    expect(successOrder).toEqual([...successOrder].sort((a, b) => a - b));
     await captureThemes(page, info, '06-success-390', { axe: true });
     await sheet.done.click();
     await expect(sheet.dialog).toBeHidden();
@@ -522,6 +612,22 @@ test.describe('states at 2x', () => {
     // A fresh visit reads the list and the unread count together.
     await page.goto('/more/notifications');
     await expect(page.locator('.support-reply-text')).toHaveText(REPLY_TEXT);
+    // The reply is the content; its timestamp is smaller and set apart.
+    const replyStyle = await page
+      .locator('.support-reply')
+      .evaluate((reply) => {
+        const time = reply.nextElementSibling as HTMLElement;
+        const text = reply.querySelector('.support-reply-text') as HTMLElement;
+        return {
+          text: parseFloat(getComputedStyle(text).fontSize),
+          time: parseFloat(getComputedStyle(time).fontSize),
+          gap:
+            time.getBoundingClientRect().top -
+            text.getBoundingClientRect().bottom,
+        };
+      });
+    expect(replyStyle.time).toBeLessThan(replyStyle.text);
+    expect(replyStyle.gap).toBeGreaterThanOrEqual(8);
     await expectNoHorizontalOverflow(page);
     await captureThemes(page, info, '07-reply-notification-390');
     for (const width of [360, 430]) {
@@ -545,9 +651,16 @@ test.describe('states at 2x', () => {
     await expect(sheet.send).toBeDisabled();
     await captureThemes(page, info, '04-feedback-sheet-empty-390');
     await sheet.feedbackNote.fill('Ich wünsche mir einen Wochenplan.');
+    await captureThemes(page, info, '05-feedback-filled-390');
+    const idle = await formPositions(page);
     await page.context().setOffline(true);
     await sheet.dialog.getByRole('button', { name: copy.sendLater }).click();
     await expect(sheet.dialog.getByText(copy.offline.body)).toBeVisible();
+    // The message appears below the note: the choice and the field stay put.
+    // Within a pixel: the sheet's top edge lands on sub-pixel positions.
+    const queued = await formPositions(page);
+    expect(Math.abs(queued.kinds - idle.kinds)).toBeLessThanOrEqual(1);
+    expect(Math.abs(queued.note - idle.note)).toBeLessThanOrEqual(1);
     await captureThemes(page, info, '05-queued-offline-390');
     await page.context().setOffline(false);
   });

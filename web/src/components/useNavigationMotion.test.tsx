@@ -11,11 +11,16 @@ import { useLayoutEffect, useRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePrimaryTabPeek } from '../client/primaryTabPeek';
 import { useDocumentLeaveGuard } from '../client/useDocumentLeaveGuard';
+import {
+  configureHapticsForTests,
+  registerHapticsBackend,
+} from '../motion/haptics';
 import { invalidateMotionTokens } from '../motion/tokens';
 import { useNavigationMotion } from './useNavigationMotion';
 
 /** A Web Animation's `finished` that the test settles by hand. */
 const pending = () => new Promise<Animation>(() => {});
+
 import { usePullToRefresh } from './usePullToRefresh';
 
 type Point = { clientX: number; clientY: number; identifier: number };
@@ -246,6 +251,31 @@ describe('primary tab slide feedback', () => {
     expect(currentSettle.cancel).toHaveBeenCalled();
     view.unmount();
     frame.mockRestore();
+  });
+
+  it('plays one haptic for a committed swipe, none for crossing the commit distance', () => {
+    const backend = {
+      selectionChanged: vi.fn(),
+      impact: vi.fn(),
+      notification: vi.fn(),
+    };
+    configureHapticsForTests({ native: true });
+    registerHapticsBackend(backend);
+    try {
+      const onNavigate = vi.fn();
+      render(<Harness onNavigate={onNavigate} />);
+      const surface = screen.getByTestId('surface');
+      touch(surface, 'touchstart', [point(280)]);
+      touch(surface, 'touchmove', [point(200)]);
+      touch(surface, 'touchmove', [point(60)]);
+      expect(backend.selectionChanged).not.toHaveBeenCalled();
+      touch(surface, 'touchend', [], [point(60)]);
+      expect(backend.selectionChanged).not.toHaveBeenCalled();
+      expect(backend.impact).toHaveBeenCalledExactlyOnceWith('light');
+    } finally {
+      registerHapticsBackend(null);
+      configureHapticsForTests({});
+    }
   });
 
   it('grabs a settling swipe where it is and continues it without a jump', () => {

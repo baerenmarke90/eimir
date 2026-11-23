@@ -29,6 +29,7 @@ import type { DailyVibe } from '../api/generated/models/DailyVibe';
 import { dailyCheckInTodayQueryKey } from '../client/dailyCheckIn';
 import { ClientProblemError } from '../client/problemDetails';
 import { SNACKBAR_EVENT, type SnackbarEventDetail } from '../client/snackbar';
+import { rememberCheckInRow } from '../client/wirCheckInPrompt';
 import dailyVibe from '../i18n/locales/dailyVibe';
 import wirCheckIn from '../i18n/locales/wirCheckIn';
 import { resetChoreographiesForTests } from '../motion/choreography';
@@ -162,6 +163,7 @@ type HarnessProps = {
   spaceId?: string;
   vibeEnabled?: boolean;
   energyEnabled?: boolean;
+  promptBesidePlus?: boolean;
 };
 
 /** Renders the hook output the way TodayPage wires it to the avatar pair. */
@@ -171,6 +173,7 @@ function Harness({
   spaceId = 'space-1',
   vibeEnabled = true,
   energyEnabled = true,
+  promptBesidePlus = false,
 }: HarnessProps) {
   const checkIn = useWirDailyCheckIn({
     api,
@@ -179,6 +182,7 @@ function Harness({
     partnerName: 'Ben',
     vibeEnabled,
     energyEnabled,
+    promptBesidePlus,
   });
   const [partnerOpen, setPartnerOpen] = useState(false);
   if (!checkIn) return <p data-testid="wir-checkin-inactive" />;
@@ -195,6 +199,7 @@ function Harness({
         onClick={checkIn.ownAction.onActivate}
       />
       {checkIn.ownBadge}
+      {checkIn.ownPrompt}
       <button
         type="button"
         data-testid="partner-trigger"
@@ -268,6 +273,127 @@ function noteField() {
 function payloads(update: ReturnType<typeof vi.fn>) {
   return update.mock.calls.map((call) => call[0].dailyCheckInUpdate);
 }
+
+describe('WirDailyCheckIn daily invitation beside the plus', () => {
+  const PROMPT_DAY_KEY = 'eimir.wir.checkInPromptDay:account-1:space-1';
+  const promptLine = () => screen.queryByTestId('wir-checkin-own-prompt');
+
+  function onDay(day: string, values: { ownVibe?: DailyVibe } = {}) {
+    return {
+      ...projection(values),
+      checkedOn: new Date(`${day}T00:00:00.000Z`),
+    };
+  }
+
+  it('invites beside the plus without holding the row open, then leaves after its hold', async () => {
+    const { api } = apiFor(onDay('2026-11-22'));
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout'],
+      shouldAdvanceTime: true,
+    });
+    try {
+      renderCheckIn({ api, promptBesidePlus: true });
+      const line = await screen.findByTestId('wir-checkin-own-prompt');
+      expect(line.textContent).toBe(wirCheckIn.ownPrompt);
+      const badge = screen.getByTestId('wir-checkin-own-badge');
+      // The row is closed while the line shows, so nothing below it moves
+      // when the line leaves.
+      expect(badge.getAttribute('data-empty')).toBe('true');
+      expect(badge.textContent).toBe('');
+      expect(window.localStorage.getItem(PROMPT_DAY_KEY)).toBe('2026-11-22');
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3600);
+      });
+      expect(promptLine()).toBeNull();
+      expect(badge.getAttribute('data-empty')).toBe('true');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not invite again on a later opening of the same day', async () => {
+    window.localStorage.setItem(PROMPT_DAY_KEY, '2026-11-22');
+    const { api } = apiFor(onDay('2026-11-22'));
+    renderCheckIn({ api, promptBesidePlus: true });
+    await loaded();
+    expect(promptLine()).toBeNull();
+  });
+
+  it('invites again on the next day', async () => {
+    window.localStorage.setItem(PROMPT_DAY_KEY, '2026-11-21');
+    const { api } = apiFor(onDay('2026-11-22'));
+    renderCheckIn({ api, promptBesidePlus: true });
+    expect(await screen.findByTestId('wir-checkin-own-prompt')).not.toBeNull();
+    expect(window.localStorage.getItem(PROMPT_DAY_KEY)).toBe('2026-11-22');
+  });
+
+  it('uses up the day without a line when another device already checked in', async () => {
+    const { api } = apiFor(onDay('2026-11-22', { ownVibe: 'GOOD' }));
+    renderCheckIn({ api, promptBesidePlus: true });
+    await loaded();
+    await waitFor(() =>
+      expect(window.localStorage.getItem(PROMPT_DAY_KEY)).toBe('2026-11-22'),
+    );
+    expect(promptLine()).toBeNull();
+  });
+
+  it('does not show the line from a cached read that a fresh read contradicts', async () => {
+    const { api } = apiFor(onDay('2026-11-22', { ownVibe: 'GOOD' }));
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(
+      dailyCheckInTodayQueryKey('account-1', 'space-1'),
+      { projection: onDay('2026-11-22'), etag: '"cached"' },
+    );
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Harness api={api} promptBesidePlus />
+      </QueryClientProvider>,
+    );
+    expect(promptLine()).toBeNull();
+    await waitFor(() =>
+      expect(
+        screen
+          .getByTestId('wir-checkin-own-badge')
+          .querySelector('[data-vibe-icon="GOOD"]'),
+      ).not.toBeNull(),
+    );
+    expect(promptLine()).toBeNull();
+  });
+
+  it('reserves the row while loading only when today already showed a mark', async () => {
+    const pending = {
+      getDailyCheckInTodayRaw: vi.fn(() => new Promise(() => undefined)),
+    } as unknown as DailyCheckInsApi;
+    const placeholder = () =>
+      document.querySelector('.wir-checkin-badge[data-placeholder]');
+
+    const emptyDay = renderCheckIn({ api: pending, promptBesidePlus: true });
+    expect(placeholder()).toBeNull();
+    emptyDay.unmount();
+
+    rememberCheckInRow('account-1', 'space-1', true);
+    renderCheckIn({ api: pending, promptBesidePlus: true });
+    expect(placeholder()).not.toBeNull();
+  });
+
+  it('ends for the day when the check-in is opened', async () => {
+    const { api } = apiFor(onDay('2026-11-22'));
+    renderCheckIn({ api, promptBesidePlus: true });
+    await screen.findByTestId('wir-checkin-own-prompt');
+    fireEvent.click(screen.getByTestId('own-trigger'));
+    expect(promptLine()).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('own-trigger').getAttribute('aria-expanded'),
+      ).toBe('false'),
+    );
+    expect(promptLine()).toBeNull();
+  });
+});
 
 describe('WirDailyCheckIn badges and accessible names', () => {
   it('stays inactive without querying when both modules are configured off', () => {

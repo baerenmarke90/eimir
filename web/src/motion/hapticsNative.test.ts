@@ -10,6 +10,7 @@ import {
   capacitorHapticsBackend,
   registerNativeHaptics,
   resetNativeHapticsForTests,
+  systemHapticsBackend,
 } from './hapticsNative';
 
 function pluginStub() {
@@ -68,6 +69,46 @@ describe('native haptics backend (@capacitor/haptics)', () => {
       'notification:{"type":"SUCCESS"}',
       'notification:{"type":"WARNING"}',
     ]);
+  });
+
+  it('maps the contract triggers to Android system feedback', () => {
+    const perform = vi.fn().mockResolvedValue({ played: true });
+    const backend = systemHapticsBackend({ perform });
+    backend.selectionChanged();
+    backend.impact('light');
+    backend.impact('medium');
+    backend.notification('success');
+    backend.notification('warning');
+    expect(perform.mock.calls.map(([options]) => options.kind)).toEqual([
+      'tick',
+      'tap',
+      'emphasis',
+      'success',
+      'refuse',
+    ]);
+  });
+
+  it('uses system feedback on Android without loading the plugin', async () => {
+    const load = vi.fn();
+    const perform = vi.fn().mockResolvedValue({ played: true });
+    configureHapticsForTests({ native: true, now: () => 0 });
+    await expect(
+      registerNativeHaptics(
+        () => true,
+        load,
+        () => true,
+        { perform },
+      ),
+    ).resolves.toBe(true);
+    expect(load).not.toHaveBeenCalled();
+    expect(haptic('press')).toBe(true);
+    expect(perform).toHaveBeenCalledWith({ kind: 'tap' });
+  });
+
+  it('keeps the app working when system feedback fails', async () => {
+    const perform = vi.fn().mockRejectedValue(new Error('unavailable'));
+    systemHapticsBackend({ perform }).impact('light');
+    await vi.waitFor(() => expect(perform).toHaveBeenCalledTimes(1));
   });
 
   it('never loads the plugin on the Web', async () => {

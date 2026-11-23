@@ -470,8 +470,56 @@ it('shows the map in one piece once its view has drawn and photos loaded', () =>
   });
 });
 
-it('leaves other maps as they are', () => {
-  const { container } = render(<PlaceMapCanvas />);
+it.each(['load', 'timeout'] as const)(
+  'waits for a slow marker photo without remeasuring each frame (%s)',
+  async (finish) => {
+    vi.useFakeTimers();
+    try {
+      const { container, getByRole } = render(
+        <PlaceMapCanvas revealWhenComplete />,
+      );
+      const canvas = container.querySelector('.place-map-canvas');
+      const viewport = getByRole('application');
+      vi.spyOn(viewport, 'getBoundingClientRect').mockReturnValue(
+        DOMRect.fromRect({ width: 390, height: 600 }),
+      );
+      const image = document.createElement('img');
+      viewport.append(image);
+      const measure = vi
+        .spyOn(image, 'getBoundingClientRect')
+        .mockReturnValue(
+          DOMRect.fromRect({ x: 20, y: 30, width: 40, height: 40 }),
+        );
+      const loaded = vi.spyOn(image, 'complete', 'get').mockReturnValue(false);
+      act(() => {
+        for (const callback of state.once.idle ?? []) callback();
+      });
+      await act(() => vi.advanceTimersByTimeAsync(500));
+      expect(canvas?.getAttribute('data-reveal')).toBe('waiting');
+      expect(measure).toHaveBeenCalledTimes(1);
+      await act(async () => {
+        if (finish === 'load') {
+          loaded.mockReturnValue(true);
+          image.dispatchEvent(new Event('load'));
+        }
+        await vi.advanceTimersByTimeAsync(finish === 'load' ? 40 : 701);
+      });
+      expect(canvas?.getAttribute('data-reveal')).toBe('complete');
+      expect(measure).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  },
+);
+
+it('opens other maps without inspecting marker photos', () => {
+  const { container, getByRole } = render(<PlaceMapCanvas />);
+  const viewport = getByRole('application');
+  const measure = vi.spyOn(viewport, 'getBoundingClientRect');
+  act(() => {
+    for (const callback of state.once.idle ?? []) callback();
+  });
+  expect(measure).not.toHaveBeenCalled();
   expect(
     container.querySelector('.place-map-canvas')?.hasAttribute('data-reveal'),
   ).toBe(false);

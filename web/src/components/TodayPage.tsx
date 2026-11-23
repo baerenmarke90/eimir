@@ -147,11 +147,17 @@ import { useKeepsakeSway } from './useKeepsakeSway';
 import { prefersReducedData, useMomentRotation } from './useMomentRotation';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
 import { WirGardenModule } from './WirGardenModule';
+import {
+  WirBridgeHeart,
+  WirDistanceLight,
+  WirDistanceTell,
+  WirHeroDistance,
+  type WirHeroDistanceSignal,
+} from './WirHeroDistance';
 import { WirLists } from './WirLists';
 import { type MomentClipLoader, WirMomentSlides } from './WirMomentGallery';
 import { WirNotes } from './WirNotes';
 import { WirPartnerDaySheet } from './WirPartnerDaySheet';
-import { WirStageDistance } from './WirStageDistance';
 import { WirWaitingGamesModule } from './WirWaitingGamesModule';
 import './TodayPage.css';
 import './TodayRetrospectiveAlbum.css';
@@ -1241,6 +1247,7 @@ export function TodayPage({
     partnerName,
     vibeEnabled: vibeCheckEnabled,
     energyEnabled: energyCheckInEnabled,
+    promptBesidePlus: connectedDesign,
   });
   // "Gefühl teilen" from a partner check-in receipt opens the viewer's own
   // daily check-in once; the flag is removed so Back never reopens it.
@@ -1644,7 +1651,8 @@ export function TodayPage({
   const rootIntro = useRootTabIntro<HTMLDivElement>('today');
 
   // #1792: the distance is a normal Wir module. Directly below the couple
-  // hero it stays inside the hero; moved elsewhere it renders in its place.
+  // hero the heart and light carry it in the Verbunden design and a small chip
+  // in the shared album; moved elsewhere it renders in its place.
   const heroDistance =
     partner && account?.id && partnerLocationApi ? (
       <WirPartnerDistance
@@ -1680,9 +1688,10 @@ export function TodayPage({
     ] === 'partner_distance' &&
     visibleModuleOrder.includes('relationship_presence');
 
-  // The "Verbunden" Wir hero: two portraits joined by a bridge that carries what the
-  // couple shares, their time together. Everything personal sits under its
-  // person; only the two tappable marks sit on a photo.
+  // The "Verbunden" Wir hero: two portraits and, between them, the heart with
+  // what the couple shares: their time together and, in its fill and the light
+  // behind them, how far apart they are (Product Owner, 2026-11-22). Only the
+  // two tappable marks sit on a photo.
   const heroDuration = dashboardQuery.data?.relationshipDuration;
   const heroDurationText = heroDuration
     ? formatRelationshipDuration(heroDuration, t)
@@ -1731,82 +1740,72 @@ export function TodayPage({
     account?.id,
     dashboardQuery.data?.upcoming,
   );
-  // One stroke from person to person: each side draws its half of the heart.
-  const heroBridgeLine = (
+  // Each side draws its half of the heart.
+  const renderHeroBridgeLine = (distance: WirHeroDistanceSignal | null) => (
     <span className="wir-bridge-line" aria-hidden="true">
-      <span className="wir-bridge-arm" />
-      <svg viewBox="0 0 32 28" aria-hidden="true" focusable="false">
-        {wirOccasion ? (
-          <>
-            <path
-              className="wir-bridge-heart-fill wir-bridge-heart-fill-own"
-              d="M16 26.5C4 17.5 1 11.5 1 7.5 1 3.5 4 1 8 1c3.5 0 6.5 2 8 5z"
-            />
-            <path
-              className="wir-bridge-heart-fill wir-bridge-heart-fill-partner"
-              d="M16 26.5c12-9 15-15 15-19 0-4-3-6.5-7-6.5-3.5 0-6.5 2-8 5z"
-            />
-          </>
-        ) : null}
-        <path
-          className="wir-bridge-heart-own"
-          pathLength={100}
-          d="M16 26.5C4 17.5 1 11.5 1 7.5 1 3.5 4 1 8 1c3.5 0 6.5 2 8 5"
-        />
-        <path
-          className="wir-bridge-heart-partner"
-          pathLength={100}
-          d="M16 26.5c12-9 15-15 15-19 0-4-3-6.5-7-6.5-3.5 0-6.5 2-8 5"
-        />
-      </svg>
-      <span className="wir-bridge-arm wir-bridge-arm-partner" />
+      <WirBridgeHeart
+        occasion={Boolean(wirOccasion)}
+        closeness={distance?.closeness ?? null}
+        earlier={distance?.earlier ?? false}
+      />
     </span>
   );
-  const heroBridge = partner ? (
-    heroBridgeLead ? (
-      // The heart line opens the couple's own story. It leaves with its
-      // origin, so Back returns to Wir.
-      <TodayDestinationLink
-        to={STORY_OURS_ROUTE}
-        className="wir-bridge"
-        ariaLabel={`${wirOccasion ? `${wirOccasion.primary}. ` : ''}${heroDurationText}. ${t('relationshipReflections.passport.title')}`}
+  const renderHeroBridge = (distance: WirHeroDistanceSignal | null) =>
+    partner ? (
+      <span
+        className="wir-bridge-slot"
+        data-distance-phase={
+          distance && distance.phase !== 'rest' ? distance.phase : undefined
+        }
       >
-        <strong className="wir-bridge-lead">
-          {wirOccasion ? (
-            <span className="wir-bridge-swap">
-              <span className="wir-bridge-time">{heroBridgeLead}</span>
-              <span className="wir-bridge-occasion">{wirOccasion.primary}</span>
+        {heroBridgeLead ? (
+          // The time together opens the couple's own story. It leaves with its
+          // origin, so Back returns to Wir.
+          <TodayDestinationLink
+            to={STORY_OURS_ROUTE}
+            className="wir-bridge"
+            ariaLabel={`${wirOccasion ? `${wirOccasion.primary}. ` : ''}${heroDurationText}. ${t('relationshipReflections.passport.title')}`}
+          >
+            <strong className="wir-bridge-lead">
+              {wirOccasion ? (
+                <span className="wir-bridge-swap">
+                  <span className="wir-bridge-time">{heroBridgeLead}</span>
+                  <span className="wir-bridge-occasion">
+                    {wirOccasion.primary}
+                  </span>
+                </span>
+              ) : (
+                heroBridgeLead
+              )}
+            </strong>
+            {renderHeroBridgeLine(distance)}
+            <span className="wir-bridge-rest">
+              {wirOccasion ? (
+                <span className="wir-bridge-swap">
+                  <span className="wir-bridge-time">
+                    {heroBridgeRest.map((part) => (
+                      <span key={part}>{part}</span>
+                    ))}
+                  </span>
+                  <span className="wir-bridge-occasion">
+                    {wirOccasion.secondary}
+                  </span>
+                </span>
+              ) : (
+                heroBridgeRest.map((part) => <span key={part}>{part}</span>)
+              )}
             </span>
-          ) : (
-            heroBridgeLead
-          )}
-        </strong>
-        {heroBridgeLine}
-        <span className="wir-bridge-rest">
-          {wirOccasion ? (
-            <span className="wir-bridge-swap">
-              <span className="wir-bridge-time">
-                {heroBridgeRest.map((part) => (
-                  <span key={part}>{part}</span>
-                ))}
-              </span>
-              <span className="wir-bridge-occasion">
-                {wirOccasion.secondary}
-              </span>
-            </span>
-          ) : (
-            heroBridgeRest.map((part) => <span key={part}>{part}</span>)
-          )}
-        </span>
-      </TodayDestinationLink>
-    ) : (
-      <span className="wir-bridge" aria-hidden="true">
-        <span />
-        {heroBridgeLine}
-        <span />
+          </TodayDestinationLink>
+        ) : (
+          <span className="wir-bridge" aria-hidden="true">
+            <span />
+            {renderHeroBridgeLine(distance)}
+            <span />
+          </span>
+        )}
+        {distance ? <WirDistanceTell signal={distance} /> : null}
       </span>
-    )
-  ) : null;
+    ) : null;
   const heroOwnName = firstNameFromDisplayName(
     account?.displayName ?? '',
     t('m5s5.activity.you', { defaultValue: 'Du' }),
@@ -1816,125 +1815,131 @@ export function TodayPage({
     avatarAction?: CouplePresenceAvatarAction,
     avatarOverlay?: ReactNode,
   ) => (
-    <WirIntroStage occasion={wirOccasion}>
-      <CouplePresence
-        className="today-hero"
-        headingLevel="h2"
-        spaceTitle={
-          partner
-            ? t('m5s5.dashboard.partner', {
-                name: partnerName,
-              })
-            : t('m5s5.dashboard.durationTitle')
-        }
-        primaryPerson={{
-          displayName:
-            account?.displayName ||
-            t('m5s5.activity.you', { defaultValue: 'Du' }),
-          imageUrl: userAvatar.avatarUrl,
-        }}
-        secondaryPerson={
-          partner
-            ? {
-                displayName: partnerName,
-                imageUrl: partnerAvatar.avatarUrl,
-              }
-            : null
-        }
-        secondaryLabel={partner ? partnerName : undefined}
-        status={partnerPresenceStatus}
-        onInviteClick={partner ? undefined : openPartnerInvite}
-        waitingAvatarAdornment={
-          partner ? undefined : (
-            <span className="wir-stage-name is-waiting" aria-hidden="true">
-              {t('m5s5.dashboard.partnerPlace')}
-            </span>
-          )
-        }
-        relationshipDuration={heroBridge ? undefined : heroDurationText}
-        avatarAdornment={
-          heroBridge ? (
-            <>
-              {heroBridge}
-              <span className="wir-stage-amp" aria-hidden="true">
-                {t('wirDesign.nameJoiner')}
-              </span>
-              {partnerDistanceInHero && heroDistance ? (
-                <WirStageDistance>{heroDistance}</WirStageDistance>
-              ) : null}
-            </>
-          ) : undefined
-        }
-        durationLinkTo={
-          dashboardQuery.data?.relationshipDuration
-            ? '/more/profile#relationship-profile-title'
-            : undefined
-        }
-        durationTitle={t('m5s5.dashboard.openRelationshipSettings')}
-        avatarSize="hero"
-        avatarAction={
-          avatarAction && dailyCheckIn?.partnerAriaLabel
-            ? {
-                ...avatarAction,
-                label: `${avatarAction.label}. ${dailyCheckIn.partnerAriaLabel}`,
-              }
-            : avatarAction
-        }
-        avatarOverlay={avatarOverlay}
-        primaryAvatarAction={dailyCheckIn?.ownAction}
-        primaryAvatarAdornment={
-          <>
-            <span className="wir-stage-name" aria-hidden="true">
-              {heroOwnName}
-            </span>
-            {wirOccasion?.birthday === 'own' ? <WirOccasionCake /> : null}
-            {dailyCheckIn?.ownBadge}
-            {dailyCheckIn ? (
-              <span
-                className="wir-stage-gesture wir-stage-gesture-own"
-                aria-hidden="true"
-              >
-                <svg
-                  className="inline-icon"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                  focusable="false"
-                >
-                  {dailyCheckIn.ownHasValue ? (
-                    <path d="M16.5 4.5a2.1 2.1 0 0 1 3 3L8 19l-4 1 1-4L16.5 4.5z" />
-                  ) : (
-                    <path d="M12 5.5v13M5.5 12h13" />
-                  )}
-                </svg>
-              </span>
-            ) : null}
-          </>
-        }
-        secondaryAvatarAdornment={
-          partner ? (
-            <>
-              <span className="wir-stage-name" aria-hidden="true">
-                {partnerName}
-              </span>
-              {wirOccasion?.birthday === 'partner' ? <WirOccasionCake /> : null}
-              {dailyCheckIn?.partnerBadge}
-              {avatarAction ? (
-                <span className="wir-stage-gesture" aria-hidden="true">
-                  <svg
-                    className="inline-icon"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <path d="M20.5 3.5 10.5 13.5M20.5 3.5l-6 17-4-7-7-4 17-6z" />
-                  </svg>
+    <WirHeroDistance
+      api={partnerLocationApi}
+      entitlementApi={entitlementApi}
+      accountId={account?.id ?? ''}
+      spaceId={spaceId}
+      enabled={Boolean(partner && account?.id && partnerDistanceInHero)}
+      occasion={Boolean(wirOccasion)}
+    >
+      {(distance) => (
+        <WirIntroStage occasion={wirOccasion}>
+          {distance?.closeness != null && !distance.earlier ? (
+            <WirDistanceLight closeness={distance.closeness} />
+          ) : null}
+          <CouplePresence
+            className="today-hero"
+            headingLevel="h2"
+            spaceTitle={
+              partner
+                ? t('m5s5.dashboard.partner', {
+                    name: partnerName,
+                  })
+                : t('m5s5.dashboard.durationTitle')
+            }
+            primaryPerson={{
+              displayName:
+                account?.displayName ||
+                t('m5s5.activity.you', { defaultValue: 'Du' }),
+              imageUrl: userAvatar.avatarUrl,
+            }}
+            secondaryPerson={
+              partner
+                ? {
+                    displayName: partnerName,
+                    imageUrl: partnerAvatar.avatarUrl,
+                  }
+                : null
+            }
+            secondaryLabel={partner ? partnerName : undefined}
+            status={partnerPresenceStatus}
+            onInviteClick={partner ? undefined : openPartnerInvite}
+            waitingAvatarAdornment={
+              partner ? undefined : (
+                <span className="wir-stage-name is-waiting" aria-hidden="true">
+                  {t('m5s5.dashboard.partnerPlace')}
                 </span>
-              ) : null}
-            </>
-          ) : undefined
-        }
-      />
-    </WirIntroStage>
+              )
+            }
+            relationshipDuration={partner ? undefined : heroDurationText}
+            avatarAdornment={renderHeroBridge(distance) ?? undefined}
+            durationLinkTo={
+              dashboardQuery.data?.relationshipDuration
+                ? '/more/profile#relationship-profile-title'
+                : undefined
+            }
+            durationTitle={t('m5s5.dashboard.openRelationshipSettings')}
+            avatarSize="hero"
+            avatarAction={
+              avatarAction && dailyCheckIn?.partnerAriaLabel
+                ? {
+                    ...avatarAction,
+                    label: `${avatarAction.label}. ${dailyCheckIn.partnerAriaLabel}`,
+                  }
+                : avatarAction
+            }
+            avatarOverlay={avatarOverlay}
+            primaryAvatarAction={dailyCheckIn?.ownAction}
+            primaryAvatarAdornment={
+              <>
+                {/* Alone in the Space the name pairs with the invitation; with a
+                partner the two portraits speak for themselves on Wir. */}
+                {partner ? null : (
+                  <span className="wir-stage-name" aria-hidden="true">
+                    {heroOwnName}
+                  </span>
+                )}
+                {wirOccasion?.birthday === 'own' ? <WirOccasionCake /> : null}
+                {dailyCheckIn?.ownBadge}
+                {dailyCheckIn?.ownPrompt}
+                {dailyCheckIn ? (
+                  <span
+                    className="wir-stage-gesture wir-stage-gesture-own"
+                    aria-hidden="true"
+                  >
+                    <svg
+                      className="inline-icon"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      {dailyCheckIn.ownHasValue ? (
+                        <path d="M16.5 4.5a2.1 2.1 0 0 1 3 3L8 19l-4 1 1-4L16.5 4.5z" />
+                      ) : (
+                        <path d="M12 5.5v13M5.5 12h13" />
+                      )}
+                    </svg>
+                  </span>
+                ) : null}
+              </>
+            }
+            secondaryAvatarAdornment={
+              partner ? (
+                <>
+                  {wirOccasion?.birthday === 'partner' ? (
+                    <WirOccasionCake />
+                  ) : null}
+                  {dailyCheckIn?.partnerBadge}
+                  {avatarAction ? (
+                    <span className="wir-stage-gesture" aria-hidden="true">
+                      <svg
+                        className="inline-icon"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        focusable="false"
+                      >
+                        <path d="M20.5 3.5 10.5 13.5M20.5 3.5l-6 17-4-7-7-4 17-6z" />
+                      </svg>
+                    </span>
+                  ) : null}
+                </>
+              ) : undefined
+            }
+          />
+        </WirIntroStage>
+      )}
+    </WirHeroDistance>
   );
 
   // The note layout opens with the latest shared Heart Moment that has words

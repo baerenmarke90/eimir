@@ -48,6 +48,7 @@
     "android-push-onboarding.spec.ts": {
       "roots": [
         "web/src/client/devicePush.ts",
+        "web/src/client/gentlePrompts.ts",
         "web/src/components/DevicePushOnboarding.tsx",
         "web/src/components/IdentityEntry.tsx",
         "web/src/components/NotificationSettingsPanel.tsx",
@@ -1338,6 +1339,9 @@
     "partner-distance-wir.spec.ts": {
       "roots": [
         "web/src/components/PartnerDistanceLine.tsx",
+        "web/src/components/WirHeroDistance.tsx",
+        "web/src/components/wirDistanceHop.ts",
+        "web/src/client/wirDistanceSeen.ts",
         "web/src/components/PartnerDistanceWirSetting.tsx",
         "web/src/components/SettingsPage.tsx",
         "web/src/client/dashboardModules.ts",

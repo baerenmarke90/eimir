@@ -44,7 +44,11 @@ import {
   stopNativePushForSignedOutAccount,
   useDevicePush,
 } from './client/devicePush';
-import { enableGentlePrompts, useGentleUse } from './client/gentlePrompts';
+import {
+  enableGentlePrompts,
+  prepareGentlePrompts,
+  useGentleUse,
+} from './client/gentlePrompts';
 import { useHistoryEntryTracker } from './client/historyEntries';
 import {
   ActiveAccountMismatchError,
@@ -544,6 +548,8 @@ function AuthenticatedApp({
     () => enableGentlePrompts(queryClient, m4Apis.notifications, account.id),
     [queryClient, m4Apis.notifications, account.id],
   );
+  const prepareOnboardingPrompts = () =>
+    prepareGentlePrompts(queryClient, m4Apis.notifications, account.id);
   // The partner-distance start sheet follows the push start prompt.
   const [pushPromptSettled, setPushPromptSettled] = useState(false);
   const settlePushPrompt = useCallback(() => setPushPromptSettled(true), []);
@@ -780,6 +786,9 @@ function AuthenticatedApp({
       element: (
         <StoryProductPage
           apis={apis}
+          active={
+            location.pathname.replace(/\/$/, '') === appRoutePath('story')
+          }
           mapSession={memoryMapSession.current}
           accountId={account.id}
           spaceId={spaceId}
@@ -1486,6 +1495,7 @@ function AuthenticatedApp({
             devicePush={devicePush}
             accountId={account.id}
             apiBaseUrl={apiBaseUrl}
+            onPreparePrompts={prepareOnboardingPrompts}
             onEnablePrompts={enableOnboardingPrompts}
             onSettled={settlePushPrompt}
           />

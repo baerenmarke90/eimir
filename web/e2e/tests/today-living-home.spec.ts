@@ -1098,12 +1098,12 @@ test.describe('Today R4: the living home of a relationship', () => {
     );
     const stage = page.locator('.wir-stage');
     await expect(stage).toBeVisible();
-    // One name under each portrait, and the page heading stays for assistive
-    // technology without being painted.
-    await expect(stage.locator('.wir-stage-name')).toHaveCount(2);
+    // The two portraits speak for themselves: no painted names on Wir, and
+    // the page heading stays for assistive technology without being painted.
+    await expect(stage.locator('.wir-stage-name')).toHaveCount(0);
     await expect(page.locator('.today-content h1')).toHaveCount(1);
 
-    // The heart line carries the time together and opens the story overview.
+    // The heart carries the time together and opens the story overview.
     const bridge = stage.locator('.wir-bridge');
     await expect(bridge).toBeVisible();
     await expect(bridge).toHaveAttribute('href', '/story/our-story');
@@ -1130,7 +1130,7 @@ test.describe('Today R4: the living home of a relationship', () => {
     for (const portrait of geometry.portraits) {
       expect(Math.abs(portrait.width - portrait.height)).toBeLessThan(1);
     }
-    // The line spans the space between the portraits without entering them.
+    // The heart's row stays between the portraits without entering them.
     expect(geometry.line).not.toBeNull();
     expect(geometry.line?.left ?? 0).toBeGreaterThanOrEqual(
       geometry.portraits[0].right,

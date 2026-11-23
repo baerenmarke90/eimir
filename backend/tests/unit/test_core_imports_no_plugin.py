@@ -18,8 +18,8 @@ SOURCE = Path(__file__).resolve().parents[2] / "src"
 PLUGIN_PACKAGES: tuple[str, ...] = ()
 """In-tree Pro packages; Phase 2 moved them into ``backend/pro`` (#2182)."""
 
-PLUGIN_MODULES = ("eimir.pro_plugin",)
-"""The in-tree plugin object, until it moves into ``backend/pro`` as well."""
+PLUGIN_MODULES: tuple[str, ...] = ()
+"""Single in-tree Pro modules; none is left since the plugin object moved (#2182)."""
 
 
 def _module_name(path: Path) -> str:

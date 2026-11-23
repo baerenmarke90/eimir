@@ -31,7 +31,13 @@ from eimir.plugins.manifest import PLUGIN_CAPABILITIES
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 from tests.integration.test_endpoint_matrix import SPACE_ENDPOINTS
-from tests.support.plugins import operation_key, pro_operations, requires_pro, without_plugins
+from tests.support.plugins import (
+    operation_key,
+    pro_distribution_installed,
+    pro_operations,
+    requires_pro,
+    without_plugins,
+)
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -107,6 +113,9 @@ def _path(template: str, space_id: str) -> str:
 @pytest.fixture
 def integrations_on(monkeypatch):  # type: ignore[no-untyped-def]
     """Configured integrations, so a route reaches its capability check."""
+    if not pro_distribution_installed():
+        # Without the Pro distribution no Pro route exists to configure.
+        return
     from eimir_pro.calendar_sync import google as calendar_google
     from eimir_pro.calendar_sync import service as calendar_sync
     from eimir_pro.photo_sources import service as photo_sources

@@ -1,0 +1,554 @@
+/* Route-local compositions share the index palette. Keep emotion, validation
+ * and entitlement colors with their existing components. */
+:root[data-wir-layout="chapters"] {
+  --rhythm-area-ink: var(--color-text);
+  --rhythm-area-muted: var(--color-text-secondary);
+  --rhythm-area-sheet: var(--color-surface);
+  --rhythm-area-feature: color-mix(
+    in srgb,
+    var(--color-link-text) 14%,
+    var(--color-surface)
+  );
+  --rhythm-area-feature-ink: var(--rhythm-area-ink);
+  --rhythm-area-play: color-mix(
+    in srgb,
+    var(--design-decoration-icon) 67%,
+    var(--color-surface)
+  );
+  --rhythm-area-play-ink: var(--design-decoration);
+  --rhythm-area-edge: var(--color-link-text);
+  --rhythm-area-divider: var(--color-border-subtle, var(--color-border-subtle));
+  --rhythm-area-radius: var(--radius-medium);
+  --rhythm-area-title: 720 clamp(1.57rem, 6vw, 2.7rem) / 1.07 var(--font-ui);
+  --rhythm-area-caption: 640 0.82rem / 1.3 var(--font-ui);
+
+  &[data-theme="dark"] {
+    --rhythm-area-play: color-mix(
+      in srgb,
+      var(--design-decoration-icon) 17%,
+      var(--color-surface)
+    );
+    --rhythm-area-play-ink: var(--rhythm-area-ink);
+  }
+
+  &
+    :is(
+      .story-page-unified,
+      .planen-overview,
+      .more-page,
+      .daily-insights,
+      .games-product-page
+    ) {
+    inline-size: min(100%, 48rem);
+    min-inline-size: 0;
+    margin-inline: auto;
+  }
+
+  &
+    :is(.story-page-unified, .planen-overview, .more-page)
+    > .page-heading-root.content-overview-heading {
+    margin-block: 0 var(--space-4);
+  }
+
+  &
+    :is(.story-page-unified, .planen-overview, .more-page)
+    > .page-heading-root.content-overview-heading
+    .page-heading-title-container {
+    position: static;
+    inline-size: auto;
+    block-size: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+  }
+
+  &
+    :is(
+      .story-page-unified > .page-heading-root h1,
+      .planen-overview > .page-heading-root h1,
+      .more-page > .page-heading-root h1,
+      .games-heading h1,
+      .daily-insights .insight-header h1,
+      .our-moments-heading h1,
+      .wish-detective-heading h1,
+      .who-of-us-heading h1
+    ) {
+    margin: 0;
+    color: var(--rhythm-area-ink);
+    font: var(--rhythm-area-title);
+    letter-spacing: -0.047em;
+    overflow-wrap: anywhere;
+  }
+
+  & :is(.story-page-unified, .planen-overview) .planen-segmented,
+  & .daily-insights .insight-nav {
+    inline-size: 100%;
+    max-inline-size: none;
+    gap: var(--space-1);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  & :is(.story-page-unified, .planen-overview) .planen-segmented::before {
+    content: none;
+  }
+
+  & :is(.story-page-unified, .planen-overview) .planen-segment,
+  & .daily-insights .insight-nav a {
+    min-block-size: 44px;
+    min-inline-size: 0;
+    padding-inline: var(--space-2);
+    border: 0;
+    border-radius: var(--rhythm-area-radius);
+    background: var(--rhythm-area-sheet);
+    box-shadow: none;
+    color: var(--rhythm-area-muted);
+    font: var(--rhythm-area-caption);
+    overflow-wrap: anywhere;
+  }
+
+  & :is(.story-page-unified, .planen-overview) .planen-segment.is-active,
+  & .daily-insights .insight-nav a[aria-current="page"] {
+    background: var(--rhythm-area-feature);
+    box-shadow: none;
+    color: var(--rhythm-area-feature-ink);
+    font-weight: 740;
+  }
+
+  /* A wide photograph and a separate caption form the opening of the archive. */
+  & .story-page-unified .momente-hero-highlight {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    transform: none;
+  }
+
+  & .story-page-unified .momente-hero-link.has-media {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  & .story-page-unified .momente-hero-link.has-media > * {
+    grid-area: auto;
+  }
+
+  & .story-page-unified .momente-hero-media {
+    aspect-ratio: 16 / 9;
+    margin: 0;
+    border-radius: var(--rhythm-area-radius);
+    background: var(--rhythm-area-sheet);
+  }
+
+  & .story-page-unified .momente-hero-body {
+    gap: var(--space-2);
+    min-inline-size: 0;
+    padding: var(--space-4) var(--space-1) var(--space-3);
+    background: transparent;
+    color: var(--rhythm-area-ink);
+  }
+
+  &
+    .story-page-unified
+    .momente-hero-highlight:not(:has(.has-media))
+    .momente-hero-body {
+    padding: var(--space-5);
+    border-radius: var(--rhythm-area-radius);
+    background: var(--rhythm-area-feature);
+  }
+
+  & .story-page-unified :is(.momente-hero-kicker, .momente-hero-meta) {
+    margin-block: 0;
+    color: var(--rhythm-area-muted);
+    font: var(--rhythm-area-caption);
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  & .story-page-unified :is(.momente-hero-title, .momente-hero-quote) {
+    color: var(--rhythm-area-ink);
+    font: var(--rhythm-area-title);
+    letter-spacing: -0.045em;
+    overflow-wrap: anywhere;
+  }
+
+  & .story-page-unified :is(.momente-band-heading, .couple-experience-links h2),
+  &
+    .planen-overview
+    :is(.planen-next > h2, .planen-agenda > h2, .planen-section-heading h2) {
+    color: var(--rhythm-area-ink);
+    font: 720 1.15rem / 1.2 var(--font-ui);
+    letter-spacing: -0.02em;
+    text-transform: none;
+  }
+
+  & .planen-overview .planen-next-link {
+    padding: var(--space-5);
+    gap: var(--space-2);
+    border: 0;
+    border-inline-start: var(--space-2) solid var(--rhythm-area-edge);
+    border-radius: var(--rhythm-area-radius);
+    background: var(--rhythm-area-feature);
+    box-shadow: none;
+    color: var(--rhythm-area-feature-ink);
+  }
+
+  & .planen-overview .planen-next-copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  & .planen-overview .planen-next-schedule {
+    order: -1;
+    margin: 0;
+    background: transparent;
+    color: inherit;
+    font: var(--rhythm-area-caption);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &
+    .planen-overview
+    :is(
+      .planen-next-copy > strong,
+      .planen-next-copy .discreet-title-row strong
+    ) {
+    color: inherit;
+    font: var(--rhythm-area-title);
+    letter-spacing: -0.036em;
+  }
+
+  & .planen-overview .planen-next-description {
+    margin-block: var(--space-2) 0;
+    color: inherit;
+  }
+
+  &
+    .planen-overview
+    :is(
+      .planen-agenda-title,
+      .planen-undated-title,
+      .planen-wish-copy > strong
+    ) {
+    font-family: var(--font-ui);
+    font-weight: 700;
+  }
+
+  &
+    .planen-overview
+    :is(.planen-agenda-link, .planen-undated-link, .planen-wish-link) {
+    min-block-size: 48px;
+    background: transparent;
+  }
+
+  /* Reading keeps native controls and semantic Herzmoment emotion colors. */
+  &
+    :is(
+      .memory-product-page,
+      .heart-moment-product-page,
+      .wish-detail,
+      .chapter-page
+    )
+    .detail-content-title,
+  & .page-plan-detail:not(.page-plan-composer) .plan-detail-title {
+    margin-block-end: 0;
+    font: var(--rhythm-area-title);
+    letter-spacing: -0.046em;
+    overflow-wrap: anywhere;
+  }
+
+  & .memory-product-page .detail-headline {
+    gap: var(--space-2);
+    padding-block: var(--space-2) var(--space-3);
+    background: transparent;
+  }
+
+  & .memory-product-page .media-gallery-carousel-viewport {
+    border-radius: var(--rhythm-area-radius);
+    background: var(--rhythm-area-sheet);
+  }
+
+  & .memory-product-page .moment-metadata time {
+    font-variant-numeric: tabular-nums;
+    font-weight: 690;
+  }
+
+  & .heart-moment-read-page .heart-moment-detail-text {
+    max-inline-size: 40ch;
+    font: 590 clamp(1.2rem, 5.1vw, 1.8rem) / 1.4 var(--font-ui);
+    letter-spacing: -0.02em;
+  }
+
+  &
+    .page-plan-detail:not(.page-plan-composer)
+    .planning-facts.planen-detail-summary {
+    padding: var(--space-4) var(--space-5);
+    border: 0;
+    border-inline-start: var(--space-2) solid var(--rhythm-area-edge);
+    border-radius: var(--rhythm-area-radius);
+    background: var(--rhythm-area-feature);
+    box-shadow: none;
+  }
+
+  &
+    .page-plan-detail:not(.page-plan-composer)
+    :is(.planen-detail-schedule, .planen-schedule-place) {
+    color: var(--rhythm-area-feature-ink);
+  }
+
+  & .story-page-unified .couple-experience-links {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  & .story-page-unified .couple-experience-links a {
+    min-block-size: 48px;
+    padding-inline: var(--space-2);
+    border-radius: var(--rhythm-area-radius);
+    background: var(--rhythm-area-sheet);
+    color: var(--rhythm-area-ink);
+  }
+
+  /* Period selection stays adjacent to the chart. Its Vibe and energy data
+   * marks retain their own visualization palette. */
+  & .daily-insights .insight-picker,
+  & .daily-insights .insight-card {
+    border-radius: var(--rhythm-area-radius);
+    background: var(--rhythm-area-sheet);
+    box-shadow: none;
+  }
+
+  & .daily-insights .insight-picker-text {
+    font-variant-numeric: tabular-nums;
+  }
+
+  & .daily-insights[data-view="recap"] .insight-body > .insight-hero {
+    padding: var(--space-5);
+    border-radius: var(--rhythm-area-radius);
+    background: var(--rhythm-area-play);
+    color: var(--rhythm-area-play-ink);
+  }
+
+  & .daily-insights .insight-chart-detail {
+    background: var(--rhythm-area-feature);
+    color: var(--rhythm-area-feature-ink);
+  }
+
+  /* Every game has its own full-width entry. A familiar motif helps
+   * recognition, while the start control and locked states remain native. */
+  & .games-product-page .games-shelf {
+    gap: var(--space-3);
+  }
+
+  & .games-product-page .games-entry {
+    grid-template-columns: clamp(2.75rem, 13vw, 4.25rem) minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: start;
+    column-gap: var(--space-4);
+    row-gap: var(--space-2);
+    min-block-size: auto;
+    margin: 0;
+    padding: var(--space-4);
+    border: 0;
+    border-radius: var(--rhythm-area-radius);
+    background: var(--rhythm-area-sheet);
+    box-shadow: none;
+  }
+
+  & .games-product-page .games-entry:first-child {
+    padding: var(--space-5);
+    background: var(--rhythm-area-play);
+    color: var(--rhythm-area-play-ink);
+  }
+
+  & .games-product-page .games-entry .games-entry-index {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    align-self: stretch;
+    inline-size: 100%;
+    block-size: auto;
+    min-block-size: 48px;
+    border-radius: var(--rhythm-area-radius);
+    background: var(--rhythm-area-feature);
+    color: var(--rhythm-area-feature-ink);
+  }
+
+  & .games-product-page .games-entry:first-child .games-entry-index {
+    background: var(--rhythm-area-sheet);
+    color: var(--rhythm-area-ink);
+  }
+
+  & .games-product-page .games-entry-index .eimir-icon {
+    inline-size: var(--space-6);
+    block-size: var(--space-6);
+    stroke-width: 1.9;
+  }
+
+  & .games-product-page .games-entry-copy {
+    grid-column: 2;
+  }
+
+  & .games-product-page .games-entry .games-entry-status {
+    grid-column: 2;
+    justify-self: start;
+    max-inline-size: 100%;
+    min-block-size: initial;
+    padding-inline: 0;
+    background: transparent;
+    font: var(--rhythm-area-caption);
+    white-space: normal;
+  }
+
+  &
+    .games-product-page
+    .games-entry:not(.games-entry-link)
+    .games-entry-status {
+    color: var(--rhythm-area-muted);
+  }
+
+  & .games-product-page .games-entry h2 {
+    font: 720 clamp(1.1rem, 4.8vw, 1.63rem) / 1.16 var(--font-ui);
+    letter-spacing: -0.03em;
+  }
+
+  & .games-product-page .games-entry-role {
+    color: var(--color-link-text);
+    font: var(--rhythm-area-caption);
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  &
+    .games-product-page
+    .games-entry:first-child
+    :is(h2, p, .games-entry-status) {
+    color: var(--rhythm-area-play-ink);
+  }
+
+  &
+    :is(
+      .who-of-us-card,
+      .our-moments-sparse,
+      .our-moments-finish,
+      .wish-detective-card,
+      .wish-detective-sparse,
+      .wish-detective-finish
+    ) {
+    border-radius: var(--rhythm-area-radius);
+    background: var(--rhythm-area-sheet);
+    box-shadow: none;
+  }
+
+  &
+    :is(
+      .daily-insights .insight-card,
+      .daily-insights .insight-hero,
+      .daily-insights .insight-closing,
+      .who-of-us-card,
+      .our-moments-finish,
+      .wish-detective-card,
+      .wish-detective-finish
+    )
+    h2 {
+    font-family: var(--font-ui);
+    font-weight: 720;
+    letter-spacing: -0.035em;
+  }
+
+  /* Group useful links in the existing order without surrounding each
+   * individual action with a second container. */
+  & .more-page .more-search-entry {
+    min-block-size: 48px;
+    margin-block-end: var(--space-6);
+    border: 0;
+    border-radius: var(--rhythm-area-radius);
+    background: var(--rhythm-area-feature);
+    color: var(--rhythm-area-feature-ink);
+  }
+
+  & .more-page .more-groups {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6);
+    align-items: start;
+  }
+
+  & .more-page .more-group-title {
+    margin-block: 0 var(--space-2);
+    padding: 0 0 var(--space-2);
+    border-block-end: var(--border-surface-width) solid
+      var(--rhythm-area-divider);
+    color: var(--rhythm-area-ink);
+    font: 720 1.16rem / 1.2 var(--font-ui);
+    letter-spacing: -0.02em;
+    text-transform: none;
+  }
+
+  & .more-page .more-destinations {
+    gap: var(--space-1);
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  & .more-page .more-destinations > li,
+  & .more-page .more-destinations > li + li {
+    min-inline-size: 0;
+    border: 0;
+    background: none;
+  }
+
+  & .more-page .more-destination {
+    min-block-size: 48px;
+    border-radius: var(--rhythm-area-radius);
+  }
+
+  & .more-page .more-profile-destination {
+    background: var(--rhythm-area-play);
+    color: var(--rhythm-area-play-ink);
+  }
+
+  &
+    .more-page
+    .more-profile-destination
+    :is(strong, .more-destination-subtitle) {
+    color: inherit;
+  }
+
+  & .more-page .more-destination-icon {
+    color: var(--rhythm-area-feature-ink);
+    background: var(--rhythm-area-feature);
+  }
+
+  & .more-page .more-destination-icon svg {
+    inline-size: var(--space-5);
+    block-size: var(--space-5);
+  }
+
+  & .more-page .more-destination:focus-visible {
+    outline-offset: -2px;
+  }
+
+  &
+    :is(.settings-page, .profile-page, .private-area-page, .people-profile)
+    .page-heading
+    h1 {
+    font: var(--rhythm-area-title);
+    letter-spacing: -0.042em;
+  }
+}
+
+@media (min-width: 53rem) {
+  :root[data-wir-layout="chapters"] .more-page .more-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 23rem) {
+  :root[data-wir-layout="chapters"] .games-product-page .games-entry {
+    column-gap: var(--space-3);
+    padding: var(--space-4);
+  }
+}

@@ -26,7 +26,19 @@ export default {
     photoArchive: 'Fotoarchiv',
     chapters: 'Kapitel',
   },
+  rhythm: {
+    title: 'Unser Takt',
+    today: 'Heute zu zweit',
+    history: 'Geschichte',
+    ahead: 'Vor uns',
+    ownVibe: 'Mein Vibe',
+    partnerToday: 'Heute',
+    moreNavigation: 'Weitere Bereiche',
+    insights: 'Einblicke',
+    games: 'Spielen',
+  },
   names: {
+    shared_rhythm: 'Unser Takt',
     home_rooms: 'Zuhause',
     connected: 'Verbunden',
     shared_album: 'Seite an Seite',
@@ -37,6 +49,8 @@ export default {
     handwriting: 'Handschrift',
   },
   descriptions: {
+    shared_rhythm:
+      'Euer Heute, eure Geschichte und eure Pläne im eigenen Takt. Mit einer Navigation oben und Farben in Pflaume, Rosa und Apricot.',
     home_rooms:
       'Ein persönlicher Startpunkt für euch. Über „Räume“ öffnest du Erinnerungen, Vorhaben und mehr.',
     connected:

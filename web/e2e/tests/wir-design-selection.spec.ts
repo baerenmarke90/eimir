@@ -1399,3 +1399,55 @@ test('Zuhause navigation, saved appearance and secondary title spacing', async (
     animations: 'disabled',
   });
 });
+
+test('Unser Takt navigation, saved appearance and secondary title spacing', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const saved = await fixture(page, { initial: 'connected' });
+  await signIn(page);
+  await open(page);
+  await page
+    .getByRole('radio', { name: new RegExp(copy.names.shared_rhythm) })
+    .check();
+  await page.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(page.getByText(copy.saved, { exact: true })).toBeVisible();
+  expect(saved.writes).toEqual(['shared_rhythm']);
+  await page.goto('/today');
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-wir-layout',
+    'chapters',
+  );
+  await expect(page.locator('.rhythm-today-lead')).toBeVisible();
+  await captureScreenshot(page, info, 'shared_rhythm-compact.png', {
+    animations: 'disabled',
+  });
+  await reflow(page);
+  const chapters = page.getByRole('navigation', { name: 'Hauptnavigation' });
+  await chapters.getByRole('link', { name: 'Listen' }).click();
+  await expect(page).toHaveURL(/\/more\/collections/);
+  await chapters.getByRole('link', { name: copy.rhythm.history }).click();
+  await expect(page).toHaveURL(/\/story/);
+  for (const [width, height] of [
+    [390, 844],
+    [768, 900],
+    [1280, 900],
+  ]) {
+    await page.setViewportSize({ width, height });
+    await page.goto('/more/profile');
+    await expectTitleGap(page, '.profile-page', '.profile-identity-panel');
+    await page.goto('/story/years');
+    await expectTitleGap(
+      page,
+      '.story-years-page',
+      '.story-years-recaps-entry',
+    );
+  }
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('/today');
+  await expect(page.locator('.rhythm-today-lead')).toBeVisible();
+  await captureScreenshot(page, info, 'shared_rhythm-expanded.png', {
+    animations: 'disabled',
+  });
+});

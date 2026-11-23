@@ -1,0 +1,485 @@
+:root[data-wir-layout="chapters"] {
+  --rhythm-rail-span: 14rem;
+  --rhythm-content-span: 49rem;
+  --rhythm-gutter: clamp(var(--space-4), 5vw, var(--space-8));
+}
+
+.product-shell[data-wir-layout="chapters"] {
+  --shell-bottom-nav-min-height: 0px;
+  --shell-floating-nav-footprint: 0px;
+  --shell-content-bottom-clearance: var(--space-8);
+}
+
+.product-shell[data-wir-layout="chapters"] .product-main {
+  width: min(calc(100% - 2 * var(--rhythm-gutter)), var(--rhythm-content-span));
+  min-inline-size: 0;
+  padding-block: var(--space-4) var(--space-8);
+}
+
+.rhythm-rail {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 32;
+  container: rhythm-rail / inline-size;
+  background: var(--design-decoration);
+  color: var(--design-on-decoration);
+  padding: var(--shell-header-safe-top) var(--rhythm-gutter) 0;
+}
+
+.rhythm-id {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: 2.75rem;
+  color: var(--design-on-decoration);
+}
+
+.rhythm-logo {
+  font: 720 1.54rem / 1 var(--font-ui);
+  letter-spacing: -0.087em;
+}
+
+.rhythm-logo span,
+.rhythm-edition {
+  color: var(--design-highlight);
+}
+
+.rhythm-edition,
+.rhythm-private {
+  font-size: 0.81rem;
+  font-weight: 650;
+}
+
+.rhythm-private {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-inline-start: auto;
+  text-align: end;
+}
+
+.rhythm-private > svg {
+  flex: 0 0 auto;
+  inline-size: 1rem;
+  block-size: 1rem;
+}
+
+.rhythm-index {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.5fr) minmax(0, 1.1fr) minmax(
+      0,
+      0.9fr
+    ) auto;
+  gap: var(--space-1);
+  padding-block: var(--space-1) 0;
+}
+
+.rhythm-rail a {
+  color: inherit;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.rhythm-rail a:focus-visible {
+  outline: 2px solid var(--design-decoration-icon);
+  outline-offset: -2px;
+}
+
+.rhythm-index .rhythm-index-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  min-inline-size: 0;
+  min-block-size: var(--touch-target-web);
+  border-radius: var(--radius-small) var(--radius-small) 0 0;
+  font-weight: 690;
+  font-size: 0.91rem;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.rhythm-index .rhythm-index-link[aria-current] {
+  background: var(--design-highlight);
+  color: var(--design-decoration);
+}
+
+.rhythm-index .rhythm-index-link[aria-current]:focus-visible {
+  outline-color: var(--design-decoration);
+}
+
+.rhythm-index-link > svg {
+  display: none;
+}
+
+.rhythm-index .rhythm-more-link {
+  min-inline-size: var(--touch-target-web);
+}
+
+.rhythm-more-link > span:last-child,
+.rhythm-side-links {
+  display: none;
+}
+
+.rhythm-more-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.rhythm-more-icon svg {
+  inline-size: 1.28rem;
+  block-size: 1.28rem;
+}
+
+.rhythm-more-icon .notification-dot {
+  inset-block-start: 0;
+  inset-inline-end: 0;
+}
+
+.rhythm-today-lead {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  justify-items: stretch;
+  container: rhythm-today / inline-size;
+  overflow: hidden;
+  border-radius: var(--radius-content);
+  padding: clamp(var(--space-5), 6vw, var(--space-10));
+  color: var(--design-on-decoration);
+  background:
+    radial-gradient(
+      ellipse at 8% 110%,
+      color-mix(in srgb, var(--color-link-text), var(--design-decoration) 60%),
+      transparent 60%
+    ),
+    var(--design-decoration);
+}
+
+.rhythm-day p {
+  margin: 0 0 var(--space-2);
+  color: var(--design-highlight);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.rhythm-day h1 {
+  margin: 0;
+  max-inline-size: 14ch;
+  color: var(--design-on-decoration);
+  font: 700 clamp(2.45rem, 10vw, 5.2rem) / 0.97 var(--font-ui);
+  letter-spacing: -0.065em;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+
+.rhythm-portraits {
+  --disc-size: clamp(3.2rem, 17vw, 7rem);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  align-items: start;
+  gap: var(--space-2);
+  margin-block: var(--space-6) var(--space-3);
+}
+
+.rhythm-portraits[data-paired="true"] {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  justify-items: center;
+}
+
+.rhythm-person {
+  display: grid;
+  justify-items: center;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  gap: var(--space-1);
+}
+
+.rhythm-person .wir-checkin-badge {
+  position: static;
+  translate: none;
+  box-shadow: none;
+}
+
+.rhythm-portrait {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  border: 0;
+  padding: var(--space-2) var(--space-1);
+  border-radius: var(--radius-content);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+}
+
+button.rhythm-portrait {
+  cursor: pointer;
+  transition: background-color var(--duration-feedback) var(--easing-standard);
+}
+
+button.rhythm-portrait:hover,
+button.rhythm-portrait:focus-visible {
+  background-color: color-mix(
+    in srgb,
+    var(--design-on-decoration) 14%,
+    transparent
+  );
+}
+
+.rhythm-disc {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  block-size: var(--disc-size);
+  inline-size: var(--disc-size);
+  border-radius: 50%;
+  background: var(--design-highlight);
+  color: var(--design-decoration);
+  border: 2px solid var(--design-highlight);
+  box-shadow: 0 0 0 var(--space-1)
+    color-mix(in srgb, var(--design-highlight) 20%, transparent);
+  font-size: clamp(1rem, 5vw, 1.8rem);
+  font-weight: 700;
+}
+
+.rhythm-person:last-child:not(:only-child) .rhythm-disc {
+  background: var(--design-decoration-icon);
+  border-color: var(--design-decoration-icon);
+  box-shadow: 0 0 0 var(--space-1)
+    color-mix(in srgb, var(--design-decoration-icon) 20%, transparent);
+}
+
+.rhythm-disc img {
+  block-size: 100%;
+  inline-size: 100%;
+  object-fit: cover;
+}
+
+.rhythm-name {
+  font-size: clamp(1.12rem, 5vw, 1.6rem);
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
+}
+
+.rhythm-portrait-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--design-highlight);
+  font-size: 0.79rem;
+  font-weight: 640;
+}
+
+.rhythm-portrait-action svg {
+  inline-size: 1rem;
+  flex-shrink: 0;
+}
+
+.rhythm-union {
+  display: grid;
+  place-items: center;
+  align-self: start;
+  min-block-size: var(--disc-size);
+  color: var(--design-decoration-icon);
+}
+
+.rhythm-union svg {
+  inline-size: clamp(1.35rem, 6vw, 2.3rem);
+  block-size: auto;
+}
+
+.rhythm-portrait:focus-visible,
+.rhythm-duration:focus-visible {
+  outline: 2px solid var(--design-decoration-icon);
+  outline-offset: 1px;
+}
+
+.rhythm-duration {
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--touch-target-web);
+  color: var(--design-decoration-icon);
+  text-decoration: none;
+  text-align: center;
+  font: 620 0.9rem / 1.2 var(--font-ui);
+}
+
+.rhythm-duration:hover {
+  color: var(--design-on-decoration);
+  text-decoration: underline;
+}
+
+.rhythm-duration svg {
+  inline-size: 1rem;
+  block-size: 1rem;
+  flex-shrink: 0;
+}
+
+:root[data-wir-layout="chapters"] .today-page .today-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-block-start: 0;
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.rhythm-today-create {
+  align-self: flex-start;
+  margin-block-end: var(--space-3);
+}
+
+@media (max-width: 63.99rem) {
+  @container rhythm-rail (max-width: 16em) {
+    .rhythm-index {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      padding-block-end: var(--space-2);
+    }
+
+    .rhythm-index .rhythm-index-link {
+      border-radius: var(--radius-small);
+      overflow-wrap: normal;
+    }
+
+    .rhythm-more-link > span:last-child {
+      display: block;
+    }
+  }
+}
+
+@container rhythm-today (max-width: 10em) {
+  .rhythm-portraits[data-paired="true"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rhythm-union {
+    display: none;
+  }
+
+  .rhythm-person .wir-checkin-badge {
+    font-size: 0.67rem;
+    padding-inline: var(--space-1);
+    max-inline-size: 100%;
+  }
+
+  .rhythm-person .wir-checkin-badge-content {
+    gap: var(--space-1);
+  }
+
+  .rhythm-day h1 {
+    font-size: clamp(1.8rem, 9cqi, 2.55rem);
+  }
+
+  .rhythm-portrait-action svg {
+    display: none;
+  }
+}
+
+@media (max-height: 34rem) {
+  .rhythm-rail {
+    position: relative;
+  }
+}
+
+@media (min-width: 64rem) {
+  .product-shell[data-wir-layout="chapters"][data-focused-task="false"] {
+    padding-inline-start: var(--rhythm-rail-span);
+  }
+
+  .product-shell[data-wir-layout="chapters"][data-focused-task="false"]
+    .product-main {
+    padding-block-start: var(--space-8);
+  }
+
+  .rhythm-rail {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: var(--rhythm-rail-span);
+    overflow-y: auto;
+    padding: calc(var(--shell-header-safe-top) + var(--space-8)) var(--space-4)
+      var(--space-5);
+  }
+
+  .rhythm-id {
+    align-items: flex-start;
+    flex-direction: column;
+    padding-inline: var(--space-4);
+    gap: var(--space-2);
+    margin-block-end: var(--space-8);
+  }
+
+  .rhythm-logo {
+    font-size: 2.3rem;
+  }
+
+  .rhythm-private {
+    margin-inline-start: 0;
+    text-align: start;
+  }
+
+  .rhythm-index,
+  .rhythm-side-links {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .rhythm-index .rhythm-index-link,
+  .rhythm-side-links a {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: var(--space-3);
+    min-block-size: var(--touch-target-comfortable);
+    padding-inline: var(--space-4);
+    border-radius: var(--radius-small);
+    text-align: start;
+  }
+
+  .rhythm-side-links {
+    border-block-start: 1px solid
+      color-mix(in srgb, var(--design-on-decoration) 32%, transparent);
+    margin-block-start: var(--space-4);
+    padding-block-start: var(--space-3);
+    font-size: 0.91rem;
+    color: var(--design-highlight);
+  }
+
+  .rhythm-side-links a[aria-current] {
+    background: color-mix(in srgb, var(--design-highlight) 18%, transparent);
+    color: var(--design-on-decoration);
+  }
+
+  .rhythm-index-link > svg,
+  .rhythm-more-link > span:last-child {
+    display: block;
+  }
+
+  .rhythm-rail a svg {
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    flex-shrink: 0;
+  }
+
+  .rhythm-today-lead {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    align-items: center;
+    column-gap: var(--space-6);
+  }
+
+  .rhythm-portraits {
+    margin-block: 0;
+  }
+
+  .rhythm-duration {
+    justify-self: start;
+  }
+}

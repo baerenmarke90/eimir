@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   createContext,
   type ReactNode,
+  Suspense,
   useContext,
   useEffect,
   useLayoutEffect,
@@ -49,6 +50,7 @@ import { useDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
 import { useAppLayout } from '../client/wirDesign';
+import { ChapterNavigation } from './ChapterNavigationLayout';
 import { HomeRoomsDock, HomeRoomsHeader } from './HomeRoomsNavigation';
 import { scheduleDeferredPrefetch } from '../deferredModules';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -279,7 +281,8 @@ function AuthenticatedAppShell({
   const protectedDraft = useDocumentLeaveBlocked();
   const layout = useAppLayout();
   const rooms = layout === 'rooms';
-  const customNavigation = rooms;
+  const chapters = layout === 'chapters';
+  const customNavigation = rooms || chapters;
   const isFocusedTask =
     (customNavigation &&
       (protectedDraft ||
@@ -387,7 +390,11 @@ function AuthenticatedAppShell({
             {t('navigation.skipToContent')}
           </a>
 
-          {!isFocusedTask && rooms ? (
+          {!isFocusedTask && chapters ? (
+            <Suspense fallback={null}>
+              <ChapterNavigation privateArea={isPrivateArea} />
+            </Suspense>
+          ) : !isFocusedTask && rooms ? (
             <HomeRoomsHeader privateArea={isPrivateArea} />
           ) : !isFocusedTask ? (
             <header className="app-header product-topbar">
@@ -461,7 +468,7 @@ function AuthenticatedAppShell({
               canCreate={!isPrivateArea}
               navigationRef={setBottomNavigation}
             />
-          ) : !isFocusedTask ? (
+          ) : !isFocusedTask && !chapters ? (
             <div className="mobile-bottom-shell" ref={setBottomNavigation}>
               <nav
                 className="mobile-bottom-nav"

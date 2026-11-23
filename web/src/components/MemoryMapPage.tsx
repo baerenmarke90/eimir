@@ -480,7 +480,9 @@ export function MemoryMapPage({
         title={t(
           layout === 'rooms'
             ? 'wirDesign.homeRooms.remember'
-            : 'story.timelineTitle',
+            : layout === 'chapters'
+              ? 'wirDesign.rhythm.history'
+              : 'story.timelineTitle',
         )}
         before={
           hasOrigin ? (

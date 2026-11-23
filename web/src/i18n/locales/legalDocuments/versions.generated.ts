@@ -2,5 +2,5 @@
 
 export const legalDocumentVersions = {
   termsOfUseDe: '2026-11-06.draft-2',
-  privacyPolicyDe: '2026-11-22.draft-9',
+  privacyPolicyDe: '2026-11-23.draft-10',
 } as const;

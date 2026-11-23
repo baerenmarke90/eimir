@@ -65,6 +65,7 @@ import { PresenceHeartbeat } from './PresenceHeartbeat';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
 import { Snackbar } from './Snackbar';
 import { SubpageNavigation } from './SubpageNavigation';
+import { SupportReportHost } from './SupportReportHost';
 import { ThemeControl } from './ThemeControl';
 import { useNavigationMotion } from './useNavigationMotion';
 
@@ -535,6 +536,8 @@ function AuthenticatedAppShell({
             />
           ) : null}
           <Snackbar />
+          {/* The one support report sheet; it outlives the screen opening it. */}
+          <SupportReportHost />
         </div>
       </ActiveNavigationAreaContext.Provider>
     </ShellUtilitiesContext.Provider>

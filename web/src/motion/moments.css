@@ -304,6 +304,17 @@
   }
 }
 
+/* A support reply settles in calmly: a short rise without a bounce (#2189). */
+@keyframes eimir-motion-notice-support-reply {
+  from {
+    opacity: 0;
+    transform: translateY(16%);
+  }
+  to {
+    transform: none;
+  }
+}
+
 @keyframes eimir-motion-notice-recap-grew {
   from {
     opacity: 0;

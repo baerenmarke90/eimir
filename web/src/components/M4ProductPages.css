@@ -256,9 +256,17 @@
 
 .m4-notification-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+}
+
+/* With large text the action moves below the count and wraps its label
+   instead of widening the page (WCAG 1.4.10). */
+.m4-notification-bar > .compact-action {
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 /* The count is a chip: a tinted fill, no outline. */
@@ -593,9 +601,12 @@
   flex-shrink: 0;
 }
 
+/* Never shrinks beside the copy (the header wraps first); alone on its line
+   with large text, it wraps its label instead of widening the page. */
 .m4-mark-read-btn {
   margin-left: auto;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .m4-read-status {

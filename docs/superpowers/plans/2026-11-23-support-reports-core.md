@@ -52,21 +52,21 @@
 
 ### Task 2: Model, payload schemas and migration
 
-**Files:** Create `backend/src/eimir/support_reports/{__init__,models,payload}.py`, `backend/alembic/versions/0172_support_reports.py`. Modify `backend/src/eimir/db/registry.py` if models need registering (mirror `create_receipts`). Test `backend/tests/unit/test_support_reports_payload.py`, `backend/tests/integration/test_support_reports_migration.py` (use the existing migration/schema fingerprint tests as the template; refresh the schema fingerprint per `backend/scripts/schema_fingerprint.py`).
+**Files:** Create `backend/src/eimir/support_reports/{__init__,models,payload}.py`, `backend/alembic/versions/0175_support_reports.py`. Modify `backend/src/eimir/db/registry.py` if models need registering (mirror `create_receipts`). Test `backend/tests/unit/test_support_reports_payload.py`, `backend/tests/integration/test_support_reports_migration.py` (use the existing migration/schema fingerprint tests as the template; refresh the schema fingerprint per `backend/scripts/schema_fingerprint.py`).
 
 **Produces:**
 - `class SupportReportKind(StrEnum)`: `PROBLEM`, `FEEDBACK`; `class SupportReportState(StrEnum)`: `NEW`, `IN_PROGRESS`, `CLOSED`.
 - `class SupportReportPayload(BaseModel)` (frozen, `extra="forbid"`): `note: str | None` (max 2000), `failure: FailureReference | None`, `client: ClientContext`. `FailureReference`: `reference: str`, `request_id: str | None`. `ClientContext`: `app_version`, `build`, `platform: Literal["app","web"]`, `os`, `engine`, `locale`, `theme`, `online: bool`, `local_time`, `time_zone`.
 - `class SupportReportReply(BaseModel)`: `text: str` (max 500), `replied_at: datetime`.
 - `class SupportReport(IdMixin, Base)`, table `support_reports`: columns from the design (`account_id` FK `accounts.id` ON DELETE CASCADE, `client_request_id` unique with `account_id`, `kind`, `state`, `created_at`, `closed_at`, `payload` as `ProtectedPayloadJSON` with the crypto context pattern of `private_notes/models.py`). The reply lives in `class SupportReportReplyRow(Base)`, table `support_report_replies` (primary key = `report_id` FK `support_reports.id` ON DELETE CASCADE, `replied_at`, its own protected `payload` holding `SupportReportReply`), because the encryption tooling supports one protected `payload` column per table.
-- Migration `0172`: create the table; add `SUPPORT_REPLY` to `notifications.notification_kind_allowed` and `notification_preferences.notif_pref_kind_allowed`; add `SUPPORT_REPORT` to `notification_target_type_allowed` and `activity_target_type_allowed`; add the new event type to the outbox event-type constraint if one exists. Mirror `0159_recap_notices.py`; build the kind and target lists from the **current** enums, not the old list in 0159.
+- Migration `0175`: create the table; add `SUPPORT_REPLY` to `notifications.notification_kind_allowed` and `notification_preferences.notif_pref_kind_allowed`; add `SUPPORT_REPORT` to `notification_target_type_allowed` and `activity_target_type_allowed`; add the new event type to the outbox event-type constraint if one exists. Mirror `0159_recap_notices.py`; build the kind and target lists from the **current** enums, not the old list in 0159.
 
 - [ ] **Step 1:** Write `test_payload_rejects_unknown_field`, `test_note_limit_2000_characters_not_bytes` (2,000 emoji accepted, 2,001 rejected), `test_reply_limit_500`, `test_failure_reference_has_no_url_fields`.
 - [ ] **Step 2:** Run; expect FAIL (module missing).
 - [ ] **Step 3:** Implement payload models and ORM model.
 - [ ] **Step 4:** Write the migration and its integration test: upgrade creates the table, `SUPPORT_REPLY` is insertable into `notifications`, downgrade removes both (downgrade deletes `SUPPORT_REPLY` notifications first, as 0159 does for its kinds).
 - [ ] **Step 5:** Run unit tests, the migration test and the schema fingerprint test; expect PASS.
-- [ ] **Step 6:** Commit `feat(support): support_reports table, payload schemas, migration 0172 (#2189)`.
+- [ ] **Step 6:** Commit `feat(support): support_reports table, payload schemas, migration 0175 (#2189)`.
 
 ### Task 3: Service (create, list, get, set_state) and create API
 

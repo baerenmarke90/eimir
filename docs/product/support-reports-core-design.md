@@ -78,7 +78,7 @@ The Product Owner's answers shaping this design (2026-11-23):
 
 ### Data model
 
-New Core table `support_reports` (Alembic revision after `0171`):
+New Core table `support_reports` (Alembic revision `0175`, after `0174`):
 
 | Column | Notes |
 | --- | --- |

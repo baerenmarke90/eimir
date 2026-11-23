@@ -30,7 +30,11 @@ const PREWARM_AFTER_MS = 4_000;
 const PREWARM_QUIET_MS = 1_500;
 const PREWARM_INPUT = [
   'pointerdown',
+  'pointerup',
+  'pointercancel',
   'touchstart',
+  'touchend',
+  'touchcancel',
   'wheel',
   'keydown',
   'scroll',
@@ -52,32 +56,61 @@ function usePrewarm(paths: readonly string[]): ReadonlySet<string> {
       navigator as Navigator & { connection?: { saveData?: boolean } }
     ).connection;
     if (connection?.saveData) return;
+    const listeners = new AbortController();
+    const contacts = new Set<number>();
+    let touches = 0;
     let lastInput = performance.now();
-    const touched = () => {
+    const touched = (event: Event) => {
+      lastInput = performance.now();
+      if ('touches' in event) touches = (event as TouchEvent).touches.length;
+      if ('pointerId' in event && typeof event.pointerId === 'number') {
+        if (event.type === 'pointerdown') contacts.add(event.pointerId);
+        else contacts.delete(event.pointerId);
+      }
+    };
+    const options = { passive: true, capture: true, signal: listeners.signal };
+    for (const type of PREWARM_INPUT)
+      window.addEventListener(type, touched, options);
+    const releaseContacts = () => {
+      touches = 0;
+      contacts.clear();
       lastInput = performance.now();
     };
-    for (const type of PREWARM_INPUT)
-      window.addEventListener(type, touched, { passive: true, capture: true });
+    window.addEventListener('blur', releaseContacts, options);
+    document.addEventListener('visibilitychange', releaseContacts, options);
     let timer: number | undefined;
     let idle: number | undefined;
-    const prepare = () => setPrepared(new Set(key.split('|')));
-    const attempt = () => {
-      const quietFor = performance.now() - lastInput;
-      if (document.hidden || quietFor < PREWARM_QUIET_MS) {
+    const stop = () => {
+      listeners.abort();
+      window.clearTimeout(timer);
+      if (idle !== undefined) window.cancelIdleCallback?.(idle);
+    };
+    const attempt = (inIdlePeriod = false) => {
+      if (listeners.signal.aborted) return;
+      if (connection?.saveData) return stop();
+      if (
+        document.hidden ||
+        contacts.size ||
+        touches ||
+        performance.now() - lastInput < PREWARM_QUIET_MS
+      ) {
         timer = window.setTimeout(attempt, PREWARM_QUIET_MS);
         return;
       }
+      if (inIdlePeriod) {
+        stop();
+        setPrepared(new Set(key.split('|')));
+        return;
+      }
+      // Input or page visibility can change between this request and its
+      // actual callback. Re-check eligibility immediately before mounting.
+      const prepare = () => attempt(true);
       if (typeof window.requestIdleCallback === 'function')
         idle = window.requestIdleCallback(prepare, { timeout: 2_000 });
       else timer = window.setTimeout(prepare, 0);
     };
     timer = window.setTimeout(attempt, PREWARM_AFTER_MS);
-    return () => {
-      for (const type of PREWARM_INPUT)
-        window.removeEventListener(type, touched, { capture: true });
-      window.clearTimeout(timer);
-      if (idle !== undefined) window.cancelIdleCallback?.(idle);
-    };
+    return stop;
   }, [key]);
   return prepared;
 }
@@ -275,7 +308,8 @@ export function PrimaryTabPanels({
     // A tab that was never opened is shown from its root while it is peeked,
     // but is not kept (and unmounts again if the swipe is cancelled).
     const visited = locations.current.get(path);
-    const preparing = !visited && !peeking && prepared.has(path);
+    const preparing =
+      !visited && !peeking && prewarm.includes(path) && prepared.has(path);
     const kept =
       visited ??
       (peeking || preparing

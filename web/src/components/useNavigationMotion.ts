@@ -29,7 +29,7 @@ const ENTRY_OPACITY = 0.92;
 // A kept primary tab renders its page inside a visible tab panel.
 const PAGE_PARENTS = [
   ':scope >',
-  ':scope > .primary-tab-panel:not([hidden]):not([data-primary-tab-peek]) >',
+  ':scope > .primary-tab-panel:not([hidden], [data-primary-tab-peek], [data-primary-tab-prewarm]) >',
 ];
 const PEEK_PAGE = ':scope > .primary-tab-panel[data-primary-tab-peek] > .page';
 /** A cancelled or never-committed route change releases the drag state. */
@@ -64,9 +64,9 @@ function isPrimarySurface(path: string): boolean {
  */
 function dragOffset(
   distance: number,
+  width: number,
   neighbours: { previous: boolean; next: boolean },
 ): number {
-  const width = window.innerWidth;
   return rubberBand(
     distance,
     neighbours.next ? -width : 0,
@@ -176,13 +176,12 @@ function settlePages(
   };
 }
 
-function editingOrOverlayActive(): boolean {
+const OPEN_OVERLAY = 'dialog[open], [aria-modal="true"], [role="menu"]';
+
+function editingActive(): boolean {
   return Boolean(
     isDocumentLeaveBlocked() ||
       document.body.style.overflow === 'hidden' ||
-      document.querySelector(
-        'dialog[open], [aria-modal="true"], [role="menu"]',
-      ) ||
       document.activeElement?.matches(
         'input, textarea, select, [contenteditable]:not([contenteditable="false"])',
       ) ||
@@ -191,8 +190,10 @@ function editingOrOverlayActive(): boolean {
   );
 }
 
-function contentOwnsGesture(target: Element, surface: HTMLElement): boolean {
-  if (target.closest(BLOCKED_TARGETS)) return true;
+function scrollRegionOwnsGesture(
+  target: Element,
+  surface: HTMLElement,
+): boolean {
   for (
     let node: Element | null = target;
     node && node !== surface;
@@ -217,8 +218,10 @@ function contentOwnsGesture(target: Element, surface: HTMLElement): boolean {
 
 interface Gesture {
   id: number;
+  target: Element;
   x: number;
   y: number;
+  width: number;
   scrollY: number;
   horizontal: boolean;
   /** Where the pages were when the finger landed (a grabbed settle). */
@@ -453,12 +456,15 @@ export function useNavigationMotion({
     let settle: Settle | null = null;
     let frame = 0;
     let fallback = 0;
+    let reducedMotion = prefersReducedMotion();
     const applyDrag = (drag: Gesture) => {
-      surface.dataset.primaryTabDragging = 'true';
+      if (reducedMotion) return;
+      if (!surface.hasAttribute('data-primary-tab-dragging'))
+        surface.dataset.primaryTabDragging = 'true';
       surface.style.setProperty('--primary-tab-offset', `${drag.offset}px`);
       surface.style.setProperty(
         '--primary-tab-peek-offset',
-        `${drag.direction * window.innerWidth + drag.offset}px`,
+        `${drag.direction * drag.width + drag.offset}px`,
       );
     };
     const clearDrag = () => {
@@ -473,8 +479,23 @@ export function useNavigationMotion({
     const abortGesture = () => {
       if (!gesture) return;
       gesture = null;
+      overlays.disconnect();
       clearDrag();
     };
+    // An overlay may open during a swipe. Inspect it when the document changes
+    // instead of searching every retained tab on each touch sample.
+    const overlays = new MutationObserver(() => {
+      if (gesture && document.querySelector(OPEN_OVERLAY)) abortGesture();
+    });
+    const stopWatchingMotion = subscribeReducedMotion(() => {
+      reducedMotion = prefersReducedMotion();
+      if (!reducedMotion) return;
+      settle?.finish();
+      if (gesture) {
+        gesture.peek = null;
+        clearDrag();
+      }
+    });
     const teardown = () => {
       window.clearTimeout(fallback);
       settle?.abort();
@@ -496,16 +517,19 @@ export function useNavigationMotion({
       pageSlideCleanup.current?.();
       suppressClick.current = false;
       const touch = event.touches[0];
+      const width = window.innerWidth;
       if (
         currentRoute.current !== routeKey ||
         event.defaultPrevented ||
         event.touches.length !== 1 ||
         !touch ||
         touch.clientX < EDGE_INSET ||
-        touch.clientX > window.innerWidth - EDGE_INSET ||
+        touch.clientX > width - EDGE_INSET ||
         !(event.target instanceof Element) ||
-        editingOrOverlayActive() ||
-        contentOwnsGesture(event.target, surface)
+        event.target.closest(BLOCKED_TARGETS) ||
+        editingActive() ||
+        document.querySelector(OPEN_OVERLAY) ||
+        (grabbed && scrollRegionOwnsGesture(event.target, surface))
       ) {
         // A settle that cannot be grabbed lands where it was headed.
         if (grabbed) {
@@ -520,8 +544,10 @@ export function useNavigationMotion({
       if (grabbed) settledSwipe.current = false;
       gesture = {
         id: touch.identifier,
+        target: event.target,
         x: touch.clientX,
         y: touch.clientY,
+        width,
         scrollY: window.scrollY,
         horizontal: grabbed !== null,
         base,
@@ -536,22 +562,26 @@ export function useNavigationMotion({
       if (grabbed) {
         gesture.peek =
           PRIMARY_APP_ROUTES[index + grabbed.direction]?.path ?? null;
-        gesture.beyond =
-          Math.abs(base) >= commitDistance('pager', window.innerWidth);
+        gesture.beyond = Math.abs(base) >= commitDistance('pager', width);
       }
       gesture.velocity.add(event.timeStamp, touch.clientX);
+      overlays.observe(document.body, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['open', 'role', 'aria-modal'],
+      });
     };
     const move = (event: TouchEvent) => {
       if (!gesture) return;
-      const touch = Array.from(event.touches).find(
-        (item) => item.identifier === gesture?.id,
-      );
+      const touch = event.touches[0];
       if (
         currentRoute.current !== routeKey ||
         event.defaultPrevented ||
         event.touches.length !== 1 ||
         !touch ||
-        editingOrOverlayActive() ||
+        touch.identifier !== gesture.id ||
+        editingActive() ||
         Math.abs(window.scrollY - gesture.scrollY) > 1
       ) {
         abortGesture();
@@ -564,7 +594,14 @@ export function useNavigationMotion({
         // scrolling wins an ambiguous start (Motion Contract 4.6).
         const ownership = resolveOwnership('x', dx, dy);
         if (ownership === 'pending') return;
-        if (ownership === 'reject') {
+        // A tap or ordinary vertical scroll never needs to measure the
+        // overflow of every ancestor. Resolve nested ownership before the
+        // first horizontal move is claimed.
+        if (
+          ownership === 'reject' ||
+          !surface.contains(gesture.target) ||
+          scrollRegionOwnsGesture(gesture.target, surface)
+        ) {
           abortGesture();
           return;
         }
@@ -581,12 +618,12 @@ export function useNavigationMotion({
       const direction = distance < 0 ? 1 : -1;
       const neighbour = PRIMARY_APP_ROUTES[index + direction];
       gesture.direction = direction;
-      gesture.offset = dragOffset(distance, neighbours);
+      gesture.offset = dragOffset(distance, gesture.width, neighbours);
       gesture.peakNext = Math.max(gesture.peakNext, -gesture.offset);
       gesture.peakPrevious = Math.max(gesture.peakPrevious, gesture.offset);
       const beyond =
         Boolean(neighbour) &&
-        Math.abs(gesture.offset) >= commitDistance('pager', window.innerWidth);
+        Math.abs(gesture.offset) >= commitDistance('pager', gesture.width);
       if (beyond !== gesture.beyond) {
         gesture.beyond = beyond;
         haptic('threshold');
@@ -594,12 +631,12 @@ export function useNavigationMotion({
       // The neighbour joins the drag like the next page of a pager, but only
       // when the pages may move (reduced motion keeps the pages still, since
       // a whole page travelling sideways is large-area motion).
-      const peek = prefersReducedMotion() ? null : (neighbour?.path ?? null);
+      const peek = reducedMotion ? null : (neighbour?.path ?? null);
       if (gesture.peek !== peek) {
         gesture.peek = peek;
         setPrimaryTabPeek(peek);
       }
-      if (!frame)
+      if (!reducedMotion && !frame)
         frame = window.requestAnimationFrame(() => {
           frame = 0;
           if (gesture) applyDrag(gesture);
@@ -607,14 +644,17 @@ export function useNavigationMotion({
     };
     const end = (event: TouchEvent) => {
       const current = gesture;
+      if (!current) return;
       gesture = null;
+      overlays.disconnect();
       if (frame) window.cancelAnimationFrame(frame);
       frame = 0;
       if (
         currentRoute.current !== routeKey ||
-        !current?.horizontal ||
+        !current.horizontal ||
         event.touches.length ||
-        editingOrOverlayActive() ||
+        editingActive() ||
+        document.querySelector(OPEN_OVERLAY) ||
         Math.abs(window.scrollY - current.scrollY) > 1
       ) {
         clearDrag();
@@ -629,12 +669,12 @@ export function useNavigationMotion({
       }
       const dx = touch.clientX - current.x;
       const dy = touch.clientY - current.y;
-      const width = window.innerWidth;
+      const width = current.width;
       const distance = current.base + dx;
       const direction = distance < 0 ? 1 : -1;
       const destination = PRIMARY_APP_ROUTES[index + direction];
       current.direction = direction;
-      current.offset = dragOffset(distance, neighbours);
+      current.offset = dragOffset(distance, width, neighbours);
       // Velocity toward larger x in px/ms, measured up to the release (Motion
       // Contract 4.6, the #2073 tracker). Past the end of the tab row the
       // pages moved slower than the finger.
@@ -714,6 +754,8 @@ export function useNavigationMotion({
     window.addEventListener('blur', interrupt);
     window.addEventListener('resize', interrupt);
     return () => {
+      overlays.disconnect();
+      stopWatchingMotion();
       teardown();
       mainMotionCleanup.current?.();
       pageSlideCleanup.current?.();

@@ -780,6 +780,9 @@ function AuthenticatedApp({
       element: (
         <StoryProductPage
           apis={apis}
+          active={
+            location.pathname.replace(/\/$/, '') === appRoutePath('story')
+          }
           mapSession={memoryMapSession.current}
           accountId={account.id}
           spaceId={spaceId}

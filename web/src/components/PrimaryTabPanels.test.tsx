@@ -312,3 +312,69 @@ it('prepares a panel once the app is quiet and keeps it out of sight until visit
     vi.useRealTimers();
   }
 });
+
+it('keeps a queued background mount out of a held gesture and stops listening after it runs', async () => {
+  vi.useFakeTimers();
+  const idle = vi.fn<(callback: () => void) => number>().mockReturnValue(1);
+  vi.stubGlobal('requestIdleCallback', idle);
+  try {
+    const added = vi.spyOn(window, 'addEventListener');
+    render(<Harness prewarm={['/plan']} />);
+    const options = added.mock.calls.find(([type]) => type === 'wheel')?.[2];
+    const signal = (options as AddEventListenerOptions).signal;
+    expect(signal?.aborted).toBe(false);
+    await act(() => vi.advanceTimersByTimeAsync(4_000));
+    const contact = (type: string, count: number) =>
+      window.dispatchEvent(
+        Object.assign(new Event(type), { touches: { length: count } }),
+      );
+    contact('touchstart', 1);
+    await act(() => vi.advanceTimersByTimeAsync(2_000));
+    act(() => idle.mock.calls[0][0]());
+    expect(panel('/plan')).toBeNull();
+    contact('touchend', 0);
+    await act(() => vi.advanceTimersByTimeAsync(1_501));
+    act(() => idle.mock.calls[1][0]());
+    expect(panel('/plan')?.dataset.primaryTabPrewarm).toBe('true');
+    expect(signal?.aborted).toBe(true);
+  } finally {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  }
+});
+
+it('rechecks visibility and data saving at the idle callback and cancels deactivated work', async () => {
+  vi.useFakeTimers();
+  const idle = vi.fn<(callback: () => void) => number>().mockReturnValue(1);
+  vi.stubGlobal('requestIdleCallback', idle);
+  const connection = { saveData: false };
+  const original = Object.getOwnPropertyDescriptor(navigator, 'connection');
+  Object.defineProperty(navigator, 'connection', {
+    configurable: true,
+    value: connection,
+  });
+  try {
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+    const view = render(<Harness prewarm={['/plan']} />);
+    await act(() => vi.advanceTimersByTimeAsync(4_000));
+    hidden.mockReturnValue(true);
+    act(() => idle.mock.calls[0][0]());
+    expect(panel('/plan')).toBeNull();
+    hidden.mockReturnValue(false);
+    await act(() => vi.advanceTimersByTimeAsync(1_500));
+    connection.saveData = true;
+    act(() => idle.mock.calls[1][0]());
+    expect(panel('/plan')).toBeNull();
+    connection.saveData = false;
+    view.rerender(<Harness prewarm={['/story']} />);
+    await act(() => vi.advanceTimersByTimeAsync(4_000));
+    view.rerender(<Harness />);
+    act(() => idle.mock.calls[2][0]());
+    expect(panel('/story')).toBeNull();
+  } finally {
+    if (original) Object.defineProperty(navigator, 'connection', original);
+    else Reflect.deleteProperty(navigator, 'connection');
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  }
+});

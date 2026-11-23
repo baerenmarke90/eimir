@@ -29,12 +29,15 @@ function touch(
   type: string,
   points: Point[],
   changed = points,
+  timeStamp?: number,
 ) {
   const event = new Event(type, { bubbles: true, cancelable: true });
   Object.defineProperties(event, {
     touches: { value: points },
     changedTouches: { value: changed },
   });
+  if (timeStamp !== undefined)
+    Object.defineProperty(event, 'timeStamp', { value: timeStamp });
   target.dispatchEvent(event);
   return event;
 }
@@ -104,6 +107,11 @@ function PageMotionHarness({
   });
   return (
     <main ref={ref} data-testid="motion-surface">
+      <div className="primary-tab-panel" data-primary-tab-prewarm="true" inert>
+        <section className="page">
+          <div className="ui-state-loading">Preparing the map</div>
+        </section>
+      </div>
       {peek ? (
         <div className="primary-tab-panel" data-primary-tab-peek="true">
           <section className="page" data-testid="peek-page" data-peek={peek} />
@@ -155,6 +163,34 @@ afterEach(() => {
 });
 
 describe('primary tab slide feedback', () => {
+  it('updates the page offsets without restarting the drag on successive frames', () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) =>
+      frames.push(callback),
+    );
+    render(<PageMotionHarness onNavigate={vi.fn()} />);
+    const surface = screen.getByTestId('motion-surface');
+    const reading = screen.getByTestId('motion-reading');
+    const markers = new MutationObserver(() => {});
+    markers.observe(surface, {
+      attributeFilter: ['data-primary-tab-dragging'],
+    });
+    act(() => touch(reading, 'touchstart', [point(280)]));
+    for (const x of [230, 180, 130]) {
+      act(() => {
+        touch(reading, 'touchmove', [point(x + 5)]);
+        touch(reading, 'touchmove', [point(x)]);
+      });
+      expect(frames).toHaveLength(1);
+      act(() => frames.pop()?.(0));
+      expect(surface.style.getPropertyValue('--primary-tab-offset')).toBe(
+        `${x - 280}px`,
+      );
+      expect(markers.takeRecords()).toHaveLength(x === 230 ? 1 : 0);
+    }
+    markers.disconnect();
+  });
+
   it('drags the page beside its neighbour and settles both before navigating', () => {
     const navigate = vi.fn();
     const frame = vi
@@ -186,8 +222,8 @@ describe('primary tab slide feedback', () => {
 
     const reading = screen.getByTestId('motion-reading');
     act(() => {
-      touch(reading, 'touchstart', [point(280)]);
-      touch(reading, 'touchmove', [point(90)]);
+      touch(reading, 'touchstart', [point(280)], undefined, 0);
+      touch(reading, 'touchmove', [point(90)], undefined, 32);
     });
     // The page follows the finger one to one and the next tab travels beside it.
     expect(surface.getAttribute('data-primary-tab-dragging')).toBe('true');
@@ -204,7 +240,7 @@ describe('primary tab slide feedback', () => {
       value: peekAnimate,
     });
 
-    act(() => touch(reading, 'touchend', [], [point(90)]));
+    act(() => touch(reading, 'touchend', [], [point(90)], 64));
     // Both pages continue from the finger through the sampled settle spring;
     // the end state is applied first, so nothing is held with a fill.
     expect(navigate).not.toHaveBeenCalled();
@@ -583,6 +619,21 @@ describe('primary tab slide feedback', () => {
 });
 
 describe('primary tab swipe ownership', () => {
+  it('leaves taps and vertical scrolling free of pager layout measurements', () => {
+    render(<PageMotionHarness onNavigate={vi.fn()} />);
+    const reading = screen.getByTestId('motion-reading');
+    const styles = vi.spyOn(window, 'getComputedStyle');
+    act(() => {
+      touch(reading, 'touchstart', [point(180, 200)]);
+      touch(reading, 'touchend', [], [point(180, 200)]);
+      touch(reading, 'touchstart', [point(180, 200)]);
+      touch(reading, 'touchmove', [point(181, 205)]);
+      touch(reading, 'touchmove', [point(182, 90)]);
+      touch(reading, 'touchend', [], [point(182, 90)]);
+    });
+    expect(styles).not.toHaveBeenCalled();
+  });
+
   it('accepts another gesture as soon as a new destination commits', () => {
     const onNavigate = vi.fn();
     function CommitProbe({ pathname }: { pathname: string }) {
@@ -841,6 +892,26 @@ describe('primary tab swipe ownership', () => {
     view.rerender(<Harness onNavigate={onNavigate} dirty />);
     act(() => touch(target, 'touchend', [], [point(90)]));
     expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  it('releases the page when a menu opens during a swipe', async () => {
+    const navigate = vi.fn();
+    const { container } = render(<PageMotionHarness onNavigate={navigate} />);
+    const reading = screen.getByTestId('motion-reading');
+    act(() => {
+      touch(reading, 'touchstart', [point(280)]);
+      touch(reading, 'touchmove', [point(90)]);
+    });
+    expect(screen.getByTestId('peek-page')).toBeTruthy();
+    const menu = document.createElement('div');
+    await act(async () => {
+      container.append(menu);
+      menu.setAttribute('role', 'menu');
+    });
+    expect(screen.queryByTestId('peek-page')).toBeNull();
+    menu.remove();
+    act(() => touch(reading, 'touchend', [], [point(90)]));
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it('protects controls and keeps an active draft safe when a swipe starts elsewhere', () => {

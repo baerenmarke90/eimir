@@ -59,6 +59,37 @@ afterEach(() => {
 });
 
 describe('usePullToRefresh', () => {
+  it('checks nested scroll layout only once a downward gesture could refresh', () => {
+    const onRefresh = vi.fn();
+    const scroller = document.createElement('div');
+    scroller.style.overflowY = 'auto';
+    Object.defineProperty(scroller, 'scrollHeight', { value: 200 });
+    Object.defineProperty(scroller, 'clientHeight', { value: 100 });
+    const target = scroller.appendChild(document.createElement('span'));
+    document.body.append(scroller);
+    renderHook(() =>
+      usePullToRefresh({ enabled: true, blocked: false, onRefresh }),
+    );
+    const style = vi.spyOn(window, 'getComputedStyle');
+    act(() => {
+      dispatchTouch('touchstart', 100, 100, target);
+      dispatchTouch('touchend', undefined, 100, target);
+      dispatchTouch('touchstart', 100, 100, target);
+      dispatchTouch('touchmove', 108, 180, target);
+      dispatchTouch('touchend', undefined, 180, target);
+    });
+    expect(style).not.toHaveBeenCalled();
+    act(() => {
+      dispatchTouch('touchstart', 100, 100, target);
+      const move = dispatchTouch('touchmove', 190, 100, target);
+      expect(move.defaultPrevented).toBe(false);
+      dispatchTouch('touchend', undefined, 100, target);
+    });
+    expect(style).toHaveBeenCalledWith(scroller);
+    expect(onRefresh).not.toHaveBeenCalled();
+    scroller.remove();
+  });
+
   it('does not refresh for ordinary scrolling or a pull below the threshold', () => {
     const onRefresh = vi.fn();
     renderHook(() =>

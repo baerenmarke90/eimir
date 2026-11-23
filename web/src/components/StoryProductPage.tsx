@@ -1,4 +1,5 @@
 import {
+  type QueryStatus,
   useInfiniteQuery,
   useQuery,
   useQueryClient,
@@ -113,7 +114,6 @@ import {
   storyItemPresentation,
 } from './storyPresentation';
 import { UiState } from './UiState';
-import { usePullToRefresh } from './usePullToRefresh';
 import {
   useTimelineAutoPagination,
   useTimelineReveal,
@@ -138,6 +138,7 @@ function isStoryKind(value: string | null): value is StoryKindValue {
 
 export function StoryProductPage({
   apis,
+  active = true,
   accountId,
   spaceId,
   loadMemoryImage,
@@ -148,6 +149,8 @@ export function StoryProductPage({
   mapSession,
 }: {
   apis: ReferenceApis;
+  /** A kept or previewed panel retains its data while the active route owns input. */
+  active?: boolean;
   accountId: string;
   spaceId: string;
   loadMemoryImage: (
@@ -243,6 +246,10 @@ export function StoryProductPage({
     [apis, spaceId],
   );
 
+  // A first swipe preview can load its content. Once populated, a retained
+  // panel displays that snapshot and resumes revalidation when opened.
+  const needsRead = (query: { state: { status: QueryStatus } }) =>
+    active || query.state.status === 'pending';
   const storyQuery = useInfiniteQuery({
     queryKey: ['story', spaceId, cacheResourceId],
     initialPageParam: null as string | null,
@@ -280,7 +287,7 @@ export function StoryProductPage({
         ? lastPage.value.nextCursor
         : undefined;
     },
-    enabled: true,
+    enabled: needsRead,
     retry: false,
   });
   const discoverQuery = useQuery({
@@ -298,7 +305,7 @@ export function StoryProductPage({
         deserialize: (payload) => DiscoverSelectionFromJSON(payload),
       });
     },
-    enabled: true,
+    enabled: needsRead,
     staleTime: 30_000,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
@@ -317,7 +324,7 @@ export function StoryProductPage({
         throw await normalizeClientError(error);
       }
     },
-    enabled: Boolean(dashboardApi),
+    enabled: (query) => Boolean(dashboardApi) && needsRead(query),
     refetchOnWindowFocus: 'always',
     refetchInterval:
       activeView === 'discover' && !renewing ? 15 * 60_000 : false,
@@ -325,10 +332,10 @@ export function StoryProductPage({
   });
 
   const [paginationGeneration, setPaginationGeneration] = useState(0);
-  const pullRefresh = usePullToRefresh({
-    enabled: true,
-    blocked: renewing || storyQuery.isFetching || discoverQuery.isFetching,
-    onRefresh: async () => {
+  const [refreshing, setRefreshing] = useState(false);
+  async function refreshStory() {
+    setRefreshing(true);
+    try {
       const [result] = await Promise.all([
         storyQuery.refetch(),
         renewSelection(),
@@ -336,8 +343,10 @@ export function StoryProductPage({
       ]);
       if (!result.isError)
         setPaginationGeneration((generation) => generation + 1);
-    },
-  });
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   const combinedStory = useMemo(() => {
     if (!storyQuery.data) return null;
@@ -430,9 +439,10 @@ export function StoryProductPage({
   const loadedPageCount = storyQuery.data?.pages.length ?? 1;
   const restoringTimeline = useTaskListReturn({
     ready:
-      activeView === 'timeline'
+      active &&
+      (activeView === 'timeline'
         ? Boolean(combinedStory)
-        : Boolean(discoverQuery.data),
+        : Boolean(discoverQuery.data)),
     busy:
       activeView === 'timeline'
         ? storyQuery.isFetching
@@ -520,24 +530,24 @@ export function StoryProductPage({
     if (
       !storyQuery.hasNextPage ||
       storyQuery.isFetchingNextPage ||
-      pullRefresh.refreshing
+      refreshing
     ) {
       return false;
     }
     const result = await storyQuery.fetchNextPage({ cancelRefetch: false });
     return !result.isError;
   }, [
-    pullRefresh.refreshing,
+    refreshing,
     storyQuery.fetchNextPage,
     storyQuery.hasNextPage,
     storyQuery.isFetchingNextPage,
   ]);
   const progressivePagination = useTimelineAutoPagination({
     sentinelRef: paginationSentinelRef,
-    enabled: activeView === 'timeline',
+    enabled: active && activeView === 'timeline',
     blocked:
       (storyQuery.isFetching && !storyQuery.isFetchingNextPage) ||
-      pullRefresh.refreshing ||
+      refreshing ||
       restoringTimeline ||
       Boolean(offline),
     hasNextPage: Boolean(storyQuery.hasNextPage),
@@ -831,7 +841,11 @@ export function StoryProductPage({
         </div>
       ) : null}
 
-      <PullToRefreshIndicator state={pullRefresh} />
+      <PullToRefreshIndicator
+        enabled={active}
+        blocked={renewing || storyQuery.isFetching || discoverQuery.isFetching}
+        onRefresh={refreshStory}
+      />
 
       <PageHeader
         variant="root"
@@ -1297,10 +1311,7 @@ export function StoryProductPage({
                                 onClick={() =>
                                   void progressivePagination.retry()
                                 }
-                                disabled={
-                                  storyQuery.isFetching ||
-                                  pullRefresh.refreshing
-                                }
+                                disabled={storyQuery.isFetching || refreshing}
                               >
                                 {t('storyFilters.loadMore')}
                               </button>

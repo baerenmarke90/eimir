@@ -469,6 +469,9 @@
   .page-heading-title-container,
 .memory-map-page
   > .page-heading-root.content-overview-heading
+  .page-heading-title-container,
+.shared-root-page
+  > .page-heading-root.content-overview-heading
   .page-heading-title-container {
   position: absolute;
   width: 1px;
@@ -481,7 +484,8 @@
 .story-page-unified > .page-heading-root.content-overview-heading,
 .planen-overview > .page-heading-root.content-overview-heading,
 .more-page > .page-heading-root.content-overview-heading,
-.memory-map-page > .page-heading-root.content-overview-heading {
+.memory-map-page > .page-heading-root.content-overview-heading,
+.shared-root-page > .page-heading-root.content-overview-heading {
   min-height: 0;
   margin: 0;
   padding: 0;

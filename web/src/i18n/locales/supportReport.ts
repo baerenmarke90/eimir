@@ -27,7 +27,8 @@ const supportReport = {
     /** Shown on its own line above the raw reference that is sent. */
     failureLabel: 'Fehler-Code',
     app: 'App-Version und Build',
-    device: 'Gerät: System und Browser',
+    device:
+      'Gerät und Anzeige: System, Browser, App oder Web, Design (hell/dunkel), Online-Status',
     locale: 'Sprache, Uhrzeit und Zeitzone',
     account: 'Dein Konto, damit wir antworten können',
   },
@@ -40,7 +41,7 @@ const supportReport = {
   retry: 'Erneut versuchen',
   offline: {
     title: 'Du bist offline.',
-    body: 'Dein Text bleibt gespeichert. Wir senden ihn, sobald du wieder online bist.',
+    body: 'Dein Text bleibt gespeichert. Sende ihn, sobald du wieder online bist.',
   },
   failed:
     'Das hat nicht geklappt. Dein Text ist noch da, versuch es gleich noch einmal.',

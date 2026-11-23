@@ -138,7 +138,11 @@ export function buildSupportReport(input: {
   };
 }
 
-/** The items the sheet lists; they always match what `buildSupportReport` sends. */
+/**
+ * The items the sheet lists; they always match what `buildSupportReport` sends.
+ * `app` covers version and build; `device` covers platform, system, engine,
+ * theme and online state; `locale` covers language, local time and time zone.
+ */
 export function describeSupportReport(input: {
   kind: SupportReportKind;
   failure?: FailureReference;

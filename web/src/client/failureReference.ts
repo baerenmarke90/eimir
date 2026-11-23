@@ -157,6 +157,7 @@ export function clearFailureReference(): void {
   lastFailure = undefined;
 }
 
+// Matched anywhere in the path, so an API base under a sub-path is covered.
 const SUPPORT_REPORT_PATH = '/api/v1/support-reports';
 
 function transportOutcome(error: unknown): { status: number; outcome: string } {
@@ -212,7 +213,7 @@ function describeRequest(
 export function recordingFailures(transport: typeof fetch): typeof fetch {
   return async (input, init) => {
     const { method, path } = describeRequest(input, init);
-    const observed = !path.startsWith(SUPPORT_REPORT_PATH);
+    const observed = !path.includes(SUPPORT_REPORT_PATH);
     let response: Response;
     try {
       response = await transport(input, init);

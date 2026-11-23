@@ -434,7 +434,7 @@ def project_event(session: Session, event: OutboxEvent) -> None:
             NotificationKind(event_type.value),
             expires_at=event.payload.due_at,
         )
-    if event_type is EventType.SUPPORT_REPLY and event.subject_type == "support_report":
+    if event_type is EventType.SUPPORT_REPLY and _is_support_report_subject(event.subject_type):
         # #2189: one notice per reply, only for the reporter of the report.
         _project_target_notification(
             session,
@@ -794,6 +794,18 @@ def _recap_is_readable(context: AuthorizationContext, target_id: Any) -> Any:
         RecapEdition.status == "READY",
         RecapEdition.saved_at.is_not(None),
     )
+
+
+def _is_support_report_subject(subject_type: str) -> bool:
+    """True for the subject type the support reply event carries (#2189).
+
+    The producer's constant is the single source, so a rename cannot silently
+    stop the notice. Imported lazily like the report model below: the Core
+    support module is not loaded until a reply event is projected.
+    """
+    from eimir.support_reports.service import REPLY_SUBJECT_TYPE
+
+    return subject_type == REPLY_SUBJECT_TYPE
 
 
 def _support_report_is_own(context: AuthorizationContext, target_id: Any) -> Any:

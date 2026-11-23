@@ -46,6 +46,9 @@ INVITATION_ACCEPT = Limit(attempts=10, window=timedelta(minutes=15))
 # Support reports (#2189): per Account, counted per newly created report. An
 # honest person files a handful at most; the daily budget stops a slow drip.
 SUPPORT_REPORT_HOURLY = Limit(attempts=5, window=timedelta(hours=1))
+# The daily window equals the default cutoff of `prune` (one day). A shorter
+# prune window would delete attempts still inside this window and silently
+# weaken the daily limit; keep both in step.
 SUPPORT_REPORT_DAILY = Limit(attempts=20, window=timedelta(days=1))
 
 # Refresh is the only case that limits successful attempts rather than failed

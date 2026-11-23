@@ -67,7 +67,8 @@ describe('SupportReplyNotice', () => {
   });
 
   it('names the report by its date once the reply is loaded', async () => {
-    const reportedAt = new Date('2026-11-20T12:00:00Z');
+    // A day of the current year: shown without the year.
+    const reportedAt = new Date(new Date().getFullYear(), 0, 15, 12);
     const { container } = renderNotice(async () => ({
       text: 'Fixed in the next version.',
       repliedAt: new Date('2026-11-23T10:00:00Z'),
@@ -85,6 +86,25 @@ describe('SupportReplyNotice', () => {
       line.textContent,
     );
     expect(screen.queryByText(supportReport.reply.context)).toBeNull();
+  });
+
+  it('adds the year for a report from an earlier year', async () => {
+    const reportedAt = new Date(new Date().getFullYear() - 1, 10, 20, 12);
+    renderNotice(async () => ({
+      text: 'Fixed in the next version.',
+      repliedAt: new Date(),
+      reportedAt,
+    }));
+    const date = new Intl.DateTimeFormat(resolvedLocale(), {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }).format(reportedAt);
+    expect(
+      await screen.findByText(
+        i18n.t('supportReport.reply.contextDated', { date }),
+      ),
+    ).toBeTruthy();
   });
 
   it('keeps the undated context line when the reply is gone', async () => {

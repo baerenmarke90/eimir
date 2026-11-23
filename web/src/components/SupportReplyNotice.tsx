@@ -23,11 +23,16 @@ export function supportReplyQueryKey(
   return ['support-report-reply', accountId, reportId] as const;
 }
 
-/** The report's day as a short localized date, e.g. "23. Nov.". */
+/**
+ * The report's day as a short localized date, e.g. "23. Nov.". Reports are
+ * kept up to a year, so a day of an earlier year names the year too.
+ */
 function formatReportDate(reportedAt: Date): string {
+  const earlierYear = reportedAt.getFullYear() !== new Date().getFullYear();
   return new Intl.DateTimeFormat(resolvedLocale(), {
     day: 'numeric',
     month: 'short',
+    ...(earlierYear ? { year: 'numeric' as const } : {}),
   }).format(reportedAt);
 }
 

@@ -41,6 +41,14 @@ def test_reply_event_carries_references_only() -> None:
     assert event.payload.model_dump(exclude_none=True) == {"recipient_id": reporter_id}
 
 
+def test_projection_matches_the_subject_the_reply_event_carries() -> None:
+    # The producer's constant decides; a renamed subject must not silently
+    # stop the notice.
+    event = service.reply_event(report_id=uuid4(), reporter_id=uuid4(), space_id=uuid4())
+    assert engagement_service._is_support_report_subject(event.subject_type)
+    assert not engagement_service._is_support_report_subject("transfer_export")
+
+
 def test_support_report_target_is_current_only_for_its_reporter() -> None:
     context = AuthorizationContext(account_id=uuid4(), space_id=uuid4())
     report_id = uuid4()

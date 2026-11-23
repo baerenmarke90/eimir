@@ -106,6 +106,13 @@ describe('request failure recording in the shared API transport', () => {
     expect(lastFailureReference()).toBeUndefined();
   });
 
+  it('does_not_record_the_support_endpoints_under_an_api_sub_path', async () => {
+    const send = await authenticated((async () =>
+      json({ code: 'RATE_LIMITED' }, 429)) as unknown as typeof fetch);
+    await send(`${api}/eimir/api/v1/support-reports`, { method: 'POST' });
+    expect(lastFailureReference()).toBeUndefined();
+  });
+
   it('does_not_record_a_cancelled_request', async () => {
     const send = await authenticated((async () => {
       throw new DOMException('aborted', 'AbortError');

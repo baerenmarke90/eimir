@@ -6613,7 +6613,7 @@
     "items": {
       "failureLabel": "Error code",
       "app": "App version and build",
-      "device": "Device: system and browser",
+      "device": "Device and display: system, browser, app or web, theme (light/dark), online status",
       "locale": "Language, time and time zone",
       "account": "Your account, so we can reply"
     },
@@ -6626,7 +6626,7 @@
     "retry": "Try again",
     "offline": {
       "title": "You are offline.",
-      "body": "Your text is kept. We send it as soon as you are back online."
+      "body": "Your text is kept. Send it once you are back online."
     },
     "failed": "That did not work. Your text is still here, try again in a moment.",
     "rateLimited": "You sent a lot of reports just now. Your text is kept, try again later.",

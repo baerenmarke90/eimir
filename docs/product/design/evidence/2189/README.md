@@ -10,12 +10,27 @@ The captures below are real renders of the running app, not the sketch.
 
 ## Baseline
 
-Re-captured with the app code at `6a70c5157` (branch
-`claude/laughing-thompson-4d209c`: the shell-level sheet host `e2e465cc1`
-and the polish `6a70c5157`) and the spec at `c9598c633`, on top of `main`
-`28ebc7080`, the baseline the design reviewed. The later host fix (the sheet
-is imported statically by the host) changes no pixels. The first captures were taken on `8ddd6402e`. Screens
-reviewed: the shared `ProblemState`, More, and the notification list.
+The current captures were produced with the app code at `6a70c5157` (branch
+`claude/laughing-thompson-4d209c`: the shell-level sheet host `e2e465cc1` and
+the polish `6a70c5157`) and the spec at `c9598c633`, on top of `main`
+`28ebc7080`, the baseline the design reviewed. The first captures were taken
+on `8ddd6402e`. Screens reviewed: the shared `ProblemState`, More, and the
+notification list.
+
+Later commits and what they mean for the captures:
+
+- `b7346f8bd` (the host imports the sheet statically instead of lazily)
+  changes no pixels.
+- `f210a8612` renamed the test fixtures to English. The captures
+  `05-feedback-filled-390-*`, `05-queued-offline-390-*` and
+  `07-reply-notification-390-*` still show the German fixture notes typed
+  before that rename. The app UI is German in all captures; this is intended
+  evidence, not a defect.
+- The review follow-ups after `f210a8612` reworded two strings: the device
+  line of the "what we send" list now names system, browser, app or web,
+  theme and online status, and the offline message no longer promises
+  automatic sending. The captures `03-*`, `04-*` and `05-queued-offline-*`
+  show the earlier wording; layout and hierarchy are unchanged.
 
 ## How the captures were produced
 

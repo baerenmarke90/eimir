@@ -408,8 +408,9 @@ test('feedback_from_more_requires_text', async ({ page }) => {
     exact: true,
   });
   await expect(page.locator('.more-page')).toBeVisible();
+  // The absence is checked once availability was read and resolved to false.
+  await expect.poll(() => recorded.statusReads).toBeGreaterThan(0);
   await expect(row).toHaveCount(0);
-  expect(recorded.statusReads).toBeGreaterThan(0);
   flags.available = true;
   await page.reload();
   await expect(row).toBeVisible();

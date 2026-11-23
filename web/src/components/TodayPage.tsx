@@ -110,7 +110,7 @@ import { useRevealAfterCache } from '../client/useRevealAfterCache';
 import { useWarmOverviewQuery } from '../client/useWarmOverviewQuery';
 import { useWirStatistics } from '../client/useWirStatistics';
 import { loadVideoSource } from '../client/video';
-import { resolvedLocale, useTranslation } from '../i18n';
+import { resolvedLocale, type TranslateText, useTranslation } from '../i18n';
 import { ActivityCard } from './ActivityCard';
 import { AnticipationCard } from './AnticipationCard';
 import {
@@ -268,7 +268,7 @@ function WirOccasionCake() {
 
 export function formatRelationshipDuration(
   duration: DashboardRelationshipDuration,
-  t: (key: string, options?: Record<string, unknown>) => string,
+  t: TranslateText,
 ): string {
   // Derive the reference day from the server snapshot, including cached views.
   const start = new Date(duration.startedOn);

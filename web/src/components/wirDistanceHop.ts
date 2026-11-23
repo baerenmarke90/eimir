@@ -16,6 +16,23 @@ import { easing } from '../motion/tokens';
 /** The lead light and the two that trail it, per side. */
 const SPARKS = 3;
 const SPARK_SIZE_PX = 7;
+/** The share of the hop over which a light appears and goes out. */
+const SPARK_FADE = 0.15;
+const TRAIL_OPACITY = 0.4;
+
+/**
+ * A light appears as it leaves and goes out as it lands. It holds that end
+ * state until the layer is removed, so it never returns to its start on the
+ * portrait while the lights behind it are still flying.
+ */
+function withSparkFade(frames: Keyframe[], peak: number): Keyframe[] {
+  const last = frames.length - 1;
+  return frames.map((frame, index) => {
+    const progress = last > 0 ? index / last : 1;
+    const edge = Math.min(progress, 1 - progress) / SPARK_FADE;
+    return { ...frame, opacity: peak * Math.min(1, edge) };
+  });
+}
 
 export interface DistanceHop {
   /** When the two lead lights reach the heart. */
@@ -75,12 +92,22 @@ export function playDistanceHop(
     for (let index = 0; index < SPARKS; index += 1) {
       const animation = animateFlight(
         place(side.from, side.colour, index),
-        flightKeyframes(side.from, side.to, 1, index > 0 ? 0.4 : 0.7, 0, rise),
+        withSparkFade(
+          flightKeyframes(
+            side.from,
+            side.to,
+            1,
+            index > 0 ? 0.4 : 0.7,
+            0,
+            rise,
+          ),
+          index > 0 ? TRAIL_OPACITY : 1,
+        ),
         {
           duration,
           delay: index * flight.roles.stagger,
           easing: easing('standard'),
-          fill: 'backwards',
+          fill: 'both',
         },
       );
       all.push(animation);

@@ -1,9 +1,10 @@
 """Every production account_id must have a reviewed deletion boundary."""
 
+from eimir_pro.plugin import personal_account_models
+
 from eimir.db.base import Base
 from eimir.db.registry import load_all_models
 from eimir.identity.deletion import PERSONAL_ACCOUNT_ROWS
-from eimir.pro_plugin import personal_account_models
 from tests.support.account_table_lifecycle import RETAINED_ACCOUNT_TABLES
 
 

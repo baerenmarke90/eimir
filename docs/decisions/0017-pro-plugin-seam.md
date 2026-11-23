@@ -557,7 +557,8 @@ baseline `main` at `1ebb920db`, Alembic head `0170`). The Product Owner decided 
 | #2191, #2193, #2196, #2198 | The Pro modules, routers, providers and tests move in four clusters | `50b21de63`, `beeb8ece7`, `1f098ac71`, `deaccbe2b` |
 | #2216 | Core tests import Pro code only where they need it | `128d9070b` |
 | #2218 | The plugin object and entry point move; `EIMIR_PLUGINS` defaults to Core only; `core` and `pro` image stages | `2e7d2271b` |
-| #2219, #2220 | Extraction dry-run job; documentation and this status | |
+| #2219 | Extraction dry-run job | `f1b675375` |
+| #2220 | Documentation and this status | this pull request |
 
 The implementation differs from the plan in these points:
 

@@ -642,6 +642,8 @@ def export_compose(
         ),
         # Calendar sync (#1895): the instance supplies its Google OAuth client.
         # Private CalDAV hosts are a Self-Hosted option and stay off on Cloud.
+        # In-app support reports (#2189): an instance opt-in, off until a reader exists.
+        "EIMIR_SUPPORT_REPORTS_ENABLED": "${EIMIR_SUPPORT_REPORTS_ENABLED:-false}",
         "EIMIR_CALENDAR_SYNC_ENABLED": "${EIMIR_CALENDAR_SYNC_ENABLED:-true}",
         "EIMIR_GOOGLE_CALENDAR_CLIENT_ID": "${EIMIR_GOOGLE_CALENDAR_CLIENT_ID:-}",
         "EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET": "${EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET:-}",

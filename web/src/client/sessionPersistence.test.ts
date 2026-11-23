@@ -1,6 +1,11 @@
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { SessionView } from '../api/generated/models/SessionView';
 import type { TokenView } from '../api/generated/models/TokenView';
+import {
+  clearFailureReference,
+  lastFailureReference,
+  recordRequestFailure,
+} from './failureReference';
 import * as referenceFlow from './referenceFlow';
 import {
   LEGACY_SESSION_STORAGE_KEY,
@@ -13,6 +18,10 @@ import {
   refreshSessionTokens,
   storeSession,
 } from './sessionPersistence';
+import {
+  saveSupportReportDraft,
+  supportReportDraftStorageKey,
+} from './supportReportDraftStorage';
 
 const mockAccount: AccountView = {
   id: 'acc-123',
@@ -119,6 +128,78 @@ describe('sessionPersistence', () => {
     expect(
       window.sessionStorage.getItem(LEGACY_SESSION_STORAGE_KEY),
     ).toBeNull();
+  });
+
+  it('signing out removes support report drafts and the last failure reference', () => {
+    const localMap = new Map<string, string>();
+    (globalThis as unknown as { window: Record<string, unknown> }).window = {
+      sessionStorage: mockSessionStorage,
+      localStorage: {
+        getItem: (key: string) => localMap.get(key) ?? null,
+        setItem: (key: string, value: string) => localMap.set(key, value),
+        removeItem: (key: string) => localMap.delete(key),
+        key: (index: number) => Array.from(localMap.keys())[index] ?? null,
+        get length() {
+          return localMap.size;
+        },
+      },
+    };
+    storeSession(mockSession);
+    saveSupportReportDraft(mockAccount.id, {
+      kind: 'PROBLEM',
+      note: 'Private support note',
+      clientRequestId: 'request-1',
+      attempted: false,
+    });
+    recordRequestFailure({
+      method: 'GET',
+      routeTemplate: '/api/v1/plans',
+      status: 500,
+    });
+    expect(lastFailureReference()).toBeDefined();
+
+    clearStoredSession();
+
+    expect(localMap.has(supportReportDraftStorageKey(mockAccount.id))).toBe(
+      false,
+    );
+    expect(lastFailureReference()).toBeUndefined();
+  });
+
+  it('switching accounts removes the previous support report draft', () => {
+    const localMap = new Map<string, string>();
+    (globalThis as unknown as { window: Record<string, unknown> }).window = {
+      sessionStorage: mockSessionStorage,
+      localStorage: {
+        getItem: (key: string) => localMap.get(key) ?? null,
+        setItem: (key: string, value: string) => localMap.set(key, value),
+        removeItem: (key: string) => localMap.delete(key),
+        key: (index: number) => Array.from(localMap.keys())[index] ?? null,
+        get length() {
+          return localMap.size;
+        },
+      },
+    };
+    storeSession(mockSession);
+    saveSupportReportDraft(mockAccount.id, {
+      kind: 'PROBLEM',
+      note: 'Private support note',
+      clientRequestId: 'request-1',
+      attempted: false,
+    });
+    recordRequestFailure({
+      method: 'GET',
+      routeTemplate: '/api/v1/plans',
+      status: 500,
+    });
+
+    storeSession({ account: secondAccount, tokens: secondTokens });
+
+    expect(localMap.has(supportReportDraftStorageKey(mockAccount.id))).toBe(
+      false,
+    );
+    expect(lastFailureReference()).toBeUndefined();
+    clearFailureReference();
   });
 
   it('correctly assesses access token validity', () => {

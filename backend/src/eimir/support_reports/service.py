@@ -15,12 +15,13 @@ A report receives at most one reply. The reply never changes the report's
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
-from typing import Any
+from datetime import UTC, datetime, timedelta
+from typing import Any, NamedTuple, cast
 from uuid import UUID
 
-from sqlalchemy import Select, and_, or_, select
+from sqlalchemy import Select, and_, delete, or_, select
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import Session
 
 from eimir.core import clock
@@ -46,6 +47,12 @@ from eimir.support_reports.payload import (
 REPORT_NOT_FOUND = "RESOURCE_NOT_FOUND"
 REPLY_ALREADY_SENT = "SUPPORT_REPORT_ALREADY_REPLIED"
 REPLY_SUBJECT_TYPE = "support_report"
+
+CLOSED_RETENTION = timedelta(days=90)
+"""How long a closed report is kept, counted from ``closed_at``."""
+
+MAX_RETENTION = timedelta(days=365)
+"""How long any report is kept at most, counted from ``created_at``."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -348,3 +355,46 @@ def get_reply(session: Session, *, report_id: UUID, account_id: UUID) -> Support
     if row is None:
         return None
     return SupportReportReply(text=row.payload.text, replied_at=row.replied_at)
+
+
+class RetentionCutoffs(NamedTuple):
+    """Reports older than these instants are expired."""
+
+    closed_before: datetime
+    created_before: datetime
+
+
+def retention_cutoffs(now: datetime) -> RetentionCutoffs:
+    """The instants before which a closed report, or any report, has expired."""
+    instant = clock.ensure_utc(now)
+    return RetentionCutoffs(
+        closed_before=instant - CLOSED_RETENTION,
+        created_before=instant - MAX_RETENTION,
+    )
+
+
+def prune_expired(session: Session) -> int:
+    """Delete expired reports and return how many were removed.
+
+    A report expires ``CLOSED_RETENTION`` after it was closed, and in any state
+    ``MAX_RETENTION`` after it was created. A report exactly at a cutoff is
+    kept. The replies of a deleted report leave through the foreign key's
+    ``ON DELETE CASCADE``. Account deletion needs no counterpart here: the
+    reporter's reports are already part of ``identity.deletion``.
+    """
+    cutoffs = retention_cutoffs(clock.now())
+    result = cast(
+        "CursorResult[object]",
+        session.execute(
+            delete(SupportReport).where(
+                or_(
+                    and_(
+                        SupportReport.state == SupportReportState.CLOSED.value,
+                        SupportReport.closed_at < cutoffs.closed_before,
+                    ),
+                    SupportReport.created_at < cutoffs.created_before,
+                )
+            )
+        ),
+    )
+    return int(result.rowcount or 0)

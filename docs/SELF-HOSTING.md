@@ -433,6 +433,11 @@ of `NEW` reports and the `support_reports_unread` warning once the oldest one is
 than 14 days old ([ServerAdmin](SERVER-ADMIN.md#operational-overview)); while the
 switch is off the count is 0.
 
+The published eimir. privacy notice does not cover support reports yet (free text,
+device context, the retention above and a local draft on the device), so eimir. Cloud
+keeps the switch off until it does. A self-hosted operator who enables it is
+responsible for their own privacy notice.
+
 ## Account deletion authority
 
 Self-service Account deletion has a stronger recovery requirement than ordinary

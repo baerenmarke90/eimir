@@ -92,6 +92,12 @@ export interface InstanceAccessStatus {
      */
     selfServiceSignupAvailable?: boolean;
     /**
+     * Whether this instance accepts in-app support reports. Clients show the report entry points only when true.
+     * @type {boolean}
+     * @memberof InstanceAccessStatus
+     */
+    supportReportsAvailable?: boolean;
+    /**
      * Version of the eimir. Cloud terms of use that a new Account must accept, sent back as `acceptedTermsVersion` when requesting or redeeming a signup proof. `null` where no such terms apply, including every Self-Hosted instance.
      * @type {string}
      * @memberof InstanceAccessStatus
@@ -147,6 +153,7 @@ export function InstanceAccessStatusFromJSONTyped(json: any, ignoreDiscriminator
         'registrationAvailable': json['registrationAvailable'],
         'registrationUnavailableReason': json['registrationUnavailableReason'],
         'selfServiceSignupAvailable': json['selfServiceSignupAvailable'] == null ? undefined : json['selfServiceSignupAvailable'],
+        'supportReportsAvailable': json['supportReportsAvailable'] == null ? undefined : json['supportReportsAvailable'],
         'termsOfUseVersion': json['termsOfUseVersion'] === undefined ? undefined : json['termsOfUseVersion'] === null ? null : json['termsOfUseVersion'],
     };
 }
@@ -170,6 +177,7 @@ export function InstanceAccessStatusToJSONTyped(value?: InstanceAccessStatus | n
         'registrationAvailable': value['registrationAvailable'],
         'registrationUnavailableReason': value['registrationUnavailableReason'],
         'selfServiceSignupAvailable': value['selfServiceSignupAvailable'],
+        'supportReportsAvailable': value['supportReportsAvailable'],
         'termsOfUseVersion': value['termsOfUseVersion'],
     };
 }

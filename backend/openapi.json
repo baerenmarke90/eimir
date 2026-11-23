@@ -1684,6 +1684,78 @@
         "title": "ChapterUpdate",
         "type": "object"
       },
+      "ClientContextBody": {
+        "additionalProperties": false,
+        "description": "App and device context on the wire (camelCase).",
+        "properties": {
+          "appVersion": {
+            "maxLength": 32,
+            "title": "Appversion",
+            "type": "string"
+          },
+          "build": {
+            "maxLength": 32,
+            "title": "Build",
+            "type": "string"
+          },
+          "engine": {
+            "maxLength": 64,
+            "title": "Engine",
+            "type": "string"
+          },
+          "localTime": {
+            "maxLength": 40,
+            "title": "Localtime",
+            "type": "string"
+          },
+          "locale": {
+            "maxLength": 35,
+            "title": "Locale",
+            "type": "string"
+          },
+          "online": {
+            "title": "Online",
+            "type": "boolean"
+          },
+          "os": {
+            "maxLength": 64,
+            "title": "Os",
+            "type": "string"
+          },
+          "platform": {
+            "enum": [
+              "app",
+              "web"
+            ],
+            "title": "Platform",
+            "type": "string"
+          },
+          "theme": {
+            "maxLength": 16,
+            "title": "Theme",
+            "type": "string"
+          },
+          "timeZone": {
+            "maxLength": 64,
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "appVersion",
+          "build",
+          "platform",
+          "os",
+          "engine",
+          "locale",
+          "theme",
+          "online",
+          "localTime",
+          "timeZone"
+        ],
+        "title": "ClientContextBody",
+        "type": "object"
+      },
       "CollectionCreate": {
         "additionalProperties": false,
         "properties": {
@@ -3908,7 +3980,8 @@
           "SHARED_NOTE",
           "GARDEN_SEED",
           "GARDEN_BOUQUET",
-          "RECAP"
+          "RECAP",
+          "SUPPORT_REPORT"
         ],
         "title": "EngagementTarget",
         "type": "string"
@@ -4005,6 +4078,38 @@
         ],
         "title": "ExportStatus",
         "type": "string"
+      },
+      "FailureReferenceBody": {
+        "additionalProperties": false,
+        "description": "The generalized failure reference on the wire (camelCase).",
+        "properties": {
+          "reference": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_./{}:-]+$",
+            "title": "Reference",
+            "type": "string"
+          },
+          "requestId": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9._-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestid"
+          }
+        },
+        "required": [
+          "reference"
+        ],
+        "title": "FailureReferenceBody",
+        "type": "object"
       },
       "FcmConfiguration": {
         "properties": {
@@ -6274,6 +6379,12 @@
             "title": "Selfservicesignupavailable",
             "type": "boolean"
           },
+          "supportReportsAvailable": {
+            "default": false,
+            "description": "Whether this instance accepts in-app support reports. Clients show the report entry points only when true.",
+            "title": "Supportreportsavailable",
+            "type": "boolean"
+          },
           "termsOfUseVersion": {
             "anyOf": [
               {
@@ -7889,7 +8000,8 @@
           "SHARED_NOTE_CHANGED",
           "GARDEN_SEED_ARRIVED",
           "RECAP_READY",
-          "RECAP_GREW"
+          "RECAP_GREW",
+          "SUPPORT_REPLY"
         ],
         "title": "NotificationKind",
         "type": "string"
@@ -15256,6 +15368,10 @@
             "title": "Serveradminverifiedmatchcount",
             "type": "integer"
           },
+          "supportReportsNew": {
+            "title": "Supportreportsnew",
+            "type": "integer"
+          },
           "suspendedAccountCount": {
             "title": "Suspendedaccountcount",
             "type": "integer"
@@ -15318,6 +15434,7 @@
           "oldestPendingJobAt",
           "lastSuccessfulJobAt",
           "recentFailedJobs",
+          "supportReportsNew",
           "warningCodes"
         ],
         "title": "ServerAdminOverview",
@@ -17689,6 +17806,120 @@
           "CHECK_IN"
         ],
         "title": "SupportGestureKind",
+        "type": "string"
+      },
+      "SupportReportCreate": {
+        "additionalProperties": false,
+        "description": "Strict request: an unknown field is rejected, not stored.",
+        "properties": {
+          "client": {
+            "$ref": "#/components/schemas/ClientContextBody"
+          },
+          "clientRequestId": {
+            "format": "uuid",
+            "title": "Clientrequestid",
+            "type": "string"
+          },
+          "failure": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FailureReferenceBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SupportReportKind"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "required": [
+          "clientRequestId",
+          "kind",
+          "client"
+        ],
+        "title": "SupportReportCreate",
+        "type": "object"
+      },
+      "SupportReportCreated": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/SupportReportState"
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "createdAt"
+        ],
+        "title": "SupportReportCreated",
+        "type": "object"
+      },
+      "SupportReportKind": {
+        "enum": [
+          "PROBLEM",
+          "FEEDBACK"
+        ],
+        "title": "SupportReportKind",
+        "type": "string"
+      },
+      "SupportReportReplyView": {
+        "description": "The operator's reply, shown to the reporter as plain text.",
+        "properties": {
+          "repliedAt": {
+            "format": "date-time",
+            "title": "Repliedat",
+            "type": "string"
+          },
+          "reportedAt": {
+            "format": "date-time",
+            "title": "Reportedat",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "repliedAt",
+          "reportedAt"
+        ],
+        "title": "SupportReportReplyView",
+        "type": "object"
+      },
+      "SupportReportState": {
+        "description": "The operator's own triage marker; a reply never changes it.",
+        "enum": [
+          "NEW",
+          "IN_PROGRESS",
+          "CLOSED"
+        ],
+        "title": "SupportReportState",
         "type": "string"
       },
       "ThemePreference": {
@@ -54480,6 +54711,151 @@
         "summary": "Repeat Wish",
         "tags": [
           "wishes"
+        ]
+      }
+    },
+    "/api/v1/support-reports": {
+      "post": {
+        "description": "Store a report once per client request identity.",
+        "operationId": "createSupportReport",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportReportCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportCreated"
+                }
+              }
+            },
+            "description": "The request was already received; the original report is returned."
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Create Support Report",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support-reports/{reportId}/reply": {
+      "get": {
+        "description": "Return the reply to the caller's own report.\n\nAnother person's report, a report without a reply yet and an unknown id are\nthe same 404. Replies already sent stay readable when the operator switches\nsupport reports off, so this is not gated by the flag. The text is returned\nexactly as stored.",
+        "operationId": "getSupportReportReply",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reportId",
+            "required": true,
+            "schema": {
+              "title": "Reportid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportReplyView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Support Report Reply",
+        "tags": [
+          "support"
         ]
       }
     }

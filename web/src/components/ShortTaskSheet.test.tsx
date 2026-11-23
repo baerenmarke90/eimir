@@ -598,6 +598,34 @@ describe('ShortTaskSheet history ownership', () => {
     );
   });
 
+  it('can hide the close icon while the handle stays the labeled close target', () => {
+    const onClose = vi.fn();
+    render(
+      <ShortTaskSheet
+        open
+        title="No icon"
+        onClose={onClose}
+        showCloseIcon={false}
+      >
+        <p>Content</p>
+      </ShortTaskSheet>,
+    );
+
+    const closeButton = screen.getByRole('button', { name: taskSheets.close });
+    expect(closeButton.getAttribute('title')).toBe(taskSheets.close);
+    expect(closeButton.querySelector('svg')).toBeNull();
+    expect(
+      closeButton.querySelector('.short-task-sheet-drag-handle'),
+    ).not.toBeNull();
+    expect(
+      closeButton
+        .closest('dialog')
+        ?.classList.contains('short-task-sheet-no-close-icon'),
+    ).toBe(true);
+    fireEvent.click(closeButton);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps modality and scroll locking through animated Close until the real exit signal', async () => {
     mockMatchMedia(false);
     document.body.style.overflow = 'auto';

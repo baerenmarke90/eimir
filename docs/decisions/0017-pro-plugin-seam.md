@@ -3,7 +3,8 @@
 **Status:** Accepted (merged 2026-11-20, PR #2050)  
 **Date:** November 18, 2026; updated November 19, 2026 for the Product Owner's repository-visibility direction;
 updated November 20, 2026 for the current `main` baseline and the owning issue; updated November 22, 2026 for
-the Phase 2 plan and the Product Owner's decisions of that day  
+the Phase 2 plan and the Product Owner's decisions of that day; updated November 23, 2026 for the implemented
+Phase 2  
 **Owning issue:** [#2082](https://github.com/baerenmarke90/eimir/issues/2082) (Phase 1),
 [#2182](https://github.com/baerenmarke90/eimir/issues/2182) (Phase 2). Phase 3 gets its own issue when it starts.  
 **Builds on:** [ADR 0006](../m6/ADR-0006-ENTITLEMENT-ARCHITECTURE.md) (capability entitlements),
@@ -274,7 +275,10 @@ The seam is internal to the eimir. product. It promises no compatibility to thir
   default would switch Pro off on every existing Cloud and Self-Hosted installation, which contradicts "behavior
   identical". The default is therefore `pro` while the plugin is in-tree; the Core-only configuration is exercised
   by tests and CI. When the code leaves the public image (Phase 3) the Core default becomes empty and the Pro image
-  sets `EIMIR_PLUGINS=pro` in its own environment.
+  sets `EIMIR_PLUGINS=pro` in its own environment. **Changed in Phase 2 (#2218):** the default is already empty,
+  and the default `pro` stage of `backend/Dockerfile` sets `EIMIR_PLUGINS=pro`, so every image built without an
+  explicit target keeps the Pro plugin. A source checkout runs Core only unless it uses `uv sync --all-packages`
+  and `EIMIR_PLUGINS=pro`.
 - Entry points need installed distribution metadata. Running from a plain `PYTHONPATH` without an installed
   project finds no plugin and, with the Phase 1 default, refuses to start with a clear message. Local recipes must
   use the installed environment (`uv sync`).
@@ -294,7 +298,7 @@ the caller's `Session` and never commit, roll back or open their own transaction
 | `capabilities() -> frozenset[str]` | (new) feeds the filter next to `CLOUD_ONLY_CAPABILITIES` in `entitlements/service.py` `_grant_capabilities()` | Pure; read once at startup | A string that is not a `Capability` value refuses to start. Absent plugin: decision 5. |
 | `routers() -> Sequence[APIRouter]` | C1 | Mounted once, in `create_app()` (`main.py`), under `/api/v1` after all Core routers, with the same `require_normal_operation` dependency as `normal_router` (the Core router stays assembled at import time) | A `(method, path)` pair that collides with Core or another plugin refuses to start. Absent plugin: the paths do not exist and FastAPI answers `404`. |
 | `model_modules() -> Sequence[str]` | C2, C3 | Import only | Import error refuses to start. Lifecycle correctness never depends on this hook (decision 4). |
-| `migrations() -> MigrationSpec` (script location, `version_table`); not part of the contract yet, added with the first new plugin table | (new, decision 6) | Run by the `migrate` service after Core reaches head, in the same deploy step | A failing plugin migration fails `migrate`, which blocks the runtime exactly like a failing Core migration (`SELF-HOSTING.md`, "Upgrade and rollback semantics"). |
+| `migrations() -> MigrationSpec \| None` (script location, `version_table`), seam version 6 (#2186); the Pro plugin returns `None` until its first new table | (new, decision 6) | Run by the `migrate` service after Core reaches head, in the same deploy step | A failing plugin migration fails `migrate`, which blocks the runtime exactly like a failing Core migration (`SELF-HOSTING.md`, "Upgrade and rollback semantics"). |
 | `register_jobs(registry)` | C5 | Handlers run in the job's `unit_of_work` with the existing retry, `DeferredJobError` and `RetryableJobError` semantics | Registering a kind that Core or the manifest does not declare as plugin-owned refuses to start. |
 | `ensure_scheduled(session)` | C6 | Called inside `_ensure_maintenance()`'s `unit_of_work`; must stay idempotent with the existing advisory-lock pattern of each module | An exception aborts the worker start, as today. |
 | `on_outbox_event(session, event, event_type)` | C8 (`calendar_sync.on_outbox_event`) | Runs inside `project_event()` before `_event_effects_allowed()`; may only enqueue work; must be idempotent under Outbox replay | An exception fails the projection job, which retries, as today. |
@@ -307,7 +311,7 @@ the caller's `Session` and never commit, roll back or open their own transaction
 | `date_ideas() -> DateIdeaSource \| None` (`revision`, `view`); the shared DTOs live in the Core contract `eimir.wish_selections.date_idea_contract` | C18 | Pure, cached | Absent plugin: Core treats the catalog as unavailable, which is the existing paused state of a round that contains date ideas (#465 within #1535): Wish-only rounds are unaffected, nothing is deleted, export keeps catalog IDs only. `IDEA_ID_PATTERN` stays a Core contract constant. |
 | `hidden_wish_ids(session, context) -> frozenset[UUID]` | (new, [#2158](https://github.com/baerenmarke90/eimir/issues/2158) H, seam version 5) | Read only, inside the caller's read or write transaction | Absent plugin: nothing is hidden. Core (`eimir.wishes.concealment`) masks the returned Wishes in its read models (list, detail, Search, Wir, notification titles, Wish selection, the one-phone game pool) and refuses the reader's writes to them while an open remote Wish detective game hides them. |
 | `seed_demo(session, result, *, created)` | C19 | Inside the demo seed transaction after the demo Pro grant; idempotent like the existing demo helpers; `created` limits the location share to a new or reset demo Space | Absent plugin: the demo Space has no quote preferences and no location share. |
-| `validate(settings) -> None`; not part of the contract yet (no plugin setting needs it) | (new) | Startup only | Raising refuses to start with the plugin's diagnostic. |
+| `validate(settings) -> None`, seam version 6 (#2186); the Pro plugin has no setting of its own yet | (new) | Startup of the API, the worker and the media role; `migrate` loads no application settings and does not call it | Raising refuses to start with the plugin's diagnostic. |
 
 C15 and C16 (attachment parent resolution and owner classification) and C4 are **not** hooks. They become
 manifest rules, because they must work without the plugin. C7 is both: the plugin's `prune_expired` hook with
@@ -542,6 +546,37 @@ baseline `main` at `1ebb920db`, Alembic head `0170`). The Product Owner decided 
    state and the ServerAdmin view of dormant plugin data wait until Self-Hosted work starts.
 5. **Repository.** Phase 2 runs in this repository; an extraction dry-run job builds a Core wheel and installs
    `backend/pro/` from a clean copy on top of it. No second repository is created in Phase 2.
+
+**Update of November 23, 2026: Phase 2 implemented** ([#2182](https://github.com/baerenmarke90/eimir/issues/2182)).
+
+| Pull request | Content | `main` |
+| --- | --- | --- |
+| #2184 | This decision: the Phase 2 plan | `513eaafba` |
+| #2186 | Seam version 6, plugin migration runner, schema fingerprint | `19323f964` |
+| #2187 | Empty `eimir-pro` workspace distribution and CI lanes | `f2c975bc8` |
+| #2191, #2193, #2196, #2198 | The Pro modules, routers, providers and tests move in four clusters | `50b21de63`, `beeb8ece7`, `1f098ac71`, `deaccbe2b` |
+| #2216 | Core tests import Pro code only where they need it | `128d9070b` |
+| #2218 | The plugin object and entry point move; `EIMIR_PLUGINS` defaults to Core only; `core` and `pro` image stages | `2e7d2271b` |
+| #2219, #2220 | Extraction dry-run job; documentation and this status | |
+
+The implementation differs from the plan in these points:
+
+- **Fewer modules at the end.** #2211 removed the insights while Phase 2 ran, so `backend/pro` holds 14 Pro
+  packages, the `games` read models, the seven provider modules and 15 plugin routers. The `daily.insights`
+  capability value stays in the Core vocabulary.
+- **One Dockerfile with two stages.** `core` holds no Pro source. `pro` is built on exactly that stage and is the
+  default target, so existing image consumers are unchanged. **The published image therefore still contains the
+  Pro code until Phase 3.**
+- **Revision pin.** Core and Pro are built in the same image, so the plugin reports Core's build revision. A Pro
+  image built `FROM` a Core digest that records the Core revision it was built against remains Phase 3.
+- **The plugin migration chain is a scaffold.** It has no revision; the existing Pro tables stay in the Core chain.
+- **Test coverage of the public Core.** The Core-only lane now installs Core alone. Three Core lifecycle test modules
+  (`test_core_only_lifecycle.py`, `test_dormant_plugin_data.py`, `test_plugin_lifecycle.py`) create real Pro rows
+  through the Pro models, so they run only where `eimir-pro` is installed, where they switch the plugin off
+  themselves. Before the repository split they need manifest-driven test data, or the public Core CI does not cover
+  the manifest executor.
+- **Still waiting for Self-Hosted work:** `proFeaturesAvailable` with its Core-only client state and the ServerAdmin
+  view of dormant plugin data (#2148).
 
 **Phase 3: publication and delivery.** The repository becomes private (the cleanup path in the Context section),
 the Core export of decision 7 publishes the Core into a fresh public repository, a Core image is built from the

@@ -48,6 +48,7 @@
     "android-push-onboarding.spec.ts": {
       "roots": [
         "web/src/client/devicePush.ts",
+        "web/src/client/gentlePrompts.ts",
         "web/src/components/DevicePushOnboarding.tsx",
         "web/src/components/IdentityEntry.tsx",
         "web/src/components/NotificationSettingsPanel.tsx",

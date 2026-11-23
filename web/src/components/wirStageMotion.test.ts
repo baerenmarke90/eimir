@@ -65,8 +65,7 @@ describe('the Wir opening on one clock (#2147)', () => {
   it('keeps the CSS beats in step with the slots', () => {
     const motion = css(motionCss);
     const hero = css(heroCss);
-    const { portraits, arms, heart, checkIn, bridge, wiggle, quote } =
-      WIR_STAGE_BEATS;
+    const { portraits, heart, checkIn, bridge, quote } = WIR_STAGE_BEATS;
     expect(motion).toContain(
       `eimir-motion-stage-fade ${beats(portraits.length)}`,
     );
@@ -80,13 +79,7 @@ describe('the Wir opening on one clock (#2147)', () => {
       `${beats(bridge.length)} var(--easing-travel) ${beats(bridge.start)}`,
     );
     expect(motion).toContain(
-      `var(--duration-gesture-moment) var(--easing-standard) ${beats(wiggle.start)}`,
-    );
-    expect(motion).toContain(
       `${beats(quote.length)} var(--easing-travel) ${beats(quote.start)}`,
-    );
-    expect(hero).toContain(
-      `eimir-motion-stage-reach ${beats(arms.length)} var(--easing-standard) ${beats(arms.start)}`,
     );
     expect(hero).toContain(
       `eimir-motion-stage-trace ${beats(heart.length)} var(--easing-standard) ${beats(heart.start)}`,

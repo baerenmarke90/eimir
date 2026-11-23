@@ -201,7 +201,7 @@ Use a restrained focal tint and neutral agenda surfaces in Light/Dark. Dates, ra
 | Order | Compact composition | Behavior |
 | --- | --- | --- |
 | 1 | Content begins below the safe top inset | Per [PO decision #1507](mobile-header-more.md), Compact/Medium has no global header; global search and notifications are named More destinations with unread state on More |
-| 2 | Personal relationship context | Actual avatar pair/names and optional duration; no ceremonial frame or decorative technical state |
+| 2 | Personal relationship context | Actual avatar pair/names and optional duration; no ceremonial frame or decorative technical state. The Verbunden hero shows the portraits without painted names and carries the distance in the [heart and light](references/wir-hero-heart-light/README.md) (Product Owner, 2026-11-22) |
 | 3 | Contextual relationship impulse | Existing intentional action with honest pending/result feedback; never auto-send |
 | 4 | One real keepsake | Large photo with caption or actual readable thought; this is the visual focal point |
 | 5 | Compact upcoming item(s) | Preserve the person's supported 1–3 item preference and real near-future selection |

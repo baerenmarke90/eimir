@@ -37,7 +37,7 @@
 
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-4);
+  --page-stack-gap: var(--space-4);
   width: min(100%, 40rem);
   margin-inline: auto;
 }

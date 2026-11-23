@@ -1,0 +1,81 @@
+{
+  "$description": "Unser Takt: plum chapter navigation and a shared day built around the two people.",
+  "id": "shared_rhythm",
+  "tier": "pro",
+  "layout": "chapters",
+  "color": {
+    "light": {
+      "page": "#F4EEF2",
+      "surface": "#FFFAFC",
+      "elevated": "#FFFAFC",
+      "text": "#2B1A32",
+      "mutedText": "#655368",
+      "border": "#655368",
+      "action": "#7D315D",
+      "actionFill": "#7D315D",
+      "onAction": "#FFFFFF",
+      "accentRose": "#7D315D",
+      "accentSky": "#7D315D",
+      "softRose": "#F7E6ED",
+      "softBlue": "#F7E6ED",
+      "focus": "#7D315D",
+      "pressed": "#7D315D",
+      "hover": "#F7E6ED",
+      "borderSubtle": "#DBCCD9",
+      "surfaceSubtle": "#F7E6ED",
+      "surfaceOverlay": "#FFFAFC",
+      "actionPrimary": "#3055B8",
+      "onActionPrimary": "#FFFFFF",
+      "decoration": "#2D1835",
+      "onDecoration": "#FFF4F5",
+      "onDecorationMuted": "#F9CADB",
+      "highlight": "#F9CADB",
+      "onHighlight": "#2D1835",
+      "decorationIcon": "#FFD8BC"
+    },
+    "dark": {
+      "page": "#231827",
+      "surface": "#302135",
+      "elevated": "#302135",
+      "text": "#FFF3F8",
+      "mutedText": "#D5BED0",
+      "border": "#D5BED0",
+      "action": "#F5B8D5",
+      "actionFill": "#F5B8D5",
+      "onAction": "#24212E",
+      "accentRose": "#F5B8D5",
+      "accentSky": "#F5B8D5",
+      "softRose": "#483148",
+      "softBlue": "#483148",
+      "focus": "#F5B8D5",
+      "pressed": "#F5B8D5",
+      "hover": "#483148",
+      "borderSubtle": "#604764",
+      "surfaceSubtle": "#483148",
+      "surfaceOverlay": "#302135",
+      "actionPrimary": "#B7C8FF",
+      "onActionPrimary": "#20283F",
+      "decoration": "#35203F",
+      "onDecoration": "#FFF4F5",
+      "onDecorationMuted": "#EDAEC9",
+      "highlight": "#EDAEC9",
+      "onHighlight": "#2D1835",
+      "decorationIcon": "#F8C8A5"
+    }
+  },
+  "shape": "standard",
+  "type": {
+    "display": "literata",
+    "headings": "ui"
+  },
+  "icon": {
+    "stroke": "standard",
+    "accent": "duotone"
+  },
+  "motion": "standard",
+  "surface": {
+    "backdrop": "flat",
+    "elevation": "standard",
+    "edges": "none"
+  }
+}

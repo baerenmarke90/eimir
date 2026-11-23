@@ -309,6 +309,8 @@ export default function PlaceMapCanvas({
 }) {
   const { t } = useTranslation();
   const [complete, setComplete] = useState(false);
+  const revealRequested = useRef(revealWhenComplete);
+  revealRequested.current = revealWhenComplete;
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markerRef = useRef<Marker | null>(null);
@@ -406,24 +408,34 @@ export default function PlaceMapCanvas({
     // and decoded (or a short wait passed); never later than the cap.
     setComplete(false);
     let revealed = false;
-    let revealFrame = 0;
     let revealCap = 0;
+    let stopWaitingForPhotos = () => {};
     const reveal = () => {
       if (revealed) return;
       revealed = true;
-      window.cancelAnimationFrame(revealFrame);
+      stopWaitingForPhotos();
       window.clearTimeout(revealCap);
       setComplete(true);
     };
     revealCap = window.setTimeout(reveal, MAP_REVEAL_CAP_MS);
     map.once('idle', () => {
-      const until = performance.now() + MAP_REVEAL_PHOTO_WAIT_MS;
-      const bounds = () => element.getBoundingClientRect();
-      // Only photos in the visible map count: a lazy photo outside it would
-      // never load, and a deferred placeholder is not loading at all.
-      const visiblePhotos = () => {
-        const box = bounds();
-        return [...element.querySelectorAll('img')].filter((image) => {
+      if (revealed) return;
+      if (!revealRequested.current) {
+        reveal();
+        return;
+      }
+      let frame = 0;
+      let timer = 0;
+      const checkPhotos = (deadline = false) => {
+        if (
+          !deadline &&
+          element.querySelector(
+            '.story-media-skeleton:not([data-media-deferred])',
+          )
+        )
+          return;
+        const box = element.getBoundingClientRect();
+        const photos = [...element.querySelectorAll('img')].filter((image) => {
           const rect = image.getBoundingClientRect();
           return (
             rect.right > box.left &&
@@ -432,27 +444,48 @@ export default function PlaceMapCanvas({
             rect.top < box.bottom
           );
         });
-      };
-      const photosReady = () => {
-        if (revealed) return;
-        const loading =
-          element.querySelector(
-            '.story-media-skeleton:not([data-media-deferred])',
-          ) !== null || visiblePhotos().some((image) => !image.complete);
-        if (loading && performance.now() < until) {
-          revealFrame = window.requestAnimationFrame(photosReady);
-          return;
-        }
-        // Decoded before they show, so no photo pops in after the fade.
-        const decoded = visiblePhotos()
+        if (!deadline && photos.some((image) => !image.complete)) return;
+        stopWaitingForPhotos();
+        const decoded = photos
           .filter((image) => image.complete && image.naturalWidth > 0)
           .map((image) => image.decode().catch(() => undefined));
-        const settle = new Promise((done) =>
-          window.setTimeout(done, MAP_REVEAL_DECODE_WAIT_MS),
-        );
-        void Promise.race([Promise.all(decoded), settle]).then(reveal);
+        timer = window.setTimeout(reveal, MAP_REVEAL_DECODE_WAIT_MS);
+        void Promise.all(decoded).then(reveal);
       };
-      photosReady();
+      // Recheck when marker content or its viewport changes. Slow photos
+      // need no layout reads while their network request is in flight.
+      const schedule = () => {
+        if (frame) return;
+        frame = window.requestAnimationFrame(() => {
+          frame = 0;
+          checkPhotos();
+        });
+      };
+      const observer = new MutationObserver(schedule);
+      observer.observe(element, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['class', 'src', 'data-media-deferred'],
+      });
+      element.addEventListener('load', schedule, true);
+      element.addEventListener('error', schedule, true);
+      map.on('moveend', schedule);
+      map.on('resize', schedule);
+      stopWaitingForPhotos = () => {
+        observer.disconnect();
+        element.removeEventListener('load', schedule, true);
+        element.removeEventListener('error', schedule, true);
+        map.off('moveend', schedule);
+        map.off('resize', schedule);
+        window.cancelAnimationFrame(frame);
+        window.clearTimeout(timer);
+      };
+      timer = window.setTimeout(
+        () => checkPhotos(true),
+        MAP_REVEAL_PHOTO_WAIT_MS,
+      );
+      checkPhotos();
     });
     const dataFrom = t('m5s3.map.attributionDataFrom');
     const localizedStyle = (
@@ -533,7 +566,6 @@ export default function PlaceMapCanvas({
         current,
         map.project(lngLat(from.area)),
         map.project(lngLat(to.area)),
-        { width: element.clientWidth, height: element.clientHeight },
       );
     };
     placeConnection.current = drawConnection;
@@ -665,7 +697,7 @@ export default function PlaceMapCanvas({
         element.removeEventListener(event, interrupt);
       stopMotionPreference();
       revealed = true;
-      window.cancelAnimationFrame(revealFrame);
+      stopWaitingForPhotos();
       window.clearTimeout(revealCap);
       removeConnection();
       placeConnection.current = null;

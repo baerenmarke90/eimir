@@ -72,8 +72,8 @@ function controller(
   };
 }
 
-function setup(devicePush = controller()) {
-  const props = { accountId, apiBaseUrl, devicePush };
+function setup(devicePush = controller(), onPreparePrompts = vi.fn()) {
+  const props = { accountId, apiBaseUrl, devicePush, onPreparePrompts };
   return { ...render(<DevicePushOnboarding {...props} />), props, devicePush };
 }
 
@@ -88,6 +88,7 @@ it('asks before permission/registration and prevents duplicate activation', asyn
   const view = setup(controller({ enable }));
   await screen.findByRole('dialog', { name: copy.onboardingTitle });
   expect(enable).not.toHaveBeenCalled();
+  expect(view.props.onPreparePrompts).not.toHaveBeenCalled();
   expect(screen.getByText(copy.deviceIntro)).not.toBeNull();
   const activate = screen.getByRole('button', {
     name: copy.onboardingActivate,
@@ -95,6 +96,16 @@ it('asks before permission/registration and prevents duplicate activation', asyn
   fireEvent.click(activate);
   fireEvent.click(activate);
   expect(enable).toHaveBeenCalledTimes(1);
+  expect(view.props.onPreparePrompts).toHaveBeenCalledTimes(1);
+  expect(view.props.onPreparePrompts.mock.invocationCallOrder[0]).toBeLessThan(
+    enable.mock.invocationCallOrder[0],
+  );
+  expect(
+    screen
+      .getByRole('button', { name: copy.onboardingActivating })
+      .hasAttribute('disabled'),
+  ).toBe(true);
+  expect(screen.getByRole('status').textContent).toBe(copy.deviceConnecting);
   view.rerender(
     <DevicePushOnboarding
       {...view.props}
@@ -104,7 +115,7 @@ it('asks before permission/registration and prevents duplicate activation', asyn
   expect(screen.getByRole('dialog')).not.toBeNull();
   expect(
     screen
-      .getByRole('button', { name: copy.onboardingActivate })
+      .getByRole('button', { name: copy.onboardingActivating })
       .getAttribute('disabled'),
   ).not.toBeNull();
   expect(postSnackbar).not.toHaveBeenCalled();
@@ -131,6 +142,7 @@ it('remembers Later across remounts without enabling or disabling push', async (
   expect(screen.queryByRole('dialog')).toBeNull();
   expect(view.devicePush.enable).not.toHaveBeenCalled();
   expect(view.devicePush.disable).not.toHaveBeenCalled();
+  expect(view.props.onPreparePrompts).not.toHaveBeenCalled();
   expect([...storage.values()]).toEqual(['answered']);
 });
 
@@ -149,13 +161,26 @@ it('keeps permission denial actionable without claiming successful registration'
   expect(screen.getByRole('status').textContent).toContain(
     copy.devicePermissionDenied,
   );
-  fireEvent.click(
-    screen.getByRole('button', { name: copy.deviceOpenSettings }),
-  );
+  await act(async () => {
+    fireEvent.click(
+      screen.getByRole('button', { name: copy.deviceOpenSettings }),
+    );
+  });
   expect(denied.openSettings).toHaveBeenCalledTimes(1);
+  expect(view.props.onPreparePrompts).toHaveBeenCalledTimes(1);
   expect(denied.enable).not.toHaveBeenCalled();
   expect(postSnackbar).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: copy.onboardingLater }));
+  const enablePrompts = vi.fn().mockResolvedValue(undefined);
+  view.rerender(
+    <DevicePushOnboarding
+      {...view.props}
+      devicePush={controller({ state: 'on', registered: true })}
+      onEnablePrompts={enablePrompts}
+    />,
+  );
+  expect(enablePrompts).not.toHaveBeenCalled();
+  expect(postSnackbar).not.toHaveBeenCalled();
   view.unmount();
   setup();
   expect(screen.queryByRole('dialog')).toBeNull();
@@ -230,6 +255,7 @@ it('explains an offline activation and requires a deliberate online retry', asyn
   expect(screen.getByRole('status').textContent).toBe(copy.onboardingOffline);
   expect(view.devicePush.enable).not.toHaveBeenCalled();
   environment.online = true;
+  expect(view.props.onPreparePrompts).not.toHaveBeenCalled();
   expect(view.devicePush.enable).not.toHaveBeenCalled();
   await act(async () => {
     fireEvent.click(button);
@@ -237,10 +263,70 @@ it('explains an offline activation and requires a deliberate online retry', asyn
   expect(view.devicePush.enable).toHaveBeenCalledTimes(1);
 });
 
+it('keeps a cleanup error actionable when registration returns to off', async () => {
+  const view = setup();
+  await act(async () => {
+    fireEvent.click(
+      await screen.findByRole('button', { name: copy.onboardingActivate }),
+    );
+  });
+  const devicePush = controller({
+    state: 'off',
+    error: 'PUSH_DEVICE_CLEANUP_PENDING',
+  });
+  view.rerender(
+    <DevicePushOnboarding {...view.props} devicePush={devicePush} />,
+  );
+  expect(screen.getByRole('status').textContent).toBe(
+    copy.deviceCleanupPending,
+  );
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+  });
+  expect(devicePush.enable).toHaveBeenCalledOnce();
+  expect(postSnackbar).not.toHaveBeenCalled();
+});
+
+it('reports a background activation failure once after the person closes the sheet', async () => {
+  let finish!: () => void;
+  const enable = () =>
+    new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+  const view = setup(controller({ enable }));
+  fireEvent.click(
+    await screen.findByRole('button', { name: copy.onboardingActivate }),
+  );
+  fireEvent.click(
+    screen.getByRole('button', { name: copy.onboardingContinue }),
+  );
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(view.devicePush.disable).not.toHaveBeenCalled();
+  view.rerender(
+    <DevicePushOnboarding
+      {...view.props}
+      devicePush={controller({
+        state: 'error',
+        error: 'NOTIFICATION_PERMISSION_DENIED',
+      })}
+    />,
+  );
+  await act(async () => finish());
+  expect(postSnackbar).toHaveBeenCalledExactlyOnceWith(
+    'notificationSettings.devicePermissionDenied',
+  );
+});
+
 it('enables Small Invitations once after explicit consent and confirmed push, with retained retry', async () => {
+  let fail!: (error: Error) => void;
   const prompts = vi
     .fn()
-    .mockRejectedValueOnce(new Error('temporarily unavailable'))
+    .mockImplementationOnce(
+      () =>
+        new Promise<void>((_, reject) => {
+          fail = reject;
+        }),
+    )
     .mockResolvedValue(undefined);
   const initial = controller();
   const view = render(
@@ -264,6 +350,14 @@ it('enables Small Invitations once after explicit consent and confirmed push, wi
     />,
   );
   await waitFor(() => expect(prompts).toHaveBeenCalledTimes(1));
+  expect(screen.getByRole('status').textContent).toBe(copy.onboardingPushReady);
+  expect(
+    screen
+      .getByRole('button', { name: copy.onboardingSavingPrompts })
+      .hasAttribute('disabled'),
+  ).toBe(true);
+  expect(postSnackbar).not.toHaveBeenCalled();
+  await act(async () => fail(new Error('temporarily unavailable')));
   await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy());
   fireEvent.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
   await waitFor(() => expect(prompts).toHaveBeenCalledTimes(2));
@@ -283,3 +377,51 @@ it('does not enable invitations during token refresh for an already registered d
   await act(async () => {});
   expect(prompts).not.toHaveBeenCalled();
 });
+
+it.each(['unmount', 'disable'] as const)(
+  'ignores the preference result after %s during confirmed-device setup',
+  async (end) => {
+    let finish!: () => void;
+    let fail!: () => void;
+    const onEnablePrompts = vi.fn(
+      () =>
+        new Promise<void>((resolve, reject) => {
+          finish = resolve;
+          fail = () => reject(new Error('failed'));
+        }),
+    );
+    const props = { accountId, apiBaseUrl, onEnablePrompts };
+    const view = render(
+      <DevicePushOnboarding {...props} devicePush={controller()} />,
+    );
+    await act(async () =>
+      fireEvent.click(
+        await screen.findByRole('button', { name: copy.onboardingActivate }),
+      ),
+    );
+    view.rerender(
+      <DevicePushOnboarding
+        {...props}
+        devicePush={controller({ state: 'on', registered: true })}
+      />,
+    );
+    await screen.findByRole('button', { name: copy.onboardingSavingPrompts });
+    if (end === 'unmount') {
+      view.unmount();
+      await act(async () => finish());
+    } else {
+      view.rerender(
+        <DevicePushOnboarding {...props} devicePush={controller()} />,
+      );
+      await act(async () => fail());
+      expect(screen.queryByRole('alert')).toBeNull();
+      expect(screen.getByRole('status').textContent).toBe(copy.deviceOff);
+      expect(
+        screen
+          .getByRole('button', { name: copy.onboardingActivate })
+          .hasAttribute('disabled'),
+      ).toBe(false);
+    }
+    expect(postSnackbar).not.toHaveBeenCalled();
+  },
+);

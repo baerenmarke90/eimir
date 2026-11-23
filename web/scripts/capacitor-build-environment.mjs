@@ -6,6 +6,8 @@
  * destructive-action restrictions; these values only select presentation.
  */
 
+import { resolveBuildIdentityEnv } from './build-identity.mjs';
+
 export class CapacitorBuildConfigurationError extends Error {}
 
 // Mirrors the backend's EIMIR_DEMO_MODE_RESET_INTERVAL contract so the banner
@@ -128,6 +130,8 @@ export function resolveCapacitorBuildEnvironment(env) {
       // wrapper it would hand the user to the system browser, so it is cleared
       // here, which also shadows any legacy VITE_SBS_DEMO_URL.
       VITE_EIMIR_DEMO_URL: '',
+      // Support reports carry the product version and source build.
+      ...resolveBuildIdentityEnv(env),
     },
   };
 }

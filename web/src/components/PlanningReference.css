@@ -234,7 +234,8 @@
 }
 
 .planen-detail.planning-page {
-  gap: var(--space-5);
+  --page-stack-gap: var(--space-5);
+  gap: var(--page-stack-gap);
 }
 
 .planen-detail > .page-heading h1 {

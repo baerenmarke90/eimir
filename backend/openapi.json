@@ -18530,7 +18530,10 @@
           "modern",
           "classic",
           "quiet_together",
-          "handwriting"
+          "handwriting",
+          "home_rooms",
+          "shared_rhythm",
+          "together_index"
         ],
         "title": "WirDesignId",
         "type": "string"

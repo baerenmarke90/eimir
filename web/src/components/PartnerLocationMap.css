@@ -2,14 +2,7 @@
 
 .partner-map-page {
   display: grid;
-  gap: var(--space-4);
-}
-
-/* The page is a grid with its own row gap, so the heading's usual padding and
-   margin would stack on top of it and push the map far from the title. */
-.partner-map-page > .page-heading {
-  margin-block-end: 0;
-  padding-block-end: 0;
+  --page-stack-gap: var(--space-4);
 }
 
 .partner-map-surface {

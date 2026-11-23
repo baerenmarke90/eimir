@@ -493,12 +493,24 @@
   initial-value: 0px;
 }
 
+/* Only the two moving page boxes need the per-frame offsets. Inheriting them
+   through cards, controls and the warmed map invalidates styles during drag. */
+@property --primary-tab-offset {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --primary-tab-peek-offset {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
 .product-main {
   --shell-focus-bottom-clearance: var(--shell-content-bottom-clearance);
   --shell-inline-size: 100cqi;
   --shell-main-padding-top: clamp(var(--space-6), 4vw, var(--space-10));
-  --primary-tab-peek-offset: 0px;
-  --primary-tab-offset: 0px;
 
   width: calc(100% - 2 * var(--page-gutter));
   margin: 0 auto;
@@ -508,10 +520,24 @@
 @media (prefers-reduced-motion: no-preference) {
   /* A swipe drags the pages themselves, like a pager: the current page follows
      the finger and the neighbouring tab travels beside it. */
+  .product-main[data-primary-tab-dragging]
+  > .primary-tab-panel:not(
+    [hidden],
+    [data-primary-tab-peek],
+    [data-primary-tab-prewarm]
+  ) {
+    --primary-tab-offset: inherit;
+  }
+
   .product-main[data-primary-tab-dragging] > .page,
   .product-main[data-primary-tab-dragging]
-    > .primary-tab-panel:not([data-primary-tab-peek])
+    > .primary-tab-panel:not(
+      [hidden],
+      [data-primary-tab-peek],
+      [data-primary-tab-prewarm]
+    )
     > .page {
+    --primary-tab-offset: inherit;
     /* Offset, don't transform: a transformed page would become the containing
        block of its fixed add action, which then sits at the page's bottom edge
        and snaps to the viewport corner once the page settles. */
@@ -521,7 +547,11 @@
 
   .product-main[data-navigation-slide] > .page,
   .product-main[data-navigation-slide]
-    > .primary-tab-panel:not([hidden], [data-primary-tab-peek])
+    > .primary-tab-panel:not(
+      [hidden],
+      [data-primary-tab-peek],
+      [data-primary-tab-prewarm]
+    )
     > .page {
     position: relative;
   }
@@ -538,6 +568,7 @@
      (not the column) so it travels in from the edge like a pager page. */
   .product-main[data-primary-tab-dragging]
   > .primary-tab-panel[data-primary-tab-peek] {
+    --primary-tab-peek-offset: inherit;
     position: fixed;
     z-index: 1;
     top: 0;
@@ -552,6 +583,7 @@
   .product-main[data-primary-tab-dragging]
     > .primary-tab-panel[data-primary-tab-peek]
     > .page {
+    --primary-tab-peek-offset: inherit;
     width: var(--primary-tab-peek-width, 100%);
     margin-top: var(--primary-tab-peek-origin, 0px);
     margin-left: var(--primary-tab-peek-left, 0px);
@@ -1126,37 +1158,54 @@
   font-size: 1.1rem;
 }
 
-/* Shared app-level pull-to-refresh feedback (#1027). */
+/*
+ * Shared app-level pull-to-refresh feedback (#1027). The anchor takes no room
+ * in the page and creates no stacking context. The clip is fixed at the anchor's
+ * own place (a fixed box with no offsets keeps its static position, and a pull
+ * only happens at the top), so the disc stays above sticky page chrome such as
+ * the relationship bar or the Planen filter bar (z-index 4 to 6) yet below the
+ * top bar (40) and bottom navigation (50). The disc moves by transform and
+ * opacity only (written by usePullToRefresh), so a pull never reflows content.
+ * The box has no height and only its top edge clips: the disc emerges from the
+ * top edge of .product-main instead of crossing the header, and it may travel
+ * as deep as the person pulls without being cut off.
+ */
 .app-pull-refresh-indicator {
-  display: grid;
-  overflow: hidden;
-  place-items: end center;
   height: 0;
-  margin: 0;
-  opacity: 0;
-  transition: opacity var(--duration-feedback) var(--easing-standard);
   pointer-events: none;
 }
 
-.app-pull-refresh-indicator.is-visible,
-.app-pull-refresh-indicator.is-refreshing {
-  opacity: 1;
+.app-pull-refresh-clip {
+  position: fixed;
+  z-index: 30;
+  right: 0;
+  left: 0;
+  height: 0;
+  margin-top: calc(-1 * var(--space-6));
+  clip-path: inset(0 -2rem -100vh -2rem);
+  pointer-events: none;
 }
 
 .app-pull-refresh-disc {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
   display: grid;
   width: 36px;
   height: 36px;
-  margin-bottom: var(--space-2);
+  margin-inline: auto;
   place-items: center;
   border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: 50%;
   background: var(--color-surface-raised);
   color: var(--color-text-secondary);
   box-shadow: var(--shadow-soft);
+  opacity: 0;
+  transform: translate3d(0, -100%, 0);
 }
 
-.app-pull-refresh-indicator.is-ready .app-pull-refresh-disc {
+.app-pull-refresh-indicator.is-ready .app-pull-refresh-disc,
+.app-pull-refresh-indicator.is-refreshing .app-pull-refresh-disc {
   border-color: var(--color-brand);
   color: var(--color-brand-strong);
 }
@@ -1164,12 +1213,6 @@
 html.app-pull-refresh-enabled,
 html.app-pull-refresh-enabled body {
   overscroll-behavior-y: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .app-pull-refresh-indicator {
-    transition: none;
-  }
 }
 
 /*

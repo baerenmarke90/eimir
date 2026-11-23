@@ -49,6 +49,7 @@ jobs:
     env:
       EIMIR_ENVIRONMENT: test
       EIMIR_ENCRYPTION_AT_REST: required
+      EIMIR_PLUGINS: pro
     defaults:
       run:
         working-directory: backend
@@ -104,6 +105,7 @@ jobs:
       EIMIR_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
       EIMIR_TEST_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
       EIMIR_ENCRYPTION_AT_REST: required
+      EIMIR_PLUGINS: pro
 
     defaults:
       run:

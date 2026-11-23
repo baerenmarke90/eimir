@@ -219,14 +219,15 @@ class PluginSettings(BaseSettings):
     Kept apart from ``Settings`` for the reason ``DatabaseSettings`` is: the
     migration process loads plugins too and must not depend on application
     configuration. ``EIMIR_PLUGINS`` is a comma-separated list of entry-point
-    names; an empty value runs Core only. The default is ``pro`` while the Pro
-    plugin ships inside this distribution, so existing installations keep
-    their behavior. The setting is new, so it has no legacy ``SBS_`` alias.
+    names; an empty value runs Core only, which is the default since the Pro
+    plugin is its own distribution (#2182). The image with the Pro plugin sets
+    ``EIMIR_PLUGINS=pro`` itself. The setting is new, so it has no legacy
+    ``SBS_`` alias.
     """
 
     model_config = SettingsConfigDict(env_prefix="EIMIR_", env_file=".env", extra="ignore")
 
-    plugins: str = Field(default="pro")
+    plugins: str = Field(default="")
 
 
 class Settings(IdentityCompatibleSettings):

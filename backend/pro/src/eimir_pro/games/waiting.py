@@ -5,7 +5,7 @@ why, never what the game holds: no wish titles, clues, answers, drawings,
 photos, heart positions, seed species or bouquet words leave this module.
 
 "Waiting on me" follows the same rules that keep a game notice current
-(``eimir.pro_plugin``), so Wir and the notification centre agree:
+(``eimir_pro.plugin``), so Wir and the notification centre agree:
 
 - Who of us, Wish detective, Our moments: the game is OPEN and its
   ``waiting_on_id`` is the reader. In Who of us nobody is waited on while both

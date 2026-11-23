@@ -33,6 +33,9 @@ class WirDesignId(StrEnum):
     CLASSIC = "classic"
     QUIET_TOGETHER = "quiet_together"
     HANDWRITING = "handwriting"
+    HOME_ROOMS = "home_rooms"
+    SHARED_RHYTHM = "shared_rhythm"
+    TOGETHER_INDEX = "together_index"
 
 
 class PersonColoursId(StrEnum):

@@ -699,7 +699,7 @@
  * one clock instead, so this second entrance does not run beside it (#2147).
  */
 .today-content[data-motion-stage="playing"]:not([data-motion-stage-scope])
-> :not(.page-heading, :nth-child(-n + 2)) {
+  > :not(.page-heading, :nth-child(-n + 2)) {
   --motion-stage-rise: 0.9rem;
   animation: eimir-motion-root-rise calc(var(--duration-sequence-beat) * 2)
     var(--easing-enter)

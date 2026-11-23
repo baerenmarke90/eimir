@@ -135,7 +135,7 @@ function setup(mode: 'detail' | 'edit' = 'detail') {
       />
     );
   }
-  function Application({
+  function application({
     accountId = 'account-1',
     spaceId = 'space-1',
   }: {
@@ -176,7 +176,7 @@ function setup(mode: 'detail' | 'edit' = 'detail') {
       </QueryClientProvider>
     );
   }
-  const view = render(<Application />);
+  const view = render(application({}));
   const openMenu = () =>
     userEvent
       .setup()
@@ -231,7 +231,7 @@ function setup(mode: 'detail' | 'edit' = 'detail') {
     leave,
     path,
     switchScope: (scope: { accountId?: string; spaceId?: string }) =>
-      view.rerender(<Application {...scope} />),
+      view.rerender(application(scope)),
   };
 }
 

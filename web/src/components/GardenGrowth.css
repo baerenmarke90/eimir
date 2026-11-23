@@ -423,24 +423,24 @@ button.garden-visitor-action {
  * every animation: a reaction then shows as a still pose. */
 
 .garden-animal
-:is(
-  .eimir-motion-garden-blink,
-  .garden-snail-body,
-  .garden-snail-foot,
-  .garden-snail-stalks,
-  .garden-snail-shell,
-  .garden-rabbit-head,
-  .garden-rabbit-ears,
-  .garden-hedgehog-roll,
-  .garden-hedgehog-spikes,
-  .garden-hedgehog-face,
-  .garden-duck,
-  .garden-duck-ripple,
-  .garden-squirrel-tail,
-  .garden-deer-head,
-  .garden-deer-ears,
-  .garden-deer-legs
-),
+  :is(
+    .eimir-motion-garden-blink,
+    .garden-snail-body,
+    .garden-snail-foot,
+    .garden-snail-stalks,
+    .garden-snail-shell,
+    .garden-rabbit-head,
+    .garden-rabbit-ears,
+    .garden-hedgehog-roll,
+    .garden-hedgehog-spikes,
+    .garden-hedgehog-face,
+    .garden-duck,
+    .garden-duck-ripple,
+    .garden-squirrel-tail,
+    .garden-deer-head,
+    .garden-deer-ears,
+    .garden-deer-legs
+  ),
 .garden-squirrel-peek,
 .garden-tree-crown,
 .garden-name-tag-float {

@@ -15,7 +15,7 @@
  * flattened create-surface pattern: hierarchy comes from the content/media
  * inside the page rather than from one enclosing card boundary. */
 .memory-task-page.create-page
-.immersive-create-card[aria-labelledby="memory-form-heading"] {
+  .immersive-create-card[aria-labelledby="memory-form-heading"] {
   width: 100%;
   max-width: none;
   margin: 0;

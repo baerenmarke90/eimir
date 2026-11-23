@@ -4,7 +4,7 @@
    families, radii and elevation come from the design's tokens. */
 
 .today-page:is([data-wir-layout="names"], [data-wir-layout="note"])
-.today-content {
+  .today-content {
   inline-size: min(100%, 39rem);
   margin-inline: auto;
 }
@@ -146,7 +146,7 @@
 
 /* Calm sections: the moment as a small row, plain agenda rows. */
 .today-page:is([data-wir-layout="names"], [data-wir-layout="note"])
-.today-section-header {
+  .today-section-header {
   padding-inline: 0;
   margin-block-end: var(--space-1);
 }

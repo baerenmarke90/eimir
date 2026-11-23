@@ -4,6 +4,38 @@ import { StrictMode, useRef } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 
+function DeferredFocusHarness({
+  active,
+  trigger,
+}: {
+  active: boolean;
+  trigger: HTMLElement;
+}) {
+  const initialRef = useRef<HTMLButtonElement>(null);
+  const restoreRef = useRef<HTMLElement | null>(trigger);
+  useModalLifecycle({
+    active,
+    initialFocusRef: initialRef,
+    restoreFocusRef: restoreRef,
+    deferRestoreFocus: true,
+  });
+  return (
+    <button ref={initialRef} type="button">
+      inside
+    </button>
+  );
+}
+
+function FocusHarness({ active }: { active: boolean }) {
+  const initialRef = useRef<HTMLButtonElement>(null);
+  useModalLifecycle({ active, initialFocusRef: initialRef });
+  return (
+    <button ref={initialRef} type="button">
+      inside
+    </button>
+  );
+}
+
 afterEach(() => {
   cleanup();
   document.body.style.overflow = '';
@@ -38,25 +70,9 @@ describe('useModalLifecycle', () => {
     document.body.append(trigger);
     trigger.focus();
 
-    function Harness() {
-      const initialRef = useRef<HTMLButtonElement>(null);
-      const restoreRef = useRef<HTMLElement | null>(trigger);
-      useModalLifecycle({
-        active: true,
-        initialFocusRef: initialRef,
-        restoreFocusRef: restoreRef,
-        deferRestoreFocus: true,
-      });
-      return (
-        <button ref={initialRef} type="button">
-          inside
-        </button>
-      );
-    }
-
     render(
       <StrictMode>
-        <Harness />
+        <DeferredFocusHarness trigger={trigger} active />
       </StrictMode>,
     );
 
@@ -70,27 +86,11 @@ describe('useModalLifecycle', () => {
     document.body.append(trigger);
     trigger.focus();
 
-    function Harness({ active }: { active: boolean }) {
-      const initialRef = useRef<HTMLButtonElement>(null);
-      const restoreRef = useRef<HTMLElement | null>(trigger);
-      useModalLifecycle({
-        active,
-        initialFocusRef: initialRef,
-        restoreFocusRef: restoreRef,
-        deferRestoreFocus: true,
-      });
-      return (
-        <button ref={initialRef} type="button">
-          inside
-        </button>
-      );
-    }
-
-    const view = render(<Harness active />);
+    const view = render(<DeferredFocusHarness trigger={trigger} active />);
     expect(document.activeElement?.textContent).toBe('inside');
 
-    view.rerender(<Harness active={false} />);
-    view.rerender(<Harness active />);
+    view.rerender(<DeferredFocusHarness trigger={trigger} active={false} />);
+    view.rerender(<DeferredFocusHarness trigger={trigger} active />);
 
     await Promise.resolve();
     expect(document.activeElement?.textContent).toBe('inside');
@@ -102,23 +102,13 @@ describe('useModalLifecycle', () => {
     document.body.append(trigger);
     trigger.focus();
 
-    function Harness({ active }: { active: boolean }) {
-      const initialRef = useRef<HTMLButtonElement>(null);
-      useModalLifecycle({ active, initialFocusRef: initialRef });
-      return (
-        <button ref={initialRef} type="button">
-          inside
-        </button>
-      );
-    }
-
-    const view = render(<Harness active={false} />);
+    const view = render(<FocusHarness active={false} />);
     trigger.focus();
-    view.rerender(<Harness active />);
+    view.rerender(<FocusHarness active />);
 
     expect(document.activeElement?.textContent).toBe('inside');
 
-    view.rerender(<Harness active={false} />);
+    view.rerender(<FocusHarness active={false} />);
     await waitFor(() => expect(document.activeElement).toBe(trigger));
   });
 });

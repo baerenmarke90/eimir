@@ -1193,6 +1193,16 @@ class OptionalPhotoConfigurationTest(unittest.TestCase):
             "EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET",
             exported["services"]["cloud-migrate"]["environment"],
         )
+    def test_support_reports_switch_is_an_instance_expression_defaulting_off(self):
+        canonical = {"services": {name: {"environment": {}} for name in channel.CLOUD_SERVICES}}
+        with patch.dict(os.environ, {"EIMIR_SUPPORT_REPORTS_ENABLED": "true"}):
+            exported = channel.export_compose(canonical, BACKEND, WEB)
+        for name in ("cloud-api", "cloud-worker"):
+            self.assertEqual(
+                exported["services"][name]["environment"]["EIMIR_SUPPORT_REPORTS_ENABLED"],
+                "${EIMIR_SUPPORT_REPORTS_ENABLED:-false}",
+            )
+
 class FCMSenderMountContractTest(unittest.TestCase):
     def setUp(self):
         channel.fcm_sender_mount.cache_clear()

@@ -22,6 +22,7 @@ DEFERABLE_KINDS = frozenset(
         NotificationKind.TRANSFER_READY,
         NotificationKind.TRANSFER_COMPLETED,
         NotificationKind.TRANSFER_FAILED,
+        NotificationKind.SUPPORT_REPLY,
         NotificationKind.PLAN_CHANGED,
         NotificationKind.PLAN_CREATED,
         NotificationKind.PLAN_CANCELLED,

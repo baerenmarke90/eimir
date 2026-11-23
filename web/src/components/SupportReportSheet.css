@@ -1,0 +1,236 @@
+/* Support report sheet (#2189). Tokens only; the sheet shell, its motion and
+   reduced-motion behaviour come from ShortTaskSheet. */
+
+.support-report-status:empty {
+  display: none;
+}
+
+.support-report-message {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-medium);
+  color: var(--color-text);
+  font: var(--font-supporting-copy);
+}
+
+.support-report-message-info {
+  background: var(--color-surface-subtle);
+}
+
+.support-report-message-problem {
+  background: var(--color-error-surface);
+}
+
+/* A two-option choice: native radios with the segmented presentation. The
+   options sit next to each other while each has room for its longest word and
+   stack once larger text would break a word (the shared reflow pattern). */
+.support-report-kinds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
+  gap: var(--space-1);
+  min-width: 0;
+  margin: 0 0 var(--space-4);
+  padding: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+}
+
+.support-report-kind {
+  position: relative;
+  display: grid;
+  min-height: var(--touch-target-web);
+  min-width: 0;
+  place-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  text-align: center;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+/* The native radio keeps semantics and arrow keys; the segment is its face. */
+.support-report-kind-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.support-report-kind:has(.support-report-kind-input:checked) {
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  box-shadow: var(--shadow-soft);
+}
+
+.support-report-kind:has(.support-report-kind-input:focus-visible) {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.support-report-kinds:disabled .support-report-kind {
+  cursor: default;
+}
+
+.support-report-label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-weight: 600;
+}
+
+.support-report-note {
+  /* The shared filled field surface (styles.css); only its size is local. */
+  box-sizing: border-box;
+  display: block;
+  min-height: 7rem;
+  max-height: 40dvh;
+  line-height: 1.45;
+  /* The field keeps its size in the sheet; no native resize grip. */
+  resize: none;
+}
+
+.support-report-note:disabled {
+  color: var(--color-text-secondary);
+}
+
+.support-report-note[aria-invalid="true"] {
+  box-shadow: inset 0 0 0 var(--border-authored-width) var(--color-error);
+}
+
+.support-report-counter {
+  margin: var(--space-1) var(--space-1) var(--space-3);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  text-align: end;
+}
+
+.support-report-sent {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+}
+
+.support-report-sent-heading {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+}
+
+.support-report-sent ul {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.support-report-sent li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-2);
+  overflow-wrap: anywhere;
+}
+
+.support-report-sent li::before {
+  content: "✓";
+  color: var(--color-success);
+}
+
+/* The failure line: a quiet label above the short error code. The code may
+   break anywhere at narrow widths instead of overflowing. */
+.support-report-failure {
+  display: grid;
+  min-width: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+.support-report-failure-label {
+  font-weight: 600;
+}
+
+/* Plain text aligned with its label, not the global inline-code chip. */
+.support-report-failure-token {
+  padding: 0;
+  background: none;
+  font: inherit;
+  overflow-wrap: anywhere;
+}
+
+.support-report-never {
+  margin: var(--space-3) 0 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+/* One filled primary action, full width so its activity text never changes
+   its size. Selectors outrank the shared `.button-link` and
+   `.button-link.button-link-primary` rules whatever the stylesheet order. The
+   shared `button:disabled` look does not reach this button (the primary rule
+   wins) and has no counterpart for the busy `aria-disabled` state, which keeps
+   the button focusable while a report is being sent. */
+.button-link.support-report-action {
+  width: 100%;
+  min-height: var(--touch-target-comfortable);
+  border-radius: var(--radius-pill);
+}
+
+.button-link-primary.support-report-action:disabled,
+.button-link-primary.support-report-action[aria-disabled="true"] {
+  background: var(--color-border-subtle);
+  color: var(--color-text-muted);
+  filter: none;
+}
+
+.button-link-primary.support-report-action:disabled {
+  cursor: not-allowed;
+}
+
+.button-link-primary.support-report-action[aria-disabled="true"] {
+  cursor: wait;
+}
+
+.support-report-hint {
+  margin: var(--space-2) var(--space-1) 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+/* Success: one centered column, the check above the title and the body. The
+   check comes after the title in the document; it is decorative. */
+.support-report-sheet-sent .short-task-sheet-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.support-report-sheet-sent .short-task-sheet-title {
+  margin-bottom: var(--space-2);
+}
+
+.support-report-success-mark {
+  order: -1;
+  display: grid;
+  flex-shrink: 0;
+  width: var(--space-12);
+  height: var(--space-12);
+  margin-bottom: var(--space-4);
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-success-surface);
+  color: var(--color-success);
+  font-weight: 700;
+}
+
+.support-report-success-body {
+  max-width: 30ch;
+  margin: 0;
+  color: var(--color-text-secondary);
+}

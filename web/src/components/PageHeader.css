@@ -142,7 +142,7 @@
 /* Overview headers shrink their title column to its content; the title row
    needs the full width so the title can sit beside Back. */
 .page-heading.page-heading-secondary
-> div:first-child:not(.page-heading-item-row) {
+  > div:first-child:not(.page-heading-item-row) {
   flex: 1 1 auto;
   min-inline-size: 0;
 }

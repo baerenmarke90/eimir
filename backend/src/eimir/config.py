@@ -355,6 +355,10 @@ class Settings(IdentityCompatibleSettings):
     # an Account is eligible only when one of its verified addresses is listed here.
     google_photos_test_account_emails: list[str] = Field(default_factory=list)
 
+    # In-app support reports (#2189). Off until the operator can read them;
+    # without a reader an acknowledgement would mislead.
+    support_reports_enabled: bool = False
+
     # Automatic Plan calendar sync (#1895). Credentials are encrypted at rest,
     # so the feature is only offered with EIMIR_ENCRYPTION_AT_REST=required.
     calendar_sync_enabled: bool = True

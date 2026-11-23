@@ -8,7 +8,6 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { useState } from 'react';
 import {
   MemoryRouter,
   Route,
@@ -153,10 +152,7 @@ for (const d of definitions) {
         deleteGiftIdea: remove,
         deletePrivateCollection: remove,
       } as unknown as PrivateAreaApi;
-      let hide!: () => void;
-      function Harness() {
-        const [visible, setVisible] = useState(true);
-        hide = () => setVisible(false);
+      function application(visible: boolean) {
         const Page = d.Page;
         return (
           <QueryClientProvider client={client}>
@@ -186,7 +182,8 @@ for (const d of definitions) {
           </QueryClientProvider>
         );
       }
-      render(<Harness />);
+      const view = render(application(true));
+      const hide = () => view.rerender(application(false));
       async function submit() {
         fireEvent.click(
           screen.getByRole('button', {

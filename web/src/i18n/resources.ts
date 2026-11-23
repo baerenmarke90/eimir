@@ -57,6 +57,7 @@ import snackbar from './locales/snackbar';
 import spaceOffboarding from './locales/spaceOffboarding';
 import storageQuota from './locales/storageQuota';
 import storyProducts from './locales/storyProducts';
+import supportReport from './locales/supportReport';
 import motionSettings from './locales/motionSettings';
 import taskBoundary from './locales/taskBoundary';
 import taskSheets from './locales/taskSheets';
@@ -126,6 +127,7 @@ export const germanResources = {
   ...sharedNotes,
   spaceOffboarding,
   storageQuota,
+  supportReport,
   uploadFailure,
   ...relationshipComponents,
   relationshipReflections,

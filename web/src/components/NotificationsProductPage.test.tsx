@@ -16,6 +16,21 @@ import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import { i18n } from '../i18n';
 import { NotificationsProductPage } from './M4ProductPages';
 
+function LocationProbe({ observe }: { observe: (state: unknown) => void }) {
+  const location = useLocation();
+  observe(location.state);
+  return <div data-testid="location-probe">{location.pathname}</div>;
+}
+
+function OriginProbe({
+  observe,
+}: {
+  observe: (origin: ReturnType<typeof useTaskOrigin>) => void;
+}) {
+  observe(useTaskOrigin());
+  return null;
+}
+
 const SPACE_ID = 'space-1';
 
 function renderNotificationsPage(
@@ -177,22 +192,21 @@ describe('Notifications Product Experience', () => {
 
     let currentState: unknown = null;
     let originContract!: ReturnType<typeof useTaskOrigin>;
-    function LocationProbe() {
-      const location = useLocation();
-      currentState = location.state;
-      return <div data-testid="location-probe">{location.pathname}</div>;
-    }
-    function OriginProbe() {
-      originContract = useTaskOrigin();
-      return null;
-    }
 
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={['/more/notifications']}>
           <TaskOriginProvider accountId="user-self" spaceId={SPACE_ID}>
-            <LocationProbe />
-            <OriginProbe />
+            <LocationProbe
+              observe={(value) => {
+                currentState = value;
+              }}
+            />
+            <OriginProbe
+              observe={(origin) => {
+                originContract = origin;
+              }}
+            />
             <Routes>
               <Route
                 path="/more/notifications"

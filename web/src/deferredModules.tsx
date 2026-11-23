@@ -17,6 +17,18 @@ export function registerDeferredModule(load: Load): void {
   deferredModules.push(load);
 }
 
+function DeferredPage<P extends object>({
+  resolve,
+  pageProps,
+}: {
+  resolve: () => ComponentType<P>;
+  pageProps: P;
+}) {
+  // Keep the same component for the lifetime of this mount, including after prefetch.
+  const [Component] = useState(resolve);
+  return <Component {...pageProps} />;
+}
+
 /**
  * A component in its own chunk, outside the startup bundle. Before its chunk
  * has loaded it suspends like `React.lazy`. Once loaded, by the background
@@ -46,12 +58,8 @@ export function deferredComponent<P extends object>(
   );
   registerDeferredModule(loadOnce);
 
-  function Deferred(props: P) {
-    // Chosen once per mount, so a mounted page never changes component identity.
-    const [Component] = useState<ComponentType<P>>(() => loaded ?? Lazy);
-    return <Component {...props} />;
-  }
-  return Deferred;
+  const resolve = () => loaded ?? Lazy;
+  return (props) => <DeferredPage resolve={resolve} pageProps={props} />;
 }
 
 /** Wait after the shell appeared, so the prefetch never competes with its opening. */

@@ -40,6 +40,11 @@ import importantDates from '../i18n/locales/importantDates';
 import taskSheets from '../i18n/locales/taskSheets';
 import { ImportantDatesPanel } from './ImportantDatesPanel';
 
+function LocationProbe() {
+  const location = useLocation();
+  return <output data-testid="location">{location.pathname}</output>;
+}
+
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute('open', '');
@@ -1195,11 +1200,6 @@ describe('ImportantDatesPanel plans in the calendar (#1907 F3)', () => {
     plannedOn: utcDay(2026, 7, 30),
     plannedUntil: utcDay(2026, 8, 2),
   });
-
-  function LocationProbe() {
-    const location = useLocation();
-    return <output data-testid="location">{location.pathname}</output>;
-  }
 
   function renderWithPlans(plans: PlanDetail[], dates: ImportantDateView[]) {
     const queryClient = new QueryClient({

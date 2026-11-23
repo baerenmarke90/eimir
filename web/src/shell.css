@@ -521,11 +521,11 @@
   /* A swipe drags the pages themselves, like a pager: the current page follows
      the finger and the neighbouring tab travels beside it. */
   .product-main[data-primary-tab-dragging]
-  > .primary-tab-panel:not(
-    [hidden],
-    [data-primary-tab-peek],
-    [data-primary-tab-prewarm]
-  ) {
+    > .primary-tab-panel:not(
+      [hidden],
+      [data-primary-tab-peek],
+      [data-primary-tab-prewarm]
+    ) {
     --primary-tab-offset: inherit;
   }
 
@@ -567,7 +567,7 @@
      left in, in the column the tab panels measured, and clipped to the screen
      (not the column) so it travels in from the edge like a pager page. */
   .product-main[data-primary-tab-dragging]
-  > .primary-tab-panel[data-primary-tab-peek] {
+    > .primary-tab-panel[data-primary-tab-peek] {
     --primary-tab-peek-offset: inherit;
     position: fixed;
     z-index: 1;
@@ -1005,6 +1005,21 @@
 
 .ui-state-action {
   grid-column: 2;
+}
+
+/* Problem state: a quiet tertiary action sits below the retry action. The
+   retry keeps the shared secondary button; the report action is smaller and
+   lighter so the two never read as equals. */
+.problem-state-actions {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+}
+
+.problem-state-actions button.tertiary {
+  min-height: var(--touch-target-web);
+  font: var(--font-supporting-copy);
+  font-weight: 600;
 }
 
 .ui-state-error .ui-state-mark,

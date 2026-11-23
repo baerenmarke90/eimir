@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  lazy,
   type ReactNode,
   Suspense,
   useCallback,
@@ -196,10 +197,6 @@ import {
 import { ProblemState } from './components/ProblemState';
 import { RelationshipStoryPage } from './components/RelationshipStoryPage';
 import { SecureSurface } from './components/SecureSurface';
-import {
-  ServerAdminAccessGate,
-  ServerAdminPage,
-} from './components/ServerAdminPage';
 import { SharedPlanningOverviewPage } from './components/SharedPlanningOverviewPage';
 import { Snackbar } from './components/Snackbar';
 import { StoryProductPage } from './components/StoryProductPage';
@@ -215,6 +212,17 @@ import { deferredComponent } from './deferredModules';
 import { useTranslation } from './i18n';
 import { legalDocumentIdForRoute } from './legal/legalDocuments';
 import { isCapacitorNative } from './pwa';
+
+const ServerAdminAccessGate = lazy(() =>
+  import('./components/ServerAdminPage').then(({ ServerAdminAccessGate }) => ({
+    default: ServerAdminAccessGate,
+  })),
+);
+const ServerAdminPage = lazy(() =>
+  import('./components/ServerAdminPage').then(({ ServerAdminPage }) => ({
+    default: ServerAdminPage,
+  })),
+);
 
 const ChapterCreatePage = deferredComponent(() =>
   import('./components/ChapterCreatePage').then(
@@ -1900,32 +1908,24 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     location.pathname.startsWith(`${SERVER_ADMIN_ROUTE}/`);
 
   if (serverAdminPath) {
-    if (capabilitiesQuery.isPending || capabilitiesQuery.error) {
-      return (
-        <ServerAdminAccessGate
-          loading={capabilitiesQuery.isPending}
-          error={capabilitiesQuery.error}
-          onRetry={() => void capabilitiesQuery.refetch()}
-        />
-      );
-    }
-
-    if (!capabilitiesQuery.data?.serverAdmin) {
-      return (
-        <ServerAdminAccessGate
-          loading={false}
-          error={null}
-          onRetry={() => void capabilitiesQuery.refetch()}
-        />
-      );
-    }
-
     return (
-      <ServerAdminPage
-        apiBaseUrl={config.apiBaseUrl}
-        accessToken={tokens.accessToken}
-        onLogout={logout}
-      />
+      <DeferredPanel>
+        {capabilitiesQuery.isPending ||
+        capabilitiesQuery.error ||
+        !capabilitiesQuery.data?.serverAdmin ? (
+          <ServerAdminAccessGate
+            loading={capabilitiesQuery.isPending}
+            error={capabilitiesQuery.error}
+            onRetry={() => void capabilitiesQuery.refetch()}
+          />
+        ) : (
+          <ServerAdminPage
+            apiBaseUrl={config.apiBaseUrl}
+            accessToken={tokens.accessToken}
+            onLogout={logout}
+          />
+        )}
+      </DeferredPanel>
     );
   }
 

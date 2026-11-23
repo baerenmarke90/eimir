@@ -1,6 +1,11 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { useApiRuntime } from '../client/apiRuntimeContext';
+import { failureReferenceFor } from '../client/failureReference';
 import { clientProblemKind } from '../client/problemDetails';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
+import { openSupportReport } from '../client/supportReportLauncher';
+import { useSupportReportsAvailable } from '../client/supportReportsAvailability';
 import { useTranslation } from '../i18n';
 import { UiState, type UiStateKind } from './UiState';
 
@@ -31,21 +36,71 @@ const COPY_KEYS = {
   unknown: ['states.unknown.title', 'states.unknown.body'],
 } as const;
 
+/**
+ * Failures a support report can help with (#2189). A lost session, missing
+ * access, an unreachable instance or a rate limit are not reported: the
+ * report could not be sent or would not tell the team anything new.
+ */
+const REPORTABLE_KINDS: ReadonlySet<ReturnType<typeof clientProblemKind>> =
+  new Set(['server', 'unknown', 'validation', 'conflict']);
+
+/**
+ * The quiet "Report a problem" action. It exists only below a signed-in
+ * session (and so below the app's query client) and only when the instance
+ * accepts reports. The failure shown here is captured at the tap, and only
+ * when the recorded failure is the one behind `error`; the sheet itself is the
+ * shell's (`SupportReportHost`), so it stays open when a refetch replaces this
+ * error state.
+ */
+function ReportProblemAction({
+  error,
+  retry,
+}: {
+  error: unknown;
+  retry?: ReactNode;
+}) {
+  const { t } = useTranslation();
+  const available = useSupportReportsAvailable();
+  if (!available) return retry ?? null;
+  return (
+    <div className="problem-state-actions">
+      {retry}
+      <button
+        type="button"
+        className="tertiary"
+        aria-haspopup="dialog"
+        onClick={() =>
+          openSupportReport({
+            kind: 'PROBLEM',
+            failure: failureReferenceFor(error),
+          })
+        }
+      >
+        {t('supportReport.action')}
+      </button>
+    </div>
+  );
+}
+
 export function ProblemState({
   error,
   onRetry,
   detail,
+  reportable = true,
 }: {
   error: unknown;
   onRetry?: () => void;
   /** An already localized, more specific reason replacing the generic body. */
   detail?: string;
+  /** False keeps the "Report a problem" action away from this screen. */
+  reportable?: boolean;
 }) {
   const { t } = useTranslation();
+  const signedIn = Boolean(useApiRuntime()?.accountId);
   const kind = clientProblemKind(error);
   const [titleKey, bodyKey] = COPY_KEYS[kind];
 
-  const action =
+  const primaryAction =
     kind === 'unauthorized' ? (
       <Link
         className="button-link secondary-link"
@@ -59,6 +114,12 @@ export function ProblemState({
         {t('common.retry')}
       </button>
     ) : undefined;
+  const action =
+    reportable && signedIn && REPORTABLE_KINDS.has(kind) ? (
+      <ReportProblemAction error={error} retry={primaryAction} />
+    ) : (
+      primaryAction
+    );
 
   return (
     <UiState

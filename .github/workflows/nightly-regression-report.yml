@@ -1,0 +1,119 @@
+name: Nightly Regression Report
+
+# Evaluates the full regression on main after the Nightly Regression dispatcher
+# (#2096). The dispatcher starts its runs with GITHUB_TOKEN, and GitHub does not
+# emit workflow_run events for such runs, so this report polls on a schedule
+# instead of listening for completions. For the newest dispatched revision it:
+# - opens or updates one issue when any required workflow failed;
+# - starts the private test channel publication once every workflow succeeded;
+# - does nothing while runs are still in progress (the next schedule retries).
+on:
+  schedule:
+    # The dispatcher runs at 01:17 UTC; the full regression takes about 35 min.
+    - cron: "47 2 * * *"
+    - cron: "47 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-regression-report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    name: Evaluate full regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      issues: write
+    steps:
+      - name: Evaluate the newest dispatched main revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TEST_CHANNEL_ENABLED: ${{ vars.EIMIR_TEST_CHANNEL_ENABLED }}
+        run: |
+          set -euo pipefail
+
+          # Keep this list in sync with nightly-regression.yml and
+          # tools/ci/test_nightly_regression.py.
+          workflows=(
+            ci.yml
+            web-browser-qa.yml
+            android-launcher-icons.yml
+            backend-encrypted.yml
+            media-video.yml
+            codeql.yml
+            self-hosted-deployment-guard.yml
+            self-hosted-recovery.yml
+          )
+
+          sha=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/nightly-regression.yml/runs?branch=main&per_page=1" \
+            --jq '.workflow_runs[0].head_sha // empty')
+          if [ -z "$sha" ]; then
+            echo "No Nightly Regression run yet." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "### Full regression at ${sha}" >> "$GITHUB_STEP_SUMMARY"
+
+          pending=0
+          failed=()
+          for workflow in "${workflows[@]}"; do
+            # Newest non-cancelled dispatched run of this workflow at the revision.
+            run=$(gh api \
+              "repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/runs?event=workflow_dispatch&branch=main&head_sha=${sha}&per_page=20" \
+              --jq '[.workflow_runs[] | select(.conclusion != "cancelled")] | sort_by(.id) | last
+                | if . == null then "missing" else "\(.status)|\(.conclusion // "")|\(.html_url)" end')
+            if [ "$run" = "missing" ]; then
+              echo "- ${workflow}: not dispatched" >> "$GITHUB_STEP_SUMMARY"
+              failed+=("${workflow}: not dispatched")
+              continue
+            fi
+            # "|" is not whitespace, so an empty conclusion stays a field.
+            IFS='|' read -r status conclusion url <<< "$run"
+            echo "- ${workflow}: ${status} ${conclusion} ${url}" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$status" != "completed" ]; then
+              pending=$((pending + 1))
+            elif [ "$conclusion" != "success" ]; then
+              failed+=("${workflow}: ${conclusion} ${url}")
+            fi
+          done
+
+          if [ "${#failed[@]}" -gt 0 ]; then
+            title="Nightly regression failed"
+            marker="Revision ${sha}"
+            body=$(printf '%s\n' \
+              "${marker}: the full regression on \`main\` has failures." \
+              "" \
+              "${failed[@]/#/- }" \
+              "" \
+              "Fixing \`main\` takes precedence over feature merges until this issue is closed (#2096).")
+            existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+              --search "in:title \"${title}\"" --json number,title \
+              --jq "[.[] | select(.title == \"${title}\")][0].number // empty")
+            if [ -z "$existing" ]; then
+              gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+            elif ! gh issue view "$existing" --repo "$GITHUB_REPOSITORY" --json body,comments \
+                --jq '[.body, .comments[].body] | join("\n")' | grep -Fq "$marker"; then
+              gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body "$body"
+            fi
+            echo "Reported ${#failed[@]} failure(s)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          if [ "$pending" -gt 0 ]; then
+            echo "${pending} workflow(s) still running; the next scheduled report retries." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # All green. The publisher rechecks current main and every required
+          # workflow itself and refuses duplicates of an already selected pair.
+          if [ "$TEST_CHANNEL_ENABLED" = "true" ]; then
+            gh workflow run release-publish.yml --repo "$GITHUB_REPOSITORY" --ref main \
+              -f private_test_channel=true -f release_version=0.0.0
+            echo "All green; started the private test channel publication." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "All green; the private test channel is disabled." >> "$GITHUB_STEP_SUMMARY"
+          fi

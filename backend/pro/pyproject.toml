@@ -1,0 +1,36 @@
+[project]
+name = "eimir-pro"
+version = "0.1.0"
+description = "eimir. - Pro plugin (Decision 0017)"
+requires-python = ">=3.12"
+# The Pro plugin is installed on top of a Core of the same revision. In this
+# repository the Core comes from the uv workspace; an extracted Pro repository
+# pins the published Core instead (#2182).
+dependencies = [
+    "eimir",
+    # Google Photos and Google Calendar consent flows (photo sources, calendar sync).
+    "google-auth-oauthlib>=1.5.0",
+    # Keep the adopted OAuth stack above the corrected device-grant advisory baseline.
+    "oauthlib>=4.0.1,<5",
+    # Untrusted CalDAV multistatus XML (#1895): parse without entity expansion
+    # or external resources instead of hardening the stdlib parser by hand.
+    "defusedxml>=0.7.1",
+]
+
+# The Pro plugin (Decision 0017). Loaded only when named in EIMIR_PLUGINS.
+[project.entry-points."eimir.plugins"]
+pro = "eimir_pro.plugin:plugin"
+
+[tool.uv.sources]
+eimir = { workspace = true }
+
+[build-system]
+requires = ["setuptools==84.2.1"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"eimir_pro.quotes" = ["daily_sayings.json"]
+"eimir_pro.date_ideas" = ["data/*.json", "data/images/*.webp"]

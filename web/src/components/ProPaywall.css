@@ -351,7 +351,9 @@
 @media (prefers-reduced-motion: no-preference) {
   .pro-paywall-hero-circle,
   .pro-paywall-hero-icon {
-    animation: pro-paywall-meet var(--duration-context) var(--easing-enter);
+    /* Enter `grow` from the motion catalogue (src/motion/motion.css). */
+    animation: eimir-motion-enter-grow var(--duration-context)
+      var(--easing-enter);
   }
 
   .pro-paywall-plan {
@@ -367,12 +369,5 @@
     --motion-enter-rise: 8px;
     animation: eimir-motion-enter-shift var(--duration-transition)
       var(--easing-enter);
-  }
-}
-
-@keyframes pro-paywall-meet {
-  from {
-    opacity: 0;
-    scale: 0.9;
   }
 }

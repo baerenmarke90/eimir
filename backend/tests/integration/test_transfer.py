@@ -480,6 +480,12 @@ def test_personal_import_maps_requester_ignores_appearance_and_is_idempotent(
         "recordCounts": {},
         "mediaCount": 0,
         "sourceMemberCount": 1,
+        "alreadyPresentCount": 0,
+        "videoCount": 0,
+        "videoBytes": 0,
+        "storageNeeded": 0,
+        "storageNeededWithoutVideos": 0,
+        "videoSources": [],
     }
 
     service.request_apply(session, authorization, str(transfer.id))
@@ -665,3 +671,79 @@ def test_shopping_suggestions_travel_with_their_list_in_a_shared_round_trip(
         (item.payload.title, item.payload.quantity, item.times_bought) for item in suggestions
     ] == [("Milch", "2 l", 1)]
     assert collection_service.list_items(session, imported) == []
+
+
+def _rewrite_plans(bundle: io.BytesIO, rewrite) -> io.BytesIO:  # type: ignore[no-untyped-def]
+    """Rewrite plan rows of a real bundle and re-seal its manifest checksums."""
+    bundle.seek(0)
+    output = io.BytesIO()
+    with ZipFile(bundle) as source, ZipFile(output, "w", ZIP_DEFLATED) as target:
+        contents = {info.filename: source.read(info) for info in source.infolist()}
+        document = json.loads(contents["plans.json"])
+        for group in document["tables"]:
+            if group["name"] == "plans":
+                group["rows"] = [rewrite(row) for row in group["rows"]]
+        contents["plans.json"] = json.dumps(document).encode()
+        manifest = json.loads(contents["manifest.json"])
+        manifest["checksums"]["plans.json"] = hashlib.sha256(contents["plans.json"]).hexdigest()
+        contents["manifest.json"] = json.dumps(manifest).encode()
+        for name, data in contents.items():
+            target.writestr(name, data)
+    output.seek(0)
+    return output
+
+
+def _legacy_plan_row(row):  # type: ignore[no-untyped-def]
+    legacy = {key: value for key, value in row.items() if key != "anticipation"}
+    legacy["anticipationEnabled"] = row["anticipation"] == "ALWAYS"
+    return legacy
+
+
+@pytest.mark.parametrize("legacy", [False, True])
+def test_import_keeps_the_countdown_preference_and_upgrades_the_legacy_flag(
+    session: Session, legacy: bool
+) -> None:
+    """#2158 D: a pinned Plan stays pinned; a legacy false is automatic, not never."""
+    anna = make_account(session, "Anna")
+    ben = make_account(session, "Ben")
+    source_space = make_space(session, anna)
+    relationship_service.add_member(session, source_space.id, ben)
+    target_space = make_space(session, anna)
+    relationship_service.add_member(session, target_space.id, ben)
+    source_authorization = AuthorizationContext(account_id=anna.id, space_id=source_space.id)
+    target_authorization = AuthorizationContext(account_id=anna.id, space_id=target_space.id)
+    for title, anticipation in (("Pinned", "ALWAYS"), ("Hidden", "NEVER"), ("Auto", "AUTOMATIC")):
+        plan = plan_service.create_plan(
+            session,
+            source_authorization,
+            title=title,
+            description=None,
+            place_id=None,
+            planned_on=date(2099, 1, 1),
+        )
+        plan.anticipation = anticipation
+    session.flush()
+
+    with service.build_export_archive(
+        session, source_authorization, TransferScope.SHARED
+    ) as exported:
+        bundle = _rewrite_plans(exported, _legacy_plan_row) if legacy else exported
+        bundle.seek(0, io.SEEK_END)
+        size = bundle.tell()
+        bundle.seek(0)
+        transfer = service.create_import(session, target_authorization, bundle, size=size)
+    session.flush()
+    jobs.handle_validate_import(session, {"importId": str(transfer.id)})
+    session.flush()
+    service.request_apply(session, target_authorization, str(transfer.id))
+    session.flush()
+    jobs.handle_apply_import(session, {"importId": str(transfer.id)})
+    session.flush()
+
+    assert transfer.status == ImportStatus.COMPLETED.value
+    imported = {
+        plan.payload.title: plan.anticipation
+        for plan in session.scalars(select(Plan).where(Plan.space_id == target_space.id))
+    }
+    hidden = "AUTOMATIC" if legacy else "NEVER"
+    assert imported == {"Pinned": "ALWAYS", "Hidden": hidden, "Auto": "AUTOMATIC"}

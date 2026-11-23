@@ -29,6 +29,7 @@ import {
   pondSlotPosition,
   SPECIES_HEIGHT,
 } from '../client/gardenGrowth';
+import { useScene } from '../motion/scene';
 import {
   type SceneAmbience,
   sceneClouds,
@@ -440,6 +441,11 @@ export function GardenScene({
   const preview = variant === 'preview';
   const id = useId().replace(/:/g, '');
   const svg = useRef<SVGSVGElement | null>(null);
+  // The garden is a Scene (Motion Contract 4.8): its loops run only while
+  // the page, its kept view and the scene itself are seen, and are absent
+  // with reduced motion. Paused, they hold in place and continue later.
+  const stack = useRef<HTMLDivElement | null>(null);
+  const sceneMotion = useScene(stack);
   const life = useGardenLife({
     width,
     sharedDays: growth.sharedDays,
@@ -574,6 +580,8 @@ export function GardenScene({
 
   return (
     <div
+      ref={stack}
+      {...sceneMotion.props}
       className={`garden-scene-stack${preview ? ' is-preview' : ''}`}
       style={
         preview ? undefined : { width: `${((width / 340) * 100).toFixed(1)}%` }

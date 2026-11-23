@@ -91,6 +91,8 @@ export function orderedDashboardModuleKeys(
         key === 'pinned_note' ||
         // 2026-11-17: older saved orders predate the shared garden module.
         key === 'shared_garden' ||
+        // #2158 C: older saved orders predate the waiting games module.
+        key === 'games_waiting' ||
         keys.includes(key),
     );
   if (

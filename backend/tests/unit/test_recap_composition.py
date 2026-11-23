@@ -5,7 +5,7 @@ from uuid import UUID
 
 import pytest
 
-from eimir.recaps import mood, words
+from eimir.recaps import presentation
 from eimir.recaps.composition import Candidate, period_bounds, select_candidates
 from eimir.recaps.models import RecapKind, RecapSourceKind
 
@@ -48,8 +48,8 @@ def test_an_alternative_differs_when_distinct_source_kinds_have_no_ties() -> Non
 
 
 def test_quote_is_cut_at_a_word_boundary_and_never_reworded():  # type: ignore[no-untyped-def]
-    assert words.cut("  Short   note \n here ") == "Short note here"
-    long = words.cut("alpha " * 40)
+    assert presentation.cut("  Short   note \n here ") == "Short note here"
+    long = presentation.cut("alpha " * 40)
     assert long.endswith("\u2026") and len(long) <= 141 and "alpha alpha" in long
 
 
@@ -68,55 +68,11 @@ def vars_of(item):  # type: ignore[no-untyped-def]
     return item.kind, item.id, item.occurred_on, item.version
 
 
-A, B = UUID(int=1), UUID(int=2)
-
-
-def mutual(day, a="GOOD", b="GOOD"):  # type: ignore[no-untyped-def]
-    return {day: {A: a, B: b}}
-
-
-def test_mood_rhythm_counts_only_days_both_partners_marked():  # type: ignore[no-untyped-def]
-    month = date(2026, 10, 1), date(2026, 10, 31)
-    days: dict = {}  # type: ignore[type-arg]
-    for number in (1, 2, 3, 9, 10):
-        days |= mutual(date(2026, 10, number))
-    days |= mutual(date(2026, 10, 11), "SAD", "GOOD")
-    days[date(2026, 10, 12)] = {A: "GOOD"}  # one-sided: never counted or implied
-    result = mood.rhythm(RecapKind.MONTH, *month, days)
-    assert result is not None
-    assert [(b.index, b.mutual_days, b.good_days) for b in result.buckets] == [
-        (1, 3, 3),
-        (2, 3, 2),
-        (3, 0, 0),
-        (4, 0, 0),
-        (5, 0, 0),
-    ]
-    assert result.leading == 1
-
-
-def test_mood_rhythm_is_omitted_below_the_threshold_and_ties_do_not_lead():  # type: ignore[no-untyped-def]
-    month = date(2026, 10, 1), date(2026, 10, 31)
-    few = {}
-    for number in (1, 2, 3, 4):
-        few |= mutual(date(2026, 10, number))
-    assert mood.rhythm(RecapKind.MONTH, *month, few) is None
-    tie = dict(few)
-    for number in (8, 9, 10, 11):
-        tie |= mutual(date(2026, 10, number))
-    result = mood.rhythm(RecapKind.MONTH, *month, tie)
-    assert result is not None and result.leading is None
-
-
-def test_yearly_mood_needs_mutual_days_in_several_months():  # type: ignore[no-untyped-def]
-    year = date(2026, 1, 1), date(2026, 12, 31)
-    crowded = {}
-    for number in range(1, 22):
-        crowded |= mutual(date(2026, 3, number))
-    assert mood.rhythm(RecapKind.YEAR, *year, crowded) is None
-    spread = {}
-    for month in (2, 4, 6, 8):
-        for number in range(1, 6):
-            spread |= mutual(date(2026, month, number))
-    result = mood.rhythm(RecapKind.YEAR, *year, spread)
-    assert result is not None and len(result.buckets) == 12
-    assert result.leading is None
+def test_excerpts_keep_whole_sentences_and_never_reword() -> None:
+    assert presentation.excerpt("  Ein   kurzer Satz. ") == "Ein kurzer Satz."
+    text = "Erster Satz mit etwas Länge dabei. " * 3 + "Ein vierter Satz, der zu viel wäre."
+    short = presentation.excerpt(text, 80)
+    assert short.endswith(" …") and short[:-2] in text and short[:-2].endswith(".")
+    long_word_run = "wort " * 60
+    cut = presentation.excerpt(long_word_run, 50)
+    assert len(cut) <= 52 and cut.endswith(" …") and " ".join(cut[:-2].split()) in long_word_run

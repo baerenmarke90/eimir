@@ -11,23 +11,23 @@ from datetime import timedelta
 from uuid import uuid4
 
 import pytest
+from eimir_pro.photo_sources.models import PhotoConnection, PhotoConnectionPayload
+from eimir_pro.presence.models import (
+    PresenceDeviceCredential,
+    PresencePositionPayload,
+    PresenceSnapshot,
+)
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from eimir.auth import sessions
 from eimir.authorization import AuthorizationContext
 from eimir.core.clock import now
-from eimir.photo_sources.models import PhotoConnection, PhotoConnectionPayload
 from eimir.plugins import lifecycle
-from eimir.presence.models import (
-    PresenceDeviceCredential,
-    PresencePositionPayload,
-    PresenceSnapshot,
-)
 from eimir.relationship.service import add_member
 from eimir.transfer.models import TransferScope
 from tests.conftest import make_account, make_space, requires_database
-from tests.support.plugins import without_plugins
+from tests.support.plugins import requires_pro, without_plugins
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -72,6 +72,7 @@ def _presence(session: Session, couple, *, expires_in: timedelta) -> None:  # ty
     session.flush()
 
 
+@requires_pro
 def test_with_the_plugin_loaded_the_executor_leaves_its_tables_alone(session, couple) -> None:  # type: ignore[no-untyped-def]
     """No double execution: the loaded plugin's hooks own its tables."""
     _presence(session, couple, expires_in=-timedelta(minutes=1))
@@ -134,3 +135,56 @@ def test_without_the_plugin_the_personal_export_keeps_the_plugin_keys(session, c
     ]
     assert "personalGoogleAccountHint" not in absent
     assert shared == {}
+
+
+def test_without_the_plugin_the_demo_has_no_plugin_examples(session) -> None:  # type: ignore[no-untyped-def]
+    """C19: the demo seeds quote preferences and a location share only through the plugin."""
+    from datetime import date
+
+    from eimir_pro.presence.models import PartnerLocationConsent
+    from eimir_pro.quotes.models import DailyQuotePreference
+
+    from eimir.config import Environment
+    from eimir.demo import create_demo_space
+
+    with without_plugins():
+        result = create_demo_space(
+            session,
+            environment=Environment.TEST,
+            lea_password="core-only-demo-test-password",
+            alex_password="core-only-demo-test-password",
+            reference_date=date(2026, 8, 24),
+        )
+    session.flush()
+    assert result.created
+    accounts = (result.lea_id, result.alex_id)
+    assert not session.scalars(
+        select(DailyQuotePreference).where(DailyQuotePreference.account_id.in_(accounts))
+    ).all()
+    assert not session.scalars(
+        select(PartnerLocationConsent).where(PartnerLocationConsent.space_id == result.space_id)
+    ).all()
+
+
+@requires_pro
+def test_with_the_plugin_the_demo_has_quote_preferences(session) -> None:  # type: ignore[no-untyped-def]
+    from datetime import date
+
+    from eimir_pro.quotes.models import DailyQuotePreference
+
+    from eimir.config import Environment
+    from eimir.demo import create_demo_space
+
+    result = create_demo_space(
+        session,
+        environment=Environment.TEST,
+        lea_password="plugin-demo-test-password",
+        alex_password="plugin-demo-test-password",
+        reference_date=date(2026, 8, 24),
+    )
+    session.flush()
+    accounts = (result.lea_id, result.alex_id)
+    preferences = session.scalars(
+        select(DailyQuotePreference).where(DailyQuotePreference.account_id.in_(accounts))
+    ).all()
+    assert len(preferences) == 2

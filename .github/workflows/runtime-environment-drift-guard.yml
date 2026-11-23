@@ -23,29 +23,6 @@ on:
       - docs/DEVELOPMENT-AND-RELEASE-ENVIRONMENTS.md
       - docs/m6/CLOUD-MANAGED-ACCOUNT-DELETION-AUTHORITY.md
       - .github/workflows/runtime-environment-drift-guard.yml
-  push:
-    branches: [main]
-    paths:
-      - compose.yaml
-      - .env.example
-      - deploy/cloud-managed.env.example
-      - deploy/persistent-development.env.example
-      - deploy/self-hosted-release.env.example
-      - scripts/self_hosted_release.py
-      - scripts/test_self_hosted_release.py
-      - scripts/build_self_hosted_source.py
-      - scripts/test_build_self_hosted_source.py
-      - scripts/compose_checked.py
-      - scripts/test_compose_checked.py
-      - scripts/check_runtime_environment.py
-      - scripts/test_check_runtime_environment.py
-      - backend/src/eimir/identity/deletion_bootstrap.py
-      - docs/ACCOUNT-DELETION-SELF-HOSTED.md
-      - docs/ARCANE.md
-      - docs/SELF-HOSTING.md
-      - docs/DEVELOPMENT-AND-RELEASE-ENVIRONMENTS.md
-      - docs/m6/CLOUD-MANAGED-ACCOUNT-DELETION-AUTHORITY.md
-      - .github/workflows/runtime-environment-drift-guard.yml
   workflow_dispatch:
 
 concurrency:

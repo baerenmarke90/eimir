@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   createContext,
   type ReactNode,
+  Suspense,
   useContext,
   useEffect,
   useLayoutEffect,
@@ -34,6 +35,7 @@ import {
   PARTNER_LOCATION_MAP_ROUTE,
   PRIMARY_APP_ROUTES,
   stickyNavigationArea,
+  THREAD_ROUTE,
 } from '../client/routes';
 import {
   captureSessionOwner,
@@ -48,6 +50,11 @@ import { TaskOriginProvider } from '../client/taskOrigin';
 import { useDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
+import { useAppLayout } from '../client/wirDesign';
+import { ThreadDock, ThreadHeader } from './ThreadNavigationLayout';
+import { ChapterNavigation } from './ChapterNavigationLayout';
+import { RoomDock, RoomHeader } from './RoomNavigationLayout';
+import { scheduleDeferredPrefetch } from '../deferredModules';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { DestinationIcon } from './DestinationIcon';
@@ -58,6 +65,7 @@ import { PresenceHeartbeat } from './PresenceHeartbeat';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
 import { Snackbar } from './Snackbar';
 import { SubpageNavigation } from './SubpageNavigation';
+import { SupportReportHost } from './SupportReportHost';
 import { ThemeControl } from './ThemeControl';
 import { useNavigationMotion } from './useNavigationMotion';
 
@@ -188,6 +196,9 @@ interface AppShellProps {
 }
 
 export function AppShell(props: AppShellProps) {
+  // Wir renders first; the rest of the app follows in the background, so later
+  // navigations render from memory instead of showing a loading state.
+  useEffect(() => scheduleDeferredPrefetch(), []);
   return (
     <ApiRuntimeProvider
       apiBaseUrl={props.apiBaseUrl}
@@ -271,7 +282,34 @@ function AuthenticatedAppShell({
   });
   const isPrivateArea = location.pathname.startsWith('/more/private');
   const protectedDraft = useDocumentLeaveBlocked();
+  const layout = useAppLayout();
+  const rooms = layout === 'rooms';
+  const chapters = layout === 'chapters';
+  const threadLayout = layout === 'thread';
+  const customNavigation = rooms || chapters || threadLayout;
+  const threadTrigger = useRef<HTMLAnchorElement>(null);
+  const threadReturn = useRef<{ key: string; scroll: number } | null>(null);
+  useLayoutEffect(() => {
+    const origin = threadReturn.current;
+    if (!origin || pathname === THREAD_ROUTE) return;
+    threadReturn.current = null;
+    if (
+      !threadLayout ||
+      navigationType !== 'POP' ||
+      location.key !== origin.key
+    )
+      return;
+    const frame = requestAnimationFrame(() => {
+      window.scrollTo({ top: origin.scroll, behavior: 'instant' });
+      threadTrigger.current?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [pathname, location.key, navigationType, threadLayout]);
   const isFocusedTask =
+    (customNavigation &&
+      (protectedDraft ||
+        pathname.endsWith('/new') ||
+        pathname.endsWith('/edit'))) ||
     /^\/more\/people\/(?:new|[^/]+\/edit)$/.test(location.pathname) ||
     /^\/story\/recaps\/[^/]+$/.test(location.pathname) ||
     location.pathname.startsWith('/today/only-you') ||
@@ -286,10 +324,12 @@ function AuthenticatedAppShell({
     location.pathname === '/plan/chapters/new' ||
     (protectedDraft && /^\/plan\/chapters\/[^/]+$/.test(location.pathname)) ||
     location.pathname === '/plan/choose';
-  const bottomNavigationRef = useRef<HTMLDivElement>(null);
+  const [bottomNavigation, setBottomNavigation] = useState<HTMLElement | null>(
+    null,
+  );
   useLayoutEffect(() => {
     if (isFocusedTask) return;
-    const navigation = bottomNavigationRef.current;
+    const navigation = bottomNavigation;
     if (!navigation || typeof ResizeObserver === 'undefined') return;
     const root = document.documentElement;
     const measure = (entry?: ResizeObserverEntry) => {
@@ -310,7 +350,7 @@ function AuthenticatedAppShell({
       observer.disconnect();
       root.style.removeProperty('--shell-bottom-nav-measured-height');
     };
-  }, [isFocusedTask]);
+  }, [isFocusedTask, bottomNavigation]);
   const gamesPath = appRoutePath('games');
   const isGamesHub = location.pathname === gamesPath;
 
@@ -357,9 +397,12 @@ function AuthenticatedAppShell({
         />
         <div
           className="product-shell"
+          data-wir-layout={layout}
           data-focused-task={isFocusedTask}
           data-top-surface={
-            location.pathname === DEFAULT_APP_ROUTE ? 'today' : undefined
+            !customNavigation && location.pathname === DEFAULT_APP_ROUTE
+              ? 'today'
+              : undefined
           }
         >
           <ThemeControl />
@@ -369,7 +412,19 @@ function AuthenticatedAppShell({
             {t('navigation.skipToContent')}
           </a>
 
-          {!isFocusedTask ? (
+          {!isFocusedTask && threadLayout ? (
+            <Suspense fallback={null}>
+              <ThreadHeader isPrivate={isPrivateArea} />
+            </Suspense>
+          ) : !isFocusedTask && chapters ? (
+            <Suspense fallback={null}>
+              <ChapterNavigation privateArea={isPrivateArea} />
+            </Suspense>
+          ) : !isFocusedTask && rooms ? (
+            <Suspense fallback={null}>
+              <RoomHeader privateArea={isPrivateArea} />
+            </Suspense>
+          ) : !isFocusedTask ? (
             <header className="app-header product-topbar">
               <nav className="shell-nav" aria-label={t('navigation.primary')}>
                 <PrimaryNavigationLinks />
@@ -436,8 +491,29 @@ function AuthenticatedAppShell({
             </main>
           </div>
 
-          {!isFocusedTask ? (
-            <div className="mobile-bottom-shell" ref={bottomNavigationRef}>
+          {!isFocusedTask && threadLayout && pathname !== THREAD_ROUTE ? (
+            <Suspense fallback={null}>
+              <div className="thread-dock-slot" ref={setBottomNavigation}>
+                <ThreadDock
+                  triggerRef={threadTrigger}
+                  onOpen={() => {
+                    threadReturn.current = {
+                      key: location.key,
+                      scroll: window.scrollY,
+                    };
+                  }}
+                />
+              </div>
+            </Suspense>
+          ) : !isFocusedTask && rooms ? (
+            <Suspense fallback={null}>
+              <RoomDock
+                canCreate={!isPrivateArea}
+                navigationRef={setBottomNavigation}
+              />
+            </Suspense>
+          ) : !isFocusedTask && !chapters && !threadLayout ? (
+            <div className="mobile-bottom-shell" ref={setBottomNavigation}>
               <nav
                 className="mobile-bottom-nav"
                 aria-label={t('navigation.primary')}
@@ -460,6 +536,8 @@ function AuthenticatedAppShell({
             />
           ) : null}
           <Snackbar />
+          {/* The one support report sheet; it outlives the screen opening it. */}
+          <SupportReportHost />
         </div>
       </ActiveNavigationAreaContext.Provider>
     </ShellUtilitiesContext.Provider>

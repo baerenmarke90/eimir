@@ -80,6 +80,12 @@ projection including available signals for:
 - READY media object count and aggregate stored bytes;
 - background-job state, oldest pending job, and recent failed-job technical
   metadata;
+- the number of support reports in state `NEW`, and a `support_reports_unread`
+  warning when a `NEW` report older than 14 days exists while support reports
+  are enabled (counts only; no report content or identifiers). While
+  `EIMIR_SUPPORT_REPORTS_ENABLED` is off the count is always 0 and the warning
+  never appears, even when `NEW` reports exist from an earlier period in which
+  the switch was on;
 - privacy-safe warning codes for actionable configuration/runtime conditions.
 
 Where no authoritative runtime primitive exists yet, the API reports that the

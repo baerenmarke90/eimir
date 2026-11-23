@@ -2,9 +2,11 @@
 
 **Status:** Accepted (merged 2026-11-20, PR #2050)  
 **Date:** November 18, 2026; updated November 19, 2026 for the Product Owner's repository-visibility direction;
-updated November 20, 2026 for the current `main` baseline and the owning issue  
-**Owning issue:** [#2082](https://github.com/baerenmarke90/eimir/issues/2082) (Phase 1). Phases 2 and 3 get their own
-issues when they start.  
+updated November 20, 2026 for the current `main` baseline and the owning issue; updated November 22, 2026 for
+the Phase 2 plan and the Product Owner's decisions of that day; updated November 23, 2026 for the implemented
+Phase 2  
+**Owning issue:** [#2082](https://github.com/baerenmarke90/eimir/issues/2082) (Phase 1),
+[#2182](https://github.com/baerenmarke90/eimir/issues/2182) (Phase 2). Phase 3 gets its own issue when it starts.  
 **Builds on:** [ADR 0006](../m6/ADR-0006-ENTITLEMENT-ARCHITECTURE.md) (capability entitlements),
 [`BUSINESS-MODEL.md`](../BUSINESS-MODEL.md), [`FREEMIUM-FEATURE-MATRIX.md`](../FREEMIUM-FEATURE-MATRIX.md) (Version 1.37),
 [`PREMIUM-BILLING-STRATEGY.md`](../PREMIUM-BILLING-STRATEGY.md) and [`SELF-HOSTING.md`](../SELF-HOSTING.md)  
@@ -57,7 +59,8 @@ The ten modules hold 23 tables. Their ORM models are 1,342 lines.
 Deliberately **not** part of the plugin, with the reason:
 
 - `recaps` (3,881 lines) stays Core. Its matrix row is "Premium composition / Free retained artifacts" and
-  retained editions must stay readable without Pro. The local model helper now lives in the Core module
+  retained editions must stay readable without Pro. #2085 later moved the composing half into the plugin package
+  `recap_composition` (see the recap gap below). The local model helper now lives in the Core module
   `eimir.local_ai`, used by `context_tags` and `daily_checkins`.
 - `wish_selections` (884 lines) stays Core. The matrix classifies it Free/Core; only the date-idea candidate
   branch checks `planning.date_inspiration` (`wish_selections/service.py`, `DATE_IDEAS_CAPABILITY`).
@@ -67,11 +70,35 @@ Deliberately **not** part of the plugin, with the reason:
 - Four capabilities are plain gates inside shared Core code and stay there: `memories.map`
   (`api/v1/places.py`), `relationship.passport` (`api/v1/dashboard.py`, `recaps/service.py`),
   `partner.quick_actions.extended` (`api/v1/engagement.py`) and `theme.bespoke_packs` (`api/v1/appearance.py`,
-  `appearance/models.py`).
+  `appearance/models.py`). [#2084](https://github.com/baerenmarke90/eimir/issues/2084) moves them into the plugin
+  one by one; `memories.map` is done (route `api/v1/memory_map.py` and read model `places/memory_map.py` are
+  plugin code, the capability is plugin-owned), and so is `partner.quick_actions.extended` (route
+  `api/v1/partner_quick_actions.py`, package `partner_quick_actions` with the `support_gesture_requests` model and a
+  manifest row, whose existing migration stays in the Core chain like the other Pro-table migrations of
+  decision 6; the gesture vocabulary, the notification projection and the Free thinking-of-you signal stay Core).
+  `relationship.passport` is plugin-owned as well: the passport and Wir lifeline routes
+  (`api/v1/relationship_passport.py`) and their read models (package `relationship_passport`) are plugin code, while
+  `getDashboard` and its shared Story summary stay Core; recap composition followed in #2085 (see the recap gap
+  below). `theme.bespoke_packs` is plugin-owned too, but it has no
+  server feature code to move: the three value checks in `api/v1/appearance.py`, the stored columns and the value
+  enums stay Core, and the designs themselves live in the clients
+  ([#2086](https://github.com/baerenmarke90/eimir/issues/2086)). Without the plugin a Pro value is refused under
+  any grant, Free values keep working and a stored Pro value stays in effect.
 - `media.video_upload` (`api/v1/video.py`, `attachments/videos.py`, `attachments/video_jobs.py`,
   `jobs/video_worker.py`, gate also in `attachments/service.py` and `photo_sources/service.py`) and
-  `daily.insights` (`daily_checkins/insights.py`, `recaps/mood.py`, `api/v1/daily_checkins.py`) are extractable,
+  `daily.insights` (`daily_checkins/insights.py`, the recap mood rhythm, `api/v1/daily_checkins.py`) are extractable,
   but they are woven into attachments and recaps. Their extraction is deferred to a later phase.
+  [#2085](https://github.com/baerenmarke90/eimir/issues/2085) extracts them under the Product Owner's rule "what is
+  Free is Core; what Premium newly creates is plugin". `daily.insights` was done (insight and weekly brief routes as plugin code) until the Product Owner removed
+  and deferred Einblicke in [#2210](https://github.com/baerenmarke90/eimir/issues/2210): the routes, the package
+  `daily_insights`, the retained-rating table and the recap good-days rhythm are gone, and `daily.insights` is a
+  reserved capability without implementation again. Today's check-in stays Core. `media.video_upload` is
+  done too: the video processor (package `video_processing`, `videos.py`) and its validation job are plugin code,
+  the job kind is in `PLUGIN_JOB_KINDS` and the capability is plugin-owned. The shared media pipeline
+  (`attachments/video_jobs.py`), the restricted process runner (`attachments/media_process.py`), voice notes,
+  admission, playback, export, restore, deletion and retention stay Core. Without the plugin a server behaves like
+  one without a video processor: no new video, queued video validations stay pending, and a transfer bundle with
+  video is imported only after the member confirms leaving its videos out (#2141).
 - `storage.cloud_quota_50gb` is an operating-model capability, already removed on Self-Hosted by
   `CLOUD_ONLY_CAPABILITIES` in `entitlements/service.py`. It stays Core.
 
@@ -95,25 +122,41 @@ whether it is closed before Phase 3 or accepted.
 | `partner.once_messages` | `once_messages` (sending Premium; reception and deletion stay non-paywallable through manifest rules) | Yes | |
 | `presence.location` | `presence` (own consent, Stop and deletion stay non-paywallable) | Yes | |
 | `planning.date_inspiration` | `date_ideas` and its catalog | Yes; the Core consumer in `wish_selections` goes through a hook | |
-| `memories.map` | Gate in shared Core (`api/v1/places.py`) | No: the check and the feature stay public code | [#2084](https://github.com/baerenmarke90/eimir/issues/2084) |
-| `relationship.passport` | Gate in shared Core (`api/v1/dashboard.py`, `recaps/service.py`) | No | [#2084](https://github.com/baerenmarke90/eimir/issues/2084) |
-| `partner.quick_actions.extended` | Gate in shared Core (`api/v1/engagement.py`) | No | [#2084](https://github.com/baerenmarke90/eimir/issues/2084) |
-| `theme.bespoke_packs` | Gate in shared Core (`api/v1/appearance.py`, `appearance/models.py`) | No | [#2084](https://github.com/baerenmarke90/eimir/issues/2084) |
-| `media.video_upload` | Woven into attachments and the video worker | No: extraction deferred | [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
-| `daily.insights` | `daily_checkins/insights.py`, `recaps/mood.py` | No: extraction deferred | [#2085](https://github.com/baerenmarke90/eimir/issues/2085) |
+| `memories.map` | Plugin route `api/v1/memory_map.py` and read model `places/memory_map.py` (tag `places` kept); Places, coordinates and Memory–Place links stay Core | Yes: moved into the plugin by [#2084](https://github.com/baerenmarke90/eimir/issues/2084) | |
+| `relationship.passport` | Plugin routes `api/v1/relationship_passport.py` and package `relationship_passport` (passport and lifeline, tag `dashboard` kept); recap composition routes `api/v1/recap_composition.py` and package `recap_composition` (tag `recaps` kept: selection pool, requests, jobs, notices, film, freshness, montage and mood); reads, reflections and the reflection check stay Core (`recaps/service.py`, `recaps/presentation.py`) | Yes: passport and lifeline moved by [#2084](https://github.com/baerenmarke90/eimir/issues/2084), recap composition and its jobs by [#2085](https://github.com/baerenmarke90/eimir/issues/2085); the capability is plugin-owned | |
+| `partner.quick_actions.extended` | Plugin route `api/v1/partner_quick_actions.py` and package `partner_quick_actions` (command and `support_gesture_requests`, tag `notifications` kept); vocabulary, projection, thinking-of-you and the module switch stay Core | Yes: moved into the plugin by [#2084](https://github.com/baerenmarke90/eimir/issues/2084) | |
+| `theme.bespoke_packs` | Value checks in shared Core (`api/v1/appearance.py`, `appearance/models.py`); the capability is plugin-owned, the packs live in the clients | Partly: plugin-owned by [#2084](https://github.com/baerenmarke90/eimir/issues/2084), so Core-only refuses Pro values; the check itself stays public code | [#2086](https://github.com/baerenmarke90/eimir/issues/2086) |
+| `media.video_upload` | Plugin package `video_processing` (processor and validation job); pipeline, voice notes, playback and the retained-media lifecycle stay Core | Yes: processor and job moved by [#2085](https://github.com/baerenmarke90/eimir/issues/2085), the capability is plugin-owned | |
+| `daily.insights` | None since [#2210](https://github.com/baerenmarke90/eimir/issues/2210): Einblicke, its routes, the rating table and the recap mood rhythm were removed and deferred | Nothing to protect: reserved capability without implementation again | |
 | `storage.cloud_quota_50gb` | Operating-model capability, removed on Self-Hosted | Not Pro code; stays Core by design | |
 | `chapter.rich_presentation`, `occasion.automation`, `recap.pdf_yearbook`, `recap.video_montage`, `question.5_year_mirror`, `surprise_mode.vault` | None (no implementation) | Nothing to protect yet: the first implementation is written as plugin code | |
 
-Two further gaps are not capabilities:
+Two further topics are not capabilities:
 
-- **Recap composition.** `recaps` stays Core so that retained editions remain readable without Pro; the Premium part
-  of composition is part of [#2085](https://github.com/baerenmarke90/eimir/issues/2085).
+- **Recap composition (closed).** Retained editions stay readable without Pro, while the Premium composition is plugin code
+  since [#2085](https://github.com/baerenmarke90/eimir/issues/2085). The read path of a stored edition (source
+  projection, live answers, places, media, tags, the couple's own words and the frozen mood) is the Core module
+  `recaps/presentation.py`; `recaps/service.py` keeps the reads, periods and reflection writes, the job member
+  helpers live in `jobs/members.py`, and the privacy scrub on source changes stays `recaps/invalidation.py`. The
+  composing routes (prepare, request, read and change the selection, keep an edition) are plugin routes
+  (`api/v1/recap_composition.py`); the selection pool, requests and the life of an edition, the jobs, notices,
+  film, freshness, montage and mood computation are the plugin package `recap_composition`. The plugin registers
+  the recap handlers and schedules the scan through `register_jobs()` and `ensure_scheduled()`; the five recap job
+  kinds are plugin job kinds. A Core-only instance behaves like an expired Pro: stored editions and reflections stay
+  readable, exportable and restorable, a deleted source leaves the edition, account deletion removes the member's
+  private draft, members can still edit or withdraw their own words, the composing paths are absent, and queued
+  recap jobs stay unclaimed and pending. When the plugin returns, the queued composition runs with its original
+  payload and the editions composed before stay unchanged (`tests/integration/test_core_only_recaps.py`).
 - **Clients.** The Web and Android clients contain the Pro screens and generated Pro client code. This decision is a
   backend seam; [#2086](https://github.com/baerenmarke90/eimir/issues/2086) decides what the public export contains.
 
-Result: six capabilities with server code are protected, four plain gates and two deferred capabilities are not, and
-the clients are undecided. The Core must not be published (Phase 3) before the Product Owner has decided each open
-row. Publishing earlier would expose the gate-only features and the client Pro code.
+Result: when this decision was taken, six capabilities with server code were protected, four plain gates and two
+deferred capabilities were not, and the clients were undecided. After #2084 and #2085, eleven capabilities with
+server code are plugin code with a plugin-owned capability; `theme.bespoke_packs` is plugin-owned, but its value
+check stays public Core code and its designs live in the clients; `storage.cloud_quota_50gb` stays Core by design;
+six capabilities have no implementation yet; the clients are still undecided
+([#2086](https://github.com/baerenmarke90/eimir/issues/2086)). The Core must not be published (Phase 3) before the
+Product Owner has decided each open row. Publishing earlier would expose the gate-only features and the client Pro code.
 
 ### Direct Core-to-Pro coupling (verified)
 
@@ -232,11 +275,16 @@ The seam is internal to the eimir. product. It promises no compatibility to thir
   default would switch Pro off on every existing Cloud and Self-Hosted installation, which contradicts "behavior
   identical". The default is therefore `pro` while the plugin is in-tree; the Core-only configuration is exercised
   by tests and CI. When the code leaves the public image (Phase 3) the Core default becomes empty and the Pro image
-  sets `EIMIR_PLUGINS=pro` in its own environment.
+  sets `EIMIR_PLUGINS=pro` in its own environment. **Changed in Phase 2 (#2218):** the default is already empty,
+  and the default `pro` stage of `backend/Dockerfile` sets `EIMIR_PLUGINS=pro`, so every image built without an
+  explicit target keeps the Pro plugin. A source checkout runs Core only unless it uses `uv sync --all-packages`
+  and `EIMIR_PLUGINS=pro`.
 - Entry points need installed distribution metadata. Running from a plain `PYTHONPATH` without an installed
   project finds no plugin and, with the Phase 1 default, refuses to start with a clear message. Local recipes must
   use the installed environment (`uv sync`).
-- The `api`, `worker` and `migrate` processes load plugins through the same function and the same setting.
+- The `api`, `worker` and `migrate` processes load plugins through the same function and the same setting, and so
+  does the optional media role (`jobs/video_worker.py`) since #2085: it claims video validation only when a loaded
+  plugin registered it.
 
 ### 3. The hook contract
 
@@ -248,23 +296,26 @@ the caller's `Session` and never commit, roll back or open their own transaction
 | --- | --- | --- | --- |
 | `seam_version`, `core_revision`, `name` | (new) | Constant attributes | Mismatch refuses to start (decision 1). |
 | `capabilities() -> frozenset[str]` | (new) feeds the filter next to `CLOUD_ONLY_CAPABILITIES` in `entitlements/service.py` `_grant_capabilities()` | Pure; read once at startup | A string that is not a `Capability` value refuses to start. Absent plugin: decision 5. |
-| `routers() -> Sequence[APIRouter]` | C1 | Mounted once, in `create_app()` (`main.py`), into `normal_router`, after all Core routers; today the router is assembled at import time of `eimir.api.v1`, which Phase 1 changes into a builder function | A `(method, path)` pair that collides with Core or another plugin refuses to start. Absent plugin: the paths do not exist and FastAPI answers `404`. |
+| `routers() -> Sequence[APIRouter]` | C1 | Mounted once, in `create_app()` (`main.py`), under `/api/v1` after all Core routers, with the same `require_normal_operation` dependency as `normal_router` (the Core router stays assembled at import time) | A `(method, path)` pair that collides with Core or another plugin refuses to start. Absent plugin: the paths do not exist and FastAPI answers `404`. |
 | `model_modules() -> Sequence[str]` | C2, C3 | Import only | Import error refuses to start. Lifecycle correctness never depends on this hook (decision 4). |
-| `migrations() -> MigrationSpec` (script location, `version_table`) | (new, decision 6) | Run by the `migrate` service after Core reaches head, in the same deploy step | A failing plugin migration fails `migrate`, which blocks the runtime exactly like a failing Core migration (`SELF-HOSTING.md`, "Upgrade and rollback semantics"). |
+| `migrations() -> MigrationSpec \| None` (script location, `version_table`), seam version 6 (#2186); the Pro plugin returns `None` until its first new table | (new, decision 6) | Run by the `migrate` service after Core reaches head, in the same deploy step | A failing plugin migration fails `migrate`, which blocks the runtime exactly like a failing Core migration (`SELF-HOSTING.md`, "Upgrade and rollback semantics"). |
 | `register_jobs(registry)` | C5 | Handlers run in the job's `unit_of_work` with the existing retry, `DeferredJobError` and `RetryableJobError` semantics | Registering a kind that Core or the manifest does not declare as plugin-owned refuses to start. |
 | `ensure_scheduled(session)` | C6 | Called inside `_ensure_maintenance()`'s `unit_of_work`; must stay idempotent with the existing advisory-lock pattern of each module | An exception aborts the worker start, as today. |
 | `on_outbox_event(session, event, event_type)` | C8 (`calendar_sync.on_outbox_event`) | Runs inside `project_event()` before `_event_effects_allowed()`; may only enqueue work; must be idempotent under Outbox replay | An exception fails the projection job, which retries, as today. |
 | `project_notification(session, event, event_type, core) -> bool` | C8 projection branches | Runs after `_event_effects_allowed()`; uses the facade's target-notification projection, whose `ON CONFLICT` keys keep replays idempotent; returns `True` when it handled the event | Absent plugin: events of plugin types are not projected, so no new notification appears. |
 | `engagement_targets() -> Mapping[EngagementTarget, TargetRule]` (row check and SQL `exists` predicate) | C9 | Pure SQL expressions composed into Core queries; no I/O, no writes | Absent plugin: the predicate is `false()`, so existing notifications for those targets are hidden (fail closed). |
 | `attachment_read_rules() -> Mapping[str, AttachmentReadRule]` | C17 | Read only | Absent plugin: the existing `privacy_absence` branch denies the read. |
+| `push_preview_detail(session, context, target_type, target_id) -> tuple[str, str] \| None` (#2158, seam version 4) | (new) the plugin half of the encrypted device preview v3 | Read only; called only for a plugin target Core already found current for the reader; returns closed machine codes (title, body), never free text | Absent plugin: plugin targets are never current, so no preview asks for it. |
 | `on_partner_joined`, `on_membership_ended`, `on_member_left`, `on_account_deleted`, `prune_expired` | C7, C10 to C13 | Run in the caller's transaction at the existing call sites; with the plugin loaded they own its tables' lifecycle (update of decision 4) | An exception rolls the whole lifecycle transaction back (fail closed, as today). Absent plugin: the manifest rules alone apply. |
 | `export_account_document(session, authorization, scope) -> Mapping` | C14 | Read only, inside the export transaction | Absent plugin: the manifest export rule produces the same keys (decision 4). |
-| `date_idea_catalog() -> Catalog` | C18 | Pure, cached | Absent plugin: Core treats the catalog as unavailable, which is the existing paused state of a round that contains date ideas (#465 within #1535): Wish-only rounds are unaffected, nothing is deleted, export keeps catalog IDs only. `IDEA_ID_PATTERN` stays a Core contract constant. |
-| `seed_demo(session, result)` | C19 | Inside the demo seed transaction; idempotent like the existing demo helpers | Absent plugin: the demo Space has no quote preferences and no location share. |
-| `validate(settings) -> None` | (new) | Startup only | Raising refuses to start with the plugin's diagnostic. |
+| `date_ideas() -> DateIdeaSource \| None` (`revision`, `view`); the shared DTOs live in the Core contract `eimir.wish_selections.date_idea_contract` | C18 | Pure, cached | Absent plugin: Core treats the catalog as unavailable, which is the existing paused state of a round that contains date ideas (#465 within #1535): Wish-only rounds are unaffected, nothing is deleted, export keeps catalog IDs only. `IDEA_ID_PATTERN` stays a Core contract constant. |
+| `hidden_wish_ids(session, context) -> frozenset[UUID]` | (new, [#2158](https://github.com/baerenmarke90/eimir/issues/2158) H, seam version 5) | Read only, inside the caller's read or write transaction | Absent plugin: nothing is hidden. Core (`eimir.wishes.concealment`) masks the returned Wishes in its read models (list, detail, Search, Wir, notification titles, Wish selection, the one-phone game pool) and refuses the reader's writes to them while an open remote Wish detective game hides them. |
+| `seed_demo(session, result, *, created)` | C19 | Inside the demo seed transaction after the demo Pro grant; idempotent like the existing demo helpers; `created` limits the location share to a new or reset demo Space | Absent plugin: the demo Space has no quote preferences and no location share. |
+| `validate(settings) -> None`, seam version 6 (#2186); the Pro plugin has no setting of its own yet | (new) | Startup of the API, the worker and the media role; `migrate` loads no application settings and does not call it | Raising refuses to start with the plugin's diagnostic. |
 
-C15 and C16 (attachment parent resolution and owner classification) and C4 and C7 are **not** hooks. They become
-manifest rules, because they must work without the plugin.
+C15 and C16 (attachment parent resolution and owner classification) and C4 are **not** hooks. They become
+manifest rules, because they must work without the plugin. C7 is both: the plugin's `prune_expired` hook with
+the plugin loaded, the manifest's expiry rules without it (update of decision 4).
 
 ### 4. Data lifecycle never depends on the plugin being loaded
 
@@ -371,9 +422,16 @@ The executor is never weaker than the plugin. Its known, deliberate differences 
   Core migrations, because they are shared contract.
 - Consequence for the public Core: existing installations know these 23 revisions, so the published Core chain must
   contain them unchanged. The public Core therefore shows the schema of the existing Pro tables (not their logic),
-  as does the manifest in decision 4. Tables of future Pro features live only in the private plugin environment.
+  as does the manifest in decision 4. The migrations of future Pro tables live only in the private plugin
+  environment. Their table and column names do not: decision 4 requires a Core manifest row for every plugin
+  table, so deletion, retention, encryption and export keep working without the plugin. The Product Owner accepted
+  that on November 22, 2026 (see the Phase 2 update in decision 8); there is no plugin-supplied manifest hook.
 
 ### 7. Repository layout and API contract
+
+> **Superseded on November 22, 2026 by [Decision 0019](0019-repository-split-and-cutover.md).** The end state is a
+> public Core repository with fresh history plus a small private Pro and release repository, not one private
+> development repository. The seam, the allow-list checks and the contract rules below stay valid.
 
 Following the Product Owner's direction, there is **one private development repository** that holds Core and Pro,
 and the public Core repository is **produced from it**. This replaces the two-repository workflow the first draft
@@ -406,6 +464,31 @@ assumed.
   It remains possible later, but it is not needed for the chosen direction and costs a second CI and review cycle
   per contract change.
 
+**Update of November 20, 2026: Phase 1 implemented.** Pull requests #2091 (a), #2093 (b), #2108 (c) and
+#2116 (d) implement Phase 1; `main` at `d3503cc5f` was checked against the acceptance criteria. The code
+differs from the text above in these points, which the hook table now reflects:
+
+- `PLUGIN_SEAM_VERSION` is `3` (raised with the hooks of b and d). #2158 raised it to `4` with the
+  `push_preview_detail` hook and to `5` with `hidden_wish_ids`.
+- Plugin routers are mounted on the application under `/api/v1` with the `require_normal_operation`
+  dependency, not into a rebuilt `normal_router`; OpenAPI and the route resolution of every operation are
+  unchanged.
+- The date-idea hook is `date_ideas() -> DateIdeaSource | None`; the vocabulary and DTOs a Wish selection
+  round shares with the catalog moved into the Core contract `eimir.wish_selections.date_idea_contract`.
+- The demo hook is `seed_demo(session, result, *, created)`.
+- Plugin-owned job kinds, notification targets and capabilities are Core sets in the manifest
+  (`PLUGIN_JOB_KINDS`, `PLUGIN_ENGAGEMENT_TARGETS`, `PLUGIN_CAPABILITIES`), not per-row fields.
+- `alembic/env.py` already used `db/registry.load_all_models()` before Phase 1, so C3 was resolved through C2.
+
+Not implemented in Phase 1, because nothing uses them yet: the `migrations()` hook and the separate plugin
+Alembic environment of decision 6 (no new plugin table exists), the `validate(settings)` hook, and the
+ServerAdmin view of dormant plugin data from decision 5. The startup warning for dormant plugin data of decision 5
+is implemented (#2121, `eimir.plugins.dormant`); the admin view is not. The `/api/v1/instance` field stays a
+separate task.
+
+The Core-only configuration runs as `Backend Core-only` in the full CI tier of pull requests and in the
+nightly regression of `main` (#2096); pushes to `main` start no CI run, and the cheap pull-request tier skips it.
+
 ### 8. Phasing
 
 **Phase 1: the seam, code stays in this repository.** The Pro modules move nowhere. One in-tree plugin object
@@ -437,12 +520,71 @@ configuration; (d) date ideas, `eimir.games` split and demo hooks.
 `backend/pro/`) inside the same repository, with its own tests. That directory is the boundary the public Core
 export leaves out. No behavior change.
 
+**Update of November 22, 2026: the Phase 2 plan** ([#2182](https://github.com/baerenmarke90/eimir/issues/2182),
+baseline `main` at `1ebb920db`, Alembic head `0170`). The Product Owner decided on November 22:
+
+1. **Layout.** The distribution is `eimir-pro` in `backend/pro/` with the import root `eimir_pro`. A namespace
+   package `eimir.pro` is not used: `eimir` is a regular package, and a separate top-level package keeps "Core never
+   imports Pro" a plain prefix check. `backend/pro/` must be extractable unchanged into a private Pro repository and
+   install on top of a published Core. The entry point `pro` moves with the plugin object (`eimir_pro.plugin:plugin`),
+   the expected distribution becomes `eimir-pro`, and the default of `EIMIR_PLUGINS` becomes empty in the same step;
+   the Pro image sets `EIMIR_PLUGINS=pro`. That step comes last.
+2. **What moves**, derived from the manifest, the plugin object and an import graph: the 15 Pro packages, the 16
+   plugin routers, `games/service.py` and `games/waiting.py`, `places/memory_map.py`, `providers/caldav.py` and the
+   six provider modules only Pro imports (`calendar`, `calendar_transport`, `google_calendar`, `google_photos`,
+   `google_photos_config`, `immich_photos`), and the Pro-only runtime dependencies `defusedxml` and
+   `google-auth-oauthlib`. Encryption is unaffected by the rename: a payload's crypto context is its class name.
+3. **Migrations (decision 6 confirmed).** The 22 revisions that create or change Pro tables and the 6 Core revisions
+   that restate Pro values in shared constraints stay unchanged in the Core chain. No Core table has a foreign key to
+   a Pro table. Seam version 6 adds the `migrations()` hook and a plugin migration runner as a scaffold: it runs
+   after Core reaches head in the `migrate` process, uses its own `version_table`, and creates nothing while the
+   plugin has no revisions. A committed schema fingerprint of the head proves that a fresh database reaches the same
+   schema with and without the plugin. A Core baseline squash that would leave the Pro tables out of the public
+   chain is deferred; it can be done later at any head, because a baseline that takes the id of the last squashed
+   revision needs no adoption step for existing databases.
+4. **#2148.** The `validate(settings)` hook joins seam version 6. `proFeaturesAvailable` with its Core-only client
+   state and the ServerAdmin view of dormant plugin data wait until Self-Hosted work starts.
+5. **Repository.** Phase 2 runs in this repository; an extraction dry-run job builds a Core wheel and installs
+   `backend/pro/` from a clean copy on top of it. No second repository is created in Phase 2.
+
+**Update of November 23, 2026: Phase 2 implemented** ([#2182](https://github.com/baerenmarke90/eimir/issues/2182)).
+
+| Pull request | Content | `main` |
+| --- | --- | --- |
+| #2184 | This decision: the Phase 2 plan | `513eaafba` |
+| #2186 | Seam version 6, plugin migration runner, schema fingerprint | `19323f964` |
+| #2187 | Empty `eimir-pro` workspace distribution and CI lanes | `f2c975bc8` |
+| #2191, #2193, #2196, #2198 | The Pro modules, routers, providers and tests move in four clusters | `50b21de63`, `beeb8ece7`, `1f098ac71`, `deaccbe2b` |
+| #2216 | Core tests import Pro code only where they need it | `128d9070b` |
+| #2218 | The plugin object and entry point move; `EIMIR_PLUGINS` defaults to Core only; `core` and `pro` image stages | `2e7d2271b` |
+| #2219 | Extraction dry-run job | `f1b675375` |
+| #2220 | Documentation and this status | this pull request |
+
+The implementation differs from the plan in these points:
+
+- **Fewer modules at the end.** #2211 removed the insights while Phase 2 ran, so `backend/pro` holds 14 Pro
+  packages, the `games` read models, the seven provider modules and 15 plugin routers. The `daily.insights`
+  capability value stays in the Core vocabulary.
+- **One Dockerfile with two stages.** `core` holds no Pro source. `pro` is built on exactly that stage and is the
+  default target, so existing image consumers are unchanged. **The published image therefore still contains the
+  Pro code until Phase 3.**
+- **Revision pin.** Core and Pro are built in the same image, so the plugin reports Core's build revision. A Pro
+  image built `FROM` a Core digest that records the Core revision it was built against remains Phase 3.
+- **The plugin migration chain is a scaffold.** It has no revision; the existing Pro tables stay in the Core chain.
+- **Test coverage of the public Core.** The Core-only lane now installs Core alone. Three Core lifecycle test modules
+  (`test_core_only_lifecycle.py`, `test_dormant_plugin_data.py`, `test_plugin_lifecycle.py`) create real Pro rows
+  through the Pro models, so they run only where `eimir-pro` is installed, where they switch the plugin off
+  themselves. Before the repository split they need manifest-driven test data, or the public Core CI does not cover
+  the manifest executor.
+- **Still waiting for Self-Hosted work:** `proFeaturesAvailable` with its Core-only client state and the ServerAdmin
+  view of dormant plugin data (#2148).
+
 **Phase 3: publication and delivery.** The repository becomes private (the cleanup path in the Context section),
 the Core export of decision 7 publishes the Core into a fresh public repository, a Core image is built from the
 exported tree, and a private Pro image is built `FROM` that Core image digest with its own release identity and
 the distribution channel the Product Owner selects (open decisions). Before go-live, Phase 1 and 2 must be complete:
 otherwise the exported Core does not start without Pro. The open rows of the coverage table (section
-"Coverage of the 19 capabilities" in the Context: #2084, #2085, #2086) must also be decided before the first export, because the
+"Coverage of the 19 capabilities" in the Context; after #2084 and #2085 only #2086 is open) must also be decided before the first export, because the
 export would otherwise publish the gate-only features and the client Pro code.
 
 **Effort estimate (an estimate, not a commitment):** Phase 1 about 8 to 12 working days of agent-assisted work
@@ -516,8 +658,8 @@ and the retirement of old artifacts are operational work on top.
   public Core chain (decision 6). They reveal table and column names, not behavior.
 - **Paying Self-Hosted operators receive the code.** A Python package in an image is readable source or bytecode.
   Protection there is the license and its terms, not secrecy.
-- **Gates in shared Core code stay patchable.** `memories.map`, `relationship.passport`,
-  `partner.quick_actions.extended`, `theme.bespoke_packs`, `media.video_upload` and `daily.insights` are checks in
+- **Gates in shared Core code stay patchable.** `relationship.passport` (a new recap reflection),
+  `theme.bespoke_packs` and `media.video_upload` (admission) are checks in
   public code. Anyone running a modified Core can remove them, as they can today.
 - **Workflow cost.** With one private development repository there is no second PR per change, but there is an
   export step to maintain, a public repository whose contributions must be carried over by hand, and two images per
@@ -550,11 +692,10 @@ private as soon as that is feasible and justifiable given the implementation sta
 precondition, see decision 8). The Core is then published as its own public repository; the main repository and
 the Pro code stay private. Still open:
 
-0. **Where the Pro code lives after Phase 2:** inside the private main repository as a separate distribution
-   (`backend/pro/`, the layout this decision assumes) or in a second private repository. The Product Owner's wording
-   of November 20 ("main repository and Pro repository stay private") allows both. Phase 1 does not depend on the
-   answer; Phase 2 does. A second repository is the superseded alternative of decision 7 and would bring back the
-   cost described there (a second CI and review cycle per contract change).
+0. **Where the Pro code lives after Phase 2 (decided November 22, 2026):** Phase 2 builds `backend/pro/` in this
+   repository. The intended end state is a public Core repository with a fresh history plus a small private Pro
+   repository; the current repository is set private and archived at the cut-over. That brings back the cost of a
+   second CI and review cycle per contract change (decision 7); the cut-over itself is planned separately.
 
 1. **How the public Core is produced:** one reviewed snapshot per release, or a continuous mirror of reviewed
    revisions (decision 7).
@@ -563,7 +704,7 @@ the Pro code stay private. Still open:
 3. **Distribution channel for the Pro image:** a credentialed private registry, an image delivered with the
    signed license, or another channel; and how that fits "offline-verifiable without mandatory phone-home".
 4. **Package absent versus downgrade:** confirm the interpretation in the business review.
-5. **Extraction of `media.video_upload` and `daily.insights`:** deferred here; decide whether and when. Their code
-   stays in the public Core until then.
+5. **Extraction of `media.video_upload` and `daily.insights`:** deferred here; decided by the Product Owner for
+   [#2085](https://github.com/baerenmarke90/eimir/issues/2085) and done there.
 6. **License of the private package** for paying Self-Hosted operators (the public code is PolyForm
    Noncommercial 1.0.0).

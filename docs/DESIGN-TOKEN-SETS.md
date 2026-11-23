@@ -114,9 +114,15 @@ and image ratios. It must not change content, actions, routes, privacy
 presentation or the create-button contract. Colours, type families, radii,
 elevation and motion come from tokens, never from layout CSS.
 
-A layout that replaces navigation (for example the Zuhause, Unser Takt and
-Faden proposals) needs a separate Product Owner decision per layout before it
-joins the list.
+A navigation-replacing layout needs a separate Product Owner decision before it
+joins the list. The following modes were approved on 2026-11-23. Each uses the
+same destination routes, contextual create actions and secondary-page headers.
+
+| Layout | Navigation | Decision |
+| --- | --- | --- |
+| `rooms` | Room picker for Zuhause | [#1881](https://github.com/baerenmarke90/eimir/pull/1881) |
+| `chapters` | Chapter navigation for Unser Takt | [#1885](https://github.com/baerenmarke90/eimir/pull/1885) |
+| `thread` | Destination overview for Faden | [#1887](https://github.com/baerenmarke90/eimir/pull/1887) |
 
 The Momente Album/compact switch is an independent per-device presentation
 choice, not a design. It consumes the same semantic tokens and therefore
@@ -128,8 +134,8 @@ follows any design.
 selection is resolved, in the same frame as the Wir composition, and removes
 it on sign-out or Space switch. The generated blocks apply from the root, so
 every tab, portaled sheet and the browser theme colour (`theme-color`, via
-`syncDocumentThemeColor`) follow the design. Layout modes still affect only
-the screens that implement them (Wir).
+`syncDocumentThemeColor`) follow the design. Layout modes affect the screens that implement them. Approved navigation modes
+also apply to the authenticated shell.
 
 Contextual colour worlds (`data-color-world="warm"`/`"natural"`, for example
 intimate moments and plan anticipation) stay as they are in designs on the

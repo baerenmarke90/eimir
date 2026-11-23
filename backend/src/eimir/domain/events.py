@@ -151,6 +151,8 @@ class EventType(StrEnum):
     RECAP_READY = "RECAP_READY"
     RECAP_GREW = "RECAP_GREW"
     RECAPS_COLLECTED = "RECAPS_COLLECTED"
+    # #2189: an operator replied to a support report; references only, never the text.
+    SUPPORT_REPLY = "SUPPORT_REPLY"
 
 
 class PublicEventPayload(BaseModel):

@@ -137,15 +137,8 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .remote-game-pulse {
-    animation: remote-game-pulse calc(var(--duration-gesture-sequence) * 2)
-      var(--easing-standard) infinite;
-  }
-}
-
-@keyframes remote-game-pulse {
-  50% {
-    opacity: 0.35;
-    scale: 0.8;
+    animation: eimir-motion-remote-game-pulse
+      calc(var(--duration-gesture-sequence) * 2) var(--easing-standard) infinite;
   }
 }
 

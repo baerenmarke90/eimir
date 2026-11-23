@@ -11,6 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.engine import Connection
 from sqlalchemy.orm import Session
 
+from eimir.attachments.quota import StorageQuotaExceededError
 from eimir.authorization import AuthorizationContext
 from eimir.core.clock import now
 from eimir.core.errors import BadRequestError, ErrorCode, PayloadTooLargeError
@@ -160,6 +161,29 @@ def _record_exhausted_storage(
         _record_outcome(session, transfer, EventType.TRANSFER_FAILED)
 
 
+def _log_refused(
+    kind: str,
+    transfer: TransferExport | TransferImport,
+    error: BadRequestError | PayloadTooLargeError,
+) -> None:
+    """Make a handled failure visible in the worker log without private content.
+
+    The job is recorded as succeeded when the handler stores a failed status, so
+    without this line the cause would only be visible in the database. Only the
+    stable error code and identifiers are logged, never archive or user content.
+    """
+    log.warning(
+        "transfer %s failed",
+        kind,
+        extra={
+            "transfer_id": str(transfer.id),
+            "scope": transfer.scope,
+            "error_code": error.code,
+            "error_type": type(error).__name__,
+        },
+    )
+
+
 def handle_export(session: Session, payload: dict[str, Any]) -> None:
     identifier = _identifier(payload, "exportId")
     if identifier is None:
@@ -213,6 +237,7 @@ def handle_export(session: Session, payload: dict[str, Any]) -> None:
         finally:
             archive.close()
     except (BadRequestError, PayloadTooLargeError) as error:
+        _log_refused("export", transfer, error)
         transfer.status = ExportStatus.FAILED.value
         transfer.error_code = error.code
         _record_outcome(session, transfer, EventType.TRANSFER_FAILED)
@@ -268,6 +293,7 @@ def handle_validate_import(session: Session, payload: dict[str, Any]) -> None:
                 compressed_size=transfer.artifact_size,
             )
     except (BadRequestError, PayloadTooLargeError) as error:
+        _log_refused("import validation", transfer, error)
         transfer.status = ImportStatus.FAILED.value
         transfer.error_code = error.code
         _record_outcome(session, transfer, EventType.TRANSFER_FAILED)
@@ -324,8 +350,27 @@ def handle_apply_import(session: Session, payload: dict[str, Any]) -> None:
 
     try:
         with get_media_store().open(service.import_storage_key(transfer)) as source:
-            service.apply_import_bundle(session, authorization, transfer, source)
+            service.apply_import_bundle(
+                session,
+                authorization,
+                transfer,
+                source,
+                skip_videos=payload.get("skipVideos") is True,
+                videos_only=payload.get("videosOnly") is True,
+            )
+    except StorageQuotaExceededError as error:
+        # Nothing was written. The import stays ready to apply, so the member
+        # can free space or get Premium and apply it again without uploading
+        # the file once more (#2141).
+        transfer.status = ImportStatus.READY_TO_APPLY.value
+        transfer.error_code = error.code
+        log.info(
+            "transfer import refused by the storage quota",
+            extra={"transfer_id": str(transfer.id), "error_code": error.code},
+        )
+        return
     except (BadRequestError, PayloadTooLargeError) as error:
+        _log_refused("import apply", transfer, error)
         transfer.status = ImportStatus.FAILED.value
         transfer.error_code = error.code
         _record_outcome(session, transfer, EventType.TRANSFER_FAILED)

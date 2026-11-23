@@ -16,6 +16,7 @@ from sqlalchemy import select
 from eimir.api.deps import CurrentAccount, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
+from eimir.attachments.limits import video_processing_available
 from eimir.auth.policy import AuthCapabilities, AuthPolicy, resolve_auth_capabilities
 from eimir.authorization.server_admin import is_server_admin
 from eimir.config import get_settings
@@ -54,7 +55,7 @@ def get_account_capabilities(
     """Return presentation capabilities without replacing endpoint authorization."""
     return AccountCapabilitiesView(
         server_admin=is_server_admin(session, account),
-        video_processing_enabled=get_settings().video_upload_enabled,
+        video_processing_enabled=video_processing_available(),
         audio_processing_enabled=get_settings().audio_upload_enabled,
         auth=auth_policy,
     )

@@ -136,6 +136,7 @@ public class PushPreviewTest {
         assertNotNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
         value.put("v", 1);
         assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        // v3 requires its detail fields, so a v2 field set under v3 is rejected.
         value.put("v", 3);
         assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
         value.put("v", 2).put("body", "Invisible\u202econtent");
@@ -151,6 +152,51 @@ public class PushPreviewTest {
         PushPreview gesture = PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100);
         assertNotNull(gesture);
         assertFalse(gesture.body(context).contains("Never display"));
+    }
+
+    @Test public void detailedPreviewIsStrictlyVersionedAndNamesWhenAndWhere() throws Exception {
+        JSONObject value = new JSONObject()
+            .put("v", 3).put("notificationId", "01a19706-45b8-741d-a0d2-3687565a6789")
+            .put("kind", "PLAN_CREATED").put("name", "Alex").put("title", "Dinner am See")
+            .put("targetType", "PLAN").put("digest", false).put("issuedAt", 1000).put("expiresAt", 1300)
+            .put("body", "").put("when", "2035-12-21T18:00:00+00:00").put("place", "Seeblick");
+        PushActivation active = activation(fixture().getString("activationId"));
+        PushPreview plan = PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100);
+        assertNotNull(plan);
+        String body = plan.body(context);
+        assertTrue(body, body.startsWith("Alex hat den Termin „Dinner am See“ geplant.\n"));
+        assertTrue(body, body.contains("2035") && body.endsWith(" · Seeblick"));
+        assertEquals(context.getString(R.string.push_view_plan), plan.action(context));
+        // A date-only Plan names its calendar day without a time.
+        value.put("when", "2035-12-21");
+        String day = PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100).body(context);
+        assertTrue(day, day.contains("2035") && !day.contains(":"));
+        // A start reminder names the Plan, its time and its place.
+        value.put("kind", "REMINDER_DUE").put("name", "");
+        String due = PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100).body(context);
+        assertTrue(due, due.startsWith("Bald geht es los: „Dinner am See“.\n") && due.endsWith(" · Seeblick"));
+        // Unknown kinds never show the detail.
+        value.put("kind", "FUTURE_REVIEWED_EVENT");
+        assertEquals(context.getString(R.string.push_notification_body),
+            PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100).body(context));
+        value.put("kind", "PLAN_CREATED");
+        value.put("place", new String(new char[81]).replace('\0', 'x'));
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        value.put("place", "See\u202eblick");
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        value.put("place", "Seeblick").put("when", "tomorrow evening");
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        value.put("when", "");
+        value.remove("place");
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        // v2 keeps its exact field set: the detail fields are not accepted there.
+        value.put("place", "").put("v", 2);
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        value.remove("place");
+        value.remove("when");
+        assertNotNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        value.put("v", 4).put("when", "").put("place", "");
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
     }
 
     @Test public void onlyCompleteWishDatePayloadsCanBecomePublicAndTargetTheWishOrPlan() throws Exception {
@@ -202,7 +248,7 @@ public class PushPreviewTest {
         java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
         byte[] chunk = new byte[512];
         for (int count; (count = input.read(chunk)) != -1;) {
-            if (output.size() + count > 131072) throw new IllegalStateException("Fixture exceeds its bound");
+            if (output.size() + count > 262144) throw new IllegalStateException("Fixture exceeds its bound");
             output.write(chunk, 0, count);
         }
         return output.toByteArray();

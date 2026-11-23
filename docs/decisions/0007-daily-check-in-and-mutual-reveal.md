@@ -1,6 +1,6 @@
 # 7. Use one Space-day DailyCheckIn boundary and server-side Mutual Reveal
 
-- **Status:** accepted; sections 6 and 7 amended on 2026-11-13 (#1790)
+- **Status:** accepted; sections 6 and 7 amended on 2026-11-13 (#1790); section 9 amended on 2026-11-22 (#2169), superseded the same day (#2210)
 - **Date:** 2026-09-02
 - **Issue:** #598
 - **Related:** #429, #431, #432, #493, #455, #433
@@ -220,6 +220,10 @@ without exposing hidden content or repeatedly announcing unchanged values.
 
 ### 9. V1 retention is deliberately ephemeral
 
+> Amended twice on 2026-11-22: see
+> [Amendment: Einblicke removed, current day only (#2210)](#amendment-2026-11-22-einblicke-removed-current-day-only-2210),
+> which supersedes [Pro insights keep 90 days (#2169)](#amendment-2026-11-22-pro-insights-keep-90-days-2169).
+
 Daily Check-in is not a history or relationship-scoring product in V1.
 
 The server retains only rows for:
@@ -318,6 +322,54 @@ Related #1790 decisions:
 - Existing Spaces keep their stored configuration.
 - Removing the Vibe also removes its note.
 
+## Amendment 2026-11-22: Pro insights keep 90 days (#2169)
+
+> **Superseded** by the amendment below (#2210). Kept as history.
+
+**Decision owner:** Product Owner, recorded in #2169.
+
+The Pro insights (#1151, #1546) promise weekly, monthly and multiweek
+reflection, but section 9 kept only the current and the previous Space day, so
+those views could never show more than two days. The Product Owner therefore
+decided:
+
+- A Space whose **effective** entitlement holds `daily.insights` keeps Daily
+  Check-in rows for **90 Space days**, today included. 90 days is the existing
+  server cap of the insights read; nothing older is ever read.
+- Every other Space keeps the section 9 window of the current and the previous
+  Space day. Free stores no mood history for which it offers no analysis.
+- The cleanup job re-evaluates the effective capability on every run. When the
+  entitlement ends, or the Pro plugin is not loaded (Decision 0017), the next
+  run returns the Space to the two-day window. Nothing is kept "in case Pro
+  returns"; a new entitlement starts collecting history from that day.
+- The retained purpose is limited to the authorized Pro insight reads and the
+  rule-based weekly brief. No score, streak, diagnosis or cross-Space analytics
+  is derived, Mutual Reveal projection rules are unchanged, values stay in the
+  protected payload (#797), and rows remain excluded from transfer bundles.
+- Normal account and Space deletion remove the rows immediately as before.
+
+## Amendment 2026-11-22: Einblicke removed, current day only (#2210)
+
+**Decision owner:** Product Owner, recorded in #2210.
+
+The Product Owner removed and deferred the whole Einblicke feature (Pro
+insights, weekly brief, private view, history charts and the recap good-days
+rhythm). The code is archived in #2210. For the check-in itself:
+
+- Every Space, Free or Pro, keeps only the **current** authoritative Space day.
+  Once the Space day ends, its rows are purge-eligible; the cleanup job runs
+  every hour, so a value outlives its day by at most about an hour.
+- `daily.insights` no longer changes retention. It stays a reserved,
+  unimplemented capability until a new product decision.
+- Monthly and yearly recaps no longer compose a good-days rhythm. A one-off
+  worker job (`recaps.mood_purge`) deletes the counts frozen into older
+  editions, because Alembic cannot read protected payloads.
+- The ratings retained from the former weekly AI review are deleted with their
+  table (migration 0171).
+- Before a history returns, the legal review recorded in #2209/#2210 applies:
+  the history is health-related special-category data and needs explicit
+  per-person consent.
+
 ## Consequences
 
 - #493 remains open after this decision; it becomes a bounded M7 presentation
@@ -359,7 +411,8 @@ and creates different semantics across clients.
 ### Keep all DailyCheckIn records for future analysis
 
 Rejected. V1 has no approved history/analytics product purpose. Data minimization
-wins until such a purpose receives its own decision.
+wins until such a purpose receives its own decision. The 2026-11-22 amendment
+grants that purpose only to Spaces with `daily.insights` and only for 90 days.
 
 ### Persist the Today projection in the existing read cache
 

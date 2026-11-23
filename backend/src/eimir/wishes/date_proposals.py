@@ -22,6 +22,7 @@ from eimir.outbox import service as outbox
 from eimir.plans import service as plans
 from eimir.relationship import service as relationship
 from eimir.relationship.models import Membership, MembershipStatus
+from eimir.wishes import concealment
 from eimir.wishes import service as wishes
 from eimir.wishes.models import Wish, WishDateProposal, WishStatus
 
@@ -170,6 +171,7 @@ def propose(
     wish, partner_id, proposal = _lock_context(session, context, wish_id)
     if wish.status != WishStatus.OPEN.value:
         raise _changed()
+    concealment.ensure_visible(session, context, wish.id)
     is_counter = counter_against is not None
     planned_start = clock.ensure_utc(planned_start)
     accounts = {context.account_id, partner_id}

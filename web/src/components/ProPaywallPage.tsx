@@ -21,6 +21,7 @@ import {
 import { spaceEntitlementQueryKey } from '../client/spaceEntitlement';
 import { useBillingChannel } from '../client/storeBilling';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { haptic } from '../motion/haptics';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { ProFeatureCatalogue } from './ProFeatureCatalogue';
 import { TaskBackButton } from './TaskBackButton';
@@ -34,6 +35,7 @@ const CONTEXT_ICONS: Record<
   recaps: ['erinnerungen', 'notes', 'statistiken'],
   memoryMap: ['orte', 'momente', 'erinnerungen'],
   photoSources: ['photo-library', 'foto', 'video'],
+  storage: ['photo-library', 'video', 'erinnerungen'],
   calendar: ['kalender', 'gemeinsam', 'check'],
   games: ['spiele', 'smile-plus', 'highlights'],
 };
@@ -44,6 +46,7 @@ const CONTEXT_HOME: Record<ProPaywallContext, string> = {
   recaps: STORY_RECAPS_ROUTE,
   memoryMap: MEMORY_MAP_ROUTE,
   photoSources: `${MORE_SETTINGS_ROUTE}/account`,
+  storage: `${MORE_SETTINGS_ROUTE}/data`,
   calendar: `${MORE_SETTINGS_ROUTE}/calendar`,
   games: '/games',
   general: '/more',
@@ -99,6 +102,9 @@ export function ProPaywallPage({
 
   const settle = async (result: ProPurchaseOutcome) => {
     setOutcome(result);
+    // Feedback `success` only after the store confirmed it (Motion Contract
+    // 4.10, 4.12): one haptic in the native app, no celebration.
+    if (result === 'confirmed' || result === 'restored') haptic('success');
     window.requestAnimationFrame(() => outcomeRef.current?.focus());
     if (unlocksFeature(result) && accountId && spaceId) {
       // The backend reconciled the grant; renew the session read once.

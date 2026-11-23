@@ -2627,6 +2627,2736 @@
         "de": "Notiz ansehen",
         "en": "View note"
       }
+    },
+    {
+      "id": "v3-GENTLE_PROMPT-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567400",
+        "kind": "GENTLE_PROMPT",
+        "name": "Alex",
+        "title": "",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..5OZ_EIlt2ouNYWkx.wm2KWsGJXJ6GJCLiMXtCDg_48eYnFZN1QG1sbUCXUM0qGfTJS5lG6gXZb3-alsluOl9zCnKXSUDC62z_yjdzl_TEc7beOUro9bM1ZEuuoi-KPd3Ya0EKpeMi6v93bOqwkG4_FI0enfZ1VBCocItZAUbkTIql3TWneFzXd9J6mISWyQVrIfh_2u6G8Zz8qn7_NQcJVrH0xFu-UbXVj2vtAuUQLJMwe9bZi65_bsV7s6XSk9rGMxF7-lJt52kM1Jdnms5LzmatOL53R302jg0.-rz8LL25EEuRtaj0aQ5Viw",
+      "expectedBody": {
+        "de": "Wenn du magst: Halte einen Moment fest.",
+        "en": "If you feel like it, capture a moment."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v3-GENTLE_PROMPT-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567401",
+        "kind": "GENTLE_PROMPT",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..j0IKhVfRbYuH5CA4.dDfdLH2hcYJTJFRXL5QyzGeaK0Mn1JhkinsKU61k6B4YluOVVia6RsoVyhCQA_CBpsO69ammS0jWNgmsjHnomDp7szakX4wmmNsDXSxqeNubvIffzRd5oIURwHsCrS8-D-fwk9AtTbirCWezw8bYc2ukQwokCdUKIJhrX-7Ddri7_qdaQgrtx2V_jixKoOjjNiiRa0cxbzr3z5hZYKHq9XtnfikITn1LNSz1Iq0TMvvU4d71A3DEk-pRLp12RVEMAHqT8WrCEzlcw_8DRu057nPwotBEW7WXlaTM_NB-LA.-QTuRZ3aoMfKI9IONFAt5A",
+      "expectedBody": {
+        "de": "Wenn du magst: Halte einen Moment fest.",
+        "en": "If you feel like it, capture a moment."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v3-REMINDER_CREATED-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567402",
+        "kind": "REMINDER_CREATED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "REMINDER",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..bkqyEmDV9i05bAQa.ZpVQw1o9qGEJWWoiHvhBZ99CiTAGeXtpCU__LHTbDTHW47XOrqmCBqGg9kBgyf-nIdxHyha0SA2UE4ruzQnY-OJFw3pOXlN1cXVUJPtYCLlmUsHR4CvyEzx1cqevNqGpj25Fty6hYnkZdvbrjzQQm6TConQlCZ27StvH0ll4kck4D3XCj8eAOE_eGwtHFQtd-2pqRehSw8GykTaXJgnwv5Y5GxLKTutjNiQ0BI2TTGPUjNYnW-HtZB8skfBZIIMDvqXdh3QD49M7Bnj0me-FLK1-NL-sAm81lQ.YeSehLgL8EM93NvKgz7HAg",
+      "expectedBody": {
+        "de": "Alex hat eine Erinnerung erstellt.",
+        "en": "Alex created a reminder."
+      },
+      "expectedAction": {
+        "de": "Erinnerung ansehen",
+        "en": "View reminder"
+      }
+    },
+    {
+      "id": "v3-REMINDER_CREATED-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567403",
+        "kind": "REMINDER_CREATED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "REMINDER",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..uBIy3P1W_Jl8YOhs.Md9gKm1n0t_Kc6eI3DtwGTF2Xy4cNjvUOvFRLf18WqJ9NVxbAj3RCcLXiB53EMJUz1cQpvDC5MfiGMJHUx45rMSUxth-juEp4k-jFIg64E7IYe07oF7hV8XBqvnhYElDTxcFWxLEvXjXpOGQdRND_GHpxaOb6CBO91noZxYTdwGN1yz_Mr6B_ijLvwHDIZsn_-8eGowPbUx2KeFW8RXUXZ2xV9NkZVGrqAhf-IhI_xsY-Y_oelrHmdm7M6J4ZMCexFx29vZmmldhbjUp979TisdVIMaXszB-lLQVaWc1KdgrIaUxF-zFzjI2.mhrAPM4-FDhmmQ-j4VSXdA",
+      "expectedBody": {
+        "de": "Alex hat die Erinnerung „Unser Spaziergang“ erstellt.",
+        "en": "Alex created the reminder “Unser Spaziergang”."
+      },
+      "expectedAction": {
+        "de": "Erinnerung ansehen",
+        "en": "View reminder"
+      }
+    },
+    {
+      "id": "v3-WISH_REMINDER_DUE",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567404",
+        "kind": "WISH_REMINDER_DUE",
+        "name": "",
+        "title": "",
+        "targetType": "WISH",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..qqj1JKISOVqwr5Gk.Lll83nMhVzDzIIUz5W0WmEs_8JXbE0pD32m4fQH30UFm_cgQ8zqvCtLjo-ZW7D5JKyu-dWtpSgjeEiUQ2HhFqCIgBeyGe-yBR1KU9SSGuDHsDns4QoP43l9zgyIUtlLj5xNXnYeqr-vngSIniIo8o-Vy49Lt85RkCn2FBzV-W273j3tVJAcQEZBzLJ_G3aaf-xn1-1Xftq4y1PSpCd-rHJDBeTpvxBIzd6ElNKKzJ4upvwnvePGgXIzj7uBJRCufhjdIiyQN4nSLsuSH6PCubH6D.IyDOWF8AumBOZlPILaDPTQ",
+      "expectedBody": {
+        "de": "Du wolltest dich an einen Wunsch erinnern lassen.",
+        "en": "You asked to be reminded about a wish."
+      },
+      "expectedAction": {
+        "de": "Wunsch ansehen",
+        "en": "View wish"
+      }
+    },
+    {
+      "id": "v3-WISH_REMINDER_DUE-named",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567405",
+        "kind": "WISH_REMINDER_DUE",
+        "name": "",
+        "title": "Unser Spaziergang",
+        "targetType": "WISH",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "This text must stay out of the preview.",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..i2NrERcdDlqHxwEP.fd7yBIb6LUFihZGbc3jtKxUmlWMLEaN4hMw_GSsSuxg3MZzxtTmwCBBeVmGLkEUkVxZnDS5fKtLNna14fjsdwC2RjvCfgrbe1736jSJr61X3evWbQ9bQD-k9MY7ZeBv4l7XJy4eTvwDIdorY3j4z4_n4CpxcSGHDue2K1AydY5gitu-fnQLEFWRTMMXL-b7qXO8-Wy29WcKwnpPzQLuKOC7LILHHXbpVL-Zk85Y89QZRjiCX84OhA346LKU7QdQ8RZhEyVwnjQKnKZ21ydphJ11PU66mnhturqDCF-3okTFRr49SJpaRSqAc8VMB6gDTp053-TD7l47sKOThOBD8rFGOyoVghuEC8mI.u920M58-8M3_GwaIDzNBrg",
+      "expectedBody": {
+        "de": "Du wolltest dich an den Wunsch „Unser Spaziergang“ erinnern lassen.",
+        "en": "You asked to be reminded about the wish “Unser Spaziergang”."
+      },
+      "expectedAction": {
+        "de": "Wunsch ansehen",
+        "en": "View wish"
+      }
+    },
+    {
+      "id": "v3-REMINDER_DUE-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567406",
+        "kind": "REMINDER_DUE",
+        "name": "Alex",
+        "title": "",
+        "targetType": "REMINDER",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..i5JcPFaNVZOmDm9E.jDbXWR_QhGffPRO_X-ubLWXIUN2-mlu3MF7sM_pY-i-UQ4SDOac2y819l6ctHfod8jIKUC834d8cxgQix4vNIkyxN4DmLBkaBDyODl8YRb-uux4oWBFhTA6hWeLB8iQaJ6FZs25K9gCMPwPXNi4_GBBb37EUCDSuJ7lgX-37zrqY-F1ntgWdy4IN0cLUQH1NqykCet9nbZBPwSR6p4FNxvjRt9zJPGg_4UQqjt6boahmzVM2XV86V_XY19NUZEn00TqumliwIUj66RBmhPWKCPkl8_t7.rQyeN0MBkfEWveBPX3zT_Q",
+      "expectedBody": {
+        "de": "Eine Erinnerung ist fällig.",
+        "en": "A reminder is due."
+      },
+      "expectedAction": {
+        "de": "Erinnerung ansehen",
+        "en": "View reminder"
+      }
+    },
+    {
+      "id": "v3-REMINDER_DUE-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567407",
+        "kind": "REMINDER_DUE",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "REMINDER",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..Dv-pHn5NzBmn7spV.s8BvBan4_cB3hldpEkM87x_lsVn6jaTrb4IY7GnNYvaLRQZPKOc2h61Uq3jwpGREvE-DKJ5pCkxxoueRe8-rBXvO8_Rs5uBWLvFoYtVfDXvbhaN752_NK67wgZLG9cIzO8YLgMhM1rXn1Lj9ShcjFwXIcSzZdS7s2BCx2Tuf82V7McLE8GABzaYVlBV-9aMLT4_NldDAfaKsJ_BXkSRlWZ8ymQzRGKxfUuwfRLuYQiZT8Npaq4ASFrEApImYAa3ztskuRVhg2mDdxzau4GVSYQxc6dJqbyvoXWxeKB5aiyjalN6zngM.Wy3f015E6CQJwmFOVXWAZw",
+      "expectedBody": {
+        "de": "Deine Erinnerung „Unser Spaziergang“ ist fällig.",
+        "en": "Your reminder “Unser Spaziergang” is due."
+      },
+      "expectedAction": {
+        "de": "Erinnerung ansehen",
+        "en": "View reminder"
+      }
+    },
+    {
+      "id": "v3-PARTNER_KISS-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567408",
+        "kind": "PARTNER_KISS",
+        "name": "Alex",
+        "title": "",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..4npiLrAbnlfKh5nv.kgLD_yNSsdwegItndXHMs-dR0r2xzFiHe5hQ3ICwgT9szxTRkkaVHusmEtp6RzbSn5YZ0lbM9b0jwbk_1yr1xuHxzlbhjiN-ntLqnnKl4cu5tgm5NywXuk1d1xUeVRdhufH-c3hindXM88y_ljLD93f7BhK2aSdvQo0fI7QdW5OVokmWvGPBY55RO60KFVX6BRlFZD9A3mZJjkNUWMMeje5AeC_AvOQXf1zX9aaRmOXK1-oTA22Uvpwf53_JDv7A_f-d7_lGVgZbAz_1yQ.XLUerIDaN5Yd7Bw8CCl0-A",
+      "expectedBody": {
+        "de": "Alex hat dir einen Kuss geschickt.",
+        "en": "Alex sent you a kiss."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v3-PARTNER_KISS-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567409",
+        "kind": "PARTNER_KISS",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..-pwOV7uk5PzfAwkC.4_jEet0Aa-m8zS8pXcVT-Nx2pD5F3RSJxwBMKxqixc_Ip7ccDAgPRLtVEt97MgfwtNdfzvXmT0bf5VwrCVYZ4bIeYXX7jBqx45QjxHoi2hbmw-5SEQ0qVjoCTW0taypRPKUVwir12ZQkUtoU1kHUlL5LOIizrzYBqlsPMmvLtcGcJSZ--_dpN0XE57duyFm7yBatn-JPP7kwJBQGGIYXWXsRIinLXDRfN7PgCf86PT4wgenP1ZfW6pQpWiGCFIYyyQSxUDSqP8tWJOeE-ldk6gh-l0waxDkt9w6ug4Lz.vhSBgSWwKXuRccCrhud8-Q",
+      "expectedBody": {
+        "de": "Alex hat dir einen Kuss geschickt.",
+        "en": "Alex sent you a kiss."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v3-THINKING_OF_YOU-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656740a",
+        "kind": "THINKING_OF_YOU",
+        "name": "Alex",
+        "title": "",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..P8GVU6fA_WaYnIxB.nb5q2APYYqBtWOxd7-BGZZW4SBKK6gyWMC_xikeh07c3wSQySmxIDGTGV4jqSexQZbDUNcpXcBBmriouOJzNKeSQo4Q4VBauvTswYKxDhW9Fk-s_NJStFTjUODi1IU37bKpr880VmiuJGArqDYDlbGMvXia5vTkH2pRGEcvCsxTfo9XlR6FN_Wfc6N9cQ76n9qvLdCYEXAgChlCyFwyVGEgPYbXL4Jbiq8r9xtj248FnKRakdG7ZVP8Nt6y7raIpPz7qDqS7q7GNnjkIXZMMzw.cissQkc8HuRca2lOxu8qgQ",
+      "expectedBody": {
+        "de": "Alex hat an dich gedacht.",
+        "en": "Alex is thinking of you."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v3-THINKING_OF_YOU-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656740b",
+        "kind": "THINKING_OF_YOU",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..1XoNQuGWtuQF1hzj.4_gq5fMGzlAJ7cm0U8K8sk2S_g1RBc-IKqLgKPCdQJhtjESPm97zzXRwnu0lAHbfXTGVjEZpuT1YREajNUpdODc_URhSWz1matVoqJBk61vjlgF3_YX5aajmjNol-5yDdCSoe3IziF4ie0hS_BdViOpk4Bl3oX7buq_Ov8UQeKlbqauD-s3A3VeDXiNPUsPKdeoaft6QAaYLgTmm8TJKV0NMTv1DMpR9zDs1rlaHZA_GzfBb5t-5aSrCpxZ_G73mBtsyaGdJNmfVcc1-NtNbNucmovU07LZXrOQYQoOBg3Fm.LBguPP-wX_wRW9ipOizkZg",
+      "expectedBody": {
+        "de": "Alex hat an dich gedacht.",
+        "en": "Alex is thinking of you."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v3-PARTNER_CHECK_IN-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656740c",
+        "kind": "PARTNER_CHECK_IN",
+        "name": "Alex",
+        "title": "",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..CU3eYiT_FkOj2VS3.nGJqzIMqyj35dzXl_r-K1dM0CLTnEequ44bMjqbu3OCiW2zitx8V4ikcx0XUUzoRV42fYfD_J89WDwD3vJaEqtL8TQtXBA-N3I-WqSuCcFmHGegmkePd7GxgPfKtAUYsDMD8MtPHNSwHIroBTc0LkVrbuGvCzaxZqNyy8iokyugdBHpktkiraut1E5a9z28Yjhx2vek4vaGtmYd4tDBUkzU_JeVGi9cxpfSFcywimQnIYCQDRg62_WEf8PWfyXvApf7zi-30TcS2z8R1R7dfl6w.nBDENGPQ0P-BrYQCTJoeoA",
+      "expectedBody": {
+        "de": "Alex möchte wissen, wie es dir geht.",
+        "en": "Alex wants to know how you are doing."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v3-PARTNER_CHECK_IN-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656740d",
+        "kind": "PARTNER_CHECK_IN",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..Hpq5faetxW_7szu3.4ENmsUhNFTApj-ZKAdcYIhSvBs5R90aiR3dp416XdkXvZei6W8Acomn2mklUe5BRD5aYUNXfjhy4Fn6VCl4RqxUmSR8BG8zMyWFifJ2_2sSJRP90t-Ureu-98y1lJ2ZVByW1ZizhNAs1nxwMQ732iNdPPKB5xTmV1hc2VgbEkPkwM7KlQLdqud8ElcyITO14OwpTqlsyXq_ic5SiQsPG8uuQMhJmTZNvHFaMK8Fii9aXrnmn_5rpHtUWmKuxS1OYtRZ_aUQpiJyD0-7Ct-CbUraMxAb1IiIuHzF2p8YUu-ctJg.0poBtY3u6pA3BKOnITYY6A",
+      "expectedBody": {
+        "de": "Alex möchte wissen, wie es dir geht.",
+        "en": "Alex wants to know how you are doing."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v3-COUPLE_EXPERIENCE_SHARED-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656740e",
+        "kind": "COUPLE_EXPERIENCE_SHARED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "MEMORY",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Your actual words, unchanged. 💛",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..5w4C-1WEMigxyScW.l6wuO8Jf4iIN4WxwERywRRWjDvD8A4t28bowRqscbiSjkCGNUkSgzKdMk5ZIwq59MAeQ8r2GIEgfvYNtLx4JXRheoc_qSi89MGt4mb25F_1GRfb85XIrrJRkwTGotF7GWVZTkOOMmxibFgj7R8mpLcYf5VyHHqFEJfGCvy1m4eeawSDNz4txvx0NZFjIGU2swkuC7ikolmvDLbu-TRkb5f87MrFKsDyrFmT_nxHeb_dAyiayIyYShzsZh3-BJ0G7SIrP2DJPRENAJYUWpuGfQOgKPwB1hegtqwGn5NKQP1at4_i8f926ObfKKYyjonX1uU8eGicGWDlwTRU690YfiOk.CoroREa7okCHhcpLwyOBzA",
+      "expectedBody": {
+        "de": "Alex hat einen Moment mit dir geteilt.\nYour actual words, unchanged. 💛",
+        "en": "Alex shared a moment with you.\nYour actual words, unchanged. 💛"
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "v3-COUPLE_EXPERIENCE_SHARED-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656740f",
+        "kind": "COUPLE_EXPERIENCE_SHARED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "MEMORY",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Your actual words, unchanged. 💛",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..c7WPDW1gznNFxJ5V.xDnAsBGnP-GHQ8-iUBEf0hoUIXTiSS15xgyDNV7_a19Sy2t2J9-RUWpzwciZKM-eryh2HOCajg8wzGZgXRR-pDDSsq-iXkTpDB3ZqYU82k7a8zSXQsUU6Eyg0rA-1KJtNG_lWQaUmKtdruJBixBP49OF3q202rbbRPQt2zXnRj_kdjD5hS5SUGJBPGFRwwyjkopo9jNoqmyW3N8fZn8CDWLJ8xL4Qs52eB-IQ0pvbHOyIhQAZMmMAnxVa-KFHnxmCafw9plVDi-UfpTWptSXovPYSO1MoogT8ZOdztJkB1VwiVQhxSPywGoepypmOYKie8Y9PUN1e_nWzfGFZyhdPlW59adWviErOGTo8enoC9DlYA.pq-Zov5eRvoo74Y_Uhp6Pw",
+      "expectedBody": {
+        "de": "Alex hat den Moment „Unser Spaziergang“ mit dir geteilt.\nYour actual words, unchanged. 💛",
+        "en": "Alex shared the moment “Unser Spaziergang” with you.\nYour actual words, unchanged. 💛"
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "v3-PLAN_CREATED-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567410",
+        "kind": "PLAN_CREATED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "PLAN",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..QDTNPN9a1d5XpdJM.KUZ4thnCHOdNn9rYbY9xu4rAnctzeqrvr7G9ZDcuQHX3ly-UTtyJWg_GPfEDbHLo3bi0voQjV2RfVKfZYzmGOOLiK-8zN2koCzRZTk_MIWplxZ2iOqzrKMqruUfE4ZwB1cgD-XgoKB4R4OPSLFiPZnEvLlMXEfkXOeqoy1aTtALk-s8AX1aOwayXqE8_teN2JXQbzSVzn7NvMxp8yVXiOXoHvA5NWkMQIypfACaXkd9WTC2MMljkvG3MNEbWOvLkeksCons4jK5ETxYYFXF814I.u1IjQOf0ttmByr8TPd8VFg",
+      "expectedBody": {
+        "de": "Alex hat einen gemeinsamen Termin geplant.",
+        "en": "Alex scheduled a shared plan."
+      },
+      "expectedAction": {
+        "de": "Termin ansehen",
+        "en": "View plan"
+      }
+    },
+    {
+      "id": "v3-PLAN_CREATED-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567411",
+        "kind": "PLAN_CREATED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "PLAN",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..SsXSY5DElr44G-sA.v5iIVPtSZ8vqoFB4xChcdC1SxhRX8hdaPzgX00-57zbLnxCTeKr4UysiZxsFFlvqECqK6TtJAKZvaWU6grJgPjMDG9l6h53a7X8TrMIKl3rv7uCA9NyACMVcK5f-0Mkdl03e6pBnL4ivtJZ_YkTVo7Iwa243kW9dn9cZs0qpJQdD7xvaPOHu6q91zYRNsEY2iZE6lxx2hoIEjrPHDR1yq3UD0D38IOTGw7fJkbESJcCh28Zb4_txryvIahWy-1mB_krhXFKvGkjIwNb02O-h3RrSRHJQh5cW88esDsjaWRzmiQ.kqqY5HWOnGLfXnLpamwKuA",
+      "expectedBody": {
+        "de": "Alex hat den Termin „Unser Spaziergang“ geplant.",
+        "en": "Alex scheduled the plan “Unser Spaziergang”."
+      },
+      "expectedAction": {
+        "de": "Termin ansehen",
+        "en": "View plan"
+      }
+    },
+    {
+      "id": "v3-PLAN_CHANGED-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567412",
+        "kind": "PLAN_CHANGED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "PLAN",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..MrGpb8y6Vo9L4oRk.e6MSi3VVW9occZri4diylgSvRaNZ2Bg0QvmpeNhsgoMuQZPA2IZGD8wzT55kEg86hHdr5y_cPwI1OsXvzVZeiVi1pCRkgPJyaA5zPw4T4ZX8xfPS-qOv3-r1qatS_JKZh7k0mgeH88OJrN33uRhXL8rQVOBKfTGUg9tahoNzT-_6qgL9Ir0zQzPQprO7ri9wi8Fwi_tRsBoPu5uA28BRJ-do58NNaUE0-q5TuibmlexkHX_7NzRfaAv49bU3uKC4_RcpU6QcvVO2AK4sJ-U7vHo.15zlTvIpsKoWgPvXlbEYhg",
+      "expectedBody": {
+        "de": "Alex hat einen Termin geändert.",
+        "en": "Alex changed a plan."
+      },
+      "expectedAction": {
+        "de": "Termin ansehen",
+        "en": "View plan"
+      }
+    },
+    {
+      "id": "v3-PLAN_CHANGED-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567413",
+        "kind": "PLAN_CHANGED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "PLAN",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..n2bG3OxJrh2sjU2s.XOb-gqS4WBNJ4fkW16JGzNUK7w0FCeaiWbW1JR5P32k6xpoaylk1N_lAvmifixw3nE9iZ_ISMBMOUparjUMEv0CzWaJstl0_vJGssJOo94NksvurEEBHs8yQ2oR1LE5XQC7bncKyW3qtXCVA5ScI_BiLCF95C7O4W6YiLK78PfZH-BPzFnCVClIDQjpiDc-LDpQy6duUB9RucCPdxu17h2lepcyFA6cSBv-Pc-C5PYZgc3PZ16X9m8QHynl2P43U5jdJMEzcLS_77QsPGqcVNb9i3uC2onBgDyXHawr9_vxDSw.Q9NcnNySBdSWU1dUBOBrBw",
+      "expectedBody": {
+        "de": "Alex hat den Termin „Unser Spaziergang“ geändert.",
+        "en": "Alex changed the plan “Unser Spaziergang”."
+      },
+      "expectedAction": {
+        "de": "Termin ansehen",
+        "en": "View plan"
+      }
+    },
+    {
+      "id": "v3-PLAN_CANCELLED-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567414",
+        "kind": "PLAN_CANCELLED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..QGMxDQ3H0NYIrgdK.N_kRVi8rlovRvxmyLCRxx9FxV8qgT7yd-n9ELV4iW6HlhJRMsGPNAd747889XCkXfveaTya5L66S75pg_yCMscmGQ94-OqLGdHBIi4z1Xn7h1frlRlEGotRRvoTGLw9rXbyElPXHGZkU_llUhUXjhBYnN-9yQzCww4hl_A17qr07aZdtGNU6SNCbUtLYKZoNUau81IsmybQy2z9Hl1l1IyhgjKZJnGepb9hfgXh_pcTCSMAUFW7fL3WxiztHb0x5LBKDQ_ejzUVIJbFesFl2.88AhpRKXeqj3vs5XrZq1jQ",
+      "expectedBody": {
+        "de": "Alex hat einen Termin abgesagt.",
+        "en": "Alex cancelled a plan."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v3-PLAN_CANCELLED-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567415",
+        "kind": "PLAN_CANCELLED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..U71UfFZ0haO__Qod.M4t-qWN_rndsRRVvvDisKgiJeojdQteW4JV_jOHGIchhMVTDrRINXYn8gOrwA2DErqITHO_1DHQZYhe8bSsl7FlOlv3u3x6eZFY3zTgyvJvfJynn8n2nLdf3VuohusPbnIprB68yxOWRlq9LKH4i1vvU7krh5b7DGXtdDXSv4ozYdgTwyDirHi8qEuJ2sxTamzt40PqVrkvq1hO6kRlkGyJXVrqlUQ-irjaUILinc9quYewWZzLPhB_TUJ5faCfscmkYMRkYq1Sca0mF3Q35fb9fm7_yP4T633T3n7BB9IA.tBRjWcozoVu_h1OIrwNZMg",
+      "expectedBody": {
+        "de": "Alex hat den Termin „Unser Spaziergang“ abgesagt.",
+        "en": "Alex cancelled the plan “Unser Spaziergang”."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v3-WISH_SELECTION_SHARED-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567416",
+        "kind": "WISH_SELECTION_SHARED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "WISH_SELECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..xC1A9sajT17F5vZf.ct9WCx4wlpJ3dEY9MlIblbiodjlM4Bw3mP9zsUi8jGyFoQ8zoW0fa5DgRX8aOOwJisyeJJl_iD1DrbiPDJsdTuT64ipeLDr3X_oFHp6xniIDHK-Fe_OQO8-ZljelXtzhtOEdffwXvG7MzmmmnLtfzMRDEoxWlRCLFz2Q673PziERpiWR6xEre4fdRq7A-P31Og73eYXXv9l38qKWNFMY3RJGHkLf-ZSEi2nlZadbDhc5Op2CENldJwVUaH1QEpWXws-QEqXILkuUZ-C182w6mKCmW27fL-BEKipFU1CplE2jcGvE.itmooXRwfj7pdEex9HL3-g",
+      "expectedBody": {
+        "de": "Alex fragt: Was machen wir als Nächstes? Markiere deine Favoriten.",
+        "en": "Alex asks: What shall we do next? Mark your favourites."
+      },
+      "expectedAction": {
+        "de": "Favoriten markieren",
+        "en": "Mark favourites"
+      }
+    },
+    {
+      "id": "v3-WISH_SELECTION_READY-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567417",
+        "kind": "WISH_SELECTION_READY",
+        "name": "Alex",
+        "title": "",
+        "targetType": "WISH_SELECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..rkU0FrhPUBHJDMnb.BdEUWmLvbLZrDfktmittrwoFUToF-v87vStYkt-huB_h401XonjErUVJpVmFOMG4KBlnono-n5zwwUy6y0Aci9JuZmWtNoTVjbpYSVpwLHP55I32fxMxCOopZ-yi5DeXiTYgwFJW_0n0nS3U3eUeSPfZZjo55N-1TuvOW8gsZd85PURrPu9hpm6gjTZXsoOm32JIAMNdO-k01sSLqGUaAc_YsCKKWT51DgEmBdhMLrfZkdRVksVuyIVBWoE0rmuUUFPqpqYqGEqPimEFET8ffQtGLGRmKDRbmOLQQ9tVj00L0T4.2TcB4L2N7RK5fVJIbyGlFg",
+      "expectedBody": {
+        "de": "Was machen wir als Nächstes? Alex hat auch gewählt, euer Ergebnis ist da.",
+        "en": "What shall we do next? Alex has chosen too, your result is here."
+      },
+      "expectedAction": {
+        "de": "Ergebnis ansehen",
+        "en": "View result"
+      }
+    },
+    {
+      "id": "v3-WISH_SELECTION_READY-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567418",
+        "kind": "WISH_SELECTION_READY",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "WISH_SELECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..r9mkWxC6tJ76D__H.PSqRviU_ULuTO6T2R_YT9ZypkOkhgPG_Lnmq76ANhR3pXnVC3KbPBQCfRRO4tqcxlSLhjGe4KzuR0SDD-kqP_ZvT7ltNNfYtEKiK66oXAlTN_EgT8BY7ootQv36s9dBl-_N5piVoVw6r9jnpjyKxNTfk2ngLT4e_f6pWljh4Dl02NgnkG2XJ9M4wN2ThS1VfoIobVT5mNgK5eojvpCsINyGfioDf6SNwiziri6Vr4WZFcZz_4PzBWS06R7NO73uz03XOwdMkHxkbj4DKIZ_oP_um_CIUJ2zNP3WvOko8BlcHp_BKRSJN2UQ5Vg-2zQ21gGIbqQ.1cFp-Zy2MzKzF2vAmAklOQ",
+      "expectedBody": {
+        "de": "Was machen wir als Nächstes? Alex hat auch gewählt, euer Ergebnis ist da.",
+        "en": "What shall we do next? Alex has chosen too, your result is here."
+      },
+      "expectedAction": {
+        "de": "Ergebnis ansehen",
+        "en": "View result"
+      }
+    },
+    {
+      "id": "v3-WISH_SELECTION_RANDOM_REQUESTED-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567419",
+        "kind": "WISH_SELECTION_RANDOM_REQUESTED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "WISH_SELECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..6t6rk_5eVqvpvRPb.3fnF3rQoCBd1YEN63bXKrY0K6osl-YZAoZvfd6bYIFJ4cLymzmux-nQ7Z58c6KjSibAA_IXOgshGjpS1D5yAWMvExEePQgfe7wjB0-oBtMguiCEIWql4OlswZrpicPzsANRpgtnoqCYV3xhg1I6gh_Q1X0so27y_ROvyzEr7tmC1VGAiyWREw1NtlSs2UCOubRamVxgwh1tODDlg40nBAHeUEXHC8ePfdhoOt-ZRFqIYeGq1e8hAw_0pSiSHotSFp5NmgQaykv8jE2ZadWYesnBf1MHFMQO1czmXIgjcQdh3JYl2vYIk0wxodbWDwQ.SR7Ssqw7qdrGMCRY0wy6gQ",
+      "expectedBody": {
+        "de": "Was machen wir als Nächstes? Alex möchte den Zufall entscheiden lassen.",
+        "en": "What shall we do next? Alex would like chance to decide."
+      },
+      "expectedAction": {
+        "de": "Antworten",
+        "en": "Reply"
+      }
+    },
+    {
+      "id": "v3-WISH_SELECTION_RANDOM_REQUESTED-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656741a",
+        "kind": "WISH_SELECTION_RANDOM_REQUESTED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "WISH_SELECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..mSlQTYfLr-RH_n8P.yIIH3QcOeoEYnCOtYrR01Hhtyt2pk8X7UeEC6g8VF7fQksiNm8dPJv5JtqyIaLGwfF7R3Uq6YU291Sp02jNGwz4r5JUTALFCao4pn1Lb20yIvt2s6-BTZd_XcypNCzILZtRfJf2X-JKvEA_a15VZfXKSbfGwoEPivmxBgeQEf30mkxhhXxgkc1WZSE3SGGusL8OCj2GVwjCOYeQ3etno6MIkDGdo5jy0PAOy2DKIRLhdJKP2_-k9SfKq-ZcRmtQqGO9Vnqn7NXrUVLOVcQLQqaIOqVQuD6THTMzVdKYZfotgfRzWNGJyQJyll0PDUdnpQxKWPWKHy4JMiwp8APQs.URmWIpOqAJaPjzLK7j-Z9A",
+      "expectedBody": {
+        "de": "Was machen wir als Nächstes? Alex möchte den Zufall entscheiden lassen.",
+        "en": "What shall we do next? Alex would like chance to decide."
+      },
+      "expectedAction": {
+        "de": "Antworten",
+        "en": "Reply"
+      }
+    },
+    {
+      "id": "v3-WISH_SELECTION_RANDOM_ACCEPTED-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656741b",
+        "kind": "WISH_SELECTION_RANDOM_ACCEPTED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "WISH_SELECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..YOuP0-pQKFFwV10g.OCqwOa9eL_iRqZhTuG6nBbI7FXelC8FY5cBUmYoyFuu6aqmajembN9i8QeMf8km8iPfoZOcgvHxBmf6pNpGRrdY6rPssaLaTZUeuV3BO142-ZLM_ZHRvGSr-2hMGqBPsTepJJ0tyczcV7Rzvg-lT6l3RIkwy8IbzeVbSNLQeP5CTXehDr26-2CterSOpWoMVHi_ZFHWlN0zrPrSlnEo_lT-vOfw2nHk5kROVGVCwsZi2yvcedXzoRxjwSxVEQhCFP5Y0rirOB_V16c0gUJKrItQaByUWz-uztfxyxyw7Utx9SgSgevI8TMFC82-e.__kSX3C7rp-PO9O9a9u1Yw",
+      "expectedBody": {
+        "de": "Was machen wir als Nächstes? Alex hat zugestimmt, der Zufall hat entschieden.",
+        "en": "What shall we do next? Alex agreed, chance has decided."
+      },
+      "expectedAction": {
+        "de": "Ergebnis ansehen",
+        "en": "View result"
+      }
+    },
+    {
+      "id": "v3-WISH_SELECTION_RANDOM_ACCEPTED-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656741c",
+        "kind": "WISH_SELECTION_RANDOM_ACCEPTED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "WISH_SELECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..totN93j0UcBRMpdc.bi_fetoGtxVzPOpr8BJhKNLflypaKn_PueFi9hTLxmZghpyWQDDUnoVbX8CidFm7cInPEFzNvQ5a8jkhaPDLF6KYQKRNy5gVaJ7pLCQ3TEip-Wa-0gb0rf_6-cJRntTx2d94gpTm8j0hI358-5klt1YcA7qxyGI1SesOZiHOLRJOIK2rEtu3zw7_UH3gQbtkju6slH2-xmXvxu5arwwsegz8bu4jCp6CgvdZeHAi1E4CX-bMHAk5uhpfMRnfH8hek21MaUIGSUUbsQcswJh73lyh2qy8j6IMavd4rKsGh2VTuK-e5jQx5R2-bLWll-4gWhY6lRvbGXQWU0JrLi0.oRN9mZ9UxEOIcyA3aFTg2A",
+      "expectedBody": {
+        "de": "Was machen wir als Nächstes? Alex hat zugestimmt, der Zufall hat entschieden.",
+        "en": "What shall we do next? Alex agreed, chance has decided."
+      },
+      "expectedAction": {
+        "de": "Ergebnis ansehen",
+        "en": "View result"
+      }
+    },
+    {
+      "id": "v3-WISH_SELECTION_SHARED-count",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656741d",
+        "kind": "WISH_SELECTION_SHARED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "WISH_SELECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "3",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..0o1-KTzwKqB5dK2r.bJOTE-UrcrNeN17h0c-Un4R9TZwcGxcVrlZZ3LXlYl6zpknQXYq6kQ---YKjFmbIuRSVmsQoq0RxwKi-53GyVrCB5BLMrw62fnC_OubYGWPrrTq1e3Ziz8wlObR9DUscNBJ_F6fk392nzysCkZNWX8RP8akK9lSx7fpL-IVnJds6oP38dpDMSMzPfIfqsStHI18H0jywzmnXVnxs8q1pcEql7C7NMevoVCEJArl-SKmGFgKXE62QB2G_5iT8wVSZdp2hr2ULJs9qHjv5P-Qn6pOctJm2YaH7gs8v8FEQ4eBvUzu3O3e5J1fTjingdV_nTRAG-Fbj.XKF9UcR1WmKb3OQ0NCM7Ug",
+      "expectedBody": {
+        "de": "Alex fragt: Was machen wir als Nächstes? Markiere deine Favoriten unter 3 Ideen.",
+        "en": "Alex asks: What shall we do next? Mark your favourites among 3 ideas."
+      },
+      "expectedAction": {
+        "de": "Favoriten markieren",
+        "en": "Mark favourites"
+      }
+    },
+    {
+      "id": "v3-PHOTO_REACTION-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656741e",
+        "kind": "PHOTO_REACTION",
+        "name": "Alex",
+        "title": "",
+        "targetType": "MEMORY",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..qL_pTagaK0moX14L.1JrUjjqOvC2i3AATc02jb8Dc8oIZPlYJwYx8fOc7mFq32Ag7tHeuq3BEQG4fI-MooggDlxCw5pY2_fse2Botkc39n7AtVzJCc2XbWeZViVsVZPxtt0hCECRCWbl5x6TfKANenHG-9uMd90w7yilcOkjxSiLhH1f223tWCOcPYJivqonZI3-ONcScN-sAkvW8dE1lYt3STB2UddydJfEH8j9RC-EH1gt_mHOqU_MyiF6ZAHvKAtx0sKwBD5ROLbaEOU1F959gmJc1NX0qU8_wvqABTqlT.wQ2hvLnLYL_9pyHVDCXiHw",
+      "expectedBody": {
+        "de": "Alex hat auf ein Foto reagiert.",
+        "en": "Alex reacted to a photo."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "v3-PHOTO_REACTION-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656741f",
+        "kind": "PHOTO_REACTION",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "MEMORY",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..PKYmSE1G44cvBla-.W7A1sulLIsJ-DitKFqhzNBLGgL3KmP-_ZYMwFKwp_KdLORlpRocGL5WZQR1d_44eQ9M1SCjh7E1tpW4oVblrDJuQkPWyuBGuCGEJGUbLveIpe-3KXd_1jYfpys58jJg6l_REg_TVZXk9jVpd8x2zAXwNPXEwTRfzhLU3V2uSIEWh282ILagne-TVJ5FUdtB6qSTZgrp_0h1MA98_D2TyNW9wqftkV1dy57pfIO2fsVIFTu-EOdT-ak5xbbcwXWSnRX1cCHr3T-WJUmaF3Xi-up10l0jlt2Aajq7D6gAc9MJCfNo-Ixk.UVPR0bhsE0syq34qQl8-3g",
+      "expectedBody": {
+        "de": "Alex hat auf ein Foto in „Unser Spaziergang“ reagiert.",
+        "en": "Alex reacted to a photo in “Unser Spaziergang”."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "v3-PARTNER_JOINED-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567420",
+        "kind": "PARTNER_JOINED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..cWViyWVXX1ykjyGe.5aYyBlZCZAxLCahmdRIDWXqGRucfKVB-AysZeWGDGVaPFjk-nWfW1SQH5zJJxkSnz_mKguAtitN3nhvwTTAFj41B1rMockoDI2f088LjNP3mPiB-oQzF5tFWvci9AwFsQGRN7Df0fhWcZlt08_1nYyUoSoT8ZxMy6rFyxbw4mI8orUK7oGWvt9Zn_L3c3KXDigzFNc2FIqwnTwU1cKJKAwSDIgdWlnukx5IzRLGRK4_-WSUpS_WObNHLAZcojpq6axSEzJXJPQgA12sexCEv.RehiKByCxyVxKhSTGFXNrg",
+      "expectedBody": {
+        "de": "Alex ist jetzt mit dir verbunden.",
+        "en": "Alex is now connected with you."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v3-PARTNER_JOINED-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567421",
+        "kind": "PARTNER_JOINED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..polRKGYCXHMng5cY.vST2eDAJunVOt0pCdh6rGalQVkqlr5TN09J140eM0bb0ncHoaqriFe2nO5UwtVShhHsMXk1PSiuvWuDj2FBMruS7Ip2vZji6rX_KZWttcEIA2woSUGYsbRvoQi3bDRbpe7fhBOnTBZAhdElM2RWDZP-j20xDi2HTDk7PGQJg-uQglUwpT8ian_SYErooGLPzla8mPUi8_LZxhTThXJWTKW72yoaqqjgKzTDGOR8arzFqC1TVryWF_LrrlcP0r96PkXB-qWXEVAJ3KBiUA0GX4EPUYP7lUxToHthneHyV58U.UM-uQLal_lcq46WWWvvXEg",
+      "expectedBody": {
+        "de": "Alex ist jetzt mit dir verbunden.",
+        "en": "Alex is now connected with you."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v3-COMMENT_CREATED-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567422",
+        "kind": "COMMENT_CREATED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "MEMORY",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Your actual words, unchanged. 💛",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..8XDPXanRRSmAcFkE.qiYwL-X-LDTc9ROgzfZ0SO3LC_GPIrhhCTpkoRp0RpuicJnNv_d9eFErdJ3-r8Wpt9nUKRCLEgDa6jFHRzI2jB1njvzYcOj8oYun2QePQUweQoOllkdMqtDS8ZRWgroy3lhK6Xo7TZ2mxDRHFCy5w4oYkgurkGah6AkGB2lyWA8Nhkua4PCXZeTSkSHfloAE4t6AbsN0Jk8AuvLN_KITZV36Gh0nGEqweyaPPP1lozv03IdUR_M7ZWJ5hESlvw_JyYKlqbQKNRdtHL6ctwjxOyOayVI1iJJFMw2Tyo_RCgbNTK1JikPjFjKPaFqkleAEx54-D9Vn1NI.kZvBVsFnCzbktx04WvRPnQ",
+      "expectedBody": {
+        "de": "Alex hat einen Kommentar geschrieben.\nYour actual words, unchanged. 💛",
+        "en": "Alex wrote a comment.\nYour actual words, unchanged. 💛"
+      },
+      "expectedAction": {
+        "de": "Kommentare ansehen",
+        "en": "View comments"
+      }
+    },
+    {
+      "id": "v3-COMMENT_CREATED-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567423",
+        "kind": "COMMENT_CREATED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "MEMORY",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Your actual words, unchanged. 💛",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..yWzKt3LQ1A4V7aVf.5p3co3yay5Fyvxd-Qj0-l44PyXtqgHiKFgsnLAm2OCnmCkBpSGAlgJvJtI0ok0qYEf5M9VJIiDxDJAbMNzuGPur5U6q8vK55snhndbxhd_DGQiPutvic5A48QVf60Udp0dDFwyx_zRkGOVe1sw7UIsNbSAVXPB6ApTlvwJtsIaZVhKG0_Wsr1Z_o0tI40a6uHKu6p5b911hyENkgCF5CNdT_ftbDr9GdiZg9hiBNpnMID8pMhF1m4f5eaJ6wbanKJfqHRjiMiTv_4cr-lqUHhLqwn0ClB9nOVFVH-tGy93rkwyY2T5adGzBklhlOh-mxhJARzzDRA89Zs0ZS54GXaMYbS2JFvqb_qg.4R2U0Y8zhaVjqPfj5Ei_aw",
+      "expectedBody": {
+        "de": "Alex hat „Unser Spaziergang“ kommentiert.\nYour actual words, unchanged. 💛",
+        "en": "Alex commented on “Unser Spaziergang”.\nYour actual words, unchanged. 💛"
+      },
+      "expectedAction": {
+        "de": "Kommentare ansehen",
+        "en": "View comments"
+      }
+    },
+    {
+      "id": "v3-TRANSFER_READY-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567424",
+        "kind": "TRANSFER_READY",
+        "name": "Alex",
+        "title": "",
+        "targetType": "TRANSFER_EXPORT",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..TfrCSc1HUrasRNwb.UAsT0VEB0ThxiyzcQbYCO4DCQhNincO67xlhAK7bqKQ5rLastd4iTbXpYOdg3ubz9mvTudaE9m0ku2xC4rL-7iWOsNA0GZKF3OQZHhBhDojifEklAjp6AwG-jMaB-DEIHrOzsp-9Lsr4lh6rralS_00vv2q6uD5ngHZwkMjG3ktTQQOAAGmgv-uPl6sm1wXtQL7grFVoM-VElQuAi9aymFGdipLsiGprhL3f4oSWV-kKv6ntyb-ac48OGzktpap57GFdDWp46lhS9ZtnYTY9oqdlFZQ51WvsAmJU-Oig.xqO3MZ9lrMtKbvD3EPeEwg",
+      "expectedBody": {
+        "de": "Dein Datentransfer ist bereit.",
+        "en": "Your data transfer is ready."
+      },
+      "expectedAction": {
+        "de": "Datentransfer ansehen",
+        "en": "View data transfer"
+      }
+    },
+    {
+      "id": "v3-TRANSFER_READY-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567425",
+        "kind": "TRANSFER_READY",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "TRANSFER_EXPORT",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..Kek7SFxy5F3ipt3v.f9e_gJrisftqb3B33ZixZ9jD4B3GNojEFYW0heLk5oWIDl7fj20q3r8Ponbb1qK719IAD6Oz7R0AUDijQvFezdO5Q0AszRTvCIyf51iewBE3q4ggnclxtX1LM-NG4fHJDepLWEpNcmUZ-0pb7osdmGAXxOvJQsa3nsofJ_9RO-8i1Vh2PTjr9EITBQUQTDU9fjN7t3CyBTG3o7kw0STyVN7cUC9LpqS4lSV85G2vQzRO_9EPEjaVsHlwRnyoeogEpkMdQNEb39R15t-u1ujb0_T0W26TGUzYP--iLHblteeTrtAQcl9uxC7v0RTJ3vs.PeSkXrwHXQx7Rzi-hH3PgA",
+      "expectedBody": {
+        "de": "Dein Datentransfer ist bereit.",
+        "en": "Your data transfer is ready."
+      },
+      "expectedAction": {
+        "de": "Datentransfer ansehen",
+        "en": "View data transfer"
+      }
+    },
+    {
+      "id": "v3-TRANSFER_COMPLETED-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567426",
+        "kind": "TRANSFER_COMPLETED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "TRANSFER_IMPORT",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..mzdsEy3q2w9UFcKo.4Vd4cdgHVTVjHjzkRjm7hzKt9eU2NfrZ3nhlvSaRGNa5BZg9o2-Nu0kNZWrrVmz543aNimZcGdR9OcZwM39lgv4WW0gr5rjYxDmvbWsjwcetEcELzL33ECvx1d6LC79bR5W37Daz9lKq1326qPOyGCi2EJHJT5oqt__xJvaf-KYd3-KD7mDw_s5UiwxBzyCiwqr8BVHrkHaf4Q321eWBwGApFj6XSFuyHHfm9rRyICAsVEwTyEHnKwwruICaRJkjdOzvIfKDPe-GOvOAj5MdAGIhiQySzbmxTxkF9dynPzapqA.B-LajXQDrLBsiiHFjtg_Tg",
+      "expectedBody": {
+        "de": "Dein Datentransfer ist abgeschlossen.",
+        "en": "Your data transfer is complete."
+      },
+      "expectedAction": {
+        "de": "Datentransfer ansehen",
+        "en": "View data transfer"
+      }
+    },
+    {
+      "id": "v3-TRANSFER_COMPLETED-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567427",
+        "kind": "TRANSFER_COMPLETED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "TRANSFER_IMPORT",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..OCYBoNfEqajzYVQD.35vtjxUxKogkQSt6UL9Vt5Hj_lrJylDyDTaGXyZj-gk0egZd5uqqGErvQFE3MRN6uXjFVKxVKDt_MvTEsVvNwbIKnLcCpDMpknzQON3dPEFF3iZpMsnRMD4_tY5QsBrdD3pootp1pdLAcZvaM8EuzuYT05x96lKsHtYEiEGVQv5t2gN5mxF5ZQXa1C8QEosAVGsAHJMspQeLnTHwxx3tfyfsvbHZW5zWyDSBUCYAyS5kols3inUHdiR_nmINVibgJOFLv_lSJ-eMIxlYNuklXwWe2itRJCA7-o5ivBsnDNaEi93euw8KZ7uEIv0fdO9zFrhq.H0P0slqXt1w04xsUJZ8SYQ",
+      "expectedBody": {
+        "de": "Dein Datentransfer ist abgeschlossen.",
+        "en": "Your data transfer is complete."
+      },
+      "expectedAction": {
+        "de": "Datentransfer ansehen",
+        "en": "View data transfer"
+      }
+    },
+    {
+      "id": "v3-TRANSFER_FAILED-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567428",
+        "kind": "TRANSFER_FAILED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "TRANSFER_IMPORT",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..Su2ox2eXET_Elx3U.NG9CjrbLo6e_4Jg-pMoWf95_yM3MuZpLW0NbPtN6lY8iWJ1j9BRJFDqLaOjOpzNIJP_A2g0_um-qvOzYMSaxbdgcVmli4Qe6Q8J82SBDzuZeqd0zPVWnpCd-onSFN4PCtrB0aN4cpfQymbzV3irOAbd9OrbVxDfhn0bhl5oqu3sCL61vZc1W3qgpA74bgP1-DMa7eHuPTyY6fKwWjOaw-sKRR0MNm-iLAYhB1W13MMYXLkeXMAFiV6Ozf-788EARnNcfIrMEnVAuKJIIIpOPqEc-QPv8IFmCXIaJq9O6BA.mFU86zvzR-G4pTelcmOjUA",
+      "expectedBody": {
+        "de": "Dein Datentransfer konnte nicht abgeschlossen werden.",
+        "en": "Your data transfer could not be completed."
+      },
+      "expectedAction": {
+        "de": "Datentransfer ansehen",
+        "en": "View data transfer"
+      }
+    },
+    {
+      "id": "v3-TRANSFER_FAILED-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567429",
+        "kind": "TRANSFER_FAILED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "TRANSFER_IMPORT",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..0D3Re1hMcGXDCzGl.hy-i67CI04uJIucOf_fv3k0UG087xikBItpWzyWbLBS6s2r-1wDXqA3AU0M01V9_smM0s36cz0hFPsKRNdQxJYVFE1ueFeWltWTc6keL675OOuzVVIsL1nj3fxQv42fFEB5Tg8BUjvwG5nM3hzM6Q7uoiqhz0Zb9qHoqwqQGl1vhxYNB7YYtkVPr88XrFJMCXjSsXjZwLwHfFHhk_xYK-RoGBnlYauIQXpSJwHy9_IxHM79J5tJ07GQiYWntHuXzivB4vVmyD_fC6W1uMbySRvbnM8gLCblZpBs1ag3mapQW11AfcmEQmHFsT7lK2me2.NAL_kbplzveFOfGzMfcBbw",
+      "expectedBody": {
+        "de": "Dein Datentransfer konnte nicht abgeschlossen werden.",
+        "en": "Your data transfer could not be completed."
+      },
+      "expectedAction": {
+        "de": "Datentransfer ansehen",
+        "en": "View data transfer"
+      }
+    },
+    {
+      "id": "v3-gentle-memory-False",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656742a",
+        "kind": "GENTLE_PROMPT",
+        "name": "Alex",
+        "title": "",
+        "targetType": "MEMORY",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..9Rs_46naEovD7Uqk._VQWwDjrFq4Kf1ouX2g1YgPGeuIf1VRI3hAZleHlQGTKfv1Pp93bfgQ2wfCGH8iX-wblxCsDrfib4IRrHuksxgm_SfQFFDVqomFPb9JHtw8g1InSVCy6atJovR7Kyiva2r_SaBbS7kIFugM_MxWZHa5A6ESHujme14zKpMbT3ThhuCt947VDeP2Dh45rqvsYYaEHdU91Ou3DHarZsTnbZLZdQLy3Yy1s1cUpAc-w-D-ifESbJMqkV06sS-ePB0Lv4v37WQaJsSUfkcV6hv4wog4VHTk.HVoVIl-44Np0JUrghNbbvA",
+      "expectedBody": {
+        "de": "Ein Moment zum Wiederentdecken.",
+        "en": "A moment to rediscover."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "v3-comment-digest-False",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656742b",
+        "kind": "COMMENT_CREATED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "MEMORY",
+        "digest": true,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Do not misrepresent one comment as the batch",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..mZXDH24SYrM8IQky._c9Y9jkUBnqmFJjp9XwQVIb_ZhcWFxaVlWVkbhpSOpgKx_vMI-GLG7h05GoUHPSbjVu3y9NpVE10Hga1Pteayue1tCmyaclJqIAlNOToWA9klwfVpTg2LO8GZ48CHelVFqFQmL65GfShzHn6J95p46qU2YBQ-fIHkEUZFINgUpfRGyQ8ruU-z4wAWiClFik5DcHAjiwSrjtVYyRcxnP14FLdjbkDKmA12vKXRkcoetSBeF49IRdhPY1k_Dp8-o4CT_Jsj5r2xz2ooR4t8T9DxfAWDVNu8E6Y54naFzLCtQQ705pTmbPDfyHPwlwac1ClmS3-653JsTrnODC-ui0qawc.L7UBXmPbEfMmP2jS4_kr7w",
+      "expectedBody": {
+        "de": "Es gibt neue Kommentare für dich.",
+        "en": "There are new comments for you."
+      },
+      "expectedAction": {
+        "de": "Kommentare ansehen",
+        "en": "View comments"
+      }
+    },
+    {
+      "id": "v3-gentle-memory-True",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656742c",
+        "kind": "GENTLE_PROMPT",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "MEMORY",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..lnCb9MT5V2L-E7xE.L_4guItMJeDnVLkKZrO3VkeewHlAdMJOL2mECOkc2UzbiEBpjVmgABC0fib-izmcWNKekT0NePVNMNYG_76BIngN-CNArcxdvNR1HI7VWD0FPUA0l6pr9J1ImuvGsONpq2f-mjO7keRj8_eMDiFshuRtS-8bB1uKoKNoNGxhSqlb4oPhi2nXShq9hk0rdTp70D7oM7F50W9xDW6wkvqXB83ScGBuavIw4mF-9uQtBPnz7zKiALimgmeAk1wAiPkxadSr28zDiY4MBamng9JeNeBOP917IbReTFtlIm3YjOHpSa-iYQ.kEMaricz7HgtaHGp6pfD3w",
+      "expectedBody": {
+        "de": "Ein Moment zum Wiederentdecken: „Unser Spaziergang“.",
+        "en": "A moment to rediscover: “Unser Spaziergang”."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "v3-comment-digest-True",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656742d",
+        "kind": "COMMENT_CREATED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "MEMORY",
+        "digest": true,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Do not misrepresent one comment as the batch",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..EDeRbu2Ur-e7lSMt.fRVhy-mXrHbyb9aVPeg5xrzk03RFBl-yMFhYWBa4POZECs98SN5rECgyhi3DUgjDNNJxSjgkqfWafN5F7nGiM6qVxsot6FExsNlDTeNQf2kEq9C1dvE41jDUH4bhYFIJfBiF2FHwdnN-54jJ_YiPGtQw0mh3jxIIpZJbaE_A24OYnTO7BJjYy3HHm5qQ_HnDUz_-k6UplLeOQQC4FTXRuRzVLoj3gR4USpw3d2wkL2hUXLr3hZ4YnLoJOjK5Bi5bNBIxfvOSsIAX4GR6ZqDffI94uEf__WB1sFMHpppUtU7gSm8zv5ucMEa10-FWeqiQNd_fZ-YO5URRxIAXam0uMJ6WdMaDqkGn6mRfEFmRVcqK6Q.IMUVwOgPHwbILJ3_1nrq3w",
+      "expectedBody": {
+        "de": "Neue Kommentare für dich, zuletzt zu „Unser Spaziergang“.",
+        "en": "New comments for you, most recently on “Unser Spaziergang”."
+      },
+      "expectedAction": {
+        "de": "Kommentare ansehen",
+        "en": "View comments"
+      }
+    },
+    {
+      "id": "v3-unknown",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656742e",
+        "kind": "FUTURE_REVIEWED_EVENT",
+        "name": "Alex",
+        "title": "Do not display unknown titles",
+        "targetType": "MEMORY",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Do not display unknown text",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..9cGdjR2wVFXggs4c.mytr3LBH3nG4CcRiokq5qJB9p0C12EoX-dn24bPOhb_MZwBb2fxuGg2sgUKp6EfijLMOR3iEMf5YmI6FfNxi7AXNa8P6jBq_TWgAlK_lEVLXqJpu3GVKzfhREr8j-twG_ZrT7TGQqVVeFTlRa7UZMVMaKHyBvKQ_EzJ1FKZxyIlnyjUCkGFh7PuIQ2g_WotY6WYCFtqi8rzGcc4TH8qUdW252C8vqoyu5M3X770jdh8_qNsOb_OHL5qosv2igvh7OmHBD-gid6DOkBWXJqMbXb18DHKk6kwpBHRZWgjZNKESOWBXP05cJulTFEBAgY3Pe1YGY3-w2R7UeAcqS_mSAaaXhtIkg1hnpGVa7k2DRhIBHVhl.8oN_84HkHjpBHH2lWN-FRg",
+      "expectedBody": {
+        "de": "Du hast neue Nachrichten.",
+        "en": "You have new messages."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v3-missing-name",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656742f",
+        "kind": "COMMENT_CREATED",
+        "name": "",
+        "title": "",
+        "targetType": "HEART_MOMENT",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..kLWW7bTqRJPq229w.pomPmQdxPhtyO1BjT_sonOettE9uCpRxGFvK7nOJ74tr0m0-sQ4lN8qWuK8gluLJoD-ZjXo9tvH4Q-u9ptHHZYcLgXEcq6DbxTLaIGFesOivSDmDBxaERtnesWiu59XT2oyhEP9N-AvTogtppCPXiYCRnzSh0g1IdDIThr42DndGYhPv8MK23WOrFvoCCFibH4UXmdPt_2WAyL7gPdua3ReIU11JejSy4polmQqsURdaCqSmXo31imEQrvTR8oILNz238ApkvEIGc6UfPmZi0McEL68ppMwD.3vFhKyVjS9wzuXzf0g2H-w",
+      "expectedBody": {
+        "de": "Dein Partner hat einen Kommentar geschrieben.",
+        "en": "Your partner wrote a comment."
+      },
+      "expectedAction": {
+        "de": "Kommentare ansehen",
+        "en": "View comments"
+      }
+    },
+    {
+      "id": "v3-VIDEO_PROCESSING_FAILED-MEMORY-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567430",
+        "kind": "VIDEO_PROCESSING_FAILED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "MEMORY",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Do not display video content or filenames",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..G-w-VsTAe49Yoq0r.pzvS5fM7QRfGk1k0lazJHEem6-bX62zCGyYBEAt73OExTKBDLLZ44wCedC0mssTLtqKGLKF7WI7pcTHbVyckRVfkVCA3mBggO3WV5r4dlXNiidRoMx_UeD_BSC2eOjkAS5XYxkvBq2iPJ684VDvHBL2SZRvAu8CkhPeq5hBMy7Br8jpA-Hfauaudl3BIX-JRiB8smDnk9F-Q3ZnwuD9qDGFjVnvjQXbRU2ChujrUh6lIm2mcC6aKhpUOPK7WWX_7A-6JK65O4YSW3YSVZtzz3-FexQOTPL2q3g5FbYNWNwkNZr-8iUk6RoH-DT5kVN29Cg9HD4YMGL1FumiCkhBGH7iQ7f00MBU.JzdYZCOcJ_CbNCXXpOyLzA",
+      "expectedBody": {
+        "de": "Dein Video konnte nicht verarbeitet werden.",
+        "en": "Your video could not be processed."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "v3-VIDEO_PROCESSING_FAILED-MEMORY-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567431",
+        "kind": "VIDEO_PROCESSING_FAILED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "MEMORY",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Do not display video content or filenames",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..IS725ah9TNFwkXeA.BAxtcoRt_MJeqRK0HG7q9G8vXL1qGvtyj7h6vc3y-INRI1GQfpgwbgkGzsx8XuCWA41AOxjrHN9q3Ki_cre-SMpkPgBBHTNftgUVHnW8s-LzkAcLj4XFJvRa-okHg58LzPVe-axorWP8iAV6lJsoi160AKD2KYV0DehmuWsvzZA0I7ihzskyx7oZyFt7kYqMAfDGXttAGrI2XyiJunPnCRy7xV7PonoJFQlOuTClnVwuOTiz_ySsQSd57JZp6THJIfqPV0XSR2my7IIhTvjfm4jcfKd2sOf3aS-2eZBt3N28w4WYHgBFoLEdaXK9q_Jsn1hFK2xiIxaTpFKHvBHRBFDm3IrLMKdbLDuupElIkwc9JMUiNVpjow.LcSMYVmF8UkyHv_GsybdXQ",
+      "expectedBody": {
+        "de": "Dein Video in „Unser Spaziergang“ konnte nicht verarbeitet werden.",
+        "en": "Your video in “Unser Spaziergang” could not be processed."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "v3-VIDEO_PROCESSING_FAILED-HEART_MOMENT-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567432",
+        "kind": "VIDEO_PROCESSING_FAILED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "HEART_MOMENT",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Do not display video content or filenames",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..vcjqz54A3Z7pqGeW.519kqZ1SqlbEYguUBoR-YoqHUoSA122xWSMx3DNh0tKu1DcwvUPyAaWQCA5O0DX4-9WOjyOfvydIZaK35PHXo98BBASRi6PaLpJskudChZ4hjVgwODRS1-Wtzdzsc9KRmqafUUcbWnlbUgHzYhDC-05Mb6dlCIyPYAY_w56zQCJu2shdEUKp0ZZtf26lg23lf47HO6-KGbBNGaukJShv0V0N0la7EiMYpmQl-_GELXlPlsUbvInc7-YenevTJzUTW3v6fuPRtCHDFbKX1dgYn9ROn8EPGFdfFTjcJckX1ZvR77MPjYN9MgaNQeVsX0w4hYaboZCQoN0eTDlMd3DlkPPRu0DpaNsb3tv6HGM.zc8Ynf5--pH8gWfPVPBbLw",
+      "expectedBody": {
+        "de": "Dein Video konnte nicht verarbeitet werden.",
+        "en": "Your video could not be processed."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "v3-VIDEO_PROCESSING_FAILED-HEART_MOMENT-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567433",
+        "kind": "VIDEO_PROCESSING_FAILED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "HEART_MOMENT",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Do not display video content or filenames",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..zdub1iGPHjD2uFo8.Zgm0Eu-IFo7uIcHPc7a3HmF_tzi_9YAT4bPBr7Knf_CKxjNddSoiObuUyDsYW-7IP5l1zkmN7R5TzXyBpR3LWsmGVWysz9gTgWRajjdojrkSQ7NCXGsuv33fUrROyqBKg1g2uy4qSGv4HWX-kHg9cKR-8IHRY-mikqJ3CdrV5jxAe1IZQmb1OIrtUpGRO9dhP-e3CDv3ObxqF-y2bfNFVVHaR-goBjk1WPMqcNwD0y7RAW9HDpJ-GctssRZcsIs4weaBZ2Tn-0XC4ojQtqIBJ7P1POyAbzL2QOa2fxQWX_BuPfG56Jz51jIMkz-IhexuU_EXnTOmHYpUoy2ijAnW_tTrFt6caKBApWVPdwl_NHU_jEZEWsSZ4qmOc1BJmA.cOeihH3HxLybpnuNWsU4MA",
+      "expectedBody": {
+        "de": "Dein Video in „Unser Spaziergang“ konnte nicht verarbeitet werden.",
+        "en": "Your video in “Unser Spaziergang” could not be processed."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "v3-COLLECTION_SENT-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567434",
+        "kind": "COLLECTION_SENT",
+        "name": "Alex",
+        "title": "",
+        "targetType": "COLLECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9.._720j0pTDuPPJ2Pp.phBGjye0nlAjjV0Uy1JWIxOZA6gAqiaNikCv6X1YMwDMVzwPffrK-zhhBsVhwIgsGXfiGfnO7efAIhZ80V4K17pACa_QHuUdvmRC3nPWwjoSAI71oUybyU-9mikihH-SwNdOjm3V4fW0QZPbuv7E97rUWizQ-o4zBlqgbRzBS5BqcCMqJ029TTG3D4qXuL2iWQMQNDEAvZ8wf_tgAB1D-Z5uI8C-CXXXJSJAY4qj-ijeXjbRBaOR-Vo86-doO-MpKEvWd7E6hldAgoo1FC8XpUrxj7lAGc0rWLw.Nz3hoapTBUSbJ-cxAl-Rlw",
+      "expectedBody": {
+        "de": "Alex hat dir eine Liste geschickt.",
+        "en": "Alex sent you a list."
+      },
+      "expectedAction": {
+        "de": "Liste ansehen",
+        "en": "View list"
+      }
+    },
+    {
+      "id": "v3-COLLECTION_SENT-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567435",
+        "kind": "COLLECTION_SENT",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "COLLECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..-SDVHZ2fbAUBttYO.vFm6kq8gk4WbUSE0LjcrOoSFeBOMYjYdZ8_DYJFac5V774aCUG5G3bbU5nsvosZEDkitzQR4rSlPtgRC_IKSJD6jhPvJEyxIsdMz31P0uqvepS_3C2weqsQuS6wNyORfTUQK0Kx24kgxoOHKoyIYKDiVAl6H2rFRsZUsbNfycvgeVOnnuobdsMdsEKqhlKv_7zy3LQh_DuqCQxLUg8wW5-entGYSV3OjsYK6JtCKBK8dUpWUpNoz4tN2fA3PXY2nVbVrOuV-UtRZe1EW9kfB5tFB4NozLcMTIaF6juOUU860YcpgxgjLPg3l7g.4I3xJxDNcnnQzwkX2RTveQ",
+      "expectedBody": {
+        "de": "Alex hat dir die Liste „Unser Spaziergang“ geschickt.",
+        "en": "Alex sent you the list “Unser Spaziergang”."
+      },
+      "expectedAction": {
+        "de": "Liste ansehen",
+        "en": "View list"
+      }
+    },
+    {
+      "id": "v3-HEART_HUNT_HIDDEN-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567436",
+        "kind": "HEART_HUNT_HIDDEN",
+        "name": "Alex",
+        "title": "",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..9OkcFHhxNwmoIm2D.WOvwcNaNDAg7qgGNzzLYEsE8J7Dkg_TWN63eaGzDbL3Jhf-Tg-qO61sjpeihUojqUUt8W-xdBaxq4jNR0JThs62BPVZPdrjTqGXSd7HHtqdFmSp1jvW1ACQhJTg6UxK1jpiRWjWyIQgoo39eKaY2-mFdzh3jy_PZrglL3dft_8fh4E9asLJbG8150hZrCopsyh-au8-2x41pX257Zj1M02mfDJnE5o3cB3RWVlDQWQWivZ7fRhvVLnMEDNwXZ1l-b0XRr_GKEUPC-BnJSWp64h7r.oJi_3I3lSKUHgADThL_C5Q",
+      "expectedBody": {
+        "de": "Alex hat ein Herz versteckt.",
+        "en": "Alex hid a heart."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v3-HEART_HUNT_HIDDEN-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567437",
+        "kind": "HEART_HUNT_HIDDEN",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..CmFUBapaxowRtrcN.2lyVDMz4XNNmygVLgfJIrdIm283r6HtgCEafScFdehYuTwBTE6R0RREMvu0__xwMD0akMJfNjizf3skR5TP7S3JOwOPdS7tsVhKC2u18snANOyT_XxYWidSyPs4xAyCmI_02QbI0074K4boJAG6AmYorTujhW9i8W_qxp49pzpVVaOrjcc8PjWK30v8hTJ7_CJ8mtipiS0GU6SK4URcpqb07U7IT3BRhP4mHiDvn5Pu-tpJQdp-NjrdsxoYnlm7t8OImuJJ2TQD8HOVF_KHM6x-SMPr0J05PXQyyGkCOTa60Nm0.oW6rCF76_h4BDRp5KTCWKw",
+      "expectedBody": {
+        "de": "Alex hat ein Herz versteckt.",
+        "en": "Alex hid a heart."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v3-HEART_HUNT_FOUND-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567438",
+        "kind": "HEART_HUNT_FOUND",
+        "name": "Alex",
+        "title": "",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..PvLBefOEQcifNN3V.1vaFZUzZNYzD9m3-vxJKkSZ95o3lb-xScuI-aFAfLeF7fnNHRUcbzY-deXr_4NO-760EbGimBagFFirESBLlOcm_jHuCg5XT47nvce24NKcM6aaCPA_yFwzdML6F8Q-I04O4ESXuLW8UDnOeKitABeEDWrNFu8Nn_nWsUXY66tb3Fg4H5L2G5QiLWmErEnd3PJpyAIRKwhiWfbammlb21zdP41C_02Cy8hk02basHsYDfTdmL9gkRWWnDlOmh3CKs2orVEB6hbEVoFSZK9tO2PI.5kEjXD6L7MIIvzmNbQdSFg",
+      "expectedBody": {
+        "de": "Alex hat dein Herz gefunden.",
+        "en": "Alex found your heart."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v3-HEART_HUNT_FOUND-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567439",
+        "kind": "HEART_HUNT_FOUND",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..yaU-tbUmK7D2t1yR.XDrnYbcAC09Bel5Rlxws2X44QYgnd2fsDFXOcwK_NWGN41rPzbpTEGPtAbFMKNrBTxI8wvSqfMfNOFJ8m4FMNz__uh8rVOgI_0DxFKo8JINfZvEmmthyK6uLbGMrRVmMPJa4GyXKIf1I-l4Ca8ZIkfWAjsQJvIHxYxgMInWP3OrRacjcnyrzdsmtbJOJmhqQJ0TUE1Jqap9hAlSlHs5xtKQddjXjwMjpCI7ZwGlpUtk0vairUbLeAeMhKYLUZRdyvmn4_WFjJ-jhJU91R958Ku9WjkxQRIvCcg6q2V1wQGgoQw.pDGZ_6jCleI5OMR1nYnczg",
+      "expectedBody": {
+        "de": "Alex hat dein Herz gefunden.",
+        "en": "Alex found your heart."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v3-PICTURE_PING_PONG_TURN-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656743a",
+        "kind": "PICTURE_PING_PONG_TURN",
+        "name": "Alex",
+        "title": "",
+        "targetType": "PICTURE_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..1S_2lvlqbn148vZt.2B8fgI0nr7KStCgkEU1GFn1mPJChE-xiUA9CQ601c89IRS12Y-FBAgzfPyvVdXBU7K6ee1RewoSZot_A_2xUMXtAhN4HSR7W_3rxMDq7Q0QoAG3JK-PIH54o2IexLBbLWVDX7cxPgI07tjaLt9Z-NPlt-uKXGP8rX8EYO7UYO_2KXFxB249bWKfrn1rgdsU80Ca4m358HozmtmJZxSJHWq1YbimqHk76k4W3iQYn5cZN8Z9L9yWs8mo--WKV3jAEaGAJ8_66V_92qRvknQHXjDRRvdLvDXPHRyyKFvlIHX1uWhI.ljp9Kj4tJTYSSp5UMXIlvg",
+      "expectedBody": {
+        "de": "Alex hat am Bild weitergemalt. Du bist dran.",
+        "en": "Alex added to your picture. It is your turn."
+      },
+      "expectedAction": {
+        "de": "Weitermalen",
+        "en": "Keep drawing"
+      }
+    },
+    {
+      "id": "v3-PICTURE_PING_PONG_TURN-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656743b",
+        "kind": "PICTURE_PING_PONG_TURN",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "PICTURE_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..9CT4Hx8bc90oat5c.P8yp_ctBH20A59DsQeSlmGvGQOm1q40WdGxQsUIXAkAll9rfYCRAHZ1vgYctgdlvEWX1iQsPf_DhatSC_fpNqWDH9faTCog3BZ4e_pU69ig8sHwFyPp7Vu0JU0UgDT--iA-LnBz-YEDJgp9SpJB-WBtufbrROYe8qlOMX4rTnupomT4RkEcKylHiJv0YJk246qFXNmN8qrfzkRmpiRZPGEcb6Of9K1wPqHQojr2VziPcLvpjQWtG8pm0DtM1Oh6j56EGqpaSOOZ4PxE3b6AZ7TJfEQT6h4__tijSHRSNu3sPNbLOkOkIuJsgocyWraIZzlHuNw.2p1uybGSvTNZqvsi_ingJA",
+      "expectedBody": {
+        "de": "Alex hat am Bild weitergemalt. Du bist dran.",
+        "en": "Alex added to your picture. It is your turn."
+      },
+      "expectedAction": {
+        "de": "Weitermalen",
+        "en": "Keep drawing"
+      }
+    },
+    {
+      "id": "v3-GARDEN_SEED_ARRIVED-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656743c",
+        "kind": "GARDEN_SEED_ARRIVED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "GARDEN_SEED",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..sUZKnPMgkgLJnc-a.pjl0muj8PneCLOk3Gjjja8A5CK1IsLkFPRua7fs1igqkXDzjVJr9Ck7rkDA-QfZnKsjEEFcK-YoLCFpFYfRVQrIPiJgGWi5QtQA6ZshJkT0ldNirQw5DXRAHPJT1Vj6lR_0CfIV5SVN8wF3mRyjCxN1Xj4hoE5FzGyIhYTA5NHApWOGPDu-NTpl24R85xj2ri6wR5GF2jn3ZkKXn_ZPTkcnAFDAVoheNEfdRZjR2jVAwDF-fUlVhqQY4eGqFsqIWfheSm9r1XmDL6dM2NV9IgOTZ6SRf7alaK2tCc7SMvA.BkTxFEMSA-cnQjlS2QH1_A",
+      "expectedBody": {
+        "de": "Alex hat dir einen Samen geschickt.",
+        "en": "Alex sent you a seed."
+      },
+      "expectedAction": {
+        "de": "Garten ansehen",
+        "en": "View garden"
+      }
+    },
+    {
+      "id": "v3-GARDEN_SEED_ARRIVED-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656743d",
+        "kind": "GARDEN_SEED_ARRIVED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "GARDEN_SEED",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..ARo2H94XdOidQprV.7VVf5V_fAM3Ii6cl3O5sHc1kx4shrIf4F6yqTFcctvvWWO4kjUm60AcbrHvmRoAxl8UfrhYJEShNd7ouUzA4NxkwGQli4LoQ3h2ybUSQGCxoCu3-zQI91z9aC_ZKGDfrC1tUcjHz14ULcIiSTJeaySAtPeXIfAhz_sVYA7T2oQc3TGhqHnPe9tdCU9KU16bQLp2kYL6QU0TcWBqe88WsZXu9EznRPHnBzuZEnfwLA85RI9Vf8kEFs40eLbG37Wovv-EgRWd1ArIBeH6U0khbilDuCBrY7XLTLju35enGoICORJANUP-LVo7xV9wsNhlF.SBHN3Png8ZiwDOIKz7MENw",
+      "expectedBody": {
+        "de": "Alex hat dir einen Samen geschickt.",
+        "en": "Alex sent you a seed."
+      },
+      "expectedAction": {
+        "de": "Garten ansehen",
+        "en": "View garden"
+      }
+    },
+    {
+      "id": "v3-GARDEN_BOUQUET-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656743e",
+        "kind": "GARDEN_SEED_ARRIVED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "GARDEN_BOUQUET",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..-LA2Evi3vIUBSmx4.y1XbCza-TZANzhPHVZpvYiT6cFzJLPDFw8NdAOqZ0vfDNSirSt2GKvB4o77lIvZjqbcKdMoaoLCEoOChpljl8eYv5QLFqZLqehCp6UMtG-KbKlj_jD8AVkLe3kqyPbEo9dwlEZQUQigSopXkXJlSMapUNbbsYa-8uVXCxllhl6tb2P1xq2DiHzsAyWdouFPC1OdEvGZUbJg7pCYn3B4wBOoht7Zjxh7hTR6MDyQWkTP0HH2NuSzTQv5TmKtEbVvzZhKceMWTYkBT_fx5AVVMC-zYMTspxMPmbQbLz5zycE6usynfj3oQWWhkijwBmKPPAck9.EN9hOSpmVc0Cn0BqQZc13g",
+      "expectedBody": {
+        "de": "Alex hat dir einen Strauß geschenkt.",
+        "en": "Alex gave you a bouquet."
+      },
+      "expectedAction": {
+        "de": "Garten ansehen",
+        "en": "View garden"
+      }
+    },
+    {
+      "id": "v3-GARDEN_BOUQUET-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656743f",
+        "kind": "GARDEN_SEED_ARRIVED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "GARDEN_BOUQUET",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..5hSa5DGxRbeytU8g.C2BkQXqMzWQmtuIqNU-625ZkgSxEps-_5stF49PW0IeA6FYlI6vzC4dXsTeriaebCihD9kyCTjuCVOtcPL674npU-UTGagKJs1vnR4IXtzq5tqCVQoLKII_g4KWUjwFPU1y8Tz5btVm5DTwi5kGLy-tiO3evBVbwWkf-si9-Eqag9XH90tI1wM42UQwuhFEHs7SUq__f3mAmHvEKykVna4nDhStUfHEyEuTfLtdB7p4v6LA4Y3wccjxc8tcX1UBvYY7-Nlx78WgqLe9fb01QOZksasHkXcuV3jvgfNXDGwNomQ.JdW6X4o0I2FI8lwO6T76Jw",
+      "expectedBody": {
+        "de": "Alex hat dir einen Strauß geschenkt.",
+        "en": "Alex gave you a bouquet."
+      },
+      "expectedAction": {
+        "de": "Garten ansehen",
+        "en": "View garden"
+      }
+    },
+    {
+      "id": "v3-RECAP_READY-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567440",
+        "kind": "RECAP_READY",
+        "name": "",
+        "title": "",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..xlxsf35B3zGknaSP.XMZzmD2uei6E7iQ-NVT_C0dc-6-N2kzwjaZ6OsdVpNCX9xL5VTEr9GkgQ2X_FzOZMV3Ez2jF6x20UdmZUT06WebiEj3EkEC75SQuor_yp_21FoeJMiZ1wfzZDCYOjlMxdh9jkesy_2yaAam3ylB8W_qIma51k2s0u8Ieg_Z4Il0UqL4rhn-jPiritg3hnwQamgZKg_E8I-zgD_XNyLCANq0vXnOZeaKOR40BWKoiUUXpHS-HX-TTGD0m-fGmHf09tIA_niF9JnAVfHCing.aMFOur0v-4ySscGYSLWATw",
+      "expectedBody": {
+        "de": "Euer Rückblick ist fertig.",
+        "en": "Your recap is ready."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
+      "id": "v3-RECAP_READY-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567441",
+        "kind": "RECAP_READY",
+        "name": "",
+        "title": "Unser Spaziergang",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..Ywz6slVl8uIJWqf9.QSvkS3GE0l_nBjskWkqYOF7nJkrQxIkQQ2Pcj_IGenGR5YT22ChLJ-mJmjehKfH2BxAIPctlMGgYjzUWjDOKzSUz3cQ5efAPTx1Wb2a3LQwZpOAEUmqft60V6vULL-7bXZwB1FyYuLG7D18onWAu_9p-9fgHyrkoCLXnc8s_FfLuLoW9ExUTpk-ixfth77u5tIflFUFFDvHS106gDC6lGnRdKfYO6opq3siQo8eIkF_znacZujxpN9SAzuGv9Brj7s4GTvTAnlAW-4jZDR0xSpL-AGaRwi9UBLPw2KvT.lPJ4ByNAATdby-LdnQFV2Q",
+      "expectedBody": {
+        "de": "Euer Rückblick ist fertig.",
+        "en": "Your recap is ready."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
+      "id": "v3-RECAP_GREW-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567442",
+        "kind": "RECAP_GREW",
+        "name": "",
+        "title": "",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..FeXom2YWwJJQYoB8.5Qg860d-xcAlGYEjTyZ6ap_yWEAxmdF4MgxBfhBEWZlUAvsOjM2LOzbtAIIgxMj2MEzS0LxqjLSCWY_2aNFoJA8vC-_SB3QXHiIFiY-D4yTsXdhE6p44NVol47ztl2ycz8fd26epEerK5hTn8_pf7mLBEjaCJWc2rekCtJ0askGTt5LFeOeIqFreqJnD1EBtILP16I9MqZgQUMr_-KUXdwyfh5H0RxdHJGzKZhLg1Wj8VAIhG6l48aeni28d2cXb8dU2AUjIBtiWpg32.ekrblbiYfV8sCQ1evvDX8Q",
+      "expectedBody": {
+        "de": "Euer Rückblick hat Zuwachs bekommen.",
+        "en": "Your recap has new moments."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
+      "id": "v3-RECAP_GREW-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567443",
+        "kind": "RECAP_GREW",
+        "name": "",
+        "title": "Unser Spaziergang",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..Uryj6Apx9f9WnPSY.XF-LBGkYReErtzgmmTbAWypqDuyVzUSGXeyenz36kKQc6FqrDO3mQ808A5o0bqTj2BBmPFOHeOHoBpOr2Sebs5IDcXBY2-yDA8yUmrHfHtXOX1-NkKTT4NBjCPZIUj08ZirOzjILDfZQcjCsnD_anXF8At2Iao1RV444kq7ocS9vn5tgxf6wSWI9iH15klUXwVYm7hOhBVr8oJqja9J5lGJcjPpgy7FBPc3wXSZk6wpmT6ASM31sKhTMRx7CCFnAsC8kJekIiScKUWSUdmZuUyXXbi0hujNpDwVj1wc.46byPpsL39m27lUtmlGIBA",
+      "expectedBody": {
+        "de": "Euer Rückblick hat Zuwachs bekommen.",
+        "en": "Your recap has new moments."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
+      "id": "v3-RECAP_READY-month",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567444",
+        "kind": "RECAP_READY",
+        "name": "",
+        "title": "2026-10",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..taqjJv-g6yAqFJdu.DfhJYVpUl1BIQ9egmxQgAhGpFg0-SIvTDkSpkL7v_jBixlVva2lMmrMkOpjdCI5eNL9xYH6rB7mdlH-dc-M7mYngt3qFG-ppppsCUrn_x32D-trYhfITPfJ9vDRt6zV9EVwJw8ZNMpcz24wRwWLSyoeZyvMp0PCJ0sXbrH_ygK_4JHO0uofrn9YOS6huZ4TrwaSGRcShqraOAnmjBbqzqyvVbgEHADztk2V3fi0TwwD6Zz7dew-VGHO961D_lPpERvdTrxFYMLp1q2ef8UuHzZVKWXk.CslENsqFgGk7dohLZz7MWQ",
+      "expectedBody": {
+        "de": "Euer Rückblick auf Oktober 2026 ist fertig.",
+        "en": "Your October 2026 recap is ready."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
+      "id": "v3-RECAP_READY-year",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567445",
+        "kind": "RECAP_READY",
+        "name": "",
+        "title": "2026",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..m5M9DuMAZvy3z9VB.SUJLdu4AaRk5vbgpReLKPb3IrjIRZEMge-Ia_Q7-aA6623qOiJFkXV6Gi28Br2BKwt_eJCBtcsl1jnVC8RJakbw2k6gyX1XUxerxJHn5as-yEQqdKrarUr26n77bBUoL0jfMOXCmLHx4__IcssvCS8WAufVO9UoutAP8eERe9hgraRsSwHVuxTLTrex-Se8W_lKwbDeaVXYrYpsrvBhfEfzNxr11b8PfbarlGD0pMhC6kinST2b8KxNL-iaeHs1CqdFj_rTUujxYVTQi_P8qCEk.ja5pBWGZqpFJPhIVjCCx_Q",
+      "expectedBody": {
+        "de": "Euer Jahr 2026 ist fertig.",
+        "en": "Your year 2026 is ready."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
+      "id": "v3-RECAP_READY-collected",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567446",
+        "kind": "RECAP_READY",
+        "name": "",
+        "title": "",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..sZ8mypkATKOGe2yK.8IegJZfq6X27FMcNihQsq1hDyYjtrhtf7g64tOsax6xQ6e5aZf7phv7im98o1l-xcbmdSFgrlSH7Olp66h7pqn2mKdk05ioasDAEZ8d7nuX2xMWOMAqBqcj4v3S_BQoDbyZeSzQgW6NRM4Mkku8LgnLyOB-NYEH7LfLbkCPEcLJ8Y-Kq9ct56CEyFXsQ7llquZWMZvWzM16Wcf4AsvgJOqzlRenUawW2eCdEIqcThyo7otpMHauxy6qHMG-EaIPoaYTdwM387KE.bjPgDtO6Tt1dY23bb7TsXQ",
+      "expectedBody": {
+        "de": "In euren Rückblicken gibt es Neues.",
+        "en": "There is something new in your recaps."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v3-RECAP_GREW-month",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567447",
+        "kind": "RECAP_GREW",
+        "name": "",
+        "title": "2026-03",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..KCzFtzCFIigNnHDN.xm-tNp04M5Y1v_jmWA_RpkhbWfMNj8FV3RSTDHsm9hIllzwkvabWtI0-gXCQOjbkGwpppVeOPj7n5OpOmRJKEWdEHPOhfBM0yM0ag_Awrbyzv0OYrY2Nldyng6f_PiSJb1T9XfWOyBKYOJLg4FwgHT83ODzQpQTTnaAdsG3gwfiz68C_rWv45CuLQH8gZGZmEcwo9-0Q4wKg9A73AGVrlUZVjbrR2Nm026Ru-17OO10DXgFrEPmZiXuqYGau1IBughYYi0YKAOu-pQ-uIU70e1id4Q.ZSbC9ZTuwlPQgIbfgf0T5A",
+      "expectedBody": {
+        "de": "Euer März 2026 hat Zuwachs bekommen.",
+        "en": "Your March 2026 recap has new moments."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
+      "id": "v3-RECAP_GREW-year",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567448",
+        "kind": "RECAP_GREW",
+        "name": "",
+        "title": "2025",
+        "targetType": "RECAP",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..XjReXMIGmdYdMMTZ.FYyVvLaXEqDty6FCAM_LtrrGoh-tbGT231R2tfDsa1DTrj_u1i1gBn5cOTBm4z4_IK7Pfi-BNtvbcprCjZfhG2I9z-krt3nI1AmWybopKNV7YJo1S0a7edODQQ3UIbemdFbIabZ0JF2ePpdZ0S-zaZpADT3_i5JmrL56MMH7U4zKreLVWogROLOdDPHAonutYq9LyluUeCuMmnFUg2mrixqIeFpKjIcN5hq5laQwyh3-EJR_jTa7iaU3WMRcaorjQuyYgZFQ2_W1728I3lnFaQ.C3bN6Lk-lqgsAtxgIFYsdg",
+      "expectedBody": {
+        "de": "Euer Jahr 2025 hat Zuwachs bekommen.",
+        "en": "Your year 2025 has new moments."
+      },
+      "expectedAction": {
+        "de": "Rückblick ansehen",
+        "en": "View recap"
+      }
+    },
+    {
+      "id": "v3-COUPLE_GAME_TURN-WHO_OF_US_GAME-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567449",
+        "kind": "COUPLE_GAME_TURN",
+        "name": "Alex",
+        "title": "",
+        "targetType": "WHO_OF_US_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..mPReFqOkIbNSFpwX.tLUCUxzRQTq2zk3P8JydRC--F1liJV33fhRPgHjYjZlg9CKBV2J61_AUG5PQ4oaRkhjtMhIvkILWrNJOEiniIIR1AzicuDcLtvczoR5oDLTSPzMu0C80qv-tGUIUrxs50eSfLz0BN4lk2m5EdiCIL2OsvvfR7tUbmkjfHevSyDRyCCqzv6rrS5MipfJs-ySLTUi_feVs4riK-Gy3m2OAif-PSGLsENlvPEomQ0SSkFSDWe0xuSLkmQ1H0PJBiF2EG_vSPqgO7L_9yhaWMIK2Q9BkQuZLj5T8yhHHi75CNA.A7J0fF6cCbPCYWRXHW2Hhw",
+      "expectedBody": {
+        "de": "Alex hat bei „Wer von euch?“ gespielt. Schau mal rein.",
+        "en": "Alex played “Which of you?”. Take a look."
+      },
+      "expectedAction": {
+        "de": "Zum Spiel",
+        "en": "Open game"
+      }
+    },
+    {
+      "id": "v3-COUPLE_GAME_TURN-WHO_OF_US_GAME-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656744a",
+        "kind": "COUPLE_GAME_TURN",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "WHO_OF_US_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..i49lvMyJx45EaaxG.Ae4xEpfARpZmiq_28_dwgOE0oPaMmgx_3ZswITqBxlJFMLtubV6WSPlRJulbyfBaWYOqMLI4LqzEXlvs69uWC1MsxsQLSmM8gy1DtnNTDYSUg0My7G-zAwTpiilinCieFcH-3hjR33U7GQ6CkEfguYeO8EBqR8UWR-ZU1FM98lZRdLZC-NmbU0SYDgwlcuJ47s3OkLdNEBkFKVOterh9bny5nLIMQ3v1991PTJMh3NA0Y9-vT-ua4PnRsmO1NMWR3jOe4fXp1eWMnOLU3hTG507jC2wXkuFHdeETOyDl2u-Tsk3rs02MO6TvshfyZji8.IcTSTDayV_Bl84ZcG-rSQA",
+      "expectedBody": {
+        "de": "Alex hat bei „Wer von euch?“ gespielt. Schau mal rein.",
+        "en": "Alex played “Which of you?”. Take a look."
+      },
+      "expectedAction": {
+        "de": "Zum Spiel",
+        "en": "Open game"
+      }
+    },
+    {
+      "id": "v3-COUPLE_GAME_TURN-WISH_DETECTIVE_GAME-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656744b",
+        "kind": "COUPLE_GAME_TURN",
+        "name": "Alex",
+        "title": "",
+        "targetType": "WISH_DETECTIVE_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..HogT3T-ZYUuesJ9T.-QfUzvi9hzzuq3mMC6SlGeAnvvnniO1SWo0TZoS0zTLCslTnr3LIwy-SF6ZZzPdHQjVH-T8M_5LGju7_ojlXpTguC6qZUNZ3NULBu2Rs_imBdo5t6_np910Dj9utky5AtjBVHDrKn6BkQaQ5xe9Xgjlo6bcXhFV3ahAimm1JjRiRxBXaOiGXg0-m0F87wUPDWAbdZ_TjvyQI-VGYpGkLnUP04MJRDnztfU60ZdtVaMBf5R6q4SCc3nGGg668gkrhb2Xj3TKOxNOwmG9wULAnbZ9vSTXSRvjTLTsf_3am0b4idE_2.CrU5bXou1GcaBXgirBJipA",
+      "expectedBody": {
+        "de": "Alex hat beim Wunschdetektiv gespielt. Schau mal rein.",
+        "en": "Alex played Wish detective. Take a look."
+      },
+      "expectedAction": {
+        "de": "Zum Spiel",
+        "en": "Open game"
+      }
+    },
+    {
+      "id": "v3-COUPLE_GAME_TURN-OUR_MOMENTS_GAME-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656744c",
+        "kind": "COUPLE_GAME_TURN",
+        "name": "Alex",
+        "title": "",
+        "targetType": "OUR_MOMENTS_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..Z5_nBZt7uEvGrrPe.c0YjXW2i_3kx4y_BG2R1jXHm9WkwxeGt4-cowVEVmF52gDI1wja0UGGoJ9gSRVwmvw5l-lI6FENbZw_0Wh5rM6-v5l7BkEqZADl3TgylWDf_vlp8zVPLPFCtoMFdmNDXmR7Qa6ERAx8eyTZtTyYFyngUxhRXn-R8jxVCu88k1IB2pbYJ0RINoAriV7IRmy5S3Mizfr-CS0unviDK4HOmU8Ms-quVC-Mt0iARgSnJ9rXEw2kfIVTfbr6Sd1YCK4Cc9hjyHIF3k1A_ilYwyEk-BxkX8MKF3cMCTGinf738IPzD.y3VNg_2xjhZ1SPnSj3Rovw",
+      "expectedBody": {
+        "de": "Alex hat bei „Unsere Momente“ gespielt. Schau mal rein.",
+        "en": "Alex played “Our moments”. Take a look."
+      },
+      "expectedAction": {
+        "de": "Zum Spiel",
+        "en": "Open game"
+      }
+    },
+    {
+      "id": "v3-PICTURE_PING_PONG_FINISHED-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656744d",
+        "kind": "PICTURE_PING_PONG_FINISHED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "PICTURE_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..1Kylh9jlK8d5hCF3.mE7sllvN4b02A98BpBUwg4s00OLulWllfo3-N51UI74-oEeG99ikNPlCWM_oJxDEc23OZH74NhpMAiQJVAEegCWNob8chpIXSXqOTwUPQxf-TaorFnYEYtTNx_pa1_PrF9ygqypF2aD5BTsdWjIPMEGVA_PR8hqjsSYWGAIYSouq7uTVVufspBT3HzBQEOyDxR8MK0Znfms83xfVuNtC6DHQ8AHGvYHNTWc3HMgH1ZVJ1J0CvAm3zXCyQIlrixNiGTr-rEUvY3IpQyYPt_2p7rDeS9XHKUONMhp1Rw97buGxtBVJQBzx.duWp44BtTAhKJBGOpk0KrA",
+      "expectedBody": {
+        "de": "Alex hat euer Bild fertig gemalt.",
+        "en": "Alex finished your picture."
+      },
+      "expectedAction": {
+        "de": "Bild ansehen",
+        "en": "View picture"
+      }
+    },
+    {
+      "id": "v3-PICTURE_PING_PONG_FINISHED-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656744e",
+        "kind": "PICTURE_PING_PONG_FINISHED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "PICTURE_GAME",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..yx6mL1RDJ0qgVR9j.LCTL20jP4xpLNaw5Ttpo-JJtewko5Y-_hivNtFSueXgQFG3XbrhC4hrli7lTwOF6PvU-CaLrgN9sfK2J2m_vJ3A7TrDWtOVZnKFRBIzotL3O7CBVzINCDG2mS_PfL06Cj3J3wvQhKO5BBaPJdwJ3H7kOAxXRWFV4v8prpKG_mx0N4u1kKFPZYC8kuCo2ZTBp11SBAc9sAK9G7dldE-Ij303BQQ9bzZ9eCAGIqXHQTAX7bb0eEZ5RUtJihq_jBHLhtXL_zvBM-SblLPE_SCiaFsiA-2f_elTu6q_cmW1kiXKVmngSBjsPGb3OISP1_1fJ4Crl8IdgTDs.NRQTMKSYD3isDnhX9W2Axg",
+      "expectedBody": {
+        "de": "Alex hat euer Bild fertig gemalt.",
+        "en": "Alex finished your picture."
+      },
+      "expectedAction": {
+        "de": "Bild ansehen",
+        "en": "View picture"
+      }
+    },
+    {
+      "id": "v3-SHARED_NOTE_CREATED-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656744f",
+        "kind": "SHARED_NOTE_CREATED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "SHARED_NOTE",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..WwIkZOtuz5P26hJW.7m93oBcaY2LCuK1wEhQeQbNrjnkq5z6vb0VHeEnWiICLQiNQi7HpzquBX-D-E7EPM9j1k1KVrqBBHQAEGwgUAFXJvCwa_Xmbw_kIWyhbFymSMqOSrAxsnRO0mT6sWrB85u0hV9Oeqd0YGfves7ilbYJijVAU0s6fVngspWi1vS7Ztzz41x9r6GXtFdxCipqVo_JM_XMylrNDP_RoF7BcSdTqi9hC-ZZ8laFKoshCNz0T5p-9XUFiv0V8u1FZXLYHdakdlJiwJBLfi0-WF59pecaFJzI_ea-My1p9q2-49A.s1BgsaO2NixS9Bz4J6ohIQ",
+      "expectedBody": {
+        "de": "Alex hat eine gemeinsame Notiz angelegt.",
+        "en": "Alex created a shared note."
+      },
+      "expectedAction": {
+        "de": "Notiz ansehen",
+        "en": "View note"
+      }
+    },
+    {
+      "id": "v3-SHARED_NOTE_CREATED-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567450",
+        "kind": "SHARED_NOTE_CREATED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "SHARED_NOTE",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..W8HfuBotH7DvSHiY.hj0mVYnAURSKca0w_vsb552lUzZLSKC9OWgsLOGy-D1Q76SL2rHiT5engA5DeJF1RtUEDfxney0EUDej1w9KnutCoH3KTUdoGlE9naBOwpg1ePPWt8ujMsntMh0HN8TCsYVKOcOJYjpW-2RfLMaO75ieNOaVdeO5CeaAR2dPgbURaOm5vlQUACX10Uz_fd1LcSt6QYaFu8xcRD-P0IGusFfzuvR1Q9AsXNr0cG3A_kuoPOEjxCs4tk6eqyb4tm1cY2pyhhGvueJH7Vv8Ii8YtdgdlhSy6qtAPT17jqBJsfsJwEA0-iW2qXexYdnEnxLU.YVbqyLPhP5OS2X572rClvA",
+      "expectedBody": {
+        "de": "Alex hat die gemeinsame Notiz „Unser Spaziergang“ angelegt.",
+        "en": "Alex created the shared note “Unser Spaziergang”."
+      },
+      "expectedAction": {
+        "de": "Notiz ansehen",
+        "en": "View note"
+      }
+    },
+    {
+      "id": "v3-SHARED_NOTE_CHANGED-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567451",
+        "kind": "SHARED_NOTE_CHANGED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "SHARED_NOTE",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..WJQG2Dz7_GthirGX.4TEuVMz-sQdMfMBBSnvX4wI61HxAVXlhaAqOxc8551O9gPyh6x-y0cMQv0NV8am1eO1crfJFNLTYqQf5_xPDiqVdJaq9YWn1u8PPhxCUZMiMW_wlPv12bMDCXlw5ZCjbduogOQ860aIXly40j7UAjBJK9vRUPboKnJ5X0epY9qpqxF6ZvICMzatnDLBVCg2SsybwGm02Zc15FgbdVTUsgf0rhbKHPYfylwyoklkV7esWAbZv-bA9HG5aONCcOkDUX79tmd5jI8M_0TPIwZ2T6xdKbP7eTBAcCsHqoUvg_g.ddxNJLk-4AM_6Pbks93jSg",
+      "expectedBody": {
+        "de": "Alex hat eine gemeinsame Notiz geändert.",
+        "en": "Alex changed a shared note."
+      },
+      "expectedAction": {
+        "de": "Notiz ansehen",
+        "en": "View note"
+      }
+    },
+    {
+      "id": "v3-SHARED_NOTE_CHANGED-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567452",
+        "kind": "SHARED_NOTE_CHANGED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "SHARED_NOTE",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..gwnaukiq5hIboOPy.fbT4LoeCgGTNMS7q42fztQHc0PoiBQO91GqnF_RgfwrTDUIlitjJmr9gfzBNVgInSvoe8si3kWCNIl5MM3YBhfdcUpNQBNNUh9nYmPEUprzHQ_DfJOo6PLhJaJ09ODOlj84HFHqT00RL9LQcl0-jQmwzBZt9dIwd1B0nVnJgg07kshrOCUuslz_RcGncgpgwftlnDcr5qPTciFGNF7M1RcvSpqrF_sXw231JQxFErlTbWMnH5lCtpqBrilntNB4dsPQSTyq57U7SD_-4M3vR-GeWTCKd8jYQdGTxrA9OwLI0gVzEw180tY3r4WkIv5bS.ATwGlUc0q9o2K84y34rISA",
+      "expectedBody": {
+        "de": "Alex hat die gemeinsame Notiz „Unser Spaziergang“ geändert.",
+        "en": "Alex changed the shared note “Unser Spaziergang”."
+      },
+      "expectedAction": {
+        "de": "Notiz ansehen",
+        "en": "View note"
+      }
+    },
+    {
+      "id": "v3-PLAN_CREATED-place",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567453",
+        "kind": "PLAN_CREATED",
+        "name": "Alex",
+        "title": "Dinner am See",
+        "targetType": "PLAN",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": "Seeblick"
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..Kk3FJHFl4oKXp9HR.BCIPQI9bH_f8qZ1kIUZQiRgA4UfiifGKaJtUf8jUEUMbJQu38AmGdrDBzfHjtLC9K1llW13nlzkFLK0BdX2S3Cu2Ad3K2IPH3aXr2DfZ4Cf--v2S-DUnjOpcD7ztkw5KCkXm0Y1d6YVw_bNP7F6Q8-3H8HsZWhg9uSRxy9sT5MJf3wz_OUa5VejgQp5FUaMjHVaQNs5b4uFJMn6Nx0F0SqcgpykCKVCPhl1qzKjC2KbpRtDz16cb-6jnbnX_WZu7Ll52lGmT6L9HkIAArv-S0aDCST4RjQj4cmgHfo2oIsFIQAxDWK4.K2_cZHtHKnTE6kvF7KE9FA",
+      "expectedBody": {
+        "de": "Alex hat den Termin „Dinner am See“ geplant.\nSeeblick",
+        "en": "Alex scheduled the plan “Dinner am See”.\nSeeblick"
+      },
+      "expectedAction": {
+        "de": "Termin ansehen",
+        "en": "View plan"
+      }
+    },
+    {
+      "id": "v3-PLAN_CHANGED-place",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567454",
+        "kind": "PLAN_CHANGED",
+        "name": "Alex",
+        "title": "Dinner am See",
+        "targetType": "PLAN",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": "Seeblick"
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..AZkSVdjbMFv3Ihq_.fr9lJUlZOeXsI5luyUyFgqDCIngwfpWZGAjAAjMo4piFeclMAhRhlAUMCs7Mp29mhbWHLfyooNxfOjkjDo9KK-Ve051X99c_PBydlmXxL--5ElNQaZePjmlEreSfGBY3tOgi_7C5m3ULo9hTMys27ujZUYC5vr9BOdp4GU25hoT-gj-5DxGuLJtKUD_RVCUPYeUQrZH4qLYxgMSdd5f9Cr-otZgnD-ynkRh4y19lCupls_xNfpVIDaGZkHPguQ6NPV4zbqmDzdKDByiGPbFUxS-fzPJeE171jVkkT0sjxdbCOOr21xw.9zYUs9Jr3V5WIcYcBHkgzw",
+      "expectedBody": {
+        "de": "Alex hat den Termin „Dinner am See“ geändert.\nSeeblick",
+        "en": "Alex changed the plan “Dinner am See”.\nSeeblick"
+      },
+      "expectedAction": {
+        "de": "Termin ansehen",
+        "en": "View plan"
+      }
+    },
+    {
+      "id": "v3-PLAN_CANCELLED-plan",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567455",
+        "kind": "PLAN_CANCELLED",
+        "name": "Alex",
+        "title": "Dinner am See",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..IAc0NgmgL1J8X6dp.sErqZCKYpR-1zf6-1uFLAdp0CztxMnJI9ze26DXmchdFD0pZ8Ri8Pm9hk9Rh3krNYAycOBxTiCM-_n3EFSE4pCD60yFORlwVEKcrSZVlDT9pzjkheP-PokoE7uGR1HK9eLv7YygxfSJZOJHlXO-jEGQKg8uW-7Bvl-CIFPqndwSeHdmGq-IVegUOQ_ALqOAhyTmp2aO3lBx2PWctReKC2ep4qgeK6d2GgX0WXVHqWOpK9_oYzF1hgREJ3bz3yNdhlT1CEPIFV88a7hHfgKXm79l534fNEsCTc6VSjQ.UpNth3PiH57O8KI6_GIQHA",
+      "expectedBody": {
+        "de": "Alex hat den Termin „Dinner am See“ abgesagt.",
+        "en": "Alex cancelled the plan “Dinner am See”."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v3-REMINDER_DUE-plan-empty",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567456",
+        "kind": "REMINDER_DUE",
+        "name": "",
+        "title": "",
+        "targetType": "PLAN",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..mzB9MXiaxf-qc5kQ.DTaX75jphXyjDQST4yGGAV3GMJWJfltKX_IVsKBUeXakhaXIP4bdNU6Tm1BMxlanTXFpHNC0xKP7KiCNCx_9RkdmGYyPzZPOJzgQCEdS-jr67tYigBw4Ap4-LZfF1yU9d9v7EdJ8nCe9UGjtKfgHPKR8VO_zf5OO2KbkUgLLPEVl8LDKJKDSbcStY4mDMIjJ5RcO_ixwkK4wYzY_3p0DohSVpcCpk9skXXzTZ5TWttRmmsb5ud-y8GJshYzR-V1MwmPOy3X0OIvVuig4jQ.A3cVeZWE-aB0sMjaTc0S8w",
+      "expectedBody": {
+        "de": "Ein Termin steht bevor.",
+        "en": "A plan is coming up."
+      },
+      "expectedAction": {
+        "de": "Termin ansehen",
+        "en": "View plan"
+      }
+    },
+    {
+      "id": "v3-REMINDER_DUE-plan-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567457",
+        "kind": "REMINDER_DUE",
+        "name": "",
+        "title": "Dinner am See",
+        "targetType": "PLAN",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": "Seeblick"
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..nG9D7ABAfdPy71u4.6Tntwz07mBqurCE-j3KVl2_kddKcdMbKHM3pY7_yRmksxLh6RPV7vJNNaK0FUWp3vJe5lwEK3gm0q3w02K-ps6MVcDO4LR-dWD8LYz8FX5ShYqpBEFO_uvmAZW6z9MHbKEAJoeDhhLWZ3YZHOzG5dk2kFph3CDeTii2MZSAu372o-u-LsD6Ofoy-vPNvM0VIEqAlvm_WtfcqiypyIeD4MKxZrPWapxIH3a1Fz8SMK6QmXCYCHyRz3L3p55j60TPYl4hoQqnpo8zM15igTx70Opgcqe-ekr2heJGJZZR0rOeiGg.FTYEXSgVyXClkYpuuGV6Xw",
+      "expectedBody": {
+        "de": "Bald geht es los: „Dinner am See“.\nSeeblick",
+        "en": "Coming up: “Dinner am See”.\nSeeblick"
+      },
+      "expectedAction": {
+        "de": "Termin ansehen",
+        "en": "View plan"
+      }
+    },
+    {
+      "id": "v3-REMINDER_DUE-description",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567458",
+        "kind": "REMINDER_DUE",
+        "name": "",
+        "title": "Blumen bestellen",
+        "targetType": "REMINDER",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Pfingstrosen, bitte",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..z3d_X8BWSiMbEuyo.dBk5dVmwzG4FpiVB4ybNoReRrFhKC-Tg5tNb290yoiyCCnpcOwlPfqO9otmsvJiEb-PGAEDgyEDdhXbo-Mlbo8a5pqFZt-Fa9j2Lr1aUlRirbXJ6vseLbVRomj0_St0NnuhA-agWwHgSmHA1uit2Af5h1RgNxozVbBctswbq_rg4wQJGnHKTFWUWZO5wYDhKrG6S1E_dlfmv82jpASLLEOBlfalrb01Rq5Wa4uNa9iEqLldFghI_IVrnEBpZOTDaBU7NROAdkKxkg7ua7FLau8rnAgPmpPjyARMxFLn2vCITuagr7UN2jKgC5pmu8Jd5-3aITg.J5ieMQAhuavF7mm8A2sXeQ",
+      "expectedBody": {
+        "de": "Deine Erinnerung „Blumen bestellen“ ist fällig.\nPfingstrosen, bitte",
+        "en": "Your reminder “Blumen bestellen” is due.\nPfingstrosen, bitte"
+      },
+      "expectedAction": {
+        "de": "Erinnerung ansehen",
+        "en": "View reminder"
+      }
+    },
+    {
+      "id": "v3-REMINDER_CREATED-description",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567459",
+        "kind": "REMINDER_CREATED",
+        "name": "Alex",
+        "title": "Blumen bestellen",
+        "targetType": "REMINDER",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Pfingstrosen, bitte",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..YQFhBgKnsfgK2rgL.APfkHzDz76Kgyn8sqNjflFJfsu0mKcvH2agPFCwJeUW3usKhgWG8crIjTM6vQV9ze3EYjQpXSa-cyBKAZfMoCg6PpMSK76XjQsnQvAlSNYI76NFTsQQseSnil681QS9OWJ3JcU7zBG9GJ_77RillO9icunhn4HE2mGHH3jdlXedE0ttc6RC_C8p8WjzgJsyroJzUccholnCDBFRWdk3wF1b0Li3tDcniQCLzG8y5hAEZLtvIo8mTQa6ljfedSCwbVkVaw27Xj8yB327bUo-2XxYSvPFL2WO1kZoaCfvS5ckjMvYXMSwwWGrw6wps0gVhBk9lY5bPWQgAoZyG.t05OGJeGLoOLsdZvpDvTkw",
+      "expectedBody": {
+        "de": "Alex hat die Erinnerung „Blumen bestellen“ erstellt.\nPfingstrosen, bitte",
+        "en": "Alex created the reminder “Blumen bestellen”.\nPfingstrosen, bitte"
+      },
+      "expectedAction": {
+        "de": "Erinnerung ansehen",
+        "en": "View reminder"
+      }
+    },
+    {
+      "id": "v3-WISH_REMINDER_DUE-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656745a",
+        "kind": "WISH_REMINDER_DUE",
+        "name": "",
+        "title": "Stadionführung",
+        "targetType": "WISH",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..vo4RkOUn-BkQqy9a.QeVTegybEUp1lRjXED09G8XYO701X-PI2M-z_b-GkxXeuU78FoCar3UIm7sTmyMUyFTe1ry5QYI4shnMy1uvxade9uJaur05dOSQJA9nxlR6-nX-ZMzpgr7Plclh3kjbxNtiLpjE5L-e8k9Vh2tEZipCgv0VrxwkCrERADNVvRh62-TUh-i3XueOLlCjUn5tbjCFUWpYOJMA-Az207ZhlmF6YaT13dW7U65KaqXuP66_LdHK22Rlnr0mHHjMK7ZwaWV7lyV58VZwdBPj_15durHf1NBXX8k0F_a-bMhqhuUB.0R6i10fWllMGLjKQTmV4AA",
+      "expectedBody": {
+        "de": "Du wolltest dich an den Wunsch „Stadionführung“ erinnern lassen.",
+        "en": "You asked to be reminded about the wish “Stadionführung”."
+      },
+      "expectedAction": {
+        "de": "Wunsch ansehen",
+        "en": "View wish"
+      }
+    },
+    {
+      "id": "v3-COLLECTION_SENT-list",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656745b",
+        "kind": "COLLECTION_SENT",
+        "name": "Alex",
+        "title": "Geschenke",
+        "targetType": "COLLECTION",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..uHa6n3V_9-roccAq.IOwylhzLqCQ040tXMS7SvmjbzpdnVQXJdCIH8EYR-lCFD_XSdGo2KicOnzlbPLPgfbqYPNCBnfD_qwRR6Ih6MqY9pS8IXHQaSPRmWEqMFtkwfukO1CMrYhmVD0Bkyr5z-PxIXof7efOSb5fM4F1jTarO1m7d1lSefyj_OExsOyKw0s0ADO3ejk2UH7W4U-56iAtHAr_6EmOsI4W7z6GYSDgo5wDiFJjpmFbxIWtIBN7lSfoFZAXB0lhjd43lDMHmOpKP7168l1vCLK2KPfLmb4DicIJ-bgtgcVZR32n4W5kwINc.PIOXRmKOEmGqJIYHKajRew",
+      "expectedBody": {
+        "de": "Alex hat dir die Liste „Geschenke“ geschickt.",
+        "en": "Alex sent you the list “Geschenke”."
+      },
+      "expectedAction": {
+        "de": "Liste ansehen",
+        "en": "View list"
+      }
+    },
+    {
+      "id": "v3-SHARED_NOTE_CREATED-excerpt",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656745c",
+        "kind": "SHARED_NOTE_CREATED",
+        "name": "Alex",
+        "title": "Türcode",
+        "targetType": "SHARED_NOTE",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "4172, dann links",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..G65ge6D2kkn1QhYn.8GDOSsu9te9K_DRssmSen2lRVztnUHrcHBfISgzi130UOqhYPj0nWxC6fq7cwKx1HXtCN8M4CkVcZ1R2hWtF6YaNRZKlezHKWtOQLYFOY0fFH7zuFUvPIlFWaoYoGIj0HlZYsItm1JhmWfptHirmyjaR7l449vnZqXX0QMCAGPB6Vj1e8oB_7W1L_0cYFJppmHJ2K7Tplgltdn7u7JNS4EbP0KbtJ9bf9eb0FEZBaIDtBD_HIpwZzwV8_fXaacEJa3z2IkeTQq-4iqTQYRCN0FUylG5PiD41Om4mZijT8mwXQ5PSNbSsZPOE_T72PrMYlr5wc0ENdw.dhHzOSBOD1uq6vvlukpofQ",
+      "expectedBody": {
+        "de": "Alex hat die gemeinsame Notiz „Türcode“ angelegt.\n4172, dann links",
+        "en": "Alex created the shared note “Türcode”.\n4172, dann links"
+      },
+      "expectedAction": {
+        "de": "Notiz ansehen",
+        "en": "View note"
+      }
+    },
+    {
+      "id": "v3-SHARED_NOTE_CHANGED-untitled",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656745d",
+        "kind": "SHARED_NOTE_CHANGED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "SHARED_NOTE",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "4172, dann links",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..tcHIU9m-GzShMx5R.RRsSwxmkYWa3oXUrBjsI1eAZSN8ixc2hRvIGJyOBtiEi3CuZOGbGndDBT1xhIEpFpaquSV1CWFwdhZ6Je-QEJI3KdMAqwseLOgrfApyQFm4fzSGC_1JVI4JO0M-1zUgKsTdNlYr13PNt5RrCxwDtHb9JybmMe7_n2PioYGtKVu0jJ9sKRZ9x2VN5JTms-0FOX1JRCgA3pwd3uB61YKz7s8tGWivt3S1Oi7J67aSFgEHHYAFx5J8MIJ1twvPfebHpA80oCo39ACR2itV3vOHEazZJyT0DkVXpUU26kj8ngeYPtnwKNM1s8P1iMMO08HM.qrTg7Zz5Xvlq5zcf2SaeiA",
+      "expectedBody": {
+        "de": "Alex hat eine gemeinsame Notiz geändert.\n4172, dann links",
+        "en": "Alex changed a shared note.\n4172, dann links"
+      },
+      "expectedAction": {
+        "de": "Notiz ansehen",
+        "en": "View note"
+      }
+    },
+    {
+      "id": "v3-COMMENT_CREATED-heart",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656745e",
+        "kind": "COMMENT_CREATED",
+        "name": "Alex",
+        "title": "Dein Lachen heute früh",
+        "targetType": "HEART_MOMENT",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Ich auch 💛",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..Jt1e35dEPAPDF4X8.LCN6JbOx-fY0yWZlSqk1OwC71eCmMpVJHlOZa5T7GdMEnToLI3WBAz0jV_nHLGpabJhZ_dLIjcHVBxXkepgiV7gttpbIEeVyeqQW5SSGPgMBE72FytyZ0ySmkDoesLwqpmGKloLgEojt1hlJqJLc9Tbxotx30uFZTo7QVP-uUWc7-5DdYIpjbXIuqi0k9FsPANMIIkCm9xz_R75tXTg58TkE9Rx7ia86yyrGg96f1t3NBNEvPfrb0BARp7c9xpBk0fLBehcaWrX8hinkPefRraze1ZwCJoRDt5Uo07-qQ8048eIdvIiZpIUs--X1-ABcGgkp9NnyX3uAKhOqzjD0gg.fRhcHZjON3sagnpGpG1E1w",
+      "expectedBody": {
+        "de": "Alex hat „Dein Lachen heute früh“ kommentiert.\nIch auch 💛",
+        "en": "Alex commented on “Dein Lachen heute früh”.\nIch auch 💛"
+      },
+      "expectedAction": {
+        "de": "Kommentare ansehen",
+        "en": "View comments"
+      }
+    },
+    {
+      "id": "v3-PHOTO_REACTION-love",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-36875656745f",
+        "kind": "PHOTO_REACTION",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "MEMORY",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "LOVE",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..EVYVru0q3-BpP5sd.G9aFR1hs3SI6rzuQve317YMxlPrWbeMDchSpklO7AWOnAAFSec3tHhj01_27fDqcMvucaJ6panVm-88eqZ_8MywX5wyYPyZD-1QMSI8G8tlK5jnYSWXVx4Q7aW0q2QESL0r_iCgA0nbGtB-V4ViYpgx7bsfRvyQngYcetovZ_ZK2UEmGAI7Ek4WII1zPc05i0ykrYUqIf7VTvZ-KHjtFBEyWEtwOXFMzZ_UXUvid6ViedfV6f7H9E7dlAKWPilgrcOno1HlNAekq-FdrM1a6zYUp02MoYqeqwXGL9k7dhne2oJt4ig3NBbYe.U3rxrDYziIMVb34yMK2YgQ",
+      "expectedBody": {
+        "de": "Alex hat mit ❤️ auf ein Foto in „Unser Spaziergang“ reagiert.",
+        "en": "Alex reacted to a photo in “Unser Spaziergang” with ❤️."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "v3-PHOTO_REACTION-untitled-like",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567460",
+        "kind": "PHOTO_REACTION",
+        "name": "Alex",
+        "title": "",
+        "targetType": "MEMORY",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "LIKE",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..gO8QVXd-vS85YEl1.m3ehbbk-50ZmtZBWqKSuVn19XltjFYNkCwAtO4T2sVSCpOxakI2laYP5AyqtuKs_lH732qWTRKRDyOKqBJ6Wh3DxyvP7Z6zvAnJrlzmFhKeaKA9duljuLpUnEooiHrIUgSR6lLqHYhxdfR74jMmlHI3UOA2I6JmIoNFUFkDn8tyTSu_vtZPDedFS_myNLv2zjI-CNDYNbAaZENwu_mkcKu72GbhSAenp4Q7bVqTGQ0iOEiZ2fSo8GMoG0iG_qpES7YMlQnX4OeEn1eY64wZQVvtWKTE5gFxFhw.yQuZjDcF7dqLV6jUsd6wCw",
+      "expectedBody": {
+        "de": "Alex hat mit 👍 auf ein Foto reagiert.",
+        "en": "Alex reacted to a photo with 👍."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "v3-PHOTO_REACTION-unknown",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567461",
+        "kind": "PHOTO_REACTION",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "MEMORY",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Not a preset",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..pHZnRbyyac2AdKKv.2ned3qYoQ1dPx5-2Ql61Act3r_6dtidGNI3gzFTs61ntCgkyeJpnARmF1SG7hjHeekjmKZtPsQLqoh85ixbHfn_RVu1epAM-V_tCMBTpO-GtogNXPNlTYOr9qnYrsOEifLYltUTg15OvqgbrzMov80LszbXkMDCxEHV-sv1GHUz5FmCOFtFiasGkhcLoHl07mU3Qed-C1M-tXDgwm7X0yI48GXkIbCU62gouJfzzxZXF16S8elXe8E9E_Wqsu2pC2JoPhsgVgFFCuIVepRlpTM4thIgtgiu5ZBVJjqTlmC8jtoI02CSWB7o3OLNZZr5DmVk.w1r3Um2P4LsGKu6THY9-3w",
+      "expectedBody": {
+        "de": "Alex hat auf ein Foto in „Unser Spaziergang“ reagiert.",
+        "en": "Alex reacted to a photo in “Unser Spaziergang”."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "v3-VIDEO_PROCESSING_FAILED-title",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567462",
+        "kind": "VIDEO_PROCESSING_FAILED",
+        "name": "",
+        "title": "Unser Spaziergang",
+        "targetType": "MEMORY",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..wkMg8J0gpSTbXLUv.aOe0nkujjxEoZVYKO5tP6BDa--8gio-fEgAdMYb4b7i9dz5o-UNeH1sXSG4OmMPIHwdmgnF3yMHgjn8mmzkVgugs1-xDQKPgpeNxWEOAVzmCuyurO5zm6IqHq_qCY1hG3ZDjcvQD1xCVr0vVypS4i2nZMAsSSSc5W2SXfWwn9q85a770aKpBN93Uo8XqSb1TRpLprItiemDsjeAWdsG8eA4qfbHiO_79-7im5Kv0TaRZZLShp39OctESv2kaTM1DK1Ju8tSqEmeu_wyPAGnbqOZk8ba3HOnOKElMPnIiO_2Gx1UWzhMNaRbrmA.psQKivjh-oC_ecWDRHsOaA",
+      "expectedBody": {
+        "de": "Dein Video in „Unser Spaziergang“ konnte nicht verarbeitet werden.",
+        "en": "Your video in “Unser Spaziergang” could not be processed."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "v3-GARDEN_SEED-species-words",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567463",
+        "kind": "GARDEN_SEED_ARRIVED",
+        "name": "Alex",
+        "title": "POPPY",
+        "targetType": "GARDEN_SEED",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "MISS_YOU",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..oZPBJ0sM1iMqNytz.TWgcqe4yDVHxD2lCQJhxjUpVbauv-fUhXDERC-3qjg2e2WgP3xFZ94ZA9S-GzkZomu99m_SzUFZc_zo938xfUnfVz4s-IhdMUrltdrKU3eLHakfAudEGRB4ltqLp6XDz7CkQnTAdBmg5EK1-aK7YxksAJor_Dz5dUjHeyOcp7_hKjhAGKPL9R0S6q2H4S3X5zP8tGAREwN7jhj9RnV6Yh8o1tEc5LNMqWZgnAhotUjmLosrjERz2AruHDTTnc56M-3_OSPY0zgZgoPrtEi2bj1pwUxRSZu8xjqbjlx32GxdoMIeP7We3RyIyAw0.rBErPAkHgBrVRNlPr25iDA",
+      "expectedBody": {
+        "de": "Alex hat dir einen Samen geschickt: Mohn.\n„Vermiss dich“",
+        "en": "Alex sent you a seed: Poppy.\n“Miss you”"
+      },
+      "expectedAction": {
+        "de": "Garten ansehen",
+        "en": "View garden"
+      }
+    },
+    {
+      "id": "v3-GARDEN_SEED-tulip",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567464",
+        "kind": "GARDEN_SEED_ARRIVED",
+        "name": "Alex",
+        "title": "TULIP",
+        "targetType": "GARDEN_SEED",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..6TGQR1W8Na3XQC6N.2iOrRQix_C7JslDyX80INmqzozcFiyULtva64Vl6BacradRzRA4huMo9hyCi1Wyi-Y-BnbNpeYA_tXkjIXPGD-awcW2G3SsIm4Q4dMxnj8Cf0DJLsngiZQy_0kuGtnDSB9tRNuV2ld1N9J6vMidAEjoaenC9FRMeFHaCNjtrUp1fsgdHyiRpaaUelNr7MY5VUnRAiMOkgVU7b_wlxtFbAVEWYPJRwaqcvqvgvAkg5mMubOq1YS4sUu4AciRlTB1Av7WFeVU8Ecws_975nZ6aRtQUJIvdhZun00W5_sROMmdJ2Rl2.BtKm2QvnVFu4gR1Io_ZTkw",
+      "expectedBody": {
+        "de": "Alex hat dir einen Samen geschickt: Tulpenzwiebel.",
+        "en": "Alex sent you a seed: Tulip bulb."
+      },
+      "expectedAction": {
+        "de": "Garten ansehen",
+        "en": "View garden"
+      }
+    },
+    {
+      "id": "v3-GARDEN_SEED-surprise-words",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567465",
+        "kind": "GARDEN_SEED_ARRIVED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "GARDEN_SEED",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "GOOD_NIGHT",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..pK8kOQIDHcM2MP5z.Ncnfam7glYH7kHn8Bzcv6QQJcLpZikinUrwDOdqr5BSF7md74L2fIIr39Ub1YzVMnWJj9ElJiZJcX4xg5rQR5Rke642MCLUkdp08Jyu0gdnS9DPJ7qJ-9ezU-GnWjDlHJfSuJCXAhPH0fJ0l0x2TNAW0xBzPryUjYivTWfYU6_lL9Jz11c_rP_0UxAphC_QWwRlmff1g2qjX6bdnq1JWgZhPwlTLmNW7KqSnc5RyRw7eOm10ODGakCEXGCsyJaAzYTTHNMmSP_ycZafKsp3QE1z12adxJVDxWNzvA5kzQ0mUs12X8YeysPY.wMCU5t953Ufvx_5fxUujnA",
+      "expectedBody": {
+        "de": "Alex hat dir einen Samen geschickt.\n„Gute Nacht“",
+        "en": "Alex sent you a seed.\n“Good night”"
+      },
+      "expectedAction": {
+        "de": "Garten ansehen",
+        "en": "View garden"
+      }
+    },
+    {
+      "id": "v3-GARDEN_SEED-unknown-codes",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567466",
+        "kind": "GARDEN_SEED_ARRIVED",
+        "name": "Alex",
+        "title": "POPPY,TULIP",
+        "targetType": "GARDEN_SEED",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Liebe dich",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..6_AzVCSzgxUdGFG8.oER_yvGovb5SDn8mk9SruFbeBu3KRAm3AZmrIPK1nXfJSUid_3ukQQtqT_LbwYUwjip6aLTGOwNSqjQ3PFT5wz-ipRO0IkqSRKtG1w7T0LoEFaO8zbOCDsCUJGWs62DTGzHNcxwrXxvkIHWUoyK1g83b4DuHngXHY-j0SetGSlwBrPnpOHT93AvVAyH4ax3Ns6eZbwjfcjRkM0blM2xe7EfG3oLJm8GlYWYDoe2jWdbM6m1iiHB641MFrDjCAoTPJF6DKP2-yd4C3DHDK1jPigGufOv4FqZUGrcUomM93rSO2uMK_nYPbyckqoP8QQ0RKBwIzg.jieU8uFqmzcDWvBJd-FURA",
+      "expectedBody": {
+        "de": "Alex hat dir einen Samen geschickt.",
+        "en": "Alex sent you a seed."
+      },
+      "expectedAction": {
+        "de": "Garten ansehen",
+        "en": "View garden"
+      }
+    },
+    {
+      "id": "v3-GARDEN_BOUQUET-flowers",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567467",
+        "kind": "GARDEN_SEED_ARRIVED",
+        "name": "Alex",
+        "title": "POPPY,TULIP,MOONFLOWER",
+        "targetType": "GARDEN_BOUQUET",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "MISS_YOU",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..dE8QrM3ZgjmrvFSl.jlyjbwzcV5DrmDzSSC0I5D_L-LIdsWh7mbH4Zov5pFhVfgv_SH6fdOS1TiKgR2Uci9sQojd7qp7iaqfBRPPIp9_XWpaeu37AFwh8mC2h36T4qjqm5yK-IrnLuZC9HLAV8XwCO1NhLIr9z67-83eegwAExhd09FBEcdeI0srjTuTL1YL_Ff9BluHfAEROzn7HzCR9g1plPUDbvX0muxtbbTiO2zc7GunxhmFKIr_J1YMKmimsWauSmuggmghAGzd8zHvMiMfkl6guvyizOqswT_qHbKaeMB-GdYHzg4VDriXEPxTe7yFJrBuR88_LxbtT5wLASOGR7Y3aH9Kxb4GQ4A.piFBY8BNkfvWu-Tr2swiVQ",
+      "expectedBody": {
+        "de": "Alex hat dir einen Strauß geschenkt: Mohn, Tulpe, Mondblume.",
+        "en": "Alex gave you a bouquet: Poppy, Tulip, Moonflower."
+      },
+      "expectedAction": {
+        "de": "Garten ansehen",
+        "en": "View garden"
+      }
+    },
+    {
+      "id": "v3-digest-ignores-detail",
+      "payload": {
+        "v": 3,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756567468",
+        "kind": "COMMENT_CREATED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "MEMORY",
+        "digest": true,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Do not misrepresent one comment as the batch",
+        "when": "2035-12-21",
+        "place": "Seeblick"
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..QHHvAMOJEgmMvYbJ.efnzt8dysXeQkYNvvcKWLsxDxJG4Quxe3LFSSgiydqp0GKztbtrztz_VFehVwTX_dqlJCvcjlNUGeXxs4v8a-9wQif7d4Vwu2GnvpkUQL4n-jDPaCHSAwme2oRtdiLD4iDyNCVy9J24Hdz14rS244j78ct4HL6zv2i5RRQUmxyDlYzKZQT6nMhMz2gmioAxuoLX6aizKeTmvPNaGueRb7JasiZgNEP4K2OgCETYjBBMgG0AX6fmmBI-kMonW-pOY1QPzKfuLQvfZRdpxbjCeRtWkQOocqXwDLbqE_gRUB3Hilu40DXHYSr7JfvpzWCX1PDqypU8mkOJaSKepWQFDzoDU7fJtoo_6S2Cvp5x8zn9ligEeeGXFk0jiHMQVFaYOhG_9Ig.DOngORwRfxVdeyOPMG-sEQ",
+      "expectedBody": {
+        "de": "Neue Kommentare für dich, zuletzt zu „Unser Spaziergang“.",
+        "en": "New comments for you, most recently on “Unser Spaziergang”."
+      },
+      "expectedAction": {
+        "de": "Kommentare ansehen",
+        "en": "View comments"
+      }
     }
   ]
 }

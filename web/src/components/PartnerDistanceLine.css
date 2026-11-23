@@ -15,7 +15,8 @@
   justify-content: center;
   max-width: 100%;
   margin-top: var(--space-2);
-  animation: partner-distance-enter var(--duration-transition)
+  /* Enter `fade` from the motion catalogue (src/motion/motion.css). */
+  animation: eimir-motion-enter-fade var(--duration-transition)
     var(--easing-enter) both;
 }
 
@@ -121,15 +122,6 @@ a.partner-distance-line.is-own-missing:hover {
 a.partner-distance-line:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
-}
-
-@keyframes partner-distance-enter {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

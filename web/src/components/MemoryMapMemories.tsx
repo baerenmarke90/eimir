@@ -104,20 +104,25 @@ export function MemoryMapMemories({
 
   function readSelection() {
     const element = track.current;
-    if (!element?.clientWidth) return;
+    const first = element?.firstElementChild;
+    if (!element || !first) return;
     const viewport = element.getBoundingClientRect();
-    const center = (viewport.left + viewport.right) / 2;
-    const slides = Array.from(element.children);
+    if (!viewport.width) return;
     let nearest = 0;
-    let distance = Number.POSITIVE_INFINITY;
-    slides.forEach((slide, index) => {
-      const bounds = slide.getBoundingClientRect();
-      const nextDistance = Math.abs((bounds.left + bounds.right) / 2 - center);
-      if (nextDistance < distance) {
-        distance = nextDistance;
-        nearest = index;
-      }
-    });
+    const second = first.nextElementSibling;
+    if (second) {
+      // All columns share one CSS grid size. The signed step also follows
+      // RTL and includes the actual gap at the current viewport size.
+      const bounds = first.getBoundingClientRect();
+      const step = second.getBoundingClientRect().left - bounds.left;
+      if (!step) return;
+      const distance =
+        (viewport.left + viewport.right - bounds.left - bounds.right) / 2;
+      nearest = Math.max(
+        0,
+        Math.min(items.length - 1, Math.ceil(distance / step - 0.5)),
+      );
+    }
     if (requestedIndex.current !== null && requestedIndex.current !== nearest)
       return;
     requestedIndex.current = null;

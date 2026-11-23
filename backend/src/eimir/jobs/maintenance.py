@@ -37,6 +37,7 @@ from eimir.jobs.worker import JobRegistry, registry
 from eimir.memories import create_receipts
 from eimir.story import discover_service
 from eimir.story import view_service as story_view_service
+from eimir.support_reports import service as support_reports
 
 log = logging.getLogger(__name__)
 
@@ -126,6 +127,7 @@ def run_security_retention(session: Session, payload: dict[str, Any]) -> None:
     discover_snapshots = discover_service.prune_expired_snapshots(session)
     memory_create_receipts = create_receipts.prune_expired(session)
     shared_create_receipts_removed = shared_create_receipts.prune_expired(session)
+    support_reports_removed = support_reports.prune_expired(session)
 
     log.info(
         "security retention completed",
@@ -142,6 +144,7 @@ def run_security_retention(session: Session, payload: dict[str, Any]) -> None:
             "discover_snapshots_removed": discover_snapshots,
             "memory_create_receipts_removed": memory_create_receipts,
             "shared_create_receipts_removed": shared_create_receipts_removed,
+            "support_reports_removed": support_reports_removed,
         },
     )
 

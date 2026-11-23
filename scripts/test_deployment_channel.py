@@ -17,6 +17,8 @@ import re
 import subprocess
 import tempfile
 import time
+import urllib.error
+import urllib.request
 from functools import lru_cache
 from pathlib import Path
 
@@ -25,6 +27,32 @@ import release_manifest
 
 REPOSITORY = "baerenmarke90/eimir"
 CHANNEL_BRANCH = "deploy/eimir-test"
+# Phase 0b of Decision 0019: the channel publishes to the private GHCR packages
+# eimir-cloud-{backend,web,media}. The legacy prefix "eimir" names the old public
+# packages and stays selectable only as an explicit rollback. Both settings are
+# Actions variables, never secrets.
+PACKAGE_PREFIX_ENV = "EIMIR_TEST_CHANNEL_PACKAGE_PREFIX"
+PROMOTE_ENV = "EIMIR_TEST_CHANNEL_PROMOTE"
+DEFAULT_PACKAGE_PREFIX = "eimir-cloud"
+LEGACY_PUBLIC_PACKAGE_PREFIX = "eimir"
+PACKAGE_PREFIX_PATTERN = re.compile(r"eimir(?:-[a-z0-9]+)*")
+# GHCR may create a new package public when its source label points at a public
+# repository (observed on the first eimir-cloud publication), so every publication
+# proves that the pushed digests are not anonymously readable. 401, 403 and 404 mean
+# "not anonymous"; only a clean 200 means public.
+PRIVATE_PACKAGE_STATUSES = frozenset({401, 403, 404})
+GHCR_REFERENCE = re.compile(
+    r"ghcr\.io/(?P<name>[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*)"
+    r"@(?P<digest>sha256:[0-9a-f]{64})"
+)
+GHCR_MANIFEST_ACCEPT = ", ".join(
+    (
+        "application/vnd.oci.image.manifest.v1+json",
+        "application/vnd.docker.distribution.manifest.v2+json",
+        "application/vnd.oci.image.index.v1+json",
+        "application/vnd.docker.distribution.manifest.list.v2+json",
+    )
+)
 CHANNEL_KIND = "eimir-private-test-channel"
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_WORKFLOWS = frozenset(
@@ -37,6 +65,16 @@ REQUIRED_WORKFLOWS = frozenset(
         ".github/workflows/media-video.yml",
     }
 )
+# Pushes to main start no workflows (#2096). The full regression of a main
+# revision is the set of dispatched runs from the Nightly Regression dispatcher
+# or a manual dispatch.
+FULL_REGRESSION_EVENT = "workflow_dispatch"
+FULL_REGRESSION_DISPATCHER = "nightly-regression.yml"
+# Every merge to main publishes the private test channel right away (#2096,
+# Product Owner decision 2026-11-20): a push admits the current main commit
+# after its pull-request checks, without waiting for the full regression.
+# Product releases keep requiring the full regression.
+FAST_LANE_EVENT = "push"
 CLOUD_SERVICES = ("cloud-migrate", "cloud-api", "cloud-worker", "cloud-web")
 FCM_CREDENTIAL_TARGET = "/run/secrets/eimir-fcm-sender.json"
 _FCM_SOURCE_PLACEHOLDER = "/__eimir_source_only_fcm_mount__"
@@ -110,13 +148,13 @@ def latest_main() -> str:
 
 
 def workflow_state(runs: list[dict], source: str) -> bool:
-    """Require the newest push run/attempt of every exact main workflow."""
+    """Require the newest full-regression run/attempt of every exact main workflow."""
     selected: dict[str, dict] = {}
     for item in runs:
         path = item.get("path")
         if (
             path not in REQUIRED_WORKFLOWS
-            or item.get("event") != "push"
+            or item.get("event") != FULL_REGRESSION_EVENT
             or item.get("head_branch") != "main"
             or item.get("head_sha") != source
             or item.get("head_repository", {}).get("full_name") != REPOSITORY
@@ -137,7 +175,7 @@ def workflow_state(runs: list[dict], source: str) -> bool:
 
 def candidate_ready(source: str) -> bool:
     pages = gh_api(
-        f"repos/{REPOSITORY}/actions/runs?head_sha={source}&event=push&per_page=100",
+        f"repos/{REPOSITORY}/actions/runs?head_sha={source}&event={FULL_REGRESSION_EVENT}&per_page=100",
         paginate=True,
     )
     return workflow_state(
@@ -146,7 +184,7 @@ def candidate_ready(source: str) -> bool:
 
 
 def completion_matches_source(event: dict, source: str) -> bool:
-    """Admit only an owning-repository main push completion for this checkout."""
+    """Admit only an owning-repository main full-regression completion for this checkout."""
     if not isinstance(event, dict):
         return False
     completed = event.get("workflow_run")
@@ -158,7 +196,7 @@ def completion_matches_source(event: dict, source: str) -> bool:
     return (
         event.get("action") == "completed"
         and completed.get("path") in REQUIRED_WORKFLOWS
-        and completed.get("event") == "push"
+        and completed.get("event") == FULL_REGRESSION_EVENT
         and completed.get("head_branch") == "main"
         and completed.get("head_sha") == source
         and origin.get("full_name") == REPOSITORY
@@ -188,6 +226,14 @@ def channel_already_selected(source: str) -> bool:
 
 def check_for_publication(source: str, event_name: str, event: dict) -> bool:
     """Check once; later main workflow completions retry unfinished candidates."""
+    if event_name == FAST_LANE_EVENT:
+        if latest_main() != source:
+            print("Candidate was superseded on main; keeping the current channel")
+            return False
+        if channel_already_selected(source):
+            print("This source is already selected; preserving its exact image pair")
+            return False
+        return True
     if event_name == "workflow_run":
         if not completion_matches_source(event, source):
             print("Completion does not admit this exact main checkout")
@@ -217,6 +263,28 @@ def wait_for_checks(source: str, timeout: int) -> bool:
         if time.monotonic() >= deadline:
             raise ChannelError("Timed out waiting for required main workflows")
         time.sleep(15)
+
+
+def require_full_regression(source: str, *, dispatch: bool) -> None:
+    """Refuse a product release unless its revision passed the full regression.
+
+    When the revision is current main and its regression is missing or still
+    running, optionally start the Nightly Regression dispatcher so a later
+    release attempt can pass without paying for a waiting runner.
+    """
+    if candidate_ready(source):
+        print("Full regression passed for this revision")
+        return
+    if dispatch and latest_main() == source:
+        run(["gh", "workflow", "run", FULL_REGRESSION_DISPATCHER, "--repo", REPOSITORY, "--ref", "main"])
+        raise ChannelError(
+            "Full regression is missing or unfinished; started Nightly Regression. "
+            "Re-run this release after it is green"
+        )
+    raise ChannelError(
+        "Full regression is missing or unfinished for this revision; dispatch the "
+        "required workflows on main and re-run this release after they are green"
+    )
 
 
 def sha256(path: Path) -> str:
@@ -275,13 +343,128 @@ def archive_config_digest(path: Path, expected_tag: str | None = None) -> str:
         raise ChannelError(str(exc)) from exc
 
 
+def package_prefix() -> str:
+    """The package name prefix; an unset or empty variable selects the default."""
+    value = os.environ.get(PACKAGE_PREFIX_ENV, "").strip()
+    if not value:
+        return DEFAULT_PACKAGE_PREFIX
+    if not PACKAGE_PREFIX_PATTERN.fullmatch(value):
+        raise ChannelError(
+            f"{PACKAGE_PREFIX_ENV} must be 'eimir' or start with 'eimir-' and use "
+            "only lowercase letters, digits and single hyphens"
+        )
+    return value
+
+
+def promote_enabled() -> bool:
+    """Whether publication advances the Git Sync branch; `false` only stages images."""
+    value = os.environ.get(PROMOTE_ENV, "").strip()
+    if value in {"", "true"}:
+        return True
+    if value == "false":
+        return False
+    raise ChannelError(f"{PROMOTE_ENV} must be empty, 'true' or 'false'")
+
+
+def package_repository(role: str) -> str:
+    owner = REPOSITORY.partition("/")[0]
+    return f"ghcr.io/{owner}/{package_prefix()}-{role}"
+
+
+def anonymous_request(
+    url: str, headers: dict[str, str] | None = None
+) -> tuple[int, bytes]:
+    """One unauthenticated GET to GHCR; 5xx and network failures are retried."""
+    request = urllib.request.Request(url, headers=headers or {})
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(request, timeout=20) as response:  # noqa: S310
+                return response.status, response.read(65536)
+        except urllib.error.HTTPError as error:
+            if error.code < 500:
+                return error.code, b""
+        except (urllib.error.URLError, TimeoutError):
+            pass
+        if attempt < 2:
+            time.sleep(2)
+    raise ChannelError("Could not verify package visibility: GHCR was unreachable")
+
+
+def anonymous_manifest_status(reference: str) -> int:
+    """HTTP status of an anonymous manifest fetch by digest; 200 means publicly readable."""
+    match = GHCR_REFERENCE.fullmatch(reference)
+    if not match:
+        raise ChannelError("Unexpected package reference; cannot check its visibility")
+    name, digest = match["name"], match["digest"]
+    status, body = anonymous_request(
+        f"https://ghcr.io/token?service=ghcr.io&scope=repository:{name}:pull"
+    )
+    if status != 200:
+        return status
+    try:
+        token = json.loads(body).get("token")
+    except (ValueError, AttributeError):
+        token = None
+    if not isinstance(token, str) or not token:
+        return 401
+    status, _ = anonymous_request(
+        f"https://ghcr.io/v2/{name}/manifests/{digest}",
+        {"Authorization": f"Bearer {token}", "Accept": GHCR_MANIFEST_ACCEPT},
+    )
+    return status
+
+
+def verify_packages_private(images: dict[str, str]) -> None:
+    """Refuse to promote images that anyone can pull without credentials.
+
+    The legacy prefix names the old public packages, so a rollback to them is not
+    checked. Any other prefix must stay private, and an unclear answer fails closed.
+    """
+    if package_prefix() == LEGACY_PUBLIC_PACKAGE_PREFIX:
+        return
+    public: list[str] = []
+    for reference in images.values():
+        status = anonymous_manifest_status(reference)
+        if status == 200:
+            public.append(reference.partition("@")[0])
+        elif status not in PRIVATE_PACKAGE_STATUSES:
+            raise ChannelError(
+                f"Cannot confirm that {reference.partition('@')[0]} is private: "
+                f"the anonymous check returned HTTP {status}"
+            )
+    if public:
+        raise ChannelError(
+            "These packages are publicly readable and must be private before the "
+            f"channel can use them: {', '.join(public)}. Set each package to Private "
+            "(package settings, Danger Zone, Change package visibility) and re-run "
+            "the failed job"
+        )
+
+
+def write_step_summary(images: dict[str, str], state: str) -> None:
+    """List the pinned references for the operator; nothing secret is included."""
+    path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if not path:
+        return
+    lines = [
+        "### Private test channel images",
+        "",
+        state,
+        "",
+        *(f"- `{reference}`" for reference in images.values()),
+        "",
+    ]
+    with open(path, "a", encoding="utf-8") as stream:
+        stream.write("\n".join(lines))
+
+
 def publish_image(
     root: Path, record: dict, source: str, version: str, attempt: str
 ) -> str:
     artifact_id = record["id"]
     role = artifact_id.removesuffix("-runtime")
     local = f"eimir-{role}:evidence-{source}"
-    repository = f"ghcr.io/{REPOSITORY}-{role}"
+    repository = package_repository(role)
     target = f"{repository}:test-{source}-{attempt}"
     config_digest = archive_config_digest(root / record["path"], local)
     run(["docker", "load", "--input", str(root / record["path"])], timeout=600)
@@ -459,6 +642,8 @@ def export_compose(
         ),
         # Calendar sync (#1895): the instance supplies its Google OAuth client.
         # Private CalDAV hosts are a Self-Hosted option and stay off on Cloud.
+        # In-app support reports (#2189): an instance opt-in, off until a reader exists.
+        "EIMIR_SUPPORT_REPORTS_ENABLED": "${EIMIR_SUPPORT_REPORTS_ENABLED:-false}",
         "EIMIR_CALENDAR_SYNC_ENABLED": "${EIMIR_CALENDAR_SYNC_ENABLED:-true}",
         "EIMIR_GOOGLE_CALENDAR_CLIENT_ID": "${EIMIR_GOOGLE_CALENDAR_CLIENT_ID:-}",
         "EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET": "${EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET:-}",
@@ -572,10 +757,17 @@ def export_compose(
     return result
 
 
-def advance_channel(files: dict[str, str], source: str) -> bool:
+def source_admitted(source: str, *, full_regression: bool) -> bool:
+    """The fast lane needs the current main commit; otherwise its full regression too."""
+    return latest_main() == source and (not full_regression or candidate_ready(source))
+
+
+def advance_channel(
+    files: dict[str, str], source: str, *, full_regression: bool = True
+) -> bool:
     if set(files) != {"compose.yaml", "channel.json", "README.md"}:
         raise ChannelError("Only generated deployment files may enter the channel")
-    if latest_main() != source or not candidate_ready(source):
+    if not source_admitted(source, full_regression=full_regression):
         raise ChannelError(
             "Candidate is stale or required main checks are no longer successful"
         )
@@ -616,7 +808,7 @@ def advance_channel(files: dict[str, str], source: str) -> bool:
             "parents": [parent] if parent else [],
         },
     )
-    if latest_main() != source or not candidate_ready(source):
+    if not source_admitted(source, full_regression=full_regression):
         raise ChannelError(
             "Main advanced during publication; keeping the current channel"
         )
@@ -642,9 +834,14 @@ def advance_channel(files: dict[str, str], source: str) -> bool:
     return True
 
 
-def publish(source: str, artifact_root: Path, output: Path) -> None:
-    if latest_main() != source or not candidate_ready(source):
+def publish(
+    source: str, artifact_root: Path, output: Path, *, full_regression: bool = True
+) -> None:
+    if not source_admitted(source, full_regression=full_regression):
         raise ChannelError("Only the current, checked main commit may be published")
+    # Validate both settings before any image is pushed.
+    package_prefix()
+    promote = promote_enabled()
     run_id, attempt = os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"]
     if not all(re.fullmatch(r"[1-9][0-9]*", value) for value in (run_id, attempt)):
         raise ChannelError("Invalid workflow run identity")
@@ -663,6 +860,9 @@ def publish(source: str, artifact_root: Path, output: Path) -> None:
         )
         for role in ("backend", "web", "media")
     }
+    # Before anything is exported or promoted: the images contain Pro code and
+    # must not be anonymously readable (see PRIVATE_PACKAGE_STATUSES).
+    verify_packages_private(images)
     canonical = canonical_compose(video=True)
     compose = export_compose(
         canonical, images["backend"], images["web"], images["media"]
@@ -692,7 +892,23 @@ def publish(source: str, artifact_root: Path, output: Path) -> None:
     output.mkdir(parents=True, exist_ok=True)
     for name, content in files.items():
         (output / name).write_text(content)
-    advance_channel(files, source)
+    if not promote:
+        print(
+            f"{PROMOTE_ENV}=false: images pushed and verified; "
+            f"{CHANNEL_BRANCH} was not changed"
+        )
+        write_step_summary(
+            images,
+            f"Staged only: {PROMOTE_ENV}=false, so `{CHANNEL_BRANCH}` was not changed.",
+        )
+        return
+    advanced = advance_channel(files, source, full_regression=full_regression)
+    write_step_summary(
+        images,
+        f"Promoted to `{CHANNEL_BRANCH}`."
+        if advanced
+        else f"`{CHANNEL_BRANCH}` already selected this source; nothing changed.",
+    )
 
 
 def main() -> int:
@@ -705,6 +921,9 @@ def main() -> int:
     wait.add_argument("--revision", required=True)
     wait.add_argument("--timeout", type=int, default=3600)
     wait.add_argument("--github-output", type=Path, required=True)
+    regression = subparsers.add_parser("full-regression")
+    regression.add_argument("--revision", required=True)
+    regression.add_argument("--dispatch", action="store_true")
     publication = subparsers.add_parser("publish")
     publication.add_argument("--revision", required=True)
     publication.add_argument("--artifact-root", type=Path, required=True)
@@ -718,7 +937,9 @@ def main() -> int:
             )
         if os.environ.get("GITHUB_REF") != "refs/heads/main":
             raise ChannelError("Test publication is restricted to main")
-        if args.command in {"check", "wait"}:
+        if args.command == "full-regression":
+            require_full_regression(source, dispatch=args.dispatch)
+        elif args.command in {"check", "wait"}:
             if args.command == "check":
                 event_name = os.environ.get("GITHUB_EVENT_NAME", "")
                 event = (
@@ -736,7 +957,12 @@ def main() -> int:
             with args.github_output.open("a") as stream:
                 stream.write(f"ready={str(ready).lower()}\n")
         else:
-            publish(source, args.artifact_root, args.output)
+            publish(
+                source,
+                args.artifact_root,
+                args.output,
+                full_regression=os.environ.get("GITHUB_EVENT_NAME") != FAST_LANE_EVENT,
+            )
     except (
         ChannelError,
         KeyError,

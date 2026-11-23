@@ -1,14 +1,19 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { createElement } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   currentSharingDuration,
   DEFAULT_SHARING_DURATION,
   hasStoredSharing,
   partnerLocationOnboardingKey,
+  partnerLocationSettingsQueryKey,
   raisesVisibility,
   rememberPartnerLocationOnboardingAnswer,
   resetPartnerLocationOnboardingMemory,
   sharingDurationRequest,
+  usePartnerLocationSettingsEntry,
   wasPartnerLocationOnboardingAnswered,
 } from './partnerLocation';
 
@@ -114,5 +119,35 @@ describe('start sheet memory', () => {
         partnerLocationOnboardingKey('https://a.example', 'account-2'),
       ),
     ).toBe(true);
+  });
+});
+
+describe('usePartnerLocationSettingsEntry', () => {
+  it('observes the stored settings without a read and without a missing-queryFn warning', async () => {
+    const client = new QueryClient();
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const { result } = renderHook(
+        () => usePartnerLocationSettingsEntry('alex', 'space'),
+        {
+          wrapper: ({ children }) =>
+            createElement(QueryClientProvider, { client }, children),
+        },
+      );
+      expect(result.current).toBeUndefined();
+      const stored = { available: true, state: 'ACTIVE' };
+      act(() => {
+        client.setQueryData(
+          partnerLocationSettingsQueryKey('alex', 'space'),
+          stored,
+        );
+      });
+      await waitFor(() => expect(result.current).toBe(stored));
+      expect(client.isFetching()).toBe(0);
+      expect(errors).not.toHaveBeenCalled();
+    } finally {
+      errors.mockRestore();
+      client.clear();
+    }
   });
 });

@@ -1014,7 +1014,7 @@ class TestConcurrency:
 
 
 class TestRetentionAndPortability:
-    def test_retention_keeps_current_and_previous_day_per_space_timezone(
+    def test_retention_keeps_only_the_current_day_per_space_timezone(
         self, session: Session
     ) -> None:
         instant = datetime(2026, 9, 21, 0, 30, tzinfo=UTC)
@@ -1055,16 +1055,56 @@ class TestRetentionAndPortability:
             )
         session.flush()
 
-        assert retention.purge_expired(session, current_time=instant) == 2
+        # Berlin is already on 21 September, Los Angeles still on the 20th (#2210).
+        assert retention.purge_expired(session, current_time=instant) == 4
         remaining = set(
             session.execute(select(DailyCheckIn.space_id, DailyCheckIn.checked_on)).all()
         )
         assert remaining == {
             (berlin.id, date(2026, 9, 21)),
-            (berlin.id, date(2026, 9, 20)),
             (la.id, date(2026, 9, 20)),
-            (la.id, date(2026, 9, 19)),
         }
+
+    def test_a_former_insights_grant_keeps_no_history(self, session: Session) -> None:
+        """Einblicke was removed (#2210): ``daily.insights`` no longer extends retention."""
+        from datetime import timedelta
+
+        from eimir.entitlements import service as entitlement_service
+        from eimir.entitlements.models import (
+            Capability,
+            EntitlementSourceType,
+            EntitlementStatus,
+            EntitlementTier,
+        )
+
+        instant = datetime(2026, 9, 21, 12, tzinfo=UTC)
+        owner = make_account(session, "Pro")
+        space = make_space(session, owner)
+        configure_daily(session, space_id=space.id, manager_id=owner.id, timezone="Europe/Berlin")
+        for offset in (0, 1, 2, 89):
+            session.add(
+                DailyCheckIn(
+                    space_id=space.id,
+                    account_id=owner.id,
+                    checked_on=date(2026, 9, 21) - timedelta(days=offset),
+                    energy_level=50,
+                )
+            )
+        entitlement_service.record_grant(
+            session,
+            space_id=space.id,
+            account_id=owner.id,
+            source_type=EntitlementSourceType.TEST_FIXTURE,
+            status=EntitlementStatus.ACTIVE,
+            tier=EntitlementTier.PREMIUM,
+            effective_from=instant - timedelta(days=1),
+            capabilities=[Capability.DAILY_INSIGHTS.value],
+        )
+        session.flush()
+
+        assert retention.purge_expired(session, current_time=instant) == 3
+        rows = session.execute(select(DailyCheckIn.checked_on)).scalars().all()
+        assert rows == [date(2026, 9, 21)]
 
     def test_daily_check_ins_are_not_portable_transfer_state(self) -> None:
         portable_tables = {

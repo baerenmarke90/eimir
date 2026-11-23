@@ -1,5 +1,14 @@
 import { focusManager, useQuery } from '@tanstack/react-query';
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import {
+  lazy,
+  type ReactNode,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
@@ -36,16 +45,52 @@ import {
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { prefersReducedMotion } from '../motion/reducedMotion';
 import { PageHeader } from './PageHeader';
 import { SingleAvatar } from './PartnerAvatarPair';
 import { useDistanceAsOfLabel, useDistanceText } from './PartnerDistanceLine';
-import type { MapArea, MapConnection } from './PlaceMapCanvas';
+import type { MapArea, MapConnection, MapFocus } from './PlaceMapCanvas';
 import { ProblemState } from './ProblemState';
 import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import './PartnerLocationMap.css';
 
 const MapCanvas = lazy(() => import('./PlaceMapCanvas'));
+
+type PersonId = 'partner' | 'own';
+
+/**
+ * A person row of the sheet. While the person is on the map, the row is the
+ * way to bring them into view (#2158), like their avatar on the map.
+ */
+function PersonRow({
+  className = '',
+  selectLabel,
+  onSelect,
+  children,
+}: {
+  className?: string;
+  selectLabel?: string;
+  onSelect?: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <li className={`partner-map-person${className}`}>
+      {onSelect && selectLabel ? (
+        <button
+          type="button"
+          className="partner-map-person-button"
+          onClick={onSelect}
+        >
+          {children}
+          <span className="sr-only">{selectLabel}</span>
+        </button>
+      ) : (
+        children
+      )}
+    </li>
+  );
+}
 
 /**
  * The viewer's own position, measured once on open and on resume while the
@@ -179,6 +224,27 @@ export function PartnerLocationMapPage({
   const asOfLabel = useDistanceAsOfLabel();
   const distanceText = useDistanceText();
   const [showUs, setShowUs] = useState(0);
+  // The person the camera follows (#2158); a new request flies there again.
+  const [focusedPerson, setFocusedPerson] = useState<{
+    id: PersonId;
+    request: number;
+  } | null>(null);
+  const selectPerson = useCallback((id: string) => {
+    if (id !== 'partner' && id !== 'own') return;
+    setFocusedPerson((current) => ({
+      id,
+      request: (current?.request ?? 0) + 1,
+    }));
+  }, []);
+  const surfaceRef = useRef<HTMLElement>(null);
+  const selectPersonFromSheet = (id: PersonId) => {
+    selectPerson(id);
+    // The sheet can sit below the fold: the map comes into view with them.
+    surfaceRef.current?.scrollIntoView?.({
+      block: 'nearest',
+      behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+    });
+  };
 
   const shared = map.isSuccess && map.data.available ? map.data : null;
   // The partner's area only counts when it has a position and a radius; the
@@ -187,6 +253,10 @@ export function PartnerLocationMapPage({
     shared && shared.latitude != null && shared.radiusMeters != null
       ? shared
       : null;
+  const partnerZoomLabel = t('partnerLocation.mapZoomToPartner', {
+    partner: partnerFirstName,
+  });
+  const ownZoomLabel = t('partnerLocation.mapZoomToOwn');
   const areas = useMemo<MapArea[]>(() => {
     const result: MapArea[] = [];
     if (
@@ -200,6 +270,7 @@ export function PartnerLocationMapPage({
         latitude: area.latitude,
         longitude: area.longitude,
         radiusMeters: area.radiusMeters,
+        selectLabel: partnerZoomLabel,
         marker: (
           <SingleAvatar
             person={{ displayName: partnerName, imageUrl: partnerAvatar }}
@@ -215,6 +286,7 @@ export function PartnerLocationMapPage({
         latitude: ownPosition.latitude,
         longitude: ownPosition.longitude,
         radiusMeters: 0,
+        selectLabel: ownZoomLabel,
         marker: (
           <SingleAvatar
             person={{
@@ -227,7 +299,33 @@ export function PartnerLocationMapPage({
       });
     }
     return result;
-  }, [area, ownAvatar, ownFirstName, ownPosition, partnerAvatar, partnerName]);
+  }, [
+    area,
+    ownAvatar,
+    ownFirstName,
+    ownPosition,
+    ownZoomLabel,
+    partnerAvatar,
+    partnerName,
+    partnerZoomLabel,
+  ]);
+  const focusedArea = areas.find(({ id }) => id === focusedPerson?.id);
+  const focusLatitude = focusedArea?.latitude;
+  const focusLongitude = focusedArea?.longitude;
+  const focusRadius = focusedArea?.radiusMeters;
+  const focusRequest = focusedPerson?.request;
+  const focus = useMemo<MapFocus | undefined>(
+    () =>
+      focusLatitude != null && focusLongitude != null
+        ? {
+            latitude: focusLatitude,
+            longitude: focusLongitude,
+            radiusMeters: focusRadius,
+            request: focusRequest,
+          }
+        : undefined,
+    [focusLatitude, focusLongitude, focusRadius, focusRequest],
+  );
 
   // Only while both currently share (#1907 H1); otherwise no line, no hint.
   const connectionStyle = partnerConnectionStyle({
@@ -310,7 +408,12 @@ export function PartnerLocationMapPage({
     maximumFractionDigits: 1,
   }).format(unit === 'mile' ? radiusKm / 1.609344 : radiusKm);
   const capturedAt = area?.capturedAt ?? null;
-  const asOf = capturedAt ? asOfLabel(capturedAt) : null;
+  const partnerAsOf = capturedAt ? asOfLabel(capturedAt) : null;
+  const ownCapturedAt = ownPosition?.capturedAt;
+  const ownAsOf =
+    ownCapturedAt && Number.isFinite(ownCapturedAt.getTime())
+      ? asOfLabel(ownCapturedAt)
+      : null;
   const fresh = capturedAt ? isDistanceFresh(capturedAt) : false;
   const between =
     map.isSuccess && distanceLine?.kind === 'distance'
@@ -325,7 +428,7 @@ export function PartnerLocationMapPage({
   const ownShare =
     settings?.state === 'ACTIVE'
       ? settings.level === 'DISTANCE_AND_MAP'
-        ? t('partnerLocation.mapOwnSharesMap', { partner: partnerFirstName })
+        ? null
         : t('partnerLocation.mapOwnSharesDistance', {
             partner: partnerFirstName,
           })
@@ -335,6 +438,7 @@ export function PartnerLocationMapPage({
     <div className="page partner-map-page">
       {header}
       <section
+        ref={surfaceRef}
         className="partner-map-surface"
         aria-label={t('partnerLocation.mapPeopleLabel')}
       >
@@ -347,6 +451,8 @@ export function PartnerLocationMapPage({
         >
           <MapCanvas
             areas={areas}
+            focus={focus}
+            onAreaSelect={selectPerson}
             showAreasRequest={showUs}
             connection={connection}
             ariaLabel={t('partnerLocation.mapPeopleLabel')}
@@ -356,7 +462,11 @@ export function PartnerLocationMapPage({
           <button
             type="button"
             className="secondary partner-map-show-us"
-            onClick={() => setShowUs((count) => count + 1)}
+            onClick={() => {
+              // Back to the two of you from a person in focus (#2158).
+              setFocusedPerson(null);
+              setShowUs((count) => count + 1);
+            }}
           >
             {t('partnerLocation.mapShowUs')}
           </button>
@@ -366,7 +476,7 @@ export function PartnerLocationMapPage({
             ? t('partnerLocation.mapAreaDescription', {
                 partner: partnerFirstName,
                 radius,
-                time: asOf ?? '',
+                time: partnerAsOf ?? '',
               })
             : map.isSuccess
               ? t('partnerLocation.mapPartnerNotSharing', {
@@ -409,8 +519,12 @@ export function PartnerLocationMapPage({
               />
             </li>
           ) : (
-            <li
-              className={`partner-map-person${fresh || !area ? '' : ' is-earlier'}`}
+            <PersonRow
+              className={fresh || !area ? '' : ' is-earlier'}
+              selectLabel={partnerZoomLabel}
+              onSelect={
+                area ? () => selectPersonFromSheet('partner') : undefined
+              }
             >
               <span aria-hidden="true">
                 <SingleAvatar
@@ -433,15 +547,20 @@ export function PartnerLocationMapPage({
                 {map.isSuccess && !area ? (
                   <span>{t('partnerLocation.mapUnavailableBody')}</span>
                 ) : null}
-                {area && asOf ? (
+                {partnerAsOf ? (
                   <span>
-                    {t('partnerLocation.mapPartnerAsOf', { time: asOf })}
+                    {t('partnerLocation.mapAsOf', { time: partnerAsOf })}
                   </span>
                 ) : null}
               </span>
-            </li>
+            </PersonRow>
           )}
-          <li className="partner-map-person">
+          <PersonRow
+            selectLabel={ownZoomLabel}
+            onSelect={
+              ownPosition ? () => selectPersonFromSheet('own') : undefined
+            }
+          >
             <span aria-hidden="true">
               <SingleAvatar
                 person={{
@@ -457,9 +576,12 @@ export function PartnerLocationMapPage({
                   ? t('partnerLocation.mapYou')
                   : t('partnerLocation.mapYouMissing')}
               </strong>
-              <span>{ownShare}</span>
+              {ownAsOf ? (
+                <span>{t('partnerLocation.mapAsOf', { time: ownAsOf })}</span>
+              ) : null}
+              {ownShare && <span>{ownShare}</span>}
             </span>
-          </li>
+          </PersonRow>
         </ul>
         {adjust}
       </section>

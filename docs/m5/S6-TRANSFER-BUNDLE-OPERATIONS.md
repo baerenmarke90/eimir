@@ -106,6 +106,81 @@ Cleanup is idempotent:
 The local `MediaStore` implementation uses missing-safe deletion. Other
 providers must preserve the same logical idempotency contract.
 
+### Skipped videos (#2141)
+
+An import applied without its videos (`mode: WITHOUT_VIDEOS`) remembers each
+skipped video in `transfer_skipped_videos`: the imported Memory or HeartMoment,
+the owner, the gallery position, the source attachment ID and the manifest
+checksum. The rows hold no content and are not part of an export. They are
+removed when the video is recovered (`mode: VIDEOS_ONLY` with the same file),
+when a member dismisses them, with their Memory or HeartMoment, by account
+deletion of their owner or of the member who imported them, and by final Space
+retention. Recovery matches the source ID and the checksum, so a changed file
+recovers nothing.
+
+Only the member who imported the bundle (`imported_by`) sees, recovers and
+dismisses the remembered videos (Product Owner decision P7). The partner's
+`getTransferSkippedVideos` reports nothing, their `dismissTransferSkippedVideos`
+answers `404`, and their import of the same file offers nothing to recover
+(`409 TRANSFER_NOTHING_TO_RECOVER`). `owner_id` stays the owner a recovered video
+gets, which in a shared bundle is often the partner.
+
+### Repeated imports never duplicate (#2141)
+
+Importing the same file again adds only what the Space does not have. Each
+source record and media item lands on a stable target ID derived from the
+target Space and its source ID (a UUIDv7 that keeps the source's time prefix),
+so a later import of the same file recognises what the earlier one added. For a
+file exported from the same Space, the original row counts as present. A row
+counts as present only when its owner matches what the file says, so a crafted
+file cannot claim a partner's private row.
+
+- Present records stay exactly as they are: they are never overwritten. A
+  present Memory, HeartMoment or Plan keeps its current gallery, and a present
+  list (Collection or private collection) keeps its current items and order.
+- A record deleted since the earlier import comes back, once, under the same
+  ID. Its photos are reused while they still exist; an attachment that is being
+  deleted is left out and cut out like a skipped video.
+- Media are copied only when a record the import adds refers to them.
+- Any other unique conflict with an existing row (a link, a nickname, a
+  reminder offset) keeps the existing row, and rows that depend on a row that
+  was not added are left out too.
+- The preview reports `alreadyPresentCount`. `videoCount`, `videoBytes` and
+  `videosNeedPro` count only the videos the import would add, so a file whose
+  videos the Space already has does not need Pro again. Skipped videos of a
+  record that is already present stay recoverable through `VIDEOS_ONLY`.
+
+Provenance does not survive a second hop: a file exported from a Space that
+itself received the content by import carries that Space's IDs, which are new
+to the original Space.
+
+### Cloud storage quota (#2141)
+
+On eimir. Cloud an import must fit the Space's storage quota (Freemium matrix,
+"Cloud storage quota"); Self-Hosted is unmetered. What counts is the media the
+import would actually add, at their size: media the Space already has (see
+above) and thumbnails count nothing, so a repeated import of the same file needs
+no room.
+
+- The preview reports `storageNeeded` and `storageNeededWithoutVideos`, both
+  fixed at validation, and reads `storageAvailable`, `storageQuotaExceeded` and
+  `storageFitsWithoutVideos` live while the import is ready to apply.
+  `recoverableVideoBytes` is what `VIDEOS_ONLY` would add.
+- Applying refuses the whole bundle with `413 STORAGE_QUOTA_EXCEEDED` when it
+  does not fit ("free up space or get Premium"), or with
+  `413 STORAGE_QUOTA_EXCEEDED_FITS_WITHOUT_VIDEOS` when applying with
+  `mode: WITHOUT_VIDEOS` would fit. Nothing changes and the import stays ready
+  to apply.
+- The apply job checks again under the Space's storage lock with exactly what it
+  is about to add, after leaving out what the Space already has. If an upload
+  took the room meanwhile, nothing is written and the import returns to ready to
+  apply with that code as `errorCode`, so the member can free space and apply the
+  same file again without uploading it once more.
+- Recovering skipped videos (`VIDEOS_ONLY`) is checked the same way: the
+  remembered videos found in the file must fit, or none is added.
+- A Space over its quota, for example after a downgrade, keeps everything; only
+  new bytes are refused.
+
 ## Failure and retry behavior
 
 Transfer work is asynchronous and survives the initiating HTTP connection.
@@ -126,9 +201,17 @@ validation never reaches Domain apply.
 Export generation uses a dedicated PostgreSQL `REPEATABLE READ` transaction so
 all exported Domain rows come from one deterministic snapshot. Import apply is
 additive, revalidates the staged bundle immediately before mutation, maps
-source IDs to new target IDs, and executes inside the worker transaction. A
+source IDs to stable target IDs (see above), and executes inside the worker transaction. A
 failed apply must not leave a readable partial Domain graph. Media objects
 written before a database failure are deleted on the apply error path.
+
+Bundles are not signed, so media metadata and bytes are untrusted. Validation
+checks every photo with the upload decoder (declared type, pixels, dimensions,
+size and a JPEG thumbnail of at most 512 px) and checks PDFs for PDF structure.
+Photos keep their exact bytes, capture time and orientation, because a second
+lossy encode would degrade every restore. Audio and video enter `VALIDATING`
+and run the upload worker job. Photo and PDF checks need no media processor and
+no Pro capability; restore stays non-paywallable.
 
 ## Self-Hosted capacity and monitoring
 
@@ -146,8 +229,14 @@ These are abuse/safety controls, not commercial quotas.
 The API streams each import into a spool. Up to 16 MiB stays in process
 memory. Larger uploads roll into the API's private `/tmp` tmpfs in both
 Compose profiles. The same mount protects temporary files used by regular
-media uploads. Both the web proxy and the API allow transfer bodies up to
-512 MiB. The proxy forwards them without request-body buffering. Size
+media uploads. The API allows transfer bodies up to 512 MiB. The Web
+container's Nginx has a matching location, but only the local loopback test
+uses that hop: in production `/api/` reaches the API directly through the TLS
+reverse proxy, which must itself allow 512 MiB, must not buffer request bodies
+and needs timeouts that cover a slow upload (see
+[Request bodies and timeouts](../ARCANE.md#request-bodies-and-timeouts)). A
+proxy refusal is an HTML `413` without an eimir. problem code, not
+`TRANSFER_TOO_LARGE`; the Web UI names both as a file that is too large. Size
 `EIMIR_API_TMPFS_SIZE` (default 1 GiB) and container memory for the number
 of simultaneous uploads. Disable swap or use encrypted swap for plaintext
 memory pages. A full mount fails the upload. Request cleanup closes its spool

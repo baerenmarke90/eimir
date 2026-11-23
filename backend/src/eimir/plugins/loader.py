@@ -37,20 +37,22 @@ from eimir.plugins.contract import (
 from eimir.plugins.manifest import PLUGIN_ENGAGEMENT_TARGETS, PLUGIN_JOB_KINDS, attachment_rules
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     from fastapi import APIRouter
+    from sqlalchemy.orm import Session
     from starlette.routing import BaseRoute
 
+    from eimir.authorization import AuthorizationContext
+    from eimir.config import Settings
     from eimir.engagement.models import EngagementTarget
     from eimir.jobs.worker import JobRegistry
+    from eimir.wish_selections.date_idea_contract import DateIdeaSource
 
 log = logging.getLogger(__name__)
 
-EXPECTED_DISTRIBUTIONS = {"pro": "eimir"}
-"""The only distribution allowed to provide each plugin name.
-
-While the plugin is in-tree (Phase 1) it ships in the ``eimir`` distribution
-itself; Phase 2 moves it into its own distribution.
-"""
+EXPECTED_DISTRIBUTIONS = {"pro": "eimir-pro"}
+"""The only distribution allowed to provide each plugin name (``backend/pro``, #2182)."""
 
 
 class PluginLoadError(RuntimeError):
@@ -92,12 +94,51 @@ class LoadedPlugins:
             for target, rule in plugin.engagement_targets().items()
         }
 
+    def date_ideas(self) -> DateIdeaSource | None:
+        """The first loaded plugin's date-idea catalog, if any."""
+        for plugin in self.plugins:
+            source = plugin.date_ideas()
+            if source is not None:
+                return source
+        return None
+
+    def hidden_wish_ids(self, session: Session, context: AuthorizationContext) -> frozenset[UUID]:
+        """Every loaded plugin's hidden Wishes for this reader; none without a plugin."""
+        hidden: set[UUID] = set()
+        for plugin in self.plugins:
+            hidden |= plugin.hidden_wish_ids(session, context)
+        return frozenset(hidden)
+
     def attachment_read_rules(self) -> dict[str, AttachmentReadRule]:
         return {
             parent_type: rule
             for plugin in self.plugins
             for parent_type, rule in plugin.attachment_read_rules().items()
         }
+
+    def push_preview_detail(
+        self,
+        session: Session,
+        context: AuthorizationContext,
+        target_type: EngagementTarget,
+        target_id: UUID,
+    ) -> tuple[str, str] | None:
+        """The first loaded plugin's v3 preview codes for one of its targets, if any."""
+        for plugin in self.plugins:
+            detail = plugin.push_preview_detail(session, context, target_type, target_id)
+            if detail is not None:
+                return detail
+        return None
+
+    def validate(self, settings: Settings) -> None:
+        """Let every plugin check its configuration; a raising plugin refuses to start."""
+        for plugin in self.plugins:
+            try:
+                plugin.validate(settings)
+            except Exception as error:
+                raise PluginLoadError(
+                    f"Plugin {plugin.name!r} refused its configuration: {error}"
+                ) from error
 
     def register_jobs(self, registry: JobRegistry) -> None:
         """Register every plugin's job handlers; a kind the manifest does not declare refuses."""

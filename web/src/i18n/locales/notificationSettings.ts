@@ -47,6 +47,7 @@ const notificationSettings = {
   deviceHintOff:
     'Gewählte Push-Kanäle starten, sobald du Push eingerichtet hast.',
   browserToggle: 'Push in diesem Browser',
+  browserOn: 'Push ist in diesem Browser aktiv.',
   browserPermissionDenied:
     'Erlaube Benachrichtigungen für eimir. in den Einstellungen dieses Browsers.',
   browserOtherAccount:
@@ -61,11 +62,16 @@ const notificationSettings = {
   onboardingPromptsFailed:
     'Push ist eingerichtet. Kleine Impulse konnten noch nicht aktiviert werden. Versuche es erneut oder ändere die Auswahl später in den Einstellungen.',
   onboardingActivate: 'Aktivieren',
+  onboardingActivating: 'Wird aktiviert …',
+  onboardingContinue: 'Im Hintergrund fortfahren',
+  onboardingSavingPrompts: 'Wird gespeichert …',
+  onboardingPushReady:
+    'Push ist aktiv. Deine Auswahl für kleine Impulse wird gespeichert.',
   onboardingLater: 'Später',
   onboardingOffline:
     'Du bist gerade offline. Benachrichtigungen wurden noch nicht aktiviert.',
   deviceIntro:
-    'Hinweise können Namen und Titel zeigen. Auf dem Sperrbildschirm gilt deine Android-Auswahl für sensible Inhalte. Konkrete Vorschauen werden für den Versand verschlüsselt. Google oder dein Push-Dienst erhält eine Installationskennung und Verbindungsdaten.',
+    'Hinweise zeigen, was passiert ist, etwa Namen, Titel, Termine und kurze Auszüge. Ob sie auf dem gesperrten Bildschirm vollständig erscheinen, entscheidet deine Android-Einstellung für sensible Inhalte. Die Inhalte werden für den Versand verschlüsselt. Google oder dein Push-Dienst erhält eine Installationskennung und Verbindungsdaten.',
   iosDeviceIntro:
     'Auf deinem Gerät erscheint ein neutraler Hinweis. Wenn du darauf tippst, öffnet eimir. den Inhalt nach der Anmeldung.',
   deviceLoading: 'Push-Einrichtung wird geprüft …',

@@ -20,6 +20,7 @@ from typing import BinaryIO
 from uuid import UUID
 
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
@@ -32,6 +33,7 @@ from eimir.attachments.models import (
     MediaType,
     PhotoLocationDraft,
 )
+from eimir.attachments.quota import require_fit, space_storage
 from eimir.authorization import (
     AuthorizationContext,
     PrivacyClass,
@@ -204,6 +206,11 @@ def create_upload(
             "The attachment exceeds the size limit.",
             ErrorCode.ATTACHMENT_TOO_LARGE,
         )
+    # On Cloud the declared size must fit the Space's storage quota (#2141);
+    # the row reserves it until the file is finished, fails or is deleted.
+    # Measured and added under the Space's storage lock, so two uploads that
+    # each fit cannot together exceed it. Self-Hosted is unmetered.
+    require_fit(space_storage(session, context.space_id, lock=True), expected_size)
 
     attachment = Attachment(
         space_id=context.space_id,
@@ -248,6 +255,15 @@ def open_upload(
     return attachment, rule
 
 
+def upload_limit(attachment: Attachment, rule: MediaRule) -> int:
+    """The most bytes this upload may store: its declared size, within the type's limit.
+
+    The declared size is what the Space's storage quota reserved (#2141), so a
+    client cannot reserve little and then send more.
+    """
+    return min(rule.max_size, attachment.declared_size)
+
+
 def too_large() -> PayloadTooLargeError:
     return PayloadTooLargeError(
         "The attachment exceeds the size limit.",
@@ -266,12 +282,13 @@ def complete_upload(
     The size limit is already applied while reading; it is checked again here
     so another caller cannot bypass the request-layer boundary.
     """
-    if isinstance(data, bytes) and len(data) > rule.max_size:
+    limit = upload_limit(attachment, rule)
+    if isinstance(data, bytes) and len(data) > limit:
         raise too_large()
     source = io.BytesIO(data) if isinstance(data, bytes) else data
     try:
         get_media_store().put(
-            storage_key_for(attachment), BoundedSource(source, rule.max_size), rule.mime_type
+            storage_key_for(attachment), BoundedSource(source, limit), rule.mime_type
         )
     except ByteLimitExceededError:
         raise too_large() from None
@@ -518,6 +535,17 @@ def delete_attachment(
             "The resource was changed since it was loaded.",
             ErrorCode.RESOURCE_VERSION_CONFLICT,
         )
+    from eimir.attachments import binding
+
+    # A Heart Moment owns its photos: removing one goes through editing the
+    # Heart Moment. Marking a still-used attachment would leave a row the cleanup
+    # can never purge and a Heart Moment pointing at an invisible photo.
+    binding.lock_for_binding(session, [attachment.id])
+    if binding.used_by_heart_moment(session, attachment.id):
+        raise ConflictError(
+            "The attachment is still in use.",
+            ErrorCode.ATTACHMENT_IN_USE,
+        )
     mark_for_deletion(session, attachment)
     _flush(session)
 
@@ -528,26 +556,51 @@ def mark_for_deletion(session: Session, attachment: Attachment) -> None:
 
 
 def purge(session: Session, attachment: Attachment) -> bool:
-    """Remove provider objects and row, returning whether cleanup succeeded.
+    """Remove the row and provider objects, returning whether cleanup succeeded.
 
     Storage failure must not reverse domain-visible deletion. On failure the row
     remains DELETE_FAILED for retry and never becomes visible again.
+
+    The row is deleted first, inside a savepoint, and the provider objects only
+    after that succeeded. A row that a feature still references (for example a
+    Heart Moment photo, whose foreign key is ``RESTRICT``) makes the database
+    refuse the delete; the savepoint then rolls back only this attachment, its
+    bytes stay, and the caller's round carries on with the other rows instead of
+    failing as a whole on every run.
     """
-    # Sensitive staging does not inherit a provider deletion failure's retry lifetime.
-    session.execute(delete(PhotoLocationDraft).where(PhotoLocationDraft.id == attachment.id))
+    attachment_id = attachment.id
     store = get_media_store()
     variants = [ORIGINAL_VARIANT]
     if attachment.has_thumbnail:
         variants.append(THUMBNAIL_VARIANT)
+    storage_keys = [
+        storage_key
+        for variant in variants
+        for storage_key in storage_homes_for(attachment, variant)
+    ]
     try:
-        for variant in variants:
-            for storage_key in storage_homes_for(attachment, variant):
+        with session.begin_nested():
+            # Sensitive staging does not inherit a provider deletion failure's
+            # retry lifetime.
+            session.execute(
+                delete(PhotoLocationDraft).where(PhotoLocationDraft.id == attachment_id)
+            )
+            session.delete(attachment)
+            session.flush()
+            for storage_key in storage_keys:
                 store.delete(storage_key)
-    except OSError:
-        attachment.status = AttachmentStatus.DELETE_FAILED.value
-        log.warning("attachment purge failed", extra={"attachmentId": str(attachment.id)})
+    except IntegrityError:
+        # Still referenced: keep row and bytes, leave the status as it is.
+        log.warning(
+            "attachment purge blocked by a remaining reference",
+            extra={"attachmentId": str(attachment_id)},
+        )
         return False
-    session.delete(attachment)
+    except OSError:
+        # The savepoint restored the row; mark it for the next retry.
+        attachment.status = AttachmentStatus.DELETE_FAILED.value
+        log.warning("attachment purge failed", extra={"attachmentId": str(attachment_id)})
+        return False
     return True
 
 
@@ -592,7 +645,9 @@ def validate(session: Session, attachment_id: UUID) -> None:
         _fail(attachment, ErrorCode.ATTACHMENT_VALIDATION_FAILED)
         return
 
-    if len(raw) > rule.max_size:
+    # An object larger than declared never becomes READY: the declared size is
+    # what the storage quota reserved, also for a direct provider upload (#2141).
+    if len(raw) > upload_limit(attachment, rule):
         _fail(attachment, ErrorCode.ATTACHMENT_TOO_LARGE)
         return
 

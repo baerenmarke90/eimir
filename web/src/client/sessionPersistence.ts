@@ -8,6 +8,7 @@ import {
   observeNativeVideoTransfers,
 } from './backgroundVideoUploads';
 import { loadReferenceClientConfig } from './config';
+import { clearFailureReference } from './failureReference';
 import { clearMemoryDiaryDrafts } from './memoryDiaryDraft';
 import {
   isNativeSessionStorageAvailable,
@@ -18,8 +19,10 @@ import { clearPersonalSettingsSyncState } from './personalSettingsBus';
 import { clearPersonColourPreferences } from './personColoursStore';
 import { normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
+import { clearSupportReportDrafts } from './supportReportDraftStorage';
 import { clearRetrospectiveDismissal } from './todayRetrospectiveDismissal';
 import { clearWirDesignPreferences } from './wirDesignPreferenceStore';
+import { clearWirDistanceSeen } from './wirDistanceSeen';
 
 export const SESSION_STORAGE_KEY = SESSION_LANGUAGE_KEY;
 export const LEGACY_SESSION_STORAGE_KEY = 'sidebyside-session-v1';
@@ -233,6 +236,8 @@ function persistSession(
     ) {
       clearAuthorizedMediaCache();
       clearMemoryDiaryDrafts();
+      clearSupportReportDrafts();
+      clearFailureReference();
       clearBackgroundVideoTransfers();
     }
     const serialized = JSON.stringify({
@@ -323,9 +328,12 @@ export function clearStoredSession(): Promise<void> {
   clearBackgroundVideoTransfers();
   clearAuthorizedMediaCache();
   clearWirDesignPreferences();
+  clearWirDistanceSeen();
   clearPersonColourPreferences();
   clearPersonalSettingsSyncState();
   clearMemoryDiaryDrafts();
+  clearSupportReportDrafts();
+  clearFailureReference();
   clearRetrospectiveDismissal();
   sessionOwner = null;
   try {

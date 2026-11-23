@@ -200,7 +200,14 @@ for (const [width, theme, motion] of [
       .locator('.memory-map-marker')
       .filter({ has: page.locator('[data-active-memory="visit-evening"]') });
     await expect(marker.locator('.memory-map-stack-photo')).toHaveCount(3);
-    await expect(marker.locator('.memory-map-marker-count')).toHaveText('5');
+    const stackCount = marker.locator('.memory-map-marker-count');
+    await expect(stackCount).toHaveText('5');
+    await expect(stackCount).toBeVisible();
+    const singleMarker = page
+      .getByRole('application')
+      .getByRole('button', { name: 'Trier · 1 Erinnerung', exact: true });
+    await expect(singleMarker).toBeVisible();
+    await expect(singleMarker.locator('.memory-map-marker-count')).toBeHidden();
     const originalMarker = await marker.elementHandle();
     await page.evaluate(() => {
       const map = document.querySelector('.place-map-canvas');
@@ -505,3 +512,109 @@ test('map stack browsing keeps text and sensitive sources usable at 320px with l
       .violations,
   ).toEqual([]);
 });
+
+for (const motion of ['no-preference', 'reduce'] as const) {
+  test(`a kept map returns without a camera journey and rests (${motion}, #2078)`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ colorScheme: 'light', reducedMotion: motion });
+    await installMap(page);
+    await expect(page.locator('.memory-map-marker')).toHaveCount(2);
+    await settledCamera(page);
+    await page.evaluate(() => {
+      const map = document.querySelector('.place-map-canvas');
+      const log: string[] = [];
+      (window as unknown as { mapMovement: string[] }).mapMovement = log;
+      if (map)
+        new MutationObserver(() =>
+          log.push(map.getAttribute('data-map-moving') ?? ''),
+        ).observe(map, {
+          attributes: true,
+          attributeFilter: ['data-map-moving'],
+        });
+    });
+    const movement = () =>
+      page.evaluate(
+        () => (window as unknown as { mapMovement: string[] }).mapMovement,
+      );
+    const frame = () =>
+      page
+        .locator('.memory-map-marker')
+        .evaluateAll((markers) =>
+          markers.map((marker) => (marker as HTMLElement).style.transform),
+        );
+    const resetMovement = () =>
+      page.evaluate(() => {
+        (window as unknown as { mapMovement: string[] }).mapMovement.length = 0;
+      });
+    // Leave the kept Momente tab for Wir, then come back through the Karte
+    // segment, which reopens the Place last selected (PO 2026-11-20).
+    const leaveAndReturn = async (markers: number) => {
+      await page.getByRole('link', { name: 'Wir', exact: true }).click();
+      await expect(page.locator('.place-map-canvas')).toBeHidden();
+      await resetMovement();
+      await page.getByRole('link', { name: 'Momente', exact: true }).click();
+      await page.getByRole('tab', { name: mapCopy.entry, exact: true }).click();
+      await expect(page.locator('.place-map-canvas')).toBeVisible();
+      await expect(page.locator('.memory-map-marker')).toHaveCount(markers);
+      await page.waitForTimeout(1_500);
+    };
+    // Opening framed the overview without a camera journey.
+    expect(await movement()).toEqual([]);
+    await page
+      .getByRole('list', { name: mapCopy.places })
+      .getByRole('button', { name: 'Bostalsee · 5 Erinnerungen' })
+      .click();
+    // An explicit selection is a journey; with reduced motion it jumps.
+    if (motion === 'reduce') {
+      await settledCamera(page);
+      expect(await movement()).toEqual([]);
+    } else
+      await expect
+        .poll(async () => (await movement()).join(','))
+        .toBe('true,false');
+    await expect(page.locator('.memory-map-marker')).toHaveCount(1);
+    const placeFrame = await frame();
+
+    // The return keeps the selected Place without replay or re-fly.
+    await leaveAndReturn(1);
+    await expect(page).toHaveURL(
+      new RegExp(`/story/map\\?place=${encodeURIComponent(PLACE)}`),
+    );
+    await expect(
+      page.getByRole('heading', { name: 'Bostalsee', exact: true }),
+    ).toBeVisible();
+    expect(await movement()).toEqual([]);
+    expect(await frame()).toEqual(placeFrame);
+
+    // Closing the selection shows all Places; the return keeps that too.
+    await resetMovement();
+    await page
+      .getByRole('button', { name: mapCopy.allPlaces, exact: true })
+      .click();
+    if (motion === 'reduce') await settledCamera(page);
+    else
+      await expect
+        .poll(async () => (await movement()).join(','))
+        .toBe('true,false');
+    await expect(page.locator('.memory-map-marker')).toHaveCount(2);
+    const selected = await frame();
+    await leaveAndReturn(2);
+    expect(await movement()).toEqual([]);
+    expect(await frame()).toEqual(selected);
+    // The idle map rests: no running animation over it, no camera change.
+    expect(
+      await page
+        .locator('.memory-map-page')
+        .evaluate(
+          (node) =>
+            node
+              .getAnimations({ subtree: true })
+              .filter((animation) => animation.playState === 'running').length,
+        ),
+    ).toBe(0);
+    await page.waitForTimeout(1_000);
+    expect(await frame()).toEqual(selected);
+  });
+}

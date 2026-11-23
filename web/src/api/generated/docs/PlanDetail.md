@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`anticipation` | [PlanAnticipation](PlanAnticipation.md)
 `anticipationEnabled` | boolean
 `attachments` | [Array&lt;OrderedAttachmentSummary&gt;](OrderedAttachmentSummary.md)
 `capabilities` | [ResourceCapabilities](ResourceCapabilities.md)
@@ -41,6 +42,7 @@ import type { PlanDetail } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "anticipation": null,
   "anticipationEnabled": null,
   "attachments": null,
   "capabilities": null,

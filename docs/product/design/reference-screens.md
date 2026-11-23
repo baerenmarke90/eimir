@@ -137,8 +137,13 @@ Memories, Diary and Map are three peer modes with one shared selector. The canon
 map route retains non-sensitive Diary filters through selection and source return.
 Place the Diary filter action beside its first visible month, with an empty/loading
 fallback. Overview cards omit author avatars; canonical details retain authorship.
-Map markers show authorized photo previews and memory-count badges, with equivalent
-photo/source browsing below. Conceal sensitive media and retain text-only/error
+In the Album diary, playful photo memories use a short strip of translucent tape.
+Heart Moments have a small matte brass pin. Month labels stand on their own.
+On the Album map, authorized photo prints mark each place. A stack shows its
+memory count at the lower edge. A single print stands alone. Place slips and
+selected photos have plain edges. The compact list layout keeps its count badges.
+Both layouts give the full count in marker accessible names and offer equivalent
+photo and source browsing below the map. Conceal sensitive media and retain text-only/error
 fallbacks and provider attribution. The shared resolved appearance controls map
 pixels and controls; there is no separate map preference.
 
@@ -201,7 +206,7 @@ Use a restrained focal tint and neutral agenda surfaces in Light/Dark. Dates, ra
 | Order | Compact composition | Behavior |
 | --- | --- | --- |
 | 1 | Content begins below the safe top inset | Per [PO decision #1507](mobile-header-more.md), Compact/Medium has no global header; global search and notifications are named More destinations with unread state on More |
-| 2 | Personal relationship context | Actual avatar pair/names and optional duration; no ceremonial frame or decorative technical state |
+| 2 | Personal relationship context | Actual avatar pair/names and optional duration; no ceremonial frame or decorative technical state. The Verbunden hero shows the portraits without painted names and carries the distance in the [heart and light](references/wir-hero-heart-light/README.md) (Product Owner, 2026-11-22) |
 | 3 | Contextual relationship impulse | Existing intentional action with honest pending/result feedback; never auto-send |
 | 4 | One real keepsake | Large photo with caption or actual readable thought; this is the visual focal point |
 | 5 | Compact upcoming item(s) | Preserve the person's supported 1–3 item preference and real near-future selection |

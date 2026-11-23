@@ -26,9 +26,6 @@ from eimir.core.clock import now
 from eimir.core.errors import UnauthenticatedError
 from eimir.daily_checkins.models import (
     DailyCheckIn,
-    DailyInsightFeedback,
-    RecommendationKey,
-    RecommendationRating,
 )
 from eimir.dashboard.models import DashboardModulePreference
 from eimir.engagement.models import (
@@ -37,9 +34,11 @@ from eimir.engagement.models import (
     NotificationKind,
     NotificationPreference,
     PushEndpoint,
+    SupportGestureKind,
+    ThinkingOfYouRequest,
 )
 from eimir.engagement.push import register_endpoint
-from eimir.garden.models import GardenPlant, GardenReader, GardenWatering
+from eimir.engagement.thinking import send as send_thinking_of_you
 from eimir.identity.deletion import (
     DELETED_ACCOUNT_DISPLAY_NAME,
     DELETED_ACCOUNT_LOCALE,
@@ -55,13 +54,6 @@ from eimir.identity.models import AccountEmail, AuthIdentity, AuthProvider, Devi
 from eimir.legal.models import TermsAcceptance, TermsAcceptanceOrigin
 from eimir.legal.terms import record_acceptance
 from eimir.memories.models import Memory, MemoryPayload
-from eimir.once_messages.models import OnceDevice, OnceReception
-from eimir.presence.models import (
-    PartnerLocationConsent,
-    PresenceDeviceCredential,
-    PresencePositionPayload,
-    PresenceSnapshot,
-)
 from eimir.private_notes.models import PrivateNote, PrivateNotePayload
 from eimir.profiles.models import (
     PartnerProfile,
@@ -71,12 +63,15 @@ from eimir.profiles.models import (
     ProfilePreferencePayload,
     ProfileVisibility,
 )
-from eimir.quotes.models import DailyQuotePreference
 from eimir.relationship.models import Invitation, Membership, MembershipStatus, SpacePresence
 from eimir.relationship.service import add_member
+from eimir.support_reports import service as support_report_service
+from eimir.support_reports.models import SupportReportKind, SupportReportReplyRow
+from eimir.support_reports.payload import ClientContext, SupportReportPayload
 from eimir.wishes import service as wish_service
 from eimir.wishes.models import WishReminder
 from tests.conftest import make_account, make_space, requires_database
+from tests.support.plugins import requires_pro
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -129,6 +124,34 @@ def _private_partner_note(
     session.add(preference)
     session.flush()
     return preference
+
+
+def _support_report_with_reply(session: Session, account_id: UUID) -> UUID:
+    report, _ = support_report_service.create_report(
+        session,
+        account_id=account_id,
+        client_request_id=uuid4(),
+        kind=SupportReportKind.PROBLEM,
+        payload=SupportReportPayload(
+            note="A note.",
+            client=ClientContext(
+                app_version="0.2.0",
+                build="123",
+                platform="app",
+                os="Android 16",
+                engine="WebView 142",
+                locale="de-DE",
+                theme="dark",
+                online=True,
+                local_time="2026-11-23T10:15:00",
+                time_zone="Europe/Berlin",
+            ),
+        ),
+    )
+    support_report_service.send_reply(
+        session, report_id=report.id, text="Thank you.", operator_id=None
+    )
+    return report.id
 
 
 def test_accepted_tombstone_is_immediately_fail_closed_and_idempotent(session: Session) -> None:
@@ -374,15 +397,32 @@ def test_core_cleanup_deletes_private_identity_state_but_retains_shared_history(
 
 
 @pytest.mark.parametrize(
-    ("completed_backup", "plugin_loaded"), [(False, True), (True, True), (False, False)]
+    ("completed_backup", "plugin_loaded"),
+    [
+        pytest.param(False, True, marks=requires_pro),
+        pytest.param(True, True, marks=requires_pro),
+        (False, False),
+    ],
 )
 def test_private_account_rows_are_removed_without_erasing_partner_data(
     session: Session, completed_backup: bool, plugin_loaded: bool
 ) -> None:
     from contextlib import nullcontext
 
-    from eimir.pro_plugin import personal_account_models
-    from tests.support.plugins import without_plugins
+    from tests.support.plugins import require_pro_distribution, without_plugins
+
+    # The rows under test are Pro rows; without ``eimir-pro`` there are none.
+    require_pro_distribution()
+    from eimir_pro.garden.models import GardenPlant, GardenReader, GardenWatering
+    from eimir_pro.once_messages.models import OnceDevice, OnceReception
+    from eimir_pro.plugin import personal_account_models
+    from eimir_pro.presence.models import (
+        PartnerLocationConsent,
+        PresenceDeviceCredential,
+        PresencePositionPayload,
+        PresenceSnapshot,
+    )
+    from eimir_pro.quotes.models import DailyQuotePreference
 
     owner, partner = make_account(session, "Anna"), make_account(session, "Ben")
     space = make_space(session, owner)
@@ -404,6 +444,7 @@ def test_private_account_rows_are_removed_without_erasing_partner_data(
     )
     session.flush()
     plant_id = plant.id
+    report_ids: dict[UUID, UUID] = {}
     for person, recipient in ((owner, partner), (partner, owner)):
         keys = {"space_id": space.id, "account_id": person.id}
         device_session, _ = sessions.start_session(session, person)
@@ -418,11 +459,6 @@ def test_private_account_rows_are_removed_without_erasing_partner_data(
         session.add_all(
             [
                 DailyCheckIn(**keys, checked_on=at.date(), vibe="GOOD"),
-                DailyInsightFeedback(
-                    **keys,
-                    recommendation_key=RecommendationKey.QUIET_TIME.value,
-                    rating=RecommendationRating.HELPFUL.value,
-                ),
                 DailyQuotePreference(account_id=person.id),
                 DashboardModulePreference(**keys, module_key="fixture"),
                 GardenReader(**keys),
@@ -475,6 +511,10 @@ def test_private_account_rows_are_removed_without_erasing_partner_data(
                 WishReminder(**keys, wish_id=wish.id, due_at=expiry),
             ]
         )
+    # Migration 0163 predates support reports, so a restored completed deletion
+    # never owns one; the owner's report is seeded only for the live cleanup.
+    for person in (partner,) if completed_backup else (owner, partner):
+        report_ids[person.id] = _support_report_with_reply(session, person.id)
     session.flush()
     if completed_backup:
         # Reconstruct the persisted state without invoking today's membership
@@ -518,6 +558,11 @@ def test_private_account_rows_are_removed_without_erasing_partner_data(
         assert _count(session, table, table.account_id == partner.id) == expected, (
             table.__tablename__
         )
+    # A deleted report takes its reply along (ON DELETE CASCADE); the partner's stays.
+    for person_id, report_id in report_ids.items():
+        reply_filter = SupportReportReplyRow.report_id == report_id
+        expected_replies = 0 if person_id == owner.id else 1
+        assert _count(session, SupportReportReplyRow, reply_filter) == expected_replies, person_id
     # Pair-bound game state ends on membership exit. The shared Wish survives.
     assert (session.get(GardenPlant, plant_id) is not None) == completed_backup
     assert session.get(type(wish), wish.id) is not None
@@ -580,3 +625,62 @@ def test_failed_cleanup_stays_fail_closed_and_can_retry(session: Session) -> Non
     assert retried.failed_at is None
     assert retried.last_failure_code is None
     assert account.disabled_at == accepted_at
+
+
+@pytest.mark.parametrize(
+    ("deleted_party", "plugin_loaded"),
+    [
+        pytest.param("sender", True, marks=requires_pro),
+        pytest.param("recipient", True, marks=requires_pro),
+        ("sender", False),
+        ("recipient", False),
+    ],
+)
+def test_core_cleanup_removes_partner_gesture_receipts_of_the_deleted_account(
+    session: Session, deleted_party: str, plugin_loaded: bool
+) -> None:
+    # Gesture receipts record who sent which gesture to whom and when. They are
+    # relationship metadata, not shared history, so they must not outlive the
+    # Account on either side. Pseudonymising the Account never fires the
+    # ON DELETE CASCADE, so the cleanup has to delete them explicitly: the Pro
+    # plugin's account hook when it is loaded, the Core manifest otherwise
+    # (an instance that once ran with the plugin).
+    from contextlib import nullcontext
+
+    from tests.support.plugins import plugins_loaded, require_pro_distribution, without_plugins
+
+    # Gesture receipts are Pro rows; without ``eimir-pro`` there are none.
+    require_pro_distribution()
+    from eimir_pro.partner_quick_actions.models import SupportGestureRequest
+    from eimir_pro.partner_quick_actions.service import send_support_gesture
+
+    anna = make_account(session, "Anna")
+    space = make_space(session, anna)
+    ben = make_account(session, "Ben")
+    add_member(session, space.id, ben)
+    session.flush()
+
+    context = AuthorizationContext(account_id=anna.id, space_id=space.id)
+    send_thinking_of_you(session, context, client_request_id=uuid4())
+    send_support_gesture(
+        session,
+        context,
+        kind=SupportGestureKind.KISS,
+        client_request_id=uuid4(),
+    )
+    session.flush()
+
+    in_space = (
+        _count(session, ThinkingOfYouRequest, ThinkingOfYouRequest.space_id == space.id),
+        _count(session, SupportGestureRequest, SupportGestureRequest.space_id == space.id),
+    )
+    assert in_space == (1, 1)
+
+    deleted = anna if deleted_party == "sender" else ben
+    core_only = nullcontext() if plugin_loaded or not plugins_loaded() else without_plugins()
+    with core_only:
+        apply_accepted_tombstone(session, deleted.id, accepted_at=now())
+        apply_core_cleanup(session, deleted.id)
+
+    assert _count(session, ThinkingOfYouRequest, ThinkingOfYouRequest.space_id == space.id) == 0
+    assert _count(session, SupportGestureRequest, SupportGestureRequest.space_id == space.id) == 0

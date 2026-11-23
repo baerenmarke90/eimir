@@ -388,10 +388,14 @@ the switch for default-off operation. Existing encryption, image identity,
 first-install bootstrap and migration-before-runtime gates remain mandatory.
 
 `EIMIR_PLUGINS` names the server plugins that API, worker and migrate load
-([Decision 0017](decisions/0017-pro-plugin-seam.md)). Leave it unset: the default
-`pro` loads the Pro features that ship in the released image today. A named plugin
-that is missing or does not match the Core build stops the process instead of
-starting with fewer features.
+([Decision 0017](decisions/0017-pro-plugin-seam.md)). Leave it unset: the released
+backend image contains the Pro plugin (its own distribution `eimir-pro` since #2182)
+and sets `EIMIR_PLUGINS=pro` itself. A named plugin that is missing or does not
+match the Core build stops the process instead of starting with fewer features. An
+empty value runs the Core only: the Pro routes do not exist, Pro capabilities are
+not granted, and the Core keeps deleting and expiring the data that Pro features
+left behind. Outside the image (for example a source checkout) the default is the
+Core only; set `EIMIR_PLUGINS=pro` after `uv sync --all-packages` to load the plugin.
 
 SMTP is optional. With:
 
@@ -401,6 +405,38 @@ EIMIR_MAIL_TRANSPORT=none
 
 password, Passkey/WebAuthn and OIDC remain available while mail-dependent Magic Link,
 password recovery and email verification report that mail delivery is unavailable.
+
+## In-app support reports
+
+`EIMIR_SUPPORT_REPORTS_ENABLED` (default `false`) switches the in-app path where a
+signed-in person reports a problem or sends feedback (#2189). Enable it only if you
+read the reports: an acknowledgement in the app would otherwise tell people that the
+team received something nobody reads. Compose forwards the variable to the services
+that share the runtime environment; it is plain operator configuration, never a
+couple setting.
+
+With the switch off, `POST /api/v1/support-reports` is refused with `404`, the public
+`GET /api/v1/instance` reports `supportReportsAvailable` as `false`, and the Web and
+Android clients hide every entry point. With it on, the endpoint accepts reports
+(at most 5 per hour and 20 per day per account) and the instance reports
+`supportReportsAvailable` as `true`. A reply that was already sent stays readable to
+its reporter when the switch is turned off.
+
+Reports land in your instance's own PostgreSQL database and never leave it. The note
+and the reply are protected at rest like other protected payloads
+([Encryption at rest](#encryption-at-rest)). A closed report is deleted 90 days after
+it was closed, any report at most 365 days after it was created, and a report is
+deleted with its Account. The Core ships no reader for these reports: the operator-side
+reader is a later private plugin, so an instance without it has no screen or API to
+read the reports. The ServerAdmin overview shows the number
+of `NEW` reports and the `support_reports_unread` warning once the oldest one is more
+than 14 days old ([ServerAdmin](SERVER-ADMIN.md#operational-overview)); while the
+switch is off the count is 0.
+
+The published eimir. privacy notice does not cover support reports yet (free text,
+device context, the retention above and a local draft on the device), so eimir. Cloud
+keeps the switch off until it does. A self-hosted operator who enables it is
+responsible for their own privacy notice.
 
 ## Account deletion authority
 

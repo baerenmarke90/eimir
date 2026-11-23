@@ -1,23 +1,30 @@
-"""Video validation stages private files outside long-lived attachment row locks."""
+"""Media validation stages private files outside long-lived attachment row locks.
+
+The pipeline (staging, byte bound, publication, gallery limit, failure state) is
+Core and shared by voice notes (Free) and video. The video processor itself is
+Pro plugin code (``eimir_pro.video_processing``, Decision 0017): the plugin registers
+the video validation job with it, Core registers the audio one.
+"""
 
 from __future__ import annotations
 
 import io
 import time
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any
+from typing import Any, Protocol
 from uuid import UUID
 
 from sqlalchemy import String, cast, select
 from sqlalchemy.orm import Session
 
-from eimir.attachments import audios, binding, service, videos
-from eimir.attachments.limits import AUDIO_MAX_SIZE, VIDEO_MAX_SIZE
+from eimir.attachments import audios, binding, service
+from eimir.attachments.limits import AUDIO_MAX_SIZE, VIDEO_MAX_SIZE, video_processing_available
+from eimir.attachments.media_process import VideoRejectedError
 from eimir.attachments.models import Attachment, AttachmentPayload, AttachmentStatus, MediaType
 from eimir.attachments.upload_ownership import short_transaction
-from eimir.config import get_settings
 from eimir.core.clock import now
 from eimir.identity import models as _identity_models  # noqa: F401
 from eimir.jobs.models import Job, JobStatus
@@ -61,6 +68,26 @@ def recover_stranded_validations(session: Session, *, limit: int = RECOVERY_BATC
 
 
 UploadIdentity = tuple[datetime | None, int, str]
+
+
+class ProcessedMedia(Protocol):
+    """What a media processor returns: the sanitized file and its measured facts."""
+
+    @property
+    def path(self) -> Path: ...
+    @property
+    def size(self) -> int: ...
+    @property
+    def width(self) -> int | None: ...
+    @property
+    def height(self) -> int | None: ...
+    @property
+    def duration_seconds(self) -> int: ...
+    @property
+    def thumbnail(self) -> bytes | None: ...
+
+
+MediaProcessor = Callable[[Path, Path], ProcessedMedia]
 
 
 class VideoParentChangedError(RuntimeError):
@@ -129,7 +156,14 @@ def _fail(source: Session, identifier: UUID, identity: UploadIdentity, code: str
             binding.notify_video_failure(session, attachment)
 
 
-def validate(source: Session, payload: dict[str, Any]) -> None:
+def validate(
+    source: Session,
+    payload: dict[str, Any],
+    *,
+    media_type: MediaType,
+    process: MediaProcessor,
+) -> None:
+    """Validate one uploaded attachment of ``media_type`` with ``process``."""
     try:
         identifier = UUID(str(payload.get("attachmentId")))
     except ValueError:
@@ -139,14 +173,13 @@ def validate(source: Session, payload: dict[str, Any]) -> None:
         if (
             attachment is None
             or attachment.status != AttachmentStatus.VALIDATING
-            or attachment.media_type not in {MediaType.VIDEO, MediaType.AUDIO}
+            or attachment.media_type != media_type
         ):
             return
         identity = _identity(attachment)
         key = service.storage_key_for(attachment)
         audio = attachment.media_type == MediaType.AUDIO
-    settings = get_settings()
-    if not audio and not settings.video_upload_enabled:
+    if not audio and not video_processing_available():
         _fail(source, identifier, identity, "ATTACHMENT_TYPE_NOT_ALLOWED")
         return
     store = get_media_store()
@@ -156,16 +189,16 @@ def validate(source: Session, payload: dict[str, Any]) -> None:
             original = directory / "input.mov"
             deadline = time.monotonic() + 600
             with store.open(key) as raw, original.open("wb") as target:
-                bounded = BoundedSource(raw, AUDIO_MAX_SIZE if audio else VIDEO_MAX_SIZE)
+                # Never more than declared, also after a direct provider
+                # upload: the declared size is what the storage quota reserved.
+                bounded = BoundedSource(
+                    raw, min(AUDIO_MAX_SIZE if audio else VIDEO_MAX_SIZE, identity[1])
+                )
                 while chunk := bounded.read(CHUNK_SIZE):
                     if time.monotonic() >= deadline:
-                        raise videos.VideoRejectedError("VIDEO_PROCESSING_TIMEOUT")
+                        raise VideoRejectedError("VIDEO_PROCESSING_TIMEOUT")
                     target.write(chunk)
-            result = (
-                audios.process(original, directory)
-                if audio
-                else videos.process(original, directory)
-            )
+            result = process(original, directory)
             mime_type = "audio/mp4" if audio else "video/mp4"
             with short_transaction(source) as session:
                 current = _locked_current(session, identifier, identity)
@@ -204,14 +237,18 @@ def validate(source: Session, payload: dict[str, Any]) -> None:
         _fail(source, identifier, identity, "ATTACHMENT_TOO_LARGE")
     except (DecryptionError, PlaintextRejectedError):
         _fail(source, identifier, identity, "VIDEO_STORAGE_UNAVAILABLE")
-    except (videos.VideoRejectedError, audios.AudioRejectedError) as error:
+    except (VideoRejectedError, audios.AudioRejectedError) as error:
         _fail(source, identifier, identity, error.code)
     except OSError:
         _fail(source, identifier, identity, "VIDEO_STORAGE_UNAVAILABLE")
 
 
+def validate_audio(source: Session, payload: dict[str, Any]) -> None:
+    """The Free voice-note validation job."""
+    validate(source, payload, media_type=MediaType.AUDIO, process=audios.process)
+
+
 def register() -> None:
+    """Register the Core media job; the video job comes from the Pro plugin."""
     if registry.get(service.ATTACHMENT_AUDIO_VALIDATION) is None:
-        registry.register(service.ATTACHMENT_AUDIO_VALIDATION, validate)
-    if registry.get(service.ATTACHMENT_VIDEO_VALIDATION) is None:
-        registry.register(service.ATTACHMENT_VIDEO_VALIDATION, validate)
+        registry.register(service.ATTACHMENT_AUDIO_VALIDATION, validate_audio)

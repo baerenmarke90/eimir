@@ -14,7 +14,10 @@ import {
 } from '../client/memoryAttachmentDraft';
 import { loadPhotoCropSource, type PhotoCropSource } from '../client/photoCrop';
 import { normalizeClientError } from '../client/problemDetails';
-import { createReferenceApis } from '../client/referenceFlow';
+import {
+  createReferenceApis,
+  ReferenceFlowError,
+} from '../client/referenceFlow';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { useTranslation } from '../i18n';
 import { AvatarPhoto } from './AvatarPhoto';
@@ -494,7 +497,14 @@ export function ProfileIdentityPanel({
         </div>
       ) : null}
       {avatarMutation.error ? (
-        <ProblemState error={avatarMutation.error} />
+        <ProblemState
+          error={avatarMutation.error}
+          detail={
+            avatarMutation.error instanceof ReferenceFlowError
+              ? avatarMutation.error.message
+              : undefined
+          }
+        />
       ) : null}
       {removeAvatarMutation.error ? (
         <ProblemState error={removeAvatarMutation.error} />

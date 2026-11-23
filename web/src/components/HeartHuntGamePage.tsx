@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  type CSSProperties,
   type KeyboardEvent,
   type PointerEvent,
   useCallback,
@@ -17,7 +18,6 @@ import type { DistanceBandView } from '../api/generated/models/DistanceBandView'
 import type { HeartHuntRoundView } from '../api/generated/models/HeartHuntRoundView';
 import type { HeartHuntState } from '../api/generated/models/HeartHuntState';
 import type { HeartHuntTapResult } from '../api/generated/models/HeartHuntTapResult';
-import type { PartnerLocationSettingsView } from '../api/generated/models/PartnerLocationSettingsView';
 import type { PartnerView } from '../api/generated/models/PartnerView';
 import { Configuration } from '../client/apiConfiguration';
 import {
@@ -42,11 +42,14 @@ import {
 } from '../client/partnerDistance';
 import {
   PARTNER_LOCATION_CAPABILITY,
-  partnerLocationSettingsQueryKey,
+  usePartnerLocationSettingsEntry,
 } from '../client/partnerLocation';
 import type { PersonRole } from '../client/personColours';
 import { normalizeClientError } from '../client/problemDetails';
-import { createReferenceApis } from '../client/referenceFlow';
+import {
+  createReferenceApis,
+  ReferenceFlowError,
+} from '../client/referenceFlow';
 import {
   entitlementLoader,
   useSpaceCapability,
@@ -63,6 +66,10 @@ import { PartnerMarker } from './PartnerMarker';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import './HeartHuntGamePage.css';
+import '../motion/game-scenes.css';
+import { prefersReducedMotion } from '../motion/reducedMotion';
+import { run } from '../motion/run';
+import { durationMs, easing } from '../motion/tokens';
 
 export interface HeartHuntApi {
   getHeartHunt(request: { spaceId: string }): Promise<HeartHuntState>;
@@ -112,24 +119,6 @@ interface FlightHandle {
   run(): Promise<void>;
 }
 
-function reducedMotion(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  );
-}
-
-function tokenMilliseconds(name: string): number {
-  if (typeof document === 'undefined') return 0;
-  const raw = getComputedStyle(document.documentElement)
-    .getPropertyValue(name)
-    .trim();
-  const value = Number.parseFloat(raw);
-  if (!Number.isFinite(value)) return 0;
-  return raw.endsWith('ms') ? value : value * 1000;
-}
-
 const OWN: PersonRole = 'own';
 const PARTNER: PersonRole = 'partner';
 const BAND_WIDTH = 340;
@@ -162,12 +151,10 @@ function FlightBand({
       run: () =>
         new Promise<void>((resolve) => {
           const node = traveler.current;
-          const base = tokenMilliseconds(
-            plan.far
-              ? '--duration-connection-travel-far'
-              : '--duration-connection-travel',
+          const base = durationMs(
+            plan.far ? 'connection-travel-far' : 'connection-travel',
           );
-          if (!node || reducedMotion() || base === 0) {
+          if (!node || prefersReducedMotion() || base === 0) {
             // Instant variant: the heart simply arrives.
             if (node) {
               node.setAttribute(
@@ -189,19 +176,30 @@ function FlightBand({
             })`,
             opacity: 1,
           }));
+          // The heart rests at its landing pose under the animation, so the
+          // runner needs no forwards fill (Motion Contract M11).
+          node.setAttribute(
+            'transform',
+            `translate(${RIGHT.x} ${RIGHT.y - 26})`,
+          );
           node.setAttribute('opacity', '1');
-          const animation = node.animate(frames, {
+          const animation = run(node, frames, {
             duration: base * plan.durationShare,
-            easing: 'ease-in-out',
-            fill: 'forwards',
+            easing: easing('travel'),
+            channel: 'flight',
           });
-          const done = () => {
+          if (!animation) {
             node.setAttribute('opacity', '0');
-            animation.cancel();
             resolve();
-          };
-          animation.onfinish = done;
-          animation.oncancel = () => resolve();
+            return;
+          }
+          animation.finished.then(
+            () => {
+              node.setAttribute('opacity', '0');
+              resolve();
+            },
+            () => resolve(),
+          );
         }),
     }),
     [plan, lift],
@@ -285,10 +283,7 @@ function useHeartDistance({
     load,
     capability: PARTNER_LOCATION_CAPABILITY,
   });
-  const settings = useQuery<PartnerLocationSettingsView>({
-    queryKey: partnerLocationSettingsQueryKey(accountId, spaceId),
-    enabled: false,
-  }).data;
+  const settings = usePartnerLocationSettingsEntry(accountId, spaceId);
   const enabled =
     override === undefined &&
     capability.data === true &&
@@ -553,7 +548,7 @@ function SeekPanel({
             // The fog lifts first; the found view follows once it is gone.
             foundTimer.current = window.setTimeout(
               onFound,
-              reducedMotion() ? 0 : 700,
+              prefersReducedMotion() ? 0 : 700,
             );
           }
         })
@@ -582,7 +577,13 @@ function SeekPanel({
               : (word ?? t('games.heartHunt.seek.tapHint'))}
           </span>
           <span className="heart-hunt-meter" aria-hidden="true">
-            <b style={{ width: `${found ? 100 : meter}%` }} />
+            <b
+              style={
+                {
+                  '--heart-hunt-meter-fill': (found ? 100 : meter) / 100,
+                } as CSSProperties
+              }
+            />
           </span>
           <meter
             className="sr-only"
@@ -872,8 +873,13 @@ function HidePanel({
       );
       setAttachmentId(ready.attachmentId);
       setPhase('ready');
-    } catch {
-      setError(t('games.heartHunt.hide.uploadFailed'));
+    } catch (failure) {
+      // The specific reason (full storage, connection, format) when known.
+      setError(
+        failure instanceof ReferenceFlowError
+          ? failure.message
+          : t('games.heartHunt.hide.uploadFailed'),
+      );
       setPreview(null);
       setPhase('idle');
     }

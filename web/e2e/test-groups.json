@@ -352,10 +352,6 @@
       "baselineTests": 28,
       "reason": "Feature-owned Today composition, monthly mosaic 1/2/3-photo reference states, concealed media, optional story summary, category navigation/return, reflow, keyboard and Light/Dark accessibility. PO #1736 supersedes the former monthly carousel presentation."
     },
-    "today-pro-insights.spec.ts": {
-      "disposition": "PR_CRITICAL",
-      "baselineTests": 11
-    },
     "today-recent-trace.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 5
@@ -396,7 +392,7 @@
     "garden-game.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 24,
-      "reason": "The shared garden (#1907 H3): a folded card on an arrived seed, planting, collapsed kind words, sending, a plant story and the daily watering gesture; seasons from the calendar month, lanterns, the sleeping garden waking up, the reunion gate and the reunion day kept as a Moment through the media path, with reflow, Light/Dark, reduced motion and axe in the production browser; growth news without numbers, received and given bouquets, kind words by plane banner, a visitor reacting to a tap and the garden book with its name, with reflow, Light/Dark, reduced motion and axe in the production browser; the ambience from the device clock (morning to night with moon, stars and fireflies in either theme), seasonal particles, taps on the tree, the pond, the clouds and a flower, the watering can tilting onto the plant with a rainbow, the partner's watering arriving live, today's together moments, the note in the birdhouse, a birthday decoration and calling a named visitor from the book, with reflow, Light/Dark, reduced motion and axe."
+      "reason": "The shared garden (#1907 H3): a folded card on an arrived seed, planting, collapsed kind words, sending, a plant story and the daily watering gesture; seasons from the calendar month, lanterns, the sleeping garden waking up, the reunion gate and the reunion day kept as a Moment through the media path, with reflow, Light/Dark, reduced motion and axe in the production browser; growth news without numbers, received and given bouquets, kind words by plane banner, a visitor reacting to a tap and the garden book with its name, with reflow, Light/Dark, reduced motion and axe in the production browser; the ambience from the device clock (morning to night with moon, stars and fireflies in either theme), seasonal particles, taps on the tree, the pond, the clouds and a flower, the watering can tilting onto the plant with a rainbow, the partner's watering arriving live, today's together moments, the note in the birdhouse, a birthday decoration and calling a named visitor from the book, with reflow, Light/Dark, reduced motion and axe; the Scenes domain (#2079): the scene's loops run only while seen, hold with the page hidden and off screen, continue without restarting and are absent with reduced motion at 360/390/430/1280."
     },
     "garden-story.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -440,13 +436,18 @@
     },
     "wir-design-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 24,
+      "baselineTests": 27,
       "reason": "Wir design selection and retention, quote/statistics order persistence with direct pointer tracking, and concise notification/private/profile settings across Compact/Expanded themes and large text."
     },
     "moment-relation-picker.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 4,
       "reason": "Places and Chapters share one content-recognition picker; selection, type-filter continuity, real save/detail/return, privacy-safe search, large text, focus and cancellation must remain coherent."
+    },
+    "deferred-prefetch.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 1,
+      "reason": "Feature-owned startup contract: after the shell appears the deferred chunks load in the background and a later navigation (Settings) shows no loading state."
     },
     "mobile-header-more.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -545,7 +546,7 @@
     },
     "subpage-navigation-context.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "reason": "Feature-owned secondary navigation and its header row (#1907 C4: title beside Back, large-text fallback, Expanded column), More origin/empty-year/nested-year return, moment context and Wir acceptance; selected for the actual utility destinations and shared navigation consumers."
+      "reason": "Feature-owned secondary navigation and its header row (#1907 C4: title beside Back, large-text fallback, Expanded column), the title-only content gap across block, grid and composer pages, More origin/empty-year/nested-year return, moment context and Wir acceptance; selected for the actual utility destinations and shared navigation consumers."
     },
     "activity-navigation-return.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -636,10 +637,15 @@
       "baselineTests": 20,
       "reason": "Feature-owned #1792 partner-distance acceptance: one-time start sheet after the push prompt (Not now remembered, OS permission only after Share distance), Settings › Relationship › Location & distance share/duration/Stop with body-only coordinates, calm Pro state with Stop for a stored share, Android prominent background disclosure before Allow all the time, and Compact/Expanded Light/Dark/large-text evidence. No always-run expansion."
     },
+    "wir-opening-timeline.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 14,
+      "reason": "Feature-owned #2147 Wir opening on one clock: with the hero data at once, at 1 s and at 3 s, every element rests within 2.5 s of the first Wir paint, late data joins or appears at rest, nothing fades twice or inside another fade, at most 12 animate at once, no painted element jumps when the quote, place or check-in arrives, a tab return replays nothing, reduced motion keeps the same layout, and the partner news waits for the opening. Measured from document.getAnimations() timing, not wall-clock frames. Frame-sequence evidence runs only with VISUAL_EVIDENCE_DIR. No always-run expansion."
+    },
     "partner-distance-wir.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 11,
-      "reason": "Feature-owned #1792 partner-distance Wir slice: distance line inside the couple hero (far/nearby/range/earlier/own-location-missing/unavailable, no placeholder), map link only when the partner shares the map level, body-only coordinates and no polling, viewer-only Settings › Wir display toggle without sharing writes, the dedicated where-we-are map task with an approximate area, show-us, text alternative and neutral unavailable state, plus Compact/Expanded Light/Dark/large-text evidence. No always-run expansion."
+      "baselineTests": 12,
+      "reason": "Feature-owned #1792 partner-distance Wir slice: distance line inside the couple hero (far/nearby/range/earlier/own-location-missing/unavailable, no placeholder), map link only when the partner shares the map level, body-only coordinates and no polling, viewer-only Settings › Wir display toggle without sharing writes, the dedicated where-we-are map task with an approximate area, show-us, tapping a person's avatar or sheet row to bring them into view (#2158), text alternative and neutral unavailable state, plus Compact/Expanded Light/Dark/large-text evidence. No always-run expansion."
     },
     "shopping-list-offline.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -664,7 +670,22 @@
     "wir-garden.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 7,
-      "reason": "Feature-owned acceptance for the optional Wir garden module (Product Owner 2026-11-17): off by default without a garden read, turned on in Settings › Wir, the read-only scene with one status line and a named link into the game at 390 Light/Dark with axe and no overflow, no live polling on Wir, a locked Pro row and no read without games.couple while a saved choice stays, and Expanded 1280 Light/Dark evidence with reduced motion; the one-time in-game offer after a first garden moment at 390 Light/Dark with axe, accepted through the Wir preference, leading to the module on Wir and not offered again. No always-run expansion."
+      "reason": "Feature-owned acceptance for the optional Wir garden module (Product Owner 2026-11-17): off by default without a garden read, turned on in Settings › Wir, the read-only scene with one status line and a named link into the game at 390 Light/Dark with axe and no overflow, no live polling on Wir, a locked Pro row and no read without games.couple while a saved choice stays, and Expanded 1280 Light/Dark evidence with reduced motion; the one-time in-game offer after a first garden moment at 390 Light/Dark with axe, accepted through the Wir preference, leading to the module on Wir and not offered again; the preview pauses in its hidden kept view and continues on return without entering again (#2079). No always-run expansion."
+    },
+    "transfer-import-storage.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 17,
+      "reason": "Settings Data import for #2141 B2+N2: import without videos, no room (space or Pro), fits only without videos, recovering and dismissing skipped videos, with result and return, Compact 360/390/430 Light/Dark, reduced motion, Expanded 1280 and axe in both themes; and the storage section (#2141 Q5): room, almost full from 80 percent, full with Pro and media ways out, Pro in words, none on Self-Hosted, Compact/Expanded, Light/Dark, reduced motion and 200 percent text; and failed exports and imports that name their cause (#2173): too large, failed, unknown code and expired exports, a damaged file, another version and an expired checked file, and a file refused as too large while it is chosen, at 360/390/430 Light/Dark, reduced motion, 200 percent text, Expanded 1280 and axe."
+    },
+    "storage-upload-refusal.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 1,
+      "reason": "A photo the full storage refuses (#2141 Q5 state 12): the composer keeps words and the other photo, the refused photo says why in plain words, and after removing it the rest saves; Compact 360/390/430, Dark with reduced motion and axe."
+    },
+    "support-report.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4,
+      "reason": "Support reports (#2189): from the error state a person opens the sheet, sends once with exactly the allowed fields and the failure shown there, sees a calm success, returns to the same screen and later reads the operator's reply as plain text in the notification list (HTML-looking text stays literal); from More the Help & feedback row exists only while the instance accepts reports, feedback needs text and attaches no failure, and an offline note is kept and delivered once after reconnect; the sheet lives in the shell, so a reconnect refetch that replaces the error state keeps it open with the typed note; the sheet states in Compact 360/390/430, Expanded 1280, Light/Dark and reduced motion with axe on the open sheet."
     }
   }
 }

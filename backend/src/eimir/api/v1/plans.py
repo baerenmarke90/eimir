@@ -45,7 +45,13 @@ from eimir.engagement.gentle import record_manual_save
 from eimir.plans import service
 from eimir.plans.files import files_of_plan
 from eimir.plans.media import PhotoSelection, photos_of_plans
-from eimir.plans.models import PREVIEW_TITLE_MAX_LENGTH, DiscreetTitleMode, Plan, PlanStatus
+from eimir.plans.models import (
+    PREVIEW_TITLE_MAX_LENGTH,
+    DiscreetTitleMode,
+    Plan,
+    PlanAnticipation,
+    PlanStatus,
+)
 from eimir.relationship import configuration as relationship_configuration
 
 router = APIRouter(tags=["plans"])
@@ -210,7 +216,16 @@ class PlanUpdate(ApiModel):
     description: str | None = None
     place_id: UUID | None = None
     experienced_on: date | SkipJsonSchema[None] = None
-    anticipation_enabled: StrictBool | SkipJsonSchema[None] = None
+    anticipation: PlanAnticipation | SkipJsonSchema[None] = None
+    """Countdown preference on Wir: automatic, always (pinned) or never (#2158 D)."""
+    anticipation_enabled: StrictBool | SkipJsonSchema[None] = Field(
+        default=None,
+        json_schema_extra={"deprecated": True},
+        description=(
+            "Deprecated alias of anticipation for older clients: true pins the Plan "
+            "(ALWAYS), false returns it to AUTOMATIC."
+        ),
+    )
     discreet: StrictBool | SkipJsonSchema[None] = None
     """Shared visual shield for overviews; never a permission (#1790 F3)."""
     discreet_title_mode: DiscreetTitleMode | SkipJsonSchema[None] = None
@@ -244,13 +259,33 @@ class PlanUpdate(ApiModel):
             raise ValueError("experiencedOn must not be null")
         if "cover_is_sensitive" in self.model_fields_set and self.cover_is_sensitive is None:
             raise ValueError("coverIsSensitive must not be null")
-        if "anticipation_enabled" in self.model_fields_set and self.anticipation_enabled is None:
-            raise ValueError("anticipationEnabled must not be null")
+        if "anticipation" in self.model_fields_set and self.anticipation is None:
+            raise ValueError("anticipation must not be null")
+        if "anticipation_enabled" in self.model_fields_set:
+            if self.anticipation_enabled is None:
+                raise ValueError("anticipationEnabled must not be null")
+            if "anticipation" in self.model_fields_set:
+                raise ValueError("send anticipation or anticipationEnabled, not both")
         if "discreet" in self.model_fields_set and self.discreet is None:
             raise ValueError("discreet must not be null")
         if "discreet_title_mode" in self.model_fields_set and self.discreet_title_mode is None:
             raise ValueError("discreetTitleMode must not be null")
         return self
+
+    def anticipation_change(self) -> PlanAnticipation | None:
+        """The requested countdown preference, translating the deprecated flag."""
+        if "anticipation_enabled" in self.model_fields_set:
+            return (
+                PlanAnticipation.ALWAYS if self.anticipation_enabled else PlanAnticipation.AUTOMATIC
+            )
+        return self.anticipation
+
+    def changed_fields(self) -> frozenset[str]:
+        fields = set(self.model_fields_set)
+        if "anticipation_enabled" in fields:
+            fields.discard("anticipation_enabled")
+            fields.add("anticipation")
+        return frozenset(fields)
 
 
 class PlanComplete(ApiModel):
@@ -317,7 +352,13 @@ class PlanDetail(ApiModel):
     file_attachments: list[PlanFileSummary] = Field(default_factory=list)
     status: PlanStatus
     planned_on: date | None = None
-    anticipation_enabled: bool = False
+    anticipation: PlanAnticipation = PlanAnticipation.AUTOMATIC
+    """Countdown preference on Wir (#2158 D)."""
+    anticipation_enabled: bool = Field(
+        default=False,
+        json_schema_extra={"deprecated": True},
+        description="Deprecated for older clients: true only while anticipation is ALWAYS.",
+    )
     discreet: bool = False
     """Overviews conceal this Plan; both partners keep full access (#1790 F3)."""
     discreet_title_mode: DiscreetTitleMode = DiscreetTitleMode.PREVIEW
@@ -417,7 +458,8 @@ def _plan_detail(
         ],
         status=PlanStatus(plan.status),
         planned_on=plan.planned_on,
-        anticipation_enabled=plan.anticipation_enabled,
+        anticipation=PlanAnticipation(plan.anticipation),
+        anticipation_enabled=plan.anticipation == PlanAnticipation.ALWAYS.value,
         discreet=plan.discreet,
         discreet_title_mode=DiscreetTitleMode(plan.discreet_title_mode),
         preview_title=plan.payload.preview_title,
@@ -581,13 +623,13 @@ def update_plan(
         authorization,
         plan_id,
         expected_version=expected_version,
-        changed_fields=frozenset(body.model_fields_set),
+        changed_fields=body.changed_fields(),
         title=body.title,
         tags=body.tags,
         description=body.description,
         place_id=body.place_id,
         experienced_on=body.experienced_on,
-        anticipation_enabled=body.anticipation_enabled,
+        anticipation=body.anticipation_change(),
         discreet=body.discreet,
         discreet_title_mode=body.discreet_title_mode,
         preview_title=body.preview_title,

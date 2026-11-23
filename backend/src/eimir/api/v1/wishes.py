@@ -19,7 +19,7 @@ from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
 from eimir.core.context_tags import ContextTags, unique_tags
 from eimir.plans.models import PlanStatus
-from eimir.wishes import date_proposals, reminders, service
+from eimir.wishes import concealment, date_proposals, reminders, service
 from eimir.wishes.journey import NO_JOURNEY, WishJourney, journey_for, journeys_for
 from eimir.wishes.models import Wish, WishStatus
 
@@ -185,6 +185,16 @@ class WishDetail(ApiModel):
         description=(
             "Whether a Memory is linked to this PLANNED or COMPLETED Wish or to "
             "its originating Plan; always false for OPEN Wishes."
+        ),
+    )
+    hidden_during_game: bool = Field(
+        default=False,
+        description=(
+            "True while an open game hides this Wish from the reader, for example a "
+            "partner's Wish that may still be the answer in Wish detective. Title, "
+            "description and tags are then empty, the series fields point to the Wish "
+            "itself, every capability is false and writes are refused with "
+            "`WISH_HIDDEN_DURING_GAME`. The game reveals it with its round or at the end."
         ),
     )
 
@@ -420,15 +430,45 @@ def clear_personal_wish_reminder(
     )
 
 
+def _hidden_wish_detail(wish: Wish, creator: AuthorSummary) -> WishDetail:
+    """A placeholder that keeps the list's shape but names nothing (#2158 H)."""
+    return WishDetail(
+        id=wish.id,
+        space_id=wish.space_id,
+        created_by=wish.owner_id,
+        title="",
+        description=None,
+        tags=[],
+        status=WishStatus(wish.status),
+        version=wish.version,
+        created_at=wish.created_at,
+        updated_at=wish.updated_at,
+        creator=creator,
+        # A repeat would point to the completed Wish it copies, title included.
+        followed_from_wish_id=None,
+        series_id=wish.id,
+        series_position=1,
+        capabilities=ResourceCapabilities(can_edit=False, can_delete=False, can_comment=False),
+        plan=None,
+        has_memory=False,
+        hidden_during_game=True,
+    )
+
+
 def wish_detail(
     session: DbSession,
     authorization: Authorization,
     wish: Wish,
     creator: AuthorSummary | None = None,
     journey: WishJourney | None = None,
+    hidden: frozenset[UUID] | None = None,
 ) -> WishDetail:
     if creator is None:
         creator = resolve_author_summary(session, wish.owner_id, resource="Wish creator")
+    if hidden is None:
+        hidden = concealment.hidden_wish_ids(session, authorization)
+    if wish.id in hidden:
+        return _hidden_wish_detail(wish, creator)
     if journey is None:
         journey = journey_for(session, authorization, wish)
     plan = journey.plan
@@ -535,6 +575,7 @@ def list_wishes(
     )
     creators = resolve_author_summaries(session, {wish.owner_id for wish in page.items})
     journeys = journeys_for(session, authorization, page.items)
+    hidden = concealment.hidden_wish_ids(session, authorization)
     return WishPage(
         items=[
             wish_detail(
@@ -543,6 +584,7 @@ def list_wishes(
                 wish,
                 creator=creators.get(wish.owner_id),
                 journey=journeys.get(wish.id, NO_JOURNEY),
+                hidden=hidden,
             )
             for wish in page.items
         ],

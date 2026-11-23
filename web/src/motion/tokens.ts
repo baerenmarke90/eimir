@@ -34,7 +34,9 @@ export type DurationRole =
   | 'story-slide'
   | 'story-ken-burns'
   | 'stagger-item'
-  | 'stagger-module';
+  | 'stagger-module'
+  | 'ambient-rest'
+  | 'loading-cycle';
 
 export type EasingRole =
   | 'standard'

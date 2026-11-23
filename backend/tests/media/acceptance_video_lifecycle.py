@@ -11,8 +11,8 @@ from pathlib import Path
 from uuid import UUID
 
 import pytest
+from eimir_pro.video_processing import jobs as video_validation
 
-from eimir.attachments import video_jobs
 from eimir.attachments.models import Attachment, AttachmentStatus
 from tests.conftest import auth, requires_database
 from tests.support.video import grant
@@ -42,7 +42,7 @@ def test_device_prepared_video_uses_the_existing_worker_and_ready_publication(
     path = f"/api/v1/spaces/{owner[1].id}/attachments/{identifier}"
     assert client.put(path + "/content", content=content, headers=auth(owner[2])).status_code == 204
     assert client.post(path + "/finalize", json={}, headers=auth(owner[2])).status_code == 202
-    video_jobs.validate(session, {"attachmentId": identifier})
+    video_validation.validate_video(session, {"attachmentId": identifier})
     attachment = session.get(Attachment, UUID(identifier))
     session.refresh(attachment)
     assert attachment.status == AttachmentStatus.READY.value

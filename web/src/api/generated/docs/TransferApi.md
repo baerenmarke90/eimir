@@ -7,15 +7,17 @@ All URIs are relative to *http://localhost*
 | [**applyTransferImport**](TransferApi.md#applytransferimport) | **POST** /api/v1/spaces/{spaceId}/transfer/imports/{importId}/apply | Apply Transfer Import |
 | [**createTransferExport**](TransferApi.md#createtransferexport) | **POST** /api/v1/spaces/{spaceId}/transfer/exports | Create Transfer Export |
 | [**createTransferImport**](TransferApi.md#createtransferimport) | **POST** /api/v1/spaces/{spaceId}/transfer/imports | Create Transfer Import |
+| [**dismissTransferSkippedVideos**](TransferApi.md#dismisstransferskippedvideos) | **DELETE** /api/v1/spaces/{spaceId}/transfer/skipped-videos | Dismiss Transfer Skipped Videos |
 | [**downloadTransferExport**](TransferApi.md#downloadtransferexport) | **GET** /api/v1/spaces/{spaceId}/transfer/exports/{exportId}/download | Download Transfer Export |
 | [**getTransferExport**](TransferApi.md#gettransferexport) | **GET** /api/v1/spaces/{spaceId}/transfer/exports/{exportId} | Get Transfer Export |
 | [**getTransferImport**](TransferApi.md#gettransferimport) | **GET** /api/v1/spaces/{spaceId}/transfer/imports/{importId} | Get Transfer Import |
+| [**getTransferSkippedVideos**](TransferApi.md#gettransferskippedvideos) | **GET** /api/v1/spaces/{spaceId}/transfer/skipped-videos | Get Transfer Skipped Videos |
 
 
 
 ## applyTransferImport
 
-> TransferImportDetail applyTransferImport(importId, spaceId)
+> TransferImportDetail applyTransferImport(importId, spaceId, transferImportApply)
 
 Apply Transfer Import
 
@@ -37,6 +39,8 @@ async function example() {
     importId: importId_example,
     // string
     spaceId: spaceId_example,
+    // TransferImportApply (optional)
+    transferImportApply: ...,
   } satisfies ApplyTransferImportRequest;
 
   try {
@@ -58,6 +62,7 @@ example().catch(console.error);
 |------------- | ------------- | ------------- | -------------|
 | **importId** | `string` |  | [Defaults to `undefined`] |
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **transferImportApply** | [TransferImportApply](TransferImportApply.md) |  | [Optional] |
 
 ### Return type
 
@@ -69,7 +74,7 @@ No authorization required
 
 ### HTTP request headers
 
-- **Content-Type**: Not defined
+- **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
 
@@ -80,6 +85,8 @@ No authorization required
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
+| **413** | What the import would add exceeds the storage quota of the Space (code STORAGE_QUOTA_EXCEEDED, or STORAGE_QUOTA_EXCEEDED_FITS_WITHOUT_VIDEOS when applying with mode WITHOUT_VIDEOS would fit). Nothing changes and the import stays ready to apply. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -224,6 +231,75 @@ No authorization required
 | **413** | The content exceeds the server-side size limit. |  -  |
 | **415** | The media type is not on the allowlist. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## dismissTransferSkippedVideos
+
+> dismissTransferSkippedVideos(spaceId)
+
+Dismiss Transfer Skipped Videos
+
+Forget the skipped videos; the imported content and the file stay as they are.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  TransferApi,
+} from '';
+import type { DismissTransferSkippedVideosRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new TransferApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies DismissTransferSkippedVideosRequest;
+
+  try {
+    const data = await api.dismissTransferSkippedVideos(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -418,6 +494,73 @@ example().catch(console.error);
 ### Return type
 
 [**TransferImportDetail**](TransferImportDetail.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getTransferSkippedVideos
+
+> TransferSkippedVideos getTransferSkippedVideos(spaceId)
+
+Get Transfer Skipped Videos
+
+### Example
+
+```ts
+import {
+  Configuration,
+  TransferApi,
+} from '';
+import type { GetTransferSkippedVideosRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new TransferApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetTransferSkippedVideosRequest;
+
+  try {
+    const data = await api.getTransferSkippedVideos(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**TransferSkippedVideos**](TransferSkippedVideos.md)
 
 ### Authorization
 

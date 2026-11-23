@@ -929,7 +929,7 @@ for (const variant of [
   { width: 430, theme: 'light', view: 'timeline', reduced: true },
   { width: 1280, theme: 'light', view: 'discover', reduced: false },
 ] as const) {
-  test(`primary destinations restore scroll and reset ${variant.view} and Planning mode at ${variant.width}px ${variant.theme}`, async ({
+  test(`primary destinations open at the top and reset ${variant.view} and Planning mode at ${variant.width}px ${variant.theme}`, async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: variant.width, height: 740 });
@@ -979,20 +979,11 @@ for (const variant of [
           requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
         ),
     );
-    const targetY = await page.evaluate(() => {
-      const top = Math.min(
-        550,
-        document.documentElement.scrollHeight - window.innerHeight,
-      );
-      window.scrollTo({ top, behavior: 'instant' });
-      return top;
-    });
-    expect(targetY).toBeGreaterThan(100);
-    await expect
-      .poll(async () =>
-        Math.abs((await page.evaluate(() => window.scrollY)) - targetY),
-      )
-      .toBeLessThan(2);
+    await scrollDownFromEntry(page);
+    if (variant.width === 430)
+      await page.screenshot({
+        path: testInfo.outputPath('diary-scrolled.png'),
+      });
     // Expanded navigation is in document flow; activation remains a root selection.
     if (variant.width >= 840) {
       await nav
@@ -1016,8 +1007,7 @@ for (const variant of [
         page.getByText(importantDates.emptyTitle, { exact: true }),
       ).toBeVisible();
     }
-    // On Expanded, Playwright would scroll the non-sticky header into view
-    // before clicking, changing the position we meant to restore.
+    // Activate Expanded navigation without first scrolling its header into view.
     if (variant.width >= 840) {
       await nav
         .locator('a[href^="/story"]')
@@ -1028,7 +1018,7 @@ for (const variant of [
     ).toHaveAttribute('aria-selected', 'true');
     await expect(page).toHaveURL(/\/story$/);
     await expect(page.getByRole('tablist')).toHaveCount(1);
-    await expectRestoredScroll(page, targetY);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
     await page.screenshot({
       path: testInfo.outputPath(`reset-${variant.width}-${variant.theme}.png`),
     });
@@ -1039,6 +1029,7 @@ for (const variant of [
     });
     await expectNoHorizontalOverflow(page);
     // The current root is a reselect action, not another route/history entry.
+    await scrollDownFromEntry(page);
     const historyLength = await page.evaluate(() => history.length);
     await nav
       .locator('a[href^="/story"]')
@@ -1060,6 +1051,25 @@ for (const variant of [
     await expect(page.getByRole('tablist')).toHaveCount(1);
   });
 }
+
+test('selecting each primary destination opens it at the top after an earlier visit', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installApiMocks(page);
+  await page.goto('/login');
+  await signIn(page);
+  await expect(page).toHaveURL(/\/today$/);
+  await addScrollFixture(page);
+  const nav = page.locator('.mobile-bottom-nav');
+  const order = ['/story', '/plan', LISTEN_ROUTE, '/more', '/today'];
+  for (const destination of [...order, ...order]) {
+    await scrollDownFromEntry(page);
+    await primaryTabLink(nav, destination).click();
+    await expect(page).toHaveURL(new RegExp(`${destination}$`));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  }
+});
 
 test('native primary tab switching replaces root history but keeps nested task return', async ({
   page,
@@ -1145,18 +1155,11 @@ async function dragTouch(
   }
 }
 
-async function expectRestoredScroll(page: Page, desired: number) {
+async function scrollDownFromEntry(page: Page) {
+  await page.evaluate(() => window.scrollTo({ top: 500, behavior: 'instant' }));
   await expect
-    .poll(() =>
-      page.evaluate((stored) => {
-        const max = Math.max(
-          0,
-          document.documentElement.scrollHeight - innerHeight,
-        );
-        return Math.abs(window.scrollY - Math.min(stored, max));
-      }, desired),
-    )
-    .toBeLessThan(3);
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeGreaterThan(100);
 }
 
 async function expectPrimaryReadingSurface(page: Page) {
@@ -1639,9 +1642,9 @@ test.describe('primary tab touch navigation', () => {
     });
   }
 
-  test('primary swipe restores reading position and resets Planning segment without growing native history or refetching fresh content', async ({
+  test('primary swipe previews and opens a visited tab at the top without growing native history or refetching fresh content', async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installNativeAppLifecycle(page);
     await installApiMocks(page);
@@ -1666,20 +1669,11 @@ test.describe('primary tab touch navigation', () => {
     await expect(
       page.getByText('Cooked fresh pasta together', { exact: true }).first(),
     ).toBeVisible();
-    const targetY = await page.evaluate(() => {
-      const top = Math.min(
-        500,
-        document.documentElement.scrollHeight - innerHeight,
-      );
-      window.scrollTo({ top, behavior: 'instant' });
-      return top;
-    });
-    expect(targetY).toBeGreaterThan(100);
-    await expect
-      .poll(async () =>
-        Math.abs((await page.evaluate(() => window.scrollY)) - targetY),
-      )
-      .toBeLessThan(2);
+    const storyPage = page.locator('[data-primary-tab="/story"] > .story-page');
+    const entryTop = await storyPage.evaluate(
+      (element) => element.getBoundingClientRect().top + window.scrollY,
+    );
+    await scrollDownFromEntry(page);
     const reads = timelineReads;
     expect(reads).toBeGreaterThan(0);
     await swipePrimary(page, 'next');
@@ -1688,10 +1682,27 @@ test.describe('primary tab touch navigation', () => {
     await expect(
       page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
     ).toHaveAttribute('aria-selected', 'true');
-    await swipePrimary(page, 'previous');
-    await expect(page).toHaveURL(/\/story/);
-    await expectRestoredScroll(page, targetY);
+    const { width, startX, y } = await primarySwipeStart(page, 'previous');
+    await dragTouch(
+      page,
+      { x: startX, y },
+      { x: startX + width / 2, y },
+      async () => {
+        await expect(
+          page.locator('[data-primary-tab="/story"]'),
+        ).toHaveAttribute('data-primary-tab-peek', 'true');
+        expect(
+          await storyPage.evaluate(
+            (element) => element.getBoundingClientRect().top,
+          ),
+        ).toBeCloseTo(entryTop, 0);
+        await page.screenshot({
+          path: testInfo.outputPath('story-preview.png'),
+        });
+      },
+    );
     await expect(page).toHaveURL(/\/story$/);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
     await expect(
       page.getByRole('tab', { name: de.story.tabDiscover, exact: true }),
     ).toHaveAttribute('aria-selected', 'true');

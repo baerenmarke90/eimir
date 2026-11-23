@@ -11,9 +11,11 @@ import {
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { setPrimaryTabPeek } from '../client/primaryTabPeek';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
+import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
 import { PrimaryTabPanels } from './PrimaryTabPanels';
 
 let navigate: ReturnType<typeof useNavigate>;
+let openTab: ReturnType<typeof usePrimaryNavigation>['navigatePrimary'];
 const mounts: string[] = [];
 const captures = new Map<string, () => string | null>();
 
@@ -34,6 +36,7 @@ function Page({ name }: { name: string }) {
 
 function Navigator() {
   navigate = useNavigate();
+  openTab = usePrimaryNavigation().navigatePrimary;
   return null;
 }
 
@@ -68,6 +71,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  setPrimaryTabPeek(null);
   vi.restoreAllMocks();
 });
 
@@ -216,6 +220,48 @@ function clampedScrolling(initialMax: number) {
     },
   };
 }
+
+it('previews and reopens a previously scrolled primary tab at the top', async () => {
+  const scroll = clampedScrolling(2000);
+  render(<Harness />);
+  await act(() => openTab('/story'));
+  scroll.setScroll(540);
+  await act(() => openTab('/plan'));
+
+  await act(() => setPrimaryTabPeek('/story'));
+  expect(
+    panel('/story')?.style.getPropertyValue('--primary-tab-peek-origin'),
+  ).toBe('0px');
+  await act(() => openTab('/story'));
+  await act(() => setPrimaryTabPeek(null));
+  expect(window.scrollY).toBe(0);
+});
+
+it('restores tab entries reached through Back and Forward', async () => {
+  const scroll = clampedScrolling(2000);
+  render(<Harness />);
+  await act(() => openTab('/story'));
+  scroll.setScroll(540);
+  await act(() => openTab('/plan'));
+  scroll.setScroll(220);
+
+  await act(() => navigate(-1));
+  expect(window.scrollY).toBe(540);
+  await act(() => navigate(1));
+  expect(window.scrollY).toBe(220);
+});
+
+it('restores the reading position on Back to a Planning segment', async () => {
+  const scroll = clampedScrolling(2000);
+  render(<Harness />);
+  await act(() => navigate('/plan#wishes'));
+  scroll.setScroll(420);
+  await act(() => navigate('/plan/wishes/w1'));
+  scroll.setScroll(0);
+
+  await act(() => navigate(-1));
+  expect(window.scrollY).toBe(420);
+});
 
 it('keeps restoring while a revealed tab is still settling to its full height', async () => {
   const scroll = clampedScrolling(2000);

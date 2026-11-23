@@ -1720,7 +1720,8 @@
       "quiet_together": "Together",
       "handwriting": "Handwritten",
       "home_rooms": "Home",
-      "shared_rhythm": "Our Rhythm"
+      "shared_rhythm": "Our Rhythm",
+      "together_index": "Thread"
     },
     "descriptions": {
       "connected": "The two of you, joined by a heart line. Your time together sits in the middle.",
@@ -1731,7 +1732,8 @@
       "quiet_together": "Calm, muted colours throughout the app. On Us, your names set large and your moment kept compact.",
       "handwriting": "Warm paper tones and wine-red accents throughout the app. On Us, your latest Heart Moment like a note.",
       "home_rooms": "A shared starting point for the two of you. Open Rooms to find memories, plans and more.",
-      "shared_rhythm": "Today, your story and your plans at your own pace, with navigation at the top and shades of plum, pink and apricot."
+      "shared_rhythm": "Today, your story and your plans at your own pace, with navigation at the top and shades of plum, pink and apricot.",
+      "together_index": "Your Vibes side by side, an index for every area, and a quiet palette of ivory, graphite and cobalt blue."
     },
     "standard": "Standard",
     "free": "Free",
@@ -1782,6 +1784,23 @@
       "moreNavigation": "More areas",
       "insights": "Insights",
       "games": "Play"
+    },
+    "thread": {
+      "sharedSummary": "Your lists and notes",
+      "name": "Thread",
+      "index": "Overview",
+      "title": "Your thread",
+      "today": "Your day together",
+      "return": "Back to {{area}}",
+      "ownVibe": "My vibe",
+      "partner": "Today",
+      "wirSummary": "How are you both today?",
+      "storySummary": "Memories, journal and photos",
+      "planSummary": "Plans, wishes and occasions",
+      "insights": "Insights",
+      "insightsSummary": "Vibe and energy over time",
+      "gamesSummary": "Play together",
+      "moreSummary": "Profile, private area and settings"
     }
   },
   "profiles": {

@@ -9,7 +9,8 @@ export type AppDesignLayout =
   | 'names'
   | 'note'
   | 'rooms'
-  | 'chapters';
+  | 'chapters'
+  | 'thread';
 
 export type AppDesignTier = 'free' | 'pro';
 
@@ -29,5 +30,6 @@ export const APP_DESIGNS: Readonly<
   quiet_together: { tier: 'pro', layout: 'names' },
   shared_album: { tier: 'pro', layout: 'rows' },
   shared_rhythm: { tier: 'pro', layout: 'chapters' },
+  together_index: { tier: 'pro', layout: 'thread' },
   warm: { tier: 'free', layout: 'open' },
 };

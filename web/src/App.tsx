@@ -109,6 +109,7 @@ import {
   MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
   MORE_PROFILE_ROUTE,
+  THREAD_ROUTE,
   MORE_SETTINGS_CATEGORY_ROUTE_PATTERN,
   MORE_SETTINGS_ROUTE,
   NOTE_CREATE_ROUTE,
@@ -164,6 +165,7 @@ import { useSystemTimeZone } from './client/useSystemTimeZone';
 import { useVideoTransferNavigation } from './client/useVideoTransferNavigation';
 import { VideoProcessingContext } from './client/video';
 import { AudioProcessingContext } from './client/voiceNotes';
+import { ThreadIndexRoute } from './components/ThreadNavigationLayout';
 import { WirDesignProvider } from './client/wirDesign';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AppShell } from './components/AppShell';
@@ -1230,6 +1232,7 @@ function AuthenticatedApp({
                 />
               }
             />
+            <Route path={THREAD_ROUTE} element={<ThreadIndexRoute />} />
             <Route
               path={MORE_PROFILE_ROUTE}
               element={

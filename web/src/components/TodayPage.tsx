@@ -119,8 +119,9 @@ import {
 } from './CouplePresence';
 import { DailyQuoteCard } from './DailyQuoteCard';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
+import { ThreadToday } from './ThreadNavigationLayout';
 import { ChapterToday } from './ChapterNavigationLayout';
-import { HomeRoomsLanding } from './HomeRoomsLanding';
+import { RoomLanding } from './RoomNavigationLayout';
 import { MemoryPreview } from './MemoryPreview';
 import { MomentCreateMenu } from './MomentCreateMenu';
 import {
@@ -1090,6 +1091,7 @@ export function TodayPage({
   // first and small portraits; note then leads with the latest Heart Moment.
   const namesLayout = wirLayout === 'names';
   const noteLayout = wirLayout === 'note';
+  const threadLayout = wirLayout === 'thread';
   const sharedRhythm = wirLayout === 'chapters';
   const rooms = wirLayout === 'rooms';
   const compactPresence = namesLayout || noteLayout || rooms;
@@ -2141,7 +2143,41 @@ export function TodayPage({
     avatarAction?: CouplePresenceAvatarAction,
     avatarOverlay?: ReactNode,
   ) =>
-    sharedRhythm ? (
+    threadLayout ? (
+      <Suspense
+        fallback={<UiState kind="loading" title={t('states.loading.title')} />}
+      >
+        <ThreadToday
+          own={{
+            name: heroOwnName,
+            image: userAvatar.avatarUrl,
+            action: dailyCheckIn?.ownAction,
+            badge: dailyCheckIn?.ownBadge,
+            label: t('wirDesign.thread.ownVibe'),
+          }}
+          partner={
+            partner
+              ? {
+                  name: partnerName,
+                  image: partnerAvatar.avatarUrl,
+                  action:
+                    avatarAction && dailyCheckIn?.partnerAriaLabel
+                      ? {
+                          ...avatarAction,
+                          label: `${avatarAction.label}. ${dailyCheckIn.partnerAriaLabel}`,
+                        }
+                      : avatarAction,
+                  badge: dailyCheckIn?.partnerBadge,
+                  label: t('wirDesign.thread.partner'),
+                }
+              : undefined
+          }
+          duration={heroDurationText}
+          day={dashboardQuery.data?.viewerLocalDate}
+          overlay={avatarOverlay}
+        />
+      </Suspense>
+    ) : sharedRhythm ? (
       <Suspense
         fallback={<UiState kind="loading" title={t('states.loading.title')} />}
       >
@@ -2174,29 +2210,37 @@ export function TodayPage({
         />
       </Suspense>
     ) : homeLanding ? (
-      <HomeRoomsLanding
-        own={{ name: heroOwnName, photo: userAvatar.avatarUrl }}
-        partner={
-          partner
-            ? { name: partnerName, photo: partnerAvatar.avatarUrl }
-            : undefined
-        }
-        ownAction={dailyCheckIn?.ownAction}
-        partnerAction={
-          avatarAction && dailyCheckIn?.partnerAriaLabel
-            ? {
-                ...avatarAction,
-                label: `${avatarAction.label}. ${dailyCheckIn.partnerAriaLabel}`,
-              }
-            : avatarAction
-        }
-        overlay={avatarOverlay}
-        note={
-          leadNotePath && leadNote?.titleOrText
-            ? { to: leadNotePath, text: leadNote.titleOrText, id: leadNote.id }
-            : undefined
-        }
-      />
+      <Suspense
+        fallback={<UiState kind="loading" title={t('states.loading.title')} />}
+      >
+        <RoomLanding
+          own={{ name: heroOwnName, photo: userAvatar.avatarUrl }}
+          partner={
+            partner
+              ? { name: partnerName, photo: partnerAvatar.avatarUrl }
+              : undefined
+          }
+          ownAction={dailyCheckIn?.ownAction}
+          partnerAction={
+            avatarAction && dailyCheckIn?.partnerAriaLabel
+              ? {
+                  ...avatarAction,
+                  label: `${avatarAction.label}. ${dailyCheckIn.partnerAriaLabel}`,
+                }
+              : avatarAction
+          }
+          overlay={avatarOverlay}
+          note={
+            leadNotePath && leadNote?.titleOrText
+              ? {
+                  to: leadNotePath,
+                  text: leadNote.titleOrText,
+                  id: leadNote.id,
+                }
+              : undefined
+          }
+        />
+      </Suspense>
     ) : connectedDesign ? (
       renderConnectedHero(avatarAction, avatarOverlay)
     ) : (
@@ -2219,7 +2263,7 @@ export function TodayPage({
   const moduleContent: Record<DashboardModuleKey, ReactNode> = {
     partner_distance:
       partnerDistanceVisible &&
-      (sharedRhythm || !partnerDistanceInHero) &&
+      (sharedRhythm || threadLayout || !partnerDistanceInHero) &&
       partnerDistance ? (
         <div className="today-partner-distance">{partnerDistance}</div>
       ) : null,
@@ -2274,7 +2318,15 @@ export function TodayPage({
             renderRelationshipHero()
           )
         ) : homeLanding ? (
-          <HomeRoomsLanding />
+          <Suspense
+            fallback={
+              <UiState kind="loading" title={t('states.loading.title')} />
+            }
+          >
+            <RoomLanding />
+          </Suspense>
+        ) : threadLayout ? (
+          <h1>{t('navigation.today')}</h1>
         ) : sharedRhythm ? (
           <h1>{t('wirDesign.rhythm.today')}</h1>
         ) : null}
@@ -2687,10 +2739,14 @@ export function TodayPage({
           ref={rootIntro}
           style={{ '--wir-intro-pace': WIR_INTRO_PACE } as CSSProperties}
         >
-          {sharedRhythm ? (
+          {sharedRhythm || threadLayout ? (
             <>
               {moduleContent.relationship_presence}
-              <div className="rhythm-today-create">
+              <div
+                className={
+                  threadLayout ? 'thread-create' : 'rhythm-today-create'
+                }
+              >
                 <MomentCreateMenu everything />
               </div>
             </>
@@ -2712,7 +2768,8 @@ export function TodayPage({
           )}
 
           {visibleOrder.map((key) =>
-            sharedRhythm && key === 'relationship_presence' ? null : (
+            (sharedRhythm || threadLayout) &&
+            key === 'relationship_presence' ? null : (
               <Fragment key={key}>
                 {moduleContent[key]}
                 {noteLayout && key === 'relationship_presence' ? (

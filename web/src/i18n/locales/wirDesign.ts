@@ -37,7 +37,25 @@ export default {
     insights: 'Einblicke',
     games: 'Spielen',
   },
+  thread: {
+    sharedSummary: 'Eure Listen und Notizen',
+    name: 'Faden',
+    index: 'Überblick',
+    title: 'Euer Faden',
+    today: 'Euer Heute',
+    return: 'Zurück zu {{area}}',
+    ownVibe: 'Mein Vibe',
+    partner: 'Heute',
+    wirSummary: 'Wie geht’s euch heute?',
+    storySummary: 'Erinnerungen, Tagebuch und Fotos',
+    planSummary: 'Pläne, Wünsche und Anlässe',
+    insights: 'Einblicke',
+    insightsSummary: 'Vibe und Energie im Verlauf',
+    gamesSummary: 'Zusammen spielen',
+    moreSummary: 'Profil, Privates und Einstellungen',
+  },
   names: {
+    together_index: 'Faden',
     shared_rhythm: 'Unser Takt',
     home_rooms: 'Zuhause',
     connected: 'Verbunden',
@@ -49,6 +67,8 @@ export default {
     handwriting: 'Handschrift',
   },
   descriptions: {
+    together_index:
+      'Eure Vibes nebeneinander, ein Verzeichnis für alle Bereiche und eine ruhige Farbwelt in Elfenbein, Graphit und Kobaltblau.',
     shared_rhythm:
       'Euer Heute, eure Geschichte und eure Pläne im eigenen Takt. Mit einer Navigation oben und Farben in Pflaume, Rosa und Apricot.',
     home_rooms:

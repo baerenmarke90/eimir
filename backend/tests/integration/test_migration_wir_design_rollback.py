@@ -20,6 +20,7 @@ pytestmark = [pytest.mark.integration, requires_database]
         ("0158", {WirDesignId.QUIET_TOGETHER, WirDesignId.HANDWRITING}),
         ("0172", {WirDesignId.HOME_ROOMS}),
         ("0173", {WirDesignId.SHARED_RHYTHM}),
+        ("0174", {WirDesignId.TOGETHER_INDEX}),
     ],
 )
 def test_downgrade_resets_only_introduced_designs(

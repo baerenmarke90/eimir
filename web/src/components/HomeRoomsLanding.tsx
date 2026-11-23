@@ -1,3 +1,4 @@
+import { LayoutDestinationLink } from './LayoutDestinationLink';
 import { type ReactNode, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -124,9 +125,13 @@ export function HomeRoomsLanding({
       <div className="home-hub-content">
         <div className="home-doors">
           {HOME_ROOMS.slice(1, 3).map((room) => (
-            <Link key={room.id} to={room.path} className="home-door">
+            <LayoutDestinationLink
+              key={room.id}
+              to={room.path}
+              className="home-door"
+            >
               <HomeRoomContents room={room} />
-            </Link>
+            </LayoutDestinationLink>
           ))}
         </div>
         {note ? (
@@ -144,9 +149,13 @@ export function HomeRoomsLanding({
         ) : null}
         <div className="home-destinations">
           {HOME_ROOMS.slice(3).map((room) => (
-            <Link key={room.id} to={room.path} className="home-destination">
+            <LayoutDestinationLink
+              key={room.id}
+              to={room.path}
+              className="home-destination"
+            >
               <HomeRoomContents room={room} showDescription={false} />
-            </Link>
+            </LayoutDestinationLink>
           ))}
         </div>
       </div>

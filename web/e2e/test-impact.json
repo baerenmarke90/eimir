@@ -1047,7 +1047,15 @@
         "web/src/components/NotificationSettingsPanel.tsx",
         "web/src/client/browserPush.ts",
         "web/src/components/ProfilePage.tsx",
-        "web/src/components/PrivateAreaProductPage.tsx"
+        "web/src/components/PrivateAreaProductPage.tsx",
+        "web/src/components/HomeRoomsLanding.tsx",
+        "web/src/components/HomeRoomsNavigation.tsx",
+        "web/src/components/HomeRooms.css",
+        "web/src/components/HomeRoomChapters.css",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryMapPage.tsx",
+        "web/src/components/PageHeader.tsx",
+        "web/src/components/StoryYearsPage.tsx"
       ]
     },
     "wish-detective.spec.ts": {

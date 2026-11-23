@@ -41,6 +41,7 @@ import { AutoLoadMore } from './AutoLoadMore';
 import { EimirIcon } from './EimirIcon';
 import { MemoryMapMemories, MemoryMapPhotoStack } from './MemoryMapMemories';
 import { MemoryPreview } from './MemoryPreview';
+import { useAppLayout } from '../client/wirDesign';
 import { PageHeader } from './PageHeader';
 import type { MapLocation, MapViewport } from './PlaceMapCanvas';
 import { ProblemState } from './ProblemState';
@@ -73,6 +74,7 @@ export function MemoryMapPage({
   ) => Promise<ObjectUrlSource>;
 }) {
   const { t } = useTranslation();
+  const layout = useAppLayout();
   const [diaryLayout] = useDiaryLayout();
   const locale = resolvedLocale();
   const {
@@ -475,7 +477,11 @@ export function MemoryMapPage({
       <PageHeader
         variant="root"
         className="content-overview-heading"
-        title={t('story.timelineTitle')}
+        title={t(
+          layout === 'rooms'
+            ? 'wirDesign.homeRooms.remember'
+            : 'story.timelineTitle',
+        )}
         before={
           hasOrigin ? (
             <TaskBackButton

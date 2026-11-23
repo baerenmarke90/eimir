@@ -48,6 +48,8 @@ import { TaskOriginProvider } from '../client/taskOrigin';
 import { useDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
+import { useAppLayout } from '../client/wirDesign';
+import { HomeRoomsDock, HomeRoomsHeader } from './HomeRoomsNavigation';
 import { scheduleDeferredPrefetch } from '../deferredModules';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
@@ -275,7 +277,14 @@ function AuthenticatedAppShell({
   });
   const isPrivateArea = location.pathname.startsWith('/more/private');
   const protectedDraft = useDocumentLeaveBlocked();
+  const layout = useAppLayout();
+  const rooms = layout === 'rooms';
+  const customNavigation = rooms;
   const isFocusedTask =
+    (customNavigation &&
+      (protectedDraft ||
+        pathname.endsWith('/new') ||
+        pathname.endsWith('/edit'))) ||
     /^\/more\/people\/(?:new|[^/]+\/edit)$/.test(location.pathname) ||
     /^\/story\/recaps\/[^/]+$/.test(location.pathname) ||
     location.pathname.startsWith('/today/only-you') ||
@@ -290,10 +299,12 @@ function AuthenticatedAppShell({
     location.pathname === '/plan/chapters/new' ||
     (protectedDraft && /^\/plan\/chapters\/[^/]+$/.test(location.pathname)) ||
     location.pathname === '/plan/choose';
-  const bottomNavigationRef = useRef<HTMLDivElement>(null);
+  const [bottomNavigation, setBottomNavigation] = useState<HTMLElement | null>(
+    null,
+  );
   useLayoutEffect(() => {
     if (isFocusedTask) return;
-    const navigation = bottomNavigationRef.current;
+    const navigation = bottomNavigation;
     if (!navigation || typeof ResizeObserver === 'undefined') return;
     const root = document.documentElement;
     const measure = (entry?: ResizeObserverEntry) => {
@@ -314,7 +325,7 @@ function AuthenticatedAppShell({
       observer.disconnect();
       root.style.removeProperty('--shell-bottom-nav-measured-height');
     };
-  }, [isFocusedTask]);
+  }, [isFocusedTask, bottomNavigation]);
   const gamesPath = appRoutePath('games');
   const isGamesHub = location.pathname === gamesPath;
 
@@ -361,9 +372,12 @@ function AuthenticatedAppShell({
         />
         <div
           className="product-shell"
+          data-wir-layout={layout}
           data-focused-task={isFocusedTask}
           data-top-surface={
-            location.pathname === DEFAULT_APP_ROUTE ? 'today' : undefined
+            !customNavigation && location.pathname === DEFAULT_APP_ROUTE
+              ? 'today'
+              : undefined
           }
         >
           <ThemeControl />
@@ -373,7 +387,9 @@ function AuthenticatedAppShell({
             {t('navigation.skipToContent')}
           </a>
 
-          {!isFocusedTask ? (
+          {!isFocusedTask && rooms ? (
+            <HomeRoomsHeader privateArea={isPrivateArea} />
+          ) : !isFocusedTask ? (
             <header className="app-header product-topbar">
               <nav className="shell-nav" aria-label={t('navigation.primary')}>
                 <PrimaryNavigationLinks />
@@ -440,8 +456,13 @@ function AuthenticatedAppShell({
             </main>
           </div>
 
-          {!isFocusedTask ? (
-            <div className="mobile-bottom-shell" ref={bottomNavigationRef}>
+          {!isFocusedTask && rooms ? (
+            <HomeRoomsDock
+              canCreate={!isPrivateArea}
+              navigationRef={setBottomNavigation}
+            />
+          ) : !isFocusedTask ? (
+            <div className="mobile-bottom-shell" ref={setBottomNavigation}>
               <nav
                 className="mobile-bottom-nav"
                 aria-label={t('navigation.primary')}

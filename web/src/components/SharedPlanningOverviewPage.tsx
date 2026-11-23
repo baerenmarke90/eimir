@@ -51,6 +51,7 @@ import { AutoLoadMore } from './AutoLoadMore';
 import { DiscreetLock, DiscreetPlaceholderLines } from './DiscreetPlan';
 import { EimirIcon } from './EimirIcon';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
+import { useAppLayout } from '../client/wirDesign';
 import { PageHeader } from './PageHeader';
 import { PlanCover } from './PlanCover';
 import { PlanningOccasions } from './PlanningOccasions';
@@ -297,6 +298,7 @@ export function SharedPlanningOverviewPage({
 }) {
   const rootIntro = useRootTabIntro<HTMLDivElement>('plan');
   const { t } = useTranslation();
+  const layout = useAppLayout();
   const location = useLocation();
   const navigate = useNavigate();
   const { captureOrigin, registerOriginMetadata, resolveOrigin } =
@@ -905,7 +907,11 @@ export function SharedPlanningOverviewPage({
       <PageHeader
         variant="root"
         className="content-overview-heading"
-        title={t('m5s3.overview.title')}
+        title={t(
+          layout === 'rooms'
+            ? 'wirDesign.homeRooms.plans'
+            : 'm5s3.overview.title',
+        )}
         action={
           activeSegment === 'dates' ? (
             <span ref={setOccasionActionHost} />

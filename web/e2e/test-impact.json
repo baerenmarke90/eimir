@@ -1444,6 +1444,20 @@
         "web/src/client/photoSources.ts",
         "web/src/components/PhotoDraftGallery.tsx"
       ]
+    },
+    "support-report.spec.ts": {
+      "roots": [
+        "web/src/components/SupportReportSheet.tsx",
+        "web/src/components/ProblemState.tsx",
+        "web/src/components/MoreOverviewPage.tsx",
+        "web/src/components/SupportReplyNotice.tsx",
+        "web/src/components/M4ProductPages.tsx",
+        "web/src/components/ShortTaskSheet.tsx",
+        "web/src/client/supportReport.ts",
+        "web/src/client/failureReference.ts",
+        "web/src/client/useSupportReportDraft.ts",
+        "web/src/client/supportReportsAvailability.ts"
+      ]
     }
   }
 }

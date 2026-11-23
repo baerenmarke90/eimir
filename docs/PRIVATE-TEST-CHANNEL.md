@@ -44,6 +44,8 @@ The publication jobs:
    backend-only and operator changes.
 3. Runs the channel contracts, then reuses Release Evidence with Android excluded:
    build-once runtime archives, hashes, SPDX SBOMs and verified attestations.
+   The backend image is the default `pro` stage of `backend/Dockerfile`: the Core
+   with the Pro plugin distribution `eimir-pro` (#2182).
    The private test channel additionally includes the restricted `media-runtime`
    derivative, built from that exact backend image, with its own archive, SPDX
    SBOM, provenance and offline verification. Release Evidence requires a fresh

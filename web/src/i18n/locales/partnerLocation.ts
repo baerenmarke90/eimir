@@ -171,20 +171,18 @@ const partnerLocation = {
   mapLoading: 'Karte wird geladen …',
   mapPartnerArea: '{{partner}}',
   mapPartnerNotSharing: '{{partner}} teilt gerade nichts',
-  mapPartnerAsOf: 'Stand: {{time}}',
+  mapAsOf: 'Stand: {{time}}',
   mapYou: 'Du',
   mapYouMissing: 'Du · dein Standort fehlt',
-  mapOwnSharesMap: '{{partner}} sieht deinen ungefähren Bereich',
   mapOwnSharesDistance: '{{partner}} sieht nur die Entfernung',
   mapOwnSharesNothing: 'Du teilst gerade nichts',
   mapAdjust: 'Mein Teilen anpassen',
   mapUnavailableTitle: 'Gerade ist hier nichts zu sehen',
   mapUnavailableBody:
-    'Ein ungefährer Bereich erscheint hier nur, solange er geteilt wird.',
+    'Hier erscheint ein Kartenbereich, solange er mit dir geteilt wird.',
   mapAreaDescription:
-    '{{partner}} ist ungefähr in einem Bereich mit {{radius}} Radius. Stand: {{time}}.',
-  mapOwnDescription:
-    'Dein eigener ungefährer Standort ist nur für dich markiert.',
+    'Der Kartenbereich von {{partner}} hat einen Radius von {{radius}}. Stand {{time}}.',
+  mapOwnDescription: 'Deine Standortmarkierung ist nur für dich sichtbar.',
   mapPeopleLabel: 'Ihr beide auf der Karte',
   mapConnectionLine: 'Eine Linie auf der Karte verbindet dich und {{partner}}.',
   mapConnectionNear:

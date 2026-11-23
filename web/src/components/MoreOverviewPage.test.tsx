@@ -6,13 +6,16 @@ import {
   fireEvent,
   render,
   screen,
-  within,
 } from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { ApiRuntimeProvider } from '../client/apiRuntimeContext';
 import { STORY_OURS_ROUTE } from '../client/routes';
 import { ShellUtilitiesContext } from '../client/shellUtilities';
+import {
+  closeSupportReport,
+  currentSupportReportRequest,
+} from '../client/supportReportLauncher';
 import de from '../i18n/locales/de';
 import games from '../i18n/locales/games';
 import navigation from '../i18n/locales/navigation';
@@ -273,6 +276,7 @@ describe('help and feedback on More', () => {
   });
   afterEach(() => {
     cleanup();
+    closeSupportReport();
     window.localStorage.clear();
   });
 
@@ -332,22 +336,11 @@ describe('help and feedback on More', () => {
     expect(row.getAttribute('aria-describedby')).toBeTruthy();
     expect(container.textContent).toContain(supportReport.entry.subtitle);
 
+    expect(currentSupportReportRequest()).toBeNull();
     fireEvent.click(row);
-    const dialog = screen.getByRole('dialog', {
-      name: supportReport.title.FEEDBACK,
-    });
-    expect(
-      within(dialog)
-        .getByRole('radio', { name: supportReport.kinds.FEEDBACK })
-        .matches(':checked'),
-    ).toBe(true);
-    // Problem stays selectable, still without an error code.
-    fireEvent.click(
-      within(dialog).getByRole('radio', { name: supportReport.kinds.PROBLEM }),
-    );
-    expect(dialog.textContent).not.toContain(
-      supportReport.items.failure.replace('{{reference}}', ''),
-    );
+    // Feedback, never with a failure; the shell's host renders the sheet.
+    expect(currentSupportReportRequest()).toEqual({ kind: 'FEEDBACK' });
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
 

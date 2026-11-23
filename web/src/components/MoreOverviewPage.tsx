@@ -23,6 +23,7 @@ import {
   STORY_YEARS_ROUTE,
 } from '../client/routes';
 import { useShellUtilities } from '../client/shellUtilities';
+import { openSupportReport } from '../client/supportReportLauncher';
 import { useCurrentProfileIdentity } from '../client/useCurrentProfileIdentity';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { cloudLegalDocumentsApply } from '../legal/legalDocuments';
@@ -32,7 +33,6 @@ import { EimirIcon } from './EimirIcon';
 import { LegalFooterLinks } from './LegalDocumentLink';
 import { PageHeader } from './PageHeader';
 import { PersonIdentity } from './PersonIdentity';
-import { SupportReportSheet } from './SupportReportSheet';
 import { TaskOriginLink } from './TodayDestinationLink';
 import './MoreOverviewPage.css';
 
@@ -204,13 +204,12 @@ function MoreDestinationRow({
 }
 
 /**
- * "Help & feedback" (#2189): a destination row that opens the support report
- * sheet instead of navigating. It starts with feedback and attaches no failure;
- * a problem stays selectable in the sheet.
+ * "Help & feedback" (#2189): a destination row that opens the shell's support
+ * report sheet instead of navigating. It starts with feedback and attaches no
+ * failure; a problem stays selectable in the sheet.
  */
 function HelpAndFeedbackRow() {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
   const rowId = useId();
   const titleId = `${rowId}-title`;
   const subtitleId = `${rowId}-subtitle`;
@@ -222,7 +221,7 @@ function HelpAndFeedbackRow() {
         aria-labelledby={titleId}
         aria-describedby={subtitleId}
         aria-haspopup="dialog"
-        onClick={() => setOpen(true)}
+        onClick={() => openSupportReport({ kind: 'FEEDBACK' })}
       >
         <span className="more-destination-icon" aria-hidden="true">
           <EimirIcon name="hilfe" />
@@ -237,11 +236,6 @@ function HelpAndFeedbackRow() {
         </span>
         <span className="more-destination-trailing" />
       </button>
-      <SupportReportSheet
-        open={open}
-        onClose={() => setOpen(false)}
-        initialKind="FEEDBACK"
-      />
     </li>
   );
 }

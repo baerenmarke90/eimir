@@ -11,6 +11,10 @@ import {
 } from '../client/failureReference';
 import { ClientProblemError } from '../client/problemDetails';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
+import {
+  closeSupportReport,
+  currentSupportReportRequest,
+} from '../client/supportReportLauncher';
 import de from '../i18n/locales/de';
 import supportReport from '../i18n/locales/supportReport';
 import { ProblemState } from './ProblemState';
@@ -51,6 +55,7 @@ beforeAll(() => {
 afterEach(() => {
   cleanup();
   clearFailureReference();
+  closeSupportReport();
   window.localStorage.clear();
 });
 
@@ -104,7 +109,7 @@ describe('ProblemState', () => {
     },
   );
 
-  it('opens the sheet with the failure shown at that moment', () => {
+  it('asks the shell for the sheet with the failure shown at the tap', () => {
     recordRequestFailure({
       method: 'PUT',
       routeTemplate: '/api/v1/memories/123',
@@ -115,11 +120,21 @@ describe('ProblemState', () => {
         <ProblemState error={new ClientProblemError('server', 500)} />,
       ),
     );
-    fireEvent.click(screen.getByRole('button', { name: supportReport.action }));
-    const dialog = screen.getByRole('dialog', {
-      name: supportReport.title.PROBLEM,
+    // A later failure does not replace the one captured at the tap.
+    const report = screen.getByRole('button', { name: supportReport.action });
+    expect(currentSupportReportRequest()).toBeNull();
+    fireEvent.click(report);
+    recordRequestFailure({
+      method: 'GET',
+      routeTemplate: '/api/v1/places',
+      status: 500,
     });
-    expect(dialog.textContent).toContain('PUT:/api/v1/memories/{id}:500');
+    expect(currentSupportReportRequest()).toEqual({
+      kind: 'PROBLEM',
+      failure: { reference: 'PUT:/api/v1/memories/{id}:500:web' },
+    });
+    // The sheet itself lives in the shell, not in the error state.
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it.each([

@@ -1,15 +1,12 @@
-import { type ReactNode, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useApiRuntime } from '../client/apiRuntimeContext';
-import {
-  type FailureReference,
-  lastFailureReference,
-} from '../client/failureReference';
+import { lastFailureReference } from '../client/failureReference';
 import { clientProblemKind } from '../client/problemDetails';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
+import { openSupportReport } from '../client/supportReportLauncher';
 import { useSupportReportsAvailable } from '../client/supportReportsAvailability';
 import { useTranslation } from '../i18n';
-import { SupportReportSheet } from './SupportReportSheet';
 import { UiState, type UiStateKind } from './UiState';
 
 const KIND_TO_STATE: Record<
@@ -50,13 +47,13 @@ const REPORTABLE_KINDS: ReadonlySet<ReturnType<typeof clientProblemKind>> =
 /**
  * The quiet "Report a problem" action. It exists only below a signed-in
  * session (and so below the app's query client) and only when the instance
- * accepts reports. The failure shown here is captured when the sheet opens.
+ * accepts reports. The failure shown here is captured at the tap; the sheet
+ * itself is the shell's (`SupportReportHost`), so it stays open when a refetch
+ * replaces this error state.
  */
 function ReportProblemAction({ retry }: { retry?: ReactNode }) {
   const { t } = useTranslation();
   const available = useSupportReportsAvailable();
-  const [open, setOpen] = useState(false);
-  const [failure, setFailure] = useState<FailureReference | undefined>();
   if (!available) return retry ?? null;
   return (
     <div className="problem-state-actions">
@@ -64,19 +61,16 @@ function ReportProblemAction({ retry }: { retry?: ReactNode }) {
       <button
         type="button"
         className="tertiary"
-        onClick={() => {
-          setFailure(lastFailureReference());
-          setOpen(true);
-        }}
+        aria-haspopup="dialog"
+        onClick={() =>
+          openSupportReport({
+            kind: 'PROBLEM',
+            failure: lastFailureReference(),
+          })
+        }
       >
         {t('supportReport.action')}
       </button>
-      <SupportReportSheet
-        open={open}
-        onClose={() => setOpen(false)}
-        initialKind="PROBLEM"
-        failure={failure}
-      />
     </div>
   );
 }

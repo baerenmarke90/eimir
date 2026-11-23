@@ -6611,7 +6611,7 @@
     "noteTooLong": "That is more than {{max}} characters. Please shorten the text a little.",
     "sentHeading": "What we send along",
     "items": {
-      "failureLabel": "Error code",
+      "failureLabel": "Error code and affected feature",
       "app": "App version and build",
       "device": "Device and display: system, browser, app or web, theme (light/dark), online status",
       "locale": "Language, time and time zone",

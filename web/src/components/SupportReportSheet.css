@@ -140,8 +140,8 @@
   color: var(--color-success);
 }
 
-/* The failure line: a quiet label above the raw reference. The reference is
-   one long token, so it may break anywhere instead of at arbitrary colons. */
+/* The failure line: a quiet label above the short error code. The code may
+   break anywhere at narrow widths instead of overflowing. */
 .support-report-failure {
   display: grid;
   min-width: 0;

@@ -31,6 +31,14 @@ Later commits and what they mean for the captures:
   theme and online status, and the offline message no longer promises
   automatic sending. The captures `03-*`, `04-*` and `05-queued-offline-*`
   show the earlier wording; layout and hierarchy are unchanged.
+- The follow-up that shows a short error code instead of the API route
+  (open point (a) of the design) changes the failure line: the label reads
+  "Error code and affected feature" (German string
+  `supportReport.items.failureLabel`) and the line below shows a short code
+  such as `GET · 500 · E2E_UNAVAILABLE · web` instead of the route template.
+  The captures `03-*`, `04-*` and `05-*` still show the earlier label
+  (error code only) and, where a failure is attached, the raw reference line; they
+  were deliberately not re-captured. The report still sends the full reference.
 
 ## How the captures were produced
 
@@ -58,7 +66,7 @@ Compact 390 px unless the name says otherwise.
 | --- | --- |
 | `01-error-state-390-{light,dark}.png` | Error state with the shared secondary "Erneut versuchen" and the smaller tertiary "Problem melden" |
 | `02-more-row-390-{light,dark}.png` | More, the help-and-feedback row in the app-and-account group |
-| `03-problem-sheet-390-{light,dark}.png` | Problem sheet, idle: error-code label above the raw reference, filled note field without resize grip |
+| `03-problem-sheet-390-{light,dark}.png` | Problem sheet, idle: error-code label above the raw reference (now a short code, see Baseline), filled note field without resize grip |
 | `03-problem-sheet-360-light.png`, `-430-light.png` | The same at 360 and 430 px |
 | `03-problem-sheet-390-light-reduced-motion.png` | The same with reduced motion emulated |
 | `03-problem-sheet-1280-light.png` | Expanded: the sheet as a centered dialog, no Close icon |
@@ -119,5 +127,8 @@ Remaining deviations from the mock-up:
 3. Action colour is the active design's plum/pink, not the mock-up's blue
    (anticipated by the design doc); the success title uses the sheet heading
    style instead of the mock-up's serif.
-4. The raw failure reference is shown as sent; its wording is parked for the
-   Product Owner.
+4. The sheet now shows a short error code (method, status or transport
+   outcome, problem code, app or web) under the label "Error code and affected
+   feature" (German UI) instead of the raw reference; the full reference is
+   still sent (Product Owner decision, design open point (a)). The captures
+   predate this change.

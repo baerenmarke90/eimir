@@ -108,7 +108,9 @@ describe('SupportReportHost', () => {
         .getByRole('radio', { name: supportReport.kinds.PROBLEM })
         .matches(':checked'),
     ).toBe(true);
-    expect(dialog.textContent).toContain('GET:/api/v1/memories:500:web');
+    // The sheet shows the short error code, never the route that is sent.
+    expect(dialog.textContent).toContain('GET · 500 · web');
+    expect(dialog.textContent).not.toContain('/api/v1/memories');
   });
 
   it('opens the sheet in the same commit, without a chunk to load', () => {
@@ -199,6 +201,6 @@ describe('SupportReportHost', () => {
         name: supportReport.noteLabel.PROBLEM,
       }).value,
     ).toBe('Mid-sentence');
-    expect(kept.textContent).toContain('GET:/api/v1/memories:500');
+    expect(kept.textContent).toContain('GET · 500 · web');
   });
 });

@@ -2,7 +2,10 @@ import { onlineManager } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useSyncExternalStore } from 'react';
 import { useApiRuntime } from '../client/apiRuntimeContext';
 import { isClientOnline } from '../client/connectivity';
-import type { FailureReference } from '../client/failureReference';
+import {
+  type FailureReference,
+  formatFailureForDisplay,
+} from '../client/failureReference';
 import {
   describeSupportReport,
   NOTE_MAX_CHARACTERS,
@@ -279,8 +282,9 @@ function SupportReportSheetContent({
                     <span className="support-report-failure-label">
                       {t('supportReport.items.failureLabel')}
                     </span>
+                    {/* A short code; the full reference is what is sent. */}
                     <code className="support-report-failure-token">
-                      {failure.reference}
+                      {formatFailureForDisplay(failure.reference)}
                     </code>
                   </span>
                 ) : (

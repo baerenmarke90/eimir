@@ -25,6 +25,8 @@ const NOTIFICATION_ID = '55555555-5555-4555-8555-555555555555';
 const REQUEST_ID = 'e2e-notifications-1';
 const FAILURE_REFERENCE =
   'GET:/api/v1/spaces/{id}/notifications:500:E2E_UNAVAILABLE:web';
+/** The short code the sheet shows for it; the route is sent, never shown. */
+const FAILURE_SHOWN = 'GET · 500 · E2E_UNAVAILABLE · web';
 const REPLY_TEXT = '<b>hi</b> Thanks, we fixed it.';
 const DRAFT_KEY = `eimir.supportReportDraft.v1.${ACCOUNT_ID}`;
 
@@ -328,14 +330,15 @@ test('report_a_problem_from_error_state_and_receive_reply', async ({
     sheet.dialog.getByRole('heading', { name: copy.title.PROBLEM }),
   ).toBeVisible();
   await expect(sheet.problemKind).toBeChecked();
-  // The failure line: its label, then the raw reference exactly as sent.
+  // The failure line: its label, then the short code; never the API route.
   const failureLine = sheet.dialog.locator('.support-report-failure');
   await expect(failureLine.locator('.support-report-failure-label')).toHaveText(
     copy.items.failureLabel,
   );
   await expect(failureLine.locator('.support-report-failure-token')).toHaveText(
-    FAILURE_REFERENCE,
+    FAILURE_SHOWN,
   );
+  await expect(sheet.dialog).not.toContainText('/api/v1/');
   // The sheet shows no Close icon; the labeled handle remains the close target.
   await expect(sheet.handle).toBeVisible();
   await expect(
@@ -514,7 +517,7 @@ test('sheet_survives_problem_state_replacement', async ({ page }) => {
   await expect(sheet.problemNote).toHaveValue('Mid-sentence');
   await expect(
     sheet.dialog.locator('.support-report-failure-token'),
-  ).toHaveText(FAILURE_REFERENCE);
+  ).toHaveText(FAILURE_SHOWN);
   await sheet.problemNote.press('End');
   await sheet.problemNote.pressSequentially(', and more.');
   await expect(sheet.problemNote).toHaveValue('Mid-sentence, and more.');

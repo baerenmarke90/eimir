@@ -30,6 +30,8 @@ const FAILURE: FailureReference = {
   reference: 'PUT:/memories/{id}:network:web',
   requestId: 'req-1',
 };
+/** What the sheet shows for `FAILURE`: a short code, never the route. */
+const FAILURE_SHOWN = 'PUT · network · web';
 const CREATED = { id: 'r1', state: 'NEW', createdAt: new Date() };
 
 type Call = { supportReportCreate: SupportReportCreate };
@@ -129,7 +131,7 @@ describe('SupportReportSheet', () => {
       screen.getByRole('dialog', { name: supportReport.title.PROBLEM }),
     ).toBeTruthy();
     expect(sentList()).toEqual([
-      `${supportReport.items.failureLabel}${FAILURE.reference}`,
+      `${supportReport.items.failureLabel}${FAILURE_SHOWN}`,
       supportReport.items.app,
       supportReport.items.device,
       supportReport.items.locale,
@@ -140,14 +142,17 @@ describe('SupportReportSheet', () => {
     expect(document.activeElement).toBe(noteField());
   });
 
-  it('failure_line_puts_the_label_above_the_breakable_token', () => {
+  it('failure_line_puts_the_label_above_the_short_code', () => {
     setup({ failure: FAILURE });
     const list = screen.getByRole('list', { name: supportReport.sentHeading });
     const label = list.querySelector('.support-report-failure-label');
     const token = list.querySelector('code.support-report-failure-token');
     expect(label?.textContent).toBe(supportReport.items.failureLabel);
-    expect(token?.textContent).toBe(FAILURE.reference);
-    // Label first, then the raw reference exactly as it is sent.
+    expect(token?.textContent).toBe(FAILURE_SHOWN);
+    // The route template is sent but never shown on the sheet.
+    expect(list.textContent).not.toContain(FAILURE.reference);
+    expect(list.textContent).not.toContain('/memories');
+    // Label first, then the short error code.
     expect(
       label && token
         ? label.compareDocumentPosition(token) &
@@ -175,7 +180,7 @@ describe('SupportReportSheet', () => {
       screen.getByRole('radio', { name: supportReport.kinds.PROBLEM }),
     );
     expect(sentList()).not.toContain(
-      `${supportReport.items.failureLabel}${FAILURE.reference}`,
+      `${supportReport.items.failureLabel}${FAILURE_SHOWN}`,
     );
     expect(sentList()).toHaveLength(4);
     await act(async () => {

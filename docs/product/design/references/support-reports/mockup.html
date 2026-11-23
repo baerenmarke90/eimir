@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>eimir. Support reports: Compact mock-up</title>
+<style>
+/* Values come from design/tokens.json (light and dark schemes). Mock-up only. */
+:root {
+  --surface: #F3F5FC; --surface-raised: #FFFFFF; --surface-subtle: #D6E1F7;
+  --text: #19233E; --text-2: #58627B; --border: #BBC9E5;
+  --action: #3055B8; --on-action: #FFFFFF; --focus: #335DCA;
+  --success: #226A57; --success-surface: #E8F6EE;
+  --error: #A83F51; --error-surface: #FDEBF0; --scrim: #231E28CC;
+  --r-sheet: 24px; --r-card: 20px; --r-med: 12px; --r-pill: 999px;
+  --shadow: 0 -8px 32px rgb(25 35 62 / 18%);
+}
+:root[data-theme="dark"] {
+  --surface: #252B43; --surface-raised: #303751; --surface-subtle: #303F62;
+  --text: #F6F7FF; --text-2: #C4CEE8; --border: #46506F;
+  --action: #354778; --on-action: #FFFFFF; --focus: #B7C8FF;
+  --success: #A2E1CA; --success-surface: #23453C;
+  --error: #FFB1C0; --error-surface: #4D2B3A; --scrim: #000000B3;
+  --shadow: 0 -8px 32px rgb(0 0 0 / 50%);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #8a93ab22; color: var(--text); font-family: "Instrument Sans", system-ui, sans-serif; }
+:root[data-theme="dark"] body { background: #11152288; }
+header.bar { position: sticky; top: 0; z-index: 5; display: flex; gap: 12px; align-items: center; justify-content: space-between;
+  padding: 12px 16px; background: var(--surface-raised); border-bottom: 1px solid var(--border); }
+header.bar h1 { font-size: 15px; margin: 0; font-weight: 600; }
+header.bar p { margin: 2px 0 0; font-size: 12px; color: var(--text-2); }
+.toggle { min-height: 44px; padding: 0 16px; border-radius: var(--r-pill); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: 14px; }
+.grid { display: flex; flex-wrap: wrap; gap: 28px; justify-content: center; padding: 28px 16px 60px; }
+figure { margin: 0; width: 390px; }
+figcaption { font-size: 13px; color: var(--text-2); margin: 10px 4px 0; line-height: 1.4; }
+figcaption b { color: var(--text); }
+.phone { position: relative; width: 390px; height: 720px; overflow: hidden; border-radius: 28px; border: 1px solid var(--border); background: var(--surface); }
+.page { padding: 56px 20px 0; }
+.scrim { position: absolute; inset: 0; background: var(--scrim); }
+.nav { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; display: flex; justify-content: space-around; align-items: center;
+  background: var(--surface-raised); border-top: 1px solid var(--border); font-size: 11px; color: var(--text-2); }
+.nav span.on { color: var(--action); font-weight: 600; }
+:root[data-theme="dark"] .nav span.on { color: var(--focus); }
+/* ProblemState */
+.state { text-align: center; padding-top: 120px; }
+.mark { width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 50%; display: grid; place-items: center; background: var(--error-surface); color: var(--error); font-weight: 700; font-size: 24px; }
+.state h2 { font-family: Literata, Georgia, serif; font-size: 22px; margin: 0 0 8px; }
+.state p { color: var(--text-2); margin: 0 auto 20px; max-width: 28ch; line-height: 1.45; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 22px; border-radius: var(--r-pill); font: inherit; font-weight: 600; font-size: 16px; border: 1px solid transparent; cursor: pointer; }
+.btn.primary { background: var(--action); color: var(--on-action); }
+.btn.secondary { background: transparent; border-color: var(--border); color: var(--text); }
+.btn.tertiary { background: transparent; color: var(--action); min-height: 44px; font-weight: 500; font-size: 15px; }
+:root[data-theme="dark"] .btn.tertiary { color: var(--focus); }
+.btn[disabled] { opacity: .5; }
+.btn.full { width: 100%; }
+.actions { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+/* More */
+.more h2 { font-family: Literata, Georgia, serif; font-size: 26px; margin: 0 0 20px; }
+.group-title { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-2); margin: 20px 0 8px; }
+.row { display: flex; justify-content: space-between; align-items: center; min-height: 56px; padding: 8px 16px; background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--r-med); margin-bottom: 8px; }
+.row small { display: block; color: var(--text-2); font-size: 13px; margin-top: 2px; }
+.row.hl { outline: 2px solid var(--action); outline-offset: 2px; }
+/* Sheet */
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--r-sheet) var(--r-sheet) 0 0; box-shadow: var(--shadow); padding: 8px 20px 24px; }
+.grab { width: 40px; height: 4px; border-radius: 4px; background: var(--border); margin: 0 auto 8px; }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.sheet-head h2 { font-family: Literata, Georgia, serif; font-size: 20px; margin: 0; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--surface); border-radius: var(--r-pill); margin-bottom: 14px; }
+.seg span { text-align: center; padding: 11px 6px; border-radius: var(--r-pill); font-size: 14px; color: var(--text-2); }
+.seg span.on { background: var(--surface-raised); color: var(--text); font-weight: 600; box-shadow: 0 1px 4px rgb(25 35 62 / 16%); }
+.field { width: 100%; min-height: 112px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--r-med); background: var(--surface); color: var(--text); font: inherit; resize: none; }
+.field::placeholder { color: var(--text-2); }
+.count { text-align: right; font-size: 12px; color: var(--text-2); margin: 4px 2px 12px; }
+.sent { background: var(--surface); border-radius: var(--r-med); padding: 12px 14px; margin-bottom: 14px; }
+.sent h3 { margin: 0 0 8px; font-size: 13px; color: var(--text-2); font-weight: 600; }
+.sent ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 14px; }
+.sent li::before { content: "✓ "; color: var(--success); }
+.sent .no { margin: 10px 0 0; font-size: 12px; color: var(--text-2); }
+.msg { padding: 12px 14px; border-radius: var(--r-med); font-size: 14px; line-height: 1.4; margin-bottom: 14px; }
+.msg.info { background: var(--surface-subtle); }
+.hint { font-size: 13px; color: var(--text-2); margin: -4px 2px 12px; }
+.done { text-align: center; padding: 20px 0 8px; }
+.done .mark { background: var(--success-surface); color: var(--success); }
+.done h3 { font-family: Literata, Georgia, serif; font-size: 22px; margin: 0 0 8px; }
+.done p { color: var(--text-2); margin: 0 auto 20px; max-width: 30ch; line-height: 1.45; }
+/* Notification */
+.notif { display: flex; gap: 12px; padding: 14px 16px; background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--r-card); margin-bottom: 10px; }
+.dot { flex: none; width: 10px; height: 10px; margin-top: 6px; border-radius: 50%; background: var(--action); }
+.notif.read .dot { background: transparent; }
+.notif b { display: block; font-size: 15px; margin-bottom: 2px; }
+.notif small { color: var(--text-2); font-size: 12px; }
+.notif p { margin: 6px 0 0; font-size: 14px; line-height: 1.45; }
+@media (prefers-reduced-motion: no-preference) { .sheet { animation: up .28s cubic-bezier(.2,.8,.2,1); } @keyframes up { from { transform: translateY(24px); opacity: .6; } } }
+</style>
+</head>
+<body>
+<header class="bar">
+  <div><h1>Hilfe &amp; Feedback: Entwurf (Compact, 390 px)</h1><p>Mock-up zum Design in support-reports-core-design.md. Werte aus design/tokens.json.</p></div>
+  <button class="toggle" id="theme" type="button">Dunkel</button>
+</header>
+<main class="grid">
+
+<figure>
+  <div class="phone">
+    <div class="page"><div class="state">
+      <div class="mark" aria-hidden="true">!</div>
+      <h2>Etwas ist schiefgegangen.</h2>
+      <p>Das hat leider nicht geklappt. Versuch es gleich noch einmal.</p>
+      <div class="actions">
+        <button class="btn secondary" type="button">Erneut versuchen</button>
+        <button class="btn tertiary" type="button">Problem melden</button>
+      </div>
+    </div></div>
+    <div class="nav"><span>Wir</span><span>Momente</span><span class="on">Planen</span><span>Listen</span><span>Mehr</span></div>
+  </div>
+  <figcaption><b>1 · Fehlerzustand.</b> „Erneut versuchen“ bleibt die Hauptaktion. „Problem melden“ ist eine leise Zweitaktion, nur sichtbar wenn der Server Meldungen annimmt, und nicht bei verlorener Sitzung.</figcaption>
+</figure>
+
+<figure>
+  <div class="phone">
+    <div class="page more">
+      <h2>Mehr</h2>
+      <div class="group-title">Persönlich</div>
+      <div class="row"><span>Profil</span><span>›</span></div>
+      <div class="row"><span>Privater Bereich</span><span>›</span></div>
+      <div class="group-title">Hilfsmittel</div>
+      <div class="row"><span>Einstellungen</span><span>›</span></div>
+      <div class="row hl"><span>Hilfe &amp; Feedback<small>Problem melden oder uns etwas sagen</small></span><span>›</span></div>
+      <div class="row"><span>Datenschutz</span><span>›</span></div>
+    </div>
+    <div class="nav"><span>Wir</span><span>Momente</span><span>Planen</span><span>Listen</span><span class="on">Mehr</span></div>
+  </div>
+  <figcaption><b>2 · Mehr.</b> Eine Zeile in der Gruppe der Hilfsmittel, wie die übrigen Zeilen. Kein neuer Tab, keine Zahl, kein Badge.</figcaption>
+</figure>
+
+<figure>
+  <div class="phone">
+    <div class="page"><div class="state"><div class="mark" aria-hidden="true">!</div><h2>Etwas ist schiefgegangen.</h2></div></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div class="sheet-head"><h2>Problem melden</h2></div>
+      <div class="seg"><span class="on">Etwas funktioniert nicht</span><span>Feedback / Idee</span></div>
+      <textarea class="field" placeholder="Was ist passiert? (optional)"></textarea>
+      <div class="count">0 / 2000</div>
+      <div class="sent">
+        <h3>Das senden wir mit</h3>
+        <ul><li>Fehler-Code: put-network-app</li><li>App-Version und Gerät (Android 15)</li><li>Sprache und Uhrzeit</li><li>Dein Konto, damit wir antworten können</li></ul>
+        <p class="no">Nie dabei: Inhalte, Fotos, Orte oder Nachrichten.</p>
+      </div>
+      <button class="btn primary full" type="button">Senden</button>
+    </div>
+  </div>
+  <figcaption><b>3 · Sheet, Problem.</b> Bestehende Bottom-Sheet-Hülle, ohne X: geschlossen wird durch Ziehen, Tippen auf den Hintergrund oder Zurück. Eine gefüllte Hauptaktion. Die Liste zeigt genau die Felder, die gesendet werden. Text ist optional.</figcaption>
+</figure>
+
+<figure>
+  <div class="phone">
+    <div class="page more"><h2>Mehr</h2></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div class="sheet-head"><h2>Hilfe &amp; Feedback</h2></div>
+      <div class="seg"><span>Etwas funktioniert nicht</span><span class="on">Feedback / Idee</span></div>
+      <textarea class="field" placeholder="Was wünschst du dir? Was stört dich?"></textarea>
+      <div class="count">0 / 2000</div>
+      <div class="sent">
+        <h3>Das senden wir mit</h3>
+        <ul><li>App-Version und Gerät (Android 15)</li><li>Sprache</li><li>Dein Konto, damit wir antworten können</li></ul>
+        <p class="no">Bei Feedback hängen wir keinen Fehler-Code an.</p>
+      </div>
+      <button class="btn primary full" type="button" disabled>Senden</button>
+      <p class="hint" style="margin:10px 2px 0">Schreib ein paar Worte, dann kannst du senden.</p>
+    </div>
+  </div>
+  <figcaption><b>4 · Sheet, Feedback aus „Mehr“.</b> Hier ist der Text Pflicht, der Button bleibt ausgegraut mit Hinweis. Kein Fehler-Code.</figcaption>
+</figure>
+
+<figure>
+  <div class="phone">
+    <div class="page more"><h2>Mehr</h2></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div class="sheet-head"><h2>Problem melden</h2></div>
+      <div class="msg info" role="status"><b>Du bist offline.</b> Dein Text bleibt gespeichert. Wir senden ihn, sobald du wieder online bist.</div>
+      <textarea class="field">Beim Hochladen eines Fotos kam ein Fehler, danach hing die Seite.</textarea>
+      <div class="count">66 / 2000</div>
+      <button class="btn primary full" type="button">Später senden</button>
+    </div>
+  </div>
+  <figcaption><b>5 · Offline.</b> Der Entwurf bleibt erhalten, der Button ändert sich ehrlich in „Später senden“. Beim Senden fehlgeschlagen erscheint dieselbe Fläche mit „Erneut versuchen“.</figcaption>
+</figure>
+
+<figure>
+  <div class="phone">
+    <div class="page more"><h2>Mehr</h2></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div class="done">
+        <div class="mark" aria-hidden="true">✓</div>
+        <h3>Danke, angekommen.</h3>
+        <p>Wir lesen jede Meldung. Wenn wir etwas zurückschreiben, bekommst du eine Benachrichtigung.</p>
+        <button class="btn primary full" type="button">Fertig</button>
+      </div>
+    </div>
+  </div>
+  <figcaption><b>6 · Erfolg.</b> Ruhig, ohne Zusage einer Antwort. Eine Aktion „Fertig“. Bewegung nur das sanfte Schließen des Sheets, mit reduzierter Bewegung ohne Animation.</figcaption>
+</figure>
+
+<figure>
+  <div class="phone">
+    <div class="page more">
+      <h2>Mitteilungen</h2>
+      <div class="notif"><span class="dot"></span><div><b>Antwort auf deine Meldung</b><small>Deine Meldung vom 23. Nov.</small><p>Danke für den Hinweis! Das Foto-Problem ist in der nächsten Version behoben. Probier es danach bitte noch einmal.</p></div></div>
+      <div class="notif read"><span class="dot"></span><div><b>Lena hat dir ein Foto gesendet</b><small>Gestern</small></div></div>
+    </div>
+    <div class="nav"><span>Wir</span><span>Momente</span><span>Planen</span><span>Listen</span><span class="on">Mehr</span></div>
+  </div>
+  <figcaption><b>7 · Antwort als Benachrichtigung.</b> Der volle Text steht direkt in der Mitteilung (höchstens 500 Zeichen), ohne Zitat der eigenen Notiz. Tippen markiert sie nur als gelesen. Kein Posteingang, kein Verlauf.</figcaption>
+</figure>
+
+</main>
+<script>
+var root = document.documentElement, btn = document.getElementById('theme');
+btn.addEventListener('click', function () {
+  var dark = root.getAttribute('data-theme') !== 'dark';
+  root.setAttribute('data-theme', dark ? 'dark' : 'light');
+  btn.textContent = dark ? 'Hell' : 'Dunkel';
+});
+</script>
+</body>
+</html>

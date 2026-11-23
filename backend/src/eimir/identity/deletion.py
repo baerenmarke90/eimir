@@ -58,6 +58,7 @@ from eimir.relationship.service import (
     freeze_offboarding_purge_deadline_if_orphaned,
     lock_space,
 )
+from eimir.support_reports.models import SupportReport
 from eimir.wishes.models import WishReminder
 
 DELETED_ACCOUNT_DISPLAY_NAME = "Deleted account"
@@ -77,6 +78,8 @@ PERSONAL_ACCOUNT_ROWS = (
     RecentAuthenticationOidcRequest,
     RecentAuthenticationWebAuthnChallenge,
     SpacePresence,
+    # Deleting a report removes its reply through ON DELETE CASCADE (#2189).
+    SupportReport,
     WishReminder,
 )
 

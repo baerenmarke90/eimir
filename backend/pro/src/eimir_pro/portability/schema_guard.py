@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from eimir_pro.portability.common import PortabilityError
 
-TESTED_ALEMBIC_REVISION = "0174"
+TESTED_ALEMBIC_REVISION = "0175"
 """The Core Alembic head this tool was verified against (export and import probes)."""
 
 _VERSION_TABLE = "alembic_version"

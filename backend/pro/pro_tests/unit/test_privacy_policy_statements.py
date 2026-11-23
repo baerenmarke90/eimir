@@ -20,6 +20,8 @@ from eimir.auth import action_tokens, tokens
 from eimir.daily_checkins import retention as daily_checkin_retention
 from eimir.jobs import maintenance
 from eimir.relationship import invitations, policy
+from eimir.support_reports import payload as support_report_payload
+from eimir.support_reports import service as support_reports
 from eimir.transfer import service as transfer
 
 # The legal documents live with the Core; ``tests`` is the Core test support.
@@ -110,6 +112,33 @@ STATEMENTS = [
         "beim nächsten automatischen Aufräumen, das jede Stunde läuft",
         id="daily-check-in-cleanup-interval",
     ),
+    pytest.param(
+        support_reports.CLOSED_RETENTION,
+        timedelta(days=90),
+        "Eine abgeschlossene Meldung löschen wir 90 Tage nach ihrem Abschluss",
+        id="closed-support-report",
+    ),
+    pytest.param(
+        support_reports.MAX_RETENTION,
+        timedelta(days=365),
+        "jede Meldung spätestens 365 Tage nach dem Absenden",
+        id="any-support-report",
+    ),
+]
+
+LIMITS = [
+    pytest.param(
+        support_report_payload.NOTE_MAX_CHARACTERS,
+        2000,
+        "deinen Text mit höchstens 2.000 Zeichen",
+        id="support-report-note",
+    ),
+    pytest.param(
+        support_report_payload.REPLY_MAX_CHARACTERS,
+        500,
+        "einmal kurz antworten, mit höchstens 500 Zeichen",
+        id="support-report-reply",
+    ),
 ]
 
 
@@ -122,6 +151,17 @@ def test_privacy_policy_period_matches_code(
     assert sentence in text, f"The privacy policy no longer states: {sentence}"
     assert actual == stated, (
         f"The code now uses {actual}, but the privacy policy states {stated}. "
+        "Update legal/de/privacy-policy.md and its version with the change."
+    )
+
+
+@pytest.mark.parametrize(("actual", "stated", "sentence"), LIMITS)
+def test_privacy_policy_limit_matches_code(actual: int, stated: int, sentence: str) -> None:
+    text = " ".join(DOCUMENT.read_text(encoding="utf-8").split())
+
+    assert sentence in text, f"The privacy policy no longer states: {sentence}"
+    assert actual == stated, (
+        f"The code now allows {actual}, but the privacy policy states {stated}. "
         "Update legal/de/privacy-policy.md and its version with the change."
     )
 

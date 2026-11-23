@@ -2,7 +2,7 @@ import type { NotificationItem } from '../api/generated/models/NotificationItem'
 import type { RecapPeriod } from '../api/generated/models/RecapPeriod';
 import type { RecapSourceView } from '../api/generated/models/RecapSourceView';
 import type { RecapView } from '../api/generated/models/RecapView';
-import { resolvedLocale } from '../i18n';
+import { resolvedLocale, type TranslateText } from '../i18n';
 import {
   chapterDetailPath,
   heartMomentDetailPath,
@@ -53,7 +53,7 @@ export function recapNoticePeriod(
 
 export function recapNoticeTitle(
   item: Pick<NotificationItem, 'kind' | 'targetType' | 'target' | 'createdAt'>,
-  translate: (key: string, options?: Record<string, unknown>) => string,
+  translate: TranslateText,
   locale = resolvedLocale(),
 ): string {
   const grew = item.kind === 'RECAP_GREW';
@@ -82,7 +82,7 @@ export function recapDate(value: Date, locale: string): string {
 export function recapPeriodStatus(
   value: Pick<RecapView, 'savedAt' | 'isPartial' | 'throughOn'>,
   locale: string,
-  translate: (key: string, options?: Record<string, unknown>) => string,
+  translate: TranslateText,
 ): string {
   // A retained snapshot of a running period is the only "kept" state couples see.
   return value.savedAt && value.isPartial

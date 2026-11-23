@@ -19,7 +19,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, NamedTuple, cast
 from uuid import UUID
 
-from sqlalchemy import Select, and_, delete, or_, select
+from sqlalchemy import Select, and_, delete, func, or_, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import Session
@@ -53,6 +53,9 @@ CLOSED_RETENTION = timedelta(days=90)
 
 MAX_RETENTION = timedelta(days=365)
 """How long any report is kept at most, counted from ``created_at``."""
+
+UNREAD_WARNING_AGE = timedelta(days=14)
+"""A ``NEW`` report older than this means reports are not being read."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -162,6 +165,38 @@ def create_report(
 
 def get_report(session: Session, report_id: UUID) -> SupportReport | None:
     return session.get(SupportReport, report_id)
+
+
+def count_new(session: Session) -> int:
+    """Return how many reports are still in state ``NEW``."""
+    return session.execute(
+        select(func.count())
+        .select_from(SupportReport)
+        .where(SupportReport.state == SupportReportState.NEW.value)
+    ).scalar_one()
+
+
+def oldest_new_at(session: Session) -> datetime | None:
+    """Return the creation time of the oldest ``NEW`` report, if there is one."""
+    return session.execute(
+        select(func.min(SupportReport.created_at)).where(
+            SupportReport.state == SupportReportState.NEW.value
+        )
+    ).scalar_one()
+
+
+def support_reports_unread_warning(
+    *, enabled: bool, oldest_new_at: datetime | None, now: datetime
+) -> bool:
+    """Whether reports are being collected but not read.
+
+    True only while the feature is enabled and the oldest ``NEW`` report is
+    strictly more than ``UNREAD_WARNING_AGE`` old. A report exactly at the
+    threshold does not warn yet.
+    """
+    if not enabled or oldest_new_at is None:
+        return False
+    return clock.ensure_utc(now) - clock.ensure_utc(oldest_new_at) > UNREAD_WARNING_AGE
 
 
 def _cursor_binding(state: SupportReportState | None) -> dict[str, Any]:

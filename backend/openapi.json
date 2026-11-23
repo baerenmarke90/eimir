@@ -15368,6 +15368,10 @@
             "title": "Serveradminverifiedmatchcount",
             "type": "integer"
           },
+          "supportReportsNew": {
+            "title": "Supportreportsnew",
+            "type": "integer"
+          },
           "suspendedAccountCount": {
             "title": "Suspendedaccountcount",
             "type": "integer"
@@ -15430,6 +15434,7 @@
           "oldestPendingJobAt",
           "lastSuccessfulJobAt",
           "recentFailedJobs",
+          "supportReportsNew",
           "warningCodes"
         ],
         "title": "ServerAdminOverview",

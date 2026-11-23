@@ -3,6 +3,7 @@ import { expect, type Page, test } from '@playwright/test';
 import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
 import quoteCopy from '../../src/i18n/locales/dailyQuote';
 import m5s5Copy from '../../src/i18n/locales/m5s5';
+import navigation from '../../src/i18n/locales/navigation';
 import notificationCopy from '../../src/i18n/locales/notificationSettings';
 import profileCopy from '../../src/i18n/locales/profileIdentity';
 import reflections from '../../src/i18n/locales/relationshipReflections';
@@ -1502,7 +1503,12 @@ test('Faden navigation, saved appearance and secondary title spacing', async ({
   await expect(
     page.locator('.thread-index-list a[href="/more/collections"]'),
   ).toBeVisible();
-  await page.getByRole('button', { name: /Zurück/ }).click();
+  await page
+    .getByRole('button', {
+      name: copy.thread.return.replace('{{area}}', navigation.story),
+      exact: true,
+    })
+    .click();
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal/);
   await expect(trigger).toBeFocused();
   await expect

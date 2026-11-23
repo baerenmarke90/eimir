@@ -13,8 +13,8 @@ import { NotificationKind } from '../api/generated/models/NotificationKind';
 import type { NotificationPreferencesView } from '../api/generated/models/NotificationPreferencesView';
 import type { DevicePushController } from '../client/devicePush';
 import de from '../i18n/locales/de';
-import notificationSettings from '../i18n/locales/notificationSettings';
 import gentleCopy from '../i18n/locales/gentlePrompts';
+import notificationSettings from '../i18n/locales/notificationSettings';
 import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 
 function view(emailAvailable = true): NotificationPreferencesView {
@@ -347,13 +347,12 @@ describe('NotificationSettingsPanel', () => {
       });
       expect(toggle.getAttribute('aria-checked')).toBe(String(state === 'on'));
       expect(screen.queryByText(notificationSettings.deviceIntro)).toBeNull();
-      expect(
-        screen.queryByText(
-          state === 'on'
-            ? notificationSettings.deviceOn
-            : notificationSettings.deviceOff,
-        ),
-      ).toBeNull();
+      if (state === 'on') {
+        const status = screen.getByText(notificationSettings.deviceOn);
+        expect(toggle.getAttribute('aria-describedby')).toBe(status.id);
+      } else {
+        expect(screen.queryByText(notificationSettings.deviceOff)).toBeNull();
+      }
       fireEvent.click(toggle);
       expect(
         state === 'on' ? device.disable : device.enable,
@@ -380,9 +379,9 @@ describe('NotificationSettingsPanel', () => {
     });
     expect(toggle.getAttribute('aria-checked')).toBe('false');
     expect(toggle.hasAttribute('disabled')).toBe(true);
-    expect(
-      screen.getByText(notificationSettings.deviceConnecting),
-    ).toBeDefined();
+    const status = screen.getByText(notificationSettings.deviceConnecting);
+    expect(toggle.getAttribute('aria-describedby')).toBe(status.id);
+    expect(screen.queryByText(notificationSettings.deviceOn)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: de.common.cancel }));
     expect(device.disable).toHaveBeenCalledOnce();
   });

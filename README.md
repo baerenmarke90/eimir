@@ -130,10 +130,16 @@ The development database uses the `dev-db` profile of the canonical
 ```bash
 docker compose --profile dev-db up -d dev-postgres
 python -m pip install uv==0.12.15
-cd backend && uv sync --frozen
+cd backend && uv sync --frozen --all-packages
+export EIMIR_PLUGINS=pro
 uv run alembic upgrade head
 uv run uvicorn eimir.main:app --reload
 ```
+
+The Pro plugin is its own distribution in `backend/pro` (Decision 0017, #2182).
+`--all-packages` installs it next to the Core and `EIMIR_PLUGINS=pro` loads it, as
+the released image does. A plain `uv sync --frozen` with `EIMIR_PLUGINS` unset runs
+the Core alone.
 
 ### Web
 

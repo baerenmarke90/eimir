@@ -51,12 +51,8 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-EXPECTED_DISTRIBUTIONS = {"pro": "eimir"}
-"""The only distribution allowed to provide each plugin name.
-
-While the plugin is in-tree (Phase 1) it ships in the ``eimir`` distribution
-itself; Phase 2 moves it into its own distribution.
-"""
+EXPECTED_DISTRIBUTIONS = {"pro": "eimir-pro"}
+"""The only distribution allowed to provide each plugin name (``backend/pro``, #2182)."""
 
 
 class PluginLoadError(RuntimeError):

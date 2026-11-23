@@ -19,7 +19,7 @@ import { clearPersonalSettingsSyncState } from './personalSettingsBus';
 import { clearPersonColourPreferences } from './personColoursStore';
 import { normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
-import { clearSupportReportDrafts } from './supportReportDraftStorage';
+import { clearSupportReportDrafts } from './supportReportDraftCleanup';
 import { clearRetrospectiveDismissal } from './todayRetrospectiveDismissal';
 import { clearWirDesignPreferences } from './wirDesignPreferenceStore';
 import { clearWirDistanceSeen } from './wirDistanceSeen';

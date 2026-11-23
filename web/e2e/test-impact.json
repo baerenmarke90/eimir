@@ -1055,7 +1055,9 @@
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/MemoryMapPage.tsx",
         "web/src/components/PageHeader.tsx",
-        "web/src/components/StoryYearsPage.tsx"
+        "web/src/components/StoryYearsPage.tsx",
+        "web/src/components/SharedRhythm.tsx",
+        "web/src/components/SharedRhythm.css"
       ]
     },
     "wish-detective.spec.ts": {

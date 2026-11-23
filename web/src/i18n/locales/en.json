@@ -1719,7 +1719,8 @@
       "classic": "Classic",
       "quiet_together": "Together",
       "handwriting": "Handwritten",
-      "home_rooms": "Home"
+      "home_rooms": "Home",
+      "shared_rhythm": "Our Rhythm"
     },
     "descriptions": {
       "connected": "The two of you, joined by a heart line. Your time together sits in the middle.",
@@ -1729,7 +1730,8 @@
       "classic": "Familiar and spacious. Large portraits above your names and the original arrangement.",
       "quiet_together": "Calm, muted colours throughout the app. On Us, your names set large and your moment kept compact.",
       "handwriting": "Warm paper tones and wine-red accents throughout the app. On Us, your latest Heart Moment like a note.",
-      "home_rooms": "A shared starting point for the two of you. Open Rooms to find memories, plans and more."
+      "home_rooms": "A shared starting point for the two of you. Open Rooms to find memories, plans and more.",
+      "shared_rhythm": "Today, your story and your plans at your own pace, with navigation at the top and shades of plum, pink and apricot."
     },
     "standard": "Standard",
     "free": "Free",
@@ -1769,6 +1771,17 @@
       "archiveNavigation": "Your memories",
       "photoArchive": "Photo archive",
       "chapters": "Chapters"
+    },
+    "rhythm": {
+      "title": "Our Rhythm",
+      "today": "Together today",
+      "history": "Story",
+      "ahead": "Ahead",
+      "ownVibe": "My vibe",
+      "partnerToday": "Today",
+      "moreNavigation": "More areas",
+      "insights": "Insights",
+      "games": "Play"
     }
   },
   "profiles": {

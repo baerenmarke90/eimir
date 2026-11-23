@@ -863,7 +863,9 @@ export function StoryProductPage({
         title={t(
           layout === 'rooms'
             ? 'wirDesign.homeRooms.remember'
-            : 'story.timelineTitle',
+            : layout === 'chapters'
+              ? 'wirDesign.rhythm.history'
+              : 'story.timelineTitle',
         )}
         titleContext={
           layout === 'rooms' ? (

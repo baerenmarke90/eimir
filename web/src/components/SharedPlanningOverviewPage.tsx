@@ -910,7 +910,9 @@ export function SharedPlanningOverviewPage({
         title={t(
           layout === 'rooms'
             ? 'wirDesign.homeRooms.plans'
-            : 'm5s3.overview.title',
+            : layout === 'chapters'
+              ? 'wirDesign.rhythm.ahead'
+              : 'm5s3.overview.title',
         )}
         action={
           activeSegment === 'dates' ? (

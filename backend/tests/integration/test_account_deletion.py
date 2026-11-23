@@ -65,6 +65,9 @@ from eimir.profiles.models import (
 )
 from eimir.relationship.models import Invitation, Membership, MembershipStatus, SpacePresence
 from eimir.relationship.service import add_member
+from eimir.support_reports import service as support_report_service
+from eimir.support_reports.models import SupportReportKind, SupportReportReplyRow
+from eimir.support_reports.payload import ClientContext, SupportReportPayload
 from eimir.wishes import service as wish_service
 from eimir.wishes.models import WishReminder
 from tests.conftest import make_account, make_space, requires_database
@@ -121,6 +124,34 @@ def _private_partner_note(
     session.add(preference)
     session.flush()
     return preference
+
+
+def _support_report_with_reply(session: Session, account_id: UUID) -> UUID:
+    report, _ = support_report_service.create_report(
+        session,
+        account_id=account_id,
+        client_request_id=uuid4(),
+        kind=SupportReportKind.PROBLEM,
+        payload=SupportReportPayload(
+            note="A note.",
+            client=ClientContext(
+                app_version="0.2.0",
+                build="123",
+                platform="app",
+                os="Android 16",
+                engine="WebView 142",
+                locale="de-DE",
+                theme="dark",
+                online=True,
+                local_time="2026-11-23T10:15:00",
+                time_zone="Europe/Berlin",
+            ),
+        ),
+    )
+    support_report_service.send_reply(
+        session, report_id=report.id, text="Thank you.", operator_id=None
+    )
+    return report.id
 
 
 def test_accepted_tombstone_is_immediately_fail_closed_and_idempotent(session: Session) -> None:
@@ -413,6 +444,7 @@ def test_private_account_rows_are_removed_without_erasing_partner_data(
     )
     session.flush()
     plant_id = plant.id
+    report_ids: dict[UUID, UUID] = {}
     for person, recipient in ((owner, partner), (partner, owner)):
         keys = {"space_id": space.id, "account_id": person.id}
         device_session, _ = sessions.start_session(session, person)
@@ -479,6 +511,10 @@ def test_private_account_rows_are_removed_without_erasing_partner_data(
                 WishReminder(**keys, wish_id=wish.id, due_at=expiry),
             ]
         )
+    # Migration 0163 predates support reports, so a restored completed deletion
+    # never owns one; the owner's report is seeded only for the live cleanup.
+    for person in (partner,) if completed_backup else (owner, partner):
+        report_ids[person.id] = _support_report_with_reply(session, person.id)
     session.flush()
     if completed_backup:
         # Reconstruct the persisted state without invoking today's membership
@@ -522,6 +558,11 @@ def test_private_account_rows_are_removed_without_erasing_partner_data(
         assert _count(session, table, table.account_id == partner.id) == expected, (
             table.__tablename__
         )
+    # A deleted report takes its reply along (ON DELETE CASCADE); the partner's stays.
+    for person_id, report_id in report_ids.items():
+        reply_filter = SupportReportReplyRow.report_id == report_id
+        expected_replies = 0 if person_id == owner.id else 1
+        assert _count(session, SupportReportReplyRow, reply_filter) == expected_replies, person_id
     # Pair-bound game state ends on membership exit. The shared Wish survives.
     assert (session.get(GardenPlant, plant_id) is not None) == completed_backup
     assert session.get(type(wish), wish.id) is not None

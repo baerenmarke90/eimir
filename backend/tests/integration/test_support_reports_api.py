@@ -31,24 +31,33 @@ def enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
+# The client context in the model's field names; the API body spells them camelCase.
+_CLIENT: dict[str, Any] = {
+    "app_version": "0.2.0",
+    "build": "123",
+    "platform": "app",
+    "os": "Android 16",
+    "engine": "WebView 142",
+    "locale": "de-DE",
+    "theme": "dark",
+    "online": True,
+    "local_time": "2026-11-23T10:15:00",
+    "time_zone": "Europe/Berlin",
+}
+
+
+def _camel(name: str) -> str:
+    head, *tail = name.split("_")
+    return head + "".join(part.capitalize() for part in tail)
+
+
 def _body(**overrides: Any) -> dict[str, Any]:
     body: dict[str, Any] = {
         "clientRequestId": str(uuid4()),
         "kind": "PROBLEM",
         "note": "The list did not load.",
         "failure": {"reference": "GET:/api/v1/plans:500:INTERNAL_ERROR:app", "requestId": "r-1"},
-        "client": {
-            "appVersion": "0.2.0",
-            "build": "123",
-            "platform": "app",
-            "os": "Android 16",
-            "engine": "WebView 142",
-            "locale": "de-DE",
-            "theme": "dark",
-            "online": True,
-            "localTime": "2026-11-23T10:15:00",
-            "timeZone": "Europe/Berlin",
-        },
+        "client": {_camel(name): value for name, value in _CLIENT.items()},
     }
     body.update(overrides)
     return body
@@ -200,9 +209,7 @@ def _report_with_reply(session: Session, account: Any, reply: str | None) -> UUI
         account_id=account.id,
         client_request_id=uuid4(),
         kind=SupportReportKind.PROBLEM,
-        payload=SupportReportPayload(
-            note="A note.", client=ClientContext.model_validate(_body()["client"])
-        ),
+        payload=SupportReportPayload(note="A note.", client=ClientContext(**_CLIENT)),
     )
     if reply is not None:
         service.send_reply(session, report_id=report.id, text=reply, operator_id=None)

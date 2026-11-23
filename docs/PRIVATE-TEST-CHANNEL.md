@@ -275,6 +275,12 @@ Operator notes: list only addresses that the intended tester has already registe
 because whoever first verifies a listed address owns that match (relevant when an OIDC provider marks
 addresses as verified). Settings are cached per process, so a change to the list takes effect after the
 API is restarted or redeployed.
+## Optional support reports
+
+The generated API/worker environment retains the instance-local expression
+`EIMIR_SUPPORT_REPORTS_ENABLED` (default false, #2189). Keep it false until the admin
+reader for the reports exists; the channel never freezes a runner value into it.
+
 ## Optional calendar sync
 
 The generated API/worker environment retains instance-local expressions for

@@ -515,7 +515,7 @@ export function PlanningCreatePage({
             </button>
           }
         />
-        <div ref={headingRef} tabIndex={-1} className="planning-task-focus" />
+        <div ref={headingRef} tabIndex={-1} className="sr-only" />
         <form
           id="planning-create-form"
           className="planning-intention-form"

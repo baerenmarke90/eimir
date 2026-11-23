@@ -1,7 +1,7 @@
 /* Places and shared checklists opt out of the legacy planning composition. */
 .shared-content-page {
   display: grid;
-  gap: var(--space-5);
+  --page-stack-gap: var(--space-5);
   max-width: var(--reading-max);
   min-width: 0;
   align-content: start;

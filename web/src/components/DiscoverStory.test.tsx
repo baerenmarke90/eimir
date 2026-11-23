@@ -273,7 +273,7 @@ describe('DiscoverStory', () => {
     // and it ends on its own.
     expect(vi.getTimerCount()).toBe(1);
     act(() => {
-      vi.advanceTimersByTime(3000);
+      vi.advanceTimersByTime(1500);
     });
     expect(vi.getTimerCount()).toBe(0);
   });
@@ -402,21 +402,26 @@ describe('DiscoverStory', () => {
       return viewer;
     }
 
-    it('fades the controls after a quiet moment and wakes them on a touch', () => {
+    it('starts fading the controls after 1.5 seconds of inactivity and wakes them on touch', () => {
       vi.useFakeTimers();
       const { container } = renderStory();
       const viewer = viewerOf(container);
       expect(viewer.hasAttribute('data-controls')).toBe(false);
       act(() => {
-        vi.advanceTimersByTime(3000);
+        vi.advanceTimersByTime(1499);
+      });
+      expect(viewer.hasAttribute('data-controls')).toBe(false);
+      act(() => {
+        vi.advanceTimersByTime(1);
       });
       expect(viewer.getAttribute('data-controls')).toBe('quiet');
       // The controls stay in the document for assistive technology.
       expect(openLink()).toBeTruthy();
       fireEvent.pointerDown(viewer, { button: 0 });
+      fireEvent.pointerUp(viewer);
       expect(viewer.hasAttribute('data-controls')).toBe(false);
       act(() => {
-        vi.advanceTimersByTime(3000);
+        vi.advanceTimersByTime(1500);
       });
       expect(viewer.getAttribute('data-controls')).toBe('quiet');
       fireEvent.focus(viewer);
@@ -434,7 +439,7 @@ describe('DiscoverStory', () => {
       expect(viewer.hasAttribute('data-controls')).toBe(false);
       fireEvent.click(screen.getByRole('button', { name: copy.play }));
       act(() => {
-        vi.advanceTimersByTime(3000);
+        vi.advanceTimersByTime(1500);
       });
       expect(viewer.getAttribute('data-controls')).toBe('quiet');
     });

@@ -30,13 +30,18 @@ with EnvironmentContext(cfg, script, as_sql=True, fn=capture, destination_rev='h
     script.run_env()
 """
 FIXTURE = """
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from sqlalchemy import MetaData
+from eimir.plugins.manifest import PLUGIN_TABLE_NAMES
 from tests import conftest
 def capture(metadata, engine):
     print(json.dumps(sorted(metadata.tables)))
+# Without eimir-pro the fixture expects the migrated plugin tables.
+migrated = MagicMock()
+migrated.get_table_names.return_value = PLUGIN_TABLE_NAMES
 with (patch.object(conftest, 'DATABASE_AVAILABLE', True),
       patch.object(conftest, 'create_engine'),
+      patch.object(conftest, 'inspect', return_value=migrated),
       patch.object(MetaData, 'create_all', capture),
       patch.object(MetaData, 'drop_all')):
     fixture = conftest.engine.__wrapped__()

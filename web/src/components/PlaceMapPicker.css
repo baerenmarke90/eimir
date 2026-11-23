@@ -190,8 +190,7 @@ button.place-map-area-marker:focus-visible {
   );
 
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   overflow: hidden;
   pointer-events: none;
 }
@@ -205,6 +204,13 @@ button.place-map-area-marker:focus-visible {
   inset: 0;
   width: 100%;
   height: 100%;
+}
+
+.place-map-connection-reveal,
+.place-map-connection-casing,
+.place-map-connection-stroke,
+.place-map-connection-glow {
+  translate: var(--place-map-connection-origin);
 }
 
 .place-map-connection-reveal {
@@ -287,6 +293,8 @@ button.place-map-area-marker:focus-visible {
 
 .place-map-connection-heart {
   position: absolute;
+  top: 0;
+  left: 0;
   /* Above the translucent area circles, which would dull it. */
   z-index: 1;
   display: none;
@@ -296,7 +304,6 @@ button.place-map-area-marker:focus-visible {
   border-radius: 50%;
   background: var(--place-map-connection-casing);
   color: var(--place-map-connection-tone);
-  translate: -50% -50%;
 }
 
 .place-map-connection-heart svg {

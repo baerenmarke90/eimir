@@ -186,9 +186,10 @@ tiers were working; the views themselves were discarded on every tab change.
 Visited primary tabs now stay mounted, as on a native tab bar. The inactive
 tabs are `hidden` (out of layout, focus order and the accessibility tree) and
 see the location they last had, so they never react to another tab's route or
-publish task-origin metadata. Returning to a tab shows the same view, photos
-and scroll position immediately; a detail route opened from a tab returns to
-the kept view as well. Re-selecting the active tab still returns to its top.
+publish task-origin metadata. Selecting a primary tab by link or swipe opens
+its default view at the top and reuses its loaded content and photos. Back
+from a detail or a task restores the browse context and the reading position
+where the person left it.
 
 This does not change the authorization contract above: a kept view keeps its
 already authorized display handles, exactly as a view that stays on screen.

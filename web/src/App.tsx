@@ -44,7 +44,11 @@ import {
   stopNativePushForSignedOutAccount,
   useDevicePush,
 } from './client/devicePush';
-import { enableGentlePrompts, useGentleUse } from './client/gentlePrompts';
+import {
+  enableGentlePrompts,
+  prepareGentlePrompts,
+  useGentleUse,
+} from './client/gentlePrompts';
 import { useHistoryEntryTracker } from './client/historyEntries';
 import {
   ActiveAccountMismatchError,
@@ -105,6 +109,7 @@ import {
   MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
   MORE_PROFILE_ROUTE,
+  THREAD_ROUTE,
   MORE_SETTINGS_CATEGORY_ROUTE_PATTERN,
   MORE_SETTINGS_ROUTE,
   NOTE_CREATE_ROUTE,
@@ -160,6 +165,7 @@ import { useSystemTimeZone } from './client/useSystemTimeZone';
 import { useVideoTransferNavigation } from './client/useVideoTransferNavigation';
 import { VideoProcessingContext } from './client/video';
 import { AudioProcessingContext } from './client/voiceNotes';
+import { ThreadIndexRoute } from './components/ThreadNavigationLayout';
 import { WirDesignProvider } from './client/wirDesign';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AppShell } from './components/AppShell';
@@ -544,6 +550,8 @@ function AuthenticatedApp({
     () => enableGentlePrompts(queryClient, m4Apis.notifications, account.id),
     [queryClient, m4Apis.notifications, account.id],
   );
+  const prepareOnboardingPrompts = () =>
+    prepareGentlePrompts(queryClient, m4Apis.notifications, account.id);
   // The partner-distance start sheet follows the push start prompt.
   const [pushPromptSettled, setPushPromptSettled] = useState(false);
   const settlePushPrompt = useCallback(() => setPushPromptSettled(true), []);
@@ -780,6 +788,9 @@ function AuthenticatedApp({
       element: (
         <StoryProductPage
           apis={apis}
+          active={
+            location.pathname.replace(/\/$/, '') === appRoutePath('story')
+          }
           mapSession={memoryMapSession.current}
           accountId={account.id}
           spaceId={spaceId}
@@ -1221,6 +1232,7 @@ function AuthenticatedApp({
                 />
               }
             />
+            <Route path={THREAD_ROUTE} element={<ThreadIndexRoute />} />
             <Route
               path={MORE_PROFILE_ROUTE}
               element={
@@ -1486,6 +1498,7 @@ function AuthenticatedApp({
             devicePush={devicePush}
             accountId={account.id}
             apiBaseUrl={apiBaseUrl}
+            onPreparePrompts={prepareOnboardingPrompts}
             onEnablePrompts={enableOnboardingPrompts}
             onSettled={settlePushPrompt}
           />

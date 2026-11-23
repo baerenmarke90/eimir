@@ -929,7 +929,7 @@ for (const variant of [
   { width: 430, theme: 'light', view: 'timeline', reduced: true },
   { width: 1280, theme: 'light', view: 'discover', reduced: false },
 ] as const) {
-  test(`primary destinations restore scroll and reset ${variant.view} and Planning mode at ${variant.width}px ${variant.theme}`, async ({
+  test(`primary destinations open at the top and reset ${variant.view} and Planning mode at ${variant.width}px ${variant.theme}`, async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: variant.width, height: 740 });
@@ -979,20 +979,11 @@ for (const variant of [
           requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
         ),
     );
-    const targetY = await page.evaluate(() => {
-      const top = Math.min(
-        550,
-        document.documentElement.scrollHeight - window.innerHeight,
-      );
-      window.scrollTo({ top, behavior: 'instant' });
-      return top;
-    });
-    expect(targetY).toBeGreaterThan(100);
-    await expect
-      .poll(async () =>
-        Math.abs((await page.evaluate(() => window.scrollY)) - targetY),
-      )
-      .toBeLessThan(2);
+    await scrollDownFromEntry(page);
+    if (variant.width === 430)
+      await page.screenshot({
+        path: testInfo.outputPath('diary-scrolled.png'),
+      });
     // Expanded navigation is in document flow; activation remains a root selection.
     if (variant.width >= 840) {
       await nav
@@ -1016,8 +1007,7 @@ for (const variant of [
         page.getByText(importantDates.emptyTitle, { exact: true }),
       ).toBeVisible();
     }
-    // On Expanded, Playwright would scroll the non-sticky header into view
-    // before clicking, changing the position we meant to restore.
+    // Activate Expanded navigation without first scrolling its header into view.
     if (variant.width >= 840) {
       await nav
         .locator('a[href^="/story"]')
@@ -1028,7 +1018,7 @@ for (const variant of [
     ).toHaveAttribute('aria-selected', 'true');
     await expect(page).toHaveURL(/\/story$/);
     await expect(page.getByRole('tablist')).toHaveCount(1);
-    await expectRestoredScroll(page, targetY);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
     await page.screenshot({
       path: testInfo.outputPath(`reset-${variant.width}-${variant.theme}.png`),
     });
@@ -1039,6 +1029,7 @@ for (const variant of [
     });
     await expectNoHorizontalOverflow(page);
     // The current root is a reselect action, not another route/history entry.
+    await scrollDownFromEntry(page);
     const historyLength = await page.evaluate(() => history.length);
     await nav
       .locator('a[href^="/story"]')
@@ -1060,6 +1051,25 @@ for (const variant of [
     await expect(page.getByRole('tablist')).toHaveCount(1);
   });
 }
+
+test('selecting each primary destination opens it at the top after an earlier visit', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installApiMocks(page);
+  await page.goto('/login');
+  await signIn(page);
+  await expect(page).toHaveURL(/\/today$/);
+  await addScrollFixture(page);
+  const nav = page.locator('.mobile-bottom-nav');
+  const order = ['/story', '/plan', LISTEN_ROUTE, '/more', '/today'];
+  for (const destination of [...order, ...order]) {
+    await scrollDownFromEntry(page);
+    await primaryTabLink(nav, destination).click();
+    await expect(page).toHaveURL(new RegExp(`${destination}$`));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  }
+});
 
 test('native primary tab switching replaces root history but keeps nested task return', async ({
   page,
@@ -1145,18 +1155,11 @@ async function dragTouch(
   }
 }
 
-async function expectRestoredScroll(page: Page, desired: number) {
+async function scrollDownFromEntry(page: Page) {
+  await page.evaluate(() => window.scrollTo({ top: 500, behavior: 'instant' }));
   await expect
-    .poll(() =>
-      page.evaluate((stored) => {
-        const max = Math.max(
-          0,
-          document.documentElement.scrollHeight - innerHeight,
-        );
-        return Math.abs(window.scrollY - Math.min(stored, max));
-      }, desired),
-    )
-    .toBeLessThan(3);
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeGreaterThan(100);
 }
 
 async function expectPrimaryReadingSurface(page: Page) {
@@ -1484,7 +1487,7 @@ test.describe('primary tab touch navigation', () => {
     const { width, startX, y } = await primarySwipeStart(page, 'next');
     const main = page.locator('main.product-main');
     const current = page.locator(
-      'main > .primary-tab-panel:not([hidden]):not([data-primary-tab-peek]) > .page',
+      'main > .primary-tab-panel:not([hidden], [data-primary-tab-peek], [data-primary-tab-prewarm]) > .page',
     );
     const neighbour = page.locator(
       'main > .primary-tab-panel[data-primary-tab-peek] > .page',
@@ -1515,6 +1518,21 @@ test.describe('primary tab touch navigation', () => {
       expect(currentBox.x).toBeCloseTo((restBox?.x ?? 0) - 200, 0);
       // One viewport further along, in the same content column.
       expect(neighbourBox.x).toBeCloseTo((mainBox?.x ?? 0) + width - 200, 0);
+      // The page boxes follow the finger; their content never inherits the
+      // per-frame offsets (especially important for pages with many cards).
+      for (const [pageBox, property] of [
+        [current, '--primary-tab-offset'],
+        [neighbour, '--primary-tab-peek-offset'],
+      ] as const) {
+        const childOffset = await pageBox
+          .locator(':scope > *')
+          .first()
+          .evaluate(
+            (child, name) => getComputedStyle(child).getPropertyValue(name),
+            property,
+          );
+        expect(childOffset.trim()).toBe('0px');
+      }
       await expectNoHorizontalOverflow(page);
       await page.screenshot({
         path: testInfo.outputPath('swipe-mid-drag.png'),
@@ -1624,9 +1642,9 @@ test.describe('primary tab touch navigation', () => {
     });
   }
 
-  test('primary swipe restores reading position and resets Planning segment without growing native history or refetching fresh content', async ({
+  test('primary swipe previews and opens a visited tab at the top without growing native history or refetching fresh content', async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installNativeAppLifecycle(page);
     await installApiMocks(page);
@@ -1651,20 +1669,11 @@ test.describe('primary tab touch navigation', () => {
     await expect(
       page.getByText('Cooked fresh pasta together', { exact: true }).first(),
     ).toBeVisible();
-    const targetY = await page.evaluate(() => {
-      const top = Math.min(
-        500,
-        document.documentElement.scrollHeight - innerHeight,
-      );
-      window.scrollTo({ top, behavior: 'instant' });
-      return top;
-    });
-    expect(targetY).toBeGreaterThan(100);
-    await expect
-      .poll(async () =>
-        Math.abs((await page.evaluate(() => window.scrollY)) - targetY),
-      )
-      .toBeLessThan(2);
+    const storyPage = page.locator('[data-primary-tab="/story"] > .story-page');
+    const entryTop = await storyPage.evaluate(
+      (element) => element.getBoundingClientRect().top + window.scrollY,
+    );
+    await scrollDownFromEntry(page);
     const reads = timelineReads;
     expect(reads).toBeGreaterThan(0);
     await swipePrimary(page, 'next');
@@ -1673,10 +1682,27 @@ test.describe('primary tab touch navigation', () => {
     await expect(
       page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
     ).toHaveAttribute('aria-selected', 'true');
-    await swipePrimary(page, 'previous');
-    await expect(page).toHaveURL(/\/story/);
-    await expectRestoredScroll(page, targetY);
+    const { width, startX, y } = await primarySwipeStart(page, 'previous');
+    await dragTouch(
+      page,
+      { x: startX, y },
+      { x: startX + width / 2, y },
+      async () => {
+        await expect(
+          page.locator('[data-primary-tab="/story"]'),
+        ).toHaveAttribute('data-primary-tab-peek', 'true');
+        expect(
+          await storyPage.evaluate(
+            (element) => element.getBoundingClientRect().top,
+          ),
+        ).toBeCloseTo(entryTop, 0);
+        await page.screenshot({
+          path: testInfo.outputPath('story-preview.png'),
+        });
+      },
+    );
     await expect(page).toHaveURL(/\/story$/);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
     await expect(
       page.getByRole('tab', { name: de.story.tabDiscover, exact: true }),
     ).toHaveAttribute('aria-selected', 'true');
@@ -2188,7 +2214,7 @@ test.describe('gestures and haptics on the motion layer (#2076)', () => {
   >;
 
   const CURRENT_PAGE =
-    'main.product-main > .primary-tab-panel:not([hidden]):not([data-primary-tab-peek]) > .page';
+    'main.product-main > .primary-tab-panel:not([hidden], [data-primary-tab-peek], [data-primary-tab-prewarm]) > .page';
 
   function exportMeasurement(name: string, value: unknown) {
     const exportDir = process.env.VISUAL_EVIDENCE_DIR;
@@ -2319,8 +2345,8 @@ test.describe('gestures and haptics on the motion layer (#2076)', () => {
           frames[index - 1].left + 0.5,
         );
       expect(frames.at(-1)?.left ?? 0).toBeLessThan(released);
-      // Haptics: one threshold tick on the way, one commit at release.
-      await expect.poll(() => nativeHapticCalls(page)).toEqual(['tick', 'tap']);
+      // Haptics: one commit at release, no tick while dragging past the commit distance.
+      await expect.poll(() => nativeHapticCalls(page)).toEqual(['tap']);
     } finally {
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
       await cdp.detach();
@@ -2334,26 +2360,57 @@ test.describe('gestures and haptics on the motion layer (#2076)', () => {
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
     try {
-      const { session, width, y } = await swipeAndRelease(page);
-      await nextFrame(page);
-      await nextFrame(page);
-      // Read the drawn offset in the same task as the grab: just before the
-      // app's own touch handler runs (capture phase) and right after it.
       await page.evaluate((selector) => {
-        const record = window as unknown as { grab: number[] };
-        record.grab = [];
-        const read = () =>
-          Number.parseFloat(
-            getComputedStyle(document.querySelector(selector) as Element).left,
-          );
-        window.addEventListener('touchstart', () => record.grab.push(read()), {
-          capture: true,
-          once: true,
-        });
-        window.addEventListener('touchstart', () => record.grab.push(read()), {
-          once: true,
-        });
+        window.addEventListener(
+          'touchend',
+          () => {
+            // Hold the real spring at a reproducible point while CDP delivers
+            // the next touch. The preceding test covers uninterrupted playback.
+            const pages = document.querySelectorAll(
+              selector + ', main > [data-primary-tab-peek] > .page',
+            );
+            for (const page of pages) {
+              for (const animation of page.getAnimations()) {
+                const effect = animation.effect;
+                if (!(effect instanceof KeyframeEffect)) continue;
+                const frames = effect.getKeyframes();
+                if (
+                  frames.length <= 2 ||
+                  !('left' in frames[0] || 'transform' in frames[0])
+                )
+                  continue;
+                animation.pause();
+                animation.currentTime = Number(effect.getTiming().duration) / 5;
+              }
+            }
+            // Read the drawn offset just before and after the real grab.
+            const record = window as unknown as { grab: number[] };
+            record.grab = [];
+            const read = () =>
+              Number.parseFloat(
+                getComputedStyle(document.querySelector(selector) as Element)
+                  .left,
+              );
+            window.addEventListener(
+              'touchstart',
+              () => record.grab.push(read()),
+              {
+                capture: true,
+                once: true,
+              },
+            );
+            window.addEventListener(
+              'touchstart',
+              () => record.grab.push(read()),
+              {
+                once: true,
+              },
+            );
+          },
+          { once: true },
+        );
       }, CURRENT_PAGE);
+      const { session, width, y } = await swipeAndRelease(page);
       await touch(session, 'touchStart', width * 0.5, y);
       const [before, after] = await page.evaluate(
         () => (window as unknown as { grab: number[] }).grab,

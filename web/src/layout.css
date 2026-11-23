@@ -22,6 +22,12 @@
   margin: 0 auto;
 }
 
+/* A page stack shares its row spacing with the secondary heading contract. */
+:where(.page) {
+  --page-stack-gap: 0px;
+  gap: var(--page-stack-gap);
+}
+
 /*
  * Expanded: text and list pages that would otherwise run the full content
  * width with their copy at the leading edge sit in a centered reading column.
@@ -469,6 +475,9 @@
   .page-heading-title-container,
 .memory-map-page
   > .page-heading-root.content-overview-heading
+  .page-heading-title-container,
+.shared-root-page
+  > .page-heading-root.content-overview-heading
   .page-heading-title-container {
   position: absolute;
   width: 1px;
@@ -481,7 +490,8 @@
 .story-page-unified > .page-heading-root.content-overview-heading,
 .planen-overview > .page-heading-root.content-overview-heading,
 .more-page > .page-heading-root.content-overview-heading,
-.memory-map-page > .page-heading-root.content-overview-heading {
+.memory-map-page > .page-heading-root.content-overview-heading,
+.shared-root-page > .page-heading-root.content-overview-heading {
   min-height: 0;
   margin: 0;
   padding: 0;

@@ -200,7 +200,14 @@ for (const [width, theme, motion] of [
       .locator('.memory-map-marker')
       .filter({ has: page.locator('[data-active-memory="visit-evening"]') });
     await expect(marker.locator('.memory-map-stack-photo')).toHaveCount(3);
-    await expect(marker.locator('.memory-map-marker-count')).toHaveText('5');
+    const stackCount = marker.locator('.memory-map-marker-count');
+    await expect(stackCount).toHaveText('5');
+    await expect(stackCount).toBeVisible();
+    const singleMarker = page
+      .getByRole('application')
+      .getByRole('button', { name: 'Trier · 1 Erinnerung', exact: true });
+    await expect(singleMarker).toBeVisible();
+    await expect(singleMarker.locator('.memory-map-marker-count')).toBeHidden();
     const originalMarker = await marker.elementHandle();
     await page.evaluate(() => {
       const map = document.querySelector('.place-map-canvas');

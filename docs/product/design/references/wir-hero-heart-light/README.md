@@ -16,8 +16,12 @@ needed a clearer presentation without taking a place of its own.
 - **The heart is a moon.** A round shadow moves over the filled heart with the
   server distance band: a thin crescent far apart, **completely full** at the
   closest step.
-- **The light is shared.** Each portrait keeps a small glow. As the two come
+- **The light is shared.** Each portrait keeps a tall glow. As the two come
   closer, wider glows and a shared light in the middle fade in.
+- **The light has no visible end.** It lies behind the page content, reaches past
+  the status bar to the screen edge and fades out inside the next module, so it
+  never reads as a band. It stays clearly visible in Light too: there, the quiet
+  text on it becomes firmer, so that small text keeps at least 4.5:1.
 - **No connecting line** between the portraits in the Verbunden hero.
 - **No visible first names in the Wir hero**, and nothing else changes: names
   stay everywhere else, accessible names stay, portraits without a photo keep

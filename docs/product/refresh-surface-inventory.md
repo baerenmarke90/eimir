@@ -46,7 +46,7 @@ This inventory defines the Web/Mobile-Web freshness contract. Pull-to-refresh (P
 - `PullToRefreshIndicator` is the shared visual/accessibility feedback.
 - Safe shell-owned surfaces refresh only **active** React Query observers. Inactive caches from other routes/Spaces are not awakened.
 - Momente uses the same shared gesture primitive with its existing explicit callback because Timeline has extra progressive-pagination state to reset.
-- One gesture can run only one refresh cycle; a surface already fetching is blocked from starting another.
+- One gesture can run only one refresh cycle. A pull while the surface is already fetching is not dropped: the refresh is requested at release and starts when the running fetch ends (after 5 s at most), so a second request never runs beside the first.
 - No implementation calls `window.location.reload()` or reloads the SPA document.
 
 ## Automatic revalidation contract

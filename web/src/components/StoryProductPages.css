@@ -1,7 +1,7 @@
 .product-detail-page,
 .product-editor-page {
   display: grid;
-  gap: var(--space-6);
+  --page-stack-gap: var(--space-6);
 }
 
 .product-detail-card {

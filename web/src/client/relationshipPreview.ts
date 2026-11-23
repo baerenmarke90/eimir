@@ -2,6 +2,7 @@
  * Relationship anniversary and duration preview helpers.
  */
 
+import type { TranslateText } from '../i18n';
 import { dateInputValueToApiDate, localDateInputValue } from './dateInput';
 
 export interface NextAnniversary {
@@ -96,7 +97,7 @@ export function calculateRelationshipDuration(
  */
 export function formatRelationshipDuration(
   duration: RelationshipDuration | null,
-  t: (key: string, values?: Record<string, unknown>) => string,
+  t: TranslateText,
 ): string {
   if (!duration) {
     return t('profiles.relationshipNotAvailable');
@@ -161,7 +162,7 @@ export function calculateNextAnniversary(
  */
 export function formatAnniversaryDetail(
   anniversary: NextAnniversary | null,
-  t: (key: string, values?: Record<string, unknown>) => string,
+  t: TranslateText,
   formatDate: (date: Date) => string,
 ): string {
   if (!anniversary) {

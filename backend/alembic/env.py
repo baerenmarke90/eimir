@@ -49,7 +49,8 @@ def _migration_connection() -> str:
 config = context.config
 config.set_main_option("sqlalchemy.url", _migration_connection())
 
-if config.config_file_name is not None:
+# The CLI owns its logging setup. Embedded migrations share the caller's handlers.
+if config.config_file_name is not None and config.cmd_opts is not None:
     fileConfig(config.config_file_name)
 
 load_all_models()

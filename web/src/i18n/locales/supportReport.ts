@@ -31,6 +31,7 @@ const supportReport = {
     account: 'Dein Konto, damit wir antworten können',
   },
   never: 'Nie dabei: Inhalte, Fotos, Orte oder Nachrichten.',
+  feedbackNoCode: 'Bei Feedback hängen wir keinen Fehler-Code an.',
   send: 'Senden',
   sending: 'Wird gesendet …',
   sendLater: 'Später senden',
@@ -53,7 +54,6 @@ const supportReport = {
     title: 'Antwort auf deine Meldung',
     context: 'Zu deiner Meldung',
     contextDated: 'Deine Meldung vom {{date}}',
-    loading: 'Antwort wird geladen …',
   },
 } as const;
 

@@ -975,6 +975,13 @@
   grid-column: 2;
 }
 
+/* Problem state: a quiet secondary action sits below the retry action. */
+.problem-state-actions {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+}
+
 .ui-state-error .ui-state-mark,
 .ui-state-permission .ui-state-mark {
   background: var(--color-error-surface);

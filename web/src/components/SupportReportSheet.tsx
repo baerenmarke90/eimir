@@ -271,6 +271,11 @@ function SupportReportSheetContent({
               ))}
             </ul>
             <p className="support-report-never">{t('supportReport.never')}</p>
+            {kind === 'FEEDBACK' ? (
+              <p className="support-report-never">
+                {t('supportReport.feedbackNoCode')}
+              </p>
+            ) : null}
           </section>
         </>
       )}

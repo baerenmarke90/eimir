@@ -15,8 +15,12 @@ export interface SupportReplyReader {
   }): Promise<SupportReportReplyView>;
 }
 
-export function supportReplyQueryKey(reportId: string) {
-  return ['support-report-reply', reportId] as const;
+/** Per account: a reply is private to its reporter and never shared between sign-ins. */
+export function supportReplyQueryKey(
+  accountId: string | undefined,
+  reportId: string,
+) {
+  return ['support-report-reply', accountId, reportId] as const;
 }
 
 /** The report's day as a short localized date, e.g. "23. Nov.". */
@@ -58,7 +62,7 @@ export function SupportReplyNotice({
     [api, runtime],
   );
   const reply = useQuery({
-    queryKey: supportReplyQueryKey(reportId),
+    queryKey: supportReplyQueryKey(runtime?.accountId, reportId),
     queryFn: async () => {
       if (!reader) return null;
       try {
@@ -75,8 +79,10 @@ export function SupportReplyNotice({
     staleTime: Number.POSITIVE_INFINITY,
   });
 
+  const loading = reply.isPending && Boolean(reader);
+
   return (
-    <div className="support-reply">
+    <div className="support-reply" aria-busy={loading || undefined}>
       <p className="support-reply-context">
         {reply.data
           ? t('supportReport.reply.contextDated', {
@@ -84,10 +90,9 @@ export function SupportReplyNotice({
             })
           : t('supportReport.reply.context')}
       </p>
-      {reply.isPending && reader ? (
-        <span className="support-reply-skeleton" aria-busy="true" role="status">
-          <span className="sr-only">{t('supportReport.reply.loading')}</span>
-        </span>
+      {loading ? (
+        // Quiet and not announced: several replies may load at once.
+        <span className="support-reply-skeleton" aria-hidden="true" />
       ) : reply.data ? (
         <p className="support-reply-text">{reply.data.text}</p>
       ) : null}

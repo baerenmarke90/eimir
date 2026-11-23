@@ -6618,6 +6618,7 @@
       "account": "Your account, so we can reply"
     },
     "never": "Never included: content, photos, places or messages.",
+    "feedbackNoCode": "For feedback we do not attach an error code.",
     "send": "Send",
     "sending": "Sending …",
     "sendLater": "Send later",
@@ -6637,8 +6638,7 @@
     "reply": {
       "title": "Reply to your report",
       "context": "About your report",
-      "contextDated": "Your report of {{date}}",
-      "loading": "Loading the reply …"
+      "contextDated": "Your report of {{date}}"
     }
   }
 }

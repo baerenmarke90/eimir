@@ -37,7 +37,7 @@
 .support-report-kind {
   position: relative;
   display: grid;
-  min-height: 44px;
+  min-height: var(--touch-target-web);
   min-width: 0;
   place-items: center;
   padding: var(--space-2) var(--space-3);
@@ -151,25 +151,29 @@
 }
 
 /* One filled primary action, full width so its activity text never changes
-   its size. */
-.support-report-action {
+   its size. Selectors outrank the shared `.button-link` and
+   `.button-link.button-link-primary` rules whatever the stylesheet order. The
+   shared `button:disabled` look does not reach this button (the primary rule
+   wins) and has no counterpart for the busy `aria-disabled` state, which keeps
+   the button focusable while a report is being sent. */
+.button-link.support-report-action {
   width: 100%;
-  min-height: 48px;
+  min-height: var(--touch-target-comfortable);
   border-radius: var(--radius-pill);
 }
 
-.support-report-action:disabled,
-.support-report-action[aria-disabled="true"] {
+.button-link-primary.support-report-action:disabled,
+.button-link-primary.support-report-action[aria-disabled="true"] {
   background: var(--color-border-subtle);
   color: var(--color-text-muted);
   filter: none;
 }
 
-.support-report-action:disabled {
+.button-link-primary.support-report-action:disabled {
   cursor: not-allowed;
 }
 
-.support-report-action[aria-disabled="true"] {
+.button-link-primary.support-report-action[aria-disabled="true"] {
   cursor: wait;
 }
 
@@ -201,11 +205,4 @@
   max-width: 30ch;
   margin: 0;
   color: var(--color-text-secondary);
-}
-
-/* Problem state: the report action sits quietly below the retry action. */
-.problem-state-actions {
-  display: grid;
-  justify-items: start;
-  gap: var(--space-1);
 }

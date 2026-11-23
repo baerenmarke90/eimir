@@ -8,7 +8,7 @@ import { ResponseError } from '../api/generated/runtime';
 import { getNotificationItemTitle } from '../client/notificationTitle';
 import { i18n, resolvedLocale } from '../i18n';
 import supportReport from '../i18n/locales/supportReport';
-import { SupportReplyNotice } from './SupportReplyNotice';
+import { SupportReplyNotice, supportReplyQueryKey } from './SupportReplyNotice';
 
 function renderNotice(
   getSupportReportReply: () => Promise<SupportReportReplyView>,
@@ -42,6 +42,28 @@ describe('SupportReplyNotice', () => {
     expect(api.getSupportReportReply).toHaveBeenCalledWith({
       reportId: 'report-1',
     });
+  });
+
+  it('marks the card busy while loading without a live region', () => {
+    const { container } = renderNotice(() => new Promise(() => undefined));
+    expect(
+      container.querySelector('.support-reply')?.getAttribute('aria-busy'),
+    ).toBe('true');
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(
+      container.querySelector('.support-reply-skeleton')?.textContent,
+    ).toBe('');
+  });
+
+  it('keys the query by account and report', () => {
+    expect(supportReplyQueryKey('account-1', 'report-1')).toEqual([
+      'support-report-reply',
+      'account-1',
+      'report-1',
+    ]);
+    expect(supportReplyQueryKey('account-2', 'report-1')).not.toEqual(
+      supportReplyQueryKey('account-1', 'report-1'),
+    );
   });
 
   it('names the report by its date once the reply is loaded', async () => {

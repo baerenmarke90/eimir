@@ -172,6 +172,19 @@ describe('SupportReportSheet', () => {
     expect(body.note).toBeUndefined();
   });
 
+  it('says_that_feedback_carries_no_error_code', () => {
+    setup({ failure: FAILURE });
+    expect(screen.queryByText(supportReport.feedbackNoCode)).toBeNull();
+    fireEvent.click(
+      screen.getByRole('radio', { name: supportReport.kinds.FEEDBACK }),
+    );
+    expect(screen.getByText(supportReport.feedbackNoCode)).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('radio', { name: supportReport.kinds.PROBLEM }),
+    );
+    expect(screen.queryByText(supportReport.feedbackNoCode)).toBeNull();
+  });
+
   it('feedback_requires_text_and_hides_failure_line', async () => {
     const { createSupportReport } = setup({ failure: FAILURE });
     fireEvent.click(

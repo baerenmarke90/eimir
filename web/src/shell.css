@@ -1007,6 +1007,21 @@
   grid-column: 2;
 }
 
+/* Problem state: a quiet tertiary action sits below the retry action. The
+   retry keeps the shared secondary button; the report action is smaller and
+   lighter so the two never read as equals. */
+.problem-state-actions {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+}
+
+.problem-state-actions button.tertiary {
+  min-height: var(--touch-target-web);
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+}
+
 .ui-state-error .ui-state-mark,
 .ui-state-permission .ui-state-mark {
   background: var(--color-error-surface);

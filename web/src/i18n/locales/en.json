@@ -4669,7 +4669,8 @@
       "adminAllowlistEmpty": "No server administrator allowlist is configured. Without an allowlist, no account can become a server administrator.",
       "adminAllowlistUnmatched": "At least one server administrator allowlist entry does not match an active account with a verified email address.",
       "mailVerification": "Email delivery is disabled while unverified accounts exist. Verification and recovery may need operator support.",
-      "failedJobs": "There are failed background jobs."
+      "failedJobs": "There are failed background jobs.",
+      "supportReportsUnread": "Reports have been waiting unread for more than 14 days."
     },
     "health": {
       "title": "System health",
@@ -4696,7 +4697,8 @@
       "verifiedEmails": "Verified primary emails",
       "unverifiedEmails": "Unverified primary emails",
       "mediaObjects": "Media objects",
-      "mediaBytes": "Stored media"
+      "mediaBytes": "Stored media",
+      "supportReportsNew": "New reports"
     },
     "security": {
       "title": "Security & sign-in",
@@ -6640,5 +6642,60 @@
     "connection": "The connection dropped while uploading. Check your network and try again.",
     "stalled": "The upload stopped making progress and was paused. Try again, ideally on a stable network.",
     "reference": "Reference for troubleshooting: {{reference}}"
+  },
+  "supportReport": {
+    "action": "Report a problem",
+    "entry": {
+      "title": "Help & feedback",
+      "subtitle": "Report a problem or tell us something"
+    },
+    "title": {
+      "PROBLEM": "Report a problem",
+      "FEEDBACK": "Help & feedback"
+    },
+    "kindLabel": "What is it about?",
+    "kinds": {
+      "PROBLEM": "Something is not working",
+      "FEEDBACK": "Feedback / idea"
+    },
+    "noteLabel": {
+      "PROBLEM": "What happened? (optional)",
+      "FEEDBACK": "What would you like? What bothers you?"
+    },
+    "counter": "{{length}} / {{max}}",
+    "counterLabel": "{{length}} of {{max}} characters",
+    "noteRequired": "Write a few words, then you can send.",
+    "noteTooLong": "That is more than {{max}} characters. Please shorten the text a little.",
+    "sentHeading": "What we send along",
+    "items": {
+      "failureLabel": "Error code and affected feature",
+      "app": "App version and build",
+      "device": "Device and display: system, browser, app or web, theme (light/dark), online status",
+      "locale": "Language, time and time zone",
+      "account": "Your account, so we can reply"
+    },
+    "never": "Never included: content, photos, places or messages.",
+    "feedbackNoCode": "For feedback we do not attach an error code.",
+    "send": "Send",
+    "sending": "Sending …",
+    "sendLater": "Send later",
+    "sendNow": "Send now",
+    "retry": "Try again",
+    "offline": {
+      "title": "You are offline.",
+      "body": "Your text is kept. Send it once you are back online."
+    },
+    "failed": "That did not work. Your text is still here, try again in a moment.",
+    "rateLimited": "You sent a lot of reports just now. Your text is kept, try again later.",
+    "success": {
+      "title": "Thanks, received.",
+      "body": "We read every report. If we write back, you get a notification.",
+      "done": "Done"
+    },
+    "reply": {
+      "title": "Reply to your report",
+      "context": "About your report",
+      "contextDated": "Your report of {{date}}"
+    }
   }
 }

@@ -1,8 +1,8 @@
-import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import copy from '../../src/i18n/locales/partnerLocation';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import AxeBuilder from '../support/axe';
 import { mockMapTiles } from '../support/mapTiles';
 import {
   captureScreenshot,
@@ -878,7 +878,36 @@ async function connectedHeroWithMarks(page: Page) {
   });
 }
 
-test('Verbunden hero: range words beside the daily marks, below them when tight', async ({
+/** The shortest way from the word to either portrait's ring, in CSS px. */
+async function wordClearance(page: Page) {
+  return page.evaluate(() => {
+    const word = document.querySelector('.wir-distance-word');
+    if (!word) return Number.NaN;
+    // The painted lines, not the box, which is as wide as the word may get.
+    const range = document.createRange();
+    range.selectNodeContents(word);
+    const corners = [...range.getClientRects()].flatMap((box) => [
+      [box.left, box.top],
+      [box.right, box.top],
+      [box.left, box.bottom],
+      [box.right, box.bottom],
+    ]);
+    const distances = [
+      ...document.querySelectorAll('.wir-stage .partner-avatar'),
+    ].flatMap((portrait) => {
+      const circle = portrait.getBoundingClientRect();
+      const x = circle.left + circle.width / 2;
+      const y = circle.top + circle.height / 2;
+      return corners.map(
+        ([cornerX, cornerY]) =>
+          Math.hypot(cornerX - x, cornerY - y) - circle.width / 2 - 5,
+      );
+    });
+    return Math.min(...distances);
+  });
+}
+
+test('Verbunden hero: heart and light carry the distance, a tap shows the word', async ({
   page,
 }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -892,42 +921,51 @@ test('Verbunden hero: range words beside the daily marks, below them when tight'
   });
   await connectedHeroWithMarks(page);
   await openWir(page);
-  const slot = hero(page).locator('.wir-stage-distance');
-  const value = slot.getByRole('link', {
+  // Nothing about the distance sits between the portraits' names or marks.
+  await expect(hero(page).locator('.wir-stage-name')).toHaveCount(0);
+  await expect(hero(page).locator('.wir-hero-distance')).toHaveCount(0);
+  await expect(hero(page).locator('.wir-bridge-moon')).toHaveCount(1);
+  await expect(page.locator('.wir-distance-light')).toHaveCount(1);
+  await expect(hero(page).locator('.wir-distance-word')).toHaveCount(0);
+  await expect(hero(page).locator('a.wir-bridge')).toHaveAttribute(
+    'href',
+    '/story/our-story',
+  );
+  await captureScreenshot(page, info, 'partner-distance-heart-390.png');
+
+  await hero(page)
+    .getByRole('button', { name: copy.distanceStonesThrow })
+    .click();
+  const value = hero(page).getByRole('link', {
     name: `${copy.distanceStonesThrow}. ${copy.distanceOpenMap}`,
   });
   await expect(value).toHaveText(copy.distanceStonesThrowShort);
-  const marks = hero(page).locator('.wir-checkin-badge');
-  await expect(marks).toHaveCount(2);
-  await expect(slot).not.toHaveClass(/\bis-below-marks\b/);
-  await captureScreenshot(
-    page,
-    info,
-    'partner-distance-verbunden-marks-390.png',
+  await expect(hero(page).locator('.wir-bridge-lead')).toHaveCSS(
+    'opacity',
+    '0',
   );
+  // Focus keeps the word for the checks below.
+  await value.focus();
+  await captureScreenshot(page, info, 'partner-distance-heart-word-390.png');
 
-  // Narrow screens and larger text move the value onto its own line.
   for (const [width, scale] of [
     [320, '100%'],
+    [360, '100%'],
     [390, '130%'],
+    [430, '100%'],
   ] as const) {
     await page.setViewportSize({ width, height: 844 });
     await page.evaluate((size) => {
       document.documentElement.style.fontSize = size;
     }, scale);
-    await expect(slot).toHaveClass(/\bis-below-marks\b/);
-    const valueBox = await value.boundingBox();
-    for (const mark of await marks.all()) {
-      const box = await mark.boundingBox();
-      expect(valueBox && box).toBeTruthy();
-      if (valueBox && box)
-        expect(valueBox.y).toBeGreaterThanOrEqual(box.y + box.height);
-    }
+    await expect
+      .poll(() => wordClearance(page), { message: `${width} at ${scale}` })
+      .toBeGreaterThanOrEqual(0);
     await expectNoHorizontalOverflow(page);
     await captureScreenshot(
       page,
       info,
-      `partner-distance-verbunden-marks-${width}-${scale.replace('%', '')}.png`,
+      `partner-distance-heart-word-${width}-${scale.replace('%', '')}.png`,
     );
   }
   await page.evaluate(() => {
@@ -935,12 +973,63 @@ test('Verbunden hero: range words beside the daily marks, below them when tight'
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ colorScheme: 'dark' });
-  await expect(slot).not.toHaveClass(/\bis-below-marks\b/);
   await captureScreenshot(
     page,
     info,
-    'partner-distance-verbunden-marks-390-dark.png',
+    'partner-distance-heart-word-390-dark.png',
   );
+  await expectAxeClean(page, '.today-hero');
+
+  await value.click();
+  await expect(page).toHaveURL(MAP_ROUTE);
+});
+
+test('Verbunden hero: a changed distance is shown once when the app opens', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await grantBrowserLocation(page);
+  const withBand = async (band: Band) => {
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+    await distanceMocks(page, {
+      distance: { band, asOf: minutesAgo(10) },
+      map: false,
+    });
+    await connectedHeroWithMarks(page);
+  };
+  const reopen = async () => {
+    await page.reload();
+    await settleStartSheet(page);
+    await expect(hero(page).locator('.wir-bridge-moon')).toBeAttached();
+  };
+  const word = hero(page).locator('.wir-distance-word');
+
+  await withBand({ kind: 'APPROXIMATE', approximateKm: 340 });
+  await openWir(page);
+  await expect(hero(page).locator('.wir-bridge-moon')).toBeAttached();
+  await page.waitForTimeout(3_000);
+  await expect(word).toHaveCount(0);
+
+  await withBand({ kind: 'RANGE', minKm: 5, maxKm: 10 });
+  await reopen();
+  await expect(word).toHaveText(copy.distanceStonesThrowShort, {
+    timeout: 10_000,
+  });
+  await expect(word).toHaveCount(0, { timeout: 6_000 });
+
+  // The same value on the next opening is simply there.
+  await reopen();
+  await page.waitForTimeout(3_000);
+  await expect(word).toHaveCount(0);
+
+  // A value that flips again right away moves without another hop.
+  await withBand({ kind: 'NEARBY' });
+  await reopen();
+  await page.waitForTimeout(3_000);
+  await expect(word).toHaveCount(0);
+  await expect(
+    hero(page).getByRole('button', { name: copy.distanceNear }),
+  ).toBeAttached();
 });
 
 const evidence = [

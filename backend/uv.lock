@@ -720,13 +720,10 @@ dependencies = [
     { name = "alembic" },
     { name = "argon2-cffi" },
     { name = "cryptography" },
-    { name = "defusedxml" },
     { name = "fastapi" },
     { name = "google-auth", extra = ["requests"] },
-    { name = "google-auth-oauthlib" },
     { name = "httpx", extra = ["http2"] },
     { name = "joserfc" },
-    { name = "oauthlib" },
     { name = "pillow" },
     { name = "pillow-heif" },
     { name = "psycopg", extra = ["binary"] },
@@ -755,13 +752,10 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.19" },
     { name = "argon2-cffi", specifier = ">=25.1" },
     { name = "cryptography", specifier = ">=46.0" },
-    { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "fastapi", specifier = ">=0.141" },
     { name = "google-auth", extras = ["requests"], specifier = ">=2.62,<3" },
-    { name = "google-auth-oauthlib", specifier = ">=1.5.0" },
     { name = "httpx", extras = ["http2"], specifier = ">=0.28" },
     { name = "joserfc", specifier = "==1.7.7" },
-    { name = "oauthlib", specifier = ">=4.0.1,<5" },
     { name = "pillow", specifier = ">=13.0" },
     { name = "pillow-heif", specifier = ">=1.1" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3" },
@@ -790,11 +784,19 @@ name = "eimir-pro"
 version = "0.1.0"
 source = { editable = "pro" }
 dependencies = [
+    { name = "defusedxml" },
     { name = "eimir" },
+    { name = "google-auth-oauthlib" },
+    { name = "oauthlib" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "eimir", editable = "." }]
+requires-dist = [
+    { name = "defusedxml", specifier = ">=0.7.1" },
+    { name = "eimir", editable = "." },
+    { name = "google-auth-oauthlib", specifier = ">=1.5.0" },
+    { name = "oauthlib", specifier = ">=4.0.1,<5" },
+]
 
 [[package]]
 name = "fastapi"

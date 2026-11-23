@@ -84,8 +84,6 @@ export const REGISTERED_LAYOUT_TRANSITIONS = Object.freeze({
   'src/components/PhotoEditTask.css': { use: 'disclose', count: 3 },
   // The quiet hint folds away (#2074).
   'src/components/QuietHint.css': { use: 'disclose', count: 1 },
-  // The Wir check-in row closes under the names (#2066, #2074).
-  'src/components/WirHeroStage.css': { use: 'disclose', count: 1 },
   // The overview cache notice closes its slot (#2077).
   'src/styles.css': { use: 'disclose', count: 1 },
 });

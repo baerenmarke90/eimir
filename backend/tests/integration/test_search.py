@@ -31,6 +31,7 @@ from eimir.private_notes.models import PrivateNote, PrivateNotePayload
 from eimir.relationship import service as relationship_service
 from eimir.wishes.models import Wish, WishPayload
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
+from tests.support.tampering import tamper_cursor_signature
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -403,7 +404,7 @@ class TestSearchRequestContract:
         _seed_all_targets(session, couple)
         cursor = _search(client, couple, limit=1).json()["nextCursor"]
         assert cursor is not None
-        response = _search(client, couple, cursor=cursor[:-2] + "xy")
+        response = _search(client, couple, cursor=tamper_cursor_signature(cursor))
         assert response.status_code == 400
         assert response.json()["code"] == "INVALID_CURSOR"
 

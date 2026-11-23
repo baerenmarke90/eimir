@@ -69,6 +69,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(PasskeysPlugin.class);
         registerPlugin(ScreenOrientationPlugin.class);
         registerPlugin(SecureScreenPlugin.class);
+        registerPlugin(SystemHapticsPlugin.class);
         super.onCreate(savedInstanceState);
         // A fresh start owns no composer, so no earlier camera capture may stay
         // (#2048). A restored Activity keeps it: the camera may still return.

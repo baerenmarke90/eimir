@@ -21,18 +21,17 @@ from eimir.db.base import Base
 from eimir.db.protected_payload import ProtectedPayloadJSON
 from eimir.db.registry import MODEL_MODULES, load_all_models
 from eimir.plugins.manifest import PLUGIN_TABLE_NAMES, PLUGIN_TABLES, protected_payload_tables
-from eimir.pro_plugin import plugin as pro_plugin
 from eimir.security import lifecycle
-from tests.support.plugins import requires_pro
+from tests.support.plugins import pro_plugin_object, require_pro_distribution, requires_pro
 
 BACKEND = Path(__file__).resolve().parents[2]
 
 
 def _load() -> None:
-    # The in-tree plugin is the reference in both configurations; Core-only
-    # does not import its models through the registry.
+    # The Pro plugin is the reference in both configurations; Core-only does not
+    # import its models through the registry. Without ``eimir-pro`` it skips.
     load_all_models()
-    for module in pro_plugin.model_modules():
+    for module in pro_plugin_object().model_modules():
         import_module(module)
 
 
@@ -52,7 +51,7 @@ def _table(name: str) -> Table:
 
 
 def test_every_table_of_every_plugin_has_a_manifest_row() -> None:
-    plugin_tables = _tables_of_modules(set(pro_plugin.model_modules()))
+    plugin_tables = _tables_of_modules(set(pro_plugin_object().model_modules()))
 
     assert plugin_tables
     assert plugin_tables == PLUGIN_TABLE_NAMES
@@ -63,7 +62,7 @@ def test_every_manifest_row_is_unique() -> None:
 
 
 def test_core_model_modules_contribute_no_plugin_table() -> None:
-    assert not set(MODEL_MODULES) & set(pro_plugin.model_modules())
+    assert not set(MODEL_MODULES) & set(pro_plugin_object().model_modules())
     assert not _tables_of_modules(set(MODEL_MODULES)) & PLUGIN_TABLE_NAMES
 
 
@@ -179,13 +178,14 @@ def test_autogenerate_keeps_plugin_tables_whose_plugin_is_not_loaded() -> None:
 
 
 def test_migrate_refuses_to_start_without_its_named_plugin() -> None:
-    process = _run(INCLUDE_OBJECT, EIMIR_PLUGINS="pro,missing")
+    process = _run(INCLUDE_OBJECT, EIMIR_PLUGINS="missing")
 
     assert process.returncode != 0
     assert "unknown plugin 'missing'" in process.stderr
 
 
 def test_migrate_names_its_plugins_at_startup() -> None:
+    require_pro_distribution()
     process = _run(INCLUDE_OBJECT, EIMIR_PLUGINS="pro")
 
     assert process.returncode == 0, process.stderr

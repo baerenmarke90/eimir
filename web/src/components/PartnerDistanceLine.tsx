@@ -1,4 +1,4 @@
-import { type AnimationEvent, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { PartnerLocationApi } from '../api/generated/apis/PartnerLocationApi';
@@ -28,11 +28,8 @@ import {
 import { resolvedLocale, useTranslation } from '../i18n';
 import './PartnerDistanceLine.css';
 import '../motion/motion.css';
-import { hasPlayed, markPlayed } from '../motion/playRegistry';
 import { useStageHold } from '../motion/stage';
 import { WIR_STAGE } from './wirStageMotion';
-
-const DISTANCE_WIGGLE = 'wir.distance.wiggle';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -112,7 +109,11 @@ export function useDistanceText() {
   };
 }
 
-function Glyph({ kind }: { kind: 'heart' | 'clock' | 'pin' | 'chevron' }) {
+export function PartnerDistanceGlyph({
+  kind,
+}: {
+  kind: 'heart' | 'clock' | 'pin' | 'chevron';
+}) {
   return (
     <svg
       className={`inline-icon partner-distance-glyph is-${kind}`}
@@ -140,7 +141,7 @@ function Glyph({ kind }: { kind: 'heart' | 'clock' | 'pin' | 'chevron' }) {
 }
 
 /**
- * The value on the Wir hero axis. A changed value fades over: the previous one
+ * The value of the compact chip. A changed value fades over: the previous one
  * leaves as a short-lived copy while the new one arrives, instead of the text
  * jumping. The leaving copy exists only under `no-preference` (it is
  * `display: none` otherwise), so it never lingers with reduced motion. The
@@ -174,8 +175,9 @@ function HeroDistanceValue({ value }: { value: string }) {
 }
 
 /**
- * The quiet distance signal inside the Wir couple hero (#1792). Absent
- * without a placeholder or reason whenever nothing may be shown.
+ * The quiet distance signal of the Wir designs other than Verbunden, whose
+ * heart and light carry the distance instead (#1792). Absent without a
+ * placeholder or reason whenever nothing may be shown.
  */
 export function PartnerDistanceLine({
   line,
@@ -186,23 +188,12 @@ export function PartnerDistanceLine({
   line: PartnerDistanceLineState;
   partnerName: string;
   now?: Date;
-  /** The "Verbunden" Wir hero: only the value, on the axis between the two. */
+  /** The shared-album hero: only the value, as a small chip. */
   compact?: boolean;
 }) {
   const { t } = useTranslation();
   const asOfLabel = useDistanceAsOfLabel();
   const distanceText = useDistanceText();
-  // The pin's one quiet wiggle plays once per session (Motion Contract M3,
-  // M4): the attribute that applies it goes when it ended or was cancelled.
-  const [wiggle, setWiggle] = useState(
-    () => !hasPlayed(DISTANCE_WIGGLE, 'session'),
-  );
-  const wiggled = (event: AnimationEvent<HTMLElement>) => {
-    if (!event.animationName?.includes('wiggle')) return;
-    markPlayed(DISTANCE_WIGGLE, 'session');
-    setWiggle(false);
-  };
-
   if (line.kind === 'hidden') return null;
 
   if (compact) {
@@ -248,22 +239,15 @@ export function PartnerDistanceLine({
       <>
         {/* Always the familiar distance pin (Product Owner, 2026-11-16); an
             earlier value is named in the accessible description. */}
-        <Glyph kind="pin" />
+        <PartnerDistanceGlyph kind="pin" />
         <HeroDistanceValue value={value} />
       </>
     );
-    // A current position is marked (pin colour, one quiet wiggle); an earlier
-    // one stays grey and still.
+    // A current position is marked by the pin's colour; an earlier one stays
+    // grey.
     const heroClass = `wir-hero-distance ${compactFresh ? 'is-fresh' : 'is-earlier'}`;
-    const wiggleProps = {
-      'data-motion-wiggle': (compactFresh && wiggle) || undefined,
-      onAnimationEnd: wiggled,
-      onAnimationCancel: wiggled,
-    };
     return line.mapAvailable ? (
       <Link
-        {...wiggleProps}
-        data-motion-join=""
         className={heroClass}
         to={PARTNER_LOCATION_MAP_ROUTE}
         aria-label={`${compactDescription}. ${t('partnerLocation.distanceOpenMap')}`}
@@ -271,7 +255,7 @@ export function PartnerDistanceLine({
         {compactContent}
       </Link>
     ) : (
-      <p {...wiggleProps} data-motion-join="" className={heroClass}>
+      <p className={heroClass}>
         {compactContent}
         <span className="sr-only">{compactDescription}</span>
       </p>
@@ -288,11 +272,11 @@ export function PartnerDistanceLine({
             partner: partnerName,
           })}
         >
-          <Glyph kind="heart" />
+          <PartnerDistanceGlyph kind="heart" />
           <span className="partner-distance-value">
             {t('partnerLocation.distanceSharing', { partner: partnerName })}
           </span>
-          <Glyph kind="chevron" />
+          <PartnerDistanceGlyph kind="chevron" />
         </Link>
       </div>
     );
@@ -306,7 +290,7 @@ export function PartnerDistanceLine({
           to={PARTNER_LOCATION_SETTINGS_ROUTE}
           aria-label={t('partnerLocation.distanceOwnMissingLabel')}
         >
-          <Glyph kind="pin" />
+          <PartnerDistanceGlyph kind="pin" />
           <span className="partner-distance-value">
             {t('partnerLocation.distanceOwnMissing')}
           </span>
@@ -327,7 +311,7 @@ export function PartnerDistanceLine({
   const className = `partner-distance-line${fresh ? '' : ' is-earlier'}`;
   const content = (
     <>
-      <Glyph kind={fresh ? 'heart' : 'clock'} />
+      <PartnerDistanceGlyph kind={fresh ? 'heart' : 'clock'} />
       <span className="partner-distance-value">{text}</span>
       {earlier ? (
         <span className="partner-distance-meta" aria-hidden="true">
@@ -347,7 +331,7 @@ export function PartnerDistanceLine({
           aria-label={`${description}. ${t('partnerLocation.distanceOpenMap')}`}
         >
           {content}
-          <Glyph kind="chevron" />
+          <PartnerDistanceGlyph kind="chevron" />
         </Link>
       ) : (
         <p className={className}>
@@ -371,8 +355,66 @@ export function PartnerDistanceLine({
  * Wir orchestration (#1792): trigger = paired, `presence.location` held and the
  * feature available; the Wir module preference (`partner_distance`) decides
  * whether and where it appears. The server decides the rest. Errors and
- * offline reads leave the line absent.
+ * offline reads yield nothing.
  */
+export function useWirDistanceRead({
+  api,
+  entitlementApi,
+  accountId,
+  spaceId,
+  enabled = true,
+  holdOpening = false,
+}: {
+  api:
+    | Pick<PartnerLocationApi, 'getPartnerDistance' | 'getPartnerLocationMap'>
+    | undefined;
+  entitlementApi: EntitlementsApi | undefined;
+  accountId: string;
+  spaceId: string;
+  enabled?: boolean;
+  /** The Wir opening waits briefly so the heart and light arrive with it. */
+  holdOpening?: boolean;
+}): PartnerDistanceLineState | null {
+  const load = useMemo(
+    () =>
+      entitlementApi ? entitlementLoader(entitlementApi, spaceId) : undefined,
+    [entitlementApi, spaceId],
+  );
+  const capability = useSpaceCapability({
+    accountId,
+    spaceId,
+    load,
+    enabled,
+    capability: PARTNER_LOCATION_CAPABILITY,
+  });
+  // The app-level sync reads the owner's settings on open and resume; this
+  // only observes that entry instead of adding another read.
+  const settings = usePartnerLocationSettingsEntry(accountId, spaceId);
+  const active =
+    enabled &&
+    capability.data === true &&
+    !capability.isError &&
+    settings?.available === true;
+  const query = usePartnerDistanceLine({
+    api,
+    accountId,
+    spaceId,
+    enabled: active,
+  });
+  // #2147: the Wir opening waits briefly for the place, so it arrives on the
+  // opening's clock.
+  useStageHold(
+    WIR_STAGE,
+    holdOpening &&
+      enabled &&
+      (capability.isLoading ||
+        (capability.data === true && settings === undefined) ||
+        (active && query.isLoading)),
+  );
+  if (!active || query.isError || !query.data) return null;
+  return query.data;
+}
+
 export function WirPartnerDistance({
   api,
   entitlementApi,
@@ -388,38 +430,11 @@ export function WirPartnerDistance({
   partnerName: string;
   compact?: boolean;
 }) {
-  const load = useMemo(
-    () =>
-      entitlementApi ? entitlementLoader(entitlementApi, spaceId) : undefined,
-    [entitlementApi, spaceId],
-  );
-  const capability = useSpaceCapability({
-    accountId,
-    spaceId,
-    load,
-    capability: PARTNER_LOCATION_CAPABILITY,
-  });
-  // The app-level sync reads the owner's settings on open and resume; this
-  // only observes that entry instead of adding another read.
-  const settings = usePartnerLocationSettingsEntry(accountId, spaceId);
-  const enabled =
-    capability.data === true &&
-    !capability.isError &&
-    settings?.available === true;
-  const query = usePartnerDistanceLine({ api, accountId, spaceId, enabled });
-  // #2147: in the hero, the Wir opening waits briefly for the place, so the
-  // pill and its value arrive together on the opening's clock.
-  useStageHold(
-    WIR_STAGE,
-    compact &&
-      (capability.isLoading ||
-        (capability.data === true && settings === undefined) ||
-        (enabled && query.isLoading)),
-  );
-  if (!enabled || query.isError || !query.data) return null;
+  const line = useWirDistanceRead({ api, entitlementApi, accountId, spaceId });
+  if (!line) return null;
   return (
     <PartnerDistanceLine
-      line={query.data}
+      line={line}
       partnerName={partnerName}
       compact={compact}
     />

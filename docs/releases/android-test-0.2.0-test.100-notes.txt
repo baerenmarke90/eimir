@@ -1,0 +1,11 @@
+eimir. Android 0.2.0-test.100
+
+- On Wir, the distance now lives in the heart and the light: the heart fills like the moon and is completely full when you are right next to each other, and the light around your two portraits flows together as you come closer.
+- The line between the portraits, the distance pill and the names are gone from the Wir hero. Names stay everywhere else in the app.
+- Tap the heart: a small light hops from each portrait to the heart, then the pin and the distance appear above it for three seconds.
+- When you open the app and the distance has changed, the same hop plays once and shows the new distance.
+- The daily check-in invitation now sits next to the plus on your portrait and then disappears into it, and the daily quote no longer slides up.
+- Android vibrations now use the system's own haptic feedback, like the keyboard.
+
+The product changes come from main at 2407a21a0d714c0e7c5f6ad51016c81b1d025711.
+Install over test.99 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 100.

@@ -341,7 +341,7 @@ describe('TodayPage', () => {
     expect(html).not.toContain('today-section-vibe');
   });
 
-  it('shows the pre-check-in prompt and a partner lock only with Mutual Reveal', () => {
+  it('offers the empty own day and a partner lock only with Mutual Reveal', () => {
     const html = renderTodayPage(
       {
         space: {
@@ -364,7 +364,10 @@ describe('TodayPage', () => {
       },
     );
 
-    expect(html).toContain('Wie geht’s?');
+    // The daily invitation starts from a fresh read on screen, never from the
+    // first render (WirDailyCheckIn.test.tsx covers it).
+    expect(html).not.toContain('wir-stage-prompt');
+    expect(html).toContain('wir-stage-gesture-own');
     expect(html).toContain('data-state="hidden"');
     expect(html).toContain('Dein Tag: noch nichts geteilt. Teilen');
     expect(html).toContain(

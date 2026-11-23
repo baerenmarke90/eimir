@@ -33,7 +33,7 @@ RUN mkdir -p dist/.well-known \
     && printf '%s\n' "$revision" > dist/.well-known/eimir-revision \
     && cp dist/.well-known/eimir-revision dist/.well-known/sidebyside-revision
 
-FROM ghcr.io/nginx/nginx-unprivileged:1.31.8@sha256:1d2d62ccb876da984beaef0084b895e8ce490acee185ccdef0c55e6263afd3b8
+FROM ghcr.io/nginx/nginx-unprivileged:1.31.9@sha256:0255fc1dcc1d7b358aac20166543e52029fea577413edadb0912f5b928c7e312
 
 ENV NGINX_ENVSUBST_FILTER="^EIMIR_WEB_CSP_CONNECT_ORIGINS$"
 

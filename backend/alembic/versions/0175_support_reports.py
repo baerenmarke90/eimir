@@ -11,8 +11,8 @@ One notification kind (``SUPPORT_REPLY``) and one target type
 (``SUPPORT_REPORT``) join the catalog. The notice does not coalesce: one reply
 creates one notice.
 
-Revision ID: 0172
-Revises: 0171
+Revision ID: 0175
+Revises: 0174
 """
 
 from __future__ import annotations
@@ -21,8 +21,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0172"
-down_revision = "0171"
+revision = "0175"
+down_revision = "0174"
 branch_labels = None
 depends_on = None
 

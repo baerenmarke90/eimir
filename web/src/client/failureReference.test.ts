@@ -2,9 +2,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   clearFailureReference,
   failureReferenceFor,
-  formatFailureForDisplay,
   recordRequestFailure,
 } from './failureReference';
+import { formatFailureForDisplay } from './failureReferenceDisplay';
 import { ClientProblemError } from './problemDetails';
 
 afterEach(() => clearFailureReference());

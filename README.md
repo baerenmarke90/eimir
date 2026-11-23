@@ -1,7 +1,7 @@
 # Generated private test deployment
 
 Prerelease operator channel, not a supported product release.
-Source: `4e30c932cdc6e5390a4a11165bd05048ff28e536`. All three images are pinned by OCI digest.
+Source: `28ebc7080d302afeeda1783befb774bb42a23730`. All three images are pinned by OCI digest.
 
 Use Arcane Git Sync with the existing eimir-test project. Keep its local .env, database, media, deletion journal and keys. Never run bootstrap again.
 

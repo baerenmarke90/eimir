@@ -139,6 +139,21 @@
       "reviewedAt": "2026-11-15",
       "review": "The affected Flash Screen Video decoder (flashsv_decode_block() in libavcodec/flashsv.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_FLASHSV_DECODER and CONFIG_FLASHSV2_DECODER 0. No FLV demuxer is enabled either (CONFIG_FLV_DEMUXER 0)."
     },
+    "CVE-2026-125180": {
+      "evidenceSha256": "3c7db2b186b39c7d1177cb848fa18add50954bc1a69b62237e5daa919e303b4b",
+      "reviewedAt": "2026-11-23",
+      "review": "Applicable: libavcodec/exif.c is built and reached through the enabled MOV demuxer (mov_parse_exif_item() in libavformat/mov.c) and through coded EXIF side data in libavcodec/decode.c, so a crafted container can carry an EXIF block with many IFD entries pointing at overlapping payloads. The JPEG, PNG, TIFF and WebP decoders and demuxers named by the advisory are not enabled. The impact is memory exhaustion inside the ffmpeg child process. Every ffmpeg/ffprobe child runs through run_restricted() in attachments/media_process.py with RLIMIT_AS of 768 MiB, RLIMIT_CPU and a wall-clock timeout of 600 seconds, and uploads are limited to VIDEO_MAX_SIZE (250 MiB) in limits.py. The address-space limit makes the allocation fail inside the child, which exits non-zero and is reported as VIDEO_UNREADABLE, so the application process is not affected. This is a reviewed bounded-resource defense, not an upstream closure claim."
+    },
+    "CVE-2026-125183": {
+      "evidenceSha256": "d819bb915defba32eb0b518197eeafc0cc15b60057d48945752b37e211379879",
+      "reviewedAt": "2026-11-23",
+      "review": "Applicable: libavcodec/hevc/ps.c is built, and the HEVC decoder and parser are enabled, so a crafted PPS with pps_3d_extension_flag reaches pps_3d_extension() and its depth lookup table loops (up to 64 layers of 2^(bit depth + 8) skipped bits per PPS NAL unit, multiplied by repeated PPS NAL units). The impact is CPU consumption inside the ffmpeg child process. Every ffmpeg/ffprobe child runs through run_restricted() in attachments/media_process.py with RLIMIT_AS of 768 MiB, RLIMIT_CPU and a wall-clock timeout of 600 seconds, and uploads are limited to VIDEO_MAX_SIZE (250 MiB) in limits.py. A runaway parse ends in RLIMIT_CPU or the wall-clock timeout, which kills the whole process group and reports VIDEO_PROCESSING_TIMEOUT. This is a reviewed bounded-resource defense, not an upstream closure claim."
+    },
+    "CVE-2026-125185": {
+      "evidenceSha256": "e9ecee2515e56a74ad9075d8b658687e69c49a2fc98ca1079a8abe75a9dee6df",
+      "reviewedAt": "2026-11-23",
+      "review": "Applicable: libavcodec/aom_film_grain.c is built and ff_aom_parse_film_grain_sets() is reached through libavcodec/itut35.c from the HEVC SEI parser (libavcodec/h2645_sei.c), and libavcodec/hevc/hevcdec.c applies the parsed film grain with ff_aom_apply_film_grain(). The VVC decoder named by the advisory is not enabled; the HEVC path is. The impact is a division-by-zero crash of the ffmpeg child process. Every ffmpeg/ffprobe child runs through run_restricted() in attachments/media_process.py with RLIMIT_AS of 768 MiB, RLIMIT_CPU and a wall-clock timeout of 600 seconds, and uploads are limited to VIDEO_MAX_SIZE (250 MiB) in limits.py. A crash ends only the child, which exits non-zero and is reported as VIDEO_UNREADABLE, so the application process is not affected. This is a reviewed bounded-process defense, not an upstream closure claim."
+    },
     "CVE-2026-125202": {
       "evidenceSha256": "cf780706aa700903cf653976cf4f1e9d66279bb487005976e0d586284daf10db",
       "reviewedAt": "2026-11-14",

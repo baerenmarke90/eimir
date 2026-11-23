@@ -6274,6 +6274,12 @@
             "title": "Selfservicesignupavailable",
             "type": "boolean"
           },
+          "supportReportsAvailable": {
+            "default": false,
+            "description": "Whether this instance accepts in-app support reports. Clients show the report entry points only when true.",
+            "title": "Supportreportsavailable",
+            "type": "boolean"
+          },
           "termsOfUseVersion": {
             "anyOf": [
               {

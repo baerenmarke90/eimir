@@ -21,10 +21,12 @@
   background: var(--color-error-surface);
 }
 
-/* A two-option choice: native radios with the segmented presentation. */
+/* A two-option choice: native radios with the segmented presentation. The
+   options sit side by side while each has room for its longest word and
+   stack once larger text would break a word (the shared reflow pattern). */
 .support-report-kinds {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
   gap: var(--space-1);
   min-width: 0;
   margin: 0 0 var(--space-4);

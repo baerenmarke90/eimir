@@ -190,12 +190,15 @@ export function PrimaryTabPanels({
   const active = panels.some((panel) => panel.path === pathname)
     ? pathname
     : null;
-  const startWirAtTop =
-    active === DEFAULT_APP_ROUTE &&
+  const state = location.state as {
+    primaryRootEntry?: boolean;
+    taskReturnKey?: unknown;
+  } | null;
+  const startAtTop =
     navigationType !== 'POP' &&
-    resolveOrigin(
-      (location.state as { taskReturnKey?: unknown } | null)?.taskReturnKey,
-    )?.to !== taskOriginPath(location.pathname, location.search);
+    (state?.primaryRootEntry === true || active === DEFAULT_APP_ROUTE) &&
+    resolveOrigin(state?.taskReturnKey)?.to !==
+      taskOriginPath(location.pathname, location.search);
   // Idempotent render-time bookkeeping: a newly visited tab mounts in the same
   // commit that makes it active.
   const locations = useRef(new Map<string, Location>());
@@ -240,13 +243,11 @@ export function PrimaryTabPanels({
     const previous = activeRef.current;
     activeRef.current = active;
     if (!active || previous === active) return;
-    // Opening Wir from the tab bar starts at the portraits. Back and task
+    // A tab selection opens its overview at the top. History and task
     // returns keep their captured reading position.
-    const target = startWirAtTop
-      ? 0
-      : (scrollPositions.current.get(active) ?? 0);
+    const target = startAtTop ? 0 : (scrollPositions.current.get(active) ?? 0);
     window.scrollTo({ top: target, behavior: 'instant' });
-    if (startWirAtTop)
+    if (startAtTop && active === DEFAULT_APP_ROUTE)
       resetHorizontalScroll(
         document.querySelector(`[data-primary-tab="${active}"]`),
       );
@@ -280,10 +281,10 @@ export function PrimaryTabPanels({
       window.addEventListener(type, stop, { passive: true });
     request = requestAnimationFrame(settle);
     return stop;
-  }, [active, startWirAtTop]);
+  }, [active, startAtTop]);
 
   // While a swipe drags the pages, the neighbouring tab is laid over the
-  // viewport at the reading position it was left in. Measure once per peek
+  // viewport at the top of its overview. Measure once per peek
   // and let CSS place it; the gesture only supplies the horizontal offset.
   useLayoutEffect(() => {
     const panel = peekRef.current;
@@ -293,13 +294,11 @@ export function PrimaryTabPanels({
     if (peek === DEFAULT_APP_ROUTE) resetHorizontalScroll(panel);
     const box = main.getBoundingClientRect();
     const paddingTop = Number.parseFloat(getComputedStyle(main).paddingTop);
-    const saved =
-      peek === DEFAULT_APP_ROUTE ? 0 : (scrollPositions.current.get(peek) ?? 0);
     panel.style.setProperty('--primary-tab-peek-left', `${box.left}px`);
     panel.style.setProperty('--primary-tab-peek-width', `${box.width}px`);
     panel.style.setProperty(
       '--primary-tab-peek-origin',
-      `${box.top + window.scrollY - saved + (paddingTop || 0)}px`,
+      `${box.top + window.scrollY + (paddingTop || 0)}px`,
     );
   }, [peek]);
 

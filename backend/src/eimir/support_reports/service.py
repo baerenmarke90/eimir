@@ -19,7 +19,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import Select, and_, or_, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
@@ -27,6 +27,9 @@ from eimir.core import clock
 from eimir.core import cursor as cursor_codec
 from eimir.core.errors import ConflictError, ErrorCode, NotFoundError, ValidationError
 from eimir.core.ids import new_id
+from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
+from eimir.outbox import service as outbox_service
+from eimir.relationship.models import Membership, MembershipStatus
 from eimir.security.runtime import get_payload_protector
 from eimir.support_reports.models import (
     SupportReport,
@@ -42,6 +45,7 @@ from eimir.support_reports.payload import (
 
 REPORT_NOT_FOUND = "RESOURCE_NOT_FOUND"
 REPLY_ALREADY_SENT = "SUPPORT_REPORT_ALREADY_REPLIED"
+REPLY_SUBJECT_TYPE = "support_report"
 
 
 @dataclass(frozen=True, slots=True)
@@ -254,13 +258,18 @@ def send_reply(
     text: str,
     operator_id: UUID | None,
 ) -> SupportReport:
-    """Store the single reply to a report and return the report.
+    """Store the single reply to a report, announce it and return the report.
 
     A second reply conflicts: the unique ``report_id`` serializes concurrent
     replies, so the loser of ``INSERT ... ON CONFLICT DO NOTHING`` is refused
     rather than overwriting the winner. The report's ``state`` is not changed.
-    ``operator_id`` names the acting operator for the reply notification and is
-    not stored here.
+
+    The reply records one ``SUPPORT_REPLY`` outbox event in the same
+    transaction, in the Space of the reporter's most recent active Membership,
+    because a notification lives in a Space. A reporter without an active
+    Membership keeps the stored reply and gets no notice. ``operator_id`` is
+    accepted but deliberately unused: the notice is attributed to the team, not
+    to an operator account, so no operator identity reaches the reporter.
     """
     del operator_id
     reply_text = _reply_text(text)
@@ -285,7 +294,43 @@ def send_reply(
     ).scalar_one_or_none()
     if stored_id is None:
         raise ConflictError("The report already has a reply.", REPLY_ALREADY_SENT)
+
+    space_id = session.execute(reporter_space_statement(report.account_id)).scalar_one_or_none()
+    if space_id is not None:
+        outbox_service.record(
+            session,
+            reply_event(report_id=report.id, reporter_id=report.account_id, space_id=space_id),
+        )
     return report
+
+
+def reporter_space_statement(account_id: UUID) -> Select[tuple[UUID]]:
+    """Select the Space of the account's most recently joined active Membership."""
+    return (
+        select(Membership.space_id)
+        .where(
+            Membership.account_id == account_id,
+            Membership.status == MembershipStatus.ACTIVE.value,
+        )
+        .order_by(
+            Membership.joined_at.desc().nulls_last(),
+            Membership.created_at.desc(),
+            Membership.id.desc(),
+        )
+        .limit(1)
+    )
+
+
+def reply_event(*, report_id: UUID, reporter_id: UUID, space_id: UUID) -> DomainEvent:
+    """The reply announcement: references only, never the reply or report text."""
+    return DomainEvent(
+        type=EventType.SUPPORT_REPLY,
+        space_id=space_id,
+        actor_id=None,
+        subject_type=REPLY_SUBJECT_TYPE,
+        subject_id=report_id,
+        payload=PublicEventPayload(recipient_id=reporter_id),
+    )
 
 
 def get_reply(session: Session, *, report_id: UUID, account_id: UUID) -> SupportReportReply | None:

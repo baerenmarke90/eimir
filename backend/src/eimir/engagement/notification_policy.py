@@ -282,6 +282,8 @@ def email_choice_allowed(kind: str) -> bool:
         NotificationKind.GARDEN_SEED_ARRIVED.value,
         NotificationKind.RECAP_READY.value,
         NotificationKind.RECAP_GREW.value,
+        # A support reply stays in the app and its push; never an email (#2189).
+        NotificationKind.SUPPORT_REPLY.value,
         *WISH_DATE_NOTICE_KINDS,
     } and _external_choice_allowed(kind)
 

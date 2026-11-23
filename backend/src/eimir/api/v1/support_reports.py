@@ -2,7 +2,8 @@
 
 Reports belong to the reporter's Account. The endpoint refuses while the
 operator has not enabled support reports, so no client is told "received" when
-nobody reads the reports.
+nobody reads the reports. A reply already sent stays readable to its reporter
+whatever the switch says.
 """
 
 from __future__ import annotations
@@ -11,7 +12,7 @@ from datetime import datetime
 from typing import Annotated, Self
 from uuid import UUID
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Path, Response, status
 from pydantic import ConfigDict, StringConstraints, field_validator, model_validator
 
 from eimir.api.deps import CurrentAccount, DbSession
@@ -20,6 +21,7 @@ from eimir.api.schema import ApiModel
 from eimir.auth import rate_limit
 from eimir.config import get_settings
 from eimir.core.errors import NotFoundError
+from eimir.core.ids import parse_id
 from eimir.support_reports import service
 from eimir.support_reports.models import SupportReportKind, SupportReportState
 from eimir.support_reports.payload import (
@@ -89,6 +91,13 @@ class SupportReportCreated(ApiModel):
     created_at: datetime
 
 
+class SupportReportReplyView(ApiModel):
+    """The operator's reply, shown to the reporter as plain text."""
+
+    text: str
+    replied_at: datetime
+
+
 @router.post(
     "",
     response_model=SupportReportCreated,
@@ -140,3 +149,34 @@ def create_support_report(
     if not created:
         response.status_code = status.HTTP_200_OK
     return SupportReportCreated.model_validate(report)
+
+
+@router.get(
+    "/{reportId}/reply",
+    response_model=SupportReportReplyView,
+    operation_id="getSupportReportReply",
+    responses=problem_responses(401, 404),
+)
+def get_support_report_reply(
+    report_id_text: Annotated[str, Path(alias="reportId")],
+    account: CurrentAccount,
+    session: DbSession,
+    response: Response,
+) -> SupportReportReplyView:
+    """Return the reply to the caller's own report.
+
+    Another person's report, a report without a reply yet and an unknown id are
+    the same 404. Replies already sent stay readable when the operator switches
+    support reports off, so this is not gated by the flag. The text is returned
+    exactly as stored.
+    """
+    report_id = parse_id(report_id_text)
+    reply = (
+        service.get_reply(session, report_id=report_id, account_id=account.id)
+        if report_id is not None
+        else None
+    )
+    if reply is None:
+        raise NotFoundError("Support report reply not found.", service.REPORT_NOT_FOUND)
+    response.headers["Cache-Control"] = "private, no-store"
+    return SupportReportReplyView.model_validate(reply)

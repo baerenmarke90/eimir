@@ -17881,6 +17881,26 @@
         "title": "SupportReportKind",
         "type": "string"
       },
+      "SupportReportReplyView": {
+        "description": "The operator's reply, shown to the reporter as plain text.",
+        "properties": {
+          "repliedAt": {
+            "format": "date-time",
+            "title": "Repliedat",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "repliedAt"
+        ],
+        "title": "SupportReportReplyView",
+        "type": "object"
+      },
       "SupportReportState": {
         "description": "The operator's own triage marker; a reply never changes it.",
         "enum": [
@@ -54767,6 +54787,59 @@
           }
         },
         "summary": "Create Support Report",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support-reports/{reportId}/reply": {
+      "get": {
+        "description": "Return the reply to the caller's own report.\n\nAnother person's report, a report without a reply yet and an unknown id are\nthe same 404. Replies already sent stay readable when the operator switches\nsupport reports off, so this is not gated by the flag. The text is returned\nexactly as stored.",
+        "operationId": "getSupportReportReply",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reportId",
+            "required": true,
+            "schema": {
+              "title": "Reportid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportReplyView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Support Report Reply",
         "tags": [
           "support"
         ]

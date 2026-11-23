@@ -26,7 +26,7 @@ from eimir.core.errors import ConflictError, ErrorCode, RateLimitedError
 from eimir.db.session import get_session
 from eimir.support_reports import service
 from eimir.support_reports.models import SupportReportKind
-from eimir.support_reports.payload import ClientContext, SupportReportPayload
+from eimir.support_reports.payload import ClientContext, SupportReportPayload, SupportReportReply
 
 EMOJI = "\U0001f49b"
 ACCOUNT_ID = uuid4()
@@ -328,3 +328,68 @@ def test_operation_is_in_the_contract_with_both_success_statuses() -> None:
     operation = create_app().openapi()["paths"]["/api/v1/support-reports"]["post"]
     assert operation["operationId"] == "createSupportReport"
     assert {"200", "201", "401", "404", "409", "422", "429"} <= set(operation["responses"])
+
+
+# --- reply read ------------------------------------------------------------
+
+
+class ReplyRecorder:
+    """Stands in for ``service.get_reply``."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[object, object]] = []
+        self.reply: SupportReportReply | None = None
+
+    def get_reply(
+        self, _session: object, *, report_id: object, account_id: object
+    ) -> SupportReportReply | None:
+        self.calls.append((report_id, account_id))
+        return self.reply
+
+
+@pytest.fixture
+def replies(monkeypatch: pytest.MonkeyPatch) -> ReplyRecorder:
+    recorder = ReplyRecorder()
+    monkeypatch.setattr(service, "get_reply", recorder.get_reply)
+    return recorder
+
+
+def test_reply_is_returned_to_the_reporter_even_when_the_flag_is_off(
+    client: TestClient, replies: ReplyRecorder, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _enable(monkeypatch, False)
+    report_id = uuid4()
+    replies.reply = SupportReportReply(
+        text="<b>Thanks</b> & sorry", replied_at=datetime(2026, 11, 23, 12, 0, tzinfo=UTC)
+    )
+    response = client.get(f"{URL}/{report_id}/reply")
+    assert response.status_code == 200
+    assert response.json() == {"text": "<b>Thanks</b> & sorry", "repliedAt": "2026-11-23T12:00:00Z"}
+    assert replies.calls == [(report_id, ACCOUNT_ID)]
+    assert response.headers["Cache-Control"] == "private, no-store"
+
+
+def test_no_reply_for_this_reporter_is_a_plain_404(
+    client: TestClient, replies: ReplyRecorder
+) -> None:
+    response = client.get(f"{URL}/{uuid4()}/reply")
+    assert response.status_code == 404
+    assert response.json()["code"] == "RESOURCE_NOT_FOUND"
+    assert len(replies.calls) == 1
+
+
+def test_malformed_report_id_is_the_same_404_without_a_lookup(
+    client: TestClient, replies: ReplyRecorder
+) -> None:
+    response = client.get(f"{URL}/not-a-uuid/reply")
+    assert response.status_code == 404
+    assert response.json()["code"] == "RESOURCE_NOT_FOUND"
+    assert replies.calls == []
+
+
+def test_reply_operation_is_in_the_contract() -> None:
+    from eimir.main import create_app
+
+    operation = create_app().openapi()["paths"]["/api/v1/support-reports/{reportId}/reply"]["get"]
+    assert operation["operationId"] == "getSupportReportReply"
+    assert {"200", "401", "404"} <= set(operation["responses"])

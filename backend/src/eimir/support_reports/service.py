@@ -7,6 +7,9 @@ email address or display name.
 A report is created once per ``(account_id, client_request_id)``. A client that
 loses the response retries with the same identity and gets the original report
 back instead of a second one.
+
+A report receives at most one reply. The reply never changes the report's
+``state``, which is only the operator's own triage marker.
 """
 
 from __future__ import annotations
@@ -22,13 +25,23 @@ from sqlalchemy.orm import Session
 
 from eimir.core import clock
 from eimir.core import cursor as cursor_codec
-from eimir.core.errors import ConflictError, ErrorCode, NotFoundError
+from eimir.core.errors import ConflictError, ErrorCode, NotFoundError, ValidationError
 from eimir.core.ids import new_id
 from eimir.security.runtime import get_payload_protector
-from eimir.support_reports.models import SupportReport, SupportReportKind, SupportReportState
-from eimir.support_reports.payload import SupportReportPayload
+from eimir.support_reports.models import (
+    SupportReport,
+    SupportReportKind,
+    SupportReportReplyRow,
+    SupportReportState,
+)
+from eimir.support_reports.payload import (
+    REPLY_MAX_CHARACTERS,
+    SupportReportPayload,
+    SupportReportReply,
+)
 
 REPORT_NOT_FOUND = "RESOURCE_NOT_FOUND"
+REPLY_ALREADY_SENT = "SUPPORT_REPORT_ALREADY_REPLIED"
 
 
 @dataclass(frozen=True, slots=True)
@@ -219,3 +232,74 @@ def set_state(session: Session, report_id: UUID, state: SupportReportState) -> S
     report.state = state.value
     session.flush()
     return report
+
+
+def _reply_text(text: str) -> str:
+    """Validate the operator's reply text; it is stored and shown as plain text."""
+    stripped = text.strip()
+    if not stripped:
+        raise ValidationError("The reply must not be empty.", ErrorCode.VALIDATION_FAILED)
+    if len(stripped) > REPLY_MAX_CHARACTERS:
+        raise ValidationError(
+            f"The reply must be at most {REPLY_MAX_CHARACTERS} characters.",
+            ErrorCode.VALIDATION_FAILED,
+        )
+    return stripped
+
+
+def send_reply(
+    session: Session,
+    *,
+    report_id: UUID,
+    text: str,
+    operator_id: UUID | None,
+) -> SupportReport:
+    """Store the single reply to a report and return the report.
+
+    A second reply conflicts: the unique ``report_id`` serializes concurrent
+    replies, so the loser of ``INSERT ... ON CONFLICT DO NOTHING`` is refused
+    rather than overwriting the winner. The report's ``state`` is not changed.
+    ``operator_id`` names the acting operator for the reply notification and is
+    not stored here.
+    """
+    del operator_id
+    reply_text = _reply_text(text)
+    report = get_report(session, report_id)
+    if report is None:
+        raise NotFoundError("Support report not found.", REPORT_NOT_FOUND)
+
+    replied_at = clock.now()
+    stored_id = session.execute(
+        postgresql.insert(SupportReportReplyRow)
+        .values(
+            id=new_id(),
+            report_id=report_id,
+            replied_at=replied_at,
+            # A Core-level insert bypasses the mapper event that keeps this in
+            # step with the payload column, so it is stated here.
+            crypto_version=get_payload_protector().write_crypto_version,
+            payload=SupportReportReply(text=reply_text, replied_at=replied_at),
+        )
+        .on_conflict_do_nothing(index_elements=["report_id"])
+        .returning(SupportReportReplyRow.id)
+    ).scalar_one_or_none()
+    if stored_id is None:
+        raise ConflictError("The report already has a reply.", REPLY_ALREADY_SENT)
+    return report
+
+
+def get_reply(session: Session, *, report_id: UUID, account_id: UUID) -> SupportReportReply | None:
+    """Return the reply to the reporter's own report, otherwise ``None``.
+
+    A report of another account and a report without a reply are
+    indistinguishable. ``replied_at`` is read from its column, which is the
+    authority for the time.
+    """
+    row = session.execute(
+        select(SupportReportReplyRow)
+        .join(SupportReport, SupportReport.id == SupportReportReplyRow.report_id)
+        .where(SupportReport.id == report_id, SupportReport.account_id == account_id)
+    ).scalar_one_or_none()
+    if row is None:
+        return None
+    return SupportReportReply(text=row.payload.text, replied_at=row.replied_at)

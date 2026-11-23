@@ -107,45 +107,85 @@ Merge the implementation PR through ordinary required checks. Then:
 5. Confirm a successful publisher and the three files `compose.yaml`,
    `channel.json`, `README.md` on `deploy/eimir-test`; there must be no `.env`.
 
-The workflow does not change package visibility. For private packages, configure
-a read-only package credential in Arcane's Container Registries, never in Compose,
-a Git URL or the application environment.
+The workflow cannot change package visibility. See "Private channel packages" below for
+the mandatory visibility step after the first publication of any new package name, and
+configure a read-only package credential in Arcane's Container Registries, never in
+Compose, a Git URL or the application environment.
 
 ## Private channel packages (Decision 0019, phase 0b)
 
-Images built from now on contain the Pro code, so the channel moves from the public
-`eimir-backend`, `eimir-web` and `eimir-media` packages to **private** packages
-`ghcr.io/baerenmarke90/eimir-cloud-backend`, `eimir-cloud-web` and `eimir-cloud-media`
-([#2202](https://github.com/baerenmarke90/eimir/issues/2202)). The repository stays public
-until the cut-over. The old public packages receive no new versions after the switch and
-stay as the rollback until the Product Owner approves their retirement. Product-release
-(Self-Hosted `v0.x`) images are not part of this channel and keep their names.
+Images built by this channel contain the Pro code, so the channel publishes to **private**
+packages `ghcr.io/baerenmarke90/eimir-cloud-backend`, `eimir-cloud-web` and
+`eimir-cloud-media` ([#2202](https://github.com/baerenmarke90/eimir/issues/2202)). The
+repository stays public until the cut-over. The former public packages `eimir-backend`,
+`eimir-web` and `eimir-media` receive no new versions and stay as the rollback until the
+Product Owner approves their retirement, one package at a time and not before 2026-11-30.
+Product-release (Self-Hosted `v0.x`) images are not part of this channel and keep their
+names.
 
-Two plain repository **Actions variables** control the publisher. Neither is a secret.
+Two plain repository **Actions variables** can change the publisher. Neither is a secret.
 
 | Variable | Values | Effect |
 | --- | --- | --- |
-| `EIMIR_TEST_CHANNEL_PACKAGE_PREFIX` | unset/empty (default `eimir`) or `eimir-cloud` | Package name prefix. Only `eimir` or `eimir-` followed by lowercase letters, digits and single hyphens is accepted; anything else refuses publication before any push. |
-| `EIMIR_TEST_CHANNEL_PROMOTE` | unset/empty or `true` (default), or `false` | `false` stages: all three images are pushed and verified and the generated files are produced, but `deploy/eimir-test` is **not** advanced. Any other value refuses publication. |
+| `EIMIR_TEST_CHANNEL_PACKAGE_PREFIX` | unset/empty (default `eimir-cloud`), or `eimir` for the legacy public packages | Package name prefix. Only `eimir` or `eimir-` followed by lowercase letters, digits and single hyphens is accepted; anything else refuses publication before any push. `eimir` is the explicit rollback to the old public packages; deleting the variable does **not** roll back. |
+| `EIMIR_TEST_CHANNEL_PROMOTE` | unset/empty or `true` (default), or `false` | `false` stages: all three images are pushed and verified and the generated files are produced, but `deploy/eimir-test` is **not** advanced. Any other value refuses publication. Optional; not part of the standard flow. |
 
-The job summary of the publisher lists the three pinned references. A package that is
-first published by this workflow is created **private** and linked to the repository (the
-publisher already requires the `org.opencontainers.image.source` label), so the workflow
-token can write to it. If GitHub still refuses the first push, open the package settings
-and use **Manage Actions access -> Add Repository** with the Write role, then re-run the
-failed job. Never change a package to Public: GitHub does not allow making it private again.
+The job summary of the publisher lists the three pinned references and whether the channel
+was promoted or only staged.
 
-### Switch procedure (each step needs the Product Owner's approval)
+### New packages start public here: set them to Private (mandatory)
 
-1. Create the rollback branch `deploy/eimir-test-rollback` from the current tip of
-   `deploy/eimir-test` (it holds the old public digests; the publisher never writes to it).
-2. Set `EIMIR_TEST_CHANNEL_PACKAGE_PREFIX=eimir-cloud` and
-   `EIMIR_TEST_CHANNEL_PROMOTE=false`. The next merge to `main` stages the private images; the
-   test instance keeps running on its previous images.
-3. Prove the pull before promoting. A pull of a public image succeeds with or without a
+GitHub's documentation says a package is private when it is first published. The first
+publication of the `eimir-cloud-*` packages disproved that: all three were created
+**public** and an anonymous manifest request returned HTTP 200. The probable cause is the
+`org.opencontainers.image.source` label, which points at the public repository (the cause
+is not confirmed). The Product Owner set the three packages to Private by hand; afterwards
+the anonymous request returned HTTP 403, and the next publisher run (45161925807) still
+wrote to the private packages.
+
+For **every new package name** (the three above are done; a future repository or name
+creates new ones):
+
+1. Publish once (optionally with `EIMIR_TEST_CHANNEL_PROMOTE=false`).
+2. Immediately open each package (profile -> Packages -> the package -> **Package
+   settings** -> **Danger Zone** -> **Change package visibility**) and choose **Private**.
+   Never choose Public: GitHub does not allow making a package private again.
+3. Check anonymously. A private package must answer 401, 403 or 404, never 200:
+
+   ```sh
+   package=eimir-cloud-web   # repeat for backend and media
+   digest=sha256:...         # the digest from the job summary
+   token=$(curl -s "https://ghcr.io/token?service=ghcr.io&scope=repository:baerenmarke90/$package:pull" \
+     | python3 -c "import sys, json; print(json.load(sys.stdin)['token'])")
+   curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $token" \
+     -H "Accept: application/vnd.oci.image.manifest.v1+json" \
+     "https://ghcr.io/v2/baerenmarke90/$package/manifests/$digest"
+   ```
+
+**The publisher enforces the check.** Before it exports or promotes anything, the publisher
+requests every pushed digest anonymously. Any HTTP 200 fails the job and names the public
+packages; set them to Private and use **Re-run failed jobs**. Any other answer than 401,
+403 or 404 (for example a rate limit or a server error) also fails the job, because privacy
+is then unproven. The legacy prefix `eimir` is exempt: those packages are public on purpose.
+The check detects, it cannot prevent: GHCR creates the package at the first push, so a new
+name is publicly readable for the short time until you set it to Private. GitHub's REST API
+for packages only lists, reads, deletes and restores packages (checked 2026-11-23), so the
+publisher cannot set visibility itself. If GitHub still refuses the first push of a new
+package, open the package settings and use **Manage Actions access -> Add Repository** with
+the Write role, then re-run the failed job.
+
+### Switch procedure for a new package name (each step needs the Product Owner's approval)
+
+This is how the move to `eimir-cloud-*` was done and how a future name is introduced.
+
+1. Create a rollback branch from the current tip of `deploy/eimir-test` (the publisher never
+   writes to it); for the move to `eimir-cloud-*` it is `deploy/eimir-test-rollback` and holds
+   the old public digests.
+2. Optionally set `EIMIR_TEST_CHANNEL_PROMOTE=false`: the next merge to `main` stages the new
+   images and the test instance keeps running on its previous images.
+3. Set the new packages to Private and check them anonymously (previous section).
+4. Prove the pull before promoting. A pull of a public image succeeds with or without a
    credential and proves nothing, so use a private one:
-   - signed out, the package page `https://github.com/users/baerenmarke90/packages/container/package/eimir-cloud-web`
-     must show "not found";
    - create a personal access token (classic) with **only** `read:packages` (fine-grained
      tokens cannot access Packages), valid for about 12 months, and save it in Arcane under
      Images -> Registries (host `ghcr.io`, username `baerenmarke90`, the token as password).
@@ -153,23 +193,29 @@ failed job. Never change a package to Public: GitHub does not allow making it pr
      the application environment, an issue or the repository;
    - in Arcane, pull one staged image by its digest from the job summary
      (Images -> Pull Image, for example `ghcr.io/baerenmarke90/eimir-cloud-web@sha256:...`).
-4. Promote: set `EIMIR_TEST_CHANNEL_PROMOTE=true` (or delete the variable). The next merge
-   advances `deploy/eimir-test`; Arcane Git Sync redeploys the same code revision on the new
-   images. Check that the containers are healthy and that the app signs in.
-5. A follow-up changes the default prefix to `eimir-cloud` and removes the staging
-   variable from this procedure. The old public packages are retired only after at least 7
-   days of healthy operation and only with explicit approval per package (GitHub refuses
-   deletion of a public package with a version above 5,000 downloads; then use GitHub Support).
+5. Promote: set `EIMIR_TEST_CHANNEL_PROMOTE=true` or delete the variable. The next merge
+   advances `deploy/eimir-test`; Arcane Git Sync redeploys on the new images. Check that the
+   containers are healthy and that the app signs in.
+6. Retire the old packages only after at least 7 days of healthy operation, only with explicit
+   approval per package, and never before the date above. GitHub refuses deletion of a public
+   package with a version above 5,000 downloads; then use GitHub Support. Deleted packages
+   can be restored for 30 days.
 
 ### Rollback
 
-In Arcane open the `eimir-test` Git Sync, change the branch to `deploy/eimir-test-rollback`
-and sync. This does not depend on the publisher and works while the old packages exist.
-Then set `EIMIR_TEST_CHANNEL_PACKAGE_PREFIX` back to `eimir` (or delete it) so that the next
-merge publishes to the old names again. A redeploy is not a database rollback (see
-[Self-Hosted Recovery](SELF-HOSTED-RECOVERY.md)); the staged and old images carry the same
-code revision, so no schema change is involved. When the token expires, running containers
-keep running but new pulls fail until a new read-only token is saved in Arcane.
+1. In Arcane open the `eimir-test` Git Sync, change the branch to `deploy/eimir-test-rollback`
+   and sync. This does not depend on the publisher and works while the old public packages
+   exist.
+2. Set `EIMIR_TEST_CHANNEL_PACKAGE_PREFIX=eimir` **explicitly**. The default is now
+   `eimir-cloud`, so deleting the variable does not roll back; with `eimir` the next merge
+   publishes to the old public names again (no privacy check applies to them).
+3. To return, set the Arcane branch back to `deploy/eimir-test` and delete the prefix
+   variable (or set it to `eimir-cloud`).
+
+A redeploy is not a database rollback (see [Self-Hosted Recovery](SELF-HOSTED-RECOVERY.md));
+the old and new images carry the same code revision at the switch, so no schema change is
+involved. When the registry token expires, running containers keep running but new pulls
+fail until a new read-only token is saved in Arcane.
 
 ## Preserve the existing instance
 

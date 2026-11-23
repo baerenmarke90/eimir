@@ -15,8 +15,9 @@ import sys
 import tarfile
 import tempfile
 import unittest
+import urllib.error
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -34,7 +35,7 @@ def successful_runs() -> list[dict]:
             "id": index,
             "run_attempt": 1,
             "path": path,
-            "event": "push",
+            "event": channel.FULL_REGRESSION_EVENT,
             "head_branch": "main",
             "head_sha": SOURCE,
             "head_repository": {"full_name": channel.REPOSITORY},
@@ -47,6 +48,45 @@ def successful_runs() -> list[dict]:
 
 def completion_event() -> dict:
     return {"action": "completed", "workflow_run": successful_runs()[0]}
+
+
+class FullRegressionGateTest(unittest.TestCase):
+    def test_green_full_regression_admits_the_release(self):
+        with patch.object(channel, "candidate_ready", return_value=True), patch.object(channel, "run") as command:
+            channel.require_full_regression(SOURCE, dispatch=True)
+        command.assert_not_called()
+
+    def test_missing_regression_on_current_main_starts_the_dispatcher_and_refuses(self):
+        with (
+            patch.object(channel, "candidate_ready", return_value=False),
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "run") as command,
+            self.assertRaises(channel.ChannelError),
+        ):
+            channel.require_full_regression(SOURCE, dispatch=True)
+        command.assert_called_once_with(
+            ["gh", "workflow", "run", channel.FULL_REGRESSION_DISPATCHER, "--repo", channel.REPOSITORY, "--ref", "main"]
+        )
+
+    def test_missing_regression_on_an_older_revision_refuses_without_dispatch(self):
+        with (
+            patch.object(channel, "candidate_ready", return_value=False),
+            patch.object(channel, "latest_main", return_value=PREVIOUS),
+            patch.object(channel, "run") as command,
+            self.assertRaises(channel.ChannelError),
+        ):
+            channel.require_full_regression(SOURCE, dispatch=True)
+        command.assert_not_called()
+
+    def test_failed_regression_refuses(self):
+        with (
+            patch.object(channel, "candidate_ready", side_effect=channel.ChannelError("failed")),
+            self.assertRaises(channel.ChannelError),
+        ):
+            channel.require_full_regression(SOURCE, dispatch=True)
+
+    def test_dispatcher_exists(self):
+        self.assertTrue((ROOT / ".github/workflows" / channel.FULL_REGRESSION_DISPATCHER).is_file())
 
 
 class CompletionAdmissionTest(unittest.TestCase):
@@ -62,7 +102,9 @@ class CompletionAdmissionTest(unittest.TestCase):
     def test_untrusted_or_unrelated_completions_never_query_github(self):
         for mutation in (
             {"event": "pull_request"},
-            {"event": "workflow_dispatch"},
+            # Pushes to main no longer run the required workflows (#2096).
+            {"event": "push"},
+            {"event": "schedule"},
             {"head_branch": "feature"},
             {"head_sha": PREVIOUS},
             {"head_repository": {"full_name": "other/eimir"}},
@@ -120,8 +162,41 @@ class CompletionAdmissionTest(unittest.TestCase):
         ):
             channel.check_for_publication(SOURCE, "workflow_run", completion_event())
 
+    def test_every_merge_admits_the_current_main_without_full_regression(self):
+        # #2096: the private test channel follows every merge to main.
+        with (
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready") as ready,
+            patch.object(channel, "channel_already_selected", side_effect=[False, True]),
+        ):
+            self.assertTrue(channel.check_for_publication(SOURCE, "push", {}))
+            self.assertFalse(channel.check_for_publication(SOURCE, "push", {}))
+            ready.assert_not_called()
+
+    def test_merge_superseded_by_a_newer_merge_is_not_built(self):
+        with (
+            patch.object(channel, "latest_main", return_value=PREVIOUS),
+            patch.object(channel, "candidate_ready") as ready,
+            patch.object(channel, "channel_already_selected") as selected,
+        ):
+            self.assertFalse(channel.check_for_publication(SOURCE, "push", {}))
+            ready.assert_not_called()
+            selected.assert_not_called()
+
+    def test_only_the_fast_lane_skips_the_full_regression(self):
+        with (
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", return_value=False) as ready,
+        ):
+            self.assertTrue(channel.source_admitted(SOURCE, full_regression=False))
+            ready.assert_not_called()
+            self.assertFalse(channel.source_admitted(SOURCE, full_regression=True))
+            ready.assert_called_once_with(SOURCE)
+        with patch.object(channel, "latest_main", return_value=PREVIOUS):
+            self.assertFalse(channel.source_admitted(SOURCE, full_regression=False))
+
     def test_other_trigger_types_cannot_admit_a_build(self):
-        for event_name in ("push", "pull_request", "schedule", ""):
+        for event_name in ("pull_request", "schedule", ""):
             with (
                 self.subTest(event_name=event_name),
                 patch.object(channel, "gh_api") as api,
@@ -179,22 +254,16 @@ class CompletionAdmissionTest(unittest.TestCase):
 
 
 class MainCheckTest(unittest.TestCase):
-    def test_required_workflows_run_for_every_main_push(self):
+    def test_required_workflows_are_dispatched_by_the_full_regression(self):
+        # Pushes to main start no workflows (#2096). Every required workflow is
+        # dispatched unfiltered by the nightly regression instead.
+        dispatcher = (ROOT / ".github/workflows" / channel.FULL_REGRESSION_DISPATCHER).read_text()
         for path in sorted(channel.REQUIRED_WORKFLOWS):
             with self.subTest(path=path):
-                lines = (ROOT / path).read_text().splitlines()
-                start = lines.index("  push:") + 1
-                push = []
-                for line in lines[start:]:
-                    if line.strip() and len(line) - len(line.lstrip()) < 4:
-                        break
-                    push.append(line.strip())
-                self.assertIn("branches: [main]", push)
-                for key in ("paths:", "paths-ignore:", "tags:", "tags-ignore:"):
-                    self.assertFalse(
-                        any(line.startswith(key) for line in push),
-                        f"{path} must not filter required main push checks",
-                    )
+                text = (ROOT / path).read_text()
+                self.assertIn("\n  workflow_dispatch:", text)
+                self.assertNotIn("\n  push:", text)
+                self.assertIn(f"\n            {Path(path).name}\n", dispatcher)
 
     def test_only_every_exact_main_workflow_admits_a_candidate(self):
         self.assertTrue(channel.workflow_state(successful_runs(), SOURCE))
@@ -434,7 +503,7 @@ class EvidenceAndImageTest(unittest.TestCase):
                     self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
                 )
                 self.assertEqual(
-                    pinned, "ghcr.io/baerenmarke90/eimir-backend@sha256:" + "b" * 64
+                    pinned, "ghcr.io/baerenmarke90/eimir-cloud-backend@sha256:" + "b" * 64
                 )
                 calls = [call.args[0] for call in run.call_args_list]
                 self.assertIn(["docker", "pull", pinned], calls)
@@ -586,6 +655,315 @@ class EvidenceAndImageTest(unittest.TestCase):
             channel.publish(SOURCE, self.root, self.root / "out")
         advance.assert_not_called()
 
+    def channel_environment(self, **values):
+        """Run with only the given channel variables set, independent of the host."""
+        own = {channel.PACKAGE_PREFIX_ENV, channel.PROMOTE_ENV, "GITHUB_STEP_SUMMARY"}
+        environment = {key: value for key, value in os.environ.items() if key not in own}
+        environment.update(GITHUB_RUN_ID="1", GITHUB_RUN_ATTEMPT="1", **values)
+        return patch.dict(os.environ, environment, clear=True)
+
+    def add_media_record(self):
+        record = {
+            "id": "media-runtime",
+            "path": "media-runtime.image.tar",
+            "sbom": "sbom/media-runtime.spdx.json",
+            "roles": ["video-worker"],
+        }
+        for field, digest in (("path", "sha256"), ("sbom", "sbomSha256")):
+            (self.root / record[field]).write_bytes(b"restricted-worker-evidence")
+            record[digest] = channel.sha256(self.root / record[field])
+        self.index["artifacts"].append(record)
+        self.write_index()
+
+    def publish_staged_pair(self, anonymous_status=403, **values):
+        """Publish with every registry and GitHub write replaced by a recorder."""
+        self.add_media_record()
+        media = "ghcr.io/baerenmarke90/eimir-media@sha256:" + "5" * 64
+        with (
+            self.channel_environment(**values),
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", return_value=True),
+            patch.object(
+                channel, "publish_image", side_effect=[BACKEND, WEB, media]
+            ) as publish,
+            patch.object(
+                channel, "anonymous_manifest_status", return_value=anonymous_status
+            ),
+            patch.object(channel, "canonical_compose", return_value={}),
+            patch.object(channel, "export_compose", return_value={"services": {}}),
+            patch.object(channel, "advance_channel", return_value=True) as advance,
+        ):
+            channel.publish(SOURCE, self.root, self.root / "out")
+        return publish, advance, media
+
+    def test_default_package_names_are_the_private_cloud_packages(self):
+        for values in ({}, {channel.PACKAGE_PREFIX_ENV: ""}, {channel.PACKAGE_PREFIX_ENV: "  "}):
+            with self.subTest(values=values), self.channel_environment(**values):
+                for role in ("backend", "web", "media"):
+                    self.assertEqual(
+                        channel.package_repository(role),
+                        f"ghcr.io/baerenmarke90/eimir-cloud-{role}",
+                    )
+
+    def test_legacy_prefix_must_be_selected_explicitly_for_the_old_public_names(self):
+        with self.channel_environment(**{channel.PACKAGE_PREFIX_ENV: "eimir"}):
+            for role in ("backend", "web", "media"):
+                self.assertEqual(
+                    channel.package_repository(role),
+                    f"ghcr.io/baerenmarke90/eimir-{role}",
+                )
+
+    def test_invalid_package_prefixes_are_refused(self):
+        for value in (
+            "other",
+            "eimir-",
+            "eimir--cloud",
+            "Eimir-cloud",
+            "eimir_cloud",
+            "eimir/cloud",
+            "eimir-cloud:latest",
+            "eimir-cloud ghcr.io/other",
+            "../eimir",
+            "ghcr.io/baerenmarke90/eimir-cloud",
+        ):
+            with (
+                self.subTest(value=value),
+                self.channel_environment(**{channel.PACKAGE_PREFIX_ENV: value}),
+                self.assertRaises(channel.ChannelError),
+            ):
+                channel.package_prefix()
+
+    def test_promote_setting_accepts_only_empty_true_or_false(self):
+        for value, expected in (("", True), ("true", True), ("false", False)):
+            with self.subTest(value=value), self.channel_environment(
+                **{channel.PROMOTE_ENV: value}
+            ):
+                self.assertIs(channel.promote_enabled(), expected)
+        with self.channel_environment():
+            self.assertIs(channel.promote_enabled(), True)
+        for value in ("False", "FALSE", "0", "no", "yes", "stage"):
+            with (
+                self.subTest(value=value),
+                self.channel_environment(**{channel.PROMOTE_ENV: value}),
+                self.assertRaises(channel.ChannelError),
+            ):
+                channel.promote_enabled()
+
+    def test_registry_push_targets_the_selected_package(self):
+        self.prepare_image_archive()
+        for values, package in (
+            ({}, "eimir-cloud-backend"),
+            ({channel.PACKAGE_PREFIX_ENV: "eimir"}, "eimir-backend"),
+        ):
+            with (
+                self.subTest(package=package),
+                self.channel_environment(**values),
+                patch.object(channel, "run", side_effect=self.image_run) as run,
+            ):
+                pinned = channel.publish_image(
+                    self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
+                )
+            self.assertEqual(
+                pinned, f"ghcr.io/baerenmarke90/{package}@sha256:" + "b" * 64
+            )
+            calls = [call.args[0] for call in run.call_args_list]
+            self.assertIn(
+                [
+                    "docker",
+                    "tag",
+                    f"eimir-backend:evidence-{SOURCE}",
+                    f"ghcr.io/baerenmarke90/{package}:test-{SOURCE}-1-1",
+                ],
+                calls,
+            )
+            # The local evidence tag keeps its historical name; only the registry target moves.
+            self.assertEqual(
+                any("ghcr.io/baerenmarke90/eimir-backend" in " ".join(c) for c in calls),
+                package == "eimir-backend",
+            )
+
+    def test_anonymous_manifest_status_reports_what_an_anonymous_client_sees(self):
+        reference = "ghcr.io/baerenmarke90/eimir-cloud-web@sha256:" + "5" * 64
+        token = json.dumps({"token": "anonymous-pull-token"}).encode()
+        for name, responses, expected, requests in (
+            ("public", [(200, token), (200, b"{}")], 200, 2),
+            ("private manifest", [(200, token), (403, b"")], 403, 2),
+            ("missing manifest", [(200, token), (404, b"")], 404, 2),
+            ("no anonymous token", [(403, b"")], 403, 1),
+            ("empty token body", [(200, b"{}")], 401, 1),
+            ("bad token body", [(200, b"not json")], 401, 1),
+        ):
+            with (
+                self.subTest(name=name),
+                patch.object(channel, "anonymous_request", side_effect=responses) as request,
+            ):
+                self.assertEqual(channel.anonymous_manifest_status(reference), expected)
+            self.assertEqual(request.call_count, requests)
+        # The manifest request carries only the anonymous bearer token.
+        with patch.object(
+            channel, "anonymous_request", side_effect=[(200, token), (200, b"{}")]
+        ) as request:
+            channel.anonymous_manifest_status(reference)
+        url, headers = request.call_args_list[1].args
+        self.assertEqual(
+            url,
+            "https://ghcr.io/v2/baerenmarke90/eimir-cloud-web/manifests/sha256:" + "5" * 64,
+        )
+        self.assertEqual(headers["Authorization"], "Bearer anonymous-pull-token")
+
+    def test_anonymous_check_rejects_unexpected_references_before_any_request(self):
+        for reference in (
+            "ghcr.io/baerenmarke90/eimir-cloud-web:latest",
+            "ghcr.io/baerenmarke90/eimir-cloud-web@sha256:" + "5" * 63,
+            "example.com/baerenmarke90/eimir-cloud-web@sha256:" + "5" * 64,
+            "ghcr.io/baerenmarke90/eimir-cloud-web@sha256:" + "5" * 64 + "?x=1",
+        ):
+            with (
+                self.subTest(reference=reference),
+                patch.object(channel, "anonymous_request") as request,
+                self.assertRaises(channel.ChannelError),
+            ):
+                channel.anonymous_manifest_status(reference)
+            request.assert_not_called()
+
+    def test_anonymous_request_retries_server_errors_and_fails_closed(self):
+        ok = MagicMock()
+        ok.__enter__.return_value.status = 200
+        ok.__enter__.return_value.read.return_value = b"{}"
+        unavailable = urllib.error.HTTPError("u", 503, "unavailable", None, None)
+        with (
+            patch.object(channel.time, "sleep") as sleep,
+            patch.object(channel.urllib.request, "urlopen", side_effect=[unavailable, ok]),
+        ):
+            self.assertEqual(channel.anonymous_request("https://ghcr.io/x"), (200, b"{}"))
+        sleep.assert_called_once()
+        denied = urllib.error.HTTPError("u", 403, "denied", None, None)
+        with patch.object(channel.urllib.request, "urlopen", side_effect=denied) as opened:
+            self.assertEqual(channel.anonymous_request("https://ghcr.io/x"), (403, b""))
+        opened.assert_called_once()
+        for failure in (urllib.error.URLError("offline"), TimeoutError(), unavailable):
+            with (
+                self.subTest(failure=type(failure).__name__),
+                patch.object(channel.time, "sleep"),
+                patch.object(channel.urllib.request, "urlopen", side_effect=failure),
+                self.assertRaisesRegex(channel.ChannelError, "unreachable"),
+            ):
+                channel.anonymous_request("https://ghcr.io/x")
+
+    def test_private_packages_pass_and_public_or_unclear_ones_fail_closed(self):
+        images = {"backend": BACKEND, "web": WEB}
+        for status in (401, 403, 404):
+            with (
+                self.subTest(status=status),
+                self.channel_environment(),
+                patch.object(channel, "anonymous_manifest_status", return_value=status),
+            ):
+                channel.verify_packages_private(images)
+        with (
+            self.channel_environment(),
+            patch.object(channel, "anonymous_manifest_status", side_effect=[200, 200]),
+            self.assertRaises(channel.ChannelError) as raised,
+        ):
+            channel.verify_packages_private(images)
+        message = str(raised.exception)
+        self.assertIn("ghcr.io/baerenmarke90/eimir-backend", message)
+        self.assertIn("ghcr.io/baerenmarke90/eimir-web", message)
+        self.assertIn("Private", message)
+        self.assertNotIn("sha256", message)
+        for status in (0, 202, 301, 429, 500):
+            with (
+                self.subTest(status=status),
+                self.channel_environment(),
+                patch.object(channel, "anonymous_manifest_status", return_value=status),
+                self.assertRaisesRegex(channel.ChannelError, "Cannot confirm"),
+            ):
+                channel.verify_packages_private(images)
+
+    def test_legacy_public_packages_are_not_checked_for_privacy(self):
+        with (
+            self.channel_environment(**{channel.PACKAGE_PREFIX_ENV: "eimir"}),
+            patch.object(channel, "anonymous_manifest_status") as status,
+        ):
+            channel.verify_packages_private({"backend": BACKEND, "web": WEB})
+        status.assert_not_called()
+
+    def test_public_package_blocks_promotion_after_the_push(self):
+        self.add_media_record()
+        media = "ghcr.io/baerenmarke90/eimir-cloud-media@sha256:" + "5" * 64
+        with (
+            self.channel_environment(),
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", return_value=True),
+            patch.object(
+                channel, "publish_image", side_effect=[BACKEND, WEB, media]
+            ) as publish,
+            patch.object(channel, "anonymous_manifest_status", return_value=200),
+            patch.object(channel, "canonical_compose") as compose,
+            patch.object(channel, "advance_channel") as advance,
+            self.assertRaisesRegex(channel.ChannelError, "publicly readable"),
+        ):
+            channel.publish(SOURCE, self.root, self.root / "out")
+        self.assertEqual(publish.call_count, 3)
+        compose.assert_not_called()
+        advance.assert_not_called()
+        self.assertFalse((self.root / "out" / "channel.json").exists())
+
+    def test_staged_publication_is_also_checked_for_privacy(self):
+        with self.assertRaisesRegex(channel.ChannelError, "publicly readable"):
+            self.publish_staged_pair(
+                anonymous_status=200, **{channel.PROMOTE_ENV: "false"}
+            )
+
+    def test_invalid_settings_refuse_publication_before_any_registry_use(self):
+        self.add_media_record()
+        for name, value in (
+            (channel.PACKAGE_PREFIX_ENV, "evil"),
+            (channel.PROMOTE_ENV, "maybe"),
+        ):
+            with (
+                self.subTest(name=name),
+                self.channel_environment(**{name: value}),
+                patch.object(channel, "latest_main", return_value=SOURCE),
+                patch.object(channel, "candidate_ready", return_value=True),
+                patch.object(channel, "publish_image") as publish,
+                patch.object(channel, "advance_channel") as advance,
+                self.assertRaises(channel.ChannelError),
+            ):
+                channel.publish(SOURCE, self.root, self.root / "out")
+            publish.assert_not_called()
+            advance.assert_not_called()
+
+    def test_staged_publication_pushes_but_never_advances_the_branch(self):
+        summary = self.root / "summary.md"
+        publish, advance, media = self.publish_staged_pair(
+            **{channel.PROMOTE_ENV: "false", "GITHUB_STEP_SUMMARY": str(summary)}
+        )
+        self.assertEqual(publish.call_count, 3)
+        advance.assert_not_called()
+        for name in ("compose.yaml", "channel.json", "README.md"):
+            self.assertTrue((self.root / "out" / name).is_file(), name)
+        text = summary.read_text(encoding="utf-8")
+        self.assertIn("Staged only", text)
+        for reference in (BACKEND, WEB, media):
+            self.assertIn(reference, text)
+
+    def test_default_publication_advances_the_branch_and_lists_the_references(self):
+        summary = self.root / "summary.md"
+        publish, advance, media = self.publish_staged_pair(
+            **{"GITHUB_STEP_SUMMARY": str(summary)}
+        )
+        self.assertEqual(publish.call_count, 3)
+        advance.assert_called_once()
+        text = summary.read_text(encoding="utf-8")
+        self.assertIn("Promoted to", text)
+        self.assertNotIn("Staged only", text)
+        self.assertIn(media, text)
+
+    def test_summary_is_optional_outside_actions(self):
+        publish, advance, _ = self.publish_staged_pair()
+        self.assertEqual(publish.call_count, 3)
+        advance.assert_called_once()
+
 
 class BranchPromotionTest(unittest.TestCase):
     def setUp(self):
@@ -632,6 +1010,36 @@ class BranchPromotionTest(unittest.TestCase):
             if endpoint.endswith("/git/trees")
         )
         self.assertEqual({row["path"] for row in tree["tree"]}, set(self.files))
+
+    def test_merge_promotes_without_the_full_regression(self):
+        with (
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", return_value=False) as ready,
+            patch.object(channel, "gh_api", side_effect=self.api),
+        ):
+            self.assertTrue(channel.advance_channel(self.files, SOURCE, full_regression=False))
+        ready.assert_not_called()
+        self.assertTrue(self.calls[-1][0].endswith("/git/refs/heads/deploy/eimir-test"))
+
+    def test_cli_publish_uses_the_fast_lane_only_for_merges(self):
+        for event_name, expected in (("push", False), ("workflow_dispatch", True), ("workflow_run", True)):
+            environment = {
+                "GITHUB_REPOSITORY": channel.REPOSITORY,
+                "GITHUB_REF": "refs/heads/main",
+                "GITHUB_EVENT_NAME": event_name,
+            }
+            with (
+                self.subTest(event_name=event_name),
+                patch.dict(os.environ, environment),
+                patch.object(channel, "publish") as publish,
+                patch.object(
+                    sys,
+                    "argv",
+                    ["channel", "publish", "--revision", SOURCE, "--artifact-root", "/a", "--output", "/o"],
+                ),
+            ):
+                self.assertEqual(channel.main(), 0)
+                self.assertIs(publish.call_args.kwargs["full_regression"], expected)
 
     def test_stale_main_or_failed_checks_never_write_a_ref(self):
         for stale in (True, False):
@@ -785,6 +1193,16 @@ class OptionalPhotoConfigurationTest(unittest.TestCase):
             "EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET",
             exported["services"]["cloud-migrate"]["environment"],
         )
+    def test_support_reports_switch_is_an_instance_expression_defaulting_off(self):
+        canonical = {"services": {name: {"environment": {}} for name in channel.CLOUD_SERVICES}}
+        with patch.dict(os.environ, {"EIMIR_SUPPORT_REPORTS_ENABLED": "true"}):
+            exported = channel.export_compose(canonical, BACKEND, WEB)
+        for name in ("cloud-api", "cloud-worker"):
+            self.assertEqual(
+                exported["services"][name]["environment"]["EIMIR_SUPPORT_REPORTS_ENABLED"],
+                "${EIMIR_SUPPORT_REPORTS_ENABLED:-false}",
+            )
+
 class FCMSenderMountContractTest(unittest.TestCase):
     def setUp(self):
         channel.fcm_sender_mount.cache_clear()

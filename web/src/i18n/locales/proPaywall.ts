@@ -34,8 +34,8 @@ const proPaywall = {
           body: 'Ergänzt Gedanken zu einem Rückblick – fertige Ausgaben bleiben lesbar.',
         },
         third: {
-          title: 'Vertiefende Einblicke',
-          body: 'Wochenrückblicke und behutsame Muster eurer gemeinsamen Tage.',
+          title: 'Als Film erzählt',
+          body: 'Eure Fotos, Videos und Worte als bewegter Rückblick.',
         },
       },
     },
@@ -55,6 +55,24 @@ const proPaywall = {
         third: {
           title: 'Rückblicke dazu',
           body: 'Entdeckt eure Geschichte auch in Monats- und Jahresrückblicken.',
+        },
+      },
+    },
+    storage: {
+      title: 'Mehr Platz für eure Erinnerungen.',
+      description: 'Mit eimir. Pro habt ihr 50 GB für Fotos, Videos und mehr.',
+      benefits: {
+        first: {
+          title: '50 GB Speicher',
+          body: 'Zehnmal so viel Platz für Fotos, Videos, Sprachnachrichten und PDFs.',
+        },
+        second: {
+          title: 'Videos',
+          body: 'Haltet kurze Videos in euren Erinnerungen fest und übernehmt sie aus euren Exporten.',
+        },
+        third: {
+          title: 'Übersprungene Videos nachholen',
+          body: 'Holt Videos, die ein Import ausgelassen hat, aus derselben Datei nach.',
         },
       },
     },
@@ -158,10 +176,6 @@ const proPaywall = {
       experiences: {
         title: 'Glücksmomente & Zeitreise',
         body: 'Teilt, was euch gerade glücklich macht, oder schickt euch gegenseitig eine kleine Reise in eure Erinnerungen.',
-      },
-      insights: {
-        title: 'Einblicke in Stimmung & Energie',
-        body: 'Schaut über mehrere Wochen oder Monate auf eure Check-ins und entdeckt, wie sich Stimmung und Energie entwickeln. Der tägliche Check-in bleibt kostenlos.',
       },
       quote: {
         title: 'Spruch des Tages',

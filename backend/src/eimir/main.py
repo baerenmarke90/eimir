@@ -19,6 +19,7 @@ from eimir.api.transport import (
 )
 from eimir.api.v1 import router as v1_router
 from eimir.config import Environment, Settings, get_settings
+from eimir.db.session import get_engine
 from eimir.engagement import push_providers
 from eimir.identity.deletion_self_service import reconcile_configured_deletions_on_startup
 from eimir.observability import (
@@ -26,6 +27,7 @@ from eimir.observability import (
     RequestLoggingMiddleware,
     configure_logging,
 )
+from eimir.plugins.dormant import warn_dormant_plugin_data_once
 from eimir.plugins.loader import check_route_collisions, loaded_plugins
 
 configure_logging(get_settings())
@@ -67,6 +69,8 @@ async def _lifespan(_: FastAPI) -> AsyncIterator[None]:
     # process failure. Re-establish its fail-closed database state before this
     # process can serve normal requests.
     reconcile_configured_deletions_on_startup()
+    # Read-only and never fatal: data of plugins that are not loaded (Decision 0017).
+    warn_dormant_plugin_data_once(get_engine())
     yield
 
 
@@ -74,6 +78,7 @@ def create_app() -> FastAPI:
     settings = get_settings()
     # A named plugin that cannot be loaded stops the process here (Decision 0017).
     plugins = loaded_plugins()
+    plugins.validate(settings)
     push_providers.configure_push_providers(settings)
     _log_operating_mode(settings)
 

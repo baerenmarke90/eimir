@@ -126,6 +126,76 @@ describe('SharedPlanningOverviewPage', () => {
       i18n.t('m5s3.overview.createdBy', { name: 'Lea' }),
     );
   });
+  it('keeps wishes an open game hides as placeholders below the alphabet (#2158 H)', () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const ALEX = { id: 'account-alex', displayName: 'Alex' };
+    queryClient.setQueryData(
+      ['m5-s3', 'wishes', 'space-1'],
+      infinitePage([
+        wish({ id: 'z', title: 'Zoo', status: 'OPEN' }),
+        {
+          ...wish({ id: 'hidden-1', title: '', status: 'OPEN' }),
+          createdBy: ALEX.id,
+          creator: ALEX,
+          capabilities: { canComment: false, canDelete: false, canEdit: false },
+          hiddenDuringGame: true,
+        },
+      ]),
+    );
+    const html = renderToStaticMarkup(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/plan#wishes']}>
+          <SharedPlanningOverviewPage
+            apis={{} as SharedPlanningApis}
+            spaceId="space-1"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const titles = [...html.matchAll(/<strong>([^<]+)<\/strong>/g)].map(
+      (match) => match[1],
+    );
+    expect(titles).toEqual([
+      'Zoo',
+      i18n.t('wishConcealment.rowTitle', { name: 'Alex' }),
+    ]);
+    expect(html).toContain(i18n.t('wishConcealment.groupTitle'));
+    expect(html).toContain(i18n.t('wishConcealment.rowHint'));
+    expect(html).toContain('href="/games/wish-detective"');
+    // The placeholder opens nothing: only the visible wish links to a detail.
+    expect(html).not.toContain('/plan/wishes/hidden-1');
+    expect(html).not.toContain(i18n.t('m5s3.overview.wishesEmpty'));
+  });
+
+  it('shows the placeholders instead of the empty state when they are all there is', () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(
+      ['m5-s3', 'wishes', 'space-1'],
+      infinitePage([
+        {
+          ...wish({ id: 'hidden-1', title: '', status: 'OPEN' }),
+          hiddenDuringGame: true,
+        },
+      ]),
+    );
+    const html = renderToStaticMarkup(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/plan#wishes']}>
+          <SharedPlanningOverviewPage
+            apis={{} as SharedPlanningApis}
+            spaceId="space-1"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(html).toContain(i18n.t('wishConcealment.groupTitle'));
+    expect(html).not.toContain(i18n.t('m5s3.overview.wishesEmpty'));
+  });
+
   it('offers one entry for what to do next and continues an open round (#1907 J1)', () => {
     const render = (round: { id: string | null } | null) => {
       const queryClient = new QueryClient({

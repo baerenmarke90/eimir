@@ -22,6 +22,7 @@ from eimir.identity.models import Account
 from eimir.relations.models import MemoryPlan, MemoryWish
 from eimir.relationship import service as relationships
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
+from tests.support.plugins import requires_pro
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -192,6 +193,8 @@ def test_device_zone_updates_personal_scheduling_without_shifting_calendar_dates
     )
 
 
+# Guided experiences need the couple-games capability, which only the Pro plugin serves.
+@requires_pro
 def test_shared_experience_is_consumed_by_canonical_view_and_expires(
     client: TestClient, session: Session, world: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -108,7 +108,7 @@
   border-radius: var(--radius-card);
   background: var(--color-brand-surface);
   overflow-wrap: anywhere;
-  animation: experience-note-enter calc(var(--duration-context) * 3)
+  animation: eimir-motion-enter-unfold calc(var(--duration-context) * 3)
     var(--easing-standard);
 }
 .experience-question-focus-by {
@@ -144,7 +144,7 @@
   border-radius: var(--radius-card);
   background: var(--color-brand-surface);
   overflow-wrap: anywhere;
-  animation: experience-note-enter calc(var(--duration-context) * 3)
+  animation: eimir-motion-enter-unfold calc(var(--duration-context) * 3)
     var(--easing-standard);
   transform-origin: center bottom;
 }
@@ -183,7 +183,8 @@
   color: var(--color-brand-text);
   width: var(--space-8);
   height: var(--space-8);
-  animation: experience-symbol-enter calc(var(--duration-context) * 3)
+  --motion-enter-from-scale: 0.8;
+  animation: eimir-motion-enter-grow calc(var(--duration-context) * 3)
     var(--easing-standard);
 }
 .shared-experience-words {
@@ -191,24 +192,6 @@
   font-size: clamp(1.2rem, 4vw, 1.6rem);
   line-height: 1.5;
   white-space: pre-wrap;
-}
-@keyframes experience-note-enter {
-  from {
-    transform: translateY(var(--space-3)) rotateX(8deg);
-  }
-  to {
-    transform: translateY(0) rotateX(0);
-  }
-}
-@keyframes experience-symbol-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   .shared-experience-reveal,
@@ -289,12 +272,26 @@
   grid-template-rows: 1fr;
   margin-block-end: var(--space-3);
 }
+/* Opening is Replace `disclose` option 1: an Enter fade at full height
+   (Motion Contract 4.2). The list below takes its place at once. */
 .recap-lead.is-entering {
-  animation: recap-lead-enter calc(var(--duration-context) * 2)
+  animation: eimir-motion-enter-fade calc(var(--duration-context) * 2)
     var(--easing-enter) both;
 }
+/* Closing is option 3: the one row transition on this container, within
+   `--duration-context` and clipped by the frame, so the experiences below
+   follow the card as it closes. The owner adds `is-collapsing` one frame
+   after `is-leaving` and ends on `transitionend`. */
 .recap-lead.is-leaving {
-  animation: recap-lead-leave var(--duration-context) var(--easing-exit) both;
+  transition:
+    grid-template-rows var(--duration-context) var(--easing-exit),
+    margin-block-end var(--duration-context) var(--easing-exit),
+    opacity var(--duration-context) var(--easing-exit);
+}
+.recap-lead.is-leaving.is-collapsing {
+  grid-template-rows: 0fr;
+  margin-block-end: 0;
+  opacity: 0;
 }
 .recap-lead-frame {
   min-height: 0;
@@ -377,34 +374,11 @@
     padding: var(--space-4) var(--space-5);
   }
 }
-@keyframes recap-lead-enter {
-  from {
-    grid-template-rows: 0fr;
-    margin-block-end: 0;
-    opacity: 0;
-  }
-  to {
-    grid-template-rows: 1fr;
-    margin-block-end: var(--space-3);
-    opacity: 1;
-  }
-}
-@keyframes recap-lead-leave {
-  from {
-    grid-template-rows: 1fr;
-    margin-block-end: var(--space-3);
-    opacity: 1;
-  }
-  to {
-    grid-template-rows: 0fr;
-    margin-block-end: 0;
-    opacity: 0;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
   .recap-lead.is-entering,
   .recap-lead.is-leaving {
     animation: none;
+    transition: none;
   }
 }
 .couple-experience-page {

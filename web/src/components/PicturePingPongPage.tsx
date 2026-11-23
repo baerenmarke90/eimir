@@ -25,7 +25,7 @@ import { usePartnerDistanceLine } from '../client/partnerDistance';
 import {
   createPartnerLocationApi,
   PARTNER_LOCATION_CAPABILITY,
-  partnerLocationSettingsQueryKey,
+  usePartnerLocationSettingsEntry,
 } from '../client/partnerLocation';
 import {
   appendPoint,
@@ -62,6 +62,7 @@ import { ProblemState } from './ProblemState';
 import { TaskBackLink } from './TaskBackButton';
 import { UiState } from './UiState';
 import './PicturePingPongPage.css';
+import '../motion/game-scenes.css';
 
 const FLIGHT_BASE_MS = 900;
 const COLOURS = [
@@ -217,10 +218,7 @@ function useFlightProfile({
     load,
     capability: PARTNER_LOCATION_CAPABILITY,
   });
-  const settings = useQuery({
-    queryKey: partnerLocationSettingsQueryKey(accountId, spaceId),
-    enabled: false,
-  }).data as { available?: boolean } | undefined;
+  const settings = usePartnerLocationSettingsEntry(accountId, spaceId);
   const allowed =
     enabled && capability.data === true && settings?.available === true;
   const line = usePartnerDistanceLine({

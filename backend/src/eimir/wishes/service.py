@@ -49,6 +49,7 @@ from eimir.create_receipts.models import CreateReceiptResourceType
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.outbox import service as outbox_service
 from eimir.plans.models import Plan
+from eimir.wishes import concealment
 from eimir.wishes import reminders as wish_reminders
 from eimir.wishes.models import Wish, WishDateProposal, WishPayload, WishStatus, shared_privacy
 
@@ -344,6 +345,7 @@ def update_wish(
     a request has no path to rewrite them.
     """
     wish = require_writable(session, Wish, context, wish_id)
+    concealment.ensure_visible(session, context, wish.id)
     _ensure_expected_version(wish, expected_version)
 
     wish.payload = wish.payload.model_copy(
@@ -376,6 +378,17 @@ def lock(session: Session, context: AuthorizationContext, wish_id: UUID | str) -
     return require_writable_locked(session, Wish, context, wish_id)
 
 
+def lock_visible(session: Session, context: AuthorizationContext, wish_id: UUID | str) -> Wish:
+    """``lock`` for a command on the Wish itself, refused while a game hides it (#2158 H).
+
+    Commands that only follow a Plan's source Wish keep using ``lock``: a
+    hidden Wish is OPEN and has no Plan, and the Plan must stay manageable.
+    """
+    wish = lock(session, context, wish_id)
+    concealment.ensure_visible(session, context, wish.id)
+    return wish
+
+
 def complete_direct_wish(
     session: Session,
     context: AuthorizationContext,
@@ -389,7 +402,7 @@ def complete_direct_wish(
     ``status`` field. A Wish that has entered the Plan lifecycle remains owned
     by that lifecycle, including completion of its originating Plan.
     """
-    wish = lock(session, context, wish_id)
+    wish = lock_visible(session, context, wish_id)
     _ensure_expected_version(wish, expected_version)
     plan = session.execute(
         select(Plan).where(Plan.source_wish_id == wish.id).with_for_update()
@@ -536,7 +549,7 @@ def delete_wish(
     *,
     expected_version: int,
 ) -> None:
-    wish = lock(session, context, wish_id)
+    wish = lock_visible(session, context, wish_id)
     _ensure_expected_version(wish, expected_version)
     _ensure_deletable(session, wish)
     actor_id = context.account_id

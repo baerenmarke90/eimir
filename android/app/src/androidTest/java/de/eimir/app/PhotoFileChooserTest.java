@@ -19,6 +19,7 @@ import android.os.Build;
 import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.view.KeyEvent;
+import android.view.ViewConfiguration;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.webkit.WebChromeClient.FileChooserParams;
@@ -65,6 +66,13 @@ public class PhotoFileChooserTest {
         "f8af59464b9cfa212bc95f129f923acf955d571ffd97c1b2cbb4be057069e0f6";
     private static final String LOCATION_REDACTED_VIDEO_SHA256 =
         "73ce039ba4f3d2e0245dd3255202cf830f4b7fddbbd036884a35c8ce5c07f1b8";
+    // The platform input command injects DOWN and UP as separate events. A
+    // renderer or main-thread stall between them on a software-rendered guest
+    // otherwise crosses the 400 ms default, so Chromium reports a long press
+    // and never activates the file input. Keep this below the picker deadline.
+    private static final int STALL_TOLERANT_LONG_PRESS_MS = 10000;
+    private static final String LONG_PRESS_SETTING = "long_press_timeout";
+    private static String previousLongPressTimeout;
 
     private static FileChooserParams parameters(int mode, boolean capture, String... types) {
         return new FileChooserParams() {
@@ -83,14 +91,40 @@ public class PhotoFileChooserTest {
     }
 
     @AfterClass
-    public static void removeGalleryFixture() {
+    public static void removeGalleryFixture() throws Exception {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         if (source != null) source.delete();
+        if (previousLongPressTimeout != null) {
+            UiDevice device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());
+            device.executeShellCommand("null".equals(previousLongPressTimeout)
+                ? "settings delete secure " + LONG_PRESS_SETTING
+                : "settings put secure " + LONG_PRESS_SETTING + " " + previousLongPressTimeout);
+        }
+    }
+
+    /**
+     * Chromium reads the long-press timeout once per process, so this must run
+     * before the first WebView. The tap itself stays a real touchscreen gesture.
+     */
+    private static void tolerateInputStallsBetweenTapEvents() throws Exception {
+        UiDevice device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());
+        previousLongPressTimeout = device.executeShellCommand(
+            "settings get secure " + LONG_PRESS_SETTING).trim();
+        device.executeShellCommand("settings put secure " + LONG_PRESS_SETTING + " "
+            + STALL_TOLERANT_LONG_PRESS_MS);
+        long deadline = SystemClock.uptimeMillis() + 5000;
+        while (ViewConfiguration.getLongPressTimeout() != STALL_TOLERANT_LONG_PRESS_MS
+                && SystemClock.uptimeMillis() < deadline) {
+            SystemClock.sleep(50);
+        }
+        assertEquals("Android publishes the fixture's long-press timeout to this process",
+            STALL_TOLERANT_LONG_PRESS_MS, ViewConfiguration.getLongPressTimeout());
     }
 
     @BeforeClass
     public static void useForeignOwnedGalleryFixture() throws Exception {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return;
+        tolerateInputStallsBetweenTapEvents();
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         String selected = InstrumentationRegistry.getArguments().getString("externalPhotoUri");
         assertNotNull("CI seeds a shell-owned camera photo, never an app-owned fixture", selected);
@@ -764,9 +798,11 @@ public class PhotoFileChooserTest {
         // UiAutomation synchronizes surfaces between injected events, even for
         // asynchronous gestures. A slow renderer can hold DOWN until Android
         // recognizes a long press. The platform input command dispatches one
-        // complete tap without that per-event surface synchronization. It still
-        // traverses the real touchscreen path; selection, confirmation and File
-        // handoff are verified below, with no action replay or accessibility click.
+        // complete tap without that per-event surface synchronization, but its
+        // DOWN and UP can still straddle a stall, which the class-wide long-press
+        // timeout absorbs. It still traverses the real touchscreen path; selection,
+        // confirmation and File handoff are verified below, with no action replay
+        // or accessibility click.
         String output = UiDevice.getInstance(instrumentation).executeShellCommand(
             "input touchscreen tap " + bounds.centerX() + " " + bounds.centerY());
         assertEquals("Android accepts the identified control's native tap", "", output.trim());

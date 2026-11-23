@@ -30,7 +30,7 @@ from eimir.auth.recent_auth_models import (
 )
 from eimir.authorization.retention import hard_delete_owner_only
 from eimir.core.clock import now
-from eimir.daily_checkins.models import DailyCheckIn, DailyInsightFeedback
+from eimir.daily_checkins.models import DailyCheckIn
 from eimir.dashboard.models import DashboardModulePreference
 from eimir.engagement.models import (
     Notification,
@@ -58,6 +58,7 @@ from eimir.relationship.service import (
     freeze_offboarding_purge_deadline_if_orphaned,
     lock_space,
 )
+from eimir.support_reports.models import SupportReport
 from eimir.wishes.models import WishReminder
 
 DELETED_ACCOUNT_DISPLAY_NAME = "Deleted account"
@@ -71,13 +72,14 @@ _FAILURE_CODE = re.compile(r"[A-Z0-9_-]{1,64}\Z")
 # removed through the plugin seam (``eimir.plugins.lifecycle.account_deleted``).
 PERSONAL_ACCOUNT_ROWS = (
     DailyCheckIn,
-    DailyInsightFeedback,
     DashboardModulePreference,
     NotificationPreference,
     RecentAuthenticationGrant,
     RecentAuthenticationOidcRequest,
     RecentAuthenticationWebAuthnChallenge,
     SpacePresence,
+    # Deleting a report removes its reply through ON DELETE CASCADE (#2189).
+    SupportReport,
     WishReminder,
 )
 
@@ -310,6 +312,15 @@ def apply_core_cleanup(session: Session, account_id: UUID) -> AccountDeletion | 
         )
     )
     _delete_account_rows(session, PushEndpoint, account_id, PushEndpoint.account_id)
+    # Hints to recover skipped videos from a Transfer Bundle (#2141) hold no
+    # shared history; the deleted Account's videos are no longer offered, and
+    # the hints this Account imported go with it (only it could see them).
+    from eimir.transfer.models import TransferSkippedVideo
+
+    _delete_account_rows(session, TransferSkippedVideo, account_id, TransferSkippedVideo.owner_id)
+    _delete_account_rows(
+        session, TransferSkippedVideo, account_id, TransferSkippedVideo.imported_by
+    )
 
     # The active partner-facing profile is not retained as historical Account
     # identity. SELF_PROFILE preferences cascade with it; owner-only partner

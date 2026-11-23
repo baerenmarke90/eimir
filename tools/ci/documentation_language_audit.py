@@ -256,7 +256,7 @@ ALLOWED_DOCUMENTATION_TEXTS_BY_PATH = {
         "Haltet einen gemeinsamen Moment fest, wenn es für euch passt.",
         "Wähle ein Foto für diese Erinnerung aus. Ohne Zugriff kannst du die Erinnerung weiterhin ohne Bild speichern.",
         "Gemeinsame Momente nicht verpassen",
-        "eimir. kann dich an ausgewählte Termine erinnern. Sensible Inhalte bleiben in der Vorschau standardmäßig verborgen.",
+        "eimir. kann dich an ausgewählte Termine erinnern. Was davon auf dem gesperrten Bildschirm erscheint, entscheidet deine Android-Einstellung für sensible Inhalte.",
     ),
     Path("docs/DESIGN-PRINCIPLES.md"): (
         "Where am I?",

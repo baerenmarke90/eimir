@@ -6,7 +6,6 @@ import composer from './locales/composer';
 import contextTags from './locales/contextTags';
 import coupleExperiences from './locales/coupleExperiences';
 import dailyEnergy from './locales/dailyEnergy';
-import dailyInsights from './locales/dailyInsights';
 import dailyQuote from './locales/dailyQuote';
 import dailyVibe from './locales/dailyVibe';
 import dateIdeas from './locales/dateIdeas';
@@ -56,18 +55,21 @@ import serverAdmin from './locales/serverAdmin';
 import sharedNotes from './locales/sharedNotes';
 import snackbar from './locales/snackbar';
 import spaceOffboarding from './locales/spaceOffboarding';
+import storageQuota from './locales/storageQuota';
 import storyProducts from './locales/storyProducts';
+import supportReport from './locales/supportReport';
 import motionSettings from './locales/motionSettings';
 import taskBoundary from './locales/taskBoundary';
 import taskSheets from './locales/taskSheets';
+import uploadFailure from './locales/uploadFailure';
 import video from './locales/video';
 import voiceNotes from './locales/voiceNotes';
 import webViewNotice from './locales/webViewNotice';
-import weeklyInsights from './locales/weeklyInsights';
 import wirCheckIn from './locales/wirCheckIn';
 import wirDesign from './locales/wirDesign';
 import wishDateProposal from './locales/wishDateProposal';
 import wishJourney from './locales/wishJourney';
+import wishConcealment from './locales/wishConcealment';
 import wishRepeat from './locales/wishRepeat';
 import wishSelection from './locales/wishSelection';
 
@@ -93,13 +95,12 @@ export const germanResources = {
   wishJourney,
   wishDateProposal,
   wishRepeat,
+  wishConcealment,
   navigation: { ...de.navigation, ...navigation },
   notificationSettings,
   demo,
   discreetPlans,
   dailyEnergy,
-  dailyInsights,
-  weeklyInsights,
   dailyQuote,
   dailyVibe,
   dateIdeas,
@@ -125,6 +126,9 @@ export const germanResources = {
   serverAdmin,
   ...sharedNotes,
   spaceOffboarding,
+  storageQuota,
+  supportReport,
+  uploadFailure,
   ...relationshipComponents,
   relationshipReflections,
   recaps,

@@ -63,6 +63,7 @@ typography('story-summary', 'storySummary', 'display');
 typography('story-total', 'storyTotal', 'display');
 typography('story-category', 'storyCategory');
 for (const [name, role] of [
+  ['subpage-content-gap', 'subpageContentGap'],
   ['media-mosaic-gap', 'mediaMosaicGap'],
   ['story-summary-inset', 'storySummaryInset'],
   ['story-category-gap', 'storyCategoryGap'],
@@ -228,6 +229,9 @@ declare(
 );
 // Momente > Erinnerungen Fotostory: dwell per slide and slow photo zoom.
 declare('duration-story-slide', value('motion.duration.storySlide'));
+// The "Wisst ihr noch?" lead slide dwells longer so its photo can develop.
+declare('duration-story-lead-slide', value('motion.duration.storyLeadSlide'));
+declare('duration-story-develop', value('motion.duration.storyDevelop'));
 declare('duration-story-ken-burns', value('motion.duration.storyKenBurns'));
 // Loading domain: one turn of a pending-status spinner (pull to refresh).
 declare('duration-loading-cycle', value('motion.duration.loadingCycle'));
@@ -351,6 +355,7 @@ ${storyColorDeclarations('dark', '    ')}
     --duration-connection-beat: ${value('motion.duration.instant')};
     --duration-connection-travel: ${value('motion.duration.instant')};
     --duration-connection-travel-far: ${value('motion.duration.instant')};
+    --duration-story-develop: ${value('motion.duration.instant')};
     --duration-story-ken-burns: ${value('motion.duration.instant')};
     --duration-loading-cycle: ${value('motion.duration.instant')};
   }

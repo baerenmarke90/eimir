@@ -18,9 +18,9 @@ from eimir.attachments.limits import (
     VIDEO_MAX_DURATION_SECONDS,
     VIDEO_MAX_SIZE,
     supported_mime_types,
+    video_processing_available,
 )
 from eimir.attachments.models import Attachment
-from eimir.config import get_settings
 from eimir.core.ids import parse_id
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import Capability
@@ -53,7 +53,7 @@ class VideoPlaybackAccess(ApiModel):
     responses=problem_responses(401, 404),
 )
 def upload_policy(authorization: Authorization, session: DbSession) -> AttachmentUploadPolicy:
-    enabled = get_settings().video_upload_enabled
+    enabled = video_processing_available()
     return AttachmentUploadPolicy(
         accepted_mime_types=sorted(supported_mime_types()),
         video_processing_enabled=enabled,

@@ -91,6 +91,12 @@ export interface WishDetail {
      */
     hasMemory: boolean;
     /**
+     * True while an open game hides this Wish from the reader, for example a partner's Wish that may still be the answer in Wish detective. Title, description and tags are then empty, the series fields point to the Wish itself, every capability is false and writes are refused with `WISH_HIDDEN_DURING_GAME`. The game reveals it with its round or at the end.
+     * @type {boolean}
+     * @memberof WishDetail
+     */
+    hiddenDuringGame?: boolean;
+    /**
      * 
      * @type {string}
      * @memberof WishDetail
@@ -193,6 +199,7 @@ export function WishDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'description': json['description'] === undefined ? undefined : json['description'] === null ? null : json['description'],
         'followedFromWishId': json['followedFromWishId'],
         'hasMemory': json['hasMemory'],
+        'hiddenDuringGame': json['hiddenDuringGame'] == null ? undefined : json['hiddenDuringGame'],
         'id': json['id'],
         'plan': WishPlanReferenceFromJSON(json['plan']),
         'seriesId': json['seriesId'],
@@ -224,6 +231,7 @@ export function WishDetailToJSONTyped(value?: WishDetail | null, ignoreDiscrimin
         'description': value['description'],
         'followedFromWishId': value['followedFromWishId'],
         'hasMemory': value['hasMemory'],
+        'hiddenDuringGame': value['hiddenDuringGame'],
         'id': value['id'],
         'plan': WishPlanReferenceToJSON(value['plan']),
         'seriesId': value['seriesId'],

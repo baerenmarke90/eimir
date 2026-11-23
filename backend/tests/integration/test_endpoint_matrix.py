@@ -19,13 +19,16 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy.orm import Session
 
+from eimir.authorization import AuthorizationContext
 from eimir.core import clock
 from eimir.dashboard.preferences import CATALOG as DASHBOARD_CATALOG
 from eimir.engagement.models import Notification, NotificationKind
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
+from eimir.recaps.models import RecapKind
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
+from tests.support.plugins import with_pro_plugin
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -437,22 +440,6 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         body={"energyLevel": 50},
         if_match=True,
     ),
-    Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-check-in/insights"),
-    Endpoint(
-        "GET",
-        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review",
-        query={"week_start": "2026-10-26"},
-    ),
-    Endpoint(
-        "POST",
-        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review",
-        body={"weekStart": "2026-10-26", "evidenceToken": "a" * 64},
-    ),
-    Endpoint(
-        "PUT",
-        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback/{recommendationKey}",
-        body={"rating": "HELPFUL"},
-    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote/catalog"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote/preferences"),
@@ -561,7 +548,9 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/games/our-moments/end",
         body={"gameId": "00000000-0000-0000-0000-000000000001"},
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/waiting"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/garden"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/garden/history"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds", body={"species": "POPPY"}),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant"),
     Endpoint(
@@ -1574,7 +1563,10 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="TRANSFER_NOT_FOUND",
         placeholders=("importId",),
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/transfer/skipped-videos"),
+    Endpoint("DELETE", "/api/v1/spaces/{spaceId}/transfer/skipped-videos"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/attachment-upload-policy"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/storage"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/attachments", body=ATTACHMENT),
     Endpoint(
         "POST",
@@ -1643,6 +1635,8 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
     ("GET", "/api/v1/push-endpoints/unifiedpush-configuration"),
     ("POST", "/api/v1/push-endpoints"),
     ("DELETE", "/api/v1/push-endpoints/{endpointId}"),
+    ("POST", "/api/v1/support-reports"),
+    ("GET", "/api/v1/support-reports/{reportId}/reply"),
     ("POST", "/api/v1/auth/sign-out"),
     ("POST", "/api/v1/auth/password"),
     ("POST", "/api/v1/auth/email/verification/request"),
@@ -1842,28 +1836,39 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
     if endpoint and "/recaps" in endpoint.template:
         # Keep unrelated domain fixtures Free. Recap writes need their own grant
         # so the matrix reaches resource/header checks instead of a Pro gate.
-        entitlements.record_grant(
-            session,
-            space_id=space.id,
-            account_id=anna.id,
-            source_type=EntitlementSourceType.ADMIN_GRANT,
-            status=EntitlementStatus.ACTIVE,
-            tier=EntitlementTier.PREMIUM,
-            effective_from=clock.now() - timedelta(days=1),
-            capabilities=["relationship.passport"],
-        )
-        session.flush()
-        recap = client.post(
-            f"{base_path}/recaps", json={"kind": "YEAR", "year": 2025}, headers=headers
-        )
-        assert recap.status_code == 200
-        recap_id = recap.json()["id"]
-        reflection = client.put(
-            f"{base_path}/recaps/{recap_id}/reflection",
-            json={"text": "Matrix recap reflection", "shared": True, "version": 0},
-            headers=headers,
-        )
-        assert reflection.status_code == 200
+        # Composing needs the Pro plugin's capability; a Core-only instance keeps
+        # the recaps it composed while the plugin was loaded.
+        with with_pro_plugin():
+            entitlements.record_grant(
+                session,
+                space_id=space.id,
+                account_id=anna.id,
+                source_type=EntitlementSourceType.ADMIN_GRANT,
+                status=EntitlementStatus.ACTIVE,
+                tier=EntitlementTier.PREMIUM,
+                effective_from=clock.now() - timedelta(days=1),
+                capabilities=["relationship.passport"],
+            )
+            session.flush()
+            # Composed through the plugin code: the request route is not mounted in
+            # the Core-only configuration.
+            from eimir_pro.recap_composition import composer
+
+            recap_id = str(
+                composer.request_period(
+                    session,
+                    AuthorizationContext(account_id=anna.id, space_id=space.id),
+                    RecapKind.YEAR,
+                    2025,
+                    0,
+                ).id
+            )
+            reflection = client.put(
+                f"{base_path}/recaps/{recap_id}/reflection",
+                json={"text": "Matrix recap reflection", "shared": True, "version": 0},
+                headers=headers,
+            )
+            assert reflection.status_code == 200
 
     return {
         "client": client,
@@ -1888,7 +1893,6 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "planId": plan["id"],
             "reminderId": reminder["id"],
             "ruleKey": "important_date_reminder",
-            "recommendationKey": "quiet_time",
             "moduleKey": "upcoming",
             "placeId": place["id"],
             "chapterId": chapter["id"],

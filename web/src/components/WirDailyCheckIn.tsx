@@ -20,7 +20,17 @@ import { dailyCheckInTodayQueryOptions } from '../client/dailyCheckIn';
 import { ClientProblemError } from '../client/problemDetails';
 import { postSnackbar } from '../client/snackbar';
 import { refreshSpaceConfiguration } from '../client/spaceConfiguration';
+import {
+  checkInPromptDue,
+  checkInRowExpected,
+  markCheckInPromptDay,
+  rememberCheckInRow,
+} from '../client/wirCheckInPrompt';
 import { useTranslation } from '../i18n';
+import { haptic } from '../motion/haptics';
+import { prefersReducedMotion } from '../motion/reducedMotion';
+import { useStageHold, useStagePhase } from '../motion/stage';
+import { isVisibleNow, observeVisibility } from '../motion/visibility';
 import { BatteryIcon } from './DailyEnergyBattery';
 import { DailyVibeIcon } from './DailyVibeIcon';
 import { EimirIcon } from './EimirIcon';
@@ -40,7 +50,7 @@ import {
 } from './sendFlight';
 import { useDailyCheckInWrite } from './useDailyCheckInWrite';
 import { useViewportClamp } from './useViewportClamp';
-import { haptic } from '../motion/haptics';
+import { WIR_STAGE } from './wirStageMotion';
 import './WirDailyCheckIn.css';
 import '../motion/motion.css';
 
@@ -243,8 +253,6 @@ function writeArrivalSeen(key: string, value: ArrivalSeen): void {
  * it readable for about two seconds.
  */
 const PROMPT_HOLD_MS = 3600;
-/** Accounts and spaces whose line already sank into the plus this session. */
-const promptSettled = new Set<string>();
 
 export type PartnerDayState = 'visible' | 'hidden' | 'none' | 'off';
 
@@ -252,6 +260,8 @@ export interface WirDailyCheckIn {
   ownAction: PartnerAvatarAction;
   ownAriaLabel: string;
   ownBadge: ReactNode;
+  /** The day's invitation beside the plus; null unless it is showing. */
+  ownPrompt: ReactNode;
   /** Whether the viewer has set a mood or energy value today. */
   ownHasValue: boolean;
   partnerBadge: ReactNode;
@@ -269,6 +279,7 @@ export function useWirDailyCheckIn({
   partnerName,
   vibeEnabled,
   energyEnabled,
+  promptBesidePlus = false,
 }: {
   api?: DailyCheckInsApi;
   accountId?: string;
@@ -276,6 +287,11 @@ export function useWirDailyCheckIn({
   partnerName: string;
   vibeEnabled: boolean;
   energyEnabled: boolean;
+  /**
+   * The hero has a plus on the own ring: the invitation sits beside it and
+   * takes no room in the layout. Other heroes show it in the badge row.
+   */
+  promptBesidePlus?: boolean;
 }): WirDailyCheckIn | null {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -291,6 +307,11 @@ export function useWirDailyCheckIn({
     ...queryOptions,
     enabled: queryOptions.enabled && active,
   });
+  // #2147: the Wir opening waits briefly for today's state under the names.
+  useStageHold(WIR_STAGE, active && dailyQuery.isLoading);
+  // The partner's news arrives after the opening, never during it (M15).
+  const openingPhase = useStagePhase(WIR_STAGE);
+  const openingBusy = openingPhase === 'waiting' || openingPhase === 'playing';
   const vibeWrite = useDailyCheckInWrite({
     api,
     accountId: account,
@@ -460,6 +481,17 @@ export function useWirDailyCheckIn({
       current.note === base.note
     )
       return;
+    // While the opening runs, the news waits; values that will travel stay
+    // hidden meanwhile, so they never show first and then fly in again.
+    if (openingBusy) {
+      if (
+        kinds.length > 0 &&
+        arrivalMode(kinds) === 'travel' &&
+        !prefersReducedMotion()
+      )
+        setArrivalHidden(new Set(kinds));
+      return;
+    }
     // From now on this state counts as seen: it never plays twice.
     writeArrivalSeen(arrivalKey, current);
     if (kinds.length === 0) return;
@@ -486,7 +518,10 @@ export function useWirDailyCheckIn({
         },
       },
     );
-    if (!arrival) return;
+    if (!arrival) {
+      setArrivalHidden(NO_KINDS);
+      return;
+    }
     arrivalRef.current = arrival;
     if (arrivalMode(kinds) === 'travel') setArrivalHidden(new Set(kinds));
     if (kinds.includes('vibe') && base.vibe && base.vibe !== current.vibe)
@@ -501,6 +536,7 @@ export function useWirDailyCheckIn({
     day,
     flightHidden,
     flightWaiting,
+    openingBusy,
     pageVisible,
     panelOpen,
     partnerEnergyValue,
@@ -806,36 +842,76 @@ export function useWirDailyCheckIn({
     energyWrite.reset,
   ]);
 
-  // The "Wie geht's?" line invites today's check-in and explains the plus on
-  // the own ring. It shows once per app session while today has no own value,
-  // holds for a moment and then sinks into the plus. It is the day's
-  // invitation, not a feature hint, so it no longer retires for good after
-  // three sessions (Product Owner, 2026-11-19: the line had stopped showing).
+  // The "Wie geht's?" line opens the day's check-in: once per check-in day, at
+  // the first opening of Wir on this device (`client/wirCheckInPrompt.ts`). It
+  // waits for a fresh read, so a value set on another device never flashes the
+  // line, and for Wir to be really on screen, so a kept tab does not use it up
+  // unseen. It holds for a moment and then sinks into the plus.
   const ownDayHasValue = Boolean(ownVibe) || ownEnergy !== null;
-  const promptKey = `${accountId}:${spaceId}`;
-  const [promptGone, setPromptGone] = useState(() =>
-    promptSettled.has(promptKey),
-  );
+  const promptDay =
+    projection && dailyQuery.isFetchedAfterMount
+      ? projection.checkedOn.toISOString().slice(0, 10)
+      : null;
+  const promptScope = `${account}:${spaceId}:${promptDay}`;
+  const [promptRun, setPromptRun] = useState<{
+    scope: string;
+    /** Arrives after the opening, so it brings its own short entrance. */
+    late: boolean;
+  } | null>(null);
+  const [ownViewVisible, setOwnViewVisible] = useState(false);
+  const hasOwnBadge = Boolean(snapshot);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the badge element exists once today's state has loaded.
+  useEffect(() => {
+    const badge = ownBadgeRef.current;
+    if (!badge) return;
+    return observeVisibility(badge, (state) =>
+      setOwnViewVisible(state.visible),
+    );
+  }, [hasOwnBadge]);
+  useEffect(() => {
+    if (!promptDay || !ownViewVisible || openingPhase === 'waiting') return;
+    if (!checkInPromptDue(account, spaceId, promptDay)) return;
+    markCheckInPromptDay(account, spaceId, promptDay);
+    if (ownDayHasValue || panelOpen) return;
+    setPromptRun({ scope: promptScope, late: !openingBusy });
+  }, [
+    account,
+    openingBusy,
+    openingPhase,
+    ownDayHasValue,
+    ownViewVisible,
+    panelOpen,
+    promptDay,
+    promptScope,
+    spaceId,
+  ]);
+  // What the next load of today may reserve room for under the names.
+  const rowHasMark =
+    ownDayHasValue || partnerState === 'visible' || partnerState === 'hidden';
+  useEffect(() => {
+    if (accountId && promptDay)
+      rememberCheckInRow(accountId, spaceId, rowHasMark);
+  }, [accountId, promptDay, rowHasMark, spaceId]);
   const promptShown =
-    Boolean(snapshot) &&
-    !ownDayHasValue &&
-    !promptGone &&
-    !promptSettled.has(promptKey) &&
-    !panelOpen;
+    promptRun?.scope === promptScope && !ownDayHasValue && !panelOpen;
+  // Opening the sheet or saving a value ends the invitation for today.
+  useEffect(() => {
+    if (promptRun && !promptShown) setPromptRun(null);
+  }, [promptRun, promptShown]);
   useEffect(() => {
     if (!promptShown) return;
     let flight: PromptFlight | null = null;
-    const settle = () => {
-      promptSettled.add(promptKey);
-      setPromptGone(true);
-    };
+    const settle = () => setPromptRun(null);
     const timer = window.setTimeout(() => {
-      const badge = ownBadgeRef.current;
-      const source = badge?.querySelector<HTMLElement>('.wir-checkin-prompt');
-      const target = badge
-        ?.closest('.partner-avatar-stack')
-        ?.querySelector<HTMLElement>('.wir-stage-gesture-own');
-      flight = source && target ? startPromptFlight(source, target) : null;
+      const stack = ownBadgeRef.current?.closest('.partner-avatar-stack');
+      const source = stack?.querySelector<HTMLElement>('.wir-stage-prompt');
+      const target = stack?.querySelector<HTMLElement>(
+        '.wir-stage-gesture-own',
+      );
+      flight =
+        source && target && isVisibleNow(source).visible
+          ? startPromptFlight(source, target)
+          : null;
       if (flight) void flight.finished.then(settle);
       else settle();
     }, PROMPT_HOLD_MS);
@@ -843,7 +919,7 @@ export function useWirDailyCheckIn({
       window.clearTimeout(timer);
       flight?.cancel();
     };
-  }, [promptShown, promptKey]);
+  }, [promptShown]);
 
   if (!active || !accountId || !api) return null;
 
@@ -1018,12 +1094,15 @@ export function useWirDailyCheckIn({
       className="wir-checkin-badge wir-checkin-badge-own"
       badgeRef={ownBadgeRef}
       data-pending={ownPending ? 'true' : undefined}
-      data-empty={!ownHasValue && !promptShown ? 'true' : undefined}
+      data-empty={
+        !ownHasValue && (promptBesidePlus || !promptShown) ? 'true' : undefined
+      }
       data-testid="wir-checkin-own-badge"
+      data-motion-join=""
       aria-hidden="true"
     >
-      <span
-        key={ownHasValue ? `${ownVibe}:${ownEnergy === null}` : 'empty'}
+      <BadgeContent
+        changeKey={ownHasValue ? `${ownVibe}:${ownEnergy === null}` : 'empty'}
         className="wir-checkin-badge-content"
       >
         {ownHasValue ? (
@@ -1039,12 +1118,12 @@ export function useWirDailyCheckIn({
               </FlightSlot>
             ) : null}
           </>
-        ) : (
+        ) : promptBesidePlus ? null : (
           <span className="wir-checkin-prompt">
             <span aria-hidden="true">+</span> {t('wirCheckIn.ownPrompt')}
           </span>
         )}
-      </span>
+      </BadgeContent>
       {ownNote ? (
         <FlightSlot
           kind="note"
@@ -1055,7 +1134,34 @@ export function useWirDailyCheckIn({
         </FlightSlot>
       ) : null}
     </ClampedBadge>
+  ) : dailyQuery.isLoading &&
+    (!promptBesidePlus || checkInRowExpected(accountId, spaceId)) ? (
+    // While today's state loads, a row that will show a mark keeps its place,
+    // so a late value never pushes the quote and the modules down (#2147). An
+    // empty day reserves nothing, so the quote never has to move up again.
+    <span
+      className="wir-checkin-badge wir-checkin-badge-own"
+      data-placeholder="true"
+      aria-hidden="true"
+    />
   ) : null;
+
+  const ownPrompt =
+    promptBesidePlus && promptShown ? (
+      <span
+        className="wir-checkin-prompt wir-stage-prompt"
+        data-testid="wir-checkin-own-prompt"
+        data-motion-join=""
+        data-arrival={promptRun?.late ? 'late' : undefined}
+        aria-hidden="true"
+        onAnimationEnd={() =>
+          // Removed once played, so a kept tab shown again does not replay it.
+          setPromptRun((run) => (run ? { ...run, late: false } : run))
+        }
+      >
+        {t('wirCheckIn.ownPrompt')}
+      </span>
+    ) : null;
 
   const partnerSlotState = {
     hidden: arrivalHidden,
@@ -1071,10 +1177,11 @@ export function useWirDailyCheckIn({
           badgeRef={partnerBadgeRef}
           data-state={partnerState}
           data-testid="wir-checkin-partner-badge"
+          data-motion-join=""
           aria-hidden="true"
         >
-          <span
-            key={`${partnerState}:${revealKey}:${partnerVibeValue}:${partnerEnergyValue === null}`}
+          <BadgeContent
+            changeKey={`${partnerState}:${revealKey}:${partnerVibeValue}:${partnerEnergyValue === null}`}
             className={`wir-checkin-badge-content${revealKey > 0 && partnerState === 'visible' ? ' is-revealed' : ''}`}
           >
             {partnerState === 'hidden' ? (
@@ -1107,13 +1214,13 @@ export function useWirDailyCheckIn({
                 ) : null}
               </>
             )}
-          </span>
+          </BadgeContent>
         </ClampedBadge>
         {partnerNote && noteSeen.unread ? (
           <FlightSlot
             key={`dot:${revealKey}`}
             kind="note"
-            className="wir-checkin-note-dot"
+            className={`wir-checkin-note-dot${revealKey > 0 ? ' is-new' : ''}`}
             testId="wir-checkin-note-dot"
             {...partnerSlotState}
           >
@@ -1405,6 +1512,7 @@ export function useWirDailyCheckIn({
     ownAction,
     ownAriaLabel,
     ownBadge,
+    ownPrompt,
     ownHasValue,
     partnerBadge,
     partnerAriaLabel,
@@ -1456,6 +1564,43 @@ function FlightSlot({
 }
 
 /** Keeps an avatar badge inside the viewport at any text size (#1790 A). */
+/**
+ * The badge's values. They settle in only when they change while Wir is
+ * shown (a new value, a reveal), never when the badge first appears: then
+ * the badge itself is part of the Wir opening or simply there (#2147). The
+ * change class is removed when its animation ended, so a kept tab that is
+ * shown again does not replay it (M4).
+ */
+function BadgeContent({
+  changeKey,
+  className,
+  children,
+}: {
+  changeKey: string;
+  className: string;
+  children: ReactNode;
+}) {
+  const shownKey = useRef(changeKey);
+  const [changedKey, setChangedKey] = useState<string | null>(null);
+  useLayoutEffect(() => {
+    if (shownKey.current === changeKey) return;
+    shownKey.current = changeKey;
+    setChangedKey(changeKey);
+  }, [changeKey]);
+  const changed = changedKey === changeKey;
+  return (
+    <span
+      key={changeKey}
+      className={`${className}${changed ? ' is-changed' : ''}`}
+      onAnimationEnd={(event) => {
+        if (event.target === event.currentTarget) setChangedKey(null);
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
 function ClampedBadge({
   className,
   children,
@@ -1468,6 +1613,7 @@ function ClampedBadge({
   'data-pending'?: string;
   'data-state'?: string;
   'data-testid'?: string;
+  'data-motion-join'?: string;
   'aria-hidden'?: 'true';
 }) {
   const ref = useRef<HTMLSpanElement>(null);

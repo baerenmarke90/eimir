@@ -37,6 +37,31 @@
   border-radius: 0;
 }
 
+/* The count reads as a caption on a stack of prints. */
+:where(
+  .memory-map-surface[data-diary-layout="album"],
+  .memory-map-fullscreen-surface[data-diary-layout="album"]
+) .memory-map-marker-count {
+  top: auto;
+  bottom: 0;
+  inset-inline-end: 0;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  border-radius: 2px;
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font: var(--font-navigation-label);
+}
+:where(
+    .memory-map-surface[data-diary-layout="album"],
+    .memory-map-fullscreen-surface[data-diary-layout="album"]
+  )
+  .memory-map-marker-photo:has(.memory-map-stack-photo:only-child)
+  + .memory-map-marker-count {
+  display: none;
+}
+
 /* ---------- the places under the map: small paper slips ----------
  * The rounded pink/blue pills would sit beside the Polaroid pins like a
  * different product. Each place becomes a slip of paper with a mini Polaroid, lying very
@@ -73,51 +98,13 @@
   rotate: -2deg;
 }
 
-/* ---------- place slips, second pass: one calm column, taped ----------
- * Slips stay in one straight column of equal width, only barely crooked, each
- * held by a small strip of tape, with a larger mini Polaroid. */
+/* Equal-width place slips with a small photo print beside each name. */
 .memory-map-places[data-diary-layout="album"] .memory-map-place {
-  position: relative;
   grid-template-columns: 4.5rem minmax(0, 1fr);
   gap: var(--space-4);
   padding-block: var(--space-4);
 }
-.memory-map-places[data-diary-layout="album"] .memory-map-place::before {
-  content: "";
-  position: absolute;
-  top: calc(var(--space-2) * -1);
-  inset-inline-start: 50%;
-  width: 3.5rem;
-  height: 1.1rem;
-  margin-inline-start: -1.75rem;
-  rotate: calc(var(--place-tilt) * -3);
-  background:
-    repeating-linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--color-surface-raised) 35%, transparent) 0 5px,
-      transparent 5px 10px
-    ),
-    color-mix(in srgb, var(--person-partner-accent) 45%, transparent);
-  clip-path: polygon(
-    0 0,
-    4% 14%,
-    0 28%,
-    4% 42%,
-    0 57%,
-    4% 71%,
-    0 86%,
-    3% 100%,
-    100% 100%,
-    96% 86%,
-    100% 71%,
-    96% 57%,
-    100% 42%,
-    96% 28%,
-    100% 14%,
-    97% 0
-  );
-  pointer-events: none;
-}
+
 .memory-map-places[data-diary-layout="album"] .memory-map-thumbnail {
   padding: 4px 4px 11px;
 }
@@ -137,7 +124,7 @@
 }
 
 /* ---------- the memories of a selected place: scrapbook pieces ----------
- * Same language as the Tagebuch: a photo memory is a taped Polaroid, a text
+ * As in the diary, a photo memory is a Polaroid and a text
  * memory a lined note. The selected card lies straight, its neighbours very
  * slightly crooked. The strip scrolls and snaps exactly as before; the paper
  * shadow sits on each list item so it is not cut by the card shape. */
@@ -157,7 +144,6 @@
   .memory-map-selection
   .memory-map-memory {
   --memory-tilt: -1deg;
-  position: relative;
   gap: var(--space-2);
   border-radius: 3px;
   background: var(--color-surface-raised);
@@ -178,51 +164,13 @@
   rotate: 0deg;
 }
 
-/* Photo memory: Polaroid with tape. */
+/* Photo memory: a plain Polaroid. */
 .memory-map-surface[data-diary-layout="album"]
   .memory-map-selection
   .memory-map-memory.has-photo {
   padding: var(--space-3) var(--space-3) 0;
 }
-.memory-map-surface[data-diary-layout="album"]
-  .memory-map-selection
-  .memory-map-memory.has-photo::before {
-  content: "";
-  position: absolute;
-  z-index: 2;
-  top: calc(var(--space-3) * -1);
-  inset-inline-start: 50%;
-  width: 4.5rem;
-  height: 1.4rem;
-  margin-inline-start: -2.25rem;
-  rotate: calc(var(--memory-tilt) * -2);
-  background:
-    repeating-linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--color-surface-raised) 35%, transparent) 0 5px,
-      transparent 5px 10px
-    ),
-    color-mix(in srgb, var(--person-partner-accent) 45%, transparent);
-  clip-path: polygon(
-    0 0,
-    4% 14%,
-    0 28%,
-    4% 42%,
-    0 57%,
-    4% 71%,
-    0 86%,
-    3% 100%,
-    100% 100%,
-    96% 86%,
-    100% 71%,
-    96% 57%,
-    100% 42%,
-    96% 28%,
-    100% 14%,
-    97% 0
-  );
-  pointer-events: none;
-}
+
 .memory-map-surface[data-diary-layout="album"]
   .memory-map-selection
   .memory-map-strip

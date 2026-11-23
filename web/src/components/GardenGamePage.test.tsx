@@ -458,3 +458,150 @@ describe('GardenGamePage', () => {
     ).toBeNull();
   });
 });
+
+describe('GardenGamePage send flight in view (#2158 G)', () => {
+  type Rect = Pick<DOMRect, 'top' | 'bottom' | 'width' | 'height'>;
+  const box = (top: number, height = 100): Rect => ({
+    top,
+    bottom: top + height,
+    width: 340,
+    height,
+  });
+
+  /** The band sits above the viewport until it is scrolled into view. */
+  function layout({ statusTop = 300 }: { statusTop?: number } = {}) {
+    const calls: Array<{ target: string; options: unknown }> = [];
+    let bandShown = false;
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        const rect = this.classList.contains('garden-band')
+          ? box(bandShown ? 0 : -900)
+          : this.classList.contains('garden-status-line')
+            ? box(statusTop, 40)
+            : box(0, 0);
+        return {
+          ...rect,
+          left: 0,
+          right: rect.width,
+          x: 0,
+          y: rect.top,
+        } as DOMRect;
+      },
+    );
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn(function (this: HTMLElement, options: unknown) {
+        const target = this.classList.contains('garden-band')
+          ? 'band'
+          : this.classList.contains('garden-status-line')
+            ? 'status'
+            : this.className;
+        if (target === 'band') bandShown = true;
+        calls.push({ target, options });
+      }),
+    });
+    return calls;
+  }
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete (HTMLElement.prototype as { scrollIntoView?: unknown })
+      .scrollIntoView;
+  });
+
+  async function chooseAndSend() {
+    fireEvent.click(
+      await screen.findByRole('button', { name: copy.species.POPPY.name }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: copy.send }));
+  }
+
+  it('brings the band into view first, then flies, then keeps focus on the card', async () => {
+    reducedMotion(false);
+    const calls = layout();
+    const order: string[] = [];
+    renderPage(services(view()));
+    const messenger = await screen.findByTestId('garden-messenger');
+    const watcher = new MutationObserver(() => {
+      if (
+        messenger.getAttribute('opacity') === '1' &&
+        !order.includes('flight')
+      )
+        order.push('flight');
+    });
+    watcher.observe(messenger, { attributes: true });
+    await chooseAndSend();
+    await waitFor(() =>
+      expect(calls.map((call) => call.target)).toContain('band'),
+    );
+    order.push('scroll');
+    expect(calls[0]).toEqual({
+      target: 'band',
+      options: { block: 'start', behavior: 'smooth' },
+    });
+    const waiting = await screen.findByRole(
+      'heading',
+      { name: fill(copy.waitingTitle, { name: 'Alex' }) },
+      { timeout: 4000 },
+    );
+    watcher.disconnect();
+    expect(order).toEqual(['scroll', 'flight']);
+    await waitFor(() => expect(document.activeElement).toBe(waiting));
+    // The view stays with the flight and the garden: no second scroll.
+    expect(calls.map((call) => call.target)).toEqual(['band']);
+    expect(
+      screen.getByText(
+        fill(copy.sentStatus, {
+          messenger: copy.messengers.bird,
+          name: 'Alex',
+        }),
+      ),
+    ).toBeTruthy();
+  });
+
+  it('does not scroll when the band is already in view', async () => {
+    reducedMotion(false);
+    const calls = layout();
+    // Already scrolled to the top: the band is on screen.
+    vi.mocked(HTMLElement.prototype.getBoundingClientRect).mockImplementation(
+      () => ({ ...box(10), left: 0, right: 340, x: 0, y: 10 }) as DOMRect,
+    );
+    renderPage(services(view()));
+    await chooseAndSend();
+    await screen.findByRole(
+      'heading',
+      { name: fill(copy.waitingTitle, { name: 'Alex' }) },
+      { timeout: 4000 },
+    );
+    expect(calls).toEqual([]);
+  });
+
+  it('shows the result in place with reduced motion and moves only to the status', async () => {
+    const calls = layout({ statusTop: 2000 });
+    renderPage(services(view()));
+    await chooseAndSend();
+    const waiting = await screen.findByRole('heading', {
+      name: fill(copy.waitingTitle, { name: 'Alex' }),
+    });
+    await waitFor(() =>
+      expect(calls).toEqual([
+        { target: 'status', options: { block: 'nearest', behavior: 'auto' } },
+      ]),
+    );
+    expect(document.activeElement).toBe(waiting);
+    expect(screen.getByTestId('garden-messenger').getAttribute('opacity')).toBe(
+      '0',
+    );
+  });
+
+  it('leaves the page where it is with reduced motion when the status is in view', async () => {
+    const calls = layout({ statusTop: 300 });
+    renderPage(services(view()));
+    await chooseAndSend();
+    await screen.findByRole('heading', {
+      name: fill(copy.waitingTitle, { name: 'Alex' }),
+    });
+    await new Promise((resolve) => window.requestAnimationFrame(resolve));
+    expect(calls).toEqual([]);
+  });
+});

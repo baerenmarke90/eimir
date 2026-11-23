@@ -206,7 +206,7 @@ photos and words, those screenshots stay out of the repository and the issue;
 the committed evidence is captured from synthetic fixtures in the implemented
 reader.
 
-### Selection and cut (server, `recaps/film.py`, `recaps/montage.py`)
+### Selection and cut (server, `recap_composition/film.py`, `recap_composition/montage.py`)
 
 - **Pool:** every shared moment that starts in the month (Memory, HeartMoment,
   Milestone, Chapter, completed Plan). Both answers to one guided happiness or
@@ -318,7 +318,7 @@ synthetic storyboard shown with the plan and the browser captures below serve
 as the visual reference; the baseline was this stack's base
 `claude/recap-bestof-8cf63b@d212c72ab` (PR #2018 on `main@1daf96b48`).
 
-### Cut (server, `recaps/film.py` `year_cut`, `recaps/montage.py` `compose_year`)
+### Cut (server, `recap_composition/film.py` `year_cut`, `recap_composition/montage.py` `compose_year`)
 
 - **Per month:** where a monthly film of that month exists, its frozen highlight
   and its frozen selection are reused; otherwise the monthly cut rules choose,
@@ -425,7 +425,7 @@ browser captures below as the visual product reference instead of a generated
 image. The baseline was this stack's base
 `claude/recap-year-film-6b7fbd@94608eb42` (PR #2019).
 
-### Catalogue (server `recaps/film.py`, reader `recapFilm.ts`)
+### Catalogue (server `recap_composition/film.py`, reader `recapFilm.ts`)
 
 - **Transitions:** twelve pair transitions (fade, slide, rise, zoom, iris, wipe,
   shift, blur, and new: blinds, split, flip, focus pull), 132 ordered pairs.
@@ -584,7 +584,7 @@ The baseline was this stack's base `claude/recap-film-variety-18ddaa@111f6a74a`
 (PR #2020). The Product Owner accepted the synthetic browser captures below as
 the visual reference, as for the film variety.
 
-### Late-entry detection (server `recaps/freshness.py`, `recaps/service.py`)
+### Late-entry detection (server `recap_composition/freshness.py`, `recap_composition/composer.py`)
 
 - **Fingerprint:** every composition stores a digest of the shared material it
   accounted for: all shared, readable sources that start in the period with
@@ -612,7 +612,7 @@ the visual reference, as for the film variety.
   settling, so it picks up the month's final highlight. Editions composed before
   this change are adopted as they are, without retroactive versions or notices.
 
-### Notices (server `recaps/notices.py`, catalog `RECAP_READY`, `RECAP_GREW`)
+### Notices (server `recap_composition/notices.py`, catalog `RECAP_READY`, `RECAP_GREW`)
 
 - **Ready:** a completed month or year retained within 21 days of its end gets
   its own notice. December is announced by the year film.

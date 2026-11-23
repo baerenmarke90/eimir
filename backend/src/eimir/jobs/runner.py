@@ -21,7 +21,7 @@ from eimir.attachments import cleanup as media_cleanup
 from eimir.config import get_settings
 from eimir.context_tags import jobs as context_tag_jobs
 from eimir.daily_checkins import retention as daily_checkin_retention
-from eimir.db.session import unit_of_work
+from eimir.db.session import get_engine, unit_of_work
 from eimir.demo import reset as demo_reset
 from eimir.engagement import email_delivery, gentle_jobs, push_providers
 from eimir.engagement import push as push_delivery
@@ -31,9 +31,10 @@ from eimir.jobs import maintenance
 from eimir.jobs.worker import registry, run_once
 from eimir.observability import configure_logging
 from eimir.places import photo_enrichment
+from eimir.plugins.dormant import warn_dormant_plugin_data_once
 from eimir.plugins.loader import loaded_plugins
 from eimir.recaps import invalidation as _recap_invalidation  # noqa: F401
-from eimir.recaps import jobs as recap_jobs
+from eimir.recaps import mood_purge as recap_mood_purge
 from eimir.relationship import retention as space_retention
 from eimir.reminders import runtime as reminder_runtime
 from eimir.security import column_moves
@@ -75,10 +76,10 @@ def _ensure_maintenance() -> None:
             demo_reset.ensure_scheduled(session)
             daily_checkin_retention.ensure_scheduled(session)
             column_moves.ensure_scheduled(session)
+            recap_mood_purge.ensure_scheduled(session)
             transfer_jobs.ensure_scheduled(session)
             space_retention.ensure_scheduled(session)
             photo_enrichment.ensure_scheduled(session)
-            recap_jobs.ensure_scheduled(session)
             context_tag_jobs.ensure_scheduled(session)
             for plugin in loaded_plugins().plugins:
                 plugin.ensure_scheduled(session)
@@ -97,6 +98,7 @@ def main() -> None:
     configure_logging(settings)
     # A named plugin that cannot be loaded stops the worker here (Decision 0017).
     plugins = loaded_plugins()
+    plugins.validate(settings)
     push_providers.configure_push_providers(settings)
 
     signal.signal(signal.SIGTERM, _request_shutdown)
@@ -106,7 +108,6 @@ def main() -> None:
     log.info("worker started", extra={"worker": name})
 
     photo_enrichment.register_handlers()
-    recap_jobs.register_handlers()
     context_tag_jobs.register_handlers()
     maintenance.register_handlers()
     gentle_jobs.register_handlers()
@@ -118,10 +119,13 @@ def main() -> None:
     demo_reset.register_handlers()
     daily_checkin_retention.register_handlers()
     column_moves.register_handlers()
+    recap_mood_purge.register_handlers()
     transfer_jobs.register_handlers()
     space_retention.register_handlers()
     account_deletion_jobs.register_handlers()
     plugins.register_jobs(registry)
+    # Read-only and never fatal: data of plugins that are not loaded (Decision 0017).
+    warn_dormant_plugin_data_once(get_engine())
     # Jobs of a plugin this worker does not load wait for a worker that does.
     unclaimed = plugins.unclaimed_job_kinds(registry)
     _ensure_maintenance()

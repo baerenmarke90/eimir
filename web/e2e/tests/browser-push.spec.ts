@@ -136,13 +136,15 @@ for (const [width, theme] of [
       }),
     );
     let activationId = '';
-    await page.route('**/api/v1/push-endpoints', (route) => {
+    const registration = Promise.withResolvers<void>();
+    await page.route('**/api/v1/push-endpoints', async (route) => {
       const body = route.request().postDataJSON();
       expect(body.providerKey).toBe('webpush');
       const value = JSON.parse(body.endpointValue);
       expect(value.endpoint).toBe(endpoint);
       expect(value.notificationReferenceVersion).toBe(1);
       activationId = value.activationId;
+      await registration.promise;
       return route.fulfill({ json: { id: endpointId } });
     });
     await page.route(`**/api/v1/push-endpoints/${endpointId}`, (route) =>
@@ -170,7 +172,14 @@ for (const [width, theme] of [
       page.getByRole('switch', { name: copy.deviceToggle }),
     ).toHaveCount(0);
     await browser.click();
+    await expect(browser).toBeDisabled();
+    await expect(browser).not.toBeChecked();
+    await expect(
+      page.getByText(copy.deviceConnecting, { exact: true }),
+    ).toBeVisible();
+    registration.resolve();
     await expect(browser).toHaveAttribute('aria-checked', 'true');
+    await expect(page.getByText(copy.browserOn, { exact: true })).toBeVisible();
     await captureScreenshot(
       page,
       testInfo,

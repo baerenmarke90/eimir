@@ -104,6 +104,13 @@ class InstanceAccessStatus(ApiModel):
             "no such terms apply, including every Self-Hosted instance."
         ),
     )
+    support_reports_available: bool = Field(
+        default=False,
+        description=(
+            "Whether this instance accepts in-app support reports. Clients show the report "
+            "entry points only when true."
+        ),
+    )
 
 
 @router.get("/instance/status", response_model=InstanceAccessStatus)
@@ -139,4 +146,5 @@ def instance_status(
         oidc_connections=connections,
         oidc_signup_available=oidc_signup_supported() and state.effective_registration_enabled,
         terms_of_use_version=terms.required_terms_version(),
+        support_reports_available=config.get_settings().support_reports_enabled,
     )

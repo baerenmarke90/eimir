@@ -3,7 +3,8 @@ import { fileURLToPath } from 'node:url';
 
 // Static motion values for the motion layer's token adapter (Motion Contract
 // M1, #2073): Gesture follow thresholds, the settle spring, the attention
-// interval and the unreduced haptics spacing. They do not change with theme,
+// interval, the unreduced haptics spacing and the opening stage's data hold
+// and budget. They do not change with theme,
 // token set or reduced motion, so they are generated as constants instead of
 // CSS roles. Durations that change with reduced motion stay CSS roles in
 // product-roles.css and are read at runtime.
@@ -68,6 +69,12 @@ const generated = {
   },
   attention: {
     sameKindIntervalMs: ms('motion.attention.sameKindInterval'),
+  },
+  stage: {
+    // Motion Contract 4.1 (#2147): the data hold of an opening stage and the
+    // budget the hold and the stage share. A wait for data, not motion.
+    dataHoldMs: ms('motion.stage.dataHold'),
+    openingBudgetMs: ms('motion.stage.openingBudget'),
   },
   haptics: {
     // Motion Contract 4.10: no two haptics within --duration-context. Haptics

@@ -80,7 +80,11 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.useRealTimers();
 });
-const label = () => i18n.t('relationshipReflections.anticipation.show');
+const choice = () => i18n.t('relationshipReflections.anticipation.choiceLabel');
+const option = (name: 'automatic' | 'always' | 'never') =>
+  screen.getByRole('radio', {
+    name: i18n.t(`relationshipReflections.anticipation.${name}`),
+  }) as HTMLInputElement;
 
 /** Edit lives in the Plan page's actions menu, like on every detail page. */
 async function openPlanEditor() {
@@ -104,7 +108,7 @@ function setupPlan(send?: () => Promise<PlanDetail>) {
     title: 'A special weekend',
     description: 'Time together',
     status: 'PLANNED',
-    anticipationEnabled: false,
+    anticipation: 'AUTOMATIC',
     plannedOn: new Date('2099-11-10'),
     plannedStart: null,
     plannedEnd: null,
@@ -121,7 +125,7 @@ function setupPlan(send?: () => Promise<PlanDetail>) {
       ? await send()
       : {
           ...saved,
-          anticipationEnabled: !saved.anticipationEnabled,
+          anticipation: 'ALWAYS',
           version: saved.version + 1,
         };
     return saved;
@@ -235,56 +239,214 @@ describe('Special Plan anticipation', () => {
     unmount();
     expect(vi.getTimerCount()).toBe(0);
   });
+  describe('tick lifecycle', () => {
+    const anticipation = {
+      planId: 'plan-1',
+      title: 'Ghost Night',
+      daysRemaining: 0,
+      eventOn: new Date('2026-11-21'),
+      eventAt: new Date('2026-11-21T19:00:00Z'),
+    };
+    const digits = () =>
+      Array.from(document.querySelectorAll('.anticipation-digit'));
+    let callbacks: ((entries: { isIntersecting: boolean }[]) => void)[] = [];
+    let disconnects = 0;
+    const seen = (isIntersecting: boolean) =>
+      act(() => {
+        for (const callback of callbacks) callback([{ isIntersecting }]);
+      });
+    const renderCard = () =>
+      render(
+        <MemoryRouter>
+          <AnticipationCard value={anticipation} />
+        </MemoryRouter>,
+      );
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-11-21T18:00:00Z'));
+      callbacks = [];
+      disconnects = 0;
+      class FakeObserver {
+        constructor(callback: (typeof callbacks)[number]) {
+          callbacks.push(callback);
+        }
+        observe() {}
+        disconnect() {
+          disconnects += 1;
+        }
+      }
+      vi.stubGlobal('IntersectionObserver', FakeObserver);
+    });
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    });
+
+    it('updates digits in place without remounting or animating', () => {
+      const { unmount } = renderCard();
+      const before = digits();
+      const seconds = before[3] as HTMLElement;
+      const text = seconds.textContent;
+      act(() => vi.advanceTimersByTime(1000));
+      const after = digits();
+      expect(after).toHaveLength(4);
+      for (const [index, node] of after.entries())
+        expect(node).toBe(before[index]);
+      expect(seconds.textContent).not.toBe(text);
+      expect(seconds.style.animation).toBe('');
+      expect(getComputedStyle(seconds).animationName).not.toBe(
+        'eimir-motion-enter-fade',
+      );
+      const timer = screen.getByRole('timer');
+      expect(timer.getAttribute('aria-live')).toBe('off');
+      expect(timer.getAttribute('aria-label')).toBeTruthy();
+      unmount();
+    });
+
+    it('stops ticking while the card is out of view and refreshes when it returns', () => {
+      const { unmount } = renderCard();
+      expect(vi.getTimerCount()).toBe(1);
+      seen(false);
+      expect(vi.getTimerCount()).toBe(0);
+      vi.setSystemTime(new Date('2026-11-21T18:59:55Z'));
+      expect(digits()[3]?.textContent).not.toBe('05');
+      seen(true);
+      expect(digits().map((node) => node.textContent)).toEqual([
+        '00',
+        '00',
+        '00',
+        '05',
+      ]);
+      expect(vi.getTimerCount()).toBe(1);
+      unmount();
+      expect(vi.getTimerCount()).toBe(0);
+      expect(disconnects).toBeGreaterThan(0);
+    });
+
+    it('keeps pausing while the document is hidden even if the card is in view', () => {
+      const { unmount } = renderCard();
+      const visibility = vi.spyOn(document, 'visibilityState', 'get');
+      visibility.mockReturnValue('hidden');
+      act(() => document.dispatchEvent(new Event('visibilitychange')));
+      expect(vi.getTimerCount()).toBe(0);
+      seen(true);
+      expect(vi.getTimerCount()).toBe(0);
+      visibility.mockReturnValue('visible');
+      act(() => document.dispatchEvent(new Event('visibilitychange')));
+      expect(vi.getTimerCount()).toBe(1);
+      unmount();
+    });
+
+    it('counts the card as visible without IntersectionObserver', () => {
+      vi.stubGlobal('IntersectionObserver', undefined);
+      const { unmount } = renderCard();
+      expect(vi.getTimerCount()).toBe(1);
+      act(() => vi.advanceTimersByTime(1000));
+      expect(digits()[3]?.textContent).toBe('59');
+      unmount();
+    });
+  });
   it('shows countdown only in Edit and saves its staged choice with one versioned Plan update', async () => {
     const { update } = setupPlan();
-    expect(screen.queryByRole('switch', { name: label() })).toBeNull();
+    expect(screen.queryByRole('group', { name: choice() })).toBeNull();
     expect(screen.queryByText(i18n.t('m5s3.plan.actionsHeading'))).toBeNull();
     await openPlanEditor();
-    fireEvent.click(screen.getByRole('switch', { name: label() }));
+    expect(screen.getByRole('group', { name: choice() })).toBeTruthy();
+    expect(option('automatic').checked).toBe(true);
+    fireEvent.click(option('always'));
+    expect(option('always').checked).toBe(true);
+    expect(
+      screen.getByText(
+        i18n.t('relationshipReflections.anticipation.alwaysHelp'),
+      ),
+    ).toBeTruthy();
     expect(update).not.toHaveBeenCalled();
     fireEvent.click(
       screen.getByRole('button', { name: i18n.t('m5s3.common.saveChanges') }),
     );
     await waitFor(() => expect(update).toHaveBeenCalledOnce());
     await waitFor(() =>
-      expect(screen.queryByRole('switch', { name: label() })).toBeNull(),
+      expect(screen.queryByRole('group', { name: choice() })).toBeNull(),
     );
     expect(update.mock.calls[0]?.[0]).toMatchObject({
       spaceId: 'space-1',
       planId: 'plan-1',
       ifMatch: '1',
       planUpdate: {
-        anticipationEnabled: true,
+        anticipation: 'ALWAYS',
         schedule: { plannedOn: new Date('2099-11-10') },
       },
     });
+    const [request] = update.mock.calls[0] ?? [];
+    expect((request as { planUpdate: object }).planUpdate).not.toHaveProperty(
+      'anticipationEnabled',
+    );
+  });
+
+  it('keeps a Plan off Wir with an explicit never choice', async () => {
+    const { update } = setupPlan();
+    await openPlanEditor();
+    fireEvent.click(option('never'));
+    expect(
+      screen.getByText(
+        i18n.t('relationshipReflections.anticipation.neverHelp'),
+      ),
+    ).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.common.saveChanges') }),
+    );
+    await waitFor(() => expect(update).toHaveBeenCalledOnce());
+    expect(update.mock.calls[0]?.[0]).toMatchObject({
+      planUpdate: { anticipation: 'NEVER' },
+    });
+  });
+
+  it('explains that a discreet Plan only counts down when pinned', async () => {
+    setupPlan();
+    await openPlanEditor();
+    expect(
+      screen.getByText(
+        i18n.t('relationshipReflections.anticipation.automaticHelp'),
+      ),
+    ).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('switch', {
+        name: i18n.t('discreetPlans.editor.label'),
+      }),
+    );
+    expect(
+      screen.getByText(
+        i18n.t('relationshipReflections.anticipation.automaticDiscreetHelp'),
+      ),
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole('group', { name: choice() })
+        .getAttribute('aria-describedby'),
+    ).toBeTruthy();
   });
 
   it('keeps the staged choice after failure and deliberately retries the same intent', async () => {
     const { update } = setupPlan();
     update.mockRejectedValueOnce(new ClientProblemError('server'));
     await openPlanEditor();
-    fireEvent.click(screen.getByRole('switch', { name: label() }));
+    fireEvent.click(option('always'));
     fireEvent.click(
       screen.getByRole('button', { name: i18n.t('m5s3.common.saveChanges') }),
     );
     await screen.findByText(i18n.t('states.server.title'));
-    expect(
-      screen
-        .getByRole('switch', { name: label() })
-        .getAttribute('aria-checked'),
-    ).toBe('true');
+    expect(option('always').checked).toBe(true);
     fireEvent.click(
       screen.getByRole('button', { name: i18n.t('m5s3.common.saveChanges') }),
     );
     await waitFor(() =>
-      expect(screen.queryByRole('switch', { name: label() })).toBeNull(),
+      expect(screen.queryByRole('group', { name: choice() })).toBeNull(),
     );
     expect(update).toHaveBeenCalledTimes(2);
     expect(update.mock.calls.map((args) => args[0])).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          planUpdate: expect.objectContaining({ anticipationEnabled: true }),
+          planUpdate: expect.objectContaining({ anticipation: 'ALWAYS' }),
         }),
       ]),
     );
@@ -294,7 +456,7 @@ describe('Special Plan anticipation', () => {
     const { update } = setupPlan();
     vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
     await openPlanEditor();
-    fireEvent.click(screen.getByRole('switch', { name: label() }));
+    fireEvent.click(option('always'));
     fireEvent.click(
       screen.getByRole('button', { name: i18n.t('m5s3.common.saveChanges') }),
     );

@@ -2,6 +2,7 @@ import {
   type ReactNode,
   type Ref,
   useCallback,
+  useContext,
   useMemo,
   useState,
 } from 'react';
@@ -10,6 +11,7 @@ import { personInitials } from './PersonIdentity';
 import './PartnerAvatarPair.css';
 import { isMediaShown, markMediaShown } from '../motion/mediaReveal';
 import { prefersReducedMotion } from '../motion/reducedMotion';
+import { StageContext, stagePhase, useStageHold } from '../motion/stage';
 
 /*
  * Avatar photos are Enter `media` (Motion Contract 4.1, M5): the layer's
@@ -64,6 +66,28 @@ export interface PartnerAvatarPairProps {
   waitingAdornment?: ReactNode;
 }
 
+/**
+ * True while an ancestor of the photo (its portrait column) is still
+ * arriving: the photo then arrives with it instead of fading on its own
+ * inside a fading column (#2147).
+ */
+function insideRunningMotion(element: Element): boolean {
+  for (
+    let node = element.parentElement;
+    node && !node.classList.contains('wir-stage');
+    node = node.parentElement
+  ) {
+    if (
+      typeof node.getAnimations === 'function' &&
+      node
+        .getAnimations()
+        .some((animation) => animation.playState === 'running')
+    )
+      return true;
+  }
+  return false;
+}
+
 export function SingleAvatar({
   person,
   size,
@@ -91,6 +115,14 @@ export function SingleAvatar({
   const imageUrl = person.imageUrl;
   const hasValidImage = Boolean(imageUrl) && !failed;
   const loaded = Boolean(imageUrl) && loadedUrl === imageUrl;
+  // Inside an opening stage (Wir, #2147) the photo is part of the portrait's
+  // entrance: the opening waits briefly for it to decode, and a photo that
+  // arrives when the opening is not running appears at once, without a fade.
+  const stage = useContext(StageContext);
+  useStageHold(stage ?? '', Boolean(stage) && hasValidImage && !loaded);
+  const withoutOwnFade = (image: HTMLImageElement) =>
+    stage !== null &&
+    (stagePhase(stage) !== 'playing' || insideRunningMotion(image));
   // An image already in memory may finish before React attaches onLoad.
   const detectCachedImage = useCallback(
     (image: HTMLImageElement | null) => {
@@ -122,8 +154,9 @@ export function SingleAvatar({
               ? 'instant'
               : undefined
           }
-          onLoad={() => {
-            if (isMediaShown(imageUrl)) setInstantUrl(imageUrl);
+          onLoad={(event) => {
+            if (isMediaShown(imageUrl) || withoutOwnFade(event.currentTarget))
+              setInstantUrl(imageUrl);
             markMediaShown(imageUrl);
             setLoadedUrl(imageUrl);
           }}

@@ -5,6 +5,7 @@ export function PreferenceSwitch({
   label,
   accessibleLabel,
   description,
+  describedBy,
   checked,
   disabled = false,
   onCheckedChange,
@@ -13,6 +14,7 @@ export function PreferenceSwitch({
   label: string;
   accessibleLabel?: string;
   description?: string;
+  describedBy?: string;
   checked: boolean;
   disabled?: boolean;
   onCheckedChange: (checked: boolean) => void;
@@ -31,7 +33,11 @@ export function PreferenceSwitch({
         role="switch"
         aria-checked={checked}
         aria-label={accessibleLabel ?? label}
-        aria-describedby={description ? descriptionId : undefined}
+        aria-describedby={
+          [description && descriptionId, describedBy]
+            .filter(Boolean)
+            .join(' ') || undefined
+        }
         className="preference-switch-control"
         disabled={disabled}
         onClick={() => onCheckedChange(!checked)}

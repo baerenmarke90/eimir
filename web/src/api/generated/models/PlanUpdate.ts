@@ -20,6 +20,13 @@ import {
     PlanFileChangesToJSON,
     PlanFileChangesToJSONTyped,
 } from './PlanFileChanges';
+import type { PlanAnticipation } from './PlanAnticipation';
+import {
+    PlanAnticipationFromJSON,
+    PlanAnticipationFromJSONTyped,
+    PlanAnticipationToJSON,
+    PlanAnticipationToJSONTyped,
+} from './PlanAnticipation';
 import type { AttachmentEntry } from './AttachmentEntry';
 import {
     AttachmentEntryFromJSON,
@@ -54,8 +61,15 @@ import {
 export interface PlanUpdate {
     /**
      * 
+     * @type {PlanAnticipation}
+     * @memberof PlanUpdate
+     */
+    anticipation?: PlanAnticipation;
+    /**
+     * Deprecated alias of anticipation for older clients: true pins the Plan (ALWAYS), false returns it to AUTOMATIC.
      * @type {boolean}
      * @memberof PlanUpdate
+     * @deprecated
      */
     anticipationEnabled?: boolean;
     /**
@@ -163,6 +177,7 @@ export function PlanUpdateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     }
     return {
         
+        'anticipation': json['anticipation'] == null ? undefined : PlanAnticipationFromJSON(json['anticipation']),
         'anticipationEnabled': json['anticipationEnabled'] == null ? undefined : json['anticipationEnabled'],
         'attachments': json['attachments'] == null ? undefined : ((json['attachments'] as Array<any>).map(AttachmentEntryFromJSON)),
         'coverAttachmentId': json['coverAttachmentId'] === undefined ? undefined : json['coverAttachmentId'] === null ? null : json['coverAttachmentId'],
@@ -192,6 +207,7 @@ export function PlanUpdateToJSONTyped(value?: PlanUpdate | null, ignoreDiscrimin
 
     return {
         
+        'anticipation': PlanAnticipationToJSON(value['anticipation']),
         'anticipationEnabled': value['anticipationEnabled'],
         'attachments': value['attachments'] == null ? undefined : ((value['attachments'] as Array<any>).map(AttachmentEntryToJSON)),
         'coverAttachmentId': value['coverAttachmentId'],

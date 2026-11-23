@@ -45,7 +45,11 @@ import {
   stopNativePushForSignedOutAccount,
   useDevicePush,
 } from './client/devicePush';
-import { enableGentlePrompts, useGentleUse } from './client/gentlePrompts';
+import {
+  enableGentlePrompts,
+  prepareGentlePrompts,
+  useGentleUse,
+} from './client/gentlePrompts';
 import { useHistoryEntryTracker } from './client/historyEntries';
 import {
   ActiveAccountMismatchError,
@@ -54,6 +58,7 @@ import {
 import { loadInstanceAccessStatus } from './client/instanceStatus';
 import { createM4ProductApis } from './client/m4Product';
 import { ProfilesApi } from './client/mediaApis';
+import type { MemoryMapSession } from './client/memoryMapSession';
 import {
   ONCE_CREATE_ROUTE,
   ONCE_ROUTE,
@@ -99,14 +104,13 @@ import {
   MILESTONE_DETAIL_ROUTE_PATTERN,
   MILESTONE_EDIT_ROUTE_PATTERN,
   MORE_COLLECTIONS_ROUTE,
-  MORE_INSIGHTS_PATTERNS_ROUTE,
-  MORE_INSIGHTS_RECAP_ROUTE,
   MORE_INSIGHTS_ROUTE,
   MORE_NOTES_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
   MORE_PROFILE_ROUTE,
+  THREAD_ROUTE,
   MORE_SETTINGS_CATEGORY_ROUTE_PATTERN,
   MORE_SETTINGS_ROUTE,
   NOTE_CREATE_ROUTE,
@@ -162,6 +166,7 @@ import { useSystemTimeZone } from './client/useSystemTimeZone';
 import { useVideoTransferNavigation } from './client/useVideoTransferNavigation';
 import { VideoProcessingContext } from './client/video';
 import { AudioProcessingContext } from './client/voiceNotes';
+import { ThreadIndexRoute } from './components/ThreadNavigationLayout';
 import { WirDesignProvider } from './client/wirDesign';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AppShell } from './components/AppShell';
@@ -184,7 +189,6 @@ import { OnceMessagesPage } from './components/OnceMessages';
 import { PartnerLocationOnboarding } from './components/PartnerLocationOnboarding';
 import { PartnerLocationSync } from './components/PartnerLocationSync';
 import { PersonalSettingsSyncRuntime } from './components/PersonalSettingsSyncRuntime';
-import type { MapViewport } from './components/PlaceMapCanvas';
 import { PlanShortLinkRedirect } from './components/PlanShortLinkRedirect';
 import {
   type PrimaryTabPanel,
@@ -193,11 +197,8 @@ import {
 import { ProblemState } from './components/ProblemState';
 import { RelationshipStoryPage } from './components/RelationshipStoryPage';
 import { SecureSurface } from './components/SecureSurface';
-import {
-  ServerAdminAccessGate,
-  ServerAdminPage,
-} from './components/ServerAdminPage';
 import { SharedPlanningOverviewPage } from './components/SharedPlanningOverviewPage';
+import { Snackbar } from './components/Snackbar';
 import { StoryProductPage } from './components/StoryProductPage';
 import {
   StoryYearDetailPage,
@@ -207,194 +208,189 @@ import { ThemeControl } from './components/ThemeControl';
 import { TodayPage } from './components/TodayPage';
 import { UiState } from './components/UiState';
 import { VoiceShareIngress } from './components/VoiceShareIngress';
+import { deferredComponent } from './deferredModules';
 import { useTranslation } from './i18n';
 import { legalDocumentIdForRoute } from './legal/legalDocuments';
 import { isCapacitorNative } from './pwa';
 
-const ChapterCreatePage = lazy(() =>
-  import('./components/ChapterCreatePage').then((module) => ({
-    default: module.ChapterCreatePage,
+const ServerAdminAccessGate = lazy(() =>
+  import('./components/ServerAdminPage').then(({ ServerAdminAccessGate }) => ({
+    default: ServerAdminAccessGate,
   })),
 );
-const ChapterProductPage = lazy(() =>
-  import('./components/ChapterProductPage').then((module) => ({
-    default: module.ChapterProductPage,
+const ServerAdminPage = lazy(() =>
+  import('./components/ServerAdminPage').then(({ ServerAdminPage }) => ({
+    default: ServerAdminPage,
   })),
 );
-const ChaptersOverviewPage = lazy(() =>
-  import('./components/ChaptersOverviewPage').then((module) => ({
-    default: module.ChaptersOverviewPage,
-  })),
+
+const ChapterCreatePage = deferredComponent(() =>
+  import('./components/ChapterCreatePage').then(
+    (module) => module.ChapterCreatePage,
+  ),
 );
-const CollectionsOverviewPage = lazy(() =>
-  import('./components/CollectionsOverviewPage').then((module) => ({
-    default: module.CollectionsOverviewPage,
-  })),
+const ChapterProductPage = deferredComponent(() =>
+  import('./components/ChapterProductPage').then(
+    (module) => module.ChapterProductPage,
+  ),
 );
-const CoupleExperiencePage = lazy(() =>
-  import('./components/CoupleExperiencePage').then((module) => ({
-    default: module.CoupleExperiencePage,
-  })),
+const ChaptersOverviewPage = deferredComponent(() =>
+  import('./components/ChaptersOverviewPage').then(
+    (module) => module.ChaptersOverviewPage,
+  ),
 );
-const DailyInsightsPage = lazy(() =>
-  import('./components/DailyInsightsPage').then((module) => ({
-    default: module.DailyInsightsPage,
-  })),
+const CollectionsOverviewPage = deferredComponent(() =>
+  import('./components/CollectionsOverviewPage').then(
+    (module) => module.CollectionsOverviewPage,
+  ),
 );
-const DateIdeasPage = lazy(() =>
-  import('./components/DateIdeasPage').then((module) => ({
-    default: module.DateIdeasPage,
-  })),
+const CoupleExperiencePage = deferredComponent(() =>
+  import('./components/CoupleExperiencePage').then(
+    (module) => module.CoupleExperiencePage,
+  ),
 );
-const GardenGamePage = lazy(() =>
-  import('./components/GardenGamePage').then((module) => ({
-    default: module.GardenGamePage,
-  })),
+const DateIdeasPage = deferredComponent(() =>
+  import('./components/DateIdeasPage').then((module) => module.DateIdeasPage),
 );
-const HeartHuntGamePage = lazy(() =>
-  import('./components/HeartHuntGamePage').then((module) => ({
-    default: module.HeartHuntGamePage,
-  })),
+const GardenGamePage = deferredComponent(() =>
+  import('./components/GardenGamePage').then((module) => module.GardenGamePage),
 );
-const HeartMomentProductPage = lazy(() =>
-  import('./components/HeartMomentProductPage').then((module) => ({
-    default: module.HeartMomentProductPage,
-  })),
+const HeartHuntGamePage = deferredComponent(() =>
+  import('./components/HeartHuntGamePage').then(
+    (module) => module.HeartHuntGamePage,
+  ),
 );
-const MediaOverviewPage = lazy(() =>
-  import('./components/MediaOverviewPage').then((module) => ({
-    default: module.MediaOverviewPage,
-  })),
+const HeartMomentProductPage = deferredComponent(() =>
+  import('./components/HeartMomentProductPage').then(
+    (module) => module.HeartMomentProductPage,
+  ),
 );
-const MemoryCreatePage = lazy(() =>
-  import('./components/MemoryCreatePage').then((module) => ({
-    default: module.MemoryCreatePage,
-  })),
+const MediaOverviewPage = deferredComponent(() =>
+  import('./components/MediaOverviewPage').then(
+    (module) => module.MediaOverviewPage,
+  ),
 );
-const MemoryMapPage = lazy(() =>
-  import('./components/MemoryMapPage').then((module) => ({
-    default: module.MemoryMapPage,
-  })),
+const MemoryCreatePage = deferredComponent(() =>
+  import('./components/MemoryCreatePage').then(
+    (module) => module.MemoryCreatePage,
+  ),
 );
-const MemoryProductPage = lazy(() =>
-  import('./components/MemoryProductPage').then((module) => ({
-    default: module.MemoryProductPage,
-  })),
+const MemoryMapPage = deferredComponent(() =>
+  import('./components/MemoryMapPage').then((module) => module.MemoryMapPage),
 );
-const MilestoneProductPage = lazy(() =>
-  import('./components/MilestoneProductPage').then((module) => ({
-    default: module.MilestoneProductPage,
-  })),
+const MemoryProductPage = deferredComponent(() =>
+  import('./components/MemoryProductPage').then(
+    (module) => module.MemoryProductPage,
+  ),
 );
-const OurMomentsGamePage = lazy(() =>
-  import('./components/OurMomentsGamePage').then((module) => ({
-    default: module.OurMomentsGamePage,
-  })),
+const MilestoneProductPage = deferredComponent(() =>
+  import('./components/MilestoneProductPage').then(
+    (module) => module.MilestoneProductPage,
+  ),
 );
-const PartnerLocationMapPage = lazy(() =>
-  import('./components/PartnerLocationMapPage').then((module) => ({
-    default: module.PartnerLocationMapPage,
-  })),
+const OurMomentsGamePage = deferredComponent(() =>
+  import('./components/OurMomentsGamePage').then(
+    (module) => module.OurMomentsGamePage,
+  ),
 );
-const PartnerLocationSettingsPage = lazy(() =>
-  import('./components/PartnerLocationSettingsPage').then((module) => ({
-    default: module.PartnerLocationSettingsPage,
-  })),
+const PartnerLocationMapPage = deferredComponent(() =>
+  import('./components/PartnerLocationMapPage').then(
+    (module) => module.PartnerLocationMapPage,
+  ),
 );
-const PicturePingPongPage = lazy(() =>
-  import('./components/PicturePingPongPage').then((module) => ({
-    default: module.PicturePingPongPage,
-  })),
+const PartnerLocationSettingsPage = deferredComponent(() =>
+  import('./components/PartnerLocationSettingsPage').then(
+    (module) => module.PartnerLocationSettingsPage,
+  ),
 );
-const PlaceProductPage = lazy(() =>
-  import('./components/PlaceProductPage').then((module) => ({
-    default: module.PlaceProductPage,
-  })),
+const PicturePingPongPage = deferredComponent(() =>
+  import('./components/PicturePingPongPage').then(
+    (module) => module.PicturePingPongPage,
+  ),
 );
-const PlacesOverviewPage = lazy(() =>
-  import('./components/PlacesOverviewPage').then((module) => ({
-    default: module.PlacesOverviewPage,
-  })),
+const PlaceProductPage = deferredComponent(() =>
+  import('./components/PlaceProductPage').then(
+    (module) => module.PlaceProductPage,
+  ),
 );
-const PlanningCreatePage = lazy(() =>
-  import('./components/PlanningCreatePage').then((module) => ({
-    default: module.PlanningCreatePage,
-  })),
+const PlacesOverviewPage = deferredComponent(() =>
+  import('./components/PlacesOverviewPage').then(
+    (module) => module.PlacesOverviewPage,
+  ),
 );
-const PlanProductPage = lazy(() =>
-  import('./components/PlanProductPage').then((module) => ({
-    default: module.PlanProductPage,
-  })),
+const PlanningCreatePage = deferredComponent(() =>
+  import('./components/PlanningCreatePage').then(
+    (module) => module.PlanningCreatePage,
+  ),
 );
-const PrivateAreaProductPage = lazy(() =>
-  import('./components/PrivateAreaProductPage').then((module) => ({
-    default: module.PrivateAreaProductPage,
-  })),
+const PlanProductPage = deferredComponent(() =>
+  import('./components/PlanProductPage').then(
+    (module) => module.PlanProductPage,
+  ),
 );
-const ProfilePage = lazy(() =>
-  import('./components/ProfilePage').then((module) => ({
-    default: module.ProfilePage,
-  })),
+const PrivateAreaProductPage = deferredComponent(() =>
+  import('./components/PrivateAreaProductPage').then(
+    (module) => module.PrivateAreaProductPage,
+  ),
 );
-const ProPaywallPage = lazy(() =>
-  import('./components/ProPaywallPage').then((module) => ({
-    default: module.ProPaywallPage,
-  })),
+const ProfilePage = deferredComponent(() =>
+  import('./components/ProfilePage').then((module) => module.ProfilePage),
 );
-const RelatedPeoplePage = lazy(() =>
-  import('./components/RelatedPeoplePage').then((module) => ({
-    default: module.RelatedPeoplePage,
-  })),
+const ProPaywallPage = deferredComponent(() =>
+  import('./components/ProPaywallPage').then((module) => module.ProPaywallPage),
 );
-const RelationshipRecapsPage = lazy(() =>
-  import('./components/RelationshipRecapsPage').then((module) => ({
-    default: module.RelationshipRecapsPage,
-  })),
+const RelatedPeoplePage = deferredComponent(() =>
+  import('./components/RelatedPeoplePage').then(
+    (module) => module.RelatedPeoplePage,
+  ),
 );
-const ReminderReadPage = lazy(() =>
-  import('./components/ReminderReadPage').then((module) => ({
-    default: module.ReminderReadPage,
-  })),
+const RelationshipRecapsPage = deferredComponent(() =>
+  import('./components/RelationshipRecapsPage').then(
+    (module) => module.RelationshipRecapsPage,
+  ),
 );
-const SettingsPage = lazy(() =>
-  import('./components/SettingsPage').then((module) => ({
-    default: module.SettingsPage,
-  })),
+const ReminderReadPage = deferredComponent(() =>
+  import('./components/ReminderReadPage').then(
+    (module) => module.ReminderReadPage,
+  ),
 );
-const SharedNoteEditorPage = lazy(() =>
-  import('./components/SharedNoteEditorPage').then((module) => ({
-    default: module.SharedNoteEditorPage,
-  })),
+const SettingsPage = deferredComponent(() =>
+  import('./components/SettingsPage').then((module) => module.SettingsPage),
 );
-const SharedNoteReadPage = lazy(() =>
-  import('./components/SharedNoteReadPage').then((module) => ({
-    default: module.SharedNoteReadPage,
-  })),
+const SharedNoteEditorPage = deferredComponent(() =>
+  import('./components/SharedNoteEditorPage').then(
+    (module) => module.SharedNoteEditorPage,
+  ),
 );
-const SharedNotesOverviewPage = lazy(() =>
-  import('./components/SharedNotesOverviewPage').then((module) => ({
-    default: module.SharedNotesOverviewPage,
-  })),
+const SharedNoteReadPage = deferredComponent(() =>
+  import('./components/SharedNoteReadPage').then(
+    (module) => module.SharedNoteReadPage,
+  ),
 );
-const WhoOfUsGamePage = lazy(() =>
-  import('./components/WhoOfUsGamePage').then((module) => ({
-    default: module.WhoOfUsGamePage,
-  })),
+const SharedNotesOverviewPage = deferredComponent(() =>
+  import('./components/SharedNotesOverviewPage').then(
+    (module) => module.SharedNotesOverviewPage,
+  ),
 );
-const WishDetectiveGamePage = lazy(() =>
-  import('./components/WishDetectiveGamePage').then((module) => ({
-    default: module.WishDetectiveGamePage,
-  })),
+const WhoOfUsGamePage = deferredComponent(() =>
+  import('./components/WhoOfUsGamePage').then(
+    (module) => module.WhoOfUsGamePage,
+  ),
 );
-const WishProductPage = lazy(() =>
-  import('./components/WishProductPage').then((module) => ({
-    default: module.WishProductPage,
-  })),
+const WishDetectiveGamePage = deferredComponent(() =>
+  import('./components/WishDetectiveGamePage').then(
+    (module) => module.WishDetectiveGamePage,
+  ),
 );
-const WishSelectionPage = lazy(() =>
-  import('./components/WishSelectionPage').then((module) => ({
-    default: module.WishSelectionPage,
-  })),
+const WishProductPage = deferredComponent(() =>
+  import('./components/WishProductPage').then(
+    (module) => module.WishProductPage,
+  ),
+);
+const WishSelectionPage = deferredComponent(() =>
+  import('./components/WishSelectionPage').then(
+    (module) => module.WishSelectionPage,
+  ),
 );
 
 function DeferredRoutes({ children }: { children: ReactNode }) {
@@ -531,12 +527,14 @@ function AuthenticatedApp({
   const location = useLocation();
   const queryClient = useQueryClient();
   const previousSpaceId = useRef(spaceId);
-  const memoryMapViewport = useRef<{ scope: string; current?: MapViewport }>({
+  // The Momente map's session memory: its last camera and its selected
+  // Place, kept in memory only and per account and space.
+  const memoryMapSession = useRef<MemoryMapSession & { scope: string }>({
     scope: '',
   });
   const mapScope = JSON.stringify([apiBaseUrl, account.id, spaceId]);
-  if (memoryMapViewport.current.scope !== mapScope)
-    memoryMapViewport.current = { scope: mapScope };
+  if (memoryMapSession.current.scope !== mapScope)
+    memoryMapSession.current = { scope: mapScope };
   const apis = useMemo(
     () => createReferenceApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
@@ -560,6 +558,8 @@ function AuthenticatedApp({
     () => enableGentlePrompts(queryClient, m4Apis.notifications, account.id),
     [queryClient, m4Apis.notifications, account.id],
   );
+  const prepareOnboardingPrompts = () =>
+    prepareGentlePrompts(queryClient, m4Apis.notifications, account.id);
   // The partner-distance start sheet follows the push start prompt.
   const [pushPromptSettled, setPushPromptSettled] = useState(false);
   const settlePushPrompt = useCallback(() => setPushPromptSettled(true), []);
@@ -796,6 +796,10 @@ function AuthenticatedApp({
       element: (
         <StoryProductPage
           apis={apis}
+          active={
+            location.pathname.replace(/\/$/, '') === appRoutePath('story')
+          }
+          mapSession={memoryMapSession.current}
           accountId={account.id}
           spaceId={spaceId}
           loadMemoryImage={loadMemoryImage}
@@ -818,7 +822,7 @@ function AuthenticatedApp({
           <MemoryMapPage
             {...planningProductProps}
             loadMemoryImage={loadMemoryImage}
-            sessionViewport={memoryMapViewport.current}
+            sessionViewport={memoryMapSession.current}
           />
         </DeferredPanel>
       ),
@@ -1180,44 +1184,11 @@ function AuthenticatedApp({
               }
             />
             <Route path={appRoutePath('more')} element={null} />
+            {/* Einblicke was removed and deferred (#2210); old links land on More. */}
             <Route
-              path={MORE_INSIGHTS_RECAP_ROUTE}
-              element={
-                <Navigate
-                  replace
-                  to={{
-                    pathname: MORE_INSIGHTS_ROUTE,
-                    search: location.search,
-                    hash: '#wochenrueckblick',
-                  }}
-                  state={location.state}
-                />
-              }
+              path={`${MORE_INSIGHTS_ROUTE}/*`}
+              element={<Navigate replace to={appRoutePath('more')} />}
             />
-            {(
-              [
-                [MORE_INSIGHTS_ROUTE, 'week'],
-                [MORE_INSIGHTS_PATTERNS_ROUTE, 'patterns'],
-              ] as const
-            ).map(([path, insightView]) => (
-              <Route
-                key={path}
-                path={path}
-                element={
-                  <DailyInsightsPage
-                    apiBaseUrl={apiBaseUrl}
-                    key={`${account.id}:${spaceId}`}
-                    view={insightView}
-                    spaceId={spaceId}
-                    account={account}
-                    dailyCheckInsApi={dailyCheckInsApi}
-                    entitlementApi={entitlementApi}
-                    dashboardApi={m4Apis.dashboard}
-                    profilesApi={profilesApi}
-                  />
-                }
-              />
-            ))}
             <Route
               path={STORY_OURS_ROUTE}
               element={
@@ -1269,6 +1240,7 @@ function AuthenticatedApp({
                 />
               }
             />
+            <Route path={THREAD_ROUTE} element={<ThreadIndexRoute />} />
             <Route
               path={MORE_PROFILE_ROUTE}
               element={
@@ -1534,6 +1506,7 @@ function AuthenticatedApp({
             devicePush={devicePush}
             accountId={account.id}
             apiBaseUrl={apiBaseUrl}
+            onPreparePrompts={prepareOnboardingPrompts}
             onEnablePrompts={enableOnboardingPrompts}
             onSettled={settlePushPrompt}
           />
@@ -1899,6 +1872,8 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     return (
       <>
         <ThemeControl />
+        {/* The shell's snackbar is not mounted while signed out; a mailed link that cannot be used is reported here. */}
+        <Snackbar />
         {showDemoEntry ? (
           <DemoEntry />
         ) : (
@@ -1933,32 +1908,24 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     location.pathname.startsWith(`${SERVER_ADMIN_ROUTE}/`);
 
   if (serverAdminPath) {
-    if (capabilitiesQuery.isPending || capabilitiesQuery.error) {
-      return (
-        <ServerAdminAccessGate
-          loading={capabilitiesQuery.isPending}
-          error={capabilitiesQuery.error}
-          onRetry={() => void capabilitiesQuery.refetch()}
-        />
-      );
-    }
-
-    if (!capabilitiesQuery.data?.serverAdmin) {
-      return (
-        <ServerAdminAccessGate
-          loading={false}
-          error={null}
-          onRetry={() => void capabilitiesQuery.refetch()}
-        />
-      );
-    }
-
     return (
-      <ServerAdminPage
-        apiBaseUrl={config.apiBaseUrl}
-        accessToken={tokens.accessToken}
-        onLogout={logout}
-      />
+      <DeferredPanel>
+        {capabilitiesQuery.isPending ||
+        capabilitiesQuery.error ||
+        !capabilitiesQuery.data?.serverAdmin ? (
+          <ServerAdminAccessGate
+            loading={capabilitiesQuery.isPending}
+            error={capabilitiesQuery.error}
+            onRetry={() => void capabilitiesQuery.refetch()}
+          />
+        ) : (
+          <ServerAdminPage
+            apiBaseUrl={config.apiBaseUrl}
+            accessToken={tokens.accessToken}
+            onLogout={logout}
+          />
+        )}
+      </DeferredPanel>
     );
   }
 

@@ -44,26 +44,10 @@
 }
 
 /* Opt-in press, e.g. when a stamp slide becomes visible. */
+/* Enter `stamp` from the motion catalogue (src/motion/motion.css). */
 .momente-keepsake-stamp-mark[data-pressed="true"] {
-  animation: momente-keepsake-stamp-press var(--duration-gesture-moment)
+  animation: eimir-motion-enter-stamp var(--duration-gesture-moment)
     var(--easing-settle) backwards;
-}
-
-@keyframes momente-keepsake-stamp-press {
-  0% {
-    opacity: 0;
-    scale: 1.5;
-    rotate: -14deg;
-  }
-  60% {
-    opacity: 1;
-    scale: 0.94;
-  }
-  100% {
-    opacity: 1;
-    scale: 1;
-    rotate: 0deg;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

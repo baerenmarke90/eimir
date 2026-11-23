@@ -27,6 +27,7 @@ export type DashboardModuleKey =
   | 'relationship_presence'
   | 'partner_distance'
   | 'shared_experience'
+  | 'games_waiting'
   | 'daily_quote'
   | 'upcoming'
   | 'pinned_collection'
@@ -63,6 +64,9 @@ export const DASHBOARD_MODULE_CATALOG: readonly DashboardModuleCatalogEntry[] =
     { key: 'partner_distance', labelKey: 'partnerLocation.wirModuleLabel' },
     { key: 'shared_experience', labelKey: 'coupleExperiences.incoming.title' },
     { key: 'daily_quote', labelKey: 'dailyQuote.title' },
+    // #2158 C: games waiting on the reader. On by default; it renders only
+    // while a game waits, so it never adds an empty section.
+    { key: 'games_waiting', labelKey: 'games.waiting.settingsLabel' },
     { key: 'keepsake', labelKey: 'm5s5.today.keepsake.kicker' },
     { key: 'upcoming', labelKey: 'm5s5.dashboard.upcomingTitle' },
     {

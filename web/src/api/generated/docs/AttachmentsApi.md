@@ -12,6 +12,7 @@ All URIs are relative to *http://localhost*
 | [**getAttachment**](AttachmentsApi.md#getattachment) | **GET** /api/v1/spaces/{spaceId}/attachments/{attachmentId} | Get Attachment |
 | [**getAttachmentContent**](AttachmentsApi.md#getattachmentcontent) | **GET** /api/v1/spaces/{spaceId}/attachments/{attachmentId}/content | Get Attachment Content |
 | [**getAttachmentUploadPolicy**](AttachmentsApi.md#getattachmentuploadpolicy) | **GET** /api/v1/spaces/{spaceId}/attachment-upload-policy | Upload Policy |
+| [**getSpaceStorage**](AttachmentsApi.md#getspacestorage) | **GET** /api/v1/spaces/{spaceId}/storage | Get Space Storage |
 | [**streamVideoPlayback**](AttachmentsApi.md#streamvideoplayback) | **GET** /api/v1/spaces/{spaceId}/attachments/{attachmentId}/playback | Read Playback |
 | [**uploadAttachmentContent**](AttachmentsApi.md#uploadattachmentcontent) | **PUT** /api/v1/spaces/{spaceId}/attachments/{attachmentId}/content | Upload Attachment Content |
 
@@ -159,7 +160,7 @@ No authorization required
 | **201** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
-| **413** | The content exceeds the server-side size limit. |  -  |
+| **413** | The file exceeds the size limit for its type (code ATTACHMENT_TOO_LARGE), or its declared size does not fit the storage quota of the Space (code STORAGE_QUOTA_EXCEEDED: free up space or get Premium). |  -  |
 | **415** | The media type is not on the allowlist. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
 
@@ -587,6 +588,73 @@ example().catch(console.error);
 ### Return type
 
 [**AttachmentUploadPolicy**](AttachmentUploadPolicy.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getSpaceStorage
+
+> SpaceStorageUsage getSpaceStorage(spaceId)
+
+Get Space Storage
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AttachmentsApi,
+} from '';
+import type { GetSpaceStorageRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AttachmentsApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetSpaceStorageRequest;
+
+  try {
+    const data = await api.getSpaceStorage(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**SpaceStorageUsage**](SpaceStorageUsage.md)
 
 ### Authorization
 

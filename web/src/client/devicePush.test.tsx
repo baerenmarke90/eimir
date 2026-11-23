@@ -406,8 +406,11 @@ it('retains a late logout registration ID for cleanup at the next sign-in', asyn
   expect(window.localStorage.getItem(storageKey)).toBeNull();
 });
 
-it('waits for the prior account to stop before checking a new sign-in', async () => {
+it('overlaps configuration and device reads after the prior account stops', async () => {
   let finishDisable: (() => void) | undefined;
+  let finishConfiguration:
+    | ((value: DevicePushConfiguration) => void)
+    | undefined;
   native.disable.mockImplementationOnce(
     () =>
       new Promise((resolve) => {
@@ -415,7 +418,14 @@ it('waits for the prior account to stop before checking a new sign-in', async ()
       }),
   );
   stopNativePushForSignedOutAccount();
-  const nextLogin = setup();
+  const nextLogin = setup('space-a', (api) => {
+    api.getDevicePushConfiguration.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishConfiguration = resolve;
+        }),
+    );
+  });
   await waitFor(() =>
     expect(nextLogin.api.getDevicePushConfiguration).toHaveBeenCalledOnce(),
   );
@@ -423,6 +433,18 @@ it('waits for the prior account to stop before checking a new sign-in', async ()
 
   await act(async () => finishDisable?.());
   await waitFor(() => expect(native.status).toHaveBeenCalledOnce());
+  expect(nextLogin.result.current.state).toBe('loading');
+  expect(native.enable).not.toHaveBeenCalled();
+  expect(native.refresh).not.toHaveBeenCalled();
+  await act(async () =>
+    finishConfiguration?.({
+      unifiedPush: {
+        providerKey: 'unifiedpush',
+        vapidPublicKey: 'A'.repeat(87),
+      },
+      fcm: null,
+    }),
+  );
   await waitFor(() => expect(nextLogin.result.current.state).toBe('off'));
 });
 
@@ -445,8 +467,25 @@ it('retries an unreachable status check when the user enables Push', async () =>
   expect(result.current.registered).toBe(false);
   expect(native.enable).not.toHaveBeenCalled();
 
-  await act(async () => result.current.enable());
-  expect(api.getDevicePushConfiguration).toHaveBeenCalledTimes(2);
+  let finishStatus: (() => void) | undefined;
+  native.status.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finishStatus = () => resolve(native.state);
+      }),
+  );
+  let enabling: Promise<void> | undefined;
+  act(() => {
+    enabling = result.current.enable();
+  });
+  await waitFor(() =>
+    expect(api.getDevicePushConfiguration).toHaveBeenCalledTimes(2),
+  );
+  expect(native.enable).not.toHaveBeenCalled();
+  await act(async () => {
+    finishStatus?.();
+    await enabling;
+  });
   expect(native.enable).toHaveBeenCalledOnce();
   expect(result.current.error).toBeNull();
 });
@@ -1347,6 +1386,10 @@ it.each([
   [1, 2, 1],
   [2, undefined, 1],
   [2, 2, 2],
+  [2, 3, 2],
+  [3, undefined, 1],
+  [3, 2, 2],
+  [3, 3, 3],
 ] as const)(
   'negotiates FCM preview server max %s and native max %s as %s',
   async (serverMax, nativeMax, negotiated) => {
@@ -1361,8 +1404,11 @@ it.each([
         fcm: {
           ...fcmConfiguration,
           ...(serverMax ? { encryptedPreviewVersion: 1 as const } : {}),
-          ...(serverMax === 2
+          ...(serverMax && serverMax >= 2
             ? { encryptedPreviewMaxVersion: 2 as const }
+            : {}),
+          ...(serverMax === 3
+            ? { encryptedPreviewDetailVersion: 3 as const }
             : {}),
         },
       });

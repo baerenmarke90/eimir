@@ -351,6 +351,9 @@ export function importFailure(error: unknown): ItemOutcome {
       return { state: 'unsupported', reason: 'photoSources.itemUnsupported' };
     case 'NOT_READY':
       return { state: 'failed', reason: 'photoSources.itemNotReady' };
+    case 'STORAGE_QUOTA_EXCEEDED':
+      // Not final: the item can be imported again once there is room (#2141).
+      return { state: 'failed', reason: 'storageQuota.uploadRefused' };
     default:
       return { state: 'failed', reason: 'photoSources.itemFailed' };
   }

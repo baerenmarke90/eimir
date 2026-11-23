@@ -230,6 +230,31 @@
   .short-task-sheet-close-icon {
     display: block;
   }
+
+  /* Without a Close icon the Expanded header keeps the Compact handle, so the
+     labeled close target never renders as an empty bordered button. */
+  .short-task-sheet-no-close-icon .short-task-sheet-header {
+    min-height: var(--space-8);
+    padding: 0 var(--page-gutter);
+    border-bottom: 0;
+  }
+
+  .short-task-sheet-no-close-icon .short-task-sheet-close {
+    position: absolute;
+    left: 0;
+    right: 0;
+    width: var(--space-16);
+    padding: var(--space-3) 0 0;
+    place-items: start center;
+    border: 0;
+    background: transparent;
+    color: var(--color-text-secondary);
+    margin-inline: auto;
+  }
+
+  .short-task-sheet-no-close-icon .short-task-sheet-drag-handle {
+    display: block;
+  }
 }
 
 @media (forced-colors: active) {

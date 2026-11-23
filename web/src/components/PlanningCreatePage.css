@@ -2,11 +2,12 @@
 .wish-composer {
   display: grid;
   max-width: var(--reading-max);
-  gap: var(--space-6);
+  --page-stack-gap: var(--space-6);
 }
 
+.quiet-composer.planning-create-task,
 .wish-composer {
-  gap: var(--space-3);
+  --page-stack-gap: var(--space-3);
 }
 
 .wish-composer .page-composer-title {
@@ -20,12 +21,6 @@
 .wish-composer .composer-tool-row .composer-tool {
   flex: 0 1 auto;
   padding-inline: var(--space-4);
-}
-
-.planning-task-focus {
-  width: 0;
-  height: 0;
-  outline: 0;
 }
 
 .planning-intention-form,

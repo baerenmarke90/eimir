@@ -195,7 +195,7 @@ Intentional de-DE product copy:
 
 ```text
 Gemeinsame Momente nicht verpassen
-eimir. kann dich an ausgewählte Termine erinnern. Sensible Inhalte bleiben in der Vorschau standardmäßig verborgen.
+eimir. kann dich an ausgewählte Termine erinnern. Was davon auf dem gesperrten Bildschirm erscheint, entscheidet deine Android-Einstellung für sensible Inhalte.
 ```
 
 - No permission is requested at app startup without context.
@@ -204,11 +204,20 @@ eimir. kann dich an ausgewählte Termine erinnern. Sensible Inhalte bleiben in d
 
 ## 10. Notifications
 
-### Default preview
+### Device preview
 
-- No Memory titles, HeartMoment text, private notes, preference values, or precise locations.
-- Use neutral de-DE wording such as **„In eimir. gibt es etwas Neues“**.
-- The partner's name appears only if the person deliberately allows it and the system lock-screen context has been considered.
+Product Owner decision 2026-11-21 (#2158, amending M4-D41): Android decides.
+
+- A native notice says what happened: the partner's name, the shared title, a Plan's time and place,
+  and short excerpts of the shared words the notice is about.
+- The person's Android setting for sensitive content alone decides what a locked screen shows. The app
+  marks every notice as private and supplies a neutral public version such as de-DE
+  **„Du hast neue Nachrichten.“** for a locked screen that hides sensitive content; it never forces either.
+- Content is encrypted for the person's own device. Push providers receive no relationship content in plaintext.
+- Never in a preview: private notes, `OWNER_ONLY` content, preference values, precise locations, the content of a
+  one-time message (the server cannot read it), a discreet Plan's real title, place or comments, a surprise
+  that is revealed later in the app, and game answers or choices.
+- Transports without device-bound encryption (iOS, browser Web Push) keep neutral system copy.
 
 ### In-app
 

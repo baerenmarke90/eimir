@@ -49,6 +49,11 @@ import {
     GardenBouquetInputToJSON,
 } from '../models/GardenBouquetInput';
 import {
+    type GardenHistoryPage,
+    GardenHistoryPageFromJSON,
+    GardenHistoryPageToJSON,
+} from '../models/GardenHistoryPage';
+import {
     type GardenNameInput,
     GardenNameInputFromJSON,
     GardenNameInputToJSON,
@@ -148,6 +153,11 @@ import {
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
+import {
+    type WaitingGames,
+    WaitingGamesFromJSON,
+    WaitingGamesToJSON,
+} from '../models/WaitingGames';
 import {
     type WhoOfUsAnswerInput,
     WhoOfUsAnswerInputFromJSON,
@@ -253,6 +263,10 @@ export interface GetPicturePingPongRequest {
     spaceId: string;
 }
 
+export interface GetWaitingGamesRequest {
+    spaceId: string;
+}
+
 export interface GetWhoOfUsRemoteGameRequest {
     spaceId: string;
 }
@@ -280,6 +294,12 @@ export interface KeepHeartHuntRoundRequest {
     roundId: string;
     spaceId: string;
     heartHuntKept: HeartHuntKept;
+}
+
+export interface ListGardenHistoryRequest {
+    spaceId: string;
+    cursor?: string | null;
+    limit?: number;
 }
 
 export interface MarkPicturePingPongSavedRequest {
@@ -1200,6 +1220,53 @@ export class GamesApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getWaitingGames without sending the request
+     */
+    async getWaitingGamesRequestOpts(requestParameters: GetWaitingGamesRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getWaitingGames().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/waiting`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Games that wait on the reader, for Wir (#2158 C); never their content.
+     * Get Waiting Games
+     */
+    async getWaitingGamesRaw(requestParameters: GetWaitingGamesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WaitingGames>> {
+        const requestOptions = await this.getWaitingGamesRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => WaitingGamesFromJSON(jsonValue));
+    }
+
+    /**
+     * Games that wait on the reader, for Wir (#2158 C); never their content.
+     * Get Waiting Games
+     */
+    async getWaitingGames(requestParameters: GetWaitingGamesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WaitingGames> {
+        const response = await this.getWaitingGamesRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for getWhoOfUsRemoteGame without sending the request
      */
     async getWhoOfUsRemoteGameRequestOpts(requestParameters: GetWhoOfUsRemoteGameRequest): Promise<runtime.RequestOpts> {
@@ -1526,6 +1593,61 @@ export class GamesApi extends runtime.BaseAPI {
      */
     async keepHeartHuntRound(requestParameters: KeepHeartHuntRoundRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<HeartHuntRoundView> {
         const response = await this.keepHeartHuntRoundRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for listGardenHistory without sending the request
+     */
+    async listGardenHistoryRequestOpts(requestParameters: ListGardenHistoryRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling listGardenHistory().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['cursor'] != null) {
+            queryParameters['cursor'] = requestParameters['cursor'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/garden/history`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * What happened in the garden between the two partners, newest first.
+     * List Garden History
+     */
+    async listGardenHistoryRaw(requestParameters: ListGardenHistoryRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GardenHistoryPage>> {
+        const requestOptions = await this.listGardenHistoryRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GardenHistoryPageFromJSON(jsonValue));
+    }
+
+    /**
+     * What happened in the garden between the two partners, newest first.
+     * List Garden History
+     */
+    async listGardenHistory(requestParameters: ListGardenHistoryRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GardenHistoryPage> {
+        const response = await this.listGardenHistoryRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -2,16 +2,14 @@
 
 from eimir.main import create_app
 
+DAILY_PATHS = {"/api/v1/spaces/{spaceId}/daily-check-in/today"}
 
-def test_daily_check_in_contract_has_reveal_aware_today_and_insights_routes() -> None:
+
+def test_daily_check_in_contract_has_only_the_reveal_aware_today_route() -> None:
     schema = create_app().openapi()
     daily_paths = {path for path in schema["paths"] if "daily-check-in" in path}
-    assert daily_paths == {
-        "/api/v1/spaces/{spaceId}/daily-check-in/today",
-        "/api/v1/spaces/{spaceId}/daily-check-in/insights",
-        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review",
-        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback/{recommendationKey}",
-    }
+    # Einblicke and its history routes were removed (#2210); plugin or not, only today.
+    assert daily_paths == DAILY_PATHS
     today_route = schema["paths"]["/api/v1/spaces/{spaceId}/daily-check-in/today"]
     assert set(today_route) == {"get", "patch"}
     if_match = next(
@@ -20,9 +18,6 @@ def test_daily_check_in_contract_has_reveal_aware_today_and_insights_routes() ->
         if parameter["name"] == "If-Match"
     )
     assert if_match["required"] is True
-
-    insights_route = schema["paths"]["/api/v1/spaces/{spaceId}/daily-check-in/insights"]
-    assert set(insights_route) == {"get"}
 
 
 def test_hidden_partner_schemas_have_no_value_or_partner_metadata() -> None:
@@ -66,7 +61,4 @@ def test_update_contract_exposes_only_the_typed_daily_dimensions() -> None:
         "partner",
         "partnerNote",
     }
-
-    insight_day = schema["components"]["schemas"]["DailyCheckInInsightDayView"]
-    assert "vibeNote" not in insight_day["properties"]
-    assert "partnerNote" not in insight_day["properties"]
+    assert "DailyCheckInInsightDayView" not in schema["components"]["schemas"]

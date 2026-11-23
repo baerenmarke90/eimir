@@ -72,29 +72,21 @@
   background: var(--story-paper);
   filter: var(--story-lift);
   transform-origin: 50% 0;
-  rotate: -1.4deg;
+  /* The rest pose; the swing settles on it and the sway
+     (useKeepsakeSway) moves around it. */
+  --keepsake-rest: -1.4deg;
+  rotate: var(--keepsake-rest);
 }
 .story-page-unified
   .momente-discover-page[data-diary-layout="album"]
   .momente-hero-highlight[data-tone="playful"]
   .momente-hero-link {
-  animation: story-hang-swing-in var(--duration-gesture-sequence)
+  /* Enter `swing` from the motion catalogue (src/motion/motion.css). The
+     Ambient `sway` after it runs on the layer (useKeepsakeSway): a few
+     cycles, paused while hidden or off screen, then it rests (#2063, M8). */
+  --motion-swing-rest: var(--keepsake-rest);
+  animation: eimir-motion-enter-swing var(--duration-gesture-sequence)
     var(--easing-standard) backwards;
-}
-/* The sway settles after a few cycles and holds its last pose (#2063): with
-   the lift filter, an endless sway repainted the Polaroid every frame. */
-@media (prefers-reduced-motion: no-preference) {
-  .story-page-unified
-    .momente-discover-page[data-diary-layout="album"]
-    .momente-hero-highlight[data-tone="playful"]
-    .momente-hero-link {
-    animation:
-      story-hang-swing-in var(--duration-gesture-sequence)
-      var(--easing-standard) backwards,
-      story-hang-sway var(--duration-connection-travel-far)
-      var(--duration-gesture-sequence) var(--easing-travel)
-      var(--motion-ambient-repeat) alternate forwards;
-  }
 }
 .story-page-unified
   .momente-discover-page[data-diary-layout="album"]
@@ -155,8 +147,11 @@
   .momente-hero-highlight[data-tone="playful"]
   .momente-hero-media
   .story-media-preview {
-  animation: story-develop var(--duration-gesture-sequence)
-    var(--duration-sequence-beat) var(--easing-enter) backwards;
+  /* The photo "develops" once on the paper like instant film: an Enter
+     `fade` from a faint print, opacity only (M6). */
+  --motion-enter-from-opacity: 0.12;
+  animation: eimir-motion-enter-fade var(--duration-gesture-sequence)
+    var(--easing-enter) var(--duration-sequence-beat) backwards;
 }
 /* The text sits on the paper, not on a dark gradient over the photo. */
 .story-page-unified
@@ -199,50 +194,6 @@
   font: var(--font-composer-lead);
   font-style: normal;
   color: var(--color-story-heart-moment);
-}
-
-@keyframes story-hang-swing-in {
-  0% {
-    rotate: 16deg;
-    opacity: 0;
-  }
-  15% {
-    opacity: 1;
-  }
-  28% {
-    rotate: -9deg;
-  }
-  46% {
-    rotate: 5deg;
-  }
-  62% {
-    rotate: -2.4deg;
-  }
-  80% {
-    rotate: 1deg;
-  }
-  100% {
-    rotate: -1.4deg;
-  }
-}
-@keyframes story-hang-sway {
-  from {
-    rotate: -2.4deg;
-  }
-  to {
-    rotate: -0.4deg;
-  }
-}
-@keyframes story-develop {
-  0% {
-    filter: brightness(2.6) saturate(0) contrast(0.5) blur(4px);
-  }
-  45% {
-    filter: brightness(1.5) saturate(0.35) sepia(0.5) blur(2px);
-  }
-  100% {
-    filter: none;
-  }
 }
 
 /* ---------- tapestry: pinboard of small scrapbook pieces ---------- */

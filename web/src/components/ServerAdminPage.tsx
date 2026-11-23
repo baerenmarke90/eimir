@@ -176,6 +176,8 @@ function warningLabel(code: string, t: (key: string) => string): string {
       return t('serverAdmin.warnings.mailVerification');
     case 'failed_jobs_present':
       return t('serverAdmin.warnings.failedJobs');
+    case 'support_reports_unread':
+      return t('serverAdmin.warnings.supportReportsUnread');
     default:
       return code;
   }
@@ -698,6 +700,10 @@ function OverviewContent({
             <Metric
               label={t('serverAdmin.usage.mediaBytes')}
               value={formatBytes(overview.mediaStoredBytes)}
+            />
+            <Metric
+              label={t('serverAdmin.usage.supportReportsNew')}
+              value={formatNumber(overview.supportReportsNew)}
             />
           </dl>
         </section>

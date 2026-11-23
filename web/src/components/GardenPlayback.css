@@ -13,7 +13,7 @@
   padding: var(--space-4);
   padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
   background: var(--color-scrim);
-  animation: garden-playback-in var(--duration-transition)
+  animation: eimir-motion-garden-playback-in var(--duration-transition)
     var(--easing-standard) both;
 }
 
@@ -27,7 +27,8 @@
   border-radius: var(--radius-card);
   background: var(--garden-card);
   box-shadow: var(--shadow-soft);
-  animation: garden-unfold var(--duration-context) var(--easing-standard) both;
+  animation: eimir-motion-garden-unfold var(--duration-context)
+    var(--easing-standard) both;
   transform-origin: 50% 100%;
 }
 
@@ -67,15 +68,6 @@
 @media (min-width: 48rem) {
   .garden-playback-backdrop {
     place-items: center;
-  }
-}
-
-@keyframes garden-playback-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
   }
 }
 

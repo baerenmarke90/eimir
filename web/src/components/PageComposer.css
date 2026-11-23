@@ -177,7 +177,10 @@ button.composer-chip {
   text-align: start;
   white-space: normal;
   overflow-wrap: anywhere;
-  animation: composer-chip-enter var(--duration-transition) var(--easing-enter);
+  /* An inserted chip arrives with Enter `grow` (src/motion/motion.css). */
+  --motion-enter-from-scale: 0.98;
+  animation: eimir-motion-enter-grow var(--duration-transition)
+    var(--easing-enter);
 }
 .composer-chip > span {
   min-inline-size: 0;
@@ -214,7 +217,7 @@ button.composer-chip {
   pointer-events: none;
 }
 .page-composer .photo-draft-gallery .media-gallery {
-  animation: composer-media-enter var(--duration-transition)
+  animation: eimir-motion-enter-fade var(--duration-transition)
     var(--easing-standard);
 }
 .page-composer .media-gallery-carousel-viewport {
@@ -329,24 +332,6 @@ button.composer-chip {
 }
 .page-composer :is(input, textarea) {
   scroll-margin-block: 6rem;
-}
-@keyframes composer-chip-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@keyframes composer-media-enter {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
 }
 @media (min-width: 840px) {
   .composer-tool-row {

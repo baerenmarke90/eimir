@@ -149,7 +149,7 @@ def _vibe_note_value(session: Session, check_in_id: UUID) -> str | None:
     return row.payload.note if row is not None else None
 
 
-def _active_partner_account_id(
+def active_partner_account_id(
     session: Session,
     authorization: AuthorizationContext,
 ) -> UUID | None:
@@ -200,7 +200,7 @@ def _partner_dimension(
         # caller has not satisfied the shared reveal condition.
         return PartnerDimensionProjection(state=PartnerRevealState.HIDDEN_UNTIL_SELF_CHECK_IN)
 
-    partner_account_id = _active_partner_account_id(session, authorization)
+    partner_account_id = active_partner_account_id(session, authorization)
     if partner_account_id is None:
         return PartnerDimensionProjection(state=PartnerRevealState.NO_CHECK_IN)
 
@@ -403,7 +403,7 @@ def update_today(
     if vibe_note is None:
         vibe_note = DimensionUpdate[str](supplied=False)
 
-    _active_partner_account_id(session, authorization)
+    active_partner_account_id(session, authorization)
     _locked_space(session, authorization.space_id)
     configuration = _configuration(session, authorization.space_id)
     checked_on = resolve_space_day(configuration.daily_context_timezone, at=at)

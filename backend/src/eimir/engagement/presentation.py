@@ -12,6 +12,7 @@ from eimir.engagement.models import EngagementTarget
 from eimir.plans import discreet
 from eimir.plans.models import Plan
 from eimir.reminders.models import Reminder, ReminderSource
+from eimir.wishes import concealment
 
 
 def recap_period_key(kind: str, year: int, month: int) -> str:
@@ -57,6 +58,11 @@ def target_titles(
         )
         if target_type is EngagementTarget.REMINDER:
             statement = statement.where(Reminder.source == ReminderSource.MANUAL.value)
+        if target_type is EngagementTarget.WISH:
+            # A Wish an open game hides stays untitled; clients name it neutrally (#2158 H).
+            hidden = concealment.hidden_wish_ids(session, context)
+            if hidden:
+                statement = statement.where(model.id.not_in(hidden))
         for row in session.scalars(statement):
             if isinstance(row, Plan):
                 # A discreet Plan only ever presents its list title (#1790 F3).

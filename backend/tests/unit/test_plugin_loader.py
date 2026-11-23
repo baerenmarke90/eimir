@@ -6,12 +6,12 @@ import logging
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi import APIRouter, FastAPI
 from fastapi.routing import iter_route_contexts
 
-from eimir import pro_plugin
 from eimir.deployment.revision import UNVERIFIED_REVISION
 from eimir.engagement.models import EngagementTarget
 from eimir.entitlements.models import Capability
@@ -28,6 +28,7 @@ from eimir.plugins.loader import (
     parse_plugin_names,
     resolve_plugins,
 )
+from tests.support.plugins import pro_plugin_object, require_pro_distribution
 
 REVISION = "0123456789abcdef"
 
@@ -43,6 +44,8 @@ class FakePlugin:
     job_kinds: tuple[str, ...] = ()
     targets: Mapping[EngagementTarget, Any] = field(default_factory=dict)
     read_rules: Mapping[str, Callable[..., bool]] = field(default_factory=dict)
+    hidden_wishes: frozenset[UUID] = frozenset()
+    refused_setting: str | None = None
 
     def capabilities(self) -> frozenset[str]:
         return self.provided
@@ -75,6 +78,9 @@ class FakePlugin:
     def attachment_read_rules(self) -> Mapping[str, Callable[..., bool]]:
         return self.read_rules
 
+    def push_preview_detail(self, *args: object) -> None:
+        return None
+
     def on_partner_joined(self, *args: object) -> None:
         return None
 
@@ -90,9 +96,25 @@ class FakePlugin:
     def export_account_document(self, *args: object) -> Mapping[str, Any]:
         return {}
 
+    def hidden_wish_ids(self, session: object, context: object) -> frozenset[UUID]:
+        return self.hidden_wishes
+
+    def date_ideas(self) -> None:
+        return None
+
+    def migrations(self) -> None:
+        return None
+
+    def validate(self, settings: object) -> None:
+        if self.refused_setting is not None:
+            raise ValueError(self.refused_setting)
+
+    def seed_demo(self, *args: object, **kwargs: object) -> None:
+        return None
+
 
 def candidate(
-    plugin: object, *, name: str = "pro", distribution: str | None = "eimir"
+    plugin: object, *, name: str = "pro", distribution: str | None = "eimir-pro"
 ) -> PluginCandidate:
     return PluginCandidate(name=name, distribution=distribution, load=lambda: plugin)
 
@@ -117,6 +139,15 @@ def test_a_named_plugin_is_loaded_with_its_capabilities() -> None:
 def test_an_empty_allow_list_runs_core_only() -> None:
     assert parse_plugin_names(" , ") == ()
     assert resolve([], []).plugins == ()
+
+
+def test_hidden_wishes_come_only_from_loaded_plugins() -> None:
+    # #2158 H: Core masks what a plugin's open game hides, and nothing without one.
+    hidden = frozenset({uuid4()})
+    loaded = resolve(["pro"], [candidate(FakePlugin(hidden_wishes=hidden))])
+
+    assert loaded.hidden_wish_ids(object(), object()) == hidden  # type: ignore[arg-type]
+    assert LoadedPlugins(()).hidden_wish_ids(object(), object()) == frozenset()  # type: ignore[arg-type]
 
 
 def test_a_named_but_missing_plugin_refuses_to_start() -> None:
@@ -150,14 +181,14 @@ def test_an_installed_but_unnamed_plugin_is_ignored(caplog: pytest.LogCaptureFix
 
     caplog.set_level(logging.INFO, logger=loader.__name__)
 
-    loaded = resolve([], [PluginCandidate("pro", "eimir", never_load)])
+    loaded = resolve([], [PluginCandidate("pro", "eimir-pro", never_load)])
 
     assert loaded.plugins == ()
     assert "'pro' is not named in EIMIR_PLUGINS" in caplog.text
 
 
 def test_a_foreign_distribution_cannot_claim_the_plugin_name() -> None:
-    with pytest.raises(PluginLoadError, match="expected 'eimir'"):
+    with pytest.raises(PluginLoadError, match="expected 'eimir-pro'"):
         resolve(["pro"], [candidate(FakePlugin(), distribution="someone-elses-pro")])
 
 
@@ -181,7 +212,7 @@ def test_a_plugin_that_fails_to_import_refuses_to_start() -> None:
         raise ImportError("missing module")
 
     with pytest.raises(PluginLoadError, match="failed to import"):
-        resolve(["pro"], [PluginCandidate("pro", "eimir", broken)])
+        resolve(["pro"], [PluginCandidate("pro", "eimir-pro", broken)])
 
 
 def test_an_object_without_the_contract_refuses_to_start() -> None:
@@ -244,21 +275,26 @@ def test_distinct_plugin_routes_are_accepted() -> None:
     check_route_collisions(core.routes, [("pro", _router("/spaces/{id}/garden"))], prefix="/api/v1")
 
 
-def test_the_in_tree_pro_plugin_is_registered_as_entry_point() -> None:
+def test_the_pro_plugin_is_registered_as_entry_point_of_its_distribution() -> None:
+    require_pro_distribution()
     candidates = [entry for entry in installed_candidates() if entry.name == "pro"]
-
-    assert [entry.distribution for entry in candidates] == ["eimir"]
+    assert [entry.distribution for entry in candidates] == ["eimir-pro"]
     loaded = resolve(["pro"], candidates, UNVERIFIED_REVISION)
-    assert loaded.plugins == (pro_plugin.plugin,)
-    assert isinstance(pro_plugin.plugin, ProPlugin)
+    assert loaded.plugins == (pro_plugin_object(),)
+    assert isinstance(pro_plugin_object(), ProPlugin)
 
 
 def test_the_in_tree_pro_plugin_provides_the_moving_capabilities() -> None:
-    assert pro_plugin.plugin.capabilities() == {
+    assert pro_plugin_object().capabilities() == {
         Capability.GAMES_COUPLE.value,
         Capability.INTEGRATION_EXTERNAL_SYNC.value,
+        Capability.MEDIA_VIDEO_UPLOAD.value,
+        Capability.MEMORIES_MAP.value,
         Capability.PARTNER_ONCE_MESSAGES.value,
+        Capability.PARTNER_QUICK_ACTIONS_EXTENDED.value,
         Capability.PRESENCE_LOCATION.value,
+        Capability.RELATIONSHIP_PASSPORT.value,
+        Capability.THEME_BESPOKE_PACKS.value,
         Capability.DAILY_QUOTE.value,
         Capability.PLANNING_DATE_INSPIRATION.value,
     }
@@ -269,8 +305,8 @@ def test_the_in_tree_pro_plugin_is_built_against_this_core(
 ) -> None:
     monkeypatch.setenv("EIMIR_BUILD_REVISION", REVISION)
 
-    assert pro_plugin.plugin.core_revision == REVISION
-    assert resolve(["pro"], [candidate(pro_plugin.plugin)]).plugins == (pro_plugin.plugin,)
+    assert pro_plugin_object().core_revision == REVISION
+    assert resolve(["pro"], [candidate(pro_plugin_object())]).plugins == (pro_plugin_object(),)
 
 
 def test_startup_names_plugins_seam_revision_and_capabilities(
@@ -389,15 +425,53 @@ def test_a_worker_without_the_plugin_leaves_its_job_kinds_unclaimed() -> None:
     LoadedPlugins(()).register_jobs(registry)
     assert LoadedPlugins(()).unclaimed_job_kinds(registry) == PLUGIN_JOB_KINDS
 
-    pro_plugin.plugin.register_jobs(registry)
+    pro_plugin_object().register_jobs(registry)
     assert registry.kinds() == PLUGIN_JOB_KINDS
-    assert LoadedPlugins((pro_plugin.plugin,)).unclaimed_job_kinds(registry) == frozenset()
+    assert LoadedPlugins((pro_plugin_object(),)).unclaimed_job_kinds(registry) == frozenset()
 
 
 def test_the_in_tree_pro_plugin_decides_exactly_the_declared_targets_and_parents() -> None:
     from eimir.plugins.manifest import PLUGIN_ENGAGEMENT_TARGETS, attachment_rules
 
-    assert set(pro_plugin.plugin.engagement_targets()) == PLUGIN_ENGAGEMENT_TARGETS
-    assert set(pro_plugin.plugin.attachment_read_rules()) == {
+    assert set(pro_plugin_object().engagement_targets()) == PLUGIN_ENGAGEMENT_TARGETS
+    assert set(pro_plugin_object().attachment_read_rules()) == {
         rule.parent_type for _, rule in attachment_rules()
     }
+
+
+def test_a_plugin_that_refuses_its_configuration_refuses_to_start() -> None:
+    loaded = resolve(["pro"], [candidate(FakePlugin(refused_setting="missing key"))])
+
+    with pytest.raises(PluginLoadError, match="'pro' refused its configuration: missing key"):
+        loaded.validate(object())  # type: ignore[arg-type]
+
+
+def test_the_api_refuses_to_start_when_a_plugin_refuses_its_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from eimir import main
+
+    plugin = FakePlugin(refused_setting="missing key")
+    monkeypatch.setattr(main, "loaded_plugins", lambda: LoadedPlugins((plugin,)))
+
+    with pytest.raises(PluginLoadError, match="missing key"):
+        main.create_app()
+
+
+def test_the_worker_refuses_to_start_when_a_plugin_refuses_its_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    plugin = FakePlugin(refused_setting="missing key")
+    monkeypatch.setattr(runner, "configure_logging", lambda settings: None)
+    monkeypatch.setattr(runner, "loaded_plugins", lambda: LoadedPlugins((plugin,)))
+
+    with pytest.raises(PluginLoadError, match="missing key"):
+        runner.main()
+
+
+def test_the_in_tree_pro_plugin_has_no_chain_and_accepts_the_settings() -> None:
+    # The existing Pro tables stay in the Core chain (Decision 0017, decision 6).
+    from eimir.config import get_settings
+
+    assert pro_plugin_object().migrations() is None
+    pro_plugin_object().validate(get_settings())

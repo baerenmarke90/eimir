@@ -1,0 +1,105 @@
+/* Settings › Data storage section (#2141 Q5): one figure, a meter and, only
+   when it matters, a warm or serious note with the ways out. */
+.storage-section {
+  display: grid;
+  gap: var(--space-3);
+  animation: eimir-motion-enter-rise var(--duration-context) var(--easing-enter)
+    backwards;
+  --motion-enter-rise: 6px;
+}
+
+.storage-section h2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.storage-surface {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.storage-surface p {
+  margin: 0;
+}
+
+.storage-figure {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.storage-meter {
+  overflow: hidden;
+  block-size: 0.625rem;
+  margin-block: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+}
+
+.storage-meter > span {
+  display: block;
+  block-size: 100%;
+  border-radius: inherit;
+  background: var(--color-brand-strong);
+}
+
+.storage-section[data-level="almostFull"] .storage-meter > span {
+  background: var(--color-discovery);
+}
+
+.storage-section[data-level="full"] .storage-meter > span {
+  background: var(--color-error);
+}
+
+.storage-muted {
+  color: var(--color-text-muted);
+}
+
+.storage-callout {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-medium);
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+.storage-callout[data-tone="warn"] {
+  background: var(--color-discovery-surface);
+}
+
+.storage-callout[data-tone="error"] {
+  background: var(--color-error-surface);
+}
+
+.storage-actions {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+.storage-actions > .button-link {
+  width: 100%;
+}
+
+.storage-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-self: start;
+  color: var(--color-link-text);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 480px) {
+  .storage-callout {
+    padding: var(--space-2);
+  }
+}

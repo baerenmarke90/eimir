@@ -1,6 +1,9 @@
 name: Android launcher icons
 
 on:
+  # Pull requests run this heavy workflow only when ready for review and labelled
+  # ci:full, or from a release/ branch (#2096); otherwise every job is skipped at
+  # no runner cost and the nightly regression on main covers it.
   pull_request:
     paths:
       - '.github/workflows/android-launcher-icons.yml'
@@ -20,17 +23,19 @@ on:
       - 'scripts/test_android_launcher_identity.py'
       - 'docs/design/eimir/1307-premium-app-icons/build-android-icons.py'
       - 'docs/design/eimir/1307-premium-app-icons/source-crops.json'
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: android-launcher-${{ github.ref }}
+  group: android-launcher-${{ github.ref }}${{ github.event.action == 'labeled' && github.event.label.name != 'ci:full' && format('-ignored-label-{0}', github.run_id) || '' }}
   cancel-in-progress: true
 
 jobs:
   launcher:
+    if: github.event_name != 'pull_request' || ((startsWith(github.head_ref, 'release/') || (github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ci:full'))) && (github.event.action != 'labeled' || github.event.label.name == 'ci:full'))
     name: Android launcher API ${{ matrix.api }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -38,22 +43,12 @@ jobs:
       ANDROID_AVD_HOME: /tmp/eimir-launcher-avd
     strategy:
       fail-fast: false
+      # Labelled pull requests verify API 36; the nightly and manual regression
+      # cover the complete API 28 / 36 / 37.1 matrix (#2096). The 16K 37.1 guest
+      # killed instrumentation during its boot-time service burst at 6 GiB; the
+      # 16 GiB host retains room for an 8 GiB guest.
       matrix:
-        include:
-          - api: 28
-            image: android-28
-            tag: google_apis
-            memory: 2048
-          - api: 36
-            image: android-36
-            tag: google_apis
-            memory: 4096
-          - api: '37.1'
-            image: android-37.1
-            tag: google_apis_ps16k
-            # The 16K guest killed instrumentation during its boot-time service
-            # burst at 6 GiB; the 16 GiB host retains room for an 8 GiB guest.
-            memory: 8192
+        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"api":36,"image":"android-36","tag":"google_apis","memory":4096}]' || '[{"api":28,"image":"android-28","tag":"google_apis","memory":2048},{"api":36,"image":"android-36","tag":"google_apis","memory":4096},{"api":"37.1","image":"android-37.1","tag":"google_apis_ps16k","memory":8192}]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -309,7 +304,7 @@ jobs:
             -e class de.eimir.app.PushPreviewTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee push-preview.log
-          grep -Eq '^OK \(7 tests\)' push-preview.log
+          grep -Eq '^OK \(8 tests\)' push-preview.log
           if [ '${{ matrix.api }}' != '28' ]; then
             adb -e exec-out run-as de.eimir.app.debug cat files/native-photo-picker.png > native-photo-picker.png
             test -s native-photo-picker.png

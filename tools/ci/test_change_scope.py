@@ -7,10 +7,13 @@ import unittest
 from pathlib import Path
 
 from change_scope import (
+    FULL_CI_LABEL,
+    HEAVY_SCOPES,
     PREFLIGHT_TOOLING_TESTS,
     SCOPES,
     SELF_VALIDATING_TOOLING_OWNERS,
     classify_paths,
+    tiered_outputs,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -41,6 +44,7 @@ RECOVERY_TOOLING_PATHS = (
 )
 
 SELF_VALIDATING_LEAF_WORKFLOW_PATHS = (
+    ".github/workflows/artifact-cleanup.yml",
     ".github/workflows/backend-encrypted.yml",
     ".github/workflows/codeql.yml",
     ".github/workflows/g2-e2e.yml",
@@ -48,7 +52,6 @@ SELF_VALIDATING_LEAF_WORKFLOW_PATHS = (
     ".github/workflows/product-design-review.yml",
     ".github/workflows/reuse-review.yml",
     ".github/workflows/web-browser-qa.yml",
-    ".github/workflows/web-s8.yml",
 )
 
 
@@ -135,6 +138,23 @@ class ChangeScopeTest(unittest.TestCase):
         self.assert_scope(
             ["backend/src/eimir/memories/service.py"],
             enabled={"backend", "backend_integration"},
+        )
+
+    def test_pro_distribution_change_enables_postgres_integration(self) -> None:
+        self.assert_scope(
+            ["backend/pro/src/eimir_pro/__init__.py"],
+            enabled={"backend", "backend_integration"},
+        )
+
+    def test_pro_distribution_packaging_enables_backend_supply_chain(self) -> None:
+        self.assert_scope(
+            ["backend/pro/pyproject.toml"],
+            enabled={
+                "backend",
+                "backend_integration",
+                "supply_chain",
+                "supply_chain_backend",
+            },
         )
 
     def test_backend_runtime_entrypoint_also_enables_deployment_gates(self) -> None:
@@ -439,6 +459,147 @@ class ChangeScopeTest(unittest.TestCase):
     def test_mixed_pr_cannot_hide_unknown_change_with_docs(self) -> None:
         result = classify_paths(["docs/ROADMAP.md", "future-build-system/config.toml"])
         self.assertTrue(all(result.values()))
+
+
+class PullRequestTierTest(unittest.TestCase):
+    """Cheap/full pull-request tiers from #2096."""
+
+    def heavy(self, outputs: dict[str, str]) -> set[str]:
+        return {scope for scope in HEAVY_SCOPES if outputs[scope] == "true"}
+
+    def test_push_schedule_and_dispatch_keep_every_selected_gate(self) -> None:
+        outputs = tiered_outputs(["backend/src/eimir/memories/service.py"], pull_request=False)
+        self.assertEqual(outputs["tier"], "full")
+        self.assertIn("backend_integration", self.heavy(outputs))
+
+    def test_ordinary_backend_pull_request_runs_only_cheap_gates(self) -> None:
+        outputs = tiered_outputs(["backend/src/eimir/memories/service.py"], pull_request=True)
+        self.assertEqual(outputs["tier"], "cheap")
+        self.assertEqual(outputs["backend"], "true")
+        self.assertEqual(self.heavy(outputs), set())
+        self.assertEqual(outputs["label_required"], "false")
+
+    def test_label_selects_the_full_tier(self) -> None:
+        outputs = tiered_outputs(
+            ["backend/src/eimir/memories/service.py"],
+            pull_request=True,
+            labels=[FULL_CI_LABEL, "enhancement"],
+        )
+        self.assertEqual(outputs["tier"], "full")
+        self.assertEqual(self.heavy(outputs), {"backend_integration"})
+
+    def test_migration_is_a_risk_path_and_runs_full_automatically(self) -> None:
+        outputs = tiered_outputs(["backend/alembic/versions/0100_example.py"], pull_request=True)
+        self.assertEqual(outputs["tier"], "full")
+        self.assertEqual(self.heavy(outputs), {"backend_integration", "recovery"})
+
+    def test_auth_and_compose_are_risk_paths(self) -> None:
+        for path in (
+            "backend/src/eimir/auth/session.py",
+            "backend/src/eimir/authorization/policy.py",
+            "compose.yaml",
+            "deploy/cloud-managed.env.example",
+            "scripts/self_hosted_release.py",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(tiered_outputs([path], pull_request=True)["tier"], "full")
+
+    def test_unknown_path_fails_closed_into_the_full_tier(self) -> None:
+        outputs = tiered_outputs(["future-build-system/config.toml"], pull_request=True)
+        self.assertEqual(outputs["tier"], "full")
+        self.assertEqual(self.heavy(outputs), set(HEAVY_SCOPES))
+
+    def test_draft_stays_cheap_even_with_risk_paths_or_label(self) -> None:
+        outputs = tiered_outputs(
+            ["backend/alembic/versions/0100_example.py", ".github/workflows/codeql.yml"],
+            pull_request=True,
+            draft=True,
+            labels=[FULL_CI_LABEL],
+        )
+        self.assertEqual(outputs["tier"], "cheap")
+        self.assertEqual(self.heavy(outputs), set())
+        self.assertEqual(outputs["label_required"], "false")
+
+    def test_supply_chain_builds_follow_the_tier(self) -> None:
+        cheap = tiered_outputs(["backend/uv.lock"], pull_request=True)
+        self.assertEqual(cheap["supply_chain"], "true")
+        self.assertEqual(cheap["supply_chain_backend"], "true")
+        self.assertEqual(cheap["supply_chain_backend_build"], "false")
+        full = tiered_outputs(["backend/uv.lock"], pull_request=True, labels=[FULL_CI_LABEL])
+        self.assertEqual(full["supply_chain_backend_build"], "true")
+        self.assertEqual(full["supply_chain_web_build"], "false")
+
+    def test_label_gated_workflow_change_requires_the_label(self) -> None:
+        for path in (".github/workflows/web-browser-qa.yml", ".github/actions/attest-release-artifact/action.yml"):
+            with self.subTest(path=path):
+                self.assertEqual(tiered_outputs([path], pull_request=True)["label_required"], "true")
+                self.assertEqual(
+                    tiered_outputs([path], pull_request=True, labels=[FULL_CI_LABEL])["label_required"],
+                    "false",
+                )
+
+    def test_label_gated_workflows_match_their_job_conditions(self) -> None:
+        from change_scope import LABEL_GATED_WORKFLOW_EXACT
+
+        for workflow in LABEL_GATED_WORKFLOW_EXACT:
+            with self.subTest(workflow=workflow):
+                text = (ROOT / workflow).read_text(encoding="utf-8")
+                self.assertIn(f"'{FULL_CI_LABEL}'", text)
+                self.assertIn("github.event.pull_request.draft == false", text)
+                self.assertIn("labeled", text)
+
+    def test_tooling_owned_by_a_label_gated_workflow_requires_the_label(self) -> None:
+        outputs = tiered_outputs(["scripts/test_android_launcher_identity.py"], pull_request=True)
+        self.assertEqual(outputs["label_required"], "true")
+        outputs = tiered_outputs(["tools/ci/test_release_publish_workflow.py"], pull_request=True)
+        self.assertEqual(outputs["label_required"], "false")
+
+    def test_release_branch_draft_always_runs_the_full_tier(self) -> None:
+        outputs = tiered_outputs(
+            ["backend/src/eimir/memories/service.py", ".github/workflows/web-browser-qa.yml"],
+            pull_request=True,
+            draft=True,
+            head_ref="release/android-test.14-20261026",
+        )
+        self.assertEqual(outputs["tier"], "full")
+        self.assertEqual(self.heavy(outputs), {"backend_integration"})
+        self.assertEqual(outputs["label_required"], "false")
+
+    def test_label_gated_workflows_admit_release_branches(self) -> None:
+        from change_scope import LABEL_GATED_WORKFLOW_EXACT
+
+        for workflow in LABEL_GATED_WORKFLOW_EXACT:
+            with self.subTest(workflow=workflow):
+                text = (ROOT / workflow).read_text(encoding="utf-8")
+                self.assertIn("startsWith(github.head_ref, 'release/')", text)
+
+    def test_web_gate_follows_web_inputs_and_fails_closed(self) -> None:
+        for path in (
+            "web/src/client/App.tsx",
+            "android/app/build.gradle",
+            "design/tokens.json",
+            "design/designs/verbunden.json",
+            "legal/terms.md",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(tiered_outputs([path], pull_request=True)["web"], "true")
+        for path in ("backend/src/eimir/memories/service.py", "docs/ROADMAP.md", "design/brand/logo.svg"):
+            with self.subTest(path=path):
+                self.assertEqual(tiered_outputs([path], pull_request=True)["web"], "false")
+        self.assertEqual(tiered_outputs([".github/workflows/ci.yml"], pull_request=True)["web"], "true")
+        self.assertEqual(tiered_outputs(["future-build-system/x.toml"], pull_request=True)["web"], "true")
+
+    def test_web_gate_is_a_ci_job_with_the_required_name(self) -> None:
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        job = workflow.split("\n  web:\n", 1)[1].split("\n  backend_integration_shards:\n", 1)[0]
+        self.assertIn("    name: Web Reference Flow\n", job)
+        self.assertIn("    if: needs.changes.outputs.web == 'true'\n", job)
+        self.assertFalse((ROOT / ".github/workflows/web-s8.yml").exists())
+
+    def test_docs_only_pull_request_is_cheap_without_heavy_work(self) -> None:
+        outputs = tiered_outputs(["docs/ROADMAP.md"], pull_request=True)
+        self.assertEqual(outputs["tier"], "cheap")
+        self.assertTrue(all(value in {"false", "cheap"} or key == "tier_reason" for key, value in outputs.items()))
 
 
 if __name__ == "__main__":

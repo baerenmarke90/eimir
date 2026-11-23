@@ -1,13 +1,14 @@
 name: Web Browser QA
 
 on:
+  # Pull requests run this heavy workflow only when ready for review and labelled
+  # ci:full, or from a release/ branch (#2096); otherwise every job is skipped at
+  # no runner cost and the nightly regression on main covers it.
   pull_request:
     paths:
       - "web/**"
       - ".github/workflows/web-browser-qa.yml"
-  push:
-    branches: [main]
-    # Every main revision is a test-channel candidate, including backend changes.
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
   workflow_dispatch:
 
 permissions:
@@ -15,13 +16,13 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: web-browser-qa-${{ github.ref }}
+  group: web-browser-qa-${{ github.ref }}${{ github.event.action == 'labeled' && github.event.label.name != 'ci:full' && format('-ignored-label-{0}', github.run_id) || '' }}
   cancel-in-progress: true
 
 # Keep evidence from separate attempts distinct when retrying only failed jobs.
 jobs:
   pr-critical:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && ((startsWith(github.head_ref, 'release/') || (github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ci:full'))) && (github.event.action != 'labeled' || github.event.label.name == 'ci:full'))
     needs: changed-spec-plan
     name: PR-critical ${{ matrix.shard }}/${{ strategy.job-total }}
     runs-on: ubuntu-latest
@@ -116,7 +117,7 @@ jobs:
           retention-days: ${{ job.status == 'success' && 1 || 3 }}
 
   changed-spec-plan:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && ((startsWith(github.head_ref, 'release/') || (github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ci:full'))) && (github.event.action != 'labeled' || github.event.label.name == 'ci:full'))
     name: Changed browser spec plan
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -335,7 +336,7 @@ jobs:
           retention-days: ${{ job.status == 'success' && 1 || 3 }}
 
   browser:
-    if: always()
+    if: always() && (github.event_name != 'pull_request' || ((startsWith(github.head_ref, 'release/') || (github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ci:full'))) && (github.event.action != 'labeled' || github.event.label.name == 'ci:full')))
     needs:
       - pr-critical
       - changed-spec-plan

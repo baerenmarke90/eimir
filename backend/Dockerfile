@@ -1,4 +1,4 @@
-FROM python:3.15.2-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928
+FROM python:3.15.2-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928 AS core
 
 ARG EIMIR_BUILD_REVISION=unverified-local-checkout
 
@@ -9,15 +9,23 @@ ENV PYTHONUNBUFFERED=1 \
     UV_NO_DEV=1 \
     UV_PYTHON_DOWNLOADS=0 \
     EIMIR_BUILD_REVISION="$EIMIR_BUILD_REVISION" \
+    EIMIR_PLUGINS="" \
     PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
 
 RUN pip install --no-cache-dir "uv==0.12.15"
 
+# Two images from one file (Decision 0017, Phase 2, #2182): the `core` stage is
+# the Core alone; the final `pro` stage adds the Pro plugin distribution on top
+# of exactly this Core and is what `docker build` produces by default.
+#
 # Install only the locked runtime dependencies first. This keeps the expensive
 # layer independent of application code, and uv must not modify the lock state.
+# The workspace needs the Pro project file to read the lock; a plain `uv sync`
+# installs the Core project only.
 COPY pyproject.toml uv.lock .python-version ./
+COPY pro/pyproject.toml ./pro/
 RUN uv sync --frozen --no-install-project --no-editable
 
 COPY src ./src
@@ -42,3 +50,13 @@ USER eimir
 EXPOSE 8000
 
 CMD ["uvicorn", "eimir.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+
+FROM core AS pro
+
+USER root
+COPY pro/src ./pro/src
+RUN uv sync --locked --all-packages --no-editable
+# The Pro image loads the Pro plugin; the Core default is Core only.
+ENV EIMIR_PLUGINS=pro
+USER eimir

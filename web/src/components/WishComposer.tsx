@@ -79,7 +79,7 @@ export function WishComposer({
           </button>
         }
       />
-      <div ref={focusRef} tabIndex={-1} className="planning-task-focus" />
+      <div ref={focusRef} tabIndex={-1} className="sr-only" />
       <form id={formId} className="planning-intention-form" onSubmit={onSubmit}>
         <fieldset disabled={disabled}>
           <legend className="sr-only">{heading}</legend>

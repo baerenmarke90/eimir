@@ -91,7 +91,10 @@
   font: var(--font-supporting-copy);
 }
 
-/* The rest opens in place: height and opacity, no other movement. */
+/* The rest opens in place (Replace `disclose` option 1, Motion Contract 4.2):
+   the list takes its height at once and its rows arrive with an Enter
+   `stagger` (the catalogue in src/motion/motion.css); closing is immediate.
+   Nothing below the list is being read while the person opens it. */
 .passport-waymarks-more {
   display: grid;
   grid-template-rows: 0fr;
@@ -108,12 +111,22 @@
   opacity: 1;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .passport-waymarks-more {
-    transition:
-      grid-template-rows var(--duration-context) var(--easing-enter),
-      opacity var(--duration-context) var(--easing-enter);
-  }
+.passport-waymarks-more[data-expanded="true"] .passport-waymark {
+  animation: eimir-motion-enter-rise var(--duration-context) var(--easing-enter)
+    backwards;
+}
+
+.passport-waymarks-more[data-expanded="true"] .passport-waymark:nth-child(2) {
+  animation-delay: var(--duration-stagger-item);
+}
+
+.passport-waymarks-more[data-expanded="true"] .passport-waymark:nth-child(3) {
+  animation-delay: calc(var(--duration-stagger-item) * 2);
+}
+
+.passport-waymarks-more[data-expanded="true"]
+  .passport-waymark:nth-child(n + 4) {
+  animation-delay: calc(var(--duration-stagger-item) * 3);
 }
 
 .passport-waymarks-toggle {

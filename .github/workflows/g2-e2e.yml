@@ -15,6 +15,8 @@ on:
       - "backend/alembic.ini"
       - "backend/alembic/**"
       - "backend/src/**"
+      - "backend/pro/pyproject.toml"
+      - "backend/pro/src/**"
       - "backend/demo_assets/**"
       - "backend/scripts/__init__.py"
       - "backend/scripts/demo_space.py"

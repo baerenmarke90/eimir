@@ -6,7 +6,16 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
-from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, Index, String
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    text,
+)
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -115,4 +124,76 @@ class TransferImport(IdMixin, TimestampMixin, Base):
         CheckConstraint("artifact_size >= 0", name="size_is_non_negative"),
         Index("ix_transfer_imports_creator", "space_id", "created_by", "created_at"),
         Index("ix_transfer_imports_expiry", "status", "expires_at"),
+    )
+
+
+class TransferSkippedVideo(IdMixin, TimestampMixin, Base):
+    """A video left out of a Transfer Bundle import, so it can be recovered later (#2141).
+
+    The row only remembers where the video belongs: the imported Memory or
+    HeartMoment, its owner, its position and how to recognise the same video in
+    the same file again (source attachment ID and manifest checksum). Only the
+    member who imported it (``imported_by``) sees, recovers or dismisses it;
+    ``owner_id`` stays the owner a recovered video gets. It holds
+    no content, file name or capture time; those come from the file again on
+    recovery. It is Core: it is part of a Free import outcome and must follow the
+    deletion of its parent, its owner and its Space on every server.
+    """
+
+    __tablename__ = "transfer_skipped_videos"
+
+    space_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("spaces.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    memory_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True), ForeignKey("memories.id", ondelete="CASCADE")
+    )
+    heart_moment_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True), ForeignKey("heart_moments.id", ondelete="CASCADE")
+    )
+    owner_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("accounts.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    import_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True), ForeignKey("transfer_imports.id", ondelete="SET NULL")
+    )
+    imported_by: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("accounts.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    source_attachment_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True), nullable=False
+    )
+    checksum: Mapped[str] = mapped_column(String(64), nullable=False)
+    size: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(127), nullable=False)
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("(memory_id IS NULL) <> (heart_moment_id IS NULL)", name="one_parent"),
+        CheckConstraint("size > 0", name="size_is_positive"),
+        CheckConstraint("position >= 0", name="position_is_non_negative"),
+        CheckConstraint("char_length(checksum) = 64", name="checksum_is_sha256"),
+        Index("ix_transfer_skipped_videos_space", "space_id", "source_attachment_id"),
+        Index("ix_transfer_skipped_videos_owner", "owner_id"),
+        Index("ix_transfer_skipped_videos_importer", "space_id", "imported_by"),
+        Index(
+            "uq_transfer_skipped_videos_memory_source",
+            "memory_id",
+            "source_attachment_id",
+            unique=True,
+            postgresql_where=text("memory_id IS NOT NULL"),
+        ),
+        Index(
+            "uq_transfer_skipped_videos_heart_moment_source",
+            "heart_moment_id",
+            "source_attachment_id",
+            unique=True,
+            postgresql_where=text("heart_moment_id IS NOT NULL"),
+        ),
     )

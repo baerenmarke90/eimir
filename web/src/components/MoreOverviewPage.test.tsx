@@ -1,15 +1,26 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import { ApiRuntimeProvider } from '../client/apiRuntimeContext';
 import { STORY_OURS_ROUTE } from '../client/routes';
 import { ShellUtilitiesContext } from '../client/shellUtilities';
-import dailyInsights from '../i18n/locales/dailyInsights';
+import {
+  closeSupportReport,
+  currentSupportReportRequest,
+} from '../client/supportReportLauncher';
 import de from '../i18n/locales/de';
 import games from '../i18n/locales/games';
 import navigation from '../i18n/locales/navigation';
 import relationshipReflections from '../i18n/locales/relationshipReflections';
+import supportReport from '../i18n/locales/supportReport';
 import { MoreOverviewPage } from './MoreOverviewPage';
 
 describe('MoreOverviewPage', () => {
@@ -54,7 +65,6 @@ describe('MoreOverviewPage', () => {
       '/more/private',
       '/more/people',
       '/more/places',
-      '/more/insights',
       '/games',
       '/more/notifications',
       '/today/activity',
@@ -63,10 +73,8 @@ describe('MoreOverviewPage', () => {
       expect(html).toContain(`href="${href}"`);
     }
 
-    const weeklyInsightsIndex = html.indexOf('href="/more/insights"');
-    const peopleIndex = html.indexOf('href="/more/people"');
-    expect(weeklyInsightsIndex).toBeGreaterThan(-1);
-    expect(weeklyInsightsIndex).toBeLessThan(peopleIndex);
+    // Einblicke was removed and deferred (#2210).
+    expect(html).not.toContain('href="/more/insights"');
 
     // Lists and Notes live in the Gemeinsam primary destination, not in More.
     expect(html).not.toContain('href="/more/collections"');
@@ -82,7 +90,6 @@ describe('MoreOverviewPage', () => {
       de.more.subtitles.media,
       de.more.subtitles.chapters,
       de.more.subtitles.yearsAndRecaps,
-      de.more.subtitles.insights,
       de.more.subtitles.places,
       de.more.subtitles.people,
       de.more.subtitles.games,
@@ -136,16 +143,13 @@ describe('MoreOverviewPage', () => {
     const rowMatches = html.match(
       /class="more-destination(?: more-profile-destination)?"/g,
     );
-    expect(rowMatches).toHaveLength(13);
+    expect(rowMatches).toHaveLength(12);
     expect(html).toContain('more-profile-avatar');
     expect(html).toContain('person-identity-avatar-medium');
 
     const badgeMatches = html.match(/class="more-destination-badge"/g);
-    expect(badgeMatches).toHaveLength(3);
+    expect(badgeMatches).toHaveLength(2);
     expect(html).toContain(games.status.premium);
-    expect(html).toContain(de.more.destinations.insights);
-    expect(html).toContain(dailyInsights.pro);
-    expect(html).not.toContain(dailyInsights.week.subtitle);
   });
   it.each([false, true])(
     'keeps account actions and unread state in More (admin=%s)',
@@ -259,6 +263,85 @@ describe('MoreOverviewPage', () => {
       expect(html.includes('href="/legal/privacy"')).toBe(shown);
     },
   );
+});
+
+describe('help and feedback on More', () => {
+  beforeAll(() => {
+    HTMLDialogElement.prototype.showModal = function () {
+      this.setAttribute('open', '');
+    };
+    HTMLDialogElement.prototype.close = function () {
+      this.removeAttribute('open');
+    };
+  });
+  afterEach(() => {
+    cleanup();
+    closeSupportReport();
+    window.localStorage.clear();
+  });
+
+  function renderMore(available: boolean | undefined) {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+    });
+    queryClient.setQueryData(['profile-identity', 'space-1', 'account-1'], {
+      accountId: 'account-1',
+      displayName: 'Alex',
+      profileAttachmentId: null,
+      version: 1,
+    });
+    if (available !== undefined)
+      queryClient.setQueryData(['instance-status', 'http://api.example.test'], {
+        termsOfUseVersion: null,
+        supportReportsAvailable: available,
+      });
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <ApiRuntimeProvider
+          apiBaseUrl="http://api.example.test"
+          accessToken="test-token"
+          accountId="account-1"
+        >
+          <MemoryRouter>
+            <MoreOverviewPage
+              apiBaseUrl="http://api.example.test"
+              accessToken="test-token"
+              account={{ id: 'account-1', displayName: 'Alex' }}
+              spaceId="space-1"
+            />
+          </MemoryRouter>
+        </ApiRuntimeProvider>
+      </QueryClientProvider>,
+    );
+  }
+
+  it.each([false, undefined])(
+    'more_row_hidden_when_not_available (%s)',
+    (available) => {
+      renderMore(available);
+      expect(
+        screen.queryByRole('button', { name: supportReport.entry.title }),
+      ).toBeNull();
+    },
+  );
+
+  it('opens the feedback sheet from the utility group without a failure', () => {
+    const { container } = renderMore(true);
+    const row = screen.getByRole('button', {
+      name: supportReport.entry.title,
+    });
+    expect(row.closest('.more-group')?.querySelector('h2')?.textContent).toBe(
+      de.more.groups.utility,
+    );
+    expect(row.getAttribute('aria-describedby')).toBeTruthy();
+    expect(container.textContent).toContain(supportReport.entry.subtitle);
+
+    expect(currentSupportReportRequest()).toBeNull();
+    fireEvent.click(row);
+    // Feedback, never with a failure; the shell's host renders the sheet.
+    expect(currentSupportReportRequest()).toEqual({ kind: 'FEEDBACK' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
 });
 
 describe('account ID copy on More', () => {

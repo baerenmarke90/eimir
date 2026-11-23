@@ -48,6 +48,9 @@ export const WIR_DESIGNS: readonly WirDesignId[] = [
   WirDesignId.classic,
   WirDesignId.quiet_together,
   WirDesignId.handwriting,
+  WirDesignId.home_rooms,
+  WirDesignId.shared_rhythm,
+  WirDesignId.together_index,
 ];
 /** The design every account starts with; it needs no entitlement. */
 export const DEFAULT_WIR_DESIGN: WirDesignId = WirDesignId.connected;
@@ -291,9 +294,12 @@ export function WirDesignProvider(
     if (!applied) return;
     const root = document.documentElement;
     root.setAttribute('data-app-design', applied);
+    const layout = wirDesignLayout(applied);
+    if (layout) root.setAttribute('data-wir-layout', layout);
     syncDocumentThemeColor();
     return () => {
       root.removeAttribute('data-app-design');
+      root.removeAttribute('data-wir-layout');
       syncDocumentThemeColor();
     };
   }, [applied]);
@@ -301,4 +307,12 @@ export function WirDesignProvider(
 }
 export function useWirDesign() {
   return useContext(Context);
+}
+
+/** A saved layout is visible as soon as its scoped preference is ready. */
+export function useAppLayout() {
+  const design = useWirDesign();
+  return design?.presentationReady
+    ? wirDesignLayout(design.current)
+    : undefined;
 }

@@ -1,6 +1,3 @@
-import { WishSelectionWishPicker } from './WishSelectionWishPicker';
-import { WishSelectionVote, type ResultItem } from './WishSelectionVote';
-import { WishSelectionRandomDecision } from './WishSelectionRandomDecision';
 import {
   useInfiniteQuery,
   useMutation,
@@ -59,6 +56,7 @@ import {
 import { type TaskOriginMetadata, useTaskOrigin } from '../client/taskOrigin';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
+import { withoutHiddenWishes } from '../client/wishConcealment';
 import {
   ownIdeaSelectionIds,
   ownSelectionIds,
@@ -81,6 +79,9 @@ import { ShortTaskSheet } from './ShortTaskSheet';
 import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import { WishSelectionIdeaPicker } from './WishSelectionIdeaPicker';
+import { WishSelectionRandomDecision } from './WishSelectionRandomDecision';
+import { type ResultItem, WishSelectionVote } from './WishSelectionVote';
+import { WishSelectionWishPicker } from './WishSelectionWishPicker';
 import './DateIdeas.css';
 import './WishSelection.css';
 
@@ -352,7 +353,10 @@ function WishSelectionTask({
     [
       ...new Map<string, { id: string; title: string }>(
         [
-          ...(wishes.data?.pages.flatMap((page) => page.items) ?? []),
+          // #2158 H: a wish an open game hides from the reader is no choice.
+          ...withoutHiddenWishes(
+            wishes.data?.pages.flatMap((page) => page.items) ?? [],
+          ),
           ...(view?.candidates
             .filter((candidate) => candidate.status === 'OPEN')
             .map((candidate) => ({
@@ -1085,7 +1089,10 @@ function WishSelectionTask({
 
   return (
     <div className="page wish-selection-task">
-      <header className="page-heading wish-selection-heading">
+      <header
+        className="page-heading wish-selection-heading"
+        data-title-only={!intro || undefined}
+      >
         <TaskBackButton inline type="button" disabled={busy} onClick={goBack}>
           {t(
             activeMode === 'plan'
@@ -1101,7 +1108,7 @@ function WishSelectionTask({
         </div>
       </header>
       {intro ? <p className="wish-selection-intro">{intro}</p> : null}
-      <div ref={focusRef} tabIndex={-1} className="planning-task-focus" />
+      <div ref={focusRef} tabIndex={-1} className="sr-only" />
       {query.error ? (
         <ProblemState
           error={query.error}
@@ -1546,7 +1553,7 @@ function WishSelectionTask({
                 <div className="wish-selection-rolling" role="status">
                   <EimirIcon
                     name="sparkle"
-                    className="wish-selection-rolling-icon"
+                    className="wish-selection-rolling-icon eimir-motion-loading-roll"
                   />
                   <strong>{t('wishSelection.randomRolling')}</strong>
                 </div>

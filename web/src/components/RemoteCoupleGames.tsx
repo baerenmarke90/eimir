@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useRef, useState } from 'react';
 import type { OurMomentsCardView } from '../api/generated/models/OurMomentsCardView';
 import type { OurMomentsMomentView } from '../api/generated/models/OurMomentsMomentView';
 import { createReferenceApis } from '../client/referenceFlow';
@@ -16,6 +16,7 @@ import { type PlayMode, PlayModeChoice } from './PlayModeChoice';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import './RemoteCoupleGames.css';
+import { useScene } from '../motion/scene';
 
 /*
  * Couple games at a distance (#2048). Each partner plays on their own phone;
@@ -143,8 +144,14 @@ function Waiting({
   body: string;
   children?: ReactNode;
 }) {
+  // The waiting dot is the scene's one loop: it runs only while the card is
+  // seen and is absent with reduced motion (Motion Contract 4.8, M8).
+  const card = useRef<HTMLElement | null>(null);
+  const scene = useScene(card);
   return (
     <section
+      ref={card}
+      {...scene.props}
       className="remote-game-card remote-game-waiting eimir-motion-disclosure"
       aria-live="polite"
       aria-labelledby="remote-game-waiting-title"

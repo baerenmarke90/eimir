@@ -76,6 +76,17 @@ def _find(session: Session, account_id: UUID, client_request_id: UUID) -> Suppor
     ).scalar_one_or_none()
 
 
+def payloads_match_for_replay(stored: SupportReportPayload, incoming: SupportReportPayload) -> bool:
+    """True when ``incoming`` repeats the report content of ``stored``.
+
+    Only the person's content counts: the note and the attached failure. The
+    client context is collected again on every attempt (local time, theme and
+    online state change between a lost response and its retry), so it is
+    ignored here and the stored report keeps the first attempt's context.
+    """
+    return stored.note == incoming.note and stored.failure == incoming.failure
+
+
 def find_replay(
     session: Session,
     *,
@@ -84,16 +95,18 @@ def find_replay(
     kind: SupportReportKind,
     payload: SupportReportPayload,
 ) -> SupportReport | None:
-    """Return the report an identical earlier request created, if any.
+    """Return the report an earlier request with the same content created.
 
-    ``None`` means the request identity is unused. The same identity with a
-    different kind or payload is a client defect and is never merged into the
-    original report.
+    ``None`` means the request identity is unused. A repeated request matches
+    when kind, note and failure are equal (see ``payloads_match_for_replay``);
+    a newer client context does not make it a different report. The same
+    identity with a different kind, note or failure is a client defect and is
+    never merged into the original report.
     """
     existing = _find(session, account_id, client_request_id)
     if existing is None:
         return None
-    if existing.kind != kind.value or existing.payload != payload:
+    if existing.kind != kind.value or not payloads_match_for_replay(existing.payload, payload):
         raise ConflictError(
             "The request identity was already used for a different report.",
             ErrorCode.IDEMPOTENCY_KEY_REUSED,

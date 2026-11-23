@@ -15,6 +15,12 @@ import {
   type SupportReportInputProblem,
   type SupportReportKind,
 } from './supportReport';
+import {
+  freshSupportReportDraft as freshDraft,
+  loadSupportReportDraft as loadDraft,
+  type SupportReportDraft,
+  saveSupportReportDraft as saveDraft,
+} from './supportReportDraftStorage';
 
 export type SupportReportStatus =
   | 'idle'
@@ -36,73 +42,17 @@ export interface SendOptions {
   failure?: FailureReference;
 }
 
-interface Draft {
-  kind: SupportReportKind;
-  note: string;
-  clientRequestId: string;
-  /** True once a send was tried, so an edit needs a new request identity. */
-  attempted: boolean;
-}
+type Draft = SupportReportDraft;
 
-const STORAGE_PREFIX = 'eimir.supportReportDraft.v1.';
-
-export function supportReportDraftStorageKey(accountId: string): string {
-  return `${STORAGE_PREFIX}${accountId}`;
-}
-
-function freshDraft(): Draft {
-  return {
-    kind: 'PROBLEM',
-    note: '',
-    clientRequestId: newIdempotencyKey(),
-    attempted: false,
-  };
-}
-
-function loadDraft(accountId: string): Draft {
-  try {
-    const raw = window.localStorage.getItem(
-      supportReportDraftStorageKey(accountId),
-    );
-    const value = raw ? (JSON.parse(raw) as Partial<Draft>) : null;
-    if (
-      value &&
-      (value.kind === 'PROBLEM' || value.kind === 'FEEDBACK') &&
-      typeof value.note === 'string' &&
-      typeof value.clientRequestId === 'string' &&
-      value.clientRequestId
-    )
-      return {
-        kind: value.kind,
-        note: value.note,
-        clientRequestId: value.clientRequestId,
-        attempted: value.attempted === true,
-      };
-  } catch {
-    // Storage may be missing, blocked or hold something unreadable.
-  }
-  return freshDraft();
-}
-
-function saveDraft(accountId: string, draft: Draft | null): void {
-  try {
-    if (draft)
-      window.localStorage.setItem(
-        supportReportDraftStorageKey(accountId),
-        JSON.stringify(draft),
-      );
-    else
-      window.localStorage.removeItem(supportReportDraftStorageKey(accountId));
-  } catch {
-    // The draft then lives in memory only; sending still works.
-  }
-}
+export { supportReportDraftStorageKey } from './supportReportDraftStorage';
 
 /**
  * The offline-safe draft of one support report (#2189). Note, kind and the
  * `clientRequestId` live in local storage per account, so a send retried after
- * a reconnect is the same request and the server stores the report once. A
- * failed send keeps the draft and is never retried automatically.
+ * a reconnect is the same request and the server stores the report once. The
+ * failure attached at the first attempt is stored with the draft and sent again
+ * with that identity, wherever the sheet is reopened. A failed send keeps the
+ * draft and is never retried automatically.
  */
 export function useSupportReportDraft(
   accountId: string,
@@ -156,11 +106,13 @@ export function useSupportReportDraft(
   const edit = useCallback(
     (change: Partial<Pick<Draft, 'kind' | 'note'>>) => {
       const current = draftRef.current;
-      const changed = {
-        ...current,
+      const { failure: _attached, ...rest } = current;
+      const changed: Draft = {
+        ...rest,
         ...change,
         // The server answers a repeated request identity with the first report,
-        // so changed content after an attempt needs its own identity.
+        // so changed content after an attempt needs its own identity and takes
+        // the failure of the next send instead of the stored one.
         ...(current.attempted
           ? { clientRequestId: newIdempotencyKey(), attempted: false }
           : {}),
@@ -179,8 +131,15 @@ export function useSupportReportDraft(
       const current = draftRef.current;
       const { problem } = checkSupportNote(current.kind, current.note);
       if (problem) return;
+      // A retry of the same request identity repeats the first attempt's
+      // failure; the server would refuse the identity with another one.
+      const failure = current.attempted ? current.failure : failureRef.current;
+      const { failure: _previous, ...base } = current;
+      const attempted: Draft = failure
+        ? { ...base, attempted: true, failure }
+        : { ...base, attempted: true };
       if (!isClientOnline()) {
-        commit({ ...current, attempted: true });
+        commit(attempted);
         setStatus('queued');
         return;
       }
@@ -193,11 +152,11 @@ export function useSupportReportDraft(
         const payload = buildSupportReport({
           kind: current.kind,
           note: current.note,
-          failure: failureRef.current,
+          failure,
           clientContext: collectClientContext(),
           clientRequestId: current.clientRequestId,
         });
-        commit({ ...current, attempted: true });
+        commit(attempted);
         // 201 (stored) and 200 (the same request, already stored) both succeed.
         await sender.createSupportReport({ supportReportCreate: payload });
         if (accountRef.current === account) {
@@ -281,5 +240,11 @@ export function useSupportReportDraft(
     discard,
     /** Why the current note cannot be sent yet, if it cannot. */
     invalid,
+    /**
+     * True once a send was tried; the draft then sends `attemptedFailure`
+     * again instead of the failure of the screen it was reopened from.
+     */
+    attempted: draft.attempted,
+    attemptedFailure: draft.attempted ? draft.failure : undefined,
   };
 }

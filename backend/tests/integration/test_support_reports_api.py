@@ -75,6 +75,34 @@ def test_create_returns_201_then_200_on_replay(
     assert _count(session) == 1
 
 
+def test_replay_with_newer_client_context_is_200(
+    client: Any, session: Session, enabled: None
+) -> None:
+    token = sign_in(session, make_account(session, "Anna"))
+    body = _body()
+    created = client.post(URL, json=body, headers=auth(token))
+    assert created.status_code == 201
+
+    # A retry after a lost response collects the client context again.
+    retried = {
+        **body,
+        "client": {
+            **body["client"],
+            "localTime": "2026-11-23T10:17:42",
+            "theme": "light",
+            "online": False,
+        },
+    }
+    replay = client.post(URL, json=retried, headers=auth(token))
+    assert replay.status_code == 200
+    assert replay.json() == created.json()
+    assert _count(session) == 1
+    stored = session.execute(select(SupportReport)).scalar_one()
+    session.refresh(stored)
+    assert stored.payload.client.theme == "dark"
+    assert stored.payload.client.local_time == "2026-11-23T10:15:00"
+
+
 def test_replay_with_other_content_is_409(client: Any, session: Session, enabled: None) -> None:
     token = sign_in(session, make_account(session, "Anna"))
     body = _body()

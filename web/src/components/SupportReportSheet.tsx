@@ -67,7 +67,7 @@ function SupportReportSheetContent({
   open,
   onClose,
   initialKind,
-  failure,
+  failure: shownFailure,
   api,
   accountId,
 }: SupportReportSheetProps & { accountId: string }) {
@@ -83,6 +83,8 @@ function SupportReportSheetContent({
   const hintId = `${baseId}-hint`;
   const sentHeadingId = `${baseId}-sent`;
   const { kind, note, status, invalid, setKind } = draft;
+  // A tried draft repeats its first failure, so the list shows what is sent.
+  const failure = draft.attempted ? draft.attemptedFailure : shownFailure;
 
   // A new draft starts with the entry point's choice; a kept note keeps its
   // own choice so reopening restores what the person wrote.

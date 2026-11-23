@@ -137,6 +137,25 @@ describe('ProblemState', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('attaches no failure that is not the one shown', () => {
+    render(
+      withSession(
+        <ProblemState error={new ClientProblemError('server', 500)} />,
+      ),
+    );
+    // A failed background request with another status after the error state.
+    recordRequestFailure({
+      method: 'GET',
+      routeTemplate: '/api/v1/spaces/s/notifications',
+      status: 503,
+    });
+    fireEvent.click(screen.getByRole('button', { name: supportReport.action }));
+    expect(currentSupportReportRequest()).toEqual({
+      kind: 'PROBLEM',
+      failure: undefined,
+    });
+  });
+
   it.each([
     ['unauthorized', 401],
     ['permission', 403],

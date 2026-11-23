@@ -35,7 +35,10 @@ const UUID_SEGMENT =
 const PLACEHOLDER_SEGMENT = /^\{[A-Za-z0-9_]{1,40}\}$/;
 const PLAIN_SEGMENT = /^[A-Za-z0-9_-]+$/;
 
-let lastFailure: FailureReference | undefined;
+/** The last failure, with the status and code that identify its error. */
+let lastFailure:
+  | { reference: FailureReference; status: number; code?: string }
+  | undefined;
 
 function isIdentifier(segment: string): boolean {
   if (UUID_SEGMENT.test(segment) || /^\d+$/.test(segment)) return true;
@@ -119,11 +122,35 @@ export function recordRequestFailure(info: RequestFailureInfo): void {
   // The class is guaranteed by construction; this guards future edits.
   if (!isSafeReference(reference)) return;
   const requestId = safeRequestId(info.requestId);
-  lastFailure = requestId ? { reference, requestId } : { reference };
+  lastFailure = {
+    reference: requestId ? { reference, requestId } : { reference },
+    status: info.status > 0 ? info.status : 0,
+    code,
+  };
 }
 
 export function lastFailureReference(): FailureReference | undefined {
-  return lastFailure ? { ...lastFailure } : undefined;
+  return lastFailure ? { ...lastFailure.reference } : undefined;
+}
+
+/**
+ * The recorded failure when it is the one behind `error`, the error an error
+ * state shows. A later failed background request, a previous screen's failure
+ * or an error that did not come from the API is never attached instead: the
+ * status must match and, when the error carries a problem code, the code too.
+ * An error without a status (offline or unknown) matches only a transport
+ * failure, which has no status either.
+ */
+export function failureReferenceFor(
+  error: unknown,
+): FailureReference | undefined {
+  if (!lastFailure || !(error instanceof ClientProblemError)) return undefined;
+  if (!error.status)
+    return lastFailure.status === 0 ? lastFailureReference() : undefined;
+  if (error.status !== lastFailure.status) return undefined;
+  const code = codeOf(error.code);
+  if (code && code !== lastFailure.code) return undefined;
+  return lastFailureReference();
 }
 
 export function clearFailureReference(): void {

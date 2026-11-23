@@ -171,6 +171,79 @@ describe('useSupportReportDraft', () => {
     expect(ids[0]).toBe(ids[1]);
   });
 
+  it('a_retry_after_a_lost_response_repeats_the_request_id_and_the_failure', async () => {
+    const failure = {
+      reference: 'GET:/api/v1/plans:500:web',
+      requestId: 'r-1',
+    };
+    const { result, createSupportReport } = fixture(async (_call, attempt) => {
+      if (attempt === 1) throw new TypeError('Failed to fetch');
+      return CREATED;
+    });
+    act(() => result.current.setNote('Lost response'));
+    await act(async () => {
+      await result.current.send({ failure });
+    });
+    expect(result.current.status).toBe('queued');
+    expect(result.current.attemptedFailure).toEqual(failure);
+    // Reopened from a screen without a failure, e.g. the More page.
+    await act(async () => {
+      await result.current.send({ failure: undefined });
+    });
+    expect(result.current.status).toBe('sent');
+    const bodies = createSupportReport.mock.calls.map(
+      ([call]) => call.supportReportCreate,
+    );
+    expect(bodies).toHaveLength(2);
+    expect(bodies[1].clientRequestId).toBe(bodies[0].clientRequestId);
+    expect(bodies[0].failure).toEqual(failure);
+    expect(bodies[1].failure).toEqual(failure);
+  });
+
+  it('the_first_failure_survives_a_reload_and_an_edit_releases_it', async () => {
+    const failure = { reference: 'GET:/api/v1/plans:500:web' };
+    const other = { reference: 'GET:/api/v1/memories:503:web' };
+    const first = fixture(async () => {
+      throw problem(500);
+    });
+    act(() => first.result.current.setNote('Kept failure'));
+    await act(async () => {
+      await first.result.current.send({ failure });
+    });
+    first.unmount();
+
+    const again = fixture();
+    expect(again.result.current.attemptedFailure).toEqual(failure);
+    await act(async () => {
+      await again.result.current.send({ failure: other });
+    });
+    expect(
+      again.createSupportReport.mock.calls[0][0].supportReportCreate.failure,
+    ).toEqual(failure);
+  });
+
+  it('an_edit_after_an_attempt_sends_the_failure_of_the_next_send', async () => {
+    const failure = { reference: 'GET:/api/v1/plans:500:web' };
+    const other = { reference: 'GET:/api/v1/memories:503:web' };
+    const { result, createSupportReport } = fixture(async (_call, attempt) => {
+      if (attempt === 1) throw problem(500);
+      return CREATED;
+    });
+    act(() => result.current.setNote('First'));
+    await act(async () => {
+      await result.current.send({ failure });
+    });
+    act(() => result.current.setNote('Second'));
+    expect(result.current.attempted).toBe(false);
+    expect(result.current.attemptedFailure).toBeUndefined();
+    await act(async () => {
+      await result.current.send({ failure: other });
+    });
+    expect(
+      createSupportReport.mock.calls[1][0].supportReportCreate.failure,
+    ).toEqual(other);
+  });
+
   it('429_sets_rateLimited_and_keeps_draft', async () => {
     const { result, createSupportReport } = fixture(async () => {
       throw problem(429);

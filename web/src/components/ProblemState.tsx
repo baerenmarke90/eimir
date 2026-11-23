@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useApiRuntime } from '../client/apiRuntimeContext';
-import { lastFailureReference } from '../client/failureReference';
+import { failureReferenceFor } from '../client/failureReference';
 import { clientProblemKind } from '../client/problemDetails';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
 import { openSupportReport } from '../client/supportReportLauncher';
@@ -47,11 +47,18 @@ const REPORTABLE_KINDS: ReadonlySet<ReturnType<typeof clientProblemKind>> =
 /**
  * The quiet "Report a problem" action. It exists only below a signed-in
  * session (and so below the app's query client) and only when the instance
- * accepts reports. The failure shown here is captured at the tap; the sheet
- * itself is the shell's (`SupportReportHost`), so it stays open when a refetch
- * replaces this error state.
+ * accepts reports. The failure shown here is captured at the tap, and only
+ * when the recorded failure is the one behind `error`; the sheet itself is the
+ * shell's (`SupportReportHost`), so it stays open when a refetch replaces this
+ * error state.
  */
-function ReportProblemAction({ retry }: { retry?: ReactNode }) {
+function ReportProblemAction({
+  error,
+  retry,
+}: {
+  error: unknown;
+  retry?: ReactNode;
+}) {
   const { t } = useTranslation();
   const available = useSupportReportsAvailable();
   if (!available) return retry ?? null;
@@ -65,7 +72,7 @@ function ReportProblemAction({ retry }: { retry?: ReactNode }) {
         onClick={() =>
           openSupportReport({
             kind: 'PROBLEM',
-            failure: lastFailureReference(),
+            failure: failureReferenceFor(error),
           })
         }
       >
@@ -109,7 +116,7 @@ export function ProblemState({
     ) : undefined;
   const action =
     reportable && signedIn && REPORTABLE_KINDS.has(kind) ? (
-      <ReportProblemAction retry={primaryAction} />
+      <ReportProblemAction error={error} retry={primaryAction} />
     ) : (
       primaryAction
     );

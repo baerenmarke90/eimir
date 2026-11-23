@@ -38,15 +38,18 @@ Responses:
 - `404` while `EIMIR_SUPPORT_REPORTS_ENABLED` is off, indistinguishable from an unknown
   resource. An anonymous caller sees `401` first.
 - `409` (`IDEMPOTENCY_KEY_REUSED`) when `clientRequestId` was already used for a different
-  `kind` or payload.
+  `kind`, note or failure reference.
 - `422` for validation errors, including feedback without a note or feedback with a failure
   reference.
 - `429` when the rate limit is used up.
 
 **Idempotency.** A report is identified by `(account, clientRequestId)`. A retry with the
 same identity and the same content returns the original report and creates no second
-row, also when two identical requests race (the unique index decides, the loser re-reads
-the winner). The replay check runs before the rate limit, so a retry after a lost
+row. The content is the `kind`, the note and the failure reference; the `client` context
+is not compared, because a retry collects it again (local time, theme and online state
+change between a lost response and its retry). The stored report keeps the first
+attempt's client context. This also holds when two such requests race (the unique
+index decides, the loser re-reads the winner). The replay check runs before the rate limit, so a retry after a lost
 response never spends budget and never fails because the budget is used up.
 
 **Rate limit.** Per account: 5 reports per hour and 20 per day
@@ -72,7 +75,7 @@ person through the ServerAdmin account directory.
 | Function | Semantics |
 | --- | --- |
 | `create_report(session, *, account_id, client_request_id, kind, payload)` | Returns `(report, created)`. `created` is `False` for a replay. Raises `ConflictError` (`IDEMPOTENCY_KEY_REUSED`) for the same identity with different content. |
-| `find_replay(session, *, account_id, client_request_id, kind, payload)` | The report an identical earlier request created, or `None` when the identity is unused. Same conflict as above for different content. |
+| `find_replay(session, *, account_id, client_request_id, kind, payload)` | The report an earlier request with the same content (kind, note, failure; the client context is ignored) created, or `None` when the identity is unused. Same conflict as above for different content. |
 | `list_reports(session, *, state, limit, cursor)` | Newest first, optionally one `state`. Keyset pagination over `(created_at, id)`; the cursor is bound to the state filter. Returns `Page(items, next_cursor, has_more)`. `limit` below 1 raises `ValueError`. |
 | `get_report(session, report_id)` | The report or `None`. |
 | `set_state(session, report_id, state)` | Sets the operator's triage marker (`NEW`, `IN_PROGRESS`, `CLOSED`); unknown id raises `NotFoundError`. `closed_at` is set when a report becomes `CLOSED` and cleared when it leaves that state. `set_state(CLOSED)` on an already closed report keeps the original `closed_at`, so a repeated call does not extend retention. Leaving and re-entering `CLOSED` sets a fresh time. |

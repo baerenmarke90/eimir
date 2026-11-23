@@ -10,19 +10,25 @@ Two layers are deliberately kept separate:
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import shutil
 import tempfile
 from collections.abc import Iterator
 
 import pytest
-from sqlalchemy import Engine, create_engine, text
+from sqlalchemy import Engine, create_engine, inspect, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from tests.support.encryption import EncryptionConfigurator
 
 # Never accidentally run against a real instance.
 os.environ.setdefault("EIMIR_ENVIRONMENT", "test")
+
+# The suite runs with the Pro plugin when its distribution is installed, as
+# before Phase 2 (#2182); the Core-only configuration sets EIMIR_PLUGINS="".
+if importlib.util.find_spec("eimir_pro") is not None:
+    os.environ.setdefault("EIMIR_PLUGINS", "pro")
 
 # Encryption at rest has no default in production. Tests that construct
 # production settings for unrelated reasons inherit an explicit "disabled" here;
@@ -112,6 +118,67 @@ def _database_reachable(url: str) -> bool:
 
 DATABASE_AVAILABLE = _database_reachable(INTEGRATION_DATABASE_URL)
 
+
+@pytest.fixture(autouse=True)
+def _restore_pillow_pixel_limit() -> Iterator[None]:
+    """Keep Pillow's process-wide decompression-bomb limit per test.
+
+    Image processing sets ``Image.MAX_IMAGE_PIXELS`` to the rule's limit; a test
+    with a tiny rule would otherwise leak that limit into later tests, which
+    only shows up when the test order changes (for example in CI shards).
+    """
+    from PIL import Image
+
+    limit = Image.MAX_IMAGE_PIXELS
+    yield
+    Image.MAX_IMAGE_PIXELS = limit
+
+
+def pytest_ignore_collect(collection_path, config):  # type: ignore[no-untyped-def]
+    """Core-only configuration: do not even import the Pro feature test modules."""
+    from tests.support.plugins import (
+        PRO_DISTRIBUTION_TEST_MODULES,
+        PRO_TEST_MODULES,
+        plugins_loaded,
+        pro_distribution_installed,
+    )
+
+    relative = collection_path.as_posix().rsplit("/tests/", 1)[-1]
+    if relative in PRO_DISTRIBUTION_TEST_MODULES and not pro_distribution_installed():
+        return True
+    if plugins_loaded():
+        return None
+    return True if relative in PRO_TEST_MODULES else None
+
+
+def pytest_collection_modifyitems(config, items):  # type: ignore[no-untyped-def]
+    """Core-only configuration: skip tests that need the Pro plugin.
+
+    That covers tests marked ``requires_pro`` and endpoint-matrix cases of Pro
+    operations.
+    """
+    from tests.support.plugins import is_pro_operation, plugins_loaded
+
+    if plugins_loaded():
+        return
+    skip = pytest.mark.skip(reason="Needs the Pro plugin; Core-only configuration.")
+    for item in items:
+        if item.get_closest_marker("requires_pro") is not None:
+            item.add_marker(skip)
+            continue
+        params = getattr(getattr(item, "callspec", None), "params", {})
+        candidates = [
+            (getattr(value, "method", None), getattr(value, "template", None))
+            for value in params.values()
+        ]
+        candidates.append((params.get("method"), params.get("path") or params.get("template")))
+        if any(
+            isinstance(method, str) and isinstance(path, str) and is_pro_operation(method, path)
+            for method, path in candidates
+        ):
+            item.add_marker(skip)
+
+
 requires_database = pytest.mark.skipif(
     not DATABASE_AVAILABLE,
     reason=(
@@ -125,10 +192,21 @@ def engine() -> Iterator[Engine]:
     if not DATABASE_AVAILABLE:
         pytest.skip("No database is reachable.")
 
+    from importlib import import_module
+
     from eimir.db.base import Base
     from eimir.db.registry import load_all_models
+    from tests.support.plugins import pro_distribution_installed
 
     load_all_models()
+    # The migrations create the Pro tables whether or not the plugin is loaded,
+    # so the Core-only configuration needs them too when the Pro models are
+    # installed (Decision 0017). Without ``eimir-pro`` only Core tables exist here.
+    if pro_distribution_installed():
+        from eimir_pro.plugin import plugin as pro_plugin
+
+        for module in pro_plugin.model_modules():
+            import_module(module)
 
     # Test probe for owner/privacy authorization. It deliberately exists only
     # here: alembic/env.py does not know it, so it appears in no migration and
@@ -137,7 +215,24 @@ def engine() -> Iterator[Engine]:
 
     db_engine = create_engine(INTEGRATION_DATABASE_URL, future=True)
     Base.metadata.create_all(db_engine)
+    # Without ``eimir-pro`` the Pro tables have no models here. They come from the
+    # Core migration chain, and the Core manifest executor works on them.
+    plugin_tables_from_migrations = not pro_distribution_installed()
+    if plugin_tables_from_migrations:
+        from eimir.plugins.manifest import PLUGIN_TABLE_NAMES
+
+        missing = PLUGIN_TABLE_NAMES - set(inspect(db_engine).get_table_names())
+        if missing:
+            raise RuntimeError(
+                "Without eimir-pro the test database must be freshly migrated "
+                f"(alembic upgrade head); missing plugin tables: {', '.join(sorted(missing))}."
+            )
     yield db_engine
+    if plugin_tables_from_migrations:
+        # They reference Core tables, so they go first.
+        with db_engine.begin() as connection:
+            for name in PLUGIN_TABLE_NAMES:
+                connection.execute(text(f'DROP TABLE IF EXISTS "{name}" CASCADE'))
     Base.metadata.drop_all(db_engine)
     db_engine.dispose()
 

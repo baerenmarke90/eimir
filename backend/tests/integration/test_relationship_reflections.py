@@ -1,4 +1,8 @@
-"""Real PostgreSQL/HTTP boundaries for special Plans and the Pro passport."""
+"""Real PostgreSQL/HTTP boundaries for special Plans on the Dashboard (Free/Core).
+
+The Pro relationship passport is plugin code; its tests live in
+``test_relationship_passport.py``.
+"""
 
 from datetime import UTC, date, datetime, timedelta
 
@@ -9,12 +13,8 @@ from eimir.authorization import PrivacyClass
 from eimir.dashboard import service as dashboard_service
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
-from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
-from eimir.memories.models import Memory, MemoryPayload
-from eimir.places.models import Place, PlacePayload
-from eimir.plans.models import Plan, PlanPayload, PlanStatus
+from eimir.plans.models import Plan, PlanPayload
 from eimir.relationship import service as relationship_service
-from eimir.relationship.models import SpaceProfile
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -52,14 +52,28 @@ def root(context, *, private=False, foreign=False):  # type: ignore[no-untyped-d
     }
 
 
-def plan(session, context, *, day=None, start=None, special=True, status="PLANNED", foreign=False):  # type: ignore[no-untyped-def]
+def plan(  # type: ignore[no-untyped-def]
+    session,
+    context,
+    *,
+    day=None,
+    start=None,
+    end=None,
+    anticipation="ALWAYS",
+    status="PLANNED",
+    foreign=False,
+    discreet=False,
+    title="A deliberate special event",
+):
     item = Plan(
         **root(context, foreign=foreign),
-        payload=PlanPayload(title="A deliberate special event"),
+        payload=PlanPayload(title=title),
         status=status,
         planned_on=day,
         planned_start=start,
-        anticipation_enabled=special,
+        planned_end=end,
+        anticipation=anticipation,
+        discreet=discreet,
         experienced_on=date(2026, 10, 28) if status == "COMPLETED" else None,
     )
     session.add(item)
@@ -87,12 +101,13 @@ def grant(session, context, *, capabilities=None, expired=False):  # type: ignor
     )
 
 
-def test_countdown_selects_special_plan_beyond_ordinary_agenda_limit(
+def test_countdown_prefers_pinned_plan_beyond_ordinary_agenda_limit(
     client, session, context, monkeypatch
 ):  # type: ignore[no-untyped-def]
     monkeypatch.setattr(dashboard_service.clock, "now", lambda: NOW)
+    # Earlier automatic Plans never outrank a pinned one (#2158 D).
     for offset in range(1, 10):
-        plan(session, context, day=NOW.date() + timedelta(days=offset), special=False)
+        plan(session, context, day=NOW.date() + timedelta(days=offset), anticipation="AUTOMATIC")
     selected = plan(session, context, day=date(2026, 11, 10))
     plan(session, context, day=date(2026, 10, 30), foreign=True)
     result = dashboard(client, context)
@@ -109,27 +124,64 @@ def test_countdown_selects_special_plan_beyond_ordinary_agenda_limit(
     }
 
 
+@pytest.mark.parametrize("anticipation", ["ALWAYS", "AUTOMATIC"])
 @pytest.mark.parametrize(
-    "status,day,special",
+    "status,day",
     [
-        ("PLANNED", date(2026, 10, 28), True),
-        ("PLANNED", date(2026, 10, 30), False),
-        ("COMPLETED", date(2026, 10, 30), True),
-        ("IDEA", None, True),
+        ("PLANNED", date(2026, 10, 28)),
+        ("COMPLETED", date(2026, 10, 30)),
+        ("IDEA", None),
     ],
 )
 def test_countdown_ignores_ineligible_plans(
-    client, session, context, monkeypatch, status, day, special
+    client, session, context, monkeypatch, status, day, anticipation
 ):  # type: ignore[no-untyped-def]
     monkeypatch.setattr(dashboard_service.clock, "now", lambda: NOW)
-    plan(session, context, day=day, status=status, special=special)
+    plan(session, context, day=day, status=status, anticipation=anticipation)
+    assert dashboard(client, context).json()["anticipation"] is None
+
+
+def test_countdown_shows_the_next_automatic_plan_when_none_is_pinned(
+    client, session, context, monkeypatch
+):  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(dashboard_service.clock, "now", lambda: NOW)
+    plan(session, context, day=date(2026, 10, 30), anticipation="NEVER", title="Kept off Wir")
+    plan(session, context, day=date(2026, 10, 30), discreet=True, anticipation="AUTOMATIC")
+    plan(session, context, day=date(2026, 10, 31), foreign=True, anticipation="AUTOMATIC")
+    later = plan(session, context, day=date(2026, 11, 5), anticipation="AUTOMATIC")
+    soonest = plan(
+        session, context, start=datetime(2026, 11, 1, 18, tzinfo=UTC), anticipation="AUTOMATIC"
+    )
+    view = dashboard(client, context).json()["anticipation"]
+    assert view["planId"] == str(soonest.id)
+    assert view["daysRemaining"] == 3
+    assert view["concealed"] is False
+
+    soonest.anticipation = "NEVER"
+    session.flush()
+    assert dashboard(client, context).json()["anticipation"]["planId"] == str(later.id)
+
+
+def test_a_started_timed_plan_counts_down_until_it_ends(client, session, context, monkeypatch):  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(dashboard_service.clock, "now", lambda: NOW)
+    # Started an hour ago without an end: no longer upcoming, even on its day.
+    plan(session, context, start=NOW - timedelta(hours=1), anticipation="ALWAYS")
+    running = plan(
+        session,
+        context,
+        start=NOW - timedelta(hours=2),
+        end=NOW + timedelta(hours=1),
+        anticipation="AUTOMATIC",
+    )
+    assert dashboard(client, context).json()["anticipation"]["planId"] == str(running.id)
+    monkeypatch.setattr(dashboard_service.clock, "now", lambda: NOW + timedelta(hours=2))
     assert dashboard(client, context).json()["anticipation"] is None
 
 
 @pytest.mark.parametrize(
     "instant,expected",
     [
-        (datetime(2026, 10, 28, 23, 30, tzinfo=UTC), 0),
+        (datetime(2026, 10, 29, 22, 30, tzinfo=UTC), 0),
         (datetime(2026, 10, 29, 23, 30, tzinfo=UTC), 1),
     ],
 )
@@ -145,111 +197,63 @@ def test_countdown_uses_authoritative_viewer_calendar_day(
     assert value["eventOn"] == (NOW.date() + timedelta(days=expected)).isoformat()
 
 
-def test_highlight_uses_existing_plan_version_and_clears_without_pro(client, session, context):  # type: ignore[no-untyped-def]
-    item = plan(session, context, day=date(2099, 1, 1), special=False)
+def test_preference_uses_existing_plan_version_and_clears_without_pro(client, session, context):  # type: ignore[no-untyped-def]
+    item = plan(session, context, day=date(2099, 1, 1), anticipation="AUTOMATIC")
     path = f"/api/v1/spaces/{context['space'].id}/plans/{item.id}"
     version = item.version
     response = client.patch(
         path,
-        json={"anticipationEnabled": True},
+        json={"anticipation": "ALWAYS"},
         headers={**auth(context["token"]), "If-Match": str(version)},
     )
     assert response.status_code == 200
+    assert response.json()["anticipation"] == "ALWAYS"
     assert response.json()["anticipationEnabled"] is True
     stale = client.patch(
         path,
-        json={"anticipationEnabled": False},
+        json={"anticipation": "NEVER"},
         headers={**auth(context["token"]), "If-Match": str(version)},
     )
     assert stale.status_code == 409
-    cleared = client.patch(
+    hidden = client.patch(
         path,
-        json={"anticipationEnabled": False},
+        json={"anticipation": "NEVER"},
         headers={**auth(context["partner_token"]), "If-Match": str(response.json()["version"])},
     )
-    assert cleared.status_code == 200
-    assert cleared.json()["anticipationEnabled"] is False
+    assert hidden.status_code == 200
+    assert hidden.json()["anticipation"] == "NEVER"
+    assert hidden.json()["anticipationEnabled"] is False
 
 
-def test_passport_free_denied_before_aggregation(client, session, context, monkeypatch):  # type: ignore[no-untyped-def]
-    def unexpected(*args):  # type: ignore[no-untyped-def]
-        raise AssertionError("Free request must not calculate premium aggregates")
-
-    monkeypatch.setattr(dashboard_service, "read_relationship_passport", unexpected)
-    result = client.get(
-        f"/api/v1/spaces/{context['space'].id}/relationship-passport",
-        headers=auth(context["token"]),
+@pytest.mark.parametrize("flag,expected", [(True, "ALWAYS"), (False, "AUTOMATIC")])
+def test_deprecated_flag_from_older_clients_maps_onto_the_preference(
+    client, session, context, flag, expected
+):  # type: ignore[no-untyped-def]
+    item = plan(session, context, day=date(2099, 1, 1), anticipation="NEVER")
+    response = client.patch(
+        f"/api/v1/spaces/{context['space'].id}/plans/{item.id}",
+        json={"anticipationEnabled": flag},
+        headers={**auth(context["token"]), "If-Match": str(item.version)},
     )
-    assert result.status_code == 403
-    assert result.json()["code"] == "PREMIUM_ENTITLEMENT_REQUIRED"
+    assert response.status_code == 200, response.text
+    assert response.json()["anticipation"] == expected
+    assert response.json()["anticipationEnabled"] is flag
 
 
 @pytest.mark.parametrize(
-    "capabilities,expired", [(["daily.insights"], False), (["relationship.passport"], True)]
+    "body",
+    [
+        {"anticipation": None},
+        {"anticipation": "SOMETIMES"},
+        {"anticipationEnabled": None},
+        {"anticipation": "ALWAYS", "anticipationEnabled": True},
+    ],
 )
-def test_passport_requires_its_own_current_capability(
-    client, session, context, monkeypatch, capabilities, expired
-):  # type: ignore[no-untyped-def]
-    monkeypatch.setattr(dashboard_service.clock, "now", lambda: NOW)
-    grant(session, context, capabilities=capabilities, expired=expired)
-    result = client.get(
-        f"/api/v1/spaces/{context['space'].id}/relationship-passport",
-        headers=auth(context["token"]),
+def test_invalid_preference_writes_are_rejected(client, session, context, body):  # type: ignore[no-untyped-def]
+    item = plan(session, context, day=date(2099, 1, 1), anticipation="AUTOMATIC")
+    response = client.patch(
+        f"/api/v1/spaces/{context['space'].id}/plans/{item.id}",
+        json=body,
+        headers={**auth(context["token"]), "If-Match": str(item.version)},
     )
-    assert result.status_code == 403
-
-
-def test_passport_is_shared_only_couple_scoped_and_respects_duration_preference(
-    client, session, context, monkeypatch
-):  # type: ignore[no-untyped-def]
-    monkeypatch.setattr(dashboard_service.clock, "now", lambda: NOW)
-    grant(session, context, capabilities=["relationship.passport"])
-    session.add(
-        Memory(
-            **root(context), payload=MemoryPayload(title="Shared memory", body="Our shared story")
-        )
-    )
-    session.add(
-        Memory(
-            **root(context, foreign=True),
-            payload=MemoryPayload(title="Foreign memory", body="A different Space"),
-        )
-    )
-    for private in (False, True):
-        session.add(
-            HeartMoment(
-                **root(context, private=private),
-                happened_on=NOW.date(),
-                payload=HeartMomentPayload(text="A moment", emotion=HeartEmotion.LOVED),
-            )
-        )
-    session.add(Place(**root(context), payload=PlacePayload(name="Our place")))
-    plan(session, context, day=date(2026, 10, 28), status=PlanStatus.COMPLETED.value)
-    plan(session, context, day=date(2026, 11, 10))
-    session.flush()
-    path = f"/api/v1/spaces/{context['space'].id}/relationship-passport"
-    for token in (context["token"], context["partner_token"]):
-        result = client.get(path, headers=auth(token))
-        assert result.status_code == 200
-        assert result.headers["Cache-Control"] == "private, no-store"
-        value = result.json()
-        assert value["memories"] == 1
-        assert value["heartMoments"] == 1
-        assert value["completedPlans"] == 1
-        assert value["places"] == 1
-        assert value["relationshipDuration"] is None
-    foreign = client.get(
-        f"/api/v1/spaces/{context['foreign'].id}/relationship-passport",
-        headers=auth(context["token"]),
-    )
-    assert foreign.status_code == 404
-    profile = session.query(SpaceProfile).filter_by(space_id=context["space"].id).one()
-    profile.relationship_started_on = date(2023, 5, 14)
-    profile.show_relationship_duration = True
-    session.flush()
-    assert (
-        client.get(path, headers=auth(context["token"])).json()["relationshipDuration"][
-            "daysTogether"
-        ]
-        == (NOW.date() - date(2023, 5, 14)).days
-    )
+    assert response.status_code == 422

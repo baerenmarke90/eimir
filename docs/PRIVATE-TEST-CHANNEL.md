@@ -8,28 +8,44 @@ Android APK publication remains the separate #1331/#1332 channel.
 
 ## Automatic publication
 
-After a push to `main`, the private-channel jobs in `.github/workflows/release-publish.yml`
-are triggered by successful completions of the required main workflows:
+Every merge to `main` publishes the private test channel right away (#2096,
+Product Owner decision 2026-11-20). The `push` to `main` starts the private-channel
+jobs in `.github/workflows/release-publish.yml`; the merged pull request's checks
+are the only verification. The full regression does **not** gate this test
+instance. A newer merge cancels an unfinished build of an older one, so the
+channel converges on the newest `main`. Product releases keep requiring the full
+regression (see `docs/m6/IMMUTABLE-RELEASES.md` and #2100).
+
+After a green full regression (nightly or manual), Nightly Regression Report also
+starts the publisher with `private_test_channel=true`; it is a no-op when that
+revision is already selected or `main` has moved on. A manual retry uses the same
+dispatch, described under one-time setup below.
+
+The publication jobs:
 
 1. Publication requires the repository
    Actions variable `EIMIR_TEST_CHANNEL_ENABLED=true`, the owning repository and
    its `main` ref. Pull requests never receive publishing permissions.
-2. Checks once for the exact revision's newest push runs of CI, Web
+2. For a merge (`push`), admits only the current `main` commit and skips the full
+   regression. For a manual or report dispatch, checks once for the exact
+   revision's newest dispatched full-regression runs of CI, Web
    Browser QA, CodeQL SAST, Self-Hosted Deployment Guard, Self-Hosted Recovery and Media Video.
    Missing, pending, skipped, failed or cancelled workflows cannot admit a build.
    An unfinished candidate exits without building; the next required workflow
    completion retries it. No runner waits for other workflows. Completion events
-   must originate from an owning-repository main push and match the exact checkout;
+   must originate from an owning-repository dispatched main run and match the exact checkout;
    PRs, forks, other branches and superseded revisions cannot admit publication.
    A revision already selected on the channel is not rebuilt on duplicate events.
    Completion queues are separated by source revision and event origin, so a late
    older or fork completion cannot evict the current candidate. Final publication
    retains pending candidates, remains globally serialized, and rechecks current
    main and all required checks before it can advance the channel.
-   Browser QA therefore runs for every main push, including backend-only and
-   operator changes; pull-request browser path filters remain unchanged.
+   The full regression runs Browser QA for every tested main revision, including
+   backend-only and operator changes.
 3. Runs the channel contracts, then reuses Release Evidence with Android excluded:
    build-once runtime archives, hashes, SPDX SBOMs and verified attestations.
+   The backend image is the default `pro` stage of `backend/Dockerfile`: the Core
+   with the Pro plugin distribution `eimir-pro` (#2182).
    The private test channel additionally includes the restricted `media-runtime`
    derivative, built from that exact backend image, with its own archive, SPDX
    SBOM, provenance and offline verification. Release Evidence requires a fresh
@@ -37,7 +53,8 @@ are triggered by successful completions of the required main workflows:
    a failed feed check keeps the previous channel in place. Nothing builds on the
    Docker host.
 4. Loads all three archives, verifies source/version/platform labels, publishes to the
-   existing GHCR backend/Web/media packages and checks the exact registry manifests and
+   GHCR backend/Web/media packages (names and visibility: see "Private channel
+   packages" below) and checks the exact registry manifests and
    pulled-back image identities. Docker pushes only `linux/amd64`, so containerd
    provenance indexes are not deployment references. The single registry
    manifest's config digest must match the exact config bytes in the verified
@@ -75,13 +92,14 @@ Merge the implementation PR through ordinary required checks. Then:
 
 1. Under repository **Settings → Secrets and variables → Actions → Variables**,
    add `EIMIR_TEST_CHANNEL_ENABLED` with value `true`. It is not a secret.
-2. Set the variable before merging to let the first main push publish the channel.
+2. Set the variable before merging to let the first full regression publish the channel.
    To retry after checks finish, run **Actions → Publish Immutable Release → Run workflow**,
    branch **main**, with **private_test_channel=true**, release version `0.0.0`,
    and **confirm_publish=false**. The private selector excludes all product-release
-   jobs; the placeholder version is unused. Subsequent main pushes are automatic.
-3. If package access is not inherited, grant this repository **Write** under the
-   existing `eimir-backend` and `eimir-web` packages' Actions access settings.
+   jobs; the placeholder version is unused. Subsequent nightly regressions are automatic.
+3. If package access is not inherited, grant this repository **Write** under each
+   channel package's Actions access settings (the packages named in "Private channel
+   packages" below).
    Only the publisher job requests package and channel-branch write permissions.
 4. If a ruleset protects `deploy/eimir-test`, allow the channel publisher under
    that branch's policy. Do not relax `main` protections. A rejected branch write
@@ -89,9 +107,115 @@ Merge the implementation PR through ordinary required checks. Then:
 5. Confirm a successful publisher and the three files `compose.yaml`,
    `channel.json`, `README.md` on `deploy/eimir-test`; there must be no `.env`.
 
-The workflow does not change package visibility. For private packages, configure
-a read-only package credential in Arcane's Container Registries, never in Compose,
-a Git URL or the application environment.
+The workflow cannot change package visibility. See "Private channel packages" below for
+the mandatory visibility step after the first publication of any new package name, and
+configure a read-only package credential in Arcane's Container Registries, never in
+Compose, a Git URL or the application environment.
+
+## Private channel packages (Decision 0019, phase 0b)
+
+Images built by this channel contain the Pro code, so the channel publishes to **private**
+packages `ghcr.io/baerenmarke90/eimir-cloud-backend`, `eimir-cloud-web` and
+`eimir-cloud-media` ([#2202](https://github.com/baerenmarke90/eimir/issues/2202)). The
+repository stays public until the cut-over. The former public packages `eimir-backend`,
+`eimir-web` and `eimir-media` receive no new versions and stay as the rollback until the
+Product Owner approves their retirement, one package at a time and not before 2026-11-30.
+Product-release (Self-Hosted `v0.x`) images are not part of this channel and keep their
+names.
+
+Two plain repository **Actions variables** can change the publisher. Neither is a secret.
+
+| Variable | Values | Effect |
+| --- | --- | --- |
+| `EIMIR_TEST_CHANNEL_PACKAGE_PREFIX` | unset/empty (default `eimir-cloud`), or `eimir` for the legacy public packages | Package name prefix. Only `eimir` or `eimir-` followed by lowercase letters, digits and single hyphens is accepted; anything else refuses publication before any push. `eimir` is the explicit rollback to the old public packages; deleting the variable does **not** roll back. |
+| `EIMIR_TEST_CHANNEL_PROMOTE` | unset/empty or `true` (default), or `false` | `false` stages: all three images are pushed and verified and the generated files are produced, but `deploy/eimir-test` is **not** advanced. Any other value refuses publication. Optional; not part of the standard flow. |
+
+The job summary of the publisher lists the three pinned references and whether the channel
+was promoted or only staged.
+
+### New packages start public here: set them to Private (mandatory)
+
+GitHub's documentation says a package is private when it is first published. The first
+publication of the `eimir-cloud-*` packages disproved that: all three were created
+**public** and an anonymous manifest request returned HTTP 200. The probable cause is the
+`org.opencontainers.image.source` label, which points at the public repository (the cause
+is not confirmed). The Product Owner set the three packages to Private by hand; afterwards
+the anonymous request returned HTTP 403, and the next publisher run (45161925807) still
+wrote to the private packages.
+
+For **every new package name** (the three above are done; a future repository or name
+creates new ones):
+
+1. Publish once (optionally with `EIMIR_TEST_CHANNEL_PROMOTE=false`).
+2. Immediately open each package (profile -> Packages -> the package -> **Package
+   settings** -> **Danger Zone** -> **Change package visibility**) and choose **Private**.
+   Never choose Public: GitHub does not allow making a package private again.
+3. Check anonymously. A private package must answer 401, 403 or 404, never 200:
+
+   ```sh
+   package=eimir-cloud-web   # repeat for backend and media
+   digest=sha256:...         # the digest from the job summary
+   token=$(curl -s "https://ghcr.io/token?service=ghcr.io&scope=repository:baerenmarke90/$package:pull" \
+     | python3 -c "import sys, json; print(json.load(sys.stdin)['token'])")
+   curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $token" \
+     -H "Accept: application/vnd.oci.image.manifest.v1+json" \
+     "https://ghcr.io/v2/baerenmarke90/$package/manifests/$digest"
+   ```
+
+**The publisher enforces the check.** Before it exports or promotes anything, the publisher
+requests every pushed digest anonymously. Any HTTP 200 fails the job and names the public
+packages; set them to Private and use **Re-run failed jobs**. Any other answer than 401,
+403 or 404 (for example a rate limit or a server error) also fails the job, because privacy
+is then unproven. The legacy prefix `eimir` is exempt: those packages are public on purpose.
+The check detects, it cannot prevent: GHCR creates the package at the first push, so a new
+name is publicly readable for the short time until you set it to Private. GitHub's REST API
+for packages only lists, reads, deletes and restores packages (checked 2026-11-23), so the
+publisher cannot set visibility itself. If GitHub still refuses the first push of a new
+package, open the package settings and use **Manage Actions access -> Add Repository** with
+the Write role, then re-run the failed job.
+
+### Switch procedure for a new package name (each step needs the Product Owner's approval)
+
+This is how the move to `eimir-cloud-*` was done and how a future name is introduced.
+
+1. Create a rollback branch from the current tip of `deploy/eimir-test` (the publisher never
+   writes to it); for the move to `eimir-cloud-*` it is `deploy/eimir-test-rollback` and holds
+   the old public digests.
+2. Optionally set `EIMIR_TEST_CHANNEL_PROMOTE=false`: the next merge to `main` stages the new
+   images and the test instance keeps running on its previous images.
+3. Set the new packages to Private and check them anonymously (previous section).
+4. Prove the pull before promoting. A pull of a public image succeeds with or without a
+   credential and proves nothing, so use a private one:
+   - create a personal access token (classic) with **only** `read:packages` (fine-grained
+     tokens cannot access Packages), valid for about 12 months, and save it in Arcane under
+     Images -> Registries (host `ghcr.io`, username `baerenmarke90`, the token as password).
+     Arcane selects credentials by host name. Never put the token in Compose, a Git URL,
+     the application environment, an issue or the repository;
+   - in Arcane, pull one staged image by its digest from the job summary
+     (Images -> Pull Image, for example `ghcr.io/baerenmarke90/eimir-cloud-web@sha256:...`).
+5. Promote: set `EIMIR_TEST_CHANNEL_PROMOTE=true` or delete the variable. The next merge
+   advances `deploy/eimir-test`; Arcane Git Sync redeploys on the new images. Check that the
+   containers are healthy and that the app signs in.
+6. Retire the old packages only after at least 7 days of healthy operation, only with explicit
+   approval per package, and never before the date above. GitHub refuses deletion of a public
+   package with a version above 5,000 downloads; then use GitHub Support. Deleted packages
+   can be restored for 30 days.
+
+### Rollback
+
+1. In Arcane open the `eimir-test` Git Sync, change the branch to `deploy/eimir-test-rollback`
+   and sync. This does not depend on the publisher and works while the old public packages
+   exist.
+2. Set `EIMIR_TEST_CHANNEL_PACKAGE_PREFIX=eimir` **explicitly**. The default is now
+   `eimir-cloud`, so deleting the variable does not roll back; with `eimir` the next merge
+   publishes to the old public names again (no privacy check applies to them).
+3. To return, set the Arcane branch back to `deploy/eimir-test` and delete the prefix
+   variable (or set it to `eimir-cloud`).
+
+A redeploy is not a database rollback (see [Self-Hosted Recovery](SELF-HOSTED-RECOVERY.md));
+the old and new images carry the same code revision at the switch, so no schema change is
+involved. When the registry token expires, running containers keep running but new pulls
+fail until a new read-only token is saved in Arcane.
 
 ## Preserve the existing instance
 
@@ -199,6 +323,12 @@ Operator notes: list only addresses that the intended tester has already registe
 because whoever first verifies a listed address owns that match (relevant when an OIDC provider marks
 addresses as verified). Settings are cached per process, so a change to the list takes effect after the
 API is restarted or redeployed.
+## Optional support reports
+
+The generated API/worker environment retains the instance-local expression
+`EIMIR_SUPPORT_REPORTS_ENABLED` (default false, #2189). Keep it false until the admin
+reader for the reports exists; the channel never freezes a runner value into it.
+
 ## Optional calendar sync
 
 The generated API/worker environment retains instance-local expressions for
@@ -363,7 +493,7 @@ setup is added. Released Self-Hosted/Production contracts remain unchanged.
 
 ## Optional server-local AI
 
-For weekly reviews and tag proposals, the application channel forwards the
+For tag proposals, the application channel forwards the
 optional `EIMIR_RECAP_AI_URL`, `EIMIR_RECAP_AI_MODEL` and
 `EIMIR_RECAP_AI_TIMEOUT_SECONDS` expressions to API and worker. Keep local inference in a separate Arcane project on `eimir-test-data`,
 so an application Git Sync update does not remove an operator-added service.

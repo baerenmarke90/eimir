@@ -21,7 +21,7 @@ from __future__ import annotations
 import secrets
 from dataclasses import dataclass, field
 from hashlib import sha256
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 from uuid import UUID
 
 from sqlalchemy import delete, select
@@ -35,7 +35,6 @@ from eimir.core.errors import (
     PremiumEntitlementRequiredError,
     ValidationError,
 )
-from eimir.date_ideas.catalog import get_catalog
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import Capability
@@ -53,6 +52,7 @@ from eimir.wish_selections.models import (
     WishSelectionRound,
     WishSelectionRoundPayload,
 )
+from eimir.wishes import concealment
 from eimir.wishes.models import Wish, WishStatus
 
 ResultState = Literal["NO_ROUND", "CHOOSING", "WAITING", "READY", "NEEDS_IDEAS", "PAUSED"]
@@ -60,6 +60,9 @@ RandomPool = Literal["COMMON", "FAVORITES", "ALL"]
 DecisionAction = Literal[
     "REQUEST_RANDOM", "ACCEPT_RANDOM", "DECLINE_RANDOM", "WITHDRAW_RANDOM", "CHOOSE", "CLEAR"
 ]
+
+if TYPE_CHECKING:
+    from eimir.wish_selections.date_idea_contract import DateIdeaSource
 
 DATE_IDEAS_CAPABILITY = Capability.PLANNING_DATE_INSPIRATION.value
 
@@ -171,10 +174,19 @@ def _candidates(
     return [CandidateProjection(row[0], row[1], row[2]) for row in rows]
 
 
+def date_idea_source() -> DateIdeaSource | None:
+    """The curated date-idea catalog, if a loaded plugin provides one."""
+    # The curated catalog is plugin content (Decision 0017); without it a round
+    # with date ideas stays paused and nothing is deleted.
+    from eimir.plugins.loader import loaded_plugins
+
+    return loaded_plugins().date_ideas()
+
+
 def _date_idea_candidates(
     session: Session, context: AuthorizationContext, round_id: UUID
 ) -> list[DateIdeaCandidateProjection]:
-    catalog = get_catalog()
+    catalog = date_idea_source()
     rows = session.execute(
         select(WishSelectionCandidate.date_idea_id, WishSelectionCandidate.date_idea_revision)
         .where(
@@ -186,7 +198,9 @@ def _date_idea_candidates(
     ).all()
     # A catalog revision never silently redirects a round to other content.
     return [
-        DateIdeaCandidateProjection(idea_id, catalog.revision(idea_id) == revision)
+        DateIdeaCandidateProjection(
+            idea_id, catalog is not None and catalog.revision(idea_id) == revision
+        )
         for idea_id, revision in rows
     ]
 
@@ -389,12 +403,12 @@ def replace_round(
         raise ValidationError(
             "Choose two to five distinct ideas.", "WISH_SELECTION_CANDIDATES_INVALID"
         )
-    catalog = get_catalog()
     revisions: dict[str, str] = {}
     if idea_ids:
         # Locked like other protected writes so a concurrent revocation cannot
         # race the authorization of this round.
-        if not _date_ideas_allowed(session, context, lock=True):
+        catalog = date_idea_source()
+        if catalog is None or not _date_ideas_allowed(session, context, lock=True):
             raise PremiumEntitlementRequiredError(DATE_IDEAS_CAPABILITY)
         for idea_id in idea_ids:
             revision = catalog.revision(idea_id)
@@ -416,7 +430,10 @@ def replace_round(
             .execution_options(populate_existing=True)
         )
     )
-    if len(sources) != len(wish_ids):
+    # A Wish an open game hides from the composer cannot enter a round, whose
+    # candidates show their titles (#2158 H).
+    hidden = concealment.hidden_wish_ids(session, context)
+    if len(sources) != len(wish_ids) or any(source.id in hidden for source in sources):
         raise ValidationError(
             "Some Wishes are no longer available. Choose again.",
             "WISH_SELECTION_CANDIDATES_INVALID",

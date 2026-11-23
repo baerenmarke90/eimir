@@ -1,0 +1,46 @@
+/*
+ * The motion layer's Map domain catalogue (Motion Contract 4.8, M6, M7, M14;
+ * #2078).
+ *
+ * MapLibre renders the map itself in its own WebGL loop: its camera and
+ * gesture handlers are configured in `PlaceMapCanvas.tsx` through the token
+ * adapter and the reduced-motion source. The few DOM overlays on the map keep
+ * their keyframes here instead of in the feature stylesheet. The owner names
+ * them on its own states with token roles only (M1); every role is `0ms` with
+ * reduced motion, so the drawing shows its final state at once.
+ *
+ * The partner connection (#1907 H1) also uses the shared Enter `draw` (the
+ * arc) and Enter `grow` (the heart) from `motion.css`.
+ *
+ * Imported by `PlaceMapCanvas.tsx`, so it loads only with the map.
+ */
+
+/*
+ * Ambient, finite: the glow travels along the arc and back. It turns just
+ * outside both avatars (set per arc), so it never hides under them. This is
+ * the Map domain's one `offset-distance` exception (M6) on one small element;
+ * the line itself is never scaled (M7).
+ */
+@keyframes eimir-motion-map-connection-travel {
+  0% {
+    offset-distance: var(--place-map-connection-start, 0%);
+    opacity: var(--place-map-connection-glow-opacity);
+  }
+
+  50% {
+    offset-distance: var(--place-map-connection-end, 100%);
+    opacity: var(--place-map-connection-glow-opacity);
+  }
+
+  100% {
+    offset-distance: var(--place-map-connection-start, 0%);
+    opacity: var(--place-map-connection-glow-opacity);
+  }
+}
+
+/* One beat of the nearby heart, a filled 22 px glyph, not a thin stroke. */
+@keyframes eimir-motion-map-connection-beat {
+  50% {
+    scale: 1.14;
+  }
+}

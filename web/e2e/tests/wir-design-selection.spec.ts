@@ -3,6 +3,7 @@ import { expect, type Page, test } from '@playwright/test';
 import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
 import quoteCopy from '../../src/i18n/locales/dailyQuote';
 import m5s5Copy from '../../src/i18n/locales/m5s5';
+import navigation from '../../src/i18n/locales/navigation';
 import notificationCopy from '../../src/i18n/locales/notificationSettings';
 import profileCopy from '../../src/i18n/locales/profileIdentity';
 import reflections from '../../src/i18n/locales/relationshipReflections';
@@ -866,13 +867,20 @@ test('quote and statistics order survives pointer release, keyboard movement and
   await grip.scrollIntoViewIfNeeded();
   const initial = await grip.boundingBox();
   const rowBefore = await quote.boundingBox();
-  if (!initial || !rowBefore) throw new Error('Missing visible quote row');
+  // Since #2158 C the waiting-games row sits between the quote and the
+  // keepsake; drag past both so the quote lands after the keepsake on Wir.
+  const keepsakeRow = await page
+    .locator('[data-sortable-item-id="keepsake"]')
+    .boundingBox();
+  if (!initial || !rowBefore || !keepsakeRow)
+    throw new Error('Missing visible quote or keepsake row');
   await page.mouse.move(
     initial.x + initial.width / 2,
     initial.y + initial.height / 2,
   );
   await page.mouse.down();
-  const dragDistance = rowBefore.height + 20;
+  const dragDistance =
+    keepsakeRow.y + keepsakeRow.height - (rowBefore.y + rowBefore.height) + 20;
   await page.mouse.move(
     initial.x + initial.width / 2,
     initial.y + initial.height / 2 + dragDistance,
@@ -1311,4 +1319,206 @@ test('the names and note layouts compose Wir and the note opens its Heart Moment
   );
   await expect(page.locator('.wir-note-add .add-action')).toBeVisible();
   expect(f.unexpected).toEqual([]);
+});
+
+async function expectTitleGap(
+  page: Page,
+  parent: string,
+  firstContent: string,
+) {
+  const row = page.locator(parent + ' .page-heading-title-row');
+  await expect(row).toBeVisible();
+  await expect(
+    row.getByRole('button').or(row.getByRole('link')).first(),
+  ).toBeVisible();
+  const content = page.locator(firstContent).first();
+  await expect(content).toBeVisible();
+  await expect
+    .poll(async () => {
+      const titleBox = await row.boundingBox();
+      const contentBox = await content.boundingBox();
+      return titleBox && contentBox
+        ? Math.round(contentBox.y - titleBox.y - titleBox.height)
+        : null;
+    })
+    .toBe(24);
+}
+
+async function checkResponsiveTitleGaps(
+  page: Page,
+  includeThreadIndex = false,
+) {
+  const destinations = [
+    {
+      route: '/more/profile',
+      header: '.profile-page',
+      content: '.profile-identity-panel',
+    },
+    {
+      route: '/story/years',
+      header: '.story-years-page',
+      content: '.story-years-recaps-entry',
+    },
+  ];
+  if (includeThreadIndex) {
+    destinations.push({
+      route: '/faden',
+      header: '.thread-index',
+      content: '.thread-index-list',
+    });
+  }
+  for (const { route, header, content } of destinations) {
+    await page.goto(route);
+    for (const [width, height] of [
+      [390, 844],
+      [768, 900],
+      [1280, 900],
+    ]) {
+      await page.setViewportSize({ width, height });
+      await expectTitleGap(page, header, content);
+    }
+  }
+}
+
+test('Zuhause navigation, saved appearance and secondary title spacing', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const saved = await fixture(page, { initial: 'connected' });
+  await signIn(page);
+  await open(page);
+  await page
+    .getByRole('radio', { name: new RegExp(copy.names.home_rooms) })
+    .check();
+  await page.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(page.getByText(copy.saved, { exact: true })).toBeVisible();
+  expect(saved.writes).toEqual(['home_rooms']);
+  await page.goto('/today');
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-wir-layout',
+    'rooms',
+  );
+  await expect(page.locator('.home-landing')).toBeVisible();
+  await captureScreenshot(page, info, 'home_rooms-compact.png', {
+    animations: 'disabled',
+  });
+  await reflow(page);
+  await page
+    .getByRole('button', { name: copy.homeRooms.rooms, exact: true })
+    .click();
+  const picker = page.getByRole('dialog');
+  await expect(picker).toBeVisible();
+  await picker.getByRole('link').filter({ hasText: 'Listen' }).click();
+  await expect(page).toHaveURL(/\/more\/collections/);
+  await page.goto('/today?view=wir');
+  await expect(page.locator('.today-content')).toBeVisible();
+  await expect(page.locator('.home-landing')).toHaveCount(0);
+  await checkResponsiveTitleGaps(page);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('/today');
+  await expect(page.locator('.home-landing')).toBeVisible();
+  await captureScreenshot(page, info, 'home_rooms-expanded.png', {
+    animations: 'disabled',
+  });
+});
+
+test('Unser Takt navigation, saved appearance and secondary title spacing', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const saved = await fixture(page, { initial: 'connected' });
+  await signIn(page);
+  await open(page);
+  await page
+    .getByRole('radio', { name: new RegExp(copy.names.shared_rhythm) })
+    .check();
+  await page.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(page.getByText(copy.saved, { exact: true })).toBeVisible();
+  expect(saved.writes).toEqual(['shared_rhythm']);
+  await page.goto('/today');
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-wir-layout',
+    'chapters',
+  );
+  await expect(page.locator('.rhythm-today-lead')).toBeVisible();
+  await captureScreenshot(page, info, 'shared_rhythm-compact.png', {
+    animations: 'disabled',
+  });
+  await reflow(page);
+  const chapters = page.getByRole('navigation', { name: 'Hauptnavigation' });
+  await chapters.getByRole('link', { name: 'Listen' }).click();
+  await expect(page).toHaveURL(/\/more\/collections/);
+  await chapters.getByRole('link', { name: copy.rhythm.history }).click();
+  await expect(page).toHaveURL(/\/story/);
+  await checkResponsiveTitleGaps(page);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('/today');
+  await expect(page.locator('.rhythm-today-lead')).toBeVisible();
+  await captureScreenshot(page, info, 'shared_rhythm-expanded.png', {
+    animations: 'disabled',
+  });
+});
+
+test('Faden navigation, saved appearance and secondary title spacing', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const saved = await fixture(page, { initial: 'connected' });
+  await signIn(page);
+  await open(page);
+  await page
+    .getByRole('radio', { name: new RegExp(copy.names.together_index) })
+    .check();
+  await page.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(page.getByText(copy.saved, { exact: true })).toBeVisible();
+  expect(saved.writes).toEqual(['together_index']);
+  await page.goto('/today');
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-wir-layout',
+    'thread',
+  );
+  await expect(page.locator('.thread-today')).toBeVisible();
+  await captureScreenshot(page, info, 'together_index-compact.png', {
+    animations: 'disabled',
+  });
+  await reflow(page);
+  await page.setViewportSize({ width: 390, height: 420 });
+  await page.goto('/story/memories/mem-canal');
+  const trigger = page.getByRole('link', { name: copy.thread.index });
+  await expect(trigger).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Breakfast by the canal' }),
+  ).toBeVisible();
+  const originScroll = await page.evaluate(() => {
+    window.scrollTo({ top: 160, behavior: 'instant' });
+    return window.scrollY;
+  });
+  expect(originScroll).toBeGreaterThan(0);
+  await expect(trigger).toBeInViewport({ ratio: 1 });
+  await trigger.click();
+  await expectTitleGap(page, '.thread-index', '.thread-index-list');
+  await expect(
+    page.locator('.thread-index-list a[href="/more/collections"]'),
+  ).toBeVisible();
+  await page
+    .getByRole('button', {
+      name: copy.thread.return.replace('{{area}}', navigation.story),
+      exact: true,
+    })
+    .click();
+  await expect(page).toHaveURL(/\/story\/memories\/mem-canal/);
+  await expect(trigger).toBeFocused();
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBe(originScroll);
+  await checkResponsiveTitleGaps(page, true);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('/today');
+  await expect(page.locator('.thread-today')).toBeVisible();
+  await captureScreenshot(page, info, 'together_index-expanded.png', {
+    animations: 'disabled',
+  });
 });

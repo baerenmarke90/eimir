@@ -116,6 +116,7 @@ async function fixture(
     placeId,
     coverAttachment: coverAttached ? cover : null,
     sourceWishId: null,
+    anticipation: highlighted ? 'ALWAYS' : 'AUTOMATIC',
     anticipationEnabled: highlighted,
     status: 'PLANNED',
     version,
@@ -335,7 +336,8 @@ async function fixture(
           },
         });
       const update = request.postDataJSON();
-      highlighted = update.anticipationEnabled ?? highlighted;
+      if ('anticipation' in update)
+        highlighted = update.anticipation === 'ALWAYS';
       if ('attachments' in update)
         coverAttached = update.attachments.length > 0;
       if ('coverAttachmentId' in update)
@@ -458,8 +460,8 @@ for (const [width, theme, largeText] of [
     const state = await fixture(page);
     await signIn(page);
     await page.goto(`/plan/plans/${PLAN}`);
-    const control = page.getByRole('switch', {
-      name: copy.anticipation.show,
+    const control = page.getByRole('radio', {
+      name: copy.anticipation.always,
     });
     await expect(control).toHaveCount(0);
     await editViaMenu(page, de.common.edit);
@@ -818,8 +820,8 @@ test('failed Plan edit preserves the staged countdown without a success claim', 
   const state = await fixture(page, { failWrite: true });
   await signIn(page);
   await page.goto(`/plan/plans/${PLAN}`);
-  const control = page.getByRole('switch', {
-    name: copy.anticipation.show,
+  const control = page.getByRole('radio', {
+    name: copy.anticipation.always,
   });
   await editViaMenu(page, de.common.edit);
   await control.click();
@@ -828,7 +830,6 @@ test('failed Plan edit preserves the staged countdown without a success claim', 
     .click();
   await expect(page.getByText(de.states.server.title)).toBeVisible();
   await expect(control).toBeChecked();
-  await expect(page.getByText(copy.anticipation.saved)).toHaveCount(0);
   expect(state.patches()).toBe(1);
 });
 
@@ -839,12 +840,12 @@ test('hidden upcoming module also conceals a selected special event', async ({
   await signIn(page);
   await page.goto(`/plan/plans/${PLAN}`);
   await editViaMenu(page, de.common.edit);
-  await page.getByRole('switch', { name: copy.anticipation.show }).click();
+  await page.getByRole('radio', { name: copy.anticipation.always }).click();
   await page
     .getByRole('button', { name: planningCopy.common.saveChanges })
     .click();
   await expect(
-    page.getByRole('switch', { name: copy.anticipation.show }),
+    page.getByRole('radio', { name: copy.anticipation.always }),
   ).toHaveCount(0);
   await page.getByRole('link', { name: 'Wir', exact: true }).click();
   await expect(page.locator('.today-content')).toBeVisible();
@@ -866,7 +867,7 @@ for (const [width, theme] of [
     await signIn(page);
     await page.goto(`/plan/plans/${PLAN}`);
     await expect(
-      page.getByRole('switch', { name: copy.anticipation.show }),
+      page.getByRole('radio', { name: copy.anticipation.always }),
     ).toHaveCount(0);
     await expect(
       page.getByText(planningCopy.plan.actionsHeading, { exact: true }),
@@ -916,7 +917,7 @@ for (const [width, theme] of [
     await expect(page.locator('.composer-place-context')).toContainText(
       'Sankt Peter-Ording',
     );
-    await page.getByRole('switch', { name: copy.anticipation.show }).click();
+    await page.getByRole('radio', { name: copy.anticipation.always }).click();
     await page.evaluate(() => window.scrollTo(0, 0));
     await captureScreenshot(
       page,
@@ -928,7 +929,7 @@ for (const [width, theme] of [
       .getByRole('button', { name: planningCopy.common.saveChanges })
       .click();
     await expect(
-      page.getByRole('switch', { name: copy.anticipation.show }),
+      page.getByRole('radio', { name: copy.anticipation.always }),
     ).toHaveCount(0);
     await expect(
       page.locator('.plan-photo-gallery .media-gallery-carousel-content'),

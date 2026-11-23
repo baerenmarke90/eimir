@@ -307,8 +307,10 @@ an SLA):
   latency and job-processing latency within the `#524` measured baseline; upgraded
   by observed connection/CPU pressure, not by a priori sizing;
 - object storage: no fixed capacity limit assumed beyond the provider's own
-  service limits; per-account storage quota, if any, is a `#262` product decision,
-  not a topology decision.
+  service limits. The storage quota per Space is a product decision (#2141,
+  Freemium matrix "Cloud storage quota"), not a topology decision: Cloud passes
+  `EIMIR_STORAGE_QUOTA_FREE_BYTES` and `EIMIR_STORAGE_QUOTA_PREMIUM_BYTES`
+  (defaults 5 GB and 50 GB) to the runtime; Self-Hosted is unmetered.
 
 No SLA/RPO/RTO number is asserted here; `#524` records measured values against
 this topology.

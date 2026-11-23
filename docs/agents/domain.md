@@ -20,7 +20,9 @@ This repo is **single-context**:
 ├── GLOSSARY.md                         ← created lazily by /domain-modeling
 └── docs/decisions/
     ├── 0001-clean-room-classification.md
-    └── 0018-cloud-first-self-hosted-later.md
+    ├── 0018-cloud-first-self-hosted-later.md
+    ├── 0019-repository-split-and-cutover.md
+    └── 0020-remove-transfer-bundle-self-service.md
 ```
 
 ## Use the glossary's vocabulary

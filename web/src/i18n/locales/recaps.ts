@@ -91,15 +91,7 @@ export default {
     DAYS_other: 'Tage mit Einträgen',
   },
   factsBusiest: 'Am meisten festgehalten im {{month}}',
-  rhythm: {
-    title: 'Gute Tage zusammen',
-    summary_one: '{{count}} Tag, an dem ihr beide einen guten Tag hattet.',
-    summary_other: '{{count}} Tage, an denen ihr beide einen guten Tag hattet.',
-    week: 'Woche {{count}}',
-    days_one: '{{count}} guter Tag',
-    days_other: '{{count}} gute Tage',
-    note: 'Gezählt werden nur Tage, an denen ihr beide euren Tag festgehalten habt.',
-  },
+
   film: {
     coverFallback: 'Euer {{month}}',
     days_one: 'Tag, den ihr festgehalten habt',

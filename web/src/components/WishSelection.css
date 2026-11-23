@@ -42,7 +42,7 @@
 }
 .wish-selection-task {
   display: grid;
-  gap: var(--space-5);
+  --page-stack-gap: var(--space-5);
   max-width: var(--reading-max);
 }
 .wish-selection-task .page-heading {
@@ -543,8 +543,13 @@
   font: var(--font-reading-body);
 }
 @media (prefers-reduced-motion: no-preference) {
+  /* Feedback `toggle`: the heart settles from a smaller size, always
+     visible (Enter `grow` keyframes, src/motion/motion.css). */
   .wish-selection-favorite[aria-pressed="true"] .wish-selection-favorite-heart {
-    animation: wish-selection-heart var(--duration-feedback) var(--easing-enter);
+    --motion-enter-from-opacity: 1;
+    --motion-enter-from-scale: 0.7;
+    animation: eimir-motion-enter-grow var(--duration-feedback)
+      var(--easing-enter);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -553,12 +558,6 @@
     transition: none;
   }
 }
-@keyframes wish-selection-heart {
-  from {
-    transform: scale(0.7);
-  }
-}
-
 /* Consent-based random pick (#1907 J1): a proposal, the partner's card and a
    short reveal that settles instantly with reduced motion. */
 .wish-selection-random {
@@ -615,14 +614,5 @@
   height: var(--space-8);
   color: var(--color-brand-text);
 }
-@media (prefers-reduced-motion: no-preference) {
-  .wish-selection-rolling-icon {
-    animation: wish-selection-roll var(--duration-context)
-      var(--easing-standard) infinite;
-  }
-}
-@keyframes wish-selection-roll {
-  50% {
-    transform: rotate(14deg) scale(1.08);
-  }
-}
+/* The icon rocks while the draw is pending: `.eimir-motion-loading-roll`
+   (the Loading domain in src/motion/utilities.css), set in the markup. */

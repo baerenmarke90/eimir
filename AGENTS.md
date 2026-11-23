@@ -163,25 +163,19 @@ For every new or materially changed user-facing Web feature or native capability
 
 A new feature must use the shared product language in its first mergeable implementation. `Functionality first, design later` is not an acceptable UI delivery strategy.
 
-### Generated visual product reference is mandatory before implementation
+### Baseline review before UI implementation (no generated reference image required)
 
-For every new or materially changed user-facing feature, the owning issue MUST contain at least one generated visual reference image before UI implementation starts.
+The Product Owner decision of 2026-11-21 removes the requirement for a generated visual reference image. It had not proven worth its cost. A rendered HTML mock-up of the real interface, a sketch, or no visual artifact at all is acceptable; the owning issue or pull request decides what helps the review. The decision supersedes the earlier mandatory generated-image rule in this file, in `CONTRIBUTING.md`, in the feature issue template, and in section 9A of the Partner-App Experience Standard.
 
-The visual-reference preflight is repository-aware, not a free-form concept exercise:
+What stays binding is the repository-aware baseline review before UI implementation starts:
 
-- inspect current `main` and the actual destination screen/route before generating the image;
-- account for the existing functions, content hierarchy, shell/navigation, interaction primitives, design-system components, tokens, and relevant states already present there;
-- preserve existing visible capabilities that remain in scope and represent them as they currently exist instead of silently replacing or omitting them;
-- integrate the new feature into the whole composition so placement, hierarchy, density, interaction entry points, and coexistence with neighboring features can be reviewed;
-- use Compact/smartphone as the primary generated composition; add an Expanded/Web visual only when its adaptation is materially different;
-- do not satisfy this gate with an isolated feature card, a blank replacement screen, generic SaaS/admin artwork, or a mockup detached from the current eimir. product;
-- attach/link the generated reference in the issue and record the baseline `main` SHA plus the existing screen/functions that were reviewed;
-- if the affected screen changes materially before implementation starts, regenerate or update the image against the new baseline;
-- for an existing feature issue that lacks this artifact, perform this visual preflight before writing or continuing UI implementation.
+- inspect current `main` and the actual destination screen/route, including the existing functions, content hierarchy, shell/navigation, interaction primitives, design-system components, tokens, and relevant states already present there;
+- preserve existing visible capabilities that remain in scope instead of silently replacing or omitting them;
+- plan placement, hierarchy, density, interaction entry points, and coexistence with neighboring features as part of the Mobile Interaction Contract;
+- record the baseline `main` SHA and the reviewed screen/functions in the issue or pull request;
+- refresh that review if the affected screen changes materially before implementation starts.
 
-The requirement to generate the image is binding. The generated image guides composition and Product Acceptance but is not automatically a pixel-perfect lock; normative Product Reference rules, accessibility, privacy, security, business/domain contracts, and later explicit Product Owner decisions still govern. If an issue needs particular visual decisions to be exact, it must say so explicitly.
-
-[#1151](https://github.com/baerenmarke90/eimir/issues/1151) may be consulted as a **non-binding example of the workflow only**. It does not establish a reusable layout, style template, or precedence for unrelated features.
+Visual evidence of the implemented result is still required before merge (see below).
 
 ### Couple-facing anti-patterns
 
@@ -327,6 +321,17 @@ This policy applies to human contributors and coding agents handling any pull re
 - Diagnostic artifacts from retries must distinguish attempts or use an explicit safe replacement contract. Preserve stable artifact names consumed by release workflows.
 - Record the relevant root causes, correction batch, validation, and any retry reason briefly in the existing PR validation section. This adds no separate approval process or arbitrary limit on the number of justified pushes.
 
+### Pull-request CI tiers and the nightly regression
+
+The Product Owner decision in [#2096](https://github.com/baerenmarke90/eimir/issues/2096) (2026-11-20) limits GitHub Actions usage so the repository can become private. It deliberately moves heavy verification from every pull request to a nightly regression on `main`; some regressions and CodeQL findings therefore surface after merge.
+
+- **Cheap tier (default):** lint, formatting, typing, unit tests, contract checks, Web Reference Flow, Secret Scan, Provenance and the review gates run on every pull request.
+- **Full tier:** browser E2E, Backend Integration, Backend Encrypted Mode, Android emulator (API 36), Self-Hosted start/deployment/recovery, Supply Chain container builds, Media Video, Release Evidence and CodeQL. They run only on pull requests that are ready for review and either carry the `ci:full` label or touch a risk path. `tools/ci/change_scope.py` defines the risk paths: migrations, authentication/authorization, deployment and Compose, Self-Hosted/release tooling, CI definitions and unknown paths.
+- **Label the PR with `ci:full`** for risky changes beyond the automatic risk paths, and whenever CI requires it: it fails when a PR changes a label-gated workflow or its tooling without the label. After adding the label, re-run the failed Change Detection job; labelled heavy workflows start by themselves.
+- **Nightly regression:** pushes to `main` start no workflows. `nightly-regression.yml` dispatches the complete regression on `main` once per night when the revision is untested, and on manual dispatch. `nightly-regression-report.yml` evaluates the result on a schedule (dispatched runs emit no `workflow_run` events): a failure opens or updates the issue "Nightly regression failed", and an all-green result starts the private test channel publication. Fixing `main` then takes precedence over feature merges.
+- **Releases:** the private test channel (test instance) follows every merge to `main` right away, verified only by the merged pull request's checks. Product releases publish only a `main` revision whose full regression is green. A product release whose current-`main` regression is missing starts the Nightly Regression and refuses; re-run it once the regression is green. `release/` branches always run the full pull-request tier.
+- **Push sparingly:** use one PR per issue and keep follow-up fixes in that PR. Push completed, locally checked states rather than intermediate snapshots. Keep the PR in draft until it is complete, then mark it ready for review once; this is the intended trigger, not an artificial draft/ready transition.
+
 ### Mandatory Web browser test selection
 
 For Web product, browser-test and browser-CI work, the [Browser impact selection contract](docs/m5/BROWSER-IMPACT-SELECTION.md) is binding for human contributors and coding agents.
@@ -336,7 +341,7 @@ For Web product, browser-test and browser-CI work, the [Browser impact selection
 - Feature-specific acceptance evidence and broad viewport/theme variants must not automatically become global always-run work. An addition to, or material expansion of, the always-run core needs a concrete cross-surface contract and a traceable rationale in the PR, including overlap with existing coverage and the collected selection impact.
 - Prefer equivalent deterministic lower-level coverage for pure invariants. Delete browser cases only after proving redundancy, obsolescence or an equivalent committed replacement; retain real-browser layout, focus, navigation, privacy and accessibility protection where required.
 - Shared foundations, unknown/unmapped changes and incomplete dependency analysis must remain conservative. Preserve validation of complete PR-file responses, revision binding, changed surviving specs, disjoint execution groups and rejection of malformed/empty plans or unexpectedly skipped required work.
-- Preserve full automatic regression on `main` and manual execution, stable required contexts, independent retry boundaries and useful diagnostics. Impact-based scheduling is not permission to reduce required product contracts or weaken protection rules.
+- Preserve the full automatic regression on `main` (nightly, see [Pull-request CI tiers](#pull-request-ci-tiers-and-the-nightly-regression)) and manual execution, stable required contexts, independent retry boundaries and useful diagnostics. Impact-based scheduling is not permission to reduce required product contracts or weaken protection rules.
 - Before pushing browser-selection changes, run the planning regressions and inventory checks and document actual Playwright collection counts and relevant measured runtime when available. Historical baselines and target durations do not establish current coverage or justify weaker assertions.
 
 The recorded test counts are measurements, not permanent quotas. Change the core deliberately as product contracts evolve; do not allow unrelated feature additions to silently recreate a large unconditional PR suite. Follow the [contributor procedure](CONTRIBUTING.md#web-browser-test-selection).

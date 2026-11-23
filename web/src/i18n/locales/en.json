@@ -87,7 +87,6 @@
       "years": "Years",
       "recaps": "Recaps",
       "yearsAndRecaps": "Years & recaps",
-      "insights": "Insights",
       "lists": "Lists"
     },
     "subtitles": {
@@ -95,7 +94,6 @@
       "media": "All photos and videos",
       "chapters": "Trips, moves, big chapters",
       "yearsAndRecaps": "Your months and years at a glance",
-      "insights": "How you have been lately",
       "lists": "Packing, shopping, checklists",
       "places": "Your favourite places",
       "people": "Family, friends and their important days",
@@ -270,6 +268,8 @@
     "mailRequestedTitle": "Check your inbox",
     "mailRequestedBody": "If the address can be used for this type of access, a time-limited link has been sent.",
     "backToSignIn": "Back to sign in",
+    "requestNewLink": "Request a new link",
+    "useOtherAddress": "Use another address",
     "useMagicLink": "Sign-in link by email",
     "magicLinkEyebrow": "Sign in without a password",
     "magicLinkTitle": "Request a sign-in link",
@@ -759,6 +759,9 @@
       "intro": "Would you like to capture this moment in your shared story?",
       "memoryAction": "Capture memory",
       "milestoneAction": "Capture milestone",
+      "menuMemory": "Capture as a memory",
+      "menuHeartMoment": "Capture as a heart moment",
+      "menuMilestone": "Capture as a milestone",
       "chapterAction": "Add to a chapter",
       "later": "Later",
       "chapterNeedsStory": "Chapters contain your shared moments. Capture a memory or milestone first – then you can add it directly to a chapter.",
@@ -1604,7 +1607,7 @@
     "partnerBirthdayReminderLoading": "Loading birthday reminder …",
     "settingsPrivacy": "Private area",
     "settingsData": "Data and portability",
-    "settingsDataIntro": "Export your data or import supported content with the existing checks.",
+    "settingsDataIntro": "Save your memories as a file or bring them in from an earlier export.",
     "settingsAccount": "App and account",
     "settingsAccountIntro": "eimir. Pro and your account. Your shared content stays protected.",
     "settingsBackToMore": "Back to More",
@@ -1701,8 +1704,13 @@
     "change": "Choose design",
     "welcome": "Our place for two",
     "nameJoiner": "&",
-    "compact": { "own": "Your vibe", "partner": "{{name}} today" },
-    "note": { "open": "Open Heart Moment" },
+    "compact": {
+      "own": "Your vibe",
+      "partner": "{{name}} today"
+    },
+    "note": {
+      "open": "Open Heart Moment"
+    },
     "names": {
       "connected": "Connected",
       "shared_album": "Our Album",
@@ -1710,7 +1718,10 @@
       "modern": "Clear & modern",
       "classic": "Classic",
       "quiet_together": "Together",
-      "handwriting": "Handwritten"
+      "handwriting": "Handwritten",
+      "home_rooms": "Home",
+      "shared_rhythm": "Our Rhythm",
+      "together_index": "Thread"
     },
     "descriptions": {
       "connected": "The two of you, joined by a heart line. Your time together sits in the middle.",
@@ -1719,7 +1730,10 @@
       "modern": "Clear and airy. Your names beside your portraits, with calm blue accents.",
       "classic": "Familiar and spacious. Large portraits above your names and the original arrangement.",
       "quiet_together": "Calm, muted colours throughout the app. On Us, your names set large and your moment kept compact.",
-      "handwriting": "Warm paper tones and wine-red accents throughout the app. On Us, your latest Heart Moment like a note."
+      "handwriting": "Warm paper tones and wine-red accents throughout the app. On Us, your latest Heart Moment like a note.",
+      "home_rooms": "A shared starting point for the two of you. Open Rooms to find memories, plans and more.",
+      "shared_rhythm": "Today, your story and your plans at your own pace, with navigation at the top and shades of plum, pink and apricot.",
+      "together_index": "Both of your Vibes at a glance, with an overview of every area and a palette of ivory, graphite and cobalt blue."
     },
     "standard": "Standard",
     "free": "Free",
@@ -1740,7 +1754,54 @@
     "denied": "You need Pro to newly select this design. Your previous design is retained.",
     "offline": "You are offline. Your choice stays here; save it when you are connected again.",
     "error": "The design could not be saved. Your choice is retained for another attempt.",
-    "discover": "Discover Pro"
+    "discover": "Discover Pro",
+    "homeRooms": {
+      "rooms": "Rooms",
+      "remember": "Remember",
+      "rememberSummary": "Photos, journals and places",
+      "plans": "Plans",
+      "plansSummary": "Plans, wishes and occasions",
+      "insights": "Insights",
+      "insightsSummary": "Vibe and energy",
+      "games": "Play",
+      "gamesSummary": "Games for the two of you",
+      "moreSummary": "Profile, private area and settings",
+      "profileShort": "Me",
+      "create": "Create",
+      "partner": "Partner",
+      "openWir": "Open Us",
+      "archiveNavigation": "Your memories",
+      "photoArchive": "Photo archive",
+      "chapters": "Chapters"
+    },
+    "rhythm": {
+      "title": "Our Rhythm",
+      "today": "Together today",
+      "history": "Story",
+      "ahead": "Ahead",
+      "ownVibe": "My vibe",
+      "partnerToday": "Today",
+      "moreNavigation": "More areas",
+      "insights": "Insights",
+      "games": "Play"
+    },
+    "thread": {
+      "sharedSummary": "Your lists and notes",
+      "name": "Thread",
+      "index": "Overview",
+      "title": "Your thread",
+      "today": "Your day together",
+      "return": "Back to {{area}}",
+      "ownVibe": "My vibe",
+      "partner": "Today",
+      "wirSummary": "How are you both today?",
+      "storySummary": "Memories, journal and photos",
+      "planSummary": "Plans, wishes and occasions",
+      "insights": "Insights",
+      "insightsSummary": "Vibe and energy over time",
+      "gamesSummary": "Play together",
+      "moreSummary": "Profile, private area and settings"
+    }
   },
   "profiles": {
     "partnerSection": "About {{name}}",
@@ -2190,55 +2251,160 @@
   "transfer": {
     "eyebrow": "Transfer data",
     "title": "Export and import",
-    "intro": "Export your shared data, with your own private content if you choose. Imports are checked first and applied only after your confirmation.",
+    "intro": "Before anything is added, you see what the file contains. An import only adds and deletes nothing.",
     "export": {
       "heading": "Export",
-      "scopeLabel": "Scope",
+      "scopeLabel": "What should go into the file?",
       "shared": "Shared data",
-      "sharedHelp": "Contains only what the two of you share.",
+      "sharedHelp": "Only what the two of you share.",
       "personal": "My data",
-      "personalHelp": "Contains shared data and only your own private content in addition.",
+      "personalHelp": "Everything shared, plus your own private content.",
       "start": "Create export",
       "starting": "Requesting export …",
-      "expires": "The export file is available for 24 hours.",
+      "expires": "The file is ready to download for 24 hours.",
       "download": "Download export",
       "downloading": "Preparing download …",
-      "statusLabel": "Export status",
+      "statusLabel": "Status",
       "status": {
         "QUEUED": "Waiting for processing",
         "RUNNING": "Creating",
-        "READY": "Ready to download",
-        "FAILED": "Export failed",
-        "EXPIRED": "Export expired"
+        "READY": "Ready to download"
       }
     },
     "import": {
       "heading": "Import",
-      "fileLabel": "eimir. Transfer Bundle",
-      "fileHelp": "Choose exactly one ZIP file from an eimir. export.",
+      "fileLabel": "File from an eimir. export",
+      "fileHelp": "Choose the ZIP file you received from an export.",
       "upload": "Check file",
       "uploading": "Uploading file …",
-      "statusLabel": "Import status",
+      "statusLabel": "Status",
       "status": {
-        "QUEUED": "Waiting for checking",
-        "VALIDATING": "Checking",
-        "READY_TO_APPLY": "Checked and ready",
-        "APPLYING": "Importing",
-        "COMPLETED": "Import complete",
-        "FAILED": "Import failed",
-        "EXPIRED": "Import expired"
+        "QUEUED": "Waiting to be checked",
+        "VALIDATING": "Checking the file …",
+        "READY_TO_APPLY": "Checked · ready for 24 hours",
+        "APPLYING": "Adding …",
+        "COMPLETED": "Import complete"
       },
-      "summaryHeading": "Checked content",
-      "scope": "Scope",
-      "members": "Source people",
-      "records": "Records",
-      "media": "Media",
-      "confirm": "I have reviewed the summary and want to add this data to the current space.",
-      "apply": "Apply import",
-      "applying": "Applying import …",
-      "additive": "Import adds new entries. It does not replace or delete existing data."
+      "checkingHint": "Nothing is added yet.",
+      "applyingHint": "You can keep using the app.",
+      "lead_one": "This file brings {{count}} entry.",
+      "lead_other": "This file brings {{count}} entries.",
+      "media_one": "It includes {{count}} photo or video.",
+      "media_other": "It includes {{count}} photos and videos.",
+      "present_one": "You already have {{count}} of them. It stays as it is.",
+      "present_other": "You already have {{count}} of them. They stay as they are.",
+      "storage": "Needs {{needed}}, {{available}} free.",
+      "additive": "The import only adds. It replaces or deletes nothing.",
+      "confirm": "I want to add this content.",
+      "confirmWithoutVideos": "I want to add this content without the videos.",
+      "apply": "Import",
+      "applyWithoutVideos": "Import without videos",
+      "applying": "Adding …",
+      "videosNeedPro": {
+        "title": "Videos come with eimir. Pro",
+        "body_one": "You can add everything else now. eimir. remembers the video, and you can bring it in later from the same file.",
+        "body_other": "You can add everything else now. eimir. remembers the {{count}} videos, and you can bring them in later from the same file."
+      },
+      "noRoom": {
+        "title": "Your storage is not enough for this",
+        "body": "The file needs {{needed}}, {{available}} is free. Nothing was added. Free up space or use Pro, then you can add the same file here."
+      },
+      "fitsWithoutVideos": {
+        "title": "With the videos, the storage is not enough",
+        "body_one": "Without the video the file fits: it then needs {{needed}}, {{available}} is free. You can bring the video in later when there is room again.",
+        "body_other": "Without the {{count}} videos the file fits: it then needs {{needed}}, {{available}} is free. You can bring the videos in later when there is room again."
+      },
+      "roomTaken": {
+        "title": "Less space is free now",
+        "body": "Storage was used up during the import. Nothing was added; the file stays ready."
+      },
+      "morePro": "More space with eimir. Pro",
+      "discoverPro": "Discover eimir. Pro",
+      "viewMedia": "View photos and videos",
+      "completed": {
+        "title": "Import complete",
+        "body": "You find the added content in your moments.",
+        "skipped_one": "{{count}} video was skipped.",
+        "skipped_other": "{{count}} videos were skipped.",
+        "recovered_one": "{{count}} video brought in.",
+        "recovered_other": "{{count}} videos brought in.",
+        "unrecovered_one": "{{count}} video no longer fit its gallery and stays remembered.",
+        "unrecovered_other": "{{count}} videos no longer fit their gallery and stay remembered.",
+        "toMoments": "Go to your moments"
+      },
+      "offline": {
+        "title": "No connection",
+        "body": "Nothing can be imported without internet. Nothing was changed."
+      },
+      "recover": {
+        "lead_one": "This file holds {{count}} skipped video.",
+        "lead_other": "This file holds {{count}} skipped videos.",
+        "none": "This file holds none of the skipped videos. Choose the file from the earlier import.",
+        "storage": "Needs {{needed}}, {{available}} free.",
+        "noRoom": "The videos need {{needed}}, {{available}} is free. Free up space or use Pro, then you can bring them in.",
+        "action_one": "Bring in the video",
+        "action_other": "Bring in {{count}} videos"
+      }
     },
-    "genericFailure": "The operation could not be completed. No private archive content was shown in the error message."
+    "skipped": {
+      "heading": "Skipped videos",
+      "lead_one": "{{count}} video from an earlier import is still missing ({{size}}).",
+      "lead_other": "{{count}} videos from an earlier import are still missing ({{size}}).",
+      "bodyPro": "Choose the same file again. eimir. then adds only these videos where they belong. Nothing else changes.",
+      "bodyFree": "With eimir. Pro you can bring them in from the same file.",
+      "recover": "Bring in videos",
+      "dismiss": "Hide this note",
+      "dismissTitle": "Hide this note?",
+      "dismissBody": "Afterwards these videos can no longer be brought in. Your memories and the file stay as they are.",
+      "dismissConfirm": "Hide",
+      "dismissCancel": "Cancel"
+    },
+    "failure": {
+      "exportTooLarge": {
+        "title": "The export is too large",
+        "body": "Your photos and videos do not fit into a single file. Nothing was changed."
+      },
+      "exportFailed": {
+        "title": "The export did not work",
+        "body": "It could not be created. Try again in a moment. Nothing was changed."
+      },
+      "exportGeneric": {
+        "title": "That did not work",
+        "body": "Nothing was changed."
+      },
+      "exportExpired": {
+        "title": "The file has expired",
+        "body": "Create the export again."
+      },
+      "importTooLarge": {
+        "title": "The file is too large",
+        "body": "eimir. cannot add a file this large in one go. Nothing was changed."
+      },
+      "formatUnsupported": {
+        "title": "The file does not match this version",
+        "body": "It comes from another eimir. version. Nothing was changed."
+      },
+      "fileInvalid": {
+        "title": "The file is not in order",
+        "body": "It is damaged or incomplete. Download the export again and choose it again. Nothing was changed."
+      },
+      "members": {
+        "title": "The people in the file do not match you",
+        "body": "They cannot be matched to you. Nothing was changed."
+      },
+      "privacy": {
+        "title": "The file contains private content",
+        "body": "A shared file must not contain anything private. Nothing was added."
+      },
+      "importFailed": {
+        "title": "That did not work",
+        "body": "The file could not be added. Nothing was changed."
+      },
+      "importExpired": {
+        "title": "The checked file has expired",
+        "body": "Choose the file again to add it."
+      }
+    }
   },
   "partnerConnection": {
     "eyebrow": "Connect partner",
@@ -2451,6 +2617,7 @@
     "deviceToggle": "Push on this device",
     "deviceHintOff": "Push channels you chose start once you have set up push.",
     "browserToggle": "Push in this browser",
+    "browserOn": "Push is active in this browser.",
     "browserPermissionDenied": "Allow notifications for eimir. in this browser's settings.",
     "browserOtherAccount": "Push is connected to another account in this browser. Turn it off in that account to enable it here.",
     "browserUpdatePending": "Reopen eimir. when the browser update is ready.",
@@ -2459,9 +2626,13 @@
     "onboardingIntro": "Hear when your partner shares something with you or a reminder is due. Small prompts occasionally remind you of your time together. You can turn each one off at any time.",
     "onboardingPromptsFailed": "Push is set up. Small prompts could not be enabled yet. Try again or change your choices later in Settings.",
     "onboardingActivate": "Enable",
+    "onboardingActivating": "Enabling …",
+    "onboardingContinue": "Continue in the background",
+    "onboardingSavingPrompts": "Saving prompts …",
+    "onboardingPushReady": "Push is active. Saving your choice for small prompts.",
     "onboardingLater": "Later",
     "onboardingOffline": "You are offline. Notifications have not been enabled yet.",
-    "deviceIntro": "Notifications may show names and titles. Your Android setting for sensitive content applies on the lock screen. Specific previews are encrypted for delivery. Google or your push service receives an installation identifier and connection data.",
+    "deviceIntro": "Notifications say what happened, such as names, titles, dates and short excerpts. Your Android setting for sensitive content decides whether they appear in full on the lock screen. The content is encrypted for delivery. Google or your push service receives an installation identifier and connection data.",
     "iosDeviceIntro": "Your device shows a neutral notification. Tap it to open the content in eimir. after signing in.",
     "deviceLoading": "Checking push setup …",
     "deviceUnavailable": "Push is unavailable on this installation.",
@@ -2742,297 +2913,6 @@
     "cancel": "Cancel",
     "removed": "Link removed"
   },
-  "dailyInsights": {
-    "title": "Insights",
-    "pro": "Pro",
-    "proBrand": "eimir. Pro",
-    "nav": {
-      "label": "Switch view",
-      "week": "Week",
-      "patterns": "Month",
-      "recap": "Recap"
-    },
-    "loading": "Loading your history …",
-    "people": {
-      "you": "You",
-      "partnerFallback": "Your partner",
-      "ownAvatar": "Your profile picture",
-      "partnerAvatar": "{{name}}'s profile picture",
-      "ownInitials": "Your initials",
-      "partnerInitials": "{{name}}'s initials",
-      "ownMarker": "Circle",
-      "partnerMarker": "Diamond"
-    },
-    "gate": {
-      "title": "Your feeling & energy history",
-      "body": "With eimir. Pro, see how feeling and energy develop over weeks and months – a calm look back, without judgement.",
-      "freeNote": "Your daily feeling and energy check-in remains free for both of you as usual.",
-      "keptNote": "Everything you have already shared is retained.",
-      "back": "Back to Us"
-    },
-    "modulesOff": {
-      "title": "Feeling and energy are currently turned off",
-      "body": "Your space settings determine whether feeling and energy are used. eimir. Pro does not change that.",
-      "settings": "Go to Settings",
-      "vibeOff": "Feeling is turned off in your space.",
-      "energyOff": "Energy is turned off in your space."
-    },
-    "contextUnavailable": {
-      "title": "Your history is unavailable right now",
-      "body": "Your space does not have a shared day boundary set yet. Once it does, your history appears here."
-    },
-    "empty": {
-      "title": "Nothing to see here yet",
-      "body": "As you share feeling or energy, your history takes shape here."
-    },
-    "sparse": "Only a few days so far. Each check-in makes the picture clearer.",
-    "gapNote": "Only values both of you may see appear here. Empty days mean no visible value.",
-    "noValue": "no visible value",
-    "percentage": "{{value}} %",
-    "chart": {
-      "detailHint": "Tap a day to see the values.",
-      "dayLabel": "{{date}}: {{summary}}",
-      "vibeChartLabel": "Feeling during the week",
-      "energyChartLabel": "Energy during the week",
-      "dayGroup": "Days of the week"
-    },
-    "lanes": {
-      "VERY_GOOD": "Very good",
-      "GOOD": "Relaxed",
-      "OKAY": "So-so",
-      "NEEDS_CONNECTION": "Closeness",
-      "NEEDS_SPACE": "Quiet",
-      "STRESSED": "Stressed",
-      "SAD": "Sad"
-    },
-    "bands": {
-      "veryHigh": "Very high",
-      "high": "High",
-      "mid": "Okay",
-      "low": "Rather low",
-      "veryLow": "Very low"
-    },
-    "week": {
-      "title": "Your week",
-      "subtitle": "Feeling & energy",
-      "accent": "Small details. Meaningful moments.",
-      "handwriting": "Shared insights. Closer together.",
-      "range": "{{start}} – {{end}}",
-      "previous": "Previous week",
-      "next": "Next week",
-      "current": "This week",
-      "picker": "Choose week",
-      "summary": "Weekly recap",
-      "noHighlights": "There is no shared highlight from the visible check-ins for this week.",
-      "vibeTitle": "Your feeling",
-      "vibeSubtitle": "How you felt.",
-      "energyTitle": "Your energy",
-      "energySubtitle": "How much energy you had.",
-      "insightsLabel": "Your week in brief",
-      "closingCta": "View weekly recap",
-      "closingHandwriting": "Quiet days. Together as us.",
-      "closingBody": "A calm look at your days – without judgement."
-    },
-    "patterns": {
-      "title": "Discover patterns",
-      "subtitle": "Feeling & energy during the month.",
-      "handwriting": "Deeper insights. More of us.",
-      "monthPicker": "Choose month",
-      "previous": "Previous month",
-      "next": "Next month",
-      "glanceTitle": "Your month at a glance",
-      "glanceSubtitle": "Feeling and energy, week by week.",
-      "matrixLabel": "Your month: feeling and energy each day",
-      "matrixDayLabel": "{{date}}: {{summary}}",
-      "vibeRow": "Feeling",
-      "energyRow": "Energy",
-      "legendVibe": "Feeling",
-      "legendEnergy": "Energy",
-      "weekLabel": "Week {{number}}",
-      "calmTitle": "Shared patterns",
-      "calmSubtitle": "What appeared in your data.",
-      "calmNote": "No right or wrong. Just insights for you.",
-      "patternsEmpty": "This pattern needs a few more days. It appears once enough values are available.",
-      "relationTitle": "Feeling & energy together",
-      "relationSubtitle": "How much energy you had on days with different feelings.",
-      "relationAxis": "Energy",
-      "relationVibeAxis": "Feeling",
-      "relationLow": "Very low",
-      "relationHigh": "Very high",
-      "relationNote": "This only describes what happened on the same day – not what depends on what.",
-      "relationEmpty": "Once feeling and energy are shared together on more days, you can see their association here.",
-      "relationLaneCount_one": "{{count}} day",
-      "relationLaneCount_other": "{{count}} days",
-      "goodTitle": "Your good days",
-      "goodBody": "On these weekdays, both of you often felt good.",
-      "goodHandwriting": "More of what connects you.",
-      "goodEmpty": "Once a pattern of days when you both often felt good appears, you will see it here."
-    },
-    "recap": {
-      "title": "Weekly recap",
-      "subtitle": "Feeling & energy at a glance.",
-      "handwriting": "Shared moments count.",
-      "proSubline": "More insights.",
-      "heroLabel": "Your week in one sentence",
-      "heroHandwriting": "Small moments. A sense of us.",
-      "noticedTitle": "What stood out",
-      "noticedSubtitle": "Small insights from your feeling and energy data.",
-      "noticedHandwriting": "Little things. Meaningful moments.",
-      "noticedEmpty": "There are not enough shared values for insights this week yet.",
-      "highlightsTitle": "Your highlights",
-      "highlightsSubtitle": "Special moments from your week.",
-      "highlightsAll": "View all days",
-      "highlightsEmpty": "There is no standout shared day this week – a quiet history is perfectly fine too.",
-      "highlightBothGood": "Both shared a good feeling",
-      "highlightBothGoodBody": "You both shared a good feeling.",
-      "highlightBothEnergy": "Both with plenty of energy",
-      "highlightBothEnergyBody": "You both had plenty of energy.",
-      "discoverBody": "Discover more of your journey.",
-      "discoverSubline": "Your changes. Your patterns. Your us.",
-      "discoverCta": "View month",
-      "hero": {
-        "bothGood_one": "This week, there was one day when you both felt good.",
-        "bothGood_other": "This week, there were {{count}} days when you both felt good.",
-        "weekendEnergy_higher": "You had especially high energy this weekend.",
-        "sharedDays": "This week, you often both shared something.",
-        "fallback": "This week, you captured your days.",
-        "empty": "There is no recap for this week yet."
-      }
-    },
-    "insight": {
-      "bothGood": {
-        "title_one": "You both felt good on {{weekday}}.",
-        "title_other": "You both felt good on {{count}} days.",
-        "body_one": "You both shared a good feeling.",
-        "body_other": "Most recently on {{weekday}}."
-      },
-      "weekendEnergy_higher": {
-        "title": "Your energy was higher at the weekend.",
-        "body": "Saturday and Sunday were above the weekdays."
-      },
-      "weekendEnergy_lower": {
-        "title": "Your energy was a little lower at the weekend.",
-        "body": "Saturday and Sunday were below the weekdays."
-      },
-      "vibeEnergy": {
-        "title": "Days with a good feeling often also had more energy.",
-        "body": "Average energy was {{good}} %, compared with {{other}} % on other days."
-      },
-      "sharedDays": {
-        "title": "You both shared something on {{count}} of {{total}} days.",
-        "body": "Little check-ins that connect you."
-      },
-      "energyVersusPrevious_higher": {
-        "title": "Your energy was a little higher than the previous week.",
-        "body": "The comparison uses values both of you can see."
-      },
-      "energyVersusPrevious_lower": {
-        "title": "Your energy was a little lower than the previous week.",
-        "body": "The comparison uses values both of you can see."
-      },
-      "weekdayEnergy_higher": {
-        "title": "Your energy was often higher on {{weekday}}.",
-        "body": "On these days, the average was above the rest of the month."
-      },
-      "weekdayEnergy_lower": {
-        "title": "Your energy was often a little lower on {{weekday}}.",
-        "body": "On these days, the average was below the rest of the month."
-      },
-      "partnerEnergyVibe_partner": {
-        "title": "When {{name}} had plenty of energy, you often felt good too.",
-        "body": "Both often occurred on the same day – without one explaining the other."
-      },
-      "partnerEnergyVibe_own": {
-        "title": "When you had plenty of energy, {{name}} often felt good too.",
-        "body": "Both often occurred on the same day – without one explaining the other."
-      }
-    },
-    "weekdayAdverb": {
-      "0": "On Mondays",
-      "1": "On Tuesdays",
-      "2": "On Wednesdays",
-      "3": "On Thursdays",
-      "4": "On Fridays",
-      "5": "On Saturdays",
-      "6": "On Sundays"
-    },
-    "weekdayPlural": {
-      "0": "Mondays",
-      "1": "Tuesdays",
-      "2": "Wednesdays",
-      "3": "Thursdays",
-      "4": "Fridays",
-      "5": "Saturdays",
-      "6": "Sundays"
-    }
-  },
-  "weeklyInsights": {
-    "eyebrow": "A moment to understand",
-    "title": "What connects you right now",
-    "intro": "Discover patterns from up to eight weeks and small ideas for daily life. You decide what fits.",
-    "generate": "Discover insights",
-    "regenerate": "View fresh insights",
-    "loading": "Checking your visible entries …",
-    "error": "That did not work just now. Check your connection and try again. Your last confirmed feedback stays saved.",
-    "changed": "Your entries or sharing permissions have changed. Please create the insights again.",
-    "ai": "Selected from your entries with AI",
-    "rules": "Compiled from your entries",
-    "general": "General ideas",
-    "range": "Period considered: {{start}} to {{end}}",
-    "sparse": "There are not enough mutually visible entries for personal patterns yet. These ideas are general.",
-    "limits": "This only describes recorded days. Gaps stay open; causes or the quality of your relationship cannot be inferred.",
-    "samples_one": "Based on one mutually visible day",
-    "samples_other": "Based on {{count}} mutually visible days",
-    "facts": {
-      "JOINT_DAYS": "In the selected week, you both shared feeling or energy on {{value}} days.",
-      "ENERGY_RISING": "On recorded days, average energy was higher for both of you than in the previous week.",
-      "ENERGY_FALLING": "On recorded days, average energy was lower for both of you than in the previous week.",
-      "WEEKEND_HIGHER": "Across several weeks, both of your average energy levels on recorded weekend days were higher than on weekdays.",
-      "WEEKEND_LOWER": "Across several weeks, both of your average energy levels on recorded weekend days were lower than on weekdays.",
-      "WEEKDAY_LOWER": "On recorded {{weekday}} days, both of your average energy levels were lower than on other weekdays.",
-      "DIFFERENT_VIBES": "Across several weeks, you reported different feelings on {{value}} jointly recorded days."
-    },
-    "recommendationsTitle": "A little inspiration for you",
-    "optional": "General ideas to try – choose together what feels good for you.",
-    "recommendations": {
-      "quiet_time": {
-        "title": "Time without a programme",
-        "body": "How about a quiet evening without fixed plans? Ask each other first whether you would like closeness or some time to yourselves."
-      },
-      "small_plan": {
-        "title": "Plan something small",
-        "body": "Choose a small shared activity you both feel like doing. A walk or cooking together can be enough."
-      },
-      "appreciation": {
-        "title": "Say something appreciative",
-        "body": "Tell each other one specific little thing you appreciated this week. It does not have to be anything big."
-      },
-      "listening": {
-        "title": "Simply listen",
-        "body": "Take a few undisturbed minutes: What is on your mind? Ask whether listening or thinking it through together would help."
-      },
-      "own_pace": {
-        "title": "Find your rhythm",
-        "body": "Ask each other: What would feel good right now – time together, quiet or something just for you? Different wishes can coexist."
-      },
-      "keep_ritual": {
-        "title": "Keep a small ritual",
-        "body": "Is there a moment that feels good for both of you? Consider making some room for it again next week."
-      }
-    },
-    "feedbackFor": "Your feedback on “{{title}}”",
-    "ratings": {
-      "HELPFUL": "Helpful for me",
-      "NOT_FITTING": "Does not fit me"
-    },
-    "feedbackPrivacy": "Your feedback is visible only to you and influences your next suggestions. It is not a shared rating.",
-    "manageFeedback": "Manage your feedback",
-    "clear": "Remove feedback",
-    "clearAll": "Delete my inspiration feedback",
-    "cleared": "Your inspiration feedback is deleted.",
-    "clearError": "The feedback could not be fully deleted. Please try again.",
-    "allExcluded": "You have hidden all suggestions. Remove your feedback below to view new insights."
-  },
   "recaps": {
     "title": "Your recaps",
     "shortTitle": "Your recaps",
@@ -3118,15 +2998,6 @@
       "DAYS_other": "days with entries"
     },
     "factsBusiest": "Most kept in {{month}}",
-    "rhythm": {
-      "title": "Good days together",
-      "summary_one": "{{count}} day when you both had a good day.",
-      "summary_other": "{{count}} days when you both had a good day.",
-      "week": "Week {{count}}",
-      "days_one": "{{count}} good day",
-      "days_other": "{{count}} good days",
-      "note": "Only days you both checked in are counted."
-    },
     "film": {
       "coverFallback": "Your {{month}}",
       "days_one": "day you captured",
@@ -3212,9 +3083,14 @@
       "tomorrow": "Tomorrow is the day",
       "days_one": "{{count}} day to go",
       "days_other": "{{count}} days to go",
-      "show": "Show anticipation on Us",
-      "help": "Highlight this special plan on your home page.",
-      "saved": "Anticipation updated."
+      "choiceLabel": "Anticipation on Us",
+      "automatic": "Automatic",
+      "always": "Show first",
+      "never": "Never",
+      "automaticHelp": "When this plan is next, Us counts down to it.",
+      "automaticDiscreetHelp": "Us only counts down to a discreet plan when you choose Show first.",
+      "alwaysHelp": "Us counts down to this plan, even if something else comes first.",
+      "neverHelp": "This plan never appears as the countdown on Us."
     },
     "passport": {
       "title": "Your story",
@@ -3338,6 +3214,19 @@
         "role": "Grow",
         "title": "Our garden",
         "description": "Send each other a seed every day, wherever you are."
+      }
+    },
+    "waiting": {
+      "settingsLabel": "Games waiting for you",
+      "title": "Your turn",
+      "reasons": {
+        "WHO_OF_US": "{{name}} is waiting for your answers.",
+        "WISH_DETECTIVE": "{{name}} is waiting for your move.",
+        "OUR_MOMENTS": "{{name}} is waiting for your move.",
+        "PICTURE_PING_PONG": "{{name}} drew on. Your turn.",
+        "HEART_HUNT": "{{name}} hid a heart for you.",
+        "GARDEN_SEED": "A seed from {{name}} is waiting to be planted.",
+        "GARDEN_BOUQUET": "{{name}} tied a bouquet for you."
       }
     },
     "heartHunt": {
@@ -3991,7 +3880,12 @@
               "c": "Scout",
               "d": "Rusty"
             },
-            "deer": { "a": "Fern", "b": "Rosie", "c": "Moss", "d": "Willow" }
+            "deer": {
+              "a": "Fern",
+              "b": "Rosie",
+              "c": "Moss",
+              "d": "Willow"
+            }
           },
           "namedSub": "{{animal}} · {{where}}",
           "unnamed": "No name yet",
@@ -4021,6 +3915,39 @@
         "done": "Your garden is on Wir now.",
         "toWir": "Go to Wir",
         "failed": "That did not work just now. You can try again in a moment."
+      },
+      "history": {
+        "title": "Your garden story",
+        "intro": "What happened in your garden, newest first.",
+        "loading": "Loading your garden story …",
+        "empty": "Your garden will soon tell what happens between you here. It all starts with the first seed.",
+        "error": "Your garden story can't be loaded right now.",
+        "retry": "Try again",
+        "more": "Show more",
+        "loadingMore": "Loading …",
+        "moreError": "More couldn't be loaded right now.",
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "speciesFrom": "{{species}} from {{name}}",
+        "speciesFromYou": "{{species}} from you",
+        "seedSentOwn": "You sent {{name}} a seed.",
+        "seedSentPartner": "{{name}} sent you a seed.",
+        "seedWaiting": "It is waiting for you above.",
+        "plantedOwn": "You planted {{name}}'s seed.",
+        "plantedPartner": "{{name}} planted your seed.",
+        "plantedItselfOwn": "Your seed found its place by itself.",
+        "plantedItselfPartner": "{{name}}'s seed found its place by itself.",
+        "sharedDay": "You were both there, and the whole garden grew.",
+        "bloomOwn": "A flower you sent is blooming for the first time.",
+        "bloomPartner": "A flower from {{name}} is blooming for the first time.",
+        "moonflowerRevealed": "The surprise is a moonflower.",
+        "wateredOwn": "You watered.",
+        "wateredPartner": "{{name}} watered.",
+        "wateredTogether": "You both watered, a double rainbow.",
+        "bouquetOwn": "You gave {{name}} a bouquet.",
+        "bouquetPartner": "{{name}} gave you a bouquet.",
+        "keptOwn": "You put {{name}}'s bouquet into Moments.",
+        "keptPartner": "{{name}} put your bouquet into Moments."
       },
       "words": {
         "THINKING_OF_YOU": "Thinking of you",
@@ -4742,7 +4669,8 @@
       "adminAllowlistEmpty": "No server administrator allowlist is configured. Without an allowlist, no account can become a server administrator.",
       "adminAllowlistUnmatched": "At least one server administrator allowlist entry does not match an active account with a verified email address.",
       "mailVerification": "Email delivery is disabled while unverified accounts exist. Verification and recovery may need operator support.",
-      "failedJobs": "There are failed background jobs."
+      "failedJobs": "There are failed background jobs.",
+      "supportReportsUnread": "Reports have been waiting unread for more than 14 days."
     },
     "health": {
       "title": "System health",
@@ -4769,7 +4697,8 @@
       "verifiedEmails": "Verified primary emails",
       "unverifiedEmails": "Unverified primary emails",
       "mediaObjects": "Media objects",
-      "mediaBytes": "Stored media"
+      "mediaBytes": "Stored media",
+      "supportReportsNew": "New reports"
     },
     "security": {
       "title": "Security & sign-in",
@@ -5276,7 +5205,8 @@
     "roleDescription": "Photo story",
     "themesLabel": "Photo story themes",
     "theme": {
-      "photos": "Photos",
+      "remember": "Remember when?",
+      "photos": "Memories",
       "heartMoments": "Heart moments",
       "milestones": "Milestones",
       "words": "In words"
@@ -5435,6 +5365,7 @@
     "dismiss": "Close",
     "spaceSwitched": "Space switched.",
     "identityLinkWaiting": "Your link is waiting. Save or close your draft first.",
+    "identityLinkUnusable": "This link does not match this version of the app. Request a new one.",
     "notificationWaiting": "Your notification is waiting. Save or close your draft first.",
     "memoryDeleted": "Memory deleted.",
     "dailyEnergyConflict": "The battery level changed in the meantime. The latest value was loaded.",
@@ -5879,20 +5810,21 @@
     "wirModuleLabel": "Distance between you",
     "mapTitle": "Where we are",
     "mapShowUs": "Show us",
+    "mapZoomToPartner": "Zoom to {{partner}}",
+    "mapZoomToOwn": "Zoom to you",
     "mapLoading": "Loading map …",
     "mapPartnerArea": "{{partner}}",
     "mapPartnerNotSharing": "{{partner}} is not sharing anything right now",
-    "mapPartnerAsOf": "As of: {{time}}",
+    "mapAsOf": "As of: {{time}}",
     "mapYou": "You",
     "mapYouMissing": "You · your location is missing",
-    "mapOwnSharesMap": "{{partner}} sees your approximate area",
     "mapOwnSharesDistance": "{{partner}} sees only the distance",
     "mapOwnSharesNothing": "You are not sharing anything right now",
     "mapAdjust": "Adjust my sharing",
     "mapUnavailableTitle": "Nothing to see here right now",
-    "mapUnavailableBody": "An approximate area appears here only while it is shared.",
-    "mapAreaDescription": "{{partner}} is somewhere in an area with a {{radius}} radius. As of: {{time}}.",
-    "mapOwnDescription": "Your own approximate location is marked for you only.",
+    "mapUnavailableBody": "An area appears here while it is shared with you.",
+    "mapAreaDescription": "The area shared by {{partner}} has a radius of {{radius}}. Updated {{time}}.",
+    "mapOwnDescription": "Only you can see your location marker.",
     "mapPeopleLabel": "The two of you on the map",
     "mapConnectionLine": "A line on the map connects you and {{partner}}.",
     "mapConnectionNear": "A heart on the map shows that you are close to each other."
@@ -6003,6 +5935,17 @@
       "mixed_other": "{{count}} photos and videos from this day"
     },
     "separator": " · "
+  },
+  "wishConcealment": {
+    "groupTitle": "In Wish detective",
+    "groupIntro": "These wishes stay hidden until your game is over, so the guessing stays fair.",
+    "rowTitle": "A wish from {{name}}",
+    "rowHint": "Revealed after the game",
+    "toGame": "Go to the game",
+    "detailEyebrow": "In Wish detective",
+    "detailTitle": "This wish is in play",
+    "detailBody": "It's part of your Wish detective game. To keep the guessing fair, you'll see it as soon as {{name}} reveals it in the game or the game is over.",
+    "linkedTitle": "Hidden wish"
   },
   "discreetPlans": {
     "lockLabel": "Concealed",
@@ -6140,8 +6083,8 @@
             "body": "Add your thoughts to a recap – finished editions stay readable."
           },
           "third": {
-            "title": "Deeper insights",
-            "body": "Weekly recaps and gentle patterns of your shared days."
+            "title": "Told as a film",
+            "body": "Your photos, videos and words as a moving recap."
           }
         }
       },
@@ -6160,6 +6103,24 @@
           "third": {
             "title": "Recaps as well",
             "body": "Discover your story in monthly and yearly recaps too."
+          }
+        }
+      },
+      "storage": {
+        "title": "More space for your memories.",
+        "description": "With eimir. Pro you have 50 GB for photos, videos and more.",
+        "benefits": {
+          "first": {
+            "title": "50 GB of storage",
+            "body": "Ten times the space for photos, videos, voice messages and PDFs."
+          },
+          "second": {
+            "title": "Videos",
+            "body": "Keep short videos in your memories and bring them in from your exports."
+          },
+          "third": {
+            "title": "Bring in skipped videos",
+            "body": "Bring in videos an import left out, from the same file."
           }
         }
       },
@@ -6260,10 +6221,6 @@
         "experiences": {
           "title": "Happy moments & time travel",
           "body": "Share what’s making you happy today or send each other on a little trip through your memories."
-        },
-        "insights": {
-          "title": "Mood & energy insights",
-          "body": "Look back across weeks or months of check-ins and see how your moods and energy have changed. Daily check-ins stay free."
         },
         "quote": {
           "title": "Quote of the day",
@@ -6657,6 +6614,88 @@
     "notification": {
       "SHARED_NOTE_CREATED": "{{name}} added a shared note",
       "SHARED_NOTE_CHANGED": "{{name}} changed a shared note"
+    }
+  },
+  "storageQuota": {
+    "heading": "Storage",
+    "used": "{{used}} of {{quota}} used",
+    "counts": "Photos, videos, voice messages and PDFs count. Previews and your profile photo do not.",
+    "free": "{{available}} still free.",
+    "proIncluded": "With eimir. Pro you have {{quota}}.",
+    "almostFull": {
+      "title": "Your storage is almost full",
+      "body": "After that, no new photos or videos can be added. Everything you already have stays."
+    },
+    "full": {
+      "title": "Your storage is full",
+      "body": "New photos, videos, voice messages and PDFs can be added again once you free up space or use Pro. Everything you have stays and can still be viewed, edited and exported.",
+      "bodyPro": "New photos, videos, voice messages and PDFs can be added again once you free up space. Everything you have stays and can still be viewed, edited and exported."
+    },
+    "viewMedia": "View photos and videos",
+    "morePro": "More space with eimir. Pro",
+    "uploadRefused": "This no longer fits your storage. Free up space or use Pro, then you can add it again."
+  },
+  "uploadFailure": {
+    "image": "This photo could not be uploaded just now.",
+    "imageType": "eimir. cannot take this image format. JPG, PNG, WebP, HEIC and HEIF work.",
+    "offline": "You are offline right now. Once you have a connection again, you can try once more.",
+    "connection": "The connection dropped while uploading. Check your network and try again.",
+    "stalled": "The upload stopped making progress and was paused. Try again, ideally on a stable network.",
+    "reference": "Reference for troubleshooting: {{reference}}"
+  },
+  "supportReport": {
+    "action": "Report a problem",
+    "entry": {
+      "title": "Help & feedback",
+      "subtitle": "Report a problem or tell us something"
+    },
+    "title": {
+      "PROBLEM": "Report a problem",
+      "FEEDBACK": "Help & feedback"
+    },
+    "kindLabel": "What is it about?",
+    "kinds": {
+      "PROBLEM": "Something is not working",
+      "FEEDBACK": "Feedback / idea"
+    },
+    "noteLabel": {
+      "PROBLEM": "What happened? (optional)",
+      "FEEDBACK": "What would you like? What bothers you?"
+    },
+    "counter": "{{length}} / {{max}}",
+    "counterLabel": "{{length}} of {{max}} characters",
+    "noteRequired": "Write a few words, then you can send.",
+    "noteTooLong": "That is more than {{max}} characters. Please shorten the text a little.",
+    "sentHeading": "What we send along",
+    "items": {
+      "failureLabel": "Error code and affected feature",
+      "app": "App version and build",
+      "device": "Device and display: system, browser, app or web, theme (light/dark), online status",
+      "locale": "Language, time and time zone",
+      "account": "Your account, so we can reply"
+    },
+    "never": "Never included: content, photos, places or messages.",
+    "feedbackNoCode": "For feedback we do not attach an error code.",
+    "send": "Send",
+    "sending": "Sending …",
+    "sendLater": "Send later",
+    "sendNow": "Send now",
+    "retry": "Try again",
+    "offline": {
+      "title": "You are offline.",
+      "body": "Your text is kept. Send it once you are back online."
+    },
+    "failed": "That did not work. Your text is still here, try again in a moment.",
+    "rateLimited": "You sent a lot of reports just now. Your text is kept, try again later.",
+    "success": {
+      "title": "Thanks, received.",
+      "body": "We read every report. If we write back, you get a notification.",
+      "done": "Done"
+    },
+    "reply": {
+      "title": "Reply to your report",
+      "context": "About your report",
+      "contextDated": "Your report of {{date}}"
     }
   }
 }

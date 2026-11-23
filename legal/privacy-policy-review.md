@@ -1,7 +1,7 @@
 # Privacy policy draft: review notes
 
 Status: drafting baseline for the legal review of
-[`de/privacy-policy.md`](de/privacy-policy.md) (version `2026-11-18.draft-6`).
+[`de/privacy-policy.md`](de/privacy-policy.md) (version `2026-11-23.draft-10`).
 This file is not legal advice and is not shown to users. It records where each
 statement comes from, which facts the operator must supply and which decisions
 are open, so that the reviewer can check the draft against the product instead
@@ -49,8 +49,9 @@ Where a feature is not yet available, the draft says so explicitly.
 | 9 | „In Google Maps öffnen“ passes coordinates only | `web/src/client/photoPlaces.ts` |
 | 10 | Immich: personal HTTPS origin and API key, encrypted, account-scoped; selected-item copy; 10-min selection | `docs/product/integrations/1444-photo-source-delivery.md`, `backend/src/eimir/photo_sources/service.py` |
 | 10, 15 | Google Photos is gated off (#1467); its OAuth browser binding is the only cookie (`__Host-`, 10 min) | `docs/product/integrations/1444-google-security-gate.md`, `backend/src/eimir/photo_sources/browser_binding.py` |
-| 11 | Local Ollama for weekly review selection and shared tag proposals. Only their bounded inputs are sent, and prompts and responses stay out of logs. | `docs/LOCAL-RECAP-AI.md`, `backend/src/eimir/daily_checkins/weekly_review.py`, `backend/src/eimir/context_tags/jobs.py` |
-| 11 | Eure Woche: the backend computes descriptive observations from visible Vibe/Energy values (selected week plus seven preceding weeks, bounded by retention); the model only selects observation and catalog IDs; no score, diagnosis or personality label | `docs/product/design/references/1546/weekly-ai.md`, `backend/src/eimir/daily_checkins/weekly_review.py` |
+| 11 | Local Ollama for shared tag proposals only (the weekly AI review was retired in #2203). Only bounded inputs are sent, and prompts and responses stay out of logs. | `docs/LOCAL-RECAP-AI.md`, `backend/src/eimir/context_tags/jobs.py` |
+| 4, 22 | Daily Check-in retention: only the current Space day for every Space; the hourly cleanup deletes rows of an earlier day (#2210) | `docs/decisions/0007-daily-check-in-and-mutual-reveal.md` (amendment 2026-11-22, #2210), `backend/src/eimir/daily_checkins/retention.py` |
+| 11 | Einblicke (weekly brief, history, recap good-days rhythm) removed and deferred (#2210); retained ratings of the former weekly review deleted with their table (migration 0171); counts frozen into older recaps deleted by a one-off worker job | `backend/alembic/versions/0171_drop_daily_insight_feedback.py`, `backend/src/eimir/recaps/mood_purge.py` |
 | 12 | Mails: magic link, signup, verification; notification mail opt-in and content-free | `backend/src/eimir/i18n/locales/de.json`, `backend/src/eimir/engagement/email_delivery.py` |
 | 12 | Push on Android only (no browser Web Push): FCM wake payload `type`+`activationId`, or UnifiedPush; auto-init off; FID cleanup; Google's 180-day deletion statement | `docs/PRIVACY-MODEL.md` (#565), `android/app/build.gradle`, `AndroidManifest.xml` |
 | 13 | Link previews: explicit action, server-side fetch, nothing persisted | `backend/src/eimir/api/v1/link_previews.py` |
@@ -59,6 +60,8 @@ Where a feature is not yet available, the draft says so explicitly.
 | 16 | Application access log: method, path, status, duration, request ID; no IP or payload. The Web nginx disables its access log for API and health routes; static file requests use the stock log format, and the ingress may log client IPs | `backend/src/eimir/observability/middleware.py`, `web/nginx.conf` |
 | 16 | Rate limiting: SHA-256 of the lower-cased key (email or IPv4 / IPv6 /64), pruned after one day | `backend/src/eimir/auth/rate_limit.py`, `passkey_abuse.py` |
 | 16 | Restore re-applies accepted Account deletions from a pseudonymous journal before traffic resumes; the journal is kept as long as older backups exist | `docs/m6/ACCOUNT-DELETION-RETENTION.md` § 7 |
+| 19, 14, 15, 22 | Support reports (#2189, draft-10): sent only by the person from „Hilfe & Feedback“ or an error state after the sheet lists what is sent; strict allow-list payload (kind, note ≤ 2,000 characters, optional for a problem and required for feedback; for a problem from an error state the generalized failure reference: method, route template without ids or query, status or transport outcome, problem code, app/web, plus the `x-request-id` when present; client context: app version and build, app/web, OS and browser/engine with version but no device model or identifier, locale, theme, online state, local time and time zone; opaque account id); client context read only at send time; protected payload (note, failure, context) encrypted at rest, kind/state/timestamps plain; per-account rate limit 5/hour and 20/day; operator-only reader, no third party; one reply ≤ 500 characters as an in-app notification for the reporter only (`SUPPORT_REPLY`: neutral push without text, no email, no notice without an active Membership); closed reports deleted 90 days after closing, any report 365 days after creation, by the six-hourly maintenance job; reports and replies deleted with the Account; not part of the personal export (information on request under § 23); unsent draft in `localStorage` per Account, removed on send, discard, sign-out and Account or Space change. The feature stays off (`EIMIR_SUPPORT_REPORTS_ENABLED=false`) on Cloud until this text is published | `backend/src/eimir/support_reports/payload.py`, `service.py` (`CLOSED_RETENTION`, `MAX_RETENTION`), `models.py`, `backend/src/eimir/api/v1/support_reports.py`, `backend/src/eimir/auth/rate_limit.py`, `backend/src/eimir/identity/deletion.py` (`PERSONAL_ACCOUNT_ROWS`), `backend/src/eimir/jobs/maintenance.py`, `backend/src/eimir/engagement/push_preview.py`, `web/src/client/supportReport.ts`, `failureReference.ts`, `supportReportDraftStorage.ts`, `sessionPersistence.ts`, `docs/product/support-reports-core-design.md` |
+| 16 | Application log entries carry the request ID (`X-Request-ID`), which a support report can reference; draft-10 names it in § 16.1 | `backend/src/eimir/observability/middleware.py`, `formatting.py` |
 | 17 | No analytics, advertising or crash-reporting SDK in Web or Android (Android: AndroidX, Capacitor, UnifiedPush connector, Firebase Messaging/Installations, Nimbus JOSE); no external fonts or update checks | `web/package.json`, `android/app/build.gradle`, `docs/PRIVACY-MODEL.md` (Analytics) |
 | 18 | Pro cannot be purchased yet (no billing provider in Core) | `docs/m6/CLOUD-MANAGED-TOPOLOGY.md` § 3.6, #1525 |
 | 22 | Account deletion: emails, credentials, sessions, profile, owner-only content removed; shared history kept under a neutral former-member marker | `docs/m6/ACCOUNT-DELETION-RETENTION.md` § 5 |
@@ -126,16 +129,16 @@ this section.
 | Controller identity and contact (Art. 13(1)(a)) | § 1 | Placeholders |
 | DPO contact (Art. 13(1)(b)) | § 1.3 | Depends on decisions 2 and 3 |
 | Purposes and legal basis (Art. 13(1)(c)) | §§ 3–19 | Present for every purpose; draft-2 adds presence, retained shared content and map tiles |
-| Legitimate interests (Art. 13(1)(d)) | §§ 3.5, 4.4, 4.8, 8.2, 9.2, 9.4, 16.4 | Stated for every use of lit. f |
+| Legitimate interests (Art. 13(1)(d)) | §§ 3.5, 4.4, 4.8, 8.2, 9.2, 9.4, 16.4, 19.7 | Stated for every use of lit. f |
 | Recipients (Art. 13(1)(e)) | § 20 | Complete for the current flows (CSP and dependency review) |
 | Third-country transfers (Art. 13(1)(f)) | § 21 | Both adequacy decisions verified as current |
-| Storage period or criteria (Art. 13(2)(a)) | §§ 3–16, 22 | Concrete periods bound to the code by `test_privacy_policy_statements.py`; logs and backups are placeholders |
+| Storage period or criteria (Art. 13(2)(a)) | §§ 3–16, 19, 22 | Concrete periods bound to the code by `test_privacy_policy_statements.py`; logs and backups are placeholders |
 | Rights, withdrawal, complaint (Art. 13(2)(b)–(d)) | §§ 23, 24 | Present; the objection right is separate and bold (Art. 21(4)) |
 | Requirement to provide data and consequences (Art. 13(2)(e)) | § 3.6 | Present; the Cloud display name is optional |
-| Automated decisions and profiling (Art. 13(2)(f)) | § 11 | No Art. 22 decisions; the Eure Woche evaluation is described |
+| Automated decisions and profiling (Art. 13(2)(f)) | § 11 | No Art. 22 decisions; only tag proposals remain (the weekly brief was removed, #2210) |
 | Data from other sources (Art. 14) | §§ 2.1, 8.4 | Partner: own notice at signup (Art. 14(5)(a)); third persons: public notice and rights path (Art. 14(5)(b)) |
 | Transparency (Art. 12) | whole notice | Layered summary, plain language; German only (decision 6) |
-| Device storage and access (§ 25 TDDDG) | §§ 9.2, 12.5, 15 | Strictly necessary items under § 25(2) no. 2; Android photo location under § 25(1) |
+| Device storage and access (§ 25 TDDDG) | §§ 9.2, 12.5, 15, 19.7 | Strictly necessary items under § 25(2) no. 2; Android photo location under § 25(1) |
 
 ### Changes in draft-2
 
@@ -154,7 +157,8 @@ this section.
   consequence of declining.
 - § 9.4: map tiles under legitimate interest instead of contract necessity
   (decision 4).
-- § 11.2: what Eure Woche evaluates.
+- § 11.1: tag proposals only; the weekly brief and the weekly AI review were
+  removed (#2203, #2210).
 - § 16.1: the application log has no IP address; Web server and ingress logs
   may contain it.
 - § 16.3: restore order as in `ACCOUNT-DELETION-RETENTION.md` § 7.3.
@@ -220,7 +224,7 @@ officer should confirm them before publication.
    carry one out before launch. The processing meets several criteria of the
    EDPB-endorsed WP248 rev.01: data of a highly personal nature (shared
    diaries and life-logging, criterion 4), innovative technology (local LLM,
-   criterion 8), evaluation of personal aspects (Eure Woche, criterion 1) and,
+   criterion 8), evaluation of personal aspects (criterion 1, no longer met since Einblicke was removed, #2210) and,
    with growth, large scale (criterion 5). Two criteria usually require a
    DPIA. The German supervisory authorities' list for the private sector also
    names AI that evaluates personal aspects.
@@ -259,11 +263,13 @@ officer should confirm them before publication.
     refers to location presence, but the wording invites confusion.
     **Recommendation:** add a personal switch. It makes the objection
     self-service and matches terms § 8.2.
-11. **Daily check-in history.** `weekly_review.py` evaluates the selected week
-    plus seven preceding weeks, but retention deletes rows after the previous
-    Space day, so Eure Woche can only see two days. Reconcile the product.
-    Longer retention changes §§ 4.5, 11.2 and 22 and weighs on decisions 1
-    and 2.
+11. **Daily check-in history.** Resolved by removal: the Product Owner removed
+    and deferred Einblicke on 2026-11-22 (#2210). Every Space keeps check-ins
+    only for the current Space day; the hourly cleanup deletes earlier rows,
+    the recap good-days counts and the retained ratings are deleted as well.
+    Draft-9 updates §§ 4.5, 11.1 and 22. The legal review of the 90-day history
+    (closed PR #2209, summarised in #2210) applies if a history returns: it is
+    health-related special-category data and needs explicit consent.
 12. **Change notification.** **Recommendation:** use the channel of the terms
     changes (email and in-app), without acceptance.
 13. **One-time messages in Cloud backups.** The canonical dump excludes the
@@ -290,6 +296,16 @@ officer should confirm them before publication.
     behaviour in § 16.3.
 17. **Digital Omnibus.** If the GDPR amendments are adopted, re-check the
     Art. 9 scope and the information duties.
+18. **Support reports (#2189, draft-10).** § 19.2–19.7 describe the in-app
+    problem and feedback reports. Points for the legal review: the split legal
+    basis (contract for problem reports, legitimate interest for feedback), the
+    reading of app and device facts at send time under § 25(2) no. 2 TDDDG,
+    and that a note can contain special-category data the person types in
+    (§ 7). Reports are not part of the personal export; access requests go
+    through § 23. **Recommendation:** add reports and replies to the personal
+    export so Art. 15 and Art. 20 can be served self-service. Keep
+    `EIMIR_SUPPORT_REPORTS_ENABLED` off on eimir. Cloud until this version is
+    published.
 
 ## Related follow-ups outside this draft
 

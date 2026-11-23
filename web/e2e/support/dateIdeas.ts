@@ -46,7 +46,7 @@ type CatalogFile = {
 const catalogFile = JSON.parse(
   readFileSync(
     new URL(
-      '../../../backend/src/eimir/date_ideas/data/catalog.json',
+      '../../../backend/pro/src/eimir_pro/date_ideas/data/catalog.json',
       import.meta.url,
     ),
     'utf8',
@@ -62,7 +62,7 @@ type ImageEntry = {
 const imageManifest = JSON.parse(
   readFileSync(
     new URL(
-      '../../../backend/src/eimir/date_ideas/data/images.json',
+      '../../../backend/pro/src/eimir_pro/date_ideas/data/images.json',
       import.meta.url,
     ),
     'utf8',
@@ -89,7 +89,7 @@ function imageBytes(imageId: string): Buffer | null {
   try {
     return readFileSync(
       new URL(
-        `../../../backend/src/eimir/date_ideas/data/images/${imageId}.webp`,
+        `../../../backend/pro/src/eimir_pro/date_ideas/data/images/${imageId}.webp`,
         import.meta.url,
       ),
     );

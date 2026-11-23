@@ -7,12 +7,7 @@
  */
 .relationship-story-page {
   display: grid;
-  gap: var(--space-4);
-}
-
-.relationship-story-page > .page-heading {
-  margin-bottom: 0;
-  padding-bottom: 0;
+  --page-stack-gap: var(--space-4);
 }
 
 .relationship-story-page .relationship-passport {
@@ -377,13 +372,8 @@
 @media (prefers-reduced-motion: no-preference) {
   .relationship-story-page .passport-progress::after,
   .relationship-story-page .passport-metric-bar::after {
-    animation: relationship-story-bar calc(var(--duration-sequence-beat) * 3.5)
-      var(--easing-standard) var(--duration-context) backwards;
-  }
-}
-
-@keyframes relationship-story-bar {
-  from {
-    transform: scaleX(0);
+    animation: eimir-motion-enter-reach
+      calc(var(--duration-sequence-beat) * 3.5) var(--easing-standard)
+      var(--duration-context) backwards;
   }
 }

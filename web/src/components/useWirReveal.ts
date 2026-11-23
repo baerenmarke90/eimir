@@ -2,7 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { choreography, now } from '../motion/choreography';
 import { staggerDelay } from '../motion/enter';
 import { claimPlay, hasPlayed, markPlayed } from '../motion/playRegistry';
-import { wirModuleBatch } from './wirStageMotion';
+import {
+  stageDuration,
+  stageFinished,
+  stagePhase,
+  stageStartTime,
+} from '../motion/stage';
+import { durationMs } from '../motion/tokens';
+import { WIR_STAGE, wirIntroBeat, wirModuleSlot } from './wirStageMotion';
 
 /*
  * One-shot arrival of a Wir module the first time it is reached.
@@ -13,21 +20,16 @@ import { wirModuleBatch } from './wirStageMotion';
  * items being added to or removed from an already seen module show the plain
  * content at once. A module that is new to this session (for example the first
  * plan creates the planning module) arrives the first time it is reached.
- * Modules already in view when Wir opens arrive together as one short, ordered
- * choreography after the hero; modules further down arrive on their own.
  *
- * They also wait, invisibly and in their own place, until the hero and the
- * daily quote above them have stopped changing (or a short cap has passed).
- * The quote and the check-in arrive from the network after the first paint
- * and change the height of what sits above the modules; revealing a module
- * first would let a visible card jump down. Waiting means those late changes
- * only ever move things that are not shown yet.
+ * With the Wir opening (#2147) the modules already in view are part of it: they
+ * arrive on the opening's clock, in reading order, and end with it. The
+ * opening waits for the late data above them, so nothing above a shown module
+ * changes its height afterwards. A module that mounts after its slot joins in
+ * the time that is left, or, after the opening, is simply there. Modules
+ * further down arrive on their own when they are first reached by scrolling.
+ * Without an opening (another Wir design, or none this app start) the modules
+ * in view arrive together as one short, ordered batch.
  */
-/** The hero and the quote count as settled after this long without a change. */
-const SETTLE_QUIET_MS = 300;
-/** A slow or failing request never keeps the modules hidden longer than this. */
-const SETTLE_MAX_MS = 2200;
-const SETTLE_POLL_MS = 80;
 
 type RevealPhase = 'pending' | 'shown' | 'seen';
 
@@ -37,71 +39,77 @@ const moduleIdentity = (key: string) => `wir.module.${key}`;
 /** The modules already in view share one choreography clock (M15). */
 const MODULE_BATCH = 'wir.modules';
 let batchSize = 0;
+/** The modules that took a slot in this app start's opening. */
+let openingModules = 0;
+
+/** How the module arrives: its delay and a factor on its own beats. */
+export interface ModuleArrival {
+  delay: number;
+  /** 1 = its usual beats; below 1 = joined late, compressed into what is left. */
+  scale: number;
+}
 
 /**
- * The delay a module in the opening batch waits before it arrives: after the
- * portraits and the heart line, one module step (`--duration-stagger-module`)
- * after the other, at most `--motion-stagger-max-items` steps.
+ * Without an opening: after the hero has landed (2.75 beats), one module step
+ * (`--duration-stagger-module`) after the other, within one batch window
+ * (2.5 beats). Unchanged from #2074.
  */
-function takeInitialBatchDelayMs(): number | null {
+function takeBatchArrival(): ModuleArrival {
   const batch = choreography(MODULE_BATCH, MODULE_SCOPE);
-  const { start, window: batchWindow } = wirModuleBatch();
+  const beat = wirIntroBeat();
   if (batch.startTime === null) {
-    // A module reached by scrolling never waits for a choreography.
-    if (window.scrollY > 0) return null;
     batch.start(now());
     batchSize = 0;
-  } else if (now() - batch.startTime > batchWindow) return null;
-  const delay = start + staggerDelay(batchSize, 'module');
+  } else if (now() - batch.startTime > beat * 2.5)
+    return { delay: 0, scale: 1 };
+  const delay = beat * 2.75 + staggerDelay(batchSize, 'module');
   batchSize += 1;
-  return delay;
-}
-
-let settled: Promise<void> | null = null;
-
-/** What changes while the hero and the quote above the modules are still loading. */
-function stageSignature(): string {
-  const height = (element: Element | null) =>
-    element ? Math.round(element.getBoundingClientRect().height) : -1;
-  const quote = document.querySelector('.daily-quote-card');
-  const loading = quote?.querySelector('.is-loading') ? 'loading' : '';
-  return `${height(document.querySelector('.wir-stage'))}|${height(quote)}|${loading}`;
+  return { delay, scale: 1 };
 }
 
 /**
- * Resolves once what sits above the modules has stopped changing, or after
- * a cap. Answered once per session: later modules never wait again.
+ * On the opening's clock: the module's slot, joined late in what is left, or
+ * `null` when too little is left (the module is simply there).
  */
-function whenStageSettled(): Promise<void> {
-  settled ??= new Promise<void>((resolve) => {
-    if (!document.querySelector('.wir-stage')) {
-      resolve();
-      return;
-    }
-    const startedAt = performance.now();
-    let signature = stageSignature();
-    let changedAt = startedAt;
-    const timer = window.setInterval(() => {
-      const now = performance.now();
-      const next = stageSignature();
-      if (next !== signature) {
-        signature = next;
-        changedAt = now;
-      }
-      const quiet =
-        now - changedAt >= SETTLE_QUIET_MS && !signature.endsWith('loading');
-      if (quiet || now - startedAt >= SETTLE_MAX_MS) {
-        window.clearInterval(timer);
-        resolve();
-      }
-    }, SETTLE_POLL_MS);
-  });
-  return settled;
+function takeOpeningArrival(start: number): ModuleArrival | null {
+  const slot = wirModuleSlot(openingModules);
+  openingModules += 1;
+  const at = now();
+  const slotStart = start + slot.offset;
+  if (at <= slotStart) return { delay: slotStart - at, scale: 1 };
+  const left = start + stageDuration(WIR_STAGE) - at;
+  if (left < durationMs('transition') || slot.length <= 0) return null;
+  return { delay: 0, scale: Math.min(1, left / slot.length) };
 }
 
-/** Test hook: the next module asks the stage again. */
-export function resetWirStageSettleForTests() {
-  settled = null;
+/**
+ * Decides how a module that is reached at the top of Wir arrives. `undefined`
+ * means: it is simply there (the opening ended, or too little is left).
+ */
+async function initialArrival(): Promise<ModuleArrival | undefined> {
+  if (stagePhase(WIR_STAGE) === 'waiting') {
+    await new Promise<void>((resolve) => {
+      const poll = () => {
+        if (stagePhase(WIR_STAGE) !== 'waiting') resolve();
+        else requestAnimationFrame(poll);
+      };
+      void stageFinished(WIR_STAGE).then(resolve);
+      requestAnimationFrame(poll);
+    });
+  }
+  const phase = stagePhase(WIR_STAGE);
+  const start = stageStartTime(WIR_STAGE);
+  if (phase === 'playing' && start !== null)
+    return takeOpeningArrival(start) ?? undefined;
+  // The opening already ran this app start: what is in view is at rest.
+  if (phase === 'ended' && start !== null) return undefined;
+  return takeBatchArrival();
+}
+
+/** Test hook: a new app start for the module arrival. */
+export function resetWirRevealForTests() {
+  batchSize = 0;
+  openingModules = 0;
 }
 
 /** The module's stable identity for "already seen": its section class. */
@@ -118,14 +126,17 @@ export function useWirReveal<T extends HTMLElement>(className?: string) {
   const [phase, setPhase] = useState<RevealPhase>(() =>
     key && hasPlayed(moduleIdentity(key), MODULE_SCOPE) ? 'seen' : 'pending',
   );
-  const [delayMs, setDelayMs] = useState(0);
+  const [arrival, setArrival] = useState<ModuleArrival>({
+    delay: 0,
+    scale: 1,
+  });
 
   // Pending: wait until the module is reached, then let it arrive once.
   useEffect(() => {
     const element = ref.current;
     if (!element || phase !== 'pending') return;
     let cancelled = false;
-    const show = (delay: number) => {
+    const show = (next: ModuleArrival | undefined) => {
       // One play per module and session (M3); another mount of the same
       // module that already claimed it shows the plain content.
       if (key && !claimPlay(moduleIdentity(key), MODULE_SCOPE, owner.current)) {
@@ -133,23 +144,29 @@ export function useWirReveal<T extends HTMLElement>(className?: string) {
         return;
       }
       if (key) markPlayed(moduleIdentity(key), MODULE_SCOPE);
-      setDelayMs(delay);
+      if (!next) {
+        setPhase('seen');
+        return;
+      }
+      setArrival(next);
       setPhase('shown');
     };
     if (typeof IntersectionObserver === 'undefined') {
-      show(0);
+      show({ delay: 0, scale: 1 });
       return;
     }
     const observer = new IntersectionObserver(
       (entries) => {
         if (!entries.some((entry) => entry.isIntersecting)) return;
         observer.disconnect();
-        const arrive = () => {
-          if (!cancelled) show(takeInitialBatchDelayMs() ?? 0);
-        };
-        // A module reached by scrolling never waits for the hero.
-        if (window.scrollY > 0) arrive();
-        else void whenStageSettled().then(arrive);
+        // A module reached by scrolling arrives on its own, at once.
+        if (window.scrollY > 0) {
+          show({ delay: 0, scale: 1 });
+          return;
+        }
+        void initialArrival().then((next) => {
+          if (!cancelled) show(next);
+        });
       },
       // A module arrives a little before it is fully inside the viewport.
       { rootMargin: '0px 0px -8% 0px', threshold: 0.01 },
@@ -188,7 +205,10 @@ export function useWirReveal<T extends HTMLElement>(className?: string) {
     ref,
     revealProps: {
       'data-wir-reveal': phase,
-      style: { '--wir-reveal-delay': `${delayMs}ms` } as React.CSSProperties,
+      style: {
+        '--wir-reveal-delay': `${Math.round(arrival.delay)}ms`,
+        '--wir-reveal-scale': Math.round(arrival.scale * 100) / 100,
+      } as React.CSSProperties,
     },
   };
 }

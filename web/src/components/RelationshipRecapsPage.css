@@ -286,7 +286,8 @@ a.recap-status-row:hover strong {
   background: var(--color-brand-strong);
 }
 .recap-progress [data-current="true"] .recap-step-fill {
-  animation: recap-step-progress var(--recap-dwell) var(--easing-playback) both;
+  animation: eimir-motion-recap-step-progress var(--recap-dwell)
+    var(--easing-playback) both;
   animation-play-state: paused;
 }
 .recap-reader[data-playing="true"] .recap-step-fill {
@@ -319,11 +320,6 @@ a.recap-status-row:hover strong {
 .recap-ai-note {
   font: var(--font-supporting-copy);
   color: var(--color-text-secondary);
-}
-@keyframes recap-step-progress {
-  to {
-    transform: scaleX(1);
-  }
 }
 .recap-spread {
   position: relative;
@@ -529,29 +525,16 @@ a.recap-status-row:hover strong {
 }
 @media (prefers-reduced-motion: no-preference) {
   .recap-spread {
-    animation: recap-page-enter var(--duration-context) var(--easing-enter);
+    animation: eimir-motion-recap-page-enter var(--duration-context)
+      var(--easing-enter);
   }
   .recap-scene-media img {
-    animation: recap-photo-drift var(--recap-dwell) var(--easing-playback) both;
+    animation: eimir-motion-recap-photo-drift var(--recap-dwell)
+      var(--easing-playback) both;
     animation-play-state: paused;
   }
   .recap-reader[data-playing="true"] .recap-scene-media img {
     animation-play-state: running;
-  }
-  @keyframes recap-photo-drift {
-    to {
-      transform: scale(1.08);
-    }
-  }
-  @keyframes recap-page-enter {
-    from {
-      opacity: 0.5;
-      transform: translateY(var(--space-2));
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -678,8 +661,7 @@ a.recap-status-row:hover strong {
 }
 .recap-layout-words,
 .recap-layout-title,
-.recap-scene-facts,
-.recap-scene-rhythm {
+.recap-scene-facts {
   justify-content: center;
   background: var(--color-shared-surface);
 }
@@ -726,49 +708,6 @@ a.recap-status-row:hover strong {
 .recap-facts-busiest {
   font: var(--font-section-heading);
 }
-.recap-rhythm {
-  --recap-rhythm-quiet: color-mix(
-    in srgb,
-    var(--color-shared) 32%,
-    transparent
-  );
-  display: grid;
-  grid-template-columns: repeat(var(--recap-columns, 5), minmax(0, 1fr));
-  grid-template-rows: 9rem auto auto;
-  column-gap: var(--space-1);
-  row-gap: var(--space-2);
-  margin: var(--space-6) 0;
-  padding: 0;
-  list-style: none;
-}
-.recap-rhythm li {
-  display: grid;
-  grid-row: span 3;
-  grid-template-rows: subgrid;
-  justify-items: center;
-  min-inline-size: 0;
-}
-.recap-rhythm-bar {
-  align-self: end;
-  inline-size: 100%;
-  max-inline-size: 3rem;
-  block-size: max(2px, calc(var(--recap-share, 0) * 9rem));
-  border-radius: var(--radius-medium) var(--radius-medium) 0 0;
-  background: var(--recap-rhythm-quiet);
-}
-.recap-rhythm li[data-leading="true"] .recap-rhythm-bar {
-  background: var(--color-shared);
-}
-.recap-rhythm-label {
-  font: var(--font-supporting-copy);
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-  text-align: center;
-}
-.recap-rhythm strong {
-  font: var(--font-section-heading);
-  font-variant-numeric: tabular-nums;
-}
 .recap-gesture-hint {
   display: none;
   margin: 0;
@@ -783,7 +722,8 @@ a.recap-status-row:hover strong {
 }
 @media (prefers-reduced-motion: no-preference) {
   .recap-facts li {
-    animation: recap-page-enter var(--duration-context) var(--easing-enter) both;
+    animation: eimir-motion-recap-page-enter var(--duration-context)
+      var(--easing-enter) both;
     animation-delay: calc(var(--recap-index) * var(--duration-feedback));
   }
 }

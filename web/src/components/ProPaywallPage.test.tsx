@@ -101,6 +101,7 @@ describe('ProPaywallPage', () => {
     ['recaps', proPaywall.contexts.recaps],
     ['memoryMap', proPaywall.contexts.memoryMap],
     ['photoSources', proPaywall.contexts.photoSources],
+    ['storage', proPaywall.contexts.storage],
     ['calendar', proPaywall.contexts.calendar],
     ['games', proPaywall.contexts.games],
   ])('presents the %s context with three benefits', (context, copy) => {

@@ -325,19 +325,10 @@
 }
 
 .heart-emotion-badge--detail .heart-emotion-icon {
-  animation: heart-emotion-settle var(--duration-context) var(--easing-enter)
-    both;
-}
-
-@keyframes heart-emotion-settle {
-  from {
-    opacity: 0;
-    transform: translateY(6px) scale(0.92);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  --motion-enter-from: 0 6px;
+  --motion-enter-from-scale: 0.92;
+  animation: eimir-motion-enter-arrive var(--duration-context)
+    var(--easing-enter) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

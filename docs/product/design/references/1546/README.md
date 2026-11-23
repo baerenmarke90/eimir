@@ -20,6 +20,8 @@ Games retain the existing three flows and add two finite authored sofa sessions:
 
 ## Weekly AI implementation
 
+> **Retired (#2203, Product Owner 2026-11-22).** The weekly AI review card and its endpoints were removed with the Einblicke cleanup; the rule-based weekly brief (#2169) replaces it. Retained ratings stay readable and deletable as Core data. A selection-only successor inside the brief is deferred to [#2201](https://github.com/baerenmarke90/eimir/issues/2201). The text below is the historical record.
+
 The explicit PO follow-up authorizes deeper weekly analysis and recommendations. The [weekly AI contract and generated preflight](weekly-ai.md) were linked in #1546 before this extension's UI work. The existing charts, week picker, tabs, observations and recap action remain in place.
 
 The server derives comparable joint observations over up to eight weeks. Only dimensions with an own value and a currently VISIBLE partner value contribute. Sample thresholds cover weekly comparisons, repeated weekday/weekend differences and differing Vibe selections. Notes, names, photos, raw daily rows and hidden participation do not enter the model packet.
@@ -55,8 +57,8 @@ The earlier PR validation covered the additional map, games, calendar, profile, 
 | Wir monthly slideshow without the archive action | [360 Light](evidence/wir-monthly-slideshow-360-light.webp), [390 Dark](evidence/wir-monthly-slideshow-390-dark.webp), [430 Light](evidence/wir-monthly-slideshow-430-light.webp) | [1280 Dark](evidence/wir-monthly-slideshow-1280-dark.webp) |
 | Monthly photo/text highlights retained | [390 Light](evidence/monthly-highlights-390-light.webp) | [390 Dark](evidence/monthly-highlights-390-dark.webp) |
 | Eure Geschichte | [Voluntary story metrics](evidence/wir-optional-statistics-390.webp) | Canonical filtered links retained; token-sized icons and unbroken labels |
-| Weekly AI and private feedback | [360 Light](evidence/weekly-ai-360-light.webp), [390 Dark](evidence/weekly-ai-390-dark.webp), [430 Light](evidence/weekly-ai-430-light.webp) | [1280 Dark](evidence/weekly-ai-1280-dark.webp), [320 Dark / 200%](evidence/weekly-ai-320-dark-200pct.webp), [sparse / failed feedback](evidence/weekly-ai-sparse-error-390.webp) |
-| Eure Woche | [390 Light](evidence/insights-week-390-light.webp) | [320 Dark / 200%](evidence/insights-week-320-dark-200pct.webp), [1280 Light](evidence/insights-week-1280-light.webp) |
+| Weekly AI and private feedback (retired, #2203) | [360 Light](evidence/weekly-ai-360-light.webp), [390 Dark](evidence/weekly-ai-390-dark.webp), [430 Light](evidence/weekly-ai-430-light.webp) | [1280 Dark](evidence/weekly-ai-1280-dark.webp), [320 Dark / 200%](evidence/weekly-ai-320-dark-200pct.webp), [sparse / failed feedback](evidence/weekly-ai-sparse-error-390.webp) |
+| Eure Woche (now Verlauf, #2203) | [390 Light](evidence/insights-week-390-light.webp) | [320 Dark / 200%](evidence/insights-week-320-dark-200pct.webp), [1280 Light](evidence/insights-week-1280-light.webp) |
 | Profile without Passport | [360 Light](evidence/profile-without-passport-360-light.webp), [390 Dark](evidence/profile-without-passport-390-dark.webp), [430 Light](evidence/profile-without-passport-430-light.webp) | [1280 Dark](evidence/profile-without-passport-1280-dark.webp), [320 Light](evidence/profile-without-passport-320-light.webp), [large text](evidence/profile-without-passport-390-dark-large.webp) |
 | Saved-memory map | [360 Light](evidence/memory-map-360-light.webp), [390 Dark](evidence/memory-map-390-dark.webp), [430 Light](evidence/memory-map-430-light.webp) | [1280 Dark](evidence/memory-map-1280-dark.webp) |
 | Five playable games | [390 Light](evidence/games-390-light.webp) | [1280 Dark](evidence/games-1280-dark.webp) |

@@ -207,14 +207,17 @@ def _thumbnail(image: Image.Image, *, apply_orientation: bool = False) -> bytes 
         return None
 
 
-def process(
-    data: bytes, rule: MediaRule, *, extract_location: bool = False, preserve_metadata: bool = False
-) -> ProcessedImage:
-    """Validate, sanitize, and resize an uploaded image.
+@dataclass(frozen=True)
+class InspectedImage:
+    mime_type: str
+    width: int
+    height: int
 
-    The bytes are already fully available. Decoding necessarily materializes
-    the image in memory, while the M2-D04 upload limit bounds input size. A
-    streaming decoder would not materially reduce the risk here.
+
+def _decode(data: bytes, rule: MediaRule) -> tuple[Image.Image, str, str]:
+    """Decode untrusted bytes; enforce the declared type and the size rule.
+
+    Returns the loaded image, its Pillow format and its detected MIME type.
     """
     _guard_decompression_bomb(rule)
 
@@ -247,6 +250,34 @@ def process(
         raise ImageRejectedError("IMAGE_TOO_LARGE")
     if rule.max_pixels is not None and width * height > rule.max_pixels:
         raise ImageRejectedError("IMAGE_TOO_LARGE")
+    return image, detected_format, detected_mime
+
+
+def inspect(data: bytes, rule: MediaRule) -> InspectedImage:
+    """Apply the upload decode checks without re-encoding.
+
+    Used for transfer restore: forged types, pixels and dimensions are
+    rejected, while the exact bytes (and with them quality and any metadata
+    the source pipeline retained) stay unchanged. A second lossy encode would
+    degrade every restored photo.
+    """
+    image, _, detected_mime = _decode(data, rule)
+    with image:
+        width, height = image.size
+    return InspectedImage(mime_type=detected_mime, width=width, height=height)
+
+
+def process(
+    data: bytes, rule: MediaRule, *, extract_location: bool = False, preserve_metadata: bool = False
+) -> ProcessedImage:
+    """Validate, sanitize, and resize an uploaded image.
+
+    The bytes are already fully available. Decoding necessarily materializes
+    the image in memory, while the M2-D04 upload limit bounds input size. A
+    streaming decoder would not materially reduce the risk here.
+    """
+    image, detected_format, detected_mime = _decode(data, rule)
+    width, height = image.size
 
     captured_at, orientation = _extract_allowlist(image)
     coordinates = _extract_coordinates(image) if extract_location else None

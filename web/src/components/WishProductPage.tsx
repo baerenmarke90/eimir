@@ -39,6 +39,7 @@ import {
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { isHiddenDuringGame } from '../client/wishConcealment';
 import { wishJourneyStage, wishPlanDateLabel } from '../client/wishJourney';
 import { useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
@@ -65,6 +66,7 @@ import { UiState } from './UiState';
 import { useWishCompletion } from './useWishCompletion';
 import { WishComposer } from './WishComposer';
 import { WishDateProposalAction } from './WishDateProposalAction';
+import { HiddenWishNotice } from './WishGameConcealment';
 import { WishJourneyPath } from './WishJourney';
 import { WishReminderAction } from './WishReminderAction';
 import { WishRepeatSheet } from './WishRepeatSheet';
@@ -435,6 +437,33 @@ export function WishProductPage({
     setDismissedCompletion(completion.confirmedResult);
   }
 
+  const backButton = (
+    <TaskBackButton
+      inline
+      type="button"
+      ref={backLinkRef}
+      className="back-link tertiary"
+      onClick={() => requestReturn(originKey, `${appRoutePath('plan')}#wishes`)}
+    >
+      {t(resolveOrigin(originKey) ? 'taskBoundary.back' : 'm5s3.common.back')}
+    </TaskBackButton>
+  );
+
+  // #2158 H: an open Wish detective game hides this wish from the reader;
+  // the server sent a placeholder without content and refuses every write.
+  if (isHiddenDuringGame(wish)) {
+    return (
+      <div className="page planning-page wish-detail page-composer-detail">
+        <PageHeader
+          variant="composer"
+          before={backButton}
+          title={t('m5s3.wish.detailEyebrow')}
+        />
+        <HiddenWishNotice wish={wish} />
+      </div>
+    );
+  }
+
   if (editingWish) {
     return (
       <WishComposer
@@ -487,23 +516,7 @@ export function WishProductPage({
     <div className="page planning-page wish-detail page-composer-detail">
       <PageHeader
         variant="composer"
-        before={
-          <TaskBackButton
-            inline
-            type="button"
-            ref={backLinkRef}
-            className="back-link tertiary"
-            onClick={() =>
-              requestReturn(originKey, `${appRoutePath('plan')}#wishes`)
-            }
-          >
-            {t(
-              resolveOrigin(originKey)
-                ? 'taskBoundary.back'
-                : 'm5s3.common.back',
-            )}
-          </TaskBackButton>
-        }
+        before={backButton}
         title={t('m5s3.wish.detailEyebrow')}
         action={
           wish.capabilities.canEdit || wish.capabilities.canDelete ? (
@@ -727,7 +740,10 @@ export function WishProductPage({
                       </option>
                     ))}
                   </select>
-                  <PlanScheduleFields idPrefix="wish-plan-schedule" />
+                  <PlanScheduleFields
+                    idPrefix="wish-plan-schedule"
+                    defaultDate={convertDraft?.plannedOn}
+                  />
                   <button type="submit" disabled={writesPending}>
                     {convertMutation.isPending
                       ? t('m5s3.wish.converting')

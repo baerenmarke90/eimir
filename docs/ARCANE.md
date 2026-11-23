@@ -404,6 +404,10 @@ Production pulls the released package identity instead of Git contexts. If regis
 authentication is required, configure it in Docker/Arcane registry credentials; do not
 add registry tokens to Compose, `.env`, release evidence, or support bundles.
 
+The private `eimir-test` channel pulls its images from private GHCR packages; the staged
+switch, the read-only registry credential and the rollback are described in
+[Private Test Channel](PRIVATE-TEST-CHANNEL.md#private-channel-packages-decision-0019-phase-0b).
+
 Do not create another Compose manifest as an authentication or deployment workaround.
 
 ## Reverse proxy architecture
@@ -428,6 +432,62 @@ WEB_PORT=8080
 
 For a reverse proxy on another private host, bind only the intended private address and
 set `TRUSTED_PROXY_IPS` to the exact proxy source IP/CIDR. Never use `*`.
+
+### Request bodies and timeouts
+
+The reverse proxy sits in front of the API's own size limits, so its defaults decide first.
+A typical default (for example `client_max_body_size 1m` in Nginx, or a 100 MB cap in a
+managed front end) is far below what the API accepts and rejects an upload before eimir.
+sees it. The API enforces these limits itself:
+
+| API route | Largest body the API accepts |
+|---|---|
+| `POST /api/v1/spaces/{spaceId}/transfer/imports` (Transfer Bundle import) | 512 MiB |
+| `PUT /api/v1/spaces/{spaceId}/attachments/{attachmentId}/content` (photos, videos, voice, PDFs) | 250 MiB (the largest kind is video) |
+| every other `/api/` route | 8 MiB |
+
+Configure the proxy for `/api/` as follows:
+
+- Allow request bodies of at least **512 MiB**. Do not set the limit to unlimited; the API
+  limits above are the real bound and the proxy limit is defence in depth.
+- Do **not buffer** request bodies, so the proxy streams an upload to the API instead of
+  collecting it first (in Nginx: `proxy_request_buffering off`).
+- Use a send and read timeout that covers a slow mobile upload, which takes several minutes
+  for a large bundle (for example 900 s to send and 300 s to read). The API's own upload
+  spool and `/tmp` size are covered in
+  [Transfer Bundle operations](m5/S6-TRANSFER-BUNDLE-OPERATIONS.md).
+
+An Nginx example for the `/api/` route (adapt the upstream address):
+
+```nginx
+client_max_body_size 512m;
+
+location ^~ /api/ {
+    proxy_pass http://<api-host>:8000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_request_buffering off;
+    proxy_send_timeout 900s;
+    proxy_read_timeout 300s;
+    # plus the Host and X-Forwarded-* headers described above
+}
+```
+
+Other reverse proxies have equivalent settings for the maximum request body, buffering and
+timeouts.
+
+A request refused by the proxy does not come from eimir.: it is an HTTP `413` with an HTML
+body and the proxy's own `Server` header, not a JSON problem with a `code`. The Web UI shows
+the "file too large" text for it. To check a deployment without any credentials or file, send
+only the headers of an import request from any machine. The API must answer `401` with a JSON
+body; an HTML `413` means the proxy limit is too small (the command does not send a body and
+changes nothing):
+
+```bash
+curl -i --max-time 15 -X POST \
+  -H "Content-Type: application/zip" -H "Content-Length: 536870912" \
+  "https://eimir.example/api/v1/spaces/00000000-0000-0000-0000-000000000000/transfer/imports"
+```
 
 ## Post-deployment verification
 

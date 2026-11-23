@@ -7,6 +7,7 @@ import {
   type PartnerNoticeKind,
 } from '../client/partnerGestureReceipt';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
+import '../motion/moments.css';
 import './NotificationMotion.css';
 
 type NotificationMotionSpec = {
@@ -33,6 +34,9 @@ const motions: Record<
   // second frame onto it (#1744).
   RECAP_READY: { icon: 'momente', motion: 'recap-ready' },
   RECAP_GREW: { icon: 'momente', motion: 'recap-grew' },
+  // The operator's reply to a support report settles in calmly, like a note
+  // laid down (#2189); reduced motion shows it still.
+  SUPPORT_REPLY: { icon: 'benachrichtigungen', motion: 'support-reply' },
 };
 
 type MotionStyle = CSSProperties & { '--notification-animation'?: string };
@@ -49,7 +53,7 @@ export function NotificationMotion({ kind }: { kind: NotificationKind }) {
         style={
           motion
             ? ({
-                '--notification-animation': `notification-${motion}`,
+                '--notification-animation': `eimir-motion-notice-${motion}`,
               } as MotionStyle)
             : undefined
         }

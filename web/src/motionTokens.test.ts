@@ -55,19 +55,6 @@ const LEGACY_MOTION_ROLE =
 const RAW_MOTION_VALUE =
   /\b\d+(?:\.\d+)?(?:ms|s)\b|\bease(?:-in|-out|-in-out)?\b|\blinear\b/;
 
-const allowedContinuousLoops = new Map<string, string>([
-  ['./styles.css', 'animation: story-shimmer 1.6s linear infinite;'],
-  ['./story-media.css', 'animation: story-shimmer 1.6s linear infinite;'],
-  [
-    './components/MediaGallery.css',
-    'animation: gallery-pulse 1.4s ease-in-out infinite;',
-  ],
-  [
-    './components/PlanCover.css',
-    'animation: plan-cover-shimmer 1400ms linear infinite;',
-  ],
-]);
-
 function normalizeWhitespace(value: string): string {
   return value.replace(/\s+/g, ' ').trim();
 }
@@ -108,10 +95,7 @@ describe('canonical Web motion roles', () => {
     const offenders: string[] = [];
 
     for (const [path, css] of Object.entries(productionStylesheets)) {
-      const allowedLoop = allowedContinuousLoops.get(path);
-
       for (const declaration of motionDeclarations(css)) {
-        if (allowedLoop && declaration === allowedLoop) continue;
         if (RAW_MOTION_VALUE.test(declaration)) {
           offenders.push(`${path}: ${declaration}`);
         }
@@ -121,38 +105,39 @@ describe('canonical Web motion roles', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('limits raw timing exceptions to continuous status/loading loops with reduced-motion fallbacks', () => {
-    for (const [path, declaration] of allowedContinuousLoops) {
-      const css = productionStylesheets[path];
+  it('runs the media gallery loading pulse on the motion layer (#2079)', () => {
+    // The last raw-timing loop: the gallery placeholder now uses the Loading
+    // utility, which reads token roles and is absent with reduced motion.
+    const css = productionStylesheets['./components/MediaGallery.css'];
+    const utilities = productionStylesheets['./motion/utilities.css'];
 
-      expect(css, `Missing stylesheet: ${path}`).toBeDefined();
-      expect(motionDeclarations(css)).toContain(declaration);
-      expect(css).toContain('@media (prefers-reduced-motion: reduce)');
-      expect(css).toContain('animation: none');
-    }
+    expect(css).not.toContain('gallery-pulse');
+    expect(productionSources['./components/MediaGallery.tsx']).toContain(
+      'eimir-motion-loading-pulse',
+    );
+    expect(utilities).toContain('.eimir-motion-loading-pulse');
+    expect(utilities).toContain('@media (prefers-reduced-motion: reduce)');
   });
 
   it('keeps Daily Quote on defined canonical duration roles', () => {
     const css = productionStylesheets['./components/DailyQuoteCard.css'];
 
-    expect(css).toContain('var(--duration-transition)');
     expect(css).toContain('var(--duration-feedback)');
     expect(css).not.toContain('--duration-standard');
     expect(css).not.toContain('--duration-fast');
   });
 
-  it('keeps Daily Quote text legible throughout its entrance motion', () => {
-    // The card uses the motion layer's translate-only Enter `shift` (#2074).
+  it('gives the Daily Quote one entrance, on the Wir opening clock (#2147)', () => {
+    // The card no longer enters on its own clock, and the quote never fades
+    // a second time: on Wir the card is a member of the opening stage.
     const css = productionStylesheets['./components/DailyQuoteCard.css'];
-    expect(normalizeWhitespace(css)).toContain(
-      'animation: eimir-motion-enter-shift var(--duration-transition)',
+    expect(css).not.toMatch(/\banimation\s*:/);
+    const wir = normalizeWhitespace(
+      productionStylesheets['./components/WirMotion.css'],
     );
-    const catalogue = productionStylesheets['./motion/motion.css'];
-    const reveal = catalogue.match(
-      /@keyframes eimir-motion-enter-shift\s*\{([\s\S]*?)\n\}/,
-    )?.[1];
-
-    expect(reveal).toContain('translate:');
-    expect(reveal).not.toMatch(/\bopacity\s*:/);
+    expect(wir).toContain(
+      '.today-content[data-motion-stage-scope="playing"] .daily-quote-card {',
+    );
+    expect(wir).not.toContain('.daily-quote-block[data-motion-enter]');
   });
 });

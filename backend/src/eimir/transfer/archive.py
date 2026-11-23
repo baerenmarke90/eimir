@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 import stat
 import zlib
@@ -14,6 +15,8 @@ from typing import IO, Any
 from zipfile import ZIP_DEFLATED, ZIP_STORED, BadZipFile, ZipFile, ZipInfo
 
 from eimir.core.errors import BadRequestError, ErrorCode, PayloadTooLargeError
+
+log = logging.getLogger(__name__)
 
 FORMAT_VERSION = 1
 MAX_COMPRESSED_BYTES = 512 * 1024 * 1024
@@ -55,6 +58,7 @@ _ALLOWED_ROOT_FILES = {
     "private/notes.json",
     "private/gift-ideas.json",
     "private/collections.json",
+    # Written by exports before #2210; accepted and ignored on import.
     "private/weekly-insight-feedback.json",
 }
 _MEDIA_ENTRY = re.compile(
@@ -256,12 +260,25 @@ class ExportWriter:
         if len(self.archive.filelist) >= MAX_ENTRIES:
             raise _too_large()
 
+    def _refuse(self, limit: str, maximum: int, observed: int) -> PayloadTooLargeError:
+        # Content-free diagnostics: which budget was hit and by how much. The
+        # job records a handled failure as a succeeded job, so this line is the
+        # only worker-side trace of the cause.
+        log.warning(
+            "transfer export exceeds a bundle limit",
+            extra={"limit": limit, "maximum_bytes": maximum, "observed_bytes": observed},
+        )
+        return _too_large()
+
     def _reserve(self, count: int, entry_size: int) -> None:
         self.total += count
-        if entry_size > MAX_ENTRY_BYTES or self.total > MAX_UNCOMPRESSED_BYTES:
-            raise _too_large()
-        if self.output.tell() > MAX_COMPRESSED_BYTES:
-            raise _too_large()
+        if entry_size > MAX_ENTRY_BYTES:
+            raise self._refuse("entry", MAX_ENTRY_BYTES, entry_size)
+        if self.total > MAX_UNCOMPRESSED_BYTES:
+            raise self._refuse("uncompressed", MAX_UNCOMPRESSED_BYTES, self.total)
+        written = self.output.tell()
+        if written > MAX_COMPRESSED_BYTES:
+            raise self._refuse("compressed", MAX_COMPRESSED_BYTES, written)
 
     def add_json(self, name: str, data: bytes, checksums: dict[str, str]) -> None:
         self._begin(name)

@@ -304,8 +304,10 @@ test('either partner turns Diskret on in the editor and chooses the list title',
   await expect(page.getByText(DESCRIPTION)).toBeVisible();
   await editViaMenu(page, de.common.edit);
 
+  // Diskret is the editor's only switch; the Wir countdown is a choice of
+  // three since #2158 D.
   const switches = page.getByRole('switch');
-  await expect(switches).toHaveCount(2);
+  await expect(switches).toHaveCount(1);
   const discreet = page.getByRole('switch', {
     name: discreetPlans.editor.label,
   });
@@ -321,7 +323,9 @@ test('either partner turns Diskret on in the editor and chooses the list title',
   await expect(
     page.getByRole('button', { name: discreetPlans.suggestions.EVENING }),
   ).toBeVisible();
-  await page.getByText(discreetPlans.editor.label).scrollIntoViewIfNeeded();
+  await page
+    .getByText(discreetPlans.editor.label, { exact: true })
+    .scrollIntoViewIfNeeded();
   await expectAccessible(page);
   await captureScreenshot(page, info, 'discreet-plans-editor-390-light.png', {
     fullPage: true,

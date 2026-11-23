@@ -464,17 +464,21 @@ async function walkStory(
 }
 
 async function expectCanonicalStory(page: Page): Promise<void> {
-  const steps = await walkStory(page, canonicalStoryOrder.length);
-  expect(steps.map((step) => step.theme)).toEqual(
+  const steps = await walkStory(page, canonicalStoryOrder.length + 1);
+  // The rediscovery lead plays first, in a theme of its own (#2192).
+  const [lead, ...curated] = steps;
+  expect(lead.theme).toBe('remember');
+  expect(lead.href).toBe('/story/heart-moments/hm-1');
+  expect(curated.map((step) => step.theme)).toEqual(
     canonicalStoryOrder.map((step) => step.theme),
   );
-  for (const [index, step] of steps.entries())
+  for (const [index, step] of curated.entries())
     expect(step.label).toContain(canonicalStoryOrder[index].label);
   expect(new Set(steps.map((step) => step.href)).size).toBe(steps.length);
   // Bubbles name each theme with its number of moments.
   await expect(
     page.getByRole('list', { name: story.themesLabel }).getByRole('button'),
-  ).toHaveCount(STORY_THEMES.length);
+  ).toHaveCount(STORY_THEMES.length + 1);
 }
 
 async function verifyDiaryAndReturnToDiscover(page: Page): Promise<void> {
@@ -539,6 +543,12 @@ for (const [width, theme, textScale] of [
     const viewer = fotostory.locator('.momente-story-viewer');
     await expect(discover.locator('.momente-retrospective')).toHaveCount(0);
     await expect(discover.locator('.momente-hero-highlight')).toHaveCount(1);
+    // The lead plays first (#2192); the Wir memory follows as an ordinary
+    // photo slide.
+    await expect(viewer).toHaveAttribute('data-story-theme', 'remember');
+    await fotostory
+      .getByRole('button', { name: story.next, exact: true })
+      .click();
     await expect(
       fotostory.getByRole('heading', {
         name: 'Ein Wochenende am Wasser',
@@ -710,7 +720,10 @@ for (const width of [320, 390, 430] as const) {
     });
     expect(geometry.width).toBeCloseTo(geometry.column, 0);
     expect(geometry.height / geometry.width).toBeGreaterThanOrEqual(1.24);
-    // The authorized photo of the first slide fills the viewer.
+    // The authorized photo of the first photo slide fills the viewer.
+    await page
+      .locator('.momente-story-bubble[data-story-theme="photos"]')
+      .click();
     const photo = viewer
       .locator(
         '.momente-story-slide[data-state="current"] .momente-story-photo img',
@@ -752,12 +765,17 @@ test('Momente Discover Fotostory autoplays only with motion, pauses on request a
   const fill = viewer.locator(
     '.momente-story-segment[data-state="current"] .momente-story-segment-fill',
   );
-  await expect(fill).toHaveCSS('animation-name', 'momente-story-progress');
+  await expect(fill).toHaveCSS(
+    'animation-name',
+    'eimir-motion-momente-story-progress',
+  );
   await expect(fill).toHaveCSS('animation-play-state', 'running');
+  // The rediscovery lead plays first and dwells longer (#2192).
+  await expect(viewer).toHaveAttribute('data-story-theme', 'remember');
+  await expect(fill).toHaveCSS('animation-duration', '8s');
   const zoom = viewer.locator(
     '.momente-story-slide[data-state="current"] .momente-story-photo > *',
   );
-  await expect(zoom).toHaveCSS('animation-name', 'momente-story-ken-burns');
 
   // WCAG 2.2.2: a visible, named pause toggle.
   const pause = page.getByRole('button', { name: story.pause, exact: true });
@@ -772,8 +790,15 @@ test('Momente Discover Fotostory autoplays only with motion, pauses on request a
   const open = viewer.getByRole('link', {
     name: new RegExp(`^${story.open}:`),
   });
-  await expect(open).toHaveAttribute('href', '/story/memories/mem-1');
+  await expect(open).toHaveAttribute('href', '/story/heart-moments/hm-1');
   await viewer.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(open).toHaveAttribute('href', '/story/memories/mem-1');
+  await expect(fill).toHaveCSS('animation-duration', '5s');
+  await expect(zoom).toHaveCSS(
+    'animation-name',
+    'eimir-motion-momente-story-ken-burns',
+  );
   await page.keyboard.press('ArrowRight');
   await expect(open).toHaveAttribute('href', '/story/memories/mem-2');
   await page.keyboard.press('ArrowLeft');
@@ -800,6 +825,78 @@ test('Momente Discover Fotostory autoplays only with motion, pauses on request a
   await expect(open).toHaveAttribute('href', '/story/memories/mem-3');
   await page.waitForTimeout(6_000);
   await expect(open).toHaveAttribute('href', '/story/memories/mem-3');
+  expect(unexpectedRequests).toEqual([]);
+});
+
+test('Momente Discover lead plays first and its photo develops, not under reduced motion (#2192)', async ({
+  page,
+}) => {
+  const unexpectedRequests = await installDiscoverApiMocks(page);
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/discover`, (route) =>
+    route.fulfill({
+      json: {
+        selectionDate: '2026-09-17',
+        lead: DISCOVER_ITEMS[2],
+        items: [DISCOVER_ITEMS[3], DISCOVER_ITEMS[4]],
+        leadContext: null,
+      },
+    }),
+  );
+  await page.setViewportSize({ width: 390, height: 1000 });
+  await page.goto('/story?tab=discover');
+  await signIn(page);
+  await page.goto('/story?tab=discover');
+
+  const discover = page.getByRole('tabpanel', {
+    name: de.story.tabDiscover,
+    exact: true,
+  });
+  const fotostory = discover.getByRole('region', { name: story.label });
+  const viewer = fotostory.locator('.momente-story-viewer');
+  // One story block: the lead's bubble comes first and the lead is not a
+  // separate card above or below the story.
+  const bubbles = fotostory
+    .getByRole('list', { name: story.themesLabel })
+    .getByRole('button');
+  await expect(bubbles.first()).toHaveAttribute('data-story-theme', 'remember');
+  await expect(bubbles.first()).toContainText(story.theme.remember);
+  await expect(discover.locator('.momente-hero-highlight')).toHaveCount(1);
+  await expect(
+    fotostory.locator('.momente-story-slide-lead .momente-hero-highlight'),
+  ).toHaveCount(1);
+  // The time-for-you group (`coupleExperiences.title`) follows the story.
+  const order = await discover.evaluate((node) => {
+    const storyBox = node.querySelector('.momente-story')!;
+    const group = node.querySelector('.couple-experience-links')!;
+    return Boolean(
+      storyBox.compareDocumentPosition(group) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+  expect(order).toBe(true);
+
+  // The lead photo develops and the lead dwells longer.
+  const photo = viewer.locator(
+    '.momente-story-slide-lead[data-state="current"] .momente-hero-media .story-media-preview',
+  );
+  await expect(photo).toHaveCSS(
+    'animation-name',
+    'eimir-motion-momente-story-develop',
+  );
+  await expect(
+    viewer.locator(
+      '.momente-story-segment[data-state="current"] .momente-story-segment-fill',
+    ),
+  ).toHaveCSS('animation-duration', '8s');
+  await expect(
+    viewer.getByRole('link', { name: new RegExp(`^${story.open}:`) }),
+  ).toHaveAttribute('href', '/story/memories/mem-1');
+
+  // Reduced motion: the photo is shown at once.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(photo).toHaveCSS('animation-name', 'none');
+  await expect(photo).toHaveCSS('filter', 'none');
+  await expectNoWcagViolations(page);
   expect(unexpectedRequests).toEqual([]);
 });
 
@@ -831,6 +928,10 @@ test('Momente Discover Fotostory never shows sensitive photos unblurred', async 
   await page.goto('/story?tab=discover');
   const viewer = page.locator('.momente-story-viewer');
   const slide = viewer.locator('.momente-story-slide[data-state="current"]');
+  // The lead plays first (#2192); open the photos theme.
+  await page
+    .locator('.momente-story-bubble[data-story-theme="photos"]')
+    .click();
   await expect(slide.locator('.sensitive-media-cover')).toHaveCount(1);
   await expect(slide).toContainText(sensitiveMedia.label);
   // Every image in the sensitive slide and its bubble stays inside the blur.
@@ -1126,9 +1227,12 @@ for (const [width, theme, textScale] of [
       });
 
     // Six Heart Moments form one theme; every slide wears its feeling.
-    await expect(
-      page.locator('.momente-story-bubble[data-story-theme="heartMoments"]'),
-    ).toHaveCount(1);
+    const heartBubble = page.locator(
+      '.momente-story-bubble[data-story-theme="heartMoments"]',
+    );
+    await expect(heartBubble).toHaveCount(1);
+    // The lead plays first (#2192); open the Heart Moments theme.
+    await heartBubble.click();
     const viewer = page.locator('.momente-story-viewer');
     await expect(viewer.locator('.momente-story-segment')).toHaveCount(
       emotions.length,
@@ -1272,6 +1376,9 @@ test('Discover renewal confirms alternatives, guards duplicate activation and pr
     Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 1 }),
   );
   await installDiscoverApiMocks(page, { viewerLocalDate: '2026-09-18' });
+  // Without autoplay the lead slide stays the visible one while the
+  // renewal states are checked (#2192).
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/story?tab=discover');
   await signIn(page);
   await page.goto('/story?tab=discover');
@@ -1383,7 +1490,8 @@ test('Discover renewal stays visible on Expanded and replaces the Fotostory', as
   const open = page
     .locator('.momente-story-viewer')
     .getByRole('link', { name: new RegExp(`^${story.open}:`) });
-  await expect(open).toHaveAttribute('href', '/story/memories/mem-1');
+  // The rediscovery lead is the first slide (#2192).
+  await expect(open).toHaveAttribute('href', '/story/heart-moments/hm-1');
   let release: () => void = () => {};
   const waiting = new Promise<void>((resolve) => {
     release = resolve;
@@ -1415,11 +1523,11 @@ test('Discover renewal stays visible on Expanded and replaces the Fotostory', as
   await expect(
     page.getByRole('status').filter({ hasText: de.story.discoverRenewed }),
   ).toBeAttached();
-  // A renewed selection starts again with its first theme.
-  await expect(open).toHaveAttribute('href', '/story/heart-moments/hm-2');
+  // A renewed selection starts again with its lead, then two themes.
+  await expect(open).toHaveAttribute('href', '/story/memories/mem-2');
   await expect(
     page.getByRole('list', { name: story.themesLabel }).getByRole('button'),
-  ).toHaveCount(2);
+  ).toHaveCount(3);
   await expect(renew).toBeEnabled();
   await page.screenshot({
     path: info.outputPath('fotostory-renewed-1280-light.png'),

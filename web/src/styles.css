@@ -750,24 +750,6 @@ code {
   margin-top: 0.65rem;
 }
 
-.story-loading {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.story-loading span {
-  height: 7rem;
-  border-radius: var(--radius-large);
-  background: linear-gradient(
-    100deg,
-    var(--color-shimmer-base) 25%,
-    var(--color-shimmer-highlight) 45%,
-    var(--color-shimmer-base) 65%
-  );
-  background-size: 200% 100%;
-  animation: story-shimmer 1.6s linear infinite;
-}
-
 .story-timeline {
   display: grid;
   gap: 2rem;
@@ -997,15 +979,6 @@ code {
   color: var(--color-error);
 }
 
-@keyframes story-shimmer {
-  from {
-    background-position: 100% 0;
-  }
-  to {
-    background-position: -100% 0;
-  }
-}
-
 @media (max-width: 599px) {
   .app-header {
     min-height: calc(64px + var(--shell-header-safe-top, 0px));
@@ -1128,10 +1101,6 @@ code {
   ) {
     scale: none;
   }
-
-  .story-loading span {
-    animation: none;
-  }
 }
 
 /* The shared motion utilities (`.eimir-motion-disclosure`, `-lift`,
@@ -1247,8 +1216,11 @@ code {
   gap: var(--space-4);
 }
 
-/* A saved read remains understandable while authoritative data refreshes. */
-/* The notice eases closed when live data replaces the saved read. */
+/* A saved read remains understandable while authoritative data refreshes.
+   The notice appears with an Enter `fade` at its full height (Replace
+   `disclose` option 1), and eases closed with the one bounded row
+   transition (option 3, Motion Contract 4.2) when live data replaces the
+   saved read, so the list below follows instead of jumping. */
 .overview-cache-notice-slot {
   display: grid;
   grid-template-rows: 1fr;
@@ -1259,25 +1231,13 @@ code {
 }
 
 .overview-cache-notice-slot[data-open="true"] {
-  animation: overview-cache-notice-in var(--duration-context)
-    var(--easing-standard) both;
+  animation: eimir-motion-enter-fade var(--duration-context)
+    var(--easing-standard) backwards;
 }
 
 .overview-cache-notice-slot[data-open="false"] {
   grid-template-rows: 0fr;
   opacity: 0;
-}
-
-@keyframes overview-cache-notice-in {
-  from {
-    grid-template-rows: 0fr;
-    opacity: 0;
-  }
-
-  to {
-    grid-template-rows: 1fr;
-    opacity: 1;
-  }
 }
 
 .overview-cache-notice-clip {

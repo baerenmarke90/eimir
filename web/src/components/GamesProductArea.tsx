@@ -23,6 +23,7 @@ import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import { WhoOfUsGamePanel } from './WhoOfUsGamePanel';
+import '../motion/games.css';
 
 export const GAMES_COUPLE_CAPABILITY = 'games.couple' as const;
 

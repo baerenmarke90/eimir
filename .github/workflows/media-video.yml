@@ -1,11 +1,14 @@
 name: Media Video
 
 on:
+  # Pull requests run this heavy workflow only when ready for review and labelled
+  # ci:full, or from a release/ branch (#2096); otherwise every job is skipped at
+  # no runner cost and the nightly regression on main covers it.
   # Pull requests run the restricted-codec acceptance only when the code it
   # exercises changes. Ordinary Backend changes are covered by the regular
   # Backend Integration suite, whose codec-dependent cases skip without the
-  # pinned binaries. Every push to main still runs this workflow completely
-  # and the immutable release publisher waits for that result.
+  # pinned binaries. The nightly regression dispatches this workflow completely
+  # on main, and the immutable release publisher waits for that result (#2096).
   pull_request:
     paths:
       # Media storage, attachment, processing-job and API surfaces, plus the
@@ -14,6 +17,7 @@ on:
       - "backend/src/eimir/media/**"
       - "backend/src/eimir/attachments/**"
       - "backend/src/eimir/jobs/**"
+      - "backend/pro/src/eimir_pro/video_processing/**"
       - "backend/src/eimir/heart_moments/**"
       - "backend/src/eimir/memories/models.py"
       - "backend/src/eimir/memories/service.py"
@@ -48,6 +52,8 @@ on:
       - "backend/tests/unit/test_media_*.py"
       - "backend/tests/unit/test_codec_*.py"
       - "backend/tests/integration/test_video_*.py"
+      - "backend/pro/pro_tests/unit/test_video_*.py"
+      - "backend/pro/pro_tests/integration/test_video_*.py"
       - "backend/tests/integration/test_heart_voice_notes.py"
       - "backend/tests/integration/test_heart_moments.py"
       - "tools/media/**"
@@ -60,21 +66,19 @@ on:
       - "web/src/client/backgroundVideoUploads.ts"
       - "web/src/client/memoryAttachmentDraft.ts"
       - ".github/workflows/media-video.yml"
-  push:
-    branches: [main]
-  schedule:
-    - cron: "37 5 * * 1"
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}${{ github.event.action == 'labeled' && github.event.label.name != 'ci:full' && format('-ignored-label-{0}', github.run_id) || '' }}
   cancel-in-progress: true
 
 jobs:
   processing:
+    if: github.event_name != 'pull_request' || ((startsWith(github.head_ref, 'release/') || (github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ci:full'))) && (github.event.action != 'labeled' || github.event.label.name == 'ci:full'))
     name: Restricted codec and video lifecycle
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -95,6 +99,7 @@ jobs:
       EIMIR_TEST_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
       EIMIR_TEST_FFMPEG: /tmp/eimir-codecs/bin/ffmpeg
       EIMIR_TEST_FFPROBE: /tmp/eimir-codecs/bin/ffprobe
+      EIMIR_PLUGINS: pro
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -121,16 +126,16 @@ jobs:
         working-directory: backend
         run: |
           python -m pip install "uv==0.12.15"
-          uv sync --locked
+          uv sync --locked --all-packages
           uv run --frozen alembic upgrade head
       - name: Real codec, ranges, streaming and database lifecycle
         working-directory: backend
         run: |
           uv run --frozen pytest -q --junitxml=/tmp/video-results.xml \
-            tests/unit/test_video_processing.py tests/unit/test_audio_processing.py tests/unit/test_media_content.py \
+            pro/pro_tests/unit/test_video_processing.py tests/unit/test_audio_processing.py tests/unit/test_media_content.py \
             tests/unit/test_media_streaming.py tests/unit/test_codec_advisories.py \
             tests/integration/test_video_playback.py \
-            tests/integration/test_video_lifecycle.py tests/integration/test_heart_voice_notes.py \
+            pro/pro_tests/integration/test_video_lifecycle.py tests/integration/test_heart_voice_notes.py \
             tests/media/acceptance_video_lifecycle.py
           python - <<'PY'
           import xml.etree.ElementTree as ET
@@ -140,6 +145,7 @@ jobs:
           PY
 
   image:
+    if: github.event_name != 'pull_request' || ((startsWith(github.head_ref, 'release/') || (github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ci:full'))) && (github.event.action != 'labeled' || github.event.label.name == 'ci:full'))
     name: Optional media image
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -154,6 +160,7 @@ jobs:
           docker compose --env-file .env.example --profile self-hosted --profile video config --quiet
 
   browser:
+    if: github.event_name != 'pull_request' || ((startsWith(github.head_ref, 'release/') || (github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ci:full'))) && (github.event.action != 'labeled' || github.event.label.name == 'ci:full'))
     name: Video browser acceptance
     runs-on: ubuntu-latest
     timeout-minutes: 12

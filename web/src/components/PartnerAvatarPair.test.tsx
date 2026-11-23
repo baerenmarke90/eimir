@@ -1,8 +1,14 @@
 import '../i18n';
 // @vitest-environment jsdom
-import { cleanup, render, screen, fireEvent } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
+import {
+  resetStagesForTests,
+  StageContext,
+  stagePhase,
+  useStage,
+} from '../motion/stage';
 import { PartnerAvatarPair } from './PartnerAvatarPair';
 
 describe('PartnerAvatarPair', () => {
@@ -162,6 +168,38 @@ describe('PartnerAvatarPair', () => {
     fireEvent.load(img);
 
     expect(img.className).toContain('is-loaded');
+  });
+
+  it('holds the Wir opening while its photo decodes and never fades it outside the opening (#2147)', () => {
+    resetStagesForTests();
+    function Opening({ children }: { children: React.ReactNode }) {
+      // No duration: the opening is considered at once and ends.
+      const ref = useStage<HTMLDivElement>('test.avatar-stage', {
+        duration: 0,
+      });
+      return (
+        <StageContext.Provider value="test.avatar-stage">
+          <div ref={ref}>{children}</div>
+        </StageContext.Provider>
+      );
+    }
+    render(
+      <Opening>
+        <PartnerAvatarPair
+          primaryPerson={{
+            displayName: 'Philipp Meier',
+            imageUrl: '/photos/philipp-stage.jpg',
+          }}
+          secondaryPerson={null}
+        />
+      </Opening>,
+    );
+    expect(stagePhase('test.avatar-stage')).toBe('ended');
+    const img = screen.getByRole('img');
+    fireEvent.load(img);
+    expect(img.className).toContain('is-loaded');
+    // After the opening the photo is simply there.
+    expect(img.getAttribute('data-motion-media')).toBe('instant');
   });
 
   it('shows a photo it already showed at once when the avatar remounts', () => {

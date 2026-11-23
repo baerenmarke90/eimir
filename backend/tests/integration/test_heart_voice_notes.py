@@ -74,7 +74,7 @@ def upload(client, session, couple, monkeypatch):  # type: ignore[no-untyped-def
         return audios.ProcessedAudio(output, output.stat().st_size, 1)
 
     monkeypatch.setattr(audios, "process", processed)
-    video_jobs.validate(session, {"attachmentId": identifier})
+    video_jobs.validate_audio(session, {"attachmentId": identifier})
     session.expire_all()
     assert session.get(Attachment, UUID(identifier)).status == AttachmentStatus.READY
     return identifier
@@ -264,7 +264,7 @@ def test_voice_transfer_retains_labels_and_revalidates_bytes(
     get_settings.cache_clear()
     if decode is not None:
         monkeypatch.setattr(audios, "process", decode)
-    video_jobs.validate(session, {"attachmentId": str(imported.id)})
+    video_jobs.validate_audio(session, {"attachmentId": str(imported.id)})
     session.refresh(imported)
     assert imported.status == AttachmentStatus.READY
     assert imported.duration_seconds == 1

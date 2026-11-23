@@ -48,6 +48,8 @@ INHERITED_KINDS = {
     NotificationKind.SHARED_NOTE_CHANGED: NotificationKind.COMMENT_CREATED,
     # #1744: a newer version of a recap follows the recap switch.
     NotificationKind.RECAP_GREW: NotificationKind.RECAP_READY,
+    # #2189: a support reply follows the reminder and transfer outcome switch.
+    NotificationKind.SUPPORT_REPLY: NotificationKind.REMINDER_DUE,
     **{kind: NotificationKind.REMINDER_DUE for kind in WISH_DATE_NOTICE_KINDS},
 }
 

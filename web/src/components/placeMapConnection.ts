@@ -75,22 +75,12 @@ export function connectionArcLength(
   to: ScreenPoint,
   tier: MapConnectionTier,
 ): number {
-  const numbers = connectionArc(from, to, tier).match(/-?\d+(\.\d+)?/g);
-  if (!numbers || numbers.length < 6) return 0;
-  const [x0, y0, cx, cy, x1, y1] = numbers.map(Number);
-  let length = 0;
-  let previous = { x: x0, y: y0 };
-  const steps = 24;
-  for (let step = 1; step <= steps; step++) {
-    const t = step / steps;
-    const point = {
-      x: (1 - t) ** 2 * x0 + 2 * (1 - t) * t * cx + t ** 2 * x1,
-      y: (1 - t) ** 2 * y0 + 2 * (1 - t) * t * cy + t ** 2 * y1,
-    };
-    length += Math.hypot(point.x - previous.x, point.y - previous.y);
-    previous = point;
-  }
-  return length;
+  // In chord units the curve is (t, 2 * bow * t * (1 - t)). Integrating
+  // its speed gives the same length factor for every arc of a given tier.
+  const chord = Math.hypot(to.x - from.x, to.y - from.y);
+  const bend = 2 * BOW[tier];
+  if (!bend) return chord;
+  return (chord / 2) * (Math.hypot(1, bend) + Math.asinh(bend) / bend);
 }
 
 /**
@@ -116,10 +106,14 @@ function svgElement<K extends keyof SVGElementTagNameMap>(
 export class ConnectionOverlay {
   readonly element: HTMLElement;
   private readonly paths: SVGPathElement[];
-  private readonly mask: SVGMaskElement;
   private readonly glows: HTMLElement[];
   private readonly heart: HTMLElement;
+  private tier?: MapConnectionTier;
+  private earlier?: boolean;
+  private dx = Number.NaN;
+  private dy = Number.NaN;
   private started = false;
+  private paused = false;
 
   constructor(container: HTMLElement, after: Element | null) {
     const maskId = `place-map-connection-mask-${++maskCount}`;
@@ -136,6 +130,8 @@ export class ConnectionOverlay {
       maskUnits: 'userSpaceOnUse',
       x: '0',
       y: '0',
+      width: '100%',
+      height: '100%',
     });
     const reveal = svgElement('path', {
       class: 'place-map-connection-reveal',
@@ -174,7 +170,6 @@ export class ConnectionOverlay {
     if (after?.parentElement === container) after.after(element);
     else container.prepend(element);
     this.element = element;
-    this.mask = mask;
   }
 
   /** Places the drawing for the current camera and applies its style. */
@@ -182,35 +177,51 @@ export class ConnectionOverlay {
     connection: Pick<MapConnection, 'tier' | 'earlier'>,
     from: ScreenPoint,
     to: ScreenPoint,
-    size: { width: number; height: number },
   ) {
     const { element } = this;
-    element.style.width = `${size.width}px`;
-    element.style.height = `${size.height}px`;
-    this.mask.setAttribute('width', String(size.width));
-    this.mask.setAttribute('height', String(size.height));
-    element.classList.toggle('is-near', connection.tier === 'near');
-    element.classList.toggle('is-regional', connection.tier === 'regional');
-    element.classList.toggle('is-far', connection.tier === 'far');
-    element.classList.toggle('is-earlier', connection.earlier);
-    if (connection.tier === 'near') {
-      this.heart.style.left = `${(from.x + to.x) / 2}px`;
-      this.heart.style.top = `${Math.min(from.y, to.y) - HEART_LIFT_PX}px`;
-    } else {
-      const d = connectionArc(from, to, connection.tier);
-      for (const path of this.paths) path.setAttribute('d', d);
-      for (const glow of this.glows)
-        glow.style.setProperty('offset-path', `path('${d}')`);
-      const turns = glowTurns(connectionArcLength(from, to, connection.tier));
-      element.style.setProperty(
-        '--place-map-connection-start',
-        `${turns.start.toFixed(2)}%`,
-      );
-      element.style.setProperty(
-        '--place-map-connection-end',
-        `${turns.end.toFixed(2)}%`,
-      );
+    const tierChanged = this.tier !== connection.tier;
+    if (tierChanged) {
+      if (this.tier) element.classList.remove(`is-${this.tier}`);
+      this.tier = connection.tier;
+      element.classList.add(`is-${this.tier}`);
     }
+    if (this.earlier !== connection.earlier) {
+      this.earlier = connection.earlier;
+      element.classList.toggle('is-earlier', connection.earlier);
+    }
+    if (connection.tier === 'near') {
+      const x = (from.x + to.x) / 2;
+      const y = Math.min(from.y, to.y) - HEART_LIFT_PX;
+      this.heart.style.translate = `calc(${x}px - 50%) calc(${y}px - 50%)`;
+      return;
+    }
+
+    // A pan translates both ends together. Keep the SVG and motion paths in
+    // local coordinates so only their shared origin moves during the drag.
+    element.style.setProperty(
+      '--place-map-connection-origin',
+      `${from.x}px ${from.y}px`,
+    );
+    const dx = Math.round((to.x - from.x) * 10) / 10;
+    const dy = Math.round((to.y - from.y) * 10) / 10;
+    if (!tierChanged && dx === this.dx && dy === this.dy) return;
+    this.dx = dx;
+    this.dy = dy;
+    const origin = { x: 0, y: 0 };
+    const end = { x: dx, y: dy };
+    const d = connectionArc(origin, end, connection.tier);
+    for (const path of this.paths) path.setAttribute('d', d);
+    for (const glow of this.glows)
+      glow.style.setProperty('offset-path', `path('${d}')`);
+    const turns = glowTurns(connectionArcLength(origin, end, connection.tier));
+    element.style.setProperty(
+      '--place-map-connection-start',
+      `${turns.start.toFixed(2)}%`,
+    );
+    element.style.setProperty(
+      '--place-map-connection-end',
+      `${turns.end.toFixed(2)}%`,
+    );
   }
 
   /**
@@ -225,19 +236,27 @@ export class ConnectionOverlay {
     this.play();
   }
 
-  /** Restarts the travelling glow or the heartbeat. */
+  /** Restarts the travelling glow or the heartbeat (an explicit request). */
   play() {
     const { element } = this;
     if (!this.started) return;
-    element.classList.remove('is-paused', 'is-playing');
+    element.classList.remove('is-playing');
     // Reading layout restarts the CSS animations bound to the class.
     void element.offsetWidth;
     element.classList.add('is-playing');
+    element.classList.toggle('is-paused', this.paused);
   }
 
-  /** Holds the motion while the page is hidden. */
+  /** Holds the motion while the drawing is not visible (M8). */
   pause() {
+    this.paused = true;
     this.element.classList.add('is-paused');
+  }
+
+  /** Continues where it paused; a return never replays it (M4). */
+  resume() {
+    this.paused = false;
+    this.element.classList.remove('is-paused');
   }
 
   remove() {

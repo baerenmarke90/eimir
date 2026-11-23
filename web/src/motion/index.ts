@@ -18,6 +18,7 @@ export {
   type AmbientOptions,
   ambient,
 } from './ambient';
+export { useAmbientRest } from './ambientRest';
 export {
   ATTENTION_PRIORITY,
   type AttentionKind,
@@ -138,6 +139,14 @@ export {
   run,
   runningOn,
 } from './run';
+export {
+  type SceneBinding,
+  type SceneOptions,
+  type ScenePlayState,
+  scenePlays,
+  usePageVisible,
+  useScene,
+} from './scene';
 export {
   type CountRole,
   type DurationRole,

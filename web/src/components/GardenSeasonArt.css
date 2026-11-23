@@ -132,61 +132,27 @@
 }
 
 .garden-scene.is-lively .garden-flicker {
-  animation: garden-flicker calc(var(--duration-connection-travel) * 0.8)
-    var(--easing-travel) infinite alternate;
+  animation: eimir-motion-garden-flicker
+    calc(var(--duration-connection-travel) * 0.8) var(--easing-travel) infinite
+    alternate;
 }
 
 .garden-fall {
   opacity: 0;
-  animation: garden-fall var(--garden-fall-duration) var(--easing-playback) both;
+  animation: eimir-motion-garden-fall var(--garden-fall-duration)
+    var(--easing-playback) both;
   animation-delay: var(--garden-delay);
 }
 
 .garden-mist.is-lifting {
-  animation: garden-mist-lift var(--duration-gesture-sequence)
+  animation: eimir-motion-garden-mist-lift var(--duration-gesture-sequence)
     var(--easing-exit) both;
 }
 
 .garden-sleep-card {
-  animation: garden-unfold var(--duration-context) var(--easing-standard) both;
+  animation: eimir-motion-garden-unfold var(--duration-context)
+    var(--easing-standard) both;
   transform-origin: 50% 0;
-}
-
-@keyframes garden-flicker {
-  from {
-    opacity: 0.8;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1.04);
-  }
-}
-
-@keyframes garden-fall {
-  0% {
-    opacity: 0;
-    transform: translate(0, 0) rotate(0deg);
-  }
-  10% {
-    opacity: 1;
-  }
-  85% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(var(--garden-dx), 205px) rotate(var(--garden-rotate));
-  }
-}
-
-@keyframes garden-mist-lift {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

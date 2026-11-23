@@ -38,7 +38,8 @@ export const EngagementTarget = {
     SHARED_NOTE: 'SHARED_NOTE',
     GARDEN_SEED: 'GARDEN_SEED',
     GARDEN_BOUQUET: 'GARDEN_BOUQUET',
-    RECAP: 'RECAP'
+    RECAP: 'RECAP',
+    SUPPORT_REPORT: 'SUPPORT_REPORT'
 } as const;
 export type EngagementTarget = typeof EngagementTarget[keyof typeof EngagementTarget];
 

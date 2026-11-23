@@ -49,17 +49,13 @@
   gap: var(--space-2);
   padding-inline: var(--space-6);
   color: var(--color-text);
-  animation: branded-startup-copy-in var(--duration-context) var(--easing-enter)
+  /* Enter `rise` once per app start (src/motion/motion.css). */
+  --motion-enter-rise: var(--space-1);
+  animation: eimir-motion-enter-rise var(--duration-context) var(--easing-enter)
     var(--duration-context) both;
 }
 .branded-startup-copy p {
   color: var(--color-text-secondary);
-}
-@keyframes branded-startup-copy-in {
-  from {
-    opacity: 0;
-    transform: translateY(var(--space-1));
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   .branded-startup-copy {

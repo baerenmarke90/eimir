@@ -234,7 +234,8 @@
 }
 
 .planen-detail.planning-page {
-  gap: var(--space-5);
+  --page-stack-gap: var(--space-5);
+  gap: var(--page-stack-gap);
 }
 
 .planen-detail > .page-heading h1 {
@@ -995,55 +996,28 @@
     transition-duration: calc(var(--duration-sequence-beat) * 1.5);
   }
 
+  /* Enter `surface` and Exit `surface-exit` from the motion catalogue
+     (src/motion/motion.css): the field settles onto its status row with
+     opacity and a short vertical translate (M6; it no longer animates
+     `clip-path`), and leaves the same way before the icon returns. The
+     field spans the whole row, so a sideways travel would push it past the
+     viewport and widen the page. */
   .planen-search {
-    animation: planen-search-open calc(var(--duration-sequence-beat) * 1.5)
+    --motion-surface-from: 0 calc(var(--space-2) * -1);
+    --motion-surface-to: 0 calc(var(--space-2) * -1);
+    animation: eimir-motion-surface-in calc(var(--duration-sequence-beat) * 1.5)
       var(--easing-standard) backwards;
   }
 
   .planen-search.is-closing {
-    animation: planen-search-close var(--duration-context)
+    animation: eimir-motion-surface-out var(--duration-context)
       var(--easing-standard) forwards;
   }
 
   .planen-search-toggle {
-    animation: planen-search-toggle-in var(--duration-sequence-beat)
+    --motion-enter-from-scale: 0.85;
+    animation: eimir-motion-enter-grow var(--duration-sequence-beat)
       var(--easing-enter) backwards;
-  }
-}
-
-@keyframes planen-search-open {
-  from {
-    opacity: 0;
-    clip-path: inset(0 0 0 86% round var(--radius-pill));
-  }
-
-  to {
-    opacity: 1;
-    clip-path: inset(0 0 0 0 round var(--radius-pill));
-  }
-}
-
-@keyframes planen-search-close {
-  from {
-    opacity: 1;
-    clip-path: inset(0 0 0 0 round var(--radius-pill));
-  }
-
-  to {
-    opacity: 0;
-    clip-path: inset(0 0 0 86% round var(--radius-pill));
-  }
-}
-
-@keyframes planen-search-toggle-in {
-  from {
-    opacity: 0;
-    transform: scale(0.85);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
   }
 }
 
@@ -1079,12 +1053,6 @@
     var(--segment-count)
   );
   --segment-index: 0;
-  --segment-width: var(--segment-unit);
-  --segment-left: calc(
-    3px +
-    var(--segment-index) *
-    (var(--segment-unit) + 2px)
-  );
 }
 
 .planen-segmented:has(> :nth-child(2):last-child) {
@@ -1103,9 +1071,12 @@
   position: absolute;
   top: 3px;
   bottom: 3px;
-  left: var(--segment-left);
+  left: 3px;
   z-index: -1;
-  width: var(--segment-width);
+  width: var(--segment-unit);
+  /* The mark moves by whole segments with `translate` (Motion Contract M6):
+     a percentage of its own width is one segment, plus the 2px gap. */
+  translate: calc(var(--segment-index) * (100% + 2px)) 0;
   border-radius: var(--radius-pill);
   background: var(--color-brand-strong);
   box-shadow: var(--shadow-soft);
@@ -1124,34 +1095,21 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .planen-segmented:not(.story-view-tabs)::before {
-    transition:
-      left var(--duration-transition) var(--easing-standard),
-      width var(--duration-transition) var(--easing-standard);
+    transition: translate var(--duration-transition) var(--easing-standard);
   }
 
+  /* Feedback `toggle`: the active segment keeps a clear fill while the
+     shared indicator slides under it, then takes its own fill. */
   .planen-segmented:not(.story-view-tabs) > .planen-segment.is-active {
-    animation: planen-segment-fill var(--duration-transition) step-end;
+    animation: eimir-motion-feedback-fill-hold var(--duration-transition)
+      step-end;
   }
 
+  /* Enter `fade` for the chosen panel (src/motion/motion.css). */
   .planen-panel:not([hidden]),
   .story-page-unified [role="tabpanel"]:not([hidden]) {
-    animation: planen-panel-in var(--duration-transition) var(--easing-enter);
-  }
-}
-
-@keyframes planen-segment-fill {
-  from {
-    background-color: transparent;
-  }
-}
-
-@keyframes planen-panel-in {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
+    animation: eimir-motion-enter-fade var(--duration-transition)
+      var(--easing-enter);
   }
 }
 

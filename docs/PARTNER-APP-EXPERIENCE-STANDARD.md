@@ -292,36 +292,22 @@ Appropriate examples include a subtle heart pulse, tiny particles, soft glow, sh
 
 Haptics may supplement visible feedback on supported mobile devices but never replace it.
 
-## 9A. Generated visual product reference before implementation
+## 9A. Baseline review before implementation (no generated reference image)
 
-Before implementation starts, every new or materially changed user-facing feature MUST have at least one generated visual product reference attached or linked in the owning issue.
+The Product Owner decision of 2026-11-21 removed the earlier requirement for a generated visual product reference image. A rendered HTML mock-up of the real interface, a sketch, or no visual artifact is acceptable; the owning issue or pull request decides what helps the review.
 
-This is a product-composition preflight. The image MUST be generated only after reviewing the current repository state and the real destination surface. At minimum:
+What stays binding is a repository-aware baseline review before implementation starts. At minimum:
 
 1. inspect current `main` and record the baseline SHA;
 2. inspect the destination screen/route and the existing functions already visible or reachable there;
 3. identify the current shell/navigation, content hierarchy, interaction primitives, components, tokens, and relevant states that constrain the composition;
-4. generate the Compact/smartphone reference first;
-5. show existing functionality that remains in scope as part of the same composition, represented consistently with the current product;
-6. integrate the new feature into that composition rather than depicting it in isolation;
-7. add an Expanded/Web visual only when the adaptation materially changes the composition;
-8. record assumptions and any intentional departure from the current screen.
+4. plan the Compact/smartphone composition first and add an Expanded/Web adaptation only when it materially changes the composition;
+5. keep existing functionality that remains in scope in the same composition, represented consistently with the current product, and integrate the new feature into it rather than designing it in isolation;
+6. record assumptions and any intentional departure from the current screen.
 
-The following do **not** satisfy the requirement:
+Product Reference v1, this standard, accessibility, privacy, security, business/domain constraints, real data behavior, and later explicit Product Owner decisions remain authoritative. An issue may make specific visual choices binding, but it must identify them explicitly. If the destination screen changes materially before implementation starts, refresh the baseline review.
 
-- an isolated new card/component with no surrounding product context;
-- a blank replacement screen that omits existing functions without an explicit product decision;
-- generic SaaS, dashboard, admin, or moodboard imagery detached from current eimir.;
-- an image generated from stale issue text while ignoring newer repository behavior;
-- a textual description without an actual visual artifact.
-
-If the destination screen changes materially after the image was created but before implementation starts, the visual reference MUST be regenerated or updated against the new baseline.
-
-The requirement to generate and attach the image is binding. The image is a composition reference, not automatically an immutable pixel specification. Product Reference v1, this standard, accessibility, privacy, security, business/domain constraints, real data behavior, and later explicit Product Owner decisions remain authoritative. An issue may make specific visual choices binding, but it must identify them explicitly.
-
-For older feature issues that do not yet contain such an image, the Product Design Preflight in section 15 MUST add one before UI implementation begins or continues.
-
-[#1151](https://github.com/baerenmarke90/eimir/issues/1151) is a **non-binding example only**. It may illustrate the desired preflight discipline, but its images, layouts, content, and Pro-specific treatment do not create design precedence for other features.
+For older feature issues without a baseline review, the Product Design Preflight in section 15 adds one before UI implementation begins or continues.
 
 ## 10. Mandatory Mobile Interaction Contract
 
@@ -348,7 +334,7 @@ The Contract MUST cover at least:
 17. why a conventional table/list/master-detail is appropriate, if one is used (section 2, section 16);
 18. which established platform/mobile interaction patterns are reused and why any deviation is necessary (section 2A);
 19. how unnecessary typing, early keyboard activation, and recall-dependent interaction are avoided on Compact (section 2A);
-20. generated visual product reference, including baseline SHA and the existing screen/functions represented (section 9A);
+20. baseline review, including baseline SHA and the existing screen/functions reviewed (section 9A);
 21. visual acceptance plan (section 12).
 
 The Contract also implicitly identifies, and the issue/PR MUST still record:
@@ -381,7 +367,7 @@ Responsive behavior is composition, not shrinking.
 
 ## 12. Visual evidence is required
 
-The pre-implementation generated visual product reference from section 9A does not replace implementation evidence. It defines the composition to review before code exists; this section verifies the real implemented result.
+The pre-implementation baseline review from section 9A does not replace implementation evidence. It defines the composition to review before code exists; this section verifies the real implemented result.
 
 A PR that changes couple-facing Web UI MUST include visual evidence for review; a PR that changes the Android wrapper or a native capability adds device evidence for the affected behavior.
 

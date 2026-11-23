@@ -20,6 +20,7 @@ from eimir.api.schema import ApiModel
 from eimir.attachments import documents, service, upload_ownership
 from eimir.attachments.content import content_response
 from eimir.attachments.models import Attachment, AttachmentStatus, MediaType
+from eimir.attachments.quota import space_storage
 from eimir.core.clock import now
 from eimir.media import create_signed_upload, get_media_store
 
@@ -256,12 +257,64 @@ def _no_store(response: Response) -> None:
     response.headers["Referrer-Policy"] = "no-referrer"
 
 
+class SpaceStorageUsage(ApiModel):
+    """How much of the Cloud storage quota of the Space is used (#2141)."""
+
+    used: int = Field(
+        description=(
+            "Bytes the Space keeps: every attachment at its actual size, and a file still "
+            "being uploaded or validated at its declared size. Thumbnails, the profile photo, "
+            "one-time messages and Transfer archives do not count."
+        )
+    )
+    quota: int | None = Field(
+        description=(
+            "The Space's storage quota in bytes. `null` means unmetered (Self-Hosted, or a "
+            "tier without a limit); the client then shows no storage section."
+        )
+    )
+    available: int | None = Field(
+        description="Bytes that still fit, never negative; `null` when unmetered."
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/storage",
+    response_model=SpaceStorageUsage,
+    operation_id="getSpaceStorage",
+    responses=problem_responses(401, 404),
+)
+def get_space_storage(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+) -> SpaceStorageUsage:
+    # Both partners read the same shared figure (#2141).
+    storage = space_storage(session, authorization.space_id)
+    _no_store(response)
+    return SpaceStorageUsage(used=storage.used, quota=storage.quota, available=storage.available)
+
+
 @router.post(
     "/spaces/{spaceId}/attachments",
     response_model=UploadDescriptor,
     status_code=status.HTTP_201_CREATED,
     operation_id="createAttachmentUpload",
-    responses=problem_responses(401, 404, 413, 415, 422),
+    responses=problem_responses(
+        401,
+        404,
+        413,
+        415,
+        422,
+        descriptions={
+            # Plain text: the client generator escapes quotes and backticks here.
+            413: (
+                "The file exceeds the size limit for its type (code ATTACHMENT_TOO_LARGE), or "
+                "its declared size does not fit the storage quota of the Space (code "
+                "STORAGE_QUOTA_EXCEEDED: free up space or get Premium)."
+            )
+        },
+    ),
 )
 def create_attachment_upload(
     authorization: Authorization,
@@ -343,7 +396,9 @@ async def upload_attachment_content(
             bytes_read = 0
             async for chunk in request.stream():
                 bytes_read += len(chunk)
-                if bytes_read > claim.rule.max_size:
+                # Never more than declared: the declared size is what the
+                # Space's storage quota reserved (#2141).
+                if bytes_read > claim.max_bytes:
                     raise service.too_large()
                 await run_in_threadpool(body.write, chunk)
                 if upload_ownership.should_renew(claim):

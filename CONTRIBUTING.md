@@ -18,8 +18,38 @@ A Pull Request submission does not guarantee inclusion in the project.
 The [Browser impact selection contract](docs/m5/BROWSER-IMPACT-SELECTION.md) and
 the corresponding mandatory rule in `AGENTS.md` apply to every contributor and
 coding agent. Ordinary Web PRs use the shared always-run core plus affected
-product dependencies. Full regression remains automatic on `main` and for
-manual execution; unknown or ambiguous dependencies remain conservative.
+product dependencies when the pull request runs the full CI tier (see below).
+Full regression remains automatic on `main` through the nightly regression and
+for manual execution; unknown or ambiguous dependencies remain conservative.
+
+## CI tiers and the nightly regression
+
+GitHub Actions minutes are budgeted ([#2096](https://github.com/baerenmarke90/eimir/issues/2096)).
+Every pull request runs the cheap tier: lint, formatting, typing, unit and
+contract tests, Web Reference Flow, Secret Scan, Provenance and the review gates.
+The heavy suites run only on a pull request that is ready for review and either
+carries the `ci:full` label or touches a risk path listed in
+`tools/ci/change_scope.py`. They are browser E2E, Backend Integration, Backend
+Encrypted Mode, Android emulator, Self-Hosted rehearsals, Supply Chain container
+builds, Media Video, Release Evidence and CodeQL.
+
+- Add `ci:full` to risky changes. CI fails when a pull request changes a
+  label-gated workflow or its tooling without the label; add it and re-run the
+  failed Change Detection job.
+- Open one pull request per issue and keep follow-up fixes in it. Push complete,
+  locally checked states instead of intermediate snapshots.
+- Keep a pull request in draft until it is complete, then mark it ready for
+  review once. Draft pull requests always use the cheap tier.
+- Pushes to `main` start no workflows. The nightly regression
+  (`.github/workflows/nightly-regression.yml`) dispatches the complete suites on
+  `main` when its revision is untested. It can also be started manually. A
+  failed run opens or updates the issue "Nightly regression failed"; repair
+  `main` before merging further features.
+- The private test channel (test instance) follows every merge to `main` right
+  away, verified only by the pull-request checks. Product releases publish only
+  a `main` revision with a green full regression; a product release starts a
+  missing regression itself and asks to be re-run once it is green.
+- Branches named `release/...` always run the full tier, also as drafts.
 
 When adding or changing a browser journey, update both inventories and review
 all relevant production roots, including navigation into another feature. Keep
@@ -155,7 +185,19 @@ nor an arbitrary maximum number of justified pushes.
 
 Read the [design authority index](docs/product/design/README.md) and [Product Reference v1](docs/product/design/product-reference-v1.md) before planning client work. v1 governs conflicting older design references unless a later explicit Product Owner decision supersedes it. Follow the [Partner-App Experience Standard](docs/PARTNER-APP-EXPERIENCE-STANDARD.md), complete the Mobile Interaction Contract before UI implementation, and review the full open/interact/save/result/return journey. Technical, privacy, security, accessibility, business-model, and reuse gates remain cumulative.
 
-Before implementing a new or materially changed user-facing feature, the owning issue must also contain the generated visual product reference required by Partner-App Experience Standard section 9A. Generate it against the current repository/product state, showing the actual destination composition with existing functions that remain in scope and the new feature integrated into that whole. #1151 is a non-binding example only, not a reusable design template.
+Before implementing a new or materially changed user-facing feature, review the current repository/product state as described in Partner-App Experience Standard section 9A: the destination screen, its existing functions that remain in scope, and where the new feature fits. No generated reference image is required (Product Owner decision 2026-11-21); a rendered HTML mock-up or sketch is optional.
+
+### Motion layer guard
+
+All motion is built with the motion layer in `web/src/motion/` ([Motion Contract](docs/product/design/motion-contract.md) M14). `npm run motion:check` runs in `npm test` and `npm run build`, and outside the layer it fails on:
+
+- `@keyframes` and `Element.animate()`;
+- `infinite`, `cubic-bezier(` and literal durations in animation declarations;
+- layout properties in keyframes and in transitions;
+- `pointermove`, `touchmove` and `mousemove` tracking;
+- the animation libraries `motion`, `framer-motion`, `motion-plus*`, `gsap` and `animejs` in `web/package.json`, the lockfile or imports.
+
+Use a primitive from the layer or a CSS `transition` of compositor properties with token roles instead. The Scenes loops, the sanctioned `disclose` layout transitions and the gesture and pointer-input owners are registered in `web/scripts/check-motion-layer.mjs` with exact counts (Motion Contract 5.4). Change a registration only with a reviewed reason in the pull request; there is no allowlist for other files.
 
 ## Security issues
 

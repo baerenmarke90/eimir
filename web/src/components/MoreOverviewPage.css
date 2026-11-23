@@ -196,6 +196,17 @@
     background var(--duration-feedback) var(--easing-standard);
 }
 
+/* A row that opens a sheet keeps the destination row presentation. */
+.more-destination-button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  text-align: start;
+}
+
 .more-destination:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 3px;

@@ -14,6 +14,18 @@ import { previousEntryIs } from './historyEntries';
 import { parseMapPlace } from './photoPlaces';
 import {
   ACTIVITY_ROUTE,
+  settingsCategoryPath,
+  STORY_OURS_ROUTE,
+  SETTINGS_CATEGORY_IDS,
+  MORE_SETTINGS_ROUTE,
+  MORE_PROFILE_ROUTE,
+  MORE_PEOPLE_ROUTE,
+  MORE_PASSPORT_ROUTE,
+  MORE_INSIGHTS_ROUTE,
+  GAMES_WISH_DETECTIVE_ROUTE,
+  GAMES_MOMENTS_ROUTE,
+  DEFAULT_APP_ROUTE,
+  appRoutePath,
   DATE_IDEAS_ROUTE,
   MEMORY_MAP_ROUTE,
   MORE_COLLECTIONS_ROUTE,
@@ -57,8 +69,15 @@ export interface TaskOriginMetadata {
     description?: string;
     dateIdeaId?: string;
   };
-  /** Editable prefill for converting a known Wish into a Plan. */
-  planningConvertDraft?: { title: string; description?: string };
+  /**
+   * Editable prefill for converting a known Wish into a Plan; `plannedOn` is a
+   * date-only suggestion such as the weekly brief's rhythm day (#2169).
+   */
+  planningConvertDraft?: {
+    title: string;
+    description?: string;
+    plannedOn?: string;
+  };
   /** Restores the date inspiration filters; catalog keys only, never content. */
   dateIdeasFilter?: DateIdeasFilterState;
   /** Bounded, account/Space-scoped map return context; never persisted or logged. */
@@ -108,6 +127,11 @@ export function taskOriginPath(
   pathname: string,
   search: string,
 ): string | null {
+  if (
+    pathname === DEFAULT_APP_ROUTE &&
+    new URLSearchParams(search).get('view') === 'wir'
+  )
+    return `${DEFAULT_APP_ROUTE}?view=wir`;
   // The private overview contains only destinations. Private lists, records
   // and query data stay outside the task origin.
   if (pathname === MORE_PRIVATE_ROUTE || pathname === `${MORE_PRIVATE_ROUTE}/`)
@@ -128,8 +152,19 @@ export function taskOriginPath(
   // A shared note read page is a return target for its editor (#1969).
   const sharedNoteDetail = /^\/more\/notes\/(?!new$)[^/]+$/.test(pathname);
   const recapReader = /^\/story\/recaps\/[^/]+$/.test(pathname);
+  const referenceDetail =
+    /^\/story\/(milestones|happiness|time-travel)\/(?!new$)[^/]+$/.test(
+      pathname,
+    );
+  const peopleDetail = /^\/more\/people\/(?!new$)[^/]+$/.test(pathname);
+  const settings = SETTINGS_CATEGORY_IDS.some(
+    (id) => settingsCategoryPath(id) === pathname,
+  );
   const storyYear = /^\/story\/years\/\d{4}$/.test(pathname);
   if (
+    !referenceDetail &&
+    !peopleDetail &&
+    !settings &&
     !recapReader &&
     !sharedNoteDetail &&
     !storyYear &&
@@ -157,6 +192,15 @@ export function taskOriginPath(
       '/search',
       ACTIVITY_ROUTE,
       MORE_NOTIFICATIONS_ROUTE,
+      appRoutePath('games'),
+      GAMES_MOMENTS_ROUTE,
+      GAMES_WISH_DETECTIVE_ROUTE,
+      MORE_INSIGHTS_ROUTE,
+      MORE_PEOPLE_ROUTE,
+      MORE_PROFILE_ROUTE,
+      MORE_SETTINGS_ROUTE,
+      MORE_PASSPORT_ROUTE,
+      STORY_OURS_ROUTE,
     ].includes(pathname)
   )
     return null;

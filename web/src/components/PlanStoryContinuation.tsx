@@ -1,13 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
-import {
-  HEART_MOMENT_CREATE_ROUTE,
-  MEMORY_CREATE_ROUTE,
-  MILESTONE_CREATE_ROUTE,
-} from '../client/routes';
+import { usePlanStoryCapture } from '../client/planStoryCapture';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
-import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import { SharedAchievementCelebration } from './SharedAchievementCelebration';
@@ -39,8 +33,12 @@ export function PlanStoryContinuation({
   justCompleted?: boolean;
 }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const { captureOrigin } = useTaskOrigin();
+  const openCanonicalCapture = usePlanStoryCapture({
+    planId: plan.id,
+    spaceId,
+    accountId,
+    apiBaseUrl,
+  });
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [dismissed, setDismissed] = useState(false);
 
@@ -49,28 +47,6 @@ export function PlanStoryContinuation({
     headingRef.current?.focus();
     headingRef.current?.scrollIntoView?.({ block: 'center' });
   }, [focusOnMount]);
-
-  function openCanonicalCapture(to: string) {
-    const taskOriginKey = captureOrigin({
-      planningSegment: 'plans',
-      selectedKey: plan.id,
-    });
-    void navigate(to, {
-      state: {
-        taskOriginKey,
-        ...(accountId && apiBaseUrl
-          ? {
-              sourcePlan: {
-                id: plan.id,
-                spaceId,
-                accountId,
-                instance: apiBaseUrl,
-              },
-            }
-          : {}),
-      },
-    });
-  }
 
   function dismissContinuation() {
     const surface =
@@ -134,23 +110,20 @@ export function PlanStoryContinuation({
         </>
       ) : null}
       <div className="plan-story-actions">
-        <button
-          type="button"
-          onClick={() => openCanonicalCapture(MEMORY_CREATE_ROUTE)}
-        >
+        <button type="button" onClick={() => openCanonicalCapture('memory')}>
           {t('m5s3.planStory.memoryAction')}
         </button>
         <button
           type="button"
           className="secondary"
-          onClick={() => openCanonicalCapture(HEART_MOMENT_CREATE_ROUTE)}
+          onClick={() => openCanonicalCapture('heartMoment')}
         >
           {t('m5s3.planStory.heartMomentAction')}
         </button>
         <button
           type="button"
           className="secondary"
-          onClick={() => openCanonicalCapture(MILESTONE_CREATE_ROUTE)}
+          onClick={() => openCanonicalCapture('milestone')}
         >
           {t('m5s3.planStory.milestoneAction')}
         </button>

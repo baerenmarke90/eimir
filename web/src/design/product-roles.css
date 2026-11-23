@@ -13,6 +13,7 @@
   --font-story-category:
     400 0.9375rem / 1.4 "Instrument Sans", "Arial", sans-serif;
   --tracking-story-category: 0em;
+  --space-subpage-content-gap: 1.5rem;
   --space-media-mosaic-gap: 0.375rem;
   --space-story-summary-inset: 1.125rem;
   --space-story-category-gap: 0.625rem;
@@ -134,6 +135,8 @@
   --duration-connection-travel: 3200ms;
   --duration-connection-travel-far: 6000ms;
   --duration-story-slide: 5000ms;
+  --duration-story-lead-slide: 8000ms;
+  --duration-story-develop: 3200ms;
   --duration-story-ken-burns: 9000ms;
   --duration-loading-cycle: 800ms;
   --motion-ambient-repeat: 4;
@@ -224,6 +227,7 @@
     --duration-connection-beat: 0ms;
     --duration-connection-travel: 0ms;
     --duration-connection-travel-far: 0ms;
+    --duration-story-develop: 0ms;
     --duration-story-ken-burns: 0ms;
     --duration-loading-cycle: 0ms;
   }

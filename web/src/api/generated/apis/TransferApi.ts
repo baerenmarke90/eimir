@@ -29,14 +29,25 @@ import {
     TransferExportDetailToJSON,
 } from '../models/TransferExportDetail';
 import {
+    type TransferImportApply,
+    TransferImportApplyFromJSON,
+    TransferImportApplyToJSON,
+} from '../models/TransferImportApply';
+import {
     type TransferImportDetail,
     TransferImportDetailFromJSON,
     TransferImportDetailToJSON,
 } from '../models/TransferImportDetail';
+import {
+    type TransferSkippedVideos,
+    TransferSkippedVideosFromJSON,
+    TransferSkippedVideosToJSON,
+} from '../models/TransferSkippedVideos';
 
 export interface ApplyTransferImportRequest {
     importId: string;
     spaceId: string;
+    transferImportApply?: TransferImportApply | null;
 }
 
 export interface CreateTransferExportRequest {
@@ -47,6 +58,10 @@ export interface CreateTransferExportRequest {
 export interface CreateTransferImportRequest {
     spaceId: string;
     body: Blob;
+}
+
+export interface DismissTransferSkippedVideosRequest {
+    spaceId: string;
 }
 
 export interface DownloadTransferExportRequest {
@@ -61,6 +76,10 @@ export interface GetTransferExportRequest {
 
 export interface GetTransferImportRequest {
     importId: string;
+    spaceId: string;
+}
+
+export interface GetTransferSkippedVideosRequest {
     spaceId: string;
 }
 
@@ -91,6 +110,8 @@ export class TransferApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        headerParameters['Content-Type'] = 'application/json';
+
 
         let urlPath = `/api/v1/spaces/{spaceId}/transfer/imports/{importId}/apply`;
         urlPath = urlPath.replace('{importId}', encodeURIComponent(String(requestParameters['importId'])));
@@ -101,6 +122,7 @@ export class TransferApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
+            body: TransferImportApplyToJSON(requestParameters['transferImportApply']),
         };
     }
 
@@ -230,6 +252,52 @@ export class TransferApi extends runtime.BaseAPI {
     async createTransferImport(requestParameters: CreateTransferImportRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TransferImportDetail> {
         const response = await this.createTransferImportRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Creates request options for dismissTransferSkippedVideos without sending the request
+     */
+    async dismissTransferSkippedVideosRequestOpts(requestParameters: DismissTransferSkippedVideosRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling dismissTransferSkippedVideos().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/transfer/skipped-videos`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Forget the skipped videos; the imported content and the file stay as they are.
+     * Dismiss Transfer Skipped Videos
+     */
+    async dismissTransferSkippedVideosRaw(requestParameters: DismissTransferSkippedVideosRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.dismissTransferSkippedVideosRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Forget the skipped videos; the imported content and the file stay as they are.
+     * Dismiss Transfer Skipped Videos
+     */
+    async dismissTransferSkippedVideos(requestParameters: DismissTransferSkippedVideosRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.dismissTransferSkippedVideosRaw(requestParameters, initOverrides);
     }
 
     /**
@@ -388,6 +456,51 @@ export class TransferApi extends runtime.BaseAPI {
      */
     async getTransferImport(requestParameters: GetTransferImportRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TransferImportDetail> {
         const response = await this.getTransferImportRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getTransferSkippedVideos without sending the request
+     */
+    async getTransferSkippedVideosRequestOpts(requestParameters: GetTransferSkippedVideosRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getTransferSkippedVideos().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/transfer/skipped-videos`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Get Transfer Skipped Videos
+     */
+    async getTransferSkippedVideosRaw(requestParameters: GetTransferSkippedVideosRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TransferSkippedVideos>> {
+        const requestOptions = await this.getTransferSkippedVideosRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => TransferSkippedVideosFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Transfer Skipped Videos
+     */
+    async getTransferSkippedVideos(requestParameters: GetTransferSkippedVideosRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TransferSkippedVideos> {
+        const response = await this.getTransferSkippedVideosRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -229,6 +229,9 @@ const m5s3 = {
       'Möchtet ihr diesen Moment in eurer gemeinsamen Geschichte festhalten?',
     memoryAction: 'Erinnerung festhalten',
     milestoneAction: 'Meilenstein festhalten',
+    menuMemory: 'Als Erinnerung festhalten',
+    menuHeartMoment: 'Als Herzmoment festhalten',
+    menuMilestone: 'Als Meilenstein festhalten',
     chapterAction: 'Zu einem Kapitel hinzufügen',
     later: 'Später',
     chapterNeedsStory:

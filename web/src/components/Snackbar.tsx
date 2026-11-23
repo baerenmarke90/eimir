@@ -52,7 +52,7 @@ export function Snackbar() {
   return (
     <div className="snackbar" role="status" aria-live="polite">
       <span className="snackbar-message">
-        {t(current.messageKey, current.messageOptions)}
+        {t(current.messageKey, current.messageOptions ?? {})}
       </span>
       {current.action ? (
         <button

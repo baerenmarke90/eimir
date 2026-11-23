@@ -238,14 +238,12 @@
   height: var(--space-3);
 }
 
+/* Revealing on the person's own action is an Enter `fade` (the catalogue in
+   src/motion/motion.css). Hiding is always instant: the hidden state has no
+   animation and no exit (Motion Contract 4.12). */
 .discreet-revealable {
-  animation: discreet-reveal var(--duration-transition) var(--easing-enter);
-}
-
-@keyframes discreet-reveal {
-  from {
-    opacity: 0;
-  }
+  animation: eimir-motion-enter-fade var(--duration-transition)
+    var(--easing-enter);
 }
 
 @media (prefers-reduced-motion: reduce) {

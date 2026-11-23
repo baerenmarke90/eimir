@@ -1,4 +1,4 @@
-"""Zu zweit and Handschrift compatibility when rolling back to the previous backend."""
+"""Saved app designs remain readable on downgrade to the preceding backend."""
 
 import pytest
 from alembic.config import Config
@@ -14,7 +14,16 @@ from tests.conftest import make_account, make_space, requires_database
 pytestmark = [pytest.mark.integration, requires_database]
 
 
-def test_downgrade_resets_only_quiet_together_and_handwriting(session: Session) -> None:
+@pytest.mark.parametrize(
+    ("revision", "introduced"),
+    [
+        ("0158", {WirDesignId.QUIET_TOGETHER, WirDesignId.HANDWRITING}),
+        ("0172", {WirDesignId.HOME_ROOMS}),
+    ],
+)
+def test_downgrade_resets_only_introduced_designs(
+    session: Session, revision: str, introduced: set[WirDesignId]
+) -> None:
     owner = make_account(session, "Owner")
     space = make_space(session, owner)
     for design_id in WirDesignId:
@@ -44,11 +53,11 @@ def test_downgrade_resets_only_quiet_together_and_handwriting(session: Session) 
     original = sorted((design.value, 1, "sage") for design in WirDesignId)
     rollback = sorted(
         ("connected", 2, "sage")
-        if design in (WirDesignId.QUIET_TOGETHER, WirDesignId.HANDWRITING)
+        if design in introduced
         else (design.value, 1, "sage")
         for design in WirDesignId
     )
-    migration = ScriptDirectory.from_config(Config("alembic.ini")).get_revision("0158").module
+    migration = ScriptDirectory.from_config(Config("alembic.ini")).get_revision(revision).module
     with Operations.context(MigrationContext.configure(session.connection())):
         migration.upgrade()
         assert saved() == original

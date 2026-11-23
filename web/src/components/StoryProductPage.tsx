@@ -5,7 +5,12 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { RecapsApi } from '../api/generated/apis/RecapsApi';
@@ -56,6 +61,8 @@ import {
   memoryDetailPath,
   milestoneDetailPath,
   STORY_OURS_ROUTE,
+  STORY_PHOTOS_ROUTE,
+  STORY_CHAPTERS_ROUTE,
 } from '../client/routes';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
@@ -80,7 +87,9 @@ import { DiaryChapterPeriods } from './DiaryChapterPeriods';
 import { DiscoverStory } from './DiscoverStory';
 import { MemoryPreview } from './MemoryPreview';
 import { MomentCreateMenu } from './MomentCreateMenu';
+import { useAppLayout } from '../client/wirDesign';
 import { PageHeader } from './PageHeader';
+import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { QuietHint } from './QuietHint';
@@ -184,6 +193,7 @@ export function StoryProductPage({
     };
   }, [scope]);
   const { nicknameFor } = usePartnerNickname();
+  const layout = useAppLayout();
   const location = useLocation();
   const saved = Boolean((location.state as { saved?: boolean } | null)?.saved);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -850,7 +860,28 @@ export function StoryProductPage({
       <PageHeader
         variant="root"
         className="content-overview-heading"
-        title={t('story.timelineTitle')}
+        title={t(
+          layout === 'rooms'
+            ? 'wirDesign.homeRooms.remember'
+            : 'story.timelineTitle',
+        )}
+        titleContext={
+          layout === 'rooms' ? (
+            <nav
+              className="home-archive-links"
+              aria-label={t('wirDesign.homeRooms.archiveNavigation')}
+            >
+              <Link to={STORY_PHOTOS_ROUTE}>
+                {t('wirDesign.homeRooms.photoArchive')}
+                <EimirIcon name="chevron-right" />
+              </Link>
+              <Link to={STORY_CHAPTERS_ROUTE}>
+                {t('wirDesign.homeRooms.chapters')}
+                <EimirIcon name="chevron-right" />
+              </Link>
+            </nav>
+          ) : undefined
+        }
         action={<MomentCreateMenu floating />}
       />
       <StoryViewTabs activeView={activeView} onSelect={setView} />

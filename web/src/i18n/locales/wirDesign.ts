@@ -7,7 +7,27 @@ export default {
   nameJoiner: '&',
   compact: { own: 'Dein Vibe', partner: '{{name}} heute' },
   note: { open: 'Herzmoment öffnen' },
+  homeRooms: {
+    rooms: 'Räume',
+    remember: 'Erinnern',
+    rememberSummary: 'Fotos, Tagebuch und Orte',
+    plans: 'Vorhaben',
+    plansSummary: 'Pläne, Wünsche und Anlässe',
+    insights: 'Einblicke',
+    insightsSummary: 'Vibe und Energie',
+    games: 'Spielen',
+    gamesSummary: 'Spiele für euch zwei',
+    moreSummary: 'Profil, Privates und Einstellungen',
+    profileShort: 'Ich',
+    create: 'Erstellen',
+    partner: 'Partner',
+    openWir: 'Wir öffnen',
+    archiveNavigation: 'Eure Erinnerungen',
+    photoArchive: 'Fotoarchiv',
+    chapters: 'Kapitel',
+  },
   names: {
+    home_rooms: 'Zuhause',
     connected: 'Verbunden',
     shared_album: 'Seite an Seite',
     warm: 'Geborgen',
@@ -17,6 +37,8 @@ export default {
     handwriting: 'Handschrift',
   },
   descriptions: {
+    home_rooms:
+      'Ein persönlicher Startpunkt für euch. Über „Räume“ öffnest du Erinnerungen, Vorhaben und mehr.',
     connected:
       'Ihr zwei, durch eine Herzlinie verbunden. Eure gemeinsame Zeit steht in der Mitte.',
     shared_album:

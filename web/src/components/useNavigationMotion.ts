@@ -562,7 +562,8 @@ export function useNavigationMotion({
       if (grabbed) {
         gesture.peek =
           PRIMARY_APP_ROUTES[index + grabbed.direction]?.path ?? null;
-        gesture.beyond = Math.abs(base) >= commitDistance('pager', width);
+        gesture.beyond =
+          Math.abs(base) >= commitDistance('pager', window.innerWidth);
       }
       gesture.velocity.add(event.timeStamp, touch.clientX);
       overlays.observe(document.body, {
@@ -623,7 +624,7 @@ export function useNavigationMotion({
       gesture.peakPrevious = Math.max(gesture.peakPrevious, gesture.offset);
       const beyond =
         Boolean(neighbour) &&
-        Math.abs(gesture.offset) >= commitDistance('pager', gesture.width);
+        Math.abs(gesture.offset) >= commitDistance('pager', window.innerWidth);
       if (beyond !== gesture.beyond) {
         gesture.beyond = beyond;
         haptic('threshold');

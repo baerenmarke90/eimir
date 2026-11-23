@@ -1,7 +1,7 @@
 # Module notification workflow
 
 **Product Owner decision:** 2026-11-01, approved implementation on PR #1568.
-**Runtime policy:** v16 in `engagement/notification_policy.py`.
+**Runtime policy:** v17 in `engagement/notification_policy.py`.
 
 **Narrow follow-up decision #1620 (2026-11-03):** personal default-off gentle
 prompts may offer adaptive writing/Memory invitations under the complete
@@ -127,6 +127,7 @@ foundation. It does not introduce the previously rejected daily summary.
 | Partner invitation | Invitation is accepted | One inviter-only Center item and Push leading to Wir. Inherits the Thinking of You Push setting and respects Quiet Hours. No email-address or invitation-token projection. |
 | Account / connection / security | Account-critical action | Existing dedicated transactional/account workflow; never a relationship-content banner or marketing message. |
 | Import / export | Validation ready, export ready, import complete or domain/terminal storage failure | Owner-only neutral outcome Notification/Push; opens the exact authenticated job in Data. Progress and retries stay in context. Expired/deleted/wrong-owner jobs are unavailable. Imported historical objects never replay relationship messages. |
+| Support reply (#2189) | The operator deliberately answers a person's own support report (one reply per report) | `SUPPORT_REPLY`, projected to the reporter only: no actor, attributed to the team, never to an operator account. The Center item targets `SUPPORT_REPORT` and lives in the Space of the reporter's most recent active Membership; a reporter without one keeps the stored reply and gets no notice. The notice carries no text: the app fetches the reply from `GET /api/v1/support-reports/{id}/reply` (reporter-only, plain text, at most 500 characters) and shows it with the report's date. Neutral immediate Push only (the reply never enters a device preview); never Email. Inherits the reminder choice (`REMINDER_DUE`) and Quiet Hours, with no settings surface of its own. Not coalesced: one notice per reply. A tap only marks it read; there is no destination. |
 | Pro information / app information / operator diagnostics | Viewing information or operational changes | No couple-facing promotional/diagnostic Push; existing operator/account boundaries remain. |
 
 ## Detailed device content (#2158)
@@ -165,6 +166,9 @@ Exceptions (surprise and technical protections, proposed for Product Owner confi
 - **d. Game reveals:** no notice names answers, guesses, wishes in a round, a Wish selection's favourites or
   result, a random pick's choice, the hidden heart's photo or position, or the picture. These reveals happen in
   the app.
+- **e. Support reply (#2189):** the reply is operator text about the person's own report. The notice, the push
+  and every device preview stay neutral and carry no reply text, whatever preview version is negotiated; the
+  app fetches the text from the reporter-only reply endpoint when the notice is shown.
 
 iOS APNs and browser Web Push keep neutral system copy: they have no device-bound preview key today, and the
 Wish date exception stays their only content. UnifiedPush keeps its negotiated Wish date preview.

@@ -1,9 +1,9 @@
 # Support reports in the Core (design, part 1 of 3)
 
-**Status:** Draft for Product Owner approval, 2026-11-23.
+**Status:** Approved by the Product Owner, 2026-11-23. Updated after implementation: see [Implementation notes](#implementation-notes-2026-11-23) for the deliberate deviations and open points.
 **Baseline:** `main` at `28ebc7080`, Alembic head `0171`.
 **Owning issue:** #2189 (extended from "report a problem" to "report a problem or send feedback").
-**Related:** Decision 0017 (plugin seam), Decision 0018 (Cloud first, Self-Hosted later), #2158 / PR #2163 (tester reference), #2182 (Pro split, still running).
+**Related:** Decision 0017 (plugin seam), Decision 0018 (Cloud first, Self-Hosted later), #2158 / PR #2163 (tester reference), #2182 (Pro split, still running). API and service reference: [support-reports-service-interface.md](support-reports-service-interface.md).
 
 This is part 1 of three agreed parts:
 
@@ -26,11 +26,11 @@ The Product Owner's answers shaping this design (2026-11-23):
 
 ## Goals
 
-- A signed-in person can send a report of type **problem** or **feedback** from the error state and from "Help & feedback" in Settings.
+- A signed-in person can send a report of type **problem** or **feedback** from the error state and from "Help & feedback" on the More page.
 - The sheet shows in plain words what will be sent. Nothing is sent without that confirmation.
 - A report works offline: the note is kept and sent later; a failed send is shown honestly.
 - The Core stores the report, protected at rest, with limits and with deletion on account deletion.
-- The Core exposes a service interface (`list`, `get`, `set_state`, `send_reply`) that the later plugin uses. The Core never imports the plugin.
+- The Core exposes a service interface (`list_reports`, `get_report`, `set_state`, `send_reply` and the helpers listed under "Service interface") that the later plugin uses. The Core never imports the plugin.
 - A reply creates one notification for the reporter with the operator's text.
 
 ## Non-goals
@@ -88,8 +88,8 @@ New Core table `support_reports` (Alembic revision after `0171`):
 | `kind` | `PROBLEM` or `FEEDBACK`. |
 | `state` | `NEW`, `IN_PROGRESS`, `CLOSED`. Written only through the service interface. |
 | `created_at`, `closed_at` | |
-| `payload` | `ProtectedPayloadJSON`, crypto context bound to the report id. Holds the fields listed below. |
-| reply | Stored in a child table `support_report_replies` (primary key and foreign key = report id, `ON DELETE CASCADE`, plus its own protected `payload` with `text` of at most 500 characters and `replied_at`). The encryption tooling supports exactly one protected `payload` column per table (`security/lifecycle.py`), so the reply cannot be a second protected column. The primary key enforces one reply per report (see "Reply semantics"). |
+| `payload` | `ProtectedPayloadJSON`, crypto context per payload class (`SupportReportPayload`), as for the other protected tables. Holds the fields listed below. |
+| reply | Stored in a child table `support_report_replies` (an `id` primary key plus a unique `report_id` foreign key with `ON DELETE CASCADE`, and its own protected `payload` with `text` of at most 500 characters and `replied_at`). The encryption tooling supports exactly one protected `payload` column per table and reads protected rows by `id` (`security/lifecycle.py`), so the reply cannot be a second protected column and the table needs an `id` primary key. The unique `report_id` enforces one reply per report (see "Reply semantics"). |
 
 **Allowed payload fields (allow-list, pinned by a unit test on both client and server):**
 
@@ -99,59 +99,59 @@ New Core table `support_reports` (Alembic revision after `0171`):
 
 **Never included:** tokens, URLs with ids or query strings, file names, memory/plan/list/message text, location, contact data, device identifiers beyond the app version, other people's data. The server rejects unknown payload fields (strict schema) so a future client cannot leak by accident.
 
-Retention (my call, see handover list): a closed report is deleted 90 days after closing; any report is deleted at most 365 days after creation; account deletion removes the person's reports and replies immediately. A scheduled maintenance job does the time-based deletion.
+Retention (my call, see handover list): a closed report is deleted 90 days after closing; any report is deleted at most 365 days after creation; account deletion removes the person's reports and replies immediately. The security retention maintenance job does the time-based deletion (`prune_expired`); account deletion removes the person's reports through `PERSONAL_ACCOUNT_ROWS` in `identity.deletion`, and the replies follow through the foreign key cascade.
 
 ### API
 
-- `POST /api/v1/support-reports`: authenticated, strict schema, body size cap, `client_request_id` idempotency (replay returns the existing report without a second row). Rate limited per account through `eimir.auth.rate_limit` (database-backed; proposed 5 per hour and 20 per day; the builder confirms the numbers against the existing limits).
+- `POST /api/v1/support-reports`: authenticated, strict schema, body size cap, `client_request_id` idempotency (replay returns the existing report without a second row). Rate limited per account through `eimir.auth.rate_limit` (database-backed; 5 per hour and 20 per day). A replay is answered before the rate limit is spent.
 - `/api/v1/instance` gains `supportReportsAvailable` (Boolean). It is true only when the operator enabled reports (see below).
-- `GET /api/v1/support-reports/{id}/reply`: returns the reply text and time, only to the reporter (404 for anyone else or when there is no reply yet). The notification list item uses it to show the reply. There is no list or reopen endpoint for reports.
+- `GET /api/v1/support-reports/{id}/reply`: returns the reply text, the reply time and the report's date (`reportedAt`), only to the reporter (404 for anyone else or when there is no reply yet). It is not gated by the availability switch, so a reply already sent stays readable. The notification list item uses it to show the reply. There is no list or reopen endpoint for reports.
 
 ### Availability switch (honesty)
 
-Without a reader, a "thanks, received" would mislead. A new operator setting `EIMIR_SUPPORT_REPORTS_ENABLED` (default `false`) controls `supportReportsAvailable`, and the endpoint refuses when it is off. The client shows the entry points only when it is true. It is turned on for Cloud and the private test channel once part 3 can read reports. This is operator configuration, not couple configuration (`AGENTS.md`, user rule).
+Without a reader, a "thanks, received" would mislead. A new operator setting `EIMIR_SUPPORT_REPORTS_ENABLED` (default `false`) controls `supportReportsAvailable`, and the endpoint refuses with 404 when it is off. The client shows the entry points only when it is true. It is turned on for Cloud and the private test channel once part 3 can read reports. This is operator configuration, not couple configuration (`AGENTS.md`, user rule).
 
-The Core cannot know whether someone reads the reports, so the guard is documentation plus a signal: `docs/SELF-HOSTING.md` states "enable only if you read the reports", and the existing ServerAdmin overview gains one aggregate count of `NEW` reports and a warning code when `NEW` reports older than 14 days exist (counts only, no content). Whether Self-Hosted operators receive the admin plugin at all is a question for part 3 and Decision 0018 (Self-Hosted is not offered at launch); part 1 introduces no Self-Hosted reader.
+The Core cannot know whether someone reads the reports, so the guard is documentation plus a signal: `docs/SELF-HOSTING.md` states "enable only if you read the reports", and the existing ServerAdmin overview gains one aggregate count of `NEW` reports and a warning code when `NEW` reports older than 14 days exist (counts only, no content). While the switch is off the count is 0 and the warning does not appear. Whether Self-Hosted operators receive the admin plugin at all is a question for part 3 and Decision 0018 (Self-Hosted is not offered at launch); part 1 introduces no Self-Hosted reader.
 
 ### Service interface for the later plugin
 
-`eimir.support_reports.service`: `list_reports(filter, page)`, `get_report(id)`, `set_state(id, state)`, `send_reply(id, text)`. Return types carry the opaque `account_id` only, never an email address or display name. The operator finds the person through the existing ServerAdmin account directory, which already restricts what is shown (`docs/SERVER-ADMIN.md`). `send_reply` stores the reply and creates the notification (below). No Core module imports a plugin; the plugin imports this service. The interface is covered by tests in the Core so part 3 cannot silently break it.
+`eimir.support_reports.service`: `list_reports(state, limit, cursor)`, `get_report(report_id)`, `set_state(report_id, state)`, `send_reply(report_id, text, operator_id)`, plus `create_report`, `find_replay`, `get_reply`, `count_new`, `oldest_new_at` and `prune_expired`. The reference is [support-reports-service-interface.md](support-reports-service-interface.md). Return types carry the opaque `account_id` only, never an email address or display name. The operator finds the person through the existing ServerAdmin account directory, which already restricts what is shown (`docs/SERVER-ADMIN.md`). `send_reply` stores the reply and records the notification event in the same transaction (below). No Core module imports a plugin; the plugin imports this service. The interface is covered by tests in the Core so part 3 cannot silently break it.
 
 ### Reply semantics
 
-- A report receives **at most one reply**. A second `send_reply` for the same report is rejected with a conflict; the operator can close the report and, if more is needed, the person sends a new report. This matches "no thread, no inbox" and keeps one column instead of a child table.
+- A report receives **at most one reply**. A second `send_reply` for the same report is rejected with a conflict (code `SUPPORT_REPORT_ALREADY_REPLIED`); the operator can close the report and, if more is needed, the person sends a new report. This matches "no thread, no inbox".
 - Replying does **not** change `state`. `state` is the operator's own triage marker and is set only through `set_state`. A closed report can still be replied to, once.
-- The notification's source-event key is the report id, so a replay cannot create a second notice.
+- One reply per report means one notice per report; the notice keeps the existing source-event uniqueness of the notification pipeline, so a replayed event cannot create a second one.
 
 ### Reply notification
 
-A new `NotificationKind.SUPPORT_REPLY` in `engagement`, following `docs/product/notification-workflow.md`: one canonical recipient Notification with source-event uniqueness, Push through the existing pipeline, quiet hours and recipient consent inherited from the closest existing group (no new settings UI). The notification shows the operator's text as plain text (never HTML or links rendered). A person can opt out of it with the existing notification controls.
+A new `NotificationKind.SUPPORT_REPLY` in `engagement`, following `docs/product/notification-workflow.md`: one canonical recipient Notification with source-event uniqueness, Push through the existing pipeline, quiet hours and recipient consent inherited from the reminder group (`REMINDER_DUE`; no new settings UI). The notification shows the operator's text as plain text (never HTML or links rendered). A person can opt out of it with the existing reminder controls.
 
-**Presentation without an inbox:** the notification list item shows the neutral context line "Reply to your report of <date>" and the full reply text (at most 500 characters, so nothing is truncated). It does not quote the person's own note. Tapping it only marks it read; there is no destination screen. The push preview follows the existing negotiated preview policy for the title and shows the start of the text only where that policy already allows content previews. The builder's first task is to check that the Notification model supports a non-Space target (see "What is left to the builder").
+**Presentation without an inbox:** the notification list item shows the neutral context line "Reply to your report of <date>" and the full reply text (at most 500 characters, so nothing is truncated). It does not quote the person's own note. Tapping it only marks it read; there is no destination screen. The push preview is neutral and never carries the reply text (see the implementation notes). The Notification model is Space-bound, so the notice lives in the Space of the reporter's most recent active Membership; a reporter without one keeps the stored reply and gets no notice.
 
 ### Client
 
-- **Entry points:** an optional secondary action "Report a problem" on `ProblemState` (shared component, behavior unchanged without the new prop) and a "Help & feedback" row in Settings. Both open the same sheet. Visible only when `supportReportsAvailable` is true. Not browser-only, so no native hiding is needed.
+- **Entry points:** an optional quiet (tertiary) action "Report a problem" on `ProblemState` (shared component, behavior unchanged without the new prop) and a "Help & feedback" row in the utility group of the More page. Both open the same sheet. Visible only when `supportReportsAvailable` is true. Not browser-only, so no native hiding is needed. Both ask for the sheet through a small launcher store (`openSupportReport`); one shell-level host renders it.
 - **No X in the sheet (Product Owner, 2026-11-23):** the sheet shows no close "X". It closes by pulling down, tapping the backdrop, or Back/Escape. `docs/COMPONENT-CONTRACTS.md` sections 8.2 and 8.4 say a sheet has a *visible* Close; this sheet is a deliberate exception that the implementation PR must name. The existing header button of `ShortTaskSheet` (drag handle) stays as the labeled close target for keyboard and screen-reader users, and only its X icon is hidden through a new `showCloseIcon` prop.
-- **Signed-in only (my call):** the endpoint is authenticated and the action is hidden where the problem is a lost session or sign-in (`unauthorized`) or an unreachable instance (`offline` with no session). An anonymous report path would need its own abuse model and is out of scope; it can be revisited as a separate decision.
-- **What is attached:** the failure reference is attached only when the sheet is opened from `ProblemState`, and only for the failure shown there. From Settings, and for `FEEDBACK`, no failure reference is attached. The "what is sent" list always matches the actual payload, including "your account, so the team can answer".
+- **Signed-in only (my call):** the endpoint is authenticated and the action is shown only for the error kinds `server`, `unknown`, `validation` and `conflict`, and is hidden where the problem is a lost session or sign-in (`unauthorized`), a missing permission or resource, an unreachable instance (`offline`) or a rate limit. An anonymous report path would need its own abuse model and is out of scope; it can be revisited as a separate decision.
+- **What is attached:** the failure reference is attached only when the sheet is opened from `ProblemState`, and only for the failure shown there. From the More page, and for `FEEDBACK`, no failure reference is attached. The "what is sent" list always matches the actual payload, including "your account, so the team can answer".
 - **Sheet** (reusing the existing sheet pattern, `ShortTaskSheet`): choice between "Something is not working" and "Feedback / idea", one text field, a plain-language list of what is sent, one filled primary "Send" button, a calm success state that promises no answer. Compact first; on Expanded the existing dialog form of the sheet.
 - **Payload builder:** `web/src/client/supportReport.ts` builds exactly the allowed fields. A generalized failure reference (the #2163 token for any request failure) is kept in memory for the last failed request only.
-- **Offline and failure:** the draft and its `client_request_id` are kept locally; send is retried when online; a failed send says so and offers a retry. No retry loop on repeated failure.
+- **Offline and failure:** the draft and its `client_request_id` are kept locally; send is retried when online while the sheet is open; a failed send says so and offers a retry. No retry loop on repeated failure.
 - **States:** Loading (sending), Empty (feedback needs text), Error, Offline (draft kept), Success. Reduced motion respected; Light/Dark; about 360, 390, 430 px; large text.
 
 ### Visual reference
 
-[`design/references/support-reports/mockup.html`](design/references/support-reports/mockup.html) shows seven Compact states in Light and Dark: problem state entry, More row, problem sheet, feedback sheet, offline, success and the reply notification. It is a rendered sketch, not a generated image (Product Owner decision 2026-11-21). Expanded (the existing centered dialog form of the sheet) is not drawn. The dark primary action color in the sketch is approximate and must be checked against `--color-action-primary` during implementation. The Product Owner accepted this design on 2026-11-23.
+[`design/references/support-reports/mockup.html`](design/references/support-reports/mockup.html) shows seven Compact states in Light and Dark: problem state entry, More row, problem sheet, feedback sheet, offline, success and the reply notification. Captures of the implemented sheet are in [`design/evidence/2189/`](design/evidence/2189/README.md). It is a rendered sketch, not a generated image (Product Owner decision 2026-11-21). Expanded (the existing centered dialog form of the sheet) is not drawn. The dark primary action color in the sketch is approximate and must be checked against `--color-action-primary` during implementation. The Product Owner accepted this design on 2026-11-23.
 
 ## Cross-cutting review (summary)
 
 - **Security and abuse:** authenticated only, strict schema, size cap, DB-backed rate limit, reply text rendered as plain text, no HTML.
-- **Privacy and lifecycle:** payload protected at rest, allow-listed, purged on account deletion (`identity.deletion.apply_core_cleanup`), time-based retention job, included in the personal export decision below.
+- **Privacy and lifecycle:** payload protected at rest, allow-listed, purged on account deletion (`identity.deletion.apply_core_cleanup`), time-based retention job, and not part of the personal export (see "What is left to the builder").
 - **i18n and accessibility:** all texts localized; sheet focus management, labels, large text.
 - **Resilience:** idempotent create, offline draft, honest failure.
 - **Observability:** the `x-request-id` in the report correlates with server logs without storing content.
-- **Operations:** one setting; Self-Hosted documentation in `docs/SELF-HOSTING.md` says where reports land (the instance's own database, read through the admin plugin in part 3).
+- **Operations:** one setting; Self-Hosted documentation in `docs/SELF-HOSTING.md` says where reports land (the instance's own database; read-side tooling is not part of the Core and arrives with the admin plugin in part 3).
 - **Contract:** OpenAPI and generated clients change; migrations are additive.
 - **Testing:** allow-list tests, negative cases (offline, 413, 429, 5xx, replay), account-deletion test, notification test.
 
@@ -165,15 +165,15 @@ Reused: the existing notification pipeline, `auth.rate_limit`, `ProtectedPayload
 
 ## What is left to the builder
 
-- Verify the Notification model supports a recipient without a Space; if it does not, choose the least invasive option (for example the reporter's active Space) and record it in the PR.
-- Final rate-limit numbers and the exact wording of all texts.
-- Whether `state` needs more values for the admin portal; start with the three above.
-- Where the personal export includes reports (my call: not included, because reports are about the app and operator-held; the builder confirms against `docs/ACCOUNT-DELETION-SELF-HOSTED.md` and the export contract).
-- The Mobile Interaction Contract and visual evidence (baseline `main` `28ebc7080`; screens to review: `ProblemState`, Settings, and the More page).
+- Verify the Notification model supports a recipient without a Space; if it does not, choose the least invasive option (for example the reporter's active Space) and record it in the PR. *Resolved:* the model is Space-bound, so the notice uses the Space of the reporter's most recent active Membership.
+- Final rate-limit numbers and the exact wording of all texts. *Resolved:* 5 per hour and 20 per day; texts are in the localization layer (German and English).
+- Whether `state` needs more values for the admin portal; start with the three above. *Resolved:* the three values stay.
+- Where the personal export includes reports (my call: not included, because reports are about the app and operator-held; the builder confirms against `docs/ACCOUNT-DELETION-SELF-HOSTED.md` and the export contract). *Resolved in code:* the export code does not read reports; the export contract documents were not changed.
+- The Mobile Interaction Contract and visual evidence (baseline `main` `28ebc7080`; screens to review: `ProblemState` and the More page).
 
 ## Acceptance criteria
 
-- [ ] A person can send a problem or a feedback from the problem state or Settings in at most two taps plus an optional note, one-handed on Compact.
+- [ ] A person can send a problem or a feedback from the problem state or the More page in at most two taps plus an optional note, one-handed on Compact.
 - [ ] The sheet lists in words what will be sent; nothing is sent before the confirmation.
 - [ ] The stored and sent payload contains only the allow-listed fields; a unit test pins the list on client and server; unknown fields are rejected.
 - [ ] A report sent offline is delivered once after reconnect (idempotent); a failed send is reported honestly.
@@ -184,3 +184,30 @@ Reused: the existing notification pipeline, `auth.rate_limit`, `ProtectedPayload
 - [ ] The ServerAdmin overview shows the count of `NEW` reports and warns on reports older than 14 days.
 - [ ] The Core imports no plugin; the service interface has Core tests.
 - [ ] Visual evidence, reduced motion, Light/Dark, i18n and accessibility checks in the implementation PR.
+
+## Implementation notes (2026-11-23)
+
+The design was implemented as specified except for the deliberate deviations below. The open points need a decision or a confirmation that only the Product Owner or CI can give.
+
+### Deliberate deviations
+
+- **Reply table keys.** The reply is stored in `support_report_replies` with an `id` primary key plus a unique `report_id`, not with `report_id` as the primary key. The encryption tooling reads and rewrites protected rows by `id`. The unique `report_id` still enforces one reply per report, and a concurrent second reply is refused through `INSERT ... ON CONFLICT DO NOTHING`.
+- **Crypto context.** Report and reply payloads use the per-payload-class context pattern of the other protected tables (`SupportReportPayload`, `SupportReportReply`), not a context bound to one report id.
+- **`SUPPORT_REPLY` notice.** The notice has no actor, so no operator identity reaches the reporter; the notice is attributed to the team and `send_reply` accepts `operator_id` but does not use it. The kind is in `NEUTRAL_ONLY_KINDS`: the push preview is neutral and never carries the reply text, whatever preview version is negotiated. The design allowed text where the preview policy permits it. Email is excluded. The notice inherits the reminder group (`REMINDER_DUE`), is not coalesced and is bound to the Space of the reporter's most recent active Membership.
+- **Reply read.** `GET /api/v1/support-reports/{id}/reply` also returns `reportedAt`, so the notice can say which report it answers ("Your report of <date>"), and it is not gated by the availability switch, so a reply already sent stays readable.
+- **Sheet host.** The sheet is opened through a launcher store (`supportReportLauncher.ts`) and one shell-level host (`SupportReportHost`, mounted in the signed-in shell). The sheet and its draft therefore outlive the screen that opened it, for example an error state that a background refetch replaces. The host imports the sheet statically, so a failed chunk load cannot crash the shell.
+- **Failure reference and request id classes.** The failure reference allows `A-Za-z0-9_./{}:-` (1 to 200 characters) and never a URL (`://` is rejected). The request id allows `A-Za-z0-9._-` (1 to 128 characters). The classes exclude whitespace, `?`, `#` and `=`, so a query string or fragment cannot be stored.
+- **Closing keeps the original time.** `set_state(CLOSED)` on an already closed report keeps the original `closed_at`, so retention is not extended by a repeated call. Leaving and re-entering `CLOSED` sets a fresh time.
+- **Account deletion.** The cleanup is the entry `SupportReport` in `PERSONAL_ACCOUNT_ROWS` of `identity.deletion`; the replies follow through the foreign key cascade. There is no separate purge function.
+- **Retention constants.** `CLOSED_RETENTION` is 90 days after `closed_at`, `MAX_RETENTION` is 365 days after `created_at`, and a report exactly at a cutoff is kept. `UNREAD_WARNING_AGE` is 14 days; a report exactly at the threshold does not warn yet.
+- **ServerAdmin count.** The overview count is 0 while the feature is off, even when `NEW` reports from an earlier enabled period exist; the warning does not appear either.
+- **No close icon.** The sheet shows no X icon, as decided on 2026-11-23. The labeled drag-handle header button stays as the close target for keyboard and screen-reader users. This is a named exception to `docs/COMPONENT-CONTRACTS.md` sections 8.2 and 8.4, implemented through the `showCloseIcon` prop of `ShortTaskSheet`.
+- **Entry point.** The feedback row is on the More page (utility group) instead of Settings, matching the mock-up.
+
+### Open points for the Product Owner
+
+- **(a) Raw failure reference in the "what we send" list.** The list shows the generalized reference as it is sent, for example `GET:/api/v1/spaces/{id}/notifications:500:web`. That is an API route template, which `AGENTS.md` lists as API terminology that must not appear on couple-facing surfaces. Showing exactly what is sent is honest, but the wording or a formatter needs a decision.
+- **(b) Offline message shifts the sheet.** On Compact the sheet grows from the bottom, so the offline message raises its top edge by about 77 px at 390 px width. Nothing moves inside the sheet. Keeping the viewport still would mean reserving the space while the sheet is idle, which leaves an empty block.
+- **(c) App version and build are `unknown`.** The client reads `VITE_EIMIR_APP_VERSION` and `VITE_EIMIR_BUILD`; nothing sets them yet, so reports say `unknown` until the build does.
+- **(d) Generated client.** The generated TypeScript client for the new endpoints was written by hand because the generator was not available. CI must confirm it with `tools/openapi/generate.sh --check` and commit any drift.
+- **(e) PostgreSQL-backed checks.** The integration tests, the migration test and the hand-edited `backend/tests/fixtures/schema_fingerprint.json` have never run against PostgreSQL on the development host. CI must confirm them, including `python -m scripts.schema_fingerprint check`.

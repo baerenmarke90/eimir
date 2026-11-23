@@ -209,18 +209,18 @@ describe('SupportReportHost', () => {
   });
 });
 
-describe('SupportReportHost lazy chunk', () => {
-  // A stand-in sheet: these cases are about loading the chunk, not the sheet.
-  function StubSheet({
-    open,
-    initialKind,
-  }: {
-    open: boolean;
-    initialKind: 'PROBLEM' | 'FEEDBACK';
-  }) {
-    return open ? <div role="dialog" aria-label={initialKind} /> : null;
-  }
+// A stand-in sheet: these cases are about loading the chunk, not the sheet.
+function StubSheet({
+  open,
+  initialKind,
+}: {
+  open: boolean;
+  initialKind: 'PROBLEM' | 'FEEDBACK';
+}) {
+  return open ? <div role="dialog" aria-label={initialKind} /> : null;
+}
 
+describe('SupportReportHost lazy chunk', () => {
   /**
    * A fresh host whose sheet chunk fails `failures` times before it loads.
    * Fresh modules have a fresh launcher store, so the test uses that one.

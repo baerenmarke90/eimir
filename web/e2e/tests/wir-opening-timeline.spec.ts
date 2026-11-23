@@ -374,7 +374,10 @@ async function installTimelineRecorder(page: Page) {
     (window as unknown as { __wirTimeline: typeof state }).__wirTimeline =
       state;
     const seen = new WeakSet<Animation>();
-    const describe = (element: Element | null, pseudo: string | null) => {
+    const describeAnimationTarget = (
+      element: Element | null,
+      pseudo: string | null,
+    ) => {
       if (!element) return '?';
       const classes = [...element.classList].slice(0, 3).join('.');
       return `${element.tagName.toLowerCase()}${classes ? `.${classes}` : ''}${pseudo ?? ''}`;
@@ -425,7 +428,7 @@ async function installTimelineRecorder(page: Page) {
         // The active start: the start time plus the delay of its slot.
         const start = (animation.startTime ?? now) + Number(timing?.delay ?? 0);
         state.entries.push({
-          target: describe(
+          target: describeAnimationTarget(
             effect?.target ?? null,
             effect?.pseudoElement ?? null,
           ),

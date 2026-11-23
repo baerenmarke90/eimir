@@ -103,37 +103,24 @@ function fixture(
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  function Wrapper({
-    children,
-    owner = 'owner',
-  }: {
-    children: ReactNode;
-    owner?: string;
-  }) {
-    return (
-      <QueryClientProvider client={client}>
-        <WirDesignProvider
-          key={owner}
-          api={new AppearanceApi(config)}
-          entitlementsApi={new EntitlementsApi(config)}
-          instance="instance"
-          accountId={owner}
-          spaceId="space"
-        >
-          <MemoryRouter>{children}</MemoryRouter>
-        </WirDesignProvider>
-      </QueryClientProvider>
-    );
-  }
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <Wrapper>{children}</Wrapper>
+    <QueryClientProvider client={client}>
+      <WirDesignProvider
+        api={new AppearanceApi(config)}
+        entitlementsApi={new EntitlementsApi(config)}
+        instance="instance"
+        accountId="owner"
+        spaceId="space"
+      >
+        <MemoryRouter>{children}</MemoryRouter>
+      </WirDesignProvider>
+    </QueryClientProvider>
   );
   return {
     writes,
     transport,
     client,
     wrapper,
-    Wrapper,
     setReadFailure: (v: boolean) => {
       options.failRead = v;
     },

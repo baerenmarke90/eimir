@@ -673,7 +673,7 @@
    They stay in the document and return on focus, so keyboard and assistive
    technology users never lose them. */
 .media-gallery-carousel-viewport
-> :not(.media-gallery-carousel-track, .media-gallery-sensitive-control) {
+  > :not(.media-gallery-carousel-track, .media-gallery-sensitive-control) {
   /* Returning is the slow, arriving half of the pair. */
   transition: opacity var(--duration-controls-return) var(--easing-enter);
 }
@@ -693,11 +693,11 @@
    Unlike swiping they still take a tap, and any touch, pointer movement or
    focus brings them back at once (MediaGallery.tsx). */
 .media-gallery-carousel-viewport.is-quiet
-> :not(
-  .media-gallery-carousel-track,
-  .media-gallery-sensitive-control,
-  :focus-within
-) {
+  > :not(
+    .media-gallery-carousel-track,
+    .media-gallery-sensitive-control,
+    :focus-within
+  ) {
   opacity: 0;
   transition: opacity var(--duration-context) var(--easing-standard);
 }

@@ -457,12 +457,12 @@
 
 /* A font-scaled container reflects zoom as well as the actual column width. */
 :root[data-wir-layout="thread"]
-:is(
-  .story-page-unified,
-  .planen-overview,
-  .daily-insights,
-  .games-product-page
-) {
+  :is(
+    .story-page-unified,
+    .planen-overview,
+    .daily-insights,
+    .games-product-page
+  ) {
   container: thread-area / inline-size;
 }
 

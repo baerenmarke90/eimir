@@ -3908,7 +3908,8 @@
           "SHARED_NOTE",
           "GARDEN_SEED",
           "GARDEN_BOUQUET",
-          "RECAP"
+          "RECAP",
+          "SUPPORT_REPORT"
         ],
         "title": "EngagementTarget",
         "type": "string"
@@ -7895,7 +7896,8 @@
           "SHARED_NOTE_CHANGED",
           "GARDEN_SEED_ARRIVED",
           "RECAP_READY",
-          "RECAP_GREW"
+          "RECAP_GREW",
+          "SUPPORT_REPLY"
         ],
         "title": "NotificationKind",
         "type": "string"

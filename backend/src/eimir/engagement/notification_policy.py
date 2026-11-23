@@ -15,7 +15,7 @@ from uuid import UUID
 
 from eimir.engagement.models import WISH_DATE_NOTICE_KINDS, NotificationKind
 
-POLICY_VERSION = 16
+POLICY_VERSION = 17
 GENERIC_PRESENTATION_KEY = "notification.generic"
 WISH_DATE_PRESENTATION_KEY = "notification.wish_date"
 DIGEST_WINDOW = timedelta(hours=1)
@@ -189,6 +189,11 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         # preview names only the period, never a title or a photo.
         NotificationKind.RECAP_READY: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
         NotificationKind.RECAP_GREW: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
+        # The operator's reply to the person's own support report (#2189); the
+        # device preview stays neutral and never carries the reply text.
+        NotificationKind.SUPPORT_REPLY: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
         **{
             kind: NotificationPolicy(DeliveryClass.IMMEDIATE, WISH_DATE_PREVIEW)
             for kind in WISH_DATE_NOTICE_KINDS

@@ -37,9 +37,16 @@ TITLE = "A day at the secret lake"
 
 @pytest.fixture
 def stamped(production_client):  # type: ignore[no-untyped-def]
-    """The committed test database, stamped like a migrated one; removed again afterwards."""
+    """The committed test database, stamped like a migrated one; the real state returns afterwards.
+
+    A migrated test database owns a real ``alembic_version`` table that the migration tests of
+    the same run rely on. It is set aside by renaming (its primary key goes with it) and put back
+    unchanged, never dropped; a database built without migrations ends up without the table, as
+    it was.
+    """
     _, maker = production_client
     engine: Engine = maker.kw["bind"]
+    saved = "alembic_version_saved_by_portability_tests"
 
     def stamp(revision: str | None) -> None:
         with engine.begin() as connection:
@@ -50,11 +57,21 @@ def stamped(production_client):  # type: ignore[no-untyped-def]
                     text("INSERT INTO alembic_version VALUES (:revision)"), {"revision": revision}
                 )
 
+    with engine.begin() as connection:
+        connection.execute(text(f"DROP TABLE IF EXISTS {saved}"))
+        had_real_table = bool(
+            connection.execute(text("SELECT to_regclass('alembic_version')")).scalar_one()
+        )
+        if had_real_table:
+            connection.execute(text(f"ALTER TABLE alembic_version RENAME TO {saved}"))
     stamp(TESTED_ALEMBIC_REVISION)
     try:
         yield production_client, engine, stamp
     finally:
-        stamp(None)
+        with engine.begin() as connection:
+            connection.execute(text("DROP TABLE IF EXISTS alembic_version"))
+            if had_real_table:
+                connection.execute(text(f"ALTER TABLE {saved} RENAME TO alembic_version"))
 
 
 def _source(client, maker) -> dict[str, Any]:  # type: ignore[no-untyped-def]

@@ -32,6 +32,7 @@ import { EimirIcon } from './EimirIcon';
 import { LegalFooterLinks } from './LegalDocumentLink';
 import { PageHeader } from './PageHeader';
 import { PersonIdentity } from './PersonIdentity';
+import { SupportReportSheet } from './SupportReportSheet';
 import { TaskOriginLink } from './TodayDestinationLink';
 import './MoreOverviewPage.css';
 
@@ -198,6 +199,49 @@ function MoreDestinationRow({
           ) : null}
         </span>
       </TaskOriginLink>
+    </li>
+  );
+}
+
+/**
+ * "Help & feedback" (#2189): a destination row that opens the support report
+ * sheet instead of navigating. It starts with feedback and attaches no failure;
+ * a problem stays selectable in the sheet.
+ */
+function HelpAndFeedbackRow() {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const rowId = useId();
+  const titleId = `${rowId}-title`;
+  const subtitleId = `${rowId}-subtitle`;
+  return (
+    <li>
+      <button
+        type="button"
+        className="more-destination more-destination-button"
+        aria-labelledby={titleId}
+        aria-describedby={subtitleId}
+        aria-haspopup="dialog"
+        onClick={() => setOpen(true)}
+      >
+        <span className="more-destination-icon" aria-hidden="true">
+          <EimirIcon name="hilfe" />
+        </span>
+        <span className="more-destination-copy">
+          <span className="more-destination-title-row">
+            <strong id={titleId}>{t('supportReport.entry.title')}</strong>
+          </span>
+          <span id={subtitleId} className="more-destination-subtitle">
+            {t('supportReport.entry.subtitle')}
+          </span>
+        </span>
+        <span className="more-destination-trailing" />
+      </button>
+      <SupportReportSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        initialKind="FEEDBACK"
+      />
     </li>
   );
 }
@@ -383,6 +427,9 @@ export function MoreOverviewPage({
               destination={destination}
             />
           ))}
+          {instanceStatus.data?.supportReportsAvailable ? (
+            <HelpAndFeedbackRow />
+          ) : null}
         </MoreDestinationGroup>
         {serverAdmin ? (
           <MoreDestinationGroup title={t('navigation.operatorArea')}>

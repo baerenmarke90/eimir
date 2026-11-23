@@ -6585,5 +6585,59 @@
     "connection": "The connection dropped while uploading. Check your network and try again.",
     "stalled": "The upload stopped making progress and was paused. Try again, ideally on a stable network.",
     "reference": "Reference for troubleshooting: {{reference}}"
+  },
+  "supportReport": {
+    "action": "Report a problem",
+    "entry": {
+      "title": "Help & feedback",
+      "subtitle": "Report a problem or tell us something"
+    },
+    "title": {
+      "PROBLEM": "Report a problem",
+      "FEEDBACK": "Help & feedback"
+    },
+    "kindLabel": "What is it about?",
+    "kinds": {
+      "PROBLEM": "Something is not working",
+      "FEEDBACK": "Feedback / idea"
+    },
+    "noteLabel": {
+      "PROBLEM": "What happened? (optional)",
+      "FEEDBACK": "What would you like? What bothers you?"
+    },
+    "counter": "{{length}} / {{max}}",
+    "counterLabel": "{{length}} of {{max}} characters",
+    "noteRequired": "Write a few words, then you can send.",
+    "noteTooLong": "That is more than {{max}} characters. Please shorten the text a little.",
+    "sentHeading": "What we send along",
+    "items": {
+      "failure": "Error code: {{reference}}",
+      "app": "App version and build",
+      "device": "Device: system and browser",
+      "locale": "Language, time and time zone",
+      "account": "Your account, so we can reply"
+    },
+    "never": "Never included: content, photos, places or messages.",
+    "send": "Send",
+    "sending": "Sending …",
+    "sendLater": "Send later",
+    "sendNow": "Send now",
+    "retry": "Try again",
+    "offline": {
+      "title": "You are offline.",
+      "body": "Your text is kept. We send it as soon as you are back online."
+    },
+    "failed": "That did not work. Your text is still here, try again in a moment.",
+    "rateLimited": "You sent a lot of reports just now. Your text is kept, try again later.",
+    "success": {
+      "title": "Thanks, received.",
+      "body": "We read every report. If we write back, you get a notification.",
+      "done": "Done"
+    },
+    "reply": {
+      "title": "Reply to your report",
+      "context": "About your report",
+      "loading": "Loading the reply …"
+    }
   }
 }

@@ -1,0 +1,30 @@
+/* SUPPORT_REPLY notice body (#2189): plain text, kept in the card's rhythm. */
+.support-reply {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.support-reply-context {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+.support-reply-text {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+/* A quiet static placeholder; no animation is added for one short line. */
+.support-reply-skeleton {
+  display: block;
+  width: min(100%, 16rem);
+  height: 1em;
+  margin-top: var(--space-1);
+  border-radius: var(--radius-small);
+  background: var(--color-surface-subtle);
+}

@@ -1,0 +1,211 @@
+/* Support report sheet (#2189). Tokens only; the sheet shell, its motion and
+   reduced-motion behaviour come from ShortTaskSheet. */
+
+.support-report-status:empty {
+  display: none;
+}
+
+.support-report-message {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-medium);
+  color: var(--color-text);
+  font: var(--font-supporting-copy);
+}
+
+.support-report-message-info {
+  background: var(--color-surface-subtle);
+}
+
+.support-report-message-problem {
+  background: var(--color-error-surface);
+}
+
+/* A two-option choice: native radios with the segmented presentation. */
+.support-report-kinds {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-1);
+  min-width: 0;
+  margin: 0 0 var(--space-4);
+  padding: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+}
+
+.support-report-kind {
+  position: relative;
+  display: grid;
+  min-height: 44px;
+  min-width: 0;
+  place-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  text-align: center;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+/* The native radio keeps semantics and arrow keys; the segment is its face. */
+.support-report-kind-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.support-report-kind:has(.support-report-kind-input:checked) {
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  box-shadow: var(--shadow-soft);
+}
+
+.support-report-kind:has(.support-report-kind-input:focus-visible) {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.support-report-kinds:disabled .support-report-kind {
+  cursor: default;
+}
+
+.support-report-label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-weight: 600;
+}
+
+.support-report-note {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-height: 7rem;
+  max-height: 40dvh;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-surface-width) solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text);
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.support-report-note:disabled {
+  color: var(--color-text-secondary);
+}
+
+.support-report-note[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+.support-report-counter {
+  margin: var(--space-1) var(--space-1) var(--space-3);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  text-align: end;
+}
+
+.support-report-sent {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+}
+
+.support-report-sent-heading {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+}
+
+.support-report-sent ul {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.support-report-sent li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-2);
+  overflow-wrap: anywhere;
+}
+
+.support-report-sent li::before {
+  content: "✓";
+  color: var(--color-success);
+}
+
+.support-report-never {
+  margin: var(--space-3) 0 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+/* One filled primary action, full width so its activity text never changes
+   its size. */
+.support-report-action {
+  width: 100%;
+  min-height: 48px;
+  border-radius: var(--radius-pill);
+}
+
+.support-report-action:disabled,
+.support-report-action[aria-disabled="true"] {
+  background: var(--color-border-subtle);
+  color: var(--color-text-muted);
+  filter: none;
+}
+
+.support-report-action:disabled {
+  cursor: not-allowed;
+}
+
+.support-report-action[aria-disabled="true"] {
+  cursor: wait;
+}
+
+.support-report-hint {
+  margin: var(--space-2) var(--space-1) 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+.support-report-success {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.support-report-success-mark {
+  display: grid;
+  width: var(--space-12);
+  height: var(--space-12);
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-success-surface);
+  color: var(--color-success);
+  font-weight: 700;
+}
+
+.support-report-success p {
+  max-width: 30ch;
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+/* Problem state: the report action sits quietly below the retry action. */
+.problem-state-actions {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+}

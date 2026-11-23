@@ -127,6 +127,7 @@ export function ShortTaskSheet({
   role = 'dialog',
   className = '',
   closeLabel,
+  showCloseIcon = true,
   id,
   ref,
 }: {
@@ -145,6 +146,12 @@ export function ShortTaskSheet({
   role?: 'dialog' | 'alertdialog';
   className?: string;
   closeLabel?: string;
+  /**
+   * False hides only the Close icon (#2189 support sheet, Product Owner
+   * 2026-11-23). The handle button stays the labeled close target for keyboard
+   * and screen readers; pull, backdrop and Back/Escape still close.
+   */
+  showCloseIcon?: boolean;
   id?: string;
   ref?: Ref<ShortTaskSheetHandle>;
 }) {
@@ -703,7 +710,7 @@ export function ShortTaskSheet({
     <dialog
       ref={dialogRef}
       id={id}
-      className={`short-task-sheet ${className}`}
+      className={`short-task-sheet${showCloseIcon ? '' : ' short-task-sheet-no-close-icon'} ${className}`}
       data-presence={presenceState}
       role={role}
       aria-modal="true"
@@ -839,14 +846,16 @@ export function ShortTaskSheet({
           onClick={() => requestClose()}
         >
           <span className="short-task-sheet-drag-handle" aria-hidden="true" />
-          <svg
-            className="short-task-sheet-close-icon inline-icon"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            focusable="false"
-          >
-            <path d="M6 6 18 18M18 6 6 18" />
-          </svg>
+          {showCloseIcon ? (
+            <svg
+              className="short-task-sheet-close-icon inline-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M6 6 18 18M18 6 6 18" />
+            </svg>
+          ) : null}
         </button>
       </header>
       <section

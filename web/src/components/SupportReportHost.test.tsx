@@ -182,7 +182,7 @@ describe('SupportReportHost', () => {
     const note = within(dialog).getByRole('textbox', {
       name: supportReport.noteLabel.PROBLEM,
     });
-    fireEvent.change(note, { target: { value: 'Mitten im Satz' } });
+    fireEvent.change(note, { target: { value: 'Mid-sentence' } });
 
     // A background refetch replaces the error state while the person types.
     rerender(view(false));
@@ -198,7 +198,7 @@ describe('SupportReportHost', () => {
       within(kept).getByRole<HTMLTextAreaElement>('textbox', {
         name: supportReport.noteLabel.PROBLEM,
       }).value,
-    ).toBe('Mitten im Satz');
+    ).toBe('Mid-sentence');
     expect(kept.textContent).toContain('GET:/api/v1/memories:500');
   });
 });

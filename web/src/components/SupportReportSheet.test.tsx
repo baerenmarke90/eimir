@@ -272,7 +272,7 @@ describe('SupportReportSheet', () => {
       onlineManager.setOnline(false);
     });
     const { createSupportReport } = setup();
-    fireEvent.change(noteField(), { target: { value: 'Ohne Netz' } });
+    fireEvent.change(noteField(), { target: { value: 'Without network' } });
     expect(screen.getByText(supportReport.offline.title)).toBeTruthy();
     await act(async () => {
       fireEvent.click(sendButton(supportReport.sendLater));
@@ -281,7 +281,7 @@ describe('SupportReportSheet', () => {
     expect(screen.getByRole('status').textContent).toContain(
       supportReport.offline.body,
     );
-    expect((noteField() as HTMLTextAreaElement).value).toBe('Ohne Netz');
+    expect((noteField() as HTMLTextAreaElement).value).toBe('Without network');
     // A queued report can be retried by hand as well.
     expect(sendButton(supportReport.sendNow)).toBeTruthy();
   });
@@ -308,7 +308,7 @@ describe('SupportReportSheet', () => {
     act(() => {
       onlineManager.setOnline(false);
     });
-    fireEvent.change(noteField(), { target: { value: 'Ohne Netz' } });
+    fireEvent.change(noteField(), { target: { value: 'Without network' } });
     await act(async () => {
       fireEvent.click(sendButton(supportReport.sendLater));
     });

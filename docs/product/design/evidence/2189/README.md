@@ -42,8 +42,8 @@ Compact 390 px unless the name says otherwise.
 | File | State |
 | --- | --- |
 | `01-error-state-390-{light,dark}.png` | Error state with the shared secondary "Erneut versuchen" and the smaller tertiary "Problem melden" |
-| `02-more-row-390-{light,dark}.png` | More, "Hilfe & Feedback" row in "App und Konto" |
-| `03-problem-sheet-390-{light,dark}.png` | Problem sheet, idle: "Fehler-Code" label above the raw reference, filled note field without resize grip |
+| `02-more-row-390-{light,dark}.png` | More, the help-and-feedback row in the app-and-account group |
+| `03-problem-sheet-390-{light,dark}.png` | Problem sheet, idle: error-code label above the raw reference, filled note field without resize grip |
 | `03-problem-sheet-360-light.png`, `-430-light.png` | The same at 360 and 430 px |
 | `03-problem-sheet-390-light-reduced-motion.png` | The same with reduced motion emulated |
 | `03-problem-sheet-1280-light.png` | Expanded: the sheet as a centered dialog, no Close icon |
@@ -73,7 +73,7 @@ observe the result and return:
 
 ## Not captured
 
-- Failed send ("Das hat nicht geklappt") and rate-limited states: covered by
+- Failed send (the failed-send message) and rate-limited states: covered by
   Vitest (`SupportReportSheet.test.tsx`), not by screenshots.
 - Expanded for the other states, 360/430 px in Dark, and 200 % text: the sheet
   reflows without horizontal scrolling at 360/390/430/1280 px (asserted), but
@@ -85,7 +85,7 @@ observe the result and return:
 
 The six findings of the first captures (`8ddd6402e`) are addressed in
 `e2e465cc1`/`6a70c5157` and visible in the files above: the failure
-reference breaks anywhere under its own "Fehler-Code" label; "Problem
+reference breaks anywhere under its own error-code label; "Problem
 melden" is the smaller, lighter tertiary action; the offline message sits
 below the note; success is one centered column; the reply's timestamp is
 smaller, muted and set apart; the note field has no resize grip (and now

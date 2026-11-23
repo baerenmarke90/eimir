@@ -25,7 +25,7 @@ const NOTIFICATION_ID = '55555555-5555-4555-8555-555555555555';
 const REQUEST_ID = 'e2e-notifications-1';
 const FAILURE_REFERENCE =
   'GET:/api/v1/spaces/{id}/notifications:500:E2E_UNAVAILABLE:web';
-const REPLY_TEXT = '<b>hi</b> Danke, das haben wir behoben.';
+const REPLY_TEXT = '<b>hi</b> Thanks, we fixed it.';
 const DRAFT_KEY = `eimir.supportReportDraft.v1.${ACCOUNT_ID}`;
 
 interface Flags {
@@ -344,7 +344,7 @@ test('report_a_problem_from_error_state_and_receive_reply', async ({
   // A problem needs no text, and nothing was sent yet.
   await expect(sheet.send).toBeEnabled();
   expect(recorded.posts).toHaveLength(0);
-  await sheet.problemNote.fill('Die Liste lädt nicht.');
+  await sheet.problemNote.fill('The list does not load.');
   await sheet.send.click();
 
   // Complete: exactly the allowed fields went out, once, with the failure.
@@ -357,7 +357,7 @@ test('report_a_problem_from_error_state_and_receive_reply', async ({
   const sent = recorded.posts[0]?.body as SupportBody;
   assertAllowedPayload(sent as unknown as Record<string, unknown>);
   expect(sent.kind).toBe('PROBLEM');
-  expect(sent.note).toBe('Die Liste lädt nicht.');
+  expect(sent.note).toBe('The list does not load.');
   expect(sent.failure).toEqual({
     reference: FAILURE_REFERENCE,
     requestId: REQUEST_ID,
@@ -384,8 +384,9 @@ test('report_a_problem_from_error_state_and_receive_reply', async ({
     .click();
   const notice = page.locator('.support-reply');
   await expect(page.getByText(copy.reply.title, { exact: true })).toBeVisible();
+  const contextPrefix = copy.reply.contextDated.replace('{{date}}', '');
   await expect(notice.locator('.support-reply-context')).toHaveText(
-    /^Deine Meldung vom \d{1,2}\. Nov/,
+    new RegExp(`^${contextPrefix}\\d{1,2}\\. Nov`),
   );
   // The literal characters show; nothing was parsed as markup.
   await expect(notice.locator('.support-reply-text')).toHaveText(REPLY_TEXT);
@@ -432,7 +433,7 @@ test('feedback_from_more_requires_text', async ({ page }) => {
   // Whitespace is not text.
   await sheet.feedbackNote.fill('   ');
   await expect(sheet.send).toBeDisabled();
-  await sheet.feedbackNote.fill('Ich wünsche mir einen Wochenplan.');
+  await sheet.feedbackNote.fill('I would like a weekly plan.');
   await expect(sheet.send).toBeEnabled();
   await expect(sheet.dialog.getByText(copy.noteRequired)).toHaveCount(0);
 
@@ -448,9 +449,7 @@ test('feedback_from_more_requires_text', async ({ page }) => {
     sheet.dialog.getByRole('button', { name: copy.sendNow, exact: true }),
   ).toBeVisible();
   await expect(sheet.dialog.getByText(copy.offline.body)).toBeVisible();
-  await expect(sheet.feedbackNote).toHaveValue(
-    'Ich wünsche mir einen Wochenplan.',
-  );
+  await expect(sheet.feedbackNote).toHaveValue('I would like a weekly plan.');
   expect(recorded.posts).toHaveLength(0);
   const draft = await page.evaluate(
     (key) => JSON.parse(localStorage.getItem(key) ?? 'null'),
@@ -458,16 +457,14 @@ test('feedback_from_more_requires_text', async ({ page }) => {
   );
   expect(draft).toMatchObject({
     kind: 'FEEDBACK',
-    note: 'Ich wünsche mir einen Wochenplan.',
+    note: 'I would like a weekly plan.',
   });
 
   // The note survives closing and reopening the sheet.
   await page.keyboard.press('Escape');
   await expect(sheet.dialog).toBeHidden();
   await row.click();
-  await expect(sheet.feedbackNote).toHaveValue(
-    'Ich wünsche mir einen Wochenplan.',
-  );
+  await expect(sheet.feedbackNote).toHaveValue('I would like a weekly plan.');
 
   // Back online: the one queued report is delivered once, without a failure.
   await page.context().setOffline(false);
@@ -478,7 +475,7 @@ test('feedback_from_more_requires_text', async ({ page }) => {
   const sent = recorded.posts[0]?.body as SupportBody;
   assertAllowedPayload(sent as unknown as Record<string, unknown>);
   expect(sent.kind).toBe('FEEDBACK');
-  expect(sent.note).toBe('Ich wünsche mir einen Wochenplan.');
+  expect(sent.note).toBe('I would like a weekly plan.');
   expect(sent).not.toHaveProperty('failure');
   expect(sent.client.online).toBe(true);
   await sheet.done.click();
@@ -499,7 +496,7 @@ test('sheet_survives_problem_state_replacement', async ({ page }) => {
   await page.getByRole('button', { name: copy.action, exact: true }).click();
   const sheet = sheetOf(page);
   await expect(sheet.dialog).toBeVisible();
-  await sheet.problemNote.fill('Mitten im Satz');
+  await sheet.problemNote.fill('Mid-sentence');
 
   // A reconnect refetches the failed list while the person is typing; the
   // list recovers and its content replaces the error state behind the sheet.
@@ -513,13 +510,13 @@ test('sheet_survives_problem_state_replacement', async ({ page }) => {
 
   // The sheet is still open with the note and the failure it was opened with.
   await expect(sheet.dialog).toBeVisible();
-  await expect(sheet.problemNote).toHaveValue('Mitten im Satz');
+  await expect(sheet.problemNote).toHaveValue('Mid-sentence');
   await expect(
     sheet.dialog.locator('.support-report-failure-token'),
   ).toHaveText(FAILURE_REFERENCE);
   await sheet.problemNote.press('End');
-  await sheet.problemNote.pressSequentially(', weiter.');
-  await expect(sheet.problemNote).toHaveValue('Mitten im Satz, weiter.');
+  await sheet.problemNote.pressSequentially(', and more.');
+  await expect(sheet.problemNote).toHaveValue('Mid-sentence, and more.');
   expect(recorded.posts).toHaveLength(0);
 
   // Closing keeps the draft for the next report, as before.
@@ -531,7 +528,7 @@ test('sheet_survives_problem_state_replacement', async ({ page }) => {
   );
   expect(draft).toMatchObject({
     kind: 'PROBLEM',
-    note: 'Mitten im Satz, weiter.',
+    note: 'Mid-sentence, and more.',
   });
 });
 
@@ -587,7 +584,7 @@ test.describe('states at 2x', () => {
     await page.setViewportSize({ width: 390, height: 844 });
 
     // The success state, then the reply on the originating screen.
-    await sheet.problemNote.fill('Die Liste lädt nicht.');
+    await sheet.problemNote.fill('The list does not load.');
     await sheet.send.click();
     await expect(sheet.done).toBeVisible();
     // One centered column: check above the title, title above the body.
@@ -650,7 +647,7 @@ test.describe('states at 2x', () => {
     await row.click();
     await expect(sheet.send).toBeDisabled();
     await captureThemes(page, info, '04-feedback-sheet-empty-390');
-    await sheet.feedbackNote.fill('Ich wünsche mir einen Wochenplan.');
+    await sheet.feedbackNote.fill('I would like a weekly plan.');
     await captureThemes(page, info, '05-feedback-filled-390');
     const idle = await formPositions(page);
     await page.context().setOffline(true);

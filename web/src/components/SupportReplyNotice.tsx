@@ -15,7 +15,7 @@ export interface SupportReplyReader {
   }): Promise<SupportReportReplyView>;
 }
 
-/** Per account: a reply is private to its reporter and never shared between sign-ins. */
+/** Keyed by account: a reply is private to its reporter and never shared with another account on the same device. */
 export function supportReplyQueryKey(
   accountId: string | undefined,
   reportId: string,

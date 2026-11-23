@@ -57,12 +57,12 @@ describe('buildSupportReport', () => {
   it('payload_has_only_allowed_fields', () => {
     const payload = buildSupportReport({
       kind: 'PROBLEM',
-      note: '  Das Foto fehlt.  ',
+      note: '  The photo is missing.  ',
       failure: FAILURE,
       clientContext: CONTEXT,
       clientRequestId: REQUEST_ID,
     });
-    expect(payload.note).toBe('Das Foto fehlt.');
+    expect(payload.note).toBe('The photo is missing.');
     expect(payload.clientRequestId).toBe(REQUEST_ID);
     const allowed = new Set(ALLOWED_PAYLOAD_FIELDS);
     for (const path of paths(payload)) expect(allowed).toContain(path);
@@ -80,7 +80,7 @@ describe('buildSupportReport', () => {
   it('feedback_never_carries_failure', () => {
     const payload = buildSupportReport({
       kind: 'FEEDBACK',
-      note: 'Eine Idee',
+      note: 'An idea',
       failure: FAILURE,
       clientContext: CONTEXT,
       clientRequestId: REQUEST_ID,

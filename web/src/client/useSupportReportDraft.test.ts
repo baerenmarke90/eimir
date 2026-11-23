@@ -55,11 +55,11 @@ describe('useSupportReportDraft', () => {
     const { result, createSupportReport } = fixture();
     act(() => {
       result.current.setKind('FEEDBACK');
-      result.current.setNote('  Eine Idee  ');
+      result.current.setNote('  An idea  ');
     });
     expect(
       window.localStorage.getItem(supportReportDraftStorageKey('account-a')),
-    ).toContain('Eine Idee');
+    ).toContain('An idea');
     await act(async () => {
       await result.current.send();
     });
@@ -67,7 +67,7 @@ describe('useSupportReportDraft', () => {
     expect(createSupportReport).toHaveBeenCalledTimes(1);
     const body = createSupportReport.mock.calls[0][0].supportReportCreate;
     expect(body.kind).toBe('FEEDBACK');
-    expect(body.note).toBe('Eine Idee');
+    expect(body.note).toBe('An idea');
     expect(body.clientRequestId).toMatch(UUID);
     expect(
       window.localStorage.getItem(supportReportDraftStorageKey('account-a')),
@@ -88,14 +88,14 @@ describe('useSupportReportDraft', () => {
 
   it('keeps_the_draft_per_account_and_restores_it', () => {
     const first = fixture();
-    act(() => first.result.current.setNote('Für Konto A'));
+    act(() => first.result.current.setNote('For account A'));
     first.unmount();
     const again = fixture();
-    expect(again.result.current.note).toBe('Für Konto A');
+    expect(again.result.current.note).toBe('For account A');
     again.rerender({ accountId: 'account-b' });
     expect(again.result.current.note).toBe('');
     again.rerender({ accountId: 'account-a' });
-    expect(again.result.current.note).toBe('Für Konto A');
+    expect(again.result.current.note).toBe('For account A');
   });
 
   it('works_without_usable_storage', async () => {
@@ -109,8 +109,8 @@ describe('useSupportReportDraft', () => {
       throw new DOMException('denied', 'SecurityError');
     });
     const { result, createSupportReport } = fixture();
-    act(() => result.current.setNote('Ohne Speicher'));
-    expect(result.current.note).toBe('Ohne Speicher');
+    act(() => result.current.setNote('Without storage'));
+    expect(result.current.note).toBe('Without storage');
     await act(async () => {
       await result.current.send();
     });
@@ -316,7 +316,7 @@ describe('useSupportReportDraft', () => {
 
   it('discard_clears_the_draft_and_cancels_a_queued_retry', async () => {
     const { result, createSupportReport } = fixture();
-    act(() => result.current.setNote('Weg damit'));
+    act(() => result.current.setNote('Discard this'));
     setConnectivity(false);
     await act(async () => {
       await result.current.send();

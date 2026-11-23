@@ -12,11 +12,18 @@ Discover showed three stacked blocks: the rediscovery lead (`story.featuredKicke
 
 One block. The lead plays as the first slide of the Fotostory, in a theme bubble of its own (`discoverStory.theme.remember`). Its photo develops like instant film. The curated themes follow. Below the story, only the "time for you" group remains.
 
-The theme bubbles keep one row and hyphenate their long labels (`discoverStory.theme.*` carries soft hyphens). On 320 px, the fifth bubble moves to a second row. The photos theme is labelled `discoverStory.theme.photos` ("Erinnerungen", "Memories"). While the story plays, the pause and open controls fade after `CONTROLS_QUIET_MS` (3 s), as in the media viewer. A touch, the pointer entering or focus brings them back, and they stay while the story is paused.
+The theme bubbles keep one row and hyphenate their long labels (`discoverStory.theme.*` carries soft hyphens). On 320 px, the fifth bubble moves to a second row. The photos theme is labelled `discoverStory.theme.photos` ("Erinnerungen", "Memories"). While the story plays, the pause and open controls begin to fade after 1.5 seconds of inactivity. A touch, the pointer entering or focus brings them back, and they stay while the story is paused.
 
 | | | |
 |---|---|---|
 | ![Lead slide, developed, controls rested, Light](01-lead-developed-375-light.jpg) | ![Lead slide, developed, controls rested, Dark](02-lead-developed-375-dark.jpg) | ![Paused, controls shown](10-paused-controls-375-light.jpg) |
+
+The following browser captures show the same playing heart moment on either side of the 1.5-second delay.
+
+| Viewport and theme | At 1,499 ms | After the fade |
+|---|---|---|
+| Compact, 390 px, light | [Controls visible](controls-1499ms-390-light.jpg) | [Controls hidden](controls-rested-390-light.jpg) |
+| Expanded, 1280 px, dark | [Controls visible](controls-1499ms-1280-dark.jpg) | [Controls hidden](controls-rested-1280-dark.jpg) |
 
 **Develop sequence** (Light, Album): first the undeveloped film, then a dark, colourless, soft print, and finally the photo. The develop takes `--duration-story-develop` (3.2 s).
 

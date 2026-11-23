@@ -42,7 +42,11 @@ request.
   settings; sharing continues approximately and the partner sees no reason.
 - **Wir and map:** with both partners precise, Wir shows a finer value (under
   300 m, 300 m to 1 km, 1 to 2 km) instead of the generic nearby text, and the
-  map area is small. Otherwise nothing changes.
+  map area is small. The time shown beneath each person comes from their own
+  location measurement. Your row uses the fix displayed on your device.
+  The sharing settings link below the rows opens the precision choices and their
+  explanations. [Compact map](evidence/map-sharing-390-light.png) ·
+  [Expanded map](evidence/map-sharing-1280-light.png)
 - **States:** loading, error, offline and Pro-less states of the existing pages
   are unchanged; the new section is simply absent without Pro. Browser: the
   choice exists too (the browser requests high accuracy); Android: the choice and

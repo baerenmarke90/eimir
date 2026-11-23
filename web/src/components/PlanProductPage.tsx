@@ -851,11 +851,7 @@ export function PlanProductPage({
                 onDiscard={editorLifecycle.discard}
               />
             ) : null}
-            <div
-              ref={editFocus}
-              tabIndex={-1}
-              className="planning-task-focus"
-            />
+            <div ref={editFocus} tabIndex={-1} className="sr-only" />
             <fieldset
               className="form-grid planning-editor-fields"
               disabled={writesPending}

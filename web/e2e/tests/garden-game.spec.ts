@@ -6,6 +6,7 @@ import games from '../../src/i18n/locales/games';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
+import { expectTitleOnlyContentGap } from '../support/pageHeader';
 import { CAPABILITIES } from '../support/storyTimelineFixture';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -504,6 +505,7 @@ for (const scenario of [
     const errors = await prepare(page, scenario);
     await openGarden(page);
     const stack = page.locator('.garden-scene-stack').first();
+    await expectTitleOnlyContentGap(page.locator('.garden-band'));
     const name = `2079-garden-scene-${scenario.width}-${scenario.theme}${scenario.reduce ? '-reduce' : ''}`;
 
     if (scenario.reduce) {

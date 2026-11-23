@@ -1,4 +1,8 @@
-import { useQuery, type QueryClient } from '@tanstack/react-query';
+import {
+  type QueryClient,
+  queryOptions,
+  useQuery,
+} from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import type { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import type { AccountView } from '../api/generated/models/AccountView';
@@ -8,18 +12,39 @@ import { captureAuthorizedQuery } from './queryIdentity';
 export const GENTLE_PROMPT_KIND = 'GENTLE_PROMPT';
 export const OWN_USE_COALESCE_MS = 15 * 60 * 1000;
 
-/** Explicit onboarding consent; token refresh/registration never invokes this. */
+function promptPreferences(api: NotificationsApi, accountId: string) {
+  return queryOptions({
+    queryKey: ['notification-preferences', accountId],
+    queryFn: ({ signal }) => api.getOwnNotificationPreferences({ signal }),
+    staleTime: 0,
+  });
+}
+
+/** Start the read on the user's tap, while the device is being connected. */
+export function prepareGentlePrompts(
+  queryClient: QueryClient,
+  api: NotificationsApi,
+  accountId: string,
+) {
+  return queryClient.prefetchQuery(promptPreferences(api, accountId));
+}
+
+/** Only confirmed device registration may complete the user's explicit consent. */
 export async function enableGentlePrompts(
   queryClient: QueryClient,
   api: NotificationsApi,
   accountId: string,
 ) {
-  const queryKey = ['notification-preferences', accountId];
-  const preferences = queryClient.fetchQuery({
-    queryKey,
-    queryFn: ({ signal }) => api.getOwnNotificationPreferences({ signal }),
-    staleTime: 0,
-  });
+  const options = promptPreferences(api, accountId);
+  const { queryKey } = options;
+  const state = queryClient.getQueryState(queryKey);
+  // Join an unfinished read or retry a failed one. A completed read already
+  // contains the preferences, even if device registration invalidated the
+  // channel capabilities in the meantime.
+  const preferences =
+    state?.status === 'success' && state.fetchStatus === 'idle'
+      ? undefined
+      : queryClient.fetchQuery(options);
   const current = captureAuthorizedQuery(queryClient, queryKey);
   await preferences;
   if (!current()) throw new Error('Notification preference owner changed.');
@@ -48,6 +73,9 @@ export async function enableGentlePrompts(
         ),
       },
   );
+  // The early read can predate the endpoint. Refresh delivery capabilities
+  // for an open settings screen without delaying the confirmed consent.
+  void queryClient.invalidateQueries({ queryKey, exact: true });
 }
 
 export function gentleSuggestionKey(accountId: string, spaceId: string) {

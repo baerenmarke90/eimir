@@ -42,7 +42,7 @@
 }
 .wish-selection-task {
   display: grid;
-  gap: var(--space-5);
+  --page-stack-gap: var(--space-5);
   max-width: var(--reading-max);
 }
 .wish-selection-task .page-heading {

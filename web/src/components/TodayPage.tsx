@@ -3,6 +3,7 @@ import {
   type CSSProperties,
   Fragment,
   type ReactNode,
+  Suspense,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -118,6 +119,9 @@ import {
 } from './CouplePresence';
 import { DailyQuoteCard } from './DailyQuoteCard';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
+import { ThreadToday } from './ThreadNavigationLayout';
+import { ChapterToday } from './ChapterNavigationLayout';
+import { RoomLanding } from './RoomNavigationLayout';
 import { MemoryPreview } from './MemoryPreview';
 import { MomentCreateMenu } from './MomentCreateMenu';
 import {
@@ -1087,7 +1091,10 @@ export function TodayPage({
   // first and small portraits; note then leads with the latest Heart Moment.
   const namesLayout = wirLayout === 'names';
   const noteLayout = wirLayout === 'note';
-  const compactPresence = namesLayout || noteLayout;
+  const threadLayout = wirLayout === 'thread';
+  const sharedRhythm = wirLayout === 'chapters';
+  const rooms = wirLayout === 'rooms';
+  const compactPresence = namesLayout || noteLayout || rooms;
   // "Seite an Seite": the two people as rows and agenda date stamps.
   const sharedAlbum = wirLayout === 'rows';
   // "Verbunden": two portraits joined by a heart line (the default design).
@@ -1252,6 +1259,8 @@ export function TodayPage({
   // "Gefühl teilen" from a partner check-in receipt opens the viewer's own
   // daily check-in once; the flag is removed so Back never reopens it.
   const location = useLocation();
+  const homeLanding =
+    rooms && new URLSearchParams(location.search).get('view') !== 'wir';
   const navigate = useNavigate();
   const { captureOrigin } = useTaskOrigin();
   // #2048: alone in the Space, the empty partner place invites.
@@ -1945,7 +1954,10 @@ export function TodayPage({
   // The note layout opens with the latest shared Heart Moment that has words
   // and nothing to conceal; otherwise it shows the usual moment feature.
   const leadNote =
-    noteLayout && keepsakeVisible && !dashboardQuery.isCached
+    (noteLayout || homeLanding) &&
+    keepsakeVisible &&
+    !dashboardQuery.isCached &&
+    !dashboardQuery.error
       ? ordinaryShared.find(
           (item) =>
             item.type === 'HEART_MOMENT' &&
@@ -1966,7 +1978,7 @@ export function TodayPage({
     ((!leadNotePath && showNoteKeepsake) ||
       leadNote?.id === focalItem?.item.id);
   const noteFeature =
-    leadNote && leadNotePath ? (
+    noteLayout && leadNote && leadNotePath ? (
       <TodayDestinationLink to={leadNotePath} className="wir-note-card">
         <span className="wir-note-kind">
           <EimirIcon name="momente" variant="filled" />
@@ -2131,9 +2143,109 @@ export function TodayPage({
     avatarAction?: CouplePresenceAvatarAction,
     avatarOverlay?: ReactNode,
   ) =>
-    connectedDesign
-      ? renderConnectedHero(avatarAction, avatarOverlay)
-      : renderClassicHero(avatarAction, avatarOverlay);
+    threadLayout ? (
+      <Suspense
+        fallback={<UiState kind="loading" title={t('states.loading.title')} />}
+      >
+        <ThreadToday
+          own={{
+            name: heroOwnName,
+            image: userAvatar.avatarUrl,
+            action: dailyCheckIn?.ownAction,
+            badge: dailyCheckIn?.ownBadge,
+            label: t('wirDesign.thread.ownVibe'),
+          }}
+          partner={
+            partner
+              ? {
+                  name: partnerName,
+                  image: partnerAvatar.avatarUrl,
+                  action:
+                    avatarAction && dailyCheckIn?.partnerAriaLabel
+                      ? {
+                          ...avatarAction,
+                          label: `${avatarAction.label}. ${dailyCheckIn.partnerAriaLabel}`,
+                        }
+                      : avatarAction,
+                  badge: dailyCheckIn?.partnerBadge,
+                  label: t('wirDesign.thread.partner'),
+                }
+              : undefined
+          }
+          duration={heroDurationText}
+          day={dashboardQuery.data?.viewerLocalDate}
+          overlay={avatarOverlay}
+        />
+      </Suspense>
+    ) : sharedRhythm ? (
+      <Suspense
+        fallback={<UiState kind="loading" title={t('states.loading.title')} />}
+      >
+        <ChapterToday
+          own={{
+            name: heroOwnName,
+            image: userAvatar.avatarUrl,
+            action: dailyCheckIn?.ownAction,
+            badge: dailyCheckIn?.ownBadge,
+          }}
+          partner={
+            partner
+              ? {
+                  name: partnerName,
+                  image: partnerAvatar.avatarUrl,
+                  action:
+                    avatarAction && dailyCheckIn?.partnerAriaLabel
+                      ? {
+                          ...avatarAction,
+                          label: `${avatarAction.label}. ${dailyCheckIn.partnerAriaLabel}`,
+                        }
+                      : avatarAction,
+                  badge: dailyCheckIn?.partnerBadge,
+                }
+              : undefined
+          }
+          duration={heroDurationText}
+          date={dashboardQuery.data?.viewerLocalDate ?? undefined}
+          overlay={avatarOverlay}
+        />
+      </Suspense>
+    ) : homeLanding ? (
+      <Suspense
+        fallback={<UiState kind="loading" title={t('states.loading.title')} />}
+      >
+        <RoomLanding
+          own={{ name: heroOwnName, photo: userAvatar.avatarUrl }}
+          partner={
+            partner
+              ? { name: partnerName, photo: partnerAvatar.avatarUrl }
+              : undefined
+          }
+          ownAction={dailyCheckIn?.ownAction}
+          partnerAction={
+            avatarAction && dailyCheckIn?.partnerAriaLabel
+              ? {
+                  ...avatarAction,
+                  label: `${avatarAction.label}. ${dailyCheckIn.partnerAriaLabel}`,
+                }
+              : avatarAction
+          }
+          overlay={avatarOverlay}
+          note={
+            leadNotePath && leadNote?.titleOrText
+              ? {
+                  to: leadNotePath,
+                  text: leadNote.titleOrText,
+                  id: leadNote.id,
+                }
+              : undefined
+          }
+        />
+      </Suspense>
+    ) : connectedDesign ? (
+      renderConnectedHero(avatarAction, avatarOverlay)
+    ) : (
+      renderClassicHero(avatarAction, avatarOverlay)
+    );
 
   const dailyQuote =
     account?.id && dailyQuoteApi && entitlementApi ? (
@@ -2150,7 +2262,9 @@ export function TodayPage({
     ) : null;
   const moduleContent: Record<DashboardModuleKey, ReactNode> = {
     partner_distance:
-      partnerDistanceVisible && !partnerDistanceInHero && partnerDistance ? (
+      partnerDistanceVisible &&
+      (sharedRhythm || threadLayout || !partnerDistanceInHero) &&
+      partnerDistance ? (
         <div className="today-partner-distance">{partnerDistance}</div>
       ) : null,
     shared_experience:
@@ -2203,6 +2317,18 @@ export function TodayPage({
           ) : (
             renderRelationshipHero()
           )
+        ) : homeLanding ? (
+          <Suspense
+            fallback={
+              <UiState kind="loading" title={t('states.loading.title')} />
+            }
+          >
+            <RoomLanding />
+          </Suspense>
+        ) : threadLayout ? (
+          <h1>{t('navigation.today')}</h1>
+        ) : sharedRhythm ? (
+          <h1>{t('wirDesign.rhythm.today')}</h1>
         ) : null}
         {connectedMoment.visible ? (
           <ConnectedMoment playing={connectedMoment.playing} />
@@ -2605,36 +2731,55 @@ export function TodayPage({
         />
       ) : null}
 
-      {contentReady && dashboardQuery.data ? (
+      {homeLanding && contentReady ? (
+        moduleContent.relationship_presence
+      ) : contentReady && dashboardQuery.data ? (
         <div
           className="today-content"
           ref={rootIntro}
           style={{ '--wir-intro-pace': WIR_INTRO_PACE } as CSSProperties}
         >
-          <PageHeader
-            variant="root"
-            className="content-overview-heading"
-            title={t('navigation.today')}
-            action={
-              noteLayout ||
-              (namesLayout &&
-                showMomentSection &&
-                keepsakeVisible) ? undefined : (
-                <MomentCreateMenu floating={!sharedAlbum} everything />
-              )
-            }
-          />
+          {sharedRhythm || threadLayout ? (
+            <>
+              {moduleContent.relationship_presence}
+              <div
+                className={
+                  threadLayout ? 'thread-create' : 'rhythm-today-create'
+                }
+              >
+                <MomentCreateMenu everything />
+              </div>
+            </>
+          ) : (
+            <PageHeader
+              variant="root"
+              className="content-overview-heading"
+              title={t('navigation.today')}
+              action={
+                rooms ||
+                noteLayout ||
+                (namesLayout &&
+                  showMomentSection &&
+                  keepsakeVisible) ? undefined : (
+                  <MomentCreateMenu floating={!sharedAlbum} everything />
+                )
+              }
+            />
+          )}
 
-          {visibleOrder.map((key) => (
-            <Fragment key={key}>
-              {moduleContent[key]}
-              {noteLayout && key === 'relationship_presence' ? (
-                <div className="wir-note-add">
-                  <MomentCreateMenu />
-                </div>
-              ) : null}
-            </Fragment>
-          ))}
+          {visibleOrder.map((key) =>
+            (sharedRhythm || threadLayout) &&
+            key === 'relationship_presence' ? null : (
+              <Fragment key={key}>
+                {moduleContent[key]}
+                {noteLayout && key === 'relationship_presence' ? (
+                  <div className="wir-note-add">
+                    <MomentCreateMenu />
+                  </div>
+                ) : null}
+              </Fragment>
+            ),
+          )}
           {isSparse ? (
             <div className="new-space-experience">
               <h2 className="new-space-title">

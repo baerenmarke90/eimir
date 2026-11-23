@@ -38,6 +38,7 @@ async function nativePush(page: Page, deny = false, ios = false) {
         CapacitorCustomPlatform: unknown;
         Capacitor: unknown;
         pushCalls: string[];
+        waitForDevicePermission?(): Promise<void>;
         openNativeNotification(id: string, activationId?: string): void;
       };
       host.CapacitorCustomPlatform = { name: ios ? 'ios' : 'android' };
@@ -133,6 +134,7 @@ async function nativePush(page: Page, deny = false, ios = false) {
           }
           if (method === 'enable') {
             host.pushCalls.push(method);
+            await host.waitForDevicePermission?.();
             if (deny) throw new Error('NOTIFICATION_PERMISSION_DENIED');
             state = {
               ...state,
@@ -322,54 +324,123 @@ for (const width of [360, 390, 430, 1280]) {
   }
 }
 
-test('activation waits for authenticated endpoint registration before confirming success', async ({
-  page,
-}) => {
-  await nativePush(page);
-  await mocks(page);
-  let release!: () => void;
-  let registrations = 0;
-  const registration = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  await page.route('**/api/v1/push-endpoints', async (route) => {
-    registrations += 1;
-    expect(route.request().headers().authorization).toBe(
-      'Bearer timeline-ref-access-token',
+for (const [width, theme, retryPrompts] of [
+  [390, 'dark', false],
+  [1280, 'light', true],
+] as const) {
+  test(`activation reports device and invitation progress at ${width}px ${theme}`, async ({
+    page,
+  }, info) => {
+    const permission = Promise.withResolvers<void>();
+    await page.exposeFunction(
+      'waitForDevicePermission',
+      () => permission.promise,
     );
-    expect(route.request().postDataJSON().providerKey).toBe('fcm');
-    await registration;
-    await route.fulfill({ json: { id: 'registered-endpoint' } });
-  });
-  let promptWrites = 0;
-  await page.route(
-    '**/api/v1/notification-preferences/GENTLE_PROMPT/PUSH',
-    (route) => {
-      promptWrites += 1;
-      expect(route.request().postDataJSON()).toEqual({ enabled: true });
-      return route.fulfill({
-        json: { kind: 'GENTLE_PROMPT', channel: 'PUSH', enabled: true },
-      });
-    },
-  );
-  await signIn(page);
-  const dialog = page.getByRole('dialog', { name: copy.onboardingTitle });
-  await dialog.getByRole('button', { name: copy.onboardingActivate }).click();
-  await expect.poll(() => registrations).toBe(1);
-  expect(promptWrites).toBe(0);
-  await expect(dialog.getByRole('status')).toHaveText(copy.deviceConnecting);
-  await expect(dialog).toBeVisible();
-  release();
-  await expect(dialog).toHaveCount(0);
-  expect(promptWrites).toBe(1);
-  expect(
-    await page.evaluate(() =>
-      localStorage.getItem(
-        `eimir-device-push-onboarding-v1:${location.origin}:${'11111111-1111-4111-8111-111111111111'}`,
+    await nativePush(page);
+    await mocks(page);
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.addInitScript(
+      (value) => localStorage.setItem('eimir.theme', value),
+      theme,
+    );
+    let registrations = 0;
+    const registration = Promise.withResolvers<void>();
+    await page.route('**/api/v1/push-endpoints', async (route) => {
+      registrations += 1;
+      expect(route.request().headers().authorization).toBe(
+        'Bearer timeline-ref-access-token',
+      );
+      expect(route.request().postDataJSON().providerKey).toBe('fcm');
+      await registration.promise;
+      await route.fulfill({ json: { id: 'registered-endpoint' } });
+    });
+    const preferences = Promise.withResolvers<void>();
+    let promptWrites = 0;
+    await page.route(
+      '**/api/v1/notification-preferences/GENTLE_PROMPT/PUSH',
+      async (route) => {
+        promptWrites += 1;
+        expect(route.request().method()).toBe('PATCH');
+        expect(route.request().postDataJSON()).toEqual({ enabled: true });
+        await preferences.promise;
+        if (retryPrompts && promptWrites === 1)
+          return route.fulfill({ status: 503 });
+        return route.fulfill({
+          json: { kind: 'GENTLE_PROMPT', channel: 'PUSH', enabled: true },
+        });
+      },
+    );
+    await signIn(page);
+    const dialog = page.getByRole('dialog', { name: copy.onboardingTitle });
+    const preferenceRead = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'GET' &&
+        new URL(response.url()).pathname === '/api/v1/notification-preferences',
+    );
+    await dialog.getByRole('button', { name: copy.onboardingActivate }).click();
+    const activating = dialog.getByRole('button', {
+      name: copy.onboardingActivating,
+    });
+    await expect(activating).toBeDisabled();
+    await expect(activating).toHaveAttribute('aria-busy', 'true');
+    await expect(dialog.getByRole('status')).toHaveText(copy.deviceConnecting);
+    expect((await preferenceRead).ok()).toBe(true);
+    expect(registrations).toBe(0);
+    expect(promptWrites).toBe(0);
+    await captureScreenshot(
+      page,
+      info,
+      `push-activating-${width}-${theme}.png`,
+    );
+    permission.resolve();
+    await expect.poll(() => registrations).toBe(1);
+    expect(promptWrites).toBe(0);
+    await expect(dialog.getByRole('status')).toHaveText(copy.deviceConnecting);
+    registration.resolve();
+    await expect.poll(() => promptWrites).toBe(1);
+    const saving = dialog.getByRole('button', {
+      name: copy.onboardingSavingPrompts,
+    });
+    await expect(saving).toBeDisabled();
+    await expect(saving).toHaveAttribute('aria-busy', 'true');
+    await expect(dialog.getByRole('status')).toHaveText(
+      copy.onboardingPushReady,
+    );
+    await captureScreenshot(
+      page,
+      info,
+      `push-saving-invitations-${width}-${theme}.png`,
+    );
+    if (!retryPrompts) {
+      await dialog
+        .getByRole('button', { name: copy.onboardingContinue })
+        .click();
+      await expect(dialog).toHaveCount(0);
+      await expect(page.getByText(copy.deviceOn, { exact: true })).toHaveCount(
+        0,
+      );
+    }
+    preferences.resolve();
+    if (retryPrompts) {
+      await expect(dialog.getByRole('alert')).toHaveText(
+        copy.onboardingPromptsFailed,
+      );
+      await dialog.getByRole('button', { name: de.common.retry }).click();
+      await expect.poll(() => promptWrites).toBe(2);
+    }
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByText(copy.deviceOn, { exact: true })).toBeVisible();
+    expect(registrations).toBe(1);
+    expect(
+      await page.evaluate(() =>
+        localStorage.getItem(
+          `eimir-device-push-onboarding-v1:${location.origin}:${'11111111-1111-4111-8111-111111111111'}`,
+        ),
       ),
-    ),
-  ).toBe('answered');
-});
+    ).toBe('answered');
+  });
+}
 
 test('permission denial offers system settings and does not register an endpoint', async ({
   page,
@@ -597,7 +668,7 @@ test('the device switch confirms registration and revokes push from Settings', a
   confirmRegistration();
   await expect(toggle).toBeChecked();
   await expect(toggle).toBeEnabled();
-  await expect(page.getByText(copy.deviceOn)).toHaveCount(0);
+  await expect(page.getByText(copy.deviceOn, { exact: true })).toBeVisible();
   await expect(prompts).not.toBeChecked();
   await expect(page.getByText(gentlePrompts.permissionHint)).toHaveCount(0);
   expect(

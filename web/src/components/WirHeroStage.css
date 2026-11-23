@@ -18,7 +18,6 @@
   --wir-own-accent: var(--person-own-accent);
   --wir-partner-accent: var(--person-partner-accent);
   position: relative;
-  isolation: isolate;
   margin-bottom: var(--space-section);
 }
 
@@ -416,48 +415,91 @@
 }
 
 /*
- * The light behind the portraits. Each person keeps a small glow; the wide
- * glows and the shared light in the middle fade in as the two come closer.
- * Only opacity changes (Motion Contract M6).
+ * The light behind the portraits runs behind everything on the page: up under
+ * the status bar to the edge of the screen and down into the next module, so
+ * it never reads as a band across the hero. Each person keeps a tall glow;
+ * the wider glows and the shared light in the middle fade in as the two come
+ * closer. Only opacity changes (Motion Contract M6).
  */
 .wir-distance-light {
   --wir-distance-bleed: var(--page-gutter, var(--space-4));
-  --wir-distance-rise: var(--space-6);
+  /* Past the screen edge above any header, and past the tallest glow. */
+  --wir-distance-reach: calc(var(--wir-avatar) * 2.9);
+  --wir-distance-glow-tone: 74%;
+  --wir-distance-shared: 0.6;
 
   position: absolute;
   z-index: -1;
-  inset: calc(-1 * var(--wir-distance-rise))
-    calc(-1 * var(--wir-distance-bleed)) calc(-1 * var(--space-5));
+  inset: calc(-1 * var(--wir-distance-reach))
+    calc(-1 * var(--wir-distance-bleed));
   overflow: clip;
   pointer-events: none;
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    var(--color-text) 18%,
-    var(--color-text) 78%,
-    transparent
+}
+
+:root[data-theme="dark"] .wir-distance-light {
+  --wir-distance-glow-tone: 66%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .wir-distance-light {
+    --wir-distance-glow-tone: 66%;
+  }
+}
+
+/* On a light page the visible light darkens the ground, so the quiet text on
+   it becomes firmer instead of the light becoming faint. */
+:root[data-theme="light"]
+  .today-page:has(.wir-distance-light)
+  :is(.wir-stage, .daily-quote-card) {
+  --color-text-muted: color-mix(
+    in srgb,
+    var(--color-text) 82%,
+    var(--color-background)
   );
-  mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    var(--color-text) 18%,
-    var(--color-text) 78%,
-    transparent
+  --color-text-secondary: color-mix(
+    in srgb,
+    var(--color-text) 82%,
+    var(--color-background)
   );
 }
 
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"])
+    .today-page:has(.wir-distance-light)
+    :is(.wir-stage, .daily-quote-card) {
+    --color-text-muted: color-mix(
+      in srgb,
+      var(--color-text) 82%,
+      var(--color-background)
+    );
+    --color-text-secondary: color-mix(
+      in srgb,
+      var(--color-text) 82%,
+      var(--color-background)
+    );
+  }
+}
+
 .wir-distance-glow {
-  --wir-distance-glow-size: 1.5;
+  --wir-distance-glow-width: 2.3;
+  --wir-distance-glow-height: 4.8;
+  --wir-distance-glow-tint: color-mix(
+    in srgb,
+    var(--wir-distance-glow-colour) var(--wir-distance-glow-tone),
+    var(--color-background)
+  );
 
   position: absolute;
-  top: calc(var(--wir-distance-rise) + var(--space-5) + var(--wir-avatar) / 2);
-  width: calc(var(--wir-avatar) * var(--wir-distance-glow-size));
-  aspect-ratio: 1;
+  top: calc(var(--wir-distance-reach) + var(--space-5) + var(--wir-avatar) / 2);
+  width: calc(var(--wir-avatar) * var(--wir-distance-glow-width));
+  height: calc(var(--wir-avatar) * var(--wir-distance-glow-height));
   border-radius: 50%;
   background: radial-gradient(
     closest-side,
-    color-mix(in srgb, var(--wir-distance-glow-colour) 32%, transparent) 36%,
-    color-mix(in srgb, var(--wir-distance-glow-colour) 13%, transparent) 70%,
+    color-mix(in srgb, var(--wir-distance-glow-tint) 26%, transparent),
+    color-mix(in srgb, var(--wir-distance-glow-tint) 20%, transparent) 32%,
+    color-mix(in srgb, var(--wir-distance-glow-tint) 11%, transparent) 58%,
+    color-mix(in srgb, var(--wir-distance-glow-tint) 4%, transparent) 82%,
     transparent
   );
   translate: -50% -50%;
@@ -477,13 +519,15 @@
 }
 
 .wir-distance-glow.is-near {
-  --wir-distance-glow-size: 3;
+  --wir-distance-glow-width: 3.3;
+  --wir-distance-glow-height: 5.4;
 
   opacity: calc(1 - var(--wir-distance-closeness));
 }
 
 .wir-distance-glow.is-shared {
-  --wir-distance-glow-size: 2.5;
+  --wir-distance-glow-width: 3;
+  --wir-distance-glow-height: 5.6;
   --wir-distance-glow-colour: color-mix(
     in srgb,
     var(--wir-own-accent),
@@ -491,7 +535,10 @@
   );
 
   left: 50%;
-  opacity: max(0, calc(1 - var(--wir-distance-closeness) * 2));
+  opacity: max(
+    0,
+    calc((1 - var(--wir-distance-closeness) * 2) * var(--wir-distance-shared))
+  );
 }
 
 /* The heart's control, the moment's soft flash and the word above the heart. */
@@ -604,7 +651,6 @@ a.wir-distance-word:focus-visible {
 }
 
 .wir-distance-spark.is-trail {
-  opacity: 0.4;
   box-shadow: none;
 }
 
@@ -700,40 +746,22 @@ a.wir-distance-word:focus-visible {
   /* The wider column leaves room for the light on both sides; it fades out
      before it reaches the edge of the window. */
   .wir-distance-light {
-    --wir-distance-bleed: min(10rem, calc((100vw - 34rem) / 2 - 1rem));
+    --wir-distance-bleed: min(11rem, calc((100vw - 34rem) / 2 - 1rem));
 
-    -webkit-mask-image:
-      linear-gradient(
-        to bottom,
-        transparent,
-        var(--color-text) 18%,
-        var(--color-text) 78%,
-        transparent
-      ),
-      linear-gradient(
-        to right,
-        transparent,
-        var(--color-text) 16%,
-        var(--color-text) 84%,
-        transparent
-      );
-    mask-image:
-      linear-gradient(
-        to bottom,
-        transparent,
-        var(--color-text) 18%,
-        var(--color-text) 78%,
-        transparent
-      ),
-      linear-gradient(
-        to right,
-        transparent,
-        var(--color-text) 16%,
-        var(--color-text) 84%,
-        transparent
-      );
-    -webkit-mask-composite: source-in;
-    mask-composite: intersect;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      var(--color-text) 16%,
+      var(--color-text) 84%,
+      transparent
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      var(--color-text) 16%,
+      var(--color-text) 84%,
+      transparent
+    );
   }
 }
 

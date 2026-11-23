@@ -1089,7 +1089,10 @@ function WishSelectionTask({
 
   return (
     <div className="page wish-selection-task">
-      <header className="page-heading wish-selection-heading">
+      <header
+        className="page-heading wish-selection-heading"
+        data-title-only={!intro || undefined}
+      >
         <TaskBackButton inline type="button" disabled={busy} onClick={goBack}>
           {t(
             activeMode === 'plan'
@@ -1105,7 +1108,7 @@ function WishSelectionTask({
         </div>
       </header>
       {intro ? <p className="wish-selection-intro">{intro}</p> : null}
-      <div ref={focusRef} tabIndex={-1} className="planning-task-focus" />
+      <div ref={focusRef} tabIndex={-1} className="sr-only" />
       {query.error ? (
         <ProblemState
           error={query.error}

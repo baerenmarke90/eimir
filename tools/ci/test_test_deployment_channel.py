@@ -15,8 +15,9 @@ import sys
 import tarfile
 import tempfile
 import unittest
+import urllib.error
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -502,7 +503,7 @@ class EvidenceAndImageTest(unittest.TestCase):
                     self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
                 )
                 self.assertEqual(
-                    pinned, "ghcr.io/baerenmarke90/eimir-backend@sha256:" + "b" * 64
+                    pinned, "ghcr.io/baerenmarke90/eimir-cloud-backend@sha256:" + "b" * 64
                 )
                 calls = [call.args[0] for call in run.call_args_list]
                 self.assertIn(["docker", "pull", pinned], calls)
@@ -674,7 +675,7 @@ class EvidenceAndImageTest(unittest.TestCase):
         self.index["artifacts"].append(record)
         self.write_index()
 
-    def publish_staged_pair(self, **values):
+    def publish_staged_pair(self, anonymous_status=403, **values):
         """Publish with every registry and GitHub write replaced by a recorder."""
         self.add_media_record()
         media = "ghcr.io/baerenmarke90/eimir-media@sha256:" + "5" * 64
@@ -685,6 +686,9 @@ class EvidenceAndImageTest(unittest.TestCase):
             patch.object(
                 channel, "publish_image", side_effect=[BACKEND, WEB, media]
             ) as publish,
+            patch.object(
+                channel, "anonymous_manifest_status", return_value=anonymous_status
+            ),
             patch.object(channel, "canonical_compose", return_value={}),
             patch.object(channel, "export_compose", return_value={"services": {}}),
             patch.object(channel, "advance_channel", return_value=True) as advance,
@@ -692,21 +696,21 @@ class EvidenceAndImageTest(unittest.TestCase):
             channel.publish(SOURCE, self.root, self.root / "out")
         return publish, advance, media
 
-    def test_default_package_names_are_the_historical_public_names(self):
+    def test_default_package_names_are_the_private_cloud_packages(self):
         for values in ({}, {channel.PACKAGE_PREFIX_ENV: ""}, {channel.PACKAGE_PREFIX_ENV: "  "}):
             with self.subTest(values=values), self.channel_environment(**values):
                 for role in ("backend", "web", "media"):
                     self.assertEqual(
                         channel.package_repository(role),
-                        f"ghcr.io/baerenmarke90/eimir-{role}",
+                        f"ghcr.io/baerenmarke90/eimir-cloud-{role}",
                     )
 
-    def test_cloud_prefix_selects_the_new_private_package_names(self):
-        with self.channel_environment(**{channel.PACKAGE_PREFIX_ENV: "eimir-cloud"}):
+    def test_legacy_prefix_must_be_selected_explicitly_for_the_old_public_names(self):
+        with self.channel_environment(**{channel.PACKAGE_PREFIX_ENV: "eimir"}):
             for role in ("backend", "web", "media"):
                 self.assertEqual(
                     channel.package_repository(role),
-                    f"ghcr.io/baerenmarke90/eimir-cloud-{role}",
+                    f"ghcr.io/baerenmarke90/eimir-{role}",
                 )
 
     def test_invalid_package_prefixes_are_refused(self):
@@ -747,28 +751,168 @@ class EvidenceAndImageTest(unittest.TestCase):
 
     def test_registry_push_targets_the_selected_package(self):
         self.prepare_image_archive()
-        with (
-            self.channel_environment(**{channel.PACKAGE_PREFIX_ENV: "eimir-cloud"}),
-            patch.object(channel, "run", side_effect=self.image_run) as run,
+        for values, package in (
+            ({}, "eimir-cloud-backend"),
+            ({channel.PACKAGE_PREFIX_ENV: "eimir"}, "eimir-backend"),
         ):
-            pinned = channel.publish_image(
-                self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
+            with (
+                self.subTest(package=package),
+                self.channel_environment(**values),
+                patch.object(channel, "run", side_effect=self.image_run) as run,
+            ):
+                pinned = channel.publish_image(
+                    self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
+                )
+            self.assertEqual(
+                pinned, f"ghcr.io/baerenmarke90/{package}@sha256:" + "b" * 64
             )
+            calls = [call.args[0] for call in run.call_args_list]
+            self.assertIn(
+                [
+                    "docker",
+                    "tag",
+                    f"eimir-backend:evidence-{SOURCE}",
+                    f"ghcr.io/baerenmarke90/{package}:test-{SOURCE}-1-1",
+                ],
+                calls,
+            )
+            # The local evidence tag keeps its historical name; only the registry target moves.
+            self.assertEqual(
+                any("ghcr.io/baerenmarke90/eimir-backend" in " ".join(c) for c in calls),
+                package == "eimir-backend",
+            )
+
+    def test_anonymous_manifest_status_reports_what_an_anonymous_client_sees(self):
+        reference = "ghcr.io/baerenmarke90/eimir-cloud-web@sha256:" + "5" * 64
+        token = json.dumps({"token": "anonymous-pull-token"}).encode()
+        for name, responses, expected, requests in (
+            ("public", [(200, token), (200, b"{}")], 200, 2),
+            ("private manifest", [(200, token), (403, b"")], 403, 2),
+            ("missing manifest", [(200, token), (404, b"")], 404, 2),
+            ("no anonymous token", [(403, b"")], 403, 1),
+            ("empty token body", [(200, b"{}")], 401, 1),
+            ("bad token body", [(200, b"not json")], 401, 1),
+        ):
+            with (
+                self.subTest(name=name),
+                patch.object(channel, "anonymous_request", side_effect=responses) as request,
+            ):
+                self.assertEqual(channel.anonymous_manifest_status(reference), expected)
+            self.assertEqual(request.call_count, requests)
+        # The manifest request carries only the anonymous bearer token.
+        with patch.object(
+            channel, "anonymous_request", side_effect=[(200, token), (200, b"{}")]
+        ) as request:
+            channel.anonymous_manifest_status(reference)
+        url, headers = request.call_args_list[1].args
         self.assertEqual(
-            pinned, "ghcr.io/baerenmarke90/eimir-cloud-backend@sha256:" + "b" * 64
+            url,
+            "https://ghcr.io/v2/baerenmarke90/eimir-cloud-web/manifests/sha256:" + "5" * 64,
         )
-        calls = [call.args[0] for call in run.call_args_list]
-        self.assertIn(
-            [
-                "docker",
-                "tag",
-                f"eimir-backend:evidence-{SOURCE}",
-                f"ghcr.io/baerenmarke90/eimir-cloud-backend:test-{SOURCE}-1-1",
-            ],
-            calls,
-        )
-        # The local evidence tag keeps its historical name; only the registry target moves.
-        self.assertFalse(any("ghcr.io/baerenmarke90/eimir-backend" in " ".join(c) for c in calls))
+        self.assertEqual(headers["Authorization"], "Bearer anonymous-pull-token")
+
+    def test_anonymous_check_rejects_unexpected_references_before_any_request(self):
+        for reference in (
+            "ghcr.io/baerenmarke90/eimir-cloud-web:latest",
+            "ghcr.io/baerenmarke90/eimir-cloud-web@sha256:" + "5" * 63,
+            "example.com/baerenmarke90/eimir-cloud-web@sha256:" + "5" * 64,
+            "ghcr.io/baerenmarke90/eimir-cloud-web@sha256:" + "5" * 64 + "?x=1",
+        ):
+            with (
+                self.subTest(reference=reference),
+                patch.object(channel, "anonymous_request") as request,
+                self.assertRaises(channel.ChannelError),
+            ):
+                channel.anonymous_manifest_status(reference)
+            request.assert_not_called()
+
+    def test_anonymous_request_retries_server_errors_and_fails_closed(self):
+        ok = MagicMock()
+        ok.__enter__.return_value.status = 200
+        ok.__enter__.return_value.read.return_value = b"{}"
+        unavailable = urllib.error.HTTPError("u", 503, "unavailable", None, None)
+        with (
+            patch.object(channel.time, "sleep") as sleep,
+            patch.object(channel.urllib.request, "urlopen", side_effect=[unavailable, ok]),
+        ):
+            self.assertEqual(channel.anonymous_request("https://ghcr.io/x"), (200, b"{}"))
+        sleep.assert_called_once()
+        denied = urllib.error.HTTPError("u", 403, "denied", None, None)
+        with patch.object(channel.urllib.request, "urlopen", side_effect=denied) as opened:
+            self.assertEqual(channel.anonymous_request("https://ghcr.io/x"), (403, b""))
+        opened.assert_called_once()
+        for failure in (urllib.error.URLError("offline"), TimeoutError(), unavailable):
+            with (
+                self.subTest(failure=type(failure).__name__),
+                patch.object(channel.time, "sleep"),
+                patch.object(channel.urllib.request, "urlopen", side_effect=failure),
+                self.assertRaisesRegex(channel.ChannelError, "unreachable"),
+            ):
+                channel.anonymous_request("https://ghcr.io/x")
+
+    def test_private_packages_pass_and_public_or_unclear_ones_fail_closed(self):
+        images = {"backend": BACKEND, "web": WEB}
+        for status in (401, 403, 404):
+            with (
+                self.subTest(status=status),
+                self.channel_environment(),
+                patch.object(channel, "anonymous_manifest_status", return_value=status),
+            ):
+                channel.verify_packages_private(images)
+        with (
+            self.channel_environment(),
+            patch.object(channel, "anonymous_manifest_status", side_effect=[200, 200]),
+            self.assertRaises(channel.ChannelError) as raised,
+        ):
+            channel.verify_packages_private(images)
+        message = str(raised.exception)
+        self.assertIn("ghcr.io/baerenmarke90/eimir-backend", message)
+        self.assertIn("ghcr.io/baerenmarke90/eimir-web", message)
+        self.assertIn("Private", message)
+        self.assertNotIn("sha256", message)
+        for status in (0, 202, 301, 429, 500):
+            with (
+                self.subTest(status=status),
+                self.channel_environment(),
+                patch.object(channel, "anonymous_manifest_status", return_value=status),
+                self.assertRaisesRegex(channel.ChannelError, "Cannot confirm"),
+            ):
+                channel.verify_packages_private(images)
+
+    def test_legacy_public_packages_are_not_checked_for_privacy(self):
+        with (
+            self.channel_environment(**{channel.PACKAGE_PREFIX_ENV: "eimir"}),
+            patch.object(channel, "anonymous_manifest_status") as status,
+        ):
+            channel.verify_packages_private({"backend": BACKEND, "web": WEB})
+        status.assert_not_called()
+
+    def test_public_package_blocks_promotion_after_the_push(self):
+        self.add_media_record()
+        media = "ghcr.io/baerenmarke90/eimir-cloud-media@sha256:" + "5" * 64
+        with (
+            self.channel_environment(),
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", return_value=True),
+            patch.object(
+                channel, "publish_image", side_effect=[BACKEND, WEB, media]
+            ) as publish,
+            patch.object(channel, "anonymous_manifest_status", return_value=200),
+            patch.object(channel, "canonical_compose") as compose,
+            patch.object(channel, "advance_channel") as advance,
+            self.assertRaisesRegex(channel.ChannelError, "publicly readable"),
+        ):
+            channel.publish(SOURCE, self.root, self.root / "out")
+        self.assertEqual(publish.call_count, 3)
+        compose.assert_not_called()
+        advance.assert_not_called()
+        self.assertFalse((self.root / "out" / "channel.json").exists())
+
+    def test_staged_publication_is_also_checked_for_privacy(self):
+        with self.assertRaisesRegex(channel.ChannelError, "publicly readable"):
+            self.publish_staged_pair(
+                anonymous_status=200, **{channel.PROMOTE_ENV: "false"}
+            )
 
     def test_invalid_settings_refuse_publication_before_any_registry_use(self):
         self.add_media_record()

@@ -252,6 +252,16 @@ For both variants:
   When a title cannot fit beside Back (320 px, 200 % text, one long word), it moves
   below Back within the same header.
 - Descriptions, metadata, tabs and filters follow below the row at full width.
+- A title-only page or task header leaves one `spacing.subpageContentGap` before
+  its first in-flow content (24 CSS px at the default text size). Measure from
+  the bottom of the full title row, including Back, wrapped lines and any action,
+  to the top of the first panel, field group, filter or state. The same token
+  applies on Compact, Medium and Expanded. An absent description occupies zero
+  space. Grid or flex row spacing counts toward this total. A focus target
+  occupies no layout row. A header with supporting copy or a named item's type
+  row follows its own composition above.
+  On Web, `PageHeader` applies the rule automatically. A page stack declares
+  its normal row spacing with `--page-stack-gap`.
 - The row belongs to the content column on Compact and Expanded; Back is never
   detached at the window edge. A header that is sticky keeps Back, title and action
   sticky together.

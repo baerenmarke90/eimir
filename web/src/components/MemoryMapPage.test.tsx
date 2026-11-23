@@ -7,7 +7,7 @@ import type { MemoryMapEntry } from '../api/generated/models/MemoryMapEntry';
 import { ClientProblemError } from '../client/problemDetails';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import copy from '../i18n/locales/memoryMap';
-import { MemoryMapPhotoStack } from './MemoryMapMemories';
+import { MemoryMapMemories, MemoryMapPhotoStack } from './MemoryMapMemories';
 import { MemoryMapPage } from './MemoryMapPage';
 import type { MapViewport } from './PlaceMapCanvas';
 
@@ -91,6 +91,48 @@ function setup(
   );
 }
 describe('Pro memory map', () => {
+  it.each([1, -1])(
+    'reads only two cards to locate the centered memory (direction %i)',
+    async (direction) => {
+      const items = Array.from({ length: 100 }, (_, i) => ({
+        ...item,
+        memoryId: String(i),
+      }));
+      const select = vi.fn();
+      const view = render(
+        <MemoryRouter>
+          <MemoryMapMemories
+            placeName="Lake"
+            items={items}
+            activeMemoryId="0"
+            onSelect={select}
+            onOpen={vi.fn()}
+            onReset={vi.fn()}
+            preview={() => null}
+            formatDate={() => ''}
+            reveal={false}
+          />
+        </MemoryRouter>,
+      );
+      const strip =
+        view.container.querySelector<HTMLElement>('.memory-map-strip');
+      if (!strip) throw new Error('Expected a scrollable memory strip');
+      vi.spyOn(strip, 'getBoundingClientRect').mockReturnValue(
+        new DOMRect(0, 0, 320, 100),
+      );
+      const reads = vi.fn();
+      Array.from(strip.children).forEach((card, i) => {
+        vi.spyOn(card, 'getBoundingClientRect').mockImplementation(() => {
+          reads();
+          return new DOMRect(30 + (i - 73) * 272 * direction, 0, 260, 100);
+        });
+      });
+      fireEvent.scroll(strip);
+      await vi.waitFor(() => expect(select).toHaveBeenCalledWith('73'));
+      expect(reads).toHaveBeenCalledTimes(2);
+    },
+  );
+
   it('keeps the last viewport on reopen and gives an explicit place priority', async () => {
     await import('./PlaceMapCanvas');
     const sessionViewport: { current?: MapViewport } = {};

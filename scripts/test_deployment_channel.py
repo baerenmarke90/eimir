@@ -17,6 +17,8 @@ import re
 import subprocess
 import tempfile
 import time
+import urllib.error
+import urllib.request
 from functools import lru_cache
 from pathlib import Path
 
@@ -25,13 +27,32 @@ import release_manifest
 
 REPOSITORY = "baerenmarke90/eimir"
 CHANNEL_BRANCH = "deploy/eimir-test"
-# Phase 0b of Decision 0019: images can move to new private GHCR packages
-# (for example prefix "eimir-cloud") without a code change. The default keeps
-# the historical package names. Both settings are Actions variables, never secrets.
+# Phase 0b of Decision 0019: the channel publishes to the private GHCR packages
+# eimir-cloud-{backend,web,media}. The legacy prefix "eimir" names the old public
+# packages and stays selectable only as an explicit rollback. Both settings are
+# Actions variables, never secrets.
 PACKAGE_PREFIX_ENV = "EIMIR_TEST_CHANNEL_PACKAGE_PREFIX"
 PROMOTE_ENV = "EIMIR_TEST_CHANNEL_PROMOTE"
-DEFAULT_PACKAGE_PREFIX = "eimir"
+DEFAULT_PACKAGE_PREFIX = "eimir-cloud"
+LEGACY_PUBLIC_PACKAGE_PREFIX = "eimir"
 PACKAGE_PREFIX_PATTERN = re.compile(r"eimir(?:-[a-z0-9]+)*")
+# GHCR may create a new package public when its source label points at a public
+# repository (observed on the first eimir-cloud publication), so every publication
+# proves that the pushed digests are not anonymously readable. 401, 403 and 404 mean
+# "not anonymous"; only a clean 200 means public.
+PRIVATE_PACKAGE_STATUSES = frozenset({401, 403, 404})
+GHCR_REFERENCE = re.compile(
+    r"ghcr\.io/(?P<name>[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*)"
+    r"@(?P<digest>sha256:[0-9a-f]{64})"
+)
+GHCR_MANIFEST_ACCEPT = ", ".join(
+    (
+        "application/vnd.oci.image.manifest.v1+json",
+        "application/vnd.docker.distribution.manifest.v2+json",
+        "application/vnd.oci.image.index.v1+json",
+        "application/vnd.docker.distribution.manifest.list.v2+json",
+    )
+)
 CHANNEL_KIND = "eimir-private-test-channel"
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_WORKFLOWS = frozenset(
@@ -348,6 +369,76 @@ def promote_enabled() -> bool:
 def package_repository(role: str) -> str:
     owner = REPOSITORY.partition("/")[0]
     return f"ghcr.io/{owner}/{package_prefix()}-{role}"
+
+
+def anonymous_request(
+    url: str, headers: dict[str, str] | None = None
+) -> tuple[int, bytes]:
+    """One unauthenticated GET to GHCR; 5xx and network failures are retried."""
+    request = urllib.request.Request(url, headers=headers or {})
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(request, timeout=20) as response:  # noqa: S310
+                return response.status, response.read(65536)
+        except urllib.error.HTTPError as error:
+            if error.code < 500:
+                return error.code, b""
+        except (urllib.error.URLError, TimeoutError):
+            pass
+        if attempt < 2:
+            time.sleep(2)
+    raise ChannelError("Could not verify package visibility: GHCR was unreachable")
+
+
+def anonymous_manifest_status(reference: str) -> int:
+    """HTTP status of an anonymous manifest fetch by digest; 200 means publicly readable."""
+    match = GHCR_REFERENCE.fullmatch(reference)
+    if not match:
+        raise ChannelError("Unexpected package reference; cannot check its visibility")
+    name, digest = match["name"], match["digest"]
+    status, body = anonymous_request(
+        f"https://ghcr.io/token?service=ghcr.io&scope=repository:{name}:pull"
+    )
+    if status != 200:
+        return status
+    try:
+        token = json.loads(body).get("token")
+    except (ValueError, AttributeError):
+        token = None
+    if not isinstance(token, str) or not token:
+        return 401
+    status, _ = anonymous_request(
+        f"https://ghcr.io/v2/{name}/manifests/{digest}",
+        {"Authorization": f"Bearer {token}", "Accept": GHCR_MANIFEST_ACCEPT},
+    )
+    return status
+
+
+def verify_packages_private(images: dict[str, str]) -> None:
+    """Refuse to promote images that anyone can pull without credentials.
+
+    The legacy prefix names the old public packages, so a rollback to them is not
+    checked. Any other prefix must stay private, and an unclear answer fails closed.
+    """
+    if package_prefix() == LEGACY_PUBLIC_PACKAGE_PREFIX:
+        return
+    public: list[str] = []
+    for reference in images.values():
+        status = anonymous_manifest_status(reference)
+        if status == 200:
+            public.append(reference.partition("@")[0])
+        elif status not in PRIVATE_PACKAGE_STATUSES:
+            raise ChannelError(
+                f"Cannot confirm that {reference.partition('@')[0]} is private: "
+                f"the anonymous check returned HTTP {status}"
+            )
+    if public:
+        raise ChannelError(
+            "These packages are publicly readable and must be private before the "
+            f"channel can use them: {', '.join(public)}. Set each package to Private "
+            "(package settings, Danger Zone, Change package visibility) and re-run "
+            "the failed job"
+        )
 
 
 def write_step_summary(images: dict[str, str], state: str) -> None:
@@ -769,6 +860,9 @@ def publish(
         )
         for role in ("backend", "web", "media")
     }
+    # Before anything is exported or promoted: the images contain Pro code and
+    # must not be anonymously readable (see PRIVATE_PACKAGE_STATUSES).
+    verify_packages_private(images)
     canonical = canonical_compose(video=True)
     compose = export_compose(
         canonical, images["backend"], images["web"], images["media"]

@@ -1,6 +1,6 @@
 .settings-page {
   display: grid;
-  gap: var(--space-6);
+  --page-stack-gap: var(--space-6);
   width: 100%;
   max-width: 48rem;
   margin: 0 auto;
@@ -1020,7 +1020,7 @@
 
 @media (max-width: 760px) {
   .settings-page {
-    gap: var(--space-5);
+    --page-stack-gap: var(--space-5);
     padding-bottom: var(--space-8);
   }
 

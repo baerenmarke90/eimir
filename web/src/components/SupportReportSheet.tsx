@@ -2,10 +2,8 @@ import { onlineManager } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useSyncExternalStore } from 'react';
 import { useApiRuntime } from '../client/apiRuntimeContext';
 import { isClientOnline } from '../client/connectivity';
-import {
-  type FailureReference,
-  formatFailureForDisplay,
-} from '../client/failureReference';
+import type { FailureReference } from '../client/failureReference';
+import { formatFailureForDisplay } from '../client/failureReferenceDisplay';
 import {
   describeSupportReport,
   NOTE_MAX_CHARACTERS,

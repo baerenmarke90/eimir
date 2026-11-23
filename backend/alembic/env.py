@@ -17,7 +17,6 @@ them: `include_object` skips the tables of the plugin manifest.
 
 from __future__ import annotations
 
-from logging import getLogger
 from logging.config import fileConfig
 
 from alembic import context
@@ -50,11 +49,7 @@ def _migration_connection() -> str:
 config = context.config
 config.set_main_option("sqlalchemy.url", _migration_connection())
 
-# Standalone migrations report their loaded plugins. An embedded caller that
-# already configured logging owns its handlers and its enabled loggers.
-if config.config_file_name is not None and (
-    config.cmd_opts is not None or not getLogger().hasHandlers()
-):
+if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 load_all_models()

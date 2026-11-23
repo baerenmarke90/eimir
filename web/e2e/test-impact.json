@@ -1338,6 +1338,9 @@
     "partner-distance-wir.spec.ts": {
       "roots": [
         "web/src/components/PartnerDistanceLine.tsx",
+        "web/src/components/WirHeroDistance.tsx",
+        "web/src/components/wirDistanceHop.ts",
+        "web/src/client/wirDistanceSeen.ts",
         "web/src/components/PartnerDistanceWirSetting.tsx",
         "web/src/components/SettingsPage.tsx",
         "web/src/client/dashboardModules.ts",

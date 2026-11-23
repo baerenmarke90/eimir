@@ -130,6 +130,11 @@ English US/UK locales, from the kilometre values.
 - Responses carry the capture time. A distance carries the **older** of the
   two capture times. Clients present values older than 2 hours as an earlier
   state ("earlier today", "yesterday") and never as live.
+- To show a change once when the app opens (Product Owner, 2026-11-22), a
+  client may keep one record per viewer and Space on the device: the coarse
+  display step (0 to 6) and two timestamps. It holds no position, kilometre
+  value, direction or history, is replaced on every write, expires after 24
+  hours, is removed when sharing ends and on sign-out, and is never synced.
 - Snapshots are excluded from content exports, backups-as-content and
   restores. Consent metadata (level, duration, timestamps) follows the normal
   account data-rights policy. Account deletion, Space deletion and membership

@@ -34,6 +34,9 @@ const motions: Record<
   // second frame onto it (#1744).
   RECAP_READY: { icon: 'momente', motion: 'recap-ready' },
   RECAP_GREW: { icon: 'momente', motion: 'recap-grew' },
+  // The operator's reply to a support report is a plain notice; it has no
+  // motion of its own (#2189).
+  SUPPORT_REPLY: { icon: 'benachrichtigungen', motion: '' },
 };
 
 type MotionStyle = CSSProperties & { '--notification-animation'?: string };

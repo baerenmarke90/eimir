@@ -4611,7 +4611,8 @@
       "adminAllowlistEmpty": "No server administrator allowlist is configured. Without an allowlist, no account can become a server administrator.",
       "adminAllowlistUnmatched": "At least one server administrator allowlist entry does not match an active account with a verified email address.",
       "mailVerification": "Email delivery is disabled while unverified accounts exist. Verification and recovery may need operator support.",
-      "failedJobs": "There are failed background jobs."
+      "failedJobs": "There are failed background jobs.",
+      "supportReportsUnread": "Reports have been waiting unread for more than 14 days."
     },
     "health": {
       "title": "System health",
@@ -4638,7 +4639,8 @@
       "verifiedEmails": "Verified primary emails",
       "unverifiedEmails": "Unverified primary emails",
       "mediaObjects": "Media objects",
-      "mediaBytes": "Stored media"
+      "mediaBytes": "Stored media",
+      "supportReportsNew": "New reports"
     },
     "security": {
       "title": "Security & sign-in",

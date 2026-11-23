@@ -21,7 +21,7 @@ both portrait rings at 320, 360, 390 and 430 CSS px and at 130 % and 200 % text.
 
 The light reaches the top screen edge and fades out inside the next module. The
 worst contrast of the small hero text on the painted light at 390 CSS px is
-4.55:1 in Light and 4.70:1 in Dark, both at the closest band. After a hop, no
+5.28:1 in Light and 4.70:1 in Dark, both at the closest band. After a hop, no
 light stays visible on the portraits.
 
 Not covered here: the native Android WebView on a device, and a recording of

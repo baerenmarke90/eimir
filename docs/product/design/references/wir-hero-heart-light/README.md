@@ -20,8 +20,8 @@ needed a clearer presentation without taking a place of its own.
   closer, wider glows and a shared light in the middle fade in.
 - **The light has no visible end.** It lies behind the page content, reaches past
   the status bar to the screen edge and fades out inside the next module, so it
-  never reads as a band. Light and Dark use their own strength so that the small
-  text on it keeps at least 4.5:1.
+  never reads as a band. It stays clearly visible in Light too: there, the quiet
+  text on it becomes firmer, so that small text keeps at least 4.5:1.
 - **No connecting line** between the portraits in the Verbunden hero.
 - **No visible first names in the Wir hero**, and nothing else changes: names
   stay everywhere else, accessible names stay, portraits without a photo keep

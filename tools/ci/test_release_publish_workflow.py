@@ -84,6 +84,14 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         for name in ("EIMIR_TEST_CHANNEL_PACKAGE_PREFIX", "EIMIR_TEST_CHANNEL_PROMOTE"):
             self.assertIn(f"{name}: ${{{{ vars.{name} }}}}", publisher)
             self.assertNotIn(f"secrets.{name}", self.workflow)
+        # The workflow never hardcodes a package name; the script owns the private
+        # default and the explicit legacy rollback prefix.
+        self.assertNotIn("eimir-cloud", publisher)
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import test_deployment_channel as channel
+
+        self.assertEqual(channel.DEFAULT_PACKAGE_PREFIX, "eimir-cloud")
+        self.assertEqual(channel.LEGACY_PUBLIC_PACKAGE_PREFIX, "eimir")
         self.assertEqual(publisher.count("docker login ghcr.io"), 1)
         self.assertIn("REGISTRY_TOKEN: ${{ github.token }}", publisher)
         self.assertNotIn("gh release", publisher)

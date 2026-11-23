@@ -35,7 +35,6 @@ import {
   HeartEmotionBadge,
   type HeartEmotionValue,
 } from './HeartEmotionVisual';
-import { CONTROLS_QUIET_MS } from './MediaGallery';
 import { MemoryPreview } from './MemoryPreview';
 import {
   formatStoryDate,
@@ -49,6 +48,7 @@ import { usePageVisible } from '../motion/scene';
 
 /** A press longer than this pauses the story and does not count as a tap. */
 const HOLD_THRESHOLD_MS = 350;
+const STORY_CONTROLS_QUIET_MS = 1500;
 
 type LoadMemoryImage = (
   memoryId: string,
@@ -497,7 +497,7 @@ export function DiscoverStory({
     quietTimer.current = setTimeout(() => {
       quietTimer.current = null;
       setControlsResting(true);
-    }, CONTROLS_QUIET_MS);
+    }, STORY_CONTROLS_QUIET_MS);
   }, []);
   useEffect(() => {
     wakeControls();

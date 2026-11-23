@@ -22,6 +22,7 @@ import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.webkit.WebChromeClient.FileChooserParams;
@@ -77,6 +78,13 @@ public class PhotoFileChooserTest {
     // Native taps must hit the selector button, rather than the filename text.
     private static final String FILE_INPUT_BUTTON_STYLE =
         "document.head.insertAdjacentHTML('beforeend',`<style>#photo::file-selector-button{width:100%;height:100%}</style>`);";
+    // The platform input command injects DOWN and UP as separate events. A
+    // renderer or main-thread stall between them on a software-rendered guest
+    // otherwise crosses the 400 ms default, so Chromium reports a long press
+    // and never activates the file input. Keep this below the picker deadline.
+    private static final int STALL_TOLERANT_LONG_PRESS_MS = 10000;
+    private static final String LONG_PRESS_SETTING = "long_press_timeout";
+    private static String previousLongPressTimeout;
 
     private static FileChooserParams parameters(int mode, boolean capture, String... types) {
         return new FileChooserParams() {
@@ -95,14 +103,40 @@ public class PhotoFileChooserTest {
     }
 
     @AfterClass
-    public static void removeGalleryFixture() {
+    public static void removeGalleryFixture() throws Exception {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         if (source != null) source.delete();
+        if (previousLongPressTimeout != null) {
+            UiDevice device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());
+            device.executeShellCommand("null".equals(previousLongPressTimeout)
+                ? "settings delete secure " + LONG_PRESS_SETTING
+                : "settings put secure " + LONG_PRESS_SETTING + " " + previousLongPressTimeout);
+        }
+    }
+
+    /**
+     * Chromium reads the long-press timeout once per process, so this must run
+     * before the first WebView. The tap itself stays a real touchscreen gesture.
+     */
+    private static void tolerateInputStallsBetweenTapEvents() throws Exception {
+        UiDevice device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());
+        previousLongPressTimeout = device.executeShellCommand(
+            "settings get secure " + LONG_PRESS_SETTING).trim();
+        device.executeShellCommand("settings put secure " + LONG_PRESS_SETTING + " "
+            + STALL_TOLERANT_LONG_PRESS_MS);
+        long deadline = SystemClock.uptimeMillis() + 5000;
+        while (ViewConfiguration.getLongPressTimeout() != STALL_TOLERANT_LONG_PRESS_MS
+                && SystemClock.uptimeMillis() < deadline) {
+            SystemClock.sleep(50);
+        }
+        assertEquals("Android publishes the fixture's long-press timeout to this process",
+            STALL_TOLERANT_LONG_PRESS_MS, ViewConfiguration.getLongPressTimeout());
     }
 
     @BeforeClass
     public static void useForeignOwnedGalleryFixture() throws Exception {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return;
+        tolerateInputStallsBetweenTapEvents();
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         String selected = InstrumentationRegistry.getArguments().getString("externalPhotoUri");
         assertNotNull("CI seeds a shell-owned camera photo, never an app-owned fixture", selected);

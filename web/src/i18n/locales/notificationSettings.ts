@@ -47,6 +47,7 @@ const notificationSettings = {
   deviceHintOff:
     'Gewählte Push-Kanäle starten, sobald du Push eingerichtet hast.',
   browserToggle: 'Push in diesem Browser',
+  browserOn: 'Push ist in diesem Browser aktiv.',
   browserPermissionDenied:
     'Erlaube Benachrichtigungen für eimir. in den Einstellungen dieses Browsers.',
   browserOtherAccount:
@@ -61,6 +62,11 @@ const notificationSettings = {
   onboardingPromptsFailed:
     'Push ist eingerichtet. Kleine Impulse konnten noch nicht aktiviert werden. Versuche es erneut oder ändere die Auswahl später in den Einstellungen.',
   onboardingActivate: 'Aktivieren',
+  onboardingActivating: 'Wird aktiviert …',
+  onboardingContinue: 'Im Hintergrund fortfahren',
+  onboardingSavingPrompts: 'Wird gespeichert …',
+  onboardingPushReady:
+    'Push ist aktiv. Deine Auswahl für kleine Impulse wird gespeichert.',
   onboardingLater: 'Später',
   onboardingOffline:
     'Du bist gerade offline. Benachrichtigungen wurden noch nicht aktiviert.',

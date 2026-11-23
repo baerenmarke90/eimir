@@ -1,10 +1,26 @@
 /* Places and shared checklists opt out of the legacy planning composition. */
 .shared-content-page {
   display: grid;
-  gap: var(--space-5);
+  --page-stack-gap: var(--space-5);
   max-width: var(--reading-max);
   min-width: 0;
   align-content: start;
+}
+/* Gemeinsam (Listen | Notizen) is a root tab and follows Planen exactly: the
+   title is hidden by layout.css, the view switch sits at the top, and the
+   spacing below it comes from the switch's own margin. */
+.shared-content-page.shared-root-page {
+  gap: 0;
+  max-width: none;
+}
+.shared-root-page > .planen-segmented ~ * + * {
+  margin-top: var(--space-5);
+}
+@media (min-width: 840px) {
+  .page.shared-root-page {
+    width: min(100%, var(--reading-max));
+    margin-inline: auto;
+  }
 }
 .shared-content-page > .back-link {
   margin: 0;

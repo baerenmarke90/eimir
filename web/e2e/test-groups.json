@@ -550,7 +550,7 @@
     },
     "subpage-navigation-context.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "reason": "Feature-owned secondary navigation and its header row (#1907 C4: title beside Back, large-text fallback, Expanded column), More origin/empty-year/nested-year return, moment context and Wir acceptance; selected for the actual utility destinations and shared navigation consumers."
+      "reason": "Feature-owned secondary navigation and its header row (#1907 C4: title beside Back, large-text fallback, Expanded column), the title-only content gap across block, grid and composer pages, More origin/empty-year/nested-year return, moment context and Wir acceptance; selected for the actual utility destinations and shared navigation consumers."
     },
     "activity-navigation-return.spec.ts": {
       "disposition": "FULL_REGRESSION",

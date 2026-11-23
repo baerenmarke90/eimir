@@ -22,7 +22,7 @@ import './WirDesign.css';
 function DesignPreview({ design }: { design: WirDesignId }) {
   return (
     <span
-      className={`wir-design-preview wir-design-preview-${wirDesignLayout(design) ?? design}`}
+      className={`wir-design-preview wir-design-preview-layout-${wirDesignLayout(design) ?? design}`}
       data-design-preview={design}
       aria-hidden="true"
     >

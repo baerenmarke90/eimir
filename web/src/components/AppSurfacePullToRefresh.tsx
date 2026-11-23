@@ -2,7 +2,6 @@ import { useIsFetching, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { surfaceRefreshDecision } from '../client/surfaceRefreshPolicy';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
-import { usePullToRefresh } from './usePullToRefresh';
 
 /**
  * Default refresh contract for safe authenticated product surfaces.
@@ -21,12 +20,12 @@ export function AppSurfacePullToRefresh({ pathname }: { pathname: string }) {
     await queryClient.refetchQueries({ type: 'active' });
   }, [queryClient]);
 
-  const state = usePullToRefresh({
-    enabled,
-    blocked: activeFetches > 0,
-    onRefresh: refreshActiveSurface,
-  });
-
   if (!enabled) return null;
-  return <PullToRefreshIndicator state={state} />;
+  return (
+    <PullToRefreshIndicator
+      enabled={enabled}
+      blocked={activeFetches > 0}
+      onRefresh={refreshActiveSurface}
+    />
+  );
 }

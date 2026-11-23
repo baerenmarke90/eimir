@@ -89,7 +89,7 @@ New Core table `support_reports` (Alembic revision after `0171`):
 | `state` | `NEW`, `IN_PROGRESS`, `CLOSED`. Written only through the service interface. |
 | `created_at`, `closed_at` | |
 | `payload` | `ProtectedPayloadJSON`, crypto context bound to the report id. Holds the fields listed below. |
-| `reply` | Protected payload with `text` (at most 500 characters) and `replied_at`, empty until answered. One reply per report (see "Reply semantics"). |
+| reply | Stored in a child table `support_report_replies` (primary key and foreign key = report id, `ON DELETE CASCADE`, plus its own protected `payload` with `text` of at most 500 characters and `replied_at`). The encryption tooling supports exactly one protected `payload` column per table (`security/lifecycle.py`), so the reply cannot be a second protected column. The primary key enforces one reply per report (see "Reply semantics"). |
 
 **Allowed payload fields (allow-list, pinned by a unit test on both client and server):**
 

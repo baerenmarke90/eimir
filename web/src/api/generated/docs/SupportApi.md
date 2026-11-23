@@ -88,7 +88,7 @@ No authorization required
 
 Get Support Report Reply
 
-Return the reply to the caller\'s own report.  Another person\'s report, a report without a reply yet and an unknown id are the same 404. Replies already sent stay readable when the operator switches support reports off, so this is not gated by the flag. The text is returned exactly as stored.
+Return the reply to the caller\&#39;s own report.  Another person\&#39;s report, a report without a reply yet and an unknown id are the same 404. Replies already sent stay readable when the operator switches support reports off, so this is not gated by the flag. The text is returned exactly as stored.
 
 ### Example
 

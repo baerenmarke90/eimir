@@ -129,7 +129,7 @@ describe('SupportReportSheet', () => {
       screen.getByRole('dialog', { name: supportReport.title.PROBLEM }),
     ).toBeTruthy();
     expect(sentList()).toEqual([
-      supportReport.items.failure.replace('{{reference}}', FAILURE.reference),
+      `${supportReport.items.failureLabel}${FAILURE.reference}`,
       supportReport.items.app,
       supportReport.items.device,
       supportReport.items.locale,
@@ -138,6 +138,22 @@ describe('SupportReportSheet', () => {
     expect(screen.getByText(supportReport.never)).toBeTruthy();
     // The note field gets the initial focus.
     expect(document.activeElement).toBe(noteField());
+  });
+
+  it('failure_line_puts_the_label_above_the_breakable_token', () => {
+    setup({ failure: FAILURE });
+    const list = screen.getByRole('list', { name: supportReport.sentHeading });
+    const label = list.querySelector('.support-report-failure-label');
+    const token = list.querySelector('code.support-report-failure-token');
+    expect(label?.textContent).toBe(supportReport.items.failureLabel);
+    expect(token?.textContent).toBe(FAILURE.reference);
+    // Label first, then the raw reference exactly as it is sent.
+    expect(
+      label && token
+        ? label.compareDocumentPosition(token) &
+            Node.DOCUMENT_POSITION_FOLLOWING
+        : 0,
+    ).toBeTruthy();
   });
 
   it('problem_from_problem_state_attaches_failure_reference', async () => {
@@ -159,7 +175,7 @@ describe('SupportReportSheet', () => {
       screen.getByRole('radio', { name: supportReport.kinds.PROBLEM }),
     );
     expect(sentList()).not.toContain(
-      supportReport.items.failure.replace('{{reference}}', FAILURE.reference),
+      `${supportReport.items.failureLabel}${FAILURE.reference}`,
     );
     expect(sentList()).toHaveLength(4);
     await act(async () => {
@@ -270,6 +286,38 @@ describe('SupportReportSheet', () => {
     expect(sendButton(supportReport.sendNow)).toBeTruthy();
   });
 
+  it('offline_message_sits_below_the_note_without_moving_the_form', async () => {
+    setup();
+    const status = () => screen.getByRole('status');
+    const before = status();
+    const kinds = document.querySelector('.support-report-kinds');
+    const field = noteField();
+    const sent = document.querySelector('.support-report-sent');
+    const follows = (a: Node | null, b: Node | null) =>
+      Boolean(
+        a &&
+          b &&
+          a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    // The message slot lies between the note and the list of what is sent.
+    expect(follows(kinds, field)).toBe(true);
+    expect(follows(field, before)).toBe(true);
+    expect(follows(before, sent)).toBe(true);
+
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    act(() => {
+      onlineManager.setOnline(false);
+    });
+    fireEvent.change(noteField(), { target: { value: 'Ohne Netz' } });
+    await act(async () => {
+      fireEvent.click(sendButton(supportReport.sendLater));
+    });
+    // The same live region now speaks; nothing above the note moved.
+    expect(status()).toBe(before);
+    expect(status().textContent).toContain(supportReport.offline.body);
+    expect(follows(noteField(), status())).toBe(true);
+  });
+
   it('rate_limited_shows_honest_message', async () => {
     setup({
       behaviour: () =>
@@ -325,6 +373,9 @@ describe('SupportReportSheet', () => {
       supportReport.success.title,
     );
     expect(screen.queryByRole('textbox')).toBeNull();
+    // One centered column: the check, the title and the body.
+    expect(dialog.classList.contains('support-report-sheet-sent')).toBe(true);
+    expect(dialog.querySelector('.support-report-success-mark')).toBeTruthy();
     const done = screen.getByRole('button', {
       name: supportReport.success.done,
     });

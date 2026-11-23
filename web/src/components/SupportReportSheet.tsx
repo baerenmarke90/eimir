@@ -163,7 +163,7 @@ function SupportReportSheetContent({
       onClose={close}
       showCloseIcon={false}
       initialFocusRef={sent ? doneRef : noteRef}
-      className="support-report-sheet"
+      className={`support-report-sheet${sent ? ' support-report-sheet-sent' : ''}`}
       footer={
         sent ? (
           <button
@@ -195,18 +195,7 @@ function SupportReportSheetContent({
         )
       }
     >
-      {/* One polite live region announces queued, failed and sent states. */}
-      <div role="status" aria-live="polite" className="support-report-status">
-        {message}
-      </div>
-      {sent ? (
-        <div className="support-report-success">
-          <span className="support-report-success-mark" aria-hidden="true">
-            ✓
-          </span>
-          <p>{t('supportReport.success.body')}</p>
-        </div>
-      ) : (
+      {sent ? null : (
         <>
           <fieldset className="support-report-kinds" disabled={sending}>
             <legend className="sr-only">{t('supportReport.kindLabel')}</legend>
@@ -252,32 +241,59 @@ function SupportReportSheetContent({
               })}
             </span>
           </p>
-          <section
-            className="support-report-sent"
-            aria-labelledby={sentHeadingId}
-          >
-            <h3 id={sentHeadingId} className="support-report-sent-heading">
-              {t('supportReport.sentHeading')}
-            </h3>
-            <ul aria-labelledby={sentHeadingId}>
-              {items.map((item) => (
-                <li key={item}>
-                  {item === 'failure' && failure
-                    ? t('supportReport.items.failure', {
-                        reference: failure.reference,
-                      })
-                    : t(`supportReport.items.${item}`)}
-                </li>
-              ))}
-            </ul>
-            <p className="support-report-never">{t('supportReport.never')}</p>
-            {kind === 'FEEDBACK' ? (
-              <p className="support-report-never">
-                {t('supportReport.feedbackNoCode')}
-              </p>
-            ) : null}
-          </section>
         </>
+      )}
+      {/*
+        One polite live region announces queued, failed and sent states. It
+        stays at one position below the note, so a message never moves the
+        choice or the field the person is working in.
+      */}
+      <div role="status" aria-live="polite" className="support-report-status">
+        {message}
+      </div>
+      {sent ? (
+        <>
+          {/* Decorative; the stylesheet shows it above the centered title. */}
+          <span className="support-report-success-mark" aria-hidden="true">
+            ✓
+          </span>
+          <p className="support-report-success-body">
+            {t('supportReport.success.body')}
+          </p>
+        </>
+      ) : (
+        <section
+          className="support-report-sent"
+          aria-labelledby={sentHeadingId}
+        >
+          <h3 id={sentHeadingId} className="support-report-sent-heading">
+            {t('supportReport.sentHeading')}
+          </h3>
+          <ul aria-labelledby={sentHeadingId}>
+            {items.map((item) => (
+              <li key={item}>
+                {item === 'failure' && failure ? (
+                  <span className="support-report-failure">
+                    <span className="support-report-failure-label">
+                      {t('supportReport.items.failureLabel')}
+                    </span>
+                    <code className="support-report-failure-token">
+                      {failure.reference}
+                    </code>
+                  </span>
+                ) : (
+                  t(`supportReport.items.${item}`)
+                )}
+              </li>
+            ))}
+          </ul>
+          <p className="support-report-never">{t('supportReport.never')}</p>
+          {kind === 'FEEDBACK' ? (
+            <p className="support-report-never">
+              {t('supportReport.feedbackNoCode')}
+            </p>
+          ) : null}
+        </section>
       )}
     </ShortTaskSheet>
   );

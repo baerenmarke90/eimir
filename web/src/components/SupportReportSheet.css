@@ -6,7 +6,7 @@
 }
 
 .support-report-message {
-  margin: 0 0 var(--space-4);
+  margin: 0 0 var(--space-3);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-medium);
   color: var(--color-text);
@@ -82,18 +82,14 @@
 }
 
 .support-report-note {
+  /* The shared filled field surface (styles.css); only its size is local. */
   box-sizing: border-box;
   display: block;
-  width: 100%;
   min-height: 7rem;
   max-height: 40dvh;
-  padding: var(--space-3) var(--space-4);
-  border: var(--border-surface-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
-  background: var(--color-surface);
-  color: var(--color-text);
   line-height: 1.45;
-  resize: vertical;
+  /* The field keeps its size in the sheet; no native resize grip. */
+  resize: none;
 }
 
 .support-report-note:disabled {
@@ -101,7 +97,7 @@
 }
 
 .support-report-note[aria-invalid="true"] {
-  border-color: var(--color-error);
+  box-shadow: inset 0 0 0 var(--border-authored-width) var(--color-error);
 }
 
 .support-report-counter {
@@ -144,6 +140,27 @@
   color: var(--color-success);
 }
 
+/* The failure line: a quiet label above the raw reference. The reference is
+   one long token, so it may break anywhere instead of at arbitrary colons. */
+.support-report-failure {
+  display: grid;
+  min-width: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+.support-report-failure-label {
+  font-weight: 600;
+}
+
+/* Plain text aligned with its label, not the global inline-code chip. */
+.support-report-failure-token {
+  padding: 0;
+  background: none;
+  font: inherit;
+  overflow-wrap: anywhere;
+}
+
 .support-report-never {
   margin: var(--space-3) 0 0;
   color: var(--color-text-secondary);
@@ -183,17 +200,26 @@
   font: var(--font-supporting-copy);
 }
 
-.support-report-success {
-  display: grid;
-  justify-items: center;
-  gap: var(--space-3);
+/* Success: one centered column, the check above the title and the body. The
+   check comes after the title in the document; it is decorative. */
+.support-report-sheet-sent .short-task-sheet-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
 }
 
+.support-report-sheet-sent .short-task-sheet-title {
+  margin-bottom: var(--space-2);
+}
+
 .support-report-success-mark {
+  order: -1;
   display: grid;
+  flex-shrink: 0;
   width: var(--space-12);
   height: var(--space-12);
+  margin-bottom: var(--space-4);
   place-items: center;
   border-radius: var(--radius-pill);
   background: var(--color-success-surface);
@@ -201,7 +227,7 @@
   font-weight: 700;
 }
 
-.support-report-success p {
+.support-report-success-body {
   max-width: 30ch;
   margin: 0;
   color: var(--color-text-secondary);

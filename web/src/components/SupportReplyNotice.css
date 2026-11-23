@@ -14,9 +14,17 @@
 .support-reply-text {
   margin: var(--space-1) 0 0;
   color: var(--color-text);
-  line-height: 1.45;
+  font: var(--font-reading-body);
   overflow-wrap: anywhere;
   white-space: pre-line;
+}
+
+/* The notification's own timestamp follows the reply: smaller, muted and set
+   apart, so the reply reads as the content and the time as its metadata. */
+.support-reply + .m4-item-meta {
+  margin-top: var(--space-2);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
 }
 
 /* A quiet static placeholder; no animation is added for one short line. */

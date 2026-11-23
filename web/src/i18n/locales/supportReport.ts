@@ -24,7 +24,8 @@ const supportReport = {
     'Das sind mehr als {{max}} Zeichen. Kürze den Text bitte ein wenig.',
   sentHeading: 'Das senden wir mit',
   items: {
-    failure: 'Fehler-Code: {{reference}}',
+    /** Shown on its own line above the raw reference that is sent. */
+    failureLabel: 'Fehler-Code',
     app: 'App-Version und Build',
     device: 'Gerät: System und Browser',
     locale: 'Sprache, Uhrzeit und Zeitzone',

@@ -115,9 +115,7 @@ describe('SupportReportHost', () => {
     render(session(<SupportReportHost />));
     act(() => openSupportReport({ kind: 'FEEDBACK' }));
     const dialog = await openDialog(supportReport.title.FEEDBACK);
-    expect(dialog.textContent).not.toContain(
-      supportReport.items.failure.replace('{{reference}}', ''),
-    );
+    expect(dialog.querySelector('.support-report-failure')).toBeNull();
   });
 
   it('closing the sheet clears the request', async () => {

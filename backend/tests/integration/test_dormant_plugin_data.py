@@ -12,11 +12,11 @@ from contextlib import contextmanager, nullcontext
 
 import pytest
 from eimir_pro.garden.models import GardenReader
+from eimir_pro.plugin import plugin as pro_plugin
 from eimir_pro.quotes.models import DailyQuotePreference
 from sqlalchemy.orm import Session
 
 from eimir.plugins import dormant, loader
-from eimir.pro_plugin import plugin as pro_plugin
 from eimir.relationship import service as relationship_service
 from tests.conftest import make_account, make_space, requires_database
 from tests.support.plugins import plugins_loaded, without_plugins

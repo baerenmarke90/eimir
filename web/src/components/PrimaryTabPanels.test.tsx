@@ -11,9 +11,11 @@ import {
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { setPrimaryTabPeek } from '../client/primaryTabPeek';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
+import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
 import { PrimaryTabPanels } from './PrimaryTabPanels';
 
 let navigate: ReturnType<typeof useNavigate>;
+let openTab: ReturnType<typeof usePrimaryNavigation>['navigatePrimary'];
 const mounts: string[] = [];
 const captures = new Map<string, () => string | null>();
 
@@ -34,6 +36,7 @@ function Page({ name }: { name: string }) {
 
 function Navigator() {
   navigate = useNavigate();
+  openTab = usePrimaryNavigation().navigatePrimary;
   return null;
 }
 
@@ -68,6 +71,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  setPrimaryTabPeek(null);
   vi.restoreAllMocks();
 });
 
@@ -217,6 +221,48 @@ function clampedScrolling(initialMax: number) {
   };
 }
 
+it('previews and reopens a previously scrolled primary tab at the top', async () => {
+  const scroll = clampedScrolling(2000);
+  render(<Harness />);
+  await act(() => openTab('/story'));
+  scroll.setScroll(540);
+  await act(() => openTab('/plan'));
+
+  await act(() => setPrimaryTabPeek('/story'));
+  expect(
+    panel('/story')?.style.getPropertyValue('--primary-tab-peek-origin'),
+  ).toBe('0px');
+  await act(() => openTab('/story'));
+  await act(() => setPrimaryTabPeek(null));
+  expect(window.scrollY).toBe(0);
+});
+
+it('restores tab entries reached through Back and Forward', async () => {
+  const scroll = clampedScrolling(2000);
+  render(<Harness />);
+  await act(() => openTab('/story'));
+  scroll.setScroll(540);
+  await act(() => openTab('/plan'));
+  scroll.setScroll(220);
+
+  await act(() => navigate(-1));
+  expect(window.scrollY).toBe(540);
+  await act(() => navigate(1));
+  expect(window.scrollY).toBe(220);
+});
+
+it('restores the reading position on Back to a Planning segment', async () => {
+  const scroll = clampedScrolling(2000);
+  render(<Harness />);
+  await act(() => navigate('/plan#wishes'));
+  scroll.setScroll(420);
+  await act(() => navigate('/plan/wishes/w1'));
+  scroll.setScroll(0);
+
+  await act(() => navigate(-1));
+  expect(window.scrollY).toBe(420);
+});
+
 it('keeps restoring while a revealed tab is still settling to its full height', async () => {
   const scroll = clampedScrolling(2000);
   render(<Harness />);
@@ -309,6 +355,72 @@ it('prepares a panel once the app is quiet and keeps it out of sight until visit
     // The prepared page is reused, not mounted again.
     expect(mounts.filter((name) => name === 'plan').length).toBe(mountsBefore);
   } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('keeps a queued background mount out of a held gesture and stops listening after it runs', async () => {
+  vi.useFakeTimers();
+  const idle = vi.fn<(callback: () => void) => number>().mockReturnValue(1);
+  vi.stubGlobal('requestIdleCallback', idle);
+  try {
+    const added = vi.spyOn(window, 'addEventListener');
+    render(<Harness prewarm={['/plan']} />);
+    const options = added.mock.calls.find(([type]) => type === 'wheel')?.[2];
+    const signal = (options as AddEventListenerOptions).signal;
+    expect(signal?.aborted).toBe(false);
+    await act(() => vi.advanceTimersByTimeAsync(4_000));
+    const contact = (type: string, count: number) =>
+      window.dispatchEvent(
+        Object.assign(new Event(type), { touches: { length: count } }),
+      );
+    contact('touchstart', 1);
+    await act(() => vi.advanceTimersByTimeAsync(2_000));
+    act(() => idle.mock.calls[0][0]());
+    expect(panel('/plan')).toBeNull();
+    contact('touchend', 0);
+    await act(() => vi.advanceTimersByTimeAsync(1_501));
+    act(() => idle.mock.calls[1][0]());
+    expect(panel('/plan')?.dataset.primaryTabPrewarm).toBe('true');
+    expect(signal?.aborted).toBe(true);
+  } finally {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  }
+});
+
+it('rechecks visibility and data saving at the idle callback and cancels deactivated work', async () => {
+  vi.useFakeTimers();
+  const idle = vi.fn<(callback: () => void) => number>().mockReturnValue(1);
+  vi.stubGlobal('requestIdleCallback', idle);
+  const connection = { saveData: false };
+  const original = Object.getOwnPropertyDescriptor(navigator, 'connection');
+  Object.defineProperty(navigator, 'connection', {
+    configurable: true,
+    value: connection,
+  });
+  try {
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+    const view = render(<Harness prewarm={['/plan']} />);
+    await act(() => vi.advanceTimersByTimeAsync(4_000));
+    hidden.mockReturnValue(true);
+    act(() => idle.mock.calls[0][0]());
+    expect(panel('/plan')).toBeNull();
+    hidden.mockReturnValue(false);
+    await act(() => vi.advanceTimersByTimeAsync(1_500));
+    connection.saveData = true;
+    act(() => idle.mock.calls[1][0]());
+    expect(panel('/plan')).toBeNull();
+    connection.saveData = false;
+    view.rerender(<Harness prewarm={['/story']} />);
+    await act(() => vi.advanceTimersByTimeAsync(4_000));
+    view.rerender(<Harness />);
+    act(() => idle.mock.calls[2][0]());
+    expect(panel('/story')).toBeNull();
+  } finally {
+    if (original) Object.defineProperty(navigator, 'connection', original);
+    else Reflect.deleteProperty(navigator, 'connection');
+    vi.unstubAllGlobals();
     vi.useRealTimers();
   }
 });

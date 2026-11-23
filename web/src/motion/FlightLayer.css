@@ -29,6 +29,7 @@
 
 /* The "Wie geht's?" line on its way into the plus on the own ring. */
 .wir-checkin-flight-ghost.is-prompt {
+  box-sizing: border-box;
   padding: 0.2rem 0.55rem;
   background: var(--color-surface-raised);
   color: var(--color-brand-text);

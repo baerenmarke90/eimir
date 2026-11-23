@@ -82,7 +82,7 @@ The Web header follows the accepted [A1 shell decision](./design/eimir/SHELL-RES
   Details, editors and secondary destinations do not swipe between primary tabs.
   The swipe behaves like a pager (as in the RWN Messenger's tab host): the
   current page follows the finger one to one while the adjacent destination
-  travels in beside it at the reading position it was left in. Release past the
+  travels in beside it with the top of its page visible. Release past the
   distance/velocity threshold settles both pages and then selects the
   destination; a shorter release settles back. The first and last destination
   give only a small resisted offset and never reveal a neighbour. A touch during

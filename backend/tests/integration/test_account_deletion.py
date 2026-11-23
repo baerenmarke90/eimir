@@ -11,17 +11,6 @@ from uuid import UUID, uuid4
 import pytest
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
-from eimir_pro.garden.models import GardenPlant, GardenReader, GardenWatering
-from eimir_pro.once_messages.models import OnceDevice, OnceReception
-from eimir_pro.partner_quick_actions.models import SupportGestureRequest
-from eimir_pro.partner_quick_actions.service import send_support_gesture
-from eimir_pro.presence.models import (
-    PartnerLocationConsent,
-    PresenceDeviceCredential,
-    PresencePositionPayload,
-    PresenceSnapshot,
-)
-from eimir_pro.quotes.models import DailyQuotePreference
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -389,8 +378,20 @@ def test_private_account_rows_are_removed_without_erasing_partner_data(
 ) -> None:
     from contextlib import nullcontext
 
-    from eimir.pro_plugin import personal_account_models
-    from tests.support.plugins import without_plugins
+    from tests.support.plugins import require_pro_distribution, without_plugins
+
+    # The rows under test are Pro rows; without ``eimir-pro`` there are none.
+    require_pro_distribution()
+    from eimir_pro.garden.models import GardenPlant, GardenReader, GardenWatering
+    from eimir_pro.once_messages.models import OnceDevice, OnceReception
+    from eimir_pro.plugin import personal_account_models
+    from eimir_pro.presence.models import (
+        PartnerLocationConsent,
+        PresenceDeviceCredential,
+        PresencePositionPayload,
+        PresenceSnapshot,
+    )
+    from eimir_pro.quotes.models import DailyQuotePreference
 
     owner, partner = make_account(session, "Anna"), make_account(session, "Ben")
     space = make_space(session, owner)
@@ -605,7 +606,12 @@ def test_core_cleanup_removes_partner_gesture_receipts_of_the_deleted_account(
     # (an instance that once ran with the plugin).
     from contextlib import nullcontext
 
-    from tests.support.plugins import plugins_loaded, without_plugins
+    from tests.support.plugins import plugins_loaded, require_pro_distribution, without_plugins
+
+    # Gesture receipts are Pro rows; without ``eimir-pro`` there are none.
+    require_pro_distribution()
+    from eimir_pro.partner_quick_actions.models import SupportGestureRequest
+    from eimir_pro.partner_quick_actions.service import send_support_gesture
 
     anna = make_account(session, "Anna")
     space = make_space(session, anna)

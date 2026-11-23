@@ -408,7 +408,12 @@ export function PartnerLocationMapPage({
     maximumFractionDigits: 1,
   }).format(unit === 'mile' ? radiusKm / 1.609344 : radiusKm);
   const capturedAt = area?.capturedAt ?? null;
-  const asOf = capturedAt ? asOfLabel(capturedAt) : null;
+  const partnerAsOf = capturedAt ? asOfLabel(capturedAt) : null;
+  const ownCapturedAt = ownPosition?.capturedAt;
+  const ownAsOf =
+    ownCapturedAt && Number.isFinite(ownCapturedAt.getTime())
+      ? asOfLabel(ownCapturedAt)
+      : null;
   const fresh = capturedAt ? isDistanceFresh(capturedAt) : false;
   const between =
     map.isSuccess && distanceLine?.kind === 'distance'
@@ -423,7 +428,7 @@ export function PartnerLocationMapPage({
   const ownShare =
     settings?.state === 'ACTIVE'
       ? settings.level === 'DISTANCE_AND_MAP'
-        ? t('partnerLocation.mapOwnSharesMap', { partner: partnerFirstName })
+        ? null
         : t('partnerLocation.mapOwnSharesDistance', {
             partner: partnerFirstName,
           })
@@ -471,7 +476,7 @@ export function PartnerLocationMapPage({
             ? t('partnerLocation.mapAreaDescription', {
                 partner: partnerFirstName,
                 radius,
-                time: asOf ?? '',
+                time: partnerAsOf ?? '',
               })
             : map.isSuccess
               ? t('partnerLocation.mapPartnerNotSharing', {
@@ -542,9 +547,9 @@ export function PartnerLocationMapPage({
                 {map.isSuccess && !area ? (
                   <span>{t('partnerLocation.mapUnavailableBody')}</span>
                 ) : null}
-                {area && asOf ? (
+                {partnerAsOf ? (
                   <span>
-                    {t('partnerLocation.mapPartnerAsOf', { time: asOf })}
+                    {t('partnerLocation.mapAsOf', { time: partnerAsOf })}
                   </span>
                 ) : null}
               </span>
@@ -571,7 +576,10 @@ export function PartnerLocationMapPage({
                   ? t('partnerLocation.mapYou')
                   : t('partnerLocation.mapYouMissing')}
               </strong>
-              <span>{ownShare}</span>
+              {ownAsOf ? (
+                <span>{t('partnerLocation.mapAsOf', { time: ownAsOf })}</span>
+              ) : null}
+              {ownShare && <span>{ownShare}</span>}
             </span>
           </PersonRow>
         </ul>

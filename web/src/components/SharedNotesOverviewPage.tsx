@@ -26,6 +26,7 @@ import {
   withPinnedNotes,
 } from '../client/sharedNotes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
+import { useRootTabIntro } from '../client/rootTabIntro';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { useTranslation } from '../i18n';
@@ -117,6 +118,7 @@ export function SharedNotesOverviewPage({
   accountId: string;
 }) {
   const { t } = useTranslation();
+  const rootIntro = useRootTabIntro<HTMLDivElement>('shared');
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -260,8 +262,12 @@ export function SharedNotesOverviewPage({
   );
 
   return (
-    <div className="page shared-content-page shared-notes-page">
+    <div
+      className="page shared-content-page shared-root-page shared-notes-page"
+      ref={rootIntro}
+    >
       <PageHeader
+        variant="root"
         className="content-overview-heading"
         title={t('navigation.sharedHeading')}
         action={

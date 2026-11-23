@@ -5,9 +5,14 @@ from __future__ import annotations
 import argparse
 import difflib
 import json
+import os
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
+
+# The versioned contract is the complete one, with the Pro plugin loaded
+# (Decision 0017, decision 7); the Pro distribution must be installed.
+os.environ.setdefault("EIMIR_PLUGINS", "pro")
 
 from fastapi.testclient import TestClient
 

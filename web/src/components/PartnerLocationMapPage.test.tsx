@@ -19,6 +19,12 @@ const env = vi.hoisted(() => ({
   ownPosition: true,
 }));
 
+function todayAt(hour: number, minute: number) {
+  const capturedAt = new Date();
+  capturedAt.setHours(hour, minute, 0, 0);
+  return capturedAt;
+}
+
 /** What the page last handed the map. */
 const canvas = vi.hoisted(() => ({
   focus: undefined as MapFocus | undefined,
@@ -58,6 +64,8 @@ vi.mock('../client/approximateLocation', () => ({
   currentApproximatePosition: async () => ({
     latitude: 50.94,
     longitude: 6.96,
+    accuracyMeters: 1500,
+    capturedAt: todayAt(14, 17),
   }),
 }));
 vi.mock('../client/partnerLocation', () => ({
@@ -92,7 +100,7 @@ vi.mock('../client/partnerDistance', async (importOriginal) => ({
           latitude: 53.55,
           longitude: 9.99,
           radiusMeters: 5000,
-          capturedAt: new Date(),
+          capturedAt: todayAt(12, 36),
         }
       : { available: false },
   }),
@@ -188,9 +196,12 @@ it('lets the sheet rows focus a person and "show us" return to both', async () =
   Element.prototype.scrollIntoView = scrollIntoView;
   renderPage();
   await screen.findByTestId('map');
-  // The visible row text stays the start of its accessible name.
+  const ownAsOf = copy.mapAsOf.replace(
+    '{{time}}',
+    copy.distanceAsOfToday.replace('{{time}}', '14:17'),
+  );
   const own = await sheet().findByRole('button', {
-    name: new RegExp(`^${copy.mapYou}.*${copy.mapZoomToOwn}$`),
+    name: new RegExp(`^${copy.mapYou}\\s*${ownAsOf}\\s*${copy.mapZoomToOwn}$`),
   });
   fireEvent.click(own);
   expect(canvas.focus).toEqual(
@@ -201,11 +212,11 @@ it('lets the sheet rows focus a person and "show us" return to both', async () =
     block: 'nearest',
     behavior: 'auto',
   });
-  fireEvent.click(
-    sheet().getByRole('button', {
-      name: new RegExp(forPartner(copy.mapZoomToPartner)),
-    }),
-  );
+  const partner = sheet().getByRole('button', {
+    name: new RegExp(forPartner(copy.mapZoomToPartner)),
+  });
+  expect(within(partner).getByText(/12:36/)).toBeTruthy();
+  fireEvent.click(partner);
   expect(canvas.focus).toEqual(
     expect.objectContaining({ latitude: 53.55, radiusMeters: 5000 }),
   );
@@ -223,5 +234,8 @@ it('offers no zoom for a person who is not on the map', async () => {
   renderPage();
   await screen.findByTestId('map');
   expect(sheet().queryByRole('button')).toBeNull();
+  expect(
+    sheet().queryByText(copy.mapAsOf.split('{{time}}')[0], { exact: false }),
+  ).toBeNull();
   expect(canvas.areas).toEqual([]);
 });

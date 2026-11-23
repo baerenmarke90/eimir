@@ -91,6 +91,9 @@ Captured from the implementation branch in the e2e harness (mocked API):
 - The map sheet keeps the kilometres of a range band below its words
   (`partner-map-between-km`); nearby never shows a number and far values
   already contain theirs.
+- Superseded for the Verbunden hero on 2026-11-22 by
+  [the heart and light](../wir-hero-heart-light/README.md); the rest of this
+  record still applies to the other Wir designs.
 - The Verbunden hero always shows the distance pin; the clock glyph for an
   earlier value is gone, the earlier state stays in the accessible name.
 

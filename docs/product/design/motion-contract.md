@@ -247,7 +247,7 @@ Something already on screen changes or leaves: a value changes, an item is reord
 1. *No height animation.* The control changes state at once, revealed content uses Enter `fade`/`rise` (or `stagger` for "+N weitere" items, within the stagger cap), and content below moves to its new place at once. Use this whenever the content below is not being read.
 2. *Gap with translate.* When content below must visibly follow, the layer measures and moves it with `reorder`/`collapse-gap` (FLIP, `translate` only).
 3. *One bounded size transition.* Only where 1 and 2 cannot express it (the #2066 check-in row that closes under the names): a single `height`/`block-size` transition on **one** container per interaction, with `interpolate-size: allow-keywords` as a progressive enhancement. It lasts at most `--duration-context`, clips its content (`overflow: clip`), animates only in the direction that the decision names, is never used inside lists or on more than one element at once, and must not shift content the person is reading (scroll anchoring checked). Browsers without `interpolate-size` change in one step; this is acceptable by definition. Each use is listed in the owning document. On `main` today: `WirHeroStage.css` (check-in row), `QuietHint.css`, `RelationshipWaymarks.css`, the disclosure rule in `styles.css` (`grid-template-rows`) and three `height` transitions in `PhotoEditTask.css`. The migration checks each one against 1 and 2. Checked in #2074:
-   - The Wir check-in row stays option 3: the quote and the modules below must visibly follow the row as it closes (#2066). It closes only in the "way in" direction, on one container. Its height part lasts 2.5 × `--duration-context` after a `--duration-transition` delay, by the Product Owner's #2066 decision; this is a recorded exception to the cap above.
+   - The Wir check-in row stayed option 3 at this point: the quote and the modules below had to visibly follow the row as it closed (#2066). It closed only in the "way in" direction, on one container. Its height part lasted 2.5 × `--duration-context` after a `--duration-transition` delay, by the Product Owner's #2066 decision, as a recorded exception to the cap above. **Superseded on 2026-11-22**, see the last entry of this list.
    - The `QuietHint.css` fold-away stays option 3 within `--duration-transition`.
 
    Checked in #2077:
@@ -263,7 +263,10 @@ Something already on screen changes or leaves: a value changes, an item is reord
 
    Checked in #2080, when the guard began to count layout transitions:
    - **The Planen search row (`PlanningReference.css`) stays option 3, as a recorded exception to "height".** When the search opens or closes, the status row below it moves by the search row's height with one `margin-top` transition on that one row, within `--duration-context`, and only without reduced motion. The search settles onto this row (#2077), so the row must visibly make room instead of jumping under it. Nothing is read below it while the person opens the search.
-   - The guard registers each sanctioned use with its count (`REGISTERED_LAYOUT_TRANSITIONS`): `WirHeroStage.css`, `QuietHint.css`, `styles.css`, `CoupleExperiences.css` and `PlanningReference.css` once, and `PhotoEditTask.css` three times. Any other layout transition fails it.
+   - The guard registers each sanctioned use with its count (`REGISTERED_LAYOUT_TRANSITIONS`): `QuietHint.css`, `styles.css`, `CoupleExperiences.css` and `PlanningReference.css` once, and `PhotoEditTask.css` three times. Any other layout transition fails it.
+
+   Decided by the Product Owner on 2026-11-22:
+   - **The Wir check-in row moves to option 1.** The daily invitation (`wirCheckIn.ownPrompt`) now sits next to the plus and takes no room under the names, so the row is closed from the first frame on a day without a mark and the quote never slides up. While today's state loads, the row keeps its place only when this device last saw a mark today. A value that arrives opens the row at once and moves the quote down.
 - Reduced motion: final size at once.
 
 **`value` (numbers and short text).** Count changes, the days-together tick, timer digits:
@@ -377,9 +380,9 @@ Motion that follows the finger (or mouse, pen, scroll) instead of a clock. On `m
 
 | Gesture | Owner | Release handoff | Interruption | Haptics | Non-gesture alternative |
 | --- | --- | --- | --- | --- | --- |
-| Primary-tab pager | `useNavigationMotion.ts` | the current page (`left`, the shell exception in M6) and the neighbour (`transform`) continue on one sampled spring with the release velocity into Replace `navigate`; the end state is applied first, so nothing is held with `fill: forwards` | a touch on settling pages stops them where they are and continues the same swipe; a touch that cannot start a swipe lets the settle land | threshold tick, commit | the tab bar |
+| Primary-tab pager | `useNavigationMotion.ts` | the current page (`left`, the shell exception in M6) and the neighbour (`transform`) continue on one sampled spring with the release velocity into Replace `navigate`; the end state is applied first, so nothing is held with `fill: forwards` | a touch on settling pages stops them where they are and continues the same swipe; a touch that cannot start a swipe lets the settle land | commit (no threshold tick: one haptic per page change) | the tab bar |
 | Sheet drag-to-dismiss | `ShortTaskSheet.tsx` | cancel: a sampled spring back to rest with the release velocity (the transform transition is gone). Commit: Exit `surface-exit` with `--short-task-sheet-exit-duration`, the remaining height at the release velocity, between `--duration-feedback` and `--duration-transition`. Upward past rest it rubber-bands | grabbing a returning sheet stops the spring where it is | threshold tick, commit | the visible close control, System Back and Escape |
-| Pull to refresh | `usePullToRefresh.ts`, `PullToRefreshIndicator.tsx` | the refresh starts at release (M10) and shows the Loading spinner (`.eimir-motion-loading-spin`, `--duration-loading-cycle`) | — (the indicator returns at once) | threshold tick, commit | the automatic refetch when the app returns to the foreground or reconnects (`refetchOnWindowFocus`, `refetchOnReconnect`) |
+| Pull to refresh | `usePullToRefresh.ts`, `PullToRefreshIndicator.tsx` | the refresh starts at release (M10). The disc continues from where the finger left it, with half the finger's release velocity, on the sampled spring: to its resting place while the Loading spinner runs (`.eimir-motion-loading-spin`, `--duration-loading-cycle`) and back above the page when the refresh ends; a cancelled pull springs back to the top | grabbing a settling disc stops it where it is and continues the pull | threshold tick, commit | the automatic refetch when the app returns to the foreground or reconnects (`refetchOnWindowFocus`, `refetchOnReconnect`) |
 | List reorder | `ListEntryActions.tsx` | the dropped row and its siblings move with Replace `reorder` from their measured places (`reorder(container, before, { key, skip })`) | a new drag cancels running reorder moves | a tick per slot change, commit on an accepted drop | the arrow keys on the handle, with the order announced |
 | Photo arrangement | `PhotoArrangeTask.tsx`, `PhotoDraftSorting.tsx` with `@dnd-kit` | the library's sorting and drop animations take the token roles from `motion/gesture/dragAndDrop.ts`; with reduced motion they are `null` (instant) | the library's own | commit on a drop that changed the order | the keyboard sensor and the position buttons |
 | Photo zoom and crop | `ZoomablePhoto.tsx`, `PhotoCropTask.tsx` with `@panzoom/panzoom` | pinch, pan and wheel follow 1:1; step zooms are instant (`motion/gesture/panzoom.ts` passes `animate: false` with the token roles) | the library's own | none | zoom buttons, double-tap and the keyboard |
@@ -389,7 +392,8 @@ Decisions and limits of this step:
 - **Pull to refresh does not commit on a fling.** A quick downward flick at the top of a page is how people scroll back up, and an accidental refresh would replace what they are reading. It commits by distance (72 px) and cancels on a reversal.
 - **The pager's route lands when the shared settle ends.** The kept-tab panels swap visibility on a route change, so navigating at release would hide the outgoing page mid-travel. The decision is made at release and cannot be lost: a hidden page, a blur or a resize finishes the settle at once, and a fallback releases the drag if the route never commits. The settle is the spring's length: about 450 ms for the rest of a page at 390 px, less for a shorter travel.
 - **With reduced motion the pager pages stay still** while the swipe still works and commits at once. **Product Owner decision (2026-11-20; #2076, #2095):** the existing behaviour is kept. A whole page travelling sideways is large-area motion. This is a deliberate exception to the tracking rule above, which otherwise keeps tracking under reduced motion. Sheets, reorder and photos still track the finger with reduced motion.
-- **The pull indicator grows in height** while the finger pulls, without a transition, because it is an in-flow Loading indicator that makes room above the page. It is tracking, not an animation of a layout property; a transform-only indicator would need a layout change of the page top and is left for a later step.
+- **The pull indicator is out of flow and moves by `transform` and `opacity` only.** Its anchor has no height, so the page never reflows while the finger pulls or the disc settles. The disc follows half the finger travel (72 px of finger is the commit distance and the disc's own 36 px, so it is fully shown exactly where the pull commits), gives way with the shared rubber-band beyond 64 px, and is written once per animation frame without a React render per move. It emerges from the top edge of the main column instead of crossing the header. An earlier in-flow, height-growing indicator that snapped away on release is gone.
+- **A fetch that is already running does not kill the pull.** The pull follows the finger and commits as usual; the refresh is asked for at release and starts as soon as the surface is idle, or after 5 s at most, instead of a gesture that silently does nothing. The disc shows the Loading spinner while it waits.
 - **The lifeline preview card swipe** (`SharedStorySummary.tsx`, the Momente lifeline preview) follows the finger with its own slop, axis lock and commit distance, and returns to rest without the release velocity. Found by the pointer-tracking rule of #2080. It keeps its behaviour and is registered as a `gesture` owner; moving it onto the building block (`resolveOwnership`, `commitDistance`, `decideRelease` and the settle spring) is a follow-up with its own device acceptance. Its non-gesture alternative is the arrow keys and the pager dots.
 - **Scroll-snap carousels** (8 `scroll-snap-type` declarations) stay native scrolling, as the tracking rule requires. **Range controls** are native `<input type="range">` or `role="slider"` elements with keyboard steps; the pager, the sheet and pull to refresh exclude them from their gestures.
 
@@ -536,6 +540,7 @@ These are not primitives. They are areas whose motion is defined by their own cl
 Motion that announces something the person did not trigger: partner arrivals, received gestures, realtime signals, unread markers, badge counts, quiet hints. It uses the primitives above (Flight `arrive`, Enter, Feedback `affection`, Moment) and adds these rules. The [#1212 review](1212-event-driven-arrival-motion.md) remains the source for which events qualify.
 
 - **Only live, identifiable events animate.** Polling, cache reconciliation and unread-count changes have no live identity and never animate (#1212). An unread dot or a badge count appears or changes **without motion** (at most Replace `value` for a count that the person is looking at).
+- **Recorded exception: the Wir distance (Product Owner, 2026-11-22).** When the app opens or resumes and the coarse distance band differs from the step this device last showed, the Verbunden hero plays one Flight `arrive` after its opening: a small light from each portrait to the heart, then Feedback `affection` on the filled shape and Replace `value` for the word. It takes the `arrival` slot of these rules and is dropped, never queued, when it cannot play. It does not play for a value older than the freshness window, on an important day, off screen, or within 30 minutes of the last one, and it has no haptic. The stored step is display state, not a motion identity. See the [decision record](references/wir-hero-heart-light/README.md).
 - **Priority**, highest first:
   1. a Moment for a received partner gesture or message;
   2. a partner arrival Flight;
@@ -552,7 +557,7 @@ Motion that announces something the person did not trigger: partner arrivals, re
 
 **Approved by the Product Owner on 2026-11-19:** the app gets haptic feedback, through the official `@capacitor/haptics` plugin. The gestures-and-haptics step (#2076) added them: `@capacitor/haptics` 8.0.2 (MIT, no runtime dependencies), registered by `motion/hapticsNative.ts` in the native app only, and the switch in Settings › Appearance (`HapticsSettings.tsx`).
 
-Wired triggers after #2076: the gesture threshold tick and commit of the pager, the sheet, pull to refresh, list reorder and the photo arrangement; the press of "Fertig" in the check-in; a gesture to the partner (`press`, a kiss `affection`) and its failed return (`refuse`); the important-day Moment (#2074).
+Wired triggers after #2076: the commit of the pager (no threshold tick), the gesture threshold tick and commit of the sheet, pull to refresh, list reorder and the photo arrangement; the press of "Fertig" in the check-in; a gesture to the partner (`press`, a kiss `affection`) and its failed return (`refuse`); the important-day Moment (#2074).
 
 Added in #2077:
 - the first beat of a received heart or kiss and of the connected moment (`moment`, 4.7 as built);
@@ -578,14 +583,19 @@ Rules:
 - **Budget:** at most one haptic per direct action plus the threshold tick of a gesture. No two haptics within `--duration-context`; the later one is dropped. No haptics for unprompted motion (arrivals, hints, realtime signals, received items the person is not looking at), Ambient, Enter, Replace, navigation by tap, Loading or Scenes' ambient life.
 - **User setting:** a visible on/off switch "Haptisches Feedback" (localized through i18n) in the app's settings, on by default, stored on the device only (not shared with the partner, not sent to the server). The switch is shown only in the native app (runtime platform check, AGENTS.md "Browser-only controls"), because the Web has no haptics.
 - **Reduced motion:** does not switch haptics off; they are a separate preference and also help people who reduce motion. A person who wants neither turns off the in-app switch.
-- **Android behaviour:** the plugin (version 8.0.2, MIT) vibrates through `Vibrator` with `VibrationEffect` one-shots and waveforms, and declares the normal-level `VIBRATE` permission (granted at install, no runtime prompt). It does **not** use `View.performHapticFeedback`, so it does not follow the system touch-feedback setting the way native controls do. The in-app switch is therefore required, and the gestures step verifies on a device:
-  - how Android 13+ "Vibration & haptics" settings and Do Not Disturb affect it;
-  - whether the light impacts feel like system ticks.
+- **Android behaviour (Product Owner correction, 2026-11-22):** Android uses system haptics such as the keyboard's instead of the waveforms from `@capacitor/haptics` 8.0.2 (100 ms selection, 50 ms light impact, 43 ms medium impact). The project plugin `SystemHaptics` calls `View.performHapticFeedback`, so feedback follows the device's tuning and its system touch-feedback setting. The in-app switch stays as the app-level control. The Plugin call column above remains the cross-platform contract and maps on Android as follows:
 
-  If they feel like buzzes instead of ticks, the step may propose a small project plugin on `performHapticFeedback` (`CONFIRM`, `REJECT`, `GESTURE_THRESHOLD_ACTIVATE`, `CLOCK_TICK`) through its own reuse review.
-  - Source review of 8.0.2 (#2076): on Android `selectionChanged()` vibrates only between `selectionStart()` and `selectionEnd()`, so the adapter sends the three calls in order. Its waveforms are 100 ms at amplitude 100 for a selection, 50 ms at 110 for a light impact and 43 ms at 180 for a medium impact. A 100 ms selection is longer than a system tick, so the threshold tick is the first candidate for the device check. The device acceptance on an Android test release is still open.
+  | Plugin call | Android system feedback | Fallback |
+  | --- | --- | --- |
+  | `selectionChanged()` | `GESTURE_THRESHOLD_ACTIVATE` (API 34) | `CLOCK_TICK` |
+  | `impact({ style: Light })` | `KEYBOARD_TAP` | none needed |
+  | `impact({ style: Medium })` | `VIRTUAL_KEY` | none needed |
+  | `notification({ type: Success })` | `CONFIRM` (API 30) | `VIRTUAL_KEY` |
+  | `notification({ type: Warning })` | `REJECT` (API 30) | `LONG_PRESS` |
+
+  Device acceptance on an Android test release is still open.
 - **Web fallback:** none. The adapter is a no-op outside the native app. The plugin's Web implementation calls `navigator.vibrate` directly, so the adapter never calls the plugin on the Web. Reasons: iOS Safari has no Vibration API; on Android browsers `navigator.vibrate` is a buzz that follows no system haptic setting; desktop has no vibration. A later Web use of `navigator.vibrate` would need its own decision.
-- **iOS:** the repository has a Capacitor iOS project; the same adapter applies there through the plugin's Taptic Engine implementation when iOS ships.
+- **iOS:** the repository has a Capacitor iOS project; the same adapter applies there through the `@capacitor/haptics` Taptic Engine implementation when iOS ships.
 
 ### 4.11 Gap audit
 
@@ -629,7 +639,7 @@ Legend:
 | Primary tabs Wir, Momente, Planen (kept views) | Replace `navigate` (lateral); tab swipe is Gesture follow; nothing replays on return (M4) | covered |
 | Detail, create and edit pages; Mehr, settings and profile pages | Replace `navigate` forward/back | covered |
 | Startup splash to app handoff (`BrandedStartup.tsx`, native splash, `NativeSessionGate.tsx`) | On `main`, the system splash stays until the web shell reports its first paint (`LaunchScreenHold.java`). It then fades out over the platform's short animation time; this is a native duration, not a token, and it stays. The web start view continues the same tile and fades in only its wordmark and status (Enter `fade`, once per app start). The first app screen does not fade in again behind it (no double entrance), and the Wir opening starts after the handoff, on its own clock. With reduced motion the web part is instant | rule |
-| App resume from the background (`appStateChange` in `capacitorShell.ts`) | Not a new motion identity: no entrance, opening or Moment replays (M3). Ambient continues where it paused (M4). Refetched data appears without attention motion (4.9, #1212) | rule |
+| App resume from the background (`appStateChange` in `capacitorShell.ts`) | Not a new motion identity: no entrance, opening or Moment replays (M3). Ambient continues where it paused (M4). Refetched data appears without attention motion (4.9, #1212), except the recorded Wir distance change in 4.9 | rule |
 | Deep link and notification-tap arrival (`routeEntryHandoff.ts`, `devicePush.ts`) | Replace `navigate` forward into the target. On a cold start the target shows without the Wir opening. The Wir opening keeps its scope "once per app start, the first time Wir is shown at its top" (Motion Guideline) | rule |
 | Android system back and predictive back (Android 14+) | In-app back (Capacitor `backButton`) runs Replace `navigate` back after the gesture is released. The system owns the back-to-home preview when back leaves the app. A progress-driven in-app back preview inside the WebView is not available through Capacitor and is not built. The gestures step verifies the platform behaviour on the device | out (platform) |
 | Status-bar scrim (`useStatusBarScrim.ts`), floating create tuck | Replace `scroll-state` | covered |
@@ -832,7 +842,7 @@ Three of these rules have reviewed registrations in the script, each with its us
 | Registration | Rule | Files | Uses |
 | --- | --- | ---: | ---: |
 | `REGISTERED_LOOPS` | `infinite`: the Scenes domain's playfields (4.8, M8) | 6 | 26 |
-| `REGISTERED_LAYOUT_TRANSITIONS` | layout transitions: the sanctioned `disclose` uses (4.2) | 6 | 8 |
+| `REGISTERED_LAYOUT_TRANSITIONS` | layout transitions: the sanctioned `disclose` uses (4.2) | 5 | 7 |
 | `REGISTERED_POINTER_TRACKING` | pointer tracking: the Gesture follow owners (`gesture`, 4.6) and pointer input that moves nothing by itself (`input`: a cancelled press, a long-press slop, scroll intent, a drawn stroke, a scrubbed selection, the photo editor's handles) | 11 | 17 |
 
 The guard also rejects the animation libraries `motion`, `framer-motion`, `motion-plus*`, `gsap` and `animejs` in `web/package.json`, in `web/package-lock.json` (also as a transitive package) and as imports anywhere in `web/src`, unless a new decision in this contract allows one (6.6; Product Owner decision 2026-11-19).
@@ -1070,7 +1080,7 @@ Measured by the guard on `main` at `23e556cb7` plus #2080.
 | `Element.animate()` calls | 4 (`run.ts` once, `flight.ts` three times) | 0 |
 | `infinite` loops | 5 (Loading, `utilities.css`) | 26 registered Scenes loops in 6 files |
 | Layout properties in keyframes | 0 | 0 |
-| Layout transitions | 0 | 8 registered `disclose` uses in 6 files |
+| Layout transitions | 0 | 7 registered `disclose` uses in 5 files |
 | Pointer tracking | 1 (`gesture/follow.ts`) | 17 registered in 11 files |
 | Animation-library dependencies | 0 | 0 |
 

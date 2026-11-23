@@ -425,10 +425,8 @@
   --wir-distance-bleed: var(--page-gutter, var(--space-4));
   /* Past the screen edge above any header, and past the tallest glow. */
   --wir-distance-reach: calc(var(--wir-avatar) * 2.9);
-  /* The person colours are deep on a light page, so the light takes less of
-     them there and the text on it stays readable. */
-  --wir-distance-glow-tone: 24%;
-  --wir-distance-shared: 0.2;
+  --wir-distance-glow-tone: 74%;
+  --wir-distance-shared: 0.6;
 
   position: absolute;
   z-index: -1;
@@ -440,13 +438,45 @@
 
 :root[data-theme="dark"] .wir-distance-light {
   --wir-distance-glow-tone: 66%;
-  --wir-distance-shared: 0.6;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .wir-distance-light {
     --wir-distance-glow-tone: 66%;
-    --wir-distance-shared: 0.6;
+  }
+}
+
+/* On a light page the visible light darkens the ground, so the quiet text on
+   it becomes firmer instead of the light becoming faint. */
+:root[data-theme="light"]
+  .today-page:has(.wir-distance-light)
+  :is(.wir-stage, .daily-quote-card) {
+  --color-text-muted: color-mix(
+    in srgb,
+    var(--color-text) 82%,
+    var(--color-background)
+  );
+  --color-text-secondary: color-mix(
+    in srgb,
+    var(--color-text) 82%,
+    var(--color-background)
+  );
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"])
+    .today-page:has(.wir-distance-light)
+    :is(.wir-stage, .daily-quote-card) {
+    --color-text-muted: color-mix(
+      in srgb,
+      var(--color-text) 82%,
+      var(--color-background)
+    );
+    --color-text-secondary: color-mix(
+      in srgb,
+      var(--color-text) 82%,
+      var(--color-background)
+    );
   }
 }
 

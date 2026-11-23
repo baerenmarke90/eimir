@@ -1635,6 +1635,7 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
     ("GET", "/api/v1/push-endpoints/unifiedpush-configuration"),
     ("POST", "/api/v1/push-endpoints"),
     ("DELETE", "/api/v1/push-endpoints/{endpointId}"),
+    ("POST", "/api/v1/support-reports"),
     ("POST", "/api/v1/auth/sign-out"),
     ("POST", "/api/v1/auth/password"),
     ("POST", "/api/v1/auth/email/verification/request"),

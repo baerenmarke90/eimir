@@ -49,7 +49,7 @@ def test_payload_rejects_unknown_field() -> None:
         SupportReportPayload.model_validate(_payload(client={**_client(), "device_id": "abc"}))
     with pytest.raises(ValidationError):
         SupportReportPayload.model_validate(
-            _payload(failure={"reference": "GET /api/v1/plans 500", "token": "secret"})
+            _payload(failure={"reference": "GET:/api/v1/plans:500", "token": "secret"})
         )
 
 
@@ -89,8 +89,55 @@ def test_failure_reference_has_no_url_fields() -> None:
     assert set(FailureReference.model_fields) == {"reference", "request_id"}
     with pytest.raises(ValidationError):
         FailureReference.model_validate(
-            {"reference": "GET /api/v1/plans/{id} 500", "url": "https://example.test/x?y=1"}
+            {"reference": "GET:/api/v1/plans/{id}:500", "url": "https://example.test/x?y=1"}
         )
+
+
+@pytest.mark.parametrize(
+    "reference",
+    [
+        "GET:/api/v1/plans/{id}:500:INTERNAL_ERROR:app",
+        "POST:/api/v1/support-reports:network:web",
+        "a.b_c-d/e{f}:g",
+    ],
+)
+def test_failure_reference_accepts_generalized_tokens(reference: str) -> None:
+    assert FailureReference(reference=reference).reference == reference
+
+
+@pytest.mark.parametrize(
+    "reference",
+    [
+        "",
+        "https://example.test/plans",
+        "GET:https://example.test",
+        "GET:/api/v1/plans?token=abc",
+        "GET:/api/v1/plans#fragment",
+        "GET:/api/v1/plans:key=value",
+        "GET /api/v1/plans 500",
+        "GET:/api/v1/plans\n500",
+        "GET:/api/v1/pläne",
+        "x" * 201,
+    ],
+)
+def test_failure_reference_rejects_urls_queries_and_whitespace(reference: str) -> None:
+    with pytest.raises(ValidationError):
+        FailureReference(reference=reference)
+
+
+def test_failure_reference_accepts_200_characters() -> None:
+    assert len(FailureReference(reference="a" * 200).reference) == 200
+
+
+@pytest.mark.parametrize("request_id", ["req-1.2_3", "A" * 128])
+def test_request_id_accepts_header_safe_tokens(request_id: str) -> None:
+    assert FailureReference(reference="GET:/x", request_id=request_id).request_id == request_id
+
+
+@pytest.mark.parametrize("request_id", ["", "a b", "a/b", "a:b", "a?b", "a" * 129, "id\n"])
+def test_request_id_rejects_other_characters(request_id: str) -> None:
+    with pytest.raises(ValidationError):
+        FailureReference(reference="GET:/x", request_id=request_id)
 
 
 def test_payload_columns_are_protected_and_typed() -> None:

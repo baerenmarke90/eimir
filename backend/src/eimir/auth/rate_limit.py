@@ -43,6 +43,11 @@ SIGN_IN = Limit(attempts=10, window=timedelta(minutes=15))
 MAGIC_LINK = Limit(attempts=5, window=timedelta(minutes=15))
 INVITATION_ACCEPT = Limit(attempts=10, window=timedelta(minutes=15))
 
+# Support reports (#2189): per Account, counted per newly created report. An
+# honest person files a handful at most; the daily budget stops a slow drip.
+SUPPORT_REPORT_HOURLY = Limit(attempts=5, window=timedelta(hours=1))
+SUPPORT_REPORT_DAILY = Limit(attempts=20, window=timedelta(days=1))
+
 # Refresh is the only case that limits successful attempts rather than failed
 # ones. Every rotation writes one replay-history row; a client with a valid
 # token could otherwise generate arbitrarily many in a tight loop.

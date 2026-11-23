@@ -10,12 +10,18 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from eimir.domain.payload import ProtectedPayload
 
 NOTE_MAX_CHARACTERS = 2000
 REPLY_MAX_CHARACTERS = 500
+
+# The character class already excludes whitespace, ``?``, ``#`` and ``=``, so a
+# query string or fragment cannot be stored. ``:`` and ``/`` stay allowed for
+# method classes and route templates, which is why ``://`` is rejected below.
+FAILURE_REFERENCE_PATTERN = r"^[A-Za-z0-9_./{}:-]+$"
+REQUEST_ID_PATTERN = r"^[A-Za-z0-9._-]+$"
 
 
 class FailureReference(BaseModel):
@@ -23,10 +29,19 @@ class FailureReference(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    reference: str = Field(max_length=200)
+    reference: str = Field(min_length=1, max_length=200, pattern=FAILURE_REFERENCE_PATTERN)
     """Method class, route template without ids, outcome, problem code and surface."""
-    request_id: str | None = Field(default=None, max_length=128)
+    request_id: str | None = Field(
+        default=None, min_length=1, max_length=128, pattern=REQUEST_ID_PATTERN
+    )
     """The ``x-request-id`` of the failing response."""
+
+    @field_validator("reference")
+    @classmethod
+    def reference_is_not_a_url(cls, value: str) -> str:
+        if "://" in value:
+            raise ValueError("A failure reference must not contain a URL.")
+        return value
 
 
 class ClientContext(BaseModel):

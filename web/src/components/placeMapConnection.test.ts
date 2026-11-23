@@ -161,7 +161,9 @@ describe('ConnectionOverlay', () => {
       '.place-map-connection-heart',
     );
     expect(overlay.element.classList.contains('is-near')).toBe(true);
-    expect(heart?.style.translate).toBe('calc(130px - 50%) calc(146px - 50%)');
+    const expected = document.createElement('span').style;
+    expected.translate = 'calc(130px - 50%) calc(146px - 50%)';
+    expect(heart?.style.translate).toBe(expected.translate);
     overlay.update(
       { tier: 'far', earlier: true },
       { x: 100, y: 200 },

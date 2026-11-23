@@ -320,10 +320,7 @@ export function CollectionsOverviewPage({
   }
 
   return (
-    <div
-      className="page shared-content-page shared-root-page"
-      ref={rootIntro}
-    >
+    <div className="page shared-content-page shared-root-page" ref={rootIntro}>
       <PageHeader
         variant="root"
         className="content-overview-heading"

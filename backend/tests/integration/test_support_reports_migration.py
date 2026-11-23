@@ -1,4 +1,4 @@
-"""Migration 0172 adds support reports, their reply and the reply notice (#2189)."""
+"""Migration 0175 adds support reports, their reply and the reply notice (#2189)."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ def test_support_reports_upgrade_and_rollback(session):  # type: ignore[no-untyp
     session.add(existing)
     session.flush()
     assert _tables(session) >= TABLES
-    migration = ScriptDirectory.from_config(Config("alembic.ini")).get_revision("0172").module
+    migration = ScriptDirectory.from_config(Config("alembic.ini")).get_revision("0175").module
     context = MigrationContext.configure(
         session.connection(), opts={"target_metadata": Base.metadata}
     )

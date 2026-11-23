@@ -27,7 +27,10 @@ import { settleEditorHistory } from '../client/useEditorHistoryEntry';
 import supportReport from '../i18n/locales/supportReport';
 import taskSheets from '../i18n/locales/taskSheets';
 import { ProblemState } from './ProblemState';
-import { SupportReportHost } from './SupportReportHost';
+import {
+  SupportReportHost,
+  supportReportSheetModule,
+} from './SupportReportHost';
 
 const API = 'http://api.example.test';
 
@@ -55,7 +58,9 @@ function openDialog(name: string) {
   return screen.findByRole('dialog', { name });
 }
 
-beforeAll(() => {
+beforeAll(async () => {
+  // As the background prefetch does in the shell; see the lazy chunk tests.
+  await supportReportSheetModule.load();
   // Reduced motion: a closed sheet leaves without a retained exit phase.
   Object.defineProperty(window, 'matchMedia', {
     configurable: true,
@@ -113,9 +118,8 @@ describe('SupportReportHost', () => {
     expect(dialog.textContent).not.toContain('/api/v1/memories');
   });
 
-  it('opens the sheet in the same commit, without a chunk to load', () => {
-    // No lazy boundary: nothing can suspend or fail to load (offline,
-    // Save-Data, an early tap); the shell tree never throws.
+  it('opens the sheet in the same commit once its chunk has loaded', () => {
+    // The background prefetch loaded the chunk: no suspense, no waiting.
     render(session(<SupportReportHost />));
     expect(() =>
       act(() => openSupportReport({ kind: 'FEEDBACK' })),
@@ -202,5 +206,96 @@ describe('SupportReportHost', () => {
       }).value,
     ).toBe('Mid-sentence');
     expect(kept.textContent).toContain('GET · 500 · web');
+  });
+});
+
+// A stand-in sheet: these cases are about loading the chunk, not the sheet.
+function StubSheet({
+  open,
+  initialKind,
+}: {
+  open: boolean;
+  initialKind: 'PROBLEM' | 'FEEDBACK';
+}) {
+  return open ? <div role="dialog" aria-label={initialKind} /> : null;
+}
+
+describe('SupportReportHost lazy chunk', () => {
+  /**
+   * A fresh host whose sheet chunk fails `failures` times before it loads.
+   * Fresh modules have a fresh launcher store, so the test uses that one.
+   */
+  async function freshHost(failures: number) {
+    const attempts = { count: 0 };
+    vi.resetModules();
+    vi.doMock('./SupportReportSheet', () => {
+      attempts.count += 1;
+      if (attempts.count <= failures) throw new Error('chunk fetch failed');
+      return { SupportReportSheet: StubSheet };
+    });
+    const { SupportReportHost: Host } = await import('./SupportReportHost');
+    const launcher = await import('../client/supportReportLauncher');
+    return { Host, launcher, attempts };
+  }
+
+  afterEach(() => {
+    vi.doUnmock('./SupportReportSheet');
+  });
+
+  it('opens the sheet once the chunk loaded and reuses it for the next open', async () => {
+    const { Host, launcher, attempts } = await freshHost(0);
+    render(<Host />);
+    act(() => launcher.openSupportReport({ kind: 'FEEDBACK' }));
+    // Nothing suspends or flashes while the chunk loads.
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(
+      await screen.findByRole('dialog', { name: 'FEEDBACK' }),
+    ).toBeTruthy();
+
+    act(() => launcher.closeSupportReport());
+    expect(screen.queryByRole('dialog')).toBeNull();
+    act(() => launcher.openSupportReport({ kind: 'PROBLEM' }));
+    // Loaded: the second open renders in the same commit.
+    expect(screen.getByRole('dialog', { name: 'PROBLEM' })).toBeTruthy();
+    expect(attempts.count).toBe(1);
+  });
+
+  it('renders nothing, does not throw and closes the request when the chunk fails', async () => {
+    const { Host, launcher, attempts } = await freshHost(2);
+    const { container } = render(<Host />);
+    expect(() =>
+      act(() => launcher.openSupportReport({ kind: 'FEEDBACK' })),
+    ).not.toThrow();
+    // One more attempt, then the request is closed so a later tap works.
+    await waitFor(() =>
+      expect(launcher.currentSupportReportRequest()).toBeNull(),
+    );
+    expect(attempts.count).toBe(2);
+    expect(container.innerHTML).toBe('');
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('retries once on its own when the first load fails', async () => {
+    const { Host, launcher, attempts } = await freshHost(1);
+    render(<Host />);
+    act(() => launcher.openSupportReport({ kind: 'FEEDBACK' }));
+    expect(
+      await screen.findByRole('dialog', { name: 'FEEDBACK' }),
+    ).toBeTruthy();
+    expect(attempts.count).toBe(2);
+  });
+
+  it('loads the chunk anew on the next request after a failed load', async () => {
+    const { Host, launcher, attempts } = await freshHost(2);
+    render(<Host />);
+    act(() => launcher.openSupportReport({ kind: 'FEEDBACK' }));
+    await waitFor(() =>
+      expect(launcher.currentSupportReportRequest()).toBeNull(),
+    );
+
+    // The next tap, for example once the device is online again.
+    act(() => launcher.openSupportReport({ kind: 'PROBLEM' }));
+    expect(await screen.findByRole('dialog', { name: 'PROBLEM' })).toBeTruthy();
+    expect(attempts.count).toBe(3);
   });
 });

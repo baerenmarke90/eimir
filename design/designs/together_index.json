@@ -1,0 +1,69 @@
+{
+  "$description": "Faden: an ivory reading surface, cobalt thread and an index of destinations.",
+  "id": "together_index",
+  "tier": "pro",
+  "layout": "thread",
+  "color": {
+    "light": {
+      "page": "#F7F6F2",
+      "surface": "#FFFEFA",
+      "elevated": "#FFFEFA",
+      "text": "#262831",
+      "mutedText": "#555965",
+      "border": "#555965",
+      "action": "#3055B8",
+      "actionFill": "#3055B8",
+      "onAction": "#FFFFFF",
+      "accentRose": "#3055B8",
+      "accentSky": "#677CAD",
+      "softRose": "#EBEDF5",
+      "softBlue": "#EBEDF5",
+      "focus": "#3055B8",
+      "pressed": "#3055B8",
+      "hover": "#EBEDF5",
+      "borderSubtle": "#D7D8DE",
+      "surfaceSubtle": "#EBEDF5",
+      "surfaceOverlay": "#FFFEFA",
+      "actionPrimary": "#3055B8",
+      "onActionPrimary": "#FFFFFF"
+    },
+    "dark": {
+      "page": "#1C1E25",
+      "surface": "#272A34",
+      "elevated": "#272A34",
+      "text": "#F5F4F1",
+      "mutedText": "#BEC2CF",
+      "border": "#BEC2CF",
+      "action": "#B7C8FF",
+      "actionFill": "#B7C8FF",
+      "onAction": "#24212E",
+      "accentRose": "#B7C8FF",
+      "accentSky": "#8DA3D9",
+      "softRose": "#2C3243",
+      "softBlue": "#2C3243",
+      "focus": "#B7C8FF",
+      "pressed": "#B7C8FF",
+      "hover": "#2C3243",
+      "borderSubtle": "#414653",
+      "surfaceSubtle": "#2C3243",
+      "surfaceOverlay": "#272A34",
+      "actionPrimary": "#B7C8FF",
+      "onActionPrimary": "#20283F"
+    }
+  },
+  "shape": "standard",
+  "type": {
+    "display": "literata",
+    "headings": "display"
+  },
+  "icon": {
+    "stroke": "standard",
+    "accent": "duotone"
+  },
+  "motion": "standard",
+  "surface": {
+    "backdrop": "flat",
+    "elevation": "standard",
+    "edges": "none"
+  }
+}

@@ -124,6 +124,7 @@ def test_pro_designs_are_exactly_the_alternative_designs() -> None:
         WirDesignId.HANDWRITING,
         WirDesignId.HOME_ROOMS,
         WirDesignId.SHARED_RHYTHM,
+        WirDesignId.TOGETHER_INDEX,
     }
 
 
@@ -138,6 +139,7 @@ def test_pro_designs_are_exactly_the_alternative_designs() -> None:
         WirDesignId.HANDWRITING,
         WirDesignId.HOME_ROOMS,
         WirDesignId.SHARED_RHYTHM,
+        WirDesignId.TOGETHER_INDEX,
     ],
 )
 def test_every_alternative_is_pro_for_both_partners(client, session, couple, design_id) -> None:

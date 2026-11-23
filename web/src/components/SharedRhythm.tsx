@@ -1,3 +1,4 @@
+import { LayoutDestinationLink } from './LayoutDestinationLink';
 import type { MouseEvent, ReactNode } from 'react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -81,7 +82,7 @@ export function SharedRhythmRail({ privateArea }: { privateArea: boolean }) {
             </Link>
           );
         })}
-        <Link
+        <LayoutDestinationLink
           to={appRoutePath('more')}
           className="rhythm-index-link rhythm-more-link"
           aria-current={
@@ -100,7 +101,7 @@ export function SharedRhythmRail({ privateArea }: { privateArea: boolean }) {
             ) : null}
           </span>
           <span>{t('navigation.more')}</span>
-        </Link>
+        </LayoutDestinationLink>
       </nav>
       <nav
         className="rhythm-side-links"

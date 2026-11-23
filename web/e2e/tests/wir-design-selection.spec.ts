@@ -3,6 +3,7 @@ import { expect, type Page, test } from '@playwright/test';
 import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
 import quoteCopy from '../../src/i18n/locales/dailyQuote';
 import m5s5Copy from '../../src/i18n/locales/m5s5';
+import navigation from '../../src/i18n/locales/navigation';
 import notificationCopy from '../../src/i18n/locales/notificationSettings';
 import profileCopy from '../../src/i18n/locales/profileIdentity';
 import reflections from '../../src/i18n/locales/relationshipReflections';
@@ -1343,6 +1344,42 @@ async function expectTitleGap(
     .toBe(24);
 }
 
+async function checkResponsiveTitleGaps(
+  page: Page,
+  includeThreadIndex = false,
+) {
+  const destinations = [
+    {
+      route: '/more/profile',
+      header: '.profile-page',
+      content: '.profile-identity-panel',
+    },
+    {
+      route: '/story/years',
+      header: '.story-years-page',
+      content: '.story-years-recaps-entry',
+    },
+  ];
+  if (includeThreadIndex) {
+    destinations.push({
+      route: '/faden',
+      header: '.thread-index',
+      content: '.thread-index-list',
+    });
+  }
+  for (const { route, header, content } of destinations) {
+    await page.goto(route);
+    for (const [width, height] of [
+      [390, 844],
+      [768, 900],
+      [1280, 900],
+    ]) {
+      await page.setViewportSize({ width, height });
+      await expectTitleGap(page, header, content);
+    }
+  }
+}
+
 test('Zuhause navigation, saved appearance and secondary title spacing', async ({
   page,
 }, info) => {
@@ -1377,21 +1414,7 @@ test('Zuhause navigation, saved appearance and secondary title spacing', async (
   await page.goto('/today?view=wir');
   await expect(page.locator('.today-content')).toBeVisible();
   await expect(page.locator('.home-landing')).toHaveCount(0);
-  for (const [width, height] of [
-    [390, 844],
-    [768, 900],
-    [1280, 900],
-  ]) {
-    await page.setViewportSize({ width, height });
-    await page.goto('/more/profile');
-    await expectTitleGap(page, '.profile-page', '.profile-identity-panel');
-    await page.goto('/story/years');
-    await expectTitleGap(
-      page,
-      '.story-years-page',
-      '.story-years-recaps-entry',
-    );
-  }
+  await checkResponsiveTitleGaps(page);
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/today');
   await expect(page.locator('.home-landing')).toBeVisible();
@@ -1429,25 +1452,73 @@ test('Unser Takt navigation, saved appearance and secondary title spacing', asyn
   await expect(page).toHaveURL(/\/more\/collections/);
   await chapters.getByRole('link', { name: copy.rhythm.history }).click();
   await expect(page).toHaveURL(/\/story/);
-  for (const [width, height] of [
-    [390, 844],
-    [768, 900],
-    [1280, 900],
-  ]) {
-    await page.setViewportSize({ width, height });
-    await page.goto('/more/profile');
-    await expectTitleGap(page, '.profile-page', '.profile-identity-panel');
-    await page.goto('/story/years');
-    await expectTitleGap(
-      page,
-      '.story-years-page',
-      '.story-years-recaps-entry',
-    );
-  }
+  await checkResponsiveTitleGaps(page);
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/today');
   await expect(page.locator('.rhythm-today-lead')).toBeVisible();
   await captureScreenshot(page, info, 'shared_rhythm-expanded.png', {
+    animations: 'disabled',
+  });
+});
+
+test('Faden navigation, saved appearance and secondary title spacing', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const saved = await fixture(page, { initial: 'connected' });
+  await signIn(page);
+  await open(page);
+  await page
+    .getByRole('radio', { name: new RegExp(copy.names.together_index) })
+    .check();
+  await page.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(page.getByText(copy.saved, { exact: true })).toBeVisible();
+  expect(saved.writes).toEqual(['together_index']);
+  await page.goto('/today');
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-wir-layout',
+    'thread',
+  );
+  await expect(page.locator('.thread-today')).toBeVisible();
+  await captureScreenshot(page, info, 'together_index-compact.png', {
+    animations: 'disabled',
+  });
+  await reflow(page);
+  await page.setViewportSize({ width: 390, height: 420 });
+  await page.goto('/story/memories/mem-canal');
+  const trigger = page.getByRole('link', { name: copy.thread.index });
+  await expect(trigger).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Breakfast by the canal' }),
+  ).toBeVisible();
+  const originScroll = await page.evaluate(() => {
+    window.scrollTo({ top: 160, behavior: 'instant' });
+    return window.scrollY;
+  });
+  expect(originScroll).toBeGreaterThan(0);
+  await expect(trigger).toBeInViewport({ ratio: 1 });
+  await trigger.click();
+  await expectTitleGap(page, '.thread-index', '.thread-index-list');
+  await expect(
+    page.locator('.thread-index-list a[href="/more/collections"]'),
+  ).toBeVisible();
+  await page
+    .getByRole('button', {
+      name: copy.thread.return.replace('{{area}}', navigation.story),
+      exact: true,
+    })
+    .click();
+  await expect(page).toHaveURL(/\/story\/memories\/mem-canal/);
+  await expect(trigger).toBeFocused();
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBe(originScroll);
+  await checkResponsiveTitleGaps(page, true);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('/today');
+  await expect(page.locator('.thread-today')).toBeVisible();
+  await captureScreenshot(page, info, 'together_index-expanded.png', {
     animations: 'disabled',
   });
 });

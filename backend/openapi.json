@@ -18532,7 +18532,8 @@
           "quiet_together",
           "handwriting",
           "home_rooms",
-          "shared_rhythm"
+          "shared_rhythm",
+          "together_index"
         ],
         "title": "WirDesignId",
         "type": "string"

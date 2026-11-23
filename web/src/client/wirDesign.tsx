@@ -50,6 +50,7 @@ export const WIR_DESIGNS: readonly WirDesignId[] = [
   WirDesignId.handwriting,
   WirDesignId.home_rooms,
   WirDesignId.shared_rhythm,
+  WirDesignId.together_index,
 ];
 /** The design every account starts with; it needs no entitlement. */
 export const DEFAULT_WIR_DESIGN: WirDesignId = WirDesignId.connected;

@@ -1,3 +1,4 @@
+import { LayoutDestinationLink } from './LayoutDestinationLink';
 import {
   type MouseEvent,
   type ReactNode,
@@ -161,9 +162,13 @@ export function HomeRoomsHeader({ privateArea }: { privateArea: boolean }) {
 
   return (
     <header className="home-top">
-      <Link to={HOME.path} className="home-brand" aria-label={t(HOME.label)}>
+      <LayoutDestinationLink
+        to={HOME.path}
+        className="home-brand"
+        aria-label={t(HOME.label)}
+      >
         eimir<span>.</span>
-      </Link>
+      </LayoutDestinationLink>
       <span className="home-location">
         {privateArea ? (
           <>
@@ -221,14 +226,14 @@ export function HomeRoomsDock({
         className="home-dock"
         aria-label={t('navigation.primary')}
       >
-        <Link
+        <LayoutDestinationLink
           to={HOME.path}
           className="home-dock-link"
           aria-current={atHome ? 'page' : undefined}
         >
           <EimirIcon name="wir" variant={atHome ? 'filled' : 'outline'} />
           {t(HOME.label)}
-        </Link>
+        </LayoutDestinationLink>
         {canCreate ? <MomentCreateMenu everything /> : null}
         <button
           type="button"
@@ -276,11 +281,7 @@ export function HomeRoomsDock({
               }
               onClick={(event) =>
                 follow(event, () => {
-                  if (
-                    room.id === 'today' ||
-                    room.id === 'games' ||
-                    room.id === 'insights'
-                  ) {
+                  if (room.id === 'games' || room.id === 'insights') {
                     void navigate(room.path);
                   } else {
                     navigatePrimary(room.path);

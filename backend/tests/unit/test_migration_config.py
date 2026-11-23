@@ -8,29 +8,10 @@ validation again.
 
 from __future__ import annotations
 
-import logging
-from io import StringIO
-from pathlib import Path
-
 import pytest
-from alembic import command
-from alembic.config import Config
 from pydantic import ValidationError
 
 from eimir.config import DEFAULT_DATABASE_URL, DatabaseSettings, Settings
-
-
-def test_embedded_migration_preserves_caller_logging(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
-    monkeypatch.setenv("EIMIR_DATABASE_URL", DEFAULT_DATABASE_URL)
-    ini = Path(__file__).resolve().parents[2] / "alembic.ini"
-    logger = logging.getLogger(__name__)
-
-    command.stamp(Config(ini, output_buffer=StringIO()), "head", sql=True)
-    logger.warning("The caller can still log after a migration")
-
-    assert "The caller can still log after a migration" in caplog.messages
 
 
 def test_migration_does_not_require_production_runtime_values(

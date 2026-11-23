@@ -2319,8 +2319,8 @@ test.describe('gestures and haptics on the motion layer (#2076)', () => {
           frames[index - 1].left + 0.5,
         );
       expect(frames.at(-1)?.left ?? 0).toBeLessThan(released);
-      // Haptics: one threshold tick on the way, one commit at release.
-      await expect.poll(() => nativeHapticCalls(page)).toEqual(['tick', 'tap']);
+      // Haptics: one commit at release, no tick while dragging past the commit distance.
+      await expect.poll(() => nativeHapticCalls(page)).toEqual(['tap']);
     } finally {
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
       await cdp.detach();

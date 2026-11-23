@@ -231,8 +231,6 @@ interface Gesture {
   /** The furthest travel toward each neighbour, for the reversal cancel. */
   peakNext: number;
   peakPrevious: number;
-  /** Past the commit distance toward the current neighbour (haptic tick). */
-  beyond: boolean;
   velocity: VelocityTracker;
 }
 
@@ -530,15 +528,11 @@ export function useNavigationMotion({
         peek: null,
         peakNext: Math.max(0, -base),
         peakPrevious: Math.max(0, base),
-        beyond: false,
         velocity: new VelocityTracker(),
       };
-      if (grabbed) {
+      if (grabbed)
         gesture.peek =
           PRIMARY_APP_ROUTES[index + grabbed.direction]?.path ?? null;
-        gesture.beyond =
-          Math.abs(base) >= commitDistance('pager', window.innerWidth);
-      }
       gesture.velocity.add(event.timeStamp, touch.clientX);
     };
     const move = (event: TouchEvent) => {
@@ -584,13 +578,8 @@ export function useNavigationMotion({
       gesture.offset = dragOffset(distance, neighbours);
       gesture.peakNext = Math.max(gesture.peakNext, -gesture.offset);
       gesture.peakPrevious = Math.max(gesture.peakPrevious, gesture.offset);
-      const beyond =
-        Boolean(neighbour) &&
-        Math.abs(gesture.offset) >= commitDistance('pager', window.innerWidth);
-      if (beyond !== gesture.beyond) {
-        gesture.beyond = beyond;
-        haptic('threshold');
-      }
+      // One haptic per page change: the commit on release. No tick while
+      // dragging past the commit distance, it would double the commit.
       // The neighbour joins the drag like the next page of a pager, but only
       // when the pages may move (reduced motion keeps the pages still, since
       // a whole page travelling sideways is large-area motion).

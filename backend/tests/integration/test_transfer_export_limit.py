@@ -9,8 +9,6 @@ detail and a content-free worker log line.
 
 from __future__ import annotations
 
-import logging
-
 import pytest
 
 from eimir.authorization import AuthorizationContext
@@ -44,8 +42,25 @@ def _media_space(production_client):  # type: ignore[no-untyped-def]
     return maker, client, context, token
 
 
+def _capture_warnings(monkeypatch, *loggers):  # type: ignore[no-untyped-def]
+    """Record ``(message, extra)`` for each warning the given loggers emit.
+
+    ``caplog`` cannot positively capture ``eimir.*`` records here: importing
+    ``eimir.main`` reconfigures the root logger, so the logger methods are
+    observed directly, as ``test_observability_failure_diagnostics`` does.
+    """
+    captured: list[tuple[str, dict[str, object]]] = []
+
+    def record(message, *args, **kwargs):  # type: ignore[no-untyped-def]
+        captured.append((message % args if args else message, kwargs.get("extra", {})))
+
+    for logger in loggers:
+        monkeypatch.setattr(logger, "warning", record)
+    return captured
+
+
 def test_export_over_the_compressed_budget_fails_with_a_visible_cause(
-    production_client, monkeypatch, tmp_path, caplog
+    production_client, monkeypatch, tmp_path
 ) -> None:
     maker, client, context, token = _media_space(production_client)
     store = LocalMediaStore(tmp_path)
@@ -61,8 +76,8 @@ def test_export_over_the_compressed_budget_fails_with_a_visible_cause(
     monkeypatch.setattr(archive, "MAX_COMPRESSED_BYTES", BUDGET)
     with maker.begin() as session:
         failing = service.create_export(session, context, TransferScope.SHARED)
-        with caplog.at_level(logging.WARNING):
-            jobs.handle_export(session, {"exportId": str(failing.id)})
+        warnings = _capture_warnings(monkeypatch, archive.log, jobs.log)
+        jobs.handle_export(session, {"exportId": str(failing.id)})
         failing_id = failing.id
         status, error_code = failing.status, failing.error_code
         key = service.export_storage_key(failing)
@@ -77,11 +92,11 @@ def test_export_over_the_compressed_budget_fails_with_a_visible_cause(
     assert detail.json()["status"] == "FAILED"
     assert detail.json()["errorCode"] == ErrorCode.TRANSFER_TOO_LARGE
 
-    records = {record.getMessage(): record for record in caplog.records}
+    records = dict(warnings)
     limit = records["transfer export exceeds a bundle limit"]
-    assert (limit.limit, limit.maximum_bytes) == ("compressed", BUDGET)  # type: ignore[attr-defined]
-    assert limit.observed_bytes > BUDGET  # type: ignore[attr-defined]
+    assert (limit["limit"], limit["maximum_bytes"]) == ("compressed", BUDGET)
+    assert limit["observed_bytes"] > BUDGET  # type: ignore[operator]
     refused = records["transfer export failed"]
-    assert refused.error_code == ErrorCode.TRANSFER_TOO_LARGE  # type: ignore[attr-defined]
-    assert refused.transfer_id == str(failing_id)  # type: ignore[attr-defined]
-    assert "lake" not in caplog.text  # no private content in the log
+    assert refused["error_code"] == ErrorCode.TRANSFER_TOO_LARGE
+    assert refused["transfer_id"] == str(failing_id)
+    assert "lake" not in repr(warnings)  # no private content in the log

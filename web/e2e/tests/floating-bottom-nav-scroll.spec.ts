@@ -1484,7 +1484,7 @@ test.describe('primary tab touch navigation', () => {
     const { width, startX, y } = await primarySwipeStart(page, 'next');
     const main = page.locator('main.product-main');
     const current = page.locator(
-      'main > .primary-tab-panel:not([hidden]):not([data-primary-tab-peek]) > .page',
+      'main > .primary-tab-panel:not([hidden], [data-primary-tab-peek], [data-primary-tab-prewarm]) > .page',
     );
     const neighbour = page.locator(
       'main > .primary-tab-panel[data-primary-tab-peek] > .page',
@@ -1515,6 +1515,21 @@ test.describe('primary tab touch navigation', () => {
       expect(currentBox.x).toBeCloseTo((restBox?.x ?? 0) - 200, 0);
       // One viewport further along, in the same content column.
       expect(neighbourBox.x).toBeCloseTo((mainBox?.x ?? 0) + width - 200, 0);
+      // The page boxes follow the finger; their content never inherits the
+      // per-frame offsets (especially important for pages with many cards).
+      for (const [pageBox, property] of [
+        [current, '--primary-tab-offset'],
+        [neighbour, '--primary-tab-peek-offset'],
+      ] as const) {
+        const childOffset = await pageBox
+          .locator(':scope > *')
+          .first()
+          .evaluate(
+            (child, name) => getComputedStyle(child).getPropertyValue(name),
+            property,
+          );
+        expect(childOffset.trim()).toBe('0px');
+      }
       await expectNoHorizontalOverflow(page);
       await page.screenshot({
         path: testInfo.outputPath('swipe-mid-drag.png'),
@@ -2188,7 +2203,7 @@ test.describe('gestures and haptics on the motion layer (#2076)', () => {
   >;
 
   const CURRENT_PAGE =
-    'main.product-main > .primary-tab-panel:not([hidden]):not([data-primary-tab-peek]) > .page';
+    'main.product-main > .primary-tab-panel:not([hidden], [data-primary-tab-peek], [data-primary-tab-prewarm]) > .page';
 
   function exportMeasurement(name: string, value: unknown) {
     const exportDir = process.env.VISUAL_EVIDENCE_DIR;
@@ -2334,26 +2349,57 @@ test.describe('gestures and haptics on the motion layer (#2076)', () => {
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
     try {
-      const { session, width, y } = await swipeAndRelease(page);
-      await nextFrame(page);
-      await nextFrame(page);
-      // Read the drawn offset in the same task as the grab: just before the
-      // app's own touch handler runs (capture phase) and right after it.
       await page.evaluate((selector) => {
-        const record = window as unknown as { grab: number[] };
-        record.grab = [];
-        const read = () =>
-          Number.parseFloat(
-            getComputedStyle(document.querySelector(selector) as Element).left,
-          );
-        window.addEventListener('touchstart', () => record.grab.push(read()), {
-          capture: true,
-          once: true,
-        });
-        window.addEventListener('touchstart', () => record.grab.push(read()), {
-          once: true,
-        });
+        window.addEventListener(
+          'touchend',
+          () => {
+            // Hold the real spring at a reproducible point while CDP delivers
+            // the next touch. The preceding test covers uninterrupted playback.
+            const pages = document.querySelectorAll(
+              selector + ', main > [data-primary-tab-peek] > .page',
+            );
+            for (const page of pages) {
+              for (const animation of page.getAnimations()) {
+                const effect = animation.effect;
+                if (!(effect instanceof KeyframeEffect)) continue;
+                const frames = effect.getKeyframes();
+                if (
+                  frames.length <= 2 ||
+                  !('left' in frames[0] || 'transform' in frames[0])
+                )
+                  continue;
+                animation.pause();
+                animation.currentTime = Number(effect.getTiming().duration) / 5;
+              }
+            }
+            // Read the drawn offset just before and after the real grab.
+            const record = window as unknown as { grab: number[] };
+            record.grab = [];
+            const read = () =>
+              Number.parseFloat(
+                getComputedStyle(document.querySelector(selector) as Element)
+                  .left,
+              );
+            window.addEventListener(
+              'touchstart',
+              () => record.grab.push(read()),
+              {
+                capture: true,
+                once: true,
+              },
+            );
+            window.addEventListener(
+              'touchstart',
+              () => record.grab.push(read()),
+              {
+                once: true,
+              },
+            );
+          },
+          { once: true },
+        );
       }, CURRENT_PAGE);
+      const { session, width, y } = await swipeAndRelease(page);
       await touch(session, 'touchStart', width * 0.5, y);
       const [before, after] = await page.evaluate(
         () => (window as unknown as { grab: number[] }).grab,

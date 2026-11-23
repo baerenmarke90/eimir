@@ -106,6 +106,7 @@ export function usePullToRefresh({
     let claimed = false;
     let startX: number | null = null;
     let startY: number | null = null;
+    let startElement: Element | null = null;
     let travel = 0;
     let peak = 0;
     let suppressClick = false;
@@ -115,6 +116,7 @@ export function usePullToRefresh({
       claimed = false;
       startX = null;
       startY = null;
+      startElement = null;
       travel = 0;
       peak = 0;
       resetPull();
@@ -144,25 +146,9 @@ export function usePullToRefresh({
         cancelGesture();
         return;
       }
-      // Nested scrollers and drag surfaces keep ownership of their gestures.
-      for (
-        let node = target instanceof Element ? target : null;
-        node && node !== document.body;
-        node = node.parentElement
-      ) {
-        const style = window.getComputedStyle(node);
-        if (
-          style.touchAction === 'none' ||
-          style.touchAction === 'pan-x' ||
-          (/(auto|scroll)/.test(style.overflowY) &&
-            node.scrollHeight > node.clientHeight + 1)
-        ) {
-          cancelGesture();
-          return;
-        }
-      }
       tracking = true;
       claimed = false;
+      startElement = target instanceof Element ? target : null;
       startX = event.touches[0]?.clientX ?? null;
       startY = event.touches[0]?.clientY ?? null;
       travel = 0;
@@ -202,6 +188,24 @@ export function usePullToRefresh({
           return;
         }
         if (ownership === 'pending' || deltaY <= 0) return;
+        // Only a downward pull needs layout reads to check nested scrollers.
+        // Taps and horizontal swipes leave these ancestors untouched.
+        for (
+          let node = startElement;
+          node && node !== document.body;
+          node = node.parentElement
+        ) {
+          const style = window.getComputedStyle(node);
+          if (
+            style.touchAction === 'none' ||
+            style.touchAction === 'pan-x' ||
+            (/(auto|scroll)/.test(style.overflowY) &&
+              node.scrollHeight > node.clientHeight + 1)
+          ) {
+            cancelGesture();
+            return;
+          }
+        }
         claimed = true;
       }
       travel = Math.max(0, deltaY);

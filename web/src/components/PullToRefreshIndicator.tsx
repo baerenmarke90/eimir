@@ -1,14 +1,14 @@
 import { useTranslation } from '../i18n';
-import type { PullToRefreshState } from './usePullToRefresh';
+import {
+  type PullToRefreshOptions,
+  usePullToRefresh,
+} from './usePullToRefresh';
 
-export function PullToRefreshIndicator({
-  state,
-}: {
-  state: PullToRefreshState;
-}) {
+export function PullToRefreshIndicator(options: PullToRefreshOptions) {
+  const state = usePullToRefresh(options);
   const { t } = useTranslation();
 
-  if (!state.supported) return null;
+  if (!options.enabled || !state.supported) return null;
 
   return (
     <>

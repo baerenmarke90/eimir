@@ -493,12 +493,24 @@
   initial-value: 0px;
 }
 
+/* Only the two moving page boxes need the per-frame offsets. Inheriting them
+   through cards, controls and the warmed map invalidates styles during drag. */
+@property --primary-tab-offset {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --primary-tab-peek-offset {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
 .product-main {
   --shell-focus-bottom-clearance: var(--shell-content-bottom-clearance);
   --shell-inline-size: 100cqi;
   --shell-main-padding-top: clamp(var(--space-6), 4vw, var(--space-10));
-  --primary-tab-peek-offset: 0px;
-  --primary-tab-offset: 0px;
 
   width: calc(100% - 2 * var(--page-gutter));
   margin: 0 auto;
@@ -508,10 +520,24 @@
 @media (prefers-reduced-motion: no-preference) {
   /* A swipe drags the pages themselves, like a pager: the current page follows
      the finger and the neighbouring tab travels beside it. */
+  .product-main[data-primary-tab-dragging]
+  > .primary-tab-panel:not(
+    [hidden],
+    [data-primary-tab-peek],
+    [data-primary-tab-prewarm]
+  ) {
+    --primary-tab-offset: inherit;
+  }
+
   .product-main[data-primary-tab-dragging] > .page,
   .product-main[data-primary-tab-dragging]
-    > .primary-tab-panel:not([data-primary-tab-peek])
+    > .primary-tab-panel:not(
+      [hidden],
+      [data-primary-tab-peek],
+      [data-primary-tab-prewarm]
+    )
     > .page {
+    --primary-tab-offset: inherit;
     /* Offset, don't transform: a transformed page would become the containing
        block of its fixed add action, which then sits at the page's bottom edge
        and snaps to the viewport corner once the page settles. */
@@ -521,7 +547,11 @@
 
   .product-main[data-navigation-slide] > .page,
   .product-main[data-navigation-slide]
-    > .primary-tab-panel:not([hidden], [data-primary-tab-peek])
+    > .primary-tab-panel:not(
+      [hidden],
+      [data-primary-tab-peek],
+      [data-primary-tab-prewarm]
+    )
     > .page {
     position: relative;
   }
@@ -538,6 +568,7 @@
      (not the column) so it travels in from the edge like a pager page. */
   .product-main[data-primary-tab-dragging]
   > .primary-tab-panel[data-primary-tab-peek] {
+    --primary-tab-peek-offset: inherit;
     position: fixed;
     z-index: 1;
     top: 0;
@@ -552,6 +583,7 @@
   .product-main[data-primary-tab-dragging]
     > .primary-tab-panel[data-primary-tab-peek]
     > .page {
+    --primary-tab-peek-offset: inherit;
     width: var(--primary-tab-peek-width, 100%);
     margin-top: var(--primary-tab-peek-origin, 0px);
     margin-left: var(--primary-tab-peek-left, 0px);

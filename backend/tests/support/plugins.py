@@ -72,7 +72,7 @@ def import_pro(module: str) -> ModuleType:
 
 def pro_plugin_object() -> Any:
     """The Pro plugin object, or skip the calling test when Pro is not installed."""
-    return import_pro("eimir.pro_plugin").plugin
+    return import_pro("eimir_pro.plugin").plugin
 
 
 def plugins_loaded() -> bool:

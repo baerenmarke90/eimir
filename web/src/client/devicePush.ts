@@ -849,11 +849,17 @@ export function useDevicePush({
       try {
         await Promise.all(subscriptions);
         if (!live) return;
-        const loaded = await loadConfiguration(notificationsApi);
-        if (!live) return;
+        const generation = registrationGeneration;
+        const pendingConfiguration = loadConfiguration(notificationsApi);
+        // Configuration belongs to the server. The device may still be
+        // retiring the previous account's activation.
         await pendingSignOutDisable;
-        const nativeState = await nativePush.status();
-        if (!live) return;
+        if (!live || generation !== registrationGeneration) return;
+        const [loaded, nativeState] = await Promise.all([
+          pendingConfiguration,
+          nativePush.status(),
+        ]);
+        if (!live || generation !== registrationGeneration) return;
         setIos(nativeState.iosBundleId !== undefined);
         const otherOwner =
           nativeState.accountId !== null &&
@@ -986,6 +992,9 @@ export function useDevicePush({
       await pendingSignOutDisable;
       await endpointRegistrationSequence;
       if (!current()) return;
+      const pendingConfiguration = configuration.current
+        ? null
+        : loadConfiguration(notificationsApi);
       const beforeEnable = await nativePush.status();
       if (!current()) return;
       try {
@@ -1007,9 +1016,8 @@ export function useDevicePush({
         return;
       }
       if (!current()) return;
-      if (!configuration.current) {
-        // The status check failed earlier; enabling retries it.
-        const loaded = await loadConfiguration(notificationsApi);
+      if (pendingConfiguration) {
+        const loaded = await pendingConfiguration;
         if (!current()) return;
         if (!loaded.configuration) {
           registrationAllowed.current = false;

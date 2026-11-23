@@ -1,8 +1,8 @@
-"""The in-tree Pro plugin object (Decision 0017, Phase 1).
+"""The Pro plugin object (Decision 0017; its own distribution since Phase 2, #2182).
 
-The Premium-only modules still live in this distribution. This object is what
-Core sees of them through the seam; it is registered as the entry point ``pro``
-of the group ``eimir.plugins`` in ``pyproject.toml``. It names its model
+This object is what Core sees of the Pro modules through the seam; it is
+registered as the entry point ``pro`` of the group ``eimir.plugins`` in the
+``eimir-pro`` distribution (``backend/pro/pyproject.toml``). It names its model
 modules as strings and imports Pro code only inside its hooks, so loading the
 plugin imports no Pro module before a hook runs.
 """
@@ -333,14 +333,16 @@ def _on_account_deleted(session: Session, account_id: UUID) -> None:
 
 
 class InTreeProPlugin:
-    """The Pro plugin while its code is part of the ``eimir`` distribution."""
+    """The Pro plugin of the ``eimir-pro`` distribution."""
 
     name = "pro"
     seam_version = PLUGIN_SEAM_VERSION
 
     @property
     def core_revision(self) -> str:
-        # Built from the same tree as Core, so it is Core's own revision.
+        # Built and shipped in the same image as Core, so it is Core's own
+        # revision. An extracted Pro image records the Core revision it was
+        # built against instead (Decision 0017, Phase 3).
         return build_revision()
 
     def capabilities(self) -> frozenset[str]:
@@ -492,9 +494,8 @@ class InTreeProPlugin:
         authorization: AuthorizationContext,
         scope: TransferScope,
     ) -> Mapping[str, Any]:
-        from eimir_pro.photo_sources.models import GoogleAccountHint, PhotoConnection
-
         from eimir.transfer.models import TransferScope
+        from eimir_pro.photo_sources.models import GoogleAccountHint, PhotoConnection
 
         document: dict[str, Any] = {}
         if scope is not TransferScope.PERSONAL:
@@ -586,9 +587,6 @@ def _ensure_demo_quote_preferences(session: Session, result: DemoSeedResult) -> 
 
 def _ensure_demo_partner_location(session: Session, result: DemoSeedResult) -> None:
     """Both demo partners share their location with each other."""
-    from eimir_pro.presence import service as presence_service
-    from eimir_pro.presence.models import SharingLevel
-
     from eimir.authorization import AuthorizationContext
     from eimir.core import clock
     from eimir.demo.feature_examples import (
@@ -596,6 +594,8 @@ def _ensure_demo_partner_location(session: Session, result: DemoSeedResult) -> N
         LEA_POSITION,
         POSITION_ACCURACY_METERS,
     )
+    from eimir_pro.presence import service as presence_service
+    from eimir_pro.presence.models import SharingLevel
 
     if not presence_service.feature_enabled():
         return

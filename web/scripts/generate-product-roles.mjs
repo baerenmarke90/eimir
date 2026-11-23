@@ -63,6 +63,7 @@ typography('story-summary', 'storySummary', 'display');
 typography('story-total', 'storyTotal', 'display');
 typography('story-category', 'storyCategory');
 for (const [name, role] of [
+  ['subpage-content-gap', 'subpageContentGap'],
   ['media-mosaic-gap', 'mediaMosaicGap'],
   ['story-summary-inset', 'storySummaryInset'],
   ['story-category-gap', 'storyCategoryGap'],

@@ -1,10 +1,7 @@
 .once-page {
   display: grid;
-  gap: var(--space-6);
+  --page-stack-gap: var(--space-6);
   max-width: var(--reading-max);
-}
-.once-page .page-heading {
-  margin-bottom: 0;
 }
 .once-composer,
 .once-reading,

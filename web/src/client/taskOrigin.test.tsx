@@ -415,3 +415,16 @@ it('returns to the selected saved-memory map place without retaining arbitrary q
     '/more/collections',
   );
 });
+
+it('the rooms picker restores only known public paths and the full Wir view', () => {
+  expect(taskOriginPath('/today', '?view=wir&private=discard')).toBe(
+    '/today?view=wir',
+  );
+  expect(taskOriginPath('/more/profile', '?secret=discard')).toBe(
+    '/more/profile',
+  );
+  expect(taskOriginPath('/more/settings/appearance', '?secret=discard')).toBe(
+    '/more/settings/appearance',
+  );
+  expect(taskOriginPath('/more/private/notes/private-id', '')).toBeNull();
+});

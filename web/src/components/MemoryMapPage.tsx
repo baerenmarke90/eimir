@@ -41,6 +41,7 @@ import { AutoLoadMore } from './AutoLoadMore';
 import { EimirIcon } from './EimirIcon';
 import { MemoryMapMemories, MemoryMapPhotoStack } from './MemoryMapMemories';
 import { MemoryPreview } from './MemoryPreview';
+import { useAppLayout } from '../client/wirDesign';
 import { PageHeader } from './PageHeader';
 import type { MapLocation, MapViewport } from './PlaceMapCanvas';
 import { ProblemState } from './ProblemState';
@@ -73,6 +74,7 @@ export function MemoryMapPage({
   ) => Promise<ObjectUrlSource>;
 }) {
   const { t } = useTranslation();
+  const layout = useAppLayout();
   const [diaryLayout] = useDiaryLayout();
   const locale = resolvedLocale();
   const {
@@ -326,21 +328,31 @@ export function MemoryMapPage({
       ),
     [loadMemoryImage, apiBaseUrl, accountId, spaceId],
   );
-  const selected = locations.find(({ point }) => point.id === selectedId);
+  const selected = useMemo(
+    () => locations.find(({ point }) => point.id === selectedId),
+    [locations, selectedId],
+  );
   const selectedItems = useMemo(
     () => [...(selected?.memories.values() ?? [])],
     [selected],
   );
   const currentMemoryId =
-    selectedItems.find((entry) => entry.memoryId === activeMemoryId)
-      ?.memoryId ?? selectedItems[0]?.memoryId;
-  const points = useMemo(
+    activeMemoryId && selected?.memories.has(activeMemoryId)
+      ? activeMemoryId
+      : selectedItems[0]?.memoryId;
+  const visibleLocations = useMemo(
+    () => (selected ? [selected] : selectedId ? [] : locations),
+    [locations, selected, selectedId],
+  );
+  const visiblePoints = useMemo(
     () =>
-      locations.map(({ point, memories }) => ({
+      visibleLocations.map(({ point, memories }) => ({
         ...point,
         preview: (
           <MemoryMapPhotoStack
-            entries={[...memories.values()]}
+            entries={
+              point.id === selectedId ? selectedItems : [...memories.values()]
+            }
             activeMemoryId={
               point.id === selectedId ? currentMemoryId : undefined
             }
@@ -353,12 +365,14 @@ export function MemoryMapPage({
           count: point.count,
         }),
       })),
-    [locations, t, thumbnail, selectedId, currentMemoryId],
-  );
-  const visiblePoints = useMemo(
-    () =>
-      selectedId ? points.filter((point) => point.id === selectedId) : points,
-    [points, selectedId],
+    [
+      visibleLocations,
+      t,
+      thumbnail,
+      selectedId,
+      selectedItems,
+      currentMemoryId,
+    ],
   );
   useEffect(() => {
     if (
@@ -463,7 +477,13 @@ export function MemoryMapPage({
       <PageHeader
         variant="root"
         className="content-overview-heading"
-        title={t('story.timelineTitle')}
+        title={t(
+          layout === 'rooms'
+            ? 'wirDesign.homeRooms.remember'
+            : layout === 'chapters'
+              ? 'wirDesign.rhythm.history'
+              : 'story.timelineTitle',
+        )}
         before={
           hasOrigin ? (
             <TaskBackButton

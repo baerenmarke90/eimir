@@ -384,6 +384,7 @@ def test_private_account_rows_are_removed_without_erasing_partner_data(
     require_pro_distribution()
     from eimir_pro.garden.models import GardenPlant, GardenReader, GardenWatering
     from eimir_pro.once_messages.models import OnceDevice, OnceReception
+    from eimir_pro.plugin import personal_account_models
     from eimir_pro.presence.models import (
         PartnerLocationConsent,
         PresenceDeviceCredential,
@@ -391,8 +392,6 @@ def test_private_account_rows_are_removed_without_erasing_partner_data(
         PresenceSnapshot,
     )
     from eimir_pro.quotes.models import DailyQuotePreference
-
-    from eimir.pro_plugin import personal_account_models
 
     owner, partner = make_account(session, "Anna"), make_account(session, "Ben")
     space = make_space(session, owner)

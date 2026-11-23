@@ -11,6 +11,7 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskCopy from '../../src/i18n/locales/taskBoundary';
 import fixtureCopy from '../fixtures/locales/de';
 import { mockMapTiles } from '../support/mapTiles';
+import { expectTitleOnlyContentGap } from '../support/pageHeader';
 import { openComposerPlace } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
@@ -26,6 +27,41 @@ import { editViaMenu } from '../support/itemMenu';
 
 const fixture = fixtureCopy.subpageNavigation;
 const base = `/api/v1/spaces/${SPACE_ID}`;
+
+for (const width of [320, 390, 720, 1280]) {
+  test(`title-only pages share one gap at ${width}px`, async ({ page }) => {
+    test.slow();
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await installMocks(page);
+    await signIn(page);
+    for (const [path, firstContent] of [
+      ['/story/years', '.story-years-recaps-entry'],
+      ['/more/settings/today', '.settings-category-content'],
+      ['/plan/wishes/new', '.planning-intention-form'],
+      ['/plan/choose', '.wish-selection-form'],
+      ['/more/notes/new', '.shared-note-audience'],
+    ]) {
+      await test.step(path, async () => {
+        await page.goto(path, { waitUntil: 'domcontentloaded' });
+        if (width === 320) {
+          await page.evaluate(() => {
+            document.documentElement.style.fontSize = '200%';
+          });
+        }
+        await expectTitleOnlyContentGap(page.locator(firstContent));
+      });
+    }
+    await page.goto('/story/chapters', { waitUntil: 'domcontentloaded' });
+    const headerWithIntro = page.locator('.page-heading');
+    await expect(headerWithIntro.locator('p').last()).toBeVisible();
+    await expect(headerWithIntro).not.toHaveAttribute(
+      'data-title-only',
+      'true',
+    );
+  });
+}
+
 const photo = readFileSync(
   new URL(
     '../../../backend/demo_assets/images/lake-sunrise.jpg',

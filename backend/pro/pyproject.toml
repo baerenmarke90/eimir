@@ -17,6 +17,10 @@ dependencies = [
     "defusedxml>=0.7.1",
 ]
 
+# The Pro plugin (Decision 0017). Loaded only when named in EIMIR_PLUGINS.
+[project.entry-points."eimir.plugins"]
+pro = "eimir_pro.plugin:plugin"
+
 [tool.uv.sources]
 eimir = { workspace = true }
 

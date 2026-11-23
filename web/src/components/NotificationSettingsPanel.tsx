@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { NotificationChannel } from '../api/generated/models/NotificationChannel';
@@ -138,22 +138,23 @@ function DevicePushSetting({
 }) {
   const { t } = useTranslation();
   const { state, error, registered } = devicePush;
+  const statusId = useId();
   const testBuild = useTestBuild();
   const action = devicePushAction(devicePush);
-  const connecting = state === 'connecting';
+  const connecting = state === 'connecting' || (state === 'on' && !registered);
   const disableFailed = error === 'PUSH_DEVICE_DISABLE_FAILED';
   const checked =
-    state === 'on' ||
-    (!connecting && state !== 'loading' && (registered || disableFailed));
+    !connecting && state !== 'loading' && (registered || disableFailed);
   const disabled =
     state === 'loading' ||
     connecting ||
     state === 'disconnecting' ||
     (!checked && action !== 'enable');
-  const status =
-    error || (state !== 'on' && state !== 'off')
-      ? t(devicePushStatusKey(devicePush))
-      : null;
+  let status = devicePushStatusKey(devicePush);
+  if (connecting && !error) status = 'notificationSettings.deviceConnecting';
+  if (devicePush.browser && state === 'on' && registered && !error)
+    status = 'notificationSettings.browserOn';
+  const showStatus = state !== 'off' || Boolean(error);
   const diagnostic = devicePushDiagnostic(devicePush, testBuild);
   let secondaryAction: { label: string; run: () => Promise<void> } | undefined;
   if (connecting) {
@@ -171,7 +172,11 @@ function DevicePushSetting({
     <div className="notification-device-push">
       <div className="notification-device-push-head">
         <span className="notification-device-push-icon" aria-hidden="true">
-          <EimirIcon name="benachrichtigungen" />
+          {connecting ? (
+            <EimirIcon name="rotate" className="eimir-motion-loading-spin" />
+          ) : (
+            <EimirIcon name="benachrichtigungen" />
+          )}
         </span>
         <PreferenceSwitch
           label={t(
@@ -180,10 +185,11 @@ function DevicePushSetting({
               : 'notificationSettings.deviceToggle',
           )}
           description={
-            !checked && action === 'enable'
+            state === 'off' && !error && action === 'enable'
               ? t('notificationSettings.deviceHintOff')
               : undefined
           }
+          describedBy={showStatus ? statusId : undefined}
           checked={checked}
           disabled={disabled}
           onCheckedChange={(enabled) => {
@@ -193,11 +199,12 @@ function DevicePushSetting({
         />
       </div>
       <p
-        className={status ? undefined : 'sr-only'}
+        id={statusId}
+        className={showStatus ? undefined : 'sr-only'}
         role="status"
         aria-live="polite"
       >
-        {status}
+        {showStatus ? t(status) : null}
       </p>
       {diagnostic ? (
         <p className="muted">

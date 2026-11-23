@@ -48,6 +48,7 @@
     "android-push-onboarding.spec.ts": {
       "roots": [
         "web/src/client/devicePush.ts",
+        "web/src/client/gentlePrompts.ts",
         "web/src/components/DevicePushOnboarding.tsx",
         "web/src/components/IdentityEntry.tsx",
         "web/src/components/NotificationSettingsPanel.tsx",
@@ -1046,7 +1047,19 @@
         "web/src/components/NotificationSettingsPanel.tsx",
         "web/src/client/browserPush.ts",
         "web/src/components/ProfilePage.tsx",
-        "web/src/components/PrivateAreaProductPage.tsx"
+        "web/src/components/PrivateAreaProductPage.tsx",
+        "web/src/components/HomeRoomsLanding.tsx",
+        "web/src/components/HomeRoomsNavigation.tsx",
+        "web/src/components/HomeRooms.css",
+        "web/src/components/HomeRoomChapters.css",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryMapPage.tsx",
+        "web/src/components/PageHeader.tsx",
+        "web/src/components/StoryYearsPage.tsx",
+        "web/src/components/SharedRhythm.tsx",
+        "web/src/components/SharedRhythm.css",
+        "web/src/components/TogetherIndex.tsx",
+        "web/src/components/TogetherIndex.css"
       ]
     },
     "wish-detective.spec.ts": {
@@ -1091,6 +1104,10 @@
       "roots": [
         "web/src/components/AppShell.tsx",
         "web/src/components/PageHeader.tsx",
+        "web/src/components/WishComposer.tsx",
+        "web/src/components/WishSelectionPage.tsx",
+        "web/src/components/SharedNoteEditorPage.tsx",
+        "web/src/components/PlanningCreatePage.tsx",
         "web/src/components/SubpageNavigation.tsx",
         "web/src/components/TaskBackButton.tsx",
         "web/src/components/MemoryProductPage.tsx",

@@ -483,9 +483,6 @@
   inline-size: fit-content;
   margin-block-end: var(--space-3);
 }
-.quiet-composer.planning-create-task {
-  gap: var(--space-3);
-}
 .quiet-composer .composer-context.composer-schedule {
   display: block;
 }

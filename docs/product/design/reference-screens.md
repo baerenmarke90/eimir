@@ -137,8 +137,13 @@ Memories, Diary and Map are three peer modes with one shared selector. The canon
 map route retains non-sensitive Diary filters through selection and source return.
 Place the Diary filter action beside its first visible month, with an empty/loading
 fallback. Overview cards omit author avatars; canonical details retain authorship.
-Map markers show authorized photo previews and memory-count badges, with equivalent
-photo/source browsing below. Conceal sensitive media and retain text-only/error
+In the Album diary, playful photo memories use a short strip of translucent tape.
+Heart Moments have a small matte brass pin. Month labels stand on their own.
+On the Album map, authorized photo prints mark each place. A stack shows its
+memory count at the lower edge. A single print stands alone. Place slips and
+selected photos have plain edges. The compact list layout keeps its count badges.
+Both layouts give the full count in marker accessible names and offer equivalent
+photo and source browsing below the map. Conceal sensitive media and retain text-only/error
 fallbacks and provider attribution. The shared resolved appearance controls map
 pixels and controls; there is no separate map preference.
 

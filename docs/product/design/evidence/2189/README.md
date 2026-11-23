@@ -10,10 +10,11 @@ The captures below are real renders of the running app, not the sketch.
 
 ## Baseline
 
-Re-captured on implementation revision `6a70c5157` (branch
+Re-captured with the app code at `6a70c5157` (branch
 `claude/laughing-thompson-4d209c`: the shell-level sheet host `e2e465cc1`
-and the polish `6a70c5157`), on top of `main` `28ebc7080`, the baseline the
-design reviewed. The first captures were taken on `8ddd6402e`. Screens
+and the polish `6a70c5157`) and the spec at `c9598c633`, on top of `main`
+`28ebc7080`, the baseline the design reviewed. The later host fix (the sheet
+is imported statically by the host) changes no pixels. The first captures were taken on `8ddd6402e`. Screens
 reviewed: the shared `ProblemState`, More, and the notification list.
 
 ## How the captures were produced

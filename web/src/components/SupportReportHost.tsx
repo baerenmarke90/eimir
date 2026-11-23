@@ -1,16 +1,10 @@
-import { Suspense, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   closeSupportReport,
   type SupportReportRequest,
   useSupportReportRequest,
 } from '../client/supportReportLauncher';
-import { deferredComponent } from '../deferredModules';
-
-// The sheet, its client code and its styles load in their own chunk: in the
-// background after the shell appeared, or on the first request.
-const SupportReportSheet = deferredComponent(() =>
-  import('./SupportReportSheet').then((module) => module.SupportReportSheet),
-);
+import { SupportReportSheet } from './SupportReportSheet';
 
 /**
  * The one support report sheet of the signed-in shell (#2189). Entry points
@@ -28,15 +22,16 @@ export function SupportReportHost() {
   // must not reopen the sheet in the next session.
   useEffect(() => () => closeSupportReport(), []);
 
+  // A static import on purpose: the host is shell-only, so error states do
+  // not import the sheet, and opening it never waits for or fails on a chunk
+  // load (offline, Save-Data or an early tap).
   if (!shown) return null;
   return (
-    <Suspense fallback={null}>
-      <SupportReportSheet
-        open={request !== null}
-        onClose={closeSupportReport}
-        initialKind={shown.kind}
-        failure={shown.failure}
-      />
-    </Suspense>
+    <SupportReportSheet
+      open={request !== null}
+      onClose={closeSupportReport}
+      initialKind={shown.kind}
+      failure={shown.failure}
+    />
   );
 }

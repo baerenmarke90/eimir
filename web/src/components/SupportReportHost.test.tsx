@@ -111,6 +111,18 @@ describe('SupportReportHost', () => {
     expect(dialog.textContent).toContain('GET:/api/v1/memories:500:web');
   });
 
+  it('opens the sheet in the same commit, without a chunk to load', () => {
+    // No lazy boundary: nothing can suspend or fail to load (offline,
+    // Save-Data, an early tap); the shell tree never throws.
+    render(session(<SupportReportHost />));
+    expect(() =>
+      act(() => openSupportReport({ kind: 'FEEDBACK' })),
+    ).not.toThrow();
+    expect(
+      screen.getByRole('dialog', { name: supportReport.title.FEEDBACK }),
+    ).toBeTruthy();
+  });
+
   it('opens feedback without a failure', async () => {
     render(session(<SupportReportHost />));
     act(() => openSupportReport({ kind: 'FEEDBACK' }));

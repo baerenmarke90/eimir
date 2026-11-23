@@ -1,7 +1,7 @@
 # Transfer export: named failures and part sets for large Spaces
 
-- **Status:** IN PROGRESS. Slice A1 is delivered (#2178 merged 2026-11-22, #2190 merged 2026-11-22); the logging PR #2171 is open as a draft; slices C0 to C4 are planned. Decided on 2026-11-22: every part carries all records (section 4.1). Slices are delivered one PR at a time, each with its own Product Owner go.
-- **Date:** 2026-11-22 (synchronized with `main` 27abe8aa7)
+- **Status:** IN PROGRESS. Slice A1 is delivered (#2178 merged 2026-11-22, #2190 merged 2026-11-22); the logging PR #2171 is open; slices C0 to C4 are planned. Decided on 2026-11-22: every part carries all records (section 4.1). Slices are delivered one PR at a time, each with its own Product Owner go.
+- **Date:** 2026-11-23 (synchronized with `main` fe9f8ae2e; decisions of 2026-11-22)
 - **Owning issue:** #2173
 - **Related:** #2171 (worker logging and size-limit test), #2141 (Cloud storage quota, skipped-video recovery), #2150 (re-import adds only what is missing)
 - **Binding sources:** `docs/FREEMIUM-FEATURE-MATRIX.md` (row "Essential data portability / Transfer Bundle": Non-paywallable), `docs/m5/S6-CACHE-PORTABILITY-DECISIONS.md`, `docs/m5/S6-TRANSFER-BUNDLE-OPERATIONS.md`

@@ -21,9 +21,14 @@ from eimir.db.registry import load_all_models
 EXPORTED_TABLES = {name for names in FILE_TABLES.values() for name in names}
 
 
+# Tables only the test suite attaches to ``Base.metadata`` (see tests/support); they exist in
+# no migration and no production database, so they are never part of a bundle.
+TEST_ONLY_TABLES = frozenset({"privacy_probes"})
+
+
 def _schema_tables() -> set[str]:
     load_all_models()
-    return set(Base.metadata.tables)
+    return set(Base.metadata.tables) - TEST_ONLY_TABLES
 
 
 def test_every_core_table_is_exported_or_deliberately_excluded() -> None:

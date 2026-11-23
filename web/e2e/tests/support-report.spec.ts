@@ -1,7 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { expect, type Page, type TestInfo, test } from '@playwright/test';
+import {
+  expect,
+  type Locator,
+  type Page,
+  type TestInfo,
+  test,
+} from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import m5s5 from '../../src/i18n/locales/m5s5';
 import supportReport from '../../src/i18n/locales/supportReport';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import AxeBuilder from '../support/axe';
@@ -663,6 +670,215 @@ test.describe('states at 2x', () => {
     expect(Math.abs(queued.kinds - idle.kinds)).toBeLessThanOrEqual(1);
     expect(Math.abs(queued.note - idle.note)).toBeLessThanOrEqual(1);
     await captureThemes(page, info, '05-queued-offline-390');
+    await page.context().setOffline(false);
+  });
+});
+
+/** The longest reply the operator can send (500 characters). */
+const LONG_REPLY = 'Thanks for the report, we found the cause. '
+  .repeat(12)
+  .slice(0, 500);
+const LONG_NOTE =
+  'I would like a weekly plan that shows the dates from both calendars and reminds us every Sunday evening to go through the coming week together. '.repeat(
+    3,
+  );
+
+/**
+ * Large text the way the repository checks it elsewhere: the root font size
+ * at 200 %, so every rem-based size scales. The mouse leaves the content so
+ * no hover state shows in a capture.
+ */
+async function useLargeText(page: Page) {
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+  await page.mouse.move(0, 0);
+}
+
+/** No horizontal scrolling, and no visible element reaches past the viewport. */
+async function expectReflow(page: Page) {
+  await expectNoHorizontalOverflow(page);
+  const outside = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('body *'))
+      .filter((element) => {
+        const box = element.getBoundingClientRect();
+        return (
+          box.width > 1 &&
+          (box.right > window.innerWidth + 1 || box.left < -1) &&
+          getComputedStyle(element).visibility !== 'hidden'
+        );
+      })
+      .map((element) => element.className),
+  );
+  expect(outside).toEqual([]);
+}
+
+/** The sheet's action is fully reachable, a real target, and the body scrolls. */
+async function expectUsableSheet(page: Page, action: Locator) {
+  await expectReflow(page);
+  await action.scrollIntoViewIfNeeded();
+  await expect(action).toBeInViewport({ ratio: 1 });
+  const box = await action.boundingBox();
+  expect(box?.height).toBeGreaterThanOrEqual(44);
+  expect(box?.width).toBeGreaterThanOrEqual(44);
+  await expect(page.locator('dialog[open] .short-task-sheet-body')).toHaveCSS(
+    'overflow-y',
+    'auto',
+  );
+}
+
+test.describe('large text at 2x', () => {
+  test.use({ deviceScaleFactor: 2 });
+
+  test('large_text_keeps_the_support_sheet_usable', async ({ page }, info) => {
+    test.setTimeout(90_000);
+    await page.setViewportSize({ width: 360, height: 800 });
+    const { flags } = await install(page, { notificationsFail: true });
+    let sendAnswer: 'received' | 'failed' | 'rateLimited' = 'failed';
+    // Registered after `install`, so these answer first.
+    await page.route('**/api/v1/support-reports', async (route) => {
+      if (sendAnswer === 'failed')
+        return route.fulfill({
+          status: 500,
+          json: { type: 'internal_error', title: 'Unavailable', status: 500 },
+        });
+      if (sendAnswer === 'rateLimited')
+        return route.fulfill({
+          status: 429,
+          headers: { 'retry-after': '60' },
+          json: { type: 'rate_limited', title: 'Too many', status: 429 },
+        });
+      return route.fallback();
+    });
+    await page.route(`**/api/v1/support-reports/${REPORT_ID}/reply`, (route) =>
+      route.fulfill({
+        json: {
+          text: LONG_REPLY,
+          reportedAt: '2026-11-20T12:00:00Z',
+          repliedAt: '2026-11-23T09:30:00Z',
+        },
+      }),
+    );
+    await openSignedIn(page, '/more/notifications');
+    const report = page.getByRole('button', { name: copy.action, exact: true });
+    await expect(report).toBeVisible();
+    const sheet = sheetOf(page);
+    const action = sheet.dialog.locator('.support-report-action');
+    const kindBoxes = () =>
+      sheet.dialog
+        .locator('.support-report-kind')
+        .evaluateAll((kinds) =>
+          kinds.map((kind) => kind.getBoundingClientRect().toJSON()),
+        );
+
+    // At 100 % text the two choices still sit side by side.
+    await report.click();
+    await expect(sheet.dialog).toBeVisible();
+    const [first, second] = await kindBoxes();
+    expect(second.top).toBe(first.top);
+    await page.keyboard.press('Escape');
+    await expect(sheet.dialog).toBeHidden();
+
+    // (a) The error state and its quiet report action.
+    await useLargeText(page);
+    // Focus returned to the action on close; the capture shows it at rest.
+    await report.blur();
+    await report.scrollIntoViewIfNeeded();
+    await expectReflow(page);
+    expect((await report.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+    await capture(page, info, '08-large-text-error-state-360-light.png');
+
+    // (b) The problem sheet: labelled, the choices stack instead of breaking
+    // words, and Send stays reachable below the scrolling body.
+    await report.click();
+    await expect(sheet.dialog).toBeVisible();
+    await expect(sheet.dialog).toHaveAccessibleName(copy.title.PROBLEM);
+    await expect(sheet.problemNote).toBeFocused();
+    const [upper, lower] = await kindBoxes();
+    expect(lower.top).toBeGreaterThanOrEqual(upper.bottom);
+    await expect(sheet.dialog.locator('.support-report-failure')).toBeVisible();
+    await expectUsableSheet(page, sheet.send);
+    await capture(page, info, '09-large-text-problem-sheet-360-light.png');
+    await page.setViewportSize({ width: 390, height: 800 });
+    await expectUsableSheet(page, sheet.send);
+    await capture(page, info, '09-large-text-problem-sheet-390-light.png');
+    await page.setViewportSize({ width: 360, height: 800 });
+
+    // (e) A failed and a rate-limited send keep the action reachable.
+    await sheet.send.click();
+    await expect(sheet.dialog.getByText(copy.failed)).toBeVisible();
+    await expectUsableSheet(page, action);
+    const message = sheet.dialog.locator('.support-report-message');
+    await message.scrollIntoViewIfNeeded();
+    await capture(page, info, '10-large-text-failed-360-light.png');
+    sendAnswer = 'rateLimited';
+    await action.click();
+    await expect(sheet.dialog.getByText(copy.rateLimited)).toBeVisible();
+    await expectUsableSheet(page, action);
+    await message.scrollIntoViewIfNeeded();
+    await capture(page, info, '10-large-text-rate-limited-360-light.png');
+
+    // (f) Success: Done is focused and fully visible.
+    sendAnswer = 'received';
+    await action.click();
+    await expect(sheet.done).toBeFocused();
+    await expectUsableSheet(page, sheet.done);
+    await capture(page, info, '11-large-text-success-360-light.png');
+    await page.setViewportSize({ width: 390, height: 800 });
+    await expectUsableSheet(page, sheet.done);
+    await capture(page, info, '11-large-text-success-390-light.png');
+    await page.setViewportSize({ width: 360, height: 800 });
+    await sheet.done.click();
+    await expect(sheet.dialog).toBeHidden();
+
+    // (h) The longest reply, with the list's own actions around it.
+    flags.notificationsFail = false;
+    flags.withReply = true;
+    await page.goto('/more/notifications');
+    await expect(page.locator('.support-reply-text')).toHaveText(LONG_REPLY);
+    await useLargeText(page);
+    await expectReflow(page);
+    for (const name of [
+      m5s5.notifications.markAllRead,
+      m5s5.notifications.markRead,
+    ]) {
+      const box = await page
+        .getByRole('button', { name, exact: true })
+        .boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+    }
+    await capture(page, info, '12-large-text-reply-360-light.png');
+    await page
+      .getByRole('button', { name: m5s5.notifications.markRead, exact: true })
+      .evaluate((element) => element.scrollIntoView({ block: 'center' }));
+    await capture(page, info, '12-large-text-reply-end-360-light.png');
+
+    // (g) More, then (c) feedback with a long note and (d) the queued state.
+    await page.goto('/more');
+    const row = page.getByRole('button', {
+      name: copy.entry.title,
+      exact: true,
+    });
+    await expect(row).toBeVisible();
+    await useLargeText(page);
+    await row.evaluate((element) =>
+      element.scrollIntoView({ block: 'center' }),
+    );
+    await expectReflow(page);
+    expect((await row.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+    await capture(page, info, '13-large-text-more-row-360-light.png');
+    await row.click();
+    await expect(sheet.dialog).toHaveAccessibleName(copy.title.FEEDBACK);
+    await sheet.feedbackNote.fill(LONG_NOTE);
+    await expectUsableSheet(page, sheet.send);
+    await capture(page, info, '14-large-text-feedback-long-360-light.png');
+    await page.context().setOffline(true);
+    await sheet.dialog.getByRole('button', { name: copy.sendLater }).click();
+    const offline = sheet.dialog.getByText(copy.offline.body);
+    await expect(offline).toBeVisible();
+    await expectUsableSheet(page, action);
+    await offline.scrollIntoViewIfNeeded();
+    await capture(page, info, '14-large-text-queued-offline-360-light.png');
     await page.context().setOffline(false);
   });
 });

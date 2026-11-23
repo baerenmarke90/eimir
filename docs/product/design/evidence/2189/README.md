@@ -98,9 +98,10 @@ observe the result and return:
 
 - Failed send (the failed-send message) and rate-limited states: covered by
   Vitest (`SupportReportSheet.test.tsx`), not by screenshots.
-- Expanded for the other states, 360/430 px in Dark, and 200 % text: the sheet
-  reflows without horizontal scrolling at 360/390/430/1280 px (asserted), but
-  only the files above exist.
+- Expanded for the other states and 360/430 px in Dark: the sheet reflows
+  without horizontal scrolling at 360/390/430/1280 px (asserted), but only
+  the files above exist. 200 % text is covered in "Large text and reflow"
+  below.
 - The screenshots come from Chromium on Windows. The Android app ships the
   same UI through Capacitor; no device run was made.
 
@@ -132,3 +133,69 @@ Remaining deviations from the mock-up:
    feature" (German UI) instead of the raw reference; the full reference is
    still sent (Product Owner decision, design open point (a)). The captures
    predate this change.
+
+## Large text and reflow
+
+Method, following `docs/ACCESSIBILITY-QA-MATRIX.md` (text scaling, sections
+3 and 6) and the neighbouring specs: the root font size is set to 200 %
+(`document.documentElement.style.fontSize = '200%'`), so every rem-based size
+doubles, at Compact 360 px (and 390 px for the sheet and success). At every
+state the browser test `large_text_keeps_the_support_sheet_usable` in
+`web/e2e/tests/support-report.spec.ts` asserts: no horizontal scrolling and
+no visible element past the viewport edge; the sheet's action (Send, Retry,
+Send now, Done) scrolls fully into view above the fixed footer edge and is at
+least 44 × 44 CSS px; the sheet body scrolls; the dialog keeps its accessible
+name and the focus lands on the note (or on Done after sending); the error
+state action, the More row and both "mark as read" actions stay at least
+44 px tall. It also asserts that the two report kinds still sit side by side
+at 100 % text. A one-off exploration additionally checked 320 px at 100 %
+text (WCAG 1.4.10) for the same states: no horizontal scrolling, nothing
+clipped, every target at least 44 px.
+
+Captured with app code `c4d86fe7f` (Chromium on Windows, device scale factor
+2, Light, German) by running only that test:
+
+```bash
+VISUAL_EVIDENCE_DIR="$(pwd)/../../docs/product/design/evidence/2189" \
+  npx playwright test tests/support-report.spec.ts -g large_text --workers=1 --trace off
+```
+
+| File | State at 200 % text |
+| --- | --- |
+| `08-large-text-error-state-360-light.png` | Error state: retry and the quiet "Problem melden" wrap, centered |
+| `09-large-text-problem-sheet-360-light.png`, `-390-light.png` | Problem sheet, idle: the kinds stacked, "Senden" in the footer |
+| `10-large-text-failed-360-light.png` | Failed send: the message below the note, "Erneut versuchen" wraps inside the button |
+| `10-large-text-rate-limited-360-light.png` | Rate limited: the message below the note |
+| `11-large-text-success-360-light.png`, `-390-light.png` | Success: the centered column scrolls above "Fertig" |
+| `12-large-text-reply-360-light.png` | Notification list with the reply: the "mark all as read" action wraps below the count |
+| `12-large-text-reply-end-360-light.png` | The end of a 500-character reply, its timestamp and the "mark as read" action |
+| `13-large-text-more-row-360-light.png` | More, the help-and-feedback row |
+| `14-large-text-feedback-long-360-light.png` | Feedback with a long note: the field scrolls inside its maximum height |
+| `14-large-text-queued-offline-360-light.png` | Offline: the message below the note, "Jetzt senden" |
+
+Defects found and fixed in `c4d86fe7f`:
+
+1. The two report kinds stayed side by side and broke words mid-word
+   ("funkti-oniert", "Feedb-ack"). They now use the shared
+   `repeat(auto-fit, minmax(min(100%, 8rem), 1fr))` reflow pattern and stack
+   when larger text would break a word.
+2. The notification list scrolled horizontally by up to 240 px at 360 px when
+   a notification was unread (the reply's state): the "mark all as read"
+   action and the card's "mark as read" action did not shrink. The bar
+   now wraps and both actions wrap their labels on their own line. This is a
+   defect of the shared notification list, not only of the reply.
+
+Both fixes change nothing at 100 % text (asserted for the kinds; the bar and
+the card fit on one line as before), so the earlier captures `01-*` to `07-*`
+stay current for what these fixes touch.
+
+Observed but not changed (shared surfaces outside this feature): the bottom
+navigation breaks "Momente" as "Mo-ment e", the page heading hyphenates
+"Benach-richtigun-gen", and other More rows break "Einstellungen" and
+"Aktivitäten" mid-word. The stacked kinds keep the pill shape of the
+segmented control, which rounds strongly at two rows.
+
+Not covered: real Android font and display size scaling (no device run; the
+root font size only approximates it), browser zoom at 200 % (which changes the
+CSS viewport instead and is covered by the 360/390 px checks), Dark at 200 %,
+and Expanded at 200 %.

@@ -236,6 +236,9 @@ EXCLUDED_TABLES: dict[str, str] = {
     "dashboard_module_preferences": "Not part of bundle v1; set up again.",
     "wish_date_proposals": "Not part of bundle v1.",
     "wish_reminders": "Not part of bundle v1.",
+    # Support conversations with the operator (#2189): not couple content, never in bundle v1.
+    "support_reports": "Support conversation with the operator; not couple content.",
+    "support_report_replies": "Support conversation with the operator; not couple content.",
     # The Transfer Bundle's own tables (feature removed by Decision 0020).
     "transfer_exports": "Transfer Bundle bookkeeping of the removed self-service feature.",
     "transfer_imports": "Transfer Bundle bookkeeping of the removed self-service feature.",

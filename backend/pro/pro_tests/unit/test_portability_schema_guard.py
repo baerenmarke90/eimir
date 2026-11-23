@@ -80,4 +80,5 @@ def test_the_tested_revision_is_the_head_of_the_core_migration_chain() -> None:
         pytest.skip("The Core migration scripts are not part of this checkout.")
     config = Config(str(config_path))
     config.set_main_option("script_location", str(config_path.parent / "alembic"))
-    assert ScriptDirectory.from_config(config).get_current_head() == TESTED_ALEMBIC_REVISION
+    heads = set(ScriptDirectory.from_config(config).get_heads())
+    assert heads == {TESTED_ALEMBIC_REVISION}

@@ -53,9 +53,7 @@ def test_downgrade_resets_only_introduced_designs(
 
     original = sorted((design.value, 1, "sage") for design in WirDesignId)
     rollback = sorted(
-        ("connected", 2, "sage")
-        if design in introduced
-        else (design.value, 1, "sage")
+        ("connected", 2, "sage") if design in introduced else (design.value, 1, "sage")
         for design in WirDesignId
     )
     migration = ScriptDirectory.from_config(Config("alembic.ini")).get_revision(revision).module

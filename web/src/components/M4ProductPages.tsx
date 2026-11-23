@@ -52,6 +52,7 @@ import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { SEARCH_ROUTE } from '../client/routes';
 import { handleTabKeyDown } from '../client/tabKeyboard';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
+import { optionalDeferredComponent } from '../deferredModules';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { ActivityCard } from './ActivityCard';
 import { AutoLoadMore } from './AutoLoadMore';
@@ -62,9 +63,17 @@ import { MEMORY_TAGS } from './MemoryTagChoices';
 import { PageHeader } from './PageHeader';
 import { AuthorAvatar } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
-import { SupportReplyNotice } from './SupportReplyNotice';
 import { UiState } from './UiState';
 import './M4ProductPages.css';
+
+/**
+ * The reply body of a `SUPPORT_REPLY` notice, in its own chunk with its client
+ * and styles. Until it has loaded, or when it cannot load, the notice shows
+ * its title alone; the list never waits for it.
+ */
+const SupportReplyNotice = optionalDeferredComponent(() =>
+  import('./SupportReplyNotice').then((module) => module.SupportReplyNotice),
+);
 
 const PAGE_SIZE = 20;
 

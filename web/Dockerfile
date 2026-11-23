@@ -8,6 +8,8 @@ RUN npm ci --no-audit --no-fund
 
 COPY . .
 ARG EIMIR_BUILD_REVISION=""
+ARG EIMIR_APP_VERSION=""
+ARG EIMIR_REQUIRE_BUILD_IDENTITY=""
 ARG SBS_BUILD_REVISION="unverified-local-checkout"
 ARG VITE_EIMIR_API_BASE_URL=""
 ARG VITE_EIMIR_DEMO_MODE=""
@@ -27,7 +29,12 @@ RUN export VITE_EIMIR_API_BASE_URL="${VITE_EIMIR_API_BASE_URL:-$VITE_SBS_API_BAS
     VITE_EIMIR_DEMO_URL="${VITE_EIMIR_DEMO_URL:-$VITE_SBS_DEMO_URL}" \
     VITE_EIMIR_DEMO_RESET_TIMER="${VITE_EIMIR_DEMO_RESET_TIMER:-$VITE_SBS_DEMO_RESET_TIMER}" \
     VITE_EIMIR_DEMO_RESET_INTERVAL="${VITE_EIMIR_DEMO_RESET_INTERVAL:-$VITE_SBS_DEMO_RESET_INTERVAL}" \
-    && npm run build:bundle
+    && revision="${EIMIR_BUILD_REVISION:-$SBS_BUILD_REVISION}" \
+    && if [ -n "$EIMIR_APP_VERSION" ]; then export VITE_EIMIR_APP_VERSION="$EIMIR_APP_VERSION"; fi \
+    && if printf '%s' "$revision" | grep -Eq '^[0-9a-f]{40}$'; then \
+         export VITE_EIMIR_BUILD="$(printf '%s' "$revision" | cut -c1-12)"; \
+       fi \
+    && EIMIR_REQUIRE_BUILD_IDENTITY="$EIMIR_REQUIRE_BUILD_IDENTITY" npm run build:bundle
 RUN mkdir -p dist/.well-known \
     && revision="${EIMIR_BUILD_REVISION:-$SBS_BUILD_REVISION}" \
     && printf '%s\n' "$revision" > dist/.well-known/eimir-revision \

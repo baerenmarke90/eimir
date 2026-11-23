@@ -213,6 +213,8 @@ jobs:
             --pull \
             --no-cache \
             --build-arg "EIMIR_BUILD_REVISION=$GITHUB_SHA" \
+            --build-arg "EIMIR_APP_VERSION=$RELEASE_VERSION" \
+            --build-arg "EIMIR_REQUIRE_BUILD_IDENTITY=true" \
             --label "org.opencontainers.image.title=eimir web runtime" \
             --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
             --label "org.opencontainers.image.revision=$GITHUB_SHA" \
@@ -259,6 +261,9 @@ jobs:
         working-directory: web
         env:
           ANDROID_API_BASE_URL: ${{ env.ANDROID_API_BASE_URL }}
+          EIMIR_APP_VERSION: ${{ env.RELEASE_VERSION }}
+          EIMIR_BUILD_REVISION: ${{ github.sha }}
+          EIMIR_REQUIRE_BUILD_IDENTITY: "true"
         run: |
           set -euo pipefail
           npm ci --ignore-scripts --no-audit --no-fund

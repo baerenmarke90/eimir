@@ -470,6 +470,9 @@ jobs:
         working-directory: web
         env:
           ANDROID_API_BASE_URL: ${{ inputs.android_api_base_url }}
+          EIMIR_APP_VERSION: ${{ inputs.release_version }}
+          EIMIR_BUILD_REVISION: ${{ github.sha }}
+          EIMIR_REQUIRE_BUILD_IDENTITY: "true"
         run: |
           set -euo pipefail
           npm ci --ignore-scripts --no-audit --no-fund

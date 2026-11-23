@@ -96,6 +96,8 @@ class SupportReportReplyView(ApiModel):
 
     text: str
     replied_at: datetime
+    # When the answered report was created, so the reply can say which report it is.
+    reported_at: datetime
 
 
 @router.post(

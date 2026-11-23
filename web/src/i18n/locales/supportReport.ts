@@ -52,6 +52,7 @@ const supportReport = {
   reply: {
     title: 'Antwort auf deine Meldung',
     context: 'Zu deiner Meldung',
+    contextDated: 'Deine Meldung vom {{date}}',
     loading: 'Antwort wird geladen …',
   },
 } as const;

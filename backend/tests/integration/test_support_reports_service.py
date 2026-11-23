@@ -264,6 +264,7 @@ def _reply_rows(session: Session) -> int:
 def test_reply_is_stored_once(session: Session, monkeypatch: pytest.MonkeyPatch) -> None:
     account = make_account(session)
     report = _report(session, account.id)
+    reported_at = report.created_at
     replied_at = datetime(2026, 11, 23, 12, 0, tzinfo=UTC)
     monkeypatch.setattr(clock, "now", lambda: replied_at)
 
@@ -277,6 +278,7 @@ def test_reply_is_stored_once(session: Session, monkeypatch: pytest.MonkeyPatch)
     assert reply is not None
     assert reply.text == "Thank you, fixed."
     assert reply.replied_at == replied_at
+    assert reply.reported_at == reported_at
     stored = session.execute(select(SupportReportReplyRow)).scalar_one()
     assert stored.replied_at == replied_at
     assert stored.payload.replied_at == replied_at

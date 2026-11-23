@@ -17894,6 +17894,11 @@
             "title": "Repliedat",
             "type": "string"
           },
+          "reportedAt": {
+            "format": "date-time",
+            "title": "Reportedat",
+            "type": "string"
+          },
           "text": {
             "title": "Text",
             "type": "string"
@@ -17901,7 +17906,8 @@
         },
         "required": [
           "text",
-          "repliedAt"
+          "repliedAt",
+          "reportedAt"
         ],
         "title": "SupportReportReplyView",
         "type": "object"

@@ -6,7 +6,7 @@ import type { NotificationItem } from '../api/generated/models/NotificationItem'
 import type { SupportReportReplyView } from '../api/generated/models/SupportReportReplyView';
 import { ResponseError } from '../api/generated/runtime';
 import { getNotificationItemTitle } from '../client/notificationTitle';
-import { i18n } from '../i18n';
+import { i18n, resolvedLocale } from '../i18n';
 import supportReport from '../i18n/locales/supportReport';
 import { SupportReplyNotice } from './SupportReplyNotice';
 
@@ -33,6 +33,7 @@ describe('SupportReplyNotice', () => {
     const { container, api } = renderNotice(async () => ({
       text: markup,
       repliedAt: new Date('2026-11-23T10:00:00Z'),
+      reportedAt: new Date('2026-11-20T12:00:00Z'),
     }));
     expect(screen.getByText(supportReport.reply.context)).toBeTruthy();
     await waitFor(() => expect(screen.getByText(markup)).toBeTruthy());
@@ -41,6 +42,36 @@ describe('SupportReplyNotice', () => {
     expect(api.getSupportReportReply).toHaveBeenCalledWith({
       reportId: 'report-1',
     });
+  });
+
+  it('names the report by its date once the reply is loaded', async () => {
+    const reportedAt = new Date('2026-11-20T12:00:00Z');
+    const { container } = renderNotice(async () => ({
+      text: 'Fixed in the next version.',
+      repliedAt: new Date('2026-11-23T10:00:00Z'),
+      reportedAt,
+    }));
+    const date = new Intl.DateTimeFormat(resolvedLocale(), {
+      day: 'numeric',
+      month: 'short',
+    }).format(reportedAt);
+    const line = await screen.findByText(
+      i18n.t('supportReport.reply.contextDated', { date }),
+    );
+    expect(line.classList.contains('support-reply-context')).toBe(true);
+    expect(container.querySelector('.support-reply-context')?.textContent).toBe(
+      line.textContent,
+    );
+    expect(screen.queryByText(supportReport.reply.context)).toBeNull();
+  });
+
+  it('keeps the undated context line when the reply is gone', async () => {
+    renderNotice(() =>
+      Promise.reject(new ResponseError(new Response(null, { status: 404 }))),
+    );
+    await waitFor(() =>
+      expect(screen.getByText(supportReport.reply.context)).toBeTruthy(),
+    );
   });
 
   it('shows no reply text when the reply is gone', async () => {

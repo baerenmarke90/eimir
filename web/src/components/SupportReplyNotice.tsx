@@ -5,7 +5,7 @@ import type { SupportReportReplyView } from '../api/generated/models/SupportRepo
 import { ResponseError } from '../api/generated/runtime';
 import { Configuration } from '../client/apiConfiguration';
 import { useApiRuntime } from '../client/apiRuntimeContext';
-import { useTranslation } from '../i18n';
+import { resolvedLocale, useTranslation } from '../i18n';
 import './SupportReplyNotice.css';
 
 /** What the notice needs from the generated client; replaceable in tests. */
@@ -19,11 +19,20 @@ export function supportReplyQueryKey(reportId: string) {
   return ['support-report-reply', reportId] as const;
 }
 
+/** The report's day as a short localized date, e.g. "23. Nov.". */
+function formatReportDate(reportedAt: Date): string {
+  return new Intl.DateTimeFormat(resolvedLocale(), {
+    day: 'numeric',
+    month: 'short',
+  }).format(reportedAt);
+}
+
 /**
  * The body of a `SUPPORT_REPLY` notice (#2189): a neutral context line and the
  * operator's reply, read on demand from the reporter-only endpoint. The reply
  * is rendered as a React text node only: never as markup and never linkified.
- * A missing reply (404) or a failed read shows the context line alone.
+ * The context line names the report by its date once the reply is read. A
+ * missing reply (404) or a failed read shows the undated context line alone.
  */
 export function SupportReplyNotice({
   reportId,
@@ -69,7 +78,11 @@ export function SupportReplyNotice({
   return (
     <div className="support-reply">
       <p className="support-reply-context">
-        {t('supportReport.reply.context')}
+        {reply.data
+          ? t('supportReport.reply.contextDated', {
+              date: formatReportDate(reply.data.reportedAt),
+            })
+          : t('supportReport.reply.context')}
       </p>
       {reply.isPending && reader ? (
         <span className="support-reply-skeleton" aria-busy="true" role="status">

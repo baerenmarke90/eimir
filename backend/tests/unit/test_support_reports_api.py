@@ -26,7 +26,8 @@ from eimir.core.errors import ConflictError, ErrorCode, RateLimitedError
 from eimir.db.session import get_session
 from eimir.support_reports import service
 from eimir.support_reports.models import SupportReportKind
-from eimir.support_reports.payload import ClientContext, SupportReportPayload, SupportReportReply
+from eimir.support_reports.payload import ClientContext, SupportReportPayload
+from eimir.support_reports.service import ReporterReply
 
 EMOJI = "\U0001f49b"
 ACCOUNT_ID = uuid4()
@@ -338,11 +339,11 @@ class ReplyRecorder:
 
     def __init__(self) -> None:
         self.calls: list[tuple[object, object]] = []
-        self.reply: SupportReportReply | None = None
+        self.reply: ReporterReply | None = None
 
     def get_reply(
         self, _session: object, *, report_id: object, account_id: object
-    ) -> SupportReportReply | None:
+    ) -> ReporterReply | None:
         self.calls.append((report_id, account_id))
         return self.reply
 
@@ -359,12 +360,18 @@ def test_reply_is_returned_to_the_reporter_even_when_the_flag_is_off(
 ) -> None:
     _enable(monkeypatch, False)
     report_id = uuid4()
-    replies.reply = SupportReportReply(
-        text="<b>Thanks</b> & sorry", replied_at=datetime(2026, 11, 23, 12, 0, tzinfo=UTC)
+    replies.reply = ReporterReply(
+        text="<b>Thanks</b> & sorry",
+        replied_at=datetime(2026, 11, 23, 12, 0, tzinfo=UTC),
+        reported_at=datetime(2026, 11, 20, 9, 30, tzinfo=UTC),
     )
     response = client.get(f"{URL}/{report_id}/reply")
     assert response.status_code == 200
-    assert response.json() == {"text": "<b>Thanks</b> & sorry", "repliedAt": "2026-11-23T12:00:00Z"}
+    assert response.json() == {
+        "text": "<b>Thanks</b> & sorry",
+        "repliedAt": "2026-11-23T12:00:00Z",
+        "reportedAt": "2026-11-20T09:30:00Z",
+    }
     assert replies.calls == [(report_id, ACCOUNT_ID)]
     assert response.headers["Cache-Control"] == "private, no-store"
 
@@ -393,3 +400,11 @@ def test_reply_operation_is_in_the_contract() -> None:
     operation = create_app().openapi()["paths"]["/api/v1/support-reports/{reportId}/reply"]["get"]
     assert operation["operationId"] == "getSupportReportReply"
     assert {"200", "401", "404"} <= set(operation["responses"])
+
+
+def test_reply_view_requires_the_report_date_in_the_contract() -> None:
+    from eimir.main import create_app
+
+    schema = create_app().openapi()["components"]["schemas"]["SupportReportReplyView"]
+    assert set(schema["required"]) == {"text", "repliedAt", "reportedAt"}
+    assert schema["properties"]["reportedAt"]["format"] == "date-time"

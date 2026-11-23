@@ -6637,6 +6637,7 @@
     "reply": {
       "title": "Reply to your report",
       "context": "About your report",
+      "contextDated": "Your report of {{date}}",
       "loading": "Loading the reply …"
     }
   }

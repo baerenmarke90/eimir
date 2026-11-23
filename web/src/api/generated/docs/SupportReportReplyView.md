@@ -8,6 +8,7 @@ The operator\'s reply, shown to the reporter as plain text.
 Name | Type
 ------------ | -------------
 `repliedAt` | Date
+`reportedAt` | Date
 `text` | string
 
 ## Example
@@ -18,6 +19,7 @@ import type { SupportReportReplyView } from ''
 // TODO: Update the object below with actual values
 const example = {
   "repliedAt": null,
+  "reportedAt": null,
   "text": null,
 } satisfies SupportReportReplyView
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -190,8 +191,11 @@ def test_reply_read_is_reporter_only(client: Any, session: Session) -> None:
 
     own = client.get(f"{URL}/{report_id}/reply", headers=auth(anna_token))
     assert own.status_code == 200
-    assert set(own.json()) == {"text", "repliedAt"}
+    assert set(own.json()) == {"text", "repliedAt", "reportedAt"}
     assert own.json()["text"] == "We fixed it."
+    report = service.get_report(session, report_id)
+    assert report is not None
+    assert datetime.fromisoformat(own.json()["reportedAt"]) == report.created_at
 
     other = client.get(f"{URL}/{report_id}/reply", headers=auth(ben_token))
     unknown = client.get(f"{URL}/{uuid4()}/reply", headers=auth(anna_token))

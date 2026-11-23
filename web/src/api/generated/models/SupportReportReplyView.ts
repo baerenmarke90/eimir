@@ -27,6 +27,12 @@ export interface SupportReportReplyView {
     repliedAt: Date;
     /**
      * 
+     * @type {Date}
+     * @memberof SupportReportReplyView
+     */
+    reportedAt: Date;
+    /**
+     * 
      * @type {string}
      * @memberof SupportReportReplyView
      */
@@ -38,6 +44,7 @@ export interface SupportReportReplyView {
  */
 export function instanceOfSupportReportReplyView(value: object): value is SupportReportReplyView {
     if (!('repliedAt' in value) || value['repliedAt'] === undefined) return false;
+    if (!('reportedAt' in value) || value['reportedAt'] === undefined) return false;
     if (!('text' in value) || value['text'] === undefined) return false;
     return true;
 }
@@ -53,6 +60,7 @@ export function SupportReportReplyViewFromJSONTyped(json: any, ignoreDiscriminat
     return {
         
         'repliedAt': (new Date(json['repliedAt'])),
+        'reportedAt': (new Date(json['reportedAt'])),
         'text': json['text'],
     };
 }
@@ -69,6 +77,7 @@ export function SupportReportReplyViewToJSONTyped(value?: SupportReportReplyView
     return {
         
         'repliedAt': value['repliedAt'].toISOString(),
+        'reportedAt': value['reportedAt'].toISOString(),
         'text': value['text'],
     };
 }

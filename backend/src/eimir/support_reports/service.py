@@ -375,21 +375,33 @@ def reply_event(*, report_id: UUID, reporter_id: UUID, space_id: UUID) -> Domain
     )
 
 
-def get_reply(session: Session, *, report_id: UUID, account_id: UUID) -> SupportReportReply | None:
+@dataclass(frozen=True, slots=True)
+class ReporterReply:
+    """The reply as the reporter sees it, with the date of the report it answers."""
+
+    text: str
+    replied_at: datetime
+    reported_at: datetime
+
+
+def get_reply(session: Session, *, report_id: UUID, account_id: UUID) -> ReporterReply | None:
     """Return the reply to the reporter's own report, otherwise ``None``.
 
     A report of another account and a report without a reply are
     indistinguishable. ``replied_at`` is read from its column, which is the
-    authority for the time.
+    authority for the time. ``reported_at`` is the report's ``created_at``.
     """
     row = session.execute(
-        select(SupportReportReplyRow)
+        select(SupportReportReplyRow, SupportReport.created_at)
         .join(SupportReport, SupportReport.id == SupportReportReplyRow.report_id)
         .where(SupportReport.id == report_id, SupportReport.account_id == account_id)
-    ).scalar_one_or_none()
+    ).one_or_none()
     if row is None:
         return None
-    return SupportReportReply(text=row.payload.text, replied_at=row.replied_at)
+    reply, reported_at = row
+    return ReporterReply(
+        text=reply.payload.text, replied_at=reply.replied_at, reported_at=reported_at
+    )
 
 
 class RetentionCutoffs(NamedTuple):

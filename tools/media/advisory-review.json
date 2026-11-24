@@ -423,6 +423,21 @@
       "evidenceSha256": "c942619b3d9db68fc570351da37cf622d4fe27fac9ef3302bff45b0a603fccb7",
       "reviewedAt": "2026-11-16",
       "review": "The restricted build enables the H.264 metadata filter and compiles libavcodec/cbs_sei.c. clear-sei-message-slot.patch backports upstream FFmpeg commit 2c515eea07df719379e7f73deeeb7ccb8768433f to the pinned source. It clears each SEI message slot as it is handed out, including reused slots, so all restricted builds contain the upstream memory-safety fix. Debian sid continues to report this advisory open."
+    },
+    "CVE-2026-135724": {
+      "evidenceSha256": "2ae631f93d135e85fd23c3fc44ad2561e74cc0b943ae2bcd3eac1ed1e1500234",
+      "reviewedAt": "2026-11-24",
+      "review": "Applicable: the advisory (NVD and the Debian tracker agree) describes avformat_stream_group_create() in libavformat/options.c, which is built, setting the group type before allocating the tile-grid parameters, so an allocation failure while parsing a HEIF/AVIF tile grid makes ff_free_stream_group() dereference a NULL tile_grid. The pinned commit has this code, and mov_parse_tiles() in libavformat/mov.c calls it for every HEIF 'grid' item of the enabled MOV demuxer (its extension list includes avif, heic and heif), so a crafted container can reach it. The failure needs a small allocation to fail, which the 768 MiB RLIMIT_AS can cause in the child. The impact is a NULL-pointer crash of the ffmpeg/ffprobe child process; there is no memory corruption. Every child runs through run_restricted() in attachments/media_process.py with RLIMIT_AS of 768 MiB, RLIMIT_CPU, a wall-clock timeout of 600 seconds, stdin from /dev/null and no credentials, and uploads are limited to VIDEO_MAX_SIZE (250 MiB) in limits.py. A crash ends only the child, which exits non-zero and is reported as VIDEO_UNREADABLE, so the application process is not affected. No upstream fix is in the pinned commit and Debian lists the issue as open, so this is a reviewed bounded-process defense, not an upstream closure claim."
+    },
+    "CVE-2026-135739": {
+      "evidenceSha256": "c80027a949d697aceaf9cd14f7df60e4e6ee7dff357e434ed2af5813cd8cb5ef",
+      "reviewedAt": "2026-11-24",
+      "review": "The affected code (process_command() and the ref_* variable handling in libavfilter/vf_scale.c) is compiled because the scale filter is enabled, but it is not reachable. It runs only when a width or height command is delivered to a running scale filter, and the advisory names sendcmd and zmq/azmq as the delivery paths. The restricted build starts with --disable-everything and its explicit filter list (scale, format, null, anull, aresample, aformat, transpose, hflip, vflip, zscale, tonemap, fps, sidedata, setparams) excludes sendcmd, asendcmd, zmq and azmq; libavfilter/f_sendcmd.c and libavfilter/f_zmq.c are not in built-sources.txt. The ffmpeg interactive command key is also closed: every ffmpeg invocation passes -nostdin and run_restricted() sets stdin to /dev/null. Filter graphs are fixed by the application and never taken from media content, and the input file cannot send filter commands. The scale2ref variant is not enabled."
+    },
+    "CVE-2026-135742": {
+      "evidenceSha256": "506aa727d12d3387dc035a4bd1e3bfa0133f18820eb438b1ab65edc41074cf6c",
+      "reviewedAt": "2026-11-24",
+      "review": "The affected zmq and azmq filters (recv_msg() in libavfilter/f_zmq.c) are not compiled. Their configure dependency is libzmq, which the restricted build does not enable (--disable-everything, --disable-autodetect, --disable-network, no --enable-libzmq), the filter list excludes zmq and azmq, and libavfilter/f_zmq.c is not in built-sources.txt. The network listener the advisory describes cannot exist in the shipped binary, which also has every network protocol disabled."
     }
   },
   "dependencies": {

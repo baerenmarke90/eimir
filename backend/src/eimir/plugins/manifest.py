@@ -1,7 +1,7 @@
 """Core lifecycle manifest of every plugin-owned table (Decision 0017, decision 4).
 
 A Core instance can run without the plugin after it once ran with it. Deletion,
-retention, encryption and export must stay correct in that state, so Core owns
+retention and encryption must stay correct in that state, so Core owns
 this declarative description of the plugin tables and never needs the plugin's
 ORM classes for them. A new plugin table needs a row here in the same change;
 ``tests/unit/test_plugin_manifest.py`` enforces that.
@@ -54,31 +54,6 @@ class Purge:
 
 
 @dataclass(frozen=True)
-class ExportField:
-    """One value of an exported entry: a column or a field of the decrypted payload."""
-
-    name: str
-    column: str | None = None
-    payload_field: str | None = None
-
-
-@dataclass(frozen=True)
-class ExportRule:
-    """A key of the personal export's account document, built from the Account's rows.
-
-    Only rows whose decrypted payload names the exporting Account in
-    ``payload_owner_field`` are exported. A ``single`` rule with one field
-    exports that value of the first row, and the key only when a row exists;
-    otherwise the key holds a list of entries.
-    """
-
-    key: str
-    fields: tuple[ExportField, ...]
-    single: bool = False
-    payload_owner_field: str = "account_id"
-
-
-@dataclass(frozen=True)
 class AttachmentRule:
     """A plugin row that owns at most one attachment."""
 
@@ -108,8 +83,6 @@ class PluginTable:
     """Short-lived state that is deleted entirely while its plugin is absent."""
     notification_targets: tuple[EngagementTarget, ...] = ()
     """Notification targets that point at this table's ``id``; deleted with the row."""
-    export: ExportRule | None = None
-    """The personal-export key this table provides (matched by its first account column)."""
 
 
 _GAMES = Capability.GAMES_COUPLE
@@ -247,13 +220,6 @@ PLUGIN_TABLES: tuple[PluginTable, ...] = (
         ("account_id",),
         protected_payload_context="PhotoConnectionPayload",
         purge_on=(_ACCOUNT,),
-        export=ExportRule(
-            "personalPhotoSources",
-            (
-                ExportField("source", column="provider"),
-                ExportField("origin", payload_field="origin"),
-            ),
-        ),
     ),
     PluginTable(
         "photo_source_selections",
@@ -271,9 +237,6 @@ PLUGIN_TABLES: tuple[PluginTable, ...] = (
         ("account_id",),
         protected_payload_context="GoogleAccountHintPayload",
         purge_on=(_ACCOUNT,),
-        export=ExportRule(
-            "personalGoogleAccountHint", (ExportField("email", payload_field="email"),), single=True
-        ),
     ),
     # Extended partner gestures: content-free idempotency and pacing receipts.
     # Who sent which gesture to whom ends with either Account; the notification

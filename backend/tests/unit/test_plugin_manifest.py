@@ -212,10 +212,6 @@ def test_every_lifecycle_rule_names_existing_columns(row) -> None:  # type: igno
     if row.notification_targets or row.attachment:
         assert "id" in table.columns
     assert set(row.notification_targets) <= PLUGIN_ENGAGEMENT_TARGETS
-    if row.export is not None:
-        assert row.protected_payload_context is not None
-        for field in row.export.fields:
-            assert field.column is None or field.column in table.columns
     if row.attachment is not None:
         assert row.attachment.column in table.columns
         assert row.attachment.owner_column in row.account_columns

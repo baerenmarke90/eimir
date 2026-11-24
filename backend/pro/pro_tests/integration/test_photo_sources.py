@@ -424,12 +424,7 @@ def test_personal_export_excludes_credentials_and_account_deletion_purges_link(
     for scope in (TransferScope.PERSONAL, TransferScope.SHARED):
         with build_export_archive(session, context, scope) as buffer, ZipFile(buffer) as archive:
             document = json.loads(archive.read("accounts.json"))
-            if scope is TransferScope.PERSONAL:
-                assert document["personalPhotoSources"] == [
-                    {"source": "immich", "origin": "https://my-photos.example"}
-                ]
-            else:
-                assert "personalPhotoSources" not in document
+            assert "personalPhotoSources" not in document
             assert all(
                 b"synthetic-private-key" not in archive.read(name) for name in archive.namelist()
             )
@@ -1443,11 +1438,10 @@ def test_google_account_never_reaches_logs_or_other_exports_and_is_purged_with_t
                 archive.read(name) for name in archive.namelist()
             )
 
-    personal, _ = exported(owners["anna"], TransferScope.PERSONAL)
-    assert personal["personalGoogleAccountHint"] == GOOGLE_HINT_NORMALIZED
-    shared, shared_bytes = exported(owners["anna"], TransferScope.SHARED)
-    assert "personalGoogleAccountHint" not in shared
-    assert b"gmail.example" not in shared_bytes
+    for scope in (TransferScope.PERSONAL, TransferScope.SHARED):
+        document, archive_bytes = exported(owners["anna"], scope)
+        assert "personalGoogleAccountHint" not in document
+        assert b"gmail.example" not in archive_bytes
     apply_accepted_tombstone(session, owners["anna"].id, accepted_at=now())
     apply_core_cleanup(session, owners["anna"].id)
     session.expire_all()

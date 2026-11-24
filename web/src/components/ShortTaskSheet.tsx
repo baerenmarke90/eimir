@@ -8,6 +8,7 @@ import {
   useImperativeHandle,
   useLayoutEffect,
   useRef,
+  useState,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
@@ -181,6 +182,8 @@ export function ShortTaskSheet({
   const dragVelocityRef = useRef(new VelocityTracker());
   const suppressNextClickRef = useRef(false);
   const gestureHandlersRef = useRef<DragGestureHandlers | null>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
+  const [footerScrollable, setFooterScrollable] = useState(false);
   const closeConfirmed = useEditorHistoryEntry({
     isActive: open,
     isDirty,
@@ -222,6 +225,29 @@ export function ShortTaskSheet({
     }
     wasPresentRef.current = present;
   }, [present, restoreFocusRef]);
+
+  // The footer scrolls once its content outgrows the bounded height (large text,
+  // long messages). A scrollable region must be keyboard-reachable, so it joins
+  // the tab order exactly while it overflows and not otherwise.
+  useLayoutEffect(() => {
+    const footerElement = footerRef.current;
+    if (!footerElement) {
+      setFooterScrollable(false);
+      return;
+    }
+    const measure = () =>
+      setFooterScrollable(
+        footerElement.scrollHeight > footerElement.clientHeight,
+      );
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(footerElement);
+    for (const child of Array.from(footerElement.children)) {
+      observer.observe(child);
+    }
+    return () => observer.disconnect();
+  });
 
   useEffect(() => {
     onPresenceChange?.(present);
@@ -868,7 +894,15 @@ export function ShortTaskSheet({
         </h2>
         {children}
       </section>
-      {footer ? <div className="short-task-sheet-footer">{footer}</div> : null}
+      {footer ? (
+        <div
+          ref={footerRef}
+          className="short-task-sheet-footer"
+          tabIndex={footerScrollable ? 0 : undefined}
+        >
+          {footer}
+        </div>
+      ) : null}
     </dialog>,
     document.body,
   );

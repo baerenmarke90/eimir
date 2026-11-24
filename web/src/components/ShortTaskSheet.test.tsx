@@ -638,6 +638,52 @@ describe('ShortTaskSheet history ownership', () => {
     );
   });
 
+  it('makes the footer keyboard-reachable exactly while it overflows and scrolls', () => {
+    let footerOverflows = false;
+    let notifyResize: () => void = () => undefined;
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: () => void) {
+          notifyResize = callback;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    const isFooter = (element: Element) =>
+      element.classList.contains('short-task-sheet-footer');
+    vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(
+      function (this: HTMLElement) {
+        return isFooter(this) && footerOverflows ? 400 : 100;
+      },
+    );
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(100);
+
+    render(
+      <ShortTaskSheet
+        open
+        title="Footer"
+        onClose={vi.fn()}
+        footer={<p>Saved</p>}
+      >
+        <p>Content</p>
+      </ShortTaskSheet>,
+    );
+    const footer = document.querySelector('.short-task-sheet-footer');
+    expect(footer).not.toBeNull();
+    expect(footer?.hasAttribute('tabindex')).toBe(false);
+
+    footerOverflows = true;
+    act(() => notifyResize());
+    expect(footer?.getAttribute('tabindex')).toBe('0');
+
+    footerOverflows = false;
+    act(() => notifyResize());
+    expect(footer?.hasAttribute('tabindex')).toBe(false);
+    vi.unstubAllGlobals();
+  });
+
   it('can hide the close icon while the handle stays the labeled close target', () => {
     const onClose = vi.fn();
     render(

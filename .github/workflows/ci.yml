@@ -210,9 +210,9 @@ jobs:
         working-directory: .
         run: |
           missing_files=$(comm -23 \
-            <(find backend/src backend/pro/src web -name "*.py" -o -name "*.ts" \
+            <(find backend/src backend/pro/src backend/admin/src web -name "*.py" -o -name "*.ts" \
                 -o -name "*.tsx" 2>/dev/null | sort) \
-            <(git ls-files backend/src backend/pro/src web | sort))
+            <(git ls-files backend/src backend/pro/src backend/admin/src web | sort))
           if [ -n "$missing_files" ]; then
             echo "These source files are not tracked:"
             echo "$missing_files"
@@ -857,13 +857,13 @@ jobs:
           pro = [
               name
               for name in names
-              if name.startswith(("eimir_pro/", "eimir/pro_plugin"))
+              if name.startswith(("eimir_pro/", "eimir_admin/", "eimir/pro_plugin"))
               or "date_ideas" in name
               or "daily_sayings" in name
           ]
           if pro:
-              raise SystemExit("The Core wheel contains Pro files: " + ", ".join(pro[:20]))
-          print(f"{wheels[0].name}: {len(names)} files, no Pro file.")
+              raise SystemExit("The Core wheel contains plugin files: " + ", ".join(pro[:20]))
+          print(f"{wheels[0].name}: {len(names)} files, no plugin file.")
           PY
 
       - name: Build backend production container from scratch
@@ -881,6 +881,8 @@ jobs:
           from eimir.plugins.loader import loaded_plugins
           assert not os.path.exists('/app/pro/src')
           assert importlib.util.find_spec('eimir_pro') is None
+          assert importlib.util.find_spec('eimir_admin') is None
+          assert not os.path.exists('/app/admin/src')
           assert loaded_plugins().names == ()
           print('Core image: Core only.')
           "

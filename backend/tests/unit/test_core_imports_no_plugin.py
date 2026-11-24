@@ -29,12 +29,12 @@ def _module_name(path: Path) -> str:
     return ".".join(parts)
 
 
-PLUGIN_DISTRIBUTION_ROOT = "eimir_pro"
-"""The import root of the Pro distribution (``backend/pro``, #2182)."""
+PLUGIN_DISTRIBUTION_ROOTS: tuple[str, ...] = ("eimir_pro", "eimir_admin")
+"""The import roots of the plugin distributions (``backend/pro`` #2182, ``backend/admin`` #2189)."""
 
 
 def _is_plugin(module: str) -> bool:
-    if module == PLUGIN_DISTRIBUTION_ROOT or module.startswith(f"{PLUGIN_DISTRIBUTION_ROOT}."):
+    if any(module == root or module.startswith(f"{root}.") for root in PLUGIN_DISTRIBUTION_ROOTS):
         return True
     return any(
         module == package or module.startswith(f"{package}.") for package in PLUGIN_PACKAGES
@@ -85,6 +85,7 @@ def test_the_check_catches_a_plugin_import() -> None:
         "def f():\n    from eimir_pro.garden import service\n"
         "from eimir_pro.api import calendar_sync\nimport eimir_pro.presence.models\n"
         "import eimir_pro.plugin\n"
+        "from eimir_admin import plugin\nimport eimir_admin.api.reports\n"
     )
     assert {
         name for name in _imported(tree, "eimir.wish_selections.service") if _is_plugin(name)
@@ -95,4 +96,7 @@ def test_the_check_catches_a_plugin_import() -> None:
         "eimir_pro.api.calendar_sync",
         "eimir_pro.presence.models",
         "eimir_pro.plugin",
+        "eimir_admin",
+        "eimir_admin.plugin",
+        "eimir_admin.api.reports",
     }

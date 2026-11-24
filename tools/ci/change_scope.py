@@ -158,6 +158,7 @@ RECOVERY_CONTRACT_EXACT = (
 SUPPLY_CHAIN_BACKEND_EXACT = (
     "backend/pyproject.toml",
     "backend/pro/pyproject.toml",
+    "backend/admin/pyproject.toml",
     "backend/uv.lock",
     "backend/Dockerfile",
     "docs/DEPENDENCIES.md",
@@ -239,6 +240,8 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
                 "backend/tests/integration/",
                 # The Pro distribution (#2182): runtime code, tests, packaging.
                 "backend/pro/",
+                # The operator plugin distribution (#2189).
+                "backend/admin/",
             ),
             exact=(
                 "backend/alembic.ini",

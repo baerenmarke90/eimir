@@ -1,0 +1,24 @@
+[project]
+name = "eimir-admin"
+version = "0.1.0"
+description = "eimir. - operator plugin (support reports and operator tools, #2189)"
+requires-python = ">=3.12"
+# The operator plugin is installed on top of a Core of the same revision. In this
+# repository the Core comes from the uv workspace.
+dependencies = [
+    "eimir",
+]
+
+# The operator plugin. Loaded only when named in EIMIR_PLUGINS.
+[project.entry-points."eimir.plugins"]
+admin = "eimir_admin.plugin:plugin"
+
+[tool.uv.sources]
+eimir = { workspace = true }
+
+[build-system]
+requires = ["setuptools==84.2.1"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

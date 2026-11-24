@@ -157,6 +157,23 @@ class ChangeScopeTest(unittest.TestCase):
             },
         )
 
+    def test_admin_distribution_change_enables_postgres_integration(self) -> None:
+        self.assert_scope(
+            ["backend/admin/src/eimir_admin/__init__.py"],
+            enabled={"backend", "backend_integration"},
+        )
+
+    def test_admin_distribution_packaging_enables_backend_supply_chain(self) -> None:
+        self.assert_scope(
+            ["backend/admin/pyproject.toml"],
+            enabled={
+                "backend",
+                "backend_integration",
+                "supply_chain",
+                "supply_chain_backend",
+            },
+        )
+
     def test_backend_runtime_entrypoint_also_enables_deployment_gates(self) -> None:
         self.assert_scope(
             ["backend/src/eimir/main.py"],

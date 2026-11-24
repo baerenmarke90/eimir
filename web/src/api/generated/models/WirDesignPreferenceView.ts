@@ -35,6 +35,12 @@ export interface WirDesignPreferenceView {
     designId: WirDesignId;
     /**
      * 
+     * @type {WirDesignId}
+     * @memberof WirDesignPreferenceView
+     */
+    paletteId?: WirDesignId;
+    /**
+     * 
      * @type {number}
      * @memberof WirDesignPreferenceView
      */
@@ -63,6 +69,7 @@ export function WirDesignPreferenceViewFromJSONTyped(json: any, ignoreDiscrimina
     return {
         
         'designId': WirDesignIdFromJSON(json['designId']),
+        'paletteId': json['paletteId'] == null ? undefined : WirDesignIdFromJSON(json['paletteId']),
         'version': json['version'],
     };
 }
@@ -79,6 +86,7 @@ export function WirDesignPreferenceViewToJSONTyped(value?: WirDesignPreferenceVi
     return {
         
         'designId': WirDesignIdToJSON(value['designId']),
+        'paletteId': WirDesignIdToJSON(value['paletteId']),
         'version': value['version'],
     };
 }

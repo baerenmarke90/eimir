@@ -19,10 +19,16 @@ export function wirDesignStorageKey(
 export function parseWirDesignId(value: unknown): WirDesignId | undefined {
   if (value === 'handwriting' || value === 'together_index')
     return DEFAULT_APP_DESIGN;
+  return parseDesignPaletteId(value);
+}
+
+export function parseDesignPaletteId(value: unknown): WirDesignId | undefined {
   return Object.values(WirDesignId).find((design) => design === value);
 }
 
-export function readWirDesign(key: string): WirDesignId | undefined {
+export function readWirDesign(
+  key: string,
+): { designId: WirDesignId; paletteId?: WirDesignId } | undefined {
   try {
     const raw = localStorage.getItem(key);
     if (!raw || raw.length > 256) return undefined;
@@ -34,17 +40,23 @@ export function readWirDesign(key: string): WirDesignId | undefined {
       Date.now() - value.savedAt >= MAX_AGE
     )
       return undefined;
-    return parseWirDesignId(value.designId);
+    const designId = parseWirDesignId(value.designId);
+    if (!designId) return undefined;
+    return { designId, paletteId: parseDesignPaletteId(value.paletteId) };
   } catch {
     return undefined;
   }
 }
 
-export function rememberWirDesign(key: string, designId: WirDesignId): void {
+export function rememberWirDesign(
+  key: string,
+  designId: WirDesignId,
+  paletteId?: WirDesignId,
+): void {
   try {
     localStorage.setItem(
       key,
-      JSON.stringify({ schema: 1, designId, savedAt: Date.now() }),
+      JSON.stringify({ schema: 1, designId, paletteId, savedAt: Date.now() }),
     );
   } catch {
     /* Memory state remains usable when device storage is unavailable. */

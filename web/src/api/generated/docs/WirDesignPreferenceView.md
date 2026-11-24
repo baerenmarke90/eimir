@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `designId` | [WirDesignId](WirDesignId.md)
+`paletteId` | [WirDesignId](WirDesignId.md)
 `version` | number
 
 ## Example
@@ -17,6 +18,7 @@ import type { WirDesignPreferenceView } from ''
 // TODO: Update the object below with actual values
 const example = {
   "designId": null,
+  "paletteId": null,
   "version": null,
 } satisfies WirDesignPreferenceView
 

@@ -8,6 +8,7 @@ import {
 import { proPaywallPath } from '../client/routes';
 import {
   DEFAULT_WIR_DESIGN,
+  DESIGN_PALETTES,
   isFreeWirDesign,
   useWirDesign,
   WIR_DESIGNS,
@@ -57,32 +58,78 @@ function DesignPreview({ design }: { design: WirDesignId }) {
     </span>
   );
 }
+function PaletteSwatches({ design }: { design: WirDesignId }) {
+  return (
+    <span
+      className="design-palette-swatches"
+      data-design-preview={design}
+      aria-hidden="true"
+    >
+      <span />
+      <span />
+      <span />
+    </span>
+  );
+}
+
+const PALETTE_OPTIONS = [null, ...DESIGN_PALETTES];
+
 export function WirDesignSettings() {
   const state = useWirDesign();
   if (!state) return null;
   return <Settings state={state} />;
 }
+
+export function DesignPaletteSettings() {
+  const state = useWirDesign();
+  if (!state) return null;
+  return <Settings state={state} palettePicker />;
+}
+
 function Settings({
   state,
+  palettePicker = false,
 }: {
   state: NonNullable<ReturnType<typeof useWirDesign>>;
+  palettePicker?: boolean;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { current, preference, capability, mutation } = state;
+  const { preference, capability, mutation } = state;
+  const current = palettePicker ? state.palette : state.current;
+  const titleId = palettePicker ? 'design-palette-title' : 'wir-design-title';
+  const paletteOptions =
+    state.palette !== null && !DESIGN_PALETTES.includes(state.palette)
+      ? [...PALETTE_OPTIONS, state.palette]
+      : PALETTE_OPTIONS;
+  const options = palettePicker ? paletteOptions : WIR_DESIGNS;
+  const choices = t(
+    palettePicker ? 'wirDesign.palette.choices' : 'wirDesign.choices',
+  );
+  const savedMessage = t(
+    palettePicker ? 'wirDesign.palette.saved' : 'wirDesign.saved',
+  );
+  const choiceName = (design: WirDesignId | null) =>
+    design === null
+      ? t('wirDesign.palette.followDesign')
+      : t(`wirDesign.names.${design}`);
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<WirDesignId>(current);
+  const [draft, setDraft] = useState(current);
   const [saved, setSaved] = useState(false);
   const opener = useRef<HTMLButtonElement>(null);
   const initial = useRef<HTMLInputElement>(null);
   const sheet = useRef<ShortTaskSheetHandle>(null);
+  const patch = mutation.variables?.patch;
+  const error =
+    patch && (palettePicker ? 'paletteId' in patch : 'designId' in patch)
+      ? mutation.error
+      : null;
   const conflict =
-    mutation.error instanceof ClientProblemError &&
-    mutation.error.kind === 'conflict';
+    error instanceof ClientProblemError && error.kind === 'conflict';
   const denied =
-    mutation.error instanceof ClientProblemError &&
-    mutation.error.code === 'PREMIUM_ENTITLEMENT_REQUIRED';
-  const paid = !isFreeWirDesign(draft);
+    error instanceof ClientProblemError &&
+    error.code === 'PREMIUM_ENTITLEMENT_REQUIRED';
+  const paid = draft !== null && !isFreeWirDesign(draft);
   const free =
     capability.isSuccess && capability.data === false && !capability.isFetching;
   const canSave =
@@ -90,11 +137,20 @@ function Settings({
     (capability.isSuccess &&
       capability.data === true &&
       !capability.isFetching);
+  function openChoices() {
+    setDraft(current);
+    mutation.reset();
+    setSaved(false);
+    state.inspectCapability();
+    setOpen(true);
+  }
+
   async function save() {
     if (!canSave || conflict || mutation.isPending || draft === current) return;
     setSaved(false);
     try {
-      await state.save(draft);
+      if (palettePicker) await state.savePalette(draft);
+      else if (draft !== null) await state.save(draft);
       setSaved(true);
     } catch {
       /* Keep the user's draft and the mutation's recovery state. */
@@ -103,39 +159,52 @@ function Settings({
   return (
     <section
       className="settings-section wir-design-settings"
-      aria-labelledby="wir-design-title"
+      aria-labelledby={titleId}
     >
-      <h2 id="wir-design-title">{t('wirDesign.title')}</h2>
-      <p className="settings-section-intro">{t('wirDesign.intro')}</p>
-      <div className="wir-design-summary">
-        <DesignPreview design={current} />
-        <div>
-          <strong>{t(`wirDesign.names.${current}`)}</strong>
-          <span>
-            {current === DEFAULT_WIR_DESIGN ? (
-              t('wirDesign.standard')
-            ) : isFreeWirDesign(current) ? (
-              t('wirDesign.free')
-            ) : (
-              <ProMark label={t('wirDesign.pro')} />
-            )}
-          </span>
-        </div>
+      <h2 id={titleId}>
+        {t(palettePicker ? 'wirDesign.palette.title' : 'wirDesign.title')}
+      </h2>
+      {palettePicker ? (
         <button
           type="button"
-          className="button-link"
+          className="design-palette-trigger"
+          aria-labelledby={`${titleId} design-palette-value`}
+          aria-haspopup="dialog"
+          disabled={preference.isPending || mutation.isPending}
           ref={opener}
-          onClick={() => {
-            setDraft(current);
-            mutation.reset();
-            setSaved(false);
-            state.inspectCapability();
-            setOpen(true);
-          }}
+          onClick={openChoices}
         >
-          {t('wirDesign.change')}
+          <PaletteSwatches design={current ?? state.current} />
+          <span id="design-palette-value">{choiceName(current)}</span>
         </button>
-      </div>
+      ) : (
+        <>
+          <p className="settings-section-intro">{t('wirDesign.intro')}</p>
+          <div className="wir-design-summary">
+            <DesignPreview design={state.current} />
+            <div>
+              <strong>{choiceName(state.current)}</strong>
+              <span>
+                {state.current === DEFAULT_WIR_DESIGN ? (
+                  t('wirDesign.standard')
+                ) : isFreeWirDesign(state.current) ? (
+                  t('wirDesign.free')
+                ) : (
+                  <ProMark label={t('wirDesign.pro')} />
+                )}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="button-link"
+              ref={opener}
+              onClick={openChoices}
+            >
+              {t('wirDesign.change')}
+            </button>
+          </div>
+        </>
+      )}
       {preference.isPending ? (
         <p role="status">{t('wirDesign.loading')}</p>
       ) : null}
@@ -151,11 +220,11 @@ function Settings({
           </button>
         </div>
       ) : null}
-      {saved && !open ? <p role="status">{t('wirDesign.saved')}</p> : null}
+      {saved && !open ? <p role="status">{savedMessage}</p> : null}
       <ShortTaskSheet
         ref={sheet}
         open={open}
-        title={t('wirDesign.choices')}
+        title={choices}
         closeLabel={t('wirDesign.close')}
         className="wir-design-sheet"
         initialFocusRef={initial}
@@ -194,17 +263,21 @@ function Settings({
                 </button>
               </div>
             ) : null}
-            {mutation.error ? (
+            {error ? (
               <div role="status">
                 <p>
                   {t(
                     conflict
                       ? 'wirDesign.conflict'
                       : denied
-                        ? 'wirDesign.denied'
-                        : clientProblemKind(mutation.error) === 'offline'
+                        ? palettePicker
+                          ? 'wirDesign.palette.denied'
+                          : 'wirDesign.denied'
+                        : clientProblemKind(error) === 'offline'
                           ? 'wirDesign.offline'
-                          : 'wirDesign.error',
+                          : palettePicker
+                            ? 'wirDesign.palette.error'
+                            : 'wirDesign.error',
                   )}
                 </p>
                 {conflict ? (
@@ -221,7 +294,7 @@ function Settings({
                 ) : null}
               </div>
             ) : null}
-            {saved ? <p role="status">{t('wirDesign.saved')}</p> : null}
+            {saved ? <p role="status">{savedMessage}</p> : null}
             {paid && free && draft !== current ? (
               <button
                 type="button"
@@ -260,18 +333,20 @@ function Settings({
           </div>
         }
       >
-        <p className="wir-design-personal">{t('wirDesign.personal')}</p>
+        <p className="wir-design-personal">
+          {t(palettePicker ? 'wirDesign.palette.intro' : 'wirDesign.personal')}
+        </p>
         <fieldset className="wir-design-options" disabled={mutation.isPending}>
-          <legend className="sr-only">{t('wirDesign.choices')}</legend>
-          {WIR_DESIGNS.map((design) => (
+          <legend className="sr-only">{choices}</legend>
+          {options.map((design) => (
             <label
-              key={design}
+              key={design ?? 'follow-design'}
               className={`wir-design-option${draft === design ? ' is-selected' : ''}`}
             >
               <input
                 type="radio"
-                name="wir-design"
-                value={design}
+                name={palettePicker ? 'design-palette' : 'wir-design'}
+                value={design ?? ''}
                 ref={current === design ? initial : undefined}
                 checked={draft === design}
                 onChange={() => {
@@ -280,21 +355,27 @@ function Settings({
                   if (!conflict) mutation.reset();
                 }}
               />
-              <DesignPreview design={design} />
+              {palettePicker ? (
+                <PaletteSwatches design={design ?? state.current} />
+              ) : design !== null ? (
+                <DesignPreview design={design} />
+              ) : null}
               <span className="wir-design-copy">
                 <strong>
-                  {t(`wirDesign.names.${design}`)}{' '}
-                  {isFreeWirDesign(design) ? (
+                  {choiceName(design)}
+                  {design !== null && !isFreeWirDesign(design) ? (
+                    <ProMark label={t('wirDesign.pro')} />
+                  ) : !palettePicker ? (
                     <span className="wir-design-tier">
                       {design === DEFAULT_WIR_DESIGN
                         ? t('wirDesign.standard')
                         : t('wirDesign.free')}
                     </span>
-                  ) : (
-                    <ProMark label={t('wirDesign.pro')} />
-                  )}
+                  ) : null}
                 </strong>
-                <span>{t(`wirDesign.descriptions.${design}`)}</span>
+                {!palettePicker && design !== null ? (
+                  <span>{t(`wirDesign.descriptions.${design}`)}</span>
+                ) : null}
               </span>
             </label>
           ))}

@@ -5,7 +5,7 @@ import { LanguageSettings } from './LanguageSettings';
 import { MomentsLayoutSettings } from './MomentsLayoutSettings';
 import { PersonColoursSettings } from './PersonColoursSettings';
 import { ThemeControl } from './ThemeControl';
-import { WirDesignSettings } from './WirDesignSettings';
+import { DesignPaletteSettings, WirDesignSettings } from './WirDesignSettings';
 
 /** Appearance belongs to the centralized personal settings hierarchy. */
 export function ProfileAppearancePanel({
@@ -33,6 +33,7 @@ export function ProfileAppearancePanel({
         />
       ) : null}
       <PersonColoursSettings />
+      <DesignPaletteSettings />
       <WirDesignSettings />
       <MomentsLayoutSettings />
       <HapticsSettings />

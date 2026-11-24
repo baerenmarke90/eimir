@@ -1013,13 +1013,8 @@
   }
 }
 
-:root[data-app-design="classic"] {
-  --font-heading-family: var(--font-ui);
-  --design-backdrop-glow: var(--color-brand-glow);
-}
-
-:root[data-app-design="home_rooms"],
-:root[data-app-design="home_rooms"] [data-color-world] {
+:root[data-app-palette="home_rooms"],
+:root[data-app-palette="home_rooms"] [data-color-world] {
   --color-background: #f8f5f0;
   --color-header-surface: #f8f5f0;
   --color-surface: #fffdf9;
@@ -1070,12 +1065,10 @@
   --identity-premium-surface: #f1ecfa;
   --color-action-primary: #3055b8;
   --color-on-action-primary: #ffffff;
-  --font-heading-family: var(--font-display);
-  --design-backdrop-glow: transparent;
 }
 
-:root[data-theme="dark"][data-app-design="home_rooms"],
-:root[data-theme="dark"][data-app-design="home_rooms"] [data-color-world] {
+:root[data-theme="dark"][data-app-palette="home_rooms"],
+:root[data-theme="dark"][data-app-palette="home_rooms"] [data-color-world] {
   --color-background: #231f23;
   --color-header-surface: #231f23;
   --color-surface: #2c262b;
@@ -1126,13 +1119,11 @@
   --identity-premium-surface: #43365d;
   --color-action-primary: #b7c8ff;
   --color-on-action-primary: #20283f;
-  --font-heading-family: var(--font-display);
-  --design-backdrop-glow: transparent;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme])[data-app-design="home_rooms"],
-  :root:not([data-theme])[data-app-design="home_rooms"] [data-color-world] {
+  :root:not([data-theme])[data-app-palette="home_rooms"],
+  :root:not([data-theme])[data-app-palette="home_rooms"] [data-color-world] {
     --color-background: #231f23;
     --color-header-surface: #231f23;
     --color-surface: #2c262b;
@@ -1183,18 +1174,11 @@
     --identity-premium-surface: #43365d;
     --color-action-primary: #b7c8ff;
     --color-on-action-primary: #20283f;
-    --font-heading-family: var(--font-display);
-    --design-backdrop-glow: transparent;
   }
 }
 
-:root[data-app-design="modern"] {
-  --font-heading-family: var(--font-ui);
-  --design-backdrop-glow: var(--color-brand-glow);
-}
-
-:root[data-app-design="quiet_together"],
-:root[data-app-design="quiet_together"] [data-color-world] {
+:root[data-app-palette="quiet_together"],
+:root[data-app-palette="quiet_together"] [data-color-world] {
   --color-background: #f8f6f7;
   --color-header-surface: #f8f6f7;
   --color-surface: #fffdfd;
@@ -1245,12 +1229,10 @@
   --identity-premium-surface: #f1ecfa;
   --color-action-primary: #70475d;
   --color-on-action-primary: #fffafc;
-  --font-heading-family: var(--font-ui);
-  --design-backdrop-glow: var(--color-brand-glow);
 }
 
-:root[data-theme="dark"][data-app-design="quiet_together"],
-:root[data-theme="dark"][data-app-design="quiet_together"] [data-color-world] {
+:root[data-theme="dark"][data-app-palette="quiet_together"],
+:root[data-theme="dark"][data-app-palette="quiet_together"] [data-color-world] {
   --color-background: #221f23;
   --color-header-surface: #221f23;
   --color-surface: #2c272d;
@@ -1301,13 +1283,12 @@
   --identity-premium-surface: #43365d;
   --color-action-primary: #d9afc6;
   --color-on-action-primary: #281d26;
-  --font-heading-family: var(--font-ui);
-  --design-backdrop-glow: var(--color-brand-glow);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme])[data-app-design="quiet_together"],
-  :root:not([data-theme])[data-app-design="quiet_together"] [data-color-world] {
+  :root:not([data-theme])[data-app-palette="quiet_together"],
+  :root:not([data-theme])[data-app-palette="quiet_together"]
+    [data-color-world] {
     --color-background: #221f23;
     --color-header-surface: #221f23;
     --color-surface: #2c272d;
@@ -1358,13 +1339,11 @@
     --identity-premium-surface: #43365d;
     --color-action-primary: #d9afc6;
     --color-on-action-primary: #281d26;
-    --font-heading-family: var(--font-ui);
-    --design-backdrop-glow: var(--color-brand-glow);
   }
 }
 
-:root[data-app-design="shared_album"],
-:root[data-app-design="shared_album"] [data-color-world] {
+:root[data-app-palette="shared_album"],
+:root[data-app-palette="shared_album"] [data-color-world] {
   --color-background: #f6f4ec;
   --color-header-surface: #f6f4ec;
   --color-surface: #fbfaf5;
@@ -1421,12 +1400,10 @@
   --design-highlight: #e5e9b7;
   --design-on-highlight: #233824;
   --design-decoration-icon: #8b9c61;
-  --font-heading-family: var(--font-display);
-  --design-backdrop-glow: transparent;
 }
 
-:root[data-theme="dark"][data-app-design="shared_album"],
-:root[data-theme="dark"][data-app-design="shared_album"] [data-color-world] {
+:root[data-theme="dark"][data-app-palette="shared_album"],
+:root[data-theme="dark"][data-app-palette="shared_album"] [data-color-world] {
   --color-background: #182823;
   --color-header-surface: #182823;
   --color-surface: #23362e;
@@ -1483,13 +1460,11 @@
   --design-highlight: #d6dfa0;
   --design-on-highlight: #233824;
   --design-decoration-icon: #8b9c61;
-  --font-heading-family: var(--font-display);
-  --design-backdrop-glow: transparent;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme])[data-app-design="shared_album"],
-  :root:not([data-theme])[data-app-design="shared_album"] [data-color-world] {
+  :root:not([data-theme])[data-app-palette="shared_album"],
+  :root:not([data-theme])[data-app-palette="shared_album"] [data-color-world] {
     --color-background: #182823;
     --color-header-surface: #182823;
     --color-surface: #23362e;
@@ -1546,13 +1521,11 @@
     --design-highlight: #d6dfa0;
     --design-on-highlight: #233824;
     --design-decoration-icon: #8b9c61;
-    --font-heading-family: var(--font-display);
-    --design-backdrop-glow: transparent;
   }
 }
 
-:root[data-app-design="shared_rhythm"],
-:root[data-app-design="shared_rhythm"] [data-color-world] {
+:root[data-app-palette="shared_rhythm"],
+:root[data-app-palette="shared_rhythm"] [data-color-world] {
   --color-background: #f4eef2;
   --color-header-surface: #f4eef2;
   --color-surface: #fffafc;
@@ -1609,12 +1582,10 @@
   --design-highlight: #f9cadb;
   --design-on-highlight: #2d1835;
   --design-decoration-icon: #ffd8bc;
-  --font-heading-family: var(--font-ui);
-  --design-backdrop-glow: transparent;
 }
 
-:root[data-theme="dark"][data-app-design="shared_rhythm"],
-:root[data-theme="dark"][data-app-design="shared_rhythm"] [data-color-world] {
+:root[data-theme="dark"][data-app-palette="shared_rhythm"],
+:root[data-theme="dark"][data-app-palette="shared_rhythm"] [data-color-world] {
   --color-background: #231827;
   --color-header-surface: #231827;
   --color-surface: #302135;
@@ -1671,13 +1642,11 @@
   --design-highlight: #edaec9;
   --design-on-highlight: #2d1835;
   --design-decoration-icon: #f8c8a5;
-  --font-heading-family: var(--font-ui);
-  --design-backdrop-glow: transparent;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme])[data-app-design="shared_rhythm"],
-  :root:not([data-theme])[data-app-design="shared_rhythm"] [data-color-world] {
+  :root:not([data-theme])[data-app-palette="shared_rhythm"],
+  :root:not([data-theme])[data-app-palette="shared_rhythm"] [data-color-world] {
     --color-background: #231827;
     --color-header-surface: #231827;
     --color-surface: #302135;
@@ -1734,13 +1703,11 @@
     --design-highlight: #edaec9;
     --design-on-highlight: #2d1835;
     --design-decoration-icon: #f8c8a5;
-    --font-heading-family: var(--font-ui);
-    --design-backdrop-glow: transparent;
   }
 }
 
-:root[data-app-design="warm"],
-:root[data-app-design="warm"] [data-color-world] {
+:root[data-app-palette="warm"],
+:root[data-app-palette="warm"] [data-color-world] {
   --color-background: #fff9f6;
   --color-header-surface: #fff9f6;
   --color-surface: #ffffff;
@@ -1791,12 +1758,10 @@
   --identity-premium-surface: #f1ecfa;
   --color-action-primary: #974a76;
   --color-on-action-primary: #ffffff;
-  --font-heading-family: var(--font-display);
-  --design-backdrop-glow: var(--color-brand-glow);
 }
 
-:root[data-theme="dark"][data-app-design="warm"],
-:root[data-theme="dark"][data-app-design="warm"] [data-color-world] {
+:root[data-theme="dark"][data-app-palette="warm"],
+:root[data-theme="dark"][data-app-palette="warm"] [data-color-world] {
   --color-background: #2c2334;
   --color-header-surface: #2c2334;
   --color-surface: #3a2e43;
@@ -1847,13 +1812,11 @@
   --identity-premium-surface: #43365d;
   --color-action-primary: #d999b9;
   --color-on-action-primary: #40263c;
-  --font-heading-family: var(--font-display);
-  --design-backdrop-glow: var(--color-brand-glow);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme])[data-app-design="warm"],
-  :root:not([data-theme])[data-app-design="warm"] [data-color-world] {
+  :root:not([data-theme])[data-app-palette="warm"],
+  :root:not([data-theme])[data-app-palette="warm"] [data-color-world] {
     --color-background: #2c2334;
     --color-header-surface: #2c2334;
     --color-surface: #3a2e43;
@@ -1904,7 +1867,40 @@
     --identity-premium-surface: #43365d;
     --color-action-primary: #d999b9;
     --color-on-action-primary: #40263c;
-    --font-heading-family: var(--font-display);
-    --design-backdrop-glow: var(--color-brand-glow);
   }
+}
+
+:root[data-app-design="classic"] {
+  --font-heading-family: var(--font-ui);
+  --design-backdrop-glow: var(--color-brand-glow);
+}
+
+:root[data-app-design="home_rooms"] {
+  --font-heading-family: var(--font-display);
+  --design-backdrop-glow: transparent;
+}
+
+:root[data-app-design="modern"] {
+  --font-heading-family: var(--font-ui);
+  --design-backdrop-glow: var(--color-brand-glow);
+}
+
+:root[data-app-design="quiet_together"] {
+  --font-heading-family: var(--font-ui);
+  --design-backdrop-glow: var(--color-brand-glow);
+}
+
+:root[data-app-design="shared_album"] {
+  --font-heading-family: var(--font-display);
+  --design-backdrop-glow: transparent;
+}
+
+:root[data-app-design="shared_rhythm"] {
+  --font-heading-family: var(--font-ui);
+  --design-backdrop-glow: transparent;
+}
+
+:root[data-app-design="warm"] {
+  --font-heading-family: var(--font-display);
+  --design-backdrop-glow: var(--color-brand-glow);
 }

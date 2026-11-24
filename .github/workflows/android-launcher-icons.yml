@@ -227,7 +227,7 @@ jobs:
             -e class de.eimir.app.IdentityAppLinksTest,de.eimir.app.LauncherIconsTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee instrumentation.log
-          grep -Eq '^OK \(8 tests\)' instrumentation.log
+          grep -Eq '^OK \(10 tests\)' instrumentation.log
           timeout 180 adb -e shell am instrument -w -r \
             -e class de.eimir.app.UnifiedPushAccountReplacementTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \

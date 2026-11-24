@@ -207,6 +207,7 @@ public class MainActivity extends BridgeActivity {
     public void onStop() {
         rendererRecovery.stopped();
         super.onStop();
+        LauncherIcons.applyPendingAfterLeaving(this);
     }
 
     static boolean isForeground() {

@@ -1639,7 +1639,7 @@
     "saved": "Choice saved.",
     "browser": "Your choice applies in the browser. The icon on your home screen stays the same for now.",
     "nativePending": "Setting your home screen icon …",
-    "nativeApplied": "Home screen icon set.",
+    "nativeApplied": "Saved. The new icon appears on your home screen once you leave the app.",
     "nativeError": "Your choice is saved. The home screen icon could not be applied on this device yet.",
     "nativeRetry": "Apply icon again",
     "nativeUpdate": "Update the eimir. app to change your home screen icon.",

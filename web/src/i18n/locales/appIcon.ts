@@ -21,7 +21,8 @@ const appIcon = {
   browser:
     'Deine Auswahl gilt im Browser. Das Icon auf deinem Startbildschirm bleibt vorerst gleich.',
   nativePending: 'Dein Startbildschirm-Icon wird eingestellt …',
-  nativeApplied: 'Startbildschirm-Icon eingestellt.',
+  nativeApplied:
+    'Gespeichert. Das neue Icon erscheint auf dem Startbildschirm, sobald du die App verlässt.',
   nativeError:
     'Deine Auswahl ist gespeichert. Das Startbildschirm-Icon konnte auf diesem Gerät noch nicht eingestellt werden.',
   nativeRetry: 'Icon erneut anwenden',

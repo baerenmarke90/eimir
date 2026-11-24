@@ -150,6 +150,8 @@ const de = {
       'Der Tracker hat das Ticket abgelehnt. Prüfe die Tracker-Einrichtung; die Verknüpfung bleibt offen, bis du sie entfernst.',
     offline: 'Du bist offline. Die Änderung wurde nicht gesendet.',
     notFound: 'Diese Meldung gibt es nicht mehr.',
+    ticketNotFound:
+      'Die Ticket-Verknüpfung war bereits entfernt. Die Meldung wird neu geladen.',
     validation: 'Die Eingabe wurde vom Server nicht angenommen.',
     generic: 'Die Aktion konnte nicht ausgeführt werden.',
   },
@@ -294,12 +296,18 @@ const en: typeof de = {
       'The tracker refused the ticket. Check the tracker setup; the link stays open until you remove it.',
     offline: 'You are offline. The change was not sent.',
     notFound: 'This report no longer exists.',
+    ticketNotFound:
+      'The ticket link had already been removed. The report is reloaded.',
     validation: 'The server did not accept the input.',
     generic: 'The action could not be completed.',
   },
 };
 
-export const serverAdminReportsLocales: Record<
+/**
+ * Every lazily registered locale module exports its packs as
+ * `lazyLocalePack`; `i18n.test.ts` finds them by that name.
+ */
+export const lazyLocalePack: Record<
   SupportedLocale,
   { serverAdmin: { reports: typeof de } }
 > = {
@@ -312,7 +320,7 @@ export const serverAdminReportsCopy = de;
 
 /** Adds the section's copy to every language; repeated calls are harmless. */
 export function registerServerAdminReportsLocale(): void {
-  for (const [locale, pack] of Object.entries(serverAdminReportsLocales)) {
+  for (const [locale, pack] of Object.entries(lazyLocalePack)) {
     i18n.addResourceBundle(locale, 'translation', pack, true, false);
   }
 }

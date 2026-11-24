@@ -120,10 +120,11 @@ describe('support report admin helpers', () => {
     expect(isTicketUncertain(null, now)).toBe(false);
   });
 
-  it('accepts only http and https ticket links', () => {
+  it('accepts only https ticket links', () => {
     expect(safeTicketUrl('https://github.com/o/r/issues/7')).toBe(
       'https://github.com/o/r/issues/7',
     );
+    expect(safeTicketUrl('http://github.com/o/r/issues/7')).toBeNull();
     expect(safeTicketUrl('javascript:alert(1)')).toBeNull();
     expect(safeTicketUrl('not a url')).toBeNull();
     expect(safeTicketUrl(null)).toBeNull();
@@ -265,6 +266,11 @@ describe('support report admin helpers', () => {
         new ClientProblemError('validation', 422, 'SUPPORT_TICKET_TOO_LONG'),
       ),
     ).toBe('serverAdmin.reports.errors.ticketTooLong');
+    expect(
+      supportReportErrorKey(
+        new ClientProblemError('notFound', 404, 'SUPPORT_TICKET_NOT_FOUND'),
+      ),
+    ).toBe('serverAdmin.reports.errors.ticketNotFound');
     expect(supportReportErrorKey(new ClientProblemError('offline'))).toBe(
       'serverAdmin.reports.errors.offline',
     );

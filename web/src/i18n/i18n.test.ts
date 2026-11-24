@@ -2,19 +2,24 @@ import { parseSync } from 'rolldown/utils';
 import { DEFAULT_LOCALE, i18n, resolvedLocale } from './index';
 import de from './locales/de';
 import {
-  registerServerAdminReportsLocale,
-  serverAdminReportsLocales,
-} from './locales/serverAdminReports';
-import {
   localeRegistry,
   type SupportedLocale,
   supportedLocales,
 } from './resources';
 
-// Packs registered by lazily loaded code; they follow the same parity and
-// static-key rules as the bundled packs.
-const lazyLocalePacks = [serverAdminReportsLocales];
-registerServerAdminReportsLocale();
+// Packs registered by lazily loaded code (modules exporting `lazyLocalePack`);
+// they follow the same parity and static-key rules as the bundled packs.
+const lazyLocalePacks = Object.values(
+  import.meta.glob('./locales/*.ts', {
+    eager: true,
+    import: 'lazyLocalePack',
+  }) as Record<string, Record<SupportedLocale, object> | undefined>,
+).filter((pack): pack is Record<SupportedLocale, object> => Boolean(pack));
+for (const pack of lazyLocalePacks) {
+  for (const locale of supportedLocales) {
+    i18n.addResourceBundle(locale, 'translation', pack[locale], true, false);
+  }
+}
 
 function mergedPack(target: unknown, source: unknown): unknown {
   if (
@@ -187,6 +192,10 @@ function placeholders(value: string) {
 }
 
 describe('web i18n', () => {
+  it('finds the lazily registered locale packs', () => {
+    expect(lazyLocalePacks.length).toBeGreaterThan(0);
+  });
+
   it('registers the same product languages for Web, recipient delivery and native fallback', () => {
     const recipientLocales = Object.keys(recipientPacks)
       .map((file) =>

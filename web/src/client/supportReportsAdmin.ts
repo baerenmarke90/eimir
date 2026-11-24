@@ -218,6 +218,8 @@ export function supportReportErrorKey(error: unknown): string {
       return `${prefix}.ticketNotConfigured`;
     case 'SUPPORT_TICKET_TOO_LONG':
       return `${prefix}.ticketTooLong`;
+    case 'SUPPORT_TICKET_NOT_FOUND':
+      return `${prefix}.ticketNotFound`;
     case 'SUPPORT_TICKET_FAILED':
       return error instanceof SupportReportAdminError && error.retryable
         ? `${prefix}.ticketFailedRetryable`
@@ -254,14 +256,12 @@ export function isTicketUncertain(
   );
 }
 
-/** Only an http(s) tracker link is rendered; anything else is dropped. */
+/** Only an https tracker link is rendered; anything else is dropped. */
 export function safeTicketUrl(url: string | null): string | null {
   if (!url) return null;
   try {
     const parsed = new URL(url);
-    return parsed.protocol === 'https:' || parsed.protocol === 'http:'
-      ? parsed.href
-      : null;
+    return parsed.protocol === 'https:' ? parsed.href : null;
   } catch {
     return null;
   }

@@ -24,6 +24,7 @@ from eimir.plugins.contract import (
     TargetRule,
 )
 from eimir.plugins.manifest import ADMIN_CAPABILITIES
+from eimir_admin.tracker.settings import load_admin_settings
 
 if TYPE_CHECKING:
     from fastapi import APIRouter
@@ -124,8 +125,9 @@ class AdminPlugin:
         )
 
     def validate(self, settings: Settings) -> None:
-        # The operator settings are validated once they exist.
+        # The operator settings live under their own prefix, not in Core's.
         del settings
+        load_admin_settings()
 
     def seed_demo(self, session: Session, result: DemoSeedResult, *, created: bool) -> None:
         del session, result, created

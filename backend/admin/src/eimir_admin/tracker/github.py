@@ -17,7 +17,10 @@ REPOSITORY_PATTERN = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 
 
 def is_valid_repository(value: str) -> bool:
-    return REPOSITORY_PATTERN.fullmatch(value) is not None and ".." not in value
+    if REPOSITORY_PATTERN.fullmatch(value) is None:
+        return False
+    # Every segment needs a letter or digit: this rejects ".", ".." and "-".
+    return all(any(char.isalnum() for char in segment) for segment in value.split("/"))
 
 
 class GitHubIssueTracker:
@@ -66,11 +69,17 @@ class GitHubIssueTracker:
         if status == 201:
             try:
                 data = response.json()
-                return TicketRef(url=str(data["html_url"]), number=int(data["number"]))
+                url, number = data["html_url"], data["number"]
             except (ValueError, KeyError, TypeError):
-                raise TrackerError(
-                    "tracker returned an unreadable response", retryable=False
-                ) from None
+                url, number = None, None
+            if (
+                isinstance(url, str)
+                and url.startswith("https://")
+                and isinstance(number, int)
+                and not isinstance(number, bool)
+            ):
+                return TicketRef(url=url, number=number)
+            raise TrackerError("tracker returned an unreadable response", retryable=False)
         rate_limited = status == 429 or (
             status == 403
             and (
@@ -78,5 +87,5 @@ class GitHubIssueTracker:
                 or "retry-after" in response.headers
             )
         )
-        retryable = status >= 500 or rate_limited
+        retryable = status >= 500 or status == 408 or rate_limited
         raise TrackerError(f"tracker rejected the request (HTTP {status})", retryable=retryable)

@@ -70,17 +70,52 @@ def test_validation_error_is_not_retryable(status: int) -> None:
     assert info.value.retryable is False
 
 
-def test_redirect_is_not_followed_and_fails() -> None:
+def test_request_timeout_status_is_retryable() -> None:
     with pytest.raises(TrackerError) as info:
-        create(
-            tracker(lambda r: httpx.Response(301, headers={"location": "https://evil.example/"}))
-        )
+        create(tracker(lambda r: httpx.Response(408)))
+    assert info.value.retryable is True
+
+
+def test_exhausted_primary_rate_limit_is_retryable() -> None:
+    with pytest.raises(TrackerError) as info:
+        create(tracker(lambda r: httpx.Response(403, headers={"x-ratelimit-remaining": "0"})))
+    assert info.value.retryable is True
+
+
+def test_forbidden_without_rate_limit_signal_is_not_retryable() -> None:
+    with pytest.raises(TrackerError) as info:
+        create(tracker(lambda r: httpx.Response(403, headers={"x-ratelimit-remaining": "42"})))
     assert info.value.retryable is False
 
 
-def test_unreadable_success_body_is_not_retryable() -> None:
+def test_redirect_is_not_followed_and_fails() -> None:
+    calls: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(301, headers={"location": "https://evil.example/"})
+
     with pytest.raises(TrackerError) as info:
-        create(tracker(lambda r: httpx.Response(201, json={"unexpected": 1})))
+        create(tracker(handler))
+    assert info.value.retryable is False
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"unexpected": 1},
+        {"html_url": None, "number": 7},
+        {"html_url": "", "number": 7},
+        {"html_url": "http://github.com/eimir/eimir/issues/7", "number": 7},
+        {"html_url": "https://github.com/eimir/eimir/issues/7", "number": True},
+        {"html_url": "https://github.com/eimir/eimir/issues/7", "number": "7"},
+        {"html_url": 5, "number": 7},
+    ],
+)
+def test_unreadable_success_body_is_not_retryable(payload: dict[str, object]) -> None:
+    with pytest.raises(TrackerError) as info:
+        create(tracker(lambda r: httpx.Response(201, json=payload)))
     assert info.value.retryable is False
 
 
@@ -120,3 +155,6 @@ def test_malformed_repository_rejected() -> None:
         GitHubIssueTracker("not-a-repository", TOKEN)
     with pytest.raises(ValueError, match="owner/name"):
         GitHubIssueTracker("a/b/../c", TOKEN)
+    for degenerate in (".", "./.", "../x", "a/..", "a/."):
+        with pytest.raises(ValueError, match="owner/name"):
+            GitHubIssueTracker(degenerate, TOKEN)

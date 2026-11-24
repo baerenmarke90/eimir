@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 from eimir_admin.plugin import plugin
@@ -31,7 +32,20 @@ def configure(monkeypatch: pytest.MonkeyPatch, **values: str) -> None:
 
 
 def validate() -> None:
-    plugin.validate(object())  # type: ignore[arg-type]
+    plugin.validate(cast(Any, object()))
+
+
+def test_empty_environment_values_count_as_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+    configure(monkeypatch, TRACKER="", GITHUB_REPOSITORY="", GITHUB_TOKEN="")
+    validate()
+    assert tracker_from_settings(AdminTrackerSettings()) is None
+
+
+@pytest.mark.parametrize("repository", [".", "..", "./.", "a/.", "./b", "-/-", "a/b/c"])
+def test_degenerate_repository_rejected(monkeypatch: pytest.MonkeyPatch, repository: str) -> None:
+    configure(monkeypatch, TRACKER="github", GITHUB_REPOSITORY=repository, GITHUB_TOKEN=TOKEN)
+    with pytest.raises(AdminSettingsError):
+        validate()
 
 
 def test_validate_accepts_unset_tracker() -> None:

@@ -16,7 +16,9 @@ class AdminSettingsError(ValueError):
 
 
 class AdminTrackerSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="EIMIR_ADMIN_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_prefix="EIMIR_ADMIN_", env_file=".env", extra="ignore", env_ignore_empty=True
+    )
 
     tracker: Literal["github"] | None = None
     github_repository: str | None = None

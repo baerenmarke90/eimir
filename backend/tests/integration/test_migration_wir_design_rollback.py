@@ -17,25 +17,26 @@ pytestmark = [pytest.mark.integration, requires_database]
 @pytest.mark.parametrize(
     ("revision", "introduced"),
     [
-        ("0158", {WirDesignId.QUIET_TOGETHER, WirDesignId.HANDWRITING}),
-        ("0172", {WirDesignId.HOME_ROOMS}),
-        ("0173", {WirDesignId.SHARED_RHYTHM}),
-        ("0174", {WirDesignId.TOGETHER_INDEX}),
+        ("0158", {"quiet_together", "handwriting"}),
+        ("0172", {"home_rooms"}),
+        ("0173", {"shared_rhythm"}),
+        ("0174", {"together_index"}),
     ],
 )
 def test_downgrade_resets_only_introduced_designs(
-    session: Session, revision: str, introduced: set[WirDesignId]
+    session: Session, revision: str, introduced: set[str]
 ) -> None:
     owner = make_account(session, "Owner")
     space = make_space(session, owner)
-    for design_id in WirDesignId:
-        account = make_account(session, design_id.value)
+    design_ids = {design.value for design in WirDesignId} | {"handwriting"}
+    for design_id in sorted(design_ids):
+        account = make_account(session, design_id)
         session.add(
             AppIconPreference(
                 account_id=account.id,
                 space_id=space.id,
                 icon_id="sage",
-                wir_design=design_id.value,
+                wir_design=design_id,
             )
         )
     session.flush()
@@ -52,10 +53,10 @@ def test_downgrade_resets_only_introduced_designs(
             )
         ]
 
-    original = sorted((design.value, 1, "sage") for design in WirDesignId)
+    original = sorted((design, 1, "sage") for design in design_ids)
     rollback = sorted(
-        ("connected", 2, "sage") if design in introduced else (design.value, 1, "sage")
-        for design in WirDesignId
+        ("connected", 2, "sage") if design in introduced else (design, 1, "sage")
+        for design in design_ids
     )
     migration = ScriptDirectory.from_config(Config("alembic.ini")).get_revision(revision).module
     with Operations.context(MigrationContext.configure(session.connection())):

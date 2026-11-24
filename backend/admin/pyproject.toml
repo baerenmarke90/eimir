@@ -22,3 +22,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# The migration revisions are loaded by file path, not imported, so they ship as data.
+[tool.setuptools.package-data]
+"eimir_admin" = ["alembic/versions/*.py"]

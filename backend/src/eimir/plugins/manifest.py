@@ -91,6 +91,7 @@ _ONCE = Capability.PARTNER_ONCE_MESSAGES
 _PRESENCE = Capability.PRESENCE_LOCATION
 _QUOTE = Capability.DAILY_QUOTE
 _QUICK_ACTIONS = Capability.PARTNER_QUICK_ACTIONS_EXTENDED
+_OPERATOR = Capability.SUPPORT_OPERATOR
 
 _JOINED = Purge(LifecycleEvent.PARTNER_JOINED)
 _ENDED = Purge(LifecycleEvent.MEMBERSHIP_ENDED)
@@ -288,6 +289,10 @@ PLUGIN_TABLES: tuple[PluginTable, ...] = (
         purge_on=(_ACCOUNT,),
         expires_columns=("expires_at",),
     ),
+    # Operator plugin: the tracker ticket of a support report. It holds no scope
+    # column; the row cascades with its report (``ON DELETE CASCADE``), so the
+    # retention of reports and the deletion of the reporter's Account remove it.
+    PluginTable("support_report_tickets", _OPERATOR, None, ()),
 )
 
 PLUGIN_TABLE_NAMES = frozenset(row.table for row in PLUGIN_TABLES)

@@ -75,6 +75,27 @@ def pro_plugin_object() -> Any:
     return import_pro("eimir_pro.plugin").plugin
 
 
+def admin_distribution_installed() -> bool:
+    """Whether ``eimir-admin`` (the operator plugin) is importable in this test process."""
+    return find_spec("eimir_admin") is not None
+
+
+def admin_plugin_object() -> Any:
+    """The operator plugin object, or skip the calling test when it is not installed."""
+    if not admin_distribution_installed():
+        pytest.skip("The operator plugin distribution (eimir-admin) is not installed.")
+    return import_module("eimir_admin.plugin").plugin
+
+
+CHAIN_PLUGIN_TABLES = frozenset({"support_report_tickets"})
+"""Manifest tables created by a plugin's own migration chain, never by the Core chain.
+
+The Pro tables are part of the Core chain; the operator plugin's are not
+(Decision 0017, decision 6). The test database gets them from the models when
+that distribution is installed.
+"""
+
+
 def plugins_loaded() -> bool:
     """Whether this test process runs with a plugin (the plugin-loaded configuration)."""
     return bool(loader.loaded_plugins().plugins)

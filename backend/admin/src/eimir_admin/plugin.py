@@ -3,13 +3,14 @@
 This object is what Core sees of the operator tools through the seam; it is
 registered as the entry point ``admin`` of the group ``eimir.plugins`` in the
 ``eimir-admin`` distribution (``backend/admin/pyproject.toml``). Hooks the
-plugin does not use return empty values. The routers, the migration chain and
-the settings validation are added by the tasks that introduce them.
+plugin does not use return empty values. The routers and the settings
+validation are added by the tasks that introduce them.
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -52,7 +53,7 @@ class AdminPlugin:
         return ADMIN_CAPABILITIES
 
     def model_modules(self) -> Sequence[str]:
-        return ()
+        return ("eimir_admin.support_tickets.models",)
 
     def routers(self) -> Sequence[APIRouter]:
         return ()
@@ -115,8 +116,12 @@ class AdminPlugin:
         return None
 
     def migrations(self) -> MigrationSpec | None:
-        # The first table of the plugin chain arrives with the support reports.
-        return None
+        # Its own chain and version table; it runs after the Core chain and
+        # references Core tables only (Decision 0017, decision 6).
+        return MigrationSpec(
+            script_location=str(Path(__file__).resolve().parent / "alembic"),
+            version_table="alembic_version_admin",
+        )
 
     def validate(self, settings: Settings) -> None:
         # The operator settings are validated once they exist.

@@ -7,7 +7,11 @@ import sys
 from pathlib import Path
 
 from eimir.plugins.manifest import PLUGIN_TABLE_NAMES
-from tests.support.plugins import pro_distribution_installed
+from tests.support.plugins import (
+    CHAIN_PLUGIN_TABLES,
+    admin_distribution_installed,
+    pro_distribution_installed,
+)
 
 BACKEND = Path(__file__).resolve().parents[2]
 REGISTRY = """
@@ -51,12 +55,16 @@ with (patch.object(conftest, 'DATABASE_AVAILABLE', True),
 
 
 def _tables(program: str) -> set[str]:
+    # The inherited path keeps a plugin distribution importable that is not installed
+    # into the environment (a source checkout of the operator plugin).
+    inherited = os.environ.get("PYTHONPATH")
+    path = [str(BACKEND / "src"), str(BACKEND), *([inherited] if inherited else [])]
     process = subprocess.run(
         [sys.executable, "-c", "import json\n" + program],
         cwd=BACKEND,
         env=os.environ
         | {
-            "PYTHONPATH": os.pathsep.join([str(BACKEND / "src"), str(BACKEND)]),
+            "PYTHONPATH": os.pathsep.join(path),
             "EIMIR_TEST_DATABASE_URL": "",
             "EIMIR_DATABASE_URL": "postgresql+psycopg://fixture@localhost/unused",
         },
@@ -76,5 +84,9 @@ def test_registry_migrations_and_test_engine_agree_in_fresh_processes() -> None:
     assert _tables(ALEMBIC) == production
     # With the Pro distribution installed the test engine also creates the plugin
     # tables, as the migrations do, so the Core-only configuration has them too.
-    plugin_tables = PLUGIN_TABLE_NAMES if pro_distribution_installed() else set()
+    plugin_tables = (
+        PLUGIN_TABLE_NAMES - CHAIN_PLUGIN_TABLES if pro_distribution_installed() else set()
+    )
+    if admin_distribution_installed():
+        plugin_tables |= CHAIN_PLUGIN_TABLES
     assert _tables(FIXTURE) == production | {"privacy_probes"} | plugin_tables

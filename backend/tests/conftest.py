@@ -196,7 +196,11 @@ def engine() -> Iterator[Engine]:
 
     from eimir.db.base import Base
     from eimir.db.registry import load_all_models
-    from tests.support.plugins import pro_distribution_installed
+    from tests.support.plugins import (
+        CHAIN_PLUGIN_TABLES,
+        admin_distribution_installed,
+        pro_distribution_installed,
+    )
 
     load_all_models()
     # The migrations create the Pro tables whether or not the plugin is loaded,
@@ -206,6 +210,13 @@ def engine() -> Iterator[Engine]:
         from eimir_pro.plugin import plugin as pro_plugin
 
         for module in pro_plugin.model_modules():
+            import_module(module)
+    # The operator plugin's tables come from its own chain, not from Core
+    # migrations; the models create them here when the distribution is installed.
+    if admin_distribution_installed():
+        from eimir_admin.plugin import plugin as admin_plugin
+
+        for module in admin_plugin.model_modules():
             import_module(module)
 
     # Test probe for owner/privacy authorization. It deliberately exists only
@@ -221,7 +232,9 @@ def engine() -> Iterator[Engine]:
     if plugin_tables_from_migrations:
         from eimir.plugins.manifest import PLUGIN_TABLE_NAMES
 
-        missing = PLUGIN_TABLE_NAMES - set(inspect(db_engine).get_table_names())
+        missing = (
+            PLUGIN_TABLE_NAMES - CHAIN_PLUGIN_TABLES - set(inspect(db_engine).get_table_names())
+        )
         if missing:
             raise RuntimeError(
                 "Without eimir-pro the test database must be freshly migrated "

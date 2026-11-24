@@ -34,11 +34,13 @@ def test_the_plugin_object_follows_the_seam() -> None:
     assert plugin.seam_version == PLUGIN_SEAM_VERSION
     assert plugin.capabilities() == ADMIN_CAPABILITIES
     assert list(plugin.routers()) == []
-    assert list(plugin.model_modules()) == []
+    assert list(plugin.model_modules()) == ["eimir_admin.support_tickets.models"]
     assert plugin.engagement_targets() == {}
     assert plugin.attachment_read_rules() == {}
     assert plugin.date_ideas() is None
-    assert plugin.migrations() is None
+    spec = plugin.migrations()
+    assert spec is not None
+    assert spec.version_table == "alembic_version_admin"
 
 
 @requires_distribution

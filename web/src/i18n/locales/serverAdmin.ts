@@ -16,6 +16,7 @@ const serverAdmin = {
     security: 'Sicherheit & Anmeldung',
     settings: 'Einstellungen',
     activity: 'Aktivitätsprotokoll',
+    reports: 'Meldungen',
   },
   access: {
     loading: 'Berechtigung wird geprüft …',
@@ -46,6 +47,7 @@ const serverAdmin = {
     failedJobs: 'Es liegen fehlgeschlagene Hintergrundjobs vor.',
     supportReportsUnread:
       'Es liegen Meldungen seit mehr als 14 Tagen ungelesen vor.',
+    openReports: 'Neue Meldungen ansehen',
   },
   health: {
     title: 'Systemzustand',
@@ -478,7 +480,17 @@ const serverAdmin = {
       account_deletion_failed: 'Kontolöschung fehlgeschlagen',
       space_entitlement_granted: 'Space-Berechtigung vergeben',
       space_entitlement_revoked: 'Space-Berechtigung widerrufen',
+      support_report: {
+        state_set: 'Meldungsstatus geändert',
+        reply_sent: 'Antwort auf Meldung gesendet',
+        ticket_created: 'Ticket zu Meldung erstellt',
+        ticket_cleared: 'Ticket-Verknüpfung entfernt',
+      },
     },
+  },
+  reportsUnavailable: {
+    title: 'Meldungen nicht verfügbar',
+    body: 'Auf dieser Installation ist der Meldungsbereich für Betreiber nicht eingerichtet.',
   },
   configuration: {
     title: 'Laufzeitkonfiguration',

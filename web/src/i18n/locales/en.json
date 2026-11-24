@@ -4486,7 +4486,8 @@
       "storage": "Storage",
       "security": "Security & sign-in",
       "settings": "Settings",
-      "activity": "Activity log"
+      "activity": "Activity log",
+      "reports": "Reports"
     },
     "access": {
       "loading": "Checking permission …",
@@ -4510,7 +4511,8 @@
       "adminAllowlistUnmatched": "At least one server administrator allowlist entry does not match an active account with a verified email address.",
       "mailVerification": "Email delivery is disabled while unverified accounts exist. Verification and recovery may need operator support.",
       "failedJobs": "There are failed background jobs.",
-      "supportReportsUnread": "Reports have been waiting unread for more than 14 days."
+      "supportReportsUnread": "Reports have been waiting unread for more than 14 days.",
+      "openReports": "View new reports"
     },
     "health": {
       "title": "System health",
@@ -4906,8 +4908,18 @@
         "account_deletion_completed": "Account deletion complete",
         "account_deletion_failed": "Account deletion failed",
         "space_entitlement_granted": "Space entitlement granted",
-        "space_entitlement_revoked": "Space entitlement revoked"
+        "space_entitlement_revoked": "Space entitlement revoked",
+        "support_report": {
+          "state_set": "Report status changed",
+          "reply_sent": "Reply to report sent",
+          "ticket_created": "Ticket for report created",
+          "ticket_cleared": "Ticket link removed"
+        }
       }
+    },
+    "reportsUnavailable": {
+      "title": "Reports unavailable",
+      "body": "The operator reports section is not set up on this installation."
     },
     "configuration": {
       "title": "Runtime configuration",

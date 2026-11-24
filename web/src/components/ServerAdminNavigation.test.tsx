@@ -32,5 +32,22 @@ describe('ServerAdmin section navigation', () => {
     expect(html).toContain('href="/server-admin?section=jobs"');
     expect(html).toContain('href="/server-admin?section=storage"');
     expect(html).toContain('aria-current="page"');
+    expect(html).not.toContain('section=reports');
+  });
+
+  it('offers the reports section only when the operator plugin is advertised', () => {
+    expect(resolveServerAdminSection('reports')).toBe('reports');
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <ServerAdminSectionNavigation
+          activeSection="reports"
+          supportReportsAvailable
+        />
+      </MemoryRouter>,
+    );
+
+    expect(html.match(/server-admin-section-link/g)).toHaveLength(9);
+    const reportsLink = html.match(/<a[^>]*section=reports[^>]*>/)?.[0];
+    expect(reportsLink).toContain('aria-current="page"');
   });
 });

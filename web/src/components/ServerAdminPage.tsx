@@ -1,6 +1,6 @@
 import { formatBytes } from '../client/formatBytes';
 import { TaskBackLink } from './TaskBackButton';
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigationType, useSearchParams } from 'react-router-dom';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
@@ -20,8 +20,19 @@ import { ThemeControl } from './ThemeControl';
 import { UiState } from './UiState';
 import './ServerAdminPage.css';
 
+// Only installations with the operator plugin show the section, so its code
+// loads on first use (#2189).
+const ServerAdminSupportReportsPanel = lazy(() =>
+  import('./ServerAdminSupportReportsPanel').then(
+    ({ ServerAdminSupportReportsPanel }) => ({
+      default: ServerAdminSupportReportsPanel,
+    }),
+  ),
+);
+
 const SERVER_ADMIN_SECTIONS = [
   'overview',
+  'reports',
   'accounts',
   'spaces',
   'jobs',
@@ -49,12 +60,23 @@ function sectionHref(section: ServerAdminSection): string {
 
 export function ServerAdminSectionNavigation({
   activeSection,
+  supportReportsAvailable = false,
 }: {
   activeSection: ServerAdminSection;
+  /** The overview's `supportReportsOperatorAvailable`: the operator plugin. */
+  supportReportsAvailable?: boolean;
 }) {
   const { t } = useTranslation();
   const sections: Array<{ id: ServerAdminSection; label: string }> = [
     { id: 'overview', label: t('serverAdmin.navigation.overview') },
+    ...(supportReportsAvailable
+      ? [
+          {
+            id: 'reports' as const,
+            label: t('serverAdmin.navigation.reports'),
+          },
+        ]
+      : []),
     { id: 'accounts', label: t('serverAdmin.navigation.accounts') },
     { id: 'spaces', label: t('serverAdmin.navigation.spaces') },
     { id: 'jobs', label: t('serverAdmin.navigation.jobs') },
@@ -314,6 +336,10 @@ const AUDIT_ACTIONS = [
   'account_deletion_failed',
   'space_entitlement_granted',
   'space_entitlement_revoked',
+  'support_report.state_set',
+  'support_report.reply_sent',
+  'support_report.ticket_created',
+  'support_report.ticket_cleared',
 ] as const;
 
 type AuditCategory = 'all' | 'settings' | 'accounts' | 'spaces' | 'destructive';
@@ -613,7 +639,20 @@ function OverviewContent({
           <h2 id="server-warnings-title">{t('serverAdmin.warnings.title')}</h2>
           <ul>
             {overview.warningCodes.map((code) => (
-              <li key={code}>{warningLabel(code, t)}</li>
+              <li key={code}>
+                {warningLabel(code, t)}
+                {code === 'support_reports_unread' &&
+                overview.supportReportsOperatorAvailable ? (
+                  <>
+                    {' '}
+                    <Link
+                      to={`${SERVER_ADMIN_ROUTE}?section=reports&state=NEW`}
+                    >
+                      {t('serverAdmin.warnings.openReports')}
+                    </Link>
+                  </>
+                ) : null}
+              </li>
             ))}
           </ul>
         </section>
@@ -884,13 +923,16 @@ export function ServerAdminPage({
     () => createServerAdminApis(apiBaseUrl, accessToken),
     [accessToken, apiBaseUrl],
   );
+  // Every section reads the overview: its `supportReportsOperatorAvailable`
+  // decides whether the navigation offers the Reports section.
   const overviewQuery = useQuery({
     queryKey: ['server-admin', 'overview'],
     queryFn: () =>
       apis.serverAdmin.getServerAdminOverviewApiV1ServerAdminOverviewGet(),
     retry: false,
-    enabled: overviewSection,
   });
+  const supportReportsAvailable =
+    overviewQuery.data?.supportReportsOperatorAvailable === true;
   const settingsQuery = useQuery({
     queryKey: ['server-admin', 'settings'],
     queryFn: () =>
@@ -956,6 +998,16 @@ export function ServerAdminPage({
     if (section === 'storage') {
       void queryClient.invalidateQueries({
         queryKey: ['server-admin', 'storage'],
+      });
+      return;
+    }
+    if (section === 'reports') {
+      void overviewQuery.refetch();
+      void queryClient.invalidateQueries({
+        queryKey: ['server-admin', 'support-reports'],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['server-admin', 'support-report'],
       });
       return;
     }
@@ -1041,9 +1093,65 @@ export function ServerAdminPage({
         </div>
 
         <div className="server-admin-workspace">
-          <ServerAdminSectionNavigation activeSection={section} />
+          <ServerAdminSectionNavigation
+            activeSection={section}
+            supportReportsAvailable={supportReportsAvailable}
+          />
 
           <div className="server-admin-grid">
+            {section === 'reports' ? (
+              supportReportsAvailable ? (
+                <Suspense
+                  fallback={
+                    <section className="server-admin-panel server-admin-panel-wide">
+                      <UiState
+                        kind="loading"
+                        title={t('serverAdmin.states.loadingTitle')}
+                        body={t('serverAdmin.states.loadingBody')}
+                      />
+                    </section>
+                  }
+                >
+                  <ServerAdminSupportReportsPanel
+                    api={apis.supportReports}
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={accessToken}
+                    initialFilter={searchParams.get('state')}
+                  />
+                </Suspense>
+              ) : (
+                <section className="server-admin-panel server-admin-panel-wide">
+                  {overviewQuery.isPending ? (
+                    <UiState
+                      kind="loading"
+                      title={t('serverAdmin.states.loadingTitle')}
+                      body={t('serverAdmin.states.loadingBody')}
+                    />
+                  ) : overviewQuery.error ? (
+                    <UiState
+                      kind="error"
+                      title={t('serverAdmin.states.errorTitle')}
+                      body={t('serverAdmin.states.errorBody')}
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => void overviewQuery.refetch()}
+                        >
+                          {t('serverAdmin.refresh')}
+                        </button>
+                      }
+                    />
+                  ) : (
+                    <UiState
+                      kind="permission"
+                      title={t('serverAdmin.reportsUnavailable.title')}
+                      body={t('serverAdmin.reportsUnavailable.body')}
+                    />
+                  )}
+                </section>
+              )
+            ) : null}
+
             {section === 'settings' ? (
               settingsQuery.isPending ? (
                 <section className="server-admin-panel server-admin-panel-wide">

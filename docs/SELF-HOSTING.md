@@ -447,13 +447,9 @@ responsible for their own privacy notice.
 
 ### Operator plugin for support reports
 
-**Compose limitation:** the bundled `compose.yaml` passes neither `EIMIR_PLUGINS`
-nor the `EIMIR_ADMIN_*` variables to the containers; of the variables below it
-forwards only `EIMIR_SUPPORT_REPORTS_ENABLED`. The backend image sets
-`EIMIR_PLUGINS=pro` itself, so a deployment with the bundled Compose files cannot
-load the admin plugin yet, and setting the variables in its `.env` has no effect.
-The rest of this section applies where API, worker and migrate receive these
-variables directly, for example a source checkout or your own orchestration.
+The bundled `compose.yaml` passes `EIMIR_PLUGINS` (default `pro`, the image
+default) to API, worker and migrate, and the optional `EIMIR_ADMIN_*` variables to
+API and worker, so setting them in `.env` is enough.
 
 The operator plugin `eimir-admin` adds the ServerAdmin **Reports** section: list,
 read, change state, send the one reply and create a tracker ticket

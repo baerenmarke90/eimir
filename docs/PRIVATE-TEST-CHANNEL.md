@@ -329,6 +329,10 @@ The generated API/worker environment retains the instance-local expression
 `EIMIR_SUPPORT_REPORTS_ENABLED` (default false, #2189). Keep it false until the admin
 reader for the reports exists; the channel never freezes a runner value into it.
 
+The operator plugin settings `EIMIR_PLUGINS` (default `pro`), `EIMIR_ADMIN_TRACKER`,
+`EIMIR_ADMIN_GITHUB_REPOSITORY` and `EIMIR_ADMIN_GITHUB_TOKEN` are instance-local
+expressions as well (#2266); name `admin` in `EIMIR_PLUGINS` to load the Reports section.
+
 ## Optional calendar sync
 
 The generated API/worker environment retains instance-local expressions for

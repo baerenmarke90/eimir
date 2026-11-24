@@ -54,6 +54,9 @@ jobs:
       - name: Test nightly regression wiring
         run: python3 tools/ci/test_nightly_regression.py
 
+      - name: Test codec advisory review issue wiring
+        run: python3 tools/ci/test_codec_advisory_issue.py
+
       - name: Test encryption test-key generator
         run: python3 tools/ci/test_encryption_test_keys.py
 

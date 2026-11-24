@@ -119,6 +119,29 @@ HIDDEN_PRO_OPERATIONS = frozenset(
 """Pro routes hidden from the OpenAPI contract; a Pro test keeps this list exact."""
 
 
+ADMIN_OPERATIONS = frozenset(
+    {
+        ("GET", "/api/v1/server-admin/support-reports"),
+        ("GET", "/api/v1/server-admin/support-reports/{reportId}"),
+        ("PUT", "/api/v1/server-admin/support-reports/{reportId}/state"),
+        ("POST", "/api/v1/server-admin/support-reports/{reportId}/reply"),
+    }
+)
+"""Operations of the operator plugin (``eimir-admin``) in the complete contract.
+
+The complete contract is built with ``EIMIR_PLUGINS=pro,admin``. Core tests built
+with another plugin set neither mount them nor treat them as Pro operations;
+``backend/admin/admin_tests`` covers them. A test in that package keeps this list
+exact. Add the operator plugin's later routes here.
+"""
+
+
+def is_admin_operation(method: str, path: str) -> bool:
+    return operation_key(method, path) in {
+        operation_key(*operation) for operation in ADMIN_OPERATIONS
+    }
+
+
 def plugin_route_operations() -> frozenset[tuple[str, str]]:
     """Every ``(method, path)`` the installed Pro plugin's routers mount."""
     from fastapi import FastAPI
@@ -162,6 +185,7 @@ def contract_pro_operations() -> frozenset[tuple[str, str]]:
         for method in operations
         if method.lower() in {"get", "put", "post", "delete", "patch", "options", "head"}
         and operation_key(method, path) not in core
+        and not is_admin_operation(method, path)
     )
 
 

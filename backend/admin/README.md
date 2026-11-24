@@ -16,3 +16,12 @@ operator of an instance (support reports), never the couples.
   It provides the capability `support.operator` (`eimir.plugins.manifest.ADMIN_CAPABILITIES`),
   which is never part of a Free or Premium grant.
 - It is loaded only when named in `EIMIR_PLUGINS` (for example `pro,admin`).
+
+## Operator routes
+
+Under `/api/v1/server-admin/support-reports` (OpenAPI tag `server-admin-support-reports`):
+`listSupportReports`, `getSupportReport`, `setSupportReportState` and `replyToSupportReport`.
+They need a ServerAdmin, answer `Cache-Control: private, no-store` and are a 404 while
+`EIMIR_SUPPORT_REPORTS_ENABLED` is off. State and reply need recent authentication and write
+a content-free entry (action and reporter account, never text) into the privileged audit.
+The versioned contract `backend/openapi.json` is built with `EIMIR_PLUGINS=pro,admin`.

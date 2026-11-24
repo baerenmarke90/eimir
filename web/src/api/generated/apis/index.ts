@@ -42,6 +42,7 @@ export * from './RemindersApi';
 export * from './RulesApi';
 export * from './SearchApi';
 export * from './ServerAdminApi';
+export * from './ServerAdminSupportReportsApi';
 export * from './SharedNotesApi';
 export * from './SpacesApi';
 export * from './StoryApi';

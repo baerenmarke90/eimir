@@ -229,6 +229,9 @@ jobs:
         run: uv run --frozen mypy
 
       - name: OpenAPI contract
+        # The versioned contract is complete: Pro and the operator plugin loaded.
+        env:
+          EIMIR_PLUGINS: pro,admin
         run: uv run --frozen python scripts/openapi_contract.py check
 
       - name: Tests without integration

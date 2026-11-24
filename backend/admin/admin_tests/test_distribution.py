@@ -33,7 +33,7 @@ def test_the_plugin_object_follows_the_seam() -> None:
     assert plugin.name == "admin"
     assert plugin.seam_version == PLUGIN_SEAM_VERSION
     assert plugin.capabilities() == ADMIN_CAPABILITIES
-    assert list(plugin.routers()) == []
+    assert [router.prefix for router in plugin.routers()] == ["/server-admin/support-reports"]
     assert list(plugin.model_modules()) == ["eimir_admin.support_tickets.models"]
     assert plugin.engagement_targets() == {}
     assert plugin.attachment_read_rules() == {}

@@ -3,8 +3,7 @@
 This object is what Core sees of the operator tools through the seam; it is
 registered as the entry point ``admin`` of the group ``eimir.plugins`` in the
 ``eimir-admin`` distribution (``backend/admin/pyproject.toml``). Hooks the
-plugin does not use return empty values. The routers and the settings
-validation are added by the tasks that introduce them.
+plugin does not use return empty values.
 """
 
 from __future__ import annotations
@@ -57,7 +56,9 @@ class AdminPlugin:
         return ("eimir_admin.support_tickets.models",)
 
     def routers(self) -> Sequence[APIRouter]:
-        return ()
+        from eimir_admin.api import support_reports
+
+        return (support_reports.router,)
 
     def register_jobs(self, registry: JobRegistry) -> None:
         del registry

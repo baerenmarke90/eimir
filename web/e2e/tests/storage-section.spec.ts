@@ -192,7 +192,7 @@ for (const state of STORAGE_STATES) {
   test(`the storage section shows ${state.name} and its ways out on Compact and Expanded`, async ({
     page,
   }, info) => {
-    await installMocks(page, { preview: summary(), storage: state.storage });
+    await installMocks(page, { storage: state.storage });
     await page.setViewportSize({ width: 390, height: 900 });
     await openData(page, '');
     const section = page.locator('.storage-section');
@@ -254,7 +254,6 @@ test('a Pro couple reads its 50 GB in words and sees no Pro offer', async ({
   page,
 }, info) => {
   await installMocks(page, {
-    preview: summary(),
     storage: { used: 12.4 * GB, quota: 50 * GB, available: 37.6 * GB },
     capabilities: ['storage.cloud_quota_50gb'],
   });

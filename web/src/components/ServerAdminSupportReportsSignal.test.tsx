@@ -60,6 +60,7 @@ function overview(
     serverAdminAllowlistCount: 1,
     serverAdminVerifiedMatchCount: 1,
     supportReportsNew: 0,
+    supportReportsOperatorAvailable: false,
     suspendedAccountCount: 0,
     unverifiedPrimaryEmailCount: 0,
     verifiedPrimaryEmailCount: 4,

@@ -36,6 +36,7 @@ from eimir.core.ids import parse_id
 from eimir.deployment.revision import build_revision
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import (
+    Capability,
     EntitlementGrant,
     EntitlementSourceType,
     EntitlementStatus,
@@ -53,6 +54,7 @@ from eimir.identity.models import (
 )
 from eimir.jobs.models import Job, JobStatus
 from eimir.mail import sender as mail_sender
+from eimir.plugins.loader import loaded_plugins
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import (
     MAX_ACTIVE_PARTNERS,
@@ -123,7 +125,18 @@ class ServerAdminOverview(ApiModel):
     last_successful_job_at: datetime | None
     recent_failed_jobs: list[ServerAdminFailedJob]
     support_reports_new: int
+    support_reports_operator_available: bool
     warning_codes: list[str]
+
+
+def support_reports_operator_available(*, enabled: bool) -> bool:
+    """Whether the operator plugin can serve the support-report triage routes.
+
+    True only when the feature switch is on and the loaded plugins provide the
+    operator capability, so the web client shows the triage view exactly when
+    its routes exist.
+    """
+    return enabled and Capability.SUPPORT_OPERATOR.value in loaded_plugins().capabilities()
 
 
 class ServerAdminSettings(ApiModel):
@@ -768,6 +781,9 @@ def get_server_admin_overview(
             for job in failed_jobs
         ],
         support_reports_new=support_reports_new,
+        support_reports_operator_available=support_reports_operator_available(
+            enabled=settings.support_reports_enabled
+        ),
         warning_codes=warning_codes,
     )
 

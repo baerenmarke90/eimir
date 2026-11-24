@@ -158,3 +158,17 @@ def test_overview_exposes_no_report_content(
     assert str(report.id) not in response.text
     assert str(reporter.id) not in response.text
     assert "support_reports_unread" in response.json()["warningCodes"]
+
+
+def test_overview_reports_no_operator_plugin_with_core_only(
+    client: Any, session: Session, server_admin_allowlist: None, reports_enabled: None
+) -> None:
+    from eimir.plugins import loader
+
+    previous = loader._loaded
+    loader._loaded = loader.LoadedPlugins(())
+    try:
+        token = _admin_token(session)
+        assert _overview(client, token)["supportReportsOperatorAvailable"] is False
+    finally:
+        loader._loaded = previous

@@ -292,6 +292,13 @@ names never count as absent. OpenH264 and zimg keep the exact-match
 contract on new/removed/changed unresolved advisories. The **Codec Advisories**
 workflow checks the live feed daily and on manual dispatch. Unreviewed findings
 and feed failures fail that workflow independently of PR and `main` acceptance.
+While the check fails on unreviewed findings, the workflow also keeps one open issue
+"FFmpeg advisory review needed" (label `security-advisory-review`). The issue lists each
+finding with its Debian description and the `evidenceSha256` to record, and closes itself
+when the check passes again. It only reports: the gate in Release Evidence and in this
+workflow stays fail-closed. A manual dispatch defaults to a dry run that prints what it
+would do. `tools/media/report-advisories.py` writes the issue body from the checker's own
+functions, and `tools/ci/test_codec_advisory_issue.py` pins that it lists what the gate rejects.
 Release Evidence also checks the live feed from the exact source revision before
 building any publishable media worker. `tools/media/built-sources.txt` is the set of
 source files that reach the shipped binary. `build-inventory.py` derives it from the make

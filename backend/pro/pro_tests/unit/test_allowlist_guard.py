@@ -2,18 +2,24 @@
 
 The export knowledge lives only here, in Pro. Core holds no list. A pull request that adds a
 table to the Core schema fails this test until the table is classified, so a new feature
-cannot leave the operator export silently incomplete. The garden slice (S1b) moves its six
-tables from the excluded list to the exported list.
+cannot leave the operator export silently incomplete. The six garden tables are exported
+(slice S1b); games and the other set-up-again areas stay deliberately excluded.
 """
 
 from __future__ import annotations
 
 from eimir_pro.portability.allowlist import (
+    ACCOUNT_ARRAY_COLUMNS,
     ACCOUNT_DOCUMENT_TABLES,
     EXCLUDED_TABLES,
     FILE_TABLES,
+    GARDEN_TABLES,
     INSERT_ORDER,
+    OPTIONAL_TABLES,
+    TABLE_ACCOUNT_COLUMNS,
+    account_columns,
 )
+from eimir_pro.portability.archive import _ALLOWED_ROOT_FILES
 
 from eimir.db.base import Base
 from eimir.db.registry import load_all_models
@@ -62,3 +68,45 @@ def test_every_file_table_is_inserted_exactly_once_in_a_defined_order() -> None:
     assert len(INSERT_ORDER) == len(set(INSERT_ORDER))
     # attachments are written separately by the media step.
     assert set(INSERT_ORDER) == EXPORTED_TABLES - {"attachments"}
+
+
+def test_the_six_garden_tables_are_exported_and_games_are_not() -> None:
+    assert set(GARDEN_TABLES) == {
+        "gardens",
+        "garden_plants",
+        "garden_waterings",
+        "garden_readers",
+        "garden_visitor_names",
+        "garden_bouquets",
+    }
+    assert set(GARDEN_TABLES) <= EXPORTED_TABLES
+    assert set(GARDEN_TABLES).isdisjoint(EXCLUDED_TABLES)
+    assert FILE_TABLES["garden.json"] == GARDEN_TABLES
+    assert "garden.json" in _ALLOWED_ROOT_FILES
+    for game_table in ("couple_games", "heart_hunt_rounds", "picture_ping_pong"):
+        assert game_table in EXCLUDED_TABLES
+        assert game_table not in EXPORTED_TABLES
+
+
+def test_the_garden_tables_are_optional_and_a_plant_is_inserted_before_its_waterings() -> None:
+    assert set(GARDEN_TABLES) == OPTIONAL_TABLES
+    assert INSERT_ORDER.index("garden_plants") < INSERT_ORDER.index("garden_waterings")
+
+
+def test_every_garden_column_that_holds_an_account_is_known_to_the_mapping() -> None:
+    """A new account column in a garden table must be named here, or it would travel unmapped."""
+    load_all_models()
+    account_like = {"account_id", "sender_id", "receiver_id", "giver_id"}
+    for name in GARDEN_TABLES:
+        columns = set(Base.metadata.tables[name].columns.keys())
+        assert (columns & account_like) <= account_columns(name), name
+    assert TABLE_ACCOUNT_COLUMNS["garden_plants"] == {"sender_id", "receiver_id"}
+    assert TABLE_ACCOUNT_COLUMNS["garden_bouquets"] == {"giver_id", "receiver_id"}
+    assert {"garden_bouquets": {"flower_senders"}} == ACCOUNT_ARRAY_COLUMNS
+    array_columns = {
+        column.name
+        for name in GARDEN_TABLES
+        for column in Base.metadata.tables[name].columns
+        if column.type.python_type is list and "sender" in column.name
+    }
+    assert array_columns == {"flower_senders"}

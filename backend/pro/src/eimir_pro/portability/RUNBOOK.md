@@ -21,8 +21,9 @@ encryption keys), one database and one media store per run.
    revisions. Do not work around it: migrate the database, or use the tool version that matches.
    Whoever adds a Core migration re-verifies the tool and moves that revision (a unit test fails
    until then).
-2. **Both people must exist in the target.** Import needs the target Space to exist and both
-   partners to be active members (register and connect them first).
+2. **Both people must exist in the target, before you import.** Import needs the target Space to
+   exist and both partners to be active members (register and connect them first). This order
+   matters for the garden: see [The garden](#the-garden).
 3. **Mapping.** Source members are matched to target members by verified email, then by
    elimination (the importing member plus the one remaining partner). When that does not decide,
    name the pairs yourself with `--map SOURCE=TARGET` (account identifiers). `--member` is the
@@ -78,8 +79,39 @@ documents, not by the media.
 
 Accounts and credentials, sessions, entitlements, notifications, jobs, games, one-time messages,
 location sharing, calendar sync and photo sources (only a marker) are **set up again in the
-target**. The garden follows in a later slice. The complete, enforced list is
+target**. The garden is in the file (next section). The complete, enforced list is
 `allowlist.py`; `test_allowlist_guard.py` fails when a Core table is in neither list.
+
+## The garden
+
+The shared garden travels as `garden.json`: the garden name, every seed and plant with its
+waterings, how far each partner has seen it grow, the visitors' names and the bouquets. The rows
+hold only closed codes, dates and the two partners' accounts, never a location or a text. It is
+the same in a shared and a personal export. Games are not part of it.
+
+- **No Pro entitlement is needed to import it.** The tool only stores the rows. In a target
+  Space without the Pro capability they stay stored and appear when Pro is active there, as for
+  any Pro data.
+- **Order of operations: connect both partners in the target first, then import.** The garden
+  tables are purged whenever a partner joins or a membership ends. A garden imported before both
+  partners are connected is deleted by the next join. The import cannot start before both
+  members exist anyway (see "Mapping" above), so do not end or re-add a member after it.
+- **Only into an empty garden.** The daily seed and the bed slot are unique per Space, so the
+  tool adds the garden only when the target Space has none of the six garden tables filled. A
+  second run of the same file, or a file exported from the target itself, therefore adds no
+  garden. This is deliberate: there is no merge.
+- **Only for a pair.** Both people of the bundle must be mapped to distinct members of the
+  target Space; the garden is never created for one person.
+- **Hostile files** are refused before anything is written: unknown species, words, visitor,
+  stage or slot, a seed that already grew, a lily outside the pond, a duplicate daily seed or
+  bed slot, a watering of a missing plant, malformed bouquet arrays, accounts that are not
+  members of the bundle, and rows of another Space.
+- **What the tool prints.** An import and a dry run print `garden=included` when the garden is
+  (or would be) added, or `garden=skipped: <reason>` (target already has a garden, the pair is
+  not complete, or the database has no garden tables). Nothing is printed when the bundle
+  carries no garden. The rest of the bundle is imported either way.
+- **An export without `garden.json`** means the Space had no garden, or its garden referred to
+  someone who is no longer an active member; a partial garden is never written.
 
 ## Handling the file
 
@@ -96,4 +128,6 @@ target**. The garden follows in a later slice. The complete, enforced list is
 | `Refused: The bundle was exported at schema revision ...` | The file comes from another schema. Use the tool version that made it. |
 | `Failed: TRANSFER_TOO_LARGE` | A limit was hit. Raise the named limit deliberately, or split the content. |
 | `Failed: TRANSFER_MEMBER_MAPPING_REQUIRED` / `..._INVALID` | Name the pairs with `--map`. |
+| `garden=skipped: ...` | The garden was not added; the reason is named. The rest was imported. |
+| `Failed: TRANSFER_RELATION_INVALID` on a garden | The file's garden breaks a rule above. Do not use the file. |
 | `Failed: TRANSFER_CHECKSUM_MISMATCH` / `TRANSFER_ARCHIVE_UNSAFE` | The file is damaged or hostile. Do not use it. |

@@ -45,6 +45,13 @@
   margin-bottom: var(--space-6);
 }
 
+/* Long German compounds break instead of widening the page at large text. */
+.server-admin-heading-row > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
 .server-admin-heading-row h1,
 .server-admin-account-detail-heading h3,
 .server-admin-selected-account-toolbar h3 {
@@ -433,6 +440,8 @@
   margin: var(--space-6) 0 0;
   padding: var(--space-4);
   border-left: 3px solid var(--color-border);
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 .server-admin-gate-actions {
@@ -443,7 +452,8 @@
 
 @media (max-width: 64rem) {
   .server-admin-workspace {
-    grid-template-columns: 1fr;
+    /* minmax(0, …): the scrolling navigation must not widen the page. */
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .server-admin-section-nav {

@@ -142,6 +142,38 @@ describe('ServerAdmin controls', () => {
     ).toBeTruthy();
   });
 
+  it('labels and filters the support report operator actions', async () => {
+    const getActivity = vi.fn().mockResolvedValue({
+      items: [{ ...auditItem(1), action: 'support_report.reply_sent' }],
+      limit: 25,
+      offset: 0,
+      total: 1,
+    });
+    renderActivity(getActivity);
+
+    const actions = serverAdmin.activity.actions.support_report;
+    // One option in the action filter and one label in the audit row.
+    await waitFor(() =>
+      expect(screen.getAllByText(actions.reply_sent)).toHaveLength(2),
+    );
+    for (const label of [
+      actions.state_set,
+      actions.ticket_created,
+      actions.ticket_cleared,
+    ]) {
+      expect(screen.getByRole('option', { name: label })).toBeTruthy();
+    }
+
+    fireEvent.change(screen.getByLabelText(serverAdmin.activity.action), {
+      target: { value: 'support_report.ticket_cleared' },
+    });
+    await waitFor(() =>
+      expect(getActivity).toHaveBeenLastCalledWith(
+        expect.objectContaining({ action: 'support_report.ticket_cleared' }),
+      ),
+    );
+  });
+
   it('keeps empty and error states distinct', async () => {
     const empty = vi.fn().mockResolvedValue({
       items: [],

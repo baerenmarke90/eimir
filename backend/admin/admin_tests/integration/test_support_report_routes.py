@@ -521,3 +521,39 @@ def test_routes_absent_without_the_plugin(client: Any, session: Session) -> None
         loader._loaded = admin_loaded
     # With the plugin loaded the same request is served.
     assert client.get(BASE, headers=auth(token)).status_code == 200
+
+
+OVERVIEW = "/api/v1/server-admin/overview"
+
+
+def _operator_available(client: Any, token: str) -> bool:
+    response = client.get(OVERVIEW, headers=auth(token))
+    assert response.status_code == 200
+    return bool(response.json()["supportReportsOperatorAvailable"])
+
+
+def test_overview_advertises_the_operator_plugin(client: Any, session: Session) -> None:
+    _, token = _operator(session, recent=False)
+    assert _operator_available(client, token) is True
+
+
+@pytest.mark.usefixtures("reports_disabled")
+def test_overview_hides_the_operator_plugin_when_the_feature_is_off(
+    client: Any, session: Session
+) -> None:
+    _, token = _operator(session, recent=False)
+    assert _operator_available(client, token) is False
+
+
+def test_overview_hides_the_operator_plugin_when_only_pro_is_loaded(
+    client: Any, session: Session
+) -> None:
+    _, token = _operator(session, recent=False)
+    admin_loaded = loader._loaded
+    loader._loaded = loader.LoadedPlugins(
+        tuple(plugin for plugin in loader.loaded_plugins().plugins if plugin.name == "pro")
+    )
+    try:
+        assert _operator_available(client, token) is False
+    finally:
+        loader._loaded = admin_loaded

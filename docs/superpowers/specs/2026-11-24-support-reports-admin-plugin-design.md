@@ -117,6 +117,12 @@ All routes require `CurrentServerAdmin` and the recent-authentication check the 
 ServerAdmin routes use, answer `Cache-Control: private, no-store`, and respond `404` while
 `EIMIR_SUPPORT_REPORTS_ENABLED` is off.
 
+> **Amendment 2026-11-24 (decided during the #2257 implementation):** only the writes
+> (`PUT /{id}/state`, `POST /{id}/reply`, `POST /{id}/ticket`, `DELETE /{id}/ticket`)
+> require recent authentication. The reads (`GET /` and `GET /{id}`) require
+> `CurrentServerAdmin` only, matching Core's ServerAdmin reads. This supersedes the
+> sentence above and the authorization line in 5.6.
+
 | Route | Purpose |
 | --- | --- |
 | `GET /` | list, optional `state`, keyset cursor (service `list_reports`); items show kind, state, age, reference, app version/build, whether a ticket and a reply exist; no note text in the list |
@@ -169,7 +175,8 @@ accessible labels, i18n through the localization layer. The existing overview wa
 - The privacy notice already covers storage and the single reply; it gains a sentence that
   the operator may create a technical ticket without the text (legal wording is reviewed
   before `EIMIR_SUPPORT_REPORTS_ENABLED` is turned on on Cloud, as already tracked).
-- Cross-cutting: authorization (ServerAdmin plus recent authentication, 404 when off),
+- Cross-cutting: authorization (ServerAdmin; recent authentication for writes only, see
+  the 5.3 amendment; 404 when off),
   concurrency (unique indexes serialize reply and ticket), resilience (tracker failure leaves
   the report unchanged and the ticket row `PENDING` or absent), observability (audit entries
   and metrics for ticket creation outcome, no text), negative tests (non-admin, stale

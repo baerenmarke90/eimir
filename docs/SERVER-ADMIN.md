@@ -86,6 +86,8 @@ projection including available signals for:
   `EIMIR_SUPPORT_REPORTS_ENABLED` is off the count is always 0 and the warning
   never appears, even when `NEW` reports exist from an earlier period in which
   the switch was on;
+- `supportReportsOperatorAvailable`: whether the operator Reports section is
+  available, see [Support reports](#support-reports);
 - privacy-safe warning codes for actionable configuration/runtime conditions.
 
 Where no authoritative runtime primitive exists yet, the API reports that the
@@ -304,6 +306,94 @@ paths, including local-password and OIDC onboarding. Existing accounts can
 still authenticate and accept invitations. Initial bootstrap remains an
 explicit lockout-recovery exception so a fresh Self-Hosted instance cannot be
 made permanently inaccessible before its first operator account exists.
+
+## Support reports
+
+The in-app support reports of [#2189](https://github.com/baerenmarke90/eimir/issues/2189)
+are read and answered in the **Reports** section of the ServerAdmin area. The
+section belongs to the operator plugin `eimir-admin` (entry point `admin`,
+capability `support.operator`, [Decision 0017 amendment](decisions/0017-pro-plugin-seam.md#amendment-2026-11-24-more-than-one-plugin)).
+The Core ships no reader: without the plugin there is no screen or API to read a
+report's note.
+
+### Availability
+
+The overview field `supportReportsOperatorAvailable` is `true` only while
+`EIMIR_SUPPORT_REPORTS_ENABLED` is on **and** the loaded plugins declare
+`support.operator`. The Web client shows the Reports navigation entry, and the
+`support_reports_unread` warning links into the section, only while the field is
+`true`. A direct link to `?section=reports` otherwise shows a "not available"
+state. Configuration: [Self-Hosted, operator plugin](SELF-HOSTING.md#operator-plugin-for-support-reports).
+
+### Routes
+
+All routes live under `/api/v1/server-admin/support-reports`, require the
+ServerAdmin guard, answer `Cache-Control: private, no-store` and answer `404`
+while `EIMIR_SUPPORT_REPORTS_ENABLED` is off.
+
+| Route | Purpose | Recent authentication |
+| --- | --- | --- |
+| `GET /` | List, optional `state` (`NEW`, `IN_PROGRESS`, `CLOSED`), keyset `cursor`, `limit`; items carry kind, state, time, app version and build, failure reference and whether a reply and a ticket exist, plus the `newCount`; never the note | No |
+| `GET /{reportId}` | The report: note, technical client context, failure reference, request id, the opaque reporter account id (no name or email), the reply if any, the ticket link if any and `ticketAvailable` | No |
+| `PUT /{reportId}/state` | Set `NEW`, `IN_PROGRESS` or `CLOSED` | Yes |
+| `POST /{reportId}/reply` | The one reply, plain text of at most 500 characters | Yes |
+| `POST /{reportId}/ticket` | Create the tracker ticket from the operator's title and body | Yes |
+| `DELETE /{reportId}/ticket` | Clear a ticket link so a new ticket can be created | Yes |
+
+Reads need the ServerAdmin role only and are not audited. Writes additionally
+need a recent ServerAdmin authentication; a stale one answers
+`403 RECENT_AUTHENTICATION_REQUIRED`, the Web client asks for the step-up and
+retries the same write. Each write records one content-free privileged audit
+entry: `support_report.state_set`, `support_report.reply_sent`,
+`support_report.ticket_created` or `support_report.ticket_cleared`. Report text
+never enters the audit, logs or metrics.
+
+The plugin routers are mounted behind the normal-operation dependency, so in
+maintenance mode they answer `503` like other product routes, while the rest of
+the ServerAdmin area stays reachable.
+
+### Reply
+
+A report receives exactly one reply. It is sent once and cannot be edited or
+withdrawn; a second attempt answers `409 SUPPORT_REPORT_ALREADY_REPLIED`. The
+reporter reads it as plain text in their notifications.
+
+### Tickets
+
+- Only technical data leaves the server. The ticket body is the title and body
+  the operator types plus a fixed footer the server composes from the report id,
+  kind, app version, build, platform, failure reference and request id. The
+  stored note and the reply are never read into the tracker request. The
+  operator is responsible for not typing private text; the dialog says so.
+- The only tracker is GitHub Issues (`EIMIR_ADMIN_TRACKER=github`), using the
+  repository `EIMIR_ADMIN_GITHUB_REPOSITORY` and the token
+  `EIMIR_ADMIN_GITHUB_TOKEN`. Issues get the label `support-report`. The token
+  never reaches a client and never appears in logs. Without a configured tracker
+  the detail reports `ticketAvailable: false`, the UI hides the button and the
+  route answers `409 SUPPORT_TICKET_NOT_CONFIGURED`.
+- One ticket per report. Creation first reserves a `PENDING` link and commits
+  it, then calls the tracker, then stores the link as `CREATED`. A second request
+  answers `409 SUPPORT_TICKET_EXISTS` with the existing link. The title takes 1 to
+  256 characters (`422` validation otherwise); a body that exceeds 65,536
+  characters together with the footer answers `422 SUPPORT_TICKET_TOO_LONG`.
+- A tracker failure answers `502 SUPPORT_TICKET_FAILED` with a `retryable` flag
+  and leaves the link `PENDING`; nothing retries automatically. A `PENDING` link
+  older than five minutes, or one whose attempt failed in this session, is shown
+  as "uncertain, check the tracker". The operator checks the tracker and may then
+  clear the link (`DELETE`, after a confirmation that warns about a duplicate
+  ticket) and create it again. Clearing removes only the link; an issue that was
+  created stays in the tracker.
+- The link row is deleted with its report (retention, account deletion).
+
+### Runbook: downgrades
+
+- The plugin's migration chain creates `support_report_tickets` with a foreign
+  key to the Core table `support_reports` from Core migration `0175`. Before a
+  Core downgrade below `0175`, downgrade the admin plugin chain to its base
+  first.
+- The downgrade of Core migration `0176` deletes the privileged audit rows of
+  the four `support_report.*` actions, because the narrower action constraint
+  cannot hold them. Export them first if they must be kept.
 
 ## Business model
 

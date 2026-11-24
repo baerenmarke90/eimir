@@ -1,10 +1,12 @@
 import { AuthApi } from '../api/generated/apis/AuthApi';
 import { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
+import { ServerAdminSupportReportsApi } from '../api/generated/apis/ServerAdminSupportReportsApi';
 import { Configuration } from './apiConfiguration';
 
 export interface ServerAdminApis {
   auth: AuthApi;
   serverAdmin: ServerAdminApi;
+  supportReports: ServerAdminSupportReportsApi;
 }
 
 export function createServerAdminApis(
@@ -21,5 +23,6 @@ export function createServerAdminApis(
   return {
     auth: new AuthApi(configuration),
     serverAdmin: new ServerAdminApi(configuration),
+    supportReports: new ServerAdminSupportReportsApi(configuration),
   };
 }

@@ -16,6 +16,7 @@ const serverAdmin = {
     security: 'Sicherheit & Anmeldung',
     settings: 'Einstellungen',
     activity: 'Aktivitätsprotokoll',
+    reports: 'Meldungen',
   },
   access: {
     loading: 'Berechtigung wird geprüft …',
@@ -46,6 +47,7 @@ const serverAdmin = {
     failedJobs: 'Es liegen fehlgeschlagene Hintergrundjobs vor.',
     supportReportsUnread:
       'Es liegen Meldungen seit mehr als 14 Tagen ungelesen vor.',
+    openReports: 'Neue Meldungen ansehen',
   },
   health: {
     title: 'Systemzustand',
@@ -478,7 +480,17 @@ const serverAdmin = {
       account_deletion_failed: 'Kontolöschung fehlgeschlagen',
       space_entitlement_granted: 'Space-Berechtigung vergeben',
       space_entitlement_revoked: 'Space-Berechtigung widerrufen',
+      support_report: {
+        state_set: 'Meldungsstatus geändert',
+        reply_sent: 'Antwort auf Meldung gesendet',
+        ticket_created: 'Ticket zu Meldung erstellt',
+        ticket_cleared: 'Ticket-Verknüpfung entfernt',
+      },
     },
+  },
+  reportsUnavailable: {
+    title: 'Meldungen nicht verfügbar',
+    body: 'Auf dieser Installation ist der Meldungsbereich für Betreiber nicht eingerichtet.',
   },
   configuration: {
     title: 'Laufzeitkonfiguration',
@@ -495,8 +507,158 @@ const serverAdmin = {
     enabled: 'Aktiv',
     disabled: 'Inaktiv',
   },
+  reports: {
+    title: 'Meldungen',
+    body: 'Problem- und Feedback-Meldungen aus der App. Die Liste zeigt keine Notizen; den Text siehst du erst in der geöffneten Meldung.',
+    newCount: 'Neu: {{count}}',
+    filter: {
+      label: 'Meldungen nach Status filtern',
+      all: 'Alle',
+      NEW: 'Neu',
+      IN_PROGRESS: 'In Bearbeitung',
+      CLOSED: 'Erledigt',
+    },
+    states: {
+      NEW: 'Neu',
+      IN_PROGRESS: 'In Bearbeitung',
+      CLOSED: 'Erledigt',
+    },
+    kinds: {
+      PROBLEM: 'Problem',
+      FEEDBACK: 'Feedback',
+    },
+    loadingTitle: 'Meldungen werden geladen',
+    loadingBody: 'Die Meldungen dieser Installation werden abgefragt.',
+    errorTitle: 'Meldungen nicht verfügbar',
+    errorBody: 'Die Meldungen konnten nicht geladen werden.',
+    offlineTitle: 'Keine Verbindung',
+    offlineBody:
+      'Die Meldungen können erst wieder geladen werden, wenn die Verbindung zurück ist.',
+    offlineNotice:
+      'Du bist offline. Änderungen an Meldungen sind erst wieder möglich, wenn die Verbindung zurück ist.',
+    retry: 'Erneut laden',
+    emptyTitle: 'Keine Meldungen',
+    emptyNewBody: 'Es gibt gerade keine neuen Meldungen.',
+    emptyFilteredBody: 'Für diesen Status gibt es keine Meldungen.',
+    emptyAllBody: 'Bisher ist keine Meldung eingegangen.',
+    showAll: 'Alle Meldungen zeigen',
+    loadMore: 'Weitere Meldungen laden',
+    loadingMore: 'Weitere Meldungen werden geladen …',
+    loadMoreError: 'Weitere Meldungen konnten nicht geladen werden.',
+    listLabel: 'Meldungen',
+    item: {
+      version: 'Version {{version}} ({{build}})',
+      replied: 'Beantwortet',
+      ticket: 'Ticket',
+    },
+    detail: {
+      back: 'Zurück zur Liste',
+      eyebrow: 'Meldung',
+      heading: '{{kind}} vom {{date}}',
+      loading: 'Meldung wird geladen …',
+      error: 'Die Meldung konnte nicht geladen werden.',
+      noteTitle: 'Notiz der Person',
+      noNote: 'Die Person hat keine Notiz geschrieben.',
+      privacy:
+        'Die Notiz ist privater Text. Sie erscheint nur hier und wird nie in ein Ticket, ein Protokoll oder eine Auswertung übernommen.',
+      factsTitle: 'Technische Angaben',
+      createdAt: 'Eingegangen',
+      appVersion: 'App-Version',
+      build: 'Build',
+      platform: 'Plattform',
+      os: 'Betriebssystem',
+      engine: 'Browser-Engine',
+      locale: 'Sprache',
+      timeZone: 'Zeitzone',
+      theme: 'Darstellung',
+      online: 'Beim Senden online',
+      yes: 'Ja',
+      no: 'Nein',
+      failureReference: 'Fehlerreferenz',
+      requestId: 'Request-ID',
+      accountId: 'Account-ID',
+      accountHint:
+        'Den Account findest du in der Benutzerverwaltung über diese ID.',
+      none: '–',
+      stateTitle: 'Bearbeitungsstand',
+      stateSaved: 'Status gespeichert: {{state}}.',
+      discardDraftConfirm:
+        'In dieser Meldung steht ein nicht gesendeter Entwurf. Entwurf verwerfen und weitergehen?',
+    },
+    reply: {
+      title: 'Antwort',
+      label: 'Antwort an die Person',
+      hint: 'Die Antwort wird genau einmal gesendet und kann danach nicht bearbeitet werden. Höchstens 500 Zeichen, nur Text.',
+      counter: '{{length}} / {{max}}',
+      counterLabel: '{{length}} von {{max}} Zeichen',
+      tooLong: 'Die Antwort ist länger als 500 Zeichen.',
+      send: 'Antwort einmalig senden',
+      sending: 'Antwort wird gesendet …',
+      sent: 'Die Antwort wurde gesendet.',
+      sentTitle: 'Gesendete Antwort',
+      sentAt: 'Gesendet am {{date}}',
+      readOnly: 'Eine gesendete Antwort kann nicht mehr geändert werden.',
+      discardConfirm:
+        'Die Antwort ist noch nicht gesendet. Zur Liste zurückkehren und den Entwurf verwerfen?',
+    },
+    ticket: {
+      title: 'Ticket',
+      none: 'Zu dieser Meldung gibt es noch kein Ticket.',
+      create: 'Ticket erstellen',
+      unavailable:
+        'Für diese Installation ist kein Tracker eingerichtet, deshalb können keine Tickets erstellt werden.',
+      open: 'Ticket {{number}} öffnen',
+      openWithoutNumber: 'Ticket öffnen',
+      opensExternal: 'öffnet den Tracker in einem neuen Fenster',
+      created: 'Ticket erstellt',
+      createdNotice: 'Das Ticket wurde erstellt.',
+      pending: 'Das Ticket wird gerade erstellt.',
+      uncertain: 'Unklar, ob das Ticket entstanden ist. Prüfe den Tracker.',
+      uncertainHint:
+        'Wenn es im Tracker kein Ticket gibt, entferne die Verknüpfung und erstelle es neu.',
+      clear: 'Ticket-Verknüpfung entfernen',
+      confirmClear:
+        'Ticket-Verknüpfung wirklich entfernen? Falls das Ticket im Tracker doch entstanden ist, entsteht beim nächsten Erstellen ein Duplikat. Prüfe den Tracker vorher.',
+      cleared: 'Die Ticket-Verknüpfung wurde entfernt.',
+    },
+    ticketDialog: {
+      eyebrow: 'Tracker',
+      title: 'Ticket erstellen',
+      intro:
+        'Du schreibst Titel und Beschreibung selbst. Die Notiz der Person und deine Antwort werden nie automatisch übernommen. Schreibe nichts Privates in das Ticket.',
+      titleLabel: 'Titel',
+      titleTemplate: '{{kind}} in Version {{appVersion}}',
+      titleRequired: 'Der Titel darf nicht leer sein.',
+      titleTooLong: 'Der Titel ist länger als 256 Zeichen.',
+      bodyLabel: 'Beschreibung (optional)',
+      bodyTooLong: 'Die Beschreibung ist zu lang für den Tracker.',
+      footerLabel: 'Wird vom Server unverändert angehängt',
+      submit: 'Ticket erstellen',
+      submitting: 'Ticket wird erstellt …',
+      cancel: 'Abbrechen',
+    },
+    errors: {
+      alreadyReplied:
+        'Auf diese Meldung wurde bereits geantwortet. Die gesendete Antwort wird angezeigt.',
+      ticketExists: 'Zu dieser Meldung gibt es bereits ein Ticket.',
+      ticketNotConfigured:
+        'Für diese Installation ist kein Tracker eingerichtet.',
+      ticketTooLong:
+        'Titel und Beschreibung sind mit den technischen Angaben zu lang für den Tracker.',
+      ticketFailedRetryable:
+        'Der Tracker hat das Ticket nicht erstellt. Prüfe den Tracker; die Verknüpfung bleibt offen, bis du sie entfernst.',
+      ticketFailed:
+        'Der Tracker hat das Ticket abgelehnt. Prüfe die Tracker-Einrichtung; die Verknüpfung bleibt offen, bis du sie entfernst.',
+      offline: 'Du bist offline. Die Änderung wurde nicht gesendet.',
+      notFound: 'Diese Meldung gibt es nicht mehr.',
+      ticketNotFound:
+        'Die Ticket-Verknüpfung war bereits entfernt. Die Meldung wird neu geladen.',
+      validation: 'Die Eingabe wurde vom Server nicht angenommen.',
+      generic: 'Die Aktion konnte nicht ausgeführt werden.',
+    },
+  },
   privacyNote:
-    'Die Serververwaltung zeigt ausschließlich Betriebs-, Identitäts- und sicherheitsrelevante Metadaten. Private Inhalte, Medieninhalte, Job-Payloads, Passwörter, Tokens und Zugangsdaten werden nicht angezeigt.',
+    'Die Serververwaltung zeigt Betriebs-, Identitäts- und sicherheitsrelevante Metadaten. Private Inhalte der Paare, Medieninhalte, Job-Payloads, Passwörter, Tokens und Zugangsdaten werden nicht angezeigt. Einzige Ausnahme ist der Bereich Meldungen: Dort liest du die Notizen, die Personen selbst mit einer Meldung geschickt haben.',
 };
 
 export default serverAdmin;

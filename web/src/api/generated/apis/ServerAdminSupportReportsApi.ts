@@ -289,7 +289,7 @@ export class ServerAdminSupportReportsApi extends runtime.BaseAPI {
      * List reports newest first without note text; the cursor is bound to the state filter.
      * List Support Reports
      */
-    async listSupportReports(requestParameters: ListSupportReportsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SupportReportListView> {
+    async listSupportReports(requestParameters: ListSupportReportsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SupportReportListView> {
         const response = await this.listSupportReportsRaw(requestParameters, initOverrides);
         return await response.value();
     }

@@ -612,6 +612,8 @@ def _write_export_archive(
             }
             if preference is not None and preference.person_colours:
                 account_document["personalAppearance"]["personColours"] = preference.person_colours
+            if preference is not None and (palette := preference.effective_palette) is not None:
+                account_document["personalAppearance"]["designPalette"] = palette.value
             account_document["personalSettings"] = _personal_settings_snapshot(
                 session, authorization.account_id, authorization.space_id
             )

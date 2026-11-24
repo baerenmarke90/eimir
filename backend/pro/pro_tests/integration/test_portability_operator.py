@@ -8,11 +8,13 @@ are the rehearsal Decision 0020 requires before the tool is run anywhere else.
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 from pathlib import Path
 from typing import Any
 from uuid import UUID
+from zipfile import ZipFile
 
 import pytest
 from eimir_pro.portability import __main__ as cli
@@ -24,6 +26,7 @@ from eimir_pro.portability.schema_guard import TESTED_ALEMBIC_REVISION
 from sqlalchemy import func, select, text
 from sqlalchemy.engine import Engine
 
+from eimir.appearance.models import AppIconPreference
 from eimir.attachments.models import Attachment
 from eimir.memories.models import Memory
 from eimir.relationship import service as relationship_service
@@ -161,6 +164,51 @@ def test_probe_export_then_probe_import_into_an_empty_space(stamped, tmp_path: P
     again = run_import(engine, space_id=target, account_id=source["anna"], source=output)
     assert again.written_objects == 0
     assert _counts(maker, target) == source_counts
+
+
+def test_personal_probe_exports_the_owners_design_palette(stamped, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    (_, maker), engine, _ = stamped
+    with maker.begin() as session:
+        owner = make_account(session, "Anna")
+        partner = make_account(session, "Ben")
+        space = make_space(session, owner)
+        relationship_service.add_member(session, space.id, partner)
+        owner_id, space_id = owner.id, space.id
+        session.add_all(
+            [
+                AppIconPreference(
+                    account_id=owner_id,
+                    space_id=space_id,
+                    icon_id="original",
+                    wir_design="home_rooms",
+                    wir_design_palette="warm",
+                ),
+                AppIconPreference(
+                    account_id=partner.id,
+                    space_id=space_id,
+                    icon_id="original",
+                    wir_design_palette="connected",
+                ),
+            ]
+        )
+
+    output = tmp_path / "personal.zip"
+    run_export(
+        engine,
+        space_id=space_id,
+        account_id=owner_id,
+        scope=TransferScope.PERSONAL,
+        destination=output,
+        limits=BundleLimits(),
+    )
+
+    with ZipFile(output) as archive:
+        document = json.loads(archive.read("accounts.json"))
+    assert document["personalAppearance"] == {
+        "appIconId": "original",
+        "wirDesign": "home_rooms",
+        "designPalette": "warm",
+    }
 
 
 def test_the_command_line_runs_both_directions_and_prints_no_content(  # type: ignore[no-untyped-def]

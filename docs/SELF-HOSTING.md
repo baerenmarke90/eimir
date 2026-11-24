@@ -423,9 +423,9 @@ Android clients hide every entry point. With it on, the endpoint accepts reports
 its reporter when the switch is turned off.
 
 Reports land in your instance's own PostgreSQL database. The note and the reply never
-leave it; only a tracker ticket the operator creates carries technical data (see
-below). The note
-and the reply are protected at rest like other protected payloads
+leave it, except in the person's own data copy on request; a tracker ticket the
+operator creates carries only technical data (see below). The note and the reply are
+protected at rest like other protected payloads
 ([Encryption at rest](#encryption-at-rest)). A closed report is deleted 90 days after
 it was closed, any report at most 365 days after it was created, and a report is
 deleted with its Account. The Core ships no reader for these reports: the operator

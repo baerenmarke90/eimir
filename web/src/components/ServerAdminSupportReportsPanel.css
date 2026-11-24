@@ -4,6 +4,11 @@
  * report replaces the list; from 80rem the list stays beside the report.
  */
 
+/* The stacked Compact heading keeps the count a small pill, not a full bar. */
+.server-admin-reports .server-admin-section-heading > .server-admin-count {
+  align-self: flex-start;
+}
+
 .server-admin-reports-layout {
   display: grid;
   /* minmax(0, …): long words wrap at large text instead of widening the page. */

@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { isCapacitorNative } from '../pwa';
 import { requestSmoothRouteEntry } from './routeEntryHandoff';
-import { PRIMARY_APP_ROUTES } from './routes';
+import { primaryTabIndex } from './routes';
 import { useTaskOrigin } from './taskOrigin';
 
 /** One destination/history/context contract for primary links and gestures. */
@@ -10,12 +10,7 @@ export function usePrimaryNavigation() {
   const location = useLocation();
   const navigate = useNavigate();
   const { captureOrigin, primaryDestination } = useTaskOrigin();
-  const isRoot = PRIMARY_APP_ROUTES.some(
-    (route) =>
-      route.path === location.pathname ||
-      ('peerPaths' in route &&
-        route.peerPaths.some((path) => path === location.pathname)),
-  );
+  const isRoot = primaryTabIndex(location.pathname) >= 0;
 
   const destinationFor = useCallback(
     (root: string) => {

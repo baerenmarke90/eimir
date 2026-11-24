@@ -280,6 +280,7 @@ function PlanenPanel({
 }
 
 export function SharedPlanningOverviewPage({
+  active = true,
   apis,
   spaceId,
   apiBaseUrl,
@@ -288,6 +289,7 @@ export function SharedPlanningOverviewPage({
   profilesApi,
   accountId,
 }: {
+  active?: boolean;
   peopleApi?: PeopleApi;
   profilesApi?: ProfilesApi;
   apis: SharedPlanningApis;
@@ -315,11 +317,16 @@ export function SharedPlanningOverviewPage({
   const [wishStatus, setWishStatus] = useState<WishScope>(
     () => wishScopeForHash(location.hash) ?? 'OPEN',
   );
-  const [planStatus, setPlanStatus] = useState<PlanningScope>(() =>
+  const [selectedPlanStatus, setPlanStatus] = useState<PlanningScope>(() =>
     location.hash === '#experienced-plans' ? 'COMPLETED' : 'OPEN',
   );
-  const [planSearch, setPlanSearch] = useState('');
+  const [selectedPlanSearch, setPlanSearch] = useState('');
   const [wishSearch, setWishSearch] = useState('');
+  // A primary selection opens the unfiltered Plans segment. Keep the original
+  // choices for a cancelled swipe and for Back to the parked entry.
+  const displayedSegment = active ? activeSegment : 'plans';
+  const planStatus = active ? selectedPlanStatus : 'OPEN';
+  const planSearch = active ? selectedPlanSearch : '';
   const [occasionActionHost, setOccasionActionHost] =
     useState<HTMLSpanElement | null>(null);
   const restoredOrigin = useRef<unknown>(null);
@@ -478,7 +485,9 @@ export function SharedPlanningOverviewPage({
     {
       queryKey: ['m5-s3', 'plans', spaceId, 'overview', planStatus],
       staleTime: OVERVIEW_STALE_TIME,
-      enabled: activeSegment === 'plans',
+      enabled: (query) =>
+        displayedSegment === 'plans' &&
+        (active || query.state.status === 'pending'),
       queryFn: ({ pageParam, signal }) =>
         apiCall(() =>
           apis.plans.listPlans(
@@ -500,10 +509,13 @@ export function SharedPlanningOverviewPage({
 
   // #1790 F2: one quiet hint above the Plans list, derived from the wishes
   // that left OPEN. Both lifecycle lists are small, so read them completely.
-  const journeyWishes = useQuery({
+  const journeyWishes = useQuery<WishDetail[]>({
     queryKey: ['m5-s3', 'wishes', spaceId, 'journey-hint'],
     staleTime: OVERVIEW_STALE_TIME,
-    enabled: activeSegment === 'plans' && planStatus === 'OPEN',
+    enabled: (query) =>
+      displayedSegment === 'plans' &&
+      planStatus === 'OPEN' &&
+      (active || query.state.status === 'pending'),
     retry: false,
     queryFn: async ({ signal }) => {
       const items: WishDetail[] = [];
@@ -915,21 +927,21 @@ export function SharedPlanningOverviewPage({
               : 'm5s3.overview.title',
         )}
         action={
-          activeSegment === 'dates' ? (
+          displayedSegment === 'dates' ? (
             <span ref={setOccasionActionHost} />
           ) : (
             <AddActionLink
               floating
               label={t(
-                activeSegment === 'plans'
+                displayedSegment === 'plans'
                   ? 'm5s3.overview.addPlan'
                   : 'm5s3.overview.addWish',
               )}
               {...planningLinkProps(
-                activeSegment === 'plans'
+                displayedSegment === 'plans'
                   ? PLAN_CREATE_ROUTE
                   : WISH_CREATE_ROUTE,
-                activeSegment,
+                displayedSegment,
                 'planning-create',
               )}
             />
@@ -937,7 +949,7 @@ export function SharedPlanningOverviewPage({
         }
       />
       <PlanenSegmentedControl
-        active={activeSegment}
+        active={displayedSegment}
         onChange={changeSegment}
         wishesTabId={wishesTabId}
         plansTabId={plansTabId}
@@ -950,7 +962,7 @@ export function SharedPlanningOverviewPage({
       <PlanenPanel
         id={plansPanelId}
         labelledBy={plansTabId}
-        hidden={activeSegment !== 'plans'}
+        hidden={displayedSegment !== 'plans'}
       >
         <PlanningSearch
           kind="plans"
@@ -1151,7 +1163,7 @@ export function SharedPlanningOverviewPage({
             </ul>
           </section>
         ) : null}
-        {activeSegment === 'plans' && plans.hasNextPage ? (
+        {active && activeSegment === 'plans' && plans.hasNextPage ? (
           <AutoLoadMore query={plans} className="tertiary compact-action">
             {plans.isFetchingNextPage
               ? t('m5s3.common.loadingMore')
@@ -1163,7 +1175,7 @@ export function SharedPlanningOverviewPage({
       <PlanenPanel
         id={wishesPanelId}
         labelledBy={wishesTabId}
-        hidden={activeSegment !== 'wishes'}
+        hidden={displayedSegment !== 'wishes'}
       >
         <PlanningSearch
           kind="wishes"
@@ -1347,7 +1359,7 @@ export function SharedPlanningOverviewPage({
       <PlanenPanel
         id={datesPanelId}
         labelledBy={datesTabId}
-        hidden={activeSegment !== 'dates'}
+        hidden={displayedSegment !== 'dates'}
       >
         {activeSegment === 'dates' && peopleApi ? (
           <PlanningOccasions

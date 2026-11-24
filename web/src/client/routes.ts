@@ -110,6 +110,16 @@ export const PRIMARY_APP_ROUTES = APP_ROUTES.filter(
   (route) => route.id !== 'games',
 );
 
+/** Only a root or its peer views belong to the primary pager. */
+export function primaryTabIndex(pathname: string): number {
+  const path = pathname.replace(/\/$/, '');
+  return PRIMARY_APP_ROUTES.findIndex(
+    (route) =>
+      route.path === path ||
+      ('peerPaths' in route && route.peerPaths.some((peer) => peer === path)),
+  );
+}
+
 export const DEFAULT_APP_ROUTE = APP_ROUTES[0].path;
 export const THREAD_ROUTE = '/faden';
 export const WISH_SELECTION_ROUTE = '/plan/choose';

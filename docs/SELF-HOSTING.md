@@ -442,6 +442,14 @@ responsible for their own privacy notice.
 
 ### Operator plugin for support reports
 
+**Compose limitation:** the bundled `compose.yaml` passes neither `EIMIR_PLUGINS`
+nor the `EIMIR_ADMIN_*` variables to the containers; of the variables below it
+forwards only `EIMIR_SUPPORT_REPORTS_ENABLED`. The backend image sets
+`EIMIR_PLUGINS=pro` itself, so a deployment with the bundled Compose files cannot
+load the admin plugin yet, and setting the variables in its `.env` has no effect.
+The rest of this section applies where API, worker and migrate receive these
+variables directly, for example a source checkout or your own orchestration.
+
 The operator plugin `eimir-admin` adds the ServerAdmin **Reports** section: list,
 read, change state, send the one reply and create a tracker ticket
 ([ServerAdmin, Support reports](SERVER-ADMIN.md#support-reports)). It is part of
@@ -483,10 +491,6 @@ EIMIR_ADMIN_GITHUB_TOKEN=<token>
   id). The person's note and the reply are never sent. The issue is created in
   your repository under the token's account, so GitHub's terms and privacy apply to
   what is posted there.
-
-The bundled `compose.yaml` does not forward `EIMIR_PLUGINS` or the `EIMIR_ADMIN_*`
-variables yet; a Compose deployment needs them added to the API, worker and
-migrate environment before the plugin can load.
 
 ## Account deletion authority
 

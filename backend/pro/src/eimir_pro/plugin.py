@@ -24,7 +24,7 @@ from eimir.plugins.contract import (
     MigrationSpec,
     TargetRule,
 )
-from eimir.plugins.manifest import PLUGIN_CAPABILITIES
+from eimir.plugins.manifest import PRO_CAPABILITIES
 
 if TYPE_CHECKING:
     from fastapi import APIRouter
@@ -40,8 +40,8 @@ if TYPE_CHECKING:
     from eimir.transfer.models import TransferScope
     from eimir.wish_selections.date_idea_contract import DateIdea, DateIdeaSource
 
-# Every capability the Core manifest leaves to plugins is implemented here.
-_CAPABILITIES = PLUGIN_CAPABILITIES
+# Every capability the Core manifest leaves to the Pro plugin is implemented here.
+_CAPABILITIES = PRO_CAPABILITIES
 
 _MODEL_MODULES = (
     "eimir_pro.calendar_sync.models",

@@ -21,7 +21,13 @@ from eimir.entitlements.models import (
     EntitlementTier,
 )
 
-ALL_PREMIUM_CAPABILITIES = [capability.value for capability in Capability]
+NON_ENTITLEMENT_CAPABILITIES = frozenset({Capability.SUPPORT_OPERATOR.value})
+"""Plugin-owned capabilities that no Premium grant carries (operator access, not a feature)."""
+ALL_PREMIUM_CAPABILITIES = [
+    capability.value
+    for capability in Capability
+    if capability.value not in NON_ENTITLEMENT_CAPABILITIES
+]
 CLOUD_ONLY_CAPABILITIES = frozenset({Capability.STORAGE_CLOUD_QUOTA_50GB.value})
 _EXTERNAL_SOURCE_TYPES = frozenset(
     {

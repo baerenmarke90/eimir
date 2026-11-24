@@ -420,3 +420,33 @@ def test_record_and_revoke_unreferenced_grant() -> None:
     assert revoked is not None
     assert revoked.status == EntitlementStatus.REVOKED.value
     assert revoked.metadata_["revocation_reason"] == "operator-revoked"
+
+
+def test_support_operator_is_plugin_owned_and_not_premium() -> None:
+    space_id = uuid4()
+    now = datetime(2026, 9, 1, 12, 0, 0, tzinfo=UTC)
+    operator = Capability.SUPPORT_OPERATOR.value
+    assert operator not in ALL_PREMIUM_CAPABILITIES
+
+    def grant(capabilities: list[str] | None) -> EntitlementGrant:
+        return EntitlementGrant(
+            id=uuid4(),
+            space_id=space_id,
+            source_type=EntitlementSourceType.GOOGLE_PLAY.value,
+            status=EntitlementStatus.ACTIVE.value,
+            tier=EntitlementTier.PREMIUM.value,
+            effective_from=now - timedelta(days=1),
+            effective_until=now + timedelta(days=30),
+            capabilities=capabilities,
+        )
+
+    # A Premium grant never carries it, and even a grant that names it explicitly
+    # cannot make it effective while no loaded plugin provides it.
+    for capabilities in (None, [operator, Capability.CHAPTER_RICH_PRESENTATION.value]):
+        effective = get_effective_space_entitlement(
+            FakeSession([grant(capabilities)]),
+            space_id,
+            at=now,
+            deployment=Deployment.CLOUD,
+        )
+        assert operator not in effective.capabilities

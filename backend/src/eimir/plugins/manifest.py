@@ -329,7 +329,7 @@ PLUGIN_TABLES: tuple[PluginTable, ...] = (
 
 PLUGIN_TABLE_NAMES = frozenset(row.table for row in PLUGIN_TABLES)
 
-PLUGIN_CAPABILITIES = frozenset(
+PRO_CAPABILITIES = frozenset(
     {
         Capability.GAMES_COUPLE.value,
         Capability.INTEGRATION_EXTERNAL_SYNC.value,
@@ -344,12 +344,18 @@ PLUGIN_CAPABILITIES = frozenset(
         Capability.PLANNING_DATE_INSPIRATION.value,
     }
 )
-"""Capabilities implemented by plugin code; granted only while a loaded plugin provides them.
+"""Capabilities implemented by the Pro plugin; granted only while it is loaded.
 
 The capabilities without any implementation (including ``daily.insights``,
 whose Einblicke implementation was removed and archived in #2210) keep
 today's behavior and join this set when an implementation lands in a plugin.
 """
+
+ADMIN_CAPABILITIES = frozenset({Capability.SUPPORT_OPERATOR.value})
+"""Capabilities implemented by the operator plugin (``eimir-admin``); never part of a grant."""
+
+PLUGIN_CAPABILITIES = PRO_CAPABILITIES | ADMIN_CAPABILITIES
+"""Every capability a plugin owns; effective only while a loaded plugin provides it."""
 
 PLUGIN_JOB_KINDS = frozenset(
     {

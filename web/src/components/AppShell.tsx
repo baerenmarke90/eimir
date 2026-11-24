@@ -16,6 +16,7 @@ import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
 import { ApiRuntimeProvider } from '../client/apiRuntimeContext';
 import { isAndroidApp } from '../client/config';
+import { momentMapOriginKey } from '../client/memoryMapSession';
 import { notificationUnreadCountQueryKey } from '../client/notificationQueries';
 import {
   PRODUCT_CACHE_FALLBACK_EVENT,
@@ -31,6 +32,7 @@ import {
   COLLECTION_CREATE_ROUTE,
   DEFAULT_APP_ROUTE,
   MEMORY_CREATE_ROUTE,
+  MEMORY_MAP_ROUTE,
   NOTE_CREATE_ROUTE,
   PARTNER_LOCATION_MAP_ROUTE,
   PRIMARY_APP_ROUTES,
@@ -46,7 +48,7 @@ import {
   ShellUtilitiesContext,
   useShellUtilities,
 } from '../client/shellUtilities';
-import { TaskOriginProvider } from '../client/taskOrigin';
+import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import { useDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
@@ -266,10 +268,14 @@ function AuthenticatedAppShell({
   const activeArea = useActiveNavigationArea(pathname);
   const navigationType = useNavigationType();
   const { navigatePrimary } = usePrimaryNavigation();
+  const { resolveOrigin } = useTaskOrigin();
   useNavigationMotion({
     surfaceRef: mainRef,
     pathname,
     routeKey: location.key,
+    swipeEnabled:
+      pathname !== MEMORY_MAP_ROUTE ||
+      !momentMapOriginKey(location.state, resolveOrigin),
     skipEntry: Boolean(location.hash) || pathname === COLLECTION_CREATE_ROUTE,
     createEntry: navigationType === 'PUSH' && pathname.endsWith('/new'),
     // History Back (button, gesture, system Back) and explicit task returns.

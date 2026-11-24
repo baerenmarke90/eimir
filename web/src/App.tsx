@@ -421,7 +421,11 @@ function DeferredPanel({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   return (
     <Suspense
-      fallback={<UiState kind="loading" title={t('states.loading.title')} />}
+      fallback={
+        <div className="page">
+          <UiState kind="loading" title={t('states.loading.title')} />
+        </div>
+      }
     >
       {children}
     </Suspense>
@@ -831,6 +835,7 @@ function AuthenticatedApp({
       path: appRoutePath('plan'),
       element: (
         <SharedPlanningOverviewPage
+          active={location.pathname.replace(/\/$/, '') === appRoutePath('plan')}
           key={JSON.stringify([apiBaseUrl, account.id, spaceId])}
           {...planningProductProps}
           accountId={account.id}
@@ -841,13 +846,22 @@ function AuthenticatedApp({
       ),
     },
     {
-      // The list editor and the Notes peer route own their own form and tabs.
-      // Reveal Lists under the finger, then unmount it when the user leaves.
+      // The shared overviews unmount on exit so their forms and tab IDs
+      // belong only to the visible view.
       path: MORE_COLLECTIONS_ROUTE,
       retain: false,
       element: (
         <DeferredPanel>
           <CollectionsOverviewPage {...planningProductProps} />
+        </DeferredPanel>
+      ),
+    },
+    {
+      path: MORE_NOTES_ROUTE,
+      retain: false,
+      element: (
+        <DeferredPanel>
+          <SharedNotesOverviewPage {...planningProductProps} />
         </DeferredPanel>
       ),
     },
@@ -1065,10 +1079,7 @@ function AuthenticatedApp({
                 />
               }
             />
-            <Route
-              path={MORE_NOTES_ROUTE}
-              element={<SharedNotesOverviewPage {...planningProductProps} />}
-            />
+            <Route path={MORE_NOTES_ROUTE} element={null} />
             <Route
               path={NOTE_CREATE_ROUTE}
               element={

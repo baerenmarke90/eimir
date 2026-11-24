@@ -4,13 +4,14 @@ import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query';
-import { act, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { MemoryRouter } from 'react-router-dom';
+import { Link, MemoryRouter, useLocation } from 'react-router-dom';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import navigation from '../i18n/locales/navigation';
 import taskBoundary from '../i18n/locales/taskBoundary';
 import { AppShell } from './AppShell';
+import { MomentMapLink } from './MomentMapLink';
 
 /** Opening anchor tags, so attribute order in the markup does not matter. */
 function anchorTags(html: string): string[] {
@@ -72,7 +73,83 @@ function renderShell(
   );
 }
 
+function ReadingSurface() {
+  const { pathname } = useLocation();
+  return (
+    <section className="page">
+      <h1>{pathname}</h1>
+      <MomentMapLink to="/story/map">Map for this Moment</MomentMapLink>
+      <Link
+        to="/story/map"
+        state={{ mapFromMoment: true, taskOriginKey: 'expired' }}
+      >
+        Map without a valid source
+      </Link>
+    </section>
+  );
+}
+
 describe('AppShell', () => {
+  beforeAll(() => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+  });
+  afterAll(() => vi.unstubAllGlobals());
+
+  it('protects a map opened from a Moment and enables the pager on a standalone map', async () => {
+    const query = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const fetch = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(() =>
+        Promise.resolve(new Response('{}', { status: 200 })),
+      );
+    const view = render(
+      <QueryClientProvider client={query}>
+        <MemoryRouter initialEntries={['/story/memories/m1']}>
+          <AppShell
+            onLogout={() => undefined}
+            apiBaseUrl="http://api.example.test"
+            accessToken="test-token"
+            account={{ id: 'account-1', displayName: 'Alex Example' }}
+            spaceId="space-1"
+          >
+            <ReadingSurface />
+          </AppShell>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    function swipeReadingSurface() {
+      const reading = view.getByRole('heading', { name: '/story/map' });
+      const start = { identifier: 1, clientX: 320, clientY: 140 };
+      const end = { ...start, clientX: 85 };
+      fireEvent.touchStart(reading, { touches: [start] });
+      fireEvent.touchMove(reading, { touches: [end] });
+      fireEvent.touchEnd(reading, { touches: [], changedTouches: [end] });
+    }
+    try {
+      fireEvent.click(view.getByText('Map for this Moment'));
+      swipeReadingSurface();
+      expect(view.getByRole('heading', { name: '/story/map' })).toBeTruthy();
+      fireEvent.click(view.getByText('Map without a valid source'));
+      swipeReadingSurface();
+      expect(await view.findByRole('heading', { name: '/plan' })).toBeTruthy();
+    } finally {
+      view.unmount();
+      query.clear();
+      fetch.mockRestore();
+    }
+  });
+
   it('renders skip navigation, landmarks and the primary destinations', () => {
     const html = renderShell('/story');
 
@@ -216,19 +293,6 @@ describe('AppShell', () => {
   });
 
   it('updates More unread state on refocus without visiting the inbox', async () => {
-    window.matchMedia =
-      window.matchMedia ||
-      vi.fn().mockImplementation((query) => ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      }));
-
     let unreadCountResponse = 0;
     let unreadCountCalls = 0;
 

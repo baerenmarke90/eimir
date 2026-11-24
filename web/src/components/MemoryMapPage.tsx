@@ -17,7 +17,10 @@ import {
 } from 'react-router-dom';
 import type { MemoryMapEntry } from '../api/generated/models/MemoryMapEntry';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import type { MemoryMapSession } from '../client/memoryMapSession';
+import {
+  type MemoryMapSession,
+  momentMapOriginKey,
+} from '../client/memoryMapSession';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { parseMapPlace } from '../client/photoPlaces';
 import {
@@ -96,12 +99,7 @@ export function MemoryMapPage({
       : undefined;
   const [params, setParams] = useSearchParams();
   const placeParam = params.get('place');
-  const originKey = (location.state as { taskOriginKey?: unknown } | null)
-    ?.taskOriginKey;
-  const hasOrigin = Boolean(
-    (location.state as { mapFromMoment?: boolean } | null)?.mapFromMoment &&
-      resolveOrigin(originKey),
-  );
+  const originKey = momentMapOriginKey(location.state, resolveOrigin);
   const [revealedPlaceId, setRevealedPlaceId] = useState<string | null>(null);
   const fullscreenScope = JSON.stringify([apiBaseUrl, accountId, spaceId]);
   const [fullscreen, setFullscreen] = useState({
@@ -147,9 +145,9 @@ export function MemoryMapPage({
     (value: MapViewport) => {
       if (viewport.current.scope === fullscreenScope)
         viewport.current.value = value;
-      if (!hasOrigin && sessionViewport) sessionViewport.current = value;
+      if (!originKey && sessionViewport) sessionViewport.current = value;
     },
-    [fullscreenScope, hasOrigin, sessionViewport],
+    [fullscreenScope, originKey, sessionViewport],
   );
   // The Karte segment reopens the Place last selected here (#2078). The map
   // panel stays mounted and sees its own last location while hidden, so only
@@ -485,7 +483,7 @@ export function MemoryMapPage({
               : 'story.timelineTitle',
         )}
         before={
-          hasOrigin ? (
+          originKey ? (
             <TaskBackButton
               onClick={() => requestReturn(originKey, '/story')}
             />

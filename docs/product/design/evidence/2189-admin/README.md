@@ -7,7 +7,8 @@ reply, the ticket dialog and the uncertain ticket state. The design is
 (sections 5.5, 5.6); the operator contract is
 [ServerAdmin, Support reports](../../../../SERVER-ADMIN.md#support-reports). The
 captures are real renders of the running Web app with the plugin routes mocked,
-not a sketch.
+not a sketch. The UI in the captures is German; this README quotes the
+English strings of the same keys.
 
 This is an administration surface (operator only). AGENTS.md allows a denser
 information design here; it never reaches couple-facing screens.
@@ -36,8 +37,8 @@ From the Task 8 design note, composed from Compact (360 to 430 px) outward.
   technical ticket to the tracker, without exposing the person's text.
 - **Focal point:** the report queue; in an open report, the person's note.
 - **Primary action:** in the list, opening a report (the whole row is the
-  target, no separate "Open" button). In the detail, "Antwort einmalig senden"
-  is the only filled button of the reply form and "Ticket erstellen" is filled
+  target, no separate "Open" button). In the detail, "Send reply once"
+  is the only filled button of the reply form and "Create ticket" is filled
   only when a tracker is configured. State switching is secondary (outlined
   segments, pressed state by bold text and a bottom bar, not colour alone).
 - **Compact:** one column; filter segments wrap; rows full width with 44 px
@@ -47,8 +48,8 @@ From the Task 8 design note, composed from Compact (360 to 430 px) outward.
   40rem.
 - **Expanded:** from 80rem the list stays beside the open report (2fr/3fr); the
   selected row is marked by `aria-current`, a border and an inset bar.
-- **States:** Loading (`UiState`, polite), Empty per filter with "Alle Meldungen
-  zeigen", Error with retry, Offline (list `UiState`; in the detail a notice and
+- **States:** Loading (`UiState`, polite), Empty per filter with "Show all
+  reports", Error with retry, Offline (list `UiState`; in the detail a notice and
   all writes disabled), Success as inline `role=status` messages per section,
   errors as `role=alert` next to the affected section.
 - **Motion:** success messages use the motion layer's disclosure with token
@@ -66,7 +67,7 @@ Covered by `web/e2e/tests/server-admin-support-reports.spec.ts` (Chromium,
 German, API mocked with the live contract):
 
 - `operator_triages_a_report_replies_once_and_creates_a_ticket` (390 px):
-  open Reports from the ServerAdmin navigation; the queue starts at "Neu" with
+  open Reports from the ServerAdmin navigation; the queue starts at "New" with
   the count and never shows the note; open the report (heading focused, list
   replaced); change the state, which first answers
   `RECENT_AUTHENTICATION_REQUIRED`, so the step-up dialog asks for the password
@@ -75,12 +76,12 @@ German, API mocked with the live contract):
   prefilled, server footer shown read-only, the request carries exactly the
   typed title and body and neither the note nor the reply; observe the focused
   tracker link with `target=_blank` and `rel="noopener noreferrer"`; return to
-  the list: the report left the "Neu" filter, so focus lands on the section
-  heading; "Alle" shows the row with "Beantwortet" and "Ticket".
+  the list: the report left the "New" filter, so focus lands on the section
+  heading; "All" shows the row with "Replied" and "Ticket".
 - `uncertain_pending_ticket_is_cleared_only_after_confirmation`: a `PENDING`
-  ticket older than five minutes shows "Unklar, ob das Ticket entstanden ist";
+  ticket older than five minutes shows "Uncertain whether the ticket was created";
   dismissing the duplicate warning sends nothing; confirming sends one DELETE
-  and offers "Ticket erstellen" again.
+  and offers "Create ticket" again.
 - `reports section reflows in Compact and Expanded, Light, Dark and reduced
   motion with axe`: axe (WCAG 2.1 AA) on the section in Light and Dark for the
   list, the detail, Expanded and the uncertain state, and on the ticket dialog;
@@ -96,17 +97,17 @@ Device scale factor 2. `-light` and `-dark` are the same state in both themes.
 
 | File | State |
 | --- | --- |
-| `01-list-390-{light,dark}.png` | Compact list: count pill, filter segments ("Neu" pressed), one row without note text, privacy footer |
+| `01-list-390-{light,dark}.png` | Compact list: count pill, filter segments ("New" pressed), one row without note text, privacy footer |
 | `01-list-360-light.png`, `01-list-430-light.png` | The same at 360 and 430 px |
 | `02-detail-390-{light,dark}.png` | Compact report: back control, heading, state badge, the note with the privacy sentence |
 | `02-detail-360-light.png` | The same at 360 px |
 | `02-detail-390-light-reduced-motion.png` | The same with reduced motion emulated |
 | `03-ticket-dialog-390-{light,dark}.png` | Ticket dialog as a bottom sheet: intro, prefilled title, empty body, read-only server footer, full-width submit |
 | `04-expanded-1440-{light,dark}.png` | Expanded: the list with the selected row beside the open report |
-| `05-uncertain-1440-{light,dark}.png` | Expanded: an uncertain `PENDING` ticket with "Ticket-Verknüpfung entfernen" |
+| `05-uncertain-1440-{light,dark}.png` | Expanded: an uncertain `PENDING` ticket with "Remove ticket link" |
 | `05-uncertain-390-{light,dark}.png` | The same on Compact |
 | `06-large-text-list-390-light.png` | 200 % text: the list |
-| `07-large-text-detail-390-light.png`, `-360-light.png` | 200 % text: the reply form with "Antwort einmalig senden" wrapping inside the button |
+| `07-large-text-detail-390-light.png`, `-360-light.png` | 200 % text: the reply form with "Send reply once" wrapping inside the button |
 | `08-large-text-ticket-dialog-360-light.png` | 200 % text: the ticket dialog scrolled to its submit button |
 
 Reproduce from `web/e2e` (after `npm ci` in `web` and `web/e2e`, Chromium
@@ -134,10 +135,10 @@ Defects found by these checks and fixed with this evidence (`e453c0054`, count p
 2. The Compact workspace track was `1fr`, so the scrolling section navigation
    could widen the page; it is now `minmax(0, 1fr)`.
 3. At 200 % text the page heading, intro, privacy footer, report detail and
-   technical facts overflowed on long German compounds ("Serververwaltung",
-   "Bearbeitungsstand", "Betriebssystem"). They now hyphenate or break, and the
+   technical facts overflowed on long German compounds (`Serververwaltung`,
+   `Bearbeitungsstand`, `Betriebssystem`). They now hyphenate or break, and the
    facts stack one per row below 40rem.
-4. The "Neu: N" count stretched to a full-width bar on Compact; it stays a pill.
+4. The "New: N" count stretched to a full-width bar on Compact; it stays a pill.
 
 ## Not captured or verified here
 

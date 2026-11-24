@@ -26,8 +26,10 @@ information design here; it never reaches couple-facing screens.
   footer. Existing functions stay unchanged; Reports is one more navigation
   entry, shown only while `supportReportsOperatorAvailable` is true, and the
   overview warning `support_reports_unread` links into it.
-- App code of the captures: `fb9ebbacf`; spec
-  `web/e2e/tests/server-admin-support-reports.spec.ts` at `280c8f5bd`.
+- App code of the captures: `fb9ebbacf` (unchanged since); spec
+  `web/e2e/tests/server-admin-support-reports.spec.ts` at `280c8f5bd` with
+  English fixture texts. The captures were retaken in the commit that changed
+  those texts, so the note and reply shown are English while the UI is German.
 
 ## Mobile Interaction Contract
 

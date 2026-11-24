@@ -31,16 +31,32 @@ from eimir.plugins.manifest import (
     protected_payload_tables,
 )
 from eimir.security import lifecycle
-from tests.support.plugins import pro_plugin_object, require_pro_distribution, requires_pro
+from tests.support.plugins import (
+    CHAIN_PLUGIN_TABLES,
+    admin_distribution_installed,
+    admin_plugin_object,
+    pro_plugin_object,
+    require_pro_distribution,
+    requires_pro,
+)
 
 BACKEND = Path(__file__).resolve().parents[2]
+ADMIN_TABLES = set(CHAIN_PLUGIN_TABLES)
+
+
+def _plugin_model_modules() -> set[str]:
+    modules = set(pro_plugin_object().model_modules())
+    if admin_distribution_installed():
+        modules |= set(admin_plugin_object().model_modules())
+    return modules
 
 
 def _load() -> None:
     # The Pro plugin is the reference in both configurations; Core-only does not
-    # import its models through the registry. Without ``eimir-pro`` it skips.
+    # import its models through the registry. Without ``eimir-pro`` it skips. The
+    # operator plugin joins when its distribution is installed.
     load_all_models()
-    for module in pro_plugin_object().model_modules():
+    for module in _plugin_model_modules():
         import_module(module)
 
 
@@ -55,15 +71,26 @@ def _tables_of_modules(modules: set[str]) -> set[str]:
 
 
 def _table(name: str) -> Table:
+    if name in ADMIN_TABLES and not admin_distribution_installed():
+        pytest.skip("The operator plugin distribution (eimir-admin) is not installed.")
     _load()
     return Base.metadata.tables[name]
 
 
 def test_every_table_of_every_plugin_has_a_manifest_row() -> None:
-    plugin_tables = _tables_of_modules(set(pro_plugin_object().model_modules()))
+    plugin_tables = _tables_of_modules(_plugin_model_modules())
 
     assert plugin_tables
-    assert plugin_tables == PLUGIN_TABLE_NAMES
+    # Without the operator distribution its manifest rows have no model to compare.
+    expected = PLUGIN_TABLE_NAMES - (set() if admin_distribution_installed() else ADMIN_TABLES)
+    assert plugin_tables == expected
+
+
+@pytest.mark.skipif(not admin_distribution_installed(), reason="eimir-admin is not installed")
+def test_the_operator_plugin_tables_are_exactly_its_manifest_rows() -> None:
+    owned = {row.table for row in PLUGIN_TABLES if row.capability.value in ADMIN_CAPABILITIES}
+
+    assert _tables_of_modules(set(admin_plugin_object().model_modules())) == owned == ADMIN_TABLES
 
 
 def test_every_manifest_row_is_unique() -> None:
@@ -71,7 +98,7 @@ def test_every_manifest_row_is_unique() -> None:
 
 
 def test_core_model_modules_contribute_no_plugin_table() -> None:
-    assert not set(MODEL_MODULES) & set(pro_plugin_object().model_modules())
+    assert not set(MODEL_MODULES) & _plugin_model_modules()
     assert not _tables_of_modules(set(MODEL_MODULES)) & PLUGIN_TABLE_NAMES
 
 

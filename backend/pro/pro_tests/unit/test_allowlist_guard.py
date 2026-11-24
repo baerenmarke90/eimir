@@ -23,6 +23,7 @@ from eimir_pro.portability.archive import _ALLOWED_ROOT_FILES
 
 from eimir.db.base import Base
 from eimir.db.registry import load_all_models
+from eimir.plugins.manifest import PLUGIN_TABLE_NAMES
 
 EXPORTED_TABLES = {name for names in FILE_TABLES.values() for name in names}
 
@@ -34,7 +35,9 @@ TEST_ONLY_TABLES = frozenset({"privacy_probes"})
 
 def _schema_tables() -> set[str]:
     load_all_models()
-    return set(Base.metadata.tables) - TEST_ONLY_TABLES
+    # The manifest names every plugin table, including the operator plugin's ticket table,
+    # whose models exist only where that distribution is installed.
+    return (set(Base.metadata.tables) | PLUGIN_TABLE_NAMES) - TEST_ONLY_TABLES
 
 
 def test_every_core_table_is_exported_or_deliberately_excluded() -> None:

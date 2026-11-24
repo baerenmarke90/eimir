@@ -242,6 +242,12 @@ dependencies, sends no data and is replaceable by a hardened stdlib parser.
 The HTTPX HTTP/2 extra used by APNs resolves `h2` 4.4.1, `hpack` 4.2.0 and
 `hyperframe` 6.1.0 in `backend/uv.lock`. The three transitive packages use MIT.
 
+## Backend — Operator plugin runtime (`backend/admin`)
+
+The operator plugin distribution `eimir-admin` (#2189) declares no direct dependency
+beyond Core (`eimir`, from the same uv workspace). It adds no third-party package to
+`backend/uv.lock`.
+
 ## Backend — Development
 
 | Package | Version | Source | License |

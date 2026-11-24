@@ -75,6 +75,27 @@ def pro_plugin_object() -> Any:
     return import_pro("eimir_pro.plugin").plugin
 
 
+def admin_distribution_installed() -> bool:
+    """Whether ``eimir-admin`` (the operator plugin) is importable in this test process."""
+    return find_spec("eimir_admin") is not None
+
+
+def admin_plugin_object() -> Any:
+    """The operator plugin object, or skip the calling test when it is not installed."""
+    if not admin_distribution_installed():
+        pytest.skip("The operator plugin distribution (eimir-admin) is not installed.")
+    return import_module("eimir_admin.plugin").plugin
+
+
+CHAIN_PLUGIN_TABLES = frozenset({"support_report_tickets"})
+"""Manifest tables created by a plugin's own migration chain, never by the Core chain.
+
+The Pro tables are part of the Core chain; the operator plugin's are not
+(Decision 0017, decision 6). The test database gets them from the models when
+that distribution is installed.
+"""
+
+
 def plugins_loaded() -> bool:
     """Whether this test process runs with a plugin (the plugin-loaded configuration)."""
     return bool(loader.loaded_plugins().plugins)
@@ -96,6 +117,31 @@ HIDDEN_PRO_OPERATIONS = frozenset(
     }
 )
 """Pro routes hidden from the OpenAPI contract; a Pro test keeps this list exact."""
+
+
+ADMIN_OPERATIONS = frozenset(
+    {
+        ("GET", "/api/v1/server-admin/support-reports"),
+        ("GET", "/api/v1/server-admin/support-reports/{reportId}"),
+        ("PUT", "/api/v1/server-admin/support-reports/{reportId}/state"),
+        ("POST", "/api/v1/server-admin/support-reports/{reportId}/reply"),
+        ("POST", "/api/v1/server-admin/support-reports/{reportId}/ticket"),
+        ("DELETE", "/api/v1/server-admin/support-reports/{reportId}/ticket"),
+    }
+)
+"""Operations of the operator plugin (``eimir-admin``) in the complete contract.
+
+The complete contract is built with ``EIMIR_PLUGINS=pro,admin``. Core tests built
+with another plugin set neither mount them nor treat them as Pro operations;
+``backend/admin/admin_tests`` covers them. A test in that package keeps this list
+exact. Add the operator plugin's later routes here.
+"""
+
+
+def is_admin_operation(method: str, path: str) -> bool:
+    return operation_key(method, path) in {
+        operation_key(*operation) for operation in ADMIN_OPERATIONS
+    }
 
 
 def plugin_route_operations() -> frozenset[tuple[str, str]]:
@@ -141,6 +187,7 @@ def contract_pro_operations() -> frozenset[tuple[str, str]]:
         for method in operations
         if method.lower() in {"get", "put", "post", "delete", "patch", "options", "head"}
         and operation_key(method, path) not in core
+        and not is_admin_operation(method, path)
     )
 
 

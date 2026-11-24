@@ -17,6 +17,8 @@ on:
       - "backend/src/**"
       - "backend/pro/pyproject.toml"
       - "backend/pro/src/**"
+      - "backend/admin/pyproject.toml"
+      - "backend/admin/src/**"
       - "backend/demo_assets/**"
       - "backend/scripts/__init__.py"
       - "backend/scripts/demo_space.py"

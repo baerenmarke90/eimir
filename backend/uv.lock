@@ -10,6 +10,7 @@ resolution-markers = [
 [manifest]
 members = [
     "eimir",
+    "eimir-admin",
     "eimir-pro",
 ]
 
@@ -778,6 +779,17 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=1.4" },
     { name = "ruff", specifier = "==0.16.8" },
 ]
+
+[[package]]
+name = "eimir-admin"
+version = "0.1.0"
+source = { editable = "admin" }
+dependencies = [
+    { name = "eimir" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "eimir", editable = "." }]
 
 [[package]]
 name = "eimir-pro"

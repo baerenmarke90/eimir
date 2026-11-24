@@ -269,6 +269,7 @@ EXCLUDED_TABLES: dict[str, str] = {
     # Support conversations with the operator (#2189): not couple content, never in bundle v1.
     "support_reports": "Support conversation with the operator; not couple content.",
     "support_report_replies": "Support conversation with the operator; not couple content.",
+    "support_report_tickets": "Operator ticket link of a support report; not couple content.",
     # The Transfer Bundle's own tables (feature removed by Decision 0020).
     "transfer_exports": "Transfer Bundle bookkeeping of the removed self-service feature.",
     "transfer_imports": "Transfer Bundle bookkeeping of the removed self-service feature.",

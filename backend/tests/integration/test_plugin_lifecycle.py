@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from eimir.auth import sessions
 from eimir.core.clock import now
 from eimir.plugins import lifecycle
+from eimir.plugins.manifest import PLUGIN_TABLES, PRO_CAPABILITIES
 from eimir.relationship.service import add_member
 from tests.conftest import make_account, make_space, requires_database
 from tests.support.plugins import requires_pro, without_plugins
@@ -73,7 +74,10 @@ def _presence(session: Session, couple, *, expires_in: timedelta) -> None:  # ty
 def test_with_the_plugin_loaded_the_executor_leaves_its_tables_alone(session, couple) -> None:  # type: ignore[no-untyped-def]
     """No double execution: the loaded plugin's hooks own its tables."""
     _presence(session, couple, expires_in=-timedelta(minutes=1))
-    assert lifecycle.absent_tables() == ()
+    # Only the Pro plugin is loaded: its tables are never absent. The operator
+    # plugin's table is (its capability is not loaded here) but has no purge rule.
+    pro_tables = {row.table for row in PLUGIN_TABLES if row.capability.value in PRO_CAPABILITIES}
+    assert {row.table for row in lifecycle.absent_tables()}.isdisjoint(pro_tables)
     assert lifecycle.prune_expired(session) == 0
     assert (
         lifecycle.apply_event(

@@ -17854,6 +17854,123 @@
         "title": "SupportReportCreated",
         "type": "object"
       },
+      "SupportReportDetailView": {
+        "description": "One report in full, with its reply and ticket link.",
+        "properties": {
+          "accountId": {
+            "format": "uuid",
+            "title": "Accountid",
+            "type": "string"
+          },
+          "appVersion": {
+            "title": "Appversion",
+            "type": "string"
+          },
+          "build": {
+            "title": "Build",
+            "type": "string"
+          },
+          "client": {
+            "$ref": "#/components/schemas/ClientContextBody"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "failureReference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failurereference"
+          },
+          "hasReply": {
+            "title": "Hasreply",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SupportReportKind"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "reply": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SupportReportOperatorReply"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requestId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestid"
+          },
+          "state": {
+            "$ref": "#/components/schemas/SupportReportState"
+          },
+          "ticket": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SupportReportTicketSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ticketAvailable": {
+            "title": "Ticketavailable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "state",
+          "createdAt",
+          "failureReference",
+          "appVersion",
+          "build",
+          "hasReply",
+          "ticket",
+          "note",
+          "requestId",
+          "client",
+          "accountId",
+          "reply",
+          "ticketAvailable"
+        ],
+        "title": "SupportReportDetailView",
+        "type": "object"
+      },
       "SupportReportKind": {
         "enum": [
           "PROBLEM",
@@ -17861,6 +17978,148 @@
         ],
         "title": "SupportReportKind",
         "type": "string"
+      },
+      "SupportReportListItem": {
+        "description": "One report in the list: triage facts only, no note text.",
+        "properties": {
+          "appVersion": {
+            "title": "Appversion",
+            "type": "string"
+          },
+          "build": {
+            "title": "Build",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "failureReference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failurereference"
+          },
+          "hasReply": {
+            "title": "Hasreply",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SupportReportKind"
+          },
+          "state": {
+            "$ref": "#/components/schemas/SupportReportState"
+          },
+          "ticket": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SupportReportTicketSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "state",
+          "createdAt",
+          "failureReference",
+          "appVersion",
+          "build",
+          "hasReply",
+          "ticket"
+        ],
+        "title": "SupportReportListItem",
+        "type": "object"
+      },
+      "SupportReportListView": {
+        "properties": {
+          "hasMore": {
+            "title": "Hasmore",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SupportReportListItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "newCount": {
+            "title": "Newcount",
+            "type": "integer"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore",
+          "newCount"
+        ],
+        "title": "SupportReportListView",
+        "type": "object"
+      },
+      "SupportReportOperatorReply": {
+        "description": "The one reply sent to the reporter, as plain text.",
+        "properties": {
+          "repliedAt": {
+            "format": "date-time",
+            "title": "Repliedat",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "repliedAt"
+        ],
+        "title": "SupportReportOperatorReply",
+        "type": "object"
+      },
+      "SupportReportReplyCreate": {
+        "additionalProperties": false,
+        "description": "Strict request: the reply is trimmed plain text of 1 to 500 characters.",
+        "properties": {
+          "text": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "SupportReportReplyCreate",
+        "type": "object"
       },
       "SupportReportReplyView": {
         "description": "The operator's reply, shown to the reporter as plain text.",
@@ -17897,6 +18156,148 @@
         ],
         "title": "SupportReportState",
         "type": "string"
+      },
+      "SupportReportStateUpdate": {
+        "additionalProperties": false,
+        "description": "Strict request: an unknown field or state is rejected.",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/SupportReportState"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "SupportReportStateUpdate",
+        "type": "object"
+      },
+      "SupportReportTicketCreate": {
+        "additionalProperties": false,
+        "description": "Strict request: what the operator wrote; the technical footer is added by the server.",
+        "properties": {
+          "body": {
+            "maxLength": 65536,
+            "title": "Body",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "body"
+        ],
+        "title": "SupportReportTicketCreate",
+        "type": "object"
+      },
+      "SupportReportTicketProblem": {
+        "description": "Error body of the ticket routes: the usual problem plus the link or the retry flag.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "retryable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retryable"
+          },
+          "status": {
+            "title": "Status",
+            "type": "integer"
+          },
+          "ticket": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SupportReportTicketSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "code",
+          "ticket",
+          "retryable"
+        ],
+        "title": "SupportReportTicketProblem",
+        "type": "object"
+      },
+      "SupportReportTicketSummary": {
+        "description": "The tracker ticket of a report: where it lives, never what it says.",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Number"
+          },
+          "state": {
+            "$ref": "#/components/schemas/TicketState"
+          },
+          "tracker": {
+            "title": "Tracker",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "tracker",
+          "state",
+          "url",
+          "number",
+          "createdAt"
+        ],
+        "title": "SupportReportTicketSummary",
+        "type": "object"
       },
       "ThemePreference": {
         "enum": [
@@ -17941,6 +18342,14 @@
         ],
         "title": "ThinkingOfYouCreate",
         "type": "object"
+      },
+      "TicketState": {
+        "enum": [
+          "PENDING",
+          "CREATED"
+        ],
+        "title": "TicketState",
+        "type": "string"
       },
       "TokenOnlyRequest": {
         "properties": {
@@ -25025,6 +25434,526 @@
         "summary": "Get Server Admin Storage",
         "tags": [
           "server-admin"
+        ]
+      }
+    },
+    "/api/v1/server-admin/support-reports": {
+      "get": {
+        "description": "List reports newest first without note text; the cursor is bound to the state filter.",
+        "operationId": "listSupportReports",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/SupportReportState"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportListView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request is syntactically valid but cannot be processed in this form."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "List Support Reports",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      }
+    },
+    "/api/v1/server-admin/support-reports/{reportId}": {
+      "get": {
+        "description": "Return one report in full; the reporter is the opaque account id only.",
+        "operationId": "getSupportReport",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reportId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Reportid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportDetailView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Support Report",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      }
+    },
+    "/api/v1/server-admin/support-reports/{reportId}/reply": {
+      "post": {
+        "description": "Send the single reply of at most 500 characters. Needs recent authentication.",
+        "operationId": "replyToSupportReport",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reportId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Reportid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportReportReplyCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportDetailView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Reply To Support Report",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      }
+    },
+    "/api/v1/server-admin/support-reports/{reportId}/state": {
+      "put": {
+        "description": "Set the triage marker of a report. Needs recent authentication.",
+        "operationId": "setSupportReportState",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reportId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Reportid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportReportStateUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportDetailView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Set Support Report State",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      }
+    },
+    "/api/v1/server-admin/support-reports/{reportId}/ticket": {
+      "delete": {
+        "description": "Forget the ticket link so a new ticket can be created. Needs recent authentication.",
+        "operationId": "clearSupportReportTicket",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reportId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Reportid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Clear Support Report Ticket",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      },
+      "post": {
+        "description": "Create the tracker ticket of a report. Needs recent authentication.",
+        "operationId": "createSupportReportTicket",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reportId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Reportid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportReportTicketCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportTicketSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportTicketProblem"
+                }
+              }
+            },
+            "description": "The report already has a ticket link (SUPPORT_TICKET_EXISTS, with the link) or no tracker is configured (SUPPORT_TICKET_NOT_CONFIGURED)."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportTicketProblem"
+                }
+              }
+            },
+            "description": "The tracker did not create the ticket (SUPPORT_TICKET_FAILED). The link stays pending until it is cleared; the retry flag says whether another attempt can work."
+          }
+        },
+        "summary": "Create Support Report Ticket",
+        "tags": [
+          "server-admin-support-reports"
         ]
       }
     },

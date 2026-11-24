@@ -10,9 +10,9 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-# The versioned contract is the complete one, with the Pro plugin loaded
-# (Decision 0017, decision 7); the Pro distribution must be installed.
-os.environ.setdefault("EIMIR_PLUGINS", "pro")
+# The versioned contract is the complete one, with the Pro and the operator
+# plugin loaded (Decision 0017, decision 7); both distributions must be installed.
+os.environ.setdefault("EIMIR_PLUGINS", "pro,admin")
 
 from fastapi.testclient import TestClient
 

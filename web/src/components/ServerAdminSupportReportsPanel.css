@@ -6,6 +6,8 @@
 
 .server-admin-reports-layout {
   display: grid;
+  /* minmax(0, …): long words wrap at large text instead of widening the page. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
   margin-top: var(--space-4);
 }
@@ -35,7 +37,8 @@
   border: 0;
 }
 
-.server-admin-report-segments legend {
+/* A visually hidden legend keeps its 1px box; a full width would overflow. */
+.server-admin-report-segments legend:not(.sr-only) {
   width: 100%;
   padding: 0;
 }
@@ -131,7 +134,11 @@
 
 .server-admin-report-detail {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
+  /* Long German compounds hyphenate or break at large text sizes. */
+  overflow-wrap: anywhere;
+  hyphens: auto;
   gap: var(--space-4);
 }
 
@@ -253,7 +260,18 @@
   grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
 }
 
+.server-admin-report-facts > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
 @media (max-width: 40rem) {
+  /* One fact per row on phones: labels such as "Betriebssystem" stay whole. */
+  .server-admin-report-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .server-admin-report-form button[type="submit"],
   .server-admin-report-dialog-actions button {
     width: 100%;

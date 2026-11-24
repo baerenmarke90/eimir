@@ -13,7 +13,7 @@ import {
   supportReportsQueryKey,
 } from '../client/supportReportsAdmin';
 import { useTranslation } from '../i18n';
-import { registerServerAdminReportsLocale } from '../i18n/locales/serverAdminReports';
+import { registerServerAdminReportsLocale } from '../i18n/serverAdminReportsLocale';
 import { ServerAdminSupportReportDetail } from './ServerAdminSupportReportDetail';
 import { UiState } from './UiState';
 import './ServerAdminSupportReportsPanel.css';

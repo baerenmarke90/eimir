@@ -1,4 +1,3 @@
-import { i18n } from '../index';
 import type { SupportedLocale } from '../resources';
 
 /*
@@ -6,6 +5,8 @@ import type { SupportedLocale } from '../resources';
  * section's lazily loaded code runs instead of being bundled with the app
  * entry, which has a fixed size budget. The packs stay complete and in
  * parity; `i18n.test.ts` checks them together with the bundled packs.
+ * This module holds data only, so browser tests can import the copy without
+ * the i18next runtime; `../serverAdminReportsLocale.ts` registers it.
  */
 
 const de = {
@@ -317,10 +318,3 @@ export const lazyLocalePack: Record<
 
 /** German copy, for tests that assert visible text. */
 export const serverAdminReportsCopy = de;
-
-/** Adds the section's copy to every language; repeated calls are harmless. */
-export function registerServerAdminReportsLocale(): void {
-  for (const [locale, pack] of Object.entries(lazyLocalePack)) {
-    i18n.addResourceBundle(locale, 'translation', pack, true, false);
-  }
-}

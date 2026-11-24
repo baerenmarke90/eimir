@@ -508,7 +508,7 @@ const serverAdmin = {
     disabled: 'Inaktiv',
   },
   privacyNote:
-    'Die Serververwaltung zeigt ausschließlich Betriebs-, Identitäts- und sicherheitsrelevante Metadaten. Private Inhalte, Medieninhalte, Job-Payloads, Passwörter, Tokens und Zugangsdaten werden nicht angezeigt.',
+    'Die Serververwaltung zeigt Betriebs-, Identitäts- und sicherheitsrelevante Metadaten. Private Inhalte der Paare, Medieninhalte, Job-Payloads, Passwörter, Tokens und Zugangsdaten werden nicht angezeigt. Einzige Ausnahme ist der Bereich Meldungen: Dort liest du die Notizen, die Personen selbst mit einer Meldung geschickt haben.',
 };
 
 export default serverAdmin;

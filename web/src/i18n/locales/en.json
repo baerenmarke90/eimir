@@ -4936,7 +4936,7 @@
       "enabled": "Active",
       "disabled": "Inactive"
     },
-    "privacyNote": "Server administration shows only operational, identity and security metadata. Private content, media content, job payloads, passwords, tokens and credentials are not shown."
+    "privacyNote": "Server administration shows operational, identity and security metadata. Couples' private content, media content, job payloads, passwords, tokens and credentials are not shown. The only exception is the Reports section: there you read the notes people sent with a report themselves."
   },
   "partnerQuickActions": {
     "trigger": "Open actions for {{partner}}",

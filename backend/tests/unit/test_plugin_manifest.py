@@ -20,7 +20,16 @@ from sqlalchemy import MetaData, Table
 from eimir.db.base import Base
 from eimir.db.protected_payload import ProtectedPayloadJSON
 from eimir.db.registry import MODEL_MODULES, load_all_models
-from eimir.plugins.manifest import PLUGIN_TABLE_NAMES, PLUGIN_TABLES, protected_payload_tables
+from eimir.entitlements.models import Capability
+from eimir.entitlements.service import ALL_PREMIUM_CAPABILITIES
+from eimir.plugins.manifest import (
+    ADMIN_CAPABILITIES,
+    PLUGIN_CAPABILITIES,
+    PLUGIN_TABLE_NAMES,
+    PLUGIN_TABLES,
+    PRO_CAPABILITIES,
+    protected_payload_tables,
+)
 from eimir.security import lifecycle
 from tests.support.plugins import pro_plugin_object, require_pro_distribution, requires_pro
 
@@ -215,3 +224,13 @@ def test_every_lifecycle_rule_names_existing_columns(row) -> None:  # type: igno
     if row.attachment is not None:
         assert row.attachment.column in table.columns
         assert row.attachment.owner_column in row.account_columns
+
+
+def test_support_operator_is_plugin_owned_and_not_premium() -> None:
+    operator = Capability.SUPPORT_OPERATOR.value
+
+    assert operator == "support.operator"
+    assert {operator} == ADMIN_CAPABILITIES
+    assert PLUGIN_CAPABILITIES == PRO_CAPABILITIES | ADMIN_CAPABILITIES
+    assert not PRO_CAPABILITIES & ADMIN_CAPABILITIES
+    assert operator not in ALL_PREMIUM_CAPABILITIES

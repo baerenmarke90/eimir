@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
+import pytest
+
 from eimir.config import Deployment
 from eimir.entitlements.models import (
     Capability,
@@ -420,3 +422,43 @@ def test_record_and_revoke_unreferenced_grant() -> None:
     assert revoked is not None
     assert revoked.status == EntitlementStatus.REVOKED.value
     assert revoked.metadata_["revocation_reason"] == "operator-revoked"
+
+
+def test_support_operator_is_never_effective_even_when_its_plugin_is_loaded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from eimir.plugins import loader
+
+    class AdminStub:
+        name = "admin"
+
+        def capabilities(self) -> frozenset[str]:
+            return frozenset({Capability.SUPPORT_OPERATOR.value})
+
+    monkeypatch.setattr(loader, "_loaded", loader.LoadedPlugins((AdminStub(),)))  # type: ignore[arg-type]
+    space_id = uuid4()
+    now = datetime(2026, 9, 1, 12, 0, 0, tzinfo=UTC)
+    operator = Capability.SUPPORT_OPERATOR.value
+    assert operator not in ALL_PREMIUM_CAPABILITIES
+
+    def grant(capabilities: list[str] | None) -> EntitlementGrant:
+        return EntitlementGrant(
+            id=uuid4(),
+            space_id=space_id,
+            source_type=EntitlementSourceType.GOOGLE_PLAY.value,
+            status=EntitlementStatus.ACTIVE.value,
+            tier=EntitlementTier.PREMIUM.value,
+            effective_from=now - timedelta(days=1),
+            effective_until=now + timedelta(days=30),
+            capabilities=capabilities,
+        )
+
+    for capabilities in (None, [operator, Capability.CHAPTER_RICH_PRESENTATION.value]):
+        effective = get_effective_space_entitlement(
+            FakeSession([grant(capabilities)]),
+            space_id,
+            at=now,
+            deployment=Deployment.CLOUD,
+        )
+        assert operator not in effective.capabilities
+        assert not has_capability(FakeSession([grant(capabilities)]), space_id, operator, at=now)

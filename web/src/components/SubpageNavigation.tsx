@@ -1,7 +1,7 @@
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
-import { PRIMARY_APP_ROUTES, subpageParentPath } from '../client/routes';
+import { primaryTabIndex, subpageParentPath } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { TaskBackButton, TaskBackSlotContext } from './TaskBackButton';
 import './SubpageNavigation.css';
@@ -38,20 +38,13 @@ export function SubpageNavigation({ children }: { children: ReactNode }) {
   // remains only for pages without a heading (loading, error, map views).
   const host = useMemo(() => firstInDocument(hosts), [hosts]);
   const slot = host ?? shellSlot;
-  const pathname = location.pathname.replace(/\/$/, '');
   // Every subpage uses the same round chevron Back (#2063); the text label
   // that Chapters, Insights and Recaps used looked like a second control.
   const placement = useMemo(
     () => ({ slot, register, registerHost, showBackLabel: false }),
     [slot, register, registerHost],
   );
-  const isRoot = PRIMARY_APP_ROUTES.some(
-    (route) =>
-      route.path === pathname ||
-      ('peerPaths' in route &&
-        route.peerPaths.some((path) => path === pathname)),
-  );
-  if (isRoot) return children;
+  if (primaryTabIndex(location.pathname) >= 0) return children;
   const originKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
   const shellBack =

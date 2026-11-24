@@ -719,3 +719,21 @@ the Pro code stay private. Still open:
    [#2085](https://github.com/baerenmarke90/eimir/issues/2085) and done there.
 6. **License of the private package** for paying Self-Hosted operators (the public code is PolyForm
    Noncommercial 1.0.0).
+
+## Amendment 2026-11-24: more than one plugin
+
+The statement above that this seam has at most one trusted plugin is narrowed ([#2189](https://github.com/baerenmarke90/eimir/issues/2189)).
+The operator plugin `eimir-admin` is a second trusted distribution built from the same repository and revision as
+Core and `eimir-pro`. The seam now allows a small fixed set, not an open plugin ecosystem:
+
+- `EXPECTED_DISTRIBUTIONS` allow-lists exactly `pro` (`eimir-pro`) and `admin` (`eimir-admin`); a name provided by
+  any other distribution still refuses to start.
+- Load and hook order follows `EIMIR_PLUGINS`. `EIMIR_PLUGINS=pro` and an empty value behave exactly as before.
+- No two loaded plugins may declare the same capability. `resolve_plugins` checks this at startup and raises
+  `PluginLoadError` naming both plugins and the capability.
+- Hooks that take the first provider's answer (date ideas, push preview detail) stay single-provider by
+  documentation: only one plugin may implement them.
+- Route collisions between plugins already refuse startup (`check_route_collisions`).
+- `support.operator` belongs to `ADMIN_CAPABILITIES`. It is plugin-owned, is never part of a Premium grant
+  (`NON_ENTITLEMENT_CAPABILITIES`, excluded from `ALL_PREMIUM_CAPABILITIES`) and is effective only while the admin
+  plugin is loaded. No business/freemium impact: operator access is not a couple-facing capability.

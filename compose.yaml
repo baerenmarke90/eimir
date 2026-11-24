@@ -23,6 +23,9 @@
       "environment": {
         "EIMIR_ACCOUNT_DELETION_INSTANCE_ID": "${EIMIR_ACCOUNT_DELETION_INSTANCE_ID:?Set the existing instance value in Arcane}",
         "EIMIR_ACCOUNT_DELETION_JOURNAL_PATH": "/var/lib/eimir/deletion-journal/account-deletions.journal",
+        "EIMIR_ADMIN_GITHUB_REPOSITORY": "${EIMIR_ADMIN_GITHUB_REPOSITORY:-}",
+        "EIMIR_ADMIN_GITHUB_TOKEN": "${EIMIR_ADMIN_GITHUB_TOKEN:-}",
+        "EIMIR_ADMIN_TRACKER": "${EIMIR_ADMIN_TRACKER:-}",
         "EIMIR_ALLOWED_HOSTS": "${EIMIR_ALLOWED_HOSTS:?Set the existing instance value in Arcane}",
         "EIMIR_AUDIO_UPLOAD_ENABLED": "${EIMIR_AUDIO_UPLOAD_ENABLED:-false}",
         "EIMIR_CALENDAR_CALDAV_PRIVATE_HOSTS": "[]",
@@ -49,6 +52,7 @@
         "EIMIR_OIDC_CONNECTIONS": "[]",
         "EIMIR_PHOTO_PLACE_GEOCODING_URL": "https://photon.komoot.io",
         "EIMIR_PHOTO_SOURCES_ENABLED": "${EIMIR_PHOTO_SOURCES_ENABLED:-true}",
+        "EIMIR_PLUGINS": "${EIMIR_PLUGINS:-pro}",
         "EIMIR_PUBLIC_BASE_URL": "${EIMIR_PUBLIC_BASE_URL:?Set the existing instance value in Arcane}",
         "EIMIR_PUSH_BROWSER_ALLOWED_ORIGINS": "[]",
         "EIMIR_PUSH_FCM_ANDROID_PACKAGE": "${EIMIR_PUSH_FCM_ANDROID_PACKAGE:?Set the existing instance value in Arcane}",
@@ -93,7 +97,7 @@
         ],
         "timeout": "5s"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-cloud-backend@sha256:b0ac81dde28808d8902944d409b26fd57bf8160acec5fe9a0801febd1fd1cabc",
+      "image": "ghcr.io/baerenmarke90/eimir-cloud-backend@sha256:ff741d5688cf114e5f1a22a33f99a198850743cf0e2c8083b7cbf5fae44e4f43",
       "networks": {
         "app": {
           "aliases": [
@@ -143,9 +147,10 @@
       ],
       "entrypoint": null,
       "environment": {
-        "EIMIR_DATABASE_URL": "postgresql+psycopg://sidebyside:${POSTGRES_PASSWORD:?Set the existing instance value in Arcane}@eimir-test-postgres:5432/sidebyside"
+        "EIMIR_DATABASE_URL": "postgresql+psycopg://sidebyside:${POSTGRES_PASSWORD:?Set the existing instance value in Arcane}@eimir-test-postgres:5432/sidebyside",
+        "EIMIR_PLUGINS": "${EIMIR_PLUGINS:-pro}"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-cloud-backend@sha256:b0ac81dde28808d8902944d409b26fd57bf8160acec5fe9a0801febd1fd1cabc",
+      "image": "ghcr.io/baerenmarke90/eimir-cloud-backend@sha256:ff741d5688cf114e5f1a22a33f99a198850743cf0e2c8083b7cbf5fae44e4f43",
       "networks": {
         "app": null
       },
@@ -185,7 +190,7 @@
         "EIMIR_PUBLIC_BASE_URL": "${EIMIR_PUBLIC_BASE_URL:?Set the existing instance value in Arcane}",
         "EIMIR_VIDEO_UPLOAD_ENABLED": "true"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-cloud-media@sha256:9f800e62f9b7bfb43b9d9af682f7f74db0264a5ff1ad4677577b0c641cc8f850",
+      "image": "ghcr.io/baerenmarke90/eimir-cloud-media@sha256:380e54ba2fcbe2762affdde106777fde70350021bb0cee923b28f1b83f17e5bd",
       "init": true,
       "mem_limit": "1073741824",
       "networks": {
@@ -224,7 +229,7 @@
       "environment": {
         "EIMIR_WEB_CSP_CONNECT_ORIGINS": ""
       },
-      "image": "ghcr.io/baerenmarke90/eimir-cloud-web@sha256:2f4e54783d58a172aa80d3879f3ef0ef9aedd680c9706a1566b078a069cdd917",
+      "image": "ghcr.io/baerenmarke90/eimir-cloud-web@sha256:d8df99a5e78e950b3333ef4a22f1cf1e54b649f2d0f0d1c1e7bbe9f56854c460",
       "networks": {
         "app": {},
         "proxy": {
@@ -252,6 +257,9 @@
       "environment": {
         "EIMIR_ACCOUNT_DELETION_INSTANCE_ID": "${EIMIR_ACCOUNT_DELETION_INSTANCE_ID:?Set the existing instance value in Arcane}",
         "EIMIR_ACCOUNT_DELETION_JOURNAL_PATH": "/var/lib/eimir/deletion-journal/account-deletions.journal",
+        "EIMIR_ADMIN_GITHUB_REPOSITORY": "${EIMIR_ADMIN_GITHUB_REPOSITORY:-}",
+        "EIMIR_ADMIN_GITHUB_TOKEN": "${EIMIR_ADMIN_GITHUB_TOKEN:-}",
+        "EIMIR_ADMIN_TRACKER": "${EIMIR_ADMIN_TRACKER:-}",
         "EIMIR_ALLOWED_HOSTS": "${EIMIR_ALLOWED_HOSTS:?Set the existing instance value in Arcane}",
         "EIMIR_AUDIO_UPLOAD_ENABLED": "${EIMIR_AUDIO_UPLOAD_ENABLED:-false}",
         "EIMIR_CALENDAR_CALDAV_PRIVATE_HOSTS": "[]",
@@ -278,6 +286,7 @@
         "EIMIR_OIDC_CONNECTIONS": "[]",
         "EIMIR_PHOTO_PLACE_GEOCODING_URL": "https://photon.komoot.io",
         "EIMIR_PHOTO_SOURCES_ENABLED": "${EIMIR_PHOTO_SOURCES_ENABLED:-true}",
+        "EIMIR_PLUGINS": "${EIMIR_PLUGINS:-pro}",
         "EIMIR_PUBLIC_BASE_URL": "${EIMIR_PUBLIC_BASE_URL:?Set the existing instance value in Arcane}",
         "EIMIR_PUSH_BROWSER_ALLOWED_ORIGINS": "[]",
         "EIMIR_PUSH_FCM_ANDROID_PACKAGE": "${EIMIR_PUSH_FCM_ANDROID_PACKAGE:?Set the existing instance value in Arcane}",
@@ -309,7 +318,7 @@
         "EIMIR_WEBAUTHN_RP_ID": "${EIMIR_WEBAUTHN_RP_ID:?Set the existing instance value in Arcane}",
         "EIMIR_WEBAUTHN_RP_NAME": "eimir."
       },
-      "image": "ghcr.io/baerenmarke90/eimir-cloud-backend@sha256:b0ac81dde28808d8902944d409b26fd57bf8160acec5fe9a0801febd1fd1cabc",
+      "image": "ghcr.io/baerenmarke90/eimir-cloud-backend@sha256:ff741d5688cf114e5f1a22a33f99a198850743cf0e2c8083b7cbf5fae44e4f43",
       "networks": {
         "app": null
       },

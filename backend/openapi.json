@@ -18798,14 +18798,23 @@
         "type": "string"
       },
       "WirDesignPreferencePatch": {
+        "description": "Set the app design, the palette, or both. A null palette follows the app design.",
         "properties": {
           "designId": {
-            "$ref": "#/components/schemas/WirDesignId"
+            "$ref": "#/components/schemas/WirDesignId",
+            "title": "Designid"
+          },
+          "paletteId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WirDesignId"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
-        "required": [
-          "designId"
-        ],
         "title": "WirDesignPreferencePatch",
         "type": "object"
       },
@@ -18813,6 +18822,10 @@
         "properties": {
           "designId": {
             "$ref": "#/components/schemas/WirDesignId"
+          },
+          "paletteId": {
+            "$ref": "#/components/schemas/WirDesignId",
+            "title": "Paletteid"
           },
           "version": {
             "title": "Version",
@@ -26566,7 +26579,7 @@
         ]
       },
       "patch": {
-        "description": "Save a personal cosmetic. Connected and Warm are Free; other designs require Pro.",
+        "description": "Save personal design choices. Following the design and Free palettes never need Pro.",
         "operationId": "updateWirDesignPreference",
         "parameters": [
           {

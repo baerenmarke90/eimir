@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   act,
   cleanup,
@@ -7,10 +9,10 @@ import {
   renderHook,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { AppearanceApi } from '../api/generated/apis/AppearanceApi';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
@@ -20,9 +22,9 @@ import {
   WirDesignProvider,
   wirDesignQueryKey,
 } from '../client/wirDesign';
-import { i18n } from '../i18n';
-import { WirDesignSettings } from './WirDesignSettings';
 import { clearWirDesignPreferences } from '../client/wirDesignPreferenceStore';
+import { i18n } from '../i18n';
+import { DesignPaletteSettings, WirDesignSettings } from './WirDesignSettings';
 
 beforeEach(() => {
   clearWirDesignPreferences();
@@ -56,8 +58,10 @@ function fixture(
   } = {},
 ) {
   let selected = options.initial ?? 'warm';
+  let palette: string | undefined;
   let version = 1;
   const writes: { value: string; token: string | null }[] = [];
+  const paletteWrites: { value: string | null; token: string | null }[] = [];
   const transport = vi.fn(
     async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -68,10 +72,12 @@ function fixture(
           }),
         );
       if (init?.method === 'PATCH') {
-        writes.push({
-          value: JSON.parse(String(init.body)).designId,
-          token: new Headers(init.headers).get('If-Match'),
-        });
+        const change = JSON.parse(String(init.body));
+        const token = new Headers(init.headers).get('If-Match');
+        if ('designId' in change)
+          writes.push({ value: change.designId, token });
+        if ('paletteId' in change)
+          paletteWrites.push({ value: change.paletteId, token });
         if (options.deferred) return options.deferred();
         if (options.failWrite)
           return new Response(
@@ -88,12 +94,16 @@ function fixture(
               headers: { 'Content-Type': 'application/problem+json' },
             },
           );
-        selected = JSON.parse(String(init.body)).designId;
+        if ('designId' in change) selected = change.designId;
+        if ('paletteId' in change) palette = change.paletteId ?? undefined;
         version++;
       } else if (options.failRead) return new Response(null, { status: 503 });
-      return new Response(JSON.stringify({ designId: selected, version }), {
-        headers: { ETag: `"appearance:${version}"` },
-      });
+      return new Response(
+        JSON.stringify({ designId: selected, paletteId: palette, version }),
+        {
+          headers: { ETag: `"appearance:${version}"` },
+        },
+      );
     },
   );
   const config = new Configuration({
@@ -118,6 +128,7 @@ function fixture(
   );
   return {
     writes,
+    paletteWrites,
     transport,
     client,
     wrapper,
@@ -134,6 +145,40 @@ async function open() {
   fireEvent.click(screen.getByRole('button', { name: t('change') }));
   await waitFor(() => expect(screen.queryByText(t('proLoading'))).toBeNull());
 }
+it('saves and resets the palette independently of the layout', async () => {
+  const f = fixture({ initial: 'modern' });
+  render(<DesignPaletteSettings />, { wrapper: f.wrapper });
+  const root = document.documentElement;
+  await waitFor(() => expect(root.dataset.appPalette).toBe('modern'));
+
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: [t('palette.title'), t('palette.followDesign')].join(' '),
+    }),
+  );
+  const sheet = within(
+    screen.getByRole('dialog', { name: t('palette.choices') }),
+  );
+  expect(sheet.queryByRole('radio', { name: t('names.classic') })).toBeNull();
+  fireEvent.click(sheet.getByRole('radio', { name: t('names.warm') }));
+  expect(root.dataset.appPalette).toBe('modern');
+  fireEvent.click(sheet.getByRole('button', { name: t('save') }));
+  await sheet.findByText(t('palette.saved'));
+  expect(root.dataset.appDesign).toBe('modern');
+  expect(root.dataset.wirLayout).toBe('compact');
+  expect(root.dataset.appPalette).toBe('warm');
+  expect(f.writes).toEqual([]);
+  expect(f.paletteWrites).toEqual([{ value: 'warm', token: '"appearance:1"' }]);
+
+  fireEvent.click(
+    sheet.getByRole('radio', { name: t('palette.followDesign') }),
+  );
+  fireEvent.click(sheet.getByRole('button', { name: t('save') }));
+  await waitFor(() => expect(root.dataset.appPalette).toBe('modern'));
+  expect(root.dataset.wirLayout).toBe('compact');
+  expect(f.paletteWrites[1]).toEqual({ value: null, token: '"appearance:2"' });
+});
+
 it('previews without writing, cancels, and saves once only after server confirmation', async () => {
   const f = fixture();
   render(<WirDesignSettings />, { wrapper: f.wrapper });

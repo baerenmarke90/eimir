@@ -1701,6 +1701,15 @@
     "intro": "How eimir. feels for you. Only your view changes.",
     "choices": "Your app design",
     "change": "Choose design",
+    "palette": {
+      "title": "Design colours",
+      "choices": "Choose design colours",
+      "followDesign": "Match the design",
+      "intro": "These colours apply to your view.",
+      "saved": "Your design colours are saved.",
+      "denied": "You need Pro for these design colours.",
+      "error": "The design colours could not be saved. You can try again."
+    },
     "welcome": "Our place for two",
     "nameJoiner": "&",
     "compact": {

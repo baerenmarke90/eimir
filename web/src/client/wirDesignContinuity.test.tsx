@@ -69,18 +69,25 @@ it('holds the first composition until design is known and restores the confirmed
   await waitFor(() => expect(first.fetchApi).toHaveBeenCalledOnce());
   await act(async () =>
     first.finish(
-      new Response(JSON.stringify({ designId: 'modern', version: 1 }), {
-        headers: { ETag: '"appearance:1"' },
-      }),
+      new Response(
+        JSON.stringify({ designId: 'modern', paletteId: 'warm', version: 1 }),
+        { headers: { ETag: '"appearance:1"' } },
+      ),
     ),
   );
-  await waitFor(() => expect(readWirDesign(key)).toBe('modern'));
+  await waitFor(() =>
+    expect(readWirDesign(key)).toEqual({
+      designId: 'modern',
+      paletteId: 'warm',
+    }),
+  );
   expect(view.result.current?.presentationReady).toBe(true);
   view.unmount();
   first.client.clear();
   const next = fixture();
   const restored = renderHook(useWirDesign, { wrapper: next.wrapper });
   expect(restored.result.current?.current).toBe('modern');
+  expect(document.documentElement.dataset.appPalette).toBe('warm');
   expect(restored.result.current?.presentationReady).toBe(true);
   expect(restored.result.current?.preference.isPlaceholderData).toBe(true);
   await expect(restored.result.current?.save('classic')).rejects.toBeTruthy();
@@ -90,6 +97,7 @@ it('holds the first composition until design is known and restores the confirmed
     expect(restored.result.current?.preference.isError).toBe(true),
   );
   expect(restored.result.current?.current).toBe('modern');
+  expect(document.documentElement.dataset.appPalette).toBe('warm');
   restored.unmount();
   next.client.clear();
 });

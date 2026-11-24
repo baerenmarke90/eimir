@@ -5,6 +5,7 @@ import quoteCopy from '../../src/i18n/locales/dailyQuote';
 import m5s5Copy from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 import notificationCopy from '../../src/i18n/locales/notificationSettings';
+import personColoursCopy from '../../src/i18n/locales/personColours';
 import profileCopy from '../../src/i18n/locales/profileIdentity';
 import reflections from '../../src/i18n/locales/relationshipReflections';
 import wirCheckInCopy from '../../src/i18n/locales/wirCheckIn';
@@ -32,10 +33,12 @@ async function fixture(
 ) {
   const unexpected = await installMocks(page, { strict: true });
   let current = options.initial ?? 'warm';
+  let palette: string | undefined;
   let version = 0;
   let pro = options.pro !== false;
   let failure = options.failure ?? 0;
   const writes: string[] = [];
+  const paletteWrites: (string | null)[] = [];
   const base = `/api/v1/spaces/${SPACE_ID}`;
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultProductContext(route)) return;
@@ -90,7 +93,9 @@ async function fixture(
     }
     if (path === `${base}/appearance/wir-design`) {
       if (request.method() === 'PATCH') {
-        writes.push(request.postDataJSON().designId);
+        const change = request.postDataJSON();
+        if ('designId' in change) writes.push(change.designId);
+        if ('paletteId' in change) paletteWrites.push(change.paletteId);
         expect(request.headers()['if-match']).toBe(`"appearance:${version}"`);
         if (failure)
           return route.fulfill({
@@ -104,12 +109,20 @@ async function fixture(
                   : 'SERVICE_UNAVAILABLE',
             },
           });
-        expect(pro || request.postDataJSON().designId === 'warm').toBe(true);
-        current = request.postDataJSON().designId;
+        if ('designId' in change) {
+          expect(pro || change.designId === 'warm').toBe(true);
+          current = change.designId;
+        }
+        if ('paletteId' in change) {
+          expect(
+            pro || [null, 'connected', 'warm'].includes(change.paletteId),
+          ).toBe(true);
+          palette = change.paletteId ?? undefined;
+        }
         version++;
       }
       return route.fulfill({
-        json: { designId: current, version },
+        json: { designId: current, paletteId: palette, version },
         headers: { ETag: `"appearance:${version}"` },
       });
     }
@@ -255,6 +268,7 @@ async function fixture(
   });
   return {
     writes,
+    paletteWrites,
     unexpected,
     setPro: (v: boolean) => {
       pro = v;
@@ -271,6 +285,78 @@ async function open(page: Page) {
   await expect(page.getByRole('dialog', { name: copy.choices })).toBeVisible();
   await expect(page.getByText(copy.proLoading, { exact: true })).toHaveCount(0);
 }
+
+test('selecting design colours keeps the current layout and navigation', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  const state = await fixture(page, { initial: 'home_rooms', pro: false });
+  await signIn(page);
+  await page.goto('/more/settings/appearance');
+
+  const root = page.locator('html');
+  const card = page.getByRole('region', { name: copy.palette.title });
+  const trigger = card.getByRole('button', {
+    name: `${copy.palette.title} ${copy.palette.followDesign}`,
+  });
+  await expect(trigger).toBeVisible();
+  await expect(root).toHaveAttribute('data-app-palette', 'home_rooms');
+  const previousHeading = await card.evaluate(
+    (element) =>
+      element.previousElementSibling?.querySelector('h2')?.textContent,
+  );
+  expect(previousHeading).toBe(personColoursCopy.title);
+  await card.scrollIntoViewIfNeeded();
+  await captureScreenshot(page, info, 'design-colours-390-dark.png');
+
+  await trigger.click();
+  const sheet = page.getByRole('dialog', { name: copy.palette.choices });
+  await expect(
+    sheet.getByRole('radio', { name: copy.palette.followDesign }),
+  ).toBeChecked();
+  await sheet.getByRole('radio', { name: copy.names.warm }).check();
+  await expect(root).toHaveAttribute('data-app-palette', 'home_rooms');
+  await sheet.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(sheet.getByText(copy.palette.saved)).toBeVisible();
+  await expect(root).toHaveAttribute('data-app-design', 'home_rooms');
+  await expect(root).toHaveAttribute('data-app-palette', 'warm');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
+    'content',
+    '#2c2334',
+  );
+  await sheet.getByRole('button', { name: copy.close, exact: true }).click();
+  await expect(
+    card.getByRole('button', {
+      name: `${copy.palette.title} ${copy.names.warm}`,
+    }),
+  ).toBeFocused();
+
+  await page.goto('/today');
+  await expect(page.locator('.home-landing')).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: copy.homeRooms.rooms, exact: true }),
+  ).toBeVisible();
+  await expect(root).toHaveAttribute('data-wir-layout', 'rooms');
+  await expect(root).toHaveAttribute('data-app-palette', 'warm');
+  await page.goto('/more/settings/appearance');
+  await page.emulateMedia({ colorScheme: 'light' });
+  for (const width of [360, 430, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await reflow(page);
+  }
+  await captureScreenshot(page, info, 'design-colours-1440-light.png');
+  await card
+    .getByRole('button', { name: `${copy.palette.title} ${copy.names.warm}` })
+    .click();
+  await sheet.getByRole('radio', { name: copy.palette.followDesign }).check();
+  await sheet.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(root).toHaveAttribute('data-app-palette', 'home_rooms');
+  await expect(root).toHaveAttribute('data-app-design', 'home_rooms');
+  expect(state.writes).toEqual([]);
+  expect(state.paletteWrites).toEqual(['warm', null]);
+  expect(state.unexpected).toEqual([]);
+});
 async function reflow(page: Page) {
   const overflow = await page.evaluate(() =>
     Array.from(document.querySelectorAll('body *'))

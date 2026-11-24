@@ -14,6 +14,15 @@ export type AppDesignTier = 'free' | 'pro';
 
 export const DEFAULT_APP_DESIGN = 'connected';
 
+export const APP_PALETTE_IDS = [
+  'connected',
+  'home_rooms',
+  'quiet_together',
+  'shared_album',
+  'shared_rhythm',
+  'warm',
+] as const;
+
 export const APP_DESIGNS: Readonly<
   Record<
     string,

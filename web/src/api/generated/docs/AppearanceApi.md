@@ -382,7 +382,7 @@ No authorization required
 
 Update Wir Design Preference
 
-Save a personal cosmetic. Connected and Warm are Free; other designs require Pro.
+Save personal design choices. Following the design and Free palettes never need Pro.
 
 ### Example
 

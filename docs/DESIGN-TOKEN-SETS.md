@@ -22,7 +22,7 @@ and generates:
   explicit Dark (`data-theme="dark"`) and system Dark, plus a palette for its
   settings preview tile (`data-design-preview`);
 - `web/src/design/appDesigns.generated.ts`: the typed registry (tier and
-  layout per id).
+  layout per id) and selectable palette representatives.
 
 `npm run tokens:generate` writes both; `npm run tokens:check` (part of
 `npm test` and `npm run build`) fails when they are stale.
@@ -128,12 +128,17 @@ follows any design.
 
 ## Application and scope
 
-`WirDesignProvider` sets `data-app-design` on the root element once the
-selection is resolved, in the same frame as the Wir composition, and removes
-it on sign-out or Space switch. The generated blocks apply from the root, so
-every tab, portaled sheet and the browser theme colour (`theme-color`, via
-`syncDocumentThemeColor`) follow the design. Layout modes affect the screens that implement them. Approved navigation modes
-also apply to the authenticated shell.
+`WirDesignProvider` applies the selected layout and its presets from
+`data-app-design` and applies the effective colour palette from
+`data-app-palette`. A palette change reaches every tab, portaled sheet and
+the browser theme colour (`theme-color`) without reapplying layout or presets.
+Both attributes are scoped to the signed-in person's Space. Approved
+navigation modes also apply to the authenticated shell.
+
+The Design colours card follows the app design by default. The user can save
+a palette from another design independently. Designs that share a palette
+have one selectable representative, with the default design representing
+the original colours.
 
 Contextual colour worlds (`data-color-world="warm"`/`"natural"`, for example
 intimate moments and plan anticipation) stay as they are in designs on the
@@ -150,9 +155,14 @@ bottom-navigation rules; both are removed with the app-wide step.
 
 Pro gating is unchanged: saving a Pro design needs `theme.bespoke_packs`, a
 saved design stays effective after expiry, and returning to a Free design is
-always Free (see [Freemium Feature Matrix](FREEMIUM-FEATURE-MATRIX.md)). Ids
-are unchanged, so stored preferences need no migration. A backend test pins
+always Free (see [Freemium Feature Matrix](FREEMIUM-FEATURE-MATRIX.md)). The
+existing design IDs are unchanged. A backend test pins
 every file's `tier` to `FREE_WIR_DESIGNS`.
+
+The optional palette override uses the same owner-scoped appearance
+preference, If-Match token and Free/Pro boundary. Following the design is
+always Free. A stored override survives expiry and appears in the owner's
+personal export. Existing preferences start by following the app design.
 
 ## Adding a design
 

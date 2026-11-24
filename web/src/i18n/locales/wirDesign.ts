@@ -3,6 +3,16 @@ export default {
   intro: 'So fühlt sich eimir. für dich an. Nur deine Ansicht ändert sich.',
   choices: 'Dein App-Design',
   change: 'Design auswählen',
+  palette: {
+    title: 'Designfarben',
+    choices: 'Designfarben auswählen',
+    followDesign: 'Passend zum Design',
+    intro: 'Diese Farben gelten für deine Ansicht.',
+    saved: 'Deine Designfarben sind gespeichert.',
+    denied: 'Für diese Designfarben brauchst du Pro.',
+    error:
+      'Die Designfarben konnten nicht gespeichert werden. Du kannst es erneut versuchen.',
+  },
   welcome: 'Unser Platz zu zweit',
   nameJoiner: '&',
   compact: { own: 'Dein Vibe', partner: '{{name}} heute' },

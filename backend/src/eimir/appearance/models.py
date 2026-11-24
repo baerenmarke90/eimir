@@ -86,6 +86,8 @@ class AppIconPreference(IdMixin, TimestampMixin, VersionMixin, Base):
     )
     # NULL means "automatic": the clients keep the shared-list look of #1808.
     person_colours: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    # NULL follows the palette of the selected app design.
+    wir_design_palette: Mapped[str | None] = mapped_column(String(24), nullable=True)
 
     @property
     def effective_wir_design(self) -> WirDesignId:
@@ -93,3 +95,9 @@ class AppIconPreference(IdMixin, TimestampMixin, VersionMixin, Base):
         if self.wir_design in {"handwriting", "together_index"}:
             return DEFAULT_WIR_DESIGN
         return WirDesignId(self.wir_design)
+
+    @property
+    def effective_palette(self) -> WirDesignId | None:
+        if self.wir_design_palette in WirDesignId:
+            return WirDesignId(self.wir_design_palette)
+        return None

@@ -624,6 +624,8 @@ def _write_export_archive(
             }
             if preference is not None and preference.person_colours:
                 account_document["personalAppearance"]["personColours"] = preference.person_colours
+            if preference is not None and (palette := preference.effective_palette) is not None:
+                account_document["personalAppearance"]["designPalette"] = palette.value
             from eimir.personal_settings import service as personal_settings
 
             account_document["personalSettings"] = personal_settings.portable_snapshot(

@@ -1,12 +1,14 @@
 
 # WirDesignPreferencePatch
 
+Set the app design, the palette, or both. A null palette follows the app design.
 
 ## Properties
 
 Name | Type
 ------------ | -------------
 `designId` | [WirDesignId](WirDesignId.md)
+`paletteId` | [WirDesignId](WirDesignId.md)
 
 ## Example
 
@@ -16,6 +18,7 @@ import type { WirDesignPreferencePatch } from ''
 // TODO: Update the object below with actual values
 const example = {
   "designId": null,
+  "paletteId": null,
 } satisfies WirDesignPreferencePatch
 
 console.log(example)

@@ -37,7 +37,6 @@ if TYPE_CHECKING:
     from eimir.domain.events import EventType
     from eimir.jobs.worker import JobRegistry
     from eimir.outbox.models import OutboxEvent
-    from eimir.transfer.models import TransferScope
     from eimir.wish_selections.date_idea_contract import DateIdea, DateIdeaSource
 
 # Every capability the Core manifest leaves to plugins is implemented here.
@@ -487,35 +486,6 @@ class InTreeProPlugin:
 
     def on_account_deleted(self, session: Session, account_id: UUID) -> None:
         _on_account_deleted(session, account_id)
-
-    def export_account_document(
-        self,
-        session: Session,
-        authorization: AuthorizationContext,
-        scope: TransferScope,
-    ) -> Mapping[str, Any]:
-        from eimir.transfer.models import TransferScope
-        from eimir_pro.photo_sources.models import GoogleAccountHint, PhotoConnection
-
-        document: dict[str, Any] = {}
-        if scope is not TransferScope.PERSONAL:
-            return document
-        connections = session.scalars(
-            select(PhotoConnection).where(PhotoConnection.account_id == authorization.account_id)
-        ).all()
-        document["personalPhotoSources"] = [
-            {"source": row.provider, "origin": row.payload.origin}
-            for row in connections
-            if row.payload.account_id == authorization.account_id
-        ]
-        google_account = session.scalar(
-            select(GoogleAccountHint).where(
-                GoogleAccountHint.account_id == authorization.account_id
-            )
-        )
-        if google_account and google_account.payload.account_id == authorization.account_id:
-            document["personalGoogleAccountHint"] = google_account.payload.email
-        return document
 
     def hidden_wish_ids(self, session: Session, context: AuthorizationContext) -> frozenset[UUID]:
         from eimir_pro.couple_games import service as couple_games

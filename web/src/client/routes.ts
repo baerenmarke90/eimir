@@ -121,7 +121,7 @@ export function primaryTabIndex(pathname: string): number {
 }
 
 export const DEFAULT_APP_ROUTE = APP_ROUTES[0].path;
-export const THREAD_ROUTE = '/faden';
+export const LEGACY_THREAD_ROUTE = '/faden';
 export const WISH_SELECTION_ROUTE = '/plan/choose';
 /** Pro date inspiration (#1892); a Planning subpage, not a Wish detail path. */
 export const DATE_IDEAS_ROUTE = '/plan/ideas';

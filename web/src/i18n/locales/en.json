@@ -1715,8 +1715,7 @@
       "classic": "Classic",
       "quiet_together": "Together",
       "home_rooms": "Home",
-      "shared_rhythm": "Our Rhythm",
-      "together_index": "Thread"
+      "shared_rhythm": "Our Rhythm"
     },
     "descriptions": {
       "connected": "The two of you, joined by a heart line. Your time together sits in the middle.",
@@ -1726,8 +1725,7 @@
       "classic": "Familiar and spacious. Large portraits above your names and the original arrangement.",
       "quiet_together": "Calm, muted colours throughout the app. On Us, your names set large and your moment kept compact.",
       "home_rooms": "A shared starting point for the two of you. Open Rooms to find memories, plans and more.",
-      "shared_rhythm": "Today, your story and your plans at your own pace, with navigation at the top and shades of plum, pink and apricot.",
-      "together_index": "Both of your Vibes at a glance, with an overview of every area and a palette of ivory, graphite and cobalt blue."
+      "shared_rhythm": "Today, your story and your plans at your own pace, with navigation at the top and shades of plum, pink and apricot."
     },
     "standard": "Standard",
     "free": "Free",
@@ -1778,23 +1776,6 @@
       "moreNavigation": "More areas",
       "insights": "Insights",
       "games": "Play"
-    },
-    "thread": {
-      "sharedSummary": "Your lists and notes",
-      "name": "Thread",
-      "index": "Overview",
-      "title": "Your thread",
-      "today": "Your day together",
-      "return": "Back to {{area}}",
-      "ownVibe": "My vibe",
-      "partner": "Today",
-      "wirSummary": "How are you both today?",
-      "storySummary": "Memories, journal and photos",
-      "planSummary": "Plans, wishes and occasions",
-      "insights": "Insights",
-      "insightsSummary": "Vibe and energy over time",
-      "gamesSummary": "Play together",
-      "moreSummary": "Profile, private area and settings"
     }
   },
   "profiles": {

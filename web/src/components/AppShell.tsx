@@ -37,7 +37,6 @@ import {
   PARTNER_LOCATION_MAP_ROUTE,
   PRIMARY_APP_ROUTES,
   stickyNavigationArea,
-  THREAD_ROUTE,
 } from '../client/routes';
 import {
   captureSessionOwner,
@@ -53,7 +52,6 @@ import { useDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
 import { useAppLayout } from '../client/wirDesign';
-import { ThreadDock, ThreadHeader } from './ThreadNavigationLayout';
 import { ChapterNavigation } from './ChapterNavigationLayout';
 import { RoomDock, RoomHeader } from './RoomNavigationLayout';
 import { scheduleDeferredPrefetch } from '../deferredModules';
@@ -291,26 +289,7 @@ function AuthenticatedAppShell({
   const layout = useAppLayout();
   const rooms = layout === 'rooms';
   const chapters = layout === 'chapters';
-  const threadLayout = layout === 'thread';
-  const customNavigation = rooms || chapters || threadLayout;
-  const threadTrigger = useRef<HTMLAnchorElement>(null);
-  const threadReturn = useRef<{ key: string; scroll: number } | null>(null);
-  useLayoutEffect(() => {
-    const origin = threadReturn.current;
-    if (!origin || pathname === THREAD_ROUTE) return;
-    threadReturn.current = null;
-    if (
-      !threadLayout ||
-      navigationType !== 'POP' ||
-      location.key !== origin.key
-    )
-      return;
-    const frame = requestAnimationFrame(() => {
-      window.scrollTo({ top: origin.scroll, behavior: 'instant' });
-      threadTrigger.current?.focus({ preventScroll: true });
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [pathname, location.key, navigationType, threadLayout]);
+  const customNavigation = rooms || chapters;
   const isFocusedTask =
     (customNavigation &&
       (protectedDraft ||
@@ -418,11 +397,7 @@ function AuthenticatedAppShell({
             {t('navigation.skipToContent')}
           </a>
 
-          {!isFocusedTask && threadLayout ? (
-            <Suspense fallback={null}>
-              <ThreadHeader isPrivate={isPrivateArea} />
-            </Suspense>
-          ) : !isFocusedTask && chapters ? (
+          {!isFocusedTask && chapters ? (
             <Suspense fallback={null}>
               <ChapterNavigation privateArea={isPrivateArea} />
             </Suspense>
@@ -497,28 +472,14 @@ function AuthenticatedAppShell({
             </main>
           </div>
 
-          {!isFocusedTask && threadLayout && pathname !== THREAD_ROUTE ? (
-            <Suspense fallback={null}>
-              <div className="thread-dock-slot" ref={setBottomNavigation}>
-                <ThreadDock
-                  triggerRef={threadTrigger}
-                  onOpen={() => {
-                    threadReturn.current = {
-                      key: location.key,
-                      scroll: window.scrollY,
-                    };
-                  }}
-                />
-              </div>
-            </Suspense>
-          ) : !isFocusedTask && rooms ? (
+          {!isFocusedTask && rooms ? (
             <Suspense fallback={null}>
               <RoomDock
                 canCreate={!isPrivateArea}
                 navigationRef={setBottomNavigation}
               />
             </Suspense>
-          ) : !isFocusedTask && !chapters && !threadLayout ? (
+          ) : !isFocusedTask && !chapters ? (
             <div className="mobile-bottom-shell" ref={setBottomNavigation}>
               <nav
                 className="mobile-bottom-nav"

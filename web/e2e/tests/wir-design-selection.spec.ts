@@ -1339,10 +1339,7 @@ async function expectTitleGap(
     .toBe(24);
 }
 
-async function checkResponsiveTitleGaps(
-  page: Page,
-  includeThreadIndex = false,
-) {
+async function checkResponsiveTitleGaps(page: Page) {
   const destinations = [
     {
       route: '/more/profile',
@@ -1355,13 +1352,6 @@ async function checkResponsiveTitleGaps(
       content: '.story-years-recaps-entry',
     },
   ];
-  if (includeThreadIndex) {
-    destinations.push({
-      route: '/faden',
-      header: '.thread-index',
-      content: '.thread-index-list',
-    });
-  }
   for (const { route, header, content } of destinations) {
     await page.goto(route);
     for (const [width, height] of [
@@ -1456,64 +1446,58 @@ test('Unser Takt navigation, saved appearance and secondary title spacing', asyn
   });
 });
 
-test('Faden navigation, saved appearance and secondary title spacing', async ({
+test('retired Faden restores standard navigation and the picker still saves', async ({
   page,
 }, info) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 360, height: 830 });
   await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
-  const saved = await fixture(page, { initial: 'connected' });
+  const saved = await fixture(page, { initial: 'together_index', pro: false });
   await signIn(page);
-  await open(page);
-  await page
-    .getByRole('radio', { name: new RegExp(copy.names.together_index) })
-    .check();
-  await page.getByRole('button', { name: copy.save, exact: true }).click();
-  await expect(page.getByText(copy.saved, { exact: true })).toBeVisible();
-  expect(saved.writes).toEqual(['together_index']);
-  await page.goto('/today');
-  await expect(page.locator('html')).toHaveAttribute(
+
+  await page.goto('/faden');
+  await expect(page).toHaveURL(/\/today$/);
+  await expect(page.locator('.today-page')).toHaveAttribute(
     'data-wir-layout',
-    'thread',
+    'connected',
   );
-  await expect(page.locator('.thread-today')).toBeVisible();
-  await captureScreenshot(page, info, 'together_index-compact.png', {
-    animations: 'disabled',
-  });
-  await reflow(page);
-  await page.setViewportSize({ width: 390, height: 420 });
+  const mobileNavigation = page.locator('.mobile-bottom-nav');
+  await mobileNavigation
+    .getByRole('link', { name: navigation.story, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/story$/);
   await page.goto('/story/memories/mem-canal');
-  const trigger = page.getByRole('link', { name: copy.thread.index });
-  await expect(trigger).toBeVisible();
   await expect(
     page.getByRole('heading', { name: 'Breakfast by the canal' }),
   ).toBeVisible();
-  const originScroll = await page.evaluate(() => {
-    window.scrollTo({ top: 160, behavior: 'instant' });
-    return window.scrollY;
-  });
-  expect(originScroll).toBeGreaterThan(0);
-  await expect(trigger).toBeInViewport({ ratio: 1 });
-  await trigger.click();
-  await expectTitleGap(page, '.thread-index', '.thread-index-list');
+
+  await open(page);
+  const picker = page.getByRole('dialog', { name: copy.choices });
+  await expect(picker.locator('input[value="together_index"]')).toHaveCount(0);
+  await expect(page.getByText(copy.unavailable, { exact: true })).toHaveCount(
+    0,
+  );
   await expect(
-    page.locator('.thread-index-list a[href="/more/collections"]'),
-  ).toBeVisible();
-  await page
-    .getByRole('button', {
-      name: copy.thread.return.replace('{{area}}', navigation.story),
-      exact: true,
-    })
-    .click();
-  await expect(page).toHaveURL(/\/story\/memories\/mem-canal/);
-  await expect(trigger).toBeFocused();
-  await expect
-    .poll(() => page.evaluate(() => window.scrollY))
-    .toBe(originScroll);
-  await checkResponsiveTitleGaps(page, true);
+    picker.getByRole('radio', { name: new RegExp(copy.names.connected) }),
+  ).toBeChecked();
+  await reflow(page);
+  await captureScreenshot(page, info, 'faden-picker-360-light.png');
+
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ colorScheme: 'dark' });
+  await captureScreenshot(page, info, 'faden-picker-1440-dark.png');
+
+  await picker
+    .getByRole('radio', { name: new RegExp(copy.names.warm) })
+    .check();
+  await picker.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(picker.getByText(copy.saved, { exact: true })).toBeVisible();
+  await picker.getByRole('button', { name: copy.close, exact: true }).click();
   await page.goto('/today');
-  await expect(page.locator('.thread-today')).toBeVisible();
-  await captureScreenshot(page, info, 'together_index-expanded.png', {
-    animations: 'disabled',
-  });
+  await expect(page.locator('.today-page')).toHaveAttribute(
+    'data-wir-design',
+    'warm',
+  );
+  await expect(page.locator('.app-header .shell-nav')).toBeVisible();
+  expect(saved.writes).toEqual(['warm']);
+  expect(saved.unexpected).toEqual([]);
 });

@@ -121,7 +121,6 @@ same destination routes, contextual create actions and secondary-page headers.
 | --- | --- | --- |
 | `rooms` | Room picker for Zuhause | [#1881](https://github.com/baerenmarke90/eimir/pull/1881) |
 | `chapters` | Chapter navigation for Unser Takt | [#1885](https://github.com/baerenmarke90/eimir/pull/1885) |
-| `thread` | Destination overview for Faden | [#1887](https://github.com/baerenmarke90/eimir/pull/1887) |
 
 The Momente Album/compact switch is an independent per-device presentation
 choice, not a design. It consumes the same semantic tokens and therefore

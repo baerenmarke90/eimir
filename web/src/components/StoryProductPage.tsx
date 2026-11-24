@@ -38,6 +38,7 @@ import { useFirstContentSettle } from '../client/firstContentSettle';
 import { galleryCover } from '../client/galleryCover';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { usePartnerNickname } from '../client/partnerNickname';
+import { usePrimaryTabPeeked } from '../client/primaryTabPeek';
 import { photoShape } from '../client/photoShape';
 import {
   type ClientProblemError,
@@ -55,6 +56,7 @@ import { newNoteOpen, useQuietHint } from '../client/quietHints';
 import type { ReferenceApis } from '../client/referenceFlow';
 import { useRootTabIntro } from '../client/rootTabIntro';
 import {
+  appRoutePath,
   heartMomentDetailPath,
   MEMORY_CREATE_ROUTE,
   MEMORY_MAP_ROUTE,
@@ -233,8 +235,11 @@ export function StoryProductPage({
     return hasActiveFilters ? 'timeline' : 'discover';
   }, [searchParams, hasActiveFilters]);
   // A primary selection opens Discover. The parked Timeline keeps its URL,
-  // filters and mounted content for Back, even while the panel previews Discover.
-  const displayedView = active ? activeView : 'discover';
+  // filters and mounted content for Back, even while a swipe previews Discover.
+  // A parked panel nobody sees keeps showing its own view: it must not mount
+  // Discover content (and read its recap) before it is revealed.
+  const peeked = usePrimaryTabPeeked(appRoutePath('story'));
+  const displayedView = active || !peeked ? activeView : 'discover';
   // Discover does not inherit the retained Timeline scope.
   const effectiveFilters = filters;
   const cacheResourceId = useMemo(

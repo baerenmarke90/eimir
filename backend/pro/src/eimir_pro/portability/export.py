@@ -513,6 +513,41 @@ def _photo_source_document(session: Session, authorization: AuthorizationContext
     return document
 
 
+def _support_reports_document(
+    session: Session, authorization: AuthorizationContext
+) -> list[dict[str, Any]]:
+    """The requester's own support reports with the reply each one received (#2245).
+
+    Reports belong to an Account, not to a Space, so they are selected by the requesting
+    account alone and never by Space. Another person's reports cannot match. The operator's
+    ticket link (``support_report_tickets``) is deliberately not read. Payloads are decrypted
+    like every other protected table; the import ignores this export-only document.
+    """
+    metadata = MetaData()
+    reports = _table(session, "support_reports", metadata)
+    replies = _table(session, "support_report_replies", metadata)
+    rows = session.execute(
+        select(reports)
+        .where(reports.c.account_id == authorization.account_id)
+        .order_by(reports.c.created_at, reports.c.id)
+    ).mappings().all()
+    document: list[dict[str, Any]] = []
+    for row in rows:
+        report = reveal_row("support_reports", dict(row))
+        reply_row = (
+            session.execute(select(replies).where(replies.c.report_id == report["id"]))
+            .mappings()
+            .one_or_none()
+        )
+        reply = (
+            _json_row(reveal_row("support_report_replies", dict(reply_row)))
+            if reply_row is not None
+            else None
+        )
+        document.append({**_json_row(report), "reply": reply})
+    return document
+
+
 def _gentle_prompts_document(
     session: Session, authorization: AuthorizationContext
 ) -> dict[str, Any]:
@@ -578,6 +613,9 @@ def _write_export_archive(
             )
             account_document.update(_photo_source_document(session, authorization))
             account_document["personalGentlePrompts"] = _gentle_prompts_document(
+                session, authorization
+            )
+            account_document["personalSupportReports"] = _support_reports_document(
                 session, authorization
             )
         # Connection credentials and transient selections are never portable.

@@ -4,7 +4,7 @@ import type { LegalDocument } from '../../../legal/legalDocument';
 export const privacyPolicyDe: LegalDocument = {
   document: 'privacy-policy',
   locale: 'de-DE',
-  version: '2026-11-24.draft-11',
+  version: '2026-11-24.draft-12',
   status: 'draft',
   title: 'Datenschutzhinweise für eimir.',
   placeholders: [
@@ -862,7 +862,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Wir erstellen die Kopie auf deine Anfrage und übergeben sie dir. Passkeys, Sitzungen, Zugangsschlüssel, Einmalnachrichten sowie Problemmeldungen und Feedback mit unseren Antworten (Abschnitt 19) nehmen wir nicht auf. Hast du die Kopie erhalten, liegt sie in deiner Verantwortung.',
+              text: 'Wir erstellen die Kopie auf deine Anfrage und übergeben sie dir. Passkeys, Sitzungen, Zugangsschlüssel und Einmalnachrichten nehmen wir nicht auf. Deine persönliche Kopie enthält dagegen deine eigenen Problemmeldungen und dein Feedback mit unseren Antworten (Abschnitt 19). Hast du die Kopie erhalten, liegt sie in deiner Verantwortung.',
             },
           ],
           children: [],
@@ -1180,7 +1180,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Eine abgeschlossene Meldung löschen wir 90 Tage nach ihrem Abschluss, jede Meldung spätestens 365 Tage nach dem Absenden, jeweils mit unserer Antwort. Löschst du dein Konto, löschen wir deine Meldungen und Antworten sofort. Meldungen sind nicht Teil der Datenkopie (Abschnitt 14). Welche Meldungen wir von dir gespeichert haben, teilen wir dir auf Anfrage mit (Abschnitt 23).',
+              text: 'Eine abgeschlossene Meldung löschen wir 90 Tage nach ihrem Abschluss, jede Meldung spätestens 365 Tage nach dem Absenden, jeweils mit unserer Antwort. Löschst du dein Konto, löschen wir deine Meldungen und Antworten sofort. Deine Meldungen mit unseren Antworten enthält deine persönliche Datenkopie (Abschnitt 14), die du nach Abschnitt 23 anfragen kannst.',
             },
           ],
           children: [],

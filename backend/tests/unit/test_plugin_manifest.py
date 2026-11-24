@@ -32,6 +32,7 @@ from eimir.plugins.manifest import (
 )
 from eimir.security import lifecycle
 from tests.support.plugins import (
+    CHAIN_PLUGIN_TABLES,
     admin_distribution_installed,
     admin_plugin_object,
     pro_plugin_object,
@@ -40,7 +41,7 @@ from tests.support.plugins import (
 )
 
 BACKEND = Path(__file__).resolve().parents[2]
-ADMIN_TABLES = {"support_report_tickets"}
+ADMIN_TABLES = set(CHAIN_PLUGIN_TABLES)
 
 
 def _plugin_model_modules() -> set[str]:
@@ -70,6 +71,8 @@ def _tables_of_modules(modules: set[str]) -> set[str]:
 
 
 def _table(name: str) -> Table:
+    if name in ADMIN_TABLES and not admin_distribution_installed():
+        pytest.skip("The operator plugin distribution (eimir-admin) is not installed.")
     _load()
     return Base.metadata.tables[name]
 

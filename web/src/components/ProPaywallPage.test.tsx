@@ -104,7 +104,7 @@ describe('ProPaywallPage', () => {
     ['storage', proPaywall.contexts.storage],
     ['calendar', proPaywall.contexts.calendar],
     ['games', proPaywall.contexts.games],
-  ])('presents the %s context with three benefits', (context, copy) => {
+  ])('presents the %s context with its benefits', (context, copy) => {
     renderPaywall(`/more/pro?context=${context}`);
     expect(
       screen.getByRole('heading', { level: 1, name: copy.title }),
@@ -113,7 +113,14 @@ describe('ProPaywallPage', () => {
       expect(screen.getByText(benefit.title)).toBeTruthy();
     expect(
       screen.getByRole('list', { name: proPaywall.benefitsLabel }).children,
-    ).toHaveLength(3);
+    ).toHaveLength(Object.keys(copy.benefits).length);
+  });
+
+  it('gives the storage context two benefits, none about imports', () => {
+    expect(Object.keys(proPaywall.contexts.storage.benefits)).toEqual([
+      'first',
+      'second',
+    ]);
   });
 
   it('uses the full catalogue for an unknown context', () => {

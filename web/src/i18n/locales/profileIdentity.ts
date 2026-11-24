@@ -48,7 +48,7 @@ const profileIdentity = {
   settingsAppearanceSummary: 'Farbmodus, Sprache und Icon',
   settingsMediaSummary: 'Fotodienst für neue Momente',
   settingsCalendarSummary: 'Gemeinsame Pläne in euren Kalender übertragen',
-  settingsDataSummary: 'Exportieren und importieren',
+  settingsDataSummary: 'Belegter Platz',
   settingsAccountSummary: 'Passkeys, Pro und Konto',
   statusNotificationsNone: 'Alles aus',
   statusSharedCount: '{{enabled}} von {{total}} aktiv',
@@ -172,9 +172,9 @@ const profileIdentity = {
   partnerBirthdayReminderTimeLabel: 'Uhrzeit',
   partnerBirthdayReminderLoading: 'Geburtstagserinnerung wird geladen …',
   settingsPrivacy: 'Privater Bereich',
-  settingsData: 'Daten und Portabilität',
+  settingsData: 'Speicher',
   settingsDataIntro:
-    'Sichere eure Erinnerungen als Datei oder übernimm sie aus einem früheren Export.',
+    'Wie viel Platz eure Fotos, Videos, Sprachnachrichten und PDFs belegen.',
   settingsAccount: 'App und Konto',
   settingsAccountIntro:
     'eimir. Pro und dein Konto. Eure gemeinsamen Inhalte bleiben geschützt.',

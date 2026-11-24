@@ -5,7 +5,7 @@ import { isCapacitorNativePlatform } from '../client/config';
 import { openNativePlanFile } from '../client/nativePlanFiles';
 import { createOwnedObjectUrl } from '../client/objectUrlResource';
 import type { ReferenceApis } from '../client/referenceFlow';
-import { triggerTransferDownload } from '../client/transfer';
+import { triggerBlobDownload } from '../client/fileDownload';
 import type { AttachmentDraftSelection } from '../client/useAttachmentDrafts';
 import type { usePlanFileDrafts } from '../client/usePlanFileDrafts';
 import { useTranslation } from '../i18n';
@@ -238,7 +238,7 @@ export function PlanFilesList({
         setTimeout(() => resource.dispose(), 60_000);
         viewer.location.replace(resource.url);
       } else {
-        triggerTransferDownload(blob, file.name);
+        triggerBlobDownload(blob, file.name);
       }
     } catch (error) {
       viewer?.close();

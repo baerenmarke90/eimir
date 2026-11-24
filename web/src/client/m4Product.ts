@@ -178,10 +178,6 @@ export function engagementTargetPath(
       return recapDetailPath(targetId);
     case 'WISH_SELECTION':
       return '/plan/choose';
-    case 'TRANSFER_EXPORT':
-      return `/more/settings/data?export=${encodeURIComponent(targetId)}`;
-    case 'TRANSFER_IMPORT':
-      return `/more/settings/data?import=${encodeURIComponent(targetId)}`;
     default:
       return null;
   }

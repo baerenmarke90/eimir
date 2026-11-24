@@ -1,5 +1,5 @@
 import type { SpaceStorageUsage } from '../api/generated/models/SpaceStorageUsage';
-import { i18n } from '../i18n';
+import { i18n, resolvedLocale } from '../i18n';
 import { normalizeClientError } from './problemDetails';
 import { ReferenceFlowError } from './referenceFlow';
 
@@ -41,4 +41,32 @@ export async function storageRefusal(
         STORAGE_QUOTA_EXCEEDED,
       )
     : null;
+}
+
+const DECIMAL_UNITS = [
+  ['gigabyte', 1e9],
+  ['megabyte', 1e6],
+  ['kilobyte', 1e3],
+] as const;
+
+/**
+ * Storage sizes in decimal units, as the Freemium matrix states the quota
+ * (5 GB = 5,000,000,000 bytes). `formatBytes` is binary and would show the
+ * same quota as "4.7 GB".
+ */
+export function formatStorageBytes(
+  value: number,
+  locale = resolvedLocale(),
+): string {
+  for (const [unit, size] of DECIMAL_UNITS) {
+    if (value >= size)
+      return new Intl.NumberFormat(locale, {
+        style: 'unit',
+        unit,
+        maximumFractionDigits: 1,
+      }).format(value / size);
+  }
+  return new Intl.NumberFormat(locale, { style: 'unit', unit: 'byte' }).format(
+    value,
+  );
 }

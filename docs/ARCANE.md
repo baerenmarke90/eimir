@@ -442,25 +442,22 @@ sees it. The API enforces these limits itself:
 
 | API route | Largest body the API accepts |
 |---|---|
-| `POST /api/v1/spaces/{spaceId}/transfer/imports` (Transfer Bundle import) | 512 MiB |
 | `PUT /api/v1/spaces/{spaceId}/attachments/{attachmentId}/content` (photos, videos, voice, PDFs) | 250 MiB (the largest kind is video) |
 | every other `/api/` route | 8 MiB |
 
 Configure the proxy for `/api/` as follows:
 
-- Allow request bodies of at least **512 MiB**. Do not set the limit to unlimited; the API
+- Allow request bodies of at least **250 MiB**. Do not set the limit to unlimited; the API
   limits above are the real bound and the proxy limit is defence in depth.
 - Do **not buffer** request bodies, so the proxy streams an upload to the API instead of
   collecting it first (in Nginx: `proxy_request_buffering off`).
 - Use a send and read timeout that covers a slow mobile upload, which takes several minutes
-  for a large bundle (for example 900 s to send and 300 s to read). The API's own upload
-  spool and `/tmp` size are covered in
-  [Transfer Bundle operations](m5/S6-TRANSFER-BUNDLE-OPERATIONS.md).
+  for a large video (for example 900 s to send and 300 s to read).
 
 An Nginx example for the `/api/` route (adapt the upstream address):
 
 ```nginx
-client_max_body_size 512m;
+client_max_body_size 250m;
 
 location ^~ /api/ {
     proxy_pass http://<api-host>:8000;
@@ -477,16 +474,15 @@ Other reverse proxies have equivalent settings for the maximum request body, buf
 timeouts.
 
 A request refused by the proxy does not come from eimir.: it is an HTTP `413` with an HTML
-body and the proxy's own `Server` header, not a JSON problem with a `code`. The Web UI shows
-the "file too large" text for it. To check a deployment without any credentials or file, send
-only the headers of an import request from any machine. The API must answer `401` with a JSON
-body; an HTML `413` means the proxy limit is too small (the command does not send a body and
-changes nothing):
+body and the proxy's own `Server` header, not a JSON problem with a `code`. To check a
+deployment without any credentials or file, send only the headers of an attachment upload
+from any machine. The API must answer `401` with a JSON body; an HTML `413` means the proxy
+limit is too small (the command does not send a body and changes nothing):
 
 ```bash
-curl -i --max-time 15 -X POST \
-  -H "Content-Type: application/zip" -H "Content-Length: 536870912" \
-  "https://eimir.example/api/v1/spaces/00000000-0000-0000-0000-000000000000/transfer/imports"
+curl -i --max-time 15 -X PUT \
+  -H "Content-Type: video/mp4" -H "Content-Length: 262144000" \
+  "https://eimir.example/api/v1/spaces/00000000-0000-0000-0000-000000000000/attachments/00000000-0000-0000-0000-000000000000/content"
 ```
 
 ## Post-deployment verification

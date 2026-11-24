@@ -4,7 +4,7 @@ import type { LegalDocument } from '../../../legal/legalDocument';
 export const termsOfUseDe: LegalDocument = {
   document: 'terms-of-use',
   locale: 'de-DE',
-  version: '2026-11-06.draft-2',
+  version: '2026-11-24.draft-3',
   status: 'draft',
   title: 'Nutzungsbedingungen für eimir.',
   placeholders: [
@@ -87,7 +87,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Du kannst deine Daten jederzeit exportieren und dein Konto jederzeit löschen.',
+              text: 'Du kannst jederzeit eine Kopie deiner Daten verlangen und dein Konto jederzeit löschen.',
             },
           ],
           children: [],
@@ -342,7 +342,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Inhalte, die du für euch beide speicherst („Für uns beide“), kann dein Partner sehen. Gemeinsame Erinnerungen und ähnliche gemeinsame Inhalte kann dein Partner auch bearbeiten. Außerdem kann dein Partner gemeinsame Inhalte im Rahmen des Datenexports herunterladen, auch solche, die du erstellt hast.',
+              text: 'Inhalte, die du für euch beide speicherst („Für uns beide“), kann dein Partner sehen. Gemeinsame Erinnerungen und ähnliche gemeinsame Inhalte kann dein Partner auch bearbeiten. Außerdem kann dein Partner gemeinsame Inhalte in seiner Datenkopie (§ 13 Abs. 1) erhalten, auch solche, die du erstellt hast.',
             },
           ],
           children: [],
@@ -400,7 +400,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Exportiere vorher, was du behalten möchtest (§ 13 Abs. 1). Nach dem Verlassen ist ein Export aus diesem Space nicht mehr möglich.',
+              text: 'Verlange vorher eine Kopie dessen, was du behalten möchtest (§ 13 Abs. 1). Nach dem Verlassen ist eine Kopie aus diesem Space nicht mehr möglich.',
             },
           ],
           children: [],
@@ -438,7 +438,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Teilst du Inhalte mit deinem Partner, darf dein Partner sie innerhalb von eimir. ansehen, im Rahmen der jeweiligen Funktion bearbeiten und im Rahmen des Datenexports herunterladen.',
+              text: 'Teilst du Inhalte mit deinem Partner, darf dein Partner sie innerhalb von eimir. ansehen, im Rahmen der jeweiligen Funktion bearbeiten und in seiner Datenkopie (§ 13 Abs. 1) erhalten.',
             },
           ],
           children: [],
@@ -465,7 +465,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Wir sichern eimir. regelmäßig. Trotzdem empfehlen wir dir, wichtige Inhalte zusätzlich über den Datenexport selbst zu sichern.',
+              text: 'Wir sichern eimir. regelmäßig. Trotzdem empfehlen wir dir, wichtige Inhalte zusätzlich selbst zu sichern, zum Beispiel mit einer Datenkopie auf Anfrage (§ 13 Abs. 1).',
             },
           ],
           children: [],
@@ -727,7 +727,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Stellen wir eimir. Cloud insgesamt ein, informieren wir dich mindestens drei Monate vorher, damit du deine Daten exportieren kannst. Für bereits bezahlte Pro-Zeiträume nach der Einstellung erstatten wir dir den Betrag anteilig.',
+              text: 'Stellen wir eimir. Cloud insgesamt ein, informieren wir dich mindestens drei Monate vorher, damit du eine Kopie deiner Daten verlangen kannst. Für bereits bezahlte Pro-Zeiträume nach der Einstellung erstatten wir dir den Betrag anteilig.',
             },
           ],
           children: [],
@@ -877,7 +877,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Endet Pro, bleibt alles erhalten: Eure Inhalte, auch die mit Pro erstellten, bleiben lesbar und exportierbar. Neue Pro-Inhalte könnt ihr dann nicht mehr erstellen. Belegt ihr mehr Speicher, als in der kostenlosen Version enthalten ist, löschen wir nichts. Neue Uploads können dann pausieren, bis ihr Speicher freigebt oder Pro wieder nutzt.',
+              text: 'Endet Pro, bleibt alles erhalten: Eure Inhalte, auch die mit Pro erstellten, bleiben lesbar und können weiter in eine Datenkopie aufgenommen werden. Neue Pro-Inhalte könnt ihr dann nicht mehr erstellen. Belegt ihr mehr Speicher, als in der kostenlosen Version enthalten ist, löschen wir nichts. Neue Uploads können dann pausieren, bis ihr Speicher freigebt oder Pro wieder nutzt.',
             },
           ],
           children: [],
@@ -936,9 +936,9 @@ export const termsOfUseDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: 'paragraph-13-datenexport-kundigung-und-loschung',
+      id: 'paragraph-13-datenkopie-kundigung-und-loschung',
       content: [
-        { kind: 'text', text: '§ 13 Datenexport, Kündigung und Löschung' },
+        { kind: 'text', text: '§ 13 Datenkopie, Kündigung und Löschung' },
       ],
     },
     {
@@ -949,7 +949,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Du kannst deine Daten jederzeit kostenlos in einem maschinenlesbaren Format exportieren, unabhängig davon, ob ihr Pro nutzt.',
+              text: 'Du kannst jederzeit kostenlos eine Kopie deiner Daten in einem maschinenlesbaren Format von uns verlangen, unabhängig davon, ob ihr Pro nutzt.',
             },
           ],
           children: [],
@@ -1010,7 +1010,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Vor einer Kündigung durch uns geben wir dir Gelegenheit, deine Daten zu exportieren, es sei denn, das ist rechtlich unzulässig oder wegen der Schwere eines Verstoßes nicht zumutbar.',
+              text: 'Vor einer Kündigung durch uns geben wir dir Gelegenheit, eine Kopie deiner Daten zu erhalten, es sei denn, das ist rechtlich unzulässig oder wegen der Schwere eines Verstoßes nicht zumutbar.',
             },
           ],
           children: [],

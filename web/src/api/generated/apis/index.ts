@@ -47,6 +47,5 @@ export * from './SpacesApi';
 export * from './StoryApi';
 export * from './StoryPlanningRelationsApi';
 export * from './SupportApi';
-export * from './TransferApi';
 export * from './WishSelectionsApi';
 export * from './WishesApi';

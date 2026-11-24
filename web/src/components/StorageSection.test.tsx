@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SpaceStorageUsage } from '../api/generated/models/SpaceStorageUsage';
-import { formatStorageBytes as formatBytes } from '../client/transferImport';
+import { formatStorageBytes as formatBytes } from '../client/storageQuota';
 import storageQuota from '../i18n/locales/storageQuota';
 import { StorageSection } from './StorageSection';
 
@@ -36,8 +36,9 @@ function fill(template: string, values: Record<string, number>): string {
   );
 }
 
-function renderSection(usage: SpaceStorageUsage) {
-  getSpaceStorage.mockResolvedValue(usage);
+function renderSection(usage: SpaceStorageUsage | Error) {
+  if (usage instanceof Error) getSpaceStorage.mockRejectedValue(usage);
+  else getSpaceStorage.mockResolvedValue(usage);
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -112,12 +113,20 @@ describe('StorageSection', () => {
     expect(href(storageQuota.viewMedia)).toBe('/story/photos');
   });
 
-  it('shows nothing where storage is unmetered', async () => {
+  it('says calmly that storage is not limited where it is unmetered', async () => {
     const { container } = renderSection({
       used: 9 * GB,
       quota: null,
       available: null,
     });
+
+    expect(await screen.findByText(storageQuota.unlimited)).toBeTruthy();
+    expect(container.querySelector('.storage-meter')).toBeNull();
+    expect(container.textContent).not.toContain('9');
+  });
+
+  it('shows nothing until the storage figure is known', async () => {
+    const { container } = renderSection(new Error('offline'));
 
     await vi.waitFor(() => expect(getSpaceStorage).toHaveBeenCalled());
     expect(container.querySelector('.storage-section')).toBeNull();

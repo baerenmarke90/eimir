@@ -68,11 +68,7 @@ const proPaywall = {
         },
         second: {
           title: 'Videos',
-          body: 'Haltet kurze Videos in euren Erinnerungen fest und übernehmt sie aus euren Exporten.',
-        },
-        third: {
-          title: 'Übersprungene Videos nachholen',
-          body: 'Holt Videos, die ein Import ausgelassen hat, aus derselben Datei nach.',
+          body: 'Haltet kurze Videos in euren Erinnerungen fest.',
         },
       },
     },

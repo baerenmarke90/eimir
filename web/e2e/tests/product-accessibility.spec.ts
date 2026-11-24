@@ -251,15 +251,6 @@ async function installAuthorizedApiMocks(page: Page): Promise<
       return;
     }
 
-    // Settings > Data reads the member's skipped videos (#2141); none here.
-    if (
-      method === 'GET' &&
-      pathname === `/api/v1/spaces/${SPACE_ID}/transfer/skipped-videos`
-    ) {
-      await fulfillJson({ count: 0, totalSize: 0 });
-      return;
-    }
-
     // Settings > Data reads the Space's storage (#2141); a Free Cloud Space
     // with room, so the storage section is part of the reflow check.
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/storage`) {

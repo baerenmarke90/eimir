@@ -4,7 +4,7 @@ import type { LegalDocument } from '../../../legal/legalDocument';
 export const privacyPolicyDe: LegalDocument = {
   document: 'privacy-policy',
   locale: 'de-DE',
-  version: '2026-11-23.draft-10',
+  version: '2026-11-24.draft-11',
   status: 'draft',
   title: 'Datenschutzhinweise für eimir.',
   placeholders: [
@@ -96,7 +96,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Du kannst deine Daten jederzeit exportieren und dein Konto jederzeit löschen.',
+              text: 'Du kannst jederzeit eine Kopie deiner Daten verlangen und dein Konto jederzeit löschen.',
             },
           ],
           children: [],
@@ -295,7 +295,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Was ihr „Für uns beide“ speichert, seht ihr beide. Gemeinsame Erinnerungen und ähnliche Inhalte kann dein Partner auch bearbeiten und im Datenexport herunterladen, auch wenn du sie erstellt hast.',
+              text: 'Was ihr „Für uns beide“ speichert, seht ihr beide. Gemeinsame Erinnerungen und ähnliche Inhalte kann dein Partner auch bearbeiten und in seiner Datenkopie (Abschnitt 14) erhalten, auch wenn du sie erstellt hast.',
             },
           ],
           children: [],
@@ -452,7 +452,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Einmalnachrichten sind nicht Teil des Datenexports. Sicherungen können den verschlüsselten Umschlag bis zum Ablauf ihrer Aufbewahrungsfrist enthalten. Benachrichtigungen dazu enthalten keine Inhalte, und per E-Mail benachrichtigen wir dich über Einmalnachrichten nicht.',
+              text: 'Einmalnachrichten sind nicht Teil der Datenkopie (Abschnitt 14). Sicherungen können den verschlüsselten Umschlag bis zum Ablauf ihrer Aufbewahrungsfrist enthalten. Benachrichtigungen dazu enthalten keine Inhalte, und per E-Mail benachrichtigen wir dich über Einmalnachrichten nicht.',
             },
           ],
           children: [],
@@ -640,7 +640,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Wir speichern pro Person nur die aktuelle gerundete Position, verschlüsselt (Abschnitt 5). Jede neue Position ersetzt die alte, spätestens 24 Stunden nach der Messung löschen wir sie, und wenn du das Teilen beendest, löschen wir sie sofort. Endet Pro für euren Space, beenden wir das Teilen und löschen die Positionen; es beginnt nicht von selbst wieder. Wir erstellen keinen Bewegungsverlauf, nehmen die Positionen nicht in Exporte auf und nutzen sie nur für Entfernung und Kartenbereich. Deine eigene Position schickst du nur, damit wir die Entfernung zu deinem Partner berechnen können. Wir speichern sie dafür nicht.',
+              text: 'Wir speichern pro Person nur die aktuelle gerundete Position, verschlüsselt (Abschnitt 5). Jede neue Position ersetzt die alte, spätestens 24 Stunden nach der Messung löschen wir sie, und wenn du das Teilen beendest, löschen wir sie sofort. Endet Pro für euren Space, beenden wir das Teilen und löschen die Positionen; es beginnt nicht von selbst wieder. Wir erstellen keinen Bewegungsverlauf, nehmen die Positionen in keine Datenkopie auf und nutzen sie nur für Entfernung und Kartenbereich. Deine eigene Position schickst du nur, damit wir die Entfernung zu deinem Partner berechnen können. Wir speichern sie dafür nicht.',
             },
           ],
           children: [],
@@ -842,8 +842,8 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '14-datenexport',
-      content: [{ kind: 'text', text: '14. Datenexport' }],
+      id: '14-datenkopie',
+      content: [{ kind: 'text', text: '14. Datenkopie' }],
     },
     {
       kind: 'list',
@@ -853,7 +853,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Du kannst deine Daten jederzeit kostenlos in den Einstellungen unter „Daten und Portabilität“ exportieren. Der gemeinsame Export enthält die gemeinsamen Inhalte eures Space, auch die deines Partners. Deine „Nur für mich“-Inhalte enthält nur dein persönlicher Export.',
+              text: 'Du kannst jederzeit kostenlos eine Kopie deiner Daten in einem maschinenlesbaren Format von uns verlangen, unabhängig davon, ob ihr Pro nutzt. Schreib uns dazu an kontakt@reiswienudel.de (Abschnitt 23). Die gemeinsame Kopie enthält die gemeinsamen Inhalte eures Space, auch die deines Partners. Deine „Nur für mich“-Inhalte enthält nur deine persönliche Kopie.',
             },
           ],
           children: [],
@@ -862,7 +862,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Wir erstellen die Exportdatei auf unseren Servern, halten sie 24 Stunden verschlüsselt zum Herunterladen bereit und löschen sie dann. Passkeys, Sitzungen, Zugangsschlüssel, Einmalnachrichten sowie Problemmeldungen und Feedback mit unseren Antworten (Abschnitt 19) exportieren wir nicht. Hast du die Datei heruntergeladen, liegt sie in deiner Verantwortung.',
+              text: 'Wir erstellen die Kopie auf deine Anfrage und übergeben sie dir. Passkeys, Sitzungen, Zugangsschlüssel, Einmalnachrichten sowie Problemmeldungen und Feedback mit unseren Antworten (Abschnitt 19) nehmen wir nicht auf. Hast du die Kopie erhalten, liegt sie in deiner Verantwortung.',
             },
           ],
           children: [],
@@ -1180,7 +1180,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Eine abgeschlossene Meldung löschen wir 90 Tage nach ihrem Abschluss, jede Meldung spätestens 365 Tage nach dem Absenden, jeweils mit unserer Antwort. Löschst du dein Konto, löschen wir deine Meldungen und Antworten sofort. Meldungen sind nicht Teil des Datenexports (Abschnitt 14). Welche Meldungen wir von dir gespeichert haben, teilen wir dir auf Anfrage mit (Abschnitt 23).',
+              text: 'Eine abgeschlossene Meldung löschen wir 90 Tage nach ihrem Abschluss, jede Meldung spätestens 365 Tage nach dem Absenden, jeweils mit unserer Antwort. Löschst du dein Konto, löschen wir deine Meldungen und Antworten sofort. Meldungen sind nicht Teil der Datenkopie (Abschnitt 14). Welche Meldungen wir von dir gespeichert haben, teilen wir dir auf Anfrage mit (Abschnitt 23).',
             },
           ],
           children: [],
@@ -1436,8 +1436,11 @@ export const privacyPolicyDe: LegalDocument = {
         },
         {
           content: [
-            { kind: 'strong', text: 'Exportdateien:' },
-            { kind: 'text', text: ' 24 Stunden.' },
+            { kind: 'strong', text: 'Datenkopien auf Anfrage:' },
+            {
+              kind: 'text',
+              text: ' Wir löschen die für dich erstellte Datei nach der Übergabe.',
+            },
           ],
           children: [],
         },
@@ -1531,7 +1534,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Vieles kannst du direkt in eimir. erledigen: dein Profil und deine Einstellungen ändern, Inhalte löschen, deine Daten unter „Daten und Portabilität“ exportieren und dein Konto unter „App und Konto“ löschen. Für alles andere schreib uns an kontakt@reiswienudel.de.',
+              text: 'Vieles kannst du direkt in eimir. erledigen: dein Profil und deine Einstellungen ändern, Inhalte löschen, dein Konto unter „App und Konto“ löschen. Eine Kopie deiner Daten (Auskunft und Übertragbarkeit) schicken wir dir auf Anfrage (Abschnitt 14). Für alles andere schreib uns an kontakt@reiswienudel.de.',
             },
           ],
           children: [],

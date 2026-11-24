@@ -260,8 +260,9 @@ the Transfer Bundle (Web UI, API, jobs and tables) from Core in slices. What
 remains is an operator-only export and a small operator-only import, both
 command-line tools in the Pro package (`eimir_pro/portability`) with a
 schema-version guard and an allowlist guard test; Core holds no export
-knowledge. Until the removal slices have landed, the Transfer code described in
-the historical M5 documents still exists in Core; see the tracker
+knowledge. The Web UI and the API routes are gone (slice S3); until slices S4
+and S5 have landed, the backend code and tables described in the historical M5
+documents still exist in Core, unreachable; see the tracker
 [#2243](https://github.com/baerenmarke90/eimir/issues/2243).
 
 ## Deliberately absent

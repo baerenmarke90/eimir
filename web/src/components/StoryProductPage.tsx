@@ -195,7 +195,8 @@ export function StoryProductPage({
   const { nicknameFor } = usePartnerNickname();
   const layout = useAppLayout();
   const location = useLocation();
-  const saved = Boolean((location.state as { saved?: boolean } | null)?.saved);
+  const saved =
+    active && Boolean((location.state as { saved?: boolean } | null)?.saved);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { captureOrigin } = useTaskOrigin();
@@ -231,6 +232,9 @@ export function StoryProductPage({
     if (tab === 'timeline' || tab === 'discover') return tab;
     return hasActiveFilters ? 'timeline' : 'discover';
   }, [searchParams, hasActiveFilters]);
+  // A primary selection opens Discover. The parked Timeline keeps its URL,
+  // filters and mounted content for Back, even while the panel previews Discover.
+  const displayedView = active ? activeView : 'discover';
   // Discover does not inherit the retained Timeline scope.
   const effectiveFilters = filters;
   const cacheResourceId = useMemo(
@@ -365,7 +369,7 @@ export function StoryProductPage({
   const allPagesFromNetwork =
     storyQuery.data?.pages.every((page) => page.source === 'network') ?? false;
   const offline =
-    activeView === 'timeline'
+    displayedView === 'timeline'
       ? storyQuery.data?.pages[0]?.source === 'cache'
       : discoverQuery.data?.source === 'cache';
 
@@ -886,18 +890,18 @@ export function StoryProductPage({
         }
         action={<MomentCreateMenu floating />}
       />
-      <StoryViewTabs activeView={activeView} onSelect={setView} />
+      <StoryViewTabs activeView={displayedView} onSelect={setView} />
 
       <div
         id="momente-panel-discover"
         role="tabpanel"
         aria-labelledby="momente-tab-discover"
-        hidden={activeView !== 'discover'}
+        hidden={displayedView !== 'discover'}
       >
-        {activeView === 'discover' && discoverQuery.isLoading ? (
+        {displayedView === 'discover' && discoverQuery.isLoading ? (
           <UiState kind="loading" title={t('story.loadingAria')} />
         ) : null}
-        {activeView === 'discover' && discoverError ? (
+        {displayedView === 'discover' && discoverError ? (
           <ProblemState
             error={discoverError}
             onRetry={() =>
@@ -907,14 +911,14 @@ export function StoryProductPage({
             }
           />
         ) : null}
-        {activeView === 'discover' &&
+        {displayedView === 'discover' &&
         discoverQuery.data &&
         !discoverDenied &&
         !featuredItem &&
         discoverItems.length === 0
           ? emptyState
           : null}
-        {activeView === 'discover' &&
+        {displayedView === 'discover' &&
         discoverQuery.data &&
         !discoverDenied &&
         (featuredItem || discoverItems.length > 0) ? (
@@ -985,7 +989,7 @@ export function StoryProductPage({
             ) : null}
           </section>
         ) : null}
-        {activeView === 'discover' &&
+        {displayedView === 'discover' &&
         !featuredItem &&
         discoverItems.length === 0 ? (
           <CoupleExperienceLinks onOpen={openDiscoverItem} lead={recapLead} />
@@ -995,7 +999,7 @@ export function StoryProductPage({
         id="momente-panel-timeline"
         role="tabpanel"
         aria-labelledby="momente-tab-timeline"
-        hidden={activeView !== 'timeline'}
+        hidden={displayedView !== 'timeline'}
       >
         {activeView === 'timeline' && storyQuery.isLoading ? (
           <UiState kind="loading" title={t('story.loadingAria')} />

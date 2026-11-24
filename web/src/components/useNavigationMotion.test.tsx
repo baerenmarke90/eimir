@@ -390,6 +390,93 @@ describe('primary tab slide feedback', () => {
     expect(navigate).toHaveBeenCalledExactlyOnceWith('/plan');
   });
 
+  it.each(['tap', 'scroll', 'pull'] as const)(
+    'keeps a committed destination on a follow-up %s',
+    (followUp) => {
+      const navigate = vi.fn();
+      render(<PageMotionHarness onNavigate={navigate} />);
+      const animation = {
+        currentTime: 0,
+        cancel: vi.fn(),
+        finished: pending(),
+      };
+      Object.defineProperty(screen.getByTestId('motion-page'), 'animate', {
+        configurable: true,
+        value: () => animation,
+      });
+      const target = screen.getByTestId('motion-reading');
+      act(() => swipe(target));
+      expect(navigate).not.toHaveBeenCalled();
+      act(() => {
+        touch(target, 'touchstart', [point(150)]);
+        const y = followUp === 'pull' ? 280 : followUp === 'scroll' ? 120 : 200;
+        if (followUp !== 'tap')
+          expect(
+            touch(target, 'touchmove', [point(150, y)]).defaultPrevented,
+          ).toBe(false);
+        touch(target, 'touchend', [], [point(150, y)]);
+      });
+      expect(navigate).toHaveBeenCalledExactlyOnceWith('/plan');
+    },
+  );
+
+  it('keeps a cancelled reversal when the next contact is a tap', () => {
+    const navigate = vi.fn();
+    render(<PageMotionHarness onNavigate={navigate} />);
+    Object.defineProperty(screen.getByTestId('motion-page'), 'animate', {
+      configurable: true,
+      value: () => ({ currentTime: 0, cancel: vi.fn(), finished: pending() }),
+    });
+    const target = screen.getByTestId('motion-reading');
+    act(() => {
+      touch(target, 'touchstart', [point(300)]);
+      touch(target, 'touchmove', [point(60)]);
+      touch(target, 'touchmove', [point(105)]);
+      touch(target, 'touchend', [], [point(105)]);
+      touch(target, 'touchstart', [point(150)]);
+      touch(target, 'touchend', [], [point(150)]);
+    });
+    expect(navigate).not.toHaveBeenCalled();
+    expect(
+      screen
+        .getByTestId('motion-surface')
+        .hasAttribute('data-primary-tab-dragging'),
+    ).toBe(false);
+  });
+
+  it('applies edge resistance once when re-grabbing the outer page', () => {
+    const navigate = vi.fn();
+    render(<PageMotionHarness pathname="/today" onNavigate={navigate} />);
+    Object.defineProperty(screen.getByTestId('motion-page'), 'animate', {
+      configurable: true,
+      value: () => ({ currentTime: 0, cancel: vi.fn(), finished: pending() }),
+    });
+    const target = screen.getByTestId('motion-reading');
+    const surface = screen.getByTestId('motion-surface');
+    act(() => swipe(target, 100, 220));
+    act(() => touch(target, 'touchstart', [point(170)]));
+    const offset = () =>
+      Number.parseFloat(surface.style.getPropertyValue('--primary-tab-offset'));
+    const initial = offset();
+    expect(initial).toBeGreaterThan(0);
+    let draw: FrameRequestCallback | undefined;
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      draw = callback;
+      return 1;
+    });
+    act(() => {
+      touch(target, 'touchmove', [point(193)]);
+      draw?.(0);
+    });
+    expect(offset()).toBeGreaterThan(initial);
+    act(() => {
+      touch(target, 'touchmove', [point(40)]);
+      draw?.(0);
+    });
+    expect(offset()).toBe(initial - 130);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
   it('cancels a swipe that reverses before release', () => {
     const navigate = vi.fn();
     vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
@@ -428,6 +515,8 @@ describe('primary tab slide feedback', () => {
     ['/story', '/today', -32],
     ['/today', '/more', 32],
     ['/more', '/plan', -32],
+    ['/story/map', '/plan', 32],
+    ['/more/notes', '/plan', -32],
   ])(
     'slides direct tab navigation from %s to %s by %spx',
     (from, to, offset) => {
@@ -792,6 +881,10 @@ describe('primary tab swipe ownership', () => {
     ['/more/collections', 90, 280, '/plan'],
     ['/plan', 90, 280, '/story'],
     ['/story', 90, 280, '/today'],
+    ['/story/map', 280, 90, '/plan'],
+    ['/story/map', 90, 280, '/today'],
+    ['/more/notes', 280, 90, '/more'],
+    ['/more/notes', 90, 280, '/plan'],
   ])(
     'swipes %s to its adjacent tab %s → %s',
     (pathname, from, to, destination) => {
@@ -838,6 +931,21 @@ describe('primary tab swipe ownership', () => {
     expect(onRefresh).toHaveBeenCalledTimes(1);
     expect(onNavigate).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['/story/map', 'class', 'place-map-viewport'],
+    ['/more/notes', 'role', 'tablist'],
+  ])(
+    'keeps local gestures on %s with their owner',
+    (pathname, attribute, value) => {
+      const onNavigate = vi.fn();
+      render(<Harness pathname={pathname} onNavigate={onNavigate} />);
+      const owner = screen.getByTestId('reading');
+      owner.setAttribute(attribute, value);
+      act(() => swipe(owner));
+      expect(onNavigate).not.toHaveBeenCalled();
+    },
+  );
 
   it('never reclassifies a vertical-first drag as a tab swipe', () => {
     const onNavigate = vi.fn();

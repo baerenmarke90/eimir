@@ -10,6 +10,12 @@ import {
   subscribeSessionRefresh,
 } from './sessionPersistence';
 
+/**
+ * The longest delay a timer honours. Browsers run a longer one at once (a
+ * 32-bit limit), which would reschedule it immediately and spin the page.
+ */
+const MAX_TIMER_DELAY_MS = 2 ** 31 - 1;
+
 /** Resume and transport retry must not turn access expiry into manual login. */
 export function useSessionRefresh(
   apiBaseUrl: string,
@@ -89,11 +95,14 @@ export function useSessionRefresh(
     function schedule(current: TokenView) {
       timer = setTimeout(
         refresh,
-        Math.max(
-          0,
-          new Date(current.accessExpiresAt).getTime() -
-            Date.now() -
-            DEFAULT_ACCESS_TOKEN_REFRESH_BUFFER_MS,
+        Math.min(
+          MAX_TIMER_DELAY_MS,
+          Math.max(
+            0,
+            new Date(current.accessExpiresAt).getTime() -
+              Date.now() -
+              DEFAULT_ACCESS_TOKEN_REFRESH_BUFFER_MS,
+          ),
         ),
       );
     }

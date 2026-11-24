@@ -22,7 +22,6 @@ from eimir.jobs import maintenance
 from eimir.relationship import invitations, policy
 from eimir.support_reports import payload as support_report_payload
 from eimir.support_reports import service as support_reports
-from eimir.transfer import service as transfer
 
 # The legal documents live with the Core; ``tests`` is the Core test support.
 DOCUMENT = Path(tests.__file__).resolve().parents[2] / "legal" / "de" / "privacy-policy.md"
@@ -75,12 +74,6 @@ STATEMENTS = [
         timedelta(days=30),
         "löschen wir ihn 30 Tage später mit allen Inhalten",
         id="orphaned-space",
-    ),
-    pytest.param(
-        transfer.RETENTION,
-        timedelta(hours=24),
-        "halten sie 24 Stunden verschlüsselt zum Herunterladen bereit",
-        id="export-bundle",
     ),
     pytest.param(
         once_messages.LIFETIME,

@@ -1,6 +1,7 @@
 import {
   type FormEvent,
   type KeyboardEvent,
+  type RefObject,
   useEffect,
   useId,
   useRef,
@@ -95,14 +96,21 @@ function SectionFeedback({
 
 function TicketDialog({
   report,
+  draft,
   pending,
   error,
+  headingRef,
+  onDraftChange,
   onSubmit,
   onCancel,
 }: {
   report: SupportReportDetailView;
+  /** Kept by the detail so a failed attempt can be retried with it. */
+  draft: SupportReportTicketDraft;
   pending: boolean;
   error: string | null;
+  headingRef: RefObject<HTMLHeadingElement | null>;
+  onDraftChange: (draft: SupportReportTicketDraft) => void;
   onSubmit: (draft: SupportReportTicketDraft) => void;
   onCancel: () => void;
 }) {
@@ -110,13 +118,7 @@ function TicketDialog({
   const baseId = useId();
   const dialogRef = useRef<HTMLElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
-  const [title, setTitle] = useState(() =>
-    t('serverAdmin.reports.ticketDialog.titleTemplate', {
-      kind: t(`serverAdmin.reports.kinds.${report.kind}`),
-      appVersion: report.appVersion,
-    }),
-  );
-  const [body, setBody] = useState('');
+  const { title, body } = draft;
   const footer = ticketFooterPreview(report);
   const titleEmpty = title.trim() === '';
   const titleTooLong =
@@ -146,6 +148,7 @@ function TicketDialog({
   }
 
   const titleErrorId = `${baseId}-title-error`;
+  const bodyErrorId = `${baseId}-body-error`;
 
   return (
     <div className="server-admin-recent-auth-backdrop">
@@ -163,7 +166,7 @@ function TicketDialog({
             <p className="eyebrow">
               {t('serverAdmin.reports.ticketDialog.eyebrow')}
             </p>
-            <h2 id={`${baseId}-title`}>
+            <h2 id={`${baseId}-title`} ref={headingRef} tabIndex={-1}>
               {t('serverAdmin.reports.ticketDialog.title')}
             </h2>
           </div>
@@ -186,10 +189,12 @@ function TicketDialog({
             aria-describedby={
               titleEmpty || titleTooLong ? titleErrorId : undefined
             }
-            onChange={(event) => setTitle(event.target.value)}
+            onChange={(event) =>
+              onDraftChange({ title: event.target.value, body })
+            }
           />
           {titleEmpty || titleTooLong ? (
-            <p id={titleErrorId} className="status status-error">
+            <p id={titleErrorId} className="status status-error" role="alert">
               {t(
                 titleEmpty
                   ? 'serverAdmin.reports.ticketDialog.titleRequired'
@@ -206,10 +211,13 @@ function TicketDialog({
             rows={5}
             disabled={pending}
             aria-invalid={bodyTooLong || undefined}
-            onChange={(event) => setBody(event.target.value)}
+            aria-describedby={bodyTooLong ? bodyErrorId : undefined}
+            onChange={(event) =>
+              onDraftChange({ title, body: event.target.value })
+            }
           />
           {bodyTooLong ? (
-            <p className="status status-error">
+            <p id={bodyErrorId} className="status status-error" role="alert">
               {t('serverAdmin.reports.ticketDialog.bodyTooLong')}
             </p>
           ) : null}
@@ -249,18 +257,26 @@ function TicketSection({
   report,
   online,
   busy,
+  trackerFailed,
+  linkRef,
   onCreate,
   onClear,
 }: {
   report: SupportReportDetailView;
   online: boolean;
   busy: boolean;
+  /** The tracker refused or failed an attempt in this session. */
+  trackerFailed: boolean;
+  linkRef: RefObject<HTMLAnchorElement | null>;
   onCreate: () => void;
   onClear: () => void;
 }) {
   const { t } = useTranslation();
   const ticket: SupportReportTicketSummary | null = report.ticket;
   const now = useNow(ticket?.state === 'PENDING');
+  // After a failed attempt the PENDING link is known to be stuck: the
+  // operator may clear it at once instead of waiting for the timeout.
+  const uncertain = trackerFailed || isTicketUncertain(ticket, now);
 
   if (ticket === null) {
     return report.ticketAvailable ? (
@@ -280,7 +296,7 @@ function TicketSection({
   }
 
   if (ticket.state === 'PENDING') {
-    return isTicketUncertain(ticket, now) ? (
+    return uncertain ? (
       <div className="server-admin-report-uncertain">
         <p className="status status-warning">
           <strong>{t('serverAdmin.reports.ticket.uncertain')}</strong>
@@ -311,6 +327,7 @@ function TicketSection({
       : t('serverAdmin.reports.ticket.openWithoutNumber');
   return url ? (
     <a
+      ref={linkRef}
       className="server-admin-report-ticket-link"
       href={url}
       target="_blank"
@@ -357,12 +374,23 @@ export function ServerAdminSupportReportDetail({
   const [pendingWrite, setPendingWrite] = useState<PrivilegedWrite | null>(
     null,
   );
+  const [ticketDraft, setTicketDraft] =
+    useState<SupportReportTicketDraft | null>(null);
+  const [trackerFailed, setTrackerFailed] = useState(false);
+  const [ticketFocusRequest, setTicketFocusRequest] = useState(0);
+  const ticketLinkRef = useRef<HTMLAnchorElement>(null);
+  const ticketHeadingRef = useRef<HTMLHeadingElement>(null);
+  const dialogHeadingRef = useRef<HTMLHeadingElement>(null);
+  const stepUpShownRef = useRef(false);
   const queryKey = supportReportQueryKey(reportId);
 
+  // `always`: an offline read fails with an offline error instead of pausing
+  // as "loading" forever; writes refuse offline themselves.
   const detailQuery = useQuery({
     queryKey,
     queryFn: () => loadSupportReport(api, reportId),
     retry: false,
+    networkMode: 'always',
   });
   const report = detailQuery.data;
   const loadedId = report?.id;
@@ -372,6 +400,29 @@ export function ServerAdminSupportReportDetail({
   useEffect(() => {
     if (loadedId) headingRef.current?.focus({ preventScroll: true });
   }, [loadedId]);
+
+  // After the ticket dialog closes, focus lands on the new link or, without
+  // one, on the ticket heading instead of the replaced Create button.
+  useEffect(() => {
+    if (ticketFocusRequest === 0) return;
+    (ticketLinkRef.current ?? ticketHeadingRef.current)?.focus({
+      preventScroll: true,
+    });
+  }, [ticketFocusRequest]);
+
+  // When step-up closes over the ticket dialog, its submit button is still
+  // disabled; focus returns to the dialog heading instead.
+  useEffect(() => {
+    if (pendingWrite) {
+      stepUpShownRef.current = true;
+      return;
+    }
+    if (!stepUpShownRef.current) return;
+    stepUpShownRef.current = false;
+    if (ticketDialogOpen) {
+      dialogHeadingRef.current?.focus({ preventScroll: true });
+    }
+  }, [pendingWrite, ticketDialogOpen]);
 
   function changed(next?: SupportReportDetailView) {
     if (next) queryClient.setQueryData(queryKey, next);
@@ -404,6 +455,7 @@ export function ServerAdminSupportReportDetail({
   }
 
   const stateMutation = useMutation({
+    networkMode: 'always',
     mutationFn: (state: SupportReportState) =>
       setSupportReportState(api, reportId, state),
     onMutate: () => setFeedback(null),
@@ -423,6 +475,7 @@ export function ServerAdminSupportReportDetail({
   });
 
   const replyMutation = useMutation({
+    networkMode: 'always',
     mutationFn: (text: string) => replyToSupportReport(api, reportId, text),
     onMutate: () => setFeedback(null),
     onSuccess: (next) => {
@@ -440,12 +493,15 @@ export function ServerAdminSupportReportDetail({
         error instanceof ClientProblemError &&
         error.code === 'SUPPORT_REPORT_ALREADY_REPLIED'
       ) {
+        // The stored reply replaces the form; this draft can never be sent.
+        setReplyText('');
         void detailQuery.refetch();
       }
     },
   });
 
   const ticketMutation = useMutation({
+    networkMode: 'always',
     mutationFn: (draft: SupportReportTicketDraft) =>
       createSupportReportTicket(api, reportId, draft),
     onMutate: () => {
@@ -456,6 +512,9 @@ export function ServerAdminSupportReportDetail({
       patchTicket(ticket);
       changed();
       setTicketDialogOpen(false);
+      setTicketDraft(null);
+      setTrackerFailed(false);
+      setTicketFocusRequest((value) => value + 1);
       setFeedback({
         section: 'ticket',
         tone: 'success',
@@ -478,8 +537,16 @@ export function ServerAdminSupportReportDetail({
         setTicketDialogError(message);
         return;
       }
+      // The dialog closes; the draft stays for the next attempt.
       setTicketDialogOpen(false);
+      setTicketFocusRequest((value) => value + 1);
       setFeedback({ section: 'ticket', tone: 'error', message });
+      if (
+        error instanceof ClientProblemError &&
+        error.code === 'SUPPORT_TICKET_FAILED'
+      ) {
+        setTrackerFailed(true);
+      }
       if (error instanceof SupportReportAdminError && error.ticket) {
         patchTicket(error.ticket);
       } else {
@@ -490,11 +557,13 @@ export function ServerAdminSupportReportDetail({
   });
 
   const clearMutation = useMutation({
+    networkMode: 'always',
     mutationFn: () => clearSupportReportTicket(api, reportId),
     onMutate: () => setFeedback(null),
     onSuccess: () => {
       patchTicket(null);
       changed();
+      setTrackerFailed(false);
       setFeedback({
         section: 'ticket',
         tone: 'success',
@@ -503,6 +572,13 @@ export function ServerAdminSupportReportDetail({
     },
     onError: (error) => {
       failed(error, { kind: 'clear' }, 'ticket');
+      if (
+        error instanceof ClientProblemError &&
+        error.code === 'SUPPORT_TICKET_NOT_FOUND'
+      ) {
+        setTrackerFailed(false);
+        void detailQuery.refetch();
+      }
     },
   });
 
@@ -577,7 +653,10 @@ export function ServerAdminSupportReportDetail({
             detailQuery.error instanceof ClientProblemError &&
               detailQuery.error.kind === 'notFound'
               ? 'serverAdmin.reports.errors.notFound'
-              : 'serverAdmin.reports.detail.error',
+              : detailQuery.error instanceof ClientProblemError &&
+                  detailQuery.error.kind === 'offline'
+                ? 'serverAdmin.reports.offlineBody'
+                : 'serverAdmin.reports.detail.error',
           )}
         </p>
         <button
@@ -594,6 +673,7 @@ export function ServerAdminSupportReportDetail({
   const kindLabel = t(`serverAdmin.reports.kinds.${report.kind}`);
   const counterId = `${baseId}-reply-counter`;
   const hintId = `${baseId}-reply-hint`;
+  const replyErrorId = `${baseId}-reply-error`;
   const stateTitleId = `${baseId}-state-title`;
   const facts: Array<{ label: string; value: string; technical?: boolean }> = [
     {
@@ -749,7 +829,11 @@ export function ServerAdminSupportReportDetail({
               value={replyText}
               rows={4}
               disabled={replyMutation.isPending}
-              aria-describedby={`${hintId} ${counterId}`}
+              aria-describedby={
+                replyTooLong
+                  ? `${hintId} ${counterId} ${replyErrorId}`
+                  : `${hintId} ${counterId}`
+              }
               aria-invalid={replyTooLong || undefined}
               onChange={(event) => setReplyText(event.target.value)}
             />
@@ -768,7 +852,7 @@ export function ServerAdminSupportReportDetail({
               </span>
             </p>
             {replyTooLong ? (
-              <p className="status status-error">
+              <p id={replyErrorId} className="status status-error" role="alert">
                 {t('serverAdmin.reports.reply.tooLong')}
               </p>
             ) : null}
@@ -783,13 +867,27 @@ export function ServerAdminSupportReportDetail({
       </section>
 
       <section>
-        <h4>{t('serverAdmin.reports.ticket.title')}</h4>
+        <h4 ref={ticketHeadingRef} tabIndex={-1}>
+          {t('serverAdmin.reports.ticket.title')}
+        </h4>
         <TicketSection
           report={report}
           online={online}
           busy={busy}
+          trackerFailed={trackerFailed}
+          linkRef={ticketLinkRef}
           onCreate={() => {
             setTicketDialogError(null);
+            setTicketDraft(
+              (kept) =>
+                kept ?? {
+                  title: t('serverAdmin.reports.ticketDialog.titleTemplate', {
+                    kind: kindLabel,
+                    appVersion: report.appVersion,
+                  }),
+                  body: '',
+                },
+            );
             setTicketDialogOpen(true);
           }}
           onClear={clearTicket}
@@ -816,11 +914,14 @@ export function ServerAdminSupportReportDetail({
         </p>
       </section>
 
-      {ticketDialogOpen ? (
+      {ticketDialogOpen && ticketDraft ? (
         <TicketDialog
           report={report}
+          draft={ticketDraft}
           pending={ticketMutation.isPending}
           error={ticketDialogError}
+          headingRef={dialogHeadingRef}
+          onDraftChange={setTicketDraft}
           onSubmit={(draft) => ticketMutation.mutate(draft)}
           onCancel={() => setTicketDialogOpen(false)}
         />

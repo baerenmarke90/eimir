@@ -1,5 +1,9 @@
 // @vitest-environment jsdom
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  onlineManager,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query';
 import {
   cleanup,
   fireEvent,
@@ -12,6 +16,7 @@ import type { ServerAdminSupportReportsApi } from '../api/generated/apis/ServerA
 import type { SupportReportDetailView } from '../api/generated/models/SupportReportDetailView';
 import type { SupportReportListItem } from '../api/generated/models/SupportReportListItem';
 import type { SupportReportListView } from '../api/generated/models/SupportReportListView';
+import { FetchError } from '../api/generated/runtime';
 import { ClientProblemError } from '../client/problemDetails';
 import { serverAdminReportsCopy as reports } from '../i18n/locales/serverAdminReports';
 import { ServerAdminSupportReportsPanel } from './ServerAdminSupportReportsPanel';
@@ -195,6 +200,27 @@ describe('ServerAdminSupportReportsPanel', () => {
 
     renderPanel(vi.fn().mockRejectedValue(new ClientProblemError('offline')));
     expect(await screen.findByText(reports.offlineTitle)).toBeTruthy();
+  });
+
+  it('shows the offline state when the device is offline instead of loading forever', async () => {
+    onlineManager.setOnline(false);
+    try {
+      const listSupportReports = vi
+        .fn()
+        .mockRejectedValue(new FetchError(new TypeError('Failed to fetch')));
+      renderPanel(listSupportReports);
+
+      expect(await screen.findByText(reports.offlineTitle)).toBeTruthy();
+      expect(listSupportReports).toHaveBeenCalled();
+      expect(screen.queryByText(reports.loadingTitle)).toBeNull();
+    } finally {
+      onlineManager.setOnline(true);
+    }
+  });
+
+  it('shows the new count as a number', async () => {
+    renderPanel(vi.fn().mockResolvedValue(page([], { newCount: 1234 })));
+    expect(await screen.findByText('Neu: 1234')).toBeTruthy();
   });
 
   it('opens a report in place and returns focus to its row', async () => {

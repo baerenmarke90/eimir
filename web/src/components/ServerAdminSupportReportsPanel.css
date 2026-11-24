@@ -50,12 +50,30 @@
   min-height: var(--touch-target-comfortable);
 }
 
-/* The pressed segment is marked by weight and border, not by colour alone. */
+/*
+ * The pressed segment is marked by a bottom bar of fixed width and bold text,
+ * not by colour alone (border widths are 0 in the default design).
+ */
 .server-admin-report-segments button[aria-pressed="true"] {
   border-color: var(--color-text);
   background: var(--color-surface-subtle);
   color: var(--color-text);
-  box-shadow: inset 0 0 0 var(--border-control-width) var(--color-text);
+  font-weight: 800;
+  box-shadow: inset 0 calc(-1 * var(--space-1)) 0 var(--color-text);
+}
+
+.server-admin-report-segments button[aria-pressed="false"] {
+  font-weight: 500;
+}
+
+.server-admin-report-detail section > h4:focus {
+  outline: none;
+}
+
+.server-admin-report-detail section > h4:focus-visible,
+.server-admin-recent-auth-head h2:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .server-admin-report-list {

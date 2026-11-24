@@ -12,7 +12,7 @@ import {
   type SupportReportFilter,
   supportReportsQueryKey,
 } from '../client/supportReportsAdmin';
-import { resolvedLocale, useTranslation } from '../i18n';
+import { useTranslation } from '../i18n';
 import { registerServerAdminReportsLocale } from '../i18n/locales/serverAdminReports';
 import { ServerAdminSupportReportDetail } from './ServerAdminSupportReportDetail';
 import { UiState } from './UiState';
@@ -104,6 +104,8 @@ export function ServerAdminSupportReportsPanel({
     initialPageParam: null as string | null,
     getNextPageParam: nextSupportReportCursor,
     retry: false,
+    // An offline read fails as offline instead of pausing as loading.
+    networkMode: 'always',
   });
 
   // Closing a report returns focus to the row that opened it, or to the
@@ -127,7 +129,6 @@ export function ServerAdminSupportReportsPanel({
   const pages = query.data?.pages ?? [];
   const items = pages.flatMap((page) => page.items);
   const newCount = pages[0]?.newCount;
-  const numbers = new Intl.NumberFormat(resolvedLocale());
 
   let listContent: ReactNode;
   if (query.isPending) {
@@ -249,7 +250,7 @@ export function ServerAdminSupportReportsPanel({
         {newCount !== undefined ? (
           <span className="server-admin-count">
             {t('serverAdmin.reports.newCount', {
-              count: numbers.format(newCount),
+              count: newCount,
             })}
           </span>
         ) : null}

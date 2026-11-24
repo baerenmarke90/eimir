@@ -1,5 +1,9 @@
 // @vitest-environment jsdom
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  onlineManager,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query';
 import {
   cleanup,
   fireEvent,
@@ -12,6 +16,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ServerAdminSupportReportsApi } from '../api/generated/apis/ServerAdminSupportReportsApi';
 import type { SupportReportDetailView } from '../api/generated/models/SupportReportDetailView';
 import type { SupportReportTicketSummary } from '../api/generated/models/SupportReportTicketSummary';
+import { FetchError, ResponseError } from '../api/generated/runtime';
 import { ClientProblemError } from '../client/problemDetails';
 import { serverAdminReportsCopy as reports } from '../i18n/locales/serverAdminReports';
 import { ServerAdminSupportReportDetail } from './ServerAdminSupportReportDetail';
@@ -429,5 +434,351 @@ describe('ServerAdminSupportReportDetail', () => {
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
+  });
+});
+
+function problem(status: number, body: Record<string, unknown>) {
+  return new ResponseError(
+    new Response(
+      JSON.stringify({
+        detail: 'x',
+        title: 'Problem',
+        type: 'p',
+        status,
+        ...body,
+      }),
+      { status },
+    ),
+  );
+}
+
+async function openTicketDialog() {
+  fireEvent.click(
+    await screen.findByRole('button', { name: reports.ticket.create }),
+  );
+  return screen.findByRole('dialog', { name: reports.ticketDialog.title });
+}
+
+function typeTicket(dialog: HTMLElement, title: string, body: string) {
+  fireEvent.change(
+    within(dialog).getByLabelText(reports.ticketDialog.titleLabel),
+    { target: { value: title } },
+  );
+  fireEvent.change(
+    within(dialog).getByLabelText(reports.ticketDialog.bodyLabel),
+    { target: { value: body } },
+  );
+  fireEvent.click(
+    within(dialog).getByRole('button', { name: reports.ticketDialog.submit }),
+  );
+}
+
+describe('ServerAdminSupportReportDetail ticket and write failures', () => {
+  it.each([
+    [true, reports.errors.ticketFailedRetryable],
+    [false, reports.errors.ticketFailed],
+  ])(
+    'after a tracker failure (retryable %s) offers the confirmed clear at once and keeps the draft',
+    async (retryable, message) => {
+      const pendingTicket = ticket({
+        state: 'PENDING',
+        url: null,
+        number: null,
+        createdAt: new Date(),
+      });
+      const getSupportReport = vi
+        .fn()
+        .mockResolvedValueOnce(report())
+        .mockResolvedValue(report({ ticket: pendingTicket }));
+      const createSupportReportTicket = vi.fn().mockRejectedValue(
+        problem(502, {
+          code: 'SUPPORT_TICKET_FAILED',
+          retryable,
+          ticket: null,
+        }),
+      );
+      const clearSupportReportTicket = vi.fn().mockResolvedValue(undefined);
+      renderDetail(report(), {
+        getSupportReport,
+        createSupportReportTicket,
+        clearSupportReportTicket,
+      });
+
+      typeTicket(await openTicketDialog(), 'My title', 'My body');
+
+      expect(await screen.findByText(message)).toBeTruthy();
+      expect(await screen.findByText(reports.ticket.uncertain)).toBeTruthy();
+      expect(screen.queryByText(reports.ticket.pending)).toBeNull();
+      fireEvent.click(
+        screen.getByRole('button', { name: reports.ticket.clear }),
+      );
+      expect(window.confirm).toHaveBeenCalledWith(reports.ticket.confirmClear);
+      await waitFor(() => expect(clearSupportReportTicket).toHaveBeenCalled());
+
+      const dialog = await openTicketDialog();
+      expect(
+        (
+          within(dialog).getByLabelText(
+            reports.ticketDialog.titleLabel,
+          ) as HTMLInputElement
+        ).value,
+      ).toBe('My title');
+      expect(
+        (
+          within(dialog).getByLabelText(
+            reports.ticketDialog.bodyLabel,
+          ) as HTMLTextAreaElement
+        ).value,
+      ).toBe('My body');
+    },
+  );
+
+  it('closes the dialog and hides the button when no tracker is configured', async () => {
+    const getSupportReport = vi
+      .fn()
+      .mockResolvedValueOnce(report())
+      .mockResolvedValue(report({ ticketAvailable: false }));
+    const createSupportReportTicket = vi
+      .fn()
+      .mockRejectedValue(
+        problem(409, { code: 'SUPPORT_TICKET_NOT_CONFIGURED' }),
+      );
+    renderDetail(report(), { getSupportReport, createSupportReportTicket });
+
+    typeTicket(await openTicketDialog(), 'T', '');
+
+    expect(
+      await screen.findByText(reports.errors.ticketNotConfigured),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole('dialog', { name: reports.ticketDialog.title }),
+    ).toBeNull();
+    expect(await screen.findByText(reports.ticket.unavailable)).toBeTruthy();
+    expect(
+      screen.queryByRole('button', { name: reports.ticket.create }),
+    ).toBeNull();
+  });
+
+  it('keeps the draft in the dialog when the ticket is too long', async () => {
+    const createSupportReportTicket = vi
+      .fn()
+      .mockRejectedValue(problem(422, { code: 'SUPPORT_TICKET_TOO_LONG' }));
+    renderDetail(report(), { createSupportReportTicket });
+
+    const dialog = await openTicketDialog();
+    typeTicket(dialog, 'Long one', 'Body');
+
+    expect(
+      await within(dialog).findByText(reports.errors.ticketTooLong),
+    ).toBeTruthy();
+    expect(
+      (
+        within(dialog).getByLabelText(
+          reports.ticketDialog.titleLabel,
+        ) as HTMLInputElement
+      ).value,
+    ).toBe('Long one');
+  });
+
+  it('retries ticket creation after step-up and focuses the new link', async () => {
+    const createSupportReportTicket = vi
+      .fn()
+      .mockRejectedValueOnce(stepUpRequired())
+      .mockResolvedValueOnce(ticket({ number: 5 }));
+    renderDetail(report(), { createSupportReportTicket });
+
+    const dialog = await openTicketDialog();
+    typeTicket(dialog, 'Crash', 'Steps');
+    await screen.findByRole('dialog', { name: 'ServerAdmin step-up' });
+    fireEvent.click(screen.getByRole('button', { name: 'Complete step-up' }));
+
+    await waitFor(() =>
+      expect(createSupportReportTicket).toHaveBeenCalledTimes(2),
+    );
+    expect(createSupportReportTicket.mock.calls[1]?.[0]).toEqual(
+      createSupportReportTicket.mock.calls[0]?.[0],
+    );
+    const link = await screen.findByRole('link', { name: /Ticket #5/ });
+    await waitFor(() => expect(document.activeElement).toBe(link));
+  });
+
+  it('returns focus into the ticket dialog when step-up is cancelled', async () => {
+    const createSupportReportTicket = vi
+      .fn()
+      .mockRejectedValueOnce(stepUpRequired());
+    renderDetail(report(), { createSupportReportTicket });
+
+    const dialog = await openTicketDialog();
+    typeTicket(dialog, 'Crash', '');
+    await screen.findByRole('dialog', { name: 'ServerAdmin step-up' });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel step-up' }));
+
+    const heading = within(dialog).getByRole('heading', {
+      name: reports.ticketDialog.title,
+    });
+    await waitFor(() => expect(document.activeElement).toBe(heading));
+  });
+
+  it('retries a state change and a clear after step-up', async () => {
+    const setSupportReportState = vi
+      .fn()
+      .mockRejectedValueOnce(stepUpRequired())
+      .mockResolvedValueOnce(
+        report({
+          state: 'CLOSED',
+          ticket: ticket({
+            state: 'PENDING',
+            url: null,
+            number: null,
+            createdAt: new Date(Date.now() - 10 * 60 * 1000),
+          }),
+        }),
+      );
+    const clearSupportReportTicket = vi
+      .fn()
+      .mockRejectedValueOnce(stepUpRequired())
+      .mockResolvedValueOnce(undefined);
+    renderDetail(
+      report({
+        ticket: ticket({
+          state: 'PENDING',
+          url: null,
+          number: null,
+          createdAt: new Date(Date.now() - 10 * 60 * 1000),
+        }),
+      }),
+      { setSupportReportState, clearSupportReportTicket },
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: reports.states.CLOSED }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Complete step-up' }),
+    );
+    await waitFor(() => expect(setSupportReportState).toHaveBeenCalledTimes(2));
+    expect(setSupportReportState.mock.calls[1]?.[0]).toEqual(
+      setSupportReportState.mock.calls[0]?.[0],
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: reports.ticket.clear }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Complete step-up' }),
+    );
+    await waitFor(() =>
+      expect(clearSupportReportTicket).toHaveBeenCalledTimes(2),
+    );
+    expect(await screen.findByText(reports.ticket.cleared)).toBeTruthy();
+  });
+
+  it('shows the stored reply after a 409 and leaves without a draft prompt', async () => {
+    const onClose = vi.fn();
+    const getSupportReport = vi
+      .fn()
+      .mockResolvedValueOnce(report())
+      .mockResolvedValue(
+        report({
+          hasReply: true,
+          reply: { repliedAt: new Date(), text: 'Other tab reply' },
+        }),
+      );
+    const replyToSupportReport = vi
+      .fn()
+      .mockRejectedValue(
+        problem(409, { code: 'SUPPORT_REPORT_ALREADY_REPLIED' }),
+      );
+    renderDetail(report(), { getSupportReport, replyToSupportReport }, onClose);
+
+    fireEvent.change(await screen.findByLabelText(reports.reply.label), {
+      target: { value: 'Mine' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: reports.reply.send }));
+
+    expect(await screen.findByText(reports.errors.alreadyReplied)).toBeTruthy();
+    expect(await screen.findByText('Other tab reply')).toBeTruthy();
+    vi.mocked(window.confirm).mockClear();
+    fireEvent.click(screen.getByRole('button', { name: reports.detail.back }));
+    expect(window.confirm).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends a reply and a ticket only once on double submit', async () => {
+    const replyToSupportReport = vi.fn(() => new Promise(() => undefined));
+    const createSupportReportTicket = vi.fn(() => new Promise(() => undefined));
+    renderDetail(report(), { replyToSupportReport, createSupportReportTicket });
+
+    fireEvent.change(await screen.findByLabelText(reports.reply.label), {
+      target: { value: 'Once' },
+    });
+    const send = screen.getByRole('button', { name: reports.reply.send });
+    fireEvent.click(send);
+    fireEvent.click(send);
+    await waitFor(() => expect(replyToSupportReport).toHaveBeenCalledTimes(1));
+    cleanup();
+
+    renderDetail(report(), { createSupportReportTicket });
+    const dialog = await openTicketDialog();
+    const submit = within(dialog).getByRole('button', {
+      name: reports.ticketDialog.submit,
+    });
+    fireEvent.click(submit);
+    fireEvent.click(submit);
+    await waitFor(() =>
+      expect(createSupportReportTicket).toHaveBeenCalledTimes(1),
+    );
+  });
+
+  it('refetches and explains when the ticket link was already gone', async () => {
+    const stale = ticket({
+      state: 'PENDING',
+      url: null,
+      number: null,
+      createdAt: new Date(Date.now() - 10 * 60 * 1000),
+    });
+    const getSupportReport = vi
+      .fn()
+      .mockResolvedValueOnce(report({ ticket: stale }))
+      .mockResolvedValue(report());
+    const clearSupportReportTicket = vi
+      .fn()
+      .mockRejectedValue(problem(404, { code: 'SUPPORT_TICKET_NOT_FOUND' }));
+    renderDetail(report({ ticket: stale }), {
+      getSupportReport,
+      clearSupportReportTicket,
+    });
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: reports.ticket.clear }),
+    );
+
+    expect(await screen.findByText(reports.errors.ticketNotFound)).toBeTruthy();
+    expect(
+      await screen.findByRole('button', { name: reports.ticket.create }),
+    ).toBeTruthy();
+  });
+
+  it('shows the offline state when the report cannot load while offline', async () => {
+    onlineManager.setOnline(false);
+    try {
+      const getSupportReport = vi
+        .fn()
+        .mockRejectedValue(new FetchError(new TypeError('Failed to fetch')));
+      renderDetail(report(), { getSupportReport });
+      expect(await screen.findByText(reports.offlineBody)).toBeTruthy();
+      expect(getSupportReport).toHaveBeenCalled();
+    } finally {
+      onlineManager.setOnline(true);
+    }
+  });
+
+  it('ties length errors to their fields', async () => {
+    renderDetail(report());
+    const field = await screen.findByLabelText(reports.reply.label);
+    fireEvent.change(field, { target: { value: 'x'.repeat(501) } });
+    const error = screen.getByText(reports.reply.tooLong);
+    expect(error.getAttribute('role')).toBe('alert');
+    expect(field.getAttribute('aria-describedby')).toContain(error.id);
   });
 });

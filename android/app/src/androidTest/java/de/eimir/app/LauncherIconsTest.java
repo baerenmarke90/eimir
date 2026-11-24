@@ -26,6 +26,26 @@ public class LauncherIconsTest {
     @After
     public void reset() throws Exception {
         LauncherIcons.apply(context, "original");
+        // Clears a recorded choice, because original is now current.
+        LauncherIcons.request(context, "original");
+    }
+
+    @Test
+    public void aRequestKeepsTheCurrentEntryUntilTheAppLeavesTheScreen() throws Exception {
+        LauncherIcons.apply(context, "original");
+        LauncherIcons.request(context, "sunset");
+        Intent launcher = new Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_LAUNCHER).setPackage(context.getPackageName());
+        List<ResolveInfo> activities = context.getPackageManager().queryIntentActivities(launcher, 0);
+        assertEquals(1, activities.size());
+        assertEquals(LauncherIcons.COMPONENTS.get("original"), activities.get(0).activityInfo.name);
+        assertEquals("sunset", context.getSharedPreferences("eimir_launcher_icon", Context.MODE_PRIVATE)
+                .getString("pending", null));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void anUnknownRequestIsRejected() throws Exception {
+        LauncherIcons.request(context, "unknown");
     }
 
     @Test

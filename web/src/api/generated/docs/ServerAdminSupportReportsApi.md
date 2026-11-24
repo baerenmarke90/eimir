@@ -4,11 +4,159 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**clearSupportReportTicket**](ServerAdminSupportReportsApi.md#clearsupportreportticket) | **DELETE** /api/v1/server-admin/support-reports/{reportId}/ticket | Clear Support Report Ticket |
+| [**createSupportReportTicket**](ServerAdminSupportReportsApi.md#createsupportreportticket) | **POST** /api/v1/server-admin/support-reports/{reportId}/ticket | Create Support Report Ticket |
 | [**getSupportReport**](ServerAdminSupportReportsApi.md#getsupportreport) | **GET** /api/v1/server-admin/support-reports/{reportId} | Get Support Report |
 | [**listSupportReports**](ServerAdminSupportReportsApi.md#listsupportreports) | **GET** /api/v1/server-admin/support-reports | List Support Reports |
 | [**replyToSupportReport**](ServerAdminSupportReportsApi.md#replytosupportreport) | **POST** /api/v1/server-admin/support-reports/{reportId}/reply | Reply To Support Report |
 | [**setSupportReportState**](ServerAdminSupportReportsApi.md#setsupportreportstate) | **PUT** /api/v1/server-admin/support-reports/{reportId}/state | Set Support Report State |
 
+
+
+## clearSupportReportTicket
+
+> clearSupportReportTicket(reportId)
+
+Clear Support Report Ticket
+
+Forget the ticket link so a new ticket can be created. Needs recent authentication.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminSupportReportsApi,
+} from '';
+import type { ClearSupportReportTicketRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminSupportReportsApi();
+
+  const body = {
+    // string
+    reportId: reportId_example,
+  } satisfies ClearSupportReportTicketRequest;
+
+  try {
+    const data = await api.clearSupportReportTicket(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **reportId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## createSupportReportTicket
+
+> SupportReportTicketSummary createSupportReportTicket(reportId, supportReportTicketCreate)
+
+Create Support Report Ticket
+
+Create the tracker ticket of a report. Needs recent authentication.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminSupportReportsApi,
+} from '';
+import type { CreateSupportReportTicketRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminSupportReportsApi();
+
+  const body = {
+    // string
+    reportId: reportId_example,
+    // SupportReportTicketCreate
+    supportReportTicketCreate: ...,
+  } satisfies CreateSupportReportTicketRequest;
+
+  try {
+    const data = await api.createSupportReportTicket(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **reportId** | `string` |  | [Defaults to `undefined`] |
+| **supportReportTicketCreate** | [SupportReportTicketCreate](SupportReportTicketCreate.md) |  | |
+
+### Return type
+
+[**SupportReportTicketSummary**](SupportReportTicketSummary.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **201** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The report already has a ticket link (SUPPORT_TICKET_EXISTS, with the link) or no tracker is configured (SUPPORT_TICKET_NOT_CONFIGURED). |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+| **502** | The tracker did not create the ticket (SUPPORT_TICKET_FAILED). The link stays pending until it is cleared; the retry flag says whether another attempt can work. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## getSupportReport

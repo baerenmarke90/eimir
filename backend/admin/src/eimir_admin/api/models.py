@@ -13,6 +13,7 @@ from uuid import UUID
 
 from pydantic import ConfigDict, StringConstraints
 
+from eimir.api.errors import ProblemDetails
 from eimir.api.schema import ApiModel
 from eimir.api.v1.support_reports import ClientContextBody
 from eimir.support_reports.models import SupportReportKind, SupportReportState
@@ -87,3 +88,30 @@ class SupportReportReplyCreate(ApiModel):
         str,
         StringConstraints(strip_whitespace=True, min_length=1, max_length=REPLY_MAX_CHARACTERS),
     ]
+
+
+TICKET_TITLE_MAX_CHARACTERS = 256
+TICKET_BODY_MAX_CHARACTERS = 65_536
+
+
+class SupportReportTicketCreate(ApiModel):
+    """Strict request: what the operator wrote; the technical footer is added by the server."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: Annotated[
+        str,
+        StringConstraints(
+            strip_whitespace=True, min_length=1, max_length=TICKET_TITLE_MAX_CHARACTERS
+        ),
+    ]
+    body: Annotated[str, StringConstraints(max_length=TICKET_BODY_MAX_CHARACTERS)]
+
+
+class SupportReportTicketProblem(ProblemDetails):
+    """Error body of the ticket routes: the usual problem plus the link or the retry flag."""
+
+    # Set when the report already has a link, otherwise null.
+    ticket: SupportReportTicketSummary | None
+    # Set when the tracker call failed: whether another attempt can succeed.
+    retryable: bool | None

@@ -125,6 +125,8 @@ ADMIN_OPERATIONS = frozenset(
         ("GET", "/api/v1/server-admin/support-reports/{reportId}"),
         ("PUT", "/api/v1/server-admin/support-reports/{reportId}/state"),
         ("POST", "/api/v1/server-admin/support-reports/{reportId}/reply"),
+        ("POST", "/api/v1/server-admin/support-reports/{reportId}/ticket"),
+        ("DELETE", "/api/v1/server-admin/support-reports/{reportId}/ticket"),
     }
 )
 """Operations of the operator plugin (``eimir-admin``) in the complete contract.

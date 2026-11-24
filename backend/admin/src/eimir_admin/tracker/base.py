@@ -27,4 +27,9 @@ class TrackerError(Exception):
 
 
 class IssueTracker(Protocol):
+    @property
+    def name(self) -> str:
+        """Short stable name of the tracker, stored with the ticket link."""
+        ...
+
     def create_issue(self, *, title: str, body: str, labels: Sequence[str]) -> TicketRef: ...

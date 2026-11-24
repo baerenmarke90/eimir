@@ -182,7 +182,7 @@ def test_requests_reject_unknown_fields_and_unknown_states() -> None:
     )
 
 
-def test_the_router_serves_exactly_the_four_operator_routes() -> None:
+def test_the_router_serves_exactly_the_six_operator_routes() -> None:
     routes = {
         (method, route.path, route.operation_id)  # type: ignore[attr-defined]
         for route in support_reports.router.routes
@@ -195,6 +195,8 @@ def test_the_router_serves_exactly_the_four_operator_routes() -> None:
         ("GET", f"{prefix}/{{reportId}}", "getSupportReport"),
         ("PUT", f"{prefix}/{{reportId}}/state", "setSupportReportState"),
         ("POST", f"{prefix}/{{reportId}}/reply", "replyToSupportReport"),
+        ("POST", f"{prefix}/{{reportId}}/ticket", "createSupportReportTicket"),
+        ("DELETE", f"{prefix}/{{reportId}}/ticket", "clearSupportReportTicket"),
     }
 
 

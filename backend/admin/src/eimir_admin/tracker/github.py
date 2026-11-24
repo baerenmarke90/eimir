@@ -30,6 +30,8 @@ class GitHubIssueTracker:
     representation.
     """
 
+    name = "github"
+
     def __init__(self, repository: str, token: str, client: httpx.Client | None = None) -> None:
         if not is_valid_repository(repository):
             raise ValueError("repository must have the form owner/name")

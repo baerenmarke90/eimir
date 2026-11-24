@@ -18195,6 +18195,86 @@
         "title": "SupportReportStateUpdate",
         "type": "object"
       },
+      "SupportReportTicketCreate": {
+        "additionalProperties": false,
+        "description": "Strict request: what the operator wrote; the technical footer is added by the server.",
+        "properties": {
+          "body": {
+            "maxLength": 65536,
+            "title": "Body",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "body"
+        ],
+        "title": "SupportReportTicketCreate",
+        "type": "object"
+      },
+      "SupportReportTicketProblem": {
+        "description": "Error body of the ticket routes: the usual problem plus the link or the retry flag.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "retryable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retryable"
+          },
+          "status": {
+            "title": "Status",
+            "type": "integer"
+          },
+          "ticket": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SupportReportTicketSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "code",
+          "ticket",
+          "retryable"
+        ],
+        "title": "SupportReportTicketProblem",
+        "type": "object"
+      },
       "SupportReportTicketSummary": {
         "description": "The tracker ticket of a report: where it lives, never what it says.",
         "properties": {
@@ -26091,6 +26171,165 @@
           }
         },
         "summary": "Set Support Report State",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      }
+    },
+    "/api/v1/server-admin/support-reports/{reportId}/ticket": {
+      "delete": {
+        "description": "Forget the ticket link so a new ticket can be created. Needs recent authentication.",
+        "operationId": "clearSupportReportTicket",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reportId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Reportid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Clear Support Report Ticket",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      },
+      "post": {
+        "description": "Create the tracker ticket of a report. Needs recent authentication.",
+        "operationId": "createSupportReportTicket",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reportId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Reportid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportReportTicketCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportTicketSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportTicketProblem"
+                }
+              }
+            },
+            "description": "The report already has a ticket link (SUPPORT_TICKET_EXISTS, with the link) or no tracker is configured (SUPPORT_TICKET_NOT_CONFIGURED)."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportTicketProblem"
+                }
+              }
+            },
+            "description": "The tracker did not create the ticket (SUPPORT_TICKET_FAILED). The link stays pending until it is cleared; the retry flag says whether another attempt can work."
+          }
+        },
+        "summary": "Create Support Report Ticket",
         "tags": [
           "server-admin-support-reports"
         ]

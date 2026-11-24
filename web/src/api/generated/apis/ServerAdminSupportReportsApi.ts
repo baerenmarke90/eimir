@@ -43,6 +43,30 @@ import {
     SupportReportStateUpdateFromJSON,
     SupportReportStateUpdateToJSON,
 } from '../models/SupportReportStateUpdate';
+import {
+    type SupportReportTicketCreate,
+    SupportReportTicketCreateFromJSON,
+    SupportReportTicketCreateToJSON,
+} from '../models/SupportReportTicketCreate';
+import {
+    type SupportReportTicketProblem,
+    SupportReportTicketProblemFromJSON,
+    SupportReportTicketProblemToJSON,
+} from '../models/SupportReportTicketProblem';
+import {
+    type SupportReportTicketSummary,
+    SupportReportTicketSummaryFromJSON,
+    SupportReportTicketSummaryToJSON,
+} from '../models/SupportReportTicketSummary';
+
+export interface ClearSupportReportTicketRequest {
+    reportId: string;
+}
+
+export interface CreateSupportReportTicketRequest {
+    reportId: string;
+    supportReportTicketCreate: SupportReportTicketCreate;
+}
 
 export interface GetSupportReportRequest {
     reportId: string;
@@ -68,6 +92,109 @@ export interface SetSupportReportStateRequest {
  * 
  */
 export class ServerAdminSupportReportsApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for clearSupportReportTicket without sending the request
+     */
+    async clearSupportReportTicketRequestOpts(requestParameters: ClearSupportReportTicketRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['reportId'] == null) {
+            throw new runtime.RequiredError(
+                'reportId',
+                'Required parameter "reportId" was null or undefined when calling clearSupportReportTicket().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/server-admin/support-reports/{reportId}/ticket`;
+        urlPath = urlPath.replace('{reportId}', encodeURIComponent(String(requestParameters['reportId'])));
+
+        return {
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Forget the ticket link so a new ticket can be created. Needs recent authentication.
+     * Clear Support Report Ticket
+     */
+    async clearSupportReportTicketRaw(requestParameters: ClearSupportReportTicketRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.clearSupportReportTicketRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Forget the ticket link so a new ticket can be created. Needs recent authentication.
+     * Clear Support Report Ticket
+     */
+    async clearSupportReportTicket(requestParameters: ClearSupportReportTicketRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.clearSupportReportTicketRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for createSupportReportTicket without sending the request
+     */
+    async createSupportReportTicketRequestOpts(requestParameters: CreateSupportReportTicketRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['reportId'] == null) {
+            throw new runtime.RequiredError(
+                'reportId',
+                'Required parameter "reportId" was null or undefined when calling createSupportReportTicket().'
+            );
+        }
+
+        if (requestParameters['supportReportTicketCreate'] == null) {
+            throw new runtime.RequiredError(
+                'supportReportTicketCreate',
+                'Required parameter "supportReportTicketCreate" was null or undefined when calling createSupportReportTicket().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/server-admin/support-reports/{reportId}/ticket`;
+        urlPath = urlPath.replace('{reportId}', encodeURIComponent(String(requestParameters['reportId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: SupportReportTicketCreateToJSON(requestParameters['supportReportTicketCreate']),
+        };
+    }
+
+    /**
+     * Create the tracker ticket of a report. Needs recent authentication.
+     * Create Support Report Ticket
+     */
+    async createSupportReportTicketRaw(requestParameters: CreateSupportReportTicketRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SupportReportTicketSummary>> {
+        const requestOptions = await this.createSupportReportTicketRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SupportReportTicketSummaryFromJSON(jsonValue));
+    }
+
+    /**
+     * Create the tracker ticket of a report. Needs recent authentication.
+     * Create Support Report Ticket
+     */
+    async createSupportReportTicket(requestParameters: CreateSupportReportTicketRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SupportReportTicketSummary> {
+        const response = await this.createSupportReportTicketRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for getSupportReport without sending the request

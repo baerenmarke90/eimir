@@ -500,6 +500,8 @@ export * from './SupportReportReplyCreate';
 export * from './SupportReportReplyView';
 export * from './SupportReportState';
 export * from './SupportReportStateUpdate';
+export * from './SupportReportTicketCreate';
+export * from './SupportReportTicketProblem';
 export * from './SupportReportTicketSummary';
 export * from './ThemePreference';
 export * from './ThinkingOfYouAccepted';

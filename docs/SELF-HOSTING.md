@@ -615,12 +615,12 @@ the trusted TLS proxy hop is lost for `X-Forwarded-*` handling.
 
 The API itself rejects ordinary request bodies above 8 MiB with HTTP 413 before
 JSON parsing, including requests without a trustworthy `Content-Length`. Attachment
-uploads and Transfer imports retain their separate server-side streaming limits
-(25 MiB for supported images and 512 MiB compressed for Transfer imports). This
+uploads retain their separate server-side streaming limits (for example 25 MiB for
+supported images, up to 250 MiB for video). This
 application boundary is authoritative regardless of reverse-proxy configuration;
 the public TLS proxy should also enforce appropriate request-size limits to avoid
 buffering rejected traffic before forwarding it to the API. Do not set a proxy-wide
-8 MiB limit, which would break the bounded media and Transfer routes.
+8 MiB limit, which would break the bounded media upload route.
 
 ## Post-deploy verification
 

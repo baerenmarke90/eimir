@@ -40,8 +40,6 @@ export interface AccountSettingsPanelProps {
   demoMode: boolean;
   /** Test/host override. Production uses the existing local logout/cache boundary. */
   onDeletionAccepted?: () => void | Promise<void>;
-  /** Host navigation for the optional export detour. */
-  onOpenDataExport?: () => void;
 }
 
 export function AccountSettingsPanel({
@@ -49,7 +47,6 @@ export function AccountSettingsPanel({
   accessToken,
   demoMode,
   onDeletionAccepted,
-  onOpenDataExport,
 }: AccountSettingsPanelProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -163,7 +160,7 @@ export function AccountSettingsPanel({
   }
 
   // System Back closes the dialog like Cancel; it stays while work is pending.
-  const releaseDialog = useEditorHistoryEntry({
+  useEditorHistoryEntry({
     isActive: step !== null,
     isDirty: false,
     isCloseBlocked: busy,
@@ -177,20 +174,6 @@ export function AccountSettingsPanel({
     setConfirmation('');
     resetRecentAuthentication();
     deletionMutation.reset();
-  }
-
-  function goToDataExport() {
-    if (busy) return;
-    // Release the dialog's history entry first so its Back cannot undo the
-    // navigation to the data export.
-    releaseDialog(() => {
-      closeDialog();
-      if (onOpenDataExport) {
-        onOpenDataExport();
-        return;
-      }
-      window.location.hash = 'settings-data';
-    });
   }
 
   function handleDialogKeyDown(event: KeyboardEvent<HTMLElement>) {
@@ -304,13 +287,6 @@ export function AccountSettingsPanel({
                   <li>{t('accountSettings.consequenceIrreversible')}</li>
                 </ul>
                 <div className="form-actions account-deletion-actions">
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={goToDataExport}
-                  >
-                    {t('accountSettings.exportBefore')}
-                  </button>
                   <button
                     ref={cancelButtonRef}
                     type="button"

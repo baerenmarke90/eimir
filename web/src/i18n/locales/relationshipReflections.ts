@@ -71,7 +71,7 @@ const relationshipReflections = {
     locked:
       'Mit eimir. Pro seht ihr eure gemeinsame Geschichte in persönlichen Rückblicken. Eine Freischaltung gilt für euch beide.',
     dataRights:
-      'Eure Erinnerungen, Pläne, Orte und der Datenexport bleiben auch ohne Pro zugänglich.',
+      'Eure Erinnerungen, Pläne und Orte bleiben auch ohne Pro zugänglich.',
     learnMore: 'Über eimir. Pro',
   },
   waymarks: {

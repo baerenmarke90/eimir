@@ -228,7 +228,7 @@ describe('MoreOverviewPage', () => {
     },
   );
   it.each([
-    ['2026-11-06.draft-2', true],
+    ['2026-11-24.draft-3', true],
     [null, false],
   ])(
     'links the Cloud legal texts only where they apply (%s)',

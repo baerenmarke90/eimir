@@ -59,8 +59,7 @@
 .settings-category-content > .settings-section,
 .settings-category-content > .form-card,
 .settings-functional-panel,
-.settings-appearance-block > .form-card,
-.settings-data-block > .transfer-panel {
+.settings-appearance-block > .form-card {
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -77,8 +76,7 @@
 
 .settings-section-head h2,
 .settings-sensitive-head h2,
-.settings-appearance-block h2,
-.settings-data-block .transfer-panel > h2 {
+.settings-appearance-block h2 {
   margin: 0;
 }
 
@@ -961,20 +959,9 @@
   }
 }
 
-.settings-data-block .transfer-panel > p,
 .settings-appearance-block > .form-card > p {
   max-width: 66ch;
   color: var(--color-text-secondary);
-}
-
-.settings-data-block .transfer-columns {
-  margin-top: var(--space-2);
-}
-
-.settings-data-block .transfer-scope-option,
-.settings-data-block .transfer-confirm {
-  min-height: 44px;
-  align-items: center;
 }
 
 .settings-sensitive-zone {

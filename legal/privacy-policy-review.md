@@ -1,7 +1,7 @@
 # Privacy policy draft: review notes
 
 Status: drafting baseline for the legal review of
-[`de/privacy-policy.md`](de/privacy-policy.md) (version `2026-11-23.draft-10`).
+[`de/privacy-policy.md`](de/privacy-policy.md) (version `2026-11-24.draft-11`).
 This file is not legal advice and is not shown to users. It records where each
 statement comes from, which facts the operator must supply and which decisions
 are open, so that the reviewer can check the draft against the product instead
@@ -55,7 +55,7 @@ Where a feature is not yet available, the draft says so explicitly.
 | 12 | Mails: magic link, signup, verification; notification mail opt-in and content-free | `backend/src/eimir/i18n/locales/de.json`, `backend/src/eimir/engagement/email_delivery.py` |
 | 12 | Push on Android only (no browser Web Push): FCM wake payload `type`+`activationId`, or UnifiedPush; auto-init off; FID cleanup; Google's 180-day deletion statement | `docs/PRIVACY-MODEL.md` (#565), `android/app/build.gradle`, `AndroidManifest.xml` |
 | 13 | Link previews: explicit action, server-side fetch, nothing persisted | `backend/src/eimir/api/v1/link_previews.py` |
-| 14 | Export scopes SHARED/PERSONAL, 24-hour encrypted bundle retention, credentials not exported | `docs/m5/S6-CACHE-PORTABILITY-DECISIONS.md`, `backend/src/eimir/transfer/service.py` |
+| 14 | Copy on request (draft-11, ADR 0020): free, machine-readable, shared and personal scopes, credentials and one-time messages not included; the self-service Transfer Bundle and its 24-hour export files are gone | `docs/decisions/0020-remove-transfer-bundle-self-service.md`, `docs/FREEMIUM-FEATURE-MATRIX.md` |
 | 15 | Browser storage: session in `sessionStorage` (Android: Keystore-encrypted); IndexedDB read cache of shared content and drafts, each at most seven days; image cache bounded to 2000 items (Android: every image AES-GCM sealed under a Keystore-wrapped per-login key); small `localStorage` preferences; service worker caches static files only; everything cleared on sign-out; Android `allowBackup=false` | `web/src/client/sessionPersistence.ts`, `productReadCache.ts`, `durableMediaStore.ts`, `memoryDiaryDraft.ts`, `web/public/service-worker.js`, `NativeSessionStoragePlugin.java` |
 | 16 | Application access log: method, path, status, duration, request ID; no IP or payload. The Web nginx disables its access log for API and health routes; static file requests use the stock log format, and the ingress may log client IPs | `backend/src/eimir/observability/middleware.py`, `web/nginx.conf` |
 | 16 | Rate limiting: SHA-256 of the lower-cased key (email or IPv4 / IPv6 /64), pruned after one day | `backend/src/eimir/auth/rate_limit.py`, `passkey_abuse.py` |
@@ -301,9 +301,9 @@ officer should confirm them before publication.
     basis (contract for problem reports, legitimate interest for feedback), the
     reading of app and device facts at send time under § 25(2) no. 2 TDDDG,
     and that a note can contain special-category data the person types in
-    (§ 7). Reports are not part of the personal export; access requests go
-    through § 23. **Recommendation:** add reports and replies to the personal
-    export so Art. 15 and Art. 20 can be served self-service. Keep
+    (§ 7). Reports are not part of the data copy (§ 14); access requests go
+    through § 23. **Recommendation:** include reports and replies in the
+    operator-provided copy so Art. 15 and Art. 20 are served completely. Keep
     `EIMIR_SUPPORT_REPORTS_ENABLED` off on eimir. Cloud until this version is
     published.
 

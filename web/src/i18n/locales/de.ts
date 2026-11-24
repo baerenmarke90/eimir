@@ -82,7 +82,7 @@ const de = {
     },
     settings: {
       title: 'Einstellungen',
-      description: 'Darstellung, Verbindung, Privatsphäre und Datenexport.',
+      description: 'Darstellung, Verbindung, Privatsphäre und Speicher.',
     },
   },
   states: {

@@ -1,7 +1,7 @@
 ---
 document: terms-of-use
 locale: de-DE
-version: 2026-11-06.draft-2
+version: 2026-11-24.draft-3
 status: draft
 effective: null
 legal_review: pending
@@ -19,7 +19,7 @@ Diese Übersicht soll dir den Einstieg erleichtern. Verbindlich ist der vollstä
 - Deine Inhalte bleiben deine. Wir nutzen sie nur, um eimir. für euch zu betreiben – nicht für Werbung, nicht zum Verkauf und nicht zum Training von KI-Modellen.
 - Was ihr teilt, sieht dein Partner. Was du als „Nur für mich“ speicherst, sieht dein Partner nicht.
 - Die Grundfunktionen sind kostenlos. eimir. Pro ist kostenpflichtig und gilt für euren gemeinsamen Space. Endet Pro, bleiben eure Inhalte erhalten.
-- Du kannst deine Daten jederzeit exportieren und dein Konto jederzeit löschen.
+- Du kannst jederzeit eine Kopie deiner Daten verlangen und dein Konto jederzeit löschen.
 - eimir. ist ein Raum für Nähe, nicht für Kontrolle: Nutze es respektvoll und nie, um jemanden zu überwachen oder unter Druck zu setzen.
 
 ## § 1 Geltungsbereich
@@ -54,7 +54,7 @@ Diese Übersicht soll dir den Einstieg erleichtern. Verbindlich ist der vollstä
 ## § 5 Euer gemeinsamer Space
 
 1. Ein Space ist für genau zwei Menschen da: dich und deinen Partner. Du kannst einen Space anlegen und deinen Partner mit einer persönlichen Einladung dazuholen. Lade nur eine Person ein, mit der du eure Inhalte wirklich teilen möchtest, und gib Einladungen nicht an andere weiter.
-2. Inhalte, die du für euch beide speicherst („Für uns beide“), kann dein Partner sehen. Gemeinsame Erinnerungen und ähnliche gemeinsame Inhalte kann dein Partner auch bearbeiten. Außerdem kann dein Partner gemeinsame Inhalte im Rahmen des Datenexports herunterladen, auch solche, die du erstellt hast.
+2. Inhalte, die du für euch beide speicherst („Für uns beide“), kann dein Partner sehen. Gemeinsame Erinnerungen und ähnliche gemeinsame Inhalte kann dein Partner auch bearbeiten. Außerdem kann dein Partner gemeinsame Inhalte in seiner Datenkopie (§ 13 Abs. 1) erhalten, auch solche, die du erstellt hast.
 3. Inhalte, die du als „Nur für mich“ speicherst, sind für deinen Partner nicht sichtbar.
 4. Du kannst einen Space jederzeit verlassen, ohne dass dein Partner zustimmen muss. Dann gilt:
    - Dein Zugriff auf den Space endet sofort.
@@ -62,16 +62,16 @@ Diese Übersicht soll dir den Einstieg erleichtern. Verbindlich ist der vollstä
    - Deine „Nur für mich“-Inhalte aus diesem Space werden gelöscht.
    - Der Space kann danach keine neue Person mehr aufnehmen und nicht wieder geöffnet werden. Für einen neuen gemeinsamen Anfang legt ihr einen neuen Space an.
    - Verlässt auch die zweite Person den Space, endet ihr Zugriff ebenfalls sofort. Der Space wird dann nach Ablauf von 30 Tagen mit allen Inhalten gelöscht.
-5. Exportiere vorher, was du behalten möchtest (§ 13 Abs. 1). Nach dem Verlassen ist ein Export aus diesem Space nicht mehr möglich.
+5. Verlange vorher eine Kopie dessen, was du behalten möchtest (§ 13 Abs. 1). Nach dem Verlassen ist eine Kopie aus diesem Space nicht mehr möglich.
 
 ## § 6 Deine Inhalte
 
 1. Inhalte, die du in eimir. speicherst, also etwa Texte, Fotos, Videos und Sprachaufnahmen, bleiben deine. Wir erwerben daran keine Rechte, die über diesen Paragrafen hinausgehen.
 2. Damit wir eimir. für euch betreiben können, räumst du uns das einfache, unentgeltliche Recht ein, deine Inhalte zu speichern, zu sichern, technisch zu verarbeiten (zum Beispiel Vorschaubilder zu erzeugen oder Dateiformate umzuwandeln) und den Personen anzuzeigen, für die du sie freigegeben hast. Dieses Recht gilt nur, soweit es für den Betrieb von eimir. und für die Funktionen nötig ist, die du nutzt. Wir dürfen dafür Dienstleister einsetzen, die in unserem Auftrag und nach unseren Weisungen handeln. Das Recht endet, wenn die Inhalte gelöscht werden.
-3. Teilst du Inhalte mit deinem Partner, darf dein Partner sie innerhalb von eimir. ansehen, im Rahmen der jeweiligen Funktion bearbeiten und im Rahmen des Datenexports herunterladen.
+3. Teilst du Inhalte mit deinem Partner, darf dein Partner sie innerhalb von eimir. ansehen, im Rahmen der jeweiligen Funktion bearbeiten und in seiner Datenkopie (§ 13 Abs. 1) erhalten.
 4. Wir verwenden deine Inhalte nicht für Werbung, verkaufen sie nicht und nutzen sie nicht zum Training von KI-Modellen. Wir sehen uns deine Inhalte nicht an, außer du bittest uns ausdrücklich darum (zum Beispiel im Support), wir gehen einem konkreten Hinweis auf einen Rechtsverstoß nach (§ 9) oder wir sind gesetzlich dazu verpflichtet.
 5. Du bist für deine Inhalte verantwortlich. Speichere und teile nur Inhalte, an denen du die nötigen Rechte hast. Sind auf Fotos, in Videos oder in Texten andere Menschen erkennbar, zum Beispiel Freunde, Familie oder Kinder, achte bitte auf deren Rechte und ihre Privatsphäre.
-6. Wir sichern eimir. regelmäßig. Trotzdem empfehlen wir dir, wichtige Inhalte zusätzlich über den Datenexport selbst zu sichern.
+6. Wir sichern eimir. regelmäßig. Trotzdem empfehlen wir dir, wichtige Inhalte zusätzlich selbst zu sichern, zum Beispiel mit einer Datenkopie auf Anfrage (§ 13 Abs. 1).
 
 ## § 7 Datenschutz
 
@@ -110,7 +110,7 @@ Wie wir personenbezogene Daten verarbeiten, erklären wir in unseren [Datenschut
 1. Wir bemühen uns, eimir. möglichst unterbrechungsfrei bereitzustellen. Wartungen, Sicherheitsupdates, Störungen bei Dritten wie Rechenzentren oder Netzbetreibern oder höhere Gewalt können die Verfügbarkeit jedoch vorübergehend einschränken. Geplante Wartungen kündigen wir nach Möglichkeit vorher an.
 2. Wir entwickeln eimir. weiter. Wir dürfen Funktionen ändern, ergänzen oder ersetzen, wenn es dafür einen triftigen Grund gibt, etwa neue rechtliche Anforderungen, die Sicherheit, technische Entwicklungen oder eine Verbesserung des Angebots, und der Kern von eimir. erhalten bleibt.
 3. Beeinträchtigt eine Änderung deinen Zugang zu eimir. Pro oder dessen Nutzbarkeit mehr als nur unerheblich, informieren wir dich rechtzeitig vorher in Textform, zum Beispiel per E-Mail. Du kannst Pro dann innerhalb von 30 Tagen kostenlos beenden. Die Frist beginnt mit unserer Information oder, wenn die Änderung später erfolgt, mit der Änderung.
-4. Stellen wir eimir. Cloud insgesamt ein, informieren wir dich mindestens drei Monate vorher, damit du deine Daten exportieren kannst. Für bereits bezahlte Pro-Zeiträume nach der Einstellung erstatten wir dir den Betrag anteilig.
+4. Stellen wir eimir. Cloud insgesamt ein, informieren wir dich mindestens drei Monate vorher, damit du eine Kopie deiner Daten verlangen kannst. Für bereits bezahlte Pro-Zeiträume nach der Einstellung erstatten wir dir den Betrag anteilig.
 
 ## § 11 E-Mails und Benachrichtigungen
 
@@ -130,16 +130,16 @@ Wie wir personenbezogene Daten verarbeiten, erklären wir in unseren [Datenschut
 6. Du kannst Pro in der App und auf unserer Website über die Schaltfläche „Verträge hier kündigen“ oder per E-Mail an [[CONTACT_EMAIL]] kündigen. Ein Abo aus einem App-Store kündigst du dort. Wir bestätigen dir jede Kündigung in Textform. Das Recht beider Seiten zur Kündigung aus wichtigem Grund bleibt unberührt.
 7. Bieten wir einen kostenlosen Testzeitraum an, nennen wir dir vorher seine Dauer und seine Bedingungen, insbesondere ob und ab wann danach Kosten entstehen.
 8. Schlägt eine Zahlung fehl, bleibt Pro noch 14 Tage aktiv, damit du die Zahlung klären kannst. Danach können wir Pro beenden.
-9. Endet Pro, bleibt alles erhalten: Eure Inhalte, auch die mit Pro erstellten, bleiben lesbar und exportierbar. Neue Pro-Inhalte könnt ihr dann nicht mehr erstellen. Belegt ihr mehr Speicher, als in der kostenlosen Version enthalten ist, löschen wir nichts. Neue Uploads können dann pausieren, bis ihr Speicher freigebt oder Pro wieder nutzt.
+9. Endet Pro, bleibt alles erhalten: Eure Inhalte, auch die mit Pro erstellten, bleiben lesbar und können weiter in eine Datenkopie aufgenommen werden. Neue Pro-Inhalte könnt ihr dann nicht mehr erstellen. Belegt ihr mehr Speicher, als in der kostenlosen Version enthalten ist, löschen wir nichts. Neue Uploads können dann pausieren, bis ihr Speicher freigebt oder Pro wieder nutzt.
 10. Endet euer Space (§ 5 Abs. 4), endet Pro für diesen Space. Ein laufendes Abo kann die Person, die es gekauft hat, mit „Kauf wiederherstellen“ auf einen neuen Space übertragen.
 11. Den Preis eines laufenden Abos ändern wir nur mit deiner Zustimmung. Stimmst du nicht zu, können wir das Abo zum Ende des laufenden Abrechnungszeitraums kündigen. Wir informieren dich vorher rechtzeitig.
 12. Für eine selbst betriebene Installation kannst du eine Pro-Lizenz kaufen. Sie schaltet die Pro-Funktionen für einen Space auf dieser Installation frei und wird dort ohne Verbindung zu unseren Servern geprüft. Die Lizenz gilt für die private, nicht gewerbliche Nutzung und berechtigt nicht dazu, eimir. für Dritte zu betreiben. Für den Betrieb der Installation sind wir nicht verantwortlich. Für Laufzeit und Kündigung gelten die Absätze 5 und 6 entsprechend.
 13. Als Verbraucherin oder Verbraucher hast du beim Kauf von Pro ein gesetzliches Widerrufsrecht. Einzelheiten findest du in der Widerrufsbelehrung unter [[WITHDRAWAL_URL]], die wir dir auch im Kaufprozess zur Verfügung stellen.
 14. Für Mängel von eimir. Pro gelten die gesetzlichen Rechte bei digitalen Produkten, einschließlich unserer Pflicht, dir Aktualisierungen bereitzustellen.
 
-## § 13 Datenexport, Kündigung und Löschung
+## § 13 Datenkopie, Kündigung und Löschung
 
-1. Du kannst deine Daten jederzeit kostenlos in einem maschinenlesbaren Format exportieren, unabhängig davon, ob ihr Pro nutzt.
+1. Du kannst jederzeit kostenlos eine Kopie deiner Daten in einem maschinenlesbaren Format von uns verlangen, unabhängig davon, ob ihr Pro nutzt.
 2. Du kannst den Nutzungsvertrag jederzeit ohne Frist kündigen, indem du dein Konto in den Einstellungen der App löschst. Die Löschung kann nicht rückgängig gemacht werden. Dann gilt:
    - Deine Anmeldedaten, dein Profil und deine „Nur für mich“-Inhalte werden gelöscht.
    - Gemeinsame Inhalte bleiben für deinen Partner im Space erhalten. Du wirst dort nur noch als ehemaliges Mitglied angezeigt.
@@ -147,7 +147,7 @@ Wie wir personenbezogene Daten verarbeiten, erklären wir in unseren [Datenschut
    - Kopien in unseren Sicherungen werden nach Ablauf ihrer Aufbewahrungsfrist gelöscht und nicht wiederhergestellt. Einzelheiten findest du in den Datenschutzhinweisen.
 3. Wir können den Nutzungsvertrag mit einer Frist von drei Monaten in Textform kündigen. Ein laufendes Pro-Abo endet dann frühestens mit Ablauf des bereits bezahlten Zeitraums.
 4. Beide Seiten können den Vertrag aus wichtigem Grund fristlos kündigen. Ein wichtiger Grund liegt für uns insbesondere bei schweren oder trotz Hinweis wiederholten Verstößen gegen § 8 vor. Einen vorherigen Hinweis geben wir nicht, wenn er uns wegen der Schwere des Verstoßes nicht zumutbar ist.
-5. Vor einer Kündigung durch uns geben wir dir Gelegenheit, deine Daten zu exportieren, es sei denn, das ist rechtlich unzulässig oder wegen der Schwere eines Verstoßes nicht zumutbar.
+5. Vor einer Kündigung durch uns geben wir dir Gelegenheit, eine Kopie deiner Daten zu erhalten, es sei denn, das ist rechtlich unzulässig oder wegen der Schwere eines Verstoßes nicht zumutbar.
 
 ## § 14 Offizielle Apps, Software und Marke
 

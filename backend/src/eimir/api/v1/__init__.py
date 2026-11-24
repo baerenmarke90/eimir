@@ -60,7 +60,6 @@ from eimir.api.v1 import (
     spaces,
     story,
     support_reports,
-    transfer,
     video,
     wish_selections,
     wishes,
@@ -130,5 +129,4 @@ normal_router.include_router(private_collections.router)
 normal_router.include_router(reminders.router)
 normal_router.include_router(rules.router)
 normal_router.include_router(support_reports.router)
-normal_router.include_router(transfer.router)
 router.include_router(normal_router)

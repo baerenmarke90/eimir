@@ -1,6 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { expect, type Page, type TestInfo, test } from '@playwright/test';
+import {
+  expect,
+  type Locator,
+  type Page,
+  type TestInfo,
+  test,
+} from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import serverAdmin from '../../src/i18n/locales/serverAdmin';
 import { serverAdminReportsCopy as reports } from '../../src/i18n/locales/serverAdminReports';
@@ -395,9 +401,17 @@ async function expectAccessible(page: Page, selector: string) {
 }
 
 /** Names the files so they sort by state; copies them when evidence is wanted. */
-async function capture(page: Page, info: TestInfo, name: string) {
+async function capture(
+  page: Page,
+  info: TestInfo,
+  name: string,
+  top?: Locator,
+) {
   const directory = process.env.VISUAL_EVIDENCE_DIR;
   if (!directory) return;
+  // The state of interest sits below the admin header: bring it to the top.
+  if (top)
+    await top.evaluate((element) => element.scrollIntoView({ block: 'start' }));
   const output = info.outputPath(name);
   await page.screenshot({ path: output, animations: 'disabled' });
   fs.mkdirSync(directory, { recursive: true });
@@ -410,10 +424,11 @@ async function captureThemes(
   info: TestInfo,
   name: string,
   axeSelector: string,
+  top?: Locator,
 ) {
   for (const theme of ['light', 'dark'] as const) {
     await setTheme(page, theme);
-    await capture(page, info, `${name}-${theme}.png`);
+    await capture(page, info, `${name}-${theme}.png`, top);
     await expectAccessible(page, axeSelector);
   }
   await setTheme(page, 'light');
@@ -642,16 +657,18 @@ test.describe('states at 2x', () => {
     await page.mouse.move(0, 0);
 
     // Compact list, in Light and Dark, then at 360 and 430.
+    const sectionTop = reportsSection.heading;
     await captureThemes(
       page,
       info,
       '01-list-390',
       'section.server-admin-reports',
+      sectionTop,
     );
     for (const width of [360, 430]) {
       await page.setViewportSize({ width, height: 844 });
       await expectReflow(page);
-      await capture(page, info, `01-list-${width}-light.png`);
+      await capture(page, info, `01-list-${width}-light.png`, sectionTop);
     }
     await page.setViewportSize({ width: 390, height: 844 });
 
@@ -659,18 +676,25 @@ test.describe('states at 2x', () => {
     await reportsSection.row('PROBLEM').click();
     const report = reportsSection.detail;
     await expect(report.locator('.server-admin-report-text')).toHaveText(NOTE);
+    const detailTop = report.locator('.server-admin-report-detail-head');
     await captureThemes(
       page,
       info,
       '02-detail-390',
       'section.server-admin-reports',
+      detailTop,
     );
     await page.setViewportSize({ width: 360, height: 844 });
     await expectReflow(page);
-    await capture(page, info, '02-detail-360-light.png');
+    await capture(page, info, '02-detail-360-light.png', detailTop);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await capture(page, info, '02-detail-390-light-reduced-motion.png');
+    await capture(
+      page,
+      info,
+      '02-detail-390-light-reduced-motion.png',
+      detailTop,
+    );
     await page.emulateMedia({ reducedMotion: 'no-preference' });
 
     // The ticket dialog on Compact, with its read-only server footer.
@@ -710,6 +734,7 @@ test.describe('states at 2x', () => {
       info,
       '04-expanded-1440',
       'section.server-admin-reports',
+      sectionTop,
     );
 
     // The uncertain ticket state, Expanded and Compact.
@@ -719,21 +744,24 @@ test.describe('states at 2x', () => {
       reportsSection.detail.getByText(reports.ticket.uncertain),
     ).toBeVisible();
     await page.mouse.move(0, 0);
+    const ticketTop = reportsSection.detail.getByRole('heading', {
+      name: reports.ticket.title,
+      exact: true,
+    });
     await captureThemes(
       page,
       info,
       '05-uncertain-1440',
       'section.server-admin-reports',
+      ticketTop,
     );
     await page.setViewportSize({ width: 390, height: 844 });
-    await reportsSection.detail
-      .getByText(reports.ticket.uncertain)
-      .scrollIntoViewIfNeeded();
     await captureThemes(
       page,
       info,
       '05-uncertain-390',
       'section.server-admin-reports',
+      ticketTop,
     );
   });
 
@@ -754,8 +782,12 @@ test.describe('states at 2x', () => {
     await expectReflow(page);
     const row = await reportsSection.row('PROBLEM').boundingBox();
     expect(row?.height).toBeGreaterThanOrEqual(44);
-    await reportsSection.heading.scrollIntoViewIfNeeded();
-    await capture(page, info, '06-large-text-list-390-light.png');
+    await capture(
+      page,
+      info,
+      '06-large-text-list-390-light.png',
+      reportsSection.heading,
+    );
 
     await reportsSection.row('PROBLEM').click();
     const report = reportsSection.detail;

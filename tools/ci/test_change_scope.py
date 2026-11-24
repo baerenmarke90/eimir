@@ -13,6 +13,7 @@ from change_scope import (
     SCOPES,
     SELF_VALIDATING_TOOLING_OWNERS,
     classify_paths,
+    risk_paths,
     tiered_outputs,
 )
 
@@ -509,6 +510,13 @@ class PullRequestTierTest(unittest.TestCase):
         outputs = tiered_outputs(["backend/alembic/versions/0100_example.py"], pull_request=True)
         self.assertEqual(outputs["tier"], "full")
         self.assertEqual(self.heavy(outputs), {"backend_integration", "recovery"})
+
+    def test_operator_plugin_migration_is_a_risk_path_and_runs_full_automatically(self) -> None:
+        path = "backend/admin/src/eimir_admin/alembic/versions/0002_example.py"
+        self.assertEqual(risk_paths([path]), [path])
+        outputs = tiered_outputs([path], pull_request=True)
+        self.assertEqual(outputs["tier"], "full")
+        self.assertIn("backend_integration", self.heavy(outputs))
 
     def test_auth_and_compose_are_risk_paths(self) -> None:
         for path in (

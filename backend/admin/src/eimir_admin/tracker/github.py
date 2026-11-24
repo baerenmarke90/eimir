@@ -37,14 +37,17 @@ class GitHubIssueTracker:
             raise ValueError("repository must have the form owner/name")
         self._repository = repository
         self._token = token
-        self._client = client or httpx.Client(timeout=_TIMEOUT, follow_redirects=False)
+        # Without an injected client one is opened per call and closed again, so a
+        # tracker built per request leaks no connection pool.
+        self._client = client
 
     def __repr__(self) -> str:
         return f"GitHubIssueTracker(repository={self._repository!r})"
 
     def create_issue(self, *, title: str, body: str, labels: Sequence[str]) -> TicketRef:
+        client = self._client or httpx.Client(timeout=_TIMEOUT, follow_redirects=False)
         try:
-            response = self._client.post(
+            response = client.post(
                 f"{API_BASE}/repos/{self._repository}/issues",
                 json={"title": title, "body": body, "labels": list(labels)},
                 headers={
@@ -63,6 +66,9 @@ class GitHubIssueTracker:
             raise TrackerError(
                 f"tracker transport error ({type(error).__name__})", retryable=True
             ) from None
+        finally:
+            if self._client is None:
+                client.close()
         return self._parse(response)
 
     @staticmethod

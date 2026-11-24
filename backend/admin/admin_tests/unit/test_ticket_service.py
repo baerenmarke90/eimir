@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
@@ -101,7 +102,11 @@ def test_the_problem_body_carries_the_link_and_the_retry_flag() -> None:
         detail="d",
         code=service.TICKET_EXISTS,
         ticket=SupportReportTicketSummary(
-            tracker="github", state=TicketState.PENDING, url=None, number=None
+            tracker="github",
+            state=TicketState.PENDING,
+            url=None,
+            number=None,
+            created_at=datetime(2026, 11, 24, 8, 0, tzinfo=UTC),
         ),
         retryable=None,
     )

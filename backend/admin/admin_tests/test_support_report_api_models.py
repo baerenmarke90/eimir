@@ -61,6 +61,7 @@ def _ticket(report: SupportReport) -> SupportReportTicket:
         url="https://github.com/example/tickets/issues/7",
         number=7,
         state=TicketState.CREATED.value,
+        created_at=CREATED,
     )
 
 
@@ -106,6 +107,7 @@ def test_a_list_item_summarizes_the_ticket_without_content() -> None:
         "state": "CREATED",
         "url": "https://github.com/example/tickets/issues/7",
         "number": 7,
+        "createdAt": "2026-11-24T08:00:00Z",
     }
 
 

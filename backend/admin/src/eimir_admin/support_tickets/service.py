@@ -29,6 +29,7 @@ cascade); that case answers "report not found" instead of failing.
 
 from __future__ import annotations
 
+import logging
 import re
 from uuid import UUID
 
@@ -38,7 +39,7 @@ from sqlalchemy.orm import Session
 
 from eimir.administration import service as administration
 from eimir.administration.models import AdministrationAction
-from eimir.core.errors import NotFoundError
+from eimir.core.errors import NotFoundError, ValidationError
 from eimir.support_reports.models import SupportReport
 from eimir.support_reports.service import REPORT_NOT_FOUND
 from eimir_admin.support_tickets.models import SupportReportTicket, TicketState
@@ -48,6 +49,12 @@ TICKET_EXISTS = "SUPPORT_TICKET_EXISTS"
 TICKET_NOT_CONFIGURED = "SUPPORT_TICKET_NOT_CONFIGURED"
 TICKET_FAILED = "SUPPORT_TICKET_FAILED"
 TICKET_NOT_FOUND = "SUPPORT_TICKET_NOT_FOUND"
+TICKET_TOO_LONG = "SUPPORT_TICKET_TOO_LONG"
+
+# GitHub rejects an issue body above this many characters.
+TRACKER_BODY_MAX_CHARACTERS = 65_536
+
+log = logging.getLogger(__name__)
 
 TICKET_LABELS = ("support-report",)
 
@@ -119,6 +126,14 @@ def _report_exists(session: Session, report_id: UUID) -> bool:
     )
 
 
+def _log_outcome(outcome: str, report_id: UUID, *, retryable: bool | None = None) -> None:
+    """One line per ticket attempt. Ids and flags only: never title, body or any report text."""
+    log.info(
+        "support ticket outcome",
+        extra={"outcome": outcome, "report_id": str(report_id), "retryable": retryable},
+    )
+
+
 def _report_missing() -> NotFoundError:
     return NotFoundError("Support report not found.", REPORT_NOT_FOUND)
 
@@ -160,6 +175,7 @@ def create_ticket(
         raise _report_missing()
     existing = _find(session, report_id)
     if existing is not None:
+        _log_outcome("refused_exists", report_id)
         raise TicketExistsError(existing)
 
     # Only these technical fields are read from the stored report.
@@ -174,15 +190,27 @@ def create_ticket(
         failure_reference=payload.failure.reference if payload.failure else None,
         request_id=payload.failure.request_id if payload.failure else None,
     )
+    if len(composed) > TRACKER_BODY_MAX_CHARACTERS:
+        # Refuse before reserving: the tracker would reject it and leave a stuck link.
+        _log_outcome("refused_too_long", report_id)
+        raise ValidationError(
+            "The ticket text with its technical footer is too long for the tracker.",
+            TICKET_TOO_LONG,
+        )
     account_id = report.account_id
 
-    pending = _reserve(session, report_id=report_id, tracker_name=tracker.name)
+    try:
+        pending = _reserve(session, report_id=report_id, tracker_name=tracker.name)
+    except TicketExistsError:
+        _log_outcome("refused_exists", report_id)
+        raise
     ticket_id = pending.id
     session.commit()
 
     try:
         ref = tracker.create_issue(title=title, body=composed, labels=TICKET_LABELS)
     except TrackerError as error:
+        _log_outcome("tracker_failed", report_id, retryable=error.retryable)
         raise TicketFailedError(retryable=error.retryable) from None
 
     # Read the row again from the database: it may have been cleared meanwhile.
@@ -208,6 +236,7 @@ def create_ticket(
         target_account_id=account_id,
     )
     session.commit()
+    _log_outcome("created", report_id)
     return ticket
 
 

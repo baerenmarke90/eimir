@@ -397,6 +397,8 @@ HEAVY_SCOPES = (
 # Self-Hosted/release tooling, and the CI definitions themselves.
 RISK_PREFIXES = (
     "backend/alembic/",
+    # The operator plugin's own migration chain (#2189).
+    "backend/admin/src/eimir_admin/alembic/",
     "backend/src/eimir/auth/",
     "backend/src/eimir/authorization/",
     "backend/src/eimir/identity/",

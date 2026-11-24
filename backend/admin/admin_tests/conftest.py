@@ -7,6 +7,8 @@ session) the same way the Pro tests do.
 
 from __future__ import annotations
 
+import importlib.util
+
 # Importing the Core conftest also applies its test environment defaults. The
 # fixtures are re-exported so they reach the operator plugin tests.
 from tests.conftest import (  # noqa: F401  (pytest fixtures)
@@ -15,3 +17,8 @@ from tests.conftest import (  # noqa: F401  (pytest fixtures)
     engine,
     session,
 )
+
+# The Core-only configuration installs no operator distribution. Its modules are
+# not even imported there (no skip records either, which the Core-only skip-reason
+# check in CI would flag), exactly as the Pro feature tests are not collected.
+collect_ignore_glob = ["*"] if importlib.util.find_spec("eimir_admin") is None else []

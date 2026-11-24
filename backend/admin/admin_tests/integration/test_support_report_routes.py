@@ -339,8 +339,10 @@ def test_detail_shows_the_ticket_link_and_availability(
         "url": "https://github.com/example/tickets/issues/7",
         "number": 7,
     }
+    assert detail["ticket"].pop("createdAt")
     assert detail["ticket"] == expected
     assert detail["ticketAvailable"] is True
+    assert listing["items"][0]["ticket"].pop("createdAt")
     assert listing["items"][0]["ticket"] == expected
     assert "test-token-value" not in str(detail)
 

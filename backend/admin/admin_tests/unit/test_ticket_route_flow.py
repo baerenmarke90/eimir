@@ -74,6 +74,7 @@ def _ticket(report_id: UUID, *, state: TicketState = TicketState.CREATED) -> Sup
         url="https://github.com/example/tickets/issues/7" if created else None,
         number=7 if created else None,
         state=state.value,
+        created_at=datetime(2026, 11, 24, 8, 0, tzinfo=UTC),
     )
 
 
@@ -153,6 +154,7 @@ def test_create_returns_the_link_and_passes_the_operator_text(harness: Harness) 
         "state": "CREATED",
         "url": "https://github.com/example/tickets/issues/7",
         "number": 7,
+        "createdAt": "2026-11-24T08:00:00Z",
     }
     assert harness.calls == [
         (
@@ -188,7 +190,13 @@ def test_a_pending_link_is_reported_as_pending(harness: Harness) -> None:
 
     body = harness.client.post(harness.url(), json=BODY).json()
 
-    assert body["ticket"] == {"tracker": "github", "state": "PENDING", "url": None, "number": None}
+    assert body["ticket"] == {
+        "tracker": "github",
+        "state": "PENDING",
+        "url": None,
+        "number": None,
+        "createdAt": "2026-11-24T08:00:00Z",
+    }
 
 
 def test_no_tracker_is_a_conflict_and_calls_nothing(harness: Harness) -> None:

@@ -29,6 +29,12 @@ import {
 export interface SupportReportTicketSummary {
     /**
      * 
+     * @type {Date}
+     * @memberof SupportReportTicketSummary
+     */
+    createdAt: Date;
+    /**
+     * 
      * @type {number}
      * @memberof SupportReportTicketSummary
      */
@@ -59,6 +65,7 @@ export interface SupportReportTicketSummary {
  * Check if a given object implements the SupportReportTicketSummary interface.
  */
 export function instanceOfSupportReportTicketSummary(value: object): value is SupportReportTicketSummary {
+    if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
     if (!('number' in value) || value['number'] === undefined) return false;
     if (!('state' in value) || value['state'] === undefined) return false;
     if (!('tracker' in value) || value['tracker'] === undefined) return false;
@@ -76,6 +83,7 @@ export function SupportReportTicketSummaryFromJSONTyped(json: any, ignoreDiscrim
     }
     return {
         
+        'createdAt': (new Date(json['createdAt'])),
         'number': json['number'],
         'state': TicketStateFromJSON(json['state']),
         'tracker': json['tracker'],
@@ -94,6 +102,7 @@ export function SupportReportTicketSummaryToJSONTyped(value?: SupportReportTicke
 
     return {
         
+        'createdAt': value['createdAt'].toISOString(),
         'number': value['number'],
         'state': TicketStateToJSON(value['state']),
         'tracker': value['tracker'],

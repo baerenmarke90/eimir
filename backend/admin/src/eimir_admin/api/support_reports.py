@@ -115,6 +115,7 @@ def _ticket_summary(ticket: SupportReportTicket | None) -> SupportReportTicketSu
         state=TicketState(ticket.state),
         url=ticket.url,
         number=ticket.number,
+        created_at=ticket.created_at,
     )
 
 

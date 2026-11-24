@@ -28,6 +28,8 @@ class SupportReportTicketSummary(ApiModel):
     state: TicketState
     url: str | None
     number: int | None
+    # When the link was reserved: the age of a pending link shows a stuck attempt.
+    created_at: datetime
 
 
 class SupportReportOperatorReply(ApiModel):

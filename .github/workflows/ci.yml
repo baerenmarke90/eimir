@@ -894,6 +894,17 @@ jobs:
           assert loaded_plugins().names == ('pro',)
           print('Pro image: Core with the Pro plugin.')
           "
+          # The operator plugin ships in the same image but is opt-in: it loads
+          # when named and carries its migration chain as package data (#2189).
+          docker run --rm --env EIMIR_PLUGINS=pro,admin --entrypoint python eimir-backend:ci -c "
+          import pathlib
+          import eimir_admin
+          from eimir.plugins.loader import loaded_plugins
+          assert loaded_plugins().names == ('pro', 'admin'), loaded_plugins().names
+          versions = pathlib.Path(eimir_admin.__file__).parent / 'alembic' / 'versions'
+          assert list(versions.glob('0001_*.py')), versions
+          print('Pro image: operator plugin loads and carries its migration.')
+          "
 
       - name: Build Web production container from scratch
         if: needs.changes.outputs.supply_chain_web_build == 'true'

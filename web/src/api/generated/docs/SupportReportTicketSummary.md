@@ -7,6 +7,7 @@ The tracker ticket of a report: where it lives, never what it says.
 
 Name | Type
 ------------ | -------------
+`createdAt` | Date
 `number` | number
 `state` | [TicketState](TicketState.md)
 `tracker` | string
@@ -19,6 +20,7 @@ import type { SupportReportTicketSummary } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "createdAt": null,
   "number": null,
   "state": null,
   "tracker": null,

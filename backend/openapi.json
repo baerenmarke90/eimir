@@ -18278,6 +18278,11 @@
       "SupportReportTicketSummary": {
         "description": "The tracker ticket of a report: where it lives, never what it says.",
         "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
           "number": {
             "anyOf": [
               {
@@ -18312,7 +18317,8 @@
           "tracker",
           "state",
           "url",
-          "number"
+          "number",
+          "createdAt"
         ],
         "title": "SupportReportTicketSummary",
         "type": "object"

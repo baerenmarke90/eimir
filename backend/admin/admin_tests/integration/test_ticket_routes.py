@@ -184,7 +184,9 @@ def test_create_ticket_happy_path_records_audit(
 
     assert response.status_code == 201, response.text
     assert response.headers["cache-control"] == NO_STORE
-    assert response.json() == {
+    created = dict(response.json())
+    assert created.pop("createdAt")
+    assert created == {
         "tracker": "github",
         "state": "CREATED",
         "url": "https://github.com/example/tickets/issues/42",
@@ -356,9 +358,17 @@ def test_title_and_body_limits(client: Any, session: Session, tracker: FakeTrack
     assert [response.status_code for response in refused] == [422] * 5
     assert tracker.calls == []
     assert _links(session, report.id) == []
-    accepted = _post(client, token, report.id, {"title": "t" * 256, "body": "b" * 65536})
+    # The footer counts against the tracker's 65,536 characters: a body at the
+    # wire limit is refused before anything is reserved or sent.
+    too_long = _post(client, token, report.id, {"title": "t", "body": "b" * 65536})
+    assert too_long.status_code == 422
+    assert too_long.json()["code"] == "SUPPORT_TICKET_TOO_LONG"
+    assert tracker.calls == []
+    assert _links(session, report.id) == []
+    accepted = _post(client, token, report.id, {"title": "t" * 256, "body": "b" * 65000})
     assert accepted.status_code == 201
     assert len(tracker.calls[0]["title"]) == 256
+    assert len(tracker.calls[0]["body"]) <= 65536
     empty_body = _report(session)
     assert _post(client, token, empty_body.id, {"title": "t", "body": ""}).status_code == 201
 
@@ -560,3 +570,64 @@ def test_two_concurrent_creates_call_the_tracker_once(
         [link] = _links(other, report_id)
         assert link.state == TicketState.CREATED.value
         assert len(_audit(other, AdministrationAction.SUPPORT_REPORT_TICKET_CREATED)) == 1
+
+
+def test_outcomes_are_logged_without_any_text(
+    client: Any, session: Session, tracker: FakeTracker, caplog: pytest.LogCaptureFixture
+) -> None:
+    _, token = _operator(session, recent=True)
+    report = _report(session, note=SECRET_NOTE)
+    service.send_reply(session, report_id=report.id, text=SECRET_REPLY, operator_id=None)
+    failing = _report(session)
+    caplog.set_level("INFO", logger="eimir_admin.support_tickets.service")
+
+    assert _post(client, token, report.id).status_code == 201
+    assert _post(client, token, report.id).status_code == 409
+    tracker.error = TrackerError("rejected", retryable=False)
+    assert _post(client, token, failing.id).status_code == 502
+
+    records = [r for r in caplog.records if r.name == "eimir_admin.support_tickets.service"]
+    assert [(r.outcome, r.retryable) for r in records] == [  # type: ignore[attr-defined]
+        ("created", None),
+        ("refused_exists", None),
+        ("tracker_failed", False),
+    ]
+    assert [r.report_id for r in records] == [  # type: ignore[attr-defined]
+        str(report.id),
+        str(report.id),
+        str(failing.id),
+    ]
+    for text in (TYPED["title"], TYPED["body"], SECRET_NOTE, SECRET_REPLY):
+        assert text not in caplog.text
+
+
+def test_reply_to_a_reporter_without_membership_stores_it_and_sends_no_notice(
+    client: Any, session: Session
+) -> None:
+    from eimir.domain.events import EventType
+    from eimir.outbox.models import OutboxEvent
+    from eimir.relationship.models import Membership
+
+    _, token = _operator(session, recent=True)
+    report = _report(session)
+    memberships = session.execute(
+        select(Membership).where(Membership.account_id == report.account_id)
+    ).first()
+    assert memberships is None
+
+    response = client.post(
+        f"{BASE}/{report.id}/reply", json={"text": "We fixed it."}, headers=auth(token)
+    )
+
+    assert response.status_code == 200
+    assert response.json()["reply"]["text"] == "We fixed it."
+    stored = service.get_reply(session, report_id=report.id, account_id=report.account_id)
+    assert stored is not None
+    assert stored.text == "We fixed it."
+    events = session.execute(
+        select(OutboxEvent).where(
+            OutboxEvent.event_type == EventType.SUPPORT_REPLY.value,
+            OutboxEvent.subject_id == report.id,
+        )
+    ).all()
+    assert events == []

@@ -184,6 +184,10 @@ ACCOUNT_DOCUMENT_TABLES: dict[str, str] = {
     "gentle_memory_exclusions": "Memories the member excluded from gentle prompts; export-only.",
     "photo_source_connections": "Photo-source markers (provider, origin), never credentials.",
     "google_account_hints": "The Google account hint (email) of the member, never tokens.",
+    # Support conversations with the operator (#2189, #2245): the requesting person's own
+    # reports and the reply they received are part of the personal data copy (Art. 15, 20 GDPR).
+    "support_reports": "The requester's own reports (personal scope); export-only.",
+    "support_report_replies": "The reply to each of the requester's own reports; export-only.",
 }
 
 # Every other Core table, deliberately not exported, with the reason. A table that is
@@ -266,10 +270,9 @@ EXCLUDED_TABLES: dict[str, str] = {
     "dashboard_module_preferences": "Not part of bundle v1; set up again.",
     "wish_date_proposals": "Not part of bundle v1.",
     "wish_reminders": "Not part of bundle v1.",
-    # Support conversations with the operator (#2189): not couple content, never in bundle v1.
-    "support_reports": "Support conversation with the operator; not couple content.",
-    "support_report_replies": "Support conversation with the operator; not couple content.",
-    "support_report_tickets": "Operator ticket link of a support report; not couple content.",
+    # Operator-side technical link of a support report to the operator's ticket (#2189). It is
+    # not personal content of the reporter, so it stays out of the personal data copy (#2245).
+    "support_report_tickets": "Operator-side ticket link of a report; not the person's content.",
     # The Transfer Bundle's own tables (feature removed by Decision 0020).
     "transfer_exports": "Transfer Bundle bookkeeping of the removed self-service feature.",
     "transfer_imports": "Transfer Bundle bookkeeping of the removed self-service feature.",

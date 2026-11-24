@@ -113,3 +113,14 @@ def test_every_garden_column_that_holds_an_account_is_known_to_the_mapping() -> 
         if column.type.python_type is list and "sender" in column.name
     }
     assert array_columns == {"flower_senders"}
+
+
+def test_support_reports_travel_in_the_personal_copy_but_the_ticket_link_does_not() -> None:
+    """#2245: own reports and replies are served; the operator-side ticket link is not."""
+    assert {"support_reports", "support_report_replies"} <= set(ACCOUNT_DOCUMENT_TABLES)
+    assert {"support_reports", "support_report_replies"}.isdisjoint(EXCLUDED_TABLES)
+    # Export-only: no Space file may carry them, so the import has no table to restore.
+    assert {"support_reports", "support_report_replies"}.isdisjoint(EXPORTED_TABLES)
+    assert "support_report_tickets" in EXCLUDED_TABLES
+    assert "support_report_tickets" not in ACCOUNT_DOCUMENT_TABLES
+    assert "support_report_tickets" not in EXPORTED_TABLES

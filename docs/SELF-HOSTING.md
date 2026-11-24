@@ -433,6 +433,11 @@ of `NEW` reports and the `support_reports_unread` warning once the oldest one is
 than 14 days old ([ServerAdmin](SERVER-ADMIN.md#operational-overview)); while the
 switch is off the count is 0.
 
+A person's own reports and the reply they received are part of the operator-provided
+personal data copy (Art. 15 and Art. 20 GDPR). The operator export tool of the Pro
+package writes them into `accounts.json` of a personal export for the requesting
+account; see its runbook (`backend/pro/src/eimir_pro/portability/RUNBOOK.md`).
+
 The published eimir. privacy notice does not cover support reports yet (free text,
 device context, the retention above and a local draft on the device), so eimir. Cloud
 keeps the switch off until it does. A self-hosted operator who enables it is

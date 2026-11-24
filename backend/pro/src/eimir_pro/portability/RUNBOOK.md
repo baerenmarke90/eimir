@@ -39,6 +39,14 @@ python -m eimir_pro.portability export --space <space-id> --member <account-id> 
 - `--scope shared` is the content both partners see. `--scope personal` adds the private data of
   `--member` (private notes, gift ideas, private lists, personal settings). Never hand a
   personal file to the other partner.
+- A personal export also carries the member's **own support reports and the reply each one
+  received** (`personalSupportReports` in `accounts.json`, #2245), so an access or portability
+  request (Art. 15, 20 GDPR) is served completely. Reports belong to the account, not to the
+  Space, so they are selected by `--member` alone: only that account's reports, never the
+  partner's, and never in a shared export. The operator's ticket link
+  (`support_report_tickets`) is not personal content and is never written. They are
+  **export-only**: the import ignores them. A person who is in no Space cannot be exported (the
+  tool needs a Space and a member), so serve that request from the database directly.
 - The file is **plaintext**. It contains the couple's private content in readable form. It is
   created readable by its owner only (on POSIX systems), written under a `.part` name and renamed
   when complete and validated. An existing file is never overwritten.

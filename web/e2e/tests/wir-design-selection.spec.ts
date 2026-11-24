@@ -341,14 +341,23 @@ test('selecting design colours keeps the current layout and navigation', async (
   await expect(root).toHaveAttribute('data-app-palette', 'warm');
   await page.goto('/more/settings/appearance');
   await page.emulateMedia({ colorScheme: 'light' });
+  const savedTrigger = card.getByRole('button', {
+    name: `${copy.palette.title} ${copy.names.warm}`,
+  });
+  await expect(savedTrigger).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 900 });
+  const largeText = await page.addStyleTag({
+    content: 'html { font-size: 150%; }',
+  });
+  await reflow(page);
+  await largeText.evaluate((style) => style.remove());
   for (const width of [360, 430, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await reflow(page);
   }
+  await card.scrollIntoViewIfNeeded();
   await captureScreenshot(page, info, 'design-colours-1440-light.png');
-  await card
-    .getByRole('button', { name: `${copy.palette.title} ${copy.names.warm}` })
-    .click();
+  await savedTrigger.click();
   await sheet.getByRole('radio', { name: copy.palette.followDesign }).check();
   await sheet.getByRole('button', { name: copy.save, exact: true }).click();
   await expect(root).toHaveAttribute('data-app-palette', 'home_rooms');

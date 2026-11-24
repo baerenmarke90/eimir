@@ -619,6 +619,13 @@
           "identity": null,
           "nullable": false,
           "type": "character varying(24)"
+        },
+        "wir_design_palette": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "character varying(24)"
         }
       },
       "constraints": {

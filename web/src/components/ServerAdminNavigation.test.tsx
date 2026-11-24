@@ -8,6 +8,11 @@ import {
   ServerAdminSectionNavigation,
 } from './ServerAdminPage';
 
+/** Shows the current query string so a test can see whether navigation happened. */
+function Location() {
+  return <output data-testid="location">{useLocation().search}</output>;
+}
+
 describe('ServerAdmin section navigation', () => {
   it('falls back to the overview for missing or unknown sections', () => {
     expect(resolveServerAdminSection(null)).toBe('overview');
@@ -56,10 +61,6 @@ describe('ServerAdmin section navigation', () => {
 
   describe('leaving the reports section with an unsent draft', () => {
     afterEach(() => cleanup());
-
-    function Location() {
-      return <output data-testid="location">{useLocation().search}</output>;
-    }
 
     function renderNavigation(confirmLeave: () => boolean) {
       render(

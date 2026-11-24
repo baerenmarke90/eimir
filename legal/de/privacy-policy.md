@@ -1,7 +1,7 @@
 ---
 document: privacy-policy
 locale: de-DE
-version: 2026-11-24.draft-12
+version: 2026-11-24.draft-13
 status: draft
 effective: null
 legal_review: pending
@@ -132,7 +132,7 @@ Fügst du einen Link ein und lässt dir eine Vorschau anzeigen, ruft unser Serve
 ## 14. Datenkopie
 
 1. Du kannst jederzeit kostenlos eine Kopie deiner Daten in einem maschinenlesbaren Format von uns verlangen, unabhängig davon, ob ihr Pro nutzt. Schreib uns dazu an kontakt@reiswienudel.de (Abschnitt 23). Die gemeinsame Kopie enthält die gemeinsamen Inhalte eures Space, auch die deines Partners. Deine „Nur für mich“-Inhalte enthält nur deine persönliche Kopie.
-2. Wir erstellen die Kopie auf deine Anfrage und übergeben sie dir. Passkeys, Sitzungen, Zugangsschlüssel, Einmalnachrichten sowie Problemmeldungen und Feedback mit unseren Antworten (Abschnitt 19) nehmen wir nicht auf. Hast du die Kopie erhalten, liegt sie in deiner Verantwortung.
+2. Wir erstellen die Kopie auf deine Anfrage und übergeben sie dir. Passkeys, Sitzungen, Zugangsschlüssel und Einmalnachrichten nehmen wir nicht auf. Deine persönliche Kopie enthält dagegen deine eigenen Problemmeldungen und dein Feedback mit unseren Antworten (Abschnitt 19). Hast du die Kopie erhalten, liegt sie in deiner Verantwortung.
 3. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO sowie dein Recht auf Datenübertragbarkeit (Art. 20 DSGVO).
 
 ## 15. Speicherung auf deinem Gerät
@@ -180,7 +180,7 @@ eimir. Pro kann derzeit noch nicht gekauft werden. Sobald das möglich ist, gilt
 3. Inhalte aus eurem Space wie Erinnerungen, Notizen, Pläne, Listen, Nachrichten oder Fotos, außerdem Dateinamen, Orte, Kontaktdaten, Zugangsschlüssel und Daten anderer Menschen schickt eimir. dabei nicht mit. Was du selbst in den Text schreibst, erhalten wir allerdings. Schreib dort bitte nur, was wir brauchen, um dein Anliegen zu verstehen. Die Angaben zu App und Gerät liest eimir. erst aus, wenn du die Meldung abschickst. Ohne dass du eine Meldung sendest, erhalten wir keine Fehler- oder Geräteangaben.
 4. Wir nutzen deine Meldung nur, um das Problem zu finden und zu beheben, dein Feedback zu berücksichtigen und dir, wenn wir das für sinnvoll halten, einmal zu antworten. Deine Meldungen lesen nur wir. Wir geben sie nicht an Dritte weiter und nutzen sie nicht für Analyse oder Werbung. Um einen Fehler zu beheben, können wir zu einer Meldung ein technisches Ticket in unserem Ticketsystem anlegen; es enthält neben einer Beschreibung, die wir selbst schreiben, nur technische Angaben (Kennung und Art der Meldung, App-Version und Build, ob du die App oder die Web-App nutzt, den Fehler-Code mit der Kennung der fehlgeschlagenen Anfrage) und nie deinen Text, unsere Antwort oder die Kennung deines Kontos. Wir speichern sie in unserer Datenbank, deinen Text, den Fehler-Code und die Angaben zu App und Gerät verschlüsselt (Abschnitt 5). Unverschlüsselt bleiben die Art der Meldung, ihr Bearbeitungsstand und die Zeitpunkte. Damit eimir. nicht mit Meldungen überflutet wird, begrenzen wir ihre Zahl pro Konto (Abschnitt 16).
 5. Wir können dir auf eine Meldung einmal kurz antworten, mit höchstens 500 Zeichen. Die Antwort erscheint als Benachrichtigung in eimir., die nur du siehst. Eine Push-Benachrichtigung dazu enthält den Antworttext nicht, und per E-Mail schicken wir die Antwort nicht. Es gibt keinen Chat und keinen Verlauf: Auf die Antwort kannst du nicht antworten, aber du kannst jederzeit eine neue Meldung schicken. Bist du gerade in keinem Space, speichern wir die Antwort, du erhältst aber keine Benachrichtigung.
-6. Eine abgeschlossene Meldung löschen wir 90 Tage nach ihrem Abschluss, jede Meldung spätestens 365 Tage nach dem Absenden, jeweils mit unserer Antwort. Löschst du dein Konto, löschen wir deine Meldungen und Antworten sofort. Meldungen sind nicht Teil der Datenkopie (Abschnitt 14). Welche Meldungen wir von dir gespeichert haben, teilen wir dir auf Anfrage mit (Abschnitt 23).
+6. Eine abgeschlossene Meldung löschen wir 90 Tage nach ihrem Abschluss, jede Meldung spätestens 365 Tage nach dem Absenden, jeweils mit unserer Antwort. Löschst du dein Konto, löschen wir deine Meldungen und Antworten sofort. Deine Meldungen mit unseren Antworten enthält deine persönliche Datenkopie (Abschnitt 14), die du nach Abschnitt 23 anfragen kannst.
 7. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO, soweit du uns ein Problem mit eimir. meldest, und für Feedback unser berechtigtes Interesse, eimir. anhand deiner Rückmeldung zu verbessern (Art. 6 Abs. 1 lit. f DSGVO). Die Angaben zu App und Gerät liest eimir. aus, weil du die Meldung ausdrücklich abschickst (§ 25 Abs. 2 Nr. 2 TDDDG).
 
 ## 20. Wer deine Daten erhält

@@ -19,6 +19,7 @@ import {
 import {
   APP_DESIGNS,
   type AppDesignLayout,
+  DEFAULT_APP_DESIGN,
 } from '../design/appDesigns.generated';
 import { syncDocumentThemeColor } from '../theme';
 import { APP_ICON_CAPABILITY, appIconQueryKey } from './appIcon';
@@ -35,6 +36,7 @@ import {
 } from './spaceEntitlement';
 import {
   forgetWirDesign,
+  parseWirDesignId,
   readWirDesign,
   rememberWirDesign,
   wirDesignStorageKey,
@@ -47,13 +49,11 @@ export const WIR_DESIGNS: readonly WirDesignId[] = [
   WirDesignId.modern,
   WirDesignId.classic,
   WirDesignId.quiet_together,
-  WirDesignId.handwriting,
   WirDesignId.home_rooms,
   WirDesignId.shared_rhythm,
-  WirDesignId.together_index,
 ];
 /** The design every account starts with; it needs no entitlement. */
-export const DEFAULT_WIR_DESIGN: WirDesignId = WirDesignId.connected;
+export const DEFAULT_WIR_DESIGN: WirDesignId = DEFAULT_APP_DESIGN;
 /** Designs that never require Pro: the default and the earlier default. */
 export const FREE_WIR_DESIGNS: readonly WirDesignId[] = [
   WirDesignId.connected,
@@ -84,10 +84,11 @@ export function wirDesignQueryKey(
 }
 async function snapshot(response: Response): Promise<WirDesignSnapshot> {
   const preference = WirDesignPreferenceViewFromJSON(await response.json());
+  const designId = parseWirDesignId(preference.designId);
   const etag = response.headers.get('ETag');
   if (
     !etag ||
-    !WIR_DESIGNS.includes(preference.designId) ||
+    !designId ||
     !Number.isInteger(preference.version) ||
     preference.version < 0
   )
@@ -96,7 +97,7 @@ async function snapshot(response: Response): Promise<WirDesignSnapshot> {
       response.status,
       'INVALID_APPEARANCE_RESPONSE',
     );
-  return { preference, etag };
+  return { preference: { ...preference, designId }, etag };
 }
 function useWirDesignState({
   api,

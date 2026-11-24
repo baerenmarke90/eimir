@@ -18,7 +18,9 @@ import type { SupportReportDetailView } from '../api/generated/models/SupportRep
 import type { SupportReportTicketSummary } from '../api/generated/models/SupportReportTicketSummary';
 import { FetchError, ResponseError } from '../api/generated/runtime';
 import { ClientProblemError } from '../client/problemDetails';
-import { serverAdminReportsCopy as reports } from '../i18n/locales/serverAdminReports';
+import serverAdmin from '../i18n/locales/serverAdmin';
+
+const reports = serverAdmin.reports;
 import { ServerAdminSupportReportDetail } from './ServerAdminSupportReportDetail';
 
 vi.mock('./ServerAdminRecentAuthModal', () => ({

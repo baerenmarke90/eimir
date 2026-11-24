@@ -94,6 +94,43 @@ it('holds the first composition until design is known and restores the confirmed
   next.client.clear();
 });
 
+it.each(['handwriting', 'together_index'])(
+  'uses the default for retired design %s during offline startup and revalidation',
+  async (designId) => {
+    localStorage.setItem(
+      key,
+      JSON.stringify({ schema: 1, designId, savedAt: Date.now() }),
+    );
+    const f = fixture();
+    const view = renderHook(useWirDesign, { wrapper: f.wrapper });
+    expect(view.result.current?.current).toBe('connected');
+    expect(view.result.current?.preference.isPlaceholderData).toBe(true);
+    expect(document.documentElement.dataset.wirLayout).toBe('connected');
+
+    await waitFor(() => expect(f.fetchApi).toHaveBeenCalledOnce());
+    await act(async () =>
+      f.finish(
+        new Response(JSON.stringify({ designId, version: 3 }), {
+          headers: { ETag: '"appearance:3"' },
+        }),
+      ),
+    );
+    await waitFor(() =>
+      expect(view.result.current?.preference.data).toEqual({
+        preference: { designId: 'connected', version: 3 },
+        etag: '"appearance:3"',
+      }),
+    );
+    await waitFor(() =>
+      expect(JSON.parse(localStorage.getItem(key) ?? '{}').designId).toBe(
+        'connected',
+      ),
+    );
+    view.unmount();
+    f.client.clear();
+  },
+);
+
 it('a denied read discards the remembered choice and cannot use it for writes', async () => {
   rememberWirDesign(key, 'classic');
   const f = fixture();

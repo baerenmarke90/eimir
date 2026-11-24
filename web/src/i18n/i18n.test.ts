@@ -1,50 +1,8 @@
 import { parseSync } from 'rolldown/utils';
 import { DEFAULT_LOCALE, i18n, resolvedLocale } from './index';
 import de from './locales/de';
-import {
-  localeRegistry,
-  type SupportedLocale,
-  supportedLocales,
-} from './resources';
-
-// Packs registered by lazily loaded code (modules exporting `lazyLocalePack`);
-// they follow the same parity and static-key rules as the bundled packs.
-const lazyLocalePacks = Object.values(
-  import.meta.glob('./locales/*.ts', {
-    eager: true,
-    import: 'lazyLocalePack',
-  }) as Record<string, Record<SupportedLocale, object> | undefined>,
-).filter((pack): pack is Record<SupportedLocale, object> => Boolean(pack));
-for (const pack of lazyLocalePacks) {
-  for (const locale of supportedLocales) {
-    i18n.addResourceBundle(locale, 'translation', pack[locale], true, false);
-  }
-}
-
-function mergedPack(target: unknown, source: unknown): unknown {
-  if (
-    !target ||
-    !source ||
-    typeof target !== 'object' ||
-    typeof source !== 'object' ||
-    Array.isArray(target) ||
-    Array.isArray(source)
-  ) {
-    return source ?? target;
-  }
-  const result: Record<string, unknown> = { ...target };
-  for (const [key, value] of Object.entries(source)) {
-    result[key] = mergedPack(result[key], value);
-  }
-  return result;
-}
-
-function completeTranslation(locale: SupportedLocale): unknown {
-  return lazyLocalePacks.reduce<unknown>(
-    (pack, lazy) => mergedPack(pack, lazy[locale]),
-    localeRegistry[locale].translation,
-  );
-}
+import { localeCatalog } from './catalog';
+import { localeRegistry, supportedLocales } from './resources';
 
 const sourceFiles = import.meta.glob(
   [
@@ -192,10 +150,6 @@ function placeholders(value: string) {
 }
 
 describe('web i18n', () => {
-  it('finds the lazily registered locale packs', () => {
-    expect(lazyLocalePacks.length).toBeGreaterThan(0);
-  });
-
   it('registers the same product languages for Web, recipient delivery and native fallback', () => {
     const recipientLocales = Object.keys(recipientPacks)
       .map((file) =>
@@ -217,12 +171,12 @@ describe('web i18n', () => {
   });
 
   it('bundles complete packs with matching interpolation and native plural categories', () => {
-    const baseline = resourceEntries(completeTranslation('de'));
+    const baseline = resourceEntries(localeRegistry.de.translation);
     const expected = new Set(
       [...baseline.keys()].map((key) => key.replace(pluralSuffix, '')),
     );
     for (const locale of supportedLocales) {
-      const entries = resourceEntries(completeTranslation(locale));
+      const entries = resourceEntries(localeRegistry[locale].translation);
       const actual = new Set(
         [...entries.keys()].map((key) => key.replace(pluralSuffix, '')),
       );
@@ -366,6 +320,47 @@ describe('web i18n', () => {
       .sort();
 
     expect(missing).toEqual([]);
+  });
+
+  it('keeps every locale pack out of the entry bundle', () => {
+    // The Web entry stays below its gzip budget only while packs load on
+    // demand (web/scripts/check-entry-size.mjs). Only the catalog may point at
+    // them, and only through dynamic import().
+    const staticImport =
+      /^\s*(?:import|export)\b[^;]*?from\s+['"]([^'"]+)['"]/gmu;
+    const pack = /(?:^|\/)(?:resources|germanPack)$|locales\/en\.json$/u;
+    const offenders = Object.entries(sourceFiles)
+      .filter(
+        ([fileName]) =>
+          !/(?:^|\/)(?:resources|germanPack)\.ts$/u.test(fileName),
+      )
+      .flatMap(([fileName, source]) =>
+        [...source.matchAll(staticImport)]
+          .map((match) => match[1])
+          .filter((specifier) => pack.test(specifier))
+          .map((specifier) => `${fileName} -> ${specifier}`),
+      );
+
+    expect(offenders).toEqual([]);
+  });
+
+  it('loads each registered pack on demand with the complete translation tree', async () => {
+    for (const locale of supportedLocales) {
+      expect(await localeCatalog[locale].load(), locale).toBe(
+        localeRegistry[locale].translation,
+      );
+    }
+  });
+
+  it('switches language through the lazy backend without losing the fallback', async () => {
+    await i18n.changeLanguage('en');
+    expect(resolvedLocale()).toBe('en');
+    expect(i18n.t('common.cancel')).toBe(
+      localeRegistry.en.translation.common.cancel,
+    );
+    expect(i18n.t('common.cancel', { lng: 'de' })).toBe('Abbrechen');
+    await i18n.changeLanguage(DEFAULT_LOCALE);
+    expect(resolvedLocale()).toBe(DEFAULT_LOCALE);
   });
 
   it('falls back to German resources for an unsupported language request', async () => {

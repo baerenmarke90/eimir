@@ -9,9 +9,10 @@ import {
 } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import serverAdmin from '../../src/i18n/locales/serverAdmin';
-import { serverAdminReportsCopy as reports } from '../../src/i18n/locales/serverAdminReports';
 import AxeBuilder from '../support/axe';
 import { installMocks } from '../support/storyTimelineFixture';
+
+const reports = serverAdmin.reports;
 
 /*
  * The operator's support reports section in the ServerAdmin area (#2189).

@@ -39,13 +39,9 @@ import {
   useClientOnline,
 } from '../client/supportReportsAdmin';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { registerServerAdminReportsLocale } from '../i18n/serverAdminReportsLocale';
 import { ServerAdminRecentAuthModal } from './ServerAdminRecentAuthModal';
 import { TaskBackButton } from './TaskBackButton';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
-
-// The section's copy loads with its code, outside the app entry.
-registerServerAdminReportsLocale();
 
 type PrivilegedWrite =
   | { kind: 'state'; state: SupportReportState }

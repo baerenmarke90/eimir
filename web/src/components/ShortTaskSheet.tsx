@@ -181,6 +181,7 @@ export function ShortTaskSheet({
   const dragVelocityRef = useRef(new VelocityTracker());
   const suppressNextClickRef = useRef(false);
   const gestureHandlersRef = useRef<DragGestureHandlers | null>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
   const closeConfirmed = useEditorHistoryEntry({
     isActive: open,
     isDirty,
@@ -222,6 +223,32 @@ export function ShortTaskSheet({
     }
     wasPresentRef.current = present;
   }, [present, restoreFocusRef]);
+
+  // The footer scrolls once its content outgrows the bounded height (large text,
+  // long messages). A scrollable region must be keyboard-reachable, so it joins
+  // the tab order exactly while it overflows and not otherwise. The attribute is
+  // set on the element instead of through state: a state update from this layout
+  // effect would re-render the sheet synchronously, flush its pending passive
+  // effects early and reorder focus hand-offs when the sheet closes.
+  useLayoutEffect(() => {
+    const footerElement = footerRef.current;
+    if (!footerElement) return;
+    const measure = () => {
+      if (footerElement.scrollHeight > footerElement.clientHeight) {
+        footerElement.setAttribute('tabindex', '0');
+      } else {
+        footerElement.removeAttribute('tabindex');
+      }
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(footerElement);
+    for (const child of Array.from(footerElement.children)) {
+      observer.observe(child);
+    }
+    return () => observer.disconnect();
+  });
 
   useEffect(() => {
     onPresenceChange?.(present);
@@ -868,7 +895,11 @@ export function ShortTaskSheet({
         </h2>
         {children}
       </section>
-      {footer ? <div className="short-task-sheet-footer">{footer}</div> : null}
+      {footer ? (
+        <div ref={footerRef} className="short-task-sheet-footer">
+          {footer}
+        </div>
+      ) : null}
     </dialog>,
     document.body,
   );

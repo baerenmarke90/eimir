@@ -1042,6 +1042,8 @@
     },
     "wir-design-selection.spec.ts": {
       "roots": [
+        "web/src/App.tsx",
+        "web/src/components/AppShell.tsx",
         "web/src/components/WirDesignSettings.tsx",
         "web/src/components/DashboardSettingsPanel.tsx",
         "web/src/components/TodayPage.tsx",
@@ -1060,9 +1062,7 @@
         "web/src/components/PageHeader.tsx",
         "web/src/components/StoryYearsPage.tsx",
         "web/src/components/SharedRhythm.tsx",
-        "web/src/components/SharedRhythm.css",
-        "web/src/components/TogetherIndex.tsx",
-        "web/src/components/TogetherIndex.css"
+        "web/src/components/SharedRhythm.css"
       ]
     },
     "wish-detective.spec.ts": {
@@ -1489,8 +1489,6 @@
         "web/src/client/supportReportsAdmin.ts",
         "web/src/client/recentAuthentication.ts",
         "web/src/api/generated/apis/ServerAdminSupportReportsApi.ts",
-        "web/src/i18n/locales/serverAdminReports.ts",
-        "web/src/i18n/serverAdminReportsLocale.ts",
         "web/src/i18n/locales/serverAdmin.ts"
       ]
     }

@@ -18,7 +18,9 @@ import type { SupportReportListItem } from '../api/generated/models/SupportRepor
 import type { SupportReportListView } from '../api/generated/models/SupportReportListView';
 import { FetchError } from '../api/generated/runtime';
 import { ClientProblemError } from '../client/problemDetails';
-import { serverAdminReportsCopy as reports } from '../i18n/locales/serverAdminReports';
+import serverAdmin from '../i18n/locales/serverAdmin';
+
+const reports = serverAdmin.reports;
 import { ServerAdminSupportReportsPanel } from './ServerAdminSupportReportsPanel';
 
 const NOTE = 'Our private words about the bug';

@@ -107,9 +107,8 @@ canonical blue.
 
 Layout modes are a closed, code-owned list (`connected`, `classic`, `open`,
 `compact`, `rows`, and since 2026-11-17 by Product Owner decision `names`
-(Zu zweit: large names without portraits, the moment as a small row) and
-`note` (Handschrift: a compact header leading with the latest shared Heart
-Moment)). A layout may change arrangement, density, hero composition
+(Zu zweit: large names without portraits, the moment as a small row)).
+A layout may change arrangement, density, hero composition
 and image ratios. It must not change content, actions, routes, privacy
 presentation or the create-button contract. Colours, type families, radii,
 elevation and motion come from tokens, never from layout CSS.
@@ -122,7 +121,6 @@ same destination routes, contextual create actions and secondary-page headers.
 | --- | --- | --- |
 | `rooms` | Room picker for Zuhause | [#1881](https://github.com/baerenmarke90/eimir/pull/1881) |
 | `chapters` | Chapter navigation for Unser Takt | [#1885](https://github.com/baerenmarke90/eimir/pull/1885) |
-| `thread` | Destination overview for Faden | [#1887](https://github.com/baerenmarke90/eimir/pull/1887) |
 
 The Momente Album/compact switch is an independent per-device presentation
 choice, not a design. It consumes the same semantic tokens and therefore

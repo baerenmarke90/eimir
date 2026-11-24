@@ -13,13 +13,9 @@ import {
   supportReportsQueryKey,
 } from '../client/supportReportsAdmin';
 import { useTranslation } from '../i18n';
-import { registerServerAdminReportsLocale } from '../i18n/serverAdminReportsLocale';
 import { ServerAdminSupportReportDetail } from './ServerAdminSupportReportDetail';
 import { UiState } from './UiState';
 import './ServerAdminSupportReportsPanel.css';
-
-// The section's copy loads with its code, outside the app entry.
-registerServerAdminReportsLocale();
 
 function ReportRow({
   report,

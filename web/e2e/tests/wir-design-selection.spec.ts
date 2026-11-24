@@ -1253,10 +1253,7 @@ test('a saved design colours Mehr, its sheet and the browser chrome and switches
   expect(f.unexpected).toEqual([]);
 });
 
-// #1907 C1: the names layout (Zu zweit) sets the names large with the add
-// action in the moment header; the note layout (Handschrift) leads with the
-// latest shared Heart Moment and opens it.
-test('the names and note layouts compose Wir and the note opens its Heart Moment', async ({
+test('Zu zweit keeps the names and the add action in the moment header', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 900 });
@@ -1264,60 +1261,58 @@ test('the names and note layouts compose Wir and the note opens its Heart Moment
   const f = await fixture(page, { initial: 'quiet_together', agenda: true });
   await signIn(page);
   await page.goto('/today');
-  const today = page.locator('.today-page');
-  await expect(today).toHaveAttribute('data-wir-layout', 'names');
+  await expect(page.locator('.today-page')).toHaveAttribute(
+    'data-wir-layout',
+    'names',
+  );
   await expect(
     page.locator('.wir-compact-hero .couple-presence-title > span'),
   ).toHaveCount(2);
   await expect(
     page.locator('.today-section-moment .today-section-header .add-action'),
   ).toBeVisible();
-  await expect(page.locator('.wir-note-card')).toHaveCount(0);
+  expect(f.unexpected).toEqual([]);
+});
 
-  await page.route(
-    `**/api/v1/spaces/${SPACE_ID}/appearance/wir-design`,
-    (route) =>
-      route.fulfill({
-        json: { designId: 'handwriting', version: 5 },
-        headers: { ETag: '"appearance:5"' },
-      }),
+test('the retired design falls back to Verbunden and the picker still saves', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 360, height: 830 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const f = await fixture(page, { initial: 'handwriting', pro: false });
+  await signIn(page);
+  await page.goto('/today');
+  await expect(page.locator('.today-page')).toHaveAttribute(
+    'data-wir-layout',
+    'connected',
   );
-  // A dashboard whose latest shared item is a Heart Moment with words.
-  await page.route(`**/api/v1/spaces/${SPACE_ID}/dashboard`, (route) =>
-    route.fulfill({
-      json: {
-        space: { spaceId: SPACE_ID, partner: PARTNER },
-        relationshipDuration: null,
-        retrospective: null,
-        keepsake: null,
-        upcoming: [],
-        anticipation: null,
-        recentShared: [
-          {
-            type: 'HEART_MOMENT',
-            id: 'heart-note',
-            titleOrText: 'Coffee by the water tomorrow?',
-            occurredOn: '2026-11-14',
-            createdAt: '2026-11-14T08:00:00Z',
-            scheduledAt: null,
-            previewIsSensitive: false,
-            concealed: false,
-          },
-        ],
-        sharedStorySummary: { memories: 0, heartMoments: 1, milestones: 0 },
-        viewerLocalDate: '2026-11-15',
-      },
-    }),
+  await open(page);
+  const picker = page.getByRole('dialog', { name: copy.choices });
+  await expect(picker.locator('input[value="handwriting"]')).toHaveCount(0);
+  await expect(page.getByText(copy.unavailable, { exact: true })).toHaveCount(
+    0,
   );
-  await page.reload();
-  await expect(today).toHaveAttribute('data-wir-layout', 'note');
-  const note = page.locator('.wir-note-card');
-  await expect(note).toContainText('Coffee by the water tomorrow?');
-  await expect(note).toHaveAttribute(
-    'href',
-    /\/story\/heart-moments\/heart-note$/,
+  await expect(
+    picker.getByRole('radio', { name: new RegExp(copy.names.connected) }),
+  ).toBeChecked();
+  await captureScreenshot(page, info, 'design-selection-360-light.png');
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await captureScreenshot(page, info, 'design-selection-1440-dark.png');
+
+  await picker
+    .getByRole('radio', { name: new RegExp(copy.names.warm) })
+    .check();
+  await picker.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(picker.getByText(copy.saved, { exact: true })).toBeVisible();
+  await picker.getByRole('button', { name: copy.close, exact: true }).click();
+  await page.goto('/today');
+  await expect(page.locator('.today-page')).toHaveAttribute(
+    'data-wir-design',
+    'warm',
   );
-  await expect(page.locator('.wir-note-add .add-action')).toBeVisible();
+  expect(f.writes).toEqual(['warm']);
   expect(f.unexpected).toEqual([]);
 });
 
@@ -1344,10 +1339,7 @@ async function expectTitleGap(
     .toBe(24);
 }
 
-async function checkResponsiveTitleGaps(
-  page: Page,
-  includeThreadIndex = false,
-) {
+async function checkResponsiveTitleGaps(page: Page) {
   const destinations = [
     {
       route: '/more/profile',
@@ -1360,13 +1352,6 @@ async function checkResponsiveTitleGaps(
       content: '.story-years-recaps-entry',
     },
   ];
-  if (includeThreadIndex) {
-    destinations.push({
-      route: '/faden',
-      header: '.thread-index',
-      content: '.thread-index-list',
-    });
-  }
   for (const { route, header, content } of destinations) {
     await page.goto(route);
     for (const [width, height] of [
@@ -1461,64 +1446,58 @@ test('Unser Takt navigation, saved appearance and secondary title spacing', asyn
   });
 });
 
-test('Faden navigation, saved appearance and secondary title spacing', async ({
+test('retired Faden restores standard navigation and the picker still saves', async ({
   page,
 }, info) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 360, height: 830 });
   await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
-  const saved = await fixture(page, { initial: 'connected' });
+  const saved = await fixture(page, { initial: 'together_index', pro: false });
   await signIn(page);
-  await open(page);
-  await page
-    .getByRole('radio', { name: new RegExp(copy.names.together_index) })
-    .check();
-  await page.getByRole('button', { name: copy.save, exact: true }).click();
-  await expect(page.getByText(copy.saved, { exact: true })).toBeVisible();
-  expect(saved.writes).toEqual(['together_index']);
-  await page.goto('/today');
-  await expect(page.locator('html')).toHaveAttribute(
+
+  await page.goto('/faden');
+  await expect(page).toHaveURL(/\/today$/);
+  await expect(page.locator('.today-page')).toHaveAttribute(
     'data-wir-layout',
-    'thread',
+    'connected',
   );
-  await expect(page.locator('.thread-today')).toBeVisible();
-  await captureScreenshot(page, info, 'together_index-compact.png', {
-    animations: 'disabled',
-  });
-  await reflow(page);
-  await page.setViewportSize({ width: 390, height: 420 });
+  const mobileNavigation = page.locator('.mobile-bottom-nav');
+  await mobileNavigation
+    .getByRole('link', { name: navigation.story, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/story$/);
   await page.goto('/story/memories/mem-canal');
-  const trigger = page.getByRole('link', { name: copy.thread.index });
-  await expect(trigger).toBeVisible();
   await expect(
     page.getByRole('heading', { name: 'Breakfast by the canal' }),
   ).toBeVisible();
-  const originScroll = await page.evaluate(() => {
-    window.scrollTo({ top: 160, behavior: 'instant' });
-    return window.scrollY;
-  });
-  expect(originScroll).toBeGreaterThan(0);
-  await expect(trigger).toBeInViewport({ ratio: 1 });
-  await trigger.click();
-  await expectTitleGap(page, '.thread-index', '.thread-index-list');
+
+  await open(page);
+  const picker = page.getByRole('dialog', { name: copy.choices });
+  await expect(picker.locator('input[value="together_index"]')).toHaveCount(0);
+  await expect(page.getByText(copy.unavailable, { exact: true })).toHaveCount(
+    0,
+  );
   await expect(
-    page.locator('.thread-index-list a[href="/more/collections"]'),
-  ).toBeVisible();
-  await page
-    .getByRole('button', {
-      name: copy.thread.return.replace('{{area}}', navigation.story),
-      exact: true,
-    })
-    .click();
-  await expect(page).toHaveURL(/\/story\/memories\/mem-canal/);
-  await expect(trigger).toBeFocused();
-  await expect
-    .poll(() => page.evaluate(() => window.scrollY))
-    .toBe(originScroll);
-  await checkResponsiveTitleGaps(page, true);
+    picker.getByRole('radio', { name: new RegExp(copy.names.connected) }),
+  ).toBeChecked();
+  await reflow(page);
+  await captureScreenshot(page, info, 'faden-picker-360-light.png');
+
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ colorScheme: 'dark' });
+  await captureScreenshot(page, info, 'faden-picker-1440-dark.png');
+
+  await picker
+    .getByRole('radio', { name: new RegExp(copy.names.warm) })
+    .check();
+  await picker.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(picker.getByText(copy.saved, { exact: true })).toBeVisible();
+  await picker.getByRole('button', { name: copy.close, exact: true }).click();
   await page.goto('/today');
-  await expect(page.locator('.thread-today')).toBeVisible();
-  await captureScreenshot(page, info, 'together_index-expanded.png', {
-    animations: 'disabled',
-  });
+  await expect(page.locator('.today-page')).toHaveAttribute(
+    'data-wir-design',
+    'warm',
+  );
+  await expect(page.locator('.app-header .shell-nav')).toBeVisible();
+  expect(saved.writes).toEqual(['warm']);
+  expect(saved.unexpected).toEqual([]);
 });

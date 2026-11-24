@@ -119,7 +119,6 @@ import {
 } from './CouplePresence';
 import { DailyQuoteCard } from './DailyQuoteCard';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
-import { ThreadToday } from './ThreadNavigationLayout';
 import { ChapterToday } from './ChapterNavigationLayout';
 import { RoomLanding } from './RoomNavigationLayout';
 import { MemoryPreview } from './MemoryPreview';
@@ -1087,14 +1086,11 @@ export function TodayPage({
   const wirDesign = useWirDesign();
   const wirDesignId = wirDesign?.current ?? DEFAULT_WIR_DESIGN;
   const wirLayout = wirDesignLayout(wirDesignId);
-  // Names (Zu zweit) and note (Handschrift): a compact hero with the details
-  // first and small portraits; note then leads with the latest Heart Moment.
+  // Zu zweit leads with the couple's names and uses compact check-in rows.
   const namesLayout = wirLayout === 'names';
-  const noteLayout = wirLayout === 'note';
-  const threadLayout = wirLayout === 'thread';
   const sharedRhythm = wirLayout === 'chapters';
   const rooms = wirLayout === 'rooms';
-  const compactPresence = namesLayout || noteLayout || rooms;
+  const compactPresence = namesLayout || rooms;
   // "Seite an Seite": the two people as rows and agenda date stamps.
   const sharedAlbum = wirLayout === 'rows';
   // "Verbunden": two portraits joined by a heart line (the default design).
@@ -1951,10 +1947,9 @@ export function TodayPage({
     </WirHeroDistance>
   );
 
-  // The note layout opens with the latest shared Heart Moment that has words
-  // and nothing to conceal; otherwise it shows the usual moment feature.
+  // Zuhause can show the latest shared Heart Moment with non-sensitive text.
   const leadNote =
-    (noteLayout || homeLanding) &&
+    homeLanding &&
     keepsakeVisible &&
     !dashboardQuery.isCached &&
     !dashboardQuery.error
@@ -1970,45 +1965,6 @@ export function TodayPage({
   const leadNotePath = leadNote
     ? dashboardItemPath(leadNote.type, leadNote.id)
     : null;
-  const leadNoteDate = leadNote?.occurredOn ?? leadNote?.createdAt;
-  const showNoteKeepsake = noteLayout && showMomentSection && keepsakeVisible;
-  const noteReplacesKeepsake =
-    noteLayout &&
-    relationshipPresenceVisible &&
-    ((!leadNotePath && showNoteKeepsake) ||
-      leadNote?.id === focalItem?.item.id);
-  const noteFeature =
-    noteLayout && leadNote && leadNotePath ? (
-      <TodayDestinationLink to={leadNotePath} className="wir-note-card">
-        <span className="wir-note-kind">
-          <EimirIcon name="momente" variant="filled" />
-          {t('story.kind.heartMoment')}
-          {leadNoteDate ? (
-            <time
-              className="wir-note-date"
-              dateTime={leadNoteDate.toISOString()}
-            >
-              {formatCalendarDate(leadNoteDate)}
-            </time>
-          ) : null}
-        </span>
-        <p className="wir-note-text">{leadNote.titleOrText}</p>
-        <span className="wir-note-open">
-          {t('wirDesign.note.open')}
-          <EimirIcon name="chevron-right" />
-        </span>
-      </TodayDestinationLink>
-    ) : showNoteKeepsake && focalItem ? (
-      <div className="wir-note-moment">
-        <TodayMomentFeature
-          item={focalItem.item}
-          loadMemoryImage={loadMemoryImage}
-          loadMemoryClip={loadMemoryClip}
-          isKeepsake={focalItem.kind === 'keepsake'}
-        />
-      </div>
-    ) : undefined;
-
   const renderClassicHero = (
     avatarAction?: CouplePresenceAvatarAction,
     avatarOverlay?: ReactNode,
@@ -2023,7 +1979,6 @@ export function TodayPage({
       }
       detailsFirst={compactPresence || sharedAlbum}
       stackNames={namesLayout}
-      feature={noteFeature}
       titleAction={
         (compactPresence && partner) || sharedAlbum ? (
           <TodayDestinationLink
@@ -2143,41 +2098,7 @@ export function TodayPage({
     avatarAction?: CouplePresenceAvatarAction,
     avatarOverlay?: ReactNode,
   ) =>
-    threadLayout ? (
-      <Suspense
-        fallback={<UiState kind="loading" title={t('states.loading.title')} />}
-      >
-        <ThreadToday
-          own={{
-            name: heroOwnName,
-            image: userAvatar.avatarUrl,
-            action: dailyCheckIn?.ownAction,
-            badge: dailyCheckIn?.ownBadge,
-            label: t('wirDesign.thread.ownVibe'),
-          }}
-          partner={
-            partner
-              ? {
-                  name: partnerName,
-                  image: partnerAvatar.avatarUrl,
-                  action:
-                    avatarAction && dailyCheckIn?.partnerAriaLabel
-                      ? {
-                          ...avatarAction,
-                          label: `${avatarAction.label}. ${dailyCheckIn.partnerAriaLabel}`,
-                        }
-                      : avatarAction,
-                  badge: dailyCheckIn?.partnerBadge,
-                  label: t('wirDesign.thread.partner'),
-                }
-              : undefined
-          }
-          duration={heroDurationText}
-          day={dashboardQuery.data?.viewerLocalDate}
-          overlay={avatarOverlay}
-        />
-      </Suspense>
-    ) : sharedRhythm ? (
+    sharedRhythm ? (
       <Suspense
         fallback={<UiState kind="loading" title={t('states.loading.title')} />}
       >
@@ -2263,7 +2184,7 @@ export function TodayPage({
   const moduleContent: Record<DashboardModuleKey, ReactNode> = {
     partner_distance:
       partnerDistanceVisible &&
-      (sharedRhythm || threadLayout || !partnerDistanceInHero) &&
+      (sharedRhythm || !partnerDistanceInHero) &&
       partnerDistance ? (
         <div className="today-partner-distance">{partnerDistance}</div>
       ) : null,
@@ -2325,8 +2246,6 @@ export function TodayPage({
           >
             <RoomLanding />
           </Suspense>
-        ) : threadLayout ? (
-          <h1>{t('navigation.today')}</h1>
         ) : sharedRhythm ? (
           <h1>{t('wirDesign.rhythm.today')}</h1>
         ) : null}
@@ -2343,10 +2262,7 @@ export function TodayPage({
         {/* Personal shared content comes before the practical horizon:
                   Today should show the relationship itself before another
                   stack of planning utilities. */}
-        {showMomentSection &&
-        keepsakeVisible &&
-        focalItem &&
-        !noteReplacesKeepsake ? (
+        {showMomentSection && keepsakeVisible && focalItem ? (
           <TodayModuleSection
             className={
               firstMomentSettle
@@ -2739,14 +2655,10 @@ export function TodayPage({
           ref={rootIntro}
           style={{ '--wir-intro-pace': WIR_INTRO_PACE } as CSSProperties}
         >
-          {sharedRhythm || threadLayout ? (
+          {sharedRhythm ? (
             <>
               {moduleContent.relationship_presence}
-              <div
-                className={
-                  threadLayout ? 'thread-create' : 'rhythm-today-create'
-                }
-              >
+              <div className="rhythm-today-create">
                 <MomentCreateMenu everything />
               </div>
             </>
@@ -2757,7 +2669,6 @@ export function TodayPage({
               title={t('navigation.today')}
               action={
                 rooms ||
-                noteLayout ||
                 (namesLayout &&
                   showMomentSection &&
                   keepsakeVisible) ? undefined : (
@@ -2768,16 +2679,8 @@ export function TodayPage({
           )}
 
           {visibleOrder.map((key) =>
-            (sharedRhythm || threadLayout) &&
-            key === 'relationship_presence' ? null : (
-              <Fragment key={key}>
-                {moduleContent[key]}
-                {noteLayout && key === 'relationship_presence' ? (
-                  <div className="wir-note-add">
-                    <MomentCreateMenu />
-                  </div>
-                ) : null}
-              </Fragment>
+            sharedRhythm && key === 'relationship_presence' ? null : (
+              <Fragment key={key}>{moduleContent[key]}</Fragment>
             ),
           )}
           {isSparse ? (

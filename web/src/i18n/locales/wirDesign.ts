@@ -6,7 +6,6 @@ export default {
   welcome: 'Unser Platz zu zweit',
   nameJoiner: '&',
   compact: { own: 'Dein Vibe', partner: '{{name}} heute' },
-  note: { open: 'Herzmoment öffnen' },
   homeRooms: {
     rooms: 'Räume',
     remember: 'Erinnern',
@@ -37,25 +36,7 @@ export default {
     insights: 'Einblicke',
     games: 'Spielen',
   },
-  thread: {
-    sharedSummary: 'Eure Listen und Notizen',
-    name: 'Faden',
-    index: 'Überblick',
-    title: 'Euer Faden',
-    today: 'Euer Heute',
-    return: 'Zurück zu {{area}}',
-    ownVibe: 'Mein Vibe',
-    partner: 'Heute',
-    wirSummary: 'Wie geht’s euch heute?',
-    storySummary: 'Erinnerungen, Tagebuch und Fotos',
-    planSummary: 'Pläne, Wünsche und Anlässe',
-    insights: 'Einblicke',
-    insightsSummary: 'Vibe und Energie im Verlauf',
-    gamesSummary: 'Zusammen spielen',
-    moreSummary: 'Profil, Privates und Einstellungen',
-  },
   names: {
-    together_index: 'Faden',
     shared_rhythm: 'Unser Takt',
     home_rooms: 'Zuhause',
     connected: 'Verbunden',
@@ -64,11 +45,8 @@ export default {
     modern: 'Klar & modern',
     classic: 'Klassisch',
     quiet_together: 'Zu zweit',
-    handwriting: 'Handschrift',
   },
   descriptions: {
-    together_index:
-      'Eure Vibes nebeneinander, ein Verzeichnis für alle Bereiche und eine ruhige Farbwelt in Elfenbein, Graphit und Kobaltblau.',
     shared_rhythm:
       'Euer Heute, eure Geschichte und eure Pläne im eigenen Takt. Mit einer Navigation oben und Farben in Pflaume, Rosa und Apricot.',
     home_rooms:
@@ -84,8 +62,6 @@ export default {
       'Vertraut und großzügig. Große Porträts über euren Namen und die bisherige Anordnung.',
     quiet_together:
       'Ruhige, gedeckte Farben in der ganzen App. Auf Wir eure Namen groß und euer Moment kompakt.',
-    handwriting:
-      'Warme Papierfarben und weinrote Akzente in der ganzen App. Auf Wir euer neuester Herzmoment wie eine Notiz.',
   },
   standard: 'Standard',
   free: 'Kostenlos',

@@ -1707,9 +1707,6 @@
       "own": "Your vibe",
       "partner": "{{name}} today"
     },
-    "note": {
-      "open": "Open Heart Moment"
-    },
     "names": {
       "connected": "Connected",
       "shared_album": "Our Album",
@@ -1717,10 +1714,8 @@
       "modern": "Clear & modern",
       "classic": "Classic",
       "quiet_together": "Together",
-      "handwriting": "Handwritten",
       "home_rooms": "Home",
-      "shared_rhythm": "Our Rhythm",
-      "together_index": "Thread"
+      "shared_rhythm": "Our Rhythm"
     },
     "descriptions": {
       "connected": "The two of you, joined by a heart line. Your time together sits in the middle.",
@@ -1729,10 +1724,8 @@
       "modern": "Clear and airy. Your names beside your portraits, with calm blue accents.",
       "classic": "Familiar and spacious. Large portraits above your names and the original arrangement.",
       "quiet_together": "Calm, muted colours throughout the app. On Us, your names set large and your moment kept compact.",
-      "handwriting": "Warm paper tones and wine-red accents throughout the app. On Us, your latest Heart Moment like a note.",
       "home_rooms": "A shared starting point for the two of you. Open Rooms to find memories, plans and more.",
-      "shared_rhythm": "Today, your story and your plans at your own pace, with navigation at the top and shades of plum, pink and apricot.",
-      "together_index": "Both of your Vibes at a glance, with an overview of every area and a palette of ivory, graphite and cobalt blue."
+      "shared_rhythm": "Today, your story and your plans at your own pace, with navigation at the top and shades of plum, pink and apricot."
     },
     "standard": "Standard",
     "free": "Free",
@@ -1783,23 +1776,6 @@
       "moreNavigation": "More areas",
       "insights": "Insights",
       "games": "Play"
-    },
-    "thread": {
-      "sharedSummary": "Your lists and notes",
-      "name": "Thread",
-      "index": "Overview",
-      "title": "Your thread",
-      "today": "Your day together",
-      "return": "Back to {{area}}",
-      "ownVibe": "My vibe",
-      "partner": "Today",
-      "wirSummary": "How are you both today?",
-      "storySummary": "Memories, journal and photos",
-      "planSummary": "Plans, wishes and occasions",
-      "insights": "Insights",
-      "insightsSummary": "Vibe and energy over time",
-      "gamesSummary": "Play together",
-      "moreSummary": "Profile, private area and settings"
     }
   },
   "profiles": {
@@ -4935,6 +4911,140 @@
       "demoMode": "Demo mode",
       "enabled": "Active",
       "disabled": "Inactive"
+    },
+    "reports": {
+      "title": "Reports",
+      "body": "Problem and feedback reports from the app. The list shows no notes; you see the text only in the opened report.",
+      "newCount": "New: {{count}}",
+      "filter": {
+        "label": "Filter reports by status",
+        "all": "All",
+        "NEW": "New",
+        "IN_PROGRESS": "In progress",
+        "CLOSED": "Done"
+      },
+      "states": {
+        "NEW": "New",
+        "IN_PROGRESS": "In progress",
+        "CLOSED": "Done"
+      },
+      "kinds": {
+        "PROBLEM": "Problem",
+        "FEEDBACK": "Feedback"
+      },
+      "loadingTitle": "Loading reports",
+      "loadingBody": "The reports of this installation are being queried.",
+      "errorTitle": "Reports unavailable",
+      "errorBody": "The reports could not be loaded.",
+      "offlineTitle": "No connection",
+      "offlineBody": "The reports can be loaded again once the connection is back.",
+      "offlineNotice": "You are offline. Changes to reports are possible again once the connection is back.",
+      "retry": "Load again",
+      "emptyTitle": "No reports",
+      "emptyNewBody": "There are no new reports right now.",
+      "emptyFilteredBody": "There are no reports with this status.",
+      "emptyAllBody": "No report has arrived yet.",
+      "showAll": "Show all reports",
+      "loadMore": "Load more reports",
+      "loadingMore": "Loading more reports …",
+      "loadMoreError": "More reports could not be loaded.",
+      "listLabel": "Reports",
+      "item": {
+        "version": "Version {{version}} ({{build}})",
+        "replied": "Replied",
+        "ticket": "Ticket"
+      },
+      "detail": {
+        "back": "Back to the list",
+        "eyebrow": "Report",
+        "heading": "{{kind}} from {{date}}",
+        "loading": "Loading report …",
+        "error": "The report could not be loaded.",
+        "noteTitle": "Note from the person",
+        "noNote": "The person wrote no note.",
+        "privacy": "The note is private text. It appears only here and is never copied into a ticket, a log or an analysis.",
+        "factsTitle": "Technical details",
+        "createdAt": "Received",
+        "appVersion": "App version",
+        "build": "Build",
+        "platform": "Platform",
+        "os": "Operating system",
+        "engine": "Browser engine",
+        "locale": "Language",
+        "timeZone": "Time zone",
+        "theme": "Appearance",
+        "online": "Online when sent",
+        "yes": "Yes",
+        "no": "No",
+        "failureReference": "Failure reference",
+        "requestId": "Request ID",
+        "accountId": "Account ID",
+        "accountHint": "Find the account in user management with this ID.",
+        "none": "–",
+        "stateTitle": "Triage status",
+        "stateSaved": "Status saved: {{state}}.",
+        "discardDraftConfirm": "This report has an unsent draft. Discard the draft and continue?"
+      },
+      "reply": {
+        "title": "Reply",
+        "label": "Reply to the person",
+        "hint": "The reply is sent exactly once and cannot be edited afterwards. At most 500 characters, text only.",
+        "counter": "{{length}} / {{max}}",
+        "counterLabel": "{{length}} of {{max}} characters",
+        "tooLong": "The reply is longer than 500 characters.",
+        "send": "Send reply once",
+        "sending": "Sending reply …",
+        "sent": "The reply was sent.",
+        "sentTitle": "Sent reply",
+        "sentAt": "Sent on {{date}}",
+        "readOnly": "A sent reply cannot be changed.",
+        "discardConfirm": "The reply has not been sent yet. Return to the list and discard the draft?"
+      },
+      "ticket": {
+        "title": "Ticket",
+        "none": "This report has no ticket yet.",
+        "create": "Create ticket",
+        "unavailable": "No tracker is set up for this installation, so no tickets can be created.",
+        "open": "Open ticket {{number}}",
+        "openWithoutNumber": "Open ticket",
+        "opensExternal": "opens the tracker in a new window",
+        "created": "Ticket created",
+        "createdNotice": "The ticket was created.",
+        "pending": "The ticket is being created.",
+        "uncertain": "Uncertain whether the ticket was created. Check the tracker.",
+        "uncertainHint": "If the tracker has no ticket, remove the link and create it again.",
+        "clear": "Remove ticket link",
+        "confirmClear": "Really remove the ticket link? If the ticket was created in the tracker after all, creating it again makes a duplicate. Check the tracker first.",
+        "cleared": "The ticket link was removed."
+      },
+      "ticketDialog": {
+        "eyebrow": "Tracker",
+        "title": "Create ticket",
+        "intro": "You write the title and description yourself. The person's note and your reply are never copied automatically. Do not write anything private into the ticket.",
+        "titleLabel": "Title",
+        "titleTemplate": "{{kind}} in version {{appVersion}}",
+        "titleRequired": "The title must not be empty.",
+        "titleTooLong": "The title is longer than 256 characters.",
+        "bodyLabel": "Description (optional)",
+        "bodyTooLong": "The description is too long for the tracker.",
+        "footerLabel": "Appended unchanged by the server",
+        "submit": "Create ticket",
+        "submitting": "Creating ticket …",
+        "cancel": "Cancel"
+      },
+      "errors": {
+        "alreadyReplied": "This report has already been replied to. The sent reply is shown.",
+        "ticketExists": "This report already has a ticket.",
+        "ticketNotConfigured": "No tracker is set up for this installation.",
+        "ticketTooLong": "Title and description are too long for the tracker together with the technical details.",
+        "ticketFailedRetryable": "The tracker did not create the ticket. Check the tracker; the link stays open until you remove it.",
+        "ticketFailed": "The tracker refused the ticket. Check the tracker setup; the link stays open until you remove it.",
+        "offline": "You are offline. The change was not sent.",
+        "notFound": "This report no longer exists.",
+        "ticketNotFound": "The ticket link had already been removed. The report is reloaded.",
+        "validation": "The server did not accept the input.",
+        "generic": "The action could not be completed."
+      }
     },
     "privacyNote": "Server administration shows operational, identity and security metadata. Couples' private content, media content, job payloads, passwords, tokens and credentials are not shown. The only exception is the Reports section: there you read the notes people sent with a report themselves."
   },

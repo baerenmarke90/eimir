@@ -5,7 +5,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ServerAdminOverview } from '../api/generated/models/ServerAdminOverview';
 import serverAdmin from '../i18n/locales/serverAdmin';
-import { serverAdminReportsCopy } from '../i18n/locales/serverAdminReports';
 import { ServerAdminPage } from './ServerAdminPage';
 
 const api = vi.hoisted(() => ({
@@ -195,7 +194,7 @@ describe('ServerAdmin support report signal', () => {
     expect(
       await screen.findByRole(
         'heading',
-        { name: serverAdminReportsCopy.title },
+        { name: serverAdmin.reports.title },
         { timeout: 5000 },
       ),
     ).toBeTruthy();

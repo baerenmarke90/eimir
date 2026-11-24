@@ -61,10 +61,13 @@ function sectionHref(section: ServerAdminSection): string {
 export function ServerAdminSectionNavigation({
   activeSection,
   supportReportsAvailable = false,
+  confirmLeave,
 }: {
   activeSection: ServerAdminSection;
   /** The overview's `supportReportsOperatorAvailable`: the operator plugin. */
   supportReportsAvailable?: boolean;
+  /** Asked before another section opens; false keeps the current one. */
+  confirmLeave?: () => boolean;
 }) {
   const { t } = useTranslation();
   const sections: Array<{ id: ServerAdminSection; label: string }> = [
@@ -97,6 +100,15 @@ export function ServerAdminSectionNavigation({
           className="server-admin-section-link"
           to={sectionHref(section.id)}
           aria-current={section.id === activeSection ? 'page' : undefined}
+          onClick={(event) => {
+            if (
+              section.id !== activeSection &&
+              confirmLeave &&
+              !confirmLeave()
+            ) {
+              event.preventDefault();
+            }
+          }}
         >
           {section.label}
         </Link>
@@ -933,6 +945,11 @@ export function ServerAdminPage({
   });
   const supportReportsAvailable =
     overviewQuery.data?.supportReportsOperatorAvailable === true;
+  // An unsent reply or ticket text in an open report; leaving the section asks.
+  const [reportsDraftDirty, setReportsDraftDirty] = useState(false);
+  const confirmLeaveReports = () =>
+    !reportsDraftDirty ||
+    window.confirm(t('serverAdmin.reports.detail.discardDraftConfirm'));
   const settingsQuery = useQuery({
     queryKey: ['server-admin', 'settings'],
     queryFn: () =>
@@ -1096,6 +1113,9 @@ export function ServerAdminPage({
           <ServerAdminSectionNavigation
             activeSection={section}
             supportReportsAvailable={supportReportsAvailable}
+            confirmLeave={
+              section === 'reports' ? confirmLeaveReports : undefined
+            }
           />
 
           <div className="server-admin-grid">
@@ -1117,6 +1137,7 @@ export function ServerAdminPage({
                     apiBaseUrl={apiBaseUrl}
                     accessToken={accessToken}
                     initialFilter={searchParams.get('state')}
+                    onDraftChange={setReportsDraftDirty}
                   />
                 </Suspense>
               ) : (

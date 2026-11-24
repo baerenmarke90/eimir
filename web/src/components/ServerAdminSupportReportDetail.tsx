@@ -14,6 +14,7 @@ import type { SupportReportState } from '../api/generated/models/SupportReportSt
 import type { SupportReportTicketSummary } from '../api/generated/models/SupportReportTicketSummary';
 import { ClientProblemError } from '../client/problemDetails';
 import { isRecentAuthRequired } from '../client/recentAuthentication';
+import { useDocumentLeaveGuard } from '../client/useDocumentLeaveGuard';
 import {
   characterCount,
   clearSupportReportTicket,
@@ -347,18 +348,31 @@ function TicketSection({
   );
 }
 
+/** The report itself is gone (404 on the report, not on its ticket link). */
+function isReportGone(error: unknown): boolean {
+  return (
+    error instanceof ClientProblemError &&
+    error.kind === 'notFound' &&
+    error.code !== 'SUPPORT_TICKET_NOT_FOUND'
+  );
+}
+
 export function ServerAdminSupportReportDetail({
   api,
   reportId,
   apiBaseUrl,
   accessToken,
   onClose,
+  onDraftChange,
 }: {
   api: ServerAdminSupportReportsApi;
   reportId: string;
   apiBaseUrl: string;
   accessToken: string;
-  onClose: () => void;
+  /** `gone`: the report no longer exists; the list says so. */
+  onClose: (reason?: 'gone') => void;
+  /** Whether an unsent reply or ticket text would be lost on leaving. */
+  onDraftChange?: (dirty: boolean) => void;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -383,6 +397,17 @@ export function ServerAdminSupportReportDetail({
   const dialogHeadingRef = useRef<HTMLHeadingElement>(null);
   const stepUpShownRef = useRef(false);
   const queryKey = supportReportQueryKey(reportId);
+  // The prefilled ticket title alone is no draft; typed body text is.
+  const replyDirty = replyText.trim() !== '';
+  const draftDirty =
+    replyDirty || (ticketDraft !== null && ticketDraft.body.trim() !== '');
+  useDocumentLeaveGuard(draftDirty);
+  const onDraftChangeRef = useRef(onDraftChange);
+  onDraftChangeRef.current = onDraftChange;
+  useEffect(() => {
+    onDraftChangeRef.current?.(draftDirty);
+  }, [draftDirty]);
+  useEffect(() => () => onDraftChangeRef.current?.(false), []);
 
   // `always`: an offline read fails with an offline error instead of pausing
   // as "loading" forever; writes refuse offline themselves.
@@ -438,6 +463,16 @@ export function ServerAdminSupportReportDetail({
     );
   }
 
+  /** The report was deleted meanwhile: drop it and return to the list. */
+  function reportGone(): void {
+    queryClient.removeQueries({ queryKey, exact: true });
+    void queryClient.invalidateQueries({ queryKey: SUPPORT_REPORTS_QUERY_KEY });
+    void queryClient.invalidateQueries({
+      queryKey: ['server-admin', 'overview'],
+    });
+    onClose('gone');
+  }
+
   function failed(
     error: unknown,
     write: PrivilegedWrite,
@@ -445,6 +480,10 @@ export function ServerAdminSupportReportDetail({
   ): void {
     if (isRecentAuthRequired(error)) {
       setPendingWrite(write);
+      return;
+    }
+    if (isReportGone(error)) {
+      reportGone();
       return;
     }
     setFeedback({
@@ -524,6 +563,10 @@ export function ServerAdminSupportReportDetail({
     onError: (error, draft) => {
       if (isRecentAuthRequired(error)) {
         setPendingWrite({ kind: 'ticket', draft });
+        return;
+      }
+      if (isReportGone(error)) {
+        reportGone();
         return;
       }
       const message = t(supportReportErrorKey(error));
@@ -617,10 +660,16 @@ export function ServerAdminSupportReportDetail({
   const numbers = new Intl.NumberFormat(resolvedLocale());
 
   function close() {
-    // An unsent reply is the operator's draft: leaving asks first.
+    // An unsent reply or ticket text is the operator's draft: leaving asks first.
     if (
-      replyText.trim() !== '' &&
-      !window.confirm(t('serverAdmin.reports.reply.discardConfirm'))
+      draftDirty &&
+      !window.confirm(
+        t(
+          replyDirty
+            ? 'serverAdmin.reports.reply.discardConfirm'
+            : 'serverAdmin.reports.detail.discardDraftConfirm',
+        ),
+      )
     ) {
       return;
     }

@@ -1,5 +1,8 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
+import { afterEach, vi } from 'vitest';
 import {
   resolveServerAdminSection,
   ServerAdminSectionNavigation,
@@ -49,5 +52,44 @@ describe('ServerAdmin section navigation', () => {
     expect(html.match(/server-admin-section-link/g)).toHaveLength(9);
     const reportsLink = html.match(/<a[^>]*section=reports[^>]*>/)?.[0];
     expect(reportsLink).toContain('aria-current="page"');
+  });
+
+  describe('leaving the reports section with an unsent draft', () => {
+    afterEach(() => cleanup());
+
+    function Location() {
+      return <output data-testid="location">{useLocation().search}</output>;
+    }
+
+    function renderNavigation(confirmLeave: () => boolean) {
+      render(
+        <MemoryRouter initialEntries={['/server-admin?section=reports']}>
+          <ServerAdminSectionNavigation
+            activeSection="reports"
+            supportReportsAvailable
+            confirmLeave={confirmLeave}
+          />
+          <Location />
+        </MemoryRouter>,
+      );
+    }
+
+    it('stays when the operator keeps the draft', () => {
+      const confirmLeave = vi.fn(() => false);
+      renderNavigation(confirmLeave);
+      fireEvent.click(screen.getByRole('link', { name: 'Benutzer' }));
+      expect(confirmLeave).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('location').textContent).toBe(
+        '?section=reports',
+      );
+    });
+
+    it('leaves when the operator discards the draft', () => {
+      renderNavigation(() => true);
+      fireEvent.click(screen.getByRole('link', { name: 'Benutzer' }));
+      expect(screen.getByTestId('location').textContent).toBe(
+        '?section=accounts',
+      );
+    });
   });
 });

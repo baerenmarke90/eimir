@@ -242,4 +242,125 @@ describe('ServerAdminSupportReportsPanel', () => {
     await waitFor(() => expect(document.activeElement).toBe(restored));
     expect(screen.queryByText(NOTE)).toBeNull();
   });
+
+  describe('switching rows while a report is open (list beside it)', () => {
+    const first = item(1);
+    const second = item(2, { kind: 'FEEDBACK' });
+    const SECOND_NOTE = 'The second report';
+
+    function renderTwo(calls: Record<string, unknown> = {}) {
+      const listSupportReports = vi
+        .fn()
+        .mockResolvedValue(page([first, second]));
+      const getSupportReport = vi.fn(({ reportId }: { reportId: string }) =>
+        Promise.resolve(
+          reportId === second.id
+            ? { ...detail(second), note: SECOND_NOTE }
+            : detail(first),
+        ),
+      );
+      const api = {
+        listSupportReports,
+        getSupportReport,
+        ...calls,
+      } as unknown as ServerAdminSupportReportsApi;
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
+      });
+      render(
+        <QueryClientProvider client={queryClient}>
+          <ServerAdminSupportReportsPanel
+            api={api}
+            apiBaseUrl="https://api.example.test"
+            accessToken="admin-token"
+          />
+        </QueryClientProvider>,
+      );
+      return { listSupportReports, getSupportReport };
+    }
+
+    async function openFirstWithDraft(text: string) {
+      fireEvent.click(await screen.findByRole('button', { name: /^Problem/ }));
+      const field = await screen.findByLabelText(reports.reply.label);
+      fireEvent.change(field, { target: { value: text } });
+      return field;
+    }
+
+    it('asks before replacing a report with an unsent reply; cancel keeps it', async () => {
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      const { getSupportReport } = renderTwo();
+      const field = await openFirstWithDraft('Half written');
+
+      fireEvent.click(screen.getByRole('button', { name: /^Feedback/ }));
+
+      expect(confirm).toHaveBeenCalledWith(reports.detail.discardDraftConfirm);
+      expect(screen.getByText(NOTE)).toBeTruthy();
+      expect((field as HTMLTextAreaElement).value).toBe('Half written');
+      expect(getSupportReport).not.toHaveBeenCalledWith({
+        reportId: second.id,
+      });
+    });
+
+    it('confirming discards the draft and opens the other report', async () => {
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+      renderTwo();
+      await openFirstWithDraft('Half written');
+
+      fireEvent.click(screen.getByRole('button', { name: /^Feedback/ }));
+
+      expect(confirm).toHaveBeenCalledTimes(1);
+      expect(await screen.findByText(SECOND_NOTE)).toBeTruthy();
+      expect(
+        (screen.getByLabelText(reports.reply.label) as HTMLTextAreaElement)
+          .value,
+      ).toBe('');
+    });
+
+    it('switches without asking when nothing is typed', async () => {
+      const confirm = vi.spyOn(window, 'confirm');
+      renderTwo();
+      fireEvent.click(await screen.findByRole('button', { name: /^Problem/ }));
+      expect(await screen.findByText(NOTE)).toBeTruthy();
+
+      fireEvent.click(screen.getByRole('button', { name: /^Feedback/ }));
+
+      expect(await screen.findByText(SECOND_NOTE)).toBeTruthy();
+      expect(confirm).not.toHaveBeenCalled();
+    });
+
+    it('returns to the list with a message when the open report was deleted', async () => {
+      const setSupportReportState = vi
+        .fn()
+        .mockRejectedValue(
+          new ClientProblemError('notFound', 404, 'RESOURCE_NOT_FOUND'),
+        );
+      const { listSupportReports } = renderTwo({ setSupportReportState });
+      fireEvent.click(await screen.findByRole('button', { name: /^Problem/ }));
+      const group = await screen.findByRole('group', {
+        name: reports.detail.stateTitle,
+      });
+      fireEvent.click(
+        Array.from(group.querySelectorAll('button')).find(
+          (button) => button.textContent === reports.states.CLOSED,
+        ) as HTMLButtonElement,
+      );
+
+      expect(await screen.findByRole('alert')).toHaveProperty(
+        'textContent',
+        reports.errors.notFound,
+      );
+      expect(screen.queryByText(NOTE)).toBeNull();
+      await waitFor(() =>
+        expect(listSupportReports.mock.calls.length).toBeGreaterThan(1),
+      );
+      await waitFor(() =>
+        expect(document.activeElement).toBe(
+          screen.getByRole('heading', { level: 2, name: reports.title }),
+        ),
+      );
+    });
+  });
 });

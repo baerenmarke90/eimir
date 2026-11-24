@@ -82,12 +82,15 @@ export function ServerAdminSupportReportsPanel({
   apiBaseUrl,
   accessToken,
   initialFilter = null,
+  onDraftChange,
 }: {
   api: ServerAdminSupportReportsApi;
   apiBaseUrl: string;
   accessToken: string;
   /** The state query parameter of a deep link; defaults to new reports. */
   initialFilter?: string | null;
+  /** Whether the open report holds an unsent reply or ticket text. */
+  onDraftChange?: (dirty: boolean) => void;
 }) {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<SupportReportFilter>(() =>
@@ -95,6 +98,8 @@ export function ServerAdminSupportReportsPanel({
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [restoreFocusId, setRestoreFocusId] = useState<string | null>(null);
+  const [draftDirty, setDraftDirty] = useState(false);
+  const [reportGone, setReportGone] = useState(false);
   const rowRefs = useRef(new Map<string, HTMLButtonElement>());
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -111,18 +116,40 @@ export function ServerAdminSupportReportsPanel({
   // Closing a report returns focus to the row that opened it, or to the
   // section heading when that row left the current filter meanwhile.
   useEffect(() => {
-    if (!restoreFocusId || selectedId) return;
+    if (restoreFocusId === null || selectedId) return;
     const row = rowRefs.current.get(restoreFocusId);
     (row ?? headingRef.current)?.focus({ preventScroll: true });
     setRestoreFocusId(null);
   }, [restoreFocusId, selectedId]);
 
   function changeFilter(next: SupportReportFilter) {
+    setReportGone(false);
     setFilter(next);
   }
 
-  function closeDetail() {
-    setRestoreFocusId(selectedId);
+  function changeDraft(dirty: boolean) {
+    setDraftDirty(dirty);
+    onDraftChange?.(dirty);
+  }
+
+  // From 80rem the list stays beside the report: opening another row would
+  // replace the open report, so an unsent draft asks first, as Back does.
+  function openReport(reportId: string) {
+    if (reportId === selectedId) return;
+    if (
+      draftDirty &&
+      !window.confirm(t('serverAdmin.reports.detail.discardDraftConfirm'))
+    ) {
+      return;
+    }
+    setReportGone(false);
+    setSelectedId(reportId);
+  }
+
+  function closeDetail(reason?: 'gone') {
+    // A deleted report has no row to return to: focus goes to the heading.
+    setRestoreFocusId(reason === 'gone' ? '' : selectedId);
+    setReportGone(reason === 'gone');
     setSelectedId(null);
   }
 
@@ -206,7 +233,7 @@ export function ServerAdminSupportReportsPanel({
               key={report.id}
               report={report}
               selected={report.id === selectedId}
-              onOpen={() => setSelectedId(report.id)}
+              onOpen={() => openReport(report.id)}
               buttonRef={(element) => {
                 if (element) rowRefs.current.set(report.id, element);
                 else rowRefs.current.delete(report.id);
@@ -276,6 +303,11 @@ export function ServerAdminSupportReportsPanel({
               </button>
             ))}
           </fieldset>
+          {reportGone ? (
+            <p className="status status-error" role="alert">
+              {t('serverAdmin.reports.errors.notFound')}
+            </p>
+          ) : null}
           {listContent}
         </div>
 
@@ -287,6 +319,7 @@ export function ServerAdminSupportReportsPanel({
             apiBaseUrl={apiBaseUrl}
             accessToken={accessToken}
             onClose={closeDetail}
+            onDraftChange={changeDraft}
           />
         ) : null}
       </div>

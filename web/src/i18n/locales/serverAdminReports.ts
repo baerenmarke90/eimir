@@ -84,6 +84,8 @@ const de = {
     none: '–',
     stateTitle: 'Bearbeitungsstand',
     stateSaved: 'Status gespeichert: {{state}}.',
+    discardDraftConfirm:
+      'In dieser Meldung steht ein nicht gesendeter Entwurf. Entwurf verwerfen und weitergehen?',
   },
   reply: {
     title: 'Antwort',
@@ -231,6 +233,8 @@ const en: typeof de = {
     none: '–',
     stateTitle: 'Triage status',
     stateSaved: 'Status saved: {{state}}.',
+    discardDraftConfirm:
+      'This report has an unsent draft. Discard the draft and continue?',
   },
   reply: {
     title: 'Reply',

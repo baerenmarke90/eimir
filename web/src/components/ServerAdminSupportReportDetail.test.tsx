@@ -230,6 +230,77 @@ describe('ServerAdminSupportReportDetail', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('reports an unsent reply as a draft to the list', async () => {
+    const onDraftChange = vi.fn();
+    const getSupportReport = vi.fn().mockResolvedValue(report());
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ServerAdminSupportReportDetail
+          api={{ getSupportReport } as unknown as ServerAdminSupportReportsApi}
+          reportId={reportId}
+          apiBaseUrl="https://api.example.test"
+          accessToken="admin-token"
+          onClose={vi.fn()}
+          onDraftChange={onDraftChange}
+        />
+      </QueryClientProvider>,
+    );
+    const field = await screen.findByLabelText(reports.reply.label);
+    fireEvent.change(field, { target: { value: 'Draft' } });
+    expect(onDraftChange).toHaveBeenLastCalledWith(true);
+    fireEvent.change(field, { target: { value: '   ' } });
+    expect(onDraftChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it.each([
+    ['state', 'setSupportReportState'],
+    ['reply', 'replyToSupportReport'],
+    ['ticket', 'createSupportReportTicket'],
+  ])(
+    'closes as gone when the report disappeared during a %s write',
+    async (kind, method) => {
+      const onClose = vi.fn();
+      const write = vi
+        .fn()
+        .mockRejectedValue(
+          new ClientProblemError('notFound', 404, 'RESOURCE_NOT_FOUND'),
+        );
+      renderDetail(report(), { [method]: write }, onClose);
+
+      if (kind === 'state') {
+        const group = await screen.findByRole('group', {
+          name: reports.detail.stateTitle,
+        });
+        fireEvent.click(
+          within(group).getByRole('button', { name: reports.states.CLOSED }),
+        );
+      } else if (kind === 'reply') {
+        fireEvent.change(await screen.findByLabelText(reports.reply.label), {
+          target: { value: 'Hello' },
+        });
+        fireEvent.click(
+          screen.getByRole('button', { name: reports.reply.send }),
+        );
+      } else {
+        fireEvent.click(
+          await screen.findByRole('button', { name: reports.ticket.create }),
+        );
+        const dialog = await screen.findByRole('dialog');
+        fireEvent.click(
+          within(dialog).getByRole('button', {
+            name: reports.ticketDialog.submit,
+          }),
+        );
+      }
+
+      await waitFor(() => expect(onClose).toHaveBeenCalledWith('gone'));
+      expect(screen.queryByText(reports.errors.generic)).toBeNull();
+    },
+  );
+
   it('shows a stored reply read-only without a form', async () => {
     renderDetail(
       report({

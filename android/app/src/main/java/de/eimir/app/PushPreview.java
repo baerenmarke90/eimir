@@ -191,8 +191,11 @@ public final class PushPreview {
             case "PHOTO_REACTION": return reaction().isEmpty() ? 0
                 : title.isEmpty() ? R.string.push_photo_reaction_symbol : R.string.push_photo_reaction_title_symbol;
             // A wrapped surprise seed arrives without a species, so it stays a surprise.
-            case "GARDEN_SEED_ARRIVED": return flowers.isEmpty() ? 0
-                : "GARDEN_BOUQUET".equals(targetType) ? R.string.push_garden_bouquet_flowers : R.string.push_garden_seed_species;
+            case "GARDEN_SEED_ARRIVED":
+                if (flowers.isEmpty()) return 0;
+                if ("GARDEN_BOUQUET".equals(targetType)) return R.string.push_garden_bouquet_flowers;
+                return "GARDEN_SEED".equals(targetType) && !"POPPY".equals(title)
+                    ? R.string.push_garden_seed_species_countable : R.string.push_garden_seed_species;
             default: return 0;
         }
     }

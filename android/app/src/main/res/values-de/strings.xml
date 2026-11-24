@@ -65,7 +65,7 @@
     <string name="push_game_wish_detective">%1$s hat beim Wunschdetektiv gespielt. Schau mal rein.</string>
     <string name="push_game_our_moments">%1$s hat bei „Unsere Momente“ gespielt. Schau mal rein.</string>
     <string name="push_view_game">Zum Spiel</string>
-    <string name="push_garden_seed">%1$s hat dir einen Samen geschickt.</string>
+    <string name="push_garden_seed">%1$s hat dir Saatgut für euren Garten geschenkt.</string>
     <string name="push_garden_bouquet">%1$s hat dir einen Strauß geschenkt.</string>
     <string name="push_view_garden">Garten ansehen</string>
     <string name="push_recap_ready">Euer Rückblick ist fertig.</string>
@@ -100,7 +100,8 @@
     <string name="push_video_processing_failed_title">Dein Video in „%2$s“ konnte nicht verarbeitet werden.</string>
     <string name="push_photo_reaction_symbol">%1$s hat mit %3$s auf ein Foto reagiert.</string>
     <string name="push_photo_reaction_title_symbol">%1$s hat mit %3$s auf ein Foto in „%2$s“ reagiert.</string>
-    <string name="push_garden_seed_species">%1$s hat dir einen Samen geschickt: %2$s.</string>
+    <string name="push_garden_seed_species">%1$s hat dir %2$s zum Einpflanzen geschickt.</string>
+    <string name="push_garden_seed_species_countable">%1$s hat dir eine %2$s zum Einpflanzen geschickt.</string>
     <string name="push_garden_bouquet_flowers">%1$s hat dir einen Strauß geschenkt: %2$s.</string>
     <string name="push_garden_words_line">„%1$s“</string>
     <string name="push_garden_tulip_bulb">Tulpenzwiebel</string>

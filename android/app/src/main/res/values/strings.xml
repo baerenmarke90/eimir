@@ -101,6 +101,7 @@
     <string name="push_photo_reaction_symbol">%1$s reacted to a photo with %3$s.</string>
     <string name="push_photo_reaction_title_symbol">%1$s reacted to a photo in “%2$s” with %3$s.</string>
     <string name="push_garden_seed_species">%1$s sent you a seed: %2$s.</string>
+    <string name="push_garden_seed_species_countable">@string/push_garden_seed_species</string>
     <string name="push_garden_bouquet_flowers">%1$s gave you a bouquet: %2$s.</string>
     <string name="push_garden_words_line">“%1$s”</string>
     <string name="push_garden_tulip_bulb">Tulip bulb</string>

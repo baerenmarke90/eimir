@@ -94,7 +94,10 @@ final class LauncherIcons {
         if (manager == null) return false;
         for (ActivityManager.AppTask task : manager.getAppTasks()) {
             ActivityManager.RecentTaskInfo info = task.getTaskInfo();
-            if (info.taskId != activity.getTaskId()) continue;
+            @SuppressWarnings("deprecation")
+            int taskId = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                    ? info.taskId : info.persistentId;
+            if (taskId != activity.getTaskId()) continue;
             ComponentName top = info.topActivity;
             return top == null || activity.getPackageName().equals(top.getPackageName());
         }

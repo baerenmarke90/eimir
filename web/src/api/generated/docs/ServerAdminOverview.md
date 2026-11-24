@@ -41,6 +41,7 @@ Name | Type
 `serverAdminAllowlistCount` | number
 `serverAdminVerifiedMatchCount` | number
 `supportReportsNew` | number
+`supportReportsOperatorAvailable` | boolean
 `suspendedAccountCount` | number
 `unverifiedPrimaryEmailCount` | number
 `verifiedPrimaryEmailCount` | number
@@ -88,6 +89,7 @@ const example = {
   "serverAdminAllowlistCount": null,
   "serverAdminVerifiedMatchCount": null,
   "supportReportsNew": null,
+  "supportReportsOperatorAvailable": null,
   "suspendedAccountCount": null,
   "unverifiedPrimaryEmailCount": null,
   "verifiedPrimaryEmailCount": null,

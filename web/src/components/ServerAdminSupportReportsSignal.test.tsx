@@ -10,6 +10,7 @@ import { ServerAdminPage } from './ServerAdminPage';
 const api = vi.hoisted(() => ({
   getOverview: vi.fn(),
   getActivity: vi.fn(),
+  listSupportReports: vi.fn(),
 }));
 
 vi.mock('../client/serverAdmin', () => ({
@@ -19,6 +20,7 @@ vi.mock('../client/serverAdmin', () => ({
       getServerAdminActivityApiV1ServerAdminActivityGet: api.getActivity,
       getServerAdminOverviewApiV1ServerAdminOverviewGet: api.getOverview,
     },
+    supportReports: { listSupportReports: api.listSupportReports },
   }),
 }));
 
@@ -60,6 +62,7 @@ function overview(
     serverAdminAllowlistCount: 1,
     serverAdminVerifiedMatchCount: 1,
     supportReportsNew: 0,
+    supportReportsOperatorAvailable: false,
     suspendedAccountCount: 0,
     unverifiedPrimaryEmailCount: 0,
     verifiedPrimaryEmailCount: 4,
@@ -69,13 +72,13 @@ function overview(
   };
 }
 
-function renderOverview() {
+function renderOverview(entry = '/server-admin?section=overview') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/server-admin?section=overview']}>
+      <MemoryRouter initialEntries={[entry]}>
         <ServerAdminPage
           apiBaseUrl="http://api.test"
           accessToken="token"
@@ -89,6 +92,7 @@ function renderOverview() {
 beforeEach(() => {
   api.getOverview.mockReset();
   api.getActivity.mockReset();
+  api.listSupportReports.mockReset();
   api.getActivity.mockResolvedValue([]);
   vi.stubGlobal('matchMedia', () => ({
     matches: false,
@@ -130,5 +134,72 @@ describe('ServerAdmin support report signal', () => {
     expect(
       screen.queryByText(serverAdmin.warnings.supportReportsUnread),
     ).toBeNull();
+  });
+
+  it('section hidden when the overview flag is false', async () => {
+    api.getOverview.mockResolvedValue(
+      overview({
+        supportReportsNew: 2,
+        warningCodes: ['support_reports_unread'],
+      }),
+    );
+
+    renderOverview('/server-admin?section=reports');
+
+    expect(
+      await screen.findByText(serverAdmin.reportsUnavailable.title),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole('link', { name: serverAdmin.navigation.reports }),
+    ).toBeNull();
+    expect(api.listSupportReports).not.toHaveBeenCalled();
+  });
+
+  it('links the unread warning into the section when the plugin is loaded', async () => {
+    api.getOverview.mockResolvedValue(
+      overview({
+        supportReportsNew: 2,
+        supportReportsOperatorAvailable: true,
+        warningCodes: ['support_reports_unread'],
+      }),
+    );
+
+    renderOverview();
+
+    const link = await screen.findByRole('link', {
+      name: serverAdmin.warnings.openReports,
+    });
+    expect(link.getAttribute('href')).toBe(
+      '/server-admin?section=reports&state=NEW',
+    );
+    expect(
+      screen.getByRole('link', { name: serverAdmin.navigation.reports }),
+    ).toBeTruthy();
+  });
+
+  it('loads the reports panel lazily on the reports section', async () => {
+    api.getOverview.mockResolvedValue(
+      overview({ supportReportsOperatorAvailable: true }),
+    );
+    api.listSupportReports.mockResolvedValue({
+      hasMore: false,
+      items: [],
+      newCount: 0,
+      nextCursor: null,
+    });
+
+    renderOverview('/server-admin?section=reports&state=CLOSED');
+
+    // The panel module is loaded on demand, which can take a moment.
+    expect(
+      await screen.findByRole(
+        'heading',
+        { name: serverAdmin.reports.title },
+        { timeout: 5000 },
+      ),
+    ).toBeTruthy();
+    expect(api.listSupportReports).toHaveBeenCalledWith(
+      expect.objectContaining({ state: 'CLOSED' }),
+    );
   });
 });

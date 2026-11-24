@@ -15348,6 +15348,10 @@
             "title": "Supportreportsnew",
             "type": "integer"
           },
+          "supportReportsOperatorAvailable": {
+            "title": "Supportreportsoperatoravailable",
+            "type": "boolean"
+          },
           "suspendedAccountCount": {
             "title": "Suspendedaccountcount",
             "type": "integer"
@@ -15411,6 +15415,7 @@
           "lastSuccessfulJobAt",
           "recentFailedJobs",
           "supportReportsNew",
+          "supportReportsOperatorAvailable",
           "warningCodes"
         ],
         "title": "ServerAdminOverview",

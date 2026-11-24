@@ -4,8 +4,10 @@
 **Operator switch:** [`EIMIR_SUPPORT_REPORTS_ENABLED`](../SELF-HOSTING.md#in-app-support-reports).
 
 This is the reference for the two public endpoints and the Python service interface
-of `eimir.support_reports`. The later operator plugin reads, triages and answers reports
-through exactly this service interface. No Core module imports a plugin (pinned by
+of `eimir.support_reports`. The operator plugin `eimir-admin` reads, triages and answers
+reports through exactly this service interface; its six ServerAdmin routes under
+`/api/v1/server-admin/support-reports` are documented in
+[ServerAdmin, Support reports](../SERVER-ADMIN.md#support-reports). No Core module imports a plugin (pinned by
 `tests/unit/test_core_imports_no_plugin.py`). The OpenAPI contract in
 `backend/openapi.json` stays the executable source for the wire format.
 

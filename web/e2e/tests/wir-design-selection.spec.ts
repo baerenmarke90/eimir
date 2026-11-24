@@ -3,7 +3,9 @@ import { expect, type Page, test } from '@playwright/test';
 import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
 import quoteCopy from '../../src/i18n/locales/dailyQuote';
 import m5s5Copy from '../../src/i18n/locales/m5s5';
+import navigation from '../../src/i18n/locales/navigation';
 import notificationCopy from '../../src/i18n/locales/notificationSettings';
+import personColoursCopy from '../../src/i18n/locales/personColours';
 import profileCopy from '../../src/i18n/locales/profileIdentity';
 import reflections from '../../src/i18n/locales/relationshipReflections';
 import wirCheckInCopy from '../../src/i18n/locales/wirCheckIn';
@@ -31,10 +33,12 @@ async function fixture(
 ) {
   const unexpected = await installMocks(page, { strict: true });
   let current = options.initial ?? 'warm';
+  let palette: string | undefined;
   let version = 0;
   let pro = options.pro !== false;
   let failure = options.failure ?? 0;
   const writes: string[] = [];
+  const paletteWrites: (string | null)[] = [];
   const base = `/api/v1/spaces/${SPACE_ID}`;
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultProductContext(route)) return;
@@ -89,7 +93,9 @@ async function fixture(
     }
     if (path === `${base}/appearance/wir-design`) {
       if (request.method() === 'PATCH') {
-        writes.push(request.postDataJSON().designId);
+        const change = request.postDataJSON();
+        if ('designId' in change) writes.push(change.designId);
+        if ('paletteId' in change) paletteWrites.push(change.paletteId);
         expect(request.headers()['if-match']).toBe(`"appearance:${version}"`);
         if (failure)
           return route.fulfill({
@@ -103,12 +109,20 @@ async function fixture(
                   : 'SERVICE_UNAVAILABLE',
             },
           });
-        expect(pro || request.postDataJSON().designId === 'warm').toBe(true);
-        current = request.postDataJSON().designId;
+        if ('designId' in change) {
+          expect(pro || change.designId === 'warm').toBe(true);
+          current = change.designId;
+        }
+        if ('paletteId' in change) {
+          expect(
+            pro || [null, 'connected', 'warm'].includes(change.paletteId),
+          ).toBe(true);
+          palette = change.paletteId ?? undefined;
+        }
         version++;
       }
       return route.fulfill({
-        json: { designId: current, version },
+        json: { designId: current, paletteId: palette, version },
         headers: { ETag: `"appearance:${version}"` },
       });
     }
@@ -254,6 +268,7 @@ async function fixture(
   });
   return {
     writes,
+    paletteWrites,
     unexpected,
     setPro: (v: boolean) => {
       pro = v;
@@ -270,6 +285,87 @@ async function open(page: Page) {
   await expect(page.getByRole('dialog', { name: copy.choices })).toBeVisible();
   await expect(page.getByText(copy.proLoading, { exact: true })).toHaveCount(0);
 }
+
+test('selecting design colours keeps the current layout and navigation', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  const state = await fixture(page, { initial: 'home_rooms', pro: false });
+  await signIn(page);
+  await page.goto('/more/settings/appearance');
+
+  const root = page.locator('html');
+  const card = page.getByRole('region', { name: copy.palette.title });
+  const trigger = card.getByRole('button', {
+    name: `${copy.palette.title} ${copy.palette.followDesign}`,
+  });
+  await expect(trigger).toBeVisible();
+  await expect(root).toHaveAttribute('data-app-palette', 'home_rooms');
+  const previousHeading = await card.evaluate(
+    (element) =>
+      element.previousElementSibling?.querySelector('h2')?.textContent,
+  );
+  expect(previousHeading).toBe(personColoursCopy.title);
+  await card.scrollIntoViewIfNeeded();
+  await captureScreenshot(page, info, 'design-colours-390-dark.png');
+
+  await trigger.click();
+  const sheet = page.getByRole('dialog', { name: copy.palette.choices });
+  await expect(
+    sheet.getByRole('radio', { name: copy.palette.followDesign }),
+  ).toBeChecked();
+  await sheet.getByRole('radio', { name: copy.names.warm }).check();
+  await expect(root).toHaveAttribute('data-app-palette', 'home_rooms');
+  await sheet.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(sheet.getByText(copy.palette.saved)).toBeVisible();
+  await expect(root).toHaveAttribute('data-app-design', 'home_rooms');
+  await expect(root).toHaveAttribute('data-app-palette', 'warm');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
+    'content',
+    '#2c2334',
+  );
+  await sheet.getByRole('button', { name: copy.close, exact: true }).click();
+  await expect(
+    card.getByRole('button', {
+      name: `${copy.palette.title} ${copy.names.warm}`,
+    }),
+  ).toBeFocused();
+
+  await page.goto('/today');
+  await expect(page.locator('.home-landing')).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: copy.homeRooms.rooms, exact: true }),
+  ).toBeVisible();
+  await expect(root).toHaveAttribute('data-wir-layout', 'rooms');
+  await expect(root).toHaveAttribute('data-app-palette', 'warm');
+  await page.goto('/more/settings/appearance');
+  await page.emulateMedia({ colorScheme: 'light' });
+  const savedTrigger = card.getByRole('button', {
+    name: `${copy.palette.title} ${copy.names.warm}`,
+  });
+  await expect(savedTrigger).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 900 });
+  const largeText = await page.addStyleTag({
+    content: 'html { font-size: 150%; }',
+  });
+  await reflow(page);
+  await largeText.evaluate((style) => style.remove());
+  for (const width of [360, 430, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await reflow(page);
+  }
+  await card.scrollIntoViewIfNeeded();
+  await captureScreenshot(page, info, 'design-colours-1440-light.png');
+  await savedTrigger.click();
+  await sheet.getByRole('radio', { name: copy.palette.followDesign }).check();
+  await sheet.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(root).toHaveAttribute('data-app-palette', 'home_rooms');
+  await expect(root).toHaveAttribute('data-app-design', 'home_rooms');
+  expect(state.writes).toEqual([]);
+  expect(state.paletteWrites).toEqual(['warm', null]);
+  expect(state.unexpected).toEqual([]);
+});
 async function reflow(page: Page) {
   const overflow = await page.evaluate(() =>
     Array.from(document.querySelectorAll('body *'))
@@ -1252,10 +1348,7 @@ test('a saved design colours Mehr, its sheet and the browser chrome and switches
   expect(f.unexpected).toEqual([]);
 });
 
-// #1907 C1: the names layout (Zu zweit) sets the names large with the add
-// action in the moment header; the note layout (Handschrift) leads with the
-// latest shared Heart Moment and opens it.
-test('the names and note layouts compose Wir and the note opens its Heart Moment', async ({
+test('Zu zweit keeps the names and the add action in the moment header', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 900 });
@@ -1263,59 +1356,243 @@ test('the names and note layouts compose Wir and the note opens its Heart Moment
   const f = await fixture(page, { initial: 'quiet_together', agenda: true });
   await signIn(page);
   await page.goto('/today');
-  const today = page.locator('.today-page');
-  await expect(today).toHaveAttribute('data-wir-layout', 'names');
+  await expect(page.locator('.today-page')).toHaveAttribute(
+    'data-wir-layout',
+    'names',
+  );
   await expect(
     page.locator('.wir-compact-hero .couple-presence-title > span'),
   ).toHaveCount(2);
   await expect(
     page.locator('.today-section-moment .today-section-header .add-action'),
   ).toBeVisible();
-  await expect(page.locator('.wir-note-card')).toHaveCount(0);
-
-  await page.route(
-    `**/api/v1/spaces/${SPACE_ID}/appearance/wir-design`,
-    (route) =>
-      route.fulfill({
-        json: { designId: 'handwriting', version: 5 },
-        headers: { ETag: '"appearance:5"' },
-      }),
-  );
-  // A dashboard whose latest shared item is a Heart Moment with words.
-  await page.route(`**/api/v1/spaces/${SPACE_ID}/dashboard`, (route) =>
-    route.fulfill({
-      json: {
-        space: { spaceId: SPACE_ID, partner: PARTNER },
-        relationshipDuration: null,
-        retrospective: null,
-        keepsake: null,
-        upcoming: [],
-        anticipation: null,
-        recentShared: [
-          {
-            type: 'HEART_MOMENT',
-            id: 'heart-note',
-            titleOrText: 'Coffee by the water tomorrow?',
-            occurredOn: '2026-11-14',
-            createdAt: '2026-11-14T08:00:00Z',
-            scheduledAt: null,
-            previewIsSensitive: false,
-            concealed: false,
-          },
-        ],
-        sharedStorySummary: { memories: 0, heartMoments: 1, milestones: 0 },
-        viewerLocalDate: '2026-11-15',
-      },
-    }),
-  );
-  await page.reload();
-  await expect(today).toHaveAttribute('data-wir-layout', 'note');
-  const note = page.locator('.wir-note-card');
-  await expect(note).toContainText('Coffee by the water tomorrow?');
-  await expect(note).toHaveAttribute(
-    'href',
-    /\/story\/heart-moments\/heart-note$/,
-  );
-  await expect(page.locator('.wir-note-add .add-action')).toBeVisible();
   expect(f.unexpected).toEqual([]);
+});
+
+test('the retired design falls back to Verbunden and the picker still saves', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 360, height: 830 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const f = await fixture(page, { initial: 'handwriting', pro: false });
+  await signIn(page);
+  await page.goto('/today');
+  await expect(page.locator('.today-page')).toHaveAttribute(
+    'data-wir-layout',
+    'connected',
+  );
+  await open(page);
+  const picker = page.getByRole('dialog', { name: copy.choices });
+  await expect(picker.locator('input[value="handwriting"]')).toHaveCount(0);
+  await expect(page.getByText(copy.unavailable, { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(
+    picker.getByRole('radio', { name: new RegExp(copy.names.connected) }),
+  ).toBeChecked();
+  await captureScreenshot(page, info, 'design-selection-360-light.png');
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await captureScreenshot(page, info, 'design-selection-1440-dark.png');
+
+  await picker
+    .getByRole('radio', { name: new RegExp(copy.names.warm) })
+    .check();
+  await picker.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(picker.getByText(copy.saved, { exact: true })).toBeVisible();
+  await picker.getByRole('button', { name: copy.close, exact: true }).click();
+  await page.goto('/today');
+  await expect(page.locator('.today-page')).toHaveAttribute(
+    'data-wir-design',
+    'warm',
+  );
+  expect(f.writes).toEqual(['warm']);
+  expect(f.unexpected).toEqual([]);
+});
+
+async function expectTitleGap(
+  page: Page,
+  parent: string,
+  firstContent: string,
+) {
+  const row = page.locator(parent + ' .page-heading-title-row');
+  await expect(row).toBeVisible();
+  await expect(
+    row.getByRole('button').or(row.getByRole('link')).first(),
+  ).toBeVisible();
+  const content = page.locator(firstContent).first();
+  await expect(content).toBeVisible();
+  await expect
+    .poll(async () => {
+      const titleBox = await row.boundingBox();
+      const contentBox = await content.boundingBox();
+      return titleBox && contentBox
+        ? Math.round(contentBox.y - titleBox.y - titleBox.height)
+        : null;
+    })
+    .toBe(24);
+}
+
+async function checkResponsiveTitleGaps(page: Page) {
+  const destinations = [
+    {
+      route: '/more/profile',
+      header: '.profile-page',
+      content: '.profile-identity-panel',
+    },
+    {
+      route: '/story/years',
+      header: '.story-years-page',
+      content: '.story-years-recaps-entry',
+    },
+  ];
+  for (const { route, header, content } of destinations) {
+    await page.goto(route);
+    for (const [width, height] of [
+      [390, 844],
+      [768, 900],
+      [1280, 900],
+    ]) {
+      await page.setViewportSize({ width, height });
+      await expectTitleGap(page, header, content);
+    }
+  }
+}
+
+test('Zuhause navigation, saved appearance and secondary title spacing', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const saved = await fixture(page, { initial: 'connected' });
+  await signIn(page);
+  await open(page);
+  await page
+    .getByRole('radio', { name: new RegExp(copy.names.home_rooms) })
+    .check();
+  await page.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(page.getByText(copy.saved, { exact: true })).toBeVisible();
+  expect(saved.writes).toEqual(['home_rooms']);
+  await page.goto('/today');
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-wir-layout',
+    'rooms',
+  );
+  await expect(page.locator('.home-landing')).toBeVisible();
+  await captureScreenshot(page, info, 'home_rooms-compact.png', {
+    animations: 'disabled',
+  });
+  await reflow(page);
+  await page
+    .getByRole('button', { name: copy.homeRooms.rooms, exact: true })
+    .click();
+  const picker = page.getByRole('dialog');
+  await expect(picker).toBeVisible();
+  await picker.getByRole('link').filter({ hasText: 'Listen' }).click();
+  await expect(page).toHaveURL(/\/more\/collections/);
+  await page.goto('/today?view=wir');
+  await expect(page.locator('.today-content')).toBeVisible();
+  await expect(page.locator('.home-landing')).toHaveCount(0);
+  await checkResponsiveTitleGaps(page);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('/today');
+  await expect(page.locator('.home-landing')).toBeVisible();
+  await captureScreenshot(page, info, 'home_rooms-expanded.png', {
+    animations: 'disabled',
+  });
+});
+
+test('Unser Takt navigation, saved appearance and secondary title spacing', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const saved = await fixture(page, { initial: 'connected' });
+  await signIn(page);
+  await open(page);
+  await page
+    .getByRole('radio', { name: new RegExp(copy.names.shared_rhythm) })
+    .check();
+  await page.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(page.getByText(copy.saved, { exact: true })).toBeVisible();
+  expect(saved.writes).toEqual(['shared_rhythm']);
+  await page.goto('/today');
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-wir-layout',
+    'chapters',
+  );
+  await expect(page.locator('.rhythm-today-lead')).toBeVisible();
+  await captureScreenshot(page, info, 'shared_rhythm-compact.png', {
+    animations: 'disabled',
+  });
+  await reflow(page);
+  const chapters = page.getByRole('navigation', { name: 'Hauptnavigation' });
+  await chapters.getByRole('link', { name: 'Listen' }).click();
+  await expect(page).toHaveURL(/\/more\/collections/);
+  await chapters.getByRole('link', { name: copy.rhythm.history }).click();
+  await expect(page).toHaveURL(/\/story/);
+  await checkResponsiveTitleGaps(page);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('/today');
+  await expect(page.locator('.rhythm-today-lead')).toBeVisible();
+  await captureScreenshot(page, info, 'shared_rhythm-expanded.png', {
+    animations: 'disabled',
+  });
+});
+
+test('retired Faden restores standard navigation and the picker still saves', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 360, height: 830 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const saved = await fixture(page, { initial: 'together_index', pro: false });
+  await signIn(page);
+
+  await page.goto('/faden');
+  await expect(page).toHaveURL(/\/today$/);
+  await expect(page.locator('.today-page')).toHaveAttribute(
+    'data-wir-layout',
+    'connected',
+  );
+  const mobileNavigation = page.locator('.mobile-bottom-nav');
+  await mobileNavigation
+    .getByRole('link', { name: navigation.story, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/story$/);
+  await page.goto('/story/memories/mem-canal');
+  await expect(
+    page.getByRole('heading', { name: 'Breakfast by the canal' }),
+  ).toBeVisible();
+
+  await open(page);
+  const picker = page.getByRole('dialog', { name: copy.choices });
+  await expect(picker.locator('input[value="together_index"]')).toHaveCount(0);
+  await expect(page.getByText(copy.unavailable, { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(
+    picker.getByRole('radio', { name: new RegExp(copy.names.connected) }),
+  ).toBeChecked();
+  await reflow(page);
+  await captureScreenshot(page, info, 'faden-picker-360-light.png');
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await captureScreenshot(page, info, 'faden-picker-1440-dark.png');
+
+  await picker
+    .getByRole('radio', { name: new RegExp(copy.names.warm) })
+    .check();
+  await picker.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(picker.getByText(copy.saved, { exact: true })).toBeVisible();
+  await picker.getByRole('button', { name: copy.close, exact: true }).click();
+  await page.goto('/today');
+  await expect(page.locator('.today-page')).toHaveAttribute(
+    'data-wir-design',
+    'warm',
+  );
+  await expect(page.locator('.app-header .shell-nav')).toBeVisible();
+  expect(saved.writes).toEqual(['warm']);
+  expect(saved.unexpected).toEqual([]);
 });

@@ -10,8 +10,11 @@ import {
   entitlementLoader,
   useSpaceCapability,
 } from '../client/spaceEntitlement';
-import { storageLevel, storageShare } from '../client/storageQuota';
-import { formatStorageBytes } from '../client/transferImport';
+import {
+  formatStorageBytes,
+  storageLevel,
+  storageShare,
+} from '../client/storageQuota';
 import { useTranslation } from '../i18n';
 import './StorageSection.css';
 
@@ -19,10 +22,11 @@ import './StorageSection.css';
 const PREMIUM_STORAGE = 'storage.cloud_quota_50gb';
 
 /**
- * How much of the Space's Cloud storage is used, at the top of Settings › Data
- * (#2141 Q5, approved UI preflight states 1–4). Self-Hosted is unmetered, so
- * the section is absent there. Nothing is shown until the figure is known: a
- * missing or failed read is never a fabricated "0 GB".
+ * How much of the Space's Cloud storage is used: the whole of Settings › Data
+ * since the Transfer Bundle left the product (ADR 0020; #2141 Q5, approved UI
+ * preflight states 1–4). Self-Hosted is unmetered and says so in one calm
+ * sentence instead of leaving the page empty. Nothing is shown until the
+ * figure is known: a missing or failed read is never a fabricated "0 GB".
  */
 export function StorageSection({
   apiBaseUrl,
@@ -74,7 +78,19 @@ export function StorageSection({
   const usage = storage.data;
   if (!usage) return null;
   const level = storageLevel(usage);
-  if (level === null || usage.quota === null) return null;
+  if (level === null || usage.quota === null) {
+    return (
+      <section
+        className="form-card storage-section"
+        aria-labelledby="storage-heading"
+      >
+        <h2 id="storage-heading">{t('storageQuota.heading')}</h2>
+        <div className="storage-surface">
+          <p className="storage-muted">{t('storageQuota.unlimited')}</p>
+        </div>
+      </section>
+    );
+  }
   const isPremium = premium.data === true;
   const used = formatStorageBytes(usage.used);
   const quota = formatStorageBytes(usage.quota);

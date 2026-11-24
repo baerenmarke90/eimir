@@ -22,10 +22,11 @@ RUN pip install --no-cache-dir "uv==0.12.15"
 #
 # Install only the locked runtime dependencies first. This keeps the expensive
 # layer independent of application code, and uv must not modify the lock state.
-# The workspace needs the Pro project file to read the lock; a plain `uv sync`
+# The workspace needs the plugin project files to read the lock; a plain `uv sync`
 # installs the Core project only.
 COPY pyproject.toml uv.lock .python-version ./
 COPY pro/pyproject.toml ./pro/
+COPY admin/pyproject.toml ./admin/
 RUN uv sync --frozen --no-install-project --no-editable
 
 COPY src ./src
@@ -56,6 +57,7 @@ FROM core AS pro
 
 USER root
 COPY pro/src ./pro/src
+COPY admin/src ./admin/src
 RUN uv sync --locked --all-packages --no-editable
 # The Pro image loads the Pro plugin; the Core default is Core only.
 ENV EIMIR_PLUGINS=pro

@@ -230,6 +230,18 @@ export interface ServerAdminOverview {
      * @type {number}
      * @memberof ServerAdminOverview
      */
+    supportReportsNew: number;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ServerAdminOverview
+     */
+    supportReportsOperatorAvailable: boolean;
+    /**
+     * 
+     * @type {number}
+     * @memberof ServerAdminOverview
+     */
     suspendedAccountCount: number;
     /**
      * 
@@ -294,6 +306,8 @@ export function instanceOfServerAdminOverview(value: object): value is ServerAdm
     if (!('recentFailedJobs' in value) || value['recentFailedJobs'] === undefined) return false;
     if (!('serverAdminAllowlistCount' in value) || value['serverAdminAllowlistCount'] === undefined) return false;
     if (!('serverAdminVerifiedMatchCount' in value) || value['serverAdminVerifiedMatchCount'] === undefined) return false;
+    if (!('supportReportsNew' in value) || value['supportReportsNew'] === undefined) return false;
+    if (!('supportReportsOperatorAvailable' in value) || value['supportReportsOperatorAvailable'] === undefined) return false;
     if (!('suspendedAccountCount' in value) || value['suspendedAccountCount'] === undefined) return false;
     if (!('unverifiedPrimaryEmailCount' in value) || value['unverifiedPrimaryEmailCount'] === undefined) return false;
     if (!('verifiedPrimaryEmailCount' in value) || value['verifiedPrimaryEmailCount'] === undefined) return false;
@@ -345,6 +359,8 @@ export function ServerAdminOverviewFromJSONTyped(json: any, ignoreDiscriminator:
         'recentFailedJobs': ((json['recentFailedJobs'] as Array<any>).map(ServerAdminFailedJobFromJSON)),
         'serverAdminAllowlistCount': json['serverAdminAllowlistCount'],
         'serverAdminVerifiedMatchCount': json['serverAdminVerifiedMatchCount'],
+        'supportReportsNew': json['supportReportsNew'],
+        'supportReportsOperatorAvailable': json['supportReportsOperatorAvailable'],
         'suspendedAccountCount': json['suspendedAccountCount'],
         'unverifiedPrimaryEmailCount': json['unverifiedPrimaryEmailCount'],
         'verifiedPrimaryEmailCount': json['verifiedPrimaryEmailCount'],
@@ -397,6 +413,8 @@ export function ServerAdminOverviewToJSONTyped(value?: ServerAdminOverview | nul
         'recentFailedJobs': ((value['recentFailedJobs'] as Array<any>).map(ServerAdminFailedJobToJSON)),
         'serverAdminAllowlistCount': value['serverAdminAllowlistCount'],
         'serverAdminVerifiedMatchCount': value['serverAdminVerifiedMatchCount'],
+        'supportReportsNew': value['supportReportsNew'],
+        'supportReportsOperatorAvailable': value['supportReportsOperatorAvailable'],
         'suspendedAccountCount': value['suspendedAccountCount'],
         'unverifiedPrimaryEmailCount': value['unverifiedPrimaryEmailCount'],
         'verifiedPrimaryEmailCount': value['verifiedPrimaryEmailCount'],

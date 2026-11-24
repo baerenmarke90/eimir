@@ -22,7 +22,7 @@ import {
 } from './WirDesignId';
 
 /**
- * 
+ * Set the app design, the palette, or both. A null palette follows the app design.
  * @export
  * @interface WirDesignPreferencePatch
  */
@@ -32,7 +32,13 @@ export interface WirDesignPreferencePatch {
      * @type {WirDesignId}
      * @memberof WirDesignPreferencePatch
      */
-    designId: WirDesignId;
+    designId?: WirDesignId;
+    /**
+     * 
+     * @type {WirDesignId}
+     * @memberof WirDesignPreferencePatch
+     */
+    paletteId?: WirDesignId | null;
 }
 
 
@@ -41,7 +47,6 @@ export interface WirDesignPreferencePatch {
  * Check if a given object implements the WirDesignPreferencePatch interface.
  */
 export function instanceOfWirDesignPreferencePatch(value: object): value is WirDesignPreferencePatch {
-    if (!('designId' in value) || value['designId'] === undefined) return false;
     return true;
 }
 
@@ -55,7 +60,8 @@ export function WirDesignPreferencePatchFromJSONTyped(json: any, ignoreDiscrimin
     }
     return {
         
-        'designId': WirDesignIdFromJSON(json['designId']),
+        'designId': json['designId'] == null ? undefined : WirDesignIdFromJSON(json['designId']),
+        'paletteId': json['paletteId'] === undefined ? undefined : json['paletteId'] === null ? null : WirDesignIdFromJSON(json['paletteId']),
     };
 }
 
@@ -71,6 +77,7 @@ export function WirDesignPreferencePatchToJSONTyped(value?: WirDesignPreferenceP
     return {
         
         'designId': WirDesignIdToJSON(value['designId']),
+        'paletteId': WirDesignIdToJSON(value['paletteId']),
     };
 }
 

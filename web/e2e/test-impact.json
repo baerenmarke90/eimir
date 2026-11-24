@@ -202,7 +202,10 @@
     },
     "floating-bottom-nav-scroll.spec.ts": {
       "roots": [
+        "web/src/App.tsx",
         "web/src/components/AppShell.tsx",
+        "web/src/components/PrimaryTabPanels.tsx",
+        "web/src/components/useNavigationMotion.ts",
         "web/src/components/TodayPage.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/SharedPlanningOverviewPage.tsx",
@@ -1050,7 +1053,12 @@
     },
     "wir-design-selection.spec.ts": {
       "roots": [
+        "web/src/App.tsx",
+        "web/src/components/AppShell.tsx",
         "web/src/components/WirDesignSettings.tsx",
+        "web/src/components/ProfileAppearancePanel.tsx",
+        "web/src/client/wirDesign.tsx",
+        "web/src/design/app-designs.css",
         "web/src/components/DashboardSettingsPanel.tsx",
         "web/src/components/TodayPage.tsx",
         "web/src/components/SharedPlanningOverviewPage.tsx",
@@ -1058,7 +1066,17 @@
         "web/src/components/NotificationSettingsPanel.tsx",
         "web/src/client/browserPush.ts",
         "web/src/components/ProfilePage.tsx",
-        "web/src/components/PrivateAreaProductPage.tsx"
+        "web/src/components/PrivateAreaProductPage.tsx",
+        "web/src/components/HomeRoomsLanding.tsx",
+        "web/src/components/HomeRoomsNavigation.tsx",
+        "web/src/components/HomeRooms.css",
+        "web/src/components/HomeRoomChapters.css",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryMapPage.tsx",
+        "web/src/components/PageHeader.tsx",
+        "web/src/components/StoryYearsPage.tsx",
+        "web/src/components/SharedRhythm.tsx",
+        "web/src/components/SharedRhythm.css"
       ]
     },
     "wish-detective.spec.ts": {
@@ -1438,14 +1456,8 @@
         "web/src/client/garden.ts"
       ]
     },
-    "transfer-import-storage.spec.ts": {
+    "storage-section.spec.ts": {
       "roots": [
-        "web/src/components/TransferPanel.tsx",
-        "web/src/components/TransferImportSection.tsx",
-        "web/src/components/TransferFailure.tsx",
-        "web/src/client/transferFailure.ts",
-        "web/src/client/transferImport.ts",
-        "web/src/client/transfer.ts",
         "web/src/components/ProPaywallPage.tsx",
         "web/src/components/StorageSection.tsx",
         "web/src/client/storageQuota.ts",
@@ -1459,6 +1471,39 @@
         "web/src/client/usePlanFileDrafts.ts",
         "web/src/client/photoSources.ts",
         "web/src/components/PhotoDraftGallery.tsx"
+      ]
+    },
+    "support-report.spec.ts": {
+      "roots": [
+        "web/src/client/supportReportLauncher.ts",
+        "web/src/components/SupportReportHost.tsx",
+        "web/src/components/SupportReportSheet.tsx",
+        "web/src/client/useSupportReportDraft.ts",
+        "web/src/client/supportReport.ts",
+        "web/src/components/ShortTaskSheet.tsx",
+        "web/src/components/ProblemState.tsx",
+        "web/src/components/MoreOverviewPage.tsx",
+        "web/src/components/SupportReplyNotice.tsx",
+        "web/src/components/M4ProductPages.tsx",
+        "web/src/client/failureReference.ts",
+        "web/src/client/supportReportsAvailability.ts"
+      ]
+    },
+    "server-admin-support-reports.spec.ts": {
+      "roots": [
+        "web/src/components/ServerAdminPage.tsx",
+        "web/src/components/ServerAdminSupportReportsPanel.tsx",
+        "web/src/components/ServerAdminSupportReportsPanel.css",
+        "web/src/components/ServerAdminSupportReportDetail.tsx",
+        "web/src/components/ServerAdminRecentAuthModal.tsx",
+        "web/src/components/TaskBackButton.tsx",
+        "web/src/components/UiState.tsx",
+        "web/src/components/useModalLifecycle.ts",
+        "web/src/client/serverAdmin.ts",
+        "web/src/client/supportReportsAdmin.ts",
+        "web/src/client/recentAuthentication.ts",
+        "web/src/api/generated/apis/ServerAdminSupportReportsApi.ts",
+        "web/src/i18n/locales/serverAdmin.ts"
       ]
     }
   }

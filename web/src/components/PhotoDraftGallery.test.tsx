@@ -18,6 +18,59 @@ import {
   type PhotoDraftGalleryItem,
 } from './PhotoDraftGallery';
 
+function Composer({
+  initialItems,
+  composer,
+  cover,
+  order,
+  sensitive,
+  remove,
+  retry,
+}: {
+  initialItems: PhotoDraftGalleryItem[];
+  composer: boolean;
+  cover: (key: string | null) => void;
+  order: (keys: string[]) => void;
+  sensitive: (key: string, value: boolean) => void;
+  remove: (key: string) => void;
+  retry: (key: string) => void;
+}) {
+  const [photos, setPhotos] = useState(initialItems);
+  const [selectedCoverKey, setCover] = useState<string | null>(null);
+  return (
+    <PhotoDraftGallery
+      items={photos}
+      addAction={
+        composer ? <button type="button">Add photos</button> : undefined
+      }
+      selectedCoverKey={selectedCoverKey}
+      onSelectCover={(key) => {
+        cover(key);
+        setCover(key);
+      }}
+      onSensitive={(key, value) => {
+        sensitive(key, value);
+        setPhotos((old) =>
+          old.map((item) =>
+            item.key === key ? { ...item, isSensitive: value } : item,
+          ),
+        );
+      }}
+      onOrderChange={(keys) => {
+        order(keys);
+        setPhotos((old) =>
+          keys.flatMap((key) => old.filter((item) => item.key === key)),
+        );
+      }}
+      onRemove={(key) => {
+        remove(key);
+        setPhotos((old) => old.filter((item) => item.key !== key));
+      }}
+      onRetry={retry}
+    />
+  );
+}
+
 afterEach(cleanup);
 const items: PhotoDraftGalleryItem[] = ['first', 'second', 'third'].map(
   (key) => ({
@@ -64,45 +117,17 @@ function renderComposer(initialItems = items, composer = true) {
   const sensitive = vi.fn();
   const remove = vi.fn();
   const retry = vi.fn();
-  function Composer() {
-    const [photos, setPhotos] = useState(initialItems);
-    const [selectedCoverKey, setCover] = useState<string | null>(null);
-    return (
-      <PhotoDraftGallery
-        items={photos}
-        addAction={
-          composer ? <button type="button">Add photos</button> : undefined
-        }
-        selectedCoverKey={selectedCoverKey}
-        onSelectCover={(key) => {
-          cover(key);
-          setCover(key);
-        }}
-        onSensitive={(key, value) => {
-          sensitive(key, value);
-          setPhotos((old) =>
-            old.map((item) =>
-              item.key === key ? { ...item, isSensitive: value } : item,
-            ),
-          );
-        }}
-        onOrderChange={(keys) => {
-          order(keys);
-          setPhotos((old) =>
-            keys.flatMap((key) => old.filter((item) => item.key === key)),
-          );
-        }}
-        onRemove={(key) => {
-          remove(key);
-          setPhotos((old) => old.filter((item) => item.key !== key));
-        }}
-        onRetry={retry}
-      />
-    );
-  }
   const view = render(
     <MemoryRouter>
-      <Composer />
+      <Composer
+        initialItems={initialItems}
+        composer={composer}
+        cover={cover}
+        order={order}
+        sensitive={sensitive}
+        remove={remove}
+        retry={retry}
+      />
     </MemoryRouter>,
   );
   const strip = () =>

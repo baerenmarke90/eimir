@@ -1,12 +1,26 @@
 name: Codec Advisories
 
+# Nightly live check of the Debian feed against the recorded review. The check itself
+# stays fail-closed: an unreviewed finding turns this workflow red, exactly as in
+# Release Evidence. Because a red scheduled run is easy to miss and a publish then
+# fails days later, the second job also keeps ONE open issue
+# "FFmpeg advisory review needed" while the check fails, and closes it when it passes.
 on:
   schedule:
     - cron: "17 5 * * *"
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Only print what would be done to the review issue"
+        type: boolean
+        default: true
 
 permissions:
   contents: read
+
+concurrency:
+  group: codec-advisories
+  cancel-in-progress: false
 
 jobs:
   review:
@@ -18,3 +32,107 @@ jobs:
         with:
           persist-credentials: false
       - run: python3 tools/media/check-advisories.py
+        id: check
+      - name: Describe the unreviewed findings
+        if: failure() && steps.check.outcome == 'failure'
+        run: python3 tools/media/report-advisories.py --output-dir advisory-report
+      - name: Record the check outcome
+        if: always()
+        env:
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
+        run: |
+          mkdir -p advisory-report
+          printf '%s\n' "$CHECK_OUTCOME" > advisory-report/outcome
+      - name: Hand the report to the issue job
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: advisory-report
+          path: advisory-report
+          retention-days: 3
+          if-no-files-found: error
+
+  issue:
+    name: Keep the review issue current
+    needs: review
+    if: ${{ always() && needs.review.result != 'skipped' && needs.review.result != 'cancelled' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # No checkout and no repository code: this job only reads the artifact files.
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: advisory-report
+          path: advisory-report
+      - name: Open, update or close the review issue
+        run: |
+          set -euo pipefail
+          title="FFmpeg advisory review needed"
+          label="security-advisory-review"
+          outcome=$(cat advisory-report/outcome)
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+          note() { printf '%s\n' "$*" | tee -a "$GITHUB_STEP_SUMMARY"; }
+          # Mutations go through one function so a dry run cannot write by mistake.
+          act() {
+            if [ "$DRY_RUN" = "true" ]; then
+              note "DRY RUN, would run: gh $*"
+            else
+              gh "$@"
+            fi
+          }
+
+          # Exact title among open issues carrying the dedicated label (the label
+          # list is not a search index, so a just-created issue is found at once).
+          existing=$(gh issue list --state open --label "$label" --limit 100 --json number,title \
+            --jq "[.[] | select(.title == \"${title}\")][0].number // empty")
+
+          case "$outcome" in
+            success)
+              if [ -z "$existing" ]; then
+                note "The check passes and no review issue is open."
+                exit 0
+              fi
+              act issue close "$existing" --comment \
+                "The nightly check passes again at revision ${GITHUB_SHA} (${run_url}). Closing."
+              ;;
+            failure)
+              status=$(cat advisory-report/status 2>/dev/null || echo missing)
+              if [ "$status" != "findings" ]; then
+                # Feed or download problems, or a failure without an advisory
+                # difference: the red run is the signal; do not open a misleading issue.
+                note "The check failed but no unreviewed finding was identified (${status}); the issue is left unchanged (${run_url})."
+                exit 0
+              fi
+              fingerprint=$(cat advisory-report/fingerprint)
+              if [ -z "$existing" ]; then
+                if [ "$DRY_RUN" = "true" ]; then
+                  note "DRY RUN, would create the label ${label} if missing."
+                else
+                  gh label create "$label" --color D93F0B \
+                    --description "FFmpeg/codec advisory needs a source and build-surface review" \
+                    2>/dev/null || true
+                fi
+                act issue create --title "$title" --label "$label" --body-file advisory-report/issue-body.md
+              elif gh issue view "$existing" --json body --jq .body | grep -Fq "advisory-fingerprint: ${fingerprint}"; then
+                note "Issue #${existing} already lists exactly these findings; nothing to do."
+              else
+                act issue edit "$existing" --body-file advisory-report/issue-body.md
+                act issue comment "$existing" --body \
+                  "The set of unreviewed findings changed; the description above is updated (${run_url})."
+              fi
+              if [ "$DRY_RUN" = "true" ]; then
+                note "DRY RUN, the issue body would be:"
+                tee -a "$GITHUB_STEP_SUMMARY" < advisory-report/issue-body.md
+              fi
+              ;;
+            *)
+              note "The check did not run to a result (${outcome:-empty}); the issue is left unchanged."
+              ;;
+          esac

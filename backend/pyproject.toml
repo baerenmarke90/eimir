@@ -62,7 +62,7 @@ required-version = "==0.12.15"
 [tool.uv.workspace]
 # The Pro plugin is its own distribution (Decision 0017, Phase 2, #2182). A
 # plain `uv sync` installs Core only; `uv sync --all-packages` adds Pro.
-members = ["pro"]
+members = ["pro", "admin"]
 
 [build-system]
 requires = ["setuptools==84.2.1"]
@@ -75,7 +75,7 @@ where = ["src"]
 "eimir.i18n" = ["locales/*.json"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "pro/pro_tests"]
+testpaths = ["tests", "pro/pro_tests", "admin/admin_tests"]
 # "." makes the Core test support (`tests`) importable for `pro/pro_tests` too.
 pythonpath = ["src", "."]
 asyncio_mode = "auto"
@@ -112,7 +112,7 @@ known-first-party = ["eimir", "tests", "scripts"]
 
 [tool.mypy]
 python_version = "3.12"
-files = ["src", "pro/src"]
+files = ["src", "pro/src", "admin/src"]
 strict = true
 plugins = []
 

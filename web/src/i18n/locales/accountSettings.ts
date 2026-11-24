@@ -51,7 +51,7 @@ export default {
     'Demo-Konten werden von der Demo-Umgebung verwaltet und können hier nicht selbst gelöscht werden.',
   consequencesTitle: 'Folgen der Kontolöschung',
   consequencesIntro:
-    'Prüfe diese Folgen, bevor du mit der endgültigen Bestätigung fortfährst.',
+    'Prüfe diese Folgen, bevor du weitermachst. Eine Kopie deiner Daten bekommst du vorher auf Anfrage – wie, steht in den Datenschutzhinweisen.',
   consequenceAccess:
     'Dein Kontozugriff endet und aktive Sitzungen sowie Anmeldedaten werden widerrufen.',
   consequencePrivate:
@@ -60,7 +60,6 @@ export default {
     'Gemeinsame Historie folgt den bestehenden Aufbewahrungsregeln. Der gemeinsame Bereich oder die Beziehung wird dadurch nicht automatisch gelöscht.',
   consequenceIrreversible:
     'Sobald der Server die Löschung angenommen hat, ist sie nicht mehr rückgängig zu machen. Die App muss für die weitere Bereinigung nicht geöffnet bleiben.',
-  exportBefore: 'Vorher Daten exportieren',
   continueAction: 'Weiter',
   cancelAction: 'Abbrechen',
   reauthEyebrow: 'Sicherheitsprüfung',

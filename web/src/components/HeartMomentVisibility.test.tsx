@@ -84,7 +84,7 @@ function setup() {
   // Hold recovery at the Query boundary so a refetch cannot mask settlement.
   const invalidate = vi.spyOn(client, 'invalidateQueries').mockResolvedValue();
   const revoke = vi.spyOn(readCache, 'deleteProductReadCacheEntry');
-  function Application({
+  function application({
     accountId = 'account-1',
     spaceId = 'space-1',
   }: {
@@ -132,7 +132,7 @@ function setup() {
       </QueryClientProvider>
     );
   }
-  const view = render(<Application />);
+  const view = render(application({}));
   async function privateChoice() {
     const user = userEvent.setup();
     const menu = screen.queryByRole('button', {
@@ -181,7 +181,7 @@ function setup() {
     start,
     settle,
     switchScope: (scope: { accountId?: string; spaceId?: string }) =>
-      view.rerender(<Application {...scope} />),
+      view.rerender(application(scope)),
   };
 }
 

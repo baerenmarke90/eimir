@@ -173,4 +173,17 @@ describe('resolveCapacitorBuildEnvironment', () => {
       }).VITE_EIMIR_DEMO_MODE,
     ).toBe('false');
   });
+
+  it('passes the release version and short source revision to the bundle', () => {
+    expect(
+      resolve({
+        VITE_EIMIR_API_BASE_URL: PRODUCTION_API,
+        EIMIR_APP_VERSION: '0.2.0',
+        EIMIR_BUILD_REVISION: '0123456789abcdef0123456789abcdef01234567',
+      }),
+    ).toMatchObject({
+      VITE_EIMIR_APP_VERSION: '0.2.0',
+      VITE_EIMIR_BUILD: '0123456789ab',
+    });
+  });
 });

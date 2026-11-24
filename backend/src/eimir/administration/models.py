@@ -46,6 +46,13 @@ class AdministrationAction(StrEnum):
     ACCOUNT_DELETION_REQUESTED = "account_deletion_requested"
     ACCOUNT_DELETION_COMPLETED = "account_deletion_completed"
     ACCOUNT_DELETION_FAILED = "account_deletion_failed"
+    SUPPORT_REPORT_STATE_SET = "support_report.state_set"
+    SUPPORT_REPORT_REPLY_SENT = "support_report.reply_sent"
+    SUPPORT_REPORT_TICKET_CREATED = "support_report.ticket_created"
+    SUPPORT_REPORT_TICKET_CLEARED = "support_report.ticket_cleared"
+    SUPPORT_REPORT_ARCHIVED = "support_report.archived"
+    SUPPORT_REPORT_UNARCHIVED = "support_report.unarchived"
+    SUPPORT_REPORT_DELETED = "support_report.deleted"
 
 
 class InstanceAdministrationSettings(TimestampMixin, VersionMixin, Base):
@@ -136,7 +143,14 @@ class InstanceAdministrationActionEvent(IdMixin, Base):
             "'space_configuration_manager_reconciled', "
             "'account_deletion_requested', "
             "'account_deletion_completed', "
-            "'account_deletion_failed'"
+            "'account_deletion_failed', "
+            "'support_report.state_set', "
+            "'support_report.reply_sent', "
+            "'support_report.ticket_created', "
+            "'support_report.ticket_cleared', "
+            "'support_report.archived', "
+            "'support_report.unarchived', "
+            "'support_report.deleted'"
             ")",
             name="action_valid",
         ),

@@ -65,7 +65,7 @@ The authoritative classification of capabilities across the entire roadmap (M0â€
 
 The baseline deliberately keeps the relationship Core available as Free/Core or as the Free side of a Mixed capability. Premium adds richer presentation, automation, advanced organization, insights, personalization, integrations, relationship-native Premium experiences, and managed-resource services rather than revoking access to users' existing relationship history.
 
-Entitlements are owned at the couple/Space level: when one partner purchases Premium, both partners in the Space receive full Premium capabilities immediately. Downgrades are strictly non-destructive: existing content is never deleted or made unexportable.
+Entitlements are owned at the couple/Space level: when one partner purchases Premium, both partners in the Space receive full Premium capabilities immediately. Downgrades are strictly non-destructive: existing content is never deleted or made unexportable (included in the operator-provided copy; [ADR 0020](decisions/0020-remove-transfer-bundle-self-service.md)).
 
 A separate `Family` consumer tier is not part of the initial commercial model. It may be revisited only when a concrete multi-Space/family product requirement justifies a distinct package.
 
@@ -157,7 +157,7 @@ The business model follows these principles:
 - **One shared Application Core.** Cloud and Self-Hosted should not diverge unnecessarily.
 - **No artificial degradation.** Core functionality is not removed from Self-Hosted solely for monetization.
 - **No artificial core-data count limits.** Managed-resource quotas may limit Cloud byte/storage/compute usage, but ordinary relationship entities are not rationed to manufacture an upgrade trigger.
-- **Privacy, Security, Accessibility, deletion, and essential data portability remain non-paywallable.** Commercial packaging must not weaken trust or data rights.
+- **Privacy, Security, Accessibility, deletion, and essential data portability remain non-paywallable.** Commercial packaging must not weaken trust or data rights. Essential portability is delivered as a copy the operator provides on request; the operator import checks no Space quota and the operator is responsible for the resulting storage ([ADR 0020](decisions/0020-remove-transfer-bundle-self-service.md)).
 - **Consumer Premium is Space-scoped.** One purchase benefits both current partners in the relationship Space.
 - **Commercial use remains controlled.** Third parties require a separate license for it.
 - **Community contributions can flow back.** The Maintainers decide whether they are accepted into `main`.

@@ -5,7 +5,12 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { RecapsApi } from '../api/generated/apis/RecapsApi';
@@ -33,6 +38,7 @@ import { useFirstContentSettle } from '../client/firstContentSettle';
 import { galleryCover } from '../client/galleryCover';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { usePartnerNickname } from '../client/partnerNickname';
+import { usePrimaryTabPeeked } from '../client/primaryTabPeek';
 import { photoShape } from '../client/photoShape';
 import {
   type ClientProblemError,
@@ -50,12 +56,15 @@ import { newNoteOpen, useQuietHint } from '../client/quietHints';
 import type { ReferenceApis } from '../client/referenceFlow';
 import { useRootTabIntro } from '../client/rootTabIntro';
 import {
+  appRoutePath,
   heartMomentDetailPath,
   MEMORY_CREATE_ROUTE,
   MEMORY_MAP_ROUTE,
   memoryDetailPath,
   milestoneDetailPath,
   STORY_OURS_ROUTE,
+  STORY_PHOTOS_ROUTE,
+  STORY_CHAPTERS_ROUTE,
 } from '../client/routes';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
@@ -80,7 +89,9 @@ import { DiaryChapterPeriods } from './DiaryChapterPeriods';
 import { DiscoverStory } from './DiscoverStory';
 import { MemoryPreview } from './MemoryPreview';
 import { MomentCreateMenu } from './MomentCreateMenu';
+import { useAppLayout } from '../client/wirDesign';
 import { PageHeader } from './PageHeader';
+import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { QuietHint } from './QuietHint';
@@ -184,8 +195,10 @@ export function StoryProductPage({
     };
   }, [scope]);
   const { nicknameFor } = usePartnerNickname();
+  const layout = useAppLayout();
   const location = useLocation();
-  const saved = Boolean((location.state as { saved?: boolean } | null)?.saved);
+  const saved =
+    active && Boolean((location.state as { saved?: boolean } | null)?.saved);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { captureOrigin } = useTaskOrigin();
@@ -221,6 +234,12 @@ export function StoryProductPage({
     if (tab === 'timeline' || tab === 'discover') return tab;
     return hasActiveFilters ? 'timeline' : 'discover';
   }, [searchParams, hasActiveFilters]);
+  // A primary selection opens Discover. The parked Timeline keeps its URL,
+  // filters and mounted content for Back, even while a swipe previews Discover.
+  // A parked panel nobody sees keeps showing its own view: it must not mount
+  // Discover content (and read its recap) before it is revealed.
+  const peeked = usePrimaryTabPeeked(appRoutePath('story'));
+  const displayedView = active || !peeked ? activeView : 'discover';
   // Discover does not inherit the retained Timeline scope.
   const effectiveFilters = filters;
   const cacheResourceId = useMemo(
@@ -355,7 +374,7 @@ export function StoryProductPage({
   const allPagesFromNetwork =
     storyQuery.data?.pages.every((page) => page.source === 'network') ?? false;
   const offline =
-    activeView === 'timeline'
+    displayedView === 'timeline'
       ? storyQuery.data?.pages[0]?.source === 'cache'
       : discoverQuery.data?.source === 'cache';
 
@@ -850,21 +869,44 @@ export function StoryProductPage({
       <PageHeader
         variant="root"
         className="content-overview-heading"
-        title={t('story.timelineTitle')}
+        title={t(
+          layout === 'rooms'
+            ? 'wirDesign.homeRooms.remember'
+            : layout === 'chapters'
+              ? 'wirDesign.rhythm.history'
+              : 'story.timelineTitle',
+        )}
+        titleContext={
+          layout === 'rooms' ? (
+            <nav
+              className="home-archive-links"
+              aria-label={t('wirDesign.homeRooms.archiveNavigation')}
+            >
+              <Link to={STORY_PHOTOS_ROUTE}>
+                {t('wirDesign.homeRooms.photoArchive')}
+                <EimirIcon name="chevron-right" />
+              </Link>
+              <Link to={STORY_CHAPTERS_ROUTE}>
+                {t('wirDesign.homeRooms.chapters')}
+                <EimirIcon name="chevron-right" />
+              </Link>
+            </nav>
+          ) : undefined
+        }
         action={<MomentCreateMenu floating />}
       />
-      <StoryViewTabs activeView={activeView} onSelect={setView} />
+      <StoryViewTabs activeView={displayedView} onSelect={setView} />
 
       <div
         id="momente-panel-discover"
         role="tabpanel"
         aria-labelledby="momente-tab-discover"
-        hidden={activeView !== 'discover'}
+        hidden={displayedView !== 'discover'}
       >
-        {activeView === 'discover' && discoverQuery.isLoading ? (
+        {displayedView === 'discover' && discoverQuery.isLoading ? (
           <UiState kind="loading" title={t('story.loadingAria')} />
         ) : null}
-        {activeView === 'discover' && discoverError ? (
+        {displayedView === 'discover' && discoverError ? (
           <ProblemState
             error={discoverError}
             onRetry={() =>
@@ -874,14 +916,14 @@ export function StoryProductPage({
             }
           />
         ) : null}
-        {activeView === 'discover' &&
+        {displayedView === 'discover' &&
         discoverQuery.data &&
         !discoverDenied &&
         !featuredItem &&
         discoverItems.length === 0
           ? emptyState
           : null}
-        {activeView === 'discover' &&
+        {displayedView === 'discover' &&
         discoverQuery.data &&
         !discoverDenied &&
         (featuredItem || discoverItems.length > 0) ? (
@@ -952,7 +994,7 @@ export function StoryProductPage({
             ) : null}
           </section>
         ) : null}
-        {activeView === 'discover' &&
+        {displayedView === 'discover' &&
         !featuredItem &&
         discoverItems.length === 0 ? (
           <CoupleExperienceLinks onOpen={openDiscoverItem} lead={recapLead} />
@@ -962,7 +1004,7 @@ export function StoryProductPage({
         id="momente-panel-timeline"
         role="tabpanel"
         aria-labelledby="momente-tab-timeline"
-        hidden={activeView !== 'timeline'}
+        hidden={displayedView !== 'timeline'}
       >
         {activeView === 'timeline' && storyQuery.isLoading ? (
           <UiState kind="loading" title={t('story.loadingAria')} />

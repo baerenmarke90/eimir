@@ -54,6 +54,9 @@ jobs:
       - name: Test nightly regression wiring
         run: python3 tools/ci/test_nightly_regression.py
 
+      - name: Test codec advisory review issue wiring
+        run: python3 tools/ci/test_codec_advisory_issue.py
+
       - name: Test encryption test-key generator
         run: python3 tools/ci/test_encryption_test_keys.py
 
@@ -210,9 +213,9 @@ jobs:
         working-directory: .
         run: |
           missing_files=$(comm -23 \
-            <(find backend/src backend/pro/src web -name "*.py" -o -name "*.ts" \
+            <(find backend/src backend/pro/src backend/admin/src web -name "*.py" -o -name "*.ts" \
                 -o -name "*.tsx" 2>/dev/null | sort) \
-            <(git ls-files backend/src backend/pro/src web | sort))
+            <(git ls-files backend/src backend/pro/src backend/admin/src web | sort))
           if [ -n "$missing_files" ]; then
             echo "These source files are not tracked:"
             echo "$missing_files"
@@ -220,15 +223,18 @@ jobs:
           fi
 
       - name: Lint
-        run: uv run --frozen ruff check src tests scripts alembic pro
+        run: uv run --frozen ruff check src tests scripts alembic pro admin
 
       - name: Formatting
-        run: uv run --frozen ruff format --check src tests scripts alembic pro
+        run: uv run --frozen ruff format --check src tests scripts alembic pro admin
 
       - name: Type checking
         run: uv run --frozen mypy
 
       - name: OpenAPI contract
+        # The versioned contract is complete: Pro and the operator plugin loaded.
+        env:
+          EIMIR_PLUGINS: pro,admin
         run: uv run --frozen python scripts/openapi_contract.py check
 
       - name: Tests without integration
@@ -857,13 +863,13 @@ jobs:
           pro = [
               name
               for name in names
-              if name.startswith(("eimir_pro/", "eimir/pro_plugin"))
+              if name.startswith(("eimir_pro/", "eimir_admin/", "eimir/pro_plugin"))
               or "date_ideas" in name
               or "daily_sayings" in name
           ]
           if pro:
-              raise SystemExit("The Core wheel contains Pro files: " + ", ".join(pro[:20]))
-          print(f"{wheels[0].name}: {len(names)} files, no Pro file.")
+              raise SystemExit("The Core wheel contains plugin files: " + ", ".join(pro[:20]))
+          print(f"{wheels[0].name}: {len(names)} files, no plugin file.")
           PY
 
       - name: Build backend production container from scratch
@@ -881,6 +887,8 @@ jobs:
           from eimir.plugins.loader import loaded_plugins
           assert not os.path.exists('/app/pro/src')
           assert importlib.util.find_spec('eimir_pro') is None
+          assert importlib.util.find_spec('eimir_admin') is None
+          assert not os.path.exists('/app/admin/src')
           assert loaded_plugins().names == ()
           print('Core image: Core only.')
           "
@@ -888,6 +896,17 @@ jobs:
           from eimir.plugins.loader import loaded_plugins
           assert loaded_plugins().names == ('pro',)
           print('Pro image: Core with the Pro plugin.')
+          "
+          # The operator plugin ships in the same image but is opt-in: it loads
+          # when named and carries its migration chain as package data (#2189).
+          docker run --rm --env EIMIR_PLUGINS=pro,admin --entrypoint python eimir-backend:ci -c "
+          import pathlib
+          import eimir_admin
+          from eimir.plugins.loader import loaded_plugins
+          assert loaded_plugins().names == ('pro', 'admin'), loaded_plugins().names
+          versions = pathlib.Path(eimir_admin.__file__).parent / 'alembic' / 'versions'
+          assert list(versions.glob('0001_*.py')), versions
+          print('Pro image: operator plugin loads and carries its migration.')
           "
 
       - name: Build Web production container from scratch

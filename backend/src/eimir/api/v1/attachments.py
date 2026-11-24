@@ -263,8 +263,8 @@ class SpaceStorageUsage(ApiModel):
     used: int = Field(
         description=(
             "Bytes the Space keeps: every attachment at its actual size, and a file still "
-            "being uploaded or validated at its declared size. Thumbnails, the profile photo, "
-            "one-time messages and Transfer archives do not count."
+            "being uploaded or validated at its declared size. Thumbnails, the profile photo "
+            "and one-time messages do not count."
         )
     )
     quota: int | None = Field(

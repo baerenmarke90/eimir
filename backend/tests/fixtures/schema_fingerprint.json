@@ -527,7 +527,7 @@
           "kind": "c"
         },
         "ck_activities_activity_target_type_allowed": {
-          "definition": "CHECK (target_type IS NULL OR (target_type::text = ANY (ARRAY['ONCE_MESSAGE'::character varying, 'REMINDER'::character varying, 'TRANSFER_EXPORT'::character varying, 'TRANSFER_IMPORT'::character varying, 'WISH_SELECTION'::character varying, 'MEMORY'::character varying, 'HEART_MOMENT'::character varying, 'MILESTONE'::character varying, 'WISH'::character varying, 'PLAN'::character varying, 'PLACE'::character varying, 'CHAPTER'::character varying, 'COLLECTION'::character varying, 'PICTURE_GAME'::character varying, 'SHARED_NOTE'::character varying, 'GARDEN_SEED'::character varying, 'GARDEN_BOUQUET'::character varying, 'RECAP'::character varying, 'WHO_OF_US_GAME'::character varying, 'WISH_DETECTIVE_GAME'::character varying, 'OUR_MOMENTS_GAME'::character varying]::text[])))",
+          "definition": "CHECK (target_type IS NULL OR (target_type::text = ANY (ARRAY['ONCE_MESSAGE'::character varying, 'REMINDER'::character varying, 'TRANSFER_EXPORT'::character varying, 'TRANSFER_IMPORT'::character varying, 'WISH_SELECTION'::character varying, 'MEMORY'::character varying, 'HEART_MOMENT'::character varying, 'MILESTONE'::character varying, 'WISH'::character varying, 'PLAN'::character varying, 'PLACE'::character varying, 'CHAPTER'::character varying, 'COLLECTION'::character varying, 'PICTURE_GAME'::character varying, 'SHARED_NOTE'::character varying, 'GARDEN_SEED'::character varying, 'GARDEN_BOUQUET'::character varying, 'RECAP'::character varying, 'WHO_OF_US_GAME'::character varying, 'WISH_DETECTIVE_GAME'::character varying, 'OUR_MOMENTS_GAME'::character varying, 'SUPPORT_REPORT'::character varying]::text[])))",
           "kind": "c"
         },
         "fk_activities_actor_id_accounts": {
@@ -618,6 +618,13 @@
           "generated": null,
           "identity": null,
           "nullable": false,
+          "type": "character varying(24)"
+        },
+        "wir_design_palette": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
           "type": "character varying(24)"
         }
       },
@@ -4962,7 +4969,7 @@
       },
       "constraints": {
         "ck_instance_administration_action_events_action_valid": {
-          "definition": "CHECK (action::text = ANY (ARRAY['account_suspended'::character varying, 'account_unsuspended'::character varying, 'account_sessions_revoked'::character varying, 'account_email_verified'::character varying, 'account_recovery_email_requested'::character varying, 'account_recovery_issued'::character varying, 'space_entitlement_granted'::character varying, 'space_entitlement_revoked'::character varying, 'account_deletion_requested'::character varying, 'account_deletion_completed'::character varying, 'account_deletion_failed'::character varying, 'space_configuration_manager_reconciled'::character varying]::text[]))",
+          "definition": "CHECK (action::text = ANY (ARRAY['account_suspended'::character varying, 'account_unsuspended'::character varying, 'account_sessions_revoked'::character varying, 'account_email_verified'::character varying, 'account_recovery_email_requested'::character varying, 'account_recovery_issued'::character varying, 'space_entitlement_granted'::character varying, 'space_entitlement_revoked'::character varying, 'account_deletion_requested'::character varying, 'account_deletion_completed'::character varying, 'account_deletion_failed'::character varying, 'space_configuration_manager_reconciled'::character varying, 'support_report.state_set'::character varying, 'support_report.reply_sent'::character varying, 'support_report.ticket_created'::character varying, 'support_report.ticket_cleared'::character varying, 'support_report.archived'::character varying, 'support_report.unarchived'::character varying, 'support_report.deleted'::character varying]::text[]))",
           "kind": "c"
         },
         "fk_instance_administration_action_events_actor_id_accounts": {
@@ -6188,7 +6195,7 @@
           "kind": "c"
         },
         "ck_notification_preferences_notif_pref_kind_allowed": {
-          "definition": "CHECK (kind::text = ANY (ARRAY['ONCE_MESSAGE_RECEIVED'::character varying, 'GENTLE_PROMPT'::character varying, 'REMINDER_CREATED'::character varying, 'TRANSFER_READY'::character varying, 'TRANSFER_COMPLETED'::character varying, 'TRANSFER_FAILED'::character varying, 'VIDEO_PROCESSING_FAILED'::character varying, 'PLAN_CREATED'::character varying, 'PLAN_CHANGED'::character varying, 'PLAN_CANCELLED'::character varying, 'WISH_SELECTION_SHARED'::character varying, 'WISH_SELECTION_READY'::character varying, 'PHOTO_REACTION'::character varying, 'PARTNER_JOINED'::character varying, 'COUPLE_EXPERIENCE_SHARED'::character varying, 'COMMENT_CREATED'::character varying, 'THINKING_OF_YOU'::character varying, 'PARTNER_KISS'::character varying, 'PARTNER_CHECK_IN'::character varying, 'REMINDER_DUE'::character varying, 'WISH_REMINDER_DUE'::character varying, 'WISH_DATE_PROPOSED'::character varying, 'WISH_DATE_COUNTERED'::character varying, 'WISH_DATE_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_REQUESTED'::character varying, 'WISH_SELECTION_RANDOM_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_DECLINED'::character varying, 'COLLECTION_SENT'::character varying, 'HEART_HUNT_HIDDEN'::character varying, 'HEART_HUNT_FOUND'::character varying, 'PICTURE_PING_PONG_TURN'::character varying, 'SHARED_NOTE_CREATED'::character varying, 'SHARED_NOTE_CHANGED'::character varying, 'GARDEN_SEED_ARRIVED'::character varying, 'RECAP_READY'::character varying, 'RECAP_GREW'::character varying, 'COUPLE_GAME_TURN'::character varying, 'PICTURE_PING_PONG_FINISHED'::character varying]::text[]))",
+          "definition": "CHECK (kind::text = ANY (ARRAY['ONCE_MESSAGE_RECEIVED'::character varying, 'GENTLE_PROMPT'::character varying, 'REMINDER_CREATED'::character varying, 'TRANSFER_READY'::character varying, 'TRANSFER_COMPLETED'::character varying, 'TRANSFER_FAILED'::character varying, 'VIDEO_PROCESSING_FAILED'::character varying, 'PLAN_CREATED'::character varying, 'PLAN_CHANGED'::character varying, 'PLAN_CANCELLED'::character varying, 'WISH_SELECTION_SHARED'::character varying, 'WISH_SELECTION_READY'::character varying, 'PHOTO_REACTION'::character varying, 'PARTNER_JOINED'::character varying, 'COUPLE_EXPERIENCE_SHARED'::character varying, 'COMMENT_CREATED'::character varying, 'THINKING_OF_YOU'::character varying, 'PARTNER_KISS'::character varying, 'PARTNER_CHECK_IN'::character varying, 'REMINDER_DUE'::character varying, 'WISH_REMINDER_DUE'::character varying, 'WISH_DATE_PROPOSED'::character varying, 'WISH_DATE_COUNTERED'::character varying, 'WISH_DATE_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_REQUESTED'::character varying, 'WISH_SELECTION_RANDOM_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_DECLINED'::character varying, 'COLLECTION_SENT'::character varying, 'HEART_HUNT_HIDDEN'::character varying, 'HEART_HUNT_FOUND'::character varying, 'PICTURE_PING_PONG_TURN'::character varying, 'SHARED_NOTE_CREATED'::character varying, 'SHARED_NOTE_CHANGED'::character varying, 'GARDEN_SEED_ARRIVED'::character varying, 'RECAP_READY'::character varying, 'RECAP_GREW'::character varying, 'COUPLE_GAME_TURN'::character varying, 'PICTURE_PING_PONG_FINISHED'::character varying, 'SUPPORT_REPLY'::character varying]::text[]))",
           "kind": "c"
         },
         "fk_notification_preferences_account_id_accounts": {
@@ -6298,7 +6305,7 @@
       },
       "constraints": {
         "ck_notifications_notification_kind_allowed": {
-          "definition": "CHECK (kind::text = ANY (ARRAY['ONCE_MESSAGE_RECEIVED'::character varying, 'GENTLE_PROMPT'::character varying, 'REMINDER_CREATED'::character varying, 'TRANSFER_READY'::character varying, 'TRANSFER_COMPLETED'::character varying, 'TRANSFER_FAILED'::character varying, 'VIDEO_PROCESSING_FAILED'::character varying, 'PLAN_CREATED'::character varying, 'PLAN_CHANGED'::character varying, 'PLAN_CANCELLED'::character varying, 'WISH_SELECTION_SHARED'::character varying, 'WISH_SELECTION_READY'::character varying, 'PHOTO_REACTION'::character varying, 'PARTNER_JOINED'::character varying, 'COUPLE_EXPERIENCE_SHARED'::character varying, 'COMMENT_CREATED'::character varying, 'THINKING_OF_YOU'::character varying, 'PARTNER_KISS'::character varying, 'PARTNER_CHECK_IN'::character varying, 'REMINDER_DUE'::character varying, 'WISH_REMINDER_DUE'::character varying, 'WISH_DATE_PROPOSED'::character varying, 'WISH_DATE_COUNTERED'::character varying, 'WISH_DATE_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_REQUESTED'::character varying, 'WISH_SELECTION_RANDOM_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_DECLINED'::character varying, 'COLLECTION_SENT'::character varying, 'HEART_HUNT_HIDDEN'::character varying, 'HEART_HUNT_FOUND'::character varying, 'PICTURE_PING_PONG_TURN'::character varying, 'SHARED_NOTE_CREATED'::character varying, 'SHARED_NOTE_CHANGED'::character varying, 'GARDEN_SEED_ARRIVED'::character varying, 'RECAP_READY'::character varying, 'RECAP_GREW'::character varying, 'COUPLE_GAME_TURN'::character varying, 'PICTURE_PING_PONG_FINISHED'::character varying]::text[]))",
+          "definition": "CHECK (kind::text = ANY (ARRAY['ONCE_MESSAGE_RECEIVED'::character varying, 'GENTLE_PROMPT'::character varying, 'REMINDER_CREATED'::character varying, 'TRANSFER_READY'::character varying, 'TRANSFER_COMPLETED'::character varying, 'TRANSFER_FAILED'::character varying, 'VIDEO_PROCESSING_FAILED'::character varying, 'PLAN_CREATED'::character varying, 'PLAN_CHANGED'::character varying, 'PLAN_CANCELLED'::character varying, 'WISH_SELECTION_SHARED'::character varying, 'WISH_SELECTION_READY'::character varying, 'PHOTO_REACTION'::character varying, 'PARTNER_JOINED'::character varying, 'COUPLE_EXPERIENCE_SHARED'::character varying, 'COMMENT_CREATED'::character varying, 'THINKING_OF_YOU'::character varying, 'PARTNER_KISS'::character varying, 'PARTNER_CHECK_IN'::character varying, 'REMINDER_DUE'::character varying, 'WISH_REMINDER_DUE'::character varying, 'WISH_DATE_PROPOSED'::character varying, 'WISH_DATE_COUNTERED'::character varying, 'WISH_DATE_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_REQUESTED'::character varying, 'WISH_SELECTION_RANDOM_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_DECLINED'::character varying, 'COLLECTION_SENT'::character varying, 'HEART_HUNT_HIDDEN'::character varying, 'HEART_HUNT_FOUND'::character varying, 'PICTURE_PING_PONG_TURN'::character varying, 'SHARED_NOTE_CREATED'::character varying, 'SHARED_NOTE_CHANGED'::character varying, 'GARDEN_SEED_ARRIVED'::character varying, 'RECAP_READY'::character varying, 'RECAP_GREW'::character varying, 'COUPLE_GAME_TURN'::character varying, 'PICTURE_PING_PONG_FINISHED'::character varying, 'SUPPORT_REPLY'::character varying]::text[]))",
           "kind": "c"
         },
         "ck_notifications_notification_target_reference_complete": {
@@ -6306,7 +6313,7 @@
           "kind": "c"
         },
         "ck_notifications_notification_target_type_allowed": {
-          "definition": "CHECK (target_type IS NULL OR (target_type::text = ANY (ARRAY['ONCE_MESSAGE'::character varying, 'REMINDER'::character varying, 'TRANSFER_EXPORT'::character varying, 'TRANSFER_IMPORT'::character varying, 'WISH_SELECTION'::character varying, 'MEMORY'::character varying, 'HEART_MOMENT'::character varying, 'MILESTONE'::character varying, 'WISH'::character varying, 'PLAN'::character varying, 'PLACE'::character varying, 'CHAPTER'::character varying, 'COLLECTION'::character varying, 'PICTURE_GAME'::character varying, 'SHARED_NOTE'::character varying, 'GARDEN_SEED'::character varying, 'GARDEN_BOUQUET'::character varying, 'RECAP'::character varying, 'WHO_OF_US_GAME'::character varying, 'WISH_DETECTIVE_GAME'::character varying, 'OUR_MOMENTS_GAME'::character varying]::text[])))",
+          "definition": "CHECK (target_type IS NULL OR (target_type::text = ANY (ARRAY['ONCE_MESSAGE'::character varying, 'REMINDER'::character varying, 'TRANSFER_EXPORT'::character varying, 'TRANSFER_IMPORT'::character varying, 'WISH_SELECTION'::character varying, 'MEMORY'::character varying, 'HEART_MOMENT'::character varying, 'MILESTONE'::character varying, 'WISH'::character varying, 'PLAN'::character varying, 'PLACE'::character varying, 'CHAPTER'::character varying, 'COLLECTION'::character varying, 'PICTURE_GAME'::character varying, 'SHARED_NOTE'::character varying, 'GARDEN_SEED'::character varying, 'GARDEN_BOUQUET'::character varying, 'RECAP'::character varying, 'WHO_OF_US_GAME'::character varying, 'WISH_DETECTIVE_GAME'::character varying, 'OUR_MOMENTS_GAME'::character varying, 'SUPPORT_REPORT'::character varying]::text[])))",
           "kind": "c"
         },
         "fk_notifications_actor_id_accounts": {
@@ -11975,6 +11982,177 @@
         "pk_support_gesture_requests": "CREATE UNIQUE INDEX pk_support_gesture_requests ON public.support_gesture_requests USING btree (id)",
         "uq_support_gesture_requests_sender_space_kind_client": "CREATE UNIQUE INDEX uq_support_gesture_requests_sender_space_kind_client ON public.support_gesture_requests USING btree (space_id, sender_account_id, kind, client_request_id)",
         "uq_support_gesture_requests_source_event_id": "CREATE UNIQUE INDEX uq_support_gesture_requests_source_event_id ON public.support_gesture_requests USING btree (source_event_id)"
+      }
+    },
+    "support_report_replies": {
+      "columns": {
+        "crypto_version": {
+          "default": "0",
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "smallint"
+        },
+        "id": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "uuid"
+        },
+        "payload": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "jsonb"
+        },
+        "replied_at": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "timestamp with time zone"
+        },
+        "report_id": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "uuid"
+        }
+      },
+      "constraints": {
+        "ck_support_report_replies_crypto_version_is_non_negative": {
+          "definition": "CHECK (crypto_version >= 0)",
+          "kind": "c"
+        },
+        "fk_support_report_replies_report_id_support_reports": {
+          "definition": "FOREIGN KEY (report_id) REFERENCES support_reports(id) ON DELETE CASCADE",
+          "kind": "f"
+        },
+        "pk_support_report_replies": {
+          "definition": "PRIMARY KEY (id)",
+          "kind": "p"
+        },
+        "uq_support_report_replies_report_id": {
+          "definition": "UNIQUE (report_id)",
+          "kind": "u"
+        }
+      },
+      "indexes": {
+        "pk_support_report_replies": "CREATE UNIQUE INDEX pk_support_report_replies ON public.support_report_replies USING btree (id)",
+        "uq_support_report_replies_report_id": "CREATE UNIQUE INDEX uq_support_report_replies_report_id ON public.support_report_replies USING btree (report_id)"
+      }
+    },
+    "support_reports": {
+      "columns": {
+        "account_id": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "uuid"
+        },
+        "archived_at": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "timestamp with time zone"
+        },
+        "client_request_id": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "uuid"
+        },
+        "closed_at": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "timestamp with time zone"
+        },
+        "created_at": {
+          "default": "now()",
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "timestamp with time zone"
+        },
+        "crypto_version": {
+          "default": "0",
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "smallint"
+        },
+        "id": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "uuid"
+        },
+        "kind": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "character varying(16)"
+        },
+        "payload": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "jsonb"
+        },
+        "state": {
+          "default": "'NEW'::character varying",
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "character varying(16)"
+        }
+      },
+      "constraints": {
+        "ck_support_reports_closed_at_matches_state": {
+          "definition": "CHECK ((state::text = 'CLOSED'::text) = (closed_at IS NOT NULL))",
+          "kind": "c"
+        },
+        "ck_support_reports_crypto_version_is_non_negative": {
+          "definition": "CHECK (crypto_version >= 0)",
+          "kind": "c"
+        },
+        "ck_support_reports_kind_allowed": {
+          "definition": "CHECK (kind::text = ANY (ARRAY['PROBLEM'::character varying, 'FEEDBACK'::character varying]::text[]))",
+          "kind": "c"
+        },
+        "ck_support_reports_state_allowed": {
+          "definition": "CHECK (state::text = ANY (ARRAY['NEW'::character varying, 'IN_PROGRESS'::character varying, 'CLOSED'::character varying]::text[]))",
+          "kind": "c"
+        },
+        "fk_support_reports_account_id_accounts": {
+          "definition": "FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE",
+          "kind": "f"
+        },
+        "pk_support_reports": {
+          "definition": "PRIMARY KEY (id)",
+          "kind": "p"
+        },
+        "uq_support_reports_account_id_client_request_id": {
+          "definition": "UNIQUE (account_id, client_request_id)",
+          "kind": "u"
+        }
+      },
+      "indexes": {
+        "ix_support_reports_created_at": "CREATE INDEX ix_support_reports_created_at ON public.support_reports USING btree (created_at)",
+        "ix_support_reports_state_created_at_id": "CREATE INDEX ix_support_reports_state_created_at_id ON public.support_reports USING btree (state, created_at, id)",
+        "pk_support_reports": "CREATE UNIQUE INDEX pk_support_reports ON public.support_reports USING btree (id)",
+        "uq_support_reports_account_id_client_request_id": "CREATE UNIQUE INDEX uq_support_reports_account_id_client_request_id ON public.support_reports USING btree (account_id, client_request_id)"
       }
     },
     "terms_acceptances": {

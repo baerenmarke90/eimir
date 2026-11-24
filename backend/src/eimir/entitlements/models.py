@@ -75,6 +75,8 @@ class Capability(StrEnum):
     MEMORIES_MAP = "memories.map"
     PRESENCE_LOCATION = "presence.location"
     PLANNING_DATE_INSPIRATION = "planning.date_inspiration"
+    SUPPORT_OPERATOR = "support.operator"
+    """Operator-plugin access to support reports; never a Premium entitlement (Decision 0017)."""
 
 
 class EntitlementGrant(IdMixin, TimestampMixin, Base):

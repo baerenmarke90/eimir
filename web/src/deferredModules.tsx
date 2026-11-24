@@ -1,4 +1,10 @@
-import { type ComponentType, lazy, useState } from 'react';
+import {
+  type ComponentType,
+  lazy,
+  useEffect,
+  useReducer,
+  useState,
+} from 'react';
 
 type Load = () => Promise<unknown>;
 
@@ -17,6 +23,53 @@ export function registerDeferredModule(load: Load): void {
   deferredModules.push(load);
 }
 
+/** A value in its own chunk, loaded once and kept; see `deferredModule`. */
+export interface DeferredModule<T> {
+  /**
+   * Load the chunk, sharing one pending load. A failed load is forgotten,
+   * so the next call tries again.
+   */
+  load: () => Promise<T>;
+  /** The loaded value, or null before the chunk has loaded. */
+  current: () => T | null;
+}
+
+/**
+ * A chunk outside the startup bundle that the background prefetch fetches
+ * after the first paint and that callers can load on demand.
+ */
+export function deferredModule<T>(load: () => Promise<T>): DeferredModule<T> {
+  let loaded: T | null = null;
+  let pending: Promise<T> | null = null;
+  const loadOnce = () => {
+    pending ??= load().then(
+      (value) => {
+        loaded = value;
+        return value;
+      },
+      (error: unknown) => {
+        pending = null;
+        throw error;
+      },
+    );
+    return pending;
+  };
+  registerDeferredModule(loadOnce);
+  return { load: loadOnce, current: () => loaded };
+}
+
+function DeferredPage<P extends object>({
+  resolve,
+  pageProps,
+}: {
+  resolve: () => ComponentType<P>;
+  pageProps: P;
+}) {
+  // Keep the same component for the lifetime of this mount, including after prefetch.
+  const [Component] = useState(resolve);
+  return <Component {...pageProps} />;
+}
+
 /**
  * A component in its own chunk, outside the startup bundle. Before its chunk
  * has loaded it suspends like `React.lazy`. Once loaded, by the background
@@ -26,32 +79,55 @@ export function registerDeferredModule(load: Load): void {
 export function deferredComponent<P extends object>(
   load: () => Promise<ComponentType<P>>,
 ): ComponentType<P> {
-  let loaded: ComponentType<P> | null = null;
-  let pending: Promise<ComponentType<P>> | null = null;
-  const loadOnce = () => {
-    pending ??= load().then(
-      (component) => {
-        loaded = component;
-        return component;
+  const module = deferredModule(load);
+  const Lazy = lazy(() =>
+    module.load().then((component) => ({ default: component })),
+  );
+
+  const resolve = () => module.current() ?? Lazy;
+  return (props) => <DeferredPage resolve={resolve} pageProps={props} />;
+}
+
+function OptionalDeferredPage<P extends object>({
+  module,
+  pageProps,
+}: {
+  module: DeferredModule<ComponentType<P>>;
+  pageProps: P;
+}) {
+  const [, loadedNow] = useReducer((count: number) => count + 1, 0);
+  const Component = module.current();
+  useEffect(() => {
+    if (Component) return;
+    let live = true;
+    module.load().then(
+      () => {
+        if (live) loadedNow();
       },
-      (error: unknown) => {
-        pending = null;
-        throw error;
+      () => {
+        // Stays empty; the next mount loads again.
       },
     );
-    return pending;
-  };
-  const Lazy = lazy(() =>
-    loadOnce().then((component) => ({ default: component })),
-  );
-  registerDeferredModule(loadOnce);
+    return () => {
+      live = false;
+    };
+  }, [Component, module]);
+  return Component ? <Component {...pageProps} /> : null;
+}
 
-  function Deferred(props: P) {
-    // Chosen once per mount, so a mounted page never changes component identity.
-    const [Component] = useState<ComponentType<P>>(() => loaded ?? Lazy);
-    return <Component {...props} />;
-  }
-  return Deferred;
+/**
+ * An optional component in its own chunk: it renders nothing until its chunk
+ * has loaded, and nothing when the load fails (offline, Save-Data skipped the
+ * prefetch), so a failed load never suspends or throws into the tree around
+ * it. The next mount tries the load again. Errors thrown while the loaded
+ * component renders are not caught here.
+ */
+export function optionalDeferredComponent<P extends object>(
+  load: () => Promise<ComponentType<P>>,
+): ComponentType<P> {
+  const module = deferredModule(load);
+
+  return (props) => <OptionalDeferredPage module={module} pageProps={props} />;
 }
 
 /** Wait after the shell appeared, so the prefetch never competes with its opening. */

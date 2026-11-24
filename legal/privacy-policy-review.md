@@ -1,7 +1,7 @@
 # Privacy policy draft: review notes
 
 Status: drafting baseline for the legal review of
-[`de/privacy-policy.md`](de/privacy-policy.md) (version `2026-11-22.draft-9`).
+[`de/privacy-policy.md`](de/privacy-policy.md) (version `2026-11-24.draft-13`).
 This file is not legal advice and is not shown to users. It records where each
 statement comes from, which facts the operator must supply and which decisions
 are open, so that the reviewer can check the draft against the product instead
@@ -55,11 +55,14 @@ Where a feature is not yet available, the draft says so explicitly.
 | 12 | Mails: magic link, signup, verification; notification mail opt-in and content-free | `backend/src/eimir/i18n/locales/de.json`, `backend/src/eimir/engagement/email_delivery.py` |
 | 12 | Push on Android only (no browser Web Push): FCM wake payload `type`+`activationId`, or UnifiedPush; auto-init off; FID cleanup; Google's 180-day deletion statement | `docs/PRIVACY-MODEL.md` (#565), `android/app/build.gradle`, `AndroidManifest.xml` |
 | 13 | Link previews: explicit action, server-side fetch, nothing persisted | `backend/src/eimir/api/v1/link_previews.py` |
-| 14 | Export scopes SHARED/PERSONAL, 24-hour encrypted bundle retention, credentials not exported | `docs/m5/S6-CACHE-PORTABILITY-DECISIONS.md`, `backend/src/eimir/transfer/service.py` |
+| 14 | Copy on request (draft-12, ADR 0020; personal copy includes own support reports and replies, #2245): free, machine-readable, shared and personal scopes, credentials and one-time messages not included; the self-service Transfer Bundle and its 24-hour export files are gone | `docs/decisions/0020-remove-transfer-bundle-self-service.md`, `docs/FREEMIUM-FEATURE-MATRIX.md` |
 | 15 | Browser storage: session in `sessionStorage` (Android: Keystore-encrypted); IndexedDB read cache of shared content and drafts, each at most seven days; image cache bounded to 2000 items (Android: every image AES-GCM sealed under a Keystore-wrapped per-login key); small `localStorage` preferences; service worker caches static files only; everything cleared on sign-out; Android `allowBackup=false` | `web/src/client/sessionPersistence.ts`, `productReadCache.ts`, `durableMediaStore.ts`, `memoryDiaryDraft.ts`, `web/public/service-worker.js`, `NativeSessionStoragePlugin.java` |
 | 16 | Application access log: method, path, status, duration, request ID; no IP or payload. The Web nginx disables its access log for API and health routes; static file requests use the stock log format, and the ingress may log client IPs | `backend/src/eimir/observability/middleware.py`, `web/nginx.conf` |
 | 16 | Rate limiting: SHA-256 of the lower-cased key (email or IPv4 / IPv6 /64), pruned after one day | `backend/src/eimir/auth/rate_limit.py`, `passkey_abuse.py` |
 | 16 | Restore re-applies accepted Account deletions from a pseudonymous journal before traffic resumes; the journal is kept as long as older backups exist | `docs/m6/ACCOUNT-DELETION-RETENTION.md` § 7 |
+| 19, 14, 15, 22 | Support reports (#2189, draft-10): sent only by the person from „Hilfe & Feedback“ or an error state after the sheet lists what is sent; strict allow-list payload (kind, note ≤ 2,000 characters, optional for a problem and required for feedback; for a problem from an error state the generalized failure reference: method, route template without ids or query, status or transport outcome, problem code, app/web, plus the `x-request-id` when present; client context: app version and build, app/web, OS and browser/engine with version but no device model or identifier, locale, theme, online state, local time and time zone; opaque account id); client context read only at send time; protected payload (note, failure, context) encrypted at rest, kind/state/timestamps plain; per-account rate limit 5/hour and 20/day; operator-only reader, no third party; one reply ≤ 500 characters as an in-app notification for the reporter only (`SUPPORT_REPLY`: neutral push without text, no email, no notice without an active Membership); closed reports deleted 90 days after closing, any report 365 days after creation, by the six-hourly maintenance job; reports and replies deleted with the Account; own reports and replies are part of the operator-provided personal copy, export-only, without the operator's ticket link (#2245, draft-12); unsent draft in `localStorage` per Account, removed on send, discard, sign-out and Account or Space change. The feature stays off (`EIMIR_SUPPORT_REPORTS_ENABLED=false`) on Cloud until this text is published | `backend/src/eimir/support_reports/payload.py`, `service.py` (`CLOSED_RETENTION`, `MAX_RETENTION`), `models.py`, `backend/src/eimir/api/v1/support_reports.py`, `backend/src/eimir/auth/rate_limit.py`, `backend/src/eimir/identity/deletion.py` (`PERSONAL_ACCOUNT_ROWS`), `backend/src/eimir/jobs/maintenance.py`, `backend/src/eimir/engagement/push_preview.py`, `web/src/client/supportReport.ts`, `failureReference.ts`, `supportReportDraftStorage.ts`, `sessionPersistence.ts`, `docs/product/support-reports-core-design.md` |
+| 19 | Support report tickets (#2189 operator plugin, draft-13, § 19.4): a ServerAdmin may create one tracker ticket per report (GitHub Issues in the repository the operator configures). The request carries the operator's own title and body plus a server-composed footer: report id, kind, app version, build, platform (app/web), failure reference and request id. The note, the reply and the account id are never read into the request; no automatic ticket | `backend/admin/src/eimir_admin/support_tickets/service.py` (`compose_body`), `backend/admin/src/eimir_admin/tracker/github.py`, `docs/SERVER-ADMIN.md` (Support reports) |
+| 16 | Application log entries carry the request ID (`X-Request-ID`), which a support report can reference; draft-10 names it in § 16.1 | `backend/src/eimir/observability/middleware.py`, `formatting.py` |
 | 17 | No analytics, advertising or crash-reporting SDK in Web or Android (Android: AndroidX, Capacitor, UnifiedPush connector, Firebase Messaging/Installations, Nimbus JOSE); no external fonts or update checks | `web/package.json`, `android/app/build.gradle`, `docs/PRIVACY-MODEL.md` (Analytics) |
 | 18 | Pro cannot be purchased yet (no billing provider in Core) | `docs/m6/CLOUD-MANAGED-TOPOLOGY.md` § 3.6, #1525 |
 | 22 | Account deletion: emails, credentials, sessions, profile, owner-only content removed; shared history kept under a neutral former-member marker | `docs/m6/ACCOUNT-DELETION-RETENTION.md` § 5 |
@@ -127,16 +130,16 @@ this section.
 | Controller identity and contact (Art. 13(1)(a)) | § 1 | Placeholders |
 | DPO contact (Art. 13(1)(b)) | § 1.3 | Depends on decisions 2 and 3 |
 | Purposes and legal basis (Art. 13(1)(c)) | §§ 3–19 | Present for every purpose; draft-2 adds presence, retained shared content and map tiles |
-| Legitimate interests (Art. 13(1)(d)) | §§ 3.5, 4.4, 4.8, 8.2, 9.2, 9.4, 16.4 | Stated for every use of lit. f |
+| Legitimate interests (Art. 13(1)(d)) | §§ 3.5, 4.4, 4.8, 8.2, 9.2, 9.4, 16.4, 19.7 | Stated for every use of lit. f |
 | Recipients (Art. 13(1)(e)) | § 20 | Complete for the current flows (CSP and dependency review) |
 | Third-country transfers (Art. 13(1)(f)) | § 21 | Both adequacy decisions verified as current |
-| Storage period or criteria (Art. 13(2)(a)) | §§ 3–16, 22 | Concrete periods bound to the code by `test_privacy_policy_statements.py`; logs and backups are placeholders |
+| Storage period or criteria (Art. 13(2)(a)) | §§ 3–16, 19, 22 | Concrete periods bound to the code by `test_privacy_policy_statements.py`; logs and backups are placeholders |
 | Rights, withdrawal, complaint (Art. 13(2)(b)–(d)) | §§ 23, 24 | Present; the objection right is separate and bold (Art. 21(4)) |
 | Requirement to provide data and consequences (Art. 13(2)(e)) | § 3.6 | Present; the Cloud display name is optional |
 | Automated decisions and profiling (Art. 13(2)(f)) | § 11 | No Art. 22 decisions; only tag proposals remain (the weekly brief was removed, #2210) |
 | Data from other sources (Art. 14) | §§ 2.1, 8.4 | Partner: own notice at signup (Art. 14(5)(a)); third persons: public notice and rights path (Art. 14(5)(b)) |
 | Transparency (Art. 12) | whole notice | Layered summary, plain language; German only (decision 6) |
-| Device storage and access (§ 25 TDDDG) | §§ 9.2, 12.5, 15 | Strictly necessary items under § 25(2) no. 2; Android photo location under § 25(1) |
+| Device storage and access (§ 25 TDDDG) | §§ 9.2, 12.5, 15, 19.7 | Strictly necessary items under § 25(2) no. 2; Android photo location under § 25(1) |
 
 ### Changes in draft-2
 
@@ -294,6 +297,23 @@ officer should confirm them before publication.
     behaviour in § 16.3.
 17. **Digital Omnibus.** If the GDPR amendments are adopted, re-check the
     Art. 9 scope and the information duties.
+18. **Support reports (#2189, draft-10).** § 19.2–19.7 describe the in-app
+    problem and feedback reports. Points for the legal review: the split legal
+    basis (contract for problem reports, legitimate interest for feedback), the
+    reading of app and device facts at send time under § 25(2) no. 2 TDDDG.
+    The Product Owner decided on 2026-11-24 that no separate consent or
+    special handling is planned for special-category content someone might
+    type into the optional note, because it will not be solved technically.
+    **Implemented (#2245, draft-12; Product Owner decision of
+    2026-11-24 on the recommendation):** the operator-provided personal copy
+    (§ 14) carries the requester's own reports and replies, so Art. 15 and
+    Art. 20 are served completely; the shared copy never does, and the
+    operator's ticket link is not part of it. Draft-13 adds one sentence to
+    § 19.4: the operator may create a technical ticket without the person's
+    text. The tracker (GitHub Issues) receives technical, pseudonymous data
+    (report id, request id). Product Owner decision of 2026-11-24: the
+    drafted wording stays as it is; no further legal review is made a
+    precondition for enabling `EIMIR_SUPPORT_REPORTS_ENABLED`.
 
 ## Related follow-ups outside this draft
 

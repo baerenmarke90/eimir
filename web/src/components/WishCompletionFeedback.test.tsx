@@ -363,10 +363,10 @@ it.each(['update', 'delete'])(
       fireEvent.click(
         await screen.findByRole('button', { name: de.common.edit }),
       );
-      fireEvent.submit(
-        (screen.getByLabelText(m5s3.common.title) as HTMLInputElement)
-          .form as HTMLFormElement,
+      const title = await screen.findByLabelText<HTMLInputElement>(
+        m5s3.common.title,
       );
+      fireEvent.submit(title.form as HTMLFormElement);
     } else {
       fireEvent.click(
         await screen.findByRole('button', { name: m5s3.common.delete }),

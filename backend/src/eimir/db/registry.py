@@ -55,6 +55,7 @@ MODEL_MODULES = (
     "eimir.reminders.runtime_models",
     "eimir.shared_notes.models",
     "eimir.story.view_models",
+    "eimir.support_reports.models",
     "eimir.transfer.models",
     "eimir.wishes.models",
     "eimir.wish_selections.models",

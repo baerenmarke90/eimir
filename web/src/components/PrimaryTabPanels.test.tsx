@@ -17,9 +17,11 @@ import { PrimaryTabPanels } from './PrimaryTabPanels';
 let navigate: ReturnType<typeof useNavigate>;
 let openTab: ReturnType<typeof usePrimaryNavigation>['navigatePrimary'];
 const mounts: string[] = [];
+const renders: string[] = [];
 const captures = new Map<string, () => string | null>();
 
 function Page({ name }: { name: string }) {
+  renders.push(name);
   const location = useLocation();
   const { captureOrigin } = useTaskOrigin();
   captures.set(name, () => captureOrigin());
@@ -52,6 +54,11 @@ function Harness({ prewarm }: { prewarm?: readonly string[] }) {
             { path: '/today', element: <Page name="today" /> },
             { path: '/story', element: <Page name="story" /> },
             { path: '/plan', element: <Page name="plan" /> },
+            {
+              path: '/more/collections',
+              retain: false,
+              element: <Page name="lists" />,
+            },
           ]}
         />
         <Routes>
@@ -65,6 +72,7 @@ function Harness({ prewarm }: { prewarm?: readonly string[] }) {
 
 beforeEach(() => {
   mounts.length = 0;
+  renders.length = 0;
   captures.clear();
   vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
 });
@@ -95,6 +103,45 @@ it('mounts a tab on its first visit and keeps it mounted while hidden', async ()
   expect(mounts).toEqual(['today', 'story']);
 });
 
+it('reveals Lists during the swipe and releases it when its route is left', async () => {
+  const lists = '/more/collections';
+  render(<Harness />);
+  await act(() => setPrimaryTabPeek(lists));
+  expect(panel(lists)?.hasAttribute('inert')).toBe(true);
+  await act(() => setPrimaryTabPeek(null));
+  expect(panel(lists)).toBeNull();
+
+  await act(() => setPrimaryTabPeek(lists));
+  const preview = screen.getByTestId('lists-search');
+  await act(() => navigate(`${lists}?scope=ALL`));
+  await act(() => setPrimaryTabPeek(null));
+  expect(screen.getByTestId('lists-search')).toBe(preview);
+  expect(preview.textContent).toBe('?scope=ALL');
+  expect(panel(lists)?.hasAttribute('inert')).toBe(false);
+
+  await act(() => navigate('/plan/collections/new'));
+  expect(panel(lists)).toBeNull();
+  await act(() => navigate(-1));
+  const returned = screen.getByTestId('lists-search');
+  expect(returned).not.toBe(preview);
+  expect(returned.textContent).toBe('?scope=ALL');
+});
+
+it('keeps mounted route consumers at rest while a visited tab is previewed and dismissed', async () => {
+  render(<Harness />);
+  await act(() => navigate('/story'));
+  await act(() => navigate('/plan'));
+  renders.length = 0;
+
+  await act(() => setPrimaryTabPeek('/story'));
+  const previewRenders = renders.splice(0);
+  await act(() => setPrimaryTabPeek(null));
+  expect({ previewRenders, cancelRenders: renders }).toEqual({
+    previewRenders: [],
+    cancelRenders: [],
+  });
+});
+
 it('freezes the location a hidden tab sees', async () => {
   render(<Harness />);
   await act(() => navigate('/today?view=week'));
@@ -116,8 +163,13 @@ it('starts Wir at the top when the tab is explicitly reopened', async () => {
 });
 
 /** A carousel inside the panel that remembers how far it was swiped. */
-function addCarousel(path: string, scrollLeft: number) {
+function addCarousel(
+  path: string,
+  scrollLeft: number,
+  className = 'wir-lists-row',
+) {
   const carousel = document.createElement('div');
+  carousel.className = className;
   let offset = scrollLeft;
   Object.defineProperty(carousel, 'scrollLeft', {
     configurable: true,
@@ -133,7 +185,8 @@ function addCarousel(path: string, scrollLeft: number) {
 it('puts the Wir carousels back to their first item when the tab is reopened', async () => {
   render(<Harness />);
   const lists = addCarousel('/today', 320);
-  const upcoming = addCarousel('/today', 180);
+  const upcoming = addCarousel('/today', 180, 'today-agenda-list');
+  const activity = addCarousel('/today', 120, 'today-stream');
   await act(() => navigate('/story'));
   // Leaving keeps the offsets while the panel is hidden ...
   expect(lists.scrollLeft).toBe(320);
@@ -141,6 +194,7 @@ it('puts the Wir carousels back to their first item when the tab is reopened', a
   // ... and reopening from the tab bar starts them over.
   expect(lists.scrollLeft).toBe(0);
   expect(upcoming.scrollLeft).toBe(0);
+  expect(activity.scrollLeft).toBe(0);
 });
 
 it('keeps the Wir carousels where they were on Back', async () => {
@@ -151,12 +205,19 @@ it('keeps the Wir carousels where they were on Back', async () => {
   expect(lists.scrollLeft).toBe(320);
 });
 
-it('shows Wir from its first carousel item while it is peeked', async () => {
+it('resets Wir tracks without reading unrelated content on peek or selection', async () => {
   render(<Harness />);
-  await act(() => navigate('/story'));
   const lists = addCarousel('/today', 240);
+  const card = document.createElement('li');
+  lists.append(card);
+  const readOffset = vi.fn(() => 0);
+  Object.defineProperty(card, 'scrollLeft', { get: readOffset });
+  await act(() => navigate('/story'));
   await act(() => setPrimaryTabPeek('/today'));
   expect(lists.scrollLeft).toBe(0);
+  await act(() => openTab('/today'));
+  await act(() => setPrimaryTabPeek(null));
+  expect(readOffset).not.toHaveBeenCalled();
 });
 
 it('restores the Wir reading position on Back after a fast navigation', async () => {

@@ -1,12 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import AxeBuilder from '../support/axe';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import importantDates from '../../src/i18n/locales/importantDates';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import navigationCopy from '../../src/i18n/locales/navigation';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 import { nextFrame } from '../support/mediaCarouselGesture';
 import {
   installNativeAppLifecycle,
@@ -741,14 +741,22 @@ test.describe('Global header document flow and persistent bottom navigation', ()
             fontFamily: headingStyle.fontFamily,
             fontSize: headingStyle.fontSize,
             fontWeight: headingStyle.fontWeight,
-            titleBand: { width: band.width, height: band.height },
+            // A page that is still settling under a compositor translation
+            // reports its box with float error (1px as 1.0000019px). Compare
+            // the band to a thousandth of a pixel, not to the last float bit.
+            titleBand: {
+              width: Math.round(band.width * 1000) / 1000,
+              height: Math.round(band.height * 1000) / 1000,
+            },
             lineHeight: headingStyle.lineHeight,
           };
         });
         metrics.push(metric);
 
         expect(metric.fontFamily).toContain('Literata');
-        expect(metric.titleBand).toEqual({ width: 1, height: 1 });
+        // A compositor translation can introduce subpixel rounding in a DOMRect.
+        expect(metric.titleBand.width).toBeCloseTo(1, 4);
+        expect(metric.titleBand.height).toBeCloseTo(1, 4);
 
         await expectNoHorizontalOverflow(page);
         await page.screenshot({
@@ -1167,8 +1175,8 @@ async function expectPrimaryReadingSurface(page: Page) {
     '/today': 'main > .primary-tab-panel:not([hidden]) .today-page',
     '/story': 'main > .primary-tab-panel:not([hidden]) .story-page',
     '/plan': 'main > .primary-tab-panel:not([hidden]) .planen-overview',
-    // Listen is a routed page of its own, not a kept-alive tab panel.
-    '/more/collections': 'main .shared-content-page',
+    '/more/collections':
+      'main > .primary-tab-panel:not([hidden]) .shared-content-page',
     '/more': 'main > .primary-tab-panel:not([hidden]) .more-page',
   };
   const selector = surfaceForRoute[new URL(page.url()).pathname];
@@ -1475,83 +1483,105 @@ test.describe('primary tab touch navigation', () => {
     });
   }
 
-  test('primary swipe drags the page beside its neighbour like a pager', async ({
-    page,
-  }, testInfo) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.emulateMedia({ reducedMotion: 'no-preference' });
-    await installApiMocks(page);
-    await page.goto('/login');
-    await signIn(page);
-    await expect(page).toHaveURL(/\/today$/);
-    const { width, startX, y } = await primarySwipeStart(page, 'next');
-    const main = page.locator('main.product-main');
-    const current = page.locator(
-      'main > .primary-tab-panel:not([hidden], [data-primary-tab-peek], [data-primary-tab-prewarm]) > .page',
-    );
-    const neighbour = page.locator(
-      'main > .primary-tab-panel[data-primary-tab-peek] > .page',
-    );
-    const restBox = await current.boundingBox();
-    const mainBox = await main.boundingBox();
-    const session = await page.context().newCDPSession(page);
-    try {
-      await session.send('Input.dispatchTouchEvent', {
-        type: 'touchStart',
-        touchPoints: [{ x: startX, y, id: 1 }],
-      });
-      await nextFrame(page);
-      for (let step = 1; step <= 5; step++)
+  for (const [from, to] of [
+    ['/today', '/story'],
+    ['/plan', '/more/collections'],
+  ] as const)
+    test(`primary swipe drags ${from} beside ${to} like a pager`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.emulateMedia({ reducedMotion: 'no-preference' });
+      await installApiMocks(page);
+      await page.goto('/login');
+      await signIn(page);
+      await expect(page).toHaveURL(/\/today$/);
+      if (from === '/plan')
+        await primaryTabLink(page.locator('.mobile-bottom-nav'), from).tap();
+      await expect(page).toHaveURL(new RegExp(`${from}$`));
+      const { width, startX, y } = await primarySwipeStart(page, 'next');
+      const main = page.locator('main.product-main');
+      await expect(main).not.toHaveAttribute('data-navigation-slide');
+      const current = page.locator(
+        'main > .primary-tab-panel:not([hidden], [data-primary-tab-peek], [data-primary-tab-prewarm]) > .page',
+      );
+      const neighbourPanel = main.locator(
+        ':scope > .primary-tab-panel[data-primary-tab-peek]',
+      );
+      const neighbour = neighbourPanel.locator(':scope > .page');
+      const action = main.locator('[data-floating-create]:visible');
+      await expect(action).toHaveCSS('position', 'fixed');
+      const restingAction = await action.boundingBox();
+      if (!restingAction) throw new Error('Missing floating create action.');
+      const restBox = await current.boundingBox();
+      const mainBox = await main.boundingBox();
+      const session = await page.context().newCDPSession(page);
+      try {
         await session.send('Input.dispatchTouchEvent', {
-          type: 'touchMove',
-          touchPoints: [{ x: startX - 40 * step, y, id: 1 }],
+          type: 'touchStart',
+          touchPoints: [{ x: startX, y, id: 1 }],
         });
-      await expect(main).toHaveAttribute('data-primary-tab-dragging', 'true');
-      await expect(neighbour).toBeVisible();
-      // The page follows the finger one to one; the next tab is one viewport
-      // further along, so both are on screen while dragging.
-      const currentBox = await current.boundingBox();
-      const neighbourBox = await neighbour.boundingBox();
-      expect(currentBox).not.toBeNull();
-      expect(neighbourBox).not.toBeNull();
-      if (!currentBox || !neighbourBox) return;
-      expect(currentBox.x).toBeCloseTo((restBox?.x ?? 0) - 200, 0);
-      // One viewport further along, in the same content column.
-      expect(neighbourBox.x).toBeCloseTo((mainBox?.x ?? 0) + width - 200, 0);
-      // The page boxes follow the finger; their content never inherits the
-      // per-frame offsets (especially important for pages with many cards).
-      for (const [pageBox, property] of [
-        [current, '--primary-tab-offset'],
-        [neighbour, '--primary-tab-peek-offset'],
-      ] as const) {
-        const childOffset = await pageBox
-          .locator(':scope > *')
-          .first()
-          .evaluate(
-            (child, name) => getComputedStyle(child).getPropertyValue(name),
+        await nextFrame(page);
+        for (let step = 1; step <= 5; step++)
+          await session.send('Input.dispatchTouchEvent', {
+            type: 'touchMove',
+            touchPoints: [{ x: startX - 40 * step, y, id: 1 }],
+          });
+        await expect(main).toHaveAttribute('data-primary-tab-dragging', 'true');
+        await expect(neighbour).toBeVisible();
+        await expect(neighbourPanel).toHaveAttribute('data-primary-tab', to);
+        const draggingAction = await action.boundingBox();
+        expect(draggingAction?.x).toBeCloseTo(restingAction.x, 0);
+        expect(draggingAction?.y).toBeCloseTo(restingAction.y, 0);
+        // The page follows the finger one to one; the next tab is one viewport
+        // further along, so both are on screen while dragging.
+        const currentBox = await current.boundingBox();
+        const neighbourBox = await neighbour.boundingBox();
+        expect(currentBox).not.toBeNull();
+        expect(neighbourBox).not.toBeNull();
+        if (!currentBox || !neighbourBox) return;
+        expect(currentBox.x).toBeCloseTo((restBox?.x ?? 0) - 200, 0);
+        // One viewport further along, in the same content column.
+        expect(neighbourBox.x).toBeCloseTo((mainBox?.x ?? 0) + width - 200, 0);
+        const translations = await Promise.all(
+          [current, neighbourPanel].map((box) =>
+            box.evaluate(
+              (element) =>
+                new DOMMatrixReadOnly(getComputedStyle(element).transform).m41,
+            ),
+          ),
+        );
+        expect(translations[0]).toBeCloseTo(-200, 0);
+        expect(translations[1]).toBeCloseTo(width - 200, 0);
+        // The page boxes follow the finger; their content never inherits the
+        // per-frame offsets (especially important for pages with many cards).
+        for (const [pageBox, property] of [
+          [current, '--primary-tab-offset'],
+          [neighbour, '--primary-tab-peek-offset'],
+        ] as const) {
+          // A lazy preview can replace its loading node while the finger is down.
+          await expect(pageBox.locator(':scope > *').first()).toHaveCSS(
             property,
+            '0px',
           );
-        expect(childOffset.trim()).toBe('0px');
+        }
+        await expectNoHorizontalOverflow(page);
+        await page.screenshot({
+          path: testInfo.outputPath('swipe-mid-drag.png'),
+        });
+        await session.send('Input.dispatchTouchEvent', {
+          type: 'touchEnd',
+          touchPoints: [],
+        });
+      } finally {
+        await session.detach();
       }
+      await expect(page).toHaveURL(new RegExp(`${to}$`));
+      await expect(main).not.toHaveAttribute('data-primary-tab-dragging');
+      await expect(neighbour).toHaveCount(0);
+      await expectPrimaryReadingSurface(page);
       await expectNoHorizontalOverflow(page);
-      await page.screenshot({
-        path: testInfo.outputPath('swipe-mid-drag.png'),
-      });
-      await session.send('Input.dispatchTouchEvent', {
-        type: 'touchEnd',
-        touchPoints: [],
-      });
-    } finally {
-      await session.detach();
-    }
-    await expect(page).toHaveURL(/\/story$/);
-    await expect(main).not.toHaveAttribute('data-primary-tab-dragging');
-    await expect(neighbour).toHaveCount(0);
-    await expect(
-      page.locator('main > .primary-tab-panel:not([hidden]) .story-page'),
-    ).toBeVisible();
-    await expectNoHorizontalOverflow(page);
-  });
+    });
 
   test('a short primary swipe settles back without leaving the tab', async ({
     page,
@@ -1649,9 +1679,11 @@ test.describe('primary tab touch navigation', () => {
     await installNativeAppLifecycle(page);
     await installApiMocks(page);
     let timelineReads = 0;
+    let planReads = 0;
     page.on('request', (request) => {
-      if (new URL(request.url()).pathname.endsWith('/timeline'))
-        timelineReads++;
+      const path = new URL(request.url()).pathname;
+      if (path.endsWith('/timeline')) timelineReads++;
+      if (path.endsWith('/plans')) planReads++;
     });
     await page.goto('/login');
     await signIn(page);
@@ -1683,6 +1715,19 @@ test.describe('primary tab touch navigation', () => {
       page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
     ).toHaveAttribute('aria-selected', 'true');
     const { width, startX, y } = await primarySwipeStart(page, 'previous');
+    const discoverPreview = storyPage.locator(
+      '[role="tab"][aria-controls="momente-panel-discover"]',
+    );
+    // A short peek shows the landing view while the current Wishes segment stays put.
+    await dragTouch(page, { x: startX, y }, { x: startX + 25, y }, async () => {
+      await expect(discoverPreview).toHaveAttribute('aria-selected', 'true');
+    });
+    await expect(page.locator('main')).not.toHaveAttribute(
+      'data-primary-tab-dragging',
+    );
+    await expect(
+      page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
+    ).toHaveAttribute('aria-selected', 'true');
     await dragTouch(
       page,
       { x: startX, y },
@@ -1691,6 +1736,7 @@ test.describe('primary tab touch navigation', () => {
         await expect(
           page.locator('[data-primary-tab="/story"]'),
         ).toHaveAttribute('data-primary-tab-peek', 'true');
+        await expect(discoverPreview).toHaveAttribute('aria-selected', 'true');
         expect(
           await storyPage.evaluate(
             (element) => element.getBoundingClientRect().top,
@@ -1707,7 +1753,20 @@ test.describe('primary tab touch navigation', () => {
       page.getByRole('tab', { name: de.story.tabDiscover, exact: true }),
     ).toHaveAttribute('aria-selected', 'true');
     expect(timelineReads).toBe(reads);
-    await swipePrimary(page, 'next');
+    const planReadsBeforePeek = planReads;
+    const next = await primarySwipeStart(page, 'next');
+    await dragTouch(
+      page,
+      { x: next.startX, y: next.y },
+      { x: next.startX - next.width / 2, y: next.y },
+      async () => {
+        const preview = page
+          .locator('[data-primary-tab-peek] [role=tab]')
+          .filter({ hasText: m5s3.overview.segmentPlans });
+        await expect(preview).toHaveAttribute('aria-selected', 'true');
+        expect(planReads).toBe(planReadsBeforePeek);
+      },
+    );
     await expect(page).toHaveURL(/\/plan$/);
     await expect(
       page.getByRole('tab', { name: m5s3.overview.segmentPlans }),
@@ -1719,6 +1778,73 @@ test.describe('primary tab touch navigation', () => {
     await page.goBack();
     await expect(page).toHaveURL(/\/plan$/);
     await expect(addPlan).toBeVisible();
+  });
+
+  test('a cold Lists loading page keeps its geometry through a swipe and follows the next drag', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await installApiMocks(page);
+    let releaseChunk = () => {};
+    const held = new Promise<void>((resolve) => {
+      releaseChunk = resolve;
+    });
+    await page.route('**/CollectionsOverviewPage-*.js', async (route) => {
+      await held;
+      await route.continue();
+    });
+    try {
+      await page.goto('/login');
+      await signIn(page);
+      await primaryTabLink(page.locator('.mobile-bottom-nav'), '/plan').click();
+      await expect(page).toHaveURL(/\/plan$/);
+      const loading = page.locator(
+        `[data-primary-tab="${LISTEN_ROUTE}"] .ui-state-loading`,
+      );
+      const geometry = () =>
+        loading.evaluate((element) => {
+          const rect = element.getBoundingClientRect();
+          const panel = element.closest('[data-primary-tab-peek]');
+          return {
+            left: rect.left - (panel?.getBoundingClientRect().left ?? 0),
+            top: rect.top,
+            width: rect.width,
+          };
+        });
+      const { width, startX, y } = await primarySwipeStart(page, 'next');
+      let preview: Awaited<ReturnType<typeof geometry>> | undefined;
+      await dragTouch(
+        page,
+        { x: startX, y },
+        { x: startX - width / 2, y },
+        async () => {
+          await expect(loading).toBeVisible();
+          preview = await geometry();
+        },
+      );
+      await expect(page).toHaveURL(/\/more\/collections$/);
+      await expect(page.locator('main')).not.toHaveAttribute(
+        'data-primary-tab-dragging',
+      );
+      const entry = await geometry();
+      expect(entry).toEqual(preview);
+
+      const reverse = { x: width * 0.25, y: entry.top + 25 };
+      await dragTouch(
+        page,
+        reverse,
+        { x: reverse.x + width / 2, y: reverse.y },
+        async () => {
+          await expect
+            .poll(async () => (await geometry()).left - entry.left)
+            .toBeCloseTo(width / 2, 0);
+        },
+      );
+      await expect(page).toHaveURL(/\/plan$/);
+    } finally {
+      releaseChunk();
+    }
   });
 
   test('native horizontal content scrolling and vertical document scrolling keep gesture ownership', async ({
@@ -1879,7 +2005,7 @@ test.describe('shell, overlays and navigation on the motion layer (#2075)', () =
 
   /**
    * Records every CSS animation start (also with the primary tab it runs in)
-   * and every `left` route offset.
+   * and the starting offset of route entrances.
    */
   async function recordMotion(page: Page) {
     await page.addInitScript(() => {
@@ -1903,8 +2029,11 @@ test.describe('shell, overlays and navigation on the motion layer (#2075)', () =
       Element.prototype.animate = function (keyframes, options) {
         const frames = Array.isArray(keyframes) ? keyframes : [];
         const first = frames[0] as Keyframe | undefined;
-        if (first && 'left' in first && this.matches('.page'))
-          log.offsets.push(String(first.left));
+        if (first && frames.length === 2 && this.matches('.page')) {
+          if ('left' in first) log.offsets.push(String(first.left));
+          else if (typeof first.transform === 'string')
+            log.offsets.push(`${new DOMMatrixReadOnly(first.transform).m41}px`);
+        }
         return animate.call(this, keyframes, options);
       };
     });
@@ -2226,7 +2355,7 @@ test.describe('gestures and haptics on the motion layer (#2076)', () => {
     }
   }
 
-  /** Records the current page's `left` offset once per animation frame. */
+  /** Reads the active page's compositor transform at each animation frame. */
   async function startSampling(page: Page) {
     await page.evaluate((selector) => {
       const recorded: Sample[] = [];
@@ -2236,11 +2365,12 @@ test.describe('gestures and haptics on the motion layer (#2076)', () => {
         recorded;
       const start = performance.now();
       const tick = () => {
+        const transform = current?.isConnected
+          ? getComputedStyle(current).transform
+          : 'none';
         recorded.push({
           t: Math.round(performance.now() - start),
-          left: current?.isConnected
-            ? Number.parseFloat(getComputedStyle(current).left) || 0
-            : Number.NaN,
+          left: transform === 'none' ? 0 : new DOMMatrixReadOnly(transform).m41,
           dragging: surface?.hasAttribute('data-primary-tab-dragging') ?? false,
         });
         if (recorded.length < 90 && recorded.at(-1)?.dragging)
@@ -2256,13 +2386,10 @@ test.describe('gestures and haptics on the motion layer (#2076)', () => {
     );
 
   const pageOffset = (page: Page) =>
-    page.evaluate(
-      (selector) =>
-        Number.parseFloat(
-          getComputedStyle(document.querySelector(selector) as Element).left,
-        ),
-      CURRENT_PAGE,
-    );
+    page.locator(CURRENT_PAGE).evaluate((element) => {
+      const transform = getComputedStyle(element).transform;
+      return transform === 'none' ? 0 : new DOMMatrixReadOnly(transform).m41;
+    });
 
   async function openToday(page: Page, { native = true } = {}) {
     await page.setViewportSize({ width: 390, height: 800 });
@@ -2353,6 +2480,57 @@ test.describe('gestures and haptics on the motion layer (#2076)', () => {
     }
   });
 
+  async function holdPagerSettle(page: Page) {
+    await page.evaluate((selector) => {
+      window.addEventListener(
+        'touchend',
+        () => {
+          // Hold the compositor spring while CDP delivers the follow-up touch.
+          for (const panel of document.querySelectorAll(
+            selector + ', main > [data-primary-tab-peek]',
+          )) {
+            for (const animation of panel.getAnimations()) {
+              const effect = animation.effect;
+              if (!(effect instanceof KeyframeEffect)) continue;
+              const frames = effect.getKeyframes();
+              if (frames.length <= 2 || !('transform' in frames[0])) continue;
+              animation.pause();
+              animation.currentTime = Number(effect.getTiming().duration) / 5;
+            }
+          }
+        },
+        { once: true },
+      );
+    }, CURRENT_PAGE);
+  }
+
+  test('a tap on the fixed create action during a committed swipe opens the destination menu', async ({
+    page,
+  }) => {
+    await openToday(page);
+    const action = await page
+      .locator('main [data-floating-create]:visible')
+      .boundingBox();
+    if (!action) throw new Error('Missing floating create action.');
+    await holdPagerSettle(page);
+    const { session } = await swipeAndRelease(page);
+    try {
+      await touch(
+        session,
+        'touchStart',
+        action.x + action.width / 2,
+        action.y + action.height / 2,
+      );
+      await touch(session, 'touchEnd');
+      await expect(page).toHaveURL(/\/story$/);
+      await expect(
+        page.getByRole('dialog', { name: de.story.addMoment }),
+      ).toBeVisible();
+    } finally {
+      await session.detach();
+    }
+  });
+
   test('grabbing the settling pages stops them where they are, without a jump', async ({
     page,
   }) => {
@@ -2360,37 +2538,25 @@ test.describe('gestures and haptics on the motion layer (#2076)', () => {
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
     try {
+      const action = page.locator('main [data-floating-create]:visible');
+      const restingAction = await action.boundingBox();
+      if (!restingAction) throw new Error('Missing floating create action.');
+      await holdPagerSettle(page);
       await page.evaluate((selector) => {
         window.addEventListener(
           'touchend',
           () => {
-            // Hold the real spring at a reproducible point while CDP delivers
-            // the next touch. The preceding test covers uninterrupted playback.
-            const pages = document.querySelectorAll(
-              selector + ', main > [data-primary-tab-peek] > .page',
-            );
-            for (const page of pages) {
-              for (const animation of page.getAnimations()) {
-                const effect = animation.effect;
-                if (!(effect instanceof KeyframeEffect)) continue;
-                const frames = effect.getKeyframes();
-                if (
-                  frames.length <= 2 ||
-                  !('left' in frames[0] || 'transform' in frames[0])
-                )
-                  continue;
-                animation.pause();
-                animation.currentTime = Number(effect.getTiming().duration) / 5;
-              }
-            }
             // Read the drawn offset just before and after the real grab.
             const record = window as unknown as { grab: number[] };
             record.grab = [];
-            const read = () =>
-              Number.parseFloat(
-                getComputedStyle(document.querySelector(selector) as Element)
-                  .left,
-              );
+            const read = () => {
+              const transform = getComputedStyle(
+                document.querySelector(selector) as Element,
+              ).transform;
+              return transform === 'none'
+                ? 0
+                : new DOMMatrixReadOnly(transform).m41;
+            };
             window.addEventListener(
               'touchstart',
               () => record.grab.push(read()),
@@ -2411,6 +2577,9 @@ test.describe('gestures and haptics on the motion layer (#2076)', () => {
         );
       }, CURRENT_PAGE);
       const { session, width, y } = await swipeAndRelease(page);
+      const settlingAction = await action.boundingBox();
+      expect(settlingAction?.x).toBeCloseTo(restingAction.x, 0);
+      expect(settlingAction?.y).toBeCloseTo(restingAction.y, 0);
       await touch(session, 'touchStart', width * 0.5, y);
       const [before, after] = await page.evaluate(
         () => (window as unknown as { grab: number[] }).grab,
@@ -2470,13 +2639,16 @@ test.describe('gestures and haptics on the motion layer (#2076)', () => {
     ).toHaveCount(0);
     expect(
       await page.evaluate(() =>
-        document
-          .getAnimations()
-          .some((animation) =>
-            (animation.effect as KeyframeEffect | null)
-              ?.getKeyframes()
-              .some((frame) => 'left' in frame),
-          ),
+        document.getAnimations().some((animation) => {
+          const effect = animation.effect;
+          return (
+            effect instanceof KeyframeEffect &&
+            effect.target?.matches('.page, .primary-tab-panel') &&
+            effect
+              .getKeyframes()
+              .some((frame) => 'left' in frame || 'transform' in frame)
+          );
+        }),
       ),
     ).toBe(false);
   });

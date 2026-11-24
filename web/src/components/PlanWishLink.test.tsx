@@ -19,6 +19,33 @@ import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { i18n } from '../i18n';
 import { PlanWishLink } from './PlanWishLink';
 
+function LinkedPlan({
+  initial,
+  editing,
+  apis,
+  onLinked,
+}: {
+  initial: PlanDetail;
+  editing: boolean;
+  apis: SharedPlanningApis;
+  onLinked: (value: PlanDetail) => void;
+}) {
+  const [plan, setPlan] = useState(initial);
+  return (
+    <PlanWishLink
+      apis={apis}
+      spaceId="space-1"
+      plan={plan}
+      disabled={false}
+      editing={editing}
+      onLinked={async (value) => {
+        onLinked(value);
+        setPlan(value);
+      }}
+    />
+  );
+}
+
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute('open', '');
@@ -73,27 +100,18 @@ function setup(editing = true) {
   const key = authorSummaryQueryKeys.planDetail('space-1', initial.id);
   client.setQueryData(key, initial);
   const linked = vi.fn();
-  function Harness() {
-    const [plan, setPlan] = useState(initial);
-    return (
-      <PlanWishLink
-        apis={apis}
-        spaceId="space-1"
-        plan={plan}
-        disabled={false}
-        editing={editing}
-        onLinked={async (value) => {
-          linked(value);
-          client.setQueryData(key, value);
-          setPlan(value);
-        }}
-      />
-    );
-  }
   const view = render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
-        <Harness />
+        <LinkedPlan
+          initial={initial}
+          editing={editing}
+          apis={apis}
+          onLinked={(value) => {
+            linked(value);
+            client.setQueryData(key, value);
+          }}
+        />
       </MemoryRouter>
     </QueryClientProvider>,
   );

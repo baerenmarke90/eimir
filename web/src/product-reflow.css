@@ -255,22 +255,17 @@
     flex: 1;
   }
 
-  /* Settings and data transfer share the same two-column compact contract. */
-  .settings-sensitive-grid,
-  .transfer-columns {
+  /* The sensitive settings zone stacks on compact widths. */
+  .settings-sensitive-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .settings-sensitive-grid > .space-offboarding-panel,
-  .settings-sensitive-grid > .account-settings-panel,
-  .transfer-columns > section,
-  .transfer-columns > section:first-child,
-  .transfer-columns > section + section {
+  .settings-sensitive-grid > .account-settings-panel {
     padding-inline: 0;
   }
 
-  .settings-sensitive-grid > .account-settings-panel,
-  .transfer-columns > section + section {
+  .settings-sensitive-grid > .account-settings-panel {
     padding-top: var(--space-6);
   }
 

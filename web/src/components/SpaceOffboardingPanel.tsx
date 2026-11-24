@@ -21,8 +21,6 @@ export interface SpaceOffboardingPanelProps {
   demoMode: boolean;
   /** Test/host override. Production reuses the normal Space-context reset boundary. */
   onSpaceLeft?: () => void | Promise<void>;
-  /** Host navigation for the optional export detour. */
-  onOpenDataExport?: () => void;
 }
 
 export function SpaceOffboardingPanel({
@@ -30,7 +28,6 @@ export function SpaceOffboardingPanel({
   spaceId,
   demoMode,
   onSpaceLeft,
-  onOpenDataExport,
 }: SpaceOffboardingPanelProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -84,7 +81,7 @@ export function SpaceOffboardingPanel({
   });
 
   // System Back closes the dialog like Cancel; it stays while work is pending.
-  const releaseDialog = useEditorHistoryEntry({
+  useEditorHistoryEntry({
     isActive: step !== null,
     isDirty: false,
     isCloseBlocked: mutation.isPending,
@@ -97,20 +94,6 @@ export function SpaceOffboardingPanel({
     setStep(null);
     setConfirmation('');
     mutation.reset();
-  }
-
-  function goToDataExport() {
-    if (mutation.isPending) return;
-    // Release the dialog's history entry first so its Back cannot undo the
-    // navigation to the data export.
-    releaseDialog(() => {
-      closeDialog();
-      if (onOpenDataExport) {
-        onOpenDataExport();
-        return;
-      }
-      window.location.hash = 'settings-data';
-    });
   }
 
   function handleDialogKeyDown(event: KeyboardEvent<HTMLElement>) {
@@ -197,13 +180,6 @@ export function SpaceOffboardingPanel({
                   <li>{t('spaceOffboarding.consequenceExport')}</li>
                 </ul>
                 <div className="form-actions space-offboarding-actions">
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={goToDataExport}
-                  >
-                    {t('spaceOffboarding.exportBefore')}
-                  </button>
                   <button
                     ref={cancelButtonRef}
                     type="button"

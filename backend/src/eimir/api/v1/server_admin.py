@@ -36,6 +36,7 @@ from eimir.core.ids import parse_id
 from eimir.deployment.revision import build_revision
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import (
+    Capability,
     EntitlementGrant,
     EntitlementSourceType,
     EntitlementStatus,
@@ -53,6 +54,7 @@ from eimir.identity.models import (
 )
 from eimir.jobs.models import Job, JobStatus
 from eimir.mail import sender as mail_sender
+from eimir.plugins.loader import loaded_plugins
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import (
     MAX_ACTIVE_PARTNERS,
@@ -60,6 +62,7 @@ from eimir.relationship.models import (
     MembershipStatus,
     Space,
 )
+from eimir.support_reports import service as support_reports
 
 router = APIRouter(prefix="/server-admin", tags=["server-admin"])
 _PROCESS_STARTED_AT = now()
@@ -121,7 +124,19 @@ class ServerAdminOverview(ApiModel):
     oldest_pending_job_at: datetime | None
     last_successful_job_at: datetime | None
     recent_failed_jobs: list[ServerAdminFailedJob]
+    support_reports_new: int
+    support_reports_operator_available: bool
     warning_codes: list[str]
+
+
+def support_reports_operator_available(*, enabled: bool) -> bool:
+    """Whether the operator plugin can serve the support-report triage routes.
+
+    True only when the feature switch is on and the loaded plugins provide the
+    operator capability, so the web client shows the triage view exactly when
+    its routes exist.
+    """
+    return enabled and Capability.SUPPORT_OPERATOR.value in loaded_plugins().capabilities()
 
 
 class ServerAdminSettings(ApiModel):
@@ -689,6 +704,18 @@ def get_server_admin_overview(
     )
     jobs_failed = _job_count(session, JobStatus.FAILED)
 
+    # Counts only: the overview never carries report content or ids. The count
+    # is 0 while the feature is off, as no report can be created then.
+    support_reports_new = 0
+    unread_reports_warning = False
+    if settings.support_reports_enabled:
+        support_reports_new = support_reports.count_new(session)
+        unread_reports_warning = support_reports.support_reports_unread_warning(
+            enabled=True,
+            oldest_new_at=support_reports.oldest_new_at(session),
+            now=current_time,
+        )
+
     warning_codes: list[str] = []
     admin_settings = administration.get_access_state(session)
     if admin_settings.maintenance_mode:
@@ -703,6 +730,8 @@ def get_server_admin_overview(
         warning_codes.append("mail_disabled_with_unverified_accounts")
     if jobs_failed:
         warning_codes.append("failed_jobs_present")
+    if unread_reports_warning:
+        warning_codes.append("support_reports_unread")
 
     return ServerAdminOverview(
         application_status="ok",
@@ -751,6 +780,10 @@ def get_server_admin_overview(
             )
             for job in failed_jobs
         ],
+        support_reports_new=support_reports_new,
+        support_reports_operator_available=support_reports_operator_available(
+            enabled=settings.support_reports_enabled
+        ),
         warning_codes=warning_codes,
     )
 

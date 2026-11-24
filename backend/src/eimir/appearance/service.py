@@ -16,6 +16,8 @@ from eimir.appearance.models import (
 from eimir.authorization import AuthorizationContext
 from eimir.core.errors import ConflictError, ErrorCode
 
+_UNSET: Any = object()
+
 
 def read_preference(
     session: Session,
@@ -53,10 +55,14 @@ def save_preference(
 def save_wir_design(
     session: Session,
     authorization: AuthorizationContext,
-    design_id: WirDesignId,
     expected_token: str,
+    *,
+    design_id: WirDesignId | None = None,
+    palette_id: WirDesignId | None = _UNSET,
 ) -> AppIconPreference:
-    return _save_selection(session, authorization, expected_token, design_id=design_id)
+    return _save_selection(
+        session, authorization, expected_token, design_id=design_id, palette_id=palette_id
+    )
 
 
 def save_person_colours(
@@ -69,9 +75,6 @@ def save_person_colours(
     return _save_selection(session, authorization, expected_token, person_colours=colours)
 
 
-_UNSET: Any = object()
-
-
 def _save_selection(
     session: Session,
     authorization: AuthorizationContext,
@@ -80,6 +83,7 @@ def _save_selection(
     icon_id: AppIconId | None = None,
     design_id: WirDesignId | None = None,
     person_colours: PersonColoursId | None = _UNSET,
+    palette_id: WirDesignId | None = _UNSET,
 ) -> AppIconPreference:
     preference = read_preference(session, authorization, for_update=True)
     if concurrency_token(preference, authorization) != expected_token:
@@ -98,6 +102,11 @@ def _save_selection(
                 space_id=authorization.space_id,
                 icon_id=icon_id.value if icon_id else AppIconId.ORIGINAL.value,
                 wir_design=design_id.value if design_id else DEFAULT_WIR_DESIGN.value,
+                wir_design_palette=(
+                    palette_id.value
+                    if palette_id is not _UNSET and palette_id is not None
+                    else None
+                ),
                 person_colours=(
                     person_colours.value
                     if person_colours is not _UNSET and person_colours is not None
@@ -118,6 +127,8 @@ def _save_selection(
             preference.icon_id = icon_id.value
         if design_id is not None:
             preference.wir_design = design_id.value
+        if palette_id is not _UNSET:
+            preference.wir_design_palette = palette_id.value if palette_id else None
         if person_colours is not _UNSET:
             preference.person_colours = person_colours.value if person_colours else None
         preference.version += 1

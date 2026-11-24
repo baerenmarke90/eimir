@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  lazy,
   type ReactNode,
   Suspense,
   useCallback,
@@ -95,6 +96,7 @@ import {
   HEART_MOMENT_DETAIL_ROUTE_PATTERN,
   HEART_MOMENT_EDIT_ROUTE_PATTERN,
   LEGACY_ROUTE_REWRITES,
+  LEGACY_THREAD_ROUTE,
   MEMORY_CREATE_ROUTE,
   MEMORY_DETAIL_ROUTE_PATTERN,
   MEMORY_EDIT_ROUTE_PATTERN,
@@ -194,10 +196,6 @@ import {
 import { ProblemState } from './components/ProblemState';
 import { RelationshipStoryPage } from './components/RelationshipStoryPage';
 import { SecureSurface } from './components/SecureSurface';
-import {
-  ServerAdminAccessGate,
-  ServerAdminPage,
-} from './components/ServerAdminPage';
 import { SharedPlanningOverviewPage } from './components/SharedPlanningOverviewPage';
 import { Snackbar } from './components/Snackbar';
 import { StoryProductPage } from './components/StoryProductPage';
@@ -213,6 +211,17 @@ import { deferredComponent } from './deferredModules';
 import { useTranslation } from './i18n';
 import { legalDocumentIdForRoute } from './legal/legalDocuments';
 import { isCapacitorNative } from './pwa';
+
+const ServerAdminAccessGate = lazy(() =>
+  import('./components/ServerAdminPage').then(({ ServerAdminAccessGate }) => ({
+    default: ServerAdminAccessGate,
+  })),
+);
+const ServerAdminPage = lazy(() =>
+  import('./components/ServerAdminPage').then(({ ServerAdminPage }) => ({
+    default: ServerAdminPage,
+  })),
+);
 
 const ChapterCreatePage = deferredComponent(() =>
   import('./components/ChapterCreatePage').then(
@@ -411,7 +420,11 @@ function DeferredPanel({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   return (
     <Suspense
-      fallback={<UiState kind="loading" title={t('states.loading.title')} />}
+      fallback={
+        <div className="page">
+          <UiState kind="loading" title={t('states.loading.title')} />
+        </div>
+      }
     >
       {children}
     </Suspense>
@@ -821,6 +834,7 @@ function AuthenticatedApp({
       path: appRoutePath('plan'),
       element: (
         <SharedPlanningOverviewPage
+          active={location.pathname.replace(/\/$/, '') === appRoutePath('plan')}
           key={JSON.stringify([apiBaseUrl, account.id, spaceId])}
           {...planningProductProps}
           accountId={account.id}
@@ -828,6 +842,26 @@ function AuthenticatedApp({
           peopleApi={peopleApi}
           profilesApi={profilesApi}
         />
+      ),
+    },
+    {
+      // The shared overviews unmount on exit so their forms and tab IDs
+      // belong only to the visible view.
+      path: MORE_COLLECTIONS_ROUTE,
+      retain: false,
+      element: (
+        <DeferredPanel>
+          <CollectionsOverviewPage {...planningProductProps} />
+        </DeferredPanel>
+      ),
+    },
+    {
+      path: MORE_NOTES_ROUTE,
+      retain: false,
+      element: (
+        <DeferredPanel>
+          <SharedNotesOverviewPage {...planningProductProps} />
+        </DeferredPanel>
       ),
     },
     {
@@ -1029,10 +1063,7 @@ function AuthenticatedApp({
                 />
               }
             />
-            <Route
-              path={MORE_COLLECTIONS_ROUTE}
-              element={<CollectionsOverviewPage {...planningProductProps} />}
-            />
+            <Route path={MORE_COLLECTIONS_ROUTE} element={null} />
             <Route
               path="/plan/collections"
               element={<Navigate replace to={MORE_COLLECTIONS_ROUTE} />}
@@ -1047,10 +1078,7 @@ function AuthenticatedApp({
                 />
               }
             />
-            <Route
-              path={MORE_NOTES_ROUTE}
-              element={<SharedNotesOverviewPage {...planningProductProps} />}
-            />
+            <Route path={MORE_NOTES_ROUTE} element={null} />
             <Route
               path={NOTE_CREATE_ROUTE}
               element={
@@ -1229,6 +1257,10 @@ function AuthenticatedApp({
                   currentAccountId={account.id}
                 />
               }
+            />
+            <Route
+              path={LEGACY_THREAD_ROUTE}
+              element={<Navigate replace to={DEFAULT_APP_ROUTE} />}
             />
             <Route
               path={MORE_PROFILE_ROUTE}
@@ -1897,32 +1929,24 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     location.pathname.startsWith(`${SERVER_ADMIN_ROUTE}/`);
 
   if (serverAdminPath) {
-    if (capabilitiesQuery.isPending || capabilitiesQuery.error) {
-      return (
-        <ServerAdminAccessGate
-          loading={capabilitiesQuery.isPending}
-          error={capabilitiesQuery.error}
-          onRetry={() => void capabilitiesQuery.refetch()}
-        />
-      );
-    }
-
-    if (!capabilitiesQuery.data?.serverAdmin) {
-      return (
-        <ServerAdminAccessGate
-          loading={false}
-          error={null}
-          onRetry={() => void capabilitiesQuery.refetch()}
-        />
-      );
-    }
-
     return (
-      <ServerAdminPage
-        apiBaseUrl={config.apiBaseUrl}
-        accessToken={tokens.accessToken}
-        onLogout={logout}
-      />
+      <DeferredPanel>
+        {capabilitiesQuery.isPending ||
+        capabilitiesQuery.error ||
+        !capabilitiesQuery.data?.serverAdmin ? (
+          <ServerAdminAccessGate
+            loading={capabilitiesQuery.isPending}
+            error={capabilitiesQuery.error}
+            onRetry={() => void capabilitiesQuery.refetch()}
+          />
+        ) : (
+          <ServerAdminPage
+            apiBaseUrl={config.apiBaseUrl}
+            accessToken={tokens.accessToken}
+            onLogout={logout}
+          />
+        )}
+      </DeferredPanel>
     );
   }
 

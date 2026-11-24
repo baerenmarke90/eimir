@@ -9,6 +9,21 @@ import {
   type AttachmentDraftOptions,
 } from './useAttachmentDrafts';
 
+function DraftInspector({
+  props,
+  inspect,
+}: {
+  props: AttachmentDraftOptions;
+  inspect: (
+    props: AttachmentDraftOptions,
+    result: ReturnType<typeof useAttachmentDrafts>,
+  ) => void;
+}) {
+  const result = useAttachmentDrafts(props);
+  inspect(props, result);
+  return <div data-testid="count">{result.items.length}</div>;
+}
+
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
@@ -654,8 +669,11 @@ describe('useAttachmentDrafts React commit lifecycle and speculative render safe
     let renderPhaseAbortedInB: boolean | undefined;
     let renderPhaseRevokeCountInB = -1;
 
-    function InspectorApp({ props }: { props: AttachmentDraftOptions }) {
-      hookResult = useAttachmentDrafts(props);
+    function inspectRender(
+      props: AttachmentDraftOptions,
+      result: ReturnType<typeof useAttachmentDrafts>,
+    ) {
+      hookResult = result;
       if (props.spaceId === 'space-b' && renderPhaseItemsInB === null) {
         // Inspect directly during the initial render phase of Space B before commit / useLayoutEffect
         renderPhaseItemsInB = hookResult.items;
@@ -663,10 +681,11 @@ describe('useAttachmentDrafts React commit lifecycle and speculative render safe
         renderPhaseAbortedInB = capturedSignal?.aborted;
         renderPhaseRevokeCountInB = revokeObjectURLSpy.mock.calls.length;
       }
-      return <div data-testid="count">{hookResult.items.length}</div>;
     }
 
-    const { rerender } = render(<InspectorApp props={initialProps} />);
+    const { rerender } = render(
+      <DraftInspector props={initialProps} inspect={inspectRender} />,
+    );
 
     // Add a file in Space A
     const file = createMockFile('test-a.jpg');
@@ -682,7 +701,8 @@ describe('useAttachmentDrafts React commit lifecycle and speculative render safe
     // Now rerender with Space B
     act(() => {
       rerender(
-        <InspectorApp
+        <DraftInspector
+          inspect={inspectRender}
           props={{
             ...initialProps,
             spaceId: 'space-b',

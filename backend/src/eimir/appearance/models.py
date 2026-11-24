@@ -32,7 +32,8 @@ class WirDesignId(StrEnum):
     MODERN = "modern"
     CLASSIC = "classic"
     QUIET_TOGETHER = "quiet_together"
-    HANDWRITING = "handwriting"
+    HOME_ROOMS = "home_rooms"
+    SHARED_RHYTHM = "shared_rhythm"
 
 
 class PersonColoursId(StrEnum):
@@ -85,3 +86,19 @@ class AppIconPreference(IdMixin, TimestampMixin, VersionMixin, Base):
     )
     # NULL means "automatic": the clients keep the shared-list look of #1808.
     person_colours: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    # NULL follows the palette of the selected app design.
+    wir_design_palette: Mapped[str | None] = mapped_column(String(24), nullable=True)
+
+    @property
+    def effective_wir_design(self) -> WirDesignId:
+        """Resolve a retired selection from an older installation or database."""
+        if self.wir_design in {"handwriting", "together_index"}:
+            return DEFAULT_WIR_DESIGN
+        return WirDesignId(self.wir_design)
+
+    @property
+    def effective_palette(self) -> WirDesignId | None:
+        palette = self.wir_design_palette
+        if palette is not None and palette in WirDesignId:
+            return WirDesignId(palette)
+        return None

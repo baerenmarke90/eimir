@@ -1684,6 +1684,78 @@
         "title": "ChapterUpdate",
         "type": "object"
       },
+      "ClientContextBody": {
+        "additionalProperties": false,
+        "description": "App and device context on the wire (camelCase).",
+        "properties": {
+          "appVersion": {
+            "maxLength": 32,
+            "title": "Appversion",
+            "type": "string"
+          },
+          "build": {
+            "maxLength": 32,
+            "title": "Build",
+            "type": "string"
+          },
+          "engine": {
+            "maxLength": 64,
+            "title": "Engine",
+            "type": "string"
+          },
+          "localTime": {
+            "maxLength": 40,
+            "title": "Localtime",
+            "type": "string"
+          },
+          "locale": {
+            "maxLength": 35,
+            "title": "Locale",
+            "type": "string"
+          },
+          "online": {
+            "title": "Online",
+            "type": "boolean"
+          },
+          "os": {
+            "maxLength": 64,
+            "title": "Os",
+            "type": "string"
+          },
+          "platform": {
+            "enum": [
+              "app",
+              "web"
+            ],
+            "title": "Platform",
+            "type": "string"
+          },
+          "theme": {
+            "maxLength": 16,
+            "title": "Theme",
+            "type": "string"
+          },
+          "timeZone": {
+            "maxLength": 64,
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "appVersion",
+          "build",
+          "platform",
+          "os",
+          "engine",
+          "locale",
+          "theme",
+          "online",
+          "localTime",
+          "timeZone"
+        ],
+        "title": "ClientContextBody",
+        "type": "object"
+      },
       "CollectionCreate": {
         "additionalProperties": false,
         "properties": {
@@ -3908,7 +3980,8 @@
           "SHARED_NOTE",
           "GARDEN_SEED",
           "GARDEN_BOUQUET",
-          "RECAP"
+          "RECAP",
+          "SUPPORT_REPORT"
         ],
         "title": "EngagementTarget",
         "type": "string"
@@ -3995,16 +4068,37 @@
         "title": "ExperienceKind",
         "type": "string"
       },
-      "ExportStatus": {
-        "enum": [
-          "QUEUED",
-          "RUNNING",
-          "READY",
-          "FAILED",
-          "EXPIRED"
+      "FailureReferenceBody": {
+        "additionalProperties": false,
+        "description": "The generalized failure reference on the wire (camelCase).",
+        "properties": {
+          "reference": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_./{}:-]+$",
+            "title": "Reference",
+            "type": "string"
+          },
+          "requestId": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9._-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestid"
+          }
+        },
+        "required": [
+          "reference"
         ],
-        "title": "ExportStatus",
-        "type": "string"
+        "title": "FailureReferenceBody",
+        "type": "object"
       },
       "FcmConfiguration": {
         "properties": {
@@ -6080,19 +6174,6 @@
         "title": "HeartPoint",
         "type": "object"
       },
-      "ImportStatus": {
-        "enum": [
-          "QUEUED",
-          "VALIDATING",
-          "READY_TO_APPLY",
-          "APPLYING",
-          "COMPLETED",
-          "FAILED",
-          "EXPIRED"
-        ],
-        "title": "ImportStatus",
-        "type": "string"
-      },
       "ImportantDateFields": {
         "properties": {
           "date": {
@@ -6272,6 +6353,12 @@
             "default": false,
             "description": "Whether a client should offer self-service signup right now: `accountCreation` is `self_service` and `registrationAvailable` is true.",
             "title": "Selfservicesignupavailable",
+            "type": "boolean"
+          },
+          "supportReportsAvailable": {
+            "default": false,
+            "description": "Whether this instance accepts in-app support reports. Clients show the report entry points only when true.",
+            "title": "Supportreportsavailable",
             "type": "boolean"
           },
           "termsOfUseVersion": {
@@ -7889,7 +7976,8 @@
           "SHARED_NOTE_CHANGED",
           "GARDEN_SEED_ARRIVED",
           "RECAP_READY",
-          "RECAP_GREW"
+          "RECAP_GREW",
+          "SUPPORT_REPLY"
         ],
         "title": "NotificationKind",
         "type": "string"
@@ -15256,6 +15344,14 @@
             "title": "Serveradminverifiedmatchcount",
             "type": "integer"
           },
+          "supportReportsNew": {
+            "title": "Supportreportsnew",
+            "type": "integer"
+          },
+          "supportReportsOperatorAvailable": {
+            "title": "Supportreportsoperatoravailable",
+            "type": "boolean"
+          },
           "suspendedAccountCount": {
             "title": "Suspendedaccountcount",
             "type": "integer"
@@ -15318,6 +15414,8 @@
           "oldestPendingJobAt",
           "lastSuccessfulJobAt",
           "recentFailedJobs",
+          "supportReportsNew",
+          "supportReportsOperatorAvailable",
           "warningCodes"
         ],
         "title": "ServerAdminOverview",
@@ -17149,7 +17247,7 @@
             "title": "Quota"
           },
           "used": {
-            "description": "Bytes the Space keeps: every attachment at its actual size, and a file still being uploaded or validated at its declared size. Thumbnails, the profile photo, one-time messages and Transfer archives do not count.",
+            "description": "Bytes the Space keeps: every attachment at its actual size, and a file still being uploaded or validated at its declared size. Thumbnails, the profile photo and one-time messages do not count.",
             "title": "Used",
             "type": "integer"
           }
@@ -17691,6 +17789,562 @@
         "title": "SupportGestureKind",
         "type": "string"
       },
+      "SupportReportArchiveUpdate": {
+        "additionalProperties": false,
+        "description": "Strict request: archive (true) or unarchive (false) one report.",
+        "properties": {
+          "archived": {
+            "title": "Archived",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "archived"
+        ],
+        "title": "SupportReportArchiveUpdate",
+        "type": "object"
+      },
+      "SupportReportCreate": {
+        "additionalProperties": false,
+        "description": "Strict request: an unknown field is rejected, not stored.",
+        "properties": {
+          "client": {
+            "$ref": "#/components/schemas/ClientContextBody"
+          },
+          "clientRequestId": {
+            "format": "uuid",
+            "title": "Clientrequestid",
+            "type": "string"
+          },
+          "failure": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FailureReferenceBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SupportReportKind"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "required": [
+          "clientRequestId",
+          "kind",
+          "client"
+        ],
+        "title": "SupportReportCreate",
+        "type": "object"
+      },
+      "SupportReportCreated": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/SupportReportState"
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "createdAt"
+        ],
+        "title": "SupportReportCreated",
+        "type": "object"
+      },
+      "SupportReportDetailView": {
+        "description": "One report in full, with its reply and ticket link.",
+        "properties": {
+          "accountId": {
+            "format": "uuid",
+            "title": "Accountid",
+            "type": "string"
+          },
+          "appVersion": {
+            "title": "Appversion",
+            "type": "string"
+          },
+          "archivedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archivedat"
+          },
+          "build": {
+            "title": "Build",
+            "type": "string"
+          },
+          "client": {
+            "$ref": "#/components/schemas/ClientContextBody"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "failureReference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failurereference"
+          },
+          "hasReply": {
+            "title": "Hasreply",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SupportReportKind"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "reply": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SupportReportOperatorReply"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requestId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestid"
+          },
+          "state": {
+            "$ref": "#/components/schemas/SupportReportState"
+          },
+          "ticket": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SupportReportTicketSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ticketAvailable": {
+            "title": "Ticketavailable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "state",
+          "createdAt",
+          "archivedAt",
+          "failureReference",
+          "appVersion",
+          "build",
+          "hasReply",
+          "ticket",
+          "note",
+          "requestId",
+          "client",
+          "accountId",
+          "reply",
+          "ticketAvailable"
+        ],
+        "title": "SupportReportDetailView",
+        "type": "object"
+      },
+      "SupportReportKind": {
+        "enum": [
+          "PROBLEM",
+          "FEEDBACK"
+        ],
+        "title": "SupportReportKind",
+        "type": "string"
+      },
+      "SupportReportListItem": {
+        "description": "One report in the list: triage facts only, no note text.",
+        "properties": {
+          "appVersion": {
+            "title": "Appversion",
+            "type": "string"
+          },
+          "archivedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archivedat"
+          },
+          "build": {
+            "title": "Build",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "failureReference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failurereference"
+          },
+          "hasReply": {
+            "title": "Hasreply",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SupportReportKind"
+          },
+          "state": {
+            "$ref": "#/components/schemas/SupportReportState"
+          },
+          "ticket": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SupportReportTicketSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "state",
+          "createdAt",
+          "archivedAt",
+          "failureReference",
+          "appVersion",
+          "build",
+          "hasReply",
+          "ticket"
+        ],
+        "title": "SupportReportListItem",
+        "type": "object"
+      },
+      "SupportReportListView": {
+        "properties": {
+          "hasMore": {
+            "title": "Hasmore",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SupportReportListItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "newCount": {
+            "title": "Newcount",
+            "type": "integer"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore",
+          "newCount"
+        ],
+        "title": "SupportReportListView",
+        "type": "object"
+      },
+      "SupportReportOperatorReply": {
+        "description": "The one reply sent to the reporter, as plain text.",
+        "properties": {
+          "repliedAt": {
+            "format": "date-time",
+            "title": "Repliedat",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "repliedAt"
+        ],
+        "title": "SupportReportOperatorReply",
+        "type": "object"
+      },
+      "SupportReportReplyCreate": {
+        "additionalProperties": false,
+        "description": "Strict request: the reply is trimmed plain text of 1 to 500 characters.",
+        "properties": {
+          "text": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "SupportReportReplyCreate",
+        "type": "object"
+      },
+      "SupportReportReplyView": {
+        "description": "The operator's reply, shown to the reporter as plain text.",
+        "properties": {
+          "repliedAt": {
+            "format": "date-time",
+            "title": "Repliedat",
+            "type": "string"
+          },
+          "reportedAt": {
+            "format": "date-time",
+            "title": "Reportedat",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "repliedAt",
+          "reportedAt"
+        ],
+        "title": "SupportReportReplyView",
+        "type": "object"
+      },
+      "SupportReportState": {
+        "description": "The operator's own triage marker; a reply never changes it.",
+        "enum": [
+          "NEW",
+          "IN_PROGRESS",
+          "CLOSED"
+        ],
+        "title": "SupportReportState",
+        "type": "string"
+      },
+      "SupportReportStateUpdate": {
+        "additionalProperties": false,
+        "description": "Strict request: an unknown field or state is rejected.",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/SupportReportState"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "SupportReportStateUpdate",
+        "type": "object"
+      },
+      "SupportReportTicketCreate": {
+        "additionalProperties": false,
+        "description": "Strict request: what the operator wrote; the technical footer is added by the server.",
+        "properties": {
+          "body": {
+            "maxLength": 65536,
+            "title": "Body",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "body"
+        ],
+        "title": "SupportReportTicketCreate",
+        "type": "object"
+      },
+      "SupportReportTicketProblem": {
+        "description": "Error body of the ticket routes: the usual problem plus the link or the retry flag.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "retryable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retryable"
+          },
+          "status": {
+            "title": "Status",
+            "type": "integer"
+          },
+          "ticket": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SupportReportTicketSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "code",
+          "ticket",
+          "retryable"
+        ],
+        "title": "SupportReportTicketProblem",
+        "type": "object"
+      },
+      "SupportReportTicketSummary": {
+        "description": "The tracker ticket of a report: where it lives, never what it says.",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Number"
+          },
+          "state": {
+            "$ref": "#/components/schemas/TicketState"
+          },
+          "tracker": {
+            "title": "Tracker",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "tracker",
+          "state",
+          "url",
+          "number",
+          "createdAt"
+        ],
+        "title": "SupportReportTicketSummary",
+        "type": "object"
+      },
       "ThemePreference": {
         "enum": [
           "system",
@@ -17735,6 +18389,14 @@
         "title": "ThinkingOfYouCreate",
         "type": "object"
       },
+      "TicketState": {
+        "enum": [
+          "PENDING",
+          "CREATED"
+        ],
+        "title": "TicketState",
+        "type": "string"
+      },
       "TokenOnlyRequest": {
         "properties": {
           "token": {
@@ -17776,366 +18438,6 @@
           "refreshExpiresAt"
         ],
         "title": "TokenView",
-        "type": "object"
-      },
-      "TransferExportCreate": {
-        "additionalProperties": false,
-        "properties": {
-          "scope": {
-            "$ref": "#/components/schemas/TransferScope"
-          }
-        },
-        "required": [
-          "scope"
-        ],
-        "title": "TransferExportCreate",
-        "type": "object"
-      },
-      "TransferExportDetail": {
-        "properties": {
-          "artifactSize": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Artifactsize"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "title": "Createdat",
-            "type": "string"
-          },
-          "downloadUrl": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Downloadurl"
-          },
-          "errorCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Errorcode"
-          },
-          "expiresAt": {
-            "format": "date-time",
-            "title": "Expiresat",
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "readyAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Readyat"
-          },
-          "scope": {
-            "$ref": "#/components/schemas/TransferScope"
-          },
-          "status": {
-            "$ref": "#/components/schemas/ExportStatus"
-          }
-        },
-        "required": [
-          "id",
-          "scope",
-          "status",
-          "createdAt",
-          "readyAt",
-          "expiresAt",
-          "artifactSize",
-          "errorCode",
-          "downloadUrl"
-        ],
-        "title": "TransferExportDetail",
-        "type": "object"
-      },
-      "TransferImportApply": {
-        "additionalProperties": false,
-        "properties": {
-          "mode": {
-            "$ref": "#/components/schemas/TransferImportApplyMode",
-            "default": "ALL",
-            "description": "`WITHOUT_VIDEOS` is the member's explicit confirmation to import the bundle without its videos. Without it, a bundle whose videos need Pro is refused with `409 TRANSFER_VIDEOS_NEED_PRO` and nothing changes. `VIDEOS_ONLY` imports nothing but the videos this Space skipped earlier from the same file; it needs the video capability and answers `409 TRANSFER_NOTHING_TO_RECOVER` when the file holds none of them."
-          }
-        },
-        "title": "TransferImportApply",
-        "type": "object"
-      },
-      "TransferImportApplyMode": {
-        "enum": [
-          "ALL",
-          "WITHOUT_VIDEOS",
-          "VIDEOS_ONLY"
-        ],
-        "title": "TransferImportApplyMode",
-        "type": "string"
-      },
-      "TransferImportDetail": {
-        "properties": {
-          "artifactSize": {
-            "title": "Artifactsize",
-            "type": "integer"
-          },
-          "completedAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Completedat"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "title": "Createdat",
-            "type": "string"
-          },
-          "errorCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Errorcode"
-          },
-          "expiresAt": {
-            "format": "date-time",
-            "title": "Expiresat",
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "scope": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/TransferScope"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "status": {
-            "$ref": "#/components/schemas/ImportStatus"
-          },
-          "summary": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/TransferImportSummary"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "validatedAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Validatedat"
-          }
-        },
-        "required": [
-          "id",
-          "status",
-          "scope",
-          "createdAt",
-          "validatedAt",
-          "completedAt",
-          "expiresAt",
-          "artifactSize",
-          "errorCode",
-          "summary"
-        ],
-        "title": "TransferImportDetail",
-        "type": "object"
-      },
-      "TransferImportSummary": {
-        "properties": {
-          "alreadyPresentCount": {
-            "description": "Records and media of this file the Space already has, from an earlier import of the same file or because the file was exported from this Space. Applying leaves them exactly as they are and adds only what is missing, so importing the same file again never duplicates anything.",
-            "title": "Alreadypresentcount",
-            "type": "integer"
-          },
-          "mediaCount": {
-            "title": "Mediacount",
-            "type": "integer"
-          },
-          "recordCounts": {
-            "additionalProperties": {
-              "type": "integer"
-            },
-            "title": "Recordcounts",
-            "type": "object"
-          },
-          "recoverableVideoBytes": {
-            "description": "Total size of the recoverable videos; recovering them counts toward the Space's storage quota.",
-            "title": "Recoverablevideobytes",
-            "type": "integer"
-          },
-          "recoverableVideoCount": {
-            "description": "Videos this Space skipped in an earlier import that this file holds again (same source and checksum). Apply with `mode: VIDEOS_ONLY` to add exactly these to their galleries.",
-            "title": "Recoverablevideocount",
-            "type": "integer"
-          },
-          "recoveredVideoCount": {
-            "description": "Videos added back by an import applied with `VIDEOS_ONLY`.",
-            "title": "Recoveredvideocount",
-            "type": "integer"
-          },
-          "scope": {
-            "$ref": "#/components/schemas/TransferScope"
-          },
-          "skippedVideoCount": {
-            "description": "Videos left out by an import applied without videos.",
-            "title": "Skippedvideocount",
-            "type": "integer"
-          },
-          "sourceMemberCount": {
-            "title": "Sourcemembercount",
-            "type": "integer"
-          },
-          "storageAvailable": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Bytes that still fit the Space's storage quota, read live while the import is ready to apply. `null` when the Space is unmetered (Self-Hosted) or the import is no longer ready.",
-            "title": "Storageavailable"
-          },
-          "storageFitsWithoutVideos": {
-            "description": "True when importing with `mode: WITHOUT_VIDEOS` fits the storage quota.",
-            "title": "Storagefitswithoutvideos",
-            "type": "boolean"
-          },
-          "storageNeeded": {
-            "description": "Bytes the import would add to the Space's storage: the media it would add, at their size. Media the Space already has and thumbnails do not count.",
-            "title": "Storageneeded",
-            "type": "integer"
-          },
-          "storageNeededWithoutVideos": {
-            "description": "Bytes the import would add with `mode: WITHOUT_VIDEOS`.",
-            "title": "Storageneededwithoutvideos",
-            "type": "integer"
-          },
-          "storageQuotaExceeded": {
-            "description": "True when importing everything would exceed the Space's storage quota; applying is then refused with `413 STORAGE_QUOTA_EXCEEDED` or, when `storageFitsWithoutVideos` is true, `413 STORAGE_QUOTA_EXCEEDED_FITS_WITHOUT_VIDEOS`. Free up space or get Premium.",
-            "title": "Storagequotaexceeded",
-            "type": "boolean"
-          },
-          "unrecoveredVideoCount": {
-            "description": "Remembered videos `VIDEOS_ONLY` could not add because the gallery is full.",
-            "title": "Unrecoveredvideocount",
-            "type": "integer"
-          },
-          "videoBytes": {
-            "description": "Total declared size of those videos.",
-            "title": "Videobytes",
-            "type": "integer"
-          },
-          "videoCount": {
-            "description": "Videos the import would add; importing one counts as a video upload. Videos the Space already has are not counted.",
-            "title": "Videocount",
-            "type": "integer"
-          },
-          "videosNeedPro": {
-            "description": "True when the bundle has videos this Space cannot import now: it lacks `media.video_upload` or the server cannot validate video. Apply with `mode: WITHOUT_VIDEOS` to import everything else.",
-            "title": "Videosneedpro",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "scope",
-          "recordCounts",
-          "mediaCount",
-          "sourceMemberCount",
-          "alreadyPresentCount",
-          "videoCount",
-          "videoBytes",
-          "videosNeedPro",
-          "skippedVideoCount",
-          "recoverableVideoCount",
-          "recoveredVideoCount",
-          "unrecoveredVideoCount",
-          "recoverableVideoBytes",
-          "storageNeeded",
-          "storageNeededWithoutVideos",
-          "storageAvailable",
-          "storageQuotaExceeded",
-          "storageFitsWithoutVideos"
-        ],
-        "title": "TransferImportSummary",
-        "type": "object"
-      },
-      "TransferScope": {
-        "enum": [
-          "SHARED",
-          "PERSONAL"
-        ],
-        "title": "TransferScope",
-        "type": "string"
-      },
-      "TransferSkippedVideos": {
-        "description": "Videos this member left out of an earlier import and can still recover (#2141).",
-        "properties": {
-          "count": {
-            "title": "Count",
-            "type": "integer"
-          },
-          "totalSize": {
-            "title": "Totalsize",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "count",
-          "totalSize"
-        ],
-        "title": "TransferSkippedVideos",
         "type": "object"
       },
       "UnifiedPushConfiguration": {
@@ -18530,20 +18832,30 @@
           "modern",
           "classic",
           "quiet_together",
-          "handwriting"
+          "home_rooms",
+          "shared_rhythm"
         ],
         "title": "WirDesignId",
         "type": "string"
       },
       "WirDesignPreferencePatch": {
+        "description": "Set the app design, the palette, or both. A null palette follows the app design.",
         "properties": {
           "designId": {
-            "$ref": "#/components/schemas/WirDesignId"
+            "$ref": "#/components/schemas/WirDesignId",
+            "title": "Designid"
+          },
+          "paletteId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WirDesignId"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
-        "required": [
-          "designId"
-        ],
         "title": "WirDesignPreferencePatch",
         "type": "object"
       },
@@ -18551,6 +18863,10 @@
         "properties": {
           "designId": {
             "$ref": "#/components/schemas/WirDesignId"
+          },
+          "paletteId": {
+            "$ref": "#/components/schemas/WirDesignId",
+            "title": "Paletteid"
           },
           "version": {
             "title": "Version",
@@ -25178,6 +25494,675 @@
         ]
       }
     },
+    "/api/v1/server-admin/support-reports": {
+      "get": {
+        "description": "List reports newest first without note text.\n\nUnarchived reports by default, the archived ones with ``archived=true``. The\ncursor is bound to the state filter and the archive view.",
+        "operationId": "listSupportReports",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/SupportReportState"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "archived",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Archived",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportListView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request is syntactically valid but cannot be processed in this form."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "List Support Reports",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      }
+    },
+    "/api/v1/server-admin/support-reports/{reportId}": {
+      "delete": {
+        "description": "Delete a report permanently with its reply and ticket link. Needs recent authentication.",
+        "operationId": "deleteSupportReport",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reportId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Reportid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Delete Support Report",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      },
+      "get": {
+        "description": "Return one report in full; the reporter is the opaque account id only.",
+        "operationId": "getSupportReport",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reportId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Reportid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportDetailView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Support Report",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      }
+    },
+    "/api/v1/server-admin/support-reports/{reportId}/archive": {
+      "put": {
+        "description": "Archive or unarchive a report; its triage state is kept. Needs recent authentication.",
+        "operationId": "setSupportReportArchived",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reportId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Reportid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportReportArchiveUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportDetailView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Set Support Report Archived",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      }
+    },
+    "/api/v1/server-admin/support-reports/{reportId}/reply": {
+      "post": {
+        "description": "Send the single reply of at most 500 characters. Needs recent authentication.",
+        "operationId": "replyToSupportReport",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reportId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Reportid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportReportReplyCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportDetailView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Reply To Support Report",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      }
+    },
+    "/api/v1/server-admin/support-reports/{reportId}/state": {
+      "put": {
+        "description": "Set the triage marker of a report. Needs recent authentication.",
+        "operationId": "setSupportReportState",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reportId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Reportid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportReportStateUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportDetailView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Set Support Report State",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      }
+    },
+    "/api/v1/server-admin/support-reports/{reportId}/ticket": {
+      "delete": {
+        "description": "Forget the ticket link so a new ticket can be created. Needs recent authentication.",
+        "operationId": "clearSupportReportTicket",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reportId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Reportid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Clear Support Report Ticket",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      },
+      "post": {
+        "description": "Create the tracker ticket of a report. Needs recent authentication.",
+        "operationId": "createSupportReportTicket",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reportId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Reportid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportReportTicketCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportTicketSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportTicketProblem"
+                }
+              }
+            },
+            "description": "The report already has a ticket link (SUPPORT_TICKET_EXISTS, with the link) or no tracker is configured (SUPPORT_TICKET_NOT_CONFIGURED)."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportTicketProblem"
+                }
+              }
+            },
+            "description": "The tracker did not create the ticket (SUPPORT_TICKET_FAILED). The link stays pending until it is cleared; the retry flag says whether another attempt can work."
+          }
+        },
+        "summary": "Create Support Report Ticket",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      }
+    },
     "/api/v1/spaces": {
       "post": {
         "description": "Create a private couple Space with the caller as its first partner.\n\nThe request has no body: the founder is always the authenticated Account.\nAllowed only while the Account has no active Membership, and serialized per\nAccount, so retries and concurrent requests yield exactly one Space. Invite\nthe partner afterwards through the ordinary invitation endpoints.",
@@ -25784,7 +26769,7 @@
         ]
       },
       "patch": {
-        "description": "Save a personal cosmetic. Connected and Warm are Free; other designs require Pro.",
+        "description": "Save personal design choices. Following the design and Free palettes never need Pro.",
         "operationId": "updateWirDesignPreference",
         "parameters": [
           {
@@ -51796,569 +52781,6 @@
         ]
       }
     },
-    "/api/v1/spaces/{spaceId}/transfer/exports": {
-      "post": {
-        "operationId": "createTransferExport",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "spaceId",
-            "required": true,
-            "schema": {
-              "title": "Spaceid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TransferExportCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "202": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TransferExportDetail"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Authentication is missing, invalid, or the session has expired."
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The resource does not exist or is not visible to the caller."
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Request parameters or domain inputs are invalid."
-          }
-        },
-        "summary": "Create Transfer Export",
-        "tags": [
-          "transfer"
-        ]
-      }
-    },
-    "/api/v1/spaces/{spaceId}/transfer/exports/{exportId}": {
-      "get": {
-        "operationId": "getTransferExport",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "exportId",
-            "required": true,
-            "schema": {
-              "title": "Exportid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "spaceId",
-            "required": true,
-            "schema": {
-              "title": "Spaceid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TransferExportDetail"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Authentication is missing, invalid, or the session has expired."
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The resource does not exist or is not visible to the caller."
-          }
-        },
-        "summary": "Get Transfer Export",
-        "tags": [
-          "transfer"
-        ]
-      }
-    },
-    "/api/v1/spaces/{spaceId}/transfer/exports/{exportId}/download": {
-      "get": {
-        "operationId": "downloadTransferExport",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "exportId",
-            "required": true,
-            "schema": {
-              "title": "Exportid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "spaceId",
-            "required": true,
-            "schema": {
-              "title": "Spaceid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/zip": {
-                "schema": {
-                  "format": "binary",
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Authorized Transfer Bundle download."
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Authentication is missing, invalid, or the session has expired."
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The resource does not exist or is not visible to the caller."
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The request conflicts with the current state of the resource."
-          }
-        },
-        "summary": "Download Transfer Export",
-        "tags": [
-          "transfer"
-        ]
-      }
-    },
-    "/api/v1/spaces/{spaceId}/transfer/imports": {
-      "post": {
-        "operationId": "createTransferImport",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "spaceId",
-            "required": true,
-            "schema": {
-              "title": "Spaceid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/zip": {
-              "schema": {
-                "format": "binary",
-                "type": "string"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "202": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TransferImportDetail"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Authentication is missing, invalid, or the session has expired."
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
-          "415": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The media type is not on the allowlist."
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Request parameters or domain inputs are invalid."
-          }
-        },
-        "summary": "Create Transfer Import",
-        "tags": [
-          "transfer"
-        ]
-      }
-    },
-    "/api/v1/spaces/{spaceId}/transfer/imports/{importId}": {
-      "get": {
-        "operationId": "getTransferImport",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "importId",
-            "required": true,
-            "schema": {
-              "title": "Importid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "spaceId",
-            "required": true,
-            "schema": {
-              "title": "Spaceid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TransferImportDetail"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Authentication is missing, invalid, or the session has expired."
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The resource does not exist or is not visible to the caller."
-          }
-        },
-        "summary": "Get Transfer Import",
-        "tags": [
-          "transfer"
-        ]
-      }
-    },
-    "/api/v1/spaces/{spaceId}/transfer/imports/{importId}/apply": {
-      "post": {
-        "operationId": "applyTransferImport",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "importId",
-            "required": true,
-            "schema": {
-              "title": "Importid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "spaceId",
-            "required": true,
-            "schema": {
-              "title": "Spaceid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/TransferImportApply"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Payload"
-              }
-            }
-          }
-        },
-        "responses": {
-          "202": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TransferImportDetail"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Authentication is missing, invalid, or the session has expired."
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The resource does not exist or is not visible to the caller."
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The request conflicts with the current state of the resource."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "What the import would add exceeds the storage quota of the Space (code STORAGE_QUOTA_EXCEEDED, or STORAGE_QUOTA_EXCEEDED_FITS_WITHOUT_VIDEOS when applying with mode WITHOUT_VIDEOS would fit). Nothing changes and the import stays ready to apply."
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Request parameters or domain inputs are invalid."
-          }
-        },
-        "summary": "Apply Transfer Import",
-        "tags": [
-          "transfer"
-        ]
-      }
-    },
-    "/api/v1/spaces/{spaceId}/transfer/skipped-videos": {
-      "delete": {
-        "description": "Forget the skipped videos; the imported content and the file stay as they are.",
-        "operationId": "dismissTransferSkippedVideos",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "spaceId",
-            "required": true,
-            "schema": {
-              "title": "Spaceid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Authentication is missing, invalid, or the session has expired."
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The resource does not exist or is not visible to the caller."
-          }
-        },
-        "summary": "Dismiss Transfer Skipped Videos",
-        "tags": [
-          "transfer"
-        ]
-      },
-      "get": {
-        "operationId": "getTransferSkippedVideos",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "spaceId",
-            "required": true,
-            "schema": {
-              "title": "Spaceid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TransferSkippedVideos"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Authentication is missing, invalid, or the session has expired."
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The resource does not exist or is not visible to the caller."
-          }
-        },
-        "summary": "Get Transfer Skipped Videos",
-        "tags": [
-          "transfer"
-        ]
-      }
-    },
     "/api/v1/spaces/{spaceId}/wish-selection": {
       "delete": {
         "operationId": "closeWishSelectionRound",
@@ -54477,6 +54899,151 @@
         "summary": "Repeat Wish",
         "tags": [
           "wishes"
+        ]
+      }
+    },
+    "/api/v1/support-reports": {
+      "post": {
+        "description": "Store a report once per client request identity.",
+        "operationId": "createSupportReport",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportReportCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportCreated"
+                }
+              }
+            },
+            "description": "The request was already received; the original report is returned."
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Create Support Report",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support-reports/{reportId}/reply": {
+      "get": {
+        "description": "Return the reply to the caller's own report.\n\nAnother person's report, a report without a reply yet and an unknown id are\nthe same 404. Replies already sent stay readable when the operator switches\nsupport reports off, so this is not gated by the flag. The text is returned\nexactly as stored.",
+        "operationId": "getSupportReportReply",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reportId",
+            "required": true,
+            "schema": {
+              "title": "Reportid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportReplyView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Support Report Reply",
+        "tags": [
+          "support"
         ]
       }
     }

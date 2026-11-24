@@ -1193,6 +1193,39 @@ class OptionalPhotoConfigurationTest(unittest.TestCase):
             "EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET",
             exported["services"]["cloud-migrate"]["environment"],
         )
+    def test_support_reports_switch_is_an_instance_expression_defaulting_off(self):
+        canonical = {"services": {name: {"environment": {}} for name in channel.CLOUD_SERVICES}}
+        with patch.dict(os.environ, {"EIMIR_SUPPORT_REPORTS_ENABLED": "true"}):
+            exported = channel.export_compose(canonical, BACKEND, WEB)
+        for name in ("cloud-api", "cloud-worker"):
+            self.assertEqual(
+                exported["services"][name]["environment"]["EIMIR_SUPPORT_REPORTS_ENABLED"],
+                "${EIMIR_SUPPORT_REPORTS_ENABLED:-false}",
+            )
+
+    def test_operator_plugin_settings_are_instance_expressions(self):
+        canonical = {"services": {name: {"environment": {}} for name in channel.CLOUD_SERVICES}}
+        with patch.dict(
+            os.environ,
+            {"EIMIR_PLUGINS": "pro,admin", "EIMIR_ADMIN_GITHUB_TOKEN": "runner-secret"},
+        ):
+            exported = channel.export_compose(canonical, BACKEND, WEB)
+        expected = {
+            "EIMIR_PLUGINS": "${EIMIR_PLUGINS:-pro}",
+            "EIMIR_ADMIN_TRACKER": "${EIMIR_ADMIN_TRACKER:-}",
+            "EIMIR_ADMIN_GITHUB_REPOSITORY": "${EIMIR_ADMIN_GITHUB_REPOSITORY:-}",
+            "EIMIR_ADMIN_GITHUB_TOKEN": "${EIMIR_ADMIN_GITHUB_TOKEN:-}",
+        }
+        for name in ("cloud-api", "cloud-worker"):
+            environment = exported["services"][name]["environment"]
+            for key, value in expected.items():
+                self.assertEqual(environment[key], value)
+        self.assertEqual(
+            exported["services"]["cloud-migrate"]["environment"]["EIMIR_PLUGINS"],
+            "${EIMIR_PLUGINS:-pro}",
+        )
+        self.assertNotIn("runner-secret", repr(exported))
+
 class FCMSenderMountContractTest(unittest.TestCase):
     def setUp(self):
         channel.fcm_sender_mount.cache_clear()

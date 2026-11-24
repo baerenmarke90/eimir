@@ -1,8 +1,8 @@
 import {
-  localeRegistry,
+  localeCatalog,
   type SupportedLocale,
   supportedLocales,
-} from './resources';
+} from './catalog';
 
 export const DEFAULT_LOCALE = 'de';
 export const AUTOMATIC_LANGUAGE = 'auto';
@@ -83,4 +83,4 @@ export function initialLanguage(): SupportedLocale {
   return detectLocale();
 }
 
-export { localeRegistry, supportedLocales };
+export { localeCatalog, supportedLocales };

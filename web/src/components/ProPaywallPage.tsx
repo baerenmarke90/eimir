@@ -29,13 +29,13 @@ import './ProPaywall.css';
 
 const CONTEXT_ICONS: Record<
   Exclude<ProPaywallContext, 'general'>,
-  readonly [EimirIconName, EimirIconName, EimirIconName]
+  readonly EimirIconName[]
 > = {
   dateIdeas: ['sparkle', 'filter', 'planen'],
   recaps: ['erinnerungen', 'notes', 'statistiken'],
   memoryMap: ['orte', 'momente', 'erinnerungen'],
   photoSources: ['photo-library', 'foto', 'video'],
-  storage: ['photo-library', 'video', 'erinnerungen'],
+  storage: ['photo-library', 'video'],
   calendar: ['kalender', 'gemeinsam', 'check'],
   games: ['spiele', 'smile-plus', 'highlights'],
 };
@@ -153,7 +153,7 @@ export function ProPaywallPage({
           className="pro-paywall-benefits"
           aria-label={t('proPaywall.benefitsLabel')}
         >
-          {BENEFITS.map((benefit, index) => (
+          {BENEFITS.slice(0, contextIcons.length).map((benefit, index) => (
             <li key={benefit}>
               <EimirIcon name={contextIcons[index]} />
               <div>

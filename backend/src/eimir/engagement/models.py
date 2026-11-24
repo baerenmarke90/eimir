@@ -90,6 +90,9 @@ class NotificationKind(StrEnum):
     # Both partners get the identical notice; it names only the period.
     RECAP_READY = "RECAP_READY"
     RECAP_GREW = "RECAP_GREW"
+    # #2189: the operator answered the recipient's own support report. The
+    # target is the report, never a Space object; a push shows no reply text.
+    SUPPORT_REPLY = "SUPPORT_REPLY"
 
 
 WISH_DATE_NOTICE_KINDS = frozenset(
@@ -160,6 +163,7 @@ class EngagementTarget(StrEnum):
     GARDEN_SEED = "GARDEN_SEED"
     GARDEN_BOUQUET = "GARDEN_BOUQUET"
     RECAP = "RECAP"
+    SUPPORT_REPORT = "SUPPORT_REPORT"
 
 
 class PushDeliveryStatus(StrEnum):

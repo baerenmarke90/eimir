@@ -4,7 +4,7 @@ import type { LegalDocument } from '../../../legal/legalDocument';
 export const privacyPolicyDe: LegalDocument = {
   document: 'privacy-policy',
   locale: 'de-DE',
-  version: '2026-11-22.draft-9',
+  version: '2026-11-24.draft-13',
   status: 'draft',
   title: 'Datenschutzhinweise für eimir.',
   placeholders: [
@@ -96,7 +96,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Du kannst deine Daten jederzeit exportieren und dein Konto jederzeit löschen.',
+              text: 'Du kannst jederzeit eine Kopie deiner Daten verlangen und dein Konto jederzeit löschen.',
             },
           ],
           children: [],
@@ -295,7 +295,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Was ihr „Für uns beide“ speichert, seht ihr beide. Gemeinsame Erinnerungen und ähnliche Inhalte kann dein Partner auch bearbeiten und im Datenexport herunterladen, auch wenn du sie erstellt hast.',
+              text: 'Was ihr „Für uns beide“ speichert, seht ihr beide. Gemeinsame Erinnerungen und ähnliche Inhalte kann dein Partner auch bearbeiten und in seiner Datenkopie (Abschnitt 14) erhalten, auch wenn du sie erstellt hast.',
             },
           ],
           children: [],
@@ -452,7 +452,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Einmalnachrichten sind nicht Teil des Datenexports. Sicherungen können den verschlüsselten Umschlag bis zum Ablauf ihrer Aufbewahrungsfrist enthalten. Benachrichtigungen dazu enthalten keine Inhalte, und per E-Mail benachrichtigen wir dich über Einmalnachrichten nicht.',
+              text: 'Einmalnachrichten sind nicht Teil der Datenkopie (Abschnitt 14). Sicherungen können den verschlüsselten Umschlag bis zum Ablauf ihrer Aufbewahrungsfrist enthalten. Benachrichtigungen dazu enthalten keine Inhalte, und per E-Mail benachrichtigen wir dich über Einmalnachrichten nicht.',
             },
           ],
           children: [],
@@ -640,7 +640,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Wir speichern pro Person nur die aktuelle gerundete Position, verschlüsselt (Abschnitt 5). Jede neue Position ersetzt die alte, spätestens 24 Stunden nach der Messung löschen wir sie, und wenn du das Teilen beendest, löschen wir sie sofort. Endet Pro für euren Space, beenden wir das Teilen und löschen die Positionen; es beginnt nicht von selbst wieder. Wir erstellen keinen Bewegungsverlauf, nehmen die Positionen nicht in Exporte auf und nutzen sie nur für Entfernung und Kartenbereich. Deine eigene Position schickst du nur, damit wir die Entfernung zu deinem Partner berechnen können. Wir speichern sie dafür nicht.',
+              text: 'Wir speichern pro Person nur die aktuelle gerundete Position, verschlüsselt (Abschnitt 5). Jede neue Position ersetzt die alte, spätestens 24 Stunden nach der Messung löschen wir sie, und wenn du das Teilen beendest, löschen wir sie sofort. Endet Pro für euren Space, beenden wir das Teilen und löschen die Positionen; es beginnt nicht von selbst wieder. Wir erstellen keinen Bewegungsverlauf, nehmen die Positionen in keine Datenkopie auf und nutzen sie nur für Entfernung und Kartenbereich. Deine eigene Position schickst du nur, damit wir die Entfernung zu deinem Partner berechnen können. Wir speichern sie dafür nicht.',
             },
           ],
           children: [],
@@ -842,8 +842,8 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '14-datenexport',
-      content: [{ kind: 'text', text: '14. Datenexport' }],
+      id: '14-datenkopie',
+      content: [{ kind: 'text', text: '14. Datenkopie' }],
     },
     {
       kind: 'list',
@@ -853,7 +853,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Du kannst deine Daten jederzeit kostenlos in den Einstellungen unter „Daten und Portabilität“ exportieren. Der gemeinsame Export enthält die gemeinsamen Inhalte eures Space, auch die deines Partners. Deine „Nur für mich“-Inhalte enthält nur dein persönlicher Export.',
+              text: 'Du kannst jederzeit kostenlos eine Kopie deiner Daten in einem maschinenlesbaren Format von uns verlangen, unabhängig davon, ob ihr Pro nutzt. Schreib uns dazu an kontakt@reiswienudel.de (Abschnitt 23). Die gemeinsame Kopie enthält die gemeinsamen Inhalte eures Space, auch die deines Partners. Deine „Nur für mich“-Inhalte enthält nur deine persönliche Kopie.',
             },
           ],
           children: [],
@@ -862,7 +862,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Wir erstellen die Exportdatei auf unseren Servern, halten sie 24 Stunden verschlüsselt zum Herunterladen bereit und löschen sie dann. Passkeys, Sitzungen, Zugangsschlüssel und Einmalnachrichten exportieren wir nicht. Hast du die Datei heruntergeladen, liegt sie in deiner Verantwortung.',
+              text: 'Wir erstellen die Kopie auf deine Anfrage und übergeben sie dir. Passkeys, Sitzungen, Zugangsschlüssel und Einmalnachrichten nehmen wir nicht auf. Deine persönliche Kopie enthält dagegen deine eigenen Problemmeldungen und dein Feedback mit unseren Antworten (Abschnitt 19). Hast du die Kopie erhalten, liegt sie in deiner Verantwortung.',
             },
           ],
           children: [],
@@ -931,6 +931,12 @@ export const privacyPolicyDe: LegalDocument = {
             [
               {
                 kind: 'text',
+                text: 'eine Problemmeldung oder ein Feedback, das du noch nicht gesendet hast, mit deinem Text, der Art der Meldung und nach einem Sendeversuch dem Fehler-Code, für dein Konto, bis du die Meldung sendest oder verwirfst, dich abmeldest oder Konto oder Space wechselst (Abschnitt 19),',
+              },
+            ],
+            [
+              {
+                kind: 'text',
                 text: 'für Einmalnachrichten den privaten Schlüssel dieses Geräts, bis du den Empfang ausschaltest oder die Daten im Browser oder in der App löschst; geöffnete Einmalnachrichten hält eimir. nur im Arbeitsspeicher, solange du sie ansiehst,',
               },
             ],
@@ -977,7 +983,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Bei jedem Aufruf von eimir. fallen technische Daten an, zum Beispiel deine IP-Adresse, der Zeitpunkt, die aufgerufene Adresse, der Statuscode und Angaben zu deinem Browser. Unsere Server und die vorgelagerte Infrastruktur unseres Hosting-Anbieters verarbeiten sie, um eimir. auszuliefern, und halten einen Teil davon in Protokollen fest. Das Protokoll unserer Anwendung enthält nur Zeitpunkt, Art und Adresse der Anfrage, den Statuscode und die Dauer, ohne IP-Adresse und ohne Inhalte. Die Adresse kann technische Kennungen enthalten, etwa die eures Space. Protokolle löschen wir nach 30 Tagen.',
+              text: 'Bei jedem Aufruf von eimir. fallen technische Daten an, zum Beispiel deine IP-Adresse, der Zeitpunkt, die aufgerufene Adresse, der Statuscode und Angaben zu deinem Browser. Unsere Server und die vorgelagerte Infrastruktur unseres Hosting-Anbieters verarbeiten sie, um eimir. auszuliefern, und halten einen Teil davon in Protokollen fest. Das Protokoll unserer Anwendung enthält nur Zeitpunkt, Art und Adresse der Anfrage, den Statuscode, die Dauer und eine Kennung der Anfrage, ohne IP-Adresse und ohne Inhalte. Die Adresse kann technische Kennungen enthalten, etwa die eures Space. Protokolle löschen wir nach 30 Tagen.',
             },
           ],
           children: [],
@@ -1026,7 +1032,7 @@ export const privacyPolicyDe: LegalDocument = {
       content: [
         {
           kind: 'text',
-          text: 'Wir setzen in eimir. keine Analyse-, Tracking- oder Werbedienste ein, weder in der Web-App noch in den Apps. Die Android-App enthält keine Bibliotheken für Analyse, Werbung oder Absturzberichte. Wir verkaufen keine Daten und geben sie nicht für Werbung weiter.',
+          text: 'Wir setzen in eimir. keine Analyse-, Tracking- oder Werbedienste ein, weder in der Web-App noch in den Apps. Die Android-App enthält keine Bibliotheken für Analyse, Werbung oder Absturzberichte. Fehler- und Geräteangaben erhalten wir nur, wenn du uns selbst ein Problem meldest (Abschnitt 19). Wir verkaufen keine Daten und geben sie nicht für Werbung weiter.',
         },
       ],
     },
@@ -1088,15 +1094,105 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '19-wenn-du-uns-schreibst',
-      content: [{ kind: 'text', text: '19. Wenn du uns schreibst' }],
-    },
-    {
-      kind: 'paragraph',
+      id: '19-wenn-du-uns-schreibst-oder-ein-problem-meldest',
       content: [
         {
           kind: 'text',
-          text: 'Schreibst du uns, verarbeiten wir deine Nachricht und deine Kontaktdaten, um dir zu antworten (Art. 6 Abs. 1 lit. b oder lit. f DSGVO). Meldest du uns einen rechtswidrigen Inhalt, verarbeiten wir deine Angaben, um den Hinweis zu prüfen (Art. 6 Abs. 1 lit. c DSGVO in Verbindung mit Art. 16 der Verordnung (EU) 2022/2065). Bittest du uns, dafür in deine Inhalte zu sehen, tun wir das nur im nötigen Umfang. Wir löschen deine Nachricht, wenn wir sie nicht mehr brauchen und keine gesetzliche Pflicht entgegensteht.',
+          text: '19. Wenn du uns schreibst oder ein Problem meldest',
+        },
+      ],
+    },
+    {
+      kind: 'list',
+      ordered: true,
+      items: [
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Schreibst du uns, verarbeiten wir deine Nachricht und deine Kontaktdaten, um dir zu antworten (Art. 6 Abs. 1 lit. b oder lit. f DSGVO). Meldest du uns einen rechtswidrigen Inhalt, verarbeiten wir deine Angaben, um den Hinweis zu prüfen (Art. 6 Abs. 1 lit. c DSGVO in Verbindung mit Art. 16 der Verordnung (EU) 2022/2065). Bittest du uns, dafür in deine Inhalte zu sehen, tun wir das nur im nötigen Umfang. Wir löschen deine Nachricht, wenn wir sie nicht mehr brauchen und keine gesetzliche Pflicht entgegensteht.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'In eimir. kannst du uns unter „Hilfe & Feedback“ oder direkt aus einer Fehleranzeige ein Problem melden oder Feedback schicken. Bevor du sendest, zeigt dir eimir., was mitgeschickt wird. Mit einer Meldung erhalten wir:',
+            },
+          ],
+          children: [
+            [
+              {
+                kind: 'text',
+                text: 'ob es um ein Problem oder um Feedback geht, und deinen Text mit höchstens 2.000 Zeichen; bei einem Problem ist er freiwillig, bei Feedback nötig,',
+              },
+            ],
+            [
+              {
+                kind: 'text',
+                text: 'wenn du ein Problem aus einer Fehleranzeige meldest, einen technischen Fehler-Code zu genau diesem Fehler: die Art der Anfrage, die betroffene Funktion als allgemeine Adresse ohne Kennungen und ohne Suchangaben, den Statuscode oder die Art des Verbindungsfehlers, den Fehlercode unseres Servers und ob du die App oder die Web-App nutzt, außerdem, soweit vorhanden, die Kennung der fehlgeschlagenen Anfrage, mit der wir sie in unseren Protokollen wiederfinden (Abschnitt 16),',
+              },
+            ],
+            [
+              {
+                kind: 'text',
+                text: 'Angaben zu App und Gerät: App-Version und Build, ob du die App oder einen Browser nutzt, Betriebssystem und Browser mit ihrer Versionsnummer, Sprache, helles oder dunkles Design, ob du online bist, deine Ortszeit und Zeitzone; kein Gerätemodell und keine Gerätekennung,',
+              },
+            ],
+            [
+              {
+                kind: 'text',
+                text: 'die interne Kennung deines Kontos, damit wir dir antworten können.',
+              },
+            ],
+          ],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Inhalte aus eurem Space wie Erinnerungen, Notizen, Pläne, Listen, Nachrichten oder Fotos, außerdem Dateinamen, Orte, Kontaktdaten, Zugangsschlüssel und Daten anderer Menschen schickt eimir. dabei nicht mit. Was du selbst in den Text schreibst, erhalten wir allerdings. Schreib dort bitte nur, was wir brauchen, um dein Anliegen zu verstehen. Die Angaben zu App und Gerät liest eimir. erst aus, wenn du die Meldung abschickst. Ohne dass du eine Meldung sendest, erhalten wir keine Fehler- oder Geräteangaben.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Wir nutzen deine Meldung nur, um das Problem zu finden und zu beheben, dein Feedback zu berücksichtigen und dir, wenn wir das für sinnvoll halten, einmal zu antworten. Deine Meldungen lesen nur wir. Wir geben sie nicht an Dritte weiter und nutzen sie nicht für Analyse oder Werbung. Um einen Fehler zu beheben, können wir zu einer Meldung ein technisches Ticket in unserem Ticketsystem anlegen; es enthält neben einer Beschreibung, die wir selbst schreiben, nur technische Angaben (Kennung und Art der Meldung, App-Version und Build, ob du die App oder die Web-App nutzt, den Fehler-Code mit der Kennung der fehlgeschlagenen Anfrage) und nie deinen Text, unsere Antwort oder die Kennung deines Kontos. Wir speichern sie in unserer Datenbank, deinen Text, den Fehler-Code und die Angaben zu App und Gerät verschlüsselt (Abschnitt 5). Unverschlüsselt bleiben die Art der Meldung, ihr Bearbeitungsstand und die Zeitpunkte. Damit eimir. nicht mit Meldungen überflutet wird, begrenzen wir ihre Zahl pro Konto (Abschnitt 16).',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Wir können dir auf eine Meldung einmal kurz antworten, mit höchstens 500 Zeichen. Die Antwort erscheint als Benachrichtigung in eimir., die nur du siehst. Eine Push-Benachrichtigung dazu enthält den Antworttext nicht, und per E-Mail schicken wir die Antwort nicht. Es gibt keinen Chat und keinen Verlauf: Auf die Antwort kannst du nicht antworten, aber du kannst jederzeit eine neue Meldung schicken. Bist du gerade in keinem Space, speichern wir die Antwort, du erhältst aber keine Benachrichtigung.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Eine abgeschlossene Meldung löschen wir 90 Tage nach ihrem Abschluss, jede Meldung spätestens 365 Tage nach dem Absenden, jeweils mit unserer Antwort. Löschst du dein Konto, löschen wir deine Meldungen und Antworten sofort. Deine Meldungen mit unseren Antworten enthält deine persönliche Datenkopie (Abschnitt 14), die du nach Abschnitt 23 anfragen kannst.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO, soweit du uns ein Problem mit eimir. meldest, und für Feedback unser berechtigtes Interesse, eimir. anhand deiner Rückmeldung zu verbessern (Art. 6 Abs. 1 lit. f DSGVO). Die Angaben zu App und Gerät liest eimir. aus, weil du die Meldung ausdrücklich abschickst (§ 25 Abs. 2 Nr. 2 TDDDG).',
+            },
+          ],
+          children: [],
         },
       ],
     },
@@ -1340,8 +1436,21 @@ export const privacyPolicyDe: LegalDocument = {
         },
         {
           content: [
-            { kind: 'strong', text: 'Exportdateien:' },
-            { kind: 'text', text: ' 24 Stunden.' },
+            { kind: 'strong', text: 'Datenkopien auf Anfrage:' },
+            {
+              kind: 'text',
+              text: ' Wir löschen die für dich erstellte Datei nach der Übergabe.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            { kind: 'strong', text: 'Problemmeldungen und Feedback:' },
+            {
+              kind: 'text',
+              text: ' nach dem Abschluss 90 Tage, höchstens 365 Tage nach dem Absenden, jeweils mit unserer Antwort; beim Löschen deines Kontos sofort.',
+            },
           ],
           children: [],
         },
@@ -1362,7 +1471,12 @@ export const privacyPolicyDe: LegalDocument = {
             { kind: 'strong', text: 'Bilddateien:' },
             {
               kind: 'text',
-              text: ' bis zu 2.000 Medieneinträge ohne feste Altersgrenze. Die Bereinigung bei Abmeldung, Konto- und Space-Wechsel ist in Abschnitt 15 beschrieben. Einstellungen und Merker bleiben, bis du sie im Browser oder in der App löschst.',
+              text: ' bis zu 2.000 Medieneinträge ohne feste Altersgrenze. Die Bereinigung bei Abmeldung, Konto- und Space-Wechsel ist in Abschnitt 15 beschrieben. ',
+            },
+            { kind: 'strong', text: 'Nicht gesendete Meldungen:' },
+            {
+              kind: 'text',
+              text: ' bis du sie sendest oder verwirfst, dich abmeldest oder Konto oder Space wechselst. Einstellungen und Merker bleiben, bis du sie im Browser oder in der App löschst.',
             },
           ],
           children: [],
@@ -1420,7 +1534,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Vieles kannst du direkt in eimir. erledigen: dein Profil und deine Einstellungen ändern, Inhalte löschen, deine Daten unter „Daten und Portabilität“ exportieren und dein Konto unter „App und Konto“ löschen. Für alles andere schreib uns an kontakt@reiswienudel.de.',
+              text: 'Vieles kannst du direkt in eimir. erledigen: dein Profil und deine Einstellungen ändern, Inhalte löschen, dein Konto unter „App und Konto“ löschen. Eine Kopie deiner Daten (Auskunft und Übertragbarkeit) schicken wir dir auf Anfrage (Abschnitt 14). Für alles andere schreib uns an kontakt@reiswienudel.de.',
             },
           ],
           children: [],

@@ -3,6 +3,7 @@ import { ResponseError } from '../api/generated/runtime';
 import { i18n } from '../i18n';
 import { ReferenceFlowError } from './referenceFlow';
 import {
+  formatStorageBytes,
   STORAGE_QUOTA_EXCEEDED,
   storageLevel,
   storageRefusal,
@@ -93,5 +94,19 @@ describe('photo source import refusal', () => {
         new ClientProblemError('validation', 413, 'ATTACHMENT_TOO_LARGE'),
       ),
     ).toEqual({ state: 'unsupported', reason: 'video.tooLarge' });
+  });
+});
+
+describe('formatStorageBytes', () => {
+  // Intl keeps the number and unit together with a no-break space.
+  const plain = (value: number, locale: string) =>
+    formatStorageBytes(value, locale).replace(/ /g, ' ');
+
+  it('uses decimal units, as the quota is stated', () => {
+    expect(plain(5_000_000_000, 'de-DE')).toBe('5 GB');
+    expect(plain(1_850_000_000, 'de-DE')).toBe('1,9 GB');
+    expect(plain(480_000_000, 'en')).toBe('480 MB');
+    expect(plain(1_500, 'en')).toBe('1.5 kB');
+    expect(plain(12, 'en')).toBe('12 byte');
   });
 });

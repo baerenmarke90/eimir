@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   createContext,
   type ReactNode,
+  Suspense,
   useContext,
   useEffect,
   useLayoutEffect,
@@ -15,6 +16,7 @@ import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
 import { ApiRuntimeProvider } from '../client/apiRuntimeContext';
 import { isAndroidApp } from '../client/config';
+import { momentMapOriginKey } from '../client/memoryMapSession';
 import { notificationUnreadCountQueryKey } from '../client/notificationQueries';
 import {
   PRODUCT_CACHE_FALLBACK_EVENT,
@@ -30,6 +32,7 @@ import {
   COLLECTION_CREATE_ROUTE,
   DEFAULT_APP_ROUTE,
   MEMORY_CREATE_ROUTE,
+  MEMORY_MAP_ROUTE,
   NOTE_CREATE_ROUTE,
   PARTNER_LOCATION_MAP_ROUTE,
   PRIMARY_APP_ROUTES,
@@ -44,10 +47,13 @@ import {
   ShellUtilitiesContext,
   useShellUtilities,
 } from '../client/shellUtilities';
-import { TaskOriginProvider } from '../client/taskOrigin';
+import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import { useDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
+import { useAppLayout } from '../client/wirDesign';
+import { ChapterNavigation } from './ChapterNavigationLayout';
+import { RoomDock, RoomHeader } from './RoomNavigationLayout';
 import { scheduleDeferredPrefetch } from '../deferredModules';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
@@ -59,6 +65,7 @@ import { PresenceHeartbeat } from './PresenceHeartbeat';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
 import { Snackbar } from './Snackbar';
 import { SubpageNavigation } from './SubpageNavigation';
+import { SupportReportHost } from './SupportReportHost';
 import { ThemeControl } from './ThemeControl';
 import { useNavigationMotion } from './useNavigationMotion';
 
@@ -259,10 +266,14 @@ function AuthenticatedAppShell({
   const activeArea = useActiveNavigationArea(pathname);
   const navigationType = useNavigationType();
   const { navigatePrimary } = usePrimaryNavigation();
+  const { resolveOrigin } = useTaskOrigin();
   useNavigationMotion({
     surfaceRef: mainRef,
     pathname,
     routeKey: location.key,
+    swipeEnabled:
+      pathname !== MEMORY_MAP_ROUTE ||
+      !momentMapOriginKey(location.state, resolveOrigin),
     skipEntry: Boolean(location.hash) || pathname === COLLECTION_CREATE_ROUTE,
     createEntry: navigationType === 'PUSH' && pathname.endsWith('/new'),
     // History Back (button, gesture, system Back) and explicit task returns.
@@ -275,7 +286,15 @@ function AuthenticatedAppShell({
   });
   const isPrivateArea = location.pathname.startsWith('/more/private');
   const protectedDraft = useDocumentLeaveBlocked();
+  const layout = useAppLayout();
+  const rooms = layout === 'rooms';
+  const chapters = layout === 'chapters';
+  const customNavigation = rooms || chapters;
   const isFocusedTask =
+    (customNavigation &&
+      (protectedDraft ||
+        pathname.endsWith('/new') ||
+        pathname.endsWith('/edit'))) ||
     /^\/more\/people\/(?:new|[^/]+\/edit)$/.test(location.pathname) ||
     /^\/story\/recaps\/[^/]+$/.test(location.pathname) ||
     location.pathname.startsWith('/today/only-you') ||
@@ -290,10 +309,12 @@ function AuthenticatedAppShell({
     location.pathname === '/plan/chapters/new' ||
     (protectedDraft && /^\/plan\/chapters\/[^/]+$/.test(location.pathname)) ||
     location.pathname === '/plan/choose';
-  const bottomNavigationRef = useRef<HTMLDivElement>(null);
+  const [bottomNavigation, setBottomNavigation] = useState<HTMLElement | null>(
+    null,
+  );
   useLayoutEffect(() => {
     if (isFocusedTask) return;
-    const navigation = bottomNavigationRef.current;
+    const navigation = bottomNavigation;
     if (!navigation || typeof ResizeObserver === 'undefined') return;
     const root = document.documentElement;
     const measure = (entry?: ResizeObserverEntry) => {
@@ -314,7 +335,7 @@ function AuthenticatedAppShell({
       observer.disconnect();
       root.style.removeProperty('--shell-bottom-nav-measured-height');
     };
-  }, [isFocusedTask]);
+  }, [isFocusedTask, bottomNavigation]);
   const gamesPath = appRoutePath('games');
   const isGamesHub = location.pathname === gamesPath;
 
@@ -361,9 +382,12 @@ function AuthenticatedAppShell({
         />
         <div
           className="product-shell"
+          data-wir-layout={layout}
           data-focused-task={isFocusedTask}
           data-top-surface={
-            location.pathname === DEFAULT_APP_ROUTE ? 'today' : undefined
+            !customNavigation && location.pathname === DEFAULT_APP_ROUTE
+              ? 'today'
+              : undefined
           }
         >
           <ThemeControl />
@@ -373,7 +397,15 @@ function AuthenticatedAppShell({
             {t('navigation.skipToContent')}
           </a>
 
-          {!isFocusedTask ? (
+          {!isFocusedTask && chapters ? (
+            <Suspense fallback={null}>
+              <ChapterNavigation privateArea={isPrivateArea} />
+            </Suspense>
+          ) : !isFocusedTask && rooms ? (
+            <Suspense fallback={null}>
+              <RoomHeader privateArea={isPrivateArea} />
+            </Suspense>
+          ) : !isFocusedTask ? (
             <header className="app-header product-topbar">
               <nav className="shell-nav" aria-label={t('navigation.primary')}>
                 <PrimaryNavigationLinks />
@@ -440,8 +472,15 @@ function AuthenticatedAppShell({
             </main>
           </div>
 
-          {!isFocusedTask ? (
-            <div className="mobile-bottom-shell" ref={bottomNavigationRef}>
+          {!isFocusedTask && rooms ? (
+            <Suspense fallback={null}>
+              <RoomDock
+                canCreate={!isPrivateArea}
+                navigationRef={setBottomNavigation}
+              />
+            </Suspense>
+          ) : !isFocusedTask && !chapters ? (
+            <div className="mobile-bottom-shell" ref={setBottomNavigation}>
               <nav
                 className="mobile-bottom-nav"
                 aria-label={t('navigation.primary')}
@@ -464,6 +503,8 @@ function AuthenticatedAppShell({
             />
           ) : null}
           <Snackbar />
+          {/* The one support report sheet; it outlives the screen opening it. */}
+          <SupportReportHost />
         </div>
       </ActiveNavigationAreaContext.Provider>
     </ShellUtilitiesContext.Provider>

@@ -1,4 +1,5 @@
 import { WirDesignId } from '../api/generated/models/WirDesignId';
+import { DEFAULT_APP_DESIGN } from '../design/appDesigns.generated';
 
 const PREFIX = 'eimir-wir-design-v1:';
 const MAX_AGE = 30 * 24 * 60 * 60_000;
@@ -14,30 +15,48 @@ export function wirDesignStorageKey(
   );
 }
 
-export function readWirDesign(key: string): WirDesignId | undefined {
+/** Resolve preferences written by older clients and servers. */
+export function parseWirDesignId(value: unknown): WirDesignId | undefined {
+  if (value === 'handwriting' || value === 'together_index')
+    return DEFAULT_APP_DESIGN;
+  return parseDesignPaletteId(value);
+}
+
+export function parseDesignPaletteId(value: unknown): WirDesignId | undefined {
+  return Object.values(WirDesignId).find((design) => design === value);
+}
+
+export function readWirDesign(
+  key: string,
+): { designId: WirDesignId; paletteId?: WirDesignId } | undefined {
   try {
     const raw = localStorage.getItem(key);
     if (!raw || raw.length > 256) return undefined;
     const value = JSON.parse(raw);
     if (
       value.schema !== 1 ||
-      !Object.values(WirDesignId).includes(value.designId) ||
       !Number.isFinite(value.savedAt) ||
       value.savedAt > Date.now() ||
       Date.now() - value.savedAt >= MAX_AGE
     )
       return undefined;
-    return value.designId;
+    const designId = parseWirDesignId(value.designId);
+    if (!designId) return undefined;
+    return { designId, paletteId: parseDesignPaletteId(value.paletteId) };
   } catch {
     return undefined;
   }
 }
 
-export function rememberWirDesign(key: string, designId: WirDesignId): void {
+export function rememberWirDesign(
+  key: string,
+  designId: WirDesignId,
+  paletteId?: WirDesignId,
+): void {
   try {
     localStorage.setItem(
       key,
-      JSON.stringify({ schema: 1, designId, savedAt: Date.now() }),
+      JSON.stringify({ schema: 1, designId, paletteId, savedAt: Date.now() }),
     );
   } catch {
     /* Memory state remains usable when device storage is unavailable. */

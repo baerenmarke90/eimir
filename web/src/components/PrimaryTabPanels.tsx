@@ -1,4 +1,5 @@
 import {
+  memo,
   type ReactNode,
   useEffect,
   useLayoutEffect,
@@ -146,19 +147,62 @@ export function settleRestartedEntrances(panel: Element | null) {
 export interface PrimaryTabPanel {
   path: string;
   element: ReactNode;
+  /** Some roots share forms and IDs with separate routes and must unmount on exit. */
+  retain?: boolean;
 }
 
 /**
- * Wir starts fresh when it is opened again: the carousels inside it (lists,
- * what is coming up, recent activity) show their first item again instead of
- * wherever they were swiped to. They are the only scrollers a person can leave
- * half-way, so any element with a horizontal offset is put back.
+ * Start Wir's lists, notes, agenda and activity tracks at their first item.
+ * Only the tracks own horizontal scroll. Reading every descendant's offset
+ * here would force layout reads across the dashboard during the swipe.
  */
-function resetHorizontalScroll(panel: Element | null) {
+function resetWirCarousels(panel: Element | null) {
   if (!panel) return;
-  for (const element of panel.querySelectorAll<HTMLElement>('*'))
-    if (element.scrollLeft !== 0) element.scrollLeft = 0;
+  for (const track of panel.querySelectorAll<HTMLElement>(
+    '.wir-lists-row, .today-agenda-list, .today-stream',
+  ))
+    track.scrollLeft = 0;
 }
+
+/**
+ * Revealing a mounted neighbour only changes its panel's visibility. Keep
+ * the nested router and its location consumers at rest during that gesture.
+ */
+const TabRouteContent = memo(function TabRouteContent({
+  path,
+  element,
+  active,
+  location,
+  previewKey,
+  fallback,
+}: {
+  path: string;
+  element: ReactNode;
+  active: boolean;
+  location: Location;
+  previewKey?: string;
+  fallback: ReactNode;
+}) {
+  const kept = previewKey
+    ? {
+        ...location,
+        pathname: path,
+        search: '',
+        hash: '',
+        state: null,
+        key: previewKey,
+      }
+    : location;
+  return (
+    <PrimaryTabTaskOriginScope active={active}>
+      <AppErrorBoundary resetKey={kept.key} fallback={fallback}>
+        <Routes location={kept}>
+          <Route path={path} element={element} />
+        </Routes>
+      </AppErrorBoundary>
+    </PrimaryTabTaskOriginScope>
+  );
+});
 
 /**
  * Keeps every visited primary tab mounted, like a native tab bar. Returning to
@@ -187,9 +231,8 @@ export function PrimaryTabPanels({
   const navigationType = useNavigationType();
   const { resolveOrigin } = useTaskOrigin();
   const pathname = location.pathname.replace(/\/$/, '') || '/';
-  const active = panels.some((panel) => panel.path === pathname)
-    ? pathname
-    : null;
+  const activePanel = panels.find((panel) => panel.path === pathname);
+  const active = activePanel?.path ?? null;
   const state = location.state as {
     primaryRootEntry?: boolean;
     taskReturnKey?: unknown;
@@ -202,7 +245,8 @@ export function PrimaryTabPanels({
   // Idempotent render-time bookkeeping: a newly visited tab mounts in the same
   // commit that makes it active.
   const locations = useRef(new Map<string, Location>());
-  if (active) locations.current.set(active, location);
+  if (active && activePanel?.retain !== false)
+    locations.current.set(active, location);
   const scrollPositions = useRef(new Map<string, number>());
   const peek = usePrimaryTabPeek();
   const peekRef = useRef<HTMLDivElement>(null);
@@ -248,7 +292,7 @@ export function PrimaryTabPanels({
     const target = startAtTop ? 0 : (scrollPositions.current.get(active) ?? 0);
     window.scrollTo({ top: target, behavior: 'instant' });
     if (startAtTop && active === DEFAULT_APP_ROUTE)
-      resetHorizontalScroll(
+      resetWirCarousels(
         document.querySelector(`[data-primary-tab="${active}"]`),
       );
     if (target === 0) return;
@@ -291,7 +335,7 @@ export function PrimaryTabPanels({
     const main = panel?.parentElement;
     if (!panel || !main || !peek) return;
     // Wir is always shown from its start, like it opens from the tab bar.
-    if (peek === DEFAULT_APP_ROUTE) resetHorizontalScroll(panel);
+    if (peek === DEFAULT_APP_ROUTE) resetWirCarousels(panel);
     const box = main.getBoundingClientRect();
     const paddingTop = Number.parseFloat(getComputedStyle(main).paddingTop);
     panel.style.setProperty('--primary-tab-peek-left', `${box.left}px`);
@@ -306,22 +350,10 @@ export function PrimaryTabPanels({
     const peeking = peek === path && path !== active;
     // A tab that was never opened is shown from its root while it is peeked,
     // but is not kept (and unmounts again if the swipe is cancelled).
-    const visited = locations.current.get(path);
+    const visited = path === active ? location : locations.current.get(path);
     const preparing =
       !visited && !peeking && prewarm.includes(path) && prepared.has(path);
-    const kept =
-      visited ??
-      (peeking || preparing
-        ? {
-            ...location,
-            pathname: path,
-            search: '',
-            hash: '',
-            state: null,
-            key: `${peeking ? 'peek' : 'prewarm'}-${path}`,
-          }
-        : undefined);
-    if (!kept) return null;
+    if (!visited && !peeking && !preparing) return null;
     const visible = path === active;
     return (
       <div
@@ -335,13 +367,16 @@ export function PrimaryTabPanels({
         inert={peeking || preparing}
         hidden={!visible && !peeking && !preparing}
       >
-        <PrimaryTabTaskOriginScope active={visible}>
-          <AppErrorBoundary resetKey={kept.key} fallback={fallback}>
-            <Routes location={kept}>
-              <Route path={path} element={element} />
-            </Routes>
-          </AppErrorBoundary>
-        </PrimaryTabTaskOriginScope>
+        <TabRouteContent
+          path={path}
+          element={element}
+          active={visible}
+          location={visited ?? location}
+          previewKey={
+            visited ? undefined : `${peeking ? 'peek' : 'prewarm'}-${path}`
+          }
+          fallback={fallback}
+        />
       </div>
     );
   });

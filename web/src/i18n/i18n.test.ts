@@ -1,6 +1,7 @@
 import { parseSync } from 'rolldown/utils';
 import { DEFAULT_LOCALE, i18n, resolvedLocale } from './index';
 import de from './locales/de';
+import { localeCatalog } from './catalog';
 import { localeRegistry, supportedLocales } from './resources';
 
 const sourceFiles = import.meta.glob(
@@ -319,6 +320,47 @@ describe('web i18n', () => {
       .sort();
 
     expect(missing).toEqual([]);
+  });
+
+  it('keeps every locale pack out of the entry bundle', () => {
+    // The Web entry stays below its gzip budget only while packs load on
+    // demand (web/scripts/check-entry-size.mjs). Only the catalog may point at
+    // them, and only through dynamic import().
+    const staticImport =
+      /^\s*(?:import|export)\b[^;]*?from\s+['"]([^'"]+)['"]/gmu;
+    const pack = /(?:^|\/)(?:resources|germanPack)$|locales\/en\.json$/u;
+    const offenders = Object.entries(sourceFiles)
+      .filter(
+        ([fileName]) =>
+          !/(?:^|\/)(?:resources|germanPack)\.ts$/u.test(fileName),
+      )
+      .flatMap(([fileName, source]) =>
+        [...source.matchAll(staticImport)]
+          .map((match) => match[1])
+          .filter((specifier) => pack.test(specifier))
+          .map((specifier) => `${fileName} -> ${specifier}`),
+      );
+
+    expect(offenders).toEqual([]);
+  });
+
+  it('loads each registered pack on demand with the complete translation tree', async () => {
+    for (const locale of supportedLocales) {
+      expect(await localeCatalog[locale].load(), locale).toBe(
+        localeRegistry[locale].translation,
+      );
+    }
+  });
+
+  it('switches language through the lazy backend without losing the fallback', async () => {
+    await i18n.changeLanguage('en');
+    expect(resolvedLocale()).toBe('en');
+    expect(i18n.t('common.cancel')).toBe(
+      localeRegistry.en.translation.common.cancel,
+    );
+    expect(i18n.t('common.cancel', { lng: 'de' })).toBe('Abbrechen');
+    await i18n.changeLanguage(DEFAULT_LOCALE);
+    expect(resolvedLocale()).toBe(DEFAULT_LOCALE);
   });
 
   it('falls back to German resources for an unsupported language request', async () => {

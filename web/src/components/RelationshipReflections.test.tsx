@@ -639,7 +639,7 @@ function setupPassport(
   };
 }
 
-const passportText = (key: string, options?: Record<string, unknown>) =>
+const passportText = (key: string, options: Record<string, unknown> = {}) =>
   i18n.t(`relationshipReflections.passport.${key}`, options);
 
 /** Accessible name of a count row: the formatted count and its plural label. */
@@ -1069,7 +1069,7 @@ describe('Pro relationship passport', () => {
         displayMode: 'DAYS',
       } as RelationshipPassportView['relationshipDuration'],
     };
-    const waymarkText = (key: string, options?: Record<string, unknown>) =>
+    const waymarkText = (key: string, options: Record<string, unknown> = {}) =>
       i18n.t(`relationshipReflections.waymarks.${key}`, options);
 
     it('lists reached round days and Milestone anniversaries newest first, four at a time', async () => {

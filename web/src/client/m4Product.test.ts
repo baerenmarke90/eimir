@@ -122,3 +122,10 @@ describe('M5 S5 cursor handling', () => {
     expect(opaqueNextCursor({ nextCursor: null })).toBeUndefined();
   });
 });
+
+describe('ADR 0020 removed Transfer Bundle targets', () => {
+  it('opens no screen for a leftover Transfer notification target', () => {
+    expect(engagementTargetPath('TRANSFER_EXPORT', 'export-id')).toBeNull();
+    expect(engagementTargetPath('TRANSFER_IMPORT', 'import-id')).toBeNull();
+  });
+});

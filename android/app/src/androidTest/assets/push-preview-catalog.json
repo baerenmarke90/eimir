@@ -1747,7 +1747,7 @@
       },
       "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..LjpJHn60-zq-9xAM.1UzJC5bMd5HlqPEVnFBa5V8hU4nxrvaj6K36VdRIDgPxkfS1Lilgi8W6lDlr5aA1zZBZct_Tef3YDTFAPdTsNyKzZGM0NgQc9VOtZa0czlforZMabUJgwLQNkFncjVjAsxe2pQl1wn-erB1-xiTBXtAkIVMKbaJsw1D_wHFU8-UJiNTCPE-aGQ5edNOWeAverpuslcgIDNOdmmpSUhU_eMM39yz6rGl_odvGFcJo_dZCm-QU3VQiBL8uLyeFrsen.Kjt-ctxo4wvv9z_5wgZp2w",
       "expectedBody": {
-        "de": "Alex hat dir einen Samen geschickt.",
+        "de": "Alex hat dir Saatgut für euren Garten geschenkt.",
         "en": "Alex sent you a seed."
       },
       "expectedAction": {
@@ -1770,7 +1770,7 @@
       },
       "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..qOf-eYm7NlIg4uKv.d8_vhs2PZHHzy-Ocx8iIV783J13prRUjRNPN6U_HP5k7jbvbJWKMRh53v5bv08DIFEbzWkmnHp-KwN8V7l5JxNuNENwcSiMFf92Z0He0M_6ycqmtcn4nXDbklSWVc79iERrJukiJXXpOz4kCRFmZmw-Ik41R0XTCVCNHlCX9wAhEqXRNoXURRI9V5uKHC8GC3M6dZevTxQWWQJFwfoJsWSCbVJbA3015iNYxC6HS9QwrNKZhAKkvRkEAP4raER6pvGe4SC8uXDI9izaYI9Cf-Pc.dDO8u6GDrfCQi5D5d3g9iA",
       "expectedBody": {
-        "de": "Alex hat dir einen Samen geschickt.",
+        "de": "Alex hat dir Saatgut für euren Garten geschenkt.",
         "en": "Alex sent you a seed."
       },
       "expectedAction": {
@@ -1794,7 +1794,7 @@
       },
       "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..G0GG6oJ2XnIxAi5S.qTItwPjF7w_QEvgWsSX88eonO8fomGJNr1uFXRrMblCp9g6SOuh_56XaurJsdsIvOM7N6LyZdILX5_8dCLrkaWvMCb5EOLyuA3YROTrZMFsem981HVERAMfC2K_Br8ZHkcpBWTNt8s7jpnARyP2uSFURbHbfh7dtc2qprlJ0g0nRgezPRi8D5KOQY6HqaDrTTWH2egJWCpzO8i8ZpSjzvPuNBymEKmNjZD4unF0y8z0ADtN5QJJiJmmP5Qvw_r56jULdhhq2xn8nQA.ic-uuG6AxwHJjlCTv3bRew",
       "expectedBody": {
-        "de": "Alex hat dir einen Samen geschickt.",
+        "de": "Alex hat dir Saatgut für euren Garten geschenkt.",
         "en": "Alex sent you a seed."
       },
       "expectedAction": {
@@ -1818,7 +1818,7 @@
       },
       "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..yeGPp_YNDNsin09_.aJ8b_FY2hVrvqxjsNX6t0getzqSiOI27wAnDJEWvjXmEcCDk4FeElRw4P7UJAXLVqkUbMNk_Vieu-Oz86gLqymvpfc2YGb-t2SbKQwVU4WChElSESkYHdhQeFTiaNCuda-63wmAPYPMsq2vmZnz3GMoha8XqKs4EOS7iCvCSCly2bKnL8LwX10gEk3vrjp44B2xAjwUByPtU_gkZ83RUzRu6UeI5OLI1pCb3KxzYImI1D8aMAhKFwIITRwjE4bX5p5WwW1aiXVaCufnv0gs_CCsLP2QfJwSvnFO5.Hl-I-m5Hhpu7ZhrFs3jeLg",
       "expectedBody": {
-        "de": "Alex hat dir einen Samen geschickt.",
+        "de": "Alex hat dir Saatgut für euren Garten geschenkt.",
         "en": "Alex sent you a seed."
       },
       "expectedAction": {
@@ -4206,7 +4206,7 @@
       },
       "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..sUZKnPMgkgLJnc-a.pjl0muj8PneCLOk3Gjjja8A5CK1IsLkFPRua7fs1igqkXDzjVJr9Ck7rkDA-QfZnKsjEEFcK-YoLCFpFYfRVQrIPiJgGWi5QtQA6ZshJkT0ldNirQw5DXRAHPJT1Vj6lR_0CfIV5SVN8wF3mRyjCxN1Xj4hoE5FzGyIhYTA5NHApWOGPDu-NTpl24R85xj2ri6wR5GF2jn3ZkKXn_ZPTkcnAFDAVoheNEfdRZjR2jVAwDF-fUlVhqQY4eGqFsqIWfheSm9r1XmDL6dM2NV9IgOTZ6SRf7alaK2tCc7SMvA.BkTxFEMSA-cnQjlS2QH1_A",
       "expectedBody": {
-        "de": "Alex hat dir einen Samen geschickt.",
+        "de": "Alex hat dir Saatgut für euren Garten geschenkt.",
         "en": "Alex sent you a seed."
       },
       "expectedAction": {
@@ -4232,7 +4232,7 @@
       },
       "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..ARo2H94XdOidQprV.7VVf5V_fAM3Ii6cl3O5sHc1kx4shrIf4F6yqTFcctvvWWO4kjUm60AcbrHvmRoAxl8UfrhYJEShNd7ouUzA4NxkwGQli4LoQ3h2ybUSQGCxoCu3-zQI91z9aC_ZKGDfrC1tUcjHz14ULcIiSTJeaySAtPeXIfAhz_sVYA7T2oQc3TGhqHnPe9tdCU9KU16bQLp2kYL6QU0TcWBqe88WsZXu9EznRPHnBzuZEnfwLA85RI9Vf8kEFs40eLbG37Wovv-EgRWd1ArIBeH6U0khbilDuCBrY7XLTLju35enGoICORJANUP-LVo7xV9wsNhlF.SBHN3Png8ZiwDOIKz7MENw",
       "expectedBody": {
-        "de": "Alex hat dir einen Samen geschickt.",
+        "de": "Alex hat dir Saatgut für euren Garten geschenkt.",
         "en": "Alex sent you a seed."
       },
       "expectedAction": {
@@ -5220,7 +5220,7 @@
       },
       "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..oZPBJ0sM1iMqNytz.TWgcqe4yDVHxD2lCQJhxjUpVbauv-fUhXDERC-3qjg2e2WgP3xFZ94ZA9S-GzkZomu99m_SzUFZc_zo938xfUnfVz4s-IhdMUrltdrKU3eLHakfAudEGRB4ltqLp6XDz7CkQnTAdBmg5EK1-aK7YxksAJor_Dz5dUjHeyOcp7_hKjhAGKPL9R0S6q2H4S3X5zP8tGAREwN7jhj9RnV6Yh8o1tEc5LNMqWZgnAhotUjmLosrjERz2AruHDTTnc56M-3_OSPY0zgZgoPrtEi2bj1pwUxRSZu8xjqbjlx32GxdoMIeP7We3RyIyAw0.rBErPAkHgBrVRNlPr25iDA",
       "expectedBody": {
-        "de": "Alex hat dir einen Samen geschickt: Mohn.\n„Vermiss dich“",
+        "de": "Alex hat dir Mohn zum Einpflanzen geschickt.\n„Vermiss dich“",
         "en": "Alex sent you a seed: Poppy.\n“Miss you”"
       },
       "expectedAction": {
@@ -5246,7 +5246,7 @@
       },
       "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..6TGQR1W8Na3XQC6N.2iOrRQix_C7JslDyX80INmqzozcFiyULtva64Vl6BacradRzRA4huMo9hyCi1Wyi-Y-BnbNpeYA_tXkjIXPGD-awcW2G3SsIm4Q4dMxnj8Cf0DJLsngiZQy_0kuGtnDSB9tRNuV2ld1N9J6vMidAEjoaenC9FRMeFHaCNjtrUp1fsgdHyiRpaaUelNr7MY5VUnRAiMOkgVU7b_wlxtFbAVEWYPJRwaqcvqvgvAkg5mMubOq1YS4sUu4AciRlTB1Av7WFeVU8Ecws_975nZ6aRtQUJIvdhZun00W5_sROMmdJ2Rl2.BtKm2QvnVFu4gR1Io_ZTkw",
       "expectedBody": {
-        "de": "Alex hat dir einen Samen geschickt: Tulpenzwiebel.",
+        "de": "Alex hat dir eine Tulpenzwiebel zum Einpflanzen geschickt.",
         "en": "Alex sent you a seed: Tulip bulb."
       },
       "expectedAction": {
@@ -5272,7 +5272,7 @@
       },
       "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..pK8kOQIDHcM2MP5z.Ncnfam7glYH7kHn8Bzcv6QQJcLpZikinUrwDOdqr5BSF7md74L2fIIr39Ub1YzVMnWJj9ElJiZJcX4xg5rQR5Rke642MCLUkdp08Jyu0gdnS9DPJ7qJ-9ezU-GnWjDlHJfSuJCXAhPH0fJ0l0x2TNAW0xBzPryUjYivTWfYU6_lL9Jz11c_rP_0UxAphC_QWwRlmff1g2qjX6bdnq1JWgZhPwlTLmNW7KqSnc5RyRw7eOm10ODGakCEXGCsyJaAzYTTHNMmSP_ycZafKsp3QE1z12adxJVDxWNzvA5kzQ0mUs12X8YeysPY.wMCU5t953Ufvx_5fxUujnA",
       "expectedBody": {
-        "de": "Alex hat dir einen Samen geschickt.\n„Gute Nacht“",
+        "de": "Alex hat dir Saatgut für euren Garten geschenkt.\n„Gute Nacht“",
         "en": "Alex sent you a seed.\n“Good night”"
       },
       "expectedAction": {
@@ -5298,7 +5298,7 @@
       },
       "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..6_AzVCSzgxUdGFG8.oER_yvGovb5SDn8mk9SruFbeBu3KRAm3AZmrIPK1nXfJSUid_3ukQQtqT_LbwYUwjip6aLTGOwNSqjQ3PFT5wz-ipRO0IkqSRKtG1w7T0LoEFaO8zbOCDsCUJGWs62DTGzHNcxwrXxvkIHWUoyK1g83b4DuHngXHY-j0SetGSlwBrPnpOHT93AvVAyH4ax3Ns6eZbwjfcjRkM0blM2xe7EfG3oLJm8GlYWYDoe2jWdbM6m1iiHB641MFrDjCAoTPJF6DKP2-yd4C3DHDK1jPigGufOv4FqZUGrcUomM93rSO2uMK_nYPbyckqoP8QQ0RKBwIzg.jieU8uFqmzcDWvBJd-FURA",
       "expectedBody": {
-        "de": "Alex hat dir einen Samen geschickt.",
+        "de": "Alex hat dir Saatgut für euren Garten geschenkt.",
         "en": "Alex sent you a seed."
       },
       "expectedAction": {

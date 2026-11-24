@@ -252,6 +252,19 @@ only at the Composition Root. Cloud or Self-Hosted can therefore switch an
 adapter without changing Domain code. M0 deliberately implements no commercial
 provider and no dependent M6/M7 functionality.
 
+## Data portability
+
+Data portability is an **operator-provided copy**, not a self-service feature.
+[Decision 0020](decisions/0020-remove-transfer-bundle-self-service.md) removes
+the Transfer Bundle (Web UI, API, jobs and tables) from Core in slices. What
+remains is an operator-only export and a small operator-only import, both
+command-line tools in the Pro package (`eimir_pro/portability`) with a
+schema-version guard and an allowlist guard test; Core holds no export
+knowledge. The Web UI and the API routes are gone (slice S3); until slices S4
+and S5 have landed, the backend code and tables described in the historical M5
+documents still exist in Core, unreachable; see the tracker
+[#2243](https://github.com/baerenmarke90/eimir/issues/2243).
+
 ## Deliberately absent
 
 - **No generic universal table** such as `items(type, content, ...)` across all

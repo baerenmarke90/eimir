@@ -32,8 +32,12 @@ from eimir.reminders.models import Reminder, ReminderScheduleType, ReminderSourc
 from eimir.shared_notes.models import SharedNote
 
 # A once message is sealed on the sender's device: the server cannot read it, so
-# it never enters native content presentation, in any preview version.
-NEUTRAL_ONLY_KINDS = frozenset({NotificationKind.ONCE_MESSAGE_RECEIVED.value})
+# it never enters native content presentation, in any preview version. A support
+# reply (#2189) is operator text about the person's own report; it stays in the
+# app and never reaches a device preview either.
+NEUTRAL_ONLY_KINDS = frozenset(
+    {NotificationKind.ONCE_MESSAGE_RECEIVED.value, NotificationKind.SUPPORT_REPLY.value}
+)
 # Preview v1 and v2 name the actor but never these targets' titles or text.
 SHARED_NOTE_KINDS = frozenset(
     {NotificationKind.SHARED_NOTE_CREATED.value, NotificationKind.SHARED_NOTE_CHANGED.value}

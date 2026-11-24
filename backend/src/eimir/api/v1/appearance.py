@@ -1,6 +1,8 @@
 """Authenticated personal app-icon selection; installed launchers are device-owned."""
 
 from fastapi import APIRouter, Response
+from pydantic import Field, model_validator
+from pydantic.json_schema import SkipJsonSchema
 
 from eimir.api.concurrency import IfMatchToken, etag_for_token
 from eimir.api.deps import Authorization, DbSession, ensure_capability
@@ -90,11 +92,24 @@ def update_app_icon_preference(
 
 class WirDesignPreferenceView(ApiModel):
     design_id: WirDesignId
+    palette_id: WirDesignId | SkipJsonSchema[None] = Field(
+        default=None, exclude_if=lambda palette: palette is None
+    )
     version: int
 
 
 class WirDesignPreferencePatch(ApiModel):
-    design_id: WirDesignId
+    """Set the app design, the palette, or both. A null palette follows the app design."""
+
+    design_id: WirDesignId | SkipJsonSchema[None] = None
+    palette_id: WirDesignId | None = None
+
+    @model_validator(mode="after")
+    def require_selection(self) -> "WirDesignPreferencePatch":
+        fields = self.model_fields_set
+        if not fields or ("design_id" in fields and self.design_id is None):
+            raise ValueError("An appearance patch must select a design or palette.")
+        return self
 
 
 def _design_view(
@@ -105,7 +120,8 @@ def _design_view(
     response.headers["ETag"] = etag_for_token(service.concurrency_token(preference, authorization))
     response.headers["Cache-Control"] = "private, no-store"
     return WirDesignPreferenceView(
-        design_id=WirDesignId(preference.wir_design) if preference else DEFAULT_WIR_DESIGN,
+        design_id=preference.effective_wir_design if preference else DEFAULT_WIR_DESIGN,
+        palette_id=preference.effective_palette if preference else None,
         version=preference.version if preference else 0,
     )
 
@@ -138,10 +154,14 @@ def update_wir_design_preference(
     body: WirDesignPreferencePatch,
     expected_token: IfMatchToken,
 ) -> WirDesignPreferenceView:
-    """Save a personal cosmetic. Connected and Warm are Free; other designs require Pro."""
-    if body.design_id not in FREE_WIR_DESIGNS:
+    """Save personal design choices. Following the design and Free palettes never need Pro."""
+    if any(
+        value is not None and value not in FREE_WIR_DESIGNS
+        for value in (body.design_id, body.palette_id)
+    ):
         ensure_capability(session, authorization.space_id, Capability.THEME_BESPOKE_PACKS.value)
-    saved = service.save_wir_design(session, authorization, body.design_id, expected_token)
+    changes = body.model_dump(exclude_unset=True)
+    saved = service.save_wir_design(session, authorization, expected_token, **changes)
     return _design_view(saved, authorization, response)
 
 

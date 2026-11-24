@@ -40,6 +40,8 @@ Name | Type
 `recentFailedJobs` | [Array&lt;ServerAdminFailedJob&gt;](ServerAdminFailedJob.md)
 `serverAdminAllowlistCount` | number
 `serverAdminVerifiedMatchCount` | number
+`supportReportsNew` | number
+`supportReportsOperatorAvailable` | boolean
 `suspendedAccountCount` | number
 `unverifiedPrimaryEmailCount` | number
 `verifiedPrimaryEmailCount` | number
@@ -86,6 +88,8 @@ const example = {
   "recentFailedJobs": null,
   "serverAdminAllowlistCount": null,
   "serverAdminVerifiedMatchCount": null,
+  "supportReportsNew": null,
+  "supportReportsOperatorAvailable": null,
   "suspendedAccountCount": null,
   "unverifiedPrimaryEmailCount": null,
   "verifiedPrimaryEmailCount": null,

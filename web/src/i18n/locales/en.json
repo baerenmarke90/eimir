@@ -145,7 +145,7 @@
     },
     "settings": {
       "title": "Settings",
-      "description": "Appearance, connection, privacy and data export."
+      "description": "Appearance, connection, privacy and storage."
     }
   },
   "states": {
@@ -1431,12 +1431,11 @@
     "demoTitle": "Account deletion unavailable in the demo",
     "demoBody": "Demo accounts are managed by the demo environment and cannot be deleted here.",
     "consequencesTitle": "What account deletion means",
-    "consequencesIntro": "Review these consequences before continuing to final confirmation.",
+    "consequencesIntro": "Review these consequences before you continue. You can ask for a copy of your data first – the privacy notice explains how.",
     "consequenceAccess": "Your account access ends. Active sessions and sign-in credentials are revoked.",
     "consequencePrivate": "Data belonging only to your account is removed through the defined deletion process.",
     "consequenceShared": "Shared history follows existing retention rules. Your shared space or relationship is not automatically deleted.",
     "consequenceIrreversible": "Once the server accepts deletion, it cannot be undone. The app does not need to stay open for cleanup to continue.",
-    "exportBefore": "Export data first",
     "continueAction": "Continue",
     "cancelAction": "Cancel",
     "reauthEyebrow": "Security check",
@@ -1504,7 +1503,7 @@
     "settingsAppearanceSummary": "Colour mode, language and icon",
     "settingsMediaSummary": "Photo service for new Moments",
     "settingsCalendarSummary": "Send shared plans to your calendar",
-    "settingsDataSummary": "Export and import",
+    "settingsDataSummary": "Space used",
     "settingsAccountSummary": "Passkeys, Pro and account",
     "statusNotificationsNone": "All off",
     "statusSharedCount": "{{enabled}} of {{total}} active",
@@ -1606,8 +1605,8 @@
     "partnerBirthdayReminderTimeLabel": "Time",
     "partnerBirthdayReminderLoading": "Loading birthday reminder …",
     "settingsPrivacy": "Private area",
-    "settingsData": "Data and portability",
-    "settingsDataIntro": "Save your memories as a file or bring them in from an earlier export.",
+    "settingsData": "Storage",
+    "settingsDataIntro": "How much space your photos, videos, voice messages and PDFs take up.",
     "settingsAccount": "App and account",
     "settingsAccountIntro": "eimir. Pro and your account. Your shared content stays protected.",
     "settingsBackToMore": "Back to More",
@@ -1639,7 +1638,7 @@
     "saved": "Choice saved.",
     "browser": "Your choice applies in the browser. The icon on your home screen stays the same for now.",
     "nativePending": "Setting your home screen icon …",
-    "nativeApplied": "Home screen icon set.",
+    "nativeApplied": "Saved. The new icon appears on your home screen once you leave the app.",
     "nativeError": "Your choice is saved. The home screen icon could not be applied on this device yet.",
     "nativeRetry": "Apply icon again",
     "nativeUpdate": "Update the eimir. app to change your home screen icon.",
@@ -1702,14 +1701,20 @@
     "intro": "How eimir. feels for you. Only your view changes.",
     "choices": "Your app design",
     "change": "Choose design",
+    "palette": {
+      "title": "Design colours",
+      "choices": "Choose design colours",
+      "followDesign": "Match the design",
+      "intro": "These colours apply to your view.",
+      "saved": "Your design colours are saved.",
+      "denied": "You need Pro for these design colours.",
+      "error": "The design colours could not be saved. You can try again."
+    },
     "welcome": "Our place for two",
     "nameJoiner": "&",
     "compact": {
       "own": "Your vibe",
       "partner": "{{name}} today"
-    },
-    "note": {
-      "open": "Open Heart Moment"
     },
     "names": {
       "connected": "Connected",
@@ -1718,7 +1723,8 @@
       "modern": "Clear & modern",
       "classic": "Classic",
       "quiet_together": "Together",
-      "handwriting": "Handwritten"
+      "home_rooms": "Home",
+      "shared_rhythm": "Our Rhythm"
     },
     "descriptions": {
       "connected": "The two of you, joined by a heart line. Your time together sits in the middle.",
@@ -1727,7 +1733,8 @@
       "modern": "Clear and airy. Your names beside your portraits, with calm blue accents.",
       "classic": "Familiar and spacious. Large portraits above your names and the original arrangement.",
       "quiet_together": "Calm, muted colours throughout the app. On Us, your names set large and your moment kept compact.",
-      "handwriting": "Warm paper tones and wine-red accents throughout the app. On Us, your latest Heart Moment like a note."
+      "home_rooms": "A shared starting point for the two of you. Open Rooms to find memories, plans and more.",
+      "shared_rhythm": "Today, your story and your plans at your own pace, with navigation at the top and shades of plum, pink and apricot."
     },
     "standard": "Standard",
     "free": "Free",
@@ -1748,7 +1755,37 @@
     "denied": "You need Pro to newly select this design. Your previous design is retained.",
     "offline": "You are offline. Your choice stays here; save it when you are connected again.",
     "error": "The design could not be saved. Your choice is retained for another attempt.",
-    "discover": "Discover Pro"
+    "discover": "Discover Pro",
+    "homeRooms": {
+      "rooms": "Rooms",
+      "remember": "Remember",
+      "rememberSummary": "Photos, journals and places",
+      "plans": "Plans",
+      "plansSummary": "Plans, wishes and occasions",
+      "insights": "Insights",
+      "insightsSummary": "Vibe and energy",
+      "games": "Play",
+      "gamesSummary": "Games for the two of you",
+      "moreSummary": "Profile, private area and settings",
+      "profileShort": "Me",
+      "create": "Create",
+      "partner": "Partner",
+      "openWir": "Open Us",
+      "archiveNavigation": "Your memories",
+      "photoArchive": "Photo archive",
+      "chapters": "Chapters"
+    },
+    "rhythm": {
+      "title": "Our Rhythm",
+      "today": "Together today",
+      "history": "Story",
+      "ahead": "Ahead",
+      "ownVibe": "My vibe",
+      "partnerToday": "Today",
+      "moreNavigation": "More areas",
+      "insights": "Insights",
+      "games": "Play"
+    }
   },
   "profiles": {
     "partnerSection": "About {{name}}",
@@ -2181,8 +2218,7 @@
     "consequenceAccount": "Your eimir. account remains. Other active shared spaces also remain available.",
     "consequencePrivate": "Your owner-only data in this space is removed according to the defined privacy policy.",
     "consequenceShared": "Shared history is not transferred to the other partner or immediately deleted when you leave. It follows the defined retention policy.",
-    "consequenceExport": "If you want a personal copy, create the export and download it completely before leaving.",
-    "exportBefore": "Export data first",
+    "consequenceExport": "If you want a copy of your content, ask for it before you leave – afterwards it is no longer possible. The privacy notice explains how.",
     "continueAction": "Continue",
     "cancelAction": "Cancel",
     "backAction": "Back",
@@ -2194,164 +2230,6 @@
     "confirmHelp": "Your entry must exactly match the text shown.",
     "submitAction": "Leave shared space",
     "submitting": "Ending membership …"
-  },
-  "transfer": {
-    "eyebrow": "Transfer data",
-    "title": "Export and import",
-    "intro": "Before anything is added, you see what the file contains. An import only adds and deletes nothing.",
-    "export": {
-      "heading": "Export",
-      "scopeLabel": "What should go into the file?",
-      "shared": "Shared data",
-      "sharedHelp": "Only what the two of you share.",
-      "personal": "My data",
-      "personalHelp": "Everything shared, plus your own private content.",
-      "start": "Create export",
-      "starting": "Requesting export …",
-      "expires": "The file is ready to download for 24 hours.",
-      "download": "Download export",
-      "downloading": "Preparing download …",
-      "statusLabel": "Status",
-      "status": {
-        "QUEUED": "Waiting for processing",
-        "RUNNING": "Creating",
-        "READY": "Ready to download"
-      }
-    },
-    "import": {
-      "heading": "Import",
-      "fileLabel": "File from an eimir. export",
-      "fileHelp": "Choose the ZIP file you received from an export.",
-      "upload": "Check file",
-      "uploading": "Uploading file …",
-      "statusLabel": "Status",
-      "status": {
-        "QUEUED": "Waiting to be checked",
-        "VALIDATING": "Checking the file …",
-        "READY_TO_APPLY": "Checked · ready for 24 hours",
-        "APPLYING": "Adding …",
-        "COMPLETED": "Import complete"
-      },
-      "checkingHint": "Nothing is added yet.",
-      "applyingHint": "You can keep using the app.",
-      "lead_one": "This file brings {{count}} entry.",
-      "lead_other": "This file brings {{count}} entries.",
-      "media_one": "It includes {{count}} photo or video.",
-      "media_other": "It includes {{count}} photos and videos.",
-      "present_one": "You already have {{count}} of them. It stays as it is.",
-      "present_other": "You already have {{count}} of them. They stay as they are.",
-      "storage": "Needs {{needed}}, {{available}} free.",
-      "additive": "The import only adds. It replaces or deletes nothing.",
-      "confirm": "I want to add this content.",
-      "confirmWithoutVideos": "I want to add this content without the videos.",
-      "apply": "Import",
-      "applyWithoutVideos": "Import without videos",
-      "applying": "Adding …",
-      "videosNeedPro": {
-        "title": "Videos come with eimir. Pro",
-        "body_one": "You can add everything else now. eimir. remembers the video, and you can bring it in later from the same file.",
-        "body_other": "You can add everything else now. eimir. remembers the {{count}} videos, and you can bring them in later from the same file."
-      },
-      "noRoom": {
-        "title": "Your storage is not enough for this",
-        "body": "The file needs {{needed}}, {{available}} is free. Nothing was added. Free up space or use Pro, then you can add the same file here."
-      },
-      "fitsWithoutVideos": {
-        "title": "With the videos, the storage is not enough",
-        "body_one": "Without the video the file fits: it then needs {{needed}}, {{available}} is free. You can bring the video in later when there is room again.",
-        "body_other": "Without the {{count}} videos the file fits: it then needs {{needed}}, {{available}} is free. You can bring the videos in later when there is room again."
-      },
-      "roomTaken": {
-        "title": "Less space is free now",
-        "body": "Storage was used up during the import. Nothing was added; the file stays ready."
-      },
-      "morePro": "More space with eimir. Pro",
-      "discoverPro": "Discover eimir. Pro",
-      "viewMedia": "View photos and videos",
-      "completed": {
-        "title": "Import complete",
-        "body": "You find the added content in your moments.",
-        "skipped_one": "{{count}} video was skipped.",
-        "skipped_other": "{{count}} videos were skipped.",
-        "recovered_one": "{{count}} video brought in.",
-        "recovered_other": "{{count}} videos brought in.",
-        "unrecovered_one": "{{count}} video no longer fit its gallery and stays remembered.",
-        "unrecovered_other": "{{count}} videos no longer fit their gallery and stay remembered.",
-        "toMoments": "Go to your moments"
-      },
-      "offline": {
-        "title": "No connection",
-        "body": "Nothing can be imported without internet. Nothing was changed."
-      },
-      "recover": {
-        "lead_one": "This file holds {{count}} skipped video.",
-        "lead_other": "This file holds {{count}} skipped videos.",
-        "none": "This file holds none of the skipped videos. Choose the file from the earlier import.",
-        "storage": "Needs {{needed}}, {{available}} free.",
-        "noRoom": "The videos need {{needed}}, {{available}} is free. Free up space or use Pro, then you can bring them in.",
-        "action_one": "Bring in the video",
-        "action_other": "Bring in {{count}} videos"
-      }
-    },
-    "skipped": {
-      "heading": "Skipped videos",
-      "lead_one": "{{count}} video from an earlier import is still missing ({{size}}).",
-      "lead_other": "{{count}} videos from an earlier import are still missing ({{size}}).",
-      "bodyPro": "Choose the same file again. eimir. then adds only these videos where they belong. Nothing else changes.",
-      "bodyFree": "With eimir. Pro you can bring them in from the same file.",
-      "recover": "Bring in videos",
-      "dismiss": "Hide this note",
-      "dismissTitle": "Hide this note?",
-      "dismissBody": "Afterwards these videos can no longer be brought in. Your memories and the file stay as they are.",
-      "dismissConfirm": "Hide",
-      "dismissCancel": "Cancel"
-    },
-    "failure": {
-      "exportTooLarge": {
-        "title": "The export is too large",
-        "body": "Your photos and videos do not fit into a single file. Nothing was changed."
-      },
-      "exportFailed": {
-        "title": "The export did not work",
-        "body": "It could not be created. Try again in a moment. Nothing was changed."
-      },
-      "exportGeneric": {
-        "title": "That did not work",
-        "body": "Nothing was changed."
-      },
-      "exportExpired": {
-        "title": "The file has expired",
-        "body": "Create the export again."
-      },
-      "importTooLarge": {
-        "title": "The file is too large",
-        "body": "eimir. cannot add a file this large in one go. Nothing was changed."
-      },
-      "formatUnsupported": {
-        "title": "The file does not match this version",
-        "body": "It comes from another eimir. version. Nothing was changed."
-      },
-      "fileInvalid": {
-        "title": "The file is not in order",
-        "body": "It is damaged or incomplete. Download the export again and choose it again. Nothing was changed."
-      },
-      "members": {
-        "title": "The people in the file do not match you",
-        "body": "They cannot be matched to you. Nothing was changed."
-      },
-      "privacy": {
-        "title": "The file contains private content",
-        "body": "A shared file must not contain anything private. Nothing was added."
-      },
-      "importFailed": {
-        "title": "That did not work",
-        "body": "The file could not be added. Nothing was changed."
-      },
-      "importExpired": {
-        "title": "The checked file has expired",
-        "body": "Choose the file again to add it."
-      }
-    }
   },
   "partnerConnection": {
     "eyebrow": "Connect partner",
@@ -3083,7 +2961,7 @@
       "empty": "Your story begins with the first moment you capture.",
       "start": "Discover your moments",
       "locked": "With eimir. Pro, see your shared story in personal recaps. One subscription applies to both of you.",
-      "dataRights": "Your memories, plans, places and data export remain accessible without Pro.",
+      "dataRights": "Your memories, plans and places remain accessible without Pro.",
       "learnMore": "About eimir. Pro"
     },
     "waymarks": {
@@ -4593,7 +4471,8 @@
       "storage": "Storage",
       "security": "Security & sign-in",
       "settings": "Settings",
-      "activity": "Activity log"
+      "activity": "Activity log",
+      "reports": "Reports"
     },
     "access": {
       "loading": "Checking permission …",
@@ -4616,7 +4495,9 @@
       "adminAllowlistEmpty": "No server administrator allowlist is configured. Without an allowlist, no account can become a server administrator.",
       "adminAllowlistUnmatched": "At least one server administrator allowlist entry does not match an active account with a verified email address.",
       "mailVerification": "Email delivery is disabled while unverified accounts exist. Verification and recovery may need operator support.",
-      "failedJobs": "There are failed background jobs."
+      "failedJobs": "There are failed background jobs.",
+      "supportReportsUnread": "Reports have been waiting unread for more than 14 days.",
+      "openReports": "View new reports"
     },
     "health": {
       "title": "System health",
@@ -4643,7 +4524,8 @@
       "verifiedEmails": "Verified primary emails",
       "unverifiedEmails": "Unverified primary emails",
       "mediaObjects": "Media objects",
-      "mediaBytes": "Stored media"
+      "mediaBytes": "Stored media",
+      "supportReportsNew": "New reports"
     },
     "security": {
       "title": "Security & sign-in",
@@ -5011,8 +4893,18 @@
         "account_deletion_completed": "Account deletion complete",
         "account_deletion_failed": "Account deletion failed",
         "space_entitlement_granted": "Space entitlement granted",
-        "space_entitlement_revoked": "Space entitlement revoked"
+        "space_entitlement_revoked": "Space entitlement revoked",
+        "support_report": {
+          "state_set": "Report status changed",
+          "reply_sent": "Reply to report sent",
+          "ticket_created": "Ticket for report created",
+          "ticket_cleared": "Ticket link removed"
+        }
       }
+    },
+    "reportsUnavailable": {
+      "title": "Reports unavailable",
+      "body": "The operator reports section is not set up on this installation."
     },
     "configuration": {
       "title": "Runtime configuration",
@@ -5029,7 +4921,167 @@
       "enabled": "Active",
       "disabled": "Inactive"
     },
-    "privacyNote": "Server administration shows only operational, identity and security metadata. Private content, media content, job payloads, passwords, tokens and credentials are not shown."
+    "reports": {
+      "title": "Reports",
+      "body": "Problem and feedback reports from the app. The list shows no notes; you see the text only in the opened report.",
+      "newCount": "New: {{count}}",
+      "filter": {
+        "label": "Filter reports by status",
+        "all": "All",
+        "NEW": "New",
+        "IN_PROGRESS": "In progress",
+        "CLOSED": "Done",
+        "archived": "Archived"
+      },
+      "states": {
+        "NEW": "New",
+        "IN_PROGRESS": "In progress",
+        "CLOSED": "Done"
+      },
+      "kinds": {
+        "PROBLEM": "Problem",
+        "FEEDBACK": "Feedback"
+      },
+      "loadingTitle": "Loading reports",
+      "loadingBody": "The reports of this installation are being queried.",
+      "errorTitle": "Reports unavailable",
+      "errorBody": "The reports could not be loaded.",
+      "offlineTitle": "No connection",
+      "offlineBody": "The reports can be loaded again once the connection is back.",
+      "offlineNotice": "You are offline. Changes to reports are possible again once the connection is back.",
+      "retry": "Load again",
+      "emptyTitle": "No reports",
+      "emptyNewBody": "There are no new reports right now.",
+      "emptyFilteredBody": "There are no reports with this status.",
+      "emptyAllBody": "No report has arrived yet.",
+      "emptyArchivedBody": "There are no archived reports.",
+      "showAll": "Show all reports",
+      "loadMore": "Load more reports",
+      "loadingMore": "Loading more reports …",
+      "loadMoreError": "More reports could not be loaded.",
+      "listLabel": "Reports",
+      "item": {
+        "version": "Version {{version}} ({{build}})",
+        "replied": "Replied",
+        "ticket": "Ticket",
+        "archived": "Archived"
+      },
+      "detail": {
+        "back": "Back to the list",
+        "eyebrow": "Report",
+        "heading": "{{kind}} from {{date}}",
+        "loading": "Loading report …",
+        "error": "The report could not be loaded.",
+        "noteTitle": "Note from the person",
+        "noNote": "The person wrote no note.",
+        "privacy": "The note is private text. It appears only here and is never copied into a ticket, a log or an analysis.",
+        "factsTitle": "Technical details",
+        "createdAt": "Received",
+        "appVersion": "App version",
+        "build": "Build",
+        "platform": "Platform",
+        "os": "Operating system",
+        "engine": "Browser engine",
+        "locale": "Language",
+        "timeZone": "Time zone",
+        "theme": "Appearance",
+        "online": "Online when sent",
+        "yes": "Yes",
+        "no": "No",
+        "failureReference": "Failure reference",
+        "requestId": "Request ID",
+        "accountId": "Account ID",
+        "accountHint": "Find the account in user management with this ID.",
+        "none": "–",
+        "stateTitle": "Triage status",
+        "stateSaved": "Status saved: {{state}}.",
+        "discardDraftConfirm": "This report has an unsent draft. Discard the draft and continue?"
+      },
+      "reply": {
+        "title": "Reply",
+        "label": "Reply to the person",
+        "hint": "The reply is sent exactly once and cannot be edited afterwards. At most 500 characters, text only.",
+        "counter": "{{length}} / {{max}}",
+        "counterLabel": "{{length}} of {{max}} characters",
+        "tooLong": "The reply is longer than 500 characters.",
+        "send": "Send reply once",
+        "sending": "Sending reply …",
+        "sent": "The reply was sent.",
+        "sentTitle": "Sent reply",
+        "sentAt": "Sent on {{date}}",
+        "readOnly": "A sent reply cannot be changed.",
+        "discardConfirm": "The reply has not been sent yet. Return to the list and discard the draft?"
+      },
+      "ticket": {
+        "title": "Ticket",
+        "none": "This report has no ticket yet.",
+        "create": "Create ticket",
+        "unavailable": "No tracker is set up for this installation, so no tickets can be created.",
+        "open": "Open ticket {{number}}",
+        "openWithoutNumber": "Open ticket",
+        "opensExternal": "opens the tracker in a new window",
+        "created": "Ticket created",
+        "createdNotice": "The ticket was created.",
+        "pending": "The ticket is being created.",
+        "uncertain": "Uncertain whether the ticket was created. Check the tracker.",
+        "uncertainHint": "If the tracker has no ticket, remove the link and create it again.",
+        "clear": "Remove ticket link",
+        "confirmClear": "Really remove the ticket link? If the ticket was created in the tracker after all, creating it again makes a duplicate. Check the tracker first.",
+        "cleared": "The ticket link was removed."
+      },
+      "ticketDialog": {
+        "eyebrow": "Tracker",
+        "title": "Create ticket",
+        "intro": "You write the title and description yourself. The person's note and your reply are never copied automatically. Do not write anything private into the ticket.",
+        "titleLabel": "Title",
+        "titleTemplate": "{{kind}} in version {{appVersion}}",
+        "titleRequired": "The title must not be empty.",
+        "titleTooLong": "The title is longer than 256 characters.",
+        "bodyLabel": "Description (optional)",
+        "bodyTooLong": "The description is too long for the tracker.",
+        "footerLabel": "Appended unchanged by the server",
+        "submit": "Create ticket",
+        "submitting": "Creating ticket …",
+        "cancel": "Cancel"
+      },
+      "manage": {
+        "title": "Archive and delete",
+        "archiveHint": "An archived report disappears from New, In progress, Done and All and no longer counts as new. It stays readable under \u201cArchived\u201d and keeps its status. The retention periods apply unchanged.",
+        "archivedHint": "This report is archived. Bring it back to show it in the lists again. The retention periods also apply in the archive.",
+        "archive": "Archive report",
+        "unarchive": "Bring back from archive",
+        "saving": "Saving …",
+        "archived": "The report was archived.",
+        "unarchived": "The report is back in the lists.",
+        "delete": "Delete report permanently",
+        "deleted": "The report was permanently deleted."
+      },
+      "deleteDialog": {
+        "eyebrow": "Cannot be undone",
+        "title": "Delete report permanently",
+        "intro": "{{kind}} from {{date}} will be permanently deleted.",
+        "consequence": "The note, technical details, sent reply and ticket link are removed. This cannot be undone. The person no longer sees a sent reply afterwards.",
+        "ticketStays": "The ticket in the tracker stays: eimir. cannot delete it there. Close or delete it in the tracker yourself if needed.",
+        "archiveHint": "If you only want the report out of the lists, archive it instead.",
+        "cancel": "Cancel",
+        "confirm": "Delete permanently",
+        "deleting": "Deleting …"
+      },
+      "errors": {
+        "alreadyReplied": "This report has already been replied to. The sent reply is shown.",
+        "ticketExists": "This report already has a ticket.",
+        "ticketNotConfigured": "No tracker is set up for this installation.",
+        "ticketTooLong": "Title and description are too long for the tracker together with the technical details.",
+        "ticketFailedRetryable": "The tracker did not create the ticket. Check the tracker; the link stays open until you remove it.",
+        "ticketFailed": "The tracker refused the ticket. Check the tracker setup; the link stays open until you remove it.",
+        "offline": "You are offline. The change was not sent.",
+        "notFound": "This report no longer exists.",
+        "ticketNotFound": "The ticket link had already been removed. The report is reloaded.",
+        "validation": "The server did not accept the input.",
+        "generic": "The action could not be completed."
+      }
+    },
+    "privacyNote": "Server administration shows operational, identity and security metadata. Couples' private content, media content, job payloads, passwords, tokens and credentials are not shown. The only exception is the Reports section: there you read the notes people sent with a report themselves."
   },
   "partnerQuickActions": {
     "trigger": "Open actions for {{partner}}",
@@ -6099,11 +6151,7 @@
           },
           "second": {
             "title": "Videos",
-            "body": "Keep short videos in your memories and bring them in from your exports."
-          },
-          "third": {
-            "title": "Bring in skipped videos",
-            "body": "Bring in videos an import left out, from the same file."
+            "body": "Keep short videos in your memories."
           }
         }
       },
@@ -6611,12 +6659,13 @@
     },
     "full": {
       "title": "Your storage is full",
-      "body": "New photos, videos, voice messages and PDFs can be added again once you free up space or use Pro. Everything you have stays and can still be viewed, edited and exported.",
-      "bodyPro": "New photos, videos, voice messages and PDFs can be added again once you free up space. Everything you have stays and can still be viewed, edited and exported."
+      "body": "New photos, videos, voice messages and PDFs can be added again once you free up space or use Pro. Everything you have stays and can still be viewed and edited.",
+      "bodyPro": "New photos, videos, voice messages and PDFs can be added again once you free up space. Everything you have stays and can still be viewed and edited."
     },
     "viewMedia": "View photos and videos",
     "morePro": "More space with eimir. Pro",
-    "uploadRefused": "This no longer fits your storage. Free up space or use Pro, then you can add it again."
+    "uploadRefused": "This no longer fits your storage. Free up space or use Pro, then you can add it again.",
+    "unlimited": "Storage is not limited on this server."
   },
   "uploadFailure": {
     "image": "This photo could not be uploaded just now.",
@@ -6625,5 +6674,60 @@
     "connection": "The connection dropped while uploading. Check your network and try again.",
     "stalled": "The upload stopped making progress and was paused. Try again, ideally on a stable network.",
     "reference": "Reference for troubleshooting: {{reference}}"
+  },
+  "supportReport": {
+    "action": "Report a problem",
+    "entry": {
+      "title": "Help & feedback",
+      "subtitle": "Report a problem or tell us something"
+    },
+    "title": {
+      "PROBLEM": "Report a problem",
+      "FEEDBACK": "Help & feedback"
+    },
+    "kindLabel": "What is it about?",
+    "kinds": {
+      "PROBLEM": "Something is not working",
+      "FEEDBACK": "Feedback / idea"
+    },
+    "noteLabel": {
+      "PROBLEM": "What happened? (optional)",
+      "FEEDBACK": "What would you like? What bothers you?"
+    },
+    "counter": "{{length}} / {{max}}",
+    "counterLabel": "{{length}} of {{max}} characters",
+    "noteRequired": "Write a few words, then you can send.",
+    "noteTooLong": "That is more than {{max}} characters. Please shorten the text a little.",
+    "sentHeading": "What we send along",
+    "items": {
+      "failureLabel": "Error code and affected feature",
+      "app": "App version and build",
+      "device": "Device and display: system, browser, app or web, theme (light/dark), online status",
+      "locale": "Language, time and time zone",
+      "account": "Your account, so we can reply"
+    },
+    "never": "Never included: content, photos, places or messages.",
+    "feedbackNoCode": "For feedback we do not attach an error code.",
+    "send": "Send",
+    "sending": "Sending …",
+    "sendLater": "Send later",
+    "sendNow": "Send now",
+    "retry": "Try again",
+    "offline": {
+      "title": "You are offline.",
+      "body": "Your text is kept. Send it once you are back online."
+    },
+    "failed": "That did not work. Your text is still here, try again in a moment.",
+    "rateLimited": "You sent a lot of reports just now. Your text is kept, try again later.",
+    "success": {
+      "title": "Thanks, received.",
+      "body": "We read every report. If we write back, you get a notification.",
+      "done": "Done"
+    },
+    "reply": {
+      "title": "Reply to your report",
+      "context": "About your report",
+      "contextDated": "Your report of {{date}}"
+    }
   }
 }

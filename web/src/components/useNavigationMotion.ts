@@ -1,6 +1,6 @@
 import { type RefObject, useLayoutEffect, useRef } from 'react';
 import { setPrimaryTabPeek } from '../client/primaryTabPeek';
-import { PRIMARY_APP_ROUTES } from '../client/routes';
+import { PRIMARY_APP_ROUTES, primaryTabIndex } from '../client/routes';
 import { isDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import {
   commitDistance,
@@ -31,7 +31,7 @@ const PAGE_PARENTS = [
   ':scope >',
   ':scope > .primary-tab-panel:not([hidden], [data-primary-tab-peek], [data-primary-tab-prewarm]) >',
 ];
-const PEEK_PAGE = ':scope > .primary-tab-panel[data-primary-tab-peek] > .page';
+const PEEK_PANEL = ':scope > .primary-tab-panel[data-primary-tab-peek]';
 /** A cancelled or never-committed route change releases the drag state. */
 const COMMIT_FALLBACK_MS = 800;
 const ROUTE_LOADING = PAGE_PARENTS.flatMap((parent) => [
@@ -44,37 +44,33 @@ const BLOCKED_TARGETS =
   'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="switch"], [role="slider"], [role="tablist"], [draggable="true"], video, audio, .place-map-viewport, .media-gallery, .eimir-media-snap-track, [data-primary-tab-swipe-block]';
 
 /**
- * A primary destination or one of its peer views (Momente's map, the shared
- * notes): these share the primary surface, so a change between them is in
- * place, never a deeper page.
- */
-function isPrimarySurface(path: string): boolean {
-  return PRIMARY_APP_ROUTES.some(
-    (route) =>
-      route.path === path ||
-      ('peerPaths' in route &&
-        (route.peerPaths as readonly string[]).includes(path)),
-  );
-}
-
-/**
  * The pager follows the finger 1:1 toward a neighbour that exists; past the
  * end of the tab row it gives a little with rubber-banding (Gesture follow,
  * Motion Contract 4.6), never a neighbour that does not exist.
  */
 function dragOffset(
-  distance: number,
+  base: number,
+  dx: number,
   width: number,
   neighbours: { previous: boolean; next: boolean },
 ): number {
-  return rubberBand(
-    distance,
-    neighbours.next ? -width : 0,
-    neighbours.previous ? width : 0,
-  );
+  const min = neighbours.next ? -width : 0;
+  const max = neighbours.previous ? width : 0;
+  const bound = Math.max(min, Math.min(max, base));
+  const overscroll = base - bound;
+  // A re-grab starts at the drawn edge. Apply resistance to further outward
+  // movement, and let a reversal follow the finger immediately.
+  if (overscroll * dx > 0)
+    return rubberBand(
+      bound + overscroll / GESTURE.edgeResistance + dx,
+      min,
+      max,
+    );
+  return rubberBand(base + dx, Math.min(min, base), Math.max(max, base));
 }
 
 interface Settle {
+  committing: boolean;
   /** Jump to the end state now and report the outcome. */
   finish: () => void;
   /** Drop the animations without reporting. */
@@ -107,22 +103,20 @@ function settlePages(
   const width = window.innerWidth;
   const frames = sampleSpring(from, to, velocity, undefined, true);
   const duration = springDuration(frames);
-  // The current page is offset with `left`, not a transform: a transformed
-  // page would become the containing block of its fixed add action and make
-  // that control travel with the page's bottom edge before snapping back
-  // (the sanctioned shell exception of Motion Contract M6).
   const current = surface.querySelector<HTMLElement>(CURRENT_PAGE);
-  const peek = surface.querySelector<HTMLElement>(PEEK_PAGE);
+  // The panel survives a lazy neighbour replacing its loading placeholder.
+  const peek = surface.querySelector<HTMLElement>(PEEK_PANEL);
   place(to);
   const options = {
     duration,
     easing: 'linear',
     channel: 'gesture',
+    willChange: 'transform',
   } as const;
   const animations = [
     run(
       current,
-      frames.map((value) => ({ left: `${value}px` })),
+      frames.map((value) => ({ transform: `translate3d(${value}px, 0, 0)` })),
       options,
     ),
     run(
@@ -130,14 +124,13 @@ function settlePages(
       frames.map((value) => ({
         transform: `translate3d(${direction * width + value}px, 0, 0)`,
       })),
-      { ...options, willChange: 'transform' },
+      options,
     ),
   ].filter((animation): animation is Animation => animation !== null);
   if (!animations.length) return null;
   let open = true;
   let pending = animations.length;
-  const stop = () => {
-    open = false;
+  const stopAnimations = () => {
     for (const animation of animations) {
       animation.onfinish = null;
       animation.cancel();
@@ -145,7 +138,9 @@ function settlePages(
   };
   const finish = () => {
     if (!open) return;
-    stop();
+    open = false;
+    stopAnimations();
+    place(to);
     onSettled();
   };
   for (const animation of animations)
@@ -153,8 +148,12 @@ function settlePages(
       if (--pending === 0) finish();
     };
   return {
+    committing: to !== 0,
     finish,
-    abort: stop,
+    abort: () => {
+      open = false;
+      stopAnimations();
+    },
     grab: () => {
       // The linear keyframes are interpolated the same way here, so the
       // pages stop exactly where they are drawn.
@@ -168,7 +167,7 @@ function settlePages(
       const offset =
         (frames[index] ?? to) +
         (next - (frames[index] ?? to)) * (position - index);
-      stop();
+      stopAnimations();
       place(offset);
       return offset;
     },
@@ -224,7 +223,9 @@ interface Gesture {
   width: number;
   scrollY: number;
   horizontal: boolean;
-  /** Where the pages were when the finger landed (a grabbed settle). */
+  /** Keep the original decision until the new contact actually pans sideways. */
+  interrupted: Settle | null;
+  /** Drawn offset at the start of this contact. */
   base: number;
   offset: number;
   /** Which way the pages travel: 1 reveals the next tab, -1 the previous one. */
@@ -304,7 +305,10 @@ function animatePageSlide(
   // The page is positioned while `data-navigation-slide` is set (shell.css),
   // so set it before the first frame of the offset.
   surface.dataset.navigationSlide = 'true';
-  const animation = navigateMotion(page, direction, { offset: 'inset' });
+  const animation = navigateMotion(page, direction, {
+    offset:
+      direction === 'next' || direction === 'previous' ? 'slide' : 'inset',
+  });
   if (!animation) {
     delete surface.dataset.navigationSlide;
     return false;
@@ -325,6 +329,7 @@ export function useNavigationMotion({
   skipEntry = false,
   createEntry = false,
   returning = false,
+  swipeEnabled = true,
   onNavigate,
 }: {
   surfaceRef: RefObject<HTMLElement | null>;
@@ -334,6 +339,8 @@ export function useNavigationMotion({
   createEntry?: boolean;
   /** The route change is a Back/return to where the person came from. */
   returning?: boolean;
+  /** A map opened from a Moment keeps its task's return gesture boundary. */
+  swipeEnabled?: boolean;
   onNavigate: (root: string) => void;
 }): void {
   const navigateRef = useRef(onNavigate);
@@ -344,11 +351,42 @@ export function useNavigationMotion({
   const returningRef = useRef(returning);
   returningRef.current = returning;
   const suppressClick = useRef(false);
+  const pendingCreateTap = useRef<{
+    x: number;
+    y: number;
+    destination: string;
+  } | null>(null);
   const previousPath = useRef(pathname);
   const mainMotionCleanup = useRef<(() => void) | null>(null);
   const pageSlideCleanup = useRef<(() => void) | null>(null);
   // The committed swipe already travelled the pages; no second entry motion.
   const settledSwipe = useRef(false);
+
+  useLayoutEffect(() => {
+    const tap = pendingCreateTap.current;
+    if (!tap) return;
+    if (pathname !== tap.destination) {
+      pendingCreateTap.current = null;
+      return;
+    }
+    // The fixed plus belongs to each individual page. Hit-test the real
+    // destination after its portal mounts, including on a slower WebView.
+    const frame = window.requestAnimationFrame(() => {
+      if (currentRoute.current !== routeKey || pendingCreateTap.current !== tap)
+        return;
+      pendingCreateTap.current = null;
+      const action = document
+        .elementFromPoint(tap.x, tap.y)
+        ?.closest<HTMLElement>('[data-floating-create]');
+      if (
+        action?.closest<HTMLElement>('[data-primary-tab]')?.dataset
+          .primaryTab === pathname &&
+        !action.closest('[inert], [hidden]')
+      )
+        action.click();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [pathname, routeKey]);
 
   useLayoutEffect(() => {
     const surface = surfaceRef.current;
@@ -357,12 +395,8 @@ export function useNavigationMotion({
     previousPath.current = pathname;
     const settled = settledSwipe.current;
     if (changedPage) settledSwipe.current = false;
-    const before = PRIMARY_APP_ROUTES.findIndex(
-      (route) => route.path === previous,
-    );
-    const after = PRIMARY_APP_ROUTES.findIndex(
-      (route) => route.path === pathname,
-    );
+    const before = primaryTabIndex(previous);
+    const after = primaryTabIndex(pathname);
     // Tapping and history navigation slide the page in from the side they
     // travel to; a swipe has already moved the pages under the finger.
     // Nested tasks keep their own entry motion.
@@ -395,7 +429,7 @@ export function useNavigationMotion({
           ? 'previous'
           : returningRef.current
             ? 'back'
-            : !isPrimarySurface(pathname) && !createEntry
+            : after < 0 && !createEntry
               ? 'forward'
               : 'in-place';
     // A lazy route shows only its loading fallback at first, without a page
@@ -442,10 +476,8 @@ export function useNavigationMotion({
   // Bind ownership before the committed destination can receive another touch.
   useLayoutEffect(() => {
     const surface = surfaceRef.current;
-    const index = PRIMARY_APP_ROUTES.findIndex(
-      (route) => route.path === pathname,
-    );
-    if (!surface || index < 0) return;
+    const index = primaryTabIndex(pathname);
+    if (!surface || index < 0 || !swipeEnabled) return;
     const neighbours = {
       previous: Boolean(PRIMARY_APP_ROUTES[index - 1]),
       next: Boolean(PRIMARY_APP_ROUTES[index + 1]),
@@ -476,9 +508,11 @@ export function useNavigationMotion({
     // A drag that ends without a settle (multitouch, scroll, overlay).
     const abortGesture = () => {
       if (!gesture) return;
+      const interrupted = gesture.interrupted;
       gesture = null;
       overlays.disconnect();
-      clearDrag();
+      if (interrupted) interrupted.finish();
+      else clearDrag();
     };
     // An overlay may open during a swipe. Inspect it when the document changes
     // instead of searching every retained tab on each touch sample.
@@ -489,6 +523,7 @@ export function useNavigationMotion({
       reducedMotion = prefersReducedMotion();
       if (!reducedMotion) return;
       settle?.finish();
+      if (gesture?.interrupted) abortGesture();
       if (gesture) {
         gesture.peek = null;
         clearDrag();
@@ -538,7 +573,7 @@ export function useNavigationMotion({
       }
       // Grabbing settling pages stops them where they are and continues the
       // same swipe from there, without a jump (Motion Contract 4.6).
-      const base = grabbed ? grabbed.grab() : 0;
+      const offset = grabbed ? grabbed.grab() : 0;
       if (grabbed) settledSwipe.current = false;
       gesture = {
         id: touch.identifier,
@@ -547,13 +582,14 @@ export function useNavigationMotion({
         y: touch.clientY,
         width,
         scrollY: window.scrollY,
-        horizontal: grabbed !== null,
-        base,
-        offset: base,
+        horizontal: false,
+        interrupted: grabbed,
+        base: offset,
+        offset,
         direction: grabbed?.direction ?? 0,
         peek: null,
-        peakNext: Math.max(0, -base),
-        peakPrevious: Math.max(0, base),
+        peakNext: Math.max(0, -offset),
+        peakPrevious: Math.max(0, offset),
         velocity: new VelocityTracker(),
       };
       if (grabbed)
@@ -601,6 +637,7 @@ export function useNavigationMotion({
           return;
         }
         gesture.horizontal = true;
+        gesture.interrupted = null;
       }
       if (!event.cancelable) {
         abortGesture();
@@ -613,7 +650,7 @@ export function useNavigationMotion({
       const direction = distance < 0 ? 1 : -1;
       const neighbour = PRIMARY_APP_ROUTES[index + direction];
       gesture.direction = direction;
-      gesture.offset = dragOffset(distance, gesture.width, neighbours);
+      gesture.offset = dragOffset(gesture.base, dx, gesture.width, neighbours);
       gesture.peakNext = Math.max(gesture.peakNext, -gesture.offset);
       gesture.peakPrevious = Math.max(gesture.peakPrevious, gesture.offset);
       // One haptic per page change: the commit on release. No tick while
@@ -624,9 +661,10 @@ export function useNavigationMotion({
       const peek = reducedMotion ? null : (neighbour?.path ?? null);
       if (gesture.peek !== peek) {
         gesture.peek = peek;
+        // Make the neighbour measurable when React reveals it, before paint.
+        applyDrag(gesture);
         setPrimaryTabPeek(peek);
-      }
-      if (!reducedMotion && !frame)
+      } else if (!reducedMotion && !frame)
         frame = window.requestAnimationFrame(() => {
           frame = 0;
           if (gesture) applyDrag(gesture);
@@ -635,6 +673,34 @@ export function useNavigationMotion({
     const end = (event: TouchEvent) => {
       const current = gesture;
       if (!current) return;
+      if (current.interrupted) {
+        // A tap or a release within touch slop keeps the first decision.
+        suppressClick.current = current.interrupted.committing;
+        const released = event.changedTouches[0];
+        const destination =
+          PRIMARY_APP_ROUTES[index + current.interrupted.direction];
+        if (
+          current.interrupted.committing &&
+          destination &&
+          !event.touches.length &&
+          released?.identifier === current.id &&
+          current.target.closest('[data-floating-create]') &&
+          resolveOwnership(
+            'x',
+            released.clientX - current.x,
+            released.clientY - current.y,
+          ) === 'pending'
+        ) {
+          pendingCreateTap.current = {
+            x: released.clientX,
+            y: released.clientY,
+            destination: destination.path,
+          };
+          if (event.cancelable) event.preventDefault();
+        }
+        abortGesture();
+        return;
+      }
       gesture = null;
       overlays.disconnect();
       if (frame) window.cancelAnimationFrame(frame);
@@ -664,7 +730,7 @@ export function useNavigationMotion({
       const direction = distance < 0 ? 1 : -1;
       const destination = PRIMARY_APP_ROUTES[index + direction];
       current.direction = direction;
-      current.offset = dragOffset(distance, width, neighbours);
+      current.offset = dragOffset(current.base, dx, width, neighbours);
       // Velocity toward larger x in px/ms, measured up to the release (Motion
       // Contract 4.6, the #2073 tracker). Past the end of the tab row the
       // pages moved slower than the finger.
@@ -687,6 +753,7 @@ export function useNavigationMotion({
       const commit = decision === 'commit';
       const finishCommit = () => {
         if (!destination) return;
+        settle = null;
         settledSwipe.current = true;
         navigateRef.current(destination.path);
         // The route change releases the drag (this effect is replaced). If it
@@ -727,10 +794,11 @@ export function useNavigationMotion({
     };
     const pointer = () => {
       suppressClick.current = false;
+      pendingCreateTap.current = null;
     };
     surface.addEventListener('touchstart', start, { passive: true });
     surface.addEventListener('touchmove', move, { passive: false });
-    surface.addEventListener('touchend', end, { passive: true });
+    surface.addEventListener('touchend', end, { passive: false });
     surface.addEventListener('touchcancel', abortGesture, { passive: true });
     surface.addEventListener('contextmenu', abortGesture);
     surface.addEventListener('click', click, true);
@@ -761,5 +829,5 @@ export function useNavigationMotion({
       window.removeEventListener('blur', interrupt);
       window.removeEventListener('resize', interrupt);
     };
-  }, [pathname, routeKey, surfaceRef]);
+  }, [pathname, routeKey, surfaceRef, swipeEnabled]);
 }

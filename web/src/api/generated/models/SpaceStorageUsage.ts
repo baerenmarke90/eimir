@@ -32,7 +32,7 @@ export interface SpaceStorageUsage {
      */
     quota: number | null;
     /**
-     * Bytes the Space keeps: every attachment at its actual size, and a file still being uploaded or validated at its declared size. Thumbnails, the profile photo, one-time messages and Transfer archives do not count.
+     * Bytes the Space keeps: every attachment at its actual size, and a file still being uploaded or validated at its declared size. Thumbnails, the profile photo and one-time messages do not count.
      * @type {number}
      * @memberof SpaceStorageUsage
      */

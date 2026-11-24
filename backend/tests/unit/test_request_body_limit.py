@@ -26,11 +26,6 @@ def bounded_client(max_size: int = 8) -> TestClient:
         del space_id, attachment_id
         return {"size": sum([len(chunk) async for chunk in request.stream()])}
 
-    @app.post("/api/v1/spaces/{space_id}/transfer/imports")
-    async def import_archive(request: Request, space_id: str) -> dict[str, int]:
-        del space_id
-        return {"size": sum([len(chunk) async for chunk in request.stream()])}
-
     return TestClient(app, raise_server_exceptions=False)
 
 
@@ -74,15 +69,10 @@ def test_understated_content_length_cannot_bypass_receive_limit() -> None:
     assert_too_large(response.status_code, response.json())
 
 
-@pytest.mark.parametrize(
-    ("method", "path"),
-    [
-        ("PUT", "/api/v1/spaces/space/attachments/attachment/content"),
-        ("POST", "/api/v1/spaces/space/transfer/imports"),
-    ],
-)
-def test_existing_streaming_endpoints_retain_their_own_limits(method: str, path: str) -> None:
-    response = bounded_client().request(method, path, content=b"x" * 9)
+def test_attachment_content_upload_retains_its_own_limit() -> None:
+    response = bounded_client().put(
+        "/api/v1/spaces/space/attachments/attachment/content", content=b"x" * 9
+    )
     assert response.status_code == 200
     assert response.json() == {"size": 9}
 
@@ -91,7 +81,6 @@ def test_existing_streaming_endpoints_retain_their_own_limits(method: str, path:
     ("method", "path"),
     [
         ("POST", "/api/v1/spaces/space/attachments/attachment/content"),
-        ("PUT", "/api/v1/spaces/space/transfer/imports"),
         ("PUT", "/api/v1/spaces/space/attachments/attachment/content/extra"),
     ],
 )
@@ -110,3 +99,27 @@ def test_real_app_rejects_oversized_json_before_auth_or_parsing() -> None:
 
     assert_too_large(response.status_code, response.json())
     assert response.headers["X-Request-ID"]
+
+
+def test_former_transfer_import_path_has_no_exemption() -> None:
+    response = bounded_client().post("/api/v1/spaces/space/transfer/imports", content=b"x" * 9)
+    assert_too_large(response.status_code, response.json())
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("POST", "/api/v1/spaces/space/transfer/exports"),
+        ("GET", "/api/v1/spaces/space/transfer/exports/export"),
+        ("GET", "/api/v1/spaces/space/transfer/exports/export/download"),
+        ("POST", "/api/v1/spaces/space/transfer/imports"),
+        ("GET", "/api/v1/spaces/space/transfer/imports/import"),
+        ("POST", "/api/v1/spaces/space/transfer/imports/import/apply"),
+        ("GET", "/api/v1/spaces/space/transfer/skipped-videos"),
+        ("DELETE", "/api/v1/spaces/space/transfer/skipped-videos"),
+    ],
+)
+def test_removed_transfer_routes_are_not_served(method: str, path: str) -> None:
+    """ADR 0020 slice S3: the self-service Transfer Bundle API is gone."""
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    assert client.request(method, path).status_code == 404

@@ -35,6 +35,26 @@ import taskBoundary from '../i18n/locales/taskBoundary';
 import { AppShell } from './AppShell';
 import { HeartMomentProductPage } from './HeartMomentProductPage';
 
+function CaptureLifecycle({ apis }: { apis: ReferenceApis }) {
+  const { pathname } = useLocation();
+  const mode = pathname.endsWith('/new')
+    ? 'create'
+    : pathname.endsWith('/edit')
+      ? 'edit'
+      : 'detail';
+  return (
+    <HeartMomentProductPage
+      mode={mode}
+      apis={apis}
+      apiBaseUrl="https://example.test"
+      accessToken="token"
+      spaceId="space-1"
+      currentAccountId="account-1"
+      loadAttachment={async () => 'blob:test-image'}
+    />
+  );
+}
+
 const backToStoryName = taskBoundary.back;
 
 beforeEach(() => {
@@ -1114,25 +1134,6 @@ describe('Completed Plan handoff to HeartMoment', () => {
         }),
       },
     } as unknown as ReferenceApis;
-    function CaptureLifecycle() {
-      const { pathname } = useLocation();
-      const mode = pathname.endsWith('/new')
-        ? 'create'
-        : pathname.endsWith('/edit')
-          ? 'edit'
-          : 'detail';
-      return (
-        <HeartMomentProductPage
-          mode={mode}
-          apis={apis}
-          apiBaseUrl="https://example.test"
-          accessToken="token"
-          spaceId="space-1"
-          currentAccountId="account-1"
-          loadAttachment={async () => 'blob:test-image'}
-        />
-      );
-    }
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false, staleTime: Number.POSITIVE_INFINITY },
@@ -1160,7 +1161,7 @@ describe('Completed Plan handoff to HeartMoment', () => {
             <Routes>
               <Route
                 path="/story/heart-moments/:heartMomentId/*"
-                element={<CaptureLifecycle />}
+                element={<CaptureLifecycle apis={apis} />}
               />
             </Routes>
           </TaskOriginProvider>

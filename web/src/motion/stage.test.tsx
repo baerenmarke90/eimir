@@ -20,6 +20,15 @@ import {
   useStageHold,
 } from './stage';
 
+function Blocked() {
+  const ref = useStage<HTMLDivElement>('test.stage', {
+    duration: 1000,
+    hold: 400,
+    canStart: () => false,
+  });
+  return <div data-testid="stage" ref={ref} />;
+}
+
 let reduced: FakeMediaQuery;
 let clearRoles: () => void;
 
@@ -209,14 +218,6 @@ describe('useStage with a data hold (#2147)', () => {
   });
 
   it('never waits for a stage it cannot start', async () => {
-    function Blocked() {
-      const ref = useStage<HTMLDivElement>('test.stage', {
-        duration: 1000,
-        hold: 400,
-        canStart: () => false,
-      });
-      return <div data-testid="stage" ref={ref} />;
-    }
     render(
       <>
         <Blocked />

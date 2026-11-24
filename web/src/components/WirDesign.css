@@ -66,6 +66,53 @@
   display: grid;
   gap: var(--space-3);
 }
+.design-palette-trigger {
+  display: inline-flex;
+  justify-self: start;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: var(--touch-target-web);
+  max-inline-size: 100%;
+  padding: var(--space-1) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-medium);
+  box-shadow: none;
+  background: transparent;
+  color: var(--color-text);
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+.design-palette-trigger::after {
+  content: "";
+  flex: none;
+  inline-size: var(--space-2);
+  block-size: var(--space-2);
+  margin-inline-end: var(--space-1);
+  border-inline-end: 1.5px solid currentColor;
+  border-block-end: 1.5px solid currentColor;
+  transform: translateY(-25%) rotate(45deg);
+}
+.design-palette-trigger:hover {
+  background: var(--color-surface-subtle);
+}
+.design-palette-swatches {
+  display: inline-flex;
+  flex: none;
+  gap: var(--space-1);
+}
+.design-palette-swatches > span {
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-background);
+}
+.design-palette-swatches > span:nth-child(2) {
+  background: var(--color-border);
+}
+.design-palette-swatches > span:nth-child(3) {
+  background: var(--color-link-text);
+}
 .wir-design-summary {
   display: flex;
   align-items: center;
@@ -290,17 +337,6 @@
   margin-block-end: 7px;
 }
 .wir-design-preview-layout-names .wir-design-preview-vibes {
-  grid-template-columns: 1fr 1fr;
-}
-/* Note: a compact header and a tinted note card. */
-.wir-design-preview-layout-note .wir-design-preview-portraits {
-  display: none;
-}
-.wir-design-preview-layout-note .wir-design-preview-quote {
-  min-height: 18px;
-  background: var(--color-brand-surface);
-}
-.wir-design-preview-layout-note .wir-design-preview-vibes {
   grid-template-columns: 1fr 1fr;
 }
 @media (max-width: 359px) {

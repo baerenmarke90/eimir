@@ -1,7 +1,7 @@
 """Core lifecycle manifest of every plugin-owned table (Decision 0017, decision 4).
 
 A Core instance can run without the plugin after it once ran with it. Deletion,
-retention, encryption and export must stay correct in that state, so Core owns
+retention and encryption must stay correct in that state, so Core owns
 this declarative description of the plugin tables and never needs the plugin's
 ORM classes for them. A new plugin table needs a row here in the same change;
 ``tests/unit/test_plugin_manifest.py`` enforces that.
@@ -54,31 +54,6 @@ class Purge:
 
 
 @dataclass(frozen=True)
-class ExportField:
-    """One value of an exported entry: a column or a field of the decrypted payload."""
-
-    name: str
-    column: str | None = None
-    payload_field: str | None = None
-
-
-@dataclass(frozen=True)
-class ExportRule:
-    """A key of the personal export's account document, built from the Account's rows.
-
-    Only rows whose decrypted payload names the exporting Account in
-    ``payload_owner_field`` are exported. A ``single`` rule with one field
-    exports that value of the first row, and the key only when a row exists;
-    otherwise the key holds a list of entries.
-    """
-
-    key: str
-    fields: tuple[ExportField, ...]
-    single: bool = False
-    payload_owner_field: str = "account_id"
-
-
-@dataclass(frozen=True)
 class AttachmentRule:
     """A plugin row that owns at most one attachment."""
 
@@ -108,8 +83,6 @@ class PluginTable:
     """Short-lived state that is deleted entirely while its plugin is absent."""
     notification_targets: tuple[EngagementTarget, ...] = ()
     """Notification targets that point at this table's ``id``; deleted with the row."""
-    export: ExportRule | None = None
-    """The personal-export key this table provides (matched by its first account column)."""
 
 
 _GAMES = Capability.GAMES_COUPLE
@@ -118,6 +91,7 @@ _ONCE = Capability.PARTNER_ONCE_MESSAGES
 _PRESENCE = Capability.PRESENCE_LOCATION
 _QUOTE = Capability.DAILY_QUOTE
 _QUICK_ACTIONS = Capability.PARTNER_QUICK_ACTIONS_EXTENDED
+_OPERATOR = Capability.SUPPORT_OPERATOR
 
 _JOINED = Purge(LifecycleEvent.PARTNER_JOINED)
 _ENDED = Purge(LifecycleEvent.MEMBERSHIP_ENDED)
@@ -247,13 +221,6 @@ PLUGIN_TABLES: tuple[PluginTable, ...] = (
         ("account_id",),
         protected_payload_context="PhotoConnectionPayload",
         purge_on=(_ACCOUNT,),
-        export=ExportRule(
-            "personalPhotoSources",
-            (
-                ExportField("source", column="provider"),
-                ExportField("origin", payload_field="origin"),
-            ),
-        ),
     ),
     PluginTable(
         "photo_source_selections",
@@ -271,9 +238,6 @@ PLUGIN_TABLES: tuple[PluginTable, ...] = (
         ("account_id",),
         protected_payload_context="GoogleAccountHintPayload",
         purge_on=(_ACCOUNT,),
-        export=ExportRule(
-            "personalGoogleAccountHint", (ExportField("email", payload_field="email"),), single=True
-        ),
     ),
     # Extended partner gestures: content-free idempotency and pacing receipts.
     # Who sent which gesture to whom ends with either Account; the notification
@@ -325,11 +289,15 @@ PLUGIN_TABLES: tuple[PluginTable, ...] = (
         purge_on=(_ACCOUNT,),
         expires_columns=("expires_at",),
     ),
+    # Operator plugin: the tracker ticket of a support report. It holds no scope
+    # column; the row cascades with its report (``ON DELETE CASCADE``), so the
+    # retention of reports and the deletion of the reporter's Account remove it.
+    PluginTable("support_report_tickets", _OPERATOR, None, ()),
 )
 
 PLUGIN_TABLE_NAMES = frozenset(row.table for row in PLUGIN_TABLES)
 
-PLUGIN_CAPABILITIES = frozenset(
+PRO_CAPABILITIES = frozenset(
     {
         Capability.GAMES_COUPLE.value,
         Capability.INTEGRATION_EXTERNAL_SYNC.value,
@@ -344,12 +312,18 @@ PLUGIN_CAPABILITIES = frozenset(
         Capability.PLANNING_DATE_INSPIRATION.value,
     }
 )
-"""Capabilities implemented by plugin code; granted only while a loaded plugin provides them.
+"""Capabilities implemented by the Pro plugin; granted only while it is loaded.
 
 The capabilities without any implementation (including ``daily.insights``,
 whose Einblicke implementation was removed and archived in #2210) keep
 today's behavior and join this set when an implementation lands in a plugin.
 """
+
+ADMIN_CAPABILITIES = frozenset({Capability.SUPPORT_OPERATOR.value})
+"""Capabilities implemented by the operator plugin (``eimir-admin``); never part of a grant."""
+
+PLUGIN_CAPABILITIES = PRO_CAPABILITIES | ADMIN_CAPABILITIES
+"""Every capability a plugin owns; effective only while a loaded plugin provides it."""
 
 PLUGIN_JOB_KINDS = frozenset(
     {

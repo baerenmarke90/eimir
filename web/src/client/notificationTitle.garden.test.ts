@@ -29,7 +29,7 @@ function notice(targetType: 'GARDEN_SEED' | 'GARDEN_BOUQUET') {
 describe('garden notices (#1907 H3)', () => {
   it('names a bouquet with its own text on the shared seed notice kind', () => {
     expect(getNotificationItemTitle(notice('GARDEN_SEED'), t, 'me')).toBe(
-      'Alex hat dir einen Samen geschickt.',
+      'Alex hat dir Saatgut für euren Garten geschenkt.',
     );
     expect(getNotificationItemTitle(notice('GARDEN_BOUQUET'), t, 'me')).toBe(
       'Alex hat dir einen Strauß geschenkt.',

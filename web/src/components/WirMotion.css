@@ -53,7 +53,7 @@
    applies with reduced motion too, and it ends after the stage data hold at
    the latest. The page heading and its actions stay. */
 .today-content[data-motion-stage-scope="waiting"]
-> :not(.content-overview-heading),
+  > :not(.content-overview-heading),
 .wir-stage[data-motion-stage="waiting"] {
   opacity: 0;
 }
@@ -180,7 +180,7 @@
      the scrolling strip for a moment and nudge it. Their body only rises
      (Enter `shift`), so no plan fades inside a fading body. */
   .today-section[data-wir-reveal="pending"]
-  .today-section-body:has(.today-agenda-list) {
+    .today-section-body:has(.today-agenda-list) {
     opacity: 1;
   }
 

@@ -41,9 +41,11 @@ function dispatchTouch(
 
 /** The indicator's resting offset below the top of its clip, in px. */
 function offsetOf(disc: HTMLElement): number {
-  const match = /calc\((-?[\d.]+)px - 100%\)/.exec(disc.style.transform);
+  const match = /calc\((?:([-\d.]+)px - 100%|-100% \+ ([-\d.]+)px)\)/.exec(
+    disc.style.transform,
+  );
   if (!match) throw new Error(`No offset in "${disc.style.transform}"`);
-  return Number(match[1]);
+  return Number(match[1] ?? match[2]);
 }
 
 function attachDisc(ref: (element: HTMLElement | null) => void): HTMLElement {

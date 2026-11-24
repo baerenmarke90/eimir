@@ -1,14 +1,26 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import { ApiRuntimeProvider } from '../client/apiRuntimeContext';
 import { STORY_OURS_ROUTE } from '../client/routes';
 import { ShellUtilitiesContext } from '../client/shellUtilities';
+import {
+  closeSupportReport,
+  currentSupportReportRequest,
+} from '../client/supportReportLauncher';
 import de from '../i18n/locales/de';
 import games from '../i18n/locales/games';
 import navigation from '../i18n/locales/navigation';
 import relationshipReflections from '../i18n/locales/relationshipReflections';
+import supportReport from '../i18n/locales/supportReport';
 import { MoreOverviewPage } from './MoreOverviewPage';
 
 describe('MoreOverviewPage', () => {
@@ -216,7 +228,7 @@ describe('MoreOverviewPage', () => {
     },
   );
   it.each([
-    ['2026-11-06.draft-2', true],
+    ['2026-11-24.draft-3', true],
     [null, false],
   ])(
     'links the Cloud legal texts only where they apply (%s)',
@@ -251,6 +263,85 @@ describe('MoreOverviewPage', () => {
       expect(html.includes('href="/legal/privacy"')).toBe(shown);
     },
   );
+});
+
+describe('help and feedback on More', () => {
+  beforeAll(() => {
+    HTMLDialogElement.prototype.showModal = function () {
+      this.setAttribute('open', '');
+    };
+    HTMLDialogElement.prototype.close = function () {
+      this.removeAttribute('open');
+    };
+  });
+  afterEach(() => {
+    cleanup();
+    closeSupportReport();
+    window.localStorage.clear();
+  });
+
+  function renderMore(available: boolean | undefined) {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+    });
+    queryClient.setQueryData(['profile-identity', 'space-1', 'account-1'], {
+      accountId: 'account-1',
+      displayName: 'Alex',
+      profileAttachmentId: null,
+      version: 1,
+    });
+    if (available !== undefined)
+      queryClient.setQueryData(['instance-status', 'http://api.example.test'], {
+        termsOfUseVersion: null,
+        supportReportsAvailable: available,
+      });
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <ApiRuntimeProvider
+          apiBaseUrl="http://api.example.test"
+          accessToken="test-token"
+          accountId="account-1"
+        >
+          <MemoryRouter>
+            <MoreOverviewPage
+              apiBaseUrl="http://api.example.test"
+              accessToken="test-token"
+              account={{ id: 'account-1', displayName: 'Alex' }}
+              spaceId="space-1"
+            />
+          </MemoryRouter>
+        </ApiRuntimeProvider>
+      </QueryClientProvider>,
+    );
+  }
+
+  it.each([false, undefined])(
+    'more_row_hidden_when_not_available (%s)',
+    (available) => {
+      renderMore(available);
+      expect(
+        screen.queryByRole('button', { name: supportReport.entry.title }),
+      ).toBeNull();
+    },
+  );
+
+  it('opens the feedback sheet from the utility group without a failure', () => {
+    const { container } = renderMore(true);
+    const row = screen.getByRole('button', {
+      name: supportReport.entry.title,
+    });
+    expect(row.closest('.more-group')?.querySelector('h2')?.textContent).toBe(
+      de.more.groups.utility,
+    );
+    expect(row.getAttribute('aria-describedby')).toBeTruthy();
+    expect(container.textContent).toContain(supportReport.entry.subtitle);
+
+    expect(currentSupportReportRequest()).toBeNull();
+    fireEvent.click(row);
+    // Feedback, never with a failure; the shell's host renders the sheet.
+    expect(currentSupportReportRequest()).toEqual({ kind: 'FEEDBACK' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
 });
 
 describe('account ID copy on More', () => {

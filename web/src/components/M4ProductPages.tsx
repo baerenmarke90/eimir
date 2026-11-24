@@ -52,6 +52,7 @@ import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { SEARCH_ROUTE } from '../client/routes';
 import { handleTabKeyDown } from '../client/tabKeyboard';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
+import { optionalDeferredComponent } from '../deferredModules';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { ActivityCard } from './ActivityCard';
 import { AutoLoadMore } from './AutoLoadMore';
@@ -64,6 +65,15 @@ import { AuthorAvatar } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import './M4ProductPages.css';
+
+/**
+ * The reply body of a `SUPPORT_REPLY` notice, in its own chunk with its client
+ * and styles. Until it has loaded, or when it cannot load, the notice shows
+ * its title alone; the list never waits for it.
+ */
+const SupportReplyNotice = optionalDeferredComponent(() =>
+  import('./SupportReplyNotice').then((module) => module.SupportReplyNotice),
+);
 
 const PAGE_SIZE = 20;
 
@@ -593,6 +603,11 @@ function NotificationCard({
         ) : null}
         <div className="m4-notification-copy">
           <p className="m4-notification-title">{titleContent}</p>
+          {item.kind === 'SUPPORT_REPLY' &&
+          item.targetType === 'SUPPORT_REPORT' &&
+          item.targetId ? (
+            <SupportReplyNotice reportId={item.targetId} />
+          ) : null}
           <time
             className="m4-item-meta"
             dateTime={item.createdAt.toISOString()}

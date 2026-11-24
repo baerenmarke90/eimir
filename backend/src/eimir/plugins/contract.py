@@ -31,10 +31,9 @@ if TYPE_CHECKING:
     from eimir.engagement.models import EngagementTarget, NotificationKind
     from eimir.jobs.worker import JobRegistry
     from eimir.outbox.models import OutboxEvent
-    from eimir.transfer.models import TransferScope
     from eimir.wish_selections.date_idea_contract import DateIdeaSource
 
-PLUGIN_SEAM_VERSION = 6
+PLUGIN_SEAM_VERSION = 7
 """The seam revision Core implements. A plugin declaring another value refuses to start."""
 
 PLUGIN_ENTRY_POINT_GROUP = "eimir.plugins"
@@ -218,15 +217,6 @@ class ProPlugin(Protocol):
 
         Account rows are pseudonymized, so their foreign-key cascades never fire.
         """
-        ...
-
-    def export_account_document(
-        self,
-        session: Session,
-        authorization: AuthorizationContext,
-        scope: TransferScope,
-    ) -> Mapping[str, Any]:
-        """Return the plugin's keys of the export's account document (read only)."""
         ...
 
     def hidden_wish_ids(self, session: Session, context: AuthorizationContext) -> frozenset[UUID]:

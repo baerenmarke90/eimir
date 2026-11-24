@@ -4,7 +4,7 @@
 **Date:** November 18, 2026; updated November 19, 2026 for the Product Owner's repository-visibility direction;
 updated November 20, 2026 for the current `main` baseline and the owning issue; updated November 22, 2026 for
 the Phase 2 plan and the Product Owner's decisions of that day; updated November 23, 2026 for the implemented
-Phase 2  
+Phase 2; updated November 24, 2026 for seam version 7 (removal of the export hook)  
 **Owning issue:** [#2082](https://github.com/baerenmarke90/eimir/issues/2082) (Phase 1),
 [#2182](https://github.com/baerenmarke90/eimir/issues/2182) (Phase 2). Phase 3 gets its own issue when it starts.  
 **Builds on:** [ADR 0006](../m6/ADR-0006-ENTITLEMENT-ARCHITECTURE.md) (capability entitlements),
@@ -177,7 +177,7 @@ These are the call sites the seam replaces. They are the real work.
 | C11 | `relationship/service.py` `end_membership()` | `couple_games.purge_space`, `once_messages.purge_space`, `heart_hunt.purge_space`, `picture_ping_pong.purge_space`, `garden.purge_space` |
 | C12 | `relationship/offboarding.py` `leave_space()` | `calendar_sync.on_membership_ended` |
 | C13 | `identity/deletion.py` `apply_core_cleanup()` | Deletes `PhotoSelection`, `PhotoConnection`, `GoogleAccountHint`, `CalendarConnection`, `CalendarOAuthTransaction` rows. Since `9197ec3f0` it also deletes, through `PERSONAL_ACCOUNT_ROWS`, the rows of `GardenReader`, `GardenWatering`, `OnceDevice`, `OnceReception`, `PresenceDeviceCredential`, `PresenceSnapshot`, `PartnerLocationConsent` and `DailyQuotePreference`, and calls `presence.service.delete_owner_presence` to reset the consent a departing recipient had received |
-| C14 | `transfer/service.py` `build_export_archive()` | `PhotoConnection`, `GoogleAccountHint` into `personalPhotoSources` and `personalGoogleAccountHint` |
+| C14 | `transfer/service.py` `build_export_archive()` | `PhotoConnection`, `GoogleAccountHint` into `personalPhotoSources` and `personalGoogleAccountHint`. **Removed in seam version 7** ([ADR 0020](0020-remove-transfer-bundle-self-service.md)): the operator export tool in `eimir_pro.portability` reads these tables itself. |
 | C15 | `attachments/binding.py` `parent_of()` | `HeartHuntRound` to resolve parent type `HEART_HUNT_ROUND` |
 | C16 | `attachments/retention.py` `classify_owner_attachment()` | `HeartHuntRound.hider_id` for account cleanup |
 | C17 | `attachments/service.py` `_require_readable_parent()` | `heart_hunt.can_read_photo` |
@@ -307,7 +307,7 @@ the caller's `Session` and never commit, roll back or open their own transaction
 | `attachment_read_rules() -> Mapping[str, AttachmentReadRule]` | C17 | Read only | Absent plugin: the existing `privacy_absence` branch denies the read. |
 | `push_preview_detail(session, context, target_type, target_id) -> tuple[str, str] \| None` (#2158, seam version 4) | (new) the plugin half of the encrypted device preview v3 | Read only; called only for a plugin target Core already found current for the reader; returns closed machine codes (title, body), never free text | Absent plugin: plugin targets are never current, so no preview asks for it. |
 | `on_partner_joined`, `on_membership_ended`, `on_member_left`, `on_account_deleted`, `prune_expired` | C7, C10 to C13 | Run in the caller's transaction at the existing call sites; with the plugin loaded they own its tables' lifecycle (update of decision 4) | An exception rolls the whole lifecycle transaction back (fail closed, as today). Absent plugin: the manifest rules alone apply. |
-| `export_account_document(session, authorization, scope) -> Mapping` | C14 | Read only, inside the export transaction | Absent plugin: the manifest export rule produces the same keys (decision 4). |
+| ~~`export_account_document(session, authorization, scope) -> Mapping`~~ **Removed in seam version 7** (ADR 0020) | C14 | – | The Core call and the manifest export rule are gone with it. |
 | `date_ideas() -> DateIdeaSource \| None` (`revision`, `view`); the shared DTOs live in the Core contract `eimir.wish_selections.date_idea_contract` | C18 | Pure, cached | Absent plugin: Core treats the catalog as unavailable, which is the existing paused state of a round that contains date ideas (#465 within #1535): Wish-only rounds are unaffected, nothing is deleted, export keeps catalog IDs only. `IDEA_ID_PATTERN` stays a Core contract constant. |
 | `hidden_wish_ids(session, context) -> frozenset[UUID]` | (new, [#2158](https://github.com/baerenmarke90/eimir/issues/2158) H, seam version 5) | Read only, inside the caller's read or write transaction | Absent plugin: nothing is hidden. Core (`eimir.wishes.concealment`) masks the returned Wishes in its read models (list, detail, Search, Wir, notification titles, Wish selection, the one-phone game pool) and refuses the reader's writes to them while an open remote Wish detective game hides them. |
 | `seed_demo(session, result, *, created)` | C19 | Inside the demo seed transaction after the demo Pro grant; idempotent like the existing demo helpers; `created` limits the location share to a new or reset demo Space | Absent plugin: the demo Space has no quote preferences and no location share. |
@@ -337,8 +337,8 @@ manifest of every plugin-owned table (`eimir.plugins.manifest`), one row per tab
 - `protected_payload` with its crypto context, so `security/lifecycle.py` migrates, rotates and verifies these
   tables without importing the plugin (replaces C4). This is required by the at-rest encryption goal: without it a
   Core-only key rotation would silently skip six Pro tables;
-- `export`: the account-document keys and the columns or payload fields they contain (replaces C14 for the
-  Core-only case);
+- ~~`export`: the account-document keys and the columns or payload fields they contain (replaces C14 for the
+  Core-only case)~~ (removed in seam version 7, see the update of November 24, 2026);
 - `job_kinds`: the job kinds the plugin owns. A Core-only worker does not claim them, instead of failing them
   permanently as "unknown job kind" (`jobs/worker.py`), so they resume when the plugin returns. Their privacy
   effect is covered by `expires_column` rules, not by the jobs.
@@ -375,7 +375,7 @@ approval the rule is therefore:
   plugin's tables (no double execution).
 - **Plugin absent:** Core's manifest executor (`eimir.plugins.lifecycle`) applies the rules of the absent plugin's
   tables only: `purge_on` deletes at the four lifecycle points, `expires_columns` deletes at retention, `transient`
-  tables are emptied, `attachment` hands photos to `mark_for_deletion`, `export` builds the personal-export keys,
+  tables are emptied, `attachment` hands photos to `mark_for_deletion`,
   and the new `notification_targets` field deletes the notifications that point at deleted rows. A purge rule may
   name `dependents`, tables whose rows with the same `space_id` and `account_id` go with each matched row.
 
@@ -579,6 +579,17 @@ The implementation differs from the plan in these points:
 - **Still waiting for Self-Hosted work:** `proFeaturesAvailable` with its Core-only client state and the ServerAdmin
   view of dormant plugin data (#2148).
 
+**Update of November 24, 2026: seam version 7** ([ADR 0020](0020-remove-transfer-bundle-self-service.md), slice S1c,
+[#2243](https://github.com/baerenmarke90/eimir/issues/2243)). The Product Owner removed the Transfer Bundle self-service
+export and replaced it with an operator-only tool in `eimir_pro.portability`, which reads the Pro tables directly. The
+hook `export_account_document` (C14) and the manifest `ExportRule` and `ExportField`, with the `export` field of a
+manifest row and the two entries of `photo_source_connections` and `google_account_hints`, therefore have no caller
+and are removed, and `PLUGIN_SEAM_VERSION` rises from 6 to 7. Core and the Pro plugin change in one pull request,
+Core first, because the loader refuses a plugin whose seam version differs. Consequences: the old self-service
+export no longer writes `personalPhotoSources` and `personalGoogleAccountHint` (it is unreachable after ADR 0020 S3
+anyway), and the manifest executor no longer builds personal-export keys for an absent plugin. Decision 4 (deletion,
+retention and encryption never depend on the plugin) is unchanged.
+
 **Phase 3: publication and delivery.** The repository becomes private (the cleanup path in the Context section),
 the Core export of decision 7 publishes the Core into a fresh public repository, a Core image is built from the
 exported tree, and a private Pro image is built `FROM` that Core image digest with its own release identity and
@@ -708,3 +719,21 @@ the Pro code stay private. Still open:
    [#2085](https://github.com/baerenmarke90/eimir/issues/2085) and done there.
 6. **License of the private package** for paying Self-Hosted operators (the public code is PolyForm
    Noncommercial 1.0.0).
+
+## Amendment 2026-11-24: more than one plugin
+
+The statement above that this seam has at most one trusted plugin is narrowed ([#2189](https://github.com/baerenmarke90/eimir/issues/2189)).
+The operator plugin `eimir-admin` is a second trusted distribution built from the same repository and revision as
+Core and `eimir-pro`. The seam now allows a small fixed set, not an open plugin ecosystem:
+
+- `EXPECTED_DISTRIBUTIONS` allow-lists exactly `pro` (`eimir-pro`) and `admin` (`eimir-admin`); a name provided by
+  any other distribution still refuses to start.
+- Load and hook order follows `EIMIR_PLUGINS`. `EIMIR_PLUGINS=pro` and an empty value behave exactly as before.
+- No two loaded plugins may declare the same capability. `resolve_plugins` checks this at startup and raises
+  `PluginLoadError` naming both plugins and the capability.
+- Hooks that take the first provider's answer (date ideas, push preview detail) stay single-provider by
+  documentation: only one plugin may implement them.
+- Route collisions between plugins already refuse startup (`check_route_collisions`).
+- `support.operator` belongs to `ADMIN_CAPABILITIES`. It is plugin-owned, is never part of a Premium grant
+  (`NON_ENTITLEMENT_CAPABILITIES`, excluded from `ALL_PREMIUM_CAPABILITIES`) and is effective only while the admin
+  plugin is loaded. No business/freemium impact: operator access is not a couple-facing capability.

@@ -109,7 +109,7 @@ describe('SettingsPage', () => {
     expect(html).not.toContain('important-date-reminder-card');
     expect(html).not.toContain('name="dashboardUpcomingItemLimit"');
     expect(html).not.toContain('theme-control');
-    expect(html).not.toContain('id="data-transfer"');
+    expect(html).not.toContain('id="settings-data"');
     expect(html).not.toContain('account-danger-zone');
   });
 
@@ -142,14 +142,15 @@ describe('SettingsPage', () => {
     expect(today).toContain(dailyQuote.settingsTitle);
     expect(today).toContain('settings-daily-quote');
     expect(today).not.toContain('important-date-reminder-card');
-    expect(today).not.toContain('id="data-transfer"');
+    expect(today).not.toContain('id="settings-data"');
 
     const appearance = renderSettingsPageFixture('/more/settings/appearance');
     expect(appearance).toContain('theme-control');
-    expect(appearance).not.toContain('id="data-transfer"');
+    expect(appearance).not.toContain('id="settings-data"');
 
     const data = renderSettingsPageFixture('/more/settings/data');
-    expect(data).toContain('id="data-transfer"');
+    expect(data).toContain('id="settings-data"');
+    expect(data).not.toContain('transfer');
     expect(data).not.toContain('account-danger-zone');
   });
 

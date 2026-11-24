@@ -733,7 +733,7 @@
 
 /* Photo: a mat, a panorama band and a corner with the day. */
 .recap-film-frame:is([data-layout="mat"], [data-layout="frame"])
-.recap-film-media {
+  .recap-film-media {
   padding: var(--space-6) var(--space-6) var(--space-2);
 }
 .recap-film-frame:is([data-layout="mat"], [data-layout="frame"])
@@ -839,7 +839,7 @@
 }
 /* A stack lies on itself, the first picture on top. */
 .recap-film-frame:is([data-layout="stack"], [data-variant="stack"])
-.recap-film-picture {
+  .recap-film-picture {
   place-self: center;
   inline-size: 72%;
   block-size: 78%;

@@ -1,7 +1,7 @@
 ---
 document: privacy-policy
 locale: de-DE
-version: 2026-11-22.draft-9
+version: 2026-11-24.draft-13
 status: draft
 effective: null
 legal_review: pending
@@ -21,7 +21,7 @@ Diese Übersicht soll dir den Einstieg erleichtern. Die Einzelheiten stehen in d
 - Deinen Standort teilen wir mit deinem Partner nur, wenn du das in eimir. Pro selbst einschaltest. Standardmäßig ist er ungefähr; auf Wunsch kannst du ihn genauer teilen. Wir speichern nur deine aktuelle Position und keinen Verlauf (Abschnitt 9).
 - Was ihr festhaltet, kann sehr persönlich sein. Wir nutzen es nur, um eimir. für euch bereitzustellen.
 - Manche Funktionen nutzen Dienste anderer Anbieter, zum Beispiel Karten, Adresssuche oder Push-Benachrichtigungen. Was diese Anbieter dabei erfahren, erklären wir bei der jeweiligen Funktion.
-- Du kannst deine Daten jederzeit exportieren und dein Konto jederzeit löschen.
+- Du kannst jederzeit eine Kopie deiner Daten verlangen und dein Konto jederzeit löschen.
 
 ## 1. Wer verantwortlich ist
 
@@ -52,7 +52,7 @@ Diese Übersicht soll dir den Einstieg erleichtern. Die Einzelheiten stehen in d
 ## 4. Euer Space und eure Inhalte
 
 1. In eurem Space haltet ihr eure gemeinsame Geschichte fest, zum Beispiel mit Erinnerungen, Herzmomenten, Meilensteinen, Wünschen, Plänen, Orten, Listen, Kommentaren, Reaktionen, Fotos, Videos und Sprachnachrichten. Wir speichern und verarbeiten diese Inhalte, um sie euch bereitzustellen, zwischen euren Geräten abzugleichen, sie durchsuchbar zu machen und die Funktionen anzubieten, die ihr nutzt, etwa Rückblicke (Art. 6 Abs. 1 lit. b DSGVO).
-2. Was ihr „Für uns beide“ speichert, seht ihr beide. Gemeinsame Erinnerungen und ähnliche Inhalte kann dein Partner auch bearbeiten und im Datenexport herunterladen, auch wenn du sie erstellt hast.
+2. Was ihr „Für uns beide“ speichert, seht ihr beide. Gemeinsame Erinnerungen und ähnliche Inhalte kann dein Partner auch bearbeiten und in seiner Datenkopie (Abschnitt 14) erhalten, auch wenn du sie erstellt hast.
 3. Was du als „Nur für mich“ speicherst, zum Beispiel private Notizen, Geschenkideen oder private Herzmomente, siehst nur du. Diese Grenze setzen unsere Server durch, nicht nur die Anzeige in der App.
 4. Dein Partner sieht außerdem deinen Anzeigenamen, dein Profilbild und die Angaben, die du in deinem Profil für deinen Partner hinterlegst. Während ihr eimir. nutzt, sieht dein Partner, ob du gerade oder vor Kurzem aktiv warst, aber keine Uhrzeit. Dafür speichern wir nur den Zeitpunkt deiner letzten Aktivität und überschreiben ihn laufend. Diese Anzeige beruht auf unserem und eurem berechtigten Interesse, dass ihr in eimir. merkt, wann der andere da ist (Art. 6 Abs. 1 lit. f DSGVO). Du kannst ihr widersprechen (Abschnitt 24).
 5. Teilst du dein „Gefühl für heute“ oder deinen Akku, speichern wir diese Angaben nur für den aktuellen Tag. Ist der Tag vorbei, verschwinden sie in eimir., und wir löschen sie beim nächsten automatischen Aufräumen, das jede Stunde läuft. Ob und wann dein Partner sie sieht, folgt den Einstellungen eures Space.
@@ -73,7 +73,7 @@ Diese Übersicht soll dir den Einstieg erleichtern. Die Einzelheiten stehen in d
 2. Schaltest du den Empfang ein, erzeugt eimir. auf deinem Gerät ein Schlüsselpaar. Der private Schlüssel bleibt auf deinem Gerät und lässt sich nicht aus eimir. exportieren; nur der öffentliche Schlüssel geht an uns. Eine Einmalnachricht wird schon auf dem sendenden Gerät für die Empfangsgeräte verschlüsselt, und auf unseren Servern liegt sie nur als verschlüsselter Umschlag. Das ist keine unabhängig geprüfte Ende-zu-Ende-Verschlüsselung: Die öffentlichen Schlüssel verteilen unsere Server, und Bildschirmfotos oder andere Kopien lassen sich nicht verhindern.
 3. Fotos verkleinert eimir. schon auf dem sendenden Gerät und entfernt dabei eingebettete Metadaten.
 4. Ungeöffnete Einmalnachrichten löschen wir nach 24 Stunden. Öffnet dein Partner eine Nachricht, löschen wir den Umschlag; die Ansicht endet mit dem Schließen, spätestens nach fünf Minuten. Du kannst eine Nachricht zurückziehen, und dein Partner kann sie ungeöffnet verwerfen. Schaltet einer von euch den Empfang aus, löschen wir alle ausstehenden Einmalnachrichten zwischen euch.
-5. Einmalnachrichten sind nicht Teil des Datenexports. Sicherungen können den verschlüsselten Umschlag bis zum Ablauf ihrer Aufbewahrungsfrist enthalten. Benachrichtigungen dazu enthalten keine Inhalte, und per E-Mail benachrichtigen wir dich über Einmalnachrichten nicht.
+5. Einmalnachrichten sind nicht Teil der Datenkopie (Abschnitt 14). Sicherungen können den verschlüsselten Umschlag bis zum Ablauf ihrer Aufbewahrungsfrist enthalten. Benachrichtigungen dazu enthalten keine Inhalte, und per E-Mail benachrichtigen wir dich über Einmalnachrichten nicht.
 6. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO; für besonders schützenswerte Angaben gilt Abschnitt 7.
 
 ## 7. Besonders schützenswerte Angaben
@@ -98,7 +98,7 @@ Diese Übersicht soll dir den Einstieg erleichtern. Die Einzelheiten stehen in d
 5. Öffnest du einen Ort ausdrücklich in Google Maps, übergibt eimir. die Koordinaten an Google, aber keine Anmeldedaten. Ab dann gelten die Datenschutzhinweise von Google.
 6. Mit eimir. Pro kannst du deinem Partner zeigen, wie weit du entfernt bist, und auf Wunsch zusätzlich einen ungefähren Kartenbereich. Das ist freiwillig und nie voreingestellt. Du entscheidest, was dein Partner sieht und wie lange, und kannst es jederzeit beenden. Dein Partner entscheidet für sich allein.
 7. Du wählst auch, wie genau deine Position ist. Voreingestellt ist „ungefähr“: Dein Gerät rundet sie auf etwa einen Kilometer, bevor sie an uns geht. Wählst du „genau“, rundet dein Gerät auf etwa 100 Meter. Das stellst du beim ersten Start oder später in den Einstellungen ein. Genau teilen kannst du nur, wenn dein Gerät eine genaue Position hat; erlaubt Android nur den ungefähren Standort, bleibt es bei „ungefähr“ und wir sagen es dir in den Einstellungen. Deine genauen Koordinaten verlassen dein Gerät nicht. Dein Partner sieht eine Entfernungsstufe, bei „genau“ auf beiden Seiten auch eine feinere unter zwei Kilometern, und nie Koordinaten, eine Richtung oder einen Verlauf. Er erfährt nicht, welche Genauigkeit du gewählt hast.
-8. Wir speichern pro Person nur die aktuelle gerundete Position, verschlüsselt (Abschnitt 5). Jede neue Position ersetzt die alte, spätestens 24 Stunden nach der Messung löschen wir sie, und wenn du das Teilen beendest, löschen wir sie sofort. Endet Pro für euren Space, beenden wir das Teilen und löschen die Positionen; es beginnt nicht von selbst wieder. Wir erstellen keinen Bewegungsverlauf, nehmen die Positionen nicht in Exporte auf und nutzen sie nur für Entfernung und Kartenbereich. Deine eigene Position schickst du nur, damit wir die Entfernung zu deinem Partner berechnen können. Wir speichern sie dafür nicht.
+8. Wir speichern pro Person nur die aktuelle gerundete Position, verschlüsselt (Abschnitt 5). Jede neue Position ersetzt die alte, spätestens 24 Stunden nach der Messung löschen wir sie, und wenn du das Teilen beendest, löschen wir sie sofort. Endet Pro für euren Space, beenden wir das Teilen und löschen die Positionen; es beginnt nicht von selbst wieder. Wir erstellen keinen Bewegungsverlauf, nehmen die Positionen in keine Datenkopie auf und nutzen sie nur für Entfernung und Kartenbereich. Deine eigene Position schickst du nur, damit wir die Entfernung zu deinem Partner berechnen können. Wir speichern sie dafür nicht.
 9. Die Android-App misst deinen Standort einmal, wenn du sie öffnest oder zu ihr zurückkehrst, und nur solange das Teilen eingeschaltet ist oder du die Entfernung ansiehst. Für „genau“ bittet sie Android zusätzlich um die genaue Standortberechtigung; dort wählst du „Genau“ oder „Ungefähr“. Im Browser fragt dein Browser. Willst du, dass deine Position auch aktuell bleibt, wenn die App geschlossen ist, kannst du das zusätzlich einschalten und „Immer zulassen“ erlauben. Dann nutzt eimir. nur Positionen, die Android ohnehin schon ermittelt hat, und startet selbst keine Messung. Die Berechtigung kannst du jederzeit in den Android-Einstellungen entziehen.
 10. Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), für den Zugriff auf den Standort deines Geräts außerdem § 25 Abs. 1 TDDDG. Du kannst sie jederzeit widerrufen, indem du das Teilen beendest oder die Berechtigung entziehst. Das berührt nicht, was bis dahin geschah. Ohne Einwilligung funktioniert eimir. unverändert, nur ohne Entfernung.
 11. Über diese Funktion hinaus fragt eimir. deinen Standort nicht ab, verfolgt ihn nicht und erstellt keinen Bewegungsverlauf.
@@ -129,10 +129,10 @@ Diese Übersicht soll dir den Einstieg erleichtern. Die Einzelheiten stehen in d
 
 Fügst du einen Link ein und lässt dir eine Vorschau anzeigen, ruft unser Server die verlinkte Seite auf und liest Titel und Beschreibung aus. Die verlinkte Website erfährt dabei die IP-Adresse unseres Servers, nicht deine. Die abgerufene Seite speichern wir nicht. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO.
 
-## 14. Datenexport
+## 14. Datenkopie
 
-1. Du kannst deine Daten jederzeit kostenlos in den Einstellungen unter „Daten und Portabilität“ exportieren. Der gemeinsame Export enthält die gemeinsamen Inhalte eures Space, auch die deines Partners. Deine „Nur für mich“-Inhalte enthält nur dein persönlicher Export.
-2. Wir erstellen die Exportdatei auf unseren Servern, halten sie 24 Stunden verschlüsselt zum Herunterladen bereit und löschen sie dann. Passkeys, Sitzungen, Zugangsschlüssel und Einmalnachrichten exportieren wir nicht. Hast du die Datei heruntergeladen, liegt sie in deiner Verantwortung.
+1. Du kannst jederzeit kostenlos eine Kopie deiner Daten in einem maschinenlesbaren Format von uns verlangen, unabhängig davon, ob ihr Pro nutzt. Schreib uns dazu an kontakt@reiswienudel.de (Abschnitt 23). Die gemeinsame Kopie enthält die gemeinsamen Inhalte eures Space, auch die deines Partners. Deine „Nur für mich“-Inhalte enthält nur deine persönliche Kopie.
+2. Wir erstellen die Kopie auf deine Anfrage und übergeben sie dir. Passkeys, Sitzungen, Zugangsschlüssel und Einmalnachrichten nehmen wir nicht auf. Deine persönliche Kopie enthält dagegen deine eigenen Problemmeldungen und dein Feedback mit unseren Antworten (Abschnitt 19). Hast du die Kopie erhalten, liegt sie in deiner Verantwortung.
 3. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO sowie dein Recht auf Datenübertragbarkeit (Art. 20 DSGVO).
 
 ## 15. Speicherung auf deinem Gerät
@@ -143,6 +143,7 @@ Fügst du einen Link ein und lässt dir eine Vorschau anzeigen, ruft unser Serve
    - gemeinsame Inhalte, die du zuletzt angesehen hast, höchstens sieben Tage lang, damit eimir. schnell lädt und sie kurz auch ohne Verbindung lesbar bleiben; „Nur für mich“-Inhalte legt eimir. dort nicht ab,
    - bereits geladene Bilddateien ohne feste Altersgrenze, bis zu 2.000 Medieneinträge. Bei knappem Speicher entfernt die App die am längsten ungenutzten Bilder. Im Browser und auf iOS werden dafür nur gemeinsame Bilder dauerhaft gespeichert. Private Bilder bleiben dort im Arbeitsspeicher. Android speichert gemeinsame und private Bilder verschlüsselt mit einem Schlüssel für deine aktuelle Anmeldung. Ob du ein Bild offline noch sehen kannst, hängt vom zugehörigen, höchstens sieben Tage gültigen Inhalt ab. Videos und Audiodateien werden nicht in diesem Bildspeicher abgelegt,
    - Entwürfe, die du noch nicht gespeichert hast, einschließlich ausgewählter Fotos, höchstens sieben Tage lang, damit nichts verloren geht,
+   - eine Problemmeldung oder ein Feedback, das du noch nicht gesendet hast, mit deinem Text, der Art der Meldung und nach einem Sendeversuch dem Fehler-Code, für dein Konto, bis du die Meldung sendest oder verwirfst, dich abmeldest oder Konto oder Space wechselst (Abschnitt 19),
    - für Einmalnachrichten den privaten Schlüssel dieses Geräts, bis du den Empfang ausschaltest oder die Daten im Browser oder in der App löschst; geöffnete Einmalnachrichten hält eimir. nur im Arbeitsspeicher, solange du sie ansiehst,
    - Einstellungen wie das helle oder dunkle Design und kleine Merker, etwa dass du einen Hinweis ausgeblendet hast,
    - die Programmdateien der Web-App und eine Offline-Seite, damit eimir. wie eine App startet; persönliche Daten sind darin nicht enthalten.
@@ -150,14 +151,14 @@ Fügst du einen Link ein und lässt dir eine Vorschau anzeigen, ruft unser Serve
 
 ## 16. Protokolle, Missbrauchsschutz und Sicherungen
 
-1. Bei jedem Aufruf von eimir. fallen technische Daten an, zum Beispiel deine IP-Adresse, der Zeitpunkt, die aufgerufene Adresse, der Statuscode und Angaben zu deinem Browser. Unsere Server und die vorgelagerte Infrastruktur unseres Hosting-Anbieters verarbeiten sie, um eimir. auszuliefern, und halten einen Teil davon in Protokollen fest. Das Protokoll unserer Anwendung enthält nur Zeitpunkt, Art und Adresse der Anfrage, den Statuscode und die Dauer, ohne IP-Adresse und ohne Inhalte. Die Adresse kann technische Kennungen enthalten, etwa die eures Space. Protokolle löschen wir nach 30 Tagen.
+1. Bei jedem Aufruf von eimir. fallen technische Daten an, zum Beispiel deine IP-Adresse, der Zeitpunkt, die aufgerufene Adresse, der Statuscode und Angaben zu deinem Browser. Unsere Server und die vorgelagerte Infrastruktur unseres Hosting-Anbieters verarbeiten sie, um eimir. auszuliefern, und halten einen Teil davon in Protokollen fest. Das Protokoll unserer Anwendung enthält nur Zeitpunkt, Art und Adresse der Anfrage, den Statuscode, die Dauer und eine Kennung der Anfrage, ohne IP-Adresse und ohne Inhalte. Die Adresse kann technische Kennungen enthalten, etwa die eures Space. Protokolle löschen wir nach 30 Tagen.
 2. Um Anmeldung und Registrierung vor Missbrauch zu schützen, begrenzen wir die Zahl der Versuche. Dafür speichern wir einen Prüfwert deiner E-Mail-Adresse oder deiner IP-Adresse, bei IPv6 deines Netzbereichs, mit dem Zeitpunkt des Versuchs und löschen ihn nach einem Tag.
 3. Wir sichern Datenbank und Medien regelmäßig, damit nach einem technischen Fehler nichts verloren geht. Die Sicherungen enthalten eure Inhalte in verschlüsselter Form und werden nach [[BACKUP_RETENTION]] gelöscht. Müssen wir eine Sicherung zurückspielen, löschen wir alle Konten, deren Löschung seitdem veranlasst wurde, erneut, bevor eimir. wieder erreichbar ist. Dafür führen wir ein Löschprotokoll mit der Kennung des Kontos und dem Zeitpunkt der Löschung, ohne E-Mail-Adresse und ohne Inhalte, so lange, wie ältere Sicherungen bestehen können.
 4. Rechtsgrundlage ist unser berechtigtes Interesse an einem sicheren, stabilen und vor Missbrauch geschützten Dienst (Art. 6 Abs. 1 lit. f DSGVO).
 
 ## 17. Kein Tracking, keine Werbung
 
-Wir setzen in eimir. keine Analyse-, Tracking- oder Werbedienste ein, weder in der Web-App noch in den Apps. Die Android-App enthält keine Bibliotheken für Analyse, Werbung oder Absturzberichte. Wir verkaufen keine Daten und geben sie nicht für Werbung weiter.
+Wir setzen in eimir. keine Analyse-, Tracking- oder Werbedienste ein, weder in der Web-App noch in den Apps. Die Android-App enthält keine Bibliotheken für Analyse, Werbung oder Absturzberichte. Fehler- und Geräteangaben erhalten wir nur, wenn du uns selbst ein Problem meldest (Abschnitt 19). Wir verkaufen keine Daten und geben sie nicht für Werbung weiter.
 
 ## 18. eimir. Pro und Zahlungen
 
@@ -168,9 +169,19 @@ eimir. Pro kann derzeit noch nicht gekauft werden. Sobald das möglich ist, gilt
 - Dein Partner sieht, dass Pro für euren Space aktiv ist, aber keine Zahlungsangaben.
 - Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO. Rechnungsdaten bewahren wir auf, solange handels- und steuerrechtliche Pflichten es verlangen, für Rechnungen derzeit acht Jahre, für bestimmte Buchungsunterlagen bis zu zehn Jahre (Art. 6 Abs. 1 lit. c DSGVO).
 
-## 19. Wenn du uns schreibst
+## 19. Wenn du uns schreibst oder ein Problem meldest
 
-Schreibst du uns, verarbeiten wir deine Nachricht und deine Kontaktdaten, um dir zu antworten (Art. 6 Abs. 1 lit. b oder lit. f DSGVO). Meldest du uns einen rechtswidrigen Inhalt, verarbeiten wir deine Angaben, um den Hinweis zu prüfen (Art. 6 Abs. 1 lit. c DSGVO in Verbindung mit Art. 16 der Verordnung (EU) 2022/2065). Bittest du uns, dafür in deine Inhalte zu sehen, tun wir das nur im nötigen Umfang. Wir löschen deine Nachricht, wenn wir sie nicht mehr brauchen und keine gesetzliche Pflicht entgegensteht.
+1. Schreibst du uns, verarbeiten wir deine Nachricht und deine Kontaktdaten, um dir zu antworten (Art. 6 Abs. 1 lit. b oder lit. f DSGVO). Meldest du uns einen rechtswidrigen Inhalt, verarbeiten wir deine Angaben, um den Hinweis zu prüfen (Art. 6 Abs. 1 lit. c DSGVO in Verbindung mit Art. 16 der Verordnung (EU) 2022/2065). Bittest du uns, dafür in deine Inhalte zu sehen, tun wir das nur im nötigen Umfang. Wir löschen deine Nachricht, wenn wir sie nicht mehr brauchen und keine gesetzliche Pflicht entgegensteht.
+2. In eimir. kannst du uns unter „Hilfe & Feedback“ oder direkt aus einer Fehleranzeige ein Problem melden oder Feedback schicken. Bevor du sendest, zeigt dir eimir., was mitgeschickt wird. Mit einer Meldung erhalten wir:
+   - ob es um ein Problem oder um Feedback geht, und deinen Text mit höchstens 2.000 Zeichen; bei einem Problem ist er freiwillig, bei Feedback nötig,
+   - wenn du ein Problem aus einer Fehleranzeige meldest, einen technischen Fehler-Code zu genau diesem Fehler: die Art der Anfrage, die betroffene Funktion als allgemeine Adresse ohne Kennungen und ohne Suchangaben, den Statuscode oder die Art des Verbindungsfehlers, den Fehlercode unseres Servers und ob du die App oder die Web-App nutzt, außerdem, soweit vorhanden, die Kennung der fehlgeschlagenen Anfrage, mit der wir sie in unseren Protokollen wiederfinden (Abschnitt 16),
+   - Angaben zu App und Gerät: App-Version und Build, ob du die App oder einen Browser nutzt, Betriebssystem und Browser mit ihrer Versionsnummer, Sprache, helles oder dunkles Design, ob du online bist, deine Ortszeit und Zeitzone; kein Gerätemodell und keine Gerätekennung,
+   - die interne Kennung deines Kontos, damit wir dir antworten können.
+3. Inhalte aus eurem Space wie Erinnerungen, Notizen, Pläne, Listen, Nachrichten oder Fotos, außerdem Dateinamen, Orte, Kontaktdaten, Zugangsschlüssel und Daten anderer Menschen schickt eimir. dabei nicht mit. Was du selbst in den Text schreibst, erhalten wir allerdings. Schreib dort bitte nur, was wir brauchen, um dein Anliegen zu verstehen. Die Angaben zu App und Gerät liest eimir. erst aus, wenn du die Meldung abschickst. Ohne dass du eine Meldung sendest, erhalten wir keine Fehler- oder Geräteangaben.
+4. Wir nutzen deine Meldung nur, um das Problem zu finden und zu beheben, dein Feedback zu berücksichtigen und dir, wenn wir das für sinnvoll halten, einmal zu antworten. Deine Meldungen lesen nur wir. Wir geben sie nicht an Dritte weiter und nutzen sie nicht für Analyse oder Werbung. Um einen Fehler zu beheben, können wir zu einer Meldung ein technisches Ticket in unserem Ticketsystem anlegen; es enthält neben einer Beschreibung, die wir selbst schreiben, nur technische Angaben (Kennung und Art der Meldung, App-Version und Build, ob du die App oder die Web-App nutzt, den Fehler-Code mit der Kennung der fehlgeschlagenen Anfrage) und nie deinen Text, unsere Antwort oder die Kennung deines Kontos. Wir speichern sie in unserer Datenbank, deinen Text, den Fehler-Code und die Angaben zu App und Gerät verschlüsselt (Abschnitt 5). Unverschlüsselt bleiben die Art der Meldung, ihr Bearbeitungsstand und die Zeitpunkte. Damit eimir. nicht mit Meldungen überflutet wird, begrenzen wir ihre Zahl pro Konto (Abschnitt 16).
+5. Wir können dir auf eine Meldung einmal kurz antworten, mit höchstens 500 Zeichen. Die Antwort erscheint als Benachrichtigung in eimir., die nur du siehst. Eine Push-Benachrichtigung dazu enthält den Antworttext nicht, und per E-Mail schicken wir die Antwort nicht. Es gibt keinen Chat und keinen Verlauf: Auf die Antwort kannst du nicht antworten, aber du kannst jederzeit eine neue Meldung schicken. Bist du gerade in keinem Space, speichern wir die Antwort, du erhältst aber keine Benachrichtigung.
+6. Eine abgeschlossene Meldung löschen wir 90 Tage nach ihrem Abschluss, jede Meldung spätestens 365 Tage nach dem Absenden, jeweils mit unserer Antwort. Löschst du dein Konto, löschen wir deine Meldungen und Antworten sofort. Deine Meldungen mit unseren Antworten enthält deine persönliche Datenkopie (Abschnitt 14), die du nach Abschnitt 23 anfragen kannst.
+7. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO, soweit du uns ein Problem mit eimir. meldest, und für Feedback unser berechtigtes Interesse, eimir. anhand deiner Rückmeldung zu verbessern (Art. 6 Abs. 1 lit. f DSGVO). Die Angaben zu App und Gerät liest eimir. aus, weil du die Meldung ausdrücklich abschickst (§ 25 Abs. 2 Nr. 2 TDDDG).
 
 ## 20. Wer deine Daten erhält
 
@@ -204,9 +215,10 @@ Wir speichern deine Daten nur so lange, wie wir sie für die beschriebenen Zweck
 - **Sitzungen:** bis zu 60 Tage ohne Nutzung, höchstens 180 Tage.
 - **Links:** Anmeldelinks 15 Minuten, Links zur Bestätigung deiner Adresse 24 Stunden, Einladungen für deinen Partner 14 Tage.
 - **Missbrauchsschutz:** ein Tag.
-- **Exportdateien:** 24 Stunden.
+- **Datenkopien auf Anfrage:** Wir löschen die für dich erstellte Datei nach der Übergabe.
+- **Problemmeldungen und Feedback:** nach dem Abschluss 90 Tage, höchstens 365 Tage nach dem Absenden, jeweils mit unserer Antwort; beim Löschen deines Kontos sofort.
 - **Auswahl aus anderen Fotodiensten:** zehn Minuten.
-- **Lokale Kopien gemeinsamer Ansichten und Entwürfe:** höchstens sieben Tage. **Bilddateien:** bis zu 2.000 Medieneinträge ohne feste Altersgrenze. Die Bereinigung bei Abmeldung, Konto- und Space-Wechsel ist in Abschnitt 15 beschrieben. Einstellungen und Merker bleiben, bis du sie im Browser oder in der App löschst.
+- **Lokale Kopien gemeinsamer Ansichten und Entwürfe:** höchstens sieben Tage. **Bilddateien:** bis zu 2.000 Medieneinträge ohne feste Altersgrenze. Die Bereinigung bei Abmeldung, Konto- und Space-Wechsel ist in Abschnitt 15 beschrieben. **Nicht gesendete Meldungen:** bis du sie sendest oder verwirfst, dich abmeldest oder Konto oder Space wechselst. Einstellungen und Merker bleiben, bis du sie im Browser oder in der App löschst.
 - **Protokolle:** 30 Tage.
 - **Sicherungen:** [[BACKUP_RETENTION]]; das Löschprotokoll so lange, wie ältere Sicherungen bestehen können.
 - **Rechnungsdaten für eimir. Pro:** so lange, wie gesetzliche Aufbewahrungspflichten bestehen.
@@ -214,7 +226,7 @@ Wir speichern deine Daten nur so lange, wie wir sie für die beschriebenen Zweck
 ## 23. Deine Rechte
 
 1. Du hast das Recht auf Auskunft (Art. 15 DSGVO), Berichtigung (Art. 16 DSGVO), Löschung (Art. 17 DSGVO), Einschränkung der Verarbeitung (Art. 18 DSGVO) und Datenübertragbarkeit (Art. 20 DSGVO). Hast du in eine Verarbeitung eingewilligt, kannst du die Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen (Art. 7 Abs. 3 DSGVO).
-2. Vieles kannst du direkt in eimir. erledigen: dein Profil und deine Einstellungen ändern, Inhalte löschen, deine Daten unter „Daten und Portabilität“ exportieren und dein Konto unter „App und Konto“ löschen. Für alles andere schreib uns an kontakt@reiswienudel.de.
+2. Vieles kannst du direkt in eimir. erledigen: dein Profil und deine Einstellungen ändern, Inhalte löschen, dein Konto unter „App und Konto“ löschen. Eine Kopie deiner Daten (Auskunft und Übertragbarkeit) schicken wir dir auf Anfrage (Abschnitt 14). Für alles andere schreib uns an kontakt@reiswienudel.de.
 3. Gemeinsame Inhalte gehören zu eurer gemeinsamen Geschichte. Betrifft dein Anliegen auch Daten deines Partners, berücksichtigen wir auch dessen Rechte.
 4. Du kannst dich bei einer Datenschutz-Aufsichtsbehörde beschweren (Art. 77 DSGVO), insbesondere in dem Mitgliedstaat der EU, in dem du lebst oder arbeitest oder in dem der mutmaßliche Verstoß stattgefunden hat. Für uns zuständig ist das Unabhängige Datenschutzzentrum Saarland, Fritz-Dobisch-Straße 12, 66111 Saarbrücken.
 

@@ -235,12 +235,13 @@
 /* Diary detail header: two equal round controls with the entry type as a quiet
    context line. With lead photography the controls float over the photo. */
 .page-composer-detail:is(
-  .memory-product-page,
-  .milestone-product-page,
-  .heart-moment-product-page,
-  .page-plan-detail,
-  .wish-detail
-) .composer-header {
+    .memory-product-page,
+    .milestone-product-page,
+    .heart-moment-product-page,
+    .page-plan-detail,
+    .wish-detail
+  )
+  .composer-header {
   --detail-control-size: var(--touch-target-web);
   --detail-control-surface: var(--color-surface-raised);
   --detail-control-foreground: var(--color-text);

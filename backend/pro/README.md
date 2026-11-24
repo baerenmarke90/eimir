@@ -25,6 +25,7 @@ so it can move into its own repository unchanged.
 | Path | Content |
 | --- | --- |
 | `src/eimir_pro/` | the Pro packages, their routers (`api/`), the plugin object (`plugin.py`) and the editorial data (date ideas, sayings) |
+| `src/eimir_pro/portability/` | the operator export and import tool ([Decision 0020](../../docs/decisions/0020-remove-transfer-bundle-self-service.md)); run it with `python -m eimir_pro.portability`, see its [runbook](src/eimir_pro/portability/RUNBOOK.md) |
 | `pro_tests/` | the Pro tests (`unit/`, `integration/`, `support/`); they reuse the Core test support package `tests` |
 | `pro_scripts/` | development tools (the date-idea catalog validator) |
 | `docs/` | the date-idea catalog schema |

@@ -57,6 +57,14 @@ x-shared-runtime-environment: &shared-runtime-environment
   EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET: "${EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET:-}"
   EIMIR_GOOGLE_PHOTOS_WEB_CLIENT_FILE: "${EIMIR_GOOGLE_PHOTOS_WEB_CLIENT_FILE:-}"
   EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS: '${EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS:-[]}'
+  EIMIR_SUPPORT_REPORTS_ENABLED: "${EIMIR_SUPPORT_REPORTS_ENABLED:-false}"
+  # Operator plugin for support reports (#2189, #2266): name `admin` next to `pro`
+  # (EIMIR_PLUGINS=pro,admin). The default matches the image. Tracker values are
+  # optional; empty counts as unset.
+  EIMIR_PLUGINS: "${EIMIR_PLUGINS:-pro}"
+  EIMIR_ADMIN_TRACKER: "${EIMIR_ADMIN_TRACKER:-}"
+  EIMIR_ADMIN_GITHUB_REPOSITORY: "${EIMIR_ADMIN_GITHUB_REPOSITORY:-}"
+  EIMIR_ADMIN_GITHUB_TOKEN: "${EIMIR_ADMIN_GITHUB_TOKEN:-}"
   EIMIR_CALENDAR_SYNC_ENABLED: "${EIMIR_CALENDAR_SYNC_ENABLED:-true}"
   EIMIR_CALENDAR_CALDAV_PRIVATE_HOSTS: '${EIMIR_CALENDAR_CALDAV_PRIVATE_HOSTS:-[]}'
   EIMIR_GOOGLE_CALENDAR_CLIENT_ID: "${EIMIR_GOOGLE_CALENDAR_CLIENT_ID:-}"
@@ -301,6 +309,8 @@ services:
     command: ["alembic", "upgrade", "head"]
     environment:
       <<: *self-hosted-database-environment
+      # The plugin migration chains follow the same plugin list as API and worker.
+      EIMIR_PLUGINS: "${EIMIR_PLUGINS:-pro}"
     networks:
       - app
     depends_on:
@@ -392,6 +402,7 @@ services:
     command: ["alembic", "upgrade", "head"]
     environment:
       EIMIR_DATABASE_URL: "${EIMIR_DATABASE_URL:-${SBS_DATABASE_URL:-}}"
+      EIMIR_PLUGINS: "${EIMIR_PLUGINS:-pro}"
     networks:
       - app
 

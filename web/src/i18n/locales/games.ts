@@ -31,8 +31,7 @@ const games = {
     garden: {
       role: 'Wachsen',
       title: 'Unser Garten',
-      description:
-        'Schickt euch jeden Tag einen Samen, wo immer ihr gerade seid.',
+      description: 'Schenkt euch jeden Tag Saatgut, wo immer ihr gerade seid.',
     },
     heartHunt: {
       role: 'Suchen',
@@ -49,7 +48,7 @@ const games = {
       OUR_MOMENTS: '{{name}} wartet auf deinen Zug.',
       PICTURE_PING_PONG: '{{name}} hat weitergemalt. Jetzt du.',
       HEART_HUNT: '{{name}} hat ein Herz für dich versteckt.',
-      GARDEN_SEED: 'Ein Samen von {{name}} wartet aufs Einpflanzen.',
+      GARDEN_SEED: 'Saatgut von {{name}} wartet aufs Einpflanzen.',
       GARDEN_BOUQUET: '{{name}} hat dir einen Strauß gebunden.',
     },
   },
@@ -416,31 +415,32 @@ const games = {
     loading: 'Der Garten wird geöffnet …',
     changedMeanwhile:
       'Im Garten hat sich gerade etwas getan. Wir haben ihn neu geladen.',
-    sentStatus: '{{messenger}} hat deinen Samen zu {{name}} gebracht.',
+    sentStatus: '{{messenger}} hat dein Saatgut zu {{name}} gebracht.',
     plantedStatus: 'Eingepflanzt.',
     wateredStatus: 'Gegossen. {{name}} sieht die Tropfen.',
     waterTitle: 'Welche Pflanze gießt du?',
     waterBody:
       'Tipp im Garten auf eine Pflanze. {{name}} sieht danach die Tropfen.',
     cancel: 'Abbrechen',
-    arrivedTitle: '{{name}} hat dir einen Samen geschickt',
+    arrivedTitle: '{{name}} hat dir Saatgut geschenkt',
     quoted: '„{{words}}“',
     foldedCard: 'Ein Kärtchen mit lieben Worten',
     unfold: 'Aufklappen',
     plant: 'Einpflanzen',
     todayTitle: 'Heute für {{name}}',
-    todayBody: 'Such einen Samen aus. {{messenger}} bringt ihn zu {{name}}.',
-    chooseSeed: 'Samen auswählen',
+    todayBody:
+      'Such aus, was du verschenken möchtest. {{messenger}} bringt es zu {{name}}.',
+    chooseSeed: 'Saatgut auswählen',
     wordsQuestion: 'Liebe Worte dazu?',
     yourWords: 'Deine Worte: „{{words}}“',
     change: 'Ändern',
-    send: 'Samen losschicken',
-    waitingTitle: 'Dein Samen ist bei {{name}}',
+    send: 'Saatgut verschenken',
+    waitingTitle: 'Dein Saatgut ist bei {{name}}',
     waitingBody:
-      'Sobald {{name}} reinschaut, wird er eingepflanzt. Seid ihr heute beide da, wächst der ganze Garten ein Stück.',
+      'Sobald {{name}} reinschaut, wird es eingepflanzt. Seid ihr heute beide da, wächst der ganze Garten ein Stück.',
     sharedTitle: 'Ihr wart heute beide im Garten',
     sharedBody:
-      'Alles ist ein Stück gewachsen, und eure Laternen leuchten. Morgen gibt es neue Samen.',
+      'Alles ist ein Stück gewachsen, und eure Laternen leuchten. Morgen gibt es neues Saatgut.',
     sceneLabel_one: 'Euer Garten mit {{count}} Pflanze',
     sceneLabel_other: 'Euer Garten mit {{count}} Pflanzen',
     panHint: 'Wischen, um den ganzen Garten zu sehen',
@@ -480,7 +480,7 @@ const games = {
       gateLabel: 'Ein Gartentor wartet auf euer Wiedersehen am {{date}}',
       todayTitle: 'Heute seht ihr euch wieder',
       todayBody:
-        'Euer ganzer Garten blüht für euch. Heute müsst ihr keine Samen schicken.',
+        'Euer ganzer Garten blüht für euch. Heute braucht ihr kein Saatgut zu verschenken.',
       buntingLabel: 'Alles blüht, und eine Wimpelkette hängt über dem Garten',
       save: 'Wiedersehensgarten als Moment speichern',
       saving: 'Wird gespeichert …',
@@ -531,10 +531,10 @@ const games = {
         'Ein doppelter Mondregenbogen: ihr habt heute beide gegossen',
       together: {
         swing:
-          'Ihr zwei sitzt zusammen auf der Schaukel, ihr habt heute beide einen Samen geschickt',
-        tree: 'Ihr zwei sitzt zusammen auf einer Bank unter eurem Baum, ihr habt heute beide einen Samen geschickt',
+          'Ihr zwei sitzt zusammen auf der Schaukel und habt euch heute Saatgut geschenkt',
+        tree: 'Ihr zwei sitzt zusammen auf einer Bank unter eurem Baum und habt euch heute Saatgut geschenkt',
         bench:
-          'Ihr zwei sitzt zusammen auf einer Bank, ihr habt heute beide einen Samen geschickt',
+          'Ihr zwei sitzt zusammen auf einer Bank und habt euch heute Saatgut geschenkt',
       },
       birdhouseLabel: 'Im Vogelhäuschen steckt ein Zettel von {{name}}',
       birdhouseStatus:
@@ -769,7 +769,7 @@ const games = {
       openAria: '{{title}} öffnen',
       resting: 'Euer Garten ruht gerade und wartet einfach auf euch.',
       bothWatered: 'Heute habt ihr beide gegossen.',
-      empty: 'Noch ist alles frei. Schickt euch den ersten Samen.',
+      empty: 'Noch ist alles frei. Schenkt euch euer erstes Saatgut.',
     },
     // A one-time offer inside the game to show the garden on Wir.
     wirHint: {
@@ -797,14 +797,15 @@ const games = {
       yesterday: 'Gestern',
       speciesFrom: '{{species}} von {{name}}',
       speciesFromYou: '{{species}} von dir',
-      seedSentOwn: 'Du hast {{name}} einen Samen geschickt.',
-      seedSentPartner: '{{name}} hat dir einen Samen geschickt.',
-      seedWaiting: 'Er wartet oben auf dich.',
-      plantedOwn: 'Du hast den Samen von {{name}} eingepflanzt.',
-      plantedPartner: '{{name}} hat deinen Samen eingepflanzt.',
-      plantedItselfOwn: 'Dein Samen hat von selbst seinen Platz gefunden.',
+      seedSentOwn: 'Du hast {{name}} Saatgut geschenkt.',
+      seedSentPartner: '{{name}} hat dir Saatgut geschenkt.',
+      seedWaiting: 'Es wartet oben auf dich.',
+      plantedOwn: 'Du hast das Saatgut von {{name}} eingepflanzt.',
+      plantedPartner: '{{name}} hat dein Saatgut eingepflanzt.',
+      plantedItselfOwn:
+        'Dein Saatgut hat von selbst einen Platz im Beet gefunden.',
       plantedItselfPartner:
-        'Der Samen von {{name}} hat von selbst seinen Platz gefunden.',
+        'Das Saatgut von {{name}} hat von selbst einen Platz im Beet gefunden.',
       sharedDay: 'Ihr wart beide da, und der ganze Garten ist gewachsen.',
       bloomOwn: 'Eine Blume, die du geschickt hast, blüht zum ersten Mal.',
       bloomPartner: 'Eine Blume von {{name}} blüht zum ersten Mal.',

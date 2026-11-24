@@ -46,3 +46,25 @@ Compact, light. Expanded, dark, reduced motion and the 360/430 px widths are cov
 The category title and the storage card both read "Speicher" once the Transfer panel is gone. The approved copy keeps
 both. The card heading is the accessible name of the section, so it is kept; the visual duplication is noted in the
 pull request for a Product Owner decision instead of being changed silently.
+
+## Implemented captures (real code, local harness, stubbed API data)
+
+Captured with the real `SettingsPage` mounted in a throwaway Vite harness (not committed), so they show the page
+content without the app shell (no tab bar or side navigation). Dark uses the stored theme preference, large text
+sets the root font size to 200 percent.
+
+| File | Shows |
+| --- | --- |
+| `implemented/after-1-storage-almost-full.webp` | Compact 390, light, opened with an old export deep link: no export or import control |
+| `implemented/after-1b-storage-unlimited.webp` | Compact 390, light, no quota: the calm sentence |
+| `implemented/after-2-settings-overview.webp` | Compact 390, light, overview row of the data category |
+| `implemented/after-3-delete-account.webp` | Compact 390, light, delete account consequences, no export button |
+| `implemented/after-4-leave-space.webp` | Compact 390, light, leave Space consequences, no export button |
+| `implemented/after-5-storage-almost-full-390-dark.webp` | Compact 390, dark |
+| `implemented/after-6-storage-almost-full-390-text-200-top.webp`, `...-7-...-bottom.webp` | Compact 390, light, 200 percent text; the measured document width equals the viewport width (no horizontal overflow) |
+| `implemented/after-8-storage-almost-full-1280-light.webp`, `...-9-...-1280-dark.webp` | Expanded 1280 |
+
+Not captured: reduced motion (the storage card keeps its existing enter animation and its reduced-motion
+handling; no motion code changed), the 360 and 430 px widths, dark or Expanded versions of the roomy, full, Pro and
+no-quota states and of the overview row and the two dialogs, and any native device or emulator. The CI browser job
+(`storage-section.spec.ts`) asserts overflow at 320/360/390/430 px and axe in light and dark.

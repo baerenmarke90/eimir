@@ -254,6 +254,57 @@
   margin-top: var(--space-2);
 }
 
+.server-admin-report-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.server-admin-report-manage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.server-admin-report-manage-actions button {
+  min-height: var(--touch-target-comfortable);
+}
+
+.server-admin-report-delete-copy {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.server-admin-report-delete-copy p {
+  margin: 0;
+}
+
+/*
+ * Deleting is permanent: the actions use the error tokens and a bold border,
+ * and the dialog names the consequence in text, so colour is never the only cue.
+ */
+.server-admin-report-danger,
+.server-admin-report-danger-outline {
+  min-height: var(--touch-target-comfortable);
+  border: 2px solid var(--color-error);
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+.server-admin-report-danger {
+  background: var(--color-error-surface);
+}
+
+.server-admin-report-danger-outline {
+  background: transparent;
+}
+
+.server-admin-report-danger:hover:not(:disabled),
+.server-admin-report-danger-outline:hover:not(:disabled) {
+  background: var(--color-error-surface);
+  filter: brightness(0.96);
+}
+
 .server-admin-report-ticket-link {
   display: inline-flex;
   align-items: center;
@@ -278,6 +329,7 @@
   }
 
   .server-admin-report-form button[type="submit"],
+  .server-admin-report-manage-actions button,
   .server-admin-report-dialog-actions button {
     width: 100%;
   }

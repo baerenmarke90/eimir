@@ -69,6 +69,12 @@ export interface SupportReportDetailView {
     appVersion: string;
     /**
      * 
+     * @type {Date}
+     * @memberof SupportReportDetailView
+     */
+    archivedAt: Date | null;
+    /**
+     * 
      * @type {string}
      * @memberof SupportReportDetailView
      */
@@ -155,6 +161,7 @@ export interface SupportReportDetailView {
 export function instanceOfSupportReportDetailView(value: object): value is SupportReportDetailView {
     if (!('accountId' in value) || value['accountId'] === undefined) return false;
     if (!('appVersion' in value) || value['appVersion'] === undefined) return false;
+    if (!('archivedAt' in value) || value['archivedAt'] === undefined) return false;
     if (!('build' in value) || value['build'] === undefined) return false;
     if (!('client' in value) || value['client'] === undefined) return false;
     if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
@@ -183,6 +190,7 @@ export function SupportReportDetailViewFromJSONTyped(json: any, ignoreDiscrimina
         
         'accountId': json['accountId'],
         'appVersion': json['appVersion'],
+        'archivedAt': (json['archivedAt'] == null ? null : new Date(json['archivedAt'])),
         'build': json['build'],
         'client': ClientContextBodyFromJSON(json['client']),
         'createdAt': (new Date(json['createdAt'])),
@@ -212,6 +220,7 @@ export function SupportReportDetailViewToJSONTyped(value?: SupportReportDetailVi
         
         'accountId': value['accountId'],
         'appVersion': value['appVersion'],
+        'archivedAt': value['archivedAt'] == null ? value['archivedAt'] : value['archivedAt'].toISOString(),
         'build': value['build'],
         'client': ClientContextBodyToJSON(value['client']),
         'createdAt': value['createdAt'].toISOString(),

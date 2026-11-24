@@ -102,6 +102,8 @@ class Harness:
         monkeypatch.setattr(service, "list_reports", self._list_reports)
         monkeypatch.setattr(service, "set_state", self._set_state)
         monkeypatch.setattr(service, "send_reply", self._send_reply)
+        monkeypatch.setattr(service, "set_archived", self._set_archived)
+        monkeypatch.setattr(service, "delete_report", self._delete_report)
         monkeypatch.setattr(service, "get_reply", lambda session, **_: self.reply)
         monkeypatch.setattr(recent_auth, "require_grant", self._require_grant)
         monkeypatch.setattr(
@@ -119,7 +121,8 @@ class Harness:
         return self.report if report_id == self.report.id else None
 
     def _list_reports(self, session: object, **kwargs: Any) -> service.Page[SupportReport]:
-        self.calls.append(f"list:{kwargs['state']}:{kwargs['limit']}")
+        state = kwargs["state"].value if kwargs["state"] else None
+        self.calls.append(f"list:{state}:{kwargs['archived']}:{kwargs['limit']}")
         return service.Page(items=[self.report], next_cursor="next", has_more=True)
 
     def _set_state(
@@ -130,6 +133,19 @@ class Harness:
             raise NotFoundError("Support report not found.", service.REPORT_NOT_FOUND)
         self.report.state = state.value
         return self.report
+
+    def _set_archived(self, session: object, report_id: UUID, archived: bool) -> SupportReport:
+        self.calls.append(f"set_archived:{archived}")
+        if report_id != self.report.id:
+            raise NotFoundError("Support report not found.", service.REPORT_NOT_FOUND)
+        self.report.archived_at = CREATED if archived else None
+        return self.report
+
+    def _delete_report(self, session: object, report_id: UUID) -> UUID:
+        self.calls.append("delete_report")
+        if report_id != self.report.id:
+            raise NotFoundError("Support report not found.", service.REPORT_NOT_FOUND)
+        return self.report.account_id
 
     def _send_reply(self, session: object, **kwargs: Any) -> SupportReport:
         self.calls.append("send_reply")
@@ -159,13 +175,14 @@ def test_the_list_has_triage_facts_and_never_the_note(harness: Harness) -> None:
     assert body["nextCursor"] == "next"
     assert SECRET_NOTE not in response.text
     assert body["items"][0]["appVersion"] == "0.2.0"
-    assert harness.calls == ["list:NEW:10"]
+    assert harness.calls == ["list:NEW:False:10"]
 
 
 def test_the_list_limit_and_state_are_validated(harness: Harness) -> None:
     assert harness.client.get(f"{BASE}?limit=0").status_code == 422
     assert harness.client.get(f"{BASE}?limit=101").status_code == 422
     assert harness.client.get(f"{BASE}?state=DONE").status_code == 422
+    assert harness.client.get(f"{BASE}?archived=maybe").status_code == 422
     assert harness.calls == []
 
 
@@ -178,9 +195,11 @@ def test_every_route_is_a_404_while_the_switch_is_off(harness: Harness) -> None:
         harness.client.get(f"{BASE}/{report_id}"),
         harness.client.put(f"{BASE}/{report_id}/state", json={"state": "CLOSED"}),
         harness.client.post(f"{BASE}/{report_id}/reply", json={"text": "Thanks"}),
+        harness.client.put(f"{BASE}/{report_id}/archive", json={"archived": True}),
+        harness.client.delete(f"{BASE}/{report_id}"),
     ]
 
-    assert [response.status_code for response in responses] == [404, 404, 404, 404]
+    assert [response.status_code for response in responses] == [404] * 6
     assert harness.calls == []
     assert harness.audit == []
 
@@ -216,6 +235,8 @@ def test_unknown_and_malformed_ids_are_404_without_audit(harness: Harness) -> No
             harness.client.get(f"{BASE}/{identifier}"),
             harness.client.put(f"{BASE}/{identifier}/state", json={"state": "CLOSED"}),
             harness.client.post(f"{BASE}/{identifier}/reply", json={"text": "Thanks"}),
+            harness.client.put(f"{BASE}/{identifier}/archive", json={"archived": True}),
+            harness.client.delete(f"{BASE}/{identifier}"),
         ):
             assert response.status_code == 404
             assert response.json()["code"] == service.REPORT_NOT_FOUND
@@ -234,6 +255,62 @@ def test_a_state_change_is_audited_without_content(harness: Harness) -> None:
             "target_account_id": harness.report.account_id,
         }
     ]
+
+
+def test_the_list_defaults_to_unarchived_and_can_ask_for_archived(harness: Harness) -> None:
+    harness.client.get(BASE)
+    harness.client.get(f"{BASE}?archived=true&state=CLOSED")
+
+    assert harness.calls == ["list:None:False:50", "list:CLOSED:True:50"]
+
+
+def test_archiving_and_unarchiving_are_audited_without_content(harness: Harness) -> None:
+    archived = harness.client.put(f"{BASE}/{harness.report.id}/archive", json={"archived": True})
+    restored = harness.client.put(f"{BASE}/{harness.report.id}/archive", json={"archived": False})
+
+    assert archived.status_code == 200
+    assert archived.json()["archivedAt"] is not None
+    assert restored.status_code == 200
+    assert restored.json()["archivedAt"] is None
+    assert [entry["action"] for entry in harness.audit] == [
+        AdministrationAction.SUPPORT_REPORT_ARCHIVED,
+        AdministrationAction.SUPPORT_REPORT_UNARCHIVED,
+    ]
+    assert all(
+        entry["target_account_id"] == harness.report.account_id
+        and set(entry) == {"actor_id", "action", "target_account_id"}
+        for entry in harness.audit
+    )
+    assert SECRET_NOTE not in str(harness.audit)
+
+
+def test_the_archive_body_is_strict(harness: Harness) -> None:
+    report_id = harness.report.id
+
+    assert harness.client.put(f"{BASE}/{report_id}/archive", json={}).status_code == 422
+    assert (
+        harness.client.put(
+            f"{BASE}/{report_id}/archive", json={"archived": True, "state": "NEW"}
+        ).status_code
+        == 422
+    )
+    assert harness.audit == []
+
+
+def test_deleting_is_audited_without_content_and_answers_204(harness: Harness) -> None:
+    response = harness.client.delete(f"{BASE}/{harness.report.id}")
+
+    assert response.status_code == 204
+    assert response.content == b""
+    assert response.headers["cache-control"] == "private, no-store"
+    assert harness.audit == [
+        {
+            "actor_id": OPERATOR_ID,
+            "action": AdministrationAction.SUPPORT_REPORT_DELETED,
+            "target_account_id": harness.report.account_id,
+        }
+    ]
+    assert SECRET_NOTE not in str(harness.audit)
 
 
 def test_a_reply_is_stored_once_and_audited_without_its_text(harness: Harness) -> None:
@@ -273,10 +350,16 @@ def test_stale_authentication_changes_and_audits_nothing(harness: Harness) -> No
 
     state = harness.client.put(f"{BASE}/{report_id}/state", json={"state": "CLOSED"})
     reply = harness.client.post(f"{BASE}/{report_id}/reply", json={"text": "Thanks"})
+    archive = harness.client.put(f"{BASE}/{report_id}/archive", json={"archived": True})
+    delete = harness.client.delete(f"{BASE}/{report_id}")
     read = harness.client.get(f"{BASE}/{report_id}")
 
     assert state.status_code == 403
     assert reply.status_code == 403
+    assert archive.status_code == 403
+    assert delete.status_code == 403
+    assert "set_archived:True" not in harness.calls
+    assert "delete_report" not in harness.calls
     assert read.status_code == 200
     assert "set_state:CLOSED" not in harness.calls
     assert "send_reply" not in harness.calls

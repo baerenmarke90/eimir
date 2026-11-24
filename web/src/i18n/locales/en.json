@@ -4921,7 +4921,8 @@
         "all": "All",
         "NEW": "New",
         "IN_PROGRESS": "In progress",
-        "CLOSED": "Done"
+        "CLOSED": "Done",
+        "archived": "Archived"
       },
       "states": {
         "NEW": "New",
@@ -4944,6 +4945,7 @@
       "emptyNewBody": "There are no new reports right now.",
       "emptyFilteredBody": "There are no reports with this status.",
       "emptyAllBody": "No report has arrived yet.",
+      "emptyArchivedBody": "There are no archived reports.",
       "showAll": "Show all reports",
       "loadMore": "Load more reports",
       "loadingMore": "Loading more reports …",
@@ -4952,7 +4954,8 @@
       "item": {
         "version": "Version {{version}} ({{build}})",
         "replied": "Replied",
-        "ticket": "Ticket"
+        "ticket": "Ticket",
+        "archived": "Archived"
       },
       "detail": {
         "back": "Back to the list",
@@ -5031,6 +5034,29 @@
         "submit": "Create ticket",
         "submitting": "Creating ticket …",
         "cancel": "Cancel"
+      },
+      "manage": {
+        "title": "Archive and delete",
+        "archiveHint": "An archived report disappears from New, In progress, Done and All and no longer counts as new. It stays readable under \u201cArchived\u201d and keeps its status. The retention periods apply unchanged.",
+        "archivedHint": "This report is archived. Bring it back to show it in the lists again. The retention periods also apply in the archive.",
+        "archive": "Archive report",
+        "unarchive": "Bring back from archive",
+        "saving": "Saving …",
+        "archived": "The report was archived.",
+        "unarchived": "The report is back in the lists.",
+        "delete": "Delete report permanently",
+        "deleted": "The report was permanently deleted."
+      },
+      "deleteDialog": {
+        "eyebrow": "Cannot be undone",
+        "title": "Delete report permanently",
+        "intro": "{{kind}} from {{date}} will be permanently deleted.",
+        "consequence": "The note, technical details, sent reply and ticket link are removed. This cannot be undone. The person no longer sees a sent reply afterwards.",
+        "ticketStays": "The ticket in the tracker stays: eimir. cannot delete it there. Close or delete it in the tracker yourself if needed.",
+        "archiveHint": "If you only want the report out of the lists, archive it instead.",
+        "cancel": "Cancel",
+        "confirm": "Delete permanently",
+        "deleting": "Deleting …"
       },
       "errors": {
         "alreadyReplied": "This report has already been replied to. The sent reply is shown.",

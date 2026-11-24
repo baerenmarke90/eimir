@@ -53,8 +53,11 @@ function ReportRow({
             build: report.build,
           })}
         </span>
-        {report.hasReply || report.ticket ? (
+        {report.hasReply || report.ticket || report.archivedAt ? (
           <span className="server-admin-report-row-flags">
+            {report.archivedAt ? (
+              <span>{t('serverAdmin.reports.item.archived')}</span>
+            ) : null}
             {report.hasReply ? (
               <span>{t('serverAdmin.reports.item.replied')}</span>
             ) : null}
@@ -95,7 +98,10 @@ export function ServerAdminSupportReportsPanel({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [restoreFocusId, setRestoreFocusId] = useState<string | null>(null);
   const [draftDirty, setDraftDirty] = useState(false);
-  const [reportGone, setReportGone] = useState(false);
+  // Why no report is open any more: it vanished, or the operator deleted it.
+  const [closedNotice, setClosedNotice] = useState<'gone' | 'deleted' | null>(
+    null,
+  );
   const rowRefs = useRef(new Map<string, HTMLButtonElement>());
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -119,7 +125,7 @@ export function ServerAdminSupportReportsPanel({
   }, [restoreFocusId, selectedId]);
 
   function changeFilter(next: SupportReportFilter) {
-    setReportGone(false);
+    setClosedNotice(null);
     setFilter(next);
   }
 
@@ -138,14 +144,14 @@ export function ServerAdminSupportReportsPanel({
     ) {
       return;
     }
-    setReportGone(false);
+    setClosedNotice(null);
     setSelectedId(reportId);
   }
 
-  function closeDetail(reason?: 'gone') {
+  function closeDetail(reason?: 'gone' | 'deleted') {
     // A deleted report has no row to return to: focus goes to the heading.
-    setRestoreFocusId(reason === 'gone' ? '' : selectedId);
-    setReportGone(reason === 'gone');
+    setRestoreFocusId(reason ? '' : selectedId);
+    setClosedNotice(reason ?? null);
     setSelectedId(null);
   }
 
@@ -201,7 +207,9 @@ export function ServerAdminSupportReportsPanel({
             ? 'serverAdmin.reports.emptyNewBody'
             : filter === 'all'
               ? 'serverAdmin.reports.emptyAllBody'
-              : 'serverAdmin.reports.emptyFilteredBody',
+              : filter === 'archived'
+                ? 'serverAdmin.reports.emptyArchivedBody'
+                : 'serverAdmin.reports.emptyFilteredBody',
         )}
         action={
           filter === 'all' ? undefined : (
@@ -299,9 +307,14 @@ export function ServerAdminSupportReportsPanel({
               </button>
             ))}
           </fieldset>
-          {reportGone ? (
+          {closedNotice === 'gone' ? (
             <p className="status status-error" role="alert">
               {t('serverAdmin.reports.errors.notFound')}
+            </p>
+          ) : null}
+          {closedNotice === 'deleted' ? (
+            <p className="status status-success" role="status">
+              {t('serverAdmin.reports.manage.deleted')}
             </p>
           ) : null}
           {listContent}

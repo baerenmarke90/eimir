@@ -15,6 +15,9 @@ SUPPORT_REPORT_ACTIONS = {
     "support_report.reply_sent",
     "support_report.ticket_created",
     "support_report.ticket_cleared",
+    "support_report.archived",
+    "support_report.unarchived",
+    "support_report.deleted",
 }
 
 
@@ -39,10 +42,10 @@ def test_the_table_constraint_admits_every_action() -> None:
     assert _constraint_actions() == {action.value for action in AdministrationAction}
 
 
-def test_the_migration_admits_every_action_and_chains_after_0175() -> None:
-    script = ScriptDirectory.from_config(Config("alembic.ini")).get_revision("0176")
+def test_the_migration_admits_every_action_and_chains_after_0176() -> None:
+    script = ScriptDirectory.from_config(Config("alembic.ini")).get_revision("0177")
     migration = script.module
 
-    assert script.down_revision == "0175"
+    assert script.down_revision == "0176"
     assert set(migration.ACTIONS) == {action.value for action in AdministrationAction}
     assert len(migration.ACTIONS) == len(set(migration.ACTIONS))

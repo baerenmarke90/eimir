@@ -6,9 +6,11 @@ All URIs are relative to *http://localhost*
 |------------- | ------------- | -------------|
 | [**clearSupportReportTicket**](ServerAdminSupportReportsApi.md#clearsupportreportticket) | **DELETE** /api/v1/server-admin/support-reports/{reportId}/ticket | Clear Support Report Ticket |
 | [**createSupportReportTicket**](ServerAdminSupportReportsApi.md#createsupportreportticket) | **POST** /api/v1/server-admin/support-reports/{reportId}/ticket | Create Support Report Ticket |
+| [**deleteSupportReport**](ServerAdminSupportReportsApi.md#deletesupportreport) | **DELETE** /api/v1/server-admin/support-reports/{reportId} | Delete Support Report |
 | [**getSupportReport**](ServerAdminSupportReportsApi.md#getsupportreport) | **GET** /api/v1/server-admin/support-reports/{reportId} | Get Support Report |
 | [**listSupportReports**](ServerAdminSupportReportsApi.md#listsupportreports) | **GET** /api/v1/server-admin/support-reports | List Support Reports |
 | [**replyToSupportReport**](ServerAdminSupportReportsApi.md#replytosupportreport) | **POST** /api/v1/server-admin/support-reports/{reportId}/reply | Reply To Support Report |
+| [**setSupportReportArchived**](ServerAdminSupportReportsApi.md#setsupportreportarchived) | **PUT** /api/v1/server-admin/support-reports/{reportId}/archive | Set Support Report Archived |
 | [**setSupportReportState**](ServerAdminSupportReportsApi.md#setsupportreportstate) | **PUT** /api/v1/server-admin/support-reports/{reportId}/state | Set Support Report State |
 
 
@@ -159,6 +161,76 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## deleteSupportReport
+
+> deleteSupportReport(reportId)
+
+Delete Support Report
+
+Delete a report permanently with its reply and ticket link. Needs recent authentication.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminSupportReportsApi,
+} from '';
+import type { DeleteSupportReportRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminSupportReportsApi();
+
+  const body = {
+    // string
+    reportId: reportId_example,
+  } satisfies DeleteSupportReportRequest;
+
+  try {
+    const data = await api.deleteSupportReport(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **reportId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## getSupportReport
 
 > SupportReportDetailView getSupportReport(reportId)
@@ -231,11 +303,11 @@ No authorization required
 
 ## listSupportReports
 
-> SupportReportListView listSupportReports(state, limit, cursor)
+> SupportReportListView listSupportReports(state, archived, limit, cursor)
 
 List Support Reports
 
-List reports newest first without note text; the cursor is bound to the state filter.
+List reports newest first without note text.  Unarchived reports by default, the archived ones with &#x60;&#x60;archived&#x3D;true&#x60;&#x60;. The cursor is bound to the state filter and the archive view.
 
 ### Example
 
@@ -253,6 +325,8 @@ async function example() {
   const body = {
     // SupportReportState (optional)
     state: ...,
+    // boolean (optional)
+    archived: true,
     // number (optional)
     limit: 56,
     // string (optional)
@@ -277,6 +351,7 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **state** | `SupportReportState` |  | [Optional] [Defaults to `undefined`] [Enum: NEW, IN_PROGRESS, CLOSED] |
+| **archived** | `boolean` |  | [Optional] [Defaults to `false`] |
 | **limit** | `number` |  | [Optional] [Defaults to `50`] |
 | **cursor** | `string` |  | [Optional] [Defaults to `undefined`] |
 
@@ -377,6 +452,80 @@ No authorization required
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## setSupportReportArchived
+
+> SupportReportDetailView setSupportReportArchived(reportId, supportReportArchiveUpdate)
+
+Set Support Report Archived
+
+Archive or unarchive a report; its triage state is kept. Needs recent authentication.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminSupportReportsApi,
+} from '';
+import type { SetSupportReportArchivedRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminSupportReportsApi();
+
+  const body = {
+    // string
+    reportId: reportId_example,
+    // SupportReportArchiveUpdate
+    supportReportArchiveUpdate: ...,
+  } satisfies SetSupportReportArchivedRequest;
+
+  try {
+    const data = await api.setSupportReportArchived(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **reportId** | `string` |  | [Defaults to `undefined`] |
+| **supportReportArchiveUpdate** | [SupportReportArchiveUpdate](SupportReportArchiveUpdate.md) |  | |
+
+### Return type
+
+[**SupportReportDetailView**](SupportReportDetailView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)

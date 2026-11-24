@@ -46,6 +46,8 @@ class SupportReportListItem(ApiModel):
     kind: SupportReportKind
     state: SupportReportState
     created_at: datetime
+    # Set while the operator has archived the report; independent of the state.
+    archived_at: datetime | None
     failure_reference: str | None
     app_version: str
     build: str
@@ -57,7 +59,7 @@ class SupportReportListView(ApiModel):
     items: list[SupportReportListItem]
     next_cursor: str | None
     has_more: bool
-    # Reports still in state NEW across all states, whatever the list filter.
+    # Unarchived reports still in state NEW, whatever the list filter.
     new_count: int
 
 
@@ -79,6 +81,14 @@ class SupportReportStateUpdate(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
     state: SupportReportState
+
+
+class SupportReportArchiveUpdate(ApiModel):
+    """Strict request: archive (true) or unarchive (false) one report."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    archived: bool
 
 
 class SupportReportReplyCreate(ApiModel):

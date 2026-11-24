@@ -17789,6 +17789,21 @@
         "title": "SupportGestureKind",
         "type": "string"
       },
+      "SupportReportArchiveUpdate": {
+        "additionalProperties": false,
+        "description": "Strict request: archive (true) or unarchive (false) one report.",
+        "properties": {
+          "archived": {
+            "title": "Archived",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "archived"
+        ],
+        "title": "SupportReportArchiveUpdate",
+        "type": "object"
+      },
       "SupportReportCreate": {
         "additionalProperties": false,
         "description": "Strict request: an unknown field is rejected, not stored.",
@@ -17870,6 +17885,18 @@
           "appVersion": {
             "title": "Appversion",
             "type": "string"
+          },
+          "archivedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archivedat"
           },
           "build": {
             "title": "Build",
@@ -17961,6 +17988,7 @@
           "kind",
           "state",
           "createdAt",
+          "archivedAt",
           "failureReference",
           "appVersion",
           "build",
@@ -17990,6 +18018,18 @@
           "appVersion": {
             "title": "Appversion",
             "type": "string"
+          },
+          "archivedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archivedat"
           },
           "build": {
             "title": "Build",
@@ -18042,6 +18082,7 @@
           "kind",
           "state",
           "createdAt",
+          "archivedAt",
           "failureReference",
           "appVersion",
           "build",
@@ -25442,7 +25483,7 @@
     },
     "/api/v1/server-admin/support-reports": {
       "get": {
-        "description": "List reports newest first without note text; the cursor is bound to the state filter.",
+        "description": "List reports newest first without note text.\n\nUnarchived reports by default, the archived ones with ``archived=true``. The\ncursor is bound to the state filter and the archive view.",
         "operationId": "listSupportReports",
         "parameters": [
           {
@@ -25459,6 +25500,16 @@
                 }
               ],
               "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "archived",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Archived",
+              "type": "boolean"
             }
           },
           {
@@ -25560,6 +25611,61 @@
       }
     },
     "/api/v1/server-admin/support-reports/{reportId}": {
+      "delete": {
+        "description": "Delete a report permanently with its reply and ticket link. Needs recent authentication.",
+        "operationId": "deleteSupportReport",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reportId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Reportid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Delete Support Report",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      },
       "get": {
         "description": "Return one report in full; the reporter is the opaque account id only.",
         "operationId": "getSupportReport",
@@ -25618,6 +25724,90 @@
           }
         },
         "summary": "Get Support Report",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      }
+    },
+    "/api/v1/server-admin/support-reports/{reportId}/archive": {
+      "put": {
+        "description": "Archive or unarchive a report; its triage state is kept. Needs recent authentication.",
+        "operationId": "setSupportReportArchived",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reportId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Reportid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportReportArchiveUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportDetailView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Set Support Report Archived",
         "tags": [
           "server-admin-support-reports"
         ]

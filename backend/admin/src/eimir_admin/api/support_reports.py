@@ -1,6 +1,6 @@
 """Operator routes for support reports (#2189, design section 5.3).
 
-The routes read, triage and answer reports through the Core service interface
+The routes read, triage, archive, delete and answer reports through the Core service interface
 ``eimir.support_reports.service``. Every route needs a ServerAdmin, answers
 ``Cache-Control: private, no-store`` and is a 404 while the operator has not
 enabled support reports, like the reporter's own endpoint. Changes need recent
@@ -40,6 +40,7 @@ from eimir.support_reports.models import (
     SupportReportState,
 )
 from eimir_admin.api.models import (
+    SupportReportArchiveUpdate,
     SupportReportDetailView,
     SupportReportListItem,
     SupportReportListView,
@@ -132,6 +133,7 @@ def list_item(
         kind=SupportReportKind(report.kind),
         state=SupportReportState(report.state),
         created_at=report.created_at,
+        archived_at=report.archived_at,
         failure_reference=payload.failure.reference if payload.failure else None,
         app_version=payload.client.app_version,
         build=payload.client.build,
@@ -224,11 +226,16 @@ def list_support_reports(
     _: Operator,
     session: DbSession,
     state: Annotated[SupportReportState | None, Query()] = None,
+    archived: Annotated[bool, Query()] = False,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     cursor: Annotated[str | None, Query(max_length=512)] = None,
 ) -> SupportReportListView:
-    """List reports newest first without note text; the cursor is bound to the state filter."""
-    page = service.list_reports(session, state=state, limit=limit, cursor=cursor)
+    """List reports newest first without note text.
+
+    Unarchived reports by default, the archived ones with ``archived=true``. The
+    cursor is bound to the state filter and the archive view.
+    """
+    page = service.list_reports(session, state=state, archived=archived, limit=limit, cursor=cursor)
     ids = [report.id for report in page.items]
     replied = _replied_report_ids(session, ids)
     tickets = _tickets_by_report(session, ids)
@@ -284,6 +291,60 @@ def set_support_report_state(
         target_account_id=report.account_id,
     )
     return _detail(session, report)
+
+
+@router.put(
+    "/{reportId}/archive",
+    response_model=SupportReportDetailView,
+    operation_id="setSupportReportArchived",
+    responses=problem_responses(401, 403, 404, 422),
+)
+def set_support_report_archived(
+    report_id_text: ReportIdPath,
+    body: SupportReportArchiveUpdate,
+    admin: Operator,
+    device_session: CurrentSession,
+    session: DbSession,
+) -> SupportReportDetailView:
+    """Archive or unarchive a report; its triage state is kept. Needs recent authentication."""
+    _require_recent_authentication(session, admin, device_session)
+    report = service.set_archived(session, _report_id(report_id_text), body.archived)
+    administration.record_action(
+        session,
+        actor_id=admin.id,
+        action=(
+            AdministrationAction.SUPPORT_REPORT_ARCHIVED
+            if body.archived
+            else AdministrationAction.SUPPORT_REPORT_UNARCHIVED
+        ),
+        target_account_id=report.account_id,
+    )
+    return _detail(session, report)
+
+
+@router.delete(
+    "/{reportId}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    operation_id="deleteSupportReport",
+    responses=problem_responses(401, 403, 404),
+)
+def delete_support_report(
+    report_id_text: ReportIdPath,
+    admin: Operator,
+    device_session: CurrentSession,
+    session: DbSession,
+) -> None:
+    """Delete a report permanently with its reply and ticket link. Needs recent authentication."""
+    # A tracker issue stays: the tracker API cannot delete one. The audit entry names
+    # the action and the reporter's account, never the text.
+    _require_recent_authentication(session, admin, device_session)
+    account_id = service.delete_report(session, _report_id(report_id_text))
+    administration.record_action(
+        session,
+        actor_id=admin.id,
+        action=AdministrationAction.SUPPORT_REPORT_DELETED,
+        target_account_id=account_id,
+    )
 
 
 @router.post(

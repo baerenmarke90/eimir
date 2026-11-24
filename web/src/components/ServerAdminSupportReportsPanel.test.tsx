@@ -35,6 +35,7 @@ function item(index: number, overrides: Partial<SupportReportListItem> = {}) {
     id: `00000000-0000-4000-8000-00000000000${index}`,
     kind: 'PROBLEM',
     state: 'NEW',
+    archivedAt: null,
     ticket: null,
     ...overrides,
   } satisfies SupportReportListItem;
@@ -121,6 +122,47 @@ describe('ServerAdminSupportReportsPanel', () => {
     expect(listSupportReports.mock.calls[0]?.[0]).toMatchObject({
       state: 'NEW',
     });
+  });
+
+  it('lists archived reports in their own view and marks them', async () => {
+    const listSupportReports = vi
+      .fn()
+      .mockImplementation(({ archived }: { archived?: boolean }) =>
+        Promise.resolve(
+          archived
+            ? page([item(2, { archivedAt: new Date('2026-11-25T09:00:00Z') })])
+            : page([item(1)]),
+        ),
+      );
+    renderPanel(listSupportReports);
+    await screen.findByText('Neu: 1');
+
+    fireEvent.click(
+      screen.getByRole('button', { name: reports.filter.archived }),
+    );
+
+    await waitFor(() =>
+      expect(listSupportReports).toHaveBeenLastCalledWith(
+        expect.objectContaining({ archived: true, state: undefined }),
+      ),
+    );
+    expect(await screen.findByText(reports.item.archived)).toBeTruthy();
+  });
+
+  it('shows an empty state for the archived view', async () => {
+    const listSupportReports = vi
+      .fn()
+      .mockImplementation(({ archived }: { archived?: boolean }) =>
+        Promise.resolve(archived ? page([]) : page([item(1)])),
+      );
+    renderPanel(listSupportReports);
+    await screen.findByText('Neu: 1');
+
+    fireEvent.click(
+      screen.getByRole('button', { name: reports.filter.archived }),
+    );
+
+    expect(await screen.findByText(reports.emptyArchivedBody)).toBeTruthy();
   });
 
   it('filters by state', async () => {

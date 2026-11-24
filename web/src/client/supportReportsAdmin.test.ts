@@ -8,11 +8,13 @@ import { ClientProblemError } from './problemDetails';
 import {
   characterCount,
   createSupportReportTicket,
+  deleteSupportReport,
   loadSupportReportPage,
   nextSupportReportCursor,
   PENDING_TICKET_UNCERTAIN_AFTER_MS,
   resolveSupportReportFilter,
   replyToSupportReport,
+  setSupportReportArchived,
   SupportReportAdminError,
   safeTicketUrl,
   supportReportErrorKey,
@@ -54,6 +56,7 @@ const report: SupportReportDetailView = {
   reply: null,
   requestId: 'req-1',
   state: 'NEW',
+  archivedAt: null,
   ticket: null,
   ticketAvailable: true,
 };
@@ -63,6 +66,7 @@ describe('support report admin helpers', () => {
     expect(resolveSupportReportFilter(null)).toBe('NEW');
     expect(resolveSupportReportFilter('CLOSED')).toBe('CLOSED');
     expect(resolveSupportReportFilter('all')).toBe('all');
+    expect(resolveSupportReportFilter('archived')).toBe('archived');
     expect(resolveSupportReportFilter('nonsense')).toBe('NEW');
   });
 
@@ -90,6 +94,7 @@ describe('support report admin helpers', () => {
       limit: 25,
       state: 'IN_PROGRESS',
     });
+    expect(listSupportReports.mock.calls[0]?.[0].archived).toBeUndefined();
     expect(nextSupportReportCursor(page)).toBe('c2');
     expect(
       nextSupportReportCursor({ ...page, hasMore: false, nextCursor: 'x' }),
@@ -280,6 +285,76 @@ describe('support report admin helpers', () => {
     expect(supportReportErrorKey(new Error('boom'))).toBe(
       'serverAdmin.reports.errors.generic',
     );
+  });
+
+  it('asks for the archived view without a state filter', async () => {
+    const listSupportReports = vi.fn().mockResolvedValue({
+      hasMore: false,
+      items: [],
+      newCount: 0,
+      nextCursor: null,
+    });
+    const api = {
+      listSupportReports,
+    } as unknown as ServerAdminSupportReportsApi;
+
+    await loadSupportReportPage(api, 'archived', null);
+
+    expect(listSupportReports.mock.calls[0]?.[0]).toEqual({
+      archived: true,
+      cursor: undefined,
+      limit: 25,
+      state: undefined,
+    });
+  });
+
+  it('archives, unarchives and deletes through the generated client', async () => {
+    const setSupportReportArchivedApi = vi.fn().mockResolvedValue(report);
+    const deleteSupportReportApi = vi.fn().mockResolvedValue(undefined);
+    const api = {
+      setSupportReportArchived: setSupportReportArchivedApi,
+      deleteSupportReport: deleteSupportReportApi,
+    } as unknown as ServerAdminSupportReportsApi;
+
+    await setSupportReportArchived(api, report.id, true);
+    await setSupportReportArchived(api, report.id, false);
+    await deleteSupportReport(api, report.id);
+
+    expect(setSupportReportArchivedApi.mock.calls).toEqual([
+      [{ reportId: report.id, supportReportArchiveUpdate: { archived: true } }],
+      [
+        {
+          reportId: report.id,
+          supportReportArchiveUpdate: { archived: false },
+        },
+      ],
+    ]);
+    expect(deleteSupportReportApi).toHaveBeenCalledWith({
+      reportId: report.id,
+    });
+  });
+
+  it('refuses archive and delete while offline without calling the server', async () => {
+    const archiveApi = vi.fn();
+    const deleteApi = vi.fn();
+    const api = {
+      setSupportReportArchived: archiveApi,
+      deleteSupportReport: deleteApi,
+    } as unknown as ServerAdminSupportReportsApi;
+    const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+
+    const archived = await setSupportReportArchived(api, report.id, true).catch(
+      (caught: unknown) => caught,
+    );
+    const deleted = await deleteSupportReport(api, report.id).catch(
+      (caught: unknown) => caught,
+    );
+
+    expect(archiveApi).not.toHaveBeenCalled();
+    expect(deleteApi).not.toHaveBeenCalled();
+    expect((archived as ClientProblemError).kind).toBe('offline');
+    expect((deleted as ClientProblemError).kind).toBe('offline');
+    online.mockRestore();
   });
 
   it('refuses a write while offline without calling the server', async () => {

@@ -72,6 +72,10 @@ class SupportReport(IdMixin, Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # The operator's archive marker, independent of ``state``: an archived report
+    # leaves the default lists and keeps its triage state, so unarchiving restores
+    # it. It never changes the retention clock.
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     crypto_version: Mapped[int] = mapped_column(
         SmallInteger,
         nullable=False,

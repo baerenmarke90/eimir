@@ -186,6 +186,131 @@ def test_list_filters_by_state(session: Session) -> None:
     assert ids(None) == {report.id for report in made}
 
 
+def _make_reports(session: Session, count: int) -> list[SupportReport]:
+    account = make_account(session)
+    return [
+        service.create_report(
+            session,
+            account_id=account.id,
+            client_request_id=uuid4(),
+            kind=SupportReportKind.PROBLEM,
+            payload=_payload(note=f"Note {index}"),
+        )[0]
+        for index in range(count)
+    ]
+
+
+def test_archiving_moves_a_report_between_the_views_and_keeps_its_state(
+    session: Session,
+) -> None:
+    made = _make_reports(session, 2)
+    service.set_state(session, made[0].id, SupportReportState.CLOSED)
+    closed_at = made[0].closed_at
+
+    archived = service.set_archived(session, made[0].id, True)
+
+    assert archived.archived_at is not None
+    assert archived.state == SupportReportState.CLOSED.value
+    assert archived.closed_at == closed_at
+
+    def ids(*, archived_view: bool, state: SupportReportState | None = None) -> set[object]:
+        page = service.list_reports(
+            session, state=state, archived=archived_view, limit=50, cursor=None
+        )
+        return {report.id for report in page.items}
+
+    assert ids(archived_view=False) == {made[1].id}
+    assert ids(archived_view=True) == {made[0].id}
+    assert ids(archived_view=True, state=SupportReportState.CLOSED) == {made[0].id}
+    assert ids(archived_view=True, state=SupportReportState.NEW) == set()
+
+    restored = service.set_archived(session, made[0].id, False)
+    assert restored.archived_at is None
+    assert restored.state == SupportReportState.CLOSED.value
+    assert ids(archived_view=False) == {made[0].id, made[1].id}
+    assert ids(archived_view=True) == set()
+
+
+def test_archiving_twice_keeps_the_first_time(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (report,) = _make_reports(session, 1)
+    base = datetime(2026, 11, 24, 9, 0, tzinfo=UTC)
+    monkeypatch.setattr(clock, "now", lambda: base)
+    first = service.set_archived(session, report.id, True).archived_at
+    monkeypatch.setattr(clock, "now", lambda: base + timedelta(days=1))
+
+    assert service.set_archived(session, report.id, True).archived_at == first
+
+
+def test_archived_reports_leave_the_new_count_and_the_unread_age(session: Session) -> None:
+    old, recent = _make_reports(session, 2)
+    old.created_at = datetime(2026, 11, 1, 9, 0, tzinfo=UTC)
+    recent.created_at = datetime(2026, 11, 20, 9, 0, tzinfo=UTC)
+    session.flush()
+    before = service.count_new(session)
+
+    service.set_archived(session, old.id, True)
+
+    assert service.count_new(session) == before - 1
+    assert service.oldest_new_at(session) == recent.created_at
+    service.set_archived(session, old.id, False)
+    assert service.count_new(session) == before
+
+
+def test_archiving_does_not_change_retention(session: Session) -> None:
+    (report,) = _make_reports(session, 1)
+    report_id = report.id
+    report.created_at = datetime(2020, 1, 1, tzinfo=UTC)
+    session.flush()
+    service.set_archived(session, report_id, True)
+
+    assert service.prune_expired(session) >= 1
+    session.expire_all()
+    assert service.get_report(session, report_id) is None
+
+
+def test_archive_cursor_is_bound_to_the_view(session: Session) -> None:
+    for report in _make_reports(session, 3):
+        service.set_archived(session, report.id, True)
+
+    first = service.list_reports(session, state=None, archived=True, limit=2, cursor=None)
+    assert first.next_cursor is not None
+    second = service.list_reports(
+        session, state=None, archived=True, limit=2, cursor=first.next_cursor
+    )
+    assert len(first.items) + len(second.items) == 3
+    with pytest.raises(BadRequestError):
+        service.list_reports(session, state=None, archived=False, limit=2, cursor=first.next_cursor)
+
+
+def test_deleting_removes_the_report_and_its_reply_and_returns_the_reporter(
+    session: Session,
+) -> None:
+    (report,) = _make_reports(session, 1)
+    report_id, account_id = report.id, report.account_id
+    service.send_reply(session, report_id=report_id, text="Thanks", operator_id=None)
+
+    assert service.delete_report(session, report_id) == account_id
+
+    session.expire_all()
+    assert service.get_report(session, report_id) is None
+    replies = session.execute(
+        select(func.count())
+        .select_from(SupportReportReplyRow)
+        .where(SupportReportReplyRow.report_id == report_id)
+    ).scalar_one()
+    assert replies == 0
+    assert service.get_reply(session, report_id=report_id, account_id=account_id) is None
+
+
+def test_archive_and_delete_of_an_unknown_report_are_not_found(session: Session) -> None:
+    with pytest.raises(NotFoundError):
+        service.set_archived(session, uuid4(), True)
+    with pytest.raises(NotFoundError):
+        service.delete_report(session, uuid4())
+
+
 def test_list_pages_newest_first_with_a_bound_cursor(
     session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:

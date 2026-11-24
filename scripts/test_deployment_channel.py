@@ -644,6 +644,12 @@ def export_compose(
         # Private CalDAV hosts are a Self-Hosted option and stay off on Cloud.
         # In-app support reports (#2189): an instance opt-in, off until a reader exists.
         "EIMIR_SUPPORT_REPORTS_ENABLED": "${EIMIR_SUPPORT_REPORTS_ENABLED:-false}",
+        # Operator plugin (#2189, #2266): the instance names `admin` and supplies the
+        # optional tracker values; the published channel never freezes them.
+        "EIMIR_PLUGINS": "${EIMIR_PLUGINS:-pro}",
+        "EIMIR_ADMIN_TRACKER": "${EIMIR_ADMIN_TRACKER:-}",
+        "EIMIR_ADMIN_GITHUB_REPOSITORY": "${EIMIR_ADMIN_GITHUB_REPOSITORY:-}",
+        "EIMIR_ADMIN_GITHUB_TOKEN": "${EIMIR_ADMIN_GITHUB_TOKEN:-}",
         "EIMIR_CALENDAR_SYNC_ENABLED": "${EIMIR_CALENDAR_SYNC_ENABLED:-true}",
         "EIMIR_GOOGLE_CALENDAR_CLIENT_ID": "${EIMIR_GOOGLE_CALENDAR_CLIENT_ID:-}",
         "EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET": "${EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET:-}",
@@ -693,7 +699,10 @@ def export_compose(
                 )
             service.setdefault("volumes", []).append(copy.deepcopy(fcm_sender_mount()))
         elif name == "cloud-migrate":
-            service["environment"] = {"EIMIR_DATABASE_URL": database}
+            service["environment"] = {
+                "EIMIR_DATABASE_URL": database,
+                "EIMIR_PLUGINS": "${EIMIR_PLUGINS:-pro}",
+            }
         elif name == "cloud-video-worker":
             # This role needs DB/media keys, never mail, FCM or photo-provider credentials.
             needed = {

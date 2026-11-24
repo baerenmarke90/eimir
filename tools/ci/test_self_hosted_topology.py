@@ -256,9 +256,12 @@ class RuntimeLifecycleContractTest(unittest.TestCase):
                 command = " ".join(_command(self.services[name]))
                 self.assertNotIn("alembic", command)
 
-    def test_migrate_receives_only_the_database_connection(self) -> None:
+    def test_migrate_receives_only_the_database_connection_and_plugin_list(self) -> None:
+        # The plugin list (not a secret) selects the plugin migration chains (#2266);
+        # no other runtime configuration or credential reaches the one-shot.
         self.assertEqual(
-            set(self.services["migrate"]["environment"]), {"EIMIR_DATABASE_URL"}
+            set(self.services["migrate"]["environment"]),
+            {"EIMIR_DATABASE_URL", "EIMIR_PLUGINS"},
         )
 
     def test_one_shots_never_restart_themselves(self) -> None:

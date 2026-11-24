@@ -1,7 +1,7 @@
 # Privacy policy draft: review notes
 
 Status: drafting baseline for the legal review of
-[`de/privacy-policy.md`](de/privacy-policy.md) (version `2026-11-24.draft-11`).
+[`de/privacy-policy.md`](de/privacy-policy.md) (version `2026-11-24.draft-12`).
 This file is not legal advice and is not shown to users. It records where each
 statement comes from, which facts the operator must supply and which decisions
 are open, so that the reviewer can check the draft against the product instead
@@ -61,6 +61,7 @@ Where a feature is not yet available, the draft says so explicitly.
 | 16 | Rate limiting: SHA-256 of the lower-cased key (email or IPv4 / IPv6 /64), pruned after one day | `backend/src/eimir/auth/rate_limit.py`, `passkey_abuse.py` |
 | 16 | Restore re-applies accepted Account deletions from a pseudonymous journal before traffic resumes; the journal is kept as long as older backups exist | `docs/m6/ACCOUNT-DELETION-RETENTION.md` § 7 |
 | 19, 14, 15, 22 | Support reports (#2189, draft-10): sent only by the person from „Hilfe & Feedback“ or an error state after the sheet lists what is sent; strict allow-list payload (kind, note ≤ 2,000 characters, optional for a problem and required for feedback; for a problem from an error state the generalized failure reference: method, route template without ids or query, status or transport outcome, problem code, app/web, plus the `x-request-id` when present; client context: app version and build, app/web, OS and browser/engine with version but no device model or identifier, locale, theme, online state, local time and time zone; opaque account id); client context read only at send time; protected payload (note, failure, context) encrypted at rest, kind/state/timestamps plain; per-account rate limit 5/hour and 20/day; operator-only reader, no third party; one reply ≤ 500 characters as an in-app notification for the reporter only (`SUPPORT_REPLY`: neutral push without text, no email, no notice without an active Membership); closed reports deleted 90 days after closing, any report 365 days after creation, by the six-hourly maintenance job; reports and replies deleted with the Account; not part of the personal export (information on request under § 23); unsent draft in `localStorage` per Account, removed on send, discard, sign-out and Account or Space change. The feature stays off (`EIMIR_SUPPORT_REPORTS_ENABLED=false`) on Cloud until this text is published | `backend/src/eimir/support_reports/payload.py`, `service.py` (`CLOSED_RETENTION`, `MAX_RETENTION`), `models.py`, `backend/src/eimir/api/v1/support_reports.py`, `backend/src/eimir/auth/rate_limit.py`, `backend/src/eimir/identity/deletion.py` (`PERSONAL_ACCOUNT_ROWS`), `backend/src/eimir/jobs/maintenance.py`, `backend/src/eimir/engagement/push_preview.py`, `web/src/client/supportReport.ts`, `failureReference.ts`, `supportReportDraftStorage.ts`, `sessionPersistence.ts`, `docs/product/support-reports-core-design.md` |
+| 19 | Support report tickets (#2189 operator plugin, draft-12, § 19.4): a ServerAdmin may create one tracker ticket per report (GitHub Issues in the repository the operator configures). The request carries the operator's own title and body plus a server-composed footer: report id, kind, app version, build, platform (app/web), failure reference and request id. The note, the reply and the account id are never read into the request; no automatic ticket | `backend/admin/src/eimir_admin/support_tickets/service.py` (`compose_body`), `backend/admin/src/eimir_admin/tracker/github.py`, `docs/SERVER-ADMIN.md` (Support reports) |
 | 16 | Application log entries carry the request ID (`X-Request-ID`), which a support report can reference; draft-10 names it in § 16.1 | `backend/src/eimir/observability/middleware.py`, `formatting.py` |
 | 17 | No analytics, advertising or crash-reporting SDK in Web or Android (Android: AndroidX, Capacitor, UnifiedPush connector, Firebase Messaging/Installations, Nimbus JOSE); no external fonts or update checks | `web/package.json`, `android/app/build.gradle`, `docs/PRIVACY-MODEL.md` (Analytics) |
 | 18 | Pro cannot be purchased yet (no billing provider in Core) | `docs/m6/CLOUD-MANAGED-TOPOLOGY.md` § 3.6, #1525 |
@@ -299,13 +300,21 @@ officer should confirm them before publication.
 18. **Support reports (#2189, draft-10).** § 19.2–19.7 describe the in-app
     problem and feedback reports. Points for the legal review: the split legal
     basis (contract for problem reports, legitimate interest for feedback), the
-    reading of app and device facts at send time under § 25(2) no. 2 TDDDG,
-    and that a note can contain special-category data the person types in
-    (§ 7). Reports are not part of the data copy (§ 14); access requests go
+    reading of app and device facts at send time under § 25(2) no. 2 TDDDG.
+    The Product Owner decided on 2026-11-24 that no separate consent or
+    special handling is planned for special-category content someone might
+    type into the optional note, because it will not be solved technically.
+    Reports are not part of the data copy (§ 14); access requests go
     through § 23. **Recommendation:** include reports and replies in the
     operator-provided copy so Art. 15 and Art. 20 are served completely. Keep
     `EIMIR_SUPPORT_REPORTS_ENABLED` off on eimir. Cloud until this version is
-    published.
+    published. Draft-12 adds one sentence to § 19.4: the operator may create a
+    technical ticket without the person's text. Point for the legal review: the
+    tracker (GitHub Issues) receives technical, pseudonymous data (report id,
+    request id); decide whether it must be named as a recipient in § 20 and as
+    a third-country transfer in § 21, and whether the neighbouring "nicht an
+    Dritte weiter" statement needs narrowing. The wording stays pending in the
+    already tracked legal review.
 
 ## Related follow-ups outside this draft
 

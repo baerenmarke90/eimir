@@ -4,7 +4,7 @@ import type { LegalDocument } from '../../../legal/legalDocument';
 export const privacyPolicyDe: LegalDocument = {
   document: 'privacy-policy',
   locale: 'de-DE',
-  version: '2026-11-24.draft-11',
+  version: '2026-11-24.draft-12',
   status: 'draft',
   title: 'Datenschutzhinweise für eimir.',
   placeholders: [
@@ -1162,7 +1162,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Wir nutzen deine Meldung nur, um das Problem zu finden und zu beheben, dein Feedback zu berücksichtigen und dir, wenn wir das für sinnvoll halten, einmal zu antworten. Deine Meldungen lesen nur wir. Wir geben sie nicht an Dritte weiter und nutzen sie nicht für Analyse oder Werbung. Wir speichern sie in unserer Datenbank, deinen Text, den Fehler-Code und die Angaben zu App und Gerät verschlüsselt (Abschnitt 5). Unverschlüsselt bleiben die Art der Meldung, ihr Bearbeitungsstand und die Zeitpunkte. Damit eimir. nicht mit Meldungen überflutet wird, begrenzen wir ihre Zahl pro Konto (Abschnitt 16).',
+              text: 'Wir nutzen deine Meldung nur, um das Problem zu finden und zu beheben, dein Feedback zu berücksichtigen und dir, wenn wir das für sinnvoll halten, einmal zu antworten. Deine Meldungen lesen nur wir. Wir geben sie nicht an Dritte weiter und nutzen sie nicht für Analyse oder Werbung. Um einen Fehler zu beheben, können wir zu einer Meldung ein technisches Ticket in unserem Ticketsystem anlegen; es enthält neben einer Beschreibung, die wir selbst schreiben, nur technische Angaben (Kennung und Art der Meldung, App-Version und Build, ob du die App oder die Web-App nutzt, den Fehler-Code mit der Kennung der fehlgeschlagenen Anfrage) und nie deinen Text, unsere Antwort oder die Kennung deines Kontos. Wir speichern sie in unserer Datenbank, deinen Text, den Fehler-Code und die Angaben zu App und Gerät verschlüsselt (Abschnitt 5). Unverschlüsselt bleiben die Art der Meldung, ihr Bearbeitungsstand und die Zeitpunkte. Damit eimir. nicht mit Meldungen überflutet wird, begrenzen wir ihre Zahl pro Konto (Abschnitt 16).',
             },
           ],
           children: [],

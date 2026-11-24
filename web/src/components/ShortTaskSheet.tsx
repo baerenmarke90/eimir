@@ -8,7 +8,6 @@ import {
   useImperativeHandle,
   useLayoutEffect,
   useRef,
-  useState,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
@@ -183,7 +182,6 @@ export function ShortTaskSheet({
   const suppressNextClickRef = useRef(false);
   const gestureHandlersRef = useRef<DragGestureHandlers | null>(null);
   const footerRef = useRef<HTMLDivElement>(null);
-  const [footerScrollable, setFooterScrollable] = useState(false);
   const closeConfirmed = useEditorHistoryEntry({
     isActive: open,
     isDirty,
@@ -228,17 +226,20 @@ export function ShortTaskSheet({
 
   // The footer scrolls once its content outgrows the bounded height (large text,
   // long messages). A scrollable region must be keyboard-reachable, so it joins
-  // the tab order exactly while it overflows and not otherwise.
+  // the tab order exactly while it overflows and not otherwise. The attribute is
+  // set on the element instead of through state: a state update from this layout
+  // effect would re-render the sheet synchronously, flush its pending passive
+  // effects early and reorder focus hand-offs when the sheet closes.
   useLayoutEffect(() => {
     const footerElement = footerRef.current;
-    if (!footerElement) {
-      setFooterScrollable(false);
-      return;
-    }
-    const measure = () =>
-      setFooterScrollable(
-        footerElement.scrollHeight > footerElement.clientHeight,
-      );
+    if (!footerElement) return;
+    const measure = () => {
+      if (footerElement.scrollHeight > footerElement.clientHeight) {
+        footerElement.setAttribute('tabindex', '0');
+      } else {
+        footerElement.removeAttribute('tabindex');
+      }
+    };
     measure();
     if (typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(measure);
@@ -895,11 +896,7 @@ export function ShortTaskSheet({
         {children}
       </section>
       {footer ? (
-        <div
-          ref={footerRef}
-          className="short-task-sheet-footer"
-          tabIndex={footerScrollable ? 0 : undefined}
-        >
+        <div ref={footerRef} className="short-task-sheet-footer">
           {footer}
         </div>
       ) : null}

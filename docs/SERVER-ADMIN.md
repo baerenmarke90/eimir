@@ -80,8 +80,8 @@ projection including available signals for:
 - READY media object count and aggregate stored bytes;
 - background-job state, oldest pending job, and recent failed-job technical
   metadata;
-- the number of support reports in state `NEW`, and a `support_reports_unread`
-  warning when a `NEW` report older than 14 days exists while support reports
+- the number of unarchived support reports in state `NEW`, and a `support_reports_unread`
+  warning when an unarchived `NEW` report older than 14 days exists while support reports
   are enabled (counts only; no report content or identifiers). While
   `EIMIR_SUPPORT_REPORTS_ENABLED` is off the count is always 0 and the warning
   never appears, even when `NEW` reports exist from an earlier period in which
@@ -333,9 +333,11 @@ while `EIMIR_SUPPORT_REPORTS_ENABLED` is off.
 
 | Route | Purpose | Recent authentication |
 | --- | --- | --- |
-| `GET /` | List, optional `state` (`NEW`, `IN_PROGRESS`, `CLOSED`), keyset `cursor`, `limit`; items carry kind, state, time, app version and build, failure reference and whether a reply and a ticket exist, plus the `newCount`; never the note | No |
+| `GET /` | List, optional `state` (`NEW`, `IN_PROGRESS`, `CLOSED`), `archived` (default `false`: unarchived reports; `true`: the archive), keyset `cursor`, `limit`; items carry kind, state, time, `archivedAt`, app version and build, failure reference and whether a reply and a ticket exist, plus the `newCount` of unarchived `NEW` reports; never the note | No |
 | `GET /{reportId}` | The report: note, technical client context, failure reference, request id, the opaque reporter account id (no name or email), the reply if any, the ticket link if any and `ticketAvailable` | No |
 | `PUT /{reportId}/state` | Set `NEW`, `IN_PROGRESS` or `CLOSED` | Yes |
+| `PUT /{reportId}/archive` | Archive (`{"archived": true}`) or unarchive a report | Yes |
+| `DELETE /{reportId}` | Delete the report permanently (`204`), with its reply and ticket link | Yes |
 | `POST /{reportId}/reply` | The one reply, plain text of at most 500 characters | Yes |
 | `POST /{reportId}/ticket` | Create the tracker ticket from the operator's title and body | Yes |
 | `DELETE /{reportId}/ticket` | Clear a ticket link so a new ticket can be created | Yes |
@@ -345,12 +347,31 @@ need a recent ServerAdmin authentication; a stale one answers
 `403 RECENT_AUTHENTICATION_REQUIRED`, the Web client asks for the step-up and
 retries the same write. Each write records one content-free privileged audit
 entry: `support_report.state_set`, `support_report.reply_sent`,
-`support_report.ticket_created` or `support_report.ticket_cleared`. Report text
-never enters the audit, logs or metrics.
+`support_report.ticket_created`, `support_report.ticket_cleared`,
+`support_report.archived`, `support_report.unarchived` or
+`support_report.deleted`. Report text never enters the audit, logs or metrics.
 
 The plugin routers are mounted behind the normal-operation dependency, so in
 maintenance mode they answer `503` like other product routes, while the rest of
 the ServerAdmin area stays reachable.
+
+### Archive and delete
+
+- **Archive** is a marker (`archived_at`) next to the triage state, not a fourth
+  state. An archived report leaves the `NEW`, `IN_PROGRESS`, `CLOSED` and `all`
+  lists and no longer counts as new (also not for the `support_reports_unread`
+  warning), but keeps its state, so unarchiving restores it exactly. It stays
+  readable in the `Archived` view. Archiving does not change retention: the
+  90-day and 365-day deletion of the privacy notice applies to archived reports
+  unchanged.
+- **Delete** removes one report for good, with its reply and, through the
+  foreign key, its ticket link. It cannot be undone. The tracker issue of a
+  linked ticket is not touched (the tracker API cannot delete issues); the
+  confirmation dialog says so. The reporter's reply notice follows the report
+  and stops being current, and the reporter's own reply endpoint answers `404`.
+  A copy of the reports that a person already received as their personal data
+  copy stays in that copy. Deleting earlier than the retention periods is
+  within the privacy notice ("at the latest").
 
 ### Reply
 
@@ -391,6 +412,9 @@ reporter reads it as plain text in their notifications.
   key to the Core table `support_reports` from Core migration `0175`. Before a
   Core downgrade below `0175`, downgrade the admin plugin chain to its base
   first.
+- The downgrade of Core migration `0177` drops `support_reports.archived_at`
+  (archive markers are lost) and deletes the audit rows of the three actions it
+  added (`archived`, `unarchived`, `deleted`).
 - The downgrade of Core migration `0176` deletes the privileged audit rows of
   the four `support_report.*` actions, because the narrower action constraint
   cannot hold them. Export them first if they must be kept.

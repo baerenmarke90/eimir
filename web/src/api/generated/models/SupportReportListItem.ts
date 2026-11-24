@@ -49,6 +49,12 @@ export interface SupportReportListItem {
     appVersion: string;
     /**
      * 
+     * @type {Date}
+     * @memberof SupportReportListItem
+     */
+    archivedAt: Date | null;
+    /**
+     * 
      * @type {string}
      * @memberof SupportReportListItem
      */
@@ -104,6 +110,7 @@ export interface SupportReportListItem {
  */
 export function instanceOfSupportReportListItem(value: object): value is SupportReportListItem {
     if (!('appVersion' in value) || value['appVersion'] === undefined) return false;
+    if (!('archivedAt' in value) || value['archivedAt'] === undefined) return false;
     if (!('build' in value) || value['build'] === undefined) return false;
     if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
     if (!('failureReference' in value) || value['failureReference'] === undefined) return false;
@@ -126,6 +133,7 @@ export function SupportReportListItemFromJSONTyped(json: any, ignoreDiscriminato
     return {
         
         'appVersion': json['appVersion'],
+        'archivedAt': (json['archivedAt'] == null ? null : new Date(json['archivedAt'])),
         'build': json['build'],
         'createdAt': (new Date(json['createdAt'])),
         'failureReference': json['failureReference'],
@@ -149,6 +157,7 @@ export function SupportReportListItemToJSONTyped(value?: SupportReportListItem |
     return {
         
         'appVersion': value['appVersion'],
+        'archivedAt': value['archivedAt'] == null ? value['archivedAt'] : value['archivedAt'].toISOString(),
         'build': value['build'],
         'createdAt': value['createdAt'].toISOString(),
         'failureReference': value['failureReference'],

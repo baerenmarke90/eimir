@@ -19,6 +19,7 @@ import {
   characterCount,
   clearSupportReportTicket,
   createSupportReportTicket,
+  deleteSupportReport,
   formatReportDate,
   isTicketUncertain,
   loadSupportReport,
@@ -30,6 +31,7 @@ import {
   SupportReportAdminError,
   type SupportReportTicketDraft,
   safeTicketUrl,
+  setSupportReportArchived,
   setSupportReportState,
   supportReportErrorKey,
   supportReportQueryKey,
@@ -47,9 +49,11 @@ type PrivilegedWrite =
   | { kind: 'state'; state: SupportReportState }
   | { kind: 'reply'; text: string }
   | { kind: 'ticket'; draft: SupportReportTicketDraft }
-  | { kind: 'clear' };
+  | { kind: 'clear' }
+  | { kind: 'archive'; archived: boolean }
+  | { kind: 'delete' };
 
-type FeedbackSection = 'state' | 'reply' | 'ticket';
+type FeedbackSection = 'state' | 'reply' | 'ticket' | 'manage';
 
 interface Feedback {
   section: FeedbackSection;
@@ -250,6 +254,109 @@ function TicketDialog({
   );
 }
 
+/**
+ * The confirmation before a report is deleted for good. Cancel holds the
+ * initial focus, so Enter never deletes; the consequence is named in text.
+ */
+function DeleteDialog({
+  report,
+  pending,
+  error,
+  headingRef,
+  onConfirm,
+  onCancel,
+}: {
+  report: SupportReportDetailView;
+  pending: boolean;
+  error: string | null;
+  headingRef: RefObject<HTMLHeadingElement | null>;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const { t } = useTranslation();
+  const baseId = useId();
+  const dialogRef = useRef<HTMLElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
+  useModalLifecycle({ active: true, initialFocusRef: cancelRef });
+
+  function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === 'Escape' && !pending) {
+      event.preventDefault();
+      onCancel();
+      return;
+    }
+    containModalTabFocus(event, dialogRef.current);
+  }
+
+  return (
+    <div className="server-admin-recent-auth-backdrop">
+      <section
+        ref={dialogRef}
+        className="form-card server-admin-recent-auth-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`${baseId}-title`}
+        aria-describedby={`${baseId}-intro`}
+        onKeyDown={handleKeyDown}
+      >
+        <header className="server-admin-recent-auth-head">
+          <div>
+            <p className="eyebrow">
+              {t('serverAdmin.reports.deleteDialog.eyebrow')}
+            </p>
+            <h2 id={`${baseId}-title`} ref={headingRef} tabIndex={-1}>
+              {t('serverAdmin.reports.deleteDialog.title')}
+            </h2>
+          </div>
+        </header>
+        <div id={`${baseId}-intro`} className="server-admin-report-delete-copy">
+          <p>
+            <span aria-hidden="true">⚠ </span>
+            {t('serverAdmin.reports.deleteDialog.intro', {
+              kind: t(`serverAdmin.reports.kinds.${report.kind}`),
+              date: formatReportDate(report.createdAt),
+            })}
+          </p>
+          <p>{t('serverAdmin.reports.deleteDialog.consequence')}</p>
+          {report.ticket ? (
+            <p>{t('serverAdmin.reports.deleteDialog.ticketStays')}</p>
+          ) : null}
+          <p className="server-admin-muted">
+            {t('serverAdmin.reports.deleteDialog.archiveHint')}
+          </p>
+        </div>
+        {error ? (
+          <p className="status status-error" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <div className="server-admin-report-dialog-actions">
+          <button
+            ref={cancelRef}
+            type="button"
+            className="secondary"
+            disabled={pending}
+            onClick={onCancel}
+          >
+            {t('serverAdmin.reports.deleteDialog.cancel')}
+          </button>
+          <button
+            type="button"
+            className="server-admin-report-danger"
+            disabled={pending}
+            onClick={onConfirm}
+          >
+            {pending
+              ? t('serverAdmin.reports.deleteDialog.deleting')
+              : t('serverAdmin.reports.deleteDialog.confirm')}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function TicketSection({
   report,
   online,
@@ -365,8 +472,8 @@ export function ServerAdminSupportReportDetail({
   reportId: string;
   apiBaseUrl: string;
   accessToken: string;
-  /** `gone`: the report no longer exists; the list says so. */
-  onClose: (reason?: 'gone') => void;
+  /** `gone`: the report no longer exists; `deleted`: the operator deleted it. */
+  onClose: (reason?: 'gone' | 'deleted') => void;
   /** Whether an unsent reply or ticket text would be lost on leaving. */
   onDraftChange?: (dirty: boolean) => void;
 }) {
@@ -388,6 +495,11 @@ export function ServerAdminSupportReportDetail({
     useState<SupportReportTicketDraft | null>(null);
   const [trackerFailed, setTrackerFailed] = useState(false);
   const [ticketFocusRequest, setTicketFocusRequest] = useState(0);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteDialogError, setDeleteDialogError] = useState<string | null>(
+    null,
+  );
+  const deleteHeadingRef = useRef<HTMLHeadingElement>(null);
   const ticketLinkRef = useRef<HTMLAnchorElement>(null);
   const ticketHeadingRef = useRef<HTMLHeadingElement>(null);
   const dialogHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -442,8 +554,10 @@ export function ServerAdminSupportReportDetail({
     stepUpShownRef.current = false;
     if (ticketDialogOpen) {
       dialogHeadingRef.current?.focus({ preventScroll: true });
+    } else if (deleteDialogOpen) {
+      deleteHeadingRef.current?.focus({ preventScroll: true });
     }
-  }, [pendingWrite, ticketDialogOpen]);
+  }, [pendingWrite, ticketDialogOpen, deleteDialogOpen]);
 
   function changed(next?: SupportReportDetailView) {
     if (next) queryClient.setQueryData(queryKey, next);
@@ -621,7 +735,66 @@ export function ServerAdminSupportReportDetail({
     },
   });
 
+  const archiveMutation = useMutation({
+    networkMode: 'always',
+    mutationFn: (archived: boolean) =>
+      setSupportReportArchived(api, reportId, archived),
+    onMutate: () => setFeedback(null),
+    onSuccess: (next) => {
+      changed(next);
+      setFeedback({
+        section: 'manage',
+        tone: 'success',
+        message: t(
+          next.archivedAt
+            ? 'serverAdmin.reports.manage.archived'
+            : 'serverAdmin.reports.manage.unarchived',
+        ),
+      });
+    },
+    onError: (error, archived) => {
+      failed(error, { kind: 'archive', archived }, 'manage');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    networkMode: 'always',
+    mutationFn: () => deleteSupportReport(api, reportId),
+    onMutate: () => {
+      setFeedback(null);
+      setDeleteDialogError(null);
+    },
+    onSuccess: () => {
+      // The report is gone with its reply and ticket link: drop every cache of
+      // it, then return to the list, which says so.
+      setReplyText('');
+      setTicketDraft(null);
+      queryClient.removeQueries({ queryKey, exact: true });
+      void queryClient.invalidateQueries({
+        queryKey: SUPPORT_REPORTS_QUERY_KEY,
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['server-admin', 'overview'],
+      });
+      onClose('deleted');
+    },
+    onError: (error) => {
+      if (isRecentAuthRequired(error)) {
+        setPendingWrite({ kind: 'delete' });
+        return;
+      }
+      if (isReportGone(error)) {
+        reportGone();
+        return;
+      }
+      // The failure stays in the dialog, next to the action that failed.
+      setDeleteDialogError(t(supportReportErrorKey(error)));
+    },
+  });
+
   const busy =
+    archiveMutation.isPending ||
+    deleteMutation.isPending ||
     stateMutation.isPending ||
     replyMutation.isPending ||
     ticketMutation.isPending ||
@@ -634,6 +807,8 @@ export function ServerAdminSupportReportDetail({
     if (write.kind === 'state') stateMutation.mutate(write.state);
     else if (write.kind === 'reply') replyMutation.mutate(write.text);
     else if (write.kind === 'ticket') ticketMutation.mutate(write.draft);
+    else if (write.kind === 'archive') archiveMutation.mutate(write.archived);
+    else if (write.kind === 'delete') deleteMutation.mutate();
     else clearMutation.mutate();
   }
 
@@ -790,8 +965,15 @@ export function ServerAdminSupportReportDetail({
             date: formatReportDate(report.createdAt),
           })}
         </h3>
-        <span className="server-admin-badge">
-          {t(`serverAdmin.reports.states.${report.state}`)}
+        <span className="server-admin-report-badges">
+          <span className="server-admin-badge">
+            {t(`serverAdmin.reports.states.${report.state}`)}
+          </span>
+          {report.archivedAt ? (
+            <span className="server-admin-badge">
+              {t('serverAdmin.reports.item.archived')}
+            </span>
+          ) : null}
         </span>
       </header>
 
@@ -958,6 +1140,58 @@ export function ServerAdminSupportReportDetail({
           {t('serverAdmin.reports.detail.accountHint')}
         </p>
       </section>
+
+      <section aria-labelledby={`${baseId}-manage-title`}>
+        <h4 id={`${baseId}-manage-title`}>
+          {t('serverAdmin.reports.manage.title')}
+        </h4>
+        <p className="server-admin-muted">
+          {t(
+            report.archivedAt
+              ? 'serverAdmin.reports.manage.archivedHint'
+              : 'serverAdmin.reports.manage.archiveHint',
+          )}
+        </p>
+        <div className="server-admin-report-manage-actions">
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy || !online}
+            onClick={() => archiveMutation.mutate(!report.archivedAt)}
+          >
+            {archiveMutation.isPending
+              ? t('serverAdmin.reports.manage.saving')
+              : t(
+                  report.archivedAt
+                    ? 'serverAdmin.reports.manage.unarchive'
+                    : 'serverAdmin.reports.manage.archive',
+                )}
+          </button>
+          <button
+            type="button"
+            className="server-admin-report-danger-outline"
+            disabled={busy || !online}
+            onClick={() => {
+              setDeleteDialogError(null);
+              setDeleteDialogOpen(true);
+            }}
+          >
+            {t('serverAdmin.reports.manage.delete')}
+          </button>
+        </div>
+        <SectionFeedback feedback={feedback} section="manage" />
+      </section>
+
+      {deleteDialogOpen ? (
+        <DeleteDialog
+          report={report}
+          pending={deleteMutation.isPending}
+          error={deleteDialogError}
+          headingRef={deleteHeadingRef}
+          onConfirm={() => deleteMutation.mutate()}
+          onCancel={() => setDeleteDialogOpen(false)}
+        />
+      ) : null}
 
       {ticketDialogOpen && ticketDraft ? (
         <TicketDialog

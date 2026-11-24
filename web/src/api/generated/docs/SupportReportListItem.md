@@ -8,6 +8,7 @@ One report in the list: triage facts only, no note text.
 Name | Type
 ------------ | -------------
 `appVersion` | string
+`archivedAt` | Date
 `build` | string
 `createdAt` | Date
 `failureReference` | string
@@ -25,6 +26,7 @@ import type { SupportReportListItem } from ''
 // TODO: Update the object below with actual values
 const example = {
   "appVersion": null,
+  "archivedAt": null,
   "build": null,
   "createdAt": null,
   "failureReference": null,

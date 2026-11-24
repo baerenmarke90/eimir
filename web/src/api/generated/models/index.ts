@@ -487,6 +487,7 @@ export * from './StoryPage';
 export * from './StoryPlaceSummary';
 export * from './StoryViewReceipt';
 export * from './SupportGestureKind';
+export * from './SupportReportArchiveUpdate';
 export * from './SupportReportCreate';
 export * from './SupportReportCreated';
 export * from './SupportReportDetailView';

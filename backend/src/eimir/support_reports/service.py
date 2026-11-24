@@ -10,6 +10,13 @@ back instead of a second one.
 
 A report receives at most one reply. The reply never changes the report's
 ``state``, which is only the operator's own triage marker.
+
+An operator can archive a report and delete one permanently. Archiving is a
+marker next to ``state`` (``archived_at``): an archived report leaves the
+default lists and the ``NEW`` count but keeps its state and its retention
+clock. Deleting removes the report, its reply and, through the foreign keys,
+the plugin's ticket link; the reporter's reply notice stops being current
+because it follows the report (see ``engagement.service``).
 """
 
 from __future__ import annotations
@@ -181,19 +188,23 @@ def get_report(session: Session, report_id: UUID) -> SupportReport | None:
 
 
 def count_new(session: Session) -> int:
-    """Return how many reports are still in state ``NEW``."""
+    """Return how many unarchived reports are still in state ``NEW``."""
     return session.execute(
         select(func.count())
         .select_from(SupportReport)
-        .where(SupportReport.state == SupportReportState.NEW.value)
+        .where(
+            SupportReport.state == SupportReportState.NEW.value,
+            SupportReport.archived_at.is_(None),
+        )
     ).scalar_one()
 
 
 def oldest_new_at(session: Session) -> datetime | None:
-    """Return the creation time of the oldest ``NEW`` report, if there is one."""
+    """Return the creation time of the oldest unarchived ``NEW`` report, if there is one."""
     return session.execute(
         select(func.min(SupportReport.created_at)).where(
-            SupportReport.state == SupportReportState.NEW.value
+            SupportReport.state == SupportReportState.NEW.value,
+            SupportReport.archived_at.is_(None),
         )
     ).scalar_one()
 
@@ -212,13 +223,17 @@ def support_reports_unread_warning(
     return clock.ensure_utc(now) - clock.ensure_utc(oldest_new_at) > UNREAD_WARNING_AGE
 
 
-def _cursor_binding(state: SupportReportState | None) -> dict[str, Any]:
-    return {"collection": "support_reports", "state": state.value if state else None}
+def _cursor_binding(state: SupportReportState | None, archived: bool) -> dict[str, Any]:
+    return {
+        "collection": "support_reports",
+        "state": state.value if state else None,
+        "archived": archived,
+    }
 
 
-def _encode_cursor(report: SupportReport, state: SupportReportState | None) -> str:
+def _encode_cursor(report: SupportReport, state: SupportReportState | None, archived: bool) -> str:
     return cursor_codec.encode(
-        binding=_cursor_binding(state),
+        binding=_cursor_binding(state, archived),
         position={
             "createdAt": report.created_at.astimezone(UTC).isoformat().replace("+00:00", "Z"),
             "id": str(report.id),
@@ -226,8 +241,10 @@ def _encode_cursor(report: SupportReport, state: SupportReportState | None) -> s
     )
 
 
-def _decode_cursor(token: str, state: SupportReportState | None) -> tuple[datetime, UUID]:
-    position = cursor_codec.decode(token, binding=_cursor_binding(state))
+def _decode_cursor(
+    token: str, state: SupportReportState | None, archived: bool
+) -> tuple[datetime, UUID]:
+    position = cursor_codec.decode(token, binding=_cursor_binding(state, archived))
     created_raw = position.get("createdAt")
     id_raw = position.get("id")
     if not isinstance(created_raw, str) or not isinstance(id_raw, str):
@@ -246,17 +263,24 @@ def list_reports(
     session: Session,
     *,
     state: SupportReportState | None,
+    archived: bool = False,
     limit: int,
     cursor: str | None,
 ) -> Page[SupportReport]:
-    """List reports newest first, optionally of one state."""
+    """List reports newest first, optionally of one state.
+
+    The default lists show unarchived reports only; ``archived=True`` lists the
+    archived ones instead. The two never mix, so a report is in exactly one.
+    """
     if limit < 1:
         raise ValueError("limit must be at least 1")
-    statement = select(SupportReport)
+    statement = select(SupportReport).where(
+        SupportReport.archived_at.is_not(None) if archived else SupportReport.archived_at.is_(None)
+    )
     if state is not None:
         statement = statement.where(SupportReport.state == state.value)
     if cursor is not None:
-        created_at, report_id = _decode_cursor(cursor, state)
+        created_at, report_id = _decode_cursor(cursor, state, archived)
         statement = statement.where(
             or_(
                 SupportReport.created_at < created_at,
@@ -269,7 +293,7 @@ def list_reports(
     rows = list(session.execute(statement).scalars().all())
     has_more = len(rows) > limit
     items = rows[:limit]
-    next_cursor = _encode_cursor(items[-1], state) if has_more else None
+    next_cursor = _encode_cursor(items[-1], state, archived) if has_more else None
     return Page(items=items, next_cursor=next_cursor, has_more=has_more)
 
 
@@ -291,6 +315,38 @@ def set_state(session: Session, report_id: UUID, state: SupportReportState) -> S
     report.state = state.value
     session.flush()
     return report
+
+
+def set_archived(session: Session, report_id: UUID, archived: bool) -> SupportReport:
+    """Archive or unarchive a report; the triage state and ``closed_at`` stay as they are.
+
+    Archiving an already archived report keeps the original time.
+    """
+    report = get_report(session, report_id)
+    if report is None:
+        raise NotFoundError("Support report not found.", REPORT_NOT_FOUND)
+    if not archived:
+        report.archived_at = None
+    elif report.archived_at is None:
+        report.archived_at = clock.now()
+    session.flush()
+    return report
+
+
+def delete_report(session: Session, report_id: UUID) -> UUID:
+    """Delete one report permanently and return its reporter's opaque account id.
+
+    The reply and the plugin's ticket link leave through their foreign keys'
+    ``ON DELETE CASCADE``. The report text is read by nobody here and nothing of
+    it is returned. A tracker issue, if one was created, is not touched.
+    """
+    report = get_report(session, report_id)
+    if report is None:
+        raise NotFoundError("Support report not found.", REPORT_NOT_FOUND)
+    account_id = report.account_id
+    session.delete(report)
+    session.flush()
+    return account_id
 
 
 def _reply_text(text: str) -> str:

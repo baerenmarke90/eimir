@@ -19,6 +19,11 @@ import {
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
 import {
+    type SupportReportArchiveUpdate,
+    SupportReportArchiveUpdateFromJSON,
+    SupportReportArchiveUpdateToJSON,
+} from '../models/SupportReportArchiveUpdate';
+import {
     type SupportReportDetailView,
     SupportReportDetailViewFromJSON,
     SupportReportDetailViewToJSON,
@@ -68,12 +73,17 @@ export interface CreateSupportReportTicketRequest {
     supportReportTicketCreate: SupportReportTicketCreate;
 }
 
+export interface DeleteSupportReportRequest {
+    reportId: string;
+}
+
 export interface GetSupportReportRequest {
     reportId: string;
 }
 
 export interface ListSupportReportsRequest {
     state?: SupportReportState | null;
+    archived?: boolean;
     limit?: number;
     cursor?: string | null;
 }
@@ -81,6 +91,11 @@ export interface ListSupportReportsRequest {
 export interface ReplyToSupportReportRequest {
     reportId: string;
     supportReportReplyCreate: SupportReportReplyCreate;
+}
+
+export interface SetSupportReportArchivedRequest {
+    reportId: string;
+    supportReportArchiveUpdate: SupportReportArchiveUpdate;
 }
 
 export interface SetSupportReportStateRequest {
@@ -197,6 +212,52 @@ export class ServerAdminSupportReportsApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for deleteSupportReport without sending the request
+     */
+    async deleteSupportReportRequestOpts(requestParameters: DeleteSupportReportRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['reportId'] == null) {
+            throw new runtime.RequiredError(
+                'reportId',
+                'Required parameter "reportId" was null or undefined when calling deleteSupportReport().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/server-admin/support-reports/{reportId}`;
+        urlPath = urlPath.replace('{reportId}', encodeURIComponent(String(requestParameters['reportId'])));
+
+        return {
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Delete a report permanently with its reply and ticket link. Needs recent authentication.
+     * Delete Support Report
+     */
+    async deleteSupportReportRaw(requestParameters: DeleteSupportReportRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.deleteSupportReportRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Delete a report permanently with its reply and ticket link. Needs recent authentication.
+     * Delete Support Report
+     */
+    async deleteSupportReport(requestParameters: DeleteSupportReportRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.deleteSupportReportRaw(requestParameters, initOverrides);
+    }
+
+    /**
      * Creates request options for getSupportReport without sending the request
      */
     async getSupportReportRequestOpts(requestParameters: GetSupportReportRequest): Promise<runtime.RequestOpts> {
@@ -253,6 +314,10 @@ export class ServerAdminSupportReportsApi extends runtime.BaseAPI {
             queryParameters['state'] = requestParameters['state'];
         }
 
+        if (requestParameters['archived'] != null) {
+            queryParameters['archived'] = requestParameters['archived'];
+        }
+
         if (requestParameters['limit'] != null) {
             queryParameters['limit'] = requestParameters['limit'];
         }
@@ -275,7 +340,7 @@ export class ServerAdminSupportReportsApi extends runtime.BaseAPI {
     }
 
     /**
-     * List reports newest first without note text; the cursor is bound to the state filter.
+     * List reports newest first without note text.  Unarchived reports by default, the archived ones with ``archived=true``. The cursor is bound to the state filter and the archive view.
      * List Support Reports
      */
     async listSupportReportsRaw(requestParameters: ListSupportReportsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SupportReportListView>> {
@@ -286,7 +351,7 @@ export class ServerAdminSupportReportsApi extends runtime.BaseAPI {
     }
 
     /**
-     * List reports newest first without note text; the cursor is bound to the state filter.
+     * List reports newest first without note text.  Unarchived reports by default, the archived ones with ``archived=true``. The cursor is bound to the state filter and the archive view.
      * List Support Reports
      */
     async listSupportReports(requestParameters: ListSupportReportsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SupportReportListView> {
@@ -348,6 +413,63 @@ export class ServerAdminSupportReportsApi extends runtime.BaseAPI {
      */
     async replyToSupportReport(requestParameters: ReplyToSupportReportRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SupportReportDetailView> {
         const response = await this.replyToSupportReportRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for setSupportReportArchived without sending the request
+     */
+    async setSupportReportArchivedRequestOpts(requestParameters: SetSupportReportArchivedRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['reportId'] == null) {
+            throw new runtime.RequiredError(
+                'reportId',
+                'Required parameter "reportId" was null or undefined when calling setSupportReportArchived().'
+            );
+        }
+
+        if (requestParameters['supportReportArchiveUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'supportReportArchiveUpdate',
+                'Required parameter "supportReportArchiveUpdate" was null or undefined when calling setSupportReportArchived().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/server-admin/support-reports/{reportId}/archive`;
+        urlPath = urlPath.replace('{reportId}', encodeURIComponent(String(requestParameters['reportId'])));
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: SupportReportArchiveUpdateToJSON(requestParameters['supportReportArchiveUpdate']),
+        };
+    }
+
+    /**
+     * Archive or unarchive a report; its triage state is kept. Needs recent authentication.
+     * Set Support Report Archived
+     */
+    async setSupportReportArchivedRaw(requestParameters: SetSupportReportArchivedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SupportReportDetailView>> {
+        const requestOptions = await this.setSupportReportArchivedRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SupportReportDetailViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Archive or unarchive a report; its triage state is kept. Needs recent authentication.
+     * Set Support Report Archived
+     */
+    async setSupportReportArchived(requestParameters: SetSupportReportArchivedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SupportReportDetailView> {
+        const response = await this.setSupportReportArchivedRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -98,6 +98,7 @@ class AppIconPreference(IdMixin, TimestampMixin, VersionMixin, Base):
 
     @property
     def effective_palette(self) -> WirDesignId | None:
-        if self.wir_design_palette in WirDesignId:
-            return WirDesignId(self.wir_design_palette)
+        palette = self.wir_design_palette
+        if palette is not None and palette in WirDesignId:
+            return WirDesignId(palette)
         return None

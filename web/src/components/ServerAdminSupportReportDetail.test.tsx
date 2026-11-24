@@ -73,6 +73,7 @@ function report(
     reply: null,
     requestId: 'req-1',
     state: 'NEW',
+    archivedAt: null,
     ticket: null,
     ticketAvailable: true,
     ...overrides,
@@ -134,6 +135,165 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+});
+
+describe('ServerAdminSupportReportDetail archive and delete', () => {
+  it('archives a report, keeps its state and offers to bring it back', async () => {
+    const setSupportReportArchived = vi
+      .fn()
+      .mockResolvedValueOnce(report({ archivedAt: new Date() }))
+      .mockResolvedValueOnce(report());
+    renderDetail(report(), { setSupportReportArchived });
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: reports.manage.archive }),
+    );
+
+    await waitFor(() =>
+      expect(setSupportReportArchived).toHaveBeenCalledWith({
+        reportId,
+        supportReportArchiveUpdate: { archived: true },
+      }),
+    );
+    expect(await screen.findByText(reports.manage.archived)).toBeTruthy();
+    expect(screen.getByText(reports.item.archived)).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: reports.manage.unarchive }),
+    );
+    await waitFor(() =>
+      expect(setSupportReportArchived).toHaveBeenLastCalledWith({
+        reportId,
+        supportReportArchiveUpdate: { archived: false },
+      }),
+    );
+    expect(await screen.findByText(reports.manage.unarchived)).toBeTruthy();
+  });
+
+  it('retries archiving after step-up', async () => {
+    const setSupportReportArchived = vi
+      .fn()
+      .mockRejectedValueOnce(stepUpRequired())
+      .mockResolvedValueOnce(report({ archivedAt: new Date() }));
+    renderDetail(report(), { setSupportReportArchived });
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: reports.manage.archive }),
+    );
+    await screen.findByRole('dialog', { name: 'ServerAdmin step-up' });
+    fireEvent.click(screen.getByRole('button', { name: 'Complete step-up' }));
+
+    expect(await screen.findByText(reports.manage.archived)).toBeTruthy();
+    expect(setSupportReportArchived).toHaveBeenCalledTimes(2);
+  });
+
+  it('names the consequence and deletes nothing until confirmed', async () => {
+    const deleteSupportReport = vi.fn().mockResolvedValue(undefined);
+    const onClose = vi.fn();
+    renderDetail(report(), { deleteSupportReport }, onClose);
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: reports.manage.delete }),
+    );
+
+    const dialog = await screen.findByRole('dialog', {
+      name: reports.deleteDialog.title,
+    });
+    expect(
+      within(dialog).getByText(reports.deleteDialog.consequence),
+    ).toBeTruthy();
+    expect(
+      within(dialog).queryByText(reports.deleteDialog.ticketStays),
+    ).toBeNull();
+    // Cancel holds the focus, so Enter cannot delete by accident.
+    expect(document.activeElement).toBe(
+      within(dialog).getByRole('button', { name: reports.deleteDialog.cancel }),
+    );
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: reports.deleteDialog.cancel }),
+    );
+    expect(
+      screen.queryByRole('dialog', { name: reports.deleteDialog.title }),
+    ).toBeNull();
+    expect(deleteSupportReport).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('deletes after confirmation and returns to the list as deleted', async () => {
+    const deleteSupportReport = vi.fn().mockResolvedValue(undefined);
+    const onClose = vi.fn();
+    renderDetail(report(), { deleteSupportReport }, onClose);
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: reports.manage.delete }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: reports.deleteDialog.confirm }),
+    );
+
+    await waitFor(() =>
+      expect(deleteSupportReport).toHaveBeenCalledWith({ reportId }),
+    );
+    await waitFor(() => expect(onClose).toHaveBeenCalledWith('deleted'));
+  });
+
+  it('says in the dialog that a linked tracker ticket stays', async () => {
+    renderDetail(report({ ticket: ticket() }));
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: reports.manage.delete }),
+    );
+
+    expect(
+      await screen.findByText(reports.deleteDialog.ticketStays),
+    ).toBeTruthy();
+  });
+
+  it('retries the deletion after step-up', async () => {
+    const deleteSupportReport = vi
+      .fn()
+      .mockRejectedValueOnce(stepUpRequired())
+      .mockResolvedValueOnce(undefined);
+    const onClose = vi.fn();
+    renderDetail(report(), { deleteSupportReport }, onClose);
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: reports.manage.delete }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: reports.deleteDialog.confirm }),
+    );
+    await screen.findByRole('dialog', { name: 'ServerAdmin step-up' });
+    fireEvent.click(screen.getByRole('button', { name: 'Complete step-up' }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalledWith('deleted'));
+    expect(deleteSupportReport).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps a failed deletion in the dialog and the report open', async () => {
+    const deleteSupportReport = vi
+      .fn()
+      .mockRejectedValue(new ClientProblemError('server', 500, 'INTERNAL'));
+    const onClose = vi.fn();
+    renderDetail(report(), { deleteSupportReport }, onClose);
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: reports.manage.delete }),
+    );
+    const dialog = await screen.findByRole('dialog', {
+      name: reports.deleteDialog.title,
+    });
+    fireEvent.click(
+      within(dialog).getByRole('button', {
+        name: reports.deleteDialog.confirm,
+      }),
+    );
+
+    expect(
+      await within(dialog).findByText(reports.errors.generic),
+    ).toBeTruthy();
+    expect(onClose).not.toHaveBeenCalled();
+  });
 });
 
 describe('ServerAdminSupportReportDetail', () => {

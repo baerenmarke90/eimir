@@ -4969,7 +4969,7 @@
       },
       "constraints": {
         "ck_instance_administration_action_events_action_valid": {
-          "definition": "CHECK (action::text = ANY (ARRAY['account_suspended'::character varying, 'account_unsuspended'::character varying, 'account_sessions_revoked'::character varying, 'account_email_verified'::character varying, 'account_recovery_email_requested'::character varying, 'account_recovery_issued'::character varying, 'space_entitlement_granted'::character varying, 'space_entitlement_revoked'::character varying, 'account_deletion_requested'::character varying, 'account_deletion_completed'::character varying, 'account_deletion_failed'::character varying, 'space_configuration_manager_reconciled'::character varying, 'support_report.state_set'::character varying, 'support_report.reply_sent'::character varying, 'support_report.ticket_created'::character varying, 'support_report.ticket_cleared'::character varying]::text[]))",
+          "definition": "CHECK (action::text = ANY (ARRAY['account_suspended'::character varying, 'account_unsuspended'::character varying, 'account_sessions_revoked'::character varying, 'account_email_verified'::character varying, 'account_recovery_email_requested'::character varying, 'account_recovery_issued'::character varying, 'space_entitlement_granted'::character varying, 'space_entitlement_revoked'::character varying, 'account_deletion_requested'::character varying, 'account_deletion_completed'::character varying, 'account_deletion_failed'::character varying, 'space_configuration_manager_reconciled'::character varying, 'support_report.state_set'::character varying, 'support_report.reply_sent'::character varying, 'support_report.ticket_created'::character varying, 'support_report.ticket_cleared'::character varying, 'support_report.archived'::character varying, 'support_report.unarchived'::character varying, 'support_report.deleted'::character varying]::text[]))",
           "kind": "c"
         },
         "fk_instance_administration_action_events_actor_id_accounts": {
@@ -12053,6 +12053,13 @@
           "identity": null,
           "nullable": false,
           "type": "uuid"
+        },
+        "archived_at": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "timestamp with time zone"
         },
         "client_request_id": {
           "default": null,

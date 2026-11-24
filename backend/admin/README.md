@@ -20,9 +20,10 @@ operator of an instance (support reports), never the couples.
 ## Operator routes
 
 Under `/api/v1/server-admin/support-reports` (OpenAPI tag `server-admin-support-reports`):
-`listSupportReports`, `getSupportReport`, `setSupportReportState` and `replyToSupportReport`.
+`listSupportReports`, `getSupportReport`, `setSupportReportState`, `setSupportReportArchived`,
+`deleteSupportReport` and `replyToSupportReport`.
 They need a ServerAdmin, answer `Cache-Control: private, no-store` and are a 404 while
-`EIMIR_SUPPORT_REPORTS_ENABLED` is off. State and reply need recent authentication and write
+`EIMIR_SUPPORT_REPORTS_ENABLED` is off. State, archive, delete and reply need recent authentication and write
 a content-free entry (action and reporter account, never text) into the privileged audit.
 `createSupportReportTicket` (`POST .../{reportId}/ticket`, title and body typed by the operator
 plus a technical footer; never the note or reply) and `clearSupportReportTicket`

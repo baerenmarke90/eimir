@@ -517,6 +517,7 @@ const serverAdmin = {
       NEW: 'Neu',
       IN_PROGRESS: 'In Bearbeitung',
       CLOSED: 'Erledigt',
+      archived: 'Archiviert',
     },
     states: {
       NEW: 'Neu',
@@ -541,6 +542,7 @@ const serverAdmin = {
     emptyNewBody: 'Es gibt gerade keine neuen Meldungen.',
     emptyFilteredBody: 'Für diesen Status gibt es keine Meldungen.',
     emptyAllBody: 'Bisher ist keine Meldung eingegangen.',
+    emptyArchivedBody: 'Es gibt keine archivierten Meldungen.',
     showAll: 'Alle Meldungen zeigen',
     loadMore: 'Weitere Meldungen laden',
     loadingMore: 'Weitere Meldungen werden geladen …',
@@ -550,6 +552,7 @@ const serverAdmin = {
       version: 'Version {{version}} ({{build}})',
       replied: 'Beantwortet',
       ticket: 'Ticket',
+      archived: 'Archiviert',
     },
     detail: {
       back: 'Zurück zur Liste',
@@ -636,6 +639,34 @@ const serverAdmin = {
       submit: 'Ticket erstellen',
       submitting: 'Ticket wird erstellt …',
       cancel: 'Abbrechen',
+    },
+    manage: {
+      title: 'Archivieren und löschen',
+      archiveHint:
+        'Eine archivierte Meldung verschwindet aus Neu, In Bearbeitung, Erledigt und Alle und zählt nicht mehr als neu. Sie bleibt unter „Archiviert“ lesbar, ihr Bearbeitungsstand bleibt erhalten. Die Aufbewahrungsfristen gelten unverändert.',
+      archivedHint:
+        'Diese Meldung ist archiviert. Hole sie zurück, damit sie wieder in den Listen erscheint. Die Aufbewahrungsfristen gelten auch im Archiv.',
+      archive: 'Meldung archivieren',
+      unarchive: 'Aus dem Archiv holen',
+      saving: 'Wird gespeichert …',
+      archived: 'Die Meldung wurde archiviert.',
+      unarchived: 'Die Meldung ist wieder in den Listen.',
+      delete: 'Meldung endgültig löschen',
+      deleted: 'Die Meldung wurde endgültig gelöscht.',
+    },
+    deleteDialog: {
+      eyebrow: 'Nicht umkehrbar',
+      title: 'Meldung endgültig löschen',
+      intro: '{{kind}} vom {{date}} wird endgültig gelöscht.',
+      consequence:
+        'Notiz, technische Angaben, gesendete Antwort und Ticket-Verknüpfung werden entfernt. Das lässt sich nicht rückgängig machen. Die Person sieht eine gesendete Antwort danach nicht mehr.',
+      ticketStays:
+        'Das Ticket im Tracker bleibt bestehen: eimir. kann es dort nicht löschen. Schließe oder lösche es bei Bedarf im Tracker selbst.',
+      archiveHint:
+        'Willst du die Meldung nur aus den Listen nehmen, archiviere sie stattdessen.',
+      cancel: 'Abbrechen',
+      confirm: 'Endgültig löschen',
+      deleting: 'Wird gelöscht …',
     },
     errors: {
       alreadyReplied:

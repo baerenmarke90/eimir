@@ -47,6 +47,7 @@ interface Report {
   kind: 'PROBLEM' | 'FEEDBACK';
   state: State;
   createdAt: string;
+  archivedAt: string | null;
   note: string | null;
   failureReference: string | null;
   requestId: string | null;
@@ -122,6 +123,7 @@ function initialReports(): Report[] {
       kind: 'PROBLEM',
       state: 'NEW',
       createdAt: '2026-11-24T08:15:00Z',
+      archivedAt: null,
       note: NOTE,
       failureReference:
         'GET:/api/v1/spaces/{id}/story:500:STORY_UNAVAILABLE:web',
@@ -134,6 +136,7 @@ function initialReports(): Report[] {
       kind: 'FEEDBACK',
       state: 'IN_PROGRESS',
       createdAt: '2026-11-22T19:40:00Z',
+      archivedAt: null,
       note: FEEDBACK_NOTE,
       failureReference: null,
       requestId: null,
@@ -156,6 +159,7 @@ function listItem(report: Report) {
     kind: report.kind,
     state: report.state,
     createdAt: report.createdAt,
+    archivedAt: report.archivedAt,
     appVersion: '1.4.0',
     build: '412',
     failureReference: report.failureReference,
@@ -188,7 +192,7 @@ function detail(report: Report) {
 }
 
 /**
- * The ServerAdmin account, the overview with the operator flag and the six
+ * The ServerAdmin account, the overview with the operator flag and the eight
  * plugin routes. `recentAuthentication` starts stale: the first write answers
  * RECENT_AUTHENTICATION_REQUIRED until the step-up succeeded.
  */
@@ -210,8 +214,9 @@ async function install(page: Page, options: { fresh?: boolean } = {}) {
       return route.fulfill({
         json: {
           ...overview(),
-          supportReportsNew: data.filter((report) => report.state === 'NEW')
-            .length,
+          supportReportsNew: data.filter(
+            (report) => report.state === 'NEW' && !report.archivedAt,
+          ).length,
         },
       });
     if (
@@ -246,7 +251,9 @@ async function install(page: Page, options: { fresh?: boolean } = {}) {
     if (!pathname.startsWith(prefix)) return route.fallback();
     if (method === 'GET' && pathname === prefix) {
       const state = url.searchParams.get('state');
+      const archived = url.searchParams.get('archived') === 'true';
       const items = data
+        .filter((report) => (report.archivedAt !== null) === archived)
         .filter((report) => !state || report.state === state)
         .map(listItem);
       return route.fulfill({
@@ -254,7 +261,9 @@ async function install(page: Page, options: { fresh?: boolean } = {}) {
           items,
           hasMore: false,
           nextCursor: null,
-          newCount: data.filter((report) => report.state === 'NEW').length,
+          newCount: data.filter(
+            (report) => report.state === 'NEW' && !report.archivedAt,
+          ).length,
         },
       });
     }
@@ -286,6 +295,16 @@ async function install(page: Page, options: { fresh?: boolean } = {}) {
     if (method === 'PUT' && action === 'state') {
       report.state = (body as { state: State }).state;
       return route.fulfill({ json: detail(report) });
+    }
+    if (method === 'PUT' && action === 'archive') {
+      report.archivedAt = (body as { archived: boolean }).archived
+        ? new Date().toISOString()
+        : null;
+      return route.fulfill({ json: detail(report) });
+    }
+    if (method === 'DELETE' && !action) {
+      data.splice(data.indexOf(report), 1);
+      return route.fulfill({ status: 204, body: '' });
     }
     if (method === 'POST' && action === 'reply') {
       if (report.reply)
@@ -340,7 +359,7 @@ function sectionOf(page: Page) {
       section
         .getByRole('list', { name: reports.listLabel })
         .getByRole('button', { name: new RegExp(`^${reports.kinds[kind]}`) }),
-    filter: (value: 'NEW' | 'IN_PROGRESS' | 'CLOSED' | 'all') =>
+    filter: (value: 'NEW' | 'IN_PROGRESS' | 'CLOSED' | 'all' | 'archived') =>
       section
         .locator('.server-admin-reports-browse')
         .getByRole('button', { name: reports.filter[value], exact: true }),
@@ -594,6 +613,125 @@ test('operator_triages_a_report_replies_once_and_creates_a_ticket', async ({
   await expect(reportsSection.list).not.toContainText(NOTE);
 });
 
+test('operator_archives_restores_and_permanently_deletes_a_report', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const { data, recorded } = await install(page);
+  await openSignedIn(page, '/server-admin?section=reports');
+  const reportsSection = sectionOf(page);
+  await expect(reportsSection.row('PROBLEM')).toBeVisible();
+
+  // Open, then archive: the stale authentication asks for the step-up once and
+  // the same write is retried.
+  await reportsSection.row('PROBLEM').click();
+  const report = reportsSection.detail;
+  await expect(report.locator('.server-admin-report-text')).toHaveText(NOTE);
+  await report
+    .getByRole('button', { name: reports.manage.archive, exact: true })
+    .click();
+  const stepUp = page.getByRole('dialog', { name: serverAdmin.stepUp.title });
+  await stepUp
+    .getByLabel(serverAdmin.stepUp.passwordLabel, { exact: true })
+    .fill(TEST_PASSWORD);
+  await stepUp
+    .getByRole('button', { name: serverAdmin.stepUp.passwordAction })
+    .click();
+  await expect(report.getByText(reports.manage.archived)).toBeVisible();
+  await expect(report.locator('.server-admin-report-badges')).toContainText(
+    reports.item.archived,
+  );
+  expect(recorded.stepUps).toBe(1);
+  expect(recorded.writes.map((write) => [write.method, write.body])).toEqual([
+    ['PUT', { archived: true }],
+    ['PUT', { archived: true }],
+  ]);
+  // The triage state is kept.
+  expect(data[0]?.state).toBe('NEW');
+
+  // Return: the report left the new queue and "all", and sits in the archive.
+  await report
+    .getByRole('button', { name: reports.detail.back, exact: true })
+    .click();
+  await expect(reportsSection.heading).toBeFocused();
+  await expect(reportsSection.section).toContainText(reports.emptyNewBody);
+  await expect(reportsSection.section).toContainText(
+    reports.newCount.replace('{{count}}', '0'),
+  );
+  await reportsSection.filter('all').click();
+  await expect(reportsSection.row('PROBLEM')).toHaveCount(0);
+  await expect(reportsSection.row('FEEDBACK')).toBeVisible();
+  await reportsSection.filter('archived').click();
+  const archivedRow = reportsSection.row('PROBLEM');
+  await expect(archivedRow).toContainText(reports.item.archived);
+  await expect(archivedRow).toContainText(reports.states.NEW);
+
+  // Bring it back from the archive: it is a new report again.
+  await archivedRow.click();
+  await report
+    .getByRole('button', { name: reports.manage.unarchive, exact: true })
+    .click();
+  await expect(report.getByText(reports.manage.unarchived)).toBeVisible();
+  await report
+    .getByRole('button', { name: reports.detail.back, exact: true })
+    .click();
+  await expect(reportsSection.section).toContainText(reports.emptyArchivedBody);
+  await reportsSection.filter('NEW').click();
+  await expect(reportsSection.row('PROBLEM')).toBeVisible();
+
+  // Delete: the dialog names the consequence; cancelling deletes nothing.
+  await reportsSection.row('PROBLEM').click();
+  await report
+    .getByRole('button', { name: reports.manage.delete, exact: true })
+    .click();
+  const dialog = page.getByRole('dialog', { name: reports.deleteDialog.title });
+  await expect(dialog).toContainText(reports.deleteDialog.consequence);
+  await expect(dialog).not.toContainText(reports.deleteDialog.ticketStays);
+  await expect(
+    dialog.getByRole('button', { name: reports.deleteDialog.cancel }),
+  ).toBeFocused();
+  await dialog
+    .getByRole('button', { name: reports.deleteDialog.cancel })
+    .click();
+  await expect(dialog).toBeHidden();
+  expect(data).toHaveLength(2);
+
+  // Confirm: the report is gone, the list says so and the audit-relevant
+  // write is exactly one DELETE of that report.
+  const writesBefore = recorded.writes.length;
+  await report
+    .getByRole('button', { name: reports.manage.delete, exact: true })
+    .click();
+  await dialog
+    .getByRole('button', { name: reports.deleteDialog.confirm })
+    .click();
+  await expect(reportsSection.detail).toHaveCount(0);
+  await expect(reportsSection.section).toContainText(reports.manage.deleted);
+  await expect(reportsSection.row('PROBLEM')).toHaveCount(0);
+  await expect(reportsSection.heading).toBeFocused();
+  expect(recorded.writes.slice(writesBefore)).toEqual([
+    {
+      method: 'DELETE',
+      path: `/api/v1/server-admin/support-reports/${PROBLEM_ID}`,
+      body: null,
+    },
+  ]);
+  expect(data.map((candidate) => candidate.id)).toEqual([FEEDBACK_ID]);
+});
+
+test('delete_dialog_says_a_linked_ticket_stays', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await install(page, { fresh: true });
+  await openSignedIn(page, '/server-admin?section=reports&state=IN_PROGRESS');
+  const reportsSection = sectionOf(page);
+  await reportsSection.row('FEEDBACK').click();
+  await reportsSection.detail
+    .getByRole('button', { name: reports.manage.delete, exact: true })
+    .click();
+  const dialog = page.getByRole('dialog', { name: reports.deleteDialog.title });
+  await expect(dialog).toContainText(reports.deleteDialog.ticketStays);
+});
+
 test('uncertain_pending_ticket_is_cleared_only_after_confirmation', async ({
   page,
 }) => {
@@ -763,6 +901,62 @@ test.describe('states at 2x', () => {
       '05-uncertain-390',
       'section.server-admin-reports',
       ticketTop,
+    );
+    // The archive and delete actions at the end of the report, Compact.
+    await reportsSection.detail
+      .getByRole('button', { name: reports.detail.back, exact: true })
+      .click();
+    await reportsSection.row('PROBLEM').click();
+    const manageTop = reportsSection.detail.getByRole('heading', {
+      name: reports.manage.title,
+      exact: true,
+    });
+    await manageTop.scrollIntoViewIfNeeded();
+    await page.mouse.move(0, 0);
+    await captureThemes(
+      page,
+      info,
+      '09-manage-390',
+      'section.server-admin-reports',
+      manageTop,
+    );
+
+    // The permanent-delete confirmation, Compact and Expanded.
+    await reportsSection.detail
+      .getByRole('button', { name: reports.manage.delete, exact: true })
+      .click();
+    const deleteDialog = page.getByRole('dialog', {
+      name: reports.deleteDialog.title,
+    });
+    await expect(deleteDialog).toBeVisible();
+    await page.mouse.move(0, 0);
+    await captureThemes(page, info, '10-delete-dialog-390', '[role="dialog"]');
+    await page.setViewportSize({ width: 360, height: 844 });
+    await expectNoHorizontalOverflow(page);
+    await capture(page, info, '10-delete-dialog-360-light.png');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await captureThemes(page, info, '10-delete-dialog-1440', '[role="dialog"]');
+    await page.keyboard.press('Escape');
+    await expect(deleteDialog).toBeHidden();
+
+    // The archived view with an archived report, Expanded.
+    await reportsSection.detail
+      .getByRole('button', { name: reports.manage.archive, exact: true })
+      .click();
+    await expect(
+      reportsSection.detail.getByText(reports.manage.archived),
+    ).toBeVisible();
+    await reportsSection.filter('archived').click();
+    await expect(reportsSection.row('PROBLEM')).toContainText(
+      reports.item.archived,
+    );
+    await page.mouse.move(0, 0);
+    await captureThemes(
+      page,
+      info,
+      '11-archived-1440',
+      'section.server-admin-reports',
+      sectionTop,
     );
   });
 

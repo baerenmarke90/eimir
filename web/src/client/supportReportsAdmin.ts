@@ -15,11 +15,16 @@ import { ClientProblemError, normalizeClientError } from './problemDetails';
 
 /** Operator data helpers of the ServerAdmin "Reports" section (#2189). */
 
+/**
+ * The list views. `all` is every report that is not archived; `archived` is the
+ * separate view of archived reports, whatever their state.
+ */
 export const SUPPORT_REPORT_FILTERS = [
   'NEW',
   'IN_PROGRESS',
   'CLOSED',
   'all',
+  'archived',
 ] as const;
 export type SupportReportFilter = (typeof SUPPORT_REPORT_FILTERS)[number];
 
@@ -134,7 +139,8 @@ export function loadSupportReportPage(
     api.listSupportReports({
       cursor: cursor ?? undefined,
       limit: SUPPORT_REPORT_PAGE_SIZE,
-      state: filter === 'all' ? undefined : filter,
+      archived: filter === 'archived' ? true : undefined,
+      state: filter === 'all' || filter === 'archived' ? undefined : filter,
     }),
   );
 }
@@ -164,6 +170,27 @@ export function setSupportReportState(
       supportReportStateUpdate: { state },
     }),
   );
+}
+
+export function setSupportReportArchived(
+  api: ServerAdminSupportReportsApi,
+  reportId: string,
+  archived: boolean,
+): Promise<SupportReportDetailView> {
+  return write(() =>
+    api.setSupportReportArchived({
+      reportId,
+      supportReportArchiveUpdate: { archived },
+    }),
+  );
+}
+
+/** Permanent: the report, its reply and its ticket link are removed. */
+export function deleteSupportReport(
+  api: ServerAdminSupportReportsApi,
+  reportId: string,
+): Promise<void> {
+  return write(() => api.deleteSupportReport({ reportId }));
 }
 
 export function replyToSupportReport(

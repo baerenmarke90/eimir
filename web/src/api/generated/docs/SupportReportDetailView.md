@@ -9,6 +9,7 @@ Name | Type
 ------------ | -------------
 `accountId` | string
 `appVersion` | string
+`archivedAt` | Date
 `build` | string
 `client` | [ClientContextBody](ClientContextBody.md)
 `createdAt` | Date
@@ -32,6 +33,7 @@ import type { SupportReportDetailView } from ''
 const example = {
   "accountId": null,
   "appVersion": null,
+  "archivedAt": null,
   "build": null,
   "client": null,
   "createdAt": null,

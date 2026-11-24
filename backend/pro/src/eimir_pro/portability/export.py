@@ -520,8 +520,9 @@ def _support_reports_document(
 
     Reports belong to an Account, not to a Space, so they are selected by the requesting
     account alone and never by Space. Another person's reports cannot match. The operator's
-    ticket link (``support_report_tickets``) is deliberately not read. Payloads are decrypted
-    like every other protected table; the import ignores this export-only document.
+    ticket link (``support_report_tickets``) and the archive marker are deliberately not
+    read. Payloads are decrypted like every other protected table; the import ignores this
+    export-only document.
     """
     metadata = MetaData()
     reports = _table(session, "support_reports", metadata)
@@ -538,6 +539,8 @@ def _support_reports_document(
     document: list[dict[str, Any]] = []
     for row in rows:
         report = reveal_row("support_reports", dict(row))
+        # The operator's archive marker is internal bookkeeping, not the person's data.
+        report.pop("archived_at", None)
         reply_row = (
             session.execute(select(replies).where(replies.c.report_id == report["id"]))
             .mappings()

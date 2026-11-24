@@ -158,6 +158,8 @@ def _requests(report_id: object) -> list[tuple[str, str, dict[str, Any] | None]]
         ("GET", f"{BASE}/{report_id}", None),
         ("PUT", f"{BASE}/{report_id}/state", {"state": "CLOSED"}),
         ("POST", f"{BASE}/{report_id}/reply", {"text": "Thanks"}),
+        ("PUT", f"{BASE}/{report_id}/archive", {"archived": True}),
+        ("DELETE", f"{BASE}/{report_id}", None),
     ]
 
 
@@ -186,12 +188,17 @@ def test_stale_authentication_is_refused_on_writes(client: Any, session: Session
 
     state = client.put(f"{BASE}/{report.id}/state", json={"state": "CLOSED"}, headers=auth(token))
     reply = client.post(f"{BASE}/{report.id}/reply", json={"text": "Thanks"}, headers=auth(token))
+    archive = client.put(
+        f"{BASE}/{report.id}/archive", json={"archived": True}, headers=auth(token)
+    )
+    delete = client.delete(f"{BASE}/{report.id}", headers=auth(token))
 
-    for response in (state, reply):
+    for response in (state, reply, archive, delete):
         assert response.status_code == 403
         assert response.json()["code"] == recent_auth.RecentAuthenticationErrorCode.REQUIRED
     session.refresh(report)
     assert report.state == SupportReportState.NEW.value
+    assert report.archived_at is None
     assert (
         session.execute(
             select(SupportReportReplyRow).where(SupportReportReplyRow.report_id == report.id)
@@ -248,6 +255,7 @@ def test_list_filters_by_state_and_never_returns_note_text(client: Any, session:
         "kind",
         "state",
         "createdAt",
+        "archivedAt",
         "failureReference",
         "appVersion",
         "build",
@@ -450,6 +458,108 @@ def test_unknown_report_is_404(client: Any, session: Session) -> None:
     assert _audit(session) == []
 
 
+def test_archive_hides_a_report_from_the_default_list_and_keeps_its_state(
+    client: Any, session: Session
+) -> None:
+    operator, token = _operator(session, recent=True)
+    report = _report(session, state=SupportReportState.CLOSED)
+    other = _report(session)
+
+    archived = client.put(
+        f"{BASE}/{report.id}/archive", json={"archived": True}, headers=auth(token)
+    )
+
+    assert archived.status_code == 200
+    assert archived.json()["archivedAt"] is not None
+    assert archived.json()["state"] == "CLOSED"
+    default = client.get(BASE, headers=auth(token)).json()
+    assert [item["id"] for item in default["items"]] == [str(other.id)]
+    assert default["newCount"] == 1
+    view = client.get(f"{BASE}?archived=true", headers=auth(token)).json()
+    assert [item["id"] for item in view["items"]] == [str(report.id)]
+    assert view["items"][0]["archivedAt"] is not None
+    assert client.get(f"{BASE}/{report.id}", headers=auth(token)).status_code == 200
+
+    restored = client.put(
+        f"{BASE}/{report.id}/archive", json={"archived": False}, headers=auth(token)
+    )
+    assert restored.json()["archivedAt"] is None
+    assert restored.json()["state"] == "CLOSED"
+    assert [(e.action, e.actor_id, e.target_account_id) for e in _audit(session)] == [
+        (AdministrationAction.SUPPORT_REPORT_ARCHIVED.value, operator.id, report.account_id),
+        (AdministrationAction.SUPPORT_REPORT_UNARCHIVED.value, operator.id, report.account_id),
+    ]
+
+
+def test_delete_removes_the_report_reply_and_ticket_link_and_audits_without_text(
+    client: Any, session: Session
+) -> None:
+    operator, token = _operator(session, recent=True)
+    reporter = _reporter(session)
+    report = _report(session, account=reporter)
+    other = _report(session)
+    report_id, account_id = report.id, reporter.id
+    client.post(f"{BASE}/{report_id}/reply", json={"text": SECRET_REPLY}, headers=auth(token))
+    session.add(
+        SupportReportTicket(
+            report_id=report_id,
+            tracker="github",
+            url="https://github.com/example/tickets/issues/7",
+            number=7,
+            state=TicketState.CREATED.value,
+        )
+    )
+    session.flush()
+
+    response = client.delete(f"{BASE}/{report_id}", headers=auth(token))
+
+    assert response.status_code == 204
+    assert response.content == b""
+    assert response.headers["cache-control"] == NO_STORE
+    session.expire_all()
+    assert session.get(SupportReport, report_id) is None
+    assert (
+        session.execute(
+            select(SupportReportReplyRow).where(SupportReportReplyRow.report_id == report_id)
+        ).first()
+        is None
+    )
+    assert (
+        session.execute(
+            select(SupportReportTicket).where(SupportReportTicket.report_id == report_id)
+        ).first()
+        is None
+    )
+    assert session.get(SupportReport, other.id) is not None
+    deleted = [
+        entry
+        for entry in _audit(session)
+        if entry.action == AdministrationAction.SUPPORT_REPORT_DELETED.value
+    ]
+    assert [(e.actor_id, e.target_account_id) for e in deleted] == [(operator.id, account_id)]
+    audit_text = " ".join(str(e.action) for e in _audit(session))
+    assert SECRET_NOTE not in audit_text
+    assert SECRET_REPLY not in audit_text
+    assert client.get(f"{BASE}/{report_id}", headers=auth(token)).status_code == 404
+    assert client.delete(f"{BASE}/{report_id}", headers=auth(token)).status_code == 404
+
+
+def test_the_reporter_no_longer_sees_a_reply_of_a_deleted_report(
+    client: Any, session: Session
+) -> None:
+    _, token = _operator(session, recent=True)
+    reporter = _reporter(session)
+    reporter_token = sign_in(session, reporter)
+    report = _report(session, account=reporter)
+    client.post(f"{BASE}/{report.id}/reply", json={"text": SECRET_REPLY}, headers=auth(token))
+    own = f"/api/v1/support-reports/{report.id}/reply"
+    assert client.get(own, headers=auth(reporter_token)).status_code == 200
+
+    client.delete(f"{BASE}/{report.id}", headers=auth(token))
+
+    assert client.get(own, headers=auth(reporter_token)).status_code == 404
+
+
 def test_audit_entry_contains_no_text(client: Any, session: Session) -> None:
     _, token = _operator(session, recent=True)
     report = _report(session)
@@ -487,6 +597,7 @@ def test_responses_are_no_store(client: Any, session: Session) -> None:
         client.get(f"{BASE}/{report.id}", headers=auth(token)),
         client.put(f"{BASE}/{report.id}/state", json={"state": "CLOSED"}, headers=auth(token)),
         client.post(f"{BASE}/{report.id}/reply", json={"text": "Thanks"}, headers=auth(token)),
+        client.put(f"{BASE}/{report.id}/archive", json={"archived": True}, headers=auth(token)),
     ]
 
     for response in responses:

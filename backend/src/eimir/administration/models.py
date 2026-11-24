@@ -50,6 +50,9 @@ class AdministrationAction(StrEnum):
     SUPPORT_REPORT_REPLY_SENT = "support_report.reply_sent"
     SUPPORT_REPORT_TICKET_CREATED = "support_report.ticket_created"
     SUPPORT_REPORT_TICKET_CLEARED = "support_report.ticket_cleared"
+    SUPPORT_REPORT_ARCHIVED = "support_report.archived"
+    SUPPORT_REPORT_UNARCHIVED = "support_report.unarchived"
+    SUPPORT_REPORT_DELETED = "support_report.deleted"
 
 
 class InstanceAdministrationSettings(TimestampMixin, VersionMixin, Base):
@@ -144,7 +147,10 @@ class InstanceAdministrationActionEvent(IdMixin, Base):
             "'support_report.state_set', "
             "'support_report.reply_sent', "
             "'support_report.ticket_created', "
-            "'support_report.ticket_cleared'"
+            "'support_report.ticket_cleared', "
+            "'support_report.archived', "
+            "'support_report.unarchived', "
+            "'support_report.deleted'"
             ")",
             name="action_valid",
         ),

@@ -76,6 +76,7 @@ def test_a_list_item_never_carries_the_note_text() -> None:
         "kind",
         "state",
         "createdAt",
+        "archivedAt",
         "failureReference",
         "appVersion",
         "build",
@@ -128,6 +129,7 @@ def test_the_detail_carries_the_note_and_the_account_id_only() -> None:
         "kind",
         "state",
         "createdAt",
+        "archivedAt",
         "failureReference",
         "appVersion",
         "build",
@@ -184,7 +186,7 @@ def test_requests_reject_unknown_fields_and_unknown_states() -> None:
     )
 
 
-def test_the_router_serves_exactly_the_six_operator_routes() -> None:
+def test_the_router_serves_exactly_the_eight_operator_routes() -> None:
     routes = {
         (method, route.path, route.operation_id)  # type: ignore[attr-defined]
         for route in support_reports.router.routes
@@ -196,6 +198,8 @@ def test_the_router_serves_exactly_the_six_operator_routes() -> None:
         ("GET", prefix, "listSupportReports"),
         ("GET", f"{prefix}/{{reportId}}", "getSupportReport"),
         ("PUT", f"{prefix}/{{reportId}}/state", "setSupportReportState"),
+        ("PUT", f"{prefix}/{{reportId}}/archive", "setSupportReportArchived"),
+        ("DELETE", f"{prefix}/{{reportId}}", "deleteSupportReport"),
         ("POST", f"{prefix}/{{reportId}}/reply", "replyToSupportReport"),
         ("POST", f"{prefix}/{{reportId}}/ticket", "createSupportReportTicket"),
         ("DELETE", f"{prefix}/{{reportId}}/ticket", "clearSupportReportTicket"),

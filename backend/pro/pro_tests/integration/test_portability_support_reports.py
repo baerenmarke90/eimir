@@ -72,6 +72,7 @@ def test_personal_export_has_own_reports_and_reply_and_never_anothers(
 ) -> None:
     pair = couple(session)
     own = _report(session, pair["anna"].id, "Anna's own problem", reply="Anna's answer")
+    support_report_service.set_archived(session, own.id, True)
     unanswered = _report(session, pair["anna"].id, "Anna without reply")
     _report(session, pair["ben"].id, "Ben's problem", reply="Ben's answer")
 
@@ -94,6 +95,7 @@ def test_personal_export_has_own_reports_and_reply_and_never_anothers(
     assert "Ben's problem" not in plaintext
     assert "Ben's answer" not in plaintext
     assert "ticket" not in json.dumps(reports).lower()
+    assert "archived" not in json.dumps(reports).lower()
 
 
 def test_the_requester_is_the_account_not_the_space(session: Session, tmp_path: Path) -> None:

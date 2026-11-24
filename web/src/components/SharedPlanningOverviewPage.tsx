@@ -17,12 +17,14 @@ import { planListTitle } from '../client/discreetPlans';
 import { formatCalendarDate } from '../client/formatRecency';
 import { groupPlanningOverviewPlans } from '../client/planningOverview';
 import { planScheduleLabel } from '../client/planningPresentation';
+import { usePrimaryTabPeeked } from '../client/primaryTabPeek';
 import { normalizeClientError } from '../client/problemDetails';
 import { sortByProductLabel } from '../client/productLabelOrder';
 import { useFirstContentSettle } from '../client/firstContentSettle';
 import { useQuietHint } from '../client/quietHints';
 import { useRootTabIntro } from '../client/rootTabIntro';
 import {
+  appRoutePath,
   MEMORY_CREATE_ROUTE,
   PLAN_CREATE_ROUTE,
   planDetailPath,
@@ -323,10 +325,13 @@ export function SharedPlanningOverviewPage({
   const [selectedPlanSearch, setPlanSearch] = useState('');
   const [wishSearch, setWishSearch] = useState('');
   // A primary selection opens the unfiltered Plans segment. Keep the original
-  // choices for a cancelled swipe and for Back to the parked entry.
-  const displayedSegment = active ? activeSegment : 'plans';
-  const planStatus = active ? selectedPlanStatus : 'OPEN';
-  const planSearch = active ? selectedPlanSearch : '';
+  // choices for a cancelled swipe and for Back to the parked entry. A parked
+  // panel nobody sees keeps its own view and reads nothing it did not before.
+  const peeked = usePrimaryTabPeeked(appRoutePath('plan'));
+  const preview = !active && peeked;
+  const displayedSegment = preview ? 'plans' : activeSegment;
+  const planStatus = preview ? 'OPEN' : selectedPlanStatus;
+  const planSearch = preview ? '' : selectedPlanSearch;
   const [occasionActionHost, setOccasionActionHost] =
     useState<HTMLSpanElement | null>(null);
   const restoredOrigin = useRef<unknown>(null);

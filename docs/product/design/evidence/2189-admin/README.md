@@ -25,9 +25,8 @@ information design here; it never reaches couple-facing screens.
   footer. Existing functions stay unchanged; Reports is one more navigation
   entry, shown only while `supportReportsOperatorAvailable` is true, and the
   overview warning `support_reports_unread` links into it.
-- App code of the captures: `e453c0054` plus the count-pill fix committed with
-  this evidence; spec `web/e2e/tests/server-admin-support-reports.spec.ts` at
-  the same commit.
+- App code of the captures: `fb9ebbacf`; spec
+  `web/e2e/tests/server-admin-support-reports.spec.ts` at `280c8f5bd`.
 
 ## Mobile Interaction Contract
 
@@ -127,7 +126,7 @@ section navigation excepted, the scroller itself included), list rows at least
 44 px tall, the reply button fully in view and at least 44 px tall, and the
 ticket dialog's submit button reachable.
 
-Defects found by these checks and fixed with this evidence (`e453c0054`):
+Defects found by these checks and fixed with this evidence (`e453c0054`, count pill `fb9ebbacf`):
 
 1. The visually hidden filter legend took the full width
    (`legend { width: 100% }` beat `.sr-only`), so the page scrolled

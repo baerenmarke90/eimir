@@ -51,8 +51,8 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-EXPECTED_DISTRIBUTIONS = {"pro": "eimir-pro"}
-"""The only distribution allowed to provide each plugin name (``backend/pro``, #2182)."""
+EXPECTED_DISTRIBUTIONS = {"pro": "eimir-pro", "admin": "eimir-admin"}
+"""The only distribution allowed to provide each plugin name (``backend/pro``, #2182; #2189)."""
 
 
 class PluginLoadError(RuntimeError):
@@ -272,7 +272,22 @@ def resolve_plugins(
         by_name[candidate.name].append(candidate)
     for ignored in sorted(set(by_name) - set(names)):
         log.info("Installed plugin %r is not named in EIMIR_PLUGINS and stays unloaded.", ignored)
-    return LoadedPlugins(tuple(_load_one(name, by_name[name], core_revision) for name in names))
+    plugins = tuple(_load_one(name, by_name[name], core_revision) for name in names)
+    _check_capability_overlap(plugins)
+    return LoadedPlugins(plugins)
+
+
+def _check_capability_overlap(plugins: Sequence[ProPlugin]) -> None:
+    """Refuse two loaded plugins that declare the same capability."""
+    owners: dict[str, str] = {}
+    for plugin in plugins:
+        for capability in sorted(plugin.capabilities()):
+            first = owners.setdefault(capability, plugin.name)
+            if first != plugin.name:
+                raise PluginLoadError(
+                    f"Plugins {first!r} and {plugin.name!r} both declare the capability "
+                    f"{capability!r}; each capability has exactly one provider."
+                )
 
 
 _ROUTE_PARAMETER = re.compile(r"\{[^}]*\}")

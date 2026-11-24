@@ -27,7 +27,7 @@ from eimir.entitlements.models import (
     EntitlementTier,
 )
 from eimir.main import create_app
-from eimir.plugins.manifest import PLUGIN_CAPABILITIES
+from eimir.plugins.manifest import PLUGIN_CAPABILITIES, PRO_CAPABILITIES
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 from tests.integration.test_endpoint_matrix import SPACE_ENDPOINTS
@@ -240,7 +240,7 @@ def test_without_the_plugin_its_capabilities_are_not_effective(session, couple) 
 def test_with_the_plugin_its_capabilities_are_effective(session, couple) -> None:  # type: ignore[no-untyped-def]
     _premium(session, couple)
     effective = entitlements.get_effective_space_entitlement(session, couple["space"].id)
-    assert set(effective.capabilities) >= PLUGIN_CAPABILITIES
+    assert set(effective.capabilities) >= PRO_CAPABILITIES
 
 
 def test_without_the_plugin_encryption_status_reports_the_pro_payload_tables(session) -> None:  # type: ignore[no-untyped-def]

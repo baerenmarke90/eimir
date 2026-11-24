@@ -147,6 +147,50 @@ def test_hidden_wishes_come_only_from_loaded_plugins() -> None:
     assert LoadedPlugins(()).hidden_wish_ids(object(), object()) == frozenset()  # type: ignore[arg-type]
 
 
+def test_two_plugins_load_in_named_order() -> None:
+    pro = FakePlugin()
+    admin = FakePlugin(name="admin", provided=frozenset({Capability.SUPPORT_OPERATOR.value}))
+
+    loaded = resolve(
+        ["pro", "admin"],
+        [
+            candidate(admin, name="admin", distribution="eimir-admin"),
+            candidate(pro),
+        ],
+    )
+
+    assert loaded.names == ("pro", "admin")
+    assert loaded.capabilities() == {
+        Capability.GAMES_COUPLE.value,
+        Capability.SUPPORT_OPERATOR.value,
+    }
+
+
+def test_overlapping_capabilities_refuse_to_start() -> None:
+    pro = FakePlugin()
+    admin = FakePlugin(name="admin", provided=frozenset({Capability.GAMES_COUPLE.value}))
+
+    with pytest.raises(PluginLoadError) as error:
+        resolve(
+            ["pro", "admin"],
+            [candidate(pro), candidate(admin, name="admin", distribution="eimir-admin")],
+        )
+
+    message = str(error.value)
+    assert "'pro'" in message
+    assert "'admin'" in message
+    assert Capability.GAMES_COUPLE.value in message
+
+
+def test_admin_name_only_from_eimir_admin_distribution() -> None:
+    admin = FakePlugin(name="admin", provided=frozenset({Capability.SUPPORT_OPERATOR.value}))
+
+    with pytest.raises(PluginLoadError, match="expected 'eimir-admin'"):
+        resolve(["admin"], [candidate(admin, name="admin", distribution="eimir-pro")])
+    normalized = resolve(["admin"], [candidate(admin, name="admin", distribution="eimir_admin")])
+    assert normalized.names == ("admin",)
+
+
 def test_a_named_but_missing_plugin_refuses_to_start() -> None:
     with pytest.raises(PluginLoadError, match="not installed"):
         resolve(["pro"], [])

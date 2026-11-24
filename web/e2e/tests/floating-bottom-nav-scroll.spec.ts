@@ -1,12 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import AxeBuilder from '../support/axe';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import importantDates from '../../src/i18n/locales/importantDates';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import navigationCopy from '../../src/i18n/locales/navigation';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 import { nextFrame } from '../support/mediaCarouselGesture';
 import {
   installNativeAppLifecycle,
@@ -741,7 +741,13 @@ test.describe('Global header document flow and persistent bottom navigation', ()
             fontFamily: headingStyle.fontFamily,
             fontSize: headingStyle.fontSize,
             fontWeight: headingStyle.fontWeight,
-            titleBand: { width: band.width, height: band.height },
+            // A page that is still settling under a compositor translation
+            // reports its box with float error (1px as 1.0000019px). Compare
+            // the band to a thousandth of a pixel, not to the last float bit.
+            titleBand: {
+              width: Math.round(band.width * 1000) / 1000,
+              height: Math.round(band.height * 1000) / 1000,
+            },
             lineHeight: headingStyle.lineHeight,
           };
         });

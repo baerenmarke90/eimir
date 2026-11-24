@@ -11,11 +11,13 @@ Owning work: tracker [#2243](https://github.com/baerenmarke90/eimir/issues/2243)
   "mockup" images are the same real screens with the approved copy and the removed controls applied in the DOM.
   They are an HTML mock-up in the sense of AGENTS.md (decision of 2026-11-21), not generated art.
 - Reviewed screen and existing functions:
-  - Settings overview: group "Daten und Konto", row "Daten und Portabilität / Exportieren und importieren".
+  - Settings overview: the data-and-account group, with the row built from the locale keys
+    `profileIdentity.settingsData` (title) and `profileIdentity.settingsDataSummary` (summary line); it
+    read "Data and portability / Export and import" before this change.
   - Settings › Data (`/more/settings/data`, hash `#settings-data`): the `StorageSection` card (states roomy,
     almost full, full for Free and Pro, absent without quota) and below it the `TransferPanel` (export scope
     choice, export request, download, import file picker, preview, apply, failure notices, skipped-video notice).
-  - Account deletion: consequences step with the button "Vorher Daten exportieren" (scrolls to `#settings-data`).
+  - Account deletion: consequences step with the button from the locale key `accountSettings.exportBefore` (scrolls to `#settings-data`).
   - Leaving a Space: consequences step with the list line about creating and downloading an export and the same
     button.
   - Notification deep links `TRANSFER_EXPORT` / `TRANSFER_IMPORT` open `/more/settings/data?export=…|import=…`.
@@ -36,8 +38,8 @@ Owning work: tracker [#2243](https://github.com/baerenmarke90/eimir/issues/2243)
 | `reference/mockup-4-leave-space.webp` | Target leave Space dialog (no export button, new line) |
 
 Copy is the Product Owner-approved wording of 2026-11-23 (plan section 12, ADR 0020 item 14). Mock-up only covers
-Compact, light. Expanded, dark, reduced motion and the 360/430 px widths are covered by the implemented evidence
-that is added later in this folder.
+Compact, light. Expanded, dark, reduced motion and the 360/430 px widths are covered by the CI browser evidence of
+`storage-section.spec.ts`. Screenshots of the implemented Compact light result are in `implemented/`.
 
 ## Observation for review
 

@@ -24,7 +24,6 @@ export const WirDesignId = {
     modern: 'modern',
     classic: 'classic',
     quiet_together: 'quiet_together',
-    handwriting: 'handwriting',
     home_rooms: 'home_rooms',
     shared_rhythm: 'shared_rhythm',
     together_index: 'together_index'

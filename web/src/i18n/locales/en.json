@@ -1707,9 +1707,6 @@
       "own": "Your vibe",
       "partner": "{{name}} today"
     },
-    "note": {
-      "open": "Open Heart Moment"
-    },
     "names": {
       "connected": "Connected",
       "shared_album": "Our Album",
@@ -1717,7 +1714,6 @@
       "modern": "Clear & modern",
       "classic": "Classic",
       "quiet_together": "Together",
-      "handwriting": "Handwritten",
       "home_rooms": "Home",
       "shared_rhythm": "Our Rhythm",
       "together_index": "Thread"
@@ -1729,7 +1725,6 @@
       "modern": "Clear and airy. Your names beside your portraits, with calm blue accents.",
       "classic": "Familiar and spacious. Large portraits above your names and the original arrangement.",
       "quiet_together": "Calm, muted colours throughout the app. On Us, your names set large and your moment kept compact.",
-      "handwriting": "Warm paper tones and wine-red accents throughout the app. On Us, your latest Heart Moment like a note.",
       "home_rooms": "A shared starting point for the two of you. Open Rooms to find memories, plans and more.",
       "shared_rhythm": "Today, your story and your plans at your own pace, with navigation at the top and shades of plum, pink and apricot.",
       "together_index": "Both of your Vibes at a glance, with an overview of every area and a palette of ivory, graphite and cobalt blue."

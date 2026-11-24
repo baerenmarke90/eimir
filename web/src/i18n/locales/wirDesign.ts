@@ -6,7 +6,6 @@ export default {
   welcome: 'Unser Platz zu zweit',
   nameJoiner: '&',
   compact: { own: 'Dein Vibe', partner: '{{name}} heute' },
-  note: { open: 'Herzmoment öffnen' },
   homeRooms: {
     rooms: 'Räume',
     remember: 'Erinnern',
@@ -64,7 +63,6 @@ export default {
     modern: 'Klar & modern',
     classic: 'Klassisch',
     quiet_together: 'Zu zweit',
-    handwriting: 'Handschrift',
   },
   descriptions: {
     together_index:
@@ -84,8 +82,6 @@ export default {
       'Vertraut und großzügig. Große Porträts über euren Namen und die bisherige Anordnung.',
     quiet_together:
       'Ruhige, gedeckte Farben in der ganzen App. Auf Wir eure Namen groß und euer Moment kompakt.',
-    handwriting:
-      'Warme Papierfarben und weinrote Akzente in der ganzen App. Auf Wir euer neuester Herzmoment wie eine Notiz.',
   },
   standard: 'Standard',
   free: 'Kostenlos',

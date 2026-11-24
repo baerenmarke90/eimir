@@ -308,15 +308,12 @@ officer should confirm them before publication.
     2026-11-24 on the recommendation):** the operator-provided personal copy
     (§ 14) carries the requester's own reports and replies, so Art. 15 and
     Art. 20 are served completely; the shared copy never does, and the
-    operator's ticket link is not part of it. Keep
-    `EIMIR_SUPPORT_REPORTS_ENABLED` off on eimir. Cloud until this version is
-    published. Draft-13 adds one sentence to § 19.4: the operator may create a
-    technical ticket without the person's text. Point for the legal review: the
-    tracker (GitHub Issues) receives technical, pseudonymous data (report id,
-    request id); decide whether it must be named as a recipient in § 20 and as
-    a third-country transfer in § 21, and whether the neighbouring "nicht an
-    Dritte weiter" statement needs narrowing. The wording stays pending in the
-    already tracked legal review.
+    operator's ticket link is not part of it. Draft-13 adds one sentence to
+    § 19.4: the operator may create a technical ticket without the person's
+    text. The tracker (GitHub Issues) receives technical, pseudonymous data
+    (report id, request id). Product Owner decision of 2026-11-24: the
+    drafted wording stays as it is; no further legal review is made a
+    precondition for enabling `EIMIR_SUPPORT_REPORTS_ENABLED`.
 
 ## Related follow-ups outside this draft
 

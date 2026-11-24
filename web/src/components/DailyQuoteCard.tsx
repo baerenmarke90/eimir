@@ -22,7 +22,7 @@ import {
   useSpaceCapability,
   withdrawSpaceCapability,
 } from '../client/spaceEntitlement';
-import { resolvedLocale, useTranslation } from '../i18n';
+import { resolvedLocale, useLocaleResources, useTranslation } from '../i18n';
 import { languageName, resolveSupportedLocale } from '../i18n/locale';
 import { useStageHold } from '../motion/stage';
 import { EimirIcon } from './EimirIcon';
@@ -242,6 +242,11 @@ export function DailyQuoteCard({
     retry: false,
     gcTime: 0,
   });
+
+  // The quote text is set in its own language, which can differ from the app's.
+  useLocaleResources(
+    resolveSupportedLocale(quoteQuery.data?.quote?.locale) ?? undefined,
+  );
 
   useStageHold(
     WIR_STAGE,

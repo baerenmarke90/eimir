@@ -17,7 +17,7 @@ import { useFloatingCreateScrollTuck } from './client/useFloatingCreateScrollTuc
 import { useStatusBarScrim } from './client/useStatusBarScrim';
 import { DemoBanner } from './components/DemoBanner';
 import { NativeSessionGate } from './components/NativeSessionGate';
-import { useTranslation } from './i18n';
+import { i18nReady, useTranslation } from './i18n';
 import { registerProductionServiceWorker } from './pwa';
 import { initializeTheme } from './theme';
 import './styles.css';
@@ -146,4 +146,5 @@ function mountApplication() {
   );
 }
 
-mountApplication();
+// Render only once the active language is in memory: no flash of raw keys.
+void i18nReady.then(mountApplication);

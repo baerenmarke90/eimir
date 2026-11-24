@@ -4,7 +4,7 @@ import { HashRouter, Link, useLocation, useNavigate } from 'react-router-dom';
 import { MemoryPreview } from '../../src/components/MemoryPreview';
 import { UiState } from '../../src/components/UiState';
 import { VisibilityBadge } from '../../src/components/VisibilityBadge';
-import { i18n, useTranslation } from '../../src/i18n';
+import { i18n, i18nReady, useTranslation } from '../../src/i18n';
 import '../../src/styles.css';
 import '../../src/story-media.css';
 import '../../src/theme.css';
@@ -335,8 +335,11 @@ function FoundationsProof() {
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Foundation proof root is missing.');
-createRoot(root).render(
-  <HashRouter>
-    <FoundationsProof />
-  </HashRouter>,
+// The product language loads on demand; render once it is available.
+void i18nReady.then(() =>
+  createRoot(root).render(
+    <HashRouter>
+      <FoundationsProof />
+    </HashRouter>,
+  ),
 );

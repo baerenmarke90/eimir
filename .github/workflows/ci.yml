@@ -220,10 +220,10 @@ jobs:
           fi
 
       - name: Lint
-        run: uv run --frozen ruff check src tests scripts alembic pro
+        run: uv run --frozen ruff check src tests scripts alembic pro admin
 
       - name: Formatting
-        run: uv run --frozen ruff format --check src tests scripts alembic pro
+        run: uv run --frozen ruff format --check src tests scripts alembic pro admin
 
       - name: Type checking
         run: uv run --frozen mypy

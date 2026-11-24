@@ -26,6 +26,7 @@ requires_distribution = pytest.mark.skipif(
 )
 
 
+@requires_distribution
 def test_the_plugin_object_follows_the_seam() -> None:
     from eimir_admin.plugin import plugin
 

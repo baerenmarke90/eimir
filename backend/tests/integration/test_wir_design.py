@@ -121,7 +121,6 @@ def test_pro_designs_are_exactly_the_alternative_designs() -> None:
         WirDesignId.MODERN,
         WirDesignId.CLASSIC,
         WirDesignId.QUIET_TOGETHER,
-        WirDesignId.HANDWRITING,
         WirDesignId.HOME_ROOMS,
         WirDesignId.SHARED_RHYTHM,
         WirDesignId.TOGETHER_INDEX,
@@ -136,7 +135,6 @@ def test_pro_designs_are_exactly_the_alternative_designs() -> None:
         WirDesignId.MODERN,
         WirDesignId.CLASSIC,
         WirDesignId.QUIET_TOGETHER,
-        WirDesignId.HANDWRITING,
         WirDesignId.HOME_ROOMS,
         WirDesignId.SHARED_RHYTHM,
         WirDesignId.TOGETHER_INDEX,
@@ -229,7 +227,7 @@ def test_membership_owner_scope_invalid_ids_and_required_concurrency(
         ).status_code
         == 409
     )
-    for design_id in ("unknown", "https://example.test/icon.png"):
+    for design_id in ("handwriting", "unknown", "https://example.test/icon.png"):
         assert (
             client.patch(
                 path(couple),
@@ -300,6 +298,39 @@ def test_personal_export_includes_only_callers_choice_and_deletion_purges_it(
     session.expire_all()
     assert session.get(AppIconPreference, own.id) is None
     assert session.get(AppIconPreference, partner.id) is not None
+
+
+def test_retired_design_resolves_to_default_and_can_be_replaced(client, session, couple) -> None:
+    session.add(
+        AppIconPreference(
+            icon_id="original",
+            account_id=couple["anna"].id,
+            space_id=couple["space"].id,
+            wir_design="handwriting",
+        )
+    )
+    session.flush()
+
+    current = client.get(path(couple), headers=couple["a"])
+    assert current.status_code == 200
+    assert current.json() == {"designId": "connected", "version": 1}
+
+    context = AuthorizationContext(account_id=couple["anna"].id, space_id=couple["space"].id)
+    with (
+        build_export_archive(session, context, TransferScope.PERSONAL) as buffer,
+        ZipFile(buffer) as archive,
+    ):
+        account_document = json.loads(archive.read("accounts.json"))
+    assert account_document["personalAppearance"]["wirDesign"] == "connected"
+
+    saved = client.patch(
+        path(couple),
+        headers={**couple["a"], "If-Match": current.headers["ETag"]},
+        json={"designId": "warm"},
+    )
+    assert saved.status_code == 200
+    assert saved.json() == {"designId": "warm", "version": 2}
+    assert session.scalars(select(AppIconPreference.wir_design)).all() == ["warm"]
 
 
 def test_personal_export_without_a_stored_preference_reports_the_default_design(

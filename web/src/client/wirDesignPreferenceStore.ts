@@ -1,4 +1,5 @@
 import { WirDesignId } from '../api/generated/models/WirDesignId';
+import { DEFAULT_APP_DESIGN } from '../design/appDesigns.generated';
 
 const PREFIX = 'eimir-wir-design-v1:';
 const MAX_AGE = 30 * 24 * 60 * 60_000;
@@ -14,6 +15,12 @@ export function wirDesignStorageKey(
   );
 }
 
+/** Resolve preferences written by older clients and servers. */
+export function parseWirDesignId(value: unknown): WirDesignId | undefined {
+  if (value === 'handwriting') return DEFAULT_APP_DESIGN;
+  return Object.values(WirDesignId).find((design) => design === value);
+}
+
 export function readWirDesign(key: string): WirDesignId | undefined {
   try {
     const raw = localStorage.getItem(key);
@@ -21,13 +28,12 @@ export function readWirDesign(key: string): WirDesignId | undefined {
     const value = JSON.parse(raw);
     if (
       value.schema !== 1 ||
-      !Object.values(WirDesignId).includes(value.designId) ||
       !Number.isFinite(value.savedAt) ||
       value.savedAt > Date.now() ||
       Date.now() - value.savedAt >= MAX_AGE
     )
       return undefined;
-    return value.designId;
+    return parseWirDesignId(value.designId);
   } catch {
     return undefined;
   }

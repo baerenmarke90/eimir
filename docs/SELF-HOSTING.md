@@ -422,13 +422,15 @@ Android clients hide every entry point. With it on, the endpoint accepts reports
 `supportReportsAvailable` as `true`. A reply that was already sent stays readable to
 its reporter when the switch is turned off.
 
-Reports land in your instance's own PostgreSQL database and never leave it. The note
+Reports land in your instance's own PostgreSQL database. The note and the reply never
+leave it; only a tracker ticket the operator creates carries technical data (see
+below). The note
 and the reply are protected at rest like other protected payloads
 ([Encryption at rest](#encryption-at-rest)). A closed report is deleted 90 days after
 it was closed, any report at most 365 days after it was created, and a report is
-deleted with its Account. The Core ships no reader for these reports: the operator-side
-reader is a later private plugin, so an instance without it has no screen or API to
-read the reports. The ServerAdmin overview shows the number
+deleted with its Account. The Core ships no reader for these reports: the operator
+plugin `admin` adds the Reports section of the ServerAdmin area, so an instance
+without it has no screen or API to read the reports. The ServerAdmin overview shows the number
 of `NEW` reports and the `support_reports_unread` warning once the oldest one is more
 than 14 days old ([ServerAdmin](SERVER-ADMIN.md#operational-overview)); while the
 switch is off the count is 0.
@@ -437,6 +439,54 @@ The published eimir. privacy notice does not cover support reports yet (free tex
 device context, the retention above and a local draft on the device), so eimir. Cloud
 keeps the switch off until it does. A self-hosted operator who enables it is
 responsible for their own privacy notice.
+
+### Operator plugin for support reports
+
+The operator plugin `eimir-admin` adds the ServerAdmin **Reports** section: list,
+read, change state, send the one reply and create a tracker ticket
+([ServerAdmin, Support reports](SERVER-ADMIN.md#support-reports)). It is part of
+the backend image like `eimir-pro` but loads only when `admin` is named in
+`EIMIR_PLUGINS`, next to `pro`:
+
+```dotenv
+EIMIR_PLUGINS=pro,admin
+EIMIR_SUPPORT_REPORTS_ENABLED=true
+```
+
+API, worker and migrate must see the same `EIMIR_PLUGINS` value, so that migrate
+creates the plugin's `support_report_tickets` table before the API serves it. The
+section appears only while both the plugin is loaded and
+`EIMIR_SUPPORT_REPORTS_ENABLED` is on. Removing `admin` again hides the section;
+the ticket links stay in the database and leave with their reports.
+
+Tickets are optional. Without tracker variables the section works and offers no
+ticket button. To create GitHub issues, set all three on the API:
+
+```dotenv
+EIMIR_ADMIN_TRACKER=github
+EIMIR_ADMIN_GITHUB_REPOSITORY=owner/name
+EIMIR_ADMIN_GITHUB_TOKEN=<token>
+```
+
+- `EIMIR_ADMIN_TRACKER` accepts only `github`. When it is set, the repository (form
+  `owner/name`) and the token are required; a malformed or incomplete value stops
+  the process at startup and names the variable, never its value.
+- Use a token with the smallest scope that can create issues in that one repository:
+  a fine-grained personal access token or GitHub App installation limited to the
+  repository with **Issues: Read and write** and nothing else. Do not use a classic
+  token with the `repo` scope. Store it like other secrets, outside Git, and rotate
+  it if it leaks.
+- Empty values count as unset: `EIMIR_ADMIN_TRACKER=` disables tickets just like
+  leaving the variable out.
+- A ticket contains only the title and body the operator types plus technical
+  facts (report id, kind, app version, build, platform, failure reference, request
+  id). The person's note and the reply are never sent. The issue is created in
+  your repository under the token's account, so GitHub's terms and privacy apply to
+  what is posted there.
+
+The bundled `compose.yaml` does not forward `EIMIR_PLUGINS` or the `EIMIR_ADMIN_*`
+variables yet; a Compose deployment needs them added to the API, worker and
+migrate environment before the plugin can load.
 
 ## Account deletion authority
 

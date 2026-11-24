@@ -23,9 +23,11 @@ from eimir.core.errors import BadRequestError, ErrorCode
 from eimir.identity.models import Account, AccountEmail
 from eimir.media import build_storage_key, get_media_store
 from eimir.relationship.models import Membership, MembershipStatus
+from eimir_pro.portability import garden
 from eimir_pro.portability.allowlist import (
     CHILD_PARENT,
     FILE_TABLES,
+    OPTIONAL_TABLES,
     PRIVATE_FILES,
     PRIVATE_ROOTS,
     RELATION_REQUIREMENTS,
@@ -165,9 +167,13 @@ def _portable_rows(
     metadata = MetaData()
     rows: dict[str, list[dict[str, Any]]] = {}
     all_tables = {name for names in FILE_TABLES.values() for name in names}
+    garden_present = garden.available(session)
 
     for table_name in all_tables:
         if table_name in CHILD_PARENT or table_name in RELATION_REQUIREMENTS:
+            continue
+        if table_name in OPTIONAL_TABLES and not garden_present:
+            rows[table_name] = []
             continue
         table = _table(session, table_name, metadata)
         rows[table_name] = _load_root_rows(session, table, authorization=authorization, scope=scope)
@@ -236,6 +242,7 @@ def _portable_rows(
             ]
 
     _prune_relations(rows)
+    garden.prune_export(session, authorization.space_id, rows)
     return rows
 
 

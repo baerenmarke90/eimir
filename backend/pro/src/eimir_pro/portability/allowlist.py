@@ -44,7 +44,21 @@ FILE_TABLES: dict[str, tuple[str, ...]] = {
     "private/notes.json": ("private_notes",),
     "private/gift-ideas.json": ("gift_ideas",),
     "private/collections.json": ("private_collections", "private_collection_items"),
+    # The shared garden (slice S1b). Games are not exported.
+    "garden.json": (
+        "gardens",
+        "garden_plants",
+        "garden_waterings",
+        "garden_readers",
+        "garden_visitor_names",
+        "garden_bouquets",
+    ),
 }
+# Tables of a Pro feature that stay in the Core migration chain, so the target database has
+# them whether or not the plugin is loaded. They are still handled only when they exist.
+GARDEN_FILE = "garden.json"
+GARDEN_TABLES = FILE_TABLES[GARDEN_FILE]
+OPTIONAL_TABLES = frozenset(GARDEN_TABLES)
 PRIVATE_FILES = frozenset(name for name in FILE_TABLES if name.startswith("private/"))
 PRIVATE_ROOTS = frozenset({"private_notes", "gift_ideas", "private_collections"})
 ACCOUNT_SCOPED_CONFIG_TABLES = frozenset({"rule_preferences", "reminder_preferences"})
@@ -82,6 +96,23 @@ RELATION_REQUIREMENTS: dict[str, tuple[tuple[str, str], ...]] = {
 ACCOUNT_REFERENCE_COLUMNS = frozenset(
     {"owner_id", "created_by", "account_id", "completed_by", "edited_by"}
 )
+# Further columns that hold a member account, per table. They have no foreign key, so the
+# generic ``*_id`` handling would not insist on a mapping for them.
+TABLE_ACCOUNT_COLUMNS: dict[str, frozenset[str]] = {
+    "garden_plants": frozenset({"sender_id", "receiver_id"}),
+    "garden_bouquets": frozenset({"giver_id", "receiver_id"}),
+}
+# Array columns whose elements are member accounts.
+ACCOUNT_ARRAY_COLUMNS: dict[str, frozenset[str]] = {
+    "garden_bouquets": frozenset({"flower_senders"}),
+}
+
+
+def account_columns(table_name: str) -> frozenset[str]:
+    """Every column of the table that refers to one member account."""
+    return ACCOUNT_REFERENCE_COLUMNS | TABLE_ACCOUNT_COLUMNS.get(table_name, frozenset())
+
+
 INSERT_ORDER = (
     "space_profiles",
     "partner_profiles",
@@ -128,6 +159,12 @@ INSERT_ORDER = (
     "plan_attachments",
     "plan_file_attachments",
     "heart_moment_attachments",
+    "gardens",
+    "garden_plants",
+    "garden_readers",
+    "garden_visitor_names",
+    "garden_waterings",
+    "garden_bouquets",
 )
 
 
@@ -220,13 +257,6 @@ EXCLUDED_TABLES: dict[str, str] = {
     "couple_games": "Games are not exported.",
     "heart_hunt_rounds": "Games are not exported.",
     "picture_ping_pong": "Games are not exported.",
-    # Garden: added to the allowlist by the garden slice (S1b, Decision 0020).
-    "garden_bouquets": "Garden: pending slice S1b.",
-    "garden_plants": "Garden: pending slice S1b.",
-    "garden_readers": "Garden: pending slice S1b.",
-    "garden_visitor_names": "Garden: pending slice S1b.",
-    "garden_waterings": "Garden: pending slice S1b.",
-    "gardens": "Garden: pending slice S1b.",
     # Personal interface preferences and small per-account state; not part of bundle v1.
     "account_profile_attachments": "Not part of bundle v1.",
     "daily_check_in_vibe_notes": "Not part of bundle v1.",

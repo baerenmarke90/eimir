@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, time
 from typing import IO, TYPE_CHECKING, Any, cast
 from uuid import UUID
@@ -31,14 +31,18 @@ from eimir.identity.models import AccountEmail
 from eimir.jobs.queue import enqueue
 from eimir.media import build_storage_key, get_media_store
 from eimir.relationship.models import Membership, MembershipStatus, SpaceProfile
+from eimir_pro.portability import garden
 from eimir_pro.portability.allowlist import (
-    ACCOUNT_REFERENCE_COLUMNS,
+    ACCOUNT_ARRAY_COLUMNS,
     ACCOUNT_SCOPED_CONFIG_TABLES,
     CHILD_PARENT,
     FILE_TABLES,
+    GARDEN_TABLES,
     INSERT_ORDER,
+    OPTIONAL_TABLES,
     PRIVATE_ROOTS,
     RELATION_REQUIREMENTS,
+    account_columns,
 )
 from eimir_pro.portability.archive import (
     DEFAULT_LIMITS,
@@ -211,11 +215,21 @@ def _validate_ids_and_privacy(
                         "Transfer privacy scope is invalid.",
                         ErrorCode.TRANSFER_PRIVACY_SCOPE_INVALID,
                     )
-            for column in ACCOUNT_REFERENCE_COLUMNS:
+            for column in account_columns(table_name):
                 if (
                     row.get(column) is not None
                     and _uuid(row[column], ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID)
                     not in source_member_ids
+                ):
+                    raise TransferArchiveError(
+                        "Transfer member mapping is invalid.",
+                        ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID,
+                    )
+            for column in ACCOUNT_ARRAY_COLUMNS.get(table_name, ()):
+                accounts = row.get(column)
+                if not isinstance(accounts, list) or any(
+                    _uuid(item, ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID) not in source_member_ids
+                    for item in accounts
                 ):
                     raise TransferArchiveError(
                         "Transfer member mapping is invalid.",
@@ -1091,6 +1105,7 @@ def validate_import_bundle(
         )
     ids = _validate_ids_and_privacy(scope, personal_owner, tables, source_members)
     _validate_relations(tables, ids)
+    garden.validate_rows(tables, source_members)
     _validate_photo_reactions(tables, source_members)
     _validate_plan_photos(tables, media)
     _validate_media(
@@ -1121,7 +1136,8 @@ def validate_import_bundle(
     _validate_domain_schema_and_links(
         session,
         source_space_id=source_space,
-        tables=tables,
+        # A database without the garden tables cannot reflect them; the plan skips the garden.
+        tables=tables if garden.available(session) else garden.without_garden(tables),
         ids=ids,
         source_member_ids=source_members,
         media_ids=media_ids,
@@ -1157,6 +1173,8 @@ def validate_import_bundle(
         "newMediaBytes": sum(int(item["size"]) for item in plan.graph.media),
         "newVideoCount": len(new_videos),
     }
+    if plan.garden is not None:
+        summary["garden"] = plan.garden
     return ValidatedGraph(
         scope=scope,
         source_space_id=source_space,
@@ -1265,6 +1283,8 @@ class ImportPlan:
     graph: ValidatedGraph
     ids: dict[UUID, UUID]
     present_count: int
+    garden: str | None = None
+    """What happens to the bundle's garden: ``included`` or the reason it is skipped."""
 
 
 def _existing_owners(
@@ -1334,6 +1354,18 @@ def plan_import(session: Session, target_space: UUID, graph: ValidatedGraph) -> 
     Present records stay exactly as they are now: they are never overwritten,
     and a present parent keeps its current gallery. Missing records come back.
     """
+    garden_result: str | None = None
+    if garden.has_rows(graph.tables):
+        # The garden is added to an empty garden of a connected pair, or not at all.
+        garden_result = garden.skip_reason(session, target_space, graph.mapping) or garden.INCLUDED
+        if garden_result != garden.INCLUDED:
+            graph = replace(
+                graph,
+                tables={
+                    name: [] if name in GARDEN_TABLES else rows
+                    for name, rows in graph.tables.items()
+                },
+            )
     ids = _target_id_map(graph, target_space)
     same_space = graph.source_space_id == target_space
     metadata = MetaData()
@@ -1434,7 +1466,12 @@ def plan_import(session: Session, target_space: UUID, graph: ValidatedGraph) -> 
         summary=missing.summary,
         checksums=missing.checksums,
     )
-    return ImportPlan(graph=missing, ids=ids, present_count=len(present) + len(present_media))
+    return ImportPlan(
+        graph=missing,
+        ids=ids,
+        present_count=len(present) + len(present_media),
+        garden=garden_result,
+    )
 
 
 def _remap_uuid(
@@ -1458,6 +1495,23 @@ def _remap_uuid(
     if value in ids:
         return ids[value]
     return value
+
+
+def _mapped_accounts(value: Any, mapping: Mapping[UUID, UUID]) -> list[UUID]:
+    """The target account of every source account in an array column, in order."""
+    if not isinstance(value, list):
+        raise TransferArchiveError(
+            "Transfer member mapping is invalid.", ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID
+        )
+    result: list[UUID] = []
+    for item in value:
+        source = _uuid(item, ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID)
+        if source not in mapping:
+            raise TransferArchiveError(
+                "Transfer member mapping is invalid.", ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID
+            )
+        result.append(mapping[source])
+    return result
 
 
 def _prepare_row(
@@ -1533,7 +1587,9 @@ def _prepare_row(
                 ]
         if name == "space_id":
             value = authorization.space_id
-        elif name in ACCOUNT_REFERENCE_COLUMNS:
+        elif name in ACCOUNT_ARRAY_COLUMNS.get(table.name, ()):
+            value = _mapped_accounts(value, graph.mapping)
+        elif name in account_columns(table.name):
             if value is not None:
                 source = _uuid(value, ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID)
                 if source not in graph.mapping:
@@ -1682,6 +1738,8 @@ def apply_import_bundle(
     plan = plan_import(session, authorization.space_id, graph)
     graph = plan.graph
     summary["alreadyPresentCount"] = plan.present_count
+    if plan.garden is not None:
+        summary["garden"] = plan.garden
     ids = plan.ids
 
     # SpaceProfile is a singleton on the target Space. Additive import must not
@@ -1696,8 +1754,14 @@ def apply_import_bundle(
         ids[source_profile_id] = existing_profile_id
 
     metadata = MetaData()
+    # Optional tables (the garden) are reflected only when the database has them; the plan
+    # has left their rows out otherwise.
+    garden_present = garden.available(session)
     tables = {
-        name: _table(session, name, metadata) for names in FILE_TABLES.values() for name in names
+        name: _table(session, name, metadata)
+        for names in FILE_TABLES.values()
+        for name in names
+        if garden_present or name not in OPTIONAL_TABLES
     }
     partner_profile_table = tables["partner_profiles"]
     existing_partner_profiles = {
@@ -1753,6 +1817,8 @@ def apply_import_bundle(
         # had an equivalent row; rows that refer to them are left out too.
         not_added: set[UUID] = set()
         for table_name in INSERT_ORDER:
+            if table_name not in tables:
+                continue
             table = tables[table_name]
             raw_rows = graph.tables.get(table_name, [])
             if table_name == "wishes":

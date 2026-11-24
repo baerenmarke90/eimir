@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
+import pytest
+
 from eimir.config import Deployment
 from eimir.entitlements.models import (
     Capability,
@@ -422,7 +424,18 @@ def test_record_and_revoke_unreferenced_grant() -> None:
     assert revoked.metadata_["revocation_reason"] == "operator-revoked"
 
 
-def test_support_operator_is_plugin_owned_and_not_premium() -> None:
+def test_support_operator_is_never_effective_even_when_its_plugin_is_loaded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from eimir.plugins import loader
+
+    class AdminStub:
+        name = "admin"
+
+        def capabilities(self) -> frozenset[str]:
+            return frozenset({Capability.SUPPORT_OPERATOR.value})
+
+    monkeypatch.setattr(loader, "_loaded", loader.LoadedPlugins((AdminStub(),)))  # type: ignore[arg-type]
     space_id = uuid4()
     now = datetime(2026, 9, 1, 12, 0, 0, tzinfo=UTC)
     operator = Capability.SUPPORT_OPERATOR.value
@@ -440,8 +453,6 @@ def test_support_operator_is_plugin_owned_and_not_premium() -> None:
             capabilities=capabilities,
         )
 
-    # A Premium grant never carries it, and even a grant that names it explicitly
-    # cannot make it effective while no loaded plugin provides it.
     for capabilities in (None, [operator, Capability.CHAPTER_RICH_PRESENTATION.value]):
         effective = get_effective_space_entitlement(
             FakeSession([grant(capabilities)]),
@@ -450,3 +461,4 @@ def test_support_operator_is_plugin_owned_and_not_premium() -> None:
             deployment=Deployment.CLOUD,
         )
         assert operator not in effective.capabilities
+        assert not has_capability(FakeSession([grant(capabilities)]), space_id, operator, at=now)

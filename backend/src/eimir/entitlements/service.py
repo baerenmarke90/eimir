@@ -112,6 +112,9 @@ def _grant_capabilities(grant: EntitlementGrant, deployment: Deployment) -> set[
     )
     if deployment is Deployment.SELF_HOSTED:
         capabilities.difference_update(CLOUD_ONLY_CAPABILITIES)
+    # Operator access is never a couple's entitlement, whatever a grant row names
+    # and whichever plugin is loaded.
+    capabilities.difference_update(NON_ENTITLEMENT_CAPABILITIES)
     # A capability is effective only where it is implemented: plugin-owned
     # capabilities need a loaded plugin that provides them (Decision 0017).
     from eimir.plugins.loader import loaded_plugins

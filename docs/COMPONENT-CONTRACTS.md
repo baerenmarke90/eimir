@@ -184,7 +184,9 @@ message.
 `ShortTaskSheet` may accept an optional `footer` for a bounded choice with a
 long scrollable body. The shared footer stays outside body scrolling, protects
 the bottom safe area and remains separately scrollable for large text or error
-content. It does not introduce another modal, focus or dismissal lifecycle.
+content and joins the tab order exactly while it overflows, so the scrollable
+region stays keyboard-reachable. It does not introduce another modal, focus or
+dismissal lifecycle.
 App-icon selection uses this contract for its explicit Save and recovery state.
 
 ### 4.3 Date, Time, and Duration

@@ -841,6 +841,17 @@ function AuthenticatedApp({
       ),
     },
     {
+      // The list editor and the Notes peer route own their own form and tabs.
+      // Reveal Lists under the finger, then unmount it when the user leaves.
+      path: MORE_COLLECTIONS_ROUTE,
+      retain: false,
+      element: (
+        <DeferredPanel>
+          <CollectionsOverviewPage {...planningProductProps} />
+        </DeferredPanel>
+      ),
+    },
+    {
       path: appRoutePath('more'),
       element: (
         <MoreOverviewPage
@@ -1039,10 +1050,7 @@ function AuthenticatedApp({
                 />
               }
             />
-            <Route
-              path={MORE_COLLECTIONS_ROUTE}
-              element={<CollectionsOverviewPage {...planningProductProps} />}
-            />
+            <Route path={MORE_COLLECTIONS_ROUTE} element={null} />
             <Route
               path="/plan/collections"
               element={<Navigate replace to={MORE_COLLECTIONS_ROUTE} />}

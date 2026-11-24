@@ -192,7 +192,10 @@
     },
     "floating-bottom-nav-scroll.spec.ts": {
       "roots": [
+        "web/src/App.tsx",
         "web/src/components/AppShell.tsx",
+        "web/src/components/PrimaryTabPanels.tsx",
+        "web/src/components/useNavigationMotion.ts",
         "web/src/components/TodayPage.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/SharedPlanningOverviewPage.tsx",

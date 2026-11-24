@@ -263,7 +263,8 @@
    navigation. Section links end before its column so it never covers them
    (#2063: it hid the planning link on first open). */
 @media (max-width: 839px) {
-  .today-page:has(.add-action[data-floating-create]) .today-section-header {
+  .today-page:has([data-floating-create-origin], [data-floating-create])
+    .today-section-header {
     padding-inline-end: calc(
       var(--touch-target-floating-create) +
       var(--space-2)

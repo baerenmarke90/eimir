@@ -260,7 +260,7 @@ describe('primary tab slide feedback', () => {
     );
     const peekPage = screen.getByTestId('peek-page');
     expect(peekPage.dataset.peek).toBe('/plan');
-    Object.defineProperty(peekPage, 'animate', {
+    Object.defineProperty(peekPage.parentElement, 'animate', {
       configurable: true,
       value: peekAnimate,
     });
@@ -273,8 +273,12 @@ describe('primary tab slide feedback', () => {
       '-390px',
     );
     const [currentFrames, currentOptions] = currentAnimate.mock.calls[0];
-    expect(currentFrames[0]).toEqual({ left: '-190px' });
-    expect(currentFrames.at(-1)).toEqual({ left: '-390px' });
+    expect(currentFrames[0]).toEqual({
+      transform: 'translate3d(-190px, 0, 0)',
+    });
+    expect(currentFrames.at(-1)).toEqual({
+      transform: 'translate3d(-390px, 0, 0)',
+    });
     expect(currentFrames.length).toBeGreaterThan(2);
     expect(currentOptions).toEqual(
       expect.objectContaining({ easing: 'linear', fill: 'none' }),
@@ -286,6 +290,8 @@ describe('primary tab slide feedback', () => {
       transform: 'translate3d(0px, 0, 0)',
     });
     expect(peekFrames).toHaveLength(currentFrames.length);
+    for (const keyframe of [...currentFrames, ...peekFrames])
+      expect(Object.keys(keyframe)).toEqual(['transform']);
     act(() => {
       currentSettle.onfinish?.call(
         currentSettle,
@@ -442,7 +448,10 @@ describe('primary tab slide feedback', () => {
       });
       view.rerender(<PageMotionHarness pathname={to} onNavigate={navigate} />);
       expect(animate).toHaveBeenCalledWith(
-        [{ left: `${offset}px` }, { left: '0px' }],
+        [
+          { transform: `translate3d(${offset}px, 0, 0)` },
+          { transform: 'translate3d(0px, 0, 0)' },
+        ],
         expect.objectContaining({ easing: expect.any(String) }),
       );
       expect(surface.dataset.navigationSlide).toBe('true');
@@ -653,8 +662,8 @@ describe('primary tab slide feedback', () => {
     });
     expect(navigate).not.toHaveBeenCalled();
     const [frames] = animate.mock.calls[0];
-    expect(frames[0]).toEqual({ left: '-25px' });
-    expect(frames.at(-1)).toEqual({ left: '0px' });
+    expect(frames[0]).toEqual({ transform: 'translate3d(-25px, 0, 0)' });
+    expect(frames.at(-1)).toEqual({ transform: 'translate3d(0px, 0, 0)' });
     expect(surface.style.transform).toBe('');
     act(() =>
       animation.onfinish?.call(

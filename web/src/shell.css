@@ -538,11 +538,8 @@
     )
     > .page {
     --primary-tab-offset: inherit;
-    /* Offset, don't transform: a transformed page would become the containing
-       block of its fixed add action, which then sits at the page's bottom edge
-       and snaps to the viewport corner once the page settles. */
-    position: relative;
-    left: var(--primary-tab-offset, 0px);
+    transform: translate3d(var(--primary-tab-offset, 0px), 0, 0);
+    will-change: transform;
   }
 
   .product-main[data-navigation-slide] > .page,
@@ -578,17 +575,16 @@
     height: 100dvh;
     overflow: hidden;
     pointer-events: none;
+    transform: translate3d(var(--primary-tab-peek-offset, 0px), 0, 0);
+    will-change: transform;
   }
 
   .product-main[data-primary-tab-dragging]
     > .primary-tab-panel[data-primary-tab-peek]
     > .page {
-    --primary-tab-peek-offset: inherit;
     width: var(--primary-tab-peek-width, 100%);
     margin-top: var(--primary-tab-peek-origin, 0px);
     margin-left: var(--primary-tab-peek-left, 0px);
-    transform: translate3d(var(--primary-tab-peek-offset, 0px), 0, 0);
-    will-change: transform;
   }
 
   .product-shell-body:has(.product-main[data-primary-tab-dragging]),

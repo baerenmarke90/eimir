@@ -618,7 +618,9 @@ def _write_export_archive(
             preference = appearance_service.read_preference(session, authorization)
             account_document["personalAppearance"] = {
                 "appIconId": preference.icon_id if preference else "original",
-                "wirDesign": (preference.wir_design if preference else DEFAULT_WIR_DESIGN.value),
+                "wirDesign": (
+                    preference.effective_wir_design if preference else DEFAULT_WIR_DESIGN
+                ).value,
             }
             if preference is not None and preference.person_colours:
                 account_document["personalAppearance"]["personColours"] = preference.person_colours

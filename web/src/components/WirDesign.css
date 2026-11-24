@@ -292,17 +292,6 @@
 .wir-design-preview-layout-names .wir-design-preview-vibes {
   grid-template-columns: 1fr 1fr;
 }
-/* Note: a compact header and a tinted note card. */
-.wir-design-preview-layout-note .wir-design-preview-portraits {
-  display: none;
-}
-.wir-design-preview-layout-note .wir-design-preview-quote {
-  min-height: 18px;
-  background: var(--color-brand-surface);
-}
-.wir-design-preview-layout-note .wir-design-preview-vibes {
-  grid-template-columns: 1fr 1fr;
-}
 @media (max-width: 359px) {
   .wir-design-option {
     gap: var(--space-2);

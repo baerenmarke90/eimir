@@ -105,7 +105,7 @@ def _design_view(
     response.headers["ETag"] = etag_for_token(service.concurrency_token(preference, authorization))
     response.headers["Cache-Control"] = "private, no-store"
     return WirDesignPreferenceView(
-        design_id=WirDesignId(preference.wir_design) if preference else DEFAULT_WIR_DESIGN,
+        design_id=preference.effective_wir_design if preference else DEFAULT_WIR_DESIGN,
         version=preference.version if preference else 0,
     )
 

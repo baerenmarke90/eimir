@@ -1253,10 +1253,7 @@ test('a saved design colours Mehr, its sheet and the browser chrome and switches
   expect(f.unexpected).toEqual([]);
 });
 
-// #1907 C1: the names layout (Zu zweit) sets the names large with the add
-// action in the moment header; the note layout (Handschrift) leads with the
-// latest shared Heart Moment and opens it.
-test('the names and note layouts compose Wir and the note opens its Heart Moment', async ({
+test('Zu zweit keeps the names and the add action in the moment header', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 900 });
@@ -1264,60 +1261,58 @@ test('the names and note layouts compose Wir and the note opens its Heart Moment
   const f = await fixture(page, { initial: 'quiet_together', agenda: true });
   await signIn(page);
   await page.goto('/today');
-  const today = page.locator('.today-page');
-  await expect(today).toHaveAttribute('data-wir-layout', 'names');
+  await expect(page.locator('.today-page')).toHaveAttribute(
+    'data-wir-layout',
+    'names',
+  );
   await expect(
     page.locator('.wir-compact-hero .couple-presence-title > span'),
   ).toHaveCount(2);
   await expect(
     page.locator('.today-section-moment .today-section-header .add-action'),
   ).toBeVisible();
-  await expect(page.locator('.wir-note-card')).toHaveCount(0);
+  expect(f.unexpected).toEqual([]);
+});
 
-  await page.route(
-    `**/api/v1/spaces/${SPACE_ID}/appearance/wir-design`,
-    (route) =>
-      route.fulfill({
-        json: { designId: 'handwriting', version: 5 },
-        headers: { ETag: '"appearance:5"' },
-      }),
+test('the retired design falls back to Verbunden and the picker still saves', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 360, height: 830 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const f = await fixture(page, { initial: 'handwriting', pro: false });
+  await signIn(page);
+  await page.goto('/today');
+  await expect(page.locator('.today-page')).toHaveAttribute(
+    'data-wir-layout',
+    'connected',
   );
-  // A dashboard whose latest shared item is a Heart Moment with words.
-  await page.route(`**/api/v1/spaces/${SPACE_ID}/dashboard`, (route) =>
-    route.fulfill({
-      json: {
-        space: { spaceId: SPACE_ID, partner: PARTNER },
-        relationshipDuration: null,
-        retrospective: null,
-        keepsake: null,
-        upcoming: [],
-        anticipation: null,
-        recentShared: [
-          {
-            type: 'HEART_MOMENT',
-            id: 'heart-note',
-            titleOrText: 'Coffee by the water tomorrow?',
-            occurredOn: '2026-11-14',
-            createdAt: '2026-11-14T08:00:00Z',
-            scheduledAt: null,
-            previewIsSensitive: false,
-            concealed: false,
-          },
-        ],
-        sharedStorySummary: { memories: 0, heartMoments: 1, milestones: 0 },
-        viewerLocalDate: '2026-11-15',
-      },
-    }),
+  await open(page);
+  const picker = page.getByRole('dialog', { name: copy.choices });
+  await expect(picker.locator('input[value="handwriting"]')).toHaveCount(0);
+  await expect(page.getByText(copy.unavailable, { exact: true })).toHaveCount(
+    0,
   );
-  await page.reload();
-  await expect(today).toHaveAttribute('data-wir-layout', 'note');
-  const note = page.locator('.wir-note-card');
-  await expect(note).toContainText('Coffee by the water tomorrow?');
-  await expect(note).toHaveAttribute(
-    'href',
-    /\/story\/heart-moments\/heart-note$/,
+  await expect(
+    picker.getByRole('radio', { name: new RegExp(copy.names.connected) }),
+  ).toBeChecked();
+  await captureScreenshot(page, info, 'design-selection-360-light.png');
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await captureScreenshot(page, info, 'design-selection-1440-dark.png');
+
+  await picker
+    .getByRole('radio', { name: new RegExp(copy.names.warm) })
+    .check();
+  await picker.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(picker.getByText(copy.saved, { exact: true })).toBeVisible();
+  await picker.getByRole('button', { name: copy.close, exact: true }).click();
+  await page.goto('/today');
+  await expect(page.locator('.today-page')).toHaveAttribute(
+    'data-wir-design',
+    'warm',
   );
-  await expect(page.locator('.wir-note-add .add-action')).toBeVisible();
+  expect(f.writes).toEqual(['warm']);
   expect(f.unexpected).toEqual([]);
 });
 

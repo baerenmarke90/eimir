@@ -1,0 +1,247 @@
+/*
+ * ServerAdmin "Reports" section (#2189). Administration surface: denser than
+ * couple-facing screens, but composed from Compact outward. On Compact an open
+ * report replaces the list; from 80rem the list stays beside the report.
+ */
+
+.server-admin-reports-layout {
+  display: grid;
+  gap: var(--space-5);
+  margin-top: var(--space-4);
+}
+
+.server-admin-reports-layout.has-selection .server-admin-reports-browse {
+  display: none;
+}
+
+@media (min-width: 80rem) {
+  .server-admin-reports-layout.has-selection {
+    grid-template-columns: minmax(16rem, 2fr) minmax(0, 3fr);
+    align-items: start;
+  }
+
+  .server-admin-reports-layout.has-selection .server-admin-reports-browse {
+    display: block;
+  }
+}
+
+.server-admin-report-segments {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  border: 0;
+}
+
+.server-admin-report-segments legend {
+  width: 100%;
+  padding: 0;
+}
+
+.server-admin-report-footer-figure {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.server-admin-report-segments button {
+  min-height: var(--touch-target-comfortable);
+}
+
+/* The pressed segment is marked by weight and border, not by colour alone. */
+.server-admin-report-segments button[aria-pressed="true"] {
+  border-color: var(--color-text);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  box-shadow: inset 0 0 0 var(--border-control-width) var(--color-text);
+}
+
+.server-admin-report-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.server-admin-report-row {
+  display: grid;
+  width: 100%;
+  min-height: var(--touch-target-comfortable);
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 400;
+  text-align: start;
+}
+
+.server-admin-report-row[aria-current="true"] {
+  border-color: var(--color-text);
+  background: var(--color-surface-subtle);
+  box-shadow: inset var(--space-1) 0 0 var(--color-text);
+}
+
+.server-admin-report-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.server-admin-report-row-meta {
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.server-admin-report-row-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.server-admin-report-more {
+  margin-top: var(--space-4);
+}
+
+.server-admin-report-detail {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-4);
+}
+
+.server-admin-report-detail h4 {
+  margin: var(--space-2) 0 var(--space-3);
+}
+
+.server-admin-report-detail-head {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+}
+
+.server-admin-report-detail-head h3 {
+  margin: 0;
+}
+
+.server-admin-report-detail-head h3:focus {
+  outline: none;
+}
+
+.server-admin-report-detail-head h3:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Report and reply text is user-authored plain text: keep its line breaks. */
+.server-admin-report-text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.server-admin-report-note,
+.server-admin-report-sent-reply,
+.server-admin-report-uncertain {
+  padding: var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+}
+
+.server-admin-report-note h4 {
+  margin-top: 0;
+}
+
+.server-admin-report-privacy,
+.server-admin-report-sent-reply p,
+.server-admin-report-uncertain p {
+  margin: var(--space-2) 0 0;
+}
+
+.server-admin-report-uncertain p:first-child {
+  margin-top: 0;
+}
+
+.server-admin-report-uncertain button {
+  margin-top: var(--space-3);
+}
+
+.server-admin-report-form {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.server-admin-report-form p {
+  margin: 0;
+}
+
+.server-admin-report-form input,
+.server-admin-report-form textarea {
+  width: 100%;
+  min-height: var(--touch-target-comfortable);
+}
+
+.server-admin-report-form button[type="submit"] {
+  justify-self: start;
+}
+
+.server-admin-report-label {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.server-admin-report-counter {
+  justify-self: end;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.server-admin-report-footer {
+  margin: 0;
+  padding: var(--space-3);
+  overflow-x: auto;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.server-admin-report-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.server-admin-report-ticket-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target-comfortable);
+  font-weight: 700;
+}
+
+.server-admin-report-facts {
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+
+@media (max-width: 40rem) {
+  .server-admin-report-form button[type="submit"],
+  .server-admin-report-dialog-actions button {
+    width: 100%;
+  }
+
+  .server-admin-report-dialog-actions {
+    flex-direction: column-reverse;
+  }
+}

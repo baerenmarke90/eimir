@@ -1,7 +1,45 @@
 import { parseSync } from 'rolldown/utils';
 import { DEFAULT_LOCALE, i18n, resolvedLocale } from './index';
 import de from './locales/de';
-import { localeRegistry, supportedLocales } from './resources';
+import {
+  registerServerAdminReportsLocale,
+  serverAdminReportsLocales,
+} from './locales/serverAdminReports';
+import {
+  localeRegistry,
+  type SupportedLocale,
+  supportedLocales,
+} from './resources';
+
+// Packs registered by lazily loaded code; they follow the same parity and
+// static-key rules as the bundled packs.
+const lazyLocalePacks = [serverAdminReportsLocales];
+registerServerAdminReportsLocale();
+
+function mergedPack(target: unknown, source: unknown): unknown {
+  if (
+    !target ||
+    !source ||
+    typeof target !== 'object' ||
+    typeof source !== 'object' ||
+    Array.isArray(target) ||
+    Array.isArray(source)
+  ) {
+    return source ?? target;
+  }
+  const result: Record<string, unknown> = { ...target };
+  for (const [key, value] of Object.entries(source)) {
+    result[key] = mergedPack(result[key], value);
+  }
+  return result;
+}
+
+function completeTranslation(locale: SupportedLocale): unknown {
+  return lazyLocalePacks.reduce<unknown>(
+    (pack, lazy) => mergedPack(pack, lazy[locale]),
+    localeRegistry[locale].translation,
+  );
+}
 
 const sourceFiles = import.meta.glob(
   [
@@ -170,12 +208,12 @@ describe('web i18n', () => {
   });
 
   it('bundles complete packs with matching interpolation and native plural categories', () => {
-    const baseline = resourceEntries(localeRegistry.de.translation);
+    const baseline = resourceEntries(completeTranslation('de'));
     const expected = new Set(
       [...baseline.keys()].map((key) => key.replace(pluralSuffix, '')),
     );
     for (const locale of supportedLocales) {
-      const entries = resourceEntries(localeRegistry[locale].translation);
+      const entries = resourceEntries(completeTranslation(locale));
       const actual = new Set(
         [...entries.keys()].map((key) => key.replace(pluralSuffix, '')),
       );

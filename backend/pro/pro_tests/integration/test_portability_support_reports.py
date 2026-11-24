@@ -13,6 +13,7 @@ from uuid import uuid4
 from zipfile import ZipFile
 
 import pytest
+from eimir_pro.portability.common import TransferScope
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -20,7 +21,6 @@ from eimir.authorization import AuthorizationContext
 from eimir.support_reports import service as support_report_service
 from eimir.support_reports.models import SupportReportKind
 from eimir.support_reports.payload import ClientContext, FailureReference, SupportReportPayload
-from eimir_pro.portability.common import TransferScope
 from pro_tests.support.portability import couple, export_bytes, import_bytes, target_space
 from tests.conftest import requires_database
 

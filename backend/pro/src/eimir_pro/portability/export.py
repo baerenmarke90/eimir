@@ -526,11 +526,15 @@ def _support_reports_document(
     metadata = MetaData()
     reports = _table(session, "support_reports", metadata)
     replies = _table(session, "support_report_replies", metadata)
-    rows = session.execute(
-        select(reports)
-        .where(reports.c.account_id == authorization.account_id)
-        .order_by(reports.c.created_at, reports.c.id)
-    ).mappings().all()
+    rows = (
+        session.execute(
+            select(reports)
+            .where(reports.c.account_id == authorization.account_id)
+            .order_by(reports.c.created_at, reports.c.id)
+        )
+        .mappings()
+        .all()
+    )
     document: list[dict[str, Any]] = []
     for row in rows:
         report = reveal_row("support_reports", dict(row))

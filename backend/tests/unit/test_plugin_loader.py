@@ -93,9 +93,6 @@ class FakePlugin:
     def on_account_deleted(self, *args: object) -> None:
         return None
 
-    def export_account_document(self, *args: object) -> Mapping[str, Any]:
-        return {}
-
     def hidden_wish_ids(self, session: object, context: object) -> frozenset[UUID]:
         return self.hidden_wishes
 

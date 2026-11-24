@@ -627,11 +627,6 @@ def _write_export_archive(
             account_document["personalSettings"] = personal_settings.portable_snapshot(
                 session, authorization.account_id, authorization.space_id
             )
-            from eimir.plugins import lifecycle as plugin_lifecycle
-
-            account_document.update(
-                plugin_lifecycle.export_account_document(session, authorization, scope)
-            )
             from eimir.engagement.models import GentleMemoryExclusion, GentleProfile
 
             profile = session.get(GentleProfile, authorization.account_id)

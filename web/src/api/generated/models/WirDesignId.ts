@@ -25,8 +25,7 @@ export const WirDesignId = {
     classic: 'classic',
     quiet_together: 'quiet_together',
     home_rooms: 'home_rooms',
-    shared_rhythm: 'shared_rhythm',
-    together_index: 'together_index'
+    shared_rhythm: 'shared_rhythm'
 } as const;
 export type WirDesignId = typeof WirDesignId[keyof typeof WirDesignId];
 

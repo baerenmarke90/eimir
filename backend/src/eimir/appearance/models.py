@@ -34,7 +34,6 @@ class WirDesignId(StrEnum):
     QUIET_TOGETHER = "quiet_together"
     HOME_ROOMS = "home_rooms"
     SHARED_RHYTHM = "shared_rhythm"
-    TOGETHER_INDEX = "together_index"
 
 
 class PersonColoursId(StrEnum):
@@ -91,6 +90,6 @@ class AppIconPreference(IdMixin, TimestampMixin, VersionMixin, Base):
     @property
     def effective_wir_design(self) -> WirDesignId:
         """Resolve a retired selection from an older installation or database."""
-        if self.wir_design == "handwriting":
+        if self.wir_design in {"handwriting", "together_index"}:
             return DEFAULT_WIR_DESIGN
         return WirDesignId(self.wir_design)

@@ -96,6 +96,7 @@ import {
   HEART_MOMENT_DETAIL_ROUTE_PATTERN,
   HEART_MOMENT_EDIT_ROUTE_PATTERN,
   LEGACY_ROUTE_REWRITES,
+  LEGACY_THREAD_ROUTE,
   MEMORY_CREATE_ROUTE,
   MEMORY_DETAIL_ROUTE_PATTERN,
   MEMORY_EDIT_ROUTE_PATTERN,
@@ -110,7 +111,6 @@ import {
   MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
   MORE_PROFILE_ROUTE,
-  THREAD_ROUTE,
   MORE_SETTINGS_CATEGORY_ROUTE_PATTERN,
   MORE_SETTINGS_ROUTE,
   NOTE_CREATE_ROUTE,
@@ -166,7 +166,6 @@ import { useSystemTimeZone } from './client/useSystemTimeZone';
 import { useVideoTransferNavigation } from './client/useVideoTransferNavigation';
 import { VideoProcessingContext } from './client/video';
 import { AudioProcessingContext } from './client/voiceNotes';
-import { ThreadIndexRoute } from './components/ThreadNavigationLayout';
 import { WirDesignProvider } from './client/wirDesign';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AppShell } from './components/AppShell';
@@ -1259,7 +1258,10 @@ function AuthenticatedApp({
                 />
               }
             />
-            <Route path={THREAD_ROUTE} element={<ThreadIndexRoute />} />
+            <Route
+              path={LEGACY_THREAD_ROUTE}
+              element={<Navigate replace to={DEFAULT_APP_ROUTE} />}
+            />
             <Route
               path={MORE_PROFILE_ROUTE}
               element={

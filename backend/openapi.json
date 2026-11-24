@@ -18787,8 +18787,7 @@
           "classic",
           "quiet_together",
           "home_rooms",
-          "shared_rhythm",
-          "together_index"
+          "shared_rhythm"
         ],
         "title": "WirDesignId",
         "type": "string"

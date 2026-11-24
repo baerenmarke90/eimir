@@ -17,7 +17,8 @@ export function wirDesignStorageKey(
 
 /** Resolve preferences written by older clients and servers. */
 export function parseWirDesignId(value: unknown): WirDesignId | undefined {
-  if (value === 'handwriting') return DEFAULT_APP_DESIGN;
+  if (value === 'handwriting' || value === 'together_index')
+    return DEFAULT_APP_DESIGN;
   return Object.values(WirDesignId).find((design) => design === value);
 }
 

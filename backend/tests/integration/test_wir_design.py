@@ -123,7 +123,6 @@ def test_pro_designs_are_exactly_the_alternative_designs() -> None:
         WirDesignId.QUIET_TOGETHER,
         WirDesignId.HOME_ROOMS,
         WirDesignId.SHARED_RHYTHM,
-        WirDesignId.TOGETHER_INDEX,
     }
 
 
@@ -137,7 +136,6 @@ def test_pro_designs_are_exactly_the_alternative_designs() -> None:
         WirDesignId.QUIET_TOGETHER,
         WirDesignId.HOME_ROOMS,
         WirDesignId.SHARED_RHYTHM,
-        WirDesignId.TOGETHER_INDEX,
     ],
 )
 def test_every_alternative_is_pro_for_both_partners(client, session, couple, design_id) -> None:
@@ -227,7 +225,7 @@ def test_membership_owner_scope_invalid_ids_and_required_concurrency(
         ).status_code
         == 409
     )
-    for design_id in ("handwriting", "unknown", "https://example.test/icon.png"):
+    for design_id in ("handwriting", "together_index", "unknown", "https://example.test/icon.png"):
         assert (
             client.patch(
                 path(couple),
@@ -300,13 +298,16 @@ def test_personal_export_includes_only_callers_choice_and_deletion_purges_it(
     assert session.get(AppIconPreference, partner.id) is not None
 
 
-def test_retired_design_resolves_to_default_and_can_be_replaced(client, session, couple) -> None:
+@pytest.mark.parametrize("retired_design", ["handwriting", "together_index"])
+def test_retired_design_resolves_to_default_and_can_be_replaced(
+    client, session, couple, retired_design
+) -> None:
     session.add(
         AppIconPreference(
             icon_id="original",
             account_id=couple["anna"].id,
             space_id=couple["space"].id,
-            wir_design="handwriting",
+            wir_design=retired_design,
         )
     )
     session.flush()

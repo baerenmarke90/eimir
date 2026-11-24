@@ -28,7 +28,7 @@ def test_downgrade_resets_only_introduced_designs(
 ) -> None:
     owner = make_account(session, "Owner")
     space = make_space(session, owner)
-    design_ids = {design.value for design in WirDesignId} | {"handwriting"}
+    design_ids = {design.value for design in WirDesignId} | {"handwriting", "together_index"}
     for design_id in sorted(design_ids):
         account = make_account(session, design_id)
         session.add(

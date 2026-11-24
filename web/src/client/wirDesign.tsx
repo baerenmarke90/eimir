@@ -51,7 +51,6 @@ export const WIR_DESIGNS: readonly WirDesignId[] = [
   WirDesignId.quiet_together,
   WirDesignId.home_rooms,
   WirDesignId.shared_rhythm,
-  WirDesignId.together_index,
 ];
 /** The design every account starts with; it needs no entitlement. */
 export const DEFAULT_WIR_DESIGN: WirDesignId = DEFAULT_APP_DESIGN;

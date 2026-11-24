@@ -17,7 +17,7 @@ pytest.importorskip("eimir_admin", reason="the eimir-admin distribution is not i
 from eimir_admin.plugin import plugin as admin_plugin
 
 from eimir.plugins import loader
-from tests.conftest import client  # noqa: F401  (pytest fixture)
+from tests.conftest import client, production_client  # noqa: F401  (pytest fixtures)
 
 
 @pytest.fixture(autouse=True)

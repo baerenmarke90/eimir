@@ -226,6 +226,12 @@ def engine() -> Iterator[Engine]:
 
     db_engine = create_engine(INTEGRATION_DATABASE_URL, future=True)
     Base.metadata.create_all(db_engine)
+    # A plugin chain table does not live in the shared Core database: Core
+    # migrations that downgrade past its parent table (support_reports) could not
+    # drop that parent otherwise. The plugin's own tests create it per module.
+    for chain_table in CHAIN_PLUGIN_TABLES:
+        if chain_table in Base.metadata.tables:
+            Base.metadata.tables[chain_table].drop(db_engine, checkfirst=True)
     # Without ``eimir-pro`` the Pro tables have no models here. They come from the
     # Core migration chain, and the Core manifest executor works on them.
     plugin_tables_from_migrations = not pro_distribution_installed()
@@ -289,9 +295,12 @@ def _clear_database(engine: Engine) -> None:
     """Remove committed test data in foreign-key-safe order."""
     from eimir.db.base import Base
 
+    present = set(inspect(engine).get_table_names())
     with engine.begin() as connection:
         for table in reversed(Base.metadata.sorted_tables):
-            connection.execute(table.delete())
+            # A plugin chain table only exists while its own tests run.
+            if table.name in present:
+                connection.execute(table.delete())
 
 
 @pytest.fixture

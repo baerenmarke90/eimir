@@ -119,7 +119,8 @@ def test_row_is_deleted_with_its_report(session: Session) -> None:
 
     # The database cascades; the ORM must not need to load the ticket first.
     session.execute(SupportReport.__table__.delete().where(SupportReport.id == report.id))
-    session.expire_all()
+    # Forget the loaded instance: its row is gone, so refreshing it would fail.
+    session.expunge_all()
 
     assert session.get(SupportReportTicket, ticket.id) is None
 

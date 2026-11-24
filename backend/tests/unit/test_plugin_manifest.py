@@ -234,7 +234,7 @@ def test_support_operator_is_plugin_owned_and_not_premium() -> None:
     operator = Capability.SUPPORT_OPERATOR.value
 
     assert operator == "support.operator"
-    assert ADMIN_CAPABILITIES == {operator}
+    assert {operator} == ADMIN_CAPABILITIES
     assert PLUGIN_CAPABILITIES == PRO_CAPABILITIES | ADMIN_CAPABILITIES
     assert not PRO_CAPABILITIES & ADMIN_CAPABILITIES
     assert operator not in ALL_PREMIUM_CAPABILITIES

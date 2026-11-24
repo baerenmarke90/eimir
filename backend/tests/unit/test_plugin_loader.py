@@ -190,9 +190,8 @@ def test_admin_name_only_from_eimir_admin_distribution() -> None:
 
     with pytest.raises(PluginLoadError, match="expected 'eimir-admin'"):
         resolve(["admin"], [candidate(admin, name="admin", distribution="eimir-pro")])
-    assert resolve(["admin"], [candidate(admin, name="admin", distribution="eimir_admin")]).names == (
-        "admin",
-    )
+    normalized = resolve(["admin"], [candidate(admin, name="admin", distribution="eimir_admin")])
+    assert normalized.names == ("admin",)
 
 
 def test_a_named_but_missing_plugin_refuses_to_start() -> None:

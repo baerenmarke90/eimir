@@ -1,5 +1,12 @@
-import type { ComponentProps } from 'react';
+import {
+  type ComponentProps,
+  type ReactElement,
+  useCallback,
+  useState,
+} from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
+import { useMediaQuery } from '../client/useMediaQuery';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import './AddAction.css';
 
@@ -10,6 +17,22 @@ type AddActionLabel = {
   pending?: boolean;
   floating?: boolean;
 };
+
+/** A fixed action belongs to its tab, outside the page that slides under it. */
+function FloatingActionPlacement({ children }: { children: ReactElement }) {
+  const compact = useMediaQuery('(max-width: 839px)');
+  const [panel, setPanel] = useState<HTMLElement | null>(null);
+  const locatePanel = useCallback((origin: HTMLSpanElement | null) => {
+    setPanel(origin?.closest<HTMLElement>('.primary-tab-panel') ?? null);
+  }, []);
+  if (!compact) return children;
+  return (
+    <>
+      <span hidden ref={locatePanel} data-floating-create-origin />
+      {panel ? createPortal(children, panel) : children}
+    </>
+  );
+}
 
 /** Shared content also supports existing task-origin links and file labels. */
 export function AddActionContent({
@@ -59,7 +82,7 @@ export function AddActionButton({
   ...props
 }: Omit<ComponentProps<'button'>, 'children'> & AddActionLabel) {
   const visibleLabel = pending && pendingLabel ? pendingLabel : label;
-  return (
+  const button = (
     <button
       type="button"
       {...props}
@@ -79,6 +102,11 @@ export function AddActionButton({
       />
     </button>
   );
+  return floating ? (
+    <FloatingActionPlacement>{button}</FloatingActionPlacement>
+  ) : (
+    button
+  );
 }
 
 /** Keep navigation, modified clicks, state and focus as native link behavior. */
@@ -90,7 +118,7 @@ export function AddActionLink({
   ...props
 }: Omit<ComponentProps<typeof Link>, 'children'> &
   Pick<AddActionLabel, 'label' | 'icon' | 'floating'>) {
-  return (
+  const link = (
     <Link
       {...props}
       className={`button-link add-action ${className}`}
@@ -100,5 +128,10 @@ export function AddActionLink({
     >
       <AddActionContent label={label} icon={icon} floating={floating} />
     </Link>
+  );
+  return floating ? (
+    <FloatingActionPlacement>{link}</FloatingActionPlacement>
+  ) : (
+    link
   );
 }

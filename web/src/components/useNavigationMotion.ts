@@ -31,7 +31,7 @@ const PAGE_PARENTS = [
   ':scope >',
   ':scope > .primary-tab-panel:not([hidden], [data-primary-tab-peek], [data-primary-tab-prewarm]) >',
 ];
-const PEEK_PAGE = ':scope > .primary-tab-panel[data-primary-tab-peek] > .page';
+const PEEK_PANEL = ':scope > .primary-tab-panel[data-primary-tab-peek]';
 /** A cancelled or never-committed route change releases the drag state. */
 const COMMIT_FALLBACK_MS = 800;
 const ROUTE_LOADING = PAGE_PARENTS.flatMap((parent) => [
@@ -107,22 +107,20 @@ function settlePages(
   const width = window.innerWidth;
   const frames = sampleSpring(from, to, velocity, undefined, true);
   const duration = springDuration(frames);
-  // The current page is offset with `left`, not a transform: a transformed
-  // page would become the containing block of its fixed add action and make
-  // that control travel with the page's bottom edge before snapping back
-  // (the sanctioned shell exception of Motion Contract M6).
   const current = surface.querySelector<HTMLElement>(CURRENT_PAGE);
-  const peek = surface.querySelector<HTMLElement>(PEEK_PAGE);
+  // The panel survives a lazy neighbour replacing its loading placeholder.
+  const peek = surface.querySelector<HTMLElement>(PEEK_PANEL);
   place(to);
   const options = {
     duration,
     easing: 'linear',
     channel: 'gesture',
+    willChange: 'transform',
   } as const;
   const animations = [
     run(
       current,
-      frames.map((value) => ({ left: `${value}px` })),
+      frames.map((value) => ({ transform: `translate3d(${value}px, 0, 0)` })),
       options,
     ),
     run(
@@ -130,7 +128,7 @@ function settlePages(
       frames.map((value) => ({
         transform: `translate3d(${direction * width + value}px, 0, 0)`,
       })),
-      { ...options, willChange: 'transform' },
+      options,
     ),
   ].filter((animation): animation is Animation => animation !== null);
   if (!animations.length) return null;
@@ -304,7 +302,10 @@ function animatePageSlide(
   // The page is positioned while `data-navigation-slide` is set (shell.css),
   // so set it before the first frame of the offset.
   surface.dataset.navigationSlide = 'true';
-  const animation = navigateMotion(page, direction, { offset: 'inset' });
+  const animation = navigateMotion(page, direction, {
+    offset:
+      direction === 'next' || direction === 'previous' ? 'slide' : 'inset',
+  });
   if (!animation) {
     delete surface.dataset.navigationSlide;
     return false;
@@ -624,9 +625,10 @@ export function useNavigationMotion({
       const peek = reducedMotion ? null : (neighbour?.path ?? null);
       if (gesture.peek !== peek) {
         gesture.peek = peek;
+        // Make the neighbour measurable when React reveals it, before paint.
+        applyDrag(gesture);
         setPrimaryTabPeek(peek);
-      }
-      if (!reducedMotion && !frame)
+      } else if (!reducedMotion && !frame)
         frame = window.requestAnimationFrame(() => {
           frame = 0;
           if (gesture) applyDrag(gesture);

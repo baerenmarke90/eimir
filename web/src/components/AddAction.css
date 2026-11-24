@@ -63,7 +63,11 @@ button.add-action:disabled {
 }
 
 @media (max-width: 839px) {
-  .page-heading > .page-heading-action:has(.add-action[data-floating-create]) {
+  .page-heading
+    > .page-heading-action:has(
+      [data-floating-create-origin],
+      [data-floating-create]
+    ) {
     display: contents;
   }
 

@@ -65,6 +65,8 @@ export interface NavigateOptions {
    * How the entrance travels:
    *
    * - `transform` (default): opacity and `translateX` on the element;
+   * - `slide`: translation only. Primary pages have a separate content fade
+   *   and keep their floating action outside the moving page.
    * - `inset`: only the horizontal offset, as `left` on a positioned
    *   element. This is for the routed page in the app shell: a transform
    *   would make the page the containing block of its fixed controls (the
@@ -73,7 +75,7 @@ export interface NavigateOptions {
    *   offset animation of `navigate` (Motion Contract 4.2, M6). The shell
    *   fades its content separately (`crossfade` with `from`).
    */
-  offset?: 'transform' | 'inset';
+  offset?: 'transform' | 'slide' | 'inset';
 }
 
 /**
@@ -108,6 +110,20 @@ export function navigate(
       easing: easing('standard'),
       channel: 'navigate',
     });
+  if (options.offset === 'slide')
+    return run(
+      element,
+      [
+        { transform: `translate3d(${travel}px, 0, 0)` },
+        { transform: 'translate3d(0px, 0, 0)' },
+      ],
+      {
+        duration: durationMs('transition'),
+        easing: easing('standard'),
+        channel: 'navigate',
+        willChange: 'transform',
+      },
+    );
   return run(
     element,
     [

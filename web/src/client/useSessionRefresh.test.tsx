@@ -25,11 +25,11 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function setup(restoring = false) {
+function setup(restoring = false, accessLifetimeMs = 120_000) {
   const tokens = {
     accessToken: 'access-a',
     refreshToken: 'refresh-a',
-    accessExpiresAt: new Date(Date.now() + 120_000),
+    accessExpiresAt: new Date(Date.now() + accessLifetimeMs),
     refreshExpiresAt: new Date(Date.now() + 86_400_000),
   };
   const next = {
@@ -171,6 +171,25 @@ describe('real session refresh lifecycle', () => {
     await act(() => vi.advanceTimersByTimeAsync(60_000));
     expect(accepted).toHaveBeenCalledWith(next);
     expect(rejected).not.toHaveBeenCalled();
+  });
+  it('schedules a far-off expiry within the timer limit instead of spinning', async () => {
+    // A page clock that lags the token by more than 24.8 days used to make the
+    // delay overflow; the browser then ran the timer at once, over and over.
+    const delays: unknown[] = [];
+    const schedule = globalThis.setTimeout;
+    vi.spyOn(globalThis, 'setTimeout').mockImplementation(((
+      ...args: Parameters<typeof setTimeout>
+    ) => {
+      delays.push(args[1]);
+      return schedule(...args);
+    }) as typeof setTimeout);
+    const { accepted } = setup(false, 30 * 86_400_000);
+    await act(() => vi.advanceTimersByTimeAsync(60_000));
+    expect(delays.length).toBeGreaterThan(0);
+    for (const delay of delays) expect(delay).toBeLessThanOrEqual(2 ** 31 - 1);
+    expect(vi.getTimerCount()).toBe(1);
+    expect(sessions.refreshSessionTokens).not.toHaveBeenCalled();
+    expect(accepted).not.toHaveBeenCalled();
   });
   it('keeps scheduling the canonical rotation when React still renders the previous token', async () => {
     const { next, accepted } = setup();

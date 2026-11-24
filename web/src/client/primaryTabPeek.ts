@@ -14,6 +14,24 @@ export function setPrimaryTabPeek(path: string | null): void {
   for (const listener of listeners) listener();
 }
 
+/**
+ * Whether `path` is the tab being revealed right now. Subscribes to this one
+ * answer, so a page re-renders when its own preview starts or ends, not for
+ * every neighbour that is peeked.
+ */
+export function usePrimaryTabPeeked(path: string): boolean {
+  return useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    () => peekPath === path,
+    () => false,
+  );
+}
+
 export function usePrimaryTabPeek(): string | null {
   return useSyncExternalStore(
     (listener) => {

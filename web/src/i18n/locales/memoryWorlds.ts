@@ -1,6 +1,6 @@
 // Memory worlds of Momente › Erinnerungen (#2283): Stapel, Plattenkiste,
-// Momentwolke, Fotoautomat, Kühlschranktür, Fotobuch, Rubbellos, Mochis
-// and Sternbild.
+// Momentwolke, Fotoautomat, Kühlschranktür, Fotobuch, Rubbellos, Mochis,
+// Sternbild and Post.
 const memoryWorlds = {
   placeVerse: 'in {{place}}',
   winterSpan: 'Winter {{from}}/{{to}}',
@@ -317,6 +317,45 @@ const memoryWorlds = {
     open: 'Öffnen: {{title}}, {{date}}',
     seasonMark: '{{season}} ’{{year}}',
     winterMark: '{{season}} ’{{from}}/{{to}}',
+  },
+  post: {
+    heading: 'Post aus eurem Tagebuch',
+    plate: 'Post',
+    plateFor: 'für euch',
+    openBox: 'Briefkasten öffnen',
+    openEnvelope: 'Umschlag von {{name}} öffnen',
+    turnOver: 'Karte umdrehen',
+    turnBack: 'Vorderseite zeigen',
+    open: 'Im Tagebuch öffnen',
+    openNamed: 'Im Tagebuch öffnen: {{title}}',
+    file: 'Karte in den Schuhkarton legen',
+    read: 'Gelesen',
+    postcard: 'Postkarte',
+    greeting: 'Grüße aus dem {{season}}',
+    sign: 'Alles Liebe, {{name}}',
+    toBoth: 'An euch beide',
+    diary: 'Euer Tagebuch',
+    postmark: 'eimir. · Tagebuchpost ·',
+    envelope: {
+      airmail: 'Luftpost',
+      urgent: 'Eilt',
+      forTwo: 'Für euch zwei',
+      forBoth: 'Für euch beide',
+      forYou: 'Für euch',
+      to: 'An: euch beide',
+      from: 'Abs.: {{name}}',
+      fromSeason: 'Abs.: {{name}} · {{season}}',
+      by: 'von {{name}}',
+      love: 'In Liebe, {{name}}',
+    },
+    announce: {
+      waiting: 'Ein Umschlag für euch ist im Briefkasten.',
+      arrived: 'Ein Umschlag für euch ist angekommen.',
+      card: 'Eine Postkarte: {{title}}',
+      filed: 'Die Karte liegt im Schuhkarton.',
+      filedNew: 'Die Karte liegt im Schuhkarton. Neue Post ist im Briefkasten.',
+      newPost: 'Neue Post ist im Briefkasten.',
+    },
   },
 };
 

@@ -69,6 +69,10 @@ const memoryWorldSettings = {
       sentence:
         'Eure Momente als Sterne an einem Himmel, der mit der Zeit lebt.',
     },
+    post: {
+      name: 'Post',
+      sentence: 'Briefe von damals, die ihr öffnet und ablegt.',
+    },
     crate: {
       name: 'Plattenkiste',
       sentence: 'Blättere durch eure Platten und leg eine Erinnerung auf.',

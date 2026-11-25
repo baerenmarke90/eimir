@@ -18,6 +18,7 @@ export const MEMORY_WORLDS: readonly MemoryWorld[] = [
   'booth',
   'album',
   'stars',
+  'post',
   'crate',
   'scratch',
   'fridge',

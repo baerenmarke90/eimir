@@ -1756,6 +1756,10 @@
         "name": "Constellation",
         "sentence": "Your moments as stars in a sky that lives with time."
       },
+      "post": {
+        "name": "Post",
+        "sentence": "Letters from back then that you open and put away."
+      },
       "crate": {
         "name": "Record crate",
         "sentence": "Flip through your records and put a memory on."
@@ -4656,6 +4660,45 @@
       "open": "Open: {{title}}, {{date}}",
       "seasonMark": "{{season}} ’{{year}}",
       "winterMark": "{{season}} ’{{from}}/{{to}}"
+    },
+    "post": {
+      "heading": "Post from your diary",
+      "plate": "Post",
+      "plateFor": "for you",
+      "openBox": "Open the mailbox",
+      "openEnvelope": "Open the envelope from {{name}}",
+      "turnOver": "Turn the card over",
+      "turnBack": "Show the front",
+      "open": "Open in the diary",
+      "openNamed": "Open in the diary: {{title}}",
+      "file": "Put the card in the shoebox",
+      "read": "Read",
+      "postcard": "Postcard",
+      "greeting": "Greetings from {{season}}",
+      "sign": "With love, {{name}}",
+      "toBoth": "To you both",
+      "diary": "Your diary",
+      "postmark": "eimir. · Diary post ·",
+      "envelope": {
+        "airmail": "Air mail",
+        "urgent": "Urgent",
+        "forTwo": "For you two",
+        "forBoth": "For you both",
+        "forYou": "For you",
+        "to": "To: you both",
+        "from": "From: {{name}}",
+        "fromSeason": "From: {{name}} · {{season}}",
+        "by": "from {{name}}",
+        "love": "With love, {{name}}"
+      },
+      "announce": {
+        "waiting": "An envelope for you is in the mailbox.",
+        "arrived": "An envelope for you has arrived.",
+        "card": "A postcard: {{title}}",
+        "filed": "The card is in the shoebox.",
+        "filedNew": "The card is in the shoebox. New post is in the mailbox.",
+        "newPost": "New post is in the mailbox."
+      }
     }
   },
   "memoryProduct": {

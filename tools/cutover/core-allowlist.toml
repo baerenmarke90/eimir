@@ -160,6 +160,7 @@ id = "official-release-pipeline"
 reason = "Official build, sign, attest and publish pipeline, including the private test channel publication and its tooling."
 patterns = [
   ".github/actions/attest-release-artifact/**",
+  ".github/workflows/core-advance.yml",
   ".github/workflows/release-candidate.yml",
   ".github/workflows/release-evidence.yml",
   ".github/workflows/release-publish.yml",
@@ -261,6 +262,7 @@ id = "official-publication"
 reason = "The official publish and attestation workflows stay private."
 patterns = [
   ".github/workflows/release-*.yml",
+  ".github/workflows/core-advance.yml",
   ".github/actions/attest-release-artifact/**",
 ]
 

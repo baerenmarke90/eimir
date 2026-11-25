@@ -22,6 +22,17 @@ name = "pro"
 core_allowlist = "core-allowlist.toml"
 # Kept only in the archive (decision D3 of core-allowlist.toml).
 archive_only = ["design-reference-media", "historical-checksum-evidence"]
+# Files the official publisher requires from the Pro tree when it lays the Pro
+# tree over the pinned Core checkout (scripts/test_deployment_channel.py,
+# PRO_WORKSPACE_FILES and PRO_REQUIRED_FILES); the split gate fails without them.
+publisher_requires = [
+  "backend/pyproject.toml",
+  "backend/uv.lock",
+  "backend/pro/pyproject.toml",
+  "backend/admin/pyproject.toml",
+]
+# The publisher refuses a Pro workspace whose [project] differs from Core's.
+same_project = "backend/pyproject.toml"
 
 # --------------------------------------------------------------------------
 # What the Core tree excludes for the private repository (same patterns)
@@ -53,6 +64,11 @@ core_exclude = "pro-coupled-core-tests"
 # --------------------------------------------------------------------------
 # Files both repositories carry (each needs an [[overlap]] rule below)
 # --------------------------------------------------------------------------
+
+[[include]]
+id = "official-uv-workspace"
+reason = "The official uv workspace (members pro and admin) and its full lockfile, unchanged: the publisher skips Core's workspace files and takes these from the Pro tree (compose_source in scripts/test_deployment_channel.py)."
+patterns = ["backend/pyproject.toml", "backend/uv.lock"]
 
 [[include]]
 id = "shared-repository-configuration"
@@ -94,6 +110,11 @@ patterns = ["tools/ci/pro_extraction_dry_run.sh"]
 id = "supply-chain-capability-probe"
 reason = "One probe for both repositories: public eimir-core keeps attestations and CodeQL, private eimir-pro records their absence."
 patterns = ["scripts/supply_chain_state.py", "tools/ci/test_supply_chain_state.py"]
+
+[[overlap]]
+id = "uv-workspace"
+reason = "Two versions of one pair: the Core tree carries the Core-only workspace (transformed, re-locked), the Pro tree the official workspace with the plugin members. Their [project] tables are equal (checked by the split gate)."
+patterns = ["backend/pyproject.toml", "backend/uv.lock"]
 
 [[overlap]]
 id = "provenance-split"

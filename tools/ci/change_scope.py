@@ -49,6 +49,8 @@ SAFE_DOC_EXACT = (
     "PROVENANCE.md",
     "TRADEMARKS.md",
     ".gitleaksignore",
+    # Secret Scan configuration; the Secret Scan job runs on every pull request.
+    ".gitleaks.toml",
     ".gitignore",
 )
 CANONICAL_COMPOSE_FILE = "compose.yaml"
@@ -242,6 +244,10 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
                 "backend/pro/",
                 # The operator plugin distribution (#2189).
                 "backend/admin/",
+                # The Core export (Decision 0019, #2183): its backend gates and
+                # the Pro extraction dry run build on the exported tree. The
+                # cheap Core Export Dry Run job runs on every pull request.
+                "tools/cutover/",
             ),
             exact=(
                 "backend/alembic.ini",
@@ -405,6 +411,8 @@ RISK_PREFIXES = (
     "deploy/",
     ".github/",
     "tools/ci/",
+    # The allow-list decides what the public eimir-core repository receives.
+    "tools/cutover/",
     "scripts/self_hosted",
     "scripts/release",
 )

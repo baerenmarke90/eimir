@@ -631,8 +631,109 @@ jobs:
       - name: Pinned uv
         run: python -m pip install "uv==$UV_VERSION"
 
-      - name: Pro tests from a clean copy on top of the Core wheel
+      # Decision 0019 (#2183): the Core comes from the allow-listed export tree,
+      # the way the private repository will pin a public eimir-core revision.
+      - name: Export the public Core tree
+        run: |
+          python tools/cutover/core_export.py export --rev HEAD \
+            --out "$RUNNER_TEMP/core-tree" --manifest "$RUNNER_TEMP/core-manifest.json"
+
+      - name: Pro tests from a clean copy on top of the exported Core wheel
+        env:
+          EIMIR_CORE_ROOT: ${{ runner.temp }}/core-tree
         run: tools/ci/pro_extraction_dry_run.sh -m ""
+
+  core_export:
+    name: Core Export Dry Run
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Decision 0019 (#2183): every pull request proves that the allow-listed
+    # public eimir-core tree is clean (coverage, no plugin import, contract,
+    # licence, secret scan) and that a single-commit snapshot can be made from
+    # it. The snapshot stays in the runner; nothing is pushed anywhere.
+    permissions:
+      contents: read
+    env:
+      # The pinned image of the Secret Scan job.
+      EIMIR_CUTOVER_GITLEAKS_IMAGE: zricethezav/gitleaks:v8.24.3
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Pinned uv
+        run: python -m pip install "uv==$UV_VERSION"
+
+      - name: Export tool tests (including the negative gates)
+        run: python tools/cutover/test_core_export.py
+
+      - name: Export, gates and local snapshot
+        run: |
+          python tools/cutover/core_export.py dry-run --rev HEAD \
+            --work "$RUNNER_TEMP/core-export"
+
+      - name: Report
+        if: always()
+        run: |
+          report="$RUNNER_TEMP/core-export/report/report.md"
+          if [ -f "$report" ]; then cat "$report" >> "$GITHUB_STEP_SUMMARY"; fi
+
+  core_export_backend:
+    name: Core Export Backend
+    needs: changes
+    if: needs.changes.outputs.backend_integration == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Decision 0019 (#2183): the backend of the export tree installs and starts
+    # without the plugin distributions, builds a Core wheel without plugin
+    # files, passes the Core-only unit lane and migrates a fresh database. The
+    # Core-only integration lane runs on the checkout (Backend Core-only); the
+    # exported backend sources are byte-identical to it (coverage gate).
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: eimir
+          POSTGRES_PASSWORD: eimir
+          POSTGRES_DB: eimir_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U eimir -d eimir_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      EIMIR_TEST_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/uv.lock
+
+      - name: Pinned uv
+        run: python -m pip install "uv==$UV_VERSION"
+
+      - name: Export the public Core tree
+        run: |
+          python tools/cutover/core_export.py export --rev HEAD \
+            --out "$RUNNER_TEMP/core-tree" --manifest "$RUNNER_TEMP/core-manifest.json"
+
+      - name: Core-only install, start, wheel, unit lane and migrations
+        run: |
+          python tools/cutover/core_export.py check-backend \
+            --tree "$RUNNER_TEMP/core-tree" --manifest "$RUNNER_TEMP/core-manifest.json" \
+            --work "$RUNNER_TEMP/core-work"
 
   self-hosted:
     name: Self-Hosted Start
@@ -849,28 +950,9 @@ jobs:
       - name: Core wheel carries no Pro code
         if: needs.changes.outputs.supply_chain_backend_build == 'true'
         # Decision 0017, Phase 2 (#2182): the Core distribution must not ship
-        # the Pro plugin, its object or its editorial data.
-        run: |
-          python - /tmp/eimir-dist <<'PY'
-          import pathlib
-          import sys
-          import zipfile
-
-          wheels = sorted(pathlib.Path(sys.argv[1]).glob("eimir-*.whl"))
-          if len(wheels) != 1:
-              raise SystemExit(f"Expected one Core wheel, found {wheels}")
-          names = zipfile.ZipFile(wheels[0]).namelist()
-          pro = [
-              name
-              for name in names
-              if name.startswith(("eimir_pro/", "eimir_admin/", "eimir/pro_plugin"))
-              or "date_ideas" in name
-              or "daily_sayings" in name
-          ]
-          if pro:
-              raise SystemExit("The Core wheel contains plugin files: " + ", ".join(pro[:20]))
-          print(f"{wheels[0].name}: {len(names)} files, no plugin file.")
-          PY
+        # the Pro plugin, its object or its editorial data. The Core export
+        # (tools/cutover) runs the same check on the wheel of the export tree.
+        run: python ../tools/ci/check_core_wheel.py /tmp/eimir-dist
 
       - name: Build backend production container from scratch
         if: needs.changes.outputs.supply_chain_backend_build == 'true'

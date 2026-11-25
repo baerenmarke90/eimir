@@ -1736,6 +1736,10 @@
         "name": "Stack",
         "sentence": "Prints land on a stack and you flip through them."
       },
+      "cloud": {
+        "name": "Moment cloud",
+        "sentence": "Drift through a floating cloud of all your moments."
+      },
       "crate": {
         "name": "Record crate",
         "sentence": "Flip through your records and put a memory on."
@@ -4384,6 +4388,20 @@
       "deckHint": "While a record is playing, the arrow keys skip a tenth forward or back.",
       "allRecords": "All memories in the crate",
       "recordListItem": "{{title}}, {{date}}"
+    },
+    "cloud": {
+      "heading": "Your moment cloud",
+      "roleDescription": "Moment cloud",
+      "label_one": "Your moment cloud, {{count}} memory",
+      "label_other": "Your moment cloud, {{count}} memories",
+      "hint": "Use the arrow keys to wander through the cloud and Enter to open the memory in the middle.",
+      "centre": "In the middle: {{title}}, {{date}}",
+      "playTitle": "Playful cloud",
+      "playHint": "Fling a bubble · tap to stop",
+      "backToCloud": "Back into the cloud",
+      "openInDiary": "Open in the diary",
+      "allMemories": "All memories in the cloud",
+      "memoryListItem": "{{title}}, {{date}}"
     }
   },
   "memoryProduct": {

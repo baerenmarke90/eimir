@@ -1,4 +1,5 @@
-// Memory worlds of Momente › Erinnerungen (#2283): Stapel and Plattenkiste.
+// Memory worlds of Momente › Erinnerungen (#2283): Stapel, Plattenkiste and
+// Momentwolke.
 const memoryWorlds = {
   placeVerse: 'in {{place}}',
   winterSpan: 'Winter {{from}}/{{to}}',
@@ -65,6 +66,20 @@ const memoryWorlds = {
       'Während eine Platte läuft, springen die Pfeiltasten um ein Zehntel vor oder zurück.',
     allRecords: 'Alle Erinnerungen in der Kiste',
     recordListItem: '{{title}}, {{date}}',
+  },
+  cloud: {
+    heading: 'Eure Momentwolke',
+    roleDescription: 'Momentwolke',
+    label_one: 'Eure Momentwolke, {{count}} Erinnerung',
+    label_other: 'Eure Momentwolke, {{count}} Erinnerungen',
+    hint: 'Mit den Pfeiltasten wandert ihr durch die Wolke, mit der Eingabetaste öffnet ihr die Erinnerung in der Mitte.',
+    centre: 'In der Mitte: {{title}}, {{date}}',
+    playTitle: 'Spielwolke',
+    playHint: 'Werft eine Blase · tippt zum Beenden',
+    backToCloud: 'Zurück in die Wolke',
+    openInDiary: 'Im Tagebuch öffnen',
+    allMemories: 'Alle Erinnerungen der Wolke',
+    memoryListItem: '{{title}}, {{date}}',
   },
 };
 

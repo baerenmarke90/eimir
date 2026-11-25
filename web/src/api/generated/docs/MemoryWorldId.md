@@ -1,7 +1,7 @@
 
 # MemoryWorldId
 
-A personal presentation of the rediscovered memories in Momente (#2283).  A world only changes how the same rediscovery selection is shown. It is a personal view setting that is never shared with the partner.
+A personal presentation of the rediscovered memories in Momente (#2283).  A world only changes how the memories the couple already sees are shown: the rediscovery selection and, for the Momentwolke, the loaded diary. It is a personal view setting that is never shared with the partner.
 
 ## Properties
 

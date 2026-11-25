@@ -46,6 +46,10 @@ const memoryWorldSettings = {
       name: 'Stapel',
       sentence: 'Abzüge fallen auf einen Stapel, du blätterst sie durch.',
     },
+    cloud: {
+      name: 'Momentwolke',
+      sentence: 'Zieh durch eine schwebende Wolke aus all euren Momenten.',
+    },
     crate: {
       name: 'Plattenkiste',
       sentence: 'Blättere durch eure Platten und leg eine Erinnerung auf.',

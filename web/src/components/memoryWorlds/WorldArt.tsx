@@ -7,7 +7,7 @@
 import { useId } from 'react';
 import './WorldArt.css';
 
-export type WorldArtKind = 'story' | 'stack' | 'crate';
+export type WorldArtKind = 'story' | 'stack' | 'crate' | 'cloud';
 
 type Id = (name: string) => string;
 
@@ -127,5 +127,66 @@ function art(world: WorldArtKind, id: Id, url: Id) {
           />
         </>
       );
+    case 'cloud':
+      return (
+        <>
+          <defs>
+            <radialGradient id={id('bg')} cx="0.5" cy="0.5" r="0.75">
+              <stop offset="0" stopColor="#5b4bd6" />
+              <stop offset="0.55" stopColor="#24205a" />
+              <stop offset="1" stopColor="#0e0f26" />
+            </radialGradient>
+            <radialGradient id={id('glow')} cx="0.5" cy="0.5" r="0.5">
+              <stop offset="0" stopColor="#ff8fc8" stopOpacity="0.7" />
+              <stop offset="1" stopColor="#ff8fc8" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <rect width="160" height="100" fill={url('bg')} />
+          <circle cx="80" cy="50" r="44" fill={url('glow')} />
+          {CLOUD_BUBBLES.map(([x, y, r, c]) => (
+            <g key={`${x}-${y}`}>
+              <circle cx={x} cy={y} r={r} fill={c} />
+              <ellipse
+                cx={x - r * 0.3}
+                cy={y - r * 0.4}
+                rx={r * 0.45}
+                ry={r * 0.25}
+                fill="#fff"
+                opacity="0.45"
+              />
+            </g>
+          ))}
+          <rect
+            x="52"
+            y="6"
+            width="56"
+            height="9"
+            rx="4.5"
+            fill="#fff"
+            opacity="0.28"
+          />
+        </>
+      );
   }
 }
+
+/** The cloud's bubbles: centre, two honeycomb rings and the rim (x, y, r, colour). */
+const CLOUD_BUBBLES: readonly [number, number, number, string][] = [
+  [80, 50, 19, '#ff9dbf'],
+  [52, 50, 11, '#8fd3ff'],
+  [108, 50, 11, '#ffd36e'],
+  [66, 26, 10, '#a8f0c6'],
+  [94, 26, 10, '#c7a6ff'],
+  [66, 74, 10, '#ffb38a'],
+  [94, 74, 10, '#7fe0e0'],
+  [30, 38, 6, '#ffe08a'],
+  [30, 62, 6, '#ff9dbf'],
+  [130, 38, 6, '#8fd3ff'],
+  [130, 62, 6, '#a8f0c6'],
+  [44, 16, 4, '#c7a6ff'],
+  [116, 16, 4, '#ffb38a'],
+  [44, 86, 4, '#7fe0e0'],
+  [116, 86, 4, '#ffd36e'],
+  [14, 50, 3, '#c7a6ff'],
+  [146, 50, 3, '#ff9dbf'],
+];

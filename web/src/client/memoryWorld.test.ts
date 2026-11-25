@@ -21,10 +21,11 @@ afterEach(() => {
 describe('memory worlds', () => {
   it('keeps Story and Stapel free and every other world Pro', () => {
     expect(DEFAULT_MEMORY_WORLD).toBe('story');
-    expect(MEMORY_WORLDS).toEqual(['story', 'stack', 'crate']);
+    expect(MEMORY_WORLDS).toEqual(['story', 'stack', 'cloud', 'crate']);
     expect(isProMemoryWorld('story')).toBe(false);
     expect(isProMemoryWorld('stack')).toBe(false);
     expect(isProMemoryWorld('crate')).toBe(true);
+    expect(isProMemoryWorld('cloud')).toBe(true);
     expect(MEMORY_WORLD_CAPABILITY).toBe('theme.bespoke_packs');
   });
 

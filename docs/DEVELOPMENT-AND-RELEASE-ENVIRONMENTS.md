@@ -8,6 +8,10 @@ This document defines how eimir. remains continuously developable after a real
 Production instance exists. `ARCANE.md`, `SELF-HOSTING.md`, and environment templates
 must point here rather than defining competing release rules.
 
+The repository split of [Decision 0019](decisions/0019-repository-split-and-cutover.md) moves the
+source, the test channel and the Android update location to new repositories. Its day-by-day plan,
+cut-over checklist, rehearsal and rollback are in the [cut-over runbook](CUTOVER-RUNBOOK.md).
+
 ## 1. Environment topology
 
 | Environment | Purpose | Data | Runtime identity |

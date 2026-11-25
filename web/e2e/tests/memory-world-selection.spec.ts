@@ -732,3 +732,44 @@ test('Erinnerungen shows the Sternbild; arrow keys move along the stars', async 
   await page.waitForTimeout(600);
   await capture(page, info, 'memory-worlds-stars-1280-dark.png');
 });
+
+test('Erinnerungen shows the Post; a letter is opened and filed by keyboard', async ({
+  page,
+}, info) => {
+  await installMocks(page, true, 'post');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page, '/story?tab=discover');
+  const world = page.locator('.memory-world[data-world="post"]');
+  await expect(world).toBeVisible();
+  await expect(page.locator('.memory-world-stage')).toHaveAttribute(
+    'data-entered',
+    'true',
+  );
+  await page.waitForTimeout(400);
+  await capture(page, info, 'memory-worlds-post-390-light.png');
+  await world.getByRole('button', { name: worlds.post.openBox }).click();
+  await world
+    .getByRole('button', {
+      name: new RegExp(worlds.post.openEnvelope.split('{{')[0]),
+    })
+    .click();
+  const open = world.getByRole('link', {
+    name: new RegExp(worlds.post.openNamed.split('{{')[0]),
+  });
+  await expect(open.first()).toBeAttached();
+  await page.waitForTimeout(400);
+  await capture(page, info, 'memory-worlds-post-card-390-light.png');
+  const accessibility = await new AxeBuilder({ page })
+    .include('.memory-world')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(accessibility.violations).toEqual([]);
+  await world.getByRole('button', { name: worlds.post.file }).click();
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await page.waitForTimeout(400);
+  await capture(page, info, 'memory-worlds-post-390-dark.png');
+  await page.setViewportSize({ width: 1280, height: 860 });
+  await page.waitForTimeout(600);
+  await capture(page, info, 'memory-worlds-post-1280-dark.png');
+});

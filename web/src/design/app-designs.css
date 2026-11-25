@@ -1065,6 +1065,8 @@
   --identity-premium-surface: #f1ecfa;
   --color-action-primary: #754435;
   --color-on-action-primary: #fff9f2;
+  --color-action-emphasis: #754435;
+  --color-on-action-emphasis: #fff9f2;
 }
 
 :root[data-theme="dark"][data-app-palette="home_rooms"],
@@ -1119,6 +1121,8 @@
   --identity-premium-surface: #43365d;
   --color-action-primary: #ebb7a0;
   --color-on-action-primary: #42251d;
+  --color-action-emphasis: #ebb7a0;
+  --color-on-action-emphasis: #42251d;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1174,6 +1178,8 @@
     --identity-premium-surface: #43365d;
     --color-action-primary: #ebb7a0;
     --color-on-action-primary: #42251d;
+    --color-action-emphasis: #ebb7a0;
+    --color-on-action-emphasis: #42251d;
   }
 }
 
@@ -1229,6 +1235,8 @@
   --identity-premium-surface: #f1ecfa;
   --color-action-primary: #70475d;
   --color-on-action-primary: #fffafc;
+  --color-action-emphasis: #70475d;
+  --color-on-action-emphasis: #fffafc;
 }
 
 :root[data-theme="dark"][data-app-palette="quiet_together"],
@@ -1283,6 +1291,8 @@
   --identity-premium-surface: #43365d;
   --color-action-primary: #d9afc6;
   --color-on-action-primary: #281d26;
+  --color-action-emphasis: #d9afc6;
+  --color-on-action-emphasis: #281d26;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1339,6 +1349,8 @@
     --identity-premium-surface: #43365d;
     --color-action-primary: #d9afc6;
     --color-on-action-primary: #281d26;
+    --color-action-emphasis: #d9afc6;
+    --color-on-action-emphasis: #281d26;
   }
 }
 
@@ -1394,6 +1406,8 @@
   --identity-premium-surface: #f1ecfa;
   --color-action-primary: #143c34;
   --color-on-action-primary: #ffffff;
+  --color-action-emphasis: #143c34;
+  --color-on-action-emphasis: #ffffff;
   --design-decoration: #123a33;
   --design-on-decoration: #fffdf2;
   --design-on-decoration-muted: #e0e8d8;
@@ -1454,6 +1468,8 @@
   --identity-premium-surface: #43365d;
   --color-action-primary: #e1ecdf;
   --color-on-action-primary: #182d25;
+  --color-action-emphasis: #e1ecdf;
+  --color-on-action-emphasis: #182d25;
   --design-decoration: #d7e7d5;
   --design-on-decoration: #182d25;
   --design-on-decoration-muted: #344d40;
@@ -1515,6 +1531,8 @@
     --identity-premium-surface: #43365d;
     --color-action-primary: #e1ecdf;
     --color-on-action-primary: #182d25;
+    --color-action-emphasis: #e1ecdf;
+    --color-on-action-emphasis: #182d25;
     --design-decoration: #d7e7d5;
     --design-on-decoration: #182d25;
     --design-on-decoration-muted: #344d40;
@@ -1576,6 +1594,8 @@
   --identity-premium-surface: #f1ecfa;
   --color-action-primary: #7d315d;
   --color-on-action-primary: #ffffff;
+  --color-action-emphasis: #7d315d;
+  --color-on-action-emphasis: #ffffff;
   --design-decoration: #2d1835;
   --design-on-decoration: #fff4f5;
   --design-on-decoration-muted: #f9cadb;
@@ -1636,6 +1656,8 @@
   --identity-premium-surface: #43365d;
   --color-action-primary: #f5b8d5;
   --color-on-action-primary: #24212e;
+  --color-action-emphasis: #f5b8d5;
+  --color-on-action-emphasis: #24212e;
   --design-decoration: #35203f;
   --design-on-decoration: #fff4f5;
   --design-on-decoration-muted: #edaec9;
@@ -1697,6 +1719,8 @@
     --identity-premium-surface: #43365d;
     --color-action-primary: #f5b8d5;
     --color-on-action-primary: #24212e;
+    --color-action-emphasis: #f5b8d5;
+    --color-on-action-emphasis: #24212e;
     --design-decoration: #35203f;
     --design-on-decoration: #fff4f5;
     --design-on-decoration-muted: #edaec9;
@@ -1758,6 +1782,8 @@
   --identity-premium-surface: #f1ecfa;
   --color-action-primary: #974a76;
   --color-on-action-primary: #ffffff;
+  --color-action-emphasis: #974a76;
+  --color-on-action-emphasis: #ffffff;
 }
 
 :root[data-theme="dark"][data-app-palette="warm"],
@@ -1812,6 +1838,8 @@
   --identity-premium-surface: #43365d;
   --color-action-primary: #d999b9;
   --color-on-action-primary: #40263c;
+  --color-action-emphasis: #d999b9;
+  --color-on-action-emphasis: #40263c;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1867,6 +1895,8 @@
     --identity-premium-surface: #43365d;
     --color-action-primary: #d999b9;
     --color-on-action-primary: #40263c;
+    --color-action-emphasis: #d999b9;
+    --color-on-action-emphasis: #40263c;
   }
 }
 

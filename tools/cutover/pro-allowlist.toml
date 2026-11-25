@@ -71,6 +71,11 @@ decision = "P3"
 patterns = ["tools/ci/pro_extraction_dry_run.sh"]
 
 [[include]]
+id = "supply-chain-capability-probe"
+reason = "The release evidence and publish workflows read it to record that attestations and CodeQL are unavailable on the private repository (runbook D5, #2294); the Core CI and nightly regression use it too."
+patterns = ["scripts/supply_chain_state.py", "tools/ci/test_supply_chain_state.py"]
+
+[[include]]
 id = "pro-provenance"
 reason = "The provenance sections of the editorial Pro catalogs (decision D4); the transform below keeps only them."
 patterns = ["PROVENANCE.md"]
@@ -84,6 +89,11 @@ patterns = [".gitattributes", ".gitignore", ".gitleaks.toml", ".github/pull_requ
 id = "pro-extraction-tooling"
 reason = "The Core CI runs it against the export trees before the cut-over; the private CI after it."
 patterns = ["tools/ci/pro_extraction_dry_run.sh"]
+
+[[overlap]]
+id = "supply-chain-capability-probe"
+reason = "One probe for both repositories: public eimir-core keeps attestations and CodeQL, private eimir-pro records their absence."
+patterns = ["scripts/supply_chain_state.py", "tools/ci/test_supply_chain_state.py"]
 
 [[overlap]]
 id = "provenance-split"

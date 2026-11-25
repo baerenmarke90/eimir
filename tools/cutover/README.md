@@ -123,7 +123,9 @@ The allow-lists are the authoritative answer; in short:
   `PROVENANCE.md`, and its own `LICENSE` and `README.md`. Signing keys and store credentials are not tracked
   anywhere; the release workflows refer to them as repository secrets, and both trees forbid key files.
 - **In both:** `.gitattributes`, `.gitignore`, `.gitleaks.toml`, the pull request template,
-  `tools/ci/pro_extraction_dry_run.sh`, and `PROVENANCE.md` (two different halves of one file).
+  `tools/ci/pro_extraction_dry_run.sh`, the supply-chain capability probe (`scripts/supply_chain_state.py` and its
+  test, #2294: it records that attestations and CodeQL are unavailable on the private repository), and
+  `PROVENANCE.md` (two different halves of one file).
 - **Archive only:** the large design media and the historical checksum files (decision D3).
 
 ## Decisions for the Product Owner

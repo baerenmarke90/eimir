@@ -861,6 +861,10 @@ class RealSplitConfigTest(unittest.TestCase):
         self.assertTrue(pro.exported("backend/pro/src/eimir_pro/date_ideas/data/catalog.json"))
         self.assertFalse(pro.exported("backend/src/eimir/main.py"))
         self.assertIsNotNone(pro.forbidden_rule("CLA.md"))
+        # Shared by the Core CI and the private release workflows (#2294).
+        for path in ("scripts/supply_chain_state.py", "tools/ci/test_supply_chain_state.py"):
+            self.assertTrue(pro.exported(path) and core.exported(path), path)
+            self.assertTrue(any(rule.matches(path) for rule in pro.overlaps), path)
         self.assertEqual(core_export.cheap_gates_for(pro), ("coverage", "licence", "secret-scan"))
 
     def test_the_real_core_transform_removes_the_operator_runner_from_ci(self) -> None:

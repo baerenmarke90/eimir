@@ -7549,7 +7549,8 @@
           "fridge",
           "album",
           "scratch",
-          "mochi"
+          "mochi",
+          "stars"
         ],
         "title": "MemoryWorldId",
         "type": "string"

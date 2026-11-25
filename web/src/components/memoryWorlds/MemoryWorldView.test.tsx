@@ -219,6 +219,28 @@ describe('MemoryWorldView', () => {
     expect(held?.textContent).toBe('Thank you');
   });
 
+  it('renders the Sternbild from the same selection, ordered by time', () => {
+    const { container } = renderWorld('stars', moreItems);
+    expect(
+      container.querySelector('.memory-world')?.getAttribute('data-world'),
+    ).toBe('stars');
+    const sky = screen.getByRole('group', { name: copy.stars.label });
+    expect(sky.getAttribute('aria-roledescription')).toBe(
+      copy.stars.roleDescription,
+    );
+    // The sensitive cover and the rest of the diary stay out; the lead is lit.
+    const stars = [...sky.querySelectorAll('[data-stars-star]')];
+    expect(stars).toHaveLength(2);
+    expect(stars[0].getAttribute('aria-label')).toMatch(
+      /^Moved in together, /u,
+    );
+    expect(stars[1].getAttribute('aria-label')).toMatch(/^Thank you, /u);
+    expect(stars[1].getAttribute('aria-pressed')).toBe('true');
+    expect(
+      screen.getByText(fill(copy.stars.position, { position: 2, count: 2 })),
+    ).toBeTruthy();
+  });
+
   it('ignores the rest of the diary outside the Momentwolke', () => {
     renderWorld('stack', moreItems);
     expect(

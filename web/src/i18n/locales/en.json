@@ -1752,6 +1752,10 @@
         "name": "Photo book",
         "sentence": "Leaf through your photo book – page by page."
       },
+      "stars": {
+        "name": "Constellation",
+        "sentence": "Your moments as stars in a sky that lives with time."
+      },
       "crate": {
         "name": "Record crate",
         "sentence": "Flip through your records and put a memory on."
@@ -4625,6 +4629,33 @@
         "snore": "z z z",
         "moon": "z"
       }
+    },
+    "stars": {
+      "heading": "Your constellation",
+      "roleDescription": "Star chart",
+      "label": "Your memories as stars, in order of time",
+      "labelSome": "{{shown}} of {{count}} memories as stars, in order of time",
+      "description": "Swipe across the sky: a shooting star flies to the nearest star in that direction. Drag from star to star to trace your constellation, or point the telescope at a star. Use the arrow keys to go from star to star.",
+      "star": "{{title}}, {{date}}",
+      "starNew": "{{title}}, {{date}}, new in the sky",
+      "newborn": "new in the sky",
+      "note": "make a wish –\nswipe across\nthe sky ✦",
+      "landed": {
+        "fling": "A shooting star has landed: {{title}}, {{date}}",
+        "trace": "Your constellation leads to: {{title}}, {{date}}",
+        "scope": "Through the telescope: {{title}}, {{date}}"
+      },
+      "scope": "Point the telescope at a star",
+      "view": "Through the telescope: {{title}}, {{date}}. Back to the star chart",
+      "viewMore": "back to the star chart",
+      "wish": "Send a shooting star",
+      "first": "Your first star",
+      "oneOf": "One of {{count}} stars",
+      "position": "Star {{position}} of {{count}}",
+      "since": "This star has been shining since",
+      "open": "Open: {{title}}, {{date}}",
+      "seasonMark": "{{season}} ’{{year}}",
+      "winterMark": "{{season}} ’{{from}}/{{to}}"
     }
   },
   "memoryProduct": {

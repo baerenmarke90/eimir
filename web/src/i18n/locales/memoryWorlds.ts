@@ -1,5 +1,6 @@
 // Memory worlds of Momente › Erinnerungen (#2283): Stapel, Plattenkiste,
-// Momentwolke, Fotoautomat, Kühlschranktür, Fotobuch, Rubbellos and Mochis.
+// Momentwolke, Fotoautomat, Kühlschranktür, Fotobuch, Rubbellos, Mochis
+// and Sternbild.
 const memoryWorlds = {
   placeVerse: 'in {{place}}',
   winterSpan: 'Winter {{from}}/{{to}}',
@@ -287,6 +288,35 @@ const memoryWorlds = {
       snore: 'z z z',
       moon: 'z',
     },
+  },
+  stars: {
+    heading: 'Euer Sternbild',
+    roleDescription: 'Sternkarte',
+    label: 'Eure Erinnerungen als Sterne, nach Zeit geordnet',
+    labelSome:
+      '{{shown}} von {{count}} Erinnerungen als Sterne, nach Zeit geordnet',
+    description:
+      'Wischt über den Himmel: Eine Sternschnuppe fliegt zum nächsten Stern in dieser Richtung. Zieht von Stern zu Stern, um euer Sternbild nachzuzeichnen, oder richtet das Fernrohr auf einen Stern. Mit den Pfeiltasten geht ihr von Stern zu Stern.',
+    star: '{{title}}, {{date}}',
+    starNew: '{{title}}, {{date}}, neu am Himmel',
+    newborn: 'neu am Himmel',
+    note: 'wünscht euch was –\nwischt über\nden Himmel ✦',
+    landed: {
+      fling: 'Eine Sternschnuppe ist gelandet: {{title}}, {{date}}',
+      trace: 'Euer Sternbild führt zu: {{title}}, {{date}}',
+      scope: 'Durchs Fernrohr: {{title}}, {{date}}',
+    },
+    scope: 'Fernrohr auf einen Stern richten',
+    view: 'Durchs Fernrohr: {{title}}, {{date}}. Zur Sternkarte',
+    viewMore: 'zur Sternkarte',
+    wish: 'Sternschnuppe schicken',
+    first: 'Euer erster Stern',
+    oneOf: 'Einer von {{count}} Sternen',
+    position: 'Stern {{position}} von {{count}}',
+    since: 'Dieser Stern leuchtet seit',
+    open: 'Öffnen: {{title}}, {{date}}',
+    seasonMark: '{{season}} ’{{year}}',
+    winterMark: '{{season}} ’{{from}}/{{to}}',
   },
 };
 

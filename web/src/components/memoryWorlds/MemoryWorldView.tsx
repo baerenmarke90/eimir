@@ -9,6 +9,7 @@
 import { useMemo } from 'react';
 import type { StoryItem } from '../../api/generated/models/StoryItem';
 import { resolvedLocale, useTranslation } from '../../i18n';
+import { ConstellationWorld } from './ConstellationWorld';
 import { FridgeDoorWorld } from './FridgeDoorWorld';
 import {
   buildMemoryWorldEntries,
@@ -33,7 +34,8 @@ export type MemoryWorldViewWorld =
   | 'fridge'
   | 'album'
   | 'scratch'
-  | 'mochi';
+  | 'mochi'
+  | 'stars';
 
 export interface MemoryWorldViewProps {
   world: MemoryWorldViewWorld;
@@ -106,6 +108,8 @@ export function MemoryWorldView({
         <ScratchCardWorld {...props} />
       ) : world === 'mochi' ? (
         <MochiWorld {...props} />
+      ) : world === 'stars' ? (
+        <ConstellationWorld {...props} />
       ) : (
         <StackWorld {...props} />
       )}

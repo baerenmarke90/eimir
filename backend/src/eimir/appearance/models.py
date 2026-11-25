@@ -70,6 +70,7 @@ class MemoryWorldId(StrEnum):
     ALBUM = "album"
     SCRATCH = "scratch"
     MOCHI = "mochi"
+    STARS = "stars"
 
 
 # Product Owner decision 2026-11-14: "connected" is the default composition and,

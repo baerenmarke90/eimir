@@ -16,7 +16,8 @@ export type WorldArtKind =
   | 'fridge'
   | 'album'
   | 'scratch'
-  | 'mochi';
+  | 'mochi'
+  | 'stars';
 
 type Id = (name: string) => string;
 
@@ -340,6 +341,31 @@ function art(world: WorldArtKind, id: Id, url: Id) {
           />
         </>
       );
+    case 'stars':
+      return (
+        <>
+          <defs>
+            <linearGradient id={id('sky')} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#0f1838" />
+              <stop offset="1" stopColor="#2a2d64" />
+            </linearGradient>
+          </defs>
+          <rect width="160" height="100" fill={url('sky')} />
+          <circle cx="134" cy="20" r="9" fill="#f3e9d2" />
+          <circle cx="138" cy="17" r="8" fill="#16204a" />
+          <polyline
+            points="24,64 46,40 72,52 98,28 120,46"
+            fill="none"
+            stroke="#f2c94c"
+            strokeWidth="1"
+            opacity="0.7"
+          />
+          {STARS_POINTS.map(([x, y, r]) => (
+            <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill="#fff6d8" />
+          ))}
+          <path d="M0 100 Q40 84 80 92 T160 88 L160 100Z" fill="#0b1029" />
+        </>
+      );
     case 'mochi':
       return (
         <>
@@ -389,6 +415,20 @@ function art(world: WorldArtKind, id: Id, url: Id) {
       );
   }
 }
+
+/** The stars of the little constellation and a few faint ones (x, y, r). */
+const STARS_POINTS: readonly [number, number, number][] = [
+  [24, 64, 2.4],
+  [46, 40, 3],
+  [72, 52, 2.2],
+  [98, 28, 3.4],
+  [120, 46, 2.4],
+  [14, 20, 1],
+  [60, 14, 1.2],
+  [86, 76, 1],
+  [140, 70, 1.3],
+  [34, 86, 1],
+];
 
 /** The letter magnets along the bottom of the fridge door (glyph, colour, x). */
 const FRIDGE_LETTERS: readonly [string, string, number][] = [

@@ -76,6 +76,7 @@ def test_story_is_the_default_and_story_and_stack_are_free() -> None:
         "album",
         "scratch",
         "mochi",
+        "stars",
     }
 
 

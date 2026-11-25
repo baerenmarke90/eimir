@@ -1,0 +1,1364 @@
+/* Kühlschranktür: a soft mint fridge door in studio light, covered with
+   prints, sticky notes, cards and letter magnets. Door geometry is in units
+   of `.memory-fridge-door-wrap` (`--cu`, see src/client/containerUnits.ts;
+   the door is 100 x 130 units); note sizes scale with
+   `--memory-fridge-scale`, magnets keep a small real-world size. The door
+   and every object are physical: their materials are world-scoped roles
+   defined on the root (and on the portalled stage) and only dimmed for
+   Dark. Motion uses transforms and opacity only; keyframes and timing roles:
+   src/motion/memory-worlds.css. */
+
+/* The handwriting face of the notes (bundled with the app, OFL). */
+@font-face {
+  font-family: "Caveat";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/caveat-latin-700.woff2") format("woff2");
+}
+
+.memory-fridge-world,
+.memory-fridge-stage {
+  --memory-fridge-hand: "Caveat", var(--font-display);
+  /* Light and shade mixed into the objects' own colours. */
+  --memory-fridge-light: #ffffff;
+  --memory-fridge-dark: #000000;
+
+  /* Door: matte pastel mint */
+  --memory-fridge-door-hi: #f0f8f2;
+  --memory-fridge-door: #d9eadf;
+  --memory-fridge-door-low: #c2d9cb;
+  --memory-fridge-door-rim: color-mix(in srgb, #4f7f66 24%, transparent);
+  --memory-fridge-door-bevel: color-mix(in srgb, #ffffff 72%, transparent);
+  --memory-fridge-door-light: color-mix(in srgb, #ffffff 60%, transparent);
+  --memory-fridge-door-band: color-mix(in srgb, #ffffff 20%, transparent);
+  --memory-fridge-door-shade: color-mix(in srgb, #2c5541 13%, transparent);
+  --memory-fridge-floor: color-mix(in srgb, #1d3a2b 24%, transparent);
+  --memory-fridge-floor-soft: color-mix(in srgb, #1d3a2b 12%, transparent);
+  --memory-fridge-handle-hi: #ffffff;
+  --memory-fridge-handle: #e7eeea;
+  --memory-fridge-handle-mid: #c9d5cf;
+  --memory-fridge-handle-low: #9bada4;
+  --memory-fridge-handle-edge: color-mix(in srgb, #3d5a4c 22%, transparent);
+  --memory-fridge-handle-shadow: color-mix(in srgb, #21423a 28%, transparent);
+
+  /* Paper */
+  --memory-fridge-print: #fbf9f4;
+  --memory-fridge-print-edge: color-mix(in srgb, #8c7f6a 20%, transparent);
+  --memory-fridge-photo-empty: #d8d1c5;
+  --memory-fridge-photo-gloss: color-mix(in srgb, #ffffff 20%, transparent);
+  --memory-fridge-photo-dim: transparent;
+  --memory-fridge-note-base: #fffaf0;
+  --memory-fridge-note-glue: color-mix(in srgb, #9a6f3c 10%, transparent);
+  --memory-fridge-note-shade: #7a5a34;
+  --memory-fridge-card: #f7efdc;
+  --memory-fridge-card-line: color-mix(in srgb, #b8945a 40%, transparent);
+  --memory-fridge-words: #fdfcf7;
+  --memory-fridge-rule: color-mix(in srgb, #5b7fbf 24%, transparent);
+  --memory-fridge-margin: color-mix(in srgb, #d0605c 45%, transparent);
+  --memory-fridge-tape: color-mix(in srgb, #f2d89c 82%, transparent);
+  --memory-fridge-tape-stripe: color-mix(in srgb, #ffffff 30%, transparent);
+  --memory-fridge-tape-edge: color-mix(in srgb, #a88a4c 22%, transparent);
+  --memory-fridge-ink-print: #2b2420;
+  --memory-fridge-ink-soft: #54463c;
+  --memory-fridge-ink-hand: #22325f;
+  --memory-fridge-stamp: #2f7d4f;
+  --memory-fridge-shadow-near: color-mix(in srgb, #1c2e24 28%, transparent);
+  --memory-fridge-shadow-far: color-mix(in srgb, #1c2e24 22%, transparent);
+
+  /* Magnets */
+  --memory-fridge-magnet-coral: #ff6f61;
+  --memory-fridge-magnet-sun: #ffc531;
+  --memory-fridge-magnet-sky: #4fa3f0;
+  --memory-fridge-magnet-mint: #2fbf93;
+  --memory-fridge-magnet-lilac: #a383f2;
+  --memory-fridge-magnet-tangerine: #ff9334;
+  --memory-fridge-magnet-pink: #ff6b9c;
+  --memory-fridge-heart-magnet: #ee4766;
+  --memory-fridge-gleam: color-mix(in srgb, #ffffff 82%, transparent);
+  --memory-fridge-magnet-rim: color-mix(in srgb, #000000 18%, transparent);
+  --memory-fridge-magnet-top: color-mix(in srgb, #ffffff 50%, transparent);
+  --memory-fridge-magnet-drop: color-mix(in srgb, #182820 34%, transparent);
+  --memory-fridge-gold-hi: #fff4c4;
+  --memory-fridge-gold: #f2c94c;
+  --memory-fridge-gold-low: #b8842a;
+
+  /* Notepad and pencil */
+  --memory-fridge-pad-binding: #ff7f6e;
+  --memory-fridge-pad-binding-low: #d9584a;
+  --memory-fridge-pad-sheet: #f3efe4;
+  --memory-fridge-pad-sheet-deep: #e8e2d4;
+  --memory-fridge-pencil: #ffcf3f;
+  --memory-fridge-pencil-low: #e5ac1c;
+  --memory-fridge-pencil-wood: #f0d3a4;
+  --memory-fridge-pencil-lead: #3b3b40;
+  --memory-fridge-pencil-eraser: #f59aa8;
+  --memory-fridge-pencil-ferrule: #c9ccd0;
+
+  /* Label tape, close button and stage */
+  --memory-fridge-label: #2d3a4f;
+  --memory-fridge-label-hi: #41506a;
+  --memory-fridge-label-low: #1f2938;
+  --memory-fridge-label-ink: #f3e9d2;
+  --memory-fridge-label-emboss: color-mix(in srgb, #000000 35%, transparent);
+  --memory-fridge-button: #fffaf0;
+  --memory-fridge-button-ink: #2b2420;
+  --memory-fridge-button-ring: color-mix(in srgb, #2b2420 12%, transparent);
+  --memory-fridge-scrim: color-mix(in srgb, #121a20 46%, transparent);
+  --memory-fridge-card-shadow:
+    0 26px 60px color-mix(in srgb, #0d1410 30%, transparent),
+    0 6px 16px color-mix(in srgb, #0d1410 18%, transparent);
+}
+
+/* Dark: the door and the papers keep their colours, dimmed in a dim room. */
+:root[data-theme="dark"] :is(.memory-fridge-world, .memory-fridge-stage) {
+  --memory-fridge-door-hi: #a9bcb0;
+  --memory-fridge-door: #96ab9e;
+  --memory-fridge-door-low: #81978a;
+  --memory-fridge-door-rim: color-mix(in srgb, #0c1712 45%, transparent);
+  --memory-fridge-door-bevel: color-mix(in srgb, #ffffff 26%, transparent);
+  --memory-fridge-door-light: color-mix(in srgb, #ffffff 18%, transparent);
+  --memory-fridge-door-band: color-mix(in srgb, #ffffff 7%, transparent);
+  --memory-fridge-door-shade: color-mix(in srgb, #08120d 30%, transparent);
+  --memory-fridge-floor: color-mix(in srgb, #000000 55%, transparent);
+  --memory-fridge-floor-soft: color-mix(in srgb, #000000 30%, transparent);
+  --memory-fridge-handle-hi: #d8dfdb;
+  --memory-fridge-handle: #bfc8c3;
+  --memory-fridge-handle-mid: #a2aea8;
+  --memory-fridge-handle-low: #76847d;
+  --memory-fridge-handle-shadow: color-mix(in srgb, #000000 40%, transparent);
+  --memory-fridge-print: #e4e0d7;
+  --memory-fridge-photo-empty: #a49d92;
+  --memory-fridge-photo-gloss: color-mix(in srgb, #ffffff 8%, transparent);
+  --memory-fridge-photo-dim: color-mix(in srgb, #0b0a08 12%, transparent);
+  --memory-fridge-note-base: #e6dfd0;
+  --memory-fridge-card: #ddd4c1;
+  --memory-fridge-words: #e2dfd6;
+  --memory-fridge-tape: color-mix(in srgb, #cdb685 82%, transparent);
+  --memory-fridge-shadow-near: color-mix(in srgb, #000000 45%, transparent);
+  --memory-fridge-shadow-far: color-mix(in srgb, #000000 38%, transparent);
+  --memory-fridge-magnet-coral: #dc6156;
+  --memory-fridge-magnet-sun: #dcab2e;
+  --memory-fridge-magnet-sky: #4a8fcf;
+  --memory-fridge-magnet-mint: #2ba480;
+  --memory-fridge-magnet-lilac: #8e74d1;
+  --memory-fridge-magnet-tangerine: #db7f2f;
+  --memory-fridge-magnet-pink: #db5e88;
+  --memory-fridge-heart-magnet: #cc3f59;
+  --memory-fridge-gleam: color-mix(in srgb, #ffffff 60%, transparent);
+  --memory-fridge-magnet-drop: color-mix(in srgb, #000000 45%, transparent);
+  --memory-fridge-gold-hi: #e6dbae;
+  --memory-fridge-gold: #d1ad42;
+  --memory-fridge-gold-low: #94691f;
+  --memory-fridge-pad-binding: #db6c5e;
+  --memory-fridge-pad-binding-low: #b44a3e;
+  --memory-fridge-pad-sheet: #d9d4c8;
+  --memory-fridge-pad-sheet-deep: #c9c2b3;
+  --memory-fridge-pencil: #dcb236;
+  --memory-fridge-pencil-low: #c09118;
+  --memory-fridge-pencil-wood: #d2b78d;
+  --memory-fridge-pencil-eraser: #d48592;
+  --memory-fridge-pencil-ferrule: #a9acb0;
+  --memory-fridge-button: #e6dfd0;
+  --memory-fridge-scrim: color-mix(in srgb, #000000 62%, transparent);
+  --memory-fridge-card-shadow:
+    0 26px 60px color-mix(in srgb, #000000 55%, transparent),
+    0 6px 16px color-mix(in srgb, #000000 35%, transparent);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) :is(.memory-fridge-world, .memory-fridge-stage) {
+    --memory-fridge-door-hi: #a9bcb0;
+    --memory-fridge-door: #96ab9e;
+    --memory-fridge-door-low: #81978a;
+    --memory-fridge-door-rim: color-mix(in srgb, #0c1712 45%, transparent);
+    --memory-fridge-door-bevel: color-mix(in srgb, #ffffff 26%, transparent);
+    --memory-fridge-door-light: color-mix(in srgb, #ffffff 18%, transparent);
+    --memory-fridge-door-band: color-mix(in srgb, #ffffff 7%, transparent);
+    --memory-fridge-door-shade: color-mix(in srgb, #08120d 30%, transparent);
+    --memory-fridge-floor: color-mix(in srgb, #000000 55%, transparent);
+    --memory-fridge-floor-soft: color-mix(in srgb, #000000 30%, transparent);
+    --memory-fridge-handle-hi: #d8dfdb;
+    --memory-fridge-handle: #bfc8c3;
+    --memory-fridge-handle-mid: #a2aea8;
+    --memory-fridge-handle-low: #76847d;
+    --memory-fridge-handle-shadow: color-mix(in srgb, #000000 40%, transparent);
+    --memory-fridge-print: #e4e0d7;
+    --memory-fridge-photo-empty: #a49d92;
+    --memory-fridge-photo-gloss: color-mix(in srgb, #ffffff 8%, transparent);
+    --memory-fridge-photo-dim: color-mix(in srgb, #0b0a08 12%, transparent);
+    --memory-fridge-note-base: #e6dfd0;
+    --memory-fridge-card: #ddd4c1;
+    --memory-fridge-words: #e2dfd6;
+    --memory-fridge-tape: color-mix(in srgb, #cdb685 82%, transparent);
+    --memory-fridge-shadow-near: color-mix(in srgb, #000000 45%, transparent);
+    --memory-fridge-shadow-far: color-mix(in srgb, #000000 38%, transparent);
+    --memory-fridge-magnet-coral: #dc6156;
+    --memory-fridge-magnet-sun: #dcab2e;
+    --memory-fridge-magnet-sky: #4a8fcf;
+    --memory-fridge-magnet-mint: #2ba480;
+    --memory-fridge-magnet-lilac: #8e74d1;
+    --memory-fridge-magnet-tangerine: #db7f2f;
+    --memory-fridge-magnet-pink: #db5e88;
+    --memory-fridge-heart-magnet: #cc3f59;
+    --memory-fridge-gleam: color-mix(in srgb, #ffffff 60%, transparent);
+    --memory-fridge-magnet-drop: color-mix(in srgb, #000000 45%, transparent);
+    --memory-fridge-gold-hi: #e6dbae;
+    --memory-fridge-gold: #d1ad42;
+    --memory-fridge-gold-low: #94691f;
+    --memory-fridge-pad-binding: #db6c5e;
+    --memory-fridge-pad-binding-low: #b44a3e;
+    --memory-fridge-pad-sheet: #d9d4c8;
+    --memory-fridge-pad-sheet-deep: #c9c2b3;
+    --memory-fridge-pencil: #dcb236;
+    --memory-fridge-pencil-low: #c09118;
+    --memory-fridge-pencil-wood: #d2b78d;
+    --memory-fridge-pencil-eraser: #d48592;
+    --memory-fridge-pencil-ferrule: #a9acb0;
+    --memory-fridge-button: #e6dfd0;
+    --memory-fridge-scrim: color-mix(in srgb, #000000 62%, transparent);
+    --memory-fridge-card-shadow:
+      0 26px 60px color-mix(in srgb, #000000 55%, transparent),
+      0 6px 16px color-mix(in srgb, #000000 35%, transparent);
+  }
+}
+
+.memory-fridge-world {
+  display: grid;
+  gap: var(--space-3);
+  min-inline-size: 0;
+  /* Real hyphenation where the language allows it, before breaking anywhere. */
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
+
+/* ---------- The door ---------- */
+
+.memory-fridge-door-wrap {
+  position: relative;
+  min-inline-size: 0;
+}
+/* Contact and ambient shadow of the door on the wall behind it. */
+.memory-fridge-door-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 3% 2.5% -1.4%;
+  border-radius: calc(6 * var(--cu));
+  box-shadow:
+    0 calc(2.6 * var(--cu)) calc(6 * var(--cu)) var(--memory-fridge-floor),
+    0 calc(0.6 * var(--cu)) calc(1.4 * var(--cu))
+    var(--memory-fridge-floor-soft);
+  pointer-events: none;
+}
+
+.memory-fridge-door {
+  position: relative;
+  aspect-ratio: 10 / 13;
+  border-radius: calc(5 * var(--cu));
+  /* Notes may hang a little over the edge; sliding off below is cut by the door. */
+  overflow: clip;
+  overflow-clip-margin: calc(3 * var(--cu));
+  isolation: isolate;
+  background:
+    radial-gradient(
+      120% 70% at 16% 6%,
+      var(--memory-fridge-door-light),
+      transparent 60%
+    ),
+    linear-gradient(
+      100deg,
+      var(--memory-fridge-door-hi) 0%,
+      var(--memory-fridge-door) 36%,
+      var(--memory-fridge-door) 70%,
+      var(--memory-fridge-door-low) 100%
+    );
+  box-shadow:
+    inset 0 0 0 1px var(--memory-fridge-door-rim),
+    inset 0 calc(0.5 * var(--cu)) 0 var(--memory-fridge-door-bevel),
+    inset 0 calc(-1.4 * var(--cu)) calc(2.6 * var(--cu))
+    var(--memory-fridge-door-shade);
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* A soft diagonal reflection band of the studio light. */
+.memory-fridge-door-light {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    118deg,
+    transparent 28%,
+    var(--memory-fridge-door-band) 40%,
+    transparent 54%
+  );
+  pointer-events: none;
+}
+
+.memory-fridge-handle {
+  position: absolute;
+  z-index: 0;
+  inset-inline-end: calc(3.2 * var(--cu));
+  inset-block-start: 10%;
+  inline-size: calc(3.4 * var(--cu));
+  block-size: 32%;
+  pointer-events: none;
+}
+/* Cast shadow of the handle on the door. */
+.memory-fridge-handle::before {
+  content: "";
+  position: absolute;
+  inset: calc(0.6 * var(--cu)) 0 calc(-0.6 * var(--cu));
+  border-radius: var(--radius-pill);
+  box-shadow: calc(0.9 * var(--cu)) calc(1.6 * var(--cu)) calc(2.2 * var(--cu))
+    var(--memory-fridge-handle-shadow);
+}
+/* Mounting feet. */
+.memory-fridge-handle::after {
+  content: "";
+  position: absolute;
+  inset: calc(-1.6 * var(--cu)) calc(0.5 * var(--cu));
+  border-radius: calc(1 * var(--cu));
+  background:
+    linear-gradient(
+      90deg,
+      var(--memory-fridge-handle-low),
+      var(--memory-fridge-handle-hi) 40%,
+      var(--memory-fridge-handle-mid)
+    )
+    top / 100% calc(2.6 * var(--cu)) no-repeat,
+    linear-gradient(
+      90deg,
+      var(--memory-fridge-handle-low),
+      var(--memory-fridge-handle-hi) 40%,
+      var(--memory-fridge-handle-mid)
+    )
+    bottom / 100% calc(2.6 * var(--cu)) no-repeat;
+}
+.memory-fridge-handle-bar {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    90deg,
+    var(--memory-fridge-handle-low) 0%,
+    var(--memory-fridge-handle-hi) 28%,
+    var(--memory-fridge-handle) 52%,
+    var(--memory-fridge-handle-mid) 78%,
+    var(--memory-fridge-handle-low) 100%
+  );
+  box-shadow: inset 0 0 0 1px var(--memory-fridge-handle-edge);
+}
+
+/* ---------- Movable things ---------- */
+
+.memory-fridge-slot,
+.memory-fridge-letter {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  touch-action: pan-y;
+}
+.memory-fridge-slot {
+  --memory-fridge-width: 23;
+  inline-size: calc(
+    var(--memory-fridge-width) *
+    var(--memory-fridge-scale, 1) *
+    var(--cu)
+  );
+}
+.memory-fridge-slot[data-kind="heart"] {
+  --memory-fridge-width: 22;
+}
+.memory-fridge-slot[data-kind="words"] {
+  --memory-fridge-width: 25;
+}
+.memory-fridge-slot[data-dragging] {
+  will-change: translate;
+}
+
+.memory-fridge-tilt,
+.memory-fridge-lift,
+.memory-fridge-rot {
+  position: relative;
+  display: block;
+}
+.memory-fridge-tilt {
+  transform-origin: 50% 0;
+}
+.memory-fridge-slot[data-dragging] .memory-fridge-tilt {
+  will-change: rotate;
+}
+/* A lifted note hangs from its magnet. */
+.memory-fridge-lift {
+  transform-origin: 50% 4%;
+}
+.memory-fridge-rot {
+  rotate: var(--memory-fridge-rot, 0deg);
+  transform-origin: 50% 6%;
+}
+[data-dragging] .memory-fridge-lift {
+  scale: 1.05;
+}
+
+/* Object buttons: no app button chrome, press scale or disabled styling. */
+.memory-fridge-door button.memory-fridge-item,
+.memory-fridge-door
+  button.memory-fridge-item:is(
+    :hover,
+    :active,
+    :focus,
+    :disabled,
+    [data-control-pressed]
+  ),
+.memory-fridge-door button.memory-fridge-pad,
+.memory-fridge-door
+  button.memory-fridge-pad:is(
+    :hover,
+    :active,
+    :focus,
+    :disabled,
+    [data-control-pressed]
+  ) {
+  display: block;
+  min-block-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  scale: 1;
+  filter: none;
+  box-shadow: none;
+  transition: none;
+  touch-action: pan-y;
+}
+.memory-fridge-door button.memory-fridge-item {
+  position: relative;
+  z-index: 1;
+  inline-size: 100%;
+}
+.memory-fridge-door button.memory-fridge-item:focus-visible {
+  outline: none;
+}
+.memory-fridge-door
+  button.memory-fridge-item:focus-visible
+  .memory-fridge-paper {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+/* Static shadows: a close contact shadow, a far one while lifted (crossfaded). */
+.memory-fridge-shadow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.memory-fridge-shadow::before,
+.memory-fridge-shadow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: calc(0.5 * var(--cu));
+}
+.memory-fridge-shadow::before {
+  box-shadow:
+    calc(0.3 * var(--cu)) calc(0.9 * var(--cu)) calc(1.3 * var(--cu))
+    var(--memory-fridge-shadow-near),
+    0 0 calc(0.3 * var(--cu)) var(--memory-fridge-shadow-near);
+}
+.memory-fridge-shadow::after {
+  box-shadow: calc(1.8 * var(--cu)) calc(4.4 * var(--cu)) calc(5.4 * var(--cu))
+    var(--memory-fridge-shadow-far);
+  opacity: 0;
+}
+[data-dragging] .memory-fridge-shadow::before {
+  opacity: 0;
+}
+[data-dragging] .memory-fridge-shadow::after {
+  opacity: 1;
+}
+
+/* ---------- Papers ---------- */
+
+.memory-fridge-paper {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: calc(0.4 * var(--cu));
+}
+
+/* Photo prints: white border, a little more at the bottom. */
+.memory-fridge-paper[data-kind="photo"] {
+  --memory-fridge-border: calc(1.5 * var(--cu) * var(--memory-fridge-scale, 1));
+  --memory-fridge-chin: calc(4.2 * var(--cu) * var(--memory-fridge-scale, 1));
+  padding: var(--memory-fridge-border) var(--memory-fridge-border)
+    var(--memory-fridge-chin);
+  background: var(--memory-fridge-print);
+  box-shadow: inset 0 0 0 1px var(--memory-fridge-print-edge);
+}
+:is(.memory-fridge-paper[data-kind="photo"], .memory-fridge-card-photo)
+  .memory-world-photo {
+  aspect-ratio: 1;
+  background: var(--memory-fridge-photo-empty);
+}
+.memory-fridge-paper[data-kind="photo"] .memory-fridge-gloss {
+  position: absolute;
+  inset: var(--memory-fridge-border) var(--memory-fridge-border)
+    var(--memory-fridge-chin);
+}
+.memory-fridge-gloss {
+  background:
+    linear-gradient(
+      135deg,
+      var(--memory-fridge-photo-gloss) 0%,
+      transparent 42%
+    ),
+    var(--memory-fridge-photo-dim);
+  pointer-events: none;
+}
+
+/* Heart moments: sticky notes in the colour of their feeling. */
+.memory-fridge-paper[data-kind="heart"],
+.memory-fridge-card[data-kind="heart"] {
+  --memory-fridge-note: color-mix(
+    in srgb,
+    var(--heart-emotion-accent, var(--color-story-heart-moment)) 34%,
+    var(--memory-fridge-note-base)
+  );
+}
+.memory-fridge-paper[data-kind="heart"] {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  padding: calc(2.4 * var(--cu) * var(--memory-fridge-scale, 1))
+    calc(2 * var(--cu) * var(--memory-fridge-scale, 1))
+    calc(1.8 * var(--cu) * var(--memory-fridge-scale, 1));
+  border-radius: calc(0.2 * var(--cu));
+  background:
+    linear-gradient(180deg, var(--memory-fridge-note-glue) 0%, transparent 14%),
+    linear-gradient(
+      160deg,
+      color-mix(
+          in srgb,
+          var(--memory-fridge-note) 86%,
+          var(--memory-fridge-light)
+        )
+        0%,
+      var(--memory-fridge-note) 52%,
+      color-mix(
+          in srgb,
+          var(--memory-fridge-note) 92%,
+          var(--memory-fridge-note-shade)
+        )
+        100%
+    );
+}
+
+/* Milestones: a printed card with a thin frame and the keepsake stamp. */
+.memory-fridge-paper[data-kind="milestone"] {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: calc(0.8 * var(--cu) * var(--memory-fridge-scale, 1));
+  aspect-ratio: 23 / 21;
+  padding: calc(2 * var(--cu) * var(--memory-fridge-scale, 1))
+    calc(1.8 * var(--cu) * var(--memory-fridge-scale, 1));
+  background: var(--memory-fridge-card);
+  box-shadow:
+    inset 0 0 0 calc(0.9 * var(--cu) * var(--memory-fridge-scale, 1))
+    var(--memory-fridge-card),
+    inset 0 0 0 calc(1.1 * var(--cu) * var(--memory-fridge-scale, 1))
+    var(--memory-fridge-card-line);
+}
+.memory-fridge-paper .memory-fridge-stamp.momente-keepsake-stamp-mark {
+  --color-story-milestone: var(--memory-fridge-stamp);
+  inline-size: calc(8.5 * var(--cu) * var(--memory-fridge-scale, 1));
+  block-size: calc(8.5 * var(--cu) * var(--memory-fridge-scale, 1));
+}
+
+/* Words: a little ruled note card with a red margin line. */
+.memory-fridge-paper[data-kind="words"] {
+  --memory-fridge-line: calc(4.4 * var(--cu) * var(--memory-fridge-scale, 1));
+  --memory-fridge-margin-at: calc(
+    3.1 *
+    var(--cu) *
+    var(--memory-fridge-scale, 1)
+  );
+  display: flex;
+  align-items: center;
+  aspect-ratio: 25 / 17;
+  padding: calc(2.2 * var(--cu) * var(--memory-fridge-scale, 1))
+    calc(2.2 * var(--cu) * var(--memory-fridge-scale, 1))
+    calc(1.6 * var(--cu) * var(--memory-fridge-scale, 1))
+    calc(4.6 * var(--cu) * var(--memory-fridge-scale, 1));
+  background:
+    linear-gradient(
+      90deg,
+      transparent var(--memory-fridge-margin-at),
+      var(--memory-fridge-margin) 0 calc(var(--memory-fridge-margin-at) + 1px),
+      transparent 0
+    ),
+    repeating-linear-gradient(
+      180deg,
+      transparent 0 calc(var(--memory-fridge-line) - 1px),
+      var(--memory-fridge-rule) 0 var(--memory-fridge-line)
+    ),
+    var(--memory-fridge-words);
+}
+
+/* Text on the notes: fitted to the paper by useFitText (it shrinks and only
+   then shortens), so it needs no line clamp. Long words wrap inside the note
+   instead of widening it. */
+.memory-fridge-hand,
+.memory-fridge-print-title {
+  display: block;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  overflow-wrap: anywhere;
+}
+.memory-fridge-print-title {
+  color: var(--memory-fridge-ink-print);
+  font-family: var(--font-display);
+  font-size: max(
+    0.75rem,
+    calc(2.9 * var(--cu) * var(--memory-fridge-scale, 1))
+  );
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+}
+.memory-fridge-hand {
+  color: var(--memory-fridge-ink-hand);
+  font-family: var(--memory-fridge-hand);
+  font-size: max(1rem, calc(4.4 * var(--cu) * var(--memory-fridge-scale, 1)));
+  font-weight: 700;
+  line-height: 1.05;
+}
+.memory-fridge-paper[data-kind="heart"] .memory-fridge-hand {
+  text-align: center;
+}
+.memory-fridge-paper[data-kind="words"] .memory-fridge-hand {
+  flex: 1 1 auto;
+}
+
+/* ---------- Holders: magnets, star, tape ---------- */
+
+.memory-fridge-holder {
+  position: absolute;
+  z-index: 2;
+  inset-inline-start: 50%;
+  pointer-events: none;
+}
+
+/* Magnets keep a small, real-world size instead of growing with the note. */
+.memory-fridge-magnet {
+  inline-size: calc(5.6 * var(--cu));
+  block-size: calc(5.6 * var(--cu));
+  inset-block-start: calc(-2.2 * var(--cu));
+  translate: -50% 0;
+}
+.memory-fridge-magnet-shadow,
+.memory-fridge-magnet-cap {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: 50%;
+}
+.memory-fridge-magnet-shadow {
+  translate: calc(0.5 * var(--cu)) calc(1 * var(--cu));
+  scale: 1.06;
+  background: radial-gradient(
+    closest-side,
+    var(--memory-fridge-magnet-drop) 58%,
+    transparent 100%
+  );
+}
+.memory-fridge-magnet-cap {
+  background:
+    radial-gradient(
+      circle at 34% 28%,
+      var(--memory-fridge-gleam) 0 9%,
+      transparent 27%
+    ),
+    radial-gradient(
+      circle at 50% 40%,
+      color-mix(
+          in srgb,
+          var(--memory-fridge-magnet-color) 78%,
+          var(--memory-fridge-light)
+        )
+        0%,
+      var(--memory-fridge-magnet-color) 50%,
+      color-mix(
+          in srgb,
+          var(--memory-fridge-magnet-color) 70%,
+          var(--memory-fridge-dark)
+        )
+        100%
+    );
+  box-shadow:
+    inset 0 calc(-0.4 * var(--cu)) calc(0.6 * var(--cu))
+    var(--memory-fridge-magnet-rim),
+    inset 0 calc(0.3 * var(--cu)) calc(0.3 * var(--cu))
+    var(--memory-fridge-magnet-top);
+}
+.memory-fridge-door :is(.memory-fridge-magnet, .memory-fridge-letter) {
+  --memory-fridge-magnet-color: var(--memory-fridge-magnet-coral);
+}
+.memory-fridge-door [data-color="sun"] {
+  --memory-fridge-magnet-color: var(--memory-fridge-magnet-sun);
+}
+.memory-fridge-door [data-color="sky"] {
+  --memory-fridge-magnet-color: var(--memory-fridge-magnet-sky);
+}
+.memory-fridge-door [data-color="mint"] {
+  --memory-fridge-magnet-color: var(--memory-fridge-magnet-mint);
+}
+.memory-fridge-door [data-color="lilac"] {
+  --memory-fridge-magnet-color: var(--memory-fridge-magnet-lilac);
+}
+.memory-fridge-door [data-color="tangerine"] {
+  --memory-fridge-magnet-color: var(--memory-fridge-magnet-tangerine);
+}
+.memory-fridge-door [data-color="pink"] {
+  --memory-fridge-magnet-color: var(--memory-fridge-magnet-pink);
+}
+
+/* Milestones: a gold star magnet. */
+.memory-fridge-magnet[data-shape="star"] {
+  inline-size: calc(7 * var(--cu));
+  block-size: calc(7 * var(--cu));
+  inset-block-start: calc(-3 * var(--cu));
+}
+.memory-fridge-magnet[data-shape="star"]
+  :is(.memory-fridge-magnet-shadow, .memory-fridge-magnet-cap) {
+  border-radius: 0;
+  clip-path: polygon(
+    50% 2%,
+    61.5% 35%,
+    97% 36%,
+    68.5% 57.5%,
+    79% 92%,
+    50% 71.5%,
+    21% 92%,
+    31.5% 57.5%,
+    3% 36%,
+    38.5% 35%
+  );
+  box-shadow: none;
+}
+.memory-fridge-magnet[data-shape="star"] .memory-fridge-magnet-shadow {
+  scale: 1;
+  background: var(--memory-fridge-magnet-drop);
+}
+.memory-fridge-magnet[data-shape="star"] .memory-fridge-magnet-cap {
+  background:
+    radial-gradient(
+      circle at 40% 32%,
+      var(--memory-fridge-gold-hi) 0 10%,
+      transparent 34%
+    ),
+    linear-gradient(
+      160deg,
+      var(--memory-fridge-gold-hi) 0%,
+      var(--memory-fridge-gold) 46%,
+      var(--memory-fridge-gold-low) 100%
+    );
+}
+
+/* Heart moments: a glossy heart magnet. */
+.memory-fridge-magnet[data-shape="heart"] {
+  inline-size: calc(6.4 * var(--cu));
+  block-size: calc(5.9 * var(--cu));
+  inset-block-start: calc(-2.6 * var(--cu));
+}
+.memory-fridge-magnet[data-shape="heart"]
+  :is(.memory-fridge-magnet-shadow, .memory-fridge-magnet-cap) {
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.memory-fridge-magnet[data-shape="heart"] .memory-fridge-magnet-shadow {
+  scale: 1;
+}
+.memory-fridge-magnet[data-shape="heart"] svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
+.memory-fridge-heart-drop {
+  fill: var(--memory-fridge-magnet-drop);
+}
+.memory-fridge-heart-body {
+  fill: var(--memory-fridge-heart-magnet);
+}
+.memory-fridge-heart-shade {
+  fill: var(--memory-fridge-magnet-rim);
+}
+.memory-fridge-heart-gleam {
+  fill: var(--memory-fridge-gleam);
+}
+
+/* Words: a strip of washi tape. */
+.memory-fridge-tape {
+  inline-size: calc(11 * var(--cu) * var(--memory-fridge-scale, 1));
+  block-size: calc(3.6 * var(--cu) * var(--memory-fridge-scale, 1));
+  inset-block-start: calc(-1.7 * var(--cu) * var(--memory-fridge-scale, 1));
+  translate: -50% 0;
+  rotate: -4deg;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 calc(1.4 * var(--cu)),
+      var(--memory-fridge-tape-stripe) 0 calc(2 * var(--cu))
+    ),
+    var(--memory-fridge-tape);
+  box-shadow: inset 0 0 0 1px var(--memory-fridge-tape-edge);
+  clip-path: polygon(
+    0 12%,
+    3% 0,
+    97% 0,
+    100% 14%,
+    98% 32%,
+    100% 52%,
+    97% 72%,
+    100% 90%,
+    97% 100%,
+    3% 100%,
+    0 86%,
+    2.5% 68%,
+    0 48%,
+    3% 30%
+  );
+}
+
+/* While a note is open the magnet stays on the door, the paper is gone. */
+.memory-fridge-slot[data-open]
+  :is(.memory-fridge-paper, .memory-fridge-shadow, .memory-fridge-tape) {
+  opacity: 0;
+}
+.memory-fridge-slot[data-open="closing"]
+  :is(.memory-fridge-paper, .memory-fridge-shadow, .memory-fridge-tape) {
+  opacity: 1;
+}
+
+/* ---------- Letter magnets ---------- */
+
+.memory-fridge-letter {
+  --memory-fridge-letter-width: 24;
+  block-size: calc(9.5 * var(--cu));
+  inline-size: calc(var(--memory-fridge-letter-width) / 30 * 9.5 * var(--cu));
+  cursor: grab;
+}
+.memory-fridge-letter[data-glyph="W"] {
+  --memory-fridge-letter-width: 30;
+}
+.memory-fridge-letter[data-glyph="I"] {
+  --memory-fridge-letter-width: 12;
+}
+/* A slightly larger touch area than the thin plastic letter. */
+.memory-fridge-letter::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1.6 * var(--cu)) calc(-1.2 * var(--cu));
+}
+.memory-fridge-letter[data-dragging] {
+  cursor: grabbing;
+}
+.memory-fridge-letter :is(.memory-fridge-lift, .memory-fridge-rot) {
+  transform-origin: 50% 50%;
+}
+.memory-fridge-letter-svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
+.memory-fridge-letter-drop,
+.memory-fridge-letter-body,
+.memory-fridge-letter-gleam {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.memory-fridge-letter-drop {
+  stroke: var(--memory-fridge-magnet-drop);
+  stroke-width: 5.8;
+}
+.memory-fridge-letter-body {
+  stroke: var(--memory-fridge-magnet-color);
+  stroke-width: 5.6;
+}
+.memory-fridge-letter-gleam {
+  stroke: var(--memory-fridge-gleam);
+  stroke-width: 1.3;
+  opacity: 0.7;
+}
+.memory-fridge-letter-drop-fill {
+  fill: var(--memory-fridge-magnet-drop);
+}
+.memory-fridge-letter-fill {
+  fill: var(--memory-fridge-magnet-color);
+}
+.memory-fridge-letter-gleam-fill {
+  fill: var(--memory-fridge-gleam);
+}
+[data-dragging] .memory-fridge-letter-drop {
+  translate: 0.6px 1.4px;
+}
+
+/* ---------- The notepad magnet ---------- */
+
+.memory-fridge-door button.memory-fridge-pad {
+  position: absolute;
+  z-index: 30;
+  inset-inline-start: 6%;
+  inset-block-end: 3.4%;
+  inline-size: calc(19 * var(--cu));
+  block-size: calc(21 * var(--cu));
+}
+.memory-fridge-door button.memory-fridge-pad:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 4px;
+  border-radius: calc(1 * var(--cu));
+}
+.memory-fridge-pad-rot {
+  position: absolute;
+  inset: 0;
+  display: block;
+  rotate: -4deg;
+}
+.memory-fridge-pad-shadow,
+.memory-fridge-pad-sheet,
+.memory-fridge-pad-top {
+  position: absolute;
+  inset: calc(1.6 * var(--cu)) 0 0;
+  display: block;
+  border-radius: 0 0 calc(0.8 * var(--cu)) calc(0.8 * var(--cu));
+}
+.memory-fridge-pad-shadow {
+  box-shadow: calc(0.5 * var(--cu)) calc(1.4 * var(--cu)) calc(2 * var(--cu))
+    var(--memory-fridge-shadow-near);
+}
+.memory-fridge-pad-sheet {
+  background: var(--memory-fridge-pad-sheet);
+}
+.memory-fridge-pad-sheet[data-depth="2"] {
+  translate: calc(0.5 * var(--cu)) calc(0.8 * var(--cu));
+  rotate: 1.6deg;
+  background: var(--memory-fridge-pad-sheet-deep);
+}
+.memory-fridge-pad-sheet[data-depth="1"] {
+  translate: calc(0.25 * var(--cu)) calc(0.4 * var(--cu));
+  rotate: 0.7deg;
+}
+.memory-fridge-pad-top {
+  display: grid;
+  place-items: center;
+  padding-block-start: calc(2 * var(--cu));
+  transform-origin: 8% 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      transparent 0 calc(3.6 * var(--cu) - 1px),
+      var(--memory-fridge-rule) 0 calc(3.6 * var(--cu))
+    )
+    0 calc(2.2 * var(--cu)) / 100% 100% no-repeat,
+    var(--memory-fridge-words);
+}
+.memory-fridge-pad-text {
+  color: var(--memory-fridge-ink-hand);
+  font-family: var(--memory-fridge-hand);
+  font-size: max(1rem, calc(4.6 * var(--cu)));
+  font-weight: 700;
+  line-height: 0.95;
+  text-align: center;
+  rotate: -3deg;
+}
+.memory-fridge-pad-binding {
+  position: absolute;
+  inset: 0 calc(-0.6 * var(--cu)) auto;
+  display: block;
+  block-size: calc(3.4 * var(--cu));
+  border-radius: calc(1.2 * var(--cu));
+  background:
+    radial-gradient(
+      70% 90% at 30% 20%,
+      var(--memory-fridge-gleam) 0 8%,
+      transparent 40%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(
+        in srgb,
+        var(--memory-fridge-pad-binding) 80%,
+        var(--memory-fridge-light)
+      ),
+      var(--memory-fridge-pad-binding) 45%,
+      var(--memory-fridge-pad-binding-low)
+    );
+  box-shadow: 0 calc(0.4 * var(--cu)) calc(0.8 * var(--cu))
+    var(--memory-fridge-shadow-near);
+}
+/* A little pencil leaning against the pad. */
+.memory-fridge-pencil {
+  position: absolute;
+  inset-inline-end: calc(-2.6 * var(--cu));
+  inset-block-start: calc(4 * var(--cu));
+  display: block;
+  inline-size: calc(2.2 * var(--cu));
+  block-size: calc(16 * var(--cu));
+  rotate: 11deg;
+  background: linear-gradient(
+    180deg,
+    var(--memory-fridge-pencil-eraser) 0 11%,
+    var(--memory-fridge-pencil-ferrule) 11% 18%,
+    var(--memory-fridge-pencil) 18% 50%,
+    var(--memory-fridge-pencil-low) 50% 80%,
+    var(--memory-fridge-pencil-wood) 80% 93%,
+    var(--memory-fridge-pencil-lead) 93%
+  );
+  clip-path: polygon(0 1%, 100% 1%, 100% 80%, 50% 100%, 0 80%);
+}
+
+/* ---------- Swapping the notes ---------- */
+
+.memory-fridge-door:not([data-phase="idle"])
+  :is(.memory-fridge-item, .memory-fridge-pad) {
+  pointer-events: none;
+}
+
+/* ---------- The large card ---------- */
+
+.memory-fridge-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 28px var(--space-4);
+}
+.memory-fridge-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--memory-fridge-scrim);
+}
+.memory-fridge-stage-center {
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  pointer-events: none;
+}
+.memory-fridge-card {
+  position: relative;
+  inline-size: min(100%, 21rem);
+  margin-block-end: 22px;
+  border-radius: 4px;
+  color: var(--memory-fridge-ink-print);
+  box-shadow: var(--memory-fridge-card-shadow);
+  transform-origin: 50% 50%;
+  pointer-events: auto;
+}
+
+.memory-fridge-card[data-kind="photo"] {
+  inline-size: min(100%, 21rem, calc(100dvh - 250px));
+  min-inline-size: min(100%, 15rem);
+  padding: 14px 14px 36px;
+  background: var(--memory-fridge-print);
+}
+.memory-fridge-card-photo {
+  position: relative;
+  display: block;
+}
+.memory-fridge-card-photo .memory-fridge-gloss {
+  position: absolute;
+  inset: 0;
+}
+.memory-fridge-card-caption {
+  display: grid;
+  gap: 4px;
+  padding: 12px 4px 0;
+}
+
+.memory-fridge-card[data-kind="heart"] {
+  display: grid;
+  align-content: center;
+  inline-size: min(100%, 19.5rem);
+  min-block-size: min(19.5rem, calc(100vw - 32px));
+  padding: 34px 26px 44px;
+  border-radius: 2px;
+  background:
+    linear-gradient(180deg, var(--memory-fridge-note-glue) 0%, transparent 12%),
+    linear-gradient(
+      160deg,
+      color-mix(
+          in srgb,
+          var(--memory-fridge-note) 86%,
+          var(--memory-fridge-light)
+        )
+        0%,
+      var(--memory-fridge-note) 55%,
+      color-mix(
+          in srgb,
+          var(--memory-fridge-note) 92%,
+          var(--memory-fridge-note-shade)
+        )
+        100%
+    );
+}
+.memory-fridge-card[data-kind="milestone"] {
+  padding: 30px 26px 46px;
+  background: var(--memory-fridge-card);
+  box-shadow:
+    var(--memory-fridge-card-shadow),
+    inset 0 0 0 9px var(--memory-fridge-card),
+    inset 0 0 0 11px var(--memory-fridge-card-line);
+  text-align: center;
+}
+.memory-fridge-card[data-kind="words"] {
+  padding: 30px 24px 46px 52px;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 36px,
+      var(--memory-fridge-margin) 0 37px,
+      transparent 0
+    ),
+    repeating-linear-gradient(
+      180deg,
+      transparent 0 31px,
+      var(--memory-fridge-rule) 0 32px
+    ),
+    var(--memory-fridge-words);
+}
+
+.memory-fridge-card-body {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+.memory-fridge-card[data-kind="milestone"] .memory-fridge-card-body {
+  justify-items: center;
+}
+
+.memory-fridge-card-kicker {
+  margin: 0;
+  color: var(--memory-fridge-ink-soft);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.memory-fridge-card-hand,
+.memory-fridge-card-quote {
+  margin: 0;
+  color: var(--memory-fridge-ink-hand);
+  font-family: var(--memory-fridge-hand);
+  font-weight: 700;
+  line-height: 1.1;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+.memory-fridge-card-hand {
+  font-size: 1.5rem;
+}
+.memory-fridge-card-quote {
+  font-size: 1.65rem;
+}
+.memory-fridge-card-from {
+  margin: 0;
+  color: var(--memory-fridge-ink-hand);
+  font-family: var(--memory-fridge-hand);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.memory-fridge-card-from::before {
+  content: "– ";
+}
+.memory-fridge-card-title {
+  margin: 0;
+  color: var(--memory-fridge-ink-print);
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.memory-fridge-card .memory-fridge-card-stamp.momente-keepsake-stamp-mark {
+  --color-story-milestone: var(--memory-fridge-stamp);
+  inline-size: 5.5rem;
+  block-size: 5.5rem;
+}
+.memory-fridge-card-meta {
+  margin: 0;
+  color: var(--memory-fridge-ink-soft);
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+}
+
+/* Close: a round cream button on the card's corner. */
+.memory-fridge-stage button.memory-fridge-close {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: -14px;
+  inset-inline-end: -10px;
+  display: grid;
+  place-items: center;
+  inline-size: var(--touch-target-web);
+  block-size: var(--touch-target-web);
+  min-block-size: var(--touch-target-web);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--memory-fridge-button);
+  color: var(--memory-fridge-button-ink);
+  box-shadow:
+    0 4px 12px var(--memory-fridge-shadow-near),
+    inset 0 0 0 1px var(--memory-fridge-button-ring);
+}
+.memory-fridge-close svg {
+  inline-size: 18px;
+  block-size: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+/* Open in the diary: an embossed label-tape strip stuck across the card's edge. */
+.memory-fridge-label {
+  position: absolute;
+  z-index: 2;
+  inset-inline-start: 50%;
+  inset-block-end: -20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-block-size: var(--touch-target-web);
+  padding: 0 18px;
+  border-radius: 3px;
+  translate: -50% 0;
+  rotate: -1.6deg;
+  background: linear-gradient(
+    180deg,
+    var(--memory-fridge-label-hi) 0%,
+    var(--memory-fridge-label) 42%,
+    var(--memory-fridge-label-low) 100%
+  );
+  color: var(--memory-fridge-label-ink);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-decoration: none;
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 var(--memory-fridge-label-emboss);
+  white-space: nowrap;
+  box-shadow: 0 3px 8px var(--memory-fridge-shadow-near);
+}
+.memory-fridge-label svg {
+  inline-size: 16px;
+  block-size: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.memory-fridge-label:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+/* ---------- Motion (timing roles and keyframes in the motion layer) ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  /* Picking a note up and putting it down; it swings out of the drag tilt. */
+  .memory-fridge-lift {
+    transition: scale var(--memory-fridge-settle-duration)
+      var(--memory-fridge-curve-settle);
+  }
+  [data-dragging] .memory-fridge-lift {
+    transition: scale var(--memory-fridge-pick-duration)
+      var(--memory-fridge-curve-pick);
+  }
+  .memory-fridge-tilt {
+    transition: rotate var(--memory-fridge-swing-duration)
+      var(--memory-fridge-curve-swing);
+  }
+  [data-dragging] .memory-fridge-tilt {
+    transition: none;
+  }
+  .memory-fridge-shadow::before,
+  .memory-fridge-shadow::after {
+    transition: opacity var(--memory-fridge-shadow-duration)
+      var(--memory-world-easing-out);
+  }
+
+  /* The paper leaves the door while the card lifts, and comes back under it. */
+  .memory-fridge-slot[data-open="open"]
+    :is(.memory-fridge-paper, .memory-fridge-shadow, .memory-fridge-tape) {
+    transition: opacity var(--memory-fridge-paper-out-duration)
+      var(--memory-fridge-curve-steady) var(--memory-fridge-paper-out-delay);
+  }
+  .memory-fridge-slot[data-open="closing"]
+    :is(.memory-fridge-paper, .memory-fridge-shadow, .memory-fridge-tape) {
+    transition: opacity var(--memory-fridge-paper-back-duration)
+      var(--memory-fridge-curve-steady) var(--memory-fridge-paper-back-delay);
+  }
+
+  /* The notes slide off the door, bottom ones first, then the new ones are pinned. */
+  .memory-fridge-door[data-phase="falling"]
+    .memory-fridge-slot
+    .memory-fridge-lift {
+    animation: eimir-motion-memory-fridge-fall
+      var(--memory-fridge-fall-duration) var(--memory-fridge-curve-soft) both;
+    animation-delay: calc(
+      var(--memory-fridge-fall-i, 0) *
+      var(--memory-fridge-fall-stagger)
+    );
+  }
+  .memory-fridge-door[data-phase="falling"] .memory-fridge-pad-top {
+    animation: eimir-motion-memory-fridge-tear
+      var(--memory-fridge-tear-duration) var(--memory-fridge-curve-tear) both;
+  }
+  .memory-fridge-door[data-phase="pinning"]
+    .memory-fridge-slot
+    .memory-fridge-lift {
+    animation: eimir-motion-memory-fridge-pin var(--memory-fridge-pin-duration)
+      var(--memory-fridge-curve-soft) both;
+    animation-delay: calc(
+      var(--memory-fridge-pin-i, 0) *
+      var(--memory-fridge-pin-stagger)
+    );
+  }
+  .memory-fridge-door[data-phase="pinning"]
+    .memory-fridge-slot
+    .memory-fridge-magnet-cap {
+    animation: eimir-motion-memory-fridge-plop
+      var(--memory-fridge-plop-duration) var(--memory-fridge-curve-soft) both;
+    animation-delay: calc(
+      var(--memory-fridge-pin-i, 0) *
+      var(--memory-fridge-pin-stagger) +
+      var(--memory-fridge-plop-offset)
+    );
+  }
+  .memory-fridge-door[data-phase="pinning"]
+    .memory-fridge-slot
+    .memory-fridge-magnet-shadow {
+    animation: eimir-motion-memory-fridge-plop-shadow
+      var(--memory-fridge-plop-duration) var(--memory-world-easing-out) both;
+    animation-delay: calc(
+      var(--memory-fridge-pin-i, 0) *
+      var(--memory-fridge-pin-stagger) +
+      var(--memory-fridge-plop-offset)
+    );
+  }
+}

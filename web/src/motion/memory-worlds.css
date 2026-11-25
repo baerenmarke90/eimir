@@ -1,8 +1,9 @@
 /*
  * The motion layer's catalogue for the memory worlds of Momente ›
  * Erinnerungen (#2283): the Stapel (stack of prints), the Plattenkiste
- * (record crate and turntable), the Momentwolke (bubble cloud) and the
- * Fotoautomat (photo booth, in a classic and a modern style).
+ * (record crate and turntable), the Momentwolke (bubble cloud), the
+ * Fotoautomat (photo booth, in a classic and a modern style) and the
+ * Kühlschranktür (fridge door).
  *
  * World-scoped timing roles, keyframes and the worlds' loops live here; the
  * world stylesheets only consume the roles. Every animation and transition
@@ -17,12 +18,15 @@
  * run for `--motion-ambient-repeat` cycles and pause while the booth is not
  * seen (`data-ambient`); its other loops (the faster bulbs during a run, the
  * self-timer light, "Bitte warten", the wet sheen) run only during their
- * bounded stage of a run.
+ * bounded stage of a run. The Kühlschranktür has no loops: its notes are
+ * pinned up, fall off and settle once per change and never sway (Product
+ * Owner decision); its magnet hop and snap and its card flights are Web
+ * Animations in `fridgeDoor.ts`.
  *
  * The values were tuned on device with the Product Owner (Pixel 10 Pro Fold,
  * 2026-11-24/25) and are kept unchanged from the accepted prototype.
  * Imported by `StackWorld.tsx`, `RecordCrateWorld.tsx`,
- * `MomentCloudWorld.tsx` and `PhotoBoothWorld.tsx`.
+ * `MomentCloudWorld.tsx`, `PhotoBoothWorld.tsx` and `FridgeDoorWorld.tsx`.
  */
 
 /* Shared easings: the exact CSS keyword curves, as named roles. */
@@ -32,7 +36,8 @@
 .memory-cloud-world,
 .memory-cloud-modal,
 .memory-booth-world,
-.memory-booth-viewer {
+.memory-booth-viewer,
+.memory-fridge-world {
   --memory-world-easing-in: cubic-bezier(0.42, 0, 1, 1);
   --memory-world-easing-out: cubic-bezier(0, 0, 0.58, 1);
   --memory-world-easing-in-out: cubic-bezier(0.42, 0, 0.58, 1);
@@ -968,5 +973,133 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* ---------- Kühlschranktür ---------- */
+
+.memory-fridge-world {
+  /* A note is picked up, put down and swings out of its drag tilt. */
+  --memory-fridge-settle-duration: 340ms;
+  --memory-fridge-curve-settle: cubic-bezier(0.3, 1.5, 0.5, 1);
+  --memory-fridge-pick-duration: 200ms;
+  --memory-fridge-curve-pick: cubic-bezier(0.2, 0.8, 0.3, 1);
+  --memory-fridge-swing-duration: 560ms;
+  --memory-fridge-curve-swing: cubic-bezier(0.25, 1.6, 0.45, 1);
+  --memory-fridge-shadow-duration: 240ms;
+  /* The paper leaves the door while the card lifts (after the magnet hop)
+     and comes back just before the card lands on it. */
+  --memory-fridge-curve-steady: linear;
+  --memory-fridge-paper-out-duration: 140ms;
+  --memory-fridge-paper-out-delay: 190ms;
+  --memory-fridge-paper-back-duration: 120ms;
+  --memory-fridge-paper-back-delay: 410ms;
+  /* New notes: the old ones fall off (bottom first), the top sheet tears
+     off the pad, the new ones are pinned up and their magnets plop on. The
+     lengths match FRIDGE_TIMING in fridgeDoor.ts. The CSS default curve
+     carries the segments the keyframes leave open. */
+  --memory-fridge-curve-soft: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --memory-fridge-fall-duration: 780ms;
+  --memory-fridge-fall-stagger: 55ms;
+  --memory-fridge-tear-duration: 720ms;
+  --memory-fridge-curve-tear: cubic-bezier(0.45, 0, 0.6, 1);
+  --memory-fridge-pin-duration: 560ms;
+  --memory-fridge-pin-stagger: 95ms;
+  --memory-fridge-plop-duration: 380ms;
+  --memory-fridge-plop-offset: 250ms;
+}
+
+@keyframes eimir-motion-memory-fridge-fall {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.3, 0, 0.5, 1);
+  }
+  16% {
+    transform: translate(0, calc(-1.6 * var(--cu)))
+      rotate(calc(var(--memory-fridge-fall-rot, 0) * -0.08deg));
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.55, 0, 0.9, 0.5);
+  }
+  100% {
+    transform: translate(
+        calc(var(--memory-fridge-fall-dx, 0) * var(--cu)),
+        calc(72 * var(--cu))
+      )
+      rotate(calc(var(--memory-fridge-fall-rot, 0) * 1deg));
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-fridge-tear {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  28% {
+    transform: translate(0, calc(-1 * var(--cu))) rotate(-6deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-12 * var(--cu)), calc(-26 * var(--cu)))
+      rotate(-38deg);
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-fridge-pin {
+  0% {
+    transform: translate(0, calc(-5 * var(--cu))) scale(1.14) rotate(3deg);
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.3, 0.5, 0.4, 1);
+  }
+  32% {
+    opacity: 1;
+  }
+  72% {
+    transform: translate(0, calc(0.5 * var(--cu))) scale(0.985) rotate(-0.5deg);
+    /* The CSS ease-in-out curve. */
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  100% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-fridge-plop {
+  0% {
+    transform: translate(0, calc(-4 * var(--cu))) scale(1.4);
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6);
+  }
+  20% {
+    opacity: 1;
+  }
+  60% {
+    transform: translate(0, 0) scale(1.1, 0.84);
+    animation-timing-function: cubic-bezier(0.3, 0.6, 0.4, 1);
+  }
+  80% {
+    transform: translate(0, 0) scale(0.95, 1.06);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-fridge-plop-shadow {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
   }
 }

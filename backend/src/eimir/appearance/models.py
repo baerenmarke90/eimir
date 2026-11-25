@@ -66,6 +66,7 @@ class MemoryWorldId(StrEnum):
     CRATE = "crate"
     CLOUD = "cloud"
     BOOTH = "booth"
+    FRIDGE = "fridge"
 
 
 # Product Owner decision 2026-11-14: "connected" is the default composition and,

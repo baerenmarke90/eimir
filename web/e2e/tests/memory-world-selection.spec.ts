@@ -524,7 +524,12 @@ test('Erinnerungen shows the Kühlschranktür; a note moves by keyboard and open
       name: worlds.fridge.label_other.replace('{{count}}', '3'),
     }),
   ).toBeVisible();
-  await page.waitForTimeout(900);
+  // The notes are pinned up one by one; the door takes keys once it is idle.
+  await expect(world.locator('[data-phase]').first()).toHaveAttribute(
+    'data-phase',
+    'idle',
+    { timeout: 10_000 },
+  );
   await capture(page, info, 'memory-worlds-fridge-390-light.png');
   const note = world.getByRole('button', { name: /Morning by the lake/ });
   await note.focus();

@@ -47,9 +47,12 @@ for the Demo only; every other deployment keeps them.
   distance read from the two example positions the Demo seed publishes (Lea and
   Alex) and reports the value as fresh. The position in the request is ignored,
   so the example does not age into an "earlier value" within a reset interval.
-- On a device that has not shown the step yet, the existing "A change is shown
-  once when the app opens" rule plays the hop after the Wir opening: no new
-  motion and no new rule, only a value where there was none.
+- A device without an earlier visit has nothing to compare with, so the
+  existing "A change is shown once when the app opens" rule alone would show the
+  first value quietly. In the Demo the first view therefore starts from the
+  farthest step (a thin crescent) and plays the same hop after the Wir opening to
+  the live step, then the word appears as after any hop. Nothing else is new: no
+  new motion, and a second view on the same device shows the value quietly.
 - The map shows the partner's example area and, from the example positions, the
   viewer's own point and the connection. It never reads the visitor's device
   position, and the sync never publishes a visitor's position over the example.

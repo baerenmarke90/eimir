@@ -142,6 +142,33 @@ describe('the distance in the Verbunden hero', () => {
     expect(word()).toBeNull();
   });
 
+  it('plays the first view in the public Demo from the farthest step', () => {
+    window.sessionStorage.setItem('eimir-demo-mode', 'true');
+    try {
+      read.mockReturnValue(stonesThrow);
+      openingPhase = 'playing';
+      const { rerender } = render(hero());
+      // There is no earlier visit: the heart starts as a thin crescent.
+      expect(closeness()).toBe('0');
+      expect(word()).toBeNull();
+      openingPhase = 'ended';
+      rerender(hero());
+      expect(closeness()).toBe(String(2 / 6));
+      expect(word()?.textContent).toBe(copy.distanceStonesThrowShort);
+      expect(readDistanceSeen('account', 'space')?.stage).toBe(2);
+
+      // A second view on the same device shows the value quietly.
+      act(() => vi.advanceTimersByTime(WIR_DISTANCE_WORD_MS));
+      cleanup();
+      resetAttentionForTests();
+      render(hero());
+      expect(closeness()).toBe(String(2 / 6));
+      expect(word()).toBeNull();
+    } finally {
+      window.sessionStorage.removeItem('eimir-demo-mode');
+    }
+  });
+
   it('shows a changed distance once when the app opens', () => {
     rememberDistanceSeen('account', 'space', 5);
     read.mockReturnValue(stonesThrow);

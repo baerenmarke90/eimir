@@ -463,7 +463,7 @@ The current set contains twelve real Pixabay stock photos and two portraits supp
 
 ### Partner distance on Wir
 
-Both personas share their location with each other (`DISTANCE_AND_MAP`, indefinite), seeded at creation and reset with example positions in Cologne and Duesseldorf. A Demo visitor has no device position, so a Demo deployment answers the distance read from those seeded positions, reports it as fresh, and the Web client skips the device measurement and never publishes a visitor's position. The Wir heart therefore plays on a fresh device and the map opens with the example areas. See the Demo example in `docs/product/design/references/wir-hero-heart-light/README.md`.
+Both personas share their location with each other (`DISTANCE_AND_MAP`, indefinite), seeded at creation and reset with example positions in Cologne and Duesseldorf. A Demo visitor has no device position, so a Demo deployment answers the distance read from those seeded positions, reports it as fresh, and the Web client skips the device measurement and never publishes a visitor's position. The Wir heart therefore starts from the farthest step and plays the hop to the live one on a device's first view, and the map opens with the example areas. See the Demo example in `docs/product/design/references/wir-hero-heart-light/README.md`.
 
 ### Persona avatars
 

@@ -7545,7 +7545,8 @@
           "stack",
           "crate",
           "cloud",
-          "booth"
+          "booth",
+          "fridge"
         ],
         "title": "MemoryWorldId",
         "type": "string"

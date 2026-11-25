@@ -16,6 +16,7 @@ export const MEMORY_WORLDS: readonly MemoryWorld[] = [
   'cloud',
   'booth',
   'crate',
+  'fridge',
 ];
 
 export const DEFAULT_MEMORY_WORLD: MemoryWorld = 'story';

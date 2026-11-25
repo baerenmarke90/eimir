@@ -7,7 +7,13 @@
 import { useId } from 'react';
 import './WorldArt.css';
 
-export type WorldArtKind = 'story' | 'stack' | 'crate' | 'cloud' | 'booth';
+export type WorldArtKind =
+  | 'story'
+  | 'stack'
+  | 'crate'
+  | 'cloud'
+  | 'booth'
+  | 'fridge';
 
 type Id = (name: string) => string;
 
@@ -208,8 +214,62 @@ function art(world: WorldArtKind, id: Id, url: Id) {
           </g>
         </>
       );
+    case 'fridge':
+      return (
+        <>
+          <rect width="160" height="100" fill="#f3ece2" />
+          <rect x="30" y="4" width="100" height="96" rx="8" fill="#bfe3d4" />
+          <rect x="120" y="20" width="4" height="34" rx="2" fill="#e9eef0" />
+          <g transform="rotate(-6 56 34)">
+            <rect x="40" y="16" width="32" height="36" fill="#fff" />
+            <rect x="43" y="19" width="26" height="24" fill="#e3a98f" />
+          </g>
+          <circle cx="56" cy="16" r="4.5" fill="#3b82c4" />
+          <g transform="rotate(5 96 36)">
+            <rect x="82" y="20" width="30" height="30" fill="#f7c6d3" />
+            <path
+              d="M88 31 h18 M88 37 h14"
+              stroke="#22325f"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
+          </g>
+          <path d={FRIDGE_HEART_MAGNET} fill="#d63c55" />
+          <g transform="rotate(-3 70 70)">
+            <rect x="52" y="58" width="36" height="26" fill="#fff" />
+            <rect x="55" y="61" width="30" height="18" fill="#9fbfd6" />
+          </g>
+          <circle cx="70" cy="58" r="4" fill="#f2c94c" />
+          {FRIDGE_LETTERS.map(([glyph, fill, x]) => (
+            <text
+              key={glyph}
+              x={x}
+              y="96"
+              fontSize="11"
+              fontWeight="800"
+              fill={fill}
+              fontFamily="sans-serif"
+            >
+              {glyph}
+            </text>
+          ))}
+          <path d={FRIDGE_HEART_LETTER} fill="#d63c55" />
+        </>
+      );
   }
 }
+
+/** The letter magnets along the bottom of the fridge door (glyph, colour, x). */
+const FRIDGE_LETTERS: readonly [string, string, number][] = [
+  ['W', '#e4572e', 40],
+  ['I', '#3b82c4', 50],
+  ['R', '#f2a541', 58],
+];
+/** The heart magnet on the sticky note and the heart among the letters. */
+const FRIDGE_HEART_MAGNET =
+  'M96 22 C94 19 90.5 20 91 23 C91.4 25 96 27.5 96 27.5 C96 27.5 100.6 25 101 23 C101.5 20 98 19 96 22Z';
+const FRIDGE_HEART_LETTER =
+  'M80 88 C78.5 86 76 86.8 76.4 89 C76.7 90.5 80 92.5 80 92.5 C80 92.5 83.3 90.5 83.6 89 C84 86.8 81.5 86 80 88Z';
 
 /** The four pictures of the strip beside the cabin (y, colour). */
 const BOOTH_STRIP_FRAMES: readonly [number, string][] = [

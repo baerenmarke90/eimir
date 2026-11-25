@@ -29,7 +29,7 @@ const moreItems = [
 ];
 
 function renderWorld(
-  world: 'stack' | 'crate' | 'cloud' | 'booth',
+  world: 'stack' | 'crate' | 'cloud' | 'booth' | 'fridge',
   more: typeof moreItems | undefined = undefined,
 ) {
   return render(
@@ -133,6 +133,23 @@ describe('MemoryWorldView', () => {
         (item) => item.textContent,
       ),
     ).toEqual(['Moved in together', 'Thank you']);
+  });
+
+  it('renders the Kühlschranktür from the same selection', () => {
+    renderWorld('fridge', moreItems);
+    // The lead first; sensitive covers and the rest of the diary stay out.
+    const door = screen.getByRole('group', {
+      name: fill(copy.fridge.label_other, { count: 2 }),
+    });
+    expect(door.getAttribute('aria-roledescription')).toBe(
+      copy.fridge.roleDescription,
+    );
+    const list = screen.getByRole('list', { name: copy.fridge.allMemories });
+    expect(
+      [...list.querySelectorAll('a')].map(
+        (link) => link.textContent?.split(', ')[0],
+      ),
+    ).toEqual(['Thank you', 'Moved in together']);
   });
 
   it('ignores the rest of the diary outside the Momentwolke', () => {

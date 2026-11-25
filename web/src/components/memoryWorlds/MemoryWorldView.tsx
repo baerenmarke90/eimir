@@ -9,6 +9,7 @@
 import { useMemo } from 'react';
 import type { StoryItem } from '../../api/generated/models/StoryItem';
 import { resolvedLocale, useTranslation } from '../../i18n';
+import { FridgeDoorWorld } from './FridgeDoorWorld';
 import {
   buildMemoryWorldEntries,
   type LoadMemoryImage,
@@ -21,7 +22,12 @@ import { StackWorld } from './StackWorld';
 import { useShowSensitiveInWorlds } from './sensitivePreference';
 import './MemoryWorld.css';
 
-export type MemoryWorldViewWorld = 'stack' | 'crate' | 'cloud' | 'booth';
+export type MemoryWorldViewWorld =
+  | 'stack'
+  | 'crate'
+  | 'cloud'
+  | 'booth'
+  | 'fridge';
 
 export interface MemoryWorldViewProps {
   world: MemoryWorldViewWorld;
@@ -86,6 +92,8 @@ export function MemoryWorldView({
         <MomentCloudWorld {...props} />
       ) : world === 'booth' ? (
         <PhotoBoothWorld {...props} />
+      ) : world === 'fridge' ? (
+        <FridgeDoorWorld {...props} />
       ) : (
         <StackWorld {...props} />
       )}

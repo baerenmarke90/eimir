@@ -1,5 +1,5 @@
 // Memory worlds of Momente › Erinnerungen (#2283): Stapel, Plattenkiste,
-// Momentwolke and Fotoautomat.
+// Momentwolke, Fotoautomat and Kühlschranktür.
 const memoryWorlds = {
   placeVerse: 'in {{place}}',
   winterSpan: 'Winter {{from}}/{{to}}',
@@ -143,6 +143,36 @@ const memoryWorlds = {
       tin: 'In der Blechdose',
       tinLabel: 'Eure Streifen in der Blechdose',
     },
+  },
+  fridge: {
+    heading: 'Eure Kühlschranktür',
+    roleDescription: 'Kühlschranktür',
+    label_one: 'Eure Kühlschranktür, {{count}} Erinnerung',
+    label_other: 'Eure Kühlschranktür, {{count}} Erinnerungen',
+    item: {
+      photo: 'Foto vom {{date}}: {{title}}',
+      heart: 'Herzmoment: {{title}}, {{date}}',
+      heartBy: 'Herzmoment: {{title}}, von {{name}}, {{date}}',
+      milestone: 'Meilenstein: {{title}}, {{date}}',
+      words: 'Erinnerung: {{title}}, {{date}}',
+    },
+    pad: 'Neue Zettel – hängt die nächsten Erinnerungen an die Tür',
+    padLine1: 'Neue',
+    padLine2: 'Zettel',
+    swapped_one: 'Neue Zettel an eurer Tür: {{count}} Erinnerung.',
+    swapped_other: 'Neue Zettel an eurer Tür: {{count}} Erinnerungen.',
+    moved: {
+      left: '{{title}} hängt jetzt weiter links.',
+      right: '{{title}} hängt jetzt weiter rechts.',
+      up: '{{title}} hängt jetzt weiter oben.',
+      down: '{{title}} hängt jetzt weiter unten.',
+    },
+    edge: '{{title}} hängt schon am Rand der Tür.',
+    hint: 'Jeder Zettel öffnet sich groß. Zettel und Buchstabenmagnete lassen sich mit dem Finger über die Tür schieben, mit den Pfeiltasten verschiebt ihr den ausgewählten Zettel.',
+    backToDoor: 'Zurück an die Kühlschranktür',
+    openInDiary: 'Im Tagebuch öffnen',
+    allMemories: 'Alle Erinnerungen an eurer Kühlschranktür',
+    memoryListItem: '{{title}}, {{date}}',
   },
 };
 

@@ -27,10 +27,12 @@ describe('memory worlds', () => {
       'cloud',
       'booth',
       'crate',
+      'fridge',
     ]);
     expect(isProMemoryWorld('story')).toBe(false);
     expect(isProMemoryWorld('stack')).toBe(false);
     expect(isProMemoryWorld('crate')).toBe(true);
+    expect(isProMemoryWorld('fridge')).toBe(true);
     expect(isProMemoryWorld('booth')).toBe(true);
     expect(isProMemoryWorld('cloud')).toBe(true);
     expect(MEMORY_WORLD_CAPABILITY).toBe('theme.bespoke_packs');

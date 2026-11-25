@@ -68,7 +68,7 @@ def path(couple) -> str:  # type: ignore[no-untyped-def]
 def test_story_is_the_default_and_story_and_stack_are_free() -> None:
     assert DEFAULT_MEMORY_WORLD is MemoryWorldId.STORY
     assert {world.value for world in FREE_MEMORY_WORLDS} == {"story", "stack"}
-    assert {world.value for world in PRO_WORLDS} == {"crate", "cloud", "booth"}
+    assert {world.value for world in PRO_WORLDS} == {"crate", "cloud", "booth", "fridge"}
 
 
 def test_read_defaults_to_story_and_never_creates_a_row(client, session, couple) -> None:

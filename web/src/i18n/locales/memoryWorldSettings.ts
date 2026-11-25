@@ -59,6 +59,11 @@ const memoryWorldSettings = {
       name: 'Plattenkiste',
       sentence: 'Blättere durch eure Platten und leg eine Erinnerung auf.',
     },
+    fridge: {
+      name: 'Kühlschranktür',
+      sentence:
+        'Fotos und Zettel unter bunten Magneten – zum Abnehmen und Verschieben.',
+    },
   },
 } as const;
 

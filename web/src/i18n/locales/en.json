@@ -1747,6 +1747,10 @@
       "crate": {
         "name": "Record crate",
         "sentence": "Flip through your records and put a memory on."
+      },
+      "fridge": {
+        "name": "Fridge door",
+        "sentence": "Photos and notes under colourful magnets – to take off and move around."
       }
     }
   },
@@ -4469,6 +4473,36 @@
         "tin": "In the tin",
         "tinLabel": "Your strips in the tin"
       }
+    },
+    "fridge": {
+      "heading": "Your fridge door",
+      "roleDescription": "Fridge door",
+      "label_one": "Your fridge door, {{count}} memory",
+      "label_other": "Your fridge door, {{count}} memories",
+      "item": {
+        "photo": "Photo from {{date}}: {{title}}",
+        "heart": "Heart moment: {{title}}, {{date}}",
+        "heartBy": "Heart moment: {{title}}, from {{name}}, {{date}}",
+        "milestone": "Milestone: {{title}}, {{date}}",
+        "words": "Memory: {{title}}, {{date}}"
+      },
+      "pad": "New notes – hang the next memories on the door",
+      "padLine1": "New",
+      "padLine2": "notes",
+      "swapped_one": "New notes on your door: {{count}} memory.",
+      "swapped_other": "New notes on your door: {{count}} memories.",
+      "moved": {
+        "left": "{{title}} now hangs further left.",
+        "right": "{{title}} now hangs further right.",
+        "up": "{{title}} now hangs further up.",
+        "down": "{{title}} now hangs further down."
+      },
+      "edge": "{{title}} already hangs at the edge of the door.",
+      "hint": "Every note opens up large. Move notes and letter magnets across the door with your finger, or move the selected note with the arrow keys.",
+      "backToDoor": "Back to the fridge door",
+      "openInDiary": "Open in the diary",
+      "allMemories": "All memories on your fridge door",
+      "memoryListItem": "{{title}}, {{date}}"
     }
   },
   "memoryProduct": {

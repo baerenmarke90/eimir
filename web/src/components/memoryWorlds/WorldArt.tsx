@@ -13,7 +13,8 @@ export type WorldArtKind =
   | 'crate'
   | 'cloud'
   | 'booth'
-  | 'fridge';
+  | 'fridge'
+  | 'album';
 
 type Id = (name: string) => string;
 
@@ -254,6 +255,48 @@ function art(world: WorldArtKind, id: Id, url: Id) {
             </text>
           ))}
           <path d={FRIDGE_HEART_LETTER} fill="#d63c55" />
+        </>
+      );
+    case 'album':
+      return (
+        <>
+          <rect width="160" height="100" fill="#d9e4e1" />
+          <path d="M14 22 Q48 14 80 22 L80 90 Q48 82 14 90Z" fill="#fffdf8" />
+          <path
+            d="M146 22 Q112 14 80 22 L80 90 Q112 82 146 90Z"
+            fill="#f7f3ea"
+          />
+          <line
+            x1="80"
+            y1="22"
+            x2="80"
+            y2="90"
+            stroke="#cfc6b6"
+            strokeWidth="1.5"
+          />
+          <rect
+            x="24"
+            y="28"
+            width="44"
+            height="34"
+            fill="#9fbfc8"
+            transform="rotate(-3 46 45)"
+          />
+          <rect x="30" y="68" width="34" height="4" rx="2" fill="#a79f92" />
+          <rect
+            x="92"
+            y="28"
+            width="44"
+            height="50"
+            fill="#e3b39b"
+            transform="rotate(2 114 53)"
+          />
+          {/* The next page lifting at its corner. */}
+          <path
+            d="M120 22 Q140 30 146 22 L146 90 Q130 84 120 88Z"
+            fill="#ece6d9"
+            opacity="0.9"
+          />
         </>
       );
   }

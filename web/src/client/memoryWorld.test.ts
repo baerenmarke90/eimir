@@ -26,12 +26,14 @@ describe('memory worlds', () => {
       'stack',
       'cloud',
       'booth',
+      'album',
       'crate',
       'fridge',
     ]);
     expect(isProMemoryWorld('story')).toBe(false);
     expect(isProMemoryWorld('stack')).toBe(false);
     expect(isProMemoryWorld('crate')).toBe(true);
+    expect(isProMemoryWorld('album')).toBe(true);
     expect(isProMemoryWorld('fridge')).toBe(true);
     expect(isProMemoryWorld('booth')).toBe(true);
     expect(isProMemoryWorld('cloud')).toBe(true);

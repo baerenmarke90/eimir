@@ -60,8 +60,7 @@ import {
   type MemoryWorldProps,
   type OpenMemoryWorldItem,
   prefersReducedMotion,
-  seasonLabel,
-  seasonOf,
+  seasonSpan,
 } from './model';
 import { MEMORY_WORLD_TOOLBAR_SLOT_ID } from './toolbarSlot';
 import '../../motion/memory-worlds.css';
@@ -112,21 +111,6 @@ export function boothStrips(entries: readonly Entry[]): Entry[][] {
           (_, index) => strip[index % strip.length],
         ),
   );
-}
-
-/** "Sommer 2026", "Frühling – Sommer 2026" or, across years, "2023 – 2026". */
-export function seasonSpan(first: Date, last: Date, t: TFunction): string {
-  const from = seasonOf(first);
-  const to = seasonOf(last);
-  if (from.key === to.key) return seasonLabel(first, t);
-  if (from.year === to.year && from.season !== 'winter')
-    return t('memoryWorlds.booth.span', {
-      from: t(`rediscovery.season.${from.season}`),
-      to: seasonLabel(last, t),
-    });
-  const a = first.getFullYear();
-  const b = last.getFullYear();
-  return a === b ? String(a) : t('memoryWorlds.booth.span', { from: a, to: b });
 }
 
 function stripSpan(strip: readonly Entry[], t: TFunction): string {

@@ -1744,6 +1744,10 @@
         "name": "Photo booth",
         "sentence": "Print your memories as photo strips – classic or modern."
       },
+      "album": {
+        "name": "Photo book",
+        "sentence": "Leaf through your photo book – page by page."
+      },
       "crate": {
         "name": "Record crate",
         "sentence": "Flip through your records and put a memory on."
@@ -4503,6 +4507,38 @@
       "openInDiary": "Open in the diary",
       "allMemories": "All memories on your fridge door",
       "memoryListItem": "{{title}}, {{date}}"
+    },
+    "album": {
+      "heading": "Your photo book",
+      "roleDescription": "Photo book",
+      "label": "Your photo book, page {{page}} of {{count}}",
+      "hint": "Use the arrow keys or Page Up and Page Down to turn the pages, and Home and End to jump to the beginning or the end. On a touchscreen, swipe the page sideways or tap its right or left edge.",
+      "page": "Page {{page}} of {{count}}: {{label}}",
+      "previous": "Previous page",
+      "next": "Next page",
+      "moments_one": "One moment",
+      "moments_other": "{{count}} moments",
+      "winterYear": "{{from}}/{{to}}",
+      "dateRange": "{{from}} – {{to}}",
+      "separator": " · ",
+      "coverMark": "“”",
+      "pageLabel": {
+        "cover": "Cover",
+        "photos": "{{count}} photos",
+        "heart": "Heart moment",
+        "milestone": "Milestone: {{title}}",
+        "end": "To be continued"
+      },
+      "photo": "{{title}}, {{date}}",
+      "heart": "Heart moment from {{name}}: {{title}}",
+      "milestone": "Milestone: {{title}}, {{date}}",
+      "words": "{{title}}, {{date}}",
+      "milestoneKicker": "Milestone",
+      "sign": "– {{name}}",
+      "latest": "Most recent: {{title}}, {{date}}",
+      "endTitle": "To be continued",
+      "endText": "Your diary keeps writing – and with every new memory, so does your photo book.",
+      "restart": "Back to the beginning"
     }
   },
   "memoryProduct": {

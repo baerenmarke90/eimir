@@ -2,8 +2,8 @@
  * The motion layer's catalogue for the memory worlds of Momente ›
  * Erinnerungen (#2283): the Stapel (stack of prints), the Plattenkiste
  * (record crate and turntable), the Momentwolke (bubble cloud), the
- * Fotoautomat (photo booth, in a classic and a modern style) and the
- * Kühlschranktür (fridge door).
+ * Fotoautomat (photo booth, in a classic and a modern style), the
+ * Kühlschranktür (fridge door) and the Fotobuch (photo book).
  *
  * World-scoped timing roles, keyframes and the worlds' loops live here; the
  * world stylesheets only consume the roles. Every animation and transition
@@ -21,12 +21,15 @@
  * bounded stage of a run. The Kühlschranktür has no loops: its notes are
  * pinned up, fall off and settle once per change and never sway (Product
  * Owner decision); its magnet hop and snap and its card flights are Web
- * Animations in `fridgeDoor.ts`.
+ * Animations in `fridgeDoor.ts`. The Fotobuch has no loops: its page turn
+ * is a frame-driven turn in `photoAlbum.ts`; only the closed book's invite
+ * (the cover lifts once at its edge, when the book is first seen) is CSS.
  *
  * The values were tuned on device with the Product Owner (Pixel 10 Pro Fold,
  * 2026-11-24/25) and are kept unchanged from the accepted prototype.
  * Imported by `StackWorld.tsx`, `RecordCrateWorld.tsx`,
- * `MomentCloudWorld.tsx`, `PhotoBoothWorld.tsx` and `FridgeDoorWorld.tsx`.
+ * `MomentCloudWorld.tsx`, `PhotoBoothWorld.tsx`, `FridgeDoorWorld.tsx` and
+ * `PhotoAlbumWorld.tsx`.
  */
 
 /* Shared easings: the exact CSS keyword curves, as named roles. */
@@ -37,7 +40,8 @@
 .memory-cloud-modal,
 .memory-booth-world,
 .memory-booth-viewer,
-.memory-fridge-world {
+.memory-fridge-world,
+.memory-album-world {
   --memory-world-easing-in: cubic-bezier(0.42, 0, 1, 1);
   --memory-world-easing-out: cubic-bezier(0, 0, 0.58, 1);
   --memory-world-easing-in-out: cubic-bezier(0.42, 0, 0.58, 1);
@@ -1101,5 +1105,41 @@
   100% {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+/* ---------- Fotobuch ---------- */
+
+.memory-album-world {
+  /* The closed book invites once: the cover's edge lifts and settles. */
+  --memory-album-invite-duration: 1500ms;
+  --memory-album-invite-delay: 900ms;
+  --memory-album-curve-invite: cubic-bezier(0.37, 0, 0.3, 1);
+}
+
+@keyframes eimir-motion-memory-album-invite {
+  0% {
+    rotate: y 0deg;
+  }
+  40% {
+    rotate: y -15deg;
+  }
+  72% {
+    rotate: y -2deg;
+  }
+  100% {
+    rotate: y 0deg;
+  }
+}
+
+@keyframes eimir-motion-memory-album-invite-shade {
+  0% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.22;
+  }
+  100% {
+    opacity: 0;
   }
 }

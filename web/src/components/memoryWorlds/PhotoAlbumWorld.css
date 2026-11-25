@@ -1,0 +1,1066 @@
+/* Fotobuch: a premium layflat photo book. A linen hardcover opens onto warm
+   white pages; every page is a leaf hinged at the spine that turns over in
+   3D. Type and margins on the pages scale with the book (`--cu` of
+   `.memory-album-book`, see src/client/containerUnits.ts), so the
+   composition is the same at every phone width. The paper, inks and board
+   are world-scoped roles on the root; at night the paper stays warm white,
+   only dimmed, as if lit by a reading lamp. The turn writes transforms and
+   opacities inline (src/motion/photoAlbum.ts); the cover's invite keyframes
+   and timing roles: src/motion/memory-worlds.css. */
+
+.memory-album-world {
+  /* Paper: warm white with a whisper of fibre. */
+  --memory-album-paper: #f8f5ef;
+  --memory-album-paper-edge: #e6dfd3;
+  /* The reverse of a leaf and the endpaper inside the cover. */
+  --memory-album-paper-back: #f0ebe2;
+  --memory-album-endpaper: #e7ddcc;
+  --memory-album-endpaper-line: rgb(120 92 60 / 7%);
+  --memory-album-ink: #24201c;
+  --memory-album-ink-soft: #645b52;
+  --memory-album-rule: #cdc4b6;
+  --memory-album-hole: #e9e3d9;
+  --memory-album-gutter: rgb(60 42 24 / 9%);
+  /* Linen hardcover. */
+  --memory-album-linen: #cdc4b5;
+  --memory-album-linen-ink: #2b2622;
+  --memory-album-linen-ink-soft: #4d443b;
+  --memory-album-linen-weft: rgb(255 255 255 / 7%);
+  --memory-album-linen-warp: rgb(40 28 18 / 6%);
+  --memory-album-deboss-dark: rgb(40 28 18 / 30%);
+  --memory-album-deboss-light: rgb(255 255 255 / 35%);
+  /* Light and shade of the turning leaf (the shade is an RGB triplet). */
+  --memory-album-shade: 13 10 7;
+  --memory-album-highlight: rgb(255 255 255 / 22%);
+  --memory-album-on-photo: #fbf8f2;
+  --memory-album-photo-scrim: rgb(14 10 7 / 70%);
+  /* The action printed on the end page. */
+  --memory-album-action: #2b2622;
+  --memory-album-on-action: #faf7f1;
+  --memory-album-stamp: #2f7d4f;
+  /* The closing print and the vignette of a book without photos. */
+  --memory-album-print: #fdfbf7;
+  --memory-album-vignette-heart: #9e2b25;
+  --memory-album-vignette-heart-fill: rgb(158 43 37 / 12%);
+  /* Heart pages: how much of the diary's emotion surface shows over the paper. */
+  --memory-album-heart-surface-share: 100%;
+  --memory-album-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .4 0 0 0 0 .33 0 0 0 0 .25 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --memory-album-book-shadow:
+    0 1px 2px rgb(var(--memory-album-shade) / 10%),
+    0 22px 36px -20px rgb(var(--memory-album-shade) / 45%);
+
+  display: grid;
+  gap: var(--space-3);
+  min-inline-size: 0;
+  overflow-x: clip;
+}
+
+/* Dark: the paper stays warm white, only dimmed; inks stay dark on it and
+   only the linen board goes deep charcoal. The heart pages keep the light
+   diary's emotion colours, because they sit on paper that stays light. */
+:root[data-theme="dark"] .memory-album-world {
+  --memory-album-paper: #e6e0d4;
+  --memory-album-paper-edge: #c7bdad;
+  --memory-album-paper-back: #ddd6c9;
+  --memory-album-endpaper: #d6ccbb;
+  --memory-album-endpaper-line: rgb(90 64 36 / 8%);
+  --memory-album-ink: #221e1a;
+  --memory-album-ink-soft: #574e45;
+  --memory-album-rule: #b4aa9a;
+  --memory-album-hole: #d3cbbd;
+  --memory-album-gutter: rgb(50 34 18 / 14%);
+  --memory-album-linen: #2c2a28;
+  --memory-album-linen-ink: #efe6d6;
+  --memory-album-linen-ink-soft: #c3b8a6;
+  --memory-album-linen-weft: rgb(255 255 255 / 4%);
+  --memory-album-linen-warp: rgb(0 0 0 / 18%);
+  --memory-album-deboss-dark: rgb(0 0 0 / 55%);
+  --memory-album-deboss-light: rgb(255 255 255 / 8%);
+  --memory-album-shade: 10 7 4;
+  --memory-album-highlight: rgb(255 255 255 / 16%);
+  --memory-album-print: #efebe3;
+  --memory-album-heart-surface-share: 72%;
+  --color-story-heart-moment: #9b2f6a;
+  --emotion-loved-accent: #be3653;
+  --emotion-loved-surface: #fff0f3;
+  --emotion-seen-accent: #5d5aa6;
+  --emotion-seen-surface: #f1f0ff;
+  --emotion-appreciated-accent: #9b5966;
+  --emotion-appreciated-surface: #fbeef1;
+  --emotion-supported-accent: #2f7467;
+  --emotion-supported-surface: #e9f6f2;
+  --emotion-grateful-accent: #9a6320;
+  --emotion-grateful-surface: #fff3df;
+  --emotion-happy-accent: #9a7118;
+  --emotion-happy-surface: #fff7d6;
+  --memory-album-book-shadow:
+    0 0 0 1px rgb(255 255 255 / 4%), 0 24px 40px -18px rgb(0 0 0 / 70%);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .memory-album-world {
+    --memory-album-paper: #e6e0d4;
+    --memory-album-paper-edge: #c7bdad;
+    --memory-album-paper-back: #ddd6c9;
+    --memory-album-endpaper: #d6ccbb;
+    --memory-album-endpaper-line: rgb(90 64 36 / 8%);
+    --memory-album-ink: #221e1a;
+    --memory-album-ink-soft: #574e45;
+    --memory-album-rule: #b4aa9a;
+    --memory-album-hole: #d3cbbd;
+    --memory-album-gutter: rgb(50 34 18 / 14%);
+    --memory-album-linen: #2c2a28;
+    --memory-album-linen-ink: #efe6d6;
+    --memory-album-linen-ink-soft: #c3b8a6;
+    --memory-album-linen-weft: rgb(255 255 255 / 4%);
+    --memory-album-linen-warp: rgb(0 0 0 / 18%);
+    --memory-album-deboss-dark: rgb(0 0 0 / 55%);
+    --memory-album-deboss-light: rgb(255 255 255 / 8%);
+    --memory-album-shade: 10 7 4;
+    --memory-album-highlight: rgb(255 255 255 / 16%);
+    --memory-album-print: #efebe3;
+    --memory-album-heart-surface-share: 72%;
+    --color-story-heart-moment: #9b2f6a;
+    --emotion-loved-accent: #be3653;
+    --emotion-loved-surface: #fff0f3;
+    --emotion-seen-accent: #5d5aa6;
+    --emotion-seen-surface: #f1f0ff;
+    --emotion-appreciated-accent: #9b5966;
+    --emotion-appreciated-surface: #fbeef1;
+    --emotion-supported-accent: #2f7467;
+    --emotion-supported-surface: #e9f6f2;
+    --emotion-grateful-accent: #9a6320;
+    --emotion-grateful-surface: #fff3df;
+    --emotion-happy-accent: #9a7118;
+    --emotion-happy-surface: #fff7d6;
+    --memory-album-book-shadow:
+      0 0 0 1px rgb(255 255 255 / 4%), 0 24px 40px -18px rgb(0 0 0 / 70%);
+  }
+}
+
+/* ---------- The book ---------- */
+.memory-album-book {
+  /* The page margin, in units of the book (declared here, where `--cu`
+     is the book's own unit). */
+  --memory-album-margin: calc(7.5 * var(--cu));
+  position: relative;
+  inline-size: 100%;
+  max-inline-size: 26rem;
+  justify-self: center;
+  margin-block: var(--space-1) 0;
+  /* Vertical swipes keep scrolling the page; horizontal ones turn leaves. */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  border-radius: 3px;
+}
+.memory-album-book:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 6px;
+}
+.memory-album-block {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: 2px;
+  /* What lies beneath the last leaf: the endpaper of the back board. */
+  background: var(--memory-album-endpaper);
+  box-shadow: var(--memory-album-book-shadow);
+}
+/* The page block at the fore-edge and the foot: a few hairlines of paper. */
+.memory-album-block::before,
+.memory-album-block::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+.memory-album-block::before {
+  inset-block: 2px 0;
+  inset-inline-end: -3px;
+  inline-size: 3px;
+  border-radius: 0 2px 2px 0;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--memory-album-paper-edge) 0 1px,
+    var(--memory-album-rule) 1px 1.5px
+  );
+}
+.memory-album-block::after {
+  inset-inline: 2px -3px;
+  inset-block-end: -3px;
+  block-size: 3px;
+  border-radius: 0 0 2px 2px;
+  background: repeating-linear-gradient(
+    0deg,
+    var(--memory-album-paper-edge) 0 1px,
+    var(--memory-album-rule) 1px 1.5px
+  );
+}
+.memory-album-block[data-at="cover"]::before,
+.memory-album-block[data-at="cover"]::after {
+  /* The closed book shows its board, not the pages. */
+  background: var(--memory-album-linen);
+  filter: brightness(0.86);
+}
+
+/* The stage lends the leaves their depth (its perspective is set inline
+   from ALBUM_TURN.perspective). It never clips: a rising leaf may lift over
+   the book's edges like real paper. The stage itself stays flat (no
+   preserve-3d), so leaves stack by role, never by depth sorting. */
+.memory-album-stage {
+  position: absolute;
+  inset: 0;
+  perspective-origin: 50% 50%;
+}
+.memory-album-book[data-turning] .memory-album-stage {
+  pointer-events: none;
+}
+
+/* A leaf: one sheet of paper hinged at the spine (its left edge), with the
+   page on its front face and the reverse of the paper on its back face. The
+   turn writes its transform inline; at rest the role places it. Physical
+   left/width on purpose: the hinge is always on the left. */
+.memory-album-leaf {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 50%;
+  transform-style: preserve-3d;
+}
+.memory-album-leaf[data-role="next"] {
+  z-index: 1;
+}
+.memory-album-leaf[data-role="current"] {
+  z-index: 2;
+}
+.memory-album-leaf[data-role="prev"] {
+  /* Turned over onto the left side; it only shows while it turns back. */
+  z-index: 3;
+  visibility: hidden;
+  transform: rotateY(-180deg);
+}
+.memory-album-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 2px;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.memory-album-sheet {
+  color: var(--memory-album-ink);
+  background: var(--memory-album-grain), var(--memory-album-paper);
+}
+/* The reverse: plain warm paper, the spine (now on its right) a little
+   deeper, and a faint glow of the printed side showing through. */
+.memory-album-back {
+  transform: rotateY(180deg);
+  background:
+    linear-gradient(
+      270deg,
+      var(--memory-album-gutter),
+      transparent calc(7 * var(--cu))
+    ),
+    radial-gradient(
+      60% 45% at 50% 46%,
+      rgb(var(--memory-album-shade) / 4%),
+      transparent
+    ),
+    var(--memory-album-grain), var(--memory-album-paper-back);
+}
+/* Inside the hardcover: a quietly patterned endpaper. */
+.memory-album-leaf[data-page="cover"] .memory-album-back {
+  background:
+    linear-gradient(
+      270deg,
+      var(--memory-album-gutter),
+      transparent calc(9 * var(--cu))
+    ),
+    repeating-linear-gradient(
+      45deg,
+      var(--memory-album-endpaper-line) 0 1px,
+      transparent 1px 7px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      var(--memory-album-endpaper-line) 0 1px,
+      transparent 1px 7px
+    ),
+    var(--memory-album-grain), var(--memory-album-endpaper);
+}
+/* Layflat binding: almost no gutter, only a soft crease at the spine. */
+.memory-album-sheet:not([data-page="cover"])::after {
+  content: "";
+  position: absolute;
+  z-index: 5;
+  inset: 0 auto 0 0;
+  inline-size: calc(6 * var(--cu));
+  background: linear-gradient(90deg, var(--memory-album-gutter), transparent);
+  pointer-events: none;
+}
+
+/* The folio: a small printed page number in the outer (bottom right)
+   corner, in the page's own ink; light on a full-bleed photo, where the
+   caption scrim lies beneath it. */
+.memory-album-folio {
+  position: absolute;
+  z-index: 4;
+  right: calc(4.6 * var(--cu));
+  bottom: calc(3.4 * var(--cu));
+  font-family: var(--font-display);
+  font-size: max(0.75rem, calc(3.1 * var(--cu)));
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--memory-album-ink-soft);
+  pointer-events: none;
+}
+.memory-album-folio[data-on-photo="true"] {
+  color: var(--memory-album-on-photo);
+}
+
+/* Light and shade of a turn. The script only changes their opacity and
+   transform; the gradients themselves never animate. */
+.memory-album-cast,
+.memory-album-shade,
+.memory-album-ridge,
+.memory-album-back-shade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+/* The shadow the rising leaf casts on the page beneath, starting at the
+   leaf's edge; its width and darkness follow the angle. */
+.memory-album-cast {
+  z-index: 6;
+  width: 100%;
+  transform-origin: 0 50%;
+  background: linear-gradient(
+    90deg,
+    rgb(var(--memory-album-shade) / 30%),
+    rgb(var(--memory-album-shade) / 11%) 38%,
+    transparent
+  );
+}
+/* The rising page turns away from the light: deeper towards the spine,
+   where it bends into the gutter, and a dark lip at the curling edge. */
+.memory-album-shade {
+  z-index: 7;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    rgb(var(--memory-album-shade) / 34%) 0%,
+    rgb(var(--memory-album-shade) / 12%) 22%,
+    rgb(var(--memory-album-shade) / 5%) 55%,
+    rgb(var(--memory-album-shade) / 9%) 84%,
+    rgb(var(--memory-album-shade) / 22%) 100%
+  );
+}
+/* A soft highlight ridge travelling across the paper: the curl. Its width
+   matches ALBUM_TURN.ridgeWidth in src/motion/photoAlbum.ts. */
+.memory-album-ridge {
+  z-index: 8;
+  width: 34%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--memory-album-highlight) 50%,
+    transparent
+  );
+}
+/* The reverse is darkest while the leaf stands upright and brightens as it
+   lies down (spine on the right of the reverse). */
+.memory-album-back-shade {
+  width: 100%;
+  background: linear-gradient(
+    270deg,
+    rgb(var(--memory-album-shade) / 36%) 0%,
+    rgb(var(--memory-album-shade) / 14%) 28%,
+    rgb(var(--memory-album-shade) / 6%) 68%,
+    var(--memory-album-highlight) 86%,
+    rgb(var(--memory-album-shade) / 14%) 100%
+  );
+}
+
+/* A closed book that invites: the cover lifts a little at its edge once and
+   settles back (`rotate` combines with the inline turn transform, which is
+   empty at rest). */
+@media (prefers-reduced-motion: no-preference) {
+  .memory-album-leaf[data-invite="true"] {
+    animation: eimir-motion-memory-album-invite
+      var(--memory-album-invite-duration) var(--memory-album-curve-invite)
+      var(--memory-album-invite-delay) both;
+  }
+  .memory-album-leaf[data-invite="true"] .memory-album-shade {
+    animation: eimir-motion-memory-album-invite-shade
+      var(--memory-album-invite-duration) var(--memory-album-curve-invite)
+      var(--memory-album-invite-delay) both;
+  }
+}
+
+/* ---------- Shared type on the pages ---------- */
+.memory-album-small {
+  display: block;
+  font: var(--font-supporting-copy);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--memory-album-ink-soft);
+}
+.memory-album-rule {
+  display: block;
+  inline-size: calc(12 * var(--cu));
+  block-size: 1px;
+  background: var(--memory-album-ink-soft);
+}
+
+/* Photos inside the book fill their frame. */
+.memory-album-world .memory-world-photo {
+  inline-size: 100%;
+  block-size: 100%;
+  aspect-ratio: auto;
+  background: var(--memory-album-hole);
+}
+.memory-album-world
+  .memory-world-photo
+  :is(
+    img,
+    .story-media-preview,
+    .story-media-skeleton,
+    .story-media-placeholder,
+    .sensitive-media-cover
+  ) {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 0;
+  border-radius: 0;
+  object-fit: cover;
+  -webkit-user-drag: none;
+}
+.memory-album-world .story-media-skeleton {
+  background: var(--memory-album-hole);
+}
+
+/* One photo with its caption: a single link. */
+.memory-album-item {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: calc(2.6 * var(--cu));
+  min-block-size: 0;
+  min-inline-size: 0;
+  color: inherit;
+  text-decoration: none;
+  -webkit-user-drag: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.memory-album-item:focus-visible,
+.memory-album-text:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -3px;
+}
+.memory-album-frame {
+  display: block;
+  position: relative;
+  min-block-size: 0;
+  overflow: hidden;
+}
+.memory-album-cap {
+  display: grid;
+  gap: 1px;
+  min-inline-size: 0;
+  font: var(--font-supporting-copy);
+}
+.memory-album-cap-kicker {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--memory-album-ink-soft);
+}
+.memory-album-cap-title {
+  overflow: hidden;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--memory-album-ink);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.memory-album-cap time {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--memory-album-ink-soft);
+}
+
+/* ---------- Photo layouts ---------- */
+.memory-album-spread {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  min-block-size: 0;
+}
+
+/* Full bleed: edge to edge, the caption sits on a quiet scrim. */
+.memory-album-spread[data-layout="bleed"] .memory-album-item {
+  position: relative;
+  display: block;
+  block-size: 100%;
+}
+.memory-album-spread[data-layout="bleed"] .memory-album-frame {
+  position: absolute;
+  inset: 0;
+}
+.memory-album-spread[data-layout="bleed"] .memory-album-cap {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  padding: calc(22 * var(--cu))
+    calc(var(--memory-album-margin) + calc(7 * var(--cu)))
+    var(--memory-album-margin) var(--memory-album-margin);
+  background: linear-gradient(
+    to top,
+    var(--memory-album-photo-scrim),
+    color-mix(in srgb, var(--memory-album-photo-scrim) 80%, transparent) 55%,
+    transparent
+  );
+}
+.memory-album-spread[data-layout="bleed"]
+  :is(
+    .memory-album-cap-title,
+    .memory-album-cap time,
+    .memory-album-cap-kicker
+  ) {
+  color: var(--memory-album-on-photo);
+}
+.memory-album-spread[data-layout="bleed"] .memory-album-cap-title {
+  font-family: var(--font-display);
+  font-size: calc(5.4 * var(--cu));
+  font-weight: 450;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* Framed: one photo with generous, exact white margins. */
+.memory-album-spread[data-layout="framed"] {
+  padding: calc(13 * var(--cu)) calc(13 * var(--cu)) calc(9 * var(--cu));
+}
+.memory-album-spread[data-layout="framed"] .memory-album-cap {
+  justify-items: center;
+  text-align: center;
+}
+
+/* Feature: a photo and its words set large, like a magazine opener. */
+.memory-album-spread[data-layout="feature"] {
+  padding: var(--memory-album-margin) var(--memory-album-margin)
+    calc(var(--memory-album-margin) * 0.9);
+}
+.memory-album-spread[data-layout="feature"] .memory-album-item {
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: calc(4 * var(--cu));
+}
+.memory-album-spread[data-layout="feature"] .memory-album-cap {
+  gap: calc(1.4 * var(--cu));
+}
+.memory-album-spread[data-layout="feature"] .memory-album-cap-title {
+  font-family: var(--font-display);
+  font-size: calc(6.6 * var(--cu));
+  font-weight: 420;
+  line-height: 1.18;
+  letter-spacing: -0.01em;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+/* Stack: two landscape photos, the second set in from the spine. */
+.memory-album-spread[data-layout="stack"] {
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  gap: calc(5 * var(--cu));
+  padding: var(--memory-album-margin);
+}
+.memory-album-spread[data-layout="stack"] .memory-album-item:nth-child(2) {
+  margin-inline-start: calc(18 * var(--cu));
+}
+
+/* Pair: two portrait photos side by side, staggered. */
+.memory-album-spread[data-layout="pair"] {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: calc(3.5 * var(--cu));
+  padding: var(--memory-album-margin);
+}
+.memory-album-spread[data-layout="pair"] .memory-album-item:nth-child(1) {
+  margin-block-end: calc(14 * var(--cu));
+}
+.memory-album-spread[data-layout="pair"] .memory-album-item:nth-child(2) {
+  margin-block-start: calc(14 * var(--cu));
+}
+.memory-album-spread[data-layout="pair"] .memory-album-cap-title {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* Mosaic: one large photo and two small ones, asymmetric. */
+.memory-album-spread:is([data-layout="mosaic"], [data-layout="mosaic-mirror"]) {
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: calc(4 * var(--cu));
+  padding: var(--memory-album-margin);
+}
+.memory-album-tiles {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  gap: calc(1.8 * var(--cu));
+  min-block-size: 0;
+}
+.memory-album-spread .memory-album-tiles .memory-album-item {
+  grid-template-rows: minmax(0, 1fr);
+  gap: 0;
+}
+.memory-album-tiles .memory-album-item:first-child {
+  grid-row: 1 / span 2;
+}
+.memory-album-spread[data-layout="mosaic-mirror"] .memory-album-tiles {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr);
+}
+.memory-album-spread[data-layout="mosaic-mirror"]
+  .memory-album-tiles
+  .memory-album-item:first-child {
+  grid-column: 2;
+}
+.memory-album-spread[data-layout="mosaic-mirror"]
+  .memory-album-tiles
+  .memory-album-item:not(:first-child) {
+  grid-column: 1;
+}
+.memory-album-mosaic-cap {
+  display: grid;
+  gap: 2px;
+  font: var(--font-supporting-copy);
+}
+.memory-album-spread .memory-album-mosaic-cap .memory-album-cap-title {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+.memory-album-mosaic-cap .memory-album-small {
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- Text pages: heart moments, milestones, words ---------- */
+.memory-album-text {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  min-block-size: 0;
+  overflow: hidden;
+  color: var(--memory-album-ink);
+  text-decoration: none;
+  -webkit-user-drag: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Heart moment: a large typographic quote; the heart carries the feeling. */
+.memory-album-text[data-kind="heart"] {
+  background:
+    var(--memory-album-grain),
+    color-mix(
+      in srgb,
+      var(--heart-emotion-surface, var(--memory-album-paper))
+        var(--memory-album-heart-surface-share),
+      var(--memory-album-paper)
+    );
+  align-content: center;
+  justify-items: start;
+  gap: calc(4.5 * var(--cu));
+  padding: calc(12 * var(--cu))
+    calc(var(--memory-album-margin) + calc(2 * var(--cu))) calc(12 * var(--cu))
+    calc(var(--memory-album-margin) + calc(3 * var(--cu)));
+}
+.memory-album-heart {
+  inline-size: calc(6.4 * var(--cu));
+  block-size: calc(6 * var(--cu));
+  fill: var(--heart-emotion-accent, var(--color-story-heart-moment));
+}
+/* The quotation marks follow the document language. */
+.memory-album-quote {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 9;
+  line-clamp: 9;
+  overflow: hidden;
+  quotes: auto;
+  font-family: var(--font-display);
+  font-size: calc(8.2 * var(--cu));
+  font-weight: 380;
+  line-height: 1.22;
+  letter-spacing: -0.012em;
+  text-wrap: pretty;
+  color: var(--memory-album-ink);
+}
+.memory-album-quote[data-length="medium"] {
+  font-size: calc(6.4 * var(--cu));
+  line-height: 1.28;
+  -webkit-line-clamp: 10;
+  line-clamp: 10;
+}
+.memory-album-quote[data-length="long"] {
+  font-size: calc(5 * var(--cu));
+  line-height: 1.38;
+  -webkit-line-clamp: 13;
+  line-clamp: 13;
+}
+.memory-album-sign {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.9rem;
+  font: var(--font-supporting-copy);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--memory-album-ink);
+}
+.memory-album-sign time {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--memory-album-ink-soft);
+}
+
+/* Milestone: a minimal chapter mark with a large date. */
+.memory-album-text[data-kind="milestone"] {
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: var(--memory-album-margin) var(--memory-album-margin)
+    calc(var(--memory-album-margin) * 1.3)
+    calc(var(--memory-album-margin) + calc(3 * var(--cu)));
+}
+.memory-album-mark-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: var(--space-3);
+}
+.memory-album-sheet .momente-keepsake-stamp-mark {
+  --color-story-milestone: var(--memory-album-stamp);
+}
+.memory-album-mark-head .memory-album-stamp {
+  flex: none;
+  inline-size: calc(11 * var(--cu));
+  block-size: calc(11 * var(--cu));
+  opacity: 0.85;
+  rotate: -8deg;
+}
+.memory-album-mark {
+  display: grid;
+  align-content: end;
+  justify-items: start;
+  gap: calc(2.6 * var(--cu));
+  min-block-size: 0;
+}
+.memory-album-mark-day {
+  font-family: var(--font-display);
+  font-size: calc(34 * var(--cu));
+  font-weight: 250;
+  line-height: 0.86;
+  letter-spacing: -0.04em;
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--memory-album-ink);
+}
+.memory-album-mark-month {
+  font-family: var(--font-display);
+  font-size: calc(5.6 * var(--cu));
+  font-weight: 400;
+  color: var(--memory-album-ink);
+}
+.memory-album-mark .memory-album-rule {
+  margin-block: calc(1.5 * var(--cu));
+}
+.memory-album-mark-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  font: var(--font-supporting-copy);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--memory-album-ink);
+}
+
+/* Words: a clean text page with lots of air. */
+.memory-album-text[data-kind="words"] {
+  align-content: center;
+  justify-items: start;
+  gap: calc(5 * var(--cu));
+  padding: calc(14 * var(--cu))
+    calc(var(--memory-album-margin) + calc(4 * var(--cu))) calc(14 * var(--cu))
+    calc(var(--memory-album-margin) + calc(3 * var(--cu)));
+}
+.memory-album-words {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 10;
+  line-clamp: 10;
+  overflow: hidden;
+  padding-inline-start: calc(4.5 * var(--cu));
+  border-inline-start: 1px solid var(--memory-album-rule);
+  font-family: var(--font-display);
+  font-size: calc(6.4 * var(--cu));
+  font-weight: 380;
+  line-height: 1.35;
+  text-wrap: pretty;
+  color: var(--memory-album-ink);
+}
+.memory-album-words[data-length="short"] {
+  font-size: calc(7.6 * var(--cu));
+  line-height: 1.25;
+}
+.memory-album-words[data-length="long"] {
+  font-size: calc(5 * var(--cu));
+  line-height: 1.45;
+  -webkit-line-clamp: 13;
+  line-clamp: 13;
+}
+
+/* ---------- Season chapter opener ---------- */
+.memory-album-opener {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: calc(var(--memory-album-margin) * 1.2) var(--memory-album-margin)
+    calc(var(--memory-album-margin) * 1.6)
+    calc(var(--memory-album-margin) + calc(3 * var(--cu)));
+  cursor: pointer;
+}
+.memory-album-opener-words {
+  display: grid;
+  align-content: end;
+  justify-items: start;
+  gap: calc(3.4 * var(--cu));
+}
+.memory-album-season {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: calc(17 * var(--cu));
+  font-weight: 300;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  color: var(--memory-album-ink);
+}
+.memory-album-year {
+  font-family: var(--font-display);
+  font-size: calc(7.4 * var(--cu));
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  font-variant-numeric: lining-nums;
+  color: var(--memory-album-ink-soft);
+}
+
+/* ---------- Cover: linen board with a debossed photo window ---------- */
+.memory-album-cover {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  justify-items: center;
+  gap: calc(1.6 * var(--cu));
+  padding: calc(12 * var(--cu)) calc(13 * var(--cu)) calc(10 * var(--cu))
+    calc(15 * var(--cu));
+  color: var(--memory-album-linen-ink);
+  background:
+    repeating-linear-gradient(
+      0deg,
+      var(--memory-album-linen-weft) 0 1px,
+      transparent 1px 3px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      var(--memory-album-linen-warp) 0 1px,
+      transparent 1px 3px
+    ),
+    var(--memory-album-grain), var(--memory-album-linen);
+  cursor: pointer;
+}
+/* The hinge groove of a hardcover, near the spine. */
+.memory-album-cover::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(5.5 * var(--cu));
+  inline-size: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--memory-album-deboss-dark) 0 1px,
+    var(--memory-album-deboss-light) 1px 2px
+  );
+  pointer-events: none;
+}
+.memory-album-cover-window {
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  min-block-size: 0;
+  margin-block-end: calc(5 * var(--cu));
+  overflow: hidden;
+  border-radius: 1px;
+  background: var(--memory-album-hole);
+}
+.memory-album-cover-window::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow:
+    inset 0 2px 3px var(--memory-album-deboss-dark),
+    inset 0 -1px 0 var(--memory-album-deboss-light);
+}
+.memory-album-cover-window[data-empty="true"] {
+  background: var(--memory-album-paper);
+}
+.memory-album-cover-mark {
+  font-family: var(--font-display);
+  font-size: calc(26 * var(--cu));
+  font-weight: 300;
+  line-height: 1;
+  color: var(--memory-album-ink-soft);
+}
+.memory-album-cover-title {
+  font-family: var(--font-display);
+  font-size: calc(6.6 * var(--cu));
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  text-align: center;
+  color: var(--memory-album-linen-ink);
+}
+.memory-album-cover-meta {
+  font: var(--font-supporting-copy);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--memory-album-linen-ink-soft);
+}
+
+/* ---------- End page ---------- */
+.memory-album-end {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: calc(2.6 * var(--cu));
+  padding: calc(7 * var(--cu)) var(--memory-album-margin) calc(8 * var(--cu));
+  text-align: center;
+}
+/* The closing picture: the most recent photo as a print laid in slightly
+   askew, with a white border and a soft contact shadow (static). */
+.memory-album-end-print {
+  display: block;
+  inline-size: calc(48 * var(--cu));
+  margin-block-end: calc(2.4 * var(--cu));
+  padding: calc(2.2 * var(--cu)) calc(2.2 * var(--cu)) calc(5.5 * var(--cu));
+  background: var(--memory-album-print);
+  box-shadow:
+    0 0 0 1px rgb(var(--memory-album-shade) / 6%),
+    0 1px 1.5px rgb(var(--memory-album-shade) / 16%),
+    0 6px 12px -6px rgb(var(--memory-album-shade) / 30%);
+  rotate: -2.2deg;
+  -webkit-user-drag: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.memory-album-end-print:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+.memory-album-end-photo {
+  display: block;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+}
+/* Without photos: a small printed vignette, a pen that has drawn a heart. */
+.memory-album-end-vignette {
+  inline-size: calc(40 * var(--cu));
+  block-size: auto;
+  margin-block-end: calc(2.4 * var(--cu));
+  overflow: visible;
+}
+.memory-album-end-vignette-line {
+  fill: none;
+  stroke: var(--memory-album-ink-soft);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.memory-album-end-vignette-heart {
+  fill: var(--memory-album-vignette-heart-fill);
+  stroke: var(--memory-album-vignette-heart);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+.memory-album-end-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: calc(8.6 * var(--cu));
+  font-weight: 340;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  color: var(--memory-album-ink);
+}
+.memory-album-end-text {
+  max-inline-size: 30ch;
+  margin: 0 0 calc(2 * var(--cu));
+  font: var(--font-supporting-copy);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--memory-album-ink-soft);
+}
+/* The one action of the end page, printed on the paper. */
+.memory-album-world button.memory-album-end-action {
+  min-block-size: 44px;
+  padding: 0 1.4rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--memory-album-action);
+  color: var(--memory-album-on-action);
+  font: var(--font-supporting-copy);
+  font-size: 0.92rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+/* The app scales and tints every pressed button; this one is printed. */
+.memory-album-world button.memory-album-end-action:is(:active, :disabled) {
+  scale: none;
+  transform: none;
+  filter: none;
+  box-shadow: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .memory-album-world button.memory-album-end-action {
+    transition: opacity var(--duration-feedback) var(--easing-standard);
+  }
+  .memory-album-world button.memory-album-end-action:active {
+    opacity: 0.85;
+  }
+}

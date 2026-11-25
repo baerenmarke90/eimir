@@ -103,9 +103,10 @@ export const REGISTERED_POINTER_TRACKING = Object.freeze({
   // The memory worlds (#2283): the Stapel's sideways swipe of the top print,
   // the Plattenkiste's crate flip, record scratch, tonearm and lyric scrub,
   // the Momentwolke's cloud pan / bubble fling and card swipe-to-close, the
-  // Fotoautomat's coin drag and the waving of the wet strip, and the
+  // Fotoautomat's coin drag and the waving of the wet strip, the
   // Kühlschranktür's note and letter drag with its touch scroll-or-drag
-  // decision (gesture, not yet on the building block; Motion Contract 4.6).
+  // decision, and the Fotobuch's page that follows the finger around the
+  // spine (gesture, not yet on the building block; Motion Contract 4.6).
   'src/components/memoryWorlds/FridgeDoorWorld.tsx': {
     use: 'gesture',
     count: 2,
@@ -113,6 +114,10 @@ export const REGISTERED_POINTER_TRACKING = Object.freeze({
   'src/components/memoryWorlds/MomentCloudWorld.tsx': {
     use: 'gesture',
     count: 2,
+  },
+  'src/components/memoryWorlds/PhotoAlbumWorld.tsx': {
+    use: 'gesture',
+    count: 1,
   },
   'src/components/memoryWorlds/PhotoBoothWorld.tsx': {
     use: 'gesture',

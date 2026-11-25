@@ -247,3 +247,22 @@ export function seasonLabel(date: Date, t: TFunction): string {
     year,
   });
 }
+
+/**
+ * The seasons from `first` to `last`: "Sommer 2026", "Frühling – Sommer 2026"
+ * or, across years, "2023 – 2026" (the Fotoautomat's strips and the
+ * Fotobuch's cover share the span template).
+ */
+export function seasonSpan(first: Date, last: Date, t: TFunction): string {
+  const from = seasonOf(first);
+  const to = seasonOf(last);
+  if (from.key === to.key) return seasonLabel(first, t);
+  if (from.year === to.year && from.season !== 'winter')
+    return t('memoryWorlds.booth.span', {
+      from: t(`rediscovery.season.${from.season}`),
+      to: seasonLabel(last, t),
+    });
+  const a = first.getFullYear();
+  const b = last.getFullYear();
+  return a === b ? String(a) : t('memoryWorlds.booth.span', { from: a, to: b });
+}

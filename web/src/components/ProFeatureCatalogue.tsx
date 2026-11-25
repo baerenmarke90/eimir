@@ -21,7 +21,7 @@ const FEATURE_GROUPS = [
   {
     id: 'style',
     icon: 'pen',
-    features: ['wirDesigns', 'appIcons', 'personColours'],
+    features: ['wirDesigns', 'appIcons', 'personColours', 'memoryWorlds'],
   },
   {
     id: 'integrations',

@@ -3,6 +3,7 @@ import { AppIconSettingsPanel } from './AppIconSettingsPanel';
 import { HapticsSettings } from './HapticsSettings';
 import { LanguageSettings } from './LanguageSettings';
 import { MomentsLayoutSettings } from './MomentsLayoutSettings';
+import { MemoryWorldSettings } from './MemoryWorldSettings';
 import { PersonColoursSettings } from './PersonColoursSettings';
 import { ThemeControl } from './ThemeControl';
 import { DesignPaletteSettings, WirDesignSettings } from './WirDesignSettings';
@@ -36,6 +37,7 @@ export function ProfileAppearancePanel({
       <DesignPaletteSettings />
       <WirDesignSettings />
       <MomentsLayoutSettings />
+      <MemoryWorldSettings />
       <HapticsSettings />
       <AppIconSettingsPanel />
     </div>

@@ -1,0 +1,3009 @@
+/* Plattenkiste: a birch-plywood record crate and a minimalist turntable in
+   soft studio light. Crate geometry is in crate units of the crate
+   (100 x 78), turntable geometry in units of the deck, cover type in units of
+   the sleeve (`--cu`, see src/client/containerUnits.ts). The crate, sleeves
+   and turntable are physical objects: their materials are world-scoped roles
+   defined on the root and dimmed for Dark. Motion: src/motion/memory-worlds.css. */
+
+/* The handwriting face of the heart moment note (bundled with the app, OFL). */
+@font-face {
+  font-family: "Caveat";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/caveat-latin-700.woff2") format("woff2");
+}
+
+.memory-crate-world {
+  --memory-crate-hand: "Caveat", cursive;
+  /* Light and shade on the objects' surfaces. */
+  --memory-crate-highlight: #ffffff;
+  --memory-crate-shadow-ink: #000000;
+  --memory-crate-led-ink: #1d1a14;
+  /* Birch plywood bin */
+  --memory-crate-ply-hi: #f2e5cc;
+  --memory-crate-ply: #e5d2b0;
+  --memory-crate-ply-deep: #d2bb94;
+  --memory-crate-ply-edge-a: #f6ecd8;
+  --memory-crate-ply-edge-b: #c2a57a;
+  --memory-crate-ply-in-top: #e0cba6;
+  --memory-crate-ply-in: #bba07a;
+  --memory-crate-ply-in-deep: #866c4c;
+  --memory-crate-ply-grain: color-mix(in srgb, #9a7a4a 8%, transparent);
+  --memory-crate-hole: #2c241b;
+  --memory-crate-hole-in: #54432f;
+  --memory-crate-studio-light: color-mix(in srgb, #ffffff 34%, transparent);
+  --memory-crate-cut-shadow: color-mix(in srgb, #000000 42%, transparent);
+  --memory-crate-edge-shadow: color-mix(in srgb, #5a4128 24%, transparent);
+  --memory-crate-floor-contact: color-mix(in srgb, #2d2216 30%, transparent);
+  --memory-crate-floor-ambient: color-mix(in srgb, #2d2216 14%, transparent);
+
+  /* Sleeves */
+  --memory-crate-shade: #1a110a;
+  --memory-crate-sleeve-edge: color-mix(in srgb, #fffaf0 55%, transparent);
+  --memory-crate-ring-light: color-mix(in srgb, #fff6e2 14%, transparent);
+  --memory-crate-ring-dark: color-mix(in srgb, #4a3018 9%, transparent);
+  --memory-crate-gloss: color-mix(in srgb, #ffffff 13%, transparent);
+  --memory-crate-edge-hi: color-mix(in srgb, #ffffff 16%, transparent);
+  --memory-crate-edge-wear: color-mix(in srgb, #3a2412 7%, transparent);
+  --memory-crate-cover-dim: transparent;
+  --memory-crate-ink: #2b2420;
+  --memory-crate-cream: #f6eee0;
+  --memory-crate-paper: #f3e8cf;
+  --memory-crate-paper-fibre: color-mix(in srgb, #9c7a45 6%, transparent);
+  --memory-crate-sand: #eadcc2;
+  --memory-crate-sage: #c6d1bb;
+  --memory-crate-sage-ink: #1f281d;
+  --memory-crate-night: #2c2a34;
+  --memory-crate-night-ink: #f3e9d2;
+  --memory-crate-photo-edge: #5f4c3f;
+
+  /* Turntable: matte plinth, aluminium, graphite */
+  --memory-crate-plinth-hi: #f7f5f0;
+  --memory-crate-plinth: #ebe8e1;
+  --memory-crate-plinth-deep: #dcd8cf;
+  --memory-crate-plinth-front-hi: #e3dfd6;
+  --memory-crate-plinth-front: #d5d0c6;
+  --memory-crate-plinth-front-deep: #c5bfb3;
+  --memory-crate-bevel: color-mix(in srgb, #ffffff 75%, transparent);
+  --memory-crate-alu-hi: #fbfbfa;
+  --memory-crate-alu: #d3d5d6;
+  --memory-crate-alu-mid: #aeb1b3;
+  --memory-crate-alu-deep: #7f8386;
+  --memory-crate-graphite: #26262a;
+  --memory-crate-graphite-hi: #3d3d42;
+  --memory-crate-felt: #2b2b2d;
+  --memory-crate-felt-fleck: color-mix(in srgb, #ffffff 4%, transparent);
+  --memory-crate-vinyl: #121111;
+  --memory-crate-groove-a: #161515;
+  --memory-crate-groove-b: #222121;
+  --memory-crate-groove-band: color-mix(in srgb, #ffffff 6%, transparent);
+  --memory-crate-groove-band-soft: color-mix(in srgb, #ffffff 3%, transparent);
+  --memory-crate-sheen: color-mix(in srgb, #ffffff 16%, transparent);
+  --memory-crate-led: #ffb547;
+  --memory-crate-led-off: #c2bcb1;
+  --memory-crate-arm-shadow: color-mix(in srgb, #1b140d 20%, transparent);
+  --memory-crate-deck-shadow: color-mix(in srgb, #2a2118 24%, transparent);
+  --memory-crate-deck-shadow-soft: color-mix(in srgb, #2a2118 12%, transparent);
+
+  /* Display strip */
+  --memory-crate-screen-top: #1a1a1c;
+  --memory-crate-screen-low: #242427;
+  --memory-crate-screen-ring: color-mix(in srgb, #ffffff 8%, transparent);
+  --memory-crate-screen-shine: color-mix(in srgb, #ffffff 5%, transparent);
+  --memory-crate-screen-kicker: #cfc9bd;
+  --memory-crate-screen-title: #f6f3ec;
+  --memory-crate-screen-meta: #dcd6ca;
+  --memory-crate-screen-track: color-mix(in srgb, #ffffff 11%, transparent);
+  --memory-crate-screen-off: #3a3a3e;
+
+  /* Buttons on the turntable */
+  --memory-crate-btn-dark: #26262a;
+  --memory-crate-btn-dark-ink: #f6f3ec;
+  --memory-crate-btn-light-hi: #fbfaf7;
+  --memory-crate-btn-light: #e7e4dd;
+  --memory-crate-btn-light-ink: #26262a;
+  --memory-crate-btn-ring: color-mix(in srgb, #000000 13%, transparent);
+  --memory-crate-btn-inner: color-mix(in srgb, #ffffff 10%, transparent);
+  --memory-crate-btn-inner-light: color-mix(in srgb, #ffffff 70%, transparent);
+  --memory-crate-btn-shadow: color-mix(in srgb, #1a140e 20%, transparent);
+
+  display: grid;
+  gap: var(--space-3);
+  min-inline-size: 0;
+}
+
+:root[data-theme="dark"] .memory-crate-world {
+  --memory-crate-ply-hi: #b6a588;
+  --memory-crate-ply: #a69477;
+  --memory-crate-ply-deep: #8d7a5c;
+  --memory-crate-ply-edge-a: #c0b298;
+  --memory-crate-ply-edge-b: #7d6849;
+  --memory-crate-ply-in-top: #9e8a6a;
+  --memory-crate-ply-in: #706047;
+  --memory-crate-ply-in-deep: #3f3324;
+  --memory-crate-studio-light: color-mix(in srgb, #ffffff 10%, transparent);
+  --memory-crate-floor-contact: color-mix(in srgb, #000000 55%, transparent);
+  --memory-crate-floor-ambient: color-mix(in srgb, #000000 30%, transparent);
+  --memory-crate-shade: #0c0805;
+  --memory-crate-sleeve-edge: color-mix(in srgb, #fff3dc 30%, transparent);
+  --memory-crate-cover-dim: color-mix(in srgb, #0c0704 15%, transparent);
+  --memory-crate-plinth-hi: #cbc7bf;
+  --memory-crate-plinth: #bfbab1;
+  --memory-crate-plinth-deep: #aea89e;
+  --memory-crate-plinth-front-hi: #b7b1a6;
+  --memory-crate-plinth-front: #a9a397;
+  --memory-crate-plinth-front-deep: #989185;
+  --memory-crate-bevel: color-mix(in srgb, #ffffff 34%, transparent);
+  --memory-crate-alu-hi: #dfdfdd;
+  --memory-crate-alu: #b0b2b3;
+  --memory-crate-alu-mid: #8d9092;
+  --memory-crate-alu-deep: #606467;
+  --memory-crate-led-off: #8f897e;
+  --memory-crate-arm-shadow: color-mix(in srgb, #000000 34%, transparent);
+  --memory-crate-deck-shadow: color-mix(in srgb, #000000 52%, transparent);
+  --memory-crate-deck-shadow-soft: color-mix(in srgb, #000000 30%, transparent);
+  --memory-crate-btn-light-hi: #dedbd4;
+  --memory-crate-btn-light: #cbc7bf;
+  --memory-crate-btn-inner-light: color-mix(in srgb, #ffffff 40%, transparent);
+  --memory-crate-btn-shadow: color-mix(in srgb, #000000 40%, transparent);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .memory-crate-world {
+    --memory-crate-ply-hi: #b6a588;
+    --memory-crate-ply: #a69477;
+    --memory-crate-ply-deep: #8d7a5c;
+    --memory-crate-ply-edge-a: #c0b298;
+    --memory-crate-ply-edge-b: #7d6849;
+    --memory-crate-ply-in-top: #9e8a6a;
+    --memory-crate-ply-in: #706047;
+    --memory-crate-ply-in-deep: #3f3324;
+    --memory-crate-studio-light: color-mix(in srgb, #ffffff 10%, transparent);
+    --memory-crate-floor-contact: color-mix(in srgb, #000000 55%, transparent);
+    --memory-crate-floor-ambient: color-mix(in srgb, #000000 30%, transparent);
+    --memory-crate-shade: #0c0805;
+    --memory-crate-sleeve-edge: color-mix(in srgb, #fff3dc 30%, transparent);
+    --memory-crate-cover-dim: color-mix(in srgb, #0c0704 15%, transparent);
+    --memory-crate-plinth-hi: #cbc7bf;
+    --memory-crate-plinth: #bfbab1;
+    --memory-crate-plinth-deep: #aea89e;
+    --memory-crate-plinth-front-hi: #b7b1a6;
+    --memory-crate-plinth-front: #a9a397;
+    --memory-crate-plinth-front-deep: #989185;
+    --memory-crate-bevel: color-mix(in srgb, #ffffff 34%, transparent);
+    --memory-crate-alu-hi: #dfdfdd;
+    --memory-crate-alu: #b0b2b3;
+    --memory-crate-alu-mid: #8d9092;
+    --memory-crate-alu-deep: #606467;
+    --memory-crate-led-off: #8f897e;
+    --memory-crate-arm-shadow: color-mix(in srgb, #000000 34%, transparent);
+    --memory-crate-deck-shadow: color-mix(in srgb, #000000 52%, transparent);
+    --memory-crate-deck-shadow-soft: color-mix(
+      in srgb,
+      var(--memory-crate-shadow-ink) 30%,
+      transparent
+    );
+    --memory-crate-btn-light-hi: #dedbd4;
+    --memory-crate-btn-light: #cbc7bf;
+    --memory-crate-btn-inner-light: color-mix(
+      in srgb,
+      var(--memory-crate-highlight) 40%,
+      transparent
+    );
+    --memory-crate-btn-shadow: color-mix(in srgb, #000000 40%, transparent);
+  }
+}
+
+/* ---------- Crate ---------- */
+
+.memory-crate-crate {
+  position: relative;
+  z-index: 1;
+  inline-size: 100%;
+  max-inline-size: 384px;
+  justify-self: center;
+  aspect-ratio: 100 / 78;
+  border-radius: 14px;
+  outline: none;
+  scroll-margin-top: 88px;
+  touch-action: none;
+  cursor: grab;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.memory-crate-crate:active {
+  cursor: grabbing;
+}
+.memory-crate-crate[data-out="true"] {
+  cursor: pointer;
+}
+.memory-crate-crate:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 6px;
+}
+.memory-crate-crate :where(span) {
+  box-sizing: border-box;
+}
+.memory-crate-crate :where(svg) {
+  display: block;
+  overflow: visible;
+}
+
+/* Soft studio shadow: a tight contact shadow inside a wide ambient one. */
+.memory-crate-floor-shadow {
+  position: absolute;
+  left: calc(6 * var(--cu, 1cqi));
+  top: calc(69 * var(--cu, 1cqi));
+  width: calc(88 * var(--cu, 1cqi));
+  height: calc(11 * var(--cu, 1cqi));
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      ellipse calc(34 * var(--cu, 1cqi)) calc(2.6 * var(--cu, 1cqi)) at 50% 62%,
+      var(--memory-crate-floor-contact),
+      transparent 80%
+    ),
+    radial-gradient(
+      ellipse calc(44 * var(--cu, 1cqi)) calc(5.5 * var(--cu, 1cqi)) at 50% 55%,
+      var(--memory-crate-floor-ambient),
+      transparent 75%
+    );
+  pointer-events: none;
+}
+
+/* The inside of the back panel and the side walls, behind the sleeves. */
+.memory-crate-rim {
+  position: absolute;
+  left: calc(19 * var(--cu, 1cqi));
+  top: calc(49.5 * var(--cu, 1cqi));
+  width: calc(62 * var(--cu, 1cqi));
+  height: calc(8.5 * var(--cu, 1cqi));
+  clip-path: polygon(5% 0, 95% 0, 100% 100%, 0 100%);
+  background: linear-gradient(
+    180deg,
+    var(--memory-crate-ply-in-top) 0 14%,
+    var(--memory-crate-ply-in) 15%,
+    var(--memory-crate-ply-in-deep)
+  );
+  pointer-events: none;
+}
+
+.memory-crate-stage {
+  position: absolute;
+  inset: 0;
+  perspective: calc(260 * var(--cu, 1cqi));
+  perspective-origin: 50% 34.6%;
+  pointer-events: none;
+}
+
+.memory-crate-filler {
+  position: absolute;
+  left: calc(25 * var(--cu, 1cqi));
+  top: calc(24 * var(--cu, 1cqi));
+  width: calc(50 * var(--cu, 1cqi));
+  height: calc(50 * var(--cu, 1cqi));
+  border-radius: calc(0.6 * var(--cu, 1cqi));
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+.memory-crate-sleeve {
+  position: absolute;
+  left: calc(25 * var(--cu-outer, 1cqi));
+  top: calc(24 * var(--cu-outer, 1cqi));
+  width: calc(50 * var(--cu-outer, 1cqi));
+  height: calc(50 * var(--cu-outer, 1cqi));
+  border-radius: calc(0.6 * var(--cu-outer, 1cqi));
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+.memory-crate-sleeve {
+  pointer-events: auto;
+  cursor: inherit;
+}
+.memory-crate-sleeve[data-out="true"] {
+  visibility: hidden;
+}
+/* The cardboard's top edge catches the light: it separates the peeking sleeves.
+   A sleeve is the container of its cover, so its own pseudo-element measures
+   in sleeve units; a filler measures in crate units. */
+.memory-crate-sleeve::after,
+.memory-crate-filler::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(1.4 * var(--cu, 1cqi));
+  border-radius: calc(1.2 * var(--cu, 1cqi)) calc(1.2 * var(--cu, 1cqi)) 0 0;
+  background: linear-gradient(var(--memory-crate-sleeve-edge), transparent);
+  pointer-events: none;
+}
+.memory-crate-filler::after {
+  height: calc(0.7 * var(--cu, 1cqi));
+  border-radius: calc(0.6 * var(--cu, 1cqi)) calc(0.6 * var(--cu, 1cqi)) 0 0;
+}
+.memory-crate-shade {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--memory-crate-shade);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Placeholder sleeves deep in a packed crate: only their top edges ever show. */
+.memory-crate-filler {
+  background: linear-gradient(
+    var(--memory-crate-filler, var(--memory-crate-sand)),
+    color-mix(
+      in srgb,
+      var(--memory-crate-filler, var(--memory-crate-sand)) 80%,
+      var(--memory-crate-shadow-ink)
+    )
+  );
+}
+.memory-crate-filler[data-kind="photo"] {
+  --memory-crate-filler: var(--memory-crate-photo-edge);
+}
+.memory-crate-filler[data-kind="milestone"] {
+  --memory-crate-filler: var(--memory-crate-paper);
+}
+.memory-crate-filler[data-kind="heart"] {
+  --memory-crate-filler: color-mix(
+    in srgb,
+    var(--heart-emotion-accent, var(--color-story-heart-moment)) 42%,
+    var(--memory-crate-cream)
+  );
+}
+.memory-crate-filler[data-tone="sage"] {
+  --memory-crate-filler: var(--memory-crate-sage);
+}
+.memory-crate-filler[data-tone="night"] {
+  --memory-crate-filler: var(--memory-crate-night);
+}
+
+/* Side walls: their plywood top edges, in front of the sleeves. */
+.memory-crate-walls {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.memory-crate-walls::before,
+.memory-crate-walls::after {
+  content: "";
+  position: absolute;
+  top: calc(49.5 * var(--cu, 1cqi));
+  width: calc(4.6 * var(--cu, 1cqi));
+  height: calc(8.4 * var(--cu, 1cqi));
+  background: repeating-linear-gradient(
+    90deg,
+    var(--memory-crate-ply-edge-a) 0 calc(0.3 * var(--cu, 1cqi)),
+    var(--memory-crate-ply-edge-b) calc(0.3 * var(--cu, 1cqi))
+      calc(0.42 * var(--cu, 1cqi))
+  );
+}
+.memory-crate-walls::before {
+  left: calc(18 * var(--cu, 1cqi));
+  clip-path: polygon(65% 0, 100% 0, 52% 100%, 0 100%);
+  border-radius: calc(1.2 * var(--cu, 1cqi)) 0 0 0;
+}
+.memory-crate-walls::after {
+  right: calc(18 * var(--cu, 1cqi));
+  clip-path: polygon(0 0, 35% 0, 100% 100%, 48% 100%);
+  border-radius: 0 calc(1.2 * var(--cu, 1cqi)) 0 0;
+}
+
+/* The front panel: birch plywood with rounded corners and a cut-out handle. */
+.memory-crate-board {
+  position: absolute;
+  left: calc(18 * var(--cu, 1cqi));
+  top: calc(57 * var(--cu, 1cqi));
+  width: calc(64 * var(--cu, 1cqi));
+  height: calc(19 * var(--cu, 1cqi));
+  overflow: hidden;
+  border-radius: calc(1.4 * var(--cu, 1cqi)) calc(1.4 * var(--cu, 1cqi))
+    calc(3.6 * var(--cu, 1cqi)) calc(3.6 * var(--cu, 1cqi));
+  background:
+    repeating-linear-gradient(
+      179.4deg,
+      transparent 0 calc(3.4 * var(--cu, 1cqi)),
+      var(--memory-crate-ply-grain) calc(3.4 * var(--cu, 1cqi))
+        calc(3.8 * var(--cu, 1cqi)),
+      transparent calc(3.8 * var(--cu, 1cqi)) calc(6.4 * var(--cu, 1cqi))
+    ),
+    repeating-linear-gradient(
+      180.8deg,
+      transparent 0 calc(5.1 * var(--cu, 1cqi)),
+      var(--memory-crate-ply-grain) calc(5.1 * var(--cu, 1cqi))
+        calc(5.3 * var(--cu, 1cqi)),
+      transparent calc(5.3 * var(--cu, 1cqi)) calc(8.9 * var(--cu, 1cqi))
+    ),
+    linear-gradient(
+      180deg,
+      var(--memory-crate-ply-hi),
+      var(--memory-crate-ply) 46%,
+      var(--memory-crate-ply-deep)
+    );
+  box-shadow: inset 0 calc(-0.5 * var(--cu, 1cqi)) calc(1.2 * var(--cu, 1cqi))
+    var(--memory-crate-edge-shadow);
+  pointer-events: auto;
+}
+.memory-crate-board > span {
+  position: absolute;
+}
+/* Plywood laminations on the panel's top edge. */
+.memory-crate-board-edge {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(1.8 * var(--cu, 1cqi));
+  border-radius: calc(1.4 * var(--cu, 1cqi)) calc(1.4 * var(--cu, 1cqi)) 0 0;
+  background: repeating-linear-gradient(
+    180deg,
+    var(--memory-crate-ply-edge-a) 0 calc(0.3 * var(--cu, 1cqi)),
+    var(--memory-crate-ply-edge-b) calc(0.3 * var(--cu, 1cqi))
+      calc(0.42 * var(--cu, 1cqi))
+  );
+  box-shadow: 0 calc(0.35 * var(--cu, 1cqi)) calc(0.7 * var(--cu, 1cqi))
+    var(--memory-crate-edge-shadow);
+}
+.memory-crate-handle {
+  left: calc(21 * var(--cu, 1cqi));
+  top: calc(4.4 * var(--cu, 1cqi));
+  width: calc(22 * var(--cu, 1cqi));
+  height: calc(5.2 * var(--cu, 1cqi));
+  border-radius: calc(2.6 * var(--cu, 1cqi));
+  background: linear-gradient(
+    180deg,
+    var(--memory-crate-hole) 0 45%,
+    var(--memory-crate-hole-in)
+  );
+  box-shadow:
+    inset 0 calc(0.9 * var(--cu, 1cqi)) calc(1.1 * var(--cu, 1cqi))
+    var(--memory-crate-cut-shadow),
+    0 calc(0.4 * var(--cu, 1cqi)) 0 var(--memory-crate-ply-edge-a),
+    0 calc(0.55 * var(--cu, 1cqi)) 0 var(--memory-crate-ply-edge-b);
+}
+/* Soft studio light from the top left. */
+.memory-crate-board-light {
+  inset: 0;
+  background: radial-gradient(
+    ellipse calc(46 * var(--cu, 1cqi)) calc(16 * var(--cu, 1cqi)) at 26% 0%,
+    var(--memory-crate-studio-light),
+    transparent 72%
+  );
+  pointer-events: none;
+}
+
+/* A sparse crate: the few sleeves lean back into the empty space. */
+.memory-crate-crate[data-fill="few"] .memory-crate-rim {
+  top: calc(47 * var(--cu, 1cqi));
+  height: calc(11 * var(--cu, 1cqi));
+}
+/* A packed crate sits a little heavier. */
+.memory-crate-crate[data-fill="packed"] .memory-crate-floor-shadow {
+  left: calc(4 * var(--cu, 1cqi));
+  width: calc(92 * var(--cu, 1cqi));
+}
+
+/* ---------- Sleeve covers (cqi = the sleeve's width) ----------
+   The sleeves show only what a record is (Erinnerung, Herzmoment, Meilenstein)
+   and a small printed month; the memory itself is on the inlay. */
+
+.memory-crate-world {
+  --memory-crate-memory-sand: #eadcc2;
+  --memory-crate-memory-paper: #f1eadc;
+  --memory-crate-memory-stone: #ddd5c6;
+  --memory-crate-print-ochre: #c98d3a;
+  --memory-crate-milestone-green: #22603b;
+  --memory-crate-milestone-green-hi: #2f7d4f;
+  --memory-crate-milestone-cream: #f3e8cf;
+}
+
+.memory-crate-cover {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  box-sizing: border-box;
+  background: var(--memory-crate-memory-sand);
+  color: var(--memory-crate-ink);
+}
+/* A printed sleeve: faint ring wear where the record presses, gloss, a clean edge. */
+.memory-crate-print {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      transparent 0 calc(43.6 * var(--cu, 1cqi)),
+      var(--memory-crate-ring) calc(44.4 * var(--cu, 1cqi)),
+      transparent calc(45.8 * var(--cu, 1cqi))
+    ),
+    linear-gradient(118deg, var(--memory-crate-gloss) 0%, transparent 36%),
+    linear-gradient(
+      var(--memory-crate-cover-dim),
+      var(--memory-crate-cover-dim)
+    );
+  box-shadow:
+    inset 0 0 0 calc(0.6 * var(--cu, 1cqi)) var(--memory-crate-edge-hi),
+    inset 0 0 0 calc(1.8 * var(--cu, 1cqi)) var(--memory-crate-edge-wear);
+  --memory-crate-ring: var(--memory-crate-ring-dark);
+}
+/* Printed groove rings around the symbol. */
+.memory-crate-cover-rings {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  width: calc(82 * var(--cu, 1cqi));
+  height: calc(82 * var(--cu, 1cqi));
+  margin: calc(-41 * var(--cu, 1cqi)) 0 0 calc(-41 * var(--cu, 1cqi));
+  border-radius: 50%;
+  background: repeating-radial-gradient(
+    circle,
+    transparent 0 calc(2.4 * var(--cu, 1cqi)),
+    var(--memory-crate-rings) calc(2.4 * var(--cu, 1cqi))
+      calc(2.75 * var(--cu, 1cqi))
+  );
+  -webkit-mask: radial-gradient(
+    circle,
+    transparent 0 30%,
+    black 31% 70%,
+    transparent 71%
+  );
+  mask: radial-gradient(
+    circle,
+    transparent 0 30%,
+    black 31% 70%,
+    transparent 71%
+  );
+  --memory-crate-rings: color-mix(
+    in srgb,
+    var(--memory-crate-ink) 7%,
+    transparent
+  );
+}
+.memory-crate-cover-glyph {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  width: calc(46 * var(--cu, 1cqi));
+  height: calc(46 * var(--cu, 1cqi));
+  margin: calc(-23 * var(--cu, 1cqi)) 0 0 calc(-23 * var(--cu, 1cqi));
+  overflow: visible;
+}
+.memory-crate-cover-date {
+  position: absolute;
+  left: calc(7 * var(--cu, 1cqi));
+  top: calc(6.5 * var(--cu, 1cqi));
+  font-family: var(--font-display);
+  font-size: calc(6.4 * var(--cu, 1cqi));
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+/* Erinnerung: a calm paper sleeve with one printed polaroid. */
+.memory-crate-cover[data-kind="memory"][data-tone="paper"] {
+  background: var(--memory-crate-memory-paper);
+}
+.memory-crate-cover[data-kind="memory"][data-tone="stone"] {
+  background: var(--memory-crate-memory-stone);
+}
+.memory-crate-memory-frame {
+  fill: var(--memory-crate-cream);
+  stroke: var(--memory-crate-ink);
+  stroke-width: 1.6;
+}
+.memory-crate-memory-window {
+  fill: var(--memory-crate-ink);
+}
+.memory-crate-memory-sun {
+  fill: var(--memory-crate-print-ochre);
+}
+.memory-crate-memory-hill {
+  fill: var(--memory-crate-memory-sand);
+}
+.memory-crate-memory-line {
+  fill: none;
+  stroke: var(--memory-crate-ink);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  opacity: 0.55;
+}
+
+/* Herzmoment: the colour of its feeling with an embossed heart. */
+.memory-crate-cover[data-kind="heart"] {
+  --memory-crate-accent: var(
+    --heart-emotion-accent,
+    var(--color-story-heart-moment)
+  );
+  background:
+    radial-gradient(
+      circle at 50% 40%,
+      color-mix(
+        in srgb,
+        var(--memory-crate-accent) 45%,
+        var(--memory-crate-cream)
+      ),
+      transparent 62%
+    ),
+    color-mix(
+      in srgb,
+      var(--memory-crate-accent) 55%,
+      var(--memory-crate-cream)
+    );
+}
+.memory-crate-cover[data-kind="heart"] .memory-crate-cover-rings {
+  --memory-crate-rings: color-mix(
+    in srgb,
+    var(--memory-crate-accent) 34%,
+    transparent
+  );
+}
+.memory-crate-heart-fill {
+  fill: color-mix(
+    in srgb,
+    var(--memory-crate-accent) 82%,
+    var(--memory-crate-ink)
+  );
+}
+.memory-crate-heart-emboss {
+  fill: none;
+  stroke: color-mix(in srgb, var(--memory-crate-highlight) 55%, transparent);
+  stroke-width: 0.7;
+}
+.memory-crate-heart-shade {
+  fill: none;
+  stroke: color-mix(in srgb, var(--memory-crate-shadow-ink) 22%, transparent);
+  stroke-width: 0.7;
+}
+
+/* Meilenstein: deep print green with the keepsake stamp in cream. */
+.memory-crate-cover[data-kind="milestone"] {
+  background:
+    radial-gradient(
+      circle at 50% 40%,
+      var(--memory-crate-milestone-green-hi),
+      transparent 62%
+    ),
+    var(--memory-crate-milestone-green);
+  color: var(--memory-crate-milestone-cream);
+}
+.memory-crate-cover[data-kind="milestone"] .memory-crate-cover-rings {
+  --memory-crate-rings: color-mix(
+    in srgb,
+    var(--memory-crate-milestone-cream) 12%,
+    transparent
+  );
+}
+.memory-crate-cover[data-kind="milestone"] .memory-crate-print {
+  --memory-crate-ring: var(--memory-crate-ring-light);
+}
+.memory-crate-cover[data-kind="milestone"] .momente-keepsake-stamp-mark,
+.memory-crate-label[data-kind="milestone"] .momente-keepsake-stamp-mark {
+  --color-story-milestone: var(--memory-crate-milestone-cream);
+}
+
+/* ---------- Turntable (cqi = the deck's width) ---------- */
+
+.memory-crate-world {
+  --memory-crate-graphite-deep: #141416;
+  --memory-crate-graphite-mid: #55555c;
+  --memory-crate-chrome-line: color-mix(in srgb, #ffffff 92%, transparent);
+  --memory-crate-chamfer: color-mix(in srgb, #ffffff 80%, transparent);
+  --memory-crate-front-side: color-mix(in srgb, #2a2118 9%, transparent);
+  --memory-crate-ground: color-mix(in srgb, #2a2118 30%, transparent);
+  --memory-crate-ground-soft: color-mix(in srgb, #2a2118 12%, transparent);
+  --memory-crate-foot: #1d1d20;
+  --memory-crate-recess: color-mix(in srgb, #000000 32%, transparent);
+  --memory-crate-recess-hi: color-mix(in srgb, #ffffff 60%, transparent);
+  --memory-crate-caption: #2f2c28;
+  --memory-crate-machined: color-mix(in srgb, #ffffff 24%, transparent);
+  --memory-crate-machined-dark: color-mix(in srgb, #000000 5%, transparent);
+  --memory-crate-notes-paper: #f4f1ea;
+  --memory-crate-notes-shine: color-mix(in srgb, #ffffff 40%, transparent);
+  --memory-crate-notes-ink: #26262a;
+  --memory-crate-notes-muted: #55524c;
+  --memory-crate-notes-rule: color-mix(in srgb, #26262a 14%, transparent);
+  --memory-crate-notes-current: color-mix(in srgb, #ffb547 18%, transparent);
+  --memory-crate-notes-eq: #b26d0e;
+  --memory-crate-quiet-bg: #26262a;
+  --memory-crate-quiet-ink: #f6f3ec;
+}
+:root[data-theme="dark"] .memory-crate-world {
+  --memory-crate-chamfer: color-mix(in srgb, #ffffff 38%, transparent);
+  --memory-crate-front-side: color-mix(in srgb, #000000 16%, transparent);
+  --memory-crate-ground: color-mix(in srgb, #000000 55%, transparent);
+  --memory-crate-ground-soft: color-mix(in srgb, #000000 30%, transparent);
+  --memory-crate-recess-hi: color-mix(in srgb, #ffffff 26%, transparent);
+  --memory-crate-machined: color-mix(in srgb, #ffffff 14%, transparent);
+  --memory-crate-notes-paper: #d9d5cc;
+  --memory-crate-notes-shine: color-mix(in srgb, #ffffff 14%, transparent);
+  --memory-crate-notes-muted: #4b4843;
+  --memory-crate-notes-rule: color-mix(in srgb, #26262a 20%, transparent);
+  --memory-crate-notes-current: color-mix(in srgb, #ffb547 24%, transparent);
+  --memory-crate-notes-eq: #8f560a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .memory-crate-world {
+    --memory-crate-chamfer: color-mix(in srgb, #ffffff 38%, transparent);
+    --memory-crate-front-side: color-mix(in srgb, #000000 16%, transparent);
+    --memory-crate-ground: color-mix(in srgb, #000000 55%, transparent);
+    --memory-crate-ground-soft: color-mix(in srgb, #000000 30%, transparent);
+    --memory-crate-recess-hi: color-mix(in srgb, #ffffff 26%, transparent);
+    --memory-crate-machined: color-mix(in srgb, #ffffff 14%, transparent);
+    --memory-crate-notes-paper: #d9d5cc;
+    --memory-crate-notes-shine: color-mix(in srgb, #ffffff 14%, transparent);
+    --memory-crate-notes-muted: #4b4843;
+    --memory-crate-notes-rule: color-mix(in srgb, #26262a 20%, transparent);
+    --memory-crate-notes-current: color-mix(in srgb, #ffb547 24%, transparent);
+    --memory-crate-notes-eq: #8f560a;
+  }
+}
+
+.memory-crate-deck {
+  position: relative;
+  z-index: 2;
+  inline-size: 100%;
+  max-inline-size: 420px;
+  justify-self: center;
+  margin-block-end: 12px;
+  scroll-margin-top: 88px;
+}
+.memory-crate-deck :where(span) {
+  box-sizing: border-box;
+}
+.memory-crate-deck :where(svg) {
+  display: block;
+  overflow: visible;
+}
+/* A soft, wide shadow under the whole plinth. */
+.memory-crate-deck::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 2%;
+  right: 2%;
+  bottom: calc(-4.5 * var(--cu, 1cqi));
+  height: calc(12 * var(--cu, 1cqi));
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      ellipse 46% 34% at 50% 50%,
+      var(--memory-crate-ground),
+      transparent 78%
+    ),
+    radial-gradient(
+      ellipse 52% 50% at 50% 50%,
+      var(--memory-crate-ground-soft),
+      transparent 80%
+    );
+  pointer-events: none;
+}
+
+.memory-crate-deck-top {
+  position: relative;
+  display: block;
+  block-size: calc(46 * var(--cu, 1cqi));
+}
+
+/* The top of the plinth, drawn from above and squashed: it is seen at an angle.
+   The plane is a stacking context; every part has an explicit layer: platter,
+   record, arm shadow, spindle, arm base, arm. */
+.memory-crate-plane {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(100 * var(--cu, 1cqi));
+  height: calc(72 * var(--cu, 1cqi));
+  transform: scaleY(0.64);
+  transform-origin: 50% 0;
+}
+.memory-crate-plane > span {
+  position: absolute;
+}
+.memory-crate-plinth {
+  z-index: 0;
+  inset: 0;
+  border-radius: calc(3.5 * var(--cu, 1cqi)) calc(3.5 * var(--cu, 1cqi)) 0 0;
+  background:
+    radial-gradient(
+      ellipse calc(64 * var(--cu, 1cqi)) calc(44 * var(--cu, 1cqi)) at 24% 20%,
+      var(--memory-crate-studio-light),
+      transparent 72%
+    ),
+    linear-gradient(
+      180deg,
+      var(--memory-crate-plinth-deep),
+      var(--memory-crate-plinth) 30%,
+      var(--memory-crate-plinth-hi)
+    );
+  box-shadow:
+    inset 0 calc(0.7 * var(--cu, 1cqi)) 0 var(--memory-crate-bevel),
+    inset 0 calc(-1 * var(--cu, 1cqi)) 0 var(--memory-crate-chamfer);
+}
+
+/* A heavy platter: machined aluminium edge with fine turned rings. */
+.memory-crate-platter-side {
+  z-index: 1;
+  left: calc(40 * var(--cu, 1cqi));
+  top: calc(14.8 * var(--cu, 1cqi));
+  width: calc(52 * var(--cu, 1cqi));
+  height: calc(52 * var(--cu, 1cqi));
+  border-radius: 50%;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      transparent 0 calc(0.32 * var(--cu, 1cqi)),
+      var(--memory-crate-machined-dark) calc(0.32 * var(--cu, 1cqi))
+        calc(0.46 * var(--cu, 1cqi))
+    ),
+    linear-gradient(
+      90deg,
+      var(--memory-crate-alu-deep),
+      var(--memory-crate-alu-mid) 12%,
+      var(--memory-crate-alu-hi) 30%,
+      var(--memory-crate-chrome-line) 34%,
+      var(--memory-crate-alu) 50%,
+      var(--memory-crate-alu-mid) 78%,
+      var(--memory-crate-alu-deep)
+    );
+  box-shadow:
+    0 calc(3.4 * var(--cu, 1cqi)) calc(4.6 * var(--cu, 1cqi))
+    var(--memory-crate-deck-shadow),
+    0 calc(1 * var(--cu, 1cqi)) calc(1.4 * var(--cu, 1cqi))
+    var(--memory-crate-deck-shadow-soft);
+}
+.memory-crate-platter {
+  z-index: 2;
+  left: calc(40 * var(--cu, 1cqi));
+  top: calc(10 * var(--cu, 1cqi));
+  width: calc(52 * var(--cu, 1cqi));
+  height: calc(52 * var(--cu, 1cqi));
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(
+      circle,
+      var(--memory-crate-machined) 0 calc(0.12 * var(--cu, 1cqi)),
+      var(--memory-crate-machined-dark) calc(0.12 * var(--cu, 1cqi))
+        calc(0.26 * var(--cu, 1cqi))
+    ),
+    conic-gradient(
+      from 210deg,
+      var(--memory-crate-alu-hi),
+      var(--memory-crate-alu-mid) 18%,
+      var(--memory-crate-alu) 32%,
+      var(--memory-crate-chrome-line) 47%,
+      var(--memory-crate-alu-mid) 66%,
+      var(--memory-crate-alu) 84%,
+      var(--memory-crate-alu-hi)
+    );
+  box-shadow:
+    inset 0 0 0 calc(0.25 * var(--cu, 1cqi)) var(--memory-crate-alu-deep),
+    inset 0 0 0 calc(0.55 * var(--cu, 1cqi)) var(--memory-crate-alu-hi);
+}
+.memory-crate-mat {
+  position: absolute;
+  inset: calc(1.5 * var(--cu, 1cqi));
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 38% 28%,
+      var(--memory-crate-felt-fleck),
+      transparent 60%
+    ),
+    var(--memory-crate-felt);
+  box-shadow: inset 0 0 0 calc(0.2 * var(--cu, 1cqi))
+    var(--memory-crate-alu-deep);
+}
+.memory-crate-slot {
+  z-index: 3;
+  left: calc(42 * var(--cu, 1cqi));
+  top: calc(12 * var(--cu, 1cqi));
+  width: calc(48 * var(--cu, 1cqi));
+  height: calc(48 * var(--cu, 1cqi));
+}
+.memory-crate-carrier {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  visibility: hidden;
+}
+.memory-crate-carrier[data-shown="true"] {
+  visibility: visible;
+  will-change: transform;
+}
+.memory-crate-carrier[data-scratchable="true"] {
+  touch-action: none;
+  cursor: grab;
+}
+.memory-crate-carrier[data-scratchable="true"]:active {
+  cursor: grabbing;
+}
+/* The record: a smooth lead-in rim, fine grooves, two track gaps, the label area. */
+.memory-crate-vinyl {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle,
+      transparent 0 34%,
+      var(--memory-crate-vinyl) 34.5% 37%,
+      transparent 37.5% 95.5%,
+      var(--memory-crate-groove-b) 96%,
+      var(--memory-crate-vinyl) 98%
+    ),
+    repeating-radial-gradient(
+      circle,
+      var(--memory-crate-groove-a) 0 calc(0.16 * var(--cu, 1cqi)),
+      var(--memory-crate-groove-b) calc(0.16 * var(--cu, 1cqi))
+        calc(0.3 * var(--cu, 1cqi))
+    ),
+    var(--memory-crate-vinyl);
+  box-shadow: 0 calc(0.7 * var(--cu, 1cqi)) calc(1.4 * var(--cu, 1cqi))
+    var(--memory-crate-deck-shadow);
+}
+.memory-crate-carrier[data-shown="true"] .memory-crate-vinyl {
+  will-change: transform;
+}
+/* Uneven groove bands turn with the record, so the spin reads. */
+.memory-crate-grooves {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle,
+      transparent 0 60%,
+      color-mix(in srgb, var(--memory-crate-shadow-ink) 50%, transparent) 60.5%
+        61.2%,
+      transparent 61.7% 79%,
+      color-mix(in srgb, var(--memory-crate-shadow-ink) 50%, transparent) 79.5%
+        80.2%,
+      transparent 80.7%
+    ),
+    conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      var(--memory-crate-groove-band) 14deg,
+      transparent 34deg,
+      transparent 96deg,
+      var(--memory-crate-groove-band-soft) 108deg,
+      transparent 122deg,
+      transparent 200deg,
+      var(--memory-crate-groove-band) 214deg,
+      transparent 236deg,
+      transparent 300deg,
+      var(--memory-crate-groove-band-soft) 318deg,
+      transparent 330deg
+    );
+  -webkit-mask: radial-gradient(
+    circle,
+    transparent 0 37%,
+    black 38% 96%,
+    transparent 96.5%
+  );
+  mask: radial-gradient(
+    circle,
+    transparent 0 37%,
+    black 38% 96%,
+    transparent 96.5%
+  );
+}
+/* The specular sheen: stays with the light, breathes gently while the record turns. */
+.memory-crate-sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 200deg,
+    transparent 0deg,
+    var(--memory-crate-sheen) 20deg,
+    color-mix(in srgb, var(--memory-crate-highlight) 26%, transparent) 26deg,
+    var(--memory-crate-sheen) 32deg,
+    transparent 54deg,
+    transparent 180deg,
+    var(--memory-crate-sheen) 200deg,
+    color-mix(in srgb, var(--memory-crate-highlight) 22%, transparent) 206deg,
+    var(--memory-crate-sheen) 212deg,
+    transparent 234deg
+  );
+  -webkit-mask: radial-gradient(
+    circle,
+    transparent 0 36%,
+    black 37% 96%,
+    transparent 97%
+  );
+  mask: radial-gradient(
+    circle,
+    transparent 0 36%,
+    black 37% 96%,
+    transparent 97%
+  );
+  pointer-events: none;
+}
+
+/* The paper label in the middle of the record. */
+.memory-crate-label {
+  position: absolute;
+  inset: 32%;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--memory-crate-paper);
+}
+.memory-crate-label .memory-world-photo {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  aspect-ratio: auto;
+  border-radius: 50%;
+}
+/* A printed index mark near the label's rim: another cue that it turns. */
+.memory-crate-label::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  left: 46%;
+  top: 6%;
+  width: 8%;
+  height: 8%;
+  border-radius: 50%;
+  background: var(--memory-crate-cream);
+  box-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--memory-crate-shadow-ink) 30%, transparent);
+}
+.memory-crate-label::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle,
+      transparent 0 86%,
+      color-mix(in srgb, var(--memory-crate-shadow-ink) 22%, transparent) 88%,
+      transparent 90%
+    ),
+    linear-gradient(
+      125deg,
+      color-mix(in srgb, var(--memory-crate-highlight) 16%, transparent),
+      transparent 45%
+    );
+  pointer-events: none;
+}
+.memory-crate-label[data-kind="heart"] {
+  --memory-crate-accent: var(
+    --heart-emotion-accent,
+    var(--color-story-heart-moment)
+  );
+  display: grid;
+  place-items: center;
+  background: color-mix(
+    in srgb,
+    var(--memory-crate-accent) 78%,
+    var(--memory-crate-ink)
+  );
+}
+.memory-crate-label-heart {
+  width: 40%;
+  height: 36%;
+  fill: var(--memory-crate-cream);
+}
+.memory-crate-label[data-kind="milestone"] {
+  display: grid;
+  place-items: center;
+}
+.memory-crate-label-stamp {
+  width: 58%;
+  height: 58%;
+}
+.memory-crate-label[data-kind="milestone"]::before,
+.memory-crate-label[data-kind="words"]:not([data-tone="night"])::before {
+  background: var(--memory-crate-ink);
+}
+.memory-crate-label[data-kind="words"] {
+  background:
+    radial-gradient(
+      circle,
+      transparent 0 58%,
+      color-mix(in srgb, currentColor 30%, transparent) 59% 60%,
+      transparent 61%
+    ),
+    var(--memory-crate-sand);
+  color: var(--memory-crate-ink);
+}
+.memory-crate-label[data-kind="words"][data-tone="sage"] {
+  background-color: var(--memory-crate-sage);
+  color: var(--memory-crate-sage-ink);
+}
+.memory-crate-label[data-kind="words"][data-tone="night"] {
+  background-color: var(--memory-crate-night);
+  color: var(--memory-crate-night-ink);
+}
+
+/* A proper spindle: a short polished pin with its own shadow. */
+.memory-crate-spindle {
+  z-index: 5;
+  left: calc(65.3 * var(--cu, 1cqi));
+  top: calc(35.3 * var(--cu, 1cqi));
+  width: calc(1.4 * var(--cu, 1cqi));
+  height: calc(1.4 * var(--cu, 1cqi));
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 34% 28%,
+    var(--memory-crate-chrome-line),
+    var(--memory-crate-alu) 45%,
+    var(--memory-crate-alu-deep) 85%
+  );
+  box-shadow:
+    0 0 0 calc(0.2 * var(--cu, 1cqi)) var(--memory-crate-alu-deep),
+    calc(0.4 * var(--cu, 1cqi)) calc(0.8 * var(--cu, 1cqi))
+    calc(0.6 * var(--cu, 1cqi)) var(--memory-crate-arm-shadow);
+}
+
+/* The arm rest with its clip, where the arm lies when parked. */
+.memory-crate-arm-rest {
+  z-index: 5;
+  left: calc(95.4 * var(--cu, 1cqi));
+  top: calc(44 * var(--cu, 1cqi));
+  width: calc(3.4 * var(--cu, 1cqi));
+  height: calc(3.4 * var(--cu, 1cqi));
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--memory-crate-graphite-mid) 0 30%,
+    var(--memory-crate-graphite) 32% 70%,
+    var(--memory-crate-alu-mid) 72%,
+    var(--memory-crate-alu-deep)
+  );
+  box-shadow: calc(0.4 * var(--cu, 1cqi)) calc(1 * var(--cu, 1cqi))
+    calc(0.9 * var(--cu, 1cqi)) var(--memory-crate-arm-shadow);
+}
+.memory-crate-arm-clip {
+  position: absolute;
+  left: calc(0.2 * var(--cu, 1cqi));
+  top: calc(-1.4 * var(--cu, 1cqi));
+  width: calc(3 * var(--cu, 1cqi));
+  height: calc(2.4 * var(--cu, 1cqi));
+  border: calc(0.45 * var(--cu, 1cqi)) solid var(--memory-crate-alu);
+  border-top: 0;
+  border-radius: 0 0 calc(1.5 * var(--cu, 1cqi)) calc(1.5 * var(--cu, 1cqi));
+}
+
+/* The cue lever: a small graphite plate with a polished handle that tilts. */
+.memory-crate-cue {
+  z-index: 5;
+  left: calc(81.2 * var(--cu, 1cqi));
+  top: calc(16 * var(--cu, 1cqi));
+  width: calc(5 * var(--cu, 1cqi));
+  height: calc(8 * var(--cu, 1cqi));
+  border-radius: calc(1.2 * var(--cu, 1cqi));
+  background: linear-gradient(
+    90deg,
+    var(--memory-crate-graphite-deep),
+    var(--memory-crate-graphite-hi) 45%,
+    var(--memory-crate-graphite)
+  );
+  box-shadow:
+    inset 0 0 0 calc(0.25 * var(--cu, 1cqi)) var(--memory-crate-alu-mid),
+    calc(0.4 * var(--cu, 1cqi)) calc(1.2 * var(--cu, 1cqi))
+    calc(1 * var(--cu, 1cqi)) var(--memory-crate-arm-shadow);
+}
+.memory-crate-cue-handle {
+  position: absolute;
+  left: calc(1.4 * var(--cu, 1cqi));
+  top: calc(-3 * var(--cu, 1cqi));
+  width: calc(2.2 * var(--cu, 1cqi));
+  height: calc(7.4 * var(--cu, 1cqi));
+  border-radius: calc(1.1 * var(--cu, 1cqi));
+  background: linear-gradient(
+    90deg,
+    var(--memory-crate-alu-deep),
+    var(--memory-crate-alu-hi) 42%,
+    var(--memory-crate-chrome-line) 48%,
+    var(--memory-crate-alu-mid)
+  );
+  transform-origin: 50% 88%;
+}
+.memory-crate-deck[data-lifted="true"] .memory-crate-cue-handle {
+  rotate: -34deg;
+}
+.memory-crate-cue-hit {
+  position: absolute;
+  inset: calc(-4 * var(--cu, 1cqi)) calc(-3 * var(--cu, 1cqi));
+  pointer-events: none;
+}
+.memory-crate-cue-hit[data-active="true"] {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* The gimbal bearing housing at the arm's pivot (94, 9 of the plane). */
+.memory-crate-pivot {
+  z-index: 6;
+  left: calc(88.5 * var(--cu, 1cqi));
+  top: calc(3.5 * var(--cu, 1cqi));
+  width: calc(11 * var(--cu, 1cqi));
+  height: calc(11 * var(--cu, 1cqi));
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    transparent 0 55%,
+    var(--memory-crate-graphite-hi) 56%,
+    var(--memory-crate-graphite) 72%,
+    var(--memory-crate-graphite-deep) 100%
+  );
+  box-shadow:
+    inset 0 0 0 calc(0.3 * var(--cu, 1cqi)) var(--memory-crate-alu-mid),
+    calc(0.7 * var(--cu, 1cqi)) calc(1.8 * var(--cu, 1cqi))
+    calc(2 * var(--cu, 1cqi)) var(--memory-crate-arm-shadow);
+}
+.memory-crate-pivot-cap {
+  position: absolute;
+  inset: 20%;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(
+      circle,
+      var(--memory-crate-machined) 0 calc(0.14 * var(--cu, 1cqi)),
+      var(--memory-crate-machined-dark) calc(0.14 * var(--cu, 1cqi))
+        calc(0.3 * var(--cu, 1cqi))
+    ),
+    radial-gradient(
+      circle at 38% 30%,
+      var(--memory-crate-chrome-line),
+      var(--memory-crate-alu) 50%,
+      var(--memory-crate-alu-deep)
+    );
+}
+
+/* Tonearm: straight polished tube, counterweight behind the pivot, headshell
+   with cartridge and finger lift; 44 cqi from the pivot to the stylus. */
+.memory-crate-arm,
+.memory-crate-arm-shadow {
+  left: calc(94 * var(--cu, 1cqi));
+  top: calc(9 * var(--cu, 1cqi));
+  width: 0;
+  height: 0;
+  rotate: -4deg;
+}
+.memory-crate-arm-shadow {
+  z-index: 4;
+  translate: calc(2 * var(--cu, 1cqi)) calc(3.4 * var(--cu, 1cqi));
+  opacity: 0.42;
+}
+.memory-crate-arm {
+  z-index: 7;
+}
+.memory-crate-arm-lift {
+  position: absolute;
+  left: 0;
+  top: 0;
+  translate: 0 calc(-2.4 * var(--cu, 1cqi));
+}
+.memory-crate-arm-lift > span,
+.memory-crate-arm-shadow > span {
+  position: absolute;
+}
+.memory-crate-arm-shadow > span {
+  border-radius: calc(1 * var(--cu, 1cqi));
+  background: var(--memory-crate-arm-shadow);
+}
+.memory-crate-arm-shadow-weight {
+  left: calc(-2.8 * var(--cu, 1cqi));
+  top: calc(-14.2 * var(--cu, 1cqi));
+  width: calc(5.6 * var(--cu, 1cqi));
+  height: calc(8.6 * var(--cu, 1cqi));
+}
+.memory-crate-arm-shadow-tube {
+  left: calc(-0.6 * var(--cu, 1cqi));
+  top: calc(-5.8 * var(--cu, 1cqi));
+  width: calc(1.2 * var(--cu, 1cqi));
+  height: calc(42 * var(--cu, 1cqi));
+}
+.memory-crate-arm-shadow-head {
+  left: calc(-2 * var(--cu, 1cqi));
+  top: calc(35.4 * var(--cu, 1cqi));
+  width: calc(4 * var(--cu, 1cqi));
+  height: calc(8.6 * var(--cu, 1cqi));
+  rotate: 20deg;
+  transform-origin: 50% 0;
+}
+/* The tonearm's touch area: wider than the slim tube, from the weight to the headshell. */
+.memory-crate-arm-hit {
+  left: calc(-4.5 * var(--cu, 1cqi));
+  top: calc(-14 * var(--cu, 1cqi));
+  width: calc(9 * var(--cu, 1cqi));
+  height: calc(60 * var(--cu, 1cqi));
+  border-radius: calc(4 * var(--cu, 1cqi));
+  pointer-events: none;
+}
+.memory-crate-arm-hit[data-active="true"] {
+  pointer-events: auto;
+  touch-action: none;
+  cursor: grab;
+}
+
+/* Angles: parked on the rest, swung onto the lead-in groove, tracking inwards.
+   Hand-placed states take their angle from an inline `rotate`. */
+.memory-crate-deck:is([data-arm="swing"], [data-arm="down"])
+  :is(.memory-crate-arm, .memory-crate-arm-shadow) {
+  rotate: 15.3deg;
+}
+.memory-crate-deck[data-arm="track"]
+  :is(.memory-crate-arm, .memory-crate-arm-shadow) {
+  rotate: 17.5deg;
+}
+.memory-crate-deck:is(
+    [data-arm="down"],
+    [data-arm="track"],
+    [data-arm="handdown"],
+    [data-arm="handplay"]
+  )
+  .memory-crate-arm-lift {
+  translate: 0 0;
+}
+.memory-crate-deck:is(
+    [data-arm="down"],
+    [data-arm="track"],
+    [data-arm="handdown"],
+    [data-arm="handplay"]
+  )
+  .memory-crate-arm-shadow {
+  translate: calc(0.8 * var(--cu, 1cqi)) calc(1.2 * var(--cu, 1cqi));
+  opacity: 0.8;
+}
+
+/* The sleeve stand (a slim aluminium ledge) and the sleeve that is playing. */
+.memory-crate-stand {
+  position: absolute;
+  z-index: 3;
+  left: calc(1.2 * var(--cu, 1cqi));
+  top: calc(34 * var(--cu, 1cqi));
+  width: calc(36.6 * var(--cu, 1cqi));
+  height: calc(2.2 * var(--cu, 1cqi));
+  border-radius: calc(1.1 * var(--cu, 1cqi));
+  background: linear-gradient(
+    180deg,
+    var(--memory-crate-alu-hi),
+    var(--memory-crate-alu) 45%,
+    var(--memory-crate-alu-deep)
+  );
+  box-shadow: 0 calc(0.9 * var(--cu, 1cqi)) calc(1.4 * var(--cu, 1cqi))
+    calc(-0.3 * var(--cu, 1cqi)) var(--memory-crate-deck-shadow);
+}
+.memory-crate-jacket {
+  position: absolute;
+  z-index: 2;
+  left: calc(2.5 * var(--cu, 1cqi));
+  top: calc(1.6 * var(--cu, 1cqi));
+  width: calc(34 * var(--cu, 1cqi));
+  height: calc(34 * var(--cu, 1cqi));
+  visibility: hidden;
+}
+.memory-crate-jacket[data-shown="true"] {
+  visibility: visible;
+  will-change: transform;
+}
+.memory-crate-jacket[data-interactive="true"] {
+  cursor: pointer;
+}
+.memory-crate-jacket-lean {
+  position: absolute;
+  inset: 0;
+  border-radius: calc(0.5 * var(--cu, 1cqi));
+  rotate: -3deg;
+  perspective: calc(220 * var(--cu, 1cqi));
+  box-shadow: calc(0.6 * var(--cu, 1cqi)) calc(1.4 * var(--cu, 1cqi))
+    calc(2.8 * var(--cu, 1cqi)) var(--memory-crate-deck-shadow);
+}
+.memory-crate-jacket-flip {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  transform-style: preserve-3d;
+}
+.memory-crate-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.memory-crate-face[data-side="back"] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.3rem;
+  padding: 5% 6%;
+  box-sizing: border-box;
+  transform: rotateY(180deg);
+  background:
+    linear-gradient(135deg, var(--memory-crate-notes-shine), transparent 40%),
+    var(--memory-crate-notes-paper);
+  color: var(--memory-crate-notes-ink);
+  font-family: var(--font-display);
+}
+
+/* Picked up to read the liner notes: bigger, upright, turned over. */
+.memory-crate-deck[data-flipped="true"] .memory-crate-jacket {
+  z-index: 9;
+  left: calc(16 * var(--cu, 1cqi));
+  top: calc(0.5 * var(--cu, 1cqi));
+  width: calc(68 * var(--cu, 1cqi));
+  height: calc(68 * var(--cu, 1cqi));
+}
+.memory-crate-deck[data-flipped="true"] .memory-crate-jacket-lean {
+  rotate: 0deg;
+  box-shadow:
+    0 calc(2 * var(--cu, 1cqi)) calc(5 * var(--cu, 1cqi))
+    var(--memory-crate-deck-shadow),
+    0 calc(0.6 * var(--cu, 1cqi)) calc(1.2 * var(--cu, 1cqi))
+    var(--memory-crate-deck-shadow-soft);
+}
+.memory-crate-deck[data-flipped="true"] .memory-crate-jacket-flip {
+  transform: rotateY(180deg);
+}
+
+.memory-crate-notes-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding-block-end: 0.25rem;
+  border-block-end: 1px solid var(--memory-crate-notes-rule);
+}
+.memory-crate-notes-side {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.memory-crate-notes-season {
+  overflow: hidden;
+  font-size: 0.75rem;
+  color: var(--memory-crate-notes-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.memory-crate-tracks {
+  display: grid;
+  align-content: start;
+  min-block-size: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+}
+.memory-crate-world button.memory-crate-track,
+.memory-crate-world
+  button.memory-crate-track:is(
+    :hover,
+    :active,
+    :disabled,
+    [data-control-pressed]
+  ) {
+  display: grid;
+  grid-template-columns: 1.6rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem;
+  inline-size: 100%;
+  min-block-size: 1.75rem;
+  margin: 0;
+  padding: 0.15rem 0.2rem;
+  border: 0;
+  border-block-end: 1px solid var(--memory-crate-notes-rule);
+  border-radius: 0;
+  background: transparent;
+  color: var(--memory-crate-notes-ink);
+  font-family: var(--font-display);
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: start;
+  box-shadow: none;
+  scale: none;
+  filter: none;
+  cursor: pointer;
+}
+.memory-crate-world button.memory-crate-track[data-current="true"],
+.memory-crate-world
+  button.memory-crate-track[data-current="true"]:is(
+    :hover,
+    :active,
+    [data-control-pressed]
+  ) {
+  background: var(--memory-crate-notes-current);
+  font-weight: 700;
+}
+.memory-crate-world button.memory-crate-track:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+.memory-crate-track-no {
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--memory-crate-notes-muted);
+}
+.memory-crate-track-title {
+  overflow: hidden;
+  font-size: 0.84rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.memory-crate-track-date {
+  font-size: 0.72rem;
+  color: var(--memory-crate-notes-muted);
+  white-space: nowrap;
+}
+.memory-crate-track-eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  block-size: 0.8rem;
+}
+.memory-crate-track-eq > span {
+  inline-size: 3px;
+  block-size: 100%;
+  border-radius: 1px;
+  background: var(--memory-crate-notes-eq);
+  transform-origin: 50% 100%;
+}
+.memory-crate-track-eq > span:nth-child(1) {
+  transform: scaleY(0.55);
+}
+.memory-crate-track-eq > span:nth-child(2) {
+  transform: scaleY(0.9);
+}
+.memory-crate-track-eq > span:nth-child(3) {
+  transform: scaleY(0.4);
+}
+
+/* Keyboard-only shortcuts on the stand: invisible until focused. */
+.memory-crate-reveal {
+  position: absolute;
+  z-index: 10;
+  left: calc(2 * var(--cu, 1cqi));
+  top: calc(38 * var(--cu, 1cqi));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.memory-crate-world button.memory-crate-quiet,
+.memory-crate-world
+  button.memory-crate-quiet:is(:hover, :active, [data-control-pressed]) {
+  position: relative;
+  inline-size: 1px;
+  block-size: 1px;
+  min-block-size: 0;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  background: var(--memory-crate-quiet-bg);
+  color: var(--memory-crate-quiet-ink);
+  font: var(--font-supporting-copy);
+  font-size: 0.85rem;
+  scale: none;
+  filter: none;
+}
+.memory-crate-world button.memory-crate-quiet:focus-visible {
+  inline-size: auto;
+  block-size: auto;
+  min-block-size: 36px;
+  margin: 0;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  clip-path: none;
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* The plinth's front face: a chamfered edge, a slim display, flush controls. */
+.memory-crate-panel {
+  position: relative;
+  display: grid;
+  gap: calc(2.8 * var(--cu, 1cqi));
+  padding: calc(3.4 * var(--cu, 1cqi)) calc(4.5 * var(--cu, 1cqi))
+    calc(4.6 * var(--cu, 1cqi));
+  border-radius: 0 0 calc(3.5 * var(--cu, 1cqi)) calc(3.5 * var(--cu, 1cqi));
+  background: linear-gradient(
+    180deg,
+    var(--memory-crate-chamfer) 0 calc(0.4 * var(--cu, 1cqi)),
+    var(--memory-crate-plinth-front-hi) calc(0.4 * var(--cu, 1cqi))
+      calc(1.4 * var(--cu, 1cqi)),
+    var(--memory-crate-plinth-front) 42%,
+    var(--memory-crate-plinth-front-deep)
+  );
+  box-shadow:
+    inset calc(1.4 * var(--cu, 1cqi)) 0 calc(1.8 * var(--cu, 1cqi))
+    calc(-1.2 * var(--cu, 1cqi)) var(--memory-crate-front-side),
+    inset calc(-1.4 * var(--cu, 1cqi)) 0 calc(1.8 * var(--cu, 1cqi))
+    calc(-1.2 * var(--cu, 1cqi)) var(--memory-crate-front-side),
+    0 calc(1 * var(--cu, 1cqi)) calc(1.6 * var(--cu, 1cqi))
+    calc(-0.6 * var(--cu, 1cqi)) var(--memory-crate-deck-shadow-soft);
+}
+.memory-crate-feet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(-1.2 * var(--cu, 1cqi));
+  height: calc(1.6 * var(--cu, 1cqi));
+  pointer-events: none;
+}
+.memory-crate-feet::before,
+.memory-crate-feet::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: calc(9 * var(--cu, 1cqi));
+  height: calc(1.6 * var(--cu, 1cqi));
+  border-radius: 0 0 calc(0.8 * var(--cu, 1cqi)) calc(0.8 * var(--cu, 1cqi));
+  background: linear-gradient(
+    180deg,
+    var(--memory-crate-graphite-hi),
+    var(--memory-crate-foot)
+  );
+}
+.memory-crate-feet::before {
+  left: calc(7 * var(--cu, 1cqi));
+}
+.memory-crate-feet::after {
+  right: calc(7 * var(--cu, 1cqi));
+}
+
+.memory-crate-sign {
+  position: relative;
+  display: block;
+  min-block-size: 5.4rem;
+  overflow: hidden;
+  border-radius: 12px;
+  padding: 0.65rem 1rem 0.95rem 2rem;
+  background: linear-gradient(
+    180deg,
+    var(--memory-crate-screen-top),
+    var(--memory-crate-screen-low)
+  );
+  box-shadow:
+    inset 0 0 0 1px var(--memory-crate-screen-ring),
+    inset 0 2px 4px
+    color-mix(in srgb, var(--memory-crate-shadow-ink) 45%, transparent),
+    0 1px 0 var(--memory-crate-recess-hi);
+}
+.memory-crate-lamp {
+  position: absolute;
+  left: 0.85rem;
+  top: 1rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--memory-crate-screen-off);
+}
+.memory-crate-lamp-glow {
+  position: absolute;
+  inset: -0.3rem;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--memory-crate-led) 0 34%,
+    color-mix(in srgb, var(--memory-crate-led) 26%, transparent) 50%,
+    transparent 72%
+  );
+  opacity: 0;
+}
+.memory-crate-sign[data-lit="true"] .memory-crate-lamp-glow {
+  opacity: 1;
+}
+.memory-crate-sign[data-paused="true"] .memory-crate-lamp-glow {
+  opacity: 0;
+}
+.memory-crate-progress {
+  position: absolute;
+  left: 2rem;
+  right: 1rem;
+  bottom: 0.5rem;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 1px;
+  background: var(--memory-crate-screen-track);
+}
+.memory-crate-progress-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--memory-crate-led);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+}
+.memory-crate-sign-kicker {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--memory-crate-screen-kicker);
+}
+
+/* Flush controls: a machined start/stop button with an LED ring, a 33/45 selector. */
+.memory-crate-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.8rem 1.6rem;
+}
+.memory-crate-caption {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--memory-crate-caption);
+}
+.memory-crate-world button.memory-crate-start,
+.memory-crate-world
+  button.memory-crate-start:is(
+    :hover,
+    :active,
+    :disabled,
+    [data-control-pressed]
+  ) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-block-size: 44px;
+  margin: 0;
+  padding: 0 0.35rem 0 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--memory-crate-caption);
+  box-shadow: none;
+  scale: none;
+  filter: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.memory-crate-start-well {
+  position: relative;
+  display: block;
+  inline-size: 44px;
+  block-size: 44px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--memory-crate-plinth-front-deep) 0 62%,
+    var(--memory-crate-plinth-front) 100%
+  );
+  box-shadow:
+    inset 0 1.5px 3px var(--memory-crate-recess),
+    0 1px 0 var(--memory-crate-recess-hi);
+}
+.memory-crate-start-ring {
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    transparent 0 64%,
+    var(--memory-crate-led) 68%,
+    color-mix(in srgb, var(--memory-crate-led) 30%, transparent) 76%,
+    transparent 82%
+  );
+  opacity: 0;
+}
+.memory-crate-deck[data-motor="on"] .memory-crate-start-ring {
+  opacity: 1;
+}
+.memory-crate-start-face {
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(
+      circle,
+      var(--memory-crate-machined) 0 0.7px,
+      var(--memory-crate-machined-dark) 0.7px 1.4px
+    ),
+    radial-gradient(
+      circle at 38% 30%,
+      var(--memory-crate-alu-hi),
+      var(--memory-crate-alu) 55%,
+      var(--memory-crate-alu-mid)
+    );
+  box-shadow:
+    0 1px 1.5px var(--memory-crate-recess),
+    inset 0 0 0 1px var(--memory-crate-btn-ring);
+}
+.memory-crate-world button.memory-crate-start:active .memory-crate-start-face {
+  transform: translateY(0.5px) scale(0.94);
+  box-shadow:
+    0 0 0.5px var(--memory-crate-recess),
+    inset 0 0 0 1px var(--memory-crate-btn-ring);
+}
+.memory-crate-world button.memory-crate-start:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.memory-crate-speed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.memory-crate-speed > .memory-crate-caption {
+  margin-inline-start: 0.35rem;
+}
+.memory-crate-world button.memory-crate-speed-key,
+.memory-crate-world
+  button.memory-crate-speed-key:is(
+    :hover,
+    :active,
+    :disabled,
+    [data-control-pressed]
+  ) {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  inline-size: 44px;
+  block-size: 34px;
+  min-block-size: 34px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      var(--memory-crate-machined) 0 1px,
+      var(--memory-crate-machined-dark) 1px 2px
+    ),
+    linear-gradient(
+      180deg,
+      var(--memory-crate-alu-hi),
+      var(--memory-crate-alu) 60%,
+      var(--memory-crate-alu-mid)
+    );
+  color: var(--memory-crate-caption);
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  box-shadow:
+    0 1px 1.5px var(--memory-crate-recess),
+    inset 0 0 0 1px var(--memory-crate-btn-ring),
+    inset 0 1px 0 var(--memory-crate-chrome-line);
+  scale: none;
+  filter: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Engaged: pressed in, with a small lit dot. */
+.memory-crate-world button.memory-crate-speed-key[aria-pressed="true"] {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      var(--memory-crate-machined) 0 1px,
+      var(--memory-crate-machined-dark) 1px 2px
+    ),
+    linear-gradient(
+      180deg,
+      var(--memory-crate-alu-mid),
+      var(--memory-crate-alu) 55%,
+      var(--memory-crate-alu-hi)
+    );
+  box-shadow:
+    inset 0 1.5px 2.5px var(--memory-crate-recess),
+    inset 0 0 0 1px var(--memory-crate-btn-ring);
+  transform: translateY(0.5px);
+}
+.memory-crate-world button.memory-crate-speed-key::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--memory-crate-led-off);
+}
+.memory-crate-world button.memory-crate-speed-key[aria-pressed="true"]::after {
+  background: var(--memory-crate-led);
+}
+.memory-crate-world button.memory-crate-speed-key > span {
+  margin-block-end: 5px;
+}
+.memory-crate-world button.memory-crate-speed-key:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.memory-crate-plates {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.6rem;
+  min-block-size: 48px;
+}
+.memory-crate-world .memory-crate-plate,
+.memory-crate-world button.memory-crate-plate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-block-size: 44px;
+  margin: 0;
+  padding: 0.55rem 1.15rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--memory-crate-btn-dark);
+  color: var(--memory-crate-btn-dark-ink);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.005em;
+  text-decoration: none;
+  box-shadow:
+    inset 0 1px 0 var(--memory-crate-btn-inner),
+    0 1px 2px var(--memory-crate-btn-shadow),
+    0 6px 14px -4px var(--memory-crate-btn-shadow);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.memory-crate-world button.memory-crate-plate[data-tone="light"],
+.memory-crate-world button.memory-crate-plate[data-tone="light"]:disabled {
+  background: linear-gradient(
+    180deg,
+    var(--memory-crate-btn-light-hi),
+    var(--memory-crate-btn-light)
+  );
+  color: var(--memory-crate-btn-light-ink);
+  box-shadow:
+    inset 0 0 0 1px var(--memory-crate-btn-ring),
+    inset 0 1px 0 var(--memory-crate-btn-inner-light),
+    0 1px 2px var(--memory-crate-btn-shadow),
+    0 6px 14px -4px var(--memory-crate-btn-shadow);
+}
+/* The app styles pressed, hovered and disabled buttons globally: an object keeps its own look. */
+.memory-crate-world
+  button.memory-crate-plate:is(
+    :hover,
+    :active,
+    :disabled,
+    [data-control-pressed]
+  ),
+.memory-crate-world .memory-crate-plate:is(:hover, :active) {
+  scale: none;
+  filter: none;
+}
+/* `translate` is held by the entrance animation, so the press uses `transform`. */
+.memory-crate-world .memory-crate-plate:active {
+  transform: translateY(1px);
+}
+.memory-crate-world .memory-crate-plate:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+.memory-crate-plate-arrow {
+  width: 1rem;
+  height: 0.75rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---------- Motion ----------
+   Keyframes, loops and timing roles live in the motion layer
+   (src/motion/memory-worlds.css). */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* The arm lifts first, then swings back to its rest. */
+  :is(.memory-crate-arm, .memory-crate-arm-shadow) {
+    transition: rotate var(--memory-crate-arm-return-duration)
+      var(--memory-crate-arm-return-easing) var(--memory-crate-arm-return-delay);
+  }
+  .memory-crate-deck:is([data-arm="swing"], [data-arm="down"])
+    :is(.memory-crate-arm, .memory-crate-arm-shadow) {
+    transition: rotate var(--memory-crate-arm-swing-duration)
+      var(--memory-crate-arm-swing-easing);
+  }
+  /* Held by hand, cued up or tracking: the angle is written directly (finger or p). */
+  .memory-crate-deck:is(
+      [data-arm="hand"],
+      [data-arm="cuedup"],
+      [data-arm="track"]
+    )
+    :is(.memory-crate-arm, .memory-crate-arm-shadow) {
+    transition: none;
+  }
+  .memory-crate-arm-lift {
+    transition: translate var(--memory-crate-arm-lift-duration)
+      var(--memory-crate-arm-lift-easing);
+  }
+  .memory-crate-deck:is([data-arm="down"], [data-arm="track"])
+    .memory-crate-arm-lift {
+    transition: translate var(--memory-crate-arm-lower-duration)
+      var(--memory-crate-arm-lower-easing);
+  }
+  .memory-crate-arm-shadow {
+    transition:
+      rotate var(--memory-crate-arm-return-duration)
+      var(--memory-crate-arm-return-easing) var(--memory-crate-arm-return-delay),
+      translate var(--memory-crate-arm-lift-duration)
+      var(--memory-world-easing-out),
+      opacity var(--memory-crate-arm-lift-duration)
+      var(--memory-world-easing-out);
+  }
+  .memory-crate-deck:is([data-arm="swing"], [data-arm="down"])
+    .memory-crate-arm-shadow {
+    transition:
+      rotate var(--memory-crate-arm-swing-duration)
+      var(--memory-crate-arm-swing-easing),
+      translate var(--memory-crate-arm-lower-duration)
+      var(--memory-crate-arm-lower-easing),
+      opacity var(--memory-crate-arm-lower-duration)
+      var(--memory-world-easing-in-out);
+  }
+  .memory-crate-deck:is([data-arm="hand"], [data-arm="cuedup"])
+    .memory-crate-arm-shadow {
+    transition:
+      translate var(--memory-crate-arm-lower-duration)
+      var(--memory-crate-arm-lower-easing),
+      opacity var(--memory-crate-arm-lower-duration)
+      var(--memory-world-easing-in-out);
+  }
+  .memory-crate-deck[data-arm="track"] .memory-crate-arm-shadow {
+    transition:
+      translate var(--memory-crate-arm-lower-duration)
+      var(--memory-world-easing-in-out),
+      opacity var(--memory-crate-arm-lower-duration)
+      var(--memory-world-easing-in-out);
+  }
+  .memory-crate-cue-handle {
+    transition: rotate var(--memory-crate-cue-duration)
+      var(--memory-crate-cue-easing);
+  }
+
+  .memory-crate-start-ring,
+  .memory-crate-lamp-glow {
+    transition: opacity var(--memory-crate-lamp-duration)
+      var(--memory-world-easing-out);
+  }
+  .memory-crate-start-face {
+    transition: transform var(--memory-crate-press-duration)
+      var(--memory-world-easing-out);
+  }
+  .memory-crate-world button.memory-crate-speed-key {
+    transition: transform var(--duration-feedback)
+      var(--memory-world-easing-out);
+  }
+  .memory-crate-plates > * {
+    animation: eimir-motion-memory-crate-plate-in
+      var(--memory-crate-plate-duration) var(--memory-crate-pop-easing) both;
+  }
+  .memory-crate-plates > :nth-child(2) {
+    animation-delay: var(--memory-crate-plate-stagger);
+  }
+
+  .memory-crate-jacket-flip {
+    transition: transform var(--memory-crate-flip-duration)
+      var(--memory-crate-flip-easing);
+  }
+  .memory-crate-jacket-lean {
+    transition: rotate var(--memory-crate-flip-duration)
+      var(--memory-crate-lean-easing);
+  }
+}
+
+/* Cover padding and type use the units of the sleeve or jacket face that
+   holds the cover (`--cu`, written by useContainerUnits), not the crate. */
+
+/* ---------- Tonearm drawn as one shaded object (PO: the arm looked flat) ---------- */
+.memory-crate-arm-art {
+  position: absolute;
+  left: calc(-10 * var(--cu, 1cqi));
+  top: calc(-17 * var(--cu, 1cqi));
+  width: calc(20 * var(--cu, 1cqi));
+  height: calc(64 * var(--cu, 1cqi));
+  overflow: visible;
+  pointer-events: none;
+}
+/* The pivot housing is drawn with the arm now; keep only its base ring. */
+.memory-crate-pivot-cap {
+  display: none;
+}
+/* Its shadow lies offset and soft on the plinth: the further it is offset,
+   the higher the arm seems to float. */
+.memory-crate-arm-shadow > span {
+  background: var(--memory-crate-arm-shadow);
+  filter: blur(calc(0.5 * var(--cu, 1cqi)));
+}
+.memory-crate-arm-shadow-weight {
+  left: calc(-3.3 * var(--cu, 1cqi));
+  top: calc(-15.2 * var(--cu, 1cqi));
+  width: calc(6.6 * var(--cu, 1cqi));
+  height: calc(9.4 * var(--cu, 1cqi));
+  border-radius: calc(1.2 * var(--cu, 1cqi));
+}
+.memory-crate-arm-shadow-tube {
+  left: calc(-0.95 * var(--cu, 1cqi));
+  top: calc(-5.8 * var(--cu, 1cqi));
+  width: calc(1.9 * var(--cu, 1cqi));
+  height: calc(40.8 * var(--cu, 1cqi));
+  border-radius: calc(1 * var(--cu, 1cqi));
+}
+.memory-crate-arm-shadow-head {
+  left: calc(-2.6 * var(--cu, 1cqi));
+  top: calc(35 * var(--cu, 1cqi));
+  width: calc(5.2 * var(--cu, 1cqi));
+  height: calc(8.6 * var(--cu, 1cqi));
+  rotate: 22deg;
+  transform-origin: 50% 0;
+}
+.memory-crate-arm-shadow {
+  translate: calc(2.6 * var(--cu, 1cqi)) calc(4.2 * var(--cu, 1cqi));
+  opacity: 0.55;
+}
+
+/* The bearing sits a little further forward so the counterweight stays on
+   the plinth (PIVOT_Y in the TSX matches). */
+.memory-crate-arm,
+.memory-crate-arm-shadow {
+  top: calc(12 * var(--cu, 1cqi));
+}
+.memory-crate-pivot {
+  top: calc(6.5 * var(--cu, 1cqi));
+}
+.memory-crate-arm-art {
+  top: calc(-12 * var(--cu, 1cqi));
+  height: calc(59 * var(--cu, 1cqi));
+}
+.memory-crate-arm-shadow-weight {
+  top: calc(-9.8 * var(--cu, 1cqi));
+  height: calc(5.8 * var(--cu, 1cqi));
+}
+.memory-crate-arm-shadow-tube {
+  top: calc(-4 * var(--cu, 1cqi));
+  height: calc(39 * var(--cu, 1cqi));
+}
+
+/* The cue lever looked like a stray button on the platter: the needle is
+   lifted by tapping or pulling the arm instead. */
+.memory-crate-cue {
+  display: none;
+}
+
+/* Playing: the arm rises from the needle towards its bearing, so its shadow
+   meets the arm at the stylus and falls away from it towards the pivot
+   (rotated a little further around the pivot, then shifted back so the tips
+   meet). Darker, because the vinyl below is dark. */
+.memory-crate-deck.memory-crate-deck[data-arm="down"] .memory-crate-arm-shadow {
+  rotate: 18.3deg;
+  translate: calc(2.5 * var(--cu, 1cqi)) calc(1.2 * var(--cu, 1cqi));
+  opacity: 0.95;
+}
+.memory-crate-deck.memory-crate-deck[data-arm="track"]
+  .memory-crate-arm-shadow {
+  rotate: 20.5deg;
+  translate: calc(2.5 * var(--cu, 1cqi)) calc(1.25 * var(--cu, 1cqi));
+  opacity: 0.95;
+}
+.memory-crate-deck:is([data-arm="down"], [data-arm="track"])
+  .memory-crate-arm-shadow
+  > span {
+  background: color-mix(
+    in srgb,
+    var(--memory-crate-shadow-ink) 55%,
+    transparent
+  );
+}
+
+/* ---------- One timeline: the record plays like a song ---------- */
+
+.memory-crate-world {
+  --memory-crate-art-paper: #fbfaf6;
+  --memory-crate-art-dark: #1f1e1c;
+  --memory-crate-line-dim: 0.6;
+}
+:root[data-theme="dark"] .memory-crate-world {
+  --memory-crate-art-paper: #d9d5cc;
+  --memory-crate-art-dark: #121110;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .memory-crate-world {
+    --memory-crate-art-paper: #d9d5cc;
+    --memory-crate-art-dark: #121110;
+  }
+}
+
+/* The progress line is written from p every frame (transform only). */
+
+/* A taller display: a small head row and the lyric roll. */
+.memory-crate-sign {
+  min-block-size: 9.4rem;
+}
+.memory-crate-sign-body {
+  position: relative;
+  display: grid;
+  gap: 0.35rem;
+  font-family: var(--font-display);
+}
+.memory-crate-sign-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+.memory-crate-sign-clock {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--memory-crate-screen-kicker);
+  white-space: nowrap;
+}
+.memory-crate-lyrics {
+  position: relative;
+  display: block;
+  block-size: 5.9rem;
+  overflow: hidden;
+  -webkit-mask: linear-gradient(
+    180deg,
+    transparent 0,
+    black 22%,
+    black 78%,
+    transparent 100%
+  );
+  mask: linear-gradient(
+    180deg,
+    transparent 0,
+    black 22%,
+    black 78%,
+    transparent 100%
+  );
+}
+.memory-crate-lyrics-roll {
+  position: relative;
+  display: block;
+}
+.memory-crate-line {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  padding-block: 0.14rem;
+  font-family: var(--font-display);
+  font-size: 1.08rem;
+  font-weight: 600;
+  line-height: 1.28;
+  color: var(--memory-crate-screen-title);
+  overflow-wrap: anywhere;
+  transform-origin: 0 50%;
+  transform: scale(0.86);
+  opacity: var(--memory-crate-line-dim);
+  cursor: pointer;
+}
+.memory-crate-line[data-state="current"] {
+  transform: none;
+  opacity: 1;
+}
+
+/* End of side A. */
+.memory-crate-endcard {
+  display: grid;
+  gap: 0.55rem;
+  padding-block: 0.35rem 0.2rem;
+}
+.memory-crate-endcard-title {
+  font-family: var(--font-display);
+  font-size: 1.08rem;
+  font-weight: 600;
+  color: var(--memory-crate-screen-title);
+}
+.memory-crate-endcard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.memory-crate-world .memory-crate-end-action,
+.memory-crate-world button.memory-crate-end-action,
+.memory-crate-world
+  button.memory-crate-end-action:is(
+    :hover,
+    :active,
+    :disabled,
+    [data-control-pressed]
+  ) {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 40px;
+  margin: 0;
+  padding: 0.45rem 0.95rem;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(
+    in srgb,
+    var(--memory-crate-highlight) 12%,
+    transparent
+  );
+  color: var(--memory-crate-screen-title);
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--memory-crate-highlight) 20%, transparent);
+  scale: none;
+  filter: none;
+  cursor: pointer;
+}
+.memory-crate-world button.memory-crate-end-action[data-tone="next"],
+.memory-crate-world
+  button.memory-crate-end-action[data-tone="next"]:is(
+    :hover,
+    :active,
+    [data-control-pressed]
+  ) {
+  background: var(--memory-crate-led);
+  color: var(--memory-crate-led-ink);
+  box-shadow: none;
+}
+.memory-crate-world .memory-crate-end-action:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* The album art: a photo print standing on the stand in front of the sleeve. */
+.memory-crate-stand {
+  z-index: 4;
+}
+.memory-crate-art {
+  position: absolute;
+  z-index: 3;
+  left: calc(4.6 * var(--cu, 1cqi));
+  top: calc(3.6 * var(--cu, 1cqi));
+  width: calc(32 * var(--cu, 1cqi));
+  height: calc(32 * var(--cu, 1cqi));
+  box-sizing: border-box;
+  padding: calc(1.2 * var(--cu, 1cqi));
+  border-radius: calc(0.4 * var(--cu, 1cqi));
+  background: var(--memory-crate-art-paper);
+  box-shadow:
+    0 calc(0.4 * var(--cu, 1cqi)) calc(0.8 * var(--cu, 1cqi))
+    var(--memory-crate-deck-shadow-soft),
+    calc(0.8 * var(--cu, 1cqi)) calc(1.8 * var(--cu, 1cqi))
+    calc(3.4 * var(--cu, 1cqi)) var(--memory-crate-deck-shadow);
+  rotate: 1.2deg;
+  opacity: 0;
+  translate: 0 4%;
+  pointer-events: none;
+}
+.memory-crate-art[data-shown="true"] {
+  opacity: 1;
+  translate: 0 0;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.memory-crate-art-window {
+  position: relative;
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: hidden;
+  background: var(--memory-crate-art-dark);
+}
+.memory-crate-art-layer,
+.memory-crate-art-zoom {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+.memory-crate-art-zoom .memory-world-photo {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  aspect-ratio: auto;
+}
+/* While the photos play, the sleeve leans behind the print. */
+.memory-crate-deck[data-art="on"] .memory-crate-jacket {
+  translate: calc(-1.6 * var(--cu, 1cqi)) calc(-2.6 * var(--cu, 1cqi));
+  scale: 0.96;
+}
+.memory-crate-deck[data-flipped="true"] .memory-crate-jacket {
+  translate: none;
+  scale: none;
+}
+.memory-crate-deck[data-paused="true"] .memory-crate-art-zoom {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .memory-crate-line {
+    transition:
+      transform var(--memory-crate-line-duration)
+      var(--memory-crate-line-easing),
+      opacity var(--memory-crate-line-duration) var(--memory-world-easing-out);
+  }
+  .memory-crate-deck .memory-crate-jacket {
+    transition:
+      translate var(--memory-crate-jacket-duration)
+      var(--memory-crate-jacket-easing),
+      scale var(--memory-crate-jacket-duration)
+      var(--memory-crate-jacket-easing);
+  }
+  .memory-crate-deck[data-flipped="true"] .memory-crate-jacket {
+    transition: none;
+  }
+  .memory-crate-art-layer[data-fresh="true"] {
+    animation: eimir-motion-memory-crate-art-in
+      var(--memory-crate-art-fade-duration) var(--memory-world-easing-in-out)
+      both;
+  }
+  /* A slow drift over the photo's slice of the side (duration set inline). */
+  .memory-crate-art-zoom[data-dir="in"] {
+    animation: eimir-motion-memory-crate-drift-in
+      var(--memory-crate-drift-duration) var(--easing-playback) both;
+  }
+  .memory-crate-art-zoom[data-dir="out"] {
+    animation: eimir-motion-memory-crate-drift-out
+      var(--memory-crate-drift-duration) var(--easing-playback) both;
+  }
+}
+
+/* ---------- Kind-only sleeves: glyph sizes, labels and the packed crate ---------- */
+
+.memory-crate-cover .memory-crate-cover-glyph {
+  inline-size: calc(46 * var(--cu, 1cqi));
+  block-size: calc(46 * var(--cu, 1cqi));
+}
+.memory-crate-filler[data-kind="memory"] {
+  --memory-crate-filler: var(--memory-crate-memory-sand);
+}
+.memory-crate-filler[data-kind="memory"][data-tone="paper"] {
+  --memory-crate-filler: var(--memory-crate-memory-paper);
+}
+.memory-crate-filler[data-kind="memory"][data-tone="stone"] {
+  --memory-crate-filler: var(--memory-crate-memory-stone);
+}
+.memory-crate-filler[data-kind="milestone"] {
+  --memory-crate-filler: var(--memory-crate-milestone-green);
+}
+.memory-crate-filler[data-kind="heart"] {
+  --memory-crate-filler: color-mix(
+    in srgb,
+    var(--heart-emotion-accent, var(--color-story-heart-moment)) 55%,
+    var(--memory-crate-cream)
+  );
+}
+
+.memory-crate-label[data-kind="memory"] {
+  display: grid;
+  place-items: center;
+  background: var(--memory-crate-memory-sand);
+}
+.memory-crate-label[data-kind="memory"][data-tone="paper"] {
+  background: var(--memory-crate-memory-paper);
+}
+.memory-crate-label[data-kind="memory"][data-tone="stone"] {
+  background: var(--memory-crate-memory-stone);
+}
+.memory-crate-label .memory-crate-label-glyph {
+  inline-size: 62%;
+  block-size: 62%;
+}
+.memory-crate-label[data-kind="milestone"] {
+  background: radial-gradient(
+    circle at 40% 35%,
+    var(--memory-crate-milestone-green-hi),
+    var(--memory-crate-milestone-green)
+  );
+}
+.memory-crate-label .memory-crate-label-stamp {
+  inline-size: 60%;
+  block-size: 60%;
+}
+.memory-crate-label[data-kind="memory"]::before {
+  background: var(--memory-crate-ink);
+}
+.memory-crate-label[data-kind="milestone"]::before {
+  background: var(--memory-crate-milestone-cream);
+}
+
+/* ---------- The inlay: the memory itself, on the stand in front of the sleeve ---------- */
+
+.memory-crate-world {
+  --memory-crate-note-paper: #fbf6ec;
+  --memory-crate-note-ink: #22325f;
+  --memory-crate-cert-paper: #f6efdc;
+  --memory-crate-card-muted: #5a524a;
+}
+:root[data-theme="dark"] .memory-crate-world {
+  --memory-crate-note-paper: #e2dccf;
+  --memory-crate-cert-paper: #ddd5c2;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .memory-crate-world {
+    --memory-crate-note-paper: #e2dccf;
+    --memory-crate-cert-paper: #ddd5c2;
+  }
+}
+
+/* Its motion comes from the timeline (WAAPI); at rest it simply stands there. */
+.memory-crate-art {
+  translate: none;
+}
+
+/* With photos: the slideshow print with a small printed title strip. */
+.memory-crate-art[data-kind="photo"] {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: calc(0.9 * var(--cu, 1cqi));
+  padding: calc(1.2 * var(--cu, 1cqi)) calc(1.2 * var(--cu, 1cqi))
+    calc(0.8 * var(--cu, 1cqi));
+}
+.memory-crate-art[data-kind="photo"] .memory-crate-art-window {
+  block-size: auto;
+  min-block-size: 0;
+}
+.memory-crate-art-strip {
+  display: block;
+  block-size: calc(4.4 * var(--cu, 1cqi));
+  overflow: hidden;
+}
+.memory-crate-art-strip-text {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--memory-crate-ink);
+}
+
+/* Herzmoment: a handwritten note card in the colour of its feeling. */
+.memory-crate-art[data-kind="heart"] {
+  padding: 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      transparent 0 1.45rem,
+      color-mix(
+          in srgb,
+          var(--heart-emotion-accent, var(--color-story-heart-moment)) 16%,
+          transparent
+        )
+        1.45rem calc(1.45rem + 1px)
+    ),
+    color-mix(
+      in srgb,
+      var(--heart-emotion-accent, var(--color-story-heart-moment)) 22%,
+      var(--memory-crate-note-paper)
+    );
+}
+.memory-crate-note {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(0.6 * var(--cu, 1cqi));
+  box-sizing: border-box;
+  padding: calc(2.6 * var(--cu, 1cqi)) calc(2.8 * var(--cu, 1cqi))
+    calc(2.2 * var(--cu, 1cqi));
+}
+.memory-crate-note-box {
+  display: block;
+  flex: 1 1 auto;
+  min-block-size: 0;
+  overflow: hidden;
+}
+.memory-crate-note-text {
+  display: block;
+  font-family: var(--memory-crate-hand);
+  font-size: 1.3rem;
+  line-height: 1.12;
+  color: var(--memory-crate-note-ink);
+}
+.memory-crate-note-from {
+  display: block;
+  font-family: var(--memory-crate-hand);
+  font-size: 1rem;
+  line-height: 1.1;
+  text-align: end;
+  color: var(--memory-crate-note-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Meilenstein: a small certificate with a green rule and the stamp. */
+.memory-crate-art[data-kind="milestone"] {
+  padding: 0;
+  background: var(--memory-crate-cert-paper);
+}
+.memory-crate-cert {
+  position: absolute;
+  inset: calc(1.4 * var(--cu, 1cqi));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(0.8 * var(--cu, 1cqi));
+  box-sizing: border-box;
+  padding: calc(1.8 * var(--cu, 1cqi)) calc(2 * var(--cu, 1cqi))
+    calc(1.6 * var(--cu, 1cqi));
+  text-align: center;
+  box-shadow:
+    inset 0 0 0 calc(0.35 * var(--cu, 1cqi))
+    var(--memory-crate-milestone-green-hi),
+    inset 0 0 0 calc(0.9 * var(--cu, 1cqi)) var(--memory-crate-cert-paper),
+    inset 0 0 0 calc(1.1 * var(--cu, 1cqi))
+    var(--memory-crate-milestone-green-hi);
+}
+.memory-crate-art .memory-crate-cert-stamp {
+  flex: none;
+  inline-size: calc(9 * var(--cu, 1cqi));
+  block-size: calc(9 * var(--cu, 1cqi));
+}
+.memory-crate-cert-box {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  inline-size: 100%;
+  min-block-size: 0;
+  overflow: hidden;
+}
+.memory-crate-cert-title {
+  display: block;
+  max-inline-size: 100%;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--memory-crate-ink);
+}
+.memory-crate-cert-date {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  line-height: 1.2;
+  color: var(--memory-crate-ink);
+}
+
+/* Erinnerung without photos: a typeset card with title and date. */
+.memory-crate-art[data-kind="words"] {
+  padding: 0;
+}
+.memory-crate-card {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(1 * var(--cu, 1cqi));
+  box-sizing: border-box;
+  padding: calc(3 * var(--cu, 1cqi));
+}
+.memory-crate-card-date {
+  font-family: var(--font-display);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--memory-crate-card-muted);
+}
+.memory-crate-card-box {
+  display: block;
+  flex: 1 1 auto;
+  min-block-size: 0;
+  overflow: hidden;
+}
+.memory-crate-card-title {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.22;
+  color: var(--memory-crate-ink);
+}
+.memory-crate-card-rule {
+  flex: none;
+  inline-size: calc(8 * var(--cu, 1cqi));
+  block-size: calc(0.5 * var(--cu, 1cqi));
+  background: var(--memory-crate-ink);
+}
+
+/* ---------- Lyrics in sync with p: continuous roll, wandering line, karaoke fill ---------- */
+
+.memory-crate-lyrics {
+  touch-action: none;
+  cursor: grab;
+}
+.memory-crate-lyrics:active {
+  cursor: grabbing;
+}
+.memory-crate-line {
+  position: relative;
+  display: block;
+  -webkit-line-clamp: none;
+  line-clamp: none;
+  overflow: hidden;
+  white-space: nowrap;
+  -webkit-mask: linear-gradient(90deg, black calc(100% - 1.1rem), transparent);
+  mask: linear-gradient(90deg, black calc(100% - 1.1rem), transparent);
+}
+.memory-crate-line-wander {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+.memory-crate-line-text {
+  display: inline-block;
+  white-space: nowrap;
+}
+/* The current line: the part still to come is a little dimmer, the sung part fills bright. */
+.memory-crate-line[data-state="current"]
+  > .memory-crate-line-wander
+  > .memory-crate-line-text {
+  color: color-mix(
+    in srgb,
+    var(--memory-crate-screen-title) 72%,
+    var(--memory-crate-screen-low)
+  );
+}
+.memory-crate-line-sung {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: hidden;
+  transform: translate3d(-100%, 0, 0);
+}
+.memory-crate-line-sung-inner {
+  display: block;
+  transform: translate3d(100%, 0, 0);
+}
+.memory-crate-line-sung .memory-crate-line-text {
+  color: var(--memory-crate-screen-title);
+  text-shadow: 0 0 10px
+    color-mix(in srgb, var(--memory-crate-led) 28%, transparent);
+}
+.memory-crate-line:not([data-state="current"]) .memory-crate-line-sung {
+  display: none;
+}
+
+/* ---------- Photos never pop: they develop in over the paper tone ---------- */
+
+.memory-crate-world {
+  --memory-crate-develop-paper: #d8d0c2;
+}
+:root[data-theme="dark"] .memory-crate-world {
+  --memory-crate-develop-paper: #4a4540;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .memory-crate-world {
+    --memory-crate-develop-paper: #4a4540;
+  }
+}
+.memory-crate-art-window {
+  background: var(--memory-crate-develop-paper);
+}
+:is(.memory-crate-art, .memory-crate-label, .memory-crate-picture)
+  .story-media-skeleton {
+  background: var(--memory-crate-develop-paper);
+  animation: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  :is(.memory-crate-art, .memory-crate-label, .memory-crate-picture)
+    img.story-media-preview[data-media-reveal="ready"] {
+    animation: eimir-motion-memory-crate-develop
+      var(--memory-crate-develop-duration) var(--memory-world-easing-out) both;
+  }
+  .memory-crate-photo-layer[data-fresh="true"] {
+    animation: eimir-motion-memory-crate-art-in
+      var(--memory-crate-art-fade-duration) var(--memory-world-easing-in-out)
+      both;
+  }
+}
+
+/* The record's own photo: the label, or the whole disc for a picture disc. */
+.memory-crate-photo-layer {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  border-radius: 50%;
+}
+.memory-crate-photo-layer .memory-world-photo {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  aspect-ratio: auto;
+  border-radius: 50%;
+}
+.memory-crate-label[data-kind="photo"] {
+  background: var(--memory-crate-develop-paper);
+}
+
+/* A picture disc: the photo under clear vinyl, fine groove sheen, a printed centre ring. */
+.memory-crate-picture {
+  position: absolute;
+  inset: 1.5%;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--memory-crate-develop-paper);
+}
+.memory-crate-vinyl[data-picture="true"] .memory-crate-grooves {
+  opacity: 0.45;
+}
+.memory-crate-picture-gloss {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(
+      circle,
+      color-mix(in srgb, var(--memory-crate-highlight) 6%, transparent) 0
+        calc(0.14 * var(--cu, 1cqi)),
+      transparent calc(0.14 * var(--cu, 1cqi)) calc(0.42 * var(--cu, 1cqi))
+    ),
+    radial-gradient(
+      circle,
+      transparent 0 58%,
+      color-mix(in srgb, var(--memory-crate-shadow-ink) 14%, transparent) 90%,
+      color-mix(in srgb, var(--memory-crate-shadow-ink) 42%, transparent) 100%
+    );
+  box-shadow: inset 0 0 0 calc(0.5 * var(--cu, 1cqi))
+    color-mix(in srgb, var(--memory-crate-highlight) 10%, transparent);
+  pointer-events: none;
+}
+.memory-crate-picture-ring {
+  position: absolute;
+  inset: 41%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--memory-crate-vinyl) 0 15%,
+    color-mix(in srgb, var(--memory-crate-highlight) 85%, transparent) 16% 21%,
+    transparent 22% 84%,
+    color-mix(in srgb, var(--memory-crate-highlight) 70%, transparent) 85% 91%,
+    transparent 92%
+  );
+  pointer-events: none;
+}
+/* The shine that sweeps across a picture disc as it comes out. */
+.memory-crate-glint {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+.memory-crate-glint::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: -60%;
+  width: 45%;
+  background: linear-gradient(
+    100deg,
+    transparent 0,
+    transparent 20%,
+    color-mix(in srgb, var(--memory-crate-highlight) 75%, transparent) 50%,
+    transparent 80%
+  );
+  rotate: 12deg;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .memory-crate-glint {
+    animation: eimir-motion-memory-crate-glint
+      var(--memory-crate-glint-duration) var(--memory-world-easing-out) both;
+  }
+  .memory-crate-glint::before {
+    animation: eimir-motion-memory-crate-glint-sweep
+      var(--memory-crate-glint-duration) var(--memory-crate-glint-easing) both;
+  }
+}
+
+/* ---------- Ready before the first pull: mounted, invisible, layers promoted ---------- */
+
+/* The display's content is mounted for the staged record; it shows only while playing. */
+.memory-crate-sign:not([data-lit="true"]) .memory-crate-sign-body {
+  visibility: hidden;
+}
+/* The end card lies over the lyrics, so the lyrics (and a drag on them) are never unmounted. */
+.memory-crate-endcard {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 1.35rem;
+  bottom: 0;
+  visibility: hidden;
+  background: linear-gradient(
+    180deg,
+    var(--memory-crate-screen-top),
+    var(--memory-crate-screen-low)
+  );
+}
+.memory-crate-endcard[data-shown="true"] {
+  visibility: visible;
+}
+.memory-crate-sign[data-ended="true"] .memory-crate-lyrics {
+  visibility: hidden;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .memory-crate-endcard[data-shown="true"] {
+    animation: eimir-motion-memory-crate-fade-in
+      var(--memory-crate-fade-duration) var(--memory-world-easing-out) both;
+  }
+}
+/* The parts that fly during a pull keep their own layers from the start. */
+.memory-crate-jacket,
+.memory-crate-carrier,
+.memory-crate-art,
+.memory-crate-vinyl {
+  will-change: transform;
+}
+
+/* The whole display takes the lyric drag; the end card no longer blocks it. */
+.memory-crate-sign-body {
+  touch-action: none;
+}
+
+/* A larger display (Product Owner feedback: the display was too small). */
+.memory-crate-world .memory-crate-lyrics {
+  block-size: 8.4rem;
+}
+.memory-crate-world .memory-crate-line {
+  font-size: 1.24rem;
+}
+
+/* Placeholder sleeves are no containers: their crate unit is the inherited --cu. */
+.memory-crate-filler {
+  --cu-outer: var(--cu);
+}
+
+/* The clock changes every second: a fixed, fully contained box keeps that
+   from re-laying out the page (measured on the Pixel: 9.6 ms -> 4.5 ms). */
+.memory-crate-sign-clock {
+  display: inline-block;
+  contain: strict;
+  inline-size: 11ch;
+  block-size: 1.35em;
+  line-height: 1.35;
+  text-align: end;
+  overflow: hidden;
+}
+/* The lyrics viewport has a fixed height: contain its layout as well. */
+.memory-crate-world .memory-crate-lyrics {
+  contain: strict;
+}
+
+/* The display takes the finger: no Android tap highlight (the blue bar) and
+   no text selection on a long touch. */
+.memory-crate-sign-body,
+.memory-crate-sign-body * {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.memory-crate-sign-body:focus {
+  outline: none;
+}

@@ -1,6 +1,6 @@
 """Paid appearance choices on an instance without the Pro plugin (Decision 0017, #2084).
 
-`theme.bespoke_packs` is plugin-owned while the three value checks stay Core.
+`theme.bespoke_packs` is plugin-owned while the four value checks stay Core.
 Without the plugin a Pro value is refused even under a current Premium grant,
 the Free values keep working, and a Pro value chosen while the plugin was loaded
 stays in effect and readable. These tests are not Pro feature tests: the
@@ -33,6 +33,9 @@ CHOICES = [
     ("app-icon", "iconId", "sage", "sand", "original"),
     ("wir-design", "designId", "modern", "classic", "warm"),
     ("person-colours", "colours", "blue_deepblue", "rose_blue", None),
+    # Stage 1 of #2283 has a single Pro world, so the second Pro value repeats it:
+    # re-saving a stored Pro world is a new Pro choice and is refused as well.
+    ("memory-world", "worldId", "crate", "crate", "stack"),
 ]
 
 

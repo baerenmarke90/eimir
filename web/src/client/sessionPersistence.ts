@@ -17,6 +17,7 @@ import {
 } from './nativeSessionStorage';
 import { clearPersonalSettingsSyncState } from './personalSettingsBus';
 import { clearPersonColourPreferences } from './personColoursStore';
+import { clearMemoryWorldPreferences } from './memoryWorld';
 import { normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
 import { clearSupportReportDrafts } from './supportReportDraftCleanup';
@@ -330,6 +331,7 @@ export function clearStoredSession(): Promise<void> {
   clearWirDesignPreferences();
   clearWirDistanceSeen();
   clearPersonColourPreferences();
+  clearMemoryWorldPreferences();
   clearPersonalSettingsSyncState();
   clearMemoryDiaryDrafts();
   clearSupportReportDrafts();

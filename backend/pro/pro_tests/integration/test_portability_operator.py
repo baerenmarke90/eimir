@@ -166,7 +166,9 @@ def test_probe_export_then_probe_import_into_an_empty_space(stamped, tmp_path: P
     assert _counts(maker, target) == source_counts
 
 
-def test_personal_probe_exports_the_owners_design_palette(stamped, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+def test_personal_probe_exports_the_owners_design_palette_and_memory_world(  # type: ignore[no-untyped-def]
+    stamped, tmp_path: Path
+) -> None:
     (_, maker), engine, _ = stamped
     with maker.begin() as session:
         owner = make_account(session, "Anna")
@@ -182,12 +184,14 @@ def test_personal_probe_exports_the_owners_design_palette(stamped, tmp_path: Pat
                     icon_id="original",
                     wir_design="home_rooms",
                     wir_design_palette="warm",
+                    memory_world="crate",
                 ),
                 AppIconPreference(
                     account_id=partner.id,
                     space_id=space_id,
                     icon_id="original",
                     wir_design_palette="connected",
+                    memory_world="stack",
                 ),
             ]
         )
@@ -208,6 +212,7 @@ def test_personal_probe_exports_the_owners_design_palette(stamped, tmp_path: Pat
         "appIconId": "original",
         "wirDesign": "home_rooms",
         "designPalette": "warm",
+        "memoryWorld": "crate",
     }
 
 

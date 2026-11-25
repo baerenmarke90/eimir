@@ -100,6 +100,14 @@ export const REGISTERED_POINTER_TRACKING = Object.freeze({
   'src/client/useFloatingCreateScrollTuck.ts': { use: 'input', count: 1 },
   'src/components/ListEntryActions.tsx': { use: 'gesture', count: 1 },
   'src/components/MediaGallery.tsx': { use: 'input', count: 2 },
+  // The memory worlds (#2283): the Stapel's sideways swipe of the top print
+  // and the Plattenkiste's crate flip, record scratch, tonearm and lyric
+  // scrub (gesture, not yet on the building block; Motion Contract 4.6).
+  'src/components/memoryWorlds/RecordCrateWorld.tsx': {
+    use: 'gesture',
+    count: 4,
+  },
+  'src/components/memoryWorlds/StackWorld.tsx': { use: 'gesture', count: 1 },
   'src/components/PhotoEditTask.tsx': { use: 'input', count: 4 },
   'src/components/PicturePingPongPage.tsx': { use: 'input', count: 1 },
   // The Momente timeline scrub (input) and the lifeline preview card swipe

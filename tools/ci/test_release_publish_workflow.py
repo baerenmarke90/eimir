@@ -17,6 +17,8 @@ ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github/workflows/release-publish.yml"
 CANDIDATE_WORKFLOW = ROOT / ".github/workflows/release-candidate.yml"
 WORKFLOW_DIR = ROOT / ".github/workflows"
+sys.path.insert(0, str(ROOT / "tools/ci"))
+from test_release_evidence import SupplyChainStepHarness, job_text, step_script, step_text  # noqa: E402
 
 EXTERNAL_ACTION_PINS = {
     "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
@@ -257,6 +259,7 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
                             "previous": "v0.0.9",
                             "android_note": "android note",
                             "channel_note": "channel note",
+                            "attestation_note": "attestation note",
                         },
                     )
                     notes = (Path(directory) / "release-evidence/RELEASE-NOTES.md").read_text(
@@ -910,6 +913,115 @@ class RuntimeImagePublicationBehaviorTest(unittest.TestCase):
         result = self.publish(self.fixtures.legacy_members())
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(len([c for c in self.calls() if c.startswith("push ")]), 1)
+
+
+class SupplyChainPublicationTest(unittest.TestCase):
+    """Decision 0019, D5: the product publisher in both attestation states."""
+
+    ACCEPTANCE = "decision-0019-d5"
+    VERIFY = "Verify retained final attestations"
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.workflow = WORKFLOW.read_text(encoding="utf-8")
+        cls.publish = job_text(cls.workflow, "publish")
+
+    def test_state_is_confirmed_after_the_checksums_and_selects_the_attestation_path(self) -> None:
+        confirm = step_text(self.publish, "Confirm the recorded supply-chain state")
+        self.assertIn("id: supply_chain", confirm)
+        self.assertNotRegex(confirm, r"(?m)^        if:")
+        self.assertIn("--record release-evidence/supply-chain-state.json", confirm)
+        self.assertIn("EIMIR_SUPPLY_CHAIN_EXCEPTION: ${{ vars.EIMIR_SUPPLY_CHAIN_EXCEPTION }}", confirm)
+        order = [
+            self.publish.index("- name: Re-verify transported #193 evidence"),
+            self.publish.index("- name: Confirm the recorded supply-chain state"),
+            self.publish.index("- name: Download retained #193 attestations"),
+        ]
+        self.assertEqual(order, sorted(order))
+        for name in (
+            "Download retained #193 attestations",
+            "Attest final signed Android APK",
+            "Attest final signed Android AAB",
+        ):
+            with self.subTest(step=name):
+                self.assertRegex(
+                    step_text(self.publish, name),
+                    r"(?m)^        if: .*steps\.supply_chain\.outputs\.attestation == 'available'$",
+                )
+        self.assertNotIn("continue-on-error", self.workflow)
+
+    def test_verification_step_runs_in_both_states(self) -> None:
+        self.assertNotRegex(step_text(self.publish, self.VERIFY), r"(?m)^        if:")
+        script = step_script(self.publish, self.VERIFY)
+        self.assertLess(script.index("supply_chain_state.py verify"), script.index("exit 0"))
+        self.assertLess(script.index("exit 0"), script.index("gh attestation trusted-root"))
+
+    def test_release_notes_state_the_attestation_record(self) -> None:
+        notes = step_text(self.publish, "Write human-readable release notes")
+        self.assertIn("ATTESTATION_STATE: ${{ steps.supply_chain.outputs.attestation }}", notes)
+        self.assertIn("supply-chain-state.json", notes)
+        self.assertIn("${attestation_note}", notes)
+
+    def test_codeql_gates_read_the_same_acceptance(self) -> None:
+        for job, command in (
+            ("preflight", "test_deployment_channel.py full-regression"),
+            ("test-checked-main", "test_deployment_channel.py check"),
+        ):
+            with self.subTest(job=job):
+                block = job_text(self.workflow, job)
+                self.assertIn(command, block)
+                self.assertIn("EIMIR_SUPPLY_CHAIN_EXCEPTION: ${{ vars.EIMIR_SUPPLY_CHAIN_EXCEPTION }}", block)
+
+    def run_verification(self, harness: SupplyChainStepHarness, **kwargs: str) -> subprocess.CompletedProcess:
+        return harness.run(step_script(self.publish, self.VERIFY), **kwargs)
+
+    def test_unavailable_state_verifies_the_record_instead_of_attestations(self) -> None:
+        harness = SupplyChainStepHarness(self)
+        harness.write_record("private", self.ACCEPTANCE)
+        result = self.run_verification(
+            harness, visibility="private", acceptance=self.ACCEPTANCE, INCLUDE_ANDROID="true"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("verified the recorded state instead", result.stdout)
+        self.assertNotIn("attestation", "\n".join(
+            line for line in harness.log.read_text(encoding="utf-8").splitlines()
+            if not line.startswith("api ")
+        ))
+
+    def test_unavailable_state_without_the_record_fails(self) -> None:
+        harness = SupplyChainStepHarness(self)
+        result = self.run_verification(harness, visibility="private", acceptance=self.ACCEPTANCE)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("supply-chain-state.json", result.stderr)
+
+    def test_unavailable_record_on_a_public_repository_fails(self) -> None:
+        harness = SupplyChainStepHarness(self)
+        harness.write_record("private", self.ACCEPTANCE)
+        result = self.run_verification(harness, visibility="public", acceptance="")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(harness.verify_calls(), [])
+
+    def test_available_state_verifies_core_and_signed_android_attestations(self) -> None:
+        harness = SupplyChainStepHarness(self)
+        harness.write_record("public", "")
+        harness.write_bundles("backend-runtime", "web-runtime", "android-apk-signed", "android-aab-signed")
+        result = self.run_verification(harness, visibility="public", acceptance="", INCLUDE_ANDROID="true")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = harness.verify_calls()
+        self.assertEqual(len(calls), 8)
+        android = [call for call in calls if "android-" in call]
+        self.assertEqual(len(android), 4)
+        self.assertTrue(all("workflows/release-publish.yml" in call for call in android))
+        self.assertTrue(all("workflows/release-evidence.yml" in call for call in calls if call not in android))
+
+    def test_available_state_with_a_missing_signed_attestation_fails(self) -> None:
+        harness = SupplyChainStepHarness(self)
+        harness.write_record("public", "")
+        harness.write_bundles("backend-runtime", "web-runtime", "android-apk-signed")
+        result = self.run_verification(harness, visibility="public", acceptance="", INCLUDE_ANDROID="true")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("android-aab-signed-provenance.json", result.stderr)
+        self.assertEqual(harness.verify_calls(), [])
 
 
 if __name__ == "__main__":

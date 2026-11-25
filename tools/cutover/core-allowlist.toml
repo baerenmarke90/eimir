@@ -130,6 +130,7 @@ patterns = [
   ".github/workflows/incident-runbooks.yml",
   ".github/workflows/media-video.yml",
   ".github/workflows/nightly-regression.yml",
+  ".github/workflows/nightly-regression-report.yml",
   ".github/workflows/product-design-review.yml",
   ".github/workflows/reuse-review.yml",
   ".github/workflows/runtime-environment-drift-guard.yml",
@@ -164,15 +165,14 @@ patterns = [
   ".github/workflows/release-candidate.yml",
   ".github/workflows/release-evidence.yml",
   ".github/workflows/release-publish.yml",
-  ".github/workflows/nightly-regression-report.yml",
   ".claude/**",
+  "scripts/android_firebase_configuration.py",
   "scripts/image_archive_config.py",
-  "scripts/release_manifest.py",
   "scripts/test_deployment_channel.py",
   "scripts/verify_release_asset_set.py",
+  "tools/ci/test_android_firebase_configuration.py",
   "tools/ci/test_image_archive_config.py",
   "tools/ci/test_release_evidence.py",
-  "tools/ci/test_release_manifest.py",
   "tools/ci/test_release_publish_workflow.py",
   "tools/ci/test_test_deployment_channel.py",
   "tools/ci/test_verify_release_asset_set.py",
@@ -316,6 +316,143 @@ new = '''
     runs-on: ubuntu-latest
 '''
 
+[[transform]]
+path = "docs/PROJECT-IDENTITY-MIGRATION.md"
+reason = "The guide records the 2026 rename as history; an archive note explains the names instead of rewriting them."
+[[transform.replace]]
+old = '''
+# eimir. project identity migration
+'''
+new = '''
+# eimir. project identity migration
+
+> **Archive note (repository split, Decision 0019):** this guide records the September 2026 rename of the former
+> single repository. That repository is now the private, archived `baerenmarke90/eimir-archive`; the public code
+> lives in `baerenmarke90/eimir-core`. The repository names below are kept as they were.
+'''
+
+# --------------------------------------------------------------------------
+# Repository identity (P5). The old repository becomes the private archive;
+# links to history point there, references to the living repository point at
+# eimir-core. Rules run in this order on every exported text file in scope; a
+# rule that replaces fewer occurrences than its minimum fails the export, so a
+# changed file is reviewed again. The identity gate below proves that nothing
+# else names the old repository.
+# --------------------------------------------------------------------------
+
+[identity]
+source = "baerenmarke90/eimir"
+archive = "baerenmarke90/eimir-archive"
+issue_map = "issue-map.toml"
+
+[[rewrite]]
+id = "contact-url"
+reason = "The User-Agent contact of the place search (Nominatim and Photon policies require a working contact)."
+paths = ["backend/src/eimir/providers/photon.py", "backend/src/eimir/providers/place_search.py"]
+old = "(+https://github.com/baerenmarke90/eimir)"
+new = "(+https://github.com/baerenmarke90/eimir-core)"
+minimum = 2
+
+[[rewrite]]
+id = "demo-asset-source"
+reason = "The demo avatar source prefix, the manifest URLs it validates and the unit test that asserts it change together."
+paths = ["backend/src/eimir/demo/assets.py", "backend/demo_assets/manifest.json", "backend/tests/unit/test_demo_assets.py"]
+old = "baerenmarke90/eimir/"
+new = "baerenmarke90/eimir-core/"
+minimum = 6
+
+[[rewrite]]
+id = "git-build-context"
+reason = "Git build contexts of the Self-Hosted examples and the documentation, together with the deployment guard that asserts their prefix."
+paths = [
+  ".env.example",
+  "deploy/persistent-development.env.example",
+  ".github/workflows/self-hosted-deployment-guard.yml",
+  "docs/ARCANE.md",
+  "docs/DEVELOPMENT-AND-RELEASE-ENVIRONMENTS.md",
+  "docs/MAIN-SITE.md",
+]
+old = "github.com/baerenmarke90/eimir.git#main"
+new = "github.com/baerenmarke90/eimir-core.git#main"
+minimum = 13
+
+[[rewrite]]
+id = "test-channel-git-url"
+reason = "The Arcane Git source of the test channel deployment branch lives in eimir-pro after the cut-over (runbook C14)."
+decision = "I2"
+paths = ["docs/PRIVATE-TEST-CHANNEL.md"]
+old = "https://github.com/baerenmarke90/eimir.git"
+new = "https://github.com/baerenmarke90/eimir-pro.git"
+minimum = 1
+
+[[rewrite]]
+id = "gh-live-repository"
+reason = "gh commands that act on the living repository (CI reruns, release verification and download)."
+decision = "I1"
+kind = "regex"
+paths = ["CONTRIBUTING.md", "docs/ARCANE.md", "docs/SELF-HOSTING.md", "docs/m5/WEB-BROWSER-QA.md"]
+pattern = '(--repo\s+)baerenmarke90/eimir(?![\w-])'
+replacement = '\1baerenmarke90/eimir-core'
+minimum = 6
+
+[[rewrite]]
+id = "repository-statements"
+reason = "Statements that name the repository the reader works in."
+paths = ["AGENTS.md", "docs/agents/issue-tracker.md", "docs/BRAND-AND-LEGAL-CHECKS.md"]
+old = "`baerenmarke90/eimir`"
+new = "`baerenmarke90/eimir-core`"
+minimum = 3
+
+[[rewrite]]
+id = "ruleset-link"
+reason = "The new repository gets a new ruleset id; the link points at its ruleset list."
+decision = "I3"
+paths = ["README.md"]
+old = "https://github.com/baerenmarke90/eimir/rules/21286018"
+new = "https://github.com/baerenmarke90/eimir-core/rules"
+minimum = 1
+
+[[rewrite]]
+id = "status-drift-test-repository"
+reason = "Test data of the tracker-repository tests; consistent rename keeps the tests meaningful in eimir-core."
+kind = "regex"
+paths = ["tools/ci/test_status_drift.py"]
+pattern = 'baerenmarke90/eimir(?![\w-])'
+replacement = 'baerenmarke90/eimir-core'
+minimum = 3
+
+[[rewrite]]
+id = "issue-links"
+reason = "Issue and pull request links point at the archive, or at the new item listed in issue-map.toml."
+kind = "issue-links"
+paths = ["**"]
+except = ["backend/openapi.json", "tools/cutover/**"]
+minimum = 1
+
+[[rewrite]]
+id = "open-task-references"
+reason = "Open tasks of the status document name their tracker explicitly, so status_drift does not query a wrong new issue."
+kind = "issue-refs"
+paths = ["docs/IMPLEMENTATION-STATUS.md"]
+lines = '^\s*- \[ \] '
+minimum = 1
+
+[[rewrite]]
+id = "history-references"
+reason = "Every other mention in the documentation points at the history: workflow runs, commits, blobs at a revision, release tags, raw images and dated records."
+kind = "regex"
+paths = ["docs/**", "specification/**"]
+except = [
+  "docs/CUTOVER-RUNBOOK.md",
+  "docs/PROJECT-IDENTITY-MIGRATION.md",
+  "docs/PRIVATE-TEST-CHANNEL.md",
+  "docs/m6/SBOM-ATTESTATIONS.md",
+  "docs/m6/G5-EVIDENCE-DELTA-914-2026-09-20.md",
+]
+pattern = '(?<=baerenmarke90/)eimir(?![\w-])'
+replacement = 'eimir-archive'
+minimum = 1
+
 # --------------------------------------------------------------------------
 # Gates run on the exported tree
 # --------------------------------------------------------------------------
@@ -323,6 +460,9 @@ new = '''
 [gates]
 plugin_import_roots = ["eimir_pro", "eimir_admin"]
 openapi_contract = "backend/openapi.json"
+# The tree's own CI tool tests must pass on the exported tree (rehearsal step 4:
+# test_change_scope.py failed in eimir-core and failed Change Detection with it).
+ci_tests = ["tools/ci/test_*.py", "scripts/test_*.py"]
 
 # The public repository never routes a job to the operator runner.
 [[gates.forbidden_text]]
@@ -373,3 +513,43 @@ reason = "One Pro-operation case composes through the plugin inside the test; Pr
 [[gates.plugin_import_allowance]]
 path = "backend/tests/integration/test_pro_routes.py"
 reason = "Imports inside Pro-route tests that skip in the Core-only configuration."
+
+# The public tree names the old repository only where a reviewed file needs it.
+[[gates.forbidden_text]]
+id = "old-repository-name"
+pattern = 'baerenmarke90/eimir(?![\w-])'
+paths = ["**"]
+reason = "After the cut-over the old name is the private archive; eimir-core must not point at it by accident."
+[[gates.forbidden_text.allow]]
+path = "web/capacitor.config.ts"
+reason = "appendUserAgent is baked into installed APKs; the bridge release keeps the old contact. After the bridge, change it in eimir-core so the next APK built there carries eimir-core (I4)."
+[[gates.forbidden_text.allow]]
+path = "docs/CUTOVER-RUNBOOK.md"
+reason = "The runbook names the old repository it renames and archives."
+[[gates.forbidden_text.allow]]
+path = "docs/PROJECT-IDENTITY-MIGRATION.md"
+reason = "Historical record of the 2026 rename; the export adds an archive note instead of rewriting it."
+[[gates.forbidden_text.allow]]
+path = "docs/PRIVATE-TEST-CHANNEL.md"
+reason = "Documents the monorepository default of EIMIR_TEST_CHANNEL_REPOSITORY next to its eimir-pro value (test channel publisher, P2)."
+[[gates.forbidden_text.allow]]
+path = "docs/m6/SBOM-ATTESTATIONS.md"
+reason = "Attestations of published releases are bound to the repository name at signing time; their verification commands must keep it (I5)."
+[[gates.forbidden_text.allow]]
+path = "docs/m6/G5-EVIDENCE-DELTA-914-2026-09-20.md"
+reason = "Quotes the recorded source field of a published SBOM; a dated evidence value, not a link."
+[[gates.forbidden_text.allow]]
+path = "tools/cutover/core-allowlist.toml"
+reason = "The identity rewrite rules and this gate name the old repository."
+[[gates.forbidden_text.allow]]
+path = "tools/cutover/pro-allowlist.toml"
+reason = "The identity rewrite rules and the gate of the private tree name the old repository."
+[[gates.forbidden_text.allow]]
+path = "tools/cutover/issue-map.toml"
+reason = "Explains which old links the map redirects."
+[[gates.forbidden_text.allow]]
+path = "tools/cutover/test_core_export.py"
+reason = "Tests of the identity rewrites and the gate."
+[[gates.forbidden_text.allow]]
+path = "tools/cutover/README.md"
+reason = "Documents the identity rewrites."

@@ -429,12 +429,14 @@ class ChangeScopeTest(unittest.TestCase):
                     self.assertIn(f"python3 {path}", workflow, "test is not run by its owner")
 
     def test_self_validating_tooling_keeps_other_scopes_in_mixed_prs(self) -> None:
+        # The Android launcher tooling is self-validating in both repositories of the
+        # split (Decision 0019); the release pipeline exists only in the private one.
         self.assert_scope(
-            [".github/workflows/release-publish.yml", "backend/tests/test_config.py"],
+            [".github/workflows/android-launcher-icons.yml", "backend/tests/test_config.py"],
             enabled={"backend"},
         )
         self.assert_scope(
-            ["scripts/image_archive_config.py", "backend/alembic/versions/0001_x.py"],
+            ["scripts/android_launcher_identity.py", "backend/alembic/versions/0001_x.py"],
             enabled={"backend", "backend_integration", "recovery"},
         )
 

@@ -38,6 +38,13 @@ def advisory(description: str, status: str = "open") -> dict:
     return {"description": description, "releases": {"sid": {"status": status}}}
 
 
+# Decision 0019: besides this workflow only the release workflows use this pin,
+# and they live in the private eimir-pro repository after the split; the pin
+# was reviewed with them. Any other pin must already be used by another workflow.
+PINS_REVIEWED_WITH_THE_RELEASE_PIPELINE = frozenset(
+    {"actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333"}
+)
+
 class WorkflowContract(unittest.TestCase):
     def test_gate_is_unchanged_and_still_fails_the_run(self) -> None:
         text = workflow()
@@ -73,6 +80,8 @@ class WorkflowContract(unittest.TestCase):
         uses = re.findall(r"uses: (\S+@[0-9a-f]{40}) # v", workflow())
         self.assertEqual(len(uses), len(re.findall(r"uses:", workflow())))
         for pin in uses:
+            if pin in PINS_REVIEWED_WITH_THE_RELEASE_PIPELINE:
+                continue
             self.assertIn(pin, others)
 
     def test_one_issue_is_kept_idempotently_and_dry_run_never_writes(self) -> None:

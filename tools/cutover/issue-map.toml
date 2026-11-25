@@ -1,0 +1,17 @@
+# Issue and pull request numbers of the old repository that continue elsewhere.
+#
+# Read by the identity rewrites of core-allowlist.toml and pro-allowlist.toml.
+# A link https://github.com/baerenmarke90/eimir/issues/N (or /pull/N), and an
+# open task "#N" in docs/IMPLEMENTATION-STATUS.md, point at the item listed here.
+# Every number that is not listed points at the archive
+# (baerenmarke90/eimir-archive), where the old item keeps its number.
+#
+# Format: one line per moved item, the old number as a quoted key and the new
+# item as "owner/repo#N". The issue re-creation of the cut-over (runbook C9)
+# produces the entries; this file is only its input to the export.
+#
+#   "2183" = "baerenmarke90/eimir-core#1"
+
+schema = 1
+
+[moved]

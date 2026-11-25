@@ -69,9 +69,22 @@ on:
         description: SemVer product version without the v prefix.
         required: true
         type: string
+      core_repository:
+        description: Pinned Core repository (Decision 0019); empty builds Core from this checkout.
+        required: false
+        default: ''
+        type: string
+      core_revision:
+        description: Full commit SHA of the pinned Core revision; required exactly with core_repository.
+        required: false
+        default: ''
+        type: string
     secrets:
       EIMIR_ANDROID_GOOGLE_SERVICES_JSON:
         description: Public Firebase Android client configuration; never an FCM server service-account key.
+        required: false
+      EIMIR_CORE_READ_TOKEN:
+        description: Read-only token for a private Core repository (rehearsal only); a public Core needs none.
         required: false
 
 permissions:
@@ -103,6 +116,31 @@ jobs:
     steps:
       - name: Checkout exact source revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Decision 0019: in the Pro repository the official tree is the pinned Core
+      # revision with the Pro tree on top. Both inputs are empty in the monorepo,
+      # which skips these steps and builds exactly as before.
+      - name: Checkout pinned Core revision
+        if: inputs.core_repository || inputs.core_revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ inputs.core_repository }}
+          ref: ${{ inputs.core_revision }}
+          path: .eimir-core-source
+          persist-credentials: false
+          token: ${{ secrets.EIMIR_CORE_READ_TOKEN || github.token }}
+
+      - name: Compose the official tree from the pinned Core and the Pro tree
+        if: inputs.core_repository || inputs.core_revision
+        env:
+          EIMIR_TEST_CHANNEL_REPOSITORY: ${{ vars.EIMIR_TEST_CHANNEL_REPOSITORY }}
+          EIMIR_CORE_REPOSITORY: ${{ inputs.core_repository }}
+          CORE_REVISION: ${{ inputs.core_revision }}
+        run: |
+          set -euo pipefail
+          python3 scripts/test_deployment_channel.py compose-source \
+            --core .eimir-core-source --core-revision "$CORE_REVISION" --target .
+          rm -rf .eimir-core-source
 
       - name: Validate release-evidence contract
         run: |
@@ -403,6 +441,8 @@ jobs:
       - name: Validate and index release evidence
         env:
           SOURCE_REVISION: ${{ github.sha }}
+          CORE_REPOSITORY: ${{ inputs.core_repository }}
+          CORE_REVISION: ${{ inputs.core_revision }}
           INCLUDE_ANDROID: ${{ env.INCLUDE_ANDROID }}
           ANDROID_VERSION_CODE: ${{ env.ANDROID_VERSION_CODE }}
           RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
@@ -506,6 +546,12 @@ jobs:
               "artifacts": artifacts,
               "android": android,
           }
+          # Decision 0019: bind the pinned Core revision next to the Pro source.
+          if os.environ.get("CORE_REVISION") or os.environ.get("CORE_REPOSITORY"):
+              index["coreSource"] = {
+                  "repository": os.environ["CORE_REPOSITORY"],
+                  "revision": os.environ["CORE_REVISION"],
+              }
           (root / "evidence-index.json").write_text(
               json.dumps(index, indent=2, sort_keys=True) + "\n",
               encoding="utf-8",

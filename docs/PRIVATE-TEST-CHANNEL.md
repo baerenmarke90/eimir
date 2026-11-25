@@ -25,7 +25,10 @@ The publication jobs:
 
 1. Publication requires the repository
    Actions variable `EIMIR_TEST_CHANNEL_ENABLED=true`, the owning repository and
-   its `main` ref. Pull requests never receive publishing permissions.
+   its `main` ref. The owning repository is `baerenmarke90/eimir` unless the variable
+   `EIMIR_TEST_CHANNEL_REPOSITORY` names another one (see
+   [Pinned Core repository](#pinned-core-repository-decision-0019)). Pull requests
+   never receive publishing permissions.
 2. For a merge (`push`), admits only the current `main` commit and skips the full
    regression. For a manual or report dispatch, checks once for the exact
    revision's newest dispatched full-regression runs of CI, Web
@@ -85,6 +88,104 @@ or personal photo-provider credential is passed. Its canonical read-only root,
 private tmpfs, CPU/memory/PID limits and migration dependency remain intact.
 General Cloud/Self-Hosted production admission still defaults off; this private
 channel selection does not approve a public/store or general production rollout.
+
+## Pinned Core repository (Decision 0019)
+
+After the repository cut-over ([Decision 0019](decisions/0019-repository-split-and-cutover.md),
+[runbook](CUTOVER-RUNBOOK.md)) the channel is published from the private Pro and release
+repository `eimir-pro`, and the official image is built from a **pinned revision of the public
+Core repository** `eimir-core` plus the Pro tree. The same workflows run in the throwaway
+rehearsal repositories first. Every name is a plain Actions variable of the publishing
+repository; none is a secret, and an unset or empty variable keeps the monorepo behaviour
+described above exactly.
+
+| Variable | Monorepo (unset) | Pro repository | Rehearsal (example) |
+| --- | --- | --- | --- |
+| `EIMIR_TEST_CHANNEL_REPOSITORY` | `baerenmarke90/eimir` | `baerenmarke90/eimir-pro` | `baerenmarke90/eimir-rehearsal-pro` |
+| `EIMIR_CORE_REPOSITORY` | empty: Core is the same checkout | `baerenmarke90/eimir-core` | `baerenmarke90/eimir-rehearsal-core` |
+| `EIMIR_TEST_CHANNEL_INSTANCE` | `eimir-test` | `eimir-test` | `eimir-rehearsal` |
+
+Rules the publisher enforces before any registry or branch write:
+
+- Repository names are `OWNER/eimir` or `OWNER/eimir-` followed by lowercase letters, digits
+  and single hyphens. The Core repository must differ from the publishing repository and
+  have the same owner. The workflow guard and the script both compare the running
+  repository with `EIMIR_TEST_CHANNEL_REPOSITORY`.
+- The instance name is `eimir-` followed by lowercase letters, digits and single hyphens.
+  It derives the branch `deploy/<instance>`, the Compose project name, the database network
+  `<instance>-data` and host `<instance>-postgres`, the two external stores
+  `<instance>_cloud_media_data` and `<instance>_cloud_deletion_journal_data` and the proxy
+  aliases `<instance>-api` and `<instance>-web`. A rehearsal instance therefore never
+  attaches to the `eimir-test` database, stores or proxy aliases; it needs its own database
+  project and both external volumes, created by the Product Owner in Arcane with fictional
+  data only. The proxy network `mailcow-proxy` is shared.
+
+### How a Core change reaches the test instance
+
+The scheduled workflow **Core Advance** (`.github/workflows/core-advance.yml`, minutes 7 and
+37 of every hour, runbook decision D2) runs in the publishing repository only:
+
+1. **Plan.** It reads Core `main` and the Core revision that `channel.json` on
+   `deploy/<instance>` selects. Equal: nothing to do. Core `main` must descend from the
+   selected revision; a rewritten Core history fails the run and needs a manual decision.
+2. **Pro tests.** For a newer Core revision the job "Pro tests against Core <SHA>" checks out
+   exactly that revision and runs the Pro extraction dry run
+   (`tools/ci/pro_extraction_dry_run.sh` of that Core revision, Pro from this checkout,
+   unit and integration tests with PostgreSQL).
+3. **Advance or report.** Only green tests dispatch the publisher with
+   `private_test_channel=true`, `core_revision` and `core_advance_run`. A failed, cancelled or
+   skipped test opens the issue **Core advance blocked** (or adds the revision to it) and
+   fails the run. The same happens when the publisher run for that revision failed.
+
+The publisher then admits the build only when:
+
+- the dispatch names a Core Advance run of this repository on `main` at the same Pro
+  revision, and that run's job "Pro tests against Core <SHA>" for exactly this Core revision
+  succeeded (checked through the Actions API, not taken from the inputs). When a Pro merge
+  landed while the tests ran, the publisher skips without a failure and the next Core
+  Advance run tests the new Pro revision;
+- the Core revision is on Core `main` and descends from the selected Core revision (the pin
+  only moves forward, also against a concurrent publication);
+- the Pro revision is still the current `main` and the pair is not selected already.
+
+Release Evidence checks out the pinned Core revision, lays the Pro tree over it and builds
+the backend, Web and media images from that one tree. The composition copies only tracked
+Core files and refuses the build when the Core revision contains `backend/pro/` or
+`backend/admin/`, when the Pro tree would replace a Core file with different content, when
+the Pro tree lacks the official uv workspace (`backend/pyproject.toml`, `backend/uv.lock`)
+or a plugin project file, or when the `[project]` table of `backend/pyproject.toml` differs
+between Core and Pro (a Core dependency change needs a Pro pull request that updates the
+workspace files). Core CI files and the repository documents (`README.md`, `LICENSE` and
+similar) of the Pro tree stay as they are. `evidence-index.json` and `channel.json` bind
+both revisions: `sourceRevision` is the Pro revision and `coreSource` names the Core
+repository and revision. The generated `README.md` names both.
+
+A merge to Pro `main` (push) rebuilds with the Core revision the channel already selects.
+When the channel selects no Core revision yet, for example right after the deployment
+branches were seeded from the old repository, the push run fails and asks for Core Advance;
+dispatch **Actions -> Core Advance -> Run workflow** once. In this mode full-regression
+completions and the Nightly Regression Report do not start the publisher.
+
+**A blocked revision is not tested again** while its issue is open, so a persistent failure
+is visible once and does not cost a test run every 30 minutes. Fix the cause (usually a Pro
+pull request against the new Core), then close the issue or dispatch Core Advance with
+**retest**. A newer Core revision is tested as usual.
+
+**Credentials.** Nothing is stored in the Core repository. `GITHUB_TOKEN` of the publishing
+repository reads a public Core. Only a private Core repository (the rehearsal) needs the
+secret `EIMIR_CORE_READ_TOKEN` in the publishing repository: a fine-grained personal access
+token limited to that one Core repository with **Contents: read** (Metadata read is implied),
+expiring after the rehearsal. It is used for the Core checkout and the Core API reads only.
+Core Advance itself has `contents: read`, `actions: read`/`write` (dispatch) and
+`issues: write`; it never writes code, packages or branches.
+
+**Cost.** In a private repository every scheduled run is billed: the plan job alone uses about
+one runner minute per run (about 48 per day when nothing changes). In the monorepo every job
+is skipped at no runner cost.
+
+**Rollback.** Unchanged: switch the Arcane sync to the rollback branch or turn Auto Sync off
+([Rollback](#rollback)). To stop following Core, disable the Core Advance workflow; the
+channel keeps the last selected pair and Pro merges keep rebuilding with it.
 
 ## One-time GitHub setup
 

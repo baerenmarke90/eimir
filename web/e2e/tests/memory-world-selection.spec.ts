@@ -684,3 +684,46 @@ test('Erinnerungen shows the Mochis; an action sends up a memory to open', async
   await page.waitForTimeout(600);
   await capture(page, info, 'memory-worlds-mochi-1280-dark.png');
 });
+
+test('Erinnerungen shows the Sternbild; arrow keys move along the stars', async ({
+  page,
+}, info) => {
+  await installMocks(page, true, 'stars');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page, '/story?tab=discover');
+  const world = page.locator('.memory-world[data-world="stars"]');
+  await expect(world).toBeVisible();
+  await expect(page.locator('.memory-world-stage')).toHaveAttribute(
+    'data-entered',
+    'true',
+  );
+  const sky = world.getByRole('group', { name: worlds.stars.label });
+  await expect(sky).toBeVisible();
+  await page.waitForTimeout(900);
+  await capture(page, info, 'memory-worlds-stars-390-light.png');
+  // The lit star's memory waits on the card below and can be opened.
+  await expect(
+    world
+      .getByRole('link', {
+        name: new RegExp(worlds.stars.open.split('{{')[0]),
+      })
+      .first(),
+  ).toBeVisible();
+  const first = sky.getByRole('button').first();
+  await first.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(sky.locator('[aria-pressed="true"]')).toHaveCount(1);
+  await page.waitForTimeout(900);
+  await capture(page, info, 'memory-worlds-stars-moved-390-light.png');
+  const accessibility = await new AxeBuilder({ page })
+    .include('.memory-world')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(accessibility.violations).toEqual([]);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.waitForTimeout(500);
+  await capture(page, info, 'memory-worlds-stars-390-dark.png');
+  await page.setViewportSize({ width: 1280, height: 860 });
+  await page.waitForTimeout(600);
+  await capture(page, info, 'memory-worlds-stars-1280-dark.png');
+});

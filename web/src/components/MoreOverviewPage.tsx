@@ -333,12 +333,13 @@ export function MoreOverviewPage({
     queryFn: () => loadInstanceAccessStatus(apiBaseUrl),
     staleTime: 60_000,
   });
-  const { displayName, avatarUrl } = useCurrentProfileIdentity({
-    apiBaseUrl,
-    accessToken,
-    account,
-    spaceId,
-  });
+  const { displayName, displayAvatarUrl, avatarIsStandIn } =
+    useCurrentProfileIdentity({
+      apiBaseUrl,
+      accessToken,
+      account,
+      spaceId,
+    });
 
   const profileDestination: MoreDestination = {
     path: MORE_PROFILE_ROUTE,
@@ -370,7 +371,8 @@ export function MoreOverviewPage({
             leading={
               <PersonIdentity
                 displayName={displayName}
-                imageUrl={avatarUrl}
+                imageUrl={displayAvatarUrl}
+                standIn={avatarIsStandIn}
                 size="medium"
                 showName={false}
                 imageAlt={t('profileIdentity.imageAlt', { name: displayName })}

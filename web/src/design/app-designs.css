@@ -221,8 +221,8 @@
   --color-technical-surface: #eaf1ff;
   --identity-premium: #674aa1;
   --identity-premium-surface: #f1ecfa;
-  --color-action-primary: #3055b8;
-  --color-on-action-primary: #ffffff;
+  --color-action-primary: #754435;
+  --color-on-action-primary: #fff9f2;
 }
 
 :root[data-theme="dark"] [data-design-preview="home_rooms"] {
@@ -274,8 +274,8 @@
   --color-technical-surface: #2c3e65;
   --identity-premium: #d5bdff;
   --identity-premium-surface: #43365d;
-  --color-action-primary: #b7c8ff;
-  --color-on-action-primary: #20283f;
+  --color-action-primary: #ebb7a0;
+  --color-on-action-primary: #42251d;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -328,8 +328,8 @@
     --color-technical-surface: #2c3e65;
     --identity-premium: #d5bdff;
     --identity-premium-surface: #43365d;
-    --color-action-primary: #b7c8ff;
-    --color-on-action-primary: #20283f;
+    --color-action-primary: #ebb7a0;
+    --color-on-action-primary: #42251d;
   }
 }
 
@@ -722,7 +722,7 @@
   --color-technical-surface: #eaf1ff;
   --identity-premium: #674aa1;
   --identity-premium-surface: #f1ecfa;
-  --color-action-primary: #3055b8;
+  --color-action-primary: #7d315d;
   --color-on-action-primary: #ffffff;
   --design-decoration: #2d1835;
   --design-on-decoration: #fff4f5;
@@ -781,8 +781,8 @@
   --color-technical-surface: #2c3e65;
   --identity-premium: #d5bdff;
   --identity-premium-surface: #43365d;
-  --color-action-primary: #b7c8ff;
-  --color-on-action-primary: #20283f;
+  --color-action-primary: #f5b8d5;
+  --color-on-action-primary: #24212e;
   --design-decoration: #35203f;
   --design-on-decoration: #fff4f5;
   --design-on-decoration-muted: #edaec9;
@@ -841,8 +841,8 @@
     --color-technical-surface: #2c3e65;
     --identity-premium: #d5bdff;
     --identity-premium-surface: #43365d;
-    --color-action-primary: #b7c8ff;
-    --color-on-action-primary: #20283f;
+    --color-action-primary: #f5b8d5;
+    --color-on-action-primary: #24212e;
     --design-decoration: #35203f;
     --design-on-decoration: #fff4f5;
     --design-on-decoration-muted: #edaec9;
@@ -1063,8 +1063,8 @@
   --color-technical-surface: #eaf1ff;
   --identity-premium: #674aa1;
   --identity-premium-surface: #f1ecfa;
-  --color-action-primary: #3055b8;
-  --color-on-action-primary: #ffffff;
+  --color-action-primary: #754435;
+  --color-on-action-primary: #fff9f2;
 }
 
 :root[data-theme="dark"][data-app-palette="home_rooms"],
@@ -1117,8 +1117,8 @@
   --color-technical-surface: #2c3e65;
   --identity-premium: #d5bdff;
   --identity-premium-surface: #43365d;
-  --color-action-primary: #b7c8ff;
-  --color-on-action-primary: #20283f;
+  --color-action-primary: #ebb7a0;
+  --color-on-action-primary: #42251d;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1172,8 +1172,8 @@
     --color-technical-surface: #2c3e65;
     --identity-premium: #d5bdff;
     --identity-premium-surface: #43365d;
-    --color-action-primary: #b7c8ff;
-    --color-on-action-primary: #20283f;
+    --color-action-primary: #ebb7a0;
+    --color-on-action-primary: #42251d;
   }
 }
 
@@ -1574,7 +1574,7 @@
   --color-technical-surface: #eaf1ff;
   --identity-premium: #674aa1;
   --identity-premium-surface: #f1ecfa;
-  --color-action-primary: #3055b8;
+  --color-action-primary: #7d315d;
   --color-on-action-primary: #ffffff;
   --design-decoration: #2d1835;
   --design-on-decoration: #fff4f5;
@@ -1634,8 +1634,8 @@
   --color-technical-surface: #2c3e65;
   --identity-premium: #d5bdff;
   --identity-premium-surface: #43365d;
-  --color-action-primary: #b7c8ff;
-  --color-on-action-primary: #20283f;
+  --color-action-primary: #f5b8d5;
+  --color-on-action-primary: #24212e;
   --design-decoration: #35203f;
   --design-on-decoration: #fff4f5;
   --design-on-decoration-muted: #edaec9;
@@ -1695,8 +1695,8 @@
     --color-technical-surface: #2c3e65;
     --identity-premium: #d5bdff;
     --identity-premium-surface: #43365d;
-    --color-action-primary: #b7c8ff;
-    --color-on-action-primary: #20283f;
+    --color-action-primary: #f5b8d5;
+    --color-on-action-primary: #24212e;
     --design-decoration: #35203f;
     --design-on-decoration: #fff4f5;
     --design-on-decoration-muted: #edaec9;

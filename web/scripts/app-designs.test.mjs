@@ -96,7 +96,24 @@ describe('app design token sets', () => {
     expect(block(':root[data-app-palette="shared_album"],')).toContain(
       '--color-action-primary: #143C34;',
     );
+    // A chosen colour palette recolours the add action; only Verbunden is blue.
+    expect(block(':root[data-app-palette="home_rooms"],')).toContain(
+      '--color-action-primary: #754435;',
+    );
+    expect(block(':root[data-app-palette="shared_rhythm"],')).toContain(
+      '--color-action-primary: #7D315D;',
+    );
     expect(css).not.toContain('--person-');
+  });
+
+  it('never pins the canonical blue as the action colour of another palette', () => {
+    const canonical = new Set(['#3055B8', '#B7C8FF']);
+    for (const [id, design] of Object.entries(designs))
+      for (const scheme of ['light', 'dark'])
+        expect(
+          canonical.has(design.color[scheme]?.actionPrimary?.toUpperCase()),
+          `${id} ${scheme} actionPrimary`,
+        ).toBe(false);
   });
 
   it('lets an explicit action colour override the derived one and checks it', () => {

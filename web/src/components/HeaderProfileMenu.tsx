@@ -38,12 +38,13 @@ export function HeaderProfileMenu({
   const { isOpen, close, toggle, triggerRef, panelRef } =
     useDismissiblePopover();
 
-  const { displayName, avatarUrl } = useCurrentProfileIdentity({
-    apiBaseUrl,
-    accessToken,
-    account,
-    spaceId,
-  });
+  const { displayName, displayAvatarUrl, avatarIsStandIn } =
+    useCurrentProfileIdentity({
+      apiBaseUrl,
+      accessToken,
+      account,
+      spaceId,
+    });
 
   return (
     <div
@@ -65,7 +66,8 @@ export function HeaderProfileMenu({
       >
         <PersonIdentity
           displayName={displayName}
-          imageUrl={avatarUrl}
+          imageUrl={displayAvatarUrl}
+          standIn={avatarIsStandIn}
           size="small"
           showName={false}
           imageAlt={t('profileIdentity.imageAlt', { name: displayName })}

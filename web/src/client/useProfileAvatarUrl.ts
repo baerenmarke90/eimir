@@ -168,7 +168,7 @@ export function useProfileAvatarUrl(
   spaceId: string,
   accountId: string,
   profileAttachmentId: string | null | undefined,
-): { avatarUrl: string | null; loadFailed: boolean } {
+): { avatarUrl: string | null; loadFailed: boolean; hasNoPicture: boolean } {
   const scope = profilesApi ? mediaCacheScopeForClient(profilesApi) : null;
   const identity = JSON.stringify([
     scope?.id,
@@ -220,7 +220,16 @@ export function useProfileAvatarUrl(
     };
   }, [accountId, profileAttachmentId, profilesApi, spaceId, identity]);
 
+  // `null` is the loaded profile saying "no picture"; `undefined` is a profile
+  // that has not been read yet, which must not look like an empty one.
+  const hasNoPicture =
+    profileAttachmentId === null &&
+    Boolean(profilesApi && spaceId && accountId);
   return state.identity === identity && scope?.isCurrent(spaceId)
-    ? { avatarUrl: state.avatarUrl, loadFailed: state.loadFailed }
-    : { avatarUrl: null, loadFailed: false };
+    ? {
+        avatarUrl: state.avatarUrl,
+        loadFailed: state.loadFailed,
+        hasNoPicture,
+      }
+    : { avatarUrl: null, loadFailed: false, hasNoPicture };
 }

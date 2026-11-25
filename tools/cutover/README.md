@@ -59,13 +59,13 @@ python tools/cutover/core_export.py dry-run --rev origin/main --work /tmp/core-e
   (for example `zricethezav/gitleaks:v8.24.3`, which needs docker).
 - uv is pinned through `backend/pyproject.toml` (`required-version`); when another uv is installed, the tool runs the
   pinned one through `uvx`. On Windows a managed Python that is blocked locally can be replaced with `UV_PYTHON`.
-- For step C6 of the [cut-over runbook](../../docs/CUTOVER-RUNBOOK.md) the snapshot is made with the Product Owner's
-  identity and the archive reference in the message, then checked and pushed by hand:
+- For step C6 of the [cut-over runbook](../../docs/CUTOVER-RUNBOOK.md) the snapshot is made with the neutral default
+  identity (decision D6) and the archive reference in the message, then checked and pushed by hand:
 
   ```sh
   python tools/cutover/core_export.py dry-run --rev <snapshot SHA> --work <dir> --backend
   python tools/cutover/core_export.py fresh-history --tree <dir>/tree --manifest <dir>/report/manifest.json \
-    --target <dir>/eimir-core.git --author "<Name> <email>" \
+    --target <dir>/eimir-core.git \
     --message "Initial snapshot from <owner>/eimir-archive at <snapshot SHA>"
   git -C <dir>/eimir-core.git ls-tree -r --name-only main | wc -l   # equals the manifest's file count
   git -C <dir>/eimir-core.git push <eimir-core URL> main            # by hand, never by the tool
@@ -110,5 +110,5 @@ reversible default where the classification was unclear: a file can be published
 | D3 | Large design media below `docs/product/design/` and `docs/design/eimir/` (generated reference images and evidence screenshots; numbers in the dry-run report) and six historical checksum files that match the secret scanner | Excluded; the archive keeps them | Keeping them makes the public repository about 0.6 GB larger; linking is not possible because the archive becomes private. The Markdown records next to them stay, so their image links will not resolve. The identity system and app-icon sources stay because scripts read them. |
 | D4 | `PROVENANCE.md` split | The sections "Date-idea catalog and images" and "Daily Saying catalog" move to the private repository with the catalogs; everything else stays public | Proposed split for review; the private repository needs its own provenance file with those two sections. |
 | D5 | Core test modules that import `eimir_pro` at module level: `backend/tests/media/acceptance_video_lifecycle.py` and `backend/tests/unit/test_account_table_lifecycle.py` | Excluded (they belong to the private suite) | They must move to `backend/pro/pro_tests` or be rewritten before they can be published. The three lifecycle modules that [#2285](https://github.com/baerenmarke90/eimir/pull/2285) rewrote onto a fake plugin (`test_core_only_lifecycle.py`, `test_dormant_plugin_data.py`, `test_plugin_lifecycle.py`, with `tests/support/fake_plugin.py`) are exported again. Five other Core test files keep guarded Pro imports inside functions under a reasoned allowance. |
-| D6 | Snapshot author and date | `eimir. <snapshot@eimir.invalid>` and the source commit's date | The public commit's author identity is the Product Owner's choice (`--author`, `--date`). |
+| D6 | Snapshot author and date | `eimir. <snapshot@eimir.invalid>` and the source commit's date | **Decided by the Product Owner on 2026-11-25:** the snapshot commit uses this neutral identity, the tool's default. A personal name or a real e-mail address must never appear in the snapshot. The `--author` and `--date` options stay available, but C6 uses the defaults. |
 | D7 | Public CI after the cut-over | The Core CI workflows are exported unchanged | They still name `backend/pro`, `backend/admin`, the release workflows and the operator runner label; the dry-run report lists every such reference. Since #2285 two exported Core test docstrings (`test_core_only_lifecycle.py`, `test_plugin_lifecycle.py`) also point at `backend/pro/pro_tests`, which becomes part of `eimir-pro`; no new workflow reference was added. Adapting them is cut-over work, not part of this export. |

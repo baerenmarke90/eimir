@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -417,3 +417,59 @@ def test_disabled_deployment_accepts_only_stop(  # type: ignore[no-untyped-def]
         == 200
     )
     assert _distance(client, couple).json()["available"] is False
+
+
+def test_demo_distance_uses_the_seeded_positions_and_never_ages(  # type: ignore[no-untyped-def]
+    client, session: Session, couple, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A Demo visitor shares no device position, so the Wir heart relies on the seed."""
+    monkeypatch.setattr(presence_service, "_demo_deployment", lambda: True)
+    _grant(session, couple)
+    base = _base(couple["space"].id)
+    old_capture = (now() - timedelta(hours=5)).isoformat()
+
+    shared = _share(client, couple, "DISTANCE_AND_MAP")
+    published = client.put(
+        f"{base}/snapshot",
+        json={
+            **HAMBURG,
+            "accuracyMeters": 35,
+            "capturedAt": old_capture,
+            "consentGeneration": shared["generation"],
+        },
+        headers=auth(couple["sharer_token"]),
+    )
+    assert published.status_code == 200, published.text
+    viewer_share = client.put(
+        f"{base}/settings",
+        json={"level": "DISTANCE", "indefinite": True},
+        headers=auth(couple["viewer_token"]),
+    )
+    assert viewer_share.status_code == 200, viewer_share.text
+    viewer_published = client.put(
+        f"{base}/snapshot",
+        json={
+            **COLOGNE,
+            "accuracyMeters": 35,
+            "capturedAt": old_capture,
+            "consentGeneration": viewer_share.json()["generation"],
+        },
+        headers=auth(couple["viewer_token"]),
+    )
+    assert viewer_published.status_code == 200, viewer_published.text
+
+    # The position in the request is far from both and must not matter.
+    distance = client.post(
+        f"{base}/distance",
+        json={"latitude": 0.0, "longitude": 0.0, "capturedAt": now().isoformat()},
+        headers=auth(couple["viewer_token"]),
+    )
+    assert distance.status_code == 200, distance.text
+    body = distance.json()
+    assert body["available"] is True
+    assert body["band"]["approximateKm"] == 350
+    assert abs(now() - datetime.fromisoformat(body["asOf"])) < timedelta(minutes=1)
+
+    map_body = _map(client, couple).json()
+    assert map_body["available"] is True
+    assert abs(now() - datetime.fromisoformat(map_body["capturedAt"])) < timedelta(minutes=1)

@@ -1123,7 +1123,11 @@ class TestDeploymentIsolation:
     def test_self_hosted_first_account_still_requires_the_bootstrap_proof(
         self, self_hosted_client, session
     ) -> None:  # type: ignore[no-untyped-def]
-        registration = {"displayName": "Anna", "email": ANNA, "password": "ein-langes-passwort-123"}
+        registration = {
+            "displayName": "Anna",
+            "email": ANNA,
+            "password": "ein-langes-passwort-123",  # gitleaks:allow (synthetic test password)
+        }
 
         without = self_hosted_client.post("/api/v1/auth/register", json=registration)
         assert without.status_code == 403
@@ -1138,7 +1142,7 @@ class TestDeploymentIsolation:
     def test_self_hosted_later_accounts_still_require_an_invitation(
         self, self_hosted_client, session
     ) -> None:  # type: ignore[no-untyped-def]
-        password = "ein-langes-passwort-123"
+        password = "ein-langes-passwort-123"  # gitleaks:allow (synthetic test password)
         first = self_hosted_client.post(
             "/api/v1/auth/register",
             json={
@@ -1185,7 +1189,7 @@ class TestDeploymentIsolation:
             json={
                 "displayName": "Anna",
                 "email": ANNA,
-                "password": "ein-langes-passwort-123",
+                "password": "ein-langes-passwort-123",  # gitleaks:allow (synthetic test password)
                 "bootstrapToken": TEST_BOOTSTRAP_TOKEN,
             },
         )

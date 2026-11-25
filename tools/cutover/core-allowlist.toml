@@ -1,0 +1,348 @@
+# Allow-list of the public `eimir-core` snapshot (Decision 0019, #2183).
+#
+# This file is data, not code. `tools/cutover/core_export.py` reads it and
+# exports a tracked file of the chosen revision only when
+#
+#   * at least one `[[include]]` pattern matches it, and
+#   * no `[[exclude]]` pattern matches it.
+#
+# Anything not listed is excluded. `[[forbidden]]` patterns are a second,
+# independent guard: an exported path that matches one fails the export, even
+# if an include rule was widened by mistake. Every export is a publication and
+# needs the same review as a release (Decision 0019, "What this does not
+# protect").
+#
+# Pattern syntax (paths relative to the repository root, case-sensitive):
+#   `*` any characters except `/`, `?` one character except `/`,
+#   `**` any number of whole path segments (also none).
+#   `docs/**` matches every file below `docs/`.
+#
+# Every group carries a reason. A `decision` field marks a default that the
+# Product Owner still has to confirm (see tools/cutover/README.md).
+
+schema = 1
+
+# --------------------------------------------------------------------------
+# Included in the public Core tree
+# --------------------------------------------------------------------------
+
+[[include]]
+id = "root-documents"
+reason = "Licence, CLA, contribution and provenance documents of the public code (PolyForm Noncommercial 1.0.0)."
+patterns = [
+  "LICENSE",
+  "CLA.md",
+  "COMMERCIAL-LICENSE.md",
+  "TRADEMARKS.md",
+  "CONTRIBUTING.md",
+  "PROVENANCE.md",
+  "README.md",
+  "AGENTS.md",
+]
+
+[[include]]
+id = "root-configuration"
+reason = "Repository configuration and the canonical Self-Hosted Compose contract."
+patterns = [
+  ".gitattributes",
+  ".gitignore",
+  ".gitleaksignore",
+  ".gitleaks.toml",
+  ".env.example",
+  "compose.yaml",
+  "self-hosted-image-identity.json",
+]
+
+[[include]]
+id = "web-client"
+reason = "Web client, including the Pro screens (one client bundle, #2086) and the generated API client."
+patterns = ["web/**"]
+
+[[include]]
+id = "native-wrappers"
+reason = "Capacitor Android wrapper and the iOS wrapper. No signing material is tracked here."
+patterns = ["android/**", "ios/**"]
+
+[[include]]
+id = "core-backend"
+reason = "Core backend: application, migrations (including the existing Pro tables, Decision 0019 decision 4), tests, demo assets and the full OpenAPI contract (addendum of 2026-11-25)."
+patterns = ["backend/**"]
+
+[[include]]
+id = "deployment"
+reason = "Deployment files and their examples (Self-Hosted and Cloud topology examples, no secrets)."
+patterns = ["deploy/**"]
+
+[[include]]
+id = "design-system"
+reason = "Design tokens, design sets and the M2 handoff."
+patterns = ["design/**"]
+
+[[include]]
+id = "specification"
+reason = "Clean-Room master specification and product specification (provenance record)."
+patterns = ["specification/**"]
+
+[[include]]
+id = "legal-texts"
+reason = "Cloud legal drafts; the backend compares the terms version with them."
+patterns = ["legal/**"]
+
+[[include]]
+id = "main-site"
+reason = "The public eimir.de main site and its builder."
+patterns = ["site/**", "tools/site/**"]
+
+[[include]]
+id = "documentation"
+reason = "Publishable documentation. Large media below the design evidence trees is excluded separately."
+patterns = ["docs/**", "evidence/**"]
+
+[[include]]
+id = "core-scripts-and-tools"
+reason = "Developer, Self-Hosted, OpenAPI, media and CI tooling of the Core repository."
+patterns = [
+  "scripts/**",
+  "tools/README.md",
+  "tools/ci/**",
+  "tools/media/**",
+  "tools/openapi/**",
+  "tools/ops/**",
+  "tools/cutover/**",
+]
+
+[[include]]
+id = "core-ci"
+reason = "Core CI: pull-request gates, the nightly regression dispatcher, CodeQL, browser, media, Self-Hosted guards and the Self-Hosted release contract (Self-Hosted is Core; scripts/self_hosted_release.py is read by backend/src/eimir/deployment/release_guard.py)."
+patterns = [
+  ".github/ISSUE_TEMPLATE/**",
+  ".github/SECURITY.md",
+  ".github/codeql/**",
+  ".github/dependabot.yml",
+  ".github/pull_request_template.md",
+  ".github/workflows/android-launcher-icons.yml",
+  ".github/workflows/artifact-cleanup.yml",
+  ".github/workflows/backend-encrypted.yml",
+  ".github/workflows/ci.yml",
+  ".github/workflows/codec-advisories.yml",
+  ".github/workflows/codeql.yml",
+  ".github/workflows/g2-e2e.yml",
+  ".github/workflows/incident-runbooks.yml",
+  ".github/workflows/media-video.yml",
+  ".github/workflows/nightly-regression.yml",
+  ".github/workflows/product-design-review.yml",
+  ".github/workflows/reuse-review.yml",
+  ".github/workflows/runtime-environment-drift-guard.yml",
+  ".github/workflows/self-hosted-bootstrap-guard.yml",
+  ".github/workflows/self-hosted-deployment-guard.yml",
+  ".github/workflows/self-hosted-recovery.yml",
+  ".github/workflows/self-hosted-release-contract.yml",
+  ".github/workflows/web-browser-qa.yml",
+]
+
+# --------------------------------------------------------------------------
+# Excluded: moves to the private `eimir-pro` repository or stays in the archive
+# --------------------------------------------------------------------------
+
+[[exclude]]
+id = "pro-distribution"
+reason = "The Pro server package `eimir_pro` with its editorial catalogs (date ideas, daily sayings) and Pro tests (#2182)."
+patterns = ["backend/pro/**"]
+
+[[exclude]]
+id = "operator-plugin"
+reason = "The operator plugin `eimir_admin` (#2189). It ships only in the official image, like Pro, never in the Core image."
+decision = "D1"
+patterns = ["backend/admin/**"]
+
+[[exclude]]
+id = "official-release-pipeline"
+reason = "Official build, sign, attest and publish pipeline, including the private test channel publication and its tooling."
+patterns = [
+  ".github/actions/attest-release-artifact/**",
+  ".github/workflows/release-candidate.yml",
+  ".github/workflows/release-evidence.yml",
+  ".github/workflows/release-publish.yml",
+  ".github/workflows/nightly-regression-report.yml",
+  ".claude/**",
+  "scripts/image_archive_config.py",
+  "scripts/release_manifest.py",
+  "scripts/test_deployment_channel.py",
+  "scripts/verify_release_asset_set.py",
+  "tools/ci/test_image_archive_config.py",
+  "tools/ci/test_release_evidence.py",
+  "tools/ci/test_release_manifest.py",
+  "tools/ci/test_release_publish_workflow.py",
+  "tools/ci/test_test_deployment_channel.py",
+  "tools/ci/test_verify_release_asset_set.py",
+  "docs/releases/**",
+]
+decision = "D2"
+
+[[exclude]]
+id = "design-reference-media"
+reason = "Generated design reference images and implementation evidence media (about 0.6 GB). The text records next to them stay; the archive keeps the media."
+decision = "D3"
+patterns = [
+  "docs/product/design/**/*.png",
+  "docs/product/design/**/*.jpg",
+  "docs/product/design/**/*.jpeg",
+  "docs/product/design/**/*.webp",
+  "docs/product/design/**/*.gif",
+  "docs/product/design/**/*.webm",
+  "docs/product/design/**/*.mp4",
+  "docs/design/eimir/screenshots/**",
+  "docs/design/eimir/previews/**/*.png",
+  "docs/design/eimir/565-fcm/**/*.png",
+  "docs/design/eimir/565-unifiedpush/**/*.png",
+  "docs/design/eimir/630-passkey-failures/**/*.png",
+  "docs/design/eimir/1380-reliability/**/*.png",
+  "docs/design/eimir/2225-design-preview-fix/**/*.png",
+]
+
+[[exclude]]
+id = "pro-coupled-core-tests"
+reason = "Core test modules that import eimir_pro at module level: they cannot even be collected without Pro, so they belong to the private repository's suite. #2285 rewrites the three lifecycle modules onto a fake plugin; once it is merged they can be included again."
+decision = "D5"
+patterns = [
+  "backend/tests/integration/test_core_only_lifecycle.py",
+  "backend/tests/integration/test_dormant_plugin_data.py",
+  "backend/tests/integration/test_plugin_lifecycle.py",
+  "backend/tests/media/acceptance_video_lifecycle.py",
+  "backend/tests/unit/test_account_table_lifecycle.py",
+]
+
+[[exclude]]
+id = "historical-checksum-evidence"
+reason = "Historical design evidence checksum files that match the generic-api-key rule. Their reviewed .gitleaksignore entries name commits of the old history and cannot apply to a fresh history; the archive keeps them."
+decision = "D3"
+patterns = [
+  "docs/product/design/evidence/1333/perspective-card-inset/verification.json",
+  "docs/product/design/references/1498/runtime-source-sha256.json",
+  "docs/product/design/references/today-clarity/source-sha256.json",
+  "docs/product/design/references/today-clarity/borderless/source-sha256.json",
+  "docs/product/design/references/today-clarity/integration/source-sha256.json",
+  "docs/design/eimir/565-fcm/evidence/reconciliation-2026-11-01.json",
+]
+
+# --------------------------------------------------------------------------
+# Hard guards: an exported path matching one of these fails the export
+# --------------------------------------------------------------------------
+
+[[forbidden]]
+id = "pro-code"
+reason = "No Pro or operator plugin code or package data in the public tree."
+patterns = [
+  "backend/pro/**",
+  "backend/admin/**",
+  "**/eimir_pro/**",
+  "**/eimir_admin/**",
+  "**/date_ideas/**",
+  "**/daily_sayings*",
+]
+
+[[forbidden]]
+id = "signing-material"
+reason = "Signing keys and store credentials never reach a public repository."
+patterns = [
+  "**/*.jks",
+  "**/*.keystore",
+  "**/*.p12",
+  "**/*.pfx",
+  "**/*.pem",
+  "**/*.key",
+  "**/*.mobileprovision",
+  "**/google-services.json",
+  "**/GoogleService-Info.plist",
+  "**/keystore.properties",
+  "**/signing.properties",
+  "**/.env",
+]
+
+[[forbidden]]
+id = "official-publication"
+reason = "The official publish and attestation workflows stay private."
+patterns = [
+  ".github/workflows/release-*.yml",
+  ".github/actions/attest-release-artifact/**",
+]
+
+# --------------------------------------------------------------------------
+# Transforms of included files (each must apply exactly; otherwise the export
+# fails and the transform is reviewed again)
+# --------------------------------------------------------------------------
+
+[[transform]]
+path = "backend/pyproject.toml"
+reason = "The uv workspace, the test paths and the type-checking files no longer name the excluded plugin distributions."
+[[transform.replace]]
+old = """
+[tool.uv.workspace]
+# The Pro plugin is its own distribution (Decision 0017, Phase 2, #2182). A
+# plain `uv sync` installs Core only; `uv sync --all-packages` adds Pro.
+members = ["pro", "admin"]
+"""
+new = ""
+[[transform.replace]]
+old = 'testpaths = ["tests", "pro/pro_tests", "admin/admin_tests"]'
+new = 'testpaths = ["tests"]'
+[[transform.replace]]
+old = 'files = ["src", "pro/src", "admin/src"]'
+new = 'files = ["src"]'
+
+[[transform]]
+path = "backend/uv.lock"
+reason = "Locked again without the excluded workspace members; with the pinned uv; the export fails if the new lockfile adds or changes any package instead of only dropping some."
+regenerate = "uv-lock"
+
+[[transform]]
+path = "PROVENANCE.md"
+reason = "The provenance of the editorial Pro catalogs moves to the private repository with the catalogs (proposed split, D4)."
+decision = "D4"
+drop_markdown_sections = ["Date-idea catalog and images", "Daily Saying catalog"]
+
+# --------------------------------------------------------------------------
+# Gates run on the exported tree
+# --------------------------------------------------------------------------
+
+[gates]
+plugin_import_roots = ["eimir_pro", "eimir_admin"]
+openapi_contract = "backend/openapi.json"
+
+# Files that must be present, with text they must contain (the licensing
+# decision of the Provenance job in .github/workflows/ci.yml).
+[[gates.required_file]]
+path = "LICENSE"
+contains = ["# PolyForm Noncommercial License 1.0.0"]
+[[gates.required_file]]
+path = "PROVENANCE.md"
+contains = ["PolyForm Noncommercial License 1.0.0"]
+[[gates.required_file]]
+path = "COMMERCIAL-LICENSE.md"
+contains = ["Commercial use requires a separate commercial license"]
+[[gates.required_file]]
+path = "CLA.md"
+[[gates.required_file]]
+path = "CONTRIBUTING.md"
+[[gates.required_file]]
+path = "TRADEMARKS.md"
+
+# Core test support that imports plugin code only when the plugin distribution
+# is installed (the private repository runs the Core suite with Pro this way).
+# Allowed only below backend/tests/; Core runtime code has no allowance. Each
+# entry is reviewed; the direction of #2285 removes them over time.
+[[gates.plugin_import_allowance]]
+path = "backend/tests/conftest.py"
+reason = "Loads the installed plugins for the suite; guarded by the installed distribution."
+[[gates.plugin_import_allowance]]
+path = "backend/tests/support/plugins.py"
+reason = "Plugin test helpers; import only when the distribution is installed."
+[[gates.plugin_import_allowance]]
+path = "backend/tests/integration/test_account_deletion.py"
+reason = "Pro-row cases import inside the test after require_pro_distribution(); they skip without eimir-pro."
+[[gates.plugin_import_allowance]]
+path = "backend/tests/integration/test_endpoint_matrix.py"
+reason = "One Pro-operation case composes through the plugin inside the test; Pro operations skip in the Core-only configuration."
+[[gates.plugin_import_allowance]]
+path = "backend/tests/integration/test_pro_routes.py"
+reason = "Imports inside Pro-route tests that skip in the Core-only configuration."

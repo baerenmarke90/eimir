@@ -8,18 +8,25 @@
 # from this checkout, the way an extracted Pro repository uses a pinned Core
 # checkout. Nothing is published or pushed.
 #
+# EIMIR_CORE_ROOT names another Core tree, for example the allow-listed export
+# of tools/cutover/core_export.py (Decision 0019, #2183): the Core wheel, the
+# Core test support and the demo assets then come from that tree, the way the
+# private repository pins a public eimir-core revision. Pro and the locked
+# third-party versions still come from this checkout.
+#
 # Usage: tools/ci/pro_extraction_dry_run.sh [pytest arguments]
 # Default pytest selection: the unit tests (-m "not integration").
 set -euo pipefail
 
 repo="$(git rev-parse --show-toplevel)"
+core="${EIMIR_CORE_ROOT:-$repo}"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-echo "Building the Core wheel from $repo/backend"
+echo "Building the Core wheel from $core/backend"
 # Through an sdist: a direct wheel build would reuse and leave backend/build,
 # and stale files there could end up in the wheel.
-(cd "$repo/backend" && uv build --package eimir --out-dir "$work/dist" >/dev/null)
+(cd "$core/backend" && uv build --package eimir --out-dir "$work/dist" >/dev/null)
 
 echo "Copying backend/pro into a clean directory"
 cp -R "$repo/backend/pro" "$work/pro"
@@ -67,7 +74,7 @@ echo "Running the Pro tests from the copy"
 cd "$work/pro"
 # The demo assets are Core runtime data outside the wheel: the Core image ships
 # them next to the application, which finds them relative to its working directory.
-cp -R "$repo/backend/demo_assets" demo_assets
+cp -R "$core/backend/demo_assets" demo_assets
 # The pytest settings an extracted Pro repository carries itself (the Core
 # settings live in backend/pyproject.toml and point at the Core source tree).
 cat >pytest.ini <<'INI'
@@ -82,8 +89,8 @@ INI
 if [ "$#" -eq 0 ]; then
   set -- -m "not integration"
 fi
-# Only the Core test support comes from the checkout; eimir and eimir_pro are
+# Only the Core test support comes from the Core tree; eimir and eimir_pro are
 # the installed copies (checked above). A caller's PYTHONPATH is kept.
-PYTHONPATH="$repo/backend${PYTHONPATH:+$path_separator$PYTHONPATH}" \
+PYTHONPATH="$core/backend${PYTHONPATH:+$path_separator$PYTHONPATH}" \
   EIMIR_PLUGINS="${EIMIR_PLUGINS-pro}" \
   "$python_bin" -m pytest -p no:cacheprovider -q pro_tests "$@"

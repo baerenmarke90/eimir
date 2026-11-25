@@ -1,3 +1,5 @@
+import { demoOwnPosition } from '../client/demoLocation';
+import { isDemoModeConfigured } from '../client/demoMode';
 import { focusManager, useQuery } from '@tanstack/react-query';
 import {
   lazy,
@@ -206,7 +208,7 @@ export function PartnerLocationMapPage({
     spaceId,
     enabled: entitled,
   });
-  const ownPosition = useOwnPositionWhileOpen(
+  const measuredOwnPosition = useOwnPositionWhileOpen(
     entitled,
     settings?.precision ?? 'APPROXIMATE',
   );
@@ -253,6 +255,10 @@ export function PartnerLocationMapPage({
     shared && shared.latitude != null && shared.radiusMeters != null
       ? shared
       : null;
+  // The Demo has no device position: the viewer's example position stands in.
+  const ownPosition = isDemoModeConfigured()
+    ? demoOwnPosition(area)
+    : measuredOwnPosition;
   const partnerZoomLabel = t('partnerLocation.mapZoomToPartner', {
     partner: partnerFirstName,
   });

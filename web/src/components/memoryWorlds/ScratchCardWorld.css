@@ -1,0 +1,1335 @@
+/* Rubbellos: a vintage lucky ticket from a little enamel roll dispenser.
+   The ticket paper is cut by a CSS mask (zig-zag perforations top and
+   bottom, punched holes on both sides); the foil heart and the three bonus
+   coins are canvases scratched with the finger (ScratchFoil.tsx). No text
+   box has a fixed height or clips: lines wrap, sizes use clamp() with the
+   pixel units of the paper and the heart field (`--cu`, see
+   src/client/containerUnits.ts). The paper, its inks and the dispenser are
+   physical materials: world-scoped roles defined on the root and only
+   dimmed for Dark. Motion is transform and opacity only, declared in the
+   no-preference block at the end; keyframes and timing roles:
+   src/motion/memory-worlds.css. */
+
+/* The handwriting face of the win line and the cards (bundled, OFL). */
+@font-face {
+  font-family: "Caveat";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/caveat-latin-700.woff2") format("woff2");
+}
+
+/* ---------- Roles ---------- */
+.memory-scratch-world {
+  --memory-scratch-hand: "Caveat", var(--font-display);
+  --memory-scratch-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .34 0 0 0 0 .25 0 0 0 .11 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* Paper and printing inks (dark inks on light paper in both themes). */
+  --memory-scratch-paper: #f7eed6;
+  --memory-scratch-paper-glow: #fffaf0;
+  --memory-scratch-paper-under: #efe3c3;
+  --memory-scratch-ink: #2b2420;
+  --memory-scratch-ink-soft: #4a3f36;
+  --memory-scratch-red: #9e2b25;
+  --memory-scratch-pen: #22325f;
+  --memory-scratch-frame: color-mix(in srgb, #9e2b25 55%, transparent);
+  --memory-scratch-guilloche: color-mix(in srgb, #c25a74 40%, transparent);
+  --memory-scratch-guilloche-band: color-mix(in srgb, #3f8a84 40%, transparent);
+  --memory-scratch-security-line: color-mix(in srgb, #c25a74 7%, transparent);
+  --memory-scratch-shadow: color-mix(in srgb, #3a2412 30%, transparent);
+  --memory-scratch-shadow-near: color-mix(in srgb, #3a2412 24%, transparent);
+  /* Printed motifs. */
+  --memory-scratch-pair-a: #ef8fa0;
+  --memory-scratch-pair-b: #d9485f;
+  --memory-scratch-blush: #f7b8c3;
+  --memory-scratch-star: #e3aa2e;
+  --memory-scratch-kiss: #c8324a;
+  /* Under the foil: handwritten cards tinted by kind or feeling. */
+  --memory-scratch-card: #f8e6e0;
+  --memory-scratch-card-milestone: #e3efe4;
+  --memory-scratch-card-words: #f3ecda;
+  --memory-scratch-card-loved: #fbe1e7;
+  --memory-scratch-card-seen: #e9e7fb;
+  --memory-scratch-card-appreciated: #f6e4e8;
+  --memory-scratch-card-supported: #e0f1ec;
+  --memory-scratch-card-grateful: #fbebd2;
+  --memory-scratch-card-happy: #fbf1c8;
+  /* Reveal effects. */
+  --memory-scratch-sparkle: #fffdf2;
+  --memory-scratch-shimmer: color-mix(in srgb, #fffbe6 88%, transparent);
+  --memory-scratch-confetti-a: #e0566e;
+  --memory-scratch-confetti-b: #f2b134;
+  --memory-scratch-confetti-c: #ef8fa0;
+  --memory-scratch-confetti-d: #6fb2a8;
+  /* The bonus: a gold stamp and a gold ring around three equal coins. */
+  --memory-scratch-bonus-frame: #8a6a14;
+  --memory-scratch-bonus-ink: #6f5410;
+  --memory-scratch-bonus-paper: color-mix(in srgb, #f2c94c 35%, transparent);
+  --memory-scratch-bonus-ring: color-mix(in srgb, #f2c94c 80%, transparent);
+  /* The dispenser: cherry enamel, chrome, brass, a glass window. */
+  --memory-scratch-enamel: #c8473b;
+  --memory-scratch-enamel-light: #e2705f;
+  --memory-scratch-enamel-dark: #8e2a22;
+  --memory-scratch-enamel-shine: color-mix(in srgb, #fff 34%, transparent);
+  --memory-scratch-enamel-shade: color-mix(in srgb, #000 22%, transparent);
+  --memory-scratch-chrome: #e3e6e8;
+  --memory-scratch-chrome-mid: #a2a9ae;
+  --memory-scratch-chrome-dark: #5b6166;
+  --memory-scratch-metal-shade: color-mix(in srgb, #000 40%, transparent);
+  --memory-scratch-crank-shade: color-mix(in srgb, #000 35%, transparent);
+  --memory-scratch-brass: #d8b45c;
+  --memory-scratch-brass-dark: #8a6a24;
+  --memory-scratch-brass-glint: #fff6d8;
+  --memory-scratch-plate: #f1e6c8;
+  --memory-scratch-slot: #24170f;
+  --memory-scratch-slot-deep: color-mix(
+    in srgb,
+    var(--memory-scratch-slot) 70%,
+    #000
+  );
+  --memory-scratch-roll-shade: color-mix(in srgb, #3a2412 42%, transparent);
+  --memory-scratch-roll-ring: color-mix(in srgb, #f7eed6 70%, #7b5a3a);
+  --memory-scratch-glass: color-mix(in srgb, #fff 34%, transparent);
+  --memory-scratch-lamp: transparent;
+  display: grid;
+  gap: var(--space-3);
+  min-inline-size: 0;
+}
+:root[data-theme="dark"] .memory-scratch-world {
+  --memory-scratch-paper: #c4b898;
+  --memory-scratch-paper-glow: #cdc1a2;
+  --memory-scratch-paper-under: #b9ad8e;
+  --memory-scratch-ink-soft: #3e342c;
+  --memory-scratch-red: #7f201c;
+  --memory-scratch-frame: color-mix(in srgb, #7f201c 55%, transparent);
+  --memory-scratch-guilloche: color-mix(in srgb, #9c3f57 36%, transparent);
+  --memory-scratch-guilloche-band: color-mix(in srgb, #2c6863 40%, transparent);
+  --memory-scratch-shadow: color-mix(in srgb, #000 55%, transparent);
+  --memory-scratch-shadow-near: color-mix(in srgb, #000 45%, transparent);
+  --memory-scratch-blush: #e39aa6;
+  --memory-scratch-card: #c9b7b1;
+  --memory-scratch-card-milestone: #b6c1b6;
+  --memory-scratch-card-words: #c4bca9;
+  --memory-scratch-card-loved: #cbb3b8;
+  --memory-scratch-card-seen: #bcb9cc;
+  --memory-scratch-card-appreciated: #c7b6ba;
+  --memory-scratch-card-supported: #b3c2bd;
+  --memory-scratch-card-grateful: #cbbda5;
+  --memory-scratch-card-happy: #cbc29e;
+  --memory-scratch-enamel: #9c3a30;
+  --memory-scratch-enamel-light: #b6544a;
+  --memory-scratch-enamel-dark: #5e1c16;
+  --memory-scratch-enamel-shine: color-mix(in srgb, #fff 18%, transparent);
+  --memory-scratch-chrome: #c9ced2;
+  --memory-scratch-plate: #cdbf9d;
+  --memory-scratch-roll-ring: color-mix(in srgb, #c4b898 70%, #4d3826);
+  --memory-scratch-glass: color-mix(in srgb, #fff 18%, transparent);
+  --memory-scratch-lamp: color-mix(in srgb, #ffd98a 16%, transparent);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .memory-scratch-world {
+    --memory-scratch-paper: #c4b898;
+    --memory-scratch-paper-glow: #cdc1a2;
+    --memory-scratch-paper-under: #b9ad8e;
+    --memory-scratch-ink-soft: #3e342c;
+    --memory-scratch-red: #7f201c;
+    --memory-scratch-frame: color-mix(in srgb, #7f201c 55%, transparent);
+    --memory-scratch-guilloche: color-mix(in srgb, #9c3f57 36%, transparent);
+    --memory-scratch-guilloche-band: color-mix(
+      in srgb,
+      #2c6863 40%,
+      transparent
+    );
+    --memory-scratch-shadow: color-mix(in srgb, #000 55%, transparent);
+    --memory-scratch-shadow-near: color-mix(in srgb, #000 45%, transparent);
+    --memory-scratch-blush: #e39aa6;
+    --memory-scratch-card: #c9b7b1;
+    --memory-scratch-card-milestone: #b6c1b6;
+    --memory-scratch-card-words: #c4bca9;
+    --memory-scratch-card-loved: #cbb3b8;
+    --memory-scratch-card-seen: #bcb9cc;
+    --memory-scratch-card-appreciated: #c7b6ba;
+    --memory-scratch-card-supported: #b3c2bd;
+    --memory-scratch-card-grateful: #cbbda5;
+    --memory-scratch-card-happy: #cbc29e;
+    --memory-scratch-enamel: #9c3a30;
+    --memory-scratch-enamel-light: #b6544a;
+    --memory-scratch-enamel-dark: #5e1c16;
+    --memory-scratch-enamel-shine: color-mix(in srgb, #fff 18%, transparent);
+    --memory-scratch-chrome: #c9ced2;
+    --memory-scratch-plate: #cdbf9d;
+    --memory-scratch-roll-ring: color-mix(in srgb, #c4b898 70%, #4d3826);
+    --memory-scratch-glass: color-mix(in srgb, #fff 18%, transparent);
+    --memory-scratch-lamp: color-mix(in srgb, #ffd98a 16%, transparent);
+  }
+}
+
+/* ---------- Scene ---------- */
+.memory-scratch-scene {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  justify-items: center;
+  padding-block: 2px 10px;
+  /* The torn ticket flies out sideways without widening the page. */
+  overflow-x: clip;
+}
+/* At night a warm lamp lights the dispenser and the ticket from above. */
+.memory-scratch-scene::before {
+  content: "";
+  position: absolute;
+  inset: -24px 0 auto;
+  block-size: 420px;
+  z-index: -1;
+  background: radial-gradient(
+    60% 70% at 50% 18%,
+    var(--memory-scratch-lamp),
+    transparent 72%
+  );
+  pointer-events: none;
+}
+
+/* ---------- Dispenser ---------- */
+.memory-scratch-dispenser {
+  position: relative;
+  z-index: 3;
+  inline-size: min(100%, 388px);
+  block-size: 96px;
+}
+.memory-scratch-disp-body {
+  position: absolute;
+  inset: 0 0 12px;
+  border-radius: 24px 24px 12px 12px;
+  background:
+    radial-gradient(
+      110% 90% at 28% -10%,
+      var(--memory-scratch-enamel-shine),
+      transparent 52%
+    ),
+    linear-gradient(
+      var(--memory-scratch-enamel-light),
+      var(--memory-scratch-enamel) 46%,
+      var(--memory-scratch-enamel-dark)
+    );
+  box-shadow:
+    inset 0 2px 0 var(--memory-scratch-enamel-shine),
+    inset 0 -3px 0 var(--memory-scratch-enamel-shade),
+    0 6px 12px var(--memory-scratch-shadow);
+}
+
+/* The name plate on top. */
+.memory-scratch-disp-plate {
+  position: absolute;
+  inset-block-start: 6px;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0 6px;
+  inline-size: max-content;
+  max-inline-size: calc(100% - 120px);
+  padding: 1px 14px 2px;
+  border: 1.5px solid var(--memory-scratch-brass-dark);
+  border-radius: 6px;
+  background: linear-gradient(
+    var(--memory-scratch-plate),
+    color-mix(
+      in srgb,
+      var(--memory-scratch-plate) 88%,
+      var(--memory-scratch-brass-dark)
+    )
+  );
+  color: var(--memory-scratch-ink);
+  text-align: center;
+}
+.memory-scratch-disp-plate::before,
+.memory-scratch-disp-plate::after {
+  content: "";
+  position: absolute;
+  inset-block-start: calc(50% - 2px);
+  inline-size: 4px;
+  block-size: 4px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    var(--memory-scratch-brass-glint),
+    var(--memory-scratch-brass) 50%,
+    var(--memory-scratch-brass-dark)
+  );
+}
+.memory-scratch-disp-plate::before {
+  inset-inline-start: 4px;
+}
+.memory-scratch-disp-plate::after {
+  inset-inline-end: 4px;
+}
+.memory-scratch-disp-plate-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.85rem;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  line-height: 1.25;
+}
+.memory-scratch-disp-plate-sub {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  color: var(--memory-scratch-ink-soft);
+}
+
+/* The glass window with the paper roll lying inside. */
+.memory-scratch-disp-window {
+  position: absolute;
+  inset-block-start: 32px;
+  inset-inline: 16px 72px;
+  block-size: 40px;
+  padding: 3px;
+  border-radius: 9px;
+  background: linear-gradient(
+    var(--memory-scratch-chrome),
+    var(--memory-scratch-chrome-mid) 55%,
+    var(--memory-scratch-chrome-dark)
+  );
+  box-shadow: 0 1px 2px var(--memory-scratch-metal-shade);
+}
+.memory-scratch-disp-window::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 6px;
+  background: linear-gradient(
+    170deg,
+    var(--memory-scratch-glass),
+    transparent 38%
+  );
+  box-shadow: inset 0 2px 4px var(--memory-scratch-metal-shade);
+  pointer-events: none;
+}
+.memory-scratch-roll {
+  display: flex;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--memory-scratch-slot);
+}
+/* The ends of the roll: wound paper layers around a cardboard core. */
+.memory-scratch-roll-end {
+  flex: none;
+  inline-size: 14px;
+  margin-block: 1px;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      closest-side,
+      var(--memory-scratch-slot) 0 22%,
+      var(--memory-scratch-brass-dark) 23% 32%,
+      transparent 33%
+    ),
+    repeating-radial-gradient(
+      closest-side,
+      var(--memory-scratch-paper) 0 9%,
+      var(--memory-scratch-roll-ring) 9% 12%
+    );
+}
+.memory-scratch-roll-end[data-side="start"] {
+  margin-inline-end: -3px;
+}
+.memory-scratch-roll-end[data-side="end"] {
+  margin-inline-start: -3px;
+}
+/* The front of the roll: plain paper with the next perforation (no text). */
+.memory-scratch-roll-face {
+  position: relative;
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  background: var(--memory-scratch-paper);
+}
+.memory-scratch-roll-face::after {
+  /* Shading that makes the paper surface round. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    var(--memory-scratch-roll-shade),
+    transparent 30%,
+    transparent 70%,
+    var(--memory-scratch-roll-shade)
+  );
+  pointer-events: none;
+}
+.memory-scratch-roll-paper {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.memory-scratch-roll-edge {
+  /* The perforation between this and the next ticket, rolling past. */
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 4px;
+  border-block-start: 1.5px dashed var(--memory-scratch-frame);
+}
+.memory-scratch-roll-heart {
+  flex: none;
+  inline-size: 12px;
+  block-size: 11px;
+  fill: var(--memory-scratch-pair-b);
+}
+/* The axle from the roll through the side to the crank. */
+.memory-scratch-disp-axle {
+  position: absolute;
+  inset-block-start: 48px;
+  inset-inline-end: 44px;
+  inline-size: 30px;
+  block-size: 8px;
+  border-radius: 4px;
+  background: linear-gradient(
+    var(--memory-scratch-chrome),
+    var(--memory-scratch-chrome-dark)
+  );
+}
+
+/* The heart crank on the axle: turns when a ticket comes out; tap to turn. */
+.memory-scratch-disp-crank {
+  position: absolute;
+  inset-block-start: 30px;
+  inset-inline-end: 10px;
+  inline-size: 44px;
+  block-size: 44px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 38% 32%,
+    var(--memory-scratch-chrome),
+    var(--memory-scratch-chrome-mid) 60%,
+    var(--memory-scratch-chrome-dark)
+  );
+  box-shadow: 0 2px 3px var(--memory-scratch-crank-shade);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.memory-scratch-disp-crank::after {
+  /* The hub. */
+  content: "";
+  position: absolute;
+  inset: calc(50% - 5px);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    var(--memory-scratch-brass-glint),
+    var(--memory-scratch-brass) 50%,
+    var(--memory-scratch-brass-dark)
+  );
+}
+.memory-scratch-disp-crank-arm {
+  position: absolute;
+  inset-block-start: 6px;
+  inset-inline-start: calc(50% - 2.5px);
+  inline-size: 5px;
+  block-size: calc(50% - 6px);
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--memory-scratch-chrome-dark),
+    var(--memory-scratch-chrome),
+    var(--memory-scratch-chrome-dark)
+  );
+}
+.memory-scratch-disp-crank-handle {
+  position: absolute;
+  inset-block-start: -4px;
+  inset-inline-start: calc(50% - 9px);
+  inline-size: 18px;
+  block-size: 17px;
+  fill: var(--memory-scratch-pair-b);
+  stroke: var(--memory-scratch-metal-shade);
+  stroke-width: 1.4;
+}
+
+/* The slot with its serrated tear bar, overlapping the ticket's top edge. */
+.memory-scratch-disp-mouth {
+  position: absolute;
+  inset-inline: 14px;
+  inset-block-end: 4px;
+  block-size: 12px;
+  border-radius: 4px 4px 7px 7px;
+  background: linear-gradient(
+    var(--memory-scratch-slot),
+    var(--memory-scratch-slot-deep)
+  );
+  box-shadow: 0 1px 0 var(--memory-scratch-enamel-shine);
+}
+.memory-scratch-disp-blade {
+  position: absolute;
+  inset-inline: -4px;
+  inset-block-end: -8px;
+  block-size: 11px;
+  background: linear-gradient(
+    var(--memory-scratch-chrome),
+    var(--memory-scratch-chrome-mid) 60%,
+    var(--memory-scratch-chrome-dark)
+  );
+  mask:
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg)
+    50% / 8px 100%;
+  filter: drop-shadow(0 1px 1px var(--memory-scratch-metal-shade));
+}
+
+/* ---------- Ticket track: tickets stack in one cell, clipped at the slot ---------- */
+.memory-scratch-track {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  inline-size: 100%;
+  margin-block-start: -8px;
+  clip-path: inset(0 -100vmax -100vmax -100vmax);
+}
+
+/* ---------- Ticket ---------- */
+.memory-scratch-ticket {
+  position: relative;
+  z-index: 1;
+  grid-area: 1 / 1;
+  inline-size: min(calc(100% - 12px), 372px);
+  touch-action: pan-y;
+  transform-origin: 0 0;
+  /* Unitless --memory-scratch-tear (px of drag); the multipliers match
+     TEAR_FOLLOW and TEAR_TILT_DEG in src/motion/scratchCard.ts. */
+  transform: translateX(calc(var(--memory-scratch-tear, 0) * 0.75px))
+    rotate(calc(var(--memory-scratch-tear, 0) * 0.04deg));
+  filter: drop-shadow(0 1px 1px var(--memory-scratch-shadow-near))
+    drop-shadow(0 8px 12px var(--memory-scratch-shadow));
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.memory-scratch-ticket[data-tear-dir="left"] {
+  transform-origin: 100% 0;
+}
+/* Once won, the whole ticket belongs to the tear gesture. */
+.memory-scratch-ticket[data-revealed="true"] {
+  touch-action: none;
+  cursor: grab;
+}
+.memory-scratch-ticket[data-tearing="true"] {
+  cursor: grabbing;
+  will-change: transform;
+}
+.memory-scratch-ticket[data-leaving="true"] {
+  z-index: 2;
+  pointer-events: none;
+}
+
+.memory-scratch-paper {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  /* Text stays well inside the printed frame, away from holes and teeth. */
+  padding: 22px 28px 40px;
+  color: var(--memory-scratch-ink);
+  background:
+    radial-gradient(
+      120% 70% at 50% 40%,
+      var(--memory-scratch-paper-glow),
+      transparent 70%
+    ),
+    var(--memory-scratch-grain),
+    repeating-linear-gradient(
+      115deg,
+      var(--memory-scratch-security-line) 0 1px,
+      transparent 1px 5px
+    ),
+    var(--memory-scratch-paper);
+  /* Punched holes left and right, zig-zag perforations top and bottom. */
+  mask:
+    radial-gradient(circle 3.4px at 9px 50%, #0000 96%, #000) 0 0 / 100% 17px
+    repeat-y,
+    radial-gradient(circle 3.4px at calc(100% - 9px) 50%, #0000 96%, #000) 0 0 /
+    100% 17px repeat-y,
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top
+    / 14px 51% repeat-x,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg)
+    bottom / 14px 51% repeat-x;
+  mask-composite: intersect, intersect, add;
+}
+/* The printed double frame. */
+.memory-scratch-paper::before {
+  content: "";
+  position: absolute;
+  inset: 12px 16px;
+  border: 3px double var(--memory-scratch-frame);
+  border-radius: 6px;
+  pointer-events: none;
+}
+.memory-scratch-paper > * {
+  position: relative;
+  max-inline-size: 100%;
+  min-inline-size: 0;
+}
+
+/* Guilloche bands printed behind the serial line and below the small print. */
+.memory-scratch-band {
+  position: absolute;
+  inset-inline: 20px;
+  block-size: 20px;
+  background: var(--memory-scratch-guilloche-band);
+  mask: var(--memory-scratch-band-mask) 0 0 / 100% 100% no-repeat;
+  pointer-events: none;
+}
+.memory-scratch-band[data-edge="top"] {
+  inset-block-start: 20px;
+}
+.memory-scratch-band[data-edge="bottom"] {
+  inset-block-end: 15px;
+}
+
+/* Serial on the left; after the win the "tear here" tab on the right. */
+.memory-scratch-serial {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px 8px;
+  inline-size: 100%;
+  min-block-size: 28px;
+}
+.memory-scratch-serial-number {
+  padding: 0 6px;
+  border-radius: 3px;
+  background: var(--memory-scratch-paper);
+  font-family: var(--font-display);
+  font-size: clamp(0.75rem, calc(3.4 * var(--cu)), 0.82rem);
+  font-weight: 700;
+  font-variant: small-caps;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+  color: var(--memory-scratch-red);
+}
+.memory-scratch-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-block-size: 28px;
+  margin-inline-start: auto;
+  padding: 2px 10px 2px 12px;
+  border: 1.5px dashed var(--memory-scratch-red);
+  border-radius: 6px;
+  background: var(--memory-scratch-paper-glow);
+  font-family: var(--font-display);
+  font-size: clamp(0.75rem, calc(3.4 * var(--cu)), 0.82rem);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--memory-scratch-red);
+  cursor: grab;
+}
+.memory-scratch-tab svg {
+  flex: none;
+  inline-size: 16px;
+  block-size: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.memory-scratch-title {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  inline-size: 100%;
+}
+.memory-scratch-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, calc(8 * var(--cu)), 1.7rem);
+  font-weight: 700;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  color: var(--memory-scratch-ink);
+}
+.memory-scratch-pair {
+  justify-self: end;
+  inline-size: clamp(40px, calc(16 * var(--cu)), 56px);
+  block-size: auto;
+  aspect-ratio: 64 / 44;
+  overflow: visible;
+}
+.memory-scratch-pair-left {
+  fill: var(--memory-scratch-pair-a);
+  stroke: var(--memory-scratch-ink);
+  stroke-width: 1;
+}
+.memory-scratch-pair-right {
+  fill: var(--memory-scratch-pair-b);
+  stroke: var(--memory-scratch-ink);
+  stroke-width: 1;
+}
+.memory-scratch-pair-limb {
+  fill: none;
+  stroke: var(--memory-scratch-ink);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+.memory-scratch-pair-hands {
+  fill: var(--memory-scratch-blush);
+  stroke: var(--memory-scratch-ink);
+  stroke-width: 1;
+}
+.memory-scratch-pair-eye {
+  fill: var(--memory-scratch-ink);
+}
+.memory-scratch-pair-smile {
+  fill: none;
+  stroke: var(--memory-scratch-ink);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+.memory-scratch-pair-blush {
+  fill: var(--memory-scratch-blush);
+}
+.memory-scratch-stars {
+  justify-self: start;
+  inline-size: clamp(30px, calc(12 * var(--cu)), 42px);
+  block-size: auto;
+  aspect-ratio: 48 / 40;
+  fill: var(--memory-scratch-star);
+  stroke: var(--memory-scratch-ink);
+  stroke-width: 0.9;
+  stroke-linejoin: round;
+}
+
+.memory-scratch-rule {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(0.72rem, calc(3.5 * var(--cu)), 0.82rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+  text-transform: uppercase;
+  text-align: center;
+  text-wrap: balance;
+  color: var(--memory-scratch-red);
+}
+
+/* ---------- The heart and the coins next to each other ---------- */
+.memory-scratch-play {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  inline-size: 100%;
+  margin-block: 4px 0;
+}
+.memory-scratch-field {
+  position: relative;
+  justify-self: center;
+  inline-size: 100%;
+  max-inline-size: 236px;
+  aspect-ratio: 10 / 9;
+}
+.memory-scratch-field > * {
+  position: absolute;
+}
+.memory-scratch-rosette {
+  inset: -14% -16%;
+  background: var(--memory-scratch-guilloche);
+  /* Faded out above and below, so no line runs behind printed text. */
+  mask:
+    var(--memory-scratch-rosette-mask) center / contain no-repeat,
+    linear-gradient(#0000, #000 24%, #000 76%, #0000);
+  mask-composite: intersect;
+  pointer-events: none;
+}
+.memory-scratch-outline {
+  inset: -6px;
+  inline-size: calc(100% + 12px);
+  block-size: calc(100% + 12px);
+  overflow: visible;
+  fill: var(--memory-scratch-paper-under);
+  stroke: var(--memory-scratch-red);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 4;
+  stroke-linecap: round;
+}
+.memory-scratch-outline path {
+  vector-effect: non-scaling-stroke;
+}
+.memory-scratch-field:has(.memory-scratch-open:focus-visible)
+  .memory-scratch-outline {
+  stroke: var(--memory-scratch-pen);
+  stroke-width: 3;
+  stroke-dasharray: none;
+}
+.memory-scratch-memory {
+  inset: 0;
+  overflow: hidden;
+  background: var(--memory-scratch-paper-under);
+  mask: var(--memory-scratch-heart-mask) 0 0 / 100% 100% no-repeat;
+}
+.memory-scratch-memory .memory-world-photo {
+  aspect-ratio: auto;
+  inline-size: 100%;
+  block-size: 100%;
+}
+/* The card's text is shortened to the heart's room and fitted into its
+   safe area (client/fitText.ts), so it always stays inside the heart. */
+.memory-scratch-card {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  padding: 16% 18% 24%;
+  overflow: hidden;
+  text-align: center;
+  background:
+    var(--memory-scratch-grain),
+    repeating-linear-gradient(
+      transparent 0 23px,
+      color-mix(in srgb, var(--memory-scratch-pen) 12%, transparent) 23px 24px
+    ),
+    var(--memory-scratch-card);
+  color: var(--memory-scratch-pen);
+}
+.memory-scratch-card[data-kind="milestone"] {
+  --memory-scratch-card: var(--memory-scratch-card-milestone);
+}
+.memory-scratch-card[data-kind="words"] {
+  --memory-scratch-card: var(--memory-scratch-card-words);
+}
+.memory-scratch-card[data-emotion="LOVED"] {
+  --memory-scratch-card: var(--memory-scratch-card-loved);
+}
+.memory-scratch-card[data-emotion="SEEN"] {
+  --memory-scratch-card: var(--memory-scratch-card-seen);
+}
+.memory-scratch-card[data-emotion="APPRECIATED"] {
+  --memory-scratch-card: var(--memory-scratch-card-appreciated);
+}
+.memory-scratch-card[data-emotion="SUPPORTED"] {
+  --memory-scratch-card: var(--memory-scratch-card-supported);
+}
+.memory-scratch-card[data-emotion="GRATEFUL"] {
+  --memory-scratch-card: var(--memory-scratch-card-grateful);
+}
+.memory-scratch-card[data-emotion="HAPPY"] {
+  --memory-scratch-card: var(--memory-scratch-card-happy);
+}
+.memory-scratch-card-mark {
+  inline-size: clamp(22px, calc(12 * var(--cu)), 30px);
+  block-size: clamp(22px, calc(12 * var(--cu)), 30px);
+}
+.memory-scratch-card-text {
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  font-family: var(--memory-scratch-hand);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.1;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  text-wrap: balance;
+}
+.memory-scratch-card[data-size="short"] .memory-scratch-card-text {
+  font-size: clamp(1.05rem, calc(9.5 * var(--cu)), 1.4rem);
+}
+.memory-scratch-card[data-size="medium"] .memory-scratch-card-text {
+  font-size: clamp(1rem, calc(7.6 * var(--cu)), 1.2rem);
+}
+.memory-scratch-card-from {
+  font-family: var(--memory-scratch-hand);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.memory-scratch-card-from::before {
+  content: "– ";
+}
+.memory-scratch-open {
+  inset: 0;
+  z-index: 1;
+  border-radius: 45% 45% 50% 50%;
+  -webkit-tap-highlight-color: transparent;
+}
+.memory-scratch-open:focus-visible {
+  outline: none;
+}
+.memory-scratch-open-label {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  inline-size: max-content;
+  max-inline-size: 92%;
+  padding: 3px 10px 4px;
+  border: 1.5px solid var(--memory-scratch-ink);
+  border-radius: 999px;
+  background: var(--memory-scratch-paper-glow);
+  box-shadow: 0 1px 3px var(--memory-scratch-shadow-near);
+  font-family: var(--font-display);
+  font-size: clamp(0.75rem, calc(6 * var(--cu)), 0.85rem);
+  font-weight: 700;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--memory-scratch-ink);
+}
+.memory-scratch-open:focus-visible .memory-scratch-open-label {
+  outline: 3px solid var(--memory-scratch-pen);
+  outline-offset: 2px;
+}
+.memory-scratch-foil {
+  inset: 0;
+  z-index: 2;
+  inline-size: 100%;
+  block-size: 100%;
+  touch-action: none;
+  cursor: pointer;
+  font-family: var(--font-display);
+}
+/* Won: the foil no longer takes any touch, so drags over the heart tear. */
+.memory-scratch-foil[data-gone="true"] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.memory-scratch-sparkles {
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.memory-scratch-sparkle {
+  position: absolute;
+  inline-size: 12px;
+  block-size: 12px;
+  translate: -50% -50%;
+  background: var(--memory-scratch-sparkle);
+  clip-path: polygon(
+    50% 0,
+    60% 40%,
+    100% 50%,
+    60% 60%,
+    50% 100%,
+    40% 60%,
+    0 50%,
+    40% 40%
+  );
+  opacity: 0.85;
+}
+.memory-scratch-shimmer {
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  mask: var(--memory-scratch-heart-mask) 0 0 / 100% 100% no-repeat;
+  pointer-events: none;
+}
+.memory-scratch-shimmer::before {
+  content: "";
+  position: absolute;
+  inset: -20% -70%;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    var(--memory-scratch-shimmer) 50%,
+    transparent 60%
+  );
+  opacity: 0;
+}
+.memory-scratch-confetti {
+  inset: -8% -8% auto;
+  z-index: 4;
+  block-size: 0;
+  pointer-events: none;
+}
+.memory-scratch-confetto {
+  position: absolute;
+  inset-block-start: 0;
+  inline-size: var(--memory-scratch-confetto-size);
+  block-size: var(--memory-scratch-confetto-size);
+  opacity: 0;
+}
+.memory-scratch-confetto svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  fill: currentColor;
+}
+.memory-scratch-confetto[data-kind="strip"] {
+  block-size: calc(var(--memory-scratch-confetto-size) * 0.42);
+  border-radius: 2px;
+  background: currentColor;
+}
+.memory-scratch-confetto[data-tone="0"] {
+  color: var(--memory-scratch-confetti-a);
+}
+.memory-scratch-confetto[data-tone="1"] {
+  color: var(--memory-scratch-confetti-b);
+}
+.memory-scratch-confetto[data-tone="2"] {
+  color: var(--memory-scratch-confetti-c);
+}
+.memory-scratch-confetto[data-tone="3"] {
+  color: var(--memory-scratch-confetti-d);
+}
+
+/* The three bonus coins, stacked beside the heart. */
+.memory-scratch-coins {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.memory-scratch-coin {
+  position: relative;
+  inline-size: 64px;
+  block-size: 64px;
+  border-radius: 50%;
+  touch-action: none;
+}
+.memory-scratch-coin-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border: 1.5px dashed var(--memory-scratch-frame);
+  border-radius: 50%;
+  background: var(--memory-scratch-paper-glow);
+}
+.memory-scratch-coin-glyph {
+  inline-size: 32px;
+  block-size: 32px;
+  stroke: var(--memory-scratch-ink);
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+.memory-scratch-coin-glyph[data-symbol="heart"] {
+  fill: var(--memory-scratch-pair-b);
+}
+.memory-scratch-coin-glyph[data-symbol="kiss"] {
+  fill: var(--memory-scratch-kiss);
+}
+.memory-scratch-coin-glyph[data-symbol="star"] {
+  fill: var(--memory-scratch-star);
+}
+.memory-scratch-coin-lips-line {
+  fill: none;
+}
+.memory-scratch-coin-foil {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: 50%;
+  touch-action: none;
+  cursor: pointer;
+  font-family: var(--font-display);
+  filter: drop-shadow(0 1px 1px var(--memory-scratch-shadow-near));
+}
+.memory-scratch-coin-foil[data-gone="true"] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.memory-scratch-coins[data-triple="true"] .memory-scratch-coin {
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--memory-scratch-bonus-ring);
+}
+
+/* ---------- The win line: printed blank, then stamp and handwriting ---------- */
+.memory-scratch-win {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 12px;
+  inline-size: 100%;
+  min-block-size: 60px;
+  scroll-margin-block: 96px 120px;
+}
+.memory-scratch-win-blank {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  padding-inline: 8px;
+  font-family: var(--font-display);
+  font-size: clamp(0.78rem, calc(3.6 * var(--cu)), 0.85rem);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--memory-scratch-ink-soft);
+}
+.memory-scratch-win-line {
+  flex: 1;
+  min-inline-size: 24px;
+  border-block-end: 2px dotted var(--memory-scratch-ink-soft);
+}
+.memory-scratch-win-stamp {
+  padding: 3px 7px 4px;
+  border: 3px double var(--memory-scratch-red);
+  border-radius: 8px;
+  rotate: -9deg;
+  font-family: var(--font-display);
+  font-size: clamp(0.82rem, calc(4 * var(--cu)), 0.95rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: var(--memory-scratch-red);
+}
+.memory-scratch-win-note {
+  display: grid;
+  margin: 0;
+  font-family: var(--memory-scratch-hand);
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--memory-scratch-pen);
+  overflow-wrap: break-word;
+}
+.memory-scratch-win-ask {
+  font-size: clamp(1.2rem, calc(6.4 * var(--cu)), 1.5rem);
+}
+.memory-scratch-win-title,
+.memory-scratch-win-note time {
+  font-size: clamp(1rem, calc(4.6 * var(--cu)), 1.1rem);
+}
+
+/* ---------- Bonus line: three equal coins bring an extra memory ---------- */
+.memory-scratch-bonus {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  inline-size: 100%;
+  min-block-size: 40px;
+  padding: 6px 8px;
+  border-block: 1px dashed
+    color-mix(in srgb, var(--memory-scratch-ink-soft) 45%, transparent);
+  font-family: var(--font-display);
+  color: var(--memory-scratch-ink-soft);
+}
+.memory-scratch-bonus-hint,
+.memory-scratch-bonus-none {
+  font-size: clamp(0.78rem, calc(3.6 * var(--cu)), 0.85rem);
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+.memory-scratch-bonus-stamp {
+  flex-shrink: 0;
+  padding: 3px 7px 4px;
+  border: 3px double var(--memory-scratch-bonus-frame);
+  border-radius: 8px;
+  rotate: 7deg;
+  font-size: clamp(0.82rem, calc(4 * var(--cu)), 0.95rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--memory-scratch-bonus-ink);
+  background: var(--memory-scratch-bonus-paper);
+}
+.memory-scratch-bonus-text {
+  display: grid;
+  gap: 2px;
+  min-inline-size: 0;
+}
+.memory-scratch-bonus-ask {
+  font-family: var(--memory-scratch-hand);
+  font-weight: 700;
+  font-size: clamp(1rem, calc(4.6 * var(--cu)), 1.1rem);
+  line-height: 1.1;
+  color: var(--memory-scratch-pen);
+}
+.memory-scratch-bonus-link {
+  display: grid;
+  min-block-size: 44px;
+  align-content: center;
+  font-family: var(--memory-scratch-hand);
+  font-weight: 700;
+  font-size: clamp(1.05rem, calc(5 * var(--cu)), 1.2rem);
+  line-height: 1.1;
+  color: var(--memory-scratch-pen);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  overflow-wrap: break-word;
+}
+.memory-scratch-bonus-date {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--memory-scratch-ink-soft);
+  text-decoration: none;
+}
+
+.memory-scratch-small {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(0.72rem, calc(3.3 * var(--cu)), 0.78rem);
+  line-height: 1.35;
+  text-align: center;
+  text-wrap: balance;
+  color: var(--memory-scratch-ink-soft);
+}
+
+.memory-scratch-dust {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  inline-size: 100%;
+  block-size: 100%;
+  pointer-events: none;
+}
+
+/* ---------- The button below the ticket (outside the object) ---------- */
+.memory-scratch-actions {
+  display: flex;
+  justify-content: center;
+}
+.memory-scratch-fallback {
+  min-block-size: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-text) 28%, transparent);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text);
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+  cursor: pointer;
+}
+.memory-scratch-fallback:active {
+  scale: none;
+  filter: none;
+}
+
+/* ---------- Motion (roles and keyframes: src/motion/memory-worlds.css) ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .memory-scratch-ticket:not([data-tearing="true"], [data-leaving="true"]) {
+    /* Springs back onto the perforation when not torn far enough. */
+    transition: transform var(--memory-scratch-spring-duration)
+      var(--memory-scratch-curve-spring);
+  }
+  .memory-scratch-ticket[data-feed="true"] {
+    animation: eimir-motion-memory-scratch-feed
+      var(--memory-scratch-feed-duration) var(--memory-scratch-curve-feed)
+      var(--memory-scratch-feed-delay) both;
+  }
+  /* A new ticket: the roll's paper moves down, the next one comes round. */
+  .memory-scratch-roll-paper[data-turning="true"] {
+    animation: eimir-motion-memory-scratch-roll
+      var(--memory-scratch-turn-duration) var(--memory-scratch-curve-turn)
+      var(--memory-scratch-turn-delay) both;
+  }
+  .memory-scratch-disp-crank[data-motion="turn"] {
+    animation: eimir-motion-memory-scratch-turn
+      var(--memory-scratch-turn-duration) var(--memory-scratch-curve-turn)
+      var(--memory-scratch-turn-delay) both;
+  }
+  .memory-scratch-disp-crank[data-motion="nudge"] {
+    animation: eimir-motion-memory-scratch-nudge
+      var(--memory-scratch-nudge-duration) var(--memory-world-easing-in-out)
+      both;
+  }
+  .memory-scratch-tab {
+    animation:
+      eimir-motion-memory-scratch-tab-in var(--memory-scratch-tab-in-duration)
+      var(--memory-scratch-curve-pop) var(--memory-scratch-tab-in-delay) both,
+      eimir-motion-memory-scratch-tab-pull
+      var(--memory-scratch-tab-pull-duration) var(--memory-world-easing-in-out)
+      var(--memory-scratch-tab-pull-delay) var(--memory-scratch-tab-pull-repeat);
+  }
+  /* Ambient: a few cycles, paused while the ticket is not seen (M8). */
+  .memory-scratch-sparkle {
+    animation: eimir-motion-memory-scratch-twinkle
+      var(--memory-scratch-twinkle-duration) var(--memory-world-easing-in-out)
+      calc(
+        var(--memory-scratch-sparkle-phase, 0) *
+        var(--memory-scratch-sparkle-step)
+      )
+      var(--motion-ambient-repeat) both;
+  }
+  .memory-scratch-world:not([data-ambient="on"]) .memory-scratch-sparkle {
+    animation-play-state: paused;
+  }
+  .memory-scratch-ticket[data-celebrate="true"]
+    .memory-scratch-foil[data-gone="true"] {
+    animation: eimir-motion-memory-scratch-dissolve
+      var(--memory-scratch-dissolve-duration) var(--memory-world-easing-in)
+      var(--memory-scratch-dissolve-delay) both;
+  }
+  .memory-scratch-coin-foil[data-gone="true"] {
+    animation: eimir-motion-memory-scratch-dissolve
+      var(--memory-scratch-coin-dissolve-duration) var(--memory-world-easing-in)
+      both;
+  }
+  .memory-scratch-shimmer::before {
+    animation: eimir-motion-memory-scratch-sweep
+      var(--memory-scratch-sweep-duration) var(--memory-world-easing-in-out)
+      var(--memory-scratch-sweep-delay) both;
+  }
+  .memory-scratch-confetto {
+    animation: eimir-motion-memory-scratch-fall
+      calc(
+        var(--memory-scratch-confetti-duration) +
+        var(--memory-scratch-confetto-length, 0) *
+        var(--memory-scratch-confetti-range)
+      )
+      var(--memory-scratch-curve-fall)
+      calc(
+        var(--memory-scratch-confetto-delay, 0) *
+        var(--memory-scratch-confetti-spread)
+      )
+      both;
+  }
+  .memory-scratch-ticket[data-celebrate="true"] .memory-scratch-win-stamp {
+    animation: eimir-motion-memory-scratch-stamp
+      var(--memory-scratch-stamp-duration) var(--memory-scratch-curve-stamp)
+      var(--memory-scratch-stamp-delay) both;
+  }
+  .memory-scratch-ticket[data-celebrate="true"] .memory-scratch-win-note {
+    animation: eimir-motion-memory-scratch-write
+      var(--memory-scratch-write-duration) var(--memory-world-easing-out)
+      var(--memory-scratch-write-delay) both;
+  }
+  .memory-scratch-ticket[data-celebrate="true"] .memory-scratch-open-label {
+    animation: eimir-motion-memory-scratch-write
+      var(--memory-scratch-label-duration) var(--memory-world-easing-out)
+      var(--memory-scratch-label-delay) both;
+  }
+  .memory-scratch-coin[data-revealed="true"] .memory-scratch-coin-glyph {
+    animation: eimir-motion-memory-scratch-pop
+      var(--memory-scratch-pop-duration) var(--memory-scratch-curve-coin)
+      var(--memory-scratch-pop-delay) both;
+  }
+  .memory-scratch-coins[data-all="true"] .memory-scratch-coin {
+    animation: eimir-motion-memory-scratch-hop
+      var(--memory-scratch-hop-duration) var(--memory-world-easing-in-out)
+      calc(
+        var(--memory-scratch-coin-index, 0) *
+        var(--memory-scratch-hop-stagger) +
+        var(--memory-scratch-hop-delay)
+      )
+      both;
+  }
+  .memory-scratch-bonus[data-state="won"] {
+    animation: eimir-motion-memory-scratch-write
+      var(--memory-scratch-bonus-duration) var(--memory-scratch-curve-bonus)
+      var(--memory-scratch-bonus-delay) both;
+  }
+  .memory-scratch-bonus[data-state="won"] .memory-scratch-bonus-stamp {
+    animation: eimir-motion-memory-scratch-stamp-in
+      var(--memory-scratch-bonus-stamp-duration)
+      var(--memory-scratch-curve-bonus-stamp)
+      var(--memory-scratch-bonus-stamp-delay) both;
+  }
+}

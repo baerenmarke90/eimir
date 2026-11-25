@@ -1,0 +1,41 @@
+/* WorldEnter: the world is drawn practically invisibly first, then faded and
+   risen in once its heavy first paint is done, so the motion is actually
+   seen. Motion roles only; with reduced motion they are 0 ms. */
+.memory-world-enter {
+  transition:
+    opacity calc(var(--duration-context) * 2) var(--easing-enter),
+    translate calc(var(--duration-context) * 2.2) var(--easing-enter);
+}
+.memory-world-enter[data-entered="false"] {
+  /* Practically invisible, but painted (opacity 0 would skip the paint and
+     move its whole cost to the start of the fade). */
+  opacity: 0.002;
+  translate: 0 14px;
+  transition: none;
+  will-change: opacity, translate;
+}
+/* A world's own CSS entrance and loops wait until it is seen; they start
+   from their first frame when the fade-in begins (#2283, Product Owner:
+   the Stapel's prints must be seen falling). */
+.memory-world-enter[data-entered="false"] *,
+.memory-world-enter[data-entered="false"] *::before,
+.memory-world-enter[data-entered="false"] *::after {
+  animation-play-state: paused !important;
+}
+
+/* The loading card lies over the (still invisible) world and cross-fades
+   out when the world fades in; no empty gap in between. */
+.memory-world-stage {
+  position: relative;
+}
+.memory-world-cover {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  z-index: 2;
+  pointer-events: none;
+  transition: opacity var(--duration-context) var(--easing-standard);
+}
+.memory-world-stage[data-entered="true"] > .memory-world-cover {
+  opacity: 0;
+}

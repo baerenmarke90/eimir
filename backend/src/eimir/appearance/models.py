@@ -53,10 +53,37 @@ class PersonColoursId(StrEnum):
     MOSS_BLUE = "moss_blue"
 
 
+class MemoryWorldId(StrEnum):
+    """A personal presentation of the rediscovered memories in Momente (#2283).
+
+    A world only changes how the memories the couple already sees are shown:
+    the rediscovery selection and, for the Momentwolke, the loaded diary. It is
+    a personal view setting that is never shared with the partner.
+    """
+
+    STORY = "story"
+    STACK = "stack"
+    CRATE = "crate"
+    CLOUD = "cloud"
+    BOOTH = "booth"
+    FRIDGE = "fridge"
+    ALBUM = "album"
+    SCRATCH = "scratch"
+    MOCHI = "mochi"
+    STARS = "stars"
+    POST = "post"
+    JAR = "jar"
+
+
 # Product Owner decision 2026-11-14: "connected" is the default composition and,
 # like "warm", Free. Every other design requires ``theme.bespoke_packs``.
 DEFAULT_WIR_DESIGN = WirDesignId.CONNECTED
 FREE_WIR_DESIGNS = frozenset({WirDesignId.CONNECTED, WirDesignId.WARM})
+
+# #2283: the Story presentation is the default and, like the Stapel world, Free.
+# Every other memory world requires ``theme.bespoke_packs``.
+DEFAULT_MEMORY_WORLD = MemoryWorldId.STORY
+FREE_MEMORY_WORLDS = frozenset({MemoryWorldId.STORY, MemoryWorldId.STACK})
 
 
 class AppIconPreference(IdMixin, TimestampMixin, VersionMixin, Base):
@@ -88,6 +115,8 @@ class AppIconPreference(IdMixin, TimestampMixin, VersionMixin, Base):
     person_colours: Mapped[str | None] = mapped_column(String(24), nullable=True)
     # NULL follows the palette of the selected app design.
     wir_design_palette: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    # NULL means the default Story presentation.
+    memory_world: Mapped[str | None] = mapped_column(String(24), nullable=True)
 
     @property
     def effective_wir_design(self) -> WirDesignId:
@@ -102,3 +131,11 @@ class AppIconPreference(IdMixin, TimestampMixin, VersionMixin, Base):
         if palette is not None and palette in WirDesignId:
             return WirDesignId(palette)
         return None
+
+    @property
+    def effective_memory_world(self) -> MemoryWorldId:
+        """Resolve no choice, or a world unknown to this installation, to the default."""
+        world = self.memory_world
+        if world is not None and world in MemoryWorldId:
+            return MemoryWorldId(world)
+        return DEFAULT_MEMORY_WORLD

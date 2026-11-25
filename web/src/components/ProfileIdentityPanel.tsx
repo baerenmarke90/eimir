@@ -18,6 +18,7 @@ import {
   createReferenceApis,
   ReferenceFlowError,
 } from '../client/referenceFlow';
+import { defaultAvatarUrl } from '../client/defaultAvatar';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { useTranslation } from '../i18n';
 import { AvatarPhoto } from './AvatarPhoto';
@@ -113,7 +114,11 @@ export function ProfileIdentityPanel({
     retry: false,
   });
 
-  const { avatarUrl, loadFailed: avatarLoadFailed } = useProfileAvatarUrl(
+  const {
+    avatarUrl,
+    loadFailed: avatarLoadFailed,
+    hasNoPicture,
+  } = useProfileAvatarUrl(
     profilesApi,
     spaceId,
     account.id,
@@ -318,6 +323,7 @@ export function ProfileIdentityPanel({
             <AvatarPhoto
               name={visibleName}
               url={avatarUrl}
+              standInUrl={hasNoPicture ? defaultAvatarUrl(account.id) : null}
               identity={`${spaceId}:profile:${account.id}:${profile.profileAttachmentId}`}
               large
             />

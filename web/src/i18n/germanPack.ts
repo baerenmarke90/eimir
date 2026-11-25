@@ -28,6 +28,8 @@ import mediaDrop from './locales/mediaDrop';
 import mediaOverview from './locales/mediaOverview';
 import memoryMap from './locales/memoryMap';
 import memoryProduct from './locales/memoryProduct';
+import memoryWorldSettings from './locales/memoryWorldSettings';
+import memoryWorlds from './locales/memoryWorlds';
 import navigation from './locales/navigation';
 import notificationSettings from './locales/notificationSettings';
 import occasionMarks from './locales/occasionMarks';
@@ -116,6 +118,8 @@ export const germanResources = {
   m5s5,
   ...m5s6,
   memoryProduct,
+  memoryWorlds,
+  memoryWorldSettings,
   mediaDrop,
   partnerConnection,
   partnerLocation,

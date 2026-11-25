@@ -42,6 +42,7 @@ from eimir.places.models import Place
 from eimir.plans.models import Plan, PlanStatus
 from eimir.private_collections.models import PrivateCollection
 from eimir.private_notes.models import PrivateNote
+from eimir.profiles import service as profile_service
 from eimir.profiles.models import ProfilePreference
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import (
@@ -163,6 +164,17 @@ def test_create_is_idempotent_and_representative(session: Session) -> None:
             assert store.exists(
                 attachment_service.storage_key_for(attachment, attachment_service.THUMBNAIL_VARIANT)
             )
+
+    # Both personas carry an illustrated, Account-owned profile picture.
+    for account_id, expected_name in (
+        (first.lea_id, "avatar-lea.webp"),
+        (first.alex_id, "avatar-alex.webp"),
+    ):
+        avatar = profile_service.profile_attachment(session, account_id)
+        assert avatar is not None
+        assert avatar.status == AttachmentStatus.READY.value
+        assert avatar.space_id is None
+        assert avatar.payload.original_name == expected_name
 
     wishes = list(session.execute(select(Wish).where(Wish.space_id == first.space_id)).scalars())
     assert {wish.status for wish in wishes} == {
@@ -454,6 +466,8 @@ def test_reset_replaces_only_verified_demo_space(session: Session) -> None:
     assert len(restored_attachments) == 13
     assert len({attachment.payload.original_name for attachment in restored_attachments}) == 12
     assert _canonical_memory_media(session, reset.space_id) == canonical_media
+    for account_id in (reset.lea_id, reset.alex_id):
+        assert profile_service.profile_attachment(session, account_id) is not None
 
     active_demo_memberships = list(
         session.execute(

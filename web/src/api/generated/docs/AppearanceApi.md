@@ -5,9 +5,11 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**getAppIconPreference**](AppearanceApi.md#getappiconpreference) | **GET** /api/v1/spaces/{spaceId}/appearance/app-icon | Get App Icon Preference |
+| [**getMemoryWorldPreference**](AppearanceApi.md#getmemoryworldpreference) | **GET** /api/v1/spaces/{spaceId}/appearance/memory-world | Get Memory World Preference |
 | [**getPersonColoursPreference**](AppearanceApi.md#getpersoncolourspreference) | **GET** /api/v1/spaces/{spaceId}/appearance/person-colours | Get Person Colours Preference |
 | [**getWirDesignPreference**](AppearanceApi.md#getwirdesignpreference) | **GET** /api/v1/spaces/{spaceId}/appearance/wir-design | Get Wir Design Preference |
 | [**updateAppIconPreference**](AppearanceApi.md#updateappiconpreference) | **PATCH** /api/v1/spaces/{spaceId}/appearance/app-icon | Update App Icon Preference |
+| [**updateMemoryWorldPreference**](AppearanceApi.md#updatememoryworldpreference) | **PATCH** /api/v1/spaces/{spaceId}/appearance/memory-world | Update Memory World Preference |
 | [**updatePersonColoursPreference**](AppearanceApi.md#updatepersoncolourspreference) | **PATCH** /api/v1/spaces/{spaceId}/appearance/person-colours | Update Person Colours Preference |
 | [**updateWirDesignPreference**](AppearanceApi.md#updatewirdesignpreference) | **PATCH** /api/v1/spaces/{spaceId}/appearance/wir-design | Update Wir Design Preference |
 
@@ -61,6 +63,75 @@ example().catch(console.error);
 ### Return type
 
 [**AppIconPreferenceView**](AppIconPreferenceView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  * ETag - Opaque personal preference token; send unchanged as If-Match on writes. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getMemoryWorldPreference
+
+> MemoryWorldPreferenceView getMemoryWorldPreference(spaceId)
+
+Get Memory World Preference
+
+Read only the caller\&#39;s own memory world, including after Pro expiry.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AppearanceApi,
+} from '';
+import type { GetMemoryWorldPreferenceRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AppearanceApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetMemoryWorldPreferenceRequest;
+
+  try {
+    const data = await api.getMemoryWorldPreference(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**MemoryWorldPreferenceView**](MemoryWorldPreferenceView.md)
 
 ### Authorization
 
@@ -274,6 +345,84 @@ example().catch(console.error);
 ### Return type
 
 [**AppIconPreferenceView**](AppIconPreferenceView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  * ETag - Opaque personal preference token; send unchanged as If-Match on writes. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## updateMemoryWorldPreference
+
+> MemoryWorldPreferenceView updateMemoryWorldPreference(spaceId, ifMatch, memoryWorldPreferencePatch)
+
+Update Memory World Preference
+
+Save a known world. Story and Stapel are Free; every other world requires Pro.  Membership precedes the capability check. Reads never delete or revert a saved world when a grant expires, and returning to a Free world stays free. The world is a personal presentation and is not shared with the partner.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AppearanceApi,
+} from '';
+import type { UpdateMemoryWorldPreferenceRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AppearanceApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // string | The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.
+    ifMatch: ifMatch_example,
+    // MemoryWorldPreferencePatch
+    memoryWorldPreferencePatch: ...,
+  } satisfies UpdateMemoryWorldPreferenceRequest;
+
+  try {
+    const data = await api.updateMemoryWorldPreference(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **ifMatch** | `string` | The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header. | [Defaults to `undefined`] |
+| **memoryWorldPreferencePatch** | [MemoryWorldPreferencePatch](MemoryWorldPreferencePatch.md) |  | |
+
+### Return type
+
+[**MemoryWorldPreferenceView**](MemoryWorldPreferenceView.md)
 
 ### Authorization
 

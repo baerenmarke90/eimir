@@ -672,15 +672,36 @@ required by the current Vite build:
 | `connect-src` | `'self'`, `https://tiles.openfreemap.org` plus explicit hosting origins | API, direct presigned uploads/reads and the deliberately loaded vector basemap (style, tiles, glyphs, sprites) through `fetch()` |
 | `font-src` | `'self'` | no external font CDNs |
 | `media-src` | `'self'` plus explicit hosting origins | deliberate authorized video playback from the API/media store |
-| `worker-src` | `'self'` | bundled local video compression and map-rendering workers; no remote or blob workers |
-| `object-src`, `frame-src`, `manifest-src` | `'none'` | no approved domain requirement |
+| `worker-src` | `'self'` | bundled local video compression and map-rendering workers and the first-party service worker `/service-worker.js`; no remote or blob workers |
+| `manifest-src` | `'self'` | first-party Web App Manifest `/manifest.webmanifest` for PWA installation (ADR 0011, #1040) |
+| `object-src`, `frame-src` | `'none'` | no approved domain requirement |
 | `base-uri` / `frame-ancestors` | `'none'` | no base-URL rewriting and no framing |
 | `form-action` | `'self'` | forms may navigate only to the same origin |
 
 `unsafe-inline`, `unsafe-eval`, wildcards, and broad scheme sources such as
-`https:` are not allowed. `blob:` applies only to `img-src`; the actual media
+`https:` are not allowed. `blob:` applies only to `img-src`; the actual image
 bytes are first loaded through authorized `fetch()` requests and therefore
-fall under `connect-src`.
+fall under `connect-src`. Video bytes are requested by the `video` element
+itself through the validated playback-grant URL and therefore fall under
+`media-src`; they never become `blob:` media.
+
+The worker and manifest allowances are deliberately narrow. `worker-src 'self'`
+admits only same-origin worker scripts: the compiled local video compression
+and map-rendering workers and the first-party service worker. It admits no
+origin beyond `script-src 'self'`, and creating or registering a worker still
+requires same-origin script execution, which the policy already restricts to
+the first-party bundle. Only production browser clients register the service
+worker; the native Capacitor container never does. The service worker never
+intercepts `/api/`, media, upload, attachment, authenticated, or non-`GET`
+requests. The only cross-origin requests it handles are the public basemap
+requests described below, and its own requests are governed by the same
+delivered header. Without `manifest-src 'self'` and `worker-src 'self'`,
+browsers refuse the manifest and the service-worker registration, which
+silently disables installation and the privacy-safe offline fallback.
+`web/scripts/check-pwa-foundation.mjs` therefore fails when `web/nginx.conf`
+no longer admits the shipped PWA foundation, and
+`web/scripts/check_csp_header.sh` pins the complete delivered header in the
+Self-Hosted Start CI job.
 
 In the normal Self-Hosted/reverse-proxy path, Web and API use the same public
 origin. With `EIMIR_MEDIA_STORE=s3`, Compose automatically carries the already

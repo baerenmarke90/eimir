@@ -1696,6 +1696,88 @@
       "moss": "Moss green"
     }
   },
+  "memoryWorldSettings": {
+    "title": "Memory worlds",
+    "help": "How your memories meet you in Moments › Memories – only in your own view.",
+    "intro": "Story and Stack are included, every other world is part of Pro. Your partner chooses their own world.",
+    "choices": "Choose a world",
+    "change": "All worlds",
+    "close": "Close",
+    "current": "Active",
+    "free": "Included",
+    "pro": "Pro",
+    "choose": "Choose {{name}}",
+    "selected": "Selected",
+    "saving": "Saving …",
+    "saved": "{{name}} is now your world in Memories.",
+    "kept": "{{name}} stays with you without Pro. Choosing another Pro world needs Pro.",
+    "proHint": "{{name}} is part of eimir. Pro. Your current world stays until you switch.",
+    "discover": "Discover Pro",
+    "proLoading": "Checking Pro …",
+    "proUnavailable": "Pro could not be checked right now. You can still choose Story and Stack.",
+    "retry": "Try again",
+    "denied": "A new Pro world needs Pro. Your current world stays.",
+    "offline": "You are offline. Your choice stays here; save it when you are connected again.",
+    "conflict": "Your appearance was just changed on another device. Open the choice again.",
+    "saveError": "The world could not be saved.",
+    "sensitive": {
+      "label": "Show sensitive photos in the worlds",
+      "shown": "Memories with sensitive photos appear in the worlds – the photos stay covered until you open them. Only on this device.",
+      "hidden": "Memories with sensitive photos do not appear in the worlds. They stay in the diary as usual. Only on this device."
+    },
+    "switchWorld": "Switch world",
+    "switchWorldCurrent": "Switch world – current: {{name}}",
+    "worlds": {
+      "story": {
+        "name": "Story",
+        "sentence": "Your photo story with themes – simple and calm."
+      },
+      "stack": {
+        "name": "Stack",
+        "sentence": "Prints land on a stack and you flip through them."
+      },
+      "cloud": {
+        "name": "Moment cloud",
+        "sentence": "Drift through a floating cloud of all your moments."
+      },
+      "mochi": {
+        "name": "Mochis",
+        "sentence": "The two of you as little mochis – they cuddle, laugh and bring memories."
+      },
+      "booth": {
+        "name": "Photo booth",
+        "sentence": "Print your memories as photo strips – classic or modern."
+      },
+      "album": {
+        "name": "Photo book",
+        "sentence": "Leaf through your photo book – page by page."
+      },
+      "stars": {
+        "name": "Constellation",
+        "sentence": "Your moments as stars in a sky that lives with time."
+      },
+      "post": {
+        "name": "Post",
+        "sentence": "Letters from back then that you open and put away."
+      },
+      "crate": {
+        "name": "Record crate",
+        "sentence": "Flip through your records and put a memory on."
+      },
+      "scratch": {
+        "name": "Scratch card",
+        "sentence": "Scratch to reveal which memory is waiting for you today."
+      },
+      "jar": {
+        "name": "Jar",
+        "sentence": "Draw a slip from your memory jar every day."
+      },
+      "fridge": {
+        "name": "Fridge door",
+        "sentence": "Photos and notes under colourful magnets – to take off and move around."
+      }
+    }
+  },
   "wirDesign": {
     "title": "App design",
     "intro": "How eimir. feels for you. Only your view changes.",
@@ -4275,6 +4357,386 @@
       "fromWishTitledNth": "From your wish “{{title}}” · time {{position}}"
     }
   },
+  "memoryWorlds": {
+    "placeVerse": "in {{place}}",
+    "winterSpan": "Winter {{from}}/{{to}}",
+    "stack": {
+      "heading": "Rediscover",
+      "position": "{{position}} of {{count}}",
+      "roleDescription": "Pile",
+      "label": "Memories to leaf through",
+      "open": "Open: {{title}}",
+      "next": "Next memory",
+      "landing": "Your pictures are falling onto the pile …",
+      "hintSingle": "Tap to open the memory",
+      "hint": "Swipe sideways to put the picture at the back · Tap to open it"
+    },
+    "crate": {
+      "heading": "Your record crate",
+      "roleDescription": "Record crate",
+      "label_one": "Your record crate, {{count}} record",
+      "label_other": "Your record crate, {{count}} records",
+      "kind": {
+        "memory": "Memory",
+        "heart": "Heart moment",
+        "milestone": "Milestone"
+      },
+      "sleeveName": "{{kind}}: {{title}}, {{date}}",
+      "byline": "by {{name}}",
+      "front": "At the front of the crate: {{title}}, {{date}}. Record {{position}} of {{count}}.",
+      "playing": "Now playing: {{title}}, {{date}}.",
+      "playingBy": "Now playing: {{title}}, {{date}}, by {{name}}.",
+      "pictureDisc": "Surprise: a picture disc!",
+      "returned": "The record is back in the crate.",
+      "upNext": "Up next: {{title}}.",
+      "stopped": "Stopped. Press Start to continue.",
+      "cued": "Needle lifted – paused.",
+      "speedChanged": "{{rpm}} revolutions per minute.",
+      "sideEnded": "Side A has ended.",
+      "linerNotes_one": "Back of the sleeve: side A with {{count}} track.",
+      "linerNotes_other": "Back of the sleeve: side A with {{count}} tracks.",
+      "sleeveBack": "Back of the sleeve",
+      "sideA": "Side A",
+      "trackNumber": "A{{number}}",
+      "trackPlaying": ", now playing",
+      "readSleeve": "Read the back of the sleeve",
+      "nextRecord": "Next record",
+      "paused": "Paused",
+      "nowPlaying": "Now playing",
+      "endTitle": "Side A has ended",
+      "continueReading": "Keep reading in the diary",
+      "continueReadingLabel": "Keep reading in the diary: {{title}}",
+      "startFront": "Start – put on the front record",
+      "start": "Start",
+      "stop": "Stop",
+      "startStopCaption": "Start · Stop",
+      "speed": "Speed",
+      "rpm": "{{rpm}} revolutions per minute",
+      "rpmCaption": "RPM",
+      "openInDiary": "Open in the diary",
+      "openInDiaryLabel": "Open in the diary: {{title}}",
+      "backToCrate": "Back into the crate",
+      "crateHint": "Arrow keys leaf through the records, Enter puts the front one on, Escape puts it back into the crate. On a touchscreen, swiping down tips the records forward and tapping the front record puts it on. While a record is playing you can keep leafing and put the front one on next.",
+      "deckHint": "While a record is playing, the arrow keys skip a tenth forward or back.",
+      "allRecords": "All memories in the crate",
+      "recordListItem": "{{title}}, {{date}}"
+    },
+    "cloud": {
+      "heading": "Your moment cloud",
+      "roleDescription": "Moment cloud",
+      "label_one": "Your moment cloud, {{count}} memory",
+      "label_other": "Your moment cloud, {{count}} memories",
+      "hint": "Use the arrow keys to wander through the cloud and Enter to open the memory in the middle.",
+      "centre": "In the middle: {{title}}, {{date}}",
+      "playTitle": "Playful cloud",
+      "playHint": "Fling a bubble · tap to stop",
+      "backToCloud": "Back into the cloud",
+      "openInDiary": "Open in the diary",
+      "allMemories": "All memories in the cloud",
+      "memoryListItem": "{{title}}, {{date}}"
+    },
+    "booth": {
+      "styleLabel": "Photo booth style",
+      "style": {
+        "classic": "Classic",
+        "modern": "Modern"
+      },
+      "span": "{{from}} – {{to}}",
+      "viewStrip": "View the strip {{span}}",
+      "view": "View the strip",
+      "noteFrom": "– {{name}}",
+      "shotSpoken": "Photo {{shot}} of {{shots}}",
+      "viewer": {
+        "kicker": "From your diary",
+        "openInDiary": "Open in the diary",
+        "close": "Close"
+      },
+      "modern": {
+        "heading": "Your diary, freshly printed",
+        "sign": "Photo booth",
+        "display": {
+          "ready": "Ready",
+          "shot": "{{shot}}/{{shots}}",
+          "wait": "Wait",
+          "print": "Printing",
+          "done": "Done"
+        },
+        "printSpoken": "Your strip is being printed",
+        "doneSpoken": "Your strip is ready",
+        "print": "Print a strip",
+        "printAgain": "New strip",
+        "printing": "Printing …",
+        "hang": "Hang it on the line",
+        "line": "Your strips"
+      },
+      "classic": {
+        "heading": "The old photo booth",
+        "neon": "Photos",
+        "tagline": "Instant · {{shots}} pictures",
+        "status": {
+          "free": "Free",
+          "busy": "Occupied",
+          "wait": "Please wait"
+        },
+        "sample": "Samples",
+        "price": "{{shots}} pictures",
+        "priceAmount": "2 DM",
+        "coinValue": "2",
+        "insertHere": "Insert here",
+        "dial": "Developing",
+        "chute": "Pictures",
+        "coin": "Insert the coin",
+        "hint": "Drag the coin into the slot",
+        "coinSpoken": "Coin inserted",
+        "closingSpoken": "The curtain closes",
+        "developSpoken": "The pictures are developing",
+        "wetSpoken": "Your pictures are here, still wet",
+        "doneSpoken": "Your pictures are here",
+        "wetHint": "Still wet – wave it dry",
+        "box": "Put it in the tin",
+        "tin": "In the tin",
+        "tinLabel": "Your strips in the tin"
+      }
+    },
+    "fridge": {
+      "heading": "Your fridge door",
+      "roleDescription": "Fridge door",
+      "label_one": "Your fridge door, {{count}} memory",
+      "label_other": "Your fridge door, {{count}} memories",
+      "item": {
+        "photo": "Photo from {{date}}: {{title}}",
+        "heart": "Heart moment: {{title}}, {{date}}",
+        "heartBy": "Heart moment: {{title}}, from {{name}}, {{date}}",
+        "milestone": "Milestone: {{title}}, {{date}}",
+        "words": "Memory: {{title}}, {{date}}"
+      },
+      "pad": "New notes – hang the next memories on the door",
+      "padLine1": "New",
+      "padLine2": "notes",
+      "swapped_one": "New notes on your door: {{count}} memory.",
+      "swapped_other": "New notes on your door: {{count}} memories.",
+      "moved": {
+        "left": "{{title}} now hangs further left.",
+        "right": "{{title}} now hangs further right.",
+        "up": "{{title}} now hangs further up.",
+        "down": "{{title}} now hangs further down."
+      },
+      "edge": "{{title}} already hangs at the edge of the door.",
+      "hint": "Every note opens up large. Move notes and letter magnets across the door with your finger, or move the selected note with the arrow keys.",
+      "backToDoor": "Back to the fridge door",
+      "openInDiary": "Open in the diary",
+      "allMemories": "All memories on your fridge door",
+      "memoryListItem": "{{title}}, {{date}}"
+    },
+    "album": {
+      "heading": "Your photo book",
+      "roleDescription": "Photo book",
+      "label": "Your photo book, page {{page}} of {{count}}",
+      "hint": "Use the arrow keys or Page Up and Page Down to turn the pages, and Home and End to jump to the beginning or the end. On a touchscreen, swipe the page sideways or tap its right or left edge.",
+      "page": "Page {{page}} of {{count}}: {{label}}",
+      "previous": "Previous page",
+      "next": "Next page",
+      "moments_one": "One moment",
+      "moments_other": "{{count}} moments",
+      "winterYear": "{{from}}/{{to}}",
+      "dateRange": "{{from}} – {{to}}",
+      "separator": " · ",
+      "coverMark": "“”",
+      "pageLabel": {
+        "cover": "Cover",
+        "photos": "{{count}} photos",
+        "heart": "Heart moment",
+        "milestone": "Milestone: {{title}}",
+        "end": "To be continued"
+      },
+      "photo": "{{title}}, {{date}}",
+      "heart": "Heart moment from {{name}}: {{title}}",
+      "milestone": "Milestone: {{title}}, {{date}}",
+      "words": "{{title}}, {{date}}",
+      "milestoneKicker": "Milestone",
+      "sign": "– {{name}}",
+      "latest": "Most recent: {{title}}, {{date}}",
+      "endTitle": "To be continued",
+      "endText": "Your diary keeps writing – and with every new memory, so does your photo book.",
+      "restart": "Back to the beginning"
+    },
+    "scratch": {
+      "heading": "Your lucky ticket",
+      "roleDescription": "Lucky ticket",
+      "label": "Lucky ticket no. {{serial}}",
+      "serial": "No. {{serial}}",
+      "name": "Lucky ticket",
+      "rule": "Scratch the heart free – three matching coins win an encore",
+      "foilStamp": "Scratch",
+      "foilStampSub": "here!",
+      "tearTab": "Tear here",
+      "open": "Open in the diary ›",
+      "openLabel": "Open in the diary: {{title}}, {{date}}",
+      "win": {
+        "stamp": "Winner!",
+        "ask": "Remember?",
+        "blank": "Your prize"
+      },
+      "bonus": {
+        "stamp": "Encore!",
+        "heart": "Three hearts – another heart moment for you:",
+        "kiss": "Three kisses – another photo for you:",
+        "star": "Three stars – another big moment:",
+        "double": "Your luck is doubled today.",
+        "none": "No three of a kind – maybe on the next ticket.",
+        "hint": "Three matching coins: one extra memory.",
+        "link": "Encore: {{title}}, {{date}}"
+      },
+      "smallPrint": "Love series · Every ticket wins: a memory from your diary.",
+      "dispenser": {
+        "title": "Lucky tickets",
+        "subtitle": "for two"
+      },
+      "reveal": "Scratch it free",
+      "tear": "Tear off the next ticket",
+      "won": "You won: {{title}}, {{date}}. Tap the heart to open the memory.",
+      "fresh": "A new lucky ticket from your diary is here."
+    },
+    "mochi": {
+      "heading": "The two of you",
+      "roleDescription": "Mochi meadow",
+      "label": "Your two mochis on their meadow",
+      "description": "Let your mochis cuddle, kiss, hug, laugh or dance: each time a heart balloon with a memory from your diary rises. Tap it to open it.",
+      "actions": "What should the two of them do?",
+      "action": {
+        "cuddle": "Cuddle",
+        "kiss": "Kiss",
+        "hug": "Hug",
+        "laugh": "Laugh",
+        "dance": "Dance"
+      },
+      "acted": {
+        "cuddle": "Your mochis cuddle.",
+        "kiss": "Your mochis share a kiss.",
+        "hug": "Your mochis hug.",
+        "laugh": "Your mochis laugh together.",
+        "dance": "Your mochis dance."
+      },
+      "rises": "A heart balloon rises: {{title}}, {{date}}.",
+      "asleep": "Your mochis fell asleep. Play with them to wake them up.",
+      "open": "Open: {{title}}, {{date}}",
+      "sky": "Your heart balloons in the sky",
+      "hint": {
+        "cuddle": "Push us together!",
+        "kiss": "Press me for a long time …",
+        "hug": "Two fingers – pull us together!",
+        "laugh": "Tickle me!",
+        "danceTap": "Tap the beat on the meadow!",
+        "danceShake": "Shake the phone!"
+      },
+      "sound": {
+        "kiss": "Mwah!",
+        "laugh": "haha",
+        "giggle": "hihi",
+        "chuckle": "hehe",
+        "snore": "z z z",
+        "moon": "z"
+      }
+    },
+    "stars": {
+      "heading": "Your constellation",
+      "roleDescription": "Star chart",
+      "label": "Your memories as stars, in order of time",
+      "labelSome": "{{shown}} of {{count}} memories as stars, in order of time",
+      "description": "Swipe across the sky: a shooting star flies to the nearest star in that direction. Drag from star to star to trace your constellation, or point the telescope at a star. Use the arrow keys to go from star to star.",
+      "star": "{{title}}, {{date}}",
+      "starNew": "{{title}}, {{date}}, new in the sky",
+      "newborn": "new in the sky",
+      "note": "make a wish –\nswipe across\nthe sky ✦",
+      "landed": {
+        "fling": "A shooting star has landed: {{title}}, {{date}}",
+        "trace": "Your constellation leads to: {{title}}, {{date}}",
+        "scope": "Through the telescope: {{title}}, {{date}}"
+      },
+      "scope": "Point the telescope at a star",
+      "view": "Through the telescope: {{title}}, {{date}}. Back to the star chart",
+      "viewMore": "back to the star chart",
+      "wish": "Send a shooting star",
+      "first": "Your first star",
+      "oneOf": "One of {{count}} stars",
+      "position": "Star {{position}} of {{count}}",
+      "since": "This star has been shining since",
+      "open": "Open: {{title}}, {{date}}",
+      "seasonMark": "{{season}} ’{{year}}",
+      "winterMark": "{{season}} ’{{from}}/{{to}}"
+    },
+    "post": {
+      "heading": "Post from your diary",
+      "plate": "Post",
+      "plateFor": "for you",
+      "openBox": "Open the mailbox",
+      "openEnvelope": "Open the envelope from {{name}}",
+      "turnOver": "Turn the card over",
+      "turnBack": "Show the front",
+      "open": "Open in the diary",
+      "openNamed": "Open in the diary: {{title}}",
+      "file": "Put the card in the shoebox",
+      "read": "Read",
+      "postcard": "Postcard",
+      "greeting": "Greetings from {{season}}",
+      "sign": "With love, {{name}}",
+      "toBoth": "To you both",
+      "diary": "Your diary",
+      "postmark": "eimir. · Diary post ·",
+      "envelope": {
+        "airmail": "Air mail",
+        "urgent": "Urgent",
+        "forTwo": "For you two",
+        "forBoth": "For you both",
+        "forYou": "For you",
+        "to": "To: you both",
+        "from": "From: {{name}}",
+        "fromSeason": "From: {{name}} · {{season}}",
+        "by": "from {{name}}",
+        "love": "With love, {{name}}"
+      },
+      "announce": {
+        "waiting": "An envelope for you is in the mailbox.",
+        "arrived": "An envelope for you has arrived.",
+        "card": "A postcard: {{title}}",
+        "filed": "The card is in the shoebox.",
+        "filedNew": "The card is in the shoebox. New post is in the mailbox.",
+        "newPost": "New post is in the mailbox."
+      }
+    },
+    "jar": {
+      "heading": "Your jar full of diary moments",
+      "label_one": "Your memory jar with one slip from your diary",
+      "label_other": "Your memory jar with {{count}} slips from your diary",
+      "hint": "Shake the jar until the lid pops open and a slip jumps out: move it from side to side, tap it or press the tag.",
+      "emboss": "MEMORIES",
+      "since": "SINCE {{year}}",
+      "labelSmall": "Our",
+      "labelBig": "happy moments",
+      "tag": {
+        "shake": "Shake",
+        "me": "me!",
+        "drawLabel": "Shake me! – draw a slip",
+        "drawn": "Drawn today –",
+        "tomorrow": "back tomorrow",
+        "drawnLabel": "Drawn today – back tomorrow. You can still shake it; a new slip comes tomorrow."
+      },
+      "drawnNote": "You have already drawn today – a new slip is waiting tomorrow.",
+      "stage": "Drawn slip",
+      "putDown": "Put the slip down",
+      "drawnOn": "Drawn on {{date}}",
+      "kicker": "Remember?",
+      "open": "Open: {{title}}, {{date}}",
+      "diary": "Read in the diary",
+      "diaryNamed": "Read in the diary: {{title}}",
+      "back": "back into the jar",
+      "backLabel": "Put the slip back into the jar",
+      "announce": {
+        "drawn": "Drawn: {{title}}",
+        "back": "The slip is back in the jar."
+      }
+    }
+  },
   "memoryProduct": {
     "planning": {
       "heading": "Linked wishes and plans",
@@ -6280,6 +6742,10 @@
         "personColours": {
           "title": "Personal colours",
           "body": "Pick the colours you see yourself and your partner in throughout your app."
+        },
+        "memoryWorlds": {
+          "title": "Memory worlds",
+          "body": "Discover your memories in playful worlds – for example in the record crate, where every memory plays like a song."
         },
         "photoSources": {
           "title": "Photos from Immich & Google Photos",

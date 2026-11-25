@@ -174,3 +174,31 @@ describe('useProfileAvatarUrl performance sharing (#1028)', () => {
     expect(revokeObjectUrl).toHaveBeenCalledWith('blob:shared-avatar');
   });
 });
+
+describe('useProfileAvatarUrl empty-profile signal', () => {
+  const profilesApi = {
+    getProfileAvatarContentRaw: vi.fn(() => new Promise(() => {})),
+  } as unknown as ProfilesApi;
+
+  it('reports a loaded profile without a picture as having none', () => {
+    const { result } = renderHook(() =>
+      useProfileAvatarUrl(profilesApi, 'space', 'account', null),
+    );
+    expect(result.current.hasNoPicture).toBe(true);
+    expect(result.current.avatarUrl).toBeNull();
+  });
+
+  it('does not treat a profile that has not loaded yet as empty', () => {
+    const { result } = renderHook(() =>
+      useProfileAvatarUrl(profilesApi, 'space', 'account', undefined),
+    );
+    expect(result.current.hasNoPicture).toBe(false);
+  });
+
+  it('does not report a profile with a picture as empty while it loads', () => {
+    const { result } = renderHook(() =>
+      useProfileAvatarUrl(profilesApi, 'space', 'account', 'avatar-a'),
+    );
+    expect(result.current.hasNoPicture).toBe(false);
+  });
+});

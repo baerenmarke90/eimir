@@ -49,6 +49,8 @@ SAFE_DOC_EXACT = (
     "PROVENANCE.md",
     "TRADEMARKS.md",
     ".gitleaksignore",
+    # Secret Scan configuration; the Secret Scan job runs on every pull request.
+    ".gitleaks.toml",
     ".gitignore",
 )
 CANONICAL_COMPOSE_FILE = "compose.yaml"
@@ -86,6 +88,9 @@ SELF_VALIDATING_TOOLING_OWNERS = {
     RELEASE_PUBLISH_WORKFLOW: RELEASE_PUBLISH_WORKFLOW,
     "scripts/image_archive_config.py": RELEASE_PUBLISH_WORKFLOW,
     "scripts/test_deployment_channel.py": RELEASE_PUBLISH_WORKFLOW,
+    # Core Advance (Decision 0019, D2) drives the same publisher; its contract
+    # tests live in tools/ci/test_release_publish_workflow.py.
+    ".github/workflows/core-advance.yml": RELEASE_PUBLISH_WORKFLOW,
     "scripts/verify_release_asset_set.py": RELEASE_PUBLISH_WORKFLOW,
     "tools/ci/test_image_archive_config.py": RELEASE_PUBLISH_WORKFLOW,
     "tools/ci/test_release_publish_workflow.py": RELEASE_PUBLISH_WORKFLOW,
@@ -242,6 +247,10 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
                 "backend/pro/",
                 # The operator plugin distribution (#2189).
                 "backend/admin/",
+                # The Core export (Decision 0019, #2183): its backend gates and
+                # the Pro extraction dry run build on the exported tree. The
+                # cheap Core Export Dry Run job runs on every pull request.
+                "tools/cutover/",
             ),
             exact=(
                 "backend/alembic.ini",
@@ -405,6 +414,8 @@ RISK_PREFIXES = (
     "deploy/",
     ".github/",
     "tools/ci/",
+    # The allow-list decides what the public eimir-core repository receives.
+    "tools/cutover/",
     "scripts/self_hosted",
     "scripts/release",
 )

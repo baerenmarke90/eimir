@@ -17,6 +17,8 @@ ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github/workflows/release-publish.yml"
 CANDIDATE_WORKFLOW = ROOT / ".github/workflows/release-candidate.yml"
 WORKFLOW_DIR = ROOT / ".github/workflows"
+sys.path.insert(0, str(ROOT / "tools/ci"))
+from test_release_evidence import SupplyChainStepHarness, job_text, step_script, step_text  # noqa: E402
 
 EXTERNAL_ACTION_PINS = {
     "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
@@ -33,6 +35,177 @@ def action_uses(text: str) -> list[str]:
         match.group(1)
         for match in re.finditer(r"^\s*-?\s*uses:\s*([^\s#]+)", text, re.MULTILINE)
     ]
+
+
+class PinnedCoreWorkflowContractTest(unittest.TestCase):
+    """Decision 0019, runbook D2: the publisher and Core Advance with a pinned Core."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.workflow = WORKFLOW.read_text(encoding="utf-8")
+        cls.advance = (WORKFLOW_DIR / "core-advance.yml").read_text(encoding="utf-8")
+        cls.evidence = (WORKFLOW_DIR / "release-evidence.yml").read_text(encoding="utf-8")
+        cls.report = (WORKFLOW_DIR / "nightly-regression-report.yml").read_text(encoding="utf-8")
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import test_deployment_channel as channel
+
+        cls.channel = channel
+
+    @staticmethod
+    def job(text: str, name: str) -> str:
+        block = ("\n" + text.split("\njobs:\n", 1)[1]).split(f"\n  {name}:\n", 1)[1]
+        return re.split(r"\n  [a-z][a-z0-9-]*:\n", block, maxsplit=1)[0]
+
+    def test_core_advance_runs_on_a_half_hour_schedule_or_by_hand_only(self) -> None:
+        triggers = self.advance.split("\non:\n", 1)[1].split("\npermissions:\n", 1)[0]
+        self.assertEqual(
+            set(re.findall(r"^  ([a-z_]+):", triggers, re.MULTILINE)),
+            {"schedule", "workflow_dispatch"},
+        )
+        crons = re.findall(r'- cron: "([^"]+)"', triggers)
+        self.assertEqual(len(crons), 1)
+        minutes = [int(value) for value in crons[0].split()[0].split(",")]
+        self.assertEqual(crons[0].split()[1:], ["*", "*", "*", "*"])
+        self.assertEqual(len(minutes), 2)
+        self.assertEqual(minutes[1] - minutes[0], 30)
+        self.assertNotIn("pull_request", self.advance)
+        self.assertIn("\n  group: core-advance\n  cancel-in-progress: false\n", self.advance)
+
+    def test_core_advance_runs_only_where_a_core_repository_is_configured(self) -> None:
+        plan = self.job(self.advance, "plan")
+        for condition in (
+            "vars.EIMIR_CORE_REPOSITORY != ''",
+            "vars.EIMIR_TEST_CHANNEL_ENABLED == 'true'",
+            "github.repository == vars.EIMIR_TEST_CHANNEL_REPOSITORY",
+            "github.ref == 'refs/heads/main'",
+        ):
+            self.assertIn(condition, plan)
+        self.assertIn("needs: plan\n    if: needs.plan.outputs.needed == 'true'", self.job(self.advance, "pro-tests"))
+        self.assertIn(
+            "if: ${{ !cancelled() && needs.plan.outputs.needed == 'true' }}",
+            self.job(self.advance, "report"),
+        )
+
+    def test_core_advance_is_least_privileged_and_needs_no_core_secret(self) -> None:
+        self.assertIn("permissions:\n  contents: read\n", self.advance)
+        for forbidden in ("contents: write", "packages: write", "id-token: write", "attestations: write", "pull_request_target"):
+            self.assertNotIn(forbidden, self.advance)
+        self.assertEqual(
+            set(re.findall(r"secrets\.([A-Z0-9_]+)", self.advance)), {"EIMIR_CORE_READ_TOKEN"}
+        )
+        self.assertNotIn("actions: write", self.job(self.advance, "plan"))
+        self.assertNotIn("actions: write", self.job(self.advance, "pro-tests"))
+        self.assertIn("actions: write", self.job(self.advance, "report"))
+        self.assertNotIn("issues: write", self.job(self.advance, "pro-tests"))
+        self.assertEqual(self.advance.count("persist-credentials: false"), self.advance.count("uses: actions/checkout@"))
+        for use in action_uses(self.advance):
+            self.assertRegex(use, r"@[0-9a-f]{40}$")
+
+    def test_job_names_carry_the_core_revision_the_scripts_look_for(self) -> None:
+        tests = self.advance.split("\n  pro-tests:\n", 1)[1]
+        self.assertIn(
+            "    name: " + self.channel.PRO_TESTS_JOB.format(revision="${{ needs.plan.outputs.core_revision }}"),
+            tests,
+        )
+        self.assertEqual(self.channel.CORE_ADVANCE_WORKFLOW, ".github/workflows/core-advance.yml")
+        gate = self.workflow.split("\n  test-checked-main:\n", 1)[1]
+        self.assertIn(
+            "name: ${{ inputs.core_revision && format('"
+            + self.channel.PUBLISHER_CHECK_JOB.format(revision="{0}")
+            + "', inputs.core_revision) || 'Check completed main' }}",
+            gate,
+        )
+
+    def test_pro_tests_use_the_extraction_dry_run_against_the_exact_core(self) -> None:
+        tests = self.job(self.advance, "pro-tests")
+        self.assertIn("repository: ${{ vars.EIMIR_CORE_REPOSITORY }}", tests)
+        self.assertIn("ref: ${{ needs.plan.outputs.core_revision }}", tests)
+        self.assertIn('test "$(git -C "$EIMIR_CORE_ROOT" rev-parse HEAD)" = "$CORE_REVISION"', tests)
+        self.assertIn('bash "$EIMIR_CORE_ROOT/tools/ci/pro_extraction_dry_run.sh" -m ""', tests)
+        self.assertNotIn("continue-on-error", self.advance)
+        report = self.job(self.advance, "report")
+        self.assertIn("TESTS_RESULT: ${{ needs.pro-tests.result }}", report)
+        self.assertIn("scripts/test_deployment_channel.py advance-report", report)
+        self.assertNotIn("gh workflow run", self.advance)
+
+    @staticmethod
+    def run_scripts(text: str) -> list[str]:
+        """The shell text of every run step (block scalars and single lines)."""
+        scripts: list[str] = []
+        lines = text.splitlines()
+        for index, line in enumerate(lines):
+            match = re.match(r"^( +)(?:- )?run: ?(.*)$", line)
+            if not match:
+                continue
+            indent, rest = len(match.group(1)), match.group(2)
+            body = [] if rest in {"|", "|-", ">", ">-"} else [rest]
+            for following in lines[index + 1 :]:
+                if following.strip() and len(following) - len(following.lstrip()) <= indent:
+                    break
+                body.append(following)
+            scripts.append("\n".join(body))
+        return scripts
+
+    def test_untrusted_values_reach_scripts_only_through_the_environment(self) -> None:
+        for name, text in (("publish", self.workflow), ("advance", self.advance), ("evidence", self.evidence)):
+            scripts = self.run_scripts(text)
+            self.assertTrue(scripts)
+            for script in scripts:
+                with self.subTest(workflow=name):
+                    self.assertNotIn("${{ inputs.", script)
+                    self.assertNotIn("${{ needs.", script)
+
+    def test_publisher_hands_the_checked_core_revision_to_evidence_and_publication(self) -> None:
+        gate = self.job(self.workflow, "test-checked-main")
+        self.assertIn("core_revision: ${{ steps.check.outputs.core_revision }}", gate)
+        for line in (
+            "EIMIR_CORE_REVISION: ${{ inputs.core_revision }}",
+            "EIMIR_CORE_ADVANCE_RUN: ${{ inputs.core_advance_run }}",
+            "EIMIR_CORE_REPOSITORY: ${{ vars.EIMIR_CORE_REPOSITORY }}",
+            "EIMIR_TEST_CHANNEL_REPOSITORY: ${{ vars.EIMIR_TEST_CHANNEL_REPOSITORY }}",
+            "EIMIR_TEST_CHANNEL_INSTANCE: ${{ vars.EIMIR_TEST_CHANNEL_INSTANCE }}",
+        ):
+            self.assertIn(line, gate)
+        evidence = self.job(self.workflow, "test-evidence")
+        self.assertIn(
+            "core_repository: ${{ needs.test-checked-main.outputs.core_revision && vars.EIMIR_CORE_REPOSITORY || '' }}",
+            evidence,
+        )
+        self.assertIn("core_revision: ${{ needs.test-checked-main.outputs.core_revision }}", evidence)
+        publisher = self.job(self.workflow, "test-publish")
+        self.assertIn("CORE_REVISION: ${{ needs.test-checked-main.outputs.core_revision }}", publisher)
+        self.assertIn('--core-revision "$CORE_REVISION"', publisher)
+        for name in ("EIMIR_TEST_CHANNEL_REPOSITORY", "EIMIR_TEST_CHANNEL_INSTANCE", "EIMIR_CORE_REPOSITORY"):
+            self.assertIn(f"{name}: ${{{{ vars.{name} }}}}", publisher)
+            self.assertNotIn(f"secrets.{name}", self.workflow)
+        # Repository names are variables; none of the new names is hard-coded.
+        for text in (self.workflow, self.advance, self.evidence):
+            self.assertIsNone(re.search(r"eimir-(?:pro|core|rehearsal)(?!-source)\b", text))
+
+    def test_release_evidence_composes_the_pinned_core_before_any_build(self) -> None:
+        build = self.job(self.evidence, "build-evidence")
+        checkout = build.index("- name: Checkout pinned Core revision")
+        compose = build.index("- name: Compose the official tree from the pinned Core and the Pro tree")
+        self.assertLess(build.index("- name: Checkout exact source revision"), checkout)
+        self.assertLess(checkout, compose)
+        self.assertLess(compose, build.index("- name: Validate release-evidence contract"))
+        self.assertLess(compose, build.index("- name: Build backend runtime image archive"))
+        for step in (build[checkout:compose], build[compose:].split("\n      - name:", 1)[0]):
+            self.assertIn("if: inputs.core_repository || inputs.core_revision", step)
+        self.assertIn("ref: ${{ inputs.core_revision }}", build)
+        self.assertIn("path: .eimir-core-source", build)
+        self.assertIn("token: ${{ secrets.EIMIR_CORE_READ_TOKEN || github.token }}", build)
+        self.assertIn("rm -rf .eimir-core-source", build)
+        self.assertIn('index["coreSource"] = {', build)
+        calls = self.evidence.split("  workflow_call:\n", 1)[1].split("\npermissions:\n", 1)[0]
+        for name in ("core_repository:", "core_revision:", "EIMIR_CORE_READ_TOKEN:"):
+            self.assertIn(name, calls)
+
+    def test_nightly_report_leaves_a_pinned_core_channel_to_core_advance(self) -> None:
+        self.assertIn("CORE_REPOSITORY: ${{ vars.EIMIR_CORE_REPOSITORY }}", self.report)
+        guard = self.report.index('if [ -n "${CORE_REPOSITORY:-}" ]; then')
+        self.assertLess(guard, self.report.index("gh workflow run release-publish.yml"))
+        self.assertIn('elif [ "$TEST_CHANNEL_ENABLED" = "true" ]; then', self.report)
 
 
 class ReleasePublishWorkflowContractTest(unittest.TestCase):
@@ -70,12 +243,17 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         gate = self.workflow.split("\n  test-checked-main:\n", 1)[1].split(
             "\n  test-evidence:\n", 1
         )[0]
-        self.assertIn("github.repository == 'baerenmarke90/eimir'", gate)
+        # Decision 0019: the publishing repository is a variable whose default
+        # is the monorepo, so an unset variable keeps today's owning repository.
+        self.assertIn(
+            "github.repository == (vars.EIMIR_TEST_CHANNEL_REPOSITORY || 'baerenmarke90/eimir')",
+            gate,
+        )
         self.assertIn("github.event_name != 'pull_request'", gate)
         self.assertIn("github.ref == 'refs/heads/main'", gate)
         self.assertIn("vars.EIMIR_TEST_CHANNEL_ENABLED == 'true'", gate)
         publisher = self.workflow.split("\n  test-publish:\n", 1)[1]
-        self.assertIn("needs: test-evidence", publisher)
+        self.assertIn("needs: [test-checked-main, test-evidence]", publisher)
         self.assertIn("queue: max", publisher)
         self.assertNotIn("if: always()\n    runs-on:", publisher)
         self.assertIn("scripts/test_deployment_channel.py publish", publisher)
@@ -329,6 +507,7 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
                             "previous": "v0.0.9",
                             "android_note": "android note",
                             "channel_note": "channel note",
+                            "attestation_note": "attestation note",
                         },
                     )
                     notes = (Path(directory) / "release-evidence/RELEASE-NOTES.md").read_text(
@@ -982,6 +1161,115 @@ class RuntimeImagePublicationBehaviorTest(unittest.TestCase):
         result = self.publish(self.fixtures.legacy_members())
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(len([c for c in self.calls() if c.startswith("push ")]), 1)
+
+
+class SupplyChainPublicationTest(unittest.TestCase):
+    """Decision 0019, D5: the product publisher in both attestation states."""
+
+    ACCEPTANCE = "decision-0019-d5"
+    VERIFY = "Verify retained final attestations"
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.workflow = WORKFLOW.read_text(encoding="utf-8")
+        cls.publish = job_text(cls.workflow, "publish")
+
+    def test_state_is_confirmed_after_the_checksums_and_selects_the_attestation_path(self) -> None:
+        confirm = step_text(self.publish, "Confirm the recorded supply-chain state")
+        self.assertIn("id: supply_chain", confirm)
+        self.assertNotRegex(confirm, r"(?m)^        if:")
+        self.assertIn("--record release-evidence/supply-chain-state.json", confirm)
+        self.assertIn("EIMIR_SUPPLY_CHAIN_EXCEPTION: ${{ vars.EIMIR_SUPPLY_CHAIN_EXCEPTION }}", confirm)
+        order = [
+            self.publish.index("- name: Re-verify transported #193 evidence"),
+            self.publish.index("- name: Confirm the recorded supply-chain state"),
+            self.publish.index("- name: Download retained #193 attestations"),
+        ]
+        self.assertEqual(order, sorted(order))
+        for name in (
+            "Download retained #193 attestations",
+            "Attest final signed Android APK",
+            "Attest final signed Android AAB",
+        ):
+            with self.subTest(step=name):
+                self.assertRegex(
+                    step_text(self.publish, name),
+                    r"(?m)^        if: .*steps\.supply_chain\.outputs\.attestation == 'available'$",
+                )
+        self.assertNotIn("continue-on-error", self.workflow)
+
+    def test_verification_step_runs_in_both_states(self) -> None:
+        self.assertNotRegex(step_text(self.publish, self.VERIFY), r"(?m)^        if:")
+        script = step_script(self.publish, self.VERIFY)
+        self.assertLess(script.index("supply_chain_state.py verify"), script.index("exit 0"))
+        self.assertLess(script.index("exit 0"), script.index("gh attestation trusted-root"))
+
+    def test_release_notes_state_the_attestation_record(self) -> None:
+        notes = step_text(self.publish, "Write human-readable release notes")
+        self.assertIn("ATTESTATION_STATE: ${{ steps.supply_chain.outputs.attestation }}", notes)
+        self.assertIn("supply-chain-state.json", notes)
+        self.assertIn("${attestation_note}", notes)
+
+    def test_codeql_gates_read_the_same_acceptance(self) -> None:
+        for job, command in (
+            ("preflight", "test_deployment_channel.py full-regression"),
+            ("test-checked-main", "test_deployment_channel.py check"),
+        ):
+            with self.subTest(job=job):
+                block = job_text(self.workflow, job)
+                self.assertIn(command, block)
+                self.assertIn("EIMIR_SUPPLY_CHAIN_EXCEPTION: ${{ vars.EIMIR_SUPPLY_CHAIN_EXCEPTION }}", block)
+
+    def run_verification(self, harness: SupplyChainStepHarness, **kwargs: str) -> subprocess.CompletedProcess:
+        return harness.run(step_script(self.publish, self.VERIFY), **kwargs)
+
+    def test_unavailable_state_verifies_the_record_instead_of_attestations(self) -> None:
+        harness = SupplyChainStepHarness(self)
+        harness.write_record("private", self.ACCEPTANCE)
+        result = self.run_verification(
+            harness, visibility="private", acceptance=self.ACCEPTANCE, INCLUDE_ANDROID="true"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("verified the recorded state instead", result.stdout)
+        self.assertNotIn("attestation", "\n".join(
+            line for line in harness.log.read_text(encoding="utf-8").splitlines()
+            if not line.startswith("api ")
+        ))
+
+    def test_unavailable_state_without_the_record_fails(self) -> None:
+        harness = SupplyChainStepHarness(self)
+        result = self.run_verification(harness, visibility="private", acceptance=self.ACCEPTANCE)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("supply-chain-state.json", result.stderr)
+
+    def test_unavailable_record_on_a_public_repository_fails(self) -> None:
+        harness = SupplyChainStepHarness(self)
+        harness.write_record("private", self.ACCEPTANCE)
+        result = self.run_verification(harness, visibility="public", acceptance="")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(harness.verify_calls(), [])
+
+    def test_available_state_verifies_core_and_signed_android_attestations(self) -> None:
+        harness = SupplyChainStepHarness(self)
+        harness.write_record("public", "")
+        harness.write_bundles("backend-runtime", "web-runtime", "android-apk-signed", "android-aab-signed")
+        result = self.run_verification(harness, visibility="public", acceptance="", INCLUDE_ANDROID="true")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = harness.verify_calls()
+        self.assertEqual(len(calls), 8)
+        android = [call for call in calls if "android-" in call]
+        self.assertEqual(len(android), 4)
+        self.assertTrue(all("workflows/release-publish.yml" in call for call in android))
+        self.assertTrue(all("workflows/release-evidence.yml" in call for call in calls if call not in android))
+
+    def test_available_state_with_a_missing_signed_attestation_fails(self) -> None:
+        harness = SupplyChainStepHarness(self)
+        harness.write_record("public", "")
+        harness.write_bundles("backend-runtime", "web-runtime", "android-apk-signed")
+        result = self.run_verification(harness, visibility="public", acceptance="", INCLUDE_ANDROID="true")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("android-aab-signed-provenance.json", result.stderr)
+        self.assertEqual(harness.verify_calls(), [])
 
 
 if __name__ == "__main__":

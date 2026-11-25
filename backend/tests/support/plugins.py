@@ -37,19 +37,6 @@ PRO_TEST_MODULES = frozenset(
 The Pro feature tests themselves live in ``backend/pro/pro_tests``.
 """
 
-PRO_DISTRIBUTION_TEST_MODULES = frozenset(
-    {
-        # Core lifecycle tests that create real Pro rows through the Pro models
-        # and then switch the plugin off themselves (``without_plugins``). They
-        # run wherever the Pro distribution is installed, the plugin-loaded
-        # configuration included.
-        "integration/test_core_only_lifecycle.py",
-        "integration/test_dormant_plugin_data.py",
-        "integration/test_plugin_lifecycle.py",
-    }
-)
-"""Core test modules that import Pro models; not collected without ``eimir-pro`` (#2182)."""
-
 CORE_ONLY_SKIP = "Core-only configuration: the Pro distribution (eimir-pro) is not installed."
 
 

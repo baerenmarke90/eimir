@@ -1,3 +1,5 @@
+import { demoDistanceInputs } from './demoLocation';
+import { isDemoModeConfigured } from './demoMode';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PartnerLocationApi } from '../api/generated/apis/PartnerLocationApi';
 import type { DistanceBandView } from '../api/generated/models/DistanceBandView';
@@ -194,6 +196,8 @@ export function usePartnerDistanceLine({
           spaceId,
           ownSharingActive: settings?.state === 'ACTIVE',
           precision: settings?.precision,
+          // The Demo has no device position; see demoLocation.ts.
+          ...(isDemoModeConfigured() ? demoDistanceInputs : {}),
         });
       }),
     enabled: enabled && Boolean(api && accountId && spaceId),

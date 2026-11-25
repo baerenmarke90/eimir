@@ -80,8 +80,9 @@ Deliberately **not** part of the plugin, with the reason:
   (`api/v1/relationship_passport.py`) and their read models (package `relationship_passport`) are plugin code, while
   `getDashboard` and its shared Story summary stay Core; recap composition followed in #2085 (see the recap gap
   below). `theme.bespoke_packs` is plugin-owned too, but it has no
-  server feature code to move: the three value checks in `api/v1/appearance.py`, the stored columns and the value
-  enums stay Core, and the designs themselves live in the clients
+  server feature code to move: the four value checks in `api/v1/appearance.py` (app icons, Wir designs and
+  palettes, person-colour pairs, memory worlds from [#2283](https://github.com/baerenmarke90/eimir/issues/2283)),
+  the stored columns and the value enums stay Core, and the designs themselves live in the clients
   ([#2086](https://github.com/baerenmarke90/eimir/issues/2086)). Without the plugin a Pro value is refused under
   any grant, Free values keep working and a stored Pro value stays in effect.
 - `media.video_upload` (`api/v1/video.py`, `attachments/videos.py`, `attachments/video_jobs.py`,
@@ -578,6 +579,8 @@ The implementation differs from the plan in these points:
   the manifest executor.
 - **Still waiting for Self-Hosted work:** `proFeaturesAvailable` with its Core-only client state and the ServerAdmin
   view of dormant plugin data (#2148).
+
+**Update of November 25, 2026: the Core lifecycle tests no longer need Pro.** The three modules named under "Test coverage of the public Core" (`test_core_only_lifecycle.py`, `test_dormant_plugin_data.py`, `test_plugin_lifecycle.py`) now run against a fake plugin (`backend/tests/support/fake_plugin.py`): its tables are temporary tables of the test connection with their own manifest rows, so they need neither `eimir-pro` nor a Pro table, and they run in the Core-only lane. `test_plugin_lifecycle.py` also checks every real manifest row against the migrated schema and runs the executor's statements on it, which covers the real rows in the public Core CI. The two cases that need the real Pro models moved to `backend/pro/pro_tests/integration/test_core_lifecycle_with_pro.py`. The list of test modules that are not collected without `eimir-pro` is empty and removed.
 
 **Update of November 24, 2026: seam version 7** ([ADR 0020](0020-remove-transfer-bundle-self-service.md), slice S1c,
 [#2243](https://github.com/baerenmarke90/eimir/issues/2243)). The Product Owner removed the Transfer Bundle self-service

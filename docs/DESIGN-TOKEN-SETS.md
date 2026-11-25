@@ -92,7 +92,9 @@ action) and primary links use the design's action colour
 `--color-action-primary` with its label colour `--color-on-action-primary`.
 A design sets them through the optional roles `actionPrimary` and
 `onActionPrimary`; otherwise they are the palette's strong action and
-`onAction`, which gives Verbunden the canonical blue. Shape, icon, label, size
+`onAction`, which gives Verbunden the canonical blue. A palette other than
+Verbunden follows its own colours and must not pin the canonical blue, so
+choosing a design colour recolours the add action too. Shape, icon, label, size
 and the single-primary-action rule stay as in the
 [Button contract](COMPONENT-CONTRACTS.md#31-button) (#1688/#1724).
 

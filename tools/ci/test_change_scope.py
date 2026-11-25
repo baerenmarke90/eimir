@@ -529,6 +529,16 @@ class PullRequestTierTest(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(tiered_outputs([path], pull_request=True)["tier"], "full")
 
+    def test_core_export_tooling_runs_its_backend_gates_in_the_full_tier(self) -> None:
+        for path in ("tools/cutover/core-allowlist.toml", "tools/cutover/core_export.py"):
+            with self.subTest(path=path):
+                scopes = classify_paths([path])
+                self.assertEqual({scope for scope, on in scopes.items() if on}, {"backend_integration"})
+                self.assertEqual(risk_paths([path]), [path])
+                outputs = tiered_outputs([path], pull_request=True)
+                self.assertEqual(outputs["tier"], "full")
+                self.assertEqual(self.heavy(outputs), {"backend_integration"})
+
     def test_unknown_path_fails_closed_into_the_full_tier(self) -> None:
         outputs = tiered_outputs(["future-build-system/config.toml"], pull_request=True)
         self.assertEqual(outputs["tier"], "full")

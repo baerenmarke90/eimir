@@ -1,0 +1,12 @@
+eimir. Android 0.2.0-test.104
+
+- Memory worlds for Momente › Erinnerungen: in Appearance you choose how your memories are rediscovered. Story and Stapel are free; Momentwolke, Fotoautomat, Kühlschranktür, Fotobuch, Rubbellos, Mochis, Sternbild, Post and Glas are Pro worlds.
+- The Stapel's prints fly in again, now on plain paper, and every world's first motion plays once the world is visible.
+- In the Glas, one slip can be drawn per day; it can be put back, but no other slip is drawn that day.
+- Accounts without a profile picture show a neutral stand-in picture.
+- The add action and emphasised controls follow the chosen design colours.
+- The offline page loads its own styles and scripts again.
+- Updated Cloud legal drafts for Google Play and connected services.
+
+The product changes come from main at f54181f0fa2f0f1bda64b1b85a29dd80935e9f7a.
+Install over test.103 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 104.

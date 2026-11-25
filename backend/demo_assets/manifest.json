@@ -253,6 +253,48 @@
       "usage_context": [
         "memory.weekend-water"
       ]
+    },
+    {
+      "id": "avatar-lea",
+      "filename": "avatar-lea.webp",
+      "source_provider": "eimir",
+      "source_asset_id": "avatar-lea",
+      "source_page_url": "https://github.com/baerenmarke90/eimir/blob/main/backend/demo_assets/images/avatar-lea.webp",
+      "creator": "eimir. project owner (AI-generated image of a fictional person)",
+      "source_published_at": "2026-11-25",
+      "license_name": "PolyForm Noncommercial 1.0.0 (repository licence)",
+      "license_url": "https://polyformproject.org/licenses/noncommercial/1.0.0/",
+      "license_basis_url": "https://github.com/baerenmarke90/eimir/blob/main/LICENSE",
+      "license_checked_at": "2026-11-25",
+      "attribution_required": false,
+      "attribution_text": null,
+      "sha256": "678f61da2f71e3b1ee87a786418a0d45626c3076121cc81bc988cdb2c3a3e3ce",
+      "mime_type": "image/webp",
+      "alt_text_de": "Porträt von Lea: lächelnde Frau mit schulterlangen braunen Haaren und blauem Pullover vor pfirsichfarbener Wand",
+      "usage_context": [
+        "profile.avatar.lea"
+      ]
+    },
+    {
+      "id": "avatar-alex",
+      "filename": "avatar-alex.webp",
+      "source_provider": "eimir",
+      "source_asset_id": "avatar-alex",
+      "source_page_url": "https://github.com/baerenmarke90/eimir/blob/main/backend/demo_assets/images/avatar-alex.webp",
+      "creator": "eimir. project owner (AI-generated image of a fictional person)",
+      "source_published_at": "2026-11-25",
+      "license_name": "PolyForm Noncommercial 1.0.0 (repository licence)",
+      "license_url": "https://polyformproject.org/licenses/noncommercial/1.0.0/",
+      "license_basis_url": "https://github.com/baerenmarke90/eimir/blob/main/LICENSE",
+      "license_checked_at": "2026-11-25",
+      "attribution_required": false,
+      "attribution_text": null,
+      "sha256": "84bd50f1669b9d2710f2de3e474a7d7274bdfef290a18e0ad5071aafd49e61e0",
+      "mime_type": "image/webp",
+      "alt_text_de": "Porträt von Alex: lächelnder Mann mit kurzen dunklen Haaren und dunkelblauem Pullover vor hellblauer Wand",
+      "usage_context": [
+        "profile.avatar.alex"
+      ]
     }
   ]
 }

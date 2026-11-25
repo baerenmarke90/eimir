@@ -25,6 +25,7 @@ import {
   nextMilestoneAnniversary,
   waymarkToday,
 } from '../client/storyWaymarks';
+import { displayAvatarUrl } from '../client/defaultAvatar';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { OVERVIEW_GC_TIME } from '../client/useWarmOverviewQuery';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -336,7 +337,7 @@ function PassportContent({
           status="unknown"
           primaryPerson={{
             displayName: props.account.displayName,
-            imageUrl: ownAvatar.avatarUrl,
+            imageUrl: displayAvatarUrl(props.account.id, ownAvatar),
           }}
           secondaryPerson={
             partner
@@ -346,7 +347,7 @@ function PassportContent({
                     partner.displayName,
                     t('couplePresencePartnerFallback'),
                   ),
-                  imageUrl: partnerAvatar.avatarUrl,
+                  imageUrl: displayAvatarUrl(partner.id, partnerAvatar),
                 }
               : null
           }

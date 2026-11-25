@@ -68,6 +68,7 @@ import { createPartnerLocationApi } from './client/partnerLocation';
 import { PartnerNicknameProvider } from './client/partnerNickname';
 import { createPeopleApi } from './client/peopleApi';
 import { PersonColoursProvider } from './client/personColoursContext';
+import { MemoryWorldProvider } from './client/memoryWorldContext';
 import { PLAN_SHORT_LINK_ROUTE_PATTERN } from './client/planShortLink';
 import { createPrivateAreaApi } from './client/privateArea';
 import {
@@ -1509,14 +1510,23 @@ function AuthenticatedApp({
           accountId={account.id}
           spaceId={spaceId}
         >
-          <OnceMessagesProvider
-            apiBaseUrl={apiBaseUrl}
-            accessToken={tokens.accessToken}
+          <MemoryWorldProvider
+            key={`memory-world:${apiBaseUrl}:${account.id}:${spaceId}`}
+            api={appearanceApi}
+            entitlementsApi={entitlementApi}
+            instance={apiBaseUrl}
             accountId={account.id}
             spaceId={spaceId}
           >
-            {relationshipContent}
-          </OnceMessagesProvider>
+            <OnceMessagesProvider
+              apiBaseUrl={apiBaseUrl}
+              accessToken={tokens.accessToken}
+              accountId={account.id}
+              spaceId={spaceId}
+            >
+              {relationshipContent}
+            </OnceMessagesProvider>
+          </MemoryWorldProvider>
           <VoiceShareIngress
             key={`${apiBaseUrl}:${account.id}:${spaceId}`}
             scope={JSON.stringify([apiBaseUrl, account.id, spaceId])}

@@ -1,0 +1,15 @@
+# gitleaks configuration of the Secret Scan job (and of the Core export gates,
+# tools/cutover). The default rules stay in force; this file only adds reviewed
+# allowances that must also hold in a fresh history, where the commit-bound
+# fingerprints of .gitleaksignore cannot match (Decision 0019, #2183).
+#
+# The singular [allowlist] table is the form gitleaks v8.24.3 (the pinned
+# image) honours; keep every pattern anchored to the exact reviewed text.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Reviewed generic-api-key false positive: in web/src/App.tsx `api:` names the notifications API client object passed to useGentleUse, not a key."
+regexTarget = "match"
+regexes = ['''^api: m4Apis\.notifications $''']

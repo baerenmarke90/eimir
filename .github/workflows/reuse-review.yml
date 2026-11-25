@@ -29,6 +29,9 @@ jobs:
       - name: Check living status against GitHub
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          # Optional repository variable; unset or empty means this repository.
+          # The workflow token reads Issues of this repository (or a public one).
+          EIMIR_STATUS_TRACKER_REPOSITORY: ${{ vars.EIMIR_STATUS_TRACKER_REPOSITORY }}
         run: python3 tools/ci/status_drift.py --online
 
       # Automated version bumps do not make a new reuse decision. The component

@@ -30,6 +30,7 @@ function PhotoTrigger({
 export function AvatarPhoto({
   name,
   url,
+  standInUrl = null,
   identity,
   large = false,
   renderTrigger,
@@ -37,6 +38,8 @@ export function AvatarPhoto({
 }: {
   name: string;
   url: string | null;
+  /** Neutral picture shown, without opening a viewer, while no real one exists. */
+  standInUrl?: string | null;
   identity: string;
   large?: boolean;
   renderTrigger?: (open: () => void) => ReactNode;
@@ -48,6 +51,16 @@ export function AvatarPhoto({
     return { url, dispose() {} };
   }, [url]);
   const className = `people-portrait ${large ? 'people-portrait-large' : ''}`;
+  if (!url && standInUrl)
+    return (
+      <span
+        className={className}
+        role="img"
+        aria-label={t('people.avatarAlt', { name })}
+      >
+        <img src={standInUrl} alt="" aria-hidden="true" />
+      </span>
+    );
   if (!url)
     return (
       <span

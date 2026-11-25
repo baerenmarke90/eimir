@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from eimir.auth import rate_limit
 from eimir.authorization import AuthorizationContext
-from eimir.config import get_settings
+from eimir.config import Environment, get_settings
 from eimir.core.clock import now
 from eimir.core.errors import ConflictError, PremiumEntitlementRequiredError, ValidationError
 from eimir.entitlements import service as entitlement_service
@@ -97,6 +97,11 @@ UNAVAILABLE_MAP = MapView(available=False)
 
 def feature_enabled() -> bool:
     return get_settings().partner_location_enabled
+
+
+def _demo_deployment() -> bool:
+    settings = get_settings()
+    return settings.demo_mode or settings.environment is Environment.DEMO
 
 
 def active_partner_account_id(session: Session, authorization: AuthorizationContext) -> UUID | None:
@@ -473,6 +478,18 @@ def partner_distance(
     if snapshot is None:
         return UNAVAILABLE_DISTANCE
     position = snapshot.payload
+    as_of = min(snapshot.captured_at, captured_at)
+    if _demo_deployment():
+        # A Demo visitor never shares a device position (Wir does not open the OS
+        # dialog), so the viewer's seeded example position stands in for it and
+        # the example never ages into an "earlier value" within a Demo reset
+        # interval. Only a Demo deployment takes this path.
+        own = _snapshot(session, authorization.space_id, authorization.account_id)
+        if own is not None:
+            latitude = float(own.payload.latitude)
+            longitude = float(own.payload.longitude)
+            accuracy_meters = None
+        as_of = at
     # The coarser side governs: fine bands need both positions to be precise. The
     # viewer counts as precise only with their own precise choice and fix.
     viewer = consent_row(session, authorization.space_id, authorization.account_id)
@@ -492,7 +509,7 @@ def partner_distance(
         band=geo.distance_band(
             kilometres, fine=viewer_precise and geo.is_precise_stored(position.accuracy_meters)
         ),
-        as_of=min(snapshot.captured_at, captured_at),
+        as_of=as_of,
     )
 
 
@@ -520,5 +537,5 @@ def partner_map(session: Session, authorization: AuthorizationContext) -> MapVie
         latitude=float(position.latitude),
         longitude=float(position.longitude),
         radius_meters=geo.map_radius(position.accuracy_meters),
-        captured_at=snapshot.captured_at,
+        captured_at=at if _demo_deployment() else snapshot.captured_at,
     )

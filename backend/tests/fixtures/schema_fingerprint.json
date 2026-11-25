@@ -585,6 +585,13 @@
           "nullable": false,
           "type": "uuid"
         },
+        "memory_world": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "character varying(24)"
+        },
         "person_colours": {
           "default": null,
           "generated": null,

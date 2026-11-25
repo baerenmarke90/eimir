@@ -73,6 +73,27 @@
         "web/src/client/useAppUpdateState.ts"
       ]
     },
+    "memory-world-selection.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryWorldSettings.tsx",
+        "web/src/components/ProfileAppearancePanel.tsx",
+        "web/src/client/memoryWorldContext.tsx",
+        "web/src/client/memoryWorld.ts",
+        "web/src/components/memoryWorlds/WorldArt.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryWorldSwitch.tsx",
+        "web/src/components/memoryWorlds/MemoryWorldView.tsx",
+        "web/src/components/memoryWorlds/MomentCloudWorld.tsx",
+        "web/src/components/memoryWorlds/PhotoBoothWorld.tsx",
+        "web/src/components/memoryWorlds/FridgeDoorWorld.tsx",
+        "web/src/components/memoryWorlds/PhotoAlbumWorld.tsx",
+        "web/src/components/memoryWorlds/ScratchCardWorld.tsx",
+        "web/src/components/memoryWorlds/MochiWorld.tsx",
+        "web/src/components/memoryWorlds/ConstellationWorld.tsx",
+        "web/src/components/memoryWorlds/PostWorld.tsx",
+        "web/src/components/memoryWorlds/MemoryJarWorld.tsx"
+      ]
+    },
     "browser-push.spec.ts": {
       "roots": [
         "web/src/client/browserPush.ts",

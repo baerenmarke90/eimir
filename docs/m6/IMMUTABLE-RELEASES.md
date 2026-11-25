@@ -30,7 +30,10 @@ The release artifact set is channel-aware. Every release contains:
 - one Self-Hosted image-identity record containing authoritative digest-qualified registry references;
 - one small Self-Hosted operator bundle containing canonical Compose, release env
   template, mandatory Production launcher and runtime checker;
-- SPDX 2.3 JSON SBOMs and GitHub Artifact Attestations for every published artifact;
+- SPDX 2.3 JSON SBOMs and GitHub Artifact Attestations for every published artifact, or,
+  on a repository recorded without attestations (Decision 0019, D5), the verified
+  `supply-chain-state.json` record instead of the attestations
+  ([SBOM and attestations, section 11](SBOM-ATTESTATIONS.md#11-repositories-without-attestations-or-code-scanning-decision-0019-d5));
 - one machine-readable release manifest plus checksums;
 - one Git tag `v<product-version>` pointing to the exact release commit;
 - one **immutable** GitHub Release containing the complete selected artifact/evidence set.

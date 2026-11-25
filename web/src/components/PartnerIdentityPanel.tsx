@@ -10,6 +10,7 @@ import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { normalizeClientError } from '../client/problemDetails';
 import { partnerNicknameQueryKey } from '../client/partnerNickname';
 import { firstNameFromDisplayName } from '../client/personalName';
+import { displayAvatarUrl } from '../client/defaultAvatar';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { useTranslation } from '../i18n';
 import { PersonIdentity } from './PersonIdentity';
@@ -126,12 +127,16 @@ export function PartnerIdentityPanel({
     onError: () => nicknameInputRef.current?.focus(),
   });
 
-  const { avatarUrl, loadFailed } = useProfileAvatarUrl(
+  const { avatarUrl, loadFailed, hasNoPicture } = useProfileAvatarUrl(
     profilesApi,
     spaceId,
     partnerId,
     profileQuery.data?.profileAttachmentId,
   );
+  const shownAvatarUrl = displayAvatarUrl(partnerId, {
+    avatarUrl,
+    hasNoPicture,
+  });
 
   if (!partner) return null;
 
@@ -161,7 +166,8 @@ export function PartnerIdentityPanel({
       ) : (
         <PersonIdentity
           displayName={displayName}
-          imageUrl={avatarUrl}
+          imageUrl={shownAvatarUrl}
+          standIn={avatarUrl === null && shownAvatarUrl !== null}
           size="large"
           imageAlt={t('profileIdentity.imageAlt', { name: displayName })}
           fallbackAlt={t('profileIdentity.fallbackAlt', { name: displayName })}

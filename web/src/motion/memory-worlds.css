@@ -1,0 +1,3460 @@
+/*
+ * The motion layer's catalogue for the memory worlds of Momente ›
+ * Erinnerungen (#2283): the Stapel (stack of prints), the Plattenkiste
+ * (record crate and turntable), the Momentwolke (bubble cloud), the
+ * Fotoautomat (photo booth, in a classic and a modern style), the
+ * Kühlschranktür (fridge door), the Fotobuch (photo book), the
+ * Rubbellos (scratch card), the Mochis, the Sternbild (constellation), the
+ * Post (letters from back then) and the Glas (memory jar).
+ *
+ * World-scoped timing roles, keyframes and the worlds' loops live here; the
+ * world stylesheets only consume the roles. Every animation and transition
+ * of the worlds is declared inside `prefers-reduced-motion: no-preference`,
+ * so reduced motion shows the final states at once. The turntable loops
+ * (sheen, level meter) run only while the platter motor is on
+ * (`data-motor="on"`); the cloud's glow drift runs for
+ * `--motion-ambient-repeat` cycles and pauses while the stage is not seen
+ * (`data-ambient`), its playful jiggle only while the playful mode is on
+ * (`data-wiggle="true"`). The Fotoautomat's ambient loops (the sign's
+ * bulbs, the cabin's neon, the strips on the line, the "still wet" hint)
+ * run for `--motion-ambient-repeat` cycles and pause while the booth is not
+ * seen (`data-ambient`); its other loops (the faster bulbs during a run, the
+ * self-timer light, "Bitte warten", the wet sheen) run only during their
+ * bounded stage of a run. The Kühlschranktür has no loops: its notes are
+ * pinned up, fall off and settle once per change and never sway (Product
+ * Owner decision); its magnet hop and snap and its card flights are Web
+ * Animations in `fridgeDoor.ts`. The Fotobuch has no loops: its page turn
+ * is a frame-driven turn in `photoAlbum.ts`; only the closed book's invite
+ * (the cover lifts once at its edge, when the book is first seen) is CSS.
+ * The Rubbellos' only loop is the sparkles' twinkle on the untouched foil:
+ * `--motion-ambient-repeat` cycles, paused while the ticket is not seen
+ * (`data-ambient`); its tear flight and the foil crumbs are in
+ * `scratchCard.ts`, the feed, crank, reveal and bonus here. The Mochis'
+ * idle loops (breathing, blinking, the balloon's sway, the sky balloons'
+ * bob, the clouds' drift, the stars' twinkle, the sleeping z's) run for
+ * `--motion-ambient-repeat` cycles, pause while the world is not seen
+ * (`data-ambient`) and are restarted by the next interaction once they
+ * rested (`MochiWorld.tsx`); their actions, the rising balloon and the
+ * little things that fly up play once per action. The Sternbild's idle
+ * loops (the stars' twinkle and glint, the lit star's breathing ring and
+ * its turning dotted ring, the moon's glow, the lean, the lens glint, the
+ * frost and the snow) run for `--motion-ambient-repeat` cycles and pause
+ * while the world is not seen (`data-ambient`); its shooting star flight,
+ * trail and telescope spring are frame-driven in `constellation.ts`, the
+ * flare, the falling dust, the porthole, the line drawing itself on and
+ * the newborn stars here. The Post's idle loops (the waiting flag's flutter
+ * and the door's twitch) run for `--motion-ambient-repeat` cycles, only
+ * while post is waiting, and pause while the mailbox is not seen
+ * (`data-ambient`); the door, the envelope's flight, the flap, the card's
+ * pull, turn and filing and the next delivery play once per step, with CSS
+ * transitions and keyframes only (`PostWorld.tsx` keeps `POST_TIMING` in
+ * step with the roles below). The Glas' only loops are the tealight's
+ * flicker and its pool of light (Dark only): `--motion-ambient-repeat`
+ * cycles, paused while the jar is not seen (`data-ambient`); the shaken jar,
+ * its loose slips, lid and tag and the slip folding back into the jar are
+ * frame-driven in `memoryJar.ts` (whose `JAR_TIMING` keeps in step with the
+ * roles below), the popping lid, the jumping slip, its unfolding on the
+ * stage, the drop back into the pile and the jar shrinking above the drawn
+ * slip (transform only) are here.
+ *
+ * The values were tuned on device with the Product Owner (Pixel 10 Pro Fold,
+ * 2026-11-24/25) and are kept unchanged from the accepted prototype.
+ * Imported by `StackWorld.tsx`, `RecordCrateWorld.tsx`,
+ * `MomentCloudWorld.tsx`, `PhotoBoothWorld.tsx`, `FridgeDoorWorld.tsx`,
+ * `PhotoAlbumWorld.tsx`, `ScratchCardWorld.tsx`, `MochiWorld.tsx`,
+ * `ConstellationWorld.tsx`, `PostWorld.tsx` and `MemoryJarWorld.tsx`.
+ */
+
+/* Shared easings: the exact CSS keyword curves, as named roles. */
+.memory-world,
+.memory-stack-world,
+.memory-crate-world,
+.memory-cloud-world,
+.memory-cloud-modal,
+.memory-booth-world,
+.memory-booth-viewer,
+.memory-fridge-world,
+.memory-album-world,
+.memory-scratch-world,
+.memory-mochi-world,
+.memory-stars-world,
+.memory-post-world,
+.memory-jar-world,
+.memory-jar-stage {
+  --memory-world-easing-in: cubic-bezier(0.42, 0, 1, 1);
+  --memory-world-easing-out: cubic-bezier(0, 0, 0.58, 1);
+  --memory-world-easing-in-out: cubic-bezier(0.42, 0, 0.58, 1);
+}
+
+/* ---------- Stapel ---------- */
+
+.memory-stack {
+  /* A print settles into its place in the pile. */
+  --memory-stack-settle-duration: 620ms;
+  --memory-stack-fade-duration: 420ms;
+  /* The top print goes to the back (and comes back); length set inline. */
+  --memory-stack-tuck-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  /* Opening: the prints are tossed onto the pile one after another. */
+  --memory-stack-fall-duration: 700ms;
+  --memory-stack-fall-easing: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --memory-stack-thud-duration: 420ms;
+  --memory-stack-thud-offset: 640ms;
+  --memory-stack-absorb-duration: 260ms;
+  --memory-stack-absorb-offset: 760ms;
+  /* Prints develop on the top of the pile; notes write themselves. */
+  --memory-stack-develop-duration: calc(var(--duration-story-develop) * 0.75);
+  --memory-stack-ink-duration: 1400ms;
+}
+
+@keyframes eimir-motion-memory-stack-tuck {
+  0% {
+    z-index: 6;
+    transform: translate(calc(var(--tuck-from, 0) * 1px), 0px)
+      rotate(calc(-1.5deg + var(--tuck-from, 0) * 0.033deg)) scale(1);
+  }
+  42% {
+    z-index: 6;
+    transform: translate(calc(var(--tuck-dir, -1) * 70%), 34px)
+      rotate(calc(var(--tuck-dir, -1) * 11deg)) scale(0.94);
+  }
+  58% {
+    z-index: 0;
+  }
+  100% {
+    z-index: 0;
+    transform: var(--back-pose);
+  }
+}
+
+@keyframes eimir-motion-memory-stack-untuck {
+  0% {
+    z-index: 0;
+    transform: var(--back-pose);
+  }
+  42% {
+    z-index: 0;
+  }
+  58% {
+    z-index: 6;
+    transform: translate(-70%, 34px) rotate(-11deg) scale(0.94);
+  }
+  100% {
+    z-index: 6;
+    transform: translate(0px, 0px) rotate(-1.5deg) scale(1);
+  }
+}
+
+@keyframes eimir-motion-memory-stack-fall {
+  from {
+    transform: translate(var(--fall-x, 0px), var(--fall-y, -110vh))
+      rotate(var(--fall-r, 0deg)) scale(1.08);
+  }
+}
+
+@keyframes eimir-motion-memory-stack-thud {
+  0% {
+    scale: 1.035 0.965;
+  }
+  45% {
+    scale: 0.99 1.01;
+  }
+  100% {
+    scale: 1 1;
+  }
+}
+
+@keyframes eimir-motion-memory-stack-absorb {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-stack-ink {
+  from {
+    opacity: 0.12;
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+/* ---------- Plattenkiste ---------- */
+
+.memory-crate-world {
+  /* Tonearm: lift, swing in, lower, return. */
+  --memory-crate-arm-return-duration: 620ms;
+  --memory-crate-arm-return-delay: 140ms;
+  --memory-crate-arm-return-easing: cubic-bezier(0.45, 0.05, 0.3, 1);
+  --memory-crate-arm-swing-duration: 650ms;
+  --memory-crate-arm-swing-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  --memory-crate-arm-lift-duration: 260ms;
+  --memory-crate-arm-lift-easing: cubic-bezier(0.3, 0, 0.3, 1);
+  --memory-crate-arm-lower-duration: 380ms;
+  --memory-crate-arm-lower-easing: var(--easing-travel);
+  --memory-crate-cue-duration: 280ms;
+  --memory-crate-cue-easing: cubic-bezier(0.3, 1.3, 0.5, 1);
+  /* Plinth controls and the display. */
+  --memory-crate-lamp-duration: 500ms;
+  --memory-crate-press-duration: 90ms;
+  --memory-crate-plate-duration: 480ms;
+  --memory-crate-plate-stagger: 80ms;
+  --memory-crate-pop-easing: cubic-bezier(0.25, 1.2, 0.5, 1);
+  --memory-crate-fade-duration: 600ms;
+  --memory-crate-line-duration: 480ms;
+  --memory-crate-line-easing: cubic-bezier(0.3, 0.7, 0.2, 1);
+  /* The sleeve on its stand and its liner notes. */
+  --memory-crate-flip-duration: 640ms;
+  --memory-crate-flip-easing: cubic-bezier(0.3, 1.25, 0.45, 1);
+  --memory-crate-lean-easing: cubic-bezier(0.3, 1.2, 0.45, 1);
+  --memory-crate-jacket-duration: 480ms;
+  --memory-crate-jacket-easing: cubic-bezier(0.3, 0.8, 0.3, 1);
+  /* Photos on the inlay and the record. */
+  --memory-crate-art-fade-duration: 900ms;
+  --memory-crate-drift-duration: 12s;
+  --memory-crate-develop-duration: 700ms;
+  --memory-crate-glint-duration: 1100ms;
+  --memory-crate-glint-easing: cubic-bezier(0.3, 0.1, 0.3, 1);
+  /* Loops while the motor runs. */
+  --memory-crate-sheen-duration: 3.6s;
+  --memory-crate-meter-duration: 900ms;
+  --memory-crate-meter-duration-fast: 700ms;
+  --memory-crate-meter-duration-slow: 1100ms;
+  --memory-crate-meter-offset: -300ms;
+  --memory-crate-meter-offset-late: -600ms;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* The light on the record sways while it turns. */
+  .memory-crate-deck[data-motor="on"] .memory-crate-sheen {
+    animation: eimir-motion-memory-crate-sheen
+      var(--memory-crate-sheen-duration) var(--memory-world-easing-in-out)
+      infinite alternate;
+  }
+  /* The level meter of the playing track in the liner notes. */
+  .memory-crate-deck[data-motor="on"] .memory-crate-track-eq > span {
+    animation: eimir-motion-memory-crate-meter
+      var(--memory-crate-meter-duration) var(--memory-world-easing-in-out)
+      infinite alternate;
+  }
+  .memory-crate-track-eq > span:nth-child(2) {
+    animation-delay: var(--memory-crate-meter-offset);
+    animation-duration: var(--memory-crate-meter-duration-fast);
+  }
+  .memory-crate-track-eq > span:nth-child(3) {
+    animation-delay: var(--memory-crate-meter-offset-late);
+    animation-duration: var(--memory-crate-meter-duration-slow);
+  }
+}
+
+@keyframes eimir-motion-memory-crate-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-crate-plate-in {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes eimir-motion-memory-crate-sheen {
+  from {
+    transform: rotate(-7deg);
+    opacity: 0.85;
+  }
+  to {
+    transform: rotate(7deg);
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-crate-meter {
+  from {
+    transform: scaleY(0.3);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes eimir-motion-memory-crate-art-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-crate-drift-in {
+  from {
+    transform: scale(1.03) translate(0, 0);
+  }
+  to {
+    transform: scale(1.16) translate(-3%, -2%);
+  }
+}
+
+@keyframes eimir-motion-memory-crate-drift-out {
+  from {
+    transform: scale(1.16) translate(2.5%, 1.5%);
+  }
+  to {
+    transform: scale(1.03) translate(0, 0);
+  }
+}
+
+@keyframes eimir-motion-memory-crate-develop {
+  from {
+    opacity: 0;
+    filter: saturate(0.35) brightness(1.14);
+  }
+  to {
+    opacity: 1;
+    filter: saturate(1) brightness(1);
+  }
+}
+
+@keyframes eimir-motion-memory-crate-glint {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-crate-glint-sweep {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(420%);
+  }
+}
+
+/* ---------- Momentwolke ---------- */
+
+.memory-cloud-world,
+.memory-cloud-modal {
+  /* The card's clip grows out of the bubble's circle and back into it. */
+  --memory-cloud-curve-out: cubic-bezier(0.3, 0.7, 0.1, 1);
+  --memory-cloud-curve-close: cubic-bezier(0.4, 0, 0.2, 1);
+  --memory-cloud-clip-open-duration: 520ms;
+  --memory-cloud-clip-close-duration: 380ms;
+  /* Crossfades: the glow behind the centre bubble, the playful ring. */
+  --memory-cloud-fade-easing: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --memory-cloud-glow-duration: 1100ms;
+  --memory-cloud-ring-duration: 400ms;
+  /* The centre pill's text arrives with each new centre memory. */
+  --memory-cloud-pill-duration: 420ms;
+  /* The glow wanders slowly behind the cloud. */
+  --memory-cloud-drift-duration: 24s;
+  /* Playful mode: each bubble jiggles at its own pace and phase
+     (`--memory-cloud-jiggle-spread` and `-phase` are set per bubble, 0..1). */
+  --memory-cloud-jiggle-duration: 250ms;
+  --memory-cloud-jiggle-range: 90ms;
+  --memory-cloud-jiggle-period: 300ms;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .memory-cloud-glow-drift {
+    animation: eimir-motion-memory-cloud-drift
+      var(--memory-cloud-drift-duration) var(--memory-world-easing-in-out)
+      var(--motion-ambient-repeat) alternate both;
+  }
+  .memory-cloud-pill-inner {
+    animation: eimir-motion-memory-cloud-pill-in
+      var(--memory-cloud-pill-duration) var(--memory-cloud-curve-out) both;
+  }
+  .memory-cloud-stage[data-wiggle="true"] .memory-cloud-bubble-body {
+    animation: eimir-motion-memory-cloud-jiggle
+      calc(
+        var(--memory-cloud-jiggle-duration) +
+        var(--memory-cloud-jiggle-spread, 0) *
+        var(--memory-cloud-jiggle-range)
+      )
+      var(--memory-world-easing-in-out)
+      calc(
+        var(--memory-cloud-jiggle-phase, 0) *
+        -1 *
+        var(--memory-cloud-jiggle-period)
+      )
+      infinite alternate;
+  }
+  /* Not seen (page hidden, kept view hidden, off screen): pause in place. */
+  .memory-cloud-stage:not([data-ambient="on"]) .memory-cloud-glow-drift,
+  .memory-cloud-stage:not([data-ambient="on"]) .memory-cloud-bubble-body {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes eimir-motion-memory-cloud-drift {
+  0% {
+    transform: translate3d(-4%, 3%, 0) rotate(-6deg) scale(1.04);
+  }
+  50% {
+    transform: translate3d(3%, 4%, 0) rotate(3deg) scale(0.98);
+  }
+  100% {
+    transform: translate3d(5%, -3%, 0) rotate(8deg) scale(1.03);
+  }
+}
+
+@keyframes eimir-motion-memory-cloud-pill-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-memory-cloud-jiggle {
+  from {
+    transform: rotate(-2.4deg) translate3d(-0.8%, 0.5%, 0);
+  }
+  to {
+    transform: rotate(2.4deg) translate3d(0.8%, -0.5%, 0);
+  }
+}
+
+/* ---------- Fotoautomat ---------- */
+
+.memory-booth-world,
+.memory-booth-viewer {
+  /* A step curve for lamps that switch instead of fading, and the steady
+     pace of the neon and the development dial. */
+  --memory-booth-curve-step: steps(1);
+  --memory-booth-curve-steady: linear;
+  /* The CSS default curve, for colour changes of lamps and signs. */
+  --memory-booth-curve-soft: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --memory-booth-curve-pop: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --memory-booth-curve-spring: cubic-bezier(0.3, 1.5, 0.5, 1);
+  /* Modern: the sign's bulbs chase slowly, faster during a run. */
+  --memory-booth-chase-duration: 1600ms;
+  --memory-booth-chase-duration-run: 520ms;
+  /* The display, the self-timer light (fast in the last second) and the
+     shutter with its flash. */
+  --memory-booth-digit-duration: 460ms;
+  --memory-booth-led-duration: 1000ms;
+  --memory-booth-led-duration-last: 250ms;
+  --memory-booth-iris-duration: 620ms;
+  --memory-booth-curve-iris: cubic-bezier(0.45, 0, 0.3, 1);
+  --memory-booth-flash-duration: 900ms;
+  --memory-booth-flare-duration: 700ms;
+  /* Plate button, shot lamps, slot glow and the shade inside the slot. */
+  --memory-booth-press-duration: 90ms;
+  --memory-booth-glow-duration: 200ms;
+  --memory-booth-slot-duration: 400ms;
+  --memory-booth-shade-duration: 300ms;
+  /* The strip is pushed out in motor steps (as long as the print stage of
+     the run, BOOTH_PRINT_MS), swings out, and each picture develops in
+     turn. */
+  --memory-booth-print-duration: 3200ms;
+  --memory-booth-settle-duration: 1500ms;
+  --memory-booth-develop-duration: 2800ms;
+  --memory-booth-develop-offset: 2700ms;
+  --memory-booth-develop-stagger: 750ms;
+  --memory-booth-ink-duration: 2200ms;
+  /* The actions below a fresh strip, and the strips on the line (each with
+     its own breeze: `--sway-i` 0..2 is set per strip). */
+  --memory-booth-actions-duration: 420ms;
+  --memory-booth-actions-delay: 1200ms;
+  --memory-booth-hang-duration: 1200ms;
+  --memory-booth-sway-duration: 2600ms;
+  --memory-booth-sway-step: 700ms;
+  /* The picked-up strip (viewer). */
+  --memory-booth-scrim-duration: 280ms;
+  --memory-booth-pickup-duration: 520ms;
+  --memory-booth-row-duration: 360ms;
+  --memory-booth-row-delay: 160ms;
+  --memory-booth-row-stagger: 70ms;
+  /* Klassisch: neon, curtain, flashes and the development dial (as long as
+     the develop stage of the run, CABIN_DEVELOP_MS). */
+  --memory-booth-flicker-duration: 7s;
+  --memory-booth-blink-duration: 1000ms;
+  --memory-booth-curtain-duration: 1100ms;
+  --memory-booth-curve-curtain: cubic-bezier(0.65, 0, 0.25, 1);
+  --memory-booth-cabin-flash-duration: 700ms;
+  --memory-booth-dial-duration: 700ms;
+  --memory-booth-dial-run-duration: 5000ms;
+  /* The coin: it springs back, flies into the slot and drops in. */
+  --memory-booth-coin-duration: 320ms;
+  --memory-booth-coin-lift-duration: 150ms;
+  --memory-booth-coin-fly-duration: 420ms;
+  --memory-booth-curve-fly: cubic-bezier(0.3, 0.7, 0.3, 1);
+  --memory-booth-coin-in-duration: 720ms;
+  --memory-booth-coin-back-duration: 650ms;
+  /* The wet strip drops out of the chute, swings from the fingers, dries
+     and develops; dried strips go into the tin. */
+  --memory-booth-drop-duration: 950ms;
+  --memory-booth-swing-duration: 600ms;
+  --memory-booth-swing-follow-duration: 60ms;
+  --memory-booth-curve-swing: cubic-bezier(0.3, 1.7, 0.5, 1);
+  --memory-booth-dry-duration: 500ms;
+  --memory-booth-cabin-develop-duration: 7000ms;
+  --memory-booth-cabin-develop-offset: 700ms;
+  --memory-booth-cabin-develop-stagger: 600ms;
+  --memory-booth-sheen-duration: 2600ms;
+  --memory-booth-nudge-duration: 1600ms;
+  --memory-booth-tin-duration: 650ms;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Attract mode: the bulbs chase for a few rounds, then rest. */
+  .memory-booth-sign::before,
+  .memory-booth-sign::after {
+    animation: eimir-motion-memory-booth-chase
+      var(--memory-booth-chase-duration) var(--memory-booth-curve-step)
+      var(--motion-ambient-repeat);
+  }
+  .memory-booth-sign::after {
+    animation-direction: reverse;
+  }
+  /* During a run they chase faster, until the strip is printed. */
+  .memory-booth:is(
+      [data-stage="count"],
+      [data-stage="shot"],
+      [data-stage="wait"],
+      [data-stage="print"]
+    )
+    .memory-booth-sign::before,
+  .memory-booth:is(
+      [data-stage="count"],
+      [data-stage="shot"],
+      [data-stage="wait"],
+      [data-stage="print"]
+    )
+    .memory-booth-sign::after {
+    animation-duration: var(--memory-booth-chase-duration-run);
+    animation-iteration-count: infinite;
+  }
+  /* The self-timer light blinks once per second with the countdown and
+     fast in the last second, like a real camera. It starts with the "3",
+     so every blink lands on a new number. */
+  .memory-booth[data-stage="count"] .memory-booth-led {
+    animation: eimir-motion-memory-booth-led var(--memory-booth-led-duration)
+      var(--memory-booth-curve-step) infinite;
+  }
+  .memory-booth[data-stage="count"][data-digit="1"] .memory-booth-led {
+    animation-duration: var(--memory-booth-led-duration-last);
+  }
+  /* Strips on the line swing in, then move gently as if in a breeze, each
+     with its own rhythm so they never move in step. */
+  .memory-booth-hung {
+    animation:
+      eimir-motion-memory-booth-hang var(--memory-booth-hang-duration)
+      var(--memory-world-easing-out) both,
+      eimir-motion-memory-booth-sway
+      calc(
+        var(--memory-booth-sway-duration) +
+        var(--sway-i, 0) *
+        var(--memory-booth-sway-step)
+      )
+      var(--memory-world-easing-in-out) var(--memory-booth-hang-duration)
+      var(--motion-ambient-repeat);
+  }
+  /* Klassisch: the neon flickers now and then. */
+  .memory-booth-cabin-neon {
+    animation: eimir-motion-memory-booth-flicker
+      var(--memory-booth-flicker-duration) var(--memory-booth-curve-steady)
+      var(--motion-ambient-repeat);
+  }
+  .memory-booth-cabin-status[data-tone="wait"] {
+    animation: eimir-motion-memory-booth-blink
+      var(--memory-booth-blink-duration) var(--memory-booth-curve-step) infinite;
+  }
+  /* The wet gloss shimmers while the strip is wet (it dries by itself). */
+  .memory-booth-cabin-wet {
+    animation: eimir-motion-memory-booth-sheen
+      var(--memory-booth-sheen-duration) var(--memory-world-easing-in-out)
+      infinite alternate;
+  }
+  .memory-booth-cabin-wet-hint {
+    animation: eimir-motion-memory-booth-nudge
+      var(--memory-booth-nudge-duration) var(--memory-world-easing-in-out)
+      var(--motion-ambient-repeat);
+  }
+  /* Not seen (page hidden, kept view hidden, off screen): pause in place. */
+  :is(.memory-booth-modern, .memory-booth-classic):not([data-ambient="on"])
+    .memory-booth-sign::before,
+  :is(.memory-booth-modern, .memory-booth-classic):not([data-ambient="on"])
+    .memory-booth-sign::after,
+  :is(.memory-booth-modern, .memory-booth-classic):not([data-ambient="on"])
+    :is(
+      .memory-booth-hung,
+      .memory-booth-cabin-neon,
+      .memory-booth-cabin-wet-hint
+    ) {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-chase {
+  0% {
+    background-position:
+      0 50%,
+      0 50%;
+  }
+  50% {
+    background-position:
+      16px 50%,
+      0 50%;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-digit {
+  from {
+    opacity: 0;
+    scale: 1.4;
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+    filter: none;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-led {
+  0% {
+    fill: var(--memory-booth-led-on);
+    filter: drop-shadow(0 0 3px var(--memory-booth-led-on));
+  }
+  45% {
+    fill: var(--memory-booth-led-off);
+    filter: none;
+  }
+}
+
+/* The blades close, hold for the exposure, then open again. */
+@keyframes eimir-motion-memory-booth-iris {
+  0% {
+    scale: 0.42;
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  30%,
+  58% {
+    scale: 1;
+    opacity: 1;
+  }
+  100% {
+    scale: 0.42;
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-burst {
+  0% {
+    scale: 0.3;
+    opacity: 0;
+  }
+  5%,
+  18% {
+    scale: 1;
+    opacity: 1;
+  }
+  100% {
+    scale: 1.1;
+    opacity: 0;
+  }
+}
+
+/* Bright at once, a short hold, then the afterglow fades. */
+@keyframes eimir-motion-memory-booth-fire {
+  0% {
+    opacity: 0;
+  }
+  4%,
+  16% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-flare {
+  0% {
+    opacity: 0;
+    scale: 0.3;
+  }
+  6% {
+    opacity: 0.9;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.15;
+  }
+}
+
+/* Pushed out of the slot in four motor steps. */
+@keyframes eimir-motion-memory-booth-print {
+  0% {
+    translate: 0 -100%;
+  }
+  13% {
+    translate: 0.4px -87%;
+  }
+  18% {
+    translate: 0 -86.5%;
+  }
+  36% {
+    translate: -0.4px -62%;
+  }
+  41% {
+    translate: 0 -61.5%;
+  }
+  59% {
+    translate: 0.4px -37%;
+  }
+  64% {
+    translate: 0 -36.5%;
+  }
+  82% {
+    translate: -0.4px -11%;
+  }
+  87% {
+    translate: 0 -10.5%;
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-settle {
+  0% {
+    rotate: 0deg;
+  }
+  22% {
+    rotate: 3.2deg;
+  }
+  48% {
+    rotate: -1.4deg;
+  }
+  74% {
+    rotate: 1.7deg;
+  }
+  100% {
+    rotate: 1deg;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-develop {
+  0% {
+    filter: brightness(0.16) sepia(1) contrast(0.6) blur(1.6px);
+  }
+  45% {
+    filter: brightness(0.6) sepia(0.75) contrast(0.8) blur(0.5px);
+  }
+  100% {
+    filter: none;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-ink {
+  from {
+    opacity: 0.08;
+    filter: blur(1.2px);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-sway {
+  0%,
+  100% {
+    transform: rotate(0deg) skewX(0deg);
+  }
+  25% {
+    transform: rotate(var(--sway-amp, 1.6deg)) skewX(-0.6deg);
+  }
+  60% {
+    transform: rotate(calc(var(--sway-amp, 1.6deg) * -0.7)) skewX(0.5deg);
+  }
+  80% {
+    transform: rotate(calc(var(--sway-amp, 1.6deg) * 0.3)) skewX(0deg);
+  }
+}
+
+@keyframes eimir-motion-memory-booth-hang {
+  0% {
+    opacity: 0;
+    transform: translateY(-26px) rotate(-12deg);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(0) rotate(7deg);
+  }
+  55% {
+    transform: rotate(-4deg);
+  }
+  78% {
+    transform: rotate(2deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-pickup {
+  from {
+    opacity: 0;
+    translate: 0 40px;
+    rotate: 2deg;
+    scale: 0.94;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    rotate: 0deg;
+    scale: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-flicker {
+  0%,
+  17%,
+  21%,
+  24%,
+  61%,
+  65%,
+  100% {
+    opacity: 1;
+  }
+  19%,
+  23%,
+  63% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-cabin-flash {
+  0% {
+    opacity: 0;
+  }
+  5%,
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-coin-in {
+  0%,
+  55% {
+    transform: none;
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(10px) rotateY(85deg) scale(0.7);
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-coin-back {
+  0% {
+    opacity: 0;
+    transform: translateY(-40px) rotate(-30deg);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(3px) rotate(8deg);
+  }
+  78% {
+    transform: translateY(-4px) rotate(-3deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* The strip falls out of the chute and bounces twice (the keyword curves
+   ease-out and ease-in as their exact cubic-bezier values). */
+@keyframes eimir-motion-memory-booth-drop {
+  0% {
+    translate: 0 -100%;
+    animation-timing-function: cubic-bezier(0.55, 0, 1, 0.6);
+  }
+  55% {
+    translate: 0 0;
+    animation-timing-function: cubic-bezier(0, 0, 0.58, 1);
+  }
+  70% {
+    translate: 0 -4%;
+    animation-timing-function: cubic-bezier(0.42, 0, 1, 1);
+  }
+  85% {
+    translate: 0 0;
+    animation-timing-function: cubic-bezier(0, 0, 0.58, 1);
+  }
+  93% {
+    translate: 0 -1%;
+    animation-timing-function: cubic-bezier(0.42, 0, 1, 1);
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+
+/* The picture comes up out of the white in black and white first, then the
+   colour slowly seeps in. */
+@keyframes eimir-motion-memory-booth-cabin-develop {
+  0% {
+    filter: grayscale(1) sepia(0) contrast(0.2) hue-rotate(0deg)
+      brightness(1.75);
+  }
+  28% {
+    filter: grayscale(1) sepia(0.1) contrast(1.1) hue-rotate(0deg) brightness(1);
+  }
+  45% {
+    filter: grayscale(1) sepia(0.15) contrast(1.1) hue-rotate(-2deg)
+      brightness(1);
+  }
+  100% {
+    filter: grayscale(0) sepia(0.32) contrast(1.06) hue-rotate(-8deg)
+      brightness(1.02);
+  }
+}
+
+@keyframes eimir-motion-memory-booth-cabin-ink {
+  0% {
+    opacity: 0.1;
+    filter: grayscale(1) blur(1px);
+  }
+  28%,
+  45% {
+    opacity: 1;
+    filter: grayscale(1) blur(0);
+  }
+  100% {
+    opacity: 1;
+    filter: grayscale(0) blur(0);
+  }
+}
+
+@keyframes eimir-motion-memory-booth-sheen {
+  from {
+    background-position:
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      0 0;
+  }
+  to {
+    background-position:
+      0 0,
+      0 0,
+      0 0,
+      0 100%,
+      0 0;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-nudge {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  25% {
+    translate: -4px 0;
+    rotate: -2deg;
+  }
+  75% {
+    translate: 4px 0;
+    rotate: 2deg;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-into-tin {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) rotate(12deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- Kühlschranktür ---------- */
+
+.memory-fridge-world {
+  /* A note is picked up, put down and swings out of its drag tilt. */
+  --memory-fridge-settle-duration: 340ms;
+  --memory-fridge-curve-settle: cubic-bezier(0.3, 1.5, 0.5, 1);
+  --memory-fridge-pick-duration: 200ms;
+  --memory-fridge-curve-pick: cubic-bezier(0.2, 0.8, 0.3, 1);
+  --memory-fridge-swing-duration: 560ms;
+  --memory-fridge-curve-swing: cubic-bezier(0.25, 1.6, 0.45, 1);
+  --memory-fridge-shadow-duration: 240ms;
+  /* The paper leaves the door while the card lifts (after the magnet hop)
+     and comes back just before the card lands on it. */
+  --memory-fridge-curve-steady: linear;
+  --memory-fridge-paper-out-duration: 140ms;
+  --memory-fridge-paper-out-delay: 190ms;
+  --memory-fridge-paper-back-duration: 120ms;
+  --memory-fridge-paper-back-delay: 410ms;
+  /* New notes: the old ones fall off (bottom first), the top sheet tears
+     off the pad, the new ones are pinned up and their magnets plop on. The
+     lengths match FRIDGE_TIMING in fridgeDoor.ts. The CSS default curve
+     carries the segments the keyframes leave open. */
+  --memory-fridge-curve-soft: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --memory-fridge-fall-duration: 780ms;
+  --memory-fridge-fall-stagger: 55ms;
+  --memory-fridge-tear-duration: 720ms;
+  --memory-fridge-curve-tear: cubic-bezier(0.45, 0, 0.6, 1);
+  --memory-fridge-pin-duration: 560ms;
+  --memory-fridge-pin-stagger: 95ms;
+  --memory-fridge-plop-duration: 380ms;
+  --memory-fridge-plop-offset: 250ms;
+}
+
+@keyframes eimir-motion-memory-fridge-fall {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.3, 0, 0.5, 1);
+  }
+  16% {
+    transform: translate(0, calc(-1.6 * var(--cu)))
+      rotate(calc(var(--memory-fridge-fall-rot, 0) * -0.08deg));
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.55, 0, 0.9, 0.5);
+  }
+  100% {
+    transform: translate(
+        calc(var(--memory-fridge-fall-dx, 0) * var(--cu)),
+        calc(72 * var(--cu))
+      )
+      rotate(calc(var(--memory-fridge-fall-rot, 0) * 1deg));
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-fridge-tear {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  28% {
+    transform: translate(0, calc(-1 * var(--cu))) rotate(-6deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-12 * var(--cu)), calc(-26 * var(--cu)))
+      rotate(-38deg);
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-fridge-pin {
+  0% {
+    transform: translate(0, calc(-5 * var(--cu))) scale(1.14) rotate(3deg);
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.3, 0.5, 0.4, 1);
+  }
+  32% {
+    opacity: 1;
+  }
+  72% {
+    transform: translate(0, calc(0.5 * var(--cu))) scale(0.985) rotate(-0.5deg);
+    /* The CSS ease-in-out curve. */
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  100% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-fridge-plop {
+  0% {
+    transform: translate(0, calc(-4 * var(--cu))) scale(1.4);
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6);
+  }
+  20% {
+    opacity: 1;
+  }
+  60% {
+    transform: translate(0, 0) scale(1.1, 0.84);
+    animation-timing-function: cubic-bezier(0.3, 0.6, 0.4, 1);
+  }
+  80% {
+    transform: translate(0, 0) scale(0.95, 1.06);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-fridge-plop-shadow {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ---------- Fotobuch ---------- */
+
+.memory-album-world {
+  /* The closed book invites once: the cover's edge lifts and settles. */
+  --memory-album-invite-duration: 1500ms;
+  --memory-album-invite-delay: 900ms;
+  --memory-album-curve-invite: cubic-bezier(0.37, 0, 0.3, 1);
+}
+
+@keyframes eimir-motion-memory-album-invite {
+  0% {
+    rotate: y 0deg;
+  }
+  40% {
+    rotate: y -15deg;
+  }
+  72% {
+    rotate: y -2deg;
+  }
+  100% {
+    rotate: y 0deg;
+  }
+}
+
+@keyframes eimir-motion-memory-album-invite-shade {
+  0% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.22;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---------- Rubbellos ---------- */
+
+.memory-scratch-world {
+  /* The ticket springs back onto the perforation when not torn far enough. */
+  --memory-scratch-spring-duration: 680ms;
+  --memory-scratch-curve-spring: cubic-bezier(0.3, 1.45, 0.55, 1);
+  /* A fresh ticket slides out of the dispenser while the roll and the
+     crank turn (the roll ticks match SCRATCH_TIMING.feedTicks). */
+  --memory-scratch-feed-duration: 1200ms;
+  --memory-scratch-feed-delay: 260ms;
+  --memory-scratch-curve-feed: cubic-bezier(0.33, 0.6, 0.35, 1);
+  --memory-scratch-turn-duration: 1300ms;
+  --memory-scratch-turn-delay: 200ms;
+  --memory-scratch-curve-turn: cubic-bezier(0.45, 0, 0.3, 1);
+  /* The locked crank only wiggles. */
+  --memory-scratch-nudge-duration: 520ms;
+  /* The "tear here" tab arrives after the win and tugs twice. */
+  --memory-scratch-tab-in-duration: 520ms;
+  --memory-scratch-tab-in-delay: 1800ms;
+  --memory-scratch-curve-pop: cubic-bezier(0.3, 1.5, 0.5, 1);
+  --memory-scratch-tab-pull-duration: 1400ms;
+  --memory-scratch-tab-pull-delay: 2600ms;
+  --memory-scratch-tab-pull-repeat: 2;
+  /* Sparkles on the untouched foil, each at its own phase
+     (`--memory-scratch-sparkle-phase` is set per sparkle, in steps). */
+  --memory-scratch-twinkle-duration: 2.6s;
+  --memory-scratch-sparkle-step: 100ms;
+  /* The reveal: the rest of the foil dissolves, a shimmer sweeps the heart,
+     confetti fall (`--memory-scratch-confetto-delay` and `-length` are set
+     per piece, 0..1), the stamp lands and the note is written. */
+  --memory-scratch-dissolve-duration: 1100ms;
+  --memory-scratch-dissolve-delay: 160ms;
+  --memory-scratch-coin-dissolve-duration: 700ms;
+  --memory-scratch-sweep-duration: 1000ms;
+  --memory-scratch-sweep-delay: 80ms;
+  --memory-scratch-confetti-duration: 1700ms;
+  --memory-scratch-confetti-range: 800ms;
+  --memory-scratch-confetti-spread: 560ms;
+  --memory-scratch-curve-fall: cubic-bezier(0.4, 0.05, 0.75, 0.55);
+  --memory-scratch-stamp-duration: 560ms;
+  --memory-scratch-stamp-delay: 700ms;
+  --memory-scratch-curve-stamp: cubic-bezier(0.2, 1.5, 0.4, 1);
+  --memory-scratch-write-duration: 760ms;
+  --memory-scratch-write-delay: 1050ms;
+  --memory-scratch-label-duration: 600ms;
+  --memory-scratch-label-delay: 1400ms;
+  /* The coins: a symbol pops up, all three hop in turn
+     (`--memory-scratch-coin-index` 0..2 is set per coin). */
+  --memory-scratch-pop-duration: 620ms;
+  --memory-scratch-pop-delay: 120ms;
+  --memory-scratch-curve-coin: cubic-bezier(0.3, 1.8, 0.5, 1);
+  --memory-scratch-hop-duration: 760ms;
+  --memory-scratch-hop-delay: 500ms;
+  --memory-scratch-hop-stagger: 130ms;
+  /* The bonus line and its stamp. */
+  --memory-scratch-bonus-duration: 620ms;
+  --memory-scratch-bonus-delay: 380ms;
+  --memory-scratch-curve-bonus: cubic-bezier(0.2, 1.4, 0.4, 1);
+  --memory-scratch-bonus-stamp-duration: 520ms;
+  --memory-scratch-bonus-stamp-delay: 600ms;
+  --memory-scratch-curve-bonus-stamp: cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+@keyframes eimir-motion-memory-scratch-feed {
+  0% {
+    translate: 0 -104%;
+  }
+  74% {
+    translate: 0 1.4%;
+  }
+  88% {
+    translate: 0 -0.4%;
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-roll {
+  0% {
+    translate: 0 -100%;
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-turn {
+  from {
+    rotate: 0deg;
+  }
+  to {
+    rotate: 720deg;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-nudge {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  30% {
+    rotate: 14deg;
+  }
+  60% {
+    rotate: -6deg;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-tab-in {
+  from {
+    opacity: 0;
+    translate: 16px 0;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-tab-pull {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  40% {
+    translate: 6px 0;
+  }
+  60% {
+    translate: 6px 0;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+    scale: 0.6;
+  }
+  50% {
+    opacity: 1;
+    scale: 1.1;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-dissolve {
+  0% {
+    opacity: 1;
+    visibility: visible;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+    scale: 1.04;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-sweep {
+  0% {
+    opacity: 0;
+    transform: translateX(-55%);
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(55%);
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-fall {
+  0% {
+    opacity: 0;
+    translate: 0 -12px;
+    rotate: 0deg;
+  }
+  8% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: calc(var(--memory-scratch-confetto-dx, 0) * 1px) 300px;
+    rotate: calc(var(--memory-scratch-confetto-rot, 0) * 1deg);
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-stamp {
+  0% {
+    opacity: 0;
+    scale: 1.8;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-stamp-in {
+  from {
+    opacity: 0;
+    scale: 1.8;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-write {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-pop {
+  0% {
+    scale: 0.4;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-hop {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  40% {
+    translate: 0 -10px;
+  }
+  70% {
+    translate: 0 1px;
+  }
+}
+
+/* ---------- Mochis ---------- */
+
+.memory-mochi-world {
+  /* The two follow the finger and spring back (or over to each other). */
+  --memory-mochi-settle-duration: 650ms;
+  --memory-mochi-curve-spring: cubic-bezier(0.3, 1.4, 0.5, 1);
+  --memory-mochi-blush-duration: 300ms;
+  /* Idle: breathing (slower while asleep) and blinking, each mochi at its
+     own pace (`--memory-mochi-blink-duration` and `-breathe-offset` are
+     set per mochi). */
+  --memory-mochi-breathe-duration: 1700ms;
+  --memory-mochi-sleep-breathe-duration: 3200ms;
+  --memory-mochi-own-blink-duration: 4.6s;
+  --memory-mochi-partner-blink-duration: 5.4s;
+  --memory-mochi-partner-breathe-offset: -800ms;
+  /* A poke: the body boings, a little heart pops out. */
+  --memory-mochi-boing-duration: 650ms;
+  --memory-mochi-giggle-duration: 900ms;
+  /* The first action starts with a hop over to the other one. */
+  --memory-mochi-hop-duration: 650ms;
+  /* The moves of the actions; the right one laughs and dances a little
+     after the left one. */
+  --memory-mochi-cuddle-duration: 1100ms;
+  --memory-mochi-kiss-duration: 1400ms;
+  --memory-mochi-hug-duration: 1600ms;
+  --memory-mochi-laugh-duration: 1300ms;
+  --memory-mochi-laugh-offset: 120ms;
+  --memory-mochi-dance-duration: 1800ms;
+  --memory-mochi-dance-offset: 225ms;
+  /* What flies up, one after another (`--memory-mochi-particle-index` is
+     set per piece). */
+  --memory-mochi-particle-duration: 1500ms;
+  --memory-mochi-particle-lead: 150ms;
+  --memory-mochi-particle-step: 150ms;
+  /* The heart balloon rises, then sways on its string. */
+  --memory-mochi-rise-duration: 1500ms;
+  --memory-mochi-curve-rise: cubic-bezier(0.2, 0.9, 0.3, 1.1);
+  --memory-mochi-sway-duration: 3600ms;
+  /* Earlier balloons float up into the sky and bob there, each at its own
+     pace (`--memory-mochi-sky-index` is set per balloon). */
+  --memory-mochi-float-in-duration: 1200ms;
+  --memory-mochi-bob-duration: 3000ms;
+  --memory-mochi-bob-step: 350ms;
+  --memory-mochi-bob-phase: -500ms;
+  /* The sky: drifting clouds, twinkling stars at night. */
+  --memory-mochi-drift-duration: 22s;
+  --memory-mochi-drift-slow-duration: 30s;
+  --memory-mochi-twinkle-duration: 3s;
+  /* Asleep: a few z's float up. */
+  --memory-mochi-zzz-duration: 3000ms;
+  /* A thought bubble pops in and fades before it is taken away. */
+  --memory-mochi-thought-in-duration: 520ms;
+  --memory-mochi-curve-pop: cubic-bezier(0.3, 1.5, 0.5, 1);
+  --memory-mochi-thought-out-duration: 400ms;
+  --memory-mochi-thought-out-delay: 3700ms;
+  /* A tap on the meadow leaves a little note. */
+  --memory-mochi-tap-duration: 900ms;
+  /* The keyboard row's buttons press down. */
+  --memory-mochi-press-duration: 90ms;
+  --memory-mochi-fade-duration: 200ms;
+}
+
+/* Each action's move starts after a short beat, a first action's after
+   the hop; its balloon rises a little later. */
+.memory-mochi-scene {
+  --memory-mochi-act-delay: 100ms;
+  --memory-mochi-hop: none;
+  --memory-mochi-act-offset: 0s;
+}
+.memory-mochi-scene[data-first="true"] {
+  --memory-mochi-act-delay: 600ms;
+  --memory-mochi-hop: eimir-motion-memory-mochi-hop;
+}
+.memory-mochi-balloon {
+  --memory-mochi-rise-delay: 450ms;
+}
+.memory-mochi-balloon[data-first="true"] {
+  --memory-mochi-rise-delay: 1000ms;
+}
+.memory-mochi-scene[data-action="cuddle"] {
+  --memory-mochi-act-own: eimir-motion-memory-mochi-nuzzle-own;
+  --memory-mochi-act-partner: eimir-motion-memory-mochi-nuzzle-partner;
+  --memory-mochi-act-duration: var(--memory-mochi-cuddle-duration);
+}
+.memory-mochi-scene[data-action="kiss"] {
+  --memory-mochi-act-own: eimir-motion-memory-mochi-kiss-own;
+  --memory-mochi-act-partner: eimir-motion-memory-mochi-kiss-partner;
+  --memory-mochi-act-duration: var(--memory-mochi-kiss-duration);
+}
+.memory-mochi-scene[data-action="hug"] {
+  --memory-mochi-act-own: eimir-motion-memory-mochi-hug-own;
+  --memory-mochi-act-partner: eimir-motion-memory-mochi-hug-partner;
+  --memory-mochi-act-duration: var(--memory-mochi-hug-duration);
+}
+.memory-mochi-scene[data-action="laugh"] {
+  --memory-mochi-act-own: eimir-motion-memory-mochi-laugh;
+  --memory-mochi-act-partner: eimir-motion-memory-mochi-laugh;
+  --memory-mochi-act-duration: var(--memory-mochi-laugh-duration);
+  --memory-mochi-act-offset: var(--memory-mochi-laugh-offset);
+}
+.memory-mochi-scene[data-action="dance"] {
+  --memory-mochi-act-own: eimir-motion-memory-mochi-dance;
+  --memory-mochi-act-partner: eimir-motion-memory-mochi-dance;
+  --memory-mochi-act-duration: var(--memory-mochi-dance-duration);
+  --memory-mochi-act-offset: var(--memory-mochi-dance-offset);
+}
+.memory-mochi[data-person="own"] {
+  --memory-mochi-blink-duration: var(--memory-mochi-own-blink-duration);
+  --memory-mochi-breathe-offset: 0s;
+}
+.memory-mochi[data-person="partner"] {
+  --memory-mochi-blink-duration: var(--memory-mochi-partner-blink-duration);
+  --memory-mochi-breathe-offset: var(--memory-mochi-partner-breathe-offset);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .memory-mochi {
+    transition: translate var(--memory-mochi-settle-duration)
+      var(--memory-mochi-curve-spring);
+  }
+  .memory-mochi[data-dragging="true"] {
+    transition: none;
+  }
+  .memory-mochi-blush {
+    transition: opacity var(--memory-mochi-blush-duration)
+      var(--memory-world-easing-out);
+  }
+  .memory-mochi-action {
+    transition:
+      translate var(--memory-mochi-press-duration)
+      var(--memory-world-easing-out),
+      box-shadow var(--memory-mochi-press-duration)
+      var(--memory-world-easing-out),
+      opacity var(--memory-mochi-fade-duration) var(--memory-world-easing-out);
+  }
+
+  /* Idle: a few breaths and blinks; the next play starts them again. */
+  .memory-mochi-body {
+    animation: eimir-motion-memory-mochi-breathe
+      var(--memory-mochi-breathe-duration) var(--memory-world-easing-in-out)
+      var(--memory-mochi-breathe-offset) var(--motion-ambient-repeat) alternate;
+  }
+  .memory-mochi-body[data-poked="true"] {
+    animation:
+      eimir-motion-memory-mochi-boing var(--memory-mochi-boing-duration)
+      var(--memory-world-easing-out),
+      eimir-motion-memory-mochi-breathe var(--memory-mochi-breathe-duration)
+      var(--memory-world-easing-in-out) var(--memory-mochi-boing-duration)
+      var(--motion-ambient-repeat) alternate;
+  }
+  .memory-mochi-scene[data-asleep="true"] .memory-mochi-body {
+    animation-duration: var(--memory-mochi-sleep-breathe-duration);
+  }
+  .memory-mochi:not([data-happy]) .memory-mochi-eye {
+    animation: eimir-motion-memory-mochi-blink
+      var(--memory-mochi-blink-duration) var(--memory-world-easing-in-out)
+      var(--motion-ambient-repeat);
+  }
+  .memory-mochi[data-asleep="true"] .memory-mochi-eye {
+    animation: none;
+  }
+  .memory-mochi-giggle {
+    animation: eimir-motion-memory-mochi-giggle
+      var(--memory-mochi-giggle-duration) var(--memory-world-easing-out) both;
+  }
+  .memory-mochi-zzz {
+    animation: eimir-motion-memory-mochi-zzz var(--memory-mochi-zzz-duration)
+      var(--memory-world-easing-in-out) var(--motion-ambient-repeat) both;
+  }
+
+  /* Every action: the body plays its move on top of the breathing; a first
+     action starts with the hop over to the other one. */
+  .memory-mochi-scene[data-action]
+    .memory-mochi[data-person="own"]
+    .memory-mochi-body {
+    animation:
+      eimir-motion-memory-mochi-breathe var(--memory-mochi-breathe-duration)
+      var(--memory-world-easing-in-out) var(--motion-ambient-repeat) alternate,
+      var(--memory-mochi-hop) var(--memory-mochi-hop-duration)
+      var(--memory-world-easing-out) both,
+      var(--memory-mochi-act-own) var(--memory-mochi-act-duration)
+      var(--memory-world-easing-in-out) var(--memory-mochi-act-delay) both;
+  }
+  .memory-mochi-scene[data-action]
+    .memory-mochi[data-person="partner"]
+    .memory-mochi-body {
+    animation:
+      eimir-motion-memory-mochi-breathe var(--memory-mochi-breathe-duration)
+      var(--memory-world-easing-in-out) var(--motion-ambient-repeat) alternate,
+      var(--memory-mochi-hop) var(--memory-mochi-hop-duration)
+      var(--memory-world-easing-out) both,
+      var(--memory-mochi-act-partner) var(--memory-mochi-act-duration)
+      var(--memory-world-easing-in-out)
+      calc(var(--memory-mochi-act-delay) + var(--memory-mochi-act-offset)) both;
+  }
+  .memory-mochi-scene[data-action="hug"]
+    .memory-mochi[data-person="own"]
+    .memory-mochi-arm[data-side="end"] {
+    animation: eimir-motion-memory-mochi-arm-hug-end
+      var(--memory-mochi-hug-duration) var(--memory-world-easing-in-out)
+      var(--memory-mochi-act-delay) both;
+  }
+  .memory-mochi-scene[data-action="hug"]
+    .memory-mochi[data-person="partner"]
+    .memory-mochi-arm[data-side="start"] {
+    animation: eimir-motion-memory-mochi-arm-hug-start
+      var(--memory-mochi-hug-duration) var(--memory-world-easing-in-out)
+      var(--memory-mochi-act-delay) both;
+  }
+  .memory-mochi-scene[data-action="dance"]
+    .memory-mochi[data-person]
+    .memory-mochi-arm[data-side="start"] {
+    animation: eimir-motion-memory-mochi-arm-up-start
+      var(--memory-mochi-dance-duration) var(--memory-world-easing-in-out)
+      var(--memory-mochi-act-delay) both;
+  }
+  .memory-mochi-scene[data-action="dance"]
+    .memory-mochi[data-person]
+    .memory-mochi-arm[data-side="end"] {
+    animation: eimir-motion-memory-mochi-arm-up-end
+      var(--memory-mochi-dance-duration) var(--memory-world-easing-in-out)
+      var(--memory-mochi-act-delay) both;
+  }
+  .memory-mochi-particles > span {
+    animation: eimir-motion-memory-mochi-particle
+      var(--memory-mochi-particle-duration) var(--memory-world-easing-out)
+      calc(
+        var(--memory-mochi-particle-index, 0) *
+        var(--memory-mochi-particle-step) +
+        var(--memory-mochi-act-delay) +
+        var(--memory-mochi-particle-lead)
+      )
+      both;
+  }
+
+  /* The balloon rises, then sways on its string for a while. */
+  .memory-mochi-balloon[data-animate="true"] {
+    animation: eimir-motion-memory-mochi-rise var(--memory-mochi-rise-duration)
+      var(--memory-mochi-curve-rise) var(--memory-mochi-rise-delay) both;
+  }
+  .memory-mochi-balloon[data-animate="true"] .memory-mochi-balloon-sway {
+    animation: eimir-motion-memory-mochi-sway var(--memory-mochi-sway-duration)
+      var(--memory-world-easing-in-out)
+      calc(var(--memory-mochi-rise-delay) + var(--memory-mochi-rise-duration))
+      var(--motion-ambient-repeat) alternate both;
+  }
+  .memory-mochi-balloon:not([data-animate]) .memory-mochi-balloon-sway {
+    animation: eimir-motion-memory-mochi-sway var(--memory-mochi-sway-duration)
+      var(--memory-world-easing-in-out) var(--motion-ambient-repeat) alternate
+      both;
+  }
+  .memory-mochi-sky-balloon {
+    animation: eimir-motion-memory-mochi-float-in
+      var(--memory-mochi-float-in-duration) var(--memory-world-easing-out) both;
+  }
+  .memory-mochi-sky-float {
+    animation: eimir-motion-memory-mochi-bob
+      calc(
+        var(--memory-mochi-bob-duration) +
+        var(--memory-mochi-sky-index, 0) *
+        var(--memory-mochi-bob-step)
+      )
+      var(--memory-world-easing-in-out)
+      calc(
+        var(--memory-mochi-float-in-duration) +
+        var(--memory-mochi-sky-index, 0) *
+        var(--memory-mochi-bob-phase)
+      )
+      var(--motion-ambient-repeat) alternate both;
+  }
+  .memory-mochi-cloud {
+    animation: eimir-motion-memory-mochi-drift
+      var(--memory-mochi-drift-duration) var(--memory-world-easing-in-out)
+      var(--motion-ambient-repeat) alternate both;
+  }
+  .memory-mochi-cloud[data-n="2"] {
+    animation-duration: var(--memory-mochi-drift-slow-duration);
+    animation-direction: alternate-reverse;
+  }
+  .memory-mochi-stars {
+    animation: eimir-motion-memory-mochi-twinkle
+      var(--memory-mochi-twinkle-duration) var(--memory-world-easing-in-out)
+      var(--motion-ambient-repeat) alternate both;
+  }
+
+  .memory-mochi-thought {
+    animation:
+      eimir-motion-memory-mochi-thought-in
+      var(--memory-mochi-thought-in-duration) var(--memory-mochi-curve-pop) both,
+      eimir-motion-memory-mochi-thought-out
+      var(--memory-mochi-thought-out-duration) var(--memory-world-easing-in)
+      var(--memory-mochi-thought-out-delay) both;
+  }
+  .memory-mochi-tap {
+    animation: eimir-motion-memory-mochi-tap var(--memory-mochi-tap-duration)
+      var(--memory-world-easing-out) both;
+  }
+
+  /* Not seen (page hidden, kept view hidden, off screen): pause in place. */
+  .memory-mochi-world:not([data-ambient="on"])
+    :is(
+      .memory-mochi-body,
+      .memory-mochi-eye,
+      .memory-mochi-zzz,
+      .memory-mochi-balloon,
+      .memory-mochi-balloon-sway,
+      .memory-mochi-sky-balloon,
+      .memory-mochi-sky-float,
+      .memory-mochi-cloud,
+      .memory-mochi-stars
+    ) {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-breathe {
+  from {
+    scale: 1 1;
+  }
+  to {
+    scale: 1.035 0.965;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-boing {
+  0% {
+    scale: 1 1;
+  }
+  20% {
+    scale: 1.2 0.78;
+  }
+  45% {
+    scale: 0.9 1.14;
+  }
+  65% {
+    scale: 1.06 0.94;
+  }
+  85% {
+    scale: 0.98 1.02;
+  }
+  100% {
+    scale: 1 1;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-blink {
+  0%,
+  92%,
+  100% {
+    scale: 1 1;
+  }
+  95% {
+    scale: 1 0.1;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-giggle {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+    scale: 0.4;
+  }
+  30% {
+    opacity: 1;
+    scale: 1.1;
+  }
+  to {
+    opacity: 0;
+    translate: 6px -26px;
+    scale: 0.9;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-hop {
+  0% {
+    translate: 0 0;
+  }
+  35% {
+    translate: 0 -26px;
+  }
+  70% {
+    translate: 0 0;
+  }
+  82% {
+    translate: 0 -4px;
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-nuzzle-own {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  20% {
+    rotate: 9deg;
+  }
+  40% {
+    rotate: 4deg;
+  }
+  60% {
+    rotate: 10deg;
+  }
+  80% {
+    rotate: 5deg;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-nuzzle-partner {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  20% {
+    rotate: -9deg;
+  }
+  40% {
+    rotate: -4deg;
+  }
+  60% {
+    rotate: -10deg;
+  }
+  80% {
+    rotate: -5deg;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-kiss-own {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  30%,
+  62% {
+    rotate: 16deg;
+  }
+  42% {
+    rotate: 18deg;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-kiss-partner {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  30%,
+  62% {
+    rotate: -16deg;
+  }
+  42% {
+    rotate: -18deg;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-hug-own {
+  0%,
+  100% {
+    rotate: 0deg;
+    scale: 1 1;
+  }
+  22%,
+  76% {
+    rotate: 6deg;
+    scale: 0.93 1.05;
+  }
+  48% {
+    rotate: 4deg;
+    scale: 0.95 1.04;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-hug-partner {
+  0%,
+  100% {
+    rotate: 0deg;
+    scale: 1 1;
+  }
+  22%,
+  76% {
+    rotate: -6deg;
+    scale: 0.93 1.05;
+  }
+  48% {
+    rotate: -4deg;
+    scale: 0.95 1.04;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-arm-hug-end {
+  0%,
+  100% {
+    scale: 0 1;
+    rotate: 0deg;
+    translate: 0 0;
+  }
+  22%,
+  76% {
+    scale: 1.5 1;
+    rotate: 6deg;
+    translate: 4px 0;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-arm-hug-start {
+  0%,
+  100% {
+    scale: 0 1;
+    rotate: 0deg;
+    translate: 0 0;
+  }
+  22%,
+  76% {
+    scale: 1.5 1;
+    rotate: -6deg;
+    translate: -4px 0;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-laugh {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  12% {
+    translate: 0 -11px;
+    rotate: -4deg;
+  }
+  25% {
+    translate: 0 0;
+    rotate: 3deg;
+  }
+  37% {
+    translate: 0 -11px;
+    rotate: -4deg;
+  }
+  50% {
+    translate: 0 0;
+    rotate: 3deg;
+  }
+  62% {
+    translate: 0 -8px;
+    rotate: -3deg;
+  }
+  75% {
+    translate: 0 0;
+    rotate: 2deg;
+  }
+  87% {
+    translate: 0 -4px;
+    rotate: -1deg;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-dance {
+  0%,
+  25%,
+  50%,
+  75%,
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  12.5% {
+    translate: 0 -15px;
+    rotate: -12deg;
+  }
+  37.5% {
+    translate: 0 -15px;
+    rotate: 12deg;
+  }
+  62.5% {
+    translate: 0 -15px;
+    rotate: -12deg;
+  }
+  87.5% {
+    translate: 0 -15px;
+    rotate: 12deg;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-arm-up-start {
+  0%,
+  100% {
+    scale: 0;
+    rotate: 0deg;
+  }
+  12% {
+    scale: 1;
+    rotate: 40deg;
+  }
+  30% {
+    rotate: 15deg;
+  }
+  50% {
+    rotate: 45deg;
+  }
+  70% {
+    rotate: 15deg;
+  }
+  88% {
+    scale: 1;
+    rotate: 40deg;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-arm-up-end {
+  0%,
+  100% {
+    scale: 0;
+    rotate: 0deg;
+  }
+  12% {
+    scale: 1;
+    rotate: -40deg;
+  }
+  30% {
+    rotate: -15deg;
+  }
+  50% {
+    rotate: -45deg;
+  }
+  70% {
+    rotate: -15deg;
+  }
+  88% {
+    scale: 1;
+    rotate: -40deg;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-particle {
+  0% {
+    opacity: 0;
+    translate: -50% 0;
+    scale: 0.3;
+  }
+  20% {
+    opacity: 1;
+    scale: 1.1;
+  }
+  100% {
+    opacity: 0;
+    translate: calc(-50% + var(--memory-mochi-particle-dx, 0px)) -120px;
+    scale: 0.8;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-rise {
+  0% {
+    opacity: 0;
+    translate: -50% 150px;
+    scale: 0.15;
+  }
+  25% {
+    opacity: 1;
+  }
+  75% {
+    translate: -50% -14px;
+    scale: 1.04;
+  }
+  100% {
+    translate: -50% 0;
+    scale: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-sway {
+  from {
+    rotate: -3deg;
+  }
+  to {
+    rotate: 3deg;
+  }
+}
+
+/* Out of the balloon in hand up to its place in the sky. */
+@keyframes eimir-motion-memory-mochi-float-in {
+  from {
+    opacity: 0;
+    translate: 0 160px;
+    scale: 2.4;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-bob {
+  from {
+    translate: 0 0;
+    rotate: -4deg;
+  }
+  to {
+    translate: 0 -8px;
+    rotate: 4deg;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-drift {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 60px 6px;
+  }
+}
+
+/* Rests at its full night brightness. */
+@keyframes eimir-motion-memory-mochi-twinkle {
+  from {
+    opacity: var(--memory-mochi-night);
+  }
+  to {
+    opacity: calc(var(--memory-mochi-night) * 0.55);
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-zzz {
+  0% {
+    opacity: 0;
+    translate: 0 6px;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: 8px -14px;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-thought-in {
+  from {
+    opacity: 0;
+    scale: 0.6;
+    translate: 0 10px;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-thought-out {
+  to {
+    opacity: 0;
+    translate: 0 -6px;
+  }
+}
+
+@keyframes eimir-motion-memory-mochi-tap {
+  0% {
+    opacity: 0;
+    scale: 0.4;
+  }
+  25% {
+    opacity: 1;
+    scale: 1.1;
+  }
+  100% {
+    opacity: 0;
+    scale: 0.9;
+    translate: -50% calc(-50% - 34px);
+  }
+}
+
+/* ---------- Sternbild ---------- */
+
+.memory-stars-world {
+  /* The constellation line draws itself on, steadily, so newborn stars
+     light exactly when it reaches them (`STARS_TIMING.lineDelay` and
+     `lineDraw` in `constellation.ts`). */
+  --memory-stars-line-duration: 3000ms;
+  --memory-stars-line-delay: 300ms;
+  --memory-stars-curve-steady: linear;
+  /* The exact `ease` keyword curve. */
+  --memory-stars-curve-soft: cubic-bezier(0.25, 0.1, 0.25, 1);
+  /* Idle: the stars twinkle and glint, the lit star's ring breathes and
+     its dotted ring turns, the moon glows, one of you leans in, the
+     telescope's lens glints, frost glitters in winter. */
+  --memory-stars-twinkle-duration: 3.8s;
+  --memory-stars-breathe-duration: 3.4s;
+  --memory-stars-breathe-delay: 700ms;
+  --memory-stars-ring-turn-duration: 60s;
+  --memory-stars-moon-duration: 9s;
+  --memory-stars-lean-duration: 7s;
+  --memory-stars-glint-duration: 5s;
+  --memory-stars-glint-delay: 2s;
+  --memory-stars-frost-duration: 4s;
+  /* A star grows when it is lit, traced or sighted; its ring springs on. */
+  --memory-stars-grow-duration: 420ms;
+  --memory-stars-halo-fade-duration: 600ms;
+  --memory-stars-halo-grow-duration: 700ms;
+  --memory-stars-curve-ring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  /* A landing: the star flares, a little heart rises above the two of you. */
+  --memory-stars-flare-duration: 1500ms;
+  --memory-stars-curve-flare: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --memory-stars-heart-duration: 2400ms;
+  --memory-stars-heart-delay: 200ms;
+  --memory-stars-curve-heart: cubic-bezier(0.3, 0.6, 0.4, 1);
+  /* The shooting star's head fades, its dust falls. */
+  --memory-stars-head-duration: 280ms;
+  --memory-stars-dust-duration: 1200ms;
+  --memory-stars-curve-fall: cubic-bezier(0.45, 0, 0.85, 0.5);
+  /* A traced constellation lingers, then fades. */
+  --memory-stars-trace-fade-duration: 1400ms;
+  --memory-stars-trace-fade-delay: 900ms;
+  /* The pencil note goes once the first wish is made. */
+  --memory-stars-note-duration: 900ms;
+  --memory-stars-note-delay: 600ms;
+  /* The telescope: its field of view, the one who turns to it. */
+  --memory-stars-field-duration: 450ms;
+  --memory-stars-gazer-duration: 900ms;
+  --memory-stars-curve-turn: cubic-bezier(0.34, 1.3, 0.64, 1);
+  /* The porthole grows out of the lens, zooms in and focuses on the star;
+     it shrinks back into the lens when you look away. */
+  --memory-stars-view-grow-duration: 1000ms;
+  --memory-stars-curve-grow: cubic-bezier(0.22, 0.8, 0.26, 1);
+  --memory-stars-view-shrink-duration: 620ms;
+  --memory-stars-curve-shrink: cubic-bezier(0.55, 0, 0.8, 0.45);
+  --memory-stars-zoom-duration: 1700ms;
+  --memory-stars-zoom-delay: 150ms;
+  --memory-stars-curve-zoom: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --memory-stars-unhaze-duration: 1300ms;
+  --memory-stars-unhaze-delay: 250ms;
+  --memory-stars-bloom-duration: 1500ms;
+  --memory-stars-bloom-delay: 300ms;
+  --memory-stars-sharpen-duration: 900ms;
+  --memory-stars-sharpen-delay: 950ms;
+  --memory-stars-curve-focus: cubic-bezier(0.34, 1.35, 0.64, 1);
+  --memory-stars-label-duration: 700ms;
+  --memory-stars-label-delay: 1500ms;
+  --memory-stars-label-out-duration: 220ms;
+  /* The card shows the lit star's memory with a soft glow. */
+  --memory-stars-card-duration: 700ms;
+  --memory-stars-card-glow-duration: 1600ms;
+  /* Newborn stars light when the line reaches them (`--memory-stars-born`
+     is set per star); their note follows a little later. */
+  --memory-stars-born-duration: 1300ms;
+  --memory-stars-curve-born: cubic-bezier(0.34, 1.5, 0.64, 1);
+  --memory-stars-birth-duration: 1600ms;
+  --memory-stars-newborn-note-duration: 900ms;
+  --memory-stars-newborn-note-offset: 500ms;
+  /* A shooting star crossing the sky on its own. */
+  --memory-stars-ambient-duration: 1800ms;
+  --memory-stars-curve-streak: cubic-bezier(0.4, 0, 0.7, 1);
+  /* Per background star and snowflake (set inline); the stars' own phase. */
+  --memory-stars-delay: 0s;
+  --memory-stars-period: 4s;
+  --memory-stars-born: 0ms;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Idle: a few cycles of twinkling; paused while not seen (below). */
+  .memory-stars-dust-stars circle,
+  .memory-stars-dust-stars path {
+    animation: eimir-motion-memory-stars-dust-twinkle var(--memory-stars-period)
+      var(--memory-world-easing-in-out) var(--memory-stars-delay)
+      var(--motion-ambient-repeat);
+  }
+  .memory-stars-star::before {
+    transition: transform var(--memory-stars-grow-duration)
+      var(--easing-standard);
+    animation: eimir-motion-memory-stars-twinkle
+      var(--memory-stars-twinkle-duration) var(--memory-world-easing-in-out)
+      var(--memory-stars-delay) var(--motion-ambient-repeat);
+  }
+  .memory-stars-star::after {
+    animation: eimir-motion-memory-stars-glint
+      var(--memory-stars-twinkle-duration) var(--memory-world-easing-in-out)
+      var(--memory-stars-delay) var(--motion-ambient-repeat);
+  }
+  .memory-stars-halo {
+    transition:
+      opacity var(--memory-stars-halo-fade-duration)
+      var(--memory-world-easing-out),
+      scale var(--memory-stars-halo-grow-duration)
+      var(--memory-stars-curve-ring);
+  }
+  .memory-stars-star[aria-pressed="true"] .memory-stars-halo {
+    animation: eimir-motion-memory-stars-breathe
+      var(--memory-stars-breathe-duration) var(--memory-world-easing-in-out)
+      var(--memory-stars-breathe-delay) var(--motion-ambient-repeat);
+  }
+  .memory-stars-halo::after {
+    animation: eimir-motion-memory-stars-ring-turn
+      var(--memory-stars-ring-turn-duration) var(--memory-stars-curve-steady)
+      var(--motion-ambient-repeat);
+  }
+  .memory-stars-flare {
+    animation: eimir-motion-memory-stars-flare
+      var(--memory-stars-flare-duration) var(--memory-stars-curve-flare) both;
+  }
+  .memory-stars-line {
+    stroke-dashoffset: 1;
+    animation: eimir-motion-memory-stars-draw var(--memory-stars-line-duration)
+      var(--memory-stars-curve-steady) var(--memory-stars-line-delay) forwards;
+  }
+  .memory-stars-trace[data-state="fading"] {
+    opacity: 0;
+    transition: opacity var(--memory-stars-trace-fade-duration)
+      var(--memory-world-easing-in) var(--memory-stars-trace-fade-delay);
+  }
+  .memory-stars-head {
+    transition: opacity var(--memory-stars-head-duration)
+      var(--memory-world-easing-out);
+  }
+  .memory-stars-dust {
+    animation: eimir-motion-memory-stars-fall var(--memory-stars-dust-duration)
+      var(--memory-stars-curve-fall) both;
+  }
+  .memory-stars-moon-glow {
+    animation: eimir-motion-memory-stars-moon var(--memory-stars-moon-duration)
+      var(--memory-world-easing-in-out) var(--motion-ambient-repeat);
+  }
+  .memory-stars-lean {
+    animation: eimir-motion-memory-stars-lean var(--memory-stars-lean-duration)
+      var(--memory-world-easing-in-out) var(--motion-ambient-repeat);
+  }
+  .memory-stars-heart {
+    animation: eimir-motion-memory-stars-heart
+      var(--memory-stars-heart-duration) var(--memory-stars-curve-heart)
+      var(--memory-stars-heart-delay) both;
+  }
+  .memory-stars-note {
+    transition: opacity var(--memory-stars-note-duration)
+      var(--memory-stars-curve-soft) var(--memory-stars-note-delay);
+  }
+  .memory-stars-field {
+    transition: opacity var(--memory-stars-field-duration)
+      var(--memory-stars-curve-soft);
+  }
+  .memory-stars-gazer {
+    transition:
+      rotate var(--memory-stars-gazer-duration) var(--memory-stars-curve-turn),
+      translate var(--memory-stars-gazer-duration)
+      var(--memory-stars-curve-soft);
+  }
+  .memory-stars-telescope:not([data-looking="true"]) .memory-stars-lens {
+    animation: eimir-motion-memory-stars-lens-glint
+      var(--memory-stars-glint-duration) var(--memory-world-easing-in-out)
+      var(--memory-stars-glint-delay) var(--motion-ambient-repeat);
+  }
+  .memory-stars-view[data-phase="open"] {
+    animation: eimir-motion-memory-stars-view-grow
+      var(--memory-stars-view-grow-duration) var(--memory-stars-curve-grow) both;
+  }
+  .memory-stars-view[data-phase="closing"] {
+    animation: eimir-motion-memory-stars-view-shrink
+      var(--memory-stars-view-shrink-duration) var(--memory-stars-curve-shrink)
+      both;
+  }
+  /* Zooming in: the near layer moves more than the far one. */
+  .memory-stars-view[data-phase="open"] .memory-stars-view-far {
+    animation: eimir-motion-memory-stars-zoom-far
+      var(--memory-stars-zoom-duration) var(--memory-stars-curve-zoom)
+      var(--memory-stars-zoom-delay) both;
+  }
+  .memory-stars-view[data-phase="open"] .memory-stars-view-near {
+    animation: eimir-motion-memory-stars-zoom-near
+      var(--memory-stars-zoom-duration) var(--memory-stars-curve-zoom)
+      var(--memory-stars-zoom-delay) both;
+  }
+  .memory-stars-view[data-phase="open"] .memory-stars-view-haze {
+    animation: eimir-motion-memory-stars-unhaze
+      var(--memory-stars-unhaze-duration) var(--memory-world-easing-out)
+      var(--memory-stars-unhaze-delay) both;
+  }
+  .memory-stars-view[data-phase="open"] .memory-stars-view-bloom {
+    animation: eimir-motion-memory-stars-bloom
+      var(--memory-stars-bloom-duration) var(--memory-world-easing-out)
+      var(--memory-stars-bloom-delay) both;
+  }
+  .memory-stars-view[data-phase="open"] .memory-stars-view-star {
+    animation: eimir-motion-memory-stars-sharpen
+      var(--memory-stars-sharpen-duration) var(--memory-stars-curve-focus)
+      var(--memory-stars-sharpen-delay) both;
+  }
+  .memory-stars-view[data-phase="open"] .memory-stars-view-label {
+    animation: eimir-motion-memory-stars-label-in
+      var(--memory-stars-label-duration) var(--easing-standard)
+      var(--memory-stars-label-delay) both;
+  }
+  .memory-stars-view[data-phase="closing"] .memory-stars-view-label {
+    animation: eimir-motion-memory-stars-label-out
+      var(--memory-stars-label-out-duration) var(--memory-world-easing-in) both;
+  }
+  .memory-stars-card-body {
+    animation: eimir-motion-memory-stars-card-in
+      var(--memory-stars-card-duration) var(--easing-standard) both;
+  }
+  .memory-stars-card-body::before {
+    content: "";
+    position: absolute;
+    inset: -20px -16px auto;
+    block-size: 90px;
+    background: radial-gradient(
+      ellipse 60% 60% at 50% 0%,
+      var(--memory-stars-card-glow),
+      transparent 70%
+    );
+    opacity: 0;
+    pointer-events: none;
+    animation: eimir-motion-memory-stars-card-glow
+      var(--memory-stars-card-glow-duration) var(--memory-world-easing-out) both;
+  }
+  .memory-stars-star[data-newborn="true"] {
+    animation: eimir-motion-memory-stars-born var(--memory-stars-born-duration)
+      var(--memory-stars-curve-born) var(--memory-stars-born) both;
+  }
+  .memory-stars-birth {
+    animation: eimir-motion-memory-stars-birth
+      var(--memory-stars-birth-duration) var(--memory-world-easing-out)
+      var(--memory-stars-born) both;
+  }
+  .memory-stars-newborn-note {
+    animation: eimir-motion-memory-stars-note-in
+      var(--memory-stars-newborn-note-duration) var(--memory-world-easing-out)
+      calc(var(--memory-stars-born) + var(--memory-stars-newborn-note-offset))
+      both;
+  }
+  .memory-stars-ambient {
+    animation: eimir-motion-memory-stars-ambient
+      var(--memory-stars-ambient-duration) var(--memory-stars-curve-streak) both;
+  }
+  .memory-stars-frost {
+    animation: eimir-motion-memory-stars-frost
+      var(--memory-stars-frost-duration) var(--memory-world-easing-in-out)
+      var(--motion-ambient-repeat);
+  }
+  /* The snow only falls with motion, for a few flakes' falls. */
+  .memory-stars-snow circle {
+    display: inline;
+    animation: eimir-motion-memory-stars-snowfall var(--memory-stars-period)
+      var(--memory-stars-curve-steady) var(--memory-stars-delay)
+      var(--motion-ambient-repeat) both;
+  }
+
+  /* Not seen (page hidden, kept view hidden, off screen): pause in place. */
+  .memory-stars-world:not([data-ambient="on"])
+    :is(
+      .memory-stars-dust-stars circle,
+      .memory-stars-dust-stars path,
+      .memory-stars-halo,
+      .memory-stars-moon-glow,
+      .memory-stars-lean,
+      .memory-stars-lens,
+      .memory-stars-frost,
+      .memory-stars-snow circle
+    ),
+  .memory-stars-world:not([data-ambient="on"]) .memory-stars-star::before,
+  .memory-stars-world:not([data-ambient="on"]) .memory-stars-star::after,
+  .memory-stars-world:not([data-ambient="on"]) .memory-stars-halo::after {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-dust-twinkle {
+  0%,
+  100% {
+    fill-opacity: 1;
+    stroke-opacity: 1;
+  }
+  50% {
+    fill-opacity: 0.3;
+    stroke-opacity: 0.2;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-twinkle {
+  0%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+  45% {
+    opacity: 0.72;
+    scale: 0.84;
+  }
+  62% {
+    opacity: 1;
+    scale: 1.1;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-glint {
+  0%,
+  100% {
+    opacity: 0.55;
+    scale: 0.85;
+  }
+  62% {
+    opacity: 0.95;
+    scale: 1.12;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-breathe {
+  0%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+  50% {
+    opacity: 0.65;
+    scale: 1.1;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-ring-turn {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-flare {
+  0% {
+    opacity: 0;
+    scale: 0.2;
+    rotate: 0deg;
+  }
+  16% {
+    opacity: 1;
+    scale: 1.18;
+  }
+  38% {
+    opacity: 0.95;
+    scale: 0.94;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.5;
+    rotate: 30deg;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-fall {
+  from {
+    opacity: 0.95;
+    transform: translate(0, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(
+      var(--memory-stars-dx, 0px),
+      var(--memory-stars-dy, 10px)
+    );
+  }
+}
+
+@keyframes eimir-motion-memory-stars-moon {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.78;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-lean {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  50% {
+    rotate: 3deg;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-heart {
+  0% {
+    opacity: 0;
+    transform: translate(0, 4px) scale(0.5);
+  }
+  18% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1.08);
+  }
+  30% {
+    transform: translate(0, -2px) scale(0.98);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(0, -24px) scale(0.9);
+  }
+}
+
+@keyframes eimir-motion-memory-stars-lens-glint {
+  0%,
+  80%,
+  100% {
+    opacity: 0.6;
+  }
+  88% {
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-view-grow {
+  0% {
+    opacity: 0;
+    transform: translate(
+        var(--memory-stars-fx, 0px),
+        var(--memory-stars-fy, 0px)
+      )
+      scale(0.05);
+  }
+  14% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+@keyframes eimir-motion-memory-stars-view-shrink {
+  0% {
+    opacity: 1;
+    transform: translate(0px, 0px) scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(
+        var(--memory-stars-fx, 0px),
+        var(--memory-stars-fy, 0px)
+      )
+      scale(0.05);
+  }
+}
+
+@keyframes eimir-motion-memory-stars-zoom-far {
+  from {
+    scale: 2.2;
+    opacity: 0.5;
+  }
+  to {
+    scale: 1;
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-zoom-near {
+  from {
+    scale: 3.4;
+    opacity: 0.35;
+  }
+  to {
+    scale: 1;
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-unhaze {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-bloom {
+  0% {
+    opacity: 0.9;
+    scale: 2.6;
+  }
+  55% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+    scale: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-sharpen {
+  from {
+    opacity: 0;
+    scale: 1.7;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-label-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes eimir-motion-memory-stars-label-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-card-in {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-card-glow {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-born {
+  from {
+    opacity: 0;
+    scale: 0;
+  }
+  55% {
+    scale: 1.35;
+  }
+  to {
+    scale: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-birth {
+  0% {
+    opacity: 0;
+    scale: 0.2;
+    rotate: 0deg;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.8;
+    rotate: 25deg;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-note-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-ambient {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--memory-stars-angle, 30deg)) translateX(0px);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--memory-stars-angle, 30deg)) translateX(230px);
+  }
+}
+
+@keyframes eimir-motion-memory-stars-frost {
+  0%,
+  100% {
+    stroke-opacity: 0.9;
+  }
+  50% {
+    stroke-opacity: 0.45;
+  }
+}
+
+@keyframes eimir-motion-memory-stars-snowfall {
+  0% {
+    opacity: 0;
+    transform: translate(0px, -10px);
+  }
+  8% {
+    opacity: 0.9;
+  }
+  90% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--memory-stars-drift, 0px), 285px);
+  }
+}
+
+/* ---------- Post ---------- */
+
+.memory-post-world {
+  /* The flag swings up with an overshoot, or drops with a little bounce;
+     the door falls open and bounces against its stop (the keyframes carry
+     their own curves; the exact `ease` keyword curve carries the rest). */
+  --memory-post-curve-soft: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --memory-post-flag-raise-duration: 950ms;
+  --memory-post-curve-flag: cubic-bezier(0.3, 0.1, 0.3, 1);
+  --memory-post-flag-drop-duration: 760ms;
+  --memory-post-door-fall-duration: 820ms;
+  /* The spring-loaded door swings shut again (POST_TIMING.doorClose). */
+  --memory-post-door-close-duration: 700ms;
+  --memory-post-curve-door-close: cubic-bezier(0.34, 1.45, 0.6, 1);
+  /* Idle while post is waiting: the flag flutters, the door twitches. */
+  --memory-post-flutter-duration: 3600ms;
+  --memory-post-flutter-delay: 1600ms;
+  --memory-post-door-hint-duration: 4600ms;
+  --memory-post-door-hint-delay: 2600ms;
+  /* The envelope leaves the mailbox and lands on the desk
+     (POST_TIMING.mailDelay and mailFlight). */
+  --memory-post-cavity-fade-duration: 200ms;
+  --memory-post-cavity-fade-delay: 400ms;
+  --memory-post-mail-duration: 1350ms;
+  --memory-post-mail-delay: 280ms;
+  --memory-post-curve-mail: cubic-bezier(0.3, 0.1, 0.25, 1);
+  /* The flap opens (POST_TIMING.flapOpen), the card is pulled out
+     (cardPull) and settles (cardSettle) while the envelope falls away. */
+  --memory-post-flap-duration: 520ms;
+  --memory-post-curve-flap: cubic-bezier(0.3, 0.85, 0.35, 1);
+  --memory-post-pull-duration: 1150ms;
+  --memory-post-curve-pull: cubic-bezier(0.45, 0.05, 0.3, 1);
+  --memory-post-out-duration: 1000ms;
+  --memory-post-curve-out: cubic-bezier(0.3, 1.25, 0.45, 1);
+  --memory-post-away-duration: 760ms;
+  --memory-post-curve-away: cubic-bezier(0.4, 0, 0.7, 0.4);
+  /* The card: carried by the finger, sprung back, lifted above the shoebox
+     and sunk into it (POST_TIMING.fileLift and fileSink), turned over. */
+  --memory-post-drag-duration: 140ms;
+  --memory-post-spring-duration: 700ms;
+  --memory-post-curve-spring: cubic-bezier(0.3, 1.35, 0.5, 1);
+  --memory-post-lift-duration: 520ms;
+  --memory-post-curve-lift: cubic-bezier(0.35, 0, 0.25, 1);
+  --memory-post-sink-duration: 680ms;
+  --memory-post-curve-sink: cubic-bezier(0.55, 0, 0.8, 0.45);
+  --memory-post-turn-duration: 780ms;
+  --memory-post-curve-turn: cubic-bezier(0.3, 1.3, 0.45, 1);
+  --memory-post-hint-duration: 1500ms;
+  --memory-post-hint-delay: 1500ms;
+  --memory-post-shadow-duration: 240ms;
+  /* The paper tag pops up; it fades while the card moves. */
+  --memory-post-tag-duration: 560ms;
+  --memory-post-tag-delay: 200ms;
+  --memory-post-curve-tag: cubic-bezier(0.3, 1.4, 0.5, 1);
+  --memory-post-tag-fade-duration: 240ms;
+  /* The shoebox opens a little when a card comes near. */
+  --memory-post-lid-duration: 260ms;
+  --memory-post-front-duration: 220ms;
+  /* The next letter drops through the slot (POST_TIMING.slotLetter), the
+     slot's lip flips and the mailbox wobbles as it lands. */
+  --memory-post-letter-duration: 1100ms;
+  --memory-post-curve-letter: cubic-bezier(0.4, 0, 0.6, 1);
+  --memory-post-lip-duration: 520ms;
+  --memory-post-lip-delay: 1100ms;
+  --memory-post-wobble-duration: 560ms;
+  --memory-post-wobble-delay: 1350ms;
+}
+
+@keyframes eimir-motion-memory-post-flag-raise {
+  0% {
+    rotate: 90deg;
+  }
+  55% {
+    rotate: -12deg;
+  }
+  72% {
+    rotate: 6deg;
+  }
+  86% {
+    rotate: -3deg;
+  }
+  100% {
+    rotate: 0deg;
+  }
+}
+
+/* The ease-out and ease-in segments are the exact keyword curves. */
+@keyframes eimir-motion-memory-post-flag-drop {
+  0% {
+    rotate: 0deg;
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5);
+  }
+  60% {
+    rotate: 90deg;
+    animation-timing-function: cubic-bezier(0, 0, 0.58, 1);
+  }
+  76% {
+    rotate: 78deg;
+    animation-timing-function: cubic-bezier(0.42, 0, 1, 1);
+  }
+  90% {
+    rotate: 90deg;
+    animation-timing-function: cubic-bezier(0, 0, 0.58, 1);
+  }
+  95% {
+    rotate: 87deg;
+  }
+  100% {
+    rotate: 90deg;
+  }
+}
+
+@keyframes eimir-motion-memory-post-flag-flutter {
+  0%,
+  70%,
+  100% {
+    transform: none;
+  }
+  78% {
+    transform: skewY(-5deg) scaleX(0.96);
+  }
+  86% {
+    transform: skewY(3deg);
+  }
+  93% {
+    transform: skewY(-1.5deg);
+  }
+}
+
+@keyframes eimir-motion-memory-post-door-hint {
+  0%,
+  82%,
+  100% {
+    transform: rotateX(0deg);
+  }
+  87% {
+    transform: rotateX(-9deg);
+  }
+  92% {
+    transform: rotateX(-2deg);
+  }
+  95% {
+    transform: rotateX(-5deg);
+  }
+}
+
+/* The ease-out and ease-in segments are the exact keyword curves. */
+@keyframes eimir-motion-memory-post-door-fall {
+  0% {
+    transform: rotateX(calc(var(--memory-post-door-from, 0) * -1deg));
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6);
+  }
+  52% {
+    transform: rotateX(-84deg);
+    animation-timing-function: cubic-bezier(0, 0, 0.58, 1);
+  }
+  68% {
+    transform: rotateX(-70deg);
+    animation-timing-function: cubic-bezier(0.42, 0, 1, 1);
+  }
+  82% {
+    transform: rotateX(-84deg);
+    animation-timing-function: cubic-bezier(0, 0, 0.58, 1);
+  }
+  91% {
+    transform: rotateX(-79deg);
+    animation-timing-function: cubic-bezier(0.42, 0, 1, 1);
+  }
+  100% {
+    transform: rotateX(-84deg);
+  }
+}
+
+@keyframes eimir-motion-memory-post-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* From the mailbox's open door (`--memory-post-fx`/`-fy`, measured) onto
+   the desk, small at first, with a little hop before it settles. */
+@keyframes eimir-motion-memory-post-mail-out {
+  0% {
+    opacity: 0;
+    translate: calc(var(--memory-post-fx, 0) * 1px)
+      calc(var(--memory-post-fy, 0) * 1px);
+    scale: 0.36;
+    rotate: 0deg;
+  }
+  10% {
+    opacity: 1;
+    translate: calc(var(--memory-post-fx, 0) * 1px)
+      calc((var(--memory-post-fy, 0) + 16) * 1px);
+    scale: 0.4;
+    rotate: -2deg;
+  }
+  56% {
+    translate: 0 -24px;
+    scale: 1.03;
+    rotate: 3deg;
+  }
+  78% {
+    translate: 0 6px;
+    scale: 1;
+    rotate: -2.4deg;
+  }
+  100% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+    rotate: var(--memory-post-mail-tilt);
+  }
+}
+
+@keyframes eimir-motion-memory-post-envelope-away {
+  to {
+    opacity: 0;
+    translate: -26px 96px;
+  }
+}
+
+@keyframes eimir-motion-memory-post-turn-hint {
+  0%,
+  100% {
+    rotate: y 0deg;
+  }
+  30% {
+    rotate: y -18deg;
+  }
+  58% {
+    rotate: y 7deg;
+  }
+  80% {
+    rotate: y -2deg;
+  }
+}
+
+@keyframes eimir-motion-memory-post-tag-in {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes eimir-motion-memory-post-slot-letter {
+  0% {
+    opacity: 0;
+    translate: 0 -8px;
+  }
+  18% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  40% {
+    translate: 0 8px;
+  }
+  52% {
+    translate: 0 5px;
+  }
+  100% {
+    opacity: 1;
+    translate: 0 90px;
+  }
+}
+
+@keyframes eimir-motion-memory-post-lip {
+  0%,
+  100% {
+    transform: none;
+  }
+  30% {
+    transform: rotateX(-50deg);
+  }
+  60% {
+    transform: rotateX(-12deg);
+  }
+  80% {
+    transform: rotateX(-22deg);
+  }
+}
+
+@keyframes eimir-motion-memory-post-box-wobble {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  30% {
+    rotate: -1.6deg;
+  }
+  60% {
+    rotate: 1.1deg;
+  }
+  82% {
+    rotate: -0.4deg;
+  }
+}
+
+/* ---------- Glas ---------- */
+
+.memory-jar-world,
+.memory-jar-stage {
+  /* The jar shrinks above the drawn slip, and grows back, in place: its
+     layout changes at once, the shown size follows (transform only). */
+  --memory-jar-resize-duration: 600ms;
+  /* The tealight flickers and its pool of light breathes (Dark only). */
+  --memory-jar-flicker-duration: 2.8s;
+  --memory-jar-glow-duration: 3.6s;
+  /* The lid pops and stays tipped open, a slip jumps out
+     (JAR_TIMING.popToStage). */
+  --memory-jar-pop-duration: 820ms;
+  --memory-jar-curve-pop: cubic-bezier(0.25, 0.7, 0.3, 1);
+  --memory-jar-jump-duration: 1100ms;
+  --memory-jar-jump-delay: 260ms;
+  --memory-jar-curve-jump: cubic-bezier(0.2, 0.75, 0.35, 1);
+  /* On the stage the slip flies in, the top flap opens, then the bottom one
+     (JAR_TIMING.stageTopLand, stageBottomLand and stageUnfolded). */
+  --memory-jar-fly-duration: 1000ms;
+  --memory-jar-curve-fly: cubic-bezier(0.32, 0.06, 0.18, 1);
+  --memory-jar-unfold-duration: 760ms;
+  --memory-jar-top-delay: 1100ms;
+  --memory-jar-bottom-delay: 1700ms;
+  --memory-jar-curve-unfold: cubic-bezier(0.4, 0.1, 0.3, 1);
+  --memory-jar-face-duration: 160ms;
+  --memory-jar-face-delay: 2360ms;
+  --memory-jar-attach-duration: 420ms;
+  --memory-jar-attach-delay: 2600ms;
+  --memory-jar-scrim-duration: 520ms;
+  /* The slip is laid down (JAR_TIMING.stageClose). */
+  --memory-jar-close-duration: 420ms;
+  /* Putting back: the lid lifts while the slip comes, the slip drops in,
+     the lid closes and the jar takes the weight (JAR_TIMING.dropLand). */
+  --memory-jar-lift-duration: 420ms;
+  --memory-jar-curve-lift: cubic-bezier(0.3, 0.6, 0.3, 1);
+  --memory-jar-shut-duration: 520ms;
+  --memory-jar-shut-delay: 360ms;
+  --memory-jar-curve-shut: cubic-bezier(0.4, 0, 0.3, 1);
+  --memory-jar-drop-duration: 560ms;
+  --memory-jar-curve-drop: cubic-bezier(0.55, 0, 1, 0.6);
+  --memory-jar-thunk-duration: 380ms;
+  --memory-jar-thunk-delay: 430ms;
+}
+
+/* From the large jar's place and size to the small one's
+   (`--memory-jar-resize-shift`, `--memory-jar-small-scale`), and back. */
+@keyframes eimir-motion-memory-jar-shrink {
+  from {
+    translate: 0 var(--memory-jar-resize-shift);
+    scale: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-jar-grow {
+  from {
+    translate: 0 calc(var(--memory-jar-resize-shift) * -1);
+    scale: var(--memory-jar-small-scale);
+  }
+}
+
+@keyframes eimir-motion-memory-jar-flicker {
+  0%,
+  100% {
+    scale: 1 1;
+    rotate: 0deg;
+    opacity: 1;
+  }
+  18% {
+    scale: 0.94 1.06;
+    rotate: -2deg;
+  }
+  31% {
+    scale: 1.04 0.95;
+    rotate: 1.5deg;
+    opacity: 0.92;
+  }
+  47% {
+    scale: 0.97 1.04;
+    rotate: -1deg;
+  }
+  63% {
+    scale: 1.02 0.97;
+    rotate: 2deg;
+    opacity: 0.96;
+  }
+  81% {
+    scale: 0.96 1.05;
+    rotate: -1.5deg;
+  }
+}
+
+@keyframes eimir-motion-memory-jar-glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 0.86;
+  }
+  55% {
+    opacity: 0.95;
+  }
+  78% {
+    opacity: 0.88;
+  }
+}
+
+@keyframes eimir-motion-memory-jar-lid-pop {
+  0% {
+    transform: translate(0px, 0px) rotate(0deg);
+  }
+  12% {
+    transform: translate(0px, 2px) rotate(-0.4deg);
+  }
+  38% {
+    transform: translate(22px, -50px) rotate(42deg);
+  }
+  62% {
+    transform: translate(27px, -16px) rotate(30deg);
+  }
+  80% {
+    transform: translate(25px, -25px) rotate(35.5deg);
+  }
+  100% {
+    transform: translate(26px, -22px) rotate(34deg);
+  }
+}
+
+/* Up through the neck, then out on the left (`--memory-jar-r0`, `-nx`,
+   `-ny`, `-ax`, `-ay`, set per slip by `jumpVars`). */
+@keyframes eimir-motion-memory-jar-jump {
+  0% {
+    transform: translate(0px, 0px) rotate(var(--memory-jar-r0, 0deg)) scale(1);
+  }
+  30% {
+    transform: translate(var(--memory-jar-nx, 0px), var(--memory-jar-ny, 0px))
+      rotate(8deg) scale(1.05);
+  }
+  70% {
+    transform: translate(var(--memory-jar-ax, 0px), var(--memory-jar-ay, 0px))
+      rotate(-14deg) scale(1.2);
+  }
+  100% {
+    transform: translate(
+        var(--memory-jar-ax, 0px),
+        calc(var(--memory-jar-ay, 0px) - 4px)
+      )
+      rotate(-10deg) scale(1.2);
+  }
+}
+
+@keyframes eimir-motion-memory-jar-lid-open {
+  0% {
+    transform: translate(0px, 0px) rotate(0deg);
+  }
+  70% {
+    transform: translate(15px, -18px) rotate(25deg);
+  }
+  100% {
+    transform: translate(14px, -16px) rotate(24deg);
+  }
+}
+
+@keyframes eimir-motion-memory-jar-lid-close {
+  0% {
+    transform: translate(14px, -16px) rotate(24deg);
+  }
+  70% {
+    transform: translate(0px, 1px) rotate(-0.5deg);
+  }
+  85% {
+    transform: translate(0px, -2px) rotate(0.6deg);
+  }
+  100% {
+    transform: translate(0px, 0px) rotate(0deg);
+  }
+}
+
+/* From the jar's mouth down to the slip's place (`--memory-jar-drop`). */
+@keyframes eimir-motion-memory-jar-drop {
+  0% {
+    transform: translateY(var(--memory-jar-drop, 0px)) rotate(28deg);
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  76% {
+    transform: translateY(0px) rotate(-4deg);
+  }
+  88% {
+    transform: translateY(-4px) rotate(2deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-jar-thunk {
+  0% {
+    transform: translateY(0px) scale(1, 1);
+  }
+  35% {
+    transform: translateY(1.5px) scale(1.01, 0.985);
+  }
+  100% {
+    transform: translateY(0px) scale(1, 1);
+  }
+}
+
+/* From where the slip jumped out onto the stage (`--memory-jar-fx`, `-fy`,
+   `-fs`, `-fr`, measured by `stageFlightVars`). */
+@keyframes eimir-motion-memory-jar-fly {
+  0% {
+    translate: var(--memory-jar-fx, 0px) var(--memory-jar-fy, 0px);
+    scale: var(--memory-jar-fs, 0.15);
+    rotate: var(--memory-jar-fr, 0deg);
+  }
+  55% {
+    translate: calc(var(--memory-jar-fx, 0px) * 0.3)
+      calc(var(--memory-jar-fy, 0px) * 0.3 - 34px);
+    scale: calc(
+      var(--memory-jar-fs, 0.15) +
+      (1 - var(--memory-jar-fs, 0.15)) *
+      0.72
+    );
+    rotate: calc(var(--memory-jar-fr, 0deg) * -0.35);
+  }
+  100% {
+    translate: 0px 0px;
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+
+@keyframes eimir-motion-memory-jar-open-top {
+  0% {
+    transform: rotateX(-180deg);
+  }
+  72% {
+    transform: rotateX(7deg);
+  }
+  88% {
+    transform: rotateX(-3deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
+}
+
+@keyframes eimir-motion-memory-jar-open-bottom {
+  0% {
+    transform: rotateX(180deg);
+  }
+  72% {
+    transform: rotateX(-7deg);
+  }
+  88% {
+    transform: rotateX(3deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
+}
+
+@keyframes eimir-motion-memory-jar-face-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-jar-face-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-jar-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-jar-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-jar-settle-out {
+  to {
+    translate: 0px 24px;
+    scale: 0.96;
+  }
+}

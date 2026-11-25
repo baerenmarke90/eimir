@@ -283,6 +283,23 @@ class AllowlistConfigTest(ExportTestCase):
         ):
             self.assertTrue(config.exported(path), path)
 
+    def test_the_real_allowlist_exports_the_rewritten_lifecycle_tests(self) -> None:
+        # #2285 moved these onto a fake plugin; the remaining D5 modules still import Pro.
+        config = core_export.load_config(REAL_ALLOWLIST)
+        for path in (
+            "backend/tests/integration/test_core_only_lifecycle.py",
+            "backend/tests/integration/test_dormant_plugin_data.py",
+            "backend/tests/integration/test_plugin_lifecycle.py",
+            "backend/tests/support/fake_plugin.py",
+        ):
+            self.assertTrue(config.exported(path), path)
+        for path in (
+            "backend/tests/media/acceptance_video_lifecycle.py",
+            "backend/tests/unit/test_account_table_lifecycle.py",
+        ):
+            self.assertFalse(config.exported(path), path)
+            self.assertEqual(config.exclude_rule(path).id, "pro-coupled-core-tests")
+
     def test_the_real_allowlist_forbids_what_it_excludes(self) -> None:
         config = core_export.load_config(REAL_ALLOWLIST)
         for path in (
@@ -398,6 +415,22 @@ class GateTest(ExportTestCase):
         (self.out / "secret.txt").write_text("x")
         details = core_export.gate_coverage(self.out, manifest, self.config()).details
         self.assertIn("not covered by the allow-list: secret.txt", details)
+
+    def test_a_core_test_module_with_a_plugin_import_and_no_allowance_fails(self) -> None:
+        self.commit(
+            {"backend/tests/integration/test_lifecycle.py": "from eimir_pro.garden.models import Plant\n"}
+        )
+        result = self.gates(self.export())["plugin-imports"]
+        self.assertTrue(result.failed)
+        self.assertIn(
+            "backend/tests/integration/test_lifecycle.py:1 imports eimir_pro.garden.models", result.details
+        )
+
+    def test_a_fake_plugin_module_passes(self) -> None:
+        self.commit(
+            {"backend/tests/support/fake_plugin.py": "from eimir.plugins.contract import ProPlugin\n"}
+        )
+        self.assertEqual(self.gates(self.export())["plugin-imports"].status, "passed")
 
     def test_a_core_runtime_plugin_import_fails(self) -> None:
         self.commit(

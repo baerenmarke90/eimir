@@ -64,6 +64,11 @@ const memoryWorldSettings = {
       name: 'Fotobuch',
       sentence: 'Blättere durch euer Fotobuch – Seite für Seite.',
     },
+    stars: {
+      name: 'Sternbild',
+      sentence:
+        'Eure Momente als Sterne an einem Himmel, der mit der Zeit lebt.',
+    },
     crate: {
       name: 'Plattenkiste',
       sentence: 'Blättere durch eure Platten und leg eine Erinnerung auf.',

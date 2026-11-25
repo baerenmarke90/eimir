@@ -580,6 +580,8 @@ The implementation differs from the plan in these points:
 - **Still waiting for Self-Hosted work:** `proFeaturesAvailable` with its Core-only client state and the ServerAdmin
   view of dormant plugin data (#2148).
 
+**Update of November 25, 2026: the Core lifecycle tests no longer need Pro.** The three modules named under "Test coverage of the public Core" (`test_core_only_lifecycle.py`, `test_dormant_plugin_data.py`, `test_plugin_lifecycle.py`) now run against a fake plugin (`backend/tests/support/fake_plugin.py`): its tables are temporary tables of the test connection with their own manifest rows, so they need neither `eimir-pro` nor a Pro table, and they run in the Core-only lane. `test_plugin_lifecycle.py` also checks every real manifest row against the migrated schema and runs the executor's statements on it, which covers the real rows in the public Core CI. The two cases that need the real Pro models moved to `backend/pro/pro_tests/integration/test_core_lifecycle_with_pro.py`. The list of test modules that are not collected without `eimir-pro` is empty and removed.
+
 **Update of November 24, 2026: seam version 7** ([ADR 0020](0020-remove-transfer-bundle-self-service.md), slice S1c,
 [#2243](https://github.com/baerenmarke90/eimir/issues/2243)). The Product Owner removed the Transfer Bundle self-service
 export and replaced it with an operator-only tool in `eimir_pro.portability`, which reads the Pro tables directly. The

@@ -24,7 +24,7 @@ the cover shows the quote mark instead of a photo.
 
 ## Behaviour exercised
 
-- Arrow keys turn pages and the book's name follows the page ("Seite 2 von …");
+- Arrow keys turn pages and the book's name follows the page (page 2 of n);
   Home returns to the cover (asserted in the spec).
 - Page building, PageUp/PageDown/End, the hidden previous/next buttons, the
   end-page restart, opening a memory, the one-time invite and the 3D turn with

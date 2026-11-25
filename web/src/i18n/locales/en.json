@@ -1752,6 +1752,10 @@
         "name": "Record crate",
         "sentence": "Flip through your records and put a memory on."
       },
+      "scratch": {
+        "name": "Scratch card",
+        "sentence": "Scratch to reveal which memory is waiting for you today."
+      },
       "fridge": {
         "name": "Fridge door",
         "sentence": "Photos and notes under colourful magnets – to take off and move around."
@@ -4539,6 +4543,43 @@
       "endTitle": "To be continued",
       "endText": "Your diary keeps writing – and with every new memory, so does your photo book.",
       "restart": "Back to the beginning"
+    },
+    "scratch": {
+      "heading": "Your lucky ticket",
+      "roleDescription": "Lucky ticket",
+      "label": "Lucky ticket no. {{serial}}",
+      "serial": "No. {{serial}}",
+      "name": "Lucky ticket",
+      "rule": "Scratch the heart free – three matching coins win an encore",
+      "foilStamp": "Scratch",
+      "foilStampSub": "here!",
+      "tearTab": "Tear here",
+      "open": "Open in the diary ›",
+      "openLabel": "Open in the diary: {{title}}, {{date}}",
+      "win": {
+        "stamp": "Winner!",
+        "ask": "Remember?",
+        "blank": "Your prize"
+      },
+      "bonus": {
+        "stamp": "Encore!",
+        "heart": "Three hearts – another heart moment for you:",
+        "kiss": "Three kisses – another photo for you:",
+        "star": "Three stars – another big moment:",
+        "double": "Your luck is doubled today.",
+        "none": "No three of a kind – maybe on the next ticket.",
+        "hint": "Three matching coins: one extra memory.",
+        "link": "Encore: {{title}}, {{date}}"
+      },
+      "smallPrint": "Love series · Every ticket wins: a memory from your diary.",
+      "dispenser": {
+        "title": "Lucky tickets",
+        "subtitle": "for two"
+      },
+      "reveal": "Scratch it free",
+      "tear": "Tear off the next ticket",
+      "won": "You won: {{title}}, {{date}}. Tap the heart to open the memory.",
+      "fresh": "A new lucky ticket from your diary is here."
     }
   },
   "memoryProduct": {

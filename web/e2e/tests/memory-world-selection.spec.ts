@@ -250,8 +250,8 @@ test('Free sees every world, keeps Pro worlds unsaved and saves Stapel', async (
   const opener = page.getByRole('button', { name: copy.change });
   await opener.click();
   const dialog = page.getByRole('dialog', { name: copy.choices });
-  await expect(dialog.getByRole('radio')).toHaveCount(7);
-  await expect(dialog.locator('.pro-mark')).toHaveCount(5);
+  await expect(dialog.getByRole('radio')).toHaveCount(8);
+  await expect(dialog.locator('.pro-mark')).toHaveCount(6);
   await dialog.getByRole('radio', { name: new RegExp(crate) }).check();
   await expect(
     dialog.getByRole('button', { name: copy.discover }),
@@ -595,4 +595,44 @@ test('Erinnerungen shows the Fotobuch and turns its pages by keyboard', async ({
   await page.setViewportSize({ width: 1280, height: 860 });
   await page.waitForTimeout(600);
   await capture(page, info, 'memory-worlds-album-1280-dark.png');
+});
+
+test('Erinnerungen shows the Rubbellos and reveals a memory without scratching', async ({
+  page,
+}, info) => {
+  await installMocks(page, true, 'scratch');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page, '/story?tab=discover');
+  const world = page.locator('.memory-world[data-world="scratch"]');
+  await expect(world).toBeVisible();
+  await expect(page.locator('.memory-world-stage')).toHaveAttribute(
+    'data-entered',
+    'true',
+  );
+  const ticketPrefix = worlds.scratch.label.split('{{')[0];
+  await expect(
+    world.getByRole('group', { name: new RegExp(`^${ticketPrefix}`) }),
+  ).toBeVisible();
+  await page.waitForTimeout(900);
+  await capture(page, info, 'memory-worlds-scratch-390-light.png');
+  // The keyboard and screen-reader alternative to scratching.
+  await world.getByRole('button', { name: worlds.scratch.reveal }).click();
+  await expect(
+    world.getByRole('link', {
+      name: new RegExp(worlds.scratch.openLabel.split('{{')[0]),
+    }),
+  ).toBeVisible();
+  await page.waitForTimeout(1200);
+  await capture(page, info, 'memory-worlds-scratch-revealed-390-light.png');
+  const accessibility = await new AxeBuilder({ page })
+    .include('.memory-world')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(accessibility.violations).toEqual([]);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.waitForTimeout(500);
+  await capture(page, info, 'memory-worlds-scratch-revealed-390-dark.png');
+  await page.setViewportSize({ width: 1280, height: 860 });
+  await page.waitForTimeout(600);
+  await capture(page, info, 'memory-worlds-scratch-1280-dark.png');
 });

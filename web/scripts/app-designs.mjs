@@ -320,14 +320,24 @@ function motionDeclarations(design, tokens) {
   );
 }
 
-/** The 16-role declarations followed by the fine roles the palette sets. */
-function designPalette(palette, status, mode) {
+/**
+ * The 16-role declarations followed by the fine roles the palette sets.
+ * With `emphasis` the emphasised controls (checked list marks, composer save
+ * and selected tag chips) take the same action colour, so a chosen palette
+ * leaves no canonical blue behind.
+ */
+function designPalette(palette, status, mode, { emphasis = false } = {}) {
   const lines = paletteDeclarations(palette, status, mode);
   const { fill, onFill } = actionColours(palette, mode);
   lines.push(
     `--color-action-primary: ${fill};`,
     `--color-on-action-primary: ${onFill};`,
   );
+  if (emphasis)
+    lines.push(
+      `--color-action-emphasis: ${fill};`,
+      `--color-on-action-emphasis: ${onFill};`,
+    );
   for (const [role, aliases] of Object.entries(FINE_ROLES))
     if (role in palette)
       for (const alias of aliases) lines.push(`--${alias}: ${palette[role]};`);
@@ -437,8 +447,12 @@ export function buildAppDesigns(tokens, designs) {
         scoped(':root'),
         scoped(':root[data-theme="dark"]'),
         scoped(':root:not([data-theme])'),
-        designPalette(design.palette.light, status.light, 'light'),
-        designPalette(design.palette.dark, status.dark, 'dark'),
+        designPalette(design.palette.light, status.light, 'light', {
+          emphasis: true,
+        }),
+        designPalette(design.palette.dark, status.dark, 'dark', {
+          emphasis: true,
+        }),
       ),
     );
   }

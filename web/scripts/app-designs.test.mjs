@@ -103,6 +103,13 @@ describe('app design token sets', () => {
     expect(block(':root[data-app-palette="shared_rhythm"],')).toContain(
       '--color-action-primary: #7D315D;',
     );
+    // Emphasised controls (checked list marks, composer save) follow the palette too.
+    expect(block(':root[data-app-palette="shared_rhythm"],')).toContain(
+      '--color-action-emphasis: #7D315D;',
+    );
+    expect(block('[data-design-preview="connected"]')).not.toContain(
+      '--color-action-emphasis',
+    );
     expect(css).not.toContain('--person-');
   });
 

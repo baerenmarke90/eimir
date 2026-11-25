@@ -110,9 +110,11 @@ export const REGISTERED_POINTER_TRACKING = Object.freeze({
   // on the building block; Motion Contract 4.6), the Mochis' push, pinch,
   // tickle and long press on the meadow (gesture), the Sternbild's swipe
   // that a shooting star's streak follows, its thread traced from star to
-  // star and its telescope aimed by the finger (gesture), and the
-  // Rubbellos' scratch strokes on its foils (input: a drawn stroke that
-  // moves nothing).
+  // star and its telescope aimed by the finger (gesture), the Post's
+  // mailbox door pulled down, envelope flap lifted and postcard turned or
+  // carried into the shoebox by the finger (gesture), and the Rubbellos'
+  // scratch strokes on its foils (input: a drawn stroke that moves
+  // nothing).
   'src/components/memoryWorlds/ConstellationWorld.tsx': {
     use: 'gesture',
     count: 1,
@@ -134,6 +136,7 @@ export const REGISTERED_POINTER_TRACKING = Object.freeze({
     use: 'gesture',
     count: 2,
   },
+  'src/components/memoryWorlds/PostWorld.tsx': { use: 'gesture', count: 3 },
   'src/components/memoryWorlds/RecordCrateWorld.tsx': {
     use: 'gesture',
     count: 4,

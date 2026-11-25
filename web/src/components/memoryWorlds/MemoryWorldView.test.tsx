@@ -241,6 +241,31 @@ describe('MemoryWorldView', () => {
     ).toBeTruthy();
   });
 
+  it('renders the Post from the same selection, the lead first', () => {
+    const { container } = renderWorld('post', moreItems);
+    expect(
+      container.querySelector('.memory-world')?.getAttribute('data-world'),
+    ).toBe('post');
+    // Reduced motion: each letter is opened at once; the sensitive cover and
+    // the rest of the diary stay out, and the delivery starts over.
+    const opened: string[] = [];
+    for (let letter = 0; letter < 3; letter += 1) {
+      fireEvent.click(screen.getByRole('button', { name: copy.post.openBox }));
+      const flap =
+        container.querySelector<HTMLButtonElement>('.memory-post-flap');
+      if (!flap) throw new Error('no envelope');
+      fireEvent.click(flap);
+      const link = container.querySelector('.memory-post-open');
+      opened.push(link?.getAttribute('aria-label') ?? '');
+      fireEvent.click(screen.getByRole('button', { name: copy.post.file }));
+    }
+    expect(opened).toEqual(
+      ['Thank you', 'Moved in together', 'Thank you'].map((title) =>
+        fill(copy.post.openNamed, { title }),
+      ),
+    );
+  });
+
   it('ignores the rest of the diary outside the Momentwolke', () => {
     renderWorld('stack', moreItems);
     expect(

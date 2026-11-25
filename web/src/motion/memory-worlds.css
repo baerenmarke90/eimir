@@ -4,7 +4,8 @@
  * (record crate and turntable), the Momentwolke (bubble cloud), the
  * Fotoautomat (photo booth, in a classic and a modern style), the
  * Kühlschranktür (fridge door), the Fotobuch (photo book), the
- * Rubbellos (scratch card), the Mochis and the Sternbild (constellation).
+ * Rubbellos (scratch card), the Mochis, the Sternbild (constellation) and
+ * the Post (letters from back then).
  *
  * World-scoped timing roles, keyframes and the worlds' loops live here; the
  * world stylesheets only consume the roles. Every animation and transition
@@ -41,14 +42,20 @@
  * while the world is not seen (`data-ambient`); its shooting star flight,
  * trail and telescope spring are frame-driven in `constellation.ts`, the
  * flare, the falling dust, the porthole, the line drawing itself on and
- * the newborn stars here.
+ * the newborn stars here. The Post's idle loops (the waiting flag's flutter
+ * and the door's twitch) run for `--motion-ambient-repeat` cycles, only
+ * while post is waiting, and pause while the mailbox is not seen
+ * (`data-ambient`); the door, the envelope's flight, the flap, the card's
+ * pull, turn and filing and the next delivery play once per step, with CSS
+ * transitions and keyframes only (`PostWorld.tsx` keeps `POST_TIMING` in
+ * step with the roles below).
  *
  * The values were tuned on device with the Product Owner (Pixel 10 Pro Fold,
  * 2026-11-24/25) and are kept unchanged from the accepted prototype.
  * Imported by `StackWorld.tsx`, `RecordCrateWorld.tsx`,
  * `MomentCloudWorld.tsx`, `PhotoBoothWorld.tsx`, `FridgeDoorWorld.tsx`,
- * `PhotoAlbumWorld.tsx`, `ScratchCardWorld.tsx`, `MochiWorld.tsx` and
- * `ConstellationWorld.tsx`.
+ * `PhotoAlbumWorld.tsx`, `ScratchCardWorld.tsx`, `MochiWorld.tsx`,
+ * `ConstellationWorld.tsx` and `PostWorld.tsx`.
  */
 
 /* Shared easings: the exact CSS keyword curves, as named roles. */
@@ -63,7 +70,8 @@
 .memory-album-world,
 .memory-scratch-world,
 .memory-mochi-world,
-.memory-stars-world {
+.memory-stars-world,
+.memory-post-world {
   --memory-world-easing-in: cubic-bezier(0.42, 0, 1, 1);
   --memory-world-easing-out: cubic-bezier(0, 0, 0.58, 1);
   --memory-world-easing-in-out: cubic-bezier(0.42, 0, 0.58, 1);
@@ -2834,5 +2842,306 @@
   100% {
     opacity: 0;
     transform: translate(var(--memory-stars-drift, 0px), 285px);
+  }
+}
+
+/* ---------- Post ---------- */
+
+.memory-post-world {
+  /* The flag swings up with an overshoot, or drops with a little bounce;
+     the door falls open and bounces against its stop (the keyframes carry
+     their own curves; the exact `ease` keyword curve carries the rest). */
+  --memory-post-curve-soft: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --memory-post-flag-raise-duration: 950ms;
+  --memory-post-curve-flag: cubic-bezier(0.3, 0.1, 0.3, 1);
+  --memory-post-flag-drop-duration: 760ms;
+  --memory-post-door-fall-duration: 820ms;
+  /* The spring-loaded door swings shut again (POST_TIMING.doorClose). */
+  --memory-post-door-close-duration: 700ms;
+  --memory-post-curve-door-close: cubic-bezier(0.34, 1.45, 0.6, 1);
+  /* Idle while post is waiting: the flag flutters, the door twitches. */
+  --memory-post-flutter-duration: 3600ms;
+  --memory-post-flutter-delay: 1600ms;
+  --memory-post-door-hint-duration: 4600ms;
+  --memory-post-door-hint-delay: 2600ms;
+  /* The envelope leaves the mailbox and lands on the desk
+     (POST_TIMING.mailDelay and mailFlight). */
+  --memory-post-cavity-fade-duration: 200ms;
+  --memory-post-cavity-fade-delay: 400ms;
+  --memory-post-mail-duration: 1350ms;
+  --memory-post-mail-delay: 280ms;
+  --memory-post-curve-mail: cubic-bezier(0.3, 0.1, 0.25, 1);
+  /* The flap opens (POST_TIMING.flapOpen), the card is pulled out
+     (cardPull) and settles (cardSettle) while the envelope falls away. */
+  --memory-post-flap-duration: 520ms;
+  --memory-post-curve-flap: cubic-bezier(0.3, 0.85, 0.35, 1);
+  --memory-post-pull-duration: 1150ms;
+  --memory-post-curve-pull: cubic-bezier(0.45, 0.05, 0.3, 1);
+  --memory-post-out-duration: 1000ms;
+  --memory-post-curve-out: cubic-bezier(0.3, 1.25, 0.45, 1);
+  --memory-post-away-duration: 760ms;
+  --memory-post-curve-away: cubic-bezier(0.4, 0, 0.7, 0.4);
+  /* The card: carried by the finger, sprung back, lifted above the shoebox
+     and sunk into it (POST_TIMING.fileLift and fileSink), turned over. */
+  --memory-post-drag-duration: 140ms;
+  --memory-post-spring-duration: 700ms;
+  --memory-post-curve-spring: cubic-bezier(0.3, 1.35, 0.5, 1);
+  --memory-post-lift-duration: 520ms;
+  --memory-post-curve-lift: cubic-bezier(0.35, 0, 0.25, 1);
+  --memory-post-sink-duration: 680ms;
+  --memory-post-curve-sink: cubic-bezier(0.55, 0, 0.8, 0.45);
+  --memory-post-turn-duration: 780ms;
+  --memory-post-curve-turn: cubic-bezier(0.3, 1.3, 0.45, 1);
+  --memory-post-hint-duration: 1500ms;
+  --memory-post-hint-delay: 1500ms;
+  --memory-post-shadow-duration: 240ms;
+  /* The paper tag pops up; it fades while the card moves. */
+  --memory-post-tag-duration: 560ms;
+  --memory-post-tag-delay: 200ms;
+  --memory-post-curve-tag: cubic-bezier(0.3, 1.4, 0.5, 1);
+  --memory-post-tag-fade-duration: 240ms;
+  /* The shoebox opens a little when a card comes near. */
+  --memory-post-lid-duration: 260ms;
+  --memory-post-front-duration: 220ms;
+  /* The next letter drops through the slot (POST_TIMING.slotLetter), the
+     slot's lip flips and the mailbox wobbles as it lands. */
+  --memory-post-letter-duration: 1100ms;
+  --memory-post-curve-letter: cubic-bezier(0.4, 0, 0.6, 1);
+  --memory-post-lip-duration: 520ms;
+  --memory-post-lip-delay: 1100ms;
+  --memory-post-wobble-duration: 560ms;
+  --memory-post-wobble-delay: 1350ms;
+}
+
+@keyframes eimir-motion-memory-post-flag-raise {
+  0% {
+    rotate: 90deg;
+  }
+  55% {
+    rotate: -12deg;
+  }
+  72% {
+    rotate: 6deg;
+  }
+  86% {
+    rotate: -3deg;
+  }
+  100% {
+    rotate: 0deg;
+  }
+}
+
+/* The ease-out and ease-in segments are the exact keyword curves. */
+@keyframes eimir-motion-memory-post-flag-drop {
+  0% {
+    rotate: 0deg;
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5);
+  }
+  60% {
+    rotate: 90deg;
+    animation-timing-function: cubic-bezier(0, 0, 0.58, 1);
+  }
+  76% {
+    rotate: 78deg;
+    animation-timing-function: cubic-bezier(0.42, 0, 1, 1);
+  }
+  90% {
+    rotate: 90deg;
+    animation-timing-function: cubic-bezier(0, 0, 0.58, 1);
+  }
+  95% {
+    rotate: 87deg;
+  }
+  100% {
+    rotate: 90deg;
+  }
+}
+
+@keyframes eimir-motion-memory-post-flag-flutter {
+  0%,
+  70%,
+  100% {
+    transform: none;
+  }
+  78% {
+    transform: skewY(-5deg) scaleX(0.96);
+  }
+  86% {
+    transform: skewY(3deg);
+  }
+  93% {
+    transform: skewY(-1.5deg);
+  }
+}
+
+@keyframes eimir-motion-memory-post-door-hint {
+  0%,
+  82%,
+  100% {
+    transform: rotateX(0deg);
+  }
+  87% {
+    transform: rotateX(-9deg);
+  }
+  92% {
+    transform: rotateX(-2deg);
+  }
+  95% {
+    transform: rotateX(-5deg);
+  }
+}
+
+/* The ease-out and ease-in segments are the exact keyword curves. */
+@keyframes eimir-motion-memory-post-door-fall {
+  0% {
+    transform: rotateX(calc(var(--memory-post-door-from, 0) * -1deg));
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6);
+  }
+  52% {
+    transform: rotateX(-84deg);
+    animation-timing-function: cubic-bezier(0, 0, 0.58, 1);
+  }
+  68% {
+    transform: rotateX(-70deg);
+    animation-timing-function: cubic-bezier(0.42, 0, 1, 1);
+  }
+  82% {
+    transform: rotateX(-84deg);
+    animation-timing-function: cubic-bezier(0, 0, 0.58, 1);
+  }
+  91% {
+    transform: rotateX(-79deg);
+    animation-timing-function: cubic-bezier(0.42, 0, 1, 1);
+  }
+  100% {
+    transform: rotateX(-84deg);
+  }
+}
+
+@keyframes eimir-motion-memory-post-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* From the mailbox's open door (`--memory-post-fx`/`-fy`, measured) onto
+   the desk, small at first, with a little hop before it settles. */
+@keyframes eimir-motion-memory-post-mail-out {
+  0% {
+    opacity: 0;
+    translate: calc(var(--memory-post-fx, 0) * 1px)
+      calc(var(--memory-post-fy, 0) * 1px);
+    scale: 0.36;
+    rotate: 0deg;
+  }
+  10% {
+    opacity: 1;
+    translate: calc(var(--memory-post-fx, 0) * 1px)
+      calc((var(--memory-post-fy, 0) + 16) * 1px);
+    scale: 0.4;
+    rotate: -2deg;
+  }
+  56% {
+    translate: 0 -24px;
+    scale: 1.03;
+    rotate: 3deg;
+  }
+  78% {
+    translate: 0 6px;
+    scale: 1;
+    rotate: -2.4deg;
+  }
+  100% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+    rotate: var(--memory-post-mail-tilt);
+  }
+}
+
+@keyframes eimir-motion-memory-post-envelope-away {
+  to {
+    opacity: 0;
+    translate: -26px 96px;
+  }
+}
+
+@keyframes eimir-motion-memory-post-turn-hint {
+  0%,
+  100% {
+    rotate: y 0deg;
+  }
+  30% {
+    rotate: y -18deg;
+  }
+  58% {
+    rotate: y 7deg;
+  }
+  80% {
+    rotate: y -2deg;
+  }
+}
+
+@keyframes eimir-motion-memory-post-tag-in {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes eimir-motion-memory-post-slot-letter {
+  0% {
+    opacity: 0;
+    translate: 0 -8px;
+  }
+  18% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  40% {
+    translate: 0 8px;
+  }
+  52% {
+    translate: 0 5px;
+  }
+  100% {
+    opacity: 1;
+    translate: 0 90px;
+  }
+}
+
+@keyframes eimir-motion-memory-post-lip {
+  0%,
+  100% {
+    transform: none;
+  }
+  30% {
+    transform: rotateX(-50deg);
+  }
+  60% {
+    transform: rotateX(-12deg);
+  }
+  80% {
+    transform: rotateX(-22deg);
+  }
+}
+
+@keyframes eimir-motion-memory-post-box-wobble {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  30% {
+    rotate: -1.6deg;
+  }
+  60% {
+    rotate: 1.1deg;
+  }
+  82% {
+    rotate: -0.4deg;
   }
 }

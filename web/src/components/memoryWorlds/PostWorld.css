@@ -1,0 +1,2394 @@
+/* Post: an enamel mailbox on the wall above a desk, six envelope designs, a
+   postcard that turns in 3D and a shoebox for read cards. Wall, desk, paper,
+   inks, enamel and brass are physical materials: world-scoped roles defined
+   on the root and only dimmed for Dark (an evening lamp warms the wall). The
+   postcard's words are fitted into the card (src/client/fitText.ts), never
+   clipped. Motion is transform and opacity only, declared in the
+   no-preference block at the end; keyframes and timing roles:
+   src/motion/memory-worlds.css. */
+
+/* The handwriting and typewriter faces (bundled, OFL). */
+@font-face {
+  font-family: "Caveat";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/caveat-latin-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Courier Prime";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/courier-prime-latin-700.woff2") format("woff2");
+}
+
+/* ---------- Roles ---------- */
+.memory-post-world {
+  --memory-post-hand: "Caveat", var(--font-display);
+  --memory-post-type: "Courier Prime", "Courier New", monospace;
+  --memory-post-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .34 0 0 0 0 .25 0 0 0 .11 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* Shadows are mixed from one warm near-black; highlights from white. */
+  --memory-post-shade: #120d08;
+  --memory-post-sheen: #fff;
+  --memory-post-void: #000;
+  --memory-post-washi: color-mix(in srgb, #e6d6b3 72%, transparent);
+  /* The milestone stamp sits on light card paper in both themes. */
+  --memory-post-milestone-ink: #2f7d4f;
+  /* Wall, desk and lamp light. */
+  --memory-post-wall: #efe4d1;
+  --memory-post-wall-light: #fbf4e6;
+  --memory-post-wall-glow: rgb(255 236 200 / 0%);
+  --memory-post-desk: #9c6c43;
+  --memory-post-desk-top: #b78457;
+  --memory-post-desk-grain: rgb(70 40 18 / 16%);
+  --memory-post-desk-edge: #7a512f;
+  /* Enamel mailbox. */
+  --memory-post-enamel: #3f7d76;
+  --memory-post-enamel-light: #79b2a6;
+  --memory-post-enamel-deep: #24504b;
+  --memory-post-enamel-gloss: rgb(255 255 255 / 30%);
+  --memory-post-chip: #2b2622;
+  --memory-post-chip-rim: #e9e1cf;
+  --memory-post-brass-hi: #f3dc9b;
+  --memory-post-brass: #c99b4b;
+  --memory-post-brass-deep: #7f5b22;
+  --memory-post-rivet-hi: #f6f1e6;
+  --memory-post-rivet: #a9b3ad;
+  --memory-post-rivet-lo: #4b5651;
+  --memory-post-plate: #f4ecd9;
+  --memory-post-plate-ink: #24504b;
+  --memory-post-slot: #17130f;
+  --memory-post-cavity: #120f0c;
+  --memory-post-flag: #c8432f;
+  --memory-post-flag-deep: #8f2a1d;
+  /* Paper. */
+  --memory-post-paper: #f3e9d2;
+  --memory-post-paper-age: rgb(176 140 82 / 30%);
+  --memory-post-foxing: rgb(150 108 52 / 22%);
+  --memory-post-env-paper: #f6eedc;
+  --memory-post-env-inside: #d9ccb0;
+  --memory-post-env-inside-shade: #a8987a;
+  --memory-post-env-liner-a: #2f5a8a;
+  --memory-post-env-liner-b: #f1e7d0;
+  --memory-post-airmail-red: #c23b32;
+  --memory-post-airmail-blue: #2b4f97;
+  --memory-post-ink-hand: #22325f;
+  --memory-post-print-ink: #4a3d30;
+  --memory-post-postmark: #2f3363;
+  --memory-post-greeting: #a8352b;
+  --memory-post-greeting-ink: #fff6e8;
+  --memory-post-photo-filter: sepia(0.14) saturate(0.9) contrast(0.97);
+  /* Stamp. */
+  --memory-post-stamp-paper: #fbf6ea;
+  --memory-post-stamp-ink: #fbf6ea;
+  --memory-post-stamp-sun: #f2c14e;
+  --memory-post-stamp-photo: #2f6a63;
+  --memory-post-stamp-heart: #b23f50;
+  --memory-post-stamp-milestone: #9a6416;
+  --memory-post-stamp-words: #3d5c9c;
+  /* Shoebox. */
+  --memory-post-kraft-hi: #d7b27d;
+  --memory-post-kraft: #bd915a;
+  --memory-post-kraft-deep: #8d6537;
+  --memory-post-kraft-inside: #6f4e2b;
+  --memory-post-label: #fbf6ea;
+  /* Object surfaces that stay light in both themes (only dimmed at night). */
+  --memory-post-tag: #e8d3a6;
+  --memory-post-front-heart: #f6ddd5;
+  --memory-post-front-milestone: #f2e3bf;
+  /* Shared geometry with PostWorld.tsx (BOXED_WIDTH, BOXED_FLOOR, MAIL_TILT). */
+  --memory-post-boxed-w: 58%;
+  --memory-post-boxed-floor: 6px;
+  --memory-post-mail-tilt: -1.2deg;
+  /* Envelope designs: papers stay light (except the blue one) and dim at night. */
+  --memory-post-env-kraft: #c9a06a;
+  --memory-post-kraft-fibre: rgb(80 50 20 / 9%);
+  --memory-post-kraft-sheen: rgb(255 240 210 / 12%);
+  --memory-post-ink-kraft: #1d2547;
+  --memory-post-string: #f1e7d0;
+  --memory-post-env-rose: #f4d3d3;
+  --memory-post-rose-mottle: rgb(255 255 255 / 22%);
+  --memory-post-ink-rose: #5a1f2b;
+  --memory-post-wax: #a3242a;
+  --memory-post-wax-deep: #6e1419;
+  --memory-post-wax-hi: #d9545a;
+  --memory-post-pressed-petal: #d99a9a;
+  --memory-post-pressed-leaf: #7f8f5c;
+  --memory-post-pressed-core: #c98a2b;
+  --memory-post-env-buff: #e8d9a8;
+  --memory-post-buff-rule: rgb(60 50 30 / 16%);
+  --memory-post-ink-type: #2b2420;
+  --memory-post-ink-urgent: #8a231e;
+  --memory-post-env-midnight: #1f2f5a;
+  --memory-post-midnight-sheen: rgb(255 255 255 / 7%);
+  --memory-post-midnight-fold: rgb(0 0 0 / 24%);
+  --memory-post-ink-gold: #f2c94c;
+  --memory-post-ink-cream: #f3e9d2;
+  --memory-post-gold-hi: #fff3c4;
+  --memory-post-gold: #c9a23f;
+  --memory-post-gold-deep: #8a6a1f;
+  --memory-post-liner-floral: #f3ead6;
+  --memory-post-flower-a: #d77a8a;
+  --memory-post-flower-b: #6d8fc7;
+  --memory-post-flower-core: #e2b23c;
+  --memory-post-flower-leaf: #6f9a6a;
+  --memory-post-env-sage: #b8c6a6;
+  --memory-post-sage-linen-a: rgb(255 255 255 / 9%);
+  --memory-post-sage-linen-b: rgb(0 0 0 / 4%);
+  --memory-post-focus: #22325f;
+  --memory-post-lift-shadow: 0 26px 34px -8px
+    color-mix(in srgb, var(--memory-post-shade) 40%, transparent);
+  display: grid;
+  gap: var(--space-3);
+  min-inline-size: 0;
+  overflow-x: clip;
+}
+:root[data-theme="dark"] .memory-post-world {
+  /* Evening: a lamp warms the wall, paper is slightly dimmed. */
+  --memory-post-wall: #2f2a2c;
+  --memory-post-wall-light: #463a33;
+  --memory-post-wall-glow: rgb(255 190 112 / 26%);
+  --memory-post-desk: #4a3222;
+  --memory-post-desk-top: #5d3f2a;
+  --memory-post-desk-grain: rgb(0 0 0 / 26%);
+  --memory-post-desk-edge: #2f1f14;
+  --memory-post-enamel: #2f625c;
+  --memory-post-enamel-light: #578f85;
+  --memory-post-enamel-deep: #18393a;
+  --memory-post-enamel-gloss: rgb(255 214 160 / 22%);
+  --memory-post-plate: #d6ccb6;
+  --memory-post-paper: #d6cbb2;
+  --memory-post-paper-age: rgb(110 84 46 / 36%);
+  --memory-post-env-paper: #d9cfb8;
+  --memory-post-env-inside: #a99c80;
+  --memory-post-env-inside-shade: #786c55;
+  --memory-post-photo-filter: sepia(0.16) saturate(0.86) contrast(0.96)
+    brightness(0.86);
+  --memory-post-stamp-paper: #ddd4c0;
+  --memory-post-kraft-hi: #a98559;
+  --memory-post-kraft: #8e6b41;
+  --memory-post-kraft-deep: #5e4325;
+  --memory-post-kraft-inside: #3d2b18;
+  --memory-post-label: #d9d0bc;
+  --memory-post-tag: #cdb88e;
+  --memory-post-front-heart: #d6bfb7;
+  --memory-post-front-milestone: #d3c4a2;
+  --memory-post-focus: #f2c94c;
+  --memory-post-env-kraft: #b9935f;
+  --memory-post-string: #d8ceb6;
+  --memory-post-env-rose: #d1b0b0;
+  --memory-post-rose-mottle: rgb(255 255 255 / 10%);
+  --memory-post-env-buff: #c8b98c;
+  --memory-post-env-midnight: #1a2547;
+  --memory-post-gold-hi: #e8d9a4;
+  --memory-post-gold: #b08d38;
+  --memory-post-gold-deep: #6f5418;
+  --memory-post-liner-floral: #d2c9b5;
+  --memory-post-env-sage: #9aa88a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .memory-post-world {
+    --memory-post-wall: #2f2a2c;
+    --memory-post-wall-light: #463a33;
+    --memory-post-wall-glow: rgb(255 190 112 / 26%);
+    --memory-post-desk: #4a3222;
+    --memory-post-desk-top: #5d3f2a;
+    --memory-post-desk-grain: rgb(0 0 0 / 26%);
+    --memory-post-desk-edge: #2f1f14;
+    --memory-post-enamel: #2f625c;
+    --memory-post-enamel-light: #578f85;
+    --memory-post-enamel-deep: #18393a;
+    --memory-post-enamel-gloss: rgb(255 214 160 / 22%);
+    --memory-post-plate: #d6ccb6;
+    --memory-post-paper: #d6cbb2;
+    --memory-post-paper-age: rgb(110 84 46 / 36%);
+    --memory-post-env-paper: #d9cfb8;
+    --memory-post-env-inside: #a99c80;
+    --memory-post-env-inside-shade: #786c55;
+    --memory-post-photo-filter: sepia(0.16) saturate(0.86) contrast(0.96)
+      brightness(0.86);
+    --memory-post-stamp-paper: #ddd4c0;
+    --memory-post-kraft-hi: #a98559;
+    --memory-post-kraft: #8e6b41;
+    --memory-post-kraft-deep: #5e4325;
+    --memory-post-kraft-inside: #3d2b18;
+    --memory-post-label: #d9d0bc;
+    --memory-post-tag: #cdb88e;
+    --memory-post-front-heart: #d6bfb7;
+    --memory-post-front-milestone: #d3c4a2;
+    --memory-post-focus: #f2c94c;
+    --memory-post-env-kraft: #b9935f;
+    --memory-post-string: #d8ceb6;
+    --memory-post-env-rose: #d1b0b0;
+    --memory-post-rose-mottle: rgb(255 255 255 / 10%);
+    --memory-post-env-buff: #c8b98c;
+    --memory-post-env-midnight: #1a2547;
+    --memory-post-gold-hi: #e8d9a4;
+    --memory-post-gold: #b08d38;
+    --memory-post-gold-deep: #6f5418;
+    --memory-post-liner-floral: #d2c9b5;
+    --memory-post-env-sage: #9aa88a;
+  }
+}
+
+/* ---------- Scene: a wall with the mailbox above a desk ---------- */
+
+.memory-post-scene {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  padding: 26px 14px 20px;
+  border-radius: 20px;
+  background:
+    var(--memory-post-grain),
+    radial-gradient(
+      circle at 14% 6%,
+      var(--memory-post-wall-glow),
+      transparent 58%
+    ),
+    radial-gradient(
+      120% 70% at 50% 0%,
+      var(--memory-post-wall-light),
+      transparent 62%
+    ),
+    var(--memory-post-wall);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--memory-post-shade) 8%, transparent);
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* Fixed rows: the post lands in front of the lower mailbox and overlaps the
+   shoebox rim, so no empty wall is reserved while post is waiting. The desk
+   spans the landing row and the shoebox row; nothing moves when post arrives. */
+.memory-post-box {
+  grid-row: 1;
+  grid-column: 1;
+}
+.memory-post-spot {
+  grid-row: 2;
+  grid-column: 1;
+}
+.memory-post-shoebox {
+  grid-row: 3;
+  grid-column: 1;
+}
+.memory-post-desk {
+  position: relative;
+  z-index: -1;
+  grid-row: 2 / 4;
+  grid-column: 1;
+  align-self: stretch;
+  justify-self: stretch;
+  margin: 30px -14px -20px;
+  border-radius: 0 0 20px 20px;
+  background:
+    repeating-linear-gradient(
+      177deg,
+      transparent 0 9px,
+      var(--memory-post-desk-grain) 9px 10px,
+      transparent 10px 23px
+    ),
+    repeating-linear-gradient(
+      181deg,
+      transparent 0 31px,
+      var(--memory-post-desk-grain) 31px 32px
+    ),
+    linear-gradient(
+      to bottom,
+      var(--memory-post-desk-top),
+      var(--memory-post-desk) 70%
+    );
+  box-shadow:
+    0 -3px 0 var(--memory-post-desk-edge),
+    inset 0 3px 0 color-mix(in srgb, var(--memory-post-sheen) 14%, transparent);
+}
+/* A brass letter opener lies on the desk. */
+.memory-post-opener {
+  position: absolute;
+  inset-block-start: 26px;
+  inset-inline-start: 7%;
+  display: flex;
+  align-items: center;
+  inline-size: 118px;
+  block-size: 12px;
+  rotate: -11deg;
+  filter: drop-shadow(
+    1px 3px 2px color-mix(in srgb, var(--memory-post-shade) 35%, transparent)
+  );
+}
+.memory-post-opener-blade {
+  flex: 1;
+  block-size: 7px;
+  clip-path: polygon(0 50%, 12% 0, 100% 8%, 100% 92%, 12% 100%);
+  background: linear-gradient(
+    var(--memory-post-brass-hi),
+    var(--memory-post-brass) 50%,
+    var(--memory-post-brass-deep)
+  );
+}
+.memory-post-opener-handle {
+  inline-size: 38px;
+  block-size: 12px;
+  border-radius: 3px 6px 6px 3px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 5px,
+      color-mix(in srgb, var(--memory-post-shade) 14%, transparent) 5px 6px
+    ),
+    linear-gradient(
+      to bottom,
+      var(--memory-post-desk-top),
+      var(--memory-post-desk-edge)
+    );
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--memory-post-shade) 22%, transparent);
+}
+/* A loose spare stamp. */
+.memory-post-loose-stamp {
+  position: absolute;
+  inset-block-start: 16px;
+  inset-inline-end: 9%;
+  inline-size: 32px;
+  block-size: 39px;
+  rotate: 13deg;
+}
+.memory-post-loose-stamp .memory-post-stamp {
+  position: static;
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  rotate: none;
+}
+
+/* ---------- The enamel mailbox ---------- */
+
+.memory-post-box {
+  position: relative;
+  z-index: 2;
+  inline-size: 176px;
+  block-size: 200px;
+  perspective: 640px;
+  perspective-origin: 50% -30%;
+}
+.memory-post-box-shadow {
+  position: absolute;
+  inset: 10px -4px -12px 10px;
+  border-radius: 26px;
+  background: color-mix(in srgb, var(--memory-post-shade) 30%, transparent);
+  filter: blur(9px);
+}
+.memory-post-box-roof {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: -9px;
+  inset-inline: -8px;
+  block-size: 30px;
+  border-radius: 16px 16px 6px 6px;
+  background:
+    linear-gradient(
+      100deg,
+      transparent 10%,
+      var(--memory-post-enamel-gloss) 18%,
+      transparent 28%
+    ),
+    linear-gradient(
+      var(--memory-post-enamel-light),
+      var(--memory-post-enamel) 55%,
+      var(--memory-post-enamel-deep)
+    );
+  box-shadow:
+    0 3px 0 var(--memory-post-enamel-deep),
+    0 6px 7px color-mix(in srgb, var(--memory-post-shade) 26%, transparent);
+}
+.memory-post-box-shell {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  border-radius: 16px 16px 12px 12px;
+  background:
+    /* A few chips in the enamel. */
+    radial-gradient(
+      circle at 9% 84%,
+      var(--memory-post-chip) 0 2px,
+      var(--memory-post-chip-rim) 2.5px 3.2px,
+      transparent 3.7px
+    ),
+    radial-gradient(
+      circle at 93% 52%,
+      var(--memory-post-chip) 0 1.4px,
+      var(--memory-post-chip-rim) 1.9px 2.5px,
+      transparent 3px
+    ),
+    radial-gradient(
+      circle at 22% 22%,
+      var(--memory-post-chip) 0 1px,
+      var(--memory-post-chip-rim) 1.5px 2px,
+      transparent 2.4px
+    ),
+    linear-gradient(
+      100deg,
+      transparent 6%,
+      var(--memory-post-enamel-gloss) 14%,
+      transparent 24%
+    ),
+    linear-gradient(
+      90deg,
+      transparent 70%,
+      color-mix(in srgb, var(--memory-post-enamel-deep) 55%, transparent)
+    ),
+    var(--memory-post-enamel);
+  box-shadow:
+    inset 0 0 0 2px
+    color-mix(in srgb, var(--memory-post-enamel-deep) 55%, transparent),
+    inset 3px 0 0
+    color-mix(in srgb, var(--memory-post-enamel-light) 50%, transparent),
+    inset 0 -6px 0
+    color-mix(in srgb, var(--memory-post-enamel-deep) 70%, transparent);
+}
+.memory-post-rivets {
+  position: absolute;
+  inset: 0;
+  --memory-post-rivet-dot: radial-gradient(
+    circle at 40% 38%,
+    var(--memory-post-rivet-hi) 0 0.8px,
+    var(--memory-post-rivet) 2px,
+    var(--memory-post-rivet-lo) 3px,
+    transparent 3.5px
+  );
+  background:
+    var(--memory-post-rivet-dot) 8px 26px / 8px 8px no-repeat,
+    var(--memory-post-rivet-dot) calc(100% - 8px) 26px / 8px 8px no-repeat,
+    var(--memory-post-rivet-dot) 8px calc(100% - 10px) / 8px 8px no-repeat,
+    var(--memory-post-rivet-dot) calc(100% - 8px) calc(100% - 10px) / 8px 8px
+    no-repeat;
+}
+.memory-post-slot {
+  position: absolute;
+  inset-block-start: 34px;
+  inset-inline: 38px;
+  block-size: 10px;
+  border-radius: 5px;
+  background: var(--memory-post-slot);
+  box-shadow:
+    inset 0 2px 3px var(--memory-post-void),
+    0 1px 0 color-mix(in srgb, var(--memory-post-enamel-light) 70%, transparent);
+}
+/* The brass lip above the slot, with a screw at each end. */
+.memory-post-slot-lip {
+  position: absolute;
+  inset-block-start: -10px;
+  inset-inline: -10px;
+  block-size: 9px;
+  border-radius: 4px 4px 1px 1px;
+  background:
+    radial-gradient(
+      circle at 6px 50%,
+      var(--memory-post-brass-deep) 0 1.6px,
+      transparent 2px
+    ),
+    radial-gradient(
+      circle at calc(100% - 6px) 50%,
+      var(--memory-post-brass-deep) 0 1.6px,
+      transparent 2px
+    ),
+    linear-gradient(
+      var(--memory-post-brass-hi),
+      var(--memory-post-brass) 55%,
+      var(--memory-post-brass-deep)
+    );
+  box-shadow: 0 1px 1px
+    color-mix(in srgb, var(--memory-post-shade) 40%, transparent);
+  transform-origin: 50% 0;
+}
+.memory-post-plate {
+  position: absolute;
+  inset-block-start: 56px;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  min-inline-size: 84px;
+  max-inline-size: 128px;
+  padding: 4px 12px 5px;
+  border-radius: 6px;
+  background:
+    radial-gradient(
+      circle at 88% 30%,
+      var(--memory-post-chip) 0 0.8px,
+      transparent 1.4px
+    ),
+    var(--memory-post-plate);
+  box-shadow:
+    inset 0 0 0 2px var(--memory-post-plate),
+    inset 0 0 0 3px var(--memory-post-plate-ink),
+    0 1px 2px color-mix(in srgb, var(--memory-post-shade) 30%, transparent);
+  color: var(--memory-post-plate-ink);
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+}
+.memory-post-plate-main {
+  font-size: 0.82rem;
+  letter-spacing: 0.16em;
+  /* Letter-spacing also trails the last letter: balance it. */
+  margin-inline-start: 0.16em;
+  text-transform: uppercase;
+}
+.memory-post-plate-sub {
+  font-size: 0.7rem;
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+.memory-post-cavity {
+  position: absolute;
+  inset-block-end: 16px;
+  inset-inline: 18px;
+  block-size: 86px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: linear-gradient(
+    var(--memory-post-cavity),
+    color-mix(
+      in srgb,
+      var(--memory-post-cavity) 75%,
+      var(--memory-post-enamel-deep)
+    )
+  );
+  box-shadow: inset 0 8px 12px var(--memory-post-void);
+}
+/* The waiting envelope, visible when the door is pulled down. */
+.memory-post-cavity-mail {
+  position: absolute;
+  inset-inline: 12px;
+  inset-block-end: 6px;
+  block-size: 34px;
+  rotate: -2deg;
+  border-radius: 2px;
+  background:
+    linear-gradient(var(--memory-post-env-paper), var(--memory-post-env-paper))
+    5px 5px / calc(100% - 10px) calc(100% - 10px) no-repeat,
+    repeating-linear-gradient(
+      -45deg,
+      var(--memory-post-airmail-red) 0 7px,
+      var(--memory-post-env-paper) 7px 10px,
+      var(--memory-post-airmail-blue) 10px 17px,
+      var(--memory-post-env-paper) 17px 20px
+    );
+  filter: brightness(0.82);
+}
+
+.memory-post-door,
+.memory-post-door:disabled {
+  position: absolute;
+  z-index: 2;
+  inset-block-end: 16px;
+  inset-inline: 18px;
+  block-size: 86px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  transform-origin: 50% 100%;
+  transform-style: preserve-3d;
+  transform: rotateX(calc(var(--memory-post-door, 0) * -1deg));
+  touch-action: none;
+  cursor: grab;
+}
+.memory-post-door:disabled {
+  cursor: default;
+}
+.memory-post-door[data-dragging] {
+  cursor: grabbing;
+}
+.memory-post-door:focus-visible {
+  outline: 3px solid var(--memory-post-focus);
+  outline-offset: 3px;
+}
+.memory-post-door-face,
+.memory-post-door-inside {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.memory-post-door-face {
+  background:
+    linear-gradient(
+      100deg,
+      transparent 8%,
+      var(--memory-post-enamel-gloss) 16%,
+      transparent 26%
+    ),
+    linear-gradient(
+      color-mix(
+        in srgb,
+        var(--memory-post-enamel-light) 30%,
+        var(--memory-post-enamel)
+      ),
+      var(--memory-post-enamel)
+    );
+  box-shadow:
+    inset 0 0 0 2px
+    color-mix(in srgb, var(--memory-post-enamel-deep) 60%, transparent),
+    inset 0 0 0 7px var(--memory-post-enamel),
+    inset 0 0 0 8px
+    color-mix(in srgb, var(--memory-post-enamel-light) 55%, transparent),
+    0 2px 3px color-mix(in srgb, var(--memory-post-shade) 30%, transparent);
+}
+.memory-post-door-inside {
+  transform: rotateX(180deg);
+  background:
+    var(--memory-post-grain),
+    linear-gradient(
+      var(--memory-post-enamel-deep),
+      color-mix(
+        in srgb,
+        var(--memory-post-enamel-deep) 70%,
+        var(--memory-post-void)
+      )
+    );
+}
+.memory-post-door-knob {
+  position: absolute;
+  inset-block-start: 11px;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  inline-size: 38px;
+  block-size: 9px;
+  border-radius: 5px;
+  background: linear-gradient(
+    var(--memory-post-brass-hi),
+    var(--memory-post-brass) 50%,
+    var(--memory-post-brass-deep)
+  );
+  box-shadow:
+    0 3px 2px color-mix(in srgb, var(--memory-post-shade) 40%, transparent),
+    inset 0 -1px 0
+    color-mix(in srgb, var(--memory-post-brass-deep) 80%, transparent);
+}
+.memory-post-door-lock {
+  position: absolute;
+  inset-block-start: 40px;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  inline-size: 16px;
+  block-size: 16px;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 50% 38%,
+      var(--memory-post-slot) 0 2px,
+      transparent 2.4px
+    ),
+    linear-gradient(var(--memory-post-slot), var(--memory-post-slot)) 50% 62% /
+    2px 5px no-repeat,
+    radial-gradient(
+      circle at 40% 35%,
+      var(--memory-post-brass-hi),
+      var(--memory-post-brass) 55%,
+      var(--memory-post-brass-deep)
+    );
+  box-shadow: 0 1px 1px
+    color-mix(in srgb, var(--memory-post-shade) 40%, transparent);
+}
+.memory-post-hinge {
+  position: absolute;
+  z-index: 3;
+  inset-block-end: 13px;
+  inset-inline: 30px;
+  block-size: 6px;
+  background:
+    linear-gradient(var(--memory-post-brass-hi), var(--memory-post-brass-deep))
+    0 0 / 22px 100% no-repeat,
+    linear-gradient(var(--memory-post-brass-hi), var(--memory-post-brass-deep))
+    100% 0 / 22px 100% no-repeat;
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+/* The red flag on the side: up means post is waiting. */
+.memory-post-flag {
+  position: absolute;
+  z-index: 3;
+  inset-inline-end: -13px;
+  inset-block-start: 96px;
+  inline-size: 14px;
+  block-size: 14px;
+  rotate: 90deg;
+}
+.memory-post-flag[data-up="true"] {
+  rotate: 0deg;
+}
+.memory-post-flag-arm {
+  position: absolute;
+  inset-block-end: 50%;
+  inset-inline-start: calc(50% - 3px);
+  inline-size: 6px;
+  block-size: 66px;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--memory-post-flag),
+    var(--memory-post-flag-deep)
+  );
+  box-shadow: 1px 2px 3px
+    color-mix(in srgb, var(--memory-post-shade) 30%, transparent);
+}
+.memory-post-flag-plate {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 3px;
+  inline-size: 32px;
+  block-size: 20px;
+  border-radius: 2px 6px 6px 2px;
+  background:
+    linear-gradient(
+      170deg,
+      color-mix(in srgb, var(--memory-post-sheen) 22%, transparent),
+      transparent 45%
+    ),
+    var(--memory-post-flag);
+  box-shadow:
+    inset 0 -2px 0 var(--memory-post-flag-deep),
+    1px 2px 3px color-mix(in srgb, var(--memory-post-shade) 30%, transparent);
+  transform-origin: 0 50%;
+}
+.memory-post-flag-hub {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 40% 35%,
+    var(--memory-post-brass-hi),
+    var(--memory-post-brass) 55%,
+    var(--memory-post-brass-deep)
+  );
+  box-shadow: 0 1px 2px
+    color-mix(in srgb, var(--memory-post-shade) 40%, transparent);
+}
+
+/* A new letter dropping through the slot. */
+.memory-post-slot-drop {
+  position: absolute;
+  z-index: 3;
+  inset-block-start: -44px;
+  inset-inline: 44px;
+  block-size: 83px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.memory-post-slot-letter {
+  position: absolute;
+  inset-inline: 6px;
+  inset-block-start: 0;
+  block-size: 40px;
+  border-radius: 2px;
+  translate: 0 90px;
+  background:
+    linear-gradient(var(--memory-post-env-paper), var(--memory-post-env-paper))
+    5px 5px / calc(100% - 10px) calc(100% - 10px) no-repeat,
+    repeating-linear-gradient(
+      -45deg,
+      var(--memory-post-airmail-red) 0 7px,
+      var(--memory-post-env-paper) 7px 10px,
+      var(--memory-post-airmail-blue) 10px 17px,
+      var(--memory-post-env-paper) 17px 20px
+    );
+  box-shadow: 0 2px 4px
+    color-mix(in srgb, var(--memory-post-shade) 30%, transparent);
+}
+
+/* ---------- Where the post lands ---------- */
+
+.memory-post-spot {
+  position: relative;
+  inline-size: min(100%, 330px);
+  aspect-ratio: 3 / 2;
+  /* The post lands in front of the lower mailbox. */
+  margin-block-start: -56px;
+  scroll-margin-top: 150px;
+}
+.memory-post-mail {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  rotate: var(--memory-post-mail-tilt);
+}
+.memory-post-scene[data-sink] .memory-post-mail {
+  z-index: 3;
+}
+
+/* Envelope parts: rear, flap and front pocket around the card. Each design
+   only sets the variables below on the mail layer; geometry, layering and
+   the flap gesture are shared. */
+.memory-post-mail {
+  /* 1 Classic airmail (default). */
+  --memory-post-design-paper: var(--memory-post-env-paper);
+  --memory-post-design-texture: var(--memory-post-grain);
+  --memory-post-design-edge: repeating-linear-gradient(
+    -45deg,
+    var(--memory-post-airmail-red) 0 9px,
+    var(--memory-post-env-paper) 9px 13px,
+    var(--memory-post-airmail-blue) 13px 22px,
+    var(--memory-post-env-paper) 22px 26px
+  );
+  --memory-post-design-edge-w: 7px;
+  --memory-post-design-folds:
+    linear-gradient(
+      to top right,
+      transparent 49.6%,
+      color-mix(in srgb, var(--memory-post-shade) 7%, transparent) 50%,
+      transparent 50.6%
+    ),
+    linear-gradient(
+      to top left,
+      transparent 49.6%,
+      color-mix(in srgb, var(--memory-post-shade) 7%, transparent) 50%,
+      transparent 50.6%
+    );
+  --memory-post-design-inside: var(--memory-post-env-inside);
+  --memory-post-design-inside-shade: var(--memory-post-env-inside-shade);
+  --memory-post-design-liner:
+    radial-gradient(
+      circle at 50% 50%,
+      var(--memory-post-env-liner-b) 0 2px,
+      transparent 2.5px
+    )
+    0 0 / 12px 12px,
+    radial-gradient(
+      circle at 50% 50%,
+      var(--memory-post-env-liner-b) 0 1.2px,
+      transparent 1.7px
+    )
+    6px 6px / 12px 12px,
+    var(--memory-post-env-liner-a);
+  --memory-post-design-ink: var(--memory-post-ink-hand);
+  --memory-post-design-ink-small: var(--memory-post-ink-hand);
+  --memory-post-flap-h: 56%;
+  --memory-post-flap-shape: polygon(0 0, 100% 0, 50% 100%);
+  --memory-post-pocket-shape: polygon(0 0, 50% 47%, 100% 0, 100% 100%, 0 100%);
+}
+/* 2 Kraft paper, closed with string and button. */
+.memory-post-mail[data-design="kraft"] {
+  --memory-post-design-paper: var(--memory-post-env-kraft);
+  --memory-post-design-texture:
+    repeating-linear-gradient(
+      97deg,
+      transparent 0 3px,
+      var(--memory-post-kraft-fibre) 3px 4px
+    ),
+    repeating-linear-gradient(
+      8deg,
+      transparent 0 11px,
+      var(--memory-post-kraft-sheen) 11px 12px
+    ),
+    var(--memory-post-grain);
+  --memory-post-design-edge: var(--memory-post-env-kraft);
+  --memory-post-design-edge-w: 0px;
+  --memory-post-design-inside: color-mix(
+    in srgb,
+    var(--memory-post-env-kraft) 78%,
+    var(--memory-post-shade)
+  );
+  --memory-post-design-inside-shade: color-mix(
+    in srgb,
+    var(--memory-post-env-kraft) 55%,
+    var(--memory-post-shade)
+  );
+  --memory-post-design-liner:
+    var(--memory-post-grain),
+    color-mix(
+      in srgb,
+      var(--memory-post-env-kraft) 82%,
+      var(--memory-post-shade)
+    );
+  --memory-post-design-ink: var(--memory-post-ink-kraft);
+  --memory-post-design-ink-small: var(--memory-post-ink-kraft);
+  --memory-post-flap-h: 62%;
+  --memory-post-flap-shape: polygon(0 0, 100% 0, 54% 95%, 50% 100%, 46% 95%);
+}
+/* 3 Pastel pink with a red wax seal and a pressed flower. */
+.memory-post-mail[data-design="rose"] {
+  --memory-post-design-paper: var(--memory-post-env-rose);
+  --memory-post-design-texture:
+    radial-gradient(
+      circle at 24% 70%,
+      var(--memory-post-rose-mottle) 0 18px,
+      transparent 40px
+    ),
+    radial-gradient(
+      circle at 78% 30%,
+      var(--memory-post-rose-mottle) 0 14px,
+      transparent 34px
+    ),
+    var(--memory-post-grain);
+  --memory-post-design-edge: var(--memory-post-env-rose);
+  --memory-post-design-edge-w: 0px;
+  --memory-post-design-folds: linear-gradient(transparent, transparent);
+  --memory-post-design-inside: color-mix(
+    in srgb,
+    var(--memory-post-env-rose) 78%,
+    var(--memory-post-ink-rose)
+  );
+  --memory-post-design-inside-shade: color-mix(
+    in srgb,
+    var(--memory-post-env-rose) 55%,
+    var(--memory-post-ink-rose)
+  );
+  --memory-post-design-liner:
+    radial-gradient(
+      circle at 50% 50%,
+      var(--memory-post-env-rose) 0 1.6px,
+      transparent 2px
+    )
+    0 0 / 10px 10px,
+    color-mix(in srgb, var(--memory-post-env-rose) 70%, var(--memory-post-wax));
+  --memory-post-design-ink: var(--memory-post-ink-rose);
+  --memory-post-design-ink-small: var(--memory-post-ink-rose);
+  --memory-post-flap-h: 52%;
+  /* A rounded flap. */
+  --memory-post-flap-shape: polygon(
+    0 0,
+    100% 0,
+    100% 8%,
+    96% 30%,
+    88% 55%,
+    76% 77%,
+    62% 93%,
+    50% 100%,
+    38% 93%,
+    24% 77%,
+    12% 55%,
+    4% 30%,
+    0 8%
+  );
+  --memory-post-pocket-shape: polygon(0 0, 50% 26%, 100% 0, 100% 100%, 0 100%);
+}
+/* 4 Lined buff "urgent" envelope with a typewritten address. */
+.memory-post-mail[data-design="telegram"] {
+  --memory-post-design-paper: var(--memory-post-env-buff);
+  --memory-post-design-texture:
+    repeating-linear-gradient(
+      transparent 0 15px,
+      var(--memory-post-buff-rule) 15px 16px
+    ),
+    var(--memory-post-grain);
+  --memory-post-design-edge: var(--memory-post-env-buff);
+  --memory-post-design-edge-w: 0px;
+  --memory-post-design-folds: linear-gradient(transparent, transparent);
+  --memory-post-design-inside: color-mix(
+    in srgb,
+    var(--memory-post-env-buff) 80%,
+    var(--memory-post-shade)
+  );
+  --memory-post-design-inside-shade: color-mix(
+    in srgb,
+    var(--memory-post-env-buff) 58%,
+    var(--memory-post-shade)
+  );
+  --memory-post-design-liner:
+    var(--memory-post-grain),
+    color-mix(
+      in srgb,
+      var(--memory-post-env-buff) 86%,
+      var(--memory-post-shade)
+    );
+  --memory-post-design-ink: var(--memory-post-ink-type);
+  --memory-post-design-ink-small: var(--memory-post-ink-type);
+  --memory-post-flap-h: 40%;
+  /* A square flap. */
+  --memory-post-flap-shape: polygon(
+    0 0,
+    100% 0,
+    100% 86%,
+    97% 100%,
+    3% 100%,
+    0 86%
+  );
+  --memory-post-pocket-shape: polygon(0 0, 50% 18%, 100% 0, 100% 100%, 0 100%);
+}
+/* 5 Deep blue outside, a floral liner inside. */
+.memory-post-mail[data-design="midnight"] {
+  --memory-post-design-paper: var(--memory-post-env-midnight);
+  --memory-post-design-texture:
+    linear-gradient(
+      118deg,
+      transparent 30%,
+      var(--memory-post-midnight-sheen) 46%,
+      transparent 62%
+    ),
+    var(--memory-post-grain);
+  --memory-post-design-edge: linear-gradient(
+    135deg,
+    var(--memory-post-gold-hi),
+    var(--memory-post-gold) 45%,
+    var(--memory-post-gold-deep)
+  );
+  --memory-post-design-edge-w: 2px;
+  --memory-post-design-folds:
+    linear-gradient(
+      to top right,
+      transparent 49.6%,
+      var(--memory-post-midnight-fold) 50%,
+      transparent 50.6%
+    ),
+    linear-gradient(
+      to top left,
+      transparent 49.6%,
+      var(--memory-post-midnight-fold) 50%,
+      transparent 50.6%
+    );
+  --memory-post-design-liner:
+    radial-gradient(
+      circle at 50% 50%,
+      var(--memory-post-flower-core) 0 1.5px,
+      transparent 1.9px
+    ) 0 0 / 24px 24px,
+    radial-gradient(
+      circle at 50% 30%,
+      var(--memory-post-flower-a) 0 2.7px,
+      transparent 3.1px
+    ) 0 0 / 24px 24px,
+    radial-gradient(
+      circle at 70% 50%,
+      var(--memory-post-flower-a) 0 2.7px,
+      transparent 3.1px
+    ) 0 0 / 24px 24px,
+    radial-gradient(
+      circle at 50% 70%,
+      var(--memory-post-flower-a) 0 2.7px,
+      transparent 3.1px
+    ) 0 0 / 24px 24px,
+    radial-gradient(
+      circle at 30% 50%,
+      var(--memory-post-flower-a) 0 2.7px,
+      transparent 3.1px
+    ) 0 0 / 24px 24px,
+    radial-gradient(
+      circle at 50% 50%,
+      var(--memory-post-flower-core) 0 1.2px,
+      transparent 1.6px
+    ) 12px 12px / 24px 24px,
+    radial-gradient(
+      circle at 50% 32%,
+      var(--memory-post-flower-b) 0 2.2px,
+      transparent 2.6px
+    ) 12px 12px / 24px 24px,
+    radial-gradient(
+      circle at 68% 50%,
+      var(--memory-post-flower-b) 0 2.2px,
+      transparent 2.6px
+    ) 12px 12px / 24px 24px,
+    radial-gradient(
+      circle at 50% 68%,
+      var(--memory-post-flower-b) 0 2.2px,
+      transparent 2.6px
+    ) 12px 12px / 24px 24px,
+    radial-gradient(
+      circle at 32% 50%,
+      var(--memory-post-flower-b) 0 2.2px,
+      transparent 2.6px
+    ) 12px 12px / 24px 24px,
+    radial-gradient(
+      ellipse 4px 1.6px at 50% 50%,
+      var(--memory-post-flower-leaf) 0 100%,
+      transparent 101%
+    ) 6px 18px / 24px 24px,
+    var(--memory-post-liner-floral);
+  --memory-post-design-ink: var(--memory-post-ink-gold);
+  --memory-post-design-ink-small: var(--memory-post-ink-cream);
+  --memory-post-flap-h: 58%;
+}
+/* 6 Sage greeting-card envelope with a gold foil edge. */
+.memory-post-mail[data-design="sage"] {
+  --memory-post-design-paper: var(--memory-post-env-sage);
+  --memory-post-design-texture:
+    repeating-linear-gradient(
+      0deg,
+      var(--memory-post-sage-linen-a) 0 1px,
+      transparent 1px 3px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      var(--memory-post-sage-linen-b) 0 1px,
+      transparent 1px 3px
+    ),
+    var(--memory-post-grain);
+  --memory-post-design-edge: linear-gradient(
+    135deg,
+    var(--memory-post-gold-hi),
+    var(--memory-post-gold) 40%,
+    var(--memory-post-gold-hi) 55%,
+    var(--memory-post-gold-deep)
+  );
+  --memory-post-design-edge-w: 3px;
+  --memory-post-design-folds: linear-gradient(transparent, transparent);
+  --memory-post-design-inside: color-mix(
+    in srgb,
+    var(--memory-post-env-sage) 75%,
+    var(--memory-post-shade)
+  );
+  --memory-post-design-inside-shade: color-mix(
+    in srgb,
+    var(--memory-post-env-sage) 52%,
+    var(--memory-post-shade)
+  );
+  --memory-post-design-liner:
+    repeating-linear-gradient(
+      90deg,
+      var(--memory-post-gold) 0 1px,
+      transparent 1px 7px
+    ),
+    var(--memory-post-liner-floral);
+  --memory-post-flap-h: 50%;
+  --memory-post-flap-shape: polygon(0 0, 100% 0, 58% 92%, 50% 100%, 42% 92%);
+  --memory-post-pocket-shape: polygon(0 0, 50% 30%, 100% 0, 100% 100%, 0 100%);
+}
+
+.memory-post-env-rear {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  border-radius: 3px;
+  background: linear-gradient(
+    var(--memory-post-design-inside-shade),
+    var(--memory-post-design-inside) 42%
+  );
+  box-shadow:
+    0 1px 1px color-mix(in srgb, var(--memory-post-shade) 20%, transparent),
+    0 14px 24px color-mix(in srgb, var(--memory-post-shade) 24%, transparent);
+}
+/* The blue envelope shows its floral liner inside, too. */
+.memory-post-mail[data-design="midnight"] .memory-post-env-rear {
+  background:
+    linear-gradient(
+      color-mix(in srgb, var(--memory-post-shade) 34%, transparent),
+      transparent 45%
+    ),
+    var(--memory-post-design-liner);
+}
+.memory-post-flap,
+.memory-post-flap:disabled {
+  position: absolute;
+  z-index: 5;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: var(--memory-post-flap-h);
+  padding: 0;
+  border: 0;
+  background: none;
+  transform-origin: 50% 0;
+  transform: perspective(700px) rotateX(calc(var(--memory-post-flap, 0) * 1deg));
+  touch-action: none;
+  cursor: grab;
+}
+.memory-post-flap[data-dragging] {
+  cursor: grabbing;
+}
+.memory-post-flap[data-open] {
+  z-index: 2;
+  cursor: default;
+}
+.memory-post-flap:disabled {
+  cursor: default;
+}
+.memory-post-flap:focus-visible {
+  outline: none;
+}
+.memory-post-flap:focus-visible .memory-post-seal {
+  outline: 3px solid var(--memory-post-focus);
+  outline-offset: 3px;
+}
+.memory-post-flap-outer,
+.memory-post-flap-inner {
+  position: absolute;
+  inset: 0;
+  clip-path: var(--memory-post-flap-shape);
+}
+/* The edge (airmail stripes, gold foil or plain paper) frames the flap. */
+.memory-post-flap-outer {
+  background: var(--memory-post-design-edge);
+}
+.memory-post-flap-paper {
+  position: absolute;
+  inset: var(--memory-post-design-edge-w) var(--memory-post-design-edge-w)
+    calc(var(--memory-post-design-edge-w) * 1.6);
+  clip-path: var(--memory-post-flap-shape);
+  background:
+    linear-gradient(
+      transparent 70%,
+      color-mix(in srgb, var(--memory-post-shade) 9%, transparent)
+    ),
+    var(--memory-post-design-texture), var(--memory-post-design-paper);
+}
+.memory-post-flap-inner {
+  display: none;
+  background: var(--memory-post-design-liner);
+}
+.memory-post-flap[data-open] .memory-post-flap-outer,
+.memory-post-flap[data-open] .memory-post-seal {
+  display: none;
+}
+.memory-post-flap[data-open] .memory-post-flap-inner {
+  display: block;
+}
+
+/* Closures sit on the flap tip. */
+.memory-post-seal {
+  position: absolute;
+  inset-block-end: -14px;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  display: grid;
+  place-items: center;
+  inline-size: 34px;
+  block-size: 34px;
+}
+.memory-post-seal svg {
+  inline-size: 18px;
+  block-size: 18px;
+}
+/* Airmail: a heart sticker. */
+.memory-post-seal-heart {
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 38% 32%,
+    color-mix(
+      in srgb,
+      var(--memory-post-stamp-heart) 60%,
+      var(--memory-post-sheen)
+    ),
+    var(--memory-post-stamp-heart) 60%,
+    color-mix(
+      in srgb,
+      var(--memory-post-stamp-heart) 70%,
+      var(--memory-post-void)
+    )
+  );
+  box-shadow:
+    0 0 0 2px
+    color-mix(
+      in srgb,
+      var(--memory-post-stamp-heart) 80%,
+      var(--memory-post-void)
+    ),
+    0 2px 3px color-mix(in srgb, var(--memory-post-shade) 35%, transparent);
+}
+.memory-post-seal-heart svg {
+  fill: var(--memory-post-greeting-ink);
+  opacity: 0.9;
+}
+/* Kraft: a paper button with string wound around it and a second button. */
+.memory-post-seal-button {
+  inset-block-end: -11px;
+  inline-size: 22px;
+  block-size: 22px;
+}
+.memory-post-seal .memory-post-string {
+  position: absolute;
+  inset-block-start: 1px;
+  inset-inline-start: -9px;
+  inline-size: 40px;
+  block-size: 52px;
+  overflow: visible;
+  fill: none;
+  stroke: var(--memory-post-string);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  filter: drop-shadow(
+    0 1px 0 color-mix(in srgb, var(--memory-post-shade) 40%, transparent)
+  );
+}
+.memory-post-button-disc,
+.memory-post-pocket-button {
+  position: relative;
+  inline-size: 22px;
+  block-size: 22px;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 40% 50%,
+      var(--memory-post-kraft-inside) 0 1.4px,
+      transparent 1.8px
+    ),
+    radial-gradient(
+      circle at 60% 50%,
+      var(--memory-post-kraft-inside) 0 1.4px,
+      transparent 1.8px
+    ),
+    radial-gradient(
+      circle at 35% 30%,
+      var(--memory-post-kraft-hi),
+      var(--memory-post-kraft-deep) 75%
+    );
+  box-shadow:
+    inset 0 0 0 2px
+    color-mix(in srgb, var(--memory-post-kraft-deep) 70%, transparent),
+    0 2px 3px color-mix(in srgb, var(--memory-post-shade) 35%, transparent);
+}
+.memory-post-pocket-button {
+  position: absolute;
+  inset-inline-start: 50%;
+  /* 32 px below the flap tip, where the string's lower loop lies. */
+  inset-block-start: calc(var(--memory-post-flap-h) + 32px);
+  translate: -50% -50%;
+}
+/* Rose: a red wax seal with an embossed heart. */
+.memory-post-seal-wax {
+  inset-block-end: -18px;
+  inline-size: 42px;
+  block-size: 40px;
+  border-radius: 47% 53% 44% 56% / 52% 46% 54% 48%;
+  background: radial-gradient(
+    circle at 36% 30%,
+    var(--memory-post-wax-hi),
+    var(--memory-post-wax) 45%,
+    var(--memory-post-wax-deep)
+  );
+  box-shadow: 0 3px 4px
+    color-mix(in srgb, var(--memory-post-shade) 40%, transparent);
+}
+.memory-post-seal-wax::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 1.5px var(--memory-post-wax-deep),
+    inset 1px 1px 0 1.5px
+    color-mix(in srgb, var(--memory-post-wax-hi) 45%, transparent);
+}
+.memory-post-seal-wax svg {
+  fill: var(--memory-post-wax-deep);
+  filter: drop-shadow(
+    0.6px 0.8px 0 color-mix(in srgb, var(--memory-post-wax-hi) 70%, transparent)
+  );
+}
+/* Telegram: a paper closing label across the edge. */
+.memory-post-seal-label {
+  inset-block-end: -20px;
+  inline-size: 20px;
+  block-size: 40px;
+  rotate: 2deg;
+  border-radius: 1px;
+  background: var(--memory-post-grain), var(--memory-post-label);
+  box-shadow:
+    inset 0 0 0 2px var(--memory-post-label),
+    inset 0 0 0 3px var(--memory-post-ink-urgent),
+    0 1px 2px color-mix(in srgb, var(--memory-post-shade) 30%, transparent);
+}
+/* Midnight: a gold star sticker. */
+.memory-post-seal-star svg {
+  inline-size: 30px;
+  block-size: 30px;
+  fill: var(--memory-post-gold);
+  stroke: var(--memory-post-gold-deep);
+  stroke-width: 1;
+  filter: drop-shadow(
+    0 1px 1px color-mix(in srgb, var(--memory-post-shade) 50%, transparent)
+  );
+}
+/* Sage: a round gold foil sticker with a leaf. */
+.memory-post-seal-foil {
+  inline-size: 32px;
+  block-size: 32px;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    var(--memory-post-gold-hi),
+    var(--memory-post-gold) 45%,
+    var(--memory-post-gold-hi) 60%,
+    var(--memory-post-gold-deep)
+  );
+  box-shadow:
+    inset 0 0 0 1.5px
+    color-mix(in srgb, var(--memory-post-gold-deep) 70%, transparent),
+    0 2px 3px color-mix(in srgb, var(--memory-post-shade) 35%, transparent);
+}
+.memory-post-foil-leaf {
+  fill: var(--memory-post-gold-deep);
+}
+.memory-post-foil-vein {
+  fill: none;
+  stroke: var(--memory-post-gold-hi);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+.memory-post-pocket {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  border-radius: 3px;
+  clip-path: var(--memory-post-pocket-shape);
+  background: var(--memory-post-design-edge);
+}
+.memory-post-pocket-paper {
+  position: absolute;
+  inset: var(--memory-post-design-edge-w);
+  background:
+    var(--memory-post-design-folds), var(--memory-post-design-texture),
+    radial-gradient(
+      ellipse at 50% 60%,
+      transparent 55%,
+      var(--memory-post-paper-age) 130%
+    ),
+    var(--memory-post-design-paper);
+}
+/* The urgent envelope has a printed frame. */
+.memory-post-mail[data-design="telegram"] .memory-post-pocket-paper {
+  outline: 1px solid
+    color-mix(in srgb, var(--memory-post-ink-urgent) 55%, transparent);
+  outline-offset: -8px;
+}
+
+/* Stamp and address, placed differently per design. */
+.memory-post-env-stamp {
+  position: absolute;
+  inset-block-start: 48%;
+  inset-inline-end: 16px;
+  inline-size: 38px;
+  block-size: 46px;
+  rotate: 3deg;
+}
+.memory-post-env-stamp .memory-post-stamp {
+  position: static;
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  rotate: none;
+}
+.memory-post-mail[data-design="airmail"] .memory-post-env-stamp {
+  inset-block-start: 46%;
+  inset-inline: 18px auto;
+  rotate: -4deg;
+}
+.memory-post-mail[data-design="kraft"] .memory-post-env-stamp {
+  inset-block-start: 44%;
+}
+.memory-post-mail[data-design="rose"] .memory-post-env-stamp {
+  inset-block-start: 38%;
+  inset-inline-end: 14px;
+  rotate: 6deg;
+}
+.memory-post-mail[data-design="telegram"] .memory-post-env-stamp {
+  inset-block-start: 46%;
+  inset-inline-end: 18px;
+  rotate: 0deg;
+}
+.memory-post-mail[data-design="midnight"] .memory-post-env-stamp {
+  inset-block-start: 48%;
+  inset-inline: 18px auto;
+  rotate: -5deg;
+}
+.memory-post-mail[data-design="sage"] .memory-post-env-stamp {
+  inset-block-start: 34%;
+  inset-inline-end: 18px;
+  rotate: 4deg;
+}
+
+.memory-post-env-address {
+  position: absolute;
+  inset-inline-end: 22px;
+  inset-block-end: 14px;
+  display: grid;
+  justify-items: end;
+  rotate: -2deg;
+  color: var(--memory-post-design-ink);
+  font-family: var(--memory-post-hand);
+  font-weight: 700;
+  font-size: 1.4rem;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+.memory-post-env-address-small {
+  color: var(--memory-post-design-ink-small);
+  font-size: 1rem;
+  font-weight: 600;
+}
+.memory-post-mail[data-design="kraft"] .memory-post-env-address {
+  inset-inline: 18px auto;
+  justify-items: start;
+  rotate: -3deg;
+}
+.memory-post-mail:is([data-design="rose"], [data-design="sage"])
+  .memory-post-env-address {
+  inset-inline: 50% auto;
+  translate: -50% 0;
+  justify-items: center;
+  rotate: -1deg;
+}
+.memory-post-mail[data-design="sage"] .memory-post-env-address {
+  inset-block-end: 18px;
+}
+.memory-post-mail[data-design="midnight"] .memory-post-env-address {
+  inset-block-end: 16px;
+  inset-inline-end: 20px;
+}
+
+.memory-post-airmail {
+  position: absolute;
+  inset-inline-start: 18px;
+  inset-block-end: 16px;
+  padding: 2px 6px 1px;
+  rotate: -3deg;
+  border: 1.5px solid var(--memory-post-airmail-blue);
+  border-radius: 2px;
+  background: var(--memory-post-env-paper);
+  color: var(--memory-post-airmail-blue);
+  font-family: var(--font-display);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+/* A pressed, dried flower tucked into the pink envelope. */
+.memory-post-pressed {
+  position: absolute;
+  inset-inline-start: 10px;
+  inset-block-end: 8px;
+  inline-size: 46px;
+  block-size: 46px;
+  rotate: -18deg;
+  opacity: 0.92;
+}
+.memory-post-pressed-stem {
+  fill: none;
+  stroke: var(--memory-post-pressed-leaf);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+.memory-post-pressed-leaf {
+  fill: var(--memory-post-pressed-leaf);
+}
+.memory-post-pressed-petals circle {
+  fill: var(--memory-post-pressed-petal);
+  stroke: color-mix(
+    in srgb,
+    var(--memory-post-pressed-petal) 70%,
+    var(--memory-post-ink-rose)
+  );
+  stroke-width: 0.6;
+}
+.memory-post-pressed-core {
+  fill: var(--memory-post-pressed-core);
+}
+/* A red rubber stamp: urgent. */
+.memory-post-urgent {
+  position: absolute;
+  inset-inline-start: 18px;
+  inset-block-start: 45%;
+  padding: 1px 9px 2px 11px;
+  rotate: -8deg;
+  border: 2px solid var(--memory-post-ink-urgent);
+  border-radius: 3px;
+  box-shadow:
+    inset 0 0 0 2px var(--memory-post-env-buff),
+    inset 0 0 0 3px var(--memory-post-ink-urgent);
+  color: var(--memory-post-ink-urgent);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+/* Typewritten address on the ruled lines. */
+.memory-post-typed {
+  position: absolute;
+  inset-inline-start: 18px;
+  inset-block-end: 12px;
+  display: grid;
+  color: var(--memory-post-ink-type);
+  font-family: var(--memory-post-type);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+/* ---------- The postcard ---------- */
+
+.memory-post-card {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  translate: 0 3%;
+  scale: 0.92;
+}
+.memory-post-card[data-at="pulled"] {
+  translate: 0 -70%;
+}
+.memory-post-card[data-at="out"] {
+  translate: 0 0;
+  scale: 1;
+}
+.memory-post-card[data-at="rest"] {
+  z-index: 7;
+  translate: 0 0;
+  scale: 1;
+}
+.memory-post-carry {
+  position: absolute;
+  inset: 0;
+  perspective: 1200px;
+  transform: translate(
+      calc(var(--memory-post-cx, 0) * 1px),
+      calc(var(--memory-post-cy, 0) * 1px)
+    )
+    rotate(calc(var(--memory-post-cr, 0) * 1deg))
+    scale(var(--memory-post-cs, 1));
+}
+.memory-post-turn {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateY(calc(var(--memory-post-turn, 0) * 1deg));
+  touch-action: none;
+  cursor: grab;
+}
+.memory-post-turn[data-turning] {
+  cursor: grabbing;
+}
+.memory-post-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 3px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  background:
+    var(--memory-post-grain),
+    radial-gradient(
+      circle at 16% 84%,
+      var(--memory-post-foxing) 0 1.5px,
+      transparent 3px
+    ),
+    radial-gradient(
+      circle at 78% 12%,
+      var(--memory-post-foxing) 0 1px,
+      transparent 2.5px
+    ),
+    radial-gradient(
+      circle at 62% 92%,
+      var(--memory-post-foxing) 0 0.8px,
+      transparent 2px
+    ),
+    radial-gradient(
+      ellipse at 50% 50%,
+      transparent 58%,
+      var(--memory-post-paper-age) 120%
+    ),
+    var(--memory-post-paper);
+  box-shadow:
+    0 1px 1px color-mix(in srgb, var(--memory-post-shade) 22%, transparent),
+    0 12px 22px color-mix(in srgb, var(--memory-post-shade) 22%, transparent);
+}
+.memory-post-card[data-carry="drag"] .memory-post-face,
+.memory-post-turn[data-turning] .memory-post-face {
+  box-shadow:
+    0 1px 1px color-mix(in srgb, var(--memory-post-shade) 22%, transparent),
+    var(--memory-post-lift-shadow);
+}
+.memory-post-back {
+  transform: rotateY(180deg);
+}
+
+/* Front: the picture side. */
+.memory-post-front {
+  padding: 9px;
+}
+.memory-post-front .memory-world-photo {
+  inline-size: 100%;
+  block-size: 100%;
+  aspect-ratio: auto;
+  border-radius: 1px;
+  filter: var(--memory-post-photo-filter);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--memory-post-shade) 18%, transparent);
+}
+.memory-post-front[data-kind="heart"] {
+  background-color: var(--memory-post-front-heart);
+}
+.memory-post-front[data-kind="milestone"] {
+  background-color: var(--memory-post-front-milestone);
+}
+.memory-post-front[data-kind="words"] {
+  background:
+    var(--memory-post-grain),
+    repeating-linear-gradient(
+      transparent 0 23px,
+      color-mix(in srgb, var(--memory-post-ink-hand) 14%, transparent) 23px 24px
+    ),
+    radial-gradient(
+      ellipse at 50% 50%,
+      transparent 58%,
+      var(--memory-post-paper-age) 120%
+    ),
+    var(--memory-post-paper);
+}
+.memory-post-front:is([data-kind="heart"], [data-kind="milestone"]) {
+  background-image:
+    var(--memory-post-grain),
+    radial-gradient(
+      ellipse at 50% 50%,
+      transparent 58%,
+      var(--memory-post-paper-age) 120%
+    );
+}
+.memory-post-motif {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  block-size: 100%;
+  padding: 10px 22px 34px;
+  text-align: center;
+  color: var(--memory-post-ink-hand);
+}
+/* The title takes the room the motif leaves and is fitted into it. */
+.memory-post-motif-title-box {
+  display: grid;
+  align-content: center;
+  align-self: stretch;
+  justify-self: stretch;
+  min-block-size: 0;
+  overflow: hidden;
+}
+.memory-post-motif-title {
+  font-family: var(--memory-post-hand);
+  font-weight: 700;
+  font-size: 1.6rem;
+  line-height: 1.08;
+}
+.memory-post-motif-heart {
+  inline-size: 30px;
+  block-size: 28px;
+  fill: var(--memory-post-stamp-heart);
+}
+.memory-post-motif-mark {
+  /* The card paper stays light in dark mode, so the stamp needs a dark green. */
+  --color-story-milestone: var(--memory-post-milestone-ink);
+  inline-size: 56px;
+  block-size: 56px;
+}
+.memory-post-greeting {
+  position: absolute;
+  inset-inline-start: 18px;
+  inset-block-end: 17px;
+  padding: 3px 14px 4px;
+  rotate: -4deg;
+  clip-path: polygon(0 0, 100% 0, 95% 50%, 100% 100%, 0 100%, 5% 50%);
+  background: var(--memory-post-greeting);
+  color: var(--memory-post-greeting-ink);
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-style: italic;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Back: message, stamp, postmark, address. */
+.memory-post-back {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+  gap: 12px;
+  padding: 22px 14px 14px;
+  color: var(--memory-post-ink-hand);
+  text-align: start;
+}
+.memory-post-back-print {
+  position: absolute;
+  inset-block-start: 7px;
+  inset-inline: 0;
+  color: var(--memory-post-print-ink);
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.36em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.memory-post-message {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  min-inline-size: 0;
+  padding-inline-end: 12px;
+  border-inline-end: 1px solid
+    color-mix(in srgb, var(--memory-post-print-ink) 32%, transparent);
+  font-family: var(--memory-post-hand);
+  font-weight: 600;
+  line-height: 1.08;
+}
+.memory-post-message-kicker {
+  font-size: 1rem;
+  font-weight: 500;
+}
+/* The message takes the room between the kicker and the signature and is
+   fitted into it. */
+.memory-post-message-text-box {
+  min-block-size: 0;
+  overflow: hidden;
+}
+.memory-post-message-text {
+  display: block;
+  font-size: 1.24rem;
+  font-weight: 700;
+}
+/* A heart moment is quoted in the quotation marks of the page's language. */
+.memory-post-message-text[data-quote]::before {
+  content: open-quote;
+}
+.memory-post-message-text[data-quote]::after {
+  content: close-quote;
+}
+.memory-post-sign {
+  margin-block-start: 4px;
+  font-size: 1.05rem;
+}
+.memory-post-address {
+  position: relative;
+  display: grid;
+  align-content: end;
+  gap: 2px;
+  min-inline-size: 0;
+}
+.memory-post-to {
+  overflow: hidden;
+  padding-block-end: 1px;
+  border-block-end: 1px solid
+    color-mix(in srgb, var(--memory-post-print-ink) 30%, transparent);
+  font-family: var(--memory-post-hand);
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.memory-post-stamp {
+  position: absolute;
+  inset-block-start: -6px;
+  inset-inline-end: 0;
+  inline-size: 46px;
+  block-size: 56px;
+  rotate: 2deg;
+  filter: drop-shadow(
+    0 1px 1px color-mix(in srgb, var(--memory-post-shade) 32%, transparent)
+  );
+}
+.memory-post-stamp-paper {
+  fill: var(--memory-post-stamp-paper);
+}
+.memory-post-stamp-field {
+  fill: var(--memory-post-stamp-photo);
+}
+.memory-post-stamp[data-kind="heart"] .memory-post-stamp-field {
+  fill: var(--memory-post-stamp-heart);
+}
+.memory-post-stamp[data-kind="milestone"] .memory-post-stamp-field {
+  fill: var(--memory-post-stamp-milestone);
+}
+.memory-post-stamp[data-kind="words"] .memory-post-stamp-field {
+  fill: var(--memory-post-stamp-words);
+}
+/* Clock and leaf details are cut out in the field colour. */
+.memory-post-stamp-hand {
+  fill: none;
+  stroke: var(--memory-post-stamp-photo);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.memory-post-stamp[data-kind="heart"] .memory-post-stamp-hand {
+  stroke: var(--memory-post-stamp-heart);
+}
+.memory-post-stamp[data-kind="milestone"] .memory-post-stamp-hand {
+  stroke: var(--memory-post-stamp-milestone);
+}
+.memory-post-stamp[data-kind="words"] .memory-post-stamp-hand {
+  stroke: var(--memory-post-stamp-words);
+}
+.memory-post-stamp-ink {
+  fill: var(--memory-post-stamp-ink);
+  opacity: 0.92;
+}
+.memory-post-stamp-sun {
+  fill: var(--memory-post-stamp-sun);
+}
+.memory-post-stamp-value {
+  fill: var(--memory-post-stamp-ink);
+  font-family: var(--font-display);
+  font-size: 8px;
+  font-weight: 700;
+}
+.memory-post-postmark {
+  position: absolute;
+  inset-block-start: 4px;
+  inset-inline-end: -6px;
+  inline-size: 100px;
+  block-size: 60px;
+  rotate: -9deg;
+  color: var(--memory-post-postmark);
+  opacity: 0.94;
+  mix-blend-mode: multiply;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+  overflow: visible;
+}
+.memory-post-postmark text {
+  fill: currentColor;
+  stroke: none;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+.memory-post-postmark-ring {
+  font-size: 6.2px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.memory-post-postmark-date {
+  font-size: 8.4px;
+}
+.memory-post-postmark-waves path {
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+/* Opening the memory: a quiet paper tag clipped to the card. */
+.memory-post-open {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: -30px;
+  inset-inline-start: 12px;
+  display: flex;
+  align-items: flex-start;
+  min-block-size: 44px;
+  rotate: -4deg;
+  color: var(--memory-post-ink-hand);
+  text-decoration: none;
+}
+.memory-post-open[data-hidden] {
+  opacity: 0;
+  pointer-events: none;
+}
+.memory-post-open:focus-visible {
+  outline: none;
+}
+.memory-post-open:focus-visible .memory-post-open-tag {
+  outline: 3px solid var(--memory-post-focus);
+  outline-offset: 2px;
+}
+.memory-post-clip {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: 12px;
+  inset-inline-start: 10px;
+  inline-size: 13px;
+  block-size: 36px;
+  fill: none;
+  stroke: var(--memory-post-rivet);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  filter: drop-shadow(0 1px 0 var(--memory-post-rivet-lo));
+}
+.memory-post-open-tag {
+  padding: 5px 14px 6px 26px;
+  border-radius: 3px 9px 9px 3px;
+  background:
+    radial-gradient(
+      circle at 12px 50%,
+      color-mix(in srgb, var(--memory-post-shade) 30%, transparent) 0 2.6px,
+      transparent 3.2px
+    ),
+    var(--memory-post-grain), var(--memory-post-tag);
+  box-shadow: 0 2px 4px
+    color-mix(in srgb, var(--memory-post-shade) 28%, transparent);
+  font-family: var(--memory-post-hand);
+  font-size: 1.12rem;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+/* The keyboard fallback for turning: only visible when focused. */
+.memory-post-focus-only {
+  position: absolute;
+  z-index: 3;
+  inset-block-end: 10px;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  padding: 0;
+  border: 0;
+  white-space: nowrap;
+}
+.memory-post-focus-only:focus-visible {
+  inline-size: auto;
+  block-size: auto;
+  clip-path: none;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font: var(--font-supporting-copy);
+  font-weight: 700;
+  outline: 3px solid var(--memory-post-focus);
+  outline-offset: 2px;
+}
+
+/* ---------- The shoebox for read cards ---------- */
+
+.memory-post-shoebox {
+  position: relative;
+  inline-size: min(76%, 236px);
+  block-size: 104px;
+  /* The card on the desk overlaps the rim a little. */
+  margin-block-start: -22px;
+}
+.memory-post-shoebox-lid {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: -16px;
+  inset-inline: 10px -6px;
+  block-size: 34px;
+  rotate: 5deg;
+  border-radius: 4px;
+  background: linear-gradient(
+    var(--memory-post-kraft-hi),
+    var(--memory-post-kraft) 30%,
+    var(--memory-post-kraft-deep)
+  );
+  box-shadow:
+    inset 0 -5px 0 var(--memory-post-kraft-deep),
+    0 4px 6px color-mix(in srgb, var(--memory-post-shade) 22%, transparent);
+}
+.memory-post-shoebox-back {
+  position: absolute;
+  z-index: 1;
+  inset-block: 12px 0;
+  inset-inline: 0;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(
+    color-mix(
+      in srgb,
+      var(--memory-post-kraft-inside) 70%,
+      var(--memory-post-kraft)
+    ),
+    var(--memory-post-kraft-inside)
+  );
+  box-shadow: inset 0 2px 0 var(--memory-post-kraft-hi);
+}
+.memory-post-shoebox-cards {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  /* Open at the top, clipped at both walls and at the floor. */
+  clip-path: inset(-80px 3px 0 3px);
+  pointer-events: none;
+}
+/* Every filed card stands on the floor in the same pose that the flying card
+   ends in (see fileCard), so it never jumps or slips out. */
+.memory-post-boxed {
+  position: absolute;
+  inset-block-end: var(--memory-post-boxed-floor);
+  inset-inline-start: 50%;
+  inline-size: var(--memory-post-boxed-w);
+  aspect-ratio: 3 / 2;
+  translate: calc(-50% + var(--memory-post-shift, 0) * 1px) 0;
+  rotate: calc(var(--memory-post-tilt, 0) * 1deg);
+  border-radius: 2px;
+  background: var(--memory-post-grain), var(--memory-post-paper);
+  box-shadow: 0 -1px 2px
+    color-mix(in srgb, var(--memory-post-shade) 25%, transparent);
+}
+.memory-post-boxed[data-kind="photo"] {
+  background:
+    linear-gradient(
+      color-mix(
+        in srgb,
+        var(--memory-post-enamel-deep) 60%,
+        var(--memory-post-desk)
+      ),
+      var(--memory-post-enamel-deep)
+    )
+    50% 4px / calc(100% - 8px) calc(100% - 8px) no-repeat,
+    var(--memory-post-paper);
+}
+.memory-post-boxed[data-kind="heart"] {
+  background: var(--memory-post-grain), var(--memory-post-front-heart);
+}
+.memory-post-boxed[data-kind="milestone"] {
+  background: var(--memory-post-grain), var(--memory-post-front-milestone);
+}
+.memory-post-boxed[data-kind="words"] {
+  background:
+    repeating-linear-gradient(
+      transparent 0 7px,
+      color-mix(in srgb, var(--memory-post-ink-hand) 18%, transparent) 7px 8px
+    ),
+    var(--memory-post-paper);
+}
+/* Writing side up: plain card with its stamp in the corner. */
+.memory-post-boxed[data-side="back"] {
+  background:
+    linear-gradient(
+      var(--memory-post-stamp-photo),
+      var(--memory-post-stamp-photo)
+    )
+    calc(100% - 6px) 6px / 12px 14px no-repeat,
+    var(--memory-post-grain),
+    var(--memory-post-paper);
+}
+.memory-post-boxed[data-side="back"][data-kind="heart"] {
+  background:
+    linear-gradient(
+      var(--memory-post-stamp-heart),
+      var(--memory-post-stamp-heart)
+    )
+    calc(100% - 6px) 6px / 12px 14px no-repeat,
+    var(--memory-post-grain),
+    var(--memory-post-paper);
+}
+.memory-post-shoebox-front,
+.memory-post-shoebox-front:disabled {
+  position: absolute;
+  z-index: 5;
+  inset-inline: -4px;
+  inset-block-end: 0;
+  block-size: 70px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 2px 2px 6px 6px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 3px,
+      color-mix(in srgb, var(--memory-post-kraft-deep) 14%, transparent) 3px 4px
+    ),
+    var(--memory-post-grain),
+    linear-gradient(
+      var(--memory-post-kraft),
+      color-mix(
+        in srgb,
+        var(--memory-post-kraft) 80%,
+        var(--memory-post-kraft-deep)
+      )
+    );
+  box-shadow:
+    inset 0 3px 0 var(--memory-post-kraft-hi),
+    inset 0 -4px 0 var(--memory-post-kraft-deep),
+    0 10px 14px color-mix(in srgb, var(--memory-post-shade) 28%, transparent);
+  cursor: pointer;
+}
+.memory-post-shoebox-front:disabled {
+  cursor: default;
+}
+.memory-post-shoebox-front:focus-visible {
+  outline: 3px solid var(--memory-post-focus);
+  outline-offset: 3px;
+}
+.memory-post-shoebox-label {
+  position: relative;
+  padding: 2px 16px 3px;
+  rotate: -2deg;
+  background: var(--memory-post-grain), var(--memory-post-label);
+  box-shadow: 0 1px 2px
+    color-mix(in srgb, var(--memory-post-shade) 25%, transparent);
+  color: var(--memory-post-ink-hand);
+  font-family: var(--memory-post-hand);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+/* Two strips of tape hold the label. */
+.memory-post-shoebox-label::before,
+.memory-post-shoebox-label::after {
+  content: "";
+  position: absolute;
+  inset-block-start: -4px;
+  inline-size: 16px;
+  block-size: 9px;
+  background: var(--memory-post-washi);
+}
+.memory-post-shoebox-label::before {
+  inset-inline-start: -6px;
+  rotate: -30deg;
+}
+.memory-post-shoebox-label::after {
+  inset-inline-end: -6px;
+  rotate: 30deg;
+}
+.memory-post-shoebox[data-near] .memory-post-shoebox-lid {
+  rotate: 11deg;
+}
+.memory-post-shoebox[data-near] .memory-post-shoebox-front {
+  translate: 0 3px;
+}
+
+/* ---------- Motion (roles and keyframes: src/motion/memory-worlds.css) ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  /* The flag swings up with an overshoot, or drops down with a little bounce. */
+  .memory-post-flag[data-up="true"] {
+    animation: eimir-motion-memory-post-flag-raise
+      var(--memory-post-flag-raise-duration) var(--memory-post-curve-flag) both;
+  }
+  .memory-post-flag[data-up="false"][data-moved] {
+    animation: eimir-motion-memory-post-flag-drop
+      var(--memory-post-flag-drop-duration) var(--memory-post-curve-soft) both;
+  }
+  /* Ambient: the waiting flag flutters and the door twitches, a few cycles,
+     paused while the mailbox is not seen (M8). */
+  .memory-post-scene[data-phase="waiting"] .memory-post-flag-plate {
+    animation: eimir-motion-memory-post-flag-flutter
+      var(--memory-post-flutter-duration) var(--memory-world-easing-in-out)
+      var(--memory-post-flutter-delay) var(--motion-ambient-repeat);
+  }
+  .memory-post-scene[data-phase="waiting"]
+    .memory-post-door:not([data-dragging]):not([data-motion="fall"]) {
+    animation: eimir-motion-memory-post-door-hint
+      var(--memory-post-door-hint-duration) var(--memory-world-easing-in-out)
+      var(--memory-post-door-hint-delay) var(--motion-ambient-repeat);
+  }
+  .memory-post-world:not([data-ambient="on"])
+    .memory-post-scene[data-phase="waiting"]
+    :is(.memory-post-flag-plate, .memory-post-door) {
+    animation-play-state: paused;
+  }
+  /* The door drops open and bounces against its stop, then springs shut. */
+  .memory-post-door[data-motion="fall"] {
+    animation: eimir-motion-memory-post-door-fall
+      var(--memory-post-door-fall-duration) var(--memory-post-curve-soft) both;
+  }
+  .memory-post-door[data-motion="close"] {
+    transition: transform var(--memory-post-door-close-duration)
+      var(--memory-post-curve-door-close);
+  }
+  /* The envelope slides out of the mailbox and lands on the desk. */
+  .memory-post-scene[data-phase="opening"] .memory-post-cavity-mail {
+    animation: eimir-motion-memory-post-fade-out
+      var(--memory-post-cavity-fade-duration) var(--memory-world-easing-in)
+      var(--memory-post-cavity-fade-delay) both;
+  }
+  .memory-post-mail[data-flying] {
+    animation: eimir-motion-memory-post-mail-out
+      var(--memory-post-mail-duration) var(--memory-post-curve-mail)
+      var(--memory-post-mail-delay) both;
+  }
+  /* The flap follows the finger, or swings open and shut. */
+  .memory-post-flap:not([data-dragging]) {
+    transition: transform var(--memory-post-flap-duration)
+      var(--memory-post-curve-flap);
+  }
+  /* The card is pulled out of the envelope, which falls away. */
+  .memory-post-card[data-at="pulled"] {
+    transition: translate var(--memory-post-pull-duration)
+      var(--memory-post-curve-pull);
+  }
+  .memory-post-card[data-at="out"] {
+    transition:
+      translate var(--memory-post-out-duration) var(--memory-post-curve-out),
+      scale var(--memory-post-out-duration) var(--memory-post-curve-out);
+  }
+  :is(
+    .memory-post-env-rear,
+    .memory-post-flap,
+    .memory-post-pocket
+  )[data-away] {
+    animation: eimir-motion-memory-post-envelope-away
+      var(--memory-post-away-duration) var(--memory-post-curve-away) both;
+  }
+  /* Carried by the finger, sprung back, or lifted and sunk into the box. */
+  .memory-post-card[data-carry="drag"] .memory-post-carry {
+    transition: transform var(--memory-post-drag-duration)
+      var(--memory-world-easing-out);
+  }
+  .memory-post-card[data-carry="spring"] .memory-post-carry {
+    transition: transform var(--memory-post-spring-duration)
+      var(--memory-post-curve-spring);
+  }
+  .memory-post-card[data-carry="lift"] .memory-post-carry {
+    transition: transform var(--memory-post-lift-duration)
+      var(--memory-post-curve-lift);
+  }
+  .memory-post-card[data-carry="sink"] .memory-post-carry {
+    transition: transform var(--memory-post-sink-duration)
+      var(--memory-post-curve-sink);
+  }
+  /* The card turns over with a little overshoot, and hints at it once. */
+  .memory-post-turn:not([data-turning]) {
+    transition: transform var(--memory-post-turn-duration)
+      var(--memory-post-curve-turn);
+  }
+  .memory-post-turn[data-hint] {
+    animation: eimir-motion-memory-post-turn-hint
+      var(--memory-post-hint-duration) var(--memory-world-easing-in-out)
+      var(--memory-post-hint-delay) both;
+  }
+  .memory-post-face {
+    transition: box-shadow var(--memory-post-shadow-duration)
+      var(--memory-world-easing-out);
+  }
+  /* The paper tag pops up on the card, and fades while the card moves. */
+  .memory-post-open {
+    transition: opacity var(--memory-post-tag-fade-duration)
+      var(--memory-world-easing-out);
+    animation: eimir-motion-memory-post-tag-in var(--memory-post-tag-duration)
+      var(--memory-post-curve-tag) var(--memory-post-tag-delay) both;
+  }
+  .memory-post-open[data-hidden] {
+    animation: none;
+  }
+  /* The shoebox opens a little when a card comes near. */
+  .memory-post-shoebox-lid {
+    transition: rotate var(--memory-post-lid-duration)
+      var(--memory-world-easing-out);
+  }
+  .memory-post-shoebox-front {
+    transition: translate var(--memory-post-front-duration)
+      var(--memory-world-easing-out);
+  }
+  /* The next letter drops through the slot; the lip and the box react. */
+  .memory-post-slot-letter {
+    animation: eimir-motion-memory-post-slot-letter
+      var(--memory-post-letter-duration) var(--memory-post-curve-letter) both;
+  }
+  .memory-post-scene[data-phase="delivering"] .memory-post-slot-lip {
+    animation: eimir-motion-memory-post-lip var(--memory-post-lip-duration)
+      var(--memory-world-easing-out) var(--memory-post-lip-delay) both;
+  }
+  .memory-post-scene[data-phase="delivering"] .memory-post-box {
+    animation: eimir-motion-memory-post-box-wobble
+      var(--memory-post-wobble-duration) var(--memory-world-easing-out)
+      var(--memory-post-wobble-delay) both;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .memory-post-slot-drop {
+    display: none;
+  }
+}
+
+/* The app styles every disabled or pressed button as a grey action button.
+   The mailbox door, the envelope flap and the shoebox are objects that happen
+   to be buttons: they keep their own look in every state. */
+.memory-post-world
+  :is(.memory-post-door, .memory-post-flap, .memory-post-shoebox-front):is(
+    :disabled,
+    :active
+  ) {
+  color: inherit;
+  scale: none;
+  filter: none;
+}

@@ -48,13 +48,18 @@ import tomllib
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG = Path(__file__).resolve().with_name("core-allowlist.toml")
+DEFAULT_PRO_CONFIG = Path(__file__).resolve().with_name("pro-allowlist.toml")
 MANIFEST_NAME = "manifest.json"
+# Decision D6 (Product Owner, 2026-11-25): every snapshot commit uses this neutral identity,
+# never a personal name or a real e-mail address.
+SNAPSHOT_AUTHOR = "eimir. <snapshot@eimir.invalid>"
 SCHEMA = 1
 
-CHEAP_GATES = ("coverage", "plugin-imports", "openapi-contract", "licence", "secret-scan")
+CHEAP_GATES = ("coverage", "plugin-imports", "openapi-contract", "licence", "forbidden-text", "secret-scan")
 BACKEND_GATES = ("core-install", "core-start", "core-wheel", "core-unit-lane", "core-migrations")
 SNAPSHOT_GATES = ("snapshot-secret-scan",)
-ALL_GATES = (*CHEAP_GATES, *BACKEND_GATES, *SNAPSHOT_GATES)
+SPLIT_GATES = ("split",)
+ALL_GATES = (*CHEAP_GATES, *BACKEND_GATES, *SNAPSHOT_GATES, *SPLIT_GATES)
 
 # A Core file may import plugin code only below these prefixes, and only when
 # the allow-list names the file (test support for the private repository).
@@ -132,6 +137,41 @@ class Transform:
     replace: tuple[tuple[str, str], ...]
     drop_markdown_sections: tuple[str, ...]
     regenerate: str | None
+    keep_markdown_sections: tuple[str, ...] = ()
+    header: str = ""
+
+
+@dataclasses.dataclass(frozen=True)
+class Mapping:
+    """A path prefix of the source repository and where it lands in the target tree."""
+
+    source: str
+    target: str
+    reason: str
+
+
+@dataclasses.dataclass(frozen=True)
+class Addition:
+    """A file of the target tree that has no source path: it is read from ``source`` at the revision."""
+
+    path: str
+    source: str
+    reason: str
+
+
+@dataclasses.dataclass(frozen=True)
+class RequiredFile:
+    path: str
+    contains: tuple[str, ...]
+    lacks: tuple[str, ...]
+
+
+@dataclasses.dataclass(frozen=True)
+class ForbiddenText:
+    id: str
+    text: str
+    reason: str
+    regexes: tuple[re.Pattern[str], ...]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -144,7 +184,24 @@ class Config:
     plugin_import_roots: tuple[str, ...]
     plugin_import_allowances: dict[str, str]
     openapi_contract: str | None
-    required_files: tuple[tuple[str, tuple[str, ...]], ...]
+    required_files: tuple[RequiredFile, ...]
+    name: str = "core"
+    maps: tuple[Mapping, ...] = ()
+    additions: tuple[Addition, ...] = ()
+    forbidden_text: tuple[ForbiddenText, ...] = ()
+    # Split settings (only in the configuration of a second tree, for example eimir-pro).
+    core_allowlist: Path | None = None
+    overlaps: tuple[Rule, ...] = ()
+    archive_only: tuple[str, ...] = ()
+
+    def target_path(self, source: str) -> str:
+        for mapping in self.maps:
+            if source == mapping.source.rstrip("/") or source.startswith(mapping.source):
+                return mapping.target + source[len(mapping.source) :]
+        return source
+
+    def addition_for(self, path: str) -> Addition | None:
+        return next((addition for addition in self.additions if addition.path == path), None)
 
     def include_rule(self, path: str) -> Rule | None:
         return next((rule for rule in self.includes if rule.matches(path)), None)
@@ -168,11 +225,15 @@ def _keys(table: dict[str, Any], allowed: set[str], where: str) -> None:
         raise ExportError(f"{where}: unknown keys {sorted(unknown)}")
 
 
-def _rules(data: dict[str, Any], kind: str) -> tuple[Rule, ...]:
+def _rules(data: dict[str, Any], kind: str, core: Config | None = None) -> tuple[Rule, ...]:
+    """Rules of one kind; an include rule may take its patterns from a Core exclude rule."""
     rules = []
     seen: set[str] = set()
     for table in data.get(kind, []):
-        _keys(table, {"id", "reason", "patterns", "decision"}, f"[[{kind}]]")
+        allowed = {"id", "reason", "patterns", "decision"}
+        if kind == "include":
+            allowed.add("core_exclude")
+        _keys(table, allowed, f"[[{kind}]]")
         rule_id = table.get("id")
         if not rule_id or rule_id in seen:
             raise ExportError(f"[[{kind}]] needs a unique id, got {rule_id!r}")
@@ -180,6 +241,15 @@ def _rules(data: dict[str, Any], kind: str) -> tuple[Rule, ...]:
         if not table.get("reason"):
             raise ExportError(f"[[{kind}]] {rule_id} needs a reason")
         patterns = tuple(table.get("patterns", ()))
+        if "core_exclude" in table:
+            if patterns:
+                raise ExportError(f"[[{kind}]] {rule_id}: use either patterns or core_exclude")
+            if core is None:
+                raise ExportError(f"[[{kind}]] {rule_id}: core_exclude needs [split] core_allowlist")
+            source = next((rule for rule in core.excludes if rule.id == table["core_exclude"]), None)
+            if source is None:
+                raise ExportError(f"[[{kind}]] {rule_id}: no Core exclude rule {table['core_exclude']!r}")
+            patterns = source.patterns
         if not patterns:
             raise ExportError(f"[[{kind}]] {rule_id} lists no patterns")
         rules.append(
@@ -200,18 +270,79 @@ def load_config(path: Path) -> Config:
         data = tomllib.loads(path.read_text(encoding="utf-8"))
     except (OSError, tomllib.TOMLDecodeError) as error:
         raise ExportError(f"cannot read the allow-list {path}: {error}") from error
-    _keys(data, {"schema", "include", "exclude", "forbidden", "transform", "gates"}, str(path))
+    _keys(
+        data,
+        {
+            "schema",
+            "name",
+            "include",
+            "exclude",
+            "forbidden",
+            "transform",
+            "gates",
+            "map",
+            "add",
+            "split",
+            "overlap",
+        },
+        str(path),
+    )
     if data.get("schema") != SCHEMA:
         raise ExportError(f"{path}: schema must be {SCHEMA}")
-    includes = _rules(data, "include")
+
+    split = data.get("split", {})
+    _keys(split, {"core_allowlist", "archive_only"}, "[split]")
+    core: Config | None = None
+    core_allowlist: Path | None = None
+    if split:
+        if "core_allowlist" not in split:
+            raise ExportError("[split] needs core_allowlist")
+        core_allowlist = (path.parent / split["core_allowlist"]).resolve()
+        core = load_config(core_allowlist)
+        if core.core_allowlist is not None:
+            raise ExportError("[split] core_allowlist must name a Core allow-list without [split]")
+        archive_ids = {rule.id for rule in core.excludes}
+        for rule_id in split.get("archive_only", ()):
+            if rule_id not in archive_ids:
+                raise ExportError(f"[split] archive_only names no Core exclude rule: {rule_id!r}")
+    elif "overlap" in data:
+        raise ExportError("[[overlap]] needs [split]")
+
+    includes = _rules(data, "include", core)
     if not includes:
         raise ExportError(f"{path}: no [[include]] rule")
+
+    maps = []
+    for table in data.get("map", []):
+        _keys(table, {"from", "to", "reason"}, "[[map]]")
+        if not (
+            table.get("from", "").endswith("/") and table.get("to", "").endswith("/") and table.get("reason")
+        ):
+            raise ExportError("[[map]] needs from and to directory prefixes ending in '/' and a reason")
+        maps.append(Mapping(table["from"], table["to"], table["reason"]))
+
+    additions = []
+    for table in data.get("add", []):
+        _keys(table, {"path", "from", "reason"}, "[[add]]")
+        if not (table.get("path") and table.get("from") and table.get("reason")):
+            raise ExportError("[[add]] needs path, from and reason")
+        glob_regex(table["path"])
+        additions.append(Addition(table["path"], table["from"], table["reason"]))
 
     transforms = []
     for table in data.get("transform", []):
         _keys(
             table,
-            {"path", "reason", "decision", "replace", "drop_markdown_sections", "regenerate"},
+            {
+                "path",
+                "reason",
+                "decision",
+                "replace",
+                "drop_markdown_sections",
+                "keep_markdown_sections",
+                "header",
+                "regenerate",
+            },
             "[[transform]]",
         )
         if not table.get("path") or not table.get("reason"):
@@ -226,7 +357,12 @@ def load_config(path: Path) -> Config:
         if regenerate not in (None, *REGENERATORS):
             raise ExportError(f"[[transform]] {table['path']}: unknown regenerate {regenerate!r}")
         sections = tuple(table.get("drop_markdown_sections", ()))
-        if not (replace or sections or regenerate):
+        keep = tuple(table.get("keep_markdown_sections", ()))
+        if keep and sections:
+            raise ExportError(f"[[transform]] {table['path']}: keep and drop sections exclude each other")
+        if table.get("header") and not keep:
+            raise ExportError(f"[[transform]] {table['path']}: header needs keep_markdown_sections")
+        if not (replace or sections or keep or regenerate):
             raise ExportError(f"[[transform]] {table['path']} changes nothing")
         if any(other.path == table["path"] for other in transforms):
             raise ExportError(f"[[transform]] {table['path']} is declared twice")
@@ -238,15 +374,33 @@ def load_config(path: Path) -> Config:
                 replace=tuple(replace),
                 drop_markdown_sections=sections,
                 regenerate=regenerate,
+                keep_markdown_sections=keep,
+                header=table.get("header", ""),
             )
         )
 
     gates = data.get("gates", {})
     _keys(
         gates,
-        {"plugin_import_roots", "plugin_import_allowance", "openapi_contract", "required_file"},
+        {
+            "plugin_import_roots",
+            "plugin_import_allowance",
+            "openapi_contract",
+            "required_file",
+            "forbidden_text",
+        },
         "[gates]",
     )
+    forbidden_text = []
+    for entry in gates.get("forbidden_text", []):
+        _keys(entry, {"id", "text", "paths", "reason"}, "[[gates.forbidden_text]]")
+        if not (entry.get("id") and entry.get("text") and entry.get("paths") and entry.get("reason")):
+            raise ExportError("[[gates.forbidden_text]] needs id, text, paths and reason")
+        forbidden_text.append(
+            ForbiddenText(
+                entry["id"], entry["text"], entry["reason"], tuple(glob_regex(p) for p in entry["paths"])
+            )
+        )
     allowances: dict[str, str] = {}
     for entry in gates.get("plugin_import_allowance", []):
         _keys(entry, {"path", "reason"}, "[[gates.plugin_import_allowance]]")
@@ -261,8 +415,10 @@ def load_config(path: Path) -> Config:
         allowances[allowed_path] = entry["reason"]
     required = []
     for entry in gates.get("required_file", []):
-        _keys(entry, {"path", "contains"}, "[[gates.required_file]]")
-        required.append((entry["path"], tuple(entry.get("contains", ()))))
+        _keys(entry, {"path", "contains", "lacks"}, "[[gates.required_file]]")
+        required.append(
+            RequiredFile(entry["path"], tuple(entry.get("contains", ())), tuple(entry.get("lacks", ())))
+        )
 
     return Config(
         path=path,
@@ -274,6 +430,13 @@ def load_config(path: Path) -> Config:
         plugin_import_allowances=allowances,
         openapi_contract=gates.get("openapi_contract"),
         required_files=tuple(required),
+        name=data.get("name", "core"),
+        maps=tuple(maps),
+        additions=tuple(additions),
+        forbidden_text=tuple(forbidden_text),
+        core_allowlist=core_allowlist,
+        overlaps=_rules(data, "overlap"),
+        archive_only=tuple(split.get("archive_only", ())),
     )
 
 
@@ -376,38 +539,54 @@ def apply_replacements(path: str, text: str, replacements: Sequence[tuple[str, s
 _HEADING = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
 
 
+def _section_span(path: str, lines: Sequence[str], title: str) -> tuple[int, int]:
+    """Line range of the section titled ``title``, up to the next heading of the same or a higher level."""
+    fence = False
+    start = level = None
+    for index, line in enumerate(lines):
+        if line.lstrip().startswith(("```", "~~~")):
+            fence = not fence
+        match = None if fence else _HEADING.match(line.rstrip("\r\n"))
+        if match and match.group(2) == title:
+            if start is not None:
+                raise ExportError(f"{path}: section {title!r} occurs more than once")
+            start, level = index, len(match.group(1))
+    if start is None or level is None:
+        raise ExportError(f"{path}: section {title!r} not found")
+    end = len(lines)
+    fence = False
+    for index in range(start + 1, len(lines)):
+        line = lines[index]
+        if line.lstrip().startswith(("```", "~~~")):
+            fence = not fence
+        match = None if fence else _HEADING.match(line.rstrip("\r\n"))
+        if match and len(match.group(1)) <= level:
+            end = index
+            break
+    return start, end
+
+
 def drop_markdown_sections(path: str, text: str, titles: Sequence[str]) -> str:
     """Remove each titled section up to the next heading of the same or a higher level."""
     for title in titles:
         lines = text.splitlines(keepends=True)
-        fence = False
-        start = level = None
-        for index, line in enumerate(lines):
-            if line.lstrip().startswith(("```", "~~~")):
-                fence = not fence
-            match = None if fence else _HEADING.match(line.rstrip("\r\n"))
-            if match and match.group(2) == title:
-                if start is not None:
-                    raise ExportError(f"{path}: section {title!r} occurs more than once")
-                start, level = index, len(match.group(1))
-        if start is None or level is None:
-            raise ExportError(f"{path}: section {title!r} not found")
-        end = len(lines)
-        fence = False
-        for index in range(start + 1, len(lines)):
-            line = lines[index]
-            if line.lstrip().startswith(("```", "~~~")):
-                fence = not fence
-            match = None if fence else _HEADING.match(line.rstrip("\r\n"))
-            if match and len(match.group(1)) <= level:
-                end = index
-                break
+        start, end = _section_span(path, lines, title)
         text = "".join(lines[:start] + lines[end:])
     return text
 
 
+def keep_markdown_sections(path: str, text: str, titles: Sequence[str], header: str) -> str:
+    """The header, then only the titled sections, in the order given (each must exist exactly once)."""
+    lines = text.splitlines(keepends=True)
+    sections = []
+    for title in titles:
+        start, end = _section_span(path, lines, title)
+        sections.append("".join(lines[start:end]).rstrip("\n") + "\n")
+    return header + "\n".join(sections)
+
+
 def transform_content(transform: Transform, data: bytes) -> bytes:
-    if not (transform.replace or transform.drop_markdown_sections):
+    if not (transform.replace or transform.drop_markdown_sections or transform.keep_markdown_sections):
         return data
     try:
         text = data.decode("utf-8")
@@ -415,6 +594,10 @@ def transform_content(transform: Transform, data: bytes) -> bytes:
         raise ExportError(f"{transform.path}: a text transform needs UTF-8 content") from error
     text = apply_replacements(transform.path, text, transform.replace)
     text = drop_markdown_sections(transform.path, text, transform.drop_markdown_sections)
+    if transform.keep_markdown_sections:
+        text = keep_markdown_sections(
+            transform.path, text, transform.keep_markdown_sections, transform.header
+        )
     return text.encode("utf-8")
 
 
@@ -530,54 +713,71 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _write(out: Path, path: str, data: bytes, mode: str) -> None:
+    target = out.joinpath(*path.split("/"))
+    long_path(target.parent).mkdir(parents=True, exist_ok=True)
+    long_path(target).write_bytes(data)
+    if mode == "100755" and os.name != "nt":
+        target.chmod(target.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+
 def export(repo: Path, rev: str, config: Config, out: Path) -> dict[str, Any]:
-    """Write the allow-listed tree of ``rev`` into ``out`` and return the manifest."""
+    """Write the allow-listed tree of ``rev`` into ``out`` and return the manifest.
+
+    Each manifest entry names the file's ``path`` in the target tree and its
+    ``source`` path in this repository (the same unless a ``[[map]]`` moves it);
+    a file added by ``[[add]]`` records ``added_from`` instead of a source.
+    """
     if out.exists() and any(out.iterdir()):
         raise ExportError(f"output directory {out} is not empty")
     out.mkdir(parents=True, exist_ok=True)
     commit = resolve_commit(repo, rev)
     entries = tree_entries(repo, commit)
-    paths = {entry.path for entry in entries}
+    by_source = {entry.path: entry for entry in entries}
 
     for transform in config.transforms:
-        if transform.path not in paths:
+        if transform.path not in by_source:
             raise ExportError(f"transform target {transform.path} is not tracked at {commit}")
         if not config.exported(transform.path):
             raise ExportError(f"transform target {transform.path} is not exported")
+    for mapping in config.maps:
+        if not any(path.startswith(mapping.source) for path in by_source if config.exported(path)):
+            raise ExportError(f"[[map]] {mapping.source} matches no exported file")
 
     files: list[dict[str, Any]] = []
     excluded: list[dict[str, Any]] = []
     regenerate: list[Transform] = []
+    targets: dict[str, str] = {}
     with BlobReader(repo) as blobs:
         for entry in entries:
             include = config.include_rule(entry.path)
             exclude = config.exclude_rule(entry.path)
             if include is None or exclude is not None:
                 excluded.append(
-                    {
-                        "path": entry.path,
-                        "size": entry.size,
-                        "rule": exclude.id if exclude else None,
-                    }
+                    {"path": entry.path, "size": entry.size, "rule": exclude.id if exclude else None}
                 )
                 continue
-            forbidden = config.forbidden_rule(entry.path)
-            if forbidden is not None:
-                raise ExportError(f"{entry.path} would be exported but matches forbidden rule {forbidden.id}")
+            target = config.target_path(entry.path)
+            for checked in {entry.path, target}:
+                forbidden = config.forbidden_rule(checked)
+                if forbidden is not None:
+                    raise ExportError(
+                        f"{entry.path} would be exported but matches forbidden rule {forbidden.id}"
+                    )
+            if target in targets:
+                raise ExportError(f"{entry.path} and {targets[target]} both map to {target}")
+            targets[target] = entry.path
             data = blobs.read(entry.blob)
             transform = config.transform_for(entry.path)
             if transform is not None:
                 data = transform_content(transform, data)
                 if transform.regenerate:
                     regenerate.append(transform)
-            target = out.joinpath(*entry.path.split("/"))
-            long_path(target.parent).mkdir(parents=True, exist_ok=True)
-            long_path(target).write_bytes(data)
-            if entry.mode == "100755" and os.name != "nt":
-                target.chmod(target.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+            _write(out, target, data, entry.mode)
             files.append(
                 {
-                    "path": entry.path,
+                    "path": target,
+                    "source": entry.path,
                     "mode": entry.mode,
                     "size": len(data),
                     "sha256": sha256(data),
@@ -586,24 +786,49 @@ def export(repo: Path, rev: str, config: Config, out: Path) -> dict[str, Any]:
                     "transformed": transform is not None,
                 }
             )
+        for addition in config.additions:
+            source = by_source.get(addition.source)
+            if source is None:
+                raise ExportError(f"[[add]] {addition.path}: {addition.source} is not tracked at {commit}")
+            if addition.path in targets:
+                raise ExportError(f"[[add]] {addition.path} collides with {targets[addition.path]}")
+            forbidden = config.forbidden_rule(addition.path)
+            if forbidden is not None:
+                raise ExportError(f"[[add]] {addition.path} matches forbidden rule {forbidden.id}")
+            targets[addition.path] = addition.source
+            data = blobs.read(source.blob)
+            _write(out, addition.path, data, source.mode)
+            files.append(
+                {
+                    "path": addition.path,
+                    "source": None,
+                    "added_from": addition.source,
+                    "mode": source.mode,
+                    "size": len(data),
+                    "sha256": sha256(data),
+                    "source_blob": source.blob,
+                    "include": None,
+                    "transformed": False,
+                }
+            )
 
-    for transform in regenerate:
-        REGENERATORS[transform.regenerate or ""](out, transform.path)
     by_path = {item["path"]: item for item in files}
     for transform in regenerate:
-        target = out.joinpath(*transform.path.split("/"))
-        by_path[transform.path]["sha256"] = file_sha256(target)
-        by_path[transform.path]["size"] = long_path(target).stat().st_size
+        target_path = config.target_path(transform.path)
+        REGENERATORS[transform.regenerate or ""](out, target_path)
+        written = out.joinpath(*target_path.split("/"))
+        by_path[target_path]["sha256"] = file_sha256(written)
+        by_path[target_path]["size"] = long_path(written).stat().st_size
 
-    manifest = {
+    return {
         "schema": SCHEMA,
+        "tree": config.name,
         "source_commit": commit,
         "source_rev": rev,
         "allowlist_sha256": sha256(config.path.read_bytes()),
-        "files": files,
+        "files": sorted(files, key=lambda item: item["path"]),
         "excluded": excluded,
     }
-    return manifest
 
 
 def write_manifest(manifest: dict[str, Any], path: Path) -> None:
@@ -659,8 +884,15 @@ def gate_coverage(out: Path, manifest: dict[str, Any], config: Config) -> GateRe
     for path in sorted(set(listed) - present):
         result.details.append(f"missing from the tree: {path}")
     for path in sorted(present & set(listed)):
-        if not config.exported(path):
-            result.details.append(f"not covered by the allow-list: {path}")
+        item = listed[path]
+        if item.get("added_from"):
+            addition = config.addition_for(path)
+            if addition is None or addition.source != item["added_from"]:
+                result.details.append(f"not an [[add]] of the allow-list: {path}")
+        else:
+            source = item.get("source") or path
+            if not config.exported(source) or config.target_path(source) != path:
+                result.details.append(f"not covered by the allow-list: {path}")
         forbidden = config.forbidden_rule(path)
         if forbidden is not None:
             result.details.append(f"forbidden by {forbidden.id}: {path}")
@@ -770,19 +1002,91 @@ def gate_licence(out: Path, config: Config) -> GateResult:
     result = GateResult("licence", "passed")
     if not config.required_files:
         return GateResult("licence", "failed", ["the allow-list names no required file"])
-    for path, needles in config.required_files:
-        target = out.joinpath(*path.split("/"))
+    for required in config.required_files:
+        target = out.joinpath(*required.path.split("/"))
         if not long_path(target).is_file():
-            result.details.append(f"missing: {path}")
+            result.details.append(f"missing: {required.path}")
             continue
         text = long_path(target).read_text(encoding="utf-8")
-        for needle in needles:
+        for needle in required.contains:
             if needle not in text:
-                result.details.append(f"{path} lacks {needle!r}")
+                result.details.append(f"{required.path} lacks {needle!r}")
+        for needle in required.lacks:
+            if needle in text:
+                result.details.append(f"{required.path} must not contain {needle!r}")
     if result.details:
         result.status = "failed"
     else:
-        result.details.append(", ".join(path for path, _ in config.required_files) + " present")
+        result.details.append(", ".join(required.path for required in config.required_files) + " present")
+    return result
+
+
+def gate_forbidden_text(out: Path, manifest: dict[str, Any], config: Config) -> GateResult:
+    """A forbidden text (for example a runner label) appears in no file of its path scope."""
+    result = GateResult("forbidden-text", "passed")
+    checked = 0
+    for item in manifest["files"]:
+        rules = [
+            rule for rule in config.forbidden_text if any(regex.match(item["path"]) for regex in rule.regexes)
+        ]
+        if not rules:
+            continue
+        checked += 1
+        data = long_path(out.joinpath(*item["path"].split("/"))).read_bytes()
+        for rule in rules:
+            if rule.text.encode("utf-8") in data:
+                result.details.append(f"{item['path']} contains {rule.text!r} ({rule.id})")
+    if result.details:
+        result.status = "failed"
+    else:
+        names = ", ".join(rule.id for rule in config.forbidden_text)
+        result.details.append(f"{checked} files checked for {names}; none found")
+    return result
+
+
+def gate_split(
+    core_manifest: dict[str, Any], core: Config, second_manifest: dict[str, Any], second: Config
+) -> GateResult:
+    """Every tracked file lands in exactly one tree, or has a documented overlap or archive-only reason."""
+    result = GateResult("split", "passed")
+    if core_manifest["source_commit"] != second_manifest["source_commit"]:
+        return GateResult("split", "failed", ["the two trees come from different revisions"])
+    tracked = {
+        item.get("source") or item["path"] for item in core_manifest["files"] if not item.get("added_from")
+    }
+    tracked |= {item["path"] for item in core_manifest["excluded"]}
+    in_core = {
+        item.get("source") or item["path"] for item in core_manifest["files"] if not item.get("added_from")
+    }
+    in_second = {item["source"] for item in second_manifest["files"] if item.get("source")}
+    excluded_rule = {item["path"]: item["rule"] for item in core_manifest["excluded"]}
+    overlapping = archived = 0
+    used_overlaps: set[str] = set()
+    for path in sorted(tracked):
+        count = (path in in_core) + (path in in_second)
+        if count == 2:
+            rule = next((rule for rule in second.overlaps if rule.matches(path)), None)
+            if rule is None:
+                result.details.append(f"in both trees without a documented overlap: {path}")
+            else:
+                overlapping += 1
+                used_overlaps.add(rule.id)
+        elif count == 0:
+            if excluded_rule.get(path) in second.archive_only:
+                archived += 1
+            else:
+                result.details.append(f"in neither tree and not archive-only: {path}")
+    for rule in second.overlaps:
+        if rule.id not in used_overlaps:
+            result.warnings.append(f"overlap rule {rule.id} matches no file in both trees")
+    if result.details:
+        result.status = "failed"
+    else:
+        result.details.append(
+            f"{len(tracked)} tracked files: {len(in_core) - overlapping} only in {core.name},"
+            f" {len(in_second) - overlapping} only in {second.name}, {overlapping} in both by a documented"
+            f" overlap, {archived} archive-only"
+        )
     return result
 
 
@@ -927,9 +1231,20 @@ def run_cheap_gates(
         "plugin-imports": lambda: gate_plugin_imports(out, manifest, config),
         "openapi-contract": lambda: gate_openapi(out, manifest, config, repo),
         "licence": lambda: gate_licence(out, config),
+        "forbidden-text": lambda: gate_forbidden_text(out, manifest, config),
         "secret-scan": lambda: gate_secret_scan(out, report_dir),
     }
-    return [_timed(name, runners[name], skipped) for name in CHEAP_GATES]
+    return [_timed(name, runners[name], skipped) for name in cheap_gates_for(config)]
+
+
+def cheap_gates_for(config: Config) -> tuple[str, ...]:
+    """The cheap gates a tree's allow-list configures; coverage, licence and the secret scan always run."""
+    configured = {
+        "plugin-imports": bool(config.plugin_import_roots),
+        "openapi-contract": bool(config.openapi_contract),
+        "forbidden-text": bool(config.forbidden_text),
+    }
+    return tuple(name for name in CHEAP_GATES if configured.get(name, True))
 
 
 def _timed(name: str, runner: Any, skipped: set[str]) -> GateResult:
@@ -1252,8 +1567,9 @@ def build_report(
     excluded = manifest["excluded"]
     include_stats: dict[str, list[int]] = defaultdict(lambda: [0, 0])
     for item in files:
-        include_stats[item["include"]][0] += 1
-        include_stats[item["include"]][1] += item["size"]
+        group = item["include"] or "added-files"
+        include_stats[group][0] += 1
+        include_stats[group][1] += item["size"]
     exclude_stats: dict[str, list[int]] = defaultdict(lambda: [0, 0])
     unlisted: dict[str, list[int]] = defaultdict(lambda: [0, 0])
     for item in excluded:
@@ -1265,14 +1581,16 @@ def build_report(
             unlisted[top][0] += 1
             unlisted[top][1] += item["size"]
     decisions = {rule.id: rule.decision for rule in (*config.includes, *config.excludes) if rule.decision}
+    tracked_files = [item for item in files if not item.get("added_from")]
     return {
+        "tree": config.name,
         "source_commit": manifest["source_commit"],
         "source_rev": manifest["source_rev"],
         "allowlist_sha256": manifest["allowlist_sha256"],
         "snapshot_commit": snapshot,
         "tracked": {
-            "files": len(files) + len(excluded),
-            "bytes": sum(i["size"] for i in files) + sum(i["size"] for i in excluded),
+            "files": len(tracked_files) + len(excluded),
+            "bytes": sum(i["size"] for i in tracked_files) + sum(i["size"] for i in excluded),
         },
         "exported": {"files": len(files), "bytes": sum(item["size"] for item in files)},
         "excluded": {"files": len(excluded), "bytes": sum(item["size"] for item in excluded)},
@@ -1296,7 +1614,7 @@ def build_report(
 
 def render_markdown(report: dict[str, Any]) -> str:
     lines = [
-        "# eimir-core export dry run",
+        f"# eimir-{report['tree']} export dry run",
         "",
         f"- Source commit: `{report['source_commit']}` (`{report['source_rev']}`)",
         f"- Allow-list SHA-256: `{report['allowlist_sha256']}`",
@@ -1407,7 +1725,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     history.add_argument("--manifest", type=Path, required=True)
     history.add_argument("--target", type=Path, required=True)
     history.add_argument("--message", default="eimir. Core snapshot")
-    history.add_argument("--author", default="eimir. <snapshot@eimir.invalid>")
+    history.add_argument(
+        "--author", default=SNAPSHOT_AUTHOR, help="default: the neutral identity of decision D6"
+    )
     history.add_argument("--date", help="commit date (default: the source commit's date)")
 
     dry = commands.add_parser("dry-run", help="export, check and create the snapshot in one work directory")
@@ -1415,7 +1735,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     dry.add_argument("--work", type=Path, help="empty work directory (default: a new temporary one)")
     dry.add_argument("--backend", action="store_true", help="also run the Core-only backend gates")
     dry.add_argument("--skip", action="append", help="gate names to skip, comma-separated")
-    dry.add_argument("--report", type=Path, help="also copy report.md and report.json here")
+    dry.add_argument("--report", type=Path, help="also copy the report files here")
+    dry.add_argument(
+        "--with-pro", action="store_true", help="also export the private eimir-pro tree and check the split"
+    )
+    dry.add_argument("--pro-allowlist", type=Path, default=DEFAULT_PRO_CONFIG)
 
     args = parser.parse_args(argv)
     # Progress lines appear immediately, also when the output goes to a CI log or a file.
@@ -1460,20 +1784,26 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
 
 
-def dry_run(args: argparse.Namespace, config: Config, repo: Path) -> int:
-    skip = _skip_list(args.skip)
-    work = args.work or Path(tempfile.mkdtemp(prefix="eimir-core-export-"))
-    if work.exists() and any(work.iterdir()):
-        raise ExportError(f"work directory {work} is not empty")
-    out, report_dir = work / "tree", work / "report"
-    print(f"Work directory: {work}")
+def _tree_dry_run(
+    repo: Path,
+    rev: str,
+    config: Config,
+    out: Path,
+    report_dir: Path,
+    snapshot_dir: Path,
+    skip: Sequence[str],
+    backend_work: Path | None,
+) -> tuple[dict[str, Any], list[GateResult], str | None]:
     started = time.monotonic()
-    manifest = export(repo, args.rev, config, out)
+    manifest = export(repo, rev, config, out)
     write_manifest(manifest, report_dir / MANIFEST_NAME)
-    print(f"Exported {len(manifest['files'])} files in {time.monotonic() - started:.0f}s")
+    print(
+        f"Exported {len(manifest['files'])} files of the {config.name} tree"
+        f" in {time.monotonic() - started:.0f}s"
+    )
     results = run_cheap_gates(out, manifest, config, repo, report_dir, skip)
-    if args.backend:
-        results += run_backend_gates(out, config, work / "backend-work", skip)
+    if backend_work is not None:
+        results += run_backend_gates(out, config, backend_work, skip)
         after = gate_coverage(out, manifest, config)
         after.name = "coverage-after-backend"
         results.append(after)
@@ -1484,29 +1814,84 @@ def dry_run(args: argparse.Namespace, config: Config, repo: Path) -> int:
             out,
             manifest,
             config,
-            work / "snapshot.git",
-            message="eimir. Core snapshot",
-            author="eimir. <snapshot@eimir.invalid>",
+            snapshot_dir,
+            message=f"eimir. {config.name.capitalize()} snapshot",
+            author=SNAPSHOT_AUTHOR,
             date=None,
         )
         results.append(
             _timed(
                 "snapshot-secret-scan",
-                lambda: gate_snapshot_secret_scan(work / "snapshot.git", out, report_dir),
+                lambda: gate_snapshot_secret_scan(snapshot_dir, out, report_dir),
                 set(skip),
             )
         )
-    report = build_report(manifest, config, results, out, snapshot)
+    return manifest, results, snapshot
+
+
+def _write_report(report_dir: Path, report: dict[str, Any], copy_to: Path | None, name: str) -> None:
     (report_dir / "report.json").write_text(json.dumps(report, indent=1) + "\n", encoding="utf-8")
     (report_dir / "report.md").write_text(render_markdown(report), encoding="utf-8")
-    if args.report:
-        args.report.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(report_dir / "report.json", args.report / "report.json")
-        shutil.copy2(report_dir / "report.md", args.report / "report.md")
-    _print_gates(results)
+    if copy_to:
+        copy_to.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(report_dir / "report.json", copy_to / f"{name}report.json")
+        shutil.copy2(report_dir / "report.md", copy_to / f"{name}report.md")
+
+
+def dry_run(args: argparse.Namespace, config: Config, repo: Path) -> int:
+    skip = _skip_list(args.skip)
+    work = args.work or Path(tempfile.mkdtemp(prefix="eimir-core-export-"))
+    if work.exists() and any(work.iterdir()):
+        raise ExportError(f"work directory {work} is not empty")
+    print(f"Work directory: {work}")
+    second = load_config(args.pro_allowlist) if args.with_pro else None
+    if second is not None and second.core_allowlist != config.path.resolve():
+        raise ExportError(f"{args.pro_allowlist} splits against {second.core_allowlist}, not {config.path}")
+
+    out, report_dir = work / "tree", work / "report"
+    manifest, results, snapshot = _tree_dry_run(
+        repo,
+        args.rev,
+        config,
+        out,
+        report_dir,
+        work / "snapshot.git",
+        skip,
+        work / "backend-work" if args.backend else None,
+    )
+    all_results = list(results)
+    if second is not None:
+        pro_out, pro_report = work / f"{second.name}-tree", work / f"{second.name}-report"
+        pro_manifest, pro_results, pro_snapshot = _tree_dry_run(
+            repo,
+            manifest["source_commit"],
+            second,
+            pro_out,
+            pro_report,
+            work / f"{second.name}-snapshot.git",
+            skip,
+            None,
+        )
+        split = _timed("split", lambda: gate_split(manifest, config, pro_manifest, second), set(skip))
+        pro_results.append(split)
+        # A copy: the Pro results are renamed below, the Core report keeps the plain name.
+        results.append(dataclasses.replace(split))
+        _write_report(
+            pro_report,
+            build_report(pro_manifest, second, pro_results, pro_out, pro_snapshot),
+            args.report,
+            "pro-",
+        )
+        for result in pro_results:
+            result.name = f"{second.name}/{result.name}"
+        all_results += pro_results
+        print(f"{second.name.capitalize()} snapshot: {pro_snapshot or 'not created (a gate failed)'}")
+        print(f"{second.name.capitalize()} report: {pro_report / 'report.md'}")
+    _write_report(report_dir, build_report(manifest, config, results, out, snapshot), args.report, "")
+    _print_gates(all_results)
     print(f"Snapshot: {snapshot or 'not created (a gate failed)'}")
     print(f"Report: {report_dir / 'report.md'}")
-    return 1 if any(result.failed for result in results) else 0
+    return 1 if any(result.failed for result in all_results) else 0
 
 
 if __name__ == "__main__":

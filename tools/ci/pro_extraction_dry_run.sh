@@ -11,8 +11,9 @@
 # EIMIR_CORE_ROOT names another Core tree, for example the allow-listed export
 # of tools/cutover/core_export.py (Decision 0019, #2183): the Core wheel, the
 # Core test support and the demo assets then come from that tree, the way the
-# private repository pins a public eimir-core revision. Pro and the locked
-# third-party versions still come from this checkout.
+# private repository pins a public eimir-core revision. EIMIR_PRO_ROOT names
+# the eimir-pro export tree the Pro distribution is copied from. The locked
+# third-party versions always come from this checkout.
 #
 # Usage: tools/ci/pro_extraction_dry_run.sh [pytest arguments]
 # Default pytest selection: the unit tests (-m "not integration").
@@ -20,6 +21,7 @@ set -euo pipefail
 
 repo="$(git rev-parse --show-toplevel)"
 core="${EIMIR_CORE_ROOT:-$repo}"
+pro_root="${EIMIR_PRO_ROOT:-$repo}"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
@@ -28,8 +30,8 @@ echo "Building the Core wheel from $core/backend"
 # and stale files there could end up in the wheel.
 (cd "$core/backend" && uv build --package eimir --out-dir "$work/dist" >/dev/null)
 
-echo "Copying backend/pro into a clean directory"
-cp -R "$repo/backend/pro" "$work/pro"
+echo "Copying $pro_root/backend/pro into a clean directory"
+cp -R "$pro_root/backend/pro" "$work/pro"
 rm -rf "$work/pro/.venv" "$work/pro/build" "$work/pro"/src/*.egg-info
 # An extracted repository replaces the workspace source of Core with a pinned
 # Core reference; here the Core wheel built above takes that place.

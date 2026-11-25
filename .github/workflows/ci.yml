@@ -634,16 +634,20 @@ jobs:
       - name: Pinned uv
         run: python -m pip install "uv==$UV_VERSION"
 
-      # Decision 0019 (#2183): the Core comes from the allow-listed export tree,
-      # the way the private repository will pin a public eimir-core revision.
-      - name: Export the public Core tree
+      # Decision 0019 (#2183): the Core comes from the allow-listed export tree
+      # and Pro from the eimir-pro export tree, the way the private repository
+      # will pin a public eimir-core revision.
+      - name: Export the public Core tree and the private Pro tree
         run: |
           python tools/cutover/core_export.py export --rev HEAD \
             --out "$RUNNER_TEMP/core-tree" --manifest "$RUNNER_TEMP/core-manifest.json"
+          python tools/cutover/core_export.py --allowlist tools/cutover/pro-allowlist.toml export --rev HEAD \
+            --out "$RUNNER_TEMP/pro-tree" --manifest "$RUNNER_TEMP/pro-manifest.json"
 
-      - name: Pro tests from a clean copy on top of the exported Core wheel
+      - name: Pro tests from the Pro tree on top of the exported Core wheel
         env:
           EIMIR_CORE_ROOT: ${{ runner.temp }}/core-tree
+          EIMIR_PRO_ROOT: ${{ runner.temp }}/pro-tree
         run: tools/ci/pro_extraction_dry_run.sh -m ""
 
   core_export:
@@ -653,8 +657,10 @@ jobs:
     timeout-minutes: 30
     # Decision 0019 (#2183): every pull request proves that the allow-listed
     # public eimir-core tree is clean (coverage, no plugin import, contract,
-    # licence, secret scan) and that a single-commit snapshot can be made from
-    # it. The snapshot stays in the runner; nothing is pushed anywhere.
+    # licence, no operator runner, secret scan), that the private eimir-pro
+    # tree is clean, that both together split every tracked file, and that a
+    # single-commit snapshot can be made from each. The snapshots stay in the
+    # runner; nothing is pushed anywhere.
     permissions:
       contents: read
     env:
@@ -675,16 +681,17 @@ jobs:
       - name: Export tool tests (including the negative gates)
         run: python tools/cutover/test_core_export.py
 
-      - name: Export, gates and local snapshot
+      - name: Export both trees, gates and local snapshots
         run: |
-          python tools/cutover/core_export.py dry-run --rev HEAD \
+          python tools/cutover/core_export.py dry-run --rev HEAD --with-pro \
             --work "$RUNNER_TEMP/core-export"
 
       - name: Report
         if: always()
         run: |
-          report="$RUNNER_TEMP/core-export/report/report.md"
-          if [ -f "$report" ]; then cat "$report" >> "$GITHUB_STEP_SUMMARY"; fi
+          for report in "$RUNNER_TEMP/core-export/report/report.md" "$RUNNER_TEMP/core-export/pro-report/report.md"; do
+            if [ -f "$report" ]; then cat "$report" >> "$GITHUB_STEP_SUMMARY"; fi
+          done
 
   core_export_backend:
     name: Core Export Backend

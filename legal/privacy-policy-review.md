@@ -1,7 +1,7 @@
 # Privacy policy draft: review notes
 
 Status: drafting baseline for the legal review of
-[`de/privacy-policy.md`](de/privacy-policy.md) (version `2026-11-24.draft-13`).
+[`de/privacy-policy.md`](de/privacy-policy.md) (version `2026-11-25.draft-14`).
 This file is not legal advice and is not shown to users. It records where each
 statement comes from, which facts the operator must supply and which decisions
 are open, so that the reviewer can check the draft against the product instead
@@ -27,7 +27,7 @@ Where a feature is not yet available, the draft says so explicitly.
 | 3 | Account fields: email and verification, display name, optional avatar and birthday, locale/time zone/quiet hours/notification settings | `backend/src/eimir/identity/models.py` (`Account`, `AccountEmail`) |
 | 3 | Cloud signup needs only the email address; an omitted display name falls back to a neutral default | `backend/src/eimir/api/v1/auth.py` (`SignupConsumeRequest`), `backend/src/eimir/identity/service.py` |
 | 3 | Terms acceptance: version, time and origin (`signup_request` / `signup_redemption`), no IP or device data, deleted with the Account | `backend/src/eimir/legal/models.py`, `docs/product/design/references/terms-of-use-acceptance/README.md` |
-| 3 | Cloud sign-in: mailed link or passkey; no local password on Cloud; OIDC only when configured (the Cloud example has none) | `backend/src/eimir/auth/policy.py`, `deploy/cloud-managed.env.example` |
+| 3 | Cloud sign-in by emailed link, passkey or optionally a configured Google OpenID Connect provider. Provider signup binds the accepted terms to the verified identity. | `backend/src/eimir/auth/oidc.py`, `backend/tests/integration/test_oidc_cloud_signup.py` |
 | 3 | Link lifetimes 15 min (magic link, signup proof), 24 h (email verification); unredeemed signup proofs, which hold the plain address, are pruned by the six-hourly maintenance job | `backend/src/eimir/auth/action_tokens.py`, `backend/src/eimir/jobs/maintenance.py` |
 | 3 | Passkey record: public key, credential ID, AAGUID, transports, name, flags, last use; biometrics never leave the device | `backend/src/eimir/identity/models.py` (WebAuthn credential) |
 | 3 | Sessions: platform, start, last use, hashed tokens; 60-day sliding and 180-day absolute lifetime | `backend/src/eimir/auth/tokens.py`, `backend/src/eimir/identity/models.py` (`DeviceSession`) |
@@ -40,6 +40,7 @@ Where a feature is not yet available, the draft says so explicitly.
 | 5 | Application-controlled encryption at rest (required on Cloud Production) for protected payloads and every media object, voice notes included; keys apart from DB and media; plaintext metadata listed; never E2EE | `docs/ENCRYPTION-AT-REST.md` §§ 4, 5, 11; `docs/CONTENT-PRIVACY-GUIDELINES.md` § 4 |
 | 5 | ServerAdmin sees account metadata only, no content | `docs/SERVER-ADMIN.md` |
 | 6 | One-time messages „Nur für dich“: Pro sending, bilateral per-device reception opt-in; non-extractable RSA-OAEP device keys in IndexedDB, public keys on the server; JWE envelope encrypted on the sending device; client-side metadata-free JPEG; unopened 24 h, claim lease 5 min, envelope destroyed on acknowledgement; withdrawal/discard/opt-out delete pending messages; no export; official dumps exclude the tables, infrastructure snapshots may hold opaque envelopes; neutral push, no email; no audited-E2EE claim | `docs/product/once-messages.md`, `backend/src/eimir/once_messages/service.py`, `web/src/client/onceMessageCrypto.ts`, `scripts/self_hosted_recovery.py` |
+| 4, 22 | Heart Hunt expires 30 days after hiding or 14 days after finding; keeping it as a Memory creates a separate copy. | `backend/pro/src/eimir_pro/heart_hunt/service.py`, `backend/pro/pro_tests/integration/test_heart_hunt.py` |
 | 8 | Related persons: name, relationship, optional birthday | `docs/PRIVACY-MODEL.md` (Third parties), `docs/RELATED-PERSONS.md` |
 | 9 | Photo places default ON, account-wide opt-out | `docs/PRIVACY-MODEL.md` (#1459/#1478) |
 | 9 | Android delivers photo location only with `ACCESS_MEDIA_LOCATION` (asked once) or the system picker's own metadata consent; declined means photos without location | `android/app/src/main/java/de/eimir/app/PhotoFileChooser.java` |
@@ -60,11 +61,12 @@ Where a feature is not yet available, the draft says so explicitly.
 | 16 | Application access log: method, path, status, duration, request ID; no IP or payload. The Web nginx disables its access log for API and health routes; static file requests use the stock log format, and the ingress may log client IPs | `backend/src/eimir/observability/middleware.py`, `web/nginx.conf` |
 | 16 | Rate limiting: SHA-256 of the lower-cased key (email or IPv4 / IPv6 /64), pruned after one day | `backend/src/eimir/auth/rate_limit.py`, `passkey_abuse.py` |
 | 16 | Restore re-applies accepted Account deletions from a pseudonymous journal before traffic resumes; the journal is kept as long as older backups exist | `docs/m6/ACCOUNT-DELETION-RETENTION.md` § 7 |
-| 19, 14, 15, 22 | Support reports (#2189, draft-10): sent only by the person from „Hilfe & Feedback“ or an error state after the sheet lists what is sent; strict allow-list payload (kind, note ≤ 2,000 characters, optional for a problem and required for feedback; for a problem from an error state the generalized failure reference: method, route template without ids or query, status or transport outcome, problem code, app/web, plus the `x-request-id` when present; client context: app version and build, app/web, OS and browser/engine with version but no device model or identifier, locale, theme, online state, local time and time zone; opaque account id); client context read only at send time; protected payload (note, failure, context) encrypted at rest, kind/state/timestamps plain; per-account rate limit 5/hour and 20/day; operator-only reader, no third party; one reply ≤ 500 characters as an in-app notification for the reporter only (`SUPPORT_REPLY`: neutral push without text, no email, no notice without an active Membership); closed reports deleted 90 days after closing, any report 365 days after creation, by the six-hourly maintenance job; reports and replies deleted with the Account; own reports and replies are part of the operator-provided personal copy, export-only, without the operator's ticket link (#2245, draft-12); unsent draft in `localStorage` per Account, removed on send, discard, sign-out and Account or Space change. The feature stays off (`EIMIR_SUPPORT_REPORTS_ENABLED=false`) on Cloud until this text is published | `backend/src/eimir/support_reports/payload.py`, `service.py` (`CLOSED_RETENTION`, `MAX_RETENTION`), `models.py`, `backend/src/eimir/api/v1/support_reports.py`, `backend/src/eimir/auth/rate_limit.py`, `backend/src/eimir/identity/deletion.py` (`PERSONAL_ACCOUNT_ROWS`), `backend/src/eimir/jobs/maintenance.py`, `backend/src/eimir/engagement/push_preview.py`, `web/src/client/supportReport.ts`, `failureReference.ts`, `supportReportDraftStorage.ts`, `sessionPersistence.ts`, `docs/product/support-reports-core-design.md` |
+| 19, 14, 15, 22 | Support reports (#2189, draft-10): sent only by the person from „Hilfe & Feedback“ or an error state after the sheet lists what is sent; strict allow-list payload (kind, note ≤ 2,000 characters, optional for a problem and required for feedback; for a problem from an error state the generalized failure reference: method, route template without ids or query, status or transport outcome, problem code, app/web, plus the `x-request-id` when present; client context: app version and build, app/web, OS and browser/engine with version but no device model or identifier, locale, theme, online state, local time and time zone; opaque account id); client context read only at send time; protected payload (note, failure, context) encrypted at rest, kind/state/timestamps plain; per-account rate limit 5/hour and 20/day; report and reply readable by the operator; optional technical ticket described below; one reply ≤ 500 characters as an in-app notification for the reporter only (`SUPPORT_REPLY`: neutral push without text, no email, no notice without an active Membership); closed reports deleted 90 days after closing, any report 365 days after creation, by the six-hourly maintenance job; reports and replies deleted with the Account; own reports and replies are part of the operator-provided personal copy, export-only, without the operator's ticket link (#2245, draft-12); unsent draft in `localStorage` per Account, removed on send, discard, sign-out and Account or Space change. The support-report switch and the external tracker are configured independently | `backend/src/eimir/support_reports/payload.py`, `service.py` (`CLOSED_RETENTION`, `MAX_RETENTION`), `models.py`, `backend/src/eimir/api/v1/support_reports.py`, `backend/src/eimir/auth/rate_limit.py`, `backend/src/eimir/identity/deletion.py` (`PERSONAL_ACCOUNT_ROWS`), `backend/src/eimir/jobs/maintenance.py`, `backend/src/eimir/engagement/push_preview.py`, `web/src/client/supportReport.ts`, `failureReference.ts`, `supportReportDraftStorage.ts`, `sessionPersistence.ts`, `docs/product/support-reports-core-design.md` |
 | 19 | Support report tickets (#2189 operator plugin, draft-13, § 19.4): a ServerAdmin may create one tracker ticket per report (GitHub Issues in the repository the operator configures). The request carries the operator's own title and body plus a server-composed footer: report id, kind, app version, build, platform (app/web), failure reference and request id. The note, the reply and the account id are never read into the request; no automatic ticket | `backend/admin/src/eimir_admin/support_tickets/service.py` (`compose_body`), `backend/admin/src/eimir_admin/tracker/github.py`, `docs/SERVER-ADMIN.md` (Support reports) |
+| 10, 20–22 | CalDAV and optionally Google Calendar receive selected Plan details. Connection credentials are encrypted, removing a connection deletes them and leaves exported events in the target calendar. | `docs/product/integrations/1895-calendar-sync.md`, `backend/pro/src/eimir_pro/calendar_sync/` |
 | 16 | Application log entries carry the request ID (`X-Request-ID`), which a support report can reference; draft-10 names it in § 16.1 | `backend/src/eimir/observability/middleware.py`, `formatting.py` |
 | 17 | No analytics, advertising or crash-reporting SDK in Web or Android (Android: AndroidX, Capacitor, UnifiedPush connector, Firebase Messaging/Installations, Nimbus JOSE); no external fonts or update checks | `web/package.json`, `android/app/build.gradle`, `docs/PRIVACY-MODEL.md` (Analytics) |
-| 18 | Pro cannot be purchased yet (no billing provider in Core) | `docs/m6/CLOUD-MANAGED-TOPOLOGY.md` § 3.6, #1525 |
+| 18, 20–22 | Android uses Google Play Billing when sales are enabled. The store handles payment; eimir. verifies the purchase, binds it to the paying account and Space, and updates the entitlement from Play. | `backend/src/eimir/billing/`, `docs/operations/google-play-billing.md` |
 | 22 | Account deletion: emails, credentials, sessions, profile, owner-only content removed; shared history kept under a neutral former-member marker | `docs/m6/ACCOUNT-DELETION-RETENTION.md` § 5 |
 
 Product changes that contradict one of these statements need a new version of
@@ -83,7 +85,6 @@ the notice before or with the change (`legal/README.md`).
 | `MAIL_PROVIDER` | SMTP processor | `EIMIR_SMTP_*` |
 | `PUSH_PROVIDER` | Contracting Google entity of the operator's Firebase project | Processor once the Firebase Data Processing and Security Terms are accepted in that project (decision 4) |
 | `GEOCODING_PROVIDER` | Photon operator | Default public instance `photon.komoot.io` (komoot), no SLA; review before a managed launch (`docs/PHOTO-PLACE-RESOLUTION.md`) |
-| `PAYMENT_PROVIDER` | Payment processor | Shared with the terms; billing #1525 |
 | `LOG_RETENTION` | Retention of application, Web server and ingress/proxy logs | Ingress IP logging depends on the selected platform |
 | `BACKUP_RETENTION` | Backup horizon | Also bounds the deletion journal (`ACCOUNT-DELETION-RETENTION.md` § 7.3) |
 | `SUPERVISORY_AUTHORITY` | Competent authority for the controller's seat | — |
@@ -100,11 +101,13 @@ The Product Owner supplied the operator facts step by step; they are now in the 
 | Hoster, server location | netcup GmbH (Karlsruhe), servers in Vienna (Austria) | Confirm the contracting entity and site in the netcup contract; the address range was identified as netcup KVM in the RIPE registry |
 | Mail | Own mail server run at the hoster (no separate processor) | The processor list names the hoster for it |
 | Push | Google Ireland Limited, Dublin (Ireland) | Verify the contracting entity in the Firebase/Cloud terms of the project; the Product Owner confirmed the data processing terms were accepted |
-| Geocoding | komoot GmbH, Potsdam (public Photon instance) | Review before a managed launch |
-| Payment | None yet; the section names the provider later | New text version when purchases open |
+| Geocoding | komoot GmbH, Schönefeld (public Photon instance) | Review before a managed launch |
+| Payment | Google Play Billing for the planned Android Cloud sale | Confirm the checkout seller, release, data declarations and licence-test purchase before enabling sales |
 | Logs | 30 days | Confirm the real rotation of application, Docker and proxy logs |
 | Supervisory authority | The state data protection authority of the controller's seat (Saarland) | Verify the address with the authority |
 | Data protection officer | None designated | Open legal question: Art. 37 may apply because of the special-category content; decide in the legal review |
+
+For the planned Hetzner media rollout (#1595), confirm the contracted processor, bucket, replica and backup regions, access arrangements, deletion of noncurrent versions and an independent restore before sending production media. Track these separately from the netcup application and database hosting.
 
 Still open and intentionally blocking publication:
 
@@ -253,8 +256,7 @@ officer should confirm them before publication.
    para. 13).
 7. **Google Photos.** Section 10 describes the flow while it is gated off
    (#1467). Re-check the text before enabling it.
-8. **Pro purchases.** Section 18 is conditional until billing exists (#1525);
-   complete it with the payment flow, retention and app-store roles.
+8. **Pro purchases.** Section 18 describes the Android flow and store roles conditionally until purchases are offered. Verify the actual checkout and store disclosures before enabling purchases.
 9. **Terms acceptance after account deletion.** The record is deleted with the
    Account today. **Recommendation:** keep that; once Pro exists, the billing
    records kept under tax law document the contract.
@@ -313,7 +315,7 @@ officer should confirm them before publication.
     text. The tracker (GitHub Issues) receives technical, pseudonymous data
     (report id, request id). Product Owner decision of 2026-11-24: the
     drafted wording stays as it is; no further legal review is made a
-    precondition for enabling `EIMIR_SUPPORT_REPORTS_ENABLED`.
+    precondition for enabling `EIMIR_SUPPORT_REPORTS_ENABLED`. Draft-14 distinguishes the original report from the optional GitHub ticket. The application only removes the local link; the operator must check access to the target repository, the applicable contract/transfer terms and how identifying ticket data will be removed on GitHub, including when handling a deletion request.
 
 ## Related follow-ups outside this draft
 

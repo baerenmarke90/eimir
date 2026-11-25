@@ -1,3 +1,4 @@
+import { isDemoModeConfigured } from '../client/demoMode';
 import {
   type CSSProperties,
   type FocusEvent,
@@ -131,6 +132,7 @@ export function useWirHeroDistance({
   const ticketRef = useRef<AttentionTicket | null>(null);
   const settleRef = useRef<(() => void) | null>(null);
 
+  const introduceInDemo = isDemoModeConfigured();
   const distance = line?.kind === 'distance' ? line : null;
   const liveStage = distance ? distanceStage(distance.band) : null;
   const fresh = distance ? isDistanceFresh(distance.asOf) : false;
@@ -140,7 +142,12 @@ export function useWirHeroDistance({
   let shownStage = shown?.owner === owner ? shown.stage : null;
   if (liveStage !== null && shownStage === null) {
     const seen = fresh ? readDistanceSeen(accountId, spaceId) : null;
-    shownStage = seen?.stage ?? liveStage;
+    // The public Demo has no earlier visit to compare with, so its first view
+    // starts from the farthest step and plays the hop to the live one (Product
+    // Owner, 2026-11-25). Every other deployment shows its first value quietly.
+    shownStage =
+      seen?.stage ??
+      (introduceInDemo && fresh && liveStage > 0 ? 0 : liveStage);
     setShown({ owner, stage: shownStage });
   }
 

@@ -773,3 +773,49 @@ test('Erinnerungen shows the Post; a letter is opened and filed by keyboard', as
   await page.waitForTimeout(600);
   await capture(page, info, 'memory-worlds-post-1280-dark.png');
 });
+
+test('Erinnerungen shows the Glas; the tag draws a slip to read in the diary', async ({
+  page,
+}, info) => {
+  await installMocks(page, true, 'jar');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page, '/story?tab=discover');
+  const world = page.locator('.memory-world[data-world="jar"]');
+  await expect(world).toBeVisible();
+  await expect(page.locator('.memory-world-stage')).toHaveAttribute(
+    'data-entered',
+    'true',
+  );
+  await expect(world.locator('.memory-jar-world')).toHaveAttribute(
+    'data-phase',
+    'idle',
+  );
+  await page.waitForTimeout(400);
+  await capture(page, info, 'memory-worlds-jar-390-light.png');
+  // With reduced motion a press on the tag draws at once into the page.
+  await world.getByRole('button', { name: worlds.jar.tag.drawLabel }).click();
+  await expect(
+    world
+      .getByRole('link', {
+        name: new RegExp(worlds.jar.diaryNamed.split('{{')[0]),
+      })
+      .first(),
+  ).toBeVisible();
+  await expect(
+    world.getByRole('button', { name: worlds.jar.tag.drawnLabel }),
+  ).toBeVisible();
+  await page.waitForTimeout(400);
+  await capture(page, info, 'memory-worlds-jar-drawn-390-light.png');
+  const accessibility = await new AxeBuilder({ page })
+    .include('.memory-world')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(accessibility.violations).toEqual([]);
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await page.waitForTimeout(400);
+  await capture(page, info, 'memory-worlds-jar-drawn-390-dark.png');
+  await page.setViewportSize({ width: 1280, height: 860 });
+  await page.waitForTimeout(600);
+  await capture(page, info, 'memory-worlds-jar-1280-dark.png');
+});

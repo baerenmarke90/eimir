@@ -1,7 +1,8 @@
 # Decision 0019: Repository split and the cut-over day
 
 **Status:** Proposed; becomes accepted when the Product Owner merges the pull request  
-**Date:** November 22, 2026  
+**Date:** November 22, 2026; amended November 25, 2026 (see
+[Addendum of November 25, 2026](#addendum-of-november-25-2026-names-sideload-channel-and-operator-runner))  
 **Owning issue:** [#2183](https://github.com/baerenmarke90/eimir/issues/2183)  
 **Builds on:** [Decision 0017](0017-pro-plugin-seam.md) (Pro plugin seam),
 [Decision 0018](0018-cloud-first-self-hosted-later.md) (Cloud first, Self-Hosted later),
@@ -100,6 +101,74 @@ pipeline.
 - **Adjustments to the Pro functions that exist today** are made in the public repository until the freeze window
   before the snapshot, and in the private repository afterwards.
 
+## Addendum of November 25, 2026: names, sideload channel and operator runner
+
+The Product Owner decided three further points on November 25, 2026. They resolve open points of this decision and
+narrow one security rule; nothing else in the decision changes.
+
+### Names of the repositories and packages
+
+- The new public Core repository is **`eimir-core`**.
+- The private Pro and release repository is **`eimir-pro`**. This is also the name of the Pro plugin distribution
+  (`eimir_pro`, [#2182](https://github.com/baerenmarke90/eimir/issues/2182)); the repository holds that distribution
+  and the release pipeline, so the shared name is intentional.
+- Both names were free under `baerenmarke90` on GitHub when checked on November 25, 2026.
+- The old repository keeps its name `eimir`. It is set private and archived at the cut-over, so no rename is needed.
+- The package names of the private images stay `eimir-cloud-backend`, `eimir-cloud-web` and `eimir-cloud-media`
+  ([`PRIVATE-TEST-CHANNEL.md`](../PRIVATE-TEST-CHANNEL.md)).
+
+### The sideload channel ends with Google Play
+
+The Android sideload channel (the signed test APK with its removable updater) ends once the app is available in
+Google Play (the Product Owner's decision, here translated: "as soon as the app is in the Play Store"). No date is
+set and none is assumed here. Until then the updater location and the test channel must keep working across the cut-over; the
+rehearsal (phase 2) proves both before the day.
+
+### An operator-owned runner may serve the private repository only
+
+This amends the rule "Pull-request code never runs on a self-hosted runner under this decision" in the cross-cutting
+consequences. The amended rule is:
+
+- An **operator-owned runner** may serve the **private Pro and release repository**. The runner is a KVM virtual
+  machine on a rented dedicated server and holds no production secrets. It is registered per repository, and several
+  runners may share one label.
+- It is acceptable there because only the owner's pull requests exist in that repository.
+- It **must not** serve the public Core repository, and it **must not** run pull-request workflows from forks.
+- Signing, publishing, provenance and attestation steps **stay on GitHub-hosted runners**, so no signing material and
+  no attestation identity ever reaches the operator's machine.
+
+Evidence from a throwaway benchmark on November 25, 2026 (a private test repository, since deleted), compared with a
+GitHub-hosted two-vCPU runner:
+
+| Job | Operator runner | GitHub-hosted runner |
+| --- | --- | --- |
+| Web steps | 106 s | 419 s |
+| Backend Integration, shard 1 of 4 | about 676 to 686 s alone; 849 to 856 s with five jobs in parallel | 899 s |
+| Browser full regression, shard 1 of 4 | 28.9 min alone; 30.7 to 30.9 min with five jobs in parallel | 37.0 min |
+
+Five parallel runners were measured; six were not. The server saves money, not wall-clock time, for a full pull
+request: the Web steps are about four times faster, but the long shards are only about 5 percent (Backend
+Integration) and 17 percent (Browser) faster than on GitHub under five parallel jobs, and the main gain is not being
+billed per minute.
+
+Operational requirements found by the benchmark:
+
+- Parallel jobs need a **dynamic Postgres host port**; a fixed port makes concurrent jobs collide.
+- Container jobs leave **root-owned files** in the runner workspace, so the workspace needs a cleanup step that can
+  remove them.
+- Use `uv python install 3.14` instead of a fixed patch version, because a fixed patch version was not available.
+
+**The cost saving is not proven.** It depends on how many private-repository minutes remain after the split, because
+Core CI becomes free in the public repository. That remaining volume was not measured. The runner is therefore an
+option the private repository may use, not a commitment.
+
+### Open points that stay open
+
+- **OpenAPI contract:** full contract checked in versus Core-only. This is pending the Product Owner's decision; the
+  argument to weigh is that the public clients already contain the Pro screens.
+- **Licence of the private repository:** not needed before the cut-over, because the existing public code stays under
+  PolyForm Noncommercial 1.0.0. It is decided before any Self-Hosted Pro delivery.
+
 ## Alternatives considered
 
 | Alternative | Why it was not chosen |
@@ -134,7 +203,9 @@ repository split needs them; Self-Hosted offering and licensing (#2087) stay def
 
 - **Security and secrets:** signing keys, store credentials and the official build secrets live only in the private
   repository; a public repository never receives them. A secret scan over all refs runs before the snapshot, and real
-  secrets found are rotated. Pull-request code never runs on a self-hosted runner under this decision.
+  secrets found are rotated. Pull-request code never runs on a self-hosted runner under this decision, except as
+  narrowed by the November 25, 2026 addendum: an operator-owned runner may serve the private Pro and release
+  repository only, never the public Core repository and never pull requests from forks.
 - **Privacy and provenance:** the old repository is archived, not deleted, because it carries the Clean-Room and
   licensing evidence. `PROVENANCE.md` assets are split between the public and the private repository before the
   snapshot. The legal question on the copyright of AI-assisted code stays with its own issue.
@@ -148,7 +219,9 @@ repository split needs them; Self-Hosted offering and licensing (#2087) stay def
   the full `owner/repo#number` form. Status tooling that reads issue numbers (`status_drift`, the implementation
   status document) is parametrised for the new tracker or kept out of the public repository.
 - **Release channel:** the Android update channel and the test channel change their source location at cut-over; the
-  rehearsal proves both before the day.
+  rehearsal proves both before the day. The sideload channel ends once the app is available in Google Play (addendum
+  of November 25, 2026), so until then the updater location and the test channel must keep working across the
+  cut-over.
 - **Testing:** each phase has a gate in the table above; the cut-over is not done without a successful rehearsal.
 - **Not affected:** user-facing text, accessibility, localisation and performance.
 
@@ -164,8 +237,11 @@ repository split needs them; Self-Hosted offering and licensing (#2087) stay def
 
 ## Open points
 
-- Names of the new repositories and packages.
-- Whether the Core repository carries a full or a Core-only OpenAPI contract (decided in phase 1).
-- The location of the Android update channel after the cut-over, and how long the sideload channel lives after the
-  first Play internal test.
-- The licence of the private repository (open decision 6 of Decision 0017).
+- ~~Names of the new repositories and packages.~~ Resolved on November 25, 2026: `eimir-core`, `eimir-pro`, package
+  names unchanged (see the addendum).
+- Whether the Core repository carries a full or a Core-only OpenAPI contract. Still open, pending the Product
+  Owner's decision (see the addendum); it must be decided in phase 1 before the export is written.
+- The location of the Android update channel after the cut-over. Still open and proven by the rehearsal. How long the
+  sideload channel lives is resolved: it ends once the app is available in Google Play (see the addendum).
+- The licence of the private repository (open decision 6 of Decision 0017). Still open; not needed before the
+  cut-over, decided before any Self-Hosted Pro delivery.

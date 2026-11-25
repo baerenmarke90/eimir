@@ -16,7 +16,7 @@ machine that ran the spec (evening, so the captures show the night sky).
 
 | File | Shows |
 | --- | --- |
-| `memory-worlds-stars-390-light.png` | The star chart with season marks, moon, a shooting star and the couple on the hill; the card below names the lit star ("Stern 3 von 3") and holds its memory |
+| `memory-worlds-stars-390-light.png` | The star chart with season marks, moon, a shooting star and the couple on the hill; the card below names the lit star (star 3 of 3) and holds its memory |
 | `memory-worlds-stars-moved-390-light.png` | After ArrowRight from the focused star: one star is pressed and the card follows; axe has no WCAG A/AA violations |
 | `memory-worlds-stars-390-dark.png` | Dark: the lit star with its halo, the constellation line and the card in the dark chart palette |
 | `memory-worlds-stars-1280-dark.png` | Expanded in Dark: the chart centred at the world reading width |

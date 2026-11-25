@@ -5,6 +5,14 @@ GitHub is canonical for moving repository facts. Implementation Status is the on
 living project/gate source; secondary overview/roadmap surfaces must not become a
 second Issue database or current-status authority. Historical reviews and evidence
 records are intentionally outside prose drift scanning.
+
+Open Issue tasks are checked against one tracker repository: the
+``--repository`` argument, else ``EIMIR_STATUS_TRACKER_REPOSITORY``, else the
+workflow's ``GITHUB_REPOSITORY``. A task may name its Issue as ``#N`` (the
+tracker) or ``owner/name#N``. A qualified reference to another repository, for
+example the archived pre-split repository after the Decision 0019 cut-over, is
+listed as not checked instead of being queried: the workflow token cannot read
+another private repository, and the line stays visible until it is re-created.
 """
 
 from __future__ import annotations
@@ -16,8 +24,8 @@ import re
 import sys
 import urllib.error
 import urllib.request
+from collections.abc import Callable, Mapping
 from pathlib import Path
-from typing import Callable
 
 AUTHORITATIVE_STATUS_FILE = Path("docs/IMPLEMENTATION-STATUS.md")
 M6_PLANNING_FILE = Path("docs/m6/README.md")
@@ -49,7 +57,15 @@ STATIC_CURRENT_MAIN_SHA = re.compile(
     r"(?im)^.*(?:Current\s+\x60?main\x60?|Aktueller\s+\x60?main\x60?)"
     r"\s*:\s*\x60?[0-9a-f]{7,40}\x60?.*$"
 )
-OPEN_ISSUE_TASK = re.compile(r"(?m)^\s*-\s*\[ \].*?#(?P<number>\d+)\b")
+# GitHub owner and repository names: letters, digits, '-', '_' and '.'.
+REPOSITORY_NAME = r"[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9_.-]+"
+REPOSITORY_FULL_NAME = re.compile(rf"^{REPOSITORY_NAME}$")
+OPEN_ISSUE_TASK = re.compile(
+    r"(?m)^\s*-\s*\[ \].*?"
+    rf"(?:(?<![\w./-])(?P<repository>{REPOSITORY_NAME}))?"
+    r"#(?P<number>\d+)\b"
+)
+TRACKER_REPOSITORY_ENV = "EIMIR_STATUS_TRACKER_REPOSITORY"
 STATUS_ROLE_MARKER = re.compile(
     r"<!--\s*status-surface:\s*(?P<role>[a-z0-9-]+)\s*-->"
 )
@@ -83,6 +99,39 @@ OBSOLETE_PHRASES = {
 IssueStateFetcher = Callable[[int], str]
 
 
+def resolve_tracker_repository(
+    explicit: str | None,
+    environment: Mapping[str, str],
+) -> str:
+    """Return the repository whose Issues the open status tasks name.
+
+    Precedence: the explicit argument, then ``EIMIR_STATUS_TRACKER_REPOSITORY``,
+    then ``GITHUB_REPOSITORY``. An empty result means "unknown".
+    """
+
+    for candidate in (
+        explicit,
+        environment.get(TRACKER_REPOSITORY_ENV),
+        environment.get("GITHUB_REPOSITORY"),
+    ):
+        value = (candidate or "").strip()
+        if not value:
+            continue
+        if not REPOSITORY_FULL_NAME.match(value):
+            raise ValueError(f"tracker repository must be 'owner/name', got {value!r}.")
+        return value
+    return ""
+
+
+def open_issue_references(text: str) -> list[tuple[str | None, int]]:
+    """Return ``(repository or None, number)`` for every open Issue task line."""
+
+    return [
+        (match.group("repository"), int(match.group("number")))
+        for match in OPEN_ISSUE_TASK.finditer(text)
+    ]
+
+
 def validate_role(path: Path, text: str) -> list[str]:
     expected = STATUS_ROLE_MARKERS.get(path)
     if expected is None:
@@ -101,6 +150,9 @@ def validate_text(
     path: Path,
     text: str,
     issue_state: IssueStateFetcher | None = None,
+    *,
+    tracker_repository: str = "",
+    skipped: list[str] | None = None,
 ) -> list[str]:
     errors: list[str] = []
 
@@ -115,12 +167,19 @@ def validate_text(
             errors.append(f"{path}: obsolete status phrase is forbidden: {phrase!r}.")
 
     if issue_state is not None and path == AUTHORITATIVE_STATUS_FILE:
-        for match in OPEN_ISSUE_TASK.finditer(text):
-            number = int(match.group("number"))
+        for repository, number in open_issue_references(text):
+            label = f"{repository}#{number}" if repository else f"#{number}"
+            if repository and repository.lower() != tracker_repository.lower():
+                if skipped is not None:
+                    skipped.append(
+                        f"{path}: {label} is not checked; it names another repository "
+                        f"than the tracker {tracker_repository or '(unknown)'}."
+                    )
+                continue
             state = issue_state(number)
             if state != "open":
                 errors.append(
-                    f"{path}: issue #{number} is marked open, but GitHub reports '{state}'."
+                    f"{path}: issue {label} is marked open, but GitHub reports '{state}'."
                 )
 
     return errors
@@ -166,6 +225,9 @@ def github_issue_state_fetcher(repository: str, token: str) -> IssueStateFetcher
 def check_repository(
     root: Path,
     issue_state: IssueStateFetcher | None = None,
+    *,
+    tracker_repository: str = "",
+    skipped: list[str] | None = None,
 ) -> list[str]:
     errors: list[str] = []
     for relative_path in STATUS_ROLE_MARKERS:
@@ -176,7 +238,15 @@ def check_repository(
 
         text = path.read_text(encoding="utf-8")
         errors.extend(validate_role(relative_path, text))
-        errors.extend(validate_text(relative_path, text, issue_state))
+        errors.extend(
+            validate_text(
+                relative_path,
+                text,
+                issue_state,
+                tracker_repository=tracker_repository,
+                skipped=skipped,
+            )
+        )
 
     return errors
 
@@ -189,22 +259,49 @@ def main() -> int:
         action="store_true",
         help="Verify Issues explicitly tracked as open in the authoritative status.",
     )
+    parser.add_argument(
+        "--repository",
+        help=(
+            "Tracker repository 'owner/name' for --online "
+            f"(default: ${TRACKER_REPOSITORY_ENV}, then $GITHUB_REPOSITORY)."
+        ),
+    )
     args = parser.parse_args()
 
     fetcher: IssueStateFetcher | None = None
+    repository = ""
     if args.online:
-        repository = os.environ.get("GITHUB_REPOSITORY", "")
+        try:
+            repository = resolve_tracker_repository(args.repository, os.environ)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
         token = os.environ.get("GITHUB_TOKEN", "")
         if not repository or not token:
-            print("--online requires GITHUB_REPOSITORY and GITHUB_TOKEN.", file=sys.stderr)
+            print(
+                "--online requires a tracker repository (--repository, "
+                f"{TRACKER_REPOSITORY_ENV} or GITHUB_REPOSITORY) and GITHUB_TOKEN.",
+                file=sys.stderr,
+            )
             return 2
         fetcher = github_issue_state_fetcher(repository, token)
 
+    skipped: list[str] = []
     try:
-        errors = check_repository(args.root, fetcher)
+        errors = check_repository(
+            args.root,
+            fetcher,
+            tracker_repository=repository,
+            skipped=skipped,
+        )
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
         return 2
+
+    if fetcher is not None:
+        print(f"Open Issue tasks checked against {repository}.")
+    for note in skipped:
+        print(f"Not checked: {note}")
 
     if errors:
         print("Status drift detected:", file=sys.stderr)

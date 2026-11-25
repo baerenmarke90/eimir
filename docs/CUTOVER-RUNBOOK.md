@@ -68,7 +68,7 @@ These facts were read from the repository and GitHub on November 25, 2026. They 
 | Status tooling | `tools/ci/status_drift.py --online` (step of the required `Reuse Review` check) resolves every unchecked `- [ ] ... #N` line of `docs/IMPLEMENTATION-STATUS.md` (13 such lines) against `GITHUB_REPOSITORY` and fails when an issue cannot be read. In a new repository those numbers point at the wrong issues or at nothing. | `tools/ci/status_drift.py`, `.github/workflows/reuse-review.yml` |
 | Licence and provenance check | The required `Provenance` check requires `PROVENANCE.md`, `LICENSE` (PolyForm Noncommercial 1.0.0), `COMMERCIAL-LICENSE.md`, `CONTRIBUTING.md`, `CLA.md`, `TRADEMARKS.md` and four documents. `PROVENANCE.md` sections "Date-idea catalog and images" and "Daily Saying catalog" describe Pro assets under `backend/pro/`. | `.github/workflows/ci.yml` job `provenance`, `PROVENANCE.md` |
 | Extraction dry run | `Pro extraction dry run` (`tools/ci/pro_extraction_dry_run.sh`) installs `backend/pro` from a clean copy on top of a Core wheel; not a required check. | `.github/workflows/ci.yml` |
-| App Links | The Android manifest verifies HTTPS App Links for `app.eimir.de` and the transition host `demo.eimir.ur-cloud.de`. `assetlinks.json` is not part of this repository; it is served on those hosts and depends only on the package name and the signing certificate. | `docs/CAPACITOR-ANDROID-FOUNDATION.md`, `android/app/src/main/AndroidManifest.xml` |
+| App Links | The Android manifest verifies HTTPS App Links for `app.eimir.de` and the transition host `demo.eimir.ur-cloud.de` (main manifest; the sideload overlay on the release branch repeats the five identity paths for both hosts). `assetlinks.json` is not part of this repository and not served by the Web image (`web/nginx.conf` has no such location); both hosts answer it from the operator's OpenResty proxy (`Server: openresty`, `application/json`). Verified on 2026-11-25 by an anonymous request: on both hosts it holds two `delegate_permission/common.handle_all_urls` statements, `de.eimir.app` with `1D:40:3A:18:…:CB:1D:A9` (the test signer `1d403a18…cb1da9` pinned in the release workflow and in `scripts/android_test_release_plan.py`) and the legacy `de.sidebyside.app` with `B5:00:97:39:…:F4:72`; no `get_login_creds` statement. Nothing in it names a repository, so the cut-over does not touch it while the signer stays. | `docs/CAPACITOR-ANDROID-FOUNDATION.md`, `android/app/src/main/AndroidManifest.xml`, `curl https://<host>/.well-known/assetlinks.json` |
 | Google Play | The app entry `de.eimir.app` exists in Play Console; no upload key, bundle, subscription or Google Cloud link is set up. The upload key is planned for the `production-release` environment. | [Google Play Billing](operations/google-play-billing.md) |
 | Hard-coded repository identity | `web/capacitor.config.ts`, `backend/src/eimir/providers/photon.py` and `place_search.py` (User-Agent contact URL), `backend/src/eimir/demo/assets.py` (`ORIGINAL_SOURCE_PATH_PREFIX`), `backend/pro/src/eimir_pro/photo_sources/google_setup.py` (issue link), `.github/workflows/self-hosted-deployment-guard.yml` (Git build contexts), the two lines above, and test fixtures. | `grep -rn baerenmarke90/eimir` |
 
@@ -394,14 +394,27 @@ repository is private: every installed test APK reads the anonymous feed of `O/e
 
 - Action, in this order:
   1. Before D0 (D-5 to D-2, implementation session, PO merges): a pull request on the release branch changes the
-     update location to the decision of section 8, item D1 (recommended: the releases of the public `eimir-core`),
-     in `UpdatePolicy` (`REPOSITORY`, `FEED_URL`), in the marker URL of `scripts/android_test_release.py` and in the
-     release plan checker; the allowed host list stays (the hosts are the same for any public GitHub repository).
+     update location to the decision of section 8, item D1 (the releases of the public `eimir-core`) in
+     `UpdatePolicy.REPOSITORY` (the feed URL, release URLs and feed tag links derive from it); the allowed host list
+     stays (the hosts are the same for any public GitHub repository). Two repositories must not be confused here: the
+     **update location** baked into the APK says where that APK looks for the *next* release, while the **asset
+     repository** is where the release itself is published, and the marker URL written by
+     `scripts/android_test_release.py` and checked by the release plan checker must name the asset repository,
+     because the installed predecessor checks it against its own location. The bridge therefore has update location
+     `O/eimir-core` but asset repository `O/eimir`; from `<N+1>` both are `O/eimir-core`. Both are parameters of the
+     release workflow and the scripts, defaulting to `O/eimir`.
   2. D-1 (PO asks for it): the **bridge** test release `android-test-v0.2.0-test.<N>` is published from the old
      repository with the [Android test release procedure](../.claude/skills/android-test-release/SKILL.md). Its
      updater already reads the new location. The PO installs it on both phones from the in-app update prompt.
   3. D0 (after C15): the publishing jobs run in `eimir-pro` (section 6.1); test release `<N+1>` is signed there with
-     the same keystore on a GitHub-hosted runner and published to the new location.
+     the same keystore on a GitHub-hosted runner and published to the new location. Open point (section 8, item D7):
+     the publisher creates the release tag on the APK source commit (`--target` and the checker's
+     `target_commitish`), and GitHub can only tag a commit that exists in the asset repository, so a source commit
+     that exists only in `eimir-pro` cannot be published to `eimir-core` as is. The publisher also downloads the
+     predecessor release (`<N>`, the bridge) from the asset repository to verify its signer and package contract;
+     the bridge lives in `O/eimir`, which is private after C11, so `<N+1>` needs the bridge's assets in reach (for
+     example the bridge's verified assets attached to a release in `eimir-core`, or a predecessor repository
+     parameter read before C11). Both are part of item D7.
 - Verify: `apksigner verify --print-certs` of the bridge APK and of `<N+1>` prints the same certificate SHA-256 as
   `test.103`; the new release has the four assets `eimir-android-test-v0.2.0-test.<N+1>.apk`,
   `eimir-test-update.json`, `native-acceptance.md` and `SHA256SUMS`; an anonymous request to the new feed returns 200;
@@ -521,8 +534,9 @@ readable feed, which a private repository cannot provide; see 5.2, item 6.
    location (section 8, item D1); the Java updater tests (`UpdatePolicyTest`, `UpdateCatalogTest`) pass with the new
    location. The rehearsal does **not** install anything on the phones and does not publish to the real update
    location: a rehearsal APK with a higher version code would consume the test numbering. The anonymous feed is
-   proven with a throwaway public repository that holds only a README and one rehearsal release (no source), deleted
-   afterwards. The real device acceptance is the bridge release of C17.
+   proven with a throwaway public repository and one rehearsal release, deleted afterwards; until item D7 is decided
+   that repository must contain the APK source commit, because the release tag targets it. The real device
+   acceptance is the bridge release of C17.
 7. **Settings:** default `GITHUB_TOKEN` permission read; fork pull request workflows off in the Pro repository; the
    immutable releases setting; the environment deployment branch policy.
 8. **Rollback drills:** Arcane staging sync switched back to its previous branch; a ruleset deleted and recreated.
@@ -604,6 +618,7 @@ decides otherwise.
 | D4 | Default `GITHUB_TOKEN` permission in the new repositories | (a) read, proven in the rehearsal; (b) write as today | **(a)**, falling back to write only for a job the rehearsal shows to need it. |
 | D5 | Code scanning and attestations for the private `eimir-pro` | (a) accept no CodeQL and no GitHub attestations there at the cut-over, recorded in the evidence, with a follow-up for a free Python security linter (for example Bandit) and key-based image signing before Self-Hosted; (b) pay for an organization with the security products | **(a)**: `eimir-core` keeps CodeQL and attestations for free; the Pro images are consumed only by the operator's own deployment for now. |
 | D6 | Secret scanning and push protection in `eimir-core` | (a) on; (b) off as today | **(a)**: free for a public repository and complements the gitleaks check. |
+| D7 | Which commit the Android test release tag in `eimir-core` points at once the publisher runs in `eimir-pro` (found 2026-11-25 while adapting the release path; C17 step 3) | (a) the release branch with the sideload updater lives in `eimir-core` (public; it holds only Core client code), `eimir-pro` signs and publishes from a pinned commit of it, so the tag targets the exact APK source as today; (b) the release branch lives in `eimir-pro` and the tag targets the pinned `eimir-core` revision, with the exact APK source bound only by the marker's `sourceRevision` and `native-acceptance.md` | **(a)**: keeps the existing "tag is the APK source" check of the publisher and the release plan checker unchanged; the updater code is public anyway. (b) needs a changed checker contract. |
 
 ## 9. What this runbook could not verify
 
@@ -612,6 +627,7 @@ decides otherwise.
 - Exact behaviour of immutable releases, the environment branch policy and the release-asset download on a private
   repository under the PO's plan (rehearsal item).
 - Whether the PO holds an offline copy of the Android test keystore (G1).
-- Where `assetlinks.json` is hosted and its current content (operator hosts, not in the repository).
+- Which proxy configuration on the operator hosts serves `assetlinks.json` (its content and the serving proxy were read
+  on 2026-11-25, section 1; the proxy configuration is not in the repository).
 - The export tool's final command line and the issue re-creation script (implementation sessions).
 - The capacity of the operator runner VM and whether it is ready on D+1.

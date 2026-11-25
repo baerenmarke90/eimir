@@ -169,9 +169,47 @@ class RequiredFile:
 @dataclasses.dataclass(frozen=True)
 class ForbiddenText:
     id: str
-    text: str
+    text: str  # the literal text or the regular expression, as written in the allow-list
     reason: str
-    regexes: tuple[re.Pattern[str], ...]
+    regexes: tuple[re.Pattern[str], ...]  # the path scope
+    finder: re.Pattern[bytes] | None = None
+    allow: tuple[tuple[str, str], ...] = ()  # (path, reason): reviewed files where it may remain
+
+    def find(self, data: bytes) -> int:
+        if self.finder is None:
+            return data.count(self.text.encode("utf-8"))
+        return len(self.finder.findall(data))
+
+
+@dataclasses.dataclass(frozen=True)
+class Rewrite:
+    """A reviewed text rewrite of exported files (for example the repository identity)."""
+
+    id: str
+    reason: str
+    kind: str  # literal, regex, issue-links, issue-refs
+    paths: tuple[re.Pattern[str], ...]
+    excepts: tuple[re.Pattern[str], ...]
+    pattern: re.Pattern[str]
+    replacement: str
+    line_pattern: re.Pattern[str] | None
+    minimum: int
+    decision: str | None
+
+    def applies_to(self, path: str) -> bool:
+        return any(regex.match(path) for regex in self.paths) and not any(
+            regex.match(path) for regex in self.excepts
+        )
+
+
+@dataclasses.dataclass(frozen=True)
+class Identity:
+    """Old, archive and moved repository references for the identity rewrites."""
+
+    source: str
+    archive: str
+    moved: dict[int, str]
+    map_path: Path | None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -189,6 +227,8 @@ class Config:
     maps: tuple[Mapping, ...] = ()
     additions: tuple[Addition, ...] = ()
     forbidden_text: tuple[ForbiddenText, ...] = ()
+    rewrites: tuple[Rewrite, ...] = ()
+    identity: Identity | None = None
     # Split settings (only in the configuration of a second tree, for example eimir-pro).
     core_allowlist: Path | None = None
     overlaps: tuple[Rule, ...] = ()
@@ -265,6 +305,154 @@ def _rules(data: dict[str, Any], kind: str, core: Config | None = None) -> tuple
     return tuple(rules)
 
 
+_QUALIFIED_REFERENCE = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[1-9][0-9]*")
+REWRITE_KINDS = ("literal", "regex", "issue-links", "issue-refs")
+
+
+def load_issue_map(path: Path | None) -> dict[int, str]:
+    """Old issue or pull request number -> ``owner/repo#N`` of the item that continues it.
+
+    The file is TOML with one table, ``[moved]``, whose keys are old numbers as strings
+    (``"2183" = "baerenmarke90/eimir-core#5"``). Numbers that are not listed point at
+    the archive.
+    """
+    if path is None:
+        return {}
+    try:
+        data = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError) as error:
+        raise ExportError(f"cannot read the issue map {path}: {error}") from error
+    _keys(data, {"schema", "moved"}, str(path))
+    if data.get("schema") != SCHEMA:
+        raise ExportError(f"{path}: schema must be {SCHEMA}")
+    moved: dict[int, str] = {}
+    for old, new in data.get("moved", {}).items():
+        if not (old.isdigit() and int(old) > 0):
+            raise ExportError(f"{path}: {old!r} is not an issue number")
+        if not (isinstance(new, str) and _QUALIFIED_REFERENCE.fullmatch(new)):
+            raise ExportError(f"{path}: {old} must map to 'owner/repo#N', got {new!r}")
+        moved[int(old)] = new
+    return moved
+
+
+def _rewrite(entry: dict[str, Any], identity: Identity | None, seen: set[str]) -> Rewrite:
+    _keys(
+        entry,
+        {
+            "id",
+            "reason",
+            "kind",
+            "paths",
+            "except",
+            "old",
+            "new",
+            "pattern",
+            "replacement",
+            "lines",
+            "minimum",
+            "decision",
+        },
+        "[[rewrite]]",
+    )
+    rule_id = entry.get("id")
+    if not rule_id or rule_id in seen:
+        raise ExportError(f"[[rewrite]] needs a unique id, got {rule_id!r}")
+    kind = entry.get("kind", "literal")
+    if kind not in REWRITE_KINDS:
+        raise ExportError(f"[[rewrite]] {rule_id}: unknown kind {kind!r}")
+    if not (entry.get("reason") and entry.get("paths")):
+        raise ExportError(f"[[rewrite]] {rule_id} needs a reason and paths")
+    line_pattern = None
+    try:
+        if kind == "literal":
+            if not entry.get("old") or "new" not in entry:
+                raise ExportError(f"[[rewrite]] {rule_id} needs old and new")
+            pattern, replacement = re.compile(re.escape(entry["old"])), entry["new"]
+        elif kind == "regex":
+            if not entry.get("pattern") or "replacement" not in entry:
+                raise ExportError(f"[[rewrite]] {rule_id} needs pattern and replacement")
+            pattern, replacement = re.compile(entry["pattern"], re.MULTILINE), entry["replacement"]
+        else:
+            if identity is None:
+                raise ExportError(f"[[rewrite]] {rule_id}: kind {kind} needs [identity]")
+            if kind == "issue-links":
+                source = re.escape(identity.source)
+                pattern = re.compile(rf"https://github\.com/{source}/(issues|pull)/([1-9][0-9]*)(?![0-9])")
+            else:
+                if not entry.get("lines"):
+                    raise ExportError(f"[[rewrite]] {rule_id}: issue-refs needs a lines pattern")
+                line_pattern = re.compile(entry["lines"])
+                pattern = re.compile(r"(?<![\w/#&.-])#([1-9][0-9]*)\b")
+            replacement = ""
+    except re.error as error:
+        raise ExportError(f"[[rewrite]] {rule_id}: invalid pattern: {error}") from error
+    minimum = entry.get("minimum", 1)
+    if not isinstance(minimum, int) or minimum < 0:
+        raise ExportError(f"[[rewrite]] {rule_id}: minimum must be a whole number")
+    return Rewrite(
+        id=rule_id,
+        reason=entry["reason"],
+        kind=kind,
+        paths=tuple(glob_regex(p) for p in entry["paths"]),
+        excepts=tuple(glob_regex(p) for p in entry.get("except", ())),
+        pattern=pattern,
+        replacement=replacement,
+        line_pattern=line_pattern,
+        minimum=minimum,
+        decision=entry.get("decision"),
+    )
+
+
+def _moved_link(identity: Identity, kind: str, number: int) -> str:
+    target = identity.moved.get(number)
+    if target is None:
+        return f"https://github.com/{identity.archive}/{kind}/{number}"
+    repository, new_number = target.split("#")
+    # GitHub redirects /issues/N to /pull/N and back within one repository.
+    return f"https://github.com/{repository}/issues/{new_number}"
+
+
+def apply_rewrite(rule: Rewrite, text: str, identity: Identity | None) -> tuple[str, int]:
+    """Apply one rule to a text and return the new text and the number of replacements."""
+    if rule.kind == "literal":
+        return rule.pattern.subn(lambda _: rule.replacement, text)
+    if rule.kind == "regex":
+        return rule.pattern.subn(rule.replacement, text)
+    assert identity is not None
+    if rule.kind == "issue-links":
+        return rule.pattern.subn(lambda m: _moved_link(identity, m.group(1), int(m.group(2))), text)
+    assert rule.line_pattern is not None
+    total = 0
+    lines = text.splitlines(keepends=True)
+    for index, line in enumerate(lines):
+        if rule.line_pattern.search(line):
+            lines[index], count = rule.pattern.subn(
+                lambda m: identity.moved.get(int(m.group(1)), f"{identity.archive}#{m.group(1)}"), line
+            )
+            total += count
+    return "".join(lines), total
+
+
+def rewrite_content(
+    config: Config, path: str, data: bytes, totals: dict[str, int]
+) -> tuple[bytes, dict[str, int]]:
+    """Apply every rewrite rule whose scope covers ``path``; binary files are left alone."""
+    rules = [rule for rule in config.rewrites if rule.applies_to(path)]
+    if not rules:
+        return data, {}
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return data, {}
+    counts: dict[str, int] = {}
+    for rule in rules:
+        text, count = apply_rewrite(rule, text, config.identity)
+        if count:
+            counts[rule.id] = count
+            totals[rule.id] = totals.get(rule.id, 0) + count
+    return (text.encode("utf-8"), counts) if counts else (data, {})
+
+
 def load_config(path: Path) -> Config:
     try:
         data = tomllib.loads(path.read_text(encoding="utf-8"))
@@ -284,6 +472,8 @@ def load_config(path: Path) -> Config:
             "add",
             "split",
             "overlap",
+            "identity",
+            "rewrite",
         },
         str(path),
     )
@@ -393,14 +583,43 @@ def load_config(path: Path) -> Config:
     )
     forbidden_text = []
     for entry in gates.get("forbidden_text", []):
-        _keys(entry, {"id", "text", "paths", "reason"}, "[[gates.forbidden_text]]")
-        if not (entry.get("id") and entry.get("text") and entry.get("paths") and entry.get("reason")):
-            raise ExportError("[[gates.forbidden_text]] needs id, text, paths and reason")
+        _keys(entry, {"id", "text", "pattern", "paths", "reason", "allow"}, "[[gates.forbidden_text]]")
+        if not (entry.get("id") and entry.get("paths") and entry.get("reason")):
+            raise ExportError("[[gates.forbidden_text]] needs id, paths and reason")
+        if bool(entry.get("text")) == bool(entry.get("pattern")):
+            raise ExportError(f"[[gates.forbidden_text]] {entry['id']} needs either text or pattern")
+        allow = []
+        for allowed in entry.get("allow", []):
+            _keys(allowed, {"path", "reason"}, f"[[gates.forbidden_text.allow]] of {entry['id']}")
+            if not (allowed.get("path") and allowed.get("reason")):
+                raise ExportError(f"an allowance of {entry['id']} needs path and reason")
+            allow.append((allowed["path"], allowed["reason"]))
+        try:
+            finder = re.compile(entry["pattern"].encode("utf-8")) if entry.get("pattern") else None
+        except re.error as error:
+            raise ExportError(f"[[gates.forbidden_text]] {entry['id']}: invalid pattern: {error}") from error
         forbidden_text.append(
             ForbiddenText(
-                entry["id"], entry["text"], entry["reason"], tuple(glob_regex(p) for p in entry["paths"])
+                entry["id"],
+                entry.get("text") or entry["pattern"],
+                entry["reason"],
+                tuple(glob_regex(p) for p in entry["paths"]),
+                finder,
+                tuple(allow),
             )
         )
+
+    identity = None
+    table = data.get("identity")
+    if table is not None:
+        _keys(table, {"source", "archive", "issue_map"}, "[identity]")
+        if not (table.get("source") and table.get("archive")):
+            raise ExportError("[identity] needs source and archive")
+        map_path = (path.parent / table["issue_map"]).resolve() if table.get("issue_map") else None
+        identity = Identity(table["source"], table["archive"], load_issue_map(map_path), map_path)
+    rewrites = []
+    for entry in data.get("rewrite", []):
+        rewrites.append(_rewrite(entry, identity, {rewrite.id for rewrite in rewrites}))
     allowances: dict[str, str] = {}
     for entry in gates.get("plugin_import_allowance", []):
         _keys(entry, {"path", "reason"}, "[[gates.plugin_import_allowance]]")
@@ -434,6 +653,8 @@ def load_config(path: Path) -> Config:
         maps=tuple(maps),
         additions=tuple(additions),
         forbidden_text=tuple(forbidden_text),
+        rewrites=tuple(rewrites),
+        identity=identity,
         core_allowlist=core_allowlist,
         overlaps=_rules(data, "overlap"),
         archive_only=tuple(split.get("archive_only", ())),
@@ -748,6 +969,7 @@ def export(repo: Path, rev: str, config: Config, out: Path) -> dict[str, Any]:
     excluded: list[dict[str, Any]] = []
     regenerate: list[Transform] = []
     targets: dict[str, str] = {}
+    rewrite_totals: dict[str, int] = {}
     with BlobReader(repo) as blobs:
         for entry in entries:
             include = config.include_rule(entry.path)
@@ -773,19 +995,21 @@ def export(repo: Path, rev: str, config: Config, out: Path) -> dict[str, Any]:
                 data = transform_content(transform, data)
                 if transform.regenerate:
                     regenerate.append(transform)
+            data, rewritten = rewrite_content(config, target, data, rewrite_totals)
             _write(out, target, data, entry.mode)
-            files.append(
-                {
-                    "path": target,
-                    "source": entry.path,
-                    "mode": entry.mode,
-                    "size": len(data),
-                    "sha256": sha256(data),
-                    "source_blob": entry.blob,
-                    "include": include.id,
-                    "transformed": transform is not None,
-                }
-            )
+            item = {
+                "path": target,
+                "source": entry.path,
+                "mode": entry.mode,
+                "size": len(data),
+                "sha256": sha256(data),
+                "source_blob": entry.blob,
+                "include": include.id,
+                "transformed": transform is not None,
+            }
+            if rewritten:
+                item["rewrites"] = rewritten
+            files.append(item)
         for addition in config.additions:
             source = by_source.get(addition.source)
             if source is None:
@@ -812,6 +1036,15 @@ def export(repo: Path, rev: str, config: Config, out: Path) -> dict[str, Any]:
                 }
             )
 
+    stale = [
+        f"[[rewrite]] {rule.id} replaced {rewrite_totals.get(rule.id, 0)} occurrences,"
+        f" expected at least {rule.minimum}"
+        for rule in config.rewrites
+        if rewrite_totals.get(rule.id, 0) < rule.minimum
+    ]
+    if stale:
+        raise ExportError("rewrite rules no longer match; review them:\n" + "\n".join(stale))
+
     by_path = {item["path"]: item for item in files}
     for transform in regenerate:
         target_path = config.target_path(transform.path)
@@ -828,6 +1061,10 @@ def export(repo: Path, rev: str, config: Config, out: Path) -> dict[str, Any]:
         "allowlist_sha256": sha256(config.path.read_bytes()),
         "files": sorted(files, key=lambda item: item["path"]),
         "excluded": excluded,
+        "rewrites": {rule.id: rewrite_totals.get(rule.id, 0) for rule in config.rewrites},
+        "issue_map_sha256": sha256(config.identity.map_path.read_bytes())
+        if config.identity and config.identity.map_path
+        else None,
     }
 
 
@@ -1022,9 +1259,14 @@ def gate_licence(out: Path, config: Config) -> GateResult:
 
 
 def gate_forbidden_text(out: Path, manifest: dict[str, Any], config: Config) -> GateResult:
-    """A forbidden text (for example a runner label) appears in no file of its path scope."""
+    """A forbidden text or pattern appears in no file of its scope, except in reviewed allowed files.
+
+    The occurrences left in allowed files are counted as warnings; an allowance
+    whose file no longer contains the text is reported too.
+    """
     result = GateResult("forbidden-text", "passed")
     checked = 0
+    remaining: dict[tuple[str, str], int] = {}
     for item in manifest["files"]:
         rules = [
             rule for rule in config.forbidden_text if any(regex.match(item["path"]) for regex in rule.regexes)
@@ -1034,13 +1276,31 @@ def gate_forbidden_text(out: Path, manifest: dict[str, Any], config: Config) -> 
         checked += 1
         data = long_path(out.joinpath(*item["path"].split("/"))).read_bytes()
         for rule in rules:
-            if rule.text.encode("utf-8") in data:
-                result.details.append(f"{item['path']} contains {rule.text!r} ({rule.id})")
+            count = rule.find(data)
+            if not count:
+                continue
+            if any(allowed == item["path"] for allowed, _ in rule.allow):
+                remaining[(rule.id, item["path"])] = count
+            else:
+                result.details.append(f"{item['path']} contains {rule.text!r} {count} times ({rule.id})")
+    for rule in config.forbidden_text:
+        for allowed, reason in rule.allow:
+            count = remaining.get((rule.id, allowed))
+            if count is None:
+                result.warnings.append(
+                    f"{rule.id}: allowance no longer needed (or file not exported): {allowed}"
+                )
+            else:
+                result.warnings.append(f"{rule.id}: {count} left in {allowed} ({reason})")
     if result.details:
         result.status = "failed"
     else:
         names = ", ".join(rule.id for rule in config.forbidden_text)
-        result.details.append(f"{checked} files checked for {names}; none found")
+        left = sum(remaining.values())
+        result.details.append(
+            f"{checked} files checked for {names}; none found outside the allowances"
+            f" ({left} left in allowed files)"
+        )
     return result
 
 
@@ -1600,6 +1860,16 @@ def build_report(
             for key, v in sorted(exclude_stats.items())
         },
         "unlisted": {key: {"files": v[0], "bytes": v[1]} for key, v in sorted(unlisted.items())},
+        "rewrites": [
+            {
+                "id": rule.id,
+                "kind": rule.kind,
+                "replaced": manifest.get("rewrites", {}).get(rule.id, 0),
+                "reason": rule.reason,
+                "decision": rule.decision,
+            }
+            for rule in config.rewrites
+        ],
         "transforms": [
             {"path": t.path, "reason": t.reason, "decision": t.decision} for t in config.transforms
         ],
@@ -1651,6 +1921,18 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines += ["", "## Not listed (excluded by default)", "", "| Path | Files | Size |", "| --- | --- | --- |"]
     for key, value in report["unlisted"].items():
         lines.append(f"| {key} | {value['files']} | {_mb(value['bytes'])} |")
+    if report.get("rewrites"):
+        lines += [
+            "",
+            "## Identity rewrites",
+            "",
+            "| Rule | Kind | Replaced | Decision |",
+            "| --- | --- | --- | --- |",
+        ]
+        lines += [
+            f"| {rule['id']} | {rule['kind']} | {rule['replaced']} | {rule['decision'] or ''} |"
+            for rule in report["rewrites"]
+        ]
     lines += ["", "## Transforms", ""]
     lines += [
         f"- `{t['path']}`: {t['reason']}" + (f" ({t['decision']})" if t["decision"] else "")

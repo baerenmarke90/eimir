@@ -10,6 +10,7 @@ holds the tool that produces both trees from one revision and the checks they mu
 | [`core-allowlist.toml`](core-allowlist.toml) | The allow-list of the public Core tree: which tracked files go public, which stay out, hard guards, the transforms and the gate settings. It is reviewable data, not code. |
 | [`pro-allowlist.toml`](pro-allowlist.toml) | The allow-list of the private Pro tree, in the same format: what the Core tree excludes for the private repository, the files both carry, the files only the private repository has, and the split settings. |
 | [`pro/`](pro) | The two files only the private tree has: an all-rights-reserved `LICENSE` and a `README.md`. |
+| [`issue-map.toml`](issue-map.toml) | Old issue and pull request numbers that continue as new items (input of the identity rewrites; empty until the issue re-creation of runbook C9 fills it). |
 | [`core_export.py`](core_export.py) | The export, the gates, the local snapshots and the report. Python standard library and git only. |
 | [`test_core_export.py`](test_core_export.py) | Tests on small synthetic repositories, including a failing case for every gate. |
 
@@ -36,7 +37,29 @@ holds the tool that produces both trees from one revision and the checks they mu
      Scan job in `.github/workflows/ci.yml` runs on `ubuntu-latest` instead of routing same-repository pull requests to
      the operator runner `eimir-kvm-pr` (the operator runner never serves `eimir-core`, runbook 6.1).
    - Pro: `PROVENANCE.md` keeps only those two sections under a short header (decision D4).
-5. **Gates** (each fails loudly; a missing tool fails, a skipped gate is reported as skipped):
+   - Core: `docs/PROJECT-IDENTITY-MIGRATION.md` gets an archive note under its title instead of a rewrite.
+5. **Repository identity.** After the cut-over the old repository `baerenmarke90/eimir` is the private archive
+   `baerenmarke90/eimir-archive`. `[[rewrite]]` rules (reviewed data, applied in order to every exported text file in
+   their scope) point living references at `baerenmarke90/eimir-core` and history at the archive. A rule that replaces
+   fewer occurrences than its `minimum` fails the export, so a changed file is reviewed again. Kinds:
+   - `literal` and `regex`: the User-Agent contact URLs; the demo-asset source prefix together with
+     `backend/demo_assets/manifest.json` and the unit test that asserts it; the Git build contexts together with the
+     deployment guard that asserts their prefix; `gh ... --repo` commands; repository statements; the ruleset link;
+     the status-drift test data; and, last, every other mention in `docs/**` and `specification/**` (runs, commits,
+     blobs at a revision, release tags, raw images, dated records) pointing at the archive.
+   - `issue-links`: `https://github.com/baerenmarke90/eimir/issues/N` and `/pull/N` become the archive link, or the new
+     item when [`issue-map.toml`](issue-map.toml) lists the number.
+   - `issue-refs`: on the open-task lines of `docs/IMPLEMENTATION-STATUS.md` (`- [ ] `), a bare `#N` becomes
+     `baerenmarke90/eimir-archive#N` (or the mapped item), so `status_drift` does not query a wrong new issue.
+
+   The issue map is TOML: `schema = 1` and a `[moved]` table with the old number as a quoted key and the new item as
+   `"owner/repo#N"`, for example `"2183" = "baerenmarke90/eimir-core#1"`. The issue re-creation script (C9) is a
+   separate piece; it only has to write this table.
+
+   Not rewritten on purpose: the package names `ghcr.io/baerenmarke90/eimir-*`, the dynamic `GITHUB_REPOSITORY` uses,
+   the files of the Android release line (P4 part B), and `appendUserAgent` in `web/capacitor.config.ts` (baked into
+   installed APKs; decision I4).
+6. **Gates** (each fails loudly; a missing tool fails, a skipped gate is reported as skipped):
 
    | Gate | Tree | Checks |
    | --- | --- | --- |
@@ -44,7 +67,7 @@ holds the tool that produces both trees from one revision and the checks they mu
    | `plugin-imports` | Core | No exported Python file imports `eimir_pro` or `eimir_admin` (AST, every `.py` file, including imports inside functions and `import_module` calls with a literal name). Core runtime code has no allowance; test support below `backend/tests/` may have a listed, reasoned allowance. |
    | `openapi-contract` | Core | `backend/openapi.json` is byte-identical to the contract checked in at the revision (the full contract, addendum of 2026-11-25). |
    | `licence` | both | Core: `LICENSE` (PolyForm Noncommercial 1.0.0), `CLA.md`, `COMMERCIAL-LICENSE.md`, `CONTRIBUTING.md`, `TRADEMARKS.md`, `PROVENANCE.md` with the licensing text the Provenance job checks. Pro: an all-rights-reserved `LICENSE` without PolyForm text, a `README.md`, and a `PROVENANCE.md` with only the Pro sections. |
-   | `forbidden-text` | Core | Neither `eimir-kvm-pr` nor `EIMIR_PR_RUNNER` appears below `.github/` (documentation may still mention them). |
+   | `forbidden-text` | both | Core: neither `eimir-kvm-pr` nor `EIMIR_PR_RUNNER` appears below `.github/` (documentation may still mention them). Both trees: no file names the old repository (`baerenmarke90/eimir` not followed by `-`) except a reviewed, reasoned list of files; the occurrences left there are counted in the report, and an allowance that is no longer needed is reported. |
    | `secret-scan` | both | gitleaks in directory mode over the tree, with the same pinned image as the Secret Scan job. |
    | `snapshot-secret-scan` | both | gitleaks in git mode over the single-commit snapshot, exactly as the new repository's Secret Scan will run. |
    | `split` | both together | Every tracked file of the revision lands in exactly one tree; in both only by a documented `[[overlap]]` rule; in neither only when its Core exclude rule is listed as archive-only. An overlap rule that matches nothing is reported. Both trees must come from the same revision. |
@@ -53,12 +76,12 @@ holds the tool that produces both trees from one revision and the checks they mu
 
    The Pro tests run against a Core wheel built from the Core tree in CI: `tools/ci/pro_extraction_dry_run.sh` with
    `EIMIR_CORE_ROOT` (Core tree) and `EIMIR_PRO_ROOT` (Pro tree).
-6. **Fresh history.** `fresh-history` creates a *local bare* repository with exactly one commit holding a tree. The
+7. **Fresh history.** `fresh-history` creates a *local bare* repository with exactly one commit holding a tree. The
    commit is reproducible: the same tree, message, author and date give the same commit id. It has no remote. Both
    snapshots use the neutral identity `eimir. <snapshot@eimir.invalid>` (decision D6). The tool contains no push code
    path (a test checks this).
-7. **Report.** `dry-run` writes `report.md` and `report.json` per tree: counts and sizes per rule, the files excluded
-   because they are not listed, the largest files, every gate result, and the exported files that still name an
+8. **Report.** `dry-run` writes `report.md` and `report.json` per tree: counts and sizes per rule, the replacements per identity rule, the files
+   excluded because they are not listed, the largest files, every gate result, and the exported files that still name an
    excluded path (input for the cut-over checklist, not a gate).
 
 ## Running it
@@ -136,7 +159,7 @@ where the classification was unclear: a file can be published later, but not wit
 | ID | Item | Default | Why it needs a decision |
 | --- | --- | --- | --- |
 | D1 | `backend/admin/` (operator plugin `eimir_admin`, support reports and tickets) | Private | Decision 0019 names only the Pro package. The operator plugin ships with Pro in the official image and never in the Core image, so it is grouped with Pro. A future Self-Hosted operator may want it. |
-| D2 | Official release pipeline: `release-candidate`, `release-evidence`, `release-publish`, `nightly-regression-report` (it starts the private test channel publication), the attestation action, the image archive, release manifest, deployment channel and release asset scripts with their tests, the release notes under `docs/releases/`, the agent skill under `.claude/` | Private | The nightly report also has Core value: the public repository will need its own nightly report without the publication step. The Self-Hosted release contract (`scripts/self_hosted_release.py`, its workflow and tests) stays public, because Core code and `compose.yaml` use it. |
+| D2 | Official release pipeline: `release-candidate`, `release-evidence`, `release-publish`, `core-advance` (the private repository follows Core `main` for the test channel, #2297), `nightly-regression-report` (it starts the private test channel publication), the attestation action, the image archive, release manifest, deployment channel and release asset scripts with their tests, the release notes under `docs/releases/`, the agent skill under `.claude/` | Private | The nightly report also has Core value: the public repository will need its own nightly report without the publication step. The Self-Hosted release contract (`scripts/self_hosted_release.py`, its workflow and tests) stays public, because Core code and `compose.yaml` use it. |
 | D3 | Large design media below `docs/product/design/` and `docs/design/eimir/` (generated reference images and evidence screenshots; numbers in the dry-run report) and six historical checksum files that match the secret scanner | In neither tree; the archive keeps them | Keeping them makes the public repository about 0.6 GB larger; linking is not possible because the archive becomes private. The Markdown records next to them stay, so their image links will not resolve. The identity system and app-icon sources stay because scripts read them. |
 | D4 | `PROVENANCE.md` split | The sections "Date-idea catalog and images" and "Daily Saying catalog" move to the private repository with the catalogs; everything else stays public | Proposed split for review. |
 | D5 | Core test modules that import `eimir_pro` at module level: `backend/tests/media/acceptance_video_lifecycle.py` and `backend/tests/unit/test_account_table_lifecycle.py` | Private | They must move to `backend/pro/pro_tests` or be rewritten before they can be published. The three lifecycle modules that [#2285](https://github.com/baerenmarke90/eimir/pull/2285) rewrote onto a fake plugin (`test_core_only_lifecycle.py`, `test_dormant_plugin_data.py`, `test_plugin_lifecycle.py`, with `tests/support/fake_plugin.py`) are public again. Five other Core test files keep guarded Pro imports inside functions under a reasoned allowance. |
@@ -147,3 +170,8 @@ where the classification was unclear: a file can be published later, but not wit
 | P3 | `tools/ci/pro_extraction_dry_run.sh` in both repositories | In both | It is the starting point of the private CI, but in `eimir-pro` it must take the Core tree and the lockfile from a pinned `eimir-core` checkout (runbook 6.1). |
 | P4 | Which Core review gates `eimir-pro` needs | Only the pull request template and `.gitleaks.toml` are carried over | The Reuse Review and Product Design Review workflows, their scripts and the Secret Scan job read Core paths; whether `eimir-pro` gets its own copies is pipeline adaptation work (runbook 6.1, C20). |
 | P5 | `.gitleaksignore` in `eimir-pro` | Not carried over | Its fingerprints name commits of the old history and Core files; they cannot match a fresh history. |
+| I1 | `gh release verify` and `gh release download` commands in `docs/SELF-HOSTING.md` and `docs/ARCANE.md` | `--repo baerenmarke90/eimir-core` | Assumes that future Self-Hosted releases are published in the public `eimir-core` (as runbook D1 option a assumes for the Android releases). If releases stay in another repository, change the rule `gh-live-repository`. |
+| I2 | The Arcane Git source of the test channel in `docs/PRIVATE-TEST-CHANNEL.md` | `https://github.com/baerenmarke90/eimir-pro.git` | The deployment branch of the test channel moves with the publisher (runbook C14); the rest of that file documents the monorepository default and is left as it is. |
+| I3 | Ruleset link in `README.md` | `https://github.com/baerenmarke90/eimir-core/rules` | The new repository gets a new ruleset id; the link points at the list until the id is known. |
+| I4 | `appendUserAgent` in `web/capacitor.config.ts` | Unchanged (old contact) | The value is baked into installed APKs and the bridge release keeps it. After the bridge, change it to `eimir-core` in `eimir-core` itself, so the next APK built there carries the new contact; then remove its allowance. |
+| I5 | Attestation verification commands in `docs/m6/SBOM-ATTESTATIONS.md` and a quoted SBOM `source` value in `docs/m6/G5-EVIDENCE-DELTA-914-2026-09-20.md` | Unchanged | Attestations and SBOMs of published releases record the repository name at signing time; verifying them needs that name. New releases of `eimir-pro` record their absence (runbook D5). |

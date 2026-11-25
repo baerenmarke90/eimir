@@ -1,10 +1,23 @@
-/* The quiet "Welt wechseln" entry above Momente › Erinnerungen (#2283). */
+/* The quiet "Welt wechseln" entry above Momente › Erinnerungen (#2283). A
+   world's own small controls (the Fotoautomat's style switch) sit in the
+   slot before it, in the same row. */
 .memory-world-switch {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: var(--space-2);
   margin-block-end: var(--space-2);
 }
-.memory-world-switch a {
+.memory-world-switch-slot {
+  display: flex;
+  align-items: center;
+  min-inline-size: 0;
+}
+.memory-world-switch-slot:empty {
+  display: none;
+}
+.memory-world-switch > a {
+  margin-inline-start: auto;
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -18,10 +31,10 @@
   background: color-mix(in srgb, var(--color-text) 6%, transparent);
   -webkit-tap-highlight-color: transparent;
 }
-.memory-world-switch a:active {
+.memory-world-switch > a:active {
   background: color-mix(in srgb, var(--color-text) 12%, transparent);
 }
-.memory-world-switch a:focus-visible {
+.memory-world-switch > a:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }

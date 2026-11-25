@@ -7,7 +7,7 @@
 import { useId } from 'react';
 import './WorldArt.css';
 
-export type WorldArtKind = 'story' | 'stack' | 'crate' | 'cloud';
+export type WorldArtKind = 'story' | 'stack' | 'crate' | 'cloud' | 'booth';
 
 type Id = (name: string) => string;
 
@@ -167,8 +167,57 @@ function art(world: WorldArtKind, id: Id, url: Id) {
           />
         </>
       );
+    case 'booth':
+      return (
+        <>
+          <defs>
+            <linearGradient id={id('curtain')} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stopColor="#8e1f2b" />
+              <stop offset="0.5" stopColor="#c23a45" />
+              <stop offset="1" stopColor="#8e1f2b" />
+            </linearGradient>
+          </defs>
+          <rect width="160" height="100" fill="#2e3e5c" />
+          <rect x="18" y="8" width="70" height="92" rx="4" fill="#e9dfcb" />
+          <rect x="26" y="20" width="54" height="80" fill={url('curtain')} />
+          {[34, 46, 58, 70].map((x) => (
+            <line
+              key={x}
+              x1={x}
+              y1="20"
+              x2={x}
+              y2="100"
+              stroke="#6e1520"
+              strokeWidth="1.4"
+              opacity="0.6"
+            />
+          ))}
+          <rect x="22" y="10" width="62" height="8" rx="2" fill="#f2c94c" />
+          <g transform="rotate(6 124 52)">
+            <rect
+              x="108"
+              y="10"
+              width="32"
+              height="86"
+              rx="1.5"
+              fill="#fbf7ee"
+            />
+            {BOOTH_STRIP_FRAMES.map(([y, fill]) => (
+              <rect key={y} x="112" y={y} width="24" height="18" fill={fill} />
+            ))}
+          </g>
+        </>
+      );
   }
 }
+
+/** The four pictures of the strip beside the cabin (y, colour). */
+const BOOTH_STRIP_FRAMES: readonly [number, string][] = [
+  [14, '#d79b86'],
+  [34, '#9db5c7'],
+  [54, '#c8b48e'],
+  [74, '#b9a3c9'],
+];
 
 /** The cloud's bubbles: centre, two honeycomb rings and the rim (x, y, r, colour). */
 const CLOUD_BUBBLES: readonly [number, number, number, string][] = [

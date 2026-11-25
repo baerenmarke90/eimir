@@ -15,12 +15,13 @@ import {
   type OpenMemoryWorldItem,
 } from './model';
 import { MomentCloudWorld } from './MomentCloudWorld';
+import { PhotoBoothWorld } from './PhotoBoothWorld';
 import { RecordCrateWorld } from './RecordCrateWorld';
 import { StackWorld } from './StackWorld';
 import { useShowSensitiveInWorlds } from './sensitivePreference';
 import './MemoryWorld.css';
 
-export type MemoryWorldViewWorld = 'stack' | 'crate' | 'cloud';
+export type MemoryWorldViewWorld = 'stack' | 'crate' | 'cloud' | 'booth';
 
 export interface MemoryWorldViewProps {
   world: MemoryWorldViewWorld;
@@ -83,6 +84,8 @@ export function MemoryWorldView({
         <RecordCrateWorld {...props} />
       ) : world === 'cloud' ? (
         <MomentCloudWorld {...props} />
+      ) : world === 'booth' ? (
+        <PhotoBoothWorld {...props} />
       ) : (
         <StackWorld {...props} />
       )}

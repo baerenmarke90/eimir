@@ -188,3 +188,9 @@
 .memory-stack-open :is(img, svg) {
   -webkit-user-drag: none;
 }
+
+/* Notes in the Stapel are plain paper without ruled lines (Product Owner
+   decision, 2026-11-25). */
+.memory-stack-card .memory-world-slip {
+  background: var(--color-story-paper);
+}

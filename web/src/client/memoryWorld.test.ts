@@ -52,7 +52,8 @@ describe('memory worlds', () => {
 
   it('accepts only known world ids', () => {
     expect(isMemoryWorld('crate')).toBe(true);
-    expect(isMemoryWorld('jar')).toBe(false);
+    expect(isMemoryWorld('aquarium')).toBe(false);
+    expect(isMemoryWorld('jar')).toBe(true);
     expect(isMemoryWorld(null)).toBe(false);
   });
 });
@@ -78,7 +79,7 @@ describe('remembered memory world', () => {
   it('ignores unknown, outdated and future values', () => {
     localStorage.setItem(
       key,
-      JSON.stringify({ schema: 1, world: 'jar', savedAt: Date.now() }),
+      JSON.stringify({ schema: 1, world: 'aquarium', savedAt: Date.now() }),
     );
     expect(readMemoryWorld(key)).toBeUndefined();
     localStorage.setItem(

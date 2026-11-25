@@ -75,7 +75,8 @@
         "web/src/components/memoryWorlds/MemoryWorldView.tsx",
         "web/src/components/memoryWorlds/MomentCloudWorld.tsx",
         "web/src/components/memoryWorlds/PhotoBoothWorld.tsx",
-        "web/src/components/memoryWorlds/FridgeDoorWorld.tsx"
+        "web/src/components/memoryWorlds/FridgeDoorWorld.tsx",
+        "web/src/components/memoryWorlds/PhotoAlbumWorld.tsx"
       ]
     },
     "browser-push.spec.ts": {

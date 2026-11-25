@@ -26,6 +26,7 @@ from pathlib import Path
 
 import image_archive_config
 import release_manifest
+import supply_chain_state
 
 # Decision 0019: the channel moves from the old monorepo to the private Pro and
 # release repository, and a rehearsal runs it in throwaway repositories first.
@@ -89,6 +90,10 @@ REQUIRED_WORKFLOWS = frozenset(
         ".github/workflows/media-video.yml",
     }
 )
+# Decision 0019, D5: a private personal repository has no code scanning, so CodeQL
+# is dropped from the required set only where scripts/supply_chain_state.py records
+# it as unavailable with the Product Owner's acceptance.
+CODE_SCANNING_WORKFLOW = ".github/workflows/codeql.yml"
 # Pushes to main start no workflows (#2096). The full regression of a main
 # revision is the set of dispatched runs from the Nightly Regression dispatcher
 # or a manual dispatch.
@@ -236,13 +241,31 @@ def latest_main() -> str:
     )
 
 
-def workflow_state(runs: list[dict], source: str) -> bool:
+def required_workflows() -> frozenset[str]:
+    """Every required workflow, without CodeQL where code scanning is unavailable."""
+    try:
+        state = supply_chain_state.assess(
+            gh_api(f"repos/{publishing_repository()}"),
+            os.environ.get(supply_chain_state.ACCEPTANCE_ENV, ""),
+        )
+    except supply_chain_state.CapabilityError as error:
+        raise ChannelError(str(error)) from error
+    code_scanning = state["codeScanning"]
+    if code_scanning["state"] == supply_chain_state.AVAILABLE:
+        return REQUIRED_WORKFLOWS
+    print(f"CodeQL is not a required workflow here: {code_scanning['reason']}")
+    return REQUIRED_WORKFLOWS - {CODE_SCANNING_WORKFLOW}
+
+
+def workflow_state(
+    runs: list[dict], source: str, required: frozenset[str] = REQUIRED_WORKFLOWS
+) -> bool:
     """Require the newest full-regression run/attempt of every exact main workflow."""
     selected: dict[str, dict] = {}
     for item in runs:
         path = item.get("path")
         if (
-            path not in REQUIRED_WORKFLOWS
+            path not in required
             or item.get("event") != FULL_REGRESSION_EVENT
             or item.get("head_branch") != "main"
             or item.get("head_sha") != source
@@ -256,19 +279,20 @@ def workflow_state(runs: list[dict], source: str) -> bool:
     for path, item in selected.items():
         if item.get("status") == "completed" and item.get("conclusion") != "success":
             raise ChannelError(f"Required main workflow did not succeed: {path}")
-    return len(selected) == len(REQUIRED_WORKFLOWS) and all(
+    return len(selected) == len(required) and all(
         item.get("status") == "completed" and item.get("conclusion") == "success"
         for item in selected.values()
     )
 
 
 def candidate_ready(source: str) -> bool:
+    required = required_workflows()
     pages = gh_api(
         f"repos/{publishing_repository()}/actions/runs?head_sha={source}&event={FULL_REGRESSION_EVENT}&per_page=100",
         paginate=True,
     )
     return workflow_state(
-        [item for page in pages for item in page["workflow_runs"]], source
+        [item for page in pages for item in page["workflow_runs"]], source, required
     )
 
 

@@ -32,7 +32,8 @@ The publication jobs:
 2. For a merge (`push`), admits only the current `main` commit and skips the full
    regression. For a manual or report dispatch, checks once for the exact
    revision's newest dispatched full-regression runs of CI, Web
-   Browser QA, CodeQL SAST, Self-Hosted Deployment Guard, Self-Hosted Recovery and Media Video.
+   Browser QA, CodeQL SAST (only where code scanning is available; see "In the private
+   repository" below), Self-Hosted Deployment Guard, Self-Hosted Recovery and Media Video.
    Missing, pending, skipped, failed or cancelled workflows cannot admit a build.
    An unfinished candidate exits without building; the next required workflow
    completion retries it. No runner waits for other workflows. Completion events
@@ -46,7 +47,8 @@ The publication jobs:
    The full regression runs Browser QA for every tested main revision, including
    backend-only and operator changes.
 3. Runs the channel contracts, then reuses Release Evidence with Android excluded:
-   build-once runtime archives, hashes, SPDX SBOMs and verified attestations.
+   build-once runtime archives, hashes, SPDX SBOMs and verified attestations, or,
+   where attestations are unavailable, the verified `supply-chain-state.json` record.
    The backend image is the default `pro` stage of `backend/Dockerfile`: the Core
    with the Pro plugin distribution `eimir-pro` (#2182).
    The private test channel additionally includes the restricted `media-runtime`
@@ -233,6 +235,34 @@ Two plain repository **Actions variables** can change the publisher. Neither is 
 
 The job summary of the publisher lists the three pinned references and whether the channel
 was promoted or only staged.
+
+## In the private repository: no attestations and no CodeQL (Decision 0019, D5)
+
+After the cut-over this channel is published from the private `eimir-pro` repository of a
+personal account. GitHub offers neither artifact attestations nor code scanning there. The
+Product Owner accepted that on November 25, 2026 (cut-over runbook, decision D5); the full
+contract is in [SBOM and attestations, section 11](m6/SBOM-ATTESTATIONS.md#11-repositories-without-attestations-or-code-scanning-decision-0019-d5).
+
+| Variable | Where | Value | Effect |
+| --- | --- | --- | --- |
+| `EIMIR_SUPPLY_CHAIN_EXCEPTION` | `eimir-pro` only; never in `eimir-core` | `decision-0019-d5` | Accepts the missing attestations and CodeQL on a private personal repository. Without it the evidence build stops there; on a repository with the capabilities it is refused. |
+
+With the variable set:
+
+- Release Evidence records `attestation` and `codeScanning` as `unavailable`, with the
+  reason and the repository, in `supply-chain-state.json` inside the checksummed evidence;
+  the attestation job verifies that exact record instead of attestations and refuses
+  any bundle next to it;
+- the channel gate and the nightly regression do not require CodeQL; every other
+  required workflow still has to be green;
+- the job summaries and a notice annotation name the gap, so it is never a silent pass.
+
+What the test channel then proves: the exact archives, hashes and SPDX SBOMs of one
+source revision, the registry digests checked against them, and the private package
+check. What it does not prove: a signed build provenance or SBOM claim, and a CodeQL
+analysis. The follow-ups before any Self-Hosted delivery of Pro images are a free Python
+security linter (for example Bandit) and key-based image signing; neither is implemented
+yet.
 
 ### New packages start public here: set them to Private (mandatory)
 

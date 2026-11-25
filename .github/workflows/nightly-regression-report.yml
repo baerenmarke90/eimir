@@ -29,7 +29,27 @@ jobs:
     permissions:
       actions: write
       issues: write
+      contents: read
     steps:
+      - name: Checkout the capability probe
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read the code-scanning state of this repository
+        # Decision 0019, D5: a private personal repository has no CodeQL; the
+        # probe refuses that state unless the Product Owner's acceptance is set.
+        id: supply_chain
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EIMIR_SUPPLY_CHAIN_EXCEPTION: ${{ vars.EIMIR_SUPPLY_CHAIN_EXCEPTION }}
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}" > "$RUNNER_TEMP/repository.json"
+          python3 scripts/supply_chain_state.py assess \
+            --repository-json "$RUNNER_TEMP/repository.json" \
+            --github-output "$GITHUB_OUTPUT"
+
       - name: Evaluate the newest dispatched main revision
         env:
           GH_TOKEN: ${{ github.token }}
@@ -37,8 +57,13 @@ jobs:
           # With a pinned Core repository (Decision 0019) Core Advance starts the
           # publisher instead; a full regression here does not admit a build.
           CORE_REPOSITORY: ${{ vars.EIMIR_CORE_REPOSITORY }}
+          CODE_SCANNING: ${{ steps.supply_chain.outputs.code_scanning }}
         run: |
           set -euo pipefail
+          case "$CODE_SCANNING" in
+            available | unavailable) ;;
+            *) echo "Unknown code-scanning state: ${CODE_SCANNING}" >&2; exit 1 ;;
+          esac
 
           # Keep this list in sync with nightly-regression.yml and
           # tools/ci/test_nightly_regression.py.
@@ -64,6 +89,10 @@ jobs:
           pending=0
           failed=()
           for workflow in "${workflows[@]}"; do
+            if [ "$workflow" = codeql.yml ] && [ "$CODE_SCANNING" = unavailable ]; then
+              echo "- ${workflow}: not required, code scanning is unavailable on ${GITHUB_REPOSITORY} (Decision 0019, D5)" >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
             # Newest non-cancelled dispatched run of this workflow at the revision.
             run=$(gh api \
               "repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/runs?event=workflow_dispatch&branch=main&head_sha=${sha}&per_page=20" \
@@ -113,7 +142,7 @@ jobs:
 
           # All green. The publisher rechecks current main and every required
           # workflow itself and refuses duplicates of an already selected pair.
-          if [ -n "$CORE_REPOSITORY" ]; then
+          if [ -n "${CORE_REPOSITORY:-}" ]; then
             echo "All green; Core Advance publishes the private test channel from the pinned Core." >> "$GITHUB_STEP_SUMMARY"
           elif [ "$TEST_CHANNEL_ENABLED" = "true" ]; then
             gh workflow run release-publish.yml --repo "$GITHUB_REPOSITORY" --ref main \

@@ -193,6 +193,8 @@ class Config:
     core_allowlist: Path | None = None
     overlaps: tuple[Rule, ...] = ()
     archive_only: tuple[str, ...] = ()
+    publisher_requires: tuple[str, ...] = ()
+    same_project: str | None = None
 
     def target_path(self, source: str) -> str:
         for mapping in self.maps:
@@ -291,7 +293,7 @@ def load_config(path: Path) -> Config:
         raise ExportError(f"{path}: schema must be {SCHEMA}")
 
     split = data.get("split", {})
-    _keys(split, {"core_allowlist", "archive_only"}, "[split]")
+    _keys(split, {"core_allowlist", "archive_only", "publisher_requires", "same_project"}, "[split]")
     core: Config | None = None
     core_allowlist: Path | None = None
     if split:
@@ -437,6 +439,8 @@ def load_config(path: Path) -> Config:
         core_allowlist=core_allowlist,
         overlaps=_rules(data, "overlap"),
         archive_only=tuple(split.get("archive_only", ())),
+        publisher_requires=tuple(split.get("publisher_requires", ())),
+        same_project=split.get("same_project"),
     )
 
 
@@ -1045,12 +1049,38 @@ def gate_forbidden_text(out: Path, manifest: dict[str, Any], config: Config) -> 
 
 
 def gate_split(
-    core_manifest: dict[str, Any], core: Config, second_manifest: dict[str, Any], second: Config
+    core_manifest: dict[str, Any],
+    core: Config,
+    second_manifest: dict[str, Any],
+    second: Config,
+    core_out: Path | None = None,
+    second_out: Path | None = None,
 ) -> GateResult:
-    """Every tracked file lands in exactly one tree, or has a documented overlap or archive-only reason."""
+    """Every tracked file lands in exactly one tree, or has a documented overlap or archive-only reason.
+
+    It also checks what the official publisher needs when it lays the second
+    tree over a Core checkout: every ``publisher_requires`` file is in the
+    second tree, and the ``same_project`` file has the same ``[project]`` table
+    in both trees.
+    """
     result = GateResult("split", "passed")
     if core_manifest["source_commit"] != second_manifest["source_commit"]:
         return GateResult("split", "failed", ["the two trees come from different revisions"])
+    second_paths = {item["path"] for item in second_manifest["files"]}
+    for path in second.publisher_requires:
+        if path not in second_paths:
+            result.details.append(f"required by the publisher but not in the {second.name} tree: {path}")
+    if second.same_project and core_out is not None and second_out is not None:
+        tables = []
+        for out in (core_out, second_out):
+            target = long_path(out.joinpath(*second.same_project.split("/")))
+            try:
+                tables.append(tomllib.loads(target.read_text(encoding="utf-8")).get("project"))
+            except (OSError, tomllib.TOMLDecodeError) as error:
+                tables.append(None)
+                result.details.append(f"cannot read {second.same_project} in {out}: {error}")
+        if tables[0] is None or tables[0] != tables[1]:
+            result.details.append(f"[project] of {second.same_project} differs between the two trees")
     tracked = {
         item.get("source") or item["path"] for item in core_manifest["files"] if not item.get("added_from")
     }
@@ -1872,7 +1902,9 @@ def dry_run(args: argparse.Namespace, config: Config, repo: Path) -> int:
             skip,
             None,
         )
-        split = _timed("split", lambda: gate_split(manifest, config, pro_manifest, second), set(skip))
+        split = _timed(
+            "split", lambda: gate_split(manifest, config, pro_manifest, second, out, pro_out), set(skip)
+        )
         pro_results.append(split)
         # A copy: the Pro results are renamed below, the Core report keeps the plain name.
         results.append(dataclasses.replace(split))

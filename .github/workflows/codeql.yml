@@ -20,7 +20,15 @@ jobs:
   changes:
     if: github.event_name != 'pull_request' || ((startsWith(github.head_ref, 'release/') || (github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ci:full'))) && (github.event.action != 'labeled' || github.event.label.name == 'ci:full'))
     name: CodeQL Change Detection
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
+    timeout-minutes: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' && 360 || 360 }}
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
       run_analysis: ${{ steps.matrix.outputs.run_analysis }}
@@ -192,7 +200,15 @@ jobs:
     name: CodeQL (${{ matrix.language }})
     needs: changes
     if: needs.changes.outputs.run_analysis == 'true'
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
+    timeout-minutes: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' && 360 || 360 }}
     permissions:
       contents: read
       security-events: write
@@ -204,6 +220,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The TypeScript extractor needs Node.js on PATH. GitHub-hosted images ship
+      # one; the eimir-dev nightly guest only has setup-action toolchains.
+      - name: Set up Node.js for TypeScript extraction
+        if: matrix.language == 'javascript-typescript'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '26.13.1'
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3

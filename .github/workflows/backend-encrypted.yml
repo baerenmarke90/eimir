@@ -44,8 +44,15 @@ jobs:
   unit:
     if: github.event_name != 'pull_request' || ((startsWith(github.head_ref, 'release/') || (github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ci:full'))) && (github.event.action != 'labeled' || github.event.label.name == 'ci:full'))
     name: Backend Encrypted Unit
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
+    timeout-minutes: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' && 20 || 20 }}
     env:
       EIMIR_ENVIRONMENT: test
       EIMIR_ENCRYPTION_AT_REST: required
@@ -78,8 +85,16 @@ jobs:
   integration:
     if: github.event_name != 'pull_request' || ((startsWith(github.head_ref, 'release/') || (github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ci:full'))) && (github.event.action != 'labeled' || github.event.label.name == 'ci:full'))
     name: Backend Encrypted Integration Shard ${{ matrix.shard }}/4
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
+    runs-on: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' &&
+          fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
+    # Slowest hosted shard: 27m 25s. Allow 2.5x on the nightly guest.
+    timeout-minutes: >-
+      ${{ github.event_name == 'workflow_dispatch' && github.repository == 'baerenmarke90/eimir' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/eimir-nightly-self-hosted') &&
+          vars.EIMIR_NIGHTLY_RUNNER != 'github-hosted' && 69 || 45 }}
     strategy:
       fail-fast: false
       matrix:

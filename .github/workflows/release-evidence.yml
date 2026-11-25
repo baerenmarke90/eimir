@@ -96,7 +96,7 @@ jobs:
   build-evidence:
     if: github.event_name != 'pull_request' || ((startsWith(github.head_ref, 'release/') || (github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ci:full'))) && (github.event.action != 'labeled' || github.event.label.name == 'ci:full'))
     name: Build artifacts and SPDX SBOMs
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'baerenmarke90/eimir' && vars.EIMIR_TEST_CHANNEL_RUNNER != 'github-hosted' && github.workflow_ref == 'baerenmarke90/eimir/.github/workflows/release-publish.yml@refs/heads/main' && fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
     permissions:
       contents: read
 
@@ -551,7 +551,7 @@ jobs:
     name: Attest exact artifact bytes
     if: github.event_name != 'pull_request'
     needs: build-evidence
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'baerenmarke90/eimir' && vars.EIMIR_TEST_CHANNEL_RUNNER != 'github-hosted' && github.workflow_ref == 'baerenmarke90/eimir/.github/workflows/release-publish.yml@refs/heads/main' && fromJSON(format('["eimir-kvm-nightly","eimir-run-{0}-{1}"]', github.run_id, github.run_attempt)) || 'ubuntu-latest' }}
     permissions:
       contents: read
       id-token: write

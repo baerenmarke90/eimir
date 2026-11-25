@@ -599,6 +599,7 @@ retains visible feeling radios and its separate visibility task.
 
 - Two people are represented equally; neither is visually dominant by default.
 - Initials or neutral placeholders are available when no photo exists.
+- The neutral placeholder is one of the eight shipped default avatars (`web/public/identity/default-avatars/v1/`), chosen deterministically from the Account id and shown only once the profile is known to have no picture (`profileAttachmentId` is `null`). While the profile loads, or when a picture fails to load, the initials stay, so a placeholder never flashes before a real photo. A placeholder is decorative artwork, not a photo of the person, and is labelled with the fallback text, not as a profile picture. Surfaces that do not use the placeholder yet keep the initials.
 - Status or role is supplemented with text when relevant.
 
 ## 11. Relationship components

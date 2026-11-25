@@ -306,6 +306,7 @@ img { max-width: 100%; }
 .closing-card .button { margin-top: var(--space-8); }
 
 /* Legal pages */
+.legal .bar { flex-wrap: wrap; row-gap: var(--space-1); }
 .legal main { padding-block: var(--space-10) 56px; overflow-wrap: anywhere; }
 .legal h1 { font-size: clamp(1.875rem, 7vw, 2.5rem); line-height: 1.15; }
 .legal h2 { font-size: 1.375rem; line-height: 1.2; margin-top: var(--space-8); }

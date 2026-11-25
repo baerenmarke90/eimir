@@ -1,0 +1,247 @@
+/* Shared keepsake objects of the memory worlds (prints, heart moment cards,
+   milestone stamps, note slips) and the world heading. Colours come from the
+   story roles; the few physical materials (tape, the stamp ink on light
+   paper) are world-scoped roles below. */
+
+.memory-world,
+.memory-stack-world,
+.memory-crate-world {
+  --memory-world-tape: color-mix(in srgb, #e8d7af 88%, transparent);
+  --memory-world-ink: var(--color-text);
+  --memory-world-stamp-paper: color-mix(
+    in srgb,
+    var(--color-story-milestone) 12%,
+    var(--color-story-paper)
+  );
+  --memory-world-shadow: 0 8px 22px color-mix(in srgb, #10142a 22%, transparent);
+  /* Stamps sit on paper that stays light, so their ink stays a deep green. */
+  --memory-world-stamp-ink: #2f7d4f;
+}
+
+.memory-world {
+  display: grid;
+  gap: var(--space-4);
+  min-inline-size: 0;
+  margin-block-end: var(--space-5);
+  /* Phone-first: centred with a reading width on Expanded. */
+  inline-size: 100%;
+  max-inline-size: 40rem;
+  margin-inline: auto;
+}
+
+:is(.memory-world, .memory-stack-world, .memory-crate-world)
+  .momente-keepsake-stamp-mark {
+  --color-story-milestone: var(--memory-world-stamp-ink);
+}
+
+.memory-world-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+}
+.memory-world-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 1.15;
+}
+.memory-world-kicker {
+  display: block;
+  font: var(--font-supporting-copy);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+.memory-world-muted {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+/* ---------- Keepsake objects ---------- */
+.memory-world-print,
+.memory-world-stamp-card,
+.memory-world-slip {
+  position: relative;
+  color: var(--memory-world-ink);
+  box-shadow: var(--memory-world-shadow);
+}
+.memory-world-print {
+  background: var(--color-story-paper);
+  padding: 10px 10px 0;
+}
+.memory-world-print[data-size="small"] {
+  padding: 5px 5px 14px;
+}
+.memory-world-tape {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: -10px;
+  inset-inline-start: 50%;
+  inline-size: 64px;
+  block-size: 20px;
+  translate: -50% 0;
+  rotate: -3deg;
+  background: var(--memory-world-tape);
+}
+.memory-world-print[data-size="small"] .memory-world-tape {
+  display: none;
+}
+.memory-world-photo {
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--color-media-scrim-strong);
+}
+.memory-world-photo :is(img, .story-media-preview) {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .memory-world-develop :is(img, .story-media-preview) {
+    animation: eimir-motion-momente-story-develop var(--duration-story-develop)
+      var(--easing-playback) both;
+  }
+}
+.memory-world-caption {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-3) 2px var(--space-4);
+}
+.memory-world-caption strong {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+.memory-world-caption > span:last-child,
+.memory-world-date {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  font-size: 0.82rem;
+}
+
+/* Heart moments: coloured by their feeling, like in the diary. */
+.memory-world-heart-card {
+  position: relative;
+  display: grid;
+  align-content: center;
+  gap: var(--space-3);
+  min-block-size: 280px;
+  padding: var(--space-6) var(--space-5) var(--space-5);
+  border: var(--border-surface-width) solid
+    color-mix(
+      in srgb,
+      var(--heart-emotion-accent, var(--color-story-heart-moment)) 35%,
+      var(--heart-emotion-surface, var(--color-brand-surface))
+    );
+  border-radius: 3px 18px 4px 15px / 16px 4px 18px 3px;
+  color: var(--color-text);
+  background: var(--heart-emotion-surface, var(--color-brand-surface));
+  box-shadow: var(--memory-world-shadow);
+}
+.memory-world-heart-card-glyph {
+  inline-size: 26px;
+  block-size: 24px;
+  fill: var(--heart-emotion-accent, var(--color-story-heart-moment));
+}
+.memory-world-heart-card q {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.35rem;
+  line-height: 1.45;
+  quotes: "„" "“";
+}
+.memory-world-heart-card-from {
+  font: var(--font-supporting-copy);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+.memory-world-heart-card[data-size="small"] {
+  min-block-size: 0;
+  padding: 12px 10px;
+  gap: 6px;
+}
+.memory-world-heart-card[data-size="small"] .memory-world-heart-card-glyph {
+  inline-size: 16px;
+  block-size: 15px;
+}
+.memory-world-heart-card[data-size="small"] q {
+  font-size: 0.85rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.memory-world-heart-card[data-size="small"] .memory-world-heart-card-from {
+  font-size: 0.72rem;
+}
+
+.memory-world-stamp-card {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4);
+  background: var(--memory-world-stamp-paper);
+  border-radius: 4px;
+  min-block-size: 260px;
+  text-align: center;
+}
+.memory-world-stamp-card[data-size="small"] {
+  padding: 10px 6px;
+  min-block-size: 0;
+  gap: 6px;
+}
+.memory-world-stamp-card .memory-world-stamp {
+  inline-size: 96px;
+  block-size: 96px;
+}
+.memory-world-stamp-card[data-size="small"] .memory-world-stamp {
+  inline-size: 48px;
+  block-size: 48px;
+}
+.memory-world-stamp-card strong {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+}
+.memory-world-stamp-card[data-size="small"] strong {
+  font-size: 0.8rem;
+}
+
+.memory-world-slip {
+  --paper-line: 1.7rem;
+  display: grid;
+  align-content: start;
+  gap: 0;
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  min-block-size: 260px;
+  line-height: var(--paper-line);
+  background: repeating-linear-gradient(
+    var(--color-story-paper) 0 calc(var(--paper-line) - 1px),
+    var(--color-story-paper-line) calc(var(--paper-line) - 1px)
+      var(--paper-line)
+  );
+}
+.memory-world-slip[data-size="small"] {
+  --paper-line: 1.1rem;
+  padding: 8px;
+  min-block-size: 0;
+}
+.memory-world-slip strong {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.2rem;
+}
+.memory-world-slip[data-size="small"] strong {
+  font-size: 0.8rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

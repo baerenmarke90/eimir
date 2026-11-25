@@ -80,8 +80,9 @@ Deliberately **not** part of the plugin, with the reason:
   (`api/v1/relationship_passport.py`) and their read models (package `relationship_passport`) are plugin code, while
   `getDashboard` and its shared Story summary stay Core; recap composition followed in #2085 (see the recap gap
   below). `theme.bespoke_packs` is plugin-owned too, but it has no
-  server feature code to move: the three value checks in `api/v1/appearance.py`, the stored columns and the value
-  enums stay Core, and the designs themselves live in the clients
+  server feature code to move: the four value checks in `api/v1/appearance.py` (app icons, Wir designs and
+  palettes, person-colour pairs, memory worlds from [#2283](https://github.com/baerenmarke90/eimir/issues/2283)),
+  the stored columns and the value enums stay Core, and the designs themselves live in the clients
   ([#2086](https://github.com/baerenmarke90/eimir/issues/2086)). Without the plugin a Pro value is refused under
   any grant, Free values keep working and a stored Pro value stays in effect.
 - `media.video_upload` (`api/v1/video.py`, `attachments/videos.py`, `attachments/video_jobs.py`,

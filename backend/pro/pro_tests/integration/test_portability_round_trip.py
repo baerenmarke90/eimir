@@ -400,7 +400,7 @@ def test_personal_import_maps_requester_ignores_appearance_and_is_idempotent(
     data = _minimal_personal_bundle(
         source_id,
         "target@example.test",
-        appearance={"appIconId": "sage", "wirDesign": "shared_album"},
+        appearance={"appIconId": "sage", "wirDesign": "shared_album", "memoryWorld": "crate"},
     )
 
     graph = validate_bytes(session, authorization, data)

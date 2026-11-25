@@ -1,0 +1,124 @@
+/* Settings > Appearance > Erinnerungswelten (#2283). */
+.memory-world-settings {
+  display: grid;
+  gap: var(--space-4);
+  scroll-margin-block-start: var(--space-8);
+}
+.memory-world-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+.memory-world-summary > div {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+}
+.memory-world-summary > button {
+  margin-inline-start: auto;
+}
+.memory-world-summary-art {
+  inline-size: calc(var(--space-12) * 2);
+  aspect-ratio: 16 / 10;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-raised);
+}
+.memory-world-tier,
+.memory-world-note,
+.memory-world-intro,
+.memory-world-option-sentence,
+.memory-world-footer p {
+  margin: 0;
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+}
+.memory-world-intro {
+  margin-block-end: var(--space-4);
+}
+.memory-world-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  padding: 0;
+  border: 0;
+  margin: 0;
+}
+@media (min-width: 560px) {
+  .memory-world-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.memory-world-grid:disabled {
+  opacity: var(--opacity-disabled);
+}
+.memory-world-option {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: var(--border-control-width) solid transparent;
+  border-radius: var(--radius-large);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background var(--duration-feedback),
+    border-color var(--duration-feedback);
+}
+.memory-world-option.is-selected {
+  border-color: var(--color-focus);
+  background: var(--color-brand-surface);
+}
+.memory-world-option:focus-within {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.memory-world-option input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+}
+.memory-world-option-art {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-raised);
+  transition: scale var(--duration-feedback) var(--easing-standard);
+}
+.memory-world-option.is-selected .memory-world-option-art {
+  scale: 1.03;
+}
+.memory-world-option-current {
+  position: absolute;
+  inset-block-start: var(--space-1);
+  inset-inline-start: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  font: var(--font-supporting-copy);
+  font-weight: 700;
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+.memory-world-option-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+.memory-world-option-name {
+  font: var(--font-action-label);
+}
+.memory-world-footer {
+  display: grid;
+  gap: var(--space-3);
+}
+.memory-world-footer > button {
+  inline-size: 100%;
+  min-block-size: var(--touch-target-web);
+}

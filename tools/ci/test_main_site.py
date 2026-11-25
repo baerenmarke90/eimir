@@ -11,7 +11,12 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SITE = ROOT / "site"
-PAGES = (SITE / "index.html", SITE / "en/index.html", SITE / "impressum/index.html")
+PAGES = (
+    SITE / "index.html",
+    SITE / "en/index.html",
+    SITE / "impressum/index.html",
+    SITE / "konto-loeschen/index.html",
+)
 
 sys.path.insert(0, str(ROOT / "tools/site"))
 import build_main_site
@@ -94,6 +99,14 @@ class MainSiteTests(unittest.TestCase):
             self.assertIn('href="https://app.eimir.de/legal/privacy"', text)
             self.assertIn('href="https://app.eimir.de/legal/terms"', text)
             self.assertIn('href="https://app.eimir.de"', text)
+
+    def test_account_deletion_is_reachable_without_the_app(self) -> None:
+        page = SITE / "konto-loeschen/index.html"
+        for landing in PAGES[:2]:
+            self.assertIn('href="/konto-loeschen/"', landing.read_text(encoding="utf-8"))
+        html = page.read_text(encoding="utf-8")
+        self.assertIn('href="mailto:kontakt@reiswienudel.de?', html)
+        self.assertIn('href="https://app.eimir.de/more/settings/account"', html)
 
     def test_imprint_is_not_indexed_and_blocks_production_while_unfinished(self) -> None:
         imprint = PAGES[2].read_text(encoding="utf-8")

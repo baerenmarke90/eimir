@@ -253,6 +253,7 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/app-icon"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/wir-design"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/person-colours"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/memory-world"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/personal-settings"),
     Endpoint(
         "PATCH",
@@ -264,6 +265,12 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "PATCH",
         "/api/v1/spaces/{spaceId}/appearance/person-colours",
         body={"colours": None},
+        if_match=True,
+    ),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/appearance/memory-world",
+        body={"worldId": "story"},
         if_match=True,
     ),
     Endpoint(

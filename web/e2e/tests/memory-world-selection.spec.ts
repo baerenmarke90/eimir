@@ -250,8 +250,8 @@ test('Free sees every world, keeps Pro worlds unsaved and saves Stapel', async (
   const opener = page.getByRole('button', { name: copy.change });
   await opener.click();
   const dialog = page.getByRole('dialog', { name: copy.choices });
-  await expect(dialog.getByRole('radio')).toHaveCount(6);
-  await expect(dialog.locator('.pro-mark')).toHaveCount(4);
+  await expect(dialog.getByRole('radio')).toHaveCount(7);
+  await expect(dialog.locator('.pro-mark')).toHaveCount(5);
   await dialog.getByRole('radio', { name: new RegExp(crate) }).check();
   await expect(
     dialog.getByRole('button', { name: copy.discover }),
@@ -553,4 +553,46 @@ test('Erinnerungen shows the Kühlschranktür; a note moves by keyboard and open
   await page.setViewportSize({ width: 1280, height: 860 });
   await page.waitForTimeout(600);
   await capture(page, info, 'memory-worlds-fridge-1280-dark.png');
+});
+
+test('Erinnerungen shows the Fotobuch and turns its pages by keyboard', async ({
+  page,
+}, info) => {
+  await installMocks(page, true, 'album');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page, '/story?tab=discover');
+  const world = page.locator('.memory-world[data-world="album"]');
+  await expect(world).toBeVisible();
+  await expect(page.locator('.memory-world-stage')).toHaveAttribute(
+    'data-entered',
+    'true',
+  );
+  const pageOf = (n: number) =>
+    new RegExp(
+      `^${worlds.album.label
+        .replace('{{page}}', String(n))
+        .replace('{{count}}', '[0-9]+')}$`,
+    );
+  const book = world.getByRole('group', { name: pageOf(1) });
+  await expect(book).toBeVisible();
+  await page.waitForTimeout(900);
+  await capture(page, info, 'memory-worlds-album-cover-390-light.png');
+  await book.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(world.getByRole('group', { name: pageOf(2) })).toBeVisible();
+  await page.waitForTimeout(1200);
+  await capture(page, info, 'memory-worlds-album-page-390-light.png');
+  const accessibility = await new AxeBuilder({ page })
+    .include('.memory-world')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(accessibility.violations).toEqual([]);
+  await page.keyboard.press('Home');
+  await expect(world.getByRole('group', { name: pageOf(1) })).toBeVisible();
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.waitForTimeout(1200);
+  await capture(page, info, 'memory-worlds-album-cover-390-dark.png');
+  await page.setViewportSize({ width: 1280, height: 860 });
+  await page.waitForTimeout(600);
+  await capture(page, info, 'memory-worlds-album-1280-dark.png');
 });

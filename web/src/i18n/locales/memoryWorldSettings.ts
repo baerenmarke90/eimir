@@ -55,6 +55,10 @@ const memoryWorldSettings = {
       sentence:
         'Druck eure Erinnerungen als Fotostreifen aus – klassisch oder modern.',
     },
+    album: {
+      name: 'Fotobuch',
+      sentence: 'Blättere durch euer Fotobuch – Seite für Seite.',
+    },
     crate: {
       name: 'Plattenkiste',
       sentence: 'Blättere durch eure Platten und leg eine Erinnerung auf.',

@@ -16,6 +16,7 @@ import {
   type OpenMemoryWorldItem,
 } from './model';
 import { MomentCloudWorld } from './MomentCloudWorld';
+import { PhotoAlbumWorld } from './PhotoAlbumWorld';
 import { PhotoBoothWorld } from './PhotoBoothWorld';
 import { RecordCrateWorld } from './RecordCrateWorld';
 import { StackWorld } from './StackWorld';
@@ -27,7 +28,8 @@ export type MemoryWorldViewWorld =
   | 'crate'
   | 'cloud'
   | 'booth'
-  | 'fridge';
+  | 'fridge'
+  | 'album';
 
 export interface MemoryWorldViewProps {
   world: MemoryWorldViewWorld;
@@ -94,6 +96,8 @@ export function MemoryWorldView({
         <PhotoBoothWorld {...props} />
       ) : world === 'fridge' ? (
         <FridgeDoorWorld {...props} />
+      ) : world === 'album' ? (
+        <PhotoAlbumWorld {...props} />
       ) : (
         <StackWorld {...props} />
       )}

@@ -29,7 +29,7 @@ const moreItems = [
 ];
 
 function renderWorld(
-  world: 'stack' | 'crate' | 'cloud' | 'booth' | 'fridge',
+  world: 'stack' | 'crate' | 'cloud' | 'booth' | 'fridge' | 'album',
   more: typeof moreItems | undefined = undefined,
 ) {
   return render(
@@ -150,6 +150,21 @@ describe('MemoryWorldView', () => {
         (link) => link.textContent?.split(', ')[0],
       ),
     ).toEqual(['Thank you', 'Moved in together']);
+  });
+
+  it('renders the Fotobuch from the same selection', () => {
+    renderWorld('album', moreItems);
+    // Cover, one season opener per season, the two pages and the end page;
+    // sensitive covers and the rest of the diary stay out.
+    const book = screen.getByRole('group', {
+      name: fill(copy.album.label, { page: 1, count: 6 }),
+    });
+    expect(book.getAttribute('aria-roledescription')).toBe(
+      copy.album.roleDescription,
+    );
+    expect(
+      screen.getByText(fill(copy.album.moments_other, { count: 2 })),
+    ).toBeTruthy();
   });
 
   it('ignores the rest of the diary outside the Momentwolke', () => {

@@ -1,5 +1,5 @@
 // Memory worlds of Momente › Erinnerungen (#2283): Stapel, Plattenkiste,
-// Momentwolke, Fotoautomat and Kühlschranktür.
+// Momentwolke, Fotoautomat, Kühlschranktür and Fotobuch.
 const memoryWorlds = {
   placeVerse: 'in {{place}}',
   winterSpan: 'Winter {{from}}/{{to}}',
@@ -173,6 +173,39 @@ const memoryWorlds = {
     openInDiary: 'Im Tagebuch öffnen',
     allMemories: 'Alle Erinnerungen an eurer Kühlschranktür',
     memoryListItem: '{{title}}, {{date}}',
+  },
+  album: {
+    heading: 'Euer Fotobuch',
+    roleDescription: 'Fotobuch',
+    label: 'Euer Fotobuch, Seite {{page}} von {{count}}',
+    hint: 'Mit den Pfeiltasten oder Bild auf und Bild ab blättert ihr vor und zurück, mit Pos1 und Ende springt ihr an den Anfang oder ans Ende. Auf dem Touchscreen wischt ihr die Seite zur Seite oder tippt auf den rechten oder linken Rand.',
+    page: 'Seite {{page}} von {{count}}: {{label}}',
+    previous: 'Vorherige Seite',
+    next: 'Nächste Seite',
+    moments_one: 'Ein Moment',
+    moments_other: '{{count}} Momente',
+    winterYear: '{{from}}/{{to}}',
+    dateRange: '{{from}} – {{to}}',
+    separator: ' · ',
+    coverMark: '„“',
+    pageLabel: {
+      cover: 'Umschlag',
+      photos: '{{count}} Fotos',
+      heart: 'Herzmoment',
+      milestone: 'Meilenstein: {{title}}',
+      end: 'Fortsetzung folgt',
+    },
+    photo: '{{title}}, {{date}}',
+    heart: 'Herzmoment von {{name}}: {{title}}',
+    milestone: 'Meilenstein: {{title}}, {{date}}',
+    words: '{{title}}, {{date}}',
+    milestoneKicker: 'Meilenstein',
+    sign: '– {{name}}',
+    latest: 'Zuletzt: {{title}}, {{date}}',
+    endTitle: 'Fortsetzung folgt',
+    endText:
+      'Euer Tagebuch schreibt weiter – und mit jeder neuen Erinnerung euer Fotobuch.',
+    restart: 'Zum Anfang blättern',
   },
 };
 

@@ -12,8 +12,10 @@ import {
   pickNextSlip,
   RATTLES_TO_OPEN,
   REVERSAL_PX,
+  hasDrawnToday,
   readTodayDraw,
   rememberDraw,
+  rememberReturn,
   SERIES_GAP_MS,
   SHAKE_DEBOUNCE_MS,
   SHAKE_OPEN_MS,
@@ -33,13 +35,16 @@ describe("the Glas' draw of the day", () => {
     const morning = new Date(2026, 10, 25, 8, 30);
     rememberDraw('memory-a', morning);
     expect(JSON.parse(window.localStorage.getItem(JAR_DRAW_KEY) ?? '')).toEqual(
-      { day: '2026-11-25', key: 'memory-a' },
+      { day: '2026-11-25', key: 'memory-a', returned: false },
     );
     expect(readTodayDraw(new Date(2026, 10, 25, 23, 59))).toBe('memory-a');
     // The next day the jar is full again.
     expect(readTodayDraw(new Date(2026, 10, 26, 0, 0))).toBeNull();
-    rememberDraw(null, morning);
-    expect(window.localStorage.getItem(JAR_DRAW_KEY)).toBeNull();
+    // Put back: the slip is in the jar again, but today's draw is used up.
+    rememberReturn('memory-a', morning);
+    expect(readTodayDraw(morning)).toBeNull();
+    expect(hasDrawnToday(morning)).toBe(true);
+    expect(hasDrawnToday(new Date(2026, 10, 26, 0, 0))).toBe(false);
   });
 
   it('uses the local calendar day and today by default', () => {

@@ -80,8 +80,10 @@ import {
   newReversalTrack,
   pickNextSlip,
   RATTLES_TO_OPEN,
+  hasDrawnToday,
   readTodayDraw,
   rememberDraw,
+  rememberReturn,
   SERIES_GAP_MS,
   SHAKE_FOLLOW,
   SLIP_REAL_MAX,
@@ -709,6 +711,8 @@ export function MemoryJarWorld({
   const [drawnKey, setDrawnKey] = useState<string | null>(() =>
     readTodayDraw(),
   );
+  // One slip a day: also after the slip is back in the jar (PO 2026-11-25).
+  const [drawnToday, setDrawnToday] = useState(() => hasDrawnToday());
   const [phase, setPhaseState] = useState<Phase>('idle');
   const [stageStep, setStageStep] = useState<StageStep>('measure');
   const [stageUnfolded, setStageUnfolded] = useState(false);
@@ -924,8 +928,12 @@ export function MemoryJarWorld({
   const commitDraw = (pick: Entry) => {
     drawnRef.current = pick;
     setDrawnKey(pick.key);
+    setDrawnToday(true);
     rememberDraw(pick.key);
   };
+
+  /** Today's slip is out, or was drawn and put back: no new draw today. */
+  const alreadyDrawn = () => drawnRef.current !== null || hasDrawnToday();
 
   /** Reduced motion: the slip is simply there. */
   const drawNow = () => {
@@ -955,7 +963,7 @@ export function MemoryJarWorld({
     jar.clink(intensity, true);
     jar.kick();
     window.clearTimeout(relaxTimer.current);
-    if (!drawnRef.current) {
+    if (!alreadyDrawn()) {
       jar.loosen(Math.min(1, s.count / RATTLES_TO_OPEN));
       if (enough) {
         popRef.current();
@@ -1014,7 +1022,7 @@ export function MemoryJarWorld({
 
   /** The lid pops and one slip jumps out of the jar. */
   const pop = () => {
-    if (phaseRef.current !== 'idle' || drawnRef.current) return;
+    if (phaseRef.current !== 'idle' || alreadyDrawn()) return;
     const pick = pickNextSlip(entries, lastKeyRef.current);
     if (!pick) return;
     releaseGesture();
@@ -1036,7 +1044,7 @@ export function MemoryJarWorld({
   const tapShake = () => {
     if (phaseRef.current !== 'idle') return;
     if (prefersReducedMotion()) {
-      if (drawnRef.current) refuse();
+      if (alreadyDrawn()) refuse();
       else drawNow();
       return;
     }
@@ -1052,7 +1060,7 @@ export function MemoryJarWorld({
    */
   const shakeHard = (press: boolean) => {
     if (phaseRef.current !== 'idle' || tagBusyRef.current) return;
-    const already = !!drawnRef.current;
+    const already = alreadyDrawn();
     if (prefersReducedMotion()) {
       if (already) refuse();
       else drawNow();
@@ -1313,7 +1321,7 @@ export function MemoryJarWorld({
     drawnRef.current = null;
     fold.current.track = null;
     setDrawnKey(null);
-    rememberDraw(null);
+    rememberReturn(key);
     setReturningKey(null);
     goPhase('idle');
     setAnnouncement(t('memoryWorlds.jar.announce.back'));
@@ -1570,7 +1578,7 @@ export function MemoryJarWorld({
         )
       : null;
 
-  const tagLines = drawn
+  const tagLines = drawnToday
     ? [t('memoryWorlds.jar.tag.drawn'), t('memoryWorlds.jar.tag.tomorrow')]
     : [t('memoryWorlds.jar.tag.shake'), t('memoryWorlds.jar.tag.me')];
 
@@ -1709,10 +1717,10 @@ export function MemoryJarWorld({
                     ref={tagRef}
                     type="button"
                     className="memory-jar-tag"
-                    data-today={drawn ? 'drawn' : undefined}
+                    data-today={drawnToday ? 'drawn' : undefined}
                     aria-disabled={shakeable ? undefined : 'true'}
                     aria-label={
-                      drawn
+                      drawnToday
                         ? t('memoryWorlds.jar.tag.drawnLabel')
                         : t('memoryWorlds.jar.tag.drawLabel')
                     }

@@ -22,29 +22,60 @@ export function jarDay(date: Date): string {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
-/** The key of the slip drawn today on this device, if any. */
-export function readTodayDraw(now: Date = new Date()): string | null {
+interface StoredDraw {
+  key: string;
+  /** The slip was put back into the jar; today's draw is still used up. */
+  returned: boolean;
+}
+
+function readStoredDraw(now: Date): StoredDraw | null {
   try {
     const raw = window.localStorage.getItem(JAR_DRAW_KEY);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== 'object' || parsed === null) return null;
-    const { day, key } = parsed as { day?: unknown; key?: unknown };
-    return day === jarDay(now) && typeof key === 'string' ? key : null;
+    const { day, key, returned } = parsed as {
+      day?: unknown;
+      key?: unknown;
+      returned?: unknown;
+    };
+    if (day !== jarDay(now) || typeof key !== 'string') return null;
+    return { key, returned: returned === true };
   } catch {
     return null;
   }
 }
 
-/** Remembers today's draw, or forgets it when the slip is back in the jar. */
-export function rememberDraw(key: string | null, now: Date = new Date()): void {
+/** The key of the slip drawn today that is still out of the jar, if any. */
+export function readTodayDraw(now: Date = new Date()): string | null {
+  const draw = readStoredDraw(now);
+  return draw && !draw.returned ? draw.key : null;
+}
+
+/**
+ * Whether today's draw is used up on this device. Product Owner decision
+ * (2026-11-25): one slip a day; putting it back does not allow another draw.
+ */
+export function hasDrawnToday(now: Date = new Date()): boolean {
+  return readStoredDraw(now) !== null;
+}
+
+/** Remembers today's draw (the slip is out of the jar). */
+export function rememberDraw(key: string, now: Date = new Date()): void {
+  writeDraw({ key, returned: false }, now);
+}
+
+/** The slip is back in the jar; today's draw stays used up. */
+export function rememberReturn(key: string, now: Date = new Date()): void {
+  writeDraw({ key, returned: true }, now);
+}
+
+function writeDraw(draw: StoredDraw, now: Date): void {
   try {
-    if (key)
-      window.localStorage.setItem(
-        JAR_DRAW_KEY,
-        JSON.stringify({ day: jarDay(now), key }),
-      );
-    else window.localStorage.removeItem(JAR_DRAW_KEY);
+    window.localStorage.setItem(
+      JAR_DRAW_KEY,
+      JSON.stringify({ day: jarDay(now), ...draw }),
+    );
   } catch {
     // Storage unavailable: the draw just is not remembered.
   }

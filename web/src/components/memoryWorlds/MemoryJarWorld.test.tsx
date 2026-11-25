@@ -241,7 +241,7 @@ describe('the Glas memory world', () => {
     expect(screen.queryByRole('link')).toBeNull();
   });
 
-  it('puts the slip back into the jar, and the next one is another', () => {
+  it('puts the slip back into the jar, but draws no second slip today', () => {
     renderJar();
     fireEvent.click(drawTag());
     const back = screen.getByRole('button', { name: jar.backLabel });
@@ -249,17 +249,15 @@ describe('the Glas memory world', () => {
     fireEvent.click(back);
     expect(announcement()).toBe(jar.announce.back);
     expect(screen.queryByRole('link')).toBeNull();
-    expect(window.localStorage.getItem(JAR_DRAW_KEY)).toBeNull();
-    // Keyboard focus comes back to the jar's tag.
-    expect(document.activeElement).toBe(drawTag());
-    expect(root().dataset.drawn).toBeUndefined();
-    fireEvent.click(drawTag());
     expect(
-      screen.queryByRole('link', {
-        name: fill(jar.diaryNamed, { title: 'Thank you' }),
-      }),
-    ).toBeNull();
-    expect(screen.getAllByRole('link')).toHaveLength(2);
+      JSON.parse(window.localStorage.getItem(JAR_DRAW_KEY) ?? '{}').returned,
+    ).toBe(true);
+    // Keyboard focus comes back to the jar's tag, which says: tomorrow again.
+    expect(document.activeElement).toBe(drawnTag());
+    expect(root().dataset.drawn).toBeUndefined();
+    fireEvent.click(drawnTag());
+    expect(announcement()).toBe(jar.drawnNote);
+    expect(screen.queryByRole('link')).toBeNull();
   });
 
   it('draws at once when the phone is shaken with reduced motion', () => {
@@ -452,8 +450,10 @@ describe('the Glas memory world with motion', () => {
     expect(root().dataset.phase).toBe('idle');
     expect(announcement()).toBe(jar.announce.back);
     expect(hapticKinds()).toEqual(['threshold', 'threshold', 'commit']);
-    expect(window.localStorage.getItem(JAR_DRAW_KEY)).toBeNull();
-    expect(document.activeElement).toBe(drawTag());
+    expect(
+      JSON.parse(window.localStorage.getItem(JAR_DRAW_KEY) ?? '{}').returned,
+    ).toBe(true);
+    expect(document.activeElement).toBe(drawnTag());
     expect(
       document.querySelector('.memory-jar-scene')?.getAttribute('data-resize'),
     ).toBe('grow');

@@ -815,6 +815,17 @@ test('Erinnerungen shows the Glas; the tag draws a slip to read in the diary', a
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await page.waitForTimeout(400);
   await capture(page, info, 'memory-worlds-jar-drawn-390-dark.png');
+  // One slip a day: it goes back into the jar, but no other slip comes today.
+  await world.getByRole('button', { name: worlds.jar.backLabel }).click();
+  await expect(
+    world.getByRole('button', { name: worlds.jar.tag.drawnLabel }),
+  ).toBeVisible();
+  await world.getByRole('button', { name: worlds.jar.tag.drawnLabel }).click();
+  await expect(
+    world.getByRole('link', {
+      name: new RegExp(worlds.jar.diaryNamed.split('{{')[0]),
+    }),
+  ).toHaveCount(0);
   await page.setViewportSize({ width: 1280, height: 860 });
   await page.waitForTimeout(600);
   await capture(page, info, 'memory-worlds-jar-1280-dark.png');

@@ -10,7 +10,14 @@
  * (`cover`) lies over the world until then and cross-fades out, so there is
  * no blank frame. Reduced motion makes the fade instant (motion roles).
  */
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import './WorldEnter.css';
 
 /** Frames count as smooth when two in a row arrive within this time. */
@@ -21,6 +28,18 @@ const SMOOTH_FRAMES = 6;
 const MAX_WAIT_MS = 2400;
 /** Never wait longer than this for the world's images to decode. */
 const DECODE_WAIT_MS = 1200;
+
+/**
+ * Whether the world is actually seen yet. While the world is drawn at its
+ * practically invisible opacity, its own entrance (prints falling onto the
+ * Stapel, notes pinned to the door, the book's invite) must wait, or it plays
+ * unseen under the loading card. Outside `WorldEnter` a world counts as seen.
+ */
+const WorldEnteredContext = createContext(true);
+
+export function useWorldEntered(): boolean {
+  return useContext(WorldEnteredContext);
+}
 
 export function WorldEnter({
   children,
@@ -99,7 +118,9 @@ export function WorldEnter({
         className="memory-world-enter"
         data-entered={entered ? 'true' : 'false'}
       >
-        {children}
+        <WorldEnteredContext.Provider value={entered}>
+          {children}
+        </WorldEnteredContext.Provider>
       </div>
     </div>
   );

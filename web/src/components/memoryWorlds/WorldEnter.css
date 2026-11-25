@@ -14,6 +14,14 @@
   transition: none;
   will-change: opacity, translate;
 }
+/* A world's own CSS entrance and loops wait until it is seen; they start
+   from their first frame when the fade-in begins (#2283, Product Owner:
+   the Stapel's prints must be seen falling). */
+.memory-world-enter[data-entered="false"] *,
+.memory-world-enter[data-entered="false"] *::before,
+.memory-world-enter[data-entered="false"] *::after {
+  animation-play-state: paused !important;
+}
 
 /* The loading card lies over the (still invisible) world and cross-fades
    out when the world fades in; no empty gap in between. */

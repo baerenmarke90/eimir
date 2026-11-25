@@ -78,9 +78,9 @@ structure is ready, so the pipeline is built once.
 | --- | --- | --- | --- | --- |
 | 0 | Stay public. No new Pro code (v2.0 is postponed). Scan all refs for secrets and rotate real ones. Choose names for the new repositories and packages. | 0 | Decisions above | n/a |
 | 0b | Publish new images only under new private package names; the test host pulls with a read-only credential. | 0 extra | The test instance deploys from the private images | Point the deployment back to the old digests |
-| 1 | Phase 2 relocation in the public repository; allow-list export with its gates (no plugin import, Core-only start, no Pro-only package data); decide how the OpenAPI contract and clients are exported. | 0 (public) | Core-only start and no-plugin-import checks green on the export tree | Revert; nothing visible has changed |
+| 1 | Phase 2 relocation in the public repository; allow-list export with its gates (no plugin import, Core-only start, no Pro-only package data); export the full OpenAPI contract and the clients. | 0 (public) | Core-only start and no-plugin-import checks green on the export tree | Revert; nothing visible has changed |
 | 2 | Rehearsal in throwaway private repositories: build the official image from a pinned Core revision plus Pro, publish a test channel to a staging project, build a signed test APK, test the update path. | Small | One full dry run including the Android update location and the deployment tool | Delete the rehearsal repositories |
-| 3 | **Cut-over day:** the public Core repository receives the snapshot (new package names, licences, CLA); the private Pro and release repository goes live; the old repository is set private and archived after the `git bundle` backup; the deployment tool and the update location switch. | Core 0 | A trivial pull request in each repository; the test channel advances the test instance from the private repository | Re-enable the old repository's workflows and keep developing there |
+| 3 | **Cut-over day:** the public Core repository receives the snapshot (new package names, licences, CLA); the private Pro and release repository goes live; the old repository is set private, renamed `eimir-archive` and archived after the `git bundle` backup; the deployment tool and the update location switch. | Core 0 | A trivial pull request in each repository; the test channel advances the test instance from the private repository | Re-enable the old repository's workflows and keep developing there |
 | 4 | After the Product Owner approves each item: retire old public artifacts (packages, releases). | 0 | The replacements have been in use for at least 7 days | Packages are restorable for 30 days; immutable releases are not |
 
 The cut-over happens before the first Play **production** rollout. Until then the test channel stays on the current
@@ -103,7 +103,7 @@ pipeline.
 
 ## Addendum of November 25, 2026: names, sideload channel and operator runner
 
-The Product Owner decided three further points on November 25, 2026. They resolve open points of this decision and
+The Product Owner decided further points on November 25, 2026. They resolve open points of this decision and
 narrow one security rule; nothing else in the decision changes.
 
 ### Names of the repositories and packages
@@ -113,14 +113,15 @@ narrow one security rule; nothing else in the decision changes.
   (`eimir_pro`, [#2182](https://github.com/baerenmarke90/eimir/issues/2182)); the repository holds that distribution
   and the release pipeline, so the shared name is intentional.
 - Both names were free under `baerenmarke90` on GitHub when checked on November 25, 2026.
-- The old repository keeps its name `eimir`. It is set private and archived at the cut-over, so no rename is needed.
+- The old repository is renamed **`eimir-archive`** when it is set private and archived at the cut-over. GitHub
+  redirects the old URL to the renamed repository, and the name `eimir` is not reused for another repository.
 - The package names of the private images stay `eimir-cloud-backend`, `eimir-cloud-web` and `eimir-cloud-media`
   ([`PRIVATE-TEST-CHANNEL.md`](../PRIVATE-TEST-CHANNEL.md)).
 
 ### The sideload channel ends with Google Play
 
 The Android sideload channel (the signed test APK with its removable updater) ends once the app is available in
-Google Play (the Product Owner's decision, here translated: "as soon as the app is in the Play Store"). No date is
+Google Play, meaning its first public release there (the Product Owner's decision, here translated: "as soon as the app is in the Play Store"). No date is
 set and none is assumed here. Until then the updater location and the test channel must keep working across the cut-over; the
 rehearsal (phase 2) proves both before the day.
 
@@ -162,12 +163,20 @@ Operational requirements found by the benchmark:
 Core CI becomes free in the public repository. That remaining volume was not measured. The runner is therefore an
 option the private repository may use, not a commitment.
 
-### Open points that stay open
+### The OpenAPI contract: the full contract is public
 
-- **OpenAPI contract:** full contract checked in versus Core-only. This is pending the Product Owner's decision; the
-  argument to weigh is that the public clients already contain the Pro screens.
-- **Licence of the private repository:** not needed before the cut-over, because the existing public code stays under
-  PolyForm Noncommercial 1.0.0. It is decided before any Self-Hosted Pro delivery.
+The public `eimir-core` repository checks in the **full OpenAPI contract, including all Pro routes**. The public
+clients contain the Pro screens and must be checkable there, and the Pro route names are already public. The cost is
+that a change to the Pro interface needs a contract pull request in the public repository as well, Core first.
+
+### Licence of the private repository
+
+`eimir-pro` is **proprietary, all rights reserved**, with no open licence. A paying Self-Hosted operator would later
+receive the Pro package under a commercial licence agreement in the spirit of `COMMERCIAL-LICENSE.md`. The wording of
+that agreement is **not written now** and needs legal counsel before the first Self-Hosted delivery; open decision 6
+of Decision 0017 stays open for the wording only. No CLA is needed in the private repository while only the owner
+works there; employees or contractors would need contracts. The public code stays under PolyForm Noncommercial 1.0.0,
+unchanged.
 
 ## Alternatives considered
 
@@ -211,9 +220,9 @@ repository split needs them; Self-Hosted offering and licensing (#2087) stay def
   snapshot. The legal question on the copyright of AI-assisted code stays with its own issue.
 - **Data lifecycle and migrations:** no migration changes by this decision. Phase 2 keeps the existing Core
   migration chain unchanged.
-- **API and contracts:** the OpenAPI contract of the clients must stay checkable in the public repository. How
-  (full contract checked in, or a Core-only contract plus a private check) is decided in Phase 1 before the export
-  is written.
+- **API and contracts:** the OpenAPI contract of the clients must stay checkable in the public repository. The full
+  contract, including Pro routes, is checked in there (addendum of November 25, 2026); a change to the Pro interface
+  needs a contract pull request in the public repository too, Core first.
 - **Operations:** the deployment tool pulls the official image from a private package with a read-only credential.
   The work record moves: issue and pull request numbers restart in the new repositories, and links to the archive use
   the full `owner/repo#number` form. Status tooling that reads issue numbers (`status_drift`, the implementation
@@ -239,9 +248,10 @@ repository split needs them; Self-Hosted offering and licensing (#2087) stay def
 
 - ~~Names of the new repositories and packages.~~ Resolved on November 25, 2026: `eimir-core`, `eimir-pro`, package
   names unchanged (see the addendum).
-- Whether the Core repository carries a full or a Core-only OpenAPI contract. Still open, pending the Product
-  Owner's decision (see the addendum); it must be decided in phase 1 before the export is written.
+- ~~Whether the Core repository carries a full or a Core-only OpenAPI contract.~~ Resolved on November 25, 2026: the
+  full contract, including Pro routes (see the addendum).
 - The location of the Android update channel after the cut-over. Still open and proven by the rehearsal. How long the
   sideload channel lives is resolved: it ends once the app is available in Google Play (see the addendum).
-- The licence of the private repository (open decision 6 of Decision 0017). Still open; not needed before the
-  cut-over, decided before any Self-Hosted Pro delivery.
+- The wording of the commercial licence agreement for Self-Hosted Pro delivery (open decision 6 of Decision 0017).
+  Still open; needs legal counsel before the first Self-Hosted delivery. The private repository itself is proprietary
+  (see the addendum).

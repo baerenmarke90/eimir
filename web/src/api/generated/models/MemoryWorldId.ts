@@ -16,14 +16,17 @@
 /**
  * A personal presentation of the rediscovered memories in Momente (#2283).
  * 
- * A world only changes how the same rediscovery selection is shown. It is a
- * personal view setting that is never shared with the partner.
+ * A world only changes how the memories the couple already sees are shown:
+ * the rediscovery selection and, for the Momentwolke, the loaded diary. It is
+ * a personal view setting that is never shared with the partner.
  * @export
  */
 export const MemoryWorldId = {
     story: 'story',
     stack: 'stack',
-    crate: 'crate'
+    crate: 'crate',
+    cloud: 'cloud',
+    booth: 'booth'
 } as const;
 export type MemoryWorldId = typeof MemoryWorldId[keyof typeof MemoryWorldId];
 

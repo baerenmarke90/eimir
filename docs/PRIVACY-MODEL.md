@@ -86,11 +86,13 @@ membership, and never used for analytics, recommendations, copy or push content.
 ## Memory world (2026-11-25)
 
 Each person may choose one memory world (#2283) for their own view of the
-rediscovered memories in Momente: a presentation of the same rediscovery
-selection, stored next to the app icon and Wir design and readable only by that
+rediscovered memories in Momente: a presentation of the rediscovery selection
+(and, for the Momentwolke, of the diary entries already loaded for that
+person), stored next to the app icon and Wir design and readable only by that
 account through `GET /spaces/{spaceId}/appearance/memory-world`. It is **never
 shared with the partner** and never changes what is shown: a world shows only
-what the rediscovery selection already shows, and sensitive photos stay hidden
+what the rediscovery selection or the diary already shows that person, and
+sensitive photos stay hidden
 by default (a device-local switch, not stored on the server). Without a choice
 the clients show the Story presentation. It is part of the personal export,
 removed with the account and Space membership, and never used for analytics,

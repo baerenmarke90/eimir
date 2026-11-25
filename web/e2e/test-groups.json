@@ -386,7 +386,7 @@
     },
     "memory-world-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 6,
+      "baselineTests": 8,
       "reason": "Erinnerungswelten (#2283): per-person world choice with Free/Pro boundary, kept Pro world after downgrade, explicit save, reflow/accessibility of the world sheet, and the chosen world shown in Momente › Erinnerungen with its switch back to the setting."
     },
     "heart-hunt.spec.ts": {

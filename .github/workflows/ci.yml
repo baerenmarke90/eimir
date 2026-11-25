@@ -54,6 +54,9 @@ jobs:
       - name: Test nightly regression wiring
         run: python3 tools/ci/test_nightly_regression.py
 
+      - name: Test supply-chain capability state
+        run: python3 tools/ci/test_supply_chain_state.py
+
       - name: Test codec advisory review issue wiring
         run: python3 tools/ci/test_codec_advisory_issue.py
 

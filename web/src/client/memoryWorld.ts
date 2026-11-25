@@ -13,6 +13,8 @@ export type MemoryWorld = `${MemoryWorldId}`;
 export const MEMORY_WORLDS: readonly MemoryWorld[] = [
   'story',
   'stack',
+  'cloud',
+  'booth',
   'crate',
 ];
 

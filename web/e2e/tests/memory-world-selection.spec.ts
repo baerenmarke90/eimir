@@ -203,8 +203,11 @@ async function installMocks(
       return;
     }
     if (pathname.endsWith('/timeline')) {
+      // One diary entry beyond the selection: only the Momentwolke shows it.
       await respond({
-        items: [],
+        items: [
+          memory('world-diary', 'Breakfast on the balcony', '2026-09-20'),
+        ],
         availableYears: [],
         hasMore: false,
         nextCursor: null,
@@ -247,8 +250,8 @@ test('Free sees every world, keeps Pro worlds unsaved and saves Stapel', async (
   const opener = page.getByRole('button', { name: copy.change });
   await opener.click();
   const dialog = page.getByRole('dialog', { name: copy.choices });
-  await expect(dialog.getByRole('radio')).toHaveCount(3);
-  await expect(dialog.locator('.pro-mark')).toHaveCount(1);
+  await expect(dialog.getByRole('radio')).toHaveCount(5);
+  await expect(dialog.locator('.pro-mark')).toHaveCount(3);
   await dialog.getByRole('radio', { name: new RegExp(crate) }).check();
   await expect(
     dialog.getByRole('button', { name: copy.discover }),
@@ -421,4 +424,85 @@ test('Erinnerungen shows the Stapel with its position', async ({
   ).toBeVisible();
   await page.waitForTimeout(600);
   await capture(page, info, 'memory-worlds-stack-390-dark.png');
+});
+
+test('Erinnerungen shows the Momentwolke with the loaded diary and opens a memory', async ({
+  page,
+}, info) => {
+  await installMocks(page, true, 'cloud');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page, '/story?tab=discover');
+  const world = page.locator('.memory-world[data-world="cloud"]');
+  await expect(world).toBeVisible();
+  await expect(page.locator('.memory-world-stage')).toHaveAttribute(
+    'data-entered',
+    'true',
+  );
+  // Three rediscovered memories plus the one diary entry, without duplicates.
+  const cloud = world.getByRole('group', {
+    name: worlds.cloud.label_other.replace('{{count}}', '4'),
+  });
+  await expect(cloud).toBeVisible();
+  await page.waitForTimeout(600);
+  await capture(page, info, 'memory-worlds-cloud-390-light.png');
+  await cloud.focus();
+  await page.keyboard.press('Enter');
+  const card = page.getByRole('dialog', { name: 'Morning by the lake' });
+  await expect(card).toBeVisible();
+  await expect(
+    card.getByRole('button', { name: worlds.cloud.backToCloud }),
+  ).toBeFocused();
+  await page.waitForTimeout(600);
+  await capture(page, info, 'memory-worlds-cloud-card-390-light.png');
+  const accessibility = await new AxeBuilder({ page })
+    .include('.memory-world')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(accessibility.violations).toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(card).toHaveCount(0);
+  await expect(cloud).toBeFocused();
+});
+
+test('Erinnerungen shows the Fotoautomat with its style switch beside the world switch', async ({
+  page,
+}, info) => {
+  await installMocks(page, true, 'booth');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page, '/story?tab=discover');
+  const world = page.locator('.memory-world[data-world="booth"]');
+  await expect(world).toBeVisible();
+  await expect(page.locator('.memory-world-stage')).toHaveAttribute(
+    'data-entered',
+    'true',
+  );
+  // The Klassisch/Modern switch sits in the row of the world switch entry.
+  const row = page.locator('.memory-world-switch');
+  const styles = row.getByRole('group', { name: worlds.booth.styleLabel });
+  await expect(styles).toBeVisible();
+  const classic = styles.getByRole('button', {
+    name: worlds.booth.style.classic,
+  });
+  const modern = styles.getByRole('button', {
+    name: worlds.booth.style.modern,
+  });
+  await expect(classic).toHaveAttribute('aria-pressed', 'true');
+  await page.waitForTimeout(600);
+  await capture(page, info, 'memory-worlds-booth-classic-390-light.png');
+  await modern.click();
+  await expect(modern).toHaveAttribute('aria-pressed', 'true');
+  await page.waitForTimeout(600);
+  await capture(page, info, 'memory-worlds-booth-modern-390-light.png');
+  const accessibility = await new AxeBuilder({ page })
+    .include('.memory-world')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(accessibility.violations).toEqual([]);
+  // The style is a device-local choice and survives a reload.
+  await page.reload();
+  await expect(
+    page
+      .locator('.memory-world-switch')
+      .getByRole('button', { name: worlds.booth.style.modern }),
+  ).toHaveAttribute('aria-pressed', 'true');
 });

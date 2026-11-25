@@ -1,24 +1,38 @@
 /*
  * The motion layer's catalogue for the memory worlds of Momente ›
- * Erinnerungen (#2283): the Stapel (stack of prints) and the Plattenkiste
- * (record crate and turntable).
+ * Erinnerungen (#2283): the Stapel (stack of prints), the Plattenkiste
+ * (record crate and turntable), the Momentwolke (bubble cloud) and the
+ * Fotoautomat (photo booth, in a classic and a modern style).
  *
- * World-scoped timing roles, keyframes and the two turntable loops live
- * here; the world stylesheets only consume the roles. Every animation and
- * transition of the worlds is declared inside
- * `prefers-reduced-motion: no-preference`, so reduced motion shows the
- * final states at once. The turntable loops (sheen, level meter) run only
- * while the platter motor is on (`data-motor="on"`).
+ * World-scoped timing roles, keyframes and the worlds' loops live here; the
+ * world stylesheets only consume the roles. Every animation and transition
+ * of the worlds is declared inside `prefers-reduced-motion: no-preference`,
+ * so reduced motion shows the final states at once. The turntable loops
+ * (sheen, level meter) run only while the platter motor is on
+ * (`data-motor="on"`); the cloud's glow drift runs for
+ * `--motion-ambient-repeat` cycles and pauses while the stage is not seen
+ * (`data-ambient`), its playful jiggle only while the playful mode is on
+ * (`data-wiggle="true"`). The Fotoautomat's ambient loops (the sign's
+ * bulbs, the cabin's neon, the strips on the line, the "still wet" hint)
+ * run for `--motion-ambient-repeat` cycles and pause while the booth is not
+ * seen (`data-ambient`); its other loops (the faster bulbs during a run, the
+ * self-timer light, "Bitte warten", the wet sheen) run only during their
+ * bounded stage of a run.
  *
  * The values were tuned on device with the Product Owner (Pixel 10 Pro Fold,
  * 2026-11-24/25) and are kept unchanged from the accepted prototype.
- * Imported by `StackWorld.tsx` and `RecordCrateWorld.tsx`.
+ * Imported by `StackWorld.tsx`, `RecordCrateWorld.tsx`,
+ * `MomentCloudWorld.tsx` and `PhotoBoothWorld.tsx`.
  */
 
 /* Shared easings: the exact CSS keyword curves, as named roles. */
 .memory-world,
 .memory-stack-world,
-.memory-crate-world {
+.memory-crate-world,
+.memory-cloud-world,
+.memory-cloud-modal,
+.memory-booth-world,
+.memory-booth-viewer {
   --memory-world-easing-in: cubic-bezier(0.42, 0, 1, 1);
   --memory-world-easing-out: cubic-bezier(0, 0, 0.58, 1);
   --memory-world-easing-in-out: cubic-bezier(0.42, 0, 0.58, 1);
@@ -285,5 +299,674 @@
   }
   to {
     transform: translateX(420%);
+  }
+}
+
+/* ---------- Momentwolke ---------- */
+
+.memory-cloud-world,
+.memory-cloud-modal {
+  /* The card's clip grows out of the bubble's circle and back into it. */
+  --memory-cloud-curve-out: cubic-bezier(0.3, 0.7, 0.1, 1);
+  --memory-cloud-curve-close: cubic-bezier(0.4, 0, 0.2, 1);
+  --memory-cloud-clip-open-duration: 520ms;
+  --memory-cloud-clip-close-duration: 380ms;
+  /* Crossfades: the glow behind the centre bubble, the playful ring. */
+  --memory-cloud-fade-easing: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --memory-cloud-glow-duration: 1100ms;
+  --memory-cloud-ring-duration: 400ms;
+  /* The centre pill's text arrives with each new centre memory. */
+  --memory-cloud-pill-duration: 420ms;
+  /* The glow wanders slowly behind the cloud. */
+  --memory-cloud-drift-duration: 24s;
+  /* Playful mode: each bubble jiggles at its own pace and phase
+     (`--memory-cloud-jiggle-spread` and `-phase` are set per bubble, 0..1). */
+  --memory-cloud-jiggle-duration: 250ms;
+  --memory-cloud-jiggle-range: 90ms;
+  --memory-cloud-jiggle-period: 300ms;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .memory-cloud-glow-drift {
+    animation: eimir-motion-memory-cloud-drift
+      var(--memory-cloud-drift-duration) var(--memory-world-easing-in-out)
+      var(--motion-ambient-repeat) alternate both;
+  }
+  .memory-cloud-pill-inner {
+    animation: eimir-motion-memory-cloud-pill-in
+      var(--memory-cloud-pill-duration) var(--memory-cloud-curve-out) both;
+  }
+  .memory-cloud-stage[data-wiggle="true"] .memory-cloud-bubble-body {
+    animation: eimir-motion-memory-cloud-jiggle
+      calc(
+        var(--memory-cloud-jiggle-duration) +
+        var(--memory-cloud-jiggle-spread, 0) *
+        var(--memory-cloud-jiggle-range)
+      )
+      var(--memory-world-easing-in-out)
+      calc(
+        var(--memory-cloud-jiggle-phase, 0) *
+        -1 *
+        var(--memory-cloud-jiggle-period)
+      )
+      infinite alternate;
+  }
+  /* Not seen (page hidden, kept view hidden, off screen): pause in place. */
+  .memory-cloud-stage:not([data-ambient="on"]) .memory-cloud-glow-drift,
+  .memory-cloud-stage:not([data-ambient="on"]) .memory-cloud-bubble-body {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes eimir-motion-memory-cloud-drift {
+  0% {
+    transform: translate3d(-4%, 3%, 0) rotate(-6deg) scale(1.04);
+  }
+  50% {
+    transform: translate3d(3%, 4%, 0) rotate(3deg) scale(0.98);
+  }
+  100% {
+    transform: translate3d(5%, -3%, 0) rotate(8deg) scale(1.03);
+  }
+}
+
+@keyframes eimir-motion-memory-cloud-pill-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-memory-cloud-jiggle {
+  from {
+    transform: rotate(-2.4deg) translate3d(-0.8%, 0.5%, 0);
+  }
+  to {
+    transform: rotate(2.4deg) translate3d(0.8%, -0.5%, 0);
+  }
+}
+
+/* ---------- Fotoautomat ---------- */
+
+.memory-booth-world,
+.memory-booth-viewer {
+  /* A step curve for lamps that switch instead of fading, and the steady
+     pace of the neon and the development dial. */
+  --memory-booth-curve-step: steps(1);
+  --memory-booth-curve-steady: linear;
+  /* The CSS default curve, for colour changes of lamps and signs. */
+  --memory-booth-curve-soft: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --memory-booth-curve-pop: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --memory-booth-curve-spring: cubic-bezier(0.3, 1.5, 0.5, 1);
+  /* Modern: the sign's bulbs chase slowly, faster during a run. */
+  --memory-booth-chase-duration: 1600ms;
+  --memory-booth-chase-duration-run: 520ms;
+  /* The display, the self-timer light (fast in the last second) and the
+     shutter with its flash. */
+  --memory-booth-digit-duration: 460ms;
+  --memory-booth-led-duration: 1000ms;
+  --memory-booth-led-duration-last: 250ms;
+  --memory-booth-iris-duration: 620ms;
+  --memory-booth-curve-iris: cubic-bezier(0.45, 0, 0.3, 1);
+  --memory-booth-flash-duration: 900ms;
+  --memory-booth-flare-duration: 700ms;
+  /* Plate button, shot lamps, slot glow and the shade inside the slot. */
+  --memory-booth-press-duration: 90ms;
+  --memory-booth-glow-duration: 200ms;
+  --memory-booth-slot-duration: 400ms;
+  --memory-booth-shade-duration: 300ms;
+  /* The strip is pushed out in motor steps (as long as the print stage of
+     the run, BOOTH_PRINT_MS), swings out, and each picture develops in
+     turn. */
+  --memory-booth-print-duration: 3200ms;
+  --memory-booth-settle-duration: 1500ms;
+  --memory-booth-develop-duration: 2800ms;
+  --memory-booth-develop-offset: 2700ms;
+  --memory-booth-develop-stagger: 750ms;
+  --memory-booth-ink-duration: 2200ms;
+  /* The actions below a fresh strip, and the strips on the line (each with
+     its own breeze: `--sway-i` 0..2 is set per strip). */
+  --memory-booth-actions-duration: 420ms;
+  --memory-booth-actions-delay: 1200ms;
+  --memory-booth-hang-duration: 1200ms;
+  --memory-booth-sway-duration: 2600ms;
+  --memory-booth-sway-step: 700ms;
+  /* The picked-up strip (viewer). */
+  --memory-booth-scrim-duration: 280ms;
+  --memory-booth-pickup-duration: 520ms;
+  --memory-booth-row-duration: 360ms;
+  --memory-booth-row-delay: 160ms;
+  --memory-booth-row-stagger: 70ms;
+  /* Klassisch: neon, curtain, flashes and the development dial (as long as
+     the develop stage of the run, CABIN_DEVELOP_MS). */
+  --memory-booth-flicker-duration: 7s;
+  --memory-booth-blink-duration: 1000ms;
+  --memory-booth-curtain-duration: 1100ms;
+  --memory-booth-curve-curtain: cubic-bezier(0.65, 0, 0.25, 1);
+  --memory-booth-cabin-flash-duration: 700ms;
+  --memory-booth-dial-duration: 700ms;
+  --memory-booth-dial-run-duration: 5000ms;
+  /* The coin: it springs back, flies into the slot and drops in. */
+  --memory-booth-coin-duration: 320ms;
+  --memory-booth-coin-lift-duration: 150ms;
+  --memory-booth-coin-fly-duration: 420ms;
+  --memory-booth-curve-fly: cubic-bezier(0.3, 0.7, 0.3, 1);
+  --memory-booth-coin-in-duration: 720ms;
+  --memory-booth-coin-back-duration: 650ms;
+  /* The wet strip drops out of the chute, swings from the fingers, dries
+     and develops; dried strips go into the tin. */
+  --memory-booth-drop-duration: 950ms;
+  --memory-booth-swing-duration: 600ms;
+  --memory-booth-swing-follow-duration: 60ms;
+  --memory-booth-curve-swing: cubic-bezier(0.3, 1.7, 0.5, 1);
+  --memory-booth-dry-duration: 500ms;
+  --memory-booth-cabin-develop-duration: 7000ms;
+  --memory-booth-cabin-develop-offset: 700ms;
+  --memory-booth-cabin-develop-stagger: 600ms;
+  --memory-booth-sheen-duration: 2600ms;
+  --memory-booth-nudge-duration: 1600ms;
+  --memory-booth-tin-duration: 650ms;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Attract mode: the bulbs chase for a few rounds, then rest. */
+  .memory-booth-sign::before,
+  .memory-booth-sign::after {
+    animation: eimir-motion-memory-booth-chase
+      var(--memory-booth-chase-duration) var(--memory-booth-curve-step)
+      var(--motion-ambient-repeat);
+  }
+  .memory-booth-sign::after {
+    animation-direction: reverse;
+  }
+  /* During a run they chase faster, until the strip is printed. */
+  .memory-booth:is(
+      [data-stage="count"],
+      [data-stage="shot"],
+      [data-stage="wait"],
+      [data-stage="print"]
+    )
+    .memory-booth-sign::before,
+  .memory-booth:is(
+      [data-stage="count"],
+      [data-stage="shot"],
+      [data-stage="wait"],
+      [data-stage="print"]
+    )
+    .memory-booth-sign::after {
+    animation-duration: var(--memory-booth-chase-duration-run);
+    animation-iteration-count: infinite;
+  }
+  /* The self-timer light blinks once per second with the countdown and
+     fast in the last second, like a real camera. It starts with the "3",
+     so every blink lands on a new number. */
+  .memory-booth[data-stage="count"] .memory-booth-led {
+    animation: eimir-motion-memory-booth-led var(--memory-booth-led-duration)
+      var(--memory-booth-curve-step) infinite;
+  }
+  .memory-booth[data-stage="count"][data-digit="1"] .memory-booth-led {
+    animation-duration: var(--memory-booth-led-duration-last);
+  }
+  /* Strips on the line swing in, then move gently as if in a breeze, each
+     with its own rhythm so they never move in step. */
+  .memory-booth-hung {
+    animation:
+      eimir-motion-memory-booth-hang var(--memory-booth-hang-duration)
+      var(--memory-world-easing-out) both,
+      eimir-motion-memory-booth-sway
+      calc(
+        var(--memory-booth-sway-duration) +
+        var(--sway-i, 0) *
+        var(--memory-booth-sway-step)
+      )
+      var(--memory-world-easing-in-out) var(--memory-booth-hang-duration)
+      var(--motion-ambient-repeat);
+  }
+  /* Klassisch: the neon flickers now and then. */
+  .memory-booth-cabin-neon {
+    animation: eimir-motion-memory-booth-flicker
+      var(--memory-booth-flicker-duration) var(--memory-booth-curve-steady)
+      var(--motion-ambient-repeat);
+  }
+  .memory-booth-cabin-status[data-tone="wait"] {
+    animation: eimir-motion-memory-booth-blink
+      var(--memory-booth-blink-duration) var(--memory-booth-curve-step) infinite;
+  }
+  /* The wet gloss shimmers while the strip is wet (it dries by itself). */
+  .memory-booth-cabin-wet {
+    animation: eimir-motion-memory-booth-sheen
+      var(--memory-booth-sheen-duration) var(--memory-world-easing-in-out)
+      infinite alternate;
+  }
+  .memory-booth-cabin-wet-hint {
+    animation: eimir-motion-memory-booth-nudge
+      var(--memory-booth-nudge-duration) var(--memory-world-easing-in-out)
+      var(--motion-ambient-repeat);
+  }
+  /* Not seen (page hidden, kept view hidden, off screen): pause in place. */
+  :is(.memory-booth-modern, .memory-booth-classic):not([data-ambient="on"])
+    .memory-booth-sign::before,
+  :is(.memory-booth-modern, .memory-booth-classic):not([data-ambient="on"])
+    .memory-booth-sign::after,
+  :is(.memory-booth-modern, .memory-booth-classic):not([data-ambient="on"])
+    :is(
+      .memory-booth-hung,
+      .memory-booth-cabin-neon,
+      .memory-booth-cabin-wet-hint
+    ) {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-chase {
+  0% {
+    background-position:
+      0 50%,
+      0 50%;
+  }
+  50% {
+    background-position:
+      16px 50%,
+      0 50%;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-digit {
+  from {
+    opacity: 0;
+    scale: 1.4;
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+    filter: none;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-led {
+  0% {
+    fill: var(--memory-booth-led-on);
+    filter: drop-shadow(0 0 3px var(--memory-booth-led-on));
+  }
+  45% {
+    fill: var(--memory-booth-led-off);
+    filter: none;
+  }
+}
+
+/* The blades close, hold for the exposure, then open again. */
+@keyframes eimir-motion-memory-booth-iris {
+  0% {
+    scale: 0.42;
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  30%,
+  58% {
+    scale: 1;
+    opacity: 1;
+  }
+  100% {
+    scale: 0.42;
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-burst {
+  0% {
+    scale: 0.3;
+    opacity: 0;
+  }
+  5%,
+  18% {
+    scale: 1;
+    opacity: 1;
+  }
+  100% {
+    scale: 1.1;
+    opacity: 0;
+  }
+}
+
+/* Bright at once, a short hold, then the afterglow fades. */
+@keyframes eimir-motion-memory-booth-fire {
+  0% {
+    opacity: 0;
+  }
+  4%,
+  16% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-flare {
+  0% {
+    opacity: 0;
+    scale: 0.3;
+  }
+  6% {
+    opacity: 0.9;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.15;
+  }
+}
+
+/* Pushed out of the slot in four motor steps. */
+@keyframes eimir-motion-memory-booth-print {
+  0% {
+    translate: 0 -100%;
+  }
+  13% {
+    translate: 0.4px -87%;
+  }
+  18% {
+    translate: 0 -86.5%;
+  }
+  36% {
+    translate: -0.4px -62%;
+  }
+  41% {
+    translate: 0 -61.5%;
+  }
+  59% {
+    translate: 0.4px -37%;
+  }
+  64% {
+    translate: 0 -36.5%;
+  }
+  82% {
+    translate: -0.4px -11%;
+  }
+  87% {
+    translate: 0 -10.5%;
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-settle {
+  0% {
+    rotate: 0deg;
+  }
+  22% {
+    rotate: 3.2deg;
+  }
+  48% {
+    rotate: -1.4deg;
+  }
+  74% {
+    rotate: 1.7deg;
+  }
+  100% {
+    rotate: 1deg;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-develop {
+  0% {
+    filter: brightness(0.16) sepia(1) contrast(0.6) blur(1.6px);
+  }
+  45% {
+    filter: brightness(0.6) sepia(0.75) contrast(0.8) blur(0.5px);
+  }
+  100% {
+    filter: none;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-ink {
+  from {
+    opacity: 0.08;
+    filter: blur(1.2px);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-sway {
+  0%,
+  100% {
+    transform: rotate(0deg) skewX(0deg);
+  }
+  25% {
+    transform: rotate(var(--sway-amp, 1.6deg)) skewX(-0.6deg);
+  }
+  60% {
+    transform: rotate(calc(var(--sway-amp, 1.6deg) * -0.7)) skewX(0.5deg);
+  }
+  80% {
+    transform: rotate(calc(var(--sway-amp, 1.6deg) * 0.3)) skewX(0deg);
+  }
+}
+
+@keyframes eimir-motion-memory-booth-hang {
+  0% {
+    opacity: 0;
+    transform: translateY(-26px) rotate(-12deg);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(0) rotate(7deg);
+  }
+  55% {
+    transform: rotate(-4deg);
+  }
+  78% {
+    transform: rotate(2deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-pickup {
+  from {
+    opacity: 0;
+    translate: 0 40px;
+    rotate: 2deg;
+    scale: 0.94;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    rotate: 0deg;
+    scale: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-flicker {
+  0%,
+  17%,
+  21%,
+  24%,
+  61%,
+  65%,
+  100% {
+    opacity: 1;
+  }
+  19%,
+  23%,
+  63% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-cabin-flash {
+  0% {
+    opacity: 0;
+  }
+  5%,
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-coin-in {
+  0%,
+  55% {
+    transform: none;
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(10px) rotateY(85deg) scale(0.7);
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-coin-back {
+  0% {
+    opacity: 0;
+    transform: translateY(-40px) rotate(-30deg);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(3px) rotate(8deg);
+  }
+  78% {
+    transform: translateY(-4px) rotate(-3deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* The strip falls out of the chute and bounces twice (the keyword curves
+   ease-out and ease-in as their exact cubic-bezier values). */
+@keyframes eimir-motion-memory-booth-drop {
+  0% {
+    translate: 0 -100%;
+    animation-timing-function: cubic-bezier(0.55, 0, 1, 0.6);
+  }
+  55% {
+    translate: 0 0;
+    animation-timing-function: cubic-bezier(0, 0, 0.58, 1);
+  }
+  70% {
+    translate: 0 -4%;
+    animation-timing-function: cubic-bezier(0.42, 0, 1, 1);
+  }
+  85% {
+    translate: 0 0;
+    animation-timing-function: cubic-bezier(0, 0, 0.58, 1);
+  }
+  93% {
+    translate: 0 -1%;
+    animation-timing-function: cubic-bezier(0.42, 0, 1, 1);
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+
+/* The picture comes up out of the white in black and white first, then the
+   colour slowly seeps in. */
+@keyframes eimir-motion-memory-booth-cabin-develop {
+  0% {
+    filter: grayscale(1) sepia(0) contrast(0.2) hue-rotate(0deg)
+      brightness(1.75);
+  }
+  28% {
+    filter: grayscale(1) sepia(0.1) contrast(1.1) hue-rotate(0deg) brightness(1);
+  }
+  45% {
+    filter: grayscale(1) sepia(0.15) contrast(1.1) hue-rotate(-2deg)
+      brightness(1);
+  }
+  100% {
+    filter: grayscale(0) sepia(0.32) contrast(1.06) hue-rotate(-8deg)
+      brightness(1.02);
+  }
+}
+
+@keyframes eimir-motion-memory-booth-cabin-ink {
+  0% {
+    opacity: 0.1;
+    filter: grayscale(1) blur(1px);
+  }
+  28%,
+  45% {
+    opacity: 1;
+    filter: grayscale(1) blur(0);
+  }
+  100% {
+    opacity: 1;
+    filter: grayscale(0) blur(0);
+  }
+}
+
+@keyframes eimir-motion-memory-booth-sheen {
+  from {
+    background-position:
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      0 0;
+  }
+  to {
+    background-position:
+      0 0,
+      0 0,
+      0 0,
+      0 100%,
+      0 0;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-nudge {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  25% {
+    translate: -4px 0;
+    rotate: -2deg;
+  }
+  75% {
+    translate: 4px 0;
+    rotate: 2deg;
+  }
+}
+
+@keyframes eimir-motion-memory-booth-into-tin {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) rotate(12deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }

@@ -1740,6 +1740,10 @@
         "name": "Moment cloud",
         "sentence": "Drift through a floating cloud of all your moments."
       },
+      "booth": {
+        "name": "Photo booth",
+        "sentence": "Print your memories as photo strips – classic or modern."
+      },
       "crate": {
         "name": "Record crate",
         "sentence": "Flip through your records and put a memory on."
@@ -4402,6 +4406,69 @@
       "openInDiary": "Open in the diary",
       "allMemories": "All memories in the cloud",
       "memoryListItem": "{{title}}, {{date}}"
+    },
+    "booth": {
+      "styleLabel": "Photo booth style",
+      "style": {
+        "classic": "Classic",
+        "modern": "Modern"
+      },
+      "span": "{{from}} – {{to}}",
+      "viewStrip": "View the strip {{span}}",
+      "view": "View the strip",
+      "noteFrom": "– {{name}}",
+      "shotSpoken": "Photo {{shot}} of {{shots}}",
+      "viewer": {
+        "kicker": "From your diary",
+        "openInDiary": "Open in the diary",
+        "close": "Close"
+      },
+      "modern": {
+        "heading": "Your diary, freshly printed",
+        "sign": "Photo booth",
+        "display": {
+          "ready": "Ready",
+          "shot": "{{shot}}/{{shots}}",
+          "wait": "Wait",
+          "print": "Printing",
+          "done": "Done"
+        },
+        "printSpoken": "Your strip is being printed",
+        "doneSpoken": "Your strip is ready",
+        "print": "Print a strip",
+        "printAgain": "New strip",
+        "printing": "Printing …",
+        "hang": "Hang it on the line",
+        "line": "Your strips"
+      },
+      "classic": {
+        "heading": "The old photo booth",
+        "neon": "Photos",
+        "tagline": "Instant · {{shots}} pictures",
+        "status": {
+          "free": "Free",
+          "busy": "Occupied",
+          "wait": "Please wait"
+        },
+        "sample": "Samples",
+        "price": "{{shots}} pictures",
+        "priceAmount": "2 DM",
+        "coinValue": "2",
+        "insertHere": "Insert here",
+        "dial": "Developing",
+        "chute": "Pictures",
+        "coin": "Insert the coin",
+        "hint": "Drag the coin into the slot",
+        "coinSpoken": "Coin inserted",
+        "closingSpoken": "The curtain closes",
+        "developSpoken": "The pictures are developing",
+        "wetSpoken": "Your pictures are here, still wet",
+        "doneSpoken": "Your pictures are here",
+        "wetHint": "Still wet – wave it dry",
+        "box": "Put it in the tin",
+        "tin": "In the tin",
+        "tinLabel": "Your strips in the tin"
+      }
     }
   },
   "memoryProduct": {

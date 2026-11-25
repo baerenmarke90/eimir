@@ -250,8 +250,8 @@ test('Free sees every world, keeps Pro worlds unsaved and saves Stapel', async (
   const opener = page.getByRole('button', { name: copy.change });
   await opener.click();
   const dialog = page.getByRole('dialog', { name: copy.choices });
-  await expect(dialog.getByRole('radio')).toHaveCount(8);
-  await expect(dialog.locator('.pro-mark')).toHaveCount(6);
+  await expect(dialog.getByRole('radio')).toHaveCount(9);
+  await expect(dialog.locator('.pro-mark')).toHaveCount(7);
   await dialog.getByRole('radio', { name: new RegExp(crate) }).check();
   await expect(
     dialog.getByRole('button', { name: copy.discover }),
@@ -635,4 +635,52 @@ test('Erinnerungen shows the Rubbellos and reveals a memory without scratching',
   await page.setViewportSize({ width: 1280, height: 860 });
   await page.waitForTimeout(600);
   await capture(page, info, 'memory-worlds-scratch-1280-dark.png');
+});
+
+test('Erinnerungen shows the Mochis; an action sends up a memory to open', async ({
+  page,
+}, info) => {
+  await installMocks(page, true, 'mochi');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page, '/story?tab=discover');
+  const world = page.locator('.memory-world[data-world="mochi"]');
+  await expect(world).toBeVisible();
+  await expect(page.locator('.memory-world-stage')).toHaveAttribute(
+    'data-entered',
+    'true',
+  );
+  await expect(
+    world.getByRole('group', { name: worlds.mochi.label }),
+  ).toBeVisible();
+  await page.waitForTimeout(600);
+  await capture(page, info, 'memory-worlds-mochi-390-light.png');
+  const actions = world.getByRole('group', { name: worlds.mochi.actions });
+  // The action row is the keyboard alternative to the touch gestures and
+  // shows while one of its buttons has focus.
+  const hug = actions.getByRole('button', { name: worlds.mochi.action.hug });
+  await hug.focus();
+  await expect(hug).toBeVisible();
+  await page.keyboard.press('Enter');
+  // A heart balloon with a memory rises and can be opened.
+  await expect(
+    world
+      .getByRole('link', {
+        name: /Morning by the lake|Winter evening|Our first apartment/,
+      })
+      .first(),
+  ).toBeVisible();
+  await page.waitForTimeout(600);
+  await capture(page, info, 'memory-worlds-mochi-after-hug-390-light.png');
+  const accessibility = await new AxeBuilder({ page })
+    .include('.memory-world')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(accessibility.violations).toEqual([]);
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await page.waitForTimeout(400);
+  await capture(page, info, 'memory-worlds-mochi-390-dark.png');
+  await page.setViewportSize({ width: 1280, height: 860 });
+  await page.waitForTimeout(600);
+  await capture(page, info, 'memory-worlds-mochi-1280-dark.png');
 });

@@ -1740,6 +1740,10 @@
         "name": "Moment cloud",
         "sentence": "Drift through a floating cloud of all your moments."
       },
+      "mochi": {
+        "name": "Mochis",
+        "sentence": "The two of you as little mochis – they cuddle, laugh and bring memories."
+      },
       "booth": {
         "name": "Photo booth",
         "sentence": "Print your memories as photo strips – classic or modern."
@@ -4580,6 +4584,47 @@
       "tear": "Tear off the next ticket",
       "won": "You won: {{title}}, {{date}}. Tap the heart to open the memory.",
       "fresh": "A new lucky ticket from your diary is here."
+    },
+    "mochi": {
+      "heading": "The two of you",
+      "roleDescription": "Mochi meadow",
+      "label": "Your two mochis on their meadow",
+      "description": "Let your mochis cuddle, kiss, hug, laugh or dance: each time a heart balloon with a memory from your diary rises. Tap it to open it.",
+      "actions": "What should the two of them do?",
+      "action": {
+        "cuddle": "Cuddle",
+        "kiss": "Kiss",
+        "hug": "Hug",
+        "laugh": "Laugh",
+        "dance": "Dance"
+      },
+      "acted": {
+        "cuddle": "Your mochis cuddle.",
+        "kiss": "Your mochis share a kiss.",
+        "hug": "Your mochis hug.",
+        "laugh": "Your mochis laugh together.",
+        "dance": "Your mochis dance."
+      },
+      "rises": "A heart balloon rises: {{title}}, {{date}}.",
+      "asleep": "Your mochis fell asleep. Play with them to wake them up.",
+      "open": "Open: {{title}}, {{date}}",
+      "sky": "Your heart balloons in the sky",
+      "hint": {
+        "cuddle": "Push us together!",
+        "kiss": "Press me for a long time …",
+        "hug": "Two fingers – pull us together!",
+        "laugh": "Tickle me!",
+        "danceTap": "Tap the beat on the meadow!",
+        "danceShake": "Shake the phone!"
+      },
+      "sound": {
+        "kiss": "Mwah!",
+        "laugh": "haha",
+        "giggle": "hihi",
+        "chuckle": "hehe",
+        "snore": "z z z",
+        "moon": "z"
+      }
     }
   },
   "memoryProduct": {

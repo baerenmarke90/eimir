@@ -1,0 +1,1011 @@
+/* Mochis: two little mochis on a pastel hill under a sun (a sleepy moon in
+   Dark). An action lets a heart balloon with a memory rise between them;
+   earlier balloons float in the sky. The left mochi wears the viewer's own
+   person colour, the right one the partner's (`--person-own-accent`,
+   `--person-partner-accent`, mixed into soft pastel bodies); everything
+   else is the world's own artwork: world-scoped roles below, with a night
+   sky for Dark. Every animation and transition, keyframes and timing roles:
+   src/motion/memory-worlds.css. */
+
+/* The handwriting face of the bubbles, tags and balloons (bundled, OFL). */
+@font-face {
+  font-family: "Caveat";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/caveat-latin-700.woff2") format("woff2");
+}
+
+/* ---------- Roles ---------- */
+.memory-mochi-world {
+  --memory-mochi-hand: "Caveat", var(--font-display);
+  --memory-mochi-heart-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 23'%3E%3Cpath d='M12 21C5 15.5 2 12 2 8A5 5 0 0 1 12 6A5 5 0 0 1 22 8C22 12 19 15.5 12 21Z'/%3E%3C/svg%3E");
+  /* The sky, the hill and the lights in the sky. */
+  --memory-mochi-sky: linear-gradient(#ffe2ee, #fff2e6 52%, #e4f2ff);
+  --memory-mochi-scene-rim: color-mix(in srgb, #fff 40%, transparent);
+  --memory-mochi-hill-top: #c3ecca;
+  --memory-mochi-hill-foot: #98d6a3;
+  --memory-mochi-hill-shine: color-mix(in srgb, #fff 35%, transparent);
+  --memory-mochi-flower-a: #fff;
+  --memory-mochi-flower-b: #ffb3cb;
+  --memory-mochi-flower-c: #ffe27a;
+  --memory-mochi-cloud: #fff;
+  --memory-mochi-star: #fff;
+  --memory-mochi-star-warm: #fff7c9;
+  /* 0 by day, 1 at night: fades the stars in and the clouds out. */
+  --memory-mochi-night: 0;
+  --memory-mochi-sun: radial-gradient(circle at 40% 35%, #fff8c4, #ffd66b 70%);
+  --memory-mochi-sun-glow:
+    0 0 0 8px color-mix(in srgb, #ffd66b 25%, transparent),
+    0 0 34px color-mix(in srgb, #ffd66b 60%, transparent);
+  --memory-mochi-sun-face: #8a5a2a;
+  --memory-mochi-moon-z: #fff5c4;
+  /* The mochis: a face, blush, the sprout and the bow. */
+  --memory-mochi-face: #3a2b33;
+  --memory-mochi-eye-glint: #fff;
+  --memory-mochi-body-shine: color-mix(in srgb, #fff 90%, transparent);
+  --memory-mochi-ground-shadow: color-mix(in srgb, #1f4a2e 28%, transparent);
+  --memory-mochi-blush: #ff8fb1;
+  --memory-mochi-sprout: #6cbf7a;
+  --memory-mochi-leaf: #82d48f;
+  --memory-mochi-bow-knot: #ff7fa6;
+  --memory-mochi-bow: #ff9fbc;
+  --memory-mochi-zzz: #a99ad8;
+  /* The two bodies, soft pastels of the two person colours. */
+  --memory-mochi-own-light: color-mix(
+    in srgb,
+    var(--person-own-accent) 14%,
+    #fff
+  );
+  --memory-mochi-own-body: color-mix(
+    in srgb,
+    var(--person-own-accent) 36%,
+    #fff
+  );
+  --memory-mochi-own-rim: color-mix(
+    in srgb,
+    var(--person-own-accent) 62%,
+    #fff
+  );
+  --memory-mochi-partner-light: color-mix(
+    in srgb,
+    var(--person-partner-accent) 14%,
+    #fff
+  );
+  --memory-mochi-partner-body: color-mix(
+    in srgb,
+    var(--person-partner-accent) 36%,
+    #fff
+  );
+  --memory-mochi-partner-rim: color-mix(
+    in srgb,
+    var(--person-partner-accent) 62%,
+    #fff
+  );
+  /* What flies up: hearts, a kiss, sparkles, laughter, notes. */
+  --memory-mochi-heart-glyph: #ff6f9f;
+  --memory-mochi-heart-glyph-soft: #ff9fbc;
+  --memory-mochi-kiss: #e0447f;
+  --memory-mochi-sparkle: #f3b52f;
+  --memory-mochi-laughter: #e2793c;
+  --memory-mochi-note: #8c78f0;
+  /* Paper of the thought bubbles and the balloon's tag (light in both themes). */
+  --memory-mochi-paper: #fffdf8;
+  --memory-mochi-ink: #4a3a44;
+  --memory-mochi-ink-soft: #6a5662;
+  --memory-mochi-paper-shadow: color-mix(in srgb, #3a2b33 18%, transparent);
+  --memory-mochi-paper-shadow-near: color-mix(
+    in srgb,
+    #3a2b33 14%,
+    transparent
+  );
+  --memory-mochi-tag-edge: #f2d3e0;
+  /* The heart balloons, tinted by kind. */
+  --memory-mochi-balloon-rim: #fff;
+  --memory-mochi-balloon-photo: #f4d9e4;
+  --memory-mochi-balloon-heart: #ffc8db;
+  --memory-mochi-balloon-milestone: #c9efd7;
+  --memory-mochi-balloon-words: #fff0c6;
+  --memory-mochi-balloon-shine: color-mix(in srgb, #fff 80%, transparent);
+  --memory-mochi-balloon-shadow: color-mix(in srgb, #6b3a55 25%, transparent);
+  --memory-mochi-sky-shadow: color-mix(in srgb, #6b3a55 22%, transparent);
+  --memory-mochi-string: #d48fae;
+  /* The keyboard row of actions, one candy colour per action. */
+  --memory-mochi-chip-ink: #5a3a4c;
+  --memory-mochi-chip-cuddle: #ffe0ea;
+  --memory-mochi-chip-cuddle-edge: #f0a9c0;
+  --memory-mochi-chip-kiss: #ffd2df;
+  --memory-mochi-chip-kiss-edge: #ee93b0;
+  --memory-mochi-chip-hug: #fff0c6;
+  --memory-mochi-chip-hug-edge: #e8c769;
+  --memory-mochi-chip-laugh: #dff6e8;
+  --memory-mochi-chip-laugh-edge: #8fd1ad;
+  --memory-mochi-chip-dance: #e6e0ff;
+  --memory-mochi-chip-dance-edge: #ab9cf0;
+  display: grid;
+  gap: 0;
+}
+:root[data-theme="dark"] .memory-mochi-world {
+  --memory-mochi-sky: linear-gradient(#1f1a3d, #352b5c 58%, #4a3c74);
+  --memory-mochi-hill-top: #57856f;
+  --memory-mochi-hill-foot: #3d6655;
+  --memory-mochi-night: 1;
+  --memory-mochi-sun: radial-gradient(circle at 40% 35%, #fffbe6, #efe2a6 70%);
+  --memory-mochi-sun-glow: 0 0 30px color-mix(in srgb, #fff5c4 35%, transparent);
+  --memory-mochi-sun-face: #8a7a4a;
+  /* The person colours are light pastels in Dark already. */
+  --memory-mochi-own-light: color-mix(
+    in srgb,
+    var(--person-own-accent) 40%,
+    #fff
+  );
+  --memory-mochi-own-body: color-mix(
+    in srgb,
+    var(--person-own-accent) 88%,
+    #fff
+  );
+  --memory-mochi-own-rim: color-mix(
+    in srgb,
+    var(--person-own-accent) 78%,
+    #4a3a44
+  );
+  --memory-mochi-partner-light: color-mix(
+    in srgb,
+    var(--person-partner-accent) 40%,
+    #fff
+  );
+  --memory-mochi-partner-body: color-mix(
+    in srgb,
+    var(--person-partner-accent) 88%,
+    #fff
+  );
+  --memory-mochi-partner-rim: color-mix(
+    in srgb,
+    var(--person-partner-accent) 78%,
+    #4a3a44
+  );
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .memory-mochi-world {
+    --memory-mochi-sky: linear-gradient(#1f1a3d, #352b5c 58%, #4a3c74);
+    --memory-mochi-hill-top: #57856f;
+    --memory-mochi-hill-foot: #3d6655;
+    --memory-mochi-night: 1;
+    --memory-mochi-sun: radial-gradient(
+      circle at 40% 35%,
+      #fffbe6,
+      #efe2a6 70%
+    );
+    --memory-mochi-sun-glow: 0 0 30px
+      color-mix(in srgb, #fff5c4 35%, transparent);
+    --memory-mochi-sun-face: #8a7a4a;
+    --memory-mochi-own-light: color-mix(
+      in srgb,
+      var(--person-own-accent) 40%,
+      #fff
+    );
+    --memory-mochi-own-body: color-mix(
+      in srgb,
+      var(--person-own-accent) 88%,
+      #fff
+    );
+    --memory-mochi-own-rim: color-mix(
+      in srgb,
+      var(--person-own-accent) 78%,
+      #4a3a44
+    );
+    --memory-mochi-partner-light: color-mix(
+      in srgb,
+      var(--person-partner-accent) 40%,
+      #fff
+    );
+    --memory-mochi-partner-body: color-mix(
+      in srgb,
+      var(--person-partner-accent) 88%,
+      #fff
+    );
+    --memory-mochi-partner-rim: color-mix(
+      in srgb,
+      var(--person-partner-accent) 78%,
+      #4a3a44
+    );
+  }
+}
+.memory-mochi-world > .memory-world-head {
+  margin-block-end: var(--space-4);
+}
+
+/* ---------- The scene ---------- */
+/* Play by touch: vertical scrolling stays possible on the meadow, the pair
+   itself takes every gesture (push, pinch, long press, tickle). */
+.memory-mochi-scene {
+  position: relative;
+  isolation: isolate;
+  block-size: 500px;
+  overflow: hidden;
+  border-radius: 28px;
+  background: var(--memory-mochi-sky);
+  box-shadow: inset 0 0 0 1px var(--memory-mochi-scene-rim);
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* A smiling sun by day, a sleepy moon by night. */
+.memory-mochi-sky-body {
+  position: absolute;
+  inset-block-start: 18px;
+  inset-inline-start: 18px;
+  inline-size: 52px;
+  block-size: 52px;
+  border-radius: 50%;
+  background: var(--memory-mochi-sun);
+  box-shadow: var(--memory-mochi-sun-glow);
+}
+.memory-mochi-face-eye {
+  position: absolute;
+  inset-block-start: 21px;
+  inline-size: 8px;
+  block-size: 4px;
+  border: 2px solid var(--memory-mochi-sun-face);
+  border-block-end: 0;
+  border-radius: 8px 8px 0 0;
+}
+.memory-mochi-face-eye[data-side="start"] {
+  inset-inline-start: 13px;
+}
+.memory-mochi-face-eye[data-side="end"] {
+  inset-inline-end: 13px;
+}
+.memory-mochi-face-mouth {
+  position: absolute;
+  inset-block-start: 30px;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  inline-size: 10px;
+  block-size: 5px;
+  border: 2px solid var(--memory-mochi-sun-face);
+  border-block-start: 0;
+  border-radius: 0 0 10px 10px;
+}
+.memory-mochi-moon-z {
+  display: none;
+  position: absolute;
+  inset-block-start: -10px;
+  inset-inline-end: -12px;
+  font-family: var(--memory-mochi-hand);
+  font-weight: 700;
+  font-size: 1.2rem;
+  line-height: 1;
+  color: var(--memory-mochi-moon-z);
+}
+/* The moon's eyes are closed. */
+:root[data-theme="dark"] .memory-mochi-face-eye {
+  border-block-start: 0;
+  border-block-end: 2px solid var(--memory-mochi-sun-face);
+  border-radius: 0 0 8px 8px;
+}
+:root[data-theme="dark"] .memory-mochi-moon-z {
+  display: block;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .memory-mochi-face-eye {
+    border-block-start: 0;
+    border-block-end: 2px solid var(--memory-mochi-sun-face);
+    border-radius: 0 0 8px 8px;
+  }
+  :root:not([data-theme]) .memory-mochi-moon-z {
+    display: block;
+  }
+}
+.memory-mochi-stars {
+  position: absolute;
+  inset: 0 0 45% 0;
+  opacity: var(--memory-mochi-night);
+  background:
+    radial-gradient(circle, var(--memory-mochi-star) 0 1.3px, transparent 1.9px)
+    23px 31px / 97px 73px,
+    radial-gradient(
+      circle,
+      var(--memory-mochi-star-warm) 0 1px,
+      transparent 1.6px
+    )
+    61px 9px / 131px 83px,
+    radial-gradient(circle, var(--memory-mochi-star) 0 0.8px, transparent 1.4px)
+    7px 47px / 67px 59px,
+    radial-gradient(circle, var(--memory-mochi-star) 0 0.7px, transparent 1.3px)
+    41px 19px / 151px 107px;
+}
+.memory-mochi-cloud {
+  position: absolute;
+  inline-size: 86px;
+  block-size: 26px;
+  border-radius: 20px;
+  background: var(--memory-mochi-cloud);
+  opacity: calc(0.9 - var(--memory-mochi-night) * 0.7);
+}
+.memory-mochi-cloud::before,
+.memory-mochi-cloud::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: inherit;
+}
+.memory-mochi-cloud::before {
+  inline-size: 36px;
+  block-size: 36px;
+  inset-block-start: -18px;
+  inset-inline-start: 14px;
+}
+.memory-mochi-cloud::after {
+  inline-size: 28px;
+  block-size: 28px;
+  inset-block-start: -12px;
+  inset-inline-start: 42px;
+}
+.memory-mochi-cloud[data-n="1"] {
+  inset-block-start: 150px;
+  inset-inline-start: -10px;
+}
+.memory-mochi-cloud[data-n="2"] {
+  inset-block-start: 96px;
+  inset-inline-end: -20px;
+  scale: 0.8;
+}
+
+/* The hill with tiny flowers. */
+.memory-mochi-hill {
+  position: absolute;
+  inset-inline: -12%;
+  inset-block-end: -70px;
+  block-size: 190px;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  background:
+    radial-gradient(
+      circle,
+      var(--memory-mochi-flower-a) 0 2px,
+      transparent 2.6px
+    )
+    24px 40px / 64px 44px,
+    radial-gradient(
+      circle,
+      var(--memory-mochi-flower-b) 0 2.4px,
+      transparent 3px
+    )
+    52px 22px / 76px 48px,
+    radial-gradient(
+      circle,
+      var(--memory-mochi-flower-c) 0 2px,
+      transparent 2.6px
+    )
+    8px 14px / 58px 52px,
+    linear-gradient(
+      to bottom,
+      var(--memory-mochi-hill-top),
+      var(--memory-mochi-hill-foot)
+    );
+  box-shadow: inset 0 6px 0 var(--memory-mochi-hill-shine);
+}
+
+/* ---------- The two mochis ---------- */
+.memory-mochi-pair {
+  position: absolute;
+  z-index: 4;
+  inset-block-end: 54px;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  display: flex;
+  gap: 46px;
+  touch-action: none;
+}
+.memory-mochi {
+  position: relative;
+  display: block;
+  inline-size: 96px;
+  block-size: 84px;
+  cursor: grab;
+  translate: calc(
+      var(--memory-mochi-together-x, 0px) +
+      var(--memory-mochi-drag, 0) *
+      1px
+    )
+    0;
+  -webkit-tap-highlight-color: transparent;
+}
+.memory-mochi[data-dragging="true"] {
+  cursor: grabbing;
+}
+.memory-mochi[data-person="own"] {
+  --memory-mochi-light: var(--memory-mochi-own-light);
+  --memory-mochi-tone: var(--memory-mochi-own-body);
+  --memory-mochi-rim: var(--memory-mochi-own-rim);
+}
+.memory-mochi[data-person="partner"] {
+  --memory-mochi-light: var(--memory-mochi-partner-light);
+  --memory-mochi-tone: var(--memory-mochi-partner-body);
+  --memory-mochi-rim: var(--memory-mochi-partner-rim);
+}
+/* After the first action the two stay close together. */
+.memory-mochi-scene[data-together="true"] .memory-mochi[data-person="own"] {
+  --memory-mochi-together-x: 23px;
+}
+.memory-mochi-scene[data-together="true"] .memory-mochi[data-person="partner"] {
+  --memory-mochi-together-x: -23px;
+}
+/* In a hug the left one's arm goes in front, the right one's behind. */
+.memory-mochi-scene[data-action="hug"] .memory-mochi[data-person="own"] {
+  z-index: 2;
+}
+.memory-mochi-shadow {
+  position: absolute;
+  inset-inline: 10px;
+  inset-block-end: -6px;
+  block-size: 12px;
+  border-radius: 50%;
+  background: var(--memory-mochi-ground-shadow);
+  filter: blur(2px);
+}
+.memory-mochi-body {
+  position: absolute;
+  inset: 0;
+  border-radius: 50% 50% 44% 44% / 62% 62% 38% 38%;
+  transform-origin: 50% 100%;
+  background:
+    radial-gradient(
+      ellipse at 34% 26%,
+      var(--memory-mochi-body-shine) 0 7%,
+      transparent 24%
+    ),
+    radial-gradient(
+      ellipse at 50% 40%,
+      var(--memory-mochi-light),
+      var(--memory-mochi-tone) 86%
+    );
+  box-shadow:
+    inset 0 -7px 12px
+    color-mix(in srgb, var(--memory-mochi-rim) 45%, transparent),
+    0 2px 0 color-mix(in srgb, var(--memory-mochi-rim) 55%, transparent);
+}
+.memory-mochi-eye {
+  position: absolute;
+  inset-block-start: 42%;
+  inline-size: 8px;
+  block-size: 10px;
+  border-radius: 50%;
+  background: var(--memory-mochi-face);
+}
+.memory-mochi-eye::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-start: 1.5px;
+  inline-size: 3px;
+  block-size: 3px;
+  border-radius: 50%;
+  background: var(--memory-mochi-eye-glint);
+}
+.memory-mochi-eye[data-side="start"] {
+  inset-inline-start: 30%;
+}
+.memory-mochi-eye[data-side="end"] {
+  inset-inline-end: 30%;
+}
+/* Happy eyes while they play: closed little arcs. */
+.memory-mochi[data-happy="true"] .memory-mochi-eye {
+  inline-size: 11px;
+  block-size: 6px;
+  margin-block-start: 3px;
+  border: 2.4px solid var(--memory-mochi-face);
+  border-block-end: 0;
+  border-radius: 10px 10px 0 0;
+  background: none;
+}
+/* Asleep: closed eyes the other way round. */
+.memory-mochi[data-asleep="true"] .memory-mochi-eye {
+  inline-size: 11px;
+  block-size: 5px;
+  margin-block-start: 4px;
+  border: 2.4px solid var(--memory-mochi-face);
+  border-block-start: 0;
+  border-radius: 0 0 10px 10px;
+  background: none;
+}
+.memory-mochi:is([data-happy="true"], [data-asleep="true"])
+  .memory-mochi-eye::after {
+  display: none;
+}
+.memory-mochi-blush {
+  position: absolute;
+  inset-block-start: 58%;
+  inline-size: 15px;
+  block-size: 8px;
+  border-radius: 50%;
+  background: var(--memory-mochi-blush);
+  opacity: 0.5;
+}
+.memory-mochi-blush[data-side="start"] {
+  inset-inline-start: 15%;
+}
+.memory-mochi-blush[data-side="end"] {
+  inset-inline-end: 15%;
+}
+.memory-mochi[data-happy="true"] .memory-mochi-blush {
+  opacity: 0.95;
+}
+.memory-mochi-mouth {
+  position: absolute;
+  inset-block-start: 57%;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  inline-size: 13px;
+  block-size: 8px;
+  overflow: visible;
+}
+.memory-mochi-mouth path {
+  fill: none;
+  stroke: var(--memory-mochi-face);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.memory-mochi-mouth[data-shape="laugh"] {
+  scale: 1.25;
+}
+.memory-mochi-mouth[data-shape="laugh"] path {
+  fill: var(--memory-mochi-face);
+  stroke-width: 0.9;
+}
+/* A sprout on the left one, a bow on the right one. */
+.memory-mochi-sprout {
+  position: absolute;
+  inset-block-start: -9px;
+  inset-inline-start: 50%;
+  inline-size: 3px;
+  block-size: 12px;
+  border-radius: 2px;
+  background: var(--memory-mochi-sprout);
+}
+.memory-mochi-sprout::before,
+.memory-mochi-sprout::after {
+  content: "";
+  position: absolute;
+  inset-block-start: -4px;
+  inline-size: 13px;
+  block-size: 8px;
+  background: var(--memory-mochi-leaf);
+}
+.memory-mochi-sprout::before {
+  inset-inline-end: 1px;
+  border-radius: 100% 0;
+  rotate: 20deg;
+}
+.memory-mochi-sprout::after {
+  inset-inline-start: 1px;
+  border-radius: 0 100%;
+  rotate: -20deg;
+}
+.memory-mochi-bow {
+  position: absolute;
+  inset-block-start: 4px;
+  inset-inline-end: 16%;
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  background: var(--memory-mochi-bow-knot);
+  rotate: 15deg;
+}
+.memory-mochi-bow::before,
+.memory-mochi-bow::after {
+  content: "";
+  position: absolute;
+  inset-block-start: -3px;
+  inline-size: 12px;
+  block-size: 14px;
+  background: var(--memory-mochi-bow);
+}
+.memory-mochi-bow::before {
+  inset-inline-end: 6px;
+  border-radius: 60% 20% 20% 60%;
+}
+.memory-mochi-bow::after {
+  inset-inline-start: 6px;
+  border-radius: 20% 60% 60% 20%;
+}
+/* Tiny arms, tucked away until an action needs them. */
+.memory-mochi-arm {
+  position: absolute;
+  inset-block-start: 55%;
+  inline-size: 22px;
+  block-size: 13px;
+  border-radius: 50%;
+  background: var(--memory-mochi-tone);
+  box-shadow: inset 0 -2px 3px
+    color-mix(in srgb, var(--memory-mochi-rim) 55%, transparent);
+  scale: 0;
+}
+.memory-mochi-arm[data-side="start"] {
+  inset-inline-start: -7px;
+  transform-origin: 100% 50%;
+}
+.memory-mochi-arm[data-side="end"] {
+  inset-inline-end: -7px;
+  transform-origin: 0 50%;
+}
+/* A poke: a little heart pops out (only with motion). */
+.memory-mochi-giggle {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: -10px;
+  inset-inline-end: 6px;
+  font-size: 18px;
+  color: var(--memory-mochi-heart-glyph);
+  pointer-events: none;
+  opacity: 0;
+}
+.memory-mochi-zzz {
+  position: absolute;
+  z-index: 3;
+  inset-block-start: -22px;
+  inset-inline-end: -14px;
+  font-family: var(--memory-mochi-hand);
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  color: var(--memory-mochi-zzz);
+  pointer-events: none;
+}
+
+/* Thought bubble with a wish. */
+.memory-mochi-thought {
+  position: absolute;
+  z-index: 6;
+  inset-block-end: 90px;
+  inline-size: max-content;
+  max-inline-size: 122px;
+  padding: 7px 11px 8px;
+  border-radius: 20px;
+  text-align: center;
+  font-family: var(--memory-mochi-hand);
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.05;
+  color: var(--memory-mochi-ink);
+  background: var(--memory-mochi-paper);
+  box-shadow: 0 4px 12px var(--memory-mochi-paper-shadow);
+  pointer-events: none;
+}
+.memory-mochi-thought[data-person="own"] {
+  inset-inline-start: -28px;
+}
+.memory-mochi-thought[data-person="partner"] {
+  inset-inline-end: -28px;
+}
+.memory-mochi-thought::before,
+.memory-mochi-thought::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: var(--memory-mochi-paper);
+  box-shadow: 0 2px 4px var(--memory-mochi-paper-shadow-near);
+}
+.memory-mochi-thought::before {
+  inline-size: 12px;
+  block-size: 12px;
+  inset-block-end: -14px;
+}
+.memory-mochi-thought::after {
+  inline-size: 7px;
+  block-size: 7px;
+  inset-block-end: -24px;
+}
+.memory-mochi-thought[data-person="own"]::before {
+  inset-inline-start: 62px;
+}
+.memory-mochi-thought[data-person="own"]::after {
+  inset-inline-start: 72px;
+}
+.memory-mochi-thought[data-person="partner"]::before {
+  inset-inline-end: 62px;
+}
+.memory-mochi-thought[data-person="partner"]::after {
+  inset-inline-end: 72px;
+}
+
+/* A little note where the meadow was tapped. */
+.memory-mochi-tap {
+  position: absolute;
+  z-index: 5;
+  left: var(--memory-mochi-tap-x);
+  top: var(--memory-mochi-tap-y);
+  translate: -50% -50%;
+  font-size: 20px;
+  color: var(--memory-mochi-note);
+  pointer-events: none;
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .memory-mochi-tap {
+    opacity: 1;
+  }
+}
+
+/* What flies up during an action. */
+.memory-mochi-particles {
+  position: absolute;
+  inset-block-end: 64px;
+  inset-inline-start: 50%;
+  pointer-events: none;
+}
+.memory-mochi-particles > span {
+  position: absolute;
+  font-size: 18px;
+  color: var(--memory-mochi-heart-glyph);
+  opacity: 0;
+}
+.memory-mochi-particles > span:nth-child(even) {
+  color: var(--memory-mochi-heart-glyph-soft);
+  font-size: 14px;
+}
+.memory-mochi-particles > span[data-word="true"] {
+  font-family: var(--memory-mochi-hand);
+  font-weight: 700;
+  font-size: 1.15rem;
+  white-space: nowrap;
+}
+.memory-mochi-scene[data-action="kiss"]
+  .memory-mochi-particles
+  > span[data-word="true"] {
+  font-size: 1.5rem;
+  color: var(--memory-mochi-kiss);
+}
+.memory-mochi-scene[data-action="hug"] .memory-mochi-particles > span {
+  color: var(--memory-mochi-sparkle);
+}
+.memory-mochi-scene[data-action="laugh"] .memory-mochi-particles > span {
+  color: var(--memory-mochi-laughter);
+}
+.memory-mochi-scene[data-action="dance"] .memory-mochi-particles > span {
+  color: var(--memory-mochi-note);
+  font-size: 20px;
+}
+
+/* ---------- The heart balloons ---------- */
+.memory-mochi-heart {
+  position: relative;
+  display: block;
+  inline-size: 168px;
+  aspect-ratio: 24 / 23;
+  background: var(--memory-mochi-balloon-rim);
+  -webkit-mask: var(--memory-mochi-heart-mask) center / contain no-repeat;
+  mask: var(--memory-mochi-heart-mask) center / contain no-repeat;
+}
+.memory-mochi-heart-inner {
+  position: absolute;
+  inset: 7px;
+  overflow: hidden;
+  background: var(--memory-mochi-balloon-photo);
+  -webkit-mask: var(--memory-mochi-heart-mask) center / contain no-repeat;
+  mask: var(--memory-mochi-heart-mask) center / contain no-repeat;
+}
+.memory-mochi-heart[data-kind="heart"] .memory-mochi-heart-inner {
+  background: var(--memory-mochi-balloon-heart);
+}
+.memory-mochi-heart[data-kind="milestone"] .memory-mochi-heart-inner {
+  background: var(--memory-mochi-balloon-milestone);
+}
+.memory-mochi-heart[data-kind="words"] .memory-mochi-heart-inner {
+  background: var(--memory-mochi-balloon-words);
+}
+.memory-mochi-heart-inner .memory-world-photo {
+  block-size: 100%;
+  aspect-ratio: auto;
+}
+.memory-mochi-heart-text {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  block-size: 100%;
+  padding: 18% 20% 30%;
+  overflow: hidden;
+  text-align: center;
+  font-family: var(--memory-mochi-hand);
+  font-weight: 700;
+  font-size: 1.15rem;
+  line-height: 1.05;
+  color: var(--memory-mochi-ink);
+}
+.memory-mochi-heart-words {
+  max-inline-size: 100%;
+}
+.memory-mochi-heart-shine {
+  position: absolute;
+  inset-block-start: 15%;
+  inset-inline-start: 17%;
+  inline-size: 17%;
+  block-size: 9%;
+  border-radius: 50%;
+  background: var(--memory-mochi-balloon-shine);
+  rotate: -38deg;
+}
+
+/* The balloon that just rose, with its tag and string. */
+.memory-mochi-balloon {
+  position: absolute;
+  z-index: 3;
+  inset-block-end: 116px;
+  inset-inline-start: 50%;
+  display: block;
+  translate: -50% 0;
+  color: inherit;
+  text-decoration: none;
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 8px 10px var(--memory-mochi-balloon-shadow));
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+.memory-mochi-balloon-sway {
+  display: grid;
+  justify-items: center;
+  transform-origin: 50% 100%;
+}
+.memory-mochi-balloon:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 4px;
+  border-radius: 20px;
+}
+.memory-mochi-tag {
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  max-inline-size: 190px;
+  margin-block-start: -4px;
+  padding: 5px 12px 6px;
+  border-radius: 12px;
+  color: var(--memory-mochi-ink);
+  background: var(--memory-mochi-paper);
+  box-shadow: 0 2px 0 var(--memory-mochi-tag-edge);
+  rotate: -2deg;
+}
+.memory-mochi-tag strong {
+  font-family: var(--memory-mochi-hand);
+  font-weight: 700;
+  font-size: 1.15rem;
+  line-height: 1.05;
+  text-align: center;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.memory-mochi-tag time {
+  font-size: 0.78rem;
+  color: var(--memory-mochi-ink-soft);
+}
+.memory-mochi-string {
+  inline-size: 20px;
+  block-size: 80px;
+  overflow: visible;
+}
+.memory-mochi-balloon .memory-mochi-string path {
+  fill: none;
+  stroke: var(--memory-mochi-string);
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Earlier balloons up in the sky. */
+.memory-mochi-sky {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+.memory-mochi-sky-slot {
+  position: absolute;
+  pointer-events: auto;
+  z-index: 2;
+  inset-block-start: var(--memory-mochi-y);
+  inset-inline-start: var(--memory-mochi-x);
+  translate: -50% 0;
+}
+.memory-mochi-sky-balloon {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  filter: drop-shadow(0 4px 5px var(--memory-mochi-sky-shadow));
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+.memory-mochi-sky-balloon:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+.memory-mochi-sky-float {
+  display: grid;
+  justify-items: center;
+}
+.memory-mochi-heart[data-size="small"] {
+  inline-size: 48px;
+}
+.memory-mochi-heart[data-size="small"] .memory-mochi-heart-inner {
+  inset: 3px;
+}
+.memory-mochi-heart[data-size="small"] .memory-mochi-heart-text {
+  font-size: 0.4rem;
+  padding: 18% 16% 34%;
+}
+.memory-mochi-sky-string {
+  inline-size: 1px;
+  block-size: 26px;
+  background: var(--memory-mochi-string);
+}
+
+/* ---------- The keyboard row ---------- */
+/* Out of sight for touch, it shows itself while a button has the focus. */
+.memory-mochi-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 8px;
+  margin-block: var(--space-4) var(--space-5);
+}
+.memory-mochi-actions:not(:focus-within) {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.memory-mochi-action {
+  --memory-mochi-chip: var(--memory-mochi-chip-cuddle);
+  --memory-mochi-chip-edge: var(--memory-mochi-chip-cuddle-edge);
+  min-block-size: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-pill, 999px);
+  font: var(--font-supporting-copy);
+  font-weight: 700;
+  color: var(--memory-mochi-chip-ink);
+  background: var(--memory-mochi-chip);
+  box-shadow: 0 3px 0 var(--memory-mochi-chip-edge);
+  translate: 0 -1px;
+  cursor: pointer;
+}
+.memory-mochi-action[data-kind="kiss"] {
+  --memory-mochi-chip: var(--memory-mochi-chip-kiss);
+  --memory-mochi-chip-edge: var(--memory-mochi-chip-kiss-edge);
+}
+.memory-mochi-action[data-kind="hug"] {
+  --memory-mochi-chip: var(--memory-mochi-chip-hug);
+  --memory-mochi-chip-edge: var(--memory-mochi-chip-hug-edge);
+}
+.memory-mochi-action[data-kind="laugh"] {
+  --memory-mochi-chip: var(--memory-mochi-chip-laugh);
+  --memory-mochi-chip-edge: var(--memory-mochi-chip-laugh-edge);
+}
+.memory-mochi-action[data-kind="dance"] {
+  --memory-mochi-chip: var(--memory-mochi-chip-dance);
+  --memory-mochi-chip-edge: var(--memory-mochi-chip-dance-edge);
+}
+.memory-mochi-action:active:not([aria-disabled="true"]) {
+  translate: 0 2px;
+  box-shadow: 0 0 0 var(--memory-mochi-chip-edge);
+}
+.memory-mochi-action[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: default;
+}
+.memory-mochi-action:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}

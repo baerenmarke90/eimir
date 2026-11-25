@@ -29,7 +29,8 @@ export const MemoryWorldId = {
     booth: 'booth',
     fridge: 'fridge',
     album: 'album',
-    scratch: 'scratch'
+    scratch: 'scratch',
+    mochi: 'mochi'
 } as const;
 export type MemoryWorldId = typeof MemoryWorldId[keyof typeof MemoryWorldId];
 

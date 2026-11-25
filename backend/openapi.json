@@ -7548,7 +7548,8 @@
           "booth",
           "fridge",
           "album",
-          "scratch"
+          "scratch",
+          "mochi"
         ],
         "title": "MemoryWorldId",
         "type": "string"

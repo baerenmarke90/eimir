@@ -1,5 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import copy from '../../i18n/locales/memoryWorlds';
@@ -187,6 +193,30 @@ describe('MemoryWorldView', () => {
       screen.getByRole('button', { name: copy.scratch.reveal }),
     ).toBeTruthy();
     canvas.mockRestore();
+  });
+
+  it('renders the Mochis from the same selection, the lead first', () => {
+    const { container } = renderWorld('mochi', moreItems);
+    expect(
+      container.querySelector('.memory-world')?.getAttribute('data-world'),
+    ).toBe('mochi');
+    const meadow = screen.getByRole('group', { name: copy.mochi.label });
+    expect(meadow.getAttribute('aria-roledescription')).toBe(
+      copy.mochi.roleDescription,
+    );
+    // Reduced motion: each balloon is there at once, the lead first; the
+    // sensitive cover and the rest of the diary stay out.
+    const actions = screen.getByRole('group', { name: copy.mochi.actions });
+    for (const kind of ['cuddle', 'kiss', 'hug'] as const)
+      fireEvent.click(
+        within(actions).getByRole('button', { name: copy.mochi.action[kind] }),
+      );
+    const sky = screen.getByRole('list', { name: copy.mochi.sky });
+    expect(
+      [...sky.querySelectorAll('a')].map((link) => link.textContent),
+    ).toEqual(['Moved in together']);
+    const held = container.querySelector('.memory-mochi-balloon strong');
+    expect(held?.textContent).toBe('Thank you');
   });
 
   it('ignores the rest of the diary outside the Momentwolke', () => {

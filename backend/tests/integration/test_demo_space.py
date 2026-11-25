@@ -167,8 +167,8 @@ def test_create_is_idempotent_and_representative(session: Session) -> None:
 
     # Both personas carry an illustrated, Account-owned profile picture.
     for account_id, expected_name in (
-        (first.lea_id, "avatar-lea.png"),
-        (first.alex_id, "avatar-alex.png"),
+        (first.lea_id, "avatar-lea.webp"),
+        (first.alex_id, "avatar-alex.webp"),
     ):
         avatar = profile_service.profile_attachment(session, account_id)
         assert avatar is not None

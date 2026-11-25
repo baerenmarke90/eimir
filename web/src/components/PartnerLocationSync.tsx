@@ -7,6 +7,7 @@ import {
   syncBackgroundSharing,
 } from '../client/approximateLocation';
 import { isClientOnline } from '../client/connectivity';
+import { isDemoModeConfigured } from '../client/demoMode';
 import {
   partnerLocationSettingsQueryKey,
   readPartnerLocationSettings,
@@ -47,7 +48,9 @@ export function PartnerLocationSync({
   useEffect(() => () => clearPublicationMemory(), []);
 
   useEffect(() => {
-    if (!capability.isFetched) return;
+    // The Demo keeps its example positions: a visitor's real position is
+    // never published over them.
+    if (!capability.isFetched || isDemoModeConfigured()) return;
     let disposed = false;
     const run = async (force: boolean) => {
       if (running.current || !isClientOnline()) return;

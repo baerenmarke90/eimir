@@ -36,6 +36,25 @@ needed a clearer presentation without taking a place of its own.
   step this device last showed, the old state is painted first, the same hop
   plays after the Wir opening, and the heart and light move to the new value.
 
+## Demo example (Product Owner decision of 2026-11-25)
+
+In the public Demo the heart plays by itself, and the word opens the map. This
+narrows "Nothing alternates by itself" and "The word appears on request" above
+for the Demo only; every other deployment keeps them.
+
+- A Demo visitor shares no device position and Wir never opens the OS dialog,
+  so the Demo cannot measure a distance. A Demo deployment therefore answers a
+  distance read from the two example positions the Demo seed publishes (Lea and
+  Alex) and reports the value as fresh. The position in the request is ignored,
+  so the example does not age into an "earlier value" within a reset interval.
+- On a device that has not shown the step yet, the existing "A change is shown
+  once when the app opens" rule plays the hop after the Wir opening: no new
+  motion and no new rule, only a value where there was none.
+- The map shows the partner's example area and, from the example positions, the
+  viewer's own point and the connection. It never reads the visitor's device
+  position, and the sync never publishes a visitor's position over the example.
+- Reduced motion, the 44 px heart control and the accessible name are unchanged.
+
 ## Mobile Interaction Contract
 
 | Aspect | Contract |

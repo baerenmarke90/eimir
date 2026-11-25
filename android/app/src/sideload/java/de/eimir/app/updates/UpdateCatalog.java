@@ -23,7 +23,8 @@ final class UpdateCatalog {
         final int versionCode, minSdk;
         final long size;
 
-        Offer(JSONObject manifest, String tag, String expectedPackage) throws Exception {
+        Offer(JSONObject manifest, String tag, String expectedPackage, String repository)
+            throws Exception {
             UpdatePolicy.require(integer(manifest, "schemaVersion") == 1);
             UpdatePolicy.require("android-test".equals(manifest.getString("channel")));
             versionName = manifest.getString("versionName");
@@ -39,7 +40,7 @@ final class UpdateCatalog {
             sha256 = asset.getString("sha256");
             String name = asset.getString("name");
             UpdatePolicy.require(name.equals("eimir-" + tag + ".apk"));
-            url = UpdatePolicy.releaseUrl(tag, name);
+            url = UpdatePolicy.releaseUrl(repository, tag, name);
             UpdatePolicy.require(url.equals(asset.getString("url")));
             // The APK is served from the same immutable release as the marker; its size and
             // SHA-256 come from the marker and are verified while downloading.
@@ -65,20 +66,28 @@ final class UpdateCatalog {
         }
     }
 
-    /** Only links to this repository's own test release tags are considered. */
-    private static final Pattern FEED_TAG = Pattern.compile("href=\"https://github\\.com/"
-        + Pattern.quote(UpdatePolicy.REPOSITORY)
-        + "/releases/tag/(android-test-v[0-9]+\\.[0-9]+\\.[0-9]+-test\\.[1-9][0-9]*)\"");
+    /** Only links to the update location's own test release tags are considered. */
+    private static Pattern feedTag(String repository) {
+        return Pattern.compile("href=\"https://github\\.com/" + Pattern.quote(repository)
+            + "/releases/tag/(android-test-v[0-9]+\\.[0-9]+\\.[0-9]+-test\\.[1-9][0-9]*)\"");
+    }
     private static final int MAX_FEED_BYTES = 512 * 1024;
     private static final int MAX_MARKER_BYTES = 32_768;
     private static final int MAX_RELEASES = 30;
 
     static Offer discover(Reader transport, String expectedPackage, int sdk) throws Exception {
-        String feed = transport.readJson(UpdatePolicy.FEED_URL, MAX_FEED_BYTES);
+        return discover(transport, expectedPackage, sdk, UpdatePolicy.REPOSITORY);
+    }
+
+    /** Discovery against an explicit update location; production uses {@link UpdatePolicy#REPOSITORY}. */
+    static Offer discover(Reader transport, String expectedPackage, int sdk, String repository)
+        throws Exception {
+        String feedUrl = UpdatePolicy.feedUrl(repository);
+        String feed = transport.readJson(feedUrl, MAX_FEED_BYTES);
         List<Candidate> candidates = new ArrayList<>();
         Set<String> tags = new HashSet<>();
         Set<Integer> codes = new HashSet<>();
-        Matcher links = FEED_TAG.matcher(feed);
+        Matcher links = feedTag(repository).matcher(feed);
         while (links.find()) {
             transport.ensureActive();
             String tag = links.group(1);
@@ -95,13 +104,14 @@ final class UpdateCatalog {
             transport.ensureActive();
             String marker;
             try {
-                marker = transport.readJson(UpdatePolicy.releaseUrl(candidate.tag, UpdatePolicy.MARKER),
+                marker = transport.readJson(
+                    UpdatePolicy.releaseUrl(repository, candidate.tag, UpdatePolicy.MARKER),
                     MAX_MARKER_BYTES);
             } catch (FileNotFoundException unfinished) {
                 // A release without its final marker is not an installable publication.
                 continue;
             }
-            Offer offer = new Offer(new JSONObject(marker), candidate.tag, expectedPackage);
+            Offer offer = new Offer(new JSONObject(marker), candidate.tag, expectedPackage, repository);
             if (offer.minSdk > sdk) continue;
             return offer;
         }

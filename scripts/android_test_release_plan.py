@@ -15,9 +15,11 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
+# Default asset repository: where test releases are published and read anonymously. It is a
+# parameter (--asset-repository) because the cut-over of Decision 0019 moves it; the APK's own
+# update location is a separate value baked into UpdatePolicy.REPOSITORY.
 REPOSITORY = "baerenmarke90/eimir"
-API = f"https://api.github.com/repos/{REPOSITORY}/releases"
-DOWNLOAD = f"https://github.com/{REPOSITORY}/releases/download"
+REPOSITORY_NAME = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?/(?!\.{1,2}\Z)[A-Za-z0-9._-]{1,100}\Z")
 VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+-test\.([1-9][0-9]*)\Z")
 PACKAGE = "de.eimir.app"
 LEGACY_PACKAGE = "de.sidebyside.app"
@@ -29,6 +31,26 @@ LEGACY_ORIGIN = "https://demo.eimir.ur-cloud.de"
 FIRST_ORIGIN_VERSION = 99
 MAX_APK_BYTES = 256 * 1024 * 1024
 FIELDS = {"schemaVersion", "sourceRevision", "versionName", "versionCode", "previousVersionName", "notesFile"}
+
+
+def validate_repository(repository: object) -> str:
+    """Return a GitHub ``owner/name`` that cannot escape a URL path segment."""
+    if not isinstance(repository, str) or not REPOSITORY_NAME.match(repository):
+        raise ValueError("Asset repository must be a GitHub owner/name")
+    return repository
+
+
+def api_url(repository: str = REPOSITORY) -> str:
+    return f"https://api.github.com/repos/{validate_repository(repository)}/releases"
+
+
+def download_url(repository: str = REPOSITORY) -> str:
+    return f"https://github.com/{validate_repository(repository)}/releases/download"
+
+
+API = api_url()
+DOWNLOAD = download_url()
+ASSET_API = re.compile(r"https://api\.github\.com/repos/[^/]+/[^/]+/releases/assets/[0-9]+\Z")
 
 
 def package_for_version(version: str) -> str:
@@ -120,7 +142,7 @@ def read_plan(path: Path) -> Plan:
 
 def fetch(url: str, limit: int) -> bytes:
     headers = {"User-Agent": "eimir-android-test-publication-verifier"}
-    if url.startswith(API + "/assets/"):
+    if ASSET_API.match(url):
         headers.update({"Accept": "application/octet-stream", "X-GitHub-Api-Version": "2022-11-28"})
     request = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(request, timeout=30) as response:
@@ -130,8 +152,10 @@ def fetch(url: str, limit: int) -> bytes:
     return content
 
 
-def verify_once(plan: Plan, reader=fetch, expected_root: Path | None = None) -> dict:
-    catalog = json.loads(reader(API + "?per_page=30", 2 * 1024 * 1024))
+def verify_once(plan: Plan, reader=fetch, expected_root: Path | None = None,
+                repository: str = REPOSITORY) -> dict:
+    api, download = api_url(repository), download_url(repository)
+    catalog = json.loads(reader(api + "?per_page=30", 2 * 1024 * 1024))
     if not isinstance(catalog, list) or len(catalog) > 30:
         raise ValueError("Invalid bounded public catalog")
     releases = [item for item in catalog if item.get("tag_name") == plan.tag]
@@ -152,7 +176,7 @@ def verify_once(plan: Plan, reader=fetch, expected_root: Path | None = None) -> 
     downloaded = {}
     for asset in assets:
         name = asset["name"]
-        url = f"{DOWNLOAD}/{plan.tag}/{name}"
+        url = f"{download}/{plan.tag}/{name}"
         if asset.get("browser_download_url") != url:
             raise ValueError("Public asset URL does not match its exact release")
         asset_id = asset.get("id")
@@ -161,7 +185,7 @@ def verify_once(plan: Plan, reader=fetch, expected_root: Path | None = None) -> 
         limit = MAX_APK_BYTES if name == plan.apk else 32768
         if type(asset.get("size")) is not int or not 0 < asset["size"] <= limit:
             raise ValueError("Public asset size is invalid")
-        content = reader(f"{API}/assets/{asset_id}", limit)
+        content = reader(f"{api}/assets/{asset_id}", limit)
         digest = hashlib.sha256(content).hexdigest()
         if len(content) != asset["size"] or asset.get("digest") != "sha256:" + digest:
             raise ValueError("Public asset bytes do not match immutable GitHub metadata")
@@ -180,7 +204,7 @@ def verify_once(plan: Plan, reader=fetch, expected_root: Path | None = None) -> 
         or marker["versionCode"] != plan.code or marker.get("minSdk") != 26
         or marker.get("asset") != {
             "name": plan.apk, "size": len(apk), "sha256": digest,
-            "url": f"{DOWNLOAD}/{plan.tag}/{plan.apk}",
+            "url": f"{download}/{plan.tag}/{plan.apk}",
         }
         or downloaded["SHA256SUMS"].decode().split() != [digest, plan.apk]
     ):
@@ -203,15 +227,22 @@ def verify_once(plan: Plan, reader=fetch, expected_root: Path | None = None) -> 
         for key, value in expected.items()
     ):
         raise ValueError("Public APK embedded identity differs from the planned release")
-    return {"tag": plan.tag, "sourceRevision": plan.source, "sha256": digest, "bytes": len(apk)}
+    result = {"tag": plan.tag, "sourceRevision": plan.source, "sha256": digest, "bytes": len(apk),
+              "assetRepository": repository}
+    # Builds from the cut-over preparation on record the update location baked into the APK;
+    # earlier published builds do not have the field and stay verifiable.
+    if "updateRepository" in identity:
+        result["updateRepository"] = validate_repository(identity["updateRepository"])
+    return result
 
 
 def verify_public(plan: Plan, reader=fetch, expected_root: Path | None = None,
-                  timeout: float = 90, clock=time.monotonic, pause=time.sleep) -> dict:
+                  timeout: float = 90, clock=time.monotonic, pause=time.sleep,
+                  repository: str = REPOSITORY) -> dict:
     deadline = clock() + timeout
     while True:
         try:
-            return verify_once(plan, reader, expected_root)
+            return verify_once(plan, reader, expected_root, repository)
         except urllib.error.HTTPError as error:
             if error.code not in {404, 429, 500, 502, 503, 504}:
                 raise
@@ -224,15 +255,15 @@ def verify_public(plan: Plan, reader=fetch, expected_root: Path | None = None,
         pause(min(5, remaining))
 
 
-def admit(plan: Plan, reader=fetch) -> bool:
+def admit(plan: Plan, reader=fetch, repository: str = REPOSITORY) -> bool:
     """Return whether new signing is needed; never rewrite a published release."""
     try:
-        reader(API + "/tags/" + plan.tag, 256 * 1024)
+        reader(api_url(repository) + "/tags/" + plan.tag, 256 * 1024)
     except urllib.error.HTTPError as error:
         if error.code == 404:
             return True
         raise
-    verify_public(plan, reader)
+    verify_public(plan, reader, repository=repository)
     return False
 
 
@@ -243,12 +274,18 @@ def main() -> None:
     parser.add_argument("--github-output", type=Path)
     parser.add_argument("--github-env", type=Path)
     parser.add_argument("--expected-root", type=Path)
+    parser.add_argument(
+        "--asset-repository", default=REPOSITORY,
+        help=f"GitHub owner/name that holds the public test releases (default: {REPOSITORY})",
+    )
     args = parser.parse_args()
+    repository = validate_repository(args.asset_repository)
     plan = read_plan(args.plan)
     if args.command == "verify":
-        print(json.dumps(verify_public(plan, expected_root=args.expected_root), sort_keys=True))
+        print(json.dumps(verify_public(plan, expected_root=args.expected_root, repository=repository),
+                         sort_keys=True))
         return
-    ready = admit(plan)
+    ready = admit(plan, repository=repository)
     if args.github_output:
         with args.github_output.open("a") as output:
             output.write(f"ready={'true' if ready else 'false'}\n")
@@ -258,7 +295,7 @@ def main() -> None:
         with args.github_env.open("a") as output:
             for key, value in plan.values().items():
                 output.write(f"{key}={value}\n")
-    print(f"{plan.tag}: {'new signing required' if ready else 'already published; anonymous bytes verified; no signing or rewrite'}")
+    print(f"{plan.tag} in {repository}: {'new signing required' if ready else 'already published; anonymous bytes verified; no signing or rewrite'}")
 
 
 if __name__ == "__main__":

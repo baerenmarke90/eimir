@@ -18,7 +18,10 @@ import zipfile
 from pathlib import Path
 
 from android_firebase_configuration import validate_configuration
-from android_test_release_plan import CERTIFICATE, FIREBASE_PROJECT, LEGACY_CERTIFICATE, LEGACY_PACKAGE, PACKAGE
+from android_test_release_plan import (
+    CERTIFICATE, FIREBASE_PROJECT, LEGACY_CERTIFICATE, LEGACY_PACKAGE, PACKAGE, REPOSITORY,
+    download_url, validate_repository,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 TEST_ORIGIN = "https://app.eimir.de"
@@ -27,6 +30,11 @@ MARKER = "eimir-test-update.json"
 BUILD_IDENTITY = "eimir-test-build.json"
 VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+-test\.[1-9][0-9]*\Z")
 MAX_APK_BYTES = 256 * 1024 * 1024
+# The updater's single update-location constant; the build records it in the APK identity.
+UPDATE_POLICY = ROOT / "android/app/src/sideload/java/de/eimir/app/updates/UpdatePolicy.java"
+UPDATE_REPOSITORY = re.compile(
+    r'^\s*public static final String REPOSITORY = "([^"]*)";\r?$', re.MULTILINE
+)
 
 
 def run(*args: str, cwd: Path = ROOT, env: dict[str, str] | None = None) -> str:
@@ -50,7 +58,16 @@ def test_environment(inherited: dict[str, str]) -> dict[str, str]:
     return env
 
 
+def update_repository(source: Path = UPDATE_POLICY) -> str:
+    """Return the update location compiled into the sideload updater."""
+    found = UPDATE_REPOSITORY.findall(source.read_text(encoding="utf-8"))
+    if len(found) != 1:
+        raise ValueError("UpdatePolicy must declare exactly one REPOSITORY update location")
+    return validate_repository(found[0])
+
+
 def validate_identity(value: dict) -> None:
+    validate_repository(value.get("updateRepository"))
     if (
         value.get("channel") != "android-test"
         or value.get("apiOrigin") != TEST_ORIGIN
@@ -171,6 +188,7 @@ def build(args: argparse.Namespace) -> None:
         "demoResetTimer": False,
         "testUpdates": True,
         "firebaseProjectId": firebase_project,
+        "updateRepository": update_repository(),
     }
     (ROOT / "web/dist" / BUILD_IDENTITY).write_text(
         json.dumps(identity, indent=2) + "\n"
@@ -209,6 +227,32 @@ def build(args: argparse.Namespace) -> None:
         raise ValueError("Refusing to overwrite an existing test artifact")
     shutil.copyfile(artifact, destination)
     print(destination)
+
+
+def update_manifest(identity: dict, notes: str, *, size: int, sha256: str,
+                    asset_repository: str) -> dict:
+    """Build the release marker that installed updaters read."""
+    tag = "android-test-v" + identity["versionName"]
+    name = "eimir-" + tag + ".apk"
+    return {
+        "schemaVersion": 1,
+        "channel": "android-test",
+        "packageName": PACKAGE_NAME,
+        "versionName": identity["versionName"],
+        "versionCode": identity["versionCode"],
+        "minSdk": 26,
+        "sourceRevision": identity["sourceRevision"],
+        "releaseNotes": notes,
+        "asset": {
+            "name": name,
+            "size": size,
+            "sha256": sha256,
+            # The predecessor that reads this marker checks the URL against its own update
+            # location, so it names the repository this release is published to, which can
+            # differ from the update location compiled into the new APK (the cut-over bridge).
+            "url": f"{download_url(asset_repository)}/{tag}/{name}",
+        },
+    }
 
 
 def package(args: argparse.Namespace) -> None:
@@ -265,22 +309,10 @@ def package(args: argparse.Namespace) -> None:
     tag = "android-test-v" + identity["versionName"]
     name = "eimir-" + tag + ".apk"
     digest = hashlib.sha256(apk.read_bytes()).hexdigest()
-    manifest = {
-        "schemaVersion": 1,
-        "channel": "android-test",
-        "packageName": PACKAGE_NAME,
-        "versionName": identity["versionName"],
-        "versionCode": identity["versionCode"],
-        "minSdk": 26,
-        "sourceRevision": identity["sourceRevision"],
-        "releaseNotes": notes,
-        "asset": {
-            "name": name,
-            "size": apk.stat().st_size,
-            "sha256": digest,
-            "url": f"https://github.com/baerenmarke90/eimir/releases/download/{tag}/{name}",
-        },
-    }
+    manifest = update_manifest(
+        identity, notes, size=apk.stat().st_size, sha256=digest,
+        asset_repository=args.asset_repository,
+    )
     content = (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode()
     if len(content) > 32_768:
         raise ValueError("Encoded update manifest is too large")
@@ -298,7 +330,9 @@ def package(args: argparse.Namespace) -> None:
     marker.write_bytes(content)
     marker.replace(args.output_dir / MARKER)
     print(
-        f"Verified {tag}; upload its APK first and {MARKER} last. No release was published."
+        f"Verified {tag} for asset repository {args.asset_repository}; the APK reads updates from "
+        f"{identity['updateRepository']}. Upload its APK first and {MARKER} last. "
+        "No release was published."
     )
 
 
@@ -320,6 +354,10 @@ def main() -> None:
     packager.add_argument("--certificate-sha256", required=True)
     packager.add_argument("--notes-file", type=Path, required=True)
     packager.add_argument("--output-dir", type=Path, required=True)
+    packager.add_argument(
+        "--asset-repository", type=validate_repository, default=REPOSITORY,
+        help=f"GitHub owner/name the release is published to (default: {REPOSITORY})",
+    )
     packager.add_argument(
         "--fresh-package", action="store_true",
         help="Only the explicitly approved test.38 to test.39 separate-install boundary",

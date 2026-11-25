@@ -9,7 +9,12 @@ from unittest.mock import patch
 import urllib.error
 import zipfile
 
-from android_test_release_plan import API, DOWNLOAD, FIREBASE_PROJECT, PACKAGE, admit, fetch, origin_for_version, validate_plan, verify_once, verify_public
+from android_test_release_plan import (
+    API, DOWNLOAD, FIREBASE_PROJECT, PACKAGE, REPOSITORY, admit, api_url, download_url, fetch,
+    origin_for_version, validate_plan, validate_repository, verify_once, verify_public,
+)
+
+CORE = "baerenmarke90/eimir-core"
 
 
 def plan_data():
@@ -24,7 +29,8 @@ def plan_data():
 
 
 class PublicFixture:
-    def __init__(self, identity_change=None, data=None):
+    def __init__(self, identity_change=None, data=None, repository=REPOSITORY):
+        self.api, self.download = api_url(repository), download_url(repository)
         self.plan = validate_plan(data or plan_data())
         identity = {
             "channel": "android-test", "sourceRevision": "a" * 40,
@@ -46,7 +52,7 @@ class PublicFixture:
             "sourceRevision": "a" * 40, "versionName": self.plan.version,
             "versionCode": self.plan.code, "minSdk": 26,
             "asset": {"name": self.plan.apk, "size": len(apk), "sha256": digest,
-                      "url": f"{DOWNLOAD}/{self.plan.tag}/{self.plan.apk}"},
+                      "url": f"{self.download}/{self.plan.tag}/{self.plan.apk}"},
         }
         self.content = {
             self.plan.apk: apk,
@@ -65,17 +71,17 @@ class PublicFixture:
         self.release["assets"] = [
             {"id": asset_id, "name": name, "size": len(content),
              "digest": "sha256:" + hashlib.sha256(content).hexdigest(),
-             "browser_download_url": f"{DOWNLOAD}/{self.plan.tag}/{name}"}
+             "browser_download_url": f"{self.download}/{self.plan.tag}/{name}"}
             for asset_id, (name, content) in enumerate(self.content.items(), 1)
         ]
 
     def read(self, url, limit):
         self.calls.append(url)
-        if url == API + "?per_page=30":
+        if url == self.api + "?per_page=30":
             return json.dumps([self.release]).encode()
-        if url == API + "/tags/" + self.plan.tag:
+        if url == self.api + "/tags/" + self.plan.tag:
             return json.dumps(self.release).encode()
-        asset_names = {f"{API}/assets/{asset['id']}": asset["name"] for asset in self.release["assets"]}
+        asset_names = {f"{self.api}/assets/{asset['id']}": asset["name"] for asset in self.release["assets"]}
         if url not in asset_names:
             raise AssertionError("Unexpected public request")
         content = self.content[asset_names[url]]
@@ -118,6 +124,75 @@ class ReleasePlanTests(unittest.TestCase):
             fixture.release["assets"][0]["id"] = asset_id
             with self.subTest(asset_id=asset_id), self.assertRaisesRegex(ValueError, "asset ID"):
                 verify_once(fixture.plan, fixture.read)
+
+    def test_default_asset_repository_is_unchanged_until_the_cutover(self):
+        self.assertEqual(REPOSITORY, "baerenmarke90/eimir")
+        self.assertEqual(API, "https://api.github.com/repos/baerenmarke90/eimir/releases")
+        self.assertEqual(DOWNLOAD, "https://github.com/baerenmarke90/eimir/releases/download")
+        self.assertEqual(api_url(CORE), "https://api.github.com/repos/baerenmarke90/eimir-core/releases")
+        self.assertEqual(download_url(CORE), "https://github.com/baerenmarke90/eimir-core/releases/download")
+
+    def test_asset_repository_names_cannot_escape_the_url_path(self):
+        self.assertEqual(validate_repository(CORE), CORE)
+        self.assertEqual(validate_repository("owner-1/repo.name_x"), "owner-1/repo.name_x")
+        for bad in ("", "eimir", "a/b/c", "../eimir", "owner/..", "owner/.", "-owner/repo",
+                    "owner/repo?x=1", "owner/repo#x", "owner/re po", "evil.test/repo",
+                    "owner/repo\n", "https://github.com/o/r", None, 1):
+            with self.subTest(repository=bad), self.assertRaises(ValueError):
+                validate_repository(bad)
+
+    def test_another_asset_repository_is_verified_entirely_within_itself(self):
+        fixture = PublicFixture(repository=CORE)
+        result = verify_once(fixture.plan, fixture.read, repository=CORE)
+        self.assertEqual(result["assetRepository"], CORE)
+        self.assertFalse(admit(fixture.plan, fixture.read, repository=CORE))
+        self.assertTrue(fixture.calls)
+        self.assertTrue(all(url.startswith(api_url(CORE) + "/") or url.startswith(api_url(CORE) + "?")
+                            for url in fixture.calls), fixture.calls)
+
+    def test_marker_and_asset_urls_must_name_the_asset_repository(self):
+        # A marker that names another repository than the release it sits in would be
+        # rejected by the installed updater, so the publisher must reject it first.
+        fixture = PublicFixture(repository=CORE)
+        fixture.marker["asset"]["url"] = f"{DOWNLOAD}/{fixture.plan.tag}/{fixture.plan.apk}"
+        fixture.content["eimir-test-update.json"] = json.dumps(fixture.marker).encode()
+        fixture.sync_assets()
+        with self.assertRaisesRegex(ValueError, "marker"):
+            verify_once(fixture.plan, fixture.read, repository=CORE)
+        fixture = PublicFixture(repository=CORE)
+        fixture.release["assets"][0]["browser_download_url"] = (
+            f"{DOWNLOAD}/{fixture.plan.tag}/{fixture.release['assets'][0]['name']}")
+        with self.assertRaisesRegex(ValueError, "asset URL"):
+            verify_once(fixture.plan, fixture.read, repository=CORE)
+
+    def test_admission_reads_the_tag_from_the_requested_asset_repository(self):
+        requested = []
+        def missing(url, limit):
+            requested.append(url)
+            raise urllib.error.HTTPError(url, 404, "Not found", {}, None)
+        self.assertTrue(admit(validate_plan(plan_data()), missing, repository=CORE))
+        self.assertEqual(requested, [api_url(CORE) + "/tags/android-test-v0.2.0-test.14"])
+        with self.assertRaises(ValueError):
+            admit(validate_plan(plan_data()), missing, repository="owner/../x")
+
+    def test_any_asset_repository_download_uses_the_binary_media_type(self):
+        url = f"{api_url(CORE)}/assets/7"
+        with patch("android_test_release_plan.urllib.request.urlopen") as open_url:
+            open_url.return_value = io.BytesIO(b"ok")
+            fetch(url, 8)
+            self.assertEqual(open_url.call_args.args[0].headers["Accept"], "application/octet-stream")
+        with patch("android_test_release_plan.urllib.request.urlopen") as open_url:
+            open_url.return_value = io.BytesIO(b"ok")
+            fetch(f"{api_url(CORE)}/assets/7/../8", 8)
+            self.assertNotIn("Accept", open_url.call_args.args[0].headers)
+
+    def test_embedded_update_location_is_reported_when_the_build_records_it(self):
+        fixture = PublicFixture({"updateRepository": CORE})
+        self.assertEqual(verify_once(fixture.plan, fixture.read)["updateRepository"], CORE)
+        self.assertNotIn("updateRepository", verify_once(PublicFixture().plan, PublicFixture().read))
+        fixture = PublicFixture({"updateRepository": "owner/../x"})
+        with self.assertRaises(ValueError):
+            verify_once(fixture.plan, fixture.read)
 
     def test_valid_plan_produces_only_bounded_known_workflow_values(self):
         plan = validate_plan(plan_data())

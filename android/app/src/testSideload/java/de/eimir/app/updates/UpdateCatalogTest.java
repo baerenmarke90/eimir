@@ -174,6 +174,77 @@ public class UpdateCatalogTest {
         assertEquals(2, reader.reads);
     }
 
+    private static final String CORE = "baerenmarke90/eimir-core";
+
+    private static JSONObject manifestIn(String repository, String name, int code) throws Exception {
+        String tag = "android-test-v" + name;
+        return new JSONObject().put("schemaVersion", 1).put("channel", "android-test")
+            .put("packageName", PACKAGE).put("versionName", name).put("versionCode", code)
+            .put("minSdk", 26).put("sourceRevision", "a".repeat(40)).put("releaseNotes", "Test notes")
+            .put("asset", new JSONObject().put("name", "eimir-" + tag + ".apk").put("size", 1024)
+                .put("sha256", "b".repeat(64))
+                .put("url", UpdatePolicy.releaseUrl(repository, tag, "eimir-" + tag + ".apk")));
+    }
+
+    /** Serves one repository's feed and release downloads. */
+    private static final class LocationReader implements UpdateCatalog.Reader {
+        final Map<String, String> responses = new HashMap<>();
+        final String repository;
+        LocationReader(String repository, String feed) {
+            this.repository = repository;
+            responses.put(UpdatePolicy.feedUrl(repository), feed);
+        }
+        public String readJson(String url, int limit) throws Exception {
+            if (responses.containsKey(url)) return responses.get(url);
+            if (url.startsWith("https://github.com/" + repository + "/releases/download/")) {
+                throw new FileNotFoundException("NETWORK");
+            }
+            throw new AssertionError("Unexpected public request: " + url);
+        }
+        public void ensureActive() {}
+    }
+
+    @Test public void theCutoverLocationReadsOnlyItsOwnFeedReleasesAndMarkers() throws Exception {
+        String name = "0.2.0-test.105";
+        String tag = "android-test-v" + name;
+        String feed = "<feed>" + entry(UpdatePolicy.REPOSITORY, "android-test-v0.2.0-test.106")
+            + entry(CORE, tag) + "</feed>";
+        LocationReader reader = new LocationReader(CORE, feed);
+        reader.responses.put(UpdatePolicy.releaseUrl(CORE, tag, UpdatePolicy.MARKER),
+            manifestIn(CORE, name, 105).toString());
+        UpdateCatalog.Offer offer = UpdateCatalog.discover(reader, PACKAGE, 36, CORE);
+        // The old repository's link in the new feed is ignored; the new release is offered.
+        assertEquals(105, offer.versionCode);
+        assertEquals(UpdatePolicy.releaseUrl(CORE, tag, "eimir-" + tag + ".apk"), offer.downloadUrl);
+    }
+
+    @Test public void aMarkerMustNameTheRepositoryItIsReadFrom() throws Exception {
+        // The bridge release is published to the old repository with an APK whose updater
+        // already reads the new one; its marker must still name the old repository, because
+        // the installed predecessor checks it against its own location.
+        String name = "0.2.0-test.104";
+        String tag = "android-test-v" + name;
+        LocationReader old = new LocationReader(UpdatePolicy.REPOSITORY,
+            "<feed>" + entry(UpdatePolicy.REPOSITORY, tag) + "</feed>");
+        old.responses.put(UpdatePolicy.releaseUrl(tag, UpdatePolicy.MARKER),
+            manifestIn(CORE, name, 104).toString());
+        assertThrows(IllegalArgumentException.class, () -> UpdateCatalog.discover(old, PACKAGE, 36));
+        old.responses.put(UpdatePolicy.releaseUrl(tag, UpdatePolicy.MARKER),
+            manifestIn(UpdatePolicy.REPOSITORY, name, 104).toString());
+        assertEquals(104, UpdateCatalog.discover(old, PACKAGE, 36).versionCode);
+
+        LocationReader core = new LocationReader(CORE, "<feed>" + entry(CORE, tag) + "</feed>");
+        core.responses.put(UpdatePolicy.releaseUrl(CORE, tag, UpdatePolicy.MARKER),
+            manifestIn(UpdatePolicy.REPOSITORY, name, 104).toString());
+        assertThrows(IllegalArgumentException.class, () -> UpdateCatalog.discover(core, PACKAGE, 36, CORE));
+    }
+
+    @Test public void anInvalidUpdateLocationIsRejectedBeforeAnyRequest() {
+        LocationReader reader = new LocationReader(CORE, "<feed></feed>");
+        assertThrows(IllegalArgumentException.class,
+            () -> UpdateCatalog.discover(reader, PACKAGE, 36, "baerenmarke90/../eimir"));
+    }
+
     @Test public void anEmptyFeedOffersNothing() throws Exception {
         Reader reader = new Reader("<feed></feed>");
         assertNull(UpdateCatalog.discover(reader, PACKAGE, 36));

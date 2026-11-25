@@ -14,7 +14,10 @@ export type WorldArtKind =
   | 'cloud'
   | 'booth'
   | 'fridge'
-  | 'album';
+  | 'album'
+  | 'scratch'
+  | 'mochi'
+  | 'stars';
 
 type Id = (name: string) => string;
 
@@ -299,8 +302,133 @@ function art(world: WorldArtKind, id: Id, url: Id) {
           />
         </>
       );
+    case 'scratch':
+      return (
+        <>
+          <rect width="160" height="100" fill="#ffe9a8" />
+          <g transform="rotate(-5 80 52)">
+            <rect
+              x="22"
+              y="18"
+              width="116"
+              height="66"
+              rx="6"
+              fill="#fff8e6"
+              stroke="#e0a43a"
+              strokeWidth="2"
+              strokeDasharray="4 3"
+            />
+            <rect x="32" y="28" width="96" height="38" rx="4" fill="#f3b7a3" />
+            {/* The silver foil, half scratched away. */}
+            <path
+              d="M74 28 L128 28 L128 66 L58 66 Q66 52 74 28Z"
+              fill="#b8bcc4"
+            />
+            <path
+              d="M78 34 l40 0 M74 42 l50 0 M70 50 l54 0 M66 58 l58 0"
+              stroke="#d3d6dc"
+              strokeWidth="2"
+            />
+            <rect x="34" y="72" width="50" height="5" rx="2.5" fill="#c9893a" />
+          </g>
+          <circle
+            cx="132"
+            cy="80"
+            r="12"
+            fill="#e8c06a"
+            stroke="#b98a2e"
+            strokeWidth="2"
+          />
+        </>
+      );
+    case 'stars':
+      return (
+        <>
+          <defs>
+            <linearGradient id={id('sky')} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#0f1838" />
+              <stop offset="1" stopColor="#2a2d64" />
+            </linearGradient>
+          </defs>
+          <rect width="160" height="100" fill={url('sky')} />
+          <circle cx="134" cy="20" r="9" fill="#f3e9d2" />
+          <circle cx="138" cy="17" r="8" fill="#16204a" />
+          <polyline
+            points="24,64 46,40 72,52 98,28 120,46"
+            fill="none"
+            stroke="#f2c94c"
+            strokeWidth="1"
+            opacity="0.7"
+          />
+          {STARS_POINTS.map(([x, y, r]) => (
+            <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill="#fff6d8" />
+          ))}
+          <path d="M0 100 Q40 84 80 92 T160 88 L160 100Z" fill="#0b1029" />
+        </>
+      );
+    case 'mochi':
+      return (
+        <>
+          <defs>
+            <linearGradient id={id('sky')} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#fde6ef" />
+              <stop offset="1" stopColor="#e6f6ee" />
+            </linearGradient>
+          </defs>
+          <rect width="160" height="100" fill={url('sky')} />
+          <ellipse cx="80" cy="96" rx="96" ry="22" fill="#b8e3c4" />
+          <path
+            d="M80 18 C74 10 64 14 66 22 C67 28 80 34 80 34 C80 34 93 28 94 22 C96 14 86 10 80 18Z"
+            fill="#f2668b"
+          />
+          <line
+            x1="80"
+            y1="34"
+            x2="80"
+            y2="52"
+            stroke="#c98a9c"
+            strokeWidth="1"
+          />
+          <ellipse cx="62" cy="70" rx="24" ry="19" fill="#ffd4df" />
+          <ellipse cx="98" cy="70" rx="24" ry="19" fill="#cdeedd" />
+          <circle cx="55" cy="68" r="2.3" fill="#3a2a30" />
+          <circle cx="68" cy="68" r="2.3" fill="#3a2a30" />
+          <circle cx="92" cy="68" r="2.3" fill="#2c3a33" />
+          <circle cx="105" cy="68" r="2.3" fill="#2c3a33" />
+          <ellipse cx="51" cy="74" rx="3.5" ry="2" fill="#f7a3b8" />
+          <ellipse cx="109" cy="74" rx="3.5" ry="2" fill="#9fd9bc" />
+          <path
+            d="M59 74 Q61.5 77 64 74"
+            stroke="#3a2a30"
+            strokeWidth="1.4"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M96 74 Q98.5 77 101 74"
+            stroke="#2c3a33"
+            strokeWidth="1.4"
+            fill="none"
+            strokeLinecap="round"
+          />
+        </>
+      );
   }
 }
+
+/** The stars of the little constellation and a few faint ones (x, y, r). */
+const STARS_POINTS: readonly [number, number, number][] = [
+  [24, 64, 2.4],
+  [46, 40, 3],
+  [72, 52, 2.2],
+  [98, 28, 3.4],
+  [120, 46, 2.4],
+  [14, 20, 1],
+  [60, 14, 1.2],
+  [86, 76, 1],
+  [140, 70, 1.3],
+  [34, 86, 1],
+];
 
 /** The letter magnets along the bottom of the fridge door (glyph, colour, x). */
 const FRIDGE_LETTERS: readonly [string, string, number][] = [

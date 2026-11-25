@@ -1,5 +1,6 @@
 // Memory worlds of Momente › Erinnerungen (#2283): Stapel, Plattenkiste,
-// Momentwolke, Fotoautomat, Kühlschranktür and Fotobuch.
+// Momentwolke, Fotoautomat, Kühlschranktür, Fotobuch, Rubbellos, Mochis
+// and Sternbild.
 const memoryWorlds = {
   placeVerse: 'in {{place}}',
   winterSpan: 'Winter {{from}}/{{to}}',
@@ -206,6 +207,116 @@ const memoryWorlds = {
     endText:
       'Euer Tagebuch schreibt weiter – und mit jeder neuen Erinnerung euer Fotobuch.',
     restart: 'Zum Anfang blättern',
+  },
+  scratch: {
+    heading: 'Euer Glückslos',
+    roleDescription: 'Glückslos',
+    label: 'Glückslos Nr. {{serial}}',
+    serial: 'Nr. {{serial}}',
+    name: 'Glückslos',
+    rule: 'Rubbelt das Herz frei – drei gleiche Taler bringen eine Zugabe',
+    foilStamp: 'Rubbeln',
+    foilStampSub: 'hier!',
+    tearTab: 'Hier abreißen',
+    open: 'Im Tagebuch öffnen ›',
+    openLabel: 'Im Tagebuch öffnen: {{title}}, {{date}}',
+    win: {
+      stamp: 'Gewinn!',
+      ask: 'Wisst ihr noch?',
+      blank: 'Euer Gewinn',
+    },
+    bonus: {
+      stamp: 'Zugabe!',
+      heart: 'Drei Herzen – noch ein Herzmoment für euch:',
+      kiss: 'Drei Küsse – noch ein Foto für euch:',
+      star: 'Drei Sterne – noch ein großer Moment:',
+      double: 'Euer Glück ist heute doppelt.',
+      none: 'Kein Dreier – vielleicht beim nächsten Los.',
+      hint: 'Drei gleiche Taler: eine Erinnerung extra.',
+      link: 'Zugabe: {{title}}, {{date}}',
+    },
+    smallPrint:
+      'Serie Liebe · Jedes Los gewinnt: eine Erinnerung aus eurem Tagebuch.',
+    dispenser: {
+      title: 'Glückslose',
+      subtitle: 'für zwei',
+    },
+    reveal: 'Freirubbeln',
+    tear: 'Nächstes Los abreißen',
+    won: 'Gewonnen: {{title}}, {{date}}. Tippt auf das Herz, um die Erinnerung zu öffnen.',
+    fresh: 'Ein neues Glückslos aus eurem Tagebuch ist da.',
+  },
+  mochi: {
+    heading: 'Ihr zwei',
+    roleDescription: 'Mochi-Wiese',
+    label: 'Eure zwei Mochis auf ihrer Wiese',
+    description:
+      'Lasst eure Mochis kuscheln, küssen, umarmen, lachen oder tanzen: Jedes Mal steigt ein Herzballon mit einer Erinnerung aus eurem Tagebuch auf. Antippen öffnet sie.',
+    actions: 'Was sollen die beiden tun?',
+    action: {
+      cuddle: 'Kuscheln',
+      kiss: 'Küssen',
+      hug: 'Umarmen',
+      laugh: 'Lachen',
+      dance: 'Tanzen',
+    },
+    acted: {
+      cuddle: 'Eure Mochis kuscheln.',
+      kiss: 'Eure Mochis geben sich einen Kuss.',
+      hug: 'Eure Mochis umarmen sich.',
+      laugh: 'Eure Mochis lachen zusammen.',
+      dance: 'Eure Mochis tanzen.',
+    },
+    rises: 'Ein Herzballon steigt auf: {{title}}, {{date}}.',
+    asleep:
+      'Eure Mochis sind eingeschlafen. Spielt mit ihnen, dann wachen sie auf.',
+    open: 'Öffnen: {{title}}, {{date}}',
+    sky: 'Eure Herzballons am Himmel',
+    hint: {
+      cuddle: 'Schiebt uns zusammen!',
+      kiss: 'Drückt mich ganz lange …',
+      hug: 'Zwei Finger – zieht uns zusammen!',
+      laugh: 'Kitzelt mich!',
+      danceTap: 'Tippt im Takt auf die Wiese!',
+      danceShake: 'Schüttelt das Handy!',
+    },
+    sound: {
+      kiss: 'Mwah!',
+      laugh: 'haha',
+      giggle: 'hihi',
+      chuckle: 'hehe',
+      snore: 'z z z',
+      moon: 'z',
+    },
+  },
+  stars: {
+    heading: 'Euer Sternbild',
+    roleDescription: 'Sternkarte',
+    label: 'Eure Erinnerungen als Sterne, nach Zeit geordnet',
+    labelSome:
+      '{{shown}} von {{count}} Erinnerungen als Sterne, nach Zeit geordnet',
+    description:
+      'Wischt über den Himmel: Eine Sternschnuppe fliegt zum nächsten Stern in dieser Richtung. Zieht von Stern zu Stern, um euer Sternbild nachzuzeichnen, oder richtet das Fernrohr auf einen Stern. Mit den Pfeiltasten geht ihr von Stern zu Stern.',
+    star: '{{title}}, {{date}}',
+    starNew: '{{title}}, {{date}}, neu am Himmel',
+    newborn: 'neu am Himmel',
+    note: 'wünscht euch was –\nwischt über\nden Himmel ✦',
+    landed: {
+      fling: 'Eine Sternschnuppe ist gelandet: {{title}}, {{date}}',
+      trace: 'Euer Sternbild führt zu: {{title}}, {{date}}',
+      scope: 'Durchs Fernrohr: {{title}}, {{date}}',
+    },
+    scope: 'Fernrohr auf einen Stern richten',
+    view: 'Durchs Fernrohr: {{title}}, {{date}}. Zur Sternkarte',
+    viewMore: 'zur Sternkarte',
+    wish: 'Sternschnuppe schicken',
+    first: 'Euer erster Stern',
+    oneOf: 'Einer von {{count}} Sternen',
+    position: 'Stern {{position}} von {{count}}',
+    since: 'Dieser Stern leuchtet seit',
+    open: 'Öffnen: {{title}}, {{date}}',
+    seasonMark: '{{season}} ’{{year}}',
+    winterMark: '{{season}} ’{{from}}/{{to}}',
   },
 };
 

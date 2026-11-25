@@ -1740,6 +1740,10 @@
         "name": "Moment cloud",
         "sentence": "Drift through a floating cloud of all your moments."
       },
+      "mochi": {
+        "name": "Mochis",
+        "sentence": "The two of you as little mochis – they cuddle, laugh and bring memories."
+      },
       "booth": {
         "name": "Photo booth",
         "sentence": "Print your memories as photo strips – classic or modern."
@@ -1748,9 +1752,17 @@
         "name": "Photo book",
         "sentence": "Leaf through your photo book – page by page."
       },
+      "stars": {
+        "name": "Constellation",
+        "sentence": "Your moments as stars in a sky that lives with time."
+      },
       "crate": {
         "name": "Record crate",
         "sentence": "Flip through your records and put a memory on."
+      },
+      "scratch": {
+        "name": "Scratch card",
+        "sentence": "Scratch to reveal which memory is waiting for you today."
       },
       "fridge": {
         "name": "Fridge door",
@@ -4539,6 +4551,111 @@
       "endTitle": "To be continued",
       "endText": "Your diary keeps writing – and with every new memory, so does your photo book.",
       "restart": "Back to the beginning"
+    },
+    "scratch": {
+      "heading": "Your lucky ticket",
+      "roleDescription": "Lucky ticket",
+      "label": "Lucky ticket no. {{serial}}",
+      "serial": "No. {{serial}}",
+      "name": "Lucky ticket",
+      "rule": "Scratch the heart free – three matching coins win an encore",
+      "foilStamp": "Scratch",
+      "foilStampSub": "here!",
+      "tearTab": "Tear here",
+      "open": "Open in the diary ›",
+      "openLabel": "Open in the diary: {{title}}, {{date}}",
+      "win": {
+        "stamp": "Winner!",
+        "ask": "Remember?",
+        "blank": "Your prize"
+      },
+      "bonus": {
+        "stamp": "Encore!",
+        "heart": "Three hearts – another heart moment for you:",
+        "kiss": "Three kisses – another photo for you:",
+        "star": "Three stars – another big moment:",
+        "double": "Your luck is doubled today.",
+        "none": "No three of a kind – maybe on the next ticket.",
+        "hint": "Three matching coins: one extra memory.",
+        "link": "Encore: {{title}}, {{date}}"
+      },
+      "smallPrint": "Love series · Every ticket wins: a memory from your diary.",
+      "dispenser": {
+        "title": "Lucky tickets",
+        "subtitle": "for two"
+      },
+      "reveal": "Scratch it free",
+      "tear": "Tear off the next ticket",
+      "won": "You won: {{title}}, {{date}}. Tap the heart to open the memory.",
+      "fresh": "A new lucky ticket from your diary is here."
+    },
+    "mochi": {
+      "heading": "The two of you",
+      "roleDescription": "Mochi meadow",
+      "label": "Your two mochis on their meadow",
+      "description": "Let your mochis cuddle, kiss, hug, laugh or dance: each time a heart balloon with a memory from your diary rises. Tap it to open it.",
+      "actions": "What should the two of them do?",
+      "action": {
+        "cuddle": "Cuddle",
+        "kiss": "Kiss",
+        "hug": "Hug",
+        "laugh": "Laugh",
+        "dance": "Dance"
+      },
+      "acted": {
+        "cuddle": "Your mochis cuddle.",
+        "kiss": "Your mochis share a kiss.",
+        "hug": "Your mochis hug.",
+        "laugh": "Your mochis laugh together.",
+        "dance": "Your mochis dance."
+      },
+      "rises": "A heart balloon rises: {{title}}, {{date}}.",
+      "asleep": "Your mochis fell asleep. Play with them to wake them up.",
+      "open": "Open: {{title}}, {{date}}",
+      "sky": "Your heart balloons in the sky",
+      "hint": {
+        "cuddle": "Push us together!",
+        "kiss": "Press me for a long time …",
+        "hug": "Two fingers – pull us together!",
+        "laugh": "Tickle me!",
+        "danceTap": "Tap the beat on the meadow!",
+        "danceShake": "Shake the phone!"
+      },
+      "sound": {
+        "kiss": "Mwah!",
+        "laugh": "haha",
+        "giggle": "hihi",
+        "chuckle": "hehe",
+        "snore": "z z z",
+        "moon": "z"
+      }
+    },
+    "stars": {
+      "heading": "Your constellation",
+      "roleDescription": "Star chart",
+      "label": "Your memories as stars, in order of time",
+      "labelSome": "{{shown}} of {{count}} memories as stars, in order of time",
+      "description": "Swipe across the sky: a shooting star flies to the nearest star in that direction. Drag from star to star to trace your constellation, or point the telescope at a star. Use the arrow keys to go from star to star.",
+      "star": "{{title}}, {{date}}",
+      "starNew": "{{title}}, {{date}}, new in the sky",
+      "newborn": "new in the sky",
+      "note": "make a wish –\nswipe across\nthe sky ✦",
+      "landed": {
+        "fling": "A shooting star has landed: {{title}}, {{date}}",
+        "trace": "Your constellation leads to: {{title}}, {{date}}",
+        "scope": "Through the telescope: {{title}}, {{date}}"
+      },
+      "scope": "Point the telescope at a star",
+      "view": "Through the telescope: {{title}}, {{date}}. Back to the star chart",
+      "viewMore": "back to the star chart",
+      "wish": "Send a shooting star",
+      "first": "Your first star",
+      "oneOf": "One of {{count}} stars",
+      "position": "Star {{position}} of {{count}}",
+      "since": "This star has been shining since",
+      "open": "Open: {{title}}, {{date}}",
+      "seasonMark": "{{season}} ’{{year}}",
+      "winterMark": "{{season}} ’{{from}}/{{to}}"
     }
   },
   "memoryProduct": {

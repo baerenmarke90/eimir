@@ -10,6 +10,7 @@ Run: python3 tools/cutover/test_core_export.py
 
 from __future__ import annotations
 
+import ast
 import json
 import os
 import shutil
@@ -271,6 +272,8 @@ class AllowlistConfigTest(ExportTestCase):
             "backend/pro/src/eimir_pro/plugin.py",
             "backend/admin/pyproject.toml",
             ".github/workflows/release-publish.yml",
+            # The private repository follows Core main for the test channel (#2297).
+            ".github/workflows/core-advance.yml",
         ):
             self.assertFalse(config.exported(path), path)
         for path in (
@@ -927,6 +930,108 @@ class TwoTreeDryRunTest(ProTreeTestCase):
             ]
         )
         self.assertEqual(code, 2)
+
+
+class PublisherRequirementTest(ProTreeTestCase):
+    WORKSPACE = (
+        PRO_CONFIG.replace(
+            'archive_only = ["media"]',
+            'archive_only = ["media"]\npublisher_requires = ["backend/pyproject.toml"]\n'
+            'same_project = "backend/pyproject.toml"',
+        )
+        .replace('patterns = ["secret.txt"]', 'patterns = ["secret.txt", "backend/pyproject.toml"]')
+        .replace(
+            "[[add]]",
+            '[[overlap]]\nid = "workspace"\n'
+            'reason = "two versions"\npatterns = ["backend/pyproject.toml"]\n\n[[add]]',
+            1,
+        )
+    )
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.commit(
+            {
+                "backend/pyproject.toml": '[project]\nname = "eimir"\n\n'
+                '[tool.uv.workspace]\nmembers = ["pro"]\n'
+            }
+        )
+
+    def split_with_trees(self, pro: core_export.Config) -> core_export.GateResult:
+        core_manifest = self.export()
+        pro_manifest = self.pro_export(pro)
+        return core_export.gate_split(core_manifest, self.config(), pro_manifest, pro, self.out, self.pro_out)
+
+    def test_a_file_the_publisher_requires_must_be_in_the_pro_tree(self) -> None:
+        missing = PRO_CONFIG.replace(
+            'archive_only = ["media"]',
+            'archive_only = ["media"]\npublisher_requires = ["backend/pyproject.toml"]',
+        )
+        result = self.split(self.pro_config(missing))
+        self.assertTrue(result.failed)
+        self.assertIn(
+            "required by the publisher but not in the pro tree: backend/pyproject.toml", result.details
+        )
+
+    def test_the_official_workspace_passes_with_an_equal_project_table(self) -> None:
+        result = self.split_with_trees(self.pro_config(self.WORKSPACE))
+        self.assertEqual(result.status, "passed", result.details)
+        # The Core tree has the transformed workspace, the Pro tree the original one.
+        self.assertIn("members = []", (self.out / "backend/pyproject.toml").read_text(encoding="utf-8"))
+        self.assertIn(
+            'members = ["pro"]', (self.pro_out / "backend/pyproject.toml").read_text(encoding="utf-8")
+        )
+
+    def test_a_different_project_table_fails(self) -> None:
+        pro = self.pro_config(self.WORKSPACE)
+        core_manifest = self.export()
+        pro_manifest = self.pro_export(pro)
+        (self.pro_out / "backend/pyproject.toml").write_text('[project]\nname = "other"\n', encoding="utf-8")
+        result = core_export.gate_split(
+            core_manifest, self.config(), pro_manifest, pro, self.out, self.pro_out
+        )
+        self.assertIn("[project] of backend/pyproject.toml differs between the two trees", result.details)
+
+
+class RealSplitCoverageTest(unittest.TestCase):
+    ROOT = REAL_ALLOWLIST.parents[2]
+
+    def tracked(self, *paths: str) -> list[str]:
+        output = subprocess.run(
+            ["git", "-C", str(self.ROOT), "ls-files", "--", *paths],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+        return [line for line in output.splitlines() if line]
+
+    def test_every_tracked_workflow_is_in_one_of_the_two_trees(self) -> None:
+        # Regression for core-advance.yml (#2297), which a merge race left in neither tree.
+        core = core_export.load_config(REAL_ALLOWLIST)
+        pro = core_export.load_config(REAL_ALLOWLIST.with_name("pro-allowlist.toml"))
+        workflows = self.tracked(".github/workflows", ".github/actions")
+        self.assertTrue(workflows)
+        unclassified = [path for path in workflows if not (core.exported(path) or pro.exported(path))]
+        self.assertEqual(unclassified, [])
+
+    def test_the_pro_tree_provides_what_the_publisher_requires(self) -> None:
+        publisher = self.ROOT / "scripts/test_deployment_channel.py"
+        if not publisher.is_file():
+            self.skipTest("the publisher is not part of this tree")
+        tree = ast.parse(publisher.read_text(encoding="utf-8"))
+        required: set[str] = set()
+        for node in tree.body:
+            if isinstance(node, ast.Assign) and any(
+                isinstance(name, ast.Name) and name.id in {"PRO_WORKSPACE_FILES", "PRO_REQUIRED_FILES"}
+                for name in node.targets
+            ):
+                required |= set(ast.literal_eval(node.value))
+        self.assertTrue(required)
+        pro = core_export.load_config(REAL_ALLOWLIST.with_name("pro-allowlist.toml"))
+        self.assertLessEqual(required, set(pro.publisher_requires))
+        for path in required:
+            self.assertTrue(pro.exported(path), path)
+        self.assertEqual(pro.same_project, "backend/pyproject.toml")
 
 
 if __name__ == "__main__":

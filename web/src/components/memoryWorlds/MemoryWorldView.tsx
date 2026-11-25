@@ -9,16 +9,19 @@
 import { useMemo } from 'react';
 import type { StoryItem } from '../../api/generated/models/StoryItem';
 import { resolvedLocale, useTranslation } from '../../i18n';
+import { ConstellationWorld } from './ConstellationWorld';
 import { FridgeDoorWorld } from './FridgeDoorWorld';
 import {
   buildMemoryWorldEntries,
   type LoadMemoryImage,
   type OpenMemoryWorldItem,
 } from './model';
+import { MochiWorld } from './MochiWorld';
 import { MomentCloudWorld } from './MomentCloudWorld';
 import { PhotoAlbumWorld } from './PhotoAlbumWorld';
 import { PhotoBoothWorld } from './PhotoBoothWorld';
 import { RecordCrateWorld } from './RecordCrateWorld';
+import { ScratchCardWorld } from './ScratchCardWorld';
 import { StackWorld } from './StackWorld';
 import { useShowSensitiveInWorlds } from './sensitivePreference';
 import './MemoryWorld.css';
@@ -29,7 +32,10 @@ export type MemoryWorldViewWorld =
   | 'cloud'
   | 'booth'
   | 'fridge'
-  | 'album';
+  | 'album'
+  | 'scratch'
+  | 'mochi'
+  | 'stars';
 
 export interface MemoryWorldViewProps {
   world: MemoryWorldViewWorld;
@@ -98,6 +104,12 @@ export function MemoryWorldView({
         <FridgeDoorWorld {...props} />
       ) : world === 'album' ? (
         <PhotoAlbumWorld {...props} />
+      ) : world === 'scratch' ? (
+        <ScratchCardWorld {...props} />
+      ) : world === 'mochi' ? (
+        <MochiWorld {...props} />
+      ) : world === 'stars' ? (
+        <ConstellationWorld {...props} />
       ) : (
         <StackWorld {...props} />
       )}

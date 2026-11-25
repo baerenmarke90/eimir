@@ -1,10 +1,17 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import copy from '../../i18n/locales/memoryWorlds';
 import { heartItem, memoryItem, milestoneItem } from './__fixtures__/stories';
-import { MemoryWorldView } from './MemoryWorldView';
+import { MemoryWorldView, type MemoryWorldViewWorld } from './MemoryWorldView';
+import { ticketSerial } from './scratchTicket';
 import { SENSITIVE_IN_WORLDS_KEY } from './sensitivePreference';
 
 /** Fills a German product template, so the assertions follow the locale copy. */
@@ -29,7 +36,7 @@ const moreItems = [
 ];
 
 function renderWorld(
-  world: 'stack' | 'crate' | 'cloud' | 'booth' | 'fridge' | 'album',
+  world: MemoryWorldViewWorld,
   more: typeof moreItems | undefined = undefined,
 ) {
   return render(
@@ -164,6 +171,73 @@ describe('MemoryWorldView', () => {
     );
     expect(
       screen.getByText(fill(copy.album.moments_other, { count: 2 })),
+    ).toBeTruthy();
+  });
+
+  it('renders the Rubbellos from the same selection, the lead first', () => {
+    // jsdom has no 2D canvas: the foils stay unpainted.
+    const canvas = vi
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue(null);
+    const { container } = renderWorld('scratch', moreItems);
+    expect(
+      container.querySelector('.memory-world')?.getAttribute('data-world'),
+    ).toBe('scratch');
+    const ticket = screen.getByRole('group', {
+      name: fill(copy.scratch.label, { serial: ticketSerial('heart-h') }),
+    });
+    expect(ticket.getAttribute('aria-roledescription')).toBe(
+      copy.scratch.roleDescription,
+    );
+    expect(
+      screen.getByRole('button', { name: copy.scratch.reveal }),
+    ).toBeTruthy();
+    canvas.mockRestore();
+  });
+
+  it('renders the Mochis from the same selection, the lead first', () => {
+    const { container } = renderWorld('mochi', moreItems);
+    expect(
+      container.querySelector('.memory-world')?.getAttribute('data-world'),
+    ).toBe('mochi');
+    const meadow = screen.getByRole('group', { name: copy.mochi.label });
+    expect(meadow.getAttribute('aria-roledescription')).toBe(
+      copy.mochi.roleDescription,
+    );
+    // Reduced motion: each balloon is there at once, the lead first; the
+    // sensitive cover and the rest of the diary stay out.
+    const actions = screen.getByRole('group', { name: copy.mochi.actions });
+    for (const kind of ['cuddle', 'kiss', 'hug'] as const)
+      fireEvent.click(
+        within(actions).getByRole('button', { name: copy.mochi.action[kind] }),
+      );
+    const sky = screen.getByRole('list', { name: copy.mochi.sky });
+    expect(
+      [...sky.querySelectorAll('a')].map((link) => link.textContent),
+    ).toEqual(['Moved in together']);
+    const held = container.querySelector('.memory-mochi-balloon strong');
+    expect(held?.textContent).toBe('Thank you');
+  });
+
+  it('renders the Sternbild from the same selection, ordered by time', () => {
+    const { container } = renderWorld('stars', moreItems);
+    expect(
+      container.querySelector('.memory-world')?.getAttribute('data-world'),
+    ).toBe('stars');
+    const sky = screen.getByRole('group', { name: copy.stars.label });
+    expect(sky.getAttribute('aria-roledescription')).toBe(
+      copy.stars.roleDescription,
+    );
+    // The sensitive cover and the rest of the diary stay out; the lead is lit.
+    const stars = [...sky.querySelectorAll('[data-stars-star]')];
+    expect(stars).toHaveLength(2);
+    expect(stars[0].getAttribute('aria-label')).toMatch(
+      /^Moved in together, /u,
+    );
+    expect(stars[1].getAttribute('aria-label')).toMatch(/^Thank you, /u);
+    expect(stars[1].getAttribute('aria-pressed')).toBe('true');
+    expect(
+      screen.getByText(fill(copy.stars.position, { position: 2, count: 2 })),
     ).toBeTruthy();
   });
 

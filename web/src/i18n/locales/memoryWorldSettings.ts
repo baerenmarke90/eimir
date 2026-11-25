@@ -50,6 +50,11 @@ const memoryWorldSettings = {
       name: 'Momentwolke',
       sentence: 'Zieh durch eine schwebende Wolke aus all euren Momenten.',
     },
+    mochi: {
+      name: 'Mochis',
+      sentence:
+        'Ihr zwei als kleine Mochis – sie kuscheln, lachen und bringen Erinnerungen.',
+    },
     booth: {
       name: 'Fotoautomat',
       sentence:
@@ -59,9 +64,18 @@ const memoryWorldSettings = {
       name: 'Fotobuch',
       sentence: 'Blättere durch euer Fotobuch – Seite für Seite.',
     },
+    stars: {
+      name: 'Sternbild',
+      sentence:
+        'Eure Momente als Sterne an einem Himmel, der mit der Zeit lebt.',
+    },
     crate: {
       name: 'Plattenkiste',
       sentence: 'Blättere durch eure Platten und leg eine Erinnerung auf.',
+    },
+    scratch: {
+      name: 'Rubbellos',
+      sentence: 'Rubbel frei, welche Erinnerung heute auf euch wartet.',
     },
     fridge: {
       name: 'Kühlschranktür',

@@ -48,9 +48,7 @@ export function PartnerLocationSync({
   useEffect(() => () => clearPublicationMemory(), []);
 
   useEffect(() => {
-    // The Demo keeps its example positions: a visitor's real position is
-    // never published over them.
-    if (!capability.isFetched || isDemoModeConfigured()) return;
+    if (!capability.isFetched) return;
     let disposed = false;
     const run = async (force: boolean) => {
       if (running.current || !isClientOnline()) return;
@@ -71,6 +69,10 @@ export function PartnerLocationSync({
           partnerLocationSettingsQueryKey(accountId, spaceId),
           settings,
         );
+        // The Demo keeps its example positions: the settings above feed the
+        // Wir distance line, but a visitor's real position is never published
+        // over them and no background credential is rotated.
+        if (isDemoModeConfigured()) return;
         await syncBackgroundSharing({
           api,
           spaceId,

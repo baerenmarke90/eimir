@@ -25,6 +25,7 @@ import {
 import '../../motion/memory-worlds.css';
 import './MemoryWorld.css';
 import './StackWorld.css';
+import { useWorldEntered } from './WorldEnter';
 
 /** The top print travelling to the back (or from the back), in ms. */
 const TUCK_MS = 760;
@@ -134,11 +135,13 @@ export function StackWorld({
   useEffect(() => () => window.clearTimeout(timer.current), []);
   // The pile can only be browsed once every print has landed on it.
   const [landed, setLanded] = useState(() => prefersReducedMotion());
+  // The prints fall only once the world is seen (WorldEnter).
+  const entered = useWorldEntered();
   const count = entries.length;
   const hasEntries = count > 0;
   // biome-ignore lint/correctness/useExhaustiveDependencies: the throw runs once when the prints are there; later changes do not replay it.
   useEffect(() => {
-    if (landed || !hasEntries) return;
+    if (landed || !hasEntries || !entered) return;
     const falls = Math.min(count, FALL_MAX);
     const step = fallStep(falls);
     const timers = Array.from({ length: falls }, (_, fall) =>
@@ -153,7 +156,7 @@ export function StackWorld({
     return () => {
       for (const id of timers) window.clearTimeout(id);
     };
-  }, [hasEntries]);
+  }, [hasEntries, entered]);
   if (count === 0) return null;
 
   const cards = pileLayout(entries, index);

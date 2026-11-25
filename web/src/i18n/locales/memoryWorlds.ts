@@ -1,6 +1,6 @@
 // Memory worlds of Momente › Erinnerungen (#2283): Stapel, Plattenkiste,
 // Momentwolke, Fotoautomat, Kühlschranktür, Fotobuch, Rubbellos, Mochis,
-// Sternbild and Post.
+// Sternbild, Post and Glas.
 const memoryWorlds = {
   placeVerse: 'in {{place}}',
   winterSpan: 'Winter {{from}}/{{to}}',
@@ -355,6 +355,40 @@ const memoryWorlds = {
       filed: 'Die Karte liegt im Schuhkarton.',
       filedNew: 'Die Karte liegt im Schuhkarton. Neue Post ist im Briefkasten.',
       newPost: 'Neue Post ist im Briefkasten.',
+    },
+  },
+  jar: {
+    heading: 'Euer Glas voller Tagebuch-Momente',
+    label_one: 'Euer Erinnerungsglas mit einem Zettel aus eurem Tagebuch',
+    label_other:
+      'Euer Erinnerungsglas mit {{count}} Zetteln aus eurem Tagebuch',
+    hint: 'Schüttelt das Glas, bis der Deckel aufspringt und ein Zettel herausfällt: zieht es hin und her, tippt es an oder drückt den Anhänger.',
+    emboss: 'ERINNERUNGEN',
+    since: 'SEIT {{year}}',
+    labelSmall: 'Unsere',
+    labelBig: 'Glücksmomente',
+    tag: {
+      shake: 'Schüttelt',
+      me: 'mich!',
+      drawLabel: 'Schüttelt mich! – einen Zettel ziehen',
+      drawn: 'Heute gezogen –',
+      tomorrow: 'morgen wieder',
+      drawnLabel:
+        'Heute gezogen – morgen wieder. Schütteln geht, ein neuer Zettel kommt morgen.',
+    },
+    drawnNote: 'Heute habt ihr schon gezogen – morgen wartet ein neuer Zettel.',
+    stage: 'Gezogener Zettel',
+    putDown: 'Zettel hinlegen',
+    drawnOn: 'Gezogen am {{date}}',
+    kicker: 'Wisst ihr noch?',
+    open: 'Öffnen: {{title}}, {{date}}',
+    diary: 'Im Tagebuch lesen',
+    diaryNamed: 'Im Tagebuch lesen: {{title}}',
+    back: 'zurück ins Glas',
+    backLabel: 'Zettel zurück ins Glas legen',
+    announce: {
+      drawn: 'Gezogen: {{title}}',
+      back: 'Der Zettel liegt wieder im Glas.',
     },
   },
 };

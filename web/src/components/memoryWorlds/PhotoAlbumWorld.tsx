@@ -75,6 +75,7 @@ import '../HeartEmotionVisual.css';
 import '../../motion/memory-worlds.css';
 import './MemoryWorld.css';
 import './PhotoAlbumWorld.css';
+import { useWorldEntered } from './WorldEnter';
 
 /** Horizontal movement before a drag takes over (taps still reach links). */
 const DRAG_START_PX = 8;
@@ -769,9 +770,10 @@ export function PhotoAlbumWorld({
 
   // The closed book invites once, when it is first seen.
   const hasPages = pages.length > 1;
+  const entered = useWorldEntered();
   useEffect(() => {
     const book = bookRef.current;
-    if (invite !== 'waiting' || !book || !hasPages) return;
+    if (invite !== 'waiting' || !book || !hasPages || !entered) return;
     let stop: (() => void) | null = null;
     let seen = false;
     stop = observeVisibility(book, (state) => {
@@ -780,7 +782,7 @@ export function PhotoAlbumWorld({
       setInvite((previous) => (previous === 'waiting' ? 'on' : previous));
     });
     return () => stop?.();
-  }, [invite, hasPages]);
+  }, [invite, hasPages, entered]);
 
   const count = pages.length;
   const at = Math.min(index, Math.max(0, count - 1));

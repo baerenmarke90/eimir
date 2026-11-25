@@ -71,6 +71,7 @@ import {
 import '../../motion/memory-worlds.css';
 import './MemoryWorld.css';
 import './FridgeDoorWorld.css';
+import { useWorldEntered } from './WorldEnter';
 
 type Entry = MemoryWorldEntry;
 
@@ -741,9 +742,11 @@ export function FridgeDoorWorld({
   };
 
   // When the door appears, the notes are pinned up one after another; a
-  // door that is not seen shows its notes at once (M12).
+  // door that is not seen shows its notes at once (M12). The pinning waits
+  // until the world itself is seen (WorldEnter).
+  const entered = useWorldEntered();
   useEffect(() => {
-    if (phaseRef.current !== 'pinning') return;
+    if (!entered || phaseRef.current !== 'pinning') return;
     const door = doorRef.current;
     if (door && !isVisibleNow(door).visible) {
       phaseRef.current = 'idle';
@@ -762,7 +765,7 @@ export function FridgeDoorWorld({
         120,
     );
     return () => window.clearTimeout(handle);
-  }, []);
+  }, [entered]);
 
   const positionOf = (dragId: string): Point =>
     movedRef.current[dragId] ??

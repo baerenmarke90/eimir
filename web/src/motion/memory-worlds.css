@@ -4,8 +4,8 @@
  * (record crate and turntable), the Momentwolke (bubble cloud), the
  * Fotoautomat (photo booth, in a classic and a modern style), the
  * Kühlschranktür (fridge door), the Fotobuch (photo book), the
- * Rubbellos (scratch card), the Mochis, the Sternbild (constellation) and
- * the Post (letters from back then).
+ * Rubbellos (scratch card), the Mochis, the Sternbild (constellation), the
+ * Post (letters from back then) and the Glas (memory jar).
  *
  * World-scoped timing roles, keyframes and the worlds' loops live here; the
  * world stylesheets only consume the roles. Every animation and transition
@@ -48,14 +48,21 @@
  * (`data-ambient`); the door, the envelope's flight, the flap, the card's
  * pull, turn and filing and the next delivery play once per step, with CSS
  * transitions and keyframes only (`PostWorld.tsx` keeps `POST_TIMING` in
- * step with the roles below).
+ * step with the roles below). The Glas' only loops are the tealight's
+ * flicker and its pool of light (Dark only): `--motion-ambient-repeat`
+ * cycles, paused while the jar is not seen (`data-ambient`); the shaken jar,
+ * its loose slips, lid and tag and the slip folding back into the jar are
+ * frame-driven in `memoryJar.ts` (whose `JAR_TIMING` keeps in step with the
+ * roles below), the popping lid, the jumping slip, its unfolding on the
+ * stage, the drop back into the pile and the jar shrinking above the drawn
+ * slip (transform only) are here.
  *
  * The values were tuned on device with the Product Owner (Pixel 10 Pro Fold,
  * 2026-11-24/25) and are kept unchanged from the accepted prototype.
  * Imported by `StackWorld.tsx`, `RecordCrateWorld.tsx`,
  * `MomentCloudWorld.tsx`, `PhotoBoothWorld.tsx`, `FridgeDoorWorld.tsx`,
  * `PhotoAlbumWorld.tsx`, `ScratchCardWorld.tsx`, `MochiWorld.tsx`,
- * `ConstellationWorld.tsx` and `PostWorld.tsx`.
+ * `ConstellationWorld.tsx`, `PostWorld.tsx` and `MemoryJarWorld.tsx`.
  */
 
 /* Shared easings: the exact CSS keyword curves, as named roles. */
@@ -71,7 +78,9 @@
 .memory-scratch-world,
 .memory-mochi-world,
 .memory-stars-world,
-.memory-post-world {
+.memory-post-world,
+.memory-jar-world,
+.memory-jar-stage {
   --memory-world-easing-in: cubic-bezier(0.42, 0, 1, 1);
   --memory-world-easing-out: cubic-bezier(0, 0, 0.58, 1);
   --memory-world-easing-in-out: cubic-bezier(0.42, 0, 0.58, 1);
@@ -3143,5 +3152,309 @@
   }
   82% {
     rotate: -0.4deg;
+  }
+}
+
+/* ---------- Glas ---------- */
+
+.memory-jar-world,
+.memory-jar-stage {
+  /* The jar shrinks above the drawn slip, and grows back, in place: its
+     layout changes at once, the shown size follows (transform only). */
+  --memory-jar-resize-duration: 600ms;
+  /* The tealight flickers and its pool of light breathes (Dark only). */
+  --memory-jar-flicker-duration: 2.8s;
+  --memory-jar-glow-duration: 3.6s;
+  /* The lid pops and stays tipped open, a slip jumps out
+     (JAR_TIMING.popToStage). */
+  --memory-jar-pop-duration: 820ms;
+  --memory-jar-curve-pop: cubic-bezier(0.25, 0.7, 0.3, 1);
+  --memory-jar-jump-duration: 1100ms;
+  --memory-jar-jump-delay: 260ms;
+  --memory-jar-curve-jump: cubic-bezier(0.2, 0.75, 0.35, 1);
+  /* On the stage the slip flies in, the top flap opens, then the bottom one
+     (JAR_TIMING.stageTopLand, stageBottomLand and stageUnfolded). */
+  --memory-jar-fly-duration: 1000ms;
+  --memory-jar-curve-fly: cubic-bezier(0.32, 0.06, 0.18, 1);
+  --memory-jar-unfold-duration: 760ms;
+  --memory-jar-top-delay: 1100ms;
+  --memory-jar-bottom-delay: 1700ms;
+  --memory-jar-curve-unfold: cubic-bezier(0.4, 0.1, 0.3, 1);
+  --memory-jar-face-duration: 160ms;
+  --memory-jar-face-delay: 2360ms;
+  --memory-jar-attach-duration: 420ms;
+  --memory-jar-attach-delay: 2600ms;
+  --memory-jar-scrim-duration: 520ms;
+  /* The slip is laid down (JAR_TIMING.stageClose). */
+  --memory-jar-close-duration: 420ms;
+  /* Putting back: the lid lifts while the slip comes, the slip drops in,
+     the lid closes and the jar takes the weight (JAR_TIMING.dropLand). */
+  --memory-jar-lift-duration: 420ms;
+  --memory-jar-curve-lift: cubic-bezier(0.3, 0.6, 0.3, 1);
+  --memory-jar-shut-duration: 520ms;
+  --memory-jar-shut-delay: 360ms;
+  --memory-jar-curve-shut: cubic-bezier(0.4, 0, 0.3, 1);
+  --memory-jar-drop-duration: 560ms;
+  --memory-jar-curve-drop: cubic-bezier(0.55, 0, 1, 0.6);
+  --memory-jar-thunk-duration: 380ms;
+  --memory-jar-thunk-delay: 430ms;
+}
+
+/* From the large jar's place and size to the small one's
+   (`--memory-jar-resize-shift`, `--memory-jar-small-scale`), and back. */
+@keyframes eimir-motion-memory-jar-shrink {
+  from {
+    translate: 0 var(--memory-jar-resize-shift);
+    scale: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-jar-grow {
+  from {
+    translate: 0 calc(var(--memory-jar-resize-shift) * -1);
+    scale: var(--memory-jar-small-scale);
+  }
+}
+
+@keyframes eimir-motion-memory-jar-flicker {
+  0%,
+  100% {
+    scale: 1 1;
+    rotate: 0deg;
+    opacity: 1;
+  }
+  18% {
+    scale: 0.94 1.06;
+    rotate: -2deg;
+  }
+  31% {
+    scale: 1.04 0.95;
+    rotate: 1.5deg;
+    opacity: 0.92;
+  }
+  47% {
+    scale: 0.97 1.04;
+    rotate: -1deg;
+  }
+  63% {
+    scale: 1.02 0.97;
+    rotate: 2deg;
+    opacity: 0.96;
+  }
+  81% {
+    scale: 0.96 1.05;
+    rotate: -1.5deg;
+  }
+}
+
+@keyframes eimir-motion-memory-jar-glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 0.86;
+  }
+  55% {
+    opacity: 0.95;
+  }
+  78% {
+    opacity: 0.88;
+  }
+}
+
+@keyframes eimir-motion-memory-jar-lid-pop {
+  0% {
+    transform: translate(0px, 0px) rotate(0deg);
+  }
+  12% {
+    transform: translate(0px, 2px) rotate(-0.4deg);
+  }
+  38% {
+    transform: translate(22px, -50px) rotate(42deg);
+  }
+  62% {
+    transform: translate(27px, -16px) rotate(30deg);
+  }
+  80% {
+    transform: translate(25px, -25px) rotate(35.5deg);
+  }
+  100% {
+    transform: translate(26px, -22px) rotate(34deg);
+  }
+}
+
+/* Up through the neck, then out on the left (`--memory-jar-r0`, `-nx`,
+   `-ny`, `-ax`, `-ay`, set per slip by `jumpVars`). */
+@keyframes eimir-motion-memory-jar-jump {
+  0% {
+    transform: translate(0px, 0px) rotate(var(--memory-jar-r0, 0deg)) scale(1);
+  }
+  30% {
+    transform: translate(var(--memory-jar-nx, 0px), var(--memory-jar-ny, 0px))
+      rotate(8deg) scale(1.05);
+  }
+  70% {
+    transform: translate(var(--memory-jar-ax, 0px), var(--memory-jar-ay, 0px))
+      rotate(-14deg) scale(1.2);
+  }
+  100% {
+    transform: translate(
+        var(--memory-jar-ax, 0px),
+        calc(var(--memory-jar-ay, 0px) - 4px)
+      )
+      rotate(-10deg) scale(1.2);
+  }
+}
+
+@keyframes eimir-motion-memory-jar-lid-open {
+  0% {
+    transform: translate(0px, 0px) rotate(0deg);
+  }
+  70% {
+    transform: translate(15px, -18px) rotate(25deg);
+  }
+  100% {
+    transform: translate(14px, -16px) rotate(24deg);
+  }
+}
+
+@keyframes eimir-motion-memory-jar-lid-close {
+  0% {
+    transform: translate(14px, -16px) rotate(24deg);
+  }
+  70% {
+    transform: translate(0px, 1px) rotate(-0.5deg);
+  }
+  85% {
+    transform: translate(0px, -2px) rotate(0.6deg);
+  }
+  100% {
+    transform: translate(0px, 0px) rotate(0deg);
+  }
+}
+
+/* From the jar's mouth down to the slip's place (`--memory-jar-drop`). */
+@keyframes eimir-motion-memory-jar-drop {
+  0% {
+    transform: translateY(var(--memory-jar-drop, 0px)) rotate(28deg);
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  76% {
+    transform: translateY(0px) rotate(-4deg);
+  }
+  88% {
+    transform: translateY(-4px) rotate(2deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-jar-thunk {
+  0% {
+    transform: translateY(0px) scale(1, 1);
+  }
+  35% {
+    transform: translateY(1.5px) scale(1.01, 0.985);
+  }
+  100% {
+    transform: translateY(0px) scale(1, 1);
+  }
+}
+
+/* From where the slip jumped out onto the stage (`--memory-jar-fx`, `-fy`,
+   `-fs`, `-fr`, measured by `stageFlightVars`). */
+@keyframes eimir-motion-memory-jar-fly {
+  0% {
+    translate: var(--memory-jar-fx, 0px) var(--memory-jar-fy, 0px);
+    scale: var(--memory-jar-fs, 0.15);
+    rotate: var(--memory-jar-fr, 0deg);
+  }
+  55% {
+    translate: calc(var(--memory-jar-fx, 0px) * 0.3)
+      calc(var(--memory-jar-fy, 0px) * 0.3 - 34px);
+    scale: calc(
+      var(--memory-jar-fs, 0.15) +
+      (1 - var(--memory-jar-fs, 0.15)) *
+      0.72
+    );
+    rotate: calc(var(--memory-jar-fr, 0deg) * -0.35);
+  }
+  100% {
+    translate: 0px 0px;
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+
+@keyframes eimir-motion-memory-jar-open-top {
+  0% {
+    transform: rotateX(-180deg);
+  }
+  72% {
+    transform: rotateX(7deg);
+  }
+  88% {
+    transform: rotateX(-3deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
+}
+
+@keyframes eimir-motion-memory-jar-open-bottom {
+  0% {
+    transform: rotateX(180deg);
+  }
+  72% {
+    transform: rotateX(-7deg);
+  }
+  88% {
+    transform: rotateX(3deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
+}
+
+@keyframes eimir-motion-memory-jar-face-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-jar-face-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-jar-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-jar-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-jar-settle-out {
+  to {
+    translate: 0px 24px;
+    scale: 0.96;
   }
 }

@@ -266,6 +266,27 @@ describe('MemoryWorldView', () => {
     );
   });
 
+  it('renders the Glas from the same selection, the lead drawn first', () => {
+    const { container } = renderWorld('jar', moreItems);
+    expect(
+      container.querySelector('.memory-world')?.getAttribute('data-world'),
+    ).toBe('jar');
+    // The sensitive cover and the rest of the diary stay out of the jar.
+    const jar = screen.getByRole('group', {
+      name: fill(copy.jar.label_other, { count: 2 }),
+    });
+    // Reduced motion: a press of the tag draws the lead at once.
+    fireEvent.click(
+      within(jar).getByRole('button', { name: copy.jar.tag.drawLabel }),
+    );
+    expect(
+      screen.getByRole('link', {
+        name: fill(copy.jar.diaryNamed, { title: 'Thank you' }),
+      }),
+    ).toBeTruthy();
+    window.localStorage.clear();
+  });
+
   it('ignores the rest of the diary outside the Momentwolke', () => {
     renderWorld('stack', moreItems);
     expect(

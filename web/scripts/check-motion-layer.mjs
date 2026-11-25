@@ -112,7 +112,10 @@ export const REGISTERED_POINTER_TRACKING = Object.freeze({
   // that a shooting star's streak follows, its thread traced from star to
   // star and its telescope aimed by the finger (gesture), the Post's
   // mailbox door pulled down, envelope flap lifted and postcard turned or
-  // carried into the shoebox by the finger (gesture), and the Rubbellos'
+  // carried into the shoebox by the finger (gesture), the Glas' jar that
+  // follows the finger sideways and its drawn slip that follows the finger
+  // up into the jar (gesture; with the touch isolation that keeps the
+  // jar's and the tag's touches from the page swipes), and the Rubbellos'
   // scratch strokes on its foils (input: a drawn stroke that moves
   // nothing).
   'src/components/memoryWorlds/ConstellationWorld.tsx': {
@@ -122,6 +125,10 @@ export const REGISTERED_POINTER_TRACKING = Object.freeze({
   'src/components/memoryWorlds/FridgeDoorWorld.tsx': {
     use: 'gesture',
     count: 2,
+  },
+  'src/components/memoryWorlds/MemoryJarWorld.tsx': {
+    use: 'gesture',
+    count: 3,
   },
   'src/components/memoryWorlds/MochiWorld.tsx': { use: 'gesture', count: 1 },
   'src/components/memoryWorlds/MomentCloudWorld.tsx': {

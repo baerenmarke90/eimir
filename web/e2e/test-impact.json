@@ -77,7 +77,8 @@
         "web/src/components/memoryWorlds/PhotoBoothWorld.tsx",
         "web/src/components/memoryWorlds/FridgeDoorWorld.tsx",
         "web/src/components/memoryWorlds/PhotoAlbumWorld.tsx",
-        "web/src/components/memoryWorlds/ScratchCardWorld.tsx"
+        "web/src/components/memoryWorlds/ScratchCardWorld.tsx",
+        "web/src/components/memoryWorlds/MochiWorld.tsx"
       ]
     },
     "browser-push.spec.ts": {

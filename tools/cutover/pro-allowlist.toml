@@ -1,0 +1,171 @@
+# Allow-list of the private `eimir-pro` snapshot (Decision 0019, #2183).
+#
+# Same format and rules as core-allowlist.toml; this file is data, not code.
+# It describes the second half of the split: everything the public Core tree
+# excludes for the private repository, the files both repositories need, and
+# the files only the private repository has.
+#
+# Layout: the paths stay the paths of today's repository (no [[map]] entry).
+# A checkout of a pinned eimir-core revision with the eimir-pro tree on top is
+# then the complete source tree of the official images, and patches made
+# before the split apply unchanged (runbook C9). A [[map]] entry
+# (from = "a/", to = "b/") would move a directory if that is ever decided.
+#
+# The split gate checks both trees together: every tracked file lands in
+# exactly one tree, in both only by an [[overlap]] rule, or in neither only
+# when its Core exclude rule is listed in [split] archive_only.
+
+schema = 1
+name = "pro"
+
+[split]
+core_allowlist = "core-allowlist.toml"
+# Kept only in the archive (decision D3 of core-allowlist.toml).
+archive_only = ["design-reference-media", "historical-checksum-evidence"]
+
+# --------------------------------------------------------------------------
+# What the Core tree excludes for the private repository (same patterns)
+# --------------------------------------------------------------------------
+
+[[include]]
+id = "pro-distribution"
+reason = "The Pro server package eimir_pro with the date-idea and daily-saying catalogs, its archive and its tests."
+core_exclude = "pro-distribution"
+
+[[include]]
+id = "operator-plugin"
+reason = "The operator plugin eimir_admin and its tests (decision D1)."
+decision = "D1"
+core_exclude = "operator-plugin"
+
+[[include]]
+id = "official-release-pipeline"
+reason = "The official build, attest, evidence and publish workflows, their scripts and tests, the release notes and the release agent skill (decision D2)."
+decision = "D2"
+core_exclude = "official-release-pipeline"
+
+[[include]]
+id = "pro-coupled-core-tests"
+reason = "Core test modules that import eimir_pro at module level (decision D5); they run here against a pinned Core."
+decision = "D5"
+core_exclude = "pro-coupled-core-tests"
+
+# --------------------------------------------------------------------------
+# Files both repositories carry (each needs an [[overlap]] rule below)
+# --------------------------------------------------------------------------
+
+[[include]]
+id = "shared-repository-configuration"
+reason = "Line endings, ignore rules and the Secret Scan configuration apply to both repositories."
+patterns = [".gitattributes", ".gitignore", ".gitleaks.toml"]
+
+[[include]]
+id = "pull-request-template"
+reason = "The review gates of both repositories read the same pull request body sections (runbook C20)."
+patterns = [".github/pull_request_template.md"]
+
+[[include]]
+id = "pro-extraction-tooling"
+reason = "Runs the Pro tests from a clean copy on top of a Core wheel; the private CI starts from it (runbook 6.1 adapts it to a pinned eimir-core checkout)."
+decision = "P3"
+patterns = ["tools/ci/pro_extraction_dry_run.sh"]
+
+[[include]]
+id = "pro-provenance"
+reason = "The provenance sections of the editorial Pro catalogs (decision D4); the transform below keeps only them."
+patterns = ["PROVENANCE.md"]
+
+[[overlap]]
+id = "shared-repository-configuration"
+reason = "Same file in both repositories by design."
+patterns = [".gitattributes", ".gitignore", ".gitleaks.toml", ".github/pull_request_template.md"]
+
+[[overlap]]
+id = "pro-extraction-tooling"
+reason = "The Core CI runs it against the export trees before the cut-over; the private CI after it."
+patterns = ["tools/ci/pro_extraction_dry_run.sh"]
+
+[[overlap]]
+id = "provenance-split"
+reason = "One source file, two different files: the Core tree drops the two Pro sections, this tree keeps only them (D4)."
+patterns = ["PROVENANCE.md"]
+
+# --------------------------------------------------------------------------
+# Files only the private repository has (read from this repository at the revision)
+# --------------------------------------------------------------------------
+
+[[add]]
+path = "LICENSE"
+from = "tools/cutover/pro/LICENSE"
+reason = "Proprietary, all rights reserved (Decision 0019 addendum); the wording is a placeholder for legal review (P1)."
+
+[[add]]
+path = "README.md"
+from = "tools/cutover/pro/README.md"
+reason = "What the repository holds and how its layout relates to eimir-core."
+
+# --------------------------------------------------------------------------
+# Hard guards
+# --------------------------------------------------------------------------
+
+[[forbidden]]
+id = "signing-material"
+reason = "Signing keys and store credentials are never committed, also not to the private repository; they live in repository secrets."
+patterns = [
+  "**/*.jks",
+  "**/*.keystore",
+  "**/*.p12",
+  "**/*.pfx",
+  "**/*.pem",
+  "**/*.key",
+  "**/*.mobileprovision",
+  "**/google-services.json",
+  "**/GoogleService-Info.plist",
+  "**/keystore.properties",
+  "**/signing.properties",
+  "**/.env",
+]
+
+[[forbidden]]
+id = "public-licensing"
+reason = "The private repository has no CLA and no PolyForm licence (Decision 0019 addendum)."
+patterns = ["CLA.md", "COMMERCIAL-LICENSE.md"]
+
+[[forbidden]]
+id = "core-sources"
+reason = "Core sources come from the pinned eimir-core revision, never from a copy here."
+patterns = ["backend/src/**", "backend/alembic/**", "web/**", "android/**", "ios/**"]
+
+# --------------------------------------------------------------------------
+# Transforms
+# --------------------------------------------------------------------------
+
+[[transform]]
+path = "PROVENANCE.md"
+reason = "Keeps only the provenance of the editorial Pro catalogs (decision D4); the general provenance stays in eimir-core."
+decision = "D4"
+keep_markdown_sections = ["Date-idea catalog and images", "Daily Saying catalog"]
+header = """
+# Provenance of eimir-pro
+
+The provenance statement, the clean-room rule, the dependency records and the licence of the public code of eimir.
+are in `PROVENANCE.md` of the public `eimir-core` repository. This file records the assets that live only in this
+private repository.
+
+"""
+
+# --------------------------------------------------------------------------
+# Gates
+# --------------------------------------------------------------------------
+
+[gates]
+[[gates.required_file]]
+path = "LICENSE"
+contains = ["All rights reserved"]
+lacks = ["PolyForm"]
+[[gates.required_file]]
+path = "README.md"
+[[gates.required_file]]
+path = "PROVENANCE.md"
+contains = ["## Date-idea catalog and images", "## Daily Saying catalog"]
+lacks = ["## Contributors", "PolyForm"]

@@ -389,7 +389,7 @@ class GateTest(ExportTestCase):
         results = self.gates(manifest)
         self.assertEqual(
             {name: result.status for name, result in results.items()},
-            dict.fromkeys(core_export.CHEAP_GATES, "passed"),
+            dict.fromkeys(core_export.cheap_gates_for(self.config()), "passed"),
         )
         self.assertIn("allowed plugin import: backend/tests/conftest.py", results["plugin-imports"].warnings)
 
@@ -595,6 +595,334 @@ class DryRunTest(ExportTestCase):
         self.assertFalse((work / "snapshot.git").exists())
         report = json.loads((work / "report/report.json").read_text(encoding="utf-8"))
         self.assertIsNone(report["snapshot_commit"])
+
+
+PRO_CONFIG = textwrap.dedent(
+    """
+    schema = 1
+    name = "pro"
+
+    [split]
+    core_allowlist = "allowlist.toml"
+    archive_only = ["media"]
+
+    [[include]]
+    id = "pro"
+    reason = "pro"
+    core_exclude = "pro"
+
+    [[include]]
+    id = "private-notes"
+    reason = "only here"
+    patterns = ["secret.txt"]
+
+    [[include]]
+    id = "provenance"
+    reason = "split"
+    patterns = ["docs/PROVENANCE.md"]
+
+    [[overlap]]
+    id = "provenance-split"
+    reason = "two halves of one file"
+    patterns = ["docs/PROVENANCE.md"]
+
+    [[add]]
+    path = "LICENSE"
+    from = "scripts/pro/LICENSE"
+    reason = "proprietary"
+
+    [[forbidden]]
+    id = "public-licensing"
+    reason = "no CLA here"
+    patterns = ["CLA.md"]
+
+    [[transform]]
+    path = "docs/PROVENANCE.md"
+    reason = "keep the Pro part"
+    keep_markdown_sections = ["Pro catalog"]
+    header = "# Provenance of the private tree\\n\\n"
+
+    [gates]
+    [[gates.required_file]]
+    path = "LICENSE"
+    contains = ["All rights reserved"]
+    lacks = ["PolyForm"]
+    """
+)
+
+
+class ProTreeTestCase(ExportTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.commit({"scripts/pro/LICENSE": "All rights reserved.\n"})
+        self.pro_path = self.temp / "pro-allowlist.toml"
+        self.pro_path.write_text(PRO_CONFIG, encoding="utf-8")
+        self.pro_out = self.temp / "pro-out"
+
+    def pro_config(self, text: str | None = None) -> core_export.Config:
+        if text is not None:
+            self.pro_path.write_text(text, encoding="utf-8")
+        return core_export.load_config(self.pro_path)
+
+    def pro_export(self, config: core_export.Config | None = None) -> dict:
+        return core_export.export(self.repo, "HEAD", config or self.pro_config(), self.pro_out)
+
+    def split(self, pro: core_export.Config | None = None) -> core_export.GateResult:
+        pro = pro or self.pro_config()
+        core_manifest = self.export()
+        return core_export.gate_split(core_manifest, self.config(), self.pro_export(pro), pro)
+
+
+class ProTreeTest(ProTreeTestCase):
+    def test_the_pro_tree_holds_what_the_core_tree_excludes_plus_its_own_files(self) -> None:
+        manifest = self.pro_export()
+        paths = {item["path"] for item in manifest["files"]}
+        self.assertEqual(
+            paths, {"backend/pro/src/eimir_pro/__init__.py", "secret.txt", "docs/PROVENANCE.md", "LICENSE"}
+        )
+        added = next(item for item in manifest["files"] if item["path"] == "LICENSE")
+        self.assertEqual(added["added_from"], "scripts/pro/LICENSE")
+        self.assertIsNone(added["source"])
+        results = {
+            r.name: r.status
+            for r in core_export.run_cheap_gates(
+                self.pro_out, manifest, self.pro_config(), self.repo, self.work
+            )
+        }
+        self.assertEqual(results, {"coverage": "passed", "licence": "passed", "secret-scan": "passed"})
+
+    def test_kept_sections_and_header_form_the_private_provenance(self) -> None:
+        self.pro_export()
+        text = (self.pro_out / "docs/PROVENANCE.md").read_text(encoding="utf-8")
+        self.assertTrue(text.startswith("# Provenance of the private tree\n\n## Pro catalog"))
+        self.assertIn("dropped too", text)  # the subsection belongs to the kept section
+        self.assertNotIn("## Assets", text)
+        self.assertNotIn("## Contributors", text)
+
+    def test_a_mapping_moves_a_directory_and_coverage_follows_it(self) -> None:
+        mapped = PRO_CONFIG.replace(
+            "[[add]]", '[[map]]\nfrom = "backend/pro/"\nto = "pro/"\nreason = "flat layout"\n\n[[add]]', 1
+        )
+        manifest = self.pro_export(self.pro_config(mapped))
+        item = next(
+            item for item in manifest["files"] if item["source"] == "backend/pro/src/eimir_pro/__init__.py"
+        )
+        self.assertEqual(item["path"], "pro/src/eimir_pro/__init__.py")
+        self.assertTrue((self.pro_out / "pro/src/eimir_pro/__init__.py").is_file())
+        self.assertEqual(
+            core_export.gate_coverage(self.pro_out, manifest, self.pro_config(mapped)).status, "passed"
+        )
+
+    def test_a_mapping_that_matches_nothing_fails(self) -> None:
+        mapped = PRO_CONFIG.replace(
+            "[[add]]", '[[map]]\nfrom = "gone/"\nto = "x/"\nreason = "stale"\n\n[[add]]', 1
+        )
+        with self.assertRaisesRegex(ExportError, "matches no exported file"):
+            self.pro_export(self.pro_config(mapped))
+
+    def test_an_added_file_that_is_not_declared_fails_coverage(self) -> None:
+        manifest = self.pro_export()
+        (self.pro_out / "EXTRA").write_text("x")
+        manifest["files"].append(
+            {
+                "path": "EXTRA",
+                "source": None,
+                "added_from": "scripts/pro/LICENSE",
+                "sha256": core_export.sha256(b"x"),
+            }
+        )
+        details = core_export.gate_coverage(self.pro_out, manifest, self.pro_config()).details
+        self.assertIn("not an [[add]] of the allow-list: EXTRA", details)
+
+    def test_a_public_licence_in_the_private_tree_fails(self) -> None:
+        self.commit({"scripts/pro/LICENSE": "All rights reserved. PolyForm Noncommercial\n"})
+        manifest = self.pro_export()
+        result = core_export.gate_licence(self.pro_out, self.pro_config())
+        self.assertIn("LICENSE must not contain 'PolyForm'", result.details)
+        self.assertTrue(manifest["files"])
+
+    def test_a_cla_in_the_private_tree_stops_the_export(self) -> None:
+        text = PRO_CONFIG.replace('patterns = ["secret.txt"]', 'patterns = ["secret.txt", "CLA.md"]')
+        with self.assertRaisesRegex(ExportError, "forbidden rule public-licensing"):
+            self.pro_export(self.pro_config(text))
+
+    def test_core_exclude_must_name_an_existing_rule(self) -> None:
+        with self.assertRaisesRegex(ExportError, "no Core exclude rule"):
+            self.pro_config(PRO_CONFIG.replace('core_exclude = "pro"', 'core_exclude = "nope"'))
+        with self.assertRaisesRegex(ExportError, "archive_only names no Core exclude rule"):
+            self.pro_config(PRO_CONFIG.replace('archive_only = ["media"]', 'archive_only = ["nope"]'))
+
+
+class SplitGateTest(ProTreeTestCase):
+    def test_every_tracked_file_lands_exactly_once_or_by_a_documented_reason(self) -> None:
+        result = self.split()
+        self.assertEqual(result.status, "passed", result.details)
+        self.assertIn("1 in both by a documented overlap, 1 archive-only", result.details[0])
+
+    def test_a_file_in_neither_tree_fails(self) -> None:
+        result = self.split(
+            self.pro_config(PRO_CONFIG.replace('patterns = ["secret.txt"]', 'patterns = ["x.txt"]'))
+        )
+        self.assertTrue(result.failed)
+        self.assertIn("in neither tree and not archive-only: secret.txt", result.details)
+
+    def test_an_archive_only_file_needs_its_rule_listed(self) -> None:
+        result = self.split(
+            self.pro_config(PRO_CONFIG.replace('archive_only = ["media"]', "archive_only = []"))
+        )
+        self.assertIn("in neither tree and not archive-only: docs/shot.png", result.details)
+
+    def test_a_file_in_both_trees_without_an_overlap_rule_fails(self) -> None:
+        text = PRO_CONFIG.replace('patterns = ["secret.txt"]', 'patterns = ["secret.txt", "README.md"]')
+        result = self.split(self.pro_config(text))
+        self.assertTrue(result.failed)
+        self.assertIn("in both trees without a documented overlap: README.md", result.details)
+
+    def test_an_unused_overlap_rule_is_reported(self) -> None:
+        text = PRO_CONFIG.replace(
+            "[[add]]", '[[overlap]]\nid = "stale"\nreason = "old"\npatterns = ["nothing.md"]\n\n[[add]]', 1
+        )
+        result = self.split(self.pro_config(text))
+        self.assertIn("overlap rule stale matches no file in both trees", result.warnings)
+
+    def test_trees_from_different_revisions_fail(self) -> None:
+        core_manifest = self.export()
+        self.commit({"docs/new.md": "new\n"})
+        pro_manifest = self.pro_export()
+        result = core_export.gate_split(core_manifest, self.config(), pro_manifest, self.pro_config())
+        self.assertIn("the two trees come from different revisions", result.details)
+
+
+class ForbiddenTextTest(ExportTestCase):
+    RUNNER = "    runs-on: >-\n      ${{ vars.R && 'eimir-kvm-pr' || 'ubuntu-latest' }}\n"
+    GATE = textwrap.dedent(
+        """
+        [[gates.forbidden_text]]
+        id = "operator-runner-label"
+        text = "eimir-kvm-pr"
+        paths = [".github/**"]
+        reason = "never in the public repository"
+        """
+    )
+
+    def config_with_gate(self, transform: bool) -> core_export.Config:
+        text = CONFIG.replace('patterns = ["docs/**"]', 'patterns = ["docs/**", ".github/**"]') + self.GATE
+        if transform:
+            text = text.replace(
+                "[gates]",
+                '[[transform]]\npath = ".github/workflows/ci.yml"\nreason = "hosted runner"\n'
+                "[[transform.replace]]\nold = '''\n"
+                + self.RUNNER
+                + "'''\nnew = '''\n    runs-on: ubuntu-latest\n'''\n\n"
+                "[gates]",
+            )
+        return self.config(text)
+
+    def test_the_runner_label_in_a_workflow_fails(self) -> None:
+        self.commit({".github/workflows/ci.yml": "jobs:\n  secrets:\n" + self.RUNNER})
+        config = self.config_with_gate(transform=False)
+        result = self.gates(self.export(config), config)["forbidden-text"]
+        self.assertTrue(result.failed)
+        self.assertIn(
+            ".github/workflows/ci.yml contains 'eimir-kvm-pr' (operator-runner-label)", result.details
+        )
+
+    def test_the_transform_removes_the_label_and_the_gate_passes(self) -> None:
+        self.commit(
+            {
+                ".github/workflows/ci.yml": "jobs:\n  secrets:\n" + self.RUNNER,
+                "docs/runner.md": "eimir-kvm-pr\n",
+            }
+        )
+        config = self.config_with_gate(transform=True)
+        manifest = self.export(config)
+        self.assertEqual(
+            (self.out / ".github/workflows/ci.yml").read_text(encoding="utf-8"),
+            "jobs:\n  secrets:\n    runs-on: ubuntu-latest\n",
+        )
+        # Documentation outside the path scope may still name the label.
+        self.assertEqual(self.gates(manifest, config)["forbidden-text"].status, "passed")
+
+
+class RealSplitConfigTest(unittest.TestCase):
+    def test_the_real_pro_allowlist_loads_and_reuses_the_core_exclusions(self) -> None:
+        pro = core_export.load_config(REAL_ALLOWLIST.with_name("pro-allowlist.toml"))
+        core = core_export.load_config(REAL_ALLOWLIST)
+        self.assertEqual(pro.core_allowlist, REAL_ALLOWLIST.resolve())
+        for rule_id in (
+            "pro-distribution",
+            "operator-plugin",
+            "official-release-pipeline",
+            "pro-coupled-core-tests",
+        ):
+            pro_rule = next(rule for rule in pro.includes if rule.id == rule_id)
+            core_rule = next(rule for rule in core.excludes if rule.id == rule_id)
+            self.assertEqual(pro_rule.patterns, core_rule.patterns)
+        self.assertTrue(pro.exported("backend/pro/src/eimir_pro/date_ideas/data/catalog.json"))
+        self.assertFalse(pro.exported("backend/src/eimir/main.py"))
+        self.assertIsNotNone(pro.forbidden_rule("CLA.md"))
+        self.assertEqual(core_export.cheap_gates_for(pro), ("coverage", "licence", "secret-scan"))
+
+    def test_the_real_core_transform_removes_the_operator_runner_from_ci(self) -> None:
+        core = core_export.load_config(REAL_ALLOWLIST)
+        transform = core.transform_for(".github/workflows/ci.yml")
+        source = (REAL_ALLOWLIST.parents[2] / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        result = core_export.apply_replacements(transform.path, source, transform.replace)
+        self.assertNotIn("eimir-kvm-pr", result)
+        self.assertNotIn("EIMIR_PR_RUNNER", result)
+        self.assertIn("  secrets:\n    name: Secret Scan\n    runs-on: ubuntu-latest\n", result)
+        self.assertIn("forbidden-text", core_export.cheap_gates_for(core))
+
+    def test_the_snapshot_author_is_the_neutral_identity_of_decision_d6(self) -> None:
+        self.assertEqual(core_export.SNAPSHOT_AUTHOR, "eimir. <snapshot@eimir.invalid>")
+
+
+class TwoTreeDryRunTest(ProTreeTestCase):
+    def test_dry_run_with_pro_writes_both_reports_and_snapshots(self) -> None:
+        work = self.temp / "dry"
+        code = core_export.main(
+            [
+                "--repo",
+                str(self.repo),
+                "--allowlist",
+                str(self.config_path),
+                "dry-run",
+                "--work",
+                str(work),
+                "--with-pro",
+                "--pro-allowlist",
+                str(self.pro_path),
+            ]
+        )
+        self.assertEqual(code, 0)
+        core_report = json.loads((work / "report/report.json").read_text(encoding="utf-8"))
+        pro_report = json.loads((work / "pro-report/report.json").read_text(encoding="utf-8"))
+        self.assertEqual(pro_report["tree"], "pro")
+        self.assertTrue(pro_report["snapshot_commit"])
+        self.assertIn("split", {gate["name"] for gate in core_report["gates"]})
+        author = git(work / "pro-snapshot.git", "log", "-1", "--format=%an <%ae>")
+        self.assertEqual(author, core_export.SNAPSHOT_AUTHOR)
+        self.assertEqual(git(work / "pro-snapshot.git", "show", "main:LICENSE"), "All rights reserved.")
+
+    def test_a_pro_allowlist_for_another_core_list_is_refused(self) -> None:
+        other = self.temp / "other.toml"
+        other.write_text(CONFIG, encoding="utf-8")
+        work = self.temp / "dry"
+        code = core_export.main(
+            [
+                "--repo",
+                str(self.repo),
+                "--allowlist",
+                str(other),
+                "dry-run",
+                "--work",
+                str(work),
+                "--with-pro",
+                "--pro-allowlist",
+                str(self.pro_path),
+            ]
+        )
+        self.assertEqual(code, 2)
 
 
 if __name__ == "__main__":

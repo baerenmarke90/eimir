@@ -298,6 +298,22 @@ reason = "The provenance of the editorial Pro catalogs moves to the private repo
 decision = "D4"
 drop_markdown_sections = ["Date-idea catalog and images", "Daily Saying catalog"]
 
+[[transform]]
+path = ".github/workflows/ci.yml"
+reason = "The operator-owned runner never serves eimir-core (Decision 0019 addendum, runbook 6.1): the Secret Scan job runs on a GitHub-hosted runner for every event."
+[[transform.replace]]
+old = '''
+    # Forks and manually dispatched regressions keep the GitHub-hosted runner.
+    runs-on: >-
+      ${{ github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          vars.EIMIR_PR_RUNNER != 'github-hosted' &&
+          'eimir-kvm-pr' || 'ubuntu-latest' }}
+'''
+new = '''
+    runs-on: ubuntu-latest
+'''
+
 # --------------------------------------------------------------------------
 # Gates run on the exported tree
 # --------------------------------------------------------------------------
@@ -305,6 +321,18 @@ drop_markdown_sections = ["Date-idea catalog and images", "Daily Saying catalog"
 [gates]
 plugin_import_roots = ["eimir_pro", "eimir_admin"]
 openapi_contract = "backend/openapi.json"
+
+# The public repository never routes a job to the operator runner.
+[[gates.forbidden_text]]
+id = "operator-runner-label"
+text = "eimir-kvm-pr"
+paths = [".github/**"]
+reason = "The operator-owned runner serves only the private repository (Decision 0019 addendum)."
+[[gates.forbidden_text]]
+id = "operator-runner-switch"
+text = "EIMIR_PR_RUNNER"
+paths = [".github/**"]
+reason = "The repository variable that selects the operator runner has no meaning in eimir-core."
 
 # Files that must be present, with text they must contain (the licensing
 # decision of the Provenance job in .github/workflows/ci.yml).

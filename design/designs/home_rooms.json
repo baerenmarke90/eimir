@@ -23,9 +23,7 @@
       "hover": "#F0E9E0",
       "borderSubtle": "#DFD4CD",
       "surfaceSubtle": "#F0E9E0",
-      "surfaceOverlay": "#FFFDF9",
-      "actionPrimary": "#3055B8",
-      "onActionPrimary": "#FFFFFF"
+      "surfaceOverlay": "#FFFDF9"
     },
     "dark": {
       "page": "#231F23",
@@ -46,9 +44,7 @@
       "hover": "#372C2B",
       "borderSubtle": "#4F4349",
       "surfaceSubtle": "#372C2B",
-      "surfaceOverlay": "#2C262B",
-      "actionPrimary": "#B7C8FF",
-      "onActionPrimary": "#20283F"
+      "surfaceOverlay": "#2C262B"
     }
   },
   "shape": "standard",

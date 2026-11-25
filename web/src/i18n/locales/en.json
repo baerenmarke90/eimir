@@ -1768,6 +1768,10 @@
         "name": "Scratch card",
         "sentence": "Scratch to reveal which memory is waiting for you today."
       },
+      "jar": {
+        "name": "Jar",
+        "sentence": "Draw a slip from your memory jar every day."
+      },
       "fridge": {
         "name": "Fridge door",
         "sentence": "Photos and notes under colourful magnets – to take off and move around."
@@ -4698,6 +4702,38 @@
         "filed": "The card is in the shoebox.",
         "filedNew": "The card is in the shoebox. New post is in the mailbox.",
         "newPost": "New post is in the mailbox."
+      }
+    },
+    "jar": {
+      "heading": "Your jar full of diary moments",
+      "label_one": "Your memory jar with one slip from your diary",
+      "label_other": "Your memory jar with {{count}} slips from your diary",
+      "hint": "Shake the jar until the lid pops open and a slip jumps out: move it from side to side, tap it or press the tag.",
+      "emboss": "MEMORIES",
+      "since": "SINCE {{year}}",
+      "labelSmall": "Our",
+      "labelBig": "happy moments",
+      "tag": {
+        "shake": "Shake",
+        "me": "me!",
+        "drawLabel": "Shake me! – draw a slip",
+        "drawn": "Drawn today –",
+        "tomorrow": "back tomorrow",
+        "drawnLabel": "Drawn today – back tomorrow. You can still shake it; a new slip comes tomorrow."
+      },
+      "drawnNote": "You have already drawn today – a new slip is waiting tomorrow.",
+      "stage": "Drawn slip",
+      "putDown": "Put the slip down",
+      "drawnOn": "Drawn on {{date}}",
+      "kicker": "Remember?",
+      "open": "Open: {{title}}, {{date}}",
+      "diary": "Read in the diary",
+      "diaryNamed": "Read in the diary: {{title}}",
+      "back": "back into the jar",
+      "backLabel": "Put the slip back into the jar",
+      "announce": {
+        "drawn": "Drawn: {{title}}",
+        "back": "The slip is back in the jar."
       }
     }
   },

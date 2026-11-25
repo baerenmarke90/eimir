@@ -11,6 +11,7 @@ import type { StoryItem } from '../../api/generated/models/StoryItem';
 import { resolvedLocale, useTranslation } from '../../i18n';
 import { ConstellationWorld } from './ConstellationWorld';
 import { FridgeDoorWorld } from './FridgeDoorWorld';
+import { MemoryJarWorld } from './MemoryJarWorld';
 import {
   buildMemoryWorldEntries,
   type LoadMemoryImage,
@@ -37,7 +38,8 @@ export type MemoryWorldViewWorld =
   | 'scratch'
   | 'mochi'
   | 'stars'
-  | 'post';
+  | 'post'
+  | 'jar';
 
 export interface MemoryWorldViewProps {
   world: MemoryWorldViewWorld;
@@ -114,6 +116,8 @@ export function MemoryWorldView({
         <ConstellationWorld {...props} />
       ) : world === 'post' ? (
         <PostWorld {...props} />
+      ) : world === 'jar' ? (
+        <MemoryJarWorld {...props} />
       ) : (
         <StackWorld {...props} />
       )}

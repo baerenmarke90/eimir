@@ -7551,7 +7551,8 @@
           "scratch",
           "mochi",
           "stars",
-          "post"
+          "post",
+          "jar"
         ],
         "title": "MemoryWorldId",
         "type": "string"

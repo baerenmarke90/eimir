@@ -18,7 +18,8 @@ export type WorldArtKind =
   | 'scratch'
   | 'mochi'
   | 'stars'
-  | 'post';
+  | 'post'
+  | 'jar';
 
 type Id = (name: string) => string;
 
@@ -400,6 +401,40 @@ function art(world: WorldArtKind, id: Id, url: Id) {
           </g>
         </>
       );
+    case 'jar':
+      return (
+        <>
+          <rect width="160" height="100" fill="#e3ecd9" />
+          <rect x="60" y="10" width="40" height="10" rx="2" fill="#b98a5a" />
+          <path
+            d="M56 22 H104 Q112 30 112 44 V84 Q112 94 102 94 H58 Q48 94 48 84 V44 Q48 30 56 22Z"
+            fill="#ffffff"
+            opacity="0.55"
+            stroke="#a9b9a6"
+            strokeWidth="1.5"
+          />
+          {JAR_SLIPS.map(([x, y, r, color]) => (
+            <rect
+              key={`${x}-${y}`}
+              x={x - 8}
+              y={y - 5}
+              width="16"
+              height="10"
+              rx="1.5"
+              fill={color}
+              transform={`rotate(${r} ${x} ${y})`}
+            />
+          ))}
+          <path
+            d="M54 34 Q52 56 56 80"
+            stroke="#fff"
+            strokeWidth="3"
+            fill="none"
+            opacity="0.8"
+            strokeLinecap="round"
+          />
+        </>
+      );
     case 'mochi':
       return (
         <>
@@ -449,6 +484,16 @@ function art(world: WorldArtKind, id: Id, url: Id) {
       );
   }
 }
+
+/** The folded slips in the little jar (x, y, turn, colour). */
+const JAR_SLIPS: readonly [number, number, number, string][] = [
+  [62, 76, -12, '#f6c6cf'],
+  [78, 82, 8, '#fbe2a6'],
+  [94, 74, -4, '#bfe0f2'],
+  [70, 62, 14, '#d6c8f0'],
+  [88, 60, -16, '#c9ecd2'],
+  [80, 48, 6, '#f6c6cf'],
+];
 
 /** The stars of the little constellation and a few faint ones (x, y, r). */
 const STARS_POINTS: readonly [number, number, number][] = [

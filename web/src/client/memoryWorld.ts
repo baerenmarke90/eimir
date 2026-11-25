@@ -21,6 +21,7 @@ export const MEMORY_WORLDS: readonly MemoryWorld[] = [
   'post',
   'crate',
   'scratch',
+  'jar',
   'fridge',
 ];
 

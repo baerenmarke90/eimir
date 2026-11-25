@@ -250,8 +250,8 @@ test('Free sees every world, keeps Pro worlds unsaved and saves Stapel', async (
   const opener = page.getByRole('button', { name: copy.change });
   await opener.click();
   const dialog = page.getByRole('dialog', { name: copy.choices });
-  await expect(dialog.getByRole('radio')).toHaveCount(11);
-  await expect(dialog.locator('.pro-mark')).toHaveCount(9);
+  await expect(dialog.getByRole('radio')).toHaveCount(12);
+  await expect(dialog.locator('.pro-mark')).toHaveCount(10);
   await dialog.getByRole('radio', { name: new RegExp(crate) }).check();
   await expect(
     dialog.getByRole('button', { name: copy.discover }),

@@ -81,6 +81,10 @@ const memoryWorldSettings = {
       name: 'Rubbellos',
       sentence: 'Rubbel frei, welche Erinnerung heute auf euch wartet.',
     },
+    jar: {
+      name: 'Glas',
+      sentence: 'Zieh jeden Tag einen Zettel aus eurem Erinnerungsglas.',
+    },
     fridge: {
       name: 'Kühlschranktür',
       sentence:

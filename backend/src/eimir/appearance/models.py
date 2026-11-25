@@ -72,6 +72,7 @@ class MemoryWorldId(StrEnum):
     MOCHI = "mochi"
     STARS = "stars"
     POST = "post"
+    JAR = "jar"
 
 
 # Product Owner decision 2026-11-14: "connected" is the default composition and,

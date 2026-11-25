@@ -30,7 +30,7 @@ describe('parseLegalMarkdown', () => {
     const headings = parsed.blocks.filter((block) => block.kind === 'heading');
     expect(headings).toHaveLength(19);
     expect(headings.at(-1).id).toBe('paragraph-18-schlussbestimmungen');
-    expect(parsed.placeholders).toContain('PROVIDER_NAME');
+    expect(parsed.placeholders).not.toContain('PROVIDER_NAME');
   });
 
   it('keeps headings, numbered items, nested bullets and inline runs', () => {

@@ -17,7 +17,7 @@ from eimir.core.clock import now
 from eimir.core.errors import ConflictError
 from eimir.legal.models import TermsAcceptance, TermsAcceptanceOrigin
 
-TERMS_OF_USE_VERSION = "2026-11-24.draft-3"
+TERMS_OF_USE_VERSION = "2026-11-25.draft-4"
 """Version a new Cloud Account must accept.
 
 It must equal the ``version`` front matter of ``legal/de/terms-of-use.md``;

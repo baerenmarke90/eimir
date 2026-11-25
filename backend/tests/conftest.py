@@ -137,15 +137,11 @@ def _restore_pillow_pixel_limit() -> Iterator[None]:
 def pytest_ignore_collect(collection_path, config):  # type: ignore[no-untyped-def]
     """Core-only configuration: do not even import the Pro feature test modules."""
     from tests.support.plugins import (
-        PRO_DISTRIBUTION_TEST_MODULES,
         PRO_TEST_MODULES,
         plugins_loaded,
-        pro_distribution_installed,
     )
 
     relative = collection_path.as_posix().rsplit("/tests/", 1)[-1]
-    if relative in PRO_DISTRIBUTION_TEST_MODULES and not pro_distribution_installed():
-        return True
     if plugins_loaded():
         return None
     return True if relative in PRO_TEST_MODULES else None

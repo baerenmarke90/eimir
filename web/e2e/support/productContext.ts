@@ -76,6 +76,21 @@ export async function fulfillDefaultProductContext(
     });
     return true;
   }
+  // Without a saved choice Momente › Erinnerungen shows the default Story
+  // (#2283).
+  if (
+    request.method() === 'GET' &&
+    /^\/api\/v1\/spaces\/[^/]+\/appearance\/memory-world$/.test(pathname)
+  ) {
+    await route.fulfill({
+      json: { worldId: 'story', version: 0 },
+      headers: {
+        ETag: '"fixture-memory-world:absent"',
+        'Cache-Control': 'private, no-store',
+      },
+    });
+    return true;
+  }
   // Explicit shell/bootstrap additions only. Dedicated acceptance journeys
   // intercept these before this default; arbitrary writes remain unexpected.
   if (

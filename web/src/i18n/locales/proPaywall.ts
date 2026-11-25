@@ -201,6 +201,10 @@ const proPaywall = {
         title: 'Eigene Personenfarben',
         body: 'Wählt, in welchen Farben du dich und deinen Lieblingsmenschen in deiner App siehst.',
       },
+      memoryWorlds: {
+        title: 'Erinnerungswelten',
+        body: 'Entdeckt eure Erinnerungen in verspielten Welten – zum Beispiel in der Plattenkiste, in der jede Erinnerung wie ein Lied läuft.',
+      },
       photoSources: {
         title: 'Fotos aus Immich & Google Fotos',
         body: 'Übernehmt ausgewählte Fotos aus Immich oder Google Fotos, wenn die jeweilige Verbindung verfügbar ist.',

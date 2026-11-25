@@ -1,0 +1,289 @@
+/*
+ * The motion layer's catalogue for the memory worlds of Momente ›
+ * Erinnerungen (#2283): the Stapel (stack of prints) and the Plattenkiste
+ * (record crate and turntable).
+ *
+ * World-scoped timing roles, keyframes and the two turntable loops live
+ * here; the world stylesheets only consume the roles. Every animation and
+ * transition of the worlds is declared inside
+ * `prefers-reduced-motion: no-preference`, so reduced motion shows the
+ * final states at once. The turntable loops (sheen, level meter) run only
+ * while the platter motor is on (`data-motor="on"`).
+ *
+ * The values were tuned on device with the Product Owner (Pixel 10 Pro Fold,
+ * 2026-11-24/25) and are kept unchanged from the accepted prototype.
+ * Imported by `StackWorld.tsx` and `RecordCrateWorld.tsx`.
+ */
+
+/* Shared easings: the exact CSS keyword curves, as named roles. */
+.memory-world,
+.memory-stack-world,
+.memory-crate-world {
+  --memory-world-easing-in: cubic-bezier(0.42, 0, 1, 1);
+  --memory-world-easing-out: cubic-bezier(0, 0, 0.58, 1);
+  --memory-world-easing-in-out: cubic-bezier(0.42, 0, 0.58, 1);
+}
+
+/* ---------- Stapel ---------- */
+
+.memory-stack {
+  /* A print settles into its place in the pile. */
+  --memory-stack-settle-duration: 620ms;
+  --memory-stack-fade-duration: 420ms;
+  /* The top print goes to the back (and comes back); length set inline. */
+  --memory-stack-tuck-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  /* Opening: the prints are tossed onto the pile one after another. */
+  --memory-stack-fall-duration: 700ms;
+  --memory-stack-fall-easing: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --memory-stack-thud-duration: 420ms;
+  --memory-stack-thud-offset: 640ms;
+  --memory-stack-absorb-duration: 260ms;
+  --memory-stack-absorb-offset: 760ms;
+  /* Prints develop on the top of the pile; notes write themselves. */
+  --memory-stack-develop-duration: calc(var(--duration-story-develop) * 0.75);
+  --memory-stack-ink-duration: 1400ms;
+}
+
+@keyframes eimir-motion-memory-stack-tuck {
+  0% {
+    z-index: 6;
+    transform: translate(calc(var(--tuck-from, 0) * 1px), 0px)
+      rotate(calc(-1.5deg + var(--tuck-from, 0) * 0.033deg)) scale(1);
+  }
+  42% {
+    z-index: 6;
+    transform: translate(calc(var(--tuck-dir, -1) * 70%), 34px)
+      rotate(calc(var(--tuck-dir, -1) * 11deg)) scale(0.94);
+  }
+  58% {
+    z-index: 0;
+  }
+  100% {
+    z-index: 0;
+    transform: var(--back-pose);
+  }
+}
+
+@keyframes eimir-motion-memory-stack-untuck {
+  0% {
+    z-index: 0;
+    transform: var(--back-pose);
+  }
+  42% {
+    z-index: 0;
+  }
+  58% {
+    z-index: 6;
+    transform: translate(-70%, 34px) rotate(-11deg) scale(0.94);
+  }
+  100% {
+    z-index: 6;
+    transform: translate(0px, 0px) rotate(-1.5deg) scale(1);
+  }
+}
+
+@keyframes eimir-motion-memory-stack-fall {
+  from {
+    transform: translate(var(--fall-x, 0px), var(--fall-y, -110vh))
+      rotate(var(--fall-r, 0deg)) scale(1.08);
+  }
+}
+
+@keyframes eimir-motion-memory-stack-thud {
+  0% {
+    scale: 1.035 0.965;
+  }
+  45% {
+    scale: 0.99 1.01;
+  }
+  100% {
+    scale: 1 1;
+  }
+}
+
+@keyframes eimir-motion-memory-stack-absorb {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-stack-ink {
+  from {
+    opacity: 0.12;
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+/* ---------- Plattenkiste ---------- */
+
+.memory-crate-world {
+  /* Tonearm: lift, swing in, lower, return. */
+  --memory-crate-arm-return-duration: 620ms;
+  --memory-crate-arm-return-delay: 140ms;
+  --memory-crate-arm-return-easing: cubic-bezier(0.45, 0.05, 0.3, 1);
+  --memory-crate-arm-swing-duration: 650ms;
+  --memory-crate-arm-swing-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  --memory-crate-arm-lift-duration: 260ms;
+  --memory-crate-arm-lift-easing: cubic-bezier(0.3, 0, 0.3, 1);
+  --memory-crate-arm-lower-duration: 380ms;
+  --memory-crate-arm-lower-easing: var(--easing-travel);
+  --memory-crate-cue-duration: 280ms;
+  --memory-crate-cue-easing: cubic-bezier(0.3, 1.3, 0.5, 1);
+  /* Plinth controls and the display. */
+  --memory-crate-lamp-duration: 500ms;
+  --memory-crate-press-duration: 90ms;
+  --memory-crate-plate-duration: 480ms;
+  --memory-crate-plate-stagger: 80ms;
+  --memory-crate-pop-easing: cubic-bezier(0.25, 1.2, 0.5, 1);
+  --memory-crate-fade-duration: 600ms;
+  --memory-crate-line-duration: 480ms;
+  --memory-crate-line-easing: cubic-bezier(0.3, 0.7, 0.2, 1);
+  /* The sleeve on its stand and its liner notes. */
+  --memory-crate-flip-duration: 640ms;
+  --memory-crate-flip-easing: cubic-bezier(0.3, 1.25, 0.45, 1);
+  --memory-crate-lean-easing: cubic-bezier(0.3, 1.2, 0.45, 1);
+  --memory-crate-jacket-duration: 480ms;
+  --memory-crate-jacket-easing: cubic-bezier(0.3, 0.8, 0.3, 1);
+  /* Photos on the inlay and the record. */
+  --memory-crate-art-fade-duration: 900ms;
+  --memory-crate-drift-duration: 12s;
+  --memory-crate-develop-duration: 700ms;
+  --memory-crate-glint-duration: 1100ms;
+  --memory-crate-glint-easing: cubic-bezier(0.3, 0.1, 0.3, 1);
+  /* Loops while the motor runs. */
+  --memory-crate-sheen-duration: 3.6s;
+  --memory-crate-meter-duration: 900ms;
+  --memory-crate-meter-duration-fast: 700ms;
+  --memory-crate-meter-duration-slow: 1100ms;
+  --memory-crate-meter-offset: -300ms;
+  --memory-crate-meter-offset-late: -600ms;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* The light on the record sways while it turns. */
+  .memory-crate-deck[data-motor="on"] .memory-crate-sheen {
+    animation: eimir-motion-memory-crate-sheen
+      var(--memory-crate-sheen-duration) var(--memory-world-easing-in-out)
+      infinite alternate;
+  }
+  /* The level meter of the playing track in the liner notes. */
+  .memory-crate-deck[data-motor="on"] .memory-crate-track-eq > span {
+    animation: eimir-motion-memory-crate-meter
+      var(--memory-crate-meter-duration) var(--memory-world-easing-in-out)
+      infinite alternate;
+  }
+  .memory-crate-track-eq > span:nth-child(2) {
+    animation-delay: var(--memory-crate-meter-offset);
+    animation-duration: var(--memory-crate-meter-duration-fast);
+  }
+  .memory-crate-track-eq > span:nth-child(3) {
+    animation-delay: var(--memory-crate-meter-offset-late);
+    animation-duration: var(--memory-crate-meter-duration-slow);
+  }
+}
+
+@keyframes eimir-motion-memory-crate-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-crate-plate-in {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes eimir-motion-memory-crate-sheen {
+  from {
+    transform: rotate(-7deg);
+    opacity: 0.85;
+  }
+  to {
+    transform: rotate(7deg);
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-crate-meter {
+  from {
+    transform: scaleY(0.3);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes eimir-motion-memory-crate-art-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-crate-drift-in {
+  from {
+    transform: scale(1.03) translate(0, 0);
+  }
+  to {
+    transform: scale(1.16) translate(-3%, -2%);
+  }
+}
+
+@keyframes eimir-motion-memory-crate-drift-out {
+  from {
+    transform: scale(1.16) translate(2.5%, 1.5%);
+  }
+  to {
+    transform: scale(1.03) translate(0, 0);
+  }
+}
+
+@keyframes eimir-motion-memory-crate-develop {
+  from {
+    opacity: 0;
+    filter: saturate(0.35) brightness(1.14);
+  }
+  to {
+    opacity: 1;
+    filter: saturate(1) brightness(1);
+  }
+}
+
+@keyframes eimir-motion-memory-crate-glint {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-memory-crate-glint-sweep {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(420%);
+  }
+}

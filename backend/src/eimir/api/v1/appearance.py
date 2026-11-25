@@ -10,10 +10,13 @@ from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.appearance import service
 from eimir.appearance.models import (
+    DEFAULT_MEMORY_WORLD,
     DEFAULT_WIR_DESIGN,
+    FREE_MEMORY_WORLDS,
     FREE_WIR_DESIGNS,
     AppIconId,
     AppIconPreference,
+    MemoryWorldId,
     PersonColoursId,
     WirDesignId,
 )
@@ -232,3 +235,67 @@ def update_person_colours_preference(
         ensure_capability(session, authorization.space_id, Capability.THEME_BESPOKE_PACKS.value)
     saved = service.save_person_colours(session, authorization, body.colours, expected_token)
     return _colours_view(saved, authorization, response)
+
+
+class MemoryWorldPreferenceView(ApiModel):
+    """The caller's own memory world for the rediscovered memories in Momente."""
+
+    world_id: MemoryWorldId
+    version: int
+
+
+class MemoryWorldPreferencePatch(ApiModel):
+    world_id: MemoryWorldId
+
+
+def _world_view(
+    preference: AppIconPreference | None,
+    authorization: AuthorizationContext,
+    response: Response,
+) -> MemoryWorldPreferenceView:
+    response.headers["ETag"] = etag_for_token(service.concurrency_token(preference, authorization))
+    response.headers["Cache-Control"] = "private, no-store"
+    return MemoryWorldPreferenceView(
+        world_id=preference.effective_memory_world if preference else DEFAULT_MEMORY_WORLD,
+        version=preference.version if preference else 0,
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/appearance/memory-world",
+    response_model=MemoryWorldPreferenceView,
+    operation_id="getMemoryWorldPreference",
+    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 404)},
+)
+def get_memory_world_preference(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+) -> MemoryWorldPreferenceView:
+    """Read only the caller's own memory world, including after Pro expiry."""
+    return _world_view(service.read_preference(session, authorization), authorization, response)
+
+
+@router.patch(
+    "/spaces/{spaceId}/appearance/memory-world",
+    response_model=MemoryWorldPreferenceView,
+    operation_id="updateMemoryWorldPreference",
+    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 403, 404, 409, 422)},
+)
+def update_memory_world_preference(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    body: MemoryWorldPreferencePatch,
+    expected_token: IfMatchToken,
+) -> MemoryWorldPreferenceView:
+    """Save a known world. Story and Stapel are Free; every other world requires Pro.
+
+    Membership precedes the capability check. Reads never delete or revert a
+    saved world when a grant expires, and returning to a Free world stays free.
+    The world is a personal presentation and is not shared with the partner.
+    """
+    if body.world_id not in FREE_MEMORY_WORLDS:
+        ensure_capability(session, authorization.space_id, Capability.THEME_BESPOKE_PACKS.value)
+    saved = service.save_memory_world(session, authorization, body.world_id, expected_token)
+    return _world_view(saved, authorization, response)

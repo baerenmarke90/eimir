@@ -24,6 +24,16 @@ import {
     AppIconPreferenceViewToJSON,
 } from '../models/AppIconPreferenceView';
 import {
+    type MemoryWorldPreferencePatch,
+    MemoryWorldPreferencePatchFromJSON,
+    MemoryWorldPreferencePatchToJSON,
+} from '../models/MemoryWorldPreferencePatch';
+import {
+    type MemoryWorldPreferenceView,
+    MemoryWorldPreferenceViewFromJSON,
+    MemoryWorldPreferenceViewToJSON,
+} from '../models/MemoryWorldPreferenceView';
+import {
     type PersonColoursPreferencePatch,
     PersonColoursPreferencePatchFromJSON,
     PersonColoursPreferencePatchToJSON,
@@ -53,6 +63,10 @@ export interface GetAppIconPreferenceRequest {
     spaceId: string;
 }
 
+export interface GetMemoryWorldPreferenceRequest {
+    spaceId: string;
+}
+
 export interface GetPersonColoursPreferenceRequest {
     spaceId: string;
 }
@@ -65,6 +79,12 @@ export interface UpdateAppIconPreferenceRequest {
     spaceId: string;
     ifMatch: string;
     appIconPreferencePatch: AppIconPreferencePatch;
+}
+
+export interface UpdateMemoryWorldPreferenceRequest {
+    spaceId: string;
+    ifMatch: string;
+    memoryWorldPreferencePatch: MemoryWorldPreferencePatch;
 }
 
 export interface UpdatePersonColoursPreferenceRequest {
@@ -128,6 +148,53 @@ export class AppearanceApi extends runtime.BaseAPI {
      */
     async getAppIconPreference(requestParameters: GetAppIconPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppIconPreferenceView> {
         const response = await this.getAppIconPreferenceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getMemoryWorldPreference without sending the request
+     */
+    async getMemoryWorldPreferenceRequestOpts(requestParameters: GetMemoryWorldPreferenceRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getMemoryWorldPreference().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/appearance/memory-world`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Read only the caller\'s own memory world, including after Pro expiry.
+     * Get Memory World Preference
+     */
+    async getMemoryWorldPreferenceRaw(requestParameters: GetMemoryWorldPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MemoryWorldPreferenceView>> {
+        const requestOptions = await this.getMemoryWorldPreferenceRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MemoryWorldPreferenceViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Read only the caller\'s own memory world, including after Pro expiry.
+     * Get Memory World Preference
+     */
+    async getMemoryWorldPreference(requestParameters: GetMemoryWorldPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MemoryWorldPreferenceView> {
+        const response = await this.getMemoryWorldPreferenceRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -290,6 +357,74 @@ export class AppearanceApi extends runtime.BaseAPI {
      */
     async updateAppIconPreference(requestParameters: UpdateAppIconPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppIconPreferenceView> {
         const response = await this.updateAppIconPreferenceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updateMemoryWorldPreference without sending the request
+     */
+    async updateMemoryWorldPreferenceRequestOpts(requestParameters: UpdateMemoryWorldPreferenceRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling updateMemoryWorldPreference().'
+            );
+        }
+
+        if (requestParameters['ifMatch'] == null) {
+            throw new runtime.RequiredError(
+                'ifMatch',
+                'Required parameter "ifMatch" was null or undefined when calling updateMemoryWorldPreference().'
+            );
+        }
+
+        if (requestParameters['memoryWorldPreferencePatch'] == null) {
+            throw new runtime.RequiredError(
+                'memoryWorldPreferencePatch',
+                'Required parameter "memoryWorldPreferencePatch" was null or undefined when calling updateMemoryWorldPreference().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['ifMatch'] != null) {
+            headerParameters['If-Match'] = String(requestParameters['ifMatch']);
+        }
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/appearance/memory-world`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: MemoryWorldPreferencePatchToJSON(requestParameters['memoryWorldPreferencePatch']),
+        };
+    }
+
+    /**
+     * Save a known world. Story and Stapel are Free; every other world requires Pro.  Membership precedes the capability check. Reads never delete or revert a saved world when a grant expires, and returning to a Free world stays free. The world is a personal presentation and is not shared with the partner.
+     * Update Memory World Preference
+     */
+    async updateMemoryWorldPreferenceRaw(requestParameters: UpdateMemoryWorldPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MemoryWorldPreferenceView>> {
+        const requestOptions = await this.updateMemoryWorldPreferenceRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MemoryWorldPreferenceViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Save a known world. Story and Stapel are Free; every other world requires Pro.  Membership precedes the capability check. Reads never delete or revert a saved world when a grant expires, and returning to a Free world stays free. The world is a personal presentation and is not shared with the partner.
+     * Update Memory World Preference
+     */
+    async updateMemoryWorldPreference(requestParameters: UpdateMemoryWorldPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MemoryWorldPreferenceView> {
+        const response = await this.updateMemoryWorldPreferenceRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -125,6 +125,10 @@ import {
   storyItemPresentation,
 } from './storyPresentation';
 import { UiState } from './UiState';
+import { MemoryWorldSwitch } from './MemoryWorldSwitch';
+import { MemoryWorldView } from './memoryWorlds/MemoryWorldView';
+import { WorldEnter } from './memoryWorlds/WorldEnter';
+import { useMemoryWorld } from '../client/memoryWorldContext';
 import {
   useTimelineAutoPagination,
   useTimelineReveal,
@@ -489,6 +493,7 @@ export function StoryProductPage({
   const discoverError =
     discoverQuery.error ?? (discoverDenied ? renewProblem : null);
   const featuredItem = discoverQuery.data?.value.lead ?? null;
+  const memoryWorld = useMemoryWorld()?.world ?? 'story';
   const leadContext = discoverQuery.data?.value.leadContext ?? null;
   const locale = resolvedLocale();
   // Only show the anniversary label when the selection matches the viewer day.
@@ -939,43 +944,69 @@ export function StoryProductPage({
             aria-labelledby="momente-tab-discover"
             data-diary-layout={diaryLayout}
           >
-            {/* 2. Curated Fotostory (direction C): theme bubbles above one
-              story viewer, deliberately unlike the Tagebuch cards. The
+            {/* 2. The person's memory world (#2283): Story (curated
+              Fotostory, the default) or another world. The loading card
+              stays until the world is painted and cross-fades into it. The
               Expanded renew action replaces the touch-only pull gesture. */}
-            <div className="momente-discover-renew">
-              <button
-                type="button"
-                className="secondary"
-                disabled={renewing}
-                aria-busy={renewing}
-                onClick={() => void renewSelection()}
-              >
-                {renewing
-                  ? t('story.discoverRenewing')
-                  : t('story.discoverRenew')}
-              </button>
-            </div>
-            <DiscoverStory
-              lead={storyLead}
-              items={curatedItems}
-              loadMemoryImage={loadMemoryImage}
-              onOpen={openDiscoverItem}
-              nicknameFor={nicknameFor}
-            />
-            {newsHint.activeId ? (
-              <QuietHint
-                tone="new"
-                onDismiss={newsHint.dismiss}
-                action={{
-                  to: STORY_OURS_ROUTE,
-                  label: t('quietHints.news.waymarksAction'),
-                }}
-              >
-                {t('quietHints.news.waymarks')}
-              </QuietHint>
-            ) : null}
+            <WorldEnter
+              cover={<UiState kind="loading" title={t('story.loadingAria')} />}
+            >
+              <MemoryWorldSwitch world={memoryWorld} />
+              <div className="momente-discover-renew">
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={renewing}
+                  aria-busy={renewing}
+                  onClick={() => void renewSelection()}
+                >
+                  {renewing
+                    ? t('story.discoverRenewing')
+                    : t('story.discoverRenew')}
+                </button>
+              </div>
+              {memoryWorld === 'story' ? (
+                <DiscoverStory
+                  lead={storyLead}
+                  items={curatedItems}
+                  loadMemoryImage={loadMemoryImage}
+                  onOpen={openDiscoverItem}
+                  nicknameFor={nicknameFor}
+                />
+              ) : (
+                <MemoryWorldView
+                  world={memoryWorld}
+                  lead={featuredItem}
+                  leadHeadline={featuredHeadline}
+                  leadKicker={
+                    onThisDayKicker && leadContext
+                      ? t('story.onThisDay', { count: leadContext.yearsAgo })
+                      : t('story.featuredKicker')
+                  }
+                  items={curatedItems}
+                  loadMemoryImage={loadMemoryImage}
+                  onOpen={openDiscoverItem}
+                  nicknameFor={nicknameFor}
+                />
+              )}
+              {newsHint.activeId ? (
+                <QuietHint
+                  tone="new"
+                  onDismiss={newsHint.dismiss}
+                  action={{
+                    to: STORY_OURS_ROUTE,
+                    label: t('quietHints.news.waymarksAction'),
+                  }}
+                >
+                  {t('quietHints.news.waymarks')}
+                </QuietHint>
+              ) : null}
 
-            <CoupleExperienceLinks onOpen={openDiscoverItem} lead={recapLead} />
+              <CoupleExperienceLinks
+                onOpen={openDiscoverItem}
+                lead={recapLead}
+              />
+            </WorldEnter>
             {renewed ? (
               <p className="sr-only" role="status">
                 {t('story.discoverRenewed')}
@@ -995,6 +1026,7 @@ export function StoryProductPage({
           </section>
         ) : null}
         {displayedView === 'discover' &&
+        !discoverQuery.isLoading &&
         !featuredItem &&
         discoverItems.length === 0 ? (
           <CoupleExperienceLinks onOpen={openDiscoverItem} lead={recapLead} />

@@ -7538,6 +7538,46 @@
         "title": "MemoryUpdate",
         "type": "object"
       },
+      "MemoryWorldId": {
+        "description": "A personal presentation of the rediscovered memories in Momente (#2283).\n\nA world only changes how the same rediscovery selection is shown. It is a\npersonal view setting that is never shared with the partner.",
+        "enum": [
+          "story",
+          "stack",
+          "crate"
+        ],
+        "title": "MemoryWorldId",
+        "type": "string"
+      },
+      "MemoryWorldPreferencePatch": {
+        "properties": {
+          "worldId": {
+            "$ref": "#/components/schemas/MemoryWorldId"
+          }
+        },
+        "required": [
+          "worldId"
+        ],
+        "title": "MemoryWorldPreferencePatch",
+        "type": "object"
+      },
+      "MemoryWorldPreferenceView": {
+        "description": "The caller's own memory world for the rediscovered memories in Momente.",
+        "properties": {
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "worldId": {
+            "$ref": "#/components/schemas/MemoryWorldId"
+          }
+        },
+        "required": [
+          "worldId",
+          "version"
+        ],
+        "title": "MemoryWorldPreferenceView",
+        "type": "object"
+      },
       "MilestoneCreate": {
         "additionalProperties": false,
         "properties": {
@@ -26532,6 +26572,177 @@
           }
         },
         "summary": "Update App Icon Preference",
+        "tags": [
+          "appearance"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/appearance/memory-world": {
+      "get": {
+        "description": "Read only the caller's own memory world, including after Pro expiry.",
+        "operationId": "getMemoryWorldPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryWorldPreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Memory World Preference",
+        "tags": [
+          "appearance"
+        ]
+      },
+      "patch": {
+        "description": "Save a known world. Story and Stapel are Free; every other world requires Pro.\n\nMembership precedes the capability check. Reads never delete or revert a\nsaved world when a grant expires, and returning to a Free world stays free.\nThe world is a personal presentation and is not shared with the partner.",
+        "operationId": "updateMemoryWorldPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryWorldPreferencePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryWorldPreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Memory World Preference",
         "tags": [
           "appearance"
         ]

@@ -56,9 +56,11 @@ email as a mapping aid. A verified email is not required: OIDC accounts without
 an email claim and local accounts without a verified address remain portable.
 
 PERSONAL exports additionally include the caller's `personalAppearance.appIconId`
-in `accounts.json` (#1307). SHARED exports omit this owner-only selection. This
-is export-only settings metadata: additive import ignores it and never activates
-a paid icon or changes installed-app metadata from an untrusted bundle. Existing
+in `accounts.json` (#1307), together with the other personal appearance choices
+such as `memoryWorld` (#2283, only when chosen). SHARED exports omit these
+owner-only selections. This is export-only settings metadata: additive import
+ignores it and never activates a paid icon or other paid appearance choice or
+changes installed-app metadata from an untrusted bundle. Existing
 member mapping and source-member authorization remain unchanged.
 
 PERSONAL exports also include `personalSettings` (the caller's Account-wide

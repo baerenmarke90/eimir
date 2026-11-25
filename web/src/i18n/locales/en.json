@@ -1696,6 +1696,52 @@
       "moss": "Moss green"
     }
   },
+  "memoryWorldSettings": {
+    "title": "Memory worlds",
+    "help": "How your memories meet you in Moments › Memories – only in your own view.",
+    "intro": "Story and Stack are included, every other world is part of Pro. Your partner chooses their own world.",
+    "choices": "Choose a world",
+    "change": "All worlds",
+    "close": "Close",
+    "current": "Active",
+    "free": "Included",
+    "pro": "Pro",
+    "choose": "Choose {{name}}",
+    "selected": "Selected",
+    "saving": "Saving …",
+    "saved": "{{name}} is now your world in Memories.",
+    "kept": "{{name}} stays with you without Pro. Choosing another Pro world needs Pro.",
+    "proHint": "{{name}} is part of eimir. Pro. Your current world stays until you switch.",
+    "discover": "Discover Pro",
+    "proLoading": "Checking Pro …",
+    "proUnavailable": "Pro could not be checked right now. You can still choose Story and Stack.",
+    "retry": "Try again",
+    "denied": "A new Pro world needs Pro. Your current world stays.",
+    "offline": "You are offline. Your choice stays here; save it when you are connected again.",
+    "conflict": "Your appearance was just changed on another device. Open the choice again.",
+    "saveError": "The world could not be saved.",
+    "sensitive": {
+      "label": "Show sensitive photos in the worlds",
+      "shown": "Memories with sensitive photos appear in the worlds – the photos stay covered until you open them. Only on this device.",
+      "hidden": "Memories with sensitive photos do not appear in the worlds. They stay in the diary as usual. Only on this device."
+    },
+    "switchWorld": "Switch world",
+    "switchWorldCurrent": "Switch world – current: {{name}}",
+    "worlds": {
+      "story": {
+        "name": "Story",
+        "sentence": "Your photo story with themes – simple and calm."
+      },
+      "stack": {
+        "name": "Stack",
+        "sentence": "Prints land on a stack and you flip through them."
+      },
+      "crate": {
+        "name": "Record crate",
+        "sentence": "Flip through your records and put a memory on."
+      }
+    }
+  },
   "wirDesign": {
     "title": "App design",
     "intro": "How eimir. feels for you. Only your view changes.",
@@ -4275,6 +4321,71 @@
       "fromWishTitledNth": "From your wish “{{title}}” · time {{position}}"
     }
   },
+  "memoryWorlds": {
+    "placeVerse": "in {{place}}",
+    "winterSpan": "Winter {{from}}/{{to}}",
+    "stack": {
+      "heading": "Rediscover",
+      "position": "{{position}} of {{count}}",
+      "roleDescription": "Pile",
+      "label": "Memories to leaf through",
+      "open": "Open: {{title}}",
+      "next": "Next memory",
+      "landing": "Your pictures are falling onto the pile …",
+      "hintSingle": "Tap to open the memory",
+      "hint": "Swipe sideways to put the picture at the back · Tap to open it"
+    },
+    "crate": {
+      "heading": "Your record crate",
+      "roleDescription": "Record crate",
+      "label_one": "Your record crate, {{count}} record",
+      "label_other": "Your record crate, {{count}} records",
+      "kind": {
+        "memory": "Memory",
+        "heart": "Heart moment",
+        "milestone": "Milestone"
+      },
+      "sleeveName": "{{kind}}: {{title}}, {{date}}",
+      "byline": "by {{name}}",
+      "front": "At the front of the crate: {{title}}, {{date}}. Record {{position}} of {{count}}.",
+      "playing": "Now playing: {{title}}, {{date}}.",
+      "playingBy": "Now playing: {{title}}, {{date}}, by {{name}}.",
+      "pictureDisc": "Surprise: a picture disc!",
+      "returned": "The record is back in the crate.",
+      "upNext": "Up next: {{title}}.",
+      "stopped": "Stopped. Press Start to continue.",
+      "cued": "Needle lifted – paused.",
+      "speedChanged": "{{rpm}} revolutions per minute.",
+      "sideEnded": "Side A has ended.",
+      "linerNotes_one": "Back of the sleeve: side A with {{count}} track.",
+      "linerNotes_other": "Back of the sleeve: side A with {{count}} tracks.",
+      "sleeveBack": "Back of the sleeve",
+      "sideA": "Side A",
+      "trackNumber": "A{{number}}",
+      "trackPlaying": ", now playing",
+      "readSleeve": "Read the back of the sleeve",
+      "nextRecord": "Next record",
+      "paused": "Paused",
+      "nowPlaying": "Now playing",
+      "endTitle": "Side A has ended",
+      "continueReading": "Keep reading in the diary",
+      "continueReadingLabel": "Keep reading in the diary: {{title}}",
+      "startFront": "Start – put on the front record",
+      "start": "Start",
+      "stop": "Stop",
+      "startStopCaption": "Start · Stop",
+      "speed": "Speed",
+      "rpm": "{{rpm}} revolutions per minute",
+      "rpmCaption": "RPM",
+      "openInDiary": "Open in the diary",
+      "openInDiaryLabel": "Open in the diary: {{title}}",
+      "backToCrate": "Back into the crate",
+      "crateHint": "Arrow keys leaf through the records, Enter puts the front one on, Escape puts it back into the crate. On a touchscreen, swiping down tips the records forward and tapping the front record puts it on. While a record is playing you can keep leafing and put the front one on next.",
+      "deckHint": "While a record is playing, the arrow keys skip a tenth forward or back.",
+      "allRecords": "All memories in the crate",
+      "recordListItem": "{{title}}, {{date}}"
+    }
+  },
   "memoryProduct": {
     "planning": {
       "heading": "Linked wishes and plans",
@@ -6242,6 +6353,10 @@
         "personColours": {
           "title": "Personal colours",
           "body": "Pick the colours you see yourself and your partner in throughout your app."
+        },
+        "memoryWorlds": {
+          "title": "Memory worlds",
+          "body": "Discover your memories in playful worlds – for example in the record crate, where every memory plays like a song."
         },
         "photoSources": {
           "title": "Photos from Immich & Google Photos",

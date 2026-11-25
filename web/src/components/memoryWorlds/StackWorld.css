@@ -1,0 +1,190 @@
+/* Stapel: a loose pile of prints. The top print is swiped to the back or
+   tapped to open; the back prints peek out above the pile. Keyframes and
+   timing roles: src/motion/memory-worlds.css. */
+
+.memory-stack-world {
+  display: grid;
+  gap: var(--space-3);
+  /* Prints flying in from the sides must not widen the page. */
+  overflow-x: clip;
+}
+.memory-stack {
+  --memory-stack-film: var(--color-media-scrim-strong);
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-items: start;
+  /* Room for the back prints that peek out above the pile. */
+  padding-block: calc(var(--space-6) + 56px) var(--space-3);
+  min-block-size: 27rem;
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+}
+.memory-stack-card {
+  grid-area: 1 / 1;
+  inline-size: min(80%, 330px);
+  transform-origin: 50% 0;
+  transition:
+    transform var(--memory-stack-settle-duration) var(--easing-standard),
+    opacity var(--memory-stack-fade-duration) var(--easing-standard),
+    scale var(--memory-stack-fade-duration) var(--easing-enter);
+}
+@starting-style {
+  .memory-stack-card {
+    opacity: 0;
+    scale: 0.96;
+  }
+}
+.memory-stack-card[data-depth="0"] {
+  z-index: 4;
+  transform: translate(calc(var(--drag, 0) * 1px), 0px)
+    rotate(calc(-1.5deg + var(--drag, 0) * 0.033deg)) scale(1);
+}
+.memory-stack-card[data-dragging="true"] {
+  transition: none;
+}
+.memory-stack-card[data-depth="1"] {
+  z-index: 3;
+  transform: translate(
+      calc(3% * (1 - var(--pull, 0))),
+      calc(-24px * (1 - var(--pull, 0)))
+    )
+    rotate(calc(2.5deg - 4deg * var(--pull, 0)))
+    scale(calc(0.95 + 0.05 * var(--pull, 0)));
+}
+.memory-stack[data-pulling="true"] .memory-stack-card[data-depth="1"] {
+  transition: none;
+}
+.memory-stack-card[data-depth="2"] {
+  z-index: 2;
+  transform: translate(-3%, -48px) rotate(-3deg) scale(0.9);
+}
+.memory-stack-card[data-depth="back"] {
+  z-index: 1;
+  transform: translate(2%, -72px) rotate(1.5deg) scale(0.85);
+}
+/* Back prints sit in the shade of the pile. */
+.memory-stack-card:not([data-depth="0"]) > * {
+  filter: brightness(0.97);
+}
+.memory-stack-card[data-ghost="true"] {
+  opacity: 0;
+  z-index: 0;
+}
+
+/* The top print slides down and out to the side, then back in behind the
+   pile; going back pulls the back print out and lays it on top again. */
+.memory-stack-card[data-motion="tuck"] {
+  animation: eimir-motion-memory-stack-tuck var(--memory-stack-tuck-duration)
+    var(--memory-stack-tuck-easing) both;
+}
+.memory-stack-card[data-motion="untuck"] {
+  animation: eimir-motion-memory-stack-untuck var(--memory-stack-tuck-duration)
+    var(--memory-stack-tuck-easing) both;
+}
+/* No tape on the pile: the prints lie loose. */
+.memory-stack .memory-world-tape {
+  display: none;
+}
+
+/* Opening the pile: the prints are tossed onto it from all sides, one after
+   another, hidden ones first, the top print last. Browsing starts once all
+   have landed. */
+.memory-stack[data-landing="true"] {
+  cursor: default;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .memory-stack[data-landing="true"] .memory-stack-card {
+    animation:
+      eimir-motion-memory-stack-fall var(--memory-stack-fall-duration)
+      var(--memory-stack-fall-easing) calc(var(--fall-i, 0) * var(--fall-step))
+      both,
+      eimir-motion-memory-stack-thud var(--memory-stack-thud-duration)
+      var(--memory-world-easing-out)
+      calc(
+        var(--fall-i, 0) *
+        var(--fall-step) +
+        var(--memory-stack-thud-offset)
+      )
+      both;
+  }
+  .memory-stack[data-landing="true"] .memory-stack-card[data-faller="true"] {
+    z-index: 0;
+    animation:
+      eimir-motion-memory-stack-fall var(--memory-stack-fall-duration)
+      var(--memory-stack-fall-easing) calc(var(--fall-i, 0) * var(--fall-step))
+      both,
+      eimir-motion-memory-stack-absorb var(--memory-stack-absorb-duration)
+      var(--memory-world-easing-in)
+      calc(
+        var(--fall-i, 0) *
+        var(--fall-step) +
+        var(--memory-stack-absorb-offset)
+      )
+      both;
+  }
+  /* Nothing develops before the pile is complete. */
+  .memory-stack[data-landing="true"]
+    .memory-stack-card
+    .memory-world-photo
+    .story-media-preview,
+  .memory-stack[data-landing="true"]
+    .memory-stack-card
+    :is(.memory-world-heart-card q, .memory-world-slip strong) {
+    animation-play-state: paused;
+  }
+}
+
+/* Every print lies in the pile as undeveloped film and develops when it
+   comes up; once developed it stays developed. Notes write themselves. */
+@media (prefers-reduced-motion: no-preference) {
+  .memory-stack-card:not([data-developed]) .memory-world-photo,
+  .memory-stack-card:not([data-developed])
+    .memory-world-photo
+    .story-media-skeleton {
+    background: var(--memory-stack-film);
+    animation: none;
+  }
+  .memory-stack-card:not([data-developed])
+    .memory-world-photo
+    .story-media-preview {
+    opacity: 0.35;
+    filter: brightness(0.3) saturate(0) sepia(0.5) contrast(0.7) blur(3px);
+  }
+  .memory-stack-card[data-depth="0"]:not([data-developed])
+    .memory-world-photo
+    .story-media-preview {
+    animation: eimir-motion-momente-story-develop
+      var(--memory-stack-develop-duration) var(--easing-standard) both;
+  }
+  .memory-stack-card:not([data-developed])
+    :is(.memory-world-heart-card q, .memory-world-slip strong) {
+    opacity: 0.12;
+    filter: blur(2px);
+  }
+  .memory-stack-card[data-depth="0"]:not([data-developed])
+    :is(.memory-world-heart-card q, .memory-world-slip strong) {
+    animation: eimir-motion-memory-stack-ink var(--memory-stack-ink-duration)
+      var(--easing-standard) both;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .memory-stack-card {
+    transition: none;
+  }
+  .memory-stack-card[data-motion] {
+    animation: none;
+  }
+}
+
+/* Tap opens: the top print is the link. */
+.memory-stack-open {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  -webkit-touch-callout: none;
+}
+.memory-stack-open :is(img, svg) {
+  -webkit-user-drag: none;
+}

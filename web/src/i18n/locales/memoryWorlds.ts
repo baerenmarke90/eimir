@@ -1,5 +1,5 @@
 // Memory worlds of Momente › Erinnerungen (#2283): Stapel, Plattenkiste,
-// Momentwolke, Fotoautomat, Kühlschranktür, Fotobuch and Rubbellos.
+// Momentwolke, Fotoautomat, Kühlschranktür, Fotobuch, Rubbellos and Mochis.
 const memoryWorlds = {
   placeVerse: 'in {{place}}',
   winterSpan: 'Winter {{from}}/{{to}}',
@@ -244,6 +244,49 @@ const memoryWorlds = {
     tear: 'Nächstes Los abreißen',
     won: 'Gewonnen: {{title}}, {{date}}. Tippt auf das Herz, um die Erinnerung zu öffnen.',
     fresh: 'Ein neues Glückslos aus eurem Tagebuch ist da.',
+  },
+  mochi: {
+    heading: 'Ihr zwei',
+    roleDescription: 'Mochi-Wiese',
+    label: 'Eure zwei Mochis auf ihrer Wiese',
+    description:
+      'Lasst eure Mochis kuscheln, küssen, umarmen, lachen oder tanzen: Jedes Mal steigt ein Herzballon mit einer Erinnerung aus eurem Tagebuch auf. Antippen öffnet sie.',
+    actions: 'Was sollen die beiden tun?',
+    action: {
+      cuddle: 'Kuscheln',
+      kiss: 'Küssen',
+      hug: 'Umarmen',
+      laugh: 'Lachen',
+      dance: 'Tanzen',
+    },
+    acted: {
+      cuddle: 'Eure Mochis kuscheln.',
+      kiss: 'Eure Mochis geben sich einen Kuss.',
+      hug: 'Eure Mochis umarmen sich.',
+      laugh: 'Eure Mochis lachen zusammen.',
+      dance: 'Eure Mochis tanzen.',
+    },
+    rises: 'Ein Herzballon steigt auf: {{title}}, {{date}}.',
+    asleep:
+      'Eure Mochis sind eingeschlafen. Spielt mit ihnen, dann wachen sie auf.',
+    open: 'Öffnen: {{title}}, {{date}}',
+    sky: 'Eure Herzballons am Himmel',
+    hint: {
+      cuddle: 'Schiebt uns zusammen!',
+      kiss: 'Drückt mich ganz lange …',
+      hug: 'Zwei Finger – zieht uns zusammen!',
+      laugh: 'Kitzelt mich!',
+      danceTap: 'Tippt im Takt auf die Wiese!',
+      danceShake: 'Schüttelt das Handy!',
+    },
+    sound: {
+      kiss: 'Mwah!',
+      laugh: 'haha',
+      giggle: 'hihi',
+      chuckle: 'hehe',
+      snore: 'z z z',
+      moon: 'z',
+    },
   },
 };
 

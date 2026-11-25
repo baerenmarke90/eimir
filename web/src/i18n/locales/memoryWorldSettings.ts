@@ -50,6 +50,11 @@ const memoryWorldSettings = {
       name: 'Momentwolke',
       sentence: 'Zieh durch eine schwebende Wolke aus all euren Momenten.',
     },
+    mochi: {
+      name: 'Mochis',
+      sentence:
+        'Ihr zwei als kleine Mochis – sie kuscheln, lachen und bringen Erinnerungen.',
+    },
     booth: {
       name: 'Fotoautomat',
       sentence:

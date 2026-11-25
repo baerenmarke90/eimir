@@ -15,6 +15,7 @@ import {
   type LoadMemoryImage,
   type OpenMemoryWorldItem,
 } from './model';
+import { MochiWorld } from './MochiWorld';
 import { MomentCloudWorld } from './MomentCloudWorld';
 import { PhotoAlbumWorld } from './PhotoAlbumWorld';
 import { PhotoBoothWorld } from './PhotoBoothWorld';
@@ -31,7 +32,8 @@ export type MemoryWorldViewWorld =
   | 'booth'
   | 'fridge'
   | 'album'
-  | 'scratch';
+  | 'scratch'
+  | 'mochi';
 
 export interface MemoryWorldViewProps {
   world: MemoryWorldViewWorld;
@@ -102,6 +104,8 @@ export function MemoryWorldView({
         <PhotoAlbumWorld {...props} />
       ) : world === 'scratch' ? (
         <ScratchCardWorld {...props} />
+      ) : world === 'mochi' ? (
+        <MochiWorld {...props} />
       ) : (
         <StackWorld {...props} />
       )}

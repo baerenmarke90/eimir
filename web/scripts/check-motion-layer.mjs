@@ -107,12 +107,14 @@ export const REGISTERED_POINTER_TRACKING = Object.freeze({
   // Kühlschranktür's note and letter drag with its touch scroll-or-drag
   // decision, the Fotobuch's page that follows the finger around the
   // spine and the Rubbellos' won ticket torn off sideways (gesture, not yet
-  // on the building block; Motion Contract 4.6), and the Rubbellos' scratch
-  // strokes on its foils (input: a drawn stroke that moves nothing).
+  // on the building block; Motion Contract 4.6), the Mochis' push, pinch,
+  // tickle and long press on the meadow (gesture), and the Rubbellos'
+  // scratch strokes on its foils (input: a drawn stroke that moves nothing).
   'src/components/memoryWorlds/FridgeDoorWorld.tsx': {
     use: 'gesture',
     count: 2,
   },
+  'src/components/memoryWorlds/MochiWorld.tsx': { use: 'gesture', count: 1 },
   'src/components/memoryWorlds/MomentCloudWorld.tsx': {
     use: 'gesture',
     count: 2,

@@ -15,7 +15,8 @@ export type WorldArtKind =
   | 'booth'
   | 'fridge'
   | 'album'
-  | 'scratch';
+  | 'scratch'
+  | 'mochi';
 
 type Id = (name: string) => string;
 
@@ -336,6 +337,53 @@ function art(world: WorldArtKind, id: Id, url: Id) {
             fill="#e8c06a"
             stroke="#b98a2e"
             strokeWidth="2"
+          />
+        </>
+      );
+    case 'mochi':
+      return (
+        <>
+          <defs>
+            <linearGradient id={id('sky')} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#fde6ef" />
+              <stop offset="1" stopColor="#e6f6ee" />
+            </linearGradient>
+          </defs>
+          <rect width="160" height="100" fill={url('sky')} />
+          <ellipse cx="80" cy="96" rx="96" ry="22" fill="#b8e3c4" />
+          <path
+            d="M80 18 C74 10 64 14 66 22 C67 28 80 34 80 34 C80 34 93 28 94 22 C96 14 86 10 80 18Z"
+            fill="#f2668b"
+          />
+          <line
+            x1="80"
+            y1="34"
+            x2="80"
+            y2="52"
+            stroke="#c98a9c"
+            strokeWidth="1"
+          />
+          <ellipse cx="62" cy="70" rx="24" ry="19" fill="#ffd4df" />
+          <ellipse cx="98" cy="70" rx="24" ry="19" fill="#cdeedd" />
+          <circle cx="55" cy="68" r="2.3" fill="#3a2a30" />
+          <circle cx="68" cy="68" r="2.3" fill="#3a2a30" />
+          <circle cx="92" cy="68" r="2.3" fill="#2c3a33" />
+          <circle cx="105" cy="68" r="2.3" fill="#2c3a33" />
+          <ellipse cx="51" cy="74" rx="3.5" ry="2" fill="#f7a3b8" />
+          <ellipse cx="109" cy="74" rx="3.5" ry="2" fill="#9fd9bc" />
+          <path
+            d="M59 74 Q61.5 77 64 74"
+            stroke="#3a2a30"
+            strokeWidth="1.4"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M96 74 Q98.5 77 101 74"
+            stroke="#2c3a33"
+            strokeWidth="1.4"
+            fill="none"
+            strokeLinecap="round"
           />
         </>
       );

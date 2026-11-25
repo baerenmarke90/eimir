@@ -459,7 +459,13 @@ backend/demo_assets/images/
 backend/demo_assets/README.md
 ```
 
-The current set contains twelve real Pixabay stock photos. Each concrete source page was checked individually. The selected files were published before **2019-01-09**; Pixabay's current terms identify content published before that date as CC0 content. The manifest records the real asset id, creator, source publication date, source-page URL, `CC0 1.0 Universal`, the Pixabay terms as the licensing basis, the date of the license check, SHA-256, MIME type, German alt text, and intended usage. Source URLs are provenance only and are never used as media URLs.
+The current set contains twelve real Pixabay stock photos and two portraits supplied by the project owner (the persona avatars, see below). Each concrete source page was checked individually. The selected files were published before **2019-01-09**; Pixabay's current terms identify content published before that date as CC0 content. The manifest records the real asset id, creator, source publication date, source-page URL, `CC0 1.0 Universal`, the Pixabay terms as the licensing basis, the date of the license check, SHA-256, MIME type, German alt text, and intended usage. Source URLs are provenance only and are never used as media URLs.
+
+### Persona avatars
+
+Lea and Alex each carry a portrait as their Account-global profile picture (`avatar-lea`, `avatar-alex`, WebP). They are AI-generated images of **fictional people** supplied by the project owner (manifest provider `eimir`, source URL inside this repository), not stock photos and not pictures of real people. The project owner is responsible for the rights to use them; the manifest records the source and date, not a third-party licence. To replace one, commit the new file under the same id, update its SHA-256, MIME type and alt text in `manifest.json`, and run `validate-assets`.
+
+Seeding imports each avatar through the ordinary upload path and binds it with the profile service, exactly as a visitor's own avatar would be. Creation and reset seed them; a reset detaches and purges them first. `ensure` on an existing Space does not add them, so an existing Demo shows them after its next reset (the update script resets on every deployment).
 
 Do not infer redistribution permission merely from the provider name. Current provider licenses may restrict standalone redistribution. A maintainer adding an image must check the concrete source page and applicable terms, commit the approved bytes locally, compute the exact hash, update all provenance fields, and run:
 

@@ -540,6 +540,29 @@ def _seed_profiles(
     )
 
 
+def _seed_avatars(
+    session: Session,
+    lea_context: AuthorizationContext,
+    alex_context: AuthorizationContext,
+    *,
+    assets: DemoAssetCatalog,
+) -> None:
+    """Give both personas their illustrated, Account-global profile picture.
+
+    The portraits show fictional people (AI-generated images supplied by the
+    project owner), not real ones. They go through the ordinary upload and
+    avatar-binding path, so the demo exercises the same lifecycle a visitor's
+    own avatar would. A reset detaches and purges them again before this seeds
+    them anew.
+    """
+    for context, asset_id in (
+        (lea_context, "avatar-lea"),
+        (alex_context, "avatar-alex"),
+    ):
+        attachment = import_demo_asset(session, context, assets.require(asset_id))
+        profile_service.set_profile_attachment(session, context, attachment.id)
+
+
 def _seed_people(
     session: Session,
     lea_context: AuthorizationContext,
@@ -1132,6 +1155,7 @@ def _seed(
         reference_date=reference_date,
     )
     _seed_profiles(session, lea, alex, lea_context, alex_context)
+    _seed_avatars(session, lea_context, alex_context, assets=assets)
     _seed_people(
         session,
         lea_context,

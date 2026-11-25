@@ -1,4 +1,7 @@
-"""Curated local stock-photo assets for the canonical demo Space.
+"""Curated local media assets for the canonical demo Space.
+
+The set is licensed stock photos plus images supplied by the project owner
+(the persona portraits of fictional people), recorded with provider ``eimir``.
 
 This module validates the complete manifest before demo mutation and imports
 bytes only through the normal attachment/media pipeline. It intentionally has
@@ -25,7 +28,10 @@ from eimir.authorization import AuthorizationContext
 SCHEMA_VERSION = 1
 MIN_CURATED_ASSETS = 12
 MAX_CURATED_ASSETS = 20
-ALLOWED_PROVIDERS = frozenset({"pexels", "pixabay"})
+# ``eimir`` marks an image supplied by the project owner, not a stock photo.
+ORIGINAL_PROVIDER = "eimir"
+ALLOWED_PROVIDERS = frozenset({"pexels", "pixabay", ORIGINAL_PROVIDER})
+ORIGINAL_SOURCE_PATH_PREFIX = "/baerenmarke90/eimir/"
 PIXABAY_CC0_CUTOFF = date(2019, 1, 9)
 PIXABAY_TERMS_URL = "https://pixabay.com/service/terms/"
 ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -38,6 +44,7 @@ MIME_BY_FORMAT = {
 SOURCE_HOSTS = {
     "pexels": frozenset({"pexels.com", "www.pexels.com"}),
     "pixabay": frozenset({"pixabay.com", "www.pixabay.com"}),
+    ORIGINAL_PROVIDER: frozenset({"github.com"}),
 }
 
 
@@ -128,6 +135,10 @@ def _source_url(provider: str, value: str, *, asset_id: str) -> str:
         )
     if not parsed.path or parsed.path == "/":
         raise DemoAssetError(f"Demo asset {asset_id!r} source page URL has no asset path.")
+    if provider == ORIGINAL_PROVIDER and not parsed.path.startswith(ORIGINAL_SOURCE_PATH_PREFIX):
+        raise DemoAssetError(
+            f"Demo asset {asset_id!r} must point to its source inside the eimir. repository."
+        )
     return value
 
 

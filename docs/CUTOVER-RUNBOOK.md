@@ -460,14 +460,16 @@ triaged as product failures or cut-over failures.
 
 ## 4. Open pull requests
 
-Verified on November 25, 2026: 11 open pull requests. Two belong to this cut-over group and are expected to merge
-first; the other nine need a decision. The PO decides each row at G4; re-list them on D-1 because the list moves.
+Verified on November 25, 2026: 11 open pull requests. Two belong to this cut-over group and one is the active
+Pro-worlds work; those three are expected to merge first. The other eight need a decision. The PO decides each row at
+G4; re-list them on D-1 because the list moves ([#2284](https://github.com/baerenmarke90/eimir/pull/2284), Cloud legal
+drafts, merged on November 25 while this runbook was written).
 
 | Pull request | State | Proposal | Reason |
 | --- | --- | --- | --- |
 | [#2286](https://github.com/baerenmarke90/eimir/pull/2286) Decision 0019 addendum | ready, docs | **merge** before the freeze | The runbook and the export rely on its decisions. |
 | [#2285](https://github.com/baerenmarke90/eimir/pull/2285) Core lifecycle tests without `eimir-pro` | ready, tests | **merge** before the freeze | Needed for a Core-only snapshot. |
-| [#2284](https://github.com/baerenmarke90/eimir/pull/2284) Cloud legal drafts for Google Play | ready, legal, Web | **merge** before the snapshot if green and approved; otherwise re-create in `eimir-core` | Active Core and legal work; small. |
+| [#2287](https://github.com/baerenmarke90/eimir/pull/2287) Memory worlds, stage 1 | ready, backend, Web, migration | **merge** before the freeze; its merge (or the PO's call to stop it) starts the freeze of G2 | It appears to be the active Pro-worlds work (it adds a Pro option under `theme.bespoke_packs`); the PO confirms. Later stages go to `eimir-core` (client, contract) and `eimir-pro` (Pro server parts). |
 | [#2207](https://github.com/baerenmarke90/eimir/pull/2207) Share PR change detection for Self-Hosted checks | draft, CI | **re-create from patch** in `eimir-core` | Core CI; the workflows change during the split anyway. |
 | [#2115](https://github.com/baerenmarke90/eimir/pull/2115) Prepare eimir-dev for the nightly regression | draft, CI, runner | **close**; reuse `tools/runner/` as a patch for `eimir-pro` if wanted | It routes the nightly regression of the public repository to an operator runner, which the addendum forbids for `eimir-core`. |
 | [#2053](https://github.com/baerenmarke90/eimir/pull/2053) Wish link and photo, Android share (draft) | draft, 125 files | **re-create from patch** in `eimir-core` | Core feature, not ready; its migration `0165_wish_photo.py` must be renumbered against the current head in any case. |

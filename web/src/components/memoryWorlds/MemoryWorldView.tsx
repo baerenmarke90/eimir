@@ -20,6 +20,7 @@ import { MochiWorld } from './MochiWorld';
 import { MomentCloudWorld } from './MomentCloudWorld';
 import { PhotoAlbumWorld } from './PhotoAlbumWorld';
 import { PhotoBoothWorld } from './PhotoBoothWorld';
+import { PostWorld } from './PostWorld';
 import { RecordCrateWorld } from './RecordCrateWorld';
 import { ScratchCardWorld } from './ScratchCardWorld';
 import { StackWorld } from './StackWorld';
@@ -35,7 +36,8 @@ export type MemoryWorldViewWorld =
   | 'album'
   | 'scratch'
   | 'mochi'
-  | 'stars';
+  | 'stars'
+  | 'post';
 
 export interface MemoryWorldViewProps {
   world: MemoryWorldViewWorld;
@@ -110,6 +112,8 @@ export function MemoryWorldView({
         <MochiWorld {...props} />
       ) : world === 'stars' ? (
         <ConstellationWorld {...props} />
+      ) : world === 'post' ? (
+        <PostWorld {...props} />
       ) : (
         <StackWorld {...props} />
       )}

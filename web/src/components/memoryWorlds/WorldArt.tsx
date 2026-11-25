@@ -17,7 +17,8 @@ export type WorldArtKind =
   | 'album'
   | 'scratch'
   | 'mochi'
-  | 'stars';
+  | 'stars'
+  | 'post';
 
 type Id = (name: string) => string;
 
@@ -364,6 +365,39 @@ function art(world: WorldArtKind, id: Id, url: Id) {
             <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill="#fff6d8" />
           ))}
           <path d="M0 100 Q40 84 80 92 T160 88 L160 100Z" fill="#0b1029" />
+        </>
+      );
+    case 'post':
+      return (
+        <>
+          <rect width="160" height="100" fill="#cfdcef" />
+          <g transform="rotate(-7 70 60)">
+            <rect x="30" y="34" width="84" height="52" rx="3" fill="#f6efe1" />
+            <path
+              d="M30 34 L72 64 L114 34"
+              fill="none"
+              stroke="#d8ccb4"
+              strokeWidth="1.5"
+            />
+          </g>
+          <g transform="rotate(5 90 50)">
+            <rect x="46" y="18" width="84" height="54" rx="3" fill="#fffaf0" />
+            <path d="M46 18 L88 48 L130 18Z" fill="#f1e6d1" />
+            <rect
+              x="112"
+              y="24"
+              width="12"
+              height="14"
+              fill="#e7a98f"
+              stroke="#fff"
+              strokeWidth="1.5"
+            />
+            <circle cx="88" cy="48" r="7" fill="#b3313a" />
+            <path
+              d="M88 51.5 C85.5 49.5 84.5 48 84.5 46.6 A1.9 1.9 0 0 1 88 45.8 A1.9 1.9 0 0 1 91.5 46.6 C91.5 48 90.5 49.5 88 51.5Z"
+              fill="#f6d3d3"
+            />
+          </g>
         </>
       );
     case 'mochi':

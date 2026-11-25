@@ -52,7 +52,8 @@ const memoryWorldSettings = {
     },
     booth: {
       name: 'Fotoautomat',
-      sentence: 'Druck eure Erinnerungen als Fotostreifen aus – klassisch oder modern.',
+      sentence:
+        'Druck eure Erinnerungen als Fotostreifen aus – klassisch oder modern.',
     },
     crate: {
       name: 'Plattenkiste',

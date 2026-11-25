@@ -3,7 +3,14 @@
 
 from __future__ import annotations
 
+import json
+import os
 import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -39,6 +46,156 @@ REQUIRED_SBOMS = {
 
 def action_uses(text: str) -> list[str]:
     return [match.group(1) for match in re.finditer(r"^\s*-?\s*uses:\s*([^\s#]+)", text, re.MULTILINE)]
+
+
+def job_text(workflow: str, job: str) -> str:
+    """Return one top-level job block of a workflow (the runner image has no PyYAML)."""
+    match = re.search(
+        rf"^  {re.escape(job)}:\n(.*?)(?=^  [a-z0-9_-]+:\n|\Z)", workflow, re.MULTILINE | re.DOTALL
+    )
+    assert match, job
+    return match.group(1)
+
+
+def step_text(text: str, name: str) -> str:
+    return text.split(f"- name: {name}\n", 1)[1].split("\n      - name:", 1)[0]
+
+
+def step_script(text: str, name: str) -> str:
+    """Return the dedented ``run: |`` script of one named step."""
+    block = step_text(text, name).split("run: |\n", 1)[1]
+    lines = []
+    for line in block.splitlines():
+        if line.strip() and not line.startswith(" " * 10):
+            break
+        lines.append(line)
+    return textwrap.dedent("\n".join(lines)) + "\n"
+
+
+SUPPLY_CHAIN_SCRIPT = ROOT / "scripts/supply_chain_state.py"
+FAKE_GH = r"""#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> "$FAKE_GH_LOG"
+case "$1 $2" in
+  "api repos/"*) cat "$FAKE_REPOSITORY_JSON" ;;
+  "attestation verify")
+    bundle=""
+    while [ "$#" -gt 0 ]; do
+      if [ "$1" = "--bundle" ]; then bundle="$2"; fi
+      shift
+    done
+    test -s "$bundle"
+    ;;
+  "attestation trusted-root") echo '{}' ;;
+  *) echo "unexpected gh call: $*" >&2; exit 2 ;;
+esac
+"""
+
+
+class SupplyChainStepHarness:
+    """Run a workflow step's real script with a fake ``gh`` and the real probe script.
+
+    Repository metadata, the variable and the evidence directory are inputs, so each
+    test drives one supply-chain state end to end without network access.
+    """
+
+    REPOSITORY = "baerenmarke90/eimir-pro"
+    SOURCE = "c" * 40
+
+    def __init__(self, test: unittest.TestCase) -> None:
+        self.root = Path(tempfile.mkdtemp())
+        test.addCleanup(shutil.rmtree, self.root, True)
+        (self.root / "scripts").mkdir()
+        shutil.copy(SUPPLY_CHAIN_SCRIPT, self.root / "scripts" / SUPPLY_CHAIN_SCRIPT.name)
+        self.bin = self.root / "bin"
+        self.bin.mkdir()
+        gh = self.bin / "gh"
+        gh.write_text(FAKE_GH, encoding="utf-8", newline="\n")
+        gh.chmod(0o755)
+        python3 = self.bin / "python3"
+        python3.write_text(
+            f'#!/usr/bin/env bash\nexec "{Path(sys.executable).as_posix()}" "$@"\n',
+            encoding="utf-8",
+            newline="\n",
+        )
+        python3.chmod(0o755)
+        self.log = self.root / "gh.log"
+        self.log.touch()
+        self.temp = self.root / "runner-temp"
+        self.temp.mkdir()
+        self.evidence = self.root / "release-evidence"
+        self.attestations = self.evidence / "attestations"
+        self.attestations.mkdir(parents=True)
+
+    def repository(self, visibility: str) -> Path:
+        path = self.root / f"repository-{visibility}.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "full_name": self.REPOSITORY,
+                    "visibility": visibility,
+                    "private": visibility != "public",
+                    "owner": {"login": "baerenmarke90", "type": "User"},
+                }
+            ),
+            encoding="utf-8",
+        )
+        return path
+
+    def write_record(self, visibility: str, acceptance: str) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(SUPPLY_CHAIN_SCRIPT),
+                "probe",
+                "--repository-json",
+                str(self.repository(visibility)),
+                "--source-revision",
+                self.SOURCE,
+                "--output",
+                str(self.evidence / "supply-chain-state.json"),
+            ],
+            env={**os.environ, "EIMIR_SUPPLY_CHAIN_EXCEPTION": acceptance},
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, result.stderr
+
+    def write_bundles(self, *prefixes: str) -> None:
+        for prefix in prefixes:
+            for suffix in ("provenance", "sbom"):
+                (self.attestations / f"{prefix}-{suffix}.json").write_text("{}", encoding="utf-8")
+
+    def run(
+        self, script: str, *, visibility: str, acceptance: str, **environment: str
+    ) -> subprocess.CompletedProcess:
+        system_path = os.environ.get("PATH", "") if os.name == "nt" else "/usr/bin:/bin"
+        env = {
+            **({"SYSTEMROOT": os.environ["SYSTEMROOT"]} if "SYSTEMROOT" in os.environ else {}),
+            "PATH": os.pathsep.join([str(self.bin), system_path]),
+            "GITHUB_REPOSITORY": self.REPOSITORY,
+            "GITHUB_SHA": self.SOURCE,
+            "RUNNER_TEMP": self.temp.as_posix(),
+            "GITHUB_OUTPUT": (self.temp / "github-output").as_posix(),
+            "FAKE_GH_LOG": self.log.as_posix(),
+            "FAKE_REPOSITORY_JSON": self.repository(visibility).as_posix(),
+            "EIMIR_SUPPLY_CHAIN_EXCEPTION": acceptance,
+            "INCLUDE_VIDEO_MEDIA": "false",
+            "INCLUDE_ANDROID": "false",
+            **environment,
+        }
+        return subprocess.run(
+            # shutil.which skips the WSL launcher that Windows would start for "bash".
+            [shutil.which("bash") or "bash", "-c", script], cwd=self.root, env=env, capture_output=True, text=True, check=False
+        )
+
+    def verify_calls(self) -> list[str]:
+        return [
+            line
+            for line in self.log.read_text(encoding="utf-8").splitlines()
+            if line.startswith("attestation verify")
+        ]
 
 
 class ReleaseEvidenceContractTest(unittest.TestCase):
@@ -137,7 +294,11 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
         for step_name in ("Attest Android APK", "Attest Android AAB"):
             with self.subTest(step=step_name):
                 step = self.workflow.split(f"- name: {step_name}", 1)[1].split("- name:", 1)[0]
-                self.assertIn("if: inputs.include_android || github.event_name == 'pull_request'", step)
+                self.assertIn(
+                    "if: (inputs.include_android || github.event_name == 'pull_request')"
+                    " && steps.supply_chain.outputs.attestation == 'available'",
+                    step,
+                )
 
     def test_core_evidence_remains_unconditional(self) -> None:
         for step_name in ("Build backend runtime image archive", "Build Web runtime image archive"):
@@ -248,6 +409,154 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
         self.assertNotIn("capacitor-android", self.workflow)
         self.assertNotIn("working-directory: android", self.workflow)
         self.assertNotIn("android/app/build.gradle.kts", self.workflow)
+
+
+class SupplyChainStateTest(unittest.TestCase):
+    """Decision 0019, D5: both attestation states and their negative cases."""
+
+    ACCEPTANCE = "decision-0019-d5"
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.workflow = WORKFLOW.read_text(encoding="utf-8")
+        cls.build = job_text(cls.workflow, "build-evidence")
+        cls.attest = job_text(cls.workflow, "attest")
+
+    def test_state_is_probed_early_and_bound_into_the_checksummed_evidence(self) -> None:
+        step = step_text(self.build, "Record supply-chain capabilities of this repository")
+        self.assertIn('gh api "repos/${GITHUB_REPOSITORY}"', step)
+        self.assertIn("python3 scripts/supply_chain_state.py probe", step)
+        self.assertIn("--output release-evidence/supply-chain-state.json", step)
+        self.assertIn("EIMIR_SUPPLY_CHAIN_EXCEPTION: ${{ vars.EIMIR_SUPPLY_CHAIN_EXCEPTION }}", step)
+        self.assertNotIn("if:", step)
+        self.assertLess(
+            self.build.index("Record supply-chain capabilities"),
+            self.build.index("Build backend runtime image archive"),
+        )
+        checksums = step_text(self.build, "Validate and index release evidence")
+        self.assertIn("              supply-chain-state.json\n", checksums)
+        self.assertIn("python3 tools/ci/test_supply_chain_state.py", self.build)
+
+    def test_every_attestation_needs_the_confirmed_available_state(self) -> None:
+        confirm = step_text(self.attest, "Confirm the recorded supply-chain state")
+        self.assertIn("id: supply_chain", confirm)
+        self.assertNotIn("if:", confirm)
+        self.assertIn("--record release-evidence/supply-chain-state.json", confirm)
+        self.assertLess(
+            self.attest.index("Verify transported checksums"), self.attest.index("Confirm the recorded")
+        )
+        names = re.findall(r"^      - name: (.+)$", self.attest, re.MULTILINE)
+        attesting = [name for name in names if "attest-release-artifact" in step_text(self.attest, name)]
+        self.assertEqual(len(attesting), 5)
+        for name in attesting + ["Capture current trusted roots", "Upload offline-verification bundles"]:
+            with self.subTest(step=name):
+                self.assertLess(self.attest.index("Confirm the recorded"), self.attest.index(f"- name: {name}"))
+                self.assertRegex(
+                    step_text(self.attest, name),
+                    r"(?m)^        if: .*steps\.supply_chain\.outputs\.attestation == 'available'$",
+                )
+        self.assertNotIn("continue-on-error", self.workflow)
+
+    def test_verification_step_runs_in_both_states(self) -> None:
+        step = step_text(self.attest, "Verify retained attestations offline")
+        self.assertNotRegex(step, r"(?m)^        if:")
+        script = step_script(self.attest, "Verify retained attestations offline")
+        self.assertLess(script.index("supply_chain_state.py verify"), script.index("exit 0"))
+        self.assertLess(
+            script.index("exit 0"), script.index("verify_subject release-evidence/backend-runtime.image.tar")
+        )
+
+    def run_verification(self, harness: SupplyChainStepHarness, **kwargs: str) -> subprocess.CompletedProcess:
+        return harness.run(step_script(self.attest, "Verify retained attestations offline"), **kwargs)
+
+    def test_unavailable_state_verifies_the_record_instead_of_attestations(self) -> None:
+        harness = SupplyChainStepHarness(self)
+        harness.write_record("private", self.ACCEPTANCE)
+        result = self.run_verification(harness, visibility="private", acceptance=self.ACCEPTANCE)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("verified the recorded state instead", result.stdout)
+        self.assertIn("::notice title=Supply chain (attestation)::", result.stdout)
+        self.assertEqual(harness.verify_calls(), [])
+
+    def test_unavailable_state_without_the_record_fails(self) -> None:
+        harness = SupplyChainStepHarness(self)
+        result = self.run_verification(harness, visibility="private", acceptance=self.ACCEPTANCE)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("supply-chain-state.json", result.stderr)
+
+    def test_unavailable_state_without_the_acceptance_fails(self) -> None:
+        harness = SupplyChainStepHarness(self)
+        harness.write_record("private", self.ACCEPTANCE)
+        result = self.run_verification(harness, visibility="private", acceptance="")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("EIMIR_SUPPLY_CHAIN_EXCEPTION", result.stderr)
+
+    def test_unavailable_record_on_a_public_repository_fails(self) -> None:
+        harness = SupplyChainStepHarness(self)
+        harness.write_record("private", self.ACCEPTANCE)
+        result = self.run_verification(harness, visibility="public", acceptance="")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("attestation is 'unavailable'", result.stderr)
+        self.assertEqual(harness.verify_calls(), [])
+
+    def test_unavailable_state_next_to_bundles_fails(self) -> None:
+        harness = SupplyChainStepHarness(self)
+        harness.write_record("private", self.ACCEPTANCE)
+        harness.write_bundles("backend-runtime")
+        result = self.run_verification(harness, visibility="private", acceptance=self.ACCEPTANCE)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("bundles exist", result.stderr)
+
+    def test_available_state_verifies_every_attestation_unchanged(self) -> None:
+        harness = SupplyChainStepHarness(self)
+        harness.write_record("public", "")
+        harness.write_bundles("backend-runtime", "web-runtime", "media-runtime")
+        result = self.run_verification(
+            harness, visibility="public", acceptance="", INCLUDE_VIDEO_MEDIA="true"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = harness.verify_calls()
+        self.assertEqual(len(calls), 6)
+        for prefix in ("backend-runtime", "web-runtime", "media-runtime"):
+            with self.subTest(prefix=prefix):
+                self.assertTrue(any(f"{prefix}-provenance.json" in call for call in calls))
+                self.assertTrue(
+                    any(f"{prefix}-sbom.json" in call and "spdx.dev/Document/v2.3" in call for call in calls)
+                )
+        self.assertTrue(all("--signer-workflow" in call for call in calls))
+
+    def test_available_state_with_a_missing_attestation_fails(self) -> None:
+        harness = SupplyChainStepHarness(self)
+        harness.write_record("public", "")
+        harness.write_bundles("backend-runtime")
+        result = self.run_verification(harness, visibility="public", acceptance="")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("web-runtime-provenance.json", result.stderr)
+        self.assertEqual(harness.verify_calls(), [])
+
+    def test_available_state_requires_android_bundles_when_android_is_included(self) -> None:
+        harness = SupplyChainStepHarness(self)
+        harness.write_record("public", "")
+        harness.write_bundles("backend-runtime", "web-runtime")
+        result = self.run_verification(harness, visibility="public", acceptance="", INCLUDE_ANDROID="true")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("android-apk-provenance.json", result.stderr)
+
+    def test_confirm_step_publishes_the_state_for_the_conditional_steps(self) -> None:
+        for visibility, acceptance, expected in (
+            ("public", "", "attestation=available"),
+            ("private", self.ACCEPTANCE, "attestation=unavailable"),
+        ):
+            with self.subTest(visibility=visibility):
+                harness = SupplyChainStepHarness(self)
+                harness.write_record(visibility, acceptance)
+                result = harness.run(
+                    step_script(self.attest, "Confirm the recorded supply-chain state"),
+                    visibility=visibility,
+                    acceptance=acceptance,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn(expected, (harness.temp / "github-output").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

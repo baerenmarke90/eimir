@@ -1740,9 +1740,17 @@
         "name": "Moment cloud",
         "sentence": "Drift through a floating cloud of all your moments."
       },
+      "booth": {
+        "name": "Photo booth",
+        "sentence": "Print your memories as photo strips – classic or modern."
+      },
       "crate": {
         "name": "Record crate",
         "sentence": "Flip through your records and put a memory on."
+      },
+      "fridge": {
+        "name": "Fridge door",
+        "sentence": "Photos and notes under colourful magnets – to take off and move around."
       }
     }
   },
@@ -4401,6 +4409,99 @@
       "backToCloud": "Back into the cloud",
       "openInDiary": "Open in the diary",
       "allMemories": "All memories in the cloud",
+      "memoryListItem": "{{title}}, {{date}}"
+    },
+    "booth": {
+      "styleLabel": "Photo booth style",
+      "style": {
+        "classic": "Classic",
+        "modern": "Modern"
+      },
+      "span": "{{from}} – {{to}}",
+      "viewStrip": "View the strip {{span}}",
+      "view": "View the strip",
+      "noteFrom": "– {{name}}",
+      "shotSpoken": "Photo {{shot}} of {{shots}}",
+      "viewer": {
+        "kicker": "From your diary",
+        "openInDiary": "Open in the diary",
+        "close": "Close"
+      },
+      "modern": {
+        "heading": "Your diary, freshly printed",
+        "sign": "Photo booth",
+        "display": {
+          "ready": "Ready",
+          "shot": "{{shot}}/{{shots}}",
+          "wait": "Wait",
+          "print": "Printing",
+          "done": "Done"
+        },
+        "printSpoken": "Your strip is being printed",
+        "doneSpoken": "Your strip is ready",
+        "print": "Print a strip",
+        "printAgain": "New strip",
+        "printing": "Printing …",
+        "hang": "Hang it on the line",
+        "line": "Your strips"
+      },
+      "classic": {
+        "heading": "The old photo booth",
+        "neon": "Photos",
+        "tagline": "Instant · {{shots}} pictures",
+        "status": {
+          "free": "Free",
+          "busy": "Occupied",
+          "wait": "Please wait"
+        },
+        "sample": "Samples",
+        "price": "{{shots}} pictures",
+        "priceAmount": "2 DM",
+        "coinValue": "2",
+        "insertHere": "Insert here",
+        "dial": "Developing",
+        "chute": "Pictures",
+        "coin": "Insert the coin",
+        "hint": "Drag the coin into the slot",
+        "coinSpoken": "Coin inserted",
+        "closingSpoken": "The curtain closes",
+        "developSpoken": "The pictures are developing",
+        "wetSpoken": "Your pictures are here, still wet",
+        "doneSpoken": "Your pictures are here",
+        "wetHint": "Still wet – wave it dry",
+        "box": "Put it in the tin",
+        "tin": "In the tin",
+        "tinLabel": "Your strips in the tin"
+      }
+    },
+    "fridge": {
+      "heading": "Your fridge door",
+      "roleDescription": "Fridge door",
+      "label_one": "Your fridge door, {{count}} memory",
+      "label_other": "Your fridge door, {{count}} memories",
+      "item": {
+        "photo": "Photo from {{date}}: {{title}}",
+        "heart": "Heart moment: {{title}}, {{date}}",
+        "heartBy": "Heart moment: {{title}}, from {{name}}, {{date}}",
+        "milestone": "Milestone: {{title}}, {{date}}",
+        "words": "Memory: {{title}}, {{date}}"
+      },
+      "pad": "New notes – hang the next memories on the door",
+      "padLine1": "New",
+      "padLine2": "notes",
+      "swapped_one": "New notes on your door: {{count}} memory.",
+      "swapped_other": "New notes on your door: {{count}} memories.",
+      "moved": {
+        "left": "{{title}} now hangs further left.",
+        "right": "{{title}} now hangs further right.",
+        "up": "{{title}} now hangs further up.",
+        "down": "{{title}} now hangs further down."
+      },
+      "edge": "{{title}} already hangs at the edge of the door.",
+      "hint": "Every note opens up large. Move notes and letter magnets across the door with your finger, or move the selected note with the arrow keys.",
+      "backToDoor": "Back to the fridge door",
+      "openInDiary": "Open in the diary",
+      "allMemories": "All memories on your fridge door",
       "memoryListItem": "{{title}}, {{date}}"
     }
   },

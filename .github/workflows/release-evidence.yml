@@ -14,6 +14,8 @@ on:
       - "web/package-lock.json"
       - "web/scripts/build-capacitor-web.mjs"
       - "tools/ci/test_release_evidence.py"
+      - "scripts/supply_chain_state.py"
+      - "tools/ci/test_supply_chain_state.py"
       - "scripts/android_firebase_configuration.py"
       - "tools/ci/test_android_firebase_configuration.py"
       - "docs/m6/SBOM-ATTESTATIONS.md"
@@ -107,7 +109,23 @@ jobs:
       - name: Validate release-evidence contract
         run: |
           python3 tools/ci/test_release_evidence.py
+          python3 tools/ci/test_supply_chain_state.py
           python3 tools/ci/test_android_firebase_configuration.py
+
+      - name: Record supply-chain capabilities of this repository
+        # Decision 0019, D5: a private personal repository has no artifact
+        # attestations and no CodeQL. The probed state is part of the checksummed
+        # evidence; the attest job verifies it instead of skipping silently.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EIMIR_SUPPLY_CHAIN_EXCEPTION: ${{ vars.EIMIR_SUPPLY_CHAIN_EXCEPTION }}
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}" > "$RUNNER_TEMP/repository.json"
+          python3 scripts/supply_chain_state.py probe \
+            --repository-json "$RUNNER_TEMP/repository.json" \
+            --source-revision "$GITHUB_SHA" \
+            --output release-evidence/supply-chain-state.json
 
       - name: Validate release inputs
         env:
@@ -520,6 +538,7 @@ jobs:
               sbom/backend-runtime.spdx.json
               sbom/web-runtime.spdx.json
               evidence-index.json
+              supply-chain-state.json
             )
             if [ "$INCLUDE_VIDEO_MEDIA" = "true" ]; then
               files+=(media-runtime.image.tar sbom/media-runtime.spdx.json)
@@ -570,7 +589,24 @@ jobs:
       - name: Verify transported checksums
         run: (cd release-evidence && sha256sum --check --strict SHA256SUMS)
 
+      - name: Confirm the recorded supply-chain state
+        # The checksummed record must equal a fresh probe of this repository, so a
+        # stale or copied record can never switch attestations off (Decision 0019, D5).
+        id: supply_chain
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EIMIR_SUPPLY_CHAIN_EXCEPTION: ${{ vars.EIMIR_SUPPLY_CHAIN_EXCEPTION }}
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}" > "$RUNNER_TEMP/repository.json"
+          python3 scripts/supply_chain_state.py verify \
+            --repository-json "$RUNNER_TEMP/repository.json" \
+            --source-revision "$GITHUB_SHA" \
+            --record release-evidence/supply-chain-state.json \
+            --github-output "$GITHUB_OUTPUT"
+
       - name: Attest backend runtime
+        if: steps.supply_chain.outputs.attestation == 'available'
         uses: ./.github/actions/attest-release-artifact
         with:
           subject-path: release-evidence/backend-runtime.image.tar
@@ -579,6 +615,7 @@ jobs:
           bundle-prefix: backend-runtime
 
       - name: Attest Web runtime
+        if: steps.supply_chain.outputs.attestation == 'available'
         uses: ./.github/actions/attest-release-artifact
         with:
           subject-path: release-evidence/web-runtime.image.tar
@@ -587,7 +624,7 @@ jobs:
           bundle-prefix: web-runtime
 
       - name: Attest restricted video worker
-        if: env.INCLUDE_VIDEO_MEDIA == 'true'
+        if: env.INCLUDE_VIDEO_MEDIA == 'true' && steps.supply_chain.outputs.attestation == 'available'
         uses: ./.github/actions/attest-release-artifact
         with:
           subject-path: release-evidence/media-runtime.image.tar
@@ -596,7 +633,7 @@ jobs:
           bundle-prefix: media-runtime
 
       - name: Attest Android APK
-        if: inputs.include_android || github.event_name == 'pull_request'
+        if: (inputs.include_android || github.event_name == 'pull_request') && steps.supply_chain.outputs.attestation == 'available'
         uses: ./.github/actions/attest-release-artifact
         with:
           subject-path: release-evidence/android/eimir-release-unsigned.apk
@@ -605,7 +642,7 @@ jobs:
           bundle-prefix: android-apk
 
       - name: Attest Android AAB
-        if: inputs.include_android || github.event_name == 'pull_request'
+        if: (inputs.include_android || github.event_name == 'pull_request') && steps.supply_chain.outputs.attestation == 'available'
         uses: ./.github/actions/attest-release-artifact
         with:
           subject-path: release-evidence/android/eimir-release-unsigned.aab
@@ -614,15 +651,41 @@ jobs:
           bundle-prefix: android-aab
 
       - name: Capture current trusted roots
+        if: steps.supply_chain.outputs.attestation == 'available'
         run: gh attestation trusted-root > release-evidence/attestations/trusted_root.jsonl
 
       - name: Verify retained attestations offline
+        # Runs in both states. Available: every bundle exists and verifies.
+        # Unavailable: the exact record verifies and no bundle exists.
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EIMIR_SUPPLY_CHAIN_EXCEPTION: ${{ vars.EIMIR_SUPPLY_CHAIN_EXCEPTION }}
         run: |
           set -euo pipefail
           repo="$GITHUB_REPOSITORY"
           signer="$GITHUB_REPOSITORY/.github/workflows/release-evidence.yml"
           root="release-evidence/attestations/trusted_root.jsonl"
+
+          subjects=(--subject backend-runtime --subject web-runtime)
+          if [ "$INCLUDE_VIDEO_MEDIA" = "true" ]; then
+            subjects+=(--subject media-runtime)
+          fi
+          if [ "$INCLUDE_ANDROID" = "true" ]; then
+            subjects+=(--subject android-apk --subject android-aab)
+          fi
+          gh api "repos/${GITHUB_REPOSITORY}" > "$RUNNER_TEMP/repository.json"
+          python3 scripts/supply_chain_state.py verify \
+            --repository-json "$RUNNER_TEMP/repository.json" \
+            --source-revision "$GITHUB_SHA" \
+            --record release-evidence/supply-chain-state.json \
+            --attestation-dir release-evidence/attestations \
+            "${subjects[@]}" \
+            --github-output "$RUNNER_TEMP/supply-chain-outputs"
+          if grep -qx 'attestation=unavailable' "$RUNNER_TEMP/supply-chain-outputs"; then
+            echo "Attestations are unavailable on ${repo}; verified the recorded state instead (Decision 0019, D5)."
+            exit 0
+          fi
 
           verify_subject() {
             local subject="$1"
@@ -649,6 +712,9 @@ jobs:
           fi
 
       - name: Upload offline-verification bundles
+        # Unavailable attestations leave nothing to upload; the publisher reads the
+        # checksummed record from the evidence set instead.
+        if: steps.supply_chain.outputs.attestation == 'available'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-attestations-${{ github.sha }}

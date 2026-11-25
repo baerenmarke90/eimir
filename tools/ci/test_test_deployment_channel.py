@@ -1613,6 +1613,92 @@ class CanonicalWiringTest(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0, missing)
 
 
+class CodeScanningStateTest(unittest.TestCase):
+    """Decision 0019, D5: CodeQL leaves the required set only where it is recorded unavailable."""
+
+    def metadata(self, visibility: str) -> dict:
+        return {
+            "full_name": channel.REPOSITORY,
+            "visibility": visibility,
+            "private": visibility != "public",
+            "owner": {"login": channel.REPOSITORY.split("/")[0], "type": "User"},
+        }
+
+    def api(self, visibility: str, runs: list[dict]):
+        def respond(endpoint: str, **_: object):
+            if endpoint == f"repos/{channel.REPOSITORY}":
+                return self.metadata(visibility)
+            if endpoint.startswith(f"repos/{channel.REPOSITORY}/actions/runs?head_sha={SOURCE}"):
+                return [{"workflow_runs": runs}]
+            raise AssertionError(endpoint)
+
+        return respond
+
+    def ready(self, visibility: str, acceptance: str, runs: list[dict]) -> bool:
+        with (
+            patch.dict(os.environ, {"EIMIR_SUPPLY_CHAIN_EXCEPTION": acceptance}),
+            patch.object(channel, "gh_api", side_effect=self.api(visibility, runs)),
+            patch("sys.stdout", new_callable=io.StringIO),
+        ):
+            return channel.candidate_ready(SOURCE)
+
+    def without_codeql(self) -> list[dict]:
+        return [run for run in successful_runs() if run["path"] != channel.CODE_SCANNING_WORKFLOW]
+
+    def test_codeql_is_one_of_the_required_workflows(self):
+        self.assertIn(channel.CODE_SCANNING_WORKFLOW, channel.REQUIRED_WORKFLOWS)
+
+    def test_available_state_keeps_codeql_required_unchanged(self):
+        self.assertTrue(self.ready("public", "", successful_runs()))
+        self.assertFalse(self.ready("public", "", self.without_codeql()))
+        runs = successful_runs()
+        next(run for run in runs if run["path"] == channel.CODE_SCANNING_WORKFLOW)["conclusion"] = "failure"
+        with self.assertRaisesRegex(channel.ChannelError, "codeql.yml"):
+            self.ready("public", "", runs)
+
+    def test_unavailable_state_admits_the_regression_without_codeql(self):
+        output = io.StringIO()
+        with (
+            patch.dict(os.environ, {"EIMIR_SUPPLY_CHAIN_EXCEPTION": "decision-0019-d5"}),
+            patch.object(channel, "gh_api", side_effect=self.api("private", self.without_codeql())),
+            patch("sys.stdout", output),
+        ):
+            self.assertTrue(channel.candidate_ready(SOURCE))
+        self.assertIn("CodeQL is not a required workflow here", output.getvalue())
+        self.assertIn(channel.REPOSITORY, output.getvalue())
+
+    def test_unavailable_state_keeps_every_other_guarantee(self):
+        # Missing, failed, cancelled or skipped required work is still refused.
+        runs = self.without_codeql()
+        self.assertFalse(self.ready("private", "decision-0019-d5", runs[:-1]))
+        for conclusion in ("failure", "cancelled", "skipped"):
+            changed = [dict(run) for run in runs]
+            changed[0]["conclusion"] = conclusion
+            with self.subTest(conclusion=conclusion), self.assertRaises(channel.ChannelError):
+                self.ready("private", "decision-0019-d5", changed)
+
+    def test_unavailable_state_without_the_acceptance_is_refused(self):
+        for acceptance in ("", "yes"):
+            with self.subTest(acceptance=acceptance), self.assertRaisesRegex(
+                channel.ChannelError, "EIMIR_SUPPLY_CHAIN_EXCEPTION"
+            ):
+                self.ready("private", acceptance, self.without_codeql())
+
+    def test_acceptance_on_a_repository_with_code_scanning_is_refused(self):
+        with self.assertRaisesRegex(channel.ChannelError, "Remove the variable"):
+            self.ready("public", "decision-0019-d5", successful_runs())
+
+    def test_full_regression_gate_reads_the_same_state(self):
+        with (
+            patch.dict(os.environ, {"EIMIR_SUPPLY_CHAIN_EXCEPTION": "decision-0019-d5"}),
+            patch.object(channel, "gh_api", side_effect=self.api("private", self.without_codeql())),
+            patch.object(channel, "run") as command,
+            patch("sys.stdout", new_callable=io.StringIO),
+        ):
+            channel.require_full_regression(SOURCE, dispatch=True)
+        command.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
 

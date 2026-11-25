@@ -9,6 +9,8 @@ Momente > Erinnerungen rediscovers memories from the shared history. A **memory 
 - **Story** (`story`) is today's presentation and the default. Without a stored choice, Erinnerungen looks exactly as before.
 - **Stapel** (`stack`): a stack of prints. The top print is the focal point; swiping puts it back, tapping opens the memory.
 - **Momentwolke** (`cloud`): every memory floats as a bubble in a honeycomb cloud seen through a fisheye lens, large in the middle and tiny at the rim. The cloud follows the finger, glides on with momentum and settles on the nearest bubble; a tap grows a bubble into a card, a long press makes the cloud playful. Unlike the other worlds it shows the rediscovery selection **and the diary entries already loaded** (the first diary page, and further pages as the diary loads them), without duplicates. The diary part follows the Tagebuch filters currently applied.
+- **Fotoautomat** (`booth`): a photo booth that prints memories as strips of four pictures, in two device-local styles: a sixties cabin (Klassisch) and a modern booth with a camera and countdown (Modern). The style switch sits in the row of the world switch entry. Tapping a strip picks it up for a closer look; the open-in-diary action opens the memory.
+- **Kühlschranktür** (`fridge`): a fridge door with photos and notes held by colourful magnets. Items can be taken off and moved around (by touch and keyboard); a tap opens the memory. The items do not sway (Product Owner decision in the prototype review).
 - **Plattenkiste** (`crate`): a crate of records. Tapping the front sleeve puts the record on; the record "plays" the memory (synced lines and photos) and the open-in-diary action opens it.
 
 The setting lives in Settings > Appearance > "Erinnerungswelten", directly below the Momente layout: the current world with a small illustration, a sheet with all worlds as tiles (illustration, name, one sentence, Free label or Pro mark) and an explicit save. A quiet "Welt wechseln" entry above the Erinnerungen content leads to the setting; Back returns to Erinnerungen. The device-local switch that decides whether memories with sensitive photos appear in the worlds sits in the same section and is not stored on the server.
@@ -16,7 +18,7 @@ The setting lives in Settings > Appearance > "Erinnerungswelten", directly below
 ## Free and Pro
 
 - Story and Stapel are **Free/Core**.
-- Every alternative world (Plattenkiste, Momentwolke) is an optional **Pro** selection of the "Bespoke Themes, Covers & UI Personalization" row, capability `theme.bespoke_packs`, exactly like alternative app icons, Wir designs and person-colour pairs.
+- Every alternative world (Momentwolke, Fotoautomat, Plattenkiste, Kühlschranktür) is an optional **Pro** selection of the "Bespoke Themes, Covers & UI Personalization" row, capability `theme.bespoke_packs`, exactly like alternative app icons, Wir designs and person-colour pairs.
 - The backend checks the value in Core and calls `ensure_capability(theme.bespoke_packs)` after the membership check for a non-Free world only ([ADR 0017](../../decisions/0017-pro-plugin-seam.md): the capability is plugin-owned, the value check, the column and the enum stay Core). Without the Pro plugin a Pro world is refused under any grant (`403 PREMIUM_ENTITLEMENT_REQUIRED`); Free worlds keep working.
 - Free accounts see the Pro world with the Pro mark and a path to the Pro page; the client attempts no save without the capability.
 
@@ -32,7 +34,7 @@ The choice is personal to the Account within its Space and **never shared with t
 
 | Concern | Where |
 |---|---|
-| Value enum, default, Free set | `backend/src/eimir/appearance/models.py`: `MemoryWorldId` (`story`, `stack`, `crate`, `cloud`), `DEFAULT_MEMORY_WORLD`, `FREE_MEMORY_WORLDS`, `AppIconPreference.effective_memory_world` |
+| Value enum, default, Free set | `backend/src/eimir/appearance/models.py`: `MemoryWorldId` (`story`, `stack`, `crate`, `cloud`, `booth`, `fridge`), `DEFAULT_MEMORY_WORLD`, `FREE_MEMORY_WORLDS`, `AppIconPreference.effective_memory_world` |
 | Storage | column `app_icon_preferences.memory_world` (nullable `String(24)`, NULL means Story), migration `0179_memory_world.py` |
 | Save and concurrency | `backend/src/eimir/appearance/service.py` `save_memory_world`, through the shared `_save_selection`: one row and one ETag for all appearance choices of a person, so a stale token after another appearance save is a `409 RESOURCE_VERSION_CONFLICT` |
 | API | `GET` / `PATCH /api/v1/spaces/{spaceId}/appearance/memory-world` (`getMemoryWorldPreference` / `updateMemoryWorldPreference`), models `MemoryWorldPreferenceView` (`worldId`, `version`) and `MemoryWorldPreferencePatch` (`worldId`); own value only, `If-Match` required, `Cache-Control: private, no-store` |

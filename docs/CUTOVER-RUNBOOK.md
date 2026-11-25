@@ -383,6 +383,7 @@ switch, so the switch itself redeploys nothing.
 | Play upload key (later, not on D0) | `eimir-pro`, environment `production-release` | created when Play work resumes ([Google Play Billing](operations/google-play-billing.md)); that document's reference to the old repository's environment is updated then |
 | `EIMIR_TEST_CHANNEL_ENABLED`, `EIMIR_TEST_CHANNEL_PACKAGE_PREFIX`, `EIMIR_TEST_CHANNEL_PROMOTE` | `eimir-pro`, variables | C15 |
 | `EIMIR_PR_RUNNER` | `eimir-core`, variable `github-hosted` | C5 |
+| `EIMIR_SUPPLY_CHAIN_EXCEPTION` | `eimir-pro` only, variable `decision-0019-d5`; never in `eimir-core` | section 8, item D5; without it the evidence build in `eimir-pro` stops ([Private test channel](PRIVATE-TEST-CHANNEL.md#in-the-private-repository-no-attestations-and-no-codeql-decision-0019-d5)) |
 
 - Verify: `gh secret list --repo O/eimir-pro --env android-test-release` lists the four names plus the token;
   `gh secret list --repo O/eimir-core` is empty.
@@ -566,7 +567,9 @@ All of these in one rehearsal run, recorded with run links in #2183:
 - How `eimir-pro` learns of a new `eimir-core` `main` revision (section 8, item D2).
 - Artifact attestations are not available on a personal private repository, and CodeQL is not run there; the
   attestation and CodeQL requirements of the publisher and Release Evidence get an explicit, tested "not available on
-  this repository" state that the evidence records, never a silently skipped check (section 8, item D5).
+  this repository" state that the evidence records, never a silently skipped check (section 8, item D5). The
+  probe, the `supply-chain-state.json` record and the variable `EIMIR_SUPPLY_CHAIN_EXCEPTION` (C16) are described in
+  [SBOM and attestations, section 11](m6/SBOM-ATTESTATIONS.md#11-repositories-without-attestations-or-code-scanning-decision-0019-d5).
 - The Android publishing jobs move with the release branch into `eimir-pro` and publish to the location of item D1.
 - `status_drift` and the identity references of C20.
 - The `eimir-kvm-pr` routing in `ci.yml` is removed from the Core snapshot (the operator runner never serves

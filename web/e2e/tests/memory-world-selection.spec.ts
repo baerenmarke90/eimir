@@ -250,8 +250,8 @@ test('Free sees every world, keeps Pro worlds unsaved and saves Stapel', async (
   const opener = page.getByRole('button', { name: copy.change });
   await opener.click();
   const dialog = page.getByRole('dialog', { name: copy.choices });
-  await expect(dialog.getByRole('radio')).toHaveCount(4);
-  await expect(dialog.locator('.pro-mark')).toHaveCount(2);
+  await expect(dialog.getByRole('radio')).toHaveCount(6);
+  await expect(dialog.locator('.pro-mark')).toHaveCount(4);
   await dialog.getByRole('radio', { name: new RegExp(crate) }).check();
   await expect(
     dialog.getByRole('button', { name: copy.discover }),
@@ -462,4 +462,95 @@ test('Erinnerungen shows the Momentwolke with the loaded diary and opens a memor
   await page.keyboard.press('Escape');
   await expect(card).toHaveCount(0);
   await expect(cloud).toBeFocused();
+});
+
+test('Erinnerungen shows the Fotoautomat with its style switch beside the world switch', async ({
+  page,
+}, info) => {
+  await installMocks(page, true, 'booth');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page, '/story?tab=discover');
+  const world = page.locator('.memory-world[data-world="booth"]');
+  await expect(world).toBeVisible();
+  await expect(page.locator('.memory-world-stage')).toHaveAttribute(
+    'data-entered',
+    'true',
+  );
+  // The Klassisch/Modern switch sits in the row of the world switch entry.
+  const row = page.locator('.memory-world-switch');
+  const styles = row.getByRole('group', { name: worlds.booth.styleLabel });
+  await expect(styles).toBeVisible();
+  const classic = styles.getByRole('button', {
+    name: worlds.booth.style.classic,
+  });
+  const modern = styles.getByRole('button', {
+    name: worlds.booth.style.modern,
+  });
+  await expect(classic).toHaveAttribute('aria-pressed', 'true');
+  await page.waitForTimeout(600);
+  await capture(page, info, 'memory-worlds-booth-classic-390-light.png');
+  await modern.click();
+  await expect(modern).toHaveAttribute('aria-pressed', 'true');
+  await page.waitForTimeout(600);
+  await capture(page, info, 'memory-worlds-booth-modern-390-light.png');
+  const accessibility = await new AxeBuilder({ page })
+    .include('.memory-world')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(accessibility.violations).toEqual([]);
+  // The style is a device-local choice and survives a reload.
+  await page.reload();
+  await expect(
+    page
+      .locator('.memory-world-switch')
+      .getByRole('button', { name: worlds.booth.style.modern }),
+  ).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('Erinnerungen shows the Kühlschranktür; a note moves by keyboard and opens', async ({
+  page,
+}, info) => {
+  await installMocks(page, true, 'fridge');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page, '/story?tab=discover');
+  const world = page.locator('.memory-world[data-world="fridge"]');
+  await expect(world).toBeVisible();
+  await expect(page.locator('.memory-world-stage')).toHaveAttribute(
+    'data-entered',
+    'true',
+  );
+  await expect(
+    world.getByRole('group', {
+      name: worlds.fridge.label_other.replace('{{count}}', '3'),
+    }),
+  ).toBeVisible();
+  await page.waitForTimeout(900);
+  await capture(page, info, 'memory-worlds-fridge-390-light.png');
+  const note = world.getByRole('button', { name: /Morning by the lake/ });
+  await note.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(
+    page.getByText(
+      worlds.fridge.moved.right.replace('{{title}}', 'Morning by the lake'),
+    ),
+  ).toBeAttached();
+  await page.keyboard.press('Enter');
+  const card = page.getByRole('dialog');
+  await expect(card).toBeVisible();
+  await page.waitForTimeout(700);
+  await capture(page, info, 'memory-worlds-fridge-card-390-light.png');
+  const accessibility = await new AxeBuilder({ page })
+    .include('.memory-world')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(accessibility.violations).toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(card).toHaveCount(0);
+  await expect(note).toBeFocused();
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.waitForTimeout(400);
+  await capture(page, info, 'memory-worlds-fridge-390-dark.png');
+  await page.setViewportSize({ width: 1280, height: 860 });
+  await page.waitForTimeout(600);
+  await capture(page, info, 'memory-worlds-fridge-1280-dark.png');
 });

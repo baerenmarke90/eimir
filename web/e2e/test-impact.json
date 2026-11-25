@@ -72,7 +72,8 @@
         "web/src/components/memoryWorlds/WorldArt.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/MemoryWorldSwitch.tsx",
-        "web/src/components/memoryWorlds/MemoryWorldView.tsx"
+        "web/src/components/memoryWorlds/MemoryWorldView.tsx",
+        "web/src/components/memoryWorlds/MomentCloudWorld.tsx"
       ]
     },
     "browser-push.spec.ts": {

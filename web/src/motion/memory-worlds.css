@@ -1,24 +1,30 @@
 /*
  * The motion layer's catalogue for the memory worlds of Momente ›
- * Erinnerungen (#2283): the Stapel (stack of prints) and the Plattenkiste
- * (record crate and turntable).
+ * Erinnerungen (#2283): the Stapel (stack of prints), the Plattenkiste
+ * (record crate and turntable) and the Momentwolke (bubble cloud).
  *
- * World-scoped timing roles, keyframes and the two turntable loops live
- * here; the world stylesheets only consume the roles. Every animation and
- * transition of the worlds is declared inside
- * `prefers-reduced-motion: no-preference`, so reduced motion shows the
- * final states at once. The turntable loops (sheen, level meter) run only
- * while the platter motor is on (`data-motor="on"`).
+ * World-scoped timing roles, keyframes and the worlds' loops live here; the
+ * world stylesheets only consume the roles. Every animation and transition
+ * of the worlds is declared inside `prefers-reduced-motion: no-preference`,
+ * so reduced motion shows the final states at once. The turntable loops
+ * (sheen, level meter) run only while the platter motor is on
+ * (`data-motor="on"`); the cloud's glow drift runs for
+ * `--motion-ambient-repeat` cycles and pauses while the stage is not seen
+ * (`data-ambient`), its playful jiggle only while the playful mode is on
+ * (`data-wiggle="true"`).
  *
  * The values were tuned on device with the Product Owner (Pixel 10 Pro Fold,
  * 2026-11-24/25) and are kept unchanged from the accepted prototype.
- * Imported by `StackWorld.tsx` and `RecordCrateWorld.tsx`.
+ * Imported by `StackWorld.tsx`, `RecordCrateWorld.tsx` and
+ * `MomentCloudWorld.tsx`.
  */
 
 /* Shared easings: the exact CSS keyword curves, as named roles. */
 .memory-world,
 .memory-stack-world,
-.memory-crate-world {
+.memory-crate-world,
+.memory-cloud-world,
+.memory-cloud-modal {
   --memory-world-easing-in: cubic-bezier(0.42, 0, 1, 1);
   --memory-world-easing-out: cubic-bezier(0, 0, 0.58, 1);
   --memory-world-easing-in-out: cubic-bezier(0.42, 0, 0.58, 1);
@@ -285,5 +291,93 @@
   }
   to {
     transform: translateX(420%);
+  }
+}
+
+/* ---------- Momentwolke ---------- */
+
+.memory-cloud-world,
+.memory-cloud-modal {
+  /* The card's clip grows out of the bubble's circle and back into it. */
+  --memory-cloud-curve-out: cubic-bezier(0.3, 0.7, 0.1, 1);
+  --memory-cloud-curve-close: cubic-bezier(0.4, 0, 0.2, 1);
+  --memory-cloud-clip-open-duration: 520ms;
+  --memory-cloud-clip-close-duration: 380ms;
+  /* Crossfades: the glow behind the centre bubble, the playful ring. */
+  --memory-cloud-fade-easing: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --memory-cloud-glow-duration: 1100ms;
+  --memory-cloud-ring-duration: 400ms;
+  /* The centre pill's text arrives with each new centre memory. */
+  --memory-cloud-pill-duration: 420ms;
+  /* The glow wanders slowly behind the cloud. */
+  --memory-cloud-drift-duration: 24s;
+  /* Playful mode: each bubble jiggles at its own pace and phase
+     (`--memory-cloud-jiggle-spread` and `-phase` are set per bubble, 0..1). */
+  --memory-cloud-jiggle-duration: 250ms;
+  --memory-cloud-jiggle-range: 90ms;
+  --memory-cloud-jiggle-period: 300ms;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .memory-cloud-glow-drift {
+    animation: eimir-motion-memory-cloud-drift
+      var(--memory-cloud-drift-duration) var(--memory-world-easing-in-out)
+      var(--motion-ambient-repeat) alternate both;
+  }
+  .memory-cloud-pill-inner {
+    animation: eimir-motion-memory-cloud-pill-in
+      var(--memory-cloud-pill-duration) var(--memory-cloud-curve-out) both;
+  }
+  .memory-cloud-stage[data-wiggle="true"] .memory-cloud-bubble-body {
+    animation: eimir-motion-memory-cloud-jiggle
+      calc(
+        var(--memory-cloud-jiggle-duration) +
+        var(--memory-cloud-jiggle-spread, 0) *
+        var(--memory-cloud-jiggle-range)
+      )
+      var(--memory-world-easing-in-out)
+      calc(
+        var(--memory-cloud-jiggle-phase, 0) *
+        -1 *
+        var(--memory-cloud-jiggle-period)
+      )
+      infinite alternate;
+  }
+  /* Not seen (page hidden, kept view hidden, off screen): pause in place. */
+  .memory-cloud-stage:not([data-ambient="on"]) .memory-cloud-glow-drift,
+  .memory-cloud-stage:not([data-ambient="on"]) .memory-cloud-bubble-body {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes eimir-motion-memory-cloud-drift {
+  0% {
+    transform: translate3d(-4%, 3%, 0) rotate(-6deg) scale(1.04);
+  }
+  50% {
+    transform: translate3d(3%, 4%, 0) rotate(3deg) scale(0.98);
+  }
+  100% {
+    transform: translate3d(5%, -3%, 0) rotate(8deg) scale(1.03);
+  }
+}
+
+@keyframes eimir-motion-memory-cloud-pill-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-memory-cloud-jiggle {
+  from {
+    transform: rotate(-2.4deg) translate3d(-0.8%, 0.5%, 0);
+  }
+  to {
+    transform: rotate(2.4deg) translate3d(0.8%, -0.5%, 0);
   }
 }

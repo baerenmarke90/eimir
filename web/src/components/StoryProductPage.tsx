@@ -984,6 +984,9 @@ export function StoryProductPage({
                       : t('story.featuredKicker')
                   }
                   items={curatedItems}
+                  moreItems={
+                    memoryWorld === 'cloud' ? timelineItems : undefined
+                  }
                   loadMemoryImage={loadMemoryImage}
                   onOpen={openDiscoverItem}
                   nicknameFor={nicknameFor}

@@ -1,7 +1,8 @@
 # Decision 0019: Repository split and the cut-over day
 
 **Status:** Proposed; becomes accepted when the Product Owner merges the pull request  
-**Date:** November 22, 2026  
+**Date:** November 22, 2026; amended November 25, 2026 (see
+[Addendum of November 25, 2026](#addendum-of-november-25-2026-names-sideload-channel-and-operator-runner))  
 **Owning issue:** [#2183](https://github.com/baerenmarke90/eimir/issues/2183)  
 **Builds on:** [Decision 0017](0017-pro-plugin-seam.md) (Pro plugin seam),
 [Decision 0018](0018-cloud-first-self-hosted-later.md) (Cloud first, Self-Hosted later),
@@ -77,9 +78,9 @@ structure is ready, so the pipeline is built once.
 | --- | --- | --- | --- | --- |
 | 0 | Stay public. No new Pro code (v2.0 is postponed). Scan all refs for secrets and rotate real ones. Choose names for the new repositories and packages. | 0 | Decisions above | n/a |
 | 0b | Publish new images only under new private package names; the test host pulls with a read-only credential. | 0 extra | The test instance deploys from the private images | Point the deployment back to the old digests |
-| 1 | Phase 2 relocation in the public repository; allow-list export with its gates (no plugin import, Core-only start, no Pro-only package data); decide how the OpenAPI contract and clients are exported. | 0 (public) | Core-only start and no-plugin-import checks green on the export tree | Revert; nothing visible has changed |
+| 1 | Phase 2 relocation in the public repository; allow-list export with its gates (no plugin import, Core-only start, no Pro-only package data); export the full OpenAPI contract and the clients. | 0 (public) | Core-only start and no-plugin-import checks green on the export tree | Revert; nothing visible has changed |
 | 2 | Rehearsal in throwaway private repositories: build the official image from a pinned Core revision plus Pro, publish a test channel to a staging project, build a signed test APK, test the update path. | Small | One full dry run including the Android update location and the deployment tool | Delete the rehearsal repositories |
-| 3 | **Cut-over day:** the public Core repository receives the snapshot (new package names, licences, CLA); the private Pro and release repository goes live; the old repository is set private and archived after the `git bundle` backup; the deployment tool and the update location switch. | Core 0 | A trivial pull request in each repository; the test channel advances the test instance from the private repository | Re-enable the old repository's workflows and keep developing there |
+| 3 | **Cut-over day:** the public Core repository receives the snapshot (new package names, licences, CLA); the private Pro and release repository goes live; the old repository is set private, renamed `eimir-archive` and archived after the `git bundle` backup; the deployment tool and the update location switch. | Core 0 | A trivial pull request in each repository; the test channel advances the test instance from the private repository | Re-enable the old repository's workflows and keep developing there |
 | 4 | After the Product Owner approves each item: retire old public artifacts (packages, releases). | 0 | The replacements have been in use for at least 7 days | Packages are restorable for 30 days; immutable releases are not |
 
 The cut-over happens before the first Play **production** rollout. Until then the test channel stays on the current
@@ -99,6 +100,83 @@ pipeline.
   outweighs it, and because Pro changes are expected to be rare until v2.0.
 - **Adjustments to the Pro functions that exist today** are made in the public repository until the freeze window
   before the snapshot, and in the private repository afterwards.
+
+## Addendum of November 25, 2026: names, sideload channel and operator runner
+
+The Product Owner decided further points on November 25, 2026. They resolve open points of this decision and
+narrow one security rule; nothing else in the decision changes.
+
+### Names of the repositories and packages
+
+- The new public Core repository is **`eimir-core`**.
+- The private Pro and release repository is **`eimir-pro`**. This is also the name of the Pro plugin distribution
+  (`eimir_pro`, [#2182](https://github.com/baerenmarke90/eimir/issues/2182)); the repository holds that distribution
+  and the release pipeline, so the shared name is intentional.
+- Both names were free under `baerenmarke90` on GitHub when checked on November 25, 2026.
+- The old repository is renamed **`eimir-archive`** when it is set private and archived at the cut-over. GitHub
+  redirects the old URL to the renamed repository, and the name `eimir` is not reused for another repository.
+- The package names of the private images stay `eimir-cloud-backend`, `eimir-cloud-web` and `eimir-cloud-media`
+  ([`PRIVATE-TEST-CHANNEL.md`](../PRIVATE-TEST-CHANNEL.md)).
+
+### The sideload channel ends with Google Play
+
+The Android sideload channel (the signed test APK with its removable updater) ends once the app is available in
+Google Play, meaning its first public release there (the Product Owner's decision, here translated: "as soon as the app is in the Play Store"). No date is
+set and none is assumed here. Until then the updater location and the test channel must keep working across the cut-over; the
+rehearsal (phase 2) proves both before the day.
+
+### An operator-owned runner may serve the private repository only
+
+This amends the rule "Pull-request code never runs on a self-hosted runner under this decision" in the cross-cutting
+consequences. The amended rule is:
+
+- An **operator-owned runner** may serve the **private Pro and release repository**. The runner is a KVM virtual
+  machine on a rented dedicated server and holds no production secrets. It is registered per repository, and several
+  runners may share one label.
+- It is acceptable there because only the owner's pull requests exist in that repository.
+- It **must not** serve the public Core repository, and it **must not** run pull-request workflows from forks.
+- Signing, publishing, provenance and attestation steps **stay on GitHub-hosted runners**, so no signing material and
+  no attestation identity ever reaches the operator's machine.
+
+Evidence from a throwaway benchmark on November 25, 2026 (a private test repository, since deleted), compared with a
+GitHub-hosted two-vCPU runner:
+
+| Job | Operator runner | GitHub-hosted runner |
+| --- | --- | --- |
+| Web steps | 106 s | 419 s |
+| Backend Integration, shard 1 of 4 | about 676 to 686 s alone; 849 to 856 s with five jobs in parallel | 899 s |
+| Browser full regression, shard 1 of 4 | 28.9 min alone; 30.7 to 30.9 min with five jobs in parallel | 37.0 min |
+
+Five parallel runners were measured; six were not. The server saves money, not wall-clock time, for a full pull
+request: the Web steps are about four times faster, but the long shards are only about 5 percent (Backend
+Integration) and 17 percent (Browser) faster than on GitHub under five parallel jobs, and the main gain is not being
+billed per minute.
+
+Operational requirements found by the benchmark:
+
+- Parallel jobs need a **dynamic Postgres host port**; a fixed port makes concurrent jobs collide.
+- Container jobs leave **root-owned files** in the runner workspace, so the workspace needs a cleanup step that can
+  remove them.
+- Use `uv python install 3.14` instead of a fixed patch version, because a fixed patch version was not available.
+
+**The cost saving is not proven.** It depends on how many private-repository minutes remain after the split, because
+Core CI becomes free in the public repository. That remaining volume was not measured. The runner is therefore an
+option the private repository may use, not a commitment.
+
+### The OpenAPI contract: the full contract is public
+
+The public `eimir-core` repository checks in the **full OpenAPI contract, including all Pro routes**. The public
+clients contain the Pro screens and must be checkable there, and the Pro route names are already public. The cost is
+that a change to the Pro interface needs a contract pull request in the public repository as well, Core first.
+
+### Licence of the private repository
+
+`eimir-pro` is **proprietary, all rights reserved**, with no open licence. A paying Self-Hosted operator would later
+receive the Pro package under a commercial licence agreement in the spirit of `COMMERCIAL-LICENSE.md`. The wording of
+that agreement is **not written now** and needs legal counsel before the first Self-Hosted delivery; open decision 6
+of Decision 0017 stays open for the wording only. No CLA is needed in the private repository while only the owner
+works there; employees or contractors would need contracts. The public code stays under PolyForm Noncommercial 1.0.0,
+unchanged.
 
 ## Alternatives considered
 
@@ -134,21 +212,25 @@ repository split needs them; Self-Hosted offering and licensing (#2087) stay def
 
 - **Security and secrets:** signing keys, store credentials and the official build secrets live only in the private
   repository; a public repository never receives them. A secret scan over all refs runs before the snapshot, and real
-  secrets found are rotated. Pull-request code never runs on a self-hosted runner under this decision.
+  secrets found are rotated. Pull-request code never runs on a self-hosted runner under this decision, except as
+  narrowed by the November 25, 2026 addendum: an operator-owned runner may serve the private Pro and release
+  repository only, never the public Core repository and never pull requests from forks.
 - **Privacy and provenance:** the old repository is archived, not deleted, because it carries the Clean-Room and
   licensing evidence. `PROVENANCE.md` assets are split between the public and the private repository before the
   snapshot. The legal question on the copyright of AI-assisted code stays with its own issue.
 - **Data lifecycle and migrations:** no migration changes by this decision. Phase 2 keeps the existing Core
   migration chain unchanged.
-- **API and contracts:** the OpenAPI contract of the clients must stay checkable in the public repository. How
-  (full contract checked in, or a Core-only contract plus a private check) is decided in Phase 1 before the export
-  is written.
+- **API and contracts:** the OpenAPI contract of the clients must stay checkable in the public repository. The full
+  contract, including Pro routes, is checked in there (addendum of November 25, 2026); a change to the Pro interface
+  needs a contract pull request in the public repository too, Core first.
 - **Operations:** the deployment tool pulls the official image from a private package with a read-only credential.
   The work record moves: issue and pull request numbers restart in the new repositories, and links to the archive use
   the full `owner/repo#number` form. Status tooling that reads issue numbers (`status_drift`, the implementation
   status document) is parametrised for the new tracker or kept out of the public repository.
 - **Release channel:** the Android update channel and the test channel change their source location at cut-over; the
-  rehearsal proves both before the day.
+  rehearsal proves both before the day. The sideload channel ends once the app is available in Google Play (addendum
+  of November 25, 2026), so until then the updater location and the test channel must keep working across the
+  cut-over.
 - **Testing:** each phase has a gate in the table above; the cut-over is not done without a successful rehearsal.
 - **Not affected:** user-facing text, accessibility, localisation and performance.
 
@@ -164,8 +246,12 @@ repository split needs them; Self-Hosted offering and licensing (#2087) stay def
 
 ## Open points
 
-- Names of the new repositories and packages.
-- Whether the Core repository carries a full or a Core-only OpenAPI contract (decided in phase 1).
-- The location of the Android update channel after the cut-over, and how long the sideload channel lives after the
-  first Play internal test.
-- The licence of the private repository (open decision 6 of Decision 0017).
+- ~~Names of the new repositories and packages.~~ Resolved on November 25, 2026: `eimir-core`, `eimir-pro`, package
+  names unchanged (see the addendum).
+- ~~Whether the Core repository carries a full or a Core-only OpenAPI contract.~~ Resolved on November 25, 2026: the
+  full contract, including Pro routes (see the addendum).
+- The location of the Android update channel after the cut-over. Still open and proven by the rehearsal. How long the
+  sideload channel lives is resolved: it ends once the app is available in Google Play (see the addendum).
+- The wording of the commercial licence agreement for Self-Hosted Pro delivery (open decision 6 of Decision 0017).
+  Still open; needs legal counsel before the first Self-Hosted delivery. The private repository itself is proprietary
+  (see the addendum).

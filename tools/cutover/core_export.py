@@ -457,12 +457,48 @@ def uv_command(project: Path) -> list[str]:
     return [uvx, "--from", f"uv=={required}", "uv"]
 
 
+def locked_packages(text: str) -> dict[str, tuple[str, str]]:
+    """Name -> (version, source) of every package in a uv lockfile."""
+    data = tomllib.loads(text)
+    return {
+        package["name"]: (
+            str(package.get("version", "")),
+            json.dumps(package.get("source", {}), sort_keys=True),
+        )
+        for package in data.get("package", [])
+    }
+
+
+def check_lock_only_removes(path: str, before: str, after: str) -> list[str]:
+    """The re-locked file may drop packages but must not add or change one."""
+    old, new = locked_packages(before), locked_packages(after)
+    problems = [f"{path}: {name} is new in the re-locked file" for name in sorted(set(new) - set(old))]
+    problems += [
+        f"{path}: {name} changed from {old[name][0]} to {new[name][0]}"
+        for name in sorted(set(new) & set(old))
+        if old[name] != new[name]
+    ]
+    return problems
+
+
 def regenerate_uv_lock(out: Path, path: str) -> None:
-    project = out.joinpath(*path.split("/")).parent
-    command = [*uv_command(project), "lock", "--offline"]
+    """Lock again without the excluded workspace members.
+
+    uv keeps the versions of the existing lockfile; the check below turns that
+    expectation into a gate, so a re-lock that resolves anything anew fails.
+    The index is reachable (an empty cache cannot lock offline); nothing is
+    upgraded because ``--upgrade`` is not passed.
+    """
+    target = out.joinpath(*path.split("/"))
+    project = target.parent
+    before = long_path(target).read_text(encoding="utf-8")
+    command = [*uv_command(project), "lock"]
     result = subprocess.run(command, cwd=project, capture_output=True, text=True, check=False)
     if result.returncode != 0:
         raise ExportError(f"{path}: {' '.join(command)} failed:\n{result.stderr.strip()}")
+    problems = check_lock_only_removes(path, before, long_path(target).read_text(encoding="utf-8"))
+    if problems:
+        raise ExportError("\n".join(problems))
 
 
 REGENERATORS = {"uv-lock": regenerate_uv_lock}

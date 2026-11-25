@@ -236,6 +236,32 @@ class PatternTest(unittest.TestCase):
         self.assertEqual(core_export.drop_markdown_sections("x.md", text, ["A"]), "## C\n")
 
 
+class LockCheckTest(unittest.TestCase):
+    A = '[[package]]|name = "a"|version = "1.0"|source = { registry = "https://pypi.org/simple" }|'
+    PRO = '[[package]]|name = "pro"|version = "0.1"|source = { editable = "pro" }|'
+
+    @staticmethod
+    def lock(*parts: str) -> str:
+        return "".join(parts).replace("|", chr(10))
+
+    def test_dropping_packages_is_accepted(self) -> None:
+        before = self.lock(self.A, self.PRO)
+        self.assertEqual(core_export.check_lock_only_removes("uv.lock", before, self.lock(self.A)), [])
+
+    def test_a_changed_or_new_package_fails(self) -> None:
+        before = self.lock(self.A)
+        changed = before.replace('version = "1.0"', 'version = "2.0"')
+        added = self.lock(self.A, '[[package]]|name = "b"|version = "1"|')
+        self.assertEqual(
+            core_export.check_lock_only_removes("uv.lock", before, changed),
+            ["uv.lock: a changed from 1.0 to 2.0"],
+        )
+        self.assertEqual(
+            core_export.check_lock_only_removes("uv.lock", before, added),
+            ["uv.lock: b is new in the re-locked file"],
+        )
+
+
 class AllowlistConfigTest(ExportTestCase):
     def test_the_real_allowlist_loads(self) -> None:
         config = core_export.load_config(REAL_ALLOWLIST)

@@ -19,8 +19,8 @@ holds the tool that produces the public Core tree and the checks it must pass. I
    workflows) stops the export even if an include rule was widened by mistake. A manifest records every file with
    its SHA-256, and every excluded file with the rule that excluded it.
 2. **Transforms.** Three included files change: `backend/pyproject.toml` no longer names the plugin distributions,
-   `backend/uv.lock` is locked again without them (`uv lock --offline` with the pinned uv; the third-party versions
-   stay as locked), and `PROVENANCE.md` loses the two sections about the editorial Pro catalogs. A transform whose
+   `backend/uv.lock` is locked again without them (`uv lock` with the pinned uv; the export fails
+   unless the new lockfile only drops packages and keeps every other version and source), and `PROVENANCE.md` loses the two sections about the editorial Pro catalogs. A transform whose
    text no longer matches exactly once fails the export, so it is reviewed again instead of silently drifting.
 3. **Gates on the output tree** (each fails loudly; a missing tool fails, a skipped gate is reported as skipped):
 

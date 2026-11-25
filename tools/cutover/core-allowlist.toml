@@ -292,7 +292,7 @@ new = 'files = ["src"]'
 
 [[transform]]
 path = "backend/uv.lock"
-reason = "Locked again without the excluded workspace members; the third-party versions stay as locked (uv lock --offline with the pinned uv)."
+reason = "Locked again without the excluded workspace members; with the pinned uv; the export fails if the new lockfile adds or changes any package instead of only dropping some."
 regenerate = "uv-lock"
 
 [[transform]]

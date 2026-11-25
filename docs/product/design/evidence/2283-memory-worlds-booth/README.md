@@ -25,6 +25,7 @@ strip) and Modern (a booth with camera, countdown and printer). Earlier stages:
 | `preview-booth-modern-strip-390-light.jpg` | The printed strip of four pictures (notes and a photo) with the span of years and the follow-up actions |
 | `preview-booth-modern-390-dark.jpg` | Modern in Dark |
 | `preview-booth-classic-390-dark.jpg` | Klassisch in Dark, with the coin hint below the cabin |
+| `stack-plain-notes-390-dark.png` | Product Owner correction in this PR: Stapel notes (memories without a photo) are plain paper without ruled lines |
 | `preview-booth-classic-1280-light.jpg` | Expanded: the cabin centred at the world reading width; the style switch and the world switch stay at the ends of the toolbar row |
 
 ## Behaviour exercised

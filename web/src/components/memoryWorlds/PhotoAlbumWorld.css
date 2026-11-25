@@ -594,7 +594,7 @@
   margin-inline-start: calc(18 * var(--cu));
 }
 
-/* Pair: two portrait photos side by side, staggered. */
+/* Pair: two portrait photos next to each other, staggered. */
 .memory-album-spread[data-layout="pair"] {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: calc(3.5 * var(--cu));

@@ -20,6 +20,7 @@ on:
     paths:
       - ".github/workflows/release-publish.yml"
       - "scripts/test_deployment_channel.py"
+      - ".github/workflows/core-advance.yml"
       - "scripts/image_archive_config.py"
       - "deploy/push-fcm.compose.yaml"
       - "tools/ci/test_test_deployment_channel.py"
@@ -50,6 +51,14 @@ on:
         required: true
         default: false
         type: boolean
+      core_revision:
+        description: Test channel with a pinned Core repository only; the Core commit that Core Advance tested. Leave empty otherwise.
+        required: false
+        type: string
+      core_advance_run:
+        description: Test channel with a pinned Core repository only; the Core Advance run whose Pro tests passed. Leave empty otherwise.
+        required: false
+        type: string
       release_version:
         description: SemVer product version without the v prefix.
         required: true
@@ -1480,9 +1489,12 @@ jobs:
           python3 tools/ci/test_release_evidence.py
 
   test-checked-main:
-    name: Check completed main
+    # Core Advance finds its publication by this name (Decision 0019, runbook D2).
+    name: ${{ inputs.core_revision && format('Check Core {0}', inputs.core_revision) || 'Check completed main' }}
+    # The publishing repository is a plain Actions variable so the channel can move
+    # to the private Pro repository and its rehearsal; unset keeps the monorepo.
     if: >-
-      github.repository == 'baerenmarke90/eimir' &&
+      github.repository == (vars.EIMIR_TEST_CHANNEL_REPOSITORY || 'baerenmarke90/eimir') &&
       ((github.event_name == 'workflow_run' &&
         github.event.workflow_run.event == 'workflow_dispatch' &&
         github.event.workflow_run.conclusion == 'success' &&
@@ -1498,6 +1510,8 @@ jobs:
       actions: read
     outputs:
       ready: ${{ steps.check.outputs.ready }}
+      # Empty in the monorepo; the pinned Core revision when Core is separate.
+      core_revision: ${{ steps.check.outputs.core_revision }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -1506,6 +1520,14 @@ jobs:
         id: check
         env:
           GH_TOKEN: ${{ github.token }}
+          EIMIR_TEST_CHANNEL_REPOSITORY: ${{ vars.EIMIR_TEST_CHANNEL_REPOSITORY }}
+          EIMIR_TEST_CHANNEL_INSTANCE: ${{ vars.EIMIR_TEST_CHANNEL_INSTANCE }}
+          EIMIR_CORE_REPOSITORY: ${{ vars.EIMIR_CORE_REPOSITORY }}
+          # Only for a private Core repository (the rehearsal); never needed or
+          # stored in a public Core repository.
+          EIMIR_CORE_READ_TOKEN: ${{ secrets.EIMIR_CORE_READ_TOKEN }}
+          EIMIR_CORE_REVISION: ${{ inputs.core_revision }}
+          EIMIR_CORE_ADVANCE_RUN: ${{ inputs.core_advance_run }}
           # CodeQL is required unless this repository records it as unavailable (D5).
           EIMIR_SUPPLY_CHAIN_EXCEPTION: ${{ vars.EIMIR_SUPPLY_CHAIN_EXCEPTION }}
         run: >-
@@ -1527,6 +1549,11 @@ jobs:
       android_version_code: 0
       android_api_base_url: ''
       release_version: 0.0.0-test.${{ github.run_id }}
+      # Both empty in the monorepo: Core is this checkout.
+      core_repository: ${{ needs.test-checked-main.outputs.core_revision && vars.EIMIR_CORE_REPOSITORY || '' }}
+      core_revision: ${{ needs.test-checked-main.outputs.core_revision }}
+    secrets:
+      EIMIR_CORE_READ_TOKEN: ${{ secrets.EIMIR_CORE_READ_TOKEN }}
 
   test-publish:
     concurrency:
@@ -1535,7 +1562,7 @@ jobs:
       # Preserve pending candidates across revisions; each rechecks current main.
       queue: max
     name: Publish images and promote one Git Sync commit
-    needs: test-evidence
+    needs: [test-checked-main, test-evidence]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -1564,9 +1591,17 @@ jobs:
           # promotion; both are plain Actions variables, never secrets.
           EIMIR_TEST_CHANNEL_PACKAGE_PREFIX: ${{ vars.EIMIR_TEST_CHANNEL_PACKAGE_PREFIX }}
           EIMIR_TEST_CHANNEL_PROMOTE: ${{ vars.EIMIR_TEST_CHANNEL_PROMOTE }}
+          # Decision 0019: publishing repository, instance and Core source; all
+          # unset in the monorepo, which keeps today's channel exactly.
+          EIMIR_TEST_CHANNEL_REPOSITORY: ${{ vars.EIMIR_TEST_CHANNEL_REPOSITORY }}
+          EIMIR_TEST_CHANNEL_INSTANCE: ${{ vars.EIMIR_TEST_CHANNEL_INSTANCE }}
+          EIMIR_CORE_REPOSITORY: ${{ vars.EIMIR_CORE_REPOSITORY }}
+          EIMIR_CORE_READ_TOKEN: ${{ secrets.EIMIR_CORE_READ_TOKEN }}
+          CORE_REVISION: ${{ needs.test-checked-main.outputs.core_revision }}
         run: >-
           python3 scripts/test_deployment_channel.py publish
           --revision "$GITHUB_SHA" --artifact-root release-evidence --output test-channel
+          --core-revision "$CORE_REVISION"
       - name: Remove registry credentials
         if: always()
         run: docker logout ghcr.io

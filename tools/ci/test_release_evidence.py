@@ -230,7 +230,13 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
                 self.assertNotIn(marker, self.workflow)
         self.assertEqual(
             set(re.findall(r"secrets\.([A-Za-z0-9_]+)", self.workflow)),
-            {"EIMIR_ANDROID_GOOGLE_SERVICES_JSON"},
+            {"EIMIR_ANDROID_GOOGLE_SERVICES_JSON", "EIMIR_CORE_READ_TOKEN"},
+        )
+        # Decision 0019: the optional read token of a private Core repository
+        # (the rehearsal) is used for the pinned Core checkout only.
+        self.assertEqual(
+            re.findall(r"^.*secrets\.EIMIR_CORE_READ_TOKEN.*$", self.workflow, re.MULTILINE),
+            ["          token: ${{ secrets.EIMIR_CORE_READ_TOKEN || github.token }}"],
         )
 
     def test_all_external_actions_are_immutable_sha_pins(self) -> None:

@@ -14,9 +14,11 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import time
+import tomllib
 import urllib.error
 import urllib.request
 from functools import lru_cache
@@ -26,8 +28,30 @@ import image_archive_config
 import release_manifest
 import supply_chain_state
 
-REPOSITORY = "baerenmarke90/eimir"
-CHANNEL_BRANCH = "deploy/eimir-test"
+# Decision 0019: the channel moves from the old monorepo to the private Pro and
+# release repository, and a rehearsal runs it in throwaway repositories first.
+# The publishing repository, the deployment instance and the Core source are
+# therefore plain Actions variables (never secrets). Unset or empty variables
+# reproduce the monorepo behaviour exactly: repository baerenmarke90/eimir,
+# instance eimir-test (branch deploy/eimir-test) and Core from the same checkout.
+REPOSITORY_ENV = "EIMIR_TEST_CHANNEL_REPOSITORY"
+DEFAULT_REPOSITORY = "baerenmarke90/eimir"
+INSTANCE_ENV = "EIMIR_TEST_CHANNEL_INSTANCE"
+DEFAULT_INSTANCE = "eimir-test"
+# Split mode: the official image is built from a pinned revision of this public
+# Core repository plus the publishing (Pro) repository's own tree.
+CORE_REPOSITORY_ENV = "EIMIR_CORE_REPOSITORY"
+# Only for a private Core repository (the rehearsal): a fine-grained token that
+# can read that one repository. It is stored in the Pro repository, never in the
+# Core repository; a public Core needs no token.
+CORE_TOKEN_ENV = "EIMIR_CORE_READ_TOKEN"
+# GitHub owner names: letters, digits and single inner hyphens, at most 39
+# characters. Repository names are `eimir` or `eimir-` plus lowercase segments,
+# like the package prefix below.
+REPOSITORY_PATTERN = re.compile(
+    r"(?P<owner>[A-Za-z0-9](?:-?[A-Za-z0-9])*)/(?P<name>eimir(?:-[a-z0-9]+)*)"
+)
+INSTANCE_PATTERN = re.compile(r"eimir(?:-[a-z0-9]+)+")
 # Phase 0b of Decision 0019: the channel publishes to the private GHCR packages
 # eimir-cloud-{backend,web,media}. The legacy prefix "eimir" names the old public
 # packages and stays selectable only as an explicit rollback. Both settings are
@@ -95,6 +119,67 @@ class GitHubError(ChannelError):
         self.missing = missing
 
 
+def _repository_setting(name: str, value: str) -> str:
+    match = REPOSITORY_PATTERN.fullmatch(value)
+    if not match or len(match["owner"]) > 39:
+        raise ChannelError(
+            f"{name} must be OWNER/eimir or OWNER/eimir- followed by lowercase "
+            "letters, digits and single hyphens"
+        )
+    return value
+
+
+def publishing_repository() -> str:
+    """The only repository that may publish; unset or empty keeps the monorepo."""
+    value = os.environ.get(REPOSITORY_ENV, "").strip()
+    return _repository_setting(REPOSITORY_ENV, value) if value else DEFAULT_REPOSITORY
+
+
+def core_repository() -> str | None:
+    """The public Core repository in split mode; None builds Core from this checkout."""
+    value = os.environ.get(CORE_REPOSITORY_ENV, "").strip()
+    if not value:
+        return None
+    _repository_setting(CORE_REPOSITORY_ENV, value)
+    publisher = publishing_repository()
+    if value == publisher:
+        raise ChannelError(
+            f"{CORE_REPOSITORY_ENV} must name the Core repository, not the publisher"
+        )
+    if value.partition("/")[0] != publisher.partition("/")[0]:
+        # The Core revision becomes part of the official image; it may only come
+        # from the same owner as the publisher.
+        raise ChannelError(
+            f"{CORE_REPOSITORY_ENV} must have the same owner as {publisher}"
+        )
+    return value
+
+
+def instance() -> str:
+    """The deployment instance; it names the branch, project, networks and stores."""
+    value = os.environ.get(INSTANCE_ENV, "").strip()
+    if not value:
+        return DEFAULT_INSTANCE
+    if not INSTANCE_PATTERN.fullmatch(value):
+        raise ChannelError(
+            f"{INSTANCE_ENV} must be 'eimir-' followed by lowercase letters, digits "
+            "and single hyphens"
+        )
+    return value
+
+
+def channel_branch() -> str:
+    return f"deploy/{instance()}"
+
+
+def core_token_environment() -> dict[str, str] | None:
+    """GH_TOKEN for Core reads when a private Core needs its own read token."""
+    token = os.environ.get(CORE_TOKEN_ENV, "")
+    if not token:
+        return None
+    return {**os.environ, "GH_TOKEN": token}
+
+
 def run(
     arguments: list[str],
     *,
@@ -123,6 +208,7 @@ def gh_api(
     payload: dict | None = None,
     paginate: bool = False,
     method: str = "POST",
+    environment: dict[str, str] | None = None,
 ):
     arguments = ["gh", "api", endpoint]
     if payload is not None:
@@ -136,6 +222,7 @@ def gh_api(
         capture_output=True,
         timeout=120,
         check=False,
+        env=environment,
     )
     if result.returncode:
         raise GitHubError(endpoint, missing="(HTTP 404)" in result.stderr)
@@ -149,14 +236,16 @@ def revision(value: str) -> str:
 
 
 def latest_main() -> str:
-    return revision(gh_api(f"repos/{REPOSITORY}/git/ref/heads/main")["object"]["sha"])
+    return revision(
+        gh_api(f"repos/{publishing_repository()}/git/ref/heads/main")["object"]["sha"]
+    )
 
 
 def required_workflows() -> frozenset[str]:
     """Every required workflow, without CodeQL where code scanning is unavailable."""
     try:
         state = supply_chain_state.assess(
-            gh_api(f"repos/{REPOSITORY}"),
+            gh_api(f"repos/{publishing_repository()}"),
             os.environ.get(supply_chain_state.ACCEPTANCE_ENV, ""),
         )
     except supply_chain_state.CapabilityError as error:
@@ -180,7 +269,7 @@ def workflow_state(
             or item.get("event") != FULL_REGRESSION_EVENT
             or item.get("head_branch") != "main"
             or item.get("head_sha") != source
-            or item.get("head_repository", {}).get("full_name") != REPOSITORY
+            or item.get("head_repository", {}).get("full_name") != publishing_repository()
         ):
             continue
         key = (item["id"], item.get("run_attempt", 1))
@@ -199,7 +288,7 @@ def workflow_state(
 def candidate_ready(source: str) -> bool:
     required = required_workflows()
     pages = gh_api(
-        f"repos/{REPOSITORY}/actions/runs?head_sha={source}&event={FULL_REGRESSION_EVENT}&per_page=100",
+        f"repos/{publishing_repository()}/actions/runs?head_sha={source}&event={FULL_REGRESSION_EVENT}&per_page=100",
         paginate=True,
     )
     return workflow_state(
@@ -223,33 +312,193 @@ def completion_matches_source(event: dict, source: str) -> bool:
         and completed.get("event") == FULL_REGRESSION_EVENT
         and completed.get("head_branch") == "main"
         and completed.get("head_sha") == source
-        and origin.get("full_name") == REPOSITORY
+        and origin.get("full_name") == publishing_repository()
         and completed.get("status") == "completed"
         and completed.get("conclusion") == "success"
     )
 
 
-def channel_already_selected(source: str) -> bool:
-    """Avoid rebuilding an already selected pair after repeated completions."""
+def selected_identity() -> dict | None:
+    """The owned channel.json on the deployment branch; None only after a real 404."""
+    repository = publishing_repository()
     try:
         parent = revision(
-            gh_api(f"repos/{REPOSITORY}/git/ref/heads/{CHANNEL_BRANCH}")["object"][
+            gh_api(f"repos/{repository}/git/ref/heads/{channel_branch()}")["object"][
                 "sha"
             ]
         )
     except GitHubError as error:
         if error.missing:
-            return False
+            return None
         raise
-    current = gh_api(f"repos/{REPOSITORY}/contents/channel.json?ref={parent}")
+    current = gh_api(f"repos/{repository}/contents/channel.json?ref={parent}")
     identity = json.loads(base64.b64decode(current["content"], validate=False))
     if identity.get("kind") != CHANNEL_KIND or identity.get("schemaVersion") != 1:
         raise ChannelError("Existing deployment branch is not an owned test channel")
-    return revision(identity["sourceRevision"]) == source
+    return identity
+
+
+def selected_core_revision(identity: dict | None) -> str | None:
+    """The Core revision the selected channel was built from (split mode only)."""
+    if identity is None or "coreSource" not in identity:
+        # A monorepo channel, for example the one seeded into the Pro repository
+        # on the cut-over day, names no separate Core revision.
+        return None
+    core = identity["coreSource"]
+    if not isinstance(core, dict) or core.get("repository") != core_repository():
+        raise ChannelError("The selected channel was built from another Core repository")
+    return revision(str(core.get("revision", "")))
+
+
+def channel_already_selected(source: str, core: str | None = None) -> bool:
+    """Avoid rebuilding an already selected pair after repeated completions."""
+    identity = selected_identity()
+    if identity is None or revision(identity["sourceRevision"]) != source:
+        return False
+    return core is None or selected_core_revision(identity) == core
+
+
+# Split mode (Decision 0019, runbook D2): Core Advance tests the Pro tree against
+# a new Core main revision and dispatches the publisher with both identities.
+CORE_REVISION_ENV = "EIMIR_CORE_REVISION"
+CORE_ADVANCE_RUN_ENV = "EIMIR_CORE_ADVANCE_RUN"
+CORE_ADVANCE_WORKFLOW = ".github/workflows/core-advance.yml"
+CORE_ADVANCE_EVENTS = frozenset({"schedule", "workflow_dispatch"})
+# The job names carry the Core revision, so the Actions API alone proves which
+# Core revision a run tested or handed to the publisher.
+PRO_TESTS_JOB = "Pro tests against Core {revision}"
+PUBLISHER_CHECK_JOB = "Check Core {revision}"
+BLOCKED_ISSUE_TITLE = "Core advance blocked"
+BLOCKED_MARKER = "Core revision {revision}"
+
+
+def core_main() -> str:
+    return revision(
+        gh_api(
+            f"repos/{core_repository()}/git/ref/heads/main",
+            environment=core_token_environment(),
+        )["object"]["sha"]
+    )
+
+
+def core_contains(base: str, head: str) -> bool:
+    """Whether `head` is `base` or a descendant of it in the Core repository."""
+    if base == head:
+        return True
+    comparison = gh_api(
+        f"repos/{core_repository()}/compare/{base}...{head}",
+        environment=core_token_environment(),
+    )
+    return comparison.get("status") in {"ahead", "identical"}
+
+
+def run_jobs(run_id: str) -> list[dict]:
+    pages = gh_api(
+        f"repos/{publishing_repository()}/actions/runs/{run_id}/jobs?filter=latest&per_page=100",
+        paginate=True,
+    )
+    return [job for page in pages for job in page.get("jobs", [])]
+
+
+def job_conclusion(jobs: list[dict], name: str) -> str | None:
+    """The conclusion of exactly one job with this name; None when unfinished or absent."""
+    matching = [job for job in jobs if job.get("name") == name]
+    if len(matching) != 1 or matching[0].get("status") != "completed":
+        return None
+    return matching[0].get("conclusion")
+
+
+def core_advance_state(source: str, core: str, run_id: str) -> str:
+    """`passed`, `stale` (it tested an older Pro main) or `failed` for this pair."""
+    if not re.fullmatch(r"[1-9][0-9]*", run_id):
+        raise ChannelError(f"{CORE_ADVANCE_RUN_ENV} must name a Core Advance run id")
+    repository = publishing_repository()
+    tested = gh_api(f"repos/{repository}/actions/runs/{run_id}")
+    if (
+        tested.get("path") != CORE_ADVANCE_WORKFLOW
+        or tested.get("event") not in CORE_ADVANCE_EVENTS
+        or tested.get("head_branch") != "main"
+        or (tested.get("head_repository") or {}).get("full_name") != repository
+        or not re.fullmatch(r"[0-9a-f]{40}", str(tested.get("head_sha", "")))
+    ):
+        return "failed"
+    if job_conclusion(run_jobs(run_id), PRO_TESTS_JOB.format(revision=core)) != "success":
+        return "failed"
+    # A Pro merge while the tests ran: the dispatch runs on the newer main. Not
+    # a failure; the next Core Advance run tests the new Pro revision.
+    return "passed" if tested["head_sha"] == source else "stale"
+
+
+def require_no_core_inputs() -> None:
+    if os.environ.get(CORE_REVISION_ENV, "").strip() or os.environ.get(
+        CORE_ADVANCE_RUN_ENV, ""
+    ).strip():
+        raise ChannelError(
+            f"A Core revision needs {CORE_REPOSITORY_ENV}; the monorepo builds its own Core"
+        )
+
+
+def check_split_publication(source: str, event_name: str) -> str | None:
+    """The Core revision to build with this Pro revision, or None to keep the channel.
+
+    A Pro merge (push) rebuilds with the Core revision the channel already selects.
+    Only a Core Advance run whose Pro tests passed for exactly this pair can move
+    the Core revision, and only forward along Core main.
+    """
+    if event_name == "workflow_run":
+        print("Full-regression completions do not admit a build when Core is pinned")
+        return None
+    if event_name not in {FAST_LANE_EVENT, "workflow_dispatch"}:
+        raise ChannelError("Test checks require a Pro merge or a Core Advance dispatch")
+    if latest_main() != source:
+        print("Candidate was superseded on main; keeping the current channel")
+        return None
+    identity = selected_identity()
+    selected = selected_core_revision(identity)
+    if event_name == FAST_LANE_EVENT:
+        require_no_core_inputs()
+        if selected is None:
+            raise ChannelError(
+                "The channel selects no Core revision yet; run Core Advance to pin one"
+            )
+        core = selected
+    else:
+        value = os.environ.get(CORE_REVISION_ENV, "").strip()
+        if not re.fullmatch(r"[0-9a-f]{40}", value):
+            raise ChannelError(
+                f"{CORE_REVISION_ENV} must be the full Core commit SHA from Core Advance"
+            )
+        core = value
+        run_id = os.environ.get(CORE_ADVANCE_RUN_ENV, "").strip()
+        state = core_advance_state(source, core, run_id)
+        if state == "stale":
+            print("Core Advance tested an older Pro main; the next run tests the current one")
+            return None
+        if state != "passed":
+            raise ChannelError(
+                f"Core Advance run {run_id} did not pass the Pro tests for Pro {source} "
+                f"and Core {core}"
+            )
+        if not core_contains(core, core_main()):
+            raise ChannelError(f"Core {core} is not on the Core main branch")
+        if selected is not None and not core_contains(selected, core):
+            raise ChannelError(
+                f"Core {core} does not descend from the selected Core {selected}; "
+                "the pin only moves forward"
+            )
+    if (
+        identity is not None
+        and revision(identity["sourceRevision"]) == source
+        and selected == core
+    ):
+        print("This source pair is already selected; preserving its exact image pair")
+        return None
+    return core
 
 
 def check_for_publication(source: str, event_name: str, event: dict) -> bool:
     """Check once; later main workflow completions retry unfinished candidates."""
+    require_no_core_inputs()
     if event_name == FAST_LANE_EVENT:
         if latest_main() != source:
             print("Candidate was superseded on main; keeping the current channel")
@@ -276,6 +525,225 @@ def check_for_publication(source: str, event_name: str, event: dict) -> bool:
     return True
 
 
+def blocked_issue(core: str) -> int | None:
+    """The open blocked-advance issue that already reports this Core revision."""
+    repository = publishing_repository()
+    marker = BLOCKED_MARKER.format(revision=core)
+    pages = gh_api(f"repos/{repository}/issues?state=open&per_page=100", paginate=True)
+    for issue in (item for page in pages for item in page):
+        if "pull_request" in issue or issue.get("title") != BLOCKED_ISSUE_TITLE:
+            continue
+        comments = gh_api(
+            f"repos/{repository}/issues/{issue['number']}/comments?per_page=100",
+            paginate=True,
+        )
+        texts = [issue.get("body") or ""] + [
+            comment.get("body") or "" for page in comments for comment in page
+        ]
+        if any(marker in text for text in texts):
+            return issue["number"]
+    return None
+
+
+def report_blocked(core: str, reason: str) -> None:
+    """Open the one blocked-advance issue, or add this Core revision to it once."""
+    repository = publishing_repository()
+    marker = BLOCKED_MARKER.format(revision=core)
+    body = (
+        f"{marker} ({core_repository()}) was not advanced to the private test "
+        f"channel.\n\n{reason}\n\nCore Advance does not test this revision again "
+        "while this issue is open. Fix the cause (usually a Pro pull request), then "
+        "close the issue or dispatch Core Advance with `retest`."
+    )
+    if blocked_issue(core) is not None:
+        return
+    pages = gh_api(f"repos/{repository}/issues?state=open&per_page=100", paginate=True)
+    existing = [
+        issue["number"]
+        for page in pages
+        for issue in page
+        if "pull_request" not in issue and issue.get("title") == BLOCKED_ISSUE_TITLE
+    ]
+    if existing:
+        gh_api(f"repos/{repository}/issues/{existing[0]}/comments", payload={"body": body})
+    else:
+        gh_api(
+            f"repos/{repository}/issues",
+            payload={"title": BLOCKED_ISSUE_TITLE, "body": body},
+        )
+
+
+def latest_publication(core: str) -> dict | None:
+    """The newest publisher run that Core Advance dispatched for this Core revision."""
+    repository = publishing_repository()
+    listed = gh_api(
+        f"repos/{repository}/actions/workflows/release-publish.yml/runs"
+        "?event=workflow_dispatch&branch=main&per_page=20"
+    )
+    name = PUBLISHER_CHECK_JOB.format(revision=core)
+    for item in sorted(listed.get("workflow_runs", []), key=lambda run_: -run_["id"]):
+        if any(job.get("name") == name for job in run_jobs(str(item["id"]))):
+            return item
+    return None
+
+
+def plan_core_advance(*, retest: bool) -> str | None:
+    """The Core main revision to test now, or None when there is nothing to do.
+
+    A Core revision whose Pro tests or publication failed is reported once in an
+    issue and not tested again until that issue is closed or `retest` is set, so
+    a persistent failure neither disappears nor costs a test run every schedule.
+    """
+    if core_repository() is None:
+        raise ChannelError(f"Core Advance needs {CORE_REPOSITORY_ENV}")
+    head = core_main()
+    selected = selected_core_revision(selected_identity())
+    if selected == head:
+        print(f"The channel already selects Core main {head}")
+        return None
+    if selected is not None and not core_contains(selected, head):
+        raise ChannelError(
+            f"Core main {head} does not descend from the selected Core {selected}; "
+            "a history reset of the Core repository needs a manual decision"
+        )
+    if not retest:
+        issue = blocked_issue(head)
+        if issue is not None:
+            print(
+                f"::warning::Core {head} is blocked (issue #{issue}). Close the issue "
+                "or dispatch Core Advance with retest to try again"
+            )
+            return None
+        publication = latest_publication(head)
+        if publication is not None:
+            if publication.get("status") != "completed":
+                print(f"The publisher is still running for Core {head}")
+                return None
+            if publication.get("conclusion") != "success":
+                report_blocked(
+                    head,
+                    f"The publisher run for this revision ended with "
+                    f"`{publication.get('conclusion')}`: {publication.get('html_url')}",
+                )
+                raise ChannelError(f"The publisher failed for Core {head}; see the issue")
+    return head
+
+
+def report_core_advance(core: str, tests_result: str, run_id: str) -> None:
+    """Dispatch the publisher after green Pro tests; otherwise report and fail."""
+    revision(core)
+    if not re.fullmatch(r"[1-9][0-9]*", run_id):
+        raise ChannelError("Invalid workflow run identity")
+    repository = publishing_repository()
+    if tests_result != "success":
+        report_blocked(
+            core,
+            f"The Pro tests ended with `{tests_result}`: "
+            f"https://github.com/{repository}/actions/runs/{run_id}",
+        )
+        raise ChannelError(f"The Pro tests did not pass against Core {core}")
+    run(
+        [
+            "gh",
+            "workflow",
+            "run",
+            "release-publish.yml",
+            "--repo",
+            repository,
+            "--ref",
+            "main",
+            "-f",
+            "private_test_channel=true",
+            "-f",
+            "release_version=0.0.0",
+            "-f",
+            f"core_revision={core}",
+            "-f",
+            f"core_advance_run={run_id}",
+        ]
+    )
+    print(f"Pro tests passed against Core {core}; started the publisher")
+
+
+# The official tree in split mode: the pinned Core checkout with the Pro tree on
+# top. The Pro tree owns the plugin distributions and the official uv workspace
+# (Core's own workspace files name no plugin). Everything else comes from Core;
+# the Pro tree may not replace a Core file with different content.
+PRO_OWNED_TREES = ("backend/pro/", "backend/admin/")
+PRO_WORKSPACE_FILES = ("backend/pyproject.toml", "backend/uv.lock")
+PRO_REQUIRED_FILES = ("backend/pro/pyproject.toml", "backend/admin/pyproject.toml")
+# Core files that the official build never reads and that each repository
+# keeps for itself (its CI, licence and repository documents).
+CORE_SKIPPED_TREES = (".github/",)
+REPOSITORY_OWN_FILES = frozenset(
+    {
+        "AGENTS.md",
+        "CLAUDE.md",
+        "CONTRIBUTING.md",
+        "LICENSE",
+        "PROVENANCE.md",
+        "README.md",
+        ".gitattributes",
+        ".gitignore",
+        ".gitleaks.toml",
+        ".gitleaksignore",
+    }
+)
+
+
+def compose_source(core_root: Path, target: Path, core: str) -> int:
+    """Copy the tracked Core tree into the Pro checkout; return the copied count."""
+    revision(core)
+    if run(["git", "-C", str(core_root), "rev-parse", "HEAD"]).strip() != core:
+        raise ChannelError("The Core checkout is not the pinned Core revision")
+    tracked = [
+        path
+        for path in run(["git", "-C", str(core_root), "ls-files", "-z"]).split("\0")
+        if path
+    ]
+    copies: list[str] = []
+    collisions: list[str] = []
+    for path in tracked:
+        if path.startswith(CORE_SKIPPED_TREES):
+            continue
+        if path.startswith(PRO_OWNED_TREES):
+            raise ChannelError(f"The Core revision contains Pro-owned code: {path}")
+        source_file = core_root / path
+        if source_file.is_symlink() or not source_file.is_file():
+            raise ChannelError(f"Core paths must be regular files: {path}")
+        destination = target / path
+        if path in PRO_WORKSPACE_FILES:
+            continue
+        if destination.exists() or destination.is_symlink():
+            if path in REPOSITORY_OWN_FILES or (
+                destination.is_file()
+                and not destination.is_symlink()
+                and destination.read_bytes() == source_file.read_bytes()
+            ):
+                continue
+            collisions.append(path)
+            continue
+        copies.append(path)
+    if collisions:
+        shown = ", ".join(sorted(collisions)[:20])
+        raise ChannelError(f"The Pro tree must not replace Core files: {shown}")
+    for path in (*PRO_WORKSPACE_FILES, *PRO_REQUIRED_FILES):
+        if not (target / path).is_file() or (target / path).is_symlink():
+            raise ChannelError(f"The Pro tree must provide {path}")
+    core_project = tomllib.loads((core_root / "backend/pyproject.toml").read_text())
+    pro_project = tomllib.loads((target / "backend/pyproject.toml").read_text())
+    if core_project.get("project") != pro_project.get("project"):
+        raise ChannelError(
+            "backend/pyproject.toml [project] differs between Core and Pro; update the "
+            "Pro workspace files for this Core revision"
+        )
+    for path in copies:
+        destination = target / path
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(core_root / path, destination, follow_symlinks=False)
+    return len(copies)
+
+
 def wait_for_checks(source: str, timeout: int) -> bool:
     deadline = time.monotonic() + timeout
     while True:
@@ -300,7 +768,7 @@ def require_full_regression(source: str, *, dispatch: bool) -> None:
         print("Full regression passed for this revision")
         return
     if dispatch and latest_main() == source:
-        run(["gh", "workflow", "run", FULL_REGRESSION_DISPATCHER, "--repo", REPOSITORY, "--ref", "main"])
+        run(["gh", "workflow", "run", FULL_REGRESSION_DISPATCHER, "--repo", publishing_repository(), "--ref", "main"])
         raise ChannelError(
             "Full regression is missing or unfinished; started Nightly Regression. "
             "Re-run this release after it is green"
@@ -319,10 +787,23 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def evidence_records(root: Path, source: str) -> dict[str, dict]:
+def core_source(core: str | None) -> dict[str, str] | None:
+    """The Core identity bound into evidence and channel.json in split mode."""
+    if core is None:
+        return None
+    return {"repository": str(core_repository()), "revision": revision(core)}
+
+
+def evidence_records(
+    root: Path, source: str, core: str | None = None
+) -> dict[str, dict]:
     index = json.loads((root / "evidence-index.json").read_text())
     if index.get("sourceRevision") != source or index.get("schemaVersion") != 1:
         raise ChannelError("Evidence source identity does not match the candidate")
+    # The monorepo evidence names no separate Core; split evidence must name
+    # exactly the pinned Core revision this channel was checked for.
+    if index.get("coreSource") != core_source(core):
+        raise ChannelError("Evidence Core identity does not match the candidate")
     if index.get("android") != {"included": False, "signing": "not-applicable"}:
         raise ChannelError("The server test channel must exclude Android artifacts")
     records = index.get("artifacts", [])
@@ -391,7 +872,7 @@ def promote_enabled() -> bool:
 
 
 def package_repository(role: str) -> str:
-    owner = REPOSITORY.partition("/")[0]
+    owner = publishing_repository().partition("/")[0]
     return f"ghcr.io/{owner}/{package_prefix()}-{role}"
 
 
@@ -498,7 +979,7 @@ def publish_image(
         labels.get("org.opencontainers.image.revision") != source
         or labels.get("org.opencontainers.image.version") != version
         or labels.get("org.opencontainers.image.source")
-        != f"https://github.com/{REPOSITORY}"
+        != f"https://github.com/{publishing_repository()}"
         or inspected.get("Os") != "linux"
         or inspected.get("Architecture") != "amd64"
     ):
@@ -626,10 +1107,13 @@ def export_compose(
         raise ChannelError(
             "Canonical Cloud process set changed; review the instance exporter"
         )
+    # Every instance-specific name derives from one validated instance name, so
+    # a rehearsal instance can never attach to the eimir-test database or stores.
+    instance_name = instance()
     database = (
         "postgresql+psycopg://sidebyside:"
         + required("POSTGRES_PASSWORD")
-        + "@eimir-test-postgres:5432/sidebyside"
+        + f"@{instance_name}-postgres:5432/sidebyside"
     )
     settings = {
         "EIMIR_DATABASE_URL": database,
@@ -754,22 +1238,22 @@ def export_compose(
     )
     services["cloud-api"]["networks"] = {
         "app": {"aliases": ["api"]},
-        "proxy": {"aliases": ["eimir-test-api"]},
+        "proxy": {"aliases": [f"{instance_name}-api"]},
     }
     services["cloud-web"]["networks"] = {
         "app": {},
-        "proxy": {"aliases": ["eimir-test-web"]},
+        "proxy": {"aliases": [f"{instance_name}-web"]},
     }
     result = {
-        "name": "eimir-test",
+        "name": instance_name,
         "services": services,
         "networks": {
-            "app": {"external": True, "name": "eimir-test-data"},
+            "app": {"external": True, "name": f"{instance_name}-data"},
             "proxy": {"external": True, "name": "mailcow-proxy"},
         },
         "volumes": {
-            name: {"external": True, "name": f"eimir-test_{name}"}
-            for name in ("cloud_media_data", "cloud_deletion_journal_data")
+            store: {"external": True, "name": f"{instance_name}_{store}"}
+            for store in ("cloud_media_data", "cloud_deletion_journal_data")
         },
     }
     # Reuse the authoritative Cloud image-role/digest validator.
@@ -790,42 +1274,62 @@ def export_compose(
     return result
 
 
-def source_admitted(source: str, *, full_regression: bool) -> bool:
-    """The fast lane needs the current main commit; otherwise its full regression too."""
+def source_admitted(
+    source: str, *, full_regression: bool, core: str | None = None
+) -> bool:
+    """The fast lane needs the current main commit; otherwise its full regression too.
+
+    With a pinned Core the full regression belongs to the Core repository: Core
+    Advance admitted the pair, so only the current Pro main is rechecked here.
+    """
+    if core is not None:
+        return latest_main() == source
     return latest_main() == source and (not full_regression or candidate_ready(source))
 
 
 def advance_channel(
-    files: dict[str, str], source: str, *, full_regression: bool = True
+    files: dict[str, str],
+    source: str,
+    *,
+    full_regression: bool = True,
+    core: str | None = None,
 ) -> bool:
     if set(files) != {"compose.yaml", "channel.json", "README.md"}:
         raise ChannelError("Only generated deployment files may enter the channel")
-    if not source_admitted(source, full_regression=full_regression):
+    if not source_admitted(source, full_regression=full_regression, core=core):
         raise ChannelError(
             "Candidate is stale or required main checks are no longer successful"
         )
     parent = None
     try:
-        parent = gh_api(f"repos/{REPOSITORY}/git/ref/heads/{CHANNEL_BRANCH}")["object"][
+        parent = gh_api(f"repos/{publishing_repository()}/git/ref/heads/{channel_branch()}")["object"][
             "sha"
         ]
     except GitHubError as error:
         if not error.missing:
             raise
     if parent:
-        current = gh_api(f"repos/{REPOSITORY}/contents/channel.json?ref={parent}")
+        current = gh_api(f"repos/{publishing_repository()}/contents/channel.json?ref={parent}")
         identity = json.loads(base64.b64decode(current["content"], validate=False))
         if identity.get("kind") != CHANNEL_KIND or identity.get("schemaVersion") != 1:
             raise ChannelError(
                 "Existing deployment branch is not an owned test channel"
             )
-        if identity.get("sourceRevision") == source:
+        selected_core = selected_core_revision(identity) if core else None
+        if identity.get("sourceRevision") == source and selected_core == core:
             print(
                 "This source revision is already selected; preserving its exact image pair"
             )
             return False
+        # A concurrent publication may have selected a newer Core meanwhile; the
+        # pin never moves backwards or sideways.
+        if core and selected_core and not core_contains(selected_core, core):
+            raise ChannelError(
+                f"The channel selects Core {selected_core}, which {core} does not "
+                "contain; keeping the current channel"
+            )
     tree = gh_api(
-        f"repos/{REPOSITORY}/git/trees",
+        f"repos/{publishing_repository()}/git/trees",
         payload={
             "tree": [
                 {"path": path, "mode": "100644", "type": "blob", "content": content}
@@ -834,14 +1338,14 @@ def advance_channel(
         },
     )
     commit = gh_api(
-        f"repos/{REPOSITORY}/git/commits",
+        f"repos/{publishing_repository()}/git/commits",
         payload={
             "message": f"deploy(test): select checked source {source}",
             "tree": tree["sha"],
             "parents": [parent] if parent else [],
         },
     )
-    if not source_admitted(source, full_regression=full_regression):
+    if not source_admitted(source, full_regression=full_regression, core=core):
         raise ChannelError(
             "Main advanced during publication; keeping the current channel"
         )
@@ -849,7 +1353,7 @@ def advance_channel(
     # No force push is used, including on retries.
     if parent:
         gh_api(
-            f"repos/{REPOSITORY}/git/refs/heads/{CHANNEL_BRANCH}",
+            f"repos/{publishing_repository()}/git/refs/heads/{channel_branch()}",
             payload={
                 "sha": commit["sha"],
                 "force": False,
@@ -858,9 +1362,9 @@ def advance_channel(
         )
     else:
         gh_api(
-            f"repos/{REPOSITORY}/git/refs",
+            f"repos/{publishing_repository()}/git/refs",
             payload={
-                "ref": f"refs/heads/{CHANNEL_BRANCH}",
+                "ref": f"refs/heads/{channel_branch()}",
                 "sha": commit["sha"],
             },
         )
@@ -868,17 +1372,27 @@ def advance_channel(
 
 
 def publish(
-    source: str, artifact_root: Path, output: Path, *, full_regression: bool = True
+    source: str,
+    artifact_root: Path,
+    output: Path,
+    *,
+    full_regression: bool = True,
+    core: str | None = None,
 ) -> None:
-    if not source_admitted(source, full_regression=full_regression):
-        raise ChannelError("Only the current, checked main commit may be published")
-    # Validate both settings before any image is pushed.
+    # Validate every setting before any image is pushed.
     package_prefix()
     promote = promote_enabled()
+    instance()
+    if (core is None) != (core_repository() is None):
+        raise ChannelError(
+            f"A Core revision is required exactly when {CORE_REPOSITORY_ENV} is set"
+        )
+    if not source_admitted(source, full_regression=full_regression, core=core):
+        raise ChannelError("Only the current, checked main commit may be published")
     run_id, attempt = os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"]
     if not all(re.fullmatch(r"[1-9][0-9]*", value) for value in (run_id, attempt)):
         raise ChannelError("Invalid workflow run identity")
-    records = evidence_records(artifact_root, source)
+    records = evidence_records(artifact_root, source, core)
     if "media-runtime" not in records:
         raise ChannelError(
             "Private video delivery requires exact-source restricted-worker evidence"
@@ -905,20 +1419,28 @@ def publish(
         "kind": CHANNEL_KIND,
         "sourceRevision": source,
         "canonicalComposeSha256": sha256(ROOT / "compose.yaml"),
-        "evidenceRun": f"https://github.com/{REPOSITORY}/actions/runs/{run_id}",
+        "evidenceRun": f"https://github.com/{publishing_repository()}/actions/runs/{run_id}",
         "images": images,
         "artifacts": list(records.values()),
     }
+    if core is not None:
+        identity["coreSource"] = core_source(core)
+    core_line = (
+        f"Core: `{core}` from `{core_repository()}`.\n" if core is not None else ""
+    )
+    documentation = core_repository() or DEFAULT_REPOSITORY
     files = {
         "compose.yaml": json.dumps(compose, indent=2, sort_keys=True) + "\n",
         "channel.json": json.dumps(identity, indent=2, sort_keys=True) + "\n",
         "README.md": (
             "# Generated private test deployment\n\n"
             "Prerelease operator channel, not a supported product release.\n"
-            f"Source: `{source}`. All three images are pinned by OCI digest.\n\n"
-            "Use Arcane Git Sync with the existing eimir-test project. Keep its local .env, "
-            "database, media, deletion journal and keys. Never run bootstrap again.\n\n"
-            "Setup and recovery: https://github.com/baerenmarke90/eimir/blob/main/"
+            f"Source: `{source}`. All three images are pinned by OCI digest.\n"
+            f"{core_line}\n"
+            f"Use Arcane Git Sync with the existing {instance()} project. Keep its local "
+            ".env, database, media, deletion journal and keys. Never run bootstrap "
+            "again.\n\n"
+            f"Setup and recovery: https://github.com/{documentation}/blob/main/"
             "docs/PRIVATE-TEST-CHANNEL.md\n"
         ),
     }
@@ -928,19 +1450,21 @@ def publish(
     if not promote:
         print(
             f"{PROMOTE_ENV}=false: images pushed and verified; "
-            f"{CHANNEL_BRANCH} was not changed"
+            f"{channel_branch()} was not changed"
         )
         write_step_summary(
             images,
-            f"Staged only: {PROMOTE_ENV}=false, so `{CHANNEL_BRANCH}` was not changed.",
+            f"Staged only: {PROMOTE_ENV}=false, so `{channel_branch()}` was not changed.",
         )
         return
-    advanced = advance_channel(files, source, full_regression=full_regression)
+    advanced = advance_channel(
+        files, source, full_regression=full_regression, core=core
+    )
     write_step_summary(
         images,
-        f"Promoted to `{CHANNEL_BRANCH}`."
+        f"Promoted to `{channel_branch()}`."
         if advanced
-        else f"`{CHANNEL_BRANCH}` already selected this source; nothing changed.",
+        else f"`{channel_branch()}` already selected this source; nothing changed.",
     )
 
 
@@ -961,40 +1485,92 @@ def main() -> int:
     publication.add_argument("--revision", required=True)
     publication.add_argument("--artifact-root", type=Path, required=True)
     publication.add_argument("--output", type=Path, required=True)
+    publication.add_argument("--core-revision", default="")
+    # Split mode (Decision 0019, runbook D2).
+    plan = subparsers.add_parser("advance-plan")
+    plan.add_argument("--revision", required=True)
+    plan.add_argument("--github-output", type=Path, required=True)
+    report = subparsers.add_parser("advance-report")
+    report.add_argument("--revision", required=True)
+    report.add_argument("--core-revision", required=True)
+    report.add_argument("--tests-result", required=True)
+    composition = subparsers.add_parser("compose-source")
+    composition.add_argument("--core", type=Path, required=True)
+    composition.add_argument("--core-revision", required=True)
+    composition.add_argument("--target", type=Path, required=True)
     args = parser.parse_args()
     try:
+        if args.command == "compose-source":
+            # A local file operation on two checkouts; it publishes nothing.
+            if core_repository() is None:
+                raise ChannelError(f"Composing a Core source needs {CORE_REPOSITORY_ENV}")
+            copied = compose_source(args.core, args.target, args.core_revision)
+            print(f"Copied {copied} Core files at {args.core_revision} under the Pro tree")
+            return 0
         source = revision(args.revision)
-        if os.environ.get("GITHUB_REPOSITORY") != REPOSITORY:
+        if os.environ.get("GITHUB_REPOSITORY") != publishing_repository():
             raise ChannelError(
                 "Test publication is restricted to the owning repository"
             )
         if os.environ.get("GITHUB_REF") != "refs/heads/main":
             raise ChannelError("Test publication is restricted to main")
+        instance()
+        split = core_repository() is not None
         if args.command == "full-regression":
             require_full_regression(source, dispatch=args.dispatch)
+        elif args.command == "advance-plan":
+            if latest_main() != source:
+                print("Pro main moved on; the next Core Advance run tests the new revision")
+                core = None
+            else:
+                core = plan_core_advance(
+                    retest=os.environ.get("EIMIR_CORE_ADVANCE_RETEST") == "true"
+                )
+            with args.github_output.open("a") as stream:
+                stream.write(f"needed={str(core is not None).lower()}\n")
+                stream.write(f"core_revision={core or ''}\n")
+        elif args.command == "advance-report":
+            if not split:
+                raise ChannelError(f"Core Advance needs {CORE_REPOSITORY_ENV}")
+            report_core_advance(
+                args.core_revision, args.tests_result, os.environ["GITHUB_RUN_ID"]
+            )
         elif args.command in {"check", "wait"}:
+            outputs = ""
             if args.command == "check":
                 event_name = os.environ.get("GITHUB_EVENT_NAME", "")
-                event = (
-                    json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
-                    if event_name == "workflow_run"
-                    else {}
-                )
-                ready = check_for_publication(source, event_name, event)
+                if split:
+                    core = check_split_publication(source, event_name)
+                    ready = core is not None
+                    outputs = f"core_revision={core or ''}\n"
+                else:
+                    event = (
+                        json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+                        if event_name == "workflow_run"
+                        else {}
+                    )
+                    ready = check_for_publication(source, event_name, event)
             else:
+                if split:
+                    raise ChannelError("Waiting for the full regression needs the monorepo")
                 if not 1 <= args.timeout <= 3600:
                     raise ChannelError(
                         "Check timeout must be between 1 and 3600 seconds"
                     )
                 ready = wait_for_checks(source, args.timeout)
             with args.github_output.open("a") as stream:
-                stream.write(f"ready={str(ready).lower()}\n")
+                stream.write(f"ready={str(ready).lower()}\n{outputs}")
         else:
+            if args.core_revision and not split:
+                raise ChannelError(
+                    f"A Core revision needs {CORE_REPOSITORY_ENV}; the monorepo builds its own Core"
+                )
             publish(
                 source,
                 args.artifact_root,
                 args.output,
                 full_regression=os.environ.get("GITHUB_EVENT_NAME") != FAST_LANE_EVENT,
+                core=revision(args.core_revision) if split else None,
             )
     except (
         ChannelError,
@@ -1002,6 +1578,7 @@ def main() -> int:
         OSError,
         json.JSONDecodeError,
         subprocess.TimeoutExpired,
+        tomllib.TOMLDecodeError,
     ) as error:
         print(f"Test channel refused: {error}")
         return 1

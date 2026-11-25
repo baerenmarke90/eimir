@@ -54,6 +54,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TEST_CHANNEL_ENABLED: ${{ vars.EIMIR_TEST_CHANNEL_ENABLED }}
+          # With a pinned Core repository (Decision 0019) Core Advance starts the
+          # publisher instead; a full regression here does not admit a build.
+          CORE_REPOSITORY: ${{ vars.EIMIR_CORE_REPOSITORY }}
           CODE_SCANNING: ${{ steps.supply_chain.outputs.code_scanning }}
         run: |
           set -euo pipefail
@@ -139,7 +142,9 @@ jobs:
 
           # All green. The publisher rechecks current main and every required
           # workflow itself and refuses duplicates of an already selected pair.
-          if [ "$TEST_CHANNEL_ENABLED" = "true" ]; then
+          if [ -n "${CORE_REPOSITORY:-}" ]; then
+            echo "All green; Core Advance publishes the private test channel from the pinned Core." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$TEST_CHANNEL_ENABLED" = "true" ]; then
             gh workflow run release-publish.yml --repo "$GITHUB_REPOSITORY" --ref main \
               -f private_test_channel=true -f release_version=0.0.0
             echo "All green; started the private test channel publication." >> "$GITHUB_STEP_SUMMARY"

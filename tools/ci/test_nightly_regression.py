@@ -207,6 +207,16 @@ class CodeScanningStateTest(unittest.TestCase):
         queried = set(re.findall(r"workflows/([a-z0-9-]+\.yml)/runs\?event=", calls))
         self.assertEqual(queried, set(dispatched_files()) - {"codeql.yml"})
 
+    def test_report_leaves_a_pinned_core_channel_to_core_advance(self) -> None:
+        # Decision 0019, D2: with a pinned Core repository the full regression
+        # does not start the publisher; Core Advance does.
+        result, calls, summary = self.run_step(
+            REPORT, "unavailable", FAKE_CODEQL_RUN="missing", CORE_REPOSITORY="baerenmarke90/eimir-core"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("release-publish.yml", calls)
+        self.assertIn("Core Advance publishes the private test channel", summary)
+
     def test_unknown_state_stops_before_any_dispatch_or_report(self) -> None:
         for path in self.STEPS:
             for state in ("", "maybe"):

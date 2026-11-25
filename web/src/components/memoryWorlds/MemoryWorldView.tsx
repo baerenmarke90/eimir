@@ -19,6 +19,7 @@ import { MomentCloudWorld } from './MomentCloudWorld';
 import { PhotoAlbumWorld } from './PhotoAlbumWorld';
 import { PhotoBoothWorld } from './PhotoBoothWorld';
 import { RecordCrateWorld } from './RecordCrateWorld';
+import { ScratchCardWorld } from './ScratchCardWorld';
 import { StackWorld } from './StackWorld';
 import { useShowSensitiveInWorlds } from './sensitivePreference';
 import './MemoryWorld.css';
@@ -29,7 +30,8 @@ export type MemoryWorldViewWorld =
   | 'cloud'
   | 'booth'
   | 'fridge'
-  | 'album';
+  | 'album'
+  | 'scratch';
 
 export interface MemoryWorldViewProps {
   world: MemoryWorldViewWorld;
@@ -98,6 +100,8 @@ export function MemoryWorldView({
         <FridgeDoorWorld {...props} />
       ) : world === 'album' ? (
         <PhotoAlbumWorld {...props} />
+      ) : world === 'scratch' ? (
+        <ScratchCardWorld {...props} />
       ) : (
         <StackWorld {...props} />
       )}

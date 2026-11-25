@@ -4,7 +4,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import copy from '../../i18n/locales/memoryWorlds';
 import { heartItem, memoryItem, milestoneItem } from './__fixtures__/stories';
-import { MemoryWorldView } from './MemoryWorldView';
+import { MemoryWorldView, type MemoryWorldViewWorld } from './MemoryWorldView';
+import { ticketSerial } from './scratchTicket';
 import { SENSITIVE_IN_WORLDS_KEY } from './sensitivePreference';
 
 /** Fills a German product template, so the assertions follow the locale copy. */
@@ -29,7 +30,7 @@ const moreItems = [
 ];
 
 function renderWorld(
-  world: 'stack' | 'crate' | 'cloud' | 'booth' | 'fridge' | 'album',
+  world: MemoryWorldViewWorld,
   more: typeof moreItems | undefined = undefined,
 ) {
   return render(
@@ -165,6 +166,27 @@ describe('MemoryWorldView', () => {
     expect(
       screen.getByText(fill(copy.album.moments_other, { count: 2 })),
     ).toBeTruthy();
+  });
+
+  it('renders the Rubbellos from the same selection, the lead first', () => {
+    // jsdom has no 2D canvas: the foils stay unpainted.
+    const canvas = vi
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue(null);
+    const { container } = renderWorld('scratch', moreItems);
+    expect(
+      container.querySelector('.memory-world')?.getAttribute('data-world'),
+    ).toBe('scratch');
+    const ticket = screen.getByRole('group', {
+      name: fill(copy.scratch.label, { serial: ticketSerial('heart-h') }),
+    });
+    expect(ticket.getAttribute('aria-roledescription')).toBe(
+      copy.scratch.roleDescription,
+    );
+    expect(
+      screen.getByRole('button', { name: copy.scratch.reveal }),
+    ).toBeTruthy();
+    canvas.mockRestore();
   });
 
   it('ignores the rest of the diary outside the Momentwolke', () => {

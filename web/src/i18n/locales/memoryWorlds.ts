@@ -1,5 +1,5 @@
 // Memory worlds of Momente › Erinnerungen (#2283): Stapel, Plattenkiste,
-// Momentwolke, Fotoautomat, Kühlschranktür and Fotobuch.
+// Momentwolke, Fotoautomat, Kühlschranktür, Fotobuch and Rubbellos.
 const memoryWorlds = {
   placeVerse: 'in {{place}}',
   winterSpan: 'Winter {{from}}/{{to}}',
@@ -206,6 +206,44 @@ const memoryWorlds = {
     endText:
       'Euer Tagebuch schreibt weiter – und mit jeder neuen Erinnerung euer Fotobuch.',
     restart: 'Zum Anfang blättern',
+  },
+  scratch: {
+    heading: 'Euer Glückslos',
+    roleDescription: 'Glückslos',
+    label: 'Glückslos Nr. {{serial}}',
+    serial: 'Nr. {{serial}}',
+    name: 'Glückslos',
+    rule: 'Rubbelt das Herz frei – drei gleiche Taler bringen eine Zugabe',
+    foilStamp: 'Rubbeln',
+    foilStampSub: 'hier!',
+    tearTab: 'Hier abreißen',
+    open: 'Im Tagebuch öffnen ›',
+    openLabel: 'Im Tagebuch öffnen: {{title}}, {{date}}',
+    win: {
+      stamp: 'Gewinn!',
+      ask: 'Wisst ihr noch?',
+      blank: 'Euer Gewinn',
+    },
+    bonus: {
+      stamp: 'Zugabe!',
+      heart: 'Drei Herzen – noch ein Herzmoment für euch:',
+      kiss: 'Drei Küsse – noch ein Foto für euch:',
+      star: 'Drei Sterne – noch ein großer Moment:',
+      double: 'Euer Glück ist heute doppelt.',
+      none: 'Kein Dreier – vielleicht beim nächsten Los.',
+      hint: 'Drei gleiche Taler: eine Erinnerung extra.',
+      link: 'Zugabe: {{title}}, {{date}}',
+    },
+    smallPrint:
+      'Serie Liebe · Jedes Los gewinnt: eine Erinnerung aus eurem Tagebuch.',
+    dispenser: {
+      title: 'Glückslose',
+      subtitle: 'für zwei',
+    },
+    reveal: 'Freirubbeln',
+    tear: 'Nächstes Los abreißen',
+    won: 'Gewonnen: {{title}}, {{date}}. Tippt auf das Herz, um die Erinnerung zu öffnen.',
+    fresh: 'Ein neues Glückslos aus eurem Tagebuch ist da.',
   },
 };
 

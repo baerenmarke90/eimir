@@ -63,6 +63,10 @@ const memoryWorldSettings = {
       name: 'Plattenkiste',
       sentence: 'Blättere durch eure Platten und leg eine Erinnerung auf.',
     },
+    scratch: {
+      name: 'Rubbellos',
+      sentence: 'Rubbel frei, welche Erinnerung heute auf euch wartet.',
+    },
     fridge: {
       name: 'Kühlschranktür',
       sentence:

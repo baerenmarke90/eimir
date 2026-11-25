@@ -14,7 +14,8 @@ export type WorldArtKind =
   | 'cloud'
   | 'booth'
   | 'fridge'
-  | 'album';
+  | 'album'
+  | 'scratch';
 
 type Id = (name: string) => string;
 
@@ -296,6 +297,45 @@ function art(world: WorldArtKind, id: Id, url: Id) {
             d="M120 22 Q140 30 146 22 L146 90 Q130 84 120 88Z"
             fill="#ece6d9"
             opacity="0.9"
+          />
+        </>
+      );
+    case 'scratch':
+      return (
+        <>
+          <rect width="160" height="100" fill="#ffe9a8" />
+          <g transform="rotate(-5 80 52)">
+            <rect
+              x="22"
+              y="18"
+              width="116"
+              height="66"
+              rx="6"
+              fill="#fff8e6"
+              stroke="#e0a43a"
+              strokeWidth="2"
+              strokeDasharray="4 3"
+            />
+            <rect x="32" y="28" width="96" height="38" rx="4" fill="#f3b7a3" />
+            {/* The silver foil, half scratched away. */}
+            <path
+              d="M74 28 L128 28 L128 66 L58 66 Q66 52 74 28Z"
+              fill="#b8bcc4"
+            />
+            <path
+              d="M78 34 l40 0 M74 42 l50 0 M70 50 l54 0 M66 58 l58 0"
+              stroke="#d3d6dc"
+              strokeWidth="2"
+            />
+            <rect x="34" y="72" width="50" height="5" rx="2.5" fill="#c9893a" />
+          </g>
+          <circle
+            cx="132"
+            cy="80"
+            r="12"
+            fill="#e8c06a"
+            stroke="#b98a2e"
+            strokeWidth="2"
           />
         </>
       );

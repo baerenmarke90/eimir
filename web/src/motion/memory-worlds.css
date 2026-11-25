@@ -3,7 +3,8 @@
  * Erinnerungen (#2283): the Stapel (stack of prints), the Plattenkiste
  * (record crate and turntable), the Momentwolke (bubble cloud), the
  * Fotoautomat (photo booth, in a classic and a modern style), the
- * Kühlschranktür (fridge door) and the Fotobuch (photo book).
+ * Kühlschranktür (fridge door), the Fotobuch (photo book) and the
+ * Rubbellos (scratch card).
  *
  * World-scoped timing roles, keyframes and the worlds' loops live here; the
  * world stylesheets only consume the roles. Every animation and transition
@@ -24,12 +25,16 @@
  * Animations in `fridgeDoor.ts`. The Fotobuch has no loops: its page turn
  * is a frame-driven turn in `photoAlbum.ts`; only the closed book's invite
  * (the cover lifts once at its edge, when the book is first seen) is CSS.
+ * The Rubbellos' only loop is the sparkles' twinkle on the untouched foil:
+ * `--motion-ambient-repeat` cycles, paused while the ticket is not seen
+ * (`data-ambient`); its tear flight and the foil crumbs are in
+ * `scratchCard.ts`, the feed, crank, reveal and bonus here.
  *
  * The values were tuned on device with the Product Owner (Pixel 10 Pro Fold,
  * 2026-11-24/25) and are kept unchanged from the accepted prototype.
  * Imported by `StackWorld.tsx`, `RecordCrateWorld.tsx`,
- * `MomentCloudWorld.tsx`, `PhotoBoothWorld.tsx`, `FridgeDoorWorld.tsx` and
- * `PhotoAlbumWorld.tsx`.
+ * `MomentCloudWorld.tsx`, `PhotoBoothWorld.tsx`, `FridgeDoorWorld.tsx`,
+ * `PhotoAlbumWorld.tsx` and `ScratchCardWorld.tsx`.
  */
 
 /* Shared easings: the exact CSS keyword curves, as named roles. */
@@ -41,7 +46,8 @@
 .memory-booth-world,
 .memory-booth-viewer,
 .memory-fridge-world,
-.memory-album-world {
+.memory-album-world,
+.memory-scratch-world {
   --memory-world-easing-in: cubic-bezier(0.42, 0, 1, 1);
   --memory-world-easing-out: cubic-bezier(0, 0, 0.58, 1);
   --memory-world-easing-in-out: cubic-bezier(0.42, 0, 0.58, 1);
@@ -1141,5 +1147,257 @@
   }
   100% {
     opacity: 0;
+  }
+}
+
+/* ---------- Rubbellos ---------- */
+
+.memory-scratch-world {
+  /* The ticket springs back onto the perforation when not torn far enough. */
+  --memory-scratch-spring-duration: 680ms;
+  --memory-scratch-curve-spring: cubic-bezier(0.3, 1.45, 0.55, 1);
+  /* A fresh ticket slides out of the dispenser while the roll and the
+     crank turn (the roll ticks match SCRATCH_TIMING.feedTicks). */
+  --memory-scratch-feed-duration: 1200ms;
+  --memory-scratch-feed-delay: 260ms;
+  --memory-scratch-curve-feed: cubic-bezier(0.33, 0.6, 0.35, 1);
+  --memory-scratch-turn-duration: 1300ms;
+  --memory-scratch-turn-delay: 200ms;
+  --memory-scratch-curve-turn: cubic-bezier(0.45, 0, 0.3, 1);
+  /* The locked crank only wiggles. */
+  --memory-scratch-nudge-duration: 520ms;
+  /* The "tear here" tab arrives after the win and tugs twice. */
+  --memory-scratch-tab-in-duration: 520ms;
+  --memory-scratch-tab-in-delay: 1800ms;
+  --memory-scratch-curve-pop: cubic-bezier(0.3, 1.5, 0.5, 1);
+  --memory-scratch-tab-pull-duration: 1400ms;
+  --memory-scratch-tab-pull-delay: 2600ms;
+  --memory-scratch-tab-pull-repeat: 2;
+  /* Sparkles on the untouched foil, each at its own phase
+     (`--memory-scratch-sparkle-phase` is set per sparkle, in steps). */
+  --memory-scratch-twinkle-duration: 2.6s;
+  --memory-scratch-sparkle-step: 100ms;
+  /* The reveal: the rest of the foil dissolves, a shimmer sweeps the heart,
+     confetti fall (`--memory-scratch-confetto-delay` and `-length` are set
+     per piece, 0..1), the stamp lands and the note is written. */
+  --memory-scratch-dissolve-duration: 1100ms;
+  --memory-scratch-dissolve-delay: 160ms;
+  --memory-scratch-coin-dissolve-duration: 700ms;
+  --memory-scratch-sweep-duration: 1000ms;
+  --memory-scratch-sweep-delay: 80ms;
+  --memory-scratch-confetti-duration: 1700ms;
+  --memory-scratch-confetti-range: 800ms;
+  --memory-scratch-confetti-spread: 560ms;
+  --memory-scratch-curve-fall: cubic-bezier(0.4, 0.05, 0.75, 0.55);
+  --memory-scratch-stamp-duration: 560ms;
+  --memory-scratch-stamp-delay: 700ms;
+  --memory-scratch-curve-stamp: cubic-bezier(0.2, 1.5, 0.4, 1);
+  --memory-scratch-write-duration: 760ms;
+  --memory-scratch-write-delay: 1050ms;
+  --memory-scratch-label-duration: 600ms;
+  --memory-scratch-label-delay: 1400ms;
+  /* The coins: a symbol pops up, all three hop in turn
+     (`--memory-scratch-coin-index` 0..2 is set per coin). */
+  --memory-scratch-pop-duration: 620ms;
+  --memory-scratch-pop-delay: 120ms;
+  --memory-scratch-curve-coin: cubic-bezier(0.3, 1.8, 0.5, 1);
+  --memory-scratch-hop-duration: 760ms;
+  --memory-scratch-hop-delay: 500ms;
+  --memory-scratch-hop-stagger: 130ms;
+  /* The bonus line and its stamp. */
+  --memory-scratch-bonus-duration: 620ms;
+  --memory-scratch-bonus-delay: 380ms;
+  --memory-scratch-curve-bonus: cubic-bezier(0.2, 1.4, 0.4, 1);
+  --memory-scratch-bonus-stamp-duration: 520ms;
+  --memory-scratch-bonus-stamp-delay: 600ms;
+  --memory-scratch-curve-bonus-stamp: cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+@keyframes eimir-motion-memory-scratch-feed {
+  0% {
+    translate: 0 -104%;
+  }
+  74% {
+    translate: 0 1.4%;
+  }
+  88% {
+    translate: 0 -0.4%;
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-roll {
+  0% {
+    translate: 0 -100%;
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-turn {
+  from {
+    rotate: 0deg;
+  }
+  to {
+    rotate: 720deg;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-nudge {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  30% {
+    rotate: 14deg;
+  }
+  60% {
+    rotate: -6deg;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-tab-in {
+  from {
+    opacity: 0;
+    translate: 16px 0;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-tab-pull {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  40% {
+    translate: 6px 0;
+  }
+  60% {
+    translate: 6px 0;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+    scale: 0.6;
+  }
+  50% {
+    opacity: 1;
+    scale: 1.1;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-dissolve {
+  0% {
+    opacity: 1;
+    visibility: visible;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+    scale: 1.04;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-sweep {
+  0% {
+    opacity: 0;
+    transform: translateX(-55%);
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(55%);
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-fall {
+  0% {
+    opacity: 0;
+    translate: 0 -12px;
+    rotate: 0deg;
+  }
+  8% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: calc(var(--memory-scratch-confetto-dx, 0) * 1px) 300px;
+    rotate: calc(var(--memory-scratch-confetto-rot, 0) * 1deg);
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-stamp {
+  0% {
+    opacity: 0;
+    scale: 1.8;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-stamp-in {
+  from {
+    opacity: 0;
+    scale: 1.8;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-write {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-pop {
+  0% {
+    scale: 0.4;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes eimir-motion-memory-scratch-hop {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  40% {
+    translate: 0 -10px;
+  }
+  70% {
+    translate: 0 1px;
   }
 }

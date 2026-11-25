@@ -105,8 +105,10 @@ export const REGISTERED_POINTER_TRACKING = Object.freeze({
   // the Momentwolke's cloud pan / bubble fling and card swipe-to-close, the
   // Fotoautomat's coin drag and the waving of the wet strip, the
   // Kühlschranktür's note and letter drag with its touch scroll-or-drag
-  // decision, and the Fotobuch's page that follows the finger around the
-  // spine (gesture, not yet on the building block; Motion Contract 4.6).
+  // decision, the Fotobuch's page that follows the finger around the
+  // spine and the Rubbellos' won ticket torn off sideways (gesture, not yet
+  // on the building block; Motion Contract 4.6), and the Rubbellos' scratch
+  // strokes on its foils (input: a drawn stroke that moves nothing).
   'src/components/memoryWorlds/FridgeDoorWorld.tsx': {
     use: 'gesture',
     count: 2,
@@ -127,6 +129,11 @@ export const REGISTERED_POINTER_TRACKING = Object.freeze({
     use: 'gesture',
     count: 4,
   },
+  'src/components/memoryWorlds/ScratchCardWorld.tsx': {
+    use: 'gesture',
+    count: 1,
+  },
+  'src/components/memoryWorlds/ScratchFoil.tsx': { use: 'input', count: 1 },
   'src/components/memoryWorlds/StackWorld.tsx': { use: 'gesture', count: 1 },
   'src/components/PhotoEditTask.tsx': { use: 'input', count: 4 },
   'src/components/PicturePingPongPage.tsx': { use: 'input', count: 1 },

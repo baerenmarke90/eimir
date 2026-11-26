@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, select
+from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, delete, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
@@ -54,3 +54,33 @@ def active_override(
     if row.effective_until is not None and row.effective_until <= at:
         return None
     return row
+
+
+def set_override(
+    session: Session,
+    space_id: UUID,
+    *,
+    quota_bytes: int,
+    effective_until: datetime | None,
+    set_by_account_id: UUID | None,
+    at: datetime,
+) -> SpaceStorageQuotaOverride:
+    """Set or replace the Space's individual quota."""
+    row = session.get(SpaceStorageQuotaOverride, space_id)
+    if row is None:
+        row = SpaceStorageQuotaOverride(space_id=space_id)
+        session.add(row)
+    row.quota_bytes = quota_bytes
+    row.effective_until = effective_until
+    row.set_by_account_id = set_by_account_id
+    row.set_at = at
+    session.flush()
+    return row
+
+
+def clear_override(session: Session, space_id: UUID) -> bool:
+    """Remove the Space's individual quota; return whether one existed."""
+    result = session.execute(
+        delete(SpaceStorageQuotaOverride).where(SpaceStorageQuotaOverride.space_id == space_id)
+    )
+    return bool(getattr(result, "rowcount", 0))

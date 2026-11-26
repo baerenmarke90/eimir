@@ -120,6 +120,14 @@ def space_quota(
     override = quota_override.active_override(session, space_id, clock.now())
     if override is not None:
         return override.quota_bytes
+    return tier_quota(session, space_id, settings=settings)
+
+
+def tier_quota(session: Session, space_id: UUID, *, settings: Settings | None = None) -> int | None:
+    """Return the Free or Premium quota of the Space, ignoring any override."""
+    settings = settings or get_settings()
+    if settings.deployment is not Deployment.CLOUD:
+        return None
     premium = entitlements.has_capability(
         session,
         space_id,
@@ -127,6 +135,20 @@ def space_quota(
         deployment=settings.deployment,
     )
     return settings.storage_quota_premium_bytes if premium else settings.storage_quota_free_bytes
+
+
+def usage_by_media_type(session: Session, space_id: UUID) -> dict[str, int]:
+    """Return the counted bytes of the Space per attachment media type."""
+    counted = func.coalesce(Attachment.size, Attachment.declared_size)
+    rows = session.execute(
+        select(Attachment.media_type, func.coalesce(func.sum(counted), 0))
+        .where(
+            Attachment.space_id == space_id,
+            Attachment.status.in_(COUNTED_STATUSES),
+        )
+        .group_by(Attachment.media_type)
+    ).all()
+    return {str(media_type): int(total) for media_type, total in rows}
 
 
 def spaces_near_quota(

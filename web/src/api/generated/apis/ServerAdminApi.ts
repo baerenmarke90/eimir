@@ -104,6 +104,11 @@ import {
     ServerAdminRecoveryProofToJSON,
 } from '../models/ServerAdminRecoveryProof';
 import {
+    type ServerAdminSearchResult,
+    ServerAdminSearchResultFromJSON,
+    ServerAdminSearchResultToJSON,
+} from '../models/ServerAdminSearchResult';
+import {
     type ServerAdminSessionRevocationResult,
     ServerAdminSessionRevocationResultFromJSON,
     ServerAdminSessionRevocationResultToJSON,
@@ -139,15 +144,34 @@ import {
     ServerAdminSpaceEntitlementViewToJSON,
 } from '../models/ServerAdminSpaceEntitlementView';
 import {
+    type ServerAdminSpaceFile,
+    ServerAdminSpaceFileFromJSON,
+    ServerAdminSpaceFileToJSON,
+} from '../models/ServerAdminSpaceFile';
+import {
     type ServerAdminSpaceList,
     ServerAdminSpaceListFromJSON,
     ServerAdminSpaceListToJSON,
 } from '../models/ServerAdminSpaceList';
 import {
+    type ServerAdminSpaceStorage,
+    ServerAdminSpaceStorageFromJSON,
+    ServerAdminSpaceStorageToJSON,
+} from '../models/ServerAdminSpaceStorage';
+import {
     type ServerAdminStorageOverview,
     ServerAdminStorageOverviewFromJSON,
     ServerAdminStorageOverviewToJSON,
 } from '../models/ServerAdminStorageOverview';
+import {
+    type ServerAdminStorageQuotaRequest,
+    ServerAdminStorageQuotaRequestFromJSON,
+    ServerAdminStorageQuotaRequestToJSON,
+} from '../models/ServerAdminStorageQuotaRequest';
+
+export interface ClearServerAdminSpaceStorageQuotaRequest {
+    spaceId: string;
+}
 
 export interface DeleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRequest {
     accountId: string;
@@ -178,6 +202,10 @@ export interface GetServerAdminSpaceApiV1ServerAdminSpacesSpaceIdGetRequest {
 }
 
 export interface GetServerAdminSpaceEntitlementApiV1ServerAdminSpacesSpaceIdEntitlementGetRequest {
+    spaceId: string;
+}
+
+export interface GetServerAdminSpaceFileRequest {
     spaceId: string;
 }
 
@@ -237,6 +265,15 @@ export interface RevokeServerAdminSpaceEntitlementGrantApiV1ServerAdminSpacesSpa
     serverAdminEntitlementRevokeRequest: ServerAdminEntitlementRevokeRequest;
 }
 
+export interface SearchServerAdminRequest {
+    q?: string;
+}
+
+export interface SetServerAdminSpaceStorageQuotaRequest {
+    spaceId: string;
+    serverAdminStorageQuotaRequest: ServerAdminStorageQuotaRequest;
+}
+
 export interface UpdateMaintenanceSettingApiV1ServerAdminSettingsMaintenancePutRequest {
     serverAdminSettingUpdate: ServerAdminSettingUpdate;
 }
@@ -264,6 +301,52 @@ export interface VerifyServerAdminAccountEmailApiV1ServerAdminAccountsAccountIdE
  * 
  */
 export class ServerAdminApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for clearServerAdminSpaceStorageQuota without sending the request
+     */
+    async clearServerAdminSpaceStorageQuotaRequestOpts(requestParameters: ClearServerAdminSpaceStorageQuotaRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling clearServerAdminSpaceStorageQuota().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/server-admin/spaces/{space_id}/storage-quota`;
+        urlPath = urlPath.replace('{space_id}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Remove the individual quota; the tier value applies again at once.
+     * Clear Server Admin Space Storage Quota
+     */
+    async clearServerAdminSpaceStorageQuotaRaw(requestParameters: ClearServerAdminSpaceStorageQuotaRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.clearServerAdminSpaceStorageQuotaRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Remove the individual quota; the tier value applies again at once.
+     * Clear Server Admin Space Storage Quota
+     */
+    async clearServerAdminSpaceStorageQuota(requestParameters: ClearServerAdminSpaceStorageQuotaRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.clearServerAdminSpaceStorageQuotaRaw(requestParameters, initOverrides);
+    }
 
     /**
      * Creates request options for deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPost without sending the request
@@ -718,6 +801,53 @@ export class ServerAdminApi extends runtime.BaseAPI {
      */
     async getServerAdminSpaceEntitlementApiV1ServerAdminSpacesSpaceIdEntitlementGet(requestParameters: GetServerAdminSpaceEntitlementApiV1ServerAdminSpacesSpaceIdEntitlementGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSpaceEntitlementView> {
         const response = await this.getServerAdminSpaceEntitlementApiV1ServerAdminSpacesSpaceIdEntitlementGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getServerAdminSpaceFile without sending the request
+     */
+    async getServerAdminSpaceFileRequestOpts(requestParameters: GetServerAdminSpaceFileRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getServerAdminSpaceFile().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/server-admin/spaces/{space_id}/file`;
+        urlPath = urlPath.replace('{space_id}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Everything an operator needs about one Space, without names or content.  Each call is recorded as ``space_file_viewed`` in the privileged audit.
+     * Get Server Admin Space File
+     */
+    async getServerAdminSpaceFileRaw(requestParameters: GetServerAdminSpaceFileRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminSpaceFile>> {
+        const requestOptions = await this.getServerAdminSpaceFileRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminSpaceFileFromJSON(jsonValue));
+    }
+
+    /**
+     * Everything an operator needs about one Space, without names or content.  Each call is recorded as ``space_file_viewed`` in the privileged audit.
+     * Get Server Admin Space File
+     */
+    async getServerAdminSpaceFile(requestParameters: GetServerAdminSpaceFileRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSpaceFile> {
+        const response = await this.getServerAdminSpaceFileRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -1292,6 +1422,106 @@ export class ServerAdminApi extends runtime.BaseAPI {
      */
     async revokeServerAdminSpaceEntitlementGrantApiV1ServerAdminSpacesSpaceIdEntitlementGrantsGrantIdRevokePost(requestParameters: RevokeServerAdminSpaceEntitlementGrantApiV1ServerAdminSpacesSpaceIdEntitlementGrantsGrantIdRevokePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSpaceEntitlementView> {
         const response = await this.revokeServerAdminSpaceEntitlementGrantApiV1ServerAdminSpacesSpaceIdEntitlementGrantsGrantIdRevokePostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for searchServerAdmin without sending the request
+     */
+    async searchServerAdminRequestOpts(requestParameters: SearchServerAdminRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['q'] != null) {
+            queryParameters['q'] = requestParameters['q'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/server-admin/search`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Find Accounts by email part or id, their Spaces, and a Space by id.  Names are protected content and never matched. At most 20 Accounts come back, so the Account-Space link cannot be listed in bulk.
+     * Search Server Admin
+     */
+    async searchServerAdminRaw(requestParameters: SearchServerAdminRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminSearchResult>> {
+        const requestOptions = await this.searchServerAdminRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminSearchResultFromJSON(jsonValue));
+    }
+
+    /**
+     * Find Accounts by email part or id, their Spaces, and a Space by id.  Names are protected content and never matched. At most 20 Accounts come back, so the Account-Space link cannot be listed in bulk.
+     * Search Server Admin
+     */
+    async searchServerAdmin(requestParameters: SearchServerAdminRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSearchResult> {
+        const response = await this.searchServerAdminRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for setServerAdminSpaceStorageQuota without sending the request
+     */
+    async setServerAdminSpaceStorageQuotaRequestOpts(requestParameters: SetServerAdminSpaceStorageQuotaRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling setServerAdminSpaceStorageQuota().'
+            );
+        }
+
+        if (requestParameters['serverAdminStorageQuotaRequest'] == null) {
+            throw new runtime.RequiredError(
+                'serverAdminStorageQuotaRequest',
+                'Required parameter "serverAdminStorageQuotaRequest" was null or undefined when calling setServerAdminSpaceStorageQuota().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/server-admin/spaces/{space_id}/storage-quota`;
+        urlPath = urlPath.replace('{space_id}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ServerAdminStorageQuotaRequestToJSON(requestParameters['serverAdminStorageQuotaRequest']),
+        };
+    }
+
+    /**
+     * Set an individual Cloud quota that replaces the tier value while active.  It may be higher or lower than the tier value. Below the current usage nothing is deleted; only new bytes are refused.
+     * Set Server Admin Space Storage Quota
+     */
+    async setServerAdminSpaceStorageQuotaRaw(requestParameters: SetServerAdminSpaceStorageQuotaRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminSpaceStorage>> {
+        const requestOptions = await this.setServerAdminSpaceStorageQuotaRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminSpaceStorageFromJSON(jsonValue));
+    }
+
+    /**
+     * Set an individual Cloud quota that replaces the tier value while active.  It may be higher or lower than the tier value. Below the current usage nothing is deleted; only new bytes are refused.
+     * Set Server Admin Space Storage Quota
+     */
+    async setServerAdminSpaceStorageQuota(requestParameters: SetServerAdminSpaceStorageQuotaRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSpaceStorage> {
+        const response = await this.setServerAdminSpaceStorageQuotaRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

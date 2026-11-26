@@ -242,6 +242,14 @@ class ServerAdminAccountSummary(ApiModel):
     active_membership_count: int
 
 
+class ServerAdminAccountSpace(ApiModel):
+    """One Space the Account belongs or belonged to; ids and status only."""
+
+    space_id: UUID
+    membership_status: str
+    since: datetime
+
+
 class ServerAdminAccountDetail(ServerAdminAccountSummary):
     emails: list[ServerAdminAccountEmail]
     passkey_count: int
@@ -250,6 +258,7 @@ class ServerAdminAccountDetail(ServerAdminAccountSummary):
     mail_recovery_available: bool
     local_password_available: bool
     deletion_accepted_at: datetime | None = None
+    spaces: list[ServerAdminAccountSpace] = Field(default_factory=list)
 
 
 class ServerAdminAccountList(ApiModel):
@@ -496,6 +505,18 @@ def _account_detail(
             local_password_available and runtime.mail_transport is not MailTransport.NONE
         ),
         local_password_available=local_password_available,
+        spaces=[
+            ServerAdminAccountSpace(
+                space_id=membership.space_id,
+                membership_status=membership.status,
+                since=membership.joined_at or membership.created_at,
+            )
+            for membership in session.execute(
+                select(Membership)
+                .where(Membership.account_id == account.id)
+                .order_by(Membership.created_at.desc())
+            ).scalars()
+        ],
     )
 
 
@@ -961,18 +982,37 @@ def get_server_admin_space(
     space_id: Annotated[str, Path(max_length=64)],
 ) -> ServerAdminSpaceDetail:
     """Return one Space's privacy-safe lifecycle projection."""
-    parsed = _parse_space_id(space_id)
+    return space_detail(session, _parse_space_id(space_id))
+
+
+def space_detail(session: Session, space_id: UUID) -> ServerAdminSpaceDetail:
+    """One Space's lifecycle projection, or a privacy-safe 404."""
     aggregate = _space_aggregate_subquery()
     statement = (
         select(*_space_projection(aggregate))
         .select_from(Space)
         .outerjoin(aggregate, aggregate.c.space_id == Space.id)
-        .where(Space.id == parsed)
+        .where(Space.id == space_id)
     )
     row = session.execute(statement).one_or_none()
     if row is None:
         raise NotFoundError("Space not found.", "SERVER_ADMIN_SPACE_NOT_FOUND")
     return _space_detail_from_row(row)
+
+
+def space_summaries(session: Session, space_ids: list[UUID]) -> list[ServerAdminSpaceSummary]:
+    """Lifecycle summaries of the given Spaces, in the given order."""
+    if not space_ids:
+        return []
+    aggregate = _space_aggregate_subquery()
+    rows = session.execute(
+        select(*_space_projection(aggregate))
+        .select_from(Space)
+        .outerjoin(aggregate, aggregate.c.space_id == Space.id)
+        .where(Space.id.in_(space_ids))
+    ).all()
+    by_id = {row._mapping["id"]: _space_summary_from_row(row) for row in rows}
+    return [by_id[space_id] for space_id in space_ids if space_id in by_id]
 
 
 def _require_space(session: Session, space_id: str) -> UUID:

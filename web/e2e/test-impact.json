@@ -1519,6 +1519,31 @@
         "web/src/i18n/locales/serverAdmin.ts"
       ]
     },
+    "server-admin-people.spec.ts": {
+      "roots": [
+        "web/src/components/ServerAdminPeopleSearch.tsx",
+        "web/src/components/ServerAdminSpaceFile.tsx",
+        "web/src/components/ServerAdminSpaceFile.css",
+        "web/src/components/ServerAdminStorageQuotaSheet.tsx",
+        "web/src/components/ServerAdminPremiumGiftSheet.tsx",
+        "web/src/components/ServerAdminSheet.tsx",
+        "web/src/components/ServerAdminSheet.css",
+        "web/src/components/ServerAdminSpacesPanel.tsx",
+        "web/src/components/ServerAdminAccountsPanel.tsx",
+        "web/src/components/ServerAdminPage.tsx",
+        "web/src/components/ServerAdminPage.css",
+        "web/src/components/ServerAdminAreaNavigation.tsx",
+        "web/src/components/serverAdminAreas.ts",
+        "web/src/components/useModalLifecycle.ts",
+        "web/src/client/serverAdmin.ts",
+        "web/src/client/formatBytes.ts",
+        "web/src/api/generated/apis/ServerAdminApi.ts",
+        "web/src/api/generated/models/ServerAdminSpaceFile.ts",
+        "web/src/api/generated/models/ServerAdminSearchResult.ts",
+        "web/src/api/generated/models/ServerAdminSpaceStorage.ts",
+        "web/src/i18n/locales/serverAdmin.ts"
+      ]
+    },
     "server-admin-situation.spec.ts": {
       "roots": [
         "web/src/components/ServerAdminPage.tsx",

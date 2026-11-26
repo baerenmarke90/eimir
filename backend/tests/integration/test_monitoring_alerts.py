@@ -18,6 +18,7 @@ from eimir.identity.models import AccountEmail
 from eimir.jobs.models import Job, JobStatus
 from eimir.mail import MailMessage
 from eimir.monitoring import alerts
+from eimir.monitoring.models import MonitoringAlertState
 from eimir.support_reports.models import SupportReport
 from eimir.support_reports.payload import ClientContext, SupportReportPayload
 from tests.conftest import make_account, make_space, requires_database
@@ -310,3 +311,16 @@ def test_no_recipient_without_a_verified_allow_listed_address(session: Session, 
     assert _run(session, now(), outbox) == ["failed_jobs"]
     assert outbox == []
     assert _pushes(session) == []
+
+
+def test_first_run_without_autoflush_stores_each_condition_once(session: Session, outbox) -> None:  # type: ignore[no-untyped-def]
+    # Production sessions do not autoflush; a condition looked up twice in one
+    # run used to be added twice and the run failed with a unique violation.
+    _admin(session)
+    _failed_job(session, now() - timedelta(minutes=1))
+    session.autoflush = False
+
+    assert _run(session, now(), outbox, "cloud") == ["failed_jobs", "backup_not_configured"]
+
+    codes = session.scalars(select(MonitoringAlertState.code)).all()
+    assert sorted(codes) == sorted(alerts.CODES)

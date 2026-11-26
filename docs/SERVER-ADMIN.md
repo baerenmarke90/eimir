@@ -143,6 +143,38 @@ process a stable heartbeat name (default: the host name).
 turns the alert mails on or off; the change is recorded in the privileged audit
 like the other settings.
 
+### Alert mails
+
+The `monitoring_alerts` job runs every five minutes and mails the verified
+primary addresses of allow-listed ServerAdmin accounts when a condition becomes
+active, and at most once a day while it stays active. Nothing is mailed on
+resolution, and conditions that become active while alerts are off are not
+mailed later. Mails name the condition and link to System › Monitoring.
+
+| Code | Active when |
+| --- | --- |
+| `failed_jobs` | a job failed after the last mailed failure |
+| `space_quota_pressure` | a Cloud Space uses at least 85 % of its quota |
+| `disk_pressure` | the local media filesystem is at least 85 % full |
+| `delivery_failures` | more than 5 email or push deliveries failed in the last hour |
+| `backup_not_configured` | Cloud without a backup signal (mailed once only) |
+
+### Runbook: external watch with Uptime Kuma and Arcane
+
+eimir. cannot report its own outage. The operator therefore runs an Uptime Kuma
+instance on a **different host** than eimir. (if it ran on the same host, it
+would go down with it):
+
+1. In Uptime Kuma, add an **HTTP(s)** monitor for
+   `https://<your eimir host>/api/v1/health/ready` with a 60-second interval. It
+   answers 200 only while the API and its database work and returns no content.
+2. Add a **Push** monitor (heartbeat interval 120 seconds). Copy its push URL into
+   the eimir. configuration as `EIMIR_HEARTBEAT_PUSH_URL` for the worker and
+   redeploy. Kuma then alerts when the worker hangs, stops, or the host is gone.
+3. Set up a notification (for example email) for both monitors.
+4. Use Arcane for the container overview (running, health, restarts). Container
+   state alone does not show a hung worker; the push monitor does.
+
 The overview does not expose:
 
 - passwords, tokens, private keys, DSNs, provider credentials, or secrets;

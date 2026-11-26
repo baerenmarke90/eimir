@@ -20,6 +20,12 @@ import { mapValues } from '../runtime';
  */
 export interface DeviceContextView {
     /**
+     * Whether this request rewrote stored state that day-dependent reads use: the Account time zone or the Space's shared-day time zone. False means reads made before the request are still current.
+     * @type {boolean}
+     * @memberof DeviceContextView
+     */
+    changed: boolean;
+    /**
      * 
      * @type {boolean}
      * @memberof DeviceContextView
@@ -37,6 +43,7 @@ export interface DeviceContextView {
  * Check if a given object implements the DeviceContextView interface.
  */
 export function instanceOfDeviceContextView(value: object): value is DeviceContextView {
+    if (!('changed' in value) || value['changed'] === undefined) return false;
     if (!('sharedDayPending' in value) || value['sharedDayPending'] === undefined) return false;
     if (!('timezone' in value) || value['timezone'] === undefined) return false;
     return true;
@@ -52,6 +59,7 @@ export function DeviceContextViewFromJSONTyped(json: any, ignoreDiscriminator: b
     }
     return {
         
+        'changed': json['changed'],
         'sharedDayPending': json['sharedDayPending'],
         'timezone': json['timezone'],
     };
@@ -68,6 +76,7 @@ export function DeviceContextViewToJSONTyped(value?: DeviceContextView | null, i
 
     return {
         
+        'changed': value['changed'],
         'sharedDayPending': value['sharedDayPending'],
         'timezone': value['timezone'],
     };

@@ -3704,6 +3704,11 @@
       },
       "DeviceContextView": {
         "properties": {
+          "changed": {
+            "description": "Whether this request rewrote stored state that day-dependent reads use: the Account time zone or the Space's shared-day time zone. False means reads made before the request are still current.",
+            "title": "Changed",
+            "type": "boolean"
+          },
           "sharedDayPending": {
             "title": "Shareddaypending",
             "type": "boolean"
@@ -3715,7 +3720,8 @@
         },
         "required": [
           "timezone",
-          "sharedDayPending"
+          "sharedDayPending",
+          "changed"
         ],
         "title": "DeviceContextView",
         "type": "object"

@@ -94,6 +94,13 @@ class DeviceContextUpdate(ApiModel):
 class DeviceContextView(ApiModel):
     timezone: str
     shared_day_pending: bool
+    changed: bool = Field(
+        description=(
+            "Whether this request rewrote stored state that day-dependent reads use: "
+            "the Account time zone or the Space's shared-day time zone. False means "
+            "reads made before the request are still current."
+        )
+    )
 
 
 @router.put(
@@ -110,14 +117,19 @@ def update_own_device_context(
 ) -> DeviceContextView:
     timezone = validate_timezone(body.timezone)
     membership = require_membership(session, account, body.space_id)
-    pending = sync_system_timezone(session, body.space_id, membership, timezone)
+    shared_day = sync_system_timezone(session, body.space_id, membership, timezone)
     locked = session.scalars(
         select(Account).where(Account.id == account.id).with_for_update()
     ).one()
-    if locked.timezone != timezone:
+    account_changed = locked.timezone != timezone
+    if account_changed:
         set_preferences(session, locked, timezone=timezone)
     response.headers["Cache-Control"] = "private, no-store"
-    return DeviceContextView(timezone=locked.timezone, shared_day_pending=pending)
+    return DeviceContextView(
+        timezone=locked.timezone,
+        shared_day_pending=shared_day.pending,
+        changed=account_changed or shared_day.changed,
+    )
 
 
 class PhotoLocationPreference(ApiModel):

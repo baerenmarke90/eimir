@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`changed` | boolean
 `sharedDayPending` | boolean
 `timezone` | string
 
@@ -16,6 +17,7 @@ import type { DeviceContextView } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "changed": null,
   "sharedDayPending": null,
   "timezone": null,
 } satisfies DeviceContextView

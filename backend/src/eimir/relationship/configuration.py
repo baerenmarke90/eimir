@@ -12,6 +12,7 @@ configuration-management capability established by #1113.
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import NamedTuple
 from uuid import UUID
 
 from sqlalchemy import select
@@ -224,9 +225,18 @@ def _ensure_daily_timezone_change_allowed(
         )
 
 
+class SystemTimezoneSync(NamedTuple):
+    """Outcome of following the manager's device for the shared Space day."""
+
+    pending: bool
+    """The device zone differs, but an active shared day blocks the change."""
+    changed: bool
+    """The stored shared-day time zone was actually rewritten."""
+
+
 def sync_system_timezone(
     session: Session, space_id: UUID, membership: Membership, timezone: str
-) -> bool:
+) -> SystemTimezoneSync:
     """Follow the manager's device without reinterpreting an active shared day.
 
     A participating partner's personal scheduler still follows their own device.
@@ -235,9 +245,9 @@ def sync_system_timezone(
     try:
         configuration = _locked_configuration(session, space_id, membership)
     except ForbiddenError:
-        return False
+        return SystemTimezoneSync(pending=False, changed=False)
     if configuration.daily_context_timezone == timezone:
-        return False
+        return SystemTimezoneSync(pending=False, changed=False)
     try:
         _ensure_daily_timezone_change_allowed(
             session,
@@ -246,10 +256,10 @@ def sync_system_timezone(
             next_timezone=timezone,
         )
     except ConflictError:
-        return True
+        return SystemTimezoneSync(pending=True, changed=False)
     configuration.daily_context_timezone = _daily_timezone(timezone)
     session.flush()
-    return False
+    return SystemTimezoneSync(pending=False, changed=True)
 
 
 def update(

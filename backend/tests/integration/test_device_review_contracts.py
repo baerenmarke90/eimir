@@ -193,6 +193,37 @@ def test_device_zone_updates_personal_scheduling_without_shifting_calendar_dates
     )
 
 
+def test_device_context_reports_whether_the_stored_context_changed(
+    client: TestClient, session: Session, world: dict[str, Any]
+) -> None:
+    def put(actor: str, timezone: str) -> dict[str, Any]:
+        response = client.put(
+            "/api/v1/account/device-context",
+            headers=world[actor],
+            json={"timezone": timezone, "spaceId": world["space"]},
+        )
+        assert response.status_code == 200, response.text
+        payload: dict[str, Any] = response.json()
+        return payload
+
+    first = put("a", "Pacific/Auckland")
+    assert first == {"timezone": "Pacific/Auckland", "sharedDayPending": False, "changed": True}
+    # An identical repeat stores nothing, so day-dependent reads stay valid.
+    assert put("a", "Pacific/Auckland")["changed"] is False
+
+    # A partner without configuration authority still changes their own zone once.
+    assert put("b", "Pacific/Auckland")["changed"] is True
+    assert put("b", "Pacific/Auckland")["changed"] is False
+
+    # The personal zone already matches; only the shared Space day moves.
+    owner = session.get(Account, world["owner"].id)
+    assert owner is not None
+    owner.timezone = "Asia/Tokyo"
+    session.flush()
+    assert put("a", "Asia/Tokyo")["changed"] is True
+    assert put("a", "Asia/Tokyo")["changed"] is False
+
+
 # Guided experiences need the couple-games capability, which only the Pro plugin serves.
 @requires_pro
 def test_shared_experience_is_consumed_by_canonical_view_and_expires(

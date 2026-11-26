@@ -191,6 +191,42 @@ describe('buildNeedsYouItems', () => {
     expect(items[0].titleKey).toBe('serverAdmin.warnings.maintenance');
   });
 
+  it('names Spaces beyond the five listed ones', () => {
+    const items = buildNeedsYouItems(
+      overview({
+        storagePressureCount: 7,
+        storagePressure: [{ spaceId: SPACE, usedBytes: 90, quotaBytes: 100 }],
+        expiringAdminGrantCount: 3,
+        expiringAdminGrants: [
+          {
+            spaceId: SPACE,
+            grantId: GRANT,
+            effectiveUntil: new Date('2026-11-28T12:00:00Z'),
+          },
+        ],
+      }),
+      NOW,
+    );
+    const more = items.filter((item) => item.id.startsWith('more-'));
+    expect(more.map((item) => [item.titleKey, item.titleValues])).toEqual([
+      ['serverAdmin.situation.moreStorage', { count: 6 }],
+      ['serverAdmin.situation.moreExpiringGrants', { count: 2 }],
+    ]);
+    expect(more[0].href).toBe('/server-admin?section=spaces');
+  });
+
+  it('asks for attention whenever something is queued', () => {
+    expect(
+      summaryTone(
+        overview({
+          supportReportsNew: 1,
+          supportReportsOperatorAvailable: true,
+        }),
+        NOW,
+      ),
+    ).toBe('attention');
+  });
+
   it('marks attention when the API or database is not ok', () => {
     expect(summaryTone(overview({ databaseStatus: 'unavailable' }), NOW)).toBe(
       'attention',

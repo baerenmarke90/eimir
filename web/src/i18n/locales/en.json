@@ -4963,7 +4963,11 @@
       "storageDetail": "{{used}} of {{quota}}",
       "expiringGrant_one": "A Premium gift ends in {{count, number}} day",
       "expiringGrant_other": "A Premium gift ends in {{count, number}} days",
-      "registrationsTitle": "New accounts"
+      "registrationsTitle": "New accounts",
+      "moreStorage_one": "{{count, number}} more Space is nearly full",
+      "moreStorage_other": "{{count, number}} more Spaces are nearly full",
+      "moreExpiringGrants_one": "{{count, number}} more Premium gift ends soon",
+      "moreExpiringGrants_other": "{{count, number}} more Premium gifts end soon"
     },
     "subNavigation": {
       "aria": "Pages"

@@ -99,6 +99,18 @@ export function buildNeedsYouItems(
       storage: { usedBytes: space.usedBytes, quotaBytes: space.quotaBytes },
     });
   }
+  const moreStorage =
+    overview.storagePressureCount - overview.storagePressure.length;
+  if (moreStorage > 0) {
+    items.push({
+      id: 'more-storage',
+      kind: 'storage',
+      tone: 'warning',
+      href: sectionHref('spaces'),
+      titleKey: 'serverAdmin.situation.moreStorage',
+      titleValues: { count: moreStorage },
+    });
+  }
   for (const grant of overview.expiringAdminGrants) {
     const days = Math.max(
       1,
@@ -111,6 +123,18 @@ export function buildNeedsYouItems(
       href: sectionHref('spaces', { space: grant.spaceId }),
       titleKey: 'serverAdmin.situation.expiringGrant',
       titleValues: { count: days },
+    });
+  }
+  const moreGrants =
+    overview.expiringAdminGrantCount - overview.expiringAdminGrants.length;
+  if (moreGrants > 0) {
+    items.push({
+      id: 'more-expiring-grants',
+      kind: 'expiringGrant',
+      tone: 'info',
+      href: sectionHref('spaces'),
+      titleKey: 'serverAdmin.situation.moreExpiringGrants',
+      titleValues: { count: moreGrants },
     });
   }
   for (const code of overview.warningCodes) {
@@ -134,9 +158,6 @@ export function summaryTone(
   if (overview.applicationStatus !== 'ok' || overview.databaseStatus !== 'ok') {
     return 'attention';
   }
-  return buildNeedsYouItems(overview, now).some(
-    (item) => item.tone === 'danger' || item.tone === 'warning',
-  )
-    ? 'attention'
-    : 'ok';
+  // Anything queued needs the operator, so the summary never reads as calm.
+  return buildNeedsYouItems(overview, now).length > 0 ? 'attention' : 'ok';
 }

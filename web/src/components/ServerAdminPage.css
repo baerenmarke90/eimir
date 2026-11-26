@@ -131,6 +131,14 @@
   display: none;
 }
 
+/* The shell bar has five fixed slots; ServerAdmin shows three or four
+   areas, so they share the bar evenly instead. */
+.mobile-bottom-shell .mobile-bottom-nav.server-admin-area-nav-compact {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+
 .server-admin-subnav {
   grid-column: 1 / -1;
   display: flex;

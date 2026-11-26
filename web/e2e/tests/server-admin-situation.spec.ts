@@ -265,6 +265,21 @@ test('Situation layout in Compact and Expanded, Light and Dark', async ({
     await expect(
       areaNavigation(page).getByRole('link', { name: areas.situation }),
     ).toBeVisible();
+    // The four entries share the bar evenly, with no empty slot at the end.
+    const boxes = await areaNavigation(page)
+      .getByRole('link')
+      .evaluateAll((links) =>
+        links.map((link) => link.getBoundingClientRect().width),
+      );
+    expect(boxes).toHaveLength(4);
+    expect(Math.max(...boxes) - Math.min(...boxes)).toBeLessThanOrEqual(1);
+    expect(boxes.reduce((sum, value) => sum + value, 0)).toBeGreaterThan(
+      width * 0.85,
+    );
+    // The unread dot on Help stays visible.
+    await expect(
+      areaNavigation(page).locator('.notification-dot'),
+    ).toBeVisible();
     await expectReflow(page);
     for (const theme of ['light', 'dark'] as const) {
       await setTheme(page, theme);

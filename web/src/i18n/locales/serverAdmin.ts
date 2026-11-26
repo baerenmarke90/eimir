@@ -49,6 +49,12 @@ const serverAdmin = {
     expiringGrant_other:
       'Ein Premium-Geschenk endet in {{count, number}} Tagen',
     registrationsTitle: 'Neue Konten',
+    moreStorage_one: '{{count, number}} weiterer Space ist fast voll',
+    moreStorage_other: '{{count, number}} weitere Spaces sind fast voll',
+    moreExpiringGrants_one:
+      '{{count, number}} weiteres Premium-Geschenk endet bald',
+    moreExpiringGrants_other:
+      '{{count, number}} weitere Premium-Geschenke enden bald',
   },
   subNavigation: {
     aria: 'Unterseiten',

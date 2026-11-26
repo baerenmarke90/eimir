@@ -7911,6 +7911,18 @@
           "kind": {
             "$ref": "#/components/schemas/NotificationKind"
           },
+          "operatorRoute": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The ServerAdmin page a tapped operator notice opens (#2314); set only for OPERATOR_ALERT, without any identifier.",
+            "title": "Operatorroute"
+          },
           "readAt": {
             "anyOf": [
               {
@@ -8026,7 +8038,8 @@
           "GARDEN_SEED_ARRIVED",
           "RECAP_READY",
           "RECAP_GREW",
-          "SUPPORT_REPLY"
+          "SUPPORT_REPLY",
+          "OPERATOR_ALERT"
         ],
         "title": "NotificationKind",
         "type": "string"

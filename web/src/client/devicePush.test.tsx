@@ -1236,6 +1236,35 @@ it('resolves a notification tap through authenticated recipient state and opens 
   });
 });
 
+it('opens the ServerAdmin page a tapped operator notice names', async () => {
+  native.state = statusFixture({
+    accountId,
+    enabled: true,
+    permissionGranted: true,
+  });
+  setup('space-a', (api) =>
+    api.openNotification.mockResolvedValue({
+      kind: 'OPERATOR_ALERT',
+      targetType: null,
+      targetId: null,
+      operatorRoute: '/server-admin?section=jobs',
+    } as never),
+  );
+  await waitFor(() =>
+    expect(native.listeners.has('notificationOpen')).toBe(true),
+  );
+  act(() =>
+    native.listeners.get('notificationOpen')?.(
+      activationEvent({
+        notificationId: 'ed0ca1ae-ad80-4876-8a39-1d909b18f8e8',
+      }),
+    ),
+  );
+  await waitFor(() =>
+    expect(screen.getByTestId('route').textContent).toBe('/server-admin'),
+  );
+});
+
 it('falls back to the safe inbox when a tapped source is no longer authorized', async () => {
   native.state = statusFixture({
     accountId,

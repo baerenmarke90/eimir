@@ -183,11 +183,19 @@ export function engagementTargetPath(
   }
 }
 
+// An operator notice (#2314) names a ServerAdmin page, never another route.
+const SERVER_ADMIN_ROUTE = /^\/server-admin(?:[?#]|$)/;
+
 export function notificationPath(item: {
   kind: string;
   targetType: EngagementTarget | null;
   targetId: string | null;
+  operatorRoute?: string | null;
 }): string | null {
+  if (item.kind === 'OPERATOR_ALERT')
+    return item.operatorRoute && SERVER_ADMIN_ROUTE.test(item.operatorRoute)
+      ? item.operatorRoute
+      : null;
   if (
     (item.kind === 'WISH_DATE_PROPOSED' ||
       item.kind === 'WISH_DATE_COUNTERED') &&

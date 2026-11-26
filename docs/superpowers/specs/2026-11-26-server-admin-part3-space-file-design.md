@@ -38,7 +38,7 @@ Goals
 Non-goals
 - No names, Space names, content, or report authorship anywhere on these pages; support
   reports stay anonymous and never link to a Space.
-- No new write actions in this part (see section 5).
+- The only new write action is the individual storage quota (section 5).
 
 ## 4. Design
 
@@ -54,12 +54,28 @@ Non-goals
 - **Docs:** `docs/SERVER-ADMIN.md` Space lifecycle directory contract updated (the
   narrow Account link and its audit).
 
-## 5. Open question for the Product Owner
+## 5. Individual storage quota (Product Owner, 2026-11-26)
 
-The mockup shows a button "Speicher zeitweise erhöhen". It would be a new per-Space quota
-override: a business-model decision (Free 5 GB / Premium 50 GB per Space) with a matrix
-change. Recommendation: leave it out of part 3; the existing Premium gift already lifts a
-Space to 50 GB.
+The Product Owner decided to include the storage button: a ServerAdmin can set an
+**individual Cloud storage quota per Space**. Rules (agent's calls unless noted):
+
+- Cloud only; the action is absent on Self-Hosted (unmetered).
+- The override replaces the tier value (Free 5 GB / Premium 50 GB) for that Space while it
+  is active; it may be higher or lower than the tier value. Range 1 GB to 1 TB, whole GB.
+- Optional end date; after it the tier value applies again automatically. Clearing the
+  override has the same effect immediately.
+- Over any quota nothing is deleted; only new bytes are refused (existing quota rule).
+  Setting a value below the current usage shows a warning before saving.
+- Stored in its own table (`space_storage_quota_overrides`: Space, bytes, until, set by,
+  set at); set and clear are privileged audit actions (`space_storage_quota_set`,
+  `space_storage_quota_cleared`). Account deletion and Space purge remove it.
+- Every quota consumer reads it through `attachments/quota.space_quota`, so uploads, the
+  Situation pressure list, alerts and the Space file all respect it.
+- `docs/FREEMIUM-FEATURE-MATRIX.md` Cloud storage quota row gains the override (version
+  bump with a revision line); `docs/SERVER-ADMIN.md` documents the action.
+- The Space file shows "individual: 80 GB until 31 Dec" next to the storage bar; the button
+  "Adjust storage" opens a sheet with the value in GB, an optional end date, Save and
+  Remove override.
 
 ## 6. Left to the builder
 

@@ -21,6 +21,8 @@ Name | Type
 `deployment` | string
 `enabledAccountCount` | number
 `environment` | string
+`expiringAdminGrantCount` | number
+`expiringAdminGrants` | [Array&lt;ServerAdminExpiringGrantItem&gt;](ServerAdminExpiringGrantItem.md)
 `jobsFailed` | number
 `jobsPending` | number
 `jobsRunning` | number
@@ -40,6 +42,8 @@ Name | Type
 `recentFailedJobs` | [Array&lt;ServerAdminFailedJob&gt;](ServerAdminFailedJob.md)
 `serverAdminAllowlistCount` | number
 `serverAdminVerifiedMatchCount` | number
+`storagePressure` | [Array&lt;ServerAdminStoragePressureItem&gt;](ServerAdminStoragePressureItem.md)
+`storagePressureCount` | number
 `supportReportsNew` | number
 `supportReportsOperatorAvailable` | boolean
 `suspendedAccountCount` | number
@@ -69,6 +73,8 @@ const example = {
   "deployment": null,
   "enabledAccountCount": null,
   "environment": null,
+  "expiringAdminGrantCount": null,
+  "expiringAdminGrants": null,
   "jobsFailed": null,
   "jobsPending": null,
   "jobsRunning": null,
@@ -88,6 +94,8 @@ const example = {
   "recentFailedJobs": null,
   "serverAdminAllowlistCount": null,
   "serverAdminVerifiedMatchCount": null,
+  "storagePressure": null,
+  "storagePressureCount": null,
   "supportReportsNew": null,
   "supportReportsOperatorAvailable": null,
   "suspendedAccountCount": null,

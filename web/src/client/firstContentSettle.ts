@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { durationMs } from '../motion/tokens';
 
-/** Long enough for the settle and the one-time glow to finish. */
-const SETTLE_WINDOW_MS = 1400;
+/** Long enough for the module entrance and the one-time glow after it. */
+function settleWindowMs(): number {
+  return durationMs('module-enter') + durationMs('gesture-moment');
+}
 
 /**
  * True for a short moment when an area that was seen empty receives its
@@ -26,7 +29,7 @@ export function useFirstContentSettle(empty: boolean | undefined): boolean {
 
   useEffect(() => {
     if (!settling) return;
-    const timer = window.setTimeout(() => setSettling(false), SETTLE_WINDOW_MS);
+    const timer = window.setTimeout(() => setSettling(false), settleWindowMs());
     return () => window.clearTimeout(timer);
   }, [settling]);
 

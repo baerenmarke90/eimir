@@ -182,7 +182,7 @@ Content arrives: a screen's opening stage, a module reveal, a staggered list, a 
 
 | Aspect | Rule |
 | --- | --- |
-| Variants | `fade` (opacity), `rise` (opacity + small `translate` up, at most 12 CSS px), `surface` (sheet/dialog/popover with backdrop, one lifecycle), `stage` (a staged opening of several beats), `stagger` (siblings one after another), `draw` (a line drawn in with `stroke-dashoffset`), `media` (a photo or video still replacing its placeholder, see below) |
+| Variants | `module` (the one entrance of a page module, see below), `fade` (opacity), `rise` (opacity + small `translate` up, at most 12 CSS px), `surface` (sheet/dialog/popover with backdrop, one lifecycle), `stage` (a staged opening of several beats), `stagger` (siblings one after another), `draw` (a line drawn in with `stroke-dashoffset`), `media` (a photo or video still replacing its placeholder, see below) |
 | Duration | `--duration-context` for a single element; `--duration-transition` for a small popover; `--duration-sequence-beat` per beat of a `stage`; longer roles only where an approved decision names them (for example `--duration-gesture-moment` in the Wir stage) |
 | Easing | `--easing-enter` |
 | Stagger | proposed new tokens (see [5.3](#53-token-extensions-proposed)): `motion.stagger.item` per sibling and `motion.stagger.maxItems`; items after the cap arrive together with the last staggered one. A `stagger` never moves items sideways inside a horizontal scroller (it would widen the strip; Guideline Wir decision) |
@@ -191,6 +191,16 @@ Content arrives: a screen's opening stage, a module reveal, a staggered list, a 
 | Remount | final state in the same frame (M5) |
 | Off screen | `on first reach` for module reveals, otherwise final state (M12) |
 | Reduced motion | final state at once; `surface` may keep a backdrop opacity change of at most `--duration-transition` |
+
+**`module` variant: one entrance for every module (Product Owner, 2026-11-26).** A module is a top-level block of a primary page: a section on Wir, a section or segment panel on Momente, Planen, Listen and Mehr, the memory world, a module that replaces its placeholder, the first item of an area that was empty. Every module enters the same way on every page:
+
+- **Look:** the module fades in and rises by `--motion-module-rise` (`motion.module.rise`, 8 px) over `--duration-module-enter` (`motion.duration.moduleEnter`, 600 ms) with `--easing-enter`. It enters as one block: never its heading and its body apart, and never its single items one by one.
+- **Order:** the modules shown together start one `--duration-stagger-item` apart in reading order, up to `motion.stagger.maxItems`; the rest start with the last one.
+- **When:** once per tab and app start, as the tab's opening (Wir: on the opening's clock and on first reach, `useWirReveal`; the other tabs: the root-tab entrance, `useRootTabIntro`). A module that arrives with late data joins in the time that is left, or is simply there (stage rules below). A tab revealed by a swipe or built in the background shows its modules at rest.
+- **Not modules:** the Wir hero (portraits, heart, check-in, time together, quote) is the Wir opening, with its own approved beats. Switching a segment (Planen, Momente) fades the chosen panel (`--duration-transition`). The first item of an empty area adds one glow after its module entrance (#1907 I1).
+- **Reduced motion:** `--duration-module-enter` is 0 ms: every module is at rest at once.
+
+The unit test `src/motion/moduleEntrance.test.ts` keeps every stylesheet that animates a module on this one look.
 
 **`stage` variant: data hold and late members (#2147).** An opening shows data that arrives from the network after its first paint (on Wir: the check-in, the place, the quote and the photos). These rules keep it on one clock:
 
@@ -749,6 +759,8 @@ The existing roles cover all durations and easings. Staggering had no token: `us
 | `motion.stagger.item` | `--duration-stagger-item` | delay between siblings of a `stagger` | 60 ms |
 | `motion.stagger.module` | `--duration-stagger-module` | delay between modules arriving together after an opening stage | 220 ms (today's Wir step) |
 | `motion.stagger.maxItems` | `--motion-stagger-max-items` | siblings that stagger before the rest arrive together | 4 |
+| `motion.duration.moduleEnter` | `--duration-module-enter` | the module entrance of every page (4.1 `module`) | 600 ms |
+| `motion.module.rise` | `--motion-module-rise` | how far a module rises while it fades in (4.1 `module`) | 8 px |
 | `motion.gesture.*` | `MOTION_CONSTANTS.gesture` | Gesture follow thresholds (4.6), listed below | see below |
 | `motion.spring.settle` | `MOTION_CONSTANTS.spring` | the sampled settle spring of #2071 | stiffness 380, damping 39, mass 1 |
 | `motion.attention.sameKindInterval` | `MOTION_CONSTANTS.attention` | the same kind of unprompted motion plays at most once per interval per screen (4.9) | 30 000 ms |
@@ -1178,7 +1190,7 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 
 | Version | Date | Change |
 | --- | --- | --- |
-| 1.21 | 2026-11-26 | Fluid tab switching: hidden kept tabs skip rendering with `content-visibility: hidden` instead of `display: none`, so their CSS animations never restart and the per-reveal `getAnimations()` settle is gone (M4). While the pages slide sideways, the bar and the Wir marks pause their backdrop blur (Product Owner, 2026-11-26). The root-tab entrance never plays in a tab that a swipe reveals or that is built in the background, and a segment panel's fade no longer restarts when the entrance ends (the cold-start blink on Planen). |
+| 1.21 | 2026-11-26 | Fluid tab switching: hidden kept tabs skip rendering with `content-visibility: hidden` instead of `display: none`, so their CSS animations never restart and the per-reveal `getAnimations()` settle is gone (M4). While the pages slide sideways, the bar and the Wir marks pause their backdrop blur (Product Owner, 2026-11-26). The root-tab entrance never plays in a tab that a swipe reveals or that is built in the background, and a segment panel's fade no longer restarts when the entrance ends (the cold-start blink on Planen). Enter `module`: one entrance for every module on every page, with the tokens `motion.duration.moduleEnter` and `motion.module.rise` (Product Owner, 2026-11-26). |
 | 1.20 | 2026-11-26 | Pro showcase (#2310): four decorative Ambient scenes on the Pro paywall (4.5). Their keyframes and roles are in `motion/pro-showcase.css`; they run finite cycles, pause in place while they are not current or not seen, and are absent with reduced motion (M8). |
 | 1.19 | 2026-11-25 | Glas (#2283):<br>• `MemoryJarWorld.tsx` registered as a `gesture` owner not yet on the building block (3 uses; 4.6, 5.4);<br>• its frame-driven jar physics and fold in `motion/memoryJar.ts`, and its keyframes, roles and finite, paused candle in `motion/memory-worlds.css` (M8). |
 | 1.18 | 2026-11-25 | Post (#2283):<br>• `PostWorld.tsx` registered as a `gesture` owner not yet on the building block (3 uses; 4.6, 5.4);<br>• its keyframes, roles and finite, paused flag and door loops in `motion/memory-worlds.css` (M8). |

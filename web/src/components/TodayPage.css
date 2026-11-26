@@ -1349,11 +1349,12 @@
 }
 
 /* A module that only exists for live data eases in once when it replaces its
-   cached placeholder: Enter `rise` from the motion catalogue. */
+   cached placeholder, with Enter `module` like every module (Motion Contract
+   4.1). */
 .today-module-reveal {
-  --motion-enter-rise: var(--space-2);
-  animation: eimir-motion-enter-rise var(--duration-context) var(--easing-enter)
-    both;
+  --motion-enter-rise: var(--motion-module-rise);
+  animation: eimir-motion-enter-rise var(--duration-module-enter)
+    var(--easing-enter) both;
 }
 
 /*

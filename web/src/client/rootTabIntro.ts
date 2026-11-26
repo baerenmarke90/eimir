@@ -10,13 +10,13 @@ import { durationMs, motionCount } from '../motion/tokens';
 export const ROOT_TAB_INTRO_PREFIX = 'eimir-motion-root-';
 
 /**
- * The entrance's whole length: each member rises over two sequence beats,
- * and the members after the first start one stagger step apart, up to the
+ * The entrance's whole length: each module rises with Enter `module`, and
+ * the modules after the first start one stagger step apart, up to the
  * stagger cap (Motion Contract 4.1).
  */
 export function rootTabIntroDuration(): number {
   const steps = Math.max(0, motionCount('stagger-max-items') - 1);
-  return durationMs('sequence-beat') * 2 + durationMs('stagger-item') * steps;
+  return durationMs('module-enter') + durationMs('stagger-item') * steps;
 }
 
 const REVEALED_WITHOUT_CHOICE =

@@ -1,16 +1,18 @@
 /* WorldEnter: the world is drawn practically invisibly first, then faded and
    risen in once its heavy first paint is done, so the motion is actually
    seen. Motion roles only; with reduced motion they are 0 ms. */
+/* The world arrives with Enter `module`, like every module (Motion
+   Contract 4.1). */
 .memory-world-enter {
   transition:
-    opacity calc(var(--duration-context) * 2) var(--easing-enter),
-    translate calc(var(--duration-context) * 2.2) var(--easing-enter);
+    opacity var(--duration-module-enter) var(--easing-enter),
+    translate var(--duration-module-enter) var(--easing-enter);
 }
 .memory-world-enter[data-entered="false"] {
   /* Practically invisible, but painted (opacity 0 would skip the paint and
      move its whole cost to the start of the fade). */
   opacity: 0.002;
-  translate: 0 14px;
+  translate: 0 var(--motion-module-rise);
   transition: none;
   will-change: opacity, translate;
 }

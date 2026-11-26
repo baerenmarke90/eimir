@@ -1,17 +1,19 @@
 /*
- * The first item of an area that was empty settles into place with one soft
- * glow (#1907 I1). Reduced motion shows it immediately; focus and content are
- * the same either way.
+ * The first item of an area that was empty arrives like every module (Enter
+ * `module`, Motion Contract 4.1) and then shows one soft glow (#1907 I1).
+ * Reduced motion shows it immediately; focus and content are the same either
+ * way.
  */
 @media (prefers-reduced-motion: no-preference) {
   .first-content-settle {
-    --motion-enter-from: 0 1rem;
-    --motion-enter-from-scale: 0.97;
+    --motion-enter-from: 0 var(--motion-module-rise);
+    --motion-enter-from-scale: 1;
     border-radius: var(--radius-content);
     animation:
-      eimir-motion-enter-arrive var(--duration-context) var(--easing-enter) both,
+      eimir-motion-enter-arrive var(--duration-module-enter) var(--easing-enter)
+      both,
       eimir-motion-feedback-glow var(--duration-gesture-moment)
-      var(--easing-standard) var(--duration-context) both;
+      var(--easing-standard) var(--duration-module-enter) both;
   }
 }
 

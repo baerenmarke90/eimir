@@ -350,7 +350,7 @@ Quiet life on a surface that is otherwise still: the slow ring breath on Wir, ga
 
 **Pro showcase (#2310).** The four decorative scenes of the Pro paywall gallery (`components/proShowcase/ProScene.tsx`) are Ambient. Their cycle is the long role the Product Owner accepted with mockup v2 (`--pro-scene-cycle-duration` 16 s, the recap film 15 s). Their keyframes and roles are in `motion/pro-showcase.css`:
 
-- A scene runs `--motion-ambient-repeat` cycles and then rests at its composed still frame.
+- A scene runs `--motion-ambient-repeat` cycles and then rests at its composed still frame. It starts and ends at the phase of its cycle that equals that still frame (`--pro-scene-phase`), so neither the first play nor the rest jumps.
 - It plays only while it is the current gallery card and is seen (`data-ambient`). Otherwise it pauses in place and continues from there.
 - A card that never played shows the still frame (`data-started`).
 - With reduced motion it is absent.

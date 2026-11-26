@@ -66,7 +66,7 @@
   transform-origin: center;
 }
 
-/* 2 Recap film: the collage part with its progress. */
+/* 2 Recap film: the collage part, with its progress as at that moment. */
 .pro-scene .ps2-part {
   opacity: 0;
 }
@@ -80,13 +80,21 @@
   transform-origin: left center;
 }
 
-.pro-scene .ps2-seg-k1,
-.pro-scene .ps2-seg-k2 {
+.pro-scene .ps2-seg-k1 {
   transform: scaleX(1);
 }
 
-.pro-scene .ps2-seg-k3 {
-  transform: scaleX(0.4);
+.pro-scene .ps2-seg-k2 {
+  transform: scaleX(0.7);
+}
+
+.pro-scene .ps2-float {
+  opacity: 0.9;
+}
+
+.pro-scene .ps2-float-late {
+  opacity: 0.5;
+  transform: translateY(-8px);
 }
 
 .pro-scene .ps2-kb,
@@ -261,8 +269,12 @@
   color: var(--color-text);
 }
 
-/* A context page shows its scene as the hero, at the hero's place. */
+/* A context page shows its scene as the hero, at the hero's place; in
+   Expanded it keeps the gallery cards' width. */
 .pro-paywall-scene {
+  justify-self: center;
+  inline-size: 100%;
+  max-inline-size: 24rem;
   border-radius: var(--radius-content);
 }
 

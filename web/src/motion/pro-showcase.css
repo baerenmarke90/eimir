@@ -12,6 +12,8 @@
  *   there (M4, M8);
  * - every loop runs `--motion-ambient-repeat` scene cycles and then rests at
  *   the still frame (no fill), so an open page stops rendering motion;
+ * - a scene starts and ends at the phase of its cycle that equals its still
+ *   frame (`--pro-scene-phase`), so neither the start nor the rest jumps;
  * - everything is declared inside `prefers-reduced-motion: no-preference`:
  *   with reduced motion the still frames stand (M9).
  *
@@ -24,24 +26,54 @@
   --pro-scene-film-duration: 15s;
   --pro-scene-blink-duration: 4s;
   --pro-scene-float-duration: 6s;
+  --pro-scene-phase: 0;
+}
+
+/* The share of a cycle at which each scene looks like its still frame. */
+.pro-scene-memoryWorlds {
+  --pro-scene-phase: 0.36;
+}
+
+.pro-scene-recapFilms {
+  --pro-scene-phase: 0.34;
+}
+
+.pro-scene-gamesGarden,
+.pro-scene-mapCloseness {
+  --pro-scene-phase: 0.9;
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .pro-scene[data-started] .ps-p {
     animation-duration: var(--pro-scene-cycle-duration);
     animation-timing-function: var(--easing-travel);
-    animation-iteration-count: var(--motion-ambient-repeat);
+    animation-delay: calc(
+      var(--pro-scene-phase) * var(--pro-scene-cycle-duration) * -1
+    );
+    animation-iteration-count: calc(
+      var(--motion-ambient-repeat) + var(--pro-scene-phase)
+    );
   }
 
   .pro-scene-recapFilms[data-started] .ps-p {
     animation-duration: var(--pro-scene-film-duration);
+    animation-delay: calc(
+      var(--pro-scene-phase) * var(--pro-scene-film-duration) * -1
+    );
   }
 
+  /* The blink spans the scene's cycles: 4 per 16 s cycle. */
   .pro-scene[data-started] .ps-p.ps-blink {
     animation-name: eimir-motion-pro-blink;
     animation-duration: var(--pro-scene-blink-duration);
     animation-timing-function: steps(1);
+    animation-delay: 0s;
     animation-iteration-count: calc(var(--motion-ambient-repeat) * 4);
+  }
+
+  /* 3.75 blinks per 15 s film cycle. */
+  .pro-scene-recapFilms[data-started] .ps-p.ps-blink {
+    animation-iteration-count: calc(var(--motion-ambient-repeat) * 3.75);
   }
 
   /* Not current or not seen: hold in place and continue later. */
@@ -179,7 +211,9 @@
     animation-name: eimir-motion-pro-film-float;
     animation-duration: var(--pro-scene-float-duration);
     animation-timing-function: var(--easing-standard);
-    animation-iteration-count: calc(var(--motion-ambient-repeat) * 10);
+    animation-delay: 0s;
+    /* 2.5 floats per 15 s film cycle, so they rest with the film. */
+    animation-iteration-count: calc(var(--motion-ambient-repeat) * 2.5);
   }
 
   .pro-scene-recapFilms[data-started] .ps-p.ps2-float-late {

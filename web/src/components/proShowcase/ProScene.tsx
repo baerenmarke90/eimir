@@ -70,6 +70,12 @@ export function ProScene({
     if (playing) setStarted(true);
   }, [playing]);
 
+  // With reduced motion a scene is back at its still frame; when motion
+  // returns it starts again from there instead of from its first keyframe.
+  useEffect(() => {
+    if (reducedMotion) setStarted(false);
+  }, [reducedMotion]);
+
   return (
     <div
       ref={ref}

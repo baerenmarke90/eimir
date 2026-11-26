@@ -463,3 +463,115 @@ describe('Pro showcase', () => {
     }
   });
 });
+
+describe('Pro showcase scrolling', () => {
+  function track() {
+    return screen
+      .getByRole('region', { name: proPaywall.showcase.label })
+      .querySelector('.pro-showcase-track') as HTMLUListElement;
+  }
+
+  /** Lays the four cards out 300 px apart in a 330 px wide track. */
+  function layOut(list: HTMLUListElement) {
+    const cards = [...list.children] as HTMLElement[];
+    cards.forEach((card, index) => {
+      Object.defineProperty(card, 'offsetLeft', {
+        configurable: true,
+        value: 16 + index * 300,
+      });
+    });
+    Object.defineProperty(list, 'clientWidth', {
+      configurable: true,
+      value: 330,
+    });
+    Object.defineProperty(list, 'scrollWidth', {
+      configurable: true,
+      value: 1200,
+    });
+  }
+
+  function scrollTo(list: HTMLUListElement, left: number) {
+    list.scrollLeft = left;
+    fireEvent.scroll(list);
+  }
+
+  function currentIndex() {
+    return within(
+      screen.getByRole('region', { name: proPaywall.showcase.label }),
+    )
+      .getAllByRole('button')
+      .findIndex((button) => button.getAttribute('aria-current') === 'true');
+  }
+
+  it('lets the keyboard reach the scrolling cards', () => {
+    renderPaywall('/more/pro');
+    expect(track().tabIndex).toBe(0);
+  });
+
+  it('follows the swiped card once scrolling settles', () => {
+    vi.useFakeTimers();
+    try {
+      renderPaywall('/more/pro');
+      const list = track();
+      layOut(list);
+      act(() => scrollTo(list, 300));
+      expect(currentIndex()).toBe(0);
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+      expect(currentIndex()).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('makes the last card current at the end of the track', () => {
+    vi.useFakeTimers();
+    try {
+      renderPaywall('/more/pro');
+      const list = track();
+      layOut(list);
+      act(() => scrollTo(list, 870));
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+      expect(currentIndex()).toBe(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps the chosen card while the gallery scrolls past others', () => {
+    vi.useFakeTimers();
+    try {
+      renderPaywall('/more/pro');
+      const list = track();
+      layOut(list);
+      list.scrollTo = vi.fn();
+      const buttons = within(
+        screen.getByRole('region', { name: proPaywall.showcase.label }),
+      ).getAllByRole('button');
+      fireEvent.click(buttons[2]);
+      expect(list.scrollTo).toHaveBeenCalledWith(
+        expect.objectContaining({ left: 600 }),
+      );
+      // The smooth scroll passes the second card on its way.
+      act(() => scrollTo(list, 300));
+      act(() => {
+        vi.advanceTimersByTime(100);
+      });
+      act(() => scrollTo(list, 600));
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+      expect(currentIndex()).toBe(2);
+      expect(
+        document
+          .querySelector('[data-scene="recapFilms"]')
+          ?.hasAttribute('data-started'),
+      ).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

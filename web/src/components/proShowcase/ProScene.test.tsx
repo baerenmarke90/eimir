@@ -89,6 +89,18 @@ describe('ProScene', () => {
     expect(scene(container).hasAttribute('data-started')).toBe(false);
   });
 
+  it('shows its still frame again after reduced motion was on', () => {
+    const { container, rerender } = render(
+      <ProScene id="mapCloseness" active />,
+    );
+    expect(scene(container).hasAttribute('data-started')).toBe(true);
+    act(() => motion.set(true));
+    rerender(<ProScene id="mapCloseness" active={false} />);
+    act(() => motion.set(false));
+    expect(playing(container)).toBe(false);
+    expect(scene(container).hasAttribute('data-started')).toBe(false);
+  });
+
   it.each(PRO_SCENE_IDS)('draws the %s scene as decoration', (id) => {
     const { container } = render(<ProScene id={id} active={false} />);
     const root = scene(container);

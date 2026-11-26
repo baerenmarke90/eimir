@@ -274,6 +274,10 @@ def test_source_check_ignores_layout_and_final_punctuation_only() -> None:
         "schläft ein lied in allen dingen,\nDie da träumen fort und fort.", source
     )
     assert not script.text_in_source("Schläft ein Lied in allen Dingen und Sachen.", source)
+    assert script.text_in_source(
+        "A pair of us \u2013 don't tell! There's more", "a pair of us -- don't tell! There 's more"
+    )
+    assert script.text_in_source("alive \u2013 it's", "alive--it's")
     typographic = "It\u2019s \u201cquoted\u201d \u2013 and dashed"
     assert script.text_in_source(typographic, 'It\'s "quoted" - and dashed')
 
@@ -284,3 +288,17 @@ def test_gutenberg_urls_map_to_the_plain_text_mirror() -> None:
     assert script.download_urls("https://de.wikisource.org/wiki/Mondnacht") == [
         "https://de.wikisource.org/wiki/Mondnacht"
     ]
+
+
+def test_cited_urls_with_non_ascii_characters_are_percent_encoded() -> None:
+    assert script.quote_url("https://de.wikisource.org/wiki/Wünschelrute") == (
+        "https://de.wikisource.org/wiki/W%C3%BCnschelrute"
+    )
+    assert script.quote_url("https://de.wikisource.org/wiki/Er_ist%E2%80%99s") == (
+        "https://de.wikisource.org/wiki/Er_ist%E2%80%99s"
+    )
+
+
+def test_pages_are_decoded_as_utf8_or_windows_1252() -> None:
+    assert script.decode_page("Süßer Schall".encode()) == "Süßer Schall"
+    assert script.decode_page("Süßer Schall".encode("cp1252")) == "Süßer Schall"

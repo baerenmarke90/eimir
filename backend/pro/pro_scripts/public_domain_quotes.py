@@ -130,6 +130,9 @@ def normalise_for_match(text: str, *, lower: bool = True) -> str:
     text = re.sub("[\u2018\u2019\u201a\u2032`\u00b4]", "'", text)
     text = re.sub("[\u201c\u201d\u201e\u00ab\u00bb\u201f]", '"', text)
     text = re.sub("[\u2013\u2014\u2212]", "-", text)
+    # Typographic variants of the same wording: "--", spaced dashes and "there 's".
+    text = re.sub(r"\s*-+\s*", "-", text)
+    text = re.sub(r"\s+'(?=s\b)", "'", text)
     text = re.sub(r"\[\d+\]", " ", text)
     text = re.sub(r"(?m)^\s*\d{1,3}\s+", "", text)
     text = re.sub(r"\s+", " ", text).strip()
@@ -342,12 +345,27 @@ def download_urls(url: str) -> list[str]:
     return [url]
 
 
+def decode_page(raw: bytes) -> str:
+    """Decode a downloaded page: UTF-8 first, then Windows-1252 (older sites such as Zeno.org)."""
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return raw.decode("cp1252", "replace")
+
+
+def quote_url(url: str) -> str:
+    """Percent-encode non-ASCII characters of a cited URL (Wikisource titles, query strings)."""
+    return urllib.parse.quote(url, safe=":/?&=#%+@!$'()*,;~")
+
+
 def fetch(url: str, *, pause: float = 3.0) -> str | None:
     """Fetch one page politely (Wikimedia and Gutenberg mirrors rate-limit shared addresses)."""
     for location in download_urls(url):
         for attempt in range(4):
             time.sleep(pause)
-            request = urllib.request.Request(location, headers={"User-Agent": USER_AGENT})
+            request = urllib.request.Request(
+                quote_url(location), headers={"User-Agent": USER_AGENT}
+            )
             try:
                 with urllib.request.urlopen(request, timeout=90) as response:
                     raw = response.read()
@@ -359,7 +377,7 @@ def fetch(url: str, *, pause: float = 3.0) -> str | None:
             except OSError:
                 time.sleep(3 * (attempt + 1))
                 continue
-            body = raw.decode("utf-8", "replace")
+            body = decode_page(raw)
             head = body[:5000].lower()
             return page_text(body) if "<html" in head or "<body" in head else body
     return None

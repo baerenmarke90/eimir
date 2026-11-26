@@ -22,6 +22,11 @@ describe('ServerAdmin areas', () => {
     expect(areaForSection('reports')).toBe('help');
     expect(areaForSection('activity')).toBe('system');
     expect(areaForSection('settings')).toBe('system');
+    expect(areaForSection('monitoring')).toBe('system');
+  });
+
+  it('opens System at Monitoring', () => {
+    expect(AREA_SECTIONS.system[0]).toBe('monitoring');
   });
 
   it('shows Help only with the operator plugin', () => {

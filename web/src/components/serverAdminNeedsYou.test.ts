@@ -45,6 +45,11 @@ function overview(
     recentFailedJobs: [],
     serverAdminAllowlistCount: 1,
     serverAdminVerifiedMatchCount: 1,
+    workerLastSeenAt: null,
+    videoWorkerStatus: 'no_heartbeat_signal',
+    emailFailuresLastHour: 0,
+    pushFailuresLastHour: 0,
+    backupStatus: 'not_configured',
     storagePressure: [],
     storagePressureCount: 0,
     supportReportsNew: 0,
@@ -172,6 +177,16 @@ describe('buildNeedsYouItems', () => {
       NOW,
     );
     expect(today.titleValues).toEqual({ count: 1 });
+  });
+
+  it('names a missing backup and links to Monitoring', () => {
+    const [item] = buildNeedsYouItems(
+      overview({ warningCodes: ['backup_not_configured'] }),
+      NOW,
+    );
+    expect(item.titleKey).toBe('serverAdmin.situation.backupNotConfigured');
+    expect(item.href).toBe('/server-admin?section=monitoring');
+    expect(item.tone).toBe('danger');
   });
 
   it('links configuration warnings to the page that fixes them', () => {

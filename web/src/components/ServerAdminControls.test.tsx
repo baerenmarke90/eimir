@@ -55,6 +55,7 @@ describe('ServerAdmin controls', () => {
         settings={{
           effectiveRegistrationEnabled: false,
           maintenanceMode: true,
+          monitoringAlertsEnabled: true,
           registrationEnabled: true,
           version: 3,
         }}

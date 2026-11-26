@@ -26,8 +26,18 @@ const DAY_MS = 86_400_000;
 /** Configuration warnings and the page that resolves each. */
 const WARNING_TARGETS: Record<
   string,
-  { section: ServerAdminSection; titleKey: string }
+  {
+    section: ServerAdminSection;
+    titleKey: string;
+    tone?: NeedsYouItem['tone'];
+  }
 > = {
+  // No backup is a risk of data loss, not a setting (#2317).
+  backup_not_configured: {
+    section: 'monitoring',
+    titleKey: 'serverAdmin.situation.backupNotConfigured',
+    tone: 'danger',
+  },
   maintenance_mode_enabled: {
     section: 'settings',
     titleKey: 'serverAdmin.warnings.maintenance',
@@ -143,7 +153,7 @@ export function buildNeedsYouItems(
     items.push({
       id: `warning-${code}`,
       kind: 'warning',
-      tone: 'warning',
+      tone: target.tone ?? 'warning',
       href: sectionHref(target.section),
       titleKey: target.titleKey,
     });

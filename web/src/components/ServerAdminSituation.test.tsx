@@ -45,6 +45,11 @@ function overview(
     recentFailedJobs: [],
     serverAdminAllowlistCount: 1,
     serverAdminVerifiedMatchCount: 1,
+    workerLastSeenAt: null,
+    videoWorkerStatus: 'no_heartbeat_signal',
+    emailFailuresLastHour: 0,
+    pushFailuresLastHour: 0,
+    backupStatus: 'not_configured',
     storagePressure: [],
     storagePressureCount: 0,
     supportReportsNew: 0,
@@ -100,6 +105,33 @@ describe('ServerAdminSituation', () => {
       screen.getByText(serverAdmin.situation.nothingNeedsYou),
     ).toBeTruthy();
     expect(screen.getByText(serverAdmin.situation.allGood)).toBeTruthy();
+  });
+
+  it('shows a silent worker as a problem', () => {
+    renderSituation(overview({ workerStatus: 'silent' }));
+    const worker = screen
+      .getByText(serverAdmin.health.worker)
+      .closest('.server-admin-service');
+    expect(worker?.className).toContain('is-problem');
+    expect(worker?.textContent).toContain(serverAdmin.situation.silent);
+  });
+
+  it('names a missing backup on Cloud and an unknown one on Self-Hosted', () => {
+    renderSituation(overview({ deployment: 'cloud' }));
+    const cloud = screen
+      .getByText(serverAdmin.situation.backup)
+      .closest('.server-admin-service');
+    expect(cloud?.textContent).toContain(serverAdmin.situation.backupMissing);
+    expect(cloud?.className).toContain('is-problem');
+    cleanup();
+
+    renderSituation(overview({ deployment: 'self_hosted' }));
+    const selfHosted = screen
+      .getByText(serverAdmin.situation.backup)
+      .closest('.server-admin-service');
+    expect(selfHosted?.textContent).toContain(
+      serverAdmin.situation.backupUnknown,
+    );
   });
 
   it('never shows a missing worker signal as available', () => {

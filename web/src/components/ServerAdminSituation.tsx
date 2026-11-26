@@ -24,8 +24,11 @@ function serviceState(
   t: (key: string) => string,
 ): { tone: ServiceTone; state: string } {
   if (status === 'ok') return { tone: 'ok', state: t('serverAdmin.health.ok') };
+  if (status === 'silent') {
+    return { tone: 'problem', state: t('serverAdmin.situation.silent') };
+  }
   if (status === 'no_heartbeat_signal' || status === 'not_probed') {
-    // No signal exists yet (part 2 adds it); never shown as healthy.
+    // No signal (yet); never shown as healthy.
     return { tone: 'quiet', state: t('serverAdmin.situation.noSignalYet') };
   }
   if (status === 'unavailable') {
@@ -97,6 +100,24 @@ export function ServerAdminSituation({
         overview.mailTransport === 'none'
           ? t('serverAdmin.situation.mailOff')
           : t('serverAdmin.situation.mailOn'),
+    },
+    {
+      label: t('serverAdmin.situation.push'),
+      tone: overview.pushFailuresLastHour > 5 ? 'problem' : 'ok',
+      state:
+        overview.pushFailuresLastHour > 5
+          ? t('serverAdmin.situation.pushProblem')
+          : t('serverAdmin.situation.pushOk'),
+    },
+    {
+      // Only Cloud must have a backup reported to eimir.; Self-Hosted
+      // operators may back up outside of it (#2317).
+      label: t('serverAdmin.situation.backup'),
+      tone: overview.deployment === 'cloud' ? 'problem' : 'quiet',
+      state:
+        overview.deployment === 'cloud'
+          ? t('serverAdmin.situation.backupMissing')
+          : t('serverAdmin.situation.backupUnknown'),
     },
   ];
 

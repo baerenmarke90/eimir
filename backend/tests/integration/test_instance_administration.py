@@ -70,6 +70,8 @@ def test_public_instance_status_defaults_to_available(client) -> None:  # type: 
         # Self-Hosted is governed by its operator, not by the Cloud terms.
         "termsOfUseVersion": None,
         "supportReportsAvailable": False,
+        # Gift codes exist only on eimir. Cloud with the Pro plugin.
+        "giftCodesAvailable": False,
     }
 
 

@@ -9,6 +9,7 @@ Name | Type
 ------------ | -------------
 `accountCreation` | string
 `auth` | [AuthCapabilities](AuthCapabilities.md)
+`giftCodesAvailable` | boolean
 `maintenanceMode` | boolean
 `oidcConnections` | [Array&lt;OidcConnectionView&gt;](OidcConnectionView.md)
 `oidcSignupAvailable` | boolean
@@ -27,6 +28,7 @@ import type { InstanceAccessStatus } from ''
 const example = {
   "accountCreation": null,
   "auth": null,
+  "giftCodesAvailable": null,
   "maintenanceMode": null,
   "oidcConnections": null,
   "oidcSignupAvailable": null,

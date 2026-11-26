@@ -7140,6 +7140,33 @@
       "expired": "Your Pro access has expired. Your content stays fully intact.",
       "nothingToRestore": "We found no Pro purchase to restore. Nothing was charged."
     },
+    "giftCode": {
+      "title": "Redeem a gift code",
+      "hint": "Did you receive a gift code for eimir. Pro? Enter it here – it counts for both of you.",
+      "fieldLabel": "Code",
+      "placeholder": "EIMIR-XXXX-XXXX",
+      "redeem": "Redeem",
+      "redeeming": "Redeeming …",
+      "success": {
+        "new": {
+          "title": "Pro is unlocked.",
+          "body": "You have eimir. Pro until {{date}}. Enjoy!"
+        },
+        "extended": {
+          "title": "Pro is extended.",
+          "body": "You now have eimir. Pro until {{date}}."
+        }
+      },
+      "done": "Done",
+      "errors": {
+        "invalid": "This code is invalid or has expired. Please check the spelling.",
+        "used": "This code has already been redeemed.",
+        "subscriptionActive": "You already have Pro through your subscription. Feel free to pass the code on.",
+        "unlimited": "You already have Pro without an end date. Feel free to pass the code on.",
+        "rateLimited": "Too many attempts. Please try again in an hour.",
+        "network": "That didn't work just now. Please try again."
+      }
+    },
     "settingsAction": "View plans",
     "contextAction": "Discover with eimir. Pro"
   },

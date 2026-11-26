@@ -6661,6 +6661,12 @@
           "auth": {
             "$ref": "#/components/schemas/AuthCapabilities"
           },
+          "giftCodesAvailable": {
+            "default": false,
+            "description": "Whether a Space member can redeem an eimir. gift code here: eimir. Cloud with the gift code plugin loaded. Clients show the redeem entry only when true.",
+            "title": "Giftcodesavailable",
+            "type": "boolean"
+          },
           "maintenanceMode": {
             "title": "Maintenancemode",
             "type": "boolean"

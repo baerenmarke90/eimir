@@ -18,7 +18,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { isVisibleNow } from '../../motion/visibility';
+import { isVisibleNow, observeVisibility } from '../../motion/visibility';
 import './WorldEnter.css';
 
 /** Frames count as smooth when two in a row arrive within this time. */
@@ -31,7 +31,8 @@ const MAX_WAIT_MS = 2400;
 const DECODE_WAIT_MS = 1200;
 
 /**
- * Whether the world is actually seen yet. While the world is drawn at its
+ * Whether the world is actually seen yet: entered, and its tab shown at least
+ * once. While the world is drawn at its
  * practically invisible opacity, its own entrance (prints falling onto the
  * Stapel, notes pinned to the door, the book's invite) must wait, or it plays
  * unseen under the loading card. Outside `WorldEnter` a world counts as seen.
@@ -107,6 +108,26 @@ export function WorldEnter({
       cancelAnimationFrame(frame);
     };
   }, []);
+  // Seen: entered and its tab shown at least once. A tab built ahead enters
+  // its world unseen; the world's own entrance (the Stapel's falling prints)
+  // waits for the person, so it never plays while the tab is hidden.
+  const [seen, setSeen] = useState(false);
+  useEffect(() => {
+    const box = boxRef.current;
+    if (!entered || seen || !box) return;
+    let stop: (() => void) | undefined;
+    stop = observeVisibility(
+      box,
+      (state) => {
+        if (!state.keptView || !state.page) return;
+        setSeen(true);
+        stop?.();
+      },
+      { onScreen: false },
+    );
+    return () => stop?.();
+  }, [entered, seen]);
+  const worldSeen = entered && seen;
   return (
     <div
       className="memory-world-stage"
@@ -126,8 +147,9 @@ export function WorldEnter({
         ref={boxRef}
         className="memory-world-enter"
         data-entered={entered ? 'true' : 'false'}
+        data-seen={worldSeen ? 'true' : 'false'}
       >
-        <WorldEnteredContext.Provider value={entered}>
+        <WorldEnteredContext.Provider value={worldSeen}>
           {children}
         </WorldEnteredContext.Provider>
       </div>

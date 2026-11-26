@@ -19,9 +19,9 @@
 /* A world's own CSS entrance and loops wait until it is seen; they start
    from their first frame when the fade-in begins (#2283, Product Owner:
    the Stapel's prints must be seen falling). */
-.memory-world-enter[data-entered="false"] *,
-.memory-world-enter[data-entered="false"] *::before,
-.memory-world-enter[data-entered="false"] *::after {
+.memory-world-enter[data-seen="false"] *,
+.memory-world-enter[data-seen="false"] *::before,
+.memory-world-enter[data-seen="false"] *::after {
   animation-play-state: paused !important;
 }
 

@@ -85,6 +85,12 @@ export interface ServerAdminOverview {
     applicationStatus: string;
     /**
      * 
+     * @type {ServerAdminOverviewBackupStatusEnum}
+     * @memberof ServerAdminOverview
+     */
+    backupStatus: ServerAdminOverviewBackupStatusEnum;
+    /**
+     * 
      * @type {string}
      * @memberof ServerAdminOverview
      */
@@ -113,6 +119,12 @@ export interface ServerAdminOverview {
      * @memberof ServerAdminOverview
      */
     deployment: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof ServerAdminOverview
+     */
+    emailFailuresLastHour: number;
     /**
      * 
      * @type {number}
@@ -235,6 +247,12 @@ export interface ServerAdminOverview {
     publicBaseUrl: string;
     /**
      * 
+     * @type {number}
+     * @memberof ServerAdminOverview
+     */
+    pushFailuresLastHour: number;
+    /**
+     * 
      * @type {Array<ServerAdminFailedJob>}
      * @memberof ServerAdminOverview
      */
@@ -295,10 +313,22 @@ export interface ServerAdminOverview {
     verifiedPrimaryEmailCount: number;
     /**
      * 
+     * @type {string}
+     * @memberof ServerAdminOverview
+     */
+    videoWorkerStatus: string;
+    /**
+     * 
      * @type {Array<string>}
      * @memberof ServerAdminOverview
      */
     warningCodes: Array<string>;
+    /**
+     * 
+     * @type {Date}
+     * @memberof ServerAdminOverview
+     */
+    workerLastSeenAt: Date | null;
     /**
      * 
      * @type {string}
@@ -306,6 +336,16 @@ export interface ServerAdminOverview {
      */
     workerStatus: string;
 }
+
+
+/**
+ * @export
+ */
+export const ServerAdminOverviewBackupStatusEnum = {
+    not_configured: 'not_configured'
+} as const;
+export type ServerAdminOverviewBackupStatusEnum = typeof ServerAdminOverviewBackupStatusEnum[keyof typeof ServerAdminOverviewBackupStatusEnum];
+
 
 /**
  * Check if a given object implements the ServerAdminOverview interface.
@@ -318,11 +358,15 @@ export function instanceOfServerAdminOverview(value: object): value is ServerAdm
     if (!('activeSessionCount' in value) || value['activeSessionCount'] === undefined) return false;
     if (!('activeSpaceCount' in value) || value['activeSpaceCount'] === undefined) return false;
     if (!('applicationStatus' in value) || value['applicationStatus'] === undefined) return false;
+    if (!('backupStatus' in value) || value['backupStatus'] === undefined) return false;
+    if (value['backupStatus'] !== 'not_configured') return false;
+    
     if (!('buildRevision' in value) || value['buildRevision'] === undefined) return false;
     if (!('databaseProvider' in value) || value['databaseProvider'] === undefined) return false;
     if (!('databaseStatus' in value) || value['databaseStatus'] === undefined) return false;
     if (!('demoMode' in value) || value['demoMode'] === undefined) return false;
     if (!('deployment' in value) || value['deployment'] === undefined) return false;
+    if (!('emailFailuresLastHour' in value) || value['emailFailuresLastHour'] === undefined) return false;
     if (!('enabledAccountCount' in value) || value['enabledAccountCount'] === undefined) return false;
     if (!('environment' in value) || value['environment'] === undefined) return false;
     if (!('expiringAdminGrantCount' in value) || value['expiringAdminGrantCount'] === undefined) return false;
@@ -343,6 +387,7 @@ export function instanceOfServerAdminOverview(value: object): value is ServerAdm
     if (!('passkeyAccountCount' in value) || value['passkeyAccountCount'] === undefined) return false;
     if (!('processStartedAt' in value) || value['processStartedAt'] === undefined) return false;
     if (!('publicBaseUrl' in value) || value['publicBaseUrl'] === undefined) return false;
+    if (!('pushFailuresLastHour' in value) || value['pushFailuresLastHour'] === undefined) return false;
     if (!('recentFailedJobs' in value) || value['recentFailedJobs'] === undefined) return false;
     if (!('serverAdminAllowlistCount' in value) || value['serverAdminAllowlistCount'] === undefined) return false;
     if (!('serverAdminVerifiedMatchCount' in value) || value['serverAdminVerifiedMatchCount'] === undefined) return false;
@@ -353,7 +398,9 @@ export function instanceOfServerAdminOverview(value: object): value is ServerAdm
     if (!('suspendedAccountCount' in value) || value['suspendedAccountCount'] === undefined) return false;
     if (!('unverifiedPrimaryEmailCount' in value) || value['unverifiedPrimaryEmailCount'] === undefined) return false;
     if (!('verifiedPrimaryEmailCount' in value) || value['verifiedPrimaryEmailCount'] === undefined) return false;
+    if (!('videoWorkerStatus' in value) || value['videoWorkerStatus'] === undefined) return false;
     if (!('warningCodes' in value) || value['warningCodes'] === undefined) return false;
+    if (!('workerLastSeenAt' in value) || value['workerLastSeenAt'] === undefined) return false;
     if (!('workerStatus' in value) || value['workerStatus'] === undefined) return false;
     return true;
 }
@@ -375,11 +422,13 @@ export function ServerAdminOverviewFromJSONTyped(json: any, ignoreDiscriminator:
         'activeSessionCount': json['activeSessionCount'],
         'activeSpaceCount': json['activeSpaceCount'],
         'applicationStatus': json['applicationStatus'],
+        'backupStatus': json['backupStatus'],
         'buildRevision': json['buildRevision'],
         'databaseProvider': json['databaseProvider'],
         'databaseStatus': json['databaseStatus'],
         'demoMode': json['demoMode'],
         'deployment': json['deployment'],
+        'emailFailuresLastHour': json['emailFailuresLastHour'],
         'enabledAccountCount': json['enabledAccountCount'],
         'environment': json['environment'],
         'expiringAdminGrantCount': json['expiringAdminGrantCount'],
@@ -400,6 +449,7 @@ export function ServerAdminOverviewFromJSONTyped(json: any, ignoreDiscriminator:
         'passkeyAccountCount': json['passkeyAccountCount'],
         'processStartedAt': (new Date(json['processStartedAt'])),
         'publicBaseUrl': json['publicBaseUrl'],
+        'pushFailuresLastHour': json['pushFailuresLastHour'],
         'recentFailedJobs': ((json['recentFailedJobs'] as Array<any>).map(ServerAdminFailedJobFromJSON)),
         'serverAdminAllowlistCount': json['serverAdminAllowlistCount'],
         'serverAdminVerifiedMatchCount': json['serverAdminVerifiedMatchCount'],
@@ -410,7 +460,9 @@ export function ServerAdminOverviewFromJSONTyped(json: any, ignoreDiscriminator:
         'suspendedAccountCount': json['suspendedAccountCount'],
         'unverifiedPrimaryEmailCount': json['unverifiedPrimaryEmailCount'],
         'verifiedPrimaryEmailCount': json['verifiedPrimaryEmailCount'],
+        'videoWorkerStatus': json['videoWorkerStatus'],
         'warningCodes': json['warningCodes'],
+        'workerLastSeenAt': (json['workerLastSeenAt'] == null ? null : new Date(json['workerLastSeenAt'])),
         'workerStatus': json['workerStatus'],
     };
 }
@@ -433,11 +485,13 @@ export function ServerAdminOverviewToJSONTyped(value?: ServerAdminOverview | nul
         'activeSessionCount': value['activeSessionCount'],
         'activeSpaceCount': value['activeSpaceCount'],
         'applicationStatus': value['applicationStatus'],
+        'backupStatus': value['backupStatus'],
         'buildRevision': value['buildRevision'],
         'databaseProvider': value['databaseProvider'],
         'databaseStatus': value['databaseStatus'],
         'demoMode': value['demoMode'],
         'deployment': value['deployment'],
+        'emailFailuresLastHour': value['emailFailuresLastHour'],
         'enabledAccountCount': value['enabledAccountCount'],
         'environment': value['environment'],
         'expiringAdminGrantCount': value['expiringAdminGrantCount'],
@@ -458,6 +512,7 @@ export function ServerAdminOverviewToJSONTyped(value?: ServerAdminOverview | nul
         'passkeyAccountCount': value['passkeyAccountCount'],
         'processStartedAt': value['processStartedAt'].toISOString(),
         'publicBaseUrl': value['publicBaseUrl'],
+        'pushFailuresLastHour': value['pushFailuresLastHour'],
         'recentFailedJobs': ((value['recentFailedJobs'] as Array<any>).map(ServerAdminFailedJobToJSON)),
         'serverAdminAllowlistCount': value['serverAdminAllowlistCount'],
         'serverAdminVerifiedMatchCount': value['serverAdminVerifiedMatchCount'],
@@ -468,7 +523,9 @@ export function ServerAdminOverviewToJSONTyped(value?: ServerAdminOverview | nul
         'suspendedAccountCount': value['suspendedAccountCount'],
         'unverifiedPrimaryEmailCount': value['unverifiedPrimaryEmailCount'],
         'verifiedPrimaryEmailCount': value['verifiedPrimaryEmailCount'],
+        'videoWorkerStatus': value['videoWorkerStatus'],
         'warningCodes': value['warningCodes'],
+        'workerLastSeenAt': value['workerLastSeenAt'] == null ? value['workerLastSeenAt'] : value['workerLastSeenAt'].toISOString(),
         'workerStatus': value['workerStatus'],
     };
 }

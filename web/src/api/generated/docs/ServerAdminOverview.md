@@ -14,11 +14,13 @@ Name | Type
 `activeSessionCount` | number
 `activeSpaceCount` | number
 `applicationStatus` | string
+`backupStatus` | string
 `buildRevision` | string
 `databaseProvider` | string
 `databaseStatus` | string
 `demoMode` | boolean
 `deployment` | string
+`emailFailuresLastHour` | number
 `enabledAccountCount` | number
 `environment` | string
 `expiringAdminGrantCount` | number
@@ -39,6 +41,7 @@ Name | Type
 `passkeyAccountCount` | number
 `processStartedAt` | Date
 `publicBaseUrl` | string
+`pushFailuresLastHour` | number
 `recentFailedJobs` | [Array&lt;ServerAdminFailedJob&gt;](ServerAdminFailedJob.md)
 `serverAdminAllowlistCount` | number
 `serverAdminVerifiedMatchCount` | number
@@ -49,7 +52,9 @@ Name | Type
 `suspendedAccountCount` | number
 `unverifiedPrimaryEmailCount` | number
 `verifiedPrimaryEmailCount` | number
+`videoWorkerStatus` | string
 `warningCodes` | Array&lt;string&gt;
+`workerLastSeenAt` | Date
 `workerStatus` | string
 
 ## Example
@@ -66,11 +71,13 @@ const example = {
   "activeSessionCount": null,
   "activeSpaceCount": null,
   "applicationStatus": null,
+  "backupStatus": null,
   "buildRevision": null,
   "databaseProvider": null,
   "databaseStatus": null,
   "demoMode": null,
   "deployment": null,
+  "emailFailuresLastHour": null,
   "enabledAccountCount": null,
   "environment": null,
   "expiringAdminGrantCount": null,
@@ -91,6 +98,7 @@ const example = {
   "passkeyAccountCount": null,
   "processStartedAt": null,
   "publicBaseUrl": null,
+  "pushFailuresLastHour": null,
   "recentFailedJobs": null,
   "serverAdminAllowlistCount": null,
   "serverAdminVerifiedMatchCount": null,
@@ -101,7 +109,9 @@ const example = {
   "suspendedAccountCount": null,
   "unverifiedPrimaryEmailCount": null,
   "verifiedPrimaryEmailCount": null,
+  "videoWorkerStatus": null,
   "warningCodes": null,
+  "workerLastSeenAt": null,
   "workerStatus": null,
 } satisfies ServerAdminOverview
 

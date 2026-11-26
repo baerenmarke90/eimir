@@ -15265,6 +15265,176 @@
         "title": "ServerAdminJobList",
         "type": "object"
       },
+      "ServerAdminMonitoring": {
+        "properties": {
+          "alertsEnabled": {
+            "title": "Alertsenabled",
+            "type": "boolean"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/ServerAdminMonitoringPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "range": {
+            "enum": [
+              "24h",
+              "30d",
+              "90d"
+            ],
+            "title": "Range",
+            "type": "string"
+          },
+          "services": {
+            "items": {
+              "$ref": "#/components/schemas/ServerAdminServiceState"
+            },
+            "title": "Services",
+            "type": "array"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/ServerAdminMonitoringStorage"
+          }
+        },
+        "required": [
+          "range",
+          "points",
+          "storage",
+          "services",
+          "alertsEnabled"
+        ],
+        "title": "ServerAdminMonitoring",
+        "type": "object"
+      },
+      "ServerAdminMonitoringPoint": {
+        "properties": {
+          "activeSpaces": {
+            "title": "Activespaces",
+            "type": "integer"
+          },
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "diskTotalBytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Disktotalbytes"
+          },
+          "diskUsedBytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diskusedbytes"
+          },
+          "failedEmails": {
+            "title": "Failedemails",
+            "type": "integer"
+          },
+          "failedJobs": {
+            "title": "Failedjobs",
+            "type": "integer"
+          },
+          "failedPushes": {
+            "title": "Failedpushes",
+            "type": "integer"
+          },
+          "newAccounts": {
+            "title": "Newaccounts",
+            "type": "integer"
+          },
+          "p95Ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P95Ms"
+          },
+          "requests": {
+            "title": "Requests",
+            "type": "integer"
+          },
+          "serverErrors": {
+            "title": "Servererrors",
+            "type": "integer"
+          },
+          "storedBytes": {
+            "title": "Storedbytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "at",
+          "requests",
+          "serverErrors",
+          "p95Ms",
+          "newAccounts",
+          "activeSpaces",
+          "storedBytes",
+          "diskUsedBytes",
+          "diskTotalBytes",
+          "failedJobs",
+          "failedEmails",
+          "failedPushes"
+        ],
+        "title": "ServerAdminMonitoringPoint",
+        "type": "object"
+      },
+      "ServerAdminMonitoringStorage": {
+        "properties": {
+          "fullInDays": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fullindays"
+          },
+          "totalBytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Totalbytes"
+          },
+          "usedBytes": {
+            "title": "Usedbytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "usedBytes",
+          "totalBytes",
+          "fullInDays"
+        ],
+        "title": "ServerAdminMonitoringStorage",
+        "type": "object"
+      },
       "ServerAdminOverview": {
         "description": "Privacy-safe operational projection for one eimir. installation.",
         "properties": {
@@ -15296,6 +15466,11 @@
             "title": "Applicationstatus",
             "type": "string"
           },
+          "backupStatus": {
+            "const": "not_configured",
+            "title": "Backupstatus",
+            "type": "string"
+          },
           "buildRevision": {
             "title": "Buildrevision",
             "type": "string"
@@ -15315,6 +15490,10 @@
           "deployment": {
             "title": "Deployment",
             "type": "string"
+          },
+          "emailFailuresLastHour": {
+            "title": "Emailfailureslasthour",
+            "type": "integer"
           },
           "enabledAccountCount": {
             "title": "Enabledaccountcount",
@@ -15416,6 +15595,10 @@
             "title": "Publicbaseurl",
             "type": "string"
           },
+          "pushFailuresLastHour": {
+            "title": "Pushfailureslasthour",
+            "type": "integer"
+          },
           "recentFailedJobs": {
             "items": {
               "$ref": "#/components/schemas/ServerAdminFailedJob"
@@ -15462,12 +15645,28 @@
             "title": "Verifiedprimaryemailcount",
             "type": "integer"
           },
+          "videoWorkerStatus": {
+            "title": "Videoworkerstatus",
+            "type": "string"
+          },
           "warningCodes": {
             "items": {
               "type": "string"
             },
             "title": "Warningcodes",
             "type": "array"
+          },
+          "workerLastSeenAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workerlastseenat"
           },
           "workerStatus": {
             "title": "Workerstatus",
@@ -15514,6 +15713,11 @@
           "recentFailedJobs",
           "supportReportsNew",
           "supportReportsOperatorAvailable",
+          "workerLastSeenAt",
+          "videoWorkerStatus",
+          "emailFailuresLastHour",
+          "pushFailuresLastHour",
+          "backupStatus",
           "storagePressureCount",
           "storagePressure",
           "expiringAdminGrantCount",
@@ -15691,6 +15895,43 @@
         "title": "ServerAdminRecoveryProof",
         "type": "object"
       },
+      "ServerAdminServiceState": {
+        "properties": {
+          "key": {
+            "enum": [
+              "worker",
+              "video_worker",
+              "email",
+              "push"
+            ],
+            "title": "Key",
+            "type": "string"
+          },
+          "lastSeenAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastseenat"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "status",
+          "lastSeenAt"
+        ],
+        "title": "ServerAdminServiceState",
+        "type": "object"
+      },
       "ServerAdminSessionRevocationResult": {
         "properties": {
           "revokedSessions": {
@@ -15727,6 +15968,10 @@
             "title": "Maintenancemode",
             "type": "boolean"
           },
+          "monitoringAlertsEnabled": {
+            "title": "Monitoringalertsenabled",
+            "type": "boolean"
+          },
           "registrationEnabled": {
             "title": "Registrationenabled",
             "type": "boolean"
@@ -15740,6 +15985,7 @@
           "registrationEnabled",
           "maintenanceMode",
           "effectiveRegistrationEnabled",
+          "monitoringAlertsEnabled",
           "version"
         ],
         "title": "ServerAdminSettings",
@@ -24421,6 +24667,75 @@
         ]
       }
     },
+    "/api/v1/server-admin/monitoring": {
+      "get": {
+        "description": "Return history, storage forecast and service states for the chosen range.",
+        "operationId": "get_server_admin_monitoring_api_v1_server_admin_monitoring_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "range",
+            "required": false,
+            "schema": {
+              "default": "24h",
+              "enum": [
+                "24h",
+                "30d",
+                "90d"
+              ],
+              "title": "Range",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerAdminMonitoring"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Server Admin Monitoring",
+        "tags": [
+          "server-admin"
+        ]
+      }
+    },
     "/api/v1/server-admin/overview": {
       "get": {
         "description": "Return safe operational state for an authorized ServerAdmin.",
@@ -24560,6 +24875,68 @@
           }
         },
         "summary": "Update Maintenance Setting",
+        "tags": [
+          "server-admin"
+        ]
+      }
+    },
+    "/api/v1/server-admin/settings/monitoring-alerts": {
+      "put": {
+        "description": "Turn the monitoring alert mails to ServerAdmins on or off (#2317).",
+        "operationId": "update_monitoring_alerts_setting_api_v1_server_admin_settings_monitoring_alerts_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServerAdminSettingUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerAdminSettings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Monitoring Alerts Setting",
         "tags": [
           "server-admin"
         ]

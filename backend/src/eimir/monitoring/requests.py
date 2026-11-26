@@ -8,7 +8,6 @@ counts and latency buckets are kept: no path, account or request id.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import threading
 from dataclasses import dataclass, field
@@ -18,6 +17,7 @@ from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from eimir.config import Environment, get_settings
 from eimir.db.session import unit_of_work
 from eimir.monitoring.models import RequestMetricMinute
 
@@ -125,11 +125,12 @@ def observe(path: str, status: int, duration_ms: float, at: datetime) -> None:
     if not counts_path(path):
         return
     finished = REQUEST_METRICS.record(status=status, duration_ms=duration_ms, at=at)
-    if not finished:
+    if not finished or get_settings().environment is Environment.TEST:
+        # Test clients share one transaction per test; a second connection
+        # writing metrics would only wait on it. ``flush`` is tested directly.
         return
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        _flush_in_unit_of_work(finished)
-        return
-    loop.run_in_executor(None, _flush_in_unit_of_work, finished)
+    # A daemon thread: nothing (shutdown, a test client, the event loop) ever
+    # waits for monitoring.
+    threading.Thread(
+        target=_flush_in_unit_of_work, args=(finished,), name="request-metrics", daemon=True
+    ).start()

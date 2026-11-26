@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `effectiveRegistrationEnabled` | boolean
 `maintenanceMode` | boolean
+`monitoringAlertsEnabled` | boolean
 `registrationEnabled` | boolean
 `version` | number
 
@@ -20,6 +21,7 @@ import type { ServerAdminSettings } from ''
 const example = {
   "effectiveRegistrationEnabled": null,
   "maintenanceMode": null,
+  "monitoringAlertsEnabled": null,
   "registrationEnabled": null,
   "version": null,
 } satisfies ServerAdminSettings

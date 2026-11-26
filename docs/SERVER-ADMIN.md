@@ -96,12 +96,52 @@ projection including available signals for:
   entitlement grants ending within the next seven days, soonest first, at most
   five listed (Space id, grant id and end only), with the
   `admin_grants_expiring` warning while any exist;
+- worker liveness: `workerStatus` / `videoWorkerStatus` (`ok`, `silent` or
+  `no_heartbeat_signal`) and `workerLastSeenAt`, see [Monitoring](#monitoring);
+- `emailFailuresLastHour` / `pushFailuresLastHour` (counts only);
+- `backupStatus`: `not_configured` until a backup job reports a signal; on Cloud
+  this adds the `backup_not_configured` warning;
 - privacy-safe warning codes for actionable configuration/runtime conditions.
 
 Where no authoritative runtime primitive exists yet, the API reports that the
 signal is not available instead of fabricating health. In particular, the
-current worker model has no heartbeat primitive and the media adapters do not
-expose a generic health probe.
+media adapters do not expose a generic health probe.
+
+## Monitoring
+
+`GET /api/v1/server-admin/monitoring?range=24h|30d|90d` returns history points
+(hourly for 24 h, daily for 30/90 days), a storage summary and service states.
+The data comes from four tables that hold counts, bytes, durations and
+timestamps only:
+
+- `worker_heartbeats`: each worker process writes its row every 60 seconds from
+  a small thread, together with the last time its loop made progress. A process
+  is alive when its row is at most 3 minutes old and its loop moved within the
+  job lease plus 3 minutes (5 minutes for the worker, 30 for the video worker),
+  so a long job does not look dead and a hung loop does. Rows older than seven
+  days are pruned.
+- `request_metric_minutes`: each API process counts requests, 5xx responses and
+  latency buckets per minute (health probes excluded) and adds them from a
+  background thread; kept for 48 hours.
+- `operational_metric_hours`: the hourly `monitoring_history` job writes one row
+  per hour (requests, server errors, p95, new accounts, active Spaces, stored
+  bytes, media filesystem usage when the local media store is used, failed jobs,
+  failed email and push deliveries); kept for 90 days.
+- `monitoring_alert_states`: see the alert job.
+
+The storage summary shows the media filesystem's used and total bytes and a
+linear "full in" estimate when the local media store is used and usage rises.
+With object storage there is no total; the page shows stored bytes only.
+
+`EIMIR_HEARTBEAT_PUSH_URL` (optional) is the push-monitor URL of the operator's
+own Uptime Kuma. The worker pings it after each heartbeat while the process is
+alive, so Kuma alerts when the worker or the whole host stops. The URL carries a
+token: it is never logged or returned by any API. `EIMIR_WORKER_NAME` gives a
+process a stable heartbeat name (default: the host name).
+
+`PUT /api/v1/server-admin/settings/monitoring-alerts` with `{"enabled": bool}`
+turns the alert mails on or off; the change is recorded in the privileged audit
+like the other settings.
 
 The overview does not expose:
 

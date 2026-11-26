@@ -434,7 +434,7 @@ while `EIMIR_SUPPORT_REPORTS_ENABLED` is off.
 
 | Route | Purpose |
 | --- | --- |
-| `GET /` | List, optional `state` (`NEW`, `IN_PROGRESS`, `CLOSED`), `archived` (default `false`: unarchived reports; `true`: the archive), keyset `cursor`, `limit`; items carry kind, state, time, `archivedAt`, app version and build, failure reference and whether a reply and a ticket exist, plus the `newCount` of unarchived `NEW` reports; never the note |
+| `GET /` | List, optional `state` (`NEW`, `IN_PROGRESS`, `CLOSED`), `archived` (default `false`: unarchived reports; `true`: the archive), keyset `cursor`, `limit`; items carry kind, state, time, `archivedAt`, app version and build, `platform` and `os`, failure reference, whether a reply and a ticket exist and a `notePreview` (the note's first 160 characters on one line, Product Owner decision 2026-11-26, [#2327](https://github.com/baerenmarke90/eimir/issues/2327)), plus the `newCount` of unarchived `NEW` reports and the `stateCounts` of unarchived reports per state; never the full note |
 | `GET /{reportId}` | The report: note, technical client context, failure reference, request id, the opaque reporter account id (no name or email), the reply if any, the ticket link if any and `ticketAvailable` |
 | `PUT /{reportId}/state` | Set `NEW`, `IN_PROGRESS` or `CLOSED` |
 | `PUT /{reportId}/archive` | Archive (`{"archived": true}`) or unarchive a report |

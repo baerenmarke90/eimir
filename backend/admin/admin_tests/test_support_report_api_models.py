@@ -65,7 +65,7 @@ def _ticket(report: SupportReport) -> SupportReportTicket:
     )
 
 
-def test_a_list_item_never_carries_the_note_text() -> None:
+def test_a_list_item_carries_a_note_preview_not_the_note() -> None:
     report = _report()
 
     item = support_reports.list_item(report, has_reply=False, ticket=None)
@@ -80,10 +80,14 @@ def test_a_list_item_never_carries_the_note_text() -> None:
         "failureReference",
         "appVersion",
         "build",
+        "platform",
+        "os",
+        "notePreview",
         "hasReply",
         "ticket",
     }
-    assert NOTE not in str(wire)
+    assert "note" not in wire
+    assert wire["notePreview"] == NOTE
     assert wire["failureReference"] == "GET:/api/v1/plans:500:INTERNAL_ERROR:app"
     assert wire["appVersion"] == "0.2.0"
     assert wire["ticket"] is None
@@ -133,6 +137,8 @@ def test_the_detail_carries_the_note_and_the_account_id_only() -> None:
         "failureReference",
         "appVersion",
         "build",
+        "platform",
+        "os",
         "hasReply",
         "ticket",
         "note",

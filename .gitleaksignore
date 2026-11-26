@@ -26,3 +26,6 @@ db31e7acfdc85d726a44702687035a7a63065d03:docs/design/eimir/565-fcm/evidence/reco
 
 # Random base64url ciphertext of an encrypted push preview fixture (#1907 H3) that matched a token pattern; regenerated, not a credential.
 59a5cfea0dadb36863b40dc97810c862d28b4246:android/app/src/androidTest/assets/push-preview-catalog.json:github-pat:1562
+
+# Candidate-format example in the first revision of the public-domain quote importer docstring (PR #2318); a JSON sample with a "key" field, not a credential. The line no longer exists on the branch head.
+196f2719b8a7bd6ff4c65923b2b0be2555e4491b:backend/pro/pro_scripts/public_domain_quotes.py:generic-api-key:16

@@ -152,6 +152,13 @@ Its source editions, credits and licensing terms (including the TextGrid
 CC BY 3.0 DE credit and the CC0 1.0 translations) remain recorded in that file
 and in the git history. Restoring any of it requires the credits recorded there.
 
+## Home Screen quick-action symbols
+
+The three Android vector drawables `shortcut_moment.xml`, `shortcut_wish.xml`
+and `shortcut_plan.xml` are original geometric symbols authored with AI assistance
+for this project on 2026-11-26, under the repository license. No external icon
+artwork or source code was copied. iOS uses UIKit's system quick-action symbols.
+
 ## Contributors
 
 | Name | Role | Period |

@@ -20,6 +20,29 @@ export function reportNotificationWake(scope: NotificationWakeScope): void {
   );
 }
 
+export const NOTIFICATION_OPENED_EVENT = 'eimir:notification-opened';
+
+export interface NotificationOpenedDetail {
+  /** `${accountId}:${spaceId}` of the shell that resolved the notification. */
+  scope: string;
+  notificationId: string;
+}
+
+/**
+ * A notification was opened from outside the app (a system or browser push).
+ * It is handled exactly like one opened from Wir: a foreground receipt for it
+ * leaves and none is shown later.
+ */
+export function reportNotificationOpened(detail: NotificationOpenedDetail) {
+  if (typeof window === 'undefined' || typeof CustomEvent === 'undefined')
+    return;
+  window.dispatchEvent(
+    new CustomEvent<NotificationOpenedDetail>(NOTIFICATION_OPENED_EVENT, {
+      detail,
+    }),
+  );
+}
+
 export function notificationArrivalKey(item: NotificationItem): string {
   // A new event can replace a coalesced inbox row without changing its ID.
   return `${item.id}:${item.sourceEventId}`;

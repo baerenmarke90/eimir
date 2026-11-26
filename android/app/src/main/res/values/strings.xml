@@ -124,4 +124,7 @@
     <string name="media_transfer_progress">%1$d%% uploaded</string>
     <string name="media_transfer_processing">Upload complete. Preparing video.</string>
     <string name="media_transfer_failed">Upload interrupted. Open eimir. to resume.</string>
+    <string name="shortcut_moment">Capture a moment</string>
+    <string name="shortcut_wish">Add a wish</string>
+    <string name="shortcut_plan">Create a plan</string>
 </resources>

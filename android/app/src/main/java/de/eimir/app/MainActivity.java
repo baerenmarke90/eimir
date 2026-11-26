@@ -47,6 +47,7 @@ public class MainActivity extends BridgeActivity {
             savedInstanceState != null && savedInstanceState.getBoolean(RECOVERY_ATTEMPTED));
         registerPlugin(NativePushBridge.class);
         registerPlugin(AppIconPlugin.class);
+        registerPlugin(AppShortcutsPlugin.class);
         registerPlugin(LaunchScreenPlugin.class);
         registerPlugin(NativeSessionStoragePlugin.class);
         registerPlugin(PlanCalendarPlugin.class);

@@ -768,11 +768,17 @@
 /* Monitoring (ServerAdmin redesign part 2, #2317). */
 .server-admin-monitoring {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
 }
 
 .server-admin-range {
   display: flex;
+  flex-wrap: wrap;
+  /* A fieldset keeps its min-content width by default; at 200 % text that
+     pushed the whole page past a 360 px viewport. */
+  min-inline-size: 0;
+  min-width: 0;
   gap: var(--space-1);
   margin: 0;
   padding: var(--space-1);

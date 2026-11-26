@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from sqlalchemy import and_, delete, or_, select
+from sqlalchemy import and_, delete, inspect, or_, select
 
 from eimir.deployment.revision import build_revision
 from eimir.engagement.models import EngagementTarget, NotificationKind
@@ -418,9 +418,17 @@ class InTreeProPlugin:
         recap_jobs.ensure_scheduled(session)
 
     def prune_expired(self, session: Session) -> None:
+        from eimir.core import clock
+        from eimir_pro.gift_codes.models import GiftCodeBatch
+        from eimir_pro.gift_codes.service import prune_batches
         from eimir_pro.once_messages.service import prune_expired
 
         prune_expired(session)
+        # The gift code tables come from the Pro chain, which ``migrate`` runs
+        # before any runtime starts. The shared Core test database keeps no chain
+        # tables (tests/conftest.py), so the Core suite runs this hook without them.
+        if inspect(session.connection()).has_table(GiftCodeBatch.__tablename__):
+            prune_batches(session, clock.now())
 
     def on_outbox_event(self, session: Session, event: OutboxEvent, event_type: EventType) -> None:
         # Calendar sync (#1895) reads the current Plan later in its own job, so it

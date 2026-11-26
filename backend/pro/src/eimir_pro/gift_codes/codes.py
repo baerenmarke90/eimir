@@ -8,10 +8,12 @@ dump does not reveal redeemable codes.
 
 from __future__ import annotations
 
+import calendar
 import hashlib
 import hmac
 import re
 import secrets
+from datetime import datetime
 
 from eimir.config import get_settings
 
@@ -19,6 +21,11 @@ ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 _PREFIX = "EIMIR"
 _BODY_LENGTH = 8
 _PURPOSE = b"eimir.gift_code.lookup.v1"
+
+GRANT_REFERENCE_PREFIX = "gift-code:"
+"""``external_reference`` prefix of a grant made by redeeming a code (``gift-code:<code id>``)."""
+GRANT_BATCH_METADATA_KEY = "giftCodeBatchId"
+"""Grant metadata key naming the batch of a redeemed code; the code itself is never stored."""
 _SEPARATORS = re.compile(r"[\s\-\u2013\u2014]+")
 
 
@@ -42,3 +49,12 @@ def lookup_hash(code: str) -> str:
     """Keyed hex digest of a canonical code, used as the database lookup value."""
     key = hmac.new(get_settings().cursor_signing_secret, _PURPOSE, hashlib.sha256).digest()
     return hmac.new(key, code.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def add_months(value: datetime, months: int) -> datetime:
+    """Add calendar months to an instant, clamping the day to the target month's length."""
+    month_index = value.month - 1 + months
+    year = value.year + month_index // 12
+    month = month_index % 12 + 1
+    day = min(value.day, calendar.monthrange(year, month)[1])
+    return value.replace(year=year, month=month, day=day)

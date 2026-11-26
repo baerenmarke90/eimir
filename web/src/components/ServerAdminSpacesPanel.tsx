@@ -1,5 +1,5 @@
-import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
 import type { ServerAdminSpaceDetail } from '../api/generated/models/ServerAdminSpaceDetail';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -125,12 +125,24 @@ function SpaceDetail({
   );
 }
 
-export function ServerAdminSpacesPanel({ api }: { api: ServerAdminApi }) {
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function ServerAdminSpacesPanel({
+  api,
+  initialSpaceId = null,
+}: {
+  api: ServerAdminApi;
+  /** A `?space=` link, for example from the Situation; ignored unless a UUID. */
+  initialSpaceId?: string | null;
+}) {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<SpaceFilter>('all');
   const [offset, setOffset] = useState(0);
-  const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
+  const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(() =>
+    initialSpaceId && UUID_PATTERN.test(initialSpaceId) ? initialSpaceId : null,
+  );
   const detailHeadingRef = useRef<HTMLHeadingElement | null>(null);
 
   const request = useMemo(

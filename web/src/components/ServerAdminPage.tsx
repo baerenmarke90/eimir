@@ -1098,7 +1098,10 @@ export function ServerAdminPage({
             ) : null}
 
             {section === 'spaces' ? (
-              <ServerAdminSpacesPanel api={apis.serverAdmin} />
+              <ServerAdminSpacesPanel
+                api={apis.serverAdmin}
+                initialSpaceId={searchParams.get('space')}
+              />
             ) : null}
 
             {section === 'activity' ? (

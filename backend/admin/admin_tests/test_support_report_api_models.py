@@ -10,7 +10,7 @@ from pydantic import ValidationError
 
 pytest.importorskip("eimir_admin", reason="the eimir-admin distribution is not installed")
 
-from eimir_admin.api import models, support_reports
+from eimir_admin.api import models, reply_templates, support_reports
 from eimir_admin.support_tickets.models import SupportReportTicket, TicketState
 
 from eimir.support_reports.models import SupportReport, SupportReportKind, SupportReportState
@@ -222,8 +222,13 @@ def test_the_plugin_mounts_the_router_without_a_route_collision() -> None:
     app = FastAPI()
     app.include_router(core_router, prefix="/api/v1")
 
-    assert list(plugin.routers()) == [support_reports.router]
-    check_route_collisions(app.routes, [("admin", support_reports.router)], prefix="/api/v1")
+    # The template router comes first so ``/templates`` is never read as a report id.
+    assert list(plugin.routers()) == [reply_templates.router, support_reports.router]
+    check_route_collisions(
+        app.routes,
+        [("admin", reply_templates.router), ("admin", support_reports.router)],
+        prefix="/api/v1",
+    )
 
 
 def test_the_core_test_support_lists_exactly_the_operator_operations() -> None:
@@ -231,7 +236,8 @@ def test_the_core_test_support_lists_exactly_the_operator_operations() -> None:
 
     mounted = {
         operation_key(method, f"/api/v1{route.path}")  # type: ignore[attr-defined]
-        for route in support_reports.router.routes
+        for router in (reply_templates.router, support_reports.router)
+        for route in router.routes
         for method in route.methods  # type: ignore[attr-defined]
     }
 

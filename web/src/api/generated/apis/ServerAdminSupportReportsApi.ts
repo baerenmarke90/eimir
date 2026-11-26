@@ -19,6 +19,21 @@ import {
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
 import {
+    type SupportReplyTemplateListView,
+    SupportReplyTemplateListViewFromJSON,
+    SupportReplyTemplateListViewToJSON,
+} from '../models/SupportReplyTemplateListView';
+import {
+    type SupportReplyTemplateView,
+    SupportReplyTemplateViewFromJSON,
+    SupportReplyTemplateViewToJSON,
+} from '../models/SupportReplyTemplateView';
+import {
+    type SupportReplyTemplateWrite,
+    SupportReplyTemplateWriteFromJSON,
+    SupportReplyTemplateWriteToJSON,
+} from '../models/SupportReplyTemplateWrite';
+import {
     type SupportReportArchiveUpdate,
     SupportReportArchiveUpdateFromJSON,
     SupportReportArchiveUpdateToJSON,
@@ -68,9 +83,17 @@ export interface ClearSupportReportTicketRequest {
     reportId: string;
 }
 
+export interface CreateSupportReplyTemplateRequest {
+    supportReplyTemplateWrite: SupportReplyTemplateWrite;
+}
+
 export interface CreateSupportReportTicketRequest {
     reportId: string;
     supportReportTicketCreate: SupportReportTicketCreate;
+}
+
+export interface DeleteSupportReplyTemplateRequest {
+    templateId: string;
 }
 
 export interface DeleteSupportReportRequest {
@@ -101,6 +124,11 @@ export interface SetSupportReportArchivedRequest {
 export interface SetSupportReportStateRequest {
     reportId: string;
     supportReportStateUpdate: SupportReportStateUpdate;
+}
+
+export interface UpdateSupportReplyTemplateRequest {
+    templateId: string;
+    supportReplyTemplateWrite: SupportReplyTemplateWrite;
 }
 
 /**
@@ -152,6 +180,55 @@ export class ServerAdminSupportReportsApi extends runtime.BaseAPI {
      */
     async clearSupportReportTicket(requestParameters: ClearSupportReportTicketRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
         await this.clearSupportReportTicketRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for createSupportReplyTemplate without sending the request
+     */
+    async createSupportReplyTemplateRequestOpts(requestParameters: CreateSupportReplyTemplateRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['supportReplyTemplateWrite'] == null) {
+            throw new runtime.RequiredError(
+                'supportReplyTemplateWrite',
+                'Required parameter "supportReplyTemplateWrite" was null or undefined when calling createSupportReplyTemplate().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/server-admin/support-reports/templates`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: SupportReplyTemplateWriteToJSON(requestParameters['supportReplyTemplateWrite']),
+        };
+    }
+
+    /**
+     * Create a template; at most 30 exist and names are unique regardless of case.
+     * Create Support Reply Template
+     */
+    async createSupportReplyTemplateRaw(requestParameters: CreateSupportReplyTemplateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SupportReplyTemplateView>> {
+        const requestOptions = await this.createSupportReplyTemplateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SupportReplyTemplateViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Create a template; at most 30 exist and names are unique regardless of case.
+     * Create Support Reply Template
+     */
+    async createSupportReplyTemplate(requestParameters: CreateSupportReplyTemplateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SupportReplyTemplateView> {
+        const response = await this.createSupportReplyTemplateRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**
@@ -209,6 +286,52 @@ export class ServerAdminSupportReportsApi extends runtime.BaseAPI {
     async createSupportReportTicket(requestParameters: CreateSupportReportTicketRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SupportReportTicketSummary> {
         const response = await this.createSupportReportTicketRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Creates request options for deleteSupportReplyTemplate without sending the request
+     */
+    async deleteSupportReplyTemplateRequestOpts(requestParameters: DeleteSupportReplyTemplateRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['templateId'] == null) {
+            throw new runtime.RequiredError(
+                'templateId',
+                'Required parameter "templateId" was null or undefined when calling deleteSupportReplyTemplate().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/server-admin/support-reports/templates/{templateId}`;
+        urlPath = urlPath.replace('{templateId}', encodeURIComponent(String(requestParameters['templateId'])));
+
+        return {
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Delete a template for good.
+     * Delete Support Reply Template
+     */
+    async deleteSupportReplyTemplateRaw(requestParameters: DeleteSupportReplyTemplateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.deleteSupportReplyTemplateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Delete a template for good.
+     * Delete Support Reply Template
+     */
+    async deleteSupportReplyTemplate(requestParameters: DeleteSupportReplyTemplateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.deleteSupportReplyTemplateRaw(requestParameters, initOverrides);
     }
 
     /**
@@ -305,6 +428,45 @@ export class ServerAdminSupportReportsApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for listSupportReplyTemplates without sending the request
+     */
+    async listSupportReplyTemplatesRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/server-admin/support-reports/templates`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * List the reply templates shared by all ServerAdmins.
+     * List Support Reply Templates
+     */
+    async listSupportReplyTemplatesRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SupportReplyTemplateListView>> {
+        const requestOptions = await this.listSupportReplyTemplatesRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SupportReplyTemplateListViewFromJSON(jsonValue));
+    }
+
+    /**
+     * List the reply templates shared by all ServerAdmins.
+     * List Support Reply Templates
+     */
+    async listSupportReplyTemplates(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SupportReplyTemplateListView> {
+        const response = await this.listSupportReplyTemplatesRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for listSupportReports without sending the request
      */
     async listSupportReportsRequestOpts(requestParameters: ListSupportReportsRequest): Promise<runtime.RequestOpts> {
@@ -340,7 +502,7 @@ export class ServerAdminSupportReportsApi extends runtime.BaseAPI {
     }
 
     /**
-     * List reports newest first without note text.  Unarchived reports by default, the archived ones with ``archived=true``. The cursor is bound to the state filter and the archive view.
+     * List reports newest first with a note preview, never the full note.  Unarchived reports by default, the archived ones with ``archived=true``. The cursor is bound to the state filter and the archive view.
      * List Support Reports
      */
     async listSupportReportsRaw(requestParameters: ListSupportReportsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SupportReportListView>> {
@@ -351,7 +513,7 @@ export class ServerAdminSupportReportsApi extends runtime.BaseAPI {
     }
 
     /**
-     * List reports newest first without note text.  Unarchived reports by default, the archived ones with ``archived=true``. The cursor is bound to the state filter and the archive view.
+     * List reports newest first with a note preview, never the full note.  Unarchived reports by default, the archived ones with ``archived=true``. The cursor is bound to the state filter and the archive view.
      * List Support Reports
      */
     async listSupportReports(requestParameters: ListSupportReportsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SupportReportListView> {
@@ -527,6 +689,63 @@ export class ServerAdminSupportReportsApi extends runtime.BaseAPI {
      */
     async setSupportReportState(requestParameters: SetSupportReportStateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SupportReportDetailView> {
         const response = await this.setSupportReportStateRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updateSupportReplyTemplate without sending the request
+     */
+    async updateSupportReplyTemplateRequestOpts(requestParameters: UpdateSupportReplyTemplateRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['templateId'] == null) {
+            throw new runtime.RequiredError(
+                'templateId',
+                'Required parameter "templateId" was null or undefined when calling updateSupportReplyTemplate().'
+            );
+        }
+
+        if (requestParameters['supportReplyTemplateWrite'] == null) {
+            throw new runtime.RequiredError(
+                'supportReplyTemplateWrite',
+                'Required parameter "supportReplyTemplateWrite" was null or undefined when calling updateSupportReplyTemplate().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/server-admin/support-reports/templates/{templateId}`;
+        urlPath = urlPath.replace('{templateId}', encodeURIComponent(String(requestParameters['templateId'])));
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: SupportReplyTemplateWriteToJSON(requestParameters['supportReplyTemplateWrite']),
+        };
+    }
+
+    /**
+     * Replace a template\'s name and text.
+     * Update Support Reply Template
+     */
+    async updateSupportReplyTemplateRaw(requestParameters: UpdateSupportReplyTemplateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SupportReplyTemplateView>> {
+        const requestOptions = await this.updateSupportReplyTemplateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SupportReplyTemplateViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Replace a template\'s name and text.
+     * Update Support Reply Template
+     */
+    async updateSupportReplyTemplate(requestParameters: UpdateSupportReplyTemplateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SupportReplyTemplateView> {
+        const response = await this.updateSupportReplyTemplateRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

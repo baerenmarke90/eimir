@@ -548,6 +548,12 @@ view is audited, and no endpoint lists the link in bulk. The privacy policy
 already says that administration tools show account data and never content.
 Support reports stay anonymous and never link to a Space.
 
+Each member in the Space file links to its Account detail, which shows the
+display name as before. The pairing of a Space with its members' names is
+therefore reachable in two steps; the Product Owner accepted this on
+2026-11-26, since the privacy policy names account data, including names,
+as visible in administration tools.
+
 ### Individual storage quota
 
 On eimir. Cloud a ServerAdmin can give one Space an individual storage quota:

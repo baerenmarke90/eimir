@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
 import type { ServerAdminAccountDetail } from '../api/generated/models/ServerAdminAccountDetail';
@@ -7,6 +7,8 @@ import { normalizeClientError } from '../client/problemDetails';
 import { SERVER_ADMIN_ROUTE } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { ServerAdminAccountDeletionDialog } from './ServerAdminAccountDeletionDialog';
+import { shortSpaceId } from './ServerAdminSpaceFile';
+import { sectionHref } from './serverAdminAreas';
 
 const PAGE_SIZE = 25;
 
@@ -243,6 +245,34 @@ function AccountDetail({
         </div>
       </dl>
 
+      <h4>{t('serverAdmin.accounts.detail.spacesTitle')}</h4>
+      {(account.spaces ?? []).length === 0 ? (
+        <p className="server-admin-muted">
+          {t('serverAdmin.accounts.detail.noSpaces')}
+        </p>
+      ) : (
+        <ul className="server-admin-account-spaces">
+          {(account.spaces ?? []).map((space) => (
+            <li key={space.spaceId}>
+              <Link to={sectionHref('spaces', { space: space.spaceId })}>
+                {t('serverAdmin.spaceFile.title', {
+                  id: shortSpaceId(space.spaceId),
+                })}
+              </Link>
+              <span className="server-admin-muted">
+                {t(
+                  space.membershipStatus === 'ACTIVE'
+                    ? 'serverAdmin.spaceFile.member.active'
+                    : space.membershipStatus === 'LEFT'
+                      ? 'serverAdmin.spaceFile.member.left'
+                      : 'serverAdmin.spaceFile.member.removed',
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
       <h4>{t('serverAdmin.accounts.detail.emailTitle')}</h4>
       <div className="server-admin-account-email-list">
         {account.emails.map((email) => (
@@ -431,12 +461,18 @@ function AccountDetail({
   );
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function ServerAdminAccountsPanel({
   api,
   onOverviewChanged,
+  initialAccountId = null,
 }: {
   api: ServerAdminApi;
   onOverviewChanged: () => void;
+  /** An `?account=` link, for example from the search; ignored unless a UUID. */
+  initialAccountId?: string | null;
 }) {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
@@ -446,7 +482,10 @@ export function ServerAdminAccountsPanel({
   >('all');
   const [offset, setOffset] = useState(0);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
-    null,
+    () =>
+      initialAccountId && UUID_PATTERN.test(initialAccountId)
+        ? initialAccountId
+        : null,
   );
 
   const accountRequest = useMemo(

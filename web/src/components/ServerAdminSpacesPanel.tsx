@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
-import type { ServerAdminSpaceDetail } from '../api/generated/models/ServerAdminSpaceDetail';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { ServerAdminSpaceFile } from './ServerAdminSpaceFile';
 
 const PAGE_SIZE = 25;
 
@@ -27,102 +27,6 @@ function lifecycleLabel(status: string, t: (key: string) => string): string {
     default:
       return status;
   }
-}
-
-function anomalyLabel(code: string, t: (key: string) => string): string {
-  switch (code) {
-    case 'no_memberships':
-      return t('serverAdmin.spaces.anomalies.noMemberships');
-    case 'too_many_active_memberships':
-      return t('serverAdmin.spaces.anomalies.tooManyActive');
-    default:
-      return code;
-  }
-}
-
-function SpaceDetail({
-  space,
-  headingRef,
-}: {
-  space: ServerAdminSpaceDetail;
-  headingRef: RefObject<HTMLHeadingElement | null>;
-}) {
-  const { t } = useTranslation();
-  return (
-    <section
-      id="server-space-detail"
-      className="server-admin-panel server-admin-panel-wide"
-      aria-labelledby="server-space-detail-title"
-    >
-      <div className="server-admin-account-detail-heading">
-        <div>
-          <p className="eyebrow">{t('serverAdmin.spaces.detail.eyebrow')}</p>
-          <h2 id="server-space-detail-title" ref={headingRef} tabIndex={-1}>
-            {t('serverAdmin.spaces.detail.title')}
-          </h2>
-          <p className="server-admin-muted server-admin-actor-id">{space.id}</p>
-        </div>
-        <span
-          className={`server-admin-badge ${space.anomalyCodes.length > 0 ? 'is-warning' : 'is-ok'}`}
-        >
-          {lifecycleLabel(space.lifecycleStatus, t)}
-        </span>
-      </div>
-
-      <dl className="server-admin-metrics server-admin-account-detail-metrics">
-        <div className="server-admin-metric">
-          <dt>{t('serverAdmin.spaces.createdAt')}</dt>
-          <dd>{formatDate(space.createdAt)}</dd>
-        </div>
-        <div className="server-admin-metric">
-          <dt>{t('serverAdmin.spaces.memberships')}</dt>
-          <dd>{space.membershipCount}</dd>
-        </div>
-        <div className="server-admin-metric">
-          <dt>{t('serverAdmin.spaces.activeMemberships')}</dt>
-          <dd>{space.activeMembershipCount}</dd>
-        </div>
-        <div className="server-admin-metric">
-          <dt>{t('serverAdmin.spaces.historicalMemberships')}</dt>
-          <dd>{space.historicalMembershipCount}</dd>
-        </div>
-        <div className="server-admin-metric">
-          <dt>{t('serverAdmin.spaces.leftMemberships')}</dt>
-          <dd>{space.leftMembershipCount}</dd>
-        </div>
-        <div className="server-admin-metric">
-          <dt>{t('serverAdmin.spaces.removedMemberships')}</dt>
-          <dd>{space.removedMembershipCount}</dd>
-        </div>
-        <div className="server-admin-metric">
-          <dt>{t('serverAdmin.spaces.firstMembership')}</dt>
-          <dd>{formatDate(space.firstMembershipAt)}</dd>
-        </div>
-        <div className="server-admin-metric">
-          <dt>{t('serverAdmin.spaces.lastLifecycleChange')}</dt>
-          <dd>{formatDate(space.lastMembershipChangeAt)}</dd>
-        </div>
-        <div className="server-admin-metric">
-          <dt>{t('serverAdmin.spaces.latestEndedMembership')}</dt>
-          <dd>{formatDate(space.latestMembershipEndedAt)}</dd>
-        </div>
-      </dl>
-
-      {space.anomalyCodes.length > 0 ? (
-        <div className="server-admin-warning-panel">
-          <strong>{t('serverAdmin.spaces.anomalies.title')}</strong>
-          <ul>
-            {space.anomalyCodes.map((code) => (
-              <li key={code}>{anomalyLabel(code, t)}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      <p className="server-admin-muted">
-        {t('serverAdmin.spaces.detail.privacy')}
-      </p>
-    </section>
-  );
 }
 
 const UUID_PATTERN =
@@ -159,21 +63,11 @@ export function ServerAdminSpacesPanel({
     queryFn: () => api.listServerAdminSpacesApiV1ServerAdminSpacesGet(request),
     retry: false,
   });
-  const detailQuery = useQuery({
-    queryKey: ['server-admin', 'space', selectedSpaceId],
-    queryFn: () =>
-      api.getServerAdminSpaceApiV1ServerAdminSpacesSpaceIdGet({
-        spaceId: selectedSpaceId as string,
-      }),
-    enabled: selectedSpaceId !== null,
-    retry: false,
-  });
-
   useEffect(() => {
-    if (selectedSpaceId !== null && detailQuery.data) {
-      detailHeadingRef.current?.focus();
+    if (initialSpaceId && UUID_PATTERN.test(initialSpaceId)) {
+      setSelectedSpaceId(initialSpaceId);
     }
-  }, [detailQuery.data, selectedSpaceId]);
+  }, [initialSpaceId]);
 
   const total = spacesQuery.data?.total ?? 0;
   const canPrevious = offset > 0;
@@ -316,43 +210,13 @@ export function ServerAdminSpacesPanel({
       </section>
 
       {selectedSpaceId !== null ? (
-        detailQuery.isPending ? (
-          <section
-            id="server-space-detail"
-            className="server-admin-panel server-admin-panel-wide"
-            aria-live="polite"
-          >
-            <p className="server-admin-muted">
-              {t('serverAdmin.spaces.detail.loading')}
-            </p>
-          </section>
-        ) : detailQuery.error ? (
-          <section
-            id="server-space-detail"
-            className="server-admin-panel server-admin-panel-wide"
-          >
-            <p className="status status-error" role="alert">
-              {t('serverAdmin.spaces.detail.error')}
-            </p>
-            <button type="button" onClick={() => setSelectedSpaceId(null)}>
-              {t('serverAdmin.spaces.detail.close')}
-            </button>
-          </section>
-        ) : detailQuery.data ? (
-          <>
-            <SpaceDetail
-              space={detailQuery.data}
-              headingRef={detailHeadingRef}
-            />
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => setSelectedSpaceId(null)}
-            >
-              {t('serverAdmin.spaces.detail.close')}
-            </button>
-          </>
-        ) : null
+        <ServerAdminSpaceFile
+          key={selectedSpaceId}
+          api={api}
+          spaceId={selectedSpaceId}
+          headingRef={detailHeadingRef}
+          onClose={() => setSelectedSpaceId(null)}
+        />
       ) : null}
     </>
   );

@@ -17,12 +17,17 @@ describe('ServerAdmin areas', () => {
 
   it('maps sections to their area', () => {
     expect(areaForSection('overview')).toBe('situation');
+    expect(areaForSection('search')).toBe('people');
     expect(areaForSection('accounts')).toBe('people');
     expect(areaForSection('spaces')).toBe('people');
     expect(areaForSection('reports')).toBe('help');
     expect(areaForSection('activity')).toBe('system');
     expect(areaForSection('settings')).toBe('system');
     expect(areaForSection('monitoring')).toBe('system');
+  });
+
+  it('opens People at the search', () => {
+    expect(AREA_SECTIONS.people[0]).toBe('search');
   });
 
   it('opens System at Monitoring', () => {

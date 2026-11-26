@@ -27,8 +27,10 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from eimir.attachments import quota_override
 from eimir.attachments.models import Attachment, AttachmentStatus
 from eimir.config import Deployment, Settings, get_settings
+from eimir.core import clock
 from eimir.core.errors import ErrorCode, PayloadTooLargeError
 from eimir.db.locks import lock_subject
 from eimir.entitlements import service as entitlements
@@ -114,6 +116,21 @@ def space_quota(
     settings = settings or get_settings()
     if settings.deployment is not Deployment.CLOUD:
         return None
+    tier = tier_quota(session, space_id, settings=settings)
+    # An individual quota set by a ServerAdmin (#2324) only ever raises the
+    # tier value: the higher one applies, so buying Premium is never undercut
+    # (Product Owner, 2026-11-26). An unmetered tier stays unmetered.
+    override = quota_override.active_override(session, space_id, clock.now())
+    if override is not None and tier is not None:
+        return max(tier, override.quota_bytes)
+    return tier
+
+
+def tier_quota(session: Session, space_id: UUID, *, settings: Settings | None = None) -> int | None:
+    """Return the Free or Premium quota of the Space, ignoring any override."""
+    settings = settings or get_settings()
+    if settings.deployment is not Deployment.CLOUD:
+        return None
     premium = entitlements.has_capability(
         session,
         space_id,
@@ -121,6 +138,20 @@ def space_quota(
         deployment=settings.deployment,
     )
     return settings.storage_quota_premium_bytes if premium else settings.storage_quota_free_bytes
+
+
+def usage_by_media_type(session: Session, space_id: UUID) -> dict[str, int]:
+    """Return the counted bytes of the Space per attachment media type."""
+    counted = func.coalesce(Attachment.size, Attachment.declared_size)
+    rows = session.execute(
+        select(Attachment.media_type, func.coalesce(func.sum(counted), 0))
+        .where(
+            Attachment.space_id == space_id,
+            Attachment.status.in_(COUNTED_STATUSES),
+        )
+        .group_by(Attachment.media_type)
+    ).all()
+    return {str(media_type): int(total) for media_type, total in rows}
 
 
 def spaces_near_quota(

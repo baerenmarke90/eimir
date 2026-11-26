@@ -102,6 +102,14 @@ export function useRedeemGiftCode(spaceId: string, api?: GiftCodeRedeemer) {
         throw await normalizeClientError(error);
       }
     },
+    onError: (error) => {
+      // A missing route means redemption was switched off here mid-session:
+      // renew the status so the entry is gone once the sheet closes.
+      if (error.kind === 'notFound')
+        void queryClient.invalidateQueries({
+          queryKey: instanceStatusQueryOptions(basePath).queryKey,
+        });
+    },
     onSuccess: () => {
       if (!accountId) return;
       void queryClient.invalidateQueries({

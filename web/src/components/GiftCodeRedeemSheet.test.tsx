@@ -6,6 +6,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import {
@@ -25,6 +26,7 @@ import { spaceEntitlementQueryKey } from '../client/spaceEntitlement';
 import { instanceStatusQueryOptions } from '../client/supportReportsAvailability';
 import { resolvedLocale } from '../i18n';
 import proPaywall from '../i18n/locales/proPaywall';
+import taskSheets from '../i18n/locales/taskSheets';
 import {
   GiftCodeRedeemEntry,
   GiftCodeRedeemSheet,
@@ -199,6 +201,31 @@ describe('GiftCodeRedeemEntry', () => {
     expect(screen.queryByRole('button', { name: copy.title })).toBeNull();
   });
 
+  it('keeps an open sheet with its code when the status turns unavailable', async () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const key = instanceStatusQueryOptions(API_BASE).queryKey;
+    client.setQueryData(key, { giftCodesAvailable: true });
+    render(providers(client, <GiftCodeRedeemEntry />));
+    fireEvent.click(screen.getByRole('button', { name: copy.title }));
+    fireEvent.change(codeField(), { target: { value: 'EIMIR-AB2C' } });
+
+    // A failed background refetch reads as unavailable.
+    act(() => {
+      client.setQueryData(key, { giftCodesAvailable: false });
+    });
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: copy.title })).toBeNull(),
+    );
+    expect(screen.getByRole('dialog', { name: copy.title })).toBeTruthy();
+    expect((codeField() as HTMLInputElement).value).toBe('EIMIR-AB2C');
+
+    fireEvent.click(screen.getByRole('button', { name: taskSheets.close }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.queryByRole('button', { name: copy.title })).toBeNull();
+  });
+
   it('also sits in the eimir. Pro block of the account settings', () => {
     renderEntry(true, <ProSettingsRow />);
     expect(screen.getByRole('button', { name: copy.title })).toBeTruthy();
@@ -223,10 +250,13 @@ describe('GiftCodeRedeemSheet', () => {
     expect(screen.queryByRole('radio')).toBeNull();
   });
 
-  it('upper-cases the input and sends it as typed', async () => {
+  it('keeps the typed value for the caret and sends it upper-cased', async () => {
     const { redeemGiftCode } = setup();
     fireEvent.change(codeField(), { target: { value: 'eimir-ab2c-d3ef ' } });
-    expect((codeField() as HTMLInputElement).value).toBe('EIMIR-AB2C-D3EF ');
+    // Capitals are shown by the field's CSS; the value stays as typed so
+    // editing in the middle never moves the caret to the end.
+    expect((codeField() as HTMLInputElement).value).toBe('eimir-ab2c-d3ef ');
+    expect(codeField().className).toContain('gift-code-redeem-field');
     await submit();
     expect(redeemGiftCode).toHaveBeenCalledWith({
       spaceId: 'space-1',
@@ -356,6 +386,21 @@ describe('GiftCodeRedeemSheet', () => {
     next = problem(409, 'GIFT_CODE_SUBSCRIPTION_ACTIVE');
     await submit();
     expect(codeField().getAttribute('aria-invalid')).toBeNull();
+  });
+
+  it('renews the instance status when the redeem route is gone', async () => {
+    const { invalidate } = setup(async () => {
+      throw problem(404, 'GIFT_CODES_NOT_FOUND');
+    });
+    fireEvent.change(codeField(), { target: { value: 'EIMIR-AB2C-D3EF' } });
+    await submit();
+    expect(document.activeElement).toBe(screen.getByText(copy.errors.network));
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: instanceStatusQueryOptions(API_BASE).queryKey,
+    });
+    expect(invalidate).not.toHaveBeenCalledWith({
+      queryKey: spaceEntitlementQueryKey('account-1', 'space-1'),
+    });
   });
 
   it('explains a lost connection and retries with the same code', async () => {

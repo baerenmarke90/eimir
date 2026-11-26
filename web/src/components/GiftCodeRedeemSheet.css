@@ -41,14 +41,16 @@ button.tertiary.gift-code-redeem-entry {
 
 /* One large field on the shared filled surface (styles.css): the code reads
    as one calm line with even figures and a little air between characters.
-   The typed value is upper-cased by the component; the placeholder shows the
-   grouping (EIMIR-XXXX-XXXX) in the same face. */
+   Capitals come from CSS, so editing mid-code keeps the caret; the component
+   upper-cases on submit. The placeholder shows the grouping (EIMIR-XXXX-XXXX)
+   in the same face. */
 .gift-code-redeem-field {
   box-sizing: border-box;
   min-height: var(--touch-target-comfortable);
   font: var(--font-section-heading);
   font-variant-numeric: tabular-nums;
   letter-spacing: var(--tracking-navigation-label);
+  text-transform: uppercase;
 }
 
 .gift-code-redeem-field[aria-invalid="true"] {

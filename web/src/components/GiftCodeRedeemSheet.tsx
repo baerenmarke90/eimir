@@ -28,6 +28,8 @@ export interface GiftCodeRedeemSheetProps {
   onClose: () => void;
   /** Replaces the generated client; for tests. */
   api?: GiftCodeRedeemer;
+  /** Whether the sheet is on screen, its exit included. */
+  onPresenceChange?: (present: boolean) => void;
 }
 
 /**
@@ -46,6 +48,7 @@ function GiftCodeRedeemSheetContent({
   open,
   onClose,
   api,
+  onPresenceChange,
   spaceId,
 }: GiftCodeRedeemSheetProps & { spaceId: string }) {
   const { t } = useTranslation();
@@ -93,7 +96,9 @@ function GiftCodeRedeemSheetContent({
   function submit(event?: FormEvent) {
     event?.preventDefault();
     if (pending || code.trim() === '') return;
-    redeem.mutate(code, {
+    // The field shows capitals through CSS so editing mid-code keeps the
+    // caret; the server normalizes the rest (spaces, dashes, prefix).
+    redeem.mutate(code.toUpperCase(), {
       onSuccess: (redemption) => {
         setProblem(null);
         setResult(redemption);
@@ -121,6 +126,7 @@ function GiftCodeRedeemSheetContent({
           : t('proPaywall.giftCode.title')
       }
       onClose={close}
+      onPresenceChange={onPresenceChange}
       initialFocusRef={result ? resultRef : fieldRef}
       className={`gift-code-redeem-sheet${result ? ' gift-code-redeem-sheet-redeemed' : ''}`}
       footer={
@@ -195,7 +201,7 @@ function GiftCodeRedeemSheetContent({
             aria-describedby={problem ? `${hintId} ${problemId}` : hintId}
             aria-invalid={(problem && FIELD_PROBLEMS.has(problem)) || undefined}
             onChange={(event) => {
-              setCode(event.target.value.toUpperCase());
+              setCode(event.target.value);
               setProblem(null);
             }}
           />
@@ -218,7 +224,10 @@ function GiftCodeRedeemSheetContent({
 /**
  * The quiet way into the redeem sheet: a tertiary text button with the gift
  * motif, never the filled primary action of its page. It renders only in the
- * browser on an instance that offers gift codes.
+ * browser on an instance that offers gift codes. An open sheet stays until it
+ * is closed, even when a later status read (a failed background refetch, or
+ * the feature switched off) withdraws the entry: the typed code or the
+ * confirmation never vanishes under the couple's hands.
  */
 export function GiftCodeRedeemEntry({
   className = '',
@@ -228,18 +237,25 @@ export function GiftCodeRedeemEntry({
   const { t } = useTranslation();
   const available = useGiftCodesAvailable();
   const [open, setOpen] = useState(false);
-  if (!available) return null;
+  const [present, setPresent] = useState(false);
+  if (!available && !open && !present) return null;
   return (
     <>
-      <button
-        type="button"
-        className={`tertiary gift-code-redeem-entry ${className}`.trim()}
-        onClick={() => setOpen(true)}
-      >
-        <EimirIcon name="geschenk" />
-        <span>{t('proPaywall.giftCode.title')}</span>
-      </button>
-      <GiftCodeRedeemSheet open={open} onClose={() => setOpen(false)} />
+      {available ? (
+        <button
+          type="button"
+          className={`tertiary gift-code-redeem-entry ${className}`.trim()}
+          onClick={() => setOpen(true)}
+        >
+          <EimirIcon name="geschenk" />
+          <span>{t('proPaywall.giftCode.title')}</span>
+        </button>
+      ) : null}
+      <GiftCodeRedeemSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        onPresenceChange={setPresent}
+      />
     </>
   );
 }

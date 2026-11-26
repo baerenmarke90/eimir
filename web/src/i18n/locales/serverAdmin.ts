@@ -244,7 +244,7 @@ const serverAdmin = {
     },
     codes: {
       title: 'eimir-Geschenkcodes',
-      body: 'schalten echtes Premium frei, ohne Zahlungsdaten',
+      body: 'schalten Pro frei, ohne Zahlungsdaten',
       duration: 'Laufzeit',
       count: 'Anzahl',
       countInvalid: 'Gib eine Anzahl von 1 bis 100 ein.',

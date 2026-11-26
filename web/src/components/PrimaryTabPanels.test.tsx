@@ -12,6 +12,7 @@ import {
 } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { setPrimaryTabPeek } from '../client/primaryTabPeek';
+import { usePrimaryTabPrepared } from '../client/primaryTabPrepared';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
 import * as stageModule from '../motion/stage';
@@ -25,12 +26,14 @@ let openTab: ReturnType<typeof usePrimaryNavigation>['navigatePrimary'];
 const mounts: string[] = [];
 const renders: string[] = [];
 const captures = new Map<string, () => string | null>();
+const prepareds = new Map<string, () => void>();
 
 function Page({ name }: { name: string }) {
   renders.push(name);
   const location = useLocation();
   const { captureOrigin } = useTaskOrigin();
   captures.set(name, () => captureOrigin());
+  prepareds.set(name, usePrimaryTabPrepared());
   useEffect(() => {
     mounts.push(name);
   }, [name]);
@@ -87,6 +90,7 @@ beforeEach(() => {
   mounts.length = 0;
   renders.length = 0;
   captures.clear();
+  prepareds.clear();
   vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
 });
 
@@ -468,6 +472,50 @@ it('prepares a panel once the app is quiet and keeps it out of sight until visit
   } finally {
     vi.useRealTimers();
   }
+});
+
+it('lets a prepared panel rest once its page has drawn, until it is visited', async () => {
+  vi.useFakeTimers();
+  try {
+    render(<Harness prewarm={['/plan']} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(8_000);
+    });
+    expect(panel('/plan')?.dataset.primaryTabPrewarm).toBe('true');
+    const rendersBefore = renders.length;
+
+    act(() => prepareds.get('plan')?.());
+    const rested = panel('/plan');
+    expect(rested?.dataset.primaryTabPrewarm).toBe('rested');
+    expect(rested?.hidden).toBe(false);
+    expect(rested?.getAttribute('aria-hidden')).toBe('true');
+    // Resting changes the panel only, never the page inside it.
+    expect(renders.length).toBe(rendersBefore);
+
+    act(() => navigate('/plan'));
+    expect(panel('/plan')?.dataset.primaryTabPrewarm).toBeUndefined();
+    expect(panel('/plan')?.hidden).toBe(false);
+    // Outside a preparation the signal changes nothing.
+    act(() => prepareds.get('today')?.());
+    expect(panel('/today')?.dataset.primaryTabPrewarm).toBeUndefined();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('skips the contents of a rested preparation like a parked tab', () => {
+  const css = readFileSync(join(__dirname, '..', 'shell.css'), 'utf8').replace(
+    /\s+/g,
+    ' ',
+  );
+  const rule = css.slice(
+    css.indexOf(
+      '.product-main > .primary-tab-panel[data-primary-tab-prewarm="rested"]',
+    ),
+  );
+  expect(rule.slice(0, rule.indexOf('}'))).toContain(
+    'content-visibility: hidden;',
+  );
 });
 
 it('builds the tabs beside the shown one after its opening, hidden until revealed', async () => {

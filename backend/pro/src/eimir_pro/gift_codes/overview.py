@@ -46,7 +46,7 @@ GiftOrigin = Literal["manual", "code"]
 
 @dataclass(frozen=True)
 class PlayStates:
-    """Spaces by the state of their latest Google Play grant."""
+    """Spaces by their deciding Google Play grant: a running one, else the newest event."""
 
     active: int
     cancelled_running: int
@@ -147,18 +147,32 @@ def _premium_counts(session: Session, at: datetime) -> tuple[int, int, int]:
 
 
 def _play_states(session: Session, at: datetime) -> PlayStates:
+    """Spaces by their deciding Google Play grant.
+
+    Billing keeps one grant per purchase token. After a plan switch or a
+    resubscription, the replaced token's late EXPIRED event can be newer than
+    the running token's last event, so an effective grant wins first and the
+    newest event only decides among equals.
+    """
     grant = EntitlementGrant
+    effective = func.coalesce(_effective_premium(at), False)
     latest = (
         select(
             grant.status,
             grant.effective_until,
             grant.source_event_at,
-            _effective_premium(at).label("effective"),
+            effective.label("effective"),
             _auto_renewing().label("auto_renewing"),
         )
         .where(grant.source_type == EntitlementSourceType.GOOGLE_PLAY.value)
         .distinct(grant.space_id)
-        .order_by(grant.space_id, grant.source_event_at.desc(), grant.created_at.desc())
+        .order_by(
+            grant.space_id,
+            effective.desc(),
+            grant.source_event_at.desc(),
+            grant.created_at.desc(),
+            grant.id.desc(),
+        )
         .subquery()
     )
     running = and_(latest.c.status.in_(_RUNNING_PLAY_STATUSES), latest.c.effective)
@@ -235,6 +249,7 @@ def _latest_gift_per_space(at: datetime) -> Subquery:
             grant.space_id,
             grant.effective_until.desc().nulls_first(),
             grant.created_at.desc(),
+            grant.id.desc(),
         )
         .subquery()
     )

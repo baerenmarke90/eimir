@@ -334,3 +334,40 @@ def test_running_gifts_are_one_row_per_space_by_end_with_unlimited_last(
     capped = overview(session, at)
     assert len(capped.running_gifts) == 1
     assert capped.running_gifts_total >= 3
+
+
+def test_a_running_subscription_wins_over_a_newer_ended_one_of_the_same_space(
+    session: Session,
+) -> None:
+    """A replaced token's late EXPIRED event must not hide the running subscription."""
+    at = clock.now()
+    before = overview(session, at)
+    replaced = _space(session)
+    _play(
+        session,
+        replaced,
+        status=EntitlementStatus.ACTIVE,
+        auto_renewing=True,
+        started_at=at - timedelta(days=10),
+        event_at=at - timedelta(days=10),
+        effective_until=at + timedelta(days=20),
+    )
+    _play(
+        session,
+        replaced,
+        status=EntitlementStatus.EXPIRED,
+        auto_renewing=False,
+        started_at=at - timedelta(days=40),
+        event_at=at - timedelta(days=1),
+        effective_until=at - timedelta(days=10),
+    )
+
+    delta = _delta(overview(session, at), before)
+
+    assert delta["play"] == {
+        "active": 1,
+        "cancelled_running": 0,
+        "payment_problem": 0,
+        "ended_30d": 0,
+    }
+    assert delta["premium_by_play"] == 1

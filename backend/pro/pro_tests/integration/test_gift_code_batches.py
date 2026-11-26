@@ -163,8 +163,13 @@ def test_handed_out_toggles_and_revoking_a_code_ends_it(session: Session) -> Non
     service.set_handed_out(session, code.id, False)
     assert service.code_state(code, batch, at) == "open"
 
-    service.revoke_code(session, code.id, batch.created_by)  # type: ignore[arg-type]
+    revoker = make_account(session, "Revoking operator")
+    service.revoke_code(session, code.id, revoker.id)
     assert service.code_state(code, batch, at) == "revoked"
+    assert code.revoked_by == revoker.id
+    first_revoked_at = code.revoked_at
+    service.revoke_code(session, code.id, batch.created_by)  # type: ignore[arg-type]
+    assert (code.revoked_at, code.revoked_by) == (first_revoked_at, revoker.id)
     with pytest.raises(ValidationError) as raised:
         service.set_handed_out(session, code.id, True)
     assert raised.value.code == "GIFT_CODE_NOT_OPEN"
@@ -198,6 +203,8 @@ def test_revoking_a_batch_keeps_redeemed_codes_and_their_grants(session: Session
     assert service.code_state(handed_out, batch, at) == "revoked"
     assert service.code_state(untouched, batch, at) == "revoked"
     assert redeemed.revoked_at is None
+    assert redeemed.revoked_by is None
+    assert (handed_out.revoked_by, untouched.revoked_by) == (actor.id, actor.id)
     session.refresh(grant)
     assert grant.status == EntitlementStatus.ACTIVE.value
 

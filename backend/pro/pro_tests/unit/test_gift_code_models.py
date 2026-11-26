@@ -79,6 +79,7 @@ def test_the_code_columns_and_references() -> None:
         "handed_out_at",
         "redeemed_at",
         "revoked_at",
+        "revoked_by",
         "redeemed_space_id",
         "redeemed_grant_id",
     }
@@ -86,11 +87,13 @@ def test_the_code_columns_and_references() -> None:
         "handed_out_at",
         "redeemed_at",
         "revoked_at",
+        "revoked_by",
         "redeemed_space_id",
         "redeemed_grant_id",
     }
     assert _foreign_keys(CODES) == {
         "batch_id": ("gift_code_batches.id", "CASCADE"),
+        "revoked_by": ("accounts.id", "SET NULL"),
         "redeemed_space_id": ("spaces.id", "SET NULL"),
         "redeemed_grant_id": ("entitlement_grants.id", "SET NULL"),
     }
@@ -128,4 +131,6 @@ def test_the_manifest_knows_both_tables_as_operator_data() -> None:
         assert row.space_column is None
         assert row.purge_on == ()
     assert rows["gift_codes"].protected_payload_context == "GiftCodePayload"
+    assert rows["gift_code_batches"].account_columns == ("created_by", "revoked_by")
+    assert rows["gift_codes"].account_columns == ("revoked_by",)
     assert rows["gift_code_batches"].protected_payload_context is None

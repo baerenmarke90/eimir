@@ -305,7 +305,7 @@ PLUGIN_TABLES: tuple[PluginTable, ...] = (
         "gift_codes",
         _GIFT_CODES,
         None,
-        (),
+        ("revoked_by",),
         protected_payload_context="GiftCodePayload",
         chain=True,
     ),

@@ -63,6 +63,7 @@ def upgrade() -> None:
         sa.Column("handed_out_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("redeemed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("revoked_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("revoked_by", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("redeemed_space_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("redeemed_grant_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_gift_codes")),
@@ -71,6 +72,12 @@ def upgrade() -> None:
             ["gift_code_batches.id"],
             ondelete="CASCADE",
             name=op.f("fk_gift_codes_batch_id_gift_code_batches"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["revoked_by"],
+            ["accounts.id"],
+            ondelete="SET NULL",
+            name=op.f("fk_gift_codes_revoked_by_accounts"),
         ),
         sa.ForeignKeyConstraint(
             ["redeemed_space_id"],

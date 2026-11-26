@@ -96,6 +96,11 @@ def test_the_revision_creates_both_tables_with_their_constraints() -> None:
     assert "REFERENCES spaces (id) ON DELETE SET NULL" in sql
     assert "REFERENCES entitlement_grants (id) ON DELETE SET NULL" in sql
     assert "uq_gift_codes_lookup_hash" in sql
+    assert re.search(
+        r"CONSTRAINT fk_gift_codes_revoked_by_accounts FOREIGN KEY\(revoked_by\) "
+        r"REFERENCES accounts \(id\) ON DELETE SET NULL",
+        sql,
+    )
     assert "ck_gift_code_batches_duration_months_allowed" in sql
     assert "ck_gift_codes_not_redeemed_and_revoked" in sql
     assert f"CREATE TABLE {VERSION_TABLE}" in sql

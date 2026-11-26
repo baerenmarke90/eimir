@@ -255,12 +255,7 @@ def set_handed_out(session: Session, code_id: UUID, handed_out: bool) -> GiftCod
 
 
 def revoke_code(session: Session, code_id: UUID, actor_id: UUID) -> GiftCode:
-    """Revoke one unredeemed code; revoking twice keeps the first timestamp.
-
-    The code row has no actor column (design section 5.3); ``actor_id`` is part
-    of the operator contract so a later audit column needs no signature change.
-    """
-    del actor_id
+    """Revoke one unredeemed code; revoking twice keeps the first actor and timestamp."""
     code = _get_code(session, code_id)
     if code.redeemed_at is not None:
         raise ValidationError(
@@ -268,6 +263,7 @@ def revoke_code(session: Session, code_id: UUID, actor_id: UUID) -> GiftCode:
         )
     if code.revoked_at is None:
         code.revoked_at = clock.now()
+        code.revoked_by = actor_id
         session.flush()
     return code
 
@@ -291,6 +287,7 @@ def revoke_batch(session: Session, batch_id: UUID, actor_id: UUID) -> GiftCodeBa
         .with_for_update()
     ):
         code.revoked_at = at
+        code.revoked_by = actor_id
     session.flush()
     return batch
 

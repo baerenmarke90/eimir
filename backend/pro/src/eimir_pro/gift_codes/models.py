@@ -91,6 +91,9 @@ class GiftCode(IdMixin, Base):
     handed_out_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     redeemed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_by: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True), ForeignKey("accounts.id", ondelete="SET NULL")
+    )
     redeemed_space_id: Mapped[UUID | None] = mapped_column(
         postgresql.UUID(as_uuid=True),
         ForeignKey("spaces.id", ondelete="SET NULL"),

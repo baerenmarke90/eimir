@@ -31,28 +31,37 @@ it('installs the three static shortcuts on every selectable launcher alias', () 
       ),
     ).toBe(true);
   }
-  const items = [
-    ...xml('android/app/src/main/res/xml/app_shortcuts.xml').querySelectorAll(
-      'shortcut',
-    ),
-  ];
-  expect(items.map((item) => attr(item, 'shortcutId'))).toEqual([
-    'moment',
-    'wish',
-    'plan',
-  ]);
-  for (const item of items) {
-    const intent = item.querySelector('intent')!;
-    expect(attr(intent, 'targetPackage')).toBe(
-      '@string/shortcut_target_package',
-    );
-    expect(attr(intent, 'targetClass')).toBe(
-      'de.eimir.app.AppShortcutActivity',
-    );
-    expect(attr(intent.querySelector('extra')!, 'value')).toBe(
-      attr(item, 'shortcutId'),
-    );
+  for (const [source, packageName] of [
+    ['main', 'de.eimir.app'],
+    ['debug', 'de.eimir.app.debug'],
+  ]) {
+    const items = [
+      ...xml(
+        `android/app/src/${source}/res/xml/app_shortcuts.xml`,
+      ).querySelectorAll('shortcut'),
+    ];
+    expect(items.map((item) => attr(item, 'shortcutId'))).toEqual([
+      'moment',
+      'wish',
+      'plan',
+    ]);
+    for (const item of items) {
+      const intent = item.querySelector('intent')!;
+      expect(attr(intent, 'targetPackage')).toBe(packageName);
+      expect(attr(intent, 'targetClass')).toBe(
+        'de.eimir.app.AppShortcutActivity',
+      );
+      expect(attr(intent.querySelector('extra')!, 'value')).toBe(
+        attr(item, 'shortcutId'),
+      );
+    }
   }
+  expect(
+    read('android/app/src/debug/res/xml/app_shortcuts.xml').replaceAll(
+      'de.eimir.app.debug',
+      'de.eimir.app',
+    ),
+  ).toBe(read('android/app/src/main/res/xml/app_shortcuts.xml'));
 });
 it('ships matching German and English menu titles on both platforms', () => {
   const plist = xml('ios/App/App/Info.plist');

@@ -5,7 +5,7 @@
         android:shortcutShortLabel="@string/shortcut_moment"
         android:shortcutLongLabel="@string/shortcut_moment">
         <intent android:action="de.eimir.app.APP_SHORTCUT"
-            android:targetPackage="@string/shortcut_target_package"
+            android:targetPackage="de.eimir.app"
             android:targetClass="de.eimir.app.AppShortcutActivity">
             <extra android:name="shortcutAction" android:value="moment" />
         </intent>
@@ -15,7 +15,7 @@
         android:shortcutShortLabel="@string/shortcut_wish"
         android:shortcutLongLabel="@string/shortcut_wish">
         <intent android:action="de.eimir.app.APP_SHORTCUT"
-            android:targetPackage="@string/shortcut_target_package"
+            android:targetPackage="de.eimir.app"
             android:targetClass="de.eimir.app.AppShortcutActivity">
             <extra android:name="shortcutAction" android:value="wish" />
         </intent>
@@ -25,7 +25,7 @@
         android:shortcutShortLabel="@string/shortcut_plan"
         android:shortcutLongLabel="@string/shortcut_plan">
         <intent android:action="de.eimir.app.APP_SHORTCUT"
-            android:targetPackage="@string/shortcut_target_package"
+            android:targetPackage="de.eimir.app"
             android:targetClass="de.eimir.app.AppShortcutActivity">
             <extra android:name="shortcutAction" android:value="plan" />
         </intent>

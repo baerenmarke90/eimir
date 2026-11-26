@@ -30,6 +30,8 @@ The pending request is not promised across process death.
 Android registers the same static resource on all eleven launcher aliases and
 targets an affinity-free, invisible AppShortcutActivity with the variant's actual
 package ID. Android adds CLEAR_TASK to static-shortcut intents; the disposable
+entry uses literal package names in main/debug resource overlays, because the
+OS shortcut parser does not resolve targetPackage string references. The
 entry forwards only the closed action to the permanent singleTask LauncherActivity
 with a fresh intent and no CLEAR_TASK. This prevents a warm shortcut from destroying
 the existing WebView/draft. The instrumented regression launches the actual entry

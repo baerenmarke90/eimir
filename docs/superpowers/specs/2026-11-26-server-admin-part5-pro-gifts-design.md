@@ -172,7 +172,7 @@ platform (`isCapacitorNative`), not by viewport.
 
 The couple's entitlement view carries no source or auto-renewal state, so the web entry is shown
 whenever redemption is available, also with a running subscription; the server answers
-`GIFT_CODE_SUBSCRIPTION_ACTIVE` and the sheet says "Gib den Code gern weiter". *(Agent's call:
+`GIFT_CODE_SUBSCRIPTION_ACTIVE` and the sheet suggests passing the code on (copy key `proPaywall.giftCode.errors.subscriptionActive`, #2328). *(Agent's call:
 no Core field for a rare case.)*
 
 **Situation queue fix (small Core change, agent's call):** the "gift ends soon" query looks at
@@ -226,12 +226,11 @@ uses the existing snackbar. Reduced motion: no transitions beyond the shared she
   and on Self-Hosted (section 5.5 covers a running subscription).
 - It opens the shared task sheet: one large code field (auto-uppercase, monospace grouping),
   primary "Einlösen", short hint where codes come from. No price, no plan picker.
-- Success: the sheet turns into a warm confirmation ("Pro ist freigeschaltet bis 30. April
-  2027" or "verlängert bis …"), the session entitlement is refreshed and closing returns to the
+- Success: the sheet turns into a warm confirmation (Pro unlocked until a date, or extended until a date; copy in #2328), the session entitlement is refreshed and closing returns to the
   Pro page in its active state. Motion: the shared success feedback, no confetti; reduced motion
   shows the state change only.
 - Errors stay in the sheet next to the field, polite and specific (unknown/expired, already
-  used, active subscription with "Gib den Code gern weiter", unlimited Pro, too many attempts
+  used, active subscription with the suggestion to pass the code on, unlimited Pro, too many attempts
   with when to try again, offline/network with retry). The typed code is kept on error.
 - The Mobile Interaction Contract and the German copy go into the sub-issue for approval before
   UI work.

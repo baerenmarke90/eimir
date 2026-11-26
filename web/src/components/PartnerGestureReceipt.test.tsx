@@ -20,7 +20,10 @@ import type { NotificationItem } from '../api/generated/models/NotificationItem'
 import { NotificationKind } from '../api/generated/models/NotificationKind';
 import { SupportGestureKind } from '../api/generated/models/SupportGestureKind';
 import { dashboardQueryKey } from '../client/dashboardQueries';
-import { reportNotificationWake } from '../client/foregroundNotifications';
+import {
+  reportNotificationOpened,
+  reportNotificationWake,
+} from '../client/foregroundNotifications';
 import {
   isPartnerGestureKind,
   isPartnerNoticeKind,
@@ -733,6 +736,55 @@ describe('ForegroundNotificationHost', () => {
     expect((await screen.findByText(titleFor('thinking'))).isConnected).toBe(
       true,
     );
+  });
+
+  it('hides the receipt of a notification that a push just opened', async () => {
+    notifications.getNotifications.mockResolvedValue(
+      page(gesture('opened', NotificationKind.THINKING_OF_YOU)),
+    );
+    const { rerender } = setup();
+    rerender(1);
+    await screen.findByText(titleFor('thinking'));
+    await act(async () => undefined); // let the host's effects settle
+    // Another scope or another notification leaves it untouched.
+    act(() =>
+      reportNotificationOpened({
+        scope: receiptScope('someone-else', SPACE),
+        notificationId: 'opened',
+      }),
+    );
+    act(() =>
+      reportNotificationOpened({
+        scope: receiptScope(ACCOUNT, SPACE),
+        notificationId: 'other',
+      }),
+    );
+    expect(receipt().length).toBeGreaterThan(0);
+    act(() =>
+      reportNotificationOpened({
+        scope: receiptScope(ACCOUNT, SPACE),
+        notificationId: 'opened',
+      }),
+    );
+    expect(receipt()[0]?.getAttribute('data-presence')).toBe('exiting');
+    finishExit();
+    expect(receipt()).toHaveLength(0);
+  });
+
+  it('does not present a notification a push opened before the read finished', async () => {
+    notifications.getNotifications.mockResolvedValue(
+      page(gesture('opened', NotificationKind.THINKING_OF_YOU)),
+    );
+    const { rerender } = setup();
+    act(() =>
+      reportNotificationOpened({
+        scope: receiptScope(ACCOUNT, SPACE),
+        notificationId: 'opened',
+      }),
+    );
+    rerender(1);
+    await act(async () => undefined);
+    expect(receipt()).toHaveLength(0);
   });
 
   it('shows the anonymous copy when no actor is available', async () => {

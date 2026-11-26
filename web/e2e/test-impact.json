@@ -1516,6 +1516,16 @@
         "web/src/api/generated/apis/ServerAdminSupportReportsApi.ts",
         "web/src/i18n/locales/serverAdmin.ts"
       ]
+    },
+    "app-shortcuts.spec.ts": {
+      "roots": [
+        "web/src/client/appShortcuts.ts",
+        "web/src/client/useAppShortcuts.ts",
+        "web/src/App.tsx",
+        "web/src/client/useDocumentLeaveGuard.ts",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/PlanningCreatePage.tsx"
+      ]
     }
   }
 }

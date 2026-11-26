@@ -1,6 +1,33 @@
 import { useId } from 'react';
-import { useTranslation } from '../i18n';
+import type { MemoryWorldId } from '../api/generated/models/MemoryWorldId';
+import { resolvedLocale, useTranslation } from '../i18n';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
+
+/**
+ * The ten Pro memory worlds in the order of the world choice. Story and Stapel
+ * (`story`, `stack`) are Free. The catalogue names them through the existing
+ * `memoryWorldSettings.worlds.*.name` keys instead of retyping them.
+ */
+export const PRO_MEMORY_WORLD_IDS = [
+  'cloud',
+  'mochi',
+  'booth',
+  'album',
+  'stars',
+  'post',
+  'crate',
+  'scratch',
+  'jar',
+  'fridge',
+] as const satisfies readonly MemoryWorldId[];
+
+/** Capabilities the catalogue marks as new (Pro showcase, #2310). */
+const NEW_FEATURES: ReadonlySet<string> = new Set([
+  'recaps',
+  'games',
+  'memoryWorlds',
+  'storage',
+]);
 
 const FEATURE_GROUPS = [
   {
@@ -26,7 +53,7 @@ const FEATURE_GROUPS = [
   {
     id: 'integrations',
     icon: 'photo-library',
-    features: ['photoSources', 'calendarSync'],
+    features: ['storage', 'photoSources', 'calendarSync'],
   },
 ] as const satisfies readonly {
   id: string;
@@ -37,6 +64,11 @@ const FEATURE_GROUPS = [
 export function ProFeatureCatalogue() {
   const { t } = useTranslation();
   const titleId = useId();
+  const worlds = new Intl.ListFormat(resolvedLocale(), {
+    type: 'conjunction',
+  }).format(
+    PRO_MEMORY_WORLD_IDS.map((id) => t(`memoryWorldSettings.worlds.${id}.name`)),
+  );
 
   return (
     <section className="pro-feature-catalogue" aria-labelledby={titleId}>
@@ -51,8 +83,21 @@ export function ProFeatureCatalogue() {
           <dl>
             {features.map((feature) => (
               <div key={feature}>
-                <dt>{t(`proPaywall.catalogue.features.${feature}.title`)}</dt>
-                <dd>{t(`proPaywall.catalogue.features.${feature}.body`)}</dd>
+                <dt>
+                  <span>
+                    {t(`proPaywall.catalogue.features.${feature}.title`)}
+                  </span>
+                  {NEW_FEATURES.has(feature) ? (
+                    <span className="pro-feature-new">
+                      {t('proPaywall.catalogue.new')}
+                    </span>
+                  ) : null}
+                </dt>
+                <dd>
+                  {t(`proPaywall.catalogue.features.${feature}.body`, {
+                    worlds,
+                  })}
+                </dd>
               </div>
             ))}
           </dl>

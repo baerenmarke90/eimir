@@ -11,7 +11,10 @@ import {
   unlocksFeature,
   yearlySavingPercent,
 } from '../client/proBilling';
+import { MemoryWorldId } from '../api/generated/models/MemoryWorldId';
+import memoryWorldSettings from '../i18n/locales/memoryWorldSettings';
 import proPaywall from '../i18n/locales/proPaywall';
+import { PRO_MEMORY_WORLD_IDS } from './ProFeatureCatalogue';
 import { ProPaywallPage } from './ProPaywallPage';
 
 const session = vi.hoisted(() => ({
@@ -135,11 +138,54 @@ describe('ProPaywallPage', () => {
       proPaywall.catalogue.features,
     )) {
       expect(catalogue.textContent).toContain(title);
-      expect(catalogue.textContent).toContain(body);
+      // Interpolated bodies are checked up to their first placeholder.
+      expect(catalogue.textContent).toContain(body.split('{{')[0]);
     }
     expect(
       screen.queryByRole('list', { name: proPaywall.benefitsLabel }),
     ).toBeNull();
+  });
+
+  it('lists the ten Pro memory worlds by their settings names', () => {
+    const free: readonly string[] = ['story', 'stack'];
+    expect([...PRO_MEMORY_WORLD_IDS].sort()).toEqual(
+      Object.values(MemoryWorldId)
+        .filter((id) => !free.includes(id))
+        .sort(),
+    );
+    renderPaywall('/more/pro');
+    const catalogue = screen.getByRole('region', {
+      name: proPaywall.catalogue.title,
+    });
+    for (const id of PRO_MEMORY_WORLD_IDS)
+      expect(catalogue.textContent).toContain(
+        memoryWorldSettings.worlds[id].name,
+      );
+    expect(catalogue.textContent).not.toContain('{{');
+  });
+
+  it('offers the Cloud storage allowance in the catalogue', () => {
+    renderPaywall('/more/pro');
+    const storage = proPaywall.catalogue.features.storage;
+    expect(storage.title).toContain('50 GB');
+    expect(storage.title).toContain('eimir. Cloud');
+    expect(screen.getByText(storage.title)).toBeTruthy();
+    expect(screen.getByText(storage.body)).toBeTruthy();
+  });
+
+  it('marks the newest Pro capabilities as new', () => {
+    renderPaywall('/more/pro');
+    const marked = screen
+      .getAllByText(proPaywall.catalogue.new)
+      .map((mark) => mark.closest('dt')?.firstChild?.textContent);
+    expect(marked.sort()).toEqual(
+      [
+        proPaywall.catalogue.features.games.title,
+        proPaywall.catalogue.features.memoryWorlds.title,
+        proPaywall.catalogue.features.recaps.title,
+        proPaywall.catalogue.features.storage.title,
+      ].sort(),
+    );
   });
 
   it('preselects the yearly plan and lets the monthly plan be chosen', () => {

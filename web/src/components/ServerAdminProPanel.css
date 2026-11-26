@@ -122,6 +122,14 @@
   color: var(--color-private);
 }
 
+/* EimirIcon has no intrinsic size: every icon of this area sets its own, or
+   it would grow to fill its row and squeeze the labels next to it. */
+.server-admin-pro-card-icon .eimir-icon {
+  flex: none;
+  inline-size: var(--icon-size-standard);
+  block-size: var(--icon-size-standard);
+}
+
 .server-admin-pro-form {
   display: grid;
   gap: var(--space-3);
@@ -185,6 +193,8 @@ a.server-admin-pro-row {
 
 .server-admin-pro-row .eimir-icon {
   flex: none;
+  inline-size: var(--icon-size-standard);
+  block-size: var(--icon-size-standard);
   color: var(--color-text-secondary);
 }
 
@@ -271,6 +281,12 @@ button.server-admin-pro-toggle {
   gap: var(--space-1);
   background: var(--color-surface);
   color: var(--color-text-secondary);
+}
+
+button.server-admin-pro-toggle .eimir-icon {
+  flex: none;
+  inline-size: var(--icon-size-standard);
+  block-size: var(--icon-size-standard);
 }
 
 button.server-admin-pro-toggle[aria-pressed="true"] {

@@ -114,6 +114,14 @@
   overflow-wrap: anywhere;
 }
 
+/* The side list's icons keep the icon size (EimirIcon has none of its own),
+   so labels such as the Pro area's never wrap letter by letter. */
+.server-admin-area-link .eimir-icon {
+  flex: none;
+  inline-size: var(--icon-size-standard);
+  block-size: var(--icon-size-standard);
+}
+
 .server-admin-area-count {
   min-width: 1.5rem;
   height: 1.5rem;

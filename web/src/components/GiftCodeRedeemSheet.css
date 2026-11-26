@@ -17,7 +17,7 @@ button.tertiary.gift-code-redeem-entry {
 }
 
 .gift-code-redeem-entry .eimir-icon {
-  flex-shrink: 0;
+  flex: none;
   inline-size: var(--space-5);
   block-size: var(--space-5);
 }
@@ -126,6 +126,7 @@ button.tertiary.gift-code-redeem-entry {
 }
 
 .gift-code-redeem-mark .eimir-icon {
+  flex: none;
   inline-size: var(--space-6);
   block-size: var(--space-6);
 }

@@ -82,6 +82,8 @@
         "web/src/components/memoryWorlds/WorldArt.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/MemoryWorldSwitch.tsx",
+        "web/src/components/memoryWorlds/WorldHead.tsx",
+        "web/src/components/DiscoverStory.tsx",
         "web/src/components/memoryWorlds/MemoryWorldView.tsx",
         "web/src/components/memoryWorlds/MomentCloudWorld.tsx",
         "web/src/components/memoryWorlds/PhotoBoothWorld.tsx",
@@ -1516,7 +1518,6 @@
         "web/src/components/ServerAdminSupportReportsPanel.tsx",
         "web/src/components/ServerAdminSupportReportsPanel.css",
         "web/src/components/ServerAdminSupportReportDetail.tsx",
-        "web/src/components/ServerAdminRecentAuthModal.tsx",
         "web/src/components/TaskBackButton.tsx",
         "web/src/components/UiState.tsx",
         "web/src/components/useModalLifecycle.ts",
@@ -1525,6 +1526,16 @@
         "web/src/client/recentAuthentication.ts",
         "web/src/api/generated/apis/ServerAdminSupportReportsApi.ts",
         "web/src/i18n/locales/serverAdmin.ts"
+      ]
+    },
+    "app-shortcuts.spec.ts": {
+      "roots": [
+        "web/src/client/appShortcuts.ts",
+        "web/src/client/useAppShortcuts.ts",
+        "web/src/App.tsx",
+        "web/src/client/useDocumentLeaveGuard.ts",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/PlanningCreatePage.tsx"
       ]
     }
   }

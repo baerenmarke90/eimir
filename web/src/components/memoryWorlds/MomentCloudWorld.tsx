@@ -61,6 +61,7 @@ import {
 import '../../motion/memory-worlds.css';
 import './MemoryWorld.css';
 import './MomentCloudWorld.css';
+import { WorldHead } from './WorldHead';
 
 type Entry = MemoryWorldEntry;
 
@@ -2346,9 +2347,7 @@ function MomentCloud({
 
   return (
     <div ref={rootRef} className="memory-cloud-world">
-      <div className="memory-world-head">
-        <h2>{t('memoryWorlds.cloud.heading')}</h2>
-      </div>
+      <WorldHead heading={t('memoryWorlds.cloud.heading')} />
 
       {/* biome-ignore lint/a11y/useSemanticElements: the cloud is one focusable widget (arrow keys wander, Enter opens), not a form fieldset. */}
       <div

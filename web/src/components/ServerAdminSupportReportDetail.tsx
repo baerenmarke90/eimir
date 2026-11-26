@@ -13,7 +13,6 @@ import type { SupportReportDetailView } from '../api/generated/models/SupportRep
 import type { SupportReportState } from '../api/generated/models/SupportReportState';
 import type { SupportReportTicketSummary } from '../api/generated/models/SupportReportTicketSummary';
 import { ClientProblemError } from '../client/problemDetails';
-import { isRecentAuthRequired } from '../client/recentAuthentication';
 import { useDocumentLeaveGuard } from '../client/useDocumentLeaveGuard';
 import {
   characterCount,
@@ -41,17 +40,8 @@ import {
   useClientOnline,
 } from '../client/supportReportsAdmin';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { ServerAdminRecentAuthModal } from './ServerAdminRecentAuthModal';
 import { TaskBackButton } from './TaskBackButton';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
-
-type PrivilegedWrite =
-  | { kind: 'state'; state: SupportReportState }
-  | { kind: 'reply'; text: string }
-  | { kind: 'ticket'; draft: SupportReportTicketDraft }
-  | { kind: 'clear' }
-  | { kind: 'archive'; archived: boolean }
-  | { kind: 'delete' };
 
 type FeedbackSection = 'state' | 'reply' | 'ticket' | 'manage';
 
@@ -152,17 +142,17 @@ function TicketDialog({
   const bodyErrorId = `${baseId}-body-error`;
 
   return (
-    <div className="server-admin-recent-auth-backdrop">
+    <div className="server-admin-report-sheet-backdrop">
       <section
         ref={dialogRef}
-        className="form-card server-admin-recent-auth-dialog"
+        className="form-card server-admin-report-sheet"
         role="dialog"
         aria-modal="true"
         aria-labelledby={`${baseId}-title`}
         aria-describedby={`${baseId}-intro`}
         onKeyDown={handleKeyDown}
       >
-        <header className="server-admin-recent-auth-head">
+        <header className="server-admin-report-sheet-head">
           <div>
             <p className="eyebrow">
               {t('serverAdmin.reports.ticketDialog.eyebrow')}
@@ -290,17 +280,17 @@ function DeleteDialog({
   }
 
   return (
-    <div className="server-admin-recent-auth-backdrop">
+    <div className="server-admin-report-sheet-backdrop">
       <section
         ref={dialogRef}
-        className="form-card server-admin-recent-auth-dialog"
+        className="form-card server-admin-report-sheet"
         role="dialog"
         aria-modal="true"
         aria-labelledby={`${baseId}-title`}
         aria-describedby={`${baseId}-intro`}
         onKeyDown={handleKeyDown}
       >
-        <header className="server-admin-recent-auth-head">
+        <header className="server-admin-report-sheet-head">
           <div>
             <p className="eyebrow">
               {t('serverAdmin.reports.deleteDialog.eyebrow')}
@@ -463,15 +453,11 @@ function isReportGone(error: unknown): boolean {
 export function ServerAdminSupportReportDetail({
   api,
   reportId,
-  apiBaseUrl,
-  accessToken,
   onClose,
   onDraftChange,
 }: {
   api: ServerAdminSupportReportsApi;
   reportId: string;
-  apiBaseUrl: string;
-  accessToken: string;
   /** `gone`: the report no longer exists; `deleted`: the operator deleted it. */
   onClose: (reason?: 'gone' | 'deleted') => void;
   /** Whether an unsent reply or ticket text would be lost on leaving. */
@@ -488,9 +474,6 @@ export function ServerAdminSupportReportDetail({
   const [ticketDialogError, setTicketDialogError] = useState<string | null>(
     null,
   );
-  const [pendingWrite, setPendingWrite] = useState<PrivilegedWrite | null>(
-    null,
-  );
   const [ticketDraft, setTicketDraft] =
     useState<SupportReportTicketDraft | null>(null);
   const [trackerFailed, setTrackerFailed] = useState(false);
@@ -503,7 +486,6 @@ export function ServerAdminSupportReportDetail({
   const ticketLinkRef = useRef<HTMLAnchorElement>(null);
   const ticketHeadingRef = useRef<HTMLHeadingElement>(null);
   const dialogHeadingRef = useRef<HTMLHeadingElement>(null);
-  const stepUpShownRef = useRef(false);
   const queryKey = supportReportQueryKey(reportId);
   // The prefilled ticket title alone is no draft; typed body text is.
   const replyDirty = replyText.trim() !== '';
@@ -543,22 +525,6 @@ export function ServerAdminSupportReportDetail({
     });
   }, [ticketFocusRequest]);
 
-  // When step-up closes over the ticket dialog, its submit button is still
-  // disabled; focus returns to the dialog heading instead.
-  useEffect(() => {
-    if (pendingWrite) {
-      stepUpShownRef.current = true;
-      return;
-    }
-    if (!stepUpShownRef.current) return;
-    stepUpShownRef.current = false;
-    if (ticketDialogOpen) {
-      dialogHeadingRef.current?.focus({ preventScroll: true });
-    } else if (deleteDialogOpen) {
-      deleteHeadingRef.current?.focus({ preventScroll: true });
-    }
-  }, [pendingWrite, ticketDialogOpen, deleteDialogOpen]);
-
   function changed(next?: SupportReportDetailView) {
     if (next) queryClient.setQueryData(queryKey, next);
     void queryClient.invalidateQueries({ queryKey: SUPPORT_REPORTS_QUERY_KEY });
@@ -583,15 +549,7 @@ export function ServerAdminSupportReportDetail({
     onClose('gone');
   }
 
-  function failed(
-    error: unknown,
-    write: PrivilegedWrite,
-    section: FeedbackSection,
-  ): void {
-    if (isRecentAuthRequired(error)) {
-      setPendingWrite(write);
-      return;
-    }
+  function failed(error: unknown, section: FeedbackSection): void {
     if (isReportGone(error)) {
       reportGone();
       return;
@@ -618,8 +576,8 @@ export function ServerAdminSupportReportDetail({
         }),
       });
     },
-    onError: (error, state) => {
-      failed(error, { kind: 'state', state }, 'state');
+    onError: (error) => {
+      failed(error, 'state');
     },
   });
 
@@ -636,8 +594,8 @@ export function ServerAdminSupportReportDetail({
         message: t('serverAdmin.reports.reply.sent'),
       });
     },
-    onError: (error, text) => {
-      failed(error, { kind: 'reply', text }, 'reply');
+    onError: (error) => {
+      failed(error, 'reply');
       if (
         error instanceof ClientProblemError &&
         error.code === 'SUPPORT_REPORT_ALREADY_REPLIED'
@@ -670,11 +628,7 @@ export function ServerAdminSupportReportDetail({
         message: t('serverAdmin.reports.ticket.createdNotice'),
       });
     },
-    onError: (error, draft) => {
-      if (isRecentAuthRequired(error)) {
-        setPendingWrite({ kind: 'ticket', draft });
-        return;
-      }
+    onError: (error) => {
       if (isReportGone(error)) {
         reportGone();
         return;
@@ -724,7 +678,7 @@ export function ServerAdminSupportReportDetail({
       });
     },
     onError: (error) => {
-      failed(error, { kind: 'clear' }, 'ticket');
+      failed(error, 'ticket');
       if (
         error instanceof ClientProblemError &&
         error.code === 'SUPPORT_TICKET_NOT_FOUND'
@@ -752,8 +706,8 @@ export function ServerAdminSupportReportDetail({
         ),
       });
     },
-    onError: (error, archived) => {
-      failed(error, { kind: 'archive', archived }, 'manage');
+    onError: (error) => {
+      failed(error, 'manage');
     },
   });
 
@@ -779,10 +733,6 @@ export function ServerAdminSupportReportDetail({
       onClose('deleted');
     },
     onError: (error) => {
-      if (isRecentAuthRequired(error)) {
-        setPendingWrite({ kind: 'delete' });
-        return;
-      }
       if (isReportGone(error)) {
         reportGone();
         return;
@@ -799,18 +749,6 @@ export function ServerAdminSupportReportDetail({
     replyMutation.isPending ||
     ticketMutation.isPending ||
     clearMutation.isPending;
-
-  function retryPendingWrite() {
-    const write = pendingWrite;
-    setPendingWrite(null);
-    if (!write) return;
-    if (write.kind === 'state') stateMutation.mutate(write.state);
-    else if (write.kind === 'reply') replyMutation.mutate(write.text);
-    else if (write.kind === 'ticket') ticketMutation.mutate(write.draft);
-    else if (write.kind === 'archive') archiveMutation.mutate(write.archived);
-    else if (write.kind === 'delete') deleteMutation.mutate();
-    else clearMutation.mutate();
-  }
 
   function clearTicket() {
     if (window.confirm(t('serverAdmin.reports.ticket.confirmClear'))) {
@@ -1203,15 +1141,6 @@ export function ServerAdminSupportReportDetail({
           onDraftChange={setTicketDraft}
           onSubmit={(draft) => ticketMutation.mutate(draft)}
           onCancel={() => setTicketDialogOpen(false)}
-        />
-      ) : null}
-
-      {pendingWrite ? (
-        <ServerAdminRecentAuthModal
-          apiBaseUrl={apiBaseUrl}
-          accessToken={accessToken}
-          onCancel={() => setPendingWrite(null)}
-          onSuccess={retryPendingWrite}
         />
       ) : null}
     </article>

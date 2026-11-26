@@ -71,6 +71,7 @@ jobs:
             ci.yml
             web-browser-qa.yml
             android-launcher-icons.yml
+            ios-native.yml
             backend-encrypted.yml
             media-video.yml
             codeql.yml

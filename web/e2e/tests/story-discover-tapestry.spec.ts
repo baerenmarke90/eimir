@@ -575,7 +575,8 @@ for (const [width, theme, textScale] of [
     });
     expect(geometry.overflow).toBeLessThanOrEqual(0);
     expect(geometry.aspect).toBeGreaterThanOrEqual(1.24);
-    expect(geometry.immediatePredecessor).toBe('momente-discover-renew');
+    // The Fotostory opens the world; no renew action stands above it.
+    expect(geometry.immediatePredecessor).toBeUndefined();
 
     await fotostory.scrollIntoViewIfNeeded();
     await expect(viewer.locator('[data-state="current"] img')).toHaveAttribute(
@@ -703,10 +704,8 @@ for (const width of [320, 390, 430] as const) {
       page.getByText(de.story.discoverInvitation, { exact: true }),
     ).toHaveCount(0);
     await expect(page.locator('.discover-toolbar')).toHaveCount(0);
-    // Compact keeps pull-to-refresh as its only renew gesture.
-    await expect(
-      page.getByRole('button', { name: de.story.discoverRenew, exact: true }),
-    ).toHaveCount(0);
+    // Pull-to-refresh is the only renew gesture; there is no renew button.
+    await expect(page.locator('.momente-discover-renew')).toHaveCount(0);
     await expectCanonicalStory(page);
     await verifyDiaryAndReturnToDiscover(page);
 
@@ -1471,69 +1470,6 @@ test('Discover renewal confirms alternatives, guards duplicate activation and pr
   await pullDiscover(page);
   await expect(page.locator('.momente-hero-highlight')).toHaveCount(0);
   await expect(page.locator('.momente-story')).toHaveCount(0);
-});
-
-test('Discover renewal stays visible on Expanded and replaces the Fotostory', async ({
-  page,
-}, info) => {
-  const unexpectedRequests = await installDiscoverApiMocks(page);
-  await page.setViewportSize({ width: 1280, height: 1000 });
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/story?tab=discover');
-  await signIn(page);
-  await page.goto('/story?tab=discover');
-  const renew = page.getByRole('button', {
-    name: de.story.discoverRenew,
-    exact: true,
-  });
-  await expect(renew).toBeVisible();
-  const open = page
-    .locator('.momente-story-viewer')
-    .getByRole('link', { name: new RegExp(`^${story.open}:`) });
-  // The rediscovery lead is the first slide (#2192).
-  await expect(open).toHaveAttribute('href', '/story/heart-moments/hm-1');
-  let release: () => void = () => {};
-  const waiting = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  await page.route(
-    `**/api/v1/spaces/${SPACE_ID}/discover/renew`,
-    async (route) => {
-      await waiting;
-      await route.fulfill({
-        json: {
-          selectionDate: '2026-09-17',
-          lead: DISCOVER_ITEMS[4],
-          items: [DISCOVER_ITEMS[3], DISCOVER_ITEMS[1]],
-          leadContext: null,
-        },
-      });
-    },
-  );
-  await renew.click();
-  const busy = page.getByRole('button', {
-    name: de.story.discoverRenewing,
-    exact: true,
-  });
-  await expect(busy).toBeDisabled();
-  release();
-  await expect(page.locator('.momente-hero-highlight')).toContainText(
-    'Konzertabend',
-  );
-  await expect(
-    page.getByRole('status').filter({ hasText: de.story.discoverRenewed }),
-  ).toBeAttached();
-  // A renewed selection starts again with its lead, then two themes.
-  await expect(open).toHaveAttribute('href', '/story/memories/mem-2');
-  await expect(
-    page.getByRole('list', { name: story.themesLabel }).getByRole('button'),
-  ).toHaveCount(3);
-  await expect(renew).toBeEnabled();
-  await page.screenshot({
-    path: info.outputPath('fotostory-renewed-1280-light.png'),
-    fullPage: false,
-  });
-  expect(unexpectedRequests).toEqual([]);
 });
 
 /** Exercise the shared touch primitive, including pending duplicate gestures. */

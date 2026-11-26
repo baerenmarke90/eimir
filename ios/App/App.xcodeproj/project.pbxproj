@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		071126000000000000000001 /* IosAppShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 071126000000000000000002 /* IosAppShortcuts.swift */; };
+		071126000000000000000003 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 071126000000000000000004 /* InfoPlist.strings */; };
 		070E11800000000000000001 /* IosPush.swift in Sources */ = {isa = PBXBuildFile; fileRef = 070E11800000000000000002 /* IosPush.swift */; };
 		070E11800000000000000004 /* IosSessionStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 070E11800000000000000005 /* IosSessionStorage.swift */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
@@ -21,6 +23,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		071126000000000000000002 /* IosAppShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IosAppShortcuts.swift; sourceTree = "<group>"; };
+		071126000000000000000005 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		071126000000000000000006 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		070E11800000000000000002 /* IosPush.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IosPush.swift; sourceTree = "<group>"; };
 		070E11800000000000000003 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		070E11800000000000000005 /* IosSessionStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IosSessionStorage.swift; sourceTree = "<group>"; };
@@ -72,6 +77,8 @@
 				9582B6822FE993A50072D4E8 /* SceneDelegate.swift */,
 				070E11800000000000000002 /* IosPush.swift */,
 				070E11800000000000000005 /* IosSessionStorage.swift */,
+				071126000000000000000002 /* IosAppShortcuts.swift */,
+				071126000000000000000004 /* InfoPlist.strings */,
 				070E11800000000000000003 /* App.entitlements */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
@@ -131,6 +138,7 @@
 			knownRegions = (
 				en,
 				Base,
+				de,
 			);
 			mainGroup = 504EC2FB1FED79650016851F;
 			packageReferences = (
@@ -156,6 +164,7 @@
 				50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
+				071126000000000000000003 /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -169,6 +178,7 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				070E11800000000000000001 /* IosPush.swift in Sources */,
 				070E11800000000000000004 /* IosSessionStorage.swift in Sources */,
+				071126000000000000000001 /* IosAppShortcuts.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -176,6 +186,15 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
+		071126000000000000000004 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				071126000000000000000005 /* en */,
+				071126000000000000000006 /* de */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
 		504EC30B1FED79650016851F /* Main.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (

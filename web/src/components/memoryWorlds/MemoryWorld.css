@@ -34,14 +34,16 @@
   --color-story-milestone: var(--memory-world-stamp-ink);
 }
 
+/* Heading, quiet extras (the Stapel's position) and the round "Welt
+   wechseln" entry share one row; a long heading wraps inside itself. */
 .memory-world-head {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-2);
+  align-items: center;
+  gap: var(--space-2);
 }
 .memory-world-head h2 {
+  flex: 1 1 auto;
+  min-inline-size: 0;
   margin: 0;
   font-family: var(--font-display);
   font-size: 1.5rem;
@@ -55,6 +57,9 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-secondary);
+}
+.memory-world-head > .memory-world-muted {
+  white-space: nowrap;
 }
 .memory-world-muted {
   color: var(--color-text-secondary);

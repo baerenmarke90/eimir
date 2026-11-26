@@ -90,11 +90,7 @@ function renderPanel(
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <ServerAdminSupportReportsPanel
-        api={api}
-        apiBaseUrl="https://api.example.test"
-        accessToken="admin-token"
-      />
+      <ServerAdminSupportReportsPanel api={api} />
     </QueryClientProvider>,
   );
   return { listSupportReports, getSupportReport };
@@ -316,11 +312,7 @@ describe('ServerAdminSupportReportsPanel', () => {
       });
       render(
         <QueryClientProvider client={queryClient}>
-          <ServerAdminSupportReportsPanel
-            api={api}
-            apiBaseUrl="https://api.example.test"
-            accessToken="admin-token"
-          />
+          <ServerAdminSupportReportsPanel api={api} />
         </QueryClientProvider>,
       );
       return { listSupportReports, getSupportReport };

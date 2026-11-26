@@ -21,8 +21,8 @@
  * roles: src/motion/memory-worlds.css.
  */
 import {
-  type AnimationEvent as ReactAnimationEvent,
   type CSSProperties,
+  type AnimationEvent as ReactAnimationEvent,
   type PointerEvent as ReactPointerEvent,
   type RefObject,
   useCallback,
@@ -47,6 +47,7 @@ import {
 import '../../motion/memory-worlds.css';
 import './MemoryWorld.css';
 import './MochiWorld.css';
+import { WorldHead } from './WorldHead';
 
 /** How long one action plays; the hop on a first action adds `FIRST_HOP_MS`. */
 const ACT_MS = 2900;
@@ -746,9 +747,7 @@ export function MochiWorld({
 
   return (
     <div ref={rootRef} className="memory-mochi-world">
-      <div className="memory-world-head">
-        <h2>{t('memoryWorlds.mochi.heading')}</h2>
-      </div>
+      <WorldHead heading={t('memoryWorlds.mochi.heading')} />
       {/* biome-ignore lint/a11y/useSemanticElements: the meadow is a named group of the mochis and their balloons, not a form fieldset. */}
       <div
         ref={scene}

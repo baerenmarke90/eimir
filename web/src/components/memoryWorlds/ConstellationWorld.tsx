@@ -49,8 +49,8 @@ import { useTranslation } from '../../i18n';
 import {
   ambientWait,
   dropDust,
-  frameLoop,
   flightAt,
+  frameLoop,
   headScale,
   planFlight,
   type ScopeMotion,
@@ -119,6 +119,7 @@ import {
 import '../../motion/memory-worlds.css';
 import './MemoryWorld.css';
 import './ConstellationWorld.css';
+import { WorldHead } from './WorldHead';
 
 /** Pointer travel before a press becomes a gesture (px). */
 const DRAG_SLOP = 8;
@@ -957,9 +958,7 @@ export function ConstellationWorld({
       data-pencil={pencilInk(hours) ? 'ink' : undefined}
       style={skyStyle(hours, turn)}
     >
-      <div className="memory-world-head">
-        <h2>{t('memoryWorlds.stars.heading')}</h2>
-      </div>
+      <WorldHead heading={t('memoryWorlds.stars.heading')} />
 
       <div className="memory-stars-chart">
         {(['tl', 'tr', 'bl', 'br'] as const).map((corner) => (

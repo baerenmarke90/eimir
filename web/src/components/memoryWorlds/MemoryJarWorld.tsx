@@ -33,8 +33,8 @@ import {
   type ButtonHTMLAttributes,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
   type ReactNode,
+  type PointerEvent as ReactPointerEvent,
   type Ref,
   useCallback,
   useEffect,
@@ -75,12 +75,12 @@ import {
   buildSlips,
   createShakeDetector,
   FALLBACK_SLIP,
+  hasDrawnToday,
   type JarSlip,
   newRattleSeries,
   newReversalTrack,
   pickNextSlip,
   RATTLES_TO_OPEN,
-  hasDrawnToday,
   readTodayDraw,
   rememberDraw,
   rememberReturn,
@@ -102,6 +102,7 @@ import {
 import '../../motion/memory-worlds.css';
 import './MemoryWorld.css';
 import './MemoryJarWorld.css';
+import { WorldHead } from './WorldHead';
 
 type Entry = MemoryWorldEntry;
 
@@ -1589,9 +1590,7 @@ export function MemoryJarWorld({
       data-phase={phase}
       data-drawn={drawn ? 'true' : undefined}
     >
-      <div className="memory-world-head">
-        <h2>{t('memoryWorlds.jar.heading')}</h2>
-      </div>
+      <WorldHead heading={t('memoryWorlds.jar.heading')} />
       <div
         className="memory-jar-scene"
         data-small={small ? 'true' : undefined}

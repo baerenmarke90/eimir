@@ -1,40 +1,22 @@
-/* The quiet "Welt wechseln" entry above Momente › Erinnerungen (#2283). A
-   world's own small controls (the Fotoautomat's style switch) sit in the
-   slot before it, in the same row. */
+/* The quiet "Welt wechseln" entry of Momente › Erinnerungen (#2283): a round
+   picture of the current world at the end of the world's top row, next to
+   its heading or the Story theme circles. */
 .memory-world-switch {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-2);
-  margin-block-end: var(--space-2);
-}
-.memory-world-switch-slot {
-  display: flex;
-  align-items: center;
-  min-inline-size: 0;
-}
-.memory-world-switch-slot:empty {
-  display: none;
-}
-.memory-world-switch > a {
-  margin-inline-start: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  /* At least a touch target; it grows with the picture at larger text. */
+  min-inline-size: var(--touch-target-web);
   min-block-size: var(--touch-target-web);
-  padding-inline: var(--space-1) var(--space-3);
+  padding: var(--space-1);
   border-radius: var(--radius-pill);
-  font: var(--font-supporting-copy);
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  text-decoration: none;
   background: color-mix(in srgb, var(--color-text) 6%, transparent);
   -webkit-tap-highlight-color: transparent;
 }
-.memory-world-switch > a:active {
+.memory-world-switch:active {
   background: color-mix(in srgb, var(--color-text) 12%, transparent);
 }
-.memory-world-switch > a:focus-visible {
+.memory-world-switch:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }

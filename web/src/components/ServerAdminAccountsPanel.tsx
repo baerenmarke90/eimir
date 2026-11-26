@@ -4,11 +4,9 @@ import { Link } from 'react-router-dom';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
 import type { ServerAdminAccountDetail } from '../api/generated/models/ServerAdminAccountDetail';
 import { normalizeClientError } from '../client/problemDetails';
-import { isRecentAuthRequired } from '../client/recentAuthentication';
 import { SERVER_ADMIN_ROUTE } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { ServerAdminAccountDeletionDialog } from './ServerAdminAccountDeletionDialog';
-import { ServerAdminRecentAuthModal } from './ServerAdminRecentAuthModal';
 
 const PAGE_SIZE = 25;
 
@@ -35,21 +33,13 @@ function authMethodLabel(method: string): string {
   }
 }
 
-type PendingPrivilegedAction =
-  | { kind: 'verify-email'; emailId: string; email: string }
-  | { kind: 'operator-recovery' };
-
 function AccountDetail({
   account,
   api,
-  apiBaseUrl,
-  accessToken,
   onChanged,
 }: {
   account: ServerAdminAccountDetail;
   api: ServerAdminApi;
-  apiBaseUrl: string;
-  accessToken: string;
   onChanged: () => void;
 }) {
   const { t } = useTranslation();
@@ -57,8 +47,6 @@ function AccountDetail({
   const [verificationText, setVerificationText] = useState('');
   const [recoveryUrl, setRecoveryUrl] = useState<string | null>(null);
   const [recoveryExpiry, setRecoveryExpiry] = useState<Date | null>(null);
-  const [pendingPrivilegedAction, setPendingPrivilegedAction] =
-    useState<PendingPrivilegedAction | null>(null);
   const [deletionDialogOpen, setDeletionDialogOpen] = useState(false);
 
   const invalidate = () => {
@@ -115,11 +103,6 @@ function AccountDetail({
       setVerificationText('');
       invalidate();
     },
-    onError: (error, variables) => {
-      if (isRecentAuthRequired(error)) {
-        setPendingPrivilegedAction({ kind: 'verify-email', ...variables });
-      }
-    },
   });
   const verificationRequestMutation = useMutation({
     mutationFn: async () => {
@@ -155,26 +138,15 @@ function AccountDetail({
       setRecoveryExpiry(proof.expiresAt);
       invalidate();
     },
-    onError: (error) => {
-      if (isRecentAuthRequired(error)) {
-        setPendingPrivilegedAction({ kind: 'operator-recovery' });
-      }
-    },
   });
 
   const actionError =
     suspensionMutation.error ??
     revokeSessionsMutation.error ??
-    (verificationMutation.error &&
-    !isRecentAuthRequired(verificationMutation.error)
-      ? verificationMutation.error
-      : null) ??
+    verificationMutation.error ??
     verificationRequestMutation.error ??
     recoveryEmailMutation.error ??
-    (operatorRecoveryMutation.error &&
-    !isRecentAuthRequired(operatorRecoveryMutation.error)
-      ? operatorRecoveryMutation.error
-      : null);
+    operatorRecoveryMutation.error;
   const pending =
     suspensionMutation.isPending ||
     revokeSessionsMutation.isPending ||
@@ -207,22 +179,6 @@ function AccountDetail({
       setRecoveryExpiry(null);
       operatorRecoveryMutation.mutate();
     }
-  }
-
-  function retryPrivilegedAction() {
-    const action = pendingPrivilegedAction;
-    setPendingPrivilegedAction(null);
-    if (!action) return;
-    if (action.kind === 'verify-email') {
-      verificationMutation.reset();
-      verificationMutation.mutate({
-        emailId: action.emailId,
-        email: action.email,
-      });
-      return;
-    }
-    operatorRecoveryMutation.reset();
-    operatorRecoveryMutation.mutate();
   }
 
   return (
@@ -463,8 +419,6 @@ function AccountDetail({
       {deletionDialogOpen ? (
         <ServerAdminAccountDeletionDialog
           api={api}
-          apiBaseUrl={apiBaseUrl}
-          accessToken={accessToken}
           account={account}
           onClose={() => setDeletionDialogOpen(false)}
           onSuccess={() => {
@@ -473,28 +427,15 @@ function AccountDetail({
           }}
         />
       ) : null}
-
-      {pendingPrivilegedAction ? (
-        <ServerAdminRecentAuthModal
-          apiBaseUrl={apiBaseUrl}
-          accessToken={accessToken}
-          onCancel={() => setPendingPrivilegedAction(null)}
-          onSuccess={retryPrivilegedAction}
-        />
-      ) : null}
     </div>
   );
 }
 
 export function ServerAdminAccountsPanel({
   api,
-  apiBaseUrl,
-  accessToken,
   onOverviewChanged,
 }: {
   api: ServerAdminApi;
-  apiBaseUrl: string;
-  accessToken: string;
   onOverviewChanged: () => void;
 }) {
   const { t } = useTranslation();
@@ -750,8 +691,6 @@ export function ServerAdminAccountsPanel({
               <AccountDetail
                 account={detailQuery.data}
                 api={api}
-                apiBaseUrl={apiBaseUrl}
-                accessToken={accessToken}
                 onChanged={() => {
                   void detailQuery.refetch();
                   onOverviewChanged();

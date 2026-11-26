@@ -218,21 +218,6 @@ const serverAdmin = {
     unavailable: 'Nicht verfügbar',
     updateError: 'Die Einstellung konnte nicht gespeichert werden.',
   },
-  stepUp: {
-    eyebrow: 'Sicherheitsprüfung',
-    title: 'Identität erneut bestätigen',
-    intro:
-      'Diese privilegierte Aktion benötigt eine aktuelle Bestätigung deiner Identität. Die Freigabe gilt nur kurz und nur für diese ServerAdmin-Sitzung.',
-    passwordLabel: 'Passwort',
-    passwordAction: 'Mit Passwort bestätigen',
-    passkeyAction: 'Mit Passkey bestätigen',
-    oidcAction: 'Mit OIDC bestätigen',
-    loading: 'Verfügbare Anmeldeverfahren werden geprüft …',
-    pending: 'Identität wird bestätigt …',
-    unavailable:
-      'Für diesen ServerAdmin-Account ist aktuell kein geeignetes Verfahren zur erneuten Bestätigung verfügbar.',
-    cancel: 'Abbrechen',
-  },
   accounts: {
     title: 'Benutzerverwaltung',
     body: 'Verwalte Account- und Anmeldestatus, ohne auf private Beziehungsinhalte zuzugreifen.',
@@ -317,7 +302,7 @@ const serverAdmin = {
     },
     deletionDialog: {
       title: 'Account unwiderruflich löschen',
-      stage1Eyebrow: 'Schritt 1 von 3 · Auswirkungen',
+      stage1Eyebrow: 'Schritt 1 von 2 · Auswirkungen',
       stage1Title: 'Auswirkungen der Kontolöschung prüfen',
       stage1Intro:
         'Die Kontolöschung verwendet den autoritativen #520-Lifecycle. Bitte prüfe die folgenden Auswirkungen vor dem Fortfahren:',
@@ -333,9 +318,8 @@ const serverAdmin = {
         'Die asynchrone Bereinigung und Konvergenz läuft im Hintergrund weiter.',
       consequenceIrreversible:
         'Diese Löschung ist endgültig und kann nicht rückgängig gemacht werden.',
-      proceedToAuth: 'Weiter zur Authentifizierung',
-      stage2Eyebrow: 'Schritt 2 von 3 · Sicherheitsprüfung',
-      stage3Eyebrow: 'Schritt 3 von 3 · Bestätigung',
+      proceedToConfirm: 'Weiter zur Bestätigung',
+      stage3Eyebrow: 'Schritt 2 von 2 · Bestätigung',
       stage3Title: 'Löschung durch Texteingabe bestätigen',
       stage3Instruction: 'Gib zur Bestätigung den folgenden Text exakt ein:',
       stage3InputLabel: 'Bestätigungstext',

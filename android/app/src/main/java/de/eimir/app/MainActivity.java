@@ -58,6 +58,7 @@ public class MainActivity extends BridgeActivity {
         }
         registerPlugin(NativePushBridge.class);
         registerPlugin(AppIconPlugin.class);
+        registerPlugin(AppShortcutsPlugin.class);
         registerPlugin(LaunchScreenPlugin.class);
         registerPlugin(NativeSessionStoragePlugin.class);
         registerPlugin(PlanCalendarPlugin.class);

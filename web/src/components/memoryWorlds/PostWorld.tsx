@@ -44,11 +44,11 @@ import { observeVisibility } from '../../motion/visibility';
 import { KeepsakeStampMark } from '../DiscoverKeepsakes';
 import { MemoryPhoto } from './MemoryPhoto';
 import {
+  keyHash,
   type LoadMemoryImage,
   type MemoryWorldEntry,
   type MemoryWorldEntryKind,
   type MemoryWorldProps,
-  keyHash,
   prefersReducedMotion,
   seasonLabel,
   seasonOf,
@@ -56,6 +56,7 @@ import {
 import '../../motion/memory-worlds.css';
 import './MemoryWorld.css';
 import './PostWorld.css';
+import { WorldHead } from './WorldHead';
 
 type Entry = MemoryWorldEntry;
 type EntryKind = MemoryWorldEntryKind;
@@ -1372,9 +1373,7 @@ export function PostWorld({
 
   return (
     <div ref={rootRef} className="memory-post-world">
-      <div className="memory-world-head">
-        <h2>{t('memoryWorlds.post.heading')}</h2>
-      </div>
+      <WorldHead heading={t('memoryWorlds.post.heading')} />
       <div
         className="memory-post-scene"
         data-phase={phase}

@@ -20,19 +20,18 @@
  * button (tap, Enter, Space) and the strip drying by itself. Subtle haptics
  * mark the countdown, each shot and the finished strip. With reduced motion
  * a run shows its finished strip at once. A live region announces each
- * stage. The style switch is portalled into the "Welt wechseln" row
- * (`MEMORY_WORLD_TOOLBAR_SLOT_ID`) when it is there.
+ * stage. The style switch sits right below the booth's heading.
  *
  * Keyframes, loops and timing roles: `src/motion/memory-worlds.css`.
  */
 import type { TFunction } from 'i18next';
 import {
   type CSSProperties,
-  type KeyboardEvent as ReactKeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode,
-  type RefObject,
   memo,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+  type PointerEvent as ReactPointerEvent,
+  type RefObject,
   useCallback,
   useEffect,
   useId,
@@ -62,10 +61,10 @@ import {
   prefersReducedMotion,
   seasonSpan,
 } from './model';
-import { MEMORY_WORLD_TOOLBAR_SLOT_ID } from './toolbarSlot';
 import '../../motion/memory-worlds.css';
 import './MemoryWorld.css';
 import './PhotoBoothWorld.css';
+import { WorldHead } from './WorldHead';
 
 type Entry = MemoryWorldEntry;
 
@@ -936,13 +935,21 @@ const BoothCamera = memo(function BoothCamera({ shot }: { shot: number }) {
   );
 });
 
+/** A booth with the style switch shown right below its heading. */
+type BoothProps = MemoryWorldProps & { styleSwitch: ReactNode };
+
 /**
  * The modern booth: press the button, the display counts down, the camera
  * takes four shots with its own flash, and a strip with four moments from
  * the same time is pushed out of the slot and develops. Pick the strip up
  * to see what each picture remembers, or hang it on the line below.
  */
-function ModernBooth({ entries, loadMemoryImage, onOpen }: MemoryWorldProps) {
+function ModernBooth({
+  entries,
+  loadMemoryImage,
+  onOpen,
+  styleSwitch,
+}: BoothProps) {
   const { t } = useTranslation();
   const strips = useMemo(() => boothStrips(entries), [entries]);
   const [printed, setPrinted] = useState<Printed[]>([]);
@@ -1024,9 +1031,8 @@ function ModernBooth({ entries, loadMemoryImage, onOpen }: MemoryWorldProps) {
 
   return (
     <div ref={rootRef} className="memory-booth-modern">
-      <div className="memory-world-head">
-        <h2>{t('memoryWorlds.booth.modern.heading')}</h2>
-      </div>
+      <WorldHead heading={t('memoryWorlds.booth.modern.heading')} />
+      {styleSwitch}
       <div
         className="memory-booth"
         data-stage={stage.kind}
@@ -1345,7 +1351,12 @@ const DIAL_MINUTES = [0, 1, 2, 3, 4];
  * while, then a wet strip in faded colour with moments from the diary drops
  * out of the chute. Wave it dry, look at it, or put it in the tin.
  */
-function ClassicCabin({ entries, loadMemoryImage, onOpen }: MemoryWorldProps) {
+function ClassicCabin({
+  entries,
+  loadMemoryImage,
+  onOpen,
+  styleSwitch,
+}: BoothProps) {
   const { t } = useTranslation();
   const strips = useMemo(() => boothStrips(entries), [entries]);
   const [printed, setPrinted] = useState<Printed[]>([]);
@@ -1609,9 +1620,8 @@ function ClassicCabin({ entries, loadMemoryImage, onOpen }: MemoryWorldProps) {
 
   return (
     <div ref={rootRef} className="memory-booth-classic">
-      <div className="memory-world-head">
-        <h2>{t('memoryWorlds.booth.classic.heading')}</h2>
-      </div>
+      <WorldHead heading={t('memoryWorlds.booth.classic.heading')} />
+      {styleSwitch}
       <div
         className="memory-booth-cabin-scene"
         data-stage={stage.kind}
@@ -1841,16 +1851,11 @@ function ClassicCabin({ entries, loadMemoryImage, onOpen }: MemoryWorldProps) {
 
 /**
  * The photo booth world with its style switch (Klassisch or Modern,
- * remembered on this device). The switch sits in the "Welt wechseln" row
- * when that row is there, otherwise above the booth.
+ * remembered on this device), right below the booth's heading.
  */
 export function PhotoBoothWorld(props: MemoryWorldProps) {
   const { t } = useTranslation();
   const style = useBoothStyle();
-  const [slot, setSlot] = useState<HTMLElement | null>(null);
-  useLayoutEffect(() => {
-    setSlot(document.getElementById(MEMORY_WORLD_TOOLBAR_SLOT_ID));
-  }, []);
   if (props.entries.length === 0) return null;
   const styleSwitch = (
     // biome-ignore lint/a11y/useSemanticElements: a pair of toggle buttons, not a form fieldset.
@@ -1874,11 +1879,10 @@ export function PhotoBoothWorld(props: MemoryWorldProps) {
   );
   return (
     <div className="memory-booth-world" data-style={style}>
-      {slot?.isConnected ? createPortal(styleSwitch, slot) : styleSwitch}
       {style === 'classic' ? (
-        <ClassicCabin {...props} />
+        <ClassicCabin {...props} styleSwitch={styleSwitch} />
       ) : (
-        <ModernBooth {...props} />
+        <ModernBooth {...props} styleSwitch={styleSwitch} />
       )}
     </div>
   );

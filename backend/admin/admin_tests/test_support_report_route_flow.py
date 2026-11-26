@@ -25,9 +25,8 @@ from eimir.administration import service as administration
 from eimir.administration.models import AdministrationAction
 from eimir.api import deps
 from eimir.api.errors import register_error_handlers
-from eimir.auth import recent_auth
 from eimir.config import Settings
-from eimir.core.errors import ConflictError, ErrorCode, ForbiddenError, NotFoundError
+from eimir.core.errors import ConflictError, ErrorCode, NotFoundError
 from eimir.db.session import get_session
 from eimir.support_reports import service
 from eimir.support_reports.models import SupportReport, SupportReportKind, SupportReportState
@@ -76,7 +75,6 @@ class Harness:
         self.report = _report()
         self.reply: service.ReporterReply | None = None
         self.enabled = True
-        self.stale = False
         self.calls: list[str] = []
         self.audit: list[dict[str, Any]] = []
 
@@ -105,16 +103,11 @@ class Harness:
         monkeypatch.setattr(service, "set_archived", self._set_archived)
         monkeypatch.setattr(service, "delete_report", self._delete_report)
         monkeypatch.setattr(service, "get_reply", lambda session, **_: self.reply)
-        monkeypatch.setattr(recent_auth, "require_grant", self._require_grant)
         monkeypatch.setattr(
             administration,
             "record_action",
             lambda session, **kwargs: self.audit.append(kwargs),
         )
-
-    def _require_grant(self, *_: Any, **__: Any) -> None:
-        if self.stale:
-            raise ForbiddenError("Recent authentication is required.", "RECENT_REQUIRED")
 
     def _get_report(self, session: object, report_id: UUID) -> SupportReport | None:
         self.calls.append("get_report")
@@ -341,26 +334,4 @@ def test_a_reply_over_500_characters_never_reaches_the_service(harness: Harness)
     assert response.status_code == 422
     assert response.json()["code"] == ErrorCode.VALIDATION_FAILED
     assert harness.calls == []
-    assert harness.audit == []
-
-
-def test_stale_authentication_changes_and_audits_nothing(harness: Harness) -> None:
-    harness.stale = True
-    report_id = harness.report.id
-
-    state = harness.client.put(f"{BASE}/{report_id}/state", json={"state": "CLOSED"})
-    reply = harness.client.post(f"{BASE}/{report_id}/reply", json={"text": "Thanks"})
-    archive = harness.client.put(f"{BASE}/{report_id}/archive", json={"archived": True})
-    delete = harness.client.delete(f"{BASE}/{report_id}")
-    read = harness.client.get(f"{BASE}/{report_id}")
-
-    assert state.status_code == 403
-    assert reply.status_code == 403
-    assert archive.status_code == 403
-    assert delete.status_code == 403
-    assert "set_archived:True" not in harness.calls
-    assert "delete_report" not in harness.calls
-    assert read.status_code == 200
-    assert "set_state:CLOSED" not in harness.calls
-    assert "send_reply" not in harness.calls
     assert harness.audit == []

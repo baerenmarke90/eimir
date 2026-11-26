@@ -8,6 +8,8 @@ const snackbar = {
       'Dieser Link passt nicht zu dieser App-Version. Fordere einen neuen an.',
     notificationWaiting:
       'Deine Mitteilung wartet. Speichere oder schließe zuerst deinen Entwurf.',
+    appShortcutWaiting:
+      'Deine Schnellaktion wartet. Speichere oder schließe zuerst deinen Entwurf.',
     memoryDeleted: 'Erinnerung gelöscht.',
     dailyEnergyConflict:
       'Der Akku-Stand hat sich inzwischen geändert. Der aktuelle Stand wurde geladen.',

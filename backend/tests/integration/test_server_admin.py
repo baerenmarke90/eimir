@@ -14,7 +14,7 @@ from eimir.administration.models import (
     InstanceAdministrationEvent,
 )
 from eimir.api.v1 import server_admin as server_admin_api
-from eimir.auth import passwords, recent_auth
+from eimir.auth import passwords
 from eimir.config import get_settings
 from eimir.core.clock import now
 from eimir.core.errors import ForbiddenError
@@ -72,19 +72,6 @@ def _admin(session):  # type: ignore[no-untyped-def]
     account = make_account(session, "Operator")
     _add_email(session, account, verified=True)
     return account, sign_in(session, account)
-
-
-def _grant_server_admin_action(session, account) -> None:  # type: ignore[no-untyped-def]
-    device_session = session.execute(
-        select(DeviceSession).where(DeviceSession.account_id == account.id)
-    ).scalar_one()
-    recent_auth.issue_grant(
-        session,
-        account,
-        device_session,
-        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
-        method=recent_auth.RecentAuthenticationMethod.LOCAL_PASSWORD,
-    )
 
 
 def test_server_admin_endpoints_require_authentication(client) -> None:  # type: ignore[no-untyped-def]
@@ -573,8 +560,7 @@ def test_operator_email_verification_requires_exact_typed_confirmation(
     session,
     server_admin_allowlist,
 ) -> None:  # type: ignore[no-untyped-def]
-    admin, token = _admin(session)
-    _grant_server_admin_action(session, admin)
+    _, token = _admin(session)
     target = make_account(session, "Target")
     email = _add_email(session, target, email="target@example.test", verified=False)
 
@@ -604,8 +590,7 @@ def test_operator_assisted_recovery_reuses_normal_one_time_recovery_flow(
     session,
     server_admin_allowlist,
 ) -> None:  # type: ignore[no-untyped-def]
-    admin, admin_token = _admin(session)
-    _grant_server_admin_action(session, admin)
+    _, admin_token = _admin(session)
     target = accounts.create_account(
         session,
         display_name="Target",
@@ -694,7 +679,6 @@ def test_server_admin_delete_account_success(
     monkeypatch,
 ) -> None:  # type: ignore[no-untyped-def]
     admin, admin_token = _admin(session)
-    _grant_server_admin_action(session, admin)
 
     journal_file = tmp_path / "deletions.journal"
     journal = DeletionJournal.initialize(journal_file, instance_id=uuid4())
@@ -787,8 +771,7 @@ def test_server_admin_delete_account_idempotent_retry(
     tmp_path,
     monkeypatch,
 ) -> None:  # type: ignore[no-untyped-def]
-    admin, admin_token = _admin(session)
-    _grant_server_admin_action(session, admin)
+    _, admin_token = _admin(session)
 
     journal_file = tmp_path / "deletions.journal"
     journal = DeletionJournal.initialize(journal_file, instance_id=uuid4())
@@ -829,8 +812,7 @@ def test_server_admin_delete_account_accepts_target_id_or_email(
     tmp_path,
     monkeypatch,
 ) -> None:  # type: ignore[no-untyped-def]
-    admin, admin_token = _admin(session)
-    _grant_server_admin_action(session, admin)
+    _, admin_token = _admin(session)
 
     journal_file = tmp_path / "deletions.journal"
     journal = DeletionJournal.initialize(journal_file, instance_id=uuid4())
@@ -874,8 +856,7 @@ def test_server_admin_delete_account_rejects_confirmation_mismatch(
     tmp_path,
     monkeypatch,
 ) -> None:  # type: ignore[no-untyped-def]
-    admin, admin_token = _admin(session)
-    _grant_server_admin_action(session, admin)
+    _, admin_token = _admin(session)
 
     target = make_account(session, "Mismatch Target")
     _add_email(session, target, email="mismatch@example.test", verified=True)
@@ -889,31 +870,12 @@ def test_server_admin_delete_account_rejects_confirmation_mismatch(
     assert response.json()["code"] == "SERVER_ADMIN_CONFIRMATION_MISMATCH"
 
 
-def test_server_admin_delete_account_requires_recent_auth(
-    client,
-    session,
-    server_admin_allowlist,
-) -> None:  # type: ignore[no-untyped-def]
-    _, admin_token = _admin(session)
-    target = make_account(session, "Target")
-    email = _add_email(session, target, email="target@example.test", verified=True)
-
-    response = client.post(
-        f"/api/v1/server-admin/accounts/{target.id}/deletion",
-        headers=auth(admin_token),
-        json={"confirmation": f"DELETE {email.email}"},
-    )
-    assert response.status_code == 403
-    assert response.json()["code"] == recent_auth.RecentAuthenticationErrorCode.REQUIRED
-
-
 def test_server_admin_cannot_delete_self(
     client,
     session,
     server_admin_allowlist,
 ) -> None:  # type: ignore[no-untyped-def]
     admin, admin_token = _admin(session)
-    _grant_server_admin_action(session, admin)
 
     response = client.post(
         f"/api/v1/server-admin/accounts/{admin.id}/deletion",
@@ -938,7 +900,6 @@ def test_server_admin_cannot_delete_last_active_verified_admin(
     admin1 = make_account(session, "Admin 1")
     _add_email(session, admin1, email=admin1_email, verified=True)
     sign_in(session, admin1)
-    _grant_server_admin_action(session, admin1)
 
     # Admin 2 (also active and verified)
     admin2 = make_account(session, "Admin 2")
@@ -950,7 +911,6 @@ def test_server_admin_cannot_delete_last_active_verified_admin(
 
     # Admin 2 signs in
     sign_in(session, admin2)
-    _grant_server_admin_action(session, admin2)
 
     # Temporarily enable admin1 just to issue the call
     admin1.disabled_at = None
@@ -980,7 +940,6 @@ def test_server_admin_cannot_delete_last_active_verified_admin(
     admin3 = make_account(session, "Admin 3")
     _add_email(session, admin3, email=admin3_email, verified=True)
     sign_in(session, admin3)
-    _grant_server_admin_action(session, admin3)
 
     admin3.disabled_at = now()
     session.flush()
@@ -1005,8 +964,7 @@ def test_server_admin_cannot_delete_demo_account(
     server_admin_allowlist,
     monkeypatch,
 ) -> None:  # type: ignore[no-untyped-def]
-    admin, admin_token = _admin(session)
-    _grant_server_admin_action(session, admin)
+    _, admin_token = _admin(session)
 
     target = make_account(session, "Demo Target")
     email = _add_email(session, target, email="demo-target@example.test", verified=True)

@@ -30,8 +30,8 @@ import {
   type AnimationEvent as ReactAnimationEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
-  type PointerEvent as ReactPointerEvent,
   type ReactNode,
+  type PointerEvent as ReactPointerEvent,
   useEffect,
   useId,
   useLayoutEffect,
@@ -76,6 +76,7 @@ import '../../motion/memory-worlds.css';
 import './MemoryWorld.css';
 import './PhotoAlbumWorld.css';
 import { useWorldEntered } from './WorldEnter';
+import { WorldHead } from './WorldHead';
 
 /** Horizontal movement before a drag takes over (taps still reach links). */
 const DRAG_START_PX = 8;
@@ -1175,9 +1176,7 @@ export function PhotoAlbumWorld({
 
   return (
     <div ref={rootRef} className="memory-album-world">
-      <div className="memory-world-head">
-        <h2>{t('memoryWorlds.album.heading')}</h2>
-      </div>
+      <WorldHead heading={t('memoryWorlds.album.heading')} />
 
       {/* biome-ignore lint/a11y/useSemanticElements: the book is a named group of pages, not a form fieldset. */}
       <div

@@ -31,8 +31,8 @@ import {
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
-  type PointerEvent as ReactPointerEvent,
   type ReactNode,
+  type PointerEvent as ReactPointerEvent,
   type RefObject,
   useEffect,
   useId,
@@ -72,6 +72,7 @@ import '../../motion/memory-worlds.css';
 import './MemoryWorld.css';
 import './FridgeDoorWorld.css';
 import { useWorldEntered } from './WorldEnter';
+import { WorldHead } from './WorldHead';
 
 type Entry = MemoryWorldEntry;
 
@@ -1174,9 +1175,7 @@ export function FridgeDoorWorld({
 
   return (
     <div ref={rootRef} className="memory-fridge-world">
-      <div className="memory-world-head">
-        <h2>{t('memoryWorlds.fridge.heading')}</h2>
-      </div>
+      <WorldHead heading={t('memoryWorlds.fridge.heading')} />
 
       <div className="memory-fridge-door-wrap">
         {/* biome-ignore lint/a11y/useSemanticElements: the door is one collage of buttons, not a form fieldset. */}

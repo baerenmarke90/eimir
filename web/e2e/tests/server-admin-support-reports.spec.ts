@@ -17,9 +17,9 @@ const reports = serverAdmin.reports;
 /*
  * The operator's support reports section in the ServerAdmin area (#2189).
  * The admin plugin's routes are mocked with their live contract; the server
- * behaviour (recent authentication, one reply, tracker calls) is covered by
- * the plugin's backend tests. Every write first answers that the recent
- * authentication is stale, so the step-up retry is part of the journey.
+ * behaviour (one reply, tracker calls) is covered by
+ * the plugin's backend tests. ServerAdmin writes need no step-up
+ * re-authentication, so every write goes through on the first attempt.
  */
 
 const PROBLEM_ID = '66666666-6666-4666-8666-666666666666';
@@ -30,7 +30,6 @@ const FEEDBACK_NOTE = 'A weekly plan for both of us would be nice.';
 const REPLY = 'Thanks for the report, we found the cause.';
 const TICKET_BODY = 'Timeline request fails with 500 after 1.4.0.';
 const TICKET_URL = 'https://github.com/example/eimir-support/issues/42';
-const TEST_PASSWORD = 'operator-step-up-test-password';
 
 type State = 'NEW' | 'IN_PROGRESS' | 'CLOSED';
 
@@ -56,9 +55,8 @@ interface Report {
 }
 
 interface Recorded {
-  /** Every write, in order, with its body; stale ones included. */
+  /** Every write, in order, with its body. */
   writes: Array<{ method: string; path: string; body: unknown }>;
-  stepUps: number;
 }
 
 function problemDetail(status: number, code: string, title: string) {
@@ -193,13 +191,11 @@ function detail(report: Report) {
 
 /**
  * The ServerAdmin account, the overview with the operator flag and the eight
- * plugin routes. `recentAuthentication` starts stale: the first write answers
- * RECENT_AUTHENTICATION_REQUIRED until the step-up succeeded.
+ * plugin routes.
  */
-async function install(page: Page, options: { fresh?: boolean } = {}) {
+async function install(page: Page) {
   const data = initialReports();
-  const recorded: Recorded = { writes: [], stepUps: 0 };
-  let recent = options.fresh === true;
+  const recorded: Recorded = { writes: [] };
   await installMocks(page);
   // Registered after the shared fixture, so these answer first.
   await page.route('**/api/v1/**', async (route) => {
@@ -219,34 +215,6 @@ async function install(page: Page, options: { fresh?: boolean } = {}) {
           ).length,
         },
       });
-    if (
-      method === 'GET' &&
-      pathname === '/api/v1/auth/recent-authentication/server-admin'
-    )
-      return route.fulfill({
-        json: {
-          expiresInSeconds: 300,
-          localPassword: true,
-          oidcConnections: [],
-          passkey: false,
-        },
-      });
-    if (
-      method === 'POST' &&
-      pathname === '/api/v1/auth/recent-authentication/server-admin/password'
-    ) {
-      recorded.stepUps += 1;
-      recent = true;
-      return route.fulfill({
-        json: {
-          achievedAt: new Date().toISOString(),
-          expiresAt: new Date(Date.now() + 300_000).toISOString(),
-          method: 'password',
-          purpose: 'server-admin',
-        },
-      });
-    }
-
     const prefix = '/api/v1/server-admin/support-reports';
     if (!pathname.startsWith(prefix)) return route.fallback();
     if (method === 'GET' && pathname === prefix) {
@@ -280,18 +248,9 @@ async function install(page: Page, options: { fresh?: boolean } = {}) {
     if (method === 'GET' && !action)
       return route.fulfill({ json: detail(report) });
 
-    // Writes: reads need ServerAdmin only, writes a recent authentication.
+    // Writes, like reads, need the ServerAdmin session only.
     const body = request.postData() ? request.postDataJSON() : null;
     recorded.writes.push({ method, path: pathname, body });
-    if (!recent)
-      return route.fulfill({
-        status: 403,
-        json: problemDetail(
-          403,
-          'RECENT_AUTHENTICATION_REQUIRED',
-          'Recent authentication required',
-        ),
-      });
     if (method === 'PUT' && action === 'state') {
       report.state = (body as { state: State }).state;
       return route.fulfill({ json: detail(report) });
@@ -491,19 +450,11 @@ test('operator_triages_a_report_replies_once_and_creates_a_ticket', async ({
   await expect(report.locator('.server-admin-report-text')).toHaveText(NOTE);
   await expect(report).toContainText(reports.detail.privacy);
 
-  // A stale authentication asks for the step-up and retries the same write.
+  // The state changes right away, without a step-up dialog.
   await report
     .getByRole('button', { name: reports.states.IN_PROGRESS, exact: true })
     .click();
-  const stepUp = page.getByRole('dialog', { name: serverAdmin.stepUp.title });
-  await expect(stepUp).toBeVisible();
-  await stepUp
-    .getByLabel(serverAdmin.stepUp.passwordLabel, { exact: true })
-    .fill(TEST_PASSWORD);
-  await stepUp
-    .getByRole('button', { name: serverAdmin.stepUp.passwordAction })
-    .click();
-  await expect(stepUp).toBeHidden();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(report.getByRole('status')).toHaveText(
     reports.detail.stateSaved.replace('{{state}}', reports.states.IN_PROGRESS),
   );
@@ -513,13 +464,7 @@ test('operator_triages_a_report_replies_once_and_creates_a_ticket', async ({
       exact: true,
     }),
   ).toHaveAttribute('aria-pressed', 'true');
-  expect(recorded.stepUps).toBe(1);
   expect(recorded.writes).toEqual([
-    {
-      method: 'PUT',
-      path: `/api/v1/server-admin/support-reports/${PROBLEM_ID}/state`,
-      body: { state: 'IN_PROGRESS' },
-    },
     {
       method: 'PUT',
       path: `/api/v1/server-admin/support-reports/${PROBLEM_ID}/state`,
@@ -594,7 +539,6 @@ test('operator_triages_a_report_replies_once_and_creates_a_ticket', async ({
   // Neither the person's note nor the reply leaves the server in a ticket.
   expect(JSON.stringify(ticketWrite?.body)).not.toContain(NOTE);
   expect(JSON.stringify(ticketWrite?.body)).not.toContain(REPLY);
-  expect(recorded.stepUps).toBe(1);
   expect(data[0]?.state).toBe('IN_PROGRESS');
 
   // Return: the list comes back. The report left the "new" filter, so the
@@ -622,28 +566,18 @@ test('operator_archives_restores_and_permanently_deletes_a_report', async ({
   const reportsSection = sectionOf(page);
   await expect(reportsSection.row('PROBLEM')).toBeVisible();
 
-  // Open, then archive: the stale authentication asks for the step-up once and
-  // the same write is retried.
+  // Open, then archive: one write, no step-up dialog.
   await reportsSection.row('PROBLEM').click();
   const report = reportsSection.detail;
   await expect(report.locator('.server-admin-report-text')).toHaveText(NOTE);
   await report
     .getByRole('button', { name: reports.manage.archive, exact: true })
     .click();
-  const stepUp = page.getByRole('dialog', { name: serverAdmin.stepUp.title });
-  await stepUp
-    .getByLabel(serverAdmin.stepUp.passwordLabel, { exact: true })
-    .fill(TEST_PASSWORD);
-  await stepUp
-    .getByRole('button', { name: serverAdmin.stepUp.passwordAction })
-    .click();
   await expect(report.getByText(reports.manage.archived)).toBeVisible();
   await expect(report.locator('.server-admin-report-badges')).toContainText(
     reports.item.archived,
   );
-  expect(recorded.stepUps).toBe(1);
   expect(recorded.writes.map((write) => [write.method, write.body])).toEqual([
-    ['PUT', { archived: true }],
     ['PUT', { archived: true }],
   ]);
   // The triage state is kept.
@@ -721,7 +655,7 @@ test('operator_archives_restores_and_permanently_deletes_a_report', async ({
 
 test('delete_dialog_says_a_linked_ticket_stays', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await install(page, { fresh: true });
+  await install(page);
   await openSignedIn(page, '/server-admin?section=reports&state=IN_PROGRESS');
   const reportsSection = sectionOf(page);
   await reportsSection.row('FEEDBACK').click();
@@ -736,7 +670,7 @@ test('uncertain_pending_ticket_is_cleared_only_after_confirmation', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  const { recorded } = await install(page, { fresh: true });
+  const { recorded } = await install(page);
   await openSignedIn(page, '/server-admin?section=reports&state=IN_PROGRESS');
   const reportsSection = sectionOf(page);
   await expect(reportsSection.filter('IN_PROGRESS')).toHaveAttribute(
@@ -789,7 +723,7 @@ test.describe('states at 2x', () => {
   }, info) => {
     test.setTimeout(90_000);
     await page.setViewportSize({ width: 390, height: 844 });
-    await install(page, { fresh: true });
+    await install(page);
     await openSignedIn(page, '/server-admin?section=reports');
     const reportsSection = sectionOf(page);
     await expect(reportsSection.row('PROBLEM')).toBeVisible();
@@ -965,7 +899,7 @@ test.describe('states at 2x', () => {
   }, info) => {
     test.setTimeout(90_000);
     await page.setViewportSize({ width: 390, height: 844 });
-    await install(page, { fresh: true });
+    await install(page);
     await openSignedIn(page, '/server-admin?section=reports&state=all');
     const reportsSection = sectionOf(page);
     await expect(reportsSection.row('PROBLEM')).toBeVisible();

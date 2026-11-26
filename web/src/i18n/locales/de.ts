@@ -310,8 +310,6 @@ const de = {
     discoverInvitation: 'Ein neuer Blick auf eure Geschichte',
     discoverDaily:
       'Täglich neu zusammengestellt. Zum Erinnern, Lächeln und Weiterstöbern.',
-    discoverRenew: 'Neu entdecken',
-    discoverRenewing: 'Wir suchen …',
     discoverRenewed: 'Eure Auswahl ist neu zusammengestellt.',
     discoverNewDay:
       'Für heute wartet eine neue Auswahl. Mit „Neu entdecken“ könnt ihr sie ansehen.',

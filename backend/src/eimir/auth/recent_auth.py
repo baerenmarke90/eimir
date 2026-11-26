@@ -52,7 +52,6 @@ GRANT_LOCK = "recent_auth_grant"
 
 class RecentAuthenticationPurpose(StrEnum):
     ACCOUNT_DELETION = "ACCOUNT_DELETION"
-    SERVER_ADMIN_ACTION = "SERVER_ADMIN_ACTION"
 
 
 class RecentAuthenticationMethod(StrEnum):

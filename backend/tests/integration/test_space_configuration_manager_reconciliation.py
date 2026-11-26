@@ -13,10 +13,9 @@ from eimir.administration.models import (
     AdministrationAction,
     InstanceAdministrationActionEvent,
 )
-from eimir.auth import recent_auth
 from eimir.config import get_settings
 from eimir.core.clock import now
-from eimir.identity.models import AccountEmail, DeviceSession
+from eimir.identity.models import AccountEmail
 from eimir.relationship import service as relationship
 from eimir.relationship.models import Membership, Space
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
@@ -46,19 +45,6 @@ def _admin(session: Session):  # type: ignore[no-untyped-def]
     )
     session.flush()
     return account, sign_in(session, account)
-
-
-def _grant_recent_admin_action(session: Session, account) -> None:  # type: ignore[no-untyped-def]
-    device_session = session.execute(
-        select(DeviceSession).where(DeviceSession.account_id == account.id)
-    ).scalar_one()
-    recent_auth.issue_grant(
-        session,
-        account,
-        device_session,
-        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
-        method=recent_auth.RecentAuthenticationMethod.LOCAL_PASSWORD,
-    )
 
 
 def _path(space_id) -> str:  # type: ignore[no-untyped-def]
@@ -95,34 +81,12 @@ def test_reconciliation_requires_server_admin(
     assert space.configuration_manager_account_id is None
 
 
-def test_reconciliation_requires_recent_admin_authentication(
-    client,
-    session: Session,
-    server_admin_allowlist,
-) -> None:
-    admin, token = _admin(session)
-    del admin
-    space, first, _ = _legacy_space(session)
-
-    response = client.post(
-        _path(space.id),
-        json={"accountId": str(first.id)},
-        headers=auth(token),
-    )
-
-    assert response.status_code == 403
-    assert response.json()["code"] == recent_auth.RecentAuthenticationErrorCode.REQUIRED
-    session.refresh(space)
-    assert space.configuration_manager_account_id is None
-
-
 def test_reconciliation_assigns_active_member_and_records_privileged_audit(
     client,
     session: Session,
     server_admin_allowlist,
 ) -> None:
     admin, token = _admin(session)
-    _grant_recent_admin_action(session, admin)
     space, first, second = _legacy_space(session)
 
     response = client.post(
@@ -166,8 +130,7 @@ def test_reconciliation_rejects_non_active_target_without_side_effects(
     session: Session,
     server_admin_allowlist,
 ) -> None:
-    admin, token = _admin(session)
-    _grant_recent_admin_action(session, admin)
+    _, token = _admin(session)
     space, _, second = _legacy_space(session)
     second_membership = session.execute(
         select(Membership).where(
@@ -204,8 +167,7 @@ def test_reconciliation_rejects_active_member_from_another_space(
     session: Session,
     server_admin_allowlist,
 ) -> None:
-    admin, token = _admin(session)
-    _grant_recent_admin_action(session, admin)
+    _, token = _admin(session)
     space, _, _ = _legacy_space(session)
     outsider = make_account(session, "Other Space member")
     make_space(session, outsider)
@@ -236,8 +198,7 @@ def test_reconciliation_never_overwrites_existing_authority(
     session: Session,
     server_admin_allowlist,
 ) -> None:
-    admin, token = _admin(session)
-    _grant_recent_admin_action(session, admin)
+    _, token = _admin(session)
     first = make_account(session, "Existing manager")
     second = make_account(session, "Other active partner")
     space = make_space(session, first)
@@ -262,8 +223,7 @@ def test_concurrent_reconciliation_has_exactly_one_winner(
 ) -> None:
     client, maker = production_client
     with maker() as setup:
-        admin, token = _admin(setup)
-        _grant_recent_admin_action(setup, admin)
+        _, token = _admin(setup)
         space, first, second = _legacy_space(setup)
         space_id = space.id
         first_id = first.id
@@ -359,8 +319,7 @@ def test_space_is_reconcilable_onto_the_remaining_partner_after_manager_exit(
     session: Session,
     server_admin_allowlist,
 ) -> None:
-    admin, admin_token = _admin(session)
-    _grant_recent_admin_action(session, admin)
+    _, admin_token = _admin(session)
     space, founder, partner = _new_space_with_partner(session)
     founder_token = sign_in(session, founder)
     partner_token = sign_in(session, partner)

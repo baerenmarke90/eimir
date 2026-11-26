@@ -15,6 +15,7 @@ export const SERVER_ADMIN_SECTIONS = [
   'settings',
   'activity',
   'monitoring',
+  'replyTemplates',
   'search',
 ] as const;
 
@@ -29,7 +30,7 @@ export const AREA_SECTIONS: Record<
 > = {
   situation: ['overview'],
   people: ['search', 'accounts', 'spaces'],
-  help: ['reports'],
+  help: ['reports', 'replyTemplates'],
   system: ['monitoring', 'jobs', 'storage', 'security', 'activity', 'settings'],
 };
 

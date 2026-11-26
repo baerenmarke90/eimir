@@ -3,12 +3,14 @@
 The routes read, triage, archive, delete and answer reports through the Core service interface
 ``eimir.support_reports.service``. Every route needs a ServerAdmin, answers
 ``Cache-Control: private, no-store`` and is a 404 while the operator has not
-enabled support reports, like the reporter's own endpoint. Changes need recent
-authentication and leave a content-free entry in the privileged audit: the
-action and the reporter's account, never the report or reply text.
+enabled support reports, like the reporter's own endpoint. Changes need no
+step-up re-authentication (#2312) and leave a content-free entry in the
+privileged audit: the action and the reporter's account, never the report or
+reply text.
 
-The list shows triage facts only. The note is read per report, in the detail,
-which names the reporter by the opaque account id and nothing else.
+The list shows triage facts and a note preview of at most 160 characters
+(#2327). The full note is read per report, in the detail, which names the
+reporter by the opaque account id and nothing else.
 """
 
 from __future__ import annotations
@@ -19,7 +21,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Query, Response, status
 from fastapi.responses import JSONResponse
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from eimir.administration import service as administration
@@ -45,11 +47,13 @@ from eimir_admin.api.models import (
     SupportReportListView,
     SupportReportOperatorReply,
     SupportReportReplyCreate,
+    SupportReportStateCounts,
     SupportReportStateUpdate,
     SupportReportTicketCreate,
     SupportReportTicketProblem,
     SupportReportTicketSummary,
 )
+from eimir_admin.api.preview import note_preview
 from eimir_admin.support_tickets import service as tickets
 from eimir_admin.support_tickets.models import SupportReportTicket, TicketState
 from eimir_admin.tracker.base import IssueTracker
@@ -114,7 +118,7 @@ def list_item(
     has_reply: bool,
     ticket: SupportReportTicket | None,
 ) -> SupportReportListItem:
-    """Triage facts of one report; the note is deliberately not read here."""
+    """Triage facts of one report and the start of its note, never the full note."""
     payload = report.payload
     return SupportReportListItem(
         id=report.id,
@@ -125,6 +129,9 @@ def list_item(
         failure_reference=payload.failure.reference if payload.failure else None,
         app_version=payload.client.app_version,
         build=payload.client.build,
+        platform=payload.client.platform,
+        os=payload.client.os,
+        note_preview=note_preview(payload.note),
         has_reply=has_reply,
         ticket=_ticket_summary(ticket),
     )
@@ -140,7 +147,7 @@ def detail_view(
     payload = report.payload
     item = list_item(report, has_reply=reply is not None, ticket=ticket)
     return SupportReportDetailView(
-        **item.model_dump(),
+        **item.model_dump(exclude={"note_preview"}),
         note=payload.note,
         request_id=payload.failure.request_id if payload.failure else None,
         client=ClientContextBody.model_validate(payload.client.model_dump()),
@@ -172,6 +179,21 @@ def _tickets_by_report(
         select(SupportReportTicket).where(SupportReportTicket.report_id.in_(report_ids))
     ).scalars()
     return {ticket.report_id: ticket for ticket in rows}
+
+
+def _state_counts(session: Session) -> SupportReportStateCounts:
+    """Unarchived reports per state in one grouped query."""
+    rows = session.execute(
+        select(SupportReport.state, func.count())
+        .where(SupportReport.archived_at.is_(None))
+        .group_by(SupportReport.state)
+    ).all()
+    counts = {state: count for state, count in rows}
+    return SupportReportStateCounts(
+        new=counts.get(SupportReportState.NEW.value, 0),
+        in_progress=counts.get(SupportReportState.IN_PROGRESS.value, 0),
+        closed=counts.get(SupportReportState.CLOSED.value, 0),
+    )
 
 
 def _ticket_available() -> bool:
@@ -218,7 +240,7 @@ def list_support_reports(
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     cursor: Annotated[str | None, Query(max_length=512)] = None,
 ) -> SupportReportListView:
-    """List reports newest first without note text.
+    """List reports newest first with a note preview, never the full note.
 
     Unarchived reports by default, the archived ones with ``archived=true``. The
     cursor is bound to the state filter and the archive view.
@@ -235,6 +257,7 @@ def list_support_reports(
         next_cursor=page.next_cursor,
         has_more=page.has_more,
         new_count=service.count_new(session),
+        state_counts=_state_counts(session),
     )
 
 

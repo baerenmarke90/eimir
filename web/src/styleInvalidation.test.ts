@@ -16,10 +16,12 @@ const SOURCE = __dirname;
  * Attributes that change with every tab park, swipe or slide. In a `:has()`
  * argument any of them makes each change re-check the ancestors' `:has()`
  * rules, and a non-subject `:has()` then restyles the whole document (on the
- * Pixel 2,016 elements in 58 ms at each swipe start).
+ * Pixel 2,016 elements in 58 ms at each swipe start). The press mirror
+ * (`useControlPressFeedback`) is set on the touched control at the start of
+ * every tap and of every swipe that begins on a control.
  */
 const TOGGLED =
-  /\[\s*(hidden|inert|aria-hidden|data-primary-tab-[\w-]+|data-navigation-[\w-]+|data-pages-moving)\b/;
+  /\[\s*(hidden|inert|aria-hidden|data-primary-tab-[\w-]+|data-navigation-[\w-]+|data-pages-moving|data-control-pressed)\b/;
 
 function stylesheets(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {

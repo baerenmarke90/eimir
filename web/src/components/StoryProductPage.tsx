@@ -4,9 +4,12 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Link,
+  type Location,
+  type NavigateFunction,
+  type SetURLSearchParams,
   useLocation,
   useNavigate,
   useSearchParams,
@@ -81,7 +84,7 @@ import {
 import type { StoryStartupReads } from '../client/storyStartup';
 import { useOpenTaskLink, useTaskOrigin } from '../client/taskOrigin';
 import { useDiaryLayout } from '../client/useDiaryLayout';
-import { useTaskListReturn } from '../client/useTaskListReturn';
+import { useTaskListReturnAt } from '../client/useTaskListReturn';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CoupleExperienceLinks } from './CoupleExperienceLinks';
 import { FirstStepAction } from './FirstStepAction';
@@ -119,7 +122,7 @@ import { DiaryList } from './DiaryList';
 import './StoryTaskFilters.css';
 import './StoryYearsPage.css';
 import type { MemoryMapSession } from '../client/memoryMapSession';
-import { useMemoryWorld } from '../client/memoryWorldContext';
+import { useMemoryWorldId } from '../client/memoryWorldContext';
 import { parseMapPlace } from '../client/photoPlaces';
 import { MemoryWorldView } from './memoryWorlds/MemoryWorldView';
 import { WorldEnter } from './memoryWorlds/WorldEnter';
@@ -153,18 +156,7 @@ function isStoryKind(value: string | null): value is StoryKindValue {
   );
 }
 
-export function StoryProductPage({
-  apis,
-  active: activeOverride,
-  accountId,
-  spaceId,
-  loadMemoryImage,
-  profilesApi,
-  dashboardApi,
-  recapsApi,
-  startupReads,
-  mapSession,
-}: {
+interface StoryProductPageProps {
   apis: ReferenceApis;
   /**
    * A kept or previewed panel retains its data while the active route owns
@@ -184,7 +176,68 @@ export function StoryProductPage({
   startupReads?: Extract<StoryStartupReads, { kind: 'diary' }>;
   /** The map's session memory: the Karte segment reopens its Place. */
   mapSession?: MemoryMapSession;
+}
+
+/**
+ * Reads the route for the page. React runs every component that reads the
+ * router's location again on each navigation in the app, also inside a kept
+ * tab whose own location did not change. Only this small component pays
+ * that; the page itself renders when what it is handed changes.
+ */
+export function StoryProductPage(props: StoryProductPageProps) {
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const origin = useTaskOrigin();
+  const openTaskLink = useOpenTaskLink();
+  return (
+    <StoryProductView
+      {...props}
+      location={location}
+      searchParams={searchParams}
+      setSearchParams={setSearchParams}
+      navigate={navigate}
+      origin={origin}
+      openTaskLink={openTaskLink}
+    />
+  );
+}
+
+const StoryProductView = memo(function StoryProductView({
+  apis,
+  active: activeOverride,
+  accountId,
+  spaceId,
+  loadMemoryImage,
+  profilesApi,
+  dashboardApi,
+  recapsApi,
+  startupReads,
+  mapSession,
+  location,
+  searchParams,
+  setSearchParams,
+  navigate,
+  origin,
+  openTaskLink: openDiscoverItem,
+}: StoryProductPageProps & {
+  location: Location;
+  searchParams: URLSearchParams;
+  setSearchParams: SetURLSearchParams;
+  navigate: NavigateFunction;
+  origin: ReturnType<typeof useTaskOrigin>;
+  /**
+   * Discover's featured highlight and tapestry links have no per-item
+   * loaded-range/scroll metadata to preserve (Discover is a single bounded
+   * fetch, not a paginated scope), but opening an item must still capture
+   * the exact tab+filter URL active at that moment. Without this, the
+   * TaskOrigin fallback for an uncaptured origin resets to bare `/story`
+   * on Back, which would silently discard a Timeline filter still parked
+   * in the URL while the user was merely looking at Discover.
+   */
+  openTaskLink: ReturnType<typeof useOpenTaskLink>;
 }) {
+  const { captureOrigin } = origin;
   const tabActive = usePrimaryTabActive();
   const active = activeOverride ?? tabActive;
   const rootIntro = useRootTabIntro<HTMLDivElement>('story');
@@ -207,22 +260,8 @@ export function StoryProductPage({
   }, [scope]);
   const { nicknameFor } = usePartnerNickname();
   const layout = useAppLayout();
-  const location = useLocation();
   const saved =
     active && Boolean((location.state as { saved?: boolean } | null)?.saved);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const { captureOrigin } = useTaskOrigin();
-  /**
-   * Discover's featured highlight and tapestry links have no per-item
-   * loaded-range/scroll metadata to preserve (Discover is a single bounded
-   * fetch, not a paginated scope), but opening an item must still capture
-   * the exact tab+filter URL active at that moment. Without this, the
-   * TaskOrigin fallback for an uncaptured origin resets to bare `/story`
-   * on Back, which would silently discard a Timeline filter still parked
-   * in the URL while the user was merely looking at Discover.
-   */
-  const openDiscoverItem = useOpenTaskLink();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const filterSheetRef = useRef<ShortTaskSheetHandle>(null);
   const filterTriggerRef = useRef<HTMLButtonElement>(null);
@@ -462,7 +501,7 @@ export function StoryProductPage({
   const timelineMonthsRef = useRef<HTMLDivElement>(null);
   const paginationSentinelRef = useRef<HTMLDivElement>(null);
   const loadedPageCount = storyQuery.data?.pages.length ?? 1;
-  const restoringTimeline = useTaskListReturn({
+  const restoringTimeline = useTaskListReturnAt(location, origin, {
     ready:
       active &&
       (activeView === 'timeline'
@@ -495,7 +534,7 @@ export function StoryProductPage({
   const discoverError =
     discoverQuery.error ?? (discoverDenied ? renewProblem : null);
   const featuredItem = discoverQuery.data?.value.lead ?? null;
-  const memoryWorld = useMemoryWorld()?.world ?? 'story';
+  const memoryWorld = useMemoryWorldId() ?? 'story';
   const leadContext = discoverQuery.data?.value.leadContext ?? null;
   const locale = resolvedLocale();
   // Only show the anniversary label when the selection matches the viewer day.
@@ -1398,4 +1437,4 @@ export function StoryProductPage({
       </div>
     </div>
   );
-}
+});

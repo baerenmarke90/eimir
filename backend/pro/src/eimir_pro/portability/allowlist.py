@@ -280,6 +280,8 @@ EXCLUDED_TABLES: dict[str, str] = {
     # Operator-side technical link of a support report to the operator's ticket (#2189). It is
     # not personal content of the reporter, so it stays out of the personal data copy (#2245).
     "support_report_tickets": "Operator-side ticket link of a report; not the person's content.",
+    # The operator's reply templates (#2327): operator text shared by all ServerAdmins.
+    "support_reply_templates": "Operator's reply templates; operator text, not a person's content.",
     # The Transfer Bundle's own tables (feature removed by Decision 0020).
     "transfer_exports": "Transfer Bundle bookkeeping of the removed self-service feature.",
     "transfer_imports": "Transfer Bundle bookkeeping of the removed self-service feature.",

@@ -10,8 +10,10 @@ import {
 } from 'react';
 import {
   type Location,
+  NavigationType,
   Route,
   Routes,
+  UNSAFE_LocationContext as RouterLocationContext,
   useLocation,
   useNavigationType,
 } from 'react-router-dom';
@@ -236,6 +238,12 @@ function resetWirCarousels(panel: Element | null) {
 /**
  * The tab's routed page. It depends only on the location the tab sees, so
  * showing, hiding or peeking the tab never renders the page again.
+ *
+ * `Routes` reads the router's location even when it is given its own, and
+ * hands its routes a new location context each time it renders. Without the
+ * provider here every navigation in the app would therefore render every
+ * page, link and route hook of every kept tab. The provider gives `Routes`
+ * the location the tab sees, which is also the one it passes on.
  */
 const KeptRoute = memo(function KeptRoute({
   path,
@@ -246,10 +254,16 @@ const KeptRoute = memo(function KeptRoute({
   element: ReactNode;
   location: Location;
 }) {
+  const seen = useMemo(
+    () => ({ location, navigationType: NavigationType.Pop }),
+    [location],
+  );
   return (
-    <Routes location={location}>
-      <Route path={path} element={element} />
-    </Routes>
+    <RouterLocationContext.Provider value={seen}>
+      <Routes location={location}>
+        <Route path={path} element={element} />
+      </Routes>
+    </RouterLocationContext.Provider>
   );
 });
 

@@ -1,5 +1,6 @@
 import {
   type MouseEvent,
+  memo,
   type ReactNode,
   useEffect,
   useId,
@@ -7,7 +8,13 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Link,
+  type Location,
+  type NavigateFunction,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
@@ -281,16 +288,7 @@ function PlanenPanel({
   );
 }
 
-export function SharedPlanningOverviewPage({
-  active: activeOverride,
-  apis,
-  spaceId,
-  apiBaseUrl,
-  accessToken,
-  peopleApi,
-  profilesApi,
-  accountId,
-}: {
+interface SharedPlanningOverviewPageProps {
   /** Defaults to the kept tab's own state (`usePrimaryTabActive`). */
   active?: boolean;
   peopleApi?: PeopleApi;
@@ -300,16 +298,52 @@ export function SharedPlanningOverviewPage({
   accountId?: string;
   apiBaseUrl?: string;
   accessToken?: string;
+}
+
+/**
+ * Reads the route for the page. React runs every component that reads the
+ * router's location again on each navigation in the app, also inside a kept
+ * tab whose own location did not change. Only this small component pays
+ * that; the page itself renders when what it is handed changes.
+ */
+export function SharedPlanningOverviewPage(
+  props: SharedPlanningOverviewPageProps,
+) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const origin = useTaskOrigin();
+  return (
+    <SharedPlanningOverviewView
+      {...props}
+      location={location}
+      navigate={navigate}
+      origin={origin}
+    />
+  );
+}
+
+const SharedPlanningOverviewView = memo(function SharedPlanningOverviewView({
+  active: activeOverride,
+  apis,
+  spaceId,
+  apiBaseUrl,
+  accessToken,
+  peopleApi,
+  profilesApi,
+  accountId,
+  location,
+  navigate,
+  origin: { captureOrigin, registerOriginMetadata, resolveOrigin },
+}: SharedPlanningOverviewPageProps & {
+  location: Location;
+  navigate: NavigateFunction;
+  origin: ReturnType<typeof useTaskOrigin>;
 }) {
   const tabActive = usePrimaryTabActive();
   const active = activeOverride ?? tabActive;
   const rootIntro = useRootTabIntro<HTMLDivElement>('plan');
   const { t } = useTranslation();
   const layout = useAppLayout();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { captureOrigin, registerOriginMetadata, resolveOrigin } =
-    useTaskOrigin();
   const wishesTabId = useId();
   const plansTabId = useId();
   const wishesPanelId = useId();
@@ -1399,4 +1433,4 @@ export function SharedPlanningOverviewPage({
       </PlanenPanel>
     </div>
   );
-}
+});

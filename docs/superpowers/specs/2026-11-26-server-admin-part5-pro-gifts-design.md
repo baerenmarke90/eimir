@@ -1,8 +1,8 @@
 # ServerAdmin part 5: Pro overview and eimir. gift codes
 
-**Status:** draft for Product Owner approval. **Umbrella:** #2314,
+**Status:** approved by the Product Owner on 2026-11-26. **Umbrella:** #2314,
 [ServerAdmin redesign design](2026-11-26-server-admin-redesign-design.md) §5.5.
-**Sub-issue:** to be created with this design, the Mobile Interaction Contract and the copy.
+**Sub-issue:** #2328 (Mobile Interaction Contract, baseline review and copy).
 **Baseline:** `main` at `fbb60cf3b`. **Visual reference:** board
 `docs/product/design/references/server-admin-redesign/04-pro-vouchers-compact.png` without its
 "Google Play-Codes" card. **In flight next to this part:** part 3 (#2326, migration 0182, matrix

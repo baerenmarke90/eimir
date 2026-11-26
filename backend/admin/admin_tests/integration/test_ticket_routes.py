@@ -25,10 +25,9 @@ from eimir_admin.support_tickets.models import SupportReportTicket, TicketState
 from eimir_admin.tracker.base import TicketRef, TrackerError
 
 from eimir.administration.models import AdministrationAction, InstanceAdministrationActionEvent
-from eimir.auth import recent_auth
 from eimir.config import get_settings
 from eimir.core.clock import now
-from eimir.identity.models import Account, AccountEmail, DeviceSession
+from eimir.identity.models import Account, AccountEmail
 from eimir.support_reports import service
 from eimir.support_reports.models import SupportReport, SupportReportKind
 from eimir.support_reports.payload import (
@@ -95,24 +94,13 @@ def reports_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     get_settings.cache_clear()
 
 
-def _operator(session: Session, *, recent: bool) -> tuple[Account, str]:
+def _operator(session: Session) -> tuple[Account, str]:
     account = make_account(session, "Support operator")
     session.add(
         AccountEmail(account_id=account.id, email=ADMIN_EMAIL, is_primary=True, verified_at=now())
     )
     session.flush()
     token = sign_in(session, account)
-    if recent:
-        device_session = session.execute(
-            select(DeviceSession).where(DeviceSession.account_id == account.id)
-        ).scalar_one()
-        recent_auth.issue_grant(
-            session,
-            account,
-            device_session,
-            purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
-            method=recent_auth.RecentAuthenticationMethod.LOCAL_PASSWORD,
-        )
     return account, token
 
 
@@ -177,7 +165,7 @@ def _delete(client: Any, token: str, report_id: object) -> Any:
 def test_create_ticket_happy_path_records_audit(
     client: Any, session: Session, tracker: FakeTracker
 ) -> None:
-    operator, token = _operator(session, recent=True)
+    operator, token = _operator(session)
     report = _report(session)
 
     response = _post(client, token, report.id)
@@ -215,7 +203,7 @@ def test_create_ticket_happy_path_records_audit(
 def test_body_never_contains_stored_note_or_reply(
     client: Any, session: Session, tracker: FakeTracker
 ) -> None:
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
     report = _report(session, note=SECRET_NOTE)
     service.send_reply(session, report_id=report.id, text=SECRET_REPLY, operator_id=None)
 
@@ -239,7 +227,7 @@ def test_body_never_contains_stored_note_or_reply(
 def test_second_create_returns_conflict_with_existing_link_and_no_second_call(
     client: Any, session: Session, tracker: FakeTracker
 ) -> None:
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
     report = _report(session)
     first = _post(client, token, report.id)
 
@@ -258,7 +246,7 @@ def test_second_create_returns_conflict_with_existing_link_and_no_second_call(
 def test_tracker_failure_leaves_pending_row_and_502(
     client: Any, session: Session, tracker: FakeTracker
 ) -> None:
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
     report = _report(session)
     tracker.error = TrackerError("tracker rejected the request (HTTP 503)", retryable=True)
 
@@ -283,7 +271,7 @@ def test_tracker_failure_leaves_pending_row_and_502(
 def test_retry_after_failure_is_refused_until_cleared(
     client: Any, session: Session, tracker: FakeTracker
 ) -> None:
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
     report = _report(session)
     tracker.error = TrackerError("timeout", retryable=True)
     assert _post(client, token, report.id).status_code == 502
@@ -309,7 +297,7 @@ def test_retry_after_failure_is_refused_until_cleared(
 def test_clear_deletes_row_and_records_audit(
     client: Any, session: Session, tracker: FakeTracker
 ) -> None:
-    operator, token = _operator(session, recent=True)
+    operator, token = _operator(session)
     report = _report(session)
     assert _post(client, token, report.id).status_code == 201
 
@@ -331,7 +319,7 @@ def test_clear_deletes_row_and_records_audit(
 
 
 def test_not_configured_is_409_and_hides_button_flag(client: Any, session: Session) -> None:
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
     report = _report(session)
 
     response = _post(client, token, report.id)
@@ -344,7 +332,7 @@ def test_not_configured_is_409_and_hides_button_flag(client: Any, session: Sessi
 
 
 def test_title_and_body_limits(client: Any, session: Session, tracker: FakeTracker) -> None:
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
     report = _report(session)
 
     refused = [
@@ -376,7 +364,7 @@ def test_title_and_body_limits(client: Any, session: Session, tracker: FakeTrack
 def test_report_deleted_while_pending_is_404(
     client: Any, session: Session, tracker: FakeTracker
 ) -> None:
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
     report = _report(session)
     report_id = report.id
 
@@ -423,32 +411,13 @@ def test_a_foreign_key_violation_on_the_reservation_is_a_missing_report(session:
 def test_unknown_report_is_404_without_calling_the_tracker(
     client: Any, session: Session, tracker: FakeTracker
 ) -> None:
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
 
     for identifier in (uuid4(), "not-a-uuid", "0"):
         for response in (_post(client, token, identifier), _delete(client, token, identifier)):
             assert response.status_code == 404, identifier
             assert response.json()["code"] == service.REPORT_NOT_FOUND
     assert tracker.calls == []
-
-
-def test_stale_authentication_is_refused(
-    client: Any, session: Session, tracker: FakeTracker
-) -> None:
-    _, token = _operator(session, recent=False)
-    report = _report(session)
-    session.add(SupportReportTicket(report_id=report.id, tracker="github", state="PENDING"))
-    session.flush()
-
-    create = _post(client, token, uuid4())
-    clear = _delete(client, token, report.id)
-
-    for response in (create, clear):
-        assert response.status_code == 403
-        assert response.json()["code"] == recent_auth.RecentAuthenticationErrorCode.REQUIRED
-    assert tracker.calls == []
-    assert len(_links(session, report.id)) == 1
-    assert _audit(session, AdministrationAction.SUPPORT_REPORT_TICKET_CLEARED) == []
 
 
 def test_non_admin_is_403(client: Any, session: Session, tracker: FakeTracker) -> None:
@@ -473,7 +442,7 @@ def test_anonymous_is_401(client: Any, session: Session, tracker: FakeTracker) -
 
 @pytest.mark.usefixtures("reports_disabled")
 def test_feature_off_is_404(client: Any, session: Session, tracker: FakeTracker) -> None:
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
     report = _report(session)
 
     for response in (_post(client, token, report.id), _delete(client, token, report.id)):
@@ -485,7 +454,7 @@ def test_feature_off_is_404(client: Any, session: Session, tracker: FakeTracker)
 def test_the_token_never_appears_in_any_response(
     client: Any, session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
     report = _report(session)
     monkeypatch.setenv("EIMIR_ADMIN_TRACKER", "github")
     monkeypatch.setenv("EIMIR_ADMIN_GITHUB_REPOSITORY", "example/tickets")
@@ -509,7 +478,7 @@ def test_the_token_never_appears_in_any_response(
 
 def _committed_setup(maker: sessionmaker[Session]) -> tuple[str, UUID]:
     with maker() as setup:
-        _, token = _operator(setup, recent=True)
+        _, token = _operator(setup)
         report_id = _report(setup).id
         setup.commit()
     return token, report_id
@@ -575,7 +544,7 @@ def test_two_concurrent_creates_call_the_tracker_once(
 def test_outcomes_are_logged_without_any_text(
     client: Any, session: Session, tracker: FakeTracker, caplog: pytest.LogCaptureFixture
 ) -> None:
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
     report = _report(session, note=SECRET_NOTE)
     service.send_reply(session, report_id=report.id, text=SECRET_REPLY, operator_id=None)
     failing = _report(session)
@@ -608,7 +577,7 @@ def test_reply_to_a_reporter_without_membership_stores_it_and_sends_no_notice(
     from eimir.outbox.models import OutboxEvent
     from eimir.relationship.models import Membership
 
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
     report = _report(session)
     memberships = session.execute(
         select(Membership).where(Membership.account_id == report.account_id)

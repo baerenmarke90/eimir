@@ -10,25 +10,6 @@ import { ClientProblemError } from '../client/problemDetails';
 import serverAdmin from '../i18n/locales/serverAdmin';
 import { ServerAdminAccountsPanel } from './ServerAdminAccountsPanel';
 
-vi.mock('./ServerAdminRecentAuthModal', () => ({
-  ServerAdminRecentAuthModal: ({
-    onSuccess,
-    onCancel,
-  }: {
-    onSuccess: () => void;
-    onCancel: () => void;
-  }) => (
-    <div role="dialog" aria-label="ServerAdmin step-up">
-      <button type="button" onClick={onSuccess}>
-        Complete step-up
-      </button>
-      <button type="button" onClick={onCancel}>
-        Cancel step-up
-      </button>
-    </div>
-  ),
-}));
-
 const accountId = '00000000-0000-0000-0000-000000000101';
 const emailId = '00000000-0000-0000-0000-000000000102';
 const targetEmail = 'target@example.test';
@@ -61,14 +42,6 @@ const accountDetail: ServerAdminAccountDetail = {
   mailRecoveryAvailable: false,
   passkeyCount: 0,
 };
-
-function stepUpRequired() {
-  return new ClientProblemError(
-    'permission',
-    403,
-    'RECENT_AUTHENTICATION_REQUIRED',
-  );
-}
 
 function renderPanel({
   verifyEmail = vi.fn(),
@@ -114,12 +87,7 @@ function renderPanel({
   render(
     <MemoryRouter>
       <QueryClientProvider client={queryClient}>
-        <ServerAdminAccountsPanel
-          api={api}
-          apiBaseUrl="https://api.example.test"
-          accessToken="admin-token"
-          onOverviewChanged={vi.fn()}
-        />
+        <ServerAdminAccountsPanel api={api} onOverviewChanged={vi.fn()} />
       </QueryClientProvider>
     </MemoryRouter>,
   );
@@ -152,7 +120,7 @@ beforeEach(() => {
 
 afterEach(() => vi.restoreAllMocks());
 
-describe('ServerAdminAccountsPanel recent-auth integration', () => {
+describe('ServerAdminAccountsPanel privileged actions', () => {
   it('requests normal verification for the unverified primary email', async () => {
     const verificationRequest = vi.fn().mockResolvedValue(undefined);
     renderPanel({ verificationRequest });
@@ -194,16 +162,14 @@ describe('ServerAdminAccountsPanel recent-auth integration', () => {
     ).toBeTruthy();
   });
 
-  it('retries the exact email verification after successful step-up', async () => {
-    const verifyEmail = vi
-      .fn()
-      .mockRejectedValueOnce(stepUpRequired())
-      .mockResolvedValueOnce({
-        ...accountDetail.emails[0],
-        verifiedAt: new Date('2026-09-19T18:00:00Z'),
-      });
+  it('verifies the email directly without a step-up dialog', async () => {
+    const verifyEmail = vi.fn().mockResolvedValueOnce({
+      ...accountDetail.emails[0],
+      verifiedAt: new Date('2026-09-19T18:00:00Z'),
+    });
     const rendered = renderPanel({ verifyEmail });
     await openAccountDetail();
+    const reloadsBefore = rendered.loadAccount.mock.calls.length;
 
     const confirmation = screen.getByLabelText(
       serverAdmin.accounts.detail.typeEmailToVerify,
@@ -215,32 +181,21 @@ describe('ServerAdminAccountsPanel recent-auth integration', () => {
       }),
     );
 
-    await screen.findByRole('dialog', { name: 'ServerAdmin step-up' });
-    expect(verifyEmail).toHaveBeenCalledTimes(1);
-
-    const reloadsBeforeRetry = rendered.loadAccount.mock.calls.length;
-    fireEvent.click(screen.getByRole('button', { name: 'Complete step-up' }));
-
-    await waitFor(() => expect(verifyEmail).toHaveBeenCalledTimes(2));
-    expect(verifyEmail.mock.calls[1]?.[0]).toEqual(
-      verifyEmail.mock.calls[0]?.[0],
-    );
+    await waitFor(() => expect(verifyEmail).toHaveBeenCalledTimes(1));
     await waitFor(() =>
       expect(rendered.loadAccount.mock.calls.length).toBeGreaterThan(
-        reloadsBeforeRetry,
+        reloadsBefore,
       ),
     );
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('retries operator recovery after successful step-up', async () => {
+  it('issues operator recovery directly without a step-up dialog', async () => {
     const recoveryProof = {
       expiresAt: new Date('2026-09-19T18:10:00Z'),
       recoveryUrl: 'https://example.test/recovery/proof',
     };
-    const operatorRecovery = vi
-      .fn()
-      .mockRejectedValueOnce(stepUpRequired())
-      .mockResolvedValueOnce(recoveryProof);
+    const operatorRecovery = vi.fn().mockResolvedValueOnce(recoveryProof);
     renderPanel({ operatorRecovery });
     await openAccountDetail();
 
@@ -250,16 +205,9 @@ describe('ServerAdminAccountsPanel recent-auth integration', () => {
       }),
     );
 
-    await screen.findByRole('dialog', { name: 'ServerAdmin step-up' });
-    expect(operatorRecovery).toHaveBeenCalledTimes(1);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Complete step-up' }));
-
-    await waitFor(() => expect(operatorRecovery).toHaveBeenCalledTimes(2));
-    expect(operatorRecovery.mock.calls[1]?.[0]).toEqual(
-      operatorRecovery.mock.calls[0]?.[0],
-    );
     await screen.findByDisplayValue(recoveryProof.recoveryUrl);
+    expect(operatorRecovery).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('opens deletion dialog when delete account button is clicked', async () => {

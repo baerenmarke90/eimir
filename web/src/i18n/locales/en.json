@@ -5118,19 +5118,6 @@
       "unavailable": "Unavailable",
       "updateError": "The setting could not be saved."
     },
-    "stepUp": {
-      "eyebrow": "Security check",
-      "title": "Confirm your identity again",
-      "intro": "This privileged action needs a recent confirmation of your identity. Approval is brief and applies only to this server administrator session.",
-      "passwordLabel": "Password",
-      "passwordAction": "Confirm with password",
-      "passkeyAction": "Confirm with passkey",
-      "oidcAction": "Confirm with OIDC",
-      "loading": "Checking available sign-in methods …",
-      "pending": "Confirming identity …",
-      "unavailable": "No suitable method for renewed confirmation is currently available for this server administrator account.",
-      "cancel": "Cancel"
-    },
     "accounts": {
       "title": "User management",
       "body": "Manage account and sign-in status without accessing private relationship content.",
@@ -5205,7 +5192,7 @@
       },
       "deletionDialog": {
         "title": "Delete account irreversibly",
-        "stage1Eyebrow": "Step 1 of 3 · Consequences",
+        "stage1Eyebrow": "Step 1 of 2 · Consequences",
         "stage1Title": "Review account deletion consequences",
         "stage1Intro": "Account deletion uses the authoritative #520 lifecycle. Please review these consequences before continuing:",
         "consequenceAccess": "Access to this account ends immediately and permanently.",
@@ -5214,9 +5201,8 @@
         "consequenceSharedHistory": "Shared content in spaces follows existing retention and shared-history rules.",
         "consequenceAsync": "Asynchronous cleanup and convergence continue in the background.",
         "consequenceIrreversible": "This deletion is permanent and cannot be undone.",
-        "proceedToAuth": "Continue to authentication",
-        "stage2Eyebrow": "Step 2 of 3 · Security check",
-        "stage3Eyebrow": "Step 3 of 3 · Confirmation",
+        "proceedToConfirm": "Continue to confirmation",
+        "stage3Eyebrow": "Step 2 of 2 · Confirmation",
         "stage3Title": "Confirm deletion by typing",
         "stage3Instruction": "Enter the following text exactly to confirm:",
         "stage3InputLabel": "Confirmation text",

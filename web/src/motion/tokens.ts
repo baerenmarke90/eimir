@@ -24,6 +24,7 @@ export type DurationRole =
   | 'map-stack'
   | 'controls-return'
   | 'sequence-beat'
+  | 'module-enter'
   | 'send-flight'
   | 'gesture-moment'
   | 'gesture-sequence'

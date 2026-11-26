@@ -1,5 +1,8 @@
 import { type RefObject, useLayoutEffect, useRef } from 'react';
-import { setPrimaryTabPeek } from '../client/primaryTabPeek';
+import {
+  type PrimaryTabPeekGeometry,
+  setPrimaryTabPeek,
+} from '../client/primaryTabPeek';
 import { PRIMARY_APP_ROUTES, primaryTabIndex } from '../client/routes';
 import { isDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import {
@@ -16,12 +19,12 @@ import {
   prefersReducedMotion,
   subscribeReducedMotion,
 } from '../motion/reducedMotion';
-import { run } from '../motion/run';
 import {
   crossfade,
   type NavigateDirection,
   navigate as navigateMotion,
 } from '../motion/replace';
+import { run } from '../motion/run';
 
 const EDGE_INSET = 24;
 const ENTRY_OPACITY = 0.92;
@@ -177,6 +180,17 @@ function settlePages(
 
 const OPEN_OVERLAY = 'dialog[open], [aria-modal="true"], [role="menu"]';
 
+/** The main column a revealed neighbour is laid into, in page coordinates. */
+function peekGeometry(surface: HTMLElement): PrimaryTabPeekGeometry {
+  const box = surface.getBoundingClientRect();
+  const paddingTop = Number.parseFloat(getComputedStyle(surface).paddingTop);
+  return {
+    left: box.left,
+    width: box.width,
+    origin: box.top + window.scrollY + (paddingTop || 0),
+  };
+}
+
 function editingActive(): boolean {
   return Boolean(
     isDocumentLeaveBlocked() ||
@@ -295,6 +309,22 @@ function trackMotion(
  * never the main shell, so fixed actions stay fixed and scroll restoration
  * keeps its own coordinates.
  */
+/**
+ * Mirrors "pages move sideways" (a swipe or a slide) onto the shell, so the
+ * bar and the content column style themselves from one attribute on an
+ * ancestor. A `:has()` on the surface's attributes would make every swipe
+ * re-check the ancestors' `:has()` rules and restyle the whole document.
+ */
+function syncPagesMoving(surface: HTMLElement): void {
+  surface
+    .closest('.product-shell')
+    ?.toggleAttribute(
+      'data-pages-moving',
+      surface.hasAttribute('data-primary-tab-dragging') ||
+        surface.hasAttribute('data-navigation-slide'),
+    );
+}
+
 function animatePageSlide(
   surface: HTMLElement,
   owner: RefObject<(() => void) | null>,
@@ -305,18 +335,21 @@ function animatePageSlide(
   // The page is positioned while `data-navigation-slide` is set (shell.css),
   // so set it before the first frame of the offset.
   surface.dataset.navigationSlide = 'true';
+  syncPagesMoving(surface);
   const animation = navigateMotion(page, direction, {
     offset:
       direction === 'next' || direction === 'previous' ? 'slide' : 'inset',
   });
   if (!animation) {
     delete surface.dataset.navigationSlide;
+    syncPagesMoving(surface);
     return false;
   }
   // Clip the page's visual bounds for the complete animation, including after
   // touchend has released the drag state.
   trackMotion(animation, owner, () => {
     delete surface.dataset.navigationSlide;
+    syncPagesMoving(surface);
   });
   return true;
 }
@@ -489,8 +522,10 @@ export function useNavigationMotion({
     let reducedMotion = prefersReducedMotion();
     const applyDrag = (drag: Gesture) => {
       if (reducedMotion) return;
-      if (!surface.hasAttribute('data-primary-tab-dragging'))
+      if (!surface.hasAttribute('data-primary-tab-dragging')) {
         surface.dataset.primaryTabDragging = 'true';
+        syncPagesMoving(surface);
+      }
       surface.style.setProperty('--primary-tab-offset', `${drag.offset}px`);
       surface.style.setProperty(
         '--primary-tab-peek-offset',
@@ -501,6 +536,7 @@ export function useNavigationMotion({
       if (frame) window.cancelAnimationFrame(frame);
       frame = 0;
       delete surface.dataset.primaryTabDragging;
+      syncPagesMoving(surface);
       surface.style.removeProperty('--primary-tab-offset');
       surface.style.removeProperty('--primary-tab-peek-offset');
       setPrimaryTabPeek(null);
@@ -612,7 +648,8 @@ export function useNavigationMotion({
         event.touches.length !== 1 ||
         !touch ||
         touch.identifier !== gesture.id ||
-        editingActive() ||
+        // Editing is checked at the start and the release, not per sample:
+        // reading the selection forces style and layout on every move.
         Math.abs(window.scrollY - gesture.scrollY) > 1
       ) {
         abortGesture();
@@ -661,9 +698,10 @@ export function useNavigationMotion({
       const peek = reducedMotion ? null : (neighbour?.path ?? null);
       if (gesture.peek !== peek) {
         gesture.peek = peek;
-        // Make the neighbour measurable when React reveals it, before paint.
+        // Measure the column while layout is still clean, then reveal.
+        const geometry = peek ? peekGeometry(surface) : null;
         applyDrag(gesture);
-        setPrimaryTabPeek(peek);
+        setPrimaryTabPeek(peek, geometry);
       } else if (!reducedMotion && !frame)
         frame = window.requestAnimationFrame(() => {
           frame = 0;

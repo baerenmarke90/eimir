@@ -131,27 +131,37 @@ function PageMotionHarness({
     onNavigate,
   });
   return (
-    <main ref={ref} data-testid="motion-surface">
-      <div className="primary-tab-panel" data-primary-tab-prewarm="true" inert>
-        <section className="page">
-          <div className="ui-state-loading">Preparing the map</div>
-        </section>
-      </div>
-      {peek ? (
-        <div className="primary-tab-panel" data-primary-tab-peek="true">
-          <section className="page" data-testid="peek-page" data-peek={peek} />
+    <div className="product-shell" data-testid="shell">
+      <main ref={ref} data-testid="motion-surface">
+        <div
+          className="primary-tab-panel"
+          data-primary-tab-prewarm="true"
+          inert
+        >
+          <section className="page">
+            <div className="ui-state-loading">Preparing the map</div>
+          </section>
         </div>
-      ) : null}
-      <section className="page" data-testid="motion-page">
-        {loading ? (
-          <div className="ui-state-loading" role="status">
-            Loading destination
+        {peek ? (
+          <div className="primary-tab-panel" data-primary-tab-peek="true">
+            <section
+              className="page"
+              data-testid="peek-page"
+              data-peek={peek}
+            />
           </div>
-        ) : (
-          <p data-testid="motion-reading">Shared content</p>
-        )}
-      </section>
-    </main>
+        ) : null}
+        <section className="page" data-testid="motion-page">
+          {loading ? (
+            <div className="ui-state-loading" role="status">
+              Loading destination
+            </div>
+          ) : (
+            <p data-testid="motion-reading">Shared content</p>
+          )}
+        </section>
+      </main>
+    </div>
   );
 }
 
@@ -252,6 +262,10 @@ describe('primary tab slide feedback', () => {
     });
     // The page follows the finger one to one and the next tab travels beside it.
     expect(surface.getAttribute('data-primary-tab-dragging')).toBe('true');
+    // The shell carries the moving state itself (no `:has()` on the surface).
+    expect(screen.getByTestId('shell').hasAttribute('data-pages-moving')).toBe(
+      true,
+    );
     expect(surface.style.getPropertyValue('--primary-tab-offset')).toBe(
       '-190px',
     );
@@ -309,6 +323,9 @@ describe('primary tab slide feedback', () => {
     expect(currentAnimate).toHaveBeenCalledTimes(1);
     expect(surface.hasAttribute('data-primary-tab-dragging')).toBe(false);
     expect(surface.hasAttribute('data-navigation-slide')).toBe(false);
+    expect(screen.getByTestId('shell').hasAttribute('data-pages-moving')).toBe(
+      false,
+    );
     expect(screen.queryByTestId('peek-page')).toBeNull();
     expect(currentSettle.cancel).toHaveBeenCalled();
     view.unmount();

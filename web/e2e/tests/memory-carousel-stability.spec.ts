@@ -18,6 +18,7 @@ import {
   installMediaOwnershipMetrics,
   mediaOwnershipMetrics,
 } from '../support/mediaOwnershipMetrics';
+import { fulfillMomenteReadAhead } from '../support/momenteReadAhead';
 import {
   installNativeAppLifecycle,
   nativeAppState,
@@ -554,6 +555,7 @@ async function installApiMocks(
     }
 
     if (await fulfillNoOccasionSources(route)) return;
+    if (await fulfillMomenteReadAhead(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {

@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { useEffect } from 'react';
 import {
@@ -12,7 +14,11 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { setPrimaryTabPeek } from '../client/primaryTabPeek';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
+import * as stageModule from '../motion/stage';
 import { PrimaryTabPanels } from './PrimaryTabPanels';
+
+/** The column the swipe gesture measures before it reveals a tab. */
+const PEEK_GEOMETRY = { left: 0, width: 390, origin: 0 };
 
 let navigate: ReturnType<typeof useNavigate>;
 let openTab: ReturnType<typeof usePrimaryNavigation>['navigatePrimary'];
@@ -42,7 +48,13 @@ function Navigator() {
   return null;
 }
 
-function Harness({ prewarm }: { prewarm?: readonly string[] }) {
+function Harness({
+  prewarm,
+  prewarmNeighbours,
+}: {
+  prewarm?: readonly string[];
+  prewarmNeighbours?: boolean;
+}) {
   return (
     <MemoryRouter initialEntries={['/today']}>
       <TaskOriginProvider accountId="account" spaceId="space">
@@ -50,6 +62,7 @@ function Harness({ prewarm }: { prewarm?: readonly string[] }) {
         <PrimaryTabPanels
           fallback={<p>failed</p>}
           prewarm={prewarm}
+          prewarmNeighbours={prewarmNeighbours}
           panels={[
             { path: '/today', element: <Page name="today" /> },
             { path: '/story', element: <Page name="story" /> },
@@ -106,18 +119,18 @@ it('mounts a tab on its first visit and keeps it mounted while hidden', async ()
 it('reveals Lists during the swipe and releases it when its route is left', async () => {
   const lists = '/more/collections';
   render(<Harness />);
-  await act(() => setPrimaryTabPeek(lists));
-  expect(panel(lists)?.hasAttribute('inert')).toBe(true);
+  await act(() => setPrimaryTabPeek(lists, PEEK_GEOMETRY));
+  expect(panel(lists)?.getAttribute('aria-hidden')).toBe('true');
   await act(() => setPrimaryTabPeek(null));
   expect(panel(lists)).toBeNull();
 
-  await act(() => setPrimaryTabPeek(lists));
+  await act(() => setPrimaryTabPeek(lists, PEEK_GEOMETRY));
   const preview = screen.getByTestId('lists-search');
   await act(() => navigate(`${lists}?scope=ALL`));
   await act(() => setPrimaryTabPeek(null));
   expect(screen.getByTestId('lists-search')).toBe(preview);
   expect(preview.textContent).toBe('?scope=ALL');
-  expect(panel(lists)?.hasAttribute('inert')).toBe(false);
+  expect(panel(lists)?.hasAttribute('aria-hidden')).toBe(false);
 
   await act(() => navigate('/plan/collections/new'));
   expect(panel(lists)).toBeNull();
@@ -133,7 +146,7 @@ it('keeps mounted route consumers at rest while a visited tab is previewed and d
   await act(() => navigate('/plan'));
   renders.length = 0;
 
-  await act(() => setPrimaryTabPeek('/story'));
+  await act(() => setPrimaryTabPeek('/story', PEEK_GEOMETRY));
   const previewRenders = renders.splice(0);
   await act(() => setPrimaryTabPeek(null));
   expect({ previewRenders, cancelRenders: renders }).toEqual({
@@ -179,6 +192,8 @@ function addCarousel(
     },
   });
   panel(path)?.appendChild(carousel);
+  // A track that moved reports it, as in a browser.
+  if (scrollLeft > 0) carousel.dispatchEvent(new Event('scroll'));
   return carousel;
 }
 
@@ -213,11 +228,45 @@ it('resets Wir tracks without reading unrelated content on peek or selection', a
   const readOffset = vi.fn(() => 0);
   Object.defineProperty(card, 'scrollLeft', { get: readOffset });
   await act(() => navigate('/story'));
-  await act(() => setPrimaryTabPeek('/today'));
+  await act(() => setPrimaryTabPeek('/today', PEEK_GEOMETRY));
+  // The reset joins the next frame's layout pass.
+  await act(
+    () =>
+      new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+  );
   expect(lists.scrollLeft).toBe(0);
   await act(() => openTab('/today'));
   await act(() => setPrimaryTabPeek(null));
   expect(readOffset).not.toHaveBeenCalled();
+});
+
+it('leaves Wir tracks that never moved alone when the tab is reopened', async () => {
+  // Writing an offset forces a layout of the whole page while it is shown.
+  render(<Harness />);
+  const lists = addCarousel('/today', 0);
+  const writes = vi.fn();
+  Object.defineProperty(lists, 'scrollLeft', {
+    configurable: true,
+    get: () => 0,
+    set: writes,
+  });
+  await act(() => navigate('/story'));
+  await act(() => setPrimaryTabPeek('/today', PEEK_GEOMETRY));
+  await act(
+    () =>
+      new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+  );
+  await act(() => openTab('/today'));
+  expect(writes).not.toHaveBeenCalled();
+});
+
+it('does not scroll the page when the tab opens where the page already is', async () => {
+  render(<Harness />);
+  const scrollTo = vi.mocked(window.scrollTo);
+  scrollTo.mockClear();
+  // Both overviews start at the top: there is nothing to move.
+  await act(() => openTab('/story'));
+  expect(scrollTo).not.toHaveBeenCalled();
 });
 
 it('restores the Wir reading position on Back after a fast navigation', async () => {
@@ -289,7 +338,7 @@ it('previews and reopens a previously scrolled primary tab at the top', async ()
   scroll.setScroll(540);
   await act(() => openTab('/plan'));
 
-  await act(() => setPrimaryTabPeek('/story'));
+  await act(() => setPrimaryTabPeek('/story', PEEK_GEOMETRY));
   expect(
     panel('/story')?.style.getPropertyValue('--primary-tab-peek-origin'),
   ).toBe('0px');
@@ -356,12 +405,13 @@ it('reveals the neighbouring tab for a swipe without keeping it unless it is ope
   render(<Harness />);
   expect(panel('/story')).toBeNull();
 
-  await act(() => setPrimaryTabPeek('/story'));
+  await act(() => setPrimaryTabPeek('/story', PEEK_GEOMETRY));
   const peeked = panel('/story');
   expect(peeked?.hidden).toBe(false);
   expect(peeked?.dataset.primaryTabPeek).toBe('true');
   expect(peeked?.getAttribute('aria-hidden')).toBe('true');
-  expect(peeked?.hasAttribute('inert')).toBe(true);
+  // Never `inert`: toggling it restyles the whole tab.
+  expect(peeked?.hasAttribute('inert')).toBe(false);
   expect(peeked?.style.getPropertyValue('--primary-tab-peek-width')).not.toBe(
     '',
   );
@@ -374,7 +424,7 @@ it('reveals the neighbouring tab for a swipe without keeping it unless it is ope
   expect(panel('/story')).toBeNull();
 
   // A committed swipe turns the peeked panel into the active, kept tab.
-  await act(() => setPrimaryTabPeek('/story'));
+  await act(() => setPrimaryTabPeek('/story', PEEK_GEOMETRY));
   const mountedForPeek = mounts.length;
   await act(() => navigate('/story'));
   await act(() => setPrimaryTabPeek(null));
@@ -404,7 +454,7 @@ it('prepares a panel once the app is quiet and keeps it out of sight until visit
     expect(prepared?.dataset.primaryTabPrewarm).toBe('true');
     expect(prepared?.hidden).toBe(false);
     expect(prepared?.getAttribute('aria-hidden')).toBe('true');
-    expect(prepared?.hasAttribute('inert')).toBe(true);
+    expect(prepared?.hasAttribute('inert')).toBe(false);
     expect(mounts).toContain('plan');
     const mountsBefore = mounts.filter((name) => name === 'plan').length;
 
@@ -415,6 +465,69 @@ it('prepares a panel once the app is quiet and keeps it out of sight until visit
     expect(visited?.hasAttribute('aria-hidden')).toBe(false);
     // The prepared page is reused, not mounted again.
     expect(mounts.filter((name) => name === 'plan').length).toBe(mountsBefore);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('builds the tabs beside the shown one after its opening, hidden until revealed', async () => {
+  vi.useFakeTimers();
+  let endOpening: () => void = () => {};
+  const opening = new Promise<void>((resolve) => {
+    endOpening = resolve;
+  });
+  vi.spyOn(stageModule, 'stagesSettled').mockReturnValue(opening);
+  try {
+    render(<Harness prewarmNeighbours />);
+    // The opening of the shown tab is never competed with.
+    await act(() => vi.advanceTimersByTimeAsync(5_000));
+    expect(panel('/story')).toBeNull();
+    endOpening();
+    await act(() => vi.advanceTimersByTimeAsync(1_000));
+    const built = panel('/story');
+    expect(built?.hidden).toBe(true);
+    expect(built?.getAttribute('aria-hidden')).toBe('true');
+    expect(built?.hasAttribute('inert')).toBe(false);
+    // Only the neighbours: Planen is two tabs away from Wir.
+    expect(panel('/plan')).toBeNull();
+    const mountsBefore = mounts.filter((name) => name === 'story').length;
+    expect(mountsBefore).toBe(1);
+
+    act(() => openTab('/story'));
+    expect(panel('/story')?.hidden).toBe(false);
+    expect(mounts.filter((name) => name === 'story').length).toBe(1);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('draws a built neighbour once, practically invisibly, before its first reveal', async () => {
+  vi.useFakeTimers();
+  vi.spyOn(stageModule, 'stagesSettled').mockResolvedValue(undefined);
+  try {
+    render(<Harness prewarmNeighbours />);
+    await act(() => vi.advanceTimersByTimeAsync(1_600));
+    const built = panel('/story');
+    expect(built?.hidden).toBe(true);
+    expect(built?.dataset.primaryTabRehearse).toBeUndefined();
+
+    // A quiet moment later it is drawn for one frame (layout, images and the
+    // GPU's first use of its effects), then skipped again.
+    const seen: (string | undefined)[] = [];
+    for (let step = 0; step < 220; step += 1) {
+      await act(() => vi.advanceTimersByTimeAsync(16));
+      seen.push(panel('/story')?.dataset.primaryTabRehearse);
+    }
+    expect(seen).toContain('true');
+    expect(seen.at(-1)).toBeUndefined();
+    expect(panel('/story')?.hidden).toBe(true);
+    expect(panel('/story')?.getAttribute('aria-hidden')).toBe('true');
+
+    // Only once.
+    for (let step = 0; step < 200; step += 1) {
+      await act(() => vi.advanceTimersByTimeAsync(16));
+      expect(panel('/story')?.dataset.primaryTabRehearse).toBeUndefined();
+    }
   } finally {
     vi.useRealTimers();
   }
@@ -484,4 +597,22 @@ it('rechecks visibility and data saving at the idle callback and cancels deactiv
     vi.unstubAllGlobals();
     vi.useRealTimers();
   }
+});
+
+it('parks a tab by skipping its contents, which keeps them out of focus and the accessibility tree', () => {
+  // `content-visibility: hidden` does what `inert` did for a parked tab
+  // (focus order, find-in-page, accessibility tree) without inherited style.
+  const css = readFileSync(join(__dirname, '..', 'shell.css'), 'utf8').replace(
+    /\s+/g,
+    ' ',
+  );
+  const parked = css.slice(
+    css.indexOf('.product-main > .primary-tab-panel[hidden],'),
+  );
+  expect(parked.slice(0, parked.indexOf('}'))).toContain(
+    'content-visibility: hidden;',
+  );
+  expect(parked.slice(0, parked.indexOf('}'))).toContain(
+    'pointer-events: none;',
+  );
 });

@@ -5,18 +5,29 @@
  * itself. It reads `prefersReducedMotion()` or subscribes through
  * `useReducedMotion()`, which follows a change of the preference at runtime.
  *
- * The media query is read on every call instead of being cached at module
- * load, so a preference change between two calls (or a test that swaps
- * `window.matchMedia`) is always seen.
+ * The query list is kept while `window.matchMedia` stays the same function:
+ * its `matches` is live, so a preference change between two calls is always
+ * seen, and a test that swaps `window.matchMedia` gets a new list. Creating a
+ * list per call was measurable, since every motion role read asks.
  */
 import { useSyncExternalStore } from 'react';
 
 export const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
+let cached: {
+  matchMedia: typeof window.matchMedia;
+  list: MediaQueryList;
+} | null = null;
+
 function query(): MediaQueryList | null {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function')
     return null;
-  return window.matchMedia(REDUCED_MOTION_QUERY);
+  if (cached?.matchMedia !== window.matchMedia)
+    cached = {
+      matchMedia: window.matchMedia,
+      list: window.matchMedia(REDUCED_MOTION_QUERY),
+    };
+  return cached.list;
 }
 
 /**

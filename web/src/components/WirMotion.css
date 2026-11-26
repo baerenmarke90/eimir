@@ -142,86 +142,21 @@
 
   /* Pending modules wait invisibly in their own place; the hook flips them
      once, when they are reached. They are never display:none, so find-in-page,
-     focus order and layout do not change. In the opening, `--wir-reveal-delay`
-     is the module's slot on the opening's clock, and a module that joins late
-     plays its beats compressed by `--wir-reveal-scale` into what is left. */
-  .today-section[data-wir-reveal="pending"] .today-section-header {
+     focus order and layout do not change. Each module enters as one, with
+     Enter `module`, the one module entrance of every page (Motion Contract
+     4.1). In the opening, `--wir-reveal-delay` is the module's slot on the
+     opening's clock, and a module that joins late plays compressed by
+     `--wir-reveal-scale` into what is left. */
+  .today-section[data-wir-reveal="pending"] {
     opacity: 0;
+    translate: 0 var(--motion-module-rise);
   }
 
-  .today-section[data-wir-reveal="pending"] .today-section-body {
-    opacity: 0;
-    translate: 0 0.5rem;
-  }
-
-  .today-section[data-wir-reveal="shown"] .today-section-header {
-    animation: eimir-motion-enter-fade
-      calc(var(--wir-intro-beat) * 1.2 * var(--wir-reveal-scale, 1))
-      var(--easing-enter) var(--wir-reveal-delay) both;
-  }
-
-  .today-section[data-wir-reveal="shown"] .today-section-body {
-    --motion-enter-rise: 0.5rem;
-
+  .today-section[data-wir-reveal="shown"] {
+    --motion-enter-rise: var(--motion-module-rise);
     animation: eimir-motion-enter-rise
-      calc(var(--wir-intro-beat) * 1.4 * var(--wir-reveal-scale, 1))
-      var(--easing-enter)
-      calc(
-        var(--wir-reveal-delay) +
-        var(--wir-intro-beat) *
-        0.2 *
-        var(--wir-reveal-scale, 1)
-      )
-      both;
-  }
-
-  /* The upcoming plans fade in one after another, so the row reads as a
-     sequence rather than a block. They never move sideways: that would widen
-     the scrolling strip for a moment and nudge it. Their body only rises
-     (Enter `shift`), so no plan fades inside a fading body. */
-  .today-section[data-wir-reveal="pending"]
-    .today-section-body:has(.today-agenda-list) {
-    opacity: 1;
-  }
-
-  .today-section[data-wir-reveal="shown"]
-    .today-section-body:has(.today-agenda-list) {
-    animation-name: eimir-motion-enter-shift;
-  }
-
-  .today-section[data-wir-reveal="pending"] .today-agenda-list > * {
-    opacity: 0;
-  }
-
-  .today-section[data-wir-reveal="shown"] .today-agenda-list > * {
-    animation: eimir-motion-enter-fade
-      calc(var(--wir-intro-beat) * var(--wir-reveal-scale, 1))
-      var(--easing-enter)
-      calc(
-        var(--wir-reveal-delay) +
-        (0.2 + var(--wir-reveal-step, 0) * 0.15) *
-        var(--wir-intro-beat) *
-        var(--wir-reveal-scale, 1)
-      )
-      both;
-  }
-
-  .today-agenda-list > :nth-child(2) {
-    --wir-reveal-step: 1;
-  }
-
-  .today-agenda-list > :nth-child(3) {
-    --wir-reveal-step: 2;
-  }
-
-  .today-agenda-list > :nth-child(n + 4) {
-    --wir-reveal-step: 3;
-  }
-
-  /* A rediscovered memory rises a little, like the other modules. */
-  .today-section-retrospective[data-wir-reveal="pending"] .today-section-body {
-    opacity: 0;
-    translate: 0 0.5rem;
+      calc(var(--duration-module-enter) * var(--wir-reveal-scale, 1))
+      var(--easing-enter) var(--wir-reveal-delay) both;
   }
 }
 

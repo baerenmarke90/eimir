@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import snackbar from '../../src/i18n/locales/snackbar';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -253,10 +254,7 @@ for (const platform of ['android', 'ios'] as const) {
       ).openShortcut('wish'),
     );
     await expect(
-      page.getByText(
-        'Deine Schnellaktion wartet. Speichere oder schließe zuerst deinen Entwurf.',
-        { exact: true },
-      ),
+      page.getByText(snackbar.snackbar.appShortcutWaiting, { exact: true }),
     ).toBeVisible();
     await expect(page).toHaveURL('/story/memories/new');
     await expect(input).toHaveValue('Our unfinished thought');

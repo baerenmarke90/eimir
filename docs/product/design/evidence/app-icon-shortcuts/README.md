@@ -76,5 +76,8 @@ The PNGs are browser evidence, **not screenshots of an OS icon menu**:
 The native build/device status and exact tested revision are recorded in the
 owning PR. Local host: Windows, Node/npm/Chromium available; no Android SDK/JDK
 or macOS/Xcode. Android's existing labelled CI compiles and runs the native tests.
-iOS build and actual iPhone menu/cold/warm acceptance remain to be executed on
-macOS/device. No native-device pass or store publication is claimed here.
+The iOS native workflow builds the complete app for the simulator on macOS,
+without signing, for labelled ready PRs and the shared nightly regression.
+Its result and the Android native result are recorded in the owning PR. Actual
+iPhone menu/cold/warm acceptance remains a device/release check; no physical-device
+pass or store publication is claimed here.

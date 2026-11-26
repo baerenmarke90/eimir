@@ -128,6 +128,7 @@ patterns = [
   ".github/workflows/codeql.yml",
   ".github/workflows/g2-e2e.yml",
   ".github/workflows/incident-runbooks.yml",
+  ".github/workflows/ios-native.yml",
   ".github/workflows/media-video.yml",
   ".github/workflows/nightly-regression.yml",
   ".github/workflows/product-design-review.yml",

@@ -443,6 +443,7 @@ RISK_EXACT = (
 LABEL_GATED_WORKFLOW_PREFIXES = (".github/actions/",)
 LABEL_GATED_WORKFLOW_EXACT = (
     ".github/workflows/android-launcher-icons.yml",
+    ".github/workflows/ios-native.yml",
     ".github/workflows/backend-encrypted.yml",
     ".github/workflows/codeql.yml",
     ".github/workflows/media-video.yml",

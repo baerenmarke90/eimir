@@ -24,7 +24,7 @@ Goals
 
 Non-goals
 - No operator entries in the couple Notification Center, unread counts or Wir.
-- No new provider, no new setting page beyond the existing alert switch.
+- No new provider, no new settings page: two switches on System › Monitoring.
 - No push content beyond the topic (no names, report text, ids).
 
 ## 3. Design
@@ -37,19 +37,20 @@ Non-goals
 - **Creation:** the part 2 alert job (`monitoring/alerts.run`) creates one operator
   notification per recipient account whenever it mails a code; a new alert code
   `support_reports` (plugin loaded, unread reports newer than the last push) joins the
-  same rules. One switch (`monitoring_alerts_enabled`) controls mail and push together.
+  same rules. Two switches (Product Owner, on approval): `monitoring_alerts_enabled`
+  for mail and a new `monitoring_push_enabled` for push; the per-code state is shared.
 - **Delivery:** the existing push projection and delivery are reused. For
   `OPERATOR_ALERT` the Space-bound checks (membership, Space module, target
   availability) are replaced by one check: the recipient is still a verified allow-listed
   ServerAdmin. Account quiet hours and the account's push preference apply as for every
-  push. The wake payload carries `operatorRoute` (for example
-  `/server-admin?section=jobs`) instead of a Space-scoped notification open.
-- **Clients:** the Web/Capacitor tap handler navigates to `operatorRoute` when present,
-  without calling the Space-scoped notification open. Browser push renders the same text.
-- **Text:** German/English push copy per topic, the same wording as the mail headings;
-  Android shows the full text after a new test release (native preview catalog,
-  `PushPreview` strings and the catalog fixtures); older app builds show the neutral
-  eimir. notice.
+  push. The wake payload format stays unchanged, because the Android receivers reject
+  unknown keys; on tap the existing open call resolves the operator notification for its
+  recipient and returns an `operatorRoute` (for example `/server-admin?section=jobs`).
+- **Clients:** the notification route helper navigates to `operatorRoute` when present.
+- **Text:** in this part the kind is neutral-only (`NEUTRAL_ONLY_KINDS`): every platform
+  shows the neutral eimir. notice and the topic appears after the tap and in the mail.
+  Topic text on the Android lock screen follows with a later native change and test
+  release.
 - **Privacy:** topic only; the route contains no ids.
 
 ## 4. Constraints and gates

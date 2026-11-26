@@ -65,6 +65,141 @@ existing plan controls and browser availability note. Use live store offers
 and the existing reference price calculation for plan amounts and savings.
 See the [generated reference and browser evidence](evidence/pro-overview/README.md).
 
+### Pro showcase (Product Owner request of 2026-11-26)
+
+**Intent.** The Product Owner asked for an animated Pro page that presents the
+newest Pro capabilities and invites a purchase. Today the general page shows a
+static brand hero and hides every capability inside collapsed text
+disclosures below the plan choice, so a Free couple has to tap several times
+to see what Pro offers, and then only as text. The catalogue also lags behind
+`main`: it names one memory world of ten, omits the Cloud storage allowance and
+mentions recap films and the shared garden only in passing.
+
+**Goals.** Make what Pro gives a couple visible within the first screen,
+through motion that shows the feeling of each capability. Keep the catalogue
+complete and current. Keep the purchase path unchanged.
+
+**Non-goals.** No change to prices, plans, billing channels, purchase flow,
+entitlement or tier classification. No new Pro capability. No change to how
+or where the paywall is opened.
+
+**Anti-goals (a failure even if it works).** Pressure instead of invitation:
+countdowns, auto-advancing carousels, repeated modals, scarcity claims or
+confirm-shaming. Showing a couple's own relationship content or photos on a
+sales surface. Motion that hides information under reduced motion, distracts
+from the plan choice or costs noticeable battery.
+
+**Approaches considered.**
+
+1. *Drawn mini scenes* (selected by the Product Owner): each scene is a small
+   SVG/CSS illustration built from semantic tokens and `EimirIcon` motifs.
+   It follows Light/Dark and the four app designs, works offline, adds no
+   dependency and degrades to a composed still frame. It conveys the feeling
+   of a capability, not its real screen.
+2. *Real feature components with sample data* (for example the real record
+   crate): most authentic, but heavy. It conflicts with the existing rule that
+   the overview reads no relationship content and makes no additional API
+   request. Rejected.
+3. *Pre-rendered video clips*: richest look, but larger bundle, no automatic
+   Dark/app-design adaptation and new clips for every design change. Rejected.
+
+**Product Owner decisions.**
+
+- A swipeable highlight gallery with four animated scenes, in this order:
+  1. **Memory worlds** (`memoryWorlds`): one stage that moves through three
+     world motifs in turn: a spinning record, a jar filling with small
+     tokens, and stars joining into a constellation. Copy names that there
+     are ten worlds.
+  2. **Recap films** (`recapFilms`): a portrait film frame with story-style
+     progress segments; three abstract photo tiles (brand/shared gradients,
+     no real images) pan gently one after another.
+  3. **Games & garden** (`gamesGarden`): a garden bed where a seed travels
+     from one side to the other, two sprouts grow and a flower opens.
+  4. **Memory map & closeness** (`mapCloseness`): a stylised map where a route
+     draws itself and pins drop. Two dots with a heart between them stand for
+     distance sharing, and the copy also names one-time messages.
+- Built as drawn mini scenes (approach 1).
+
+**Proposals by the implementer (approved with this section).**
+
+- *Placement.* On the `general` context the gallery replaces the brand hero
+  and sits between the heading and the plan choice. The page order becomes:
+  Back, heading, gallery, plan choice or active status, "for both", purchase
+  or channel state, outcome, updated catalogue, Free note, terms. The gallery
+  also stays for an active Space (it shows what the couple has); only the
+  plan controls change, as today.
+- *Context pages.* `recaps`, `memoryMap` and `games` replace the two-circle
+  hero with their matching scene (non-interactive, same size as today's
+  hero) and keep their three benefits. `dateIdeas`, `photoSources`,
+  `storage` and `calendar` keep today's hero.
+- *Gallery behaviour.* Horizontal scroll snap. Each card is about 88 % of the
+  column width so the next card peeks in. The gallery **never advances on its
+  own**. Below it, a page indicator (one button per card, accessible name
+  "Highlight 2 of 4" through i18n) scrolls to its card; the current card is
+  marked with `aria-current`. The cards are a list. Each card holds its scene
+  (decorative, `aria-hidden`), a heading and one or two lines of copy, so
+  screen readers read all four in order without swiping. Keyboard focus moves
+  through the indicator buttons; nothing traps focus. In Expanded the gallery
+  stays in the `--reading-max` column with the same behaviour.
+- *Motion.* Only the card that is mostly visible animates, and only while the
+  document is visible (IntersectionObserver plus `visibilitychange`). A scene
+  loops calmly over about 6–9 s using the existing motion tokens and the
+  motion catalogue where one fits. Scenes use transforms and opacity only
+  (no layout animation) and pause off screen. With `prefers-reduced-motion`
+  every scene shows a composed still frame that carries the same meaning,
+  and indicator scrolling is instant. No haptics; the purchase success
+  haptic stays as specified.
+- *Catalogue update.* Same disclosure structure and groups, with refreshed
+  copy: memory worlds name all ten worlds (taken from the existing
+  `memoryWorlds` locale names, not retyped). Recaps say that monthly and
+  yearly recaps arrive as a film. Games name the shared garden. A new
+  `storage` entry names 50 GB in the eimir. Cloud. It reuses the figure and
+  wording of the existing `storage` paywall context. The quota is an operator
+  setting, but the client has no value for it without an extra request, and
+  the `storage` context already states 50 GB. If the operator figure changes,
+  both strings change together (implementer's call). The paywall cannot tell
+  Cloud from Self-Hosted without an extra request, so the copy itself names
+  the Cloud. Self-Hosted Spaces have no in-app purchase anyway. The group `integrations` is renamed to cover photos,
+  calendar and storage.
+- *Copy.* German in `proPaywall.ts` and English in `en.json`, following the
+  writing guideline: the couple is addressed as "ihr/euch", there is no app
+  "wir", and the Space is not named.
+
+**Constraints that remain binding.** Everything above in this contract:
+no relationship content, no extra API request, no automatic navigation,
+transparent terms, "Free stays free", purchase only with a real billing
+channel. Semantic tokens only; no new literal colours in components.
+Smartphone-first at 320/360/390/430 px with 200 % text. Light and Dark in all
+four app designs. Visibility follows the runtime platform where it matters,
+never the viewport.
+
+**Left to the builder.** Exact SVG drawings, timings within the range above,
+copy wording within the guideline, and component and file names. A new
+`ProShowcase` component next to `ProFeatureCatalogue` is suggested. Also
+whether scene keyframes live in `ProPaywall.css` or a sibling stylesheet.
+
+**Work record.** A new issue owns this work. It records the acceptance
+criteria above, the baseline `main` SHA and the visual reference. #1892 stays
+the owner of the paywall contract.
+
+**Evidence and validation.** No image model is available, which is the same
+documented deviation as above. Before any UI code, the implementer builds a
+clickable Compact mockup against current `main` as the visual reference. The
+mockup holds the four drawn scenes, which the real build then ports. It
+covers the general page and one context page in Light and Dark and is
+attached to the issue. **Work stops until the Product Owner accepts the
+mockup.** Unit tests cover:
+
+- four cards on `general`;
+- the matching scene on the three context pages;
+- no scene animation under reduced motion;
+- no extra request;
+- indicator `aria-current`.
+
+The existing browser specs that own `/more/pro` stay green. Each changed spec
+appears in `web/e2e/test-impact.json`. Screenshot evidence covers 360/390/430 px
+in Light and Dark, plus reduced motion.
+
 ### Commercial coverage
 
 Google Play verification and authenticated notifications feed the same
@@ -84,8 +219,10 @@ the following implemented Pro boundaries without changing their classification.
 
 The catalogue omits the reserved capability identifiers for rich Chapter
 presentation, occasion automation, the PDF Yearbook, video montage, five-year
-question mirror, Surprise Mode, and the proposed Cloud storage allowance. They
-have no implemented Premium feature gate in this revision. Google Photos,
+question mirror and Surprise Mode. They have no implemented Premium feature
+gate in this revision. The Cloud storage allowance (`storage.cloud_quota_50gb`,
+Cloud only) is now enforced and joins the catalogue with the Pro showcase
+above. Google Photos,
 calendar sync and video availability still depend on installation or platform
 configuration. The [feature matrix](../../FREEMIUM-FEATURE-MATRIX.md) governs
 downgrade behavior, including preserved data and Free actions.

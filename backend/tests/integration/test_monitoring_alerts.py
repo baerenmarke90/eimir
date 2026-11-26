@@ -274,7 +274,8 @@ def test_new_support_reports_notify_once_and_at_most_daily(
     assert _run(session, at + timedelta(hours=54, minutes=10), outbox) == ["support_reports"]
 
     notices = _pushes(session)
-    assert [notice.operator_topic for notice in notices] == ["support_reports"] * 3
+    # Three notices were sent; the first expired more than a day ago and is pruned.
+    assert [notice.operator_topic for notice in notices] == ["support_reports"] * 2
     assert {notice.recipient_account_id for notice in notices} == {admin.id}
     assert "/server-admin?section=reports&state=NEW" in outbox[0].body
 

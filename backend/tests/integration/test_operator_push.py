@@ -124,3 +124,32 @@ def test_route_opens_the_matching_server_admin_page() -> None:
     assert operator_push.route("space_quota_pressure") == "/server-admin?section=overview"
     for topic in ("disk_pressure", "delivery_failures", "backup_not_configured"):
         assert operator_push.route(topic) == "/server-admin?section=monitoring"
+
+
+def test_prune_removes_expired_operator_notices_only(session: Session) -> None:
+    from tests.conftest import make_space
+
+    admin = _admin(session)
+    operator_push.notify(
+        session, topic="failed_jobs", at=NOW - timedelta(days=3), recipients=[admin.id]
+    )
+    operator_push.notify(session, topic="disk_pressure", at=NOW, recipients=[admin.id])
+    space = make_space(session, admin)
+    session.add(
+        Notification(
+            space_id=space.id,
+            recipient_account_id=admin.id,
+            source_event_id=uuid4(),
+            kind="REMINDER_DUE",
+            expires_at=NOW - timedelta(days=3),
+        )
+    )
+    session.flush()
+
+    assert operator_push.prune(session, at=NOW) == 1
+
+    remaining = session.scalars(select(Notification)).all()
+    assert sorted(row.operator_topic or row.kind for row in remaining) == [
+        "REMINDER_DUE",
+        "disk_pressure",
+    ]

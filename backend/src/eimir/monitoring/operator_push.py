@@ -10,9 +10,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import Any, cast
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import CursorResult, delete, func, select
 from sqlalchemy.orm import Session
 
 from eimir.authorization.server_admin import is_server_admin
@@ -23,6 +24,8 @@ from eimir.engagement.models import OPERATOR_TOPICS, Notification, NotificationK
 from eimir.identity.models import Account, AccountEmail
 
 LIFETIME = timedelta(hours=24)
+# Expired notices are kept a little longer, so a late tap still opens its page.
+KEEP_EXPIRED = timedelta(days=1)
 
 _ROUTES = {
     "failed_jobs": "/server-admin?section=jobs",
@@ -103,3 +106,21 @@ def notify(session: Session, *, topic: str, at: datetime, recipients: list[UUID]
     session.flush()
     push.ensure_deliveries_for_source_event(session, source_event_id)
     return len(accounts)
+
+
+def prune(session: Session, *, at: datetime) -> int:
+    """Delete operator notices expired for longer than a day; return how many.
+
+    Couple notices go with their Space; operator notices have none, so the
+    alert job removes them here.
+    """
+    result = cast(
+        "CursorResult[Any]",
+        session.execute(
+            delete(Notification).where(
+                Notification.kind == NotificationKind.OPERATOR_ALERT.value,
+                Notification.expires_at < at - KEEP_EXPIRED,
+            )
+        ),
+    )
+    return int(result.rowcount or 0)

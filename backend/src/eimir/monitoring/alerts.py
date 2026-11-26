@@ -202,6 +202,7 @@ def run(
                 at=at,
                 recipients=[recipient.account_id for recipient in recipients],
             )
+    operator_push.prune(session, at=at)
     session.flush()
     return handled
 

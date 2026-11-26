@@ -283,12 +283,18 @@ def for_notification(
     neutral = notification.kind in NEUTRAL_ONLY_KINDS
     if neutral and not neutral_reference:
         return None
+    if version not in SUPPORTED_VERSIONS:
+        return None
+    if notification.kind in notification_policy.OPERATOR_KINDS:
+        # A ServerAdmin alert (#2314) has no Space to authorize against; the
+        # delivery has just checked the recipient. It is always the neutral notice.
+        return _neutral(notification, digest=digest, version=version)
+    if notification.space_id is None:
+        return None
     context = AuthorizationContext(
         account_id=notification.recipient_account_id, space_id=notification.space_id
     )
-    if version not in SUPPORTED_VERSIONS or not service.notification_target_available(
-        session, notification, context
-    ):
+    if not service.notification_target_available(session, notification, context):
         return None
     detailed = version >= DETAIL_VERSION
     actor = (
@@ -380,6 +386,34 @@ def for_notification(
         when, place = ("", "") if digest or neutral else _schedule(session, notification, context)
         value["when"] = when
         value["place"] = place
+        return _encode(_fit(value))
+    return _encode(value)
+
+
+def _neutral(notification: Notification, *, digest: bool, version: int) -> str | None:
+    """The neutral envelope: the kind and validity only, no name, title or body."""
+    now = clock.now()
+    expires = now + timedelta(minutes=5)
+    if notification.expires_at is not None:
+        expires = min(expires, clock.ensure_utc(notification.expires_at))
+    if expires <= now:
+        return None
+    value: dict[str, object] = {
+        "v": version,
+        "notificationId": str(notification.id),
+        "kind": notification.kind,
+        "name": "",
+        "title": "",
+        "targetType": "",
+        "digest": digest,
+        "issuedAt": int(now.timestamp()),
+        "expiresAt": int(expires.timestamp()),
+    }
+    if version >= 2:
+        value["body"] = ""
+    if version >= DETAIL_VERSION:
+        value["when"] = ""
+        value["place"] = ""
         return _encode(_fit(value))
     return _encode(value)
 

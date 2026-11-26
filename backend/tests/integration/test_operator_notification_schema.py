@@ -111,9 +111,8 @@ def test_operator_notifications_upgrade_and_rollback(session: Session) -> None:
         # The downgrade removes operator rows before space_id becomes required again.
         migration.downgrade()
         columns = {
-            column["name"]: column for column in inspect(session.connection()).get_columns(
-                "notifications"
-            )
+            column["name"]: column
+            for column in inspect(session.connection()).get_columns("notifications")
         }
         assert "operator_topic" not in columns
         assert columns["space_id"]["nullable"] is False

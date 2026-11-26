@@ -5050,7 +5050,7 @@
       },
       "constraints": {
         "ck_instance_administration_events_setting_valid": {
-          "definition": "CHECK (setting::text = ANY (ARRAY['registration_enabled'::character varying, 'maintenance_mode'::character varying, 'monitoring_alerts_enabled'::character varying]::text[]))",
+          "definition": "CHECK (setting::text = ANY (ARRAY['registration_enabled'::character varying, 'maintenance_mode'::character varying, 'monitoring_alerts_enabled'::character varying, 'monitoring_push_enabled'::character varying]::text[]))",
           "kind": "c"
         },
         "fk_instance_administration_events_actor_id_accounts": {
@@ -5084,6 +5084,13 @@
           "type": "boolean"
         },
         "monitoring_alerts_enabled": {
+          "default": "true",
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "boolean"
+        },
+        "monitoring_push_enabled": {
           "default": "true",
           "generated": null,
           "identity": null,
@@ -6250,7 +6257,7 @@
           "kind": "c"
         },
         "ck_notification_preferences_notif_pref_kind_allowed": {
-          "definition": "CHECK (kind::text = ANY (ARRAY['ONCE_MESSAGE_RECEIVED'::character varying, 'GENTLE_PROMPT'::character varying, 'REMINDER_CREATED'::character varying, 'TRANSFER_READY'::character varying, 'TRANSFER_COMPLETED'::character varying, 'TRANSFER_FAILED'::character varying, 'VIDEO_PROCESSING_FAILED'::character varying, 'PLAN_CREATED'::character varying, 'PLAN_CHANGED'::character varying, 'PLAN_CANCELLED'::character varying, 'WISH_SELECTION_SHARED'::character varying, 'WISH_SELECTION_READY'::character varying, 'PHOTO_REACTION'::character varying, 'PARTNER_JOINED'::character varying, 'COUPLE_EXPERIENCE_SHARED'::character varying, 'COMMENT_CREATED'::character varying, 'THINKING_OF_YOU'::character varying, 'PARTNER_KISS'::character varying, 'PARTNER_CHECK_IN'::character varying, 'REMINDER_DUE'::character varying, 'WISH_REMINDER_DUE'::character varying, 'WISH_DATE_PROPOSED'::character varying, 'WISH_DATE_COUNTERED'::character varying, 'WISH_DATE_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_REQUESTED'::character varying, 'WISH_SELECTION_RANDOM_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_DECLINED'::character varying, 'COLLECTION_SENT'::character varying, 'HEART_HUNT_HIDDEN'::character varying, 'HEART_HUNT_FOUND'::character varying, 'PICTURE_PING_PONG_TURN'::character varying, 'SHARED_NOTE_CREATED'::character varying, 'SHARED_NOTE_CHANGED'::character varying, 'GARDEN_SEED_ARRIVED'::character varying, 'RECAP_READY'::character varying, 'RECAP_GREW'::character varying, 'COUPLE_GAME_TURN'::character varying, 'PICTURE_PING_PONG_FINISHED'::character varying, 'SUPPORT_REPLY'::character varying]::text[]))",
+          "definition": "CHECK (kind::text = ANY (ARRAY['ONCE_MESSAGE_RECEIVED'::character varying, 'GENTLE_PROMPT'::character varying, 'REMINDER_CREATED'::character varying, 'TRANSFER_READY'::character varying, 'TRANSFER_COMPLETED'::character varying, 'TRANSFER_FAILED'::character varying, 'VIDEO_PROCESSING_FAILED'::character varying, 'PLAN_CREATED'::character varying, 'PLAN_CHANGED'::character varying, 'PLAN_CANCELLED'::character varying, 'WISH_SELECTION_SHARED'::character varying, 'WISH_SELECTION_READY'::character varying, 'PHOTO_REACTION'::character varying, 'PARTNER_JOINED'::character varying, 'COUPLE_EXPERIENCE_SHARED'::character varying, 'COMMENT_CREATED'::character varying, 'THINKING_OF_YOU'::character varying, 'PARTNER_KISS'::character varying, 'PARTNER_CHECK_IN'::character varying, 'REMINDER_DUE'::character varying, 'WISH_REMINDER_DUE'::character varying, 'WISH_DATE_PROPOSED'::character varying, 'WISH_DATE_COUNTERED'::character varying, 'WISH_DATE_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_REQUESTED'::character varying, 'WISH_SELECTION_RANDOM_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_DECLINED'::character varying, 'COLLECTION_SENT'::character varying, 'HEART_HUNT_HIDDEN'::character varying, 'HEART_HUNT_FOUND'::character varying, 'PICTURE_PING_PONG_TURN'::character varying, 'SHARED_NOTE_CREATED'::character varying, 'SHARED_NOTE_CHANGED'::character varying, 'GARDEN_SEED_ARRIVED'::character varying, 'RECAP_READY'::character varying, 'RECAP_GREW'::character varying, 'COUPLE_GAME_TURN'::character varying, 'PICTURE_PING_PONG_FINISHED'::character varying, 'SUPPORT_REPLY'::character varying, 'OPERATOR_ALERT'::character varying]::text[]))",
           "kind": "c"
         },
         "fk_notification_preferences_account_id_accounts": {
@@ -6315,6 +6322,13 @@
           "nullable": false,
           "type": "character varying(64)"
         },
+        "operator_topic": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "character varying(32)"
+        },
         "read_at": {
           "default": null,
           "generated": null,
@@ -6340,7 +6354,7 @@
           "default": null,
           "generated": null,
           "identity": null,
-          "nullable": false,
+          "nullable": true,
           "type": "uuid"
         },
         "target_id": {
@@ -6360,7 +6374,19 @@
       },
       "constraints": {
         "ck_notifications_notification_kind_allowed": {
-          "definition": "CHECK (kind::text = ANY (ARRAY['ONCE_MESSAGE_RECEIVED'::character varying, 'GENTLE_PROMPT'::character varying, 'REMINDER_CREATED'::character varying, 'TRANSFER_READY'::character varying, 'TRANSFER_COMPLETED'::character varying, 'TRANSFER_FAILED'::character varying, 'VIDEO_PROCESSING_FAILED'::character varying, 'PLAN_CREATED'::character varying, 'PLAN_CHANGED'::character varying, 'PLAN_CANCELLED'::character varying, 'WISH_SELECTION_SHARED'::character varying, 'WISH_SELECTION_READY'::character varying, 'PHOTO_REACTION'::character varying, 'PARTNER_JOINED'::character varying, 'COUPLE_EXPERIENCE_SHARED'::character varying, 'COMMENT_CREATED'::character varying, 'THINKING_OF_YOU'::character varying, 'PARTNER_KISS'::character varying, 'PARTNER_CHECK_IN'::character varying, 'REMINDER_DUE'::character varying, 'WISH_REMINDER_DUE'::character varying, 'WISH_DATE_PROPOSED'::character varying, 'WISH_DATE_COUNTERED'::character varying, 'WISH_DATE_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_REQUESTED'::character varying, 'WISH_SELECTION_RANDOM_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_DECLINED'::character varying, 'COLLECTION_SENT'::character varying, 'HEART_HUNT_HIDDEN'::character varying, 'HEART_HUNT_FOUND'::character varying, 'PICTURE_PING_PONG_TURN'::character varying, 'SHARED_NOTE_CREATED'::character varying, 'SHARED_NOTE_CHANGED'::character varying, 'GARDEN_SEED_ARRIVED'::character varying, 'RECAP_READY'::character varying, 'RECAP_GREW'::character varying, 'COUPLE_GAME_TURN'::character varying, 'PICTURE_PING_PONG_FINISHED'::character varying, 'SUPPORT_REPLY'::character varying]::text[]))",
+          "definition": "CHECK (kind::text = ANY (ARRAY['ONCE_MESSAGE_RECEIVED'::character varying, 'GENTLE_PROMPT'::character varying, 'REMINDER_CREATED'::character varying, 'TRANSFER_READY'::character varying, 'TRANSFER_COMPLETED'::character varying, 'TRANSFER_FAILED'::character varying, 'VIDEO_PROCESSING_FAILED'::character varying, 'PLAN_CREATED'::character varying, 'PLAN_CHANGED'::character varying, 'PLAN_CANCELLED'::character varying, 'WISH_SELECTION_SHARED'::character varying, 'WISH_SELECTION_READY'::character varying, 'PHOTO_REACTION'::character varying, 'PARTNER_JOINED'::character varying, 'COUPLE_EXPERIENCE_SHARED'::character varying, 'COMMENT_CREATED'::character varying, 'THINKING_OF_YOU'::character varying, 'PARTNER_KISS'::character varying, 'PARTNER_CHECK_IN'::character varying, 'REMINDER_DUE'::character varying, 'WISH_REMINDER_DUE'::character varying, 'WISH_DATE_PROPOSED'::character varying, 'WISH_DATE_COUNTERED'::character varying, 'WISH_DATE_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_REQUESTED'::character varying, 'WISH_SELECTION_RANDOM_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_DECLINED'::character varying, 'COLLECTION_SENT'::character varying, 'HEART_HUNT_HIDDEN'::character varying, 'HEART_HUNT_FOUND'::character varying, 'PICTURE_PING_PONG_TURN'::character varying, 'SHARED_NOTE_CREATED'::character varying, 'SHARED_NOTE_CHANGED'::character varying, 'GARDEN_SEED_ARRIVED'::character varying, 'RECAP_READY'::character varying, 'RECAP_GREW'::character varying, 'COUPLE_GAME_TURN'::character varying, 'PICTURE_PING_PONG_FINISHED'::character varying, 'SUPPORT_REPLY'::character varying, 'OPERATOR_ALERT'::character varying]::text[]))",
+          "kind": "c"
+        },
+        "ck_notifications_notification_operator_topic_allowed": {
+          "definition": "CHECK (operator_topic IS NULL OR (operator_topic::text = ANY (ARRAY['failed_jobs'::character varying, 'space_quota_pressure'::character varying, 'disk_pressure'::character varying, 'delivery_failures'::character varying, 'backup_not_configured'::character varying, 'support_reports'::character varying]::text[])))",
+          "kind": "c"
+        },
+        "ck_notifications_notification_operator_topic_matches_kind": {
+          "definition": "CHECK ((operator_topic IS NULL) = (kind::text <> 'OPERATOR_ALERT'::text))",
+          "kind": "c"
+        },
+        "ck_notifications_notification_space_matches_kind": {
+          "definition": "CHECK ((space_id IS NULL) = (kind::text = 'OPERATOR_ALERT'::text))",
           "kind": "c"
         },
         "ck_notifications_notification_target_reference_complete": {

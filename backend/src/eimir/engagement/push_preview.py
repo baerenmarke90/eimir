@@ -34,9 +34,14 @@ from eimir.shared_notes.models import SharedNote
 # A once message is sealed on the sender's device: the server cannot read it, so
 # it never enters native content presentation, in any preview version. A support
 # reply (#2189) is operator text about the person's own report; it stays in the
-# app and never reaches a device preview either.
+# app and never reaches a device preview either. A ServerAdmin alert (#2314)
+# stays neutral until the native clients can name its topic.
 NEUTRAL_ONLY_KINDS = frozenset(
-    {NotificationKind.ONCE_MESSAGE_RECEIVED.value, NotificationKind.SUPPORT_REPLY.value}
+    {
+        NotificationKind.ONCE_MESSAGE_RECEIVED.value,
+        NotificationKind.SUPPORT_REPLY.value,
+        NotificationKind.OPERATOR_ALERT.value,
+    }
 )
 # Preview v1 and v2 name the actor but never these targets' titles or text.
 SHARED_NOTE_KINDS = frozenset(

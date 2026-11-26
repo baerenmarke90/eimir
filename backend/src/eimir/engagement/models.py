@@ -93,6 +93,20 @@ class NotificationKind(StrEnum):
     # #2189: the operator answered the recipient's own support report. The
     # target is the report, never a Space object; a push shows no reply text.
     SUPPORT_REPLY = "SUPPORT_REPLY"
+    # #2314 part 2b: a ServerAdmin alert. It belongs to no Space, is never
+    # shown in a couple's Notification Center and reaches only push.
+    OPERATOR_ALERT = "OPERATOR_ALERT"
+
+
+# The topics an operator notice may name; the same codes as the alert mails.
+OPERATOR_TOPICS = (
+    "failed_jobs",
+    "space_quota_pressure",
+    "disk_pressure",
+    "delivery_failures",
+    "backup_not_configured",
+    "support_reports",
+)
 
 
 WISH_DATE_NOTICE_KINDS = frozenset(
@@ -329,10 +343,11 @@ class Notification(IdMixin, Base):
 
     __tablename__ = "notifications"
 
-    space_id: Mapped[UUID] = mapped_column(
+    # NULL only for an operator notice (#2314), which belongs to no Space.
+    space_id: Mapped[UUID | None] = mapped_column(
         postgresql.UUID(as_uuid=True),
         ForeignKey("spaces.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
     )
     recipient_account_id: Mapped[UUID] = mapped_column(
         postgresql.UUID(as_uuid=True),
@@ -341,6 +356,8 @@ class Notification(IdMixin, Base):
     )
     source_event_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), nullable=False)
     kind: Mapped[str] = mapped_column(String(64), nullable=False)
+    # The alert code an operator notice names; set for that kind only.
+    operator_topic: Mapped[str | None] = mapped_column(String(32))
     actor_id: Mapped[UUID | None] = mapped_column(
         postgresql.UUID(as_uuid=True),
         ForeignKey("accounts.id", ondelete="SET NULL"),
@@ -368,6 +385,20 @@ class Notification(IdMixin, Base):
         CheckConstraint(
             "(target_type IS NULL) = (target_id IS NULL)",
             name="notification_target_reference_complete",
+        ),
+        CheckConstraint(
+            "(space_id IS NULL) = (kind = 'OPERATOR_ALERT')",
+            name="notification_space_matches_kind",
+        ),
+        CheckConstraint(
+            "(operator_topic IS NULL) = (kind <> 'OPERATOR_ALERT')",
+            name="notification_operator_topic_matches_kind",
+        ),
+        CheckConstraint(
+            "operator_topic IS NULL OR operator_topic IN ("
+            + ", ".join(f"'{topic}'" for topic in OPERATOR_TOPICS)
+            + ")",
+            name="notification_operator_topic_allowed",
         ),
         UniqueConstraint(
             "recipient_account_id",

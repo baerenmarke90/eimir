@@ -140,16 +140,32 @@ token: it is never logged or returned by any API. `EIMIR_WORKER_NAME` gives a
 process a stable heartbeat name (default: the host name).
 
 `PUT /api/v1/server-admin/settings/monitoring-alerts` with `{"enabled": bool}`
-turns the alert mails on or off; the change is recorded in the privileged audit
-like the other settings.
+turns the alert mails on or off, and `PUT /api/v1/server-admin/settings/monitoring-push`
+turns the same alerts as app push on or off (#2314); both are on by default and
+both changes are recorded in the privileged audit like the other settings.
 
-### Alert mails
+### Alert mails and push
 
-The `monitoring_alerts` job runs every five minutes and mails the verified
-primary addresses of allow-listed ServerAdmin accounts when a condition becomes
-active, and at most once a day while it stays active. Nothing is mailed on
-resolution, and conditions that become active while alerts are off are not
-mailed later. Mails name the condition and link to System › Monitoring.
+The `monitoring_alerts` job runs every five minutes and alerts the allow-listed
+ServerAdmin accounts with a verified address when a condition becomes active,
+and at most once a day while it stays active. Nothing is sent on resolution,
+and conditions that become active while both switches are off are not sent
+later. Both channels share one state per condition: one activation is one mail
+and one push.
+
+- **Mail** goes to each verified allow-listed address, names the condition and
+  links to System › Monitoring (new reports link to Help › Reports).
+- **Push** goes once to each such account's registered devices, as an operator
+  notice of kind `OPERATOR_ALERT`: it belongs to no Space, never appears in a
+  couple's Notification Center, unread count or notification settings, and
+  names only the condition. Every device shows the neutral eimir. notice; the
+  topic appears after the tap, which opens the matching ServerAdmin page
+  (failed jobs: System › Jobs; new reports: the new reports; a Space near its
+  quota: the Situation; otherwise System › Monitoring). The account's Quiet
+  Hours apply. Delivery and the tap re-check that the account is still a
+  verified allow-listed ServerAdmin. Notices expire after 24 hours and are
+  deleted a day later. Topic text on the Android lock screen needs a later
+  native release.
 
 | Code | Active when |
 | --- | --- |
@@ -157,7 +173,8 @@ mailed later. Mails name the condition and link to System › Monitoring.
 | `space_quota_pressure` | a Cloud Space uses at least 85 % of its quota |
 | `disk_pressure` | the local media filesystem is at least 85 % full |
 | `delivery_failures` | more than 5 email or push deliveries failed in the last hour |
-| `backup_not_configured` | Cloud without a backup signal (mailed once only) |
+| `backup_not_configured` | Cloud without a backup signal (sent once only) |
+| `support_reports` | a new unarchived report arrived after the last notice, while reports are collected and the operator plugin can triage them |
 
 ### Runbook: external watch with Uptime Kuma and Arcane
 

@@ -101,7 +101,12 @@ const serverAdmin = {
     alertsSaveFailed:
       'Die Änderung wurde nicht gespeichert. Versuche es noch einmal.',
     alertsBody:
-      'An die ServerAdmins bei neuen Fehlern, vollem Speicher, gescheiterten Zustellungen und fehlendem Backup.',
+      'An die ServerAdmins bei neuen Fehlern, vollem Speicher, gescheiterten Zustellungen, fehlendem Backup und neuen Meldungen.',
+    pushLabel: 'Warnungen als Push senden',
+    pushSaveFailed:
+      'Die Änderung wurde nicht gespeichert. Versuche es noch einmal.',
+    pushBody:
+      'Dieselben Warnungen als Push-Nachricht auf die Geräte der ServerAdmins. Auf dem Sperrbildschirm steht nur ein neutraler Hinweis.',
   },
   subNavigation: {
     aria: 'Unterseiten',

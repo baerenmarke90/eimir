@@ -9,6 +9,7 @@ Name | Type
 `effectiveRegistrationEnabled` | boolean
 `maintenanceMode` | boolean
 `monitoringAlertsEnabled` | boolean
+`monitoringPushEnabled` | boolean
 `registrationEnabled` | boolean
 `version` | number
 
@@ -22,6 +23,7 @@ const example = {
   "effectiveRegistrationEnabled": null,
   "maintenanceMode": null,
   "monitoringAlertsEnabled": null,
+  "monitoringPushEnabled": null,
   "registrationEnabled": null,
   "version": null,
 } satisfies ServerAdminSettings

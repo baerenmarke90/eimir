@@ -58,6 +58,15 @@ function Stage({ canStart }: { canStart?: () => boolean }) {
   return <div data-testid="stage" ref={ref} />;
 }
 
+function HeldOpening({ pending }: { pending: boolean }) {
+  const ref = useStage<HTMLDivElement>('test.held', {
+    duration: 1000,
+    hold: 400,
+  });
+  useStageHold('test.held', pending);
+  return <div data-testid="stage" ref={ref} />;
+}
+
 const stage = () => document.querySelector('[data-testid="stage"]');
 
 describe('useStage', () => {
@@ -366,15 +375,6 @@ describe('stagesSettled', () => {
 });
 
 describe('stagesReleased', () => {
-  function Held({ pending }: { pending: boolean }) {
-    const ref = useStage<HTMLDivElement>('test.held', {
-      duration: 1000,
-      hold: 400,
-    });
-    useStageHold('test.held', pending);
-    return <div data-testid="stage" ref={ref} />;
-  }
-
   it('waits until an opening began, not merely until nothing waits', async () => {
     let released = false;
     void stagesReleased().then(() => {
@@ -384,12 +384,12 @@ describe('stagesReleased', () => {
     // Nothing was considered yet: the shown tab still loads its data.
     expect(released).toBe(false);
 
-    const view = render(<Held pending />);
+    const view = render(<HeldOpening pending />);
     await act(async () => {});
     expect(stagePhase('test.held')).toBe('waiting');
     expect(released).toBe(false);
 
-    view.rerender(<Held pending={false} />);
+    view.rerender(<HeldOpening pending={false} />);
     await act(async () => {});
     expect(stagePhase('test.held')).toBe('playing');
     expect(released).toBe(true);

@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type CSSProperties,
   Fragment,
+  memo,
   type ReactNode,
   Suspense,
   useEffect,
@@ -9,7 +10,13 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Link,
+  type Location,
+  type NavigateFunction,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
@@ -167,7 +174,7 @@ import './TodayRetrospectiveAlbum.css';
 import { concealedTitle } from '../client/discreetPlans';
 import {
   DEFAULT_WIR_DESIGN,
-  useWirDesign,
+  useWirDesignPresentation,
   wirDesignLayout,
 } from '../client/wirDesign';
 import { DiscreetLock } from './DiscreetPlan';
@@ -1023,23 +1030,7 @@ export function TodayMonthlyMosaic({
     </ul>
   );
 }
-export function TodayPage({
-  apis,
-  apiBaseUrl,
-  spaceId,
-  loadMemoryImage,
-  profilesApi,
-  spacesApi,
-  dailyCheckInsApi,
-  dailyQuoteApi,
-  entitlementApi,
-  collectionsApi,
-  sharedNotesApi,
-  account,
-  recapMediaApis,
-  partnerLocationApi,
-  gamesApi,
-}: {
+interface TodayPageProps {
   apis: M4ProductApis;
   apiBaseUrl?: string;
   spaceId: string;
@@ -1064,6 +1055,51 @@ export function TodayPage({
   >;
   /** The shared garden's read for the optional Wir module. */
   gamesApi?: Pick<GamesApi, 'getGarden' | 'getWaitingGames'>;
+}
+
+/**
+ * Reads the route for the page. React runs every component that reads the
+ * router's location again on each navigation in the app, also inside a kept
+ * tab whose own location did not change. Only this small component pays
+ * that; the page itself renders when what it is handed changes.
+ */
+export function TodayPage(props: TodayPageProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { captureOrigin } = useTaskOrigin();
+  return (
+    <TodayPageView
+      {...props}
+      location={location}
+      navigate={navigate}
+      captureOrigin={captureOrigin}
+    />
+  );
+}
+
+const TodayPageView = memo(function TodayPageView({
+  apis,
+  apiBaseUrl,
+  spaceId,
+  loadMemoryImage,
+  profilesApi,
+  spacesApi,
+  dailyCheckInsApi,
+  dailyQuoteApi,
+  entitlementApi,
+  collectionsApi,
+  sharedNotesApi,
+  account,
+  recapMediaApis,
+  partnerLocationApi,
+  gamesApi,
+  location,
+  navigate,
+  captureOrigin,
+}: TodayPageProps & {
+  location: Location;
+  navigate: NavigateFunction;
+  captureOrigin: ReturnType<typeof useTaskOrigin>['captureOrigin'];
 }) {
   const { t } = useTranslation();
   // Clips of the shared moment play silently; they need the media APIs.
@@ -1083,7 +1119,7 @@ export function TodayPage({
     [recapMediaApis, spaceId],
   );
   const { relationshipLabel } = usePartnerNickname();
-  const wirDesign = useWirDesign();
+  const wirDesign = useWirDesignPresentation();
   const wirDesignId = wirDesign?.current ?? DEFAULT_WIR_DESIGN;
   const wirLayout = wirDesignLayout(wirDesignId);
   // Zu zweit leads with the couple's names and uses compact check-in rows.
@@ -1254,11 +1290,8 @@ export function TodayPage({
   });
   // "Gefühl teilen" from a partner check-in receipt opens the viewer's own
   // daily check-in once; the flag is removed so Back never reopens it.
-  const location = useLocation();
   const homeLanding =
     rooms && new URLSearchParams(location.search).get('view') !== 'wir';
-  const navigate = useNavigate();
-  const { captureOrigin } = useTaskOrigin();
   // #2048: alone in the Space, the empty partner place invites.
   const partnerInviteRoute = `${SETTINGS_CATEGORY_ROUTES.relationship}#partner-connection-title`;
   const openPartnerInvite = () => {
@@ -2727,4 +2760,4 @@ export function TodayPage({
       ) : null}
     </div>
   );
-}
+});

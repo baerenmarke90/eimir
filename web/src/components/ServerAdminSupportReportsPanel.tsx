@@ -94,12 +94,15 @@ export function ServerAdminSupportReportsPanel({
   api,
   initialFilter = null,
   onDraftChange,
+  onEditTemplates,
 }: {
   api: ServerAdminSupportReportsApi;
   /** The state query parameter of a deep link; defaults to new reports. */
   initialFilter?: string | null;
   /** Whether the open report holds an unsent reply or ticket text. */
   onDraftChange?: (dirty: boolean) => void;
+  /** Opens the reply templates page from an open report. */
+  onEditTemplates?: () => void;
 }) {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<SupportReportFilter>(() =>
@@ -354,6 +357,7 @@ export function ServerAdminSupportReportsPanel({
             reportId={selectedId}
             onClose={closeDetail}
             onDraftChange={changeDraft}
+            onEditTemplates={onEditTemplates}
           />
         ) : null}
       </div>

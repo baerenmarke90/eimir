@@ -13,6 +13,7 @@ import type { SupportReportDetailView } from '../api/generated/models/SupportRep
 import type { SupportReportState } from '../api/generated/models/SupportReportState';
 import type { SupportReportTicketSummary } from '../api/generated/models/SupportReportTicketSummary';
 import { ClientProblemError } from '../client/problemDetails';
+import { insertTemplate } from '../client/supportReplyTemplates';
 import { useDocumentLeaveGuard } from '../client/useDocumentLeaveGuard';
 import {
   characterCount,
@@ -40,6 +41,8 @@ import {
   useClientOnline,
 } from '../client/supportReportsAdmin';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
+import { ServerAdminReplyTemplateChips } from './ServerAdminReplyTemplateChips';
 import { TaskBackButton } from './TaskBackButton';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 
@@ -353,12 +356,15 @@ function TicketSection({
   busy,
   trackerFailed,
   linkRef,
+  showCreate,
   onCreate,
   onClear,
 }: {
   report: SupportReportDetailView;
   online: boolean;
   busy: boolean;
+  /** False while the create button sits next to Reply instead. */
+  showCreate: boolean;
   /** The tracker refused or failed an attempt in this session. */
   trackerFailed: boolean;
   linkRef: RefObject<HTMLAnchorElement | null>;
@@ -378,9 +384,11 @@ function TicketSection({
         <p className="server-admin-muted">
           {t('serverAdmin.reports.ticket.none')}
         </p>
-        <button type="button" disabled={busy || !online} onClick={onCreate}>
-          {t('serverAdmin.reports.ticket.create')}
-        </button>
+        {showCreate ? (
+          <button type="button" disabled={busy || !online} onClick={onCreate}>
+            {t('serverAdmin.reports.ticket.create')}
+          </button>
+        ) : null}
       </>
     ) : (
       <p className="server-admin-muted">
@@ -455,6 +463,7 @@ export function ServerAdminSupportReportDetail({
   reportId,
   onClose,
   onDraftChange,
+  onEditTemplates,
 }: {
   api: ServerAdminSupportReportsApi;
   reportId: string;
@@ -462,6 +471,8 @@ export function ServerAdminSupportReportDetail({
   onClose: (reason?: 'gone' | 'deleted') => void;
   /** Whether an unsent reply or ticket text would be lost on leaving. */
   onDraftChange?: (dirty: boolean) => void;
+  /** Opens the reply templates page; absent where it is not reachable. */
+  onEditTemplates?: () => void;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -469,6 +480,11 @@ export function ServerAdminSupportReportDetail({
   const baseId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [replyText, setReplyText] = useState('');
+  const replyRef = useRef<HTMLTextAreaElement>(null);
+  // Whether the operator has placed the caret in the reply; until then a
+  // template follows the typed text on a new line.
+  const replyCaretPlaced = useRef(false);
+  const [caretRequest, setCaretRequest] = useState<{ at: number } | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [ticketDialogError, setTicketDialogError] = useState<string | null>(
@@ -515,6 +531,16 @@ export function ServerAdminSupportReportDetail({
   useEffect(() => {
     if (loadedId) headingRef.current?.focus({ preventScroll: true });
   }, [loadedId]);
+
+  // After a template was inserted, the caret goes after it in the reply.
+  useEffect(() => {
+    if (caretRequest === null) return;
+    const field = replyRef.current;
+    if (!field) return;
+    field.focus({ preventScroll: true });
+    field.setSelectionRange(caretRequest.at, caretRequest.at);
+    replyCaretPlaced.current = true;
+  }, [caretRequest]);
 
   // After the ticket dialog closes, focus lands on the new link or, without
   // one, on the ticket heading instead of the replaced Create button.
@@ -768,21 +794,37 @@ export function ServerAdminSupportReportDetail({
     replyText.trim() !== '' && !replyTooLong && online && !busy;
   const numbers = new Intl.NumberFormat(resolvedLocale());
 
-  function close() {
-    // An unsent reply or ticket text is the operator's draft: leaving asks first.
-    if (
-      draftDirty &&
-      !window.confirm(
+  /** An unsent reply or ticket text is the operator's draft: leaving asks first. */
+  function confirmLeave(): boolean {
+    return (
+      !draftDirty ||
+      window.confirm(
         t(
           replyDirty
             ? 'serverAdmin.reports.reply.discardConfirm'
             : 'serverAdmin.reports.detail.discardDraftConfirm',
         ),
       )
-    ) {
-      return;
-    }
-    onClose();
+    );
+  }
+
+  function close() {
+    if (confirmLeave()) onClose();
+  }
+
+  function editTemplates() {
+    if (confirmLeave()) onEditTemplates?.();
+  }
+
+  function insertReplyTemplate(text: string) {
+    const field = replyRef.current;
+    const selection =
+      field && replyCaretPlaced.current
+        ? { start: field.selectionStart, end: field.selectionEnd }
+        : null;
+    const next = insertTemplate(replyText, selection, text);
+    setReplyText(next.value);
+    setCaretRequest({ at: next.caret });
   }
 
   const back = (
@@ -829,6 +871,26 @@ export function ServerAdminSupportReportDetail({
   }
 
   const kindLabel = t(`serverAdmin.reports.kinds.${report.kind}`);
+  const replyFormShown = !(report.hasReply || report.reply);
+  // While the reply form shows, the ticket is created from next to Reply.
+  const ticketCreatable =
+    replyFormShown && report.ticket === null && report.ticketAvailable;
+
+  function openTicketDialog() {
+    if (!report) return;
+    setTicketDialogError(null);
+    setTicketDraft(
+      (kept) =>
+        kept ?? {
+          title: t('serverAdmin.reports.ticketDialog.titleTemplate', {
+            kind: kindLabel,
+            appVersion: report.appVersion,
+          }),
+          body: '',
+        },
+    );
+    setTicketDialogOpen(true);
+  }
   const counterId = `${baseId}-reply-counter`;
   const hintId = `${baseId}-reply-hint`;
   const replyErrorId = `${baseId}-reply-error`;
@@ -935,34 +997,9 @@ export function ServerAdminSupportReportDetail({
         </p>
       </section>
 
-      <section aria-labelledby={stateTitleId}>
-        <fieldset className="server-admin-report-segments">
-          <legend>
-            <h4 id={stateTitleId}>
-              {t('serverAdmin.reports.detail.stateTitle')}
-            </h4>
-          </legend>
-          {SUPPORT_REPORT_STATES.map((state) => (
-            <button
-              key={state}
-              type="button"
-              className="secondary"
-              aria-pressed={report.state === state}
-              disabled={busy || !online}
-              onClick={() => {
-                if (report.state !== state) stateMutation.mutate(state);
-              }}
-            >
-              {t(`serverAdmin.reports.states.${state}`)}
-            </button>
-          ))}
-        </fieldset>
-        <SectionFeedback feedback={feedback} section="state" />
-      </section>
-
       <section>
         <h4>{t('serverAdmin.reports.reply.title')}</h4>
-        {report.hasReply || report.reply ? (
+        {!replyFormShown ? (
           <div className="server-admin-report-sent-reply">
             <p className="server-admin-report-label">
               {t('serverAdmin.reports.reply.sentTitle')}
@@ -983,6 +1020,12 @@ export function ServerAdminSupportReportDetail({
           </div>
         ) : (
           <form className="server-admin-report-form" onSubmit={submitReply}>
+            <ServerAdminReplyTemplateChips
+              api={api}
+              disabled={!online || replyMutation.isPending}
+              onInsert={insertReplyTemplate}
+              onEdit={onEditTemplates ? editTemplates : undefined}
+            />
             <label htmlFor={`${baseId}-reply`}>
               {t('serverAdmin.reports.reply.label')}
             </label>
@@ -990,8 +1033,12 @@ export function ServerAdminSupportReportDetail({
               {t('serverAdmin.reports.reply.hint')}
             </p>
             <textarea
+              ref={replyRef}
               id={`${baseId}-reply`}
               value={replyText}
+              onFocus={() => {
+                replyCaretPlaced.current = true;
+              }}
               rows={4}
               disabled={replyMutation.isPending}
               aria-describedby={
@@ -1021,14 +1068,53 @@ export function ServerAdminSupportReportDetail({
                 {t('serverAdmin.reports.reply.tooLong')}
               </p>
             ) : null}
-            <button type="submit" disabled={!replyReady}>
-              {replyMutation.isPending
-                ? t('serverAdmin.reports.reply.sending')
-                : t('serverAdmin.reports.reply.send')}
-            </button>
+            <div className="server-admin-report-reply-actions">
+              <button type="submit" disabled={!replyReady}>
+                {replyMutation.isPending
+                  ? t('serverAdmin.reports.reply.sending')
+                  : t('serverAdmin.reports.reply.send')}
+              </button>
+              {ticketCreatable ? (
+                <button
+                  type="button"
+                  className="secondary server-admin-report-ticket-icon"
+                  aria-label={t('serverAdmin.reports.ticket.create')}
+                  title={t('serverAdmin.reports.ticket.create')}
+                  disabled={busy || !online}
+                  onClick={openTicketDialog}
+                >
+                  <EimirIcon name="external-link" />
+                </button>
+              ) : null}
+            </div>
           </form>
         )}
         <SectionFeedback feedback={feedback} section="reply" />
+      </section>
+
+      <section aria-labelledby={stateTitleId}>
+        <fieldset className="server-admin-report-segments">
+          <legend>
+            <h4 id={stateTitleId}>
+              {t('serverAdmin.reports.detail.stateTitle')}
+            </h4>
+          </legend>
+          {SUPPORT_REPORT_STATES.map((state) => (
+            <button
+              key={state}
+              type="button"
+              className="secondary"
+              aria-pressed={report.state === state}
+              disabled={busy || !online}
+              onClick={() => {
+                if (report.state !== state) stateMutation.mutate(state);
+              }}
+            >
+              {t(`serverAdmin.reports.states.${state}`)}
+            </button>
+          ))}
+        </fieldset>
+        <SectionFeedback feedback={feedback} section="state" />
       </section>
 
       <section>
@@ -1041,20 +1127,8 @@ export function ServerAdminSupportReportDetail({
           busy={busy}
           trackerFailed={trackerFailed}
           linkRef={ticketLinkRef}
-          onCreate={() => {
-            setTicketDialogError(null);
-            setTicketDraft(
-              (kept) =>
-                kept ?? {
-                  title: t('serverAdmin.reports.ticketDialog.titleTemplate', {
-                    kind: kindLabel,
-                    appVersion: report.appVersion,
-                  }),
-                  body: '',
-                },
-            );
-            setTicketDialogOpen(true);
-          }}
+          showCreate={!replyFormShown}
+          onCreate={openTicketDialog}
           onClear={clearTicket}
         />
         <SectionFeedback feedback={feedback} section="ticket" />

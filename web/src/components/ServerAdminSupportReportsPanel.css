@@ -433,3 +433,71 @@
     border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
   }
 }
+
+/* Reply templates above the reply field (#2327): tinted chips, no outline. */
+.server-admin-template-chips {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.server-admin-template-chips-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.server-admin-template-chips-head .server-admin-report-label {
+  margin: 0;
+}
+
+.server-admin-template-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.server-admin-template-chip {
+  min-height: var(--touch-target-comfortable);
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-brand-surface);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.server-admin-template-edit {
+  min-height: var(--touch-target-comfortable);
+  padding: 0 var(--space-2);
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* Reply leads; the ticket shortcut is a round icon button beside it. */
+.server-admin-report-reply-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.server-admin-report-reply-actions > button[type="submit"] {
+  flex: 1 1 auto;
+}
+
+.server-admin-report-ticket-icon {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: var(--touch-target-comfortable);
+  height: var(--touch-target-comfortable);
+  padding: 0;
+  border-radius: 999px;
+}

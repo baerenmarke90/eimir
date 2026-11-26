@@ -80,10 +80,12 @@ function renderDetail(
   initial: SupportReportDetailView,
   calls: Partial<Record<keyof ServerAdminSupportReportsApi, unknown>> = {},
   onClose: () => void = vi.fn(),
+  onEditTemplates?: () => void,
 ) {
   const getSupportReport = vi.fn().mockResolvedValue(initial);
   const api = {
     getSupportReport,
+    listSupportReplyTemplates: vi.fn().mockResolvedValue({ items: [] }),
     ...calls,
   } as unknown as ServerAdminSupportReportsApi;
   const queryClient = new QueryClient({
@@ -95,10 +97,25 @@ function renderDetail(
         api={api}
         reportId={initial.id}
         onClose={onClose}
+        onEditTemplates={onEditTemplates}
       />
     </QueryClientProvider>,
   );
   return { getSupportReport };
+}
+
+const templates = serverAdmin.templates;
+
+function templateList(...entries: Array<[string, string]>) {
+  return vi.fn().mockResolvedValue({
+    items: entries.map(([name, text], index) => ({
+      id: `00000000-0000-4000-8000-00000000020${index}`,
+      name,
+      text,
+      createdAt: new Date('2026-11-26T09:00:00Z'),
+      updatedAt: new Date('2026-11-26T09:00:00Z'),
+    })),
+  });
 }
 
 beforeEach(() => {
@@ -839,5 +856,125 @@ describe('ServerAdminSupportReportDetail ticket and write failures', () => {
     const error = screen.getByText(reports.reply.tooLong);
     expect(error.getAttribute('role')).toBe('alert');
     expect(field.getAttribute('aria-describedby')).toContain(error.id);
+  });
+});
+
+describe('ServerAdminSupportReportDetail reply templates', () => {
+  it('puts the note and the reply before the state and the facts', async () => {
+    renderDetail(report());
+    await screen.findByLabelText(reports.reply.label);
+
+    const headings = screen
+      .getAllByRole('heading', { level: 4 })
+      .map((heading) => heading.textContent);
+
+    expect(headings).toEqual([
+      reports.detail.noteTitle,
+      reports.reply.title,
+      reports.detail.stateTitle,
+      reports.ticket.title,
+      reports.detail.factsTitle,
+      reports.manage.title,
+    ]);
+  });
+
+  it('inserts a template at the caret and keeps the focus in the reply', async () => {
+    renderDetail(report(), {
+      listSupportReplyTemplates: templateList(['Thanks', 'thank you ']),
+    });
+    const field = (await screen.findByLabelText(
+      reports.reply.label,
+    )) as HTMLTextAreaElement;
+    fireEvent.change(field, { target: { value: 'Hello, for the report.' } });
+    // A tap into the field places the caret.
+    fireEvent.focus(field);
+    field.setSelectionRange(7, 7);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Thanks' }));
+
+    await waitFor(() =>
+      expect(field.value).toBe('Hello, thank you for the report.'),
+    );
+    expect(document.activeElement).toBe(field);
+    expect(field.selectionStart).toBe(17);
+  });
+
+  it('keeps an over-long result and blocks sending', async () => {
+    renderDetail(report(), {
+      listSupportReplyTemplates: templateList(['Long', 'b'.repeat(40)]),
+    });
+    const field = (await screen.findByLabelText(
+      reports.reply.label,
+    )) as HTMLTextAreaElement;
+    fireEvent.change(field, { target: { value: 'a'.repeat(480) } });
+    field.blur();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Long' }));
+
+    await waitFor(() => expect(field.value.length).toBe(521));
+    expect(screen.getByText(reports.reply.tooLong)).toBeTruthy();
+    expect(
+      (
+        screen.getByRole('button', {
+          name: reports.reply.send,
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+  });
+
+  it('hides the templates once the reply was sent', async () => {
+    renderDetail(
+      report({
+        hasReply: true,
+        reply: { repliedAt: new Date('2026-11-24T11:00:00Z'), text: 'Done' },
+      }),
+      { listSupportReplyTemplates: templateList(['Thanks', 'Thanks!']) },
+    );
+
+    await screen.findByText(reports.reply.sentTitle);
+
+    expect(screen.queryByText(templates.chipsTitle)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Thanks' })).toBeNull();
+  });
+
+  it('asks before leaving a draft for the templates page', async () => {
+    const onEditTemplates = vi.fn();
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
+    renderDetail(
+      report(),
+      { listSupportReplyTemplates: templateList(['Thanks', 'Thanks!']) },
+      vi.fn(),
+      onEditTemplates,
+    );
+    fireEvent.change(await screen.findByLabelText(reports.reply.label), {
+      target: { value: 'Half done' },
+    });
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: templates.edit }),
+    );
+    expect(confirm).toHaveBeenCalledWith(reports.reply.discardConfirm);
+    expect(onEditTemplates).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: templates.edit }));
+    expect(onEditTemplates).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers the ticket next to the reply button, once', async () => {
+    renderDetail(report());
+    const send = await screen.findByRole('button', {
+      name: reports.reply.send,
+    });
+
+    const create = screen.getAllByRole('button', {
+      name: reports.ticket.create,
+    });
+
+    expect(create).toHaveLength(1);
+    expect(send.parentElement).toBe(create[0]?.parentElement);
+    fireEvent.click(create[0] as HTMLElement);
+    expect(
+      await screen.findByRole('dialog', { name: reports.ticketDialog.title }),
+    ).toBeTruthy();
   });
 });

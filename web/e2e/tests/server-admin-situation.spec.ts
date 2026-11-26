@@ -285,6 +285,21 @@ test('Situation layout in Compact and Expanded, Light and Dark', async ({
     await expect(
       areaNavigation(page).locator('.notification-dot'),
     ).toBeVisible();
+    // Every icon keeps an icon size and each Needs-you title stays readable
+    // (bare icons used to grow until titles wrapped letter by letter).
+    const iconWidths = await page
+      .locator('#server-admin-main .eimir-icon')
+      .evaluateAll((icons) =>
+        icons.map((icon) => icon.getBoundingClientRect().width),
+      );
+    expect(iconWidths.length).toBeGreaterThan(0);
+    expect(Math.max(...iconWidths)).toBeLessThanOrEqual(32);
+    const titleWidths = await page
+      .locator('.server-admin-needs-you-text strong')
+      .evaluateAll((titles) =>
+        titles.map((title) => title.getBoundingClientRect().width),
+      );
+    expect(Math.min(...titleWidths)).toBeGreaterThan(80);
     await expectReflow(page);
     for (const theme of ['light', 'dark'] as const) {
       await setTheme(page, theme);

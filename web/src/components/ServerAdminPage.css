@@ -276,6 +276,12 @@
   text-decoration: none;
 }
 
+.server-admin-needs-you-row > .eimir-icon {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  color: var(--color-text-secondary);
+}
+
 .server-admin-needs-you-icon {
   flex: none;
   width: 2.5rem;
